@@ -1,9 +1,9 @@
 /**
  * @since 1.0.0
  */
+import * as Cause from "effect/Cause"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
 import * as Queue from "effect/Queue"
 import * as ServiceMap from "effect/ServiceMap"
@@ -67,10 +67,10 @@ const makeQueue = (
             (cause) => {
               if (cause.code === cause.PERMISSION_DENIED) {
                 const error = new GeolocationError({ reason: "PermissionDenied", cause })
-                Queue.doneUnsafe(queue, Exit.fail(error))
+                Queue.failCauseUnsafe(queue, Cause.fail(error))
               } else if (cause.code === cause.TIMEOUT) {
                 const error = new GeolocationError({ reason: "Timeout", cause })
-                Queue.doneUnsafe(queue, Exit.fail(error))
+                Queue.failCauseUnsafe(queue, Cause.fail(error))
               }
             },
             options

@@ -18,7 +18,7 @@ import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type * as Sink from "../../Sink.ts"
+import { Stdio } from "../../Stdio.ts"
 import * as Stream from "../../Stream.ts"
 import * as Tracer from "../../Tracer.ts"
 import type * as Types from "../../Types.ts"
@@ -368,7 +368,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
             step: constVoid
           })
         ),
-        Pull.catchHalt(() => Effect.void),
+        Pull.catchDone(() => Effect.void),
         Effect.scoped
       )
     }
@@ -907,7 +907,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
       isBinary ? Effect.map(request.arrayBuffer, (buf) => new Uint8Array(buf)) : request.text
     )
     const id = clientId++
-    const queue = yield* Queue.make<Uint8Array | FromServerEncoded, Queue.Done>()
+    const queue = yield* Queue.make<Uint8Array | FromServerEncoded, Cause.Done>()
     const parser = serialization.makeUnsafe()
 
     const offer = (data: Uint8Array | string) =>
@@ -977,7 +977,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
     return HttpServerResponse.stream(
       Stream.fromArray(initialChunk).pipe(
         Stream.concat(
-          Stream.fromQueue(queue as Queue.Dequeue<Uint8Array, Queue.Done>)
+          Stream.fromQueue(queue as Queue.Dequeue<Uint8Array, Cause.Done>)
         )
       ),
       { contentType: serialization.contentType }
@@ -1129,18 +1129,16 @@ export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
  * @since 4.0.0
  * @category protocol
  */
-export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROut>(options: {
-  readonly stdin: Stream.Stream<Uint8Array, EIn, RIn>
-  readonly stdout: Sink.Sink<void, Uint8Array | string, unknown, EOut, ROut>
-}) {
+export const makeProtocolStdio = Effect.gen(function*() {
+  const stdio = yield* Stdio
   const fiber = Fiber.getCurrent()!
   const serialization = yield* RpcSerialization.RpcSerialization
 
   return yield* Protocol.make(Effect.fnUntraced(function*(writeRequest) {
-    const queue = yield* Queue.make<Uint8Array | string, Queue.Done>()
+    const queue = yield* Queue.make<Uint8Array | string, Cause.Done>()
     const parser = serialization.makeUnsafe()
 
-    yield* options.stdin.pipe(
+    yield* stdio.stdin.pipe(
       Stream.runForEach((data) => {
         const decoded = parser.decode(data) as ReadonlyArray<FromClientEncoded>
         if (decoded.length === 0) return Effect.void
@@ -1159,7 +1157,7 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
     )
 
     yield* Stream.fromQueue(queue).pipe(
-      Stream.run(options.stdout),
+      Stream.run(stdio.stdout),
       Effect.retry(Schedule.spaced(500)),
       Effect.forkScoped
     )
@@ -1191,11 +1189,11 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
  * @since 4.0.0
  * @category protocol
  */
-export const layerProtocolStdio = <EIn, EOut, RIn, ROut>(options: {
-  readonly stdin: Stream.Stream<Uint8Array, EIn, RIn>
-  readonly stdout: Sink.Sink<void, Uint8Array | string, unknown, EOut, ROut>
-}): Layer.Layer<Protocol, never, RpcSerialization.RpcSerialization | RIn | ROut> =>
-  Layer.effect(Protocol)(makeProtocolStdio(options))
+export const layerProtocolStdio: Layer.Layer<
+  Protocol,
+  never,
+  RpcSerialization.RpcSerialization | Stdio
+> = Layer.effect(Protocol, makeProtocolStdio)
 
 /**
  * @since 4.0.0

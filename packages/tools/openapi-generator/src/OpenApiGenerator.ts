@@ -66,7 +66,7 @@ export const make = Effect.gen(function*() {
           const operation = methods[method]
 
           if (Predicate.isUndefined(operation)) {
-            return
+            continue
           }
 
           const id = operation.operationId
@@ -105,7 +105,7 @@ export const make = Effect.gen(function*() {
               }
 
               if (parameter.in === "path") {
-                return
+                continue
               }
 
               const paramSchema = parameter.schema
@@ -150,14 +150,14 @@ export const make = Effect.gen(function*() {
 
           if (Predicate.isNotUndefined(operation.requestBody?.content?.["application/json"]?.schema)) {
             op.payload = generator.addSchema(
-              `${schemaId}Request`,
+              `${schemaId}RequestJson`,
               operation.requestBody.content["application/json"].schema
             )
           }
 
           if (Predicate.isNotUndefined(operation.requestBody?.content?.["multipart/form-data"]?.schema)) {
             op.payload = generator.addSchema(
-              `${schemaId}Request`,
+              `${schemaId}RequestFormData`,
               operation.requestBody.content["multipart/form-data"].schema
             )
             op.payloadFormData = true
@@ -180,13 +180,13 @@ export const make = Effect.gen(function*() {
 
               if (status === "default") {
                 defaultSchema = schemaName
-                return
+                continue
               }
 
               const statusLower = status.toLowerCase()
               const statusMajorNumber = Number(status[0])
               if (Number.isNaN(statusMajorNumber)) {
-                return
+                continue
               }
               if (statusMajorNumber < 4) {
                 op.successSchemas.set(statusLower, schemaName)

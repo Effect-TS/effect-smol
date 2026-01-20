@@ -639,3 +639,35 @@ export class NoSuchElementError extends TaggedError("NoSuchElementError") {
     super({ message } as any)
   }
 }
+
+/** @internal */
+export const DoneTypeId = "~effect/Cause/Done"
+
+/** @internal */
+export const isDone = (
+  u: unknown
+): u is Cause.Done => hasProperty(u, DoneTypeId)
+
+const DoneVoid: Cause.Done<void> = {
+  [DoneTypeId]: DoneTypeId,
+  _tag: "Done",
+  value: undefined
+}
+
+/** @internal */
+export const Done = <A = void>(value?: A): Cause.Done<A> => {
+  if (value === undefined) return DoneVoid as Cause.Done<A>
+  return {
+    [DoneTypeId]: DoneTypeId,
+    _tag: "Done",
+    value
+  }
+}
+
+const doneVoid = exitFail(DoneVoid)
+
+/** @internal */
+export const done = <A = void>(value?: A): Effect.Effect<never, Cause.Done<A>> => {
+  if (value === undefined) return doneVoid as any
+  return exitFail(Done(value))
+}

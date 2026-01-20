@@ -159,7 +159,6 @@ export const causeResponse = <E>(
       case "Interrupt": {
         isClientInterrupt = isClientInterrupt || f.fiberId === clientAbortFiberId
         if (failures.length > 0) break
-        effect = f.fiberId === clientAbortFiberId ? clientAbortError : serverAbortError
         interrupt = f
         break
       }
@@ -169,6 +168,7 @@ export const causeResponse = <E>(
     return Effect.succeed([response, Cause.fromFailures(failures)] as const)
   } else if (interrupt && failures.length === 0) {
     failures.push(isClientInterrupt ? Cause.failureInterrupt(clientAbortFiberId) : interrupt)
+    effect = isClientInterrupt ? clientAbortError : serverAbortError
   }
   return Effect.mapEager(effect, (response) => {
     failures.push(Cause.failureDie(response))

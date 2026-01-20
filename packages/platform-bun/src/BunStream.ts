@@ -2,10 +2,11 @@
  * @since 1.0.0
  */
 import * as Arr from "effect/Array"
+import * as Cause from "effect/Cause"
 import * as Channel from "effect/Channel"
 import * as Effect from "effect/Effect"
 import type { LazyArg } from "effect/Function"
-import * as Pull from "effect/Pull"
+import type * as Pull from "effect/Pull"
 import * as Scope from "effect/Scope"
 import * as Stream from "effect/Stream"
 
@@ -48,7 +49,7 @@ export const fromReadableStream = <A, E>(
         { done, value }
       ): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
         if (done) {
-          return Pull.haltVoid
+          return Cause.done()
         } else if (!Arr.isReadonlyArrayNonEmpty(value)) {
           return Effect.flatMap(readMany, loop)
         }

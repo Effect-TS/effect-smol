@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Chunk, Effect, Fiber, Option, TxQueue } from "effect"
+import { Cause, Effect, Fiber, Option, TxQueue } from "effect"
 
 describe("TxQueue", () => {
   describe("interfaces", () => {
@@ -18,7 +18,7 @@ describe("TxQueue", () => {
         assert.strictEqual(offered, true)
 
         const rejected = yield* TxQueue.offerAll(queue, [1, 2, 3])
-        assert.deepStrictEqual(Chunk.toReadonlyArray(rejected), [])
+        assert.deepStrictEqual(rejected, [])
       }))
 
     it.effect("TxDequeue provides read-only interface", () =>
@@ -59,21 +59,21 @@ describe("TxQueue", () => {
   describe("interface segregation", () => {
     it.effect("TxEnqueue interface enforces write-only operations", () =>
       Effect.gen(function*() {
-        const queue = yield* TxQueue.bounded<number, string>(5)
-        const enqueue: TxQueue.TxEnqueue<number, string> = queue
+        const queue = yield* TxQueue.bounded<number, string | Cause.Done>(5)
+        const enqueue: TxQueue.TxEnqueue<number, string | Cause.Done> = queue
 
         // Enqueue operations should work
         const accepted = yield* TxQueue.offer(enqueue, 42)
         assert.strictEqual(accepted, true)
 
         const rejected = yield* TxQueue.offerAll(enqueue, [1, 2, 3])
-        assert.deepStrictEqual(Chunk.toReadonlyArray(rejected), [])
+        assert.deepStrictEqual(rejected, [])
 
         // State management operations should work
         const result = yield* TxQueue.failCause(enqueue, Cause.interrupt())
         assert.strictEqual(result, true)
 
-        const endResult = yield* TxQueue.end(enqueue as TxQueue.TxEnqueue<number, string | Cause.NoSuchElementError>)
+        const endResult = yield* TxQueue.end(enqueue)
         assert.strictEqual(endResult, false) // Already done
       }))
 
@@ -224,7 +224,7 @@ describe("TxQueue", () => {
         const queue = yield* TxQueue.bounded<number>(10)
 
         const rejected = yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
-        assert.deepStrictEqual(Chunk.toReadonlyArray(rejected), [])
+        assert.deepStrictEqual(rejected, [])
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 5)
@@ -572,7 +572,7 @@ describe("TxQueue", () => {
   })
 
   describe("clear", () => {
-    it.effect("clear removes all items from queue", () =>
+    it.effect("clear removes all items from queue and returns them", () =>
       Effect.gen(function*() {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
@@ -580,7 +580,8 @@ describe("TxQueue", () => {
         const sizeBefore = yield* TxQueue.size(queue)
         assert.strictEqual(sizeBefore, 5)
 
-        yield* TxQueue.clear(queue)
+        const cleared = yield* TxQueue.clear(queue)
+        assert.deepStrictEqual(cleared, [1, 2, 3, 4, 5])
 
         const sizeAfter = yield* TxQueue.size(queue)
         assert.strictEqual(sizeAfter, 0)
@@ -594,7 +595,8 @@ describe("TxQueue", () => {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
 
-        yield* TxQueue.clear(queue)
+        const cleared = yield* TxQueue.clear(queue)
+        assert.deepStrictEqual(cleared, [1, 2, 3])
 
         // Queue should still be open
         const isOpen = yield* TxQueue.isOpen(queue)
@@ -612,7 +614,8 @@ describe("TxQueue", () => {
       Effect.gen(function*() {
         const queue = yield* TxQueue.bounded<number>(10)
 
-        yield* TxQueue.clear(queue)
+        const cleared = yield* TxQueue.clear(queue)
+        assert.deepStrictEqual(cleared, [])
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 0)
@@ -621,11 +624,11 @@ describe("TxQueue", () => {
         assert.strictEqual(isEmpty, true)
       }))
 
-    it.effect("clear works on closed queue", () =>
+    it.effect("clear works on queue ended with Done", () =>
       Effect.gen(function*() {
-        const queue = yield* TxQueue.bounded<number>(10)
+        const queue = yield* TxQueue.bounded<number, Cause.Done>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
-        yield* TxQueue.interrupt(queue)
+        yield* TxQueue.end(queue)
 
         // Take all items to move from Closing to Done state
         yield* TxQueue.takeAll(queue)
@@ -634,7 +637,9 @@ describe("TxQueue", () => {
         const isDoneBefore = yield* TxQueue.isDone(queue)
         assert.strictEqual(isDoneBefore, true)
 
-        yield* TxQueue.clear(queue)
+        // clear() returns empty array for halt causes (like Done)
+        const cleared = yield* TxQueue.clear(queue)
+        assert.deepStrictEqual(cleared, [])
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 0)
@@ -1179,10 +1184,10 @@ describe("TxQueue", () => {
     })
   })
 
-  describe("NoSuchElementError and end function", () => {
-    it.effect("end() signals completion with NoSuchElementError", () =>
+  describe("Done and end function", () => {
+    it.effect("end() signals completion with Done", () =>
       Effect.gen(function*() {
-        const queue = yield* TxQueue.bounded<number, Cause.NoSuchElementError>(5)
+        const queue = yield* TxQueue.bounded<number, Cause.Done>(5)
         yield* TxQueue.offer(queue, 1)
         yield* TxQueue.offer(queue, 2)
 
@@ -1202,9 +1207,9 @@ describe("TxQueue", () => {
         assert.strictEqual(isDone, true)
       }))
 
-    it.effect("take() on ended queue fails with NoSuchElementError", () =>
+    it.effect("take() on ended queue fails with Done", () =>
       Effect.gen(function*() {
-        const queue = yield* TxQueue.bounded<number, Cause.NoSuchElementError>(5)
+        const queue = yield* TxQueue.bounded<number, Cause.Done>(5)
         yield* TxQueue.offer(queue, 42)
         yield* TxQueue.end(queue)
 
@@ -1212,15 +1217,15 @@ describe("TxQueue", () => {
         const item = yield* TxQueue.take(queue)
         assert.strictEqual(item, 42)
 
-        // Second take should fail with NoSuchElementError since queue is now done
+        // Second take should fail with Done since queue is now done
         const takeResult = yield* Effect.flip(TxQueue.take(queue))
-        assert.strictEqual(Cause.isNoSuchElementError(takeResult), true)
-        assert.strictEqual(takeResult instanceof Cause.NoSuchElementError, true)
+        assert.strictEqual(Cause.isDone(takeResult), true)
+        assert.strictEqual(takeResult, Cause.Done())
       }))
 
     it.effect("end() works with TxEnqueue interface", () =>
       Effect.gen(function*() {
-        const queue = yield* TxQueue.bounded<number, Cause.NoSuchElementError>(5)
+        const queue = yield* TxQueue.bounded<number, Cause.Done>(5)
 
         yield* TxQueue.offer(queue, 1)
         const result = yield* TxQueue.end(queue)
@@ -1240,7 +1245,7 @@ describe("TxQueue", () => {
 
     it.effect("end() returns false if queue is already done", () =>
       Effect.gen(function*() {
-        const queue = yield* TxQueue.bounded<number, Cause.NoSuchElementError>(5)
+        const queue = yield* TxQueue.bounded<number, Cause.Done>(5)
 
         // End the queue once
         const result1 = yield* TxQueue.end(queue)

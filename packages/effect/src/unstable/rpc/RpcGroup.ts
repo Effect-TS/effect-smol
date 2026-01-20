@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
@@ -188,13 +189,13 @@ export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handle
     | Stream.Stream<infer _A, infer _E, infer _R>
     | Rpc.Wrapper<Stream.Stream<infer _A, infer _E, infer _R>>
     | Effect.Effect<
-      Queue.Dequeue<infer _A, infer _E | Queue.Done>,
+      Queue.Dequeue<infer _A, infer _E | Cause.Done>,
       infer _EX,
       infer _R
     >
     | Rpc.Wrapper<
       Effect.Effect<
-        Queue.Dequeue<infer _A, infer _E | Queue.Done>,
+        Queue.Dequeue<infer _A, infer _E | Cause.Done>,
         infer _EX,
         infer _R
       >

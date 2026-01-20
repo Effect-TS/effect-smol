@@ -3,7 +3,7 @@
  */
 import type { NonEmptyReadonlyArray } from "./Array.ts"
 import * as Arr from "./Array.ts"
-import type * as Cause from "./Cause.ts"
+import * as Cause from "./Cause.ts"
 import * as Channel from "./Channel.ts"
 import * as Clock from "./Clock.ts"
 import * as Duration from "./Duration.ts"
@@ -239,7 +239,7 @@ export const fromChannel = <L, In, E, A, R>(
   fromTransform((upstream, scope) =>
     Channel.toTransform(channel)(upstream, scope).pipe(
       Effect.flatMap(Effect.forever({ autoYield: false })),
-      Pull.catchHalt(Effect.succeed)
+      Pull.catchDone(Effect.succeed)
     ) as Effect.Effect<End<A, L>, E, R>
   )
 
@@ -279,7 +279,7 @@ export const toChannel = <A, In, L, E, R>(
   Channel.fromTransform((upstream, scope) =>
     Effect.succeed(Effect.flatMap(
       self.transform(upstream, scope),
-      Pull.halt
+      Cause.done
     ))
   )
 
@@ -292,7 +292,7 @@ export const make = <In>(): make.Constructor<In> => (...fns: []) =>
     pipe(
       internalStream.fromChannel(Channel.fromPull(Effect.succeed(upstream))),
       ...fns as any as [() => Effect.Effect<any>],
-      Effect.flatMap((a) => Pull.halt<End<any>>([a])),
+      Effect.flatMap((a) => Cause.done<End<any>>([a])),
       Scope.provide(scope)
     )
   )
@@ -415,13 +415,13 @@ export const fromEffect = <A, E, R>(
  * @category constructors
  */
 export const fromQueue = <A>(
-  queue: Queue.Queue<A, Queue.Done>
+  queue: Queue.Queue<A, Cause.Done>
 ): Sink<void, A> =>
   fromTransform((upstream) =>
     upstream.pipe(
       Effect.flatMap((arr) => Queue.offerAll(queue, arr)),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt((_) => {
+      Pull.catchDone((_) => {
         Queue.endUnsafe(queue)
         return endVoid
       })
@@ -619,7 +619,7 @@ export const ignoreLeftover = <A, In, L, E, R>(self: Sink<A, In, L, E, R>): Sink
  * @category constructors
  */
 export const drain: Sink<void, unknown> = fromTransform((upstream) =>
-  Pull.catchHalt(
+  Pull.catchDone(
     Effect.forever(upstream, { autoYield: false }),
     () => endVoid
   )
@@ -653,7 +653,7 @@ export const fold = <S, In, E = never, R = never>(
         }
       }
     }).pipe(
-      Pull.catchHalt(() => Effect.succeed<End<S, In>>([state]))
+      Pull.catchDone(() => Effect.succeed<End<S, In>>([state]))
     )
   })
 
@@ -677,7 +677,7 @@ export const foldArray = <S, In, E = never, R = never>(
         return [state] as const
       }
     }).pipe(
-      Pull.catchHalt(() => Effect.succeed<End<S>>([state]))
+      Pull.catchDone(() => Effect.succeed<End<S>>([state]))
     )
   })
 
@@ -957,7 +957,7 @@ export const take = <In>(n: number): Sink<Array<In>, In, In> =>
         if (taken.length + arr.length <= n) {
           taken.push(...arr)
           if (taken.length === n) {
-            return Pull.haltVoid
+            return Cause.done()
           }
           return Effect.void
         }
@@ -967,13 +967,13 @@ export const take = <In>(n: number): Sink<Array<In>, In, In> =>
             if ((i + 1) < arr.length) {
               leftover = arr.slice(i + 1) as any
             }
-            return Pull.haltVoid
+            return Cause.done()
           }
         }
         return Effect.void
       }),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt(() => Effect.succeed([taken, leftover] as const))
+      Pull.catchDone(() => Effect.succeed([taken, leftover] as const))
     )
   })
 
@@ -1015,7 +1015,7 @@ export const flatMap: {
               leftover = undefined
               return Effect.succeed(arr)
             } else if (upstreamDone) {
-              return Pull.haltVoid
+              return Cause.done()
             }
             return upstream
           }),
@@ -1050,13 +1050,13 @@ export const reduceWhile = <S, In>(
             if ((i + 1) < arr.length) {
               leftover = arr.slice(i + 1) as any
             }
-            return Pull.haltVoid
+            return Cause.done()
           }
         }
         return Effect.void
       }),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt(() => Effect.succeed([state, leftover] as const))
+      Pull.catchDone(() => Effect.succeed([state, leftover] as const))
     )
   })
 
@@ -1090,7 +1090,7 @@ export const reduceWhileEffect = <S, In, E, R>(
               if (i < arr.length) {
                 leftover = arr.slice(i) as any
               }
-              return Pull.haltVoid
+              return Cause.done()
             }
             return Effect.void
           })),
@@ -1098,7 +1098,7 @@ export const reduceWhileEffect = <S, In, E, R>(
         })
       }),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt(() => Effect.succeed([state, leftover] as const))
+      Pull.catchDone(() => Effect.succeed([state, leftover] as const))
     )
   })
 
@@ -1124,13 +1124,13 @@ export const reduceWhileArray = <S, In>(
         for (let i = 0; i < arr.length; i++) {
           state = f(state, arr)
           if (!contFn(state)) {
-            return Pull.haltVoid
+            return Cause.done()
           }
         }
         return Effect.void
       }),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt(() => Effect.succeed([state] as const))
+      Pull.catchDone(() => Effect.succeed([state] as const))
     )
   })
 
@@ -1157,12 +1157,12 @@ export const reduceWhileArrayEffect = <S, In, E, R>(
       Effect.flatMap((s) => {
         state = s
         if (!predicate(state)) {
-          return Pull.haltVoid
+          return Cause.done()
         }
         return Effect.void
       }),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt(() => Effect.succeed([state] as const))
+      Pull.catchDone(() => Effect.succeed([state] as const))
     )
   })
 
@@ -1200,7 +1200,7 @@ export const reduceArray = <S, In>(
         return Effect.void
       }),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt(() => Effect.succeed([state] as const))
+      Pull.catchDone(() => Effect.succeed([state] as const))
     )
   })
 
@@ -1370,14 +1370,14 @@ export const takeFilter = <In, Out, X>(filter: Filter.Filter<In, Out, X>): Sink<
             const leftover: Arr.NonEmptyReadonlyArray<In> | undefined = (i + 1) < arr.length
               ? arr.slice(i + 1) as any
               : undefined
-            return Pull.halt([out, leftover] as const)
+            return Cause.done([out, leftover] as const)
           }
           out.push(result)
         }
         return Effect.void
       }),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt((end) => Effect.succeed<End<Array<Out>, In>>(end ?? [out]))
+      Pull.catchDone((end) => Effect.succeed<End<Array<Out>, In>>(end ?? [out]))
     )
   })
 
@@ -1403,7 +1403,7 @@ export const takeFilterEffect = <In, Out, X, E, R>(
               if (i < arr.length) {
                 leftover = arr.slice(i) as any
               }
-              return Pull.haltVoid
+              return Cause.done()
             }
             out.push(result)
             return Effect.void
@@ -1412,7 +1412,7 @@ export const takeFilterEffect = <In, Out, X, E, R>(
         })
       }),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt(() => Effect.succeed([out, leftover] as const))
+      Pull.catchDone(() => Effect.succeed([out, leftover] as const))
     )
   })
 
@@ -1478,7 +1478,7 @@ export const forEachArray = <In, X, E, R>(
     upstream.pipe(
       Effect.flatMap(f),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt(() => endVoid)
+      Pull.catchDone(() => endVoid)
     )
   )
 
@@ -1507,9 +1507,9 @@ export const forEachWhileArray = <In, E, R>(
   fromTransform((upstream) =>
     upstream.pipe(
       Effect.flatMap(f),
-      Effect.flatMap((cont) => cont ? Effect.void : Pull.haltVoid),
+      Effect.flatMap((cont) => cont ? Effect.void : Cause.done()),
       Effect.forever({ autoYield: false }),
-      Pull.catchHalt(() => endVoid)
+      Pull.catchDone(() => endVoid)
     )
   )
 
@@ -1665,7 +1665,7 @@ export const orElse: {
         f(error).transform(
           Effect.suspend(() => {
             if (upstreamDone) {
-              return Pull.haltVoid
+              return Cause.done()
             }
             return upstream
           }),

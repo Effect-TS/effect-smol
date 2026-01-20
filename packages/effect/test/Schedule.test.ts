@@ -205,7 +205,7 @@ const runCollect = Effect.fnUntraced(function*<Output, Input, Error, Env>(
     for (const value of input) {
       out.push(yield* step(value))
     }
-  }).pipe(Pull.catchHalt((value) => {
+  }).pipe(Pull.catchDone((value) => {
     out.push(value as Output)
     return Effect.void
   }))

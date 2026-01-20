@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type * as Cause from "./Cause.ts"
 import type * as Effect from "./Effect.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import * as Predicate from "./Predicate.ts"
@@ -28,7 +29,7 @@ export interface Terminal {
   /**
    * Reads input events from the default standard input.
    */
-  readonly readInput: Effect.Effect<Queue.Dequeue<UserInput, Queue.Done>, never, Scope.Scope>
+  readonly readInput: Effect.Effect<Queue.Dequeue<UserInput, Cause.Done>, never, Scope.Scope>
   /**
    * Reads a single line from the default standard input.
    */

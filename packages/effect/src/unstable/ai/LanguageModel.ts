@@ -48,6 +48,7 @@
  *
  * @since 4.0.0
  */
+import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -866,7 +867,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         const decodeParts = Schema.decodeEffect(ResponseSchema)
         const queue = yield* Queue.make<
           Response.StreamPart<Tools>,
-          AiError.AiError | Queue.Done | Schema.SchemaError
+          AiError.AiError | Cause.Done | Schema.SchemaError
         >()
         yield* params.streamText(providerOptions).pipe(
           Stream.runForEachArray(Effect.fnUntraced(function*(chunk) {

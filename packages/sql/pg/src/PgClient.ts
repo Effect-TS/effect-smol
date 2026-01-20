@@ -2,6 +2,7 @@
  * @since 1.0.0
  */
 import * as Arr from "effect/Array"
+import * as Cause from "effect/Cause"
 import * as Channel from "effect/Channel"
 import * as Config from "effect/Config"
 import * as Duration from "effect/Duration"
@@ -9,7 +10,6 @@ import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as Number from "effect/Number"
-import * as Pull from "effect/Pull"
 import * as Queue from "effect/Queue"
 import * as RcRef from "effect/RcRef"
 import * as Redacted from "effect/Redacted"
@@ -293,14 +293,14 @@ export const make = (
           yield* Scope.addFinalizer(scope, Effect.promise(() => cursor.close()))
           const cursor = client.query(new Cursor(sql, params as any))
           // @effect-diagnostics-next-line returnEffectInGen:off
-          return Effect.callback<Arr.NonEmptyReadonlyArray<any>, SqlError | Pull.Halt>((resume) => {
+          return Effect.callback<Arr.NonEmptyReadonlyArray<any>, SqlError | Cause.Done>((resume) => {
             cursor.read(128, (err, rows) => {
               if (err) {
                 resume(Effect.fail(new SqlError({ cause: err, message: "Failed to execute statement" })))
               } else if (Arr.isArrayNonEmpty(rows)) {
                 resume(Effect.succeed(transformRows ? transformRows(rows) as any : rows))
               } else {
-                resume(Pull.haltVoid)
+                resume(Cause.done())
               }
             })
           })

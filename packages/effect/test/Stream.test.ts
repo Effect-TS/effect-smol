@@ -65,7 +65,7 @@ describe("Stream", () => {
     it.effect("signals the end of the stream", () =>
       Effect.gen(function*() {
         const result = yield* Stream.callback<number>((mb) => {
-          Queue.doneUnsafe(mb, Exit.void)
+          Queue.endUnsafe(mb)
           return Effect.void
         }).pipe(Stream.runCollect)
         assert.isTrue(result.length === 0)
@@ -75,7 +75,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const error = new Error("boom")
         const result = yield* Stream.callback<number, Error>((mb) => {
-          Queue.doneUnsafe(mb, Exit.fail(error))
+          Queue.failCauseUnsafe(mb, Cause.fail(error))
           return Effect.void
         }).pipe(
           Stream.runCollect,
@@ -257,6 +257,24 @@ describe("Stream", () => {
         )
         assert.deepStrictEqual(results, [1, 2, 3, 4, 5, 6])
         assert.strictEqual(error, "boom")
+      }))
+
+    it.effect("catchIf", () =>
+      Effect.gen(function*() {
+        interface ErrorA {
+          readonly _tag: "ErrorA"
+        }
+        interface ErrorB {
+          readonly _tag: "ErrorB"
+        }
+        const stream: Stream.Stream<never, ErrorA | ErrorB> = Stream.fail({ _tag: "ErrorB" as const })
+        const result = yield* pipe(
+          stream,
+          Stream.catchIf((error): error is ErrorA => error._tag === "ErrorA", () => Stream.succeed("ok")),
+          Stream.runCollect,
+          Effect.exit
+        )
+        assert.deepStrictEqual(result, Exit.fail({ _tag: "ErrorB" as const }))
       }))
   })
 
@@ -2812,11 +2830,88 @@ describe("Stream", () => {
   })
 
   describe("partition", () => {
-    it.effect("partitionEffect - allows repeated runs without hanging", () =>
+    it.effect("values", () =>
+      Effect.gen(function*() {
+        const { result1, result2 } = yield* pipe(
+          Stream.range(0, 5),
+          Stream.partition((n) => n % 2 === 0),
+          Effect.flatMap(([odds, evens]) =>
+            Effect.all({
+              result1: Stream.runCollect(evens),
+              result2: Stream.runCollect(odds)
+            })
+          ),
+          Effect.scoped
+        )
+        deepStrictEqual(result1, [0, 2, 4])
+        deepStrictEqual(result2, [1, 3, 5])
+      }))
+
+    it.effect("errors", () =>
+      Effect.gen(function*() {
+        const { result1, result2 } = yield* pipe(
+          Stream.make(0),
+          Stream.concat(Stream.fail("boom")),
+          Stream.partition((n) => n % 2 === 0),
+          Effect.flatMap(([odds, evens]) =>
+            Effect.all({
+              result1: Effect.flip(Stream.runCollect(evens)),
+              result2: Effect.flip(Stream.runCollect(odds))
+            })
+          ),
+          Effect.scoped
+        )
+        assert.strictEqual(result1, "boom")
+        assert.strictEqual(result2, "boom")
+      }))
+
+    it.effect("backpressure", () =>
+      Effect.gen(function*() {
+        const { result1, result2, result3 } = yield* pipe(
+          Stream.range(0, 5),
+          Stream.partition((n) => n % 2 === 0, { bufferSize: 1 }),
+          Effect.flatMap(([odds, evens]) =>
+            Effect.gen(function*() {
+              const ref = yield* Ref.make(Array.empty<number>())
+              const latch = yield* Deferred.make<void>()
+              const fiber = yield* pipe(
+                evens,
+                Stream.tap((n) =>
+                  pipe(
+                    Ref.update(ref, Array.prepend(n)),
+                    Effect.andThen(
+                      pipe(
+                        Deferred.succeed(latch, void 0),
+                        Effect.when(() => n === 2)
+                      )
+                    )
+                  )
+                ),
+                Stream.runDrain,
+                Effect.forkChild
+              )
+              yield* Deferred.await(latch)
+              const result1 = yield* Ref.get(ref)
+              const result2 = yield* Stream.runCollect(odds)
+              yield* Fiber.await(fiber)
+              const result3 = yield* Ref.get(ref)
+              return { result1, result2, result3 }
+            })
+          ),
+          Effect.scoped
+        )
+        deepStrictEqual(result1, [2, 0])
+        deepStrictEqual(result2, [1, 3, 5])
+        deepStrictEqual(result3, [4, 2, 0])
+      }))
+  })
+
+  describe("partitionFilter", () => {
+    it.effect("partitionFilterEffect - allows repeated runs without hanging", () =>
       Effect.gen(function*() {
         const stream = pipe(
           Stream.fromIterable(Array.empty<number>()),
-          Stream.partitionEffect((n) => Effect.succeed(n % 2 === 0 ? n : Filter.fail(n))),
+          Stream.partitionFilterEffect((n) => Effect.succeed(n % 2 === 0 ? n : Filter.fail(n))),
           Effect.map(([evens, odds]) => pipe(evens, Stream.mergeResult(odds))),
           Effect.flatMap(Stream.runCollect),
           Effect.scoped
@@ -2828,11 +2923,11 @@ describe("Stream", () => {
         strictEqual(result, 0)
       }))
 
-    it.effect("partition - values", () =>
+    it.effect("partitionFilter - values", () =>
       Effect.gen(function*() {
         const { result1, result2 } = yield* pipe(
           Stream.range(0, 5),
-          Stream.partition((n) => n % 2 === 0 ? n : Filter.fail(n)),
+          Stream.partitionFilter((n) => n % 2 === 0 ? n : Filter.fail(n)),
           Effect.flatMap(([evens, odds]) =>
             Effect.all({
               result1: Stream.runCollect(evens),
@@ -2845,12 +2940,12 @@ describe("Stream", () => {
         deepStrictEqual(result2, [1, 3, 5])
       }))
 
-    it.effect("partition - errors", () =>
+    it.effect("partitionFilter - errors", () =>
       Effect.gen(function*() {
         const { result1, result2 } = yield* pipe(
           Stream.make(0),
           Stream.concat(Stream.fail("boom")),
-          Stream.partition((n) => n % 2 === 0 ? n : Filter.fail(n)),
+          Stream.partitionFilter((n) => n % 2 === 0 ? n : Filter.fail(n)),
           Effect.flatMap(([evens, odds]) =>
             Effect.all({
               result1: Effect.flip(Stream.runCollect(evens)),
@@ -2863,11 +2958,11 @@ describe("Stream", () => {
         assert.strictEqual(result2, "boom")
       }))
 
-    it.effect("partition - backpressure", () =>
+    it.effect("partitionFilter - backpressure", () =>
       Effect.gen(function*() {
         const { result1, result2, result3 } = yield* pipe(
           Stream.range(0, 5),
-          Stream.partition((n) => (n % 2 === 0 ? n : Filter.fail(n)), { capacity: 1 }),
+          Stream.partitionFilter((n) => (n % 2 === 0 ? n : Filter.fail(n)), { capacity: 1 }),
           Effect.flatMap(([evens, odds]) =>
             Effect.gen(function*() {
               const ref = yield* Ref.make(Array.empty<number>())

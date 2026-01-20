@@ -1,9 +1,9 @@
 /**
  * @since 1.0.0
  */
+import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import { effectify } from "effect/Effect"
-import * as Exit from "effect/Exit"
 import * as FileSystem from "effect/FileSystem"
 import { pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
@@ -548,9 +548,9 @@ const watchNode = (path: string) =>
           }
         })
         watcher.on("error", (error) => {
-          Queue.doneUnsafe(
+          Queue.failCauseUnsafe(
             queue,
-            Exit.fail(
+            Cause.fail(
               new Error.SystemError({
                 module: "FileSystem",
                 reason: "Unknown",

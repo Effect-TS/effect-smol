@@ -9,6 +9,7 @@
  *
  * @since 4.0.0
  */
+import type * as Arr from "./Array.ts"
 import * as Cause from "./Cause.ts"
 import * as Chunk from "./Chunk.ts"
 import * as Effect from "./Effect.ts"
@@ -17,6 +18,7 @@ import type { Inspectable } from "./Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "./Inspectable.ts"
 import * as Option from "./Option.ts"
 import { hasProperty } from "./Predicate.ts"
+import { type ExcludeDone, isDoneCause } from "./Pull.ts"
 import * as TxChunk from "./TxChunk.ts"
 import * as TxRef from "./TxRef.ts"
 import type * as Types from "./Types.ts"
@@ -204,10 +206,10 @@ export interface TxQueueState extends Inspectable {
  *   yield* TxQueue.offerAll(faultTolerantQueue, [1, 2, 3])
  *   yield* TxQueue.fail(faultTolerantQueue, "processing complete")
  *
- *   // Works with NoSuchElementError for clean completion
+ *   // Works with Done for clean completion
  *   const completableQueue = yield* TxQueue.bounded<
  *     string,
- *     Cause.NoSuchElementError
+ *     Cause.Done
  *   >(5)
  *   yield* TxQueue.offer(completableQueue, "task")
  *   yield* TxQueue.end(completableQueue)
@@ -608,6 +610,8 @@ export const offer: {
 /**
  * Offers multiple items to the queue.
  *
+ * Returns an array of items that were rejected (not added to the queue).
+ *
  * **Mutation behavior**: This function mutates the original TxQueue by adding
  * items according to the queue's strategy. It does not return a new TxQueue reference.
  *
@@ -618,9 +622,10 @@ export const offer: {
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number>(10)
  *
- *   // Offer multiple items - returns rejected items
+ *   // Offer multiple items - returns rejected items as array
  *   const rejected = yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
- *   console.log(Chunk.toArray(rejected)) // [] if all accepted
+ *   console.log(rejected) // [] if all accepted
+ *   console.log(rejected.length) // 0
  * })
  * ```
  *
@@ -628,11 +633,11 @@ export const offer: {
  * @category combinators
  */
 export const offerAll: {
-  <A, E>(values: Iterable<A>): (self: TxEnqueue<A, E>) => Effect.Effect<Chunk.Chunk<A>>
-  <A, E>(self: TxEnqueue<A, E>, values: Iterable<A>): Effect.Effect<Chunk.Chunk<A>>
+  <A, E>(values: Iterable<A>): (self: TxEnqueue<A, E>) => Effect.Effect<Array<A>>
+  <A, E>(self: TxEnqueue<A, E>, values: Iterable<A>): Effect.Effect<Array<A>>
 } = dual(
   2,
-  <A, E>(self: TxEnqueue<A, E>, values: Iterable<A>): Effect.Effect<Chunk.Chunk<A>> =>
+  <A, E>(self: TxEnqueue<A, E>, values: Iterable<A>): Effect.Effect<Array<A>> =>
     Effect.atomic(
       Effect.gen(function*() {
         const rejected: Array<A> = []
@@ -644,7 +649,7 @@ export const offerAll: {
           }
         }
 
-        return Chunk.fromIterable(rejected)
+        return rejected
       })
     )
 )
@@ -758,20 +763,23 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * If the queue is already in a failed state, the error is propagated through the E-channel.
  * Follows the same patterns as `take` - waits when there are no elements.
  *
+ * Returns a non-empty array since it blocks until at least one item is available.
+ *
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * all items. It does not return a new TxQueue reference.
  *
  * @example
  * ```ts
- * import { Effect, TxQueue } from "effect"
+ * import { Array, Effect, TxQueue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number, string>(10)
  *   yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
  *
- *   // Take all items atomically
+ *   // Take all items atomically - returns NonEmptyArray
  *   const items = yield* TxQueue.takeAll(queue)
  *   console.log(items) // [1, 2, 3, 4, 5]
+ *   console.log(Array.isArrayNonEmpty(items)) // true
  * })
  *
  * // Error propagation example
@@ -789,7 +797,7 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * @since 4.0.0
  * @category combinators
  */
-export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<ReadonlyArray<A>, E> =>
+export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmptyArray<A>, E> =>
   Effect.atomic(
     Effect.gen(function*() {
       const state = yield* TxRef.get(self.stateRef)
@@ -806,8 +814,8 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<ReadonlyArra
 
       const chunk = yield* TxChunk.get(self.items)
 
-      // Take all items
-      const items = Chunk.toArray(chunk)
+      // Take all items (guaranteed non-empty due to isEmpty check above)
+      const items = Chunk.toArray(chunk) as Arr.NonEmptyArray<A>
       yield* TxChunk.set(self.items, Chunk.empty())
 
       // Check if we need to transition Closing → Done
@@ -1247,20 +1255,20 @@ export const failCause: {
   ))
 
 /**
- * Ends a queue by signaling completion with a NoSuchElementError error.
+ * Ends a queue by signaling completion with a Done error.
  *
  * This function provides a clean way to signal the end of a queue by calling
- * `failCause` with a new `NoSuchElementError` instance. This is a convenience function for
- * queues that are typed to accept `NoSuchElementError` in their error channel.
+ * `failCause` with `Cause.Done`. This is a convenience function for
+ * queues that are typed to accept `Cause.Done` in their error channel.
  * When a queue is ended, all subsequent operations (take, peek, etc.) will fail with
- * the NoSuchElementError, propagating through the E-channel.
+ * `Cause.Done`, propagating through the E-channel.
  *
  * @example
  * ```ts
  * import { Cause, Effect, TxQueue } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* TxQueue.bounded<number, Cause.NoSuchElementError>(10)
+ *   const queue = yield* TxQueue.bounded<number, Cause.Done>(10)
  *   yield* TxQueue.offer(queue, 1)
  *   yield* TxQueue.offer(queue, 2)
  *
@@ -1268,23 +1276,24 @@ export const failCause: {
  *   const result = yield* TxQueue.end(queue)
  *   console.log(result) // true
  *
- *   // All operations will now fail with NoSuchElementError
+ *   // All operations will now fail with Done
  *   const takeResult = yield* Effect.flip(TxQueue.take(queue))
- *   console.log(Cause.isNoSuchElementError(takeResult)) // true
+ *   console.log(Cause.isDone(takeResult)) // true
  *
  *   const peekResult = yield* Effect.flip(TxQueue.peek(queue))
- *   console.log(Cause.isNoSuchElementError(peekResult)) // true
+ *   console.log(Cause.isDone(peekResult)) // true
  * })
  * ```
  *
  * @since 4.0.0
  * @category combinators
  */
-export const end = <A, E>(self: TxEnqueue<A, E | Cause.NoSuchElementError>): Effect.Effect<boolean> =>
-  failCause(self, Cause.fail(new Cause.NoSuchElementError()))
+export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boolean> =>
+  failCause(self, Cause.fail(Cause.Done()))
 
 /**
  * Clears all elements from the queue without affecting its state.
+ * Returns the cleared elements, or an empty array if the queue is done with Done or interrupt.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * all elements. It does not return a new TxQueue reference.
@@ -1300,7 +1309,9 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.NoSuchElementError>): Eff
  *   const sizeBefore = yield* TxQueue.size(queue)
  *   console.log(sizeBefore) // 5
  *
- *   yield* TxQueue.clear(queue)
+ *   const cleared = yield* TxQueue.clear(queue)
+ *   console.log(cleared) // [1, 2, 3, 4, 5]
+ *
  *   const sizeAfter = yield* TxQueue.size(queue)
  *   console.log(sizeAfter) // 0
  * })
@@ -1309,7 +1320,22 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.NoSuchElementError>): Eff
  * @since 4.0.0
  * @category combinators
  */
-export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<void> => TxChunk.set(self.items, Chunk.empty())
+export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, ExcludeDone<E>> =>
+  Effect.atomic(
+    Effect.gen(function*() {
+      const state = yield* TxRef.get(self.stateRef)
+      if (state._tag === "Done") {
+        // Return empty array only for halt causes (like Cause.Done)
+        if (isDoneCause(state.cause)) {
+          return []
+        }
+        return yield* Effect.failCause(state.cause)
+      }
+      const chunk = yield* TxChunk.get(self.items)
+      yield* TxChunk.set(self.items, Chunk.empty())
+      return Chunk.toArray(chunk)
+    })
+  )
 
 /**
  * Shuts down the queue immediately by clearing all items and interrupting it (legacy compatibility).
@@ -1348,7 +1374,7 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<void> => TxChu
 export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
   Effect.atomic(
     Effect.gen(function*() {
-      yield* clear(self)
+      yield* Effect.ignore(clear(self))
       return yield* interrupt(self)
     })
   )

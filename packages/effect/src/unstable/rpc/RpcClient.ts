@@ -117,7 +117,7 @@ export declare namespace RpcClient {
     > ? [_Success] extends [RpcSchema.Stream<infer _A, infer _E>] ? AsQueue extends true ? Effect.Effect<
             Queue.Dequeue<
               _A["Type"],
-              _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"] | _Middleware["~ClientError"] | Queue.Done
+              _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"] | _Middleware["~ClientError"] | Cause.Done
             >,
             never,
             | Scope.Scope
@@ -297,7 +297,9 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     for (const [id, entry] of entries) {
       entries.delete(id)
       if (entry._tag === "Queue") {
-        yield* Queue.done(entry.queue, exit)
+        yield* (exit._tag === "Success"
+          ? Queue.end(entry.queue as any)
+          : Queue.failCause(entry.queue as any, exit.cause)) as Effect.Effect<void>
       } else {
         entry.resume(exit)
       }
@@ -573,7 +575,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
               })
             )
             : identity,
-          Effect.catchCause((cause) => Queue.done(entry.queue, Exit.failCause(cause)))
+          Effect.catchCause((cause) => Queue.failCause(entry.queue, cause))
         )
       }
       case "Exit": {
@@ -585,7 +587,9 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
           entry.resume(message.exit)
           return Effect.void
         }
-        return Queue.done(entry.queue, Exit.asVoid(message.exit))
+        return message.exit._tag === "Success"
+          ? Queue.end(entry.queue)
+          : Queue.failCause(entry.queue, message.exit.cause)
       }
       case "Defect": {
         return clearEntries(Exit.die(message.defect))

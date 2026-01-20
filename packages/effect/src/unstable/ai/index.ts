@@ -28,11 +28,17 @@
  * - **OutputParseError** - LLM output parsing failures
  * - **AiUnknownError** - Catch-all for unknown errors
  *
+ * ## Retryability
+ *
+ * Each reason type has an `isRetryable` getter indicating whether the error is
+ * transient. Some errors also provide a `retryAfter` duration hint.
+ *
  * @example
  * ```ts
  * import { Effect, Match } from "effect"
  * import type { AiError } from "effect/unstable/ai"
  *
+ * // Handle errors using Match on the reason
  * const handleAiError = Match.type<AiError.AiError>().pipe(
  *   Match.when(
  *     { reason: { _tag: "RateLimitError" } },
@@ -55,6 +61,7 @@
  * import { Duration, Effect } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
+ * // Create an AiError with a reason
  * const error = AiError.make({
  *   module: "OpenAI",
  *   method: "completion",

@@ -1,3 +1,4 @@
+import type * as Cause from "../Cause.ts"
 import type { Effect, Repeat, Retry } from "../Effect.ts"
 import { constant, constTrue, dual } from "../Function.ts"
 import * as Option from "../Option.ts"
@@ -5,6 +6,7 @@ import * as Pull from "../Pull.ts"
 import * as Schedule from "../Schedule.ts"
 import type { NoInfer } from "../Types.ts"
 import { internalCall } from "../Utils.ts"
+import * as core from "./core.ts"
 import * as effect from "./effect.ts"
 
 /** @internal */
@@ -38,8 +40,8 @@ export const repeatOrElse: {
         { autoYield: false }
       ),
       (error) =>
-        Pull.isHalt(error)
-          ? effect.succeed(error.leftover as B)
+        core.isDone(error)
+          ? effect.succeed(error.value as B)
           : orElse(error as E | E2, meta.attempt === 0 ? Option.none() : Option.some(meta as any))
     )
   }))
@@ -63,7 +65,7 @@ export const retryOrElse: {
   effect.flatMap(Schedule.toStepWithMetadata(policy), (step) => {
     let meta = Schedule.CurrentMetadata.defaultValue()
     let lastError!: E
-    const loop: Effect<A, E1 | Pull.Halt<A1>, R | R1> = effect.catch_(
+    const loop: Effect<A, E1 | Cause.Done<A1>, R | R1> = effect.catch_(
       effect.suspend(() => effect.provideService(self, Schedule.CurrentMetadata, meta)),
       (error) => {
         lastError = error
@@ -73,7 +75,7 @@ export const retryOrElse: {
         })
       }
     )
-    return Pull.catchHalt(loop, (out) => internalCall(() => orElse(lastError, out as A1)))
+    return Pull.catchDone(loop, (out) => internalCall(() => orElse(lastError, out as A1)))
   }))
 
 /** @internal */
@@ -160,7 +162,7 @@ export const scheduleFrom = dual<
           }) as Effect<never, E, R | Env>
         }
       ),
-      (error) => Pull.isHalt(error) ? effect.succeed(error.leftover as Output) : effect.fail(error as E)
+      (error) => core.isDone(error) ? effect.succeed(error.value as Output) : effect.fail(error as E)
     )
   }))
 

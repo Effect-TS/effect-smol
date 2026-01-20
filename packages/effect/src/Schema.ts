@@ -2654,7 +2654,7 @@ export function middlewareDecoding<S extends Top, RD>(
 ) {
   return (schema: S): middlewareDecoding<S, RD> =>
     make(
-      AST.decodingMiddleware(schema.ast, new Transformation.Middleware(decode, identity)),
+      AST.middlewareDecoding(schema.ast, new Transformation.Middleware(decode, identity)),
       { schema }
     )
 }
@@ -2696,7 +2696,7 @@ export function middlewareEncoding<S extends Top, RE>(
 ) {
   return (schema: S): middlewareEncoding<S, RE> =>
     make(
-      AST.encodingMiddleware(schema.ast, new Transformation.Middleware(identity, encode)),
+      AST.middlewareEncoding(schema.ast, new Transformation.Middleware(identity, encode)),
       { schema }
     )
 }
@@ -5488,13 +5488,16 @@ export interface Redacted<S extends Top> extends
 export function Redacted<S extends Top>(value: S, options?: {
   readonly label?: string | undefined
 }): Redacted<S> {
+  const decodeLabel = typeof options?.label === "string"
+    ? Parser.decodeUnknownEffect(Literal(options.label))
+    : undefined
   const schema = declareConstructor<Redacted_.Redacted<S["Type"]>, Redacted_.Redacted<S["Encoded"]>>()(
     [value],
     ([value]) => (input, ast, poptions) => {
       if (Redacted_.isRedacted(input)) {
-        const label: Effect.Effect<void, Issue.Issue, never> = typeof options?.label === "string"
+        const label: Effect.Effect<void, Issue.Issue, never> = decodeLabel !== undefined
           ? Effect.mapErrorEager(
-            Parser.decodeUnknownEffect(Literal(options.label))(input.label, poptions),
+            decodeLabel(input.label, poptions),
             (issue) => new Issue.Pointer(["label"], issue)
           )
           : Effect.void
@@ -5529,7 +5532,7 @@ export function Redacted<S extends Top>(value: S, options?: {
       expected: "Redacted",
       toCodecJson: ([value]) =>
         link<Redacted_.Redacted<S["Encoded"]>>()(
-          value,
+          redact(value),
           {
             decode: Getter.transform((e) => Redacted_.make(e, { label: options?.label })),
             encode: Getter.forbidden((oe) =>
@@ -5544,6 +5547,40 @@ export function Redacted<S extends Top>(value: S, options?: {
     }
   )
   return make(schema.ast, { value })
+}
+
+/**
+ * @category Redacted
+ * @since 4.0.0
+ */
+export interface RedactedFromValue<S extends Top>
+  extends decodeTo<Redacted<toType<S>>, middlewareDecoding<S, S["DecodingServices"]>>
+{}
+
+/**
+ * @category Redacted
+ * @since 4.0.0
+ */
+export function redact<S extends Top>(schema: S): middlewareDecoding<S, S["DecodingServices"]> {
+  return schema.pipe(middlewareDecoding(Effect.mapErrorEager(Issue.redact)))
+}
+
+/**
+ * @category Redacted
+ * @since 4.0.0
+ */
+export function RedactedFromValue<S extends Top>(value: S, options?: {
+  readonly label?: string | undefined
+}): RedactedFromValue<S> {
+  return redact(value).pipe(
+    decodeTo(Redacted(toType(value), options), {
+      decode: Getter.transform((t) => Redacted_.make(t, { label: options?.label })),
+      encode: Getter.forbidden((oe) =>
+        "Cannot encode Redacted" +
+        (Option_.isSome(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")
+      )
+    })
+  )
 }
 
 /**

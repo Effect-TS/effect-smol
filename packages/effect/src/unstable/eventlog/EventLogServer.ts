@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import * as Uuid from "uuid"
+import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberMap from "../../FiberMap.ts"
 import * as Layer from "../../Layer.ts"
@@ -58,7 +59,7 @@ export const makeHandler: Effect.Effect<
       >()
       let latestSequence = -1
 
-      function* writeGen(response: Schema.Schema.Type<typeof ProtocolResponse>) {
+      const write = Effect.fnUntraced(function*(response: Schema.Schema.Type<typeof ProtocolResponse>) {
         const data = yield* encodeResponse(response)
         if (response._tag !== "Changes" || data.byteLength <= constChunkSize) {
           return yield* writeRaw(data)
@@ -67,8 +68,7 @@ export const makeHandler: Effect.Effect<
         for (const part of ChunkedMessage.split(id, data)) {
           yield* writeRaw(yield* encodeResponse(part))
         }
-      }
-      const write = (response: Schema.Schema.Type<typeof ProtocolResponse>) => Effect.gen(() => writeGen(response))
+      })
 
       yield* Effect.forkChild(Effect.orDie(write(new Hello({ remoteId }))))
 
@@ -220,7 +220,7 @@ export class Storage extends ServiceMap.Service<Storage, {
   readonly changes: (
     publicKey: string,
     startSequence: number
-  ) => Effect.Effect<Queue.Dequeue<EncryptedRemoteEntry, Queue.Done>, never, Scope.Scope>
+  ) => Effect.Effect<Queue.Dequeue<EncryptedRemoteEntry, Cause.Done>, never, Scope.Scope>
 }>()("effect/eventlog/EventLogServer/Storage") {}
 
 /**

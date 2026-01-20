@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type * as Cause from "../../Cause.ts"
 import type { Effect } from "../../Effect.ts"
 import type { Exit as Exit_ } from "../../Exit.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
@@ -549,7 +550,7 @@ export type ResultFrom<R extends Any, Services> = R extends Rpc<
         Services
       >
       | Effect<
-        Queue.Dequeue<_SA["Type"], _SE["Type"] | _Error["Type"] | Queue.Done>,
+        Queue.Dequeue<_SA["Type"], _SE["Type"] | _Error["Type"] | Cause.Done>,
         _SE["Type"] | Schema.Schema.Type<_Error>,
         Services
       > :

@@ -1,8 +1,8 @@
 /**
  * @since 1.0.0
  */
+import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
 import type { LazyArg } from "effect/Function"
 import * as Inspectable from "effect/Inspectable"
 import type * as Layer from "effect/Layer"
@@ -278,7 +278,7 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
         }
       }
       const onError = () => {
-        Queue.doneUnsafe(queue, Exit.fail(this.onError(this.source.statusText)))
+        Queue.failCauseUnsafe(queue, Cause.fail(this.onError(this.source.statusText)))
       }
       this.source.addEventListener("readystatechange", onReadyStateChange)
       this.source.addEventListener("error", onError)

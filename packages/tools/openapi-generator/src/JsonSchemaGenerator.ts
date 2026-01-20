@@ -7,6 +7,9 @@ export function make() {
   const store: Record<string, JsonSchema.JsonSchema> = {}
 
   function addSchema(name: string, schema: JsonSchema.JsonSchema): string {
+    if (name in store) {
+      throw new Error(`Schema ${name} already exists`)
+    }
     store[name] = schema
     return name
   }

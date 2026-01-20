@@ -265,7 +265,7 @@ export const fromTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, E
   ) => Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, EnvX>, EX, Env>
 ): Channel<
   OutElem,
-  Pull.ExcludeHalt<OutErr> | EX,
+  Pull.ExcludeDone<OutErr> | EX,
   OutDone,
   InElem,
   InErr,
@@ -323,7 +323,7 @@ export const transformPull = <
   ) => Effect.Effect<Pull.Pull<OutElem2, OutErr2, OutDone2, Env2>, OutErrX, EnvX>
 ): Channel<
   OutElem2,
-  Pull.ExcludeHalt<OutErr2> | OutErrX,
+  Pull.ExcludeDone<OutErr2> | OutErrX,
   OutDone2,
   InElem,
   InErr,
@@ -348,7 +348,7 @@ export const transformPull = <
  */
 export const fromPull = <OutElem, OutErr, OutDone, EX, EnvX, Env>(
   effect: Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, EnvX>, EX, Env>
-): Channel<OutElem, Pull.ExcludeHalt<OutErr> | EX, OutDone, unknown, unknown, unknown, Env | EnvX> =>
+): Channel<OutElem, Pull.ExcludeDone<OutErr> | EX, OutDone, unknown, unknown, unknown, Env | EnvX> =>
   fromTransform((_, __) => effect) as any
 
 /**
@@ -365,12 +365,12 @@ export const fromTransformBracket = <OutElem, OutErr, OutDone, InElem, InErr, In
     scope: Scope.Scope,
     forkedScope: Scope.Scope
   ) => Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, EnvX>, EX, Env>
-): Channel<OutElem, Pull.ExcludeHalt<OutErr> | EX, OutDone, InElem, InErr, InDone, Env | EnvX> =>
+): Channel<OutElem, Pull.ExcludeDone<OutErr> | EX, OutDone, InElem, InErr, InDone, Env | EnvX> =>
   fromTransform(
     Effect.fnUntraced(function*(upstream, scope) {
       const closableScope = Scope.forkUnsafe(scope)
-      const onCause = (cause: Cause.Cause<EX | OutErr | Pull.Halt<OutDone>>) =>
-        Scope.close(closableScope, Pull.haltExitFromCause(cause))
+      const onCause = (cause: Cause.Cause<EX | OutErr | Cause.Done<OutDone>>) =>
+        Scope.close(closableScope, Pull.doneExitFromCause(cause))
       const pull = yield* Effect.onError(
         f(upstream, scope, closableScope),
         onCause
@@ -418,13 +418,13 @@ export const DefaultChunkSize: number = 4096
 
 const asyncQueue = <A, E = never, R = never>(
   scope: Scope.Scope,
-  f: (queue: Queue.Queue<A, E | Queue.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E | Cause.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
 ) =>
-  Queue.make<A, E | Queue.Done>({
+  Queue.make<A, E | Cause.Done>({
     capacity: options?.bufferSize,
     strategy: options?.strategy
   }).pipe(
@@ -455,13 +455,13 @@ const asyncQueue = <A, E = never, R = never>(
  * @since 2.0.0
  */
 export const callback = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E | Queue.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E | Cause.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
 ): Channel<A, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
-  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Queue.toPull))
+  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Queue.take))
 
 /**
  * Creates a `Channel` that interacts with a callback function using a queue, emitting arrays.
@@ -481,13 +481,13 @@ export const callback = <A, E = never, R = never>(
  * @since 4.0.0
  */
 export const callbackArray = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E | Queue.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E | Cause.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
 ): Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
-  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Queue.toPullArray))
+  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Queue.takeAll))
 
 /**
  * Creates a `Channel` that lazily evaluates to another channel.
@@ -597,7 +597,7 @@ export const fromIterator = <A, L>(iterator: LazyArg<Iterator<A, L>>): Channel<A
       const iter = iterator()
       return Effect.suspend(() => {
         const state = iter.next()
-        return state.done ? Pull.halt(state.value) : Effect.succeed(state.value)
+        return state.done ? Cause.done(state.value) : Effect.succeed(state.value)
       })
     })
   )
@@ -619,7 +619,7 @@ export const fromIterator = <A, L>(iterator: LazyArg<Iterator<A, L>>): Channel<A
 export const fromArray = <A>(array: ReadonlyArray<A>): Channel<A> =>
   fromPull(Effect.sync(() => {
     let index = 0
-    return Effect.suspend(() => index >= array.length ? Pull.haltVoid : Effect.succeed(array[index++]))
+    return Effect.suspend(() => index >= array.length ? Cause.done() : Effect.succeed(array[index++]))
   }))
 
 /**
@@ -692,13 +692,13 @@ export const fromIteratorArray = <A, L>(
       const iter = iterator()
       let done = Option.none<L>()
       return Effect.suspend(() => {
-        if (done._tag === "Some") return Pull.halt(done.value)
+        if (done._tag === "Some") return Cause.done(done.value)
         const buffer: Array<A> = []
         while (buffer.length < chunkSize) {
           const state = iter.next()
           if (state.done) {
             if (buffer.length === 0) {
-              return Pull.halt(state.value)
+              return Cause.done(state.value)
             }
             done = Option.some(state.value)
             break
@@ -778,7 +778,7 @@ export const succeed = <A>(value: A): Channel<A> => fromEffect(Effect.succeed(va
  * @category constructors
  * @since 4.0.0
  */
-export const end = <A>(value: A): Channel<never, never, A> => fromPull(Effect.succeed(Pull.halt(value)))
+export const end = <A>(value: A): Channel<never, never, A> => fromPull(Effect.succeed(Cause.done(value)))
 
 /**
  * Creates a `Channel` that immediately ends with the lazily evaluated value.
@@ -787,7 +787,7 @@ export const end = <A>(value: A): Channel<never, never, A> => fromPull(Effect.su
  * @since 4.0.0
  */
 export const endSync = <A>(evaluate: LazyArg<A>): Channel<never, never, A> =>
-  fromPull(Effect.sync(() => Pull.halt(evaluate())))
+  fromPull(Effect.sync(() => Cause.done(evaluate())))
 
 /**
  * Creates a `Channel` that emits a single value computed by a lazy evaluation.
@@ -827,7 +827,7 @@ export const sync = <A>(evaluate: LazyArg<A>): Channel<A> => fromEffect(Effect.s
  * @since 2.0.0
  * @category constructors
  */
-export const empty: Channel<never> = fromPull(Effect.succeed(Pull.haltVoid))
+export const empty: Channel<never> = fromPull(Effect.succeed(Cause.done()))
 
 /**
  * Represents an Channel that never completes
@@ -1033,12 +1033,12 @@ export const die = (defect: unknown): Channel<never, never, never> => failCause(
  */
 export const fromEffect = <A, E, R>(
   effect: Effect.Effect<A, E, R>
-): Channel<A, Pull.ExcludeHalt<E>, void, unknown, unknown, unknown, R> =>
+): Channel<A, Pull.ExcludeDone<E>, void, unknown, unknown, unknown, R> =>
   fromPull(
     Effect.sync(() => {
       let done = false
       return Effect.suspend((): Pull.Pull<A, E, void, R> => {
-        if (done) return Pull.haltVoid
+        if (done) return Cause.done()
         done = true
         return effect
       })
@@ -1051,11 +1051,8 @@ export const fromEffect = <A, E, R>(
  */
 export const fromEffectDone = <A, E, R>(
   effect: Effect.Effect<A, E, R>
-): Channel<never, Pull.ExcludeHalt<E>, A, unknown, unknown, unknown, R> =>
-  fromPull(Effect.succeed(Effect.flatMap(
-    effect,
-    Pull.halt
-  )))
+): Channel<never, Pull.ExcludeDone<E>, A, unknown, unknown, unknown, R> =>
+  fromPull(Effect.succeed(Effect.flatMap(effect, Cause.done)))
 
 /**
  * Use an effect and discard its result.
@@ -1065,7 +1062,7 @@ export const fromEffectDone = <A, E, R>(
  */
 export const fromEffectDrain = <A, E, R>(
   effect: Effect.Effect<A, E, R>
-): Channel<never, E, void, unknown, unknown, unknown, R> => fromPull(Effect.flatMap(effect, () => Pull.haltVoid)) as any
+): Channel<never, E, void, unknown, unknown, unknown, R> => fromPull(Effect.flatMap(effect, () => Cause.done())) as any
 
 /**
  * @since 4.0.0
@@ -1116,7 +1113,7 @@ export const fromEffectTake = <A, E, Done, E2, R>(
  */
 export const fromQueue = <A, E>(
   queue: Queue.Dequeue<A, E>
-): Channel<A, Exclude<E, Queue.Done>> => fromPull(Effect.succeed(Queue.toPull(queue)))
+): Channel<A, Exclude<E, Cause.Done>> => fromPull(Effect.succeed(Queue.take(queue)))
 
 /**
  * Create a channel from a queue that emits arrays of elements
@@ -1162,7 +1159,7 @@ export const fromQueue = <A, E>(
  */
 export const fromQueueArray = <A, E>(
   queue: Queue.Dequeue<A, E>
-): Channel<Arr.NonEmptyReadonlyArray<A>, Exclude<E, Queue.Done>> => fromPull(Effect.succeed(Queue.toPullArray(queue)))
+): Channel<Arr.NonEmptyReadonlyArray<A>, Exclude<E, Cause.Done>> => fromPull(Effect.succeed(Queue.takeAll(queue)))
 
 /**
  * @since 2.0.0
@@ -1216,7 +1213,7 @@ export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err,
  */
 export const fromSubscription = <A>(
   subscription: PubSub.Subscription<A>
-): Channel<A> => fromPull(Effect.succeed(Effect.onInterrupt(PubSub.take(subscription), Pull.haltVoid)))
+): Channel<A> => fromPull(Effect.succeed(Effect.onInterrupt(PubSub.take(subscription), Cause.done())))
 
 /**
  * Create a channel from a PubSub subscription that outputs arrays of values.
@@ -1324,7 +1321,7 @@ export const fromSubscription = <A>(
 export const fromSubscriptionArray = <A>(
   subscription: PubSub.Subscription<A>
 ): Channel<Arr.NonEmptyReadonlyArray<A>> =>
-  fromPull(Effect.succeed(Effect.onInterrupt(PubSub.takeAll(subscription), Pull.haltVoid)))
+  fromPull(Effect.succeed(Effect.onInterrupt(PubSub.takeAll(subscription), Cause.done())))
 
 /**
  * Create a channel from a PubSub that outputs individual values.
@@ -1599,7 +1596,7 @@ export const fromAsyncIterable = <A, D, E>(
         try: () => iter.next(),
         catch: onError
       }),
-      (result) => result.done ? Pull.halt(result.value) : Effect.succeed(result.value)
+      (result) => result.done ? Cause.done(result.value) : Effect.succeed(result.value)
     )
   }))
 
@@ -1722,9 +1719,9 @@ export const mapDoneEffect: {
     f: (o: OutDone) => Effect.Effect<OutDone2, E, R>
   ): Channel<OutElem, OutErr | E, OutDone2, InElem, InErr, InDone, Env | R> =>
     transformPull(self, (pull) =>
-      Effect.succeed(Pull.catchHalt(
+      Effect.succeed(Pull.catchDone(
         pull,
-        (done) => Effect.flatMap(f(done as OutDone), Pull.halt)
+        (done) => Effect.flatMap(f(done as OutDone), Cause.done)
       )))
 )
 
@@ -1858,7 +1855,7 @@ const mapEffectConcurrent = <
       const concurrencyN = options.concurrency === "unbounded"
         ? Number.MAX_SAFE_INTEGER
         : options.concurrency
-      const queue = yield* Queue.bounded<OutElem2, OutErr | EX | Pull.Halt<OutDone>>(0)
+      const queue = yield* Queue.bounded<OutElem2, OutErr | EX | Cause.Done<OutDone>>(0)
       yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
       const runFork = Effect.runForkWith(yield* Effect.services<RX>())
@@ -1890,8 +1887,8 @@ const mapEffectConcurrent = <
         // - 1 for the offer *after* starting a fiber
         // - 1 for the current processing fiber
         const effects = yield* Queue.bounded<
-          Effect.Effect<OutElem2, OutErr | EX | Pull.Halt<OutDone>>,
-          Queue.Done
+          Effect.Effect<OutElem2, OutErr | EX | Cause.Done<OutDone>>,
+          OutErr | EX | Cause.Done<OutDone>
         >(concurrencyN - 2)
         yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
@@ -1899,7 +1896,7 @@ const mapEffectConcurrent = <
           Effect.flatten,
           Effect.flatMap((value) => Queue.offer(queue, value)),
           Effect.forever({ autoYield: false }),
-          Queue.into(queue),
+          Effect.catchCause((cause) => Queue.failCause(queue, cause)),
           Effect.forkIn(forkedScope)
         )
 
@@ -1907,7 +1904,7 @@ const mapEffectConcurrent = <
         const onExit = (exit: Exit.Exit<OutElem2, EX>) => {
           if (exit._tag === "Success") return
           errorCause = exit.cause
-          Queue.doneUnsafe(queue, Exit.failCause(exit.cause))
+          Queue.failCauseUnsafe(queue, exit.cause)
         }
         yield* pull.pipe(
           Effect.flatMap((value) => {
@@ -1920,14 +1917,14 @@ const mapEffectConcurrent = <
           Effect.forever({ autoYield: false }),
           Effect.catchCause((cause) =>
             Queue.offer(effects, Exit.failCause(cause)).pipe(
-              Effect.andThen(Queue.end(effects))
+              Effect.andThen(Queue.failCause(effects, cause))
             )
           ),
           Effect.forkIn(forkedScope)
         )
       }
 
-      return Queue.toPull(queue)
+      return Queue.take(queue)
     })
   )
 
@@ -1986,7 +1983,7 @@ export const mapInputError: {
   fromTransform((upstream, scope) =>
     toTransform(self)(
       Effect.catch(upstream, (err): Pull.Pull<never, InErr, InDone> => {
-        if (Pull.isHalt(err)) return Effect.fail(err)
+        if (Cause.isDone(err)) return Effect.fail(err)
         const out = f(err)
         return Effect.isEffect(out) ? Effect.flatMap(out as Effect.Effect<InErr, InErr>, Effect.fail) : Effect.fail(out)
       }),
@@ -2216,7 +2213,7 @@ const flatMapSequential = <
           return childPull!
         })
       })
-      const catchHalt = Pull.catchHalt((_) => {
+      const catchHalt = Pull.catchDone((_) => {
         childPull = undefined
         // we can reuse the scope if the only finalizer is the "fork" one
         if (childScope!.state._tag === "Open" && childScope!.state.finalizers.size === 1) {
@@ -2359,7 +2356,7 @@ export const concatWith: {
       let currentPull: Pull.Pull<OutElem | OutElem1, OutErr1 | OutErr, OutDone1, Env1 | Env> | undefined
       const forkedScope = Scope.forkUnsafe(scope)
       const makePull = Effect.flatMap(toTransform(self)(upstream, forkedScope), (pull) => {
-        currentPull = Pull.catchHalt(pull, (leftover) => {
+        currentPull = Pull.catchDone(pull, (leftover) => {
           return Scope.close(forkedScope, Exit.void).pipe(
             Effect.flatMap(() => toTransform(f(leftover as OutDone))(upstream, scope)),
             Effect.flatMap((pull) => {
@@ -2489,8 +2486,8 @@ export const combine: {
     ) => Effect.Effect<readonly [A, S], E, R>
   ): <InElem, InErr, InDone, Env>(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
     A,
-    Pull.ExcludeHalt<E>,
-    Pull.Halt.Extract<E>,
+    Pull.ExcludeDone<E>,
+    Cause.Done.Extract<E>,
     InElem & InElem2,
     InErr & InErr2,
     InDone & InDone2,
@@ -2526,8 +2523,8 @@ export const combine: {
     ) => Effect.Effect<readonly [A, S], E, R>
   ): Channel<
     A,
-    Pull.ExcludeHalt<E>,
-    Pull.Halt.Extract<E>,
+    Pull.ExcludeDone<E>,
+    Cause.Done.Extract<E>,
     InElem & InElem2,
     InErr & InErr2,
     InDone & InDone2,
@@ -2563,8 +2560,8 @@ export const combine: {
   ) => Effect.Effect<readonly [A, S], E, R>
 ): Channel<
   A,
-  Pull.ExcludeHalt<E>,
-  Pull.Halt.Extract<E>,
+  Pull.ExcludeDone<E>,
+  Cause.Done.Extract<E>,
   InElem & InElem2,
   InErr & InErr2,
   InDone & InDone2,
@@ -2664,7 +2661,7 @@ export const orElseIfEmpty: {
           Effect.tap(() => {
             currentPull = pull
           }),
-          Pull.catchHalt((leftover) =>
+          Pull.catchDone((leftover) =>
             Scope.close(forkedScope, Exit.succeed(leftover)).pipe(
               Effect.andThen(toTransform(f(leftover as OutDone))(upstream, scope)),
               Effect.flatMap((pull) => {
@@ -2900,7 +2897,7 @@ export const repeat: {
               meta = meta_
               return loop
             }),
-            Pull.catchHalt(() => Effect.succeed(end(done))),
+            Pull.catchDone(() => Effect.succeed(end(done))),
             unwrap
           )
       )
@@ -3011,6 +3008,69 @@ export const filter: {
         Effect.flatMap(pull, function loop(elem): Pull.Pull<B, OutErr, OutDone> {
           const pass = predicate(elem)
           return pass ? Effect.succeed(elem as B) : Effect.flatMap(pull, loop)
+        })
+    )
+  ))
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const filterMap: {
+  <OutElem, B, X>(
+    filter: Filter.Filter<OutElem, B, X>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    filter: Filter.Filter<OutElem, B, X>
+  ): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  filter: Filter.Filter<OutElem, B, X>
+): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  fromTransform((upstream, scope) =>
+    Effect.map(
+      toTransform(self)(upstream, scope),
+      (pull) =>
+        Effect.flatMap(pull, function loop(elem): Pull.Pull<B, OutErr, OutDone> {
+          const result = filter(elem)
+          return Filter.isFail(result) ? Effect.flatMap(pull, loop) : Effect.succeed(result)
+        })
+    )
+  ))
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const filterMapEffect: {
+  <OutElem, B, X, EX, RX>(
+    filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<B, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, EX, RX>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
+  ): Channel<B, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, EX, RX>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
+): Channel<B, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX> =>
+  fromTransform((upstream, scope) =>
+    Effect.map(
+      toTransform(self)(upstream, scope),
+      (pull) =>
+        Effect.flatMap(pull, function loop(elem): Pull.Pull<B, OutErr | EX, OutDone, RX> {
+          return Effect.flatMap(
+            filter(elem),
+            (result) =>
+              Filter.isFail(result)
+                ? Effect.flatMap(pull, loop)
+                : Effect.succeed(result)
+          )
         })
     )
   ))
@@ -3130,16 +3190,10 @@ export const filterMapArray: {
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
   filter: Filter.Filter<OutElem, B, X>
 ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-  transformPull(self, (pull) =>
-    Effect.succeed(Effect.flatMap(
-      pull,
-      function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone> {
-        const [passes] = Arr.partitionFilter(arr, filter)
-        return Arr.isReadonlyArrayNonEmpty(passes)
-          ? Effect.succeed(passes)
-          : Effect.flatMap(pull, loop)
-      }
-    ))))
+  filterMap(self, (arr) => {
+    const [passes] = Arr.partitionFilter(arr, filter)
+    return Arr.isReadonlyArrayNonEmpty(passes) ? passes : Filter.failVoid
+  }))
 
 /**
  * @since 4.0.0
@@ -3159,19 +3213,11 @@ export const filterMapArrayEffect: {
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
   filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
 ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX> =>
-  transformPull(self, (pull) =>
-    Effect.succeed(Effect.flatMap(
-      pull,
-      function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<B>, OutErr | EX, OutDone, RX> {
-        return Effect.flatMap(
-          Effect.filterMap(arr, filter),
-          (passes) =>
-            Arr.isReadonlyArrayNonEmpty(passes)
-              ? Effect.succeed(passes)
-              : Effect.flatMap(pull, loop)
-        )
-      }
-    ))))
+  filterMapEffect(self, (arr) =>
+    Effect.map(
+      Effect.filterMap(arr, filter),
+      (passes) => Arr.isReadonlyArrayNonEmpty(passes) ? passes : Filter.failVoid
+    )))
 
 /**
  * Statefully maps over a channel with an accumulator, where each element can produce multiple output values.
@@ -3271,7 +3317,7 @@ export const mapAccum: {
         let state = initial()
         let current: ReadonlyArray<B> | undefined
         let index = 0
-        let cause: Cause.Cause<OutErr | Pull.Halt<OutDone>> | undefined
+        let cause: Cause.Cause<OutErr | Cause.Done<OutDone>> | undefined
         const pullNext = Effect.matchCauseEffect(pull, {
           onFailure(cause_) {
             cause = cause_
@@ -3573,8 +3619,8 @@ export const catchCause: {
     return Effect.map(toTransform(self)(upstream, forkedScope), (pull) => {
       let currentPull: Pull.Pull<OutElem | OutElem1, OutErr1, OutDone | OutDone1, Env | Env1> = pull.pipe(
         Effect.catchCause((cause): Pull.Pull<OutElem1, OutErr1, OutDone | OutDone1, Env1> => {
-          if (Pull.isHaltCause(cause)) {
-            return Effect.failCause(cause as Cause.Cause<Pull.Halt<OutDone>>)
+          if (Pull.isDoneCause(cause)) {
+            return Effect.failCause(cause as Cause.Cause<Cause.Done<OutDone>>)
           }
           const toClose = forkedScope
           forkedScope = Scope.forkUnsafe(scope)
@@ -3912,7 +3958,7 @@ export const tapError: {
     (pull) =>
       Effect.succeed(Effect.tapError(
         pull,
-        (err) => Pull.isHalt(err) ? Effect.void : Effect.asVoid(f(err))
+        (err) => Cause.isDone(err) ? Effect.void : Effect.asVoid(f(err))
       ))
   ))
 
@@ -4254,7 +4300,7 @@ export const retry: {
           meta = yield* step(error)
           return loop
         },
-        (effect, error) => Pull.catchHalt(effect, () => Effect.succeed(fail(error))),
+        (effect, error) => Pull.catchDone(effect, () => Effect.succeed(fail(error))),
         unwrap
       )
     )
@@ -4496,7 +4542,7 @@ export const mergeAll: {
         const doneLatch = yield* Effect.makeLatch(true)
         const fibers = new Set<Fiber.Fiber<any, any>>()
 
-        const queue = yield* Queue.bounded<OutElem, OutErr | OutErr1 | Pull.Halt<OutDone>>(
+        const queue = yield* Queue.bounded<OutElem, OutErr | OutErr1 | Cause.Done<OutDone>>(
           bufferSize
         )
         yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
@@ -4522,10 +4568,10 @@ export const mergeAll: {
               Effect.flatMap((value) => Queue.offer(queue, value)),
               Effect.forever({ autoYield: false }),
               Effect.onError(Effect.fnUntraced(function*(cause) {
-                const halt = Pull.filterHalt(cause)
+                const halt = Pull.filterDone(cause)
                 yield* Effect.exit(Scope.close(
                   childScope,
-                  !Filter.isFail(halt) ? Exit.succeed(halt.leftover) : Exit.failCause(halt.fail)
+                  !Filter.isFail(halt) ? Exit.succeed(halt.value) : Exit.failCause(halt.fail)
                 ))
                 if (!fibers.has(fiber)) return
                 fibers.delete(fiber)
@@ -4545,7 +4591,7 @@ export const mergeAll: {
           Effect.forkIn(forkedScope)
         )
 
-        return Queue.toPull(queue)
+        return Queue.take(queue)
       })
     )
 )
@@ -4676,15 +4722,15 @@ export const merge: {
 > =>
   fromTransformBracket(Effect.fnUntraced(function*(upstream, _scope, forkedScope) {
     const strategy = options?.haltStrategy ?? "both"
-    const queue = yield* Queue.bounded<OutElem | OutElem1, OutErr | OutErr1 | Pull.Halt<OutDone | OutDone1>>(0)
+    const queue = yield* Queue.bounded<OutElem | OutElem1, OutErr | OutErr1 | Cause.Done<OutDone | OutDone1>>(0)
     yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
     let done = 0
     function onExit(
       side: "left" | "right",
-      cause: Cause.Cause<OutErr | OutErr1 | Pull.Halt<OutDone | OutDone1>>
+      cause: Cause.Cause<OutErr | OutErr1 | Cause.Done<OutDone | OutDone1>>
     ): Effect.Effect<void> {
       done++
-      if (!Pull.isHaltCause(cause)) {
+      if (!Pull.isDoneCause(cause)) {
         return Queue.failCause(queue, cause)
       }
       switch (strategy) {
@@ -4722,7 +4768,7 @@ export const merge: {
         ),
         Effect.onError((cause) =>
           Effect.andThen(
-            Scope.close(scope, Pull.haltExitFromCause(cause)),
+            Scope.close(scope, Pull.doneExitFromCause(cause)),
             onExit(side, cause)
           )
         ),
@@ -4730,7 +4776,7 @@ export const merge: {
       )
     yield* runSide("left", left, Scope.forkUnsafe(forkedScope))
     yield* runSide("right", right, Scope.forkUnsafe(forkedScope))
-    return Queue.toPull(queue)
+    return Queue.take(queue)
   })))
 
 /**
@@ -4977,7 +5023,7 @@ export const pipeToOrFail: {
       Effect.flatMap(toTransform(self)(upstream, scope), (upstream) => {
         const upstreamPull = Effect.catchCause(
           upstream,
-          (cause) => Pull.isHaltCause(cause) ? Effect.failCause(cause) : Effect.die(new Pull.Halt(cause))
+          (cause) => Pull.isDoneCause(cause) ? Effect.failCause(cause) : Effect.die(Cause.Done(cause))
         ) as Pull.Pull<OutElem, never, OutDone>
 
         return Effect.map(
@@ -4986,7 +5032,7 @@ export const pipeToOrFail: {
             Effect.catchDefect(
               pull,
               (defect) =>
-                Pull.isHalt(defect) ? Effect.failCause(defect.leftover as Cause.Cause<OutErr>) : Effect.die(defect)
+                Cause.isDone(defect) ? Effect.failCause(defect.value as Cause.Cause<OutErr>) : Effect.die(defect)
             )
         )
       })
@@ -5092,7 +5138,7 @@ export const embedInput: {
     fromTransformBracket((upstream, scope, forkedScope) =>
       Effect.andThen(
         Effect.forkIn(input(upstream), forkedScope),
-        toTransform(self)(Pull.haltVoid, scope)
+        toTransform(self)(Cause.done(), scope)
       )
     )
 )
@@ -5129,7 +5175,7 @@ export const buffer: {
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env> =>
   fromTransform(Effect.fnUntraced(function*(upstream, scope) {
     const pull = yield* toTransform(self)(upstream, scope)
-    const queue = yield* Queue.make<OutElem, OutErr | Pull.Halt<OutDone>>({
+    const queue = yield* Queue.make<OutElem, OutErr | Cause.Done<OutDone>>({
       capacity: options.capacity === "unbounded" ? undefined : options.capacity,
       strategy: options.capacity === "unbounded" ? undefined : options.strategy
     })
@@ -5140,7 +5186,7 @@ export const buffer: {
       Effect.onError((cause) => Queue.failCause(queue, cause)),
       Effect.forkIn(scope)
     )
-    return Queue.toPull(queue)
+    return Queue.take(queue)
   })))
 
 /**
@@ -5175,7 +5221,7 @@ export const bufferArray: {
 ): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
   fromTransform(Effect.fnUntraced(function*(upstream, scope) {
     const pull = yield* toTransform(self)(upstream, scope)
-    const queue = yield* Queue.make<OutElem, OutErr | Pull.Halt<OutDone>>({
+    const queue = yield* Queue.make<OutElem, OutErr | Cause.Done<OutDone>>({
       capacity: options.capacity === "unbounded" ? undefined : options.capacity,
       strategy: options.capacity === "unbounded" ? undefined : options.strategy
     })
@@ -5186,7 +5232,7 @@ export const bufferArray: {
       Effect.onError((cause) => Queue.failCause(queue, cause)),
       Effect.forkIn(scope)
     )
-    return Queue.toPullArray(queue)
+    return Queue.takeAll(queue)
   })))
 
 /**
@@ -5217,7 +5263,7 @@ export const interruptWhen: {
 ): Channel<OutElem, OutErr | OutErr2, OutDone | OutDone2, InElem, InErr, InDone, Env2 | Env> =>
   merge(
     self,
-    fromPull(Effect.succeed(Effect.flatMap(effect, Pull.halt))),
+    fromPull(Effect.succeed(Effect.flatMap(effect, Cause.done))),
     { haltStrategy: "either" }
   ))
 
@@ -5241,7 +5287,7 @@ export const haltWhen: {
 ): Channel<OutElem, OutErr | OutErr2, OutDone | OutDone2, InElem, InErr, InDone, Env2 | Env> =>
   fromTransformBracket(Effect.fnUntraced(function*(upstream, scope, forkedScope) {
     const pull = yield* toTransform(self)(upstream, scope)
-    let haltCause: Cause.Cause<OutErr2 | Pull.Halt<OutDone2>> | undefined = undefined
+    let haltCause: Cause.Cause<OutErr2 | Cause.Done<OutDone2>> | undefined = undefined
     yield* effect.pipe(
       Effect.catchCause((cause) => {
         haltCause = cause
@@ -5389,9 +5435,9 @@ export const onEnd: {
   onEnd: Effect.Effect<A, E, R>
 ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
   transformPull(self, (pull) =>
-    Effect.succeed(Pull.catchHalt(
+    Effect.succeed(Pull.catchDone(
       pull,
-      (leftover) => Effect.flatMap(onEnd, () => Pull.halt(leftover as OutDone))
+      (leftover) => Effect.flatMap(onEnd, () => Cause.done(leftover as OutDone))
     ))))
 
 /**
@@ -5449,11 +5495,11 @@ const runWith = <
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
   f: (pull: Pull.Pull<OutElem, OutErr, OutDone>) => Effect.Effect<void, EX, RX>,
   onHalt?: (leftover: OutDone) => Effect.Effect<AH, EH, RH>
-): Effect.Effect<AH, Pull.ExcludeHalt<EX> | EH, Env | RX | RH> =>
+): Effect.Effect<AH, Pull.ExcludeDone<EX> | EH, Env | RX | RH> =>
   Effect.suspend(() => {
     const scope = Scope.makeUnsafe()
-    const makePull = toTransform(self)(Pull.haltVoid, scope)
-    return Pull.catchHalt(Effect.flatMap(makePull, f), onHalt ? onHalt : Effect.succeed as any).pipe(
+    const makePull = toTransform(self)(Cause.done(), scope)
+    return Pull.catchDone(Effect.flatMap(makePull, f), onHalt ? onHalt : Effect.succeed as any).pipe(
       Effect.onExit((exit) => Scope.close(scope, exit))
     ) as any
   })
@@ -5994,7 +6040,7 @@ export const runForEachWhile: {
     runWith(self, (pull) =>
       pull.pipe(
         Effect.flatMap(f),
-        Effect.flatMap((cont) => (cont ? Effect.void : Pull.haltVoid)),
+        Effect.flatMap((cont) => (cont ? Effect.void : Cause.done())),
         Effect.forever({ autoYield: false })
       ))
 )
@@ -6054,7 +6100,7 @@ export const runHead = <OutElem, OutErr, OutDone, Env>(
         Effect.asSome,
         Effect.flatMap((head_) => {
           head = head_
-          return Pull.haltVoid
+          return Cause.done()
         })
       ), () => Effect.succeed(head))
   })
@@ -6217,7 +6263,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
     const semaphore = Effect.makeSemaphoreUnsafe(1)
     const context = yield* Effect.services<Env | Scope.Scope>()
     const scope = ServiceMap.get(context, Scope.Scope)
-    const pull = yield* toTransform(self)(Pull.haltVoid, scope)
+    const pull = yield* toTransform(self)(Cause.done(), scope)
     return pull.pipe(
       Effect.provideServices(context),
       semaphore.withPermits(1)
@@ -6255,32 +6301,36 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
 export const toPullScoped = <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
   scope: Scope.Scope
-): Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, Env>, never, Env> => toTransform(self)(Pull.haltVoid, scope)
+): Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, Env>, never, Env> => toTransform(self)(Cause.done(), scope)
 
 /**
  * @since 4.0.0
  * @category Destructors
  */
 export const runIntoQueue: {
-  <OutElem, OutErr>(queue: Queue.Queue<OutElem, OutErr | Queue.Done>): <OutDone, Env>(
+  <OutElem, OutErr>(queue: Queue.Queue<OutElem, OutErr | Cause.Done>): <OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) => Effect.Effect<void, never, Env>
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
-    queue: Queue.Queue<OutElem, OutErr | Queue.Done>
+    queue: Queue.Queue<OutElem, OutErr | Cause.Done>
   ): Effect.Effect<void, never, Env>
 } = dual(
   (args) => isChannel(args[0]),
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
-    queue: Queue.Queue<OutElem, OutErr | Queue.Done>
+    queue: Queue.Queue<OutElem, OutErr | Cause.Done>
   ): Effect.Effect<void, never, Env> =>
     Effect.uninterruptibleMask((restore) =>
       runForEach(self, (value) => Queue.offer(queue, value)).pipe(
         restore,
         Effect.exit,
         Effect.flatMap((exit) => {
-          Queue.doneUnsafe(queue, Exit.asVoid(exit))
+          if (Exit.isSuccess(exit)) {
+            Queue.endUnsafe(queue)
+          } else {
+            Queue.failCauseUnsafe(queue, exit.cause)
+          }
           return Effect.void
         })
       )
@@ -6292,25 +6342,29 @@ export const runIntoQueue: {
  * @category Destructors
  */
 export const runIntoQueueArray: {
-  <OutElem, OutErr>(queue: Queue.Queue<OutElem, OutErr | Queue.Done>): <OutDone, Env>(
+  <OutElem, OutErr>(queue: Queue.Queue<OutElem, OutErr | Cause.Done>): <OutDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) => Effect.Effect<void, never, Env>
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
-    queue: Queue.Queue<OutElem, OutErr | Queue.Done>
+    queue: Queue.Queue<OutElem, OutErr | Cause.Done>
   ): Effect.Effect<void, never, Env>
 } = dual(
   (args) => isChannel(args[0]),
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
-    queue: Queue.Queue<OutElem, OutErr | Queue.Done>
+    queue: Queue.Queue<OutElem, OutErr | Cause.Done>
   ): Effect.Effect<void, never, Env> =>
     Effect.uninterruptibleMask((restore) =>
       runForEach(self, (value) => Queue.offerAll(queue, value)).pipe(
         restore,
         Effect.exit,
         Effect.flatMap((exit) => {
-          Queue.doneUnsafe(queue, Exit.asVoid(exit))
+          if (Exit.isSuccess(exit)) {
+            Queue.endUnsafe(queue)
+          } else {
+            Queue.failCauseUnsafe(queue, exit.cause)
+          }
           return Effect.void
         })
       )
@@ -6351,7 +6405,7 @@ export const toQueue: {
     }
   ): <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
-  ) => Effect.Effect<Queue.Dequeue<OutElem, OutErr | Queue.Done>, never, Env | Scope.Scope>
+  ) => Effect.Effect<Queue.Dequeue<OutElem, OutErr | Cause.Done>, never, Env | Scope.Scope>
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
     options: {
@@ -6360,7 +6414,7 @@ export const toQueue: {
       readonly capacity: number
       readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
     }
-  ): Effect.Effect<Queue.Dequeue<OutElem, OutErr | Queue.Done>, never, Env | Scope.Scope>
+  ): Effect.Effect<Queue.Dequeue<OutElem, OutErr | Cause.Done>, never, Env | Scope.Scope>
 } = dual(
   (args) => isChannel(args[0]),
   Effect.fnUntraced(function*<OutElem, OutErr, OutDone, Env>(
@@ -6373,7 +6427,7 @@ export const toQueue: {
     }
   ) {
     const scope = yield* Effect.scope
-    const queue = yield* Queue.make<OutElem, OutErr | Queue.Done>({
+    const queue = yield* Queue.make<OutElem, OutErr | Cause.Done>({
       capacity: typeof options.capacity === "number" ? options.capacity : undefined,
       strategy: typeof options.capacity === "number" ? options.strategy : undefined
     })
@@ -6397,7 +6451,7 @@ export const toQueueArray: {
     }
   ): <OutElem, OutErr, OutDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>
-  ) => Effect.Effect<Queue.Dequeue<OutElem, OutErr | Queue.Done>, never, Env | Scope.Scope>
+  ) => Effect.Effect<Queue.Dequeue<OutElem, OutErr | Cause.Done>, never, Env | Scope.Scope>
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
     options: {
@@ -6406,7 +6460,7 @@ export const toQueueArray: {
       readonly capacity: number
       readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
     }
-  ): Effect.Effect<Queue.Dequeue<OutElem, OutErr | Queue.Done>, never, Env | Scope.Scope>
+  ): Effect.Effect<Queue.Dequeue<OutElem, OutErr | Cause.Done>, never, Env | Scope.Scope>
 } = dual(
   (args) => isChannel(args[0]),
   Effect.fnUntraced(function*<OutElem, OutErr, OutDone, Env>(
@@ -6419,7 +6473,7 @@ export const toQueueArray: {
     }
   ) {
     const scope = yield* Effect.scope
-    const queue = yield* Queue.make<OutElem, OutErr | Queue.Done>({
+    const queue = yield* Queue.make<OutElem, OutErr | Cause.Done>({
       capacity: typeof options.capacity === "number" ? options.capacity : undefined,
       strategy: typeof options.capacity === "number" ? options.strategy : undefined
     })

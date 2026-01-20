@@ -6,6 +6,7 @@ import { format, formatPath, type Formatter as FormatterI } from "./Formatter.ts
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as Option from "./Option.ts"
 import { hasProperty } from "./Predicate.ts"
+import * as Redacted from "./Redacted.ts"
 import type * as Schema from "./Schema.ts"
 import type * as AST from "./SchemaAST.ts"
 
@@ -689,4 +690,29 @@ function getMessageAnnotation(
 function formatOption(actual: Option.Option<unknown>): string {
   if (Option.isNone(actual)) return "no value provided"
   return format(actual.value)
+}
+
+/** @internal */
+export function redact(issue: Issue): Issue {
+  switch (issue._tag) {
+    case "MissingKey":
+      return issue
+    case "Forbidden":
+      return new Forbidden(Option.map(issue.actual, Redacted.make), issue.annotations)
+    case "Filter":
+      return new Filter(Redacted.make(issue.actual), issue.filter, redact(issue.issue))
+    case "Pointer":
+      return new Pointer(issue.path, redact(issue.issue))
+
+    case "Encoding":
+    case "InvalidType":
+    case "InvalidValue":
+    case "Composite":
+      return new InvalidValue(Option.map(issue.actual, Redacted.make))
+
+    case "AnyOf":
+    case "OneOf":
+    case "UnexpectedKey":
+      return new InvalidValue(Option.some(Redacted.make(issue.actual)))
+  }
 }

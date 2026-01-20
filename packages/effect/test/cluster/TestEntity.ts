@@ -1,4 +1,4 @@
-import { Effect, Layer, MutableRef, Queue, Schedule, Schema, ServiceMap, Stream } from "effect"
+import { type Cause, Effect, Layer, MutableRef, Queue, Schedule, Schema, ServiceMap, Stream } from "effect"
 import type { Envelope } from "effect/unstable/cluster"
 import { ClusterSchema, Entity } from "effect/unstable/cluster"
 import type { RpcGroup } from "effect/unstable/rpc"
@@ -42,7 +42,7 @@ export const TestEntity = Entity.make("TestEntity", [
 export class TestEntityState extends ServiceMap.Service<TestEntityState>()("TestEntityState", {
   make: Effect.gen(function*() {
     const messages = yield* Queue.make<void>()
-    const streamMessages = yield* Queue.make<void, Queue.Done>()
+    const streamMessages = yield* Queue.make<void, Cause.Done>()
     const envelopes = yield* Queue.make<
       RpcGroup.Rpcs<typeof TestEntity.protocol> extends infer R ? R extends Rpc.Any ? Envelope.Request<R> : never
         : never

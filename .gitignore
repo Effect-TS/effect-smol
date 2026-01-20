@@ -23,8 +23,7 @@ scratchpad/**/*
 
 # lalph
 .lalph/
-lalph-plan.md
-.lalph-setup.sh
+.repos/
 
 # ralph auto loop (runtime output)
 .ralph-auto/

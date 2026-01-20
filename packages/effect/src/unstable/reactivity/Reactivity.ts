@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
+import type * as Exit from "../../Exit.ts"
 import * as FiberHandle from "../../FiberHandle.ts"
 import { dual } from "../../Function.ts"
 import * as Hash from "../../Hash.ts"
@@ -121,7 +121,7 @@ export const make = Effect.sync(() => {
       let pending = false
       const handleExit = (exit: Exit.Exit<A, E>) => {
         if (exit._tag === "Failure") {
-          Queue.doneUnsafe(results, Exit.failCause(exit.cause))
+          Queue.failCauseUnsafe(results, exit.cause)
         } else {
           Queue.offerUnsafe(results, exit.value)
         }
