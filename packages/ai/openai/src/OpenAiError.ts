@@ -7,6 +7,10 @@
  * - Provider metadata construction
  * - HTTP context building for debugging
  *
+ * **CRITICAL**: Yieldable errors must be directly `yield*`ed in generators,
+ * never wrapped in `Effect.fail`. Use `return yield* AiError.make(...)` instead
+ * of `return yield* Effect.fail(AiError.make(...))`.
+ *
  * @since 1.0.0
  */
 import * as Duration from "effect/Duration"
@@ -40,6 +44,12 @@ export const OpenAiErrorBody = Schema.Struct({
     code: Schema.optional(Schema.NullOr(Schema.String))
   })
 })
+
+/**
+ * @since 1.0.0
+ * @category models
+ */
+export type OpenAiErrorBody = typeof OpenAiErrorBody.Type
 
 /**
  * Known OpenAI error codes.
@@ -400,11 +410,11 @@ export const mapResponseError: {
         http
       })
 
-      return yield* Effect.fail(AiError.make({
+      return yield* AiError.make({
         module: "OpenAiClient",
         method,
         reason
-      }))
+      })
     }
 
     // Fallback: use status-based mapping when body parsing fails
@@ -420,9 +430,9 @@ export const mapResponseError: {
       provider
     })
 
-    return yield* Effect.fail(AiError.make({
+    return yield* AiError.make({
       module: "OpenAiClient",
       method,
       reason
-    }))
+    })
   }))
