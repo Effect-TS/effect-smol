@@ -3,7 +3,7 @@ import { assertInclude, assertNone, assertUndefined, deepStrictEqual, strictEqua
 import { Cause, Duration, Effect, Fiber, Layer, ServiceMap, Tracer } from "effect"
 import { TestClock } from "effect/testing"
 import type { Span } from "effect/Tracer"
-import { FetchHttpClient } from "effect/unstable/http"
+import { HttpClient, HttpClientResponse } from "effect/unstable/http"
 import { OtlpSerialization, OtlpTracer } from "effect/unstable/observability"
 
 describe("Tracer", () => {
@@ -98,10 +98,13 @@ describe("Tracer", () => {
             }
           }).pipe(
             Layer.provide(OtlpSerialization.layerJson),
-            Layer.provide(FetchHttpClient.layer)
+            Layer.provide(Layer.succeed(
+              HttpClient.HttpClient,
+              HttpClient.make((request) => Effect.succeed(HttpClientResponse.fromWeb(request, new Response())))
+            ))
           )
         )
-      ), 6_000)
+      ))
 
     it.effect("should set the correct start and end time", () =>
       Effect.gen(function*() {
