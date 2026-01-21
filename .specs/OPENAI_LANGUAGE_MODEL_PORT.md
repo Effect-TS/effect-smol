@@ -1,6 +1,6 @@
 # OpenAiLanguageModel Port to Effect v4
 
-**Status: DRAFT**
+**Status: COMPLETED**
 
 ## Overview
 
@@ -271,14 +271,14 @@ The Effect v4 AI packages need an `OpenAiLanguageModel` implementation that:
 
 **Tasks**:
 
-- [ ] **11.1** Create test file with test utilities and mocks
-- [ ] **11.2** Add tests for `prepareMessages` with various prompt types
-- [ ] **11.3** Add tests for `makeResponse` with various response types
-- [ ] **11.4** Add tests for `prepareTools` with various tool configurations
-- [ ] **11.5** Add integration tests for `generateText` with mocked client
-- [ ] **11.6** Add integration tests for `streamText` with mocked client
-- [ ] **11.7** Add tests for error handling scenarios
-- [ ] **11.8** Run `pnpm test packages/ai/openai/test/OpenAiLanguageModel.test.ts`
+- [x] **11.1** Create test file with test utilities and mocks
+- [x] **11.2** Add tests for `prepareMessages` with various prompt types
+- [x] **11.3** Add tests for `makeResponse` with various response types
+- [x] **11.4** Add tests for `prepareTools` with various tool configurations
+- [x] **11.5** Add integration tests for `generateText` with mocked client
+- [x] **11.6** Add integration tests for `streamText` with mocked client
+- [x] **11.7** Add tests for error handling scenarios
+- [x] **11.8** Run `pnpm test packages/ai/openai/test/OpenAiLanguageModel.test.ts`
 
 **Verification**: All tests pass
 
@@ -288,11 +288,11 @@ The Effect v4 AI packages need an `OpenAiLanguageModel` implementation that:
 
 **Tasks**:
 
-- [ ] **12.1** Run `pnpm lint-fix` to format all files
-- [ ] **12.2** Run `pnpm check` to verify type checking
-- [ ] **12.3** Run `pnpm test packages/ai/openai` to run all package tests
-- [ ] **12.4** Run `pnpm docgen` to verify JSDoc examples compile
-- [ ] **12.5** Run `pnpm build` to verify build succeeds
+- [x] **12.1** Run `pnpm lint-fix` to format all files
+- [x] **12.2** Run `pnpm check` to verify type checking
+- [x] **12.3** Run `pnpm test packages/ai/openai` to run all package tests
+- [x] **12.4** Run `pnpm docgen` to verify JSDoc examples compile
+- [x] **12.5** Run `pnpm build` to verify build succeeds
 
 **Verification**: All commands pass with no errors
 
