@@ -1,11 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Schema from "../../Schema.ts"
 import type { NoRequiredKeysWith, Simplify } from "../../Types.ts"
-import * as HttpApi from "./HttpApi.ts"
-import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
-import * as HttpApiGroup from "./HttpApiGroup.ts"
+import type * as HttpApi from "./HttpApi.ts"
+import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
+import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiSchema from "./HttpApiSchema.ts"
 
 /**
@@ -14,25 +13,31 @@ import type * as HttpApiSchema from "./HttpApiSchema.ts"
  */
 export const make = <
   Api extends HttpApi.Any
->(options: {
-  readonly baseUrl: string
+>(options?: {
+  readonly baseUrl?: string | undefined
   readonly fetch?: typeof fetch | undefined
   readonly defaultHeaders?: HeadersInit | undefined
 }): HttpApiClientFetch<Api extends HttpApi.HttpApi<infer _Id, infer Groups> ? EndpointMap<Groups> : never> => {
-  const fetchImpl = options.fetch ?? fetch
-  return function(methodAndUrl: string, opts?: {
+  const fetchImpl = options?.fetch ?? fetch
+  let baseUrl = options?.baseUrl ?? ""
+  if (baseUrl.endsWith("/")) {
+    baseUrl = baseUrl.slice(0, -1)
+  }
+
+  return async function(methodAndUrl: string, opts?: {
     readonly path?: Record<string, any> | undefined
     readonly urlParams?: Record<string, any> | undefined
     readonly headers?: Record<string, string> | undefined
     readonly json?: any
     readonly formData?: Record<string, any> | undefined
   }) {
-    const headers = new Headers(options.defaultHeaders)
+    const headers = new Headers(options?.defaultHeaders)
     if (opts?.headers) {
       for (const [key, value] of Object.entries(opts.headers)) {
         headers.set(key, value)
       }
     }
+
     const [method, urlTemplate] = methodAndUrl.split(" ")
     let path = urlTemplate
     if (opts?.path) {
@@ -40,12 +45,14 @@ export const make = <
         path = path.replace(`:${key}`, encodeURIComponent(String(value)))
       }
     }
-    const url = new URL(options.baseUrl + path)
+
+    const url = new URL(baseUrl + path, "location" in globalThis ? globalThis.location?.origin : undefined)
     if (opts?.urlParams) {
       for (const [key, value] of Object.entries(opts.urlParams)) {
         url.searchParams.set(key, String(value))
       }
     }
+
     const fetchOptions: RequestInit = {
       method,
       headers
@@ -60,10 +67,17 @@ export const make = <
       }
       fetchOptions.body = formData
     }
-    return fetchImpl(url, fetchOptions).then((response) => ({
+
+    const response = await fetchImpl(url.toString(), fetchOptions)
+    return {
       response,
-      json: () => response.json()
-    }))
+      json() {
+        if (response.status === 204) {
+          return Promise.resolve(undefined)
+        }
+        return response.json()
+      }
+    }
   } as any
 }
 
@@ -149,36 +163,3 @@ export type EndpointOptions<Endpoint extends HttpApiEndpoint.Any> = Endpoint ext
     )
   > :
   {}
-
-const api = HttpApi.make("api").add(
-  HttpApiGroup.make("users").add(HttpApiEndpoint.get("list", "/users", {
-    urlParams: {
-      foo: Schema.optional(Schema.String)
-    }
-  }))
-).add(
-  HttpApiGroup.make("posts").add(HttpApiEndpoint.post("create", "/posts", {
-    urlParams: {
-      draft: Schema.optional(Schema.String)
-    },
-    payload: Schema.Struct({
-      title: Schema.String,
-      content: Schema.String
-    }),
-    success: Schema.Struct({
-      id: Schema.Number,
-      title: Schema.String,
-      content: Schema.String
-    })
-  })).add(HttpApiEndpoint.get("get", "/posts/:id", {
-    path: {
-      id: Schema.NumberFromString
-    }
-  }))
-)
-
-const client = make<typeof api>({
-  baseUrl: "https://example.com/api"
-})
-
-export const endpoint = client("GET /users")
