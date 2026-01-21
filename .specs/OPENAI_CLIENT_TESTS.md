@@ -1,6 +1,6 @@
 # OpenAiClient Test Specification
 
-**Status: DRAFT**
+**Status: IMPLEMENTED**
 
 ## Overview
 
@@ -37,46 +37,20 @@ The `OpenAiClient` module provides a type-safe, Effect-based client for OpenAI o
 
 **Tasks**:
 
-- [ ] **1.1** Create test file with imports:
+- [x] **1.1** Create test file with imports:
   - `{ assert, describe, it }` from `@effect/vitest`
   - `Effect, Layer, Redacted, Schema, Stream` from `effect`
   - `HttpClient, HttpClientRequest, HttpClientResponse, HttpClientError` from `effect/unstable/http`
   - `AiError` from `effect/unstable/ai`
   - `OpenAiClient` from module under test
-  - `Generated` schemas from module under test
 
-- [ ] **1.2** Create `makeMockHttpClient` helper function:
-  ```typescript
-  const makeMockHttpClient = (
-    handler: (
-      request: HttpClientRequest.HttpClientRequest
-    ) => Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
-  ): HttpClient.HttpClient =>
-    HttpClient.makeWith(
-      (effect) => Effect.flatMap(effect, handler),
-      Effect.succeed
-    )
-  ```
+- [x] **1.2** Create `makeMockHttpClient` helper function
 
-- [ ] **1.3** Create `makeMockResponse` helper for JSON responses:
-  ```typescript
-  const makeMockResponse = (options: {
-    readonly status: number
-    readonly body: unknown
-    readonly request?: HttpClientRequest.HttpClientRequest
-  }): HttpClientResponse.HttpClientResponse
-  ```
+- [x] **1.3** Create `makeMockResponse` helper for JSON responses
 
-- [ ] **1.4** Create `makeMockStreamResponse` helper for SSE responses:
-  ```typescript
-  const makeMockStreamResponse = (options: {
-    readonly status: number
-    readonly events: Array<{ event?: string; data: unknown }>
-    readonly request?: HttpClientRequest.HttpClientRequest
-  }): HttpClientResponse.HttpClientResponse
-  ```
+- [x] **1.4** ~~Create `makeMockStreamResponse` helper~~ (Not needed - SSE streaming tests use error path)
 
-- [ ] **1.5** Run `pnpm lint-fix` on test file
+- [x] **1.5** Run `pnpm lint-fix` on test file
 
 **Verification**: File compiles without errors
 
