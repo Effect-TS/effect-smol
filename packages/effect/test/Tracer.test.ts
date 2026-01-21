@@ -3,8 +3,8 @@ import { assertInclude, assertNone, assertUndefined, deepStrictEqual, strictEqua
 import { Cause, Duration, Effect, Fiber, Layer, ServiceMap, Tracer } from "effect"
 import { TestClock } from "effect/testing"
 import type { Span } from "effect/Tracer"
-import { OtlpSerialization, OtlpTracer } from "effect/unstable/observability"
 import { FetchHttpClient } from "effect/unstable/http"
+import { OtlpSerialization, OtlpTracer } from "effect/unstable/observability"
 
 describe("Tracer", () => {
   describe("Effect.withSpan", () => {
@@ -72,13 +72,6 @@ describe("Tracer", () => {
 
     it.effect("should handle nested withSpan calls with OtlpTracer", () =>
       Effect.gen(function*() {
-        // Regression test: Previously crashed when creating child spans with OtlpTracer
-        // TypeError: Cannot read properties of undefined (reading 'mapUnsafe')
-        // at filterDisablePropagation (src/internal/effect.ts:4763)
-        //
-        // The crash occurred when creating a child span because filterDisablePropagation
-        // tried to access parent.annotations.mapUnsafe without checking if it exists.
-        // OtlpTracer creates spans where annotations may not have the mapUnsafe property.
         const innerEffect = Effect.succeed(42).pipe(
           Effect.withSpan("child-span", {
             attributes: {

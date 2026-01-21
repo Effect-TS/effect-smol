@@ -69,11 +69,11 @@ export const make: (
   })
 
   return Tracer.make({
-    span(name, parent, context, links, startTime, kind) {
+    span(name, parent, annotations, links, startTime, kind) {
       return makeSpan({
         name,
         parent,
-        context,
+        annotations,
         status: {
           _tag: "Started",
           startTime
@@ -147,11 +147,12 @@ const SpanProto = {
     this.links.push(...links)
   }
 }
+type RemainingSpanImpl = Omit<Tracer.Span, (keyof typeof SpanProto) | "traceId" | "spanId" | "events">
 
 const makeSpan = (options: {
   readonly name: string
   readonly parent: Tracer.AnySpan | undefined
-  readonly context: ServiceMap.ServiceMap<never>
+  readonly annotations: ServiceMap.ServiceMap<never>
   readonly status: Tracer.SpanStatus
   readonly attributes: ReadonlyMap<string, unknown>
   readonly links: ReadonlyArray<Tracer.SpanLink>
@@ -159,7 +160,10 @@ const makeSpan = (options: {
   readonly kind: Tracer.SpanKind
   readonly export: (span: SpanImpl) => void
 }): SpanImpl => {
-  const self: Mutable<SpanImpl> = Object.assign(Object.create(SpanProto), options)
+  const self: Mutable<SpanImpl> = Object.assign(
+    Object.create(SpanProto),
+    options satisfies RemainingSpanImpl
+  )
   if (self.parent) {
     self.traceId = self.parent.traceId
   } else {

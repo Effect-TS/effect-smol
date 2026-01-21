@@ -4760,9 +4760,6 @@ export const noopSpan = (options: {
 
 const filterDisablePropagation = (span: Tracer.AnySpan | undefined): Tracer.AnySpan | undefined => {
   if (span) {
-    if (!span.annotations?.mapUnsafe) {
-      return span
-    }
     return ServiceMap.get(span.annotations, Tracer.DisablePropagation)
       ? span._tag === "Span" ? filterDisablePropagation(span.parent) : undefined
       : span
