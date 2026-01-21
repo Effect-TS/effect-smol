@@ -11,6 +11,7 @@ import type * as CliError from "./CliError.ts"
 import type { Environment } from "./Command.ts"
 import * as Param from "./Param.ts"
 import type * as Primitive from "./Primitive.ts"
+import type * as Prompt from "./Prompt.ts"
 
 // -------------------------------------------------------------------------------------
 // models
@@ -311,6 +312,26 @@ export const withDefault: {
   <A>(defaultValue: A): (self: Argument<A>) => Argument<A>
   <A>(self: Argument<A>, defaultValue: A): Argument<A>
 } = dual(2, <A>(self: Argument<A>, defaultValue: A) => Param.withDefault(self, defaultValue))
+
+/**
+ * Adds a fallback prompt that is shown when a required argument is missing.
+ *
+ * @example
+ * ```ts
+ * import { Argument, Prompt } from "effect/unstable/cli"
+ *
+ * const filename = Argument.string("filename").pipe(
+ *   Argument.withFallbackPrompt(Prompt.text({ message: "Filename" }))
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withFallbackPrompt: {
+  <B>(prompt: Prompt.Prompt<B>): <A>(self: Argument<A>) => Argument<A | B>
+  <A, B>(self: Argument<A>, prompt: Prompt.Prompt<B>): Argument<A | B>
+} = dual(2, <A, B>(self: Argument<A>, prompt: Prompt.Prompt<B>) => Param.withFallbackPrompt(self, prompt))
 
 /**
  * Creates a variadic positional argument that accepts multiple values.
