@@ -85,7 +85,7 @@ export class Reporter extends ServiceMap.Service<Reporter>()(
           const line = `| ${filename} | ${currKb} | ${prevKb} | ${sign}${diffKb} (${sign}${diffPct}) |`
           lines.push(line)
         }
-        return lines.join("\n")
+        return lines.join("\n") + "\n"
       }
 
       const report = Effect.fn("Reporter.report")(

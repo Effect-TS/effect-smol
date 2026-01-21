@@ -26,11 +26,6 @@ jobs:
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Log stats.txt content
-        run: |
-          echo "=== artifact/stats.txt content ==="
-          cat artifact/stats.txt
-          echo "=== end of stats.txt ==="
       - name: Get stats
         id: stats
         run: |
