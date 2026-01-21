@@ -36,47 +36,20 @@ describe("Predicate", () => {
     assertTrue(predicate({ a: 1 }))
   })
 
-  it("product", () => {
-    const product = Predicate.product
-    const p = product(isPositive, isNegative)
+  it("Tuple", () => {
+    const p = Predicate.Tuple([isPositive, isNegative])
     assertTrue(p([1, -1]))
     assertFalse(p([1, 1]))
     assertFalse(p([-1, -1]))
     assertFalse(p([-1, 1]))
   })
 
-  it("productMany", () => {
-    const productMany = Predicate.productMany
-    const p = productMany(isPositive, [isNegative])
-    assertTrue(p([1, -1]))
-    assertFalse(p([1, 1]))
-    assertFalse(p([-1, -1]))
-    assertFalse(p([-1, 1]))
-  })
-
-  it("tuple", () => {
-    const p = Predicate.tuple(isPositive, isNegative)
-    assertTrue(p([1, -1]))
-    assertFalse(p([1, 1]))
-    assertFalse(p([-1, -1]))
-    assertFalse(p([-1, 1]))
-  })
-
-  it("struct", () => {
-    const p = Predicate.struct({ a: isPositive, b: isNegative })
+  it("Struct", () => {
+    const p = Predicate.Struct({ a: isPositive, b: isNegative })
     assertTrue(p({ a: 1, b: -1 }))
     assertFalse(p({ a: 1, b: 1 }))
     assertFalse(p({ a: -1, b: -1 }))
     assertFalse(p({ a: -1, b: 1 }))
-  })
-
-  it("all", () => {
-    const p = Predicate.all([isPositive, isNegative])
-    assertTrue(p([1]))
-    assertTrue(p([1, -1]))
-    assertFalse(p([1, 1]))
-    assertFalse(p([-1, -1]))
-    assertFalse(p([-1, 1]))
   })
 
   it("not", () => {

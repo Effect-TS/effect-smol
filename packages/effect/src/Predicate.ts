@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import { dual, isFunction as isFunction_ } from "./Function.ts"
+import { dual } from "./Function.ts"
 import type { TypeLambda } from "./HKT.ts"
 import type { TupleOf, TupleOfAtLeast } from "./Types.ts"
 
@@ -30,23 +30,6 @@ export interface Predicate<in A> {
 }
 
 /**
- * A type lambda for the `Predicate` type constructor.
- * Used for higher-kinded type operations and generic abstractions.
- *
- * @example
- * ```ts
- * import type { Predicate } from "effect"
- *
- * // Type lambda allows Predicate to work with higher-kinded type operations
- * // This is used internally by the Effect ecosystem for generic abstractions
- * type PredicateLambda = Predicate.PredicateTypeLambda
- *
- * // Demonstrates the type structure - in practice this is used by generic utilities
- * type NumberPredicate = Predicate.Predicate<number>
- * const isPositive: NumberPredicate = (n: number) => n > 0
- * console.log(isPositive(5)) // true
- * ```
- *
  * @category type lambdas
  * @since 2.0.0
  */
@@ -58,25 +41,6 @@ export interface PredicateTypeLambda extends TypeLambda {
  * A `Refinement<A, B>` is a special type of predicate that narrows type `A` to a subtype `B`.
  * It serves as a type guard that not only tests a condition but also refines the TypeScript type.
  *
- * @example
- * ```ts
- * import type { Predicate } from "effect"
- *
- * // A refinement that narrows string to non-empty string
- * const isNonEmpty: Predicate.Refinement<string, string> = (s): s is string =>
- *   s.length > 0
- *
- * // A refinement that narrows unknown to string
- * const isString: Predicate.Refinement<unknown, string> = (u): u is string =>
- *   typeof u === "string"
- *
- * const value: unknown = "hello"
- * if (isString(value)) {
- *   // TypeScript now knows value is string
- *   console.log(value.length) // ✓ TypeScript knows this is safe
- * }
- * ```
- *
  * @category models
  * @since 2.0.0
  */
@@ -87,18 +51,6 @@ export interface Refinement<in A, out B extends A> {
 /**
  * A namespace containing type-level utilities for working with `Predicate` types.
  * These utilities help extract type information from predicate type signatures.
- *
- * @example
- * ```ts
- * import type { Predicate } from "effect"
- *
- * // Extract the input type from a predicate
- * type StringPredicate = Predicate.Predicate<string>
- * type InputType = Predicate.Predicate.In<StringPredicate> // string
- *
- * // Use the any type for generic predicate operations
- * type AnyPredicate = Predicate.Predicate.Any
- * ```
  *
  * @since 3.6.0
  * @category type-level
@@ -122,48 +74,20 @@ export declare namespace Predicate {
    * @category type-level
    */
   export type In<T extends Any> = [T] extends [Predicate<infer _A>] ? _A : never
+
   /**
    * A utility type representing any predicate type.
    * Used for generic operations where the specific predicate type doesn't matter.
    *
-   * @example
-   * ```ts
-   * import type { Predicate } from "effect"
-   *
-   * // A utility type for generic predicate operations
-   * type AnyPredicate = Predicate.Predicate.Any
-   *
-   * // Function that negates any predicate - simplified version for demonstration
-   * const negatePredicate = <A>(predicate: Predicate.Predicate<A>) => (input: A) =>
-   *   !predicate(input)
-   *
-   * const isPositive = (n: number) => n > 0
-   * const isNegative = negatePredicate(isPositive)
-   * console.log(isNegative(-1)) // true
-   * ```
-   *
    * @since 3.6.0
    * @category type-level
    */
-  export type Any = Predicate<never>
+  export type Any = Predicate<any>
 }
 
 /**
  * A namespace containing type-level utilities for working with `Refinement` types.
  * These utilities help extract type information from refinement type signatures.
- *
- * @example
- * ```ts
- * import type { Predicate } from "effect"
- *
- * // Extract types from a refinement
- * type StringFromUnknown = Predicate.Refinement<unknown, string>
- * type InputType = Predicate.Refinement.In<StringFromUnknown> // unknown
- * type OutputType = Predicate.Refinement.Out<StringFromUnknown> // string
- *
- * // Use the any type for generic refinement operations
- * type AnyRefinement = Predicate.Refinement.Any
- * ```
  *
  * @since 3.6.0
  * @category type-level
@@ -186,7 +110,9 @@ export declare namespace Refinement {
    * @since 3.6.0
    * @category type-level
    */
+
   export type In<T extends Any> = [T] extends [Refinement<infer _A, infer _>] ? _A : never
+
   /**
    * Extracts the output type `B` from a `Refinement<A, B>` type.
    *
@@ -205,6 +131,7 @@ export declare namespace Refinement {
    * @category type-level
    */
   export type Out<T extends Any> = [T] extends [Refinement<infer _, infer _B>] ? _B : never
+
   /**
    * A utility type representing any refinement type.
    * Used for generic operations where the specific refinement type doesn't matter.
@@ -332,7 +259,9 @@ export const isTupleOfAtLeast: {
  * @category guards
  * @since 2.0.0
  */
-export const isTruthy = (input: unknown) => !!input
+export function isTruthy(input: unknown): boolean {
+  return !!input
+}
 
 /**
  * Tests if a value is a `Set`.
@@ -352,7 +281,9 @@ export const isTruthy = (input: unknown) => !!input
  * @category guards
  * @since 2.0.0
  */
-export const isSet = (input: unknown): input is Set<unknown> => input instanceof Set
+export function isSet(input: unknown): input is Set<unknown> {
+  return input instanceof Set
+}
 
 /**
  * Tests if a value is a `Map`.
@@ -371,7 +302,9 @@ export const isSet = (input: unknown): input is Set<unknown> => input instanceof
  * @category guards
  * @since 2.0.0
  */
-export const isMap = (input: unknown): input is Map<unknown, unknown> => input instanceof Map
+export function isMap(input: unknown): input is Map<unknown, unknown> {
+  return input instanceof Map
+}
 
 /**
  * Tests if a value is a `string`.
@@ -389,7 +322,9 @@ export const isMap = (input: unknown): input is Map<unknown, unknown> => input i
  * @category guards
  * @since 2.0.0
  */
-export const isString = (input: unknown): input is string => typeof input === "string"
+export function isString(input: unknown): input is string {
+  return typeof input === "string"
+}
 
 /**
  * Tests if a value is a `number`.
@@ -407,7 +342,9 @@ export const isString = (input: unknown): input is string => typeof input === "s
  * @category guards
  * @since 2.0.0
  */
-export const isNumber = (input: unknown): input is number => typeof input === "number"
+export function isNumber(input: unknown): input is number {
+  return typeof input === "number"
+}
 
 /**
  * Tests if a value is a `boolean`.
@@ -425,7 +362,9 @@ export const isNumber = (input: unknown): input is number => typeof input === "n
  * @category guards
  * @since 2.0.0
  */
-export const isBoolean = (input: unknown): input is boolean => typeof input === "boolean"
+export function isBoolean(input: unknown): input is boolean {
+  return typeof input === "boolean"
+}
 
 /**
  * Tests if a value is a `bigint`.
@@ -443,7 +382,9 @@ export const isBoolean = (input: unknown): input is boolean => typeof input === 
  * @category guards
  * @since 2.0.0
  */
-export const isBigInt = (input: unknown): input is bigint => typeof input === "bigint"
+export function isBigInt(input: unknown): input is bigint {
+  return typeof input === "bigint"
+}
 
 /**
  * Tests if a value is a `symbol`.
@@ -461,13 +402,17 @@ export const isBigInt = (input: unknown): input is bigint => typeof input === "b
  * @category guards
  * @since 2.0.0
  */
-export const isSymbol = (input: unknown): input is symbol => typeof input === "symbol"
+export function isSymbol(input: unknown): input is symbol {
+  return typeof input === "symbol"
+}
 
 /**
  * @category guards
  * @since 4.0.0
  */
-export const isPropertyKey = (u: unknown): u is PropertyKey => isString(u) || isNumber(u) || isSymbol(u)
+export function isPropertyKey(u: unknown): u is PropertyKey {
+  return isString(u) || isNumber(u) || isSymbol(u)
+}
 
 /**
  * Tests if a value is a `function`.
@@ -485,7 +430,9 @@ export const isPropertyKey = (u: unknown): u is PropertyKey => isString(u) || is
  * @category guards
  * @since 2.0.0
  */
-export const isFunction: (input: unknown) => input is Function = isFunction_
+export function isFunction(input: unknown): input is Function {
+  return typeof input === "function"
+}
 
 /**
  * Tests if a value is `undefined`.
@@ -504,7 +451,9 @@ export const isFunction: (input: unknown) => input is Function = isFunction_
  * @category guards
  * @since 2.0.0
  */
-export const isUndefined = (input: unknown): input is undefined => input === undefined
+export function isUndefined(input: unknown): input is undefined {
+  return input === undefined
+}
 
 /**
  * Tests if a value is not `undefined`.
@@ -523,7 +472,9 @@ export const isUndefined = (input: unknown): input is undefined => input === und
  * @category guards
  * @since 2.0.0
  */
-export const isNotUndefined = <A>(input: A): input is Exclude<A, undefined> => input !== undefined
+export function isNotUndefined<A>(input: A): input is Exclude<A, undefined> {
+  return input !== undefined
+}
 
 /**
  * Tests if a value is `null`.
@@ -542,7 +493,9 @@ export const isNotUndefined = <A>(input: A): input is Exclude<A, undefined> => i
  * @category guards
  * @since 2.0.0
  */
-export const isNull = (input: unknown): input is null => input === null
+export function isNull(input: unknown): input is null {
+  return input === null
+}
 
 /**
  * Tests if a value is not `null`.
@@ -561,7 +514,9 @@ export const isNull = (input: unknown): input is null => input === null
  * @category guards
  * @since 2.0.0
  */
-export const isNotNull = <A>(input: A): input is Exclude<A, null> => input !== null
+export function isNotNull<A>(input: A): input is Exclude<A, null> {
+  return input !== null
+}
 
 /**
  * Tests if a value is nullish (`null` or `undefined`).
@@ -580,9 +535,11 @@ export const isNotNull = <A>(input: A): input is Exclude<A, null> => input !== n
  * ```
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const isNullish = (input: unknown): input is null | undefined => input === null || input === undefined
+export function isNullish<A>(input: A): input is Extract<A, null | undefined> {
+  return input === null || input === undefined
+}
 
 /**
  * Tests if a value is not nullish (not `null` and not `undefined`).
@@ -601,9 +558,11 @@ export const isNullish = (input: unknown): input is null | undefined => input ==
  * ```
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const isNotNullish = <A>(input: A): input is NonNullable<A> => input != null
+export function isNotNullish<A>(input: A): input is NonNullable<A> {
+  return input != null
+}
 
 /**
  * A guard that always fails.
@@ -622,7 +581,9 @@ export const isNotNullish = <A>(input: A): input is NonNullable<A> => input != n
  * @category guards
  * @since 2.0.0
  */
-export const isNever: (input: unknown) => input is never = (_: unknown): _ is never => false
+export function isNever(_: unknown): _ is never {
+  return false
+}
 
 /**
  * A guard that always succeeds.
@@ -642,7 +603,9 @@ export const isNever: (input: unknown) => input is never = (_: unknown): _ is ne
  * @category guards
  * @since 2.0.0
  */
-export const isUnknown: (input: unknown) => input is unknown = (_): _ is unknown => true
+export function isUnknown(_: unknown): _ is unknown {
+  return true
+}
 
 /**
  * Tests if a value is an object or an array.
@@ -652,8 +615,9 @@ export const isUnknown: (input: unknown) => input is unknown = (_): _ is unknown
  * @category guards
  * @since 4.0.0
  */
-export const isObjectOrArray = (input: unknown): input is { [x: PropertyKey]: unknown } | Array<unknown> =>
-  typeof input === "object" && input !== null
+export function isObjectOrArray(input: unknown): input is { [x: PropertyKey]: unknown } | Array<unknown> {
+  return typeof input === "object" && input !== null
+}
 
 /**
  * Tests if a value is an object.
@@ -674,10 +638,11 @@ export const isObjectOrArray = (input: unknown): input is { [x: PropertyKey]: un
  * ```
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const isObject = (input: unknown): input is { [x: PropertyKey]: unknown } =>
-  typeof input === "object" && input !== null && !Array.isArray(input)
+export function isObject(input: unknown): input is { [x: PropertyKey]: unknown } {
+  return typeof input === "object" && input !== null && !Array.isArray(input)
+}
 
 /**
  * Tests if a value is a readonly object.
@@ -695,9 +660,11 @@ export const isObject = (input: unknown): input is { [x: PropertyKey]: unknown }
  * ```x
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const isReadonlyObject: (input: unknown) => input is { readonly [x: PropertyKey]: unknown } = isObject
+export function isReadonlyObject(input: unknown): input is { readonly [x: PropertyKey]: unknown } {
+  return isObject(input)
+}
 
 /**
  * Tests if a value is an `object` (i.e. objects, arrays, functions).
@@ -718,8 +685,9 @@ export const isReadonlyObject: (input: unknown) => input is { readonly [x: Prope
  * @category guards
  * @since 2.0.0
  */
-export const isObjectKeyword = (input: unknown): input is object =>
-  (typeof input === "object" && input !== null) || isFunction(input)
+export function isObjectKeyword(input: unknown): input is object {
+  return (typeof input === "object" && input !== null) || isFunction(input)
+}
 
 /**
  * Checks whether a value is an `object` containing a specified property key.
@@ -811,7 +779,9 @@ export const isTagged: {
  * @category guards
  * @since 2.0.0
  */
-export const isError = (input: unknown): input is Error => input instanceof Error
+export function isError(input: unknown): input is Error {
+  return input instanceof Error
+}
 
 /**
  * A guard that succeeds when the input is a `Uint8Array`.
@@ -830,7 +800,9 @@ export const isError = (input: unknown): input is Error => input instanceof Erro
  * @category guards
  * @since 2.0.0
  */
-export const isUint8Array = (input: unknown): input is Uint8Array => input instanceof Uint8Array
+export function isUint8Array(input: unknown): input is Uint8Array {
+  return input instanceof Uint8Array
+}
 
 /**
  * A guard that succeeds when the input is a `Date`.
@@ -849,7 +821,9 @@ export const isUint8Array = (input: unknown): input is Uint8Array => input insta
  * @category guards
  * @since 2.0.0
  */
-export const isDate = (input: unknown): input is Date => input instanceof Date
+export function isDate(input: unknown): input is Date {
+  return input instanceof Date
+}
 
 /**
  * A guard that succeeds when the input is an `Iterable`.
@@ -888,10 +862,9 @@ export function isIterable(input: unknown): input is Iterable<unknown> {
  * @category guards
  * @since 2.0.0
  */
-export const isPromise = (
-  input: unknown
-): input is Promise<unknown> =>
-  hasProperty(input, "then") && "catch" in input && isFunction(input.then) && isFunction(input.catch)
+export function isPromise(input: unknown): input is Promise<unknown> {
+  return hasProperty(input, "then") && "catch" in input && isFunction(input.then) && isFunction(input.catch)
+}
 
 /**
  * Tests if a value is a `PromiseLike` object (has a `then` method).
@@ -911,9 +884,9 @@ export const isPromise = (
  * @category guards
  * @since 2.0.0
  */
-export const isPromiseLike = (
-  input: unknown
-): input is PromiseLike<unknown> => hasProperty(input, "then") && isFunction(input.then)
+export function isPromiseLike(input: unknown): input is PromiseLike<unknown> {
+  return hasProperty(input, "then") && isFunction(input.then)
+}
 
 /**
  * Tests if a value is a `RegExp`.
@@ -930,7 +903,9 @@ export const isPromiseLike = (
  * @category guards
  * @since 3.9.0
  */
-export const isRegExp = (input: unknown): input is RegExp => input instanceof RegExp
+export function isRegExp(input: unknown): input is RegExp {
+  return input instanceof RegExp
+}
 
 /**
  * Composes two predicates or refinements into a single predicate that returns `true` if both succeed.
@@ -965,97 +940,6 @@ export const compose: {
 )
 
 /**
- * Combines two predicates to create a predicate for tuples that returns `true` if both predicates return `true` for their respective elements.
- *
- * @example
- * ```ts
- * import { Predicate } from "effect"
- * import * as assert from "node:assert"
- *
- * const isPositive = (n: number) => n > 0
- * const isLongString = (s: string) => s.length > 3
- * const tupleCheck = Predicate.product(isPositive, isLongString)
- *
- * assert.deepStrictEqual(tupleCheck([5, "hello"]), true)
- * assert.deepStrictEqual(tupleCheck([-1, "hello"]), false)
- * assert.deepStrictEqual(tupleCheck([5, "hi"]), false)
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const product =
-  <A, B>(self: Predicate<A>, that: Predicate<B>): Predicate<readonly [A, B]> /* readonly because contravariant */ =>
-  ([a, b]) => self(a) && that(b)
-
-/**
- * Creates a predicate for arrays that returns `true` if all corresponding predicates return `true` for their respective elements.
- *
- * @example
- * ```ts
- * import { Predicate } from "effect"
- * import * as assert from "node:assert"
- *
- * const isPositive = (n: number) => n > 0
- * const isEven = (n: number) => n % 2 === 0
- * const arrayCheck = Predicate.all([isPositive, isEven])
- *
- * assert.deepStrictEqual(arrayCheck([2, 4]), true)
- * assert.deepStrictEqual(arrayCheck([-1, 4]), false)
- * assert.deepStrictEqual(arrayCheck([2, 3]), false)
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const all = <A>(
-  collection: Iterable<Predicate<A>>
-): Predicate<ReadonlyArray<A>> => {
-  return (as) => {
-    let collectionIndex = 0
-    for (const p of collection) {
-      if (collectionIndex >= as.length) {
-        break
-      }
-      if (p(as[collectionIndex]) === false) {
-        return false
-      }
-      collectionIndex++
-    }
-    return true
-  }
-}
-
-/**
- * Combines a primary predicate with multiple predicates to create a predicate for non-empty tuples.
- * The first element is tested with the primary predicate, and subsequent elements are tested with the collection.
- *
- * @example
- * ```ts
- * import { Predicate } from "effect"
- * import * as assert from "node:assert"
- *
- * const isPositive = (n: number) => n > 0
- * const isEven = (n: number) => n % 2 === 0
- * const tupleCheck = Predicate.productMany(isPositive, [isEven, isPositive])
- *
- * assert.deepStrictEqual(tupleCheck([1, 2, 3]), true)
- * assert.deepStrictEqual(tupleCheck([-1, 2, 3]), false)
- * assert.deepStrictEqual(tupleCheck([1, 3, 3]), false)
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const productMany = <A>(
-  self: Predicate<A>,
-  collection: Iterable<Predicate<A>>
-): Predicate<readonly [A, ...Array<A>]> /* readonly because contravariant */ => {
-  const rest = all(collection)
-  return ([head, ...tail]) => self(head) === false ? false : rest(tail)
-}
-
-/**
  * Creates a predicate for tuples by applying predicates to corresponding tuple elements.
  * Similar to `Promise.all` but operates on `Predicate`s.
  *
@@ -1066,7 +950,7 @@ export const productMany = <A>(
  *
  * const isPositive = (n: number) => n > 0
  * const isString = (s: unknown): s is string => typeof s === "string"
- * const tupleCheck = Predicate.tuple(isPositive, isString)
+ * const tupleCheck = Predicate.Tuple([isPositive, isString])
  *
  * assert.deepStrictEqual(tupleCheck([5, "hello"]), true)
  * assert.deepStrictEqual(tupleCheck([-1, "hello"]), false)
@@ -1074,17 +958,25 @@ export const productMany = <A>(
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const tuple: {
-  <T extends ReadonlyArray<Predicate.Any>>(
-    ...elements: T
-  ): [Extract<T[number], Refinement.Any>] extends [never] ? Predicate<{ readonly [I in keyof T]: Predicate.In<T[I]> }>
-    : Refinement<
-      { readonly [I in keyof T]: T[I] extends Refinement.Any ? Refinement.In<T[I]> : Predicate.In<T[I]> },
-      { readonly [I in keyof T]: T[I] extends Refinement.Any ? Refinement.Out<T[I]> : Predicate.In<T[I]> }
-    >
-} = (...elements: ReadonlyArray<Predicate.Any>) => all(elements) as any
+export function Tuple<const T extends ReadonlyArray<Predicate.Any>>(
+  elements: T
+): [Extract<T[number], Refinement.Any>] extends [never] ? Predicate<{ readonly [I in keyof T]: Predicate.In<T[I]> }>
+  : Refinement<
+    { readonly [I in keyof T]: T[I] extends Refinement.Any ? Refinement.In<T[I]> : Predicate.In<T[I]> },
+    { readonly [I in keyof T]: T[I] extends Refinement.Any ? Refinement.Out<T[I]> : Predicate.In<T[I]> }
+  >
+{
+  return ((as: Array<unknown>) => {
+    for (let i = 0; i < elements.length; i++) {
+      if (elements[i](as[i]) === false) {
+        return false
+      }
+    }
+    return true
+  }) as any
+}
 
 /**
  * Creates a predicate for objects by applying predicates to corresponding object properties.
@@ -1096,7 +988,7 @@ export const tuple: {
  *
  * const isPositive = (n: number) => n > 0
  * const isString = (s: unknown): s is string => typeof s === "string"
- * const structCheck = Predicate.struct({ age: isPositive, name: isString })
+ * const structCheck = Predicate.Struct({ age: isPositive, name: isString })
  *
  * assert.deepStrictEqual(structCheck({ age: 25, name: "Alice" }), true)
  * assert.deepStrictEqual(structCheck({ age: -1, name: "Alice" }), false)
@@ -1104,28 +996,26 @@ export const tuple: {
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const struct: {
-  <R extends Record<string, Predicate.Any>>(
-    fields: R
-  ): [Extract<R[keyof R], Refinement.Any>] extends [never] ?
-    Predicate<{ readonly [K in keyof R]: Predicate.In<R[K]> }> :
-    Refinement<
-      { readonly [K in keyof R]: R[K] extends Refinement.Any ? Refinement.In<R[K]> : Predicate.In<R[K]> },
-      { readonly [K in keyof R]: R[K] extends Refinement.Any ? Refinement.Out<R[K]> : Predicate.In<R[K]> }
-    >
-} = (<R extends Record<string, Predicate.Any>>(fields: R) => {
+export function Struct<R extends Record<string, Predicate.Any>>(
+  fields: R
+): [Extract<R[keyof R], Refinement.Any>] extends [never] ? Predicate<{ readonly [K in keyof R]: Predicate.In<R[K]> }> :
+  Refinement<
+    { readonly [K in keyof R]: R[K] extends Refinement.Any ? Refinement.In<R[K]> : Predicate.In<R[K]> },
+    { readonly [K in keyof R]: R[K] extends Refinement.Any ? Refinement.Out<R[K]> : Predicate.In<R[K]> }
+  >
+{
   const keys = Object.keys(fields)
-  return (a: Record<string, unknown>) => {
+  return ((a: Record<string, unknown>) => {
     for (const key of keys) {
       if (!fields[key](a[key] as never)) {
         return false
       }
     }
     return true
-  }
-}) as any
+  }) as any
+}
 
 /**
  * Negates the result of a given predicate.
@@ -1146,7 +1036,9 @@ export const struct: {
  * @category combinators
  * @since 2.0.0
  */
-export const not = <A>(self: Predicate<A>): Predicate<A> => (a) => !self(a)
+export function not<A>(self: Predicate<A>): Predicate<A> {
+  return (a) => !self(a)
+}
 
 /**
  * Combines two predicates into a new predicate that returns `true` if at least one of the predicates returns `true`.
@@ -1386,13 +1278,15 @@ export const nand: {
  * @category elements
  * @since 2.0.0
  */
-export const every = <A>(collection: Iterable<Predicate<A>>): Predicate<A> => (a: A) => {
-  for (const p of collection) {
-    if (!p(a)) {
-      return false
+export function every<A>(collection: Iterable<Predicate<A>>): Predicate<A> {
+  return (a) => {
+    for (const p of collection) {
+      if (!p(a)) {
+        return false
+      }
     }
+    return true
   }
-  return true
 }
 
 /**
@@ -1415,11 +1309,13 @@ export const every = <A>(collection: Iterable<Predicate<A>>): Predicate<A> => (a
  * @category elements
  * @since 2.0.0
  */
-export const some = <A>(collection: Iterable<Predicate<A>>): Predicate<A> => (a) => {
-  for (const p of collection) {
-    if (p(a)) {
-      return true
+export function some<A>(collection: Iterable<Predicate<A>>): Predicate<A> {
+  return (a) => {
+    for (const p of collection) {
+      if (p(a)) {
+        return true
+      }
     }
+    return false
   }
-  return false
 }

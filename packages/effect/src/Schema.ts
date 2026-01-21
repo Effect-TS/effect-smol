@@ -1609,7 +1609,7 @@ function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields
       } | undefined
     ): Struct<To> {
       const fields = f(this.fields)
-      return makeStruct(AST.struct(fields, options?.unsafePreserveChecks ? this.ast.checks : undefined), fields)
+      return makeStruct(AST.Struct(fields, options?.unsafePreserveChecks ? this.ast.checks : undefined), fields)
     }
   })
 }
@@ -1618,7 +1618,7 @@ function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields
  * @since 4.0.0
  */
 export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
-  return makeStruct(AST.struct(fields, undefined), fields)
+  return makeStruct(AST.Struct(fields, undefined), fields)
 }
 
 interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
@@ -1938,7 +1938,7 @@ export function StructWithRest<
   schema: S,
   records: Records
 ): StructWithRest<S, Records> {
-  return make(AST.structWithRest(schema.ast, records.map(AST.getAST)), { schema, records })
+  return make(AST.StructWithRest(schema.ast, records.map(AST.getAST)), { schema, records })
 }
 
 /**
@@ -7408,7 +7408,7 @@ function makeClass<
         return makeClass(
           this,
           identifier,
-          makeStruct(AST.struct(fields, struct.ast.checks, { identifier }), fields),
+          makeStruct(AST.Struct(fields, struct.ast.checks, { identifier }), fields),
           annotations
         )
       }

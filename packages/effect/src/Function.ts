@@ -25,23 +25,6 @@ export interface FunctionTypeLambda extends TypeLambda {
 }
 
 /**
- * Tests if a value is a `function`.
- *
- * @example
- * ```ts
- * import * as Predicate from "effect/Predicate"
- * import * as assert from "node:assert"
- *
- * assert.deepStrictEqual(Predicate.isFunction(Predicate.isFunction), true)
- * assert.deepStrictEqual(Predicate.isFunction("function"), false)
- * ```
- *
- * @category guards
- * @since 2.0.0
- */
-export const isFunction = (input: unknown): input is Function => typeof input === "function"
-
-/**
  * Creates a function that can be used in a data-last (aka `pipe`able) or
  * data-first style.
  *
