@@ -354,6 +354,25 @@ export interface SelectOptions<A> {
  * @since 4.0.0
  * @category models
  */
+export interface AutoCompleteOptions<A> extends SelectOptions<A> {
+  /**
+   * The label used for the filter display (defaults to "filter").
+   */
+  readonly filterLabel?: string
+  /**
+   * The placeholder shown when the filter is empty (defaults to "type to filter").
+   */
+  readonly filterPlaceholder?: string
+  /**
+   * The message displayed when no choices match (defaults to "No matches").
+   */
+  readonly emptyMessage?: string
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export interface MultiSelectOptions {
   /**
    * Text for the "Select All" option (defaults to "Select All").
@@ -882,20 +901,11 @@ export const run: <Output>(
   Effect.scoped
 )
 
-/**
- * @since 4.0.0
- * @category constructors
- */
-export const select = <const A>(options: SelectOptions<A>): Prompt<A> => {
-  const opts: SelectOptionsReq<A> = {
-    maxPerPage: 10,
-    ...options
-  }
-  // Validate and seed initial index from any choice marked selected: true
+const getSelectInitialIndex = <A>(choices: ReadonlyArray<SelectChoice<A>>): number => {
   let initialIndex = 0
   let seenSelected = -1
-  for (let i = 0; i < opts.choices.length; i++) {
-    const choice = opts.choices[i] as SelectChoice<A>
+  for (let i = 0; i < choices.length; i++) {
+    const choice = choices[i] as SelectChoice<A>
     if (choice.selected === true) {
       if (seenSelected !== -1) {
         throw new Error("InvalidArgumentException: only a single choice can be selected by default for Prompt.select")
@@ -906,10 +916,54 @@ export const select = <const A>(options: SelectOptions<A>): Prompt<A> => {
   if (seenSelected !== -1) {
     initialIndex = seenSelected
   }
+  return initialIndex
+}
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const select = <const A>(options: SelectOptions<A>): Prompt<A> => {
+  const opts: SelectOptionsReq<A> = {
+    maxPerPage: 10,
+    ...options
+  }
+  const initialIndex = getSelectInitialIndex(opts.choices)
   return custom(initialIndex, {
     render: handleSelectRender(opts),
     process: handleSelectProcess(opts),
     clear: () => handleSelectClear(opts)
+  })
+}
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const autoComplete = <const A>(options: AutoCompleteOptions<A>): Prompt<A> => {
+  const opts: AutoCompleteOptionsReq<A> = {
+    maxPerPage: 10,
+    filterLabel: "filter",
+    filterPlaceholder: "type to filter",
+    emptyMessage: "No matches",
+    ...options
+  }
+  const initialIndex = getSelectInitialIndex(opts.choices)
+  const filtered = filterAutoCompleteChoices(opts.choices, "")
+  const index = filtered.length === 0
+    ? 0
+    : filtered.includes(initialIndex)
+    ? initialIndex
+    : filtered[0]
+  const initialState: AutoCompleteState = {
+    query: "",
+    index,
+    filtered
+  }
+  return custom(initialState, {
+    render: handleAutoCompleteRender(opts),
+    process: handleAutoCompleteProcess(opts),
+    clear: handleAutoCompleteClear(opts)
   })
 }
 
@@ -2534,7 +2588,43 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
 
 type SelectState = number
 
+type AutoCompleteState = {
+  readonly query: string
+  readonly index: number
+  readonly filtered: ReadonlyArray<number>
+}
+
 interface SelectOptionsReq<A> extends Required<SelectOptions<A>> {}
+interface AutoCompleteOptionsReq<A> extends Required<AutoCompleteOptions<A>> {}
+
+const filterAutoCompleteChoices = <A>(choices: ReadonlyArray<SelectChoice<A>>, query: string) => {
+  const normalizedQuery = query.toLowerCase()
+  const indices: Array<number> = []
+  for (let i = 0; i < choices.length; i++) {
+    if (choices[i].title.toLowerCase().includes(normalizedQuery)) {
+      indices.push(i)
+    }
+  }
+  return indices
+}
+
+const updateAutoCompleteState = <A>(
+  state: AutoCompleteState,
+  options: AutoCompleteOptionsReq<A>,
+  query: string
+): AutoCompleteState => {
+  const filtered = filterAutoCompleteChoices(options.choices, query)
+  if (filtered.length === 0) {
+    return { ...state, query, filtered, index: 0 }
+  }
+  if (filtered.includes(state.index)) {
+    return { ...state, query, filtered }
+  }
+  return { ...state, query, filtered, index: filtered[0] }
+}
+
+const autoCompleteCursor = (state: AutoCompleteState) =>
+  Arr.findFirstIndex(state.filtered, (index) => index === state.index) ?? 0
 
 const renderSelectOutput = <A>(
   leadingSymbol: string,
@@ -2547,6 +2637,30 @@ const renderSelectOutput = <A>(
     onNonEmpty: (promptLines) => {
       const lines = Arr.map(promptLines, (line) => annotateLine(line))
       return prefix + lines.join("\n") + " " + trailingSymbol + " "
+    }
+  })
+}
+
+const renderAutoCompleteFilter = <A>(state: AutoCompleteState, options: AutoCompleteOptionsReq<A>) => {
+  const filterValue = state.query.length === 0
+    ? Ansi.annotate(options.filterPlaceholder, Ansi.blackBright)
+    : Ansi.annotate(state.query, Ansi.combine(Ansi.underlined, Ansi.cyanBright))
+  return `[${options.filterLabel}: ${filterValue}]`
+}
+
+const renderAutoCompleteOutput = <A>(
+  state: AutoCompleteState,
+  leadingSymbol: string,
+  trailingSymbol: string,
+  options: AutoCompleteOptionsReq<A>
+) => {
+  const prefix = leadingSymbol + " "
+  const filter = renderAutoCompleteFilter(state, options)
+  return Arr.match(options.message.split(NEWLINE_REGEXP), {
+    onEmpty: () => prefix + " " + trailingSymbol + " " + filter,
+    onNonEmpty: (promptLines) => {
+      const lines = Arr.map(promptLines, (line) => annotateLine(line))
+      return prefix + lines.join("\n") + " " + trailingSymbol + " " + filter
     }
   })
 }
@@ -2571,6 +2685,32 @@ const renderChoicePrefix = <A>(
       : prefix + " "
   }
   return state === currentIndex
+    ? Ansi.annotate(figures.pointer, Ansi.cyanBright) + prefix
+    : prefix + " "
+}
+
+const renderAutoCompleteChoicePrefix = <A>(
+  state: AutoCompleteState,
+  options: AutoCompleteOptionsReq<A>,
+  toDisplay: { readonly startIndex: number; readonly endIndex: number },
+  currentIndex: number,
+  figures: Effect.Success<typeof platformFigures>
+) => {
+  let prefix = " "
+  if (currentIndex === toDisplay.startIndex && toDisplay.startIndex > 0) {
+    prefix = figures.arrowUp
+  } else if (currentIndex === toDisplay.endIndex - 1 && toDisplay.endIndex < state.filtered.length) {
+    prefix = figures.arrowDown
+  }
+  const choiceIndex = state.filtered[currentIndex]
+  const choice = options.choices[choiceIndex]
+  if (choice.disabled) {
+    const annotation = Ansi.combine(Ansi.bold, Ansi.blackBright)
+    return state.index === choiceIndex
+      ? Ansi.annotate(figures.pointer, annotation) + prefix
+      : prefix + " "
+  }
+  return state.index === choiceIndex
     ? Ansi.annotate(figures.pointer, Ansi.cyanBright) + prefix
     : prefix + " "
 }
@@ -2609,6 +2749,29 @@ const renderSelectChoices = <A>(
   return documents.join("\n")
 }
 
+const renderAutoCompleteChoices = <A>(
+  state: AutoCompleteState,
+  options: AutoCompleteOptionsReq<A>,
+  figures: Effect.Success<typeof platformFigures>
+) => {
+  if (state.filtered.length === 0) {
+    return Ansi.annotate(options.emptyMessage, Ansi.blackBright)
+  }
+  const cursor = autoCompleteCursor(state)
+  const toDisplay = entriesToDisplay(cursor, state.filtered.length, options.maxPerPage)
+  const documents: Array<string> = []
+  for (let index = toDisplay.startIndex; index < toDisplay.endIndex; index++) {
+    const choiceIndex = state.filtered[index]
+    const choice = options.choices[choiceIndex]
+    const isSelected = state.index === choiceIndex
+    const prefix = renderAutoCompleteChoicePrefix(state, options, toDisplay, index, figures)
+    const title = renderChoiceTitle(choice, isSelected)
+    const description = renderChoiceDescription(choice, isSelected)
+    documents.push(prefix + title + " " + description)
+  }
+  return documents.join("\n")
+}
+
 const renderSelectNextFrame = Effect.fnUntraced(function*<A>(state: SelectState, options: SelectOptionsReq<A>) {
   const figures = yield* platformFigures
   const choices = renderSelectChoices(state, options, figures)
@@ -2618,12 +2781,36 @@ const renderSelectNextFrame = Effect.fnUntraced(function*<A>(state: SelectState,
   return Ansi.cursorHide + promptMsg + "\n" + choices
 })
 
+const renderAutoCompleteNextFrame = Effect.fnUntraced(function*<A>(
+  state: AutoCompleteState,
+  options: AutoCompleteOptionsReq<A>
+) {
+  const figures = yield* platformFigures
+  const choices = renderAutoCompleteChoices(state, options, figures)
+  const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
+  const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
+  const promptMsg = renderAutoCompleteOutput(state, leadingSymbol, trailingSymbol, options)
+  return Ansi.cursorHide + promptMsg + "\n" + choices
+})
+
 const renderSelectSubmission = Effect.fnUntraced(function*<A>(state: SelectState, options: SelectOptionsReq<A>) {
   const figures = yield* platformFigures
   const selected = options.choices[state].title
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
   const promptMsg = renderSelectOutput(leadingSymbol, trailingSymbol, options)
+  return promptMsg + " " + Ansi.annotate(selected, Ansi.white) + "\n"
+})
+
+const renderAutoCompleteSubmission = Effect.fnUntraced(function*<A>(
+  state: AutoCompleteState,
+  options: AutoCompleteOptionsReq<A>
+) {
+  const figures = yield* platformFigures
+  const selected = options.choices[state.index].title
+  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
+  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
+  const promptMsg = renderAutoCompleteOutput(state, leadingSymbol, trailingSymbol, options)
   return promptMsg + " " + Ansi.annotate(selected, Ansi.white) + "\n"
 })
 
@@ -2645,12 +2832,58 @@ const processSelectNext = <A>(state: SelectState, choices: SelectOptionsReq<A>["
   return Effect.succeed(Action.NextFrame({ state: (state + 1) % choices.length }))
 }
 
+const processAutoCompleteCursorUp = (state: AutoCompleteState) => {
+  if (state.filtered.length === 0) {
+    return Effect.succeed(Action.Beep())
+  }
+  const cursor = autoCompleteCursor(state)
+  const nextCursor = cursor === 0 ? state.filtered.length - 1 : cursor - 1
+  return Effect.succeed(Action.NextFrame({ state: { ...state, index: state.filtered[nextCursor] } }))
+}
+
+const processAutoCompleteCursorDown = (state: AutoCompleteState) => {
+  if (state.filtered.length === 0) {
+    return Effect.succeed(Action.Beep())
+  }
+  const cursor = autoCompleteCursor(state)
+  const nextCursor = (cursor + 1) % state.filtered.length
+  return Effect.succeed(Action.NextFrame({ state: { ...state, index: state.filtered[nextCursor] } }))
+}
+
+const processAutoCompleteNext = (state: AutoCompleteState) => processAutoCompleteCursorDown(state)
+
+const processAutoCompleteBackspace = <A>(state: AutoCompleteState, options: AutoCompleteOptionsReq<A>) => {
+  if (state.query.length === 0) {
+    return Effect.succeed(Action.Beep())
+  }
+  const query = state.query.slice(0, state.query.length - 1)
+  return Effect.succeed(Action.NextFrame({ state: updateAutoCompleteState(state, options, query) }))
+}
+
+const processAutoCompleteInput = <A>(input: string, state: AutoCompleteState, options: AutoCompleteOptionsReq<A>) => {
+  if (input.length === 0) {
+    return Effect.succeed(Action.Beep())
+  }
+  const query = state.query + input
+  return Effect.succeed(Action.NextFrame({ state: updateAutoCompleteState(state, options, query) }))
+}
+
 const handleSelectRender = <A>(options: SelectOptionsReq<A>) => {
   return (state: SelectState, action: Action<SelectState, A>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
       NextFrame: ({ state }) => renderSelectNextFrame(state, options),
       Submit: () => renderSelectSubmission(state, options)
+    })
+  }
+}
+
+const handleAutoCompleteRender = <A>(options: AutoCompleteOptionsReq<A>) => {
+  return (state: AutoCompleteState, action: Action<AutoCompleteState, A>) => {
+    return Action.$match(action, {
+      Beep: () => Effect.succeed(renderBeep),
+      NextFrame: ({ state }) => renderAutoCompleteNextFrame(state, options),
+      Submit: () => renderAutoCompleteSubmission(state, options)
     })
   }
 }
@@ -2663,6 +2896,19 @@ const handleSelectClear = Effect.fnUntraced(function*<A>(options: SelectOptionsR
   const clearOutput = eraseText(text, columns)
   return clearOutput + clearPrompt
 })
+
+const handleAutoCompleteClear = <A>(options: AutoCompleteOptionsReq<A>) =>
+  Effect.fnUntraced(function*(state: AutoCompleteState, _: Action<AutoCompleteState, A>) {
+    const terminal = yield* Terminal.Terminal
+    const columns = yield* terminal.columns
+    const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
+    const filterValue = state.query.length === 0 ? options.filterPlaceholder : state.query
+    const prompt = `${options.message} [${options.filterLabel}: ${filterValue}]`
+    const visibleChoices = Math.min(Math.max(state.filtered.length, 1), options.maxPerPage)
+    const text = "\n".repeat(visibleChoices) + prompt
+    const clearOutput = eraseText(text, columns)
+    return clearOutput + clearPrompt
+  })
 
 const handleSelectProcess = <A>(options: SelectOptionsReq<A>) => {
   return (input: Terminal.UserInput, state: SelectState) => {
@@ -2688,6 +2934,41 @@ const handleSelectProcess = <A>(options: SelectOptionsReq<A>) => {
       }
       default: {
         return Effect.succeed(Action.Beep())
+      }
+    }
+  }
+}
+
+const handleAutoCompleteProcess = <A>(options: AutoCompleteOptionsReq<A>) => {
+  return (input: Terminal.UserInput, state: AutoCompleteState) => {
+    switch (input.key.name) {
+      case "k":
+      case "up": {
+        return processAutoCompleteCursorUp(state)
+      }
+      case "j":
+      case "down": {
+        return processAutoCompleteCursorDown(state)
+      }
+      case "tab": {
+        return processAutoCompleteNext(state)
+      }
+      case "backspace": {
+        return processAutoCompleteBackspace(state, options)
+      }
+      case "enter":
+      case "return": {
+        if (state.filtered.length === 0) {
+          return Effect.succeed(Action.Beep())
+        }
+        const selected = options.choices[state.index]
+        if (selected.disabled) {
+          return Effect.succeed(Action.Beep())
+        }
+        return Effect.succeed(Action.Submit({ value: selected.value }))
+      }
+      default: {
+        return processAutoCompleteInput(input.input ?? "", state, options)
       }
     }
   }
