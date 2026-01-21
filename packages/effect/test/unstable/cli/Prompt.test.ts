@@ -16,7 +16,7 @@ const TestLayer = Layer.mergeAll(
   TerminalLayer
 )
 
-describe("Fallback prompts", () => {
+describe("Prompt", () => {
   it.effect("prompts for missing flag values and preserves remaining args", () =>
     Effect.gen(function*() {
       const prompt = Prompt.text({ message: "Name" })
