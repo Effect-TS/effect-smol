@@ -30,7 +30,7 @@ export declare namespace MockTerminal {
 // =============================================================================
 
 export const MockTerminal = ServiceMap.Service<Terminal.Terminal, MockTerminal>()(
-  "@effect/platform/Terminal"
+  Terminal.Terminal.key
 )
 
 // =============================================================================

@@ -25,12 +25,11 @@
  * - Errors accumulate rather than throwing exceptions
  */
 import * as Effect from "../../../Effect.ts"
-import type { FileSystem } from "../../../FileSystem.ts"
 import type { LogLevel } from "../../../LogLevel.ts"
 import * as Option from "../../../Option.ts"
-import type { Path } from "../../../Path.ts"
+import * as Terminal from "../../../Terminal.ts"
 import * as CliError from "../CliError.ts"
-import type { Command, ParsedTokens } from "../Command.ts"
+import type { Command, Environment, ParsedTokens } from "../Command.ts"
 import * as Param from "../Param.ts"
 import * as Primitive from "../Primitive.ts"
 import { suggest } from "./auto-suggest.ts"
@@ -60,11 +59,12 @@ export const extractBuiltInOptions = (
     remainder: ReadonlyArray<Token>
   },
   CliError.CliError,
-  FileSystem | Path
-> =>
-  Effect.gen(function*() {
-    const { flagMap, remainder } = consumeKnownFlags(tokens, builtInFlagRegistry)
-    const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
+  Environment
+> => {
+  const { flagMap, remainder } = consumeKnownFlags(tokens, builtInFlagRegistry)
+  const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
+  return Effect.gen(function*() {
+    yield* Terminal.Terminal
     const [, help] = yield* helpFlag.parse(emptyArgs)
     const [, logLevel] = yield* logLevelFlag.parse(emptyArgs)
     const [, version] = yield* versionFlag.parse(emptyArgs)
@@ -77,13 +77,14 @@ export const extractBuiltInOptions = (
       remainder
     }
   })
+}
 
 /** @internal */
 export const parseArgs = (
   lexResult: LexResult,
   command: Command.Any,
   commandPath: ReadonlyArray<string> = []
-): Effect.Effect<ParsedTokens, CliError.CliError, FileSystem | Path> =>
+): Effect.Effect<ParsedTokens, CliError.CliError, Environment> =>
   Effect.gen(function*() {
     const { tokens, trailingOperands: afterEndOfOptions } = lexResult
     const newCommandPath = [...commandPath, command.name]

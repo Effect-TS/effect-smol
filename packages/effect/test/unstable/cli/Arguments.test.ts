@@ -1,7 +1,7 @@
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Option, Path, PlatformError, Ref, Result } from "effect"
 import { TestConsole } from "effect/testing"
-import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
+import { Argument, CliOutput, Command, Flag, Prompt } from "effect/unstable/cli"
 import * as MockTerminal from "./services/MockTerminal.ts"
 
 const ConsoleLayer = TestConsole.layer
@@ -354,6 +354,23 @@ describe("Command arguments", () => {
       // If we get here without error, optional is working
       const [_leftover, value] = result
       assert.isTrue(Option.isNone(value), "Should be Option.none()")
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("should prompt for missing flags with withFallbackPrompt", () =>
+    Effect.gen(function*() {
+      const resultRef = yield* Ref.make<string | null>(null)
+
+      const testCommand = Command.make("test", {
+        name: Flag.string("name").pipe(
+          Flag.withFallbackPrompt(Prompt.succeed("prompted"))
+        )
+      }, ({ name }) => Ref.set(resultRef, name))
+
+      yield* Command.runWith(testCommand, { version: "1.0.0" })([]).pipe(
+        Effect.provide(TestLayer)
+      )
+      const result = yield* Ref.get(resultRef)
+      assert.strictEqual(result, "prompted")
     }).pipe(Effect.provide(TestLayer)))
 
   it.effect("should show correct error message for invalid argument (not 'flag')", () =>

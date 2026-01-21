@@ -10,7 +10,6 @@ import type * as Redacted from "../../Redacted.ts"
 import type * as Result from "../../Result.ts"
 import type * as Schema from "../../Schema.ts"
 import type * as CliError from "./CliError.ts"
-import type { Environment } from "./Command.ts"
 import * as Param from "./Param.ts"
 import type * as Primitive from "./Primitive.ts"
 
@@ -392,11 +391,11 @@ export const map: {
  */
 export const mapEffect: {
   <A, B>(
-    f: (a: A) => Effect.Effect<B, CliError.CliError, Environment>
+    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
   ): (self: Argument<A>) => Argument<B>
   <A, B>(
     self: Argument<A>,
-    f: (a: A) => Effect.Effect<B, CliError.CliError, Environment>
+    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
   ): Argument<B>
 } = dual(2, <A, B>(
   self: Argument<A>,

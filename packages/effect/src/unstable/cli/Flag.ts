@@ -1,17 +1,19 @@
 /**
  * @since 4.0.0
  */
-import type * as Effect from "../../Effect.ts"
+import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { dual, type LazyArg } from "../../Function.ts"
-import type * as Option from "../../Option.ts"
+import * as Option from "../../Option.ts"
 import type * as Path from "../../Path.ts"
 import type * as Redacted from "../../Redacted.ts"
 import type * as Result from "../../Result.ts"
 import type * as Schema from "../../Schema.ts"
-import type * as CliError from "./CliError.ts"
+import * as Terminal from "../../Terminal.ts"
+import * as CliError from "./CliError.ts"
 import * as Param from "./Param.ts"
 import type * as Primitive from "./Primitive.ts"
+import * as Prompt from "./Prompt.ts"
 
 // -------------------------------------------------------------------------------------
 // models
@@ -497,6 +499,46 @@ export const withDefault: {
   <A>(defaultValue: A): (self: Flag<A>) => Flag<A>
   <A>(self: Flag<A>, defaultValue: A): Flag<A>
 } = dual(2, <A>(self: Flag<A>, defaultValue: A) => Param.withDefault(self, defaultValue))
+
+/**
+ * Uses a prompt to supply a fallback value when a flag is missing.
+ *
+ * @example
+ * ```ts
+ * import { Flag, Prompt } from "effect/unstable/cli"
+ *
+ * const username = Flag.string("username").pipe(
+ *   Flag.withFallbackPrompt(Prompt.text({ message: "Username:" }))
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category optionality
+ */
+export const withFallbackPrompt: {
+  <B>(prompt: Prompt.Prompt<B>): <A>(self: Flag<A>) => Flag<A | B>
+  <A, B>(self: Flag<A>, prompt: Prompt.Prompt<B>): Flag<A | B>
+} = dual(2, <A, B>(self: Flag<A>, prompt: Prompt.Prompt<B>) => {
+  const single = Param.getUnderlyingSingleOrThrow(self)
+  return Param.mapEffect(
+    Param.optional(self),
+    (value) => {
+      if (Option.isSome(value)) {
+        return Effect.succeed<A | B>(value.value)
+      }
+      return Effect.flatMap(
+        Effect.serviceOption(Terminal.Terminal),
+        Option.match({
+          onNone: () => Effect.fail(new CliError.MissingOption({ option: single.name })),
+          onSome: (terminal) =>
+            Effect.orDie(Prompt.run(prompt)).pipe(
+              Effect.provideService(Terminal.Terminal, terminal)
+            )
+        })
+      )
+    }
+  )
+})
 
 /**
  * Transforms the parsed value of a flag using a mapping function.
