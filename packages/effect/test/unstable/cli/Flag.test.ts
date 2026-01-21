@@ -26,7 +26,7 @@ describe("Flag.withFallbackConfig", () => {
       ConfigProvider.layer(ConfigProvider.fromEnv({ env: { VERBOSE: "true" } }))
     ))))
 
-  it.effect("fails when config and flag are missing", () =>
+  it.effect("defaults to false when config and flag are missing", () =>
     Effect.gen(function*() {
       const command = Command.make("git", {
         verbose: Flag.boolean("verbose").pipe(
@@ -35,10 +35,9 @@ describe("Flag.withFallbackConfig", () => {
       })
 
       const parsedInput = yield* Parser.parseArgs(Lexer.lex([]), command)
-      const error = yield* Effect.flip(toImpl(command).parse(parsedInput))
+      const result = yield* toImpl(command).parse(parsedInput)
 
-      assert.instanceOf(error, CliError.MissingOption)
-      assert.strictEqual(error.option, "verbose")
+      assert.isFalse(result.verbose)
     }).pipe(Effect.provide(BaseLayer)))
 
   it.effect("maps config failures to InvalidValue", () =>
