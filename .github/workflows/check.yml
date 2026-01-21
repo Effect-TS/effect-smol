@@ -88,6 +88,11 @@ jobs:
           wait
       - name: Compare bundle size
         run: node ./packages/tools/bundle/src/bin.ts compare --base-dir base/packages/tools/bundle/fixtures
+      - name: Log stats.txt content
+        run: |
+          echo "=== stats.txt content ==="
+          cat stats.txt
+          echo "=== end of stats.txt ==="
       - name: Upload stats artifact
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
