@@ -687,9 +687,9 @@ export function isSymbol(input: unknown): input is symbol {
  * import { Predicate } from "effect"
  *
  * const key: unknown = "name"
+ * const obj: Record<PropertyKey, unknown> = { name: "Ada" }
  *
- * if (Predicate.isPropertyKey(key)) {
- *   const obj = { name: "Ada" }
+ * if (Predicate.isPropertyKey(key) && key in obj) {
  *   console.log(obj[key])
  * }
  * ```
@@ -1571,9 +1571,17 @@ export const or: {
  * ```ts
  * import { Predicate } from "effect"
  *
- * const isNonEmptyString = Predicate.and(Predicate.isString, (s) => s.length > 0)
+ * const hasAAndB = Predicate.and(
+ *   Predicate.hasProperty("a"),
+ *   Predicate.hasProperty("b")
+ * )
  *
- * console.log(isNonEmptyString("ok"))
+ * const input: unknown = JSON.parse(`{"a":1,"b":"ok"}`)
+ * if (hasAAndB(input)) {
+ *   // input has both properties at this point
+ *   const a = input.a
+ *   const b = input.b
+ * }
  * ```
  *
  * See also: {@link or}, {@link not}
