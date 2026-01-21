@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Schema from "../../Schema.ts"
-import type { Simplify } from "../../Types.ts"
+import type { NoRequiredKeysWith, Simplify } from "../../Types.ts"
 import * as HttpApi from "./HttpApi.ts"
 import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import * as HttpApiGroup from "./HttpApiGroup.ts"
@@ -14,29 +14,78 @@ import type * as HttpApiSchema from "./HttpApiSchema.ts"
  */
 export const make = <
   Api extends HttpApi.Any
->(): HttpApiClientFetch<Api extends HttpApi.HttpApi<infer _Id, infer Groups> ? Groups : never> => {
-  return {} as any
+>(options: {
+  readonly baseUrl: string
+  readonly fetch?: typeof fetch | undefined
+  readonly defaultHeaders?: HeadersInit | undefined
+}): HttpApiClientFetch<Api extends HttpApi.HttpApi<infer _Id, infer Groups> ? EndpointMap<Groups> : never> => {
+  const fetchImpl = options.fetch ?? fetch
+  return function(methodAndUrl: string, opts?: {
+    readonly path?: Record<string, any> | undefined
+    readonly urlParams?: Record<string, any> | undefined
+    readonly headers?: Record<string, string> | undefined
+    readonly json?: any
+    readonly formData?: Record<string, any> | undefined
+  }) {
+    const headers = new Headers(options.defaultHeaders)
+    if (opts?.headers) {
+      for (const [key, value] of Object.entries(opts.headers)) {
+        headers.set(key, value)
+      }
+    }
+    const [method, urlTemplate] = methodAndUrl.split(" ")
+    let path = urlTemplate
+    if (opts?.path) {
+      for (const [key, value] of Object.entries(opts.path)) {
+        path = path.replace(`:${key}`, encodeURIComponent(String(value)))
+      }
+    }
+    const url = new URL(options.baseUrl + path)
+    if (opts?.urlParams) {
+      for (const [key, value] of Object.entries(opts.urlParams)) {
+        url.searchParams.set(key, String(value))
+      }
+    }
+    const fetchOptions: RequestInit = {
+      method,
+      headers
+    }
+    if (opts?.json !== undefined) {
+      headers.set("Content-Type", "application/json")
+      fetchOptions.body = JSON.stringify(opts.json)
+    } else if (opts?.formData !== undefined) {
+      const formData = new FormData()
+      for (const [key, value] of Object.entries(opts.formData)) {
+        formData.append(key, value)
+      }
+      fetchOptions.body = formData
+    }
+    return fetchImpl(url, fetchOptions).then((response) => ({
+      response,
+      json: () => response.json()
+    }))
+  } as any
 }
 
 /**
  * @since 4.0.0
  * @category Models
  */
-export type HttpApiClientFetch<Groups extends HttpApiGroup.Any> = <
-  const MethodAndUrl extends keyof Endpoints,
-  Endpoints = EndpointMap<Groups>,
-  Options extends {
+export type HttpApiClientFetch<
+  Endpoints extends Record<string, {
     readonly options: any
     readonly return: any
-  } = Endpoints[MethodAndUrl] extends { readonly options: infer O; readonly return: infer R } ? {
-      readonly options: O
-      readonly return: R
-    } :
-    { readonly options: {}; readonly return: Promise<never> }
+  }>
+> = <
+  const MethodAndUrl extends keyof Endpoints
 >(
   methodAndUrl: MethodAndUrl,
-  options: Options["options"]
-) => Options["return"]
+  ...args: NoRequiredKeysWith<
+    Endpoints[MethodAndUrl]["options"],
+    [options?: Endpoints[MethodAndUrl]["options"]],
+    [options: Endpoints[MethodAndUrl]["options"]]
+  >
+) => Endpoints[MethodAndUrl]["return"]
 
 /**
  * @since 4.0.0
@@ -44,9 +93,7 @@ export type HttpApiClientFetch<Groups extends HttpApiGroup.Any> = <
  */
 export type EndpointMap<Group extends HttpApiGroup.Any> = {
   readonly [Endpoint in HttpApiGroup.Endpoints<Group> as `${Endpoint["method"]} ${Endpoint["path"]}`]: {
-    readonly options: EndpointOptions<
-      Endpoint
-    >
+    readonly options: EndpointOptions<Endpoint>
     readonly return: Promise<{
       readonly response: Response
       readonly json: () => Promise<
@@ -73,15 +120,24 @@ export type EndpointOptions<Endpoint extends HttpApiEndpoint.Any> = Endpoint ext
   infer _M,
   infer _MR
 > ? Simplify<
-    & (Endpoint["pathSchema"] extends undefined ? {} : {
-      readonly path: _PathSchema["Encoded"]
-    })
-    & (Endpoint["urlParamsSchema"] extends undefined ? {} : {
-      readonly urlParams: _UrlParams["Encoded"]
-    })
-    & (Endpoint["headersSchema"] extends undefined ? {} : {
-      readonly headers: _Headers["Encoded"]
-    })
+    & (Endpoint["pathSchema"] extends undefined ? {} :
+      NoRequiredKeysWith<_PathSchema["Encoded"], {
+        readonly path?: _PathSchema["Encoded"] | undefined
+      }, {
+        readonly path: _PathSchema["Encoded"]
+      }>)
+    & (Endpoint["urlParamsSchema"] extends undefined ? {} :
+      NoRequiredKeysWith<_UrlParams["Encoded"], {
+        readonly urlParams?: _UrlParams["Encoded"] | undefined
+      }, {
+        readonly urlParams: _UrlParams["Encoded"]
+      }>)
+    & (Endpoint["headersSchema"] extends undefined ? {} :
+      NoRequiredKeysWith<_Headers["Encoded"], {
+        readonly headers?: _Headers["Encoded"] | undefined
+      }, {
+        readonly headers: _Headers["Encoded"]
+      }>)
     & (
       Endpoint["payloadSchema"] extends undefined ? {} : _Payload extends HttpApiSchema.Multipart<infer S> ? {
           // TODO: convert to string | Blob | File etc.
@@ -97,13 +153,13 @@ export type EndpointOptions<Endpoint extends HttpApiEndpoint.Any> = Endpoint ext
 const api = HttpApi.make("api").add(
   HttpApiGroup.make("users").add(HttpApiEndpoint.get("list", "/users", {
     urlParams: {
-      foo: Schema.String
+      foo: Schema.optional(Schema.String)
     }
   }))
 ).add(
   HttpApiGroup.make("posts").add(HttpApiEndpoint.post("create", "/posts", {
     urlParams: {
-      draft: Schema.String
+      draft: Schema.optional(Schema.String)
     },
     payload: Schema.Struct({
       title: Schema.String,
@@ -121,12 +177,8 @@ const api = HttpApi.make("api").add(
   }))
 )
 
-const client = make<typeof api>()
-
-export const endpoint = client("POST /posts", {
-  urlParams: { draft: "true" },
-  json: {
-    title: "My Post",
-    content: "This is the content"
-  }
+const client = make<typeof api>({
+  baseUrl: "https://example.com/api"
 })
+
+export const endpoint = client("GET /users")
