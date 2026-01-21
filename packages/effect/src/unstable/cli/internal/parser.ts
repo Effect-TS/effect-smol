@@ -25,10 +25,8 @@
  * - Errors accumulate rather than throwing exceptions
  */
 import * as Effect from "../../../Effect.ts"
-import type { FileSystem } from "../../../FileSystem.ts"
 import type { LogLevel } from "../../../LogLevel.ts"
 import * as Option from "../../../Option.ts"
-import type { Path } from "../../../Path.ts"
 import * as CliError from "../CliError.ts"
 import type { Command, ParsedTokens } from "../Command.ts"
 import * as Param from "../Param.ts"
@@ -60,7 +58,7 @@ export const extractBuiltInOptions = (
     remainder: ReadonlyArray<Token>
   },
   CliError.CliError,
-  FileSystem | Path
+  Param.Environment
 > =>
   Effect.gen(function*() {
     const { flagMap, remainder } = consumeKnownFlags(tokens, builtInFlagRegistry)
@@ -83,7 +81,7 @@ export const parseArgs = (
   lexResult: LexResult,
   command: Command.Any,
   commandPath: ReadonlyArray<string> = []
-): Effect.Effect<ParsedTokens, CliError.CliError, FileSystem | Path> =>
+): Effect.Effect<ParsedTokens, CliError.CliError, Param.Environment> =>
   Effect.gen(function*() {
     const { tokens, trailingOperands: afterEndOfOptions } = lexResult
     const newCommandPath = [...commandPath, command.name]
