@@ -24,6 +24,7 @@ import type * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as Generated from "./Generated.ts"
 import { OpenAiConfig } from "./OpenAiConfig.ts"
+import * as OpenAiError from "./OpenAiError.ts"
 
 // =============================================================================
 // Service Interface
@@ -103,17 +104,9 @@ const mapRequestError = dual<
   }))
 
 const mapResponseError = dual<
-  (method: string) => (error: HttpClientError.ResponseError) => AiError.AiError,
-  (error: HttpClientError.ResponseError, method: string) => AiError.AiError
->(2, (error, method) =>
-  AiError.make({
-    module: "OpenAiClient",
-    method,
-    reason: AiError.reasonFromHttpStatus({
-      status: error.response.status,
-      body: error
-    })
-  }))
+  (method: string) => (error: HttpClientError.ResponseError) => Effect.Effect<never, AiError.AiError>,
+  (error: HttpClientError.ResponseError, method: string) => Effect.Effect<never, AiError.AiError>
+>(2, (error, method) => OpenAiError.mapResponseError(error, method))
 
 const mapSchemaError = dual<
   (method: string) => (error: Schema.SchemaError) => AiError.AiError,
@@ -232,7 +225,7 @@ export const make = Effect.fnUntraced(
           // TODO: handle SSE retries
           Retry: (error) => Effect.die(error),
           RequestError: (error) => Stream.fail(mapRequestError(error, "streamRequest")),
-          ResponseError: (error) => Stream.fail(mapResponseError(error, "streamRequest")),
+          ResponseError: (error) => Stream.unwrap(mapResponseError(error, "streamRequest")),
           SchemaError: (error) => Stream.fail(mapSchemaError(error, "streamRequest"))
         })
       )
@@ -243,7 +236,7 @@ export const make = Effect.fnUntraced(
       client.createResponse({ payload: opts }).pipe(
         Effect.catchTags({
           RequestError: (error) => Effect.fail(mapRequestError(error, "createResponse")),
-          ResponseError: (error) => Effect.fail(mapResponseError(error, "createResponse")),
+          ResponseError: (error) => mapResponseError(error, "createResponse"),
           SchemaError: (error) => Effect.fail(mapSchemaError(error, "createResponse"))
         })
       )
@@ -263,7 +256,7 @@ export const make = Effect.fnUntraced(
       client.createEmbedding({ payload: opts }).pipe(
         Effect.catchTags({
           RequestError: (error) => Effect.fail(mapRequestError(error, "createEmbedding")),
-          ResponseError: (error) => Effect.fail(mapResponseError(error, "createEmbedding")),
+          ResponseError: (error) => mapResponseError(error, "createEmbedding"),
           SchemaError: (error) => Effect.fail(mapSchemaError(error, "createEmbedding"))
         })
       )

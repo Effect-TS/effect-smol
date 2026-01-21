@@ -1911,6 +1911,44 @@ export * as PlatformError from "./PlatformError.ts"
 export * as Pool from "./Pool.ts"
 
 /**
+ * Predicate and Refinement helpers for runtime checks, filtering, and type narrowing.
+ * This module provides small, pure functions you can combine to decide whether a
+ * value matches a condition and, when using refinements, narrow TypeScript types.
+ *
+ * Mental model:
+ * - A `Predicate<A>` is just `(a: A) => boolean`.
+ * - A `Refinement<A, B>` is a predicate that narrows `A` to `B` when true.
+ * - Guards like `isString` are predicates/refinements for common runtime types.
+ * - Combinators like `and`/`or` build new predicates from existing ones.
+ * - `Tuple` and `Struct` lift element/property predicates to compound values.
+ *
+ * Common tasks:
+ * - Reuse an existing predicate on a different input shape -> {@link mapInput}
+ * - Combine checks -> {@link and}, {@link or}, {@link not}, {@link xor}
+ * - Build tuple/object checks -> {@link Tuple}, {@link Struct}
+ * - Narrow `unknown` to a concrete type -> {@link Refinement}, {@link compose}
+ * - Check runtime types -> {@link isString}, {@link isNumber}, {@link isObject}
+ *
+ * Gotchas:
+ * - `isTruthy` uses JavaScript truthiness; `0`, "", and `false` are false.
+ * - `isObject` excludes arrays; use {@link isObjectOrArray} for both.
+ * - `isIterable` treats strings as iterable.
+ * - `isPromise`/`isPromiseLike` are structural checks (then/catch), not `instanceof`.
+ * - `isTupleOf` and `isTupleOfAtLeast` only check length, not element types.
+ *
+ * **Example** (Filter by a predicate)
+ *
+ * ```ts
+ * import * as Predicate from "effect/Predicate"
+ *
+ * const isPositive = (n: number) => n > 0
+ * const data = [2, -1, 3]
+ *
+ * console.log(data.filter(isPositive))
+ * ```
+ *
+ * See also: {@link Predicate}, {@link Refinement}, {@link and}, {@link or}, {@link mapInput}
+ *
  * @since 2.0.0
  */
 export * as Predicate from "./Predicate.ts"
