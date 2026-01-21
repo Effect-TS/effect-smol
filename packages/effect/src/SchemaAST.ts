@@ -1491,7 +1491,7 @@ function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
 }
 
 /** @internal */
-export function Struct<Fields extends Schema.Struct.Fields>(
+export function struct<Fields extends Schema.Struct.Fields>(
   fields: Fields,
   checks: Checks | undefined,
   annotations?: Schema.Annotations.Annotations
@@ -1529,7 +1529,7 @@ export function union<Members extends ReadonlyArray<Schema.Top>>(
 }
 
 /** @internal */
-export function StructWithRest(ast: Objects, records: ReadonlyArray<Objects>): Objects {
+export function structWithRest(ast: Objects, records: ReadonlyArray<Objects>): Objects {
   if (ast.encoding || records.some((r) => r.encoding)) {
     throw new Error("StructWithRest does not support encodings")
   }

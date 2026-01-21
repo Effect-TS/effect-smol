@@ -283,6 +283,16 @@ export function annotateKey<S extends Top>(annotations: Annotations.Key<S["Type"
 }
 
 /**
+ * The top (most general) type for all schema-like values in this module.
+ *
+ * When to use:
+ * - You are writing generic helpers and only need "some schema", without caring about its `Type` / `Encoded`.
+ * - You need a common constraint for type-level utilities (for example in `Schema.Type` or `Codec.Encoded`).
+ *
+ * Behavior:
+ * - This is a *type-level* supertype; it does not represent a specific concrete schema.
+ * - In user code, you usually want {@link Schema}, {@link Codec}, {@link Decoder}, or {@link Encoder} instead.
+ *
  * @since 4.0.0
  */
 export interface Top extends
@@ -316,6 +326,16 @@ export declare namespace Schema {
 }
 
 /**
+ * A typed view of a schema that tracks the decoded (output) type `T`.
+ *
+ * When to use:
+ * - You want to accept "any schema that decodes to `T`" in a function signature.
+ * - You only care about the decoded type and do not need to talk about the encoded representation.
+ *
+ * Behavior:
+ * - This is a structural interface used for typing; it does not by itself construct or run validation.
+ * - If you also need the encoded type (or decoding/encoding services), use {@link Codec}.
+ *
  * @since 4.0.0
  */
 export interface Schema<out T> extends Top {
@@ -358,6 +378,17 @@ export interface Optic<out T, out Iso> extends Schema<T> {
 }
 
 /**
+ * A schema that tracks both the decoded type `T` and the encoded representation `E`.
+ *
+ * When to use:
+ * - You want a schema in APIs that may both decode and encode.
+ * - You need to preserve/describe the encoded representation (`Encoded`) in types.
+ * - You need to model required services for decoding (`RD`) and encoding (`RE`).
+ *
+ * Behavior:
+ * - This is a typing surface; concrete schema values are created by the various constructors in this module.
+ * - For decode-only or encode-only APIs, prefer {@link Decoder} or {@link Encoder}.
+ *
  * @since 4.0.0
  */
 export interface Codec<out T, out E = T, out RD = never, out RE = never> extends Schema<T> {
@@ -366,6 +397,28 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
   readonly "EncodingServices": RE
   readonly "~rebuild.out": Codec<T, E, RD, RE>
 }
+
+/**
+ * A `Codec` view intended for APIs that only *decode* (parse/validate) values.
+ *
+ * When to use:
+ * - You want to accept "anything that can decode to `T`", without requiring encoding support.
+ * - You are writing helpers that should not depend on the schema’s `Encoded` representation.
+ *
+ * @since 4.0.0
+ */
+export interface Decoder<out T, out RD = never> extends Codec<T, unknown, RD, unknown> {}
+
+/**
+ * A `Codec` view intended for APIs that only *encode* values.
+ *
+ * When to use:
+ * - You want to accept "anything that can encode to `E`", without requiring decoding support.
+ * - You are writing helpers that should not depend on the schema’s decoded `Type`.
+ *
+ * @since 4.0.0
+ */
+export interface Encoder<out E, out RE = never> extends Codec<unknown, E, unknown, RE> {}
 
 /**
  * @since 4.0.0
@@ -1609,7 +1662,7 @@ function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields
       } | undefined
     ): Struct<To> {
       const fields = f(this.fields)
-      return makeStruct(AST.Struct(fields, options?.unsafePreserveChecks ? this.ast.checks : undefined), fields)
+      return makeStruct(AST.struct(fields, options?.unsafePreserveChecks ? this.ast.checks : undefined), fields)
     }
   })
 }
@@ -1618,7 +1671,7 @@ function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields
  * @since 4.0.0
  */
 export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
-  return makeStruct(AST.Struct(fields, undefined), fields)
+  return makeStruct(AST.struct(fields, undefined), fields)
 }
 
 interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
@@ -1938,7 +1991,7 @@ export function StructWithRest<
   schema: S,
   records: Records
 ): StructWithRest<S, Records> {
-  return make(AST.StructWithRest(schema.ast, records.map(AST.getAST)), { schema, records })
+  return make(AST.structWithRest(schema.ast, records.map(AST.getAST)), { schema, records })
 }
 
 /**
@@ -7408,7 +7461,7 @@ function makeClass<
         return makeClass(
           this,
           identifier,
-          makeStruct(AST.Struct(fields, struct.ast.checks, { identifier }), fields),
+          makeStruct(AST.struct(fields, struct.ast.checks, { identifier }), fields),
           annotations
         )
       }

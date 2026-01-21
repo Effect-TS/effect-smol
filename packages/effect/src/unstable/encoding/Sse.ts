@@ -63,31 +63,30 @@ export const decode = <IE, Done>(): Channel.Channel<
  * @since 4.0.0
  * @category Decoding
  */
-export const decodeSchema = <
-  S extends Schema.Codec<
-    any,
-    { readonly id?: string | undefined; readonly event: string; readonly data: unknown },
-    any,
-    any
-  >,
-  IE,
-  Done
->(schema: S): Channel.Channel<
-  NonEmptyReadonlyArray<S["Type"]>,
+export const decodeSchema = <Type, DecodingServices, IE, Done>(
+  schema: Schema.Decoder<Type, DecodingServices>
+): Channel.Channel<
+  NonEmptyReadonlyArray<{
+    readonly event: string
+    readonly id: string | undefined
+    readonly data: Type
+  }>,
   IE | Retry | Schema.SchemaError,
   Done,
   NonEmptyReadonlyArray<string>,
   IE,
   Done,
-  S["DecodingServices"]
-> =>
-  decode<IE, Done>().pipe(
-    Channel.pipeTo(
-      ChannelSchema.decode(EventEncoded.pipe(
-        Schema.decodeTo(schema)
-      ))()
-    )
+  DecodingServices
+> => {
+  const eventSchema = Schema.Struct({
+    ...EventEncoded.fields,
+    data: schema
+  })
+  return Channel.pipeTo(
+    decode<IE, Done>(),
+    ChannelSchema.decode(eventSchema)()
   )
+}
 
 /**
  * Create a SSE parser.
