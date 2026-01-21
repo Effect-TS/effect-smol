@@ -67,14 +67,14 @@ export const make: Effect.Effect<Tracer.Tracer, never, OtelTracer> = Effect.map(
   Effect.service(OtelTracer),
   (tracer) =>
     Tracer.make({
-      span(name, parent, services, links, startTime, kind, options) {
+      span(name, parent, annotations, links, startTime, kind, options) {
         return new OtelSpan(
           Otel.context,
           Otel.trace,
           tracer,
           name,
           parent,
-          services,
+          annotations,
           links.slice(),
           startTime,
           kind,
@@ -106,21 +106,21 @@ export const makeExternalSpan = (options: {
   readonly traceFlags?: number | undefined
   readonly traceState?: string | Otel.TraceState | undefined
 }): Tracer.ExternalSpan => {
-  let services = ServiceMap.empty()
+  let annotations = ServiceMap.empty()
 
   if (options.traceFlags !== undefined) {
-    services = ServiceMap.add(services, OtelTraceFlags, options.traceFlags)
+    annotations = ServiceMap.add(annotations, OtelTraceFlags, options.traceFlags)
   }
 
   if (typeof options.traceState === "string") {
     try {
       const traceState = Otel.createTraceState(options.traceState)
-      services = ServiceMap.add(services, OtelTraceState, traceState)
+      annotations = ServiceMap.add(annotations, OtelTraceState, traceState)
     } catch {
       //
     }
   } else if (options.traceState) {
-    services = ServiceMap.add(services, OtelTraceState, options.traceState)
+    annotations = ServiceMap.add(annotations, OtelTraceState, options.traceState)
   }
 
   return {
@@ -128,7 +128,7 @@ export const makeExternalSpan = (options: {
     traceId: options.traceId,
     spanId: options.spanId,
     sampled: Predicate.isNotUndefined(options.traceFlags) ? isSampled(options.traceFlags) : true,
-    services
+    annotations
   }
 }
 
@@ -349,7 +349,7 @@ export class OtelSpan implements Tracer.Span {
 
   readonly name: string
   readonly kind: Tracer.SpanKind
-  readonly services: ServiceMap.ServiceMap<never>
+  readonly annotations: ServiceMap.ServiceMap<never>
   readonly links: Array<Tracer.SpanLink>
   readonly span: Otel.Span
   readonly spanId: string
@@ -365,7 +365,7 @@ export class OtelSpan implements Tracer.Span {
     tracer: Otel.Tracer,
     name: string,
     effectParent: Tracer.AnySpan | undefined,
-    services: ServiceMap.ServiceMap<never>,
+    annotations: ServiceMap.ServiceMap<never>,
     links: Array<Tracer.SpanLink>,
     startTime: bigint,
     kind: Tracer.SpanKind,
@@ -373,14 +373,14 @@ export class OtelSpan implements Tracer.Span {
   ) {
     this[OtelSpanTypeId] = OtelSpanTypeId
     this.name = name
-    this.services = services
+    this.annotations = annotations
     this.links = links
     this.kind = kind
     const active = contextApi.active()
     this.parent = Predicate.isNotUndefined(effectParent)
       ? effectParent
       : (options?.root !== true)
-      ? getOtelParent(traceApi, active, services)
+      ? getOtelParent(traceApi, active, annotations)
       : undefined
     this.span = tracer.startSpan(
       name,
@@ -395,7 +395,7 @@ export class OtelSpan implements Tracer.Span {
         kind: kindMap[this.kind]
       },
       Predicate.isNotUndefined(this.parent)
-        ? populateContext(active, this.parent, services)
+        ? populateContext(active, this.parent, annotations)
         : Otel.trace.deleteSpan(active)
     )
     const spanContext = this.span.spanContext()
@@ -479,7 +479,7 @@ const nanosToHrTime = (timestamp: bigint): Otel.HrTime => {
 const getOtelParent = (
   tracer: Otel.TraceAPI,
   context: Otel.Context,
-  services: ServiceMap.ServiceMap<never>
+  annotations: ServiceMap.ServiceMap<never>
 ): Tracer.AnySpan | undefined => {
   const active = tracer.getSpan(context)
   const otelParent = active ? active.spanContext() : undefined
@@ -488,17 +488,17 @@ const getOtelParent = (
       spanId: otelParent.spanId,
       traceId: otelParent.traceId,
       sampled: (otelParent.traceFlags & 1) === 1,
-      services
+      annotations
     })
     : undefined
 }
 
 const makeSpanContext = (
   span: Tracer.AnySpan,
-  services?: ServiceMap.ServiceMap<never>
+  annotations?: ServiceMap.ServiceMap<never>
 ): Otel.SpanContext => {
-  const traceFlags = makeTraceFlags(span, services)
-  const traceState = makeTraceState(span, services)!
+  const traceFlags = makeTraceFlags(span, annotations)
+  const traceState = makeTraceState(span, annotations)!
   return ({
     spanId: span.spanId,
     traceId: span.traceId,
@@ -510,13 +510,13 @@ const makeSpanContext = (
 
 const makeTraceFlags = (
   span: Tracer.AnySpan,
-  services: ServiceMap.ServiceMap<never> | undefined
+  annotations: ServiceMap.ServiceMap<never> | undefined
 ): Otel.TraceFlags => {
   let traceFlags: Otel.TraceFlags | undefined
-  if (Predicate.isNotUndefined(services)) {
-    traceFlags = extractTraceService(span, services, OtelTraceFlags)
+  if (Predicate.isNotUndefined(annotations)) {
+    traceFlags = extractTraceService(span, annotations, OtelTraceFlags)
     if (Predicate.isUndefined(traceFlags)) {
-      traceFlags = ServiceMap.getOrUndefined(span.services, OtelTraceFlags)
+      traceFlags = ServiceMap.getOrUndefined(span.annotations, OtelTraceFlags)
     }
   }
   return traceFlags ?? Otel.TraceFlags.SAMPLED
@@ -524,13 +524,13 @@ const makeTraceFlags = (
 
 const makeTraceState = (
   span: Tracer.AnySpan,
-  services: ServiceMap.ServiceMap<never> | undefined
+  annotations: ServiceMap.ServiceMap<never> | undefined
 ): Otel.TraceState | undefined => {
   let traceState: Otel.TraceState | undefined
-  if (Predicate.isNotUndefined(services)) {
-    traceState = extractTraceService(span, services, OtelTraceState)
+  if (Predicate.isNotUndefined(annotations)) {
+    traceState = extractTraceService(span, annotations, OtelTraceState)
     if (Predicate.isUndefined(traceState)) {
-      traceState = ServiceMap.getOrUndefined(span.services, OtelTraceState)
+      traceState = ServiceMap.getOrUndefined(span.annotations, OtelTraceState)
     }
   }
   return traceState
@@ -538,21 +538,21 @@ const makeTraceState = (
 
 const extractTraceService = <I, S>(
   parent: Tracer.AnySpan,
-  services: ServiceMap.ServiceMap<never>,
+  annotations: ServiceMap.ServiceMap<never>,
   service: ServiceMap.Service<I, S>
 ) => {
-  const instance = ServiceMap.getOrUndefined(services, service)
+  const instance = ServiceMap.getOrUndefined(annotations, service)
   if (Predicate.isNotUndefined(instance)) {
     return instance
   }
-  return ServiceMap.getOrUndefined(parent.services, service)
+  return ServiceMap.getOrUndefined(parent.annotations, service)
 }
 
 const populateContext = (
   context: Otel.Context,
   span: Tracer.AnySpan,
-  services?: ServiceMap.ServiceMap<never>
+  annotations?: ServiceMap.ServiceMap<never> | undefined
 ): Otel.Context =>
   span instanceof OtelSpan ?
     Otel.trace.setSpan(context, span.span) :
-    Otel.trace.setSpanContext(context, makeSpanContext(span, services))
+    Otel.trace.setSpanContext(context, makeSpanContext(span, annotations))

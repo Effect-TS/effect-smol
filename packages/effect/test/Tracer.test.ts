@@ -10,7 +10,7 @@ describe("Tracer", () => {
       Effect.gen(function*() {
         const cause = yield* Effect.die(new Error("boom")).pipe(
           Effect.withSpan("C", {
-            services: Tracer.DisablePropagation.serviceMap(true)
+            annotations: Tracer.DisablePropagation.serviceMap(true)
           }),
           Effect.sandbox,
           Effect.flip
@@ -50,7 +50,7 @@ describe("Tracer", () => {
               spanId: "000",
               traceId: "111",
               sampled: true,
-              services: ServiceMap.empty()
+              annotations: ServiceMap.empty()
             }
           })
         )
@@ -103,6 +103,20 @@ describe("Tracer", () => {
             "effect.logLevel": "INFO"
           }]
         ])
+      }))
+
+    it.effect("should handle spans with attributes without crashing", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.succeed(42).pipe(
+          Effect.withSpan("test-span", {
+            attributes: {
+              "code.filepath": "test.ts",
+              "code.lineno": 1
+            }
+          })
+        )
+
+        strictEqual(result, 42)
       }))
   })
 
@@ -164,7 +178,7 @@ describe("Tracer", () => {
           traceId: "123",
           spanId: "456",
           sampled: true,
-          services: ServiceMap.empty()
+          annotations: ServiceMap.empty()
         })
       ))
   })
@@ -304,7 +318,7 @@ describe("Tracer", () => {
       Effect.gen(function*() {
         const span = yield* Effect.currentSpan.pipe(
           Effect.withSpan("A", {
-            services: Tracer.DisablePropagation.serviceMap(true)
+            annotations: Tracer.DisablePropagation.serviceMap(true)
           })
         )
         const spanB = yield* Effect.currentSpan.pipe(
@@ -321,7 +335,7 @@ describe("Tracer", () => {
         const span = yield* Effect.currentSpan.pipe(
           Effect.withSpan("child"),
           Effect.withSpan("disabled", {
-            services: Tracer.DisablePropagation.serviceMap(true)
+            annotations: Tracer.DisablePropagation.serviceMap(true)
           }),
           Effect.withSpan("parent")
         )

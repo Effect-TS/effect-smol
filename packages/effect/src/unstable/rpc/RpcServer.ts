@@ -281,13 +281,11 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
         captureStackTrace: false,
         attributes: options.spanAttributes,
         parent: enableSpanPropagation && request.spanId
-          ? {
-            _tag: "ExternalSpan",
+          ? Tracer.externalSpan({
             traceId: request.traceId!,
             spanId: request.spanId,
-            sampled: request.sampled!,
-            services: ServiceMap.empty()
-          }
+            sampled: request.sampled!
+          })
           : undefined,
         links: enableSpanPropagation && parentSpan
           ? [

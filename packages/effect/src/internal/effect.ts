@@ -4731,7 +4731,7 @@ export const withTracerTiming: {
 
 const bigint0 = BigInt(0)
 
-const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "services"> = {
+const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "annotations"> = {
   _tag: "Span",
   spanId: "noop",
   traceId: "noop",
@@ -4755,12 +4755,12 @@ const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "services"> = {
 export const noopSpan = (options: {
   readonly name: string
   readonly parent: Tracer.AnySpan | undefined
-  readonly services: ServiceMap.ServiceMap<never>
+  readonly annotations: ServiceMap.ServiceMap<never>
 }): Tracer.Span => Object.assign(Object.create(NoopSpanProto), options)
 
 const filterDisablePropagation = (span: Tracer.AnySpan | undefined): Tracer.AnySpan | undefined => {
   if (span) {
-    return ServiceMap.get(span.services, Tracer.DisablePropagation)
+    return ServiceMap.get(span.annotations, Tracer.DisablePropagation)
       ? span._tag === "Span" ? filterDisablePropagation(span.parent) : undefined
       : span
   }
@@ -4773,7 +4773,7 @@ export const makeSpanUnsafe = <XA, XE>(
   options: Tracer.SpanOptionsNoTrace | undefined
 ) => {
   const disablePropagation = !fiber.getRef(TracerEnabled) ||
-    (options?.services && ServiceMap.get(options.services, Tracer.DisablePropagation))
+    (options?.annotations && ServiceMap.get(options.annotations, Tracer.DisablePropagation))
   const parent = options?.parent ?? (options?.root ? undefined : filterDisablePropagation(fiber.currentSpan))
 
   let span: Tracer.Span
@@ -4782,8 +4782,8 @@ export const makeSpanUnsafe = <XA, XE>(
     span = noopSpan({
       name,
       parent,
-      services: ServiceMap.add(
-        options?.services ?? ServiceMap.empty(),
+      annotations: ServiceMap.add(
+        options?.annotations ?? ServiceMap.empty(),
         Tracer.DisablePropagation,
         true
       )
@@ -4802,7 +4802,7 @@ export const makeSpanUnsafe = <XA, XE>(
     span = tracer.span(
       name,
       parent,
-      options?.services ?? ServiceMap.empty(),
+      options?.annotations ?? ServiceMap.empty(),
       links,
       timingEnabled ? clock.currentTimeNanosUnsafe() : 0n,
       options?.kind ?? "internal",
