@@ -3,10 +3,8 @@
  */
 import type * as Config from "../../Config.ts"
 import type * as Effect from "../../Effect.ts"
-import type * as FileSystem from "../../FileSystem.ts"
 import { dual, type LazyArg } from "../../Function.ts"
 import type * as Option from "../../Option.ts"
-import type * as Path from "../../Path.ts"
 import type * as Redacted from "../../Redacted.ts"
 import type * as Result from "../../Result.ts"
 import type * as Schema from "../../Schema.ts"
@@ -569,15 +567,15 @@ export const map: {
  */
 export const mapEffect: {
   <A, B>(
-    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+    f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
   ): (self: Flag<A>) => Flag<B>
   <A, B>(
     self: Flag<A>,
-    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+    f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
   ): Flag<B>
 } = dual(2, <A, B>(
   self: Flag<A>,
-  f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+  f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
 ) => Param.mapEffect(self, f))
 
 /**
