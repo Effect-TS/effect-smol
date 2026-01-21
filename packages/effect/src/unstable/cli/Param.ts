@@ -21,9 +21,11 @@ import * as Predicate from "../../Predicate.ts"
 import type * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
+import type * as Terminal from "../../Terminal.ts"
 import type { Covariant } from "../../Types.ts"
 import * as CliError from "./CliError.ts"
 import * as Primitive from "./Primitive.ts"
+import * as Prompt from "./Prompt.ts"
 
 const TypeId = "~effect/cli/Param"
 
@@ -42,6 +44,12 @@ export interface Param<Kind extends ParamKind, out A> extends Param.Variance<A> 
  * @category models
  */
 export type ParamKind = "argument" | "flag"
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal
 
 /**
  * Kind discriminator for positional argument parameters.
@@ -90,7 +98,7 @@ export type AnyFlag = Param<typeof flagKind, unknown>
 export type Parse<A> = (args: ParsedArgs) => Effect.Effect<
   readonly [leftover: ReadonlyArray<string>, value: A],
   CliError.CliError,
-  FileSystem.FileSystem | Path.Path
+  Environment
 >
 
 /**
@@ -163,7 +171,7 @@ export interface MapEffect<Kind extends ParamKind, in out A, out B> extends Para
   readonly _tag: "MapEffect"
   readonly kind: Kind
   readonly param: Param<Kind, A>
-  readonly f: (value: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+  readonly f: (value: A) => Effect.Effect<B, CliError.CliError, Environment>
 }
 
 /**
@@ -965,15 +973,15 @@ export const map: {
  */
 export const mapEffect: {
   <A, B>(
-    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+    f: (a: A) => Effect.Effect<B, CliError.CliError, Environment>
   ): <Kind extends ParamKind>(self: Param<Kind, A>) => Param<Kind, B>
   <Kind extends ParamKind, A, B>(
     self: Param<Kind, A>,
-    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+    f: (a: A) => Effect.Effect<B, CliError.CliError, Environment>
   ): Param<Kind, B>
 } = dual(2, <Kind extends ParamKind, A, B>(
   self: Param<Kind, A>,
-  f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+  f: (a: A) => Effect.Effect<B, CliError.CliError, Environment>
 ) => {
   const parse: Parse<B> = (args) =>
     Effect.flatMap(
@@ -1136,6 +1144,41 @@ export const withDefault: {
   self: Param<Kind, A>,
   defaultValue: A
 ) => map(optional(self), Option.getOrElse(() => defaultValue)))
+
+/**
+ * Adds a fallback prompt that is shown when a required parameter is missing.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withFallbackPrompt: {
+  <B>(prompt: Prompt.Prompt<B>): <Kind extends ParamKind, A>(self: Param<Kind, A>) => Param<Kind, A | B>
+  <Kind extends ParamKind, A, B>(self: Param<Kind, A>, prompt: Prompt.Prompt<B>): Param<Kind, A | B>
+} = dual(2, <Kind extends ParamKind, A, B>(
+  self: Param<Kind, A>,
+  prompt: Prompt.Prompt<B>
+) => {
+  const runPrompt = (error: CliError.MissingOption | CliError.MissingArgument, args: ParsedArgs) =>
+    Prompt.run(prompt).pipe(
+      Effect.map((value) => [args.arguments, value] as const),
+      Effect.catchTag("QuitError", () => Effect.fail(error))
+    )
+
+  const parse: Parse<A | B> = (args) =>
+    self.parse(args).pipe(
+      Effect.catchTag("MissingOption", (error) => runPrompt(error, args)),
+      Effect.catchTag("MissingArgument", (error) => runPrompt(error, args))
+    )
+
+  return Object.assign(Object.create(Proto), {
+    _tag: "MapEffect",
+    kind: self.kind,
+    param: self,
+    prompt,
+    f: (value: A) => Effect.succeed(value as A | B),
+    parse
+  })
+})
 
 /**
  * Represent options which can be used to configure variadic parameters.
@@ -1588,7 +1631,7 @@ const parsePositional: <A>(
 ) => Effect.Effect<
   readonly [leftover: ReadonlyArray<string>, value: A],
   CliError.CliError,
-  FileSystem.FileSystem | Path.Path
+  Environment
 > = Effect.fnUntraced(function*(name, primitiveType, args) {
   if (args.arguments.length === 0) {
     return yield* new CliError.MissingArgument({ argument: name })
@@ -1616,7 +1659,7 @@ const parseFlag: <A>(
 ) => Effect.Effect<
   readonly [remainingOperands: ReadonlyArray<string>, value: A],
   CliError.CliError,
-  FileSystem.FileSystem | Path.Path
+  Environment
 > = Effect.fnUntraced(function*(name, primitiveType, args) {
   const providedValues = args.flags[name]
 
@@ -1654,7 +1697,7 @@ const parsePositionalVariadic: <Kind extends ParamKind, A>(
 ) => Effect.Effect<
   readonly [remainingOperands: ReadonlyArray<string>, value: ReadonlyArray<A>],
   CliError.CliError,
-  FileSystem.FileSystem | Path.Path
+  Environment
 > = Effect.fnUntraced(function*<A, Kind extends ParamKind>(
   self: Param<Kind, A>,
   single: Single<Kind, A>,
@@ -1697,7 +1740,7 @@ const parseOptionVariadic: <Kind extends ParamKind, A>(
 ) => Effect.Effect<
   readonly [remainingOperands: ReadonlyArray<string>, value: ReadonlyArray<A>],
   CliError.CliError,
-  FileSystem.FileSystem | Path.Path
+  Environment
 > = Effect.fnUntraced(function*<A, Kind extends ParamKind>(
   self: Param<Kind, A>,
   single: Single<Kind, A>,
@@ -1790,7 +1833,10 @@ const transformSingle = <Kind extends ParamKind, A>(
   return matchParam(param, {
     Single: (single) => f(single),
     Map: (mapped) => map(transformSingle(mapped.param, f), mapped.f),
-    MapEffect: (mapped) => mapEffect(transformSingle(mapped.param, f), mapped.f),
+    MapEffect: (mapped) =>
+      "prompt" in mapped
+        ? withFallbackPrompt(transformSingle(mapped.param, f), (mapped as { prompt: Prompt.Prompt<any> }).prompt)
+        : mapEffect(transformSingle(mapped.param, f), mapped.f),
     Optional: (p) => optional(transformSingle(p.param, f)) as Param<Kind, A>,
     Variadic: (p) => variadic(transformSingle(p.param, f), { min: p.min, max: p.max }) as Param<Kind, A>
   })
