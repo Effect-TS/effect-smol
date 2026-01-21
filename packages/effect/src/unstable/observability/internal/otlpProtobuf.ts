@@ -5,9 +5,9 @@
  * https://github.com/open-telemetry/opentelemetry-proto
  */
 
-import type { AnyValue, KeyValue, Resource } from "../OtlpResource.js"
+import type { AnyValue, KeyValue, Resource } from "../OtlpResource.ts"
 import type { ResourceSpan, ScopeSpan, TraceData } from "../OtlpTracer.ts"
-import * as Proto from "./protobuf.js"
+import * as Proto from "./protobuf.ts"
 
 // Common types (opentelemetry.proto.common.v1)
 

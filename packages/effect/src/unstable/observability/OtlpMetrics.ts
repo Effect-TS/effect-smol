@@ -14,7 +14,7 @@ import type * as HttpClient from "../http/HttpClient.ts"
 import * as Exporter from "./OtlpExporter.ts"
 import type { Fixed64, KeyValue } from "./OtlpResource.ts"
 import * as OtlpResource from "./OtlpResource.ts"
-import { OtlpSerialization } from "./OtlpSerialization.js"
+import { OtlpSerialization } from "./OtlpSerialization.ts"
 
 /**
  * Determines how metric values relate to the time interval over which they
