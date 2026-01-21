@@ -11,6 +11,7 @@ import type * as Schema from "../../Schema.ts"
 import type * as CliError from "./CliError.ts"
 import * as Param from "./Param.ts"
 import type * as Primitive from "./Primitive.ts"
+import type * as Prompt from "./Prompt.ts"
 
 // -------------------------------------------------------------------------------------
 // models
@@ -498,7 +499,7 @@ export const withDefault: {
 } = dual(2, <A>(self: Flag<A>, defaultValue: A) => Param.withDefault(self, defaultValue))
 
 /**
- * Uses a config value when a flag is not provided.
+ * Adds a fallback config that is loaded when a required flag is missing.
  *
  * @example
  * ```ts
@@ -511,12 +512,32 @@ export const withDefault: {
  * ```
  *
  * @since 4.0.0
- * @category optionality
+ * @category combinators
  */
 export const withFallbackConfig: {
   <B>(config: Config.Config<B>): <A>(self: Flag<A>) => Flag<A | B>
   <A, B>(self: Flag<A>, config: Config.Config<B>): Flag<A | B>
 } = dual(2, <A, B>(self: Flag<A>, config: Config.Config<B>) => Param.withFallbackConfig(self, config))
+
+/**
+ * Adds a fallback prompt that is shown when a required flag is missing.
+ *
+ * @example
+ * ```ts
+ * import { Flag, Prompt } from "effect/unstable/cli"
+ *
+ * const name = Flag.string("name").pipe(
+ *   Flag.withFallbackPrompt(Prompt.text({ message: "Name" }))
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withFallbackPrompt: {
+  <B>(prompt: Prompt.Prompt<B>): <A>(self: Flag<A>) => Flag<A | B>
+  <A, B>(self: Flag<A>, prompt: Prompt.Prompt<B>): Flag<A | B>
+} = dual(2, <A, B>(self: Flag<A>, prompt: Prompt.Prompt<B>) => Param.withFallbackPrompt(self, prompt))
 
 /**
  * Transforms the parsed value of a flag using a mapping function.
