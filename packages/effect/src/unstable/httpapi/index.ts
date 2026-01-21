@@ -22,6 +22,11 @@ export * as HttpApiClient from "./HttpApiClient.ts"
 /**
  * @since 4.0.0
  */
+export * as HttpApiClientFetch from "./HttpApiClientFetch.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 
 /**

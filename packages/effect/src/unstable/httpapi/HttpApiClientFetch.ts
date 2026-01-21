@@ -8,6 +8,9 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiSchema from "./HttpApiSchema.ts"
 
 /**
+ * Creates an HTTP API client using the Fetch API. It has no dependency on
+ * effect modules so can be used in bundle size concerned environments.
+ *
  * @since 4.0.0
  * @category Constructors
  */
@@ -17,7 +20,9 @@ export const make = <
   readonly baseUrl?: string | undefined
   readonly fetch?: typeof fetch | undefined
   readonly defaultHeaders?: HeadersInit | undefined
-}): HttpApiClientFetch<Api extends HttpApi.HttpApi<infer _Id, infer Groups> ? EndpointMap<Groups> : never> => {
+}): HttpApiClientFetch<
+  Api extends HttpApi.HttpApi<infer _Id, infer Groups> ? EndpointMap<Groups> : {}
+> => {
   const fetchImpl = options?.fetch ?? fetch
   let baseUrl = options?.baseUrl ?? ""
   if (baseUrl.endsWith("/")) {
@@ -28,7 +33,8 @@ export const make = <
     readonly path?: Record<string, any> | undefined
     readonly urlParams?: Record<string, any> | undefined
     readonly headers?: Record<string, string> | undefined
-    readonly json?: any
+    readonly payload?: any
+    readonly payloadType?: "json" | "urlEncoded" | undefined
     readonly formData?: Record<string, any> | undefined
   }) {
     const headers = new Headers(options?.defaultHeaders)
@@ -57,27 +63,25 @@ export const make = <
       method,
       headers
     }
-    if (opts?.json !== undefined) {
+    if (opts?.payload !== undefined && opts?.payloadType !== "urlEncoded") {
       headers.set("Content-Type", "application/json")
-      fetchOptions.body = JSON.stringify(opts.json)
+      fetchOptions.body = JSON.stringify(opts.payload)
     } else if (opts?.formData !== undefined) {
       const formData = new FormData()
       for (const [key, value] of Object.entries(opts.formData)) {
         formData.append(key, value)
       }
       fetchOptions.body = formData
+    } else if (opts?.payload !== undefined) {
+      headers.set("Content-Type", "application/x-www-form-urlencoded")
+      const urlSearchParams = new URLSearchParams()
+      for (const [key, value] of Object.entries(opts.payload)) {
+        urlSearchParams.append(key, String(value))
+      }
+      fetchOptions.body = urlSearchParams.toString()
     }
 
-    const response = await fetchImpl(url.toString(), fetchOptions)
-    return {
-      response,
-      json() {
-        if (response.status === 204) {
-          return Promise.resolve(undefined)
-        }
-        return response.json()
-      }
-    }
+    return await fetchImpl(url.toString(), fetchOptions)
   } as any
 }
 
@@ -105,15 +109,22 @@ export type HttpApiClientFetch<
  * @since 4.0.0
  * @category Models
  */
+export interface ResponseWith<A> extends Response {
+  readonly json: () => Promise<A>
+}
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
 export type EndpointMap<Group extends HttpApiGroup.Any> = {
   readonly [Endpoint in HttpApiGroup.Endpoints<Group> as `${Endpoint["method"]} ${Endpoint["path"]}`]: {
     readonly options: EndpointOptions<Endpoint>
-    readonly return: Promise<{
-      readonly response: Response
-      readonly json: () => Promise<
+    readonly return: Promise<
+      ResponseWith<
         Endpoint["successSchema"] extends undefined ? void : Endpoint["successSchema"]["Encoded"]
       >
-    }>
+    >
   }
 }
 
@@ -158,7 +169,8 @@ export type EndpointOptions<Endpoint extends HttpApiEndpoint.Any> = Endpoint ext
           readonly formData: S["Encoded"]
         } :
       {
-        readonly json: _Payload["Encoded"]
+        readonly payload: _Payload["Encoded"]
+        readonly payloadType?: "json" | "urlEncoded" | undefined
       }
     )
   > :
