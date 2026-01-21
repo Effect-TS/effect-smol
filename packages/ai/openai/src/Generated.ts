@@ -15750,14 +15750,14 @@ export const CreateUploadRequest = Schema.Struct({
   "filename": Schema.String.annotate({ "description": "The name of the file to upload.\n" }),
   "purpose": Schema.Literals(["assistants", "batch", "fine-tune", "vision"]).annotate({
     "description":
-      "The intended purpose of the uploaded file.\n\nSee the [documentation on File purposes](https://platform.openai.com/docs/api-reference/files/create#files-create-purpose).\n"
+      "The intended purpose of the uploaded file.\n\nSee the [documentation on File\npurposes](https://platform.openai.com/docs/api-reference/files/create#files-create-purpose).\n"
   }),
   "bytes": Schema.Number.annotate({ "description": "The number of bytes in the file you are uploading.\n" }).check(
     Schema.isInt()
   ),
   "mime_type": Schema.String.annotate({
     "description":
-      "The MIME type of the file.\n\nThis must fall within the supported MIME types for your file purpose. See the supported MIME types for assistants and vision.\n"
+      "The MIME type of the file.\n\n\nThis must fall within the supported MIME types for your file purpose. See\nthe supported MIME types for assistants and vision.\n"
   }),
   "expires_after": Schema.optionalKey(FileExpirationAfter)
 }).annotate({ "identifier": "CreateUploadRequest" })
@@ -23384,7 +23384,7 @@ export const RealtimeClientEventConversationItemCreate = Schema.StructWithRest(
     }),
     "previous_item_id": Schema.optionalKey(Schema.String.annotate({
       "description":
-        "The ID of the preceding item after which the new item will be inserted. \nIf not set, the new item will be appended to the end of the conversation.\nIf set to `root`, the new item will be added to the beginning of the conversation.\nIf set to an existing ID, it allows an item to be inserted mid-conversation. If the\nID cannot be found, an error will be returned and the item will not be added.\n"
+        "The ID of the preceding item after which the new item will be inserted. If not set, the new item will be appended to the end of the conversation.\n\nIf set to `root`, the new item will be added to the beginning of the conversation.\n\nIf set to an existing ID, it allows an item to be inserted mid-conversation. If the ID cannot be found, an error will be returned and the item will not be added.\n"
     })),
     "item": RealtimeConversationItem
   }),
