@@ -10,6 +10,8 @@
  *
  * @since 4.0.0
  */
+import * as Config from "../../Config.ts"
+import * as ConfigProvider from "../../ConfigProvider.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import type { LazyArg } from "../../Function.ts"
@@ -1136,6 +1138,67 @@ export const withDefault: {
   self: Param<Kind, A>,
   defaultValue: A
 ) => map(optional(self), Option.getOrElse(() => defaultValue)))
+
+/**
+ * Uses a config value when a param is not provided.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withFallbackConfig: {
+  <B>(config: Config.Config<B>): <Kind extends ParamKind, A>(self: Param<Kind, A>) => Param<Kind, A | B>
+  <Kind extends ParamKind, A, B>(self: Param<Kind, A>, config: Config.Config<B>): Param<Kind, A | B>
+} = dual(2, <Kind extends ParamKind, A, B>(
+  self: Param<Kind, A>,
+  config: Config.Config<B>
+) => {
+  const single = getUnderlyingSingleOrThrow(self)
+  const loadConfig: Effect.Effect<Option.Option<B>, Config.ConfigError> = Effect.flatMap(
+    Effect.service(ConfigProvider.ConfigProvider),
+    (provider) => Config.option(config).parse(provider)
+  )
+  const missingError = single.kind === "argument"
+    ? new CliError.MissingArgument({ argument: single.name })
+    : new CliError.MissingOption({ option: single.name })
+  const fallback = (args: ParsedArgs): ReturnType<Parse<A | B>> =>
+    loadConfig.pipe(
+      Effect.matchEffect({
+        onFailure: (error) =>
+          Effect.fail(
+            new CliError.InvalidValue({
+              option: single.name,
+              value: "config",
+              expected: error.message,
+              kind: single.kind
+            })
+          ),
+        onSuccess: (value) =>
+          Option.match(value, {
+            onNone: () => Effect.fail(missingError),
+            onSome: (fallbackValue) => Effect.succeed([args.arguments, fallbackValue] as const)
+          })
+      })
+    )
+  const parse: Parse<A | B> = (args) => {
+    if (single.kind === "flag" && Primitive.isBoolean(single.primitiveType)) {
+      const providedValues = args.flags[single.name] ?? []
+      if (providedValues.length === 0) {
+        return fallback(args)
+      }
+    }
+    return self.parse(args).pipe(
+      Effect.catchTag("MissingOption", () => fallback(args)),
+      Effect.catchTag("MissingArgument", () => fallback(args))
+    )
+  }
+  return Object.assign(Object.create(Proto), {
+    _tag: "MapEffect",
+    kind: self.kind,
+    param: self,
+    f: (value: A) => Effect.succeed(value as A | B),
+    parse
+  })
+})
 
 /**
  * Represent options which can be used to configure variadic parameters.

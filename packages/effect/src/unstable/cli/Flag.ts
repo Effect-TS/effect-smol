@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type * as Config from "../../Config.ts"
 import type * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { dual, type LazyArg } from "../../Function.ts"
@@ -497,6 +498,27 @@ export const withDefault: {
   <A>(defaultValue: A): (self: Flag<A>) => Flag<A>
   <A>(self: Flag<A>, defaultValue: A): Flag<A>
 } = dual(2, <A>(self: Flag<A>, defaultValue: A) => Param.withDefault(self, defaultValue))
+
+/**
+ * Uses a config value when a flag is not provided.
+ *
+ * @example
+ * ```ts
+ * import { Config } from "effect"
+ * import { Flag } from "effect/unstable/cli"
+ *
+ * const verbose = Flag.boolean("verbose").pipe(
+ *   Flag.withFallbackConfig(Config.boolean("VERBOSE"))
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category optionality
+ */
+export const withFallbackConfig: {
+  <B>(config: Config.Config<B>): <A>(self: Flag<A>) => Flag<A | B>
+  <A, B>(self: Flag<A>, config: Config.Config<B>): Flag<A | B>
+} = dual(2, <A, B>(self: Flag<A>, config: Config.Config<B>) => Param.withFallbackConfig(self, config))
 
 /**
  * Transforms the parsed value of a flag using a mapping function.
