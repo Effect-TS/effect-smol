@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Option, Path } from "effect"
+import { Config, ConfigProvider, Effect, FileSystem, Layer, Option, Path } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
@@ -25,6 +25,12 @@ const TestLayer = Layer.mergeAll(
   TerminalLayer,
   CliOutputLayer
 )
+
+const configLayer = (env: Record<string, string>) =>
+  Layer.mergeAll(
+    TestLayer,
+    ConfigProvider.layer(ConfigProvider.fromEnv({ env }))
+  )
 
 describe("Command", () => {
   describe("run", () => {
@@ -99,6 +105,50 @@ describe("Command", () => {
           details: { output, verbose: true, config }
         })
       }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("uses withFallbackConfig for missing boolean flags", () =>
+      Effect.gen(function*() {
+        const captured: Array<boolean> = []
+
+        const command = Command.make("git", {
+          verbose: Flag.boolean("verbose").pipe(
+            Flag.withFallbackConfig(Config.boolean("VERBOSE"))
+          )
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config.verbose)
+          }))
+
+        const runCommand = Command.runWith(command, {
+          version: "1.0.0"
+        })
+
+        yield* runCommand([])
+
+        assert.deepStrictEqual(captured, [true])
+      }).pipe(Effect.provide(configLayer({ VERBOSE: "true" }))))
+
+    it.effect("uses withFallbackConfig for missing string flags", () =>
+      Effect.gen(function*() {
+        let repository = ""
+
+        const command = Command.make("git", {
+          repository: Flag.string("repository").pipe(
+            Flag.withFallbackConfig(Config.string("REPOSITORY"))
+          )
+        }, (config) =>
+          Effect.sync(() => {
+            repository = config.repository
+          }))
+
+        const runCommand = Command.runWith(command, {
+          version: "1.0.0"
+        })
+
+        yield* runCommand([])
+
+        assert.strictEqual(repository, "repo")
+      }).pipe(Effect.provide(configLayer({ REPOSITORY: "repo" }))))
 
     it.effect("should merge repeated key=value flags into a single record", () =>
       Effect.gen(function*() {
