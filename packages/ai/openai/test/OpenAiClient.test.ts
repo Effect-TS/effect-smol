@@ -1,9 +1,9 @@
 import * as OpenAiClient from "@effect/ai-openai/OpenAiClient"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Redacted, Schema, Stream } from "effect"
+import { Config, ConfigProvider, Effect, Layer, Redacted, Schema, Stream } from "effect"
 import type * as AiError from "effect/unstable/ai/AiError"
 import * as HttpClient from "effect/unstable/http/HttpClient"
-import type * as HttpClientError from "effect/unstable/http/HttpClientError"
+import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 
@@ -30,7 +30,7 @@ const makeMockResponse = (options: {
 const makeMockHttpClient = (
   handler: (
     request: HttpClientRequest.HttpClientRequest
-  ) => Effect.Effect<HttpClientResponse.HttpClientResponse>
+  ) => Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
 ): HttpClient.HttpClient =>
   HttpClient.makeWith<HttpClientError.HttpClientError, never, HttpClientError.HttpClientError, never>(
     (effect) =>
@@ -48,23 +48,6 @@ const makeMockHttpClient = (
 
 describe("OpenAiClient", () => {
   describe("make", () => {
-    it.effect("constructs client with required options", () =>
-      Effect.gen(function*() {
-        const client = yield* OpenAiClient.make({
-          apiKey: Redacted.make("test-key")
-        })
-        assert.isNotNull(client.client)
-        assert.isFunction(client.createResponse)
-        assert.isFunction(client.createResponseStream)
-        assert.isFunction(client.createEmbedding)
-        assert.isFunction(client.streamRequest)
-      }).pipe(
-        Effect.provide(Layer.succeed(
-          HttpClient.HttpClient,
-          makeMockHttpClient(() => Effect.succeed(makeMockResponse({ status: 200, body: {} })))
-        ))
-      ))
-
     it.effect("sets Bearer token from apiKey", () =>
       Effect.gen(function*() {
         let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
@@ -181,22 +164,87 @@ describe("OpenAiClient", () => {
   })
 
   describe("layer", () => {
-    it.effect("creates working service", () =>
-      Effect.gen(function*() {
+    it.effect("creates working service", () => {
+      const HttpClientLayer = Layer.succeed(
+        HttpClient.HttpClient,
+        makeMockHttpClient(() => Effect.succeed(makeMockResponse({ status: 200, body: {} })))
+      )
+
+      const MainLayer = OpenAiClient.layer({
+        apiKey: Redacted.make("test-key")
+      }).pipe(Layer.provide(HttpClientLayer))
+
+      return Effect.gen(function*() {
         const client = yield* OpenAiClient.OpenAiClient
         assert.isNotNull(client.client)
+      }).pipe(Effect.provide(MainLayer))
+    })
+
+    it.effect("layerConfig loads from Config", () => {
+      let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
+      const HttpClientLayer = Layer.succeed(
+        HttpClient.HttpClient,
+        makeMockHttpClient((request) => {
+          capturedRequest = request
+          return Effect.succeed(makeMockResponse({ status: 200, body: {}, request }))
+        })
+      )
+
+      const configProvider = ConfigProvider.fromEnv({
+        env: {
+          MY_API_KEY: "sk-config-key",
+          MY_API_URL: "https://config.api.com/v1"
+        }
+      })
+
+      // Use explicit config values to test the layerConfig mechanism
+      // Provide explicit configs that won't fail for optional fields
+      const MainLayer = OpenAiClient.layerConfig({
+        apiKey: Config.redacted("MY_API_KEY"),
+        apiUrl: Config.string("MY_API_URL")
       }).pipe(
-        Effect.provide(OpenAiClient.layer({
-          apiKey: Redacted.make("test-key")
-        })),
-        Effect.provide(Layer.succeed(
-          HttpClient.HttpClient,
-          makeMockHttpClient(() => Effect.succeed(makeMockResponse({ status: 200, body: {} })))
-        ))
-      ))
+        Layer.provide(HttpClientLayer),
+        Layer.provide(ConfigProvider.layer(configProvider))
+      )
+
+      return Effect.gen(function*() {
+        const client = yield* OpenAiClient.OpenAiClient
+        yield* client.createResponse({ model: "gpt-4o", input: "test" }).pipe(Effect.ignore)
+
+        assert.isDefined(capturedRequest)
+        assert.strictEqual(capturedRequest!.headers["authorization"], "Bearer sk-config-key")
+        assert.isTrue(capturedRequest!.url.startsWith("https://config.api.com/v1"))
+      }).pipe(Effect.provide(MainLayer))
+    })
   })
 
   describe("error mapping", () => {
+    it.effect("maps RequestError to NetworkError reason", () =>
+      Effect.gen(function*() {
+        const mockClient = makeMockHttpClient(() =>
+          Effect.fail(
+            new HttpClientError.RequestError({
+              reason: "Transport",
+              request: HttpClientRequest.get("/"),
+              cause: new Error("Connection refused")
+            })
+          )
+        )
+
+        const client = yield* OpenAiClient.make({
+          apiKey: Redacted.make("test-key")
+        }).pipe(Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)))
+
+        const result = yield* client.createResponse({ model: "gpt-4o", input: "test" }).pipe(
+          Effect.flip
+        )
+
+        assert.strictEqual(result._tag, "AiError")
+        assert.strictEqual(result.module, "OpenAiClient")
+        assert.strictEqual(result.method, "createResponse")
+        assert.strictEqual(result.reason._tag, "NetworkError")
+      }))
+
     it.effect("maps 400 status to InvalidRequestError reason", () =>
       Effect.gen(function*() {
         const mockClient = makeMockHttpClient((request) =>
@@ -387,19 +435,23 @@ describe("OpenAiClient", () => {
   })
 
   describe("createResponseStream", () => {
-    it.effect("maps HTTP error before stream starts", () =>
-      Effect.gen(function*() {
-        const mockClient = makeMockHttpClient((request) =>
-          Effect.succeed(makeMockResponse({
-            status: 500,
-            body: { error: { message: "Server error" } },
-            request
-          }))
-        )
+    it.effect("maps HTTP error before stream starts", () => {
+      const mockClient = makeMockHttpClient((request) =>
+        Effect.succeed(makeMockResponse({
+          status: 500,
+          body: { error: { message: "Server error" } },
+          request
+        }))
+      )
 
-        const client = yield* OpenAiClient.make({
-          apiKey: Redacted.make("test-key")
-        }).pipe(Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)))
+      const HttpClientLayer = Layer.succeed(HttpClient.HttpClient, mockClient)
+
+      const MainLayer = OpenAiClient.layer({
+        apiKey: Redacted.make("test-key")
+      }).pipe(Layer.provide(HttpClientLayer))
+
+      return Effect.gen(function*() {
+        const client = yield* OpenAiClient.OpenAiClient
 
         const result = yield* client.createResponseStream({
           model: "gpt-4o",
@@ -411,7 +463,8 @@ describe("OpenAiClient", () => {
 
         assert.strictEqual(result._tag, "AiError")
         assert.strictEqual(result.reason._tag, "ProviderInternalError")
-      }))
+      }).pipe(Effect.provide(MainLayer))
+    })
   })
 
   describe("streamRequest", () => {
@@ -420,21 +473,26 @@ describe("OpenAiClient", () => {
       value: Schema.Number
     })
 
-    it.effect("maps ResponseError correctly", () =>
-      Effect.gen(function*() {
-        const mockClient = makeMockHttpClient((request) =>
-          Effect.succeed(makeMockResponse({
-            status: 429,
-            body: { error: { message: "Rate limited" } },
-            request
-          }))
-        )
+    it.effect("maps ResponseError correctly", () => {
+      const mockClient = makeMockHttpClient((request) =>
+        Effect.succeed(makeMockResponse({
+          status: 429,
+          body: { error: { message: "Rate limited" } },
+          request
+        }))
+      )
 
-        const client = yield* OpenAiClient.make({
-          apiKey: Redacted.make("test-key")
-        }).pipe(Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)))
+      const HttpClientLayer = Layer.succeed(HttpClient.HttpClient, mockClient)
+
+      const MainLayer = OpenAiClient.layer({
+        apiKey: Redacted.make("test-key")
+      }).pipe(Layer.provide(HttpClientLayer))
+
+      return Effect.gen(function*() {
+        const client = yield* OpenAiClient.OpenAiClient
 
         const request = HttpClientRequest.post("/test")
+
         const result = yield* client.streamRequest(request, TestEvent).pipe(
           Stream.runDrain,
           Effect.flip
@@ -443,6 +501,7 @@ describe("OpenAiClient", () => {
         assert.strictEqual(result._tag, "AiError")
         assert.strictEqual(result.method, "streamRequest")
         assert.strictEqual(result.reason._tag, "RateLimitError")
-      }))
+      }).pipe(Effect.provide(MainLayer))
+    })
   })
 })

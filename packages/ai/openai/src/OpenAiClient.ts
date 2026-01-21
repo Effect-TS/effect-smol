@@ -6,11 +6,11 @@
  *
  * @since 1.0.0
  */
+import * as Array from "effect/Array"
 import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import { dual, identity } from "effect/Function"
 import * as Layer from "effect/Layer"
-import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
 import * as Redacted from "effect/Redacted"
 import type * as Schema from "effect/Schema"
@@ -18,6 +18,7 @@ import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import * as AiError from "effect/unstable/ai/AiError"
 import * as Sse from "effect/unstable/encoding/Sse"
+import * as Headers from "effect/unstable/http/Headers"
 import * as HttpClient from "effect/unstable/http/HttpClient"
 import type * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
@@ -166,6 +167,11 @@ export type Options = {
 // Constructor
 // =============================================================================
 
+const RedactedOpenAiHeaders = {
+  OpenAiOrganization: "OpenAI-Organization",
+  OpenAiProject: "OpenAI-Project"
+}
+
 /**
  * Creates an OpenAI client service with the given options.
  *
@@ -182,10 +188,16 @@ export const make = Effect.fnUntraced(
           HttpClientRequest.prependUrl(options.apiUrl ?? "https://api.openai.com/v1"),
           HttpClientRequest.bearerToken(Redacted.value(options.apiKey)),
           Predicate.isNotUndefined(options.organizationId)
-            ? HttpClientRequest.setHeader("OpenAI-Organization", Redacted.value(options.organizationId))
+            ? HttpClientRequest.setHeader(
+              RedactedOpenAiHeaders.OpenAiOrganization,
+              Redacted.value(options.organizationId)
+            )
             : identity,
           Predicate.isNotUndefined(options.projectId)
-            ? HttpClientRequest.setHeader("OpenAI-Project", Redacted.value(options.projectId))
+            ? HttpClientRequest.setHeader(
+              RedactedOpenAiHeaders.OpenAiProject,
+              Redacted.value(options.projectId)
+            )
             : identity
         )
       ),
@@ -263,7 +275,11 @@ export const make = Effect.fnUntraced(
       createResponseStream,
       createEmbedding
     })
-  }
+  },
+  Effect.updateService(
+    Headers.CurrentRedactedNames,
+    Array.appendAll(Object.values(RedactedOpenAiHeaders))
+  )
 )
 
 // =============================================================================
@@ -296,22 +312,16 @@ export const layerConfig = (options: {
 
   /**
    * The config value to load for the API URL.
-   *
-   * @default Config.string("OPENAI_API_URL")
    */
   readonly apiUrl?: Config.Config<string> | undefined
 
   /**
    * The config value to load for the organization ID.
-   *
-   * @default Config.redacted("OPENAI_ORGANIZATION")
    */
   readonly organizationId?: Config.Config<Redacted.Redacted<string>> | undefined
 
   /**
    * The config value to load for the project ID.
-   *
-   * @default Config.redacted("OPENAI_PROJECT")
    */
   readonly projectId?: Config.Config<Redacted.Redacted<string>> | undefined
 
@@ -324,14 +334,20 @@ export const layerConfig = (options: {
     OpenAiClient,
     Effect.gen(function*() {
       const apiKey = yield* (options.apiKey ?? Config.redacted("OPENAI_API_KEY"))
-      const apiUrl = yield* Config.option(options.apiUrl ?? Config.string("OPENAI_API_URL"))
-      const organizationId = yield* Config.option(options.organizationId ?? Config.redacted("OPENAI_ORGANIZATION"))
-      const projectId = yield* Config.option(options.projectId ?? Config.redacted("OPENAI_PROJECT"))
+      const apiUrl = Predicate.isNotUndefined(options.apiUrl)
+        ? yield* options.apiUrl :
+        undefined
+      const organizationId = Predicate.isNotUndefined(options.organizationId)
+        ? yield* options.organizationId
+        : undefined
+      const projectId = Predicate.isNotUndefined(options.projectId)
+        ? yield* options.projectId :
+        undefined
       return yield* make({
         apiKey,
-        apiUrl: Option.getOrUndefined(apiUrl),
-        organizationId: Option.getOrUndefined(organizationId),
-        projectId: Option.getOrUndefined(projectId),
+        apiUrl,
+        organizationId,
+        projectId,
         transformClient: options.transformClient
       })
     })
