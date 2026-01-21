@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type * as Config from "../../Config.ts"
 import type * as Effect from "../../Effect.ts"
 import { dual, type LazyArg } from "../../Function.ts"
 import type * as Option from "../../Option.ts"
@@ -312,6 +313,27 @@ export const withDefault: {
   <A>(defaultValue: A): (self: Argument<A>) => Argument<A>
   <A>(self: Argument<A>, defaultValue: A): Argument<A>
 } = dual(2, <A>(self: Argument<A>, defaultValue: A) => Param.withDefault(self, defaultValue))
+
+/**
+ * Adds a fallback config that is loaded when a required argument is missing.
+ *
+ * @example
+ * ```ts
+ * import { Config } from "effect"
+ * import { Argument } from "effect/unstable/cli"
+ *
+ * const repository = Argument.string("repository").pipe(
+ *   Argument.withFallbackConfig(Config.string("REPOSITORY"))
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withFallbackConfig: {
+  <B>(config: Config.Config<B>): <A>(self: Argument<A>) => Argument<A | B>
+  <A, B>(self: Argument<A>, config: Config.Config<B>): Argument<A | B>
+} = dual(2, <A, B>(self: Argument<A>, config: Config.Config<B>) => Param.withFallbackConfig(self, config))
 
 /**
  * Adds a fallback prompt that is shown when a required argument is missing.

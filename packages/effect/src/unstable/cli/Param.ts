@@ -10,6 +10,7 @@
  *
  * @since 4.0.0
  */
+import * as Config from "../../Config.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { dual, identity } from "../../Function.ts"
@@ -1141,6 +1142,46 @@ export const withDefault: {
   self: Param<Kind, A>,
   defaultValue: A
 ) => map(optional(self), Option.getOrElse(() => defaultValue)))
+
+/**
+ * Adds a fallback config that is loaded when a required parameter is missing.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withFallbackConfig: {
+  <B>(config: Config.Config<B>): <Kind extends ParamKind, A>(self: Param<Kind, A>) => Param<Kind, A | B>
+  <Kind extends ParamKind, A, B>(self: Param<Kind, A>, config: Config.Config<B>): Param<Kind, A | B>
+} = dual(2, <Kind extends ParamKind, A, B>(
+  self: Param<Kind, A>,
+  config: Config.Config<B>
+): Param<Kind, A | B> => {
+  const toInvalidValue = (
+    error: CliError.MissingOption | CliError.MissingArgument,
+    configError: Config.ConfigError
+  ): CliError.InvalidValue =>
+    new CliError.InvalidValue({
+      option: error._tag === "MissingOption" ? error.option : error.argument,
+      value: "config",
+      expected: configError.message,
+      kind: error._tag === "MissingOption" ? "flag" : "argument"
+    })
+  const runConfig = (error: CliError.MissingOption | CliError.MissingArgument, args: ParsedArgs) =>
+    Config.option(config).asEffect().pipe(
+      Effect.mapError((configError) => toInvalidValue(error, configError)),
+      Effect.flatMap(Option.match({
+        onNone: () => Effect.fail(error),
+        onSome: (value) => Effect.succeed([args.arguments, value as A | B] as const)
+      }))
+    )
+  return transform(
+    self,
+    (parse) => (args) =>
+      parse(args).pipe(
+        Effect.catchTag(["MissingOption", "MissingArgument"], (error) => runConfig(error, args))
+      )
+  )
+})
 
 /**
  * Adds a fallback prompt that is shown when a required parameter is missing.
