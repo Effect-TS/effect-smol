@@ -3,6 +3,8 @@ import { assertInclude, assertNone, assertUndefined, deepStrictEqual, strictEqua
 import { Cause, Duration, Effect, Fiber, Layer, ServiceMap, Tracer } from "effect"
 import { TestClock } from "effect/testing"
 import type { Span } from "effect/Tracer"
+import { OtlpSerialization, OtlpTracer } from "effect/unstable/observability"
+import { FetchHttpClient } from "effect/unstable/http"
 
 describe("Tracer", () => {
   describe("Effect.withSpan", () => {
@@ -16,7 +18,7 @@ describe("Tracer", () => {
           Effect.flip
         )
 
-        assertInclude(Cause.pretty(cause), "Tracer.test.ts:12:18")
+        assertInclude(Cause.pretty(cause), "Tracer.test.ts:13:41")
       }))
 
     it.effect("should set the parent span", () =>
@@ -67,6 +69,46 @@ describe("Tracer", () => {
         assertUndefined(span.parent)
         strictEqual(span.attributes.get("code.stacktrace"), undefined)
       }))
+
+    it.effect("should handle nested withSpan calls with OtlpTracer", () =>
+      Effect.gen(function*() {
+        // Regression test: Previously crashed when creating child spans with OtlpTracer
+        // TypeError: Cannot read properties of undefined (reading 'mapUnsafe')
+        // at filterDisablePropagation (src/internal/effect.ts:4763)
+        //
+        // The crash occurred when creating a child span because filterDisablePropagation
+        // tried to access parent.annotations.mapUnsafe without checking if it exists.
+        // OtlpTracer creates spans where annotations may not have the mapUnsafe property.
+        const innerEffect = Effect.succeed(42).pipe(
+          Effect.withSpan("child-span", {
+            attributes: {
+              "test": "child"
+            }
+          })
+        )
+
+        const result = yield* innerEffect.pipe(
+          Effect.withSpan("parent-span", {
+            attributes: {
+              "test": "parent"
+            }
+          })
+        )
+
+        strictEqual(result, 42)
+      }).pipe(
+        Effect.provide(
+          OtlpTracer.layer({
+            url: "http://localhost:4318/v1/traces",
+            resource: {
+              serviceName: "test-service"
+            }
+          }).pipe(
+            Layer.provide(OtlpSerialization.layerJson),
+            Layer.provide(FetchHttpClient.layer)
+          )
+        )
+      ), 6_000)
 
     it.effect("should set the correct start and end time", () =>
       Effect.gen(function*() {
