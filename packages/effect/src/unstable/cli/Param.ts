@@ -12,7 +12,6 @@
  */
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
-import type { LazyArg } from "../../Function.ts"
 import { dual, identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import type * as Path from "../../Path.ts"
@@ -34,7 +33,7 @@ const TypeId = "~effect/cli/Param"
  * @category models
  */
 export interface Param<Kind extends ParamKind, out A> extends Param.Variance<A> {
-  readonly _tag: "Single" | "Map" | "MapEffect" | "Optional" | "Variadic"
+  readonly _tag: "Single" | "Map" | "Transform" | "Optional" | "Variadic"
   readonly kind: Kind
   readonly parse: Parse<A>
 }
@@ -167,11 +166,11 @@ export interface Map<Kind extends ParamKind, in out A, out B> extends Param<Kind
  * @since 4.0.0
  * @category models
  */
-export interface MapEffect<Kind extends ParamKind, in out A, out B> extends Param<Kind, B> {
-  readonly _tag: "MapEffect"
+export interface Transform<Kind extends ParamKind, in out A, out B> extends Param<Kind, B> {
+  readonly _tag: "Transform"
   readonly kind: Kind
   readonly param: Param<Kind, A>
-  readonly f: (value: A) => Effect.Effect<B, CliError.CliError, Environment>
+  readonly f: (parse: Parse<A>) => Parse<B>
 }
 
 /**
@@ -941,6 +940,18 @@ export const map: {
   })
 })
 
+const transform = <Kind extends ParamKind, A, B>(
+  self: Param<Kind, A>,
+  f: (parse: Parse<A>) => Parse<B>
+) =>
+  Object.assign(Object.create(Proto), {
+    _tag: "Transform",
+    kind: self.kind,
+    param: self,
+    f,
+    parse: f(self.parse)
+  })
+
 /**
  * Transforms the parsed value of an option using an effectful mapping function.
  *
@@ -982,20 +993,15 @@ export const mapEffect: {
 } = dual(2, <Kind extends ParamKind, A, B>(
   self: Param<Kind, A>,
   f: (a: A) => Effect.Effect<B, CliError.CliError, Environment>
-) => {
-  const parse: Parse<B> = (args) =>
-    Effect.flatMap(
-      self.parse(args),
-      ([operands, a]) => Effect.map(f(a), (b) => [operands, b] as const)
-    )
-  return Object.assign(Object.create(Proto), {
-    _tag: "MapEffect",
-    kind: self.kind,
-    param: self,
-    f,
-    parse
-  })
-})
+) =>
+  transform(
+    self,
+    (parse: Parse<A>) => (args: ParsedArgs) =>
+      Effect.flatMap(parse(args), ([leftover, a]) =>
+        f(a).pipe(
+          Effect.map((b) => [leftover, b] as const)
+        ))
+  ))
 
 /**
  * Transforms the parsed value of an option using a function that may throw,
@@ -1035,36 +1041,27 @@ export const mapTryCatch: {
   onError: (error: unknown) => string
 ) => {
   const single = getUnderlyingSingleOrThrow(self)
-  const parse: Parse<B> = (args) =>
-    Effect.flatMap(self.parse(args), ([leftover, a]) =>
-      Effect.try({
-        try: () => f(a),
-        catch: (error) => onError(error)
-      }).pipe(
-        Effect.mapError(
-          (error) =>
-            new CliError.InvalidValue({
-              option: single.name,
-              value: String(a),
-              expected: error,
-              kind: single.kind
-            })
-        ),
-        Effect.map((b) => [leftover, b] as const)
-      ))
-  return Object.assign(Object.create(Proto), {
-    _tag: "MapEffect",
-    kind: self.kind,
-    param: self,
-    f: (a: A) =>
-      Effect.orDie(
+
+  return transform(
+    self,
+    (parse: Parse<A>) => (args: ParsedArgs) =>
+      Effect.flatMap(parse(args), ([leftover, a]) =>
         Effect.try({
           try: () => f(a),
           catch: (error) => onError(error)
-        })
-      ),
-    parse
-  })
+        }).pipe(
+          Effect.mapError(
+            (error) =>
+              new CliError.InvalidValue({
+                option: single.name,
+                value: String(a),
+                expected: error,
+                kind: single.kind
+              })
+          ),
+          Effect.map((b) => [leftover, b] as const)
+        ))
+  )
 })
 
 /**
@@ -1157,27 +1154,19 @@ export const withFallbackPrompt: {
 } = dual(2, <Kind extends ParamKind, A, B>(
   self: Param<Kind, A>,
   prompt: Prompt.Prompt<B>
-) => {
+): Param<Kind, A | B> => {
   const runPrompt = (error: CliError.MissingOption | CliError.MissingArgument, args: ParsedArgs) =>
     Prompt.run(prompt).pipe(
-      Effect.map((value) => [args.arguments, value] as const),
+      Effect.map((value) => [args.arguments, value as A | B] as const),
       Effect.catchTag("QuitError", () => Effect.fail(error))
     )
-
-  const parse: Parse<A | B> = (args) =>
-    self.parse(args).pipe(
-      Effect.catchTag("MissingOption", (error) => runPrompt(error, args)),
-      Effect.catchTag("MissingArgument", (error) => runPrompt(error, args))
-    )
-
-  return Object.assign(Object.create(Proto), {
-    _tag: "MapEffect",
-    kind: self.kind,
-    param: self,
-    prompt,
-    f: (value: A) => Effect.succeed(value as A | B),
-    parse
-  })
+  return transform(
+    self,
+    (parse) => (args) =>
+      parse(args).pipe(
+        Effect.catchTag(["MissingOption", "MissingArgument"], (error) => runPrompt(error, args))
+      )
+  )
 })
 
 /**
@@ -1556,22 +1545,21 @@ export const withSchema: {
  * @category combinators
  */
 export const orElse: {
-  <B, Kind extends ParamKind>(orElse: LazyArg<Param<Kind, B>>): <A>(self: Param<Kind, A>) => Param<Kind, A | B>
+  <B, Kind extends ParamKind>(
+    orElse: (error: CliError.CliError) => Param<Kind, B>
+  ): <A>(self: Param<Kind, A>) => Param<Kind, A | B>
   <Kind extends ParamKind, A, B>(
     self: Param<Kind, A>,
-    orElse: LazyArg<Param<Kind, B>>
+    orElse: (error: CliError.CliError) => Param<Kind, B>
   ): Param<Kind, A | B>
 } = dual(2, <Kind extends ParamKind, A, B>(
   self: Param<Kind, A>,
-  orElse: LazyArg<Param<Kind, B>>
-) => {
-  const parse: Parse<A | B> = (args) => Effect.catch(self.parse(args), () => orElse().parse(args))
-  return Object.assign(Object.create(Proto), {
-    _tag: "MapEffect",
-    kind: self.kind,
-    parse
-  })
-})
+  orElse: (error: CliError.CliError) => Param<Kind, B>
+) =>
+  transform(
+    self,
+    (parse: Parse<A>): Parse<A | B> => (args: ParsedArgs) => Effect.catch(parse(args), (err) => orElse(err).parse(args))
+  ))
 
 /**
  * Provides a fallback param, wrapping results in Either to distinguish which param succeeded.
@@ -1593,31 +1581,28 @@ export const orElse: {
  */
 export const orElseResult: {
   <Kind extends ParamKind, B>(
-    orElse: LazyArg<Param<Kind, B>>
+    orElse: (error: CliError.CliError) => Param<Kind, B>
   ): <A>(self: Param<Kind, A>) => Param<Kind, Result.Result<A, B>>
   <Kind extends ParamKind, A, B>(
     self: Param<Kind, A>,
-    orElse: LazyArg<Param<Kind, B>>
+    orElse: (error: CliError.CliError) => Param<Kind, B>
   ): Param<Kind, Result.Result<A, B>>
 } = dual(2, <Kind extends ParamKind, A, B>(
   self: Param<Kind, A>,
-  orElse: LazyArg<Param<Kind, B>>
+  orElse: (error: CliError.CliError) => Param<Kind, B>
 ) => {
-  const parse: Parse<Result.Result<A, B>> = (args) =>
-    self.parse(args).pipe(
-      Effect.map(([leftover, value]) => [leftover, Result.succeed(value)] as const),
-      Effect.catch(() =>
-        Effect.map(
-          orElse().parse(args),
-          ([leftover, value]) => [leftover, Result.fail(value)] as const
-        )
+  return transform(
+    self,
+    (parse: Parse<A>): Parse<Result.Result<A, B>> => (args: ParsedArgs) =>
+      Effect.catch(
+        Effect.map(parse(args), ([leftover, value]) => [leftover, Result.succeed(value)] as const),
+        (err) =>
+          Effect.map(
+            orElse(err).parse(args),
+            ([leftover, value]) => [leftover, Result.fail(value)] as const
+          )
       )
-    )
-  return Object.assign(Object.create(Proto), {
-    _tag: "MapEffect",
-    kind: self.kind,
-    parse
-  })
+  )
 })
 
 // =============================================================================
@@ -1788,7 +1773,7 @@ const parseOptionVariadic: <Kind extends ParamKind, A>(
 type AnyParam<Kind extends ParamKind, A> =
   | Single<Kind, A>
   | Map<Kind, any, A>
-  | MapEffect<Kind, any, A>
+  | Transform<Kind, any, A>
   | Optional<Kind, A>
   | Variadic<Kind, A>
 
@@ -1802,7 +1787,7 @@ const matchParam = <Kind extends ParamKind, A, R>(
   patterns: {
     Single: (single: Single<Kind, A>) => R
     Map: <X>(mapped: Map<Kind, X, A>) => R
-    MapEffect: <X>(mapped: MapEffect<Kind, X, A>) => R
+    Transform: <X>(mapped: Transform<Kind, X, A>) => R
     Optional: <X>(optional: Optional<Kind, X>) => R
     Variadic: <X>(variadic: Variadic<Kind, X>) => R
   }
@@ -1813,8 +1798,8 @@ const matchParam = <Kind extends ParamKind, A, R>(
       return patterns.Single(p)
     case "Map":
       return patterns.Map(p)
-    case "MapEffect":
-      return patterns.MapEffect(p)
+    case "Transform":
+      return patterns.Transform(p)
     case "Optional":
       return patterns.Optional(p)
     case "Variadic":
@@ -1833,10 +1818,7 @@ const transformSingle = <Kind extends ParamKind, A>(
   return matchParam(param, {
     Single: (single) => f(single),
     Map: (mapped) => map(transformSingle(mapped.param, f), mapped.f),
-    MapEffect: (mapped) =>
-      "prompt" in mapped
-        ? withFallbackPrompt(transformSingle(mapped.param, f), (mapped as { prompt: Prompt.Prompt<any> }).prompt)
-        : mapEffect(transformSingle(mapped.param, f), mapped.f),
+    Transform: (mapped) => transform(transformSingle(mapped.param, f), mapped.f),
     Optional: (p) => optional(transformSingle(p.param, f)) as Param<Kind, A>,
     Variadic: (p) => variadic(transformSingle(p.param, f), { min: p.min, max: p.max }) as Param<Kind, A>
   })
@@ -1844,7 +1826,7 @@ const transformSingle = <Kind extends ParamKind, A>(
 
 /**
  * Extracts all Single params from a potentially nested param structure.
- * This handles all param combinators including Map, MapEffect, Optional, and Variadic.
+ * This handles all param combinators including Map, Transform, Optional, and Variadic.
  *
  * @internal
  */
@@ -1854,7 +1836,7 @@ export const extractSingleParams = <Kind extends ParamKind, A>(
   return matchParam(param, {
     Single: (single) => [single as Single<Kind, unknown>],
     Map: (mapped) => extractSingleParams(mapped.param),
-    MapEffect: (mapped) => extractSingleParams(mapped.param),
+    Transform: (mapped) => extractSingleParams(mapped.param),
     Optional: (optional) => extractSingleParams(optional.param),
     Variadic: (variadic) => extractSingleParams(variadic.param)
   })
@@ -1895,7 +1877,7 @@ export const getParamMetadata = <Kind extends ParamKind, A>(
   return matchParam(param, {
     Single: () => ({ isOptional: false, isVariadic: false }),
     Map: (mapped) => getParamMetadata(mapped.param),
-    MapEffect: (mapped) => getParamMetadata(mapped.param),
+    Transform: (mapped) => getParamMetadata(mapped.param),
     Optional: (optional) => ({
       ...getParamMetadata(optional.param),
       isOptional: true
