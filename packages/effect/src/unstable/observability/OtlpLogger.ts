@@ -5,7 +5,6 @@ import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exporter from "../../internal/tracing/otlpExporter.ts"
 import type * as Layer from "../../Layer.ts"
 import * as Logger from "../../Logger.ts"
 import type * as LogLevel from "../../LogLevel.ts"
@@ -13,8 +12,10 @@ import { CurrentLogAnnotations, CurrentLogSpans } from "../../References.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Headers from "../http/Headers.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
+import * as Exporter from "./OtlpExporter.ts"
 import type { AnyValue, Fixed64, KeyValue, Resource } from "./OtlpResource.ts"
 import * as OtlpResource from "./OtlpResource.ts"
+import { OtlpSerialization } from "./OtlpSerialization.ts"
 
 /**
  * @since 4.0.0
@@ -37,8 +38,9 @@ export const make: (
 ) => Effect.Effect<
   Logger.Logger<unknown, void>,
   never,
-  HttpClient.HttpClient | Scope.Scope
+  OtlpSerialization | HttpClient.HttpClient | Scope.Scope
 > = Effect.fnUntraced(function*(options) {
+  const serialization = yield* OtlpSerialization
   const otelResource = yield* OtlpResource.fromConfig(options.resource)
   const scope: IInstrumentationScope = {
     name: OtlpResource.serviceNameUnsafe(otelResource)
@@ -50,15 +52,16 @@ export const make: (
     headers: options.headers,
     maxBatchSize: options.maxBatchSize ?? 1000,
     exportInterval: options.exportInterval ?? Duration.seconds(1),
-    body: (data): IExportLogsServiceRequest => ({
-      resourceLogs: [{
-        resource: otelResource,
-        scopeLogs: [{
-          scope,
-          logRecords: data
+    body: (data) =>
+      serialization.logs({
+        resourceLogs: [{
+          resource: otelResource,
+          scopeLogs: [{
+            scope,
+            logRecords: data
+          }]
         }]
-      }]
-    }),
+      }),
     shutdownTimeout: options.shutdownTimeout ?? Duration.seconds(3)
   })
 
@@ -87,10 +90,17 @@ export const layer = (options: {
   readonly shutdownTimeout?: Duration.DurationInput | undefined
   readonly excludeLogSpans?: boolean | undefined
   readonly mergeWithExisting?: boolean | undefined
-}): Layer.Layer<never, never, HttpClient.HttpClient> =>
+}): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization> =>
   Logger.layer([make(options)], {
     mergeWithExisting: options.mergeWithExisting ?? true
   })
+
+/**
+ * @since 4.0.0
+ */
+export interface LogsData {
+  resourceLogs: ReadonlyArray<IResourceLogs>
+}
 
 // internal
 
@@ -138,12 +148,6 @@ const makeLogRecord = (options: Logger.Logger.Options<unknown>, opts: {
   }
 
   return logRecord
-}
-
-/** Properties of an ExportLogsServiceRequest. */
-interface IExportLogsServiceRequest {
-  /** ExportLogsServiceRequest resourceLogs */
-  resourceLogs?: Array<IResourceLogs>
 }
 
 /** Properties of an InstrumentationScope. */

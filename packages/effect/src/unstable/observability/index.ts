@@ -12,6 +12,11 @@ export * as Otlp from "./Otlp.ts"
 /**
  * @since 4.0.0
  */
+export * as OtlpExporter from "./OtlpExporter.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as OtlpLogger from "./OtlpLogger.ts"
 
 /**
@@ -23,6 +28,11 @@ export * as OtlpMetrics from "./OtlpMetrics.ts"
  * @since 4.0.0
  */
 export * as OtlpResource from "./OtlpResource.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as OtlpSerialization from "./OtlpSerialization.ts"
 
 /**
  * @since 4.0.0

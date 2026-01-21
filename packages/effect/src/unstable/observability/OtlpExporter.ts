@@ -1,3 +1,6 @@
+/**
+ * @since 4.0.0
+ */
 import { Clock } from "../../Clock.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
@@ -5,11 +8,13 @@ import * as Fiber from "../../Fiber.ts"
 import * as Num from "../../Number.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Scope from "../../Scope.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as Headers from "../../unstable/http/Headers.ts"
 import * as HttpClient from "../../unstable/http/HttpClient.ts"
 import * as HttpClientError from "../../unstable/http/HttpClientError.ts"
 import * as HttpClientRequest from "../../unstable/http/HttpClientRequest.ts"
+import type { HttpBody } from "../http/HttpBody.ts"
 
 const policy = Schedule.forever.pipe(
   Schedule.passthrough,
@@ -26,7 +31,10 @@ const policy = Schedule.forever.pipe(
   })
 )
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Constructors
+ */
 export const make: (
   options: {
     readonly url: string
@@ -34,7 +42,7 @@ export const make: (
     readonly label: string
     readonly exportInterval: Duration.DurationInput
     readonly maxBatchSize: number | "disabled"
-    readonly body: (data: Array<any>) => unknown
+    readonly body: (data: Array<any>) => HttpBody
     readonly shutdownTimeout: Duration.DurationInput
   }
 ) => Effect.Effect<
@@ -42,12 +50,14 @@ export const make: (
   never,
   HttpClient.HttpClient | Scope.Scope
 > = Effect.fnUntraced(function*(options) {
-  const clock = yield* Clock
-  const scope = yield* Effect.scope
+  const services = yield* Effect.services<Scope.Scope | HttpClient.HttpClient>()
+  const clock = ServiceMap.get(services, Clock)
+  const scope = ServiceMap.get(services, Scope.Scope)
+  const runFork = Effect.runForkWith(services)
   const exportInterval = Duration.fromDurationInputUnsafe(options.exportInterval)
   let disabledUntil: number | undefined = undefined
 
-  const client = HttpClient.filterStatusOk(yield* HttpClient.HttpClient).pipe(
+  const client = HttpClient.filterStatusOk(ServiceMap.get(services, HttpClient.HttpClient)).pipe(
     HttpClient.retryTransient({ schedule: policy, times: 3 })
   )
 
@@ -74,7 +84,7 @@ export const make: (
       buffer = []
     }
     return client.execute(
-      HttpClientRequest.bodyJsonUnsafe(request, options.body(items))
+      HttpClientRequest.setBody(request, options.body(items))
     ).pipe(
       Effect.asVoid,
       Effect.withTracerEnabled(false)
@@ -112,7 +122,7 @@ export const make: (
       if (disabledUntil !== undefined) return
       buffer.push(data)
       if (options.maxBatchSize !== "disabled" && buffer.length >= options.maxBatchSize) {
-        Fiber.runIn(Effect.runFork(runExport), scope)
+        Fiber.runIn(runFork(runExport), scope)
       }
     }
   }

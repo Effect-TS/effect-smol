@@ -2,7 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { Array, Effect, Layer, Metric, Predicate, Ref, ServiceMap } from "effect"
 import { TestClock } from "effect/testing"
 import { HttpClient, type HttpClientError, HttpClientResponse } from "effect/unstable/http"
-import { OtlpMetrics } from "effect/unstable/observability"
+import { OtlpMetrics, OtlpSerialization } from "effect/unstable/observability"
 
 describe("OtlpMetrics", () => {
   describe("cumulative temporality", () => {
@@ -493,11 +493,13 @@ const OtlpDeltaMetricsLayer = OtlpMetrics.layer({
 })
 
 const TestLayerCumulative = OtlpCumulativeMetricsLayer.pipe(
-  Layer.provideMerge(HttpClientLayer)
+  Layer.provideMerge(HttpClientLayer),
+  Layer.provide(OtlpSerialization.layerJson)
 )
 
 const TestLayerDelta = OtlpDeltaMetricsLayer.pipe(
-  Layer.provideMerge(HttpClientLayer)
+  Layer.provideMerge(HttpClientLayer),
+  Layer.provide(OtlpSerialization.layerJson)
 )
 
 const triggerExport = TestClock.adjust("10 seconds")

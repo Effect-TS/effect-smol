@@ -5,14 +5,16 @@ import * as Arr from "../../Array.ts"
 import { Clock } from "../../Clock.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exporter from "../../internal/tracing/otlpExporter.ts"
 import * as Layer from "../../Layer.ts"
 import * as Metric from "../../Metric.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Headers from "../http/Headers.ts"
+import type { HttpBody } from "../http/HttpBody.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
+import * as Exporter from "./OtlpExporter.ts"
 import type { Fixed64, KeyValue } from "./OtlpResource.ts"
 import * as OtlpResource from "./OtlpResource.ts"
+import { OtlpSerialization } from "./OtlpSerialization.js"
 
 /**
  * Determines how metric values relate to the time interval over which they
@@ -64,9 +66,10 @@ export const make: (options: {
 }) => Effect.Effect<
   void,
   never,
-  HttpClient.HttpClient | Scope.Scope
+  HttpClient.HttpClient | OtlpSerialization | Scope.Scope
 > = Effect.fnUntraced(function*(options) {
   const clock = yield* Clock
+  const serialization = yield* OtlpSerialization
   const startTimeNanos = yield* clock.currentTimeNanos
   const startTime = String(startTimeNanos)
   const temporality = options.temporality ?? "cumulative"
@@ -85,7 +88,7 @@ export const make: (options: {
   const previousFrequencyState = new Map<string, Map<string, number>>()
   const previousSummaryState = new Map<string, PreviousSummaryState>()
 
-  const snapshot = (): IExportMetricsServiceRequest => {
+  const snapshot = (): HttpBody => {
     const snapshot = Metric.snapshotUnsafe(services)
     const nowNanos = clock.currentTimeNanosUnsafe()
     const nowTime = String(nowNanos)
@@ -403,7 +406,7 @@ export const make: (options: {
       previousExportTimeNanos = nowNanos
     }
 
-    return {
+    return serialization.metrics({
       resourceMetrics: [{
         resource,
         scopeMetrics: [{
@@ -411,7 +414,7 @@ export const make: (options: {
           metrics: metricData
         }]
       }]
-    }
+    })
   }
 
   yield* Exporter.make({
@@ -440,7 +443,14 @@ export const layer = (options: {
   readonly exportInterval?: Duration.DurationInput | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined
   readonly temporality?: AggregationTemporality | undefined
-}): Layer.Layer<never, never, HttpClient.HttpClient> => Layer.effectDiscard(make(options))
+}): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization> => Layer.effectDiscard(make(options))
+
+/**
+ * @since 4.0.0
+ */
+export interface MetricsData {
+  readonly resourceMetrics: ReadonlyArray<IResourceMetrics>
+}
 
 // internal
 
@@ -480,28 +490,23 @@ interface IInstrumentationScope {
   droppedAttributesCount?: number
 }
 
-/** Properties of an ExportMetricsServiceRequest. */
-interface IExportMetricsServiceRequest {
-  /** ExportMetricsServiceRequest resourceMetrics */
-  resourceMetrics: Array<IResourceMetrics>
-}
 /** Properties of a ResourceMetrics. */
 interface IResourceMetrics {
   /** ResourceMetrics resource */
-  resource?: OtlpResource.Resource
+  resource: OtlpResource.Resource
   /** ResourceMetrics scopeMetrics */
   scopeMetrics: Array<IScopeMetrics>
   /** ResourceMetrics schemaUrl */
-  schemaUrl?: string
+  schemaUrl?: string | undefined
 }
 /** Properties of an IScopeMetrics. */
 interface IScopeMetrics {
   /** ScopeMetrics scope */
-  scope?: IInstrumentationScope
+  scope: IInstrumentationScope
   /** ScopeMetrics metrics */
   metrics: Array<IMetric>
   /** ScopeMetrics schemaUrl */
-  schemaUrl?: string
+  schemaUrl?: string | undefined
 }
 /** Properties of a Metric. */
 interface IMetric {

@@ -5,7 +5,6 @@ import * as Cause from "../../Cause.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
-import * as Exporter from "../../internal/tracing/otlpExporter.ts"
 import * as Layer from "../../Layer.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
@@ -13,9 +12,11 @@ import * as Tracer from "../../Tracer.ts"
 import type { ExtractTag, Mutable } from "../../Types.ts"
 import type * as Headers from "../http/Headers.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
+import * as Exporter from "./OtlpExporter.ts"
 import type { KeyValue, Resource } from "./OtlpResource.ts"
 import { entriesToAttributes } from "./OtlpResource.ts"
 import * as OtlpResource from "./OtlpResource.ts"
+import { OtlpSerialization } from "./OtlpSerialization.ts"
 
 /**
  * @since 4.0.0
@@ -38,9 +39,10 @@ export const make: (
 ) => Effect.Effect<
   Tracer.Tracer,
   never,
-  HttpClient.HttpClient | Scope.Scope
+  OtlpSerialization | HttpClient.HttpClient | Scope.Scope
 > = Effect.fnUntraced(function*(options) {
   const otelResource = yield* OtlpResource.fromConfig(options.resource)
+  const serialization = yield* OtlpSerialization
   const scope: Scope = {
     name: OtlpResource.serviceNameUnsafe(otelResource)
   }
@@ -61,7 +63,7 @@ export const make: (
           }]
         }]
       }
-      return data
+      return serialization.traces(data)
     },
     shutdownTimeout: options.shutdownTimeout ?? Duration.seconds(3)
   })
@@ -112,7 +114,7 @@ export const layer: (options: {
   readonly maxBatchSize?: number | undefined
   readonly context?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined
-}) => Layer.Layer<never, never, HttpClient.HttpClient> = Layer.effect(Tracer.Tracer)(make)
+}) => Layer.Layer<never, never, OtlpSerialization | HttpClient.HttpClient> = Layer.effect(Tracer.Tracer)(make)
 
 // internal
 
@@ -264,18 +266,29 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
   }
 }
 
-interface TraceData {
+/**
+ * @since 4.0.0
+ */
+export interface TraceData {
   readonly resourceSpans: Array<ResourceSpan>
 }
 
-interface ResourceSpan {
+/**
+ * @since 4.0.0
+ */
+export interface ResourceSpan {
   readonly resource: Resource
   readonly scopeSpans: Array<ScopeSpan>
+  readonly schemaUrl?: string | undefined
 }
 
-interface ScopeSpan {
+/**
+ * @since 4.0.0
+ */
+export interface ScopeSpan {
   readonly scope: Scope
   readonly spans: Array<OtlpSpan>
+  readonly schemaUrl?: string | undefined
 }
 
 interface Scope {

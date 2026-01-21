@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import type * as Duration from "../../Duration.ts"
+import { flow } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import type * as Tracer from "../../Tracer.ts"
 import type * as Headers from "../http/Headers.ts"
@@ -10,6 +11,7 @@ import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import * as OtlpLogger from "./OtlpLogger.ts"
 import type { AggregationTemporality } from "./OtlpMetrics.ts"
 import * as OtlpMetrics from "./OtlpMetrics.ts"
+import * as OtlpSerialization from "./OtlpSerialization.ts"
 import * as OtlpTracer from "./OtlpTracer.ts"
 
 /**
@@ -33,7 +35,7 @@ export const layer = (options: {
   readonly metricsTemporality?: AggregationTemporality | undefined
   readonly tracerExportInterval?: Duration.DurationInput | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined
-}): Layer.Layer<never, never, HttpClient.HttpClient> => {
+}): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization.OtlpSerialization> => {
   const base = HttpClientRequest.get(options.baseUrl)
   const url = (path: string) => HttpClientRequest.appendUrl(base, path).url
   return Layer.mergeAll(
@@ -66,3 +68,49 @@ export const layer = (options: {
     })
   )
 }
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layerJson: (options: {
+  readonly baseUrl: string
+  readonly resource?: {
+    readonly serviceName?: string | undefined
+    readonly serviceVersion?: string | undefined
+    readonly attributes?: Record<string, unknown>
+  } | undefined
+  readonly headers?: Headers.Input | undefined
+  readonly maxBatchSize?: number | undefined
+  readonly tracerContext?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
+  readonly loggerExportInterval?: Duration.DurationInput | undefined
+  readonly loggerExcludeLogSpans?: boolean | undefined
+  readonly loggerMergeWithExisting?: boolean | undefined
+  readonly metricsExportInterval?: Duration.DurationInput | undefined
+  readonly metricsTemporality?: AggregationTemporality | undefined
+  readonly tracerExportInterval?: Duration.DurationInput | undefined
+  readonly shutdownTimeout?: Duration.DurationInput | undefined
+}) => Layer.Layer<never, never, HttpClient.HttpClient> = flow(layer, Layer.provide(OtlpSerialization.layerJson))
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layerProtobuf: (options: {
+  readonly baseUrl: string
+  readonly resource?: {
+    readonly serviceName?: string | undefined
+    readonly serviceVersion?: string | undefined
+    readonly attributes?: Record<string, unknown>
+  } | undefined
+  readonly headers?: Headers.Input | undefined
+  readonly maxBatchSize?: number | undefined
+  readonly tracerContext?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
+  readonly loggerExportInterval?: Duration.DurationInput | undefined
+  readonly loggerExcludeLogSpans?: boolean | undefined
+  readonly loggerMergeWithExisting?: boolean | undefined
+  readonly metricsExportInterval?: Duration.DurationInput | undefined
+  readonly metricsTemporality?: AggregationTemporality | undefined
+  readonly tracerExportInterval?: Duration.DurationInput | undefined
+  readonly shutdownTimeout?: Duration.DurationInput | undefined
+}) => Layer.Layer<never, never, HttpClient.HttpClient> = flow(layer, Layer.provide(OtlpSerialization.layerProtobuf))
