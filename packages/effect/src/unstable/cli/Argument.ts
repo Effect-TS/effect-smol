@@ -2,10 +2,8 @@
  * @since 4.0.0
  */
 import type * as Effect from "../../Effect.ts"
-import type * as FileSystem from "../../FileSystem.ts"
 import { dual, type LazyArg } from "../../Function.ts"
 import type * as Option from "../../Option.ts"
-import type * as Path from "../../Path.ts"
 import type * as Redacted from "../../Redacted.ts"
 import type * as Result from "../../Result.ts"
 import type * as Schema from "../../Schema.ts"
@@ -400,7 +398,7 @@ export const mapEffect: {
   ): Argument<B>
 } = dual(2, <A, B>(
   self: Argument<A>,
-  f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+  f: (a: A) => Effect.Effect<B, CliError.CliError, Environment>
 ) => Param.mapEffect(self, f))
 
 /**
