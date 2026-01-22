@@ -937,6 +937,23 @@ export const select = <const A>(options: SelectOptions<A>): Prompt<A> => {
 }
 
 /**
+ * Creates a prompt that lets users filter select choices by typing.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Prompt } from "effect/unstable/cli"
+ *
+ * const language = Prompt.autoComplete({
+ *   message: "Choose a language",
+ *   choices: [
+ *     { title: "TypeScript", value: "ts" },
+ *     { title: "Rust", value: "rs" },
+ *     { title: "Kotlin", value: "kt" }
+ *   ]
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
