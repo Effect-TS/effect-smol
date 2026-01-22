@@ -125,6 +125,43 @@ describe("ChildProcess", () => {
       }).pipe(Effect.scoped, Effect.provide(MockExecutorLayer)))
   })
 
+  describe("setCwd", () => {
+    it("should set cwd on standard and templated commands", () => {
+      const standard = ChildProcess.make("ls", ["-la"], { env: { TEST: "1" } })
+      const updatedStandard = ChildProcess.setCwd(standard, "/tmp")
+      assert.strictEqual(updatedStandard._tag, "StandardCommand")
+      if (updatedStandard._tag === "StandardCommand") {
+        assert.strictEqual(updatedStandard.options.cwd, "/tmp")
+        assert.deepStrictEqual(updatedStandard.options.env, { TEST: "1" })
+      }
+
+      const templated = ChildProcess.make`ls -la`
+      const updatedTemplated = ChildProcess.setCwd("/tmp")(templated)
+      assert.strictEqual(updatedTemplated._tag, "TemplatedCommand")
+      if (updatedTemplated._tag === "TemplatedCommand") {
+        assert.strictEqual(updatedTemplated.options.cwd, "/tmp")
+      }
+    })
+
+    it("should set cwd on all commands in a pipeline", () => {
+      const pipeline = ChildProcess.make`cat file`.pipe(
+        ChildProcess.pipeTo(ChildProcess.make`grep pattern`)
+      )
+      const updated = ChildProcess.setCwd(pipeline, "/tmp")
+      assert.strictEqual(updated._tag, "PipedCommand")
+      if (updated._tag === "PipedCommand") {
+        const left = updated.left
+        const right = updated.right
+        if (left._tag === "TemplatedCommand") {
+          assert.strictEqual(left.options.cwd, "/tmp")
+        }
+        if (right._tag === "TemplatedCommand") {
+          assert.strictEqual(right.options.cwd, "/tmp")
+        }
+      }
+    })
+  })
+
   describe("guards", () => {
     it("isCommand should detect commands", () => {
       const cmd = ChildProcess.make`echo hello`

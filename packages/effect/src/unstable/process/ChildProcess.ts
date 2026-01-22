@@ -728,6 +728,43 @@ export const pipeTo: {
 )
 
 /**
+ * Set the current working directory for a command.
+ *
+ * For pipelines, applies to each command in the pipeline.
+ *
+ * @example
+ * ```ts
+ * import { ChildProcess } from "effect/unstable/process"
+ *
+ * const cmd = ChildProcess.make`ls -la`.pipe(
+ *   ChildProcess.setCwd("/tmp")
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const setCwd: {
+  (cwd: string): (self: Command) => Command
+  (self: Command, cwd: string): Command
+} = dual(
+  (args) => isCommand(args[0]),
+  (self: Command, cwd: string): Command => {
+    switch (self._tag) {
+      case "StandardCommand": {
+        return makeStandardCommand(self.command, self.args, { ...self.options, cwd })
+      }
+      case "TemplatedCommand": {
+        return makeTemplatedCommand(self.templates, self.expressions, { ...self.options, cwd })
+      }
+      case "PipedCommand": {
+        return makePipedCommand(setCwd(self.left, cwd), setCwd(self.right, cwd), self.options)
+      }
+    }
+  }
+)
+
+/**
  * Spawn a command and return a handle for interaction.
  *
  * Unlike `exec`, this does not wait for the process to complete. Instead,
