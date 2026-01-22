@@ -1087,8 +1087,7 @@ describe("fromJsonSchemaDocument", () => {
           references: {
             A: {
               _tag: "String",
-              checks: [],
-              annotations: { identifier: "A" }
+              checks: []
             }
           }
         }
@@ -1112,13 +1111,12 @@ describe("fromJsonSchemaDocument", () => {
           representation: {
             _tag: "String",
             checks: [],
-            annotations: { description: "a", identifier: "A" }
+            annotations: { description: "a" }
           },
           references: {
             A: {
               _tag: "String",
-              checks: [],
-              annotations: { identifier: "A" }
+              checks: []
             }
           }
         }
@@ -1144,13 +1142,12 @@ describe("fromJsonSchemaDocument", () => {
           representation: {
             _tag: "String",
             checks: [],
-            annotations: { description: "a", identifier: "A" }
+            annotations: { description: "a" }
           },
           references: {
             A: {
               _tag: "String",
-              checks: [],
-              annotations: { identifier: "A" }
+              checks: []
             }
           }
         }
@@ -1190,7 +1187,6 @@ describe("fromJsonSchemaDocument", () => {
           references: {
             A: {
               _tag: "Objects",
-              annotations: { identifier: "A" },
               propertySignatures: [
                 {
                   name: "name",
