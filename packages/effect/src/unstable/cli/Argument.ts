@@ -9,7 +9,6 @@ import type * as Redacted from "../../Redacted.ts"
 import type * as Result from "../../Result.ts"
 import type * as Schema from "../../Schema.ts"
 import type * as CliError from "./CliError.ts"
-import type { Environment } from "./Command.ts"
 import * as Param from "./Param.ts"
 import type * as Primitive from "./Primitive.ts"
 import type * as Prompt from "./Prompt.ts"
@@ -310,9 +309,9 @@ export const withDescription: {
  * @category combinators
  */
 export const withDefault: {
-  <A>(defaultValue: A): (self: Argument<A>) => Argument<A>
-  <A>(self: Argument<A>, defaultValue: A): Argument<A>
-} = dual(2, <A>(self: Argument<A>, defaultValue: A) => Param.withDefault(self, defaultValue))
+  <A>(defaultValue: A | Effect.Effect<A, CliError.CliError, Param.Environment>): (self: Argument<A>) => Argument<A>
+  <A>(self: Argument<A>, defaultValue: A | Effect.Effect<A, CliError.CliError, Param.Environment>): Argument<A>
+} = Param.withDefault
 
 /**
  * Adds a fallback config that is loaded when a required argument is missing.
@@ -433,15 +432,15 @@ export const map: {
  */
 export const mapEffect: {
   <A, B>(
-    f: (a: A) => Effect.Effect<B, CliError.CliError, Environment>
+    f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
   ): (self: Argument<A>) => Argument<B>
   <A, B>(
     self: Argument<A>,
-    f: (a: A) => Effect.Effect<B, CliError.CliError, Environment>
+    f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
   ): Argument<B>
 } = dual(2, <A, B>(
   self: Argument<A>,
-  f: (a: A) => Effect.Effect<B, CliError.CliError, Environment>
+  f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
 ) => Param.mapEffect(self, f))
 
 /**

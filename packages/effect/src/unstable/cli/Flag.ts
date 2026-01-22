@@ -494,9 +494,9 @@ export const optional = <A>(param: Flag<A>): Flag<Option.Option<A>> => Param.opt
  * @category optionality
  */
 export const withDefault: {
-  <A>(defaultValue: A): (self: Flag<A>) => Flag<A>
-  <A>(self: Flag<A>, defaultValue: A): Flag<A>
-} = dual(2, <A>(self: Flag<A>, defaultValue: A) => Param.withDefault(self, defaultValue))
+  <A>(defaultValue: A | Effect.Effect<A, CliError.CliError, Param.Environment>): (self: Flag<A>) => Flag<A>
+  <A>(self: Flag<A>, defaultValue: A | Effect.Effect<A, CliError.CliError, Param.Environment>): Flag<A>
+} = Param.withDefault
 
 /**
  * Adds a fallback config that is loaded when a required flag is missing.

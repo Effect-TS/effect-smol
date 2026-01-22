@@ -13,6 +13,7 @@ import * as References from "../../References.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
 import type * as Terminal from "../../Terminal.ts"
 import type { Simplify } from "../../Types.ts"
+import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
 import * as CliOutput from "./CliOutput.ts"
 import { checkForDuplicateFlags, getHelpForCommandPath, makeCommand, toImpl, type TypeId } from "./internal/command.ts"
@@ -216,7 +217,7 @@ export declare namespace Command {
  * @since 4.0.0
  * @category utility types
  */
-export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal
+export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal | ChildProcessSpawner
 
 /**
  * A utility type to extract the error type from a `Command`.

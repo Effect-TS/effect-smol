@@ -23,6 +23,7 @@ import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Terminal from "../../Terminal.ts"
 import type { Covariant } from "../../Types.ts"
+import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
 import * as Primitive from "./Primitive.ts"
 import * as Prompt from "./Prompt.ts"
@@ -49,7 +50,7 @@ export type ParamKind = "argument" | "flag"
  * @since 4.0.0
  * @category models
  */
-export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal
+export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal | ChildProcessSpawner
 
 /**
  * Kind discriminator for positional argument parameters.
@@ -1136,12 +1137,28 @@ export const optional = <Kind extends ParamKind, A>(
  * @category combinators
  */
 export const withDefault: {
-  <A>(defaultValue: A): <Kind extends ParamKind>(self: Param<Kind, A>) => Param<Kind, A>
-  <Kind extends ParamKind, A>(self: Param<Kind, A>, defaultValue: A): Param<Kind, A>
+  <A>(
+    defaultValue: A | Effect.Effect<A, CliError.CliError, Environment>
+  ): <Kind extends ParamKind>(self: Param<Kind, A>) => Param<Kind, A>
+  <Kind extends ParamKind, A>(
+    self: Param<Kind, A>,
+    defaultValue: A | Effect.Effect<A, CliError.CliError, Environment>
+  ): Param<Kind, A>
 } = dual(2, <Kind extends ParamKind, A>(
   self: Param<Kind, A>,
-  defaultValue: A
-) => map(optional(self), Option.getOrElse(() => defaultValue)))
+  defaultValue: A | Effect.Effect<A, CliError.CliError, Environment>
+) => {
+  if (!Effect.isEffect(defaultValue)) {
+    return map(optional(self), Option.getOrElse(() => defaultValue))
+  }
+  return mapEffect(
+    optional(self),
+    Option.match({
+      onNone: () => defaultValue,
+      onSome: Effect.succeed
+    })
+  )
+})
 
 /**
  * Adds a fallback config that is loaded when a required parameter is missing.
