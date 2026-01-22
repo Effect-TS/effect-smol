@@ -592,7 +592,8 @@ const make = Effect.gen(function*() {
           getOutputFd
         })
       }
-      case "PipedCommand": {
+      case "PipedCommand":
+      case "PrefixedCommand": {
         const { commands, pipeOptions } = flattenCommand(cmd)
         const [root, ...pipeline] = commands
 
@@ -690,6 +691,31 @@ export const flattenCommand = (
   const commands: Array<ChildProcess.StandardCommand> = []
   const pipeOptions: Array<ChildProcess.PipeOptions> = []
 
+  const resolveStandardCommand = (
+    cmd: ChildProcess.StandardCommand | ChildProcess.TemplatedCommand
+  ): ChildProcess.StandardCommand => {
+    if (ChildProcess.isStandardCommand(cmd)) return cmd
+    const parsed = parseTemplates(
+      cmd.templates,
+      cmd.expressions
+    )
+    return ChildProcess.make(
+      parsed[0],
+      parsed.slice(1),
+      cmd.options
+    )
+  }
+
+  const applyPrefix = (
+    prefix: ChildProcess.StandardCommand,
+    cmd: ChildProcess.StandardCommand
+  ): ChildProcess.StandardCommand =>
+    ChildProcess.make(
+      prefix.command,
+      [...prefix.args, cmd.command, ...cmd.args],
+      { ...prefix.options, ...cmd.options }
+    )
+
   const flatten = (cmd: ChildProcess.Command): void => {
     switch (cmd._tag) {
       case "StandardCommand": {
@@ -697,15 +723,7 @@ export const flattenCommand = (
         break
       }
       case "TemplatedCommand": {
-        const parsed = parseTemplates(
-          cmd.templates,
-          cmd.expressions
-        )
-        commands.push(ChildProcess.make(
-          parsed[0],
-          parsed.slice(1),
-          cmd.options
-        ))
+        commands.push(resolveStandardCommand(cmd))
         break
       }
       case "PipedCommand": {
@@ -715,6 +733,16 @@ export const flattenCommand = (
         pipeOptions.push(cmd.options)
         // Then flatten right side
         flatten(cmd.right)
+        break
+      }
+      case "PrefixedCommand": {
+        const commandIndex = commands.length
+        flatten(cmd.command)
+        if (commands.length === commandIndex) {
+          throw new Error("flattenCommand produced empty commands array")
+        }
+        const prefix = resolveStandardCommand(cmd.prefix)
+        commands[commandIndex] = applyPrefix(prefix, commands[commandIndex])
         break
       }
     }

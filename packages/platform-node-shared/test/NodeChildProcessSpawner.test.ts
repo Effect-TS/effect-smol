@@ -872,4 +872,17 @@ describe("NodeChildProcessSpawner", () => {
         }).pipe(Effect.scoped))
     })
   })
+
+  describe("flattenCommand", () => {
+    it("should apply prefix to the leftmost command", () => {
+      const command = ChildProcess.make("echo", ["hello"])
+      const prefixed = command.pipe(ChildProcess.prefix`time`)
+      const { commands, pipeOptions } = NodeChildProcessSpawner.flattenCommand(prefixed)
+      assert.strictEqual(commands.length, 1)
+      assert.strictEqual(pipeOptions.length, 0)
+      const [first] = commands
+      assert.strictEqual(first.command, "time")
+      assert.deepStrictEqual(first.args, ["echo", "hello"])
+    })
+  })
 })

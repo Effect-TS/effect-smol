@@ -68,6 +68,15 @@ export type Command =
   | StandardCommand
   | TemplatedCommand
   | PipedCommand
+  | PrefixedCommand
+
+/**
+ * Command types allowed as prefixes.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export type PrefixCommand = StandardCommand | TemplatedCommand
 
 /**
  * A standard command with pre-parsed command and arguments.
@@ -131,6 +140,26 @@ export interface PipedCommand extends
   readonly left: Command
   readonly right: Command
   readonly options: PipeOptions
+}
+
+/**
+ * A command that prefixes another command.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface PrefixedCommand extends
+  Pipeable,
+  Effect.Yieldable<
+    PrefixedCommand,
+    ChildProcessHandle,
+    PlatformError.PlatformError,
+    ChildProcessSpawner | Scope.Scope
+  >
+{
+  readonly _tag: "PrefixedCommand"
+  readonly prefix: PrefixCommand
+  readonly command: Command
 }
 
 /**
@@ -573,6 +602,14 @@ export const isTemplatedCommand = (command: Command): command is TemplatedComman
  */
 export const isPipedCommand = (command: Command): command is PipedCommand => command._tag === "PipedCommand"
 
+/**
+ * Check if a command is a `PrefixedCommand`.
+ *
+ * @since 4.0.0
+ * @category Guards
+ */
+export const isPrefixedCommand = (command: Command): command is PrefixedCommand => command._tag === "PrefixedCommand"
+
 const makeStandardCommand = (
   command: string,
   args: ReadonlyArray<string>,
@@ -607,6 +644,16 @@ const makePipedCommand = (
     left,
     right,
     options
+  })
+
+const makePrefixedCommand = (
+  prefix: PrefixCommand,
+  command: Command
+): PrefixedCommand =>
+  Object.assign(Object.create(Proto), {
+    _tag: "PrefixedCommand",
+    prefix,
+    command
   })
 
 /**
@@ -690,6 +737,62 @@ export const make: {
   return makeStandardCommand(command, cmdArgs, options)
 }
 
+const isPrefixCommand = (command: unknown): command is PrefixCommand =>
+  isCommand(command) && (isStandardCommand(command) || isTemplatedCommand(command))
+
+const makePrefixCommand = (args: Array<unknown>): PrefixCommand => {
+  if (isPrefixCommand(args[0])) {
+    return args[0]
+  }
+  if (isTemplateString(args[0])) {
+    const [templates, ...expressions] = args as [TemplateStringsArray, ...ReadonlyArray<TemplateExpression>]
+    return makeTemplatedCommand(templates, expressions, {})
+  }
+  if (typeof args[0] === "string") {
+    if (Array.isArray(args[1])) {
+      return makeStandardCommand(args[0], args[1] as ReadonlyArray<string>, {})
+    }
+    return makeStandardCommand(args[0], [], {})
+  }
+  throw new Error("Invalid prefix command")
+}
+
+/**
+ * Prefix a command with another command.
+ *
+ * @example
+ * ```ts
+ * import { ChildProcess } from "effect/unstable/process"
+ *
+ * const command = ChildProcess.make`echo "foo"`
+ *
+ * const prefixed = command.pipe(
+ *   ChildProcess.prefix`time`
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const prefix: {
+  (prefix: PrefixCommand): (self: Command) => Command
+  (self: Command, prefix: PrefixCommand): Command
+  (
+    templates: TemplateStringsArray,
+    ...expressions: ReadonlyArray<TemplateExpression>
+  ): (self: Command) => Command
+  (
+    command: string,
+    args?: ReadonlyArray<string>
+  ): (self: Command) => Command
+} = function prefix(...args: Array<unknown>): any {
+  if (isCommand(args[0]) && isPrefixCommand(args[1])) {
+    return makePrefixedCommand(args[1], args[0])
+  }
+  const prefixCommand = makePrefixCommand(args)
+  return (self: Command) => makePrefixedCommand(prefixCommand, self)
+}
+
 /**
  * Pipe the output of one command to the input of another.
  *
@@ -759,6 +862,13 @@ export const setCwd: {
       }
       case "PipedCommand": {
         return makePipedCommand(setCwd(self.left, cwd), setCwd(self.right, cwd), self.options)
+      }
+      case "PrefixedCommand": {
+        const updatedPrefix = setCwd(self.prefix, cwd)
+        if (isPrefixCommand(updatedPrefix)) {
+          return makePrefixedCommand(updatedPrefix, setCwd(self.command, cwd))
+        }
+        return makePrefixedCommand(self.prefix, setCwd(self.command, cwd))
       }
     }
   }

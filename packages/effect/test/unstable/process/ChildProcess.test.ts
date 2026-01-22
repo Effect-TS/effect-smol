@@ -162,6 +162,28 @@ describe("ChildProcess", () => {
     })
   })
 
+  describe("prefix", () => {
+    it("should create a prefixed command", () => {
+      const command = ChildProcess.make("echo", ["hello"])
+      const prefixed = command.pipe(ChildProcess.prefix`time`)
+      assert.strictEqual(prefixed._tag, "PrefixedCommand")
+      if (prefixed._tag === "PrefixedCommand") {
+        assert.strictEqual(prefixed.prefix._tag, "TemplatedCommand")
+        assert.strictEqual(prefixed.command._tag, "StandardCommand")
+      }
+    })
+
+    it("should accept standard prefix commands", () => {
+      const prefix = ChildProcess.make("env", ["-i"])
+      const command = ChildProcess.make("echo", ["hello"])
+      const prefixed = ChildProcess.prefix(prefix)(command)
+      assert.strictEqual(prefixed._tag, "PrefixedCommand")
+      if (prefixed._tag === "PrefixedCommand" && prefixed.prefix._tag === "StandardCommand") {
+        assert.deepStrictEqual(prefixed.prefix.args, ["-i"])
+      }
+    })
+  })
+
   describe("guards", () => {
     it("isCommand should detect commands", () => {
       const cmd = ChildProcess.make`echo hello`
@@ -199,6 +221,13 @@ describe("ChildProcess", () => {
       )
       assert.isFalse(ChildProcess.isPipedCommand(single))
       assert.isTrue(ChildProcess.isPipedCommand(piped))
+    })
+
+    it("isPrefixedCommand should detect prefixed commands", () => {
+      const command = ChildProcess.make("echo", ["hello"])
+      const prefixed = command.pipe(ChildProcess.prefix`time`)
+      assert.isFalse(ChildProcess.isPrefixedCommand(command))
+      assert.isTrue(ChildProcess.isPrefixedCommand(prefixed))
     })
   })
 
