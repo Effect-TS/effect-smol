@@ -9460,8 +9460,31 @@ export const RunStatus = Schema.Literals([
   "incomplete",
   "expired"
 ]).annotate({ "description": "The status of the run." })
-export type CodeInterpreterContainerAuto = AutoCodeInterpreterToolParam
-export const CodeInterpreterContainerAuto = AutoCodeInterpreterToolParam
+export type CodeInterpreterContainerAuto = {
+  readonly "type": "auto"
+  readonly "file_ids"?: ReadonlyArray<string>
+  readonly "memory_limit"?: "1g" | "4g" | "16g" | "64g" | null
+}
+export const CodeInterpreterContainerAuto = Schema.Struct({
+  "type": Schema.Literal("auto").annotate({ "description": "Always `auto`.", "default": "auto" }),
+  "file_ids": Schema.optionalKey(
+    Schema.Array(Schema.String.annotate({ "examples": ["file-123"] })).annotate({
+      "description": "An optional list of uploaded files to make available to your code."
+    }).check(Schema.isMaxLength(50))
+  ),
+  "memory_limit": Schema.optionalKey(
+    Schema.Union([
+      Schema.Literals(["1g", "4g", "16g", "64g"]).annotate({
+        "description": "The memory limit for the code interpreter container."
+      }),
+      Schema.Null
+    ])
+  )
+}).annotate({
+  "title": "CodeInterpreterToolAuto",
+  "description":
+    "Configuration for a code interpreter container. Optionally specify the IDs of the files to run the code on."
+})
 export type ApiKeyList = {
   readonly "object"?: string
   readonly "data"?: ReadonlyArray<AdminApiKey>

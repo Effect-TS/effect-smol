@@ -2234,13 +2234,9 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
   }
 
   Object.entries(document.definitions).forEach(([identifier, definition]) => {
-    addDefinition(identifier, definition)
-  })
-
-  function addDefinition(identifier: string, definition: JsonSchema.JsonSchema): void {
     visited = new Set<string>([identifier])
     references[identifier] = recur(definition)
-  }
+  })
 
   visited = new Set<string>()
   const representations = Arr.map(document.schemas, recur)
