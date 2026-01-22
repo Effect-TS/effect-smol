@@ -22,7 +22,7 @@ export const A = Schema.String
     const result = generator.generate("openapi-3.1", definitions, false)
     expect(result).toBe(`// non-recursive definitions
 export type B = string
-export const B = Schema.String.annotate({ "identifier": "B" })
+export const B = Schema.String
 // schemas
 export type A = B
 export const A = B
@@ -56,7 +56,7 @@ export const A = B
     const result = generator.generate("openapi-3.1", definitions, false)
     expect(result).toBe(`// recursive definitions
 export type B = { readonly "name": string, readonly "children": ReadonlyArray<B> }
-export const B = Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<B> => B)) }).annotate({ "identifier": "B" })
+export const B = Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<B> => B)) })
 // schemas
 export type A = B
 export const A = B
