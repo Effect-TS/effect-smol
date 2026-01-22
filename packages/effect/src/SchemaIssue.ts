@@ -23,13 +23,7 @@ export function isIssue(u: unknown): u is Issue {
  * @category model
  * @since 4.0.0
  */
-export type Leaf =
-  | InvalidType
-  | InvalidValue
-  | MissingKey
-  | UnexpectedKey
-  | Forbidden
-  | OneOf
+export type Leaf = InvalidType | InvalidValue | MissingKey | UnexpectedKey | Forbidden | OneOf
 
 /**
  * @category model
@@ -480,10 +474,15 @@ export function getActual(issue: Issue): Option.Option<unknown> {
 /** @internal */
 export function make(
   input: unknown,
-  out: undefined | boolean | string | Issue | {
-    readonly path: ReadonlyArray<PropertyKey>
-    readonly message: string
-  }
+  out:
+    | undefined
+    | boolean
+    | string
+    | Issue
+    | {
+        readonly path: ReadonlyArray<PropertyKey>
+        readonly message: string
+      }
 ) {
   if (isIssue(out)) {
     return out
@@ -497,10 +496,7 @@ export function make(
   if (typeof out === "string") {
     return new InvalidValue(Option.some(input), { message: out })
   }
-  return new Pointer(
-    out.path,
-    new InvalidValue(Option.some(input), { message: out.message })
-  )
+  return new Pointer(out.path, new InvalidValue(Option.some(input), { message: out.message }))
 }
 
 /**
@@ -591,10 +587,12 @@ function toDefaultIssues(
       }
       switch (issue.issue._tag) {
         case "InvalidValue":
-          return [{
-            path,
-            message: getExpectedMessage(formatCheck(issue.filter), format(issue.actual))
-          }]
+          return [
+            {
+              path,
+              message: getExpectedMessage(formatCheck(issue.filter), format(issue.actual))
+            }
+          ]
         default:
           return toDefaultIssues(issue.issue, path, leafHook, checkHook)
       }
@@ -640,10 +638,7 @@ function formatCheck<T>(check: AST.Check<T>): string {
  * @since 4.0.0
  */
 export function makeFormatterDefault(): Formatter<string> {
-  return (issue) =>
-    toDefaultIssues(issue, [], defaultLeafHook, defaultCheckHook)
-      .map(formatDefaultIssue)
-      .join("\n")
+  return (issue) => toDefaultIssues(issue, [], defaultLeafHook, defaultCheckHook).map(formatDefaultIssue).join("\n")
 }
 
 /** @internal */

@@ -16,9 +16,11 @@ export * from "effect/unstable/sql/Migrator"
  * @category constructor
  * @since 1.0.0
  */
-export const run: <R2 = never>(
-  { loader, schemaDirectory, table }: Migrator.MigratorOptions<R2>
-) => Effect.Effect<
+export const run: <R2 = never>({
+  loader,
+  schemaDirectory,
+  table
+}: Migrator.MigratorOptions<R2>) => Effect.Effect<
   ReadonlyArray<readonly [id: number, name: string]>,
   Migrator.MigrationError | SqlError,
   Client.SqlClient | R2
@@ -83,8 +85,4 @@ export const run: <R2 = never>(
  */
 export const layer = <R>(
   options: Migrator.MigratorOptions<R>
-): Layer.Layer<
-  never,
-  Migrator.MigrationError | SqlError,
-  Client.SqlClient | R
-> => Layer.effectDiscard(run(options))
+): Layer.Layer<never, Migrator.MigrationError | SqlError, Client.SqlClient | R> => Layer.effectDiscard(run(options))

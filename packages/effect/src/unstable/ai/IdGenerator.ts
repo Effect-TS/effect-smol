@@ -74,9 +74,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
  * @since 4.0.0
  * @category models
  */
-export class IdGenerator extends ServiceMap.Service<IdGenerator, Service>()(
-  "@effect/ai/IdGenerator"
-) {}
+export class IdGenerator extends ServiceMap.Service<IdGenerator, Service>()("@effect/ai/IdGenerator") {}
 
 /**
  * The service interface for ID generation.
@@ -160,7 +158,7 @@ const makeGenerator = ({
   size = DEFAULT_SIZE
 }: Partial<MakeOptions>) => {
   const alphabetLength = alphabet.length
-  return Effect.fnUntraced(function*() {
+  return Effect.fnUntraced(function* () {
     const chars = new Array(size)
     for (let i = 0; i < size; i++) {
       const index = yield* Random.next
@@ -260,7 +258,7 @@ export const defaultIdGenerator: Service = {
  * @since 4.0.0
  * @category constructors
  */
-export const make = Effect.fnUntraced(function*({
+export const make = Effect.fnUntraced(function* ({
   alphabet = DEFAULT_ALPHABET,
   prefix,
   separator = DEFAULT_SEPARATOR,

@@ -1822,7 +1822,7 @@
     password: Config.succeed(Redacted.make("password"))
   })
 
-  const program = Effect.gen(function*() {
+  const program = Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient
 
     const result = yield* sql`INSERT INTO usernames VALUES ("Bob")`.raw
@@ -2597,7 +2597,7 @@
   import { Effect } from "effect"
   import * as Sql from "effect/unstable/sql"
 
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const sql = yield* Sql.client.Client
     yield* sql`SELECT * FROM users`
   })
@@ -2610,7 +2610,7 @@
   import * as Sqlite from "@effect/sql-sqlite-node"
   import { Effect } from "effect"
 
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const sql = yield* Sqlite.client.SqliteClient
     const dump = yield* sql.export
   })
@@ -2622,7 +2622,7 @@
   import { Effect } from "effect"
   import * as Sql from "effect/unstable/sql"
 
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const sql = yield* Sql.client.Client
     yield* sql.onDialect({
       sqlite: () => sql`SELECT * FROM sqlite_master`,

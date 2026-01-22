@@ -98,11 +98,13 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
       ? options.handle(input, commandPath)
       : Effect.fail(new CliError.ShowHelp({ commandPath }))
 
-  const parse = options.parse ?? Effect.fnUntraced(function*(input: ParsedTokens) {
-    const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
-    const values = yield* parseParams(parsedArgs, config.orderedParams)
-    return reconstructTree(config.tree, values) as Input
-  })
+  const parse =
+    options.parse ??
+    Effect.fnUntraced(function* (input: ParsedTokens) {
+      const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
+      const values = yield* parseParams(parsedArgs, config.orderedParams)
+      return reconstructTree(config.tree, values) as Input
+    })
 
   const buildHelpDoc = (commandPath: ReadonlyArray<string>): HelpDoc => {
     const args: Array<ArgDoc> = []
@@ -136,7 +138,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     for (const option of config.flags) {
       const singles = Param.extractSingleParams(option)
       for (const single of singles) {
-        const formattedAliases = single.aliases.map((alias) => alias.length === 1 ? `-${alias}` : `--${alias}`)
+        const formattedAliases = single.aliases.map((alias) => (alias.length === 1 ? `-${alias}` : `--${alias}`))
         flags.push({
           name: single.name,
           aliases: formattedAliases,
@@ -170,9 +172,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     parse,
     handle,
     buildHelpDoc,
-    ...(Predicate.isNotUndefined(options.description)
-      ? { description: options.description }
-      : {})
+    ...(Predicate.isNotUndefined(options.description) ? { description: options.description } : {})
   })
 }
 
@@ -184,25 +184,26 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
  * Parses param values from parsed command arguments into their typed
  * representations.
  */
-const parseParams: (parsedArgs: Param.ParsedArgs, params: ReadonlyArray<Param.Any>) => Effect.Effect<
-  ReadonlyArray<unknown>,
-  CliError.CliError,
-  Environment
-> = Effect.fnUntraced(function*(parsedArgs, params) {
-  const results: Array<unknown> = []
-  let currentArguments = parsedArgs.arguments
+const parseParams: (
+  parsedArgs: Param.ParsedArgs,
+  params: ReadonlyArray<Param.Any>
+) => Effect.Effect<ReadonlyArray<unknown>, CliError.CliError, Environment> = Effect.fnUntraced(
+  function* (parsedArgs, params) {
+    const results: Array<unknown> = []
+    let currentArguments = parsedArgs.arguments
 
-  for (const option of params) {
-    const [remainingArguments, parsed] = yield* option.parse({
-      flags: parsedArgs.flags,
-      arguments: currentArguments
-    })
-    results.push(parsed)
-    currentArguments = remainingArguments
+    for (const option of params) {
+      const [remainingArguments, parsed] = yield* option.parse({
+        flags: parsedArgs.flags,
+        arguments: currentArguments
+      })
+      results.push(parsed)
+      currentArguments = remainingArguments
+    }
+
+    return results
   }
-
-  return results
-})
+)
 
 /**
  * Checks for duplicate flag names between parent and child commands.

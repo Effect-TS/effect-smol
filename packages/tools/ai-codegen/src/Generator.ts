@@ -87,14 +87,11 @@ export const layer: Layer.Layer<
   CodeGenerator,
   never,
   OpenApiGenerator.OpenApiGenerator | FileSystem.FileSystem | Path_.Path
-> = Effect.gen(function*() {
+> = Effect.gen(function* () {
   const openApiGen = yield* OpenApiGenerator.OpenApiGenerator
   const pathService = yield* Path_.Path
 
-  const applyPatches = Effect.fn("applyPatches")(function*(
-    provider: DiscoveredProvider,
-    spec: Schema.Json
-  ) {
+  const applyPatches = Effect.fn("applyPatches")(function* (provider: DiscoveredProvider, spec: Schema.Json) {
     const patchInputs = provider.config.patchList
     if (patchInputs.length === 0) {
       return spec
@@ -103,15 +100,10 @@ export const layer: Layer.Layer<
     // Parse all patches, resolving file paths relative to the provider package
     const parsedPatches = yield* Effect.forEach(patchInputs, (input) => {
       // If it looks like a file path and is not absolute, resolve relative to package
-      const resolvedInput = !input.startsWith("[") && !pathService.isAbsolute(input)
-        ? pathService.join(provider.packagePath, input)
-        : input
-      return OpenApiPatch.parsePatchInput(resolvedInput).pipe(
-        Effect.map((patch) => ({ source: resolvedInput, patch }))
-      )
-    }).pipe(
-      Effect.mapError((cause) => new PatchError({ provider: provider.name, cause }))
-    )
+      const resolvedInput =
+        !input.startsWith("[") && !pathService.isAbsolute(input) ? pathService.join(provider.packagePath, input) : input
+      return OpenApiPatch.parsePatchInput(resolvedInput).pipe(Effect.map((patch) => ({ source: resolvedInput, patch })))
+    }).pipe(Effect.mapError((cause) => new PatchError({ provider: provider.name, cause })))
 
     // Apply all patches to the spec
     return yield* OpenApiPatch.applyPatches(parsedPatches, spec).pipe(
@@ -119,10 +111,7 @@ export const layer: Layer.Layer<
     )
   })
 
-  const generate = Effect.fn("generate")(function*(
-    provider: DiscoveredProvider,
-    spec: unknown
-  ) {
+  const generate = Effect.fn("generate")(function* (provider: DiscoveredProvider, spec: unknown) {
     // Apply patches if any are configured
     const patchedSpec = yield* applyPatches(provider, spec as Schema.Json)
 
@@ -131,9 +120,7 @@ export const layer: Layer.Layer<
         name: provider.config.clientName,
         typeOnly: provider.config.isTypeOnly
       })
-      .pipe(
-        Effect.mapError((cause) => new GenerationError({ provider: provider.name, cause }))
-      )
+      .pipe(Effect.mapError((cause) => new GenerationError({ provider: provider.name, cause })))
   })
 
   return { generate }

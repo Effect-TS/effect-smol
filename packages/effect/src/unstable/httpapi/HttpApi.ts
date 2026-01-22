@@ -33,11 +33,8 @@ export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, Type
  * @since 4.0.0
  * @category models
  */
-export interface HttpApi<
-  out Id extends string,
-  out Groups extends HttpApiGroup.Any = never
-> extends Pipeable {
-  new(_: never): {}
+export interface HttpApi<out Id extends string, out Groups extends HttpApiGroup.Any = never> extends Pipeable {
+  new (_: never): {}
   readonly [TypeId]: typeof TypeId
   readonly identifier: Id
   readonly groups: Record.ReadonlyRecord<string, Groups>
@@ -101,10 +98,7 @@ const Proto = {
   pipe() {
     return pipeArguments(this, arguments)
   },
-  add(
-    this: AnyWithProps,
-    ...toAdd: NonEmptyReadonlyArray<HttpApiGroup.AnyWithProps>
-  ) {
+  add(this: AnyWithProps, ...toAdd: NonEmptyReadonlyArray<HttpApiGroup.AnyWithProps>) {
     const groups = { ...this.groups }
     for (const group of toAdd) {
       groups[group.identifier] = group
@@ -115,10 +109,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  addHttpApi(
-    this: AnyWithProps,
-    api: AnyWithProps
-  ) {
+  addHttpApi(this: AnyWithProps, api: AnyWithProps) {
     const newGroups = { ...this.groups }
     for (const key in api.groups) {
       const newGroup: Mutable<HttpApiGroup.AnyWithProps> = api.groups[key]
@@ -161,13 +152,11 @@ const Proto = {
   }
 }
 
-const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
-  options: {
-    readonly identifier: Id
-    readonly groups: Record.ReadonlyRecord<string, Groups>
-    readonly annotations: ServiceMap.ServiceMap<never>
-  }
-): HttpApi<Id, Groups> => {
+const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(options: {
+  readonly identifier: Id
+  readonly groups: Record.ReadonlyRecord<string, Groups>
+  readonly annotations: ServiceMap.ServiceMap<never>
+}): HttpApi<Id, Groups> => {
   function HttpApi() {}
   Object.setPrototypeOf(HttpApi, Proto)
   HttpApi.groups = options.groups
@@ -206,9 +195,9 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
   options: {
     readonly predicate?:
       | Predicate.Predicate<{
-        readonly endpoint: HttpApiEndpoint.AnyWithProps
-        readonly group: HttpApiGroup.AnyWithProps
-      }>
+          readonly endpoint: HttpApiEndpoint.AnyWithProps
+          readonly group: HttpApiGroup.AnyWithProps
+        }>
       | undefined
     readonly onGroup: (options: {
       readonly group: HttpApiGroup.AnyWithProps
@@ -219,18 +208,27 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
-      readonly payloads: ReadonlyMap<string, {
-        readonly encoding: HttpApiSchema.Encoding
-        readonly ast: AST.AST
-      }>
-      readonly successes: ReadonlyMap<number, {
-        readonly ast: AST.AST | undefined
-        readonly description: string | undefined
-      }>
-      readonly errors: ReadonlyMap<number, {
-        readonly ast: AST.AST | undefined
-        readonly description: string | undefined
-      }>
+      readonly payloads: ReadonlyMap<
+        string,
+        {
+          readonly encoding: HttpApiSchema.Encoding
+          readonly ast: AST.AST
+        }
+      >
+      readonly successes: ReadonlyMap<
+        number,
+        {
+          readonly ast: AST.AST | undefined
+          readonly description: string | undefined
+        }
+      >
+      readonly errors: ReadonlyMap<
+        number,
+        {
+          readonly ast: AST.AST | undefined
+          readonly description: string | undefined
+        }
+      >
     }) => void
   }
 ) => {
@@ -244,11 +242,13 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
     const endpoints = Object.values(group.endpoints) as Iterable<HttpApiEndpoint.AnyWithProps>
     for (const endpoint of endpoints) {
       if (
-        options.predicate && !options.predicate({
+        options.predicate &&
+        !options.predicate({
           endpoint,
           group
         } as any)
-      ) continue
+      )
+        continue
 
       const errors = extractMembers(endpoint.errorSchema, HttpApiSchema.getStatusError)
       options.onEndpoint({
@@ -275,40 +275,52 @@ function resoveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
 const extractMembers = (
   schema: Schema.Top,
   getStatus: (ast: AST.AST) => number
-): ReadonlyMap<number, {
-  readonly ast: AST.AST | undefined
-  readonly description: string | undefined
-}> => {
-  const members = new Map<number, {
+): ReadonlyMap<
+  number,
+  {
     readonly ast: AST.AST | undefined
     readonly description: string | undefined
-  }>()
+  }
+> => {
+  const members = new Map<
+    number,
+    {
+      readonly ast: AST.AST | undefined
+      readonly description: string | undefined
+    }
+  >()
   function process(type: Schema.Top) {
     const status = getStatus(type.ast)
     const isEmpty = HttpApiSchema.resolveHttpApiIsEmpty(type.ast)
     const current = members.get(status)
-    members.set(
-      status,
-      {
-        description: current?.description ?? resoveDescriptionOrIdentifier(type.ast),
-        ast: UndefinedOr.map(current?.ast, (ast) => HttpApiSchema.UnionUnifyAST(ast, type.ast)) ??
-          (!isEmpty && HttpApiSchema.isVoidEncoded(type.ast) ? undefined : type.ast)
-      }
-    )
+    members.set(status, {
+      description: current?.description ?? resoveDescriptionOrIdentifier(type.ast),
+      ast:
+        UndefinedOr.map(current?.ast, (ast) => HttpApiSchema.UnionUnifyAST(ast, type.ast)) ??
+        (!isEmpty && HttpApiSchema.isVoidEncoded(type.ast) ? undefined : type.ast)
+    })
   }
 
   HttpApiSchema.forEachMember(schema, process)
   return members
 }
 
-const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
-  readonly encoding: HttpApiSchema.Encoding
-  readonly ast: AST.AST
-}> => {
-  const members = new Map<string, {
-    encoding: HttpApiSchema.Encoding
-    ast: AST.AST
-  }>()
+const extractPayloads = (
+  topAst: AST.AST
+): ReadonlyMap<
+  string,
+  {
+    readonly encoding: HttpApiSchema.Encoding
+    readonly ast: AST.AST
+  }
+> => {
+  const members = new Map<
+    string,
+    {
+      encoding: HttpApiSchema.Encoding
+      ast: AST.AST
+    }
+  >()
   function process(ast: AST.AST) {
     if (AST.isNever(ast)) {
       return
@@ -318,9 +330,10 @@ const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
       ...ast.annotations
     })
     const encoding = HttpApiSchema.getEncoding(ast)
-    const contentType = HttpApiSchema.resolveHttpApiMultipart(ast) ?? HttpApiSchema.resolveHttpApiMultipartStream(ast)
-      ? "multipart/form-data"
-      : encoding.contentType
+    const contentType =
+      (HttpApiSchema.resolveHttpApiMultipart(ast) ?? HttpApiSchema.resolveHttpApiMultipartStream(ast))
+        ? "multipart/form-data"
+        : encoding.contentType
     const current = members.get(contentType)
     if (current === undefined) {
       members.set(contentType, {
@@ -348,7 +361,6 @@ const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
  * @since 4.0.0
  * @category tags
  */
-export class AdditionalSchemas extends ServiceMap.Service<
-  AdditionalSchemas,
-  ReadonlyArray<Schema.Top>
->()("effect/httpapi/HttpApi/AdditionalSchemas") {}
+export class AdditionalSchemas extends ServiceMap.Service<AdditionalSchemas, ReadonlyArray<Schema.Top>>()(
+  "effect/httpapi/HttpApi/AdditionalSchemas"
+) {}

@@ -77,9 +77,8 @@ export const TracerDisabledWhen = ServiceMap.Reference<Predicate<HttpServerReque
  * @since 4.0.0
  * @category Tracer
  */
-export const layerTracerDisabledForUrls = (
-  urls: ReadonlyArray<string>
-): Layer.Layer<never> => Layer.succeed(TracerDisabledWhen)((req) => urls.includes(req.url))
+export const layerTracerDisabledForUrls = (urls: ReadonlyArray<string>): Layer.Layer<never> =>
+  Layer.succeed(TracerDisabledWhen)((req) => urls.includes(req.url))
 
 /**
  * @since 4.0.0
@@ -199,14 +198,11 @@ export const xForwardedHeaders = make((httpApp) =>
   Effect.updateService(httpApp, HttpServerRequest, (request) =>
     request.headers["x-forwarded-host"]
       ? request.modify({
-        headers: Headers.set(
-          request.headers,
-          "host",
-          request.headers["x-forwarded-host"]
-        ),
-        remoteAddress: request.headers["x-forwarded-for"]?.split(",")[0].trim()
-      })
-      : request)
+          headers: Headers.set(request.headers, "host", request.headers["x-forwarded-host"]),
+          remoteAddress: request.headers["x-forwarded-for"]?.split(",")[0].trim()
+        })
+      : request
+  )
 )
 
 /**
@@ -220,11 +216,7 @@ export const searchParamsParser = <E, R>(
     const services = fiber.services
     const request = ServiceMap.getUnsafe(services, HttpServerRequest)
     const params = Request.searchParamsFromURL(new URL(request.originalUrl))
-    return Effect.provideService(
-      httpApp,
-      Request.ParsedSearchParams,
-      params
-    ) as any
+    return Effect.provideService(httpApp, Request.ParsedSearchParams, params) as any
   })
 
 /**
@@ -238,9 +230,9 @@ export const cors = (options?: {
   readonly exposedHeaders?: ReadonlyArray<string> | undefined
   readonly maxAge?: number | undefined
   readonly credentials?: boolean | undefined
-}): <E, R>(
+}): (<E, R>(
   httpApp: Effect.Effect<HttpServerResponse, E, R>
-) => Effect.Effect<HttpServerResponse, E, R | HttpServerRequest> => {
+) => Effect.Effect<HttpServerResponse, E, R | HttpServerRequest>) => {
   const opts = {
     allowedOrigins: options?.allowedOrigins ?? [],
     allowedMethods: options?.allowedMethods ?? ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
@@ -250,34 +242,33 @@ export const cors = (options?: {
     maxAge: options?.maxAge
   }
 
-  const isAllowedOrigin = typeof opts.allowedOrigins === "function"
-    ? opts.allowedOrigins
-    : (origin: string) => (opts.allowedOrigins as ReadonlyArray<string>).includes(origin)
+  const isAllowedOrigin =
+    typeof opts.allowedOrigins === "function"
+      ? opts.allowedOrigins
+      : (origin: string) => (opts.allowedOrigins as ReadonlyArray<string>).includes(origin)
 
-  const allowOrigin = typeof opts.allowedOrigins === "function" || opts.allowedOrigins.length > 1
-    ? ((originHeader: string) => {
-      if (!isAllowedOrigin(originHeader)) return undefined
-      return {
-        "access-control-allow-origin": originHeader,
-        vary: "Origin"
-      }
-    })
-    : opts.allowedOrigins.length === 0
-    ? constant({
-      "access-control-allow-origin": "*"
-    })
-    : constant({
-      "access-control-allow-origin": opts.allowedOrigins[0],
-      vary: "Origin"
-    })
+  const allowOrigin =
+    typeof opts.allowedOrigins === "function" || opts.allowedOrigins.length > 1
+      ? (originHeader: string) => {
+          if (!isAllowedOrigin(originHeader)) return undefined
+          return {
+            "access-control-allow-origin": originHeader,
+            vary: "Origin"
+          }
+        }
+      : opts.allowedOrigins.length === 0
+        ? constant({
+            "access-control-allow-origin": "*"
+          })
+        : constant({
+            "access-control-allow-origin": opts.allowedOrigins[0],
+            vary: "Origin"
+          })
 
-  const allowMethods = opts.allowedMethods.length > 0
-    ? { "access-control-allow-methods": opts.allowedMethods.join(", ") }
-    : undefined
+  const allowMethods =
+    opts.allowedMethods.length > 0 ? { "access-control-allow-methods": opts.allowedMethods.join(", ") } : undefined
 
-  const allowCredentials = opts.credentials
-    ? { "access-control-allow-credentials": "true" }
-    : undefined
+  const allowCredentials = opts.credentials ? { "access-control-allow-credentials": "true" } : undefined
 
   const allowHeaders = (
     accessControlRequestHeaders: string | undefined
@@ -298,13 +289,10 @@ export const cors = (options?: {
     return undefined
   }
 
-  const exposeHeaders = opts.exposedHeaders.length > 0
-    ? { "access-control-expose-headers": opts.exposedHeaders.join(",") }
-    : undefined
+  const exposeHeaders =
+    opts.exposedHeaders.length > 0 ? { "access-control-expose-headers": opts.exposedHeaders.join(",") } : undefined
 
-  const maxAge = opts.maxAge
-    ? { "access-control-max-age": opts.maxAge.toString() }
-    : undefined
+  const maxAge = opts.maxAge ? { "access-control-max-age": opts.maxAge.toString() } : undefined
 
   const headersFromRequest = (request: HttpServerRequest) => {
     const origin = request.headers["origin"]
@@ -337,15 +325,17 @@ export const cors = (options?: {
     Effect.withFiber((fiber) => {
       const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
       if (request.method === "OPTIONS") {
-        return Effect.succeed(Response.empty({
-          status: 204,
-          headers: headersFromRequestOptions(request)
-        }))
+        return Effect.succeed(
+          Response.empty({
+            status: 204,
+            headers: headersFromRequestOptions(request)
+          })
+        )
       }
       const prev = fiber.getRef(PreResponseHandlers)
       const next = prev
-        ? ((req: HttpServerRequest, res: HttpServerResponse) =>
-          Effect.flatMap(prev(req, res), (res) => preResponseHandler(req, res)))
+        ? (req: HttpServerRequest, res: HttpServerResponse) =>
+            Effect.flatMap(prev(req, res), (res) => preResponseHandler(req, res))
         : preResponseHandler
       fiber.setServices(ServiceMap.add(fiber.services, PreResponseHandlers, next))
       return httpApp

@@ -265,20 +265,7 @@ describe("JsonPointer", () => {
 
   describe("round-trip", () => {
     it("unescapeToken(escapeToken(token)) === token for basic cases", () => {
-      const cases = [
-        "abc",
-        "a~b",
-        "a/b",
-        "a~b/c",
-        "path/to~key",
-        "name/alias",
-        "~",
-        "/",
-        "~~",
-        "//",
-        "~/",
-        "/~"
-      ]
+      const cases = ["abc", "a~b", "a/b", "a~b/c", "path/to~key", "name/alias", "~", "/", "~~", "//", "~/", "/~"]
 
       for (const token of cases) {
         const escaped = escapeToken(token)
@@ -288,17 +275,7 @@ describe("JsonPointer", () => {
     })
 
     it("unescapeToken(escapeToken(token)) === token for edge cases", () => {
-      const cases = [
-        "",
-        "~01",
-        "~10",
-        "~00",
-        "~11",
-        "a~01b",
-        "a~10b",
-        "a~00b",
-        "a~11b"
-      ]
+      const cases = ["", "~01", "~10", "~00", "~11", "a~01b", "a~10b", "a~00b", "a~11b"]
 
       for (const token of cases) {
         const escaped = escapeToken(token)
@@ -308,13 +285,7 @@ describe("JsonPointer", () => {
     })
 
     it("unescapeToken(escapeToken(token)) === token for unicode", () => {
-      const cases = [
-        "héllo",
-        "世界",
-        "🚀",
-        "héllo~world/test",
-        "世界/🌍~key"
-      ]
+      const cases = ["héllo", "世界", "🚀", "héllo~world/test", "世界/🌍~key"]
 
       for (const token of cases) {
         const escaped = escapeToken(token)
@@ -324,13 +295,7 @@ describe("JsonPointer", () => {
     })
 
     it("unescapeToken(escapeToken(token)) === token for complex sequences", () => {
-      const cases = [
-        "a~b/c~d/e",
-        "path/to~key/value",
-        "~a/b~c/d~",
-        "a~/b/c~d",
-        "a/~b/c~d"
-      ]
+      const cases = ["a~b/c~d/e", "path/to~key/value", "~a/b~c/d~", "a~/b/c~d", "a/~b/c~d"]
 
       for (const token of cases) {
         const escaped = escapeToken(token)

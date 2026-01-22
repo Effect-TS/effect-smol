@@ -35,11 +35,7 @@ export namespace Vitest {
    * @since 1.0.0
    */
   export interface Test<R> {
-    <A, E>(
-      name: string,
-      self: TestFunction<A, E, R, [V.TestContext]>,
-      timeout?: number | V.TestOptions
-    ): void
+    <A, E>(name: string, self: TestFunction<A, E, R, [V.TestContext]>, timeout?: number | V.TestOptions): void
   }
 
   /**
@@ -74,23 +70,26 @@ export namespace Vitest {
         R,
         [
           {
-            [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T
-              : Arbs[K] extends Schema.Schema<infer T> ? T
-              : never
+            [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T>
+              ? T
+              : Arbs[K] extends Schema.Schema<infer T>
+                ? T
+                : never
           },
           V.TestContext
         ]
       >,
       timeout?:
         | number
-        | V.TestOptions & {
-          fastCheck?: FC.Parameters<
-            {
-              [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Arbs[K] extends Schema.Schema<infer T> ? T
-              : never
-            }
-          >
-        }
+        | (V.TestOptions & {
+            fastCheck?: FC.Parameters<{
+              [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T>
+                ? T
+                : Arbs[K] extends Schema.Schema<infer T>
+                  ? T
+                  : never
+            }>
+          })
     ) => void
   }
 
@@ -103,14 +102,14 @@ export namespace Vitest {
       self: Effect.Effect<A, E, R2 | Scope.Scope>,
       timeout?: Duration.DurationInput
     ) => Effect.Effect<A, never, R2>
-    readonly layer: <R2, E>(layer: Layer.Layer<R2, E, R>, options?: {
-      readonly timeout?: Duration.DurationInput
-    }) => {
+    readonly layer: <R2, E>(
+      layer: Layer.Layer<R2, E, R>,
+      options?: {
+        readonly timeout?: Duration.DurationInput
+      }
+    ) => {
       (f: (it: Vitest.MethodsNonLive<R | R2>) => void): void
-      (
-        name: string,
-        f: (it: Vitest.MethodsNonLive<R | R2>) => void
-      ): void
+      (name: string, f: (it: Vitest.MethodsNonLive<R | R2>) => void): void
     }
 
     /**
@@ -121,21 +120,25 @@ export namespace Vitest {
       arbitraries: Arbs,
       self: (
         properties: {
-          [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Arbs[K] extends Schema.Schema<infer T> ? T
-          : never
+          [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T>
+            ? T
+            : Arbs[K] extends Schema.Schema<infer T>
+              ? T
+              : never
         },
         ctx: V.TestContext
       ) => void,
       timeout?:
         | number
-        | V.TestOptions & {
-          fastCheck?: FC.Parameters<
-            {
-              [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Arbs[K] extends Schema.Schema<infer T> ? T
-              : never
-            }
-          >
-        }
+        | (V.TestOptions & {
+            fastCheck?: FC.Parameters<{
+              [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T>
+                ? T
+                : Arbs[K] extends Schema.Schema<infer T>
+                  ? T
+                  : never
+            }>
+          })
     ) => void
   }
 

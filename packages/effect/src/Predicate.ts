@@ -354,7 +354,12 @@ export declare namespace Refinement {
 export const mapInput: {
   <B, A>(f: (b: B) => A): (self: Predicate<A>) => Predicate<B>
   <A, B>(self: Predicate<A>, f: (b: B) => A): Predicate<B>
-} = dual(2, <A, B>(self: Predicate<A>, f: (b: B) => A): Predicate<B> => (b) => self(f(b)))
+} = dual(
+  2,
+  <A, B>(self: Predicate<A>, f: (b: B) => A): Predicate<B> =>
+    (b) =>
+      self(f(b))
+)
 
 /**
  * Checks whether a readonly array has exactly `n` elements.
@@ -1115,7 +1120,7 @@ export const hasProperty: {
 } = dual(
   2,
   <P extends PropertyKey>(self: unknown, property: P): self is { [K in P]: unknown } =>
-    isObjectKeyword(self) && (property in self)
+    isObjectKeyword(self) && property in self
 )
 
 /**
@@ -1393,8 +1398,9 @@ export const compose: {
   <A, B extends A>(ab: Refinement<A, B>, bc: Predicate<NoInfer<B>>): Refinement<A, B>
 } = dual(
   2,
-  <A, B extends A, C extends B>(ab: Refinement<A, B>, bc: Refinement<B, C>): Refinement<A, C> => (a): a is C =>
-    ab(a) && bc(a)
+  <A, B extends A, C extends B>(ab: Refinement<A, B>, bc: Refinement<B, C>): Refinement<A, C> =>
+    (a): a is C =>
+      ab(a) && bc(a)
 )
 
 /**
@@ -1426,12 +1432,12 @@ export const compose: {
  */
 export function Tuple<const T extends ReadonlyArray<Predicate.Any>>(
   elements: T
-): [Extract<T[number], Refinement.Any>] extends [never] ? Predicate<{ readonly [I in keyof T]: Predicate.In<T[I]> }>
+): [Extract<T[number], Refinement.Any>] extends [never]
+  ? Predicate<{ readonly [I in keyof T]: Predicate.In<T[I]> }>
   : Refinement<
-    { readonly [I in keyof T]: T[I] extends Refinement.Any ? Refinement.In<T[I]> : Predicate.In<T[I]> },
-    { readonly [I in keyof T]: T[I] extends Refinement.Any ? Refinement.Out<T[I]> : Predicate.In<T[I]> }
-  >
-{
+      { readonly [I in keyof T]: T[I] extends Refinement.Any ? Refinement.In<T[I]> : Predicate.In<T[I]> },
+      { readonly [I in keyof T]: T[I] extends Refinement.Any ? Refinement.Out<T[I]> : Predicate.In<T[I]> }
+    > {
   return ((as: Array<unknown>) => {
     for (let i = 0; i < elements.length; i++) {
       if (elements[i](as[i]) === false) {
@@ -1474,12 +1480,12 @@ export function Tuple<const T extends ReadonlyArray<Predicate.Any>>(
  */
 export function Struct<R extends Record<string, Predicate.Any>>(
   fields: R
-): [Extract<R[keyof R], Refinement.Any>] extends [never] ? Predicate<{ readonly [K in keyof R]: Predicate.In<R[K]> }> :
-  Refinement<
-    { readonly [K in keyof R]: R[K] extends Refinement.Any ? Refinement.In<R[K]> : Predicate.In<R[K]> },
-    { readonly [K in keyof R]: R[K] extends Refinement.Any ? Refinement.Out<R[K]> : Predicate.In<R[K]> }
-  >
-{
+): [Extract<R[keyof R], Refinement.Any>] extends [never]
+  ? Predicate<{ readonly [K in keyof R]: Predicate.In<R[K]> }>
+  : Refinement<
+      { readonly [K in keyof R]: R[K] extends Refinement.Any ? Refinement.In<R[K]> : Predicate.In<R[K]> },
+      { readonly [K in keyof R]: R[K] extends Refinement.Any ? Refinement.Out<R[K]> : Predicate.In<R[K]> }
+    > {
   const keys = Object.keys(fields)
   return ((a: Record<string, unknown>) => {
     for (const key of keys) {
@@ -1552,7 +1558,12 @@ export const or: {
   <A, B extends A, C extends A>(self: Refinement<A, B>, that: Refinement<A, C>): Refinement<A, B | C>
   <A>(that: Predicate<A>): (self: Predicate<A>) => Predicate<A>
   <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A>
-} = dual(2, <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> => (a) => self(a) || that(a))
+} = dual(
+  2,
+  <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> =>
+    (a) =>
+      self(a) || that(a)
+)
 
 /**
  * Creates a predicate that returns `true` only if both predicates are `true`.
@@ -1594,7 +1605,12 @@ export const and: {
   <A, B extends A, C extends A>(self: Refinement<A, B>, that: Refinement<A, C>): Refinement<A, B & C>
   <A>(that: Predicate<A>): (self: Predicate<A>) => Predicate<A>
   <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A>
-} = dual(2, <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> => (a) => self(a) && that(a))
+} = dual(
+  2,
+  <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> =>
+    (a) =>
+      self(a) && that(a)
+)
 
 /**
  * Creates a predicate that returns `true` if exactly one predicate is `true`.
@@ -1626,7 +1642,12 @@ export const and: {
 export const xor: {
   <A>(that: Predicate<A>): (self: Predicate<A>) => Predicate<A>
   <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A>
-} = dual(2, <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> => (a) => self(a) !== that(a))
+} = dual(
+  2,
+  <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> =>
+    (a) =>
+      self(a) !== that(a)
+)
 
 /**
  * Creates a predicate that returns `true` when both predicates agree.
@@ -1657,7 +1678,12 @@ export const xor: {
 export const eqv: {
   <A>(that: Predicate<A>): (self: Predicate<A>) => Predicate<A>
   <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A>
-} = dual(2, <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> => (a) => self(a) === that(a))
+} = dual(
+  2,
+  <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> =>
+    (a) =>
+      self(a) === that(a)
+)
 
 /**
  * Creates a predicate representing logical implication: if `antecedent`, then `consequent`.
@@ -1692,7 +1718,9 @@ export const implies: {
   <A>(antecedent: Predicate<A>, consequent: Predicate<A>): Predicate<A>
 } = dual(
   2,
-  <A>(antecedent: Predicate<A>, consequent: Predicate<A>): Predicate<A> => (a) => antecedent(a) ? consequent(a) : true
+  <A>(antecedent: Predicate<A>, consequent: Predicate<A>): Predicate<A> =>
+    (a) =>
+      antecedent(a) ? consequent(a) : true
 )
 
 /**
@@ -1725,7 +1753,9 @@ export const nor: {
   <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A>
 } = dual(
   2,
-  <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> => (a) => !(self(a) || that(a))
+  <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> =>
+    (a) =>
+      !(self(a) || that(a))
 )
 
 /**
@@ -1758,7 +1788,9 @@ export const nand: {
   <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A>
 } = dual(
   2,
-  <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> => (a) => !(self(a) && that(a))
+  <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> =>
+    (a) =>
+      !(self(a) && that(a))
 )
 
 /**

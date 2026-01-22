@@ -516,9 +516,10 @@ export const UnhandledLogLevel: ServiceMap.Reference<LogLevel | undefined> = Ser
  * @since 4.0.0
  * @category references
  */
-export const CurrentLogSpans = ServiceMap.Reference<
-  ReadonlyArray<[label: string, timestamp: number]>
->("effect/References/CurrentLogSpans", { defaultValue: () => [] })
+export const CurrentLogSpans = ServiceMap.Reference<ReadonlyArray<[label: string, timestamp: number]>>(
+  "effect/References/CurrentLogSpans",
+  { defaultValue: () => [] }
+)
 
 /**
  * Reference for setting the minimum log level threshold. Log entries below this
@@ -569,6 +570,6 @@ export const CurrentLogSpans = ServiceMap.Reference<
  * @category references
  * @since 4.0.0
  */
-export const MinimumLogLevel = ServiceMap.Reference<
-  LogLevel
->("effect/References/MinimumLogLevel", { defaultValue: () => "Info" })
+export const MinimumLogLevel = ServiceMap.Reference<LogLevel>("effect/References/MinimumLogLevel", {
+  defaultValue: () => "Info"
+})

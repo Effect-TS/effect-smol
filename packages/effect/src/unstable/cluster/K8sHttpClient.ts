@@ -20,26 +20,19 @@ import * as HttpClientResponse from "../http/HttpClientResponse.ts"
  * @since 4.0.0
  * @category Tags
  */
-export class K8sHttpClient extends ServiceMap.Service<
-  K8sHttpClient,
-  HttpClient.HttpClient
->()("effect/cluster/K8sHttpClient") {}
+export class K8sHttpClient extends ServiceMap.Service<K8sHttpClient, HttpClient.HttpClient>()(
+  "effect/cluster/K8sHttpClient"
+) {}
 
 /**
  * @since 4.0.0
  * @category Layers
  */
-export const layer: Layer.Layer<
+export const layer: Layer.Layer<K8sHttpClient, never, HttpClient.HttpClient | FileSystem.FileSystem> = Layer.effect(
   K8sHttpClient,
-  never,
-  HttpClient.HttpClient | FileSystem.FileSystem
-> = Layer.effect(
-  K8sHttpClient,
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
-    const token = yield* fs.readFileString("/var/run/secrets/kubernetes.io/serviceaccount/token").pipe(
-      Effect.option
-    )
+    const token = yield* fs.readFileString("/var/run/secrets/kubernetes.io/serviceaccount/token").pipe(Effect.option)
     return (yield* HttpClient.HttpClient).pipe(
       HttpClient.mapRequest(HttpClientRequest.prependUrl("https://kubernetes.default.svc/api")),
       token._tag === "Some" ? HttpClient.mapRequest(HttpClientRequest.bearerToken(token.value.trim())) : identity,
@@ -56,15 +49,17 @@ export const layer: Layer.Layer<
  * @category Constructors
  */
 export const makeGetPods: (
-  options?: {
-    readonly namespace?: string | undefined
-    readonly labelSelector?: string | undefined
-  } | undefined
+  options?:
+    | {
+        readonly namespace?: string | undefined
+        readonly labelSelector?: string | undefined
+      }
+    | undefined
 ) => Effect.Effect<
   Effect.Effect<Map<string, Pod>, HttpClientError.HttpClientError | Schema.SchemaError, never>,
   never,
   K8sHttpClient
-> = Effect.fnUntraced(function*(options?: {
+> = Effect.fnUntraced(function* (options?: {
   readonly namespace?: string | undefined
   readonly labelSelector?: string | undefined
 }) {
@@ -96,10 +91,10 @@ export const makeGetPods: (
  * @since 4.0.0
  * @category Constructors
  */
-export const makeCreatePod = Effect.gen(function*() {
+export const makeCreatePod = Effect.gen(function* () {
   const client = yield* K8sHttpClient
 
-  return Effect.fnUntraced(function*(spec: v1.Pod) {
+  return Effect.fnUntraced(function* (spec: v1.Pod) {
     spec = {
       apiVersion: "v1",
       kind: "Pod",
@@ -111,9 +106,7 @@ export const makeCreatePod = Effect.gen(function*() {
     }
     const namespace = spec.metadata?.namespace ?? "default"
     const name = spec.metadata!.name!
-    const readPodRaw = HttpClientRequest.get(`/v1/namespaces/${namespace}/pods/${name}`).pipe(
-      client.execute
-    )
+    const readPodRaw = HttpClientRequest.get(`/v1/namespaces/${namespace}/pods/${name}`).pipe(client.execute)
     const readPod = readPodRaw.pipe(
       Effect.flatMap(HttpClientResponse.schemaBodyJson(Pod)),
       Effect.asSome,
@@ -122,7 +115,7 @@ export const makeCreatePod = Effect.gen(function*() {
         schedule: Schedule.spaced("1 seconds")
       }),
       Effect.catchFilter(
-        (err) => err._tag === "ResponseError" && err.response.status === 404 ? err : Filter.fail(err),
+        (err) => (err._tag === "ResponseError" && err.response.status === 404 ? err : Filter.fail(err)),
         () => Effect.succeedNone
       ),
       Effect.orDie
@@ -130,7 +123,7 @@ export const makeCreatePod = Effect.gen(function*() {
     const isPodFound = readPodRaw.pipe(
       Effect.as(true),
       Effect.catchFilter(
-        (err) => err._tag === "ResponseError" && err.response.status === 404 ? err : Filter.fail(err),
+        (err) => (err._tag === "ResponseError" && err.response.status === 404 ? err : Filter.fail(err)),
         () => Effect.succeed(false)
       )
     )
@@ -138,7 +131,7 @@ export const makeCreatePod = Effect.gen(function*() {
       HttpClientRequest.bodyJsonUnsafe(spec),
       client.execute,
       Effect.catchFilter(
-        (err) => err._tag === "ResponseError" && err.response.status === 409 ? err : Filter.fail(err),
+        (err) => (err._tag === "ResponseError" && err.response.status === 409 ? err : Filter.fail(err)),
         () => readPod
       ),
       Effect.tapCause(Effect.logInfo),
@@ -148,23 +141,25 @@ export const makeCreatePod = Effect.gen(function*() {
       client.execute,
       Effect.flatMap((res) => res.json),
       Effect.catchFilter(
-        (err) => err._tag === "ResponseError" && err.response.status === 404 ? err : Filter.fail(err),
+        (err) => (err._tag === "ResponseError" && err.response.status === 404 ? err : Filter.fail(err)),
         () => Effect.void
       ),
       Effect.tapCause(Effect.logInfo),
       Effect.orDie,
       Effect.asVoid
     )
-    yield* Effect.addFinalizer(Effect.fnUntraced(function*() {
-      yield* deletePod
-      yield* isPodFound.pipe(
-        Effect.repeat({
-          until: (found) => !found,
-          schedule: Schedule.spaced("3 seconds")
-        }),
-        Effect.orDie
-      )
-    }))
+    yield* Effect.addFinalizer(
+      Effect.fnUntraced(function* () {
+        yield* deletePod
+        yield* isPodFound.pipe(
+          Effect.repeat({
+            until: (found) => !found,
+            schedule: Schedule.spaced("3 seconds")
+          }),
+          Effect.orDie
+        )
+      })
+    )
 
     let opod = Option.none<Pod>()
     while (Option.isNone(opod) || !opod.value.isReady) {
@@ -184,11 +179,13 @@ export const makeCreatePod = Effect.gen(function*() {
  */
 export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpClient/PodStatus")({
   phase: Schema.String,
-  conditions: Schema.Array(Schema.Struct({
-    type: Schema.String,
-    status: Schema.String,
-    lastTransitionTime: Schema.String
-  })),
+  conditions: Schema.Array(
+    Schema.Struct({
+      type: Schema.String,
+      status: Schema.String,
+      lastTransitionTime: Schema.String
+    })
+  ),
   podIP: Schema.String,
   hostIP: Schema.String
 }) {}

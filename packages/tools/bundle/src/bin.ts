@@ -12,12 +12,6 @@ import { cli } from "./Cli.ts"
 import { Fixtures } from "./Fixtures.ts"
 import { Reporter } from "./Reporter.ts"
 
-const MainLayer = Layer.mergeAll(
-  Fixtures.layer,
-  Reporter.layer
-).pipe(Layer.provideMerge(NodeServices.layer))
+const MainLayer = Layer.mergeAll(Fixtures.layer, Reporter.layer).pipe(Layer.provideMerge(NodeServices.layer))
 
-Command.run(cli, { version: PackageJson["version"] }).pipe(
-  Effect.provide(MainLayer),
-  NodeRuntime.runMain
-)
+Command.run(cli, { version: PackageJson["version"] }).pipe(Effect.provide(MainLayer), NodeRuntime.runMain)

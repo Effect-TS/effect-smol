@@ -12,16 +12,13 @@ const MyTool = Tool.make("MyTool", {
 const MyToolkit = Toolkit.make(MyTool)
 
 const MyToolkitLayer = MyToolkit.toLayer({
-  MyTool: () =>
-    Effect.succeed({ testSuccess: "test-success" }).pipe(
-      Effect.delay("10 seconds")
-    )
+  MyTool: () => Effect.succeed({ testSuccess: "test-success" }).pipe(Effect.delay("10 seconds"))
 })
 
 describe("LanguageModel", () => {
   describe("streamText", () => {
     it("should emit tool calls before executing tool handlers", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const parts: Array<Response.StreamPart<Toolkit.Tools<typeof MyToolkit>>> = []
         const latch = yield* Effect.makeLatch()
 

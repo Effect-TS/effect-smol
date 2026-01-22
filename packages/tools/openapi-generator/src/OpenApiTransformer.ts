@@ -26,11 +26,7 @@ const httpClientMethodNames: Record<OpenAPISpecMethodName, string> = {
 }
 
 export const makeTransformerSchema = () => {
-  const operationsToInterface = (
-    _importName: string,
-    name: string,
-    operations: ReadonlyArray<ParsedOperation>
-  ) =>
+  const operationsToInterface = (_importName: string, name: string, operations: ReadonlyArray<ParsedOperation>) =>
     `export interface ${name} {
   readonly httpClient: HttpClient.HttpClient
   ${operations.map((op) => operationToMethod(name, op)).join("\n  ")}
@@ -41,7 +37,10 @@ ${clientErrorSource(name)}`
   const operationToMethod = (name: string, operation: ParsedOperation) => {
     const args: Array<string> = []
     if (operation.pathIds.length > 0) {
-      Utils.spreadElementsInto(operation.pathIds.map((id) => `${id}: string`), args)
+      Utils.spreadElementsInto(
+        operation.pathIds.map((id) => `${id}: string`),
+        args
+      )
     }
 
     const options: Array<string> = []
@@ -74,9 +73,7 @@ ${clientErrorSource(name)}`
     const errors = ["HttpClientError.HttpClientError", "SchemaError"]
     if (operation.errorSchemas.size > 0) {
       Utils.spreadElementsInto(
-        Array.from(operation.errorSchemas.values()).map(
-          (schema) => `${name}Error<"${schema}", typeof ${schema}.Type>`
-        ),
+        Array.from(operation.errorSchemas.values()).map((schema) => `${name}Error<"${schema}", typeof ${schema}.Type>`),
         errors
       )
     }
@@ -89,11 +86,7 @@ ${clientErrorSource(name)}`
     return `${jsdoc}${methodKey}: ${generic}(${parameters}) => ${returnType}`
   }
 
-  const operationsToImpl = (
-    importName: string,
-    name: string,
-    operations: ReadonlyArray<ParsedOperation>
-  ) =>
+  const operationsToImpl = (importName: string, name: string, operations: ReadonlyArray<ParsedOperation>) =>
     `export interface OperationConfig {
   /**
    * Whether or not the response should be included in the value returned from
@@ -150,15 +143,11 @@ export const make = (
       const paramsAccessor = resolveParamsAccessor(operation, "options", "params")
 
       if (operation.urlParams.length > 0) {
-        const props = operation.urlParams.map(
-          (param) => `"${param}": ${paramsAccessor}["${param}"] as any`
-        )
+        const props = operation.urlParams.map((param) => `"${param}": ${paramsAccessor}["${param}"] as any`)
         pipeline.push(`HttpClientRequest.setUrlParams({ ${props.join(", ")} })`)
       }
       if (operation.headers.length > 0) {
-        const props = operation.headers.map(
-          (param) => `"${param}": ${paramsAccessor}["${param}"] ?? undefined`
-        )
+        const props = operation.headers.map((param) => `"${param}": ${paramsAccessor}["${param}"] ?? undefined`)
         pipeline.push(`HttpClientRequest.setHeaders({ ${props.join(", ")} })`)
       }
     }
@@ -213,17 +202,10 @@ export const make = (
   })
 }
 
-export const layerTransformerSchema = Layer.sync(
-  OpenApiTransformer,
-  makeTransformerSchema
-)
+export const layerTransformerSchema = Layer.sync(OpenApiTransformer, makeTransformerSchema)
 
 export const makeTransformerTs = () => {
-  const operationsToInterface = (
-    _importName: string,
-    name: string,
-    operations: ReadonlyArray<ParsedOperation>
-  ) =>
+  const operationsToInterface = (_importName: string, name: string, operations: ReadonlyArray<ParsedOperation>) =>
     `export interface ${name} {
   readonly httpClient: HttpClient.HttpClient
   ${operations.map((s) => operationToMethod(name, s)).join("\n  ")}
@@ -234,7 +216,10 @@ ${clientErrorSource(name)}`
   const operationToMethod = (name: string, operation: ParsedOperation) => {
     const args: Array<string> = []
     if (operation.pathIds.length > 0) {
-      Utils.spreadElementsInto(operation.pathIds.map((id) => `${id}: string`), args)
+      Utils.spreadElementsInto(
+        operation.pathIds.map((id) => `${id}: string`),
+        args
+      )
     }
 
     const options: Array<string> = []
@@ -276,11 +261,7 @@ ${clientErrorSource(name)}`
     return `${jsdoc}${methodKey}: ${generic}(${parameters}) => ${returnType}`
   }
 
-  const operationsToImpl = (
-    _importName: string,
-    name: string,
-    operations: ReadonlyArray<ParsedOperation>
-  ) =>
+  const operationsToImpl = (_importName: string, name: string, operations: ReadonlyArray<ParsedOperation>) =>
     `export interface OperationConfig {
   /**
    * Whether or not the response should be included in the value returned from
@@ -360,15 +341,11 @@ export const make = (
       const paramsAccessor = resolveParamsAccessor(operation, "options", "params")
 
       if (operation.urlParams.length > 0) {
-        const props = operation.urlParams.map(
-          (param) => `"${param}": ${paramsAccessor}["${param}"] as any`
-        )
+        const props = operation.urlParams.map((param) => `"${param}": ${paramsAccessor}["${param}"] as any`)
         pipeline.push(`HttpClientRequest.setUrlParams({ ${props.join(", ")} })`)
       }
       if (operation.headers.length > 0) {
-        const props = operation.headers.map(
-          (param) => `"${param}": ${paramsAccessor}["${param}"] ?? undefined`
-        )
+        const props = operation.headers.map((param) => `"${param}": ${paramsAccessor}["${param}"] ?? undefined`)
         pipeline.push(`HttpClientRequest.setHeaders({ ${props.join(", ")} })`)
       }
     }
@@ -381,12 +358,9 @@ export const make = (
     }
 
     const successCodesRaw = Array.from(operation.successSchemas.keys())
-    const successCodes = successCodesRaw
-      .map((_) => JSON.stringify(_))
-      .join(", ")
+    const successCodes = successCodesRaw.map((_) => JSON.stringify(_)).join(", ")
     const singleSuccessCode = successCodesRaw.length === 1 && successCodesRaw[0].startsWith("2")
-    const errorCodes = operation.errorSchemas.size > 0 &&
-      Object.fromEntries(operation.errorSchemas.entries())
+    const errorCodes = operation.errorSchemas.size > 0 && Object.fromEntries(operation.errorSchemas.entries())
     const configAccessor = resolveConfigAccessor(operation, "options", "config")
     pipeline.push(
       `onRequest(${configAccessor})([${singleSuccessCode ? `"2xx"` : successCodes}]${
@@ -416,10 +390,7 @@ export const make = (
   })
 }
 
-export const layerTransformerTs = Layer.sync(
-  OpenApiTransformer,
-  makeTransformerTs
-)
+export const layerTransformerTs = Layer.sync(OpenApiTransformer, makeTransformerTs)
 
 const commonSource = `const unexpectedStatus = (response: HttpClientResponse.HttpClientResponse) =>
     Effect.flatMap(
@@ -451,9 +422,7 @@ const commonSource = `const unexpectedStatus = (response: HttpClientResponse.Htt
       : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
   }`
 
-const clientErrorSource = (
-  name: string
-) =>
+const clientErrorSource = (name: string) =>
   `export interface ${name}Error<Tag extends string, E> {
   readonly _tag: Tag
   readonly request: HttpClientRequest.HttpClientRequest

@@ -25,7 +25,9 @@ export interface PersistedCache<K extends Persistable.Any> {
     Persistable.Error<K> | Persistence.PersistenceError | Schema.SchemaError,
     Persistable.Services<K>
   >
-  readonly get: (key: K) => Effect.Effect<
+  readonly get: (
+    key: K
+  ) => Effect.Effect<
     Persistable.Success<K>,
     Persistable.Error<K> | Persistence.PersistenceError | Schema.SchemaError,
     Persistable.Services<K>
@@ -43,11 +45,10 @@ export const make: <K extends Persistable.Any, R>(options: {
   readonly timeToLive: Persistable.TimeToLiveFn<K>
   readonly inMemoryCapacity?: number | undefined
   readonly inMemoryTTL?: Persistable.TimeToLiveFn<K> | undefined
-}) => Effect.Effect<
-  PersistedCache<K>,
-  never,
-  R | Persistence.Persistence | Scope.Scope
-> = Effect.fnUntraced(function*<K extends Persistable.Any, R>(options: {
+}) => Effect.Effect<PersistedCache<K>, never, R | Persistence.Persistence | Scope.Scope> = Effect.fnUntraced(function* <
+  K extends Persistable.Any,
+  R
+>(options: {
   readonly storeId: string
   readonly lookup: (key: K) => Effect.Effect<Persistable.Success<K>, Persistable.Error<K>, R>
   readonly timeToLive: Persistable.TimeToLiveFn<K>
@@ -59,13 +60,13 @@ export const make: <K extends Persistable.Any, R>(options: {
     timeToLive: options.timeToLive as any
   })
   const inMemory = yield* Cache.makeWith({
-    lookup: Effect.fnUntraced(function*(key: K) {
-      const exit = yield* (store.get(key) as Effect.Effect<Exit<Persistable.Success<K>, Persistable.Error<K>>>)
+    lookup: Effect.fnUntraced(function* (key: K) {
+      const exit = yield* store.get(key) as Effect.Effect<Exit<Persistable.Success<K>, Persistable.Error<K>>>
       if (exit) {
         return yield* exit
       }
       const result = yield* Effect.exit(options.lookup(key))
-      yield* (store.set(key, result) as Effect.Effect<void>)
+      yield* store.set(key, result) as Effect.Effect<void>
       return yield* result
     }),
     timeToLive: options.inMemoryTTL ?? constant(Duration.seconds(10)),

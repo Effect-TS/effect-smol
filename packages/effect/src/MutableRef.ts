@@ -369,14 +369,14 @@ export const getAndIncrement = (self: MutableRef<number>): number => getAndUpdat
 export const getAndSet: {
   <T>(value: T): (self: MutableRef<T>) => T
   <T>(self: MutableRef<T>, value: T): T
-} = Dual.dual<
-  <T>(value: T) => (self: MutableRef<T>) => T,
-  <T>(self: MutableRef<T>, value: T) => T
->(2, (self, value) => {
-  const ret = self.current
-  self.current = value
-  return ret
-})
+} = Dual.dual<<T>(value: T) => (self: MutableRef<T>) => T, <T>(self: MutableRef<T>, value: T) => T>(
+  2,
+  (self, value) => {
+    const ret = self.current
+    self.current = value
+    return ret
+  }
+)
 
 /**
  * Updates the MutableRef with the result of applying a function to its current value,
@@ -422,10 +422,10 @@ export const getAndSet: {
 export const getAndUpdate: {
   <T>(f: (value: T) => T): (self: MutableRef<T>) => T
   <T>(self: MutableRef<T>, f: (value: T) => T): T
-} = Dual.dual<
-  <T>(f: (value: T) => T) => (self: MutableRef<T>) => T,
-  <T>(self: MutableRef<T>, f: (value: T) => T) => T
->(2, (self, f) => getAndSet(self, f(get(self))))
+} = Dual.dual<<T>(f: (value: T) => T) => (self: MutableRef<T>) => T, <T>(self: MutableRef<T>, f: (value: T) => T) => T>(
+  2,
+  (self, f) => getAndSet(self, f(get(self)))
+)
 
 /**
  * Increments a numeric MutableRef by 1 and returns the reference.
@@ -582,13 +582,13 @@ export const set: {
 export const setAndGet: {
   <T>(value: T): (self: MutableRef<T>) => T
   <T>(self: MutableRef<T>, value: T): T
-} = Dual.dual<
-  <T>(value: T) => (self: MutableRef<T>) => T,
-  <T>(self: MutableRef<T>, value: T) => T
->(2, (self, value) => {
-  self.current = value
-  return self.current
-})
+} = Dual.dual<<T>(value: T) => (self: MutableRef<T>) => T, <T>(self: MutableRef<T>, value: T) => T>(
+  2,
+  (self, value) => {
+    self.current = value
+    return self.current
+  }
+)
 
 /**
  * Updates the MutableRef with the result of applying a function to its current value,
@@ -689,10 +689,10 @@ export const update: {
 export const updateAndGet: {
   <T>(f: (value: T) => T): (self: MutableRef<T>) => T
   <T>(self: MutableRef<T>, f: (value: T) => T): T
-} = Dual.dual<
-  <T>(f: (value: T) => T) => (self: MutableRef<T>) => T,
-  <T>(self: MutableRef<T>, f: (value: T) => T) => T
->(2, (self, f) => setAndGet(self, f(get(self))))
+} = Dual.dual<<T>(f: (value: T) => T) => (self: MutableRef<T>) => T, <T>(self: MutableRef<T>, f: (value: T) => T) => T>(
+  2,
+  (self, f) => setAndGet(self, f(get(self)))
+)
 
 /**
  * Toggles a boolean MutableRef (true becomes false, false becomes true) and returns the reference.

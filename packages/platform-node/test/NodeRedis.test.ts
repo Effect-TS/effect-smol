@@ -6,7 +6,7 @@ import * as PersistedQueueTest from "effect-test/unstable/persistence/PersistedQ
 import { PersistedQueue, Persistence } from "effect/unstable/persistence"
 
 const RedisLayer = Layer.unwrap(
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const container = yield* Effect.acquireRelease(
       Effect.promise(() => new RedisContainer("redis:alpine").start()),
       (container) => Effect.promise(() => container.stop())
@@ -15,17 +15,9 @@ const RedisLayer = Layer.unwrap(
       host: container.getHost(),
       port: container.getMappedPort(6379)
     })
-  }).pipe(
-    Effect.catchCause(() => Effect.fail(new PersistedCacheTest.TransientError()))
-  )
+  }).pipe(Effect.catchCause(() => Effect.fail(new PersistedCacheTest.TransientError())))
 )
 
-PersistedCacheTest.suite(
-  "NodeRedis",
-  Persistence.layerRedis.pipe(Layer.provide(RedisLayer))
-)
+PersistedCacheTest.suite("NodeRedis", Persistence.layerRedis.pipe(Layer.provide(RedisLayer)))
 
-PersistedQueueTest.suite(
-  "NodeRedis",
-  PersistedQueue.layerStoreRedis().pipe(Layer.provide(RedisLayer))
-)
+PersistedQueueTest.suite("NodeRedis", PersistedQueue.layerStoreRedis().pipe(Layer.provide(RedisLayer)))

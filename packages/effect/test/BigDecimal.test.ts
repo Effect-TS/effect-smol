@@ -491,15 +491,19 @@ describe.skip("Property based testing", () => {
   const arbWithZero = fc.oneof({ arbitrary: zeroArb, weight: 1 }, { arbitrary: bigDecimalArb, weight: 3 })
 
   it("unsafeFromString and format should be inverses", () => {
-    fc.assert(fc.property(arbWithZero, (bd) => {
-      return BigDecimal.equals(BigDecimal.fromStringUnsafe(BigDecimal.format(bd)), bd)
-    }))
+    fc.assert(
+      fc.property(arbWithZero, (bd) => {
+        return BigDecimal.equals(BigDecimal.fromStringUnsafe(BigDecimal.format(bd)), bd)
+      })
+    )
   })
 
   it("toExponential should harmonize with Number.prototype.toExponential", () => {
     const actualNumbers = fc.float().filter((n) => Number.isFinite(n))
-    fc.assert(fc.property(actualNumbers, (n) => {
-      return n.toExponential() === BigDecimal.toExponential(BigDecimal.fromNumberUnsafe(n))
-    }))
+    fc.assert(
+      fc.property(actualNumbers, (n) => {
+        return n.toExponential() === BigDecimal.toExponential(BigDecimal.fromNumberUnsafe(n))
+      })
+    )
   })
 })

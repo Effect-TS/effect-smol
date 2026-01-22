@@ -58,13 +58,11 @@ export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessa
 
   readonly upgrade: Effect.Effect<Socket.Socket, HttpServerError>
 
-  readonly modify: (
-    options: {
-      readonly url?: string
-      readonly headers?: Headers.Headers
-      readonly remoteAddress?: string
-    }
-  ) => HttpServerRequest
+  readonly modify: (options: {
+    readonly url?: string
+    readonly headers?: Headers.Headers
+    readonly remoteAddress?: string
+  }) => HttpServerRequest
 }
 
 /**
@@ -189,16 +187,21 @@ export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD, RE
 ) => {
   const parseMultipart = Multipart.schemaPersisted(schema)
   const parseUrlParams = HttpIncomingMessage.schemaBodyUrlParams(schema as Schema.Codec<A, any, RD, RE>, options)
-  return Effect.flatMap(HttpServerRequest.asEffect(), (request): Effect.Effect<
-    A,
-    Multipart.MultipartError | Schema.SchemaError | HttpServerError,
-    RD | HttpServerRequest | Scope.Scope | FileSystem.FileSystem | Path.Path
-  > => {
-    if (isMultipart(request)) {
-      return Effect.flatMap(request.multipart, (_) => parseMultipart(_, options))
+  return Effect.flatMap(
+    HttpServerRequest.asEffect(),
+    (
+      request
+    ): Effect.Effect<
+      A,
+      Multipart.MultipartError | Schema.SchemaError | HttpServerError,
+      RD | HttpServerRequest | Scope.Scope | FileSystem.FileSystem | Path.Path
+    > => {
+      if (isMultipart(request)) {
+        return Effect.flatMap(request.multipart, (_) => parseMultipart(_, options))
+      }
+      return parseUrlParams(request)
     }
-    return parseUrlParams(request)
-  })
+  )
 }
 
 /**
@@ -247,25 +250,27 @@ export const schemaBodyFormJson = <A, I, RD, RE>(
 ) => {
   const parseMultipart = Multipart.schemaJson(schema, options)
   return (field: string) => {
-    const parseUrlParams = UrlParams.schemaJsonField(field).pipe(
-      Schema.decodeTo(schema),
-      Schema.decodeEffect
-    )
+    const parseUrlParams = UrlParams.schemaJsonField(field).pipe(Schema.decodeTo(schema), Schema.decodeEffect)
     return Effect.flatMap(
       HttpServerRequest.asEffect(),
-      (request): Effect.Effect<
+      (
+        request
+      ): Effect.Effect<
         A,
         Schema.SchemaError | HttpServerError,
         RD | FileSystem.FileSystem | Path.Path | Scope.Scope | HttpServerRequest
       > => {
         if (isMultipart(request)) {
           return Effect.flatMap(
-            Effect.mapError(request.multipart, (cause) =>
-              new RequestError({
-                request,
-                reason: "RequestParseError",
-                cause
-              })),
+            Effect.mapError(
+              request.multipart,
+              (cause) =>
+                new RequestError({
+                  request,
+                  reason: "RequestParseError",
+                  cause
+                })
+            ),
             parseMultipart(field)
           )
         }
@@ -298,12 +303,7 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
   public headersOverride?: Headers.Headers | undefined
   private remoteAddressOverride?: string | undefined
 
-  constructor(
-    source: Request,
-    url: string,
-    headersOverride?: Headers.Headers,
-    remoteAddressOverride?: string
-  ) {
+  constructor(source: Request, url: string, headersOverride?: Headers.Headers, remoteAddressOverride?: string) {
     super()
     this[TypeId] = TypeId
     this[HttpIncomingMessage.TypeId] = HttpIncomingMessage.TypeId
@@ -319,13 +319,11 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
       url: this.originalUrl
     })
   }
-  modify(
-    options: {
-      readonly url?: string | undefined
-      readonly headers?: Headers.Headers | undefined
-      readonly remoteAddress?: string | undefined
-    }
-  ) {
+  modify(options: {
+    readonly url?: string | undefined
+    readonly headers?: Headers.Headers | undefined
+    readonly remoteAddress?: string | undefined
+  }) {
     return new ServerRequestImpl(
       this.source,
       options.url ?? this.url,
@@ -352,27 +350,27 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     if (this.cachedCookies) {
       return this.cachedCookies
     }
-    return this.cachedCookies = Cookies.parseHeader(this.headers.cookie ?? "")
+    return (this.cachedCookies = Cookies.parseHeader(this.headers.cookie ?? ""))
   }
 
   get stream(): Stream.Stream<Uint8Array, HttpServerError> {
     return this.source.body
       ? Stream.fromReadableStream({
-        evaluate: () => this.source.body as any,
-        onError: (cause) =>
+          evaluate: () => this.source.body as any,
+          onError: (cause) =>
+            new RequestError({
+              request: this,
+              reason: "RequestParseError",
+              cause
+            })
+        })
+      : Stream.fail(
           new RequestError({
             request: this,
             reason: "RequestParseError",
-            cause
+            description: "can not create stream from empty body"
           })
-      })
-      : Stream.fail(
-        new RequestError({
-          request: this,
-          reason: "RequestParseError",
-          description: "can not create stream from empty body"
-        })
-      )
+        )
   }
 
   private textEffect: Effect.Effect<string, HttpServerError> | undefined
@@ -380,17 +378,19 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     if (this.textEffect) {
       return this.textEffect
     }
-    this.textEffect = Effect.runSync(Effect.cached(
-      Effect.tryPromise({
-        try: () => this.source.text(),
-        catch: (cause) =>
-          new RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
-          })
-      })
-    ))
+    this.textEffect = Effect.runSync(
+      Effect.cached(
+        Effect.tryPromise({
+          try: () => this.source.text(),
+          catch: (cause) =>
+            new RequestError({
+              request: this,
+              reason: "RequestParseError",
+              cause
+            })
+        })
+      )
+    )
     return this.textEffect
   }
 
@@ -404,7 +404,8 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
             reason: "RequestParseError",
             cause
           })
-      }))
+      })
+    )
   }
 
   get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, HttpServerError> {
@@ -417,15 +418,12 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
             reason: "RequestParseError",
             cause
           })
-      }))
+      })
+    )
   }
 
   private multipartEffect:
-    | Effect.Effect<
-      Multipart.Persisted,
-      Multipart.MultipartError,
-      Scope.Scope | FileSystem.FileSystem | Path.Path
-    >
+    | Effect.Effect<Multipart.Persisted, Multipart.MultipartError, Scope.Scope | FileSystem.FileSystem | Path.Path>
     | undefined
   get multipart(): Effect.Effect<
     Multipart.Persisted,
@@ -435,9 +433,7 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     if (this.multipartEffect) {
       return this.multipartEffect
     }
-    this.multipartEffect = Effect.runSync(Effect.cached(
-      Multipart.toPersisted(this.multipartStream)
-    ))
+    this.multipartEffect = Effect.runSync(Effect.cached(Multipart.toPersisted(this.multipartStream)))
     return this.multipartEffect
   }
 
@@ -453,17 +449,19 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
     if (this.arrayBufferEffect) {
       return this.arrayBufferEffect
     }
-    this.arrayBufferEffect = Effect.runSync(Effect.cached(
-      Effect.tryPromise({
-        try: () => this.source.arrayBuffer(),
-        catch: (cause) =>
-          new RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
-          })
-      })
-    ))
+    this.arrayBufferEffect = Effect.runSync(
+      Effect.cached(
+        Effect.tryPromise({
+          try: () => this.source.arrayBuffer(),
+          catch: (cause) =>
+            new RequestError({
+              request: this,
+              reason: "RequestParseError",
+              cause
+            })
+        })
+      )
+    )
     return this.arrayBufferEffect
   }
 
@@ -496,10 +494,13 @@ export const toURL = (self: HttpServerRequest): URL | undefined => {
  * @since 4.0.0
  * @category conversions
  */
-export const toWebResult = (self: HttpServerRequest, options?: {
-  readonly signal?: AbortSignal | undefined
-  readonly services?: ServiceMap.ServiceMap<never> | undefined
-}): Result.Result<Request, RequestError> => {
+export const toWebResult = (
+  self: HttpServerRequest,
+  options?: {
+    readonly signal?: AbortSignal | undefined
+    readonly services?: ServiceMap.ServiceMap<never> | undefined
+  }
+): Result.Result<Request, RequestError> => {
   if (self.source instanceof Request) {
     return Result.succeed(self.source)
   }
@@ -531,9 +532,12 @@ export const toWebResult = (self: HttpServerRequest, options?: {
  * @since 4.0.0
  * @category conversions
  */
-export const toWeb = (self: HttpServerRequest, options?: {
-  readonly signal?: AbortSignal | undefined
-}): Effect.Effect<Request, RequestError> =>
+export const toWeb = (
+  self: HttpServerRequest,
+  options?: {
+    readonly signal?: AbortSignal | undefined
+  }
+): Effect.Effect<Request, RequestError> =>
   Effect.servicesWith((services) =>
     toWebResult(self, {
       services,

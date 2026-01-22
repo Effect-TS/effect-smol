@@ -52,12 +52,7 @@ export interface Tracer {
     kind: SpanKind,
     options?: SpanOptions
   ) => Span
-  readonly context?:
-    | (<X>(
-      f: () => X,
-      fiber: Fiber<any, any>
-    ) => X)
-    | undefined
+  readonly context?: (<X>(f: () => X, fiber: Fiber<any, any>) => X) | undefined
 }
 
 /**
@@ -83,15 +78,17 @@ export interface Tracer {
  * }
  * ```
  */
-export type SpanStatus = {
-  _tag: "Started"
-  startTime: bigint
-} | {
-  _tag: "Ended"
-  startTime: bigint
-  endTime: bigint
-  exit: Exit.Exit<unknown, unknown>
-}
+export type SpanStatus =
+  | {
+      _tag: "Started"
+      startTime: bigint
+    }
+  | {
+      _tag: "Ended"
+      startTime: bigint
+      endTime: bigint
+      exit: Exit.Exit<unknown, unknown>
+    }
 
 /**
  * @since 2.0.0
@@ -351,14 +348,12 @@ export const make = (options: Tracer): Tracer => options
  * )
  * ```
  */
-export const externalSpan = (
-  options: {
-    readonly spanId: string
-    readonly traceId: string
-    readonly sampled?: boolean | undefined
-    readonly annotations?: ServiceMap.ServiceMap<never> | undefined
-  }
-): ExternalSpan => ({
+export const externalSpan = (options: {
+  readonly spanId: string
+  readonly traceId: string
+  readonly sampled?: boolean | undefined
+  readonly annotations?: ServiceMap.ServiceMap<never> | undefined
+}): ExternalSpan => ({
   _tag: "ExternalSpan",
   spanId: options.spanId,
   traceId: options.traceId,
@@ -381,10 +376,9 @@ export const externalSpan = (
  * )
  * ```
  */
-export const DisablePropagation = ServiceMap.Reference<boolean>(
-  "effect/Tracer/DisablePropagation",
-  { defaultValue: constFalse }
-)
+export const DisablePropagation = ServiceMap.Reference<boolean>("effect/Tracer/DisablePropagation", {
+  defaultValue: constFalse
+})
 
 /**
  * @since 4.0.0
@@ -416,14 +410,7 @@ export const Tracer: ServiceMap.Reference<Tracer> = ServiceMap.Reference<Tracer>
   defaultValue: () =>
     make({
       span: (name, parent, annotations, links, startTime, kind) =>
-        new NativeSpan(
-          name,
-          parent,
-          annotations,
-          links.slice(),
-          startTime,
-          kind
-        )
+        new NativeSpan(name, parent, annotations, links.slice(), startTime, kind)
     })
 })
 
@@ -512,10 +499,10 @@ export class NativeSpan implements Span {
   }
 }
 
-const randomHexString = (function() {
+const randomHexString = (function () {
   const characters = "abcdef0123456789"
   const charactersLength = characters.length
-  return function(length: number) {
+  return function (length: number) {
     let result = ""
     for (let i = 0; i < length; i++) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength))

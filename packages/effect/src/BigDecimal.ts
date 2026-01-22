@@ -344,12 +344,7 @@ export const subtract: {
 /**
  * Internal function used for arbitrary precision division.
  */
-const divideWithPrecision = (
-  num: bigint,
-  den: bigint,
-  scale: number,
-  precision: number
-): BigDecimal => {
+const divideWithPrecision = (num: bigint, den: bigint, scale: number, precision: number): BigDecimal => {
   const numNegative = num < bigint0
   const denNegative = den < bigint0
   const negateResult = numNegative !== denNegative
@@ -691,14 +686,14 @@ export const isGreaterThanOrEqualTo: {
  * @category predicates
  */
 export const between: {
-  (options: {
-    minimum: BigDecimal
-    maximum: BigDecimal
-  }): (self: BigDecimal) => boolean
-  (self: BigDecimal, options: {
-    minimum: BigDecimal
-    maximum: BigDecimal
-  }): boolean
+  (options: { minimum: BigDecimal; maximum: BigDecimal }): (self: BigDecimal) => boolean
+  (
+    self: BigDecimal,
+    options: {
+      minimum: BigDecimal
+      maximum: BigDecimal
+    }
+  ): boolean
 } = order.isBetween(Order)
 
 /**
@@ -736,14 +731,14 @@ export const between: {
  * @category math
  */
 export const clamp: {
-  (options: {
-    minimum: BigDecimal
-    maximum: BigDecimal
-  }): (self: BigDecimal) => BigDecimal
-  (self: BigDecimal, options: {
-    minimum: BigDecimal
-    maximum: BigDecimal
-  }): BigDecimal
+  (options: { minimum: BigDecimal; maximum: BigDecimal }): (self: BigDecimal) => BigDecimal
+  (
+    self: BigDecimal,
+    options: {
+      minimum: BigDecimal
+      maximum: BigDecimal
+    }
+  ): BigDecimal
 } = order.clamp(Order)
 
 /**
@@ -806,7 +801,7 @@ export const max: {
  * @since 2.0.0
  * @category math
  */
-export const sign = (n: BigDecimal): Ordering => n.value === bigint0 ? 0 : n.value < bigint0 ? -1 : 1
+export const sign = (n: BigDecimal): Ordering => (n.value === bigint0 ? 0 : n.value < bigint0 ? -1 : 1)
 
 /**
  * Determines the absolute value of a given `BigDecimal`.
@@ -824,7 +819,7 @@ export const sign = (n: BigDecimal): Ordering => n.value === bigint0 ? 0 : n.val
  * @since 2.0.0
  * @category math
  */
-export const abs = (n: BigDecimal): BigDecimal => n.value < bigint0 ? make(-n.value, n.scale) : n
+export const abs = (n: BigDecimal): BigDecimal => (n.value < bigint0 ? make(-n.value, n.scale) : n)
 
 /**
  * Provides a negate operation on `BigDecimal`s.
@@ -1394,7 +1389,7 @@ export const round: {
       return truncate(self, scale)
 
     case "from-zero":
-      return (isPositive(self) ? ceil(self, scale) : floor(self, scale))
+      return isPositive(self) ? ceil(self, scale) : floor(self, scale)
 
     case "half-ceil":
       return floor(sum(self, make(5n, scale + 1)), scale)
@@ -1419,10 +1414,10 @@ export const round: {
 
   switch (mode) {
     case "half-even":
-      return equals(halfCeil, halfFloor) ? halfCeil : (digit % 2n === 0n) ? halfCeil : halfFloor
+      return equals(halfCeil, halfFloor) ? halfCeil : digit % 2n === 0n ? halfCeil : halfFloor
 
     case "half-odd":
-      return equals(halfCeil, halfFloor) ? halfCeil : (digit % 2n === 0n) ? halfFloor : halfCeil
+      return equals(halfCeil, halfFloor) ? halfCeil : digit % 2n === 0n ? halfFloor : halfCeil
   }
 })
 
@@ -1456,7 +1451,7 @@ export const truncate: {
   }
 
   // BigInt division truncates towards zero
-  return make(self.value / (10n ** BigInt(self.scale - scale)), scale)
+  return make(self.value / 10n ** BigInt(self.scale - scale), scale)
 })
 
 /**
@@ -1505,7 +1500,7 @@ export const digitAt: {
     return 0n
   }
 
-  const scaled = self.value / (10n ** BigInt(self.scale - scale))
+  const scaled = self.value / 10n ** BigInt(self.scale - scale)
   return scaled % 10n
 })
 

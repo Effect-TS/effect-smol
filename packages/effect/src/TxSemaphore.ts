@@ -101,7 +101,7 @@ const makeTxSemaphore = (permitsRef: TxRef.TxRef<number>, capacity: number): TxS
  * @category constructors
  */
 export const make = (permits: number): Effect.Effect<TxSemaphore> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     if (permits < 0) {
       return yield* Effect.die(new Error("Permits must be non-negative"))
     }
@@ -202,7 +202,7 @@ export const capacity = (self: TxSemaphore): Effect.Effect<number> => Effect.suc
  */
 export const acquire = (self: TxSemaphore): Effect.Effect<void> =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const permits = yield* TxRef.get(self.permitsRef)
       if (permits <= 0) {
         return yield* Effect.retryTransaction
@@ -243,7 +243,7 @@ export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
     return Effect.die(new Error("Number of permits must be positive"))
   }
   return Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const permits = yield* TxRef.get(self.permitsRef)
       if (permits < n) {
         return yield* Effect.retryTransaction
@@ -357,7 +357,7 @@ export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean
  * @category combinators
  */
 export const release = (self: TxSemaphore): Effect.Effect<void> =>
-  TxRef.update(self.permitsRef, (permits: number) => permits >= self.capacity ? permits : permits + 1)
+  TxRef.update(self.permitsRef, (permits: number) => (permits >= self.capacity ? permits : permits + 1))
 
 /**
  * Releases the specified number of permits back to the semaphore.
@@ -436,10 +436,7 @@ export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  * @since 4.0.0
  * @category combinators
  */
-export const withPermit = <A, E, R>(
-  self: TxSemaphore,
-  effect: Effect.Effect<A, E, R>
-): Effect.Effect<A, E, R> =>
+export const withPermit = <A, E, R>(self: TxSemaphore, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   Effect.acquireUseRelease(
     acquire(self),
     () => effect,
@@ -536,10 +533,7 @@ export const withPermits = <A, E, R>(
  * @category combinators
  */
 export const withPermitScoped = (self: TxSemaphore): Effect.Effect<void, never, Scope.Scope> =>
-  Effect.acquireRelease(
-    acquire(self),
-    () => release(self)
-  )
+  Effect.acquireRelease(acquire(self), () => release(self))
 
 /**
  * Determines if the provided value is a TxSemaphore.

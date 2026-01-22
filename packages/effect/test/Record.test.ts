@@ -36,18 +36,24 @@ describe("Record", () => {
     })
 
     it("fromIterableWith", () => {
-      deepStrictEqual(Record.fromIterableWith([1, 2, 3, 4], (a) => [a === 3 ? "a" : String(a), a * 2]), {
-        "1": 2,
-        "2": 4,
-        a: 6,
-        "4": 8
-      })
-      deepStrictEqual(Record.fromIterableWith([1, 2, 3, 4], (a) => [a === 3 ? symA : String(a), a * 2]), {
-        "1": 2,
-        "2": 4,
-        [symA]: 6,
-        "4": 8
-      })
+      deepStrictEqual(
+        Record.fromIterableWith([1, 2, 3, 4], (a) => [a === 3 ? "a" : String(a), a * 2]),
+        {
+          "1": 2,
+          "2": 4,
+          a: 6,
+          "4": 8
+        }
+      )
+      deepStrictEqual(
+        Record.fromIterableWith([1, 2, 3, 4], (a) => [a === 3 ? symA : String(a), a * 2]),
+        {
+          "1": 2,
+          "2": 4,
+          [symA]: 6,
+          "4": 8
+        }
+      )
     })
 
     it("fromIterableBy", () => {
@@ -55,29 +61,53 @@ describe("Record", () => {
         { id: "2", name: "name2" },
         { id: "1", name: "name1" }
       ]
-      deepStrictEqual(Record.fromIterableBy(users, (user) => user.id), {
-        "2": { id: "2", name: "name2" },
-        "1": { id: "1", name: "name1" }
-      })
+      deepStrictEqual(
+        Record.fromIterableBy(users, (user) => user.id),
+        {
+          "2": { id: "2", name: "name2" },
+          "1": { id: "1", name: "name1" }
+        }
+      )
 
-      deepStrictEqual(Record.fromIterableBy(["a", symA], (s) => s), { a: "a", [symA]: symA })
+      deepStrictEqual(
+        Record.fromIterableBy(["a", symA], (s) => s),
+        { a: "a", [symA]: symA }
+      )
     })
 
     it("fromEntries", () => {
-      deepStrictEqual(Record.fromEntries([["1", 2], ["2", 4], ["3", 6], ["4", 8]]), {
-        "1": 2,
-        "2": 4,
-        "3": 6,
-        "4": 8
-      })
-      deepStrictEqual(Record.fromEntries([["1", 2], ["2", 4], ["3", 6], ["4", 8], [symA, 10], [symB, 12]]), {
-        "1": 2,
-        "2": 4,
-        "3": 6,
-        "4": 8,
-        [symA]: 10,
-        [symB]: 12
-      })
+      deepStrictEqual(
+        Record.fromEntries([
+          ["1", 2],
+          ["2", 4],
+          ["3", 6],
+          ["4", 8]
+        ]),
+        {
+          "1": 2,
+          "2": 4,
+          "3": 6,
+          "4": 8
+        }
+      )
+      deepStrictEqual(
+        Record.fromEntries([
+          ["1", 2],
+          ["2", 4],
+          ["3", 6],
+          ["4", 8],
+          [symA, 10],
+          [symB, 12]
+        ]),
+        {
+          "1": 2,
+          "2": 4,
+          "3": 6,
+          "4": 8,
+          [symA]: 10,
+          [symB]: 12
+        }
+      )
     })
 
     it("has", () => {
@@ -97,14 +127,45 @@ describe("Record", () => {
     })
 
     it("modify", () => {
-      assertUndefined(pipe(Record.empty<string>(), Record.modify("a", (n) => n + 1)))
-      deepStrictEqual(pipe(stringRecord, Record.modify("a", (n: number) => n + 1)), { a: 2, [symA]: null })
-      deepStrictEqual(pipe(stringRecord, Record.modify("a", (n: number) => String(n))), { a: "1", [symA]: null })
-
-      assertUndefined(pipe(Record.empty<symbol>(), Record.modify(symA, (n) => n + 1)))
-      deepStrictEqual(pipe(symbolRecord, Record.modify(symA, (n: number) => n + 1)), { [symA]: 2, [symB]: 2 })
+      assertUndefined(
+        pipe(
+          Record.empty<string>(),
+          Record.modify("a", (n) => n + 1)
+        )
+      )
       deepStrictEqual(
-        pipe(symbolRecord, Record.modify(symA, (n: number) => String(n))),
+        pipe(
+          stringRecord,
+          Record.modify("a", (n: number) => n + 1)
+        ),
+        { a: 2, [symA]: null }
+      )
+      deepStrictEqual(
+        pipe(
+          stringRecord,
+          Record.modify("a", (n: number) => String(n))
+        ),
+        { a: "1", [symA]: null }
+      )
+
+      assertUndefined(
+        pipe(
+          Record.empty<symbol>(),
+          Record.modify(symA, (n) => n + 1)
+        )
+      )
+      deepStrictEqual(
+        pipe(
+          symbolRecord,
+          Record.modify(symA, (n: number) => n + 1)
+        ),
+        { [symA]: 2, [symB]: 2 }
+      )
+      deepStrictEqual(
+        pipe(
+          symbolRecord,
+          Record.modify(symA, (n: number) => String(n))
+        ),
         { [symA]: "1", [symB]: 2 }
       )
     })
@@ -168,18 +229,41 @@ describe("Record", () => {
 
   describe("string only APIs", () => {
     it("map", () => {
-      deepStrictEqual(pipe(stringRecord, Record.map((n) => n * 2)), { a: 2, [symA]: null })
-      deepStrictEqual(pipe(stringRecord, Record.map((n, k) => `${k}-${n}`)), { a: "a-1", [symA]: null })
+      deepStrictEqual(
+        pipe(
+          stringRecord,
+          Record.map((n) => n * 2)
+        ),
+        { a: 2, [symA]: null }
+      )
+      deepStrictEqual(
+        pipe(
+          stringRecord,
+          Record.map((n, k) => `${k}-${n}`)
+        ),
+        { a: "a-1", [symA]: null }
+      )
     })
 
     it("collect", () => {
       const x = { a: 1, b: 2, c: 3, [symA]: null }
-      deepStrictEqual(Record.collect(x, (key, n) => [key, n]), [["a", 1], ["b", 2], ["c", 3]])
+      deepStrictEqual(
+        Record.collect(x, (key, n) => [key, n]),
+        [
+          ["a", 1],
+          ["b", 2],
+          ["c", 3]
+        ]
+      )
     })
 
     it("toEntries", () => {
       const x = { a: 1, b: 2, c: 3, [symA]: null }
-      deepStrictEqual(Record.toEntries(x), [["a", 1], ["b", 2], ["c", 3]])
+      deepStrictEqual(Record.toEntries(x), [
+        ["a", 1],
+        ["b", 2],
+        ["c", 3]
+      ])
     })
 
     it("filterMap", () => {
@@ -195,7 +279,10 @@ describe("Record", () => {
 
     it("filter", () => {
       const x: Record<string, number> = { a: 1, b: 2, c: 3, d: 4, [symA]: null }
-      deepStrictEqual(Record.filter(x, (value) => value > 2), { c: 3, d: 4 })
+      deepStrictEqual(
+        Record.filter(x, (value) => value > 2),
+        { c: 3, d: 4 }
+      )
     })
 
     it("partitionMap", () => {
@@ -211,10 +298,10 @@ describe("Record", () => {
     })
 
     it("separate", () => {
-      deepStrictEqual(
-        Record.separate({ a: Result.fail("e"), b: Result.succeed(1), [symA]: null }),
-        [{ a: "e" }, { b: 1 }]
-      )
+      deepStrictEqual(Record.separate({ a: Result.fail("e"), b: Result.succeed(1), [symA]: null }), [
+        { a: "e" },
+        { b: 1 }
+      ])
       // should ignore non own properties
       const o: Record.ReadonlyRecord<"a", Result.Result<number, string>> = Object.create({ a: 1 })
       deepStrictEqual(pipe(o, Record.separate), [{}, {}])
@@ -363,14 +450,26 @@ describe("Record", () => {
     })
 
     it("mapKeys", () => {
-      deepStrictEqual(pipe({ a: 1, b: 2, [symA]: null }, Record.mapKeys((key) => key.toUpperCase())), {
-        A: 1,
-        B: 2
-      })
+      deepStrictEqual(
+        pipe(
+          { a: 1, b: 2, [symA]: null },
+          Record.mapKeys((key) => key.toUpperCase())
+        ),
+        {
+          A: 1,
+          B: 2
+        }
+      )
     })
 
     it("mapEntries", () => {
-      deepStrictEqual(pipe(stringRecord, Record.mapEntries((a, key) => [key.toUpperCase(), a + 1])), { A: 2 })
+      deepStrictEqual(
+        pipe(
+          stringRecord,
+          Record.mapEntries((a, key) => [key.toUpperCase(), a + 1])
+        ),
+        { A: 2 }
+      )
     })
 
     describe("findFirst", () => {
@@ -381,15 +480,24 @@ describe("Record", () => {
           c: 1
         }
         deepStrictEqual(
-          pipe(record, Record.findFirst((v) => v < 2)),
+          pipe(
+            record,
+            Record.findFirst((v) => v < 2)
+          ),
           ["a", 1]
         )
         deepStrictEqual(
-          pipe(record, Record.findFirst((v, k) => v < 2 && k !== "a")),
+          pipe(
+            record,
+            Record.findFirst((v, k) => v < 2 && k !== "a")
+          ),
           ["c", 1]
         )
         assertUndefined(
-          pipe(record, Record.findFirst((v) => v > 2))
+          pipe(
+            record,
+            Record.findFirst((v) => v > 2)
+          )
         )
         deepStrictEqual(
           Record.findFirst(record, (v) => v < 2),

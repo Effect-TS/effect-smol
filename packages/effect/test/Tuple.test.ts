@@ -29,28 +29,8 @@ describe("Tuple", () => {
   })
 
   it("evolve", () => {
-    deepStrictEqual(
-      pipe(
-        tuple,
-        Tuple.evolve([
-          (s) => s.length,
-          undefined,
-          (b) => `b: ${b}`
-        ])
-      ),
-      [1, 2, "b: true"]
-    )
-    deepStrictEqual(
-      Tuple.evolve(
-        tuple,
-        [
-          (s) => s.length,
-          undefined,
-          (b) => `b: ${b}`
-        ] as const
-      ),
-      [1, 2, "b: true"]
-    )
+    deepStrictEqual(pipe(tuple, Tuple.evolve([(s) => s.length, undefined, (b) => `b: ${b}`])), [1, 2, "b: true"])
+    deepStrictEqual(Tuple.evolve(tuple, [(s) => s.length, undefined, (b) => `b: ${b}`] as const), [1, 2, "b: true"])
   })
 
   describe("renameIndices", () => {
@@ -108,19 +88,13 @@ describe("Tuple", () => {
   })
 
   it("makeCombiner", () => {
-    const C = Tuple.makeCombiner([
-      Number.ReducerSum,
-      String.ReducerConcat
-    ])
+    const C = Tuple.makeCombiner([Number.ReducerSum, String.ReducerConcat])
 
     deepStrictEqual(C.combine([1, "a"], [2, "b"]), [3, "ab"])
   })
 
   it("makeReducer", () => {
-    const R = Tuple.makeReducer([
-      Number.ReducerSum,
-      String.ReducerConcat
-    ])
+    const R = Tuple.makeReducer([Number.ReducerSum, String.ReducerConcat])
 
     deepStrictEqual(R.initialValue, [0, ""])
   })

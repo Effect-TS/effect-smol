@@ -21,10 +21,10 @@ Comprehensive JSDoc documentation patterns used throughout the Effect library, e
 ````typescript
 /**
  * Brief description of what the function does in one line.
- * 
+ *
  * More detailed explanation if needed, including:
  * - Important behavior notes
- * - Performance characteristics  
+ * - Performance characteristics
  * - Common use cases
  *
  * @example
@@ -43,7 +43,7 @@ Comprehensive JSDoc documentation patterns used throughout the Effect library, e
  * ```
  *
  * @example
- * ```ts  
+ * ```ts
  * import { ModuleName } from "effect"
  *
  * // Different use case or advanced usage
@@ -56,7 +56,7 @@ Comprehensive JSDoc documentation patterns used throughout the Effect library, e
  * @since 2.0.0
  * @category constructors
  */
-export const functionName = <A>(param: A): ModuleName<A> => 
+export const functionName = <A>(param: A): ModuleName<A> =>
   // implementation
 ````
 
@@ -380,7 +380,7 @@ export const make = ...
 export const map = ...
 
 /**
- * @category predicates  
+ * @category predicates
  */
 export const isEmpty = ...
 

@@ -10,17 +10,23 @@ import * as ServiceMap from "../../../ServiceMap.ts"
 /** @internal */
 export class ResourceMap<K, A, E> {
   readonly lookup: (key: K, scope: Scope.Scope) => Effect.Effect<A, E>
-  readonly entries: MutableHashMap.MutableHashMap<K, {
-    readonly scope: Scope.Closeable
-    readonly deferred: Deferred.Deferred<A, E>
-  }>
+  readonly entries: MutableHashMap.MutableHashMap<
+    K,
+    {
+      readonly scope: Scope.Closeable
+      readonly deferred: Deferred.Deferred<A, E>
+    }
+  >
   readonly isClosed: MutableRef.MutableRef<boolean>
   constructor(
     lookup: (key: K, scope: Scope.Scope) => Effect.Effect<A, E>,
-    entries: MutableHashMap.MutableHashMap<K, {
-      readonly scope: Scope.Closeable
-      readonly deferred: Deferred.Deferred<A, E>
-    }>,
+    entries: MutableHashMap.MutableHashMap<
+      K,
+      {
+        readonly scope: Scope.Closeable
+        readonly deferred: Deferred.Deferred<A, E>
+      }
+    >,
     isClosed: MutableRef.MutableRef<boolean>
   ) {
     this.lookup = lookup
@@ -28,26 +34,30 @@ export class ResourceMap<K, A, E> {
     this.isClosed = isClosed
   }
 
-  static make = Effect.fnUntraced(function*<K, A, E, R>(lookup: (key: K) => Effect.Effect<A, E, R>) {
+  static make = Effect.fnUntraced(function* <K, A, E, R>(lookup: (key: K) => Effect.Effect<A, E, R>) {
     const scope = yield* Effect.scope
     const services = yield* Effect.services<R>()
     const isClosed = MutableRef.make(false)
 
-    const entries = MutableHashMap.empty<K, {
-      scope: Scope.Closeable
-      deferred: Deferred.Deferred<A, E>
-    }>()
+    const entries = MutableHashMap.empty<
+      K,
+      {
+        scope: Scope.Closeable
+        deferred: Deferred.Deferred<A, E>
+      }
+    >()
 
-    yield* Scope.addFinalizerExit(
-      scope,
-      (exit) => {
-        MutableRef.set(isClosed, true)
-        return Effect.forEach(entries, ([key, { scope }]) => {
+    yield* Scope.addFinalizerExit(scope, (exit) => {
+      MutableRef.set(isClosed, true)
+      return Effect.forEach(
+        entries,
+        ([key, { scope }]) => {
           MutableHashMap.remove(entries, key)
           return Effect.exit(Scope.close(scope, exit))
-        }, { concurrency: "unbounded", discard: true })
-      }
-    )
+        },
+        { concurrency: "unbounded", discard: true }
+      )
+    })
 
     return new ResourceMap(
       (key, scope) => Effect.provide(lookup(key), ServiceMap.add(services, Scope.Scope, scope)),
@@ -95,6 +105,7 @@ export class ResourceMap<K, A, E> {
         module: "ResourceMap",
         method: "removeIgnore",
         key
-      }))
+      })
+    )
   }
 }

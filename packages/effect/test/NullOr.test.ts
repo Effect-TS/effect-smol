@@ -17,7 +17,10 @@ describe("NullOr", () => {
   })
 
   it("getOrThrowWith", () => {
-    strictEqual(NullOr.getOrThrowWith(1, () => new Error("test")), 1)
+    strictEqual(
+      NullOr.getOrThrowWith(1, () => new Error("test")),
+      1
+    )
     throws(() => NullOr.getOrThrowWith(null, () => new Error("test")), new Error("test"))
   })
 

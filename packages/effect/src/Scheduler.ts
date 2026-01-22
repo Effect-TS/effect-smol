@@ -75,17 +75,18 @@ export const Scheduler: ServiceMap.Reference<Scheduler> = ServiceMap.Reference<S
   defaultValue: () => new MixedScheduler()
 })
 
-const setImmediate = "setImmediate" in globalThis
-  ? (f: () => void) => {
-    // @ts-ignore
-    const timer = globalThis.setImmediate(f)
-    // @ts-ignore
-    return (): void => globalThis.clearImmediate(timer)
-  }
-  : (f: () => void) => {
-    const timer = setTimeout(f, 0)
-    return (): void => clearTimeout(timer)
-  }
+const setImmediate =
+  "setImmediate" in globalThis
+    ? (f: () => void) => {
+        // @ts-ignore
+        const timer = globalThis.setImmediate(f)
+        // @ts-ignore
+        return (): void => globalThis.clearImmediate(timer)
+      }
+    : (f: () => void) => {
+        const timer = setTimeout(f, 0)
+        return (): void => clearTimeout(timer)
+      }
 
 /**
  * The default scheduler implementation that provides efficient task scheduling
@@ -135,10 +136,7 @@ export class MixedScheduler implements Scheduler {
   readonly executionMode: "sync" | "async"
   readonly setImmediate: (f: () => void) => () => void
 
-  constructor(
-    executionMode: "sync" | "async" = "async",
-    setImmediateFn: (f: () => void) => () => void = setImmediate
-  ) {
+  constructor(executionMode: "sync" | "async" = "async", setImmediateFn: (f: () => void) => () => void = setImmediate) {
     this.executionMode = executionMode
     this.setImmediate = setImmediateFn
   }

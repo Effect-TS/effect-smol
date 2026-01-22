@@ -55,8 +55,9 @@ export const Random = ServiceMap.Reference<{
 }>("effect/Random", {
   defaultValue: () => ({
     nextIntUnsafe() {
-      return Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) +
-        Number.MIN_SAFE_INTEGER
+      return (
+        Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) + Number.MIN_SAFE_INTEGER
+      )
     },
     nextDoubleUnsafe() {
       return Math.random()
@@ -64,7 +65,7 @@ export const Random = ServiceMap.Reference<{
   })
 })
 
-const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effect<A> =>
+const randomWith = <A>(f: (random: (typeof Random)["Service"]) => A): Effect.Effect<A> =>
   Effect.withFiber((fiber) => Effect.succeed(f(ServiceMap.get(fiber.services, Random))))
 
 /**
@@ -145,9 +146,13 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const nextIntBetween = (min: number, max: number, options?: {
-  readonly halfOpen?: boolean
-}): Effect.Effect<number> => {
+export const nextIntBetween = (
+  min: number,
+  max: number,
+  options?: {
+    readonly halfOpen?: boolean
+  }
+): Effect.Effect<number> => {
   const extra = options?.halfOpen === true ? 0 : 1
   return randomWith((r) => {
     const minInt = Math.ceil(min)
@@ -177,14 +182,14 @@ export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
   const bytes: Array<number> = []
   for (let i = 0; i < 16; i++) {
     // Get unsigned byte [0, 255] from nextInt (signed 32-bit)
-    bytes.push((r.nextIntUnsafe() >>> 0) & 0xFF)
+    bytes.push((r.nextIntUnsafe() >>> 0) & 0xff)
   }
 
   // Set version to 4 (bits 12-15 of time_hi_and_version)
-  bytes[6] = (bytes[6] & 0x0F) | 0x40
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
 
   // Set variant to RFC 4122 (bits 6-7 of clock_seq_hi_and_reserved)
-  bytes[8] = (bytes[8] & 0x3F) | 0x80
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
 
   // Format as UUID string: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
   const hex = (n: number) => n.toString(16).padStart(2, "0")
@@ -229,10 +234,9 @@ export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
 export const withSeed: {
   (seed: string | number): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <A, E, R>(self: Effect.Effect<A, E, R>, seed: string | number): Effect.Effect<A, E, R>
-} = dual(2, <A, E, R>(
-  self: Effect.Effect<A, E, R>,
-  seed: string | number
-) => Effect.provideService(self, Random, ISAAC_CSPRNG(seed)))
+} = dual(2, <A, E, R>(self: Effect.Effect<A, E, R>, seed: string | number) =>
+  Effect.provideService(self, Random, ISAAC_CSPRNG(seed))
+)
 
 /*///////////////////////////////////////////////////////////////////////////////////////////////////
 This is a derivative work copyright (c) 2025 Effectful Technologies Inc, under MIT license.
@@ -453,18 +457,18 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
     const low = nextInt32() >>> 0 // [0, 2^32-1]
 
     // Get 21 more bits for a total of 53
-    const high = nextInt32() & 0x1FFFFF // [0, 2^21-1]
+    const high = nextInt32() & 0x1fffff // [0, 2^21-1]
 
     // Combine: high bits * 2^32 + low bits, then shift to signed range
     // This gives [0, 2^53-1], subtract 2^52 to center around 0
-    return (high * 0x100000000) + low - 0x10000000000000
+    return high * 0x100000000 + low - 0x10000000000000
   }
 
   /**
    * Returns a 53-bit fraction in the range [0, 1).
    */
   function nextDoubleUnsafe(): number {
-    const hi = (nextInt32() >>> 0) & 0x1FFFFF // take top 21 bits
+    const hi = (nextInt32() >>> 0) & 0x1fffff // take top 21 bits
     const lo = nextInt32() >>> 0 // full 32 bits
 
     // 53-bit integer
@@ -542,7 +546,7 @@ function toIntArray(seed: string): Array<number> {
     } //
     // 0xd800 - 0xdfff: Surrogate pairs, four byte UTF-8: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
     // Example: '𐍈' (U+10348, surrogates 0xD800 0xDF48) -> [0xF0, 0x90, 0x8D, 0x88]
-    else if (((c1 & 0xfc00) == 0xd800) && ((c2 & 0xfc00) == 0xdc00)) {
+    else if ((c1 & 0xfc00) == 0xd800 && (c2 & 0xfc00) == 0xdc00) {
       // Decode surrogate pair: combine 10 bits from each + 0x10000
       // ((0xDF48 & 0x3f) | ((0xD800 & 0x3f) << 10)) + 0x10000 = 0x10348
       unicode = ((c2 & 0x3f) | ((c1 & 0x3f) << 10)) + 0x10000

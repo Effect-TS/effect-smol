@@ -35,9 +35,7 @@ describe("NonEmptyArray", () => {
 
   it("mutable", () => {
     const schema = Schema.mutable(Schema.NonEmptyArray(Schema.FiniteFromString))
-    expect(Schema.revealCodec(schema)).type.toBe<
-      Schema.Codec<[number, ...Array<number>], [string, ...Array<string>]>
-    >()
+    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<[number, ...Array<number>], [string, ...Array<string>]>>()
     expect(schema).type.toBe<Schema.mutable<Schema.NonEmptyArray<typeof Schema.FiniteFromString>>>()
     expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.NonEmptyArray<typeof Schema.FiniteFromString>>>()
 

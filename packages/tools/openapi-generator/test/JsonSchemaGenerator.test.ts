@@ -34,23 +34,20 @@ export const A = B
     generator.addSchema("A", { $ref: "#/components/schemas/B" })
     const definitions = {
       B: {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
+        type: "object",
+        properties: {
+          name: {
+            type: "string"
           },
-          "children": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/B"
+          children: {
+            type: "array",
+            items: {
+              $ref: "#/components/schemas/B"
             }
           }
         },
-        "required": [
-          "name",
-          "children"
-        ],
-        "additionalProperties": false
+        required: ["name", "children"],
+        additionalProperties: false
       }
     }
     const result = generator.generate("openapi-3.1", definitions, false)

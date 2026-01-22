@@ -282,11 +282,7 @@ export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.back
  */
 export const values = <K, V>(self: MutableHashMap<K, V>): Iterable<V> => self.backing.values()
 
-const getFromBucket = <K, V>(
-  self: MutableHashMap<K, V>,
-  bucket: NonEmptyArray<K>,
-  key: K
-): Option.Option<V> => {
+const getFromBucket = <K, V>(self: MutableHashMap<K, V>, bucket: NonEmptyArray<K>, key: K): Option.Option<V> => {
   for (let i = 0, len = bucket.length; i < len; i++) {
     if (Equal.equals(key, bucket[i])) {
       const refKey = bucket[i]
@@ -389,10 +385,7 @@ export const set: {
   return self
 })
 
-const getRefKey = <K>(
-  bucket: NonEmptyArray<K>,
-  key: K
-) => {
+const getRefKey = <K>(bucket: NonEmptyArray<K>, key: K) => {
   for (let i = 0, len = bucket.length; i < len; i++) {
     if (Equal.equals(key, bucket[i])) {
       referentialKeysCache.set(key, bucket[i])
@@ -518,11 +511,7 @@ export const modifyAt: {
     key: K,
     f: (value: Option.Option<V>) => Option.Option<V>
   ) => (self: MutableHashMap<K, V>) => MutableHashMap<K, V>,
-  <K, V>(
-    self: MutableHashMap<K, V>,
-    key: K,
-    f: (value: Option.Option<V>) => Option.Option<V>
-  ) => MutableHashMap<K, V>
+  <K, V>(self: MutableHashMap<K, V>, key: K, f: (value: Option.Option<V>) => Option.Option<V>) => MutableHashMap<K, V>
 >(3, (self, key, f) => {
   const current = get(self, key)
   const result = f(current)

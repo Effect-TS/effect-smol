@@ -15,17 +15,16 @@ describe("Http/App", () => {
     })
 
     test("cookies", async () => {
-      const handler = HttpEffect.toWebHandler(Effect.succeed(
-        HttpServerResponse.jsonUnsafe({ foo: "bar" }).pipe(
-          HttpServerResponse.setCookieUnsafe("foo", "bar"),
-          HttpServerResponse.setCookieUnsafe("test", "123", { secure: true, httpOnly: true, sameSite: "strict" })
+      const handler = HttpEffect.toWebHandler(
+        Effect.succeed(
+          HttpServerResponse.jsonUnsafe({ foo: "bar" }).pipe(
+            HttpServerResponse.setCookieUnsafe("foo", "bar"),
+            HttpServerResponse.setCookieUnsafe("test", "123", { secure: true, httpOnly: true, sameSite: "strict" })
+          )
         )
-      ))
+      )
       const response = await handler(new Request("http://localhost:3000/"))
-      deepStrictEqual(response.headers.getSetCookie(), [
-        "foo=bar",
-        "test=123; HttpOnly; Secure; SameSite=Strict"
-      ])
+      deepStrictEqual(response.headers.getSetCookie(), ["foo=bar", "test=123; HttpOnly; Secure; SameSite=Strict"])
       deepStrictEqual(await response.json(), {
         foo: "bar"
       })
@@ -43,46 +42,48 @@ describe("Http/App", () => {
       let order = 0
       let streamFinalized = 0
       let handlerFinalized = 0
-      const handler = HttpEffect.toWebHandler(Effect.gen(function*() {
-        yield* Effect.addFinalizer(() =>
-          Effect.sync(() => {
-            handlerFinalized = order
-            order += 1
-          })
-        )
-        const stream = Stream.make("foo", "bar").pipe(
-          Stream.encodeText,
-          Stream.ensuring(Effect.sync(() => {
-            streamFinalized = order
-            order += 1
-          }))
-        )
-        return HttpServerResponse.stream(stream)
-      }))
+      const handler = HttpEffect.toWebHandler(
+        Effect.gen(function* () {
+          yield* Effect.addFinalizer(() =>
+            Effect.sync(() => {
+              handlerFinalized = order
+              order += 1
+            })
+          )
+          const stream = Stream.make("foo", "bar").pipe(
+            Stream.encodeText,
+            Stream.ensuring(
+              Effect.sync(() => {
+                streamFinalized = order
+                order += 1
+              })
+            )
+          )
+          return HttpServerResponse.stream(stream)
+        })
+      )
       const response = await handler(new Request("http://localhost:3000/"))
       strictEqual(await response.text(), "foobar")
       strictEqual(streamFinalized < handlerFinalized, true)
     })
 
     test("stream runtime", async () => {
-      const handler = Effect.succeed(HttpServerResponse.stream(
-        Stream.fromEffect(References.CurrentConcurrency.asEffect()).pipe(Stream.map(String), Stream.encodeText)
-      )).pipe(
-        HttpEffect.toWebHandlerWith(References.CurrentConcurrency.serviceMap(420))
-      )
+      const handler = Effect.succeed(
+        HttpServerResponse.stream(
+          Stream.fromEffect(References.CurrentConcurrency.asEffect()).pipe(Stream.map(String), Stream.encodeText)
+        )
+      ).pipe(HttpEffect.toWebHandlerWith(References.CurrentConcurrency.serviceMap(420)))
       const response = await handler(new Request("http://localhost:3000/"))
       strictEqual(await response.text(), "420")
     })
 
     test("stream layer", async () => {
       const { handler } = HttpEffect.toWebHandlerLayer(
-        Effect.succeed(HttpServerResponse.stream(
-          References.CurrentConcurrency.asEffect().pipe(
-            Stream.fromEffect,
-            Stream.map(String),
-            Stream.encodeText
+        Effect.succeed(
+          HttpServerResponse.stream(
+            References.CurrentConcurrency.asEffect().pipe(Stream.fromEffect, Stream.map(String), Stream.encodeText)
           )
-        )),
+        ),
         Layer.succeed(References.CurrentConcurrency, 420)
       )
       const response = await handler(new Request("http://localhost:3000/"))
@@ -94,10 +95,12 @@ describe("Http/App", () => {
     const Env = ServiceMap.Reference<{ foo: string }>("Env", {
       defaultValue: () => ({ foo: "bar" })
     })
-    const handler = HttpEffect.toWebHandler(Effect.gen(function*() {
-      const env = yield* Env
-      return yield* HttpServerResponse.json(env)
-    }))
+    const handler = HttpEffect.toWebHandler(
+      Effect.gen(function* () {
+        const env = yield* Env
+        return yield* HttpServerResponse.json(env)
+      })
+    )
     const response = await handler(new Request("http://localhost:3000/"), Env.serviceMap({ foo: "baz" }))
     deepStrictEqual(await response.json(), {
       foo: "baz"
@@ -150,7 +153,7 @@ describe("Http/App", () => {
       const response = await handler(
         new Request("http://localhost:3000/", {
           headers: {
-            "Authorization": "Bearer token123",
+            Authorization: "Bearer token123",
             "X-Custom-Header": "custom-value"
           }
         })

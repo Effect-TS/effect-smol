@@ -22,10 +22,7 @@ export interface Connection {
    * Execute the specified SQL query and return the raw results directly from
    * underlying SQL client.
    */
-  readonly executeRaw: (
-    sql: string,
-    params: ReadonlyArray<unknown>
-  ) => Effect<unknown, SqlError>
+  readonly executeRaw: (sql: string, params: ReadonlyArray<unknown>) => Effect<unknown, SqlError>
 
   readonly executeStream: (
     sql: string,

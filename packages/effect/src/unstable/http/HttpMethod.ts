@@ -6,14 +6,7 @@
  * @since 4.0.0
  * @category models
  */
-export type HttpMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "DELETE"
-  | "PATCH"
-  | "HEAD"
-  | "OPTIONS"
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS"
 
 /**
  * @since 4.0.0

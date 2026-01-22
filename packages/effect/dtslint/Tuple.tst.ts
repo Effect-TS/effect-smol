@@ -73,22 +73,12 @@ describe("Tuple", () => {
     expect(pipe(tuple, Tuple.evolve([(s) => s.length]))).type.toBe<[number, number, boolean]>()
     expect(Tuple.evolve(tuple, [(s) => s.length] as const)).type.toBe<[number, number, boolean]>()
 
-    expect(pipe(
-      tuple,
-      Tuple.evolve([
-        (s) => s.length,
-        undefined,
-        (b) => `b: ${b}`
-      ])
-    )).type.toBe<[number, number, string]>()
-    expect(Tuple.evolve(
-      tuple,
-      [
-        (s) => s.length,
-        undefined,
-        (b) => `b: ${b}`
-      ] as const
-    )).type.toBe<[number, number, string]>()
+    expect(pipe(tuple, Tuple.evolve([(s) => s.length, undefined, (b) => `b: ${b}`]))).type.toBe<
+      [number, number, string]
+    >()
+    expect(Tuple.evolve(tuple, [(s) => s.length, undefined, (b) => `b: ${b}`] as const)).type.toBe<
+      [number, number, string]
+    >()
   })
 
   describe("renameIndices", () => {
@@ -111,47 +101,27 @@ describe("Tuple", () => {
   it("map", () => {
     const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
     expect(pipe(tuple, Tuple.map(Schema.NullOr))).type.toBe<
-      readonly [
-        Schema.NullOr<Schema.String>,
-        Schema.NullOr<Schema.Number>,
-        Schema.NullOr<Schema.Boolean>
-      ]
+      readonly [Schema.NullOr<Schema.String>, Schema.NullOr<Schema.Number>, Schema.NullOr<Schema.Boolean>]
     >()
     expect(Tuple.map(tuple, Schema.NullOr)).type.toBe<
-      readonly [
-        Schema.NullOr<Schema.String>,
-        Schema.NullOr<Schema.Number>,
-        Schema.NullOr<Schema.Boolean>
-      ]
+      readonly [Schema.NullOr<Schema.String>, Schema.NullOr<Schema.Number>, Schema.NullOr<Schema.Boolean>]
     >()
   })
 
   it("mapPick", () => {
     const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
     expect(pipe(tuple, Tuple.mapPick([0, 2], Schema.NullOr))).type.toBe<
-      readonly [
-        Schema.NullOr<Schema.String>,
-        Schema.Number,
-        Schema.NullOr<Schema.Boolean>
-      ]
+      readonly [Schema.NullOr<Schema.String>, Schema.Number, Schema.NullOr<Schema.Boolean>]
     >()
     expect(Tuple.mapPick(tuple, [0, 2], Schema.NullOr)).type.toBe<
-      readonly [
-        Schema.NullOr<Schema.String>,
-        Schema.Number,
-        Schema.NullOr<Schema.Boolean>
-      ]
+      readonly [Schema.NullOr<Schema.String>, Schema.Number, Schema.NullOr<Schema.Boolean>]
     >()
   })
 
   it("makeReducer", () => {
-    expect(Tuple.makeReducer([
-      Number.ReducerSum,
-      Str.ReducerConcat
-    ])).type.toBe<Reducer.Reducer<[number, string]>>()
-    expect(Tuple.makeReducer<readonly [number, string]>([
-      Number.ReducerSum,
-      Str.ReducerConcat
-    ])).type.toBe<Reducer.Reducer<readonly [number, string]>>()
+    expect(Tuple.makeReducer([Number.ReducerSum, Str.ReducerConcat])).type.toBe<Reducer.Reducer<[number, string]>>()
+    expect(Tuple.makeReducer<readonly [number, string]>([Number.ReducerSum, Str.ReducerConcat])).type.toBe<
+      Reducer.Reducer<readonly [number, string]>
+    >()
   })
 })

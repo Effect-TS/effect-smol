@@ -108,7 +108,9 @@ export interface Stream<out A, out E = never, out R = never> extends Variance<A,
  * @category models
  */
 export interface StreamUnify<A extends { [Unify.typeSymbol]?: any }> extends Effect.EffectUnify<A> {
-  Stream?: () => A[Unify.typeSymbol] extends Stream<infer A0, infer E0, infer R0> | infer _ ? Stream<A0, E0, R0> : never
+  Stream?: () => A[Unify.typeSymbol] extends Stream<infer A0, infer E0, infer R0> | (infer _)
+    ? Stream<A0, E0, R0>
+    : never
 }
 
 /**
@@ -225,8 +227,7 @@ export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _
  * @since 3.4.0
  * @category type-level
  */
-export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R
-  : never
+export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R : never
 
 /**
  * Checks if a value is a Stream.
@@ -337,25 +338,27 @@ export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
   effect: Effect.Effect<A, E, R>,
   schedule: Schedule.Schedule<X, AS, ES, RS>
 ): Stream<A, E | ES, R | RS> =>
-  fromPull(Effect.gen(function*() {
-    const step = yield* Schedule.toStepWithMetadata(schedule)
-    let s = yield* Effect.provideService(effect, Schedule.CurrentMetadata, Schedule.CurrentMetadata.defaultValue())
-    let initial = true
-    const pull = Effect.suspend(() => step(s as AS)).pipe(
-      Effect.flatMap((meta) => Effect.provideService(effect, Schedule.CurrentMetadata, meta)),
-      Effect.map((next) => {
-        s = next
-        return Arr.of(next)
+  fromPull(
+    Effect.gen(function* () {
+      const step = yield* Schedule.toStepWithMetadata(schedule)
+      let s = yield* Effect.provideService(effect, Schedule.CurrentMetadata, Schedule.CurrentMetadata.defaultValue())
+      let initial = true
+      const pull = Effect.suspend(() => step(s as AS)).pipe(
+        Effect.flatMap((meta) => Effect.provideService(effect, Schedule.CurrentMetadata, meta)),
+        Effect.map((next) => {
+          s = next
+          return Arr.of(next)
+        })
+      ) as Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | ES, void, R | RS>
+      return Effect.suspend(() => {
+        if (initial) {
+          initial = false
+          return Effect.succeed(Arr.of(s))
+        }
+        return pull
       })
-    ) as Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | ES, void, R | RS>
-    return Effect.suspend(() => {
-      if (initial) {
-        initial = false
-        return Effect.succeed(Arr.of(s))
-      }
-      return pull
     })
-  }))
+  )
 
 /**
  * A stream that emits void values spaced by the specified duration.
@@ -364,18 +367,20 @@ export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
  * @category constructors
  */
 export const tick = (interval: Duration.DurationInput): Stream<void> =>
-  fromPull(Effect.sync(() => {
-    let first = true
-    const effect = Effect.succeed(Arr.of<void>(undefined))
-    const delayed = Effect.delay(effect, interval)
-    return Effect.suspend(() => {
-      if (first) {
-        first = false
-        return effect
-      }
-      return delayed
+  fromPull(
+    Effect.sync(() => {
+      let first = true
+      const effect = Effect.succeed(Arr.of<void>(undefined))
+      const delayed = Effect.delay(effect, interval)
+      return Effect.suspend(() => {
+        if (first) {
+          first = false
+          return effect
+        }
+        return delayed
+      })
     })
-  }))
+  )
 
 /**
  * Creates a stream from a pull effect.
@@ -420,11 +425,10 @@ export const fromPull = <A, E, R, EX, RX>(
  */
 export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
   self: Stream<A, E, R>,
-  f: (pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void>, scope: Scope.Scope) => Effect.Effect<
-    Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E2, void, R2>,
-    EX,
-    RX
-  >
+  f: (
+    pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void>,
+    scope: Scope.Scope
+  ) => Effect.Effect<Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E2, void, R2>, EX, RX>
 ): Stream<B, EX | Pull.ExcludeDone<E2>, R | R2 | RX> =>
   fromChannel(
     Channel.fromTransform((_, scope) =>
@@ -447,11 +451,7 @@ export const transformPullBracket = <A, E, R, B, E2, R2, EX, RX>(
     pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R>,
     scope: Scope.Scope,
     forkedScope: Scope.Scope
-  ) => Effect.Effect<
-    Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E2, void, R2>,
-    EX,
-    RX
-  >
+  ) => Effect.Effect<Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E2, void, R2>, EX, RX>
 ): Stream<B, EX | Pull.ExcludeDone<E2>, R | R2 | RX> =>
   fromChannel(
     Channel.fromTransformBracket((_, scope, forkedScope) =>
@@ -766,9 +766,7 @@ export const fromIteratorSucceed = <A>(iterator: IterableIterator<A>, maxChunkSi
  * @category constructors
  */
 export const fromIterable = <A>(iterable: Iterable<A>): Stream<A> =>
-  Array.isArray(iterable)
-    ? fromArray(iterable)
-    : fromChannel(Channel.fromIterableArray(iterable))
+  Array.isArray(iterable) ? fromArray(iterable) : fromChannel(Channel.fromIterableArray(iterable))
 
 /**
  * Creates a new `Stream` from an effect that produces an iterable collection of
@@ -933,29 +931,29 @@ export const fromPubSubTake = <A, E>(pubsub: PubSub.PubSub<Take.Take<A, E>>): St
  * @since 2.0.0
  * @category constructors
  */
-export const fromReadableStream = <A, E>(
-  options: {
-    readonly evaluate: LazyArg<ReadableStream<A>>
-    readonly onError: (error: unknown) => E
-    readonly releaseLockOnEnd?: boolean | undefined
-  }
-): Stream<A, E> =>
-  fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
-    const reader = options.evaluate().getReader()
-    yield* Scope.addFinalizer(
-      scope,
-      options.releaseLockOnEnd
-        ? Effect.sync(() => reader.releaseLock())
-        : Effect.promise(() => reader.cancel())
+export const fromReadableStream = <A, E>(options: {
+  readonly evaluate: LazyArg<ReadableStream<A>>
+  readonly onError: (error: unknown) => E
+  readonly releaseLockOnEnd?: boolean | undefined
+}): Stream<A, E> =>
+  fromChannel(
+    Channel.fromTransform(
+      Effect.fnUntraced(function* (_, scope) {
+        const reader = options.evaluate().getReader()
+        yield* Scope.addFinalizer(
+          scope,
+          options.releaseLockOnEnd ? Effect.sync(() => reader.releaseLock()) : Effect.promise(() => reader.cancel())
+        )
+        return Effect.flatMap(
+          Effect.tryPromise({
+            try: () => reader.read(),
+            catch: (reason) => options.onError(reason)
+          }),
+          ({ done, value }) => (done ? Cause.done() : Effect.succeed(Arr.of(value)))
+        )
+      })
     )
-    return Effect.flatMap(
-      Effect.tryPromise({
-        try: () => reader.read(),
-        catch: (reason) => options.onError(reason)
-      }),
-      ({ done, value }) => done ? Cause.done() : Effect.succeed(Arr.of(value))
-    )
-  })))
+  )
 
 /**
  * Creates a stream from an AsyncIterable.
@@ -963,10 +961,8 @@ export const fromReadableStream = <A, E>(
  * @since 2.0.0
  * @category constructors
  */
-export const fromAsyncIterable = <A, E>(
-  iterable: AsyncIterable<A>,
-  onError: (error: unknown) => E
-): Stream<A, E> => fromChannel(Channel.fromAsyncIterableArray(iterable, onError))
+export const fromAsyncIterable = <A, E>(iterable: AsyncIterable<A>, onError: (error: unknown) => E): Stream<A, E> =>
+  fromChannel(Channel.fromAsyncIterableArray(iterable, onError))
 
 /**
  * Creates a stream from a Schedule.
@@ -976,9 +972,8 @@ export const fromAsyncIterable = <A, E>(
  */
 export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E, R>): Stream<O, E, R> =>
   fromPull(
-    Effect.map(
-      Schedule.toStepWithSleep(schedule),
-      (step) => Pull.catchDone(Effect.map(step(void 0), Arr.of), () => Cause.done())
+    Effect.map(Schedule.toStepWithSleep(schedule), (step) =>
+      Pull.catchDone(Effect.map(step(void 0), Arr.of), () => Cause.done())
     )
   )
 
@@ -1028,19 +1023,23 @@ export interface EventListener<A> {
   addEventListener(
     event: string,
     f: (event: A) => void,
-    options?: {
-      readonly capture?: boolean
-      readonly passive?: boolean
-      readonly once?: boolean
-      readonly signal?: AbortSignal
-    } | boolean
+    options?:
+      | {
+          readonly capture?: boolean
+          readonly passive?: boolean
+          readonly once?: boolean
+          readonly signal?: AbortSignal
+        }
+      | boolean
   ): void
   removeEventListener(
     event: string,
     f: (event: A) => void,
-    options?: {
-      readonly capture?: boolean
-    } | boolean
+    options?:
+      | {
+          readonly capture?: boolean
+        }
+      | boolean
   ): void
 }
 
@@ -1066,22 +1065,28 @@ export interface EventListener<A> {
 export const fromEventListener = <A = unknown>(
   target: EventListener<A>,
   type: string,
-  options?: boolean | {
-    readonly capture?: boolean
-    readonly passive?: boolean
-    readonly once?: boolean
-    readonly bufferSize?: number | undefined
-  } | undefined
+  options?:
+    | boolean
+    | {
+        readonly capture?: boolean
+        readonly passive?: boolean
+        readonly once?: boolean
+        readonly bufferSize?: number | undefined
+      }
+    | undefined
 ): Stream<A> =>
-  callback<A>((queue) => {
-    function emit(event: A) {
-      Queue.offerUnsafe(queue, event)
-    }
-    return Effect.acquireRelease(
-      Effect.sync(() => target.addEventListener(type, emit, options)),
-      () => Effect.sync(() => target.removeEventListener(type, emit, options))
-    )
-  }, { bufferSize: typeof options === "object" ? options.bufferSize : undefined })
+  callback<A>(
+    (queue) => {
+      function emit(event: A) {
+        Queue.offerUnsafe(queue, event)
+      }
+      return Effect.acquireRelease(
+        Effect.sync(() => target.addEventListener(type, emit, options)),
+        () => Effect.sync(() => target.removeEventListener(type, emit, options))
+      )
+    },
+    { bufferSize: typeof options === "object" ? options.bufferSize : undefined }
+  )
 
 /**
  * Creates a stream by peeling off the "layers" of a value of type `S`.
@@ -1105,14 +1110,19 @@ export const unfold = <S, A, E, R>(
   s: S,
   f: (s: S) => Effect.Effect<readonly [A, S] | undefined, E, R>
 ): Stream<A, E, R> =>
-  fromPull(Effect.sync(() => {
-    let state = s
-    return Effect.flatMap(Effect.suspend(() => f(state)), (next) => {
-      if (next === undefined) return Cause.done()
-      state = next[1]
-      return Effect.succeed(Arr.of(next[0]))
+  fromPull(
+    Effect.sync(() => {
+      let state = s
+      return Effect.flatMap(
+        Effect.suspend(() => f(state)),
+        (next) => {
+          if (next === undefined) return Cause.done()
+          state = next[1]
+          return Effect.succeed(Arr.of(next[0]))
+        }
+      )
     })
-  }))
+  )
 
 /**
  * Create a stream that allows you to wrap a paginated resource.
@@ -1144,23 +1154,25 @@ export const paginate = <S, A, E = never, R = never>(
     | Effect.Effect<readonly [ReadonlyArray<A>, Option.Option<S>], E, R>
     | readonly [ReadonlyArray<A>, Option.Option<S>]
 ): Stream<A, E, R> =>
-  fromPull(Effect.sync(() => {
-    let state = s
-    let done = false
-    return Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> {
-      if (done) return Cause.done()
-      const result = f(state)
-      return Effect.flatMap(Effect.isEffect(result) ? result : Effect.succeed(result), ([a, s]) => {
-        if (Option.isNone(s)) {
-          done = true
-        } else {
-          state = s.value
-        }
-        if (!Arr.isReadonlyArrayNonEmpty(a)) return loop()
-        return Effect.succeed(a)
+  fromPull(
+    Effect.sync(() => {
+      let state = s
+      let done = false
+      return Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> {
+        if (done) return Cause.done()
+        const result = f(state)
+        return Effect.flatMap(Effect.isEffect(result) ? result : Effect.succeed(result), ([a, s]) => {
+          if (Option.isNone(s)) {
+            done = true
+          } else {
+            state = s.value
+          }
+          if (!Arr.isReadonlyArrayNonEmpty(a)) return loop()
+          return Effect.succeed(a)
+        })
       })
     })
-  }))
+  )
 
 /**
  * The infinite stream of iterative function application: a, f(a), f(f(a)),
@@ -1204,27 +1216,27 @@ export const iterate = <A>(value: A, next: (value: A) => A): Stream<A> =>
  * @since 4.0.0
  * @category constructors
  */
-export const range = (
-  min: number,
-  max: number,
-  chunkSize = Channel.DefaultChunkSize
-): Stream<number> =>
-  min > max ? empty : fromPull(Effect.sync(() => {
-    let start = min
-    let done = false
-    return Effect.suspend(() => {
-      if (done) return Cause.done()
-      const remaining = max - start + 1
-      if (remaining > chunkSize) {
-        const chunk = Arr.range(start, start + chunkSize - 1)
-        start += chunkSize
-        return Effect.succeed(chunk)
-      }
-      const chunk = Arr.range(start, start + remaining - 1)
-      done = true
-      return Effect.succeed(chunk)
-    })
-  }))
+export const range = (min: number, max: number, chunkSize = Channel.DefaultChunkSize): Stream<number> =>
+  min > max
+    ? empty
+    : fromPull(
+        Effect.sync(() => {
+          let start = min
+          let done = false
+          return Effect.suspend(() => {
+            if (done) return Cause.done()
+            const remaining = max - start + 1
+            if (remaining > chunkSize) {
+              const chunk = Arr.range(start, start + chunkSize - 1)
+              start += chunkSize
+              return Effect.succeed(chunk)
+            }
+            const chunk = Arr.range(start, start + remaining - 1)
+            done = true
+            return Effect.succeed(chunk)
+          })
+        })
+      )
 
 /**
  * Creates a `Stream` that runs forever but never emits an output.
@@ -1273,9 +1285,8 @@ export const unwrap = <A, E2, R2, E, R>(
  * @since 2.0.0
  * @category utils
  */
-export const scoped = <A, E, R>(
-  self: Stream<A, E, R>
-): Stream<A, E, Exclude<R, Scope.Scope>> => fromChannel(Channel.scoped(self.channel))
+export const scoped = <A, E, R>(self: Stream<A, E, R>): Stream<A, E, Exclude<R, Scope.Scope>> =>
+  fromChannel(Channel.scoped(self.channel))
 
 /**
  * Transforms the elements of this stream using the supplied function.
@@ -1296,14 +1307,19 @@ export const scoped = <A, E, R>(
 export const map: {
   <A, B>(f: (a: A, i: number) => B): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
   <A, E, R, B>(self: Stream<A, E, R>, f: (a: A, i: number) => B): Stream<B, E, R>
-} = dual(2, <A, E, R, B>(self: Stream<A, E, R>, f: (a: A, i: number) => B): Stream<B, E, R> =>
-  suspend(() => {
-    let i = 0
-    return fromChannel(Channel.map(
-      self.channel,
-      Arr.map((o) => f(o, i++))
-    ))
-  }))
+} = dual(
+  2,
+  <A, E, R, B>(self: Stream<A, E, R>, f: (a: A, i: number) => B): Stream<B, E, R> =>
+    suspend(() => {
+      let i = 0
+      return fromChannel(
+        Channel.map(
+          self.channel,
+          Arr.map((o) => f(o, i++))
+        )
+      )
+    })
+)
 
 /**
  * Returns a stream whose failure and success channels have been mapped by the
@@ -1313,21 +1329,21 @@ export const map: {
  * @category utils
  */
 export const mapBoth: {
-  <E, E2, A, A2>(
-    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
-  ): <R>(self: Stream<A, E, R>) => Stream<A2, E2, R>
+  <E, E2, A, A2>(options: {
+    readonly onFailure: (e: E) => E2
+    readonly onSuccess: (a: A) => A2
+  }): <R>(self: Stream<A, E, R>) => Stream<A2, E2, R>
   <A, E, R, E2, A2>(
     self: Stream<A, E, R>,
     options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
   ): Stream<A2, E2, R>
-} = dual(2, <A, E, R, E2, A2>(
-  self: Stream<A, E, R>,
-  options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
-): Stream<A2, E2, R> =>
-  self.pipe(
-    map(options.onSuccess),
-    mapError(options.onFailure)
-  ))
+} = dual(
+  2,
+  <A, E, R, E2, A2>(
+    self: Stream<A, E, R>,
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): Stream<A2, E2, R> => self.pipe(map(options.onSuccess), mapError(options.onFailure))
+)
 
 /**
  * **Previously Known As**
@@ -1347,10 +1363,13 @@ export const mapArray: {
     self: Stream<A, E, R>,
     f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Arr.NonEmptyReadonlyArray<B>
   ): Stream<B, E, R>
-} = dual(2, <A, E, R, B>(
-  self: Stream<A, E, R>,
-  f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Arr.NonEmptyReadonlyArray<B>
-): Stream<B, E, R> => fromChannel(Channel.map(self.channel, f)))
+} = dual(
+  2,
+  <A, E, R, B>(
+    self: Stream<A, E, R>,
+    f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Arr.NonEmptyReadonlyArray<B>
+  ): Stream<B, E, R> => fromChannel(Channel.map(self.channel, f))
+)
 
 /**
  * Maps over elements of the stream with the specified effectful function.
@@ -1382,33 +1401,37 @@ export const mapArray: {
 export const mapEffect: {
   <A, A2, E2, R2>(
     f: (a: A, i: number) => Effect.Effect<A2, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly unordered?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly unordered?: boolean | undefined
+        }
+      | undefined
   ): <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>
   <A, E, R, A2, E2, R2>(
     self: Stream<A, E, R>,
     f: (a: A, i: number) => Effect.Effect<A2, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly unordered?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly unordered?: boolean | undefined
+        }
+      | undefined
   ): Stream<A2, E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (a: A, i: number) => Effect.Effect<A2, E2, R2>,
-  options?: {
-    readonly concurrency?: number | "unbounded" | undefined
-    readonly unordered?: boolean | undefined
-  } | undefined
-): Stream<A2, E | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.flattenArray,
-    Channel.mapEffect(f, options),
-    Channel.map(Arr.of),
-    fromChannel
-  ))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: A, i: number) => Effect.Effect<A2, E2, R2>,
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly unordered?: boolean | undefined
+        }
+      | undefined
+  ): Stream<A2, E | E2, R | R2> =>
+    self.channel.pipe(Channel.flattenArray, Channel.mapEffect(f, options), Channel.map(Arr.of), fromChannel)
+)
 
 /**
  * @since 2.0.0
@@ -1416,25 +1439,34 @@ export const mapEffect: {
  */
 export const flattenEffect: {
   (
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly unordered?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly unordered?: boolean | undefined
+        }
+      | undefined
   ): <A, EX, RX, E, R>(self: Stream<Effect.Effect<A, EX, RX>, E, R>) => Stream<A, EX | E, RX | R>
   <A, E, R, EX, RX>(
     self: Stream<Effect.Effect<A, EX, RX>, E, R>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly unordered?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly unordered?: boolean | undefined
+        }
+      | undefined
   ): Stream<A, EX | E, RX | R>
-} = dual((args) => isStream(args[0]), <A, E, R, EX, RX>(
-  self: Stream<Effect.Effect<A, EX, RX>, E, R>,
-  options?: {
-    readonly concurrency?: number | "unbounded" | undefined
-    readonly unordered?: boolean | undefined
-  } | undefined
-): Stream<A, EX | E, RX | R> => mapEffect(self, identity, options))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, EX, RX>(
+    self: Stream<Effect.Effect<A, EX, RX>, E, R>,
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly unordered?: boolean | undefined
+        }
+      | undefined
+  ): Stream<A, EX | E, RX | R> => mapEffect(self, identity, options)
+)
 
 /**
  * **Previously Known As**
@@ -1454,10 +1486,13 @@ export const mapArrayEffect: {
     self: Stream<A, E, R>,
     f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
   ): Stream<B, E | E2, R | R2>
-} = dual(2, <A, E, R, B, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
-): Stream<B, E | E2, R | R2> => fromChannel(Channel.mapEffect(self.channel, f)))
+} = dual(
+  2,
+  <A, E, R, B, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
+  ): Stream<B, E | E2, R | R2> => fromChannel(Channel.mapEffect(self.channel, f))
+)
 
 /**
  * Returns a stream whose failures and successes have been lifted into an
@@ -1503,42 +1538,44 @@ export const result = <A, E, R>(self: Stream<A, E, R>): Stream<Result.Result<A, 
 export const tap: {
   <A, X, E2, R2>(
     f: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+        }
+      | undefined
   ): <E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
   <A, E, R, X, E2, R2>(
     self: Stream<A, E, R>,
     f: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+        }
+      | undefined
   ): Stream<A, E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, X, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>,
-  options?: {
-    readonly concurrency?: number | "unbounded" | undefined
-  } | undefined
-): Stream<A, E | E2, R | R2> =>
-  mapEffect(
-    self,
-    (a) => Effect.as(f(a), a),
-    options
-  ))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, X, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>,
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+        }
+      | undefined
+  ): Stream<A, E | E2, R | R2> => mapEffect(self, (a) => Effect.as(f(a), a), options)
+)
 
 /**
  * @since 2.0.0
  * @category sequencing
  */
 export const tapBoth: {
-  <A, E, X, E2, R2, Y, E3, R3>(
-    options: {
-      readonly onElement: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>
-      readonly onError: (a: NoInfer<E>) => Effect.Effect<Y, E3, R3>
-      readonly concurrency?: number | "unbounded" | undefined
-    }
-  ): <R>(self: Stream<A, E, R>) => Stream<A, E | E2 | E3, R | R2 | R3>
+  <A, E, X, E2, R2, Y, E3, R3>(options: {
+    readonly onElement: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>
+    readonly onError: (a: NoInfer<E>) => Effect.Effect<Y, E3, R3>
+    readonly concurrency?: number | "unbounded" | undefined
+  }): <R>(self: Stream<A, E, R>) => Stream<A, E | E2 | E3, R | R2 | R3>
   <A, E, R, X, E2, R2, Y, E3, R3>(
     self: Stream<A, E, R>,
     options: {
@@ -1547,18 +1584,18 @@ export const tapBoth: {
       readonly concurrency?: number | "unbounded" | undefined
     }
   ): Stream<A, E | E2 | E3, R | R2 | R3>
-} = dual(2, <A, E, R, X, E2, R2, Y, E3, R3>(
-  self: Stream<A, E, R>,
-  options: {
-    readonly onElement: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>
-    readonly onError: (a: NoInfer<E>) => Effect.Effect<Y, E3, R3>
-    readonly concurrency?: number | "unbounded" | undefined
-  }
-): Stream<A, E | E2 | E3, R | R2 | R3> =>
-  self.pipe(
-    tapError(options.onError),
-    tap(options.onElement, { concurrency: options.concurrency })
-  ))
+} = dual(
+  2,
+  <A, E, R, X, E2, R2, Y, E3, R3>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly onElement: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>
+      readonly onError: (a: NoInfer<E>) => Effect.Effect<Y, E3, R3>
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): Stream<A, E | E2 | E3, R | R2 | R3> =>
+    self.pipe(tapError(options.onError), tap(options.onElement, { concurrency: options.concurrency }))
+)
 
 /**
  * Sends all elements emitted by this stream to the specified sink in addition
@@ -1572,13 +1609,10 @@ export const tapSink: {
   <A, E, R, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<unknown, A, unknown, E2, R2>): Stream<A, E | E2, R | R2>
 } = dual(
   2,
-  <A, E, R, E2, R2>(
-    self: Stream<A, E, R>,
-    sink: Sink.Sink<unknown, A, unknown, E2, R2>
-  ): Stream<A, E | E2, R | R2> =>
+  <A, E, R, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<unknown, A, unknown, E2, R2>): Stream<A, E | E2, R | R2> =>
     transformPullBracket(
       self,
-      Effect.fnUntraced(function*(pull, _, scope) {
+      Effect.fnUntraced(function* (pull, _, scope) {
         const upstreamLatch = Effect.makeLatchUnsafe()
         const sinkLatch = Effect.makeLatchUnsafe()
         let chunk: Arr.NonEmptyReadonlyArray<A> | undefined = undefined
@@ -1586,15 +1620,17 @@ export const tapSink: {
         let sinkDone = false
         let streamDone = false
 
-        const sinkUpstream = upstreamLatch.whenOpen(Effect.suspend(() => {
-          if (chunk) {
-            const arr = chunk!
-            chunk = undefined
-            if (!streamDone) upstreamLatch.closeUnsafe()
-            return Effect.as(sinkLatch.open, arr)
-          }
-          return Cause.done()
-        }))
+        const sinkUpstream = upstreamLatch.whenOpen(
+          Effect.suspend(() => {
+            if (chunk) {
+              const arr = chunk!
+              chunk = undefined
+              if (!streamDone) upstreamLatch.closeUnsafe()
+              return Effect.as(sinkLatch.open, arr)
+            }
+            return Cause.done()
+          })
+        )
 
         yield* Effect.suspend(() => sink.transform(sinkUpstream, scope)).pipe(
           Effect.onExitInterruptible((exit) => {
@@ -1659,32 +1695,41 @@ export const tapSink: {
 export const flatMap: {
   <A, A2, E2, R2>(
     f: (a: A) => Stream<A2, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
   ): <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>
   <A, E, R, A2, E2, R2>(
     self: Stream<A, E, R>,
     f: (a: A) => Stream<A2, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
   ): Stream<A2, E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (a: A) => Stream<A2, E2, R2>,
-  options?: {
-    readonly concurrency?: number | "unbounded" | undefined
-    readonly bufferSize?: number | undefined
-  } | undefined
-): Stream<A2, E | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.flattenArray,
-    Channel.flatMap((a) => f(a).channel, options),
-    fromChannel
-  ))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: A) => Stream<A2, E2, R2>,
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
+  ): Stream<A2, E | E2, R | R2> =>
+    self.channel.pipe(
+      Channel.flattenArray,
+      Channel.flatMap((a) => f(a).channel, options),
+      fromChannel
+    )
+)
 
 /**
  * @since 4.0.0
@@ -1693,32 +1738,41 @@ export const flatMap: {
 export const switchMap: {
   <A, A2, E2, R2>(
     f: (a: A) => Stream<A2, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
   ): <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>
   <A, E, R, A2, E2, R2>(
     self: Stream<A, E, R>,
     f: (a: A) => Stream<A2, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
   ): Stream<A2, E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (a: A) => Stream<A2, E2, R2>,
-  options?: {
-    readonly concurrency?: number | "unbounded" | undefined
-    readonly bufferSize?: number | undefined
-  } | undefined
-): Stream<A2, E | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.flattenArray,
-    Channel.switchMap((a) => f(a).channel, options),
-    fromChannel
-  ))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: A) => Stream<A2, E2, R2>,
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
+  ): Stream<A2, E | E2, R | R2> =>
+    self.channel.pipe(
+      Channel.flattenArray,
+      Channel.switchMap((a) => f(a).channel, options),
+      fromChannel
+    )
+)
 
 /**
  * Flattens a stream of streams into a single stream.
@@ -1743,25 +1797,34 @@ export const switchMap: {
  */
 export const flatten: {
   (
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
   ): <A, E, R, E2, R2>(self: Stream<Stream<A, E, R>, E2, R2>) => Stream<A, E | E2, R | R2>
   <A, E, R, E2, R2>(
     self: Stream<Stream<A, E, R>, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
   ): Stream<A, E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, E2, R2>(
-  self: Stream<Stream<A, E, R>, E2, R2>,
-  options?: {
-    readonly concurrency?: number | "unbounded" | undefined
-    readonly bufferSize?: number | undefined
-  } | undefined
-): Stream<A, E | E2, R | R2> => flatMap(self, identity, options))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, E2, R2>(
+    self: Stream<Stream<A, E, R>, E2, R2>,
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
+  ): Stream<A, E | E2, R | R2> => flatMap(self, identity, options)
+)
 
 /**
  * Flattens a stream of non-empty arrays into a single stream.
@@ -1824,14 +1887,14 @@ export const repeat: {
   <B, E2, R2>(
     schedule: Schedule.Schedule<B, void, E2, R2>
   ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
+  <A, E, R, B, E2, R2>(self: Stream<A, E, R>, schedule: Schedule.Schedule<B, void, E2, R2>): Stream<A, E | E2, R | R2>
+} = dual(
+  2,
   <A, E, R, B, E2, R2>(
     self: Stream<A, E, R>,
     schedule: Schedule.Schedule<B, void, E2, R2>
-  ): Stream<A, E | E2, R | R2>
-} = dual(2, <A, E, R, B, E2, R2>(
-  self: Stream<A, E, R>,
-  schedule: Schedule.Schedule<B, void, E2, R2>
-): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
+  ): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule))
+)
 
 /**
  * Schedules the output of the stream using the provided `schedule`.
@@ -1847,16 +1910,14 @@ export const schedule: {
     self: Stream<A, E, R>,
     schedule: Schedule.Schedule<X, NoInfer<A>, E2, R2>
   ): Stream<A, E | E2, R | R2>
-} = dual(2, <A, E, R, X, E2, R2>(
-  self: Stream<A, E, R>,
-  schedule: Schedule.Schedule<X, NoInfer<A>, E2, R2>
-): Stream<A, E | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.flattenArray,
-    Channel.schedule(schedule),
-    Channel.map(Arr.of),
-    fromChannel
-  ))
+} = dual(
+  2,
+  <A, E, R, X, E2, R2>(
+    self: Stream<A, E, R>,
+    schedule: Schedule.Schedule<X, NoInfer<A>, E2, R2>
+  ): Stream<A, E | E2, R | R2> =>
+    self.channel.pipe(Channel.flattenArray, Channel.schedule(schedule), Channel.map(Arr.of), fromChannel)
+)
 
 /**
  * Ends the stream if it does not produce a value after the specified duration.
@@ -1871,10 +1932,13 @@ export const timeout: {
   2,
   <A, E, R>(self: Stream<A, E, R>, duration: Duration.DurationInput): Stream<A, E, R> =>
     transformPull(self, (pull, _scope) =>
-      Effect.succeed(Effect.timeoutOrElse(pull, {
-        duration,
-        onTimeout: () => Cause.done()
-      })))
+      Effect.succeed(
+        Effect.timeoutOrElse(pull, {
+          duration,
+          onTimeout: () => Cause.done()
+        })
+      )
+    )
 )
 
 /**
@@ -1901,18 +1965,12 @@ export const repeatElements: {
     self: Stream<A, E, R>,
     schedule: Schedule.Schedule<B, unknown, E2, R2>
   ): Stream<A, E | E2, R | R2> =>
-    fromChannel(Channel.fromTransform((upstream, scope) =>
-      Effect.map(
-        Channel.toTransform(Channel.flattenArray(self.channel))(upstream, scope),
-        (pullElement) => {
+    fromChannel(
+      Channel.fromTransform((upstream, scope) =>
+        Effect.map(Channel.toTransform(Channel.flattenArray(self.channel))(upstream, scope), (pullElement) => {
           let pullRepeat: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> | undefined = undefined
 
-          const pull: Pull.Pull<
-            Arr.NonEmptyReadonlyArray<A>,
-            E,
-            void,
-            R | R2
-          > = Effect.gen(function*() {
+          const pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R | R2> = Effect.gen(function* () {
             const element = yield* pullElement
             const chunk = Arr.of(element)
             const step = yield* Schedule.toStepWithSleep(schedule)
@@ -1927,9 +1985,9 @@ export const repeatElements: {
           })
 
           return Effect.suspend(() => pullRepeat ?? pull)
-        }
+        })
       )
-    ))
+    )
 )
 
 /**
@@ -1962,11 +2020,7 @@ export const flattenIterable = <A, E, R>(self: Stream<Iterable<A>, E, R>): Strea
  * @category sequencing
  */
 export const flattenTake = <A, E, E2, R>(self: Stream<Take.Take<A, E>, E2, R>): Stream<A, E | E2, R> =>
-  self.channel.pipe(
-    Channel.flattenArray,
-    Channel.flattenTake,
-    fromChannel
-  )
+  self.channel.pipe(Channel.flattenArray, Channel.flattenTake, fromChannel)
 
 /**
  * Concatenates two streams, emitting all elements from the first stream
@@ -2005,10 +2059,10 @@ export const concat: {
 export const prepend: {
   <B>(values: Iterable<B>): <A, E, R>(self: Stream<A, E, R>) => Stream<B | A, E, R>
   <A, E, R, B>(self: Stream<A, E, R>, values: Iterable<B>): Stream<A | B, E, R>
-} = dual(2, <A, E, R, B>(
-  self: Stream<A, E, R>,
-  values: Iterable<B>
-): Stream<A | B, E, R> => concat(fromIterable(values), self))
+} = dual(
+  2,
+  <A, E, R, B>(self: Stream<A, E, R>, values: Iterable<B>): Stream<A | B, E, R> => concat(fromIterable(values), self)
+)
 
 /**
  * @since 2.0.0
@@ -2017,25 +2071,31 @@ export const prepend: {
 export const merge: {
   <A2, E2, R2>(
     that: Stream<A2, E2, R2>,
-    options?: {
-      readonly haltStrategy?: HaltStrategy | undefined
-    } | undefined
+    options?:
+      | {
+          readonly haltStrategy?: HaltStrategy | undefined
+        }
+      | undefined
   ): <A, E, R>(self: Stream<A, E, R>) => Stream<A | A2, E | E2, R | R2>
   <A, E, R, A2, E2, R2>(
     self: Stream<A, E, R>,
     that: Stream<A2, E2, R2>,
-    options?: {
-      readonly haltStrategy?: HaltStrategy | undefined
-    } | undefined
+    options?:
+      | {
+          readonly haltStrategy?: HaltStrategy | undefined
+        }
+      | undefined
   ): Stream<A | A2, E | E2, R | R2>
 } = dual(
   2,
   <A, E, R, A2, E2, R2>(
     self: Stream<A, E, R>,
     that: Stream<A2, E2, R2>,
-    options?: {
-      readonly haltStrategy?: HaltStrategy | undefined
-    } | undefined
+    options?:
+      | {
+          readonly haltStrategy?: HaltStrategy | undefined
+        }
+      | undefined
   ): Stream<A | A2, E | E2, R | R2> => fromChannel(Channel.merge(toChannel(self), toChannel(that), options))
 )
 
@@ -2049,10 +2109,7 @@ export const mergeEffect: {
 } = dual(
   2,
   <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, effect: Effect.Effect<A2, E2, R2>): Stream<A, E | E2, R | R2> =>
-    self.channel.pipe(
-      Channel.mergeEffect(effect),
-      fromChannel
-    )
+    self.channel.pipe(Channel.mergeEffect(effect), fromChannel)
 )
 
 /**
@@ -2072,11 +2129,7 @@ export const mergeResult: {
   <A, E, R, A2, E2, R2>(
     self: Stream<A, E, R>,
     that: Stream<A2, E2, R2>
-  ): Stream<Result.Result<A, A2>, E | E2, R | R2> =>
-    merge(
-      map(self, Result.succeed),
-      map(that, Result.fail)
-    )
+  ): Stream<Result.Result<A, A2>, E | E2, R | R2> => merge(map(self, Result.succeed), map(that, Result.fail))
 )
 
 /**
@@ -2120,12 +2173,10 @@ export const mergeRight: {
  * @category utils
  */
 export const mergeAll: {
-  (
-    options: {
-      readonly concurrency: number | "unbounded"
-      readonly bufferSize?: number | undefined
-    }
-  ): <A, E, R>(streams: Iterable<Stream<A, E, R>>) => Stream<A, E, R>
+  (options: {
+    readonly concurrency: number | "unbounded"
+    readonly bufferSize?: number | undefined
+  }): <A, E, R>(streams: Iterable<Stream<A, E, R>>) => Stream<A, E, R>
   <A, E, R>(
     streams: Iterable<Stream<A, E, R>>,
     options: {
@@ -2133,13 +2184,16 @@ export const mergeAll: {
       readonly bufferSize?: number | undefined
     }
   ): Stream<A, E, R>
-} = dual(2, <A, E, R>(
-  streams: Iterable<Stream<A, E, R>>,
-  options: {
-    readonly concurrency: number | "unbounded"
-    readonly bufferSize?: number | undefined
-  }
-): Stream<A, E, R> => flatten(fromIterable(streams), options))
+} = dual(
+  2,
+  <A, E, R>(
+    streams: Iterable<Stream<A, E, R>>,
+    options: {
+      readonly concurrency: number | "unbounded"
+      readonly bufferSize?: number | undefined
+    }
+  ): Stream<A, E, R> => flatten(fromIterable(streams), options)
+)
 
 /**
  * Composes this stream with the specified stream to create a cartesian
@@ -2154,10 +2208,11 @@ export const mergeAll: {
 export const cross: {
   <AR, ER, RR>(right: Stream<AR, ER, RR>): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<[AL, AR], EL | ER, RL | RR>
   <AL, ER, RR, AR, EL, RL>(left: Stream<AL, ER, RR>, right: Stream<AR, EL, RL>): Stream<[AL, AR], EL | ER, RL | RR>
-} = dual(2, <AL, EL, RL, AR, ER, RR>(
-  left: Stream<AL, EL, RL>,
-  right: Stream<AR, ER, RR>
-): Stream<[AL, AR], EL | ER, RL | RR> => crossWith(left, right, (l, r) => [l, r]))
+} = dual(
+  2,
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<[AL, AR], EL | ER, RL | RR> =>
+    crossWith(left, right, (l, r) => [l, r])
+)
 
 /**
  * Composes this stream with the specified stream to create a cartesian
@@ -2179,11 +2234,14 @@ export const crossWith: {
     right: Stream<AR, ER, RR>,
     f: (left: AL, right: AR) => A
   ): Stream<A, EL | ER, RL | RR>
-} = dual(3, <AL, EL, RL, AR, ER, RR, A>(
-  left: Stream<AL, EL, RL>,
-  right: Stream<AR, ER, RR>,
-  f: (left: AL, right: AR) => A
-): Stream<A, EL | ER, RL | RR> => flatMap(left, (l) => map(right, (r) => f(l, r))))
+} = dual(
+  3,
+  <AL, EL, RL, AR, ER, RR, A>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>,
+    f: (left: AL, right: AR) => A
+  ): Stream<A, EL | ER, RL | RR> => flatMap(left, (l) => map(right, (r) => f(l, r)))
+)
 
 /**
  * Zips this stream with another point-wise and applies the function to the
@@ -2217,28 +2275,27 @@ export const zipWith: {
     right: Stream<AR, ER, RR>,
     f: (left: AL, right: AR) => A
   ): Stream<A, EL | ER, RL | RR>
-} = dual(3, <AL, EL, RL, AR, ER, RR, A>(
-  left: Stream<AL, EL, RL>,
-  right: Stream<AR, ER, RR>,
-  f: (left: AL, right: AR) => A
-): Stream<A, EL | ER, RL | RR> => zipWithArray(left, right, zipArrays(f)))
+} = dual(
+  3,
+  <AL, EL, RL, AR, ER, RR, A>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>,
+    f: (left: AL, right: AR) => A
+  ): Stream<A, EL | ER, RL | RR> => zipWithArray(left, right, zipArrays(f))
+)
 
-const zipArrays = <AL, AR, A>(
-  f: (left: AL, right: AR) => A
-) =>
-(
-  leftArr: Arr.NonEmptyReadonlyArray<AL>,
-  rightArr: Arr.NonEmptyReadonlyArray<AR>
-) => {
-  const minLength = Math.min(leftArr.length, rightArr.length)
-  const result: Arr.NonEmptyArray<A> = [] as any
+const zipArrays =
+  <AL, AR, A>(f: (left: AL, right: AR) => A) =>
+  (leftArr: Arr.NonEmptyReadonlyArray<AL>, rightArr: Arr.NonEmptyReadonlyArray<AR>) => {
+    const minLength = Math.min(leftArr.length, rightArr.length)
+    const result: Arr.NonEmptyArray<A> = [] as any
 
-  for (let i = 0; i < minLength; i++) {
-    result.push(f(leftArr[i], rightArr[i]))
+    for (let i = 0; i < minLength; i++) {
+      result.push(f(leftArr[i], rightArr[i]))
+    }
+
+    return [result, leftArr.slice(minLength), rightArr.slice(minLength)] as const
   }
-
-  return [result, leftArr.slice(minLength), rightArr.slice(minLength)] as const
-}
 
 /**
  * Zips this stream with another stream using a function that operates on arrays
@@ -2277,59 +2334,65 @@ export const zipWithArray: {
       leftoverRight: ReadonlyArray<AR>
     ]
   ): Stream<A, EL | ER, RL | RR>
-} = dual(3, <AL, EL, RL, AR, ER, RR, A>(
-  left: Stream<AL, EL, RL>,
-  right: Stream<AR, ER, RR>,
-  f: (
-    left: Arr.NonEmptyReadonlyArray<AL>,
-    right: Arr.NonEmptyReadonlyArray<AR>
-  ) => readonly [
-    output: Arr.NonEmptyReadonlyArray<A>,
-    leftoverLeft: ReadonlyArray<AL>,
-    leftoverRight: ReadonlyArray<AR>
-  ]
-): Stream<A, EL | ER, RL | RR> =>
-  fromChannel(Channel.fromTransformBracket(Effect.fnUntraced(function*(_, scope) {
-    const pullLeft = yield* Channel.toPullScoped(left.channel, scope)
-    const pullRight = yield* Channel.toPullScoped(right.channel, scope)
-    const pullBoth = Effect.gen(function*() {
-      const fiberLeft = yield* Effect.forkIn(pullLeft, scope)
-      const fiberRight = yield* Effect.forkIn(pullRight, scope)
-      return (yield* Fiber.joinAll([fiberLeft, fiberRight])) as [
-        Arr.NonEmptyReadonlyArray<AL>,
-        Arr.NonEmptyReadonlyArray<AR>
-      ]
-    })
+} = dual(
+  3,
+  <AL, EL, RL, AR, ER, RR, A>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>,
+    f: (
+      left: Arr.NonEmptyReadonlyArray<AL>,
+      right: Arr.NonEmptyReadonlyArray<AR>
+    ) => readonly [
+      output: Arr.NonEmptyReadonlyArray<A>,
+      leftoverLeft: ReadonlyArray<AL>,
+      leftoverRight: ReadonlyArray<AR>
+    ]
+  ): Stream<A, EL | ER, RL | RR> =>
+    fromChannel(
+      Channel.fromTransformBracket(
+        Effect.fnUntraced(function* (_, scope) {
+          const pullLeft = yield* Channel.toPullScoped(left.channel, scope)
+          const pullRight = yield* Channel.toPullScoped(right.channel, scope)
+          const pullBoth = Effect.gen(function* () {
+            const fiberLeft = yield* Effect.forkIn(pullLeft, scope)
+            const fiberRight = yield* Effect.forkIn(pullRight, scope)
+            return (yield* Fiber.joinAll([fiberLeft, fiberRight])) as [
+              Arr.NonEmptyReadonlyArray<AL>,
+              Arr.NonEmptyReadonlyArray<AR>
+            ]
+          })
 
-    type State =
-      | { _tag: "PullBoth" }
-      | { _tag: "PullLeft"; rightArray: Arr.NonEmptyReadonlyArray<AR> }
-      | { _tag: "PullRight"; leftArray: Arr.NonEmptyReadonlyArray<AL> }
-    let state: State = { _tag: "PullBoth" }
+          type State =
+            | { _tag: "PullBoth" }
+            | { _tag: "PullLeft"; rightArray: Arr.NonEmptyReadonlyArray<AR> }
+            | { _tag: "PullRight"; leftArray: Arr.NonEmptyReadonlyArray<AL> }
+          let state: State = { _tag: "PullBoth" }
 
-    const pull: Effect.Effect<
-      Arr.NonEmptyReadonlyArray<A>,
-      EL | ER | Cause.Done,
-      RL | RR
-    > = Effect.gen(function*() {
-      const [left, right] = state._tag === "PullBoth"
-        ? yield* pullBoth
-        : state._tag === "PullLeft"
-        ? [yield* pullLeft, state.rightArray]
-        : [state.leftArray, yield* pullRight]
-      const result = f(left, right)
-      if (Arr.isReadonlyArrayNonEmpty(result[1])) {
-        state = { _tag: "PullRight", leftArray: result[1] }
-      } else if (Arr.isReadonlyArrayNonEmpty(result[2])) {
-        state = { _tag: "PullLeft", rightArray: result[2] }
-      } else {
-        state = { _tag: "PullBoth" }
-      }
-      return result[0]
-    })
+          const pull: Effect.Effect<Arr.NonEmptyReadonlyArray<A>, EL | ER | Cause.Done, RL | RR> = Effect.gen(
+            function* () {
+              const [left, right] =
+                state._tag === "PullBoth"
+                  ? yield* pullBoth
+                  : state._tag === "PullLeft"
+                    ? [yield* pullLeft, state.rightArray]
+                    : [state.leftArray, yield* pullRight]
+              const result = f(left, right)
+              if (Arr.isReadonlyArrayNonEmpty(result[1])) {
+                state = { _tag: "PullRight", leftArray: result[1] }
+              } else if (Arr.isReadonlyArrayNonEmpty(result[2])) {
+                state = { _tag: "PullLeft", rightArray: result[2] }
+              } else {
+                state = { _tag: "PullBoth" }
+              }
+              return result[0]
+            }
+          )
 
-    return pull
-  }))))
+          return pull
+        })
+      )
+    )
+)
 
 /**
  * Zips this stream with another point-wise and emits tuples of elements from
@@ -2358,10 +2421,8 @@ export const zip: {
   <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<[A, A2], E | E2, R | R2>
 } = dual(
   2,
-  <A, E, R, A2, E2, R2>(
-    self: Stream<A, E, R>,
-    that: Stream<A2, E2, R2>
-  ): Stream<[A, A2], E | E2, R | R2> => zipWith(self, that, (a, a2) => [a, a2])
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<[A, A2], E | E2, R | R2> =>
+    zipWith(self, that, (a, a2) => [a, a2])
 )
 
 /**
@@ -2391,10 +2452,7 @@ export const zipLeft: {
   <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AL, EL | ER, RL | RR>
 } = dual(
   2,
-  <AL, EL, RL, AR, ER, RR>(
-    left: Stream<AL, EL, RL>,
-    right: Stream<AR, ER, RR>
-  ): Stream<AL, EL | ER, RL | RR> =>
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AL, EL | ER, RL | RR> =>
     zipWithArray(left, right, (leftArr, rightArr) => {
       const minLength = Math.min(leftArr.length, rightArr.length)
       const output = leftArr.slice(0, minLength) as Arr.NonEmptyArray<AL>
@@ -2432,10 +2490,7 @@ export const zipRight: {
   <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AR, EL | ER, RL | RR>
 } = dual(
   2,
-  <AL, EL, RL, AR, ER, RR>(
-    left: Stream<AL, EL, RL>,
-    right: Stream<AR, ER, RR>
-  ): Stream<AR, EL | ER, RL | RR> =>
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AR, EL | ER, RL | RR> =>
     zipWithArray(left, right, (leftArr, rightArr) => {
       const minLength = Math.min(leftArr.length, rightArr.length)
       const output = rightArr.slice(0, minLength) as Arr.NonEmptyArray<AR>
@@ -2530,24 +2585,29 @@ export const zipWithIndex = <A, E, R>(self: Stream<A, E, R>): Stream<[A, number]
  * @category zipping
  */
 export const zipWithNext = <A, E, R>(self: Stream<A, E, R>): Stream<[A, Option.Option<A>], E, R> =>
-  mapAccumArray(self, Option.none<A>, (acc, arr) => {
-    let i = 0
-    if (acc._tag === "None") {
-      i = 1
-      acc = Option.some(arr[0]) as Option.Some<A>
+  mapAccumArray(
+    self,
+    Option.none<A>,
+    (acc, arr) => {
+      let i = 0
+      if (acc._tag === "None") {
+        i = 1
+        acc = Option.some(arr[0]) as Option.Some<A>
+      }
+      const pairs = Arr.empty<[A, Option.Option<A>]>()
+      for (; i < arr.length; i++) {
+        const value = acc.value
+        acc = Option.some(arr[i]) as Option.Some<A>
+        pairs.push([value, acc])
+      }
+      return [acc, pairs]
+    },
+    {
+      onHalt(state) {
+        return state._tag === "Some" ? [[state.value, Option.none<A>()]] : []
+      }
     }
-    const pairs = Arr.empty<[A, Option.Option<A>]>()
-    for (; i < arr.length; i++) {
-      const value = acc.value
-      acc = Option.some(arr[i]) as Option.Some<A>
-      pairs.push([value, acc])
-    }
-    return [acc, pairs]
-  }, {
-    onHalt(state) {
-      return state._tag === "Some" ? [[state.value, Option.none<A>()]] : []
-    }
-  })
+  )
 
 /**
  * Zips each element with the previous element. Initially accompanied by
@@ -2622,33 +2682,38 @@ export const zipWithPrevious = <A, E, R>(self: Stream<A, E, R>): Stream<[Option.
 export const zipWithPreviousAndNext = <A, E, R>(
   self: Stream<A, E, R>
 ): Stream<[Option.Option<A>, A, Option.Option<A>], E, R> =>
-  mapAccumArray(self, () => ({
-    prev: Option.none<A>(),
-    current: Option.none<A>()
-  }), (acc, arr) => {
-    let i = 0
-    let current: A
-    if (acc.current._tag === "None") {
-      i = 1
-      current = arr[0]
-      acc.current = Option.some(current)
-    } else {
-      current = acc.current.value
+  mapAccumArray(
+    self,
+    () => ({
+      prev: Option.none<A>(),
+      current: Option.none<A>()
+    }),
+    (acc, arr) => {
+      let i = 0
+      let current: A
+      if (acc.current._tag === "None") {
+        i = 1
+        current = arr[0]
+        acc.current = Option.some(current)
+      } else {
+        current = acc.current.value
+      }
+      const pairs = Arr.empty<[Option.Option<A>, A, Option.Option<A>]>()
+      for (; i < arr.length; i++) {
+        const element = arr[i]
+        acc.current = Option.some(element) as Option.Some<A>
+        pairs.push([acc.prev, current, acc.current])
+        acc.prev = Option.some(current)
+        current = element
+      }
+      return [acc, pairs]
+    },
+    {
+      onHalt(acc) {
+        return acc.current._tag === "Some" ? [[acc.prev, acc.current.value, Option.none<A>()]] : []
+      }
     }
-    const pairs = Arr.empty<[Option.Option<A>, A, Option.Option<A>]>()
-    for (; i < arr.length; i++) {
-      const element = arr[i]
-      acc.current = Option.some(element) as Option.Some<A>
-      pairs.push([acc.prev, current, acc.current])
-      acc.prev = Option.some(current)
-      current = element
-    }
-    return [acc, pairs]
-  }, {
-    onHalt(acc) {
-      return acc.current._tag === "Some" ? [[acc.prev, acc.current.value, Option.none<A>()]] : []
-    }
-  })
+  )
 
 /**
  * @since 2.0.0
@@ -2657,41 +2722,44 @@ export const zipWithPreviousAndNext = <A, E, R>(
 export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
   ...streams: T
 ): Stream<
-  [T[number]] extends [never] ? never
+  [T[number]] extends [never]
+    ? never
     : { [K in keyof T]: T[K] extends Stream<infer A, infer _E, infer _R> ? A : never },
   [T[number]] extends [never] ? never : T[number] extends Stream<infer _A, infer _E, infer _R> ? _E : never,
   [T[number]] extends [never] ? never : T[number] extends Stream<infer _A, infer _E, infer _R> ? _R : never
 > =>
-  fromChannel(Channel.suspend(() => {
-    const latest: Array<any> = []
-    const emitted = new Set<number>()
-    const readyLatch = Effect.makeLatchUnsafe()
-    return Channel.mergeAll(
-      Channel.fromArray(
-        streams.map((s, i) =>
-          s.channel.pipe(
-            Channel.flattenArray,
-            Channel.mapEffect((a) => {
-              latest[i] = a
-              if (!emitted.has(i)) {
-                emitted.add(i)
-                if (emitted.size < streams.length) {
-                  return readyLatch.await as Effect.Effect<undefined>
+  fromChannel(
+    Channel.suspend(() => {
+      const latest: Array<any> = []
+      const emitted = new Set<number>()
+      const readyLatch = Effect.makeLatchUnsafe()
+      return Channel.mergeAll(
+        Channel.fromArray(
+          streams.map((s, i) =>
+            s.channel.pipe(
+              Channel.flattenArray,
+              Channel.mapEffect((a) => {
+                latest[i] = a
+                if (!emitted.has(i)) {
+                  emitted.add(i)
+                  if (emitted.size < streams.length) {
+                    return readyLatch.await as Effect.Effect<undefined>
+                  }
+                  return Effect.as(readyLatch.open, Arr.of(latest.slice()))
                 }
-                return Effect.as(readyLatch.open, Arr.of(latest.slice()))
-              }
-              return Effect.succeed(Arr.of(latest.slice()))
-            }),
-            Channel.filter(isNotUndefined)
+                return Effect.succeed(Arr.of(latest.slice()))
+              }),
+              Channel.filter(isNotUndefined)
+            )
           )
-        )
-      ),
-      {
-        concurrency: "unbounded",
-        bufferSize: 0
-      }
-    )
-  })) as any
+        ),
+        {
+          concurrency: "unbounded",
+          bufferSize: 0
+        }
+      )
+    })
+  ) as any
 
 /**
  * Zips the two streams so that when a value is emitted by either of the two
@@ -2735,19 +2803,12 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
  * @category zipping
  */
 export const zipLatest: {
-  <AR, ER, RR>(
-    right: Stream<AR, ER, RR>
-  ): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<[AL, AR], EL | ER, RL | RR>
-  <AL, EL, RL, AR, ER, RR>(
-    left: Stream<AL, EL, RL>,
-    right: Stream<AR, ER, RR>
-  ): Stream<[AL, AR], EL | ER, RL | RR>
+  <AR, ER, RR>(right: Stream<AR, ER, RR>): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<[AL, AR], EL | ER, RL | RR>
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<[AL, AR], EL | ER, RL | RR>
 } = dual(
   2,
-  <AL, EL, RL, AR, ER, RR>(
-    left: Stream<AL, EL, RL>,
-    right: Stream<AR, ER, RR>
-  ): Stream<[AL, AR], EL | ER, RL | RR> => zipLatestAll(left, right)
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<[AL, AR], EL | ER, RL | RR> =>
+    zipLatestAll(left, right)
 )
 
 /**
@@ -2825,48 +2886,48 @@ export const zipLatestWith: {
 export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
   ...streams: S
 ): Stream<Success<S[number]>, Error<S[number]>, Services<S[number]>> =>
-  fromChannel(Channel.fromTransform((_, scope) =>
-    Effect.sync(() => {
-      let winner:
-        | Pull.Pull<Arr.NonEmptyReadonlyArray<Success<S[number]>>, Error<S[number]>, void, Services<S[number]>>
-        | undefined
-      const race = Effect.raceAll(streams.map((stream) => {
-        const childScope = Scope.forkUnsafe(scope)
-        return Channel.toPullScoped(stream.channel, childScope).pipe(
-          Effect.flatMap((pull) => Effect.zip(Effect.succeed(pull), pull)),
-          Effect.onExit((exit) => {
-            if (exit._tag === "Success") {
-              if (winner) {
+  fromChannel(
+    Channel.fromTransform((_, scope) =>
+      Effect.sync(() => {
+        let winner:
+          | Pull.Pull<Arr.NonEmptyReadonlyArray<Success<S[number]>>, Error<S[number]>, void, Services<S[number]>>
+          | undefined
+        const race = Effect.raceAll(
+          streams.map((stream) => {
+            const childScope = Scope.forkUnsafe(scope)
+            return Channel.toPullScoped(stream.channel, childScope).pipe(
+              Effect.flatMap((pull) => Effect.zip(Effect.succeed(pull), pull)),
+              Effect.onExit((exit) => {
+                if (exit._tag === "Success") {
+                  if (winner) {
+                    return Scope.close(childScope, exit)
+                  }
+                  winner = exit.value[0]
+                  return Effect.void
+                }
                 return Scope.close(childScope, exit)
-              }
-              winner = exit.value[0]
-              return Effect.void
-            }
-            return Scope.close(childScope, exit)
-          }),
-          Effect.map(([, chunk]) => chunk)
+              }),
+              Effect.map(([, chunk]) => chunk)
+            )
+          })
         )
-      }))
-      return Effect.suspend(() => winner ?? race)
-    })
-  ))
+        return Effect.suspend(() => winner ?? race)
+      })
+    )
+  )
 
 /**
  * @since 3.7.0
  * @category racing
  */
 export const race: {
-  <AR, ER, RR>(
-    right: Stream<AR, ER, RR>
-  ): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<AL | AR, EL | ER, RL | RR>
-  <AL, EL, RL, AR, ER, RR>(
-    left: Stream<AL, EL, RL>,
-    right: Stream<AR, ER, RR>
-  ): Stream<AL | AR, EL | ER, RL | RR>
-} = dual(2, <AL, EL, RL, AR, ER, RR>(
-  left: Stream<AL, EL, RL>,
-  right: Stream<AR, ER, RR>
-): Stream<AL | AR, EL | ER, RL | RR> => raceAll(left, right))
+  <AR, ER, RR>(right: Stream<AR, ER, RR>): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<AL | AR, EL | ER, RL | RR>
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AL | AR, EL | ER, RL | RR>
+} = dual(
+  2,
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AL | AR, EL | ER, RL | RR> =>
+    raceAll(left, right)
+)
 
 /**
  * @since 2.0.0
@@ -2921,38 +2982,28 @@ export const filterMapEffect: {
  * @category Filtering
  */
 export const partitionFilter: {
-  <A, B, X>(filter: Filter.Filter<A, B, X>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
-    [
-      passes: Stream<B, E>,
-      fails: Stream<X, E>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Stream<B, E>,
-      fails: Stream<X, E>
-    ],
-    never,
-    R | Scope.Scope
-  >
+  <A, B, X>(
+    filter: Filter.Filter<A, B, X>,
+    options?: {
+      readonly capacity?: number | "unbounded" | undefined
+    }
+  ): <E, R>(self: Stream<A, E, R>) => Effect.Effect<[passes: Stream<B, E>, fails: Stream<X, E>], never, R | Scope.Scope>
+  <A, E, R, B, X>(
+    self: Stream<A, E, R>,
+    filter: Filter.Filter<A, B, X>,
+    options?: {
+      readonly capacity?: number | "unbounded" | undefined
+    }
+  ): Effect.Effect<[passes: Stream<B, E>, fails: Stream<X, E>], never, R | Scope.Scope>
 } = dual(
   (args) => isStream(args[0]),
-  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Stream<B, E>,
-      fails: Stream<X, E>
-    ],
-    never,
-    R | Scope.Scope
-  > =>
+  <A, E, R, B, X>(
+    self: Stream<A, E, R>,
+    filter: Filter.Filter<A, B, X>,
+    options?: {
+      readonly capacity?: number | "unbounded" | undefined
+    }
+  ): Effect.Effect<[passes: Stream<B, E>, fails: Stream<X, E>], never, R | Scope.Scope> =>
     Effect.map(
       partitionFilterQueue(filter, options)(self),
       ([passes, fails]) => [fromQueue(passes), fromQueue(fails)] as const
@@ -2964,47 +3015,51 @@ export const partitionFilter: {
  * @category Filtering
  */
 export const partitionFilterQueue: {
-  <A, B, X>(filter: Filter.Filter<A, B, X>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
-    [
-      passes: Queue.Dequeue<B, E | Cause.Done>,
-      fails: Queue.Dequeue<X, E | Cause.Done>
-    ],
+  <A, B, X>(
+    filter: Filter.Filter<A, B, X>,
+    options?: {
+      readonly capacity?: number | "unbounded" | undefined
+    }
+  ): <E, R>(
+    self: Stream<A, E, R>
+  ) => Effect.Effect<
+    [passes: Queue.Dequeue<B, E | Cause.Done>, fails: Queue.Dequeue<X, E | Cause.Done>],
     never,
     R | Scope.Scope
   >
-  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Queue.Dequeue<B, E | Cause.Done>,
-      fails: Queue.Dequeue<X, E | Cause.Done>
-    ],
+  <A, E, R, B, X>(
+    self: Stream<A, E, R>,
+    filter: Filter.Filter<A, B, X>,
+    options?: {
+      readonly capacity?: number | "unbounded" | undefined
+    }
+  ): Effect.Effect<
+    [passes: Queue.Dequeue<B, E | Cause.Done>, fails: Queue.Dequeue<X, E | Cause.Done>],
     never,
     R | Scope.Scope
   >
 } = dual(
   (args) => isStream(args[0]),
-  Effect.fnUntraced(function*<A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.fn.Return<
-    [
-      passes: Queue.Dequeue<B, E | Cause.Done>,
-      fails: Queue.Dequeue<X, E | Cause.Done>
-    ],
+  Effect.fnUntraced(function* <A, E, R, B, X>(
+    self: Stream<A, E, R>,
+    filter: Filter.Filter<A, B, X>,
+    options?: {
+      readonly capacity?: number | "unbounded" | undefined
+    }
+  ): Effect.fn.Return<
+    [passes: Queue.Dequeue<B, E | Cause.Done>, fails: Queue.Dequeue<X, E | Cause.Done>],
     never,
     R | Scope.Scope
   > {
     const scope = yield* Effect.scope
     const pull = yield* Channel.toPullScoped(self.channel, scope)
-    const capacity = options?.capacity === "unbounded" ? undefined : options?.capacity ?? DefaultChunkSize
+    const capacity = options?.capacity === "unbounded" ? undefined : (options?.capacity ?? DefaultChunkSize)
     const passes = yield* Queue.make<B, E | Cause.Done>({ capacity })
     const fails = yield* Queue.make<X, E | Cause.Done>({ capacity })
 
     const partition = Arr.partitionFilter(filter)
 
-    yield* Effect.gen(function*() {
+    yield* Effect.gen(function* () {
       while (true) {
         const chunk = yield* pull
         const results = partition(chunk)
@@ -3041,45 +3096,34 @@ export const partitionFilterQueue: {
  * @category Filtering
  */
 export const partitionFilterEffect: {
-  <A, B, X, EX, RX>(filter: Filter.FilterEffect<A, B, X, EX, RX>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-    readonly concurrency?: number | "unbounded" | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
-    [
-      passes: Stream<B, E | EX>,
-      fails: Stream<X, E | EX>
-    ],
-    never,
-    R | RX | Scope.Scope
-  >
-  <A, E, R, B, X, EX, RX>(self: Stream<A, E, R>, filter: Filter.FilterEffect<A, B, X, EX, RX>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-    readonly concurrency?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Stream<B, E | EX>,
-      fails: Stream<X, E | EX>
-    ],
-    never,
-    R | RX | Scope.Scope
-  >
+  <A, B, X, EX, RX>(
+    filter: Filter.FilterEffect<A, B, X, EX, RX>,
+    options?: {
+      readonly capacity?: number | "unbounded" | undefined
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): <E, R>(
+    self: Stream<A, E, R>
+  ) => Effect.Effect<[passes: Stream<B, E | EX>, fails: Stream<X, E | EX>], never, R | RX | Scope.Scope>
+  <A, E, R, B, X, EX, RX>(
+    self: Stream<A, E, R>,
+    filter: Filter.FilterEffect<A, B, X, EX, RX>,
+    options?: {
+      readonly capacity?: number | "unbounded" | undefined
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): Effect.Effect<[passes: Stream<B, E | EX>, fails: Stream<X, E | EX>], never, R | RX | Scope.Scope>
 } = dual(
   (args) => isStream(args[0]),
-  <A, E, R, B, X, EX, RX>(self: Stream<A, E, R>, filter: Filter.FilterEffect<A, B, X, EX, RX>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-    readonly concurrency?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Stream<B, E | EX>,
-      fails: Stream<X, E | EX>
-    ],
-    never,
-    R | RX | Scope.Scope
-  > =>
-    self.pipe(
-      mapEffect(filter, options),
-      partitionFilter(identity, options)
-    )
+  <A, E, R, B, X, EX, RX>(
+    self: Stream<A, E, R>,
+    filter: Filter.FilterEffect<A, B, X, EX, RX>,
+    options?: {
+      readonly capacity?: number | "unbounded" | undefined
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): Effect.Effect<[passes: Stream<B, E | EX>, fails: Stream<X, E | EX>], never, R | RX | Scope.Scope> =>
+    self.pipe(mapEffect(filter, options), partitionFilter(identity, options))
 )
 
 /**
@@ -3097,50 +3141,30 @@ export const partition: {
     options?: { readonly bufferSize?: number | undefined }
   ): <E, R>(
     self: Stream<C, E, R>
-  ) => Effect.Effect<
-    [excluded: Stream<Exclude<C, B>, E>, satisfying: Stream<B, E>],
-    never,
-    R | Scope.Scope
-  >
+  ) => Effect.Effect<[excluded: Stream<Exclude<C, B>, E>, satisfying: Stream<B, E>], never, R | Scope.Scope>
   <A>(
     predicate: Predicate<NoInfer<A>>,
     options?: { readonly bufferSize?: number | undefined }
   ): <E, R>(
     self: Stream<A, E, R>
-  ) => Effect.Effect<
-    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
-    never,
-    R | Scope.Scope
-  >
+  ) => Effect.Effect<[excluded: Stream<A, E>, satisfying: Stream<A, E>], never, R | Scope.Scope>
   <C extends A, E, R, B extends A, A = C>(
     self: Stream<C, E, R>,
     refinement: Refinement<A, B>,
     options?: { readonly bufferSize?: number | undefined }
-  ): Effect.Effect<
-    [excluded: Stream<Exclude<C, B>, E>, satisfying: Stream<B, E>],
-    never,
-    R | Scope.Scope
-  >
+  ): Effect.Effect<[excluded: Stream<Exclude<C, B>, E>, satisfying: Stream<B, E>], never, R | Scope.Scope>
   <A, E, R>(
     self: Stream<A, E, R>,
     predicate: Predicate<A>,
     options?: { readonly bufferSize?: number | undefined }
-  ): Effect.Effect<
-    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
-    never,
-    R | Scope.Scope
-  >
+  ): Effect.Effect<[excluded: Stream<A, E>, satisfying: Stream<A, E>], never, R | Scope.Scope>
 } = dual(
   (args) => isStream(args[0]),
   <A, E, R>(
     self: Stream<A, E, R>,
     predicate: Predicate<NoInfer<A>>,
     options?: { readonly bufferSize?: number | undefined }
-  ): Effect.Effect<
-    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
-    never,
-    R | Scope.Scope
-  > =>
+  ): Effect.Effect<[excluded: Stream<A, E>, satisfying: Stream<A, E>], never, R | Scope.Scope> =>
     Effect.map(
       partitionFilter(self, Filter.fromPredicate(predicate), { capacity: options?.bufferSize ?? 16 }),
       ([passes, fails]) => [fails, passes] as const
@@ -3162,16 +3186,19 @@ export const when: {
     self: Stream<A, E, R>,
     test: LazyArg<boolean> | Effect.Effect<boolean, EX, RX>
   ): Stream<A, E | EX, R | RX>
-} = dual(2, <A, E, R, EX = never, RX = never>(
-  self: Stream<A, E, R>,
-  test: LazyArg<boolean> | Effect.Effect<boolean, EX, RX>
-): Stream<A, E | EX, R | RX> => {
-  const effect = Effect.isEffect(test) ? test : Effect.sync(test)
-  return effect.pipe(
-    Effect.map((pass) => pass ? self : empty),
-    unwrap
-  )
-})
+} = dual(
+  2,
+  <A, E, R, EX = never, RX = never>(
+    self: Stream<A, E, R>,
+    test: LazyArg<boolean> | Effect.Effect<boolean, EX, RX>
+  ): Stream<A, E | EX, R | RX> => {
+    const effect = Effect.isEffect(test) ? test : Effect.sync(test)
+    return effect.pipe(
+      Effect.map((pass) => (pass ? self : empty)),
+      unwrap
+    )
+  }
+)
 
 /**
  * Peels off enough material from the stream to construct a `Z` using the
@@ -3192,16 +3219,13 @@ export const peel: {
   ): Effect.Effect<[A2, Stream<A, E, never>], E | E2, Scope.Scope | R | R2>
 } = dual(
   2,
-  Effect.fnUntraced(function*<A, E, R, A2, E2, R2>(
+  Effect.fnUntraced(function* <A, E, R, A2, E2, R2>(
     self: Stream<A, E, R>,
     sink: Sink.Sink<A2, A, A, E2, R2>
   ): Effect.fn.Return<[A2, Stream<A, E, never>], E | E2, Scope.Scope | R | R2> {
     let cause: Cause.Cause<E | Cause.Done<void>> | undefined = undefined
     const originalPull = yield* Channel.toPull(self.channel)
-    const pull: Pull.Pull<
-      Arr.NonEmptyReadonlyArray<A>,
-      E
-    > = Effect.catchCause(originalPull, (cause_) => {
+    const pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.catchCause(originalPull, (cause_) => {
       cause = cause_
       return Effect.failCause(cause_)
     })
@@ -3227,25 +3251,34 @@ export const peel: {
  */
 export const buffer: {
   (
-    options: { readonly capacity: "unbounded" } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-    }
+    options:
+      | { readonly capacity: "unbounded" }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+        }
   ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
   <A, E, R>(
     self: Stream<A, E, R>,
-    options: { readonly capacity: "unbounded" } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-    }
+    options:
+      | { readonly capacity: "unbounded" }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+        }
   ): Stream<A, E, R>
-} = dual(2, <A, E, R>(
-  self: Stream<A, E, R>,
-  options: { readonly capacity: "unbounded" } | {
-    readonly capacity: number
-    readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-  }
-): Stream<A, E, R> => fromChannel(Channel.bufferArray(self.channel, options)))
+} = dual(
+  2,
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options:
+      | { readonly capacity: "unbounded" }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+        }
+  ): Stream<A, E, R> => fromChannel(Channel.bufferArray(self.channel, options))
+)
 
 /**
  * Allows a faster producer to progress independently of a slower consumer by
@@ -3262,25 +3295,34 @@ export const buffer: {
  */
 export const bufferArray: {
   (
-    options: { readonly capacity: "unbounded" } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-    }
+    options:
+      | { readonly capacity: "unbounded" }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+        }
   ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
   <A, E, R>(
     self: Stream<A, E, R>,
-    options: { readonly capacity: "unbounded" } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-    }
+    options:
+      | { readonly capacity: "unbounded" }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+        }
   ): Stream<A, E, R>
-} = dual(2, <A, E, R>(
-  self: Stream<A, E, R>,
-  options: { readonly capacity: "unbounded" } | {
-    readonly capacity: number
-    readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-  }
-): Stream<A, E, R> => fromChannel(Channel.buffer(self.channel, options)))
+} = dual(
+  2,
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options:
+      | { readonly capacity: "unbounded" }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+        }
+  ): Stream<A, E, R> => fromChannel(Channel.buffer(self.channel, options))
+)
 
 /**
  * Handles stream failures by examining the full Cause of failure.
@@ -3319,14 +3361,17 @@ export const catchCause: {
     self: Stream<A, E, R>,
     f: (cause: Cause.Cause<E>) => Stream<A2, E2, R2>
   ): Stream<A | A2, E2, R | R2>
-} = dual(2, <A, E, R, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (cause: Cause.Cause<E>) => Stream<A2, E2, R2>
-): Stream<A | A2, E2, R | R2> =>
-  self.channel.pipe(
-    Channel.catchCause((cause) => f(cause).channel),
-    fromChannel
-  ))
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+  ): Stream<A | A2, E2, R | R2> =>
+    self.channel.pipe(
+      Channel.catchCause((cause) => f(cause).channel),
+      fromChannel
+    )
+)
 
 /**
  * **Previously Known As**
@@ -3346,27 +3391,22 @@ export const tapCause: {
     self: Stream<A, E, R>,
     f: (cause: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
   ): Stream<A, E | E2, R | R2>
-} = dual(2, <A, E, R, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (cause: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
-): Stream<A, E | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.tapCause(f),
-    fromChannel
-  ))
-
-const catch_: {
-  <E, A2, E2, R2>(
-    f: (error: E) => Stream<A2, E2, R2>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E2, R2 | R>
+} = dual(
+  2,
   <A, E, R, A2, E2, R2>(
     self: Stream<A, E, R>,
-    f: (error: E) => Stream<A2, E2, R2>
-  ): Stream<A | A2, E2, R | R2>
-} = dual(2, <A, E, R, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (error: E) => Stream<A2, E2, R2>
-): Stream<A | A2, E2, R | R2> => fromChannel(Channel.catch(self.channel, (error) => f(error).channel)))
+    f: (cause: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
+  ): Stream<A, E | E2, R | R2> => self.channel.pipe(Channel.tapCause(f), fromChannel)
+)
+
+const catch_: {
+  <E, A2, E2, R2>(f: (error: E) => Stream<A2, E2, R2>): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E2, R2 | R>
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, f: (error: E) => Stream<A2, E2, R2>): Stream<A | A2, E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, f: (error: E) => Stream<A2, E2, R2>): Stream<A | A2, E2, R | R2> =>
+    fromChannel(Channel.catch(self.channel, (error) => f(error).channel))
+)
 
 export {
   /**
@@ -3425,12 +3465,15 @@ export const catchIf: {
     predicate: Predicate<E>,
     f: (e: E) => Stream<A2, E2, R2>
   ): Stream<A | A2, E | E2, R | R2>
-} = dual(3, <A, E, R, EB extends E, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  predicate: Predicate<E> | Refinement<E, EB>,
-  f: (e: EB) => Stream<A2, E2, R2>
-): Stream<A | A2, E | E2, R | R2> =>
-  catchFilter(self, Filter.fromPredicate(predicate as Predicate<E>), f as any) as any)
+} = dual(
+  3,
+  <A, E, R, EB extends E, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    predicate: Predicate<E> | Refinement<E, EB>,
+    f: (e: EB) => Stream<A2, E2, R2>
+  ): Stream<A | A2, E | E2, R | R2> =>
+    catchFilter(self, Filter.fromPredicate(predicate as Predicate<E>), f as any) as any
+)
 
 /**
  * @since 4.0.0
@@ -3440,18 +3483,12 @@ export const tapError: {
   <E, A2, E2, R2>(
     f: (error: E) => Effect.Effect<A2, E2, R2>
   ): <A, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
-  <A, E, R, A2, E2, R2>(
-    self: Stream<A, E, R>,
-    f: (error: E) => Effect.Effect<A2, E2, R2>
-  ): Stream<A, E | E2, R | R2>
-} = dual(2, <A, E, R, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (error: E) => Effect.Effect<A2, E2, R2>
-): Stream<A, E | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.tapError(f),
-    fromChannel
-  ))
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, f: (error: E) => Effect.Effect<A2, E2, R2>): Stream<A, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, f: (error: E) => Effect.Effect<A2, E2, R2>): Stream<A, E | E2, R | R2> =>
+    self.channel.pipe(Channel.tapError(f), fromChannel)
+)
 
 /**
  * **Previously Known As**
@@ -3473,11 +3510,14 @@ export const catchFilter: {
     filter: Filter.Filter<E, EB, X>,
     f: (failure: EB) => Stream<A2, E2, R2>
   ): Stream<A | A2, X | E2, R | R2>
-} = dual(3, <A, E, R, EB, X, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  filter: Filter.Filter<E, EB, X>,
-  f: (failure: EB) => Stream<A2, E2, R2>
-): Stream<A | A2, X | E2, R | R2> => fromChannel(Channel.catchFilter(toChannel(self), filter, (e) => f(e).channel)))
+} = dual(
+  3,
+  <A, E, R, EB, X, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    filter: Filter.Filter<E, EB, X>,
+    f: (failure: EB) => Stream<A2, E2, R2>
+  ): Stream<A | A2, X | E2, R | R2> => fromChannel(Channel.catchFilter(toChannel(self), filter, (e) => f(e).channel))
+)
 
 /**
  * @since 4.0.0
@@ -3486,42 +3526,24 @@ export const catchFilter: {
 export const catchTag: {
   <const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
     k: K,
-    f: (
-      e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
-    ) => Stream<A1, E1, R1>
+    f: (e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>
   ): <A, R>(
     self: Stream<A, E, R>
   ) => Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
-  <
-    A,
-    E,
-    R,
-    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
-    R1,
-    E1,
-    A1
-  >(
+  <A, E, R, const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, R1, E1, A1>(
     self: Stream<A, E, R>,
     k: K,
     f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>
   ): Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
 } = dual(
   3,
-  <
-    A,
-    E,
-    R,
-    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
-    R1,
-    E1,
-    A1
-  >(
+  <A, E, R, const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, R1, E1, A1>(
     self: Stream<A, E, R>,
     k: K,
     f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>
   ): Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R> => {
     const pred = Array.isArray(k)
-      ? ((e: E): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
+      ? (e: E): e is any => hasProperty(e, "_tag") && k.includes(e._tag)
       : isTagged(k as string)
     return catchFilter(self, Filter.fromPredicate(pred), f) as any
   }
@@ -3534,50 +3556,54 @@ export const catchTag: {
 export const catchTags: {
   <
     E,
-    Cases extends (E extends { _tag: string } ? {
-        [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
-      } :
-      {})
+    Cases extends E extends { _tag: string }
+      ? {
+          [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
+        }
+      : {}
   >(
     cases: Cases
-  ): <A, R>(self: Stream<A, E, R>) => Stream<
+  ): <A, R>(
+    self: Stream<A, E, R>
+  ) => Stream<
     | A
     | {
-      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<infer A, any, any>) ? A : never
-    }[keyof Cases],
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Stream<infer A, any, any> ? A : never
+      }[keyof Cases],
     | Exclude<E, { _tag: keyof Cases }>
     | {
-      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, infer E, any>) ? E : never
-    }[keyof Cases],
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Stream<any, infer E, any> ? E : never
+      }[keyof Cases],
     | R
     | {
-      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, any, infer R>) ? R : never
-    }[keyof Cases]
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Stream<any, any, infer R> ? R : never
+      }[keyof Cases]
   >
   <
     R,
     E,
     A,
-    Cases extends (E extends { _tag: string } ? {
-        [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
-      } :
-      {})
+    Cases extends E extends { _tag: string }
+      ? {
+          [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
+        }
+      : {}
   >(
     self: Stream<A, E, R>,
     cases: Cases
   ): Stream<
     | A
     | {
-      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<infer A, any, any>) ? A : never
-    }[keyof Cases],
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Stream<infer A, any, any> ? A : never
+      }[keyof Cases],
     | Exclude<E, { _tag: keyof Cases }>
     | {
-      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, infer E, any>) ? E : never
-    }[keyof Cases],
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Stream<any, infer E, any> ? E : never
+      }[keyof Cases],
     | R
     | {
-      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, any, infer R>) ? R : never
-    }[keyof Cases]
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Stream<any, any, infer R> ? R : never
+      }[keyof Cases]
   >
 } = dual(2, (self, cases) => {
   let keys: Array<string>
@@ -3600,10 +3626,11 @@ export const catchTags: {
 export const mapError: {
   <E, E2>(f: (error: E) => E2): <A, R>(self: Stream<A, E, R>) => Stream<A, E2, R>
   <A, E, R, E2>(self: Stream<A, E, R>, f: (error: E) => E2): Stream<A, E2, R>
-} = dual(2, <A, E, R, E2>(
-  self: Stream<A, E, R>,
-  f: (error: E) => E2
-): Stream<A, E2, R> => fromChannel(Channel.mapError(self.channel, f)))
+} = dual(
+  2,
+  <A, E, R, E2>(self: Stream<A, E, R>, f: (error: E) => E2): Stream<A, E2, R> =>
+    fromChannel(Channel.mapError(self.channel, f))
+)
 
 /**
  * Conditionally handles stream failures based on a predicate applied to the Cause.
@@ -3640,53 +3667,44 @@ export const catchCauseFilter: {
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
   ): Stream<A | A2, Cause.Cause.Error<X> | E2, R | R2>
-} = dual(3, <A, E, R, EB, X extends Cause.Cause<any>, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  filter: Filter.Filter<Cause.Cause<E>, EB, X>,
-  f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
-): Stream<A | A2, Cause.Cause.Error<X> | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.catchCauseFilter(filter, (failure, cause) => f(failure, cause).channel),
-    fromChannel
-  ))
+} = dual(
+  3,
+  <A, E, R, EB, X extends Cause.Cause<any>, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+  ): Stream<A | A2, Cause.Cause.Error<X> | E2, R | R2> =>
+    self.channel.pipe(
+      Channel.catchCauseFilter(filter, (failure, cause) => f(failure, cause).channel),
+      fromChannel
+    )
+)
 
 /**
  * @since 2.0.0
  * @category Error handling
  */
 export const orElseIfEmpty: {
-  <E, A2, E2, R2>(
-    orElse: LazyArg<Stream<A2, E2, R2>>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E | E2, R | R2>
-  <A, E, R, A2, E2, R2>(
-    self: Stream<A, E, R>,
-    orElse: LazyArg<Stream<A2, E2, R2>>
-  ): Stream<A | A2, E | E2, R | R2>
-} = dual(2, <A, E, R, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  orElse: LazyArg<Stream<A2, E2, R2>>
-): Stream<A | A2, E | E2, R | R2> =>
-  fromChannel(Channel.orElseIfEmpty(
-    self.channel,
-    (_) => toChannel(orElse())
-  )))
+  <E, A2, E2, R2>(orElse: LazyArg<Stream<A2, E2, R2>>): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E | E2, R | R2>
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, orElse: LazyArg<Stream<A2, E2, R2>>): Stream<A | A2, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, orElse: LazyArg<Stream<A2, E2, R2>>): Stream<A | A2, E | E2, R | R2> =>
+    fromChannel(Channel.orElseIfEmpty(self.channel, (_) => toChannel(orElse())))
+)
 
 /**
  * @since 2.0.0
  * @category Error handling
  */
 export const orElseSucceed: {
-  <E, A2>(
-    f: (error: E) => A2
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, never, R>
-  <A, E, R, A2>(
-    self: Stream<A, E, R>,
-    f: (error: E) => A2
-  ): Stream<A | A2, never, R>
-} = dual(2, <A, E, R, A2>(
-  self: Stream<A, E, R>,
-  f: (error: E) => A2
-): Stream<A | A2, never, R> => catch_(self, (e) => succeed(f(e))))
+  <E, A2>(f: (error: E) => A2): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, never, R>
+  <A, E, R, A2>(self: Stream<A, E, R>, f: (error: E) => A2): Stream<A | A2, never, R>
+} = dual(
+  2,
+  <A, E, R, A2>(self: Stream<A, E, R>, f: (error: E) => A2): Stream<A | A2, never, R> =>
+    catch_(self, (e) => succeed(f(e)))
+)
 
 /**
  * Converts stream failures into fiber terminations, making them unrecoverable.
@@ -3774,84 +3792,83 @@ export const withExecutionPlan: {
     policy: ExecutionPlan.ExecutionPlan<{ provides: Provides; input: Input; error: PolicyE; requirements: R2 }>,
     options?: { readonly preventFallbackOnPartialStream?: boolean | undefined }
   ): Stream<A, E | PolicyE, R2 | Exclude<R, Provides>>
-} = dual((args) => isStream(args[0]), <A, E extends Input, R, R2, Input, Provides, PolicyE>(
-  self: Stream<A, E, R>,
-  policy: ExecutionPlan.ExecutionPlan<{
-    provides: Provides
-    input: Input
-    error: PolicyE
-    requirements: R2
-  }>,
-  options?: {
-    readonly preventFallbackOnPartialStream?: boolean | undefined
-  }
-): Stream<A, E | PolicyE, R2 | Exclude<R, Provides>> =>
-  suspend(() => {
-    const preventFallbackOnPartialStream = options?.preventFallbackOnPartialStream ?? false
-    let i = 0
-    let meta: ExecutionPlan.Metadata = {
-      attempt: 0,
-      stepIndex: 0
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E extends Input, R, R2, Input, Provides, PolicyE>(
+    self: Stream<A, E, R>,
+    policy: ExecutionPlan.ExecutionPlan<{
+      provides: Provides
+      input: Input
+      error: PolicyE
+      requirements: R2
+    }>,
+    options?: {
+      readonly preventFallbackOnPartialStream?: boolean | undefined
     }
-    const provideMeta = provideServiceEffect(
-      ExecutionPlan.CurrentMetadata,
-      Effect.sync(() => {
-        meta = {
-          attempt: meta.attempt + 1,
-          stepIndex: i
-        }
-        return meta
-      })
-    )
-    let lastError = Option.none<E | PolicyE>()
-    const loop: Stream<
-      A,
-      E | PolicyE,
-      R2 | Exclude<R, Provides>
-    > = suspend(() => {
-      const step = policy.steps[i]
-      if (!step) {
-        return fail(Option.getOrThrow(lastError))
+  ): Stream<A, E | PolicyE, R2 | Exclude<R, Provides>> =>
+    suspend(() => {
+      const preventFallbackOnPartialStream = options?.preventFallbackOnPartialStream ?? false
+      let i = 0
+      let meta: ExecutionPlan.Metadata = {
+        attempt: 0,
+        stepIndex: 0
       }
-
-      let nextStream: Stream<A, E | PolicyE, R2 | Exclude<R, Provides>> = provideMeta(provide(self, step.provide))
-      let receivedElements = false
-
-      if (Option.isSome(lastError)) {
-        const error = lastError.value
-        let attempted = false
-        const wrapped = nextStream
-        // ensure the schedule is applied at least once
-        nextStream = suspend(() => {
-          if (attempted) return wrapped
-          attempted = true
-          return fail(error)
-        })
-        nextStream = retry(nextStream, internalExecutionPlan.scheduleFromStep(step, false) as any)
-      } else {
-        const schedule = internalExecutionPlan.scheduleFromStep(step, true)
-        nextStream = schedule ? retry(nextStream, schedule as any) : nextStream
-      }
-
-      return catch_(
-        preventFallbackOnPartialStream ?
-          onFirst(nextStream, (_) => {
-            receivedElements = true
-            return Effect.void
-          }) :
-          nextStream,
-        (error) => {
-          i++
-          if (preventFallbackOnPartialStream && receivedElements) {
-            return fail(error)
+      const provideMeta = provideServiceEffect(
+        ExecutionPlan.CurrentMetadata,
+        Effect.sync(() => {
+          meta = {
+            attempt: meta.attempt + 1,
+            stepIndex: i
           }
-          lastError = Option.some(error)
-          return loop
-        }
+          return meta
+        })
       )
+      let lastError = Option.none<E | PolicyE>()
+      const loop: Stream<A, E | PolicyE, R2 | Exclude<R, Provides>> = suspend(() => {
+        const step = policy.steps[i]
+        if (!step) {
+          return fail(Option.getOrThrow(lastError))
+        }
+
+        let nextStream: Stream<A, E | PolicyE, R2 | Exclude<R, Provides>> = provideMeta(provide(self, step.provide))
+        let receivedElements = false
+
+        if (Option.isSome(lastError)) {
+          const error = lastError.value
+          let attempted = false
+          const wrapped = nextStream
+          // ensure the schedule is applied at least once
+          nextStream = suspend(() => {
+            if (attempted) return wrapped
+            attempted = true
+            return fail(error)
+          })
+          nextStream = retry(nextStream, internalExecutionPlan.scheduleFromStep(step, false) as any)
+        } else {
+          const schedule = internalExecutionPlan.scheduleFromStep(step, true)
+          nextStream = schedule ? retry(nextStream, schedule as any) : nextStream
+        }
+
+        return catch_(
+          preventFallbackOnPartialStream
+            ? onFirst(nextStream, (_) => {
+                receivedElements = true
+                return Effect.void
+              })
+            : nextStream,
+          (error) => {
+            i++
+            if (preventFallbackOnPartialStream && receivedElements) {
+              return fail(error)
+            }
+            lastError = Option.some(error)
+            return loop
+          }
+        )
+      })
+      return loop
     })
-    return loop
-  }))
+)
 
 /**
  * Takes the specified number of elements from this stream.
@@ -3878,7 +3895,7 @@ export const take: {
 } = dual(
   2,
   <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R> =>
-    n < 1 ? empty : takeUntil(self, (_, i) => i === (n - 1))
+    n < 1 ? empty : takeUntil(self, (_, i) => i === n - 1)
 )
 
 /**
@@ -3903,17 +3920,22 @@ export const takeRight: {
 } = dual(
   2,
   <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R> =>
-    mapAccumArray(self, MutableList.make<A>, (list, arr) => {
-      MutableList.appendAll(list, arr)
-      if (list.length > n) {
-        MutableList.takeNVoid(list, list.length - n)
+    mapAccumArray(
+      self,
+      MutableList.make<A>,
+      (list, arr) => {
+        MutableList.appendAll(list, arr)
+        if (list.length > n) {
+          MutableList.takeNVoid(list, list.length - n)
+        }
+        return [list, emptyArr]
+      },
+      {
+        onHalt(list) {
+          return MutableList.takeAll(list)
+        }
       }
-      return [list, emptyArr]
-    }, {
-      onHalt(list) {
-        return MutableList.takeAll(list)
-      }
-    })
+    )
 )
 
 /**
@@ -3945,23 +3967,34 @@ export const takeRight: {
  * @category utils
  */
 export const takeUntil: {
-  <A>(predicate: (a: NoInfer<A>, n: number) => boolean, options?: {
-    readonly excludeLast?: boolean | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
-  <A, E, R>(self: Stream<A, E, R>, predicate: (a: A, n: number) => boolean, options?: {
-    readonly excludeLast?: boolean | undefined
-  }): Stream<A, E, R>
+  <A>(
+    predicate: (a: NoInfer<A>, n: number) => boolean,
+    options?: {
+      readonly excludeLast?: boolean | undefined
+    }
+  ): <E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    predicate: (a: A, n: number) => boolean,
+    options?: {
+      readonly excludeLast?: boolean | undefined
+    }
+  ): Stream<A, E, R>
 } = dual(
   (args) => isStream(args[0]),
-  <A, E, R>(self: Stream<A, E, R>, predicate: (a: A, n: number) => boolean, options?: {
-    readonly excludeLast?: boolean | undefined
-  }): Stream<A, E, R> =>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    predicate: (a: A, n: number) => boolean,
+    options?: {
+      readonly excludeLast?: boolean | undefined
+    }
+  ): Stream<A, E, R> =>
     transformPull(self, (pull, _scope) =>
       Effect.sync(() => {
         let i = 0
         let done = false
         const pump: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> = Effect.flatMap(
-          Effect.suspend(() => done ? Cause.done() : pull),
+          Effect.suspend(() => (done ? Cause.done() : pull)),
           (chunk) => {
             const index = chunk.findIndex((a) => predicate(a, i++))
             if (index >= 0) {
@@ -3973,7 +4006,8 @@ export const takeUntil: {
           }
         )
         return pump
-      }))
+      })
+    )
 )
 
 /**
@@ -4007,30 +4041,34 @@ export const takeUntilEffect: {
       readonly excludeLast?: boolean | undefined
     }
   ): Stream<A, E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, E2, R2>(
-  self: Stream<A, E, R>,
-  predicate: (a: A, n: number) => Effect.Effect<boolean, E2, R2>,
-  options?: {
-    readonly excludeLast?: boolean | undefined
-  }
-): Stream<A, E | E2, R | R2> =>
-  transformPull(self, (pull, _scope) =>
-    Effect.sync(() => {
-      let i = 0
-      let done = false
-      return Effect.gen(function*() {
-        if (done) return yield* Cause.done()
-        const chunk = yield* pull
-        for (let j = 0; j < chunk.length; j++) {
-          if (yield* predicate(chunk[j], i++)) {
-            done = true
-            const arr = chunk.slice(0, options?.excludeLast ? j : j + 1)
-            return Arr.isReadonlyArrayNonEmpty(arr) ? arr : yield* Cause.done()
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    predicate: (a: A, n: number) => Effect.Effect<boolean, E2, R2>,
+    options?: {
+      readonly excludeLast?: boolean | undefined
+    }
+  ): Stream<A, E | E2, R | R2> =>
+    transformPull(self, (pull, _scope) =>
+      Effect.sync(() => {
+        let i = 0
+        let done = false
+        return Effect.gen(function* () {
+          if (done) return yield* Cause.done()
+          const chunk = yield* pull
+          for (let j = 0; j < chunk.length; j++) {
+            if (yield* predicate(chunk[j], i++)) {
+              done = true
+              const arr = chunk.slice(0, options?.excludeLast ? j : j + 1)
+              return Arr.isReadonlyArrayNonEmpty(arr) ? arr : yield* Cause.done()
+            }
           }
-        }
-        return chunk
+          return chunk
+        })
       })
-    })))
+    )
+)
 
 /**
  * Takes all elements of the stream for as long as the specified predicate
@@ -4085,15 +4123,11 @@ export const takeWhileEffect: {
     self: Stream<A, E, R>,
     predicate: (a: NoInfer<A>, n: number) => Effect.Effect<boolean, E2, R2>
   ): Stream<A, E | E2, R | R2>
-} = dual(2, <A, E, R, E2, R2>(
-  self: Stream<A, E, R>,
-  predicate: (a: NoInfer<A>, n: number) => Effect.Effect<boolean, E2, R2>
-) =>
-  takeUntilEffect(self, (a, n) =>
-    Effect.map(
-      predicate(a, n),
-      (b) => !b
-    ), { excludeLast: true }))
+} = dual(
+  2,
+  <A, E, R, E2, R2>(self: Stream<A, E, R>, predicate: (a: NoInfer<A>, n: number) => Effect.Effect<boolean, E2, R2>) =>
+    takeUntilEffect(self, (a, n) => Effect.map(predicate(a, n), (b) => !b), { excludeLast: true })
+)
 
 /**
  * Drops the specified number of elements from this stream.
@@ -4129,7 +4163,8 @@ export const drop: {
           })
         )
         return pump
-      }))
+      })
+    )
 )
 
 /**
@@ -4142,10 +4177,14 @@ export const drop: {
 export const dropUntil: {
   <A>(predicate: (a: NoInfer<A>, index: number) => boolean): <E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
   <A, E, R>(self: Stream<A, E, R>, predicate: (a: NoInfer<A>, index: number) => boolean): Stream<A, E, R>
-} = dual(2, <A, E, R>(
-  self: Stream<A, E, R>,
-  predicate: (a: NoInfer<A>, index: number) => boolean
-): Stream<A, E, R> => drop(dropWhile(self, (a, i) => !predicate(a, i)), 1))
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, predicate: (a: NoInfer<A>, index: number) => boolean): Stream<A, E, R> =>
+    drop(
+      dropWhile(self, (a, i) => !predicate(a, i)),
+      1
+    )
+)
 
 /**
  * Drops all elements of the stream until the specified effectful predicate
@@ -4162,17 +4201,17 @@ export const dropUntilEffect: {
     self: Stream<A, E, R>,
     predicate: (a: NoInfer<A>, index: number) => Effect.Effect<boolean, E2, R2>
   ): Stream<A, E | E2, R | R2>
-} = dual(2, <A, E, R, E2, R2>(
-  self: Stream<A, E, R>,
-  predicate: (a: NoInfer<A>, index: number) => Effect.Effect<boolean, E2, R2>
-): Stream<A, E | E2, R | R2> =>
-  drop(
-    dropWhileEffect(
-      self,
-      (a, i) => Effect.map(predicate(a, i), (b) => !b)
-    ),
-    1
-  ))
+} = dual(
+  2,
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    predicate: (a: NoInfer<A>, index: number) => Effect.Effect<boolean, E2, R2>
+  ): Stream<A, E | E2, R | R2> =>
+    drop(
+      dropWhileEffect(self, (a, i) => Effect.map(predicate(a, i), (b) => !b)),
+      1
+    )
+)
 
 /**
  * Drops all elements of the stream for as long as the specified predicate
@@ -4184,22 +4223,23 @@ export const dropUntilEffect: {
 export const dropWhile: {
   <A>(predicate: (a: NoInfer<A>, index: number) => boolean): <E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
   <A, E, R>(self: Stream<A, E, R>, predicate: (a: NoInfer<A>, index: number) => boolean): Stream<A, E, R>
-} = dual(2, <A, E, R>(
-  self: Stream<A, E, R>,
-  predicate: (a: NoInfer<A>, index: number) => boolean
-): Stream<A, E, R> =>
-  transformPull(self, (pull, _scope) =>
-    Effect.sync(() => {
-      let dropping = true
-      let index = 0
-      const filtered: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.flatMap(pull, (arr) => {
-        const found = arr.findIndex((a) => !predicate(a, index++))
-        if (found === -1) return filtered
-        dropping = false
-        return Effect.succeed(arr.slice(found) as Arr.NonEmptyArray<A>)
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, predicate: (a: NoInfer<A>, index: number) => boolean): Stream<A, E, R> =>
+    transformPull(self, (pull, _scope) =>
+      Effect.sync(() => {
+        let dropping = true
+        let index = 0
+        const filtered: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.flatMap(pull, (arr) => {
+          const found = arr.findIndex((a) => !predicate(a, index++))
+          if (found === -1) return filtered
+          dropping = false
+          return Effect.succeed(arr.slice(found) as Arr.NonEmptyArray<A>)
+        })
+        return Effect.suspend(() => (dropping ? filtered : pull))
       })
-      return Effect.suspend(() => dropping ? filtered : pull)
-    })))
+    )
+)
 
 /**
  * Drops all elements of the stream for as long as the specified predicate
@@ -4216,29 +4256,33 @@ export const dropWhileEffect: {
     self: Stream<A, E, R>,
     predicate: (a: A, index: number) => Effect.Effect<boolean, E2, R2>
   ): Stream<A, E | E2, R | R2>
-} = dual(2, <A, E, R, E2, R2>(
-  self: Stream<A, E, R>,
-  predicate: (a: NoInfer<A>, index: number) => Effect.Effect<boolean, E2, R2>
-): Stream<A, E | E2, R | R2> =>
-  transformPull(self, (pull, _scope) =>
-    Effect.sync(() => {
-      let dropping = true
-      let index = 0
-      const filtered: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R2> = Effect.gen(function*() {
-        while (true) {
-          const arr = yield* pull
-          for (let i = 0; i < arr.length; i++) {
-            const drop = yield* predicate(arr[i], index++)
-            if (drop) continue
-            dropping = false
-            return arr.slice(i) as Arr.NonEmptyArray<A>
+} = dual(
+  2,
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    predicate: (a: NoInfer<A>, index: number) => Effect.Effect<boolean, E2, R2>
+  ): Stream<A, E | E2, R | R2> =>
+    transformPull(self, (pull, _scope) =>
+      Effect.sync(() => {
+        let dropping = true
+        let index = 0
+        const filtered: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R2> = Effect.gen(function* () {
+          while (true) {
+            const arr = yield* pull
+            for (let i = 0; i < arr.length; i++) {
+              const drop = yield* predicate(arr[i], index++)
+              if (drop) continue
+              dropping = false
+              return arr.slice(i) as Arr.NonEmptyArray<A>
+            }
           }
-        }
+        })
+        return Effect.suspend(
+          (): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> => (dropping ? filtered : pull)
+        )
       })
-      return Effect.suspend((): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> =>
-        dropping ? filtered : pull
-      )
-    })))
+    )
+)
 
 /**
  * Drops the last specified number of elements from this stream.
@@ -4249,23 +4293,21 @@ export const dropWhileEffect: {
 export const dropRight: {
   (n: number): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
   <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R>
-} = dual(
-  2,
-  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R> => {
-    if (n <= 0) return self
-    return transformPull(self, (pull, _scope) =>
-      Effect.sync(() => {
-        const list = MutableList.make<A>()
-        const emit: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.flatMap(pull, (arr) => {
-          MutableList.appendAllUnsafe(list, arr)
-          const toTake = list.length - n
-          const items = MutableList.takeN(list, toTake)
-          return Arr.isArrayNonEmpty(items) ? Effect.succeed(items) : emit
-        })
-        return emit
-      }))
-  }
-)
+} = dual(2, <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R> => {
+  if (n <= 0) return self
+  return transformPull(self, (pull, _scope) =>
+    Effect.sync(() => {
+      const list = MutableList.make<A>()
+      const emit: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.flatMap(pull, (arr) => {
+        MutableList.appendAllUnsafe(list, arr)
+        const toTake = list.length - n
+        const items = MutableList.takeN(list, toTake)
+        return Arr.isArrayNonEmpty(items) ? Effect.succeed(items) : emit
+      })
+      return emit
+    })
+  )
+})
 
 /**
  * Exposes the underlying chunks of the stream as a stream of chunks of
@@ -4285,10 +4327,7 @@ export const dropRight: {
  * @category utils
  */
 export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> =>
-  self.channel.pipe(
-    Channel.map(Arr.of),
-    fromChannel
-  )
+  self.channel.pipe(Channel.map(Arr.of), fromChannel)
 
 /**
  * @since 2.0.0
@@ -4320,7 +4359,7 @@ export const rechunk: {
             return loop()
           })
         }
-        for (; index < current.length;) {
+        for (; index < current.length; ) {
           chunk.push(current[index++])
           if (chunk.length === target) {
             const result = chunk
@@ -4340,7 +4379,8 @@ export const rechunk: {
           return Effect.succeed(result)
         })
       )
-    }))
+    })
+  )
 })
 
 /**
@@ -4406,8 +4446,9 @@ export const slidingSize: {
           }
         })
 
-        return Effect.suspend(() => cause ? Effect.failCause(cause) : pull)
-      }))
+        return Effect.suspend(() => (cause ? Effect.failCause(cause) : pull))
+      })
+    )
 )
 
 /**
@@ -4437,28 +4478,33 @@ export const split: {
     refinement: Refinement<A, B>
   ): Stream<Arr.NonEmptyReadonlyArray<Exclude<A, B>>, E, R>
   <A, E, R>(self: Stream<A, E, R>, predicate: Predicate<A>): Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
-} = dual(2, <A, E, R>(
-  self: Stream<A, E, R>,
-  predicate: Predicate<NoInfer<A>>
-): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> =>
-  mapAccumArray(self, Arr.empty<A>, (acc, arr) => {
-    const out = Arr.empty<Arr.NonEmptyReadonlyArray<A>>()
-    for (let i = 0; i < arr.length; i++) {
-      if (predicate(arr[i])) {
-        if (Arr.isArrayNonEmpty(acc)) {
-          out.push(acc)
-          acc = []
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, predicate: Predicate<NoInfer<A>>): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> =>
+    mapAccumArray(
+      self,
+      Arr.empty<A>,
+      (acc, arr) => {
+        const out = Arr.empty<Arr.NonEmptyReadonlyArray<A>>()
+        for (let i = 0; i < arr.length; i++) {
+          if (predicate(arr[i])) {
+            if (Arr.isArrayNonEmpty(acc)) {
+              out.push(acc)
+              acc = []
+            }
+          } else {
+            acc.push(arr[i])
+          }
         }
-      } else {
-        acc.push(arr[i])
+        return [acc, out]
+      },
+      {
+        onHalt(arr) {
+          return Arr.isArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
+        }
       }
-    }
-    return [acc, out]
-  }, {
-    onHalt(arr) {
-      return Arr.isArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
-    }
-  }))
+    )
+)
 
 /**
  * Combines the elements from this stream and the specified stream by
@@ -4493,25 +4539,23 @@ export const combine: {
       pullRight: Pull.Pull<A2, E2, void>
     ) => Effect.Effect<readonly [A3, S], E3, R3>
   ): Stream<A3, E3, R | R2 | R3>
-} = dual(4, <A, E, R, A2, E2, R2, S, A3, E3, R3>(
-  self: Stream<A, E, R>,
-  that: Stream<A2, E2, R2>,
-  s: LazyArg<S>,
-  f: (
-    s: S,
-    pullLeft: Pull.Pull<A, E, void>,
-    pullRight: Pull.Pull<A2, E2, void>
-  ) => Effect.Effect<readonly [A3, S], E3, R3>
-): Stream<A3, E3, R | R2 | R3> =>
-  Channel.combine(
-    Channel.flattenArray(self.channel),
-    Channel.flattenArray(that.channel),
-    s,
-    f
-  ).pipe(
-    Channel.map(Arr.of),
-    fromChannel
-  ))
+} = dual(
+  4,
+  <A, E, R, A2, E2, R2, S, A3, E3, R3>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>,
+    s: LazyArg<S>,
+    f: (
+      s: S,
+      pullLeft: Pull.Pull<A, E, void>,
+      pullRight: Pull.Pull<A2, E2, void>
+    ) => Effect.Effect<readonly [A3, S], E3, R3>
+  ): Stream<A3, E3, R | R2 | R3> =>
+    Channel.combine(Channel.flattenArray(self.channel), Channel.flattenArray(that.channel), s, f).pipe(
+      Channel.map(Arr.of),
+      fromChannel
+    )
+)
 
 /**
  * Combines the elements from this stream and the specified stream by
@@ -4549,22 +4593,19 @@ export const combineArray: {
       pullRight: Pull.Pull<Arr.NonEmptyReadonlyArray<A2>, E2, void>
     ) => Effect.Effect<readonly [Arr.NonEmptyReadonlyArray<A3>, S], E3, R3>
   ): Stream<A3, Pull.ExcludeDone<E3>, R | R2 | R3>
-} = dual(4, <R, A2, E2, R2, S, E, A, A3, E3, R3>(
-  self: Stream<A, E, R>,
-  that: Stream<A2, E2, R2>,
-  s: LazyArg<S>,
-  f: (
-    s: S,
-    pullLeft: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void>,
-    pullRight: Pull.Pull<Arr.NonEmptyReadonlyArray<A2>, E2, void>
-  ) => Effect.Effect<readonly [Arr.NonEmptyReadonlyArray<A3>, S], E3, R3>
-): Stream<A3, Pull.ExcludeDone<E3>, R | R2 | R3> =>
-  fromChannel(Channel.combine(
-    self.channel,
-    that.channel,
-    s,
-    f
-  )))
+} = dual(
+  4,
+  <R, A2, E2, R2, S, E, A, A3, E3, R3>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>,
+    s: LazyArg<S>,
+    f: (
+      s: S,
+      pullLeft: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void>,
+      pullRight: Pull.Pull<Arr.NonEmptyReadonlyArray<A2>, E2, void>
+    ) => Effect.Effect<readonly [Arr.NonEmptyReadonlyArray<A3>, S], E3, R3>
+  ): Stream<A3, Pull.ExcludeDone<E3>, R | R2 | R3> => fromChannel(Channel.combine(self.channel, that.channel, s, f))
+)
 
 /**
  * @since 2.0.0
@@ -4586,35 +4627,40 @@ export const mapAccum: {
       readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
     }
   ): Stream<B, E, R>
-} = dual((args) => isStream(args[0]), <A, E, R, S, B>(
-  self: Stream<A, E, R>,
-  initial: LazyArg<S>,
-  f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>],
-  options?: {
-    readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
-  }
-): Stream<B, E, R> =>
-  fromChannel(Channel.mapAccum(
-    self.channel,
-    initial,
-    (state, arr) => {
-      const acc = Arr.empty<B>()
-      for (let index = 0; index < arr.length; index++) {
-        const [newState, values] = f(state, arr[index])
-        state = newState
-        acc.push(...values)
-      }
-      return [state, Arr.isArrayNonEmpty(acc) ? Arr.of(acc) : emptyArr]
-    },
-    options?.onHalt ?
-      {
-        onHalt(state) {
-          const arr = options.onHalt!(state)
-          return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
-        }
-      } :
-      undefined
-  )))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, S, B>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<S>,
+    f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>],
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
+  ): Stream<B, E, R> =>
+    fromChannel(
+      Channel.mapAccum(
+        self.channel,
+        initial,
+        (state, arr) => {
+          const acc = Arr.empty<B>()
+          for (let index = 0; index < arr.length; index++) {
+            const [newState, values] = f(state, arr[index])
+            state = newState
+            acc.push(...values)
+          }
+          return [state, Arr.isArrayNonEmpty(acc) ? Arr.of(acc) : emptyArr]
+        },
+        options?.onHalt
+          ? {
+              onHalt(state) {
+                const arr = options.onHalt!(state)
+                return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
+              }
+            }
+          : undefined
+      )
+    )
+)
 
 /**
  * @since 2.0.0
@@ -4636,31 +4682,36 @@ export const mapAccumArray: {
       readonly onHalt?: ((state: S) => Array<B>) | undefined
     }
   ): Stream<B, E, R>
-} = dual((args) => isStream(args[0]), <A, E, R, S, B>(
-  self: Stream<A, E, R>,
-  initial: LazyArg<S>,
-  f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>],
-  options?: {
-    readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
-  }
-): Stream<B, E, R> =>
-  fromChannel(Channel.mapAccum(
-    self.channel,
-    initial,
-    (state, arr) => {
-      const [newState, values] = f(state, arr)
-      state = newState
-      return [state, Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr]
-    },
-    options?.onHalt ?
-      {
-        onHalt(state) {
-          const arr = options.onHalt!(state)
-          return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
-        }
-      } :
-      undefined
-  )))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, S, B>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<S>,
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>],
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
+  ): Stream<B, E, R> =>
+    fromChannel(
+      Channel.mapAccum(
+        self.channel,
+        initial,
+        (state, arr) => {
+          const [newState, values] = f(state, arr)
+          state = newState
+          return [state, Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr]
+        },
+        options?.onHalt
+          ? {
+              onHalt(state) {
+                const arr = options.onHalt!(state)
+                return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
+              }
+            }
+          : undefined
+      )
+    )
+)
 
 const emptyArr = Arr.empty<never>()
 
@@ -4684,37 +4735,37 @@ export const mapAccumEffect: {
       readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
     }
   ): Stream<B, E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, S, B, E2, R2>(
-  self: Stream<A, E, R>,
-  initial: LazyArg<S>,
-  f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>,
-  options?: {
-    readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
-  }
-): Stream<B, E | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.flattenArray,
-    Channel.mapAccum(
-      initial,
-      (state, a) =>
-        Effect.map(
-          f(state, a),
-          ([state, values]) => [
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, S, B, E2, R2>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<S>,
+    f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>,
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
+  ): Stream<B, E | E2, R | R2> =>
+    self.channel.pipe(
+      Channel.flattenArray,
+      Channel.mapAccum(
+        initial,
+        (state, a) =>
+          Effect.map(f(state, a), ([state, values]) => [
             state,
             Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()
-          ]
-        ),
-      options?.onHalt ?
-        {
-          onHalt(state) {
-            const arr = options.onHalt!(state)
-            return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
-          }
-        } :
-        undefined
-    ),
-    fromChannel
-  ))
+          ]),
+        options?.onHalt
+          ? {
+              onHalt(state) {
+                const arr = options.onHalt!(state)
+                return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
+              }
+            }
+          : undefined
+      ),
+      fromChannel
+    )
+)
 
 /**
  * @since 2.0.0
@@ -4736,71 +4787,65 @@ export const mapAccumArrayEffect: {
       readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
     }
   ): Stream<B, E | E2, R | R2>
-} = dual((args) => isStream(args), <A, E, R, S, B, E2, R2>(
-  self: Stream<A, E, R>,
-  initial: LazyArg<S>,
-  f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>,
-  options?: {
-    readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
-  }
-): Stream<B, E | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.mapAccum(
-      initial,
-      (state, a) =>
-        Effect.map(
-          f(state, a),
-          ([state, values]) => [
+} = dual(
+  (args) => isStream(args),
+  <A, E, R, S, B, E2, R2>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<S>,
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>,
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
+  ): Stream<B, E | E2, R | R2> =>
+    self.channel.pipe(
+      Channel.mapAccum(
+        initial,
+        (state, a) =>
+          Effect.map(f(state, a), ([state, values]) => [
             state,
             Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr
-          ]
-        ),
-      options?.onHalt ?
-        {
-          onHalt(state) {
-            const arr = options.onHalt!(state)
-            return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
-          }
-        } :
-        undefined
-    ),
-    fromChannel
-  ))
+          ]),
+        options?.onHalt
+          ? {
+              onHalt(state) {
+                const arr = options.onHalt!(state)
+                return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
+              }
+            }
+          : undefined
+      ),
+      fromChannel
+    )
+)
 
 /**
  * @since 2.0.0
  * @category sequencing
  */
 export const scan: {
-  <S, A>(
-    initial: S,
-    f: (s: S, a: A) => S
-  ): <E, R>(self: Stream<A, E, R>) => Stream<S, E, R>
-  <A, E, R, S>(
-    self: Stream<A, E, R>,
-    initial: S,
-    f: (s: S, a: A) => S
-  ): Stream<S, E, R>
-} = dual(3, <A, E, R, S>(
-  self: Stream<A, E, R>,
-  initial: S,
-  f: (s: S, a: A) => S
-): Stream<S, E, R> =>
-  suspend(() => {
-    let isFirst = true
-    return fromChannel(Channel.mapAccum(self.channel, constant(initial), (state, arr) => {
-      const states = Arr.empty<S>() as Arr.NonEmptyArray<S>
-      if (isFirst) {
-        isFirst = false
-        states.push(state)
-      }
-      for (let index = 0; index < arr.length; index++) {
-        state = f(state, arr[index])
-        states.push(state)
-      }
-      return [state, Arr.of(states)]
-    }))
-  }))
+  <S, A>(initial: S, f: (s: S, a: A) => S): <E, R>(self: Stream<A, E, R>) => Stream<S, E, R>
+  <A, E, R, S>(self: Stream<A, E, R>, initial: S, f: (s: S, a: A) => S): Stream<S, E, R>
+} = dual(
+  3,
+  <A, E, R, S>(self: Stream<A, E, R>, initial: S, f: (s: S, a: A) => S): Stream<S, E, R> =>
+    suspend(() => {
+      let isFirst = true
+      return fromChannel(
+        Channel.mapAccum(self.channel, constant(initial), (state, arr) => {
+          const states = Arr.empty<S>() as Arr.NonEmptyArray<S>
+          if (isFirst) {
+            isFirst = false
+            states.push(state)
+          }
+          for (let index = 0; index < arr.length; index++) {
+            state = f(state, arr[index])
+            states.push(state)
+          }
+          return [state, Arr.of(states)]
+        })
+      )
+    })
+)
 
 /**
  * @since 2.0.0
@@ -4816,17 +4861,15 @@ export const scanEffect: {
     initial: S,
     f: (s: S, a: A) => Effect.Effect<S, E2, R2>
   ): Stream<S, E | E2, R | R2>
-} = dual(3, <A, E, R, S, E2, R2>(
-  self: Stream<A, E, R>,
-  initial: S,
-  f: (s: S, a: A) => Effect.Effect<S, E2, R2>
-): Stream<S, E | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.flattenArray,
-    Channel.scanEffect(initial, f),
-    Channel.map(Arr.of),
-    fromChannel
-  ))
+} = dual(
+  3,
+  <A, E, R, S, E2, R2>(
+    self: Stream<A, E, R>,
+    initial: S,
+    f: (s: S, a: A) => Effect.Effect<S, E2, R2>
+  ): Stream<S, E | E2, R | R2> =>
+    self.channel.pipe(Channel.flattenArray, Channel.scanEffect(initial, f), Channel.map(Arr.of), fromChannel)
+)
 
 /**
  * @since 2.0.0
@@ -4840,7 +4883,7 @@ export const debounce: {
   <A, E, R>(self: Stream<A, E, R>, duration: Duration.DurationInput): Stream<A, E, R> =>
     transformPull(
       self,
-      Effect.fnUntraced(function*(pull, scope) {
+      Effect.fnUntraced(function* (pull, scope) {
         const clock = yield* Clock
         const durationMs = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
         let lastArr: Arr.NonEmptyReadonlyArray<A> | undefined
@@ -4999,7 +5042,7 @@ const throttleEnforceEffect = <A, E, R, E2, R2>(
             const currentMs = clock.currentTimeMillisUnsafe()
             const elapsed = currentMs - timestampMs
             const cycles = elapsed / durationMs
-            const sum = tokens + (cycles * units)
+            const sum = tokens + cycles * units
             const available = sum < 0 ? max : Math.min(sum, max)
 
             if (weight <= available) {
@@ -5013,7 +5056,8 @@ const throttleEnforceEffect = <A, E, R, E2, R2>(
           })
         })
       )
-    }))
+    })
+  )
 
 const throttleShapeEffect = <A, E, R, E2, R2>(
   self: Stream<A, E, R>,
@@ -5029,38 +5073,42 @@ const throttleShapeEffect = <A, E, R, E2, R2>(
       let tokens = units
       let timestampMs = clock.currentTimeMillisUnsafe()
 
-      return Effect.succeed(Effect.flatMap(pull, (arr) =>
-        Effect.flatMap(cost(arr), (weight) => {
-          const currentMs = clock.currentTimeMillisUnsafe()
-          const elapsed = currentMs - timestampMs
-          const cycles = elapsed / durationMs
-          const sum = tokens + (cycles * units)
-          const available = sum < 0 ? max : Math.min(sum, max)
-          const remaining = available - weight
+      return Effect.succeed(
+        Effect.flatMap(pull, (arr) =>
+          Effect.flatMap(cost(arr), (weight) => {
+            const currentMs = clock.currentTimeMillisUnsafe()
+            const elapsed = currentMs - timestampMs
+            const cycles = elapsed / durationMs
+            const sum = tokens + cycles * units
+            const available = sum < 0 ? max : Math.min(sum, max)
+            const remaining = available - weight
 
-          if (remaining >= 0) {
-            tokens = remaining
-            timestampMs = currentMs
-            return Effect.succeed(arr)
-          }
-
-          // Calculate delay needed
-          const waitCycles = -remaining / units
-          const delayMs = Math.max(0, waitCycles * durationMs)
-
-          if (delayMs > 0) {
-            return Effect.flatMap(Effect.sleep(delayMs), () => {
+            if (remaining >= 0) {
               tokens = remaining
               timestampMs = currentMs
               return Effect.succeed(arr)
-            })
-          }
+            }
 
-          tokens = remaining
-          timestampMs = currentMs
-          return Effect.succeed(arr)
-        })))
-    }))
+            // Calculate delay needed
+            const waitCycles = -remaining / units
+            const delayMs = Math.max(0, waitCycles * durationMs)
+
+            if (delayMs > 0) {
+              return Effect.flatMap(Effect.sleep(delayMs), () => {
+                tokens = remaining
+                timestampMs = currentMs
+                return Effect.succeed(arr)
+              })
+            }
+
+            tokens = remaining
+            timestampMs = currentMs
+            return Effect.succeed(arr)
+          })
+        )
+      )
+    })
+  )
 
 /**
  * Delays the arrays of this stream according to the given bandwidth
@@ -5154,21 +5202,13 @@ export const grouped: {
  * @category Grouping
  */
 export const groupedWithin: {
-  (
-    chunkSize: number,
-    duration: Duration.DurationInput
-  ): <A, E, R>(self: Stream<A, E, R>) => Stream<Array<A>, E, R>
+  (chunkSize: number, duration: Duration.DurationInput): <A, E, R>(self: Stream<A, E, R>) => Stream<Array<A>, E, R>
   <A, E, R>(self: Stream<A, E, R>, chunkSize: number, duration: Duration.DurationInput): Stream<Array<A>, E, R>
-} = dual(3, <A, E, R>(
-  self: Stream<A, E, R>,
-  chunkSize: number,
-  duration: Duration.DurationInput
-): Stream<Array<A>, E, R> =>
-  aggregateWithin(
-    self,
-    Sink.take(chunkSize),
-    Schedule.spaced(duration)
-  ))
+} = dual(
+  3,
+  <A, E, R>(self: Stream<A, E, R>, chunkSize: number, duration: Duration.DurationInput): Stream<Array<A>, E, R> =>
+    aggregateWithin(self, Sink.take(chunkSize), Schedule.spaced(duration))
+)
 
 /**
  * @since 2.0.0
@@ -5190,29 +5230,30 @@ export const groupBy: {
       readonly idleTimeToLive?: Duration.DurationInput | undefined
     }
   ): Stream<readonly [K, Stream<V>], E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, K, V, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (a: NoInfer<A>) => Effect.Effect<readonly [K, V], E2, R2>,
-  options?: {
-    readonly bufferSize?: number | undefined
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
-  }
-): Stream<readonly [K, Stream<V>], E | E2, R | R2> =>
-  groupByImpl(
-    self,
-    Effect.fnUntraced(function*(arr, queues, queueMap) {
-      for (let i = 0; i < arr.length; i++) {
-        const [key, value] = yield* f(arr[i])
-        const oentry = MutableHashMap.get(queueMap, key)
-        const queue = Option.isSome(oentry)
-          ? oentry.value
-          : yield* Effect.scoped(RcMap.get(queues, key))
-        yield* RcMap.touch(queues, key)
-        yield* Queue.offer(queue, value)
-      }
-    }),
-    options
-  ))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, K, V, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: NoInfer<A>) => Effect.Effect<readonly [K, V], E2, R2>,
+    options?: {
+      readonly bufferSize?: number | undefined
+      readonly idleTimeToLive?: Duration.DurationInput | undefined
+    }
+  ): Stream<readonly [K, Stream<V>], E | E2, R | R2> =>
+    groupByImpl(
+      self,
+      Effect.fnUntraced(function* (arr, queues, queueMap) {
+        for (let i = 0; i < arr.length; i++) {
+          const [key, value] = yield* f(arr[i])
+          const oentry = MutableHashMap.get(queueMap, key)
+          const queue = Option.isSome(oentry) ? oentry.value : yield* Effect.scoped(RcMap.get(queues, key))
+          yield* RcMap.touch(queues, key)
+          yield* Queue.offer(queue, value)
+        }
+      }),
+      options
+    )
+)
 
 /**
  * @since 2.0.0
@@ -5234,41 +5275,42 @@ export const groupByKey: {
       readonly idleTimeToLive?: Duration.DurationInput | undefined
     }
   ): Stream<readonly [K, Stream<A>], E, R>
-} = dual((args) => isStream(args[0]), <A, E, R, K>(
-  self: Stream<A, E, R>,
-  f: (a: NoInfer<A>) => K,
-  options?: {
-    readonly bufferSize?: number | undefined
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
-  }
-): Stream<readonly [K, Stream<A>], E, R> =>
-  suspend(() => {
-    const batch = MutableHashMap.empty<K, Arr.NonEmptyArray<A>>()
-    return groupByImpl(
-      self,
-      Effect.fnUntraced(function*(arr, queues, queueMap) {
-        for (let i = 0; i < arr.length; i++) {
-          const key = f(arr[i])
-          const ovalues = MutableHashMap.get(batch, key)
-          if (Option.isNone(ovalues)) {
-            MutableHashMap.set(batch, key, [arr[i]])
-          } else {
-            ovalues.value.push(arr[i])
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, K>(
+    self: Stream<A, E, R>,
+    f: (a: NoInfer<A>) => K,
+    options?: {
+      readonly bufferSize?: number | undefined
+      readonly idleTimeToLive?: Duration.DurationInput | undefined
+    }
+  ): Stream<readonly [K, Stream<A>], E, R> =>
+    suspend(() => {
+      const batch = MutableHashMap.empty<K, Arr.NonEmptyArray<A>>()
+      return groupByImpl(
+        self,
+        Effect.fnUntraced(function* (arr, queues, queueMap) {
+          for (let i = 0; i < arr.length; i++) {
+            const key = f(arr[i])
+            const ovalues = MutableHashMap.get(batch, key)
+            if (Option.isNone(ovalues)) {
+              MutableHashMap.set(batch, key, [arr[i]])
+            } else {
+              ovalues.value.push(arr[i])
+            }
           }
-        }
-        for (const [key, values] of batch) {
-          const oentry = MutableHashMap.get(queueMap, key)
-          const queue = Option.isSome(oentry)
-            ? oentry.value
-            : yield* Effect.scoped(RcMap.get(queues, key))
-          yield* RcMap.touch(queues, key)
-          yield* Queue.offerAll(queue, values)
-        }
-        MutableHashMap.clear(batch)
-      }),
-      options
-    )
-  }))
+          for (const [key, values] of batch) {
+            const oentry = MutableHashMap.get(queueMap, key)
+            const queue = Option.isSome(oentry) ? oentry.value : yield* Effect.scoped(RcMap.get(queues, key))
+            yield* RcMap.touch(queues, key)
+            yield* Queue.offerAll(queue, values)
+          }
+          MutableHashMap.clear(batch)
+        }),
+        options
+      )
+    })
+)
 
 const groupByImpl = <A, E, R, K, V, E2, R2>(
   self: Stream<A, E, R>,
@@ -5284,7 +5326,7 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
 ): Stream<readonly [K, Stream<V>], E | E2, R | R2> =>
   transformPullBracket(
     self,
-    Effect.fnUntraced(function*(pull, scope, forkedScope) {
+    Effect.fnUntraced(function* (pull, scope, forkedScope) {
       const out = yield* Queue.unbounded<readonly [K, Stream<V>], E | E2 | Cause.Done<void>>()
       yield* Scope.addFinalizer(scope, Queue.shutdown(out))
 
@@ -5324,58 +5366,54 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
  * @category Grouping
  */
 export const groupAdjacentBy: {
-  <A, K>(
-    f: (a: NoInfer<A>) => K
-  ): <E, R>(self: Stream<A, E, R>) => Stream<readonly [K, Arr.NonEmptyArray<A>], E, R>
-  <A, E, R, K>(
-    self: Stream<A, E, R>,
-    f: (a: NoInfer<A>) => K
-  ): Stream<readonly [K, Arr.NonEmptyArray<A>], E, R>
-} = dual(2, <A, E, R, K>(
-  self: Stream<A, E, R>,
-  f: (a: NoInfer<A>) => K
-): Stream<readonly [K, Arr.NonEmptyArray<A>], E, R> =>
-  transformPull(self, (pull, _scope) =>
-    Effect.sync(() => {
-      let currentKey: K = undefined as any
-      let group: Arr.NonEmptyArray<A> | undefined
-      let toEmit = Arr.empty<readonly [K, Arr.NonEmptyArray<A>]>()
-      const loop: Pull.Pull<
-        Arr.NonEmptyReadonlyArray<readonly [K, Arr.NonEmptyArray<A>]>,
-        E
-      > = pull.pipe(
-        Effect.flatMap((chunk) => {
-          for (let i = 0; i < chunk.length; i++) {
-            const item = chunk[i]
-            const key = f(item)
-            if (group === undefined) {
+  <A, K>(f: (a: NoInfer<A>) => K): <E, R>(self: Stream<A, E, R>) => Stream<readonly [K, Arr.NonEmptyArray<A>], E, R>
+  <A, E, R, K>(self: Stream<A, E, R>, f: (a: NoInfer<A>) => K): Stream<readonly [K, Arr.NonEmptyArray<A>], E, R>
+} = dual(
+  2,
+  <A, E, R, K>(self: Stream<A, E, R>, f: (a: NoInfer<A>) => K): Stream<readonly [K, Arr.NonEmptyArray<A>], E, R> =>
+    transformPull(self, (pull, _scope) =>
+      Effect.sync(() => {
+        let currentKey: K = undefined as any
+        let group: Arr.NonEmptyArray<A> | undefined
+        let toEmit = Arr.empty<readonly [K, Arr.NonEmptyArray<A>]>()
+        const loop: Pull.Pull<Arr.NonEmptyReadonlyArray<readonly [K, Arr.NonEmptyArray<A>]>, E> = pull.pipe(
+          Effect.flatMap((chunk) => {
+            for (let i = 0; i < chunk.length; i++) {
+              const item = chunk[i]
+              const key = f(item)
+              if (group === undefined) {
+                currentKey = key
+                group = [item]
+                continue
+              } else if (Equal.equals(key, currentKey)) {
+                group.push(item)
+                continue
+              }
+              toEmit.push([currentKey, group])
               currentKey = key
               group = [item]
-              continue
-            } else if (Equal.equals(key, currentKey)) {
-              group.push(item)
-              continue
             }
-            toEmit.push([currentKey, group])
-            currentKey = key
-            group = [item]
+            if (Arr.isArrayNonEmpty(toEmit)) {
+              const out = toEmit
+              toEmit = []
+              return Effect.succeed(out)
+            }
+            return loop
+          })
+        )
+        let done = false
+        return Pull.catchDone(
+          Effect.suspend(() => (done ? Cause.done() : loop)),
+          () => {
+            done = true
+            const out = group
+            group = undefined
+            return out && Arr.isArrayNonEmpty(out) ? Effect.succeed(Arr.of([currentKey, out])) : Cause.done()
           }
-          if (Arr.isArrayNonEmpty(toEmit)) {
-            const out = toEmit
-            toEmit = []
-            return Effect.succeed(out)
-          }
-          return loop
-        })
-      )
-      let done = false
-      return Pull.catchDone(Effect.suspend(() => done ? Cause.done() : loop), () => {
-        done = true
-        const out = group
-        group = undefined
-        return out && Arr.isArrayNonEmpty(out) ? Effect.succeed(Arr.of([currentKey, out])) : Cause.done()
+        )
       })
-    })))
+    )
+)
 
 /**
  * Applies the Sink transducer to the stream and emits its outputs.
@@ -5384,19 +5422,11 @@ export const groupAdjacentBy: {
  * @category utils
  */
 export const transduce = dual<
-  <A2, A, E2, R2>(
-    sink: Sink.Sink<A2, A, A, E2, R2>
-  ) => <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>,
-  <A, E, R, A2, E2, R2>(
-    self: Stream<A, E, R>,
-    sink: Sink.Sink<A2, A, A, E2, R2>
-  ) => Stream<A2, E2 | E, R2 | R>
+  <A2, A, E2, R2>(sink: Sink.Sink<A2, A, A, E2, R2>) => <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>,
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<A2, A, A, E2, R2>) => Stream<A2, E2 | E, R2 | R>
 >(
   2,
-  <A, E, R, A2, E2, R2>(
-    self: Stream<A, E, R>,
-    sink: Sink.Sink<A2, A, A, E2, R2>
-  ): Stream<A2, E2 | E, R2 | R> =>
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<A2, A, A, E2, R2>): Stream<A2, E2 | E, R2 | R> =>
     transformPull(self, (upstream, scope) =>
       Effect.sync(() => {
         let done: Exit.Exit<never, Cause.Done<void> | E> | undefined
@@ -5421,13 +5451,9 @@ export const transduce = dual<
             return Arr.of(value)
           }
         )
-        return Effect.suspend((): Pull.Pull<
-          Arr.NonEmptyReadonlyArray<A2>,
-          E | E2,
-          void,
-          R2
-        > => done ? done : pull)
-      }))
+        return Effect.suspend((): Pull.Pull<Arr.NonEmptyReadonlyArray<A2>, E | E2, void, R2> => (done ? done : pull))
+      })
+    )
 )
 
 /**
@@ -5435,17 +5461,13 @@ export const transduce = dual<
  * @category Aggregation
  */
 export const aggregate: {
-  <B, A, A2, E2, R2>(
-    sink: Sink.Sink<B, A | A2, A2, E2, R2>
-  ): <E, R>(self: Stream<A, E, R>) => Stream<B, E2 | E, R2 | R>
-  <A, E, R, B, A2, E2, R2>(
-    self: Stream<A, E, R>,
-    sink: Sink.Sink<B, A | A2, A2, E2, R2>
-  ): Stream<B, E | E2, R | R2>
-} = dual(2, <A, E, R, B, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  sink: Sink.Sink<B, A | A2, A2, E2, R2>
-): Stream<B, E | E2, R | R2> => aggregateWithin(self, sink, Schedule.forever))
+  <B, A, A2, E2, R2>(sink: Sink.Sink<B, A | A2, A2, E2, R2>): <E, R>(self: Stream<A, E, R>) => Stream<B, E2 | E, R2 | R>
+  <A, E, R, B, A2, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<B, A | A2, A2, E2, R2>): Stream<B, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, B, A2, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<B, A | A2, A2, E2, R2>): Stream<B, E | E2, R | R2> =>
+    aggregateWithin(self, sink, Schedule.forever)
+)
 
 /**
  * @since 2.0.0
@@ -5461,80 +5483,82 @@ export const aggregateWithin: {
     sink: Sink.Sink<B, A | A2, A2, E2, R2>,
     schedule: Schedule.Schedule<C, Option.Option<B>, E3, R3>
   ): Stream<B, E | E2 | E3, R | R2 | R3>
-} = dual(3, <A, E, R, B, A2, E2, R2, C, E3, R3>(
-  self: Stream<A, E, R>,
-  sink: Sink.Sink<B, A | A2, A2, E2, R2>,
-  schedule: Schedule.Schedule<C, Option.Option<B>, E3, R3>
-): Stream<B, E | E2 | E3, R | R2 | R3> =>
-  fromChannel(Channel.fromTransformBracket(Effect.fnUntraced(function*(_upstream, _, scope) {
-    const pull = yield* Channel.toPullScoped(self.channel, _)
+} = dual(
+  3,
+  <A, E, R, B, A2, E2, R2, C, E3, R3>(
+    self: Stream<A, E, R>,
+    sink: Sink.Sink<B, A | A2, A2, E2, R2>,
+    schedule: Schedule.Schedule<C, Option.Option<B>, E3, R3>
+  ): Stream<B, E | E2 | E3, R | R2 | R3> =>
+    fromChannel(
+      Channel.fromTransformBracket(
+        Effect.fnUntraced(function* (_upstream, _, scope) {
+          const pull = yield* Channel.toPullScoped(self.channel, _)
 
-    const pullLatch = Effect.makeLatchUnsafe(false)
-    const scheduleStep = Symbol()
-    const buffer = yield* Queue.make<Arr.NonEmptyReadonlyArray<A> | typeof scheduleStep, E | Cause.Done<void>>({
-      capacity: 0
-    })
+          const pullLatch = Effect.makeLatchUnsafe(false)
+          const scheduleStep = Symbol()
+          const buffer = yield* Queue.make<Arr.NonEmptyReadonlyArray<A> | typeof scheduleStep, E | Cause.Done<void>>({
+            capacity: 0
+          })
 
-    // upstream -> buffer
-    let hadChunk = false
-    yield* pull.pipe(
-      pullLatch.whenOpen,
-      Effect.flatMap((arr) => {
-        hadChunk = true
-        pullLatch.closeUnsafe()
-        return Queue.offer(buffer, arr)
-      }),
-      Effect.forever, // don't disable autoYield to prevent choking the schedule
-      Effect.catchCause((cause) => Queue.failCause(buffer, cause)),
-      Effect.forkIn(scope)
+          // upstream -> buffer
+          let hadChunk = false
+          yield* pull.pipe(
+            pullLatch.whenOpen,
+            Effect.flatMap((arr) => {
+              hadChunk = true
+              pullLatch.closeUnsafe()
+              return Queue.offer(buffer, arr)
+            }),
+            Effect.forever, // don't disable autoYield to prevent choking the schedule
+            Effect.catchCause((cause) => Queue.failCause(buffer, cause)),
+            Effect.forkIn(scope)
+          )
+
+          // schedule -> buffer
+          let lastOutput = Option.none<B>()
+          const step = yield* Schedule.toStepWithSleep(schedule)
+          const stepToBuffer = Effect.suspend(() => step(lastOutput)).pipe(
+            Effect.flatMap(() => Queue.offer(buffer, scheduleStep)),
+            Effect.flatMap(() => Effect.never),
+            Pull.catchDone(() => Cause.done())
+          )
+
+          // buffer -> sink
+          const pullFromBuffer: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Queue.take(buffer).pipe(
+            Effect.flatMap((arr) => (arr === scheduleStep ? Cause.done() : Effect.succeed(arr)))
+          )
+
+          let leftover: Arr.NonEmptyReadonlyArray<A2> | undefined
+          const sinkUpstream = Effect.suspend((): Pull.Pull<Arr.NonEmptyReadonlyArray<A | A2>, E> => {
+            if (leftover !== undefined) {
+              const chunk = leftover
+              leftover = undefined
+              return Effect.succeed(chunk)
+            }
+            hadChunk = false
+            pullLatch.openUnsafe()
+            return pullFromBuffer
+          })
+          const catchSinkHalt = Effect.flatMap(([value, leftover_]: Sink.End<B, A2>) => {
+            // ignore the last output if the upsteam only pulled a halt
+            if (!hadChunk && buffer.state._tag === "Done") return Cause.done()
+            lastOutput = Option.some(value)
+            leftover = leftover_
+            return Effect.succeed(Arr.of(value))
+          })
+
+          return Effect.suspend(() => {
+            // if the buffer has exited and there is no more data to process
+            if (buffer.state._tag === "Done") {
+              return buffer.state.exit as Exit.Exit<never, Cause.Done<void> | E>
+            }
+            return Effect.succeed(Effect.suspend(() => sink.transform(sinkUpstream as any, scope)))
+          }).pipe(Effect.flatMap((pull) => Effect.raceFirst(catchSinkHalt(pull), stepToBuffer)))
+        })
+      )
     )
-
-    // schedule -> buffer
-    let lastOutput = Option.none<B>()
-    const step = yield* Schedule.toStepWithSleep(schedule)
-    const stepToBuffer = Effect.suspend(() => step(lastOutput)).pipe(
-      Effect.flatMap(() => Queue.offer(buffer, scheduleStep)),
-      Effect.flatMap(() => Effect.never),
-      Pull.catchDone(() => Cause.done())
-    )
-
-    // buffer -> sink
-    const pullFromBuffer: Pull.Pull<
-      Arr.NonEmptyReadonlyArray<A>,
-      E
-    > = Queue.take(buffer).pipe(
-      Effect.flatMap((arr) => arr === scheduleStep ? Cause.done() : Effect.succeed(arr))
-    )
-
-    let leftover: Arr.NonEmptyReadonlyArray<A2> | undefined
-    const sinkUpstream = Effect.suspend((): Pull.Pull<Arr.NonEmptyReadonlyArray<A | A2>, E> => {
-      if (leftover !== undefined) {
-        const chunk = leftover
-        leftover = undefined
-        return Effect.succeed(chunk)
-      }
-      hadChunk = false
-      pullLatch.openUnsafe()
-      return pullFromBuffer
-    })
-    const catchSinkHalt = Effect.flatMap(([value, leftover_]: Sink.End<B, A2>) => {
-      // ignore the last output if the upsteam only pulled a halt
-      if (!hadChunk && buffer.state._tag === "Done") return Cause.done()
-      lastOutput = Option.some(value)
-      leftover = leftover_
-      return Effect.succeed(Arr.of(value))
-    })
-
-    return Effect.suspend(() => {
-      // if the buffer has exited and there is no more data to process
-      if (buffer.state._tag === "Done") {
-        return buffer.state.exit as Exit.Exit<never, Cause.Done<void> | E>
-      }
-      return Effect.succeed(Effect.suspend(() => sink.transform(sinkUpstream as any, scope)))
-    }).pipe(
-      Effect.flatMap((pull) => Effect.raceFirst(catchSinkHalt(pull), stepToBuffer))
-    )
-  }))))
+)
 
 /**
  * @since 2.0.0
@@ -5542,37 +5566,46 @@ export const aggregateWithin: {
  */
 export const broadcast: {
   (
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-      readonly replay?: number | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+          readonly replay?: number | undefined
+        }
   ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<Stream<A, E>, never, Scope.Scope | R>
   <A, E, R>(
     self: Stream<A, E, R>,
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-      readonly replay?: number | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+          readonly replay?: number | undefined
+        }
   ): Effect.Effect<Stream<A, E>, never, Scope.Scope | R>
-} = dual(2, <A, E, R>(
-  self: Stream<A, E, R>,
-  options: {
-    readonly capacity: "unbounded"
-    readonly replay?: number | undefined
-  } | {
-    readonly capacity: number
-    readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-    readonly replay?: number | undefined
-  }
-): Effect.Effect<Stream<A, E>, never, Scope.Scope | R> => Effect.map(toPubSubTake(self, options), fromPubSubTake))
+} = dual(
+  2,
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+          readonly replay?: number | undefined
+        }
+  ): Effect.Effect<Stream<A, E>, never, Scope.Scope | R> => Effect.map(toPubSubTake(self, options), fromPubSubTake)
+)
 
 /**
  * @since 2.0.0
@@ -5580,50 +5613,59 @@ export const broadcast: {
  */
 export const share: {
   (
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-      readonly idleTimeToLive?: Duration.DurationInput | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-      readonly replay?: number | undefined
-      readonly idleTimeToLive?: Duration.DurationInput | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+          readonly idleTimeToLive?: Duration.DurationInput | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+          readonly replay?: number | undefined
+          readonly idleTimeToLive?: Duration.DurationInput | undefined
+        }
   ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<Stream<A, E>, never, Scope.Scope | R>
   <A, E, R>(
     self: Stream<A, E, R>,
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-      readonly idleTimeToLive?: Duration.DurationInput | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-      readonly replay?: number | undefined
-      readonly idleTimeToLive?: Duration.DurationInput | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+          readonly idleTimeToLive?: Duration.DurationInput | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+          readonly replay?: number | undefined
+          readonly idleTimeToLive?: Duration.DurationInput | undefined
+        }
   ): Effect.Effect<Stream<A, E>, never, Scope.Scope | R>
-} = dual(2, <A, E, R>(
-  self: Stream<A, E, R>,
-  options: {
-    readonly capacity: "unbounded"
-    readonly replay?: number | undefined
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
-  } | {
-    readonly capacity: number
-    readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-    readonly replay?: number | undefined
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
-  }
-): Effect.Effect<Stream<A, E>, never, Scope.Scope | R> =>
-  Effect.map(
-    RcRef.make({
-      acquire: broadcast(self, options),
-      idleTimeToLive: options.idleTimeToLive
-    }),
-    (ref) => unwrap(RcRef.get(ref))
-  ))
+} = dual(
+  2,
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+          readonly idleTimeToLive?: Duration.DurationInput | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+          readonly replay?: number | undefined
+          readonly idleTimeToLive?: Duration.DurationInput | undefined
+        }
+  ): Effect.Effect<Stream<A, E>, never, Scope.Scope | R> =>
+    Effect.map(
+      RcRef.make({
+        acquire: broadcast(self, options),
+        idleTimeToLive: options.idleTimeToLive
+      }),
+      (ref) => unwrap(RcRef.get(ref))
+    )
+)
 
 /**
  * Pipes all the values from this stream through the provided channel.
@@ -5702,10 +5744,13 @@ export const pipeThroughChannel: {
     self: Stream<A, E, R>,
     channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
   ): Stream<A2, E2, R | R2>
-} = dual(2, <R, R2, E, E2, A, A2>(
-  self: Stream<A, E, R>,
-  channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
-): Stream<A2, E2, R | R2> => fromChannel(Channel.pipeTo(self.channel, channel)))
+} = dual(
+  2,
+  <R, R2, E, E2, A, A2>(
+    self: Stream<A, E, R>,
+    channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
+  ): Stream<A2, E2, R | R2> => fromChannel(Channel.pipeTo(self.channel, channel))
+)
 
 /**
  * Pipes all values from this stream through the provided channel, passing
@@ -5780,10 +5825,13 @@ export const pipeThroughChannelOrFail: {
     self: Stream<A, E, R>,
     channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
   ): Stream<A2, E | E2, R | R2>
-} = dual(2, <R, R2, E, E2, A, A2>(
-  self: Stream<A, E, R>,
-  channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
-): Stream<A2, E | E2, R | R2> => fromChannel(Channel.pipeToOrFail(self.channel, channel)))
+} = dual(
+  2,
+  <R, R2, E, E2, A, A2>(
+    self: Stream<A, E, R>,
+    channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
+  ): Stream<A2, E | E2, R | R2> => fromChannel(Channel.pipeToOrFail(self.channel, channel))
+)
 
 /**
  * Pipes all of the values from this stream through the provided sink.
@@ -5801,7 +5849,7 @@ export const pipeThrough: {
   <A, E, R, A2, L, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<A2, A, L, E2, R2>): Stream<L, E | E2, R | R2> =>
     self.channel.pipe(
       Channel.pipeToOrFail(Sink.toChannel(sink)),
-      Channel.concatWith(([_, leftover]) => leftover ? Channel.succeed(leftover) : Channel.empty),
+      Channel.concatWith(([_, leftover]) => (leftover ? Channel.succeed(leftover) : Channel.empty)),
       fromChannel
     )
 )
@@ -5867,7 +5915,8 @@ export const changesWith: {
           }
           return Arr.isArrayNonEmpty(out) ? Effect.succeed(out) : Effect.flatMap(pull, loop)
         })
-      }))
+      })
+    )
 )
 
 /**
@@ -5882,10 +5931,7 @@ export const changesWithEffect: {
   <A, E2, R2>(
     f: (x: A, y: A) => Effect.Effect<boolean, E2, R2>
   ): <E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R | R2>
-  <A, E, R, E2, R2>(
-    self: Stream<A, E, R>,
-    f: (x: A, y: A) => Effect.Effect<boolean, E2, R2>
-  ): Stream<A, E | E2, R | R2>
+  <A, E, R, E2, R2>(self: Stream<A, E, R>, f: (x: A, y: A) => Effect.Effect<boolean, E2, R2>): Stream<A, E | E2, R | R2>
 } = dual(
   2,
   <A, E, R, E2, R2>(
@@ -5920,7 +5966,8 @@ export const changesWithEffect: {
             return Arr.isArrayNonEmpty(out) ? out : yield* Effect.flatMap(pull, Effect.fnUntraced(loop))
           })
         )
-      }))
+      })
+    )
 )
 
 /**
@@ -5982,10 +6029,7 @@ export const encodeText = <E, R>(self: Stream<string, E, R>): Stream<Uint8Array,
  * @category encoding
  */
 export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, R> =>
-  self.channel.pipe(
-    Channel.pipeTo(Channel.splitLines()),
-    fromChannel
-  )
+  self.channel.pipe(Channel.pipeTo(Channel.splitLines()), fromChannel)
 
 /**
  * Intersperse stream with provided `element`.
@@ -6009,19 +6053,22 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
 export const intersperse: {
   <A2>(element: A2): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A, E, R>
   <A, E, R, A2>(self: Stream<A, E, R>, element: A2): Stream<A | A2, E, R>
-} = dual(2, <A, E, R, A2>(self: Stream<A, E, R>, element: A2): Stream<A | A2, E, R> =>
-  mapArray(self, (arr, i) => {
-    const out: Arr.NonEmptyArray<A | A2> = i === 0 ? [] as any : [element]
-    const lastIndex = arr.length - 1
-    for (let j = 0; j < arr.length; j++) {
-      if (j === lastIndex) {
-        out.push(arr[j])
-      } else {
-        out.push(arr[j], element)
+} = dual(
+  2,
+  <A, E, R, A2>(self: Stream<A, E, R>, element: A2): Stream<A | A2, E, R> =>
+    mapArray(self, (arr, i) => {
+      const out: Arr.NonEmptyArray<A | A2> = i === 0 ? ([] as any) : [element]
+      const lastIndex = arr.length - 1
+      for (let j = 0; j < arr.length; j++) {
+        if (j === lastIndex) {
+          out.push(arr[j])
+        } else {
+          out.push(arr[j], element)
+        }
       }
-    }
-    return out
-  }))
+      return out
+    })
+)
 
 /**
  * Intersperse the specified element, also adding a prefix and a suffix.
@@ -6050,21 +6097,23 @@ export const intersperse: {
  * @category utils
  */
 export const intersperseAffixes: {
-  <A2, A3, A4>(
-    options: { readonly start: A2; readonly middle: A3; readonly end: A4 }
-  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A3 | A4 | A, E, R>
+  <A2, A3, A4>(options: {
+    readonly start: A2
+    readonly middle: A3
+    readonly end: A4
+  }): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A3 | A4 | A, E, R>
   <A, E, R, A2, A3, A4>(
     self: Stream<A, E, R>,
     options: { readonly start: A2; readonly middle: A3; readonly end: A4 }
   ): Stream<A | A2 | A3 | A4, E, R>
-} = dual(2, <A, E, R, A2, A3, A4>(
-  self: Stream<A, E, R>,
-  options: { readonly start: A2; readonly middle: A3; readonly end: A4 }
-): Stream<A | A2 | A3 | A4, E, R> =>
-  succeed(options.start).pipe(
-    concat(intersperse(self, options.middle)),
-    concat(succeed(options.end))
-  ))
+} = dual(
+  2,
+  <A, E, R, A2, A3, A4>(
+    self: Stream<A, E, R>,
+    options: { readonly start: A2; readonly middle: A3; readonly end: A4 }
+  ): Stream<A | A2 | A3 | A4, E, R> =>
+    succeed(options.start).pipe(concat(intersperse(self, options.middle)), concat(succeed(options.end)))
+)
 
 /**
  * Interleaves this stream and the specified stream deterministically by
@@ -6093,11 +6142,7 @@ export const interleave: {
 } = dual(
   2,
   <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<A | A2, E | E2, R | R2> =>
-    interleaveWith(
-      self,
-      that,
-      fromIterable(Iterable.forever([true, false]))
-    )
+    interleaveWith(self, that, fromIterable(Iterable.forever([true, false])))
 )
 
 /**
@@ -6140,50 +6185,51 @@ export const interleaveWith: {
     that: Stream<A2, E2, R2>,
     decider: Stream<boolean, E3, R3>
   ): Stream<A | A2, E | E2 | E3, R | R2 | R3>
-} = dual(3, <A, E, R, A2, E2, R2, E3, R3>(
-  self: Stream<A, E, R>,
-  that: Stream<A2, E2, R2>,
-  decider: Stream<boolean, E3, R3>
-): Stream<A | A2, E | E2 | E3, R | R2 | R3> =>
-  fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(upstream, scope) {
-    const pullDecider = yield* Channel.toTransform(Channel.flattenArray(decider.channel))(upstream, scope)
-    const retry = Symbol()
-    type retry = typeof retry
-    let leftDone = false
-    let rightDone = false
-    const pullLeft = (yield* Channel.toTransform(Channel.flattenArray(self.channel))(
-      upstream,
-      scope
-    )).pipe(
-      Pull.catchDone(() => {
-        leftDone = true
-        return Effect.succeed<retry>(retry)
-      })
-    )
-    const pullRight = (yield* Channel.toTransform(Channel.flattenArray(that.channel))(
-      upstream,
-      scope
-    )).pipe(
-      Pull.catchDone(() => {
-        rightDone = true
-        return Effect.succeed<retry>(retry)
-      })
-    )
+} = dual(
+  3,
+  <A, E, R, A2, E2, R2, E3, R3>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>,
+    decider: Stream<boolean, E3, R3>
+  ): Stream<A | A2, E | E2 | E3, R | R2 | R3> =>
+    fromChannel(
+      Channel.fromTransform(
+        Effect.fnUntraced(function* (upstream, scope) {
+          const pullDecider = yield* Channel.toTransform(Channel.flattenArray(decider.channel))(upstream, scope)
+          const retry = Symbol()
+          type retry = typeof retry
+          let leftDone = false
+          let rightDone = false
+          const pullLeft = (yield* Channel.toTransform(Channel.flattenArray(self.channel))(upstream, scope)).pipe(
+            Pull.catchDone(() => {
+              leftDone = true
+              return Effect.succeed<retry>(retry)
+            })
+          )
+          const pullRight = (yield* Channel.toTransform(Channel.flattenArray(that.channel))(upstream, scope)).pipe(
+            Pull.catchDone(() => {
+              rightDone = true
+              return Effect.succeed<retry>(retry)
+            })
+          )
 
-    return Effect.gen(function*() {
-      while (true) {
-        if (leftDone && rightDone) {
-          return yield* Cause.done()
-        }
-        const side = yield* pullDecider
-        if (side && leftDone) continue
-        if (!side && rightDone) continue
-        const elem = yield* (side ? pullLeft : pullRight)
-        if (elem === retry) continue
-        return Arr.of(elem)
-      }
-    })
-  }))))
+          return Effect.gen(function* () {
+            while (true) {
+              if (leftDone && rightDone) {
+                return yield* Cause.done()
+              }
+              const side = yield* pullDecider
+              if (side && leftDone) continue
+              if (!side && rightDone) continue
+              const elem = yield* side ? pullLeft : pullRight
+              if (elem === retry) continue
+              return Arr.of(elem)
+            }
+          })
+        })
+      )
+    )
+)
 
 /**
  * Interrupts the evaluation of this stream when the provided effect
@@ -6258,10 +6304,13 @@ export const onExit: {
     self: Stream<A, E, R>,
     finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
   ): Stream<A, E, R | R2>
-} = dual(2, <A, E, R, R2>(
-  self: Stream<A, E, R>,
-  finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
-): Stream<A, E, R | R2> => fromChannel(Channel.onExit(self.channel, finalizer)))
+} = dual(
+  2,
+  <A, E, R, R2>(
+    self: Stream<A, E, R>,
+    finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
+  ): Stream<A, E, R | R2> => fromChannel(Channel.onExit(self.channel, finalizer))
+)
 
 /**
  * Runs the specified effect if this stream fails, providing the error to the
@@ -6281,27 +6330,26 @@ export const onError: {
     self: Stream<A, E, R>,
     cleanup: (cause: Cause.Cause<E>) => Effect.Effect<X, never, R2>
   ): Stream<A, E, R | R2>
-} = dual(2, <A, E, R, X, R2>(
-  self: Stream<A, E, R>,
-  cleanup: (cause: Cause.Cause<E>) => Effect.Effect<X, never, R2>
-): Stream<A, E, R | R2> => fromChannel(Channel.onError(self.channel, cleanup)))
+} = dual(
+  2,
+  <A, E, R, X, R2>(
+    self: Stream<A, E, R>,
+    cleanup: (cause: Cause.Cause<E>) => Effect.Effect<X, never, R2>
+  ): Stream<A, E, R | R2> => fromChannel(Channel.onError(self.channel, cleanup))
+)
 
 /**
  * @since 4.0.0
  * @category utils
  */
 export const onStart: {
-  <X, EX, RX>(
-    onStart: Effect.Effect<X, EX, RX>
-  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
-  <A, E, R, X, EX, RX>(
-    self: Stream<A, E, R>,
-    onStart: Effect.Effect<X, EX, RX>
-  ): Stream<A, E | EX, R | RX>
-} = dual(2, <A, E, R, X, EX, RX>(
-  self: Stream<A, E, R>,
-  onStart: Effect.Effect<X, EX, RX>
-): Stream<A, E | EX, R | RX> => fromChannel(Channel.onStart(self.channel, onStart)))
+  <X, EX, RX>(onStart: Effect.Effect<X, EX, RX>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
+  <A, E, R, X, EX, RX>(self: Stream<A, E, R>, onStart: Effect.Effect<X, EX, RX>): Stream<A, E | EX, R | RX>
+} = dual(
+  2,
+  <A, E, R, X, EX, RX>(self: Stream<A, E, R>, onStart: Effect.Effect<X, EX, RX>): Stream<A, E | EX, R | RX> =>
+    fromChannel(Channel.onStart(self.channel, onStart))
+)
 
 /**
  * @since 4.0.0
@@ -6315,27 +6363,26 @@ export const onFirst: {
     self: Stream<A, E, R>,
     onFirst: (element: NoInfer<A>) => Effect.Effect<X, EX, RX>
   ): Stream<A, E | EX, R | RX>
-} = dual(2, <A, E, R, X, EX, RX>(
-  self: Stream<A, E, R>,
-  onFirst: (element: NoInfer<A>) => Effect.Effect<X, EX, RX>
-): Stream<A, E | EX, R | RX> => fromChannel(Channel.onFirst(self.channel, (arr) => onFirst(arr[0]))))
+} = dual(
+  2,
+  <A, E, R, X, EX, RX>(
+    self: Stream<A, E, R>,
+    onFirst: (element: NoInfer<A>) => Effect.Effect<X, EX, RX>
+  ): Stream<A, E | EX, R | RX> => fromChannel(Channel.onFirst(self.channel, (arr) => onFirst(arr[0])))
+)
 
 /**
  * @since 4.0.0
  * @category utils
  */
 export const onEnd: {
-  <X, EX, RX>(
-    onEnd: Effect.Effect<X, EX, RX>
-  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
-  <A, E, R, X, EX, RX>(
-    self: Stream<A, E, R>,
-    onEnd: Effect.Effect<X, EX, RX>
-  ): Stream<A, E | EX, R | RX>
-} = dual(2, <A, E, R, X, EX, RX>(
-  self: Stream<A, E, R>,
-  onEnd: Effect.Effect<X, EX, RX>
-): Stream<A, E | EX, R | RX> => fromChannel(Channel.onEnd(self.channel, onEnd)))
+  <X, EX, RX>(onEnd: Effect.Effect<X, EX, RX>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
+  <A, E, R, X, EX, RX>(self: Stream<A, E, R>, onEnd: Effect.Effect<X, EX, RX>): Stream<A, E | EX, R | RX>
+} = dual(
+  2,
+  <A, E, R, X, EX, RX>(self: Stream<A, E, R>, onEnd: Effect.Effect<X, EX, RX>): Stream<A, E | EX, R | RX> =>
+    fromChannel(Channel.onEnd(self.channel, onEnd))
+)
 
 /**
  * @since 4.0.0
@@ -6357,17 +6404,18 @@ export const ensuring: {
 export const provide: {
   <AL, EL = never, RL = never>(
     layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>
-  ): <A, E, R>(
-    self: Stream<A, E, R>
-  ) => Stream<A, E | EL, Exclude<R, AL> | RL>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EL, Exclude<R, AL> | RL>
   <A, E, R, AL, EL = never, RL = never>(
     self: Stream<A, E, R>,
     layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>
   ): Stream<A, E | EL, Exclude<R, AL> | RL>
-} = dual(2, <A, E, R, AL, EL = never, RL = never>(
-  self: Stream<A, E, R>,
-  layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>
-): Stream<A, E | EL, Exclude<R, AL> | RL> => fromChannel(Channel.provide(self.channel, layer)))
+} = dual(
+  2,
+  <A, E, R, AL, EL = never, RL = never>(
+    self: Stream<A, E, R>,
+    layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>
+  ): Stream<A, E | EL, Exclude<R, AL> | RL> => fromChannel(Channel.provide(self.channel, layer))
+)
 
 /**
  * Provides the stream with some of its required services, which eliminates its
@@ -6393,19 +6441,20 @@ export const provideService: {
   <I, S>(
     key: ServiceMap.Service<I, S>,
     service: NoInfer<S>
-  ): <A, E, R>(
-    self: Stream<A, E, R>
-  ) => Stream<A, E, Exclude<R, I>>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, I>>
   <A, E, R, I, S>(
     self: Stream<A, E, R>,
     key: ServiceMap.Service<I, S>,
     service: NoInfer<S>
   ): Stream<A, E, Exclude<R, I>>
-} = dual(3, <A, E, R, I, S>(
-  self: Stream<A, E, R>,
-  key: ServiceMap.Service<I, S>,
-  service: NoInfer<S>
-): Stream<A, E, Exclude<R, I>> => fromChannel(Channel.provideService(self.channel, key, service)))
+} = dual(
+  3,
+  <A, E, R, I, S>(
+    self: Stream<A, E, R>,
+    key: ServiceMap.Service<I, S>,
+    service: NoInfer<S>
+  ): Stream<A, E, Exclude<R, I>> => fromChannel(Channel.provideService(self.channel, key, service))
+)
 
 /**
  * @since 4.0.0
@@ -6415,19 +6464,20 @@ export const provideServiceEffect: {
   <I, S, ES, RS>(
     key: ServiceMap.Service<I, S>,
     service: Effect.Effect<NoInfer<S>, ES, RS>
-  ): <A, E, R>(
-    self: Stream<A, E, R>
-  ) => Stream<A, E | ES, Exclude<R, I> | RS>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | ES, Exclude<R, I> | RS>
   <A, E, R, I, S, ES, RS>(
     self: Stream<A, E, R>,
     key: ServiceMap.Service<I, S>,
     service: Effect.Effect<NoInfer<S>, ES, RS>
   ): Stream<A, E | ES, Exclude<R, I> | RS>
-} = dual(3, <A, E, R, I, S, ES, RS>(
-  self: Stream<A, E, R>,
-  key: ServiceMap.Service<I, S>,
-  service: Effect.Effect<NoInfer<S>, ES, RS>
-): Stream<A, E | ES, Exclude<R, I> | RS> => fromChannel(Channel.provideServiceEffect(self.channel, key, service)))
+} = dual(
+  3,
+  <A, E, R, I, S, ES, RS>(
+    self: Stream<A, E, R>,
+    key: ServiceMap.Service<I, S>,
+    service: Effect.Effect<NoInfer<S>, ES, RS>
+  ): Stream<A, E | ES, Exclude<R, I> | RS> => fromChannel(Channel.provideServiceEffect(self.channel, key, service))
+)
 
 /**
  * @since 2.0.0
@@ -6436,17 +6486,18 @@ export const provideServiceEffect: {
 export const updateServices: {
   <R, R2>(
     f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<R>
-  ): <A, E>(
-    self: Stream<A, E, R>
-  ) => Stream<A, E, R2>
+  ): <A, E>(self: Stream<A, E, R>) => Stream<A, E, R2>
   <A, E, R, R2>(
     self: Stream<A, E, R>,
     f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<R>
   ): Stream<A, E, R2>
-} = dual(2, <A, E, R, R2>(
-  self: Stream<A, E, R>,
-  f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<R>
-): Stream<A, E, R2> => fromChannel(Channel.updateServices(self.channel, f)))
+} = dual(
+  2,
+  <A, E, R, R2>(
+    self: Stream<A, E, R>,
+    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<R>
+  ): Stream<A, E, R2> => fromChannel(Channel.updateServices(self.channel, f))
+)
 
 /**
  * @since 2.0.0
@@ -6456,25 +6507,21 @@ export const updateService: {
   <I, S>(
     key: ServiceMap.Service<I, S>,
     f: (service: NoInfer<S>) => S
-  ): <A, E, R>(
-    self: Stream<A, E, R>
-  ) => Stream<A, E, R | I>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R | I>
   <A, E, R, I, S>(
     self: Stream<A, E, R>,
     key: ServiceMap.Service<I, S>,
     f: (service: NoInfer<S>) => S
   ): Stream<A, E, R | I>
-} = dual(3, <A, E, R, I, S>(
-  self: Stream<A, E, R>,
-  service: ServiceMap.Service<I, S>,
-  f: (service: NoInfer<S>) => S
-): Stream<A, E, R | I> =>
-  updateServices(self, (services) =>
-    ServiceMap.add(
-      services,
-      service,
-      f(ServiceMap.get(services, service))
-    )))
+} = dual(
+  3,
+  <A, E, R, I, S>(
+    self: Stream<A, E, R>,
+    service: ServiceMap.Service<I, S>,
+    f: (service: NoInfer<S>) => S
+  ): Stream<A, E, R | I> =>
+    updateServices(self, (services) => ServiceMap.add(services, service, f(ServiceMap.get(services, service))))
+)
 
 /**
  * @since 4.0.0
@@ -6483,7 +6530,7 @@ export const updateService: {
 export const withSpan: {
   (name: string, options?: SpanOptions): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, ParentSpan>>
   <A, E, R>(self: Stream<A, E, R>, name: string, options?: SpanOptions): Stream<A, E, Exclude<R, ParentSpan>>
-} = function() {
+} = function () {
   const dataFirst = isStream(arguments[0])
   const name = dataFirst ? arguments[1] : arguments[0]
   const options = addSpanStackTrace(dataFirst ? arguments[1] : arguments[2])
@@ -6510,12 +6557,15 @@ const let_: {
     name: Exclude<N, keyof A>,
     f: (a: NoInfer<A>) => B
   ): Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E, R>
-} = dual(3, <A extends object, E, R, N extends string, B>(
-  self: Stream<A, E, R>,
-  name: Exclude<N, keyof A>,
-  f: (a: NoInfer<A>) => B
-): Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E, R> =>
-  map(self, (a) => ({ ...a, [name]: f(a) } as any)))
+} = dual(
+  3,
+  <A extends object, E, R, N extends string, B>(
+    self: Stream<A, E, R>,
+    name: Exclude<N, keyof A>,
+    f: (a: NoInfer<A>) => B
+  ): Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E, R> =>
+    map(self, (a) => ({ ...a, [name]: f(a) }) as any)
+)
 export {
   /**
    * @since 4.0.0
@@ -6532,30 +6582,39 @@ export const bind: {
   <N extends string, A, B, E2, R2>(
     tag: Exclude<N, keyof A>,
     f: (_: NoInfer<A>) => Stream<B, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
   ): <E, R>(self: Stream<A, E, R>) => Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E2 | E, R2 | R>
   <A, E, R, N extends string, B, E2, R2>(
     self: Stream<A, E, R>,
     tag: Exclude<N, keyof A>,
     f: (_: NoInfer<A>) => Stream<B, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
-    } | undefined
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
   ): Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, N extends string, B, E2, R2>(
-  self: Stream<A, E, R>,
-  tag: Exclude<N, keyof A>,
-  f: (_: NoInfer<A>) => Stream<B, E2, R2>,
-  options?: {
-    readonly concurrency?: number | "unbounded" | undefined
-    readonly bufferSize?: number | undefined
-  } | undefined
-): Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E | E2, R | R2> =>
-  flatMap(self, (a) => map(f(a), (b) => ({ ...a, [tag]: b } as any)), options))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, N extends string, B, E2, R2>(
+    self: Stream<A, E, R>,
+    tag: Exclude<N, keyof A>,
+    f: (_: NoInfer<A>) => Stream<B, E2, R2>,
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+        }
+      | undefined
+  ): Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E | E2, R | R2> =>
+    flatMap(self, (a) => map(f(a), (b) => ({ ...a, [tag]: b }) as any), options)
+)
 
 /**
  * @category Do notation
@@ -6581,17 +6640,22 @@ export const bindEffect: {
       readonly unordered?: boolean | undefined
     }
   ): Stream<{ [K in keyof A | N]: K extends keyof A ? A[K] : B }, E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, N extends string, B, E2, R2>(
-  self: Stream<A, E, R>,
-  tag: Exclude<N, keyof A>,
-  f: (_: NoInfer<A>) => Effect.Effect<B, E2, R2>,
-  options?: {
-    readonly concurrency?: number | "unbounded" | undefined
-    readonly bufferSize?: number | undefined
-    readonly unordered?: boolean | undefined
-  } | undefined
-): Stream<{ [K in keyof A | N]: K extends keyof A ? A[K] : B }, E | E2, R | R2> =>
-  mapEffect(self, (a) => Effect.map(f(a), (b) => ({ ...a, [tag]: b } as any)), options))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, N extends string, B, E2, R2>(
+    self: Stream<A, E, R>,
+    tag: Exclude<N, keyof A>,
+    f: (_: NoInfer<A>) => Effect.Effect<B, E2, R2>,
+    options?:
+      | {
+          readonly concurrency?: number | "unbounded" | undefined
+          readonly bufferSize?: number | undefined
+          readonly unordered?: boolean | undefined
+        }
+      | undefined
+  ): Stream<{ [K in keyof A | N]: K extends keyof A ? A[K] : B }, E | E2, R | R2> =>
+    mapEffect(self, (a) => Effect.map(f(a), (b) => ({ ...a, [tag]: b }) as any), options)
+)
 
 /**
  * @category Do notation
@@ -6600,10 +6664,11 @@ export const bindEffect: {
 export const bindTo: {
   <N extends string>(name: N): <A, E, R>(self: Stream<A, E, R>) => Stream<{ [K in N]: A }, E, R>
   <A, E, R, N extends string>(self: Stream<A, E, R>, name: N): Stream<{ [K in N]: A }, E, R>
-} = dual(2, <A, E, R, N extends string>(
-  self: Stream<A, E, R>,
-  name: N
-): Stream<{ [K in N]: A }, E, R> => map(self, (a) => ({ [name]: a } as any)))
+} = dual(
+  2,
+  <A, E, R, N extends string>(self: Stream<A, E, R>, name: N): Stream<{ [K in N]: A }, E, R> =>
+    map(self, (a) => ({ [name]: a }) as any)
+)
 
 /**
  * Runs the sink on the stream to produce either the sink's result or an error.
@@ -6627,20 +6692,20 @@ export const run: {
   <A2, A, L, E2, R2>(
     sink: Sink.Sink<A2, A, L, E2, R2>
   ): <E, R>(self: Stream<A, E, R>) => Effect.Effect<A2, E2 | E, R | R2>
+  <A, E, R, L, A2, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<A2, A, L, E2, R2>): Effect.Effect<A2, E | E2, R | R2>
+} = dual(
+  2,
   <A, E, R, L, A2, E2, R2>(
     self: Stream<A, E, R>,
     sink: Sink.Sink<A2, A, L, E2, R2>
-  ): Effect.Effect<A2, E | E2, R | R2>
-} = dual(2, <A, E, R, L, A2, E2, R2>(
-  self: Stream<A, E, R>,
-  sink: Sink.Sink<A2, A, L, E2, R2>
-): Effect.Effect<A2, E | E2, R | R2> =>
-  Effect.scopedWith((scope) =>
-    Channel.toPullScoped(self.channel, scope).pipe(
-      Effect.flatMap((upstream) => sink.transform(upstream as any, scope)),
-      Effect.map(([a]) => a)
+  ): Effect.Effect<A2, E | E2, R | R2> =>
+    Effect.scopedWith((scope) =>
+      Channel.toPullScoped(self.channel, scope).pipe(
+        Effect.flatMap((upstream) => sink.transform(upstream as any, scope)),
+        Effect.map(([a]) => a)
+      )
     )
-  ))
+)
 
 /**
  * Runs the stream and collects all of its elements to a chunk.
@@ -6691,47 +6756,45 @@ export const runCollect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Array<
  * @category destructors
  */
 export const runCount = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<number, E, R> =>
-  Channel.runFold(self.channel, () => 0, (acc, chunk) => acc + chunk.length)
+  Channel.runFold(
+    self.channel,
+    () => 0,
+    (acc, chunk) => acc + chunk.length
+  )
 
 /**
  * @since 2.0.0
  * @category destructors
  */
 export const runSum = <E, R>(self: Stream<number, E, R>): Effect.Effect<number, E, R> =>
-  Channel.runFold(self.channel, () => 0, (acc, chunk) => {
-    for (let i = 0; i < chunk.length; i++) {
-      acc += chunk[i]
+  Channel.runFold(
+    self.channel,
+    () => 0,
+    (acc, chunk) => {
+      for (let i = 0; i < chunk.length; i++) {
+        acc += chunk[i]
+      }
+      return acc
     }
-    return acc
-  })
+  )
 
 /**
  * @since 2.0.0
  * @category destructors
  */
 export const runFold: {
-  <Z, A>(
-    initial: LazyArg<Z>,
-    f: (acc: Z, a: A) => Z
-  ): <E, R>(
-    self: Stream<A, E, R>
-  ) => Effect.Effect<Z, E, R>
-  <A, E, R, Z>(
-    self: Stream<A, E, R>,
-    initial: LazyArg<Z>,
-    f: (acc: Z, a: A) => Z
-  ): Effect.Effect<Z, E, R>
-} = dual(3, <A, E, R, Z>(
-  self: Stream<A, E, R>,
-  initial: LazyArg<Z>,
-  f: (acc: Z, a: A) => Z
-): Effect.Effect<Z, E, R> =>
-  Channel.runFold(self.channel, initial, (acc, arr) => {
-    for (let i = 0; i < arr.length; i++) {
-      acc = f(acc, arr[i])
-    }
-    return acc
-  }))
+  <Z, A>(initial: LazyArg<Z>, f: (acc: Z, a: A) => Z): <E, R>(self: Stream<A, E, R>) => Effect.Effect<Z, E, R>
+  <A, E, R, Z>(self: Stream<A, E, R>, initial: LazyArg<Z>, f: (acc: Z, a: A) => Z): Effect.Effect<Z, E, R>
+} = dual(
+  3,
+  <A, E, R, Z>(self: Stream<A, E, R>, initial: LazyArg<Z>, f: (acc: Z, a: A) => Z): Effect.Effect<Z, E, R> =>
+    Channel.runFold(self.channel, initial, (acc, arr) => {
+      for (let i = 0; i < arr.length; i++) {
+        acc = f(acc, arr[i])
+      }
+      return acc
+    })
+)
 
 /**
  * @since 2.0.0
@@ -6741,34 +6804,35 @@ export const runFoldEffect: {
   <Z, A, EX, RX>(
     initial: LazyArg<Z>,
     f: (acc: Z, a: A) => Effect.Effect<Z, EX, RX>
-  ): <E, R>(
-    self: Stream<A, E, R>
-  ) => Effect.Effect<Z, E | EX, R | RX>
+  ): <E, R>(self: Stream<A, E, R>) => Effect.Effect<Z, E | EX, R | RX>
   <A, E, R, Z, EX, RX>(
     self: Stream<A, E, R>,
     initial: LazyArg<Z>,
     f: (acc: Z, a: A) => Effect.Effect<Z, EX, RX>
   ): Effect.Effect<Z, E | EX, R | RX>
-} = dual(3, <A, E, R, Z, EX, RX>(
-  self: Stream<A, E, R>,
-  initial: LazyArg<Z>,
-  f: (acc: Z, a: A) => Effect.Effect<Z, EX, RX>
-): Effect.Effect<Z, E | EX, R | RX> =>
-  Channel.runFoldEffect(self.channel, initial, (acc, arr) => {
-    let i = 0
-    let s = acc
-    return Effect.map(
-      Effect.whileLoop({
-        while: () => i < arr.length,
-        body: () => f(s, arr[i]),
-        step(z) {
-          s = z
-          i++
-        }
-      }),
-      () => s
-    )
-  }))
+} = dual(
+  3,
+  <A, E, R, Z, EX, RX>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<Z>,
+    f: (acc: Z, a: A) => Effect.Effect<Z, EX, RX>
+  ): Effect.Effect<Z, E | EX, R | RX> =>
+    Channel.runFoldEffect(self.channel, initial, (acc, arr) => {
+      let i = 0
+      let s = acc
+      return Effect.map(
+        Effect.whileLoop({
+          while: () => i < arr.length,
+          body: () => f(s, arr[i]),
+          step(z) {
+            s = z
+            i++
+          }
+        }),
+        () => s
+      )
+    })
+)
 
 /**
  * @since 2.0.0
@@ -6822,18 +6886,21 @@ export const runForEach: {
     self: Stream<A, E, R>,
     f: (a: A) => Effect.Effect<X, E2, R2>
   ): Effect.Effect<void, E | E2, R | R2>
-} = dual(2, <A, E, R, X, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (a: A) => Effect.Effect<X, E2, R2>
-): Effect.Effect<void, E | E2, R | R2> =>
-  Channel.runForEach(self.channel, (arr) => {
-    let i = 0
-    return Effect.whileLoop({
-      while: () => i < arr.length,
-      body: () => f(arr[i++]),
-      step: constVoid
+} = dual(
+  2,
+  <A, E, R, X, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: A) => Effect.Effect<X, E2, R2>
+  ): Effect.Effect<void, E | E2, R | R2> =>
+    Channel.runForEach(self.channel, (arr) => {
+      let i = 0
+      return Effect.whileLoop({
+        while: () => i < arr.length,
+        body: () => f(arr[i++]),
+        step: constVoid
+      })
     })
-  }))
+)
 
 /**
  * @since 2.0.0
@@ -6847,25 +6914,28 @@ export const runForEachWhile: {
     self: Stream<A, E, R>,
     f: (a: A) => Effect.Effect<boolean, E2, R2>
   ): Effect.Effect<void, E | E2, R | R2>
-} = dual(2, <A, E, R, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (a: A) => Effect.Effect<boolean, E2, R2>
-): Effect.Effect<void, E | E2, R | R2> =>
-  Channel.runForEachWhile(self.channel, (arr) => {
-    let done = false
-    let i = 0
-    return Effect.map(
-      Effect.whileLoop({
-        while: () => !done && i < arr.length,
-        body: () => f(arr[i]),
-        step(b) {
-          i++
-          if (!b) done = true
-        }
-      }),
-      () => done
-    )
-  }))
+} = dual(
+  2,
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: A) => Effect.Effect<boolean, E2, R2>
+  ): Effect.Effect<void, E | E2, R | R2> =>
+    Channel.runForEachWhile(self.channel, (arr) => {
+      let done = false
+      let i = 0
+      return Effect.map(
+        Effect.whileLoop({
+          while: () => !done && i < arr.length,
+          body: () => f(arr[i]),
+          step(b) {
+            i++
+            if (!b) done = true
+          }
+        }),
+        () => done
+      )
+    })
+)
 
 /**
  * Consumes all elements of the stream, passing them to the specified
@@ -6896,10 +6966,13 @@ export const runForEachArray: {
     self: Stream<A, E, R>,
     f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<X, E2, R2>
   ): Effect.Effect<void, E | E2, R | R2>
-} = dual(2, <A, E, R, X, E2, R2>(
-  self: Stream<A, E, R>,
-  f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<X, E2, R2>
-): Effect.Effect<void, E | E2, R | R2> => Channel.runForEach(self.channel, f))
+} = dual(
+  2,
+  <A, E, R, X, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<X, E2, R2>
+  ): Effect.Effect<void, E | E2, R | R2> => Channel.runForEach(self.channel, f)
+)
 
 /**
  * Runs the stream only for its effects. The emitted elements are discarded.
@@ -7040,39 +7113,47 @@ export const toReadableStreamWith = dual<
     let fiber: Fiber.Fiber<void, E> | undefined = undefined
     const latch = Effect.makeLatchUnsafe(false)
 
-    return new ReadableStream<A>({
-      start(controller) {
-        fiber = Effect.runFork(Effect.provideServices(
-          runForEachArray(self, (chunk) =>
-            latch.whenOpen(Effect.sync(() => {
-              latch.closeUnsafe()
-              for (let i = 0; i < chunk.length; i++) {
-                controller.enqueue(chunk[i])
-              }
-              currentResolve!()
-              currentResolve = undefined
-            }))),
-          services
-        ))
-        fiber.addObserver((exit) => {
-          if (exit._tag === "Failure") {
-            controller.error(Cause.squash(exit.cause))
-          } else {
-            controller.close()
-          }
-        })
+    return new ReadableStream<A>(
+      {
+        start(controller) {
+          fiber = Effect.runFork(
+            Effect.provideServices(
+              runForEachArray(self, (chunk) =>
+                latch.whenOpen(
+                  Effect.sync(() => {
+                    latch.closeUnsafe()
+                    for (let i = 0; i < chunk.length; i++) {
+                      controller.enqueue(chunk[i])
+                    }
+                    currentResolve!()
+                    currentResolve = undefined
+                  })
+                )
+              ),
+              services
+            )
+          )
+          fiber.addObserver((exit) => {
+            if (exit._tag === "Failure") {
+              controller.error(Cause.squash(exit.cause))
+            } else {
+              controller.close()
+            }
+          })
+        },
+        pull() {
+          return new Promise<void>((resolve) => {
+            currentResolve = resolve
+            latch.openUnsafe()
+          })
+        },
+        cancel() {
+          if (!fiber) return
+          return Effect.runPromise(Effect.asVoid(Fiber.interrupt(fiber)))
+        }
       },
-      pull() {
-        return new Promise<void>((resolve) => {
-          currentResolve = resolve
-          latch.openUnsafe()
-        })
-      },
-      cancel() {
-        if (!fiber) return
-        return Effect.runPromise(Effect.asVoid(Fiber.interrupt(fiber)))
-      }
-    }, options?.strategy)
+      options?.strategy
+    )
   }
 )
 
@@ -7095,21 +7176,12 @@ export const toReadableStreamWith = dual<
  * @category destructors
  */
 export const toReadableStream: {
-  <A>(
-    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
-  ): <E>(
-    self: Stream<A, E>
-  ) => ReadableStream<A>
-  <A, E>(
-    self: Stream<A, E>,
-    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
-  ): ReadableStream<A>
+  <A>(options?: { readonly strategy?: QueuingStrategy<A> | undefined }): <E>(self: Stream<A, E>) => ReadableStream<A>
+  <A, E>(self: Stream<A, E>, options?: { readonly strategy?: QueuingStrategy<A> | undefined }): ReadableStream<A>
 } = dual(
   (args) => isStream(args[0]),
-  <A, E>(
-    self: Stream<A, E>,
-    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
-  ): ReadableStream<A> => toReadableStreamWith(self, ServiceMap.empty(), options)
+  <A, E>(self: Stream<A, E>, options?: { readonly strategy?: QueuingStrategy<A> | undefined }): ReadableStream<A> =>
+    toReadableStreamWith(self, ServiceMap.empty(), options)
 )
 
 /**
@@ -7133,11 +7205,9 @@ export const toReadableStream: {
  * @category destructors
  */
 export const toReadableStreamEffect: {
-  <A>(
-    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
-  ): <E, R>(
-    self: Stream<A, E, R>
-  ) => Effect.Effect<ReadableStream<A>, never, R>
+  <A>(options?: {
+    readonly strategy?: QueuingStrategy<A> | undefined
+  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<ReadableStream<A>, never, R>
   <A, E, R>(
     self: Stream<A, E, R>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
@@ -7148,10 +7218,7 @@ export const toReadableStreamEffect: {
     self: Stream<A, E, R>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ): Effect.Effect<ReadableStream<A>, never, R> =>
-    Effect.map(
-      Effect.services<R>(),
-      (context) => toReadableStreamWith(self, context, options)
-    )
+    Effect.map(Effect.services<R>(), (context) => toReadableStreamWith(self, context, options))
 )
 
 /**
@@ -7160,16 +7227,10 @@ export const toReadableStreamEffect: {
  */
 export const toAsyncIterableWith: {
   <XR>(services: ServiceMap.ServiceMap<XR>): <A, E, R extends XR>(self: Stream<A, E, R>) => AsyncIterable<A>
-  <A, E, XR, R extends XR>(
-    self: Stream<A, E, R>,
-    services: ServiceMap.ServiceMap<XR>
-  ): AsyncIterable<A>
+  <A, E, XR, R extends XR>(self: Stream<A, E, R>, services: ServiceMap.ServiceMap<XR>): AsyncIterable<A>
 } = dual(
   2,
-  <A, E, XR, R extends XR>(
-    self: Stream<A, E, R>,
-    services: ServiceMap.ServiceMap<XR>
-  ): AsyncIterable<A> => ({
+  <A, E, XR, R extends XR>(self: Stream<A, E, R>, services: ServiceMap.ServiceMap<XR>): AsyncIterable<A> => ({
     [Symbol.asyncIterator]() {
       const runPromise = Effect.runPromiseWith(services)
       const runPromiseExit = Effect.runPromiseExitWith(services)
@@ -7194,10 +7255,7 @@ export const toAsyncIterableWith: {
           throw Cause.squash(exit.cause)
         },
         return(_) {
-          return runPromise(Effect.as(
-            Scope.close(scope, Exit.void),
-            { done: true, value: undefined }
-          ))
+          return runPromise(Effect.as(Scope.close(scope, Exit.void), { done: true, value: undefined }))
         }
       }
     }
@@ -7209,10 +7267,7 @@ export const toAsyncIterableWith: {
  * @category destructors
  */
 export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<AsyncIterable<A>, never, R> =>
-  Effect.map(
-    Effect.services<R>(),
-    (services) => toAsyncIterableWith(self, services)
-  )
+  Effect.map(Effect.services<R>(), (services) => toAsyncIterableWith(self, services))
 
 /**
  * @since 2.0.0
@@ -7228,24 +7283,33 @@ export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
 export const runIntoPubSub: {
   <A>(
     pubsub: PubSub.PubSub<A>,
-    options?: {
-      readonly shutdownOnEnd?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly shutdownOnEnd?: boolean | undefined
+        }
+      | undefined
   ): <E, R>(self: Stream<A, E, R>) => Effect.Effect<void, E, R>
   <A, E, R>(
     self: Stream<A, E, R>,
     pubsub: PubSub.PubSub<A>,
-    options?: {
-      readonly shutdownOnEnd?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly shutdownOnEnd?: boolean | undefined
+        }
+      | undefined
   ): Effect.Effect<void, never, R>
-} = dual((args) => isStream(args[0]), <A, E, R>(
-  self: Stream<A, E, R>,
-  pubsub: PubSub.PubSub<A>,
-  options?: {
-    readonly shutdownOnEnd?: boolean | undefined
-  } | undefined
-): Effect.Effect<void, E, R> => Channel.runIntoPubSubArray(self.channel, pubsub, options))
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    pubsub: PubSub.PubSub<A>,
+    options?:
+      | {
+          readonly shutdownOnEnd?: boolean | undefined
+        }
+      | undefined
+  ): Effect.Effect<void, E, R> => Channel.runIntoPubSubArray(self.channel, pubsub, options)
+)
 
 /**
  * @since 2.0.0
@@ -7253,44 +7317,50 @@ export const runIntoPubSub: {
  */
 export const toPubSub: {
   (
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-      readonly shutdownOnEnd?: boolean | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-      readonly replay?: number | undefined
-      readonly shutdownOnEnd?: boolean | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+          readonly shutdownOnEnd?: boolean | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+          readonly replay?: number | undefined
+          readonly shutdownOnEnd?: boolean | undefined
+        }
   ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope>
   <A, E, R>(
     self: Stream<A, E, R>,
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-      readonly shutdownOnEnd?: boolean | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-      readonly replay?: number | undefined
-      readonly shutdownOnEnd?: boolean | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+          readonly shutdownOnEnd?: boolean | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+          readonly replay?: number | undefined
+          readonly shutdownOnEnd?: boolean | undefined
+        }
   ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope>
 } = dual(
   2,
   <A, E, R>(
     self: Stream<A, E, R>,
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-      readonly shutdownOnEnd?: boolean | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-      readonly replay?: number | undefined
-      readonly shutdownOnEnd?: boolean | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+          readonly shutdownOnEnd?: boolean | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+          readonly replay?: number | undefined
+          readonly shutdownOnEnd?: boolean | undefined
+        }
   ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope> => Channel.toPubSubArray(self.channel, options)
 )
 
@@ -7300,38 +7370,44 @@ export const toPubSub: {
  */
 export const toPubSubTake: {
   (
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-      readonly replay?: number | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+          readonly replay?: number | undefined
+        }
   ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<PubSub.PubSub<Take.Take<A, E>>, never, R | Scope.Scope>
   <A, E, R>(
     self: Stream<A, E, R>,
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-      readonly replay?: number | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+          readonly replay?: number | undefined
+        }
   ): Effect.Effect<PubSub.PubSub<Take.Take<A, E>>, never, R | Scope.Scope>
 } = dual(
   2,
   <A, E, R>(
     self: Stream<A, E, R>,
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-      readonly replay?: number | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+          readonly replay?: number | undefined
+        }
   ): Effect.Effect<PubSub.PubSub<Take.Take<A, E>>, never, R | Scope.Scope> =>
     Channel.toPubSubTake(self.channel, options)
 )
@@ -7342,36 +7418,42 @@ export const toPubSubTake: {
  */
 export const toQueue: {
   (
-    options: {
-      readonly capacity: "unbounded"
-    } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+        }
   ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<Queue.Dequeue<A, E | Cause.Done>, never, R | Scope.Scope>
   <A, E, R>(
     self: Stream<A, E, R>,
-    options: {
-      readonly capacity: "unbounded"
-    } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+        }
   ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope>
 } = dual(
   2,
   <A, E, R>(
     self: Stream<A, E, R>,
-    options: {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-      readonly shutdownOnEnd?: boolean | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-      readonly replay?: number | undefined
-      readonly shutdownOnEnd?: boolean | undefined
-    }
+    options:
+      | {
+          readonly capacity: "unbounded"
+          readonly replay?: number | undefined
+          readonly shutdownOnEnd?: boolean | undefined
+        }
+      | {
+          readonly capacity: number
+          readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+          readonly replay?: number | undefined
+          readonly shutdownOnEnd?: boolean | undefined
+        }
   ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope> => Channel.toPubSubArray(self.channel, options)
 )
 
@@ -7382,7 +7464,8 @@ export const toQueue: {
 export const runIntoQueue: {
   <A, E>(queue: Queue.Queue<A, E | Cause.Done>): <R>(self: Stream<A, E, R>) => Effect.Effect<void, never, R>
   <A, E, R>(self: Stream<A, E, R>, queue: Queue.Queue<A, E | Cause.Done>): Effect.Effect<void, never, R>
-} = dual(2, <A, E, R>(
-  self: Stream<A, E, R>,
-  queue: Queue.Queue<A, E | Cause.Done>
-): Effect.Effect<void, never, R> => Channel.runIntoQueueArray(self.channel, queue))
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, queue: Queue.Queue<A, E | Cause.Done>): Effect.Effect<void, never, R> =>
+    Channel.runIntoQueueArray(self.channel, queue)
+)

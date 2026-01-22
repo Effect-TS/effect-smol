@@ -29,18 +29,15 @@ export declare namespace MockTerminal {
 // Service
 // =============================================================================
 
-export const MockTerminal = ServiceMap.Service<Terminal.Terminal, MockTerminal>()(
-  Terminal.Terminal.key
-)
+export const MockTerminal = ServiceMap.Service<Terminal.Terminal, MockTerminal>()(Terminal.Terminal.key)
 
 // =============================================================================
 // Constructors
 // =============================================================================
 
-export const make = Effect.gen(function*() {
-  const queue = yield* Effect.acquireRelease(
-    Queue.make<Terminal.UserInput, Cause.Done>(),
-    (queue) => Queue.shutdown(queue)
+export const make = Effect.gen(function* () {
+  const queue = yield* Effect.acquireRelease(Queue.make<Terminal.UserInput, Cause.Done>(), (queue) =>
+    Queue.shutdown(queue)
   )
 
   const inputText: MockTerminal["inputText"] = (text: string) => {
@@ -48,10 +45,7 @@ export const make = Effect.gen(function*() {
     return Queue.offerAll(queue, inputs).pipe(Effect.asVoid)
   }
 
-  const inputKey: MockTerminal["inputKey"] = (
-    key: string,
-    modifiers?: Partial<MockTerminal.Modifiers>
-  ) => {
+  const inputKey: MockTerminal["inputKey"] = (key: string, modifiers?: Partial<MockTerminal.Modifiers>) => {
     const input = toUserInput(key, modifiers)
     return shouldQuit(input) ? Queue.end(queue) : Queue.offer(queue, input).pipe(Effect.asVoid)
   }
@@ -103,16 +97,10 @@ export const inputKey = (
   key: string,
   modifiers?: Partial<MockTerminal.Modifiers>
 ): Effect.Effect<void, never, Terminal.Terminal> =>
-  Effect.flatMap(
-    MockTerminal.asEffect(),
-    (terminal) => terminal.inputKey(key, modifiers)
-  )
+  Effect.flatMap(MockTerminal.asEffect(), (terminal) => terminal.inputKey(key, modifiers))
 
 export const inputText = (text: string): Effect.Effect<void, never, Terminal.Terminal> =>
-  Effect.flatMap(
-    MockTerminal.asEffect(),
-    (terminal) => terminal.inputText(text)
-  )
+  Effect.flatMap(MockTerminal.asEffect(), (terminal) => terminal.inputText(text))
 
 // =============================================================================
 // Utilities
@@ -121,10 +109,7 @@ export const inputText = (text: string): Effect.Effect<void, never, Terminal.Ter
 const shouldQuit = (input: Terminal.UserInput): boolean =>
   input.key.ctrl && (input.key.name === "c" || input.key.name === "d")
 
-const toUserInput = (
-  key: string,
-  modifiers: Partial<MockTerminal.Modifiers> = {}
-): Terminal.UserInput => {
+const toUserInput = (key: string, modifiers: Partial<MockTerminal.Modifiers> = {}): Terminal.UserInput => {
   const { ctrl = false, meta = false, shift = false } = modifiers
   return {
     input: key,

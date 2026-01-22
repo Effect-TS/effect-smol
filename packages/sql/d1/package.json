@@ -1,32 +1,32 @@
 {
   "name": "@effect/sql-d1",
   "version": "0.42.1",
-  "type": "module",
-  "license": "MIT",
   "description": "A Cloudflare D1 integration for Effect",
+  "keywords": [
+    "D1",
+    "cloudflare",
+    "database",
+    "sql",
+    "typescript"
+  ],
   "homepage": "https://effect.website",
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/sql/d1"
   },
-  "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
-  },
-  "tags": [
-    "typescript",
-    "sql",
-    "database",
-    "cloudflare",
-    "D1"
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "src/**/*.ts"
   ],
-  "keywords": [
-    "typescript",
-    "sql",
-    "database",
-    "cloudflare",
-    "D1"
-  ],
+  "type": "module",
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
@@ -35,22 +35,15 @@
     "./internal/*": null,
     "./*/index": null
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
-    "provenance": true,
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
       "./*/index": null
-    }
+    },
+    "provenance": true
   },
   "scripts": {
     "codegen": "effect-utils codegen",
@@ -61,6 +54,9 @@
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20251216.0"
+  },
   "devDependencies": {
     "effect": "workspace:^",
     "miniflare": "^4.20251213.0"
@@ -68,7 +64,11 @@
   "peerDependencies": {
     "effect": "workspace:^"
   },
-  "dependencies": {
-    "@cloudflare/workers-types": "^4.20251216.0"
-  }
+  "tags": [
+    "typescript",
+    "sql",
+    "database",
+    "cloudflare",
+    "D1"
+  ]
 }

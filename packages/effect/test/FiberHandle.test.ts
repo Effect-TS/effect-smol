@@ -5,34 +5,41 @@ import { TestClock } from "effect/testing"
 
 describe("FiberHandle", () => {
   it.effect("interrupts fibers", () =>
-    Effect.gen(function*() {
-      const ref = yield* (Ref.make(0))
+    Effect.gen(function* () {
+      const ref = yield* Ref.make(0)
       yield* pipe(
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const handle = yield* FiberHandle.make()
-          yield* FiberHandle.run(handle, Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1)))
+          yield* FiberHandle.run(
+            handle,
+            Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1))
+          )
           yield* Effect.yieldNow
         }),
         Effect.scoped
       )
 
-      strictEqual(yield* (Ref.get(ref)), 1)
-    }))
+      strictEqual(yield* Ref.get(ref), 1)
+    })
+  )
 
   it.effect("runtime", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const ref = yield* Ref.make(0)
       yield* pipe(
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const handle = yield* FiberHandle.make()
           const run = yield* FiberHandle.runtime(handle)<never>()
           run(Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1)))
           yield* Effect.yieldNow
           run(Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1)))
           yield* Effect.yieldNow
-          run(Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1)), {
-            onlyIfMissing: true
-          })
+          run(
+            Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1)),
+            {
+              onlyIfMissing: true
+            }
+          )
           yield* Effect.yieldNow
           strictEqual(yield* Ref.get(ref), 1)
         }),
@@ -40,19 +47,21 @@ describe("FiberHandle", () => {
       )
 
       strictEqual(yield* Ref.get(ref), 2)
-    }))
+    })
+  )
 
   it.effect("join", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const handle = yield* FiberHandle.make()
       FiberHandle.setUnsafe(handle, Effect.runFork(Effect.void))
       FiberHandle.setUnsafe(handle, Effect.runFork(Effect.fail("fail")))
       const result = yield* Effect.flip(FiberHandle.join(handle))
       strictEqual(result, "fail")
-    }))
+    })
+  )
 
   it.effect("onlyIfMissing", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const handle = yield* FiberHandle.make()
       const fiberA = yield* FiberHandle.run(handle, Effect.never)
       const fiberB = yield* FiberHandle.run(handle, Effect.never, { onlyIfMissing: true })
@@ -61,10 +70,11 @@ describe("FiberHandle", () => {
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
       strictEqual(fiberA.pollUnsafe(), undefined)
-    }))
+    })
+  )
 
   it.effect("runtime onlyIfMissing", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const run = yield* FiberHandle.makeRuntime<never>()
       const fiberA = run(Effect.never)
       const fiberB = run(Effect.never, { onlyIfMissing: true })
@@ -73,10 +83,11 @@ describe("FiberHandle", () => {
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
       strictEqual(fiberA.pollUnsafe(), undefined)
-    }))
+    })
+  )
 
   it.effect("propagateInterruption: false", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const handle = yield* FiberHandle.make()
       const fiber = yield* FiberHandle.run(handle, Effect.never, {
         propagateInterruption: false
@@ -84,25 +95,23 @@ describe("FiberHandle", () => {
       yield* Effect.yieldNow
       yield* Fiber.interrupt(fiber)
       assertFalse(yield* Deferred.isDone(handle.deferred))
-    }))
+    })
+  )
 
   it.effect("propagateInterruption: true", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const handle = yield* FiberHandle.make()
       const fiber = yield* FiberHandle.run(handle, Effect.never, {
         propagateInterruption: true
       })
       yield* Effect.yieldNow
       yield* Fiber.interrupt(fiber)
-      assertTrue(Exit.hasInterrupt(
-        yield* FiberHandle.join(handle).pipe(
-          Effect.exit
-        )
-      ))
-    }))
+      assertTrue(Exit.hasInterrupt(yield* FiberHandle.join(handle).pipe(Effect.exit)))
+    })
+  )
 
   it.effect("awaitEmpty", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const handle = yield* FiberHandle.make()
       yield* FiberHandle.run(handle, Effect.sleep(1000))
 
@@ -111,12 +120,14 @@ describe("FiberHandle", () => {
       assert.isUndefined(fiber.pollUnsafe())
       yield* TestClock.adjust(500)
       assert.isDefined(fiber.pollUnsafe())
-    }))
+    })
+  )
 
   it.effect("makeRuntimePromise", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const run = yield* FiberHandle.makeRuntimePromise()
       const result = yield* Effect.promise(() => run(Effect.succeed("done")))
       strictEqual(result, "done")
-    }))
+    })
+  )
 })

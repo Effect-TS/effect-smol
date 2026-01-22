@@ -46,11 +46,7 @@ describe("Record", () => {
     it("Record(Literals, Number)", () => {
       const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.FiniteFromString)
       expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<
-          { readonly "a": number; readonly "b": number },
-          { readonly "a": string; readonly "b": string },
-          never
-        >
+        Schema.Codec<{ readonly a: number; readonly b: number }, { readonly a: string; readonly b: string }, never>
       >()
       expect(schema).type.toBe<Schema.Record$<Schema.Literals<readonly ["a", "b"]>, typeof Schema.FiniteFromString>>()
       expect(schema.annotate({})).type.toBe<
@@ -61,11 +57,7 @@ describe("Record", () => {
     it("Record(Literals, optionalKey(Number))", () => {
       const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.optionalKey(Schema.FiniteFromString))
       expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<
-          { readonly "a"?: number; readonly "b"?: number },
-          { readonly "a"?: string; readonly "b"?: string },
-          never
-        >
+        Schema.Codec<{ readonly a?: number; readonly b?: number }, { readonly a?: string; readonly b?: string }, never>
       >()
       expect(schema).type.toBe<
         Schema.Record$<Schema.Literals<readonly ["a", "b"]>, Schema.optionalKey<typeof Schema.FiniteFromString>>
@@ -78,7 +70,7 @@ describe("Record", () => {
     it("Record(Literals, mutableKey(Number))", () => {
       const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.mutableKey(Schema.FiniteFromString))
       expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<{ "a": number; "b": number }, { "a": string; "b": string }, never>
+        Schema.Codec<{ a: number; b: number }, { a: string; b: string }, never>
       >()
       expect(schema).type.toBe<
         Schema.Record$<Schema.Literals<readonly ["a", "b"]>, Schema.mutableKey<typeof Schema.FiniteFromString>>
@@ -94,7 +86,7 @@ describe("Record", () => {
         Schema.mutableKey(Schema.optionalKey(Schema.FiniteFromString))
       )
       expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<{ "a"?: number; "b"?: number }, { "a"?: string; "b"?: string }, never>
+        Schema.Codec<{ a?: number; b?: number }, { a?: string; b?: string }, never>
       >()
       expect(schema).type.toBe<
         Schema.Record$<

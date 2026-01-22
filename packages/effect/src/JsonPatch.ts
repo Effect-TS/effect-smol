@@ -109,29 +109,29 @@ import type * as Schema from "./Schema.ts"
  */
 export type JsonPatchOperation =
   | {
-    readonly op: "add"
-    /**
-     * JSON Pointer to the target location.
-     *
-     * For arrays, the last token may be `-` to append.
-     */
-    readonly path: string
-    readonly value: Schema.Json
-    readonly description?: string
-  }
+      readonly op: "add"
+      /**
+       * JSON Pointer to the target location.
+       *
+       * For arrays, the last token may be `-` to append.
+       */
+      readonly path: string
+      readonly value: Schema.Json
+      readonly description?: string
+    }
   | {
-    readonly op: "remove"
-    /** JSON Pointer to the target location. */
-    readonly path: string
-    readonly description?: string
-  }
+      readonly op: "remove"
+      /** JSON Pointer to the target location. */
+      readonly path: string
+      readonly description?: string
+    }
   | {
-    readonly op: "replace"
-    /** JSON Pointer to the target location. Use `""` to replace the root document. */
-    readonly path: string
-    readonly value: Schema.Json
-    readonly description?: string
-  }
+      readonly op: "replace"
+      /** JSON Pointer to the target location. Use `""` to replace the root document. */
+      readonly path: string
+      readonly value: Schema.Json
+      readonly description?: string
+    }
 
 /**
  * A JSON Patch document (an ordered list of operations).

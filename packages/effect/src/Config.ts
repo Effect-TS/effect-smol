@@ -83,9 +83,7 @@ const Proto = {
  * @category Constructors
  * @since 4.0.0
  */
-export function make<T>(
-  parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<T, ConfigError>
-): Config<T> {
+export function make<T>(parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<T, ConfigError>): Config<T> {
   const self = Object.create(Proto)
   self.parse = parse
   return self
@@ -143,20 +141,23 @@ export const orElse: {
 export function all<const Arg extends Iterable<Config<any>> | Record<string, Config<any>>>(
   arg: Arg
 ): Config<
-  [Arg] extends [ReadonlyArray<Config<any>>] ? {
-      -readonly [K in keyof Arg]: [Arg[K]] extends [Config<infer A>] ? A : never
-    }
-    : [Arg] extends [Iterable<Config<infer A>>] ? Array<A>
-    : [Arg] extends [Record<string, Config<any>>] ? {
+  [Arg] extends [ReadonlyArray<Config<any>>]
+    ? {
         -readonly [K in keyof Arg]: [Arg[K]] extends [Config<infer A>] ? A : never
       }
-    : never
+    : [Arg] extends [Iterable<Config<infer A>>]
+      ? Array<A>
+      : [Arg] extends [Record<string, Config<any>>]
+        ? {
+            -readonly [K in keyof Arg]: [Arg[K]] extends [Config<infer A>] ? A : never
+          }
+        : never
 > {
   const configs: Array<Config<any>> | Record<string, Config<any>> = Array.isArray(arg)
     ? arg
     : Symbol.iterator in arg
-    ? [...arg as any]
-    : arg
+      ? [...(arg as any)]
+      : arg
   if (Array.isArray(configs)) {
     return make((provider) => Effect.all(configs.map((config) => config.parse(provider)))) as any
   } else {
@@ -224,7 +225,10 @@ export const withDefault: {
  * @since 4.0.0
  */
 export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
-  self.pipe(map(Option.some), withDefault(() => Option.none()))
+  self.pipe(
+    map(Option.some),
+    withDefault(() => Option.none())
+  )
 
 /**
  * Wraps a nested structure, converting all primitives to a `Config`.
@@ -236,14 +240,18 @@ export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
  * @category Wrap
  * @since 4.0.0
  */
-export type Wrap<A> = [NonNullable<A>] extends [infer T] ? [IsPlainObject<T>] extends [true] ?
-      | { readonly [K in keyof A]: Wrap<A[K]> }
-      | Config<A>
-  : Config<A>
+export type Wrap<A> = [NonNullable<A>] extends [infer T]
+  ? [IsPlainObject<T>] extends [true]
+    ? { readonly [K in keyof A]: Wrap<A[K]> } | Config<A>
+    : Config<A>
   : Config<A>
 
 type IsPlainObject<A> = [A] extends [Record<string, any>]
-  ? [keyof A] extends [never] ? false : [keyof A] extends [string] ? true : false
+  ? [keyof A] extends [never]
+    ? false
+    : [keyof A] extends [string]
+      ? true
+      : false
   : false
 
 /**
@@ -270,7 +278,9 @@ export const unwrap = <T>(wrapped: Wrap<T>): Config<T> => {
   return make((provider) => {
     const entries = Object.entries(wrapped)
     const configs = entries.map(([key, config]) =>
-      unwrap(config as any).parse(provider).pipe(Effect.map((value) => [key, value] as const))
+      unwrap(config as any)
+        .parse(provider)
+        .pipe(Effect.map((value) => [key, value] as const))
     )
     return Effect.all(configs).pipe(Effect.map(Object.fromEntries))
   })
@@ -280,44 +290,39 @@ export const unwrap = <T>(wrapped: Wrap<T>): Config<T> => {
 // schema
 // -----------------------------------------------------------------------------
 
-const dump: (
-  provider: ConfigProvider.ConfigProvider,
-  path: Path
-) => Effect.Effect<Schema.StringTree, SourceError> = Effect.fnUntraced(function*(
-  provider,
-  path
-) {
-  const stat = yield* provider.load(path)
-  if (stat === undefined) return undefined
-  switch (stat._tag) {
-    case "Value":
-      return stat.value
-    case "Record": {
-      if (stat.value !== undefined) return stat.value
-      const out: Record<string, Schema.StringTree> = {}
-      for (const key of stat.keys) {
-        const child = yield* dump(provider, [...path, key])
-        if (child !== undefined) out[key] = child
+const dump: (provider: ConfigProvider.ConfigProvider, path: Path) => Effect.Effect<Schema.StringTree, SourceError> =
+  Effect.fnUntraced(function* (provider, path) {
+    const stat = yield* provider.load(path)
+    if (stat === undefined) return undefined
+    switch (stat._tag) {
+      case "Value":
+        return stat.value
+      case "Record": {
+        if (stat.value !== undefined) return stat.value
+        const out: Record<string, Schema.StringTree> = {}
+        for (const key of stat.keys) {
+          const child = yield* dump(provider, [...path, key])
+          if (child !== undefined) out[key] = child
+        }
+        return out
       }
-      return out
-    }
-    case "Array": {
-      if (stat.value !== undefined) return stat.value
-      const out: Array<Schema.StringTree> = []
-      for (let i = 0; i < stat.length; i++) {
-        out.push(yield* dump(provider, [...path, i]))
+      case "Array": {
+        if (stat.value !== undefined) return stat.value
+        const out: Array<Schema.StringTree> = []
+        for (let i = 0; i < stat.length; i++) {
+          out.push(yield* dump(provider, [...path, i]))
+        }
+        return out
       }
-      return out
     }
-  }
-})
+  })
 
 const recur: (
   ast: AST.AST,
   provider: ConfigProvider.ConfigProvider,
   path: Path
 ) => Effect.Effect<Schema.StringTree, Schema.SchemaError | SourceError> = Effect.fnUntraced(
-  function*(ast, provider, path) {
+  function* (ast, provider, path) {
     switch (ast._tag) {
       case "Objects": {
         const out: Record<string, Schema.StringTree> = {}
@@ -380,17 +385,17 @@ export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigPr
   const toCodecStringTree = Schema.toCodecStringTree(codec)
   const decodeUnknownEffect = Parser.decodeUnknownEffect(toCodecStringTree)
   const toCodecStringTreeEncoded = AST.toEncoded(toCodecStringTree.ast)
-  const defaultPath = typeof path === "string" ? [path] : path ?? []
+  const defaultPath = typeof path === "string" ? [path] : (path ?? [])
   return make((provider) =>
     recur(toCodecStringTreeEncoded, provider, defaultPath).pipe(
       Effect.flatMapEager((tree) =>
-        decodeUnknownEffect(tree).pipe(Effect.mapErrorEager((issue) =>
-          new Schema.SchemaError(defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue)
-        ))
+        decodeUnknownEffect(tree).pipe(
+          Effect.mapErrorEager(
+            (issue) => new Schema.SchemaError(defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue)
+          )
+        )
       ),
-      Effect.mapErrorEager((cause) =>
-        new ConfigError(cause)
-      )
+      Effect.mapErrorEager((cause) => new ConfigError(cause))
     )
   )
 }
@@ -414,7 +419,7 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
     Schema.Boolean,
     Transformation.transform({
       decode: (value) => value === "true" || value === "yes" || value === "on" || value === "1" || value === "y",
-      encode: (value) => value ? "true" : "false"
+      encode: (value) => (value ? "true" : "false")
     })
   )
 )
@@ -427,13 +432,15 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
  * @category Schema
  * @since 4.0.0
  */
-export const Duration = Schema.String.pipe(Schema.decodeTo(Schema.Duration, {
-  decode: Getter.transformOrFail((s) => {
-    const d = Duration_.fromDurationInput(s as any)
-    return d ? Effect.succeed(d) : Effect.fail(new Issue.InvalidValue(Option.some(s)))
-  }),
-  encode: Getter.forbidden(() => "Encoding Duration is not supported")
-}))
+export const Duration = Schema.String.pipe(
+  Schema.decodeTo(Schema.Duration, {
+    decode: Getter.transformOrFail((s) => {
+      const d = Duration_.fromDurationInput(s as any)
+      return d ? Effect.succeed(d) : Effect.fail(new Issue.InvalidValue(Option.some(s)))
+    }),
+    encode: Getter.forbidden(() => "Encoding Duration is not supported")
+  })
+)
 
 /**
  * A schema for strings that can be parsed as port values.
@@ -495,16 +502,17 @@ export const LogLevel = Schema.Literals(LogLevel_.values)
  * @category Schemas
  * @since 4.0.0
  */
-export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K, value: V, options?: {
-  readonly separator?: string | undefined
-  readonly keyValueSeparator?: string | undefined
-}) => {
+export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(
+  key: K,
+  value: V,
+  options?: {
+    readonly separator?: string | undefined
+    readonly keyValueSeparator?: string | undefined
+  }
+) => {
   const record = Schema.Record(key, value)
   const recordString = Schema.String.pipe(
-    Schema.decodeTo(
-      Schema.Record(Schema.String, Schema.String),
-      Transformation.splitKeyValue(options)
-    ),
+    Schema.decodeTo(Schema.Record(Schema.String, Schema.String), Transformation.splitKeyValue(options)),
     Schema.decodeTo(record)
   )
 

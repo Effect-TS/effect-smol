@@ -19,21 +19,22 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
   Worker.makePlatform<WorkerThreads.Worker | ChildProcess.ChildProcess>()({
     setup({ scope, worker }) {
       const exitDeferred = Deferred.makeUnsafe<void, WorkerError>()
-      const thing = "postMessage" in worker ?
-        {
-          postMessage(msg: any, t?: any) {
-            worker.postMessage(msg, t)
-          },
-          kill: () => worker.terminate(),
-          worker
-        } :
-        {
-          postMessage(msg: any, _?: any) {
-            worker.send(msg)
-          },
-          kill: () => worker.kill("SIGKILL"),
-          worker
-        }
+      const thing =
+        "postMessage" in worker
+          ? {
+              postMessage(msg: any, t?: any) {
+                worker.postMessage(msg, t)
+              },
+              kill: () => worker.terminate(),
+              worker
+            }
+          : {
+              postMessage(msg: any, _?: any) {
+                worker.send(msg)
+              },
+              kill: () => worker.kill("SIGKILL"),
+              worker
+            }
       worker.on("exit", () => {
         Deferred.doneUnsafe(exitDeferred, Exit.void)
       })
@@ -95,8 +96,4 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
  */
 export const layer = (
   spawn: (id: number) => WorkerThreads.Worker | ChildProcess.ChildProcess
-): Layer.Layer<Worker.WorkerPlatform | Worker.Spawner> =>
-  Layer.merge(
-    Worker.layerSpawner(spawn),
-    layerPlatform
-  )
+): Layer.Layer<Worker.WorkerPlatform | Worker.Spawner> => Layer.merge(Worker.layerSpawner(spawn), layerPlatform)

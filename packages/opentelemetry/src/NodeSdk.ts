@@ -29,11 +29,13 @@ export interface Configuration {
   readonly logRecordProcessor?: LogRecordProcessor | ReadonlyArray<LogRecordProcessor> | undefined
   readonly loggerProviderConfig?: Omit<LoggerProviderConfig, "resource"> | undefined
   readonly loggerMergeWithExisting?: boolean | undefined
-  readonly resource?: {
-    readonly serviceName: string
-    readonly serviceVersion?: string
-    readonly attributes?: Otel.Attributes
-  } | undefined
+  readonly resource?:
+    | {
+        readonly serviceName: string
+        readonly serviceVersion?: string
+        readonly attributes?: Otel.Attributes
+      }
+    | undefined
   readonly shutdownTimeout?: DurationInput | undefined
 }
 
@@ -49,7 +51,7 @@ export const layerTracerProvider = (
 ): Layer.Layer<Tracer.OtelTracerProvider, never, Resource.Resource> =>
   Layer.effect(
     Tracer.OtelTracerProvider,
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const resource = yield* Resource.Resource
       return yield* Effect.acquireRelease(
         Effect.sync(() => {
@@ -77,47 +79,43 @@ export const layerTracerProvider = (
 export const layer: {
   (evaluate: LazyArg<Configuration>): Layer.Layer<Resource.Resource>
   <R, E>(evaluate: Effect.Effect<Configuration, E, R>): Layer.Layer<Resource.Resource, E, R>
-} = (
-  evaluate: LazyArg<Configuration> | Effect.Effect<Configuration, any, any>
-): Layer.Layer<Resource.Resource> =>
+} = (evaluate: LazyArg<Configuration> | Effect.Effect<Configuration, any, any>): Layer.Layer<Resource.Resource> =>
   Layer.unwrap(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const config = yield* Effect.isEffect(evaluate)
-        ? evaluate as Effect.Effect<Configuration>
+        ? (evaluate as Effect.Effect<Configuration>)
         : Effect.sync(evaluate)
 
       const ResourceLive = Resource.layerFromEnv(config.resource && Resource.configToAttributes(config.resource))
 
       const TracerLive = isNonEmpty(config.spanProcessor)
         ? Layer.provide(
-          Tracer.layer,
-          layerTracerProvider(config.spanProcessor, {
-            ...config.tracerConfig,
-            shutdownTimeout: config.shutdownTimeout
-          })
-        )
+            Tracer.layer,
+            layerTracerProvider(config.spanProcessor, {
+              ...config.tracerConfig,
+              shutdownTimeout: config.shutdownTimeout
+            })
+          )
         : Layer.empty
 
       const MetricsLive = isNonEmpty(config.metricReader)
         ? Metrics.layer(constant(config.metricReader), {
-          shutdownTimeout: config.shutdownTimeout,
-          temporality: config.metricTemporality
-        })
+            shutdownTimeout: config.shutdownTimeout,
+            temporality: config.metricTemporality
+          })
         : Layer.empty
 
       const LoggerLive = isNonEmpty(config.logRecordProcessor)
         ? Layer.provide(
-          Logger.layer({ mergeWithExisting: config.loggerMergeWithExisting }),
-          Logger.layerLoggerProvider(config.logRecordProcessor, {
-            ...config.loggerProviderConfig,
-            shutdownTimeout: config.shutdownTimeout
-          })
-        )
+            Logger.layer({ mergeWithExisting: config.loggerMergeWithExisting }),
+            Logger.layerLoggerProvider(config.logRecordProcessor, {
+              ...config.loggerProviderConfig,
+              shutdownTimeout: config.shutdownTimeout
+            })
+          )
         : Layer.empty
 
-      return Layer.mergeAll(TracerLive, MetricsLive, LoggerLive).pipe(
-        Layer.provideMerge(ResourceLive)
-      )
+      return Layer.mergeAll(TracerLive, MetricsLive, LoggerLive).pipe(Layer.provideMerge(ResourceLive))
     })
   )
 

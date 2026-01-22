@@ -45,10 +45,7 @@ const TypeId = "~effect/cluster/Entity"
  * @since 4.0.0
  * @category models
  */
-export interface Entity<
-  in out Type extends string,
-  in out Rpcs extends Rpc.Any
-> extends Equal.Equal {
+export interface Entity<in out Type extends string, in out Rpcs extends Rpc.Any> extends Equal.Equal {
   readonly [TypeId]: typeof TypeId
   /**
    * The name of the entity type.
@@ -95,12 +92,7 @@ export interface Entity<
    * Create a client for this entity.
    */
   readonly client: Effect.Effect<
-    (
-      entityId: string
-    ) => RpcClient.RpcClient.From<
-      Rpcs,
-      MailboxFull | AlreadyProcessingMessage | PersistenceError
-    >,
+    (entityId: string) => RpcClient.RpcClient.From<Rpcs, MailboxFull | AlreadyProcessingMessage | PersistenceError>,
     never,
     Sharding
   >
@@ -110,10 +102,7 @@ export interface Entity<
    *
    * It will register the entity with the Sharding service.
    */
-  toLayer<
-    Handlers extends HandlersFrom<Rpcs>,
-    RX = never
-  >(
+  toLayer<Handlers extends HandlersFrom<Rpcs>, RX = never>(
     build: Handlers | Effect.Effect<Handlers, never, RX>,
     options?: {
       readonly maxIdleTime?: DurationInput | undefined
@@ -141,23 +130,14 @@ export interface Entity<
    *
    * It will register the entity with the Sharding service.
    */
-  toLayerQueue<
-    R,
-    RX = never
-  >(
+  toLayerQueue<R, RX = never>(
     build:
-      | ((
-        queue: Queue.Dequeue<Envelope.Request<Rpcs>>,
-        replier: Replier<Rpcs>
-      ) => Effect.Effect<never, never, R>)
+      | ((queue: Queue.Dequeue<Envelope.Request<Rpcs>>, replier: Replier<Rpcs>) => Effect.Effect<never, never, R>)
       | Effect.Effect<
-        (
-          queue: Queue.Dequeue<Envelope.Request<Rpcs>>,
-          replier: Replier<Rpcs>
-        ) => Effect.Effect<never, never, R>,
-        never,
-        RX
-      >,
+          (queue: Queue.Dequeue<Envelope.Request<Rpcs>>, replier: Replier<Rpcs>) => Effect.Effect<never, never, R>,
+          never,
+          RX
+        >,
     options?: {
       readonly maxIdleTime?: DurationInput | undefined
       readonly mailboxCapacity?: number | "unbounded" | undefined
@@ -222,15 +202,9 @@ const Proto = {
     return Effect.map(shardingTag.asEffect(), (sharding) => sharding.getShardId(entityId, this.getShardGroup(entityId)))
   },
   get client() {
-    return shardingTag.asEffect().pipe(
-      Effect.flatMap((sharding) => sharding.makeClient(this as any))
-    )
+    return shardingTag.asEffect().pipe(Effect.flatMap((sharding) => sharding.makeClient(this as any)))
   },
-  toLayer<
-    Rpcs extends Rpc.Any,
-    Handlers extends HandlersFrom<Rpcs>,
-    RX = never
-  >(
+  toLayer<Rpcs extends Rpc.Any, Handlers extends HandlersFrom<Rpcs>, RX = never>(
     this: Entity<string, Rpcs>,
     build: Handlers | Effect.Effect<Handlers, never, RX>,
     options?: {
@@ -253,35 +227,21 @@ const Proto = {
   > {
     return shardingTag.asEffect().pipe(
       Effect.flatMap((sharding) =>
-        sharding.registerEntity(
-          this,
-          Effect.isEffect(build) ? build : Effect.succeed(build),
-          options
-        )
+        sharding.registerEntity(this, Effect.isEffect(build) ? build : Effect.succeed(build), options)
       ),
       Layer.effectDiscard
     )
   },
   of: identity,
-  toLayerQueue<
-    Rpcs extends Rpc.Any,
-    R,
-    RX = never
-  >(
+  toLayerQueue<Rpcs extends Rpc.Any, R, RX = never>(
     this: Entity<string, Rpcs>,
     build:
-      | ((
-        mailbox: Queue.Dequeue<Envelope.Request<Rpcs>>,
-        replier: Replier<Rpcs>
-      ) => Effect.Effect<never, never, R>)
+      | ((mailbox: Queue.Dequeue<Envelope.Request<Rpcs>>, replier: Replier<Rpcs>) => Effect.Effect<never, never, R>)
       | Effect.Effect<
-        (
-          mailbox: Queue.Dequeue<Envelope.Request<Rpcs>>,
-          replier: Replier<Rpcs>
-        ) => Effect.Effect<never, never, R>,
-        never,
-        RX
-      >,
+          (mailbox: Queue.Dequeue<Envelope.Request<Rpcs>>, replier: Replier<Rpcs>) => Effect.Effect<never, never, R>,
+          never,
+          RX
+        >,
     options?: {
       readonly maxIdleTime?: DurationInput | undefined
       readonly mailboxCapacity?: number | "unbounded" | undefined
@@ -290,7 +250,7 @@ const Proto = {
       readonly spanAttributes?: Record<string, string> | undefined
     }
   ) {
-    const buildHandlers = Effect.gen(this, function*() {
+    const buildHandlers = Effect.gen(this, function* () {
       const behaviour = Effect.isEffect(build) ? yield* build : build
       const queue = yield* Queue.make<Envelope.Request<Rpcs>>()
 
@@ -396,10 +356,9 @@ export const make = <const Type extends string, Rpcs extends ReadonlyArray<Rpc.A
  * @since 4.0.0
  * @category context
  */
-export class CurrentAddress extends ServiceMap.Service<
-  CurrentAddress,
-  EntityAddress
->()("effect/cluster/Entity/EntityAddress") {}
+export class CurrentAddress extends ServiceMap.Service<CurrentAddress, EntityAddress>()(
+  "effect/cluster/Entity/EntityAddress"
+) {}
 
 /**
  * A Context.Tag to access the current Runner address.
@@ -407,25 +366,18 @@ export class CurrentAddress extends ServiceMap.Service<
  * @since 4.0.0
  * @category context
  */
-export class CurrentRunnerAddress extends ServiceMap.Service<
-  CurrentRunnerAddress,
-  RunnerAddress
->()("effect/cluster/Entity/RunnerAddress") {}
+export class CurrentRunnerAddress extends ServiceMap.Service<CurrentRunnerAddress, RunnerAddress>()(
+  "effect/cluster/Entity/RunnerAddress"
+) {}
 
 /**
  * @since 4.0.0
  * @category Replier
  */
 export interface Replier<Rpcs extends Rpc.Any> {
-  readonly succeed: <R extends Rpcs>(
-    request: Envelope.Request<R>,
-    value: Replier.Success<R>
-  ) => Effect.Effect<void>
+  readonly succeed: <R extends Rpcs>(request: Envelope.Request<R>, value: Replier.Success<R>) => Effect.Effect<void>
 
-  readonly fail: <R extends Rpcs>(
-    request: Envelope.Request<R>,
-    error: Rpc.Error<R>
-  ) => Effect.Effect<void>
+  readonly fail: <R extends Rpcs>(request: Envelope.Request<R>, error: Rpc.Error<R>) => Effect.Effect<void>
 
   readonly failCause: <R extends Rpcs>(
     request: Envelope.Request<R>,
@@ -447,9 +399,10 @@ export declare namespace Replier {
    * @since 4.0.0
    * @category Replier
    */
-  export type Success<R extends Rpc.Any> = Rpc.Success<R> extends Stream.Stream<infer _A, infer _E, infer _R> ?
-    Stream.Stream<_A, _E | Rpc.Error<R>, _R> | Queue.Dequeue<_A, _E | Rpc.Error<R>>
-    : Rpc.Success<R>
+  export type Success<R extends Rpc.Any> =
+    Rpc.Success<R> extends Stream.Stream<infer _A, infer _E, infer _R>
+      ? Stream.Stream<_A, _E | Rpc.Error<R>, _R> | Queue.Dequeue<_A, _E | Rpc.Error<R>>
+      : Rpc.Success<R>
 }
 
 /**
@@ -492,29 +445,25 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
   (entityId: string) => Effect.Effect<RpcClient.RpcClient<Rpcs>>,
   LE,
   Scope | ShardingConfig | Exclude<LR, Sharding> | Rpc.MiddlewareClient<Rpcs>
-> = Effect.fnUntraced(function*<Type extends string, Rpcs extends Rpc.Any, LA, LE, LR>(
+> = Effect.fnUntraced(function* <Type extends string, Rpcs extends Rpc.Any, LA, LE, LR>(
   entity: Entity<Type, Rpcs>,
   layer: Layer.Layer<LA, LE, LR>
 ) {
   const config = yield* ShardingConfig
   const makeShardId = (entityId: string) =>
-    ShardId.make(
-      entity.getShardGroup(entityId as EntityId),
-      (Math.abs(hashString(entityId) % config.shardsPerGroup)) + 1
-    )
+    ShardId.make(entity.getShardGroup(entityId as EntityId), Math.abs(hashString(entityId) % config.shardsPerGroup) + 1)
   const snowflakeGen = yield* Snowflake.makeGenerator
   const runnerAddress = new RunnerAddress({ host: "localhost", port: 3000 })
-  const entityMap = new Map<string, {
-    readonly services: ServiceMap.ServiceMap<
-      Rpc.ServicesClient<Rpcs> | Rpc.ServicesServer<Rpcs> | Rpc.Middleware<Rpcs> | LR
-    >
-    readonly concurrency: number | "unbounded"
-    readonly build: Effect.Effect<
-      ServiceMap.ServiceMap<Rpc.ToHandler<Rpcs>>,
-      never,
-      Scope | CurrentAddress
-    >
-  }>()
+  const entityMap = new Map<
+    string,
+    {
+      readonly services: ServiceMap.ServiceMap<
+        Rpc.ServicesClient<Rpcs> | Rpc.ServicesServer<Rpcs> | Rpc.Middleware<Rpcs> | LR
+      >
+      readonly concurrency: number | "unbounded"
+      readonly build: Effect.Effect<ServiceMap.ServiceMap<Rpc.ToHandler<Rpcs>>, never, Scope | CurrentAddress>
+    }
+  >()
   const sharding = shardingTag.of({
     ...({} as Sharding["Service"]),
     registerEntity: (entity, handlers, options) =>
@@ -522,12 +471,13 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
         entityMap.set(entity.type, {
           services: services as any,
           concurrency: options?.concurrency ?? 1,
-          build: entity.protocol.toHandlers(handlers as any).pipe(
-            Effect.provideServices(services.pipe(
-              ServiceMap.add(CurrentRunnerAddress, runnerAddress),
-              ServiceMap.omit(Scope)
-            ))
-          ) as any
+          build: entity.protocol
+            .toHandlers(handlers as any)
+            .pipe(
+              Effect.provideServices(
+                services.pipe(ServiceMap.add(CurrentRunnerAddress, runnerAddress), ServiceMap.omit(Scope))
+              )
+            ) as any
         })
         return Effect.void
       })
@@ -538,46 +488,46 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
     return yield* Effect.die(`Entity.makeTestClient: ${entity.type} was not registered by layer`)
   }
 
-  const map = yield* ResourceMap.make(Effect.fnUntraced(function*(entityId: string) {
-    const address = new EntityAddress({
-      entityType: entity.type,
-      entityId: entityId as EntityId,
-      shardId: makeShardId(entityId)
-    })
-    const handlers = yield* entityEntry.build.pipe(
-      Effect.provideService(CurrentAddress, address)
-    )
+  const map = yield* ResourceMap.make(
+    Effect.fnUntraced(function* (entityId: string) {
+      const address = new EntityAddress({
+        entityType: entity.type,
+        entityId: entityId as EntityId,
+        shardId: makeShardId(entityId)
+      })
+      const handlers = yield* entityEntry.build.pipe(Effect.provideService(CurrentAddress, address))
 
-    // oxlint-disable-next-line prefer-const
-    let client!: Effect.Success<ReturnType<typeof RpcClient.makeNoSerialization<Rpcs, never>>>
-    const server = yield* RpcServer.makeNoSerialization(entity.protocol, {
-      concurrency: entityEntry.concurrency,
-      onFromServer(response) {
-        return client.write(response)
-      }
-    }).pipe(Effect.provide(handlers))
-
-    client = yield* RpcClient.makeNoSerialization(entity.protocol, {
-      supportsAck: true,
-      generateRequestId: () => snowflakeGen.nextUnsafe() as any,
-      onFromClient({ message }) {
-        if (message._tag === "Request") {
-          return server.write(0, {
-            ...message,
-            payload: new Request({
-              ...message,
-              [Envelope.TypeId]: Envelope.TypeId,
-              address,
-              requestId: Snowflake.Snowflake(message.id),
-              lastSentChunk: undefined
-            }) as any
-          })
+      // oxlint-disable-next-line prefer-const
+      let client!: Effect.Success<ReturnType<typeof RpcClient.makeNoSerialization<Rpcs, never>>>
+      const server = yield* RpcServer.makeNoSerialization(entity.protocol, {
+        concurrency: entityEntry.concurrency,
+        onFromServer(response) {
+          return client.write(response)
         }
-        return server.write(0, message)
-      }
+      }).pipe(Effect.provide(handlers))
+
+      client = yield* RpcClient.makeNoSerialization(entity.protocol, {
+        supportsAck: true,
+        generateRequestId: () => snowflakeGen.nextUnsafe() as any,
+        onFromClient({ message }) {
+          if (message._tag === "Request") {
+            return server.write(0, {
+              ...message,
+              payload: new Request({
+                ...message,
+                [Envelope.TypeId]: Envelope.TypeId,
+                address,
+                requestId: Snowflake.Snowflake(message.id),
+                lastSentChunk: undefined
+              }) as any
+            })
+          }
+          return server.write(0, message)
+        }
+      })
+      return client.client
     })
-    return client.client
-  }))
+  )
 
   return (entityId: string) => map.get(entityId)
 })
@@ -586,49 +536,44 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
  * @since 4.0.0
  * @category Keep alive
  */
-export const keepAlive: (
-  enabled: boolean
-) => Effect.Effect<
-  void,
-  never,
-  Sharding | CurrentAddress
-> = Effect.fnUntraced(function*(enabled: boolean) {
-  const olatch = yield* Effect.serviceOption(KeepAliveLatch)
-  if (olatch._tag === "None") return
-  if (!enabled) {
-    yield* olatch.value.open
-    return
-  }
-  const sharding = yield* shardingTag
-  const address = yield* CurrentAddress
-  const requestId = yield* sharding.getSnowflake
-  const span = yield* Effect.orDie(Effect.currentSpan)
-  olatch.value.closeUnsafe()
-  yield* Effect.orDie(sharding.sendOutgoing(
-    new Message.OutgoingRequest({
-      rpc: KeepAliveRpc,
-      services: ServiceMap.empty() as any,
-      envelope: Envelope.makeRequest({
-        requestId,
-        address,
-        tag: KeepAliveRpc._tag,
-        payload: void 0,
-        headers: Headers.empty,
-        traceId: span.traceId,
-        spanId: span.spanId,
-        sampled: span.sampled
-      }),
-      lastReceivedReply: undefined,
-      respond: () => Effect.void
-    }),
-    true
-  ))
-}, (effect, enabled) =>
-  Effect.withSpan(
-    effect,
-    "Entity/keepAlive",
-    { attributes: { enabled }, captureStackTrace: false }
-  ))
+export const keepAlive: (enabled: boolean) => Effect.Effect<void, never, Sharding | CurrentAddress> = Effect.fnUntraced(
+  function* (enabled: boolean) {
+    const olatch = yield* Effect.serviceOption(KeepAliveLatch)
+    if (olatch._tag === "None") return
+    if (!enabled) {
+      yield* olatch.value.open
+      return
+    }
+    const sharding = yield* shardingTag
+    const address = yield* CurrentAddress
+    const requestId = yield* sharding.getSnowflake
+    const span = yield* Effect.orDie(Effect.currentSpan)
+    olatch.value.closeUnsafe()
+    yield* Effect.orDie(
+      sharding.sendOutgoing(
+        new Message.OutgoingRequest({
+          rpc: KeepAliveRpc,
+          services: ServiceMap.empty() as any,
+          envelope: Envelope.makeRequest({
+            requestId,
+            address,
+            tag: KeepAliveRpc._tag,
+            payload: void 0,
+            headers: Headers.empty,
+            traceId: span.traceId,
+            spanId: span.spanId,
+            sampled: span.sampled
+          }),
+          lastReceivedReply: undefined,
+          respond: () => Effect.void
+        }),
+        true
+      )
+    )
+  },
+  (effect, enabled) =>
+    Effect.withSpan(effect, "Entity/keepAlive", { attributes: { enabled }, captureStackTrace: false })
+)
 
 /**
  * @since 4.0.0

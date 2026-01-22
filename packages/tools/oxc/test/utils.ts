@@ -13,12 +13,7 @@ export interface TestContextOptions {
 }
 
 export const createTestContext = (options: TestContextOptions = {}) => {
-  const {
-    sourceCode = "",
-    filename = "/test/file.ts",
-    cwd = "/test",
-    ruleOptions = []
-  } = options
+  const { sourceCode = "", filename = "/test/file.ts", cwd = "/test", ruleOptions = [] } = options
 
   const errors: Array<ReportedError> = []
   const context = {

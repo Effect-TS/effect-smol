@@ -42,49 +42,48 @@ export {
 export const layer = <
   const ClientOnly extends boolean = false,
   const Storage extends "local" | "sql" | "byo" = never
->(
-  options?: {
-    readonly serialization?: "msgpack" | "ndjson" | undefined
-    readonly clientOnly?: ClientOnly | undefined
-    readonly storage?: Storage | undefined
-    readonly runnerHealth?: "ping" | "k8s" | undefined
-    readonly runnerHealthK8s?: {
-      readonly namespace?: string | undefined
-      readonly labelSelector?: string | undefined
-    } | undefined
-    readonly shardingConfig?: Partial<ShardingConfig.ShardingConfig["Service"]> | undefined
-  }
-): ClientOnly extends true ? Layer.Layer<
-    Sharding | Runners.Runners | ("byo" extends Storage ? never : MessageStorage.MessageStorage),
-    Config.ConfigError,
-    "local" extends Storage ? never
-      : "byo" extends Storage ? (MessageStorage.MessageStorage | RunnerStorage.RunnerStorage)
-      : SqlClient
-  > :
-  Layer.Layer<
-    Sharding | Runners.Runners | ("byo" extends Storage ? never : MessageStorage.MessageStorage),
-    SocketServer.SocketServerError | Config.ConfigError,
-    "local" extends Storage ? never
-      : "byo" extends Storage ? (MessageStorage.MessageStorage | RunnerStorage.RunnerStorage)
-      : SqlClient
-  > =>
-{
+>(options?: {
+  readonly serialization?: "msgpack" | "ndjson" | undefined
+  readonly clientOnly?: ClientOnly | undefined
+  readonly storage?: Storage | undefined
+  readonly runnerHealth?: "ping" | "k8s" | undefined
+  readonly runnerHealthK8s?:
+    | {
+        readonly namespace?: string | undefined
+        readonly labelSelector?: string | undefined
+      }
+    | undefined
+  readonly shardingConfig?: Partial<ShardingConfig.ShardingConfig["Service"]> | undefined
+}): ClientOnly extends true
+  ? Layer.Layer<
+      Sharding | Runners.Runners | ("byo" extends Storage ? never : MessageStorage.MessageStorage),
+      Config.ConfigError,
+      "local" extends Storage
+        ? never
+        : "byo" extends Storage
+          ? MessageStorage.MessageStorage | RunnerStorage.RunnerStorage
+          : SqlClient
+    >
+  : Layer.Layer<
+      Sharding | Runners.Runners | ("byo" extends Storage ? never : MessageStorage.MessageStorage),
+      SocketServer.SocketServerError | Config.ConfigError,
+      "local" extends Storage
+        ? never
+        : "byo" extends Storage
+          ? MessageStorage.MessageStorage | RunnerStorage.RunnerStorage
+          : SqlClient
+    > => {
   const layer: Layer.Layer<any, any, any> = options?.clientOnly
-    // client only
-    ? Layer.provide(SocketRunner.layerClientOnly, layerClientProtocol)
-    // with server
-    : Layer.provide(SocketRunner.layer, [layerSocketServer, layerClientProtocol])
+    ? // client only
+      Layer.provide(SocketRunner.layerClientOnly, layerClientProtocol)
+    : // with server
+      Layer.provide(SocketRunner.layer, [layerSocketServer, layerClientProtocol])
 
   const runnerHealth: Layer.Layer<any, any, any> = options?.clientOnly
-    ? Layer.empty as any
+    ? (Layer.empty as any)
     : options?.runnerHealth === "k8s"
-    ? RunnerHealth.layerK8s(options.runnerHealthK8s).pipe(
-      Layer.provide([BunFileSystem.layer, layerK8sHttpClient])
-    )
-    : RunnerHealth.layerPing.pipe(
-      Layer.provide(Runners.layerRpc),
-      Layer.provide(layerClientProtocol)
-    )
+      ? RunnerHealth.layerK8s(options.runnerHealthK8s).pipe(Layer.provide([BunFileSystem.layer, layerK8sHttpClient]))
+      : RunnerHealth.layerPing.pipe(Layer.provide(Runners.layerRpc), Layer.provide(layerClientProtocol))
 
   return layer.pipe(
     Layer.provide(runnerHealth),
@@ -92,20 +91,18 @@ export const layer = <
       options?.storage === "local"
         ? MessageStorage.layerNoop
         : options?.storage === "byo"
-        ? Layer.empty
-        : Layer.orDie(SqlMessageStorage.layer)
+          ? Layer.empty
+          : Layer.orDie(SqlMessageStorage.layer)
     ),
     Layer.provide(
       options?.storage === "local"
         ? RunnerStorage.layerMemory
         : options?.storage === "byo"
-        ? Layer.empty
-        : Layer.orDie(SqlRunnerStorage.layer)
+          ? Layer.empty
+          : Layer.orDie(SqlRunnerStorage.layer)
     ),
     Layer.provide(ShardingConfig.layerFromEnv(options?.shardingConfig)),
-    Layer.provide(
-      options?.serialization === "ndjson" ? RpcSerialization.layerNdjson : RpcSerialization.layerMsgPack
-    )
+    Layer.provide(options?.serialization === "ndjson" ? RpcSerialization.layerNdjson : RpcSerialization.layerMsgPack)
   ) as any
 }
 
@@ -114,22 +111,28 @@ export const layer = <
  * @category Layers
  */
 export const layerK8sHttpClient: Layer.Layer<K8sHttpClient.K8sHttpClient> = K8sHttpClient.layer.pipe(
-  Layer.provide(Layer.unwrap(Effect.gen(function*() {
-    const fs = yield* FileSystem.FileSystem
-    const caCertOption = yield* fs.readFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt").pipe(
-      Effect.option
-    )
-    if (caCertOption._tag === "None") {
-      return FetchHttpClient.layer
-    }
-
-    return Layer.fresh(FetchHttpClient.layer).pipe(
-      Layer.provide(Layer.succeed(FetchHttpClient.RequestInit, {
-        tls: {
-          ca: caCertOption.value
+  Layer.provide(
+    Layer.unwrap(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        const caCertOption = yield* fs
+          .readFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+          .pipe(Effect.option)
+        if (caCertOption._tag === "None") {
+          return FetchHttpClient.layer
         }
-      } as any))
+
+        return Layer.fresh(FetchHttpClient.layer).pipe(
+          Layer.provide(
+            Layer.succeed(FetchHttpClient.RequestInit, {
+              tls: {
+                ca: caCertOption.value
+              }
+            } as any)
+          )
+        )
+      })
     )
-  }))),
+  ),
   Layer.provide(BunFileSystem.layer)
 )

@@ -99,28 +99,31 @@ function setAtom<R, W, Mode extends "value" | "promise" | "promiseExit" = never>
   options?: {
     readonly mode?: ([R] extends [AsyncResult.AsyncResult<any, any>] ? Mode : "value") | undefined
   }
-): "promise" extends Mode ? (
-    (value: W) => Promise<AsyncResult.AsyncResult.Success<R>>
-  ) :
-  "promiseExit" extends Mode ? (
-      (value: W) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
-    ) :
-  ((value: W | ((value: R) => W)) => void)
-{
+): "promise" extends Mode
+  ? (value: W) => Promise<AsyncResult.AsyncResult.Success<R>>
+  : "promiseExit" extends Mode
+    ? (value: W) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
+    : (value: W | ((value: R) => W)) => void {
   if (options?.mode === "promise" || options?.mode === "promiseExit") {
-    return React.useCallback((value: W) => {
-      registry.set(atom, value)
-      const promise = Effect.runPromiseExit(
-        AtomRegistry.getResult(registry, atom as Atom.Atom<AsyncResult.AsyncResult<any, any>>, {
-          suspendOnWaiting: true
-        })
-      )
-      return options!.mode === "promise" ? promise.then(flattenExit) : promise
-    }, [registry, atom, options.mode]) as any
+    return React.useCallback(
+      (value: W) => {
+        registry.set(atom, value)
+        const promise = Effect.runPromiseExit(
+          AtomRegistry.getResult(registry, atom as Atom.Atom<AsyncResult.AsyncResult<any, any>>, {
+            suspendOnWaiting: true
+          })
+        )
+        return options!.mode === "promise" ? promise.then(flattenExit) : promise
+      },
+      [registry, atom, options.mode]
+    ) as any
   }
-  return React.useCallback((value: W | ((value: R) => W)) => {
-    registry.set(atom, typeof value === "function" ? (value as any)(registry.get(atom)) : value)
-  }, [registry, atom]) as any
+  return React.useCallback(
+    (value: W | ((value: R) => W)) => {
+      registry.set(atom, typeof value === "function" ? (value as any)(registry.get(atom)) : value)
+    },
+    [registry, atom]
+  ) as any
 }
 
 const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
@@ -141,23 +144,16 @@ export const useAtomMount = <A>(atom: Atom.Atom<A>): void => {
  * @since 1.0.0
  * @category hooks
  */
-export const useAtomSet = <
-  R,
-  W,
-  Mode extends "value" | "promise" | "promiseExit" = never
->(
+export const useAtomSet = <R, W, Mode extends "value" | "promise" | "promiseExit" = never>(
   atom: Atom.Writable<R, W>,
   options?: {
     readonly mode?: ([R] extends [AsyncResult.AsyncResult<any, any>] ? Mode : "value") | undefined
   }
-): "promise" extends Mode ? (
-    (value: W) => Promise<AsyncResult.AsyncResult.Success<R>>
-  ) :
-  "promiseExit" extends Mode ? (
-      (value: W) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
-    ) :
-  ((value: W | ((value: R) => W)) => void) =>
-{
+): "promise" extends Mode
+  ? (value: W) => Promise<AsyncResult.AsyncResult.Success<R>>
+  : "promiseExit" extends Mode
+    ? (value: W) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
+    : (value: W | ((value: R) => W)) => void => {
   const registry = React.useContext(RegistryContext)
   mountAtom(registry, atom)
   return setAtom(registry, atom, options)
@@ -167,7 +163,7 @@ export const useAtomSet = <
  * @since 1.0.0
  * @category hooks
  */
-export const useAtomRefresh = <A>(atom: Atom.Atom<A>): () => void => {
+export const useAtomRefresh = <A>(atom: Atom.Atom<A>): (() => void) => {
   const registry = React.useContext(RegistryContext)
   mountAtom(registry, atom)
   return React.useCallback(() => {
@@ -186,19 +182,14 @@ export const useAtom = <R, W, const Mode extends "value" | "promise" | "promiseE
   }
 ): readonly [
   value: R,
-  write: "promise" extends Mode ? (
-      (value: W) => Promise<AsyncResult.AsyncResult.Success<R>>
-    ) :
-    "promiseExit" extends Mode ? (
-        (value: W) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
-      ) :
-    ((value: W | ((value: R) => W)) => void)
+  write: "promise" extends Mode
+    ? (value: W) => Promise<AsyncResult.AsyncResult.Success<R>>
+    : "promiseExit" extends Mode
+      ? (value: W) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
+      : (value: W | ((value: R) => W)) => void
 ] => {
   const registry = React.useContext(RegistryContext)
-  return [
-    useStore(registry, atom),
-    setAtom(registry, atom, options)
-  ] as const
+  return [useStore(registry, atom), setAtom(registry, atom, options)] as const
 }
 
 const atomPromiseMap = {
@@ -271,10 +262,7 @@ export const useAtomSubscribe = <A>(
   options?: { readonly immediate?: boolean }
 ): void => {
   const registry = React.useContext(RegistryContext)
-  React.useEffect(
-    () => registry.subscribe(atom, f, options),
-    [registry, atom, f, options?.immediate]
-  )
+  React.useEffect(() => registry.subscribe(atom, f, options), [registry, atom, f, options?.immediate])
 }
 
 /**

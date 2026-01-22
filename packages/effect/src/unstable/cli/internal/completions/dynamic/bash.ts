@@ -4,10 +4,7 @@
  */
 
 /** @internal */
-export const generateDynamicBashCompletion = (
-  executableName: string,
-  executablePath?: string
-): string => {
+export const generateDynamicBashCompletion = (executableName: string, executablePath?: string): string => {
   const appPath = executablePath || executableName
 
   const template = `###-begin-${executableName}-completions-###

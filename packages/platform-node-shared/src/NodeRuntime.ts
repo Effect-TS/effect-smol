@@ -9,12 +9,10 @@ import * as Runtime from "effect/Runtime"
  * @category Run main
  */
 export const runMain: {
-  (
-    options?: {
-      readonly disableErrorReporting?: boolean | undefined
-      readonly teardown?: Runtime.Teardown | undefined
-    }
-  ): <E, A>(effect: Effect<A, E>) => void
+  (options?: {
+    readonly disableErrorReporting?: boolean | undefined
+    readonly teardown?: Runtime.Teardown | undefined
+  }): <E, A>(effect: Effect<A, E>) => void
   <E, A>(
     effect: Effect<A, E>,
     options?: {
@@ -22,10 +20,7 @@ export const runMain: {
       readonly teardown?: Runtime.Teardown | undefined
     }
   ): void
-} = Runtime.makeRunMain(({
-  fiber,
-  teardown
-}) => {
+} = Runtime.makeRunMain(({ fiber, teardown }) => {
   let receivedSignal = false
 
   fiber.addObserver((exit) => {

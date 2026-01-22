@@ -14,11 +14,7 @@ import { WorkerError } from "effect/unstable/workers/WorkerError"
  */
 export const layer = (
   spawn: (id: number) => Worker | SharedWorker | MessagePort
-): Layer.Layer<Worker.WorkerPlatform | Worker.Spawner> =>
-  Layer.merge(
-    layerPlatform,
-    Worker.layerSpawner(spawn)
-  )
+): Layer.Layer<Worker.WorkerPlatform | Worker.Spawner> => Layer.merge(layerPlatform, Worker.layerSpawner(spawn))
 
 /**
  * @since 1.0.0

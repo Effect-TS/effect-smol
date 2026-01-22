@@ -88,7 +88,7 @@ export interface Variance<out A, out E, out R> {
  * @category models
  */
 export interface Constructor<R extends Request<any, any, any>, T extends keyof R = never> {
-  (args: Omit<R, T | keyof (Variance<any, any, any>)>): R
+  (args: Omit<R, T | keyof Variance<any, any, any>>): R
 }
 
 /**
@@ -130,8 +130,7 @@ export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer
  * @since 2.0.0
  * @category type-level
  */
-export type Success<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _A
-  : never
+export type Success<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _A : never
 
 /**
  * A utility type to extract the requirements type from a `Request`.
@@ -139,7 +138,8 @@ export type Success<T extends Request<any, any, any>> = [T] extends [Request<inf
  * @since 4.0.0
  * @category type-level
  */
-export type Services<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _R
+export type Services<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>]
+  ? _R
   : never
 
 /**
@@ -161,8 +161,8 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
  * @since 2.0.0
  * @category type-level
  */
-export type Result<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E>
-  : never
+export type Result<T extends Request<any, any, any>> =
+  T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E> : never
 
 const requestVariance = Equal.byReferenceUnsafe({
   /* c8 ignore next */
@@ -237,8 +237,10 @@ export const isRequest = (u: unknown): u is Request<unknown, unknown, unknown> =
  * @category constructors
  * @since 2.0.0
  */
-export const of = <R extends Request<any, any, any>>(): Constructor<R> => (args) =>
-  Object.assign(Object.create(RequestPrototype), args)
+export const of =
+  <R extends Request<any, any, any>>(): Constructor<R> =>
+  (args) =>
+    Object.assign(Object.create(RequestPrototype), args)
 
 /**
  * Creates a constructor function for a tagged Request type. The tag is automatically
@@ -281,14 +283,13 @@ export const of = <R extends Request<any, any, any>>(): Constructor<R> => (args)
  * @category constructors
  * @since 2.0.0
  */
-export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
-  tag: R["_tag"]
-): Constructor<R, "_tag"> =>
-(args) => {
-  const request = Object.assign(Object.create(RequestPrototype), args)
-  request._tag = tag
-  return request
-}
+export const tagged =
+  <R extends Request<any, any, any> & { _tag: string }>(tag: R["_tag"]): Constructor<R, "_tag"> =>
+  (args) => {
+    const request = Object.assign(Object.create(RequestPrototype), args)
+    request._tag = tag
+    return request
+  }
 
 /**
  * @example
@@ -308,10 +309,11 @@ export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
  * @since 2.0.0
  * @category constructors
  */
-export const Class: new<A extends Record<string, any>, Success, Error = never, ServiceMap = never>(
-  args: Types.Equals<Omit<A, keyof Request<unknown, unknown>>, {}> extends true ? void
+export const Class: new <A extends Record<string, any>, Success, Error = never, ServiceMap = never>(
+  args: Types.Equals<Omit<A, keyof Request<unknown, unknown>>, {}> extends true
+    ? void
     : { readonly [P in keyof A as P extends keyof Request<any, any, any> ? never : P]: A[P] }
-) => Request<Success, Error, ServiceMap> & Readonly<A> = (function() {
+) => Request<Success, Error, ServiceMap> & Readonly<A> = (function () {
   function Class(this: any, args: any) {
     if (args) {
       Object.assign(this, args)
@@ -340,10 +342,11 @@ export const Class: new<A extends Record<string, any>, Success, Error = never, S
  */
 export const TaggedClass = <Tag extends string>(
   tag: Tag
-): new<A extends Record<string, any>, Success, Error = never, Services = never>(
-  args: Types.Equals<Omit<A, keyof Request<unknown, unknown>>, {}> extends true ? void
+): (new <A extends Record<string, any>, Success, Error = never, Services = never>(
+  args: Types.Equals<Omit<A, keyof Request<unknown, unknown>>, {}> extends true
+    ? void
     : { readonly [P in keyof A as P extends "_tag" | keyof Request<any, any, any> ? never : P]: A[P] }
-) => Request<Success, Error, Services> & Readonly<A> & { readonly _tag: Tag } => {
+) => Request<Success, Error, Services> & Readonly<A> & { readonly _tag: Tag }) => {
   return class TaggedClass extends Class<any, any, any> {
     readonly _tag = tag
   } as any
@@ -425,9 +428,7 @@ export const succeed: {
  */
 export interface Entry<out R> {
   readonly request: R
-  readonly services: ServiceMap.ServiceMap<
-    [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
-  >
+  readonly services: ServiceMap.ServiceMap<[R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never>
   uninterruptible: boolean
   completeUnsafe(
     exit: Exit.Exit<
@@ -443,9 +444,7 @@ export interface Entry<out R> {
  */
 export const makeEntry = <R>(options: {
   readonly request: R
-  readonly services: ServiceMap.ServiceMap<
-    [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
-  >
+  readonly services: ServiceMap.ServiceMap<[R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never>
   readonly uninterruptible: boolean
   readonly completeUnsafe: (
     exit: Exit.Exit<

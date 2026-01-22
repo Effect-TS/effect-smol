@@ -8,7 +8,10 @@ describe("Equivalence", () => {
       readonly name: string
       readonly age: number
     }
-    const eqPerson = pipe(Equivalence.strictEqual<string>(), Equivalence.mapInput((p: Person) => p.name))
+    const eqPerson = pipe(
+      Equivalence.strictEqual<string>(),
+      Equivalence.mapInput((p: Person) => p.name)
+    )
     assertTrue(eqPerson({ name: "a", age: 1 }, { name: "a", age: 2 }))
     assertTrue(eqPerson({ name: "a", age: 1 }, { name: "a", age: 1 }))
     assertFalse(eqPerson({ name: "a", age: 1 }, { name: "b", age: 1 }))

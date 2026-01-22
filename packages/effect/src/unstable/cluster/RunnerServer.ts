@@ -24,83 +24,71 @@ const constVoid = constant(Effect.void)
  * @since 4.0.0
  * @category Layers
  */
-export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
-  const sharding = yield* Sharding.Sharding
-  const storage = yield* MessageStorage.MessageStorage
+export const layerHandlers = Runners.Rpcs.toLayer(
+  Effect.gen(function* () {
+    const sharding = yield* Sharding.Sharding
+    const storage = yield* MessageStorage.MessageStorage
 
-  return {
-    Ping: () => Effect.void,
-    Notify: ({ envelope }) =>
-      sharding.notify(
-        envelope._tag === "Request"
-          ? new Message.IncomingRequest({
-            envelope,
-            respond: constVoid,
-            lastSentReply: undefined
-          })
-          : new Message.IncomingEnvelope({ envelope })
-      ),
-    Effect: ({ persisted, request }) => {
-      let replyEncoded:
-        | Effect.Effect<
-          Reply.Encoded,
-          ClusterError.EntityNotAssignedToRunner
-        >
-        | undefined = undefined
-      let resume = (reply: Effect.Effect<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>) => {
-        replyEncoded = reply
-      }
-      const message = new Message.IncomingRequest({
-        envelope: request,
-        lastSentReply: undefined,
-        respond(reply) {
-          resume(Effect.orDie(Reply.serialize(reply)))
-          return Effect.void
+    return {
+      Ping: () => Effect.void,
+      Notify: ({ envelope }) =>
+        sharding.notify(
+          envelope._tag === "Request"
+            ? new Message.IncomingRequest({
+                envelope,
+                respond: constVoid,
+                lastSentReply: undefined
+              })
+            : new Message.IncomingEnvelope({ envelope })
+        ),
+      Effect: ({ persisted, request }) => {
+        let replyEncoded: Effect.Effect<Reply.Encoded, ClusterError.EntityNotAssignedToRunner> | undefined = undefined
+        let resume = (reply: Effect.Effect<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>) => {
+          replyEncoded = reply
         }
-      })
-      if (persisted) {
-        return Effect.callback<
-          Reply.Encoded,
-          ClusterError.EntityNotAssignedToRunner
-        >((resume_) => {
-          resume = resume_
-          const parent = Fiber.getCurrent()!
-          const onExit = (
-            exit: Exit.Exit<
-              any,
-              ClusterError.EntityNotAssignedToRunner
-            >
-          ) => {
-            if (exit._tag === "Failure") {
-              resume(exit as any)
-            }
+        const message = new Message.IncomingRequest({
+          envelope: request,
+          lastSentReply: undefined,
+          respond(reply) {
+            resume(Effect.orDie(Reply.serialize(reply)))
+            return Effect.void
           }
-          const runFork = Effect.runForkWith(parent.services)
-          const fiber = runFork(storage.registerReplyHandler(message))
-          fiber.addObserver(onExit)
-          runFork(Effect.catchTag(
-            sharding.notify(message, constWaitUntilRead),
-            "AlreadyProcessingMessage",
-            () => Effect.void
-          )).addObserver(onExit)
-          return Fiber.interrupt(fiber)
         })
-      }
-      return Effect.andThen(
-        sharding.send(message),
-        Effect.callback<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>((resume_) => {
-          if (replyEncoded) {
-            resume_(replyEncoded)
-          } else {
+        if (persisted) {
+          return Effect.callback<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>((resume_) => {
             resume = resume_
-          }
-        })
-      )
-    },
-    Stream: ({ persisted, request }) =>
-      Effect.flatMap(
-        Queue.make<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>(),
-        (queue) => {
+            const parent = Fiber.getCurrent()!
+            const onExit = (exit: Exit.Exit<any, ClusterError.EntityNotAssignedToRunner>) => {
+              if (exit._tag === "Failure") {
+                resume(exit as any)
+              }
+            }
+            const runFork = Effect.runForkWith(parent.services)
+            const fiber = runFork(storage.registerReplyHandler(message))
+            fiber.addObserver(onExit)
+            runFork(
+              Effect.catchTag(
+                sharding.notify(message, constWaitUntilRead),
+                "AlreadyProcessingMessage",
+                () => Effect.void
+              )
+            ).addObserver(onExit)
+            return Fiber.interrupt(fiber)
+          })
+        }
+        return Effect.andThen(
+          sharding.send(message),
+          Effect.callback<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>((resume_) => {
+            if (replyEncoded) {
+              resume_(replyEncoded)
+            } else {
+              resume = resume_
+            }
+          })
+        )
+      },
+      Stream: ({ persisted, request }) =>
+        Effect.flatMap(Queue.make<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>(), (queue) => {
           const message = new Message.IncomingRequest({
             envelope: request,
             lastSentReply: undefined,
@@ -112,22 +100,22 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
             }
           })
           return Effect.as(
-            persisted ?
-              Effect.andThen(
-                storage.registerReplyHandler(message).pipe(
-                  Effect.onError((cause) => Queue.failCause(queue, cause)),
-                  Effect.forkScoped
-                ),
-                sharding.notify(message, constWaitUntilRead)
-              ) :
-              sharding.send(message),
+            persisted
+              ? Effect.andThen(
+                  storage.registerReplyHandler(message).pipe(
+                    Effect.onError((cause) => Queue.failCause(queue, cause)),
+                    Effect.forkScoped
+                  ),
+                  sharding.notify(message, constWaitUntilRead)
+                )
+              : sharding.send(message),
             queue
           )
-        }
-      ),
-    Envelope: ({ envelope }) => sharding.send(new Message.IncomingEnvelope({ envelope }))
-  }
-}))
+        }),
+      Envelope: ({ envelope }) => sharding.send(new Message.IncomingEnvelope({ envelope }))
+    }
+  })
+)
 
 const constWaitUntilRead = { waitUntilRead: true } as const
 
@@ -140,14 +128,11 @@ const constWaitUntilRead = { waitUntilRead: true } as const
  * @since 4.0.0
  * @category Layers
  */
-export const layer: Layer.Layer<
-  never,
-  never,
-  RpcServer.Protocol | Sharding.Sharding | MessageStorage.MessageStorage
-> = RpcServer.layer(Runners.Rpcs, {
-  spanPrefix: "RunnerServer",
-  disableTracing: true
-}).pipe(Layer.provide(layerHandlers))
+export const layer: Layer.Layer<never, never, RpcServer.Protocol | Sharding.Sharding | MessageStorage.MessageStorage> =
+  RpcServer.layer(Runners.Rpcs, {
+    spanPrefix: "RunnerServer",
+    disableTracing: true
+  }).pipe(Layer.provide(layerHandlers))
 
 /**
  * A `RunnerServer` layer that includes the `Runners` & `Sharding` clients.
@@ -164,10 +149,7 @@ export const layerWithClients: Layer.Layer<
   | MessageStorage.MessageStorage
   | RunnerStorage.RunnerStorage
   | RunnerHealth.RunnerHealth
-> = layer.pipe(
-  Layer.provideMerge(Sharding.layer),
-  Layer.provideMerge(Runners.layerRpc)
-)
+> = layer.pipe(Layer.provideMerge(Sharding.layer), Layer.provideMerge(Runners.layerRpc))
 
 /**
  * A `Runners` layer that is client only.
@@ -182,10 +164,7 @@ export const layerWithClients: Layer.Layer<
 export const layerClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
   never,
-  | ShardingConfig
-  | Runners.RpcClientProtocol
-  | MessageStorage.MessageStorage
-  | RunnerStorage.RunnerStorage
+  ShardingConfig | Runners.RpcClientProtocol | MessageStorage.MessageStorage | RunnerStorage.RunnerStorage
 > = Sharding.layer.pipe(
   Layer.provideMerge(Runners.layerRpc),
   Layer.provide(RunnerHealth.layerNoop),

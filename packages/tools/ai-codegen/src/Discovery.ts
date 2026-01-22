@@ -45,16 +45,10 @@ export interface DiscoveredProvider {
  * @category models
  */
 export interface ProviderDiscovery {
-  readonly discover: () => Effect.Effect<
-    Array<DiscoveredProvider>,
-    DiscoveryError | Glob.GlobError
-  >
+  readonly discover: () => Effect.Effect<Array<DiscoveredProvider>, DiscoveryError | Glob.GlobError>
   readonly discoverOne: (
     name: string
-  ) => Effect.Effect<
-    DiscoveredProvider,
-    DiscoveryError | ProviderNotFoundError | Glob.GlobError
-  >
+  ) => Effect.Effect<DiscoveredProvider, DiscoveryError | ProviderNotFoundError | Glob.GlobError>
 }
 
 /**
@@ -113,80 +107,80 @@ export class ProviderNotFoundError extends Data.TaggedError("ProviderNotFoundErr
  * @since 1.0.0
  * @category layers
  */
-export const layer: Layer.Layer<
-  ProviderDiscovery,
-  never,
-  Glob.Glob | FileSystem.FileSystem | Path.Path
-> = Effect.gen(function*() {
-  const glob = yield* Glob.Glob
-  const fs = yield* FileSystem.FileSystem
-  const pathService = yield* Path.Path
+export const layer: Layer.Layer<ProviderDiscovery, never, Glob.Glob | FileSystem.FileSystem | Path.Path> = Effect.gen(
+  function* () {
+    const glob = yield* Glob.Glob
+    const fs = yield* FileSystem.FileSystem
+    const pathService = yield* Path.Path
 
-  const parseConfig = Effect.fn("parseConfig")(function*(configPath: string) {
-    const packagePath = pathService.dirname(configPath)
-    const name = pathService.basename(packagePath)
-    const isYaml = configPath.endsWith(".yaml") || configPath.endsWith(".yml")
+    const parseConfig = Effect.fn("parseConfig")(function* (configPath: string) {
+      const packagePath = pathService.dirname(configPath)
+      const name = pathService.basename(packagePath)
+      const isYaml = configPath.endsWith(".yaml") || configPath.endsWith(".yml")
 
-    const content = yield* fs.readFileString(configPath).pipe(
-      Effect.mapError((cause) =>
-        new DiscoveryError({
-          message: `Failed to read config at ${configPath}`,
-          cause
-        })
+      const content = yield* fs.readFileString(configPath).pipe(
+        Effect.mapError(
+          (cause) =>
+            new DiscoveryError({
+              message: `Failed to read config at ${configPath}`,
+              cause
+            })
+        )
       )
-    )
 
-    const parsed = yield* Effect.try({
-      try: () => isYaml ? Yaml.parse(content) : JSON.parse(content),
-      catch: (cause) =>
-        new DiscoveryError({
-          message: `Failed to parse ${isYaml ? "YAML" : "JSON"} at ${configPath}`,
-          cause
-        })
-    })
-
-    const config = yield* Schema.decodeUnknownEffect(CodegenConfig)(parsed).pipe(
-      Effect.mapError((cause) =>
-        new DiscoveryError({
-          message: `Invalid config schema at ${configPath}`,
-          cause
-        })
-      )
-    )
-
-    const provider: DiscoveredProvider = {
-      name,
-      packagePath,
-      config,
-      specSource: SpecSourceUtils.fromString(config.spec, packagePath, pathService),
-      outputPath: pathService.join(packagePath, config.output)
-    }
-
-    return provider
-  })
-
-  const discover = Effect.fn("discover")(function*() {
-    const configFiles = yield* glob.glob("packages/ai/*/codegen.{json,yaml,yml}", {
-      cwd: process.cwd(),
-      absolute: true
-    })
-
-    return yield* Effect.forEach(configFiles, parseConfig)
-  })
-
-  const discoverOne = Effect.fn("discoverOne")(function*(providerName: string) {
-    const providers = yield* discover()
-    const found = providers.find((p) => p.name === providerName)
-
-    if (!found) {
-      return yield* new ProviderNotFoundError({
-        provider: providerName,
-        available: providers.map((p) => p.name)
+      const parsed = yield* Effect.try({
+        try: () => (isYaml ? Yaml.parse(content) : JSON.parse(content)),
+        catch: (cause) =>
+          new DiscoveryError({
+            message: `Failed to parse ${isYaml ? "YAML" : "JSON"} at ${configPath}`,
+            cause
+          })
       })
-    }
 
-    return found
-  })
+      const config = yield* Schema.decodeUnknownEffect(CodegenConfig)(parsed).pipe(
+        Effect.mapError(
+          (cause) =>
+            new DiscoveryError({
+              message: `Invalid config schema at ${configPath}`,
+              cause
+            })
+        )
+      )
 
-  return { discover, discoverOne }
-}).pipe(Layer.effect(ProviderDiscovery))
+      const provider: DiscoveredProvider = {
+        name,
+        packagePath,
+        config,
+        specSource: SpecSourceUtils.fromString(config.spec, packagePath, pathService),
+        outputPath: pathService.join(packagePath, config.output)
+      }
+
+      return provider
+    })
+
+    const discover = Effect.fn("discover")(function* () {
+      const configFiles = yield* glob.glob("packages/ai/*/codegen.{json,yaml,yml}", {
+        cwd: process.cwd(),
+        absolute: true
+      })
+
+      return yield* Effect.forEach(configFiles, parseConfig)
+    })
+
+    const discoverOne = Effect.fn("discoverOne")(function* (providerName: string) {
+      const providers = yield* discover()
+      const found = providers.find((p) => p.name === providerName)
+
+      if (!found) {
+        return yield* new ProviderNotFoundError({
+          provider: providerName,
+          available: providers.map((p) => p.name)
+        })
+      }
+
+      return found
+    })
+
+    return { discover, discoverOne }
+  }
+).pipe(Layer.effect(ProviderDiscovery))

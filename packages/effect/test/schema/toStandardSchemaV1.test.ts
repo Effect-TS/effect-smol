@@ -16,11 +16,7 @@ const expectSuccess = <A>(result: StandardSchemaV1.Result<A>, a: A) => {
   deepStrictEqual(result, { value: a })
 }
 
-const expectSyncSuccess = <I, A>(
-  schema: StandardSchemaV1<I, A>,
-  input: unknown,
-  a: A
-) => {
+const expectSyncSuccess = <I, A>(schema: StandardSchemaV1<I, A>, input: unknown, a: A) => {
   const result = validate(schema, input)
   if (isPromise(result)) {
     throw new Error("Expected value, got promise")
@@ -50,11 +46,7 @@ const expectFailure = <A>(
   }
 }
 
-const expectAsyncSuccess = async <I, A>(
-  schema: StandardSchemaV1<I, A>,
-  input: unknown,
-  a: A
-) => {
+const expectAsyncSuccess = async <I, A>(schema: StandardSchemaV1<I, A>, input: unknown, a: A) => {
   const result = validate(schema, input)
   if (isPromise(result)) {
     expectSuccess(await result, a)
@@ -89,15 +81,17 @@ const expectAsyncFailure = async <I, A>(
   }
 }
 
-const AsyncString = Schema.String.pipe(Schema.decode({
-  decode: new SchemaGetter.Getter((os: Option.Option<string>) =>
-    Effect.gen(function*() {
-      yield* Effect.sleep("10 millis")
-      return os
-    })
-  ),
-  encode: SchemaGetter.passthrough()
-}))
+const AsyncString = Schema.String.pipe(
+  Schema.decode({
+    decode: new SchemaGetter.Getter((os: Option.Option<string>) =>
+      Effect.gen(function* () {
+        yield* Effect.sleep("10 millis")
+        return os
+      })
+    ),
+    encode: SchemaGetter.passthrough()
+  })
+)
 
 const AsyncNonEmptyString = AsyncString.check(Schema.isNonEmpty())
 
@@ -154,15 +148,17 @@ describe("toStandardSchemaV1", () => {
     class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
 
     it("sync decoding should throw", () => {
-      const DepString = Schema.Number.pipe(Schema.decode({
-        decode: SchemaGetter.onSome((n) =>
-          Effect.gen(function*() {
-            const magicNumber = yield* MagicNumber
-            return Option.some(n * magicNumber)
-          })
-        ),
-        encode: SchemaGetter.passthrough()
-      }))
+      const DepString = Schema.Number.pipe(
+        Schema.decode({
+          decode: SchemaGetter.onSome((n) =>
+            Effect.gen(function* () {
+              const magicNumber = yield* MagicNumber
+              return Option.some(n * magicNumber)
+            })
+          ),
+          encode: SchemaGetter.passthrough()
+        })
+      )
 
       const schema = DepString
       const standardSchema = Schema.toStandardSchemaV1(schema as any)
@@ -174,16 +170,18 @@ describe("toStandardSchemaV1", () => {
     })
 
     it("async decoding should throw", () => {
-      const DepString = Schema.Number.pipe(Schema.decode({
-        decode: SchemaGetter.onSome((n) =>
-          Effect.gen(function*() {
-            const magicNumber = yield* MagicNumber
-            yield* Effect.sleep("10 millis")
-            return Option.some(n * magicNumber)
-          })
-        ),
-        encode: SchemaGetter.passthrough()
-      }))
+      const DepString = Schema.Number.pipe(
+        Schema.decode({
+          decode: SchemaGetter.onSome((n) =>
+            Effect.gen(function* () {
+              const magicNumber = yield* MagicNumber
+              yield* Effect.sleep("10 millis")
+              return Option.some(n * magicNumber)
+            })
+          ),
+          encode: SchemaGetter.passthrough()
+        })
+      )
 
       const schema = DepString
       const standardSchema = Schema.toStandardSchemaV1(schema as any)
@@ -253,13 +251,16 @@ describe("toStandardSchemaV1", () => {
       })
 
       const standardSchema = Schema.toStandardSchemaV1(schema)
-      expectSyncFailure(standardSchema, { tags: ["a", ""] }, [{
-        message: `Expected a value with a length of at least 1, got ""`,
-        path: ["tags", 1]
-      }, {
-        message: `Expected a value with a length of at least 3, got ["a",""]`,
-        path: ["tags"]
-      }])
+      expectSyncFailure(standardSchema, { tags: ["a", ""] }, [
+        {
+          message: `Expected a value with a length of at least 1, got ""`,
+          path: ["tags", 1]
+        },
+        {
+          message: `Expected a value with a length of at least 3, got ["a",""]`,
+          path: ["tags"]
+        }
+      ])
     })
   })
 
@@ -417,31 +418,35 @@ describe("toStandardSchemaV1", () => {
 
     describe("Tuple", () => {
       it("messageMissingKey", () => {
-        const schema = Schema.Tuple([
-          Schema.String.annotateKey({ messageMissingKey: "Custom message" })
-        ])
+        const schema = Schema.Tuple([Schema.String.annotateKey({ messageMissingKey: "Custom message" })])
         const standardSchema = Schema.toStandardSchemaV1(schema)
-        expectSyncFailure(standardSchema, [], [
-          {
-            message: "Custom message",
-            path: [0]
-          }
-        ])
+        expectSyncFailure(
+          standardSchema,
+          [],
+          [
+            {
+              message: "Custom message",
+              path: [0]
+            }
+          ]
+        )
       })
 
       it("messageUnexpectedKey", () => {
-        const schema = Schema.Tuple([
-          Schema.String
-        ]).annotate({ messageUnexpectedKey: "Custom message" })
+        const schema = Schema.Tuple([Schema.String]).annotate({ messageUnexpectedKey: "Custom message" })
         const standardSchema = Schema.toStandardSchemaV1(schema, {
           parseOptions: { onExcessProperty: "error" }
         })
-        expectSyncFailure(standardSchema, ["a", "b"], [
-          {
-            message: "Custom message",
-            path: [1]
-          }
-        ])
+        expectSyncFailure(
+          standardSchema,
+          ["a", "b"],
+          [
+            {
+              message: "Custom message",
+              path: [1]
+            }
+          ]
+        )
       })
     })
 

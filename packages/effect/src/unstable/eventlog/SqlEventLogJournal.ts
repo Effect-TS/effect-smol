@@ -22,12 +22,8 @@ type RemoteBracket = readonly [ReadonlyArray<EventJournal.Entry>, ReadonlyArray<
 export const make = (options?: {
   readonly entryTable?: string
   readonly remotesTable?: string
-}): Effect.Effect<
-  EventJournal.EventJournal["Service"],
-  SqlError.SqlError,
-  SqlClient.SqlClient
-> =>
-  Effect.gen(function*() {
+}): Effect.Effect<EventJournal.EventJournal["Service"], SqlError.SqlError, SqlClient.SqlClient> =>
+  Effect.gen(function* () {
     const sql = (yield* SqlClient.SqlClient).withoutTransforms()
 
     const entryTable = options?.entryTable ?? "effect_event_journal"
@@ -128,10 +124,9 @@ export const make = (options?: {
 
     const pubsub = yield* PubSub.unbounded<EventJournal.Entry>()
 
-    const writeFromRemote = Effect.fnUntraced(function*(options: WriteFromRemoteOptions): Effect.fn.Return<
-      void,
-      EventJournal.EventJournalError | Schema.SchemaError | SqlError.SqlError
-    > {
+    const writeFromRemote = Effect.fnUntraced(function* (
+      options: WriteFromRemoteOptions
+    ): Effect.fn.Return<void, EventJournal.EventJournalError | Schema.SchemaError | SqlError.SqlError> {
       const entries = options.entries.map((remoteEntry) => remoteEntry.entry)
       const remoteRows = options.entries.map((remoteEntry) => ({
         remote_id: options.remoteId,
@@ -141,12 +136,10 @@ export const make = (options?: {
 
       const existingIds = new Set<string>()
       if (entries.length > 0) {
-        yield* sql<{ id: Uint8Array }>`SELECT id FROM ${entryTableSql} WHERE ${
-          sql.in(
-            "id",
-            entries.map((entry) => entry.id)
-          )
-        }`.pipe(
+        yield* sql<{ id: Uint8Array }>`SELECT id FROM ${entryTableSql} WHERE ${sql.in(
+          "id",
+          entries.map((entry) => entry.id)
+        )}`.pipe(
           Effect.tap((rows) => {
             for (const row of rows) {
               existingIds.add(Uuid.stringify(row.id))
@@ -175,10 +168,7 @@ export const make = (options?: {
                   primary_key = ${entry.primaryKey} AND
                   timestamp >= ${entry.createdAtMillis}
             ORDER BY timestamp ASC
-          `.pipe(
-            Effect.flatMap(decodeEntryRows),
-            Effect.map(toEntries)
-          )
+          `.pipe(Effect.flatMap(decodeEntryRows), Effect.map(toEntries))
           yield* options.effect({ entry, conflicts })
         }
       }
@@ -191,13 +181,16 @@ export const make = (options?: {
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "entries" }))
       ),
       write: Effect.fnUntraced(
-        function*({ effect, event, payload, primaryKey }) {
-          const entry = new EventJournal.Entry({
-            id: EventJournal.makeEntryIdUnsafe(),
-            event,
-            primaryKey,
-            payload
-          }, { disableValidation: true })
+        function* ({ effect, event, payload, primaryKey }) {
+          const entry = new EventJournal.Entry(
+            {
+              id: EventJournal.makeEntryIdUnsafe(),
+              event,
+              primaryKey,
+              payload
+            },
+            { disableValidation: true }
+          )
           yield* insertEntry(toEntryRow(entry))
           const value = yield* effect(entry)
           yield* PubSub.publish(pubsub, entry)
@@ -215,38 +208,34 @@ export const make = (options?: {
           )
         ),
       withRemoteUncommited: Effect.fnUntraced(
-        function*(remoteId, f) {
+        function* (remoteId, f) {
           const entries = yield* sql`
             SELECT *
             FROM ${entryTableSql}
             WHERE id NOT IN (SELECT entry_id FROM ${remotesTableSql} WHERE remote_id = ${remoteId})
             ORDER BY timestamp ASC
-          `.pipe(
-            Effect.flatMap(decodeEntryRows),
-            Effect.map(toEntries)
-          )
+          `.pipe(Effect.flatMap(decodeEntryRows), Effect.map(toEntries))
           return yield* f(entries)
         },
         sql.withTransaction,
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "withRemoteUncommited" }))
       ),
       nextRemoteSequence: (remoteId) =>
-        sql<{ max: number | null }>`SELECT MAX(sequence) AS max FROM ${remotesTableSql} WHERE remote_id = ${remoteId}`
-          .pipe(
-            Effect.map((rows) => {
-              const value = rows[0]?.max
-              if (value === null || value === undefined) return 0
-              return Number(value) + 1
-            }),
-            Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "nextRemoteSequence" }))
-          ),
+        sql<{
+          max: number | null
+        }>`SELECT MAX(sequence) AS max FROM ${remotesTableSql} WHERE remote_id = ${remoteId}`.pipe(
+          Effect.map((rows) => {
+            const value = rows[0]?.max
+            if (value === null || value === undefined) return 0
+            return Number(value) + 1
+          }),
+          Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "nextRemoteSequence" }))
+        ),
       changes: PubSub.subscribe(pubsub),
-      destroy: Effect.gen(function*() {
+      destroy: Effect.gen(function* () {
         yield* sql`DROP TABLE ${entryTableSql}`
         yield* sql`DROP TABLE ${remotesTableSql}`
-      }).pipe(
-        Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "destroy" }))
-      )
+      }).pipe(Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "destroy" })))
     })
   })
 
@@ -273,12 +262,15 @@ const EntryRowArray = Schema.Array(EntryRow)
 type EntryRow = Schema.Schema.Type<typeof EntryRow>
 
 const toEntry = (row: EntryRow): EventJournal.Entry =>
-  new EventJournal.Entry({
-    id: row.id,
-    event: row.event,
-    primaryKey: row.primary_key,
-    payload: row.payload
-  }, { disableValidation: true })
+  new EventJournal.Entry(
+    {
+      id: row.id,
+      event: row.event,
+      primaryKey: row.primary_key,
+      payload: row.payload
+    },
+    { disableValidation: true }
+  )
 
 const toEntryRow = (entry: EventJournal.Entry): EntryRow => ({
   id: entry.id,

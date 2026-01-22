@@ -34,9 +34,7 @@ export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, T
  * @since 4.0.0
  * @category models
  */
-export interface EventGroup<
-  out Events extends Event.Any = Event.Any
-> extends Pipeable {
+export interface EventGroup<out Events extends Event.Any = Event.Any> extends Pipeable {
   readonly _?: symbol
   readonly __type?: Events | undefined
   readonly [TypeId]: TypeId
@@ -82,15 +80,13 @@ export type AnyWithProps = EventGroup<Event.Any>
  * @since 4.0.0
  * @category models
  */
-export type ToService<A> = A extends EventGroup<infer _Events> ? Event.ToService<_Events>
-  : never
+export type ToService<A> = A extends EventGroup<infer _Events> ? Event.ToService<_Events> : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Events<Group> = Group extends EventGroup<infer _Events> ? _Events
-  : never
+export type Events<Group> = Group extends EventGroup<infer _Events> ? _Events : never
 
 /**
  * @since 4.0.0
@@ -104,9 +100,7 @@ export type ServicesClient<Group> = Event.ServicesClient<Events<Group>>
  */
 export type ServicesServer<Group> = Event.ServicesServer<Events<Group>>
 
-const makeProto = <
-  Events extends Event.Any
->(options: {
+const makeProto = <Events extends Event.Any>(options: {
   readonly events: Record.ReadonlyRecord<string, Events>
 }): EventGroup<Events> => {
   const EventGroupClass = (_: never) => {}
@@ -141,9 +135,8 @@ const makeProto = <
       this: EventGroup<Events>,
       error: Error
     ): EventGroup<Event.AddError<Events, Error>> {
-      const events = Record.map<string, Events, Event.AddError<Events, Error>>(
-        this.events,
-        (event) => Event.addError(event, error)
+      const events = Record.map<string, Events, Event.AddError<Events, Error>>(this.events, (event) =>
+        Event.addError(event, error)
       )
       return makeProto({ events })
     },

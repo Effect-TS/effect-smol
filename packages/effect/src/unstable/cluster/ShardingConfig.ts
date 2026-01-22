@@ -18,110 +18,113 @@ import { RunnerAddress } from "./RunnerAddress.ts"
  * @since 4.0.0
  * @category models
  */
-export class ShardingConfig extends ServiceMap.Service<ShardingConfig, {
-  /**
-   * The address for the current runner that other runners can use to
-   * communicate with it.
-   *
-   * If `None`, the runner is not part of the cluster and will be in a client-only
-   * mode.
-   */
-  readonly runnerAddress: RunnerAddress | undefined
-  /**
-   * The listen address for the current runner.
-   *
-   * Defaults to the `runnerAddress`.
-   */
-  readonly runnerListenAddress: RunnerAddress | undefined
-  /**
-   * A number that determines how many shards this runner will be assigned
-   * relative to other runners.
-   *
-   * Defaults to `1`.
-   *
-   * A value of `2` means that this runner should be assigned twice as many
-   * shards as a runner with a weight of `1`.
-   */
-  readonly runnerShardWeight: number
-  /**
-   * The shard groups that are assigned to this runner.
-   *
-   * Defaults to `["default"]`.
-   */
-  readonly shardGroups: ReadonlyArray<string>
-  /**
-   * The number of shards to allocate per shard group.
-   *
-   * **Note**: this value should be consistent across all runners.
-   */
-  readonly shardsPerGroup: number
-  /**
-   * Shard lock refresh interval.
-   */
-  readonly shardLockRefreshInterval: DurationInput
-  /**
-   * Shard lock expiration duration.
-   */
-  readonly shardLockExpiration: DurationInput
-  /**
-   * Disable the use of advisory locks for shard locking.
-   */
-  readonly shardLockDisableAdvisory: boolean
-  /**
-   * Start shutting down as soon as an Entity has started shutting down.
-   *
-   * Defaults to `true`.
-   */
-  readonly preemptiveShutdown: boolean
-  /**
-   * The default capacity of the mailbox for entities.
-   */
-  readonly entityMailboxCapacity: number | "unbounded"
-  /**
-   * The maximum duration of inactivity (i.e. without receiving a message)
-   * after which an entity will be interrupted.
-   */
-  readonly entityMaxIdleTime: DurationInput
-  /**
-   * If an entity does not register itself within this time after a message is
-   * sent to it, the message will be marked as failed.
-   *
-   * Defaults to 1 minute.
-   */
-  readonly entityRegistrationTimeout: DurationInput
-  /**
-   * The maximum duration of time to wait for an entity to terminate.
-   *
-   * By default this is set to 15 seconds to stay within kubernetes defaults.
-   */
-  readonly entityTerminationTimeout: DurationInput
-  /**
-   * The interval at which to poll for unprocessed messages from storage.
-   */
-  readonly entityMessagePollInterval: DurationInput
-  /**
-   * The interval at which to poll for client replies from storage.
-   */
-  readonly entityReplyPollInterval: DurationInput
-  /**
-   * The interval at which to poll for new runners and refresh shard
-   * assignments.
-   */
-  readonly refreshAssignmentsInterval: DurationInput
-  /**
-   * The interval to retry a send if EntityNotAssignedToRunner is returned.
-   */
-  readonly sendRetryInterval: DurationInput
-  /**
-   * The interval at which to check for unhealthy runners and report them
-   */
-  readonly runnerHealthCheckInterval: DurationInput
-  /**
-   * Simulate serialization and deserialization to remote runners for local
-   * entities.
-   */
-  readonly simulateRemoteSerialization: boolean
-}>()("effect/cluster/ShardingConfig") {}
+export class ShardingConfig extends ServiceMap.Service<
+  ShardingConfig,
+  {
+    /**
+     * The address for the current runner that other runners can use to
+     * communicate with it.
+     *
+     * If `None`, the runner is not part of the cluster and will be in a client-only
+     * mode.
+     */
+    readonly runnerAddress: RunnerAddress | undefined
+    /**
+     * The listen address for the current runner.
+     *
+     * Defaults to the `runnerAddress`.
+     */
+    readonly runnerListenAddress: RunnerAddress | undefined
+    /**
+     * A number that determines how many shards this runner will be assigned
+     * relative to other runners.
+     *
+     * Defaults to `1`.
+     *
+     * A value of `2` means that this runner should be assigned twice as many
+     * shards as a runner with a weight of `1`.
+     */
+    readonly runnerShardWeight: number
+    /**
+     * The shard groups that are assigned to this runner.
+     *
+     * Defaults to `["default"]`.
+     */
+    readonly shardGroups: ReadonlyArray<string>
+    /**
+     * The number of shards to allocate per shard group.
+     *
+     * **Note**: this value should be consistent across all runners.
+     */
+    readonly shardsPerGroup: number
+    /**
+     * Shard lock refresh interval.
+     */
+    readonly shardLockRefreshInterval: DurationInput
+    /**
+     * Shard lock expiration duration.
+     */
+    readonly shardLockExpiration: DurationInput
+    /**
+     * Disable the use of advisory locks for shard locking.
+     */
+    readonly shardLockDisableAdvisory: boolean
+    /**
+     * Start shutting down as soon as an Entity has started shutting down.
+     *
+     * Defaults to `true`.
+     */
+    readonly preemptiveShutdown: boolean
+    /**
+     * The default capacity of the mailbox for entities.
+     */
+    readonly entityMailboxCapacity: number | "unbounded"
+    /**
+     * The maximum duration of inactivity (i.e. without receiving a message)
+     * after which an entity will be interrupted.
+     */
+    readonly entityMaxIdleTime: DurationInput
+    /**
+     * If an entity does not register itself within this time after a message is
+     * sent to it, the message will be marked as failed.
+     *
+     * Defaults to 1 minute.
+     */
+    readonly entityRegistrationTimeout: DurationInput
+    /**
+     * The maximum duration of time to wait for an entity to terminate.
+     *
+     * By default this is set to 15 seconds to stay within kubernetes defaults.
+     */
+    readonly entityTerminationTimeout: DurationInput
+    /**
+     * The interval at which to poll for unprocessed messages from storage.
+     */
+    readonly entityMessagePollInterval: DurationInput
+    /**
+     * The interval at which to poll for client replies from storage.
+     */
+    readonly entityReplyPollInterval: DurationInput
+    /**
+     * The interval at which to poll for new runners and refresh shard
+     * assignments.
+     */
+    readonly refreshAssignmentsInterval: DurationInput
+    /**
+     * The interval to retry a send if EntityNotAssignedToRunner is returned.
+     */
+    readonly sendRetryInterval: DurationInput
+    /**
+     * The interval at which to check for unhealthy runners and report them
+     */
+    readonly runnerHealthCheckInterval: DurationInput
+    /**
+     * Simulate serialization and deserialization to remote runners for local
+     * entities.
+     */
+    readonly simulateRemoteSerialization: boolean
+  }
+>()("effect/cluster/ShardingConfig") {}
 
 const defaultRunnerAddress = RunnerAddress.makeUnsafe({ host: "localhost", port: 34431 })
 
@@ -178,7 +181,11 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
       Config.withDefault(() => defaultRunnerAddress.port)
       // Config.withDescription("The port used for inter-runner communication.")
     )
-  }).pipe(Config.map((options) => RunnerAddress.makeUnsafe(options)), Config.option, Config.map(Option.getOrUndefined)),
+  }).pipe(
+    Config.map((options) => RunnerAddress.makeUnsafe(options)),
+    Config.option,
+    Config.map(Option.getOrUndefined)
+  ),
   runnerListenAddress: Config.all({
     host: Config.string("listenHost"),
     // Config.withDescription("The host to listen on.")
@@ -186,7 +193,11 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
       Config.withDefault(() => defaultRunnerAddress.port)
       // Config.withDescription("The port to listen on.")
     )
-  }).pipe(Config.map((options) => RunnerAddress.makeUnsafe(options)), Config.option, Config.map(Option.getOrUndefined)),
+  }).pipe(
+    Config.map((options) => RunnerAddress.makeUnsafe(options)),
+    Config.option,
+    Config.map(Option.getOrUndefined)
+  ),
   runnerShardWeight: Config.int("runnerShardWeight").pipe(
     Config.withDefault(() => defaults.runnerShardWeight)
     // Config.withDescription("A number that determines how many shards this runner will be assigned relative to other runners.")
@@ -264,23 +275,19 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
  * @since 4.0.0
  * @category Config
  */
-export const configFromEnv = config.asEffect().pipe(
-  Effect.provideService(
-    ConfigProvider.ConfigProvider,
-    ConfigProvider.fromEnv().pipe(
-      ConfigProvider.constantCase
-    )
+export const configFromEnv = config
+  .asEffect()
+  .pipe(
+    Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv().pipe(ConfigProvider.constantCase))
   )
-)
 
 /**
  * @since 4.0.0
  * @category Layers
  */
-export const layerFromEnv = (options?: Partial<ShardingConfig["Service"]> | undefined): Layer.Layer<
-  ShardingConfig,
-  Config.ConfigError
-> =>
+export const layerFromEnv = (
+  options?: Partial<ShardingConfig["Service"]> | undefined
+): Layer.Layer<ShardingConfig, Config.ConfigError> =>
   Layer.effect(ShardingConfig)(
     options ? Effect.map(configFromEnv, (config) => ({ ...config, ...options })) : configFromEnv
   )

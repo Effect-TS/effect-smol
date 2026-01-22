@@ -39,9 +39,7 @@ describe("Struct", () => {
     expect<Struct.Mutable<ReadonlyArray<unknown>>>().type.toBe<Array<unknown>>()
     expect<Struct.Mutable<readonly [string, number]>>().type.toBe<[string, number]>()
     expect<Struct.Mutable<{ readonly a: string; readonly b: number }>>().type.toBe<{ a: string; b: number }>()
-    expect<Struct.Mutable<{ readonly a: string } | { readonly b: number }>>().type.toBe<
-      { a: string } | { b: number }
-    >()
+    expect<Struct.Mutable<{ readonly a: string } | { readonly b: number }>>().type.toBe<{ a: string } | { b: number }>()
     interface Category {
       readonly name: string
       readonly subcategories: ReadonlyArray<Category>
@@ -80,12 +78,8 @@ describe("Struct", () => {
   })
 
   it("keys", () => {
-    expect(Struct.keys(hole<{ a: string; b: number; [aSym]: boolean }>())).type.toBe<
-      Array<"a" | "b">
-    >()
-    expect(pipe(hole<{ a: string; b: number; [aSym]: boolean }>(), Struct.keys)).type.toBe<
-      Array<"a" | "b">
-    >()
+    expect(Struct.keys(hole<{ a: string; b: number; [aSym]: boolean }>())).type.toBe<Array<"a" | "b">>()
+    expect(pipe(hole<{ a: string; b: number; [aSym]: boolean }>(), Struct.keys)).type.toBe<Array<"a" | "b">>()
   })
 
   describe("pick", () => {
@@ -148,10 +142,7 @@ describe("Struct", () => {
 
   describe("evolve", () => {
     it("errors when not providing a well-typed transformation function for a key", () => {
-      expect(Struct.evolve).type.not.toBeCallableWith(
-        { a: "a", b: 1 },
-        { a: (n: number) => n }
-      )
+      expect(Struct.evolve).type.not.toBeCallableWith({ a: "a", b: 1 }, { a: (n: number) => n })
       when(pipe).isCalledWith(
         { a: "a", b: 1 },
         expect(Struct.evolve).type.not.toBeCallableWith({ a: (n: number) => n })
@@ -159,57 +150,50 @@ describe("Struct", () => {
     })
 
     it("partial required fields", () => {
-      expect(Struct.evolve(stringKeys, {
-        a: (s) => {
-          expect(s).type.toBe<string>()
-          return s.length
-        }
-      })).type.toBe<{ a: number; b: number; c: boolean }>()
-      expect(pipe(
-        stringKeys,
-        Struct.evolve({
+      expect(
+        Struct.evolve(stringKeys, {
           a: (s) => {
             expect(s).type.toBe<string>()
             return s.length
           }
         })
-      )).type.toBe<{ a: number; b: number; c: boolean }>()
+      ).type.toBe<{ a: number; b: number; c: boolean }>()
+      expect(
+        pipe(
+          stringKeys,
+          Struct.evolve({
+            a: (s) => {
+              expect(s).type.toBe<string>()
+              return s.length
+            }
+          })
+        )
+      ).type.toBe<{ a: number; b: number; c: boolean }>()
 
-      expect(Struct.evolve(symbolKeys, {
-        [aSym]: (s) => {
-          expect(s).type.toBe<string>()
-          return s.length
-        }
-      })).type.toBe<{ [aSym]: number; [bSym]: number; [cSym]: boolean }>()
-      expect(pipe(
-        symbolKeys,
-        Struct.evolve({
+      expect(
+        Struct.evolve(symbolKeys, {
           [aSym]: (s) => {
             expect(s).type.toBe<string>()
             return s.length
           }
         })
-      )).type.toBe<{ [aSym]: number; [bSym]: number; [cSym]: boolean }>()
+      ).type.toBe<{ [aSym]: number; [bSym]: number; [cSym]: boolean }>()
+      expect(
+        pipe(
+          symbolKeys,
+          Struct.evolve({
+            [aSym]: (s) => {
+              expect(s).type.toBe<string>()
+              return s.length
+            }
+          })
+        )
+      ).type.toBe<{ [aSym]: number; [bSym]: number; [cSym]: boolean }>()
     })
 
     it("all required fields", () => {
-      expect(Struct.evolve(stringKeys, {
-        a: (s) => {
-          expect(s).type.toBe<string>()
-          return s.length
-        },
-        b: (n) => {
-          expect(n).type.toBe<number>()
-          return n * 2
-        },
-        c: (b) => {
-          expect(b).type.toBe<boolean>()
-          return !b
-        }
-      })).type.toBe<{ a: number; b: number; c: boolean }>()
-      expect(pipe(
-        stringKeys,
-        Struct.evolve({
+      expect(
+        Struct.evolve(stringKeys, {
           a: (s) => {
             expect(s).type.toBe<string>()
             return s.length
@@ -223,25 +207,29 @@ describe("Struct", () => {
             return !b
           }
         })
-      )).type.toBe<{ a: number; b: number; c: boolean }>()
+      ).type.toBe<{ a: number; b: number; c: boolean }>()
+      expect(
+        pipe(
+          stringKeys,
+          Struct.evolve({
+            a: (s) => {
+              expect(s).type.toBe<string>()
+              return s.length
+            },
+            b: (n) => {
+              expect(n).type.toBe<number>()
+              return n * 2
+            },
+            c: (b) => {
+              expect(b).type.toBe<boolean>()
+              return !b
+            }
+          })
+        )
+      ).type.toBe<{ a: number; b: number; c: boolean }>()
 
-      expect(Struct.evolve(symbolKeys, {
-        [aSym]: (s) => {
-          expect(s).type.toBe<string>()
-          return s.length
-        },
-        [bSym]: (n) => {
-          expect(n).type.toBe<number>()
-          return n * 2
-        },
-        [cSym]: (b) => {
-          expect(b).type.toBe<boolean>()
-          return !b
-        }
-      })).type.toBe<{ [aSym]: number; [bSym]: number; [cSym]: boolean }>()
-      expect(pipe(
-        symbolKeys,
-        Struct.evolve({
+      expect(
+        Struct.evolve(symbolKeys, {
           [aSym]: (s) => {
             expect(s).type.toBe<string>()
             return s.length
@@ -255,43 +243,74 @@ describe("Struct", () => {
             return !b
           }
         })
-      )).type.toBe<{ [aSym]: number; [bSym]: number; [cSym]: boolean }>()
+      ).type.toBe<{ [aSym]: number; [bSym]: number; [cSym]: boolean }>()
+      expect(
+        pipe(
+          symbolKeys,
+          Struct.evolve({
+            [aSym]: (s) => {
+              expect(s).type.toBe<string>()
+              return s.length
+            },
+            [bSym]: (n) => {
+              expect(n).type.toBe<number>()
+              return n * 2
+            },
+            [cSym]: (b) => {
+              expect(b).type.toBe<boolean>()
+              return !b
+            }
+          })
+        )
+      ).type.toBe<{ [aSym]: number; [bSym]: number; [cSym]: boolean }>()
     })
   })
 
   it("evolveKeys", () => {
-    expect(Struct.evolveKeys(stringKeys, {
-      a: (k) => Str.toUpperCase(k)
-    })).type.toBe<{ A: string; b: number; c: boolean }>()
-    expect(pipe(
-      stringKeys,
-      Struct.evolveKeys({
+    expect(
+      Struct.evolveKeys(stringKeys, {
         a: (k) => Str.toUpperCase(k)
       })
-    )).type.toBe<{ A: string; b: number; c: boolean }>()
+    ).type.toBe<{ A: string; b: number; c: boolean }>()
+    expect(
+      pipe(
+        stringKeys,
+        Struct.evolveKeys({
+          a: (k) => Str.toUpperCase(k)
+        })
+      )
+    ).type.toBe<{ A: string; b: number; c: boolean }>()
   })
 
   it("evolveEntries", () => {
-    expect(Struct.evolveEntries(stringKeys, {
-      a: (k, v) => [Str.toUpperCase(k), v.length]
-    })).type.toBe<{ A: number; b: number; c: boolean }>()
-    expect(pipe(
-      stringKeys,
-      Struct.evolveEntries({
+    expect(
+      Struct.evolveEntries(stringKeys, {
         a: (k, v) => [Str.toUpperCase(k), v.length]
       })
-    )).type.toBe<{ A: number; b: number; c: boolean }>()
+    ).type.toBe<{ A: number; b: number; c: boolean }>()
+    expect(
+      pipe(
+        stringKeys,
+        Struct.evolveEntries({
+          a: (k, v) => [Str.toUpperCase(k), v.length]
+        })
+      )
+    ).type.toBe<{ A: number; b: number; c: boolean }>()
 
     const readonlyStringKeys = hole<{ a: string; b: number; c: boolean }>()
-    expect(Struct.evolveEntries(readonlyStringKeys, {
-      a: (k, v) => [Str.toUpperCase(k), v.length]
-    })).type.toBe<{ A: number; b: number; c: boolean }>()
-    expect(pipe(
-      readonlyStringKeys,
-      Struct.evolveEntries({
+    expect(
+      Struct.evolveEntries(readonlyStringKeys, {
         a: (k, v) => [Str.toUpperCase(k), v.length]
       })
-    )).type.toBe<{ A: number; b: number; c: boolean }>()
+    ).type.toBe<{ A: number; b: number; c: boolean }>()
+    expect(
+      pipe(
+        readonlyStringKeys,
+        Struct.evolveEntries({
+          a: (k, v) => [Str.toUpperCase(k), v.length]
+        })
+      )
+    ).type.toBe<{ A: number; b: number; c: boolean }>()
   })
 
   it("map", () => {
@@ -328,22 +347,30 @@ describe("Struct", () => {
   })
 
   it("renameKeys", () => {
-    expect(pipe({ a: "a", b: 1, c: true }, Struct.renameKeys({ a: "A", b: "B" }))).type.toBe<
-      { A: string; B: number; c: boolean }
-    >()
-    expect(Struct.renameKeys({ a: "a", b: 1, c: true }, { a: "A", b: "B" })).type.toBe<
-      { A: string; B: number; c: boolean }
-    >()
+    expect(pipe({ a: "a", b: 1, c: true }, Struct.renameKeys({ a: "A", b: "B" }))).type.toBe<{
+      A: string
+      B: number
+      c: boolean
+    }>()
+    expect(Struct.renameKeys({ a: "a", b: 1, c: true }, { a: "A", b: "B" })).type.toBe<{
+      A: string
+      B: number
+      c: boolean
+    }>()
   })
 
   it("makeReducer", () => {
-    expect(Struct.makeReducer({
-      n: Number.ReducerSum,
-      s: Str.ReducerConcat
-    })).type.toBe<Reducer.Reducer<{ n: number; s: string }>>()
-    expect(Struct.makeReducer<{ readonly n: number; readonly s: string }>({
-      n: Number.ReducerSum,
-      s: Str.ReducerConcat
-    })).type.toBe<Reducer.Reducer<{ readonly n: number; readonly s: string }>>()
+    expect(
+      Struct.makeReducer({
+        n: Number.ReducerSum,
+        s: Str.ReducerConcat
+      })
+    ).type.toBe<Reducer.Reducer<{ n: number; s: string }>>()
+    expect(
+      Struct.makeReducer<{ readonly n: number; readonly s: string }>({
+        n: Number.ReducerSum,
+        s: Str.ReducerConcat
+      })
+    ).type.toBe<Reducer.Reducer<{ readonly n: number; readonly s: string }>>()
   })
 })

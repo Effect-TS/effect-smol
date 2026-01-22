@@ -199,43 +199,27 @@ describe("Arbitrary generation", () => {
   })
 
   it("Union", () => {
-    verifyGeneration(
-      Schema.Union([Schema.String, Schema.Number])
-    )
+    verifyGeneration(Schema.Union([Schema.String, Schema.Number]))
   })
 
   describe("Tuple", () => {
     it("empty", () => {
-      verifyGeneration(
-        Schema.Tuple([])
-      )
+      verifyGeneration(Schema.Tuple([]))
     })
 
     it("required element", () => {
-      verifyGeneration(
-        Schema.Tuple([Schema.String])
-      )
-      verifyGeneration(
-        Schema.Tuple([Schema.String, Schema.Number])
-      )
+      verifyGeneration(Schema.Tuple([Schema.String]))
+      verifyGeneration(Schema.Tuple([Schema.String, Schema.Number]))
     })
 
     it("optionalKey element", () => {
-      verifyGeneration(
-        Schema.Tuple([Schema.optionalKey(Schema.Number)])
-      )
-      verifyGeneration(
-        Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])
-      )
+      verifyGeneration(Schema.Tuple([Schema.optionalKey(Schema.Number)]))
+      verifyGeneration(Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)]))
     })
 
     it("optional element", () => {
-      verifyGeneration(
-        Schema.Tuple([Schema.optional(Schema.Number)])
-      )
-      verifyGeneration(
-        Schema.Tuple([Schema.String, Schema.optional(Schema.Number)])
-      )
+      verifyGeneration(Schema.Tuple([Schema.optional(Schema.Number)]))
+      verifyGeneration(Schema.Tuple([Schema.String, Schema.optional(Schema.Number)]))
     })
   })
 
@@ -246,12 +230,8 @@ describe("Arbitrary generation", () => {
   })
 
   it("TupleWithRest", () => {
-    verifyGeneration(
-      Schema.TupleWithRest(Schema.Tuple([Schema.Boolean]), [Schema.Number, Schema.String])
-    )
-    verifyGeneration(
-      Schema.TupleWithRest(Schema.Tuple([]), [Schema.Number, Schema.String])
-    )
+    verifyGeneration(Schema.TupleWithRest(Schema.Tuple([Schema.Boolean]), [Schema.Number, Schema.String]))
+    verifyGeneration(Schema.TupleWithRest(Schema.Tuple([]), [Schema.Number, Schema.String]))
     verifyGeneration(
       Schema.TupleWithRest(Schema.Tuple([Schema.optionalKey(Schema.Boolean)]), [Schema.Number]).check(
         Schema.isMinLength(3)
@@ -265,31 +245,41 @@ describe("Arbitrary generation", () => {
     })
 
     it("required fields", () => {
-      verifyGeneration(Schema.Struct({
-        a: Schema.String
-      }))
-      verifyGeneration(Schema.Struct({
-        a: Schema.String,
-        b: Schema.Number
-      }))
+      verifyGeneration(
+        Schema.Struct({
+          a: Schema.String
+        })
+      )
+      verifyGeneration(
+        Schema.Struct({
+          a: Schema.String,
+          b: Schema.Number
+        })
+      )
     })
 
     it("required field with undefined", () => {
-      verifyGeneration(Schema.Struct({
-        a: Schema.UndefinedOr(Schema.String)
-      }))
+      verifyGeneration(
+        Schema.Struct({
+          a: Schema.UndefinedOr(Schema.String)
+        })
+      )
     })
 
     it("optionalKey field", () => {
-      verifyGeneration(Schema.Struct({
-        a: Schema.optionalKey(Schema.String)
-      }))
+      verifyGeneration(
+        Schema.Struct({
+          a: Schema.optionalKey(Schema.String)
+        })
+      )
     })
 
     it("optional field", () => {
-      verifyGeneration(Schema.Struct({
-        a: Schema.optional(Schema.String)
-      }))
+      verifyGeneration(
+        Schema.Struct({
+          a: Schema.optional(Schema.String)
+        })
+      )
     })
   })
 
@@ -304,14 +294,12 @@ describe("Arbitrary generation", () => {
   })
 
   it("StructWithRest", () => {
-    verifyGeneration(Schema.StructWithRest(
-      Schema.Struct({ a: Schema.Number }),
-      [Schema.Record(Schema.String, Schema.Number)]
-    ))
-    verifyGeneration(Schema.StructWithRest(
-      Schema.Struct({ a: Schema.Number }),
-      [Schema.Record(Schema.Symbol, Schema.Number)]
-    ))
+    verifyGeneration(
+      Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [Schema.Record(Schema.String, Schema.Number)])
+    )
+    verifyGeneration(
+      Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [Schema.Record(Schema.Symbol, Schema.Number)])
+    )
   })
 
   describe("Class", () => {
@@ -327,10 +315,7 @@ describe("Arbitrary generation", () => {
   describe("suspend", () => {
     it("Tuple", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
-      const schema = Schema.Tuple([
-        Schema.Number,
-        Schema.NullOr(Rec)
-      ])
+      const schema = Schema.Tuple([Schema.Number, Schema.NullOr(Rec)])
       verifyGeneration(schema)
     })
 
@@ -443,9 +428,7 @@ describe("Arbitrary generation", () => {
 
     it("isMinLength(2) & isMaxLength(4)", () => {
       verifyGeneration(Schema.String.pipe(Schema.check(Schema.isMinLength(2), Schema.isMaxLength(4))))
-      verifyGeneration(
-        Schema.Array(Schema.String).pipe(Schema.check(Schema.isMinLength(2), Schema.isMaxLength(4)))
-      )
+      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Schema.isMinLength(2), Schema.isMaxLength(4))))
     })
 
     it("isLength(2)", () => {
@@ -454,15 +437,11 @@ describe("Arbitrary generation", () => {
     })
 
     it("isMinProperties(2)", () => {
-      verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Schema.isMinProperties(2))
-      )
+      verifyGeneration(Schema.Record(Schema.String, Schema.Number).check(Schema.isMinProperties(2)))
     })
 
     it("isMaxProperties(2)", () => {
-      verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Schema.isMaxProperties(2))
-      )
+      verifyGeneration(Schema.Record(Schema.String, Schema.Number).check(Schema.isMaxProperties(2)))
     })
 
     it("isMinProperties(2) & isMaxProperties(4)", () => {
@@ -472,9 +451,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isPropertiesLength(2)", () => {
-      verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Schema.isPropertiesLength(2))
-      )
+      verifyGeneration(Schema.Record(Schema.String, Schema.Number).check(Schema.isPropertiesLength(2)))
     })
 
     it("isBetween(1, 100)", () => {
@@ -502,9 +479,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isPattern + isPattern", () => {
-      verifyGeneration(
-        Schema.String.check(Schema.isPattern(/^[^A-Z]*$/), Schema.isPattern(/^0x[0-9a-f]{40}$/))
-      )
+      verifyGeneration(Schema.String.check(Schema.isPattern(/^[^A-Z]*$/), Schema.isPattern(/^0x[0-9a-f]{40}$/)))
     })
 
     it("isGreaterThanOrEqualToDate", () => {
@@ -588,27 +563,19 @@ describe("Arbitrary generation", () => {
     })
 
     it("isMinSize(2)", () => {
-      verifyGeneration(
-        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isMinSize(2))
-      )
+      verifyGeneration(Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isMinSize(2)))
     })
 
     it("isMaxSize(4)", () => {
-      verifyGeneration(
-        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isMaxSize(4))
-      )
+      verifyGeneration(Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isMaxSize(4)))
     })
 
     it("isMinSize(2) & isMaxSize(4)", () => {
-      verifyGeneration(
-        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isMinSize(2), Schema.isMaxSize(4))
-      )
+      verifyGeneration(Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isMinSize(2), Schema.isMaxSize(4)))
     })
 
     it("isSize(2)", () => {
-      verifyGeneration(
-        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isSize(2))
-      )
+      verifyGeneration(Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isSize(2)))
     })
   })
 

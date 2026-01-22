@@ -10,9 +10,7 @@ interface RuleOptions {
 const extensions = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]
 
 function getModuleName(specifier: ESTree.ImportSpecifier): string {
-  return specifier.imported.type === "Identifier"
-    ? specifier.imported.name
-    : specifier.imported.value
+  return specifier.imported.type === "Identifier" ? specifier.imported.name : specifier.imported.value
 }
 
 function isRelativeImport(source: string): boolean {
@@ -120,8 +118,7 @@ const rule: CreateRule = {
         for (const specifier of namespaceSpecifiers) {
           context.report({
             node: specifier,
-            message:
-              `Do not use namespace import from barrel file "${importSource}", import from specific modules instead`
+            message: `Do not use namespace import from barrel file "${importSource}", import from specific modules instead`
           })
         }
 

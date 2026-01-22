@@ -224,7 +224,10 @@ export function toSchemaDraft07(schema: JsonSchema): JsonSchema {
   return rewrite(schema)
 
   function rewrite(node: unknown): JsonSchema {
-    return walk(rewrite_refs(node, (ref) => ref.replace(RE_DEFS, "#/definitions")), true) as JsonSchema
+    return walk(
+      rewrite_refs(node, (ref) => ref.replace(RE_DEFS, "#/definitions")),
+      true
+    ) as JsonSchema
   }
 
   function walk(node: unknown, _isRoot: boolean): unknown {
@@ -350,10 +353,10 @@ export function toMultiDocumentOpenApi3_1(multiDocument: MultiDocument<"draft-20
   return {
     dialect: "openapi-3.1",
     schemas: Arr.map(multiDocument.schemas, rewrite),
-    definitions: Rec.mapEntries(
-      multiDocument.definitions,
-      (definition, key) => [keyMap.get(key) ?? key, rewrite(definition)]
-    )
+    definitions: Rec.mapEntries(multiDocument.definitions, (definition, key) => [
+      keyMap.get(key) ?? key,
+      rewrite(definition)
+    ])
   }
 }
 

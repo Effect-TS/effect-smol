@@ -95,13 +95,15 @@ export const getAndUpdateEffect: {
 } = dual(
   2,
   <A, R, E>(self: SynchronizedRef<A>, f: (a: A) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-    self.semaphore.withPermit(Effect.suspend(() => {
-      const value = getUnsafe(self)
-      return Effect.map(f(value), (newValue) => {
-        self.backing.ref.current = newValue
-        return value
+    self.semaphore.withPermit(
+      Effect.suspend(() => {
+        const value = getUnsafe(self)
+        return Effect.map(f(value), (newValue) => {
+          self.backing.ref.current = newValue
+          return value
+        })
       })
-    }))
+    )
 )
 
 /**
@@ -127,16 +129,18 @@ export const getAndUpdateSomeEffect: {
 } = dual(
   2,
   <A, R, E>(self: SynchronizedRef<A>, pf: (a: A) => Effect.Effect<Option.Option<A>, E, R>): Effect.Effect<A, E, R> =>
-    self.semaphore.withPermit(Effect.suspend(() => {
-      const value = getUnsafe(self)
-      return Effect.flatMap(pf(value), (option) => {
-        if (Option.isNone(option)) {
+    self.semaphore.withPermit(
+      Effect.suspend(() => {
+        const value = getUnsafe(self)
+        return Effect.flatMap(pf(value), (option) => {
+          if (Option.isNone(option)) {
+            return Effect.succeed(value)
+          }
+          self.backing.ref.current = option.value
           return Effect.succeed(value)
-        }
-        self.backing.ref.current = option.value
-        return Effect.succeed(value)
+        })
       })
-    }))
+    )
 )
 
 /**
@@ -162,13 +166,15 @@ export const modifyEffect: {
 } = dual(
   2,
   <A, B, E, R>(self: SynchronizedRef<A>, f: (a: A) => Effect.Effect<readonly [B, A], E, R>): Effect.Effect<B, E, R> =>
-    self.semaphore.withPermit(Effect.suspend(() => {
-      const value = getUnsafe(self)
-      return Effect.map(f(value), ([b, a]) => {
-        self.backing.ref.current = a
-        return b
+    self.semaphore.withPermit(
+      Effect.suspend(() => {
+        const value = getUnsafe(self)
+        return Effect.map(f(value), ([b, a]) => {
+          self.backing.ref.current = a
+          return b
+        })
       })
-    }))
+    )
 )
 
 /**
@@ -176,19 +182,12 @@ export const modifyEffect: {
  * @category utils
  */
 export const modifySome: {
-  <B, A>(
-    pf: (a: A) => readonly [B, Option.Option<A>]
-  ): (self: SynchronizedRef<A>) => Effect.Effect<B>
-  <A, B>(
-    self: SynchronizedRef<A>,
-    pf: (a: A) => readonly [B, Option.Option<A>]
-  ): Effect.Effect<B>
+  <B, A>(pf: (a: A) => readonly [B, Option.Option<A>]): (self: SynchronizedRef<A>) => Effect.Effect<B>
+  <A, B>(self: SynchronizedRef<A>, pf: (a: A) => readonly [B, Option.Option<A>]): Effect.Effect<B>
 } = dual(
   2,
-  <A, B>(
-    self: SynchronizedRef<A>,
-    pf: (a: A) => readonly [B, Option.Option<A>]
-  ): Effect.Effect<B> => self.semaphore.withPermit(Ref.modifySome(self.backing, pf))
+  <A, B>(self: SynchronizedRef<A>, pf: (a: A) => readonly [B, Option.Option<A>]): Effect.Effect<B> =>
+    self.semaphore.withPermit(Ref.modifySome(self.backing, pf))
 )
 
 /**
@@ -210,16 +209,18 @@ export const modifySomeEffect: {
     self: SynchronizedRef<A>,
     pf: (a: A) => Effect.Effect<readonly [B, Option.Option<A>], E, R>
   ): Effect.Effect<B, E, R> =>
-    self.semaphore.withPermit(Effect.suspend(() => {
-      const value = getUnsafe(self)
-      return Effect.flatMap(pf(value), ([b, maybeA]) => {
-        if (Option.isNone(maybeA)) {
+    self.semaphore.withPermit(
+      Effect.suspend(() => {
+        const value = getUnsafe(self)
+        return Effect.flatMap(pf(value), ([b, maybeA]) => {
+          if (Option.isNone(maybeA)) {
+            return Effect.succeed(b)
+          }
+          self.backing.ref.current = maybeA.value
           return Effect.succeed(b)
-        }
-        self.backing.ref.current = maybeA.value
-        return Effect.succeed(b)
+        })
       })
-    }))
+    )
 )
 
 /**
@@ -271,12 +272,14 @@ export const updateEffect: {
 } = dual(
   2,
   <A, R, E>(self: SynchronizedRef<A>, f: (a: A) => Effect.Effect<A, E, R>): Effect.Effect<void, E, R> =>
-    self.semaphore.withPermit(Effect.suspend(() => {
-      const value = getUnsafe(self)
-      return Effect.map(f(value), (newValue) => {
-        self.backing.ref.current = newValue
+    self.semaphore.withPermit(
+      Effect.suspend(() => {
+        const value = getUnsafe(self)
+        return Effect.map(f(value), (newValue) => {
+          self.backing.ref.current = newValue
+        })
       })
-    }))
+    )
 )
 
 /**
@@ -302,13 +305,15 @@ export const updateAndGetEffect: {
 } = dual(
   2,
   <A, R, E>(self: SynchronizedRef<A>, f: (a: A) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-    self.semaphore.withPermit(Effect.suspend(() => {
-      const value = getUnsafe(self)
-      return Effect.map(f(value), (newValue) => {
-        self.backing.ref.current = newValue
-        return newValue
+    self.semaphore.withPermit(
+      Effect.suspend(() => {
+        const value = getUnsafe(self)
+        return Effect.map(f(value), (newValue) => {
+          self.backing.ref.current = newValue
+          return newValue
+        })
       })
-    }))
+    )
 )
 
 /**
@@ -336,15 +341,17 @@ export const updateSomeEffect: {
 } = dual(
   2,
   <A, R, E>(self: SynchronizedRef<A>, pf: (a: A) => Effect.Effect<Option.Option<A>, E, R>): Effect.Effect<void, E, R> =>
-    self.semaphore.withPermit(Effect.suspend(() => {
-      const value = getUnsafe(self)
-      return Effect.map(pf(value), (option) => {
-        if (Option.isNone(option)) {
-          return
-        }
-        self.backing.ref.current = option.value
+    self.semaphore.withPermit(
+      Effect.suspend(() => {
+        const value = getUnsafe(self)
+        return Effect.map(pf(value), (option) => {
+          if (Option.isNone(option)) {
+            return
+          }
+          self.backing.ref.current = option.value
+        })
       })
-    }))
+    )
 )
 
 /**
@@ -370,14 +377,16 @@ export const updateSomeAndGetEffect: {
 } = dual(
   2,
   <A, R, E>(self: SynchronizedRef<A>, pf: (a: A) => Effect.Effect<Option.Option<A>, E, R>): Effect.Effect<A, E, R> =>
-    self.semaphore.withPermit(Effect.suspend(() => {
-      const value = getUnsafe(self)
-      return Effect.flatMap(pf(value), (option) => {
-        if (Option.isNone(option)) {
-          return Effect.succeed(value)
-        }
-        self.backing.ref.current = option.value
-        return Effect.succeed(option.value)
+    self.semaphore.withPermit(
+      Effect.suspend(() => {
+        const value = getUnsafe(self)
+        return Effect.flatMap(pf(value), (option) => {
+          if (Option.isNone(option)) {
+            return Effect.succeed(value)
+          }
+          self.backing.ref.current = option.value
+          return Effect.succeed(option.value)
+        })
       })
-    }))
+    )
 )

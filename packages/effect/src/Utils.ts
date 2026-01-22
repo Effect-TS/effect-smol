@@ -30,9 +30,7 @@ export const isGenKind = (u: unknown): u is GenKind<any, any, any, any, any> => 
 class GenKindImpl<F extends TypeLambda, R, O, E, A> implements GenKind<F, R, O, E, A> {
   readonly value: Kind<F, R, O, E, A>
 
-  constructor(
-    value: Kind<F, R, O, E, A>
-  ) {
+  constructor(value: Kind<F, R, O, E, A>) {
     this.value = value
   }
 
@@ -75,16 +73,16 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
    * @since 2.0.0
    */
   next(a: A): IteratorResult<T, A> {
-    return this.called ?
-      ({
-        value: a,
-        done: true
-      }) :
-      (this.called = true,
-        ({
+    return this.called
+      ? {
+          value: a,
+          done: true
+        }
+      : ((this.called = true),
+        {
           value: this.self,
           done: false
-        }))
+        })
   }
 
   /**
@@ -99,9 +97,8 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
  * @category constructors
  * @since 2.0.0
  */
-export const makeGenKind = <F extends TypeLambda, R, O, E, A>(
-  kind: Kind<F, R, O, E, A>
-): GenKind<F, R, O, E, A> => new GenKindImpl(kind)
+export const makeGenKind = <F extends TypeLambda, R, O, E, A>(kind: Kind<F, R, O, E, A>): GenKind<F, R, O, E, A> =>
+  new GenKindImpl(kind)
 
 /**
  * @example
@@ -141,30 +138,13 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
  * @category models
  * @since 2.0.0
  */
-export type Gen<F extends TypeLambda> = <
-  Self,
-  K extends Variance<F, any, any, any> | Kind<F, any, any, any, any>,
-  A
->(
-  ...args:
-    | [
-      self: Self,
-      body: (this: Self) => Generator<K, A, never>
-    ]
-    | [
-      body: () => Generator<K, A, never>
-    ]
+export type Gen<F extends TypeLambda> = <Self, K extends Variance<F, any, any, any> | Kind<F, any, any, any, any>, A>(
+  ...args: [self: Self, body: (this: Self) => Generator<K, A, never>] | [body: () => Generator<K, A, never>]
 ) => Kind<
   F,
-  [K] extends [Variance<F, infer R, any, any>] ? R
-    : [K] extends [Kind<F, infer R, any, any, any>] ? R
-    : never,
-  [K] extends [Variance<F, any, infer O, any>] ? O
-    : [K] extends [Kind<F, any, infer O, any, any>] ? O
-    : never,
-  [K] extends [Variance<F, any, any, infer E>] ? E
-    : [K] extends [Kind<F, any, any, infer E, any>] ? E
-    : never,
+  [K] extends [Variance<F, infer R, any, any>] ? R : [K] extends [Kind<F, infer R, any, any, any>] ? R : never,
+  [K] extends [Variance<F, any, infer O, any>] ? O : [K] extends [Kind<F, any, infer O, any, any>] ? O : never,
+  [K] extends [Variance<F, any, any, infer E>] ? E : [K] extends [Kind<F, any, any, infer E, any>] ? E : never,
   A
 >
 
@@ -210,7 +190,7 @@ const isNotOptimizedAway = standard[InternalTypeId](() => new Error().stack)?.in
  */
 export const internalCall = isNotOptimizedAway ? standard[InternalTypeId] : forced[InternalTypeId]
 
-const genConstructor = (function*() {}).constructor
+const genConstructor = function* () {}.constructor
 
 /**
  * @example

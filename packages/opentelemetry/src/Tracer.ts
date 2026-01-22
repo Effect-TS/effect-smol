@@ -23,37 +23,31 @@ import { Resource } from "./Resource.ts"
  * @since 1.0.0
  * @category Services
  */
-export class OtelTracer extends ServiceMap.Service<
-  OtelTracer,
-  Otel.Tracer
->()("@effect/opentelemetry/Tracer") {}
+export class OtelTracer extends ServiceMap.Service<OtelTracer, Otel.Tracer>()("@effect/opentelemetry/Tracer") {}
 
 /**
  * @since 1.0.0
  * @category Services
  */
-export class OtelTracerProvider extends ServiceMap.Service<
-  OtelTracerProvider,
-  Otel.TracerProvider
->()("@effect/opentelemetry/Tracer/OtelTracerProvider") {}
+export class OtelTracerProvider extends ServiceMap.Service<OtelTracerProvider, Otel.TracerProvider>()(
+  "@effect/opentelemetry/Tracer/OtelTracerProvider"
+) {}
 
 /**
  * @since 1.0.0
  * @category Services
  */
-export class OtelTraceFlags extends ServiceMap.Service<
-  OtelTraceFlags,
-  Otel.TraceFlags
->()("@effect/opentelemetry/Tracer/OtelTraceFlags") {}
+export class OtelTraceFlags extends ServiceMap.Service<OtelTraceFlags, Otel.TraceFlags>()(
+  "@effect/opentelemetry/Tracer/OtelTraceFlags"
+) {}
 
 /**
  * @since 1.0.0
  * @category Services
  */
-export class OtelTraceState extends ServiceMap.Service<
-  OtelTraceState,
-  Otel.TraceState
->()("@effect/opentelemetry/Tracer/OtelTraceState") {}
+export class OtelTraceState extends ServiceMap.Service<OtelTraceState, Otel.TraceState>()(
+  "@effect/opentelemetry/Tracer/OtelTraceState"
+) {}
 
 // =============================================================================
 // Constructors
@@ -63,37 +57,32 @@ export class OtelTraceState extends ServiceMap.Service<
  * @since 1.0.0
  * @category Constructors
  */
-export const make: Effect.Effect<Tracer.Tracer, never, OtelTracer> = Effect.map(
-  Effect.service(OtelTracer),
-  (tracer) =>
-    Tracer.make({
-      span(name, parent, annotations, links, startTime, kind, options) {
-        return new OtelSpan(
-          Otel.context,
-          Otel.trace,
-          tracer,
-          name,
-          parent,
-          annotations,
-          links.slice(),
-          startTime,
-          kind,
-          options
-        )
-      },
-      context(execution, fiber) {
-        const currentSpan = fiber.currentSpan
+export const make: Effect.Effect<Tracer.Tracer, never, OtelTracer> = Effect.map(Effect.service(OtelTracer), (tracer) =>
+  Tracer.make({
+    span(name, parent, annotations, links, startTime, kind, options) {
+      return new OtelSpan(
+        Otel.context,
+        Otel.trace,
+        tracer,
+        name,
+        parent,
+        annotations,
+        links.slice(),
+        startTime,
+        kind,
+        options
+      )
+    },
+    context(execution, fiber) {
+      const currentSpan = fiber.currentSpan
 
-        if (currentSpan === undefined) {
-          return execution()
-        }
-
-        return Otel.context.with(
-          populateContext(Otel.context.active(), currentSpan),
-          execution
-        )
+      if (currentSpan === undefined) {
+        return execution()
       }
-    })
+
+      return Otel.context.with(populateContext(Otel.context.active(), currentSpan), execution)
+    }
+  })
 )
 
 /**
@@ -140,9 +129,8 @@ export const makeExternalSpan = (options: {
  * @since 1.0.0
  * @category Layers
  */
-export const layerGlobalProvider: Layer.Layer<OtelTracerProvider> = Layer.sync(
-  OtelTracerProvider,
-  () => Otel.trace.getTracerProvider()
+export const layerGlobalProvider: Layer.Layer<OtelTracerProvider> = Layer.sync(OtelTracerProvider, () =>
+  Otel.trace.getTracerProvider()
 )
 
 /**
@@ -151,7 +139,7 @@ export const layerGlobalProvider: Layer.Layer<OtelTracerProvider> = Layer.sync(
  */
 export const layerTracer: Layer.Layer<OtelTracer, never, OtelTracerProvider | Resource> = Layer.effect(
   OtelTracer,
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const resource = yield* Resource
     const provider = yield* OtelTracerProvider
     return provider.getTracer(
@@ -212,9 +200,8 @@ const bigint1e9 = BigInt(1_000_000_000)
  */
 export const currentOtelSpan: Effect.Effect<Otel.Span, Cause.NoSuchElementError> = Effect.clockWith((clock) =>
   Effect.map(Effect.currentSpan, (span) =>
-    OtelSpanTypeId in span
-      ? (span as OtelSpan).span
-      : makeOtelSpan(span, clock))
+    OtelSpanTypeId in span ? (span as OtelSpan).span : makeOtelSpan(span, clock)
+  )
 )
 
 const makeOtelSpan = (span: Tracer.Span, clock: Clock.Clock): Otel.Span => {
@@ -252,23 +239,25 @@ const makeOtelSpan = (span: Tracer.Span, clock: Clock.Clock): Otel.Span => {
       return self
     },
     addLink(link) {
-      span.addLinks([{
-        span: makeExternalSpan(link.context),
-        attributes: link.attributes ?? {}
-      }])
+      span.addLinks([
+        {
+          span: makeExternalSpan(link.context),
+          attributes: link.attributes ?? {}
+        }
+      ])
       return self
     },
     addLinks(links) {
-      span.addLinks(links.map((link) => ({
-        span: makeExternalSpan(link.context),
-        attributes: link.attributes ?? {}
-      })))
+      span.addLinks(
+        links.map((link) => ({
+          span: makeExternalSpan(link.context),
+          attributes: link.attributes ?? {}
+        }))
+      )
       return self
     },
     setStatus(status) {
-      exit = Otel.SpanStatusCode.ERROR
-        ? Exit.die(status.message ?? "Unknown error")
-        : Exit.void
+      exit = Otel.SpanStatusCode.ERROR ? Exit.die(status.message ?? "Unknown error") : Exit.void
       return self
     },
     updateName: () => self,
@@ -316,17 +305,14 @@ const convertOtelTimeInput = (input: Otel.TimeInput | undefined, clock: Clock.Cl
 export const withSpanContext: {
   (
     spanContext: Otel.SpanContext
-  ): <A, E, R>(
-    self: Effect.Effect<A, E, R>
-  ) => Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
+  ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
     spanContext: Otel.SpanContext
   ): Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
-} = dual(2, <A, E, R>(
-  self: Effect.Effect<A, E, R>,
-  spanContext: Otel.SpanContext
-) => Effect.withParentSpan(self, makeExternalSpan(spanContext)))
+} = dual(2, <A, E, R>(self: Effect.Effect<A, E, R>, spanContext: Otel.SpanContext) =>
+  Effect.withParentSpan(self, makeExternalSpan(spanContext))
+)
 
 // =============================================================================
 // Internals
@@ -335,11 +321,11 @@ export const withSpanContext: {
 const OtelSpanTypeId = "~@effect/opentelemetry/Tracer/OtelSpan"
 
 const kindMap = {
-  "internal": Otel.SpanKind.INTERNAL,
-  "client": Otel.SpanKind.CLIENT,
-  "server": Otel.SpanKind.SERVER,
-  "producer": Otel.SpanKind.PRODUCER,
-  "consumer": Otel.SpanKind.CONSUMER
+  internal: Otel.SpanKind.INTERNAL,
+  client: Otel.SpanKind.CLIENT,
+  server: Otel.SpanKind.SERVER,
+  producer: Otel.SpanKind.PRODUCER,
+  consumer: Otel.SpanKind.CONSUMER
 }
 
 /** @internal */
@@ -379,19 +365,20 @@ export class OtelSpan implements Tracer.Span {
     const active = contextApi.active()
     this.parent = Predicate.isNotUndefined(effectParent)
       ? effectParent
-      : (options?.root !== true)
-      ? getOtelParent(traceApi, active, annotations)
-      : undefined
+      : options?.root !== true
+        ? getOtelParent(traceApi, active, annotations)
+        : undefined
     this.span = tracer.startSpan(
       name,
       {
         startTime: nanosToHrTime(startTime),
-        links: links.length > 0
-          ? links.map((link) => ({
-            context: makeSpanContext(link.span),
-            attributes: recordToAttributes(link.attributes)
-          }))
-          : undefined as any,
+        links:
+          links.length > 0
+            ? links.map((link) => ({
+                context: makeSpanContext(link.span),
+                attributes: recordToAttributes(link.attributes)
+              }))
+            : (undefined as any),
         kind: kindMap[this.kind]
       },
       Predicate.isNotUndefined(this.parent)
@@ -416,10 +403,12 @@ export class OtelSpan implements Tracer.Span {
   addLinks(links: ReadonlyArray<Tracer.SpanLink>): void {
     // oxlint-disable-next-line no-restricted-syntax
     this.links.push(...links)
-    this.span.addLinks(links.map((link) => ({
-      context: makeSpanContext(link.span),
-      attributes: recordToAttributes(link.attributes)
-    })))
+    this.span.addLinks(
+      links.map((link) => ({
+        context: makeSpanContext(link.span),
+        attributes: recordToAttributes(link.attributes)
+      }))
+    )
   }
 
   end(endTime: bigint, exit: Exit.Exit<unknown, unknown>) {
@@ -461,11 +450,7 @@ export class OtelSpan implements Tracer.Span {
   }
 
   event(name: string, startTime: bigint, attributes?: Record<string, unknown>) {
-    this.span.addEvent(
-      name,
-      attributes ? recordToAttributes(attributes) : undefined,
-      nanosToHrTime(startTime)
-    )
+    this.span.addEvent(name, attributes ? recordToAttributes(attributes) : undefined, nanosToHrTime(startTime))
   }
 }
 
@@ -485,27 +470,24 @@ const getOtelParent = (
   const otelParent = active ? active.spanContext() : undefined
   return otelParent
     ? Tracer.externalSpan({
-      spanId: otelParent.spanId,
-      traceId: otelParent.traceId,
-      sampled: (otelParent.traceFlags & 1) === 1,
-      annotations
-    })
+        spanId: otelParent.spanId,
+        traceId: otelParent.traceId,
+        sampled: (otelParent.traceFlags & 1) === 1,
+        annotations
+      })
     : undefined
 }
 
-const makeSpanContext = (
-  span: Tracer.AnySpan,
-  annotations?: ServiceMap.ServiceMap<never>
-): Otel.SpanContext => {
+const makeSpanContext = (span: Tracer.AnySpan, annotations?: ServiceMap.ServiceMap<never>): Otel.SpanContext => {
   const traceFlags = makeTraceFlags(span, annotations)
   const traceState = makeTraceState(span, annotations)!
-  return ({
+  return {
     spanId: span.spanId,
     traceId: span.traceId,
     isRemote: span._tag === "ExternalSpan",
     traceFlags,
     traceState
-  })
+  }
 }
 
 const makeTraceFlags = (
@@ -553,6 +535,6 @@ const populateContext = (
   span: Tracer.AnySpan,
   annotations?: ServiceMap.ServiceMap<never> | undefined
 ): Otel.Context =>
-  span instanceof OtelSpan ?
-    Otel.trace.setSpan(context, span.span) :
-    Otel.trace.setSpanContext(context, makeSpanContext(span, annotations))
+  span instanceof OtelSpan
+    ? Otel.trace.setSpan(context, span.span)
+    : Otel.trace.setSpanContext(context, makeSpanContext(span, annotations))

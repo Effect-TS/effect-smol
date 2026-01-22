@@ -385,10 +385,7 @@ export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<
  * @category combinators
  * @since 4.0.0
  */
-export const fork: (
-  scope: Scope,
-  finalizerStrategy?: "sequential" | "parallel"
-) => Effect<Closeable> = effect.scopeFork
+export const fork: (scope: Scope, finalizerStrategy?: "sequential" | "parallel") => Effect<Closeable> = effect.scopeFork
 
 /**
  * Creates a child scope from a parent scope synchronously without wrapping it in an `Effect`.

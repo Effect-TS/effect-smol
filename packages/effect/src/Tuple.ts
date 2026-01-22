@@ -52,14 +52,15 @@ type _BuildTuple<
   K,
   Acc extends ReadonlyArray<unknown> = [],
   I extends ReadonlyArray<unknown> = [] // current index counter
-> = I["length"] extends T["length"] ? Acc
+> = I["length"] extends T["length"]
+  ? Acc
   : _BuildTuple<
-    T,
-    K,
-    // If current index is in K, keep the element; otherwise skip it
-    I["length"] extends K ? [...Acc, T[I["length"]]] : Acc,
-    [...I, unknown]
-  >
+      T,
+      K,
+      // If current index is in K, keep the element; otherwise skip it
+      I["length"] extends K ? [...Acc, T[I["length"]]] : Acc,
+      [...I, unknown]
+    >
 
 type PickTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, K>
 
@@ -86,15 +87,9 @@ export const pick: {
     self: T,
     indices: I
   ): PickTuple<T, I[number]>
-} = dual(
-  2,
-  <const T extends ReadonlyArray<unknown>>(
-    self: T,
-    indices: ReadonlyArray<number>
-  ) => {
-    return indices.map((i) => self[i])
-  }
-)
+} = dual(2, <const T extends ReadonlyArray<unknown>>(self: T, indices: ReadonlyArray<number>) => {
+  return indices.map((i) => self[i])
+})
 
 type OmitTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, Exclude<Indices<T>, K>>
 
@@ -121,16 +116,10 @@ export const omit: {
     self: T,
     indices: I
   ): OmitTuple<T, I[number]>
-} = dual(
-  2,
-  <const T extends ReadonlyArray<unknown>>(
-    self: T,
-    indices: ReadonlyArray<number>
-  ) => {
-    const toDrop = new Set<number>(indices)
-    return self.filter((_, i) => !toDrop.has(i))
-  }
-)
+} = dual(2, <const T extends ReadonlyArray<unknown>>(self: T, indices: ReadonlyArray<number>) => {
+  const toDrop = new Set<number>(indices)
+  return self.filter((_, i) => !toDrop.has(i))
+})
 
 /**
  * Appends an element to the end of a tuple.
@@ -174,10 +163,10 @@ export const appendElements: {
   <const T1 extends ReadonlyArray<unknown>, const T2 extends ReadonlyArray<unknown>>(self: T1, that: T2): [...T1, ...T2]
 } = dual(
   2,
-  <T1 extends ReadonlyArray<unknown>, T2 extends ReadonlyArray<unknown>>(
-    self: T1,
-    that: T2
-  ): [...T1, ...T2] => [...self, ...that]
+  <T1 extends ReadonlyArray<unknown>, T2 extends ReadonlyArray<unknown>>(self: T1, that: T2): [...T1, ...T2] => [
+    ...self,
+    ...that
+  ]
 )
 
 type Evolver<T> = { readonly [I in keyof T]?: ((a: T[I]) => unknown) | undefined }
@@ -205,12 +194,9 @@ type Evolved<T, E> = { [I in keyof T]: I extends keyof E ? (E[I] extends (...a: 
 export const evolve: {
   <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(evolver: E): (self: T) => Evolved<T, E>
   <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(self: T, evolver: E): Evolved<T, E>
-} = dual(
-  2,
-  <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(self: T, evolver: E) => {
-    return self.map((e, i) => (evolver[i] !== undefined ? evolver[i](e) : e))
-  }
-)
+} = dual(2, <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(self: T, evolver: E) => {
+  return self.map((e, i) => (evolver[i] !== undefined ? evolver[i](e) : e))
+})
 
 /**
  * Renames indices in a tuple using the provided index mapping.
@@ -229,18 +215,18 @@ export const evolve: {
 export const renameIndices: {
   <const T extends ReadonlyArray<unknown>, const M extends { readonly [I in keyof T]?: `${keyof T & string}` }>(
     mapping: M
-  ): (self: T) => { [I in keyof T]: I extends keyof M ? M[I] extends keyof T ? T[M[I]] : T[I] : T[I] }
+  ): (self: T) => { [I in keyof T]: I extends keyof M ? (M[I] extends keyof T ? T[M[I]] : T[I]) : T[I] }
   <const T extends ReadonlyArray<unknown>, const M extends { readonly [I in keyof T]?: `${keyof T & string}` }>(
     self: T,
     mapping: M
-  ): { [I in keyof T]: I extends keyof M ? M[I] extends keyof T ? T[M[I]] : T[I] : T[I] }
+  ): { [I in keyof T]: I extends keyof M ? (M[I] extends keyof T ? T[M[I]] : T[I]) : T[I] }
 } = dual(
   2,
   <const T extends ReadonlyArray<unknown>, const M extends { readonly [I in keyof T]?: `${keyof T & string}` }>(
     self: T,
     mapping: M
   ) => {
-    return self.map((e, i) => mapping[i] !== undefined ? self[mapping[i]] : e)
+    return self.map((e, i) => (mapping[i] !== undefined ? self[mapping[i]] : e))
   }
 )
 
@@ -258,21 +244,11 @@ export const renameIndices: {
  * @since 4.0.0
  */
 export const map: {
-  <L extends Lambda>(
-    lambda: L
-  ): <const T extends ReadonlyArray<unknown>>(
-    self: T
-  ) => { [K in keyof T]: Apply<L, T[K]> }
-  <const T extends ReadonlyArray<unknown>, L extends Lambda>(
-    self: T,
-    lambda: L
-  ): { [K in keyof T]: Apply<L, T[K]> }
-} = dual(
-  2,
-  <const T extends ReadonlyArray<unknown>, L extends Function>(self: T, lambda: L) => {
-    return self.map((e) => lambda(e))
-  }
-)
+  <L extends Lambda>(lambda: L): <const T extends ReadonlyArray<unknown>>(self: T) => { [K in keyof T]: Apply<L, T[K]> }
+  <const T extends ReadonlyArray<unknown>, L extends Lambda>(self: T, lambda: L): { [K in keyof T]: Apply<L, T[K]> }
+} = dual(2, <const T extends ReadonlyArray<unknown>, L extends Function>(self: T, lambda: L) => {
+  return self.map((e) => lambda(e))
+})
 
 /**
  * Applies a transformation function only to the elements at the specified indices.
@@ -292,9 +268,7 @@ export const mapPick: {
   <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Lambda>(
     indices: I,
     lambda: L
-  ): (
-    self: T
-  ) => { [K in keyof T]: K extends `${I[number]}` ? Apply<L, T[K]> : T[K] }
+  ): (self: T) => { [K in keyof T]: K extends `${I[number]}` ? Apply<L, T[K]> : T[K] }
   <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Lambda>(
     self: T,
     indices: I,
@@ -302,11 +276,7 @@ export const mapPick: {
   ): { [K in keyof T]: K extends `${I[number]}` ? Apply<L, T[K]> : T[K] }
 } = dual(
   3,
-  <const T extends ReadonlyArray<unknown>, L extends Function>(
-    self: T,
-    indices: ReadonlyArray<number>,
-    lambda: L
-  ) => {
+  <const T extends ReadonlyArray<unknown>, L extends Function>(self: T, indices: ReadonlyArray<number>, lambda: L) => {
     const toPick = new Set<number>(indices)
     return self.map((e, i) => (toPick.has(i) ? lambda(e) : e))
   }
@@ -330,9 +300,7 @@ export const mapOmit: {
   <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Lambda>(
     indices: I,
     lambda: L
-  ): (
-    self: T
-  ) => { [K in keyof T]: K extends `${I[number]}` ? T[K] : Apply<L, T[K]> }
+  ): (self: T) => { [K in keyof T]: K extends `${I[number]}` ? T[K] : Apply<L, T[K]> }
   <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Lambda>(
     self: T,
     indices: I,
@@ -340,11 +308,7 @@ export const mapOmit: {
   ): { [K in keyof T]: K extends `${I[number]}` ? T[K] : Apply<L, T[K]> }
 } = dual(
   3,
-  <const T extends ReadonlyArray<unknown>, L extends Function>(
-    self: T,
-    indices: ReadonlyArray<number>,
-    lambda: L
-  ) => {
+  <const T extends ReadonlyArray<unknown>, L extends Function>(self: T, indices: ReadonlyArray<number>, lambda: L) => {
     const toOmit = new Set<number>(indices)
     return self.map((e, i) => (toOmit.has(i) ? e : lambda(e)))
   }
@@ -461,9 +425,9 @@ export {
  *
  * @since 4.0.0
  */
-export function makeCombiner<A extends ReadonlyArray<unknown>>(
-  combiners: { readonly [K in keyof A]: Combiner.Combiner<A[K]> }
-): Combiner.Combiner<A> {
+export function makeCombiner<A extends ReadonlyArray<unknown>>(combiners: {
+  readonly [K in keyof A]: Combiner.Combiner<A[K]>
+}): Combiner.Combiner<A> {
   return Combiner.make((self, that) => {
     const out = []
     for (let i = 0; i < self.length; i++) {
@@ -499,9 +463,9 @@ export function makeCombiner<A extends ReadonlyArray<unknown>>(
  *
  * @since 4.0.0
  */
-export function makeReducer<A extends ReadonlyArray<unknown>>(
-  reducers: { readonly [K in keyof A]: Reducer.Reducer<A[K]> }
-): Reducer.Reducer<A> {
+export function makeReducer<A extends ReadonlyArray<unknown>>(reducers: {
+  readonly [K in keyof A]: Reducer.Reducer<A[K]>
+}): Reducer.Reducer<A> {
   const combine = makeCombiner(reducers).combine
   const initialValue = []
   for (let i = 0; i < reducers.length; i++) {

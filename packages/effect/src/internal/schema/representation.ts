@@ -30,7 +30,10 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
 
   return {
     representations: Arr.map(schemas, compact),
-    references: Rec.map(Rec.filter(references, (_, k) => !isCompactable(k)), compact)
+    references: Rec.map(
+      Rec.filter(references, (_, k) => !isCompactable(k)),
+      compact
+    )
   }
 
   function isCompactable($ref: string): boolean {
@@ -91,9 +94,10 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
       case "Filter":
         return {
           ...check,
-          meta: check.meta._tag === "isPropertyNames"
-            ? { _tag: "isPropertyNames", propertyNames: compact(check.meta.propertyNames) } as M
-            : check.meta
+          meta:
+            check.meta._tag === "isPropertyNames"
+              ? ({ _tag: "isPropertyNames", propertyNames: compact(check.meta.propertyNames) } as M)
+              : check.meta
         }
       case "FilterGroup":
         return { ...check, checks: Arr.map(check.checks, compactCheck) }
@@ -122,13 +126,13 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
     const last = getLastEncoding(ast)
 
     if (ast === last) {
-      const reference = ast._tag === "Declaration"
-        ? gen(ast._tag)
-        : gen(InternalAnnotations.resolveIdentifier(ast) ?? prefix ?? `${ast._tag}_`)
+      const reference =
+        ast._tag === "Declaration"
+          ? gen(ast._tag)
+          : gen(InternalAnnotations.resolveIdentifier(ast) ?? prefix ?? `${ast._tag}_`)
 
-      const encodedSchemaPrefix = ast._tag === "Declaration"
-        ? InternalAnnotations.resolveIdentifier(ast) ?? prefix
-        : prefix
+      const encodedSchemaPrefix =
+        ast._tag === "Declaration" ? (InternalAnnotations.resolveIdentifier(ast) ?? prefix) : prefix
 
       referenceMap.set(ast, reference)
       const out = on(ast, encodedSchemaPrefix)
@@ -292,12 +296,13 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
           if (meta) {
             return {
               _tag: "Filter",
-              meta: meta._tag === "isPropertyNames"
-                ? {
-                  _tag: "isPropertyNames",
-                  propertyNames: recur(meta.propertyNames)
-                }
-                : meta,
+              meta:
+                meta._tag === "isPropertyNames"
+                  ? {
+                      _tag: "isPropertyNames",
+                      propertyNames: recur(meta.propertyNames)
+                    }
+                  : meta,
               ...fromASTAnnotations(c.annotations)
             }
           }
@@ -350,10 +355,17 @@ export function toJsonSchemaDocument(
   document: SchemaRepresentation.Document,
   options?: Schema.ToJsonSchemaOptions
 ): JsonSchema.Document<"draft-2020-12"> {
-  const { definitions, dialect: source, schemas } = toJsonSchemaMultiDocument({
-    representations: [document.representation],
-    references: document.references
-  }, options)
+  const {
+    definitions,
+    dialect: source,
+    schemas
+  } = toJsonSchemaMultiDocument(
+    {
+      representations: [document.representation],
+      references: document.references
+    },
+    options
+  )
   const schema = schemas[0]
   return { dialect: source, schema, definitions }
 }
@@ -402,18 +414,14 @@ export function toJsonSchemaMultiDocument(
         return { type: "null" }
       case "BigInt":
         return {
-          "type": "string",
-          "allOf": [
-            { "pattern": "^-?\\d+$" }
-          ]
+          type: "string",
+          allOf: [{ pattern: "^-?\\d+$" }]
         }
       case "Symbol":
       case "UniqueSymbol":
         return {
-          "type": "string",
-          "allOf": [
-            { "pattern": "^Symbol\\((.*)\\)$" }
-          ]
+          type: "string",
+          allOf: [{ pattern: "^Symbol\\((.*)\\)$" }]
         }
       case "Declaration":
         return recur(schema.encodedSchema)
@@ -436,18 +444,18 @@ export function toJsonSchemaMultiDocument(
         return out
       }
       case "Number":
-        return hasCheck(schema.checks, "isInt") ?
-          { type: "integer" } :
-          hasCheck(schema.checks, "isFinite") ?
-          { type: "number" } :
-          {
-            "anyOf": [
-              { type: "number" },
-              { type: "string", enum: ["NaN"] },
-              { type: "string", enum: ["Infinity"] },
-              { type: "string", enum: ["-Infinity"] }
-            ]
-          }
+        return hasCheck(schema.checks, "isInt")
+          ? { type: "integer" }
+          : hasCheck(schema.checks, "isFinite")
+            ? { type: "number" }
+            : {
+                anyOf: [
+                  { type: "number" },
+                  { type: "string", enum: ["NaN"] },
+                  { type: "string", enum: ["Infinity"] },
+                  { type: "string", enum: ["-Infinity"] }
+                ]
+              }
       case "Boolean":
         return { type: "boolean" }
       case "Literal": {
@@ -636,9 +644,7 @@ export function toJsonSchemaMultiDocument(
     }
     return out
 
-    function on(
-      meta: SchemaRepresentation.Meta
-    ): JsonSchema.JsonSchema | undefined {
+    function on(meta: SchemaRepresentation.Meta): JsonSchema.JsonSchema | undefined {
       switch (meta._tag) {
         case "isMinLength":
           return type === "array" ? { minItems: meta.minLength } : { minLength: meta.minLength }

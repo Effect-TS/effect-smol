@@ -77,9 +77,7 @@ export const make = <A, E, R>(options: {
     )
     return Effect.as(
       Scope.addFinalizerExit(scope, () => {
-        const close = ref.state._tag === "Acquired"
-          ? Scope.close(ref.state.scope, Exit.void)
-          : Effect.void
+        const close = ref.state._tag === "Acquired" ? Scope.close(ref.state.scope, Exit.void) : Effect.void
         ref.state = stateClosed
         return close
       }),
@@ -95,37 +93,37 @@ const getState = <A, E>(self: RcRefImpl<A, E>) =>
       }
       case "Acquired": {
         self.state.refCount++
-        return self.state.fiber
-          ? Effect.as(Fiber.interrupt(self.state.fiber), self.state)
-          : Effect.succeed(self.state)
+        return self.state.fiber ? Effect.as(Fiber.interrupt(self.state.fiber), self.state) : Effect.succeed(self.state)
       }
       case "Empty": {
         const scope = Scope.makeUnsafe()
         return self.semaphore.withPermits(1)(
-          restore(Effect.provideServices(
-            self.acquire as Effect.Effect<A, E>,
-            ServiceMap.add(self.services, Scope.Scope, scope)
-          )).pipe(Effect.map((value) => {
-            const state: State.Acquired<A> = {
-              _tag: "Acquired",
-              value,
-              scope,
-              fiber: undefined,
-              refCount: 1,
-              invalidated: false
-            }
-            self.state = state
-            return state
-          }))
+          restore(
+            Effect.provideServices(
+              self.acquire as Effect.Effect<A, E>,
+              ServiceMap.add(self.services, Scope.Scope, scope)
+            )
+          ).pipe(
+            Effect.map((value) => {
+              const state: State.Acquired<A> = {
+                _tag: "Acquired",
+                value,
+                scope,
+                fiber: undefined,
+                refCount: 1,
+                invalidated: false
+              }
+              self.state = state
+              return state
+            })
+          )
         )
       }
     }
   })
 
 /** @internal */
-export const get = Effect.fnUntraced(function*<A, E>(
-  self_: RcRef.RcRef<A, E>
-) {
+export const get = Effect.fnUntraced(function* <A, E>(self_: RcRef.RcRef<A, E>) {
   const self = self_ as RcRefImpl<A, E>
   const state = yield* getState(self)
   const scope = yield* Effect.scope
@@ -151,9 +149,11 @@ export const get = Effect.fnUntraced(function*<A, E>(
         }
         return Effect.void
       }),
-      Effect.ensuring(Effect.sync(() => {
-        state.fiber = undefined
-      })),
+      Effect.ensuring(
+        Effect.sync(() => {
+          state.fiber = undefined
+        })
+      ),
       Effect.runForkWith(self.services),
       Fiber.runIn(self.scope)
     )
@@ -163,21 +163,21 @@ export const get = Effect.fnUntraced(function*<A, E>(
 })
 
 /** @internal */
-export const invalidate = <A, E>(
-  self_: RcRef.RcRef<A, E>
-): Effect.Effect<void> => {
+export const invalidate = <A, E>(self_: RcRef.RcRef<A, E>): Effect.Effect<void> => {
   const self = self_ as RcRefImpl<A, E>
-  return Effect.uninterruptible(Effect.suspend(() => {
-    if (self.state._tag !== "Acquired") {
-      return Effect.void
-    }
-    const state = self.state
-    self.state = stateEmpty
-    state.invalidated = true
-    if (state.refCount > 0) {
-      return Effect.void
-    }
-    state.fiber?.interruptUnsafe()
-    return Scope.close(state.scope, Exit.void)
-  }))
+  return Effect.uninterruptible(
+    Effect.suspend(() => {
+      if (self.state._tag !== "Acquired") {
+        return Effect.void
+      }
+      const state = self.state
+      self.state = stateEmpty
+      state.invalidated = true
+      if (state.refCount > 0) {
+        return Effect.void
+      }
+      state.fiber?.interruptUnsafe()
+      return Scope.close(state.scope, Exit.void)
+    })
+  )
 }

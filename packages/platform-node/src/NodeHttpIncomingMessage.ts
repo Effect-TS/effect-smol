@@ -14,7 +14,8 @@ import * as NodeStream from "./NodeStream.ts"
  * @since 1.0.0
  * @category Constructors
  */
-export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
+export abstract class NodeHttpIncomingMessage<E>
+  extends Inspectable.Class
   implements IncomingMessage.HttpIncomingMessage<E>
 {
   /**
@@ -25,11 +26,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   readonly onError: (error: unknown) => E
   readonly remoteAddressOverride?: string | undefined
 
-  constructor(
-    source: Http.IncomingMessage,
-    onError: (error: unknown) => E,
-    remoteAddressOverride?: string
-  ) {
+  constructor(source: Http.IncomingMessage, onError: (error: unknown) => E, remoteAddressOverride?: string) {
     super()
     this[IncomingMessage.TypeId] = IncomingMessage.TypeId
     this.source = source
@@ -50,16 +47,16 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
     if (this.textEffect) {
       return this.textEffect
     }
-    this.textEffect = Effect.runSync(Effect.cached(
-      Effect.flatMap(
-        IncomingMessage.MaxBodySize.asEffect(),
-        (maxBodySize) =>
+    this.textEffect = Effect.runSync(
+      Effect.cached(
+        Effect.flatMap(IncomingMessage.MaxBodySize.asEffect(), (maxBodySize) =>
           NodeStream.toString(() => this.source, {
             onError: this.onError,
             maxBytes: maxBodySize
           })
+        )
       )
-    ))
+    )
     return this.textEffect
   }
 
@@ -70,9 +67,10 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   get json(): Effect.Effect<unknown, E> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
-        try: () => text === "" ? null : JSON.parse(text) as unknown,
+        try: () => (text === "" ? null : (JSON.parse(text) as unknown)),
         catch: this.onError
-      }))
+      })
+    )
   }
 
   get jsonUnsafe(): unknown {
@@ -84,7 +82,8 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
       Effect.try({
         try: () => UrlParams.fromInput(new URLSearchParams(_)),
         catch: this.onError
-      }))
+      })
+    )
   }
 
   get stream(): Stream.Stream<Uint8Array, E> {

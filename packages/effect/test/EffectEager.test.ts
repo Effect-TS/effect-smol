@@ -7,7 +7,7 @@ describe("Effect Eager Operations", () => {
     describe("eager computation", () => {
       it("computes sync effects immediately", () => {
         let execCount = 0
-        const fn = Effect.fnUntracedEager(function*() {
+        const fn = Effect.fnUntracedEager(function* () {
           execCount++
           yield* Effect.succeed(1)
           yield* Effect.succeed(2)
@@ -22,7 +22,7 @@ describe("Effect Eager Operations", () => {
       })
 
       it("computes failures immediately", () => {
-        const fn = Effect.fnUntracedEager(function*() {
+        const fn = Effect.fnUntracedEager(function* () {
           yield* Effect.succeed(1)
           yield* Effect.fail("error")
           return "unreachable"
@@ -36,7 +36,7 @@ describe("Effect Eager Operations", () => {
         let syncSteps = 0
         let asyncReached = false
 
-        const fn = Effect.fnUntracedEager(function*() {
+        const fn = Effect.fnUntracedEager(function* () {
           syncSteps++
           yield* Effect.succeed(1)
           syncSteps++
@@ -56,7 +56,7 @@ describe("Effect Eager Operations", () => {
       })
 
       it("handles exceptions", () => {
-        const fn = Effect.fnUntracedEager(function*() {
+        const fn = Effect.fnUntracedEager(function* () {
           yield* Effect.succeed(1)
           throw new Error("sync error")
         })
@@ -67,8 +67,8 @@ describe("Effect Eager Operations", () => {
     })
 
     it.effect("executes sync generators", () =>
-      Effect.gen(function*() {
-        const fn = Effect.fnUntracedEager(function*() {
+      Effect.gen(function* () {
+        const fn = Effect.fnUntracedEager(function* () {
           yield* Effect.succeed(1)
           yield* Effect.succeed(2)
           return "done"
@@ -76,11 +76,12 @@ describe("Effect Eager Operations", () => {
 
         const result = yield* fn()
         assert.strictEqual(result, "done")
-      }))
+      })
+    )
 
     it.effect("handles mixed sync/async effects", () =>
-      Effect.gen(function*() {
-        const fn = Effect.fnUntracedEager(function*() {
+      Effect.gen(function* () {
+        const fn = Effect.fnUntracedEager(function* () {
           const a = yield* Effect.succeed(1)
           const b = yield* Effect.promise(() => Promise.resolve(2))
           return a + b
@@ -88,24 +89,26 @@ describe("Effect Eager Operations", () => {
 
         const result = yield* fn()
         assert.strictEqual(result, 3)
-      }))
+      })
+    )
 
     it.effect("handles failures", () =>
-      Effect.gen(function*() {
-        const fn = Effect.fnUntracedEager(function*() {
+      Effect.gen(function* () {
+        const fn = Effect.fnUntracedEager(function* () {
           yield* Effect.fail("error")
           return "unreachable"
         })
 
         const exit = yield* Effect.exit(fn())
         assert.isTrue(Exit.isFailure(exit))
-      }))
+      })
+    )
 
     it.effect("works with arguments and this context", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const obj = {
           value: 10,
-          fn: Effect.fnUntracedEager(function*(this: { value: number }, x: number) {
+          fn: Effect.fnUntracedEager(function* (this: { value: number }, x: number) {
             const a = yield* Effect.succeed(x)
             return a + this.value
           })
@@ -113,12 +116,13 @@ describe("Effect Eager Operations", () => {
 
         const result = yield* obj.fn(5)
         assert.strictEqual(result, 15)
-      }))
+      })
+    )
 
     it.effect("works with pipeable operators", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const fn = Effect.fnUntracedEager(
-          function*() {
+          function* () {
             yield* Effect.succeed(1)
             return 10
           },
@@ -127,12 +131,13 @@ describe("Effect Eager Operations", () => {
 
         const result = yield* fn()
         assert.strictEqual(result, 20)
-      }))
+      })
+    )
 
     it.effect("re-execution creates fresh iterators", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         let execCount = 0
-        const fn = Effect.fnUntracedEager(function*() {
+        const fn = Effect.fnUntracedEager(function* () {
           execCount++
           yield* Effect.succeed(1)
           yield* Effect.promise(() => Promise.resolve(2))
@@ -147,11 +152,12 @@ describe("Effect Eager Operations", () => {
         const result2 = yield* effect
         assert.strictEqual(result2, 2)
         assert.strictEqual(execCount, 2)
-      }))
+      })
+    )
 
     it.effect("handles long sync chains efficiently", () =>
-      Effect.gen(function*() {
-        const fn = Effect.fnUntracedEager(function*() {
+      Effect.gen(function* () {
+        const fn = Effect.fnUntracedEager(function* () {
           let sum = 0
           for (let i = 0; i < 100; i++) {
             const val = yield* Effect.succeed(i)
@@ -162,18 +168,20 @@ describe("Effect Eager Operations", () => {
 
         const result = yield* fn()
         assert.strictEqual(result, 4950) // sum of 0 to 99
-      }))
+      })
+    )
   })
 
   describe("mapEager", () => {
     it.effect("successful effect", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const result = yield* Effect.mapEager(Effect.succeed(5), (n) => n * 2)
         assert.strictEqual(result, 10)
-      }))
+      })
+    )
 
     it.effect("failed effect preserves failure", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.fail("error")
         const mapped = Effect.mapEager(effect, (n) => n * 2)
         const exit = yield* Effect.exit(mapped)
@@ -185,21 +193,23 @@ describe("Effect Eager Operations", () => {
         assert.ok(failure, "Expected to find a Fail cause")
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, "error", "Expected error to be preserved")
-      }))
+      })
+    )
 
     it.effect("complex effect falls back to regular map", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.mapEager(Effect.delay(Effect.succeed(10), 1), (n) => n + 5)
         const fiber = yield* Effect.forkChild(effect)
         yield* TestClock.adjust(1)
         const result = yield* Fiber.join(fiber)
         assert.strictEqual(result, 15)
-      }))
+      })
+    )
   })
 
   describe("flatMapEager", () => {
     it.effect("applies transformation eagerly for success effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         let executions = 0
         const effect = Effect.succeed(5)
         const flatMapped = Effect.flatMapEager(effect, (n) => {
@@ -210,10 +220,11 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(yield* flatMapped, 10)
         assert.strictEqual(yield* flatMapped, 10)
         assert.strictEqual(executions, 1)
-      }))
+      })
+    )
 
     it.effect("preserves failure for failed effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const error = new Error("test error")
         const effect = Effect.fail(error)
         const flatMapped = Effect.flatMapEager(effect, (n) => Effect.succeed(n * 2))
@@ -226,10 +237,11 @@ describe("Effect Eager Operations", () => {
         assert.ok(failure, "Expected to find a Fail cause")
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, error, "Expected error to be preserved")
-      }))
+      })
+    )
 
     it.effect("fallback to regular flatMap for complex effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.delay(Effect.succeed(10), "1 millis")
         const flatMapped = Effect.flatMapEager(effect, (n) => Effect.succeed(n * 2))
 
@@ -238,20 +250,22 @@ describe("Effect Eager Operations", () => {
         const result = yield* Fiber.join(fiber)
 
         assert.strictEqual(result, 20)
-      }))
+      })
+    )
   })
 
   describe("mapErrorEager", () => {
     it.effect("preserves success for successful effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.succeed(5)
         const mapped = Effect.mapErrorEager(effect, (err) => `mapped: ${err}`)
         const result = yield* mapped
         assert.strictEqual(result, 5)
-      }))
+      })
+    )
 
     it.effect("applies transformation eagerly for failure effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.fail("original error")
         const mapped = Effect.mapErrorEager(effect, (err) => `mapped: ${err}`)
         const exit = yield* Effect.exit(mapped)
@@ -263,10 +277,11 @@ describe("Effect Eager Operations", () => {
         assert.ok(failure, "Expected to find a Fail cause")
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, "mapped: original error", "Expected error to be transformed")
-      }))
+      })
+    )
 
     it.effect("fallback to regular mapError for complex effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.delay(Effect.fail("error"), "1 millis")
         const mapped = Effect.mapErrorEager(effect, (err) => `mapped: ${err}`)
 
@@ -281,12 +296,13 @@ describe("Effect Eager Operations", () => {
         assert.ok(failure, "Expected to find a Fail cause")
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, "mapped: error", "Expected error to be transformed")
-      }))
+      })
+    )
   })
 
   describe("mapBothEager", () => {
     it.effect("applies onSuccess eagerly for success effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.succeed(5)
         const mapped = Effect.mapBothEager(effect, {
           onFailure: (err) => `Failed: ${err}`,
@@ -294,10 +310,11 @@ describe("Effect Eager Operations", () => {
         })
         const result = yield* mapped
         assert.strictEqual(result, 10)
-      }))
+      })
+    )
 
     it.effect("applies onFailure eagerly for failure effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.fail("original error")
         const mapped = Effect.mapBothEager(effect, {
           onFailure: (err) => `Failed: ${err}`,
@@ -312,10 +329,11 @@ describe("Effect Eager Operations", () => {
         assert.ok(failure, "Expected to find a Fail cause")
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, "Failed: original error", "Expected error to be transformed")
-      }))
+      })
+    )
 
     it.effect("fallback to regular mapBoth for complex effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.delay(Effect.succeed(10), "1 millis")
         const mapped = Effect.mapBothEager(effect, {
           onFailure: (err) => `Failed: ${err}`,
@@ -327,28 +345,31 @@ describe("Effect Eager Operations", () => {
         const result = yield* Fiber.join(fiber)
 
         assert.strictEqual(result, 20)
-      }))
+      })
+    )
   })
 
   describe("catchEager", () => {
     it.effect("preserves success effects without applying catch", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.succeed(42)
         const caught = Effect.catchEager(effect, (err) => Effect.succeed(`recovered: ${err}`))
         const result = yield* caught
         assert.strictEqual(result, 42)
-      }))
+      })
+    )
 
     it.effect("applies catch function eagerly for failure effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.fail("original error")
         const caught = Effect.catchEager(effect, (err) => Effect.succeed(`recovered: ${err}`))
         const result = yield* caught
         assert.strictEqual(result, "recovered: original error")
-      }))
+      })
+    )
 
     it.effect("fallback to regular catch for complex effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.delay(Effect.fail("error"), "1 millis")
         const caught = Effect.catchEager(effect, (err) => Effect.succeed(`recovered: ${err}`))
 
@@ -357,12 +378,13 @@ describe("Effect Eager Operations", () => {
         const result = yield* Fiber.join(fiber)
 
         assert.strictEqual(result, "recovered: error")
-      }))
+      })
+    )
   })
 
   describe("matchEager", () => {
     it.effect("applies onSuccess eagerly for success effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.succeed(42)
         const matched = Effect.matchEager(effect, {
           onFailure: (err) => `Failed: ${err}`,
@@ -370,10 +392,11 @@ describe("Effect Eager Operations", () => {
         })
         const result = yield* matched
         assert.strictEqual(result, "Success: 42")
-      }))
+      })
+    )
 
     it.effect("applies onFailure eagerly for failure effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.fail("original error")
         const matched = Effect.matchEager(effect, {
           onFailure: (err) => `Failed: ${err}`,
@@ -381,10 +404,11 @@ describe("Effect Eager Operations", () => {
         })
         const result = yield* matched
         assert.strictEqual(result, "Failed: original error")
-      }))
+      })
+    )
 
     it.effect("fallback to regular match for complex effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.delay(Effect.succeed(10), "1 millis")
         const matched = Effect.matchEager(effect, {
           onFailure: (err) => `Failed: ${err}`,
@@ -396,10 +420,11 @@ describe("Effect Eager Operations", () => {
         const result = yield* Fiber.join(fiber)
 
         assert.strictEqual(result, "Success: 10")
-      }))
+      })
+    )
 
     it.effect("eagerly handles complex failure scenarios", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.fail(new Error("test error"))
         const matched = Effect.matchEager(effect, {
           onFailure: (err) => `Recovered from: ${err.message}`,
@@ -407,10 +432,11 @@ describe("Effect Eager Operations", () => {
         })
         const result = yield* matched
         assert.strictEqual(result, "Recovered from: test error")
-      }))
+      })
+    )
 
     it.effect("supports curried usage", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const matcher = Effect.matchEager({
           onFailure: (err: string) => `Failed: ${err}`,
           onSuccess: (n: number) => `Success: ${n}`
@@ -421,10 +447,11 @@ describe("Effect Eager Operations", () => {
 
         const failureResult = yield* matcher(Effect.fail("error"))
         assert.strictEqual(failureResult, "Failed: error")
-      }))
+      })
+    )
 
     it.effect("never fails - always produces a result", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const effect = Effect.fail("test error")
         const matched = Effect.matchEager(effect, {
           onFailure: (err) => `Handled: ${err}`,
@@ -444,10 +471,11 @@ describe("Effect Eager Operations", () => {
 
         const successResult = yield* successMatched
         assert.strictEqual(successResult, "Value: 42")
-      }))
+      })
+    )
 
     it.effect("performance: applies transformations immediately for resolved effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         let onSuccessCount = 0
         let onFailureCount = 0
 
@@ -482,7 +510,8 @@ describe("Effect Eager Operations", () => {
         // Handlers should be called only once per effect execution due to eager evaluation
         assert.strictEqual(onSuccessCount, 1)
         assert.strictEqual(onFailureCount, 1)
-      }))
+      })
+    )
   })
 
   describe("matchCauseEager", () => {
@@ -537,7 +566,7 @@ describe("Effect Eager Operations", () => {
     })
 
     it.effect("falls back to regular matchCause for complex effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         let onSuccessCount = 0
         let onFailureCount = 0
 
@@ -572,10 +601,11 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(finalResult, 20)
         assert.strictEqual(onSuccessCount, 1)
         assert.strictEqual(onFailureCount, 0)
-      }))
+      })
+    )
 
     it.effect("falls back to regular matchCause for delayed failure effects", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         let onSuccessCount = 0
         let onFailureCount = 0
 
@@ -610,7 +640,8 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(finalResult, "HANDLED_DELAYED")
         assert.strictEqual(onSuccessCount, 0)
         assert.strictEqual(onFailureCount, 1)
-      }))
+      })
+    )
 
     it("handles cause information correctly", () => {
       let capturedCause: any = null
@@ -633,16 +664,13 @@ describe("Effect Eager Operations", () => {
     })
 
     it.effect("preserves effect execution behavior for non-eager paths", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         let executionCount = 0
 
-        const complexEffect = Effect.flatMap(
-          Effect.delay(Effect.succeed(42), "1 millis"),
-          (value) => {
-            executionCount++
-            return Effect.succeed(value * 2)
-          }
-        )
+        const complexEffect = Effect.flatMap(Effect.delay(Effect.succeed(42), "1 millis"), (value) => {
+          executionCount++
+          return Effect.succeed(value * 2)
+        })
 
         const matcher = {
           onSuccess: (value: number) => value + 100,
@@ -663,6 +691,7 @@ describe("Effect Eager Operations", () => {
         // Should have executed the effect chain properly
         assert.strictEqual(finalResult, 184) // (42 * 2) + 100
         assert.strictEqual(executionCount, 1)
-      }))
+      })
+    )
   })
 })

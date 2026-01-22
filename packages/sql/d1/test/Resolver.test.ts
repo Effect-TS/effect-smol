@@ -5,7 +5,7 @@ import * as Schema from "effect/Schema"
 import { SqlError, SqlResolver } from "effect/unstable/sql"
 import { D1Miniflare } from "./utils.ts"
 
-const seededClient = Effect.gen(function*() {
+const seededClient = Effect.gen(function* () {
   const sql = yield* D1Client.D1Client
   yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`
   for (const id of Iterable.range(1, 100)) {
@@ -17,7 +17,7 @@ const seededClient = Effect.gen(function*() {
 describe("Resolver", () => {
   describe("ordered", () => {
     it.effect("insert", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const batches: Array<Array<string>> = []
         const sql = yield* seededClient
         const Insert = SqlResolver.ordered({
@@ -30,20 +30,24 @@ describe("Resolver", () => {
         })
         const execute = SqlResolver.request(Insert)
         assert.deepStrictEqual(
-          yield* Effect.all({
-            one: execute("one"),
-            two: SqlResolver.request("two", Insert)
-          }, { concurrency: "unbounded" }),
+          yield* Effect.all(
+            {
+              one: execute("one"),
+              two: SqlResolver.request("two", Insert)
+            },
+            { concurrency: "unbounded" }
+          ),
           {
             one: { id: 101, name: "one" },
             two: { id: 102, name: "two" }
           }
         )
         assert.deepStrictEqual(batches, [["one", "two"]])
-      }).pipe(Effect.provide(D1Miniflare.layerClient)))
+      }).pipe(Effect.provide(D1Miniflare.layerClient))
+    )
 
     it.effect("result length mismatch", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const batches: Array<Array<number>> = []
         const sql = yield* seededClient
         const Select = SqlResolver.ordered({
@@ -55,24 +59,20 @@ describe("Resolver", () => {
           }
         })
         const execute = SqlResolver.request(Select)
-        const error = yield* Effect.all([
-          execute(1),
-          execute(2),
-          execute(3),
-          execute(101)
-        ], { concurrency: "unbounded" }).pipe(
-          Effect.flip
-        )
+        const error = yield* Effect.all([execute(1), execute(2), execute(3), execute(101)], {
+          concurrency: "unbounded"
+        }).pipe(Effect.flip)
         assert(error instanceof SqlError.ResultLengthMismatch)
         assert.strictEqual(error.actual, 3)
         assert.strictEqual(error.expected, 4)
         assert.deepStrictEqual(batches, [[1, 2, 3, 101]])
-      }).pipe(Effect.provide(D1Miniflare.layerClient)))
+      }).pipe(Effect.provide(D1Miniflare.layerClient))
+    )
   })
 
   describe("grouped", () => {
     it.effect("find by name", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const sql = yield* seededClient
         const FindByName = SqlResolver.grouped({
           Request: Schema.String,
@@ -84,21 +84,28 @@ describe("Resolver", () => {
         const execute = SqlResolver.request(FindByName)
         yield* sql`INSERT INTO test ${sql.insert({ name: "name1" })}`
         assert.deepStrictEqual(
-          yield* Effect.all({
-            one: execute("name1"),
-            two: execute("name2"),
-            three: Effect.flip(execute("name0"))
-          }, { concurrency: "unbounded" }),
+          yield* Effect.all(
+            {
+              one: execute("name1"),
+              two: execute("name2"),
+              three: Effect.flip(execute("name0"))
+            },
+            { concurrency: "unbounded" }
+          ),
           {
-            one: [{ id: 1, name: "name1" }, { id: 101, name: "name1" }],
+            one: [
+              { id: 1, name: "name1" },
+              { id: 101, name: "name1" }
+            ],
             two: [{ id: 2, name: "name2" }],
             three: new Cause.NoSuchElementError()
           }
         )
-      }).pipe(Effect.provide(D1Miniflare.layerClient)))
+      }).pipe(Effect.provide(D1Miniflare.layerClient))
+    )
 
     it.effect("using raw rows", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const sql = yield* seededClient
         const FindByName = SqlResolver.grouped({
           Request: Schema.String,
@@ -110,23 +117,30 @@ describe("Resolver", () => {
         const execute = SqlResolver.request(FindByName)
         yield* sql`INSERT INTO test ${sql.insert({ name: "name1" })}`
         assert.deepStrictEqual(
-          yield* Effect.all({
-            one: execute("name1"),
-            two: execute("name2"),
-            three: Effect.flip(execute("name0"))
-          }, { concurrency: "unbounded" }),
+          yield* Effect.all(
+            {
+              one: execute("name1"),
+              two: execute("name2"),
+              three: Effect.flip(execute("name0"))
+            },
+            { concurrency: "unbounded" }
+          ),
           {
-            one: [{ id: 1, name: "name1" }, { id: 101, name: "name1" }],
+            one: [
+              { id: 1, name: "name1" },
+              { id: 101, name: "name1" }
+            ],
             two: [{ id: 2, name: "name2" }],
             three: new Cause.NoSuchElementError()
           }
         )
-      }).pipe(Effect.provide(D1Miniflare.layerClient)))
+      }).pipe(Effect.provide(D1Miniflare.layerClient))
+    )
   })
 
   describe("findById", () => {
     it.effect("find by id", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const sql = yield* seededClient
         const FindById = SqlResolver.findById({
           Id: Schema.Number,
@@ -136,21 +150,25 @@ describe("Resolver", () => {
         })
         const execute = SqlResolver.request(FindById)
         assert.deepStrictEqual(
-          yield* Effect.all({
-            one: execute(1),
-            two: execute(2),
-            three: Effect.flip(execute(101))
-          }, { concurrency: "unbounded" }),
+          yield* Effect.all(
+            {
+              one: execute(1),
+              two: execute(2),
+              three: Effect.flip(execute(101))
+            },
+            { concurrency: "unbounded" }
+          ),
           {
             one: { id: 1, name: "name1" },
             two: { id: 2, name: "name2" },
             three: new Cause.NoSuchElementError()
           }
         )
-      }).pipe(Effect.provide(D1Miniflare.layerClient)))
+      }).pipe(Effect.provide(D1Miniflare.layerClient))
+    )
 
     it.effect("using raw rows", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const sql = yield* seededClient
         const FindById = SqlResolver.findById({
           Id: Schema.Number,
@@ -160,17 +178,21 @@ describe("Resolver", () => {
         })
         const execute = SqlResolver.request(FindById)
         assert.deepStrictEqual(
-          yield* Effect.all({
-            one: execute(1),
-            two: execute(2),
-            three: Effect.flip(execute(101))
-          }, { concurrency: "unbounded" }),
+          yield* Effect.all(
+            {
+              one: execute(1),
+              two: execute(2),
+              three: Effect.flip(execute(101))
+            },
+            { concurrency: "unbounded" }
+          ),
           {
             one: { id: 1, name: "name1" },
             two: { id: 2, name: "name2" },
             three: new Cause.NoSuchElementError()
           }
         )
-      }).pipe(Effect.provide(D1Miniflare.layerClient)))
+      }).pipe(Effect.provide(D1Miniflare.layerClient))
+    )
   })
 })

@@ -76,9 +76,7 @@ export const isHttpServerResponse = (u: unknown): u is HttpServerResponse => has
  * @since 4.0.0
  * @category constructors
  */
-export const empty = (
-  options?: Options.WithContent | undefined
-): HttpServerResponse =>
+export const empty = (options?: Options.WithContent | undefined): HttpServerResponse =>
   makeResponse({
     status: options?.status ?? 204,
     statusText: options?.statusText,
@@ -90,17 +88,12 @@ export const empty = (
  * @since 4.0.0
  * @category constructors
  */
-export const redirect = (
-  location: string | URL,
-  options?: Options.WithContent | undefined
-): HttpServerResponse => {
+export const redirect = (location: string | URL, options?: Options.WithContent | undefined): HttpServerResponse => {
   const headers = Headers.fromRecordUnsafe({ location: location.toString() })
   return makeResponse({
     status: options?.status ?? 302,
     statusText: options?.statusText,
-    headers: options?.headers
-      ? Headers.merge(headers, Headers.fromInput(options.headers))
-      : headers,
+    headers: options?.headers ? Headers.merge(headers, Headers.fromInput(options.headers)) : headers,
     cookies: options?.cookies ?? Cookies.empty
   })
 }
@@ -109,13 +102,8 @@ export const redirect = (
  * @since 4.0.0
  * @category constructors
  */
-export const uint8Array = (
-  body: Uint8Array,
-  options?: Options.WithContentType
-): HttpServerResponse => {
-  const headers = options?.headers
-    ? Headers.fromInput(options.headers)
-    : Headers.empty
+export const uint8Array = (body: Uint8Array, options?: Options.WithContentType): HttpServerResponse => {
+  const headers = options?.headers ? Headers.fromInput(options.headers) : Headers.empty
   return makeResponse({
     status: options?.status ?? 200,
     statusText: options?.statusText,
@@ -125,10 +113,7 @@ export const uint8Array = (
   })
 }
 
-const getContentType = (
-  options: Options | undefined,
-  headers: Headers.Headers
-): string | undefined => {
+const getContentType = (options: Options | undefined, headers: Headers.Headers): string | undefined => {
   if (options?.contentType) {
     return options.contentType
   } else if (options?.headers) {
@@ -140,13 +125,8 @@ const getContentType = (
  * @since 4.0.0
  * @category constructors
  */
-export const text = (
-  body: string,
-  options?: Options.WithContentType
-): HttpServerResponse => {
-  const headers = options?.headers
-    ? Headers.fromInput(options.headers)
-    : Headers.empty
+export const text = (body: string, options?: Options.WithContentType): HttpServerResponse => {
+  const headers = options?.headers ? Headers.fromInput(options.headers) : Headers.empty
   return makeResponse({
     status: options?.status ?? 200,
     statusText: options?.statusText,
@@ -164,16 +144,9 @@ export const html: {
   <A extends ReadonlyArray<Template.Interpolated>>(
     strings: TemplateStringsArray,
     ...args: A
-  ): Effect.Effect<
-    HttpServerResponse,
-    Template.Interpolated.Error<A[number]>,
-    Template.Interpolated.Context<A[number]>
-  >
+  ): Effect.Effect<HttpServerResponse, Template.Interpolated.Error<A[number]>, Template.Interpolated.Context<A[number]>>
   (html: string): HttpServerResponse
-} = (
-  strings: TemplateStringsArray | string,
-  ...args: ReadonlyArray<Template.Interpolated>
-) => {
+} = (strings: TemplateStringsArray | string, ...args: ReadonlyArray<Template.Interpolated>) => {
   if (typeof strings === "string") {
     return text(strings, { contentType: "text/html" })
   }
@@ -185,26 +158,14 @@ export const html: {
  * @since 4.0.0
  * @category constructors
  */
-export const htmlStream = <
-  A extends ReadonlyArray<Template.InterpolatedWithStream>
->(
+export const htmlStream = <A extends ReadonlyArray<Template.InterpolatedWithStream>>(
   strings: TemplateStringsArray,
   ...args: A
-): Effect.Effect<
-  HttpServerResponse,
-  never,
-  Template.Interpolated.Context<A[number]>
-> =>
-  Effect.map(
-    Effect.services<Template.Interpolated.Context<A[number]>>(),
-    (context) =>
-      stream(
-        Stream.provideServices(
-          Stream.encodeText(Template.stream(strings, ...args)),
-          context
-        ),
-        { contentType: "text/html" }
-      )
+): Effect.Effect<HttpServerResponse, never, Template.Interpolated.Context<A[number]>> =>
+  Effect.map(Effect.services<Template.Interpolated.Context<A[number]>>(), (context) =>
+    stream(Stream.provideServices(Stream.encodeText(Template.stream(strings, ...args)), context), {
+      contentType: "text/html"
+    })
   )
 
 /**
@@ -223,17 +184,15 @@ export const json = (
       headers,
       cookies: options?.cookies,
       body
-    }))
+    })
+  )
 }
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const schemaJson = <A, I, RD, RE>(
-  schema: Schema.Codec<A, I, RD, RE>,
-  options?: ParseOptions | undefined
-) => {
+export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, options?: ParseOptions | undefined) => {
   const encode = Body.jsonSchema(schema, options)
   return (
     body: A,
@@ -247,7 +206,8 @@ export const schemaJson = <A, I, RD, RE>(
         headers,
         cookies: options?.cookies,
         body
-      }))
+      })
+    )
   }
 }
 
@@ -255,10 +215,7 @@ export const schemaJson = <A, I, RD, RE>(
  * @since 4.0.0
  * @category constructors
  */
-export const jsonUnsafe = (
-  body: unknown,
-  options?: Options.WithContentType | undefined
-): HttpServerResponse => {
+export const jsonUnsafe = (body: unknown, options?: Options.WithContentType | undefined): HttpServerResponse => {
   const headers = options?.headers ? Headers.fromInput(options.headers) : Headers.empty
   return makeResponse({
     status: options?.status ?? 200,
@@ -273,10 +230,7 @@ export const jsonUnsafe = (
  * @since 4.0.0
  * @category constructors
  */
-export const urlParams = (
-  body: UrlParams.Input,
-  options?: Options.WithContentType | undefined
-): HttpServerResponse => {
+export const urlParams = (body: UrlParams.Input, options?: Options.WithContentType | undefined): HttpServerResponse => {
   const headers = options?.headers ? Headers.fromInput(options.headers) : Headers.empty
   return makeResponse({
     status: options?.status ?? 200,
@@ -294,10 +248,7 @@ export const urlParams = (
  * @since 4.0.0
  * @category constructors
  */
-export const raw = (
-  body: unknown,
-  options?: Options | undefined
-): HttpServerResponse =>
+export const raw = (body: unknown, options?: Options | undefined): HttpServerResponse =>
   makeResponse({
     status: options?.status ?? 200,
     statusText: options?.statusText,
@@ -313,10 +264,7 @@ export const raw = (
  * @since 4.0.0
  * @category constructors
  */
-export const formData = (
-  body: FormData,
-  options?: Options.WithContent | undefined
-): HttpServerResponse =>
+export const formData = (body: FormData, options?: Options.WithContent | undefined): HttpServerResponse =>
   makeResponse({
     status: options?.status ?? 200,
     statusText: options?.statusText,
@@ -329,30 +277,20 @@ export const formData = (
  * @since 4.0.0
  * @category constructors
  */
-export const stream = <E>(
-  body: Stream.Stream<Uint8Array, E>,
-  options?: Options | undefined
-): HttpServerResponse => {
-  const headers = options?.headers
-    ? Headers.fromInput(options.headers)
-    : Headers.empty
+export const stream = <E>(body: Stream.Stream<Uint8Array, E>, options?: Options | undefined): HttpServerResponse => {
+  const headers = options?.headers ? Headers.fromInput(options.headers) : Headers.empty
   return makeResponse({
     status: options?.status ?? 200,
     statusText: options?.statusText,
     headers,
     cookies: options?.cookies,
-    body: Body.stream(
-      body,
-      getContentType(options, headers),
-      options?.contentLength
-    )
+    body: Body.stream(body, getContentType(options, headers), options?.contentLength)
   })
 }
 
-const HttpPlatformKey = ServiceMap.Service<
-  HttpPlatform,
-  HttpPlatform["Service"]
->("effect/http/HttpPlatform" satisfies typeof HttpPlatform.key)
+const HttpPlatformKey = ServiceMap.Service<HttpPlatform, HttpPlatform["Service"]>(
+  "effect/http/HttpPlatform" satisfies typeof HttpPlatform.key
+)
 
 /**
  * @since 4.0.0
@@ -362,10 +300,10 @@ export const file = (
   path: string,
   options?:
     | (Options & {
-      readonly bytesToRead?: FileSystem.SizeInput | undefined
-      readonly chunkSize?: FileSystem.SizeInput | undefined
-      readonly offset?: FileSystem.SizeInput | undefined
-    })
+        readonly bytesToRead?: FileSystem.SizeInput | undefined
+        readonly chunkSize?: FileSystem.SizeInput | undefined
+        readonly offset?: FileSystem.SizeInput | undefined
+      })
     | undefined
 ): Effect.Effect<HttpServerResponse, PlatformError, HttpPlatform> =>
   Effect.flatMap(HttpPlatformKey.asEffect(), (platform) => platform.fileResponse(path, options))
@@ -378,10 +316,10 @@ export const fileWeb = (
   file: Body.HttpBody.FileLike,
   options?:
     | (Options.WithContent & {
-      readonly bytesToRead?: FileSystem.SizeInput | undefined
-      readonly chunkSize?: FileSystem.SizeInput | undefined
-      readonly offset?: FileSystem.SizeInput | undefined
-    })
+        readonly bytesToRead?: FileSystem.SizeInput | undefined
+        readonly chunkSize?: FileSystem.SizeInput | undefined
+        readonly offset?: FileSystem.SizeInput | undefined
+      })
     | undefined
 ): Effect.Effect<HttpServerResponse, never, HttpPlatform> =>
   Effect.flatMap(HttpPlatformKey.asEffect(), (platform) => platform.fileWebResponse(file, options))
@@ -391,10 +329,7 @@ export const fileWeb = (
  * @category combinators
  */
 export const setHeader: {
-  (
-    key: string,
-    value: string
-  ): (self: HttpServerResponse) => HttpServerResponse
+  (key: string, value: string): (self: HttpServerResponse) => HttpServerResponse
   (self: HttpServerResponse, key: string, value: string): HttpServerResponse
 } = dual(
   3,
@@ -458,9 +393,7 @@ export const setCookie: {
     name: string,
     value: string,
     options?: Cookies.Cookie["options"]
-  ): (
-    self: HttpServerResponse
-  ) => Effect.Effect<HttpServerResponse, Cookies.CookiesError>
+  ): (self: HttpServerResponse) => Effect.Effect<HttpServerResponse, Cookies.CookiesError>
   (
     self: HttpServerResponse,
     name: string,
@@ -475,13 +408,11 @@ export const setCookie: {
     value: string,
     options?: Cookies.Cookie["options"]
   ): Effect.Effect<HttpServerResponse, Cookies.CookiesError> =>
-    Effect.map(
-      Cookies.set(self.cookies, name, value, options).asEffect(),
-      (cookies) =>
-        makeResponse({
-          ...self,
-          cookies
-        })
+    Effect.map(Cookies.set(self.cookies, name, value, options).asEffect(), (cookies) =>
+      makeResponse({
+        ...self,
+        cookies
+      })
     )
 )
 
@@ -490,25 +421,11 @@ export const setCookie: {
  * @category combinators
  */
 export const setCookieUnsafe: {
-  (
-    name: string,
-    value: string,
-    options?: Cookies.Cookie["options"]
-  ): (self: HttpServerResponse) => HttpServerResponse
-  (
-    self: HttpServerResponse,
-    name: string,
-    value: string,
-    options?: Cookies.Cookie["options"]
-  ): HttpServerResponse
+  (name: string, value: string, options?: Cookies.Cookie["options"]): (self: HttpServerResponse) => HttpServerResponse
+  (self: HttpServerResponse, name: string, value: string, options?: Cookies.Cookie["options"]): HttpServerResponse
 } = dual(
   (args) => isHttpServerResponse(args[0]),
-  (
-    self: HttpServerResponse,
-    name: string,
-    value: string,
-    options?: Cookies.Cookie["options"]
-  ): HttpServerResponse =>
+  (self: HttpServerResponse, name: string, value: string, options?: Cookies.Cookie["options"]): HttpServerResponse =>
     makeResponse({
       ...self,
       cookies: Cookies.setUnsafe(self.cookies, name, value, options)
@@ -520,19 +437,11 @@ export const setCookieUnsafe: {
  * @category combinators
  */
 export const updateCookies: {
-  (
-    f: (cookies: Cookies.Cookies) => Cookies.Cookies
-  ): (self: HttpServerResponse) => HttpServerResponse
-  (
-    self: HttpServerResponse,
-    f: (cookies: Cookies.Cookies) => Cookies.Cookies
-  ): HttpServerResponse
+  (f: (cookies: Cookies.Cookies) => Cookies.Cookies): (self: HttpServerResponse) => HttpServerResponse
+  (self: HttpServerResponse, f: (cookies: Cookies.Cookies) => Cookies.Cookies): HttpServerResponse
 } = dual(
   2,
-  (
-    self: HttpServerResponse,
-    f: (cookies: Cookies.Cookies) => Cookies.Cookies
-  ): HttpServerResponse =>
+  (self: HttpServerResponse, f: (cookies: Cookies.Cookies) => Cookies.Cookies): HttpServerResponse =>
     makeResponse({
       ...self,
       cookies: f(self.cookies)
@@ -558,43 +467,24 @@ export const mergeCookies: {
  */
 export const setCookies: {
   (
-    cookies: Iterable<
-      readonly [
-        name: string,
-        value: string,
-        options?: Cookies.Cookie["options"]
-      ]
-    >
-  ): (
-    self: HttpServerResponse
-  ) => Effect.Effect<HttpServerResponse, Cookies.CookiesError, never>
+    cookies: Iterable<readonly [name: string, value: string, options?: Cookies.Cookie["options"]]>
+  ): (self: HttpServerResponse) => Effect.Effect<HttpServerResponse, Cookies.CookiesError, never>
   (
     self: HttpServerResponse,
-    cookies: Iterable<
-      readonly [
-        name: string,
-        value: string,
-        options?: Cookies.Cookie["options"]
-      ]
-    >
+    cookies: Iterable<readonly [name: string, value: string, options?: Cookies.Cookie["options"]]>
   ): Effect.Effect<HttpServerResponse, Cookies.CookiesError, never>
 } = dual(
   2,
   (
     self: HttpServerResponse,
-    cookies: Iterable<
-      readonly [
-        name: string,
-        value: string,
-        options?: Cookies.Cookie["options"]
-      ]
-    >
+    cookies: Iterable<readonly [name: string, value: string, options?: Cookies.Cookie["options"]]>
   ): Effect.Effect<HttpServerResponse, Cookies.CookiesError> =>
     Effect.map(Cookies.setAll(self.cookies, cookies).asEffect(), (cookies) =>
       makeResponse({
         ...self,
         cookies
-      }))
+      })
+    )
 )
 
 /**
@@ -603,35 +493,17 @@ export const setCookies: {
  */
 export const setCookiesUnsafe: {
   (
-    cookies: Iterable<
-      readonly [
-        name: string,
-        value: string,
-        options?: Cookies.Cookie["options"]
-      ]
-    >
+    cookies: Iterable<readonly [name: string, value: string, options?: Cookies.Cookie["options"]]>
   ): (self: HttpServerResponse) => HttpServerResponse
   (
     self: HttpServerResponse,
-    cookies: Iterable<
-      readonly [
-        name: string,
-        value: string,
-        options?: Cookies.Cookie["options"]
-      ]
-    >
+    cookies: Iterable<readonly [name: string, value: string, options?: Cookies.Cookie["options"]]>
   ): HttpServerResponse
 } = dual(
   2,
   (
     self: HttpServerResponse,
-    cookies: Iterable<
-      readonly [
-        name: string,
-        value: string,
-        options?: Cookies.Cookie["options"]
-      ]
-    >
+    cookies: Iterable<readonly [name: string, value: string, options?: Cookies.Cookie["options"]]>
   ): HttpServerResponse =>
     makeResponse({
       ...self,
@@ -646,32 +518,18 @@ export const setCookiesUnsafe: {
 export const setBody: {
   (body: Body.HttpBody): (self: HttpServerResponse) => HttpServerResponse
   (self: HttpServerResponse, body: Body.HttpBody): HttpServerResponse
-} = dual(
-  2,
-  (self: HttpServerResponse, body: Body.HttpBody): HttpServerResponse => makeResponse({ ...self, body })
-)
+} = dual(2, (self: HttpServerResponse, body: Body.HttpBody): HttpServerResponse => makeResponse({ ...self, body }))
 
 /**
  * @since 4.0.0
  * @category combinators
  */
 export const setStatus: {
-  (
-    status: number,
-    statusText?: string | undefined
-  ): (self: HttpServerResponse) => HttpServerResponse
-  (
-    self: HttpServerResponse,
-    status: number,
-    statusText?: string | undefined
-  ): HttpServerResponse
+  (status: number, statusText?: string | undefined): (self: HttpServerResponse) => HttpServerResponse
+  (self: HttpServerResponse, status: number, statusText?: string | undefined): HttpServerResponse
 } = dual(
   (args) => isHttpServerResponse(args[0]),
-  (
-    self: HttpServerResponse,
-    status: number,
-    statusText?: string | undefined
-  ): HttpServerResponse =>
+  (self: HttpServerResponse, status: number, statusText?: string | undefined): HttpServerResponse =>
     makeResponse({
       ...self,
       status,
@@ -735,25 +593,16 @@ export const toWeb = (
       })
     }
     case "Stream": {
-      return new Response(
-        Stream.toReadableStreamWith(
-          body.stream,
-          options?.services ?? ServiceMap.empty()
-        ),
-        {
-          status: response.status,
-          statusText: response.statusText!,
-          headers
-        }
-      )
+      return new Response(Stream.toReadableStreamWith(body.stream, options?.services ?? ServiceMap.empty()), {
+        status: response.status,
+        statusText: response.statusText!,
+        headers
+      })
     }
   }
 }
 
-const Proto: Omit<
-  HttpServerResponse,
-  "status" | "statusText" | "headers" | "cookies" | "body"
-> = {
+const Proto: Omit<HttpServerResponse, "status" | "statusText" | "headers" | "cookies" | "body"> = {
   ...PipeInspectableProto,
   [TypeId]: TypeId,
   toJSON(this: HttpServerResponse) {
@@ -780,10 +629,7 @@ const makeResponse = (options: {
   self.statusText = options.statusText
   self.cookies = options.cookies ?? Cookies.empty
   self.body = options.body ?? Body.empty
-  if (
-    self.body._tag !== "Empty" &&
-    (self.body.contentType || self.body.contentLength)
-  ) {
+  if (self.body._tag !== "Empty" && (self.body.contentType || self.body.contentLength)) {
     const newHeaders = Headers.fromRecordUnsafe({ ...options.headers }) as any
     if (self.body.contentType) {
       newHeaders["content-type"] = self.body.contentType
@@ -815,10 +661,12 @@ export const fromWeb = (response: Response): HttpServerResponse => {
   if (response.body) {
     self = setBody(
       self,
-      Body.stream(Stream.fromReadableStream({
-        evaluate: () => response.body!,
-        onError: (e) => e
-      }))
+      Body.stream(
+        Stream.fromReadableStream({
+          evaluate: () => response.body!,
+          onError: (e) => e
+        })
+      )
     )
   }
   return self

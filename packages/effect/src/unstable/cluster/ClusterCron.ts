@@ -65,7 +65,7 @@ export const make = <E, R>(options: {
 
   const InitialRun = Singleton.make(
     `ClusterCron/${options.name}`,
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const now = yield* DateTime.now
       const next = DateTime.fromDateUnsafe(Cron.next(options.cron, now))
       const entityId = options.calculateNextRunFromPrevious ? "initial" : DateTime.formatIso(next)
@@ -80,7 +80,7 @@ export const make = <E, R>(options: {
     Option.getOrElse(() => Duration.days(1))
   )
 
-  const effect = Effect.fnUntraced(function*(dateTime: DateTime.Utc) {
+  const effect = Effect.fnUntraced(function* (dateTime: DateTime.Utc) {
     const now = yield* DateTime.now
     if (DateTime.isLessThan(dateTime, DateTime.subtractDuration(now, skipIfOlderThan))) {
       return
@@ -88,43 +88,44 @@ export const make = <E, R>(options: {
     return yield* options.execute
   }, Effect.orDie)
 
-  const EntityLayer = CronEntity.toLayer(Effect.gen(function*() {
-    const makeClient = yield* CronEntity.client
-    return {
-      run: (request) =>
-        effect(request.payload.dateTime).pipe(
-          Effect.onExitInterruptible(Effect.fnUntraced(function*(exit) {
-            if (Exit.isFailure(exit)) {
-              yield* Effect.logWarning(exit.cause)
-            }
-            const now = yield* DateTime.now
-            const next = DateTime.fromDateUnsafe(Cron.next(
-              options.cron,
-              options.calculateNextRunFromPrevious ? request.payload.dateTime : now
-            ))
-            const client = makeClient(DateTime.formatIso(next))
-            return yield* client.run({ dateTime: next }, { discard: true }).pipe(
-              Effect.tapCause((cause) => Effect.logWarning("Failed to schedule next run, retrying", cause)),
-              Effect.sandbox,
-              Effect.retry(retryPolicy),
-              Effect.orDie
-            )
-          })),
-          Effect.annotateLogs({
-            module: "effect/cluster/ClusterCron",
-            name: options.name,
-            dateTime: request.payload.dateTime
-          })
-        )
-    }
-  }))
+  const EntityLayer = CronEntity.toLayer(
+    Effect.gen(function* () {
+      const makeClient = yield* CronEntity.client
+      return {
+        run: (request) =>
+          effect(request.payload.dateTime).pipe(
+            Effect.onExitInterruptible(
+              Effect.fnUntraced(function* (exit) {
+                if (Exit.isFailure(exit)) {
+                  yield* Effect.logWarning(exit.cause)
+                }
+                const now = yield* DateTime.now
+                const next = DateTime.fromDateUnsafe(
+                  Cron.next(options.cron, options.calculateNextRunFromPrevious ? request.payload.dateTime : now)
+                )
+                const client = makeClient(DateTime.formatIso(next))
+                return yield* client.run({ dateTime: next }, { discard: true }).pipe(
+                  Effect.tapCause((cause) => Effect.logWarning("Failed to schedule next run, retrying", cause)),
+                  Effect.sandbox,
+                  Effect.retry(retryPolicy),
+                  Effect.orDie
+                )
+              })
+            ),
+            Effect.annotateLogs({
+              module: "effect/cluster/ClusterCron",
+              name: options.name,
+              dateTime: request.payload.dateTime
+            })
+          )
+      }
+    })
+  )
 
   return Layer.merge(InitialRun, EntityLayer)
 }
 
-const retryPolicy = Schedule.exponential(200, 1.5).pipe(
-  Schedule.either(Schedule.spaced("1 minute"))
-)
+const retryPolicy = Schedule.exponential(200, 1.5).pipe(Schedule.either(Schedule.spaced("1 minute")))
 
 class CronPayload extends Schema.Class<CronPayload>("effect/cluster/ClusterCron/CronPayload")({
   dateTime: Schema.DateTimeUtc

@@ -10,7 +10,7 @@ import type { ResourceMap } from "./resourceMap.ts"
 
 /** @internal */
 export class EntityReaper extends ServiceMap.Service<EntityReaper>()("effect/cluster/EntityReaper", {
-  make: Effect.gen(function*() {
+  make: Effect.gen(function* () {
     let currentResolution = 30_000
     const registered: Array<{
       readonly maxIdleTime: number
@@ -31,7 +31,7 @@ export class EntityReaper extends ServiceMap.Service<EntityReaper>()("effect/clu
       })
 
     const clock = yield* Clock
-    yield* Effect.gen(function*() {
+    yield* Effect.gen(function* () {
       while (true) {
         yield* Effect.sleep(currentResolution)
         const now = clock.currentTimeMillisUnsafe()
@@ -45,10 +45,7 @@ export class EntityReaper extends ServiceMap.Service<EntityReaper>()("effect/clu
           }
         }
       }
-    }).pipe(
-      latch.whenOpen,
-      Effect.forkScoped
-    )
+    }).pipe(latch.whenOpen, Effect.forkScoped)
 
     return { register } as const
   })

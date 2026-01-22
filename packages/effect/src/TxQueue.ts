@@ -52,16 +52,16 @@ import type * as Types from "./Types.ts"
  */
 export type State<_A, E> =
   | {
-    readonly _tag: "Open"
-  }
+      readonly _tag: "Open"
+    }
   | {
-    readonly _tag: "Closing"
-    readonly cause: Cause.Cause<E>
-  }
+      readonly _tag: "Closing"
+      readonly cause: Cause.Cause<E>
+    }
   | {
-    readonly _tag: "Done"
-    readonly cause: Cause.Cause<E>
-  }
+      readonly _tag: "Done"
+      readonly cause: Cause.Cause<E>
+    }
 
 const EnqueueTypeId = "~effect/transactions/TxQueue/Enqueue"
 const DequeueTypeId = "~effect/transactions/TxQueue/Dequeue"
@@ -404,7 +404,7 @@ const TxQueueProto = {
  * @category constructors
  */
 export const bounded = <A = never, E = never>(capacity: number): Effect.Effect<TxQueue<A, E>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const items = yield* TxChunk.empty<A>()
     const stateRef = yield* TxRef.make<State<A, E>>({ _tag: "Open" })
 
@@ -446,7 +446,7 @@ export const bounded = <A = never, E = never>(capacity: number): Effect.Effect<T
  * @category constructors
  */
 export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const items = yield* TxChunk.empty<A>()
     const stateRef = yield* TxRef.make<State<A, E>>({ _tag: "Open" })
 
@@ -486,7 +486,7 @@ export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> 
  * @category constructors
  */
 export const dropping = <A = never, E = never>(capacity: number): Effect.Effect<TxQueue<A, E>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const items = yield* TxChunk.empty<A>()
     const stateRef = yield* TxRef.make<State<A, E>>({ _tag: "Open" })
 
@@ -528,7 +528,7 @@ export const dropping = <A = never, E = never>(capacity: number): Effect.Effect<
  * @category constructors
  */
 export const sliding = <A = never, E = never>(capacity: number): Effect.Effect<TxQueue<A, E>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const items = yield* TxChunk.empty<A>()
     const stateRef = yield* TxRef.make<State<A, E>>({ _tag: "Open" })
 
@@ -569,43 +569,46 @@ export const sliding = <A = never, E = never>(capacity: number): Effect.Effect<T
 export const offer: {
   <A, E>(value: A): (self: TxEnqueue<A, E>) => Effect.Effect<boolean>
   <A, E>(self: TxEnqueue<A, E>, value: A): Effect.Effect<boolean>
-} = dual(2, <A, E>(self: TxEnqueue<A, E>, value: A): Effect.Effect<boolean> =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const state = yield* TxRef.get(self.stateRef)
-      if (state._tag === "Done" || state._tag === "Closing") {
-        return false
-      }
+} = dual(
+  2,
+  <A, E>(self: TxEnqueue<A, E>, value: A): Effect.Effect<boolean> =>
+    Effect.atomic(
+      Effect.gen(function* () {
+        const state = yield* TxRef.get(self.stateRef)
+        if (state._tag === "Done" || state._tag === "Closing") {
+          return false
+        }
 
-      const currentSize = yield* size(self)
+        const currentSize = yield* size(self)
 
-      // Unbounded - always accept
-      if (self.strategy === "unbounded") {
-        yield* TxChunk.append(self.items, value)
-        return true
-      }
+        // Unbounded - always accept
+        if (self.strategy === "unbounded") {
+          yield* TxChunk.append(self.items, value)
+          return true
+        }
 
-      // For bounded queues, check capacity
-      if (currentSize < self.capacity) {
-        yield* TxChunk.append(self.items, value)
-        return true
-      }
+        // For bounded queues, check capacity
+        if (currentSize < self.capacity) {
+          yield* TxChunk.append(self.items, value)
+          return true
+        }
 
-      // Queue is at capacity, strategy-specific behavior
-      if (self.strategy === "dropping") {
-        return false // Drop the new item
-      }
+        // Queue is at capacity, strategy-specific behavior
+        if (self.strategy === "dropping") {
+          return false // Drop the new item
+        }
 
-      if (self.strategy === "sliding") {
-        yield* TxChunk.drop(self.items, 1) // Remove oldest item
-        yield* TxChunk.append(self.items, value) // Add new item
-        return true
-      }
+        if (self.strategy === "sliding") {
+          yield* TxChunk.drop(self.items, 1) // Remove oldest item
+          yield* TxChunk.append(self.items, value) // Add new item
+          return true
+        }
 
-      // bounded strategy - block until space is available
-      return yield* Effect.retryTransaction
-    })
-  ))
+        // bounded strategy - block until space is available
+        return yield* Effect.retryTransaction
+      })
+    )
+)
 
 /**
  * Offers multiple items to the queue.
@@ -639,7 +642,7 @@ export const offerAll: {
   2,
   <A, E>(self: TxEnqueue<A, E>, values: Iterable<A>): Effect.Effect<Array<A>> =>
     Effect.atomic(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const rejected: Array<A> = []
 
         for (const value of values) {
@@ -684,7 +687,7 @@ export const offerAll: {
  */
 export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const state = yield* TxRef.get(self.stateRef)
 
       // Check if queue is done - forward the cause directly
@@ -740,7 +743,7 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  */
 export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A>> =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const state = yield* TxRef.get(self.stateRef)
       if (state._tag === "Done") {
         return Option.none()
@@ -799,7 +802,7 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  */
 export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmptyArray<A>, E> =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const state = yield* TxRef.get(self.stateRef)
 
       // Handle done queue
@@ -869,7 +872,7 @@ export const takeN: {
   2,
   <A, E>(self: TxDequeue<A, E>, n: number): Effect.Effect<Array<A>, E> =>
     Effect.atomic(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const state = yield* TxRef.get(self.stateRef)
 
         // Check if queue is done - forward the cause directly
@@ -959,7 +962,7 @@ export const takeBetween: {
   3,
   <A, E>(self: TxDequeue<A, E>, min: number, max: number): Effect.Effect<Array<A>, E> =>
     Effect.atomic(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const state = yield* TxRef.get(self.stateRef)
 
         // Check if queue is done - forward the cause directly
@@ -1047,7 +1050,7 @@ export const takeBetween: {
  */
 export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const state = yield* TxRef.get(self.stateRef)
       if (state._tag === "Done") {
         return yield* Effect.failCause(state.cause)
@@ -1131,7 +1134,7 @@ export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.i
  * @category combinators
  */
 export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     if (self.capacity === Number.POSITIVE_INFINITY) {
       return false
     }
@@ -1190,22 +1193,25 @@ export const interrupt = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =
 export const fail: {
   <E>(error: E): <A>(self: TxEnqueue<A, E>) => Effect.Effect<boolean>
   <A, E>(self: TxEnqueue<A, E>, error: E): Effect.Effect<boolean>
-} = dual(2, <A, E>(self: TxEnqueue<A, E>, error: E): Effect.Effect<boolean> =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const state = yield* TxRef.get(self.stateRef)
+} = dual(
+  2,
+  <A, E>(self: TxEnqueue<A, E>, error: E): Effect.Effect<boolean> =>
+    Effect.atomic(
+      Effect.gen(function* () {
+        const state = yield* TxRef.get(self.stateRef)
 
-      if (state._tag !== "Open") {
-        return false // Already closing/done
-      }
+        if (state._tag !== "Open") {
+          return false // Already closing/done
+        }
 
-      // Fail transitions directly to Done, clearing items
-      yield* TxChunk.set(self.items, Chunk.empty())
-      yield* TxRef.set(self.stateRef, { _tag: "Done", cause: Cause.fail(error) })
+        // Fail transitions directly to Done, clearing items
+        yield* TxChunk.set(self.items, Chunk.empty())
+        yield* TxRef.set(self.stateRef, { _tag: "Done", cause: Cause.fail(error) })
 
-      return true
-    })
-  ))
+        return true
+      })
+    )
+)
 
 /**
  * Completes the queue with the specified exit value.
@@ -1233,26 +1239,29 @@ export const fail: {
 export const failCause: {
   <E>(cause: Cause.Cause<E>): <A>(self: TxEnqueue<A, E>) => Effect.Effect<boolean>
   <A, E>(self: TxEnqueue<A, E>, cause: Cause.Cause<E>): Effect.Effect<boolean>
-} = dual(2, <A, E>(self: TxEnqueue<A, E>, cause: Cause.Cause<E>): Effect.Effect<boolean> =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const state = yield* TxRef.get(self.stateRef)
+} = dual(
+  2,
+  <A, E>(self: TxEnqueue<A, E>, cause: Cause.Cause<E>): Effect.Effect<boolean> =>
+    Effect.atomic(
+      Effect.gen(function* () {
+        const state = yield* TxRef.get(self.stateRef)
 
-      if (state._tag !== "Open") {
-        return false // Already closing/done
-      }
+        if (state._tag !== "Open") {
+          return false // Already closing/done
+        }
 
-      if (yield* isEmpty(self)) {
-        // Can transition directly to Done
-        yield* TxRef.set(self.stateRef, { _tag: "Done", cause })
-      } else {
-        // Need to go through Closing state
-        yield* TxRef.set(self.stateRef, { _tag: "Closing", cause })
-      }
+        if (yield* isEmpty(self)) {
+          // Can transition directly to Done
+          yield* TxRef.set(self.stateRef, { _tag: "Done", cause })
+        } else {
+          // Need to go through Closing state
+          yield* TxRef.set(self.stateRef, { _tag: "Closing", cause })
+        }
 
-      return true
-    })
-  ))
+        return true
+      })
+    )
+)
 
 /**
  * Ends a queue by signaling completion with a Done error.
@@ -1322,7 +1331,7 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boo
  */
 export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, ExcludeDone<E>> =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const state = yield* TxRef.get(self.stateRef)
       if (state._tag === "Done") {
         // Return empty array only for halt causes (like Cause.Done)
@@ -1373,7 +1382,7 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, Excl
  */
 export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       yield* Effect.ignore(clear(self))
       return yield* interrupt(self)
     })
@@ -1402,7 +1411,7 @@ export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
  * @category combinators
  */
 export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const state = yield* TxRef.get(self.stateRef)
     return state._tag === "Open"
   })
@@ -1431,7 +1440,7 @@ export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
  * @category combinators
  */
 export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const state = yield* TxRef.get(self.stateRef)
     return state._tag === "Closing"
   })
@@ -1459,7 +1468,7 @@ export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
  * @category combinators
  */
 export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const state = yield* TxRef.get(self.stateRef)
     return state._tag === "Done"
   })
@@ -1512,7 +1521,7 @@ export const isShutdown = (self: TxQueueState): Effect.Effect<boolean> => isDone
  */
 export const awaitCompletion = (self: TxQueueState): Effect.Effect<void> =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const state = yield* TxRef.get(self.stateRef)
 
       if (state._tag === "Done") {

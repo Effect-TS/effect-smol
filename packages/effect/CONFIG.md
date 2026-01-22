@@ -238,7 +238,7 @@ import { ConfigProvider } from "effect"
 
 const provider = ConfigProvider.fromEnv({ env: { DATABASE_HOST: "localhost" } })
 
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   const provider = yield* ConfigProvider.ConfigProvider
   const host = yield* provider.load(["DATABASE_HOST"])
   console.log(host)
@@ -292,7 +292,7 @@ const env = {
 const configProvider = ConfigProvider.fromEnv({ env })
 
 // Program that reads the typed configuration once and logs it.
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   // `yield* config` runs the decoding using the active provider.
   const c = yield* config
   console.dir(c)
@@ -340,7 +340,7 @@ const config = Config.schema(Schema.String)
 // Provide a single value at the root
 const configProvider = ConfigProvider.fromJson("value")
 
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   const c = yield* config
   console.dir(c)
 }).pipe(
@@ -374,7 +374,7 @@ const config = Config.schema(Schema.String, "a")
 
 const configProvider = ConfigProvider.fromJson({ a: "value" })
 
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   const c = yield* config
   console.dir(c)
 }).pipe(
@@ -408,7 +408,7 @@ const config = Config.schema(Schema.String, ["a", "b"])
 
 const configProvider = ConfigProvider.fromJson({ a: { b: "value" } })
 
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   const c = yield* config
   console.dir(c)
 }).pipe(

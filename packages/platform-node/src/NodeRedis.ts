@@ -14,16 +14,20 @@ import * as IoRedis from "ioredis"
  * @since 1.0.0
  * @category Service
  */
-export class NodeRedis extends ServiceMap.Service<NodeRedis, {
-  readonly client: IoRedis.Redis
-  readonly use: <A>(f: (client: IoRedis.Redis) => Promise<A>) => Effect.Effect<A, Redis.RedisError>
-}>()("@effect/platform-node/NodeRedis") {}
+export class NodeRedis extends ServiceMap.Service<
+  NodeRedis,
+  {
+    readonly client: IoRedis.Redis
+    readonly use: <A>(f: (client: IoRedis.Redis) => Promise<A>) => Effect.Effect<A, Redis.RedisError>
+  }
+>()("@effect/platform-node/NodeRedis") {}
 
-const make = Effect.fnUntraced(function*(
-  options?: IoRedis.RedisOptions
-) {
+const make = Effect.fnUntraced(function* (options?: IoRedis.RedisOptions) {
   const scope = yield* Effect.scope
-  yield* Scope.addFinalizer(scope, Effect.promise(() => client.quit()))
+  yield* Scope.addFinalizer(
+    scope,
+    Effect.promise(() => client.quit())
+  )
   const client = new IoRedis.Redis(options ?? {})
 
   const use = <A>(f: (client: IoRedis.Redis) => Promise<A>) =>
@@ -45,18 +49,15 @@ const make = Effect.fnUntraced(function*(
     use
   })
 
-  return ServiceMap.make(NodeRedis, nodeRedis).pipe(
-    ServiceMap.add(Redis.Redis, redis)
-  )
+  return ServiceMap.make(NodeRedis, nodeRedis).pipe(ServiceMap.add(Redis.Redis, redis))
 })
 
 /**
  * @since 1.0.0
  * @category Layers
  */
-export const layer = (
-  options?: IoRedis.RedisOptions | undefined
-): Layer.Layer<Redis.Redis | NodeRedis> => Layer.effectServices(make(options))
+export const layer = (options?: IoRedis.RedisOptions | undefined): Layer.Layer<Redis.Redis | NodeRedis> =>
+  Layer.effectServices(make(options))
 
 /**
  * @since 1.0.0
@@ -67,8 +68,4 @@ export const layerConfig: (
 ) => Layer.Layer<Redis.Redis | NodeRedis, Config.ConfigError> = (
   options: Config.Wrap<IoRedis.RedisOptions>
 ): Layer.Layer<Redis.Redis | NodeRedis, Config.ConfigError> =>
-  Layer.effectServices(
-    Config.unwrap(options).asEffect().pipe(
-      Effect.flatMap(make)
-    )
-  )
+  Layer.effectServices(Config.unwrap(options).asEffect().pipe(Effect.flatMap(make)))

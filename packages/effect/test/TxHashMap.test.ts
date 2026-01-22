@@ -4,17 +4,18 @@ import { Effect, Hash, HashMap, Option, TxHashMap } from "effect"
 describe("TxHashMap", () => {
   describe("constructors", () => {
     it.effect("empty", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.empty<string, number>()
         const isEmpty = yield* TxHashMap.isEmpty(txMap)
         const size = yield* TxHashMap.size(txMap)
 
         assert.strictEqual(isEmpty, true)
         assert.strictEqual(size, 0)
-      }))
+      })
+    )
 
     it.effect("make", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2], ["c", 3])
         const size = yield* TxHashMap.size(txMap)
         const a = yield* TxHashMap.get(txMap, "a")
@@ -25,11 +26,16 @@ describe("TxHashMap", () => {
         assert.deepStrictEqual(a, Option.some(1))
         assert.deepStrictEqual(b, Option.some(2))
         assert.deepStrictEqual(c, Option.some(3))
-      }))
+      })
+    )
 
     it.effect("fromIterable", () =>
-      Effect.gen(function*() {
-        const entries = [["a", 1], ["b", 2], ["c", 3]] as const
+      Effect.gen(function* () {
+        const entries = [
+          ["a", 1],
+          ["b", 2],
+          ["c", 3]
+        ] as const
         const txMap = yield* TxHashMap.fromIterable(entries)
         const size = yield* TxHashMap.size(txMap)
         const a = yield* TxHashMap.get(txMap, "a")
@@ -40,48 +46,53 @@ describe("TxHashMap", () => {
         assert.deepStrictEqual(a, Option.some(1))
         assert.deepStrictEqual(b, Option.some(2))
         assert.deepStrictEqual(c, Option.some(3))
-      }))
+      })
+    )
   })
 
   describe("basic operations", () => {
     it.effect("get - existing key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         const a = yield* TxHashMap.get(txMap, "a")
         const b = yield* TxHashMap.get(txMap, "b")
 
         assert.deepStrictEqual(a, Option.some(1))
         assert.deepStrictEqual(b, Option.some(2))
-      }))
+      })
+    )
 
     it.effect("get - non-existing key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         const c = yield* TxHashMap.get(txMap, "c")
 
         assert.deepStrictEqual(c, Option.none())
-      }))
+      })
+    )
 
     it.effect("has - existing key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         const hasA = yield* TxHashMap.has(txMap, "a")
         const hasB = yield* TxHashMap.has(txMap, "b")
 
         assert.strictEqual(hasA, true)
         assert.strictEqual(hasB, true)
-      }))
+      })
+    )
 
     it.effect("has - non-existing key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         const hasC = yield* TxHashMap.has(txMap, "c")
 
         assert.strictEqual(hasC, false)
-      }))
+      })
+    )
 
     it.effect("set - new key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         yield* TxHashMap.set(txMap, "c", 3)
 
@@ -90,10 +101,11 @@ describe("TxHashMap", () => {
 
         assert.strictEqual(size, 3)
         assert.deepStrictEqual(c, Option.some(3))
-      }))
+      })
+    )
 
     it.effect("set - existing key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         yield* TxHashMap.set(txMap, "a", 10)
 
@@ -102,10 +114,11 @@ describe("TxHashMap", () => {
 
         assert.strictEqual(size, 2) // size unchanged
         assert.deepStrictEqual(a, Option.some(10))
-      }))
+      })
+    )
 
     it.effect("remove - existing key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2], ["c", 3])
         const removed = yield* TxHashMap.remove(txMap, "b")
 
@@ -115,10 +128,11 @@ describe("TxHashMap", () => {
         assert.strictEqual(removed, true)
         assert.strictEqual(size, 2)
         assert.strictEqual(hasB, false)
-      }))
+      })
+    )
 
     it.effect("remove - non-existing key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         const removed = yield* TxHashMap.remove(txMap, "c")
 
@@ -126,10 +140,11 @@ describe("TxHashMap", () => {
 
         assert.strictEqual(removed, false)
         assert.strictEqual(size, 2)
-      }))
+      })
+    )
 
     it.effect("clear", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2], ["c", 3])
         yield* TxHashMap.clear(txMap)
 
@@ -138,12 +153,13 @@ describe("TxHashMap", () => {
 
         assert.strictEqual(size, 0)
         assert.strictEqual(isEmpty, true)
-      }))
+      })
+    )
   })
 
   describe("query operations", () => {
     it.effect("size", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const empty = yield* TxHashMap.empty<string, number>()
         const small = yield* TxHashMap.make(["a", 1])
         const large = yield* TxHashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
@@ -151,50 +167,55 @@ describe("TxHashMap", () => {
         assert.strictEqual(yield* TxHashMap.size(empty), 0)
         assert.strictEqual(yield* TxHashMap.size(small), 1)
         assert.strictEqual(yield* TxHashMap.size(large), 4)
-      }))
+      })
+    )
 
     it.effect("isEmpty", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const empty = yield* TxHashMap.empty<string, number>()
         const nonEmpty = yield* TxHashMap.make(["a", 1])
 
         assert.strictEqual(yield* TxHashMap.isEmpty(empty), true)
         assert.strictEqual(yield* TxHashMap.isEmpty(nonEmpty), false)
-      }))
+      })
+    )
 
     it.effect("isNonEmpty", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const empty = yield* TxHashMap.empty<string, number>()
         const nonEmpty = yield* TxHashMap.make(["a", 1])
 
         assert.strictEqual(yield* TxHashMap.isNonEmpty(empty), false)
         assert.strictEqual(yield* TxHashMap.isNonEmpty(nonEmpty), true)
-      }))
+      })
+    )
   })
 
   describe("advanced operations", () => {
     it.effect("modify - existing key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["counter", 5])
         const oldValue = yield* TxHashMap.modify(txMap, "counter", (n) => n * 2)
         const newValue = yield* TxHashMap.get(txMap, "counter")
 
         assert.deepStrictEqual(oldValue, Option.some(5))
         assert.deepStrictEqual(newValue, Option.some(10))
-      }))
+      })
+    )
 
     it.effect("modify - non-existing key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.empty<string, number>()
         const oldValue = yield* TxHashMap.modify(txMap, "counter", (n) => n * 2)
         const size = yield* TxHashMap.size(txMap)
 
         assert.deepStrictEqual(oldValue, Option.none())
         assert.strictEqual(size, 0)
-      }))
+      })
+    )
 
     it.effect("modifyAt - insert new value", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1])
         yield* TxHashMap.modifyAt(txMap, "b", () => Option.some(2))
 
@@ -203,10 +224,11 @@ describe("TxHashMap", () => {
 
         assert.strictEqual(size, 2)
         assert.deepStrictEqual(b, Option.some(2))
-      }))
+      })
+    )
 
     it.effect("modifyAt - remove existing value", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         yield* TxHashMap.modifyAt(txMap, "a", () => Option.none())
 
@@ -215,34 +237,41 @@ describe("TxHashMap", () => {
 
         assert.strictEqual(size, 1)
         assert.strictEqual(hasA, false)
-      }))
+      })
+    )
 
     it.effect("keys", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2], ["c", 3])
         const keys = yield* TxHashMap.keys(txMap)
 
         assert.deepStrictEqual(keys.sort(), ["a", "b", "c"])
-      }))
+      })
+    )
 
     it.effect("values", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2], ["c", 3])
         const values = yield* TxHashMap.values(txMap)
 
         assert.deepStrictEqual(values.sort(), [1, 2, 3])
-      }))
+      })
+    )
 
     it.effect("entries", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         const entries = yield* TxHashMap.entries(txMap)
 
-        assert.deepStrictEqual(entries.sort(), [["a", 1], ["b", 2]])
-      }))
+        assert.deepStrictEqual(entries.sort(), [
+          ["a", 1],
+          ["b", 2]
+        ])
+      })
+    )
 
     it.effect("snapshot", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         const snapshot = yield* TxHashMap.snapshot(txMap)
 
@@ -257,12 +286,13 @@ describe("TxHashMap", () => {
 
         // Original should be modified
         assert.strictEqual(yield* TxHashMap.size(txMap), 3)
-      }))
+      })
+    )
   })
 
   describe("bulk operations", () => {
     it.effect("union", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
         const other = HashMap.make(["b", 20], ["c", 3]) // "b" should be overwritten
 
@@ -277,10 +307,11 @@ describe("TxHashMap", () => {
         assert.deepStrictEqual(a, Option.some(1))
         assert.deepStrictEqual(b, Option.some(20)) // overwritten
         assert.deepStrictEqual(c, Option.some(3))
-      }))
+      })
+    )
 
     it.effect("removeMany", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
         yield* TxHashMap.removeMany(txMap, ["b", "d"])
 
@@ -295,12 +326,17 @@ describe("TxHashMap", () => {
         assert.strictEqual(hasB, false)
         assert.strictEqual(hasC, true)
         assert.strictEqual(hasD, false)
-      }))
+      })
+    )
 
     it.effect("setMany", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
-        const newEntries = [["c", 3], ["d", 4], ["a", 10]] as const // "a" should be overwritten
+        const newEntries = [
+          ["c", 3],
+          ["d", 4],
+          ["a", 10]
+        ] as const // "a" should be overwritten
 
         yield* TxHashMap.setMany(txMap, newEntries)
 
@@ -315,12 +351,13 @@ describe("TxHashMap", () => {
         assert.deepStrictEqual(b, Option.some(2)) // preserved
         assert.deepStrictEqual(c, Option.some(3)) // new
         assert.deepStrictEqual(d, Option.some(4)) // new
-      }))
+      })
+    )
   })
 
   describe("transactional semantics", () => {
     it.effect("single operations are automatically transactional", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["counter", 0])
 
         // These operations should be individually atomic
@@ -329,10 +366,11 @@ describe("TxHashMap", () => {
 
         const result = yield* TxHashMap.get(txMap, "counter")
         assert.deepStrictEqual(result, Option.some(2))
-      }))
+      })
+    )
 
     it.effect("multi-step operations", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
 
         // Multi-step operations
@@ -352,12 +390,13 @@ describe("TxHashMap", () => {
         assert.strictEqual(hasB, false)
         assert.deepStrictEqual(c, Option.some(3))
         assert.strictEqual(size, 2)
-      }))
+      })
+    )
   })
 
   describe("pipe syntax", () => {
     it.effect("supports data-last operations", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.empty<string, number>()
 
         // Test data-last pipe operations
@@ -369,12 +408,13 @@ describe("TxHashMap", () => {
 
         assert.deepStrictEqual(result, Option.some(1))
         assert.strictEqual(size, 2)
-      }))
+      })
+    )
   })
 
   describe("Phase 1: Essential Functions", () => {
     it.effect("isTxHashMap should correctly identify TxHashMap instances", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["key", "value"])
 
         // Positive cases
@@ -388,10 +428,11 @@ describe("TxHashMap", () => {
         assert.strictEqual(TxHashMap.isTxHashMap(42), false)
         assert.strictEqual(TxHashMap.isTxHashMap([]), false)
         assert.strictEqual(TxHashMap.isTxHashMap(new Map()), false)
-      }))
+      })
+    )
 
     it.effect("getHash should lookup values using custom hash", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["user123", { name: "Alice", role: "admin" }],
           ["user456", { name: "Bob", role: "user" }]
@@ -415,10 +456,11 @@ describe("TxHashMap", () => {
         // Test with wrong hash (may not find the value due to hash mismatch)
         const wrongHash = yield* TxHashMap.getHash(txMap, userId, Hash.string("different"))
         assert.deepStrictEqual(wrongHash, Option.none())
-      }))
+      })
+    )
 
     it.effect("hasHash should check existence using custom hash", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["admin", { read: true, write: true }],
           ["user", { read: true, write: false }]
@@ -443,10 +485,11 @@ describe("TxHashMap", () => {
         const emptyMap = yield* TxHashMap.empty<string, { read: boolean }>()
         const hasInEmpty = yield* TxHashMap.hasHash(emptyMap, "admin", hash)
         assert.strictEqual(hasInEmpty, false)
-      }))
+      })
+    )
 
     it.effect("getHash and hasHash should work together", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["session_abc", { userId: "user1", active: true }],
           ["session_def", { userId: "user2", active: false }]
@@ -472,10 +515,11 @@ describe("TxHashMap", () => {
 
         const invalidSession = yield* TxHashMap.getHash(txMap, invalidSessionId, invalidHash)
         assert.deepStrictEqual(invalidSession, Option.none())
-      }))
+      })
+    )
 
     it.effect("hash functions should work correctly", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(["key1", "value1"])
         const hash = Hash.string("key2")
 
@@ -492,12 +536,13 @@ describe("TxHashMap", () => {
         // Verify changes persisted after transaction
         const finalExists = yield* TxHashMap.hasHash(txMap, "key2", hash)
         assert.strictEqual(finalExists, true)
-      }))
+      })
+    )
   })
 
   describe("Phase 2: Functional Programming Operations", () => {
     it.effect("map should transform values while preserving keys", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["user1", { name: "Alice", age: 25 }],
           ["user2", { name: "Bob", age: 30 }],
@@ -520,15 +565,16 @@ describe("TxHashMap", () => {
 
         const updatedAlice = yield* TxHashMap.get(ageMap, "user1")
         assert.deepStrictEqual(updatedAlice, Option.some({ name: "Alice", age: 26, key: "user1" }))
-      }))
+      })
+    )
 
     it.effect("filter should keep only matching entries", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
-          ["apple", { price: 1.50, category: "fruit" }],
-          ["carrot", { price: 0.80, category: "vegetable" }],
-          ["banana", { price: 2.00, category: "fruit" }],
-          ["lettuce", { price: 1.20, category: "vegetable" }]
+          ["apple", { price: 1.5, category: "fruit" }],
+          ["carrot", { price: 0.8, category: "vegetable" }],
+          ["banana", { price: 2.0, category: "fruit" }],
+          ["lettuce", { price: 1.2, category: "vegetable" }]
         )
 
         // Test data-first: filter fruits
@@ -545,18 +591,15 @@ describe("TxHashMap", () => {
         assert.strictEqual(hasCarrot, false)
 
         // Test data-last: filter expensive items
-        const expensiveMap = yield* txMap.pipe(TxHashMap.filter((item) => item.price > 1.50))
+        const expensiveMap = yield* txMap.pipe(TxHashMap.filter((item) => item.price > 1.5))
         const expensiveSize = yield* TxHashMap.size(expensiveMap)
         assert.strictEqual(expensiveSize, 1) // only banana
-      }))
+      })
+    )
 
     it.effect("reduce should fold over all entries", () =>
-      Effect.gen(function*() {
-        const txMap = yield* TxHashMap.make(
-          ["item1", 10],
-          ["item2", 20],
-          ["item3", 30]
-        )
+      Effect.gen(function* () {
+        const txMap = yield* TxHashMap.make(["item1", 10], ["item2", 20], ["item3", 30])
 
         // Test data-first: sum all values
         const sum = yield* TxHashMap.reduce(txMap, 0, (acc, value) => acc + value)
@@ -577,10 +620,11 @@ describe("TxHashMap", () => {
         const emptyMap = yield* TxHashMap.empty<string, number>()
         const emptySum = yield* TxHashMap.reduce(emptyMap, 0, (acc, value) => acc + value)
         assert.strictEqual(emptySum, 0)
-      }))
+      })
+    )
 
     it.effect("filterMap should filter and transform in one operation", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["valid1", "10"],
           ["invalid", "not-a-number"],
@@ -615,15 +659,16 @@ describe("TxHashMap", () => {
         )
 
         const emailMap = yield* userMap.pipe(
-          TxHashMap.filterMap((user) => "email" in user ? Option.some(user.email) : Option.none())
+          TxHashMap.filterMap((user) => ("email" in user ? Option.some(user.email) : Option.none()))
         )
 
         const emailSize = yield* TxHashMap.size(emailMap)
         assert.strictEqual(emailSize, 2)
-      }))
+      })
+    )
 
     it.effect("hasBy should check if any entry matches predicate", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["admin", { role: "admin", active: true }],
           ["user1", { role: "user", active: true }],
@@ -645,10 +690,11 @@ describe("TxHashMap", () => {
         const emptyMap = yield* TxHashMap.empty<string, { role: string }>()
         const hasAny = yield* TxHashMap.hasBy(emptyMap, () => true)
         assert.strictEqual(hasAny, false)
-      }))
+      })
+    )
 
     it.effect("findFirst should return first matching entry", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["session1", { userId: "user1", loginTime: "09:00" }],
           ["session2", { userId: "user2", loginTime: "10:00" }],
@@ -669,10 +715,11 @@ describe("TxHashMap", () => {
         const emptyMap = yield* TxHashMap.empty<string, { userId: string }>()
         const notFound = yield* TxHashMap.findFirst(emptyMap, () => true)
         assert.deepStrictEqual(notFound, undefined)
-      }))
+      })
+    )
 
     it.effect("some should check if any entry matches predicate", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["order1", { status: "pending", amount: 100 }],
           ["order2", { status: "completed", amount: 250 }],
@@ -697,10 +744,11 @@ describe("TxHashMap", () => {
         const emptyMap = yield* TxHashMap.empty<string, { status: string }>()
         const emptyResult = yield* TxHashMap.some(emptyMap, () => true)
         assert.strictEqual(emptyResult, false)
-      }))
+      })
+    )
 
     it.effect("every should check if all entries match predicate", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["task1", { completed: true, priority: "high" }],
           ["task2", { completed: true, priority: "medium" }],
@@ -729,10 +777,11 @@ describe("TxHashMap", () => {
         const emptyMap = yield* TxHashMap.empty<string, { completed: boolean }>()
         const emptyResult = yield* TxHashMap.every(emptyMap, () => false)
         assert.strictEqual(emptyResult, true) // empty set satisfies all predicates
-      }))
+      })
+    )
 
     it.effect("functional operations should work correctly", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["item1", { price: 10, discount: 0 }],
           ["item2", { price: 20, discount: 0 }],
@@ -765,12 +814,13 @@ describe("TxHashMap", () => {
         // Check that all expensive items have discount
         const allDiscounted = yield* TxHashMap.every(expensiveItems, (item) => item.discount > 0)
         assert.strictEqual(allDiscounted, true)
-      }))
+      })
+    )
   })
 
   describe("Phase 3: Specialized Operations", () => {
     it.effect("forEach should execute side effects for each entry", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make(
           ["user1", { name: "Alice", status: "active" }],
           ["user2", { name: "Bob", status: "inactive" }],
@@ -784,7 +834,8 @@ describe("TxHashMap", () => {
         yield* TxHashMap.forEach(txMap, (userData, userId) =>
           Effect.sync(() => {
             processed.push({ user: userId, name: userData.name, status: userData.status })
-          }))
+          })
+        )
 
         assert.strictEqual(processed.length, 3)
         assert.strictEqual(processed.filter((p) => p.status === "active").length, 2)
@@ -793,36 +844,30 @@ describe("TxHashMap", () => {
         const activeUsers: Array<string> = []
         yield* txMap.pipe(
           TxHashMap.forEach((userData, userId) =>
-            userData.status === "active"
-              ? Effect.sync(() => activeUsers.push(userId))
-              : Effect.void
+            userData.status === "active" ? Effect.sync(() => activeUsers.push(userId)) : Effect.void
           )
         )
 
         assert.strictEqual(activeUsers.length, 2)
         assert.deepStrictEqual(activeUsers.sort(), ["user1", "user3"])
-      }))
+      })
+    )
 
     it.effect("flatMap should transform and flatten TxHashMaps", () =>
-      Effect.gen(function*() {
-        const departments = yield* TxHashMap.make(
-          ["eng", ["alice", "bob"]],
-          ["sales", ["charlie"]]
-        )
+      Effect.gen(function* () {
+        const departments = yield* TxHashMap.make(["eng", ["alice", "bob"]], ["sales", ["charlie"]])
 
         // Transform departments into individual employee records
-        const employees = yield* TxHashMap.flatMap(
-          departments,
-          (members, dept) =>
-            Effect.gen(function*() {
-              const empMap = yield* TxHashMap.empty<string, { department: string; role: string }>()
-              for (let i = 0; i < members.length; i++) {
-                const member = members[i]
-                const role = i === 0 ? "lead" : "member"
-                yield* TxHashMap.set(empMap, member, { department: dept, role })
-              }
-              return empMap
-            })
+        const employees = yield* TxHashMap.flatMap(departments, (members, dept) =>
+          Effect.gen(function* () {
+            const empMap = yield* TxHashMap.empty<string, { department: string; role: string }>()
+            for (let i = 0; i < members.length; i++) {
+              const member = members[i]
+              const role = i === 0 ? "lead" : "member"
+              yield* TxHashMap.set(empMap, member, { department: dept, role })
+            }
+            return empMap
+          })
         )
 
         const size = yield* TxHashMap.size(employees)
@@ -836,10 +881,11 @@ describe("TxHashMap", () => {
 
         const charlie = yield* TxHashMap.get(employees, "charlie")
         assert.deepStrictEqual(charlie, Option.some({ department: "sales", role: "lead" }))
-      }))
+      })
+    )
 
     it.effect("compact should remove None values and unwrap Some values", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const optionalData = yield* TxHashMap.make<string, Option.Option<{ value: number }>>(
           ["valid1", Option.some({ value: 10 })],
           ["invalid1", Option.none()],
@@ -868,36 +914,34 @@ describe("TxHashMap", () => {
 
         const invalid2 = yield* TxHashMap.get(compacted, "invalid2")
         assert.deepStrictEqual(invalid2, Option.none())
-      }))
+      })
+    )
 
     it.effect("toEntries should return all entries as array", () =>
-      Effect.gen(function*() {
-        const txMap = yield* TxHashMap.make(
-          ["a", 1],
-          ["b", 2],
-          ["c", 3]
-        )
+      Effect.gen(function* () {
+        const txMap = yield* TxHashMap.make(["a", 1], ["b", 2], ["c", 3])
 
         const entriesArray = yield* TxHashMap.toEntries(txMap)
         assert.strictEqual(entriesArray.length, 3)
 
         // Sort for consistent comparison
         const sortedEntries = entriesArray.sort(([a], [b]) => a.localeCompare(b))
-        assert.deepStrictEqual(sortedEntries, [["a", 1], ["b", 2], ["c", 3]])
+        assert.deepStrictEqual(sortedEntries, [
+          ["a", 1],
+          ["b", 2],
+          ["c", 3]
+        ])
 
         // Verify it's the same as regular entries
         const regularEntries = yield* TxHashMap.entries(txMap)
         const sortedRegular = regularEntries.sort(([a], [b]) => a.localeCompare(b))
         assert.deepStrictEqual(sortedEntries, sortedRegular)
-      }))
+      })
+    )
 
     it.effect("toValues should return all values as array", () =>
-      Effect.gen(function*() {
-        const txMap = yield* TxHashMap.make(
-          ["x", { price: 100 }],
-          ["y", { price: 200 }],
-          ["z", { price: 300 }]
-        )
+      Effect.gen(function* () {
+        const txMap = yield* TxHashMap.make(["x", { price: 100 }], ["y", { price: 200 }], ["z", { price: 300 }])
 
         const valuesArray = yield* TxHashMap.toValues(txMap)
         assert.strictEqual(valuesArray.length, 3)
@@ -910,10 +954,11 @@ describe("TxHashMap", () => {
         const regularValues = yield* TxHashMap.values(txMap)
         const sortedRegular = regularValues.sort((a, b) => a.price - b.price)
         assert.deepStrictEqual(sortedValues, sortedRegular)
-      }))
+      })
+    )
 
     it.effect("specialized operations should work correctly", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const txMap = yield* TxHashMap.make<string, Option.Option<number>>(
           ["a", Option.some(1)],
           ["b", Option.none()],
@@ -934,7 +979,8 @@ describe("TxHashMap", () => {
         yield* TxHashMap.forEach(compacted, (value) =>
           Effect.sync(() => {
             sum.value += value
-          }))
+          })
+        )
         assert.strictEqual(sum.value, 8) // 1 + 3 + 4
 
         // Test toValues and toEntries
@@ -943,6 +989,7 @@ describe("TxHashMap", () => {
 
         assert.strictEqual(values.length, 3)
         assert.strictEqual(entries.length, 3)
-      }))
+      })
+    )
   })
 })

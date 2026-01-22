@@ -123,19 +123,7 @@ export interface HttpApiEndpoint<
    */
   setPayload<P extends Schema.Codec<any, PayloadConstraint<Method>, any, any>>(
     schema: P
-  ): HttpApiEndpoint<
-    Name,
-    Method,
-    Path,
-    PathSchema,
-    UrlParams,
-    P,
-    Headers,
-    Success,
-    Error,
-    Middleware,
-    MiddlewareR
-  >
+  ): HttpApiEndpoint<Name, Method, Path, PathSchema, UrlParams, P, Headers, Success, Error, Middleware, MiddlewareR>
 
   /**
    * Set the schema for the path parameters of the endpoint. The schema will be
@@ -168,7 +156,9 @@ export interface HttpApiEndpoint<
     UP extends
       | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
       | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>>
-  >(schema: UP): HttpApiEndpoint<
+  >(
+    schema: UP
+  ): HttpApiEndpoint<
     Name,
     Method,
     Path,
@@ -228,7 +218,9 @@ export interface HttpApiEndpoint<
   /**
    * Add an `HttpApiMiddleware` to the endpoint.
    */
-  middleware<I extends HttpApiMiddleware.AnyId, S>(middleware: ServiceMap.Service<I, S>): HttpApiEndpoint<
+  middleware<I extends HttpApiMiddleware.AnyId, S>(
+    middleware: ServiceMap.Service<I, S>
+  ): HttpApiEndpoint<
     Name,
     Method,
     Path,
@@ -297,161 +289,185 @@ export interface Any extends Pipeable {
  * @since 4.0.0
  * @category models
  */
-export interface AnyWithProps
-  extends HttpApiEndpoint<string, HttpMethod, string, Schema.Top, Schema.Top, Schema.Top, Schema.Top, any, any>
-{}
+export interface AnyWithProps extends HttpApiEndpoint<
+  string,
+  HttpMethod,
+  string,
+  Schema.Top,
+  Schema.Top,
+  Schema.Top,
+  Schema.Top,
+  any,
+  any
+> {}
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Name<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Name
-  : never
+export type Name<Endpoint> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _Name
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type SuccessSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Success
-  : never
+export type SuccessSchema<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _Success
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ErrorSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error
-  : never
+export type ErrorSchema<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _Error
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type PathSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _PathSchema
-  : never
+export type PathSchema<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _PathSchema
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type UrlParamsSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _UrlParams
-  : never
+export type UrlParamsSchema<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _UrlParams
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type PayloadSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Payload
-  : never
+export type PayloadSchema<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _Payload
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type HeadersSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Headers
-  : never
+export type HeadersSchema<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _Headers
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Middleware<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _M
-  : never
+export type Middleware<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _M
+    : never
 
 /**
  * @since 4.0.0
@@ -469,97 +485,102 @@ export type MiddlewareError<Endpoint extends Any> = HttpApiMiddleware.Error<Midd
  * @since 4.0.0
  * @category models
  */
-export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error["Type"] | HttpApiMiddleware.Error<Middleware<Endpoint>>
-  : never
+export type Error<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _Error["Type"] | HttpApiMiddleware.Error<Middleware<Endpoint>>
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error["EncodingServices"] | HttpApiMiddleware.ErrorServicesEncode<Middleware<Endpoint>>
-  : never
+export type ErrorServicesEncode<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _Error["EncodingServices"] | HttpApiMiddleware.ErrorServicesEncode<Middleware<Endpoint>>
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ?
-    & ([_PathSchema["Type"]] extends [never] ? {} : { readonly path: _PathSchema["Type"] })
-    & ([_UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] })
-    & ([_Payload["Type"]] extends [never] ? {}
-      : _Payload["Type"] extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
-        { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
-      : { readonly payload: _Payload["Type"] })
-    & ([_Headers] extends [never] ? {} : { readonly headers: _Headers["Type"] })
-    & {
-      readonly request: HttpServerRequest
-      readonly endpoint: Endpoint
-      readonly group: HttpApiGroup.AnyWithProps
-    }
-  : {}
+export type Request<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? ([_PathSchema["Type"]] extends [never] ? {} : { readonly path: _PathSchema["Type"] }) &
+        ([_UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] }) &
+        ([_Payload["Type"]] extends [never]
+          ? {}
+          : _Payload["Type"] extends Brand<HttpApiSchema.MultipartStreamTypeId>
+            ? { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
+            : { readonly payload: _Payload["Type"] }) &
+        ([_Headers] extends [never] ? {} : { readonly headers: _Headers["Type"] }) & {
+          readonly request: HttpServerRequest
+          readonly endpoint: Endpoint
+          readonly group: HttpApiGroup.AnyWithProps
+        }
+    : {}
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ?
-    & ([_PathSchema["Type"]] extends [never] ? {} : { readonly path: _PathSchema["Type"] })
-    & ([_UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] })
-    & ([_Headers["Type"]] extends [never] ? {} : { readonly headers: _Headers["Type"] })
-    & {
-      readonly request: HttpServerRequest
-      readonly endpoint: Endpoint
-      readonly group: HttpApiGroup.AnyWithProps
-    }
-  : {}
+export type RequestRaw<Endpoint extends Any> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? ([_PathSchema["Type"]] extends [never] ? {} : { readonly path: _PathSchema["Type"] }) &
+        ([_UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] }) &
+        ([_Headers["Type"]] extends [never] ? {} : { readonly headers: _Headers["Type"] }) & {
+          readonly request: HttpServerRequest
+          readonly endpoint: Endpoint
+          readonly group: HttpApiGroup.AnyWithProps
+        }
+    : {}
 
 /**
  * @since 4.0.0
@@ -571,108 +592,117 @@ export type ClientRequest<
   Payload extends Schema.Top,
   Headers extends Schema.Top,
   WithResponse extends boolean
-> = (
-  & ([PathSchema["Type"]] extends [void] ? {} : { readonly path: PathSchema["Type"] })
-  & ([UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: UrlParams["Type"] })
-  & ([Headers["Type"]] extends [never] ? {} : { readonly headers: Headers["Type"] })
-  & ([Payload["Type"]] extends [never] ? {}
-    : Payload["Type"] extends infer P ?
-      P extends Brand<HttpApiSchema.MultipartTypeId> | Brand<HttpApiSchema.MultipartStreamTypeId>
+> = ([PathSchema["Type"]] extends [void] ? {} : { readonly path: PathSchema["Type"] }) &
+  ([UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: UrlParams["Type"] }) &
+  ([Headers["Type"]] extends [never] ? {} : { readonly headers: Headers["Type"] }) &
+  ([Payload["Type"]] extends [never]
+    ? {}
+    : Payload["Type"] extends infer P
+      ? P extends Brand<HttpApiSchema.MultipartTypeId> | Brand<HttpApiSchema.MultipartStreamTypeId>
         ? { readonly payload: FormData }
-      : { readonly payload: Schema.Schema.Type<Payload> }
-    : { readonly payload: Payload })
-) extends infer Req ? keyof Req extends never ? (void | { readonly withResponse?: WithResponse }) :
-  Req & { readonly withResponse?: WithResponse } :
-  void
+        : { readonly payload: Schema.Schema.Type<Payload> }
+      : { readonly payload: Payload }) extends infer Req
+  ? keyof Req extends never
+    ? void | { readonly withResponse?: WithResponse }
+    : Req & { readonly withResponse?: WithResponse }
+  : void
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ?
-    | _PathSchema["DecodingServices"]
-    | _UrlParams["DecodingServices"]
-    | _Payload["DecodingServices"]
-    | _Headers["DecodingServices"]
-    | _Success["EncodingServices"]
-  // Error services are handled globally
-  // | _Error["EncodingServices"]
-  : never
+export type ServerServices<Endpoint> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ?
+        | _PathSchema["DecodingServices"]
+        | _UrlParams["DecodingServices"]
+        | _Payload["DecodingServices"]
+        | _Headers["DecodingServices"]
+        | _Success["EncodingServices"]
+    : // Error services are handled globally
+      // | _Error["EncodingServices"]
+      never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ?
-    | _PathSchema["EncodingServices"]
-    | _UrlParams["EncodingServices"]
-    | _Payload["EncodingServices"]
-    | _Headers["EncodingServices"]
-    | _Success["DecodingServices"]
-    | _Error["DecodingServices"]
-  : never
+export type ClientServices<Endpoint> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ?
+        | _PathSchema["EncodingServices"]
+        | _UrlParams["EncodingServices"]
+        | _Payload["EncodingServices"]
+        | _Headers["EncodingServices"]
+        | _Success["DecodingServices"]
+        | _Error["DecodingServices"]
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _MR
-  : never
+export type MiddlewareServices<Endpoint> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _MR
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error["DecodingServices"] | HttpApiMiddleware.ErrorServicesDecode<Middleware<Endpoint>>
-  : never
+export type ErrorServicesDecode<Endpoint> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? _Error["DecodingServices"] | HttpApiMiddleware.ErrorServicesDecode<Middleware<Endpoint>>
+    : never
 
 /**
  * @since 4.0.0
@@ -706,11 +736,7 @@ export type ExcludeName<Endpoints extends Any, Name extends string> = Exclude<En
  * @since 4.0.0
  * @category models
  */
-export type HandlerWithName<Endpoints extends Any, Name extends string, E, R> = Handler<
-  WithName<Endpoints, Name>,
-  E,
-  R
->
+export type HandlerWithName<Endpoints extends Any, Name extends string, E, R> = Handler<WithName<Endpoints, Name>, E, R>
 
 /**
  * @since 4.0.0
@@ -764,25 +790,24 @@ export type MiddlewareServicesWithName<Endpoints extends Any, Name extends strin
  */
 export type ExcludeProvided<Endpoints extends Any, Name extends string, R> = Exclude<
   R,
-  | HttpRouter.Provided
-  | HttpApiMiddleware.Provides<MiddlewareWithName<Endpoints, Name>>
+  HttpRouter.Provided | HttpApiMiddleware.Provides<MiddlewareWithName<Endpoints, Name>>
 >
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ?
-  Readonly<Record<string, string | ReadonlyArray<string> | undefined>> :
-  any
+export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody
+  ? Readonly<Record<string, string | ReadonlyArray<string> | undefined>>
+  : any
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type PayloadConstraintField<Method extends HttpMethod> = Method extends HttpMethod.NoBody ?
-  string | ReadonlyArray<string> | undefined :
-  any
+export type PayloadConstraintField<Method extends HttpMethod> = Method extends HttpMethod.NoBody
+  ? string | ReadonlyArray<string> | undefined
+  : any
 
 /**
  * @since 4.0.0
@@ -791,137 +816,136 @@ export type PayloadConstraintField<Method extends HttpMethod> = Method extends H
 export type ValidateParams<
   Schemas extends ReadonlyArray<Schema.Top>,
   Prev extends Schema.Top = never
-> = Schemas extends [
-  infer Head extends Schema.Top,
-  ...infer Tail extends ReadonlyArray<Schema.Top>
-] ? [
-    Head extends HttpApiSchema.Param<infer _Name, infer _S>
-      ? HttpApiSchema.Param<_Name, any> extends Prev ? `Duplicate param: ${_Name}`
-      : [Head["Encoded"] & {}] extends [string] ? Head
-      : `Must be encodeable to string: ${_Name}` :
-      Head,
-    ...ValidateParams<Tail, Prev | Head>
-  ]
+> = Schemas extends [infer Head extends Schema.Top, ...infer Tail extends ReadonlyArray<Schema.Top>]
+  ? [
+      Head extends HttpApiSchema.Param<infer _Name, infer _S>
+        ? HttpApiSchema.Param<_Name, any> extends Prev
+          ? `Duplicate param: ${_Name}`
+          : [Head["Encoded"] & {}] extends [string]
+            ? Head
+            : `Must be encodeable to string: ${_Name}`
+        : Head,
+      ...ValidateParams<Tail, Prev | Head>
+    ]
   : Schemas
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? HttpApiEndpoint<
-    _Name,
-    _Method,
-    `${Prefix}${_Path}`,
-    _PathSchema,
-    _UrlParams,
-    _Payload,
-    _Headers,
-    _Success,
-    _Error,
-    _M,
-    _MR
-  > :
-  never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type AddError<Endpoint extends Any, E extends Schema.Top> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? HttpApiEndpoint<
-    _Name,
-    _Method,
-    _Path,
-    _PathSchema,
-    _UrlParams,
-    _Payload,
-    _Headers,
-    _Success,
-    _Error | E,
-    _M,
-    _MR
-  > :
-  never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type AddMiddleware<Endpoint extends Any, M extends HttpApiMiddleware.AnyId> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _PathSchema,
-  infer _UrlParams,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? HttpApiEndpoint<
-    _Name,
-    _Method,
-    _Path,
-    _PathSchema,
-    _UrlParams,
-    _Payload,
-    _Headers,
-    _Success,
-    _Error,
-    _M | M,
-    HttpApiMiddleware.ApplyServices<M, _MR>
-  > :
-  never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type PathEntries<Schemas extends ReadonlyArray<Schema.Top>> = Extract<keyof Schemas, string> extends infer K ?
-  K extends keyof Schemas ? Schemas[K] extends HttpApiSchema.Param<infer _Name, infer _S> ? [_Name, _S] :
-    Schemas[K] extends Schema.Top ? [K, Schemas[K]]
+export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? HttpApiEndpoint<
+        _Name,
+        _Method,
+        `${Prefix}${_Path}`,
+        _PathSchema,
+        _UrlParams,
+        _Payload,
+        _Headers,
+        _Success,
+        _Error,
+        _M,
+        _MR
+      >
     : never
-  : never
-  : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type AddError<Endpoint extends Any, E extends Schema.Top> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? HttpApiEndpoint<_Name, _Method, _Path, _PathSchema, _UrlParams, _Payload, _Headers, _Success, _Error | E, _M, _MR>
+    : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type AddMiddleware<Endpoint extends Any, M extends HttpApiMiddleware.AnyId> =
+  Endpoint extends HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _PathSchema,
+    infer _UrlParams,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  >
+    ? HttpApiEndpoint<
+        _Name,
+        _Method,
+        _Path,
+        _PathSchema,
+        _UrlParams,
+        _Payload,
+        _Headers,
+        _Success,
+        _Error,
+        _M | M,
+        HttpApiMiddleware.ApplyServices<M, _MR>
+      >
+    : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type PathEntries<Schemas extends ReadonlyArray<Schema.Top>> =
+  Extract<keyof Schemas, string> extends infer K
+    ? K extends keyof Schemas
+      ? Schemas[K] extends HttpApiSchema.Param<infer _Name, infer _S>
+        ? [_Name, _S]
+        : Schemas[K] extends Schema.Top
+          ? [K, Schemas[K]]
+          : never
+      : never
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
 export type ExtractPath<Schemas extends ReadonlyArray<Schema.Top>> = Simplify<
-  & {
-    readonly [
-      Entry in Extract<PathEntries<Schemas>, [any, { readonly "~type.mutability": "optional" }]> as Entry[0]
-    ]?: Entry[1]
-  }
-  & {
-    readonly [
-      Entry in Extract<PathEntries<Schemas>, [any, { readonly "~type.mutability": "required" }]> as Entry[0]
-    ]: Entry[1]
+  {
+    readonly [Entry in Extract<
+      PathEntries<Schemas>,
+      [any, { readonly "~type.mutability": "optional" }]
+    > as Entry[0]]?: Entry[1]
+  } & {
+    readonly [Entry in Extract<
+      PathEntries<Schemas>,
+      [any, { readonly "~type.mutability": "required" }]
+    > as Entry[0]]: Entry[1]
   }
 >
 
@@ -930,15 +954,11 @@ const Proto = {
   pipe() {
     return pipeArguments(this, arguments)
   },
-  addSuccess(
-    this: AnyWithProps,
-    schema: Schema.Top
-  ) {
+  addSuccess(this: AnyWithProps, schema: Schema.Top) {
     return makeProto({
       ...this,
-      successSchema: this.successSchema === HttpApiSchema.NoContent ?
-        schema :
-        HttpApiSchema.UnionUnify(this.successSchema, schema)
+      successSchema:
+        this.successSchema === HttpApiSchema.NoContent ? schema : HttpApiSchema.UnionUnify(this.successSchema, schema)
     })
   },
   addError(this: AnyWithProps, schema: Schema.Top) {
@@ -1041,70 +1061,69 @@ function makeProto<
  * @since 4.0.0
  * @category constructors
  */
-export const make = <Method extends HttpMethod>(method: Method) =>
-<
-  const Name extends string,
-  const Path extends HttpRouter.PathInput,
-  PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  UrlParams extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
-  Payload extends
-    | Schema.Codec<any, PayloadConstraint<Method>, any, any>
-    | Record<string, Schema.Codec<any, PayloadConstraintField<Method>, any, any>> = never,
-  Headers extends
-    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  Success extends
-    | Schema.Top
-    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
-  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
->(
-  name: Name,
-  path: Path,
-  options?: {
-    readonly path?: PathSchema | undefined
-    readonly urlParams?: UrlParams | undefined
-    readonly payload?: Payload | undefined
-    readonly headers?: Headers | undefined
-    readonly success?: Success | undefined
-    readonly error?: Error | undefined
+export const make =
+  <Method extends HttpMethod>(method: Method) =>
+  <
+    const Name extends string,
+    const Path extends HttpRouter.PathInput,
+    PathSchema extends
+      | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
+      | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+    UrlParams extends
+      | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
+      | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
+    Payload extends
+      | Schema.Codec<any, PayloadConstraint<Method>, any, any>
+      | Record<string, Schema.Codec<any, PayloadConstraintField<Method>, any, any>> = never,
+    Headers extends
+      | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
+      | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+    Success extends Schema.Top | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+    const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+  >(
+    name: Name,
+    path: Path,
+    options?: {
+      readonly path?: PathSchema | undefined
+      readonly urlParams?: UrlParams | undefined
+      readonly payload?: Payload | undefined
+      readonly headers?: Headers | undefined
+      readonly success?: Success | undefined
+      readonly error?: Error | undefined
+    }
+  ): HttpApiEndpoint<
+    Name,
+    Method,
+    Path,
+    PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
+    UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
+    Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+    Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+    Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
+    Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
+  > => {
+    return makeProto({
+      name,
+      path,
+      method,
+      pathSchema: UndefinedOr.map(options?.path, fieldsToSchema),
+      urlParamsSchema: UndefinedOr.map(options?.urlParams, fieldsToSchema),
+      payloadSchema: UndefinedOr.map(options?.payload, fieldsToSchema),
+      headersSchema: UndefinedOr.map(options?.headers, fieldsToSchema),
+      successSchema: options?.success ? fieldsToSchema(options.success) : (HttpApiSchema.NoContent as any),
+      errorSchema: options?.error
+        ? (HttpApiSchema.UnionUnify(
+            HttpApiSchemaError,
+            Array.isArray(options.error) ? Schema.Union(options.error) : (options.error as Schema.Top)
+          ) as any)
+        : (HttpApiSchemaError as any),
+      annotations: ServiceMap.empty(),
+      middlewares: new Set()
+    })
   }
-): HttpApiEndpoint<
-  Name,
-  Method,
-  Path,
-  PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
-  UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
-  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
-  Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-  Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
-  Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
-> => {
-  return makeProto({
-    name,
-    path,
-    method,
-    pathSchema: UndefinedOr.map(options?.path, fieldsToSchema),
-    urlParamsSchema: UndefinedOr.map(options?.urlParams, fieldsToSchema),
-    payloadSchema: UndefinedOr.map(options?.payload, fieldsToSchema),
-    headersSchema: UndefinedOr.map(options?.headers, fieldsToSchema),
-    successSchema: options?.success ? fieldsToSchema(options.success) : HttpApiSchema.NoContent as any,
-    errorSchema: options?.error ?
-      HttpApiSchema.UnionUnify(
-        HttpApiSchemaError,
-        Array.isArray(options.error) ? Schema.Union(options.error) : options.error as Schema.Top
-      ) as any :
-      HttpApiSchemaError as any,
-    annotations: ServiceMap.empty(),
-    middlewares: new Set()
-  })
-}
 
 function fieldsToSchema<S>(schema: S): S extends Schema.Struct.Fields ? Schema.Struct<S> : S {
-  return Schema.isSchema(schema) ? schema as any : Schema.Struct(schema as any) as any
+  return Schema.isSchema(schema) ? (schema as any) : (Schema.Struct(schema as any) as any)
 }
 
 /**
@@ -1126,21 +1145,21 @@ export const get: <
   Headers extends
     | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
     | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  Success extends
-    | Schema.Top
-    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  Success extends Schema.Top | Record<string, Schema.Top> = HttpApiSchema.NoContent,
   const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
 >(
   name: Name,
   path: Path,
-  options?: {
-    readonly path?: PathSchema | undefined
-    readonly urlParams?: UrlParams | undefined
-    readonly payload?: Payload | undefined
-    readonly headers?: Headers | undefined
-    readonly success?: Success | undefined
-    readonly error?: Error | undefined
-  } | undefined
+  options?:
+    | {
+        readonly path?: PathSchema | undefined
+        readonly urlParams?: UrlParams | undefined
+        readonly payload?: Payload | undefined
+        readonly headers?: Headers | undefined
+        readonly success?: Success | undefined
+        readonly error?: Error | undefined
+      }
+    | undefined
 ) => HttpApiEndpoint<
   Name,
   "GET",
@@ -1170,21 +1189,21 @@ export const post: <
   Headers extends
     | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
     | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  Success extends
-    | Schema.Top
-    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  Success extends Schema.Top | Record<string, Schema.Top> = HttpApiSchema.NoContent,
   const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
 >(
   name: Name,
   path: Path,
-  options?: {
-    readonly path?: PathSchema | undefined
-    readonly urlParams?: UrlParams | undefined
-    readonly payload?: Payload | undefined
-    readonly headers?: Headers | undefined
-    readonly success?: Success | undefined
-    readonly error?: Error | undefined
-  } | undefined
+  options?:
+    | {
+        readonly path?: PathSchema | undefined
+        readonly urlParams?: UrlParams | undefined
+        readonly payload?: Payload | undefined
+        readonly headers?: Headers | undefined
+        readonly success?: Success | undefined
+        readonly error?: Error | undefined
+      }
+    | undefined
 ) => HttpApiEndpoint<
   Name,
   "POST",
@@ -1214,21 +1233,21 @@ export const put: <
   Headers extends
     | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
     | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  Success extends
-    | Schema.Top
-    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  Success extends Schema.Top | Record<string, Schema.Top> = HttpApiSchema.NoContent,
   const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
 >(
   name: Name,
   path: Path,
-  options?: {
-    readonly path?: PathSchema | undefined
-    readonly urlParams?: UrlParams | undefined
-    readonly payload?: Payload | undefined
-    readonly headers?: Headers | undefined
-    readonly success?: Success | undefined
-    readonly error?: Error | undefined
-  } | undefined
+  options?:
+    | {
+        readonly path?: PathSchema | undefined
+        readonly urlParams?: UrlParams | undefined
+        readonly payload?: Payload | undefined
+        readonly headers?: Headers | undefined
+        readonly success?: Success | undefined
+        readonly error?: Error | undefined
+      }
+    | undefined
 ) => HttpApiEndpoint<
   Name,
   "PUT",
@@ -1258,21 +1277,21 @@ export const patch: <
   Headers extends
     | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
     | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  Success extends
-    | Schema.Top
-    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  Success extends Schema.Top | Record<string, Schema.Top> = HttpApiSchema.NoContent,
   const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
 >(
   name: Name,
   path: Path,
-  options?: {
-    readonly path?: PathSchema | undefined
-    readonly urlParams?: UrlParams | undefined
-    readonly payload?: Payload | undefined
-    readonly headers?: Headers | undefined
-    readonly success?: Success | undefined
-    readonly error?: Error | undefined
-  } | undefined
+  options?:
+    | {
+        readonly path?: PathSchema | undefined
+        readonly urlParams?: UrlParams | undefined
+        readonly payload?: Payload | undefined
+        readonly headers?: Headers | undefined
+        readonly success?: Success | undefined
+        readonly error?: Error | undefined
+      }
+    | undefined
 ) => HttpApiEndpoint<
   Name,
   "PATCH",
@@ -1302,21 +1321,21 @@ export const del: <
   Headers extends
     | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
     | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  Success extends
-    | Schema.Top
-    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  Success extends Schema.Top | Record<string, Schema.Top> = HttpApiSchema.NoContent,
   const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
 >(
   name: Name,
   path: Path,
-  options?: {
-    readonly path?: PathSchema | undefined
-    readonly urlParams?: UrlParams | undefined
-    readonly payload?: Payload | undefined
-    readonly headers?: Headers | undefined
-    readonly success?: Success | undefined
-    readonly error?: Error | undefined
-  } | undefined
+  options?:
+    | {
+        readonly path?: PathSchema | undefined
+        readonly urlParams?: UrlParams | undefined
+        readonly payload?: Payload | undefined
+        readonly headers?: Headers | undefined
+        readonly success?: Success | undefined
+        readonly error?: Error | undefined
+      }
+    | undefined
 ) => HttpApiEndpoint<
   Name,
   "DELETE",
@@ -1348,21 +1367,21 @@ export const head: <
   Headers extends
     | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
     | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  Success extends
-    | Schema.Top
-    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  Success extends Schema.Top | Record<string, Schema.Top> = HttpApiSchema.NoContent,
   const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
 >(
   name: Name,
   path: Path,
-  options?: {
-    readonly path?: PathSchema | undefined
-    readonly urlParams?: UrlParams | undefined
-    readonly payload?: Payload | undefined
-    readonly headers?: Headers | undefined
-    readonly success?: Success | undefined
-    readonly error?: Error | undefined
-  } | undefined
+  options?:
+    | {
+        readonly path?: PathSchema | undefined
+        readonly urlParams?: UrlParams | undefined
+        readonly payload?: Payload | undefined
+        readonly headers?: Headers | undefined
+        readonly success?: Success | undefined
+        readonly error?: Error | undefined
+      }
+    | undefined
 ) => HttpApiEndpoint<
   Name,
   "HEAD",
@@ -1394,21 +1413,21 @@ export const options: <
   Headers extends
     | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
     | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  Success extends
-    | Schema.Top
-    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  Success extends Schema.Top | Record<string, Schema.Top> = HttpApiSchema.NoContent,
   const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
 >(
   name: Name,
   path: Path,
-  options?: {
-    readonly path?: PathSchema | undefined
-    readonly urlParams?: UrlParams | undefined
-    readonly payload?: Payload | undefined
-    readonly headers?: Headers | undefined
-    readonly success?: Success | undefined
-    readonly error?: Error | undefined
-  } | undefined
+  options?:
+    | {
+        readonly path?: PathSchema | undefined
+        readonly urlParams?: UrlParams | undefined
+        readonly payload?: Payload | undefined
+        readonly headers?: Headers | undefined
+        readonly success?: Success | undefined
+        readonly error?: Error | undefined
+      }
+    | undefined
 ) => HttpApiEndpoint<
   Name,
   "OPTIONS",

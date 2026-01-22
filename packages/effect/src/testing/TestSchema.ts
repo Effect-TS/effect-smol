@@ -76,9 +76,12 @@ export class Asserts<S extends Schema.Top> {
   /**
    * Verifies that encoding values produces the same type after decoding (round-trip).
    */
-  verifyLosslessTransformation<S extends Schema.Codec<unknown, unknown>>(this: Asserts<S>, options?: {
-    readonly params?: FastCheck.Parameters<[S["Type"]]>
-  }) {
+  verifyLosslessTransformation<S extends Schema.Codec<unknown, unknown>>(
+    this: Asserts<S>,
+    options?: {
+      readonly params?: FastCheck.Parameters<[S["Type"]]>
+    }
+  ) {
     const decodeUnknownEffect = Parser.decodeUnknownEffect(this.schema)
     const encodeEffect = Parser.encodeEffect(this.schema)
     const arbitrary = Schema.toArbitrary(this.schema)
@@ -99,17 +102,13 @@ export class Asserts<S extends Schema.Top> {
   /**
    * Provides decoding testing utilities.
    */
-  decoding(options?: {
-    readonly parseOptions?: AST.ParseOptions | undefined
-  }) {
+  decoding(options?: { readonly parseOptions?: AST.ParseOptions | undefined }) {
     return new Decoding(this.schema, options)
   }
   /**
    * Provides encoding testing utilities.
    */
-  encoding(options?: {
-    readonly parseOptions?: AST.ParseOptions | undefined
-  }) {
+  encoding(options?: { readonly parseOptions?: AST.ParseOptions | undefined }) {
     return new Encoding(this.schema, options)
   }
   /**
@@ -122,13 +121,14 @@ export class Asserts<S extends Schema.Top> {
        * Verifies that the schema generates valid arbitrary values that satisfy
        * the schema constraints.
        */
-      verifyGeneration(options?: {
-        readonly params?: FastCheck.Parameters<[S["Type"]]> | undefined
-      }) {
+      verifyGeneration(options?: { readonly params?: FastCheck.Parameters<[S["Type"]]> | undefined }) {
         const params = options?.params
         const is = Schema.is(schema)
         const arb = Schema.toArbitrary(schema)
-        FastCheck.assert(FastCheck.property(arb, (a) => is(a)), { numRuns: 20, ...params })
+        FastCheck.assert(
+          FastCheck.property(arb, (a) => is(a)),
+          { numRuns: 20, ...params }
+        )
       }
     }
   }
@@ -143,12 +143,17 @@ export class Decoding<S extends Schema.Top> {
     input: unknown,
     options?: AST.ParseOptions
   ) => Effect.Effect<S["Type"], Issue.Issue, S["DecodingServices"]>
-  readonly options?: {
-    readonly parseOptions?: AST.ParseOptions | undefined
-  } | undefined
-  constructor(schema: S, options?: {
-    readonly parseOptions?: AST.ParseOptions | undefined
-  }) {
+  readonly options?:
+    | {
+        readonly parseOptions?: AST.ParseOptions | undefined
+      }
+    | undefined
+  constructor(
+    schema: S,
+    options?: {
+      readonly parseOptions?: AST.ParseOptions | undefined
+    }
+  ) {
     this.schema = schema
     this.decodeUnknownEffect = Parser.decodeUnknownEffect(schema)
     this.options = options
@@ -219,12 +224,17 @@ class Encoding<S extends Schema.Top> {
     input: unknown,
     options?: AST.ParseOptions
   ) => Effect.Effect<S["Type"], Issue.Issue, S["EncodingServices"]>
-  readonly options?: {
-    readonly parseOptions?: AST.ParseOptions | undefined
-  } | undefined
-  constructor(schema: S, options?: {
-    readonly parseOptions?: AST.ParseOptions | undefined
-  }) {
+  readonly options?:
+    | {
+        readonly parseOptions?: AST.ParseOptions | undefined
+      }
+    | undefined
+  constructor(
+    schema: S,
+    options?: {
+      readonly parseOptions?: AST.ParseOptions | undefined
+    }
+  ) {
     this.schema = schema
     this.encodeUnknownEffect = Parser.encodeUnknownEffect(schema)
     this.options = options

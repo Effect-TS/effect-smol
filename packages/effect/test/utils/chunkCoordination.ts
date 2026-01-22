@@ -15,14 +15,14 @@ export interface ChunkCoordination<A> {
 export const chunkCoordination = <A>(
   chunks: ReadonlyArray<Arr.NonEmptyReadonlyArray<A>>
 ): Effect.Effect<ChunkCoordination<A>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     let i = 0
     const queue = yield* Queue.unbounded<Arr.NonEmptyReadonlyArray<A>, Cause.Done>()
     const ps = yield* Queue.unbounded<void>()
     return {
       queue,
       stream: Stream.flattenArray(Stream.fromQueue(queue)),
-      offer: Effect.gen(function*() {
+      offer: Effect.gen(function* () {
         if (i < chunks.length) {
           yield* Queue.offer(queue, chunks[i++])
         }

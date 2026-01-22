@@ -1,28 +1,30 @@
 {
   "name": "@effect/atom-react",
   "version": "0.38.1",
-  "type": "module",
-  "license": "MIT",
   "description": "React bindings for the Effect Atom modules",
+  "keywords": [
+    "database",
+    "react",
+    "typescript"
+  ],
   "homepage": "https://effect.website",
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/atom/react"
   },
-  "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
-  },
-  "tags": [
-    "typescript",
-    "react",
-    "database"
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "src/**/*.ts"
   ],
-  "keywords": [
-    "typescript",
-    "react",
-    "database"
-  ],
+  "type": "module",
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
@@ -31,22 +33,15 @@
     "./internal/*": null,
     "./*/index": null
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
-    "provenance": true,
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
       "./*/index": null
-    }
+    },
+    "provenance": true
   },
   "scripts": {
     "build": "tsc -b tsconfig.json && pnpm babel",
@@ -74,5 +69,10 @@
     "react-dom": "^19.2.0",
     "react-error-boundary": "^6.0.0",
     "scheduler": "^0.27.0"
-  }
+  },
+  "tags": [
+    "typescript",
+    "react",
+    "database"
+  ]
 }

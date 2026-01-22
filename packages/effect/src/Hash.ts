@@ -314,7 +314,8 @@ export const number = (n: number) => {
  * @since 2.0.0
  */
 export const string = (str: string) => {
-  let h = 5381, i = str.length
+  let h = 5381,
+    i = str.length
   while (i) {
     h = (h * 33) ^ str.charCodeAt(--i)
   }
@@ -423,9 +424,8 @@ const iterableWith = (seed: number, f: (el: any) => number) => (iter: Iterable<a
  */
 export const array: <A>(arr: Iterable<A>) => number = iterableWith(6151, hash)
 
-const hashMap: <K, V>(map: Iterable<readonly [K, V]>) => number = iterableWith(
-  string("Map"),
-  ([k, v]) => combine(hash(k), hash(v))
+const hashMap: <K, V>(map: Iterable<readonly [K, V]>) => number = iterableWith(string("Map"), ([k, v]) =>
+  combine(hash(k), hash(v))
 )
 const hashSet: <A>(set: Iterable<A>) => number = iterableWith(string("Set"), hash)
 

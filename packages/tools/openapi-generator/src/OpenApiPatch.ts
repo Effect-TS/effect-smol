@@ -128,8 +128,10 @@ export class JsonPatchApplicationError extends Schema.ErrorClass("JsonPatchAppli
   reason: Schema.String
 }) {
   override get message() {
-    return `Failed to apply patch from ${this.source}: operation ${this.operationIndex} ` +
+    return (
+      `Failed to apply patch from ${this.source}: operation ${this.operationIndex} ` +
       `(${this.operation} at ${this.path}): ${this.reason}`
+    )
   }
 }
 
@@ -194,12 +196,7 @@ export class JsonPatchAggregateError extends Schema.ErrorClass("JsonPatchAggrega
  * @since 1.0.0
  * @category schemas
  */
-export const JsonPatchAdd: Schema.Codec<
-  Extract<
-    JsonPatch.JsonPatchOperation,
-    { op: "add" }
-  >
-> = Schema.Struct({
+export const JsonPatchAdd: Schema.Codec<Extract<JsonPatch.JsonPatchOperation, { op: "add" }>> = Schema.Struct({
   op: Schema.Literal("add"),
   path: Schema.String,
   value: Schema.Json,
@@ -212,12 +209,7 @@ export const JsonPatchAdd: Schema.Codec<
  * @since 1.0.0
  * @category schemas
  */
-export const JsonPatchRemove: Schema.Codec<
-  Extract<
-    JsonPatch.JsonPatchOperation,
-    { op: "remove" }
-  >
-> = Schema.Struct({
+export const JsonPatchRemove: Schema.Codec<Extract<JsonPatch.JsonPatchOperation, { op: "remove" }>> = Schema.Struct({
   op: Schema.Literal("remove"),
   path: Schema.String,
   description: Schema.optionalKey(Schema.String)
@@ -229,12 +221,7 @@ export const JsonPatchRemove: Schema.Codec<
  * @since 1.0.0
  * @category schemas
  */
-export const JsonPatchReplace: Schema.Codec<
-  Extract<
-    JsonPatch.JsonPatchOperation,
-    { op: "replace" }
-  >
-> = Schema.Struct({
+export const JsonPatchReplace: Schema.Codec<Extract<JsonPatch.JsonPatchOperation, { op: "replace" }>> = Schema.Struct({
   op: Schema.Literal("replace"),
   path: Schema.String,
   value: Schema.Json,
@@ -310,7 +297,7 @@ const looksLikeFilePath = (input: string): boolean => {
 /**
  * Determine file format from extension.
  */
-const getFileFormat = Effect.fn(function*(filePath: string) {
+const getFileFormat = Effect.fn(function* (filePath: string) {
   const path = yield* Path.Path
   const { ext } = path.parse(filePath)
   if (ext === ".json") return "json"
@@ -321,7 +308,7 @@ const getFileFormat = Effect.fn(function*(filePath: string) {
 /**
  * Check if a file path exists and is a file.
  */
-const checkFileExists = Effect.fn("checkFileExists")(function*(filePath: string) {
+const checkFileExists = Effect.fn("checkFileExists")(function* (filePath: string) {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath)
@@ -334,7 +321,7 @@ const checkFileExists = Effect.fn("checkFileExists")(function*(filePath: string)
 /**
  * Parse content as JSON.
  */
-const parseJsonContent = Effect.fnUntraced(function*(content: string, source: string) {
+const parseJsonContent = Effect.fnUntraced(function* (content: string, source: string) {
   return yield* Effect.try({
     try: () => JSON.parse(content) as unknown,
     catch: (error) =>
@@ -348,7 +335,7 @@ const parseJsonContent = Effect.fnUntraced(function*(content: string, source: st
 /**
  * Parse content as YAML.
  */
-const parseYamlContent = Effect.fnUntraced(function*(content: string, source: string) {
+const parseYamlContent = Effect.fnUntraced(function* (content: string, source: string) {
   return yield* Effect.try({
     try: () => Yaml.parse(content) as unknown,
     catch: (error) =>
@@ -362,7 +349,7 @@ const parseYamlContent = Effect.fnUntraced(function*(content: string, source: st
 /**
  * Read and parse a patch file.
  */
-const parsePatchFile = Effect.fn("parsePatchFile")(function*(filePath: string) {
+const parsePatchFile = Effect.fn("parsePatchFile")(function* (filePath: string) {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath)
@@ -375,33 +362,41 @@ const parsePatchFile = Effect.fn("parsePatchFile")(function*(filePath: string) {
     })
   }
 
-  const content = yield* Effect.mapError(fs.readFileString(absolutePath), (error) =>
-    new JsonPatchParseError({
-      source: filePath,
-      reason: `Failed to read file: ${error.message}`
-    }))
+  const content = yield* Effect.mapError(
+    fs.readFileString(absolutePath),
+    (error) =>
+      new JsonPatchParseError({
+        source: filePath,
+        reason: `Failed to read file: ${error.message}`
+      })
+  )
 
-  const parsed = fileFormat === "json"
-    ? yield* parseJsonContent(content, filePath)
-    : yield* parseYamlContent(content, filePath)
+  const parsed =
+    fileFormat === "json" ? yield* parseJsonContent(content, filePath) : yield* parseYamlContent(content, filePath)
 
-  return yield* Effect.mapError(decodeJsonPatchDocument(parsed), (error) =>
-    new JsonPatchValidationError({
-      source: filePath,
-      reason: error.message
-    }))
+  return yield* Effect.mapError(
+    decodeJsonPatchDocument(parsed),
+    (error) =>
+      new JsonPatchValidationError({
+        source: filePath,
+        reason: error.message
+      })
+  )
 })
 
 /**
  * Parse inline JSON string as a patch document.
  */
-const parseInlinePatch = Effect.fn("parseInlinePatch")(function*(input: string) {
+const parseInlinePatch = Effect.fn("parseInlinePatch")(function* (input: string) {
   const parsed = yield* parseJsonContent(input, "inline")
-  return yield* Effect.mapError(decodeJsonPatchDocument(parsed), (error) =>
-    new JsonPatchValidationError({
-      source: "inline",
-      reason: error.message
-    }))
+  return yield* Effect.mapError(
+    decodeJsonPatchDocument(parsed),
+    (error) =>
+      new JsonPatchValidationError({
+        source: "inline",
+        reason: error.message
+      })
+  )
 })
 
 /**
@@ -434,7 +429,7 @@ const parseInlinePatch = Effect.fn("parseInlinePatch")(function*(input: string) 
  * @since 1.0.0
  * @category parsing
  */
-export const parsePatchInput = Effect.fn("parsePatchInput")(function*(input: string) {
+export const parsePatchInput = Effect.fn("parsePatchInput")(function* (input: string) {
   if (looksLikeFilePath(input)) {
     const exists = yield* checkFileExists(input)
     if (exists) {
@@ -478,7 +473,7 @@ export const parsePatchInput = Effect.fn("parsePatchInput")(function*(input: str
  * @since 1.0.0
  * @category application
  */
-export const applyPatches = Effect.fn("applyPatches")(function*(
+export const applyPatches = Effect.fn("applyPatches")(function* (
   patches: ReadonlyArray<{ readonly source: string; readonly patch: JsonPatchDocument }>,
   document: Schema.Json
 ) {
@@ -488,21 +483,23 @@ export const applyPatches = Effect.fn("applyPatches")(function*(
   for (const { source, patch } of patches) {
     for (let i = 0; i < patch.length; i++) {
       const op = patch[i]
-      yield* Effect.ignore(Effect.try({
-        try: () => {
-          result = JsonPatch.apply([op], result)
-        },
-        catch: (error) =>
-          errors.push(
-            new JsonPatchApplicationError({
-              source,
-              operationIndex: i,
-              operation: op.op,
-              path: op.path,
-              reason: error instanceof Error ? error.message : String(error)
-            })
-          )
-      }))
+      yield* Effect.ignore(
+        Effect.try({
+          try: () => {
+            result = JsonPatch.apply([op], result)
+          },
+          catch: (error) =>
+            errors.push(
+              new JsonPatchApplicationError({
+                source,
+                operationIndex: i,
+                operation: op.op,
+                path: op.path,
+                reason: error instanceof Error ? error.message : String(error)
+              })
+            )
+        })
+      )
     }
   }
 

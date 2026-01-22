@@ -133,10 +133,7 @@ export const subtract: {
 export const divide: {
   (that: bigint): (self: bigint) => bigint | undefined
   (self: bigint, that: bigint): bigint | undefined
-} = dual(
-  2,
-  (self: bigint, that: bigint): bigint | undefined => that === bigint0 ? undefined : self / that
-)
+} = dual(2, (self: bigint, that: bigint): bigint | undefined => (that === bigint0 ? undefined : self / that))
 
 /**
  * Provides a division operation on `bigint`s.
@@ -319,14 +316,14 @@ export const isGreaterThanOrEqualTo: {
  * @since 2.0.0
  */
 export const between: {
-  (options: {
-    minimum: bigint
-    maximum: bigint
-  }): (self: bigint) => boolean
-  (self: bigint, options: {
-    minimum: bigint
-    maximum: bigint
-  }): boolean
+  (options: { minimum: bigint; maximum: bigint }): (self: bigint) => boolean
+  (
+    self: bigint,
+    options: {
+      minimum: bigint
+      maximum: bigint
+    }
+  ): boolean
 } = order.isBetween(Order)
 
 /**
@@ -352,14 +349,14 @@ export const between: {
  * @since 2.0.0
  */
 export const clamp: {
-  (options: {
-    minimum: bigint
-    maximum: bigint
-  }): (self: bigint) => bigint
-  (self: bigint, options: {
-    minimum: bigint
-    maximum: bigint
-  }): bigint
+  (options: { minimum: bigint; maximum: bigint }): (self: bigint) => bigint
+  (
+    self: bigint,
+    options: {
+      minimum: bigint
+      maximum: bigint
+    }
+  ): bigint
 } = order.clamp(Order)
 
 /**
@@ -510,7 +507,7 @@ export const sqrtUnsafe = (n: bigint): bigint => {
   }
   let x = n / bigint2
   while (x * x > n) {
-    x = ((n / x) + x) / bigint2
+    x = (n / x + x) / bigint2
   }
   return x
 }
@@ -533,7 +530,7 @@ export const sqrtUnsafe = (n: bigint): bigint => {
  * @category math
  * @since 2.0.0
  */
-export const sqrt = (n: bigint): bigint | undefined => isGreaterThanOrEqualTo(n, bigint0) ? sqrtUnsafe(n) : undefined
+export const sqrt = (n: bigint): bigint | undefined => (isGreaterThanOrEqualTo(n, bigint0) ? sqrtUnsafe(n) : undefined)
 
 /**
  * Takes an `Iterable` of `bigint`s and returns their sum as a single `bigint
@@ -627,9 +624,7 @@ export const toNumber = (b: bigint): number | undefined => {
  */
 export const fromString = (s: string): bigint | undefined => {
   try {
-    return s.trim() === ""
-      ? undefined
-      : BigInt(s)
+    return s.trim() === "" ? undefined : BigInt(s)
   } catch {
     return undefined
   }
@@ -699,14 +694,18 @@ export const ReducerSum: Reducer.Reducer<bigint> = Reducer.make((a, b) => a + b,
  *
  * @since 4.0.0
  */
-export const ReducerMultiply: Reducer.Reducer<bigint> = Reducer.make((a, b) => a * b, 1n, (collection) => {
-  let acc = 1n
-  for (const n of collection) {
-    if (n === 0n) return 0n
-    acc *= n
+export const ReducerMultiply: Reducer.Reducer<bigint> = Reducer.make(
+  (a, b) => a * b,
+  1n,
+  (collection) => {
+    let acc = 1n
+    for (const n of collection) {
+      if (n === 0n) return 0n
+      acc *= n
+    }
+    return acc
   }
-  return acc
-})
+)
 
 /**
  * A `Combiner` that returns the maximum `bigint`.

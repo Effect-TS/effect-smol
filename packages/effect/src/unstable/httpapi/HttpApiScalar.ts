@@ -102,13 +102,13 @@ export type ScalarConfig = {
 
 type ScalarSource =
   | {
-    readonly _tag: "Cdn"
-    readonly version?: string | undefined
-  }
+      readonly _tag: "Cdn"
+      readonly version?: string | undefined
+    }
   | {
-    readonly _tag: "Inline"
-    readonly source: string
-  }
+      readonly _tag: "Inline"
+      readonly source: string
+    }
 
 const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options: {
   readonly api: HttpApi.HttpApi<Id, Groups>
@@ -125,16 +125,8 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
   <head>
     <meta charset="utf-8" />
     <title>${Html.escape(spec.info.title)}</title>
-    ${
-    !spec.info.description
-      ? ""
-      : `<meta name="description" content="${Html.escape(spec.info.description)}"/>`
-  }
-    ${
-    !spec.info.description
-      ? ""
-      : `<meta name="og:description" content="${Html.escape(spec.info.description)}"/>`
-  }
+    ${!spec.info.description ? "" : `<meta name="description" content="${Html.escape(spec.info.description)}"/>`}
+    ${!spec.info.description ? "" : `<meta name="og:description" content="${Html.escape(spec.info.description)}"/>`}
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1" />
@@ -147,12 +139,12 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
       document.getElementById('api-reference').dataset.configuration = JSON.stringify(${Html.escapeJson(scalarConfig)})
     </script>
     ${
-    options.source._tag === "Cdn"
-      ? `<script src="${`https://cdn.jsdelivr.net/npm/@scalar/api-reference@${
-        options.source.version ?? "latest"
-      }/dist/browser/standalone.min.js`}" crossorigin></script>`
-      : `<script>${options.source.source}</script>`
-  }
+      options.source._tag === "Cdn"
+        ? `<script src="${`https://cdn.jsdelivr.net/npm/@scalar/api-reference@${
+            options.source.version ?? "latest"
+          }/dist/browser/standalone.min.js`}" crossorigin></script>`
+        : `<script>${options.source.source}</script>`
+    }
   </body>
 </html>`)
   return Effect.succeed(response)
@@ -164,22 +156,26 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
  */
 export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
-  options?: {
-    readonly path?: `/${string}` | undefined
-    readonly scalar?: ScalarConfig
-  } | undefined
+  options?:
+    | {
+        readonly path?: `/${string}` | undefined
+        readonly scalar?: ScalarConfig
+      }
+    | undefined
 ): Layer.Layer<never, never, HttpRouter.HttpRouter> =>
-  HttpRouter.use(Effect.fnUntraced(function*(router) {
-    const handler = makeHandler({
-      api,
-      source: {
-        _tag: "Inline",
-        source: internal.javascript
-      },
-      scalar: options?.scalar
+  HttpRouter.use(
+    Effect.fnUntraced(function* (router) {
+      const handler = makeHandler({
+        api,
+        source: {
+          _tag: "Inline",
+          source: internal.javascript
+        },
+        scalar: options?.scalar
+      })
+      yield* router.add("GET", options?.path ?? "/docs", handler)
     })
-    yield* router.add("GET", options?.path ?? "/docs", handler)
-  }))
+  )
 
 /**
  * @since 4.0.0
@@ -187,20 +183,24 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
  */
 export const layerCdn = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
-  options?: {
-    readonly path?: `/${string}` | undefined
-    readonly scalar?: ScalarConfig
-    readonly version?: string | undefined
-  } | undefined
+  options?:
+    | {
+        readonly path?: `/${string}` | undefined
+        readonly scalar?: ScalarConfig
+        readonly version?: string | undefined
+      }
+    | undefined
 ): Layer.Layer<never, never, HttpRouter.HttpRouter> =>
-  HttpRouter.use(Effect.fnUntraced(function*(router) {
-    const handler = makeHandler({
-      api,
-      source: {
-        _tag: "Cdn",
-        version: options?.version
-      },
-      scalar: options?.scalar
+  HttpRouter.use(
+    Effect.fnUntraced(function* (router) {
+      const handler = makeHandler({
+        api,
+        source: {
+          _tag: "Cdn",
+          version: options?.version
+        },
+        scalar: options?.scalar
+      })
+      yield* router.add("GET", options?.path ?? "/docs", handler)
     })
-    yield* router.add("GET", options?.path ?? "/docs", handler)
-  }))
+  )

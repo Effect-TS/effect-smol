@@ -124,10 +124,7 @@ export const subtract: {
 export const divide: {
   (that: number): (self: number) => number | undefined
   (self: number, that: number): number | undefined
-} = dual(
-  2,
-  (self: number, that: number): number | undefined => that === 0 ? undefined : self / that
-)
+} = dual(2, (self: number, that: number): number | undefined => (that === 0 ? undefined : self / that))
 
 /**
  * Returns the result of adding `1` to a given number.
@@ -281,14 +278,14 @@ export const isGreaterThanOrEqualTo: {
  * @since 2.0.0
  */
 export const between: {
-  (options: {
-    minimum: number
-    maximum: number
-  }): (self: number) => boolean
-  (self: number, options: {
-    minimum: number
-    maximum: number
-  }): boolean
+  (options: { minimum: number; maximum: number }): (self: number) => boolean
+  (
+    self: number,
+    options: {
+      minimum: number
+      maximum: number
+    }
+  ): boolean
 } = order.isBetween(Order)
 
 /**
@@ -314,14 +311,14 @@ export const between: {
  * @since 2.0.0
  */
 export const clamp: {
-  (options: {
-    minimum: number
-    maximum: number
-  }): (self: number) => number
-  (self: number, options: {
-    minimum: number
-    maximum: number
-  }): number
+  (options: { minimum: number; maximum: number }): (self: number) => number
+  (
+    self: number,
+    options: {
+      minimum: number
+      maximum: number
+    }
+  ): number
 } = order.clamp(Order)
 
 /**
@@ -512,9 +509,7 @@ export const parse = (s: string): number | undefined => {
     return undefined
   }
   const n = Number(s)
-  return Number.isNaN(n) ?
-    undefined
-    : n
+  return Number.isNaN(n) ? undefined : n
 }
 
 /**
@@ -552,14 +547,18 @@ export const ReducerSum: Reducer.Reducer<number> = Reducer.make((a, b) => a + b,
  *
  * @since 4.0.0
  */
-export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a * b, 1, (collection) => {
-  let acc = 1
-  for (const n of collection) {
-    if (n === 0) return 0
-    acc *= n
+export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make(
+  (a, b) => a * b,
+  1,
+  (collection) => {
+    let acc = 1
+    for (const n of collection) {
+      if (n === 0) return 0
+      acc *= n
+    }
+    return acc
   }
-  return acc
-})
+)
 
 /**
  * A `Combiner` that returns the maximum `number`.

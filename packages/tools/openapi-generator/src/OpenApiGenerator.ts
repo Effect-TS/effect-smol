@@ -39,9 +39,9 @@ const methodNames: ReadonlyArray<OpenAPISpecMethodName> = [
   "trace"
 ]
 
-export const make = Effect.gen(function*() {
+export const make = Effect.gen(function* () {
   const generate = Effect.fn(
-    function*(spec: OpenAPISpec, options: OpenApiGenerateOptions) {
+    function* (spec: OpenAPISpec, options: OpenApiGenerateOptions) {
       const generator = JsonSchemaGenerator.make()
       const openApiTransformer = yield* OpenApiTransformer.OpenApiTransformer
 
@@ -69,9 +69,7 @@ export const make = Effect.gen(function*() {
             continue
           }
 
-          const id = operation.operationId
-            ? Utils.camelize(operation.operationId)
-            : `${method.toUpperCase()}${path}`
+          const id = operation.operationId ? Utils.camelize(operation.operationId) : `${method.toUpperCase()}${path}`
 
           const description = Utils.nonEmptyString(operation.description) ?? Utils.nonEmptyString(operation.summary)
 
@@ -87,9 +85,10 @@ export const make = Effect.gen(function*() {
 
           const schemaId = Utils.identifier(operation.operationId ?? path)
 
-          const validParameters = operation.parameters?.filter((param) => {
-            return param.in !== "path" && param.in !== "cookie"
-          }) ?? []
+          const validParameters =
+            operation.parameters?.filter((param) => {
+              return param.in !== "path" && param.in !== "cookie"
+            }) ?? []
 
           if (validParameters.length > 0) {
             const schema = {
@@ -111,9 +110,7 @@ export const make = Effect.gen(function*() {
               const paramSchema = parameter.schema
               const added: Array<string> = []
               if ("properties" in paramSchema && Predicate.isObject(paramSchema.properties)) {
-                const required = "required" in paramSchema
-                  ? paramSchema.required as Array<string>
-                  : []
+                const required = "required" in paramSchema ? (paramSchema.required as Array<string>) : []
 
                 for (const [name, propSchema] of Object.entries(paramSchema.properties)) {
                   const adjustedName = `${parameter.name}[${name}]`
@@ -140,10 +137,7 @@ export const make = Effect.gen(function*() {
               }
             }
 
-            op.params = generator.addSchema(
-              `${schemaId}Params`,
-              schema
-            )
+            op.params = generator.addSchema(`${schemaId}Params`, schema)
 
             op.paramsOptional = !schema.required || schema.required.length === 0
           }
@@ -266,7 +260,9 @@ const convertSwaggerSpec = Effect.fn((spec: OpenAPISpec) =>
   }).pipe(Effect.withSpan("OpenApi.convertSwaggerSpec"))
 )
 
-const processPath = (path: string): {
+const processPath = (
+  path: string
+): {
   readonly pathIds: Array<string>
   readonly pathTemplate: string
 } => {

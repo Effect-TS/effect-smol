@@ -136,29 +136,13 @@ export declare namespace DateTime {
    * @since 3.6.0
    * @category models
    */
-  export type UnitSingular =
-    | "milli"
-    | "second"
-    | "minute"
-    | "hour"
-    | "day"
-    | "week"
-    | "month"
-    | "year"
+  export type UnitSingular = "milli" | "second" | "minute" | "hour" | "day" | "week" | "month" | "year"
 
   /**
    * @since 3.6.0
    * @category models
    */
-  export type UnitPlural =
-    | "millis"
-    | "seconds"
-    | "minutes"
-    | "hours"
-    | "days"
-    | "weeks"
-    | "months"
-    | "years"
+  export type UnitPlural = "millis" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years"
 
   /**
    * @since 3.6.0
@@ -440,9 +424,10 @@ export const Order: order.Order<DateTime> = Internal.Order
  * @since 3.6.0
  */
 export const clamp: {
-  <Min extends DateTime, Max extends DateTime>(
-    options: { readonly minimum: Min; readonly maximum: Max }
-  ): <A extends DateTime>(self: A) => A | Min | Max
+  <Min extends DateTime, Max extends DateTime>(options: {
+    readonly minimum: Min
+    readonly maximum: Max
+  }): <A extends DateTime>(self: A) => A | Min | Max
   <A extends DateTime, Min extends DateTime, Max extends DateTime>(
     self: A,
     options: { readonly minimum: Min; readonly maximum: Max }
@@ -523,11 +508,14 @@ export const makeUnsafe: <A extends DateTime.Input>(input: A) => DateTime.Preser
  * DateTime.makeZonedUnsafe(new Date(), { timeZone: "Europe/London" })
  * ```
  */
-export const makeZonedUnsafe: (input: DateTime.Input, options?: {
-  readonly timeZone?: number | string | TimeZone | undefined
-  readonly adjustForTimeZone?: boolean | undefined
-  readonly disambiguation?: Disambiguation | undefined
-}) => Zoned = Internal.makeZonedUnsafe
+export const makeZonedUnsafe: (
+  input: DateTime.Input,
+  options?: {
+    readonly timeZone?: number | string | TimeZone | undefined
+    readonly adjustForTimeZone?: boolean | undefined
+    readonly disambiguation?: Disambiguation | undefined
+  }
+) => Zoned = Internal.makeZonedUnsafe
 
 /**
  * Create a `DateTime.Zoned` using `DateTime.make` and a time zone.
@@ -711,14 +699,21 @@ export const toUtc: (self: DateTime) => Utc = Internal.toUtc
  * ```
  */
 export const setZone: {
-  (zone: TimeZone, options?: {
-    readonly adjustForTimeZone?: boolean | undefined
-    readonly disambiguation?: Disambiguation | undefined
-  }): (self: DateTime) => Zoned
-  (self: DateTime, zone: TimeZone, options?: {
-    readonly adjustForTimeZone?: boolean | undefined
-    readonly disambiguation?: Disambiguation | undefined
-  }): Zoned
+  (
+    zone: TimeZone,
+    options?: {
+      readonly adjustForTimeZone?: boolean | undefined
+      readonly disambiguation?: Disambiguation | undefined
+    }
+  ): (self: DateTime) => Zoned
+  (
+    self: DateTime,
+    zone: TimeZone,
+    options?: {
+      readonly adjustForTimeZone?: boolean | undefined
+      readonly disambiguation?: Disambiguation | undefined
+    }
+  ): Zoned
 } = Internal.setZone
 
 /**
@@ -741,14 +736,21 @@ export const setZone: {
  * ```
  */
 export const setZoneOffset: {
-  (offset: number, options?: {
-    readonly adjustForTimeZone?: boolean | undefined
-    readonly disambiguation?: Disambiguation | undefined
-  }): (self: DateTime) => Zoned
-  (self: DateTime, offset: number, options?: {
-    readonly adjustForTimeZone?: boolean | undefined
-    readonly disambiguation?: Disambiguation | undefined
-  }): Zoned
+  (
+    offset: number,
+    options?: {
+      readonly adjustForTimeZone?: boolean | undefined
+      readonly disambiguation?: Disambiguation | undefined
+    }
+  ): (self: DateTime) => Zoned
+  (
+    self: DateTime,
+    offset: number,
+    options?: {
+      readonly adjustForTimeZone?: boolean | undefined
+      readonly disambiguation?: Disambiguation | undefined
+    }
+  ): Zoned
 } = Internal.setZoneOffset
 
 /**
@@ -922,14 +924,21 @@ export const zoneToString: (self: TimeZone) => string = Internal.zoneToString
  * ```
  */
 export const setZoneNamed: {
-  (zoneId: string, options?: {
-    readonly adjustForTimeZone?: boolean | undefined
-    readonly disambiguation?: Disambiguation | undefined
-  }): (self: DateTime) => Zoned | undefined
-  (self: DateTime, zoneId: string, options?: {
-    readonly adjustForTimeZone?: boolean | undefined
-    readonly disambiguation?: Disambiguation | undefined
-  }): Zoned | undefined
+  (
+    zoneId: string,
+    options?: {
+      readonly adjustForTimeZone?: boolean | undefined
+      readonly disambiguation?: Disambiguation | undefined
+    }
+  ): (self: DateTime) => Zoned | undefined
+  (
+    self: DateTime,
+    zoneId: string,
+    options?: {
+      readonly adjustForTimeZone?: boolean | undefined
+      readonly disambiguation?: Disambiguation | undefined
+    }
+  ): Zoned | undefined
 } = Internal.setZoneNamed
 
 /**
@@ -950,14 +959,21 @@ export const setZoneNamed: {
  * ```
  */
 export const setZoneNamedUnsafe: {
-  (zoneId: string, options?: {
-    readonly adjustForTimeZone?: boolean | undefined
-    readonly disambiguation?: Disambiguation | undefined
-  }): (self: DateTime) => Zoned
-  (self: DateTime, zoneId: string, options?: {
-    readonly adjustForTimeZone?: boolean | undefined
-    readonly disambiguation?: Disambiguation | undefined
-  }): Zoned
+  (
+    zoneId: string,
+    options?: {
+      readonly adjustForTimeZone?: boolean | undefined
+      readonly disambiguation?: Disambiguation | undefined
+    }
+  ): (self: DateTime) => Zoned
+  (
+    self: DateTime,
+    zoneId: string,
+    options?: {
+      readonly adjustForTimeZone?: boolean | undefined
+      readonly disambiguation?: Disambiguation | undefined
+    }
+  ): Zoned
 } = Internal.setZoneNamedUnsafe
 
 // =============================================================================
@@ -1687,9 +1703,7 @@ export const withCurrentZoneLocal = <A, E, R>(
  * ```
  */
 export const withCurrentZoneOffset: {
-  (offset: number): <A, E, R>(
-    effect: Effect.Effect<A, E, R>
-  ) => Effect.Effect<A, E, Exclude<R, CurrentTimeZone>>
+  (offset: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, CurrentTimeZone>>
   <A, E, R>(effect: Effect.Effect<A, E, R>, offset: number): Effect.Effect<A, E, Exclude<R, CurrentTimeZone>>
 } = dual(
   2,
@@ -1716,7 +1730,9 @@ export const withCurrentZoneOffset: {
  * ```
  */
 export const withCurrentZoneNamed: {
-  (zone: string): <A, E, R>(
+  (
+    zone: string
+  ): <A, E, R>(
     effect: Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E | IllegalArgumentError, Exclude<R, CurrentTimeZone>>
   <A, E, R>(
@@ -1908,14 +1924,14 @@ export const withDateUtc: {
  * @since 3.6.0
  */
 export const match: {
-  <A, B>(options: {
-    readonly onUtc: (_: Utc) => A
-    readonly onZoned: (_: Zoned) => B
-  }): (self: DateTime) => A | B
-  <A, B>(self: DateTime, options: {
-    readonly onUtc: (_: Utc) => A
-    readonly onZoned: (_: Zoned) => B
-  }): A | B
+  <A, B>(options: { readonly onUtc: (_: Utc) => A; readonly onZoned: (_: Zoned) => B }): (self: DateTime) => A | B
+  <A, B>(
+    self: DateTime,
+    options: {
+      readonly onUtc: (_: Utc) => A
+      readonly onZoned: (_: Zoned) => B
+    }
+  ): A | B
 } = Internal.match
 
 // =============================================================================
@@ -2133,17 +2149,17 @@ export const nearest: {
 export const format: {
   (
     options?:
-      | Intl.DateTimeFormatOptions & {
-        readonly locale?: string | undefined
-      }
+      | (Intl.DateTimeFormatOptions & {
+          readonly locale?: string | undefined
+        })
       | undefined
   ): (self: DateTime) => string
   (
     self: DateTime,
     options?:
-      | Intl.DateTimeFormatOptions & {
-        readonly locale?: string | undefined
-      }
+      | (Intl.DateTimeFormatOptions & {
+          readonly locale?: string | undefined
+        })
       | undefined
   ): string
 } = Internal.format
@@ -2177,17 +2193,17 @@ export const format: {
 export const formatLocal: {
   (
     options?:
-      | Intl.DateTimeFormatOptions & {
-        readonly locale?: string | undefined
-      }
+      | (Intl.DateTimeFormatOptions & {
+          readonly locale?: string | undefined
+        })
       | undefined
   ): (self: DateTime) => string
   (
     self: DateTime,
     options?:
-      | Intl.DateTimeFormatOptions & {
-        readonly locale?: string | undefined
-      }
+      | (Intl.DateTimeFormatOptions & {
+          readonly locale?: string | undefined
+        })
       | undefined
   ): string
 } = Internal.formatLocal
@@ -2224,17 +2240,17 @@ export const formatLocal: {
 export const formatUtc: {
   (
     options?:
-      | Intl.DateTimeFormatOptions & {
-        readonly locale?: string | undefined
-      }
+      | (Intl.DateTimeFormatOptions & {
+          readonly locale?: string | undefined
+        })
       | undefined
   ): (self: DateTime) => string
   (
     self: DateTime,
     options?:
-      | Intl.DateTimeFormatOptions & {
-        readonly locale?: string | undefined
-      }
+      | (Intl.DateTimeFormatOptions & {
+          readonly locale?: string | undefined
+        })
       | undefined
   ): string
 } = Internal.formatUtc
@@ -2416,9 +2432,8 @@ export const formatIsoZoned: (self: Zoned) => string = Internal.formatIsoZoned
  * @category current time zone
  * @since 3.6.0
  */
-export const layerCurrentZone: (resource: NoInfer<TimeZone>) => Layer.Layer<CurrentTimeZone> = Layer.succeed(
-  CurrentTimeZone
-)
+export const layerCurrentZone: (resource: NoInfer<TimeZone>) => Layer.Layer<CurrentTimeZone> =
+  Layer.succeed(CurrentTimeZone)
 
 /**
  * Create a Layer from the given time zone offset.
@@ -2469,10 +2484,8 @@ export const layerCurrentZoneOffset = (offset: number): Layer.Layer<CurrentTimeZ
  * @category current time zone
  * @since 3.6.0
  */
-export const layerCurrentZoneNamed: (zoneId: string) => Layer.Layer<
-  CurrentTimeZone,
-  IllegalArgumentError
-> = Layer.effect(CurrentTimeZone)(Internal.zoneMakeNamedEffect)
+export const layerCurrentZoneNamed: (zoneId: string) => Layer.Layer<CurrentTimeZone, IllegalArgumentError> =
+  Layer.effect(CurrentTimeZone)(Internal.zoneMakeNamedEffect)
 
 /**
  * Create a Layer from the system's local time zone.

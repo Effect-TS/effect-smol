@@ -20,24 +20,21 @@ import type { HttpServerResponse } from "./HttpServerResponse.ts"
  * @since 4.0.0
  * @category models
  */
-export class HttpServer extends ServiceMap.Service<HttpServer, {
-  readonly serve: {
-    <E, R>(effect: Effect.Effect<HttpServerResponse, E, R>): Effect.Effect<
-      void,
-      never,
-      Exclude<R, HttpServerRequest> | Scope.Scope
-    >
-    <E, R, App extends Effect.Effect<HttpServerResponse, any, any>>(
-      effect: Effect.Effect<HttpServerResponse, E, R>,
-      middleware: Middleware.HttpMiddleware.Applied<App, E, R>
-    ): Effect.Effect<
-      void,
-      never,
-      Exclude<R, HttpServerRequest> | Scope.Scope
-    >
+export class HttpServer extends ServiceMap.Service<
+  HttpServer,
+  {
+    readonly serve: {
+      <E, R>(
+        effect: Effect.Effect<HttpServerResponse, E, R>
+      ): Effect.Effect<void, never, Exclude<R, HttpServerRequest> | Scope.Scope>
+      <E, R, App extends Effect.Effect<HttpServerResponse, any, any>>(
+        effect: Effect.Effect<HttpServerResponse, E, R>,
+        middleware: Middleware.HttpMiddleware.Applied<App, E, R>
+      ): Effect.Effect<void, never, Exclude<R, HttpServerRequest> | Scope.Scope>
+    }
+    readonly address: Address
   }
-  readonly address: Address
-}>()("effect/http/HttpServer") {}
+>()("effect/http/HttpServer") {}
 
 /**
  * @since 4.0.0
@@ -68,15 +65,13 @@ export interface UnixAddress {
  * @since 4.0.0
  * @category constructors
  */
-export const make = (
-  options: {
-    readonly serve: (
-      httpEffect: Effect.Effect<HttpServerResponse, unknown, HttpServerRequest | Scope.Scope>,
-      middleware?: Middleware.HttpMiddleware
-    ) => Effect.Effect<void, never, Scope.Scope>
-    readonly address: Address
-  }
-): HttpServer["Service"] => options
+export const make = (options: {
+  readonly serve: (
+    httpEffect: Effect.Effect<HttpServerResponse, unknown, HttpServerRequest | Scope.Scope>,
+    middleware?: Middleware.HttpMiddleware
+  ) => Effect.Effect<void, never, Scope.Scope>
+  readonly address: Address
+}): HttpServer["Service"] => options
 
 /**
  * @since 4.0.0
@@ -90,36 +85,22 @@ export const serve: {
     middleware: Middleware.HttpMiddleware.Applied<App, E, R>
   ): (
     effect: Effect.Effect<HttpServerResponse, E, R>
-  ) => Layer.Layer<
-    never,
-    never,
-    HttpServer | Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>
-  >
+  ) => Layer.Layer<never, never, HttpServer | Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>>
   <E, R>(
     effect: Effect.Effect<HttpServerResponse, E, R>
   ): Layer.Layer<never, never, HttpServer | Exclude<R, HttpServerRequest | Scope.Scope>>
   <E, R, App extends Effect.Effect<HttpServerResponse, any, any>>(
     effect: Effect.Effect<HttpServerResponse, E, R>,
     middleware: Middleware.HttpMiddleware.Applied<App, E, R>
-  ): Layer.Layer<
-    never,
-    never,
-    HttpServer | Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>
-  >
-} = dual((args) => Effect.isEffect(args[0]), <E, R, App extends Effect.Effect<HttpServerResponse, any, any>>(
-  effect: Effect.Effect<HttpServerResponse, E, R>,
-  middleware?: Middleware.HttpMiddleware.Applied<App, E, R>
-): Layer.Layer<
-  never,
-  never,
-  HttpServer | Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>
-> =>
-  Layer.effectDiscard(
-    Effect.flatMap(
-      HttpServer.asEffect(),
-      (server) => server.serve(effect, middleware!)
-    )
-  ) as any)
+  ): Layer.Layer<never, never, HttpServer | Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>>
+} = dual(
+  (args) => Effect.isEffect(args[0]),
+  <E, R, App extends Effect.Effect<HttpServerResponse, any, any>>(
+    effect: Effect.Effect<HttpServerResponse, E, R>,
+    middleware?: Middleware.HttpMiddleware.Applied<App, E, R>
+  ): Layer.Layer<never, never, HttpServer | Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>> =>
+    Layer.effectDiscard(Effect.flatMap(HttpServer.asEffect(), (server) => server.serve(effect, middleware!))) as any
+)
 
 /**
  * @since 4.0.0
@@ -133,34 +114,22 @@ export const serveEffect: {
     middleware: Middleware.HttpMiddleware.Applied<App, E, R>
   ): (
     effect: Effect.Effect<HttpServerResponse, E, R>
-  ) => Effect.Effect<
-    void,
-    never,
-    Scope.Scope | HttpServer | Exclude<Effect.Services<App>, HttpServerRequest>
-  >
+  ) => Effect.Effect<void, never, Scope.Scope | HttpServer | Exclude<Effect.Services<App>, HttpServerRequest>>
   <E, R>(
     effect: Effect.Effect<HttpServerResponse, E, R>
   ): Effect.Effect<void, never, Scope.Scope | HttpServer | Exclude<R, HttpServerRequest>>
   <E, R, App extends Effect.Effect<HttpServerResponse, any, any>>(
     effect: Effect.Effect<HttpServerResponse, E, R>,
     middleware: Middleware.HttpMiddleware.Applied<App, E, R>
-  ): Effect.Effect<
-    void,
-    never,
-    Scope.Scope | HttpServer | Exclude<Effect.Services<App>, HttpServerRequest>
-  >
-} = dual((args) => Effect.isEffect(args[0]), <E, R, App extends Effect.Effect<HttpServerResponse, any, any>>(
-  effect: Effect.Effect<HttpServerResponse, E, R>,
-  middleware?: Middleware.HttpMiddleware.Applied<App, E, R>
-): Effect.Effect<
-  void,
-  never,
-  Scope.Scope | HttpServer | Exclude<Effect.Services<App>, HttpServerRequest>
-> =>
-  Effect.flatMap(
-    HttpServer.asEffect(),
-    (server) => server.serve(effect, middleware!)
-  ) as any)
+  ): Effect.Effect<void, never, Scope.Scope | HttpServer | Exclude<Effect.Services<App>, HttpServerRequest>>
+} = dual(
+  (args) => Effect.isEffect(args[0]),
+  <E, R, App extends Effect.Effect<HttpServerResponse, any, any>>(
+    effect: Effect.Effect<HttpServerResponse, E, R>,
+    middleware?: Middleware.HttpMiddleware.Applied<App, E, R>
+  ): Effect.Effect<void, never, Scope.Scope | HttpServer | Exclude<Effect.Services<App>, HttpServerRequest>> =>
+    Effect.flatMap(HttpServer.asEffect(), (server) => server.serve(effect, middleware!)) as any
+)
 
 /**
  * @since 4.0.0
@@ -182,10 +151,7 @@ export const formatAddress = (address: Address): string => {
 export const addressFormattedWith = <A, E, R>(
   f: (address: string) => Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, HttpServer | R> =>
-  Effect.flatMap(
-    HttpServer.asEffect(),
-    (server) => f(formatAddress(server.address))
-  )
+  Effect.flatMap(HttpServer.asEffect(), (server) => f(formatAddress(server.address)))
 
 /**
  * @since 4.0.0
@@ -199,56 +165,37 @@ export const logAddress: Effect.Effect<void, never, HttpServer> = addressFormatt
  * @since 4.0.0
  * @category address
  */
-export const withLogAddress = <A, E, R>(
-  layer: Layer.Layer<A, E, R>
-): Layer.Layer<A, E, R | Exclude<HttpServer, A>> =>
-  Layer.effectDiscard(logAddress).pipe(
-    Layer.provideMerge(layer)
-  )
+export const withLogAddress = <A, E, R>(layer: Layer.Layer<A, E, R>): Layer.Layer<A, E, R | Exclude<HttpServer, A>> =>
+  Layer.effectDiscard(logAddress).pipe(Layer.provideMerge(layer))
 
 /**
  * @since 4.0.0
  * @category Testing
  */
-export const makeTestClient: Effect.Effect<
-  HttpClient.HttpClient,
-  never,
-  HttpServer | HttpClient.HttpClient
-> = Effect.gen(function*() {
-  const server = yield* HttpServer
-  const client = yield* HttpClient.HttpClient
-  const address = server.address
-  if (address._tag === "UnixAddress") {
-    return yield* Effect.die(new Error("HttpServer.layerTestClient: UnixAddress not supported"))
-  }
-  const host = address.hostname === "0.0.0.0" ? "127.0.0.1" : address.hostname
-  const url = `http://${host}:${address.port}`
-  return HttpClient.mapRequest(client, ClientRequest.prependUrl(url))
-})
+export const makeTestClient: Effect.Effect<HttpClient.HttpClient, never, HttpServer | HttpClient.HttpClient> =
+  Effect.gen(function* () {
+    const server = yield* HttpServer
+    const client = yield* HttpClient.HttpClient
+    const address = server.address
+    if (address._tag === "UnixAddress") {
+      return yield* Effect.die(new Error("HttpServer.layerTestClient: UnixAddress not supported"))
+    }
+    const host = address.hostname === "0.0.0.0" ? "127.0.0.1" : address.hostname
+    const url = `http://${host}:${address.port}`
+    return HttpClient.mapRequest(client, ClientRequest.prependUrl(url))
+  })
 
 /**
  * @since 4.0.0
  * @category Testing
  */
-export const layerTestClient: Layer.Layer<
-  HttpClient.HttpClient,
-  never,
-  HttpServer | HttpClient.HttpClient
-> = Layer.effect(HttpClient.HttpClient)(makeTestClient)
+export const layerTestClient: Layer.Layer<HttpClient.HttpClient, never, HttpServer | HttpClient.HttpClient> =
+  Layer.effect(HttpClient.HttpClient)(makeTestClient)
 
 /**
  * @since 4.0.0
  * @category Testing
  */
 export const layerServices: Layer.Layer<
-  | Path.Path
-  | HttpPlatform.HttpPlatform
-  | FileSystem.FileSystem
-  | Etag.Generator
-> = Layer.mergeAll(
-  HttpPlatform.layer,
-  Path.layer,
-  Etag.layerWeak
-).pipe(
-  Layer.provideMerge(FileSystem.layerNoop({}))
-)
+  Path.Path | HttpPlatform.HttpPlatform | FileSystem.FileSystem | Etag.Generator
+> = Layer.mergeAll(HttpPlatform.layer, Path.layer, Etag.layerWeak).pipe(Layer.provideMerge(FileSystem.layerNoop({})))

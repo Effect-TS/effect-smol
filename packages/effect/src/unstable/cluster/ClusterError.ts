@@ -18,12 +18,12 @@ const TypeId = "~effect/cluster/ClusterError"
  * @since 4.0.0
  * @category errors
  */
-export class EntityNotAssignedToRunner
-  extends Schema.ErrorClass<EntityNotAssignedToRunner>(`${TypeId}/EntityNotAssignedToRunner`)({
-    _tag: Schema.tag("EntityNotAssignedToRunner"),
-    address: EntityAddress
-  })
-{
+export class EntityNotAssignedToRunner extends Schema.ErrorClass<EntityNotAssignedToRunner>(
+  `${TypeId}/EntityNotAssignedToRunner`
+)({
+  _tag: Schema.tag("EntityNotAssignedToRunner"),
+  address: EntityAddress
+}) {
   /**
    * @since 4.0.0
    */
@@ -63,11 +63,9 @@ export class MalformedMessage extends Schema.ErrorClass<MalformedMessage>(`${Typ
   /**
    * @since 4.0.0
    */
-  static refail: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<
-    A,
-    MalformedMessage,
-    R
-  > = Effect.mapError((cause) => new MalformedMessage({ cause }))
+  static refail: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, MalformedMessage, R> = Effect.mapError(
+    (cause) => new MalformedMessage({ cause })
+  )
 }
 
 /**
@@ -164,13 +162,13 @@ export class MailboxFull extends Schema.ErrorClass<MailboxFull>(`${TypeId}/Mailb
  * @since 4.0.0
  * @category errors
  */
-export class AlreadyProcessingMessage
-  extends Schema.ErrorClass<AlreadyProcessingMessage>(`${TypeId}/AlreadyProcessingMessage`)({
-    _tag: Schema.tag("AlreadyProcessingMessage"),
-    envelopeId: SnowflakeFromString,
-    address: EntityAddress
-  })
-{
+export class AlreadyProcessingMessage extends Schema.ErrorClass<AlreadyProcessingMessage>(
+  `${TypeId}/AlreadyProcessingMessage`
+)({
+  _tag: Schema.tag("AlreadyProcessingMessage"),
+  envelopeId: SnowflakeFromString,
+  address: EntityAddress
+}) {
   /**
    * @since 4.0.0
    */

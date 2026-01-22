@@ -89,7 +89,9 @@ export interface Any {
  * @category type-level
  */
 export type Services<T extends Any> = T extends infer L
-  ? L extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
+  ? L extends Layer<infer _ROut, infer _E, infer _RIn>
+    ? _RIn
+    : never
   : never
 /**
  * Extracts the error type (E) from a Layer type.
@@ -185,10 +187,7 @@ const LayerProto = {
 }
 
 const fromBuildUnsafe = <ROut, E, RIn>(
-  build: (
-    memoMap: MemoMap,
-    scope: Scope.Scope
-  ) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
+  build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> => {
   const self = Object.create(LayerProto)
   self.build = build
@@ -222,16 +221,12 @@ const fromBuildUnsafe = <ROut, E, RIn>(
  * @category constructors
  */
 export const fromBuild = <ROut, E, RIn>(
-  build: (
-    memoMap: MemoMap,
-    scope: Scope.Scope
-  ) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
+  build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> =>
   fromBuildUnsafe((memoMap: MemoMap, scope: Scope.Scope) => {
     const layerScope = Scope.forkUnsafe(scope)
-    return internalEffect.onExit(
-      build(memoMap, layerScope),
-      (exit) => exit._tag === "Failure" ? Scope.close(layerScope, exit) : internalEffect.void
+    return internalEffect.onExit(build(memoMap, layerScope), (exit) =>
+      exit._tag === "Failure" ? Scope.close(layerScope, exit) : internalEffect.void
     )
   })
 
@@ -263,10 +258,7 @@ export const fromBuild = <ROut, E, RIn>(
  * @category constructors
  */
 export const fromBuildMemo = <ROut, E, RIn>(
-  build: (
-    memoMap: MemoMap,
-    scope: Scope.Scope
-  ) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
+  build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> => {
   const self: Layer<ROut, E, RIn> = fromBuild((memoMap, scope) => memoMap.getOrElseMemoize(self, scope, build))
   return self
@@ -277,11 +269,14 @@ class MemoMapImpl implements MemoMap {
     return MemoMapTypeId
   }
 
-  readonly map = new Map<Layer<any, any, any>, {
-    observers: number
-    effect: Effect<ServiceMap.ServiceMap<any>, any>
-    readonly finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void>
-  }>()
+  readonly map = new Map<
+    Layer<any, any, any>,
+    {
+      observers: number
+      effect: Effect<ServiceMap.ServiceMap<any>, any>
+      readonly finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void>
+    }
+  >()
 
   getOrElseMemoize<RIn, E, ROut>(
     layer: Layer<ROut, E, RIn>,
@@ -459,16 +454,15 @@ export const buildWithMemoMap: {
     memoMap: MemoMap,
     scope: Scope.Scope
   ): Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
-} = dual(3, <RIn, E, ROut>(
-  self: Layer<ROut, E, RIn>,
-  memoMap: MemoMap,
-  scope: Scope.Scope
-): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> =>
-  internalEffect.provideService(
-    self.build(memoMap, scope),
-    CurrentMemoMap,
-    memoMap
-  ))
+} = dual(
+  3,
+  <RIn, E, ROut>(
+    self: Layer<ROut, E, RIn>,
+    memoMap: MemoMap,
+    scope: Scope.Scope
+  ): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> =>
+    internalEffect.provideService(self.build(memoMap, scope), CurrentMemoMap, memoMap)
+)
 
 /**
  * Builds a layer into a scoped value.
@@ -548,10 +542,11 @@ export const build = <RIn, E, ROut>(
 export const buildWithScope: {
   (scope: Scope.Scope): <RIn, E, ROut>(self: Layer<ROut, E, RIn>) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
   <RIn, E, ROut>(self: Layer<ROut, E, RIn>, scope: Scope.Scope): Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
-} = dual(2, <RIn, E, ROut>(
-  self: Layer<ROut, E, RIn>,
-  scope: Scope.Scope
-): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> => internalEffect.suspend(() => self.build(makeMemoMapUnsafe(), scope)))
+} = dual(
+  2,
+  <RIn, E, ROut>(self: Layer<ROut, E, RIn>, scope: Scope.Scope): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> =>
+    internalEffect.suspend(() => self.build(makeMemoMapUnsafe(), scope))
+)
 
 /**
  * Constructs a layer from the specified value.
@@ -598,7 +593,7 @@ export const buildWithScope: {
 export const succeed: {
   <I, S>(service: ServiceMap.Service<I, S>): (resource: S) => Layer<I>
   <I, S>(service: ServiceMap.Service<I, S>, resource: Types.NoInfer<S>): Layer<I>
-} = function() {
+} = function () {
   if (arguments.length === 1) {
     return (resource: any) => succeedServices(ServiceMap.make(arguments[0], resource))
   }
@@ -685,7 +680,7 @@ export const empty: Layer<never> = succeedServices(ServiceMap.empty())
 export const sync: {
   <I, S>(service: ServiceMap.Service<I, S>): (evaluate: LazyArg<S>) => Layer<I>
   <I, S>(service: ServiceMap.Service<I, S>, evaluate: LazyArg<S>): Layer<I>
-} = function() {
+} = function () {
   if (arguments.length === 1) {
     return (evaluate: LazyArg<any>) => syncServices(() => ServiceMap.make(arguments[0], evaluate()))
   }
@@ -752,27 +747,39 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
  * @category constructors
  */
 export const effect: {
-  <I, S>(service: ServiceMap.Service<I, S>): <E, R, Args extends ReadonlyArray<any> = never>(
+  <I, S>(
+    service: ServiceMap.Service<I, S>
+  ): <E, R, Args extends ReadonlyArray<any> = never>(
     effectOrFn: Effect<S, E, R> | ((...args: Args) => Effect<S, E, R>)
-  ) => [Args] extends [never] ? Layer<I, E, Exclude<R, Scope.Scope>>
+  ) => [Args] extends [never]
+    ? Layer<I, E, Exclude<R, Scope.Scope>>
     : (...args: Args) => Layer<I, E, Exclude<R, Scope.Scope>>
 
   <I, S, E, R, Args extends ReadonlyArray<any> = never>(
     service: ServiceMap.Service<I, S>,
     effectOrFn: Effect<S, E, R> | ((...args: Args) => Effect<S, E, R>)
-  ): [Args] extends [never] ? Layer<I, E, Exclude<R, Scope.Scope>>
+  ): [Args] extends [never]
+    ? Layer<I, E, Exclude<R, Scope.Scope>>
     : (...args: Args) => Layer<I, E, Exclude<R, Scope.Scope>>
-} = function() {
+} = function () {
   if (arguments.length === 1) {
     return (effectOrFn: any) =>
       typeof effectOrFn === "function"
-        ? (...args: any) => effectImpl(arguments[0], internalEffect.suspend(() => effectOrFn(...args)))
+        ? (...args: any) =>
+            effectImpl(
+              arguments[0],
+              internalEffect.suspend(() => effectOrFn(...args))
+            )
         : effectImpl(arguments[0], effectOrFn)
   }
 
   const effectOrFn = arguments[1]
   return typeof effectOrFn === "function"
-    ? (...args: any) => effectImpl(arguments[0], internalEffect.suspend(() => effectOrFn(...args)))
+    ? (...args: any) =>
+        effectImpl(
+          arguments[0],
+          internalEffect.suspend(() => effectOrFn(...args))
+        )
     : effectImpl(arguments[0], effectOrFn)
 } as any
 
@@ -883,11 +890,11 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
   { [k in keyof Layers]: Services<Layers[k]> }[number]
 > => {
   const parentScope = Scope.forkUnsafe(scope, "parallel")
-  return internalEffect.forEach(layers, (layer) => layer.build(memoMap, Scope.forkUnsafe(parentScope, "sequential")), {
-    concurrency: layers.length
-  }).pipe(
-    internalEffect.map((services) => ServiceMap.mergeAll(...(services as any)))
-  )
+  return internalEffect
+    .forEach(layers, (layer) => layer.build(memoMap, Scope.forkUnsafe(parentScope, "sequential")), {
+      concurrency: layers.length
+    })
+    .pipe(internalEffect.map((services) => ServiceMap.mergeAll(...(services as any))))
 }
 
 /**
@@ -923,11 +930,8 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
  */
 export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<never, any, any>>]>(
   ...layers: Layers
-): Layer<
-  Success<Layers[number]>,
-  Error<Layers[number]>,
-  Services<Layers[number]>
-> => fromBuild((memoMap, scope) => mergeAllEffect(layers, memoMap, scope))
+): Layer<Success<Layers[number]>, Error<Layers[number]>, Services<Layers[number]>> =>
+  fromBuild((memoMap, scope) => mergeAllEffect(layers, memoMap, scope))
 
 /**
  * Merges this layer with the specified layer concurrently, producing a new layer with combined input and output types.
@@ -968,12 +972,7 @@ export const merge: {
     that: Layers
   ): <A, E, R>(
     self: Layer<A, E, R>
-  ) => Layer<
-    A | Success<Layers[number]>,
-    E | Error<Layers[number]>,
-    | Services<Layers[number]>
-    | R
-  >
+  ) => Layer<A | Success<Layers[number]>, E | Error<Layers[number]>, Services<Layers[number]> | R>
   <RIn2, E2, ROut2, RIn, E, ROut>(
     self: Layer<ROut2, E2, RIn2>,
     that: Layer<ROut, E, RIn>
@@ -981,24 +980,15 @@ export const merge: {
   <A, E, R, const Layers extends [Any, ...Array<Any>]>(
     self: Layer<A, E, R>,
     that: Layers
-  ): Layer<
-    A | Success<Layers[number]>,
-    E | Error<Layers[number]>,
-    | Services<Layers[number]>
-    | R
-  >
-} = dual(2, (
-  self: Layer<any, any, any>,
-  that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>
-) => mergeAll(self, ...(Array.isArray(that) ? that : [that])))
+  ): Layer<A | Success<Layers[number]>, E | Error<Layers[number]>, Services<Layers[number]> | R>
+} = dual(2, (self: Layer<any, any, any>, that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>) =>
+  mergeAll(self, ...(Array.isArray(that) ? that : [that]))
+)
 
 const provideWith = (
   self: Layer<any, any, any>,
   that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>,
-  f: (
-    selfServices: ServiceMap.ServiceMap<any>,
-    thatServices: ServiceMap.ServiceMap<any>
-  ) => ServiceMap.ServiceMap<any>
+  f: (selfServices: ServiceMap.ServiceMap<any>, thatServices: ServiceMap.ServiceMap<any>) => ServiceMap.ServiceMap<any>
 ) =>
   fromBuild((memoMap, scope) =>
     internalEffect.flatMap(
@@ -1088,12 +1078,7 @@ export const provide: {
     that: Layers
   ): <A, E, R>(
     self: Layer<A, E, R>
-  ) => Layer<
-    A,
-    E | Error<Layers[number]>,
-    | Services<Layers[number]>
-    | Exclude<R, Success<Layers[number]>>
-  >
+  ) => Layer<A, E | Error<Layers[number]>, Services<Layers[number]> | Exclude<R, Success<Layers[number]>>>
   <RIn2, E2, ROut2, RIn, E, ROut>(
     self: Layer<ROut2, E2, RIn2>,
     that: Layer<ROut, E, RIn>
@@ -1101,16 +1086,10 @@ export const provide: {
   <A, E, R, const Layers extends [Any, ...Array<Any>]>(
     self: Layer<A, E, R>,
     that: Layers
-  ): Layer<
-    A,
-    E | Error<Layers[number]>,
-    | Services<Layers[number]>
-    | Exclude<R, Success<Layers[number]>>
-  >
-} = dual(2, (
-  self: Layer<any, any, any>,
-  that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>
-) => provideWith(self, that, identity))
+  ): Layer<A, E | Error<Layers[number]>, Services<Layers[number]> | Exclude<R, Success<Layers[number]>>>
+} = dual(2, (self: Layer<any, any, any>, that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>) =>
+  provideWith(self, that, identity)
+)
 
 /**
  * Feeds the output services of this layer into the input of the specified
@@ -1196,8 +1175,7 @@ export const provideMerge: {
   ) => Layer<
     A | Success<Layers[number]>,
     E | Error<Layers[number]>,
-    | Services<Layers[number]>
-    | Exclude<R, Success<Layers[number]>>
+    Services<Layers[number]> | Exclude<R, Success<Layers[number]>>
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
     self: Layer<ROut2, E2, RIn2>,
@@ -1209,18 +1187,11 @@ export const provideMerge: {
   ): Layer<
     A | Success<Layers[number]>,
     E | Error<Layers[number]>,
-    | Services<Layers[number]>
-    | Exclude<R, Success<Layers[number]>>
+    Services<Layers[number]> | Exclude<R, Success<Layers[number]>>
   >
-} = dual(2, (
-  self: Layer<any, any, any>,
-  that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>
-) =>
-  provideWith(
-    self,
-    that,
-    (self, that) => ServiceMap.merge(that, self)
-  ))
+} = dual(2, (self: Layer<any, any, any>, that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>) =>
+  provideWith(self, that, (self, that) => ServiceMap.merge(that, self))
+)
 
 /**
  * Constructs a layer dynamically based on the output of this layer.
@@ -1299,16 +1270,16 @@ export const flatMap: {
     self: Layer<A, E, R>,
     f: (context: ServiceMap.ServiceMap<A>) => Layer<A2, E2, R2>
   ): Layer<A2, E | E2, R | R2>
-} = dual(2, <A, E, R, A2, E2, R2>(
-  self: Layer<A, E, R>,
-  f: (context: ServiceMap.ServiceMap<A>) => Layer<A2, E2, R2>
-): Layer<A2, E | E2, R | R2> =>
-  fromBuild((memoMap, scope) =>
-    internalEffect.flatMap(
-      self.build(memoMap, scope),
-      (context) => f(context).build(memoMap, scope)
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(
+    self: Layer<A, E, R>,
+    f: (context: ServiceMap.ServiceMap<A>) => Layer<A2, E2, R2>
+  ): Layer<A2, E | E2, R | R2> =>
+    fromBuild((memoMap, scope) =>
+      internalEffect.flatMap(self.build(memoMap, scope), (context) => f(context).build(memoMap, scope))
     )
-  ))
+)
 
 /**
  * Translates effect failure into death of the fiber, making all failures
@@ -1366,16 +1337,17 @@ const catch_: {
     self: Layer<ROut, E, RIn>,
     onError: (error: E) => Layer<ROut2, E2, RIn2>
   ): Layer<ROut & ROut2, E2, RIn | RIn2>
-} = dual(2, <RIn, E, ROut, RIn2, E2, ROut2>(
-  self: Layer<ROut, E, RIn>,
-  onError: (error: E) => Layer<ROut2, E2, RIn2>
-): Layer<ROut & ROut2, E2, RIn | RIn2> =>
-  fromBuildUnsafe((memoMap, scope) =>
-    internalEffect.catch_(
-      self.build(memoMap, scope),
-      (e) => onError(e).build(memoMap, scope)
-    ) as any
-  ))
+} = dual(
+  2,
+  <RIn, E, ROut, RIn2, E2, ROut2>(
+    self: Layer<ROut, E, RIn>,
+    onError: (error: E) => Layer<ROut2, E2, RIn2>
+  ): Layer<ROut & ROut2, E2, RIn | RIn2> =>
+    fromBuildUnsafe(
+      (memoMap, scope) =>
+        internalEffect.catch_(self.build(memoMap, scope), (e) => onError(e).build(memoMap, scope)) as any
+    )
+)
 
 export {
   /**
@@ -1451,16 +1423,17 @@ export const catchCause: {
     self: Layer<ROut, E, RIn>,
     onError: (cause: Cause.Cause<E>) => Layer<ROut22, E2, RIn2>
   ): Layer<ROut & ROut22, E2, RIn | RIn2>
-} = dual(2, <RIn, E, ROut, RIn2, E2, ROut2>(
-  self: Layer<ROut, E, RIn>,
-  onError: (cause: Cause.Cause<E>) => Layer<ROut2, E2, RIn2>
-): Layer<ROut & ROut2, E2, RIn | RIn2> =>
-  fromBuildUnsafe((memoMap, scope) =>
-    internalEffect.catchCause(
-      self.build(memoMap, scope),
-      (cause) => onError(cause).build(memoMap, scope)
-    ) as any
-  ))
+} = dual(
+  2,
+  <RIn, E, ROut, RIn2, E2, ROut2>(
+    self: Layer<ROut, E, RIn>,
+    onError: (cause: Cause.Cause<E>) => Layer<ROut2, E2, RIn2>
+  ): Layer<ROut & ROut2, E2, RIn | RIn2> =>
+    fromBuildUnsafe(
+      (memoMap, scope) =>
+        internalEffect.catchCause(self.build(memoMap, scope), (cause) => onError(cause).build(memoMap, scope)) as any
+    )
+)
 
 /**
  * Updates a service in the context with a new implementation.
@@ -1485,11 +1458,7 @@ export const updateService: {
     service: ServiceMap.Service<I, A>,
     f: (a: A) => A
   ): <A1, E1, R1>(layer: Layer<A1, E1, R1>) => Layer<A1, E1, I | R1>
-  <A1, E1, R1, I, A>(
-    layer: Layer<A1, E1, R1>,
-    service: ServiceMap.Service<I, A>,
-    f: (a: A) => A
-  ): Layer<A1, E1, I | R1>
+  <A1, E1, R1, I, A>(layer: Layer<A1, E1, R1>, service: ServiceMap.Service<I, A>, f: (a: A) => A): Layer<A1, E1, I | R1>
 } = dual(
   3,
   <A1, E1, R1, I, A>(
@@ -1622,17 +1591,10 @@ export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E
  * @category Testing
  */
 export type PartialEffectful<A extends object> = Types.Simplify<
-  & {
-    [
-      K in keyof A as A[K] extends Effect<any, any, any> | ((...args: any) => Effect<any, any, any>) ? K
-        : never
-    ]?: A[K]
-  }
-  & {
-    [
-      K in keyof A as A[K] extends Effect<any, any, any> | ((...args: any) => Effect<any, any, any>) ? never
-        : K
-    ]: A[K]
+  {
+    [K in keyof A as A[K] extends Effect<any, any, any> | ((...args: any) => Effect<any, any, any>) ? K : never]?: A[K]
+  } & {
+    [K in keyof A as A[K] extends Effect<any, any, any> | ((...args: any) => Effect<any, any, any>) ? never : K]: A[K]
   }
 >
 
@@ -1683,9 +1645,10 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  * @category Testing
  */
 export const mock =
-  <I, S extends object>(service: ServiceMap.Service<I, S>) => (implementation: PartialEffectful<S>): Layer<I> =>
+  <I, S extends object>(service: ServiceMap.Service<I, S>) =>
+  (implementation: PartialEffectful<S>): Layer<I> =>
     succeed(service)(
-      new Proxy({ ...implementation as object } as S, {
+      new Proxy({ ...(implementation as object) } as S, {
         get(target, prop, _receiver) {
           if (prop in target) {
             return target[prop as keyof S]
@@ -1745,7 +1708,9 @@ const makeUnimplemented = (error: globalThis.Error) => {
  * @category Type constraints
  */
 export const satisfiesSuccessType =
-  <ROut>() => <ROut2 extends ROut, E, RIn>(layer: Layer<ROut2, E, RIn>): Layer<ROut2, E, RIn> => layer
+  <ROut>() =>
+  <ROut2 extends ROut, E, RIn>(layer: Layer<ROut2, E, RIn>): Layer<ROut2, E, RIn> =>
+    layer
 
 /**
  * Ensures that an layer's error type extends a given type `E`.
@@ -1777,7 +1742,9 @@ export const satisfiesSuccessType =
  * @category Type constraints
  */
 export const satisfiesErrorType =
-  <E>() => <ROut, E2 extends E, RIn>(layer: Layer<ROut, E2, RIn>): Layer<ROut, E2, RIn> => layer
+  <E>() =>
+  <ROut, E2 extends E, RIn>(layer: Layer<ROut, E2, RIn>): Layer<ROut, E2, RIn> =>
+    layer
 
 /**
  * Ensures that an layer's requirements type extends a given type `R`.
@@ -1808,7 +1775,9 @@ export const satisfiesErrorType =
  * @category Type constraints
  */
 export const satisfiesServicesType =
-  <RIn>() => <ROut, E, RIn2 extends RIn>(layer: Layer<ROut, E, RIn2>): Layer<ROut, E, RIn2> => layer
+  <RIn>() =>
+  <ROut, E, RIn2 extends RIn>(layer: Layer<ROut, E, RIn2>): Layer<ROut, E, RIn2> =>
+    layer
 
 // -----------------------------------------------------------------------------
 // Tracing
@@ -1826,9 +1795,7 @@ export interface SpanOptions extends Tracer.SpanOptions {
    * A function that will be called when the span associated with the layer is
    * ending (i.e. when the `Scope` that the span is associated with is closed).
    */
-  readonly onEnd?:
-    | ((span: Tracer.Span, exit: Exit.Exit<unknown, unknown>) => Effect<void>)
-    | undefined
+  readonly onEnd?: ((span: Tracer.Span, exit: Exit.Exit<unknown, unknown>) => Effect<void>) | undefined
 }
 
 /**
@@ -1876,18 +1843,14 @@ export interface SpanOptions extends Tracer.SpanOptions {
  * @since 4.0.0
  * @category tracing
  */
-export const span = (
-  name: string,
-  options?: SpanOptions
-): Layer<Tracer.ParentSpan> => {
+export const span = (name: string, options?: SpanOptions): Layer<Tracer.ParentSpan> => {
   options = internalTracer.addSpanStackTrace(options)
   return effect(
     Tracer.ParentSpan,
     options?.onEnd
-      ? internalEffect.tap(
-        internalEffect.makeSpanScoped(name, options),
-        (span) => internalEffect.addFinalizer((exit) => options.onEnd!(span, exit))
-      )
+      ? internalEffect.tap(internalEffect.makeSpanScoped(name, options), (span) =>
+          internalEffect.addFinalizer((exit) => options.onEnd!(span, exit))
+        )
       : internalEffect.makeSpanScoped(name, options)
   )
 }
@@ -1992,18 +1955,9 @@ export const parentSpan = (span: Tracer.AnySpan): Layer<Tracer.ParentSpan> =>
  * @category tracing
  */
 export const withSpan: {
-  (
-    name: string,
-    options?: SpanOptions
-  ): <A, E, R>(
-    self: Layer<A, E, R>
-  ) => Layer<A, E, Exclude<R, Tracer.ParentSpan>>
-  <A, E, R>(
-    self: Layer<A, E, R>,
-    name: string,
-    options?: SpanOptions
-  ): Layer<A, E, Exclude<R, Tracer.ParentSpan>>
-} = function() {
+  (name: string, options?: SpanOptions): <A, E, R>(self: Layer<A, E, R>) => Layer<A, E, Exclude<R, Tracer.ParentSpan>>
+  <A, E, R>(self: Layer<A, E, R>, name: string, options?: SpanOptions): Layer<A, E, Exclude<R, Tracer.ParentSpan>>
+} = function () {
   const dataFirst = typeof arguments[0] !== "string"
   const name = dataFirst ? arguments[1] : arguments[0]
   const options = internalTracer.addSpanStackTrace(dataFirst ? arguments[2] : arguments[1]) as SpanOptions
@@ -2012,10 +1966,9 @@ export const withSpan: {
     return unwrap(
       internalEffect.map(
         options?.onEnd !== undefined
-          ? internalEffect.tap(
-            internalEffect.makeSpanScoped(name, options),
-            (span) => internalEffect.addFinalizer((exit) => options.onEnd!(span, exit))
-          )
+          ? internalEffect.tap(internalEffect.makeSpanScoped(name, options), (span) =>
+              internalEffect.addFinalizer((exit) => options.onEnd!(span, exit))
+            )
           : internalEffect.makeSpanScoped(name, options),
         (span) => withParentSpan(self, span)
       )
@@ -2025,10 +1978,9 @@ export const withSpan: {
     unwrap(
       internalEffect.map(
         options?.onEnd !== undefined
-          ? internalEffect.tap(
-            internalEffect.makeSpanScoped(name, options),
-            (span) => internalEffect.addFinalizer((exit) => options.onEnd!(span, exit))
-          )
+          ? internalEffect.tap(internalEffect.makeSpanScoped(name, options), (span) =>
+              internalEffect.addFinalizer((exit) => options.onEnd!(span, exit))
+            )
           : internalEffect.makeSpanScoped(name, options),
         (span) => withParentSpan(self, span)
       )
@@ -2098,15 +2050,13 @@ export const withParentSpan: {
   (
     span: Tracer.AnySpan,
     options?: Tracer.TraceOptions
-  ): <A, E, R>(
-    self: Layer<A, E, R>
-  ) => Layer<A, E, Exclude<R, Tracer.ParentSpan>>
+  ): <A, E, R>(self: Layer<A, E, R>) => Layer<A, E, Exclude<R, Tracer.ParentSpan>>
   <A, E, R>(
     self: Layer<A, E, R>,
     span: Tracer.AnySpan,
     options?: Tracer.TraceOptions
   ): Layer<A, E, Exclude<R, Tracer.ParentSpan>>
-} = function() {
+} = function () {
   const dataFirst = isLayer(arguments[0])
   const span: Tracer.AnySpan = dataFirst ? arguments[1] : arguments[0]
   let options = dataFirst ? arguments[2] : arguments[1]

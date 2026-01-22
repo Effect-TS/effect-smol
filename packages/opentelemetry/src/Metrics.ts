@@ -33,7 +33,7 @@ export type TemporalityPreference = "cumulative" | "delta"
  * @category Constructors
  */
 export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect<MetricProducer, never, Resource> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const resource = yield* Resource
     const services = yield* Effect.services<never>()
     return new MetricProducerImpl(resource, services, temporality)
@@ -55,16 +55,12 @@ export const registerProducer = (
   Effect.acquireRelease(
     Effect.sync(() => {
       const reader = metricReader()
-      const readers: Array<MetricReader> = Array.isArray(reader) ? reader : [reader] as any
+      const readers: Array<MetricReader> = Array.isArray(reader) ? reader : ([reader] as any)
       readers.forEach((reader) => reader.setMetricProducer(self))
       return readers
     }),
     (readers) =>
-      Effect.promise(() =>
-        Promise.all(
-          readers.map((reader) => reader.shutdown())
-        )
-      ).pipe(
+      Effect.promise(() => Promise.all(readers.map((reader) => reader.shutdown()))).pipe(
         Effect.ignore,
         Effect.interruptible,
         Effect.timeoutOption(options?.shutdownTimeout ?? 3000)
@@ -108,7 +104,6 @@ export const layer = (
     readonly temporality?: TemporalityPreference | undefined
   }
 ): Layer.Layer<never, never, Resource> =>
-  Layer.effectDiscard(Effect.flatMap(
-    makeProducer(options?.temporality),
-    (producer) => registerProducer(producer, evaluate, options)
-  ))
+  Layer.effectDiscard(
+    Effect.flatMap(makeProducer(options?.temporality), (producer) => registerProducer(producer, evaluate, options))
+  )

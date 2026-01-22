@@ -62,7 +62,7 @@ describe("Optic", () => {
       it("optional key (with undefined)", () => {
         type S = { readonly a?: number | undefined }
         const optic = Optic.id<S>().key("a")
-        const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+        const f = (n: number | undefined) => (n !== undefined ? n + 1 : undefined)
 
         strictEqual(optic.get({ a: 1 }), 1)
         strictEqual(optic.get({}), undefined)
@@ -100,7 +100,7 @@ describe("Optic", () => {
       it("optional element (with undefined)", () => {
         type S = readonly [number, (number | undefined)?]
         const optic = Optic.id<S>().key(1)
-        const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+        const f = (n: number | undefined) => (n !== undefined ? n + 1 : undefined)
 
         strictEqual(optic.get([1, 2]), 2)
         strictEqual(optic.get([1]), undefined)
@@ -133,7 +133,7 @@ describe("Optic", () => {
       it("exact optional key (without undefined)", () => {
         type S = { readonly a?: number }
         const optic = Optic.id<S>().optionalKey("a")
-        const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+        const f = (n: number | undefined) => (n !== undefined ? n + 1 : undefined)
 
         strictEqual(optic.get({ a: 1 }), 1)
         strictEqual(optic.get({}), undefined)
@@ -149,7 +149,7 @@ describe("Optic", () => {
     it("Record", () => {
       type S = { [x: string]: number }
       const optic = Optic.id<S>().optionalKey("a")
-      const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+      const f = (n: number | undefined) => (n !== undefined ? n + 1 : undefined)
 
       strictEqual(optic.get({ a: 1, b: 2 }), 1)
       strictEqual(optic.get({ b: 2 }), undefined)
@@ -165,7 +165,7 @@ describe("Optic", () => {
       it("exact optional element (without undefined)", () => {
         type S = readonly [number, number?]
         const optic = Optic.id<S>().optionalKey(1)
-        const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+        const f = (n: number | undefined) => (n !== undefined ? n + 1 : undefined)
 
         strictEqual(optic.get([1, 2]), 2)
         strictEqual(optic.get([1]), undefined)
@@ -181,7 +181,7 @@ describe("Optic", () => {
     it("Array", () => {
       type S = ReadonlyArray<number>
       const optic = Optic.id<S>().optionalKey(1)
-      const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+      const f = (n: number | undefined) => (n !== undefined ? n + 1 : undefined)
 
       strictEqual(optic.get([1, 2, 3]), 2)
       strictEqual(optic.get([1]), undefined)
@@ -229,10 +229,9 @@ Expected a value greater than 0, got -1.1`
   it("refine", () => {
     type B = { readonly _tag: "b"; readonly b: number }
     type S = { readonly _tag: "a"; readonly a: string } | B
-    const optic = Optic.id<S>().refine(
-      (s: S): s is B => s._tag === "b",
-      { expected: `"b" tag` }
-    ).key("b")
+    const optic = Optic.id<S>()
+      .refine((s: S): s is B => s._tag === "b", { expected: `"b" tag` })
+      .key("b")
 
     assertSuccess(optic.getResult({ _tag: "b", b: 1 }), 1)
     assertFailure(optic.getResult({ _tag: "a", a: "value" }), `Expected "b" tag, got {"_tag":"a","a":"value"}`)
@@ -310,16 +309,31 @@ Expected a value greater than 0, got -1.1`
       type Post = { title: string; likes: number }
       type S = { user: { posts: ReadonlyArray<Post> } }
 
-      const _like = Optic.id<S>().key("user").key("posts").forEach((post) =>
-        post.key("likes").check(Schema.isGreaterThan(0))
-      )
+      const _like = Optic.id<S>()
+        .key("user")
+        .key("posts")
+        .forEach((post) => post.key("likes").check(Schema.isGreaterThan(0)))
 
       const addLike = _like.modify((likes) => likes.map((l) => l + 1))
 
       deepStrictEqual(
-        addLike({ user: { posts: [{ title: "a", likes: 0 }, { title: "b", likes: 1 }, { title: "c", likes: 0 }] } }),
+        addLike({
+          user: {
+            posts: [
+              { title: "a", likes: 0 },
+              { title: "b", likes: 1 },
+              { title: "c", likes: 0 }
+            ]
+          }
+        }),
         {
-          user: { posts: [{ title: "a", likes: 0 }, { title: "b", likes: 2 }, { title: "c", likes: 0 }] }
+          user: {
+            posts: [
+              { title: "a", likes: 0 },
+              { title: "b", likes: 2 },
+              { title: "c", likes: 0 }
+            ]
+          }
         }
       )
     })
@@ -327,10 +341,11 @@ Expected a value greater than 0, got -1.1`
     it("Record", () => {
       const optic = Optic.entries<number>().forEach((entry) => entry.key(1).check(Schema.isGreaterThan(0)))
 
-      deepStrictEqual(
-        optic.modify((entries) => entries.map((value) => value + 1))({ a: 0, b: 1, c: 0 }),
-        { a: 0, b: 2, c: 0 }
-      )
+      deepStrictEqual(optic.modify((entries) => entries.map((value) => value + 1))({ a: 0, b: 1, c: 0 }), {
+        a: 0,
+        b: 2,
+        c: 0
+      })
     })
   })
 
@@ -339,16 +354,31 @@ Expected a value greater than 0, got -1.1`
       type Post = { title: string; likes: number }
       type S = { user: { posts: ReadonlyArray<Post> } }
 
-      const _like = Optic.id<S>().key("user").key("posts").forEach((post) =>
-        post.key("likes").check(Schema.isGreaterThan(0))
-      )
+      const _like = Optic.id<S>()
+        .key("user")
+        .key("posts")
+        .forEach((post) => post.key("likes").check(Schema.isGreaterThan(0)))
 
       const addLike = _like.modifyAll((like) => like + 1)
 
       deepStrictEqual(
-        addLike({ user: { posts: [{ title: "a", likes: 0 }, { title: "b", likes: 1 }, { title: "c", likes: 0 }] } }),
+        addLike({
+          user: {
+            posts: [
+              { title: "a", likes: 0 },
+              { title: "b", likes: 1 },
+              { title: "c", likes: 0 }
+            ]
+          }
+        }),
         {
-          user: { posts: [{ title: "a", likes: 0 }, { title: "b", likes: 2 }, { title: "c", likes: 0 }] }
+          user: {
+            posts: [
+              { title: "a", likes: 0 },
+              { title: "b", likes: 2 },
+              { title: "c", likes: 0 }
+            ]
+          }
         }
       )
     })
@@ -356,10 +386,11 @@ Expected a value greater than 0, got -1.1`
     it("Record", () => {
       const optic = Optic.entries<number>().forEach((entry) => entry.key(1).check(Schema.isGreaterThan(0)))
 
-      deepStrictEqual(
-        optic.modify((entries) => entries.map((value) => value + 1))({ a: 0, b: 1, c: 0 }),
-        { a: 0, b: 2, c: 0 }
-      )
+      deepStrictEqual(optic.modify((entries) => entries.map((value) => value + 1))({ a: 0, b: 1, c: 0 }), {
+        a: 0,
+        b: 2,
+        c: 0
+      })
     })
   })
 
@@ -376,7 +407,9 @@ Expected a value greater than 0, got -1.1`
     type S = {
       readonly a: ReadonlyArray<number>
     }
-    const optic = Optic.id<S>().key("a").forEach((a) => a.check(Schema.isGreaterThan(0)))
+    const optic = Optic.id<S>()
+      .key("a")
+      .forEach((a) => a.check(Schema.isGreaterThan(0)))
     const getAll = Optic.getAll(optic)
     deepStrictEqual(getAll({ a: [1, 2, 3] }), [1, 2, 3])
     deepStrictEqual(getAll({ a: [1, -2, 3] }), [1, 3])
@@ -397,10 +430,7 @@ Expected a value greater than 0, got -1.1`
     }
 
     // build an optic to projects[1].tasks[0].done
-    const _done = Optic.id<State>()
-      .key("projects").key(1)
-      .key("tasks").key(0)
-      .key("done")
+    const _done = Optic.id<State>().key("projects").key(1).key("tasks").key(0).key("done")
 
     // Real update -> copy only the path
     const s2 = _done.replace(true, s1)

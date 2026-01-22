@@ -227,10 +227,7 @@ export const make = <A>(...elements: ReadonlyArray<A>): Array<A> => {
 }
 
 /** @internal */
-export const map = <A, B>(
-  self: ReadonlyArray<A>,
-  f: (a: A, i: number) => B
-): Array<B> => {
+export const map = <A, B>(self: ReadonlyArray<A>, f: (a: A, i: number) => B): Array<B> => {
   const result = new globalThis.Array(self.length)
   for (let i = 0; i < self.length; i++) {
     result[i] = f(self[i]!, i)

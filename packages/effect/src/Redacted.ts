@@ -120,9 +120,12 @@ export const isRedacted = (u: unknown): u is Redacted<unknown> => hasProperty(u,
  * @since 3.3.0
  * @category constructors
  */
-export const make = <T>(value: T, options?: {
-  readonly label?: string | undefined
-}): Redacted<T> => {
+export const make = <T>(
+  value: T,
+  options?: {
+    readonly label?: string | undefined
+  }
+): Redacted<T> => {
   const redacted = Object.create(Proto)
   if (options?.label) {
     redacted.label = options.label
@@ -147,10 +150,7 @@ const Proto = {
     return Hash.hash(redactedRegistry.get(this))
   },
   [Equal.symbol]<T>(this: Redacted<T>, that: unknown): boolean {
-    return (
-      isRedacted(that) &&
-      Equal.equals(redactedRegistry.get(this), redactedRegistry.get(that))
-    )
+    return isRedacted(that) && Equal.equals(redactedRegistry.get(this), redactedRegistry.get(that))
   }
 }
 

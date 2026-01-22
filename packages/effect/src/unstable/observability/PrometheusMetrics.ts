@@ -113,7 +113,7 @@ export interface HttpOptions extends FormatOptions {
  * @category Formatting
  */
 export const format: (options?: FormatOptions | undefined) => Effect.Effect<string> = Effect.fnUntraced(
-  function*(options) {
+  function* (options) {
     const services = yield* Effect.services<never>()
     return formatUnsafe(services, options)
   }
@@ -128,10 +128,7 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
  * @since 4.0.0
  * @category Formatting
  */
-export const formatUnsafe = (
-  services: ServiceMap.ServiceMap<never>,
-  options?: FormatOptions | undefined
-): string => {
+export const formatUnsafe = (services: ServiceMap.ServiceMap<never>, options?: FormatOptions | undefined): string => {
   const snapshot = Metric.snapshotUnsafe(services)
   const prefix = options?.prefix ? sanitizeMetricName(options.prefix) + "_" : ""
   const mapper = options?.metricNameMapper ?? ((name: string) => name)
@@ -183,23 +180,23 @@ export const formatUnsafe = (
  * @since 4.0.0
  * @category Http
  */
-export const layerHttp = (
-  options?: HttpOptions | undefined
-): Layer.Layer<never, never, HttpRouter.HttpRouter> =>
-  Layer.effectDiscard(Effect.gen(function*() {
-    const router = yield* HttpRouter.HttpRouter
+export const layerHttp = (options?: HttpOptions | undefined): Layer.Layer<never, never, HttpRouter.HttpRouter> =>
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      const router = yield* HttpRouter.HttpRouter
 
-    const { path, ...formatOptions } = options ?? {}
+      const { path, ...formatOptions } = options ?? {}
 
-    const handler = Effect.gen(function*() {
-      const body = yield* format(formatOptions)
-      return HttpServerResponse.text(body, {
-        contentType: "text/plain; version=0.0.4; charset=utf-8"
+      const handler = Effect.gen(function* () {
+        const body = yield* format(formatOptions)
+        return HttpServerResponse.text(body, {
+          contentType: "text/plain; version=0.0.4; charset=utf-8"
+        })
       })
-    })
 
-    yield* router.add("GET", path ?? "/metrics", handler)
-  }))
+      yield* router.add("GET", path ?? "/metrics", handler)
+    })
+  )
 
 // -----------------------------------------------------------------------------
 // Internal
@@ -244,10 +241,7 @@ const sanitizeLabelName = (name: string): string => {
  * Backslash, double-quote, and newline must be escaped.
  */
 const escapeLabelValue = (value: string): string => {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, "\\\"")
-    .replace(/\n/g, "\\n")
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")
 }
 
 /**
@@ -255,9 +249,7 @@ const escapeLabelValue = (value: string): string => {
  * Backslash and newline must be escaped.
  */
 const escapeHelp = (text: string): string => {
-  return text
-    .replace(/\\/g, "\\\\")
-    .replace(/\n/g, "\\n")
+  return text.replace(/\\/g, "\\\\").replace(/\n/g, "\\n")
 }
 
 /**
@@ -330,11 +322,7 @@ const mapMetricType = (type: Metric.Metric.Type): string => {
 /**
  * Format a metric family (all metrics with the same name).
  */
-const formatMetricFamily = (
-  name: string,
-  metrics: Array<Metric.Metric.Snapshot>,
-  lines: Array<string>
-): void => {
+const formatMetricFamily = (name: string, metrics: Array<Metric.Metric.Snapshot>, lines: Array<string>): void => {
   const first = metrics[0]
   const prometheusType = mapMetricType(first.type)
 
@@ -355,11 +343,7 @@ const formatMetricFamily = (
 /**
  * Format data lines for a single metric snapshot.
  */
-const formatMetricData = (
-  name: string,
-  metric: Metric.Metric.Snapshot,
-  lines: Array<string>
-): void => {
+const formatMetricData = (name: string, metric: Metric.Metric.Snapshot, lines: Array<string>): void => {
   switch (metric.type) {
     case "Counter":
       formatCounter(name, metric, lines)

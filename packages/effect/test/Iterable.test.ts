@@ -113,35 +113,89 @@ describe("Iterable", () => {
 
     describe("findFirst", () => {
       it("boolean-returning overloads", () => {
-        assertNone(pipe([], Iter.findFirst((n) => n % 2 === 0)))
-        assertSome(pipe([1, 2, 3], Iter.findFirst((n) => n % 2 === 0)), 2)
-        assertSome(pipe([1, 2, 3, 4], Iter.findFirst((n) => n % 2 === 0)), 2)
+        assertNone(
+          pipe(
+            [],
+            Iter.findFirst((n) => n % 2 === 0)
+          )
+        )
+        assertSome(
+          pipe(
+            [1, 2, 3],
+            Iter.findFirst((n) => n % 2 === 0)
+          ),
+          2
+        )
+        assertSome(
+          pipe(
+            [1, 2, 3, 4],
+            Iter.findFirst((n) => n % 2 === 0)
+          ),
+          2
+        )
 
-        assertNone(pipe(new Set<number>(), Iter.findFirst((n) => n % 2 === 0)))
-        assertSome(pipe(new Set([1, 2, 3]), Iter.findFirst((n) => n % 2 === 0)), 2)
-        assertSome(pipe(new Set([1, 2, 3, 4]), Iter.findFirst((n) => n % 2 === 0)), 2)
+        assertNone(
+          pipe(
+            new Set<number>(),
+            Iter.findFirst((n) => n % 2 === 0)
+          )
+        )
+        assertSome(
+          pipe(
+            new Set([1, 2, 3]),
+            Iter.findFirst((n) => n % 2 === 0)
+          ),
+          2
+        )
+        assertSome(
+          pipe(
+            new Set([1, 2, 3, 4]),
+            Iter.findFirst((n) => n % 2 === 0)
+          ),
+          2
+        )
       })
 
       it("Option-returning overloads", () => {
-        assertNone(pipe([], Iter.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())))
+        assertNone(
+          pipe(
+            [],
+            Iter.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          )
+        )
         assertSome(
-          pipe([1, 2, 3], Iter.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            [1, 2, 3],
+            Iter.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
         assertSome(
-          pipe([1, 2, 3, 4], Iter.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            [1, 2, 3, 4],
+            Iter.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
 
         assertNone(
-          pipe(new Set<number>(), Iter.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          pipe(
+            new Set<number>(),
+            Iter.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          )
         )
         assertSome(
-          pipe(new Set([1, 2, 3]), Iter.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            new Set([1, 2, 3]),
+            Iter.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
         assertSome(
-          pipe(new Set([1, 2, 3, 4]), Iter.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            new Set([1, 2, 3, 4]),
+            Iter.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
       })
@@ -149,35 +203,89 @@ describe("Iterable", () => {
 
     describe("findLast", () => {
       it("boolean-returning overloads", () => {
-        assertNone(pipe([], Iter.findLast((n) => n % 2 === 0)))
-        assertSome(pipe([1, 2, 3], Iter.findLast((n) => n % 2 === 0)), 2)
-        assertSome(pipe([1, 2, 3, 4], Iter.findLast((n) => n % 2 === 0)), 4)
+        assertNone(
+          pipe(
+            [],
+            Iter.findLast((n) => n % 2 === 0)
+          )
+        )
+        assertSome(
+          pipe(
+            [1, 2, 3],
+            Iter.findLast((n) => n % 2 === 0)
+          ),
+          2
+        )
+        assertSome(
+          pipe(
+            [1, 2, 3, 4],
+            Iter.findLast((n) => n % 2 === 0)
+          ),
+          4
+        )
 
-        assertNone(pipe(new Set<number>(), Iter.findLast((n) => n % 2 === 0)))
-        assertSome(pipe(new Set([1, 2, 3]), Iter.findLast((n) => n % 2 === 0)), 2)
-        assertSome(pipe(new Set([1, 2, 3, 4]), Iter.findLast((n) => n % 2 === 0)), 4)
+        assertNone(
+          pipe(
+            new Set<number>(),
+            Iter.findLast((n) => n % 2 === 0)
+          )
+        )
+        assertSome(
+          pipe(
+            new Set([1, 2, 3]),
+            Iter.findLast((n) => n % 2 === 0)
+          ),
+          2
+        )
+        assertSome(
+          pipe(
+            new Set([1, 2, 3, 4]),
+            Iter.findLast((n) => n % 2 === 0)
+          ),
+          4
+        )
       })
 
       it("Option-returning overloads", () => {
-        assertNone(pipe([], Iter.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())))
+        assertNone(
+          pipe(
+            [],
+            Iter.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          )
+        )
         assertSome(
-          pipe([1, 2, 3], Iter.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            [1, 2, 3],
+            Iter.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
         assertSome(
-          pipe([1, 2, 3, 4], Iter.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            [1, 2, 3, 4],
+            Iter.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [4, 3]
         )
 
         assertNone(
-          pipe(new Set<number>(), Iter.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          pipe(
+            new Set<number>(),
+            Iter.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          )
         )
         assertSome(
-          pipe(new Set([1, 2, 3]), Iter.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            new Set([1, 2, 3]),
+            Iter.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
         assertSome(
-          pipe(new Set([1, 2, 3, 4]), Iter.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            new Set([1, 2, 3, 4]),
+            Iter.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [4, 3]
         )
       })
@@ -200,19 +308,35 @@ describe("Iterable", () => {
 
     it("zipWith", () => {
       deepStrictEqual(
-        pipe(new Set([1, 2, 3]), Iter.zipWith(new Set([]), (n, s) => s + n), toArray),
+        pipe(
+          new Set([1, 2, 3]),
+          Iter.zipWith(new Set([]), (n, s) => s + n),
+          toArray
+        ),
         []
       )
       deepStrictEqual(
-        pipe(new Set([]), Iter.zipWith(new Set(["a", "b", "c", "d"]), (n, s) => s + n), toArray),
+        pipe(
+          new Set([]),
+          Iter.zipWith(new Set(["a", "b", "c", "d"]), (n, s) => s + n),
+          toArray
+        ),
         []
       )
       deepStrictEqual(
-        pipe(new Set([]), Iter.zipWith(new Set([]), (n, s) => s + n), toArray),
+        pipe(
+          new Set([]),
+          Iter.zipWith(new Set([]), (n, s) => s + n),
+          toArray
+        ),
         []
       )
       deepStrictEqual(
-        pipe(new Set([1, 2, 3]), Iter.zipWith(new Set(["a", "b", "c", "d"]), (n, s) => s + n), toArray),
+        pipe(
+          new Set([1, 2, 3]),
+          Iter.zipWith(new Set(["a", "b", "c", "d"]), (n, s) => s + n),
+          toArray
+        ),
         ["a1", "b2", "c3"]
       )
     })
@@ -271,18 +395,30 @@ describe("Iterable", () => {
 
   it("map", () => {
     deepStrictEqual(
-      pipe([1, 2, 3], Iter.map((n) => n * 2), toArray),
+      pipe(
+        [1, 2, 3],
+        Iter.map((n) => n * 2),
+        toArray
+      ),
       [2, 4, 6]
     )
     deepStrictEqual(
-      pipe(["a", "b"], Iter.map((s, i) => s + i), toArray),
+      pipe(
+        ["a", "b"],
+        Iter.map((s, i) => s + i),
+        toArray
+      ),
       ["a0", "b1"]
     )
   })
 
   it("flatMap", () => {
     deepStrictEqual(
-      pipe([1, 2, 3], Iter.flatMap((n) => [n, n + 1]), toArray),
+      pipe(
+        [1, 2, 3],
+        Iter.flatMap((n) => [n, n + 1]),
+        toArray
+      ),
       [1, 2, 2, 3, 3, 4]
     )
     const f = (n: number, i: number) => [n + i]
@@ -292,15 +428,8 @@ describe("Iterable", () => {
 
   it("getSomes", () => {
     deepStrictEqual(toArray(Iter.getSomes([])), [])
-    deepStrictEqual(toArray(Iter.getSomes([Option.some(1), Option.some(2), Option.some(3)])), [
-      1,
-      2,
-      3
-    ])
-    deepStrictEqual(toArray(Iter.getSomes([Option.some(1), Option.none(), Option.some(3)])), [
-      1,
-      3
-    ])
+    deepStrictEqual(toArray(Iter.getSomes([Option.some(1), Option.some(2), Option.some(3)])), [1, 2, 3])
+    deepStrictEqual(toArray(Iter.getSomes([Option.some(1), Option.none(), Option.some(3)])), [1, 3])
   })
 
   it("filter", () => {
@@ -338,11 +467,7 @@ describe("Iterable", () => {
   })
 
   it("chunksOf", () => {
-    deepStrictEqual(toArray(Iter.chunksOf(2)([1, 2, 3, 4, 5])), [
-      [1, 2],
-      [3, 4],
-      [5]
-    ])
+    deepStrictEqual(toArray(Iter.chunksOf(2)([1, 2, 3, 4, 5])), [[1, 2], [3, 4], [5]])
     deepStrictEqual(toArray(Iter.chunksOf(2)([1, 2, 3, 4, 5, 6])), [
       [1, 2],
       [3, 4],
@@ -354,10 +479,7 @@ describe("Iterable", () => {
     deepStrictEqual(toArray(Iter.chunksOf(0)([1, 2, 3, 4, 5])), [[1], [2], [3], [4], [5]])
     deepStrictEqual(toArray(Iter.chunksOf(-1)([1, 2, 3, 4, 5])), [[1], [2], [3], [4], [5]])
 
-    const assertSingleChunk = (
-      input: Iterable<number>,
-      n: number
-    ) => {
+    const assertSingleChunk = (input: Iterable<number>, n: number) => {
       const chunks = toArray(Iter.chunksOf(n)(input))
       strictEqual(chunks.length, 1)
       deepStrictEqual(chunks[0], input)
@@ -381,22 +503,25 @@ describe("Iterable", () => {
   it("groupBy", () => {
     deepStrictEqual(Iter.groupBy((_) => "")([]), {})
     deepStrictEqual(Iter.groupBy((a) => `${a}`)([1]), { "1": [1] })
+    deepStrictEqual(Iter.groupBy((s: string) => `${s.length}`)(["foo", "bar", "foobar"]), {
+      "3": ["foo", "bar"],
+      "6": ["foobar"]
+    })
     deepStrictEqual(
-      Iter.groupBy((s: string) => `${s.length}`)(["foo", "bar", "foobar"]),
+      Iter.groupBy(["a", "b"], (s) => (s === "a" ? symA : s === "b" ? symB : symC)),
       {
-        "3": ["foo", "bar"],
-        "6": ["foobar"]
+        [symA]: ["a"],
+        [symB]: ["b"]
       }
     )
-    deepStrictEqual(Iter.groupBy(["a", "b"], (s) => s === "a" ? symA : s === "b" ? symB : symC), {
-      [symA]: ["a"],
-      [symB]: ["b"]
-    })
-    deepStrictEqual(Iter.groupBy(["a", "b", "c", "d"], (s) => s === "a" ? symA : s === "b" ? symB : symC), {
-      [symA]: ["a"],
-      [symB]: ["b"],
-      [symC]: ["c", "d"]
-    })
+    deepStrictEqual(
+      Iter.groupBy(["a", "b", "c", "d"], (s) => (s === "a" ? symA : s === "b" ? symB : symC)),
+      {
+        [symA]: ["a"],
+        [symB]: ["b"],
+        [symC]: ["c", "d"]
+      }
+    )
   })
 
   it("makeBy", () => {
@@ -454,9 +579,28 @@ describe("Iterable", () => {
   })
 
   it("countBy", () => {
-    deepStrictEqual(Iter.countBy([1, 2, 3, 4, 5], (n) => n % 2 === 0), 2)
-    deepStrictEqual(pipe([1, 2, 3, 4, 5], Iter.countBy((n) => n % 2 === 0)), 2)
+    deepStrictEqual(
+      Iter.countBy([1, 2, 3, 4, 5], (n) => n % 2 === 0),
+      2
+    )
+    deepStrictEqual(
+      pipe(
+        [1, 2, 3, 4, 5],
+        Iter.countBy((n) => n % 2 === 0)
+      ),
+      2
+    )
 
-    deepStrictEqual(Iter.countBy(new Map([["a", 1], ["b", 2], ["c", 3]]), ([key, n]) => n % 2 === 1 && key !== "c"), 1)
+    deepStrictEqual(
+      Iter.countBy(
+        new Map([
+          ["a", 1],
+          ["b", 2],
+          ["c", 3]
+        ]),
+        ([key, n]) => n % 2 === 1 && key !== "c"
+      ),
+      1
+    )
   })
 })

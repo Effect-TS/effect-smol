@@ -32,7 +32,7 @@ describe("toStandardJSONSchemaV1", () => {
     const schema = Schema.String
     const both = Schema.toStandardSchemaV1(Schema.toStandardJSONSchemaV1(schema))
     deepStrictEqual(standardConvertToJSONSchemaInput(both), {
-      "type": "string"
+      type: "string"
     })
   })
 
@@ -41,10 +41,10 @@ describe("toStandardJSONSchemaV1", () => {
       const schema = Schema.Tuple([Schema.FiniteFromString])
       const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
       deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
-        "type": "array",
-        "prefixItems": [{ "type": "string" }],
-        "minItems": 1,
-        "maxItems": 1
+        type: "array",
+        prefixItems: [{ type: "string" }],
+        minItems: 1,
+        maxItems: 1
       })
     })
 
@@ -52,10 +52,10 @@ describe("toStandardJSONSchemaV1", () => {
       const schema = Schema.Tuple([Schema.FiniteFromString])
       const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
       deepStrictEqual(standardConvertToJSONSchemaOutput(standardJSONSchema), {
-        "type": "array",
-        "prefixItems": [{ "type": "number" }],
-        "minItems": 1,
-        "maxItems": 1
+        type: "array",
+        prefixItems: [{ type: "number" }],
+        minItems: 1,
+        maxItems: 1
       })
     })
 
@@ -64,16 +64,13 @@ describe("toStandardJSONSchemaV1", () => {
       const schema = Schema.Tuple([S, S])
       const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
       deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
-        "type": "array",
-        "prefixItems": [
-          { "$ref": "#/$defs/id" },
-          { "$ref": "#/$defs/id" }
-        ],
-        "minItems": 2,
-        "maxItems": 2,
-        "$defs": {
-          "id": {
-            "type": "string"
+        type: "array",
+        prefixItems: [{ $ref: "#/$defs/id" }, { $ref: "#/$defs/id" }],
+        minItems: 2,
+        maxItems: 2,
+        $defs: {
+          id: {
+            type: "string"
           }
         }
       })
@@ -85,10 +82,10 @@ describe("toStandardJSONSchemaV1", () => {
       const schema = Schema.Tuple([Schema.FiniteFromString])
       const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
       deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema, "draft-07"), {
-        "type": "array",
-        "items": [{ "type": "string" }],
-        "minItems": 1,
-        "maxItems": 1
+        type: "array",
+        items: [{ type: "string" }],
+        minItems: 1,
+        maxItems: 1
       })
     })
 
@@ -96,10 +93,10 @@ describe("toStandardJSONSchemaV1", () => {
       const schema = Schema.Tuple([Schema.FiniteFromString])
       const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
       deepStrictEqual(standardConvertToJSONSchemaOutput(standardJSONSchema, "draft-07"), {
-        "type": "array",
-        "items": [{ "type": "number" }],
-        "minItems": 1,
-        "maxItems": 1
+        type: "array",
+        items: [{ type: "number" }],
+        minItems: 1,
+        maxItems: 1
       })
     })
 
@@ -108,16 +105,13 @@ describe("toStandardJSONSchemaV1", () => {
       const schema = Schema.Tuple([S, S])
       const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
       deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema, "draft-07"), {
-        "type": "array",
-        "items": [
-          { "$ref": "#/definitions/id" },
-          { "$ref": "#/definitions/id" }
-        ],
-        "minItems": 2,
-        "maxItems": 2,
-        "definitions": {
-          "id": {
-            "type": "string"
+        type: "array",
+        items: [{ $ref: "#/definitions/id" }, { $ref: "#/definitions/id" }],
+        minItems: 2,
+        maxItems: 2,
+        definitions: {
+          id: {
+            type: "string"
           }
         }
       })

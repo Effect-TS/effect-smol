@@ -9,7 +9,7 @@ export default function transformer(file: cs.FileInfo, api: cs.API) {
 
   root.find(j.Comment as any).forEach((path) => {
     if (path.value.type === "CommentBlock") {
-      const value = (path.value) as any
+      const value = path.value as any
       const comment = value.value
       if (comment.includes(EXAMPLE) && !comment.includes(EXAMPLE_WITH_FENCE)) {
         value.value = wrapExamplesWithFence(comment)
@@ -30,6 +30,11 @@ function wrapExamplesWithFence(jsdocComment: string) {
       end -= 3
     }
   }
-  return jsdocComment.substring(0, start) + " * ```ts\n" + jsdocComment.substring(start, end) + " * ```\n" +
+  return (
+    jsdocComment.substring(0, start) +
+    " * ```ts\n" +
+    jsdocComment.substring(start, end) +
+    " * ```\n" +
     jsdocComment.substring(end)
+  )
 }

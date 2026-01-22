@@ -15,12 +15,7 @@ import type { Protocol } from "./RpcServer.ts"
  */
 export class InitialMessage extends ServiceMap.Service<
   InitialMessage,
-  Effect.Effect<
-    readonly [
-      data: unknown,
-      transfers: ReadonlyArray<Transferable>
-    ]
-  >
+  Effect.Effect<readonly [data: unknown, transfers: ReadonlyArray<Transferable>]>
 >()("effect/rpc/RpcWorker/InitialMessage") {}
 
 /**
@@ -72,9 +67,7 @@ export const layerInitialMessage = <S extends Schema.Top, R2>(
 ): Layer.Layer<InitialMessage, never, S["EncodingServices"] | R2> =>
   Layer.effect(InitialMessage)(
     Effect.servicesWith((services: ServiceMap.ServiceMap<S["EncodingServices"] | R2>) =>
-      Effect.succeed(
-        Effect.provideServices(Effect.orDie(makeInitialMessage(schema, build)), services)
-      )
+      Effect.succeed(Effect.provideServices(Effect.orDie(makeInitialMessage(schema, build)), services))
     )
   )
 

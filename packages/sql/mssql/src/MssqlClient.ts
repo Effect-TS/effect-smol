@@ -49,17 +49,9 @@ export interface MssqlClient extends Client.SqlClient {
 
   readonly config: MssqlClientConfig
 
-  readonly param: (
-    type: DataType,
-    value: unknown,
-    options?: ParameterOptions
-  ) => Statement.Fragment
+  readonly param: (type: DataType, value: unknown, options?: ParameterOptions) => Statement.Fragment
 
-  readonly call: <
-    I extends Record<string, Parameter<any>>,
-    O extends Record<string, Parameter<any>>,
-    A extends object
-  >(
+  readonly call: <I extends Record<string, Parameter<any>>, O extends Record<string, Parameter<any>>, A extends object>(
     procedure: Procedure.ProcedureWithValues<I, O, A>
   ) => Effect.Effect<Procedure.Procedure.Result<O, A>, SqlError>
 }
@@ -123,15 +115,13 @@ const TransactionConnection = Client.TransactionConnection as unknown as Service
 export const make = (
   options: MssqlClientConfig
 ): Effect.Effect<MssqlClient, SqlError, Scope.Scope | Reactivity.Reactivity> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const parameterTypes = options.parameterTypes ?? defaultParameterTypes
     const compiler = makeCompiler(options.transformQueryNames)
 
-    const transformRows = options.transformResultNames ?
-      Statement.defaultTransforms(
-        options.transformResultNames
-      ).array :
-      undefined
+    const transformRows = options.transformResultNames
+      ? Statement.defaultTransforms(options.transformResultNames).array
+      : undefined
     const spanAttributes: ReadonlyArray<[string, unknown]> = [
       ...(options.spanAttributes ? Object.entries(options.spanAttributes) : []),
       [ATTR_DB_SYSTEM_NAME, "microsoft.sql_server"],
@@ -143,7 +133,7 @@ export const make = (
     // oxlint-disable-next-line prefer-const
     let pool: Pool.Pool<MssqlConnection, SqlError>
 
-    const makeConnection = Effect.gen(function*() {
+    const makeConnection = Effect.gen(function* () {
       const conn = new Tedious.Connection({
         options: {
           port: options.port,
@@ -162,9 +152,7 @@ export const make = (
           type: (options.authType as any) ?? "default",
           options: {
             userName: options.username,
-            password: options.password
-              ? Redacted.value(options.password)
-              : undefined
+            password: options.password ? Redacted.value(options.password) : undefined
           }
         }
       })
@@ -181,11 +169,7 @@ export const make = (
         })
       })
 
-      const run = (
-        sql: string,
-        values?: ReadonlyArray<any>,
-        rowsAsArray = false
-      ) =>
+      const run = (sql: string, values?: ReadonlyArray<any>, rowsAsArray = false) =>
         Effect.callback<any, SqlError>((resume) => {
           const req = new Tedious.Request(sql, (cause, _rowCount, result) => {
             if (cause) {
@@ -228,25 +212,22 @@ export const make = (
         Effect.callback<any, SqlError>((resume) => {
           const result: Record<string, any> = {}
 
-          const req = new Tedious.Request(
-            escape(procedure.name),
-            (cause, _, rows) => {
-              if (cause) {
-                resume(Effect.fail(new SqlError({ cause, message: "Failed to execute statement" })))
-              } else {
-                rows = rowsToObjects(rows)
-                if (transformRows) {
-                  rows = transformRows(rows) as any
-                }
-                resume(
-                  Effect.succeed({
-                    params: result,
-                    rows
-                  })
-                )
+          const req = new Tedious.Request(escape(procedure.name), (cause, _, rows) => {
+            if (cause) {
+              resume(Effect.fail(new SqlError({ cause, message: "Failed to execute statement" })))
+            } else {
+              rows = rowsToObjects(rows)
+              if (transformRows) {
+                rows = transformRows(rows) as any
               }
+              resume(
+                Effect.succeed({
+                  params: result,
+                  rows
+                })
+              )
             }
-          )
+          })
 
           for (const name in procedure.params) {
             const param = procedure.params[name]
@@ -269,9 +250,7 @@ export const make = (
 
       const connection = identity<MssqlConnection>({
         execute(sql, params, transformRows) {
-          return transformRows
-            ? Effect.map(run(sql, params), transformRows)
-            : run(sql, params)
+          return transformRows ? Effect.map(run(sql, params), transformRows) : run(sql, params)
         },
         executeRaw(sql, params) {
           return run(sql, params)
@@ -366,7 +345,7 @@ export const make = (
     const withTransaction = Client.makeWithTransaction({
       transactionService: TransactionConnection,
       spanAttributes,
-      acquireConnection: Effect.gen(function*() {
+      acquireConnection: Effect.gen(function* () {
         const scope = Scope.makeUnsafe()
         const conn = yield* Scope.provide(Pool.get(pool), scope)
         return [scope, conn] as const
@@ -378,51 +357,37 @@ export const make = (
       rollbackSavepoint: (conn, id) => conn.rollback(`effect_sql_${id}`)
     })
 
-    return identity<MssqlClient>(Object.assign(
-      yield* Client.make({
-        acquirer: Pool.get(pool),
-        compiler,
-        spanAttributes,
-        transformRows
-      }),
-      {
-        [TypeId]: TypeId as TypeId,
-        config: options,
-        withTransaction,
-        param: (
-          type: DataType,
-          value: unknown,
-          options: ParameterOptions = {}
-        ) => Statement.fragment([mssqlParam(type, value, options)]),
-        call: <
-          I extends Record<string, Parameter<any>>,
-          O extends Record<string, Parameter<any>>,
-          A
-        >(
-          procedure: Procedure.ProcedureWithValues<I, O, A>
-        ) => Effect.scoped(Effect.flatMap(Pool.get(pool), (_) => _.call(procedure, transformRows))),
-        withoutTransforms() {
-          const statement = Statement.make(Pool.get(pool), compiler.withoutTransform, spanAttributes, undefined)
-          const client = Object.assign(
-            statement,
-            this,
-            statement,
-            {
-              call: <
-                I extends Record<string, Parameter<any>>,
-                O extends Record<string, Parameter<any>>,
-                A
-              >(
+    return identity<MssqlClient>(
+      Object.assign(
+        yield* Client.make({
+          acquirer: Pool.get(pool),
+          compiler,
+          spanAttributes,
+          transformRows
+        }),
+        {
+          [TypeId]: TypeId as TypeId,
+          config: options,
+          withTransaction,
+          param: (type: DataType, value: unknown, options: ParameterOptions = {}) =>
+            Statement.fragment([mssqlParam(type, value, options)]),
+          call: <I extends Record<string, Parameter<any>>, O extends Record<string, Parameter<any>>, A>(
+            procedure: Procedure.ProcedureWithValues<I, O, A>
+          ) => Effect.scoped(Effect.flatMap(Pool.get(pool), (_) => _.call(procedure, transformRows))),
+          withoutTransforms() {
+            const statement = Statement.make(Pool.get(pool), compiler.withoutTransform, spanAttributes, undefined)
+            const client = Object.assign(statement, this, statement, {
+              call: <I extends Record<string, Parameter<any>>, O extends Record<string, Parameter<any>>, A>(
                 procedure: Procedure.ProcedureWithValues<I, O, A>
               ) => Effect.scoped(Effect.flatMap(Pool.get(pool), (_) => _.call(procedure, undefined)))
-            }
-          )
-          ;(client as any).safe = client
-          ;(client as any).withoutTransforms = () => client
-          return client
+            })
+            ;(client as any).safe = client
+            ;(client as any).withoutTransforms = () => client
+            return client
+          }
         }
-      }
-    ))
+      )
+    )
   })
 
 /**
@@ -435,28 +400,23 @@ export const layerConfig: (
   config: Config.Wrap<MssqlClientConfig>
 ): Layer.Layer<Client.SqlClient | MssqlClient, Config.ConfigError | SqlError> =>
   Layer.effectServices(
-    Config.unwrap(config).asEffect().pipe(
-      Effect.flatMap(make),
-      Effect.map((client) =>
-        ServiceMap.make(MssqlClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
-        )
+    Config.unwrap(config)
+      .asEffect()
+      .pipe(
+        Effect.flatMap(make),
+        Effect.map((client) => ServiceMap.make(MssqlClient, client).pipe(ServiceMap.add(Client.SqlClient, client)))
       )
-    )
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
  * @category layers
  * @since 1.0.0
  */
-export const layer = (
-  config: MssqlClientConfig
-): Layer.Layer<Client.SqlClient | MssqlClient, never | SqlError> =>
+export const layer = (config: MssqlClientConfig): Layer.Layer<Client.SqlClient | MssqlClient, never | SqlError> =>
   Layer.effectServices(
     Effect.map(make(config), (client) =>
-      ServiceMap.make(MssqlClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
-      ))
+      ServiceMap.make(MssqlClient, client).pipe(ServiceMap.add(Client.SqlClient, client))
+    )
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
@@ -469,18 +429,16 @@ export const makeCompiler = (transform?: (_: string) => string) =>
     placeholder(_) {
       return `@${numberToParamName(_ - 1)}`
     },
-    onIdentifier: transform ?
-      function(value, withoutTransform) {
-        return withoutTransform ? escape(value) : escape(transform(value))
-      } :
-      escape,
+    onIdentifier: transform
+      ? function (value, withoutTransform) {
+          return withoutTransform ? escape(value) : escape(transform(value))
+        }
+      : escape,
     onRecordUpdate(placeholders, valueAlias, valueColumns, values, returning) {
-      const returningSql = returning ? returning[0] === "*" ? "OUTPUT INSERTED.* " : `OUTPUT ${returning[0]} ` : ""
+      const returningSql = returning ? (returning[0] === "*" ? "OUTPUT INSERTED.* " : `OUTPUT ${returning[0]} `) : ""
       return [
         `${returningSql}FROM (values ${placeholders}) AS ${valueAlias}${valueColumns}`,
-        returning ?
-          returning[1].concat(values.flat()) :
-          values.flat()
+        returning ? returning[1].concat(values.flat()) : values.flat()
       ]
     },
     onCustom(type, placeholder) {
@@ -491,12 +449,10 @@ export const makeCompiler = (transform?: (_: string) => string) =>
       }
     },
     onInsert(columns, placeholders, values, returning) {
-      const returningSql = returning ? returning[0] === "*" ? " OUTPUT INSERTED.*" : ` OUTPUT ${returning[0]}` : ""
+      const returningSql = returning ? (returning[0] === "*" ? " OUTPUT INSERTED.*" : ` OUTPUT ${returning[0]}`) : ""
       return [
         `(${columns.join(",")})${returningSql} VALUES ${placeholders}`,
-        returning ?
-          returning[1].concat(values.flat()) :
-          values.flat()
+        returning ? returning[1].concat(values.flat()) : values.flat()
       ]
     }
   })
@@ -527,14 +483,7 @@ export const defaultParameterTypes: Record<Statement.PrimitiveKind, DataType> = 
 
 type MssqlCustom = MssqlParam
 
-interface MssqlParam extends
-  Statement.Custom<
-    "MssqlParam",
-    DataType,
-    unknown,
-    ParameterOptions
-  >
-{}
+interface MssqlParam extends Statement.Custom<"MssqlParam", DataType, unknown, ParameterOptions> {}
 
 const mssqlParam = Statement.custom<MssqlParam>("MssqlParam")
 const isMssqlParam = Statement.isCustom<MssqlParam>("MssqlParam")

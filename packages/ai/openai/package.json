@@ -1,28 +1,30 @@
 {
   "name": "@effect/ai-openai",
   "version": "0.1.0",
-  "type": "module",
-  "license": "MIT",
   "description": "An OpenAI integration for Effect",
+  "keywords": [
+    "ai",
+    "openai",
+    "typescript"
+  ],
   "homepage": "https://effect.website",
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/ai/openai"
   },
-  "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
-  },
-  "tags": [
-    "typescript",
-    "ai",
-    "openai"
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "src/**/*.ts"
   ],
-  "keywords": [
-    "typescript",
-    "ai",
-    "openai"
-  ],
+  "type": "module",
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
@@ -31,22 +33,15 @@
     "./internal/*": null,
     "./*/index": null
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
-    "provenance": true,
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
       "./*/index": null
-    }
+    },
+    "provenance": true
   },
   "scripts": {
     "codegen": "effect-utils codegen",
@@ -62,5 +57,10 @@
   },
   "peerDependencies": {
     "effect": "workspace:^"
-  }
+  },
+  "tags": [
+    "typescript",
+    "ai",
+    "openai"
+  ]
 }

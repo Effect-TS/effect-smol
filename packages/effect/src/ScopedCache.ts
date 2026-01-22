@@ -36,12 +36,14 @@ export interface ScopedCache<in out Key, in out A, in out E = never, out R = nev
  * @since 4.0.0
  * @category Models
  */
-export type State<K, A, E> = {
-  readonly _tag: "Open"
-  readonly map: MutableHashMap.MutableHashMap<K, Entry<A, E>>
-} | {
-  readonly _tag: "Closed"
-}
+export type State<K, A, E> =
+  | {
+      readonly _tag: "Open"
+      readonly map: MutableHashMap.MutableHashMap<K, Entry<A, E>>
+    }
+  | {
+      readonly _tag: "Closed"
+    }
 
 /**
  * Represents a cache entry containing a deferred value and optional expiration time.
@@ -60,13 +62,7 @@ export interface Entry<A, E> {
  * @since 4.0.0
  * @category Constructors
  */
-export const makeWith = <
-  Key,
-  A,
-  E = never,
-  R = never,
-  ServiceMode extends "lookup" | "construction" = never
->(options: {
+export const makeWith = <Key, A, E = never, R = never, ServiceMode extends "lookup" | "construction" = never>(options: {
   readonly lookup: (key: Key) => Effect.Effect<A, E, R | Scope.Scope>
   readonly capacity: number
   readonly timeToLive?: ((exit: Exit.Exit<A, E>, key: Key) => Duration.DurationInput) | undefined
@@ -80,10 +76,7 @@ export const makeWith = <
     const scope = ServiceMap.get(services, Scope.Scope)
     const self = Object.create(Proto)
     self.lookup = (key: Key): Effect.Effect<A, E> =>
-      effect.updateServices(
-        options.lookup(key),
-        (input) => ServiceMap.merge(services, input)
-      )
+      effect.updateServices(options.lookup(key), (input) => ServiceMap.merge(services, input))
     const map = MutableHashMap.empty<Key, Entry<A, E>>()
     self.state = { _tag: "Open", map }
     self.capacity = options.capacity
@@ -106,20 +99,12 @@ export const makeWith = <
  * @since 4.0.0
  * @category Constructors
  */
-export const make = <
-  Key,
-  A,
-  E = never,
-  R = never,
-  ServiceMode extends "lookup" | "construction" = never
->(
-  options: {
-    readonly lookup: (key: Key) => Effect.Effect<A, E, R | Scope.Scope>
-    readonly capacity: number
-    readonly timeToLive?: Duration.DurationInput | undefined
-    readonly requireServicesAt?: ServiceMode | undefined
-  }
-): Effect.Effect<
+export const make = <Key, A, E = never, R = never, ServiceMode extends "lookup" | "construction" = never>(options: {
+  readonly lookup: (key: Key) => Effect.Effect<A, E, R | Scope.Scope>
+  readonly capacity: number
+  readonly timeToLive?: Duration.DurationInput | undefined
+  readonly requireServicesAt?: ServiceMode | undefined
+}): Effect.Effect<
   ScopedCache<Key, A, E, "lookup" extends ServiceMode ? Exclude<R, Scope.Scope> : never>,
   never,
   ("lookup" extends ServiceMode ? never : R) | Scope.Scope
@@ -228,9 +213,8 @@ export const getOption: {
   <Key, A, E, R>(self: ScopedCache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>, E> =>
     effect.uninterruptibleMask((restore) =>
       core.withFiber((fiber) =>
-        effect.flatMap(
-          getImpl(self, key, fiber),
-          (entry) => entry ? effect.asSome(restore(Deferred.await(entry.deferred))) : effect.succeedNone
+        effect.flatMap(getImpl(self, key, fiber), (entry) =>
+          entry ? effect.asSome(restore(Deferred.await(entry.deferred))) : effect.succeedNone
         )
       )
     )
@@ -251,10 +235,7 @@ const getImpl = <Key, A, E, R>(
     return effect.undefined
   } else if (hasExpired(oentry.value, fiber)) {
     MutableHashMap.remove(state.map, key)
-    return effect.as(
-      Scope.close(oentry.value.scope, effect.exitVoid),
-      undefined
-    )
+    return effect.as(Scope.close(oentry.value.scope, effect.exitVoid), undefined)
   } else if (isRead) {
     MutableHashMap.remove(state.map, key)
     MutableHashMap.set(state.map, key, oentry.value)
@@ -277,16 +258,13 @@ export const getSuccess: {
   <Key, A, E, R>(self: ScopedCache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>> =>
     effect.uninterruptible(
       core.withFiber((fiber) =>
-        effect.map(
-          getImpl(self, key, fiber),
-          (entry) => {
-            const exit = entry?.deferred.effect as Exit.Exit<A, E> | undefined
-            if (exit && effect.exitIsSuccess(exit)) {
-              return Option.some(exit.value)
-            }
-            return Option.none()
+        effect.map(getImpl(self, key, fiber), (entry) => {
+          const exit = entry?.deferred.effect as Exit.Exit<A, E> | undefined
+          if (exit && effect.exitIsSuccess(exit)) {
+            return Option.some(exit.value)
           }
-        )
+          return Option.none()
+        })
       )
     )
 )
@@ -356,20 +334,23 @@ export const has: {
 export const invalidate: {
   <Key, A>(key: Key): <E, R>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<void>
   <Key, A, E, R>(self: ScopedCache<Key, A, E, R>, key: Key): Effect.Effect<void>
-} = dual(2, <Key, A, E, R>(self: ScopedCache<Key, A, E, R>, key: Key): Effect.Effect<void> =>
-  effect.uninterruptible(
-    effect.suspend(() => {
-      if (self.state._tag === "Closed") {
-        return effect.interrupt
-      }
-      const oentry = MutableHashMap.get(self.state.map, key)
-      if (Option.isNone(oentry)) {
-        return effect.void
-      }
-      MutableHashMap.remove(self.state.map, key)
-      return Scope.close(oentry.value.scope, effect.exitVoid)
-    })
-  ))
+} = dual(
+  2,
+  <Key, A, E, R>(self: ScopedCache<Key, A, E, R>, key: Key): Effect.Effect<void> =>
+    effect.uninterruptible(
+      effect.suspend(() => {
+        if (self.state._tag === "Closed") {
+          return effect.interrupt
+        }
+        const oentry = MutableHashMap.get(self.state.map, key)
+        if (Option.isNone(oentry)) {
+          return effect.void
+        }
+        MutableHashMap.remove(self.state.map, key)
+        return Scope.close(oentry.value.scope, effect.exitVoid)
+      })
+    )
+)
 
 /**
  * Conditionally invalidates the entry associated with the specified key in the cache
@@ -422,43 +403,45 @@ export const refresh: {
 } = dual(
   2,
   <Key, A, E, R>(self: ScopedCache<Key, A, E, R>, key: Key): Effect.Effect<A, E, R> =>
-    effect.uninterruptibleMask(effect.fnUntraced(function*(restore) {
-      if (self.state._tag === "Closed") return yield* effect.interrupt
-      const fiber = Fiber.getCurrent()!
-      const scope = Scope.makeUnsafe()
-      const deferred = Deferred.makeUnsafe<A, E>()
-      const entry: Entry<A, E> = {
-        scope,
-        expiresAt: undefined,
-        deferred
-      }
-      const newEntry = !MutableHashMap.has(self.state.map, key)
-      if (newEntry) {
-        MutableHashMap.set(self.state.map, key, entry)
-        yield* checkCapacity(fiber, self.state.map, self.capacity)
-      }
-      const exit = yield* effect.exit(restore(Scope.provide(self.lookup(key), scope)))
-      Deferred.doneUnsafe(deferred, exit)
-      // @ts-ignore async gap
-      if (self.state._tag === "Closed") {
+    effect.uninterruptibleMask(
+      effect.fnUntraced(function* (restore) {
+        if (self.state._tag === "Closed") return yield* effect.interrupt
+        const fiber = Fiber.getCurrent()!
+        const scope = Scope.makeUnsafe()
+        const deferred = Deferred.makeUnsafe<A, E>()
+        const entry: Entry<A, E> = {
+          scope,
+          expiresAt: undefined,
+          deferred
+        }
+        const newEntry = !MutableHashMap.has(self.state.map, key)
+        if (newEntry) {
+          MutableHashMap.set(self.state.map, key, entry)
+          yield* checkCapacity(fiber, self.state.map, self.capacity)
+        }
+        const exit = yield* effect.exit(restore(Scope.provide(self.lookup(key), scope)))
+        Deferred.doneUnsafe(deferred, exit)
+        // @ts-ignore async gap
+        if (self.state._tag === "Closed") {
+          if (!newEntry) {
+            yield* Scope.close(scope, effect.exitVoid)
+          }
+          return yield* effect.interrupt
+        }
+        const ttl = self.timeToLive(exit, key)
+        entry.expiresAt = Duration.isFinite(ttl)
+          ? fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
+          : undefined
         if (!newEntry) {
-          yield* Scope.close(scope, effect.exitVoid)
+          const oentry = MutableHashMap.get(self.state.map, key)
+          MutableHashMap.set(self.state.map, key, entry)
+          if (Option.isSome(oentry)) {
+            yield* Scope.close(oentry.value.scope, effect.exitVoid)
+          }
         }
-        return yield* effect.interrupt
-      }
-      const ttl = self.timeToLive(exit, key)
-      entry.expiresAt = Duration.isFinite(ttl)
-        ? fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
-        : undefined
-      if (!newEntry) {
-        const oentry = MutableHashMap.get(self.state.map, key)
-        MutableHashMap.set(self.state.map, key, entry)
-        if (Option.isSome(oentry)) {
-          yield* Scope.close(oentry.value.scope, effect.exitVoid)
-        }
-      }
-      return yield* exit
-    }))
+        return yield* exit
+      })
+    )
 )
 
 /**
@@ -498,7 +481,7 @@ const invalidateAllImpl = <Key, A, E>(
  * @category Combinators
  */
 export const size = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effect<number> =>
-  effect.sync(() => self.state._tag === "Closed" ? 0 : MutableHashMap.size(self.state.map))
+  effect.sync(() => (self.state._tag === "Closed" ? 0 : MutableHashMap.size(self.state.map)))
 
 /**
  * Retrieves all active keys from the cache, automatically filtering out expired entries.
@@ -531,7 +514,10 @@ export const keys = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effe
  * @category Combinators
  */
 export const values = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effect<Array<A>> =>
-  effect.map(entries(self), Arr.map(([, value]) => value))
+  effect.map(
+    entries(self),
+    Arr.map(([, value]) => value)
+  )
 
 /**
  * Retrieves all key-value pairs from the cache as an iterable. This function
@@ -558,7 +544,5 @@ export const entries = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.E
       fibers.push(effect.forkUnsafe(fiber, Scope.close(entry.scope, effect.exitVoid), true, true))
       return Option.none()
     })
-    return fibers.length === 0
-      ? effect.succeed(arr)
-      : effect.as(effect.fiberAwaitAll(fibers), arr)
+    return fibers.length === 0 ? effect.succeed(arr) : effect.as(effect.fiberAwaitAll(fibers), arr)
   })

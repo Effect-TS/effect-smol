@@ -82,10 +82,7 @@ export const decodeSchema = <Type, DecodingServices, IE, Done>(
     ...EventEncoded.fields,
     data: schema
   })
-  return Channel.pipeTo(
-    decode<IE, Done>(),
-    ChannelSchema.decode(eventSchema)()
-  )
+  return Channel.pipeTo(decode<IE, Done>(), ChannelSchema.decode(eventSchema)())
 }
 
 /**
@@ -194,12 +191,7 @@ export function makeParser(onParse: (event: AnyEvent) => void): Parser {
     }
   }
 
-  function parseEventStreamLine(
-    lineBuffer: string,
-    index: number,
-    fieldLength: number,
-    lineLength: number
-  ) {
+  function parseEventStreamLine(lineBuffer: string, index: number, fieldLength: number, lineLength: number) {
     if (lineLength === 0) {
       // We reached the last line of this event
       if (data.length > 0) {
@@ -286,7 +278,7 @@ export const encode = <IE, Done>(): Channel.Channel<
         }),
         Pull.catchDone(() => Cause.done())
       ) as Pull.Pull<Arr.NonEmptyReadonlyArray<string>, IE>
-      return Effect.suspend(() => done ? Cause.done() : pull)
+      return Effect.suspend(() => (done ? Cause.done() : pull))
     })
   )
 
@@ -303,7 +295,9 @@ export const encodeSchema = <
   >,
   IE,
   Done
->(schema: S): Channel.Channel<
+>(
+  schema: S
+): Channel.Channel<
   NonEmptyReadonlyArray<string>,
   IE | Schema.SchemaError,
   void,
@@ -312,9 +306,7 @@ export const encodeSchema = <
   Done,
   S["EncodingServices"]
 > =>
-  ChannelSchema.encode(Event.pipe(
-    Schema.decodeTo(schema, transformEvent)
-  ))<IE | Retry, Done>().pipe(
+  ChannelSchema.encode(Event.pipe(Schema.decodeTo(schema, transformEvent)))<IE | Retry, Done>().pipe(
     Channel.pipeTo(encode())
   )
 
@@ -371,16 +363,19 @@ export const Event: Schema.Struct<{
  * @since 4.0.0
  * @category Models
  */
-export const transformEvent = Transformation.transform<{
-  readonly id?: string | undefined
-  readonly event: string
-  readonly data: unknown
-}, {
-  readonly _tag: "Event"
-  readonly id: string | undefined
-  readonly event: string
-  readonly data: unknown
-}>({
+export const transformEvent = Transformation.transform<
+  {
+    readonly id?: string | undefined
+    readonly event: string
+    readonly data: unknown
+  },
+  {
+    readonly _tag: "Event"
+    readonly id: string | undefined
+    readonly event: string
+    readonly data: unknown
+  }
+>({
   decode: (event) => event,
   encode: (event) => ({
     _tag: "Event",

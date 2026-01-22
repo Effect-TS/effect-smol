@@ -33,14 +33,7 @@ describe("atom-react", () => {
       }
 
       render(
-        <RegistryProvider
-          initialValues={[
-            Atom.initialValue(
-              runtime.layer,
-              Layer.succeed(TheNumber, { n: 69 })
-            )
-          ]}
-        >
+        <RegistryProvider initialValues={[Atom.initialValue(runtime.layer, Layer.succeed(TheNumber, { n: 69 }))]}>
           <TestComponent />
         </RegistryProvider>
       )
@@ -365,9 +358,7 @@ describe("atom-react", () => {
   it("should not execute Atom effects during SSR when using withServerSnapshot", () => {
     const mockFetchData = vi.fn(() => 0)
 
-    const userDataAtom = Atom.make(Effect.sync(() => mockFetchData())).pipe(
-      Atom.withServerValueInitial
-    )
+    const userDataAtom = Atom.make(Effect.sync(() => mockFetchData())).pipe(Atom.withServerValueInitial)
 
     function TestComponent() {
       const result = useAtomValue(userDataAtom)

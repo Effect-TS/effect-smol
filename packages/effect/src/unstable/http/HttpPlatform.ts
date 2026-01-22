@@ -17,24 +17,27 @@ import * as Response from "./HttpServerResponse.ts"
  * @since 4.0.0
  * @category tags
  */
-export class HttpPlatform extends ServiceMap.Service<HttpPlatform, {
-  readonly fileResponse: (
-    path: string,
-    options?: Response.Options.WithContent & {
-      readonly bytesToRead?: FileSystem.SizeInput | undefined
-      readonly chunkSize?: FileSystem.SizeInput | undefined
-      readonly offset?: FileSystem.SizeInput | undefined
-    }
-  ) => Effect.Effect<Response.HttpServerResponse, PlatformError>
-  readonly fileWebResponse: (
-    file: Body.HttpBody.FileLike,
-    options?: Response.Options.WithContent & {
-      readonly bytesToRead?: FileSystem.SizeInput | undefined
-      readonly chunkSize?: FileSystem.SizeInput | undefined
-      readonly offset?: FileSystem.SizeInput | undefined
-    }
-  ) => Effect.Effect<Response.HttpServerResponse>
-}>()("effect/http/HttpPlatform") {}
+export class HttpPlatform extends ServiceMap.Service<
+  HttpPlatform,
+  {
+    readonly fileResponse: (
+      path: string,
+      options?: Response.Options.WithContent & {
+        readonly bytesToRead?: FileSystem.SizeInput | undefined
+        readonly chunkSize?: FileSystem.SizeInput | undefined
+        readonly offset?: FileSystem.SizeInput | undefined
+      }
+    ) => Effect.Effect<Response.HttpServerResponse, PlatformError>
+    readonly fileWebResponse: (
+      file: Body.HttpBody.FileLike,
+      options?: Response.Options.WithContent & {
+        readonly bytesToRead?: FileSystem.SizeInput | undefined
+        readonly chunkSize?: FileSystem.SizeInput | undefined
+        readonly offset?: FileSystem.SizeInput | undefined
+      }
+    ) => Effect.Effect<Response.HttpServerResponse>
+  }
+>()("effect/http/HttpPlatform") {}
 
 /**
  * @since 4.0.0
@@ -61,59 +64,43 @@ export const make: (impl: {
       readonly offset?: FileSystem.SizeInput | undefined
     }
   ) => Response.HttpServerResponse
-}) => Effect.Effect<
-  HttpPlatform["Service"],
-  never,
-  Etag.Generator | FileSystem.FileSystem
-> = Effect.fnUntraced(function*(impl) {
-  const fs = yield* FileSystem.FileSystem
-  const etagGen = yield* Etag.Generator
+}) => Effect.Effect<HttpPlatform["Service"], never, Etag.Generator | FileSystem.FileSystem> = Effect.fnUntraced(
+  function* (impl) {
+    const fs = yield* FileSystem.FileSystem
+    const etagGen = yield* Etag.Generator
 
-  return HttpPlatform.of({
-    fileResponse: Effect.fnUntraced(function*(path, options) {
-      const info = yield* fs.stat(path)
-      const etag = yield* etagGen.fromFileInfo(info)
-      const start = Number(options?.offset ?? 0)
-      const end = options?.bytesToRead !== undefined ? start + Number(options.bytesToRead) : undefined
-      const headers = Headers.set(
-        options?.headers ? Headers.fromInput(options.headers) : Headers.empty,
-        "etag",
-        Etag.toString(etag)
-      )
-      if (info.mtime) {
-        ;(headers as any)["last-modified"] = info.mtime.toUTCString()
-      }
-      const contentLength = end !== undefined ? end - start : Number(info.size) - start
-      return impl.fileResponse(
-        path,
-        options?.status ?? 200,
-        options?.statusText,
-        headers,
-        start,
-        end,
-        contentLength
-      )
-    }),
-    fileWebResponse(file, options) {
-      return Effect.map(etagGen.fromFileWeb(file), (etag) => {
-        const headers = Headers.merge(
+    return HttpPlatform.of({
+      fileResponse: Effect.fnUntraced(function* (path, options) {
+        const info = yield* fs.stat(path)
+        const etag = yield* etagGen.fromFileInfo(info)
+        const start = Number(options?.offset ?? 0)
+        const end = options?.bytesToRead !== undefined ? start + Number(options.bytesToRead) : undefined
+        const headers = Headers.set(
           options?.headers ? Headers.fromInput(options.headers) : Headers.empty,
-          Headers.fromRecordUnsafe({
-            etag: Etag.toString(etag),
-            "last-modified": new Date(file.lastModified).toUTCString()
-          })
+          "etag",
+          Etag.toString(etag)
         )
-        return impl.fileWebResponse(
-          file,
-          options?.status ?? 200,
-          options?.statusText,
-          headers,
-          options
-        )
-      })
-    }
-  })
-})
+        if (info.mtime) {
+          ;(headers as any)["last-modified"] = info.mtime.toUTCString()
+        }
+        const contentLength = end !== undefined ? end - start : Number(info.size) - start
+        return impl.fileResponse(path, options?.status ?? 200, options?.statusText, headers, start, end, contentLength)
+      }),
+      fileWebResponse(file, options) {
+        return Effect.map(etagGen.fromFileWeb(file), (etag) => {
+          const headers = Headers.merge(
+            options?.headers ? Headers.fromInput(options.headers) : Headers.empty,
+            Headers.fromRecordUnsafe({
+              etag: Etag.toString(etag),
+              "last-modified": new Date(file.lastModified).toUTCString()
+            })
+          )
+          return impl.fileWebResponse(file, options?.status ?? 200, options?.statusText, headers, options)
+        })
+      }
+    })
+  }
+)
 
 /**
  * @since 4.0.0
@@ -140,5 +127,6 @@ export const layer = Layer.effect(HttpPlatform)(
           { headers, status, statusText }
         )
       }
-    }))
+    })
+  )
 ).pipe(Layer.provide(Etag.layerWeak))

@@ -11,16 +11,17 @@ import * as ServiceMap from "../../ServiceMap.ts"
  * @since 1.0.0
  * @category models
  */
-export class Collector extends ServiceMap.Service<Collector, {
-  readonly addAll: (
-    _: Iterable<globalThis.Transferable>
-  ) => Effect.Effect<void>
-  readonly addAllUnsafe: (_: Iterable<globalThis.Transferable>) => void
-  readonly read: Effect.Effect<Array<globalThis.Transferable>>
-  readonly readUnsafe: () => Array<globalThis.Transferable>
-  readonly clearUnsafe: () => Array<globalThis.Transferable>
-  readonly clear: Effect.Effect<Array<globalThis.Transferable>>
-}>()("effect/workers/Transferable/Collector") {}
+export class Collector extends ServiceMap.Service<
+  Collector,
+  {
+    readonly addAll: (_: Iterable<globalThis.Transferable>) => Effect.Effect<void>
+    readonly addAllUnsafe: (_: Iterable<globalThis.Transferable>) => void
+    readonly read: Effect.Effect<Array<globalThis.Transferable>>
+    readonly readUnsafe: () => Array<globalThis.Transferable>
+    readonly clearUnsafe: () => Array<globalThis.Transferable>
+    readonly clear: Effect.Effect<Array<globalThis.Transferable>>
+  }
+>()("effect/workers/Transferable/Collector") {}
 
 /**
  * @since 1.0.0
@@ -57,9 +58,7 @@ export const makeCollector: Effect.Effect<Collector["Service"]> = Effect.sync(ma
  * @since 1.0.0
  * @category accessors
  */
-export const addAll = (
-  tranferables: Iterable<globalThis.Transferable>
-): Effect.Effect<void> =>
+export const addAll = (tranferables: Iterable<globalThis.Transferable>): Effect.Effect<void> =>
   Effect.servicesWith((services) => {
     const collector = ServiceMap.getOrUndefined(services, Collector)
     if (!collector) return Effect.void
@@ -71,9 +70,7 @@ export const addAll = (
  * @since 1.0.0
  * @category Getter
  */
-export const getterAddAll = <A>(
-  f: (_: A) => Iterable<globalThis.Transferable>
-): Getter.Getter<A, A> =>
+export const getterAddAll = <A>(f: (_: A) => Iterable<globalThis.Transferable>): Getter.Getter<A, A> =>
   Getter.transformOrFail((e: A) =>
     Effect.servicesWith((services) => {
       const collector = ServiceMap.getOrUndefined(services, Collector)
@@ -87,31 +84,21 @@ export const getterAddAll = <A>(
  * @since 1.0.0
  * @category schema
  */
-export interface Transferable<S extends Schema.Top> extends
-  Schema.decodeTo<
-    Schema.toType<S["~rebuild.out"]>,
-    S["~rebuild.out"]
-  >
-{}
+export interface Transferable<S extends Schema.Top> extends Schema.decodeTo<
+  Schema.toType<S["~rebuild.out"]>,
+  S["~rebuild.out"]
+> {}
 
 /**
  * @since 1.0.0
  * @category schema
  */
 export const schema: {
-  <S extends Schema.Top>(
-    f: (_: S["Encoded"]) => Iterable<globalThis.Transferable>
-  ): (self: S) => Transferable<S>
-  <S extends Schema.Top>(
-    self: S,
-    f: (_: S["Encoded"]) => Iterable<globalThis.Transferable>
-  ): Transferable<S>
+  <S extends Schema.Top>(f: (_: S["Encoded"]) => Iterable<globalThis.Transferable>): (self: S) => Transferable<S>
+  <S extends Schema.Top>(self: S, f: (_: S["Encoded"]) => Iterable<globalThis.Transferable>): Transferable<S>
 } = dual(
   2,
-  <S extends Schema.Top>(
-    self: S,
-    f: (_: S["Encoded"]) => Iterable<globalThis.Transferable>
-  ): Transferable<S> =>
+  <S extends Schema.Top>(self: S, f: (_: S["Encoded"]) => Iterable<globalThis.Transferable>): Transferable<S> =>
     self
       .annotate({
         serializerJson: () => passthroughLink
@@ -151,7 +138,4 @@ export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
  * @since 1.0.0
  * @category schema
  */
-export const Uint8Array: Transferable<Schema.Uint8Array> = schema(
-  Schema.Uint8Array,
-  (_) => [_.buffer]
-)
+export const Uint8Array: Transferable<Schema.Uint8Array> = schema(Schema.Uint8Array, (_) => [_.buffer])

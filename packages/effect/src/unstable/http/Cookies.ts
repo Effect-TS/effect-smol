@@ -40,37 +40,34 @@ export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRe
  * @since 4.0.0
  * @category Schemas
  */
-export const CookiesSchema: CookiesSchema = Schema.declare(
-  isCookies,
-  {
-    typeConstructor: {
-      _tag: "effect/http/Cookies"
-    },
-    generation: {
-      runtime: `Cookies.CookiesSchema`,
-      Type: `Cookies.Cookies`,
-      Encoded: `typeof Cookies.CookiesSchema["Encoded"]`,
-      importDeclaration: `import * as Cookies from "effect/unstable/http/Cookies"`
-    },
-    expected: "Cookies",
-    toCodecJson: () =>
-      Schema.link<Cookies>()(
-        Schema.Array(Schema.String),
-        Transformation.transform({
-          decode: (input) => fromSetCookie(input),
-          encode: (cookies) => toSetCookieHeaders(cookies)
-        })
-      ),
-    toCodecIso: () =>
-      Schema.link<Cookies>()(
-        Schema.Record(Schema.String, CookieSchema),
-        Transformation.transform({
-          decode: (input) => fromReadonlyRecord(input),
-          encode: (cookies) => cookies.cookies
-        })
-      )
-  }
-)
+export const CookiesSchema: CookiesSchema = Schema.declare(isCookies, {
+  typeConstructor: {
+    _tag: "effect/http/Cookies"
+  },
+  generation: {
+    runtime: `Cookies.CookiesSchema`,
+    Type: `Cookies.Cookies`,
+    Encoded: `typeof Cookies.CookiesSchema["Encoded"]`,
+    importDeclaration: `import * as Cookies from "effect/unstable/http/Cookies"`
+  },
+  expected: "Cookies",
+  toCodecJson: () =>
+    Schema.link<Cookies>()(
+      Schema.Array(Schema.String),
+      Transformation.transform({
+        decode: (input) => fromSetCookie(input),
+        encode: (cookies) => toSetCookieHeaders(cookies)
+      })
+    ),
+  toCodecIso: () =>
+    Schema.link<Cookies>()(
+      Schema.Record(Schema.String, CookieSchema),
+      Transformation.transform({
+        decode: (input) => fromReadonlyRecord(input),
+        encode: (cookies) => cookies.cookies
+      })
+    )
+})
 
 const CookieTypeId = "~effect/http/Cookies/Cookie"
 
@@ -83,17 +80,19 @@ export interface Cookie extends Inspectable.Inspectable {
   readonly name: string
   readonly value: string
   readonly valueEncoded: string
-  readonly options?: {
-    readonly domain?: string | undefined
-    readonly expires?: Date | undefined
-    readonly maxAge?: Duration.DurationInput | undefined
-    readonly path?: string | undefined
-    readonly priority?: "low" | "medium" | "high" | undefined
-    readonly httpOnly?: boolean | undefined
-    readonly secure?: boolean | undefined
-    readonly partitioned?: boolean | undefined
-    readonly sameSite?: "lax" | "strict" | "none" | undefined
-  } | undefined
+  readonly options?:
+    | {
+        readonly domain?: string | undefined
+        readonly expires?: Date | undefined
+        readonly maxAge?: Duration.DurationInput | undefined
+        readonly path?: string | undefined
+        readonly priority?: "low" | "medium" | "high" | undefined
+        readonly httpOnly?: boolean | undefined
+        readonly secure?: boolean | undefined
+        readonly partitioned?: boolean | undefined
+        readonly sameSite?: "lax" | "strict" | "none" | undefined
+      }
+    | undefined
 }
 
 /**
@@ -112,20 +111,17 @@ export interface CookieSchema extends Schema.declare<Cookie> {}
  * @since 4.0.0
  * @category Schemas
  */
-export const CookieSchema: CookieSchema = Schema.declare(
-  isCookie,
-  {
-    typeConstructor: {
-      _tag: "effect/http/Cookie"
-    },
-    generation: {
-      runtime: `Cookies.CookieSchema`,
-      Type: `Cookies.Cookie`,
-      importDeclaration: `import * as Cookie from "effect/unstable/http/Cookies"`
-    },
-    expected: "Cookie"
-  }
-)
+export const CookieSchema: CookieSchema = Schema.declare(isCookie, {
+  typeConstructor: {
+    _tag: "effect/http/Cookie"
+  },
+  generation: {
+    runtime: `Cookies.CookieSchema`,
+    Type: `Cookies.Cookie`,
+    importDeclaration: `import * as Cookie from "effect/unstable/http/Cookies"`
+  },
+  expected: "Cookie"
+})
 
 const CookieErrorTypeId = "~effect/http/Cookies/CookieError"
 
@@ -210,7 +206,10 @@ export const fromSetCookie = (headers: Iterable<string> | string): Cookies => {
 }
 
 function parseSetCookie(header: string): Cookie | undefined {
-  const parts = header.split(";").map((_) => _.trim()).filter((_) => _ !== "")
+  const parts = header
+    .split(";")
+    .map((_) => _.trim())
+    .filter((_) => _ !== "")
   if (parts.length === 0) {
     return undefined
   }
@@ -403,12 +402,14 @@ export function makeCookie(
     }
   }
 
-  return Result.succeed(Object.assign(Object.create(CookieProto), {
-    name,
-    value,
-    valueEncoded: encodedValue,
-    options
-  }))
+  return Result.succeed(
+    Object.assign(Object.create(CookieProto), {
+      name,
+      value,
+      valueEncoded: encodedValue,
+      options
+    })
+  )
 }
 
 /**
@@ -417,11 +418,8 @@ export function makeCookie(
  * @since 4.0.0
  * @category constructors
  */
-export const makeCookieUnsafe = (
-  name: string,
-  value: string,
-  options?: Cookie["options"] | undefined
-): Cookie => Result.getOrThrow(makeCookie(name, value, options))
+export const makeCookieUnsafe = (name: string, value: string, options?: Cookie["options"] | undefined): Cookie =>
+  Result.getOrThrow(makeCookie(name, value, options))
 
 /**
  * Add a cookie to a Cookies object
@@ -432,15 +430,7 @@ export const makeCookieUnsafe = (
 export const setCookie: {
   (cookie: Cookie): (self: Cookies) => Cookies
   (self: Cookies, cookie: Cookie): Cookies
-} = dual(
-  2,
-  (self: Cookies, cookie: Cookie) =>
-    fromReadonlyRecord(Record.set(
-      self.cookies,
-      cookie.name,
-      cookie
-    ))
-)
+} = dual(2, (self: Cookies, cookie: Cookie) => fromReadonlyRecord(Record.set(self.cookies, cookie.name, cookie)))
 
 /**
  * Add multiple cookies to a Cookies object
@@ -472,7 +462,8 @@ export const merge: {
   fromReadonlyRecord({
     ...self.cookies,
     ...that.cookies
-  }))
+  })
+)
 
 /**
  * Remove a cookie by name
@@ -522,24 +513,12 @@ export const getValue: {
  * @category combinators
  */
 export const set: {
-  (
-    name: string,
-    value: string,
-    options?: Cookie["options"]
-  ): (self: Cookies) => Result.Result<Cookies, CookiesError>
-  (
-    self: Cookies,
-    name: string,
-    value: string,
-    options?: Cookie["options"]
-  ): Result.Result<Cookies, CookiesError>
+  (name: string, value: string, options?: Cookie["options"]): (self: Cookies) => Result.Result<Cookies, CookiesError>
+  (self: Cookies, name: string, value: string, options?: Cookie["options"]): Result.Result<Cookies, CookiesError>
 } = dual(
   (args) => isCookies(args[0]),
   (self: Cookies, name: string, value: string, options?: Cookie["options"]) =>
-    Result.map(
-      makeCookie(name, value, options),
-      (cookie) => fromReadonlyRecord(Record.set(self.cookies, name, cookie))
-    )
+    Result.map(makeCookie(name, value, options), (cookie) => fromReadonlyRecord(Record.set(self.cookies, name, cookie)))
 )
 
 /**
@@ -549,25 +528,12 @@ export const set: {
  * @category combinators
  */
 export const setUnsafe: {
-  (
-    name: string,
-    value: string,
-    options?: Cookie["options"]
-  ): (self: Cookies) => Cookies
-  (
-    self: Cookies,
-    name: string,
-    value: string,
-    options?: Cookie["options"]
-  ): Cookies
+  (name: string, value: string, options?: Cookie["options"]): (self: Cookies) => Cookies
+  (self: Cookies, name: string, value: string, options?: Cookie["options"]): Cookies
 } = dual(
   (args) => isCookies(args[0]),
   (self: Cookies, name: string, value: string, options?: Cookie["options"]) =>
-    fromReadonlyRecord(Record.set(
-      self.cookies,
-      name,
-      makeCookieUnsafe(name, value, options)
-    ))
+    fromReadonlyRecord(Record.set(self.cookies, name, makeCookieUnsafe(name, value, options)))
 )
 
 /**
@@ -613,10 +579,8 @@ export const setAllUnsafe: {
   (self: Cookies, cookies: Iterable<readonly [name: string, value: string, options?: Cookie["options"]]>): Cookies
 } = dual(
   2,
-  (
-    self: Cookies,
-    cookies: Iterable<readonly [name: string, value: string, options?: Cookie["options"]]>
-  ): Cookies => Result.getOrThrow(setAll(self, cookies))
+  (self: Cookies, cookies: Iterable<readonly [name: string, value: string, options?: Cookie["options"]]>): Cookies =>
+    Result.getOrThrow(setAll(self, cookies))
 )
 
 /**
@@ -704,7 +668,9 @@ export function serializeCookie(self: Cookie): string {
  * @category encoding
  */
 export const toCookieHeader = (self: Cookies): string =>
-  Object.values(self.cookies).map((cookie) => `${cookie.name}=${cookie.valueEncoded}`).join("; ")
+  Object.values(self.cookies)
+    .map((cookie) => `${cookie.name}=${cookie.valueEncoded}`)
+    .join("; ")
 
 /**
  * @since 4.0.0
@@ -772,13 +738,12 @@ export function parseHeader(header: string): Record<string, string> {
 
     const key = header.substring(pos, eqIdx++).trim()
     if (result[key] === undefined) {
-      const val = header.charCodeAt(eqIdx) === 0x22
-        ? header.substring(eqIdx + 1, terminatorPos - 1).trim()
-        : header.substring(eqIdx, terminatorPos).trim()
+      const val =
+        header.charCodeAt(eqIdx) === 0x22
+          ? header.substring(eqIdx + 1, terminatorPos - 1).trim()
+          : header.substring(eqIdx, terminatorPos).trim()
 
-      result[key] = !(val.indexOf("%") === -1)
-        ? tryDecodeURIComponent(val)
-        : val
+      result[key] = !(val.indexOf("%") === -1) ? tryDecodeURIComponent(val) : val
     }
 
     pos = terminatorPos + 1

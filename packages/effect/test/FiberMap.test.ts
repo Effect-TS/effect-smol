@@ -5,42 +5,34 @@ import { TestClock } from "effect/testing"
 
 describe("FiberMap", () => {
   it.effect("interrupts fibers", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const ref = yield* Ref.make(0)
       yield* pipe(
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const map = yield* FiberMap.make<number>()
-          yield* (
-            Effect.forEach(Array.range(1, 10), (i) =>
-              Effect.onInterrupt(
-                Effect.never,
-                () => Ref.update(ref, (n) => n + 1)
-              ).pipe(
-                FiberMap.run(map, i)
-              ))
+          yield* Effect.forEach(Array.range(1, 10), (i) =>
+            Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1)).pipe(FiberMap.run(map, i))
           )
           yield* Effect.yieldNow
         }),
         Effect.scoped
       )
 
-      strictEqual(yield* (Ref.get(ref)), 10)
-    }))
+      strictEqual(yield* Ref.get(ref), 10)
+    })
+  )
 
   it.effect("runtime", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const ref = yield* Ref.make(0)
       yield* pipe(
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const map = yield* FiberMap.make<number>()
           const run = yield* FiberMap.runtime(map)<never>()
           Array.range(1, 10).forEach((i) =>
             run(
               i,
-              Effect.onInterrupt(
-                Effect.never,
-                () => Ref.update(ref, (n) => n + 1)
-              )
+              Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1))
             )
           )
           yield* Effect.yieldNow
@@ -48,11 +40,12 @@ describe("FiberMap", () => {
         Effect.scoped
       )
 
-      strictEqual(yield* (Ref.get(ref)), 10)
-    }))
+      strictEqual(yield* Ref.get(ref), 10)
+    })
+  )
 
   it.effect("join", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const map = yield* FiberMap.make<string>()
       FiberMap.setUnsafe(map, "a", Effect.runFork(Effect.void))
       FiberMap.setUnsafe(map, "b", Effect.runFork(Effect.void))
@@ -60,10 +53,11 @@ describe("FiberMap", () => {
       FiberMap.setUnsafe(map, "d", Effect.runFork(Effect.fail("ignored")))
       const result = yield* pipe(FiberMap.join(map), Effect.flip)
       strictEqual(result, "fail")
-    }))
+    })
+  )
 
   it.effect("size", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const scope = yield* Scope.make()
       const set = yield* pipe(FiberMap.make<string>(), Scope.provide(scope))
       FiberMap.setUnsafe(set, "a", Effect.runFork(Effect.never))
@@ -71,10 +65,11 @@ describe("FiberMap", () => {
       strictEqual(yield* FiberMap.size(set), 2)
       yield* Scope.close(scope, Exit.void)
       strictEqual(yield* FiberMap.size(set), 0)
-    }))
+    })
+  )
 
   it.effect("onlyIfMissing", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const handle = yield* FiberMap.make<string>()
       const fiberA = yield* FiberMap.run(handle, "a", Effect.never)
       const fiberB = yield* FiberMap.run(handle, "a", Effect.never, { onlyIfMissing: true })
@@ -83,10 +78,11 @@ describe("FiberMap", () => {
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
       strictEqual(fiberA.pollUnsafe(), undefined)
-    }))
+    })
+  )
 
   it.effect("runtime onlyIfMissing", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const run = yield* FiberMap.makeRuntime<never, string>()
       const fiberA = run("a", Effect.never)
       const fiberB = run("a", Effect.never, { onlyIfMissing: true })
@@ -95,10 +91,11 @@ describe("FiberMap", () => {
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
       strictEqual(fiberA.pollUnsafe(), undefined)
-    }))
+    })
+  )
 
   it.effect("propagateInterruption false", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const map = yield* FiberMap.make<string>()
       const fiber = yield* FiberMap.run(map, "a", Effect.never, {
         propagateInterruption: false
@@ -106,25 +103,23 @@ describe("FiberMap", () => {
       yield* Effect.yieldNow
       yield* Fiber.interrupt(fiber)
       assertFalse(yield* Deferred.isDone(map.deferred))
-    }))
+    })
+  )
 
   it.effect("propagateInterruption true", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const map = yield* FiberMap.make<string>()
       const fiber = yield* FiberMap.run(map, "a", Effect.never, {
         propagateInterruption: true
       })
       yield* Effect.yieldNow
       yield* Fiber.interrupt(fiber)
-      assertTrue(Exit.hasInterrupt(
-        yield* FiberMap.join(map).pipe(
-          Effect.exit
-        )
-      ))
-    }))
+      assertTrue(Exit.hasInterrupt(yield* FiberMap.join(map).pipe(Effect.exit)))
+    })
+  )
 
   it.effect("awaitEmpty", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const map = yield* FiberMap.make<string>()
       yield* FiberMap.run(map, "a", Effect.sleep(1000))
       yield* FiberMap.run(map, "b", Effect.sleep(1000))
@@ -136,12 +131,14 @@ describe("FiberMap", () => {
       assert.isUndefined(fiber.pollUnsafe())
       yield* TestClock.adjust(500)
       assert.isDefined(fiber.pollUnsafe())
-    }))
+    })
+  )
 
   it.effect("makeRuntimePromise", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const run = yield* FiberMap.makeRuntimePromise<never, string>()
       const result = yield* Effect.promise(() => run("a", Effect.succeed("done")))
       strictEqual(result, "done")
-    }))
+    })
+  )
 })

@@ -114,6 +114,4 @@ export const Terminal: ServiceMap.Service<Terminal, Terminal> = ServiceMap.Servi
  * @since 4.0.0
  * @category Constructors
  */
-export const make = (
-  impl: Omit<Terminal, typeof TypeId>
-): Terminal => Terminal.of({ ...impl, [TypeId]: TypeId })
+export const make = (impl: Omit<Terminal, typeof TypeId>): Terminal => Terminal.of({ ...impl, [TypeId]: TypeId })

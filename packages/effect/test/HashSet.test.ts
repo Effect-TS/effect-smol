@@ -256,7 +256,10 @@ describe("HashSet", () => {
 
   describe("custom Equal objects", () => {
     class Person implements Equal.Equal {
-      constructor(readonly id: string, readonly name: string) {}
+      constructor(
+        readonly id: string,
+        readonly name: string
+      ) {}
 
       [Equal.symbol](other: unknown): boolean {
         return other instanceof Person && this.id === other.id

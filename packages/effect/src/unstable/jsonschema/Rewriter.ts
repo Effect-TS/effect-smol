@@ -140,10 +140,10 @@ export const openAi: Rewriter = (document) => {
                 }
               } else if (Array.isArray(p.anyOf)) {
                 if (!p.anyOf.some((item) => item.type === "null")) {
-                  p.anyOf.push({ "type": "null" })
+                  p.anyOf.push({ type: "null" })
                 }
               } else {
-                properties[key] = { "anyOf": [p, { "type": "null" }] }
+                properties[key] = { anyOf: [p, { type: "null" }] }
               }
             }
           }
@@ -180,19 +180,21 @@ function combine(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): JsonSchema
   return out
 }
 
-const join = UndefinedOr.makeReducer(Combiner.make<unknown>((a, b) => {
-  if (typeof a !== "string") return b
-  if (typeof b !== "string") return a
-  a = a.trim()
-  b = b.trim()
-  if (a === "") return b
-  if (b === "") return a
-  return `${a}, ${b}`
-}))
+const join = UndefinedOr.makeReducer(
+  Combiner.make<unknown>((a, b) => {
+    if (typeof a !== "string") return b
+    if (typeof b !== "string") return a
+    a = a.trim()
+    b = b.trim()
+    if (a === "") return b
+    if (b === "") return a
+    return `${a}, ${b}`
+  })
+)
 
 const defaultSchema: Schema.JsonObject = {
-  "type": "object",
-  "properties": {},
-  "required": [],
-  "additionalProperties": false
+  type: "object",
+  properties: {},
+  required: [],
+  additionalProperties: false
 }

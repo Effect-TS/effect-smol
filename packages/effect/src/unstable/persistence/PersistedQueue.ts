@@ -45,9 +45,12 @@ export interface PersistedQueue<in out A, out R = never> {
    * If an element with the same id already exists in the queue, it will not be
    * added again.
    */
-  readonly offer: (value: A, options?: {
-    readonly id: string | undefined
-  }) => Effect.Effect<string, PersistedQueueError | Schema.SchemaError, R>
+  readonly offer: (
+    value: A,
+    options?: {
+      readonly id: string | undefined
+    }
+  ) => Effect.Effect<string, PersistedQueueError | Schema.SchemaError, R>
 
   /**
    * Takes an element from the queue.
@@ -59,10 +62,13 @@ export interface PersistedQueue<in out A, out R = never> {
    * By default, max attempts is set to 10.
    */
   readonly take: <XA, XE, XR>(
-    f: (value: A, metadata: {
-      readonly id: string
-      readonly attempts: number
-    }) => Effect.Effect<XA, XE, XR>,
+    f: (
+      value: A,
+      metadata: {
+        readonly id: string
+        readonly attempts: number
+      }
+    ) => Effect.Effect<XA, XE, XR>,
     options?: {
       readonly maxAttempts?: number | undefined
     }
@@ -100,14 +106,11 @@ export const make = <S extends Schema.Top>(options: {
  * @since 4.0.0
  * @category Factory
  */
-export const makeFactory = Effect.gen(function*() {
+export const makeFactory = Effect.gen(function* () {
   const store = yield* PersistedQueueStore
 
   return PersistedQueueFactory.of({
-    make<S extends Schema.Top>(options: {
-      readonly name: string
-      readonly schema: S
-    }) {
+    make<S extends Schema.Top>(options: { readonly name: string; readonly schema: S }) {
       const jsonSchema = Schema.toCodecJson(options.schema)
       const encodeUnknown = Schema.encodeUnknownEffect(jsonSchema)
       const decodeUnknown = Schema.decodeUnknownEffect(jsonSchema)
@@ -115,36 +118,34 @@ export const makeFactory = Effect.gen(function*() {
       return Effect.succeed<PersistedQueue<S["Type"], S["EncodingServices"] | S["DecodingServices"]>>({
         [TypeId]: TypeId,
         offer: (value, opts) =>
-          Effect.flatMap(
-            encodeUnknown(value),
-            (element) => {
-              const id = opts?.id ?? crypto.randomUUID()
-              return Effect.as(
-                store.offer({
-                  name: options.name,
-                  id,
-                  element,
-                  isCustomId: opts?.id !== undefined
-                }),
-                id
-              )
-            }
-          ),
-        take: (f, opts) =>
-          Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
-            const scope = yield* Scope.make()
-            const item = yield* store.take({
-              name: options.name,
-              maxAttempts: opts?.maxAttempts ?? 10
-            }).pipe(
-              Scope.provide(scope),
-              restore
+          Effect.flatMap(encodeUnknown(value), (element) => {
+            const id = opts?.id ?? crypto.randomUUID()
+            return Effect.as(
+              store.offer({
+                name: options.name,
+                id,
+                element,
+                isCustomId: opts?.id !== undefined
+              }),
+              id
             )
-            const decoded = yield* decodeUnknown(item.element)
-            const exit = yield* Effect.exit(restore(f(decoded, { id: item.id, attempts: item.attempts })))
-            yield* Scope.close(scope, exit)
-            return yield* exit
-          }))
+          }),
+        take: (f, opts) =>
+          Effect.uninterruptibleMask(
+            Effect.fnUntraced(function* (restore) {
+              const scope = yield* Scope.make()
+              const item = yield* store
+                .take({
+                  name: options.name,
+                  maxAttempts: opts?.maxAttempts ?? 10
+                })
+                .pipe(Scope.provide(scope), restore)
+              const decoded = yield* decodeUnknown(item.element)
+              const exit = yield* Effect.exit(restore(f(decoded, { id: item.id, attempts: item.attempts })))
+              yield* Scope.close(scope, exit)
+              return yield* exit
+            })
+          )
       })
     }
   })
@@ -154,11 +155,10 @@ export const makeFactory = Effect.gen(function*() {
  * @since 4.0.0
  * @category Factory
  */
-export const layer: Layer.Layer<
+export const layer: Layer.Layer<PersistedQueueFactory, never, PersistedQueueStore> = Layer.effect(
   PersistedQueueFactory,
-  never,
-  PersistedQueueStore
-> = Layer.effect(PersistedQueueFactory, makeFactory)
+  makeFactory
+)
 
 /**
  * @since 4.0.0
@@ -196,19 +196,14 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
 export class PersistedQueueStore extends ServiceMap.Service<
   PersistedQueueStore,
   {
-    readonly offer: (
-      options: {
-        readonly name: string
-        readonly id: string
-        readonly element: unknown
-        readonly isCustomId: boolean
-      }
-    ) => Effect.Effect<void, PersistedQueueError>
-
-    readonly take: (options: {
+    readonly offer: (options: {
       readonly name: string
-      readonly maxAttempts: number
-    }) => Effect.Effect<
+      readonly id: string
+      readonly element: unknown
+      readonly isCustomId: boolean
+    }) => Effect.Effect<void, PersistedQueueError>
+
+    readonly take: (options: { readonly name: string; readonly maxAttempts: number }) => Effect.Effect<
       {
         readonly id: string
         readonly attempts: number
@@ -224,19 +219,20 @@ export class PersistedQueueStore extends ServiceMap.Service<
  * @since 4.0.0
  * @category Store
  */
-export const layerStoreMemory: Layer.Layer<
-  PersistedQueueStore
-> = Layer.sync(PersistedQueueStore, () => {
+export const layerStoreMemory: Layer.Layer<PersistedQueueStore> = Layer.sync(PersistedQueueStore, () => {
   type Entry = {
     readonly id: string
     attempts: number
     readonly element: unknown
   }
   const ids = new Set<string>()
-  const queues = new Map<string, {
-    latch: Effect.Latch
-    items: Set<Entry>
-  }>()
+  const queues = new Map<
+    string,
+    {
+      latch: Effect.Latch
+      items: Set<Entry>
+    }
+  >()
   const getOrCreateQueue = (name: string) => {
     let queue = queues.get(name)
     if (!queue) {
@@ -258,7 +254,7 @@ export const layerStoreMemory: Layer.Layer<
         queue.items.add({ id: options.id, attempts: 0, element: options.element })
         queue.latch.openUnsafe()
       }),
-    take: Effect.fnUntraced(function*(options) {
+    take: Effect.fnUntraced(function* (options) {
       const queue = getOrCreateQueue(options.name)
       while (true) {
         yield* queue.latch.await
@@ -290,14 +286,12 @@ export const layerStoreMemory: Layer.Layer<
  * @since 4.0.0
  * @category Store
  */
-export const makeStoreRedis = Effect.fnUntraced(function*(
-  options?: {
-    readonly prefix?: string | undefined
-    readonly pollInterval?: Duration.DurationInput | undefined
-    readonly lockRefreshInterval?: Duration.DurationInput | undefined
-    readonly lockExpiration?: Duration.DurationInput | undefined
-  }
-) {
+export const makeStoreRedis = Effect.fnUntraced(function* (options?: {
+  readonly prefix?: string | undefined
+  readonly pollInterval?: Duration.DurationInput | undefined
+  readonly lockRefreshInterval?: Duration.DurationInput | undefined
+  readonly lockExpiration?: Duration.DurationInput | undefined
+}) {
   const redis = yield* Redis.Redis
 
   const pollInterval = options?.pollInterval
@@ -332,7 +326,7 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
   const expireAll = redis.eval(expireAllRedis)
 
   const queues = yield* RcMap.make({
-    lookup: Effect.fnUntraced(function*(name: string) {
+    lookup: Effect.fnUntraced(function* (name: string) {
       const queueKey = keyQueue(name)
       const pendingKey = keyPending(name)
       const queue = yield* Queue.make<Element>()
@@ -342,17 +336,12 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
 
       yield* Effect.addFinalizer(() =>
         Effect.orDie(
-          Effect.flatMap(
-            Queue.clear(queue),
-            (elements) =>
-              Effect.forEach(elements, (element) =>
-                requeue(
-                  queueKey,
-                  pendingKey,
-                  keyLock(element.id),
-                  element.id,
-                  JSON.stringify(element)
-                ), { concurrency: "unbounded", discard: true })
+          Effect.flatMap(Queue.clear(queue), (elements) =>
+            Effect.forEach(
+              elements,
+              (element) => requeue(queueKey, pendingKey, keyLock(element.id), element.id, JSON.stringify(element)),
+              { concurrency: "unbounded", discard: true }
+            )
           )
         )
       )
@@ -363,17 +352,9 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
         Effect.forkScoped
       )
 
-      const poll = (size: number) =>
-        take(
-          queueKey,
-          pendingKey,
-          prefix,
-          workerId,
-          size,
-          lockExpirationMillis
-        )
+      const poll = (size: number) => take(queueKey, pendingKey, prefix, workerId, size, lockExpirationMillis)
 
-      yield* Effect.gen(function*() {
+      yield* Effect.gen(function* () {
         while (true) {
           yield* pollLatch.await
           yield* Effect.yieldNow
@@ -383,16 +364,14 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
             continue
           }
           takenLatch.closeUnsafe()
-          yield* Queue.offerAll(queue, results.map((json) => JSON.parse(json)))
+          yield* Queue.offerAll(
+            queue,
+            results.map((json) => JSON.parse(json))
+          )
           yield* takenLatch.await
           yield* Effect.yieldNow
         }
-      }).pipe(
-        Effect.sandbox,
-        Effect.retry(Schedule.spaced(500)),
-        Effect.forkScoped,
-        Effect.interruptible
-      )
+      }).pipe(Effect.sandbox, Effect.retry(Schedule.spaced(500)), Effect.forkScoped, Effect.interruptible)
 
       return { queue, takers, pollLatch, takenLatch } as const
     }),
@@ -401,7 +380,7 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
 
   const activeLockKeys = new Set<string>()
 
-  yield* Effect.gen(function*() {
+  yield* Effect.gen(function* () {
     while (true) {
       yield* Effect.sleep(lockRefreshMillis)
       yield* Effect.ignore(expireAll(Array.from(activeLockKeys), lockExpirationMillis))
@@ -419,12 +398,7 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
     offer: ({ element, id, isCustomId, name }) =>
       Effect.mapError(
         isCustomId
-          ? offer(
-            `${prefix}${name}`,
-            `${prefix}${name}:ids`,
-            id,
-            JSON.stringify({ id, element, attempts: 0 })
-          )
+          ? offer(`${prefix}${name}`, `${prefix}${name}:ids`, id, JSON.stringify({ id, element, attempts: 0 }))
           : redis.send("LPUSH", `${prefix}${name}`, JSON.stringify({ id, element, attempts: 0 })),
         ({ cause }) =>
           new PersistedQueueError({
@@ -454,58 +428,58 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
           Effect.tap((element) => {
             const lock = keyLock(element.id)
             activeLockKeys.add(lock)
-            return Effect.addFinalizer(Exit.match({
-              onFailure: (cause) => {
-                activeLockKeys.delete(lock)
-                const nextAttempts = element.attempts + 1
-                if (nextAttempts >= options.maxAttempts) {
-                  return Effect.orDie(failed(
-                    keyPending(options.name),
-                    lock,
-                    keyFailed(options.name),
-                    element.id,
-                    JSON.stringify({
-                      ...element,
-                      lastFailure: Cause.pretty(cause),
-                      attempts: nextAttempts
-                    })
-                  ))
-                }
-                return Effect.orDie(requeue(
-                  keyQueue(options.name),
-                  keyPending(options.name),
-                  lock,
-                  element.id,
-                  JSON.stringify(
-                    Cause.isInterruptedOnly(cause)
-                      ? element
-                      : {
-                        ...element,
-                        lastFailure: Cause.pretty(cause),
-                        attempts: nextAttempts
-                      }
+            return Effect.addFinalizer(
+              Exit.match({
+                onFailure: (cause) => {
+                  activeLockKeys.delete(lock)
+                  const nextAttempts = element.attempts + 1
+                  if (nextAttempts >= options.maxAttempts) {
+                    return Effect.orDie(
+                      failed(
+                        keyPending(options.name),
+                        lock,
+                        keyFailed(options.name),
+                        element.id,
+                        JSON.stringify({
+                          ...element,
+                          lastFailure: Cause.pretty(cause),
+                          attempts: nextAttempts
+                        })
+                      )
+                    )
+                  }
+                  return Effect.orDie(
+                    requeue(
+                      keyQueue(options.name),
+                      keyPending(options.name),
+                      lock,
+                      element.id,
+                      JSON.stringify(
+                        Cause.isInterruptedOnly(cause)
+                          ? element
+                          : {
+                              ...element,
+                              lastFailure: Cause.pretty(cause),
+                              attempts: nextAttempts
+                            }
+                      )
+                    )
                   )
-                ))
-              },
-              onSuccess: () => {
-                activeLockKeys.delete(lock)
-                return Effect.orDie(complete(
-                  keyPending(options.name),
-                  lock,
-                  element.id
-                ))
-              }
-            }))
+                },
+                onSuccess: () => {
+                  activeLockKeys.delete(lock)
+                  return Effect.orDie(complete(keyPending(options.name), lock, element.id))
+                }
+              })
+            )
           })
         )
       )
   })
 })
 
-const offerRedis = Redis.script(
-  (...args: [keyQueue: string, keyIds: string, id: string, payload: string]) => args,
-  {
-    lua: `
+const offerRedis = Redis.script((...args: [keyQueue: string, keyIds: string, id: string, payload: string]) => args, {
+  lua: `
 local key_queue = KEYS[1]
 local key_ids = KEYS[2]
 local id = ARGV[1]
@@ -516,14 +490,11 @@ if result == 1 then
   redis.call("RPUSH", key_queue, payload)
 end
 `,
-    numberOfKeys: 2
-  }
-)
+  numberOfKeys: 2
+})
 
-const resetQueueRedis = Redis.script(
-  (...args: [keyQueue: string, keyPending: string, prefix: string]) => args,
-  {
-    lua: `
+const resetQueueRedis = Redis.script((...args: [keyQueue: string, keyPending: string, prefix: string]) => args, {
+  lua: `
 local key_queue = KEYS[1]
 local key_pending = KEYS[2]
 local prefix = ARGV[1]
@@ -538,9 +509,8 @@ for id, payload in pairs(entries) do
   end
 end
 `,
-    numberOfKeys: 2
-  }
-)
+  numberOfKeys: 2
+})
 
 const requeueRedis = Redis.script(
   (...args: [keyQueue: string, keyPending: string, keyLock: string, id: string, payload: string]) => args,
@@ -560,10 +530,8 @@ redis.call("RPUSH", key_queue, payload)
   }
 )
 
-const completeRedis = Redis.script(
-  (...args: [keyPending: string, keyLock: string, id: string]) => args,
-  {
-    lua: `
+const completeRedis = Redis.script((...args: [keyPending: string, keyLock: string, id: string]) => args, {
+  lua: `
 local key_pending = KEYS[1]
 local key_lock = KEYS[2]
 local id = ARGV[1]
@@ -571,9 +539,8 @@ local id = ARGV[1]
 redis.call("DEL", key_lock)
 redis.call("HDEL", key_pending, id)
 `,
-    numberOfKeys: 2
-  }
-)
+  numberOfKeys: 2
+})
 
 const failedRedis = Redis.script(
   (...args: [keyPending: string, keyLock: string, keyFailed: string, id: string, payload: string]) => args,
@@ -624,85 +591,79 @@ return payloads
   }
 ).withReturnType<Arr.NonEmptyArray<string> | null>()
 
-const expireAllRedis = Redis.script(
-  (keys: ReadonlyArray<string>, ttl: number) => [...keys, ttl],
-  {
-    numberOfKeys: (keys) => keys.length,
-    lua: `
+const expireAllRedis = Redis.script((keys: ReadonlyArray<string>, ttl: number) => [...keys, ttl], {
+  numberOfKeys: (keys) => keys.length,
+  lua: `
 local ttl = ARGV[1]
 for i, key in ipairs(KEYS) do
   redis.call("PEXPIRE", key, ttl)
 end
 `
-  }
-)
+})
 
 /**
  * @since 4.0.0
  * @category Store
  */
 export const layerStoreRedis: (
-  options?: {
-    readonly prefix?: string | undefined
-    readonly pollInterval?: Duration.DurationInput | undefined
-    readonly lockRefreshInterval?: Duration.DurationInput | undefined
-    readonly lockExpiration?: Duration.DurationInput | undefined
-  } | undefined
-) => Layer.Layer<
-  PersistedQueueStore,
-  never,
-  Redis.Redis
-> = Layer.effect(PersistedQueueStore, makeStoreRedis)
+  options?:
+    | {
+        readonly prefix?: string | undefined
+        readonly pollInterval?: Duration.DurationInput | undefined
+        readonly lockRefreshInterval?: Duration.DurationInput | undefined
+        readonly lockExpiration?: Duration.DurationInput | undefined
+      }
+    | undefined
+) => Layer.Layer<PersistedQueueStore, never, Redis.Redis> = Layer.effect(PersistedQueueStore, makeStoreRedis)
 
 /**
  * @since 4.0.0
  * @category Store
  */
 export const makeStoreSql: (
-  options?: {
-    readonly tableName?: string | undefined
-    readonly pollInterval?: Duration.DurationInput | undefined
-    readonly lockRefreshInterval?: Duration.DurationInput | undefined
-    readonly lockExpiration?: Duration.DurationInput | undefined
-  } | undefined
-) => Effect.Effect<
-  PersistedQueueStore["Service"],
-  SqlError,
-  SqlClient.SqlClient | Scope.Scope
-> = Effect.fnUntraced(function*(options) {
-  const sql = (yield* SqlClient.SqlClient).withoutTransforms()
-  const tableName = options?.tableName ?? "effect_queue"
-  const tableNameSql = sql(tableName)
-  const pollInterval = options?.pollInterval
-    ? Duration.fromDurationInputUnsafe(options.pollInterval)
-    : Duration.millis(1000)
-  const lockRefreshInterval = options?.lockRefreshInterval
-    ? Duration.fromDurationInputUnsafe(options.lockRefreshInterval)
-    : Duration.seconds(30)
-  const lockExpiration = options?.lockExpiration
-    ? Duration.fromDurationInputUnsafe(options.lockExpiration)
-    : Duration.minutes(2)
-  const lockExpirationSql = sql.literal(Math.ceil(Duration.toSeconds(lockExpiration)).toString())
-  const workerId = crypto.randomUUID()
+  options?:
+    | {
+        readonly tableName?: string | undefined
+        readonly pollInterval?: Duration.DurationInput | undefined
+        readonly lockRefreshInterval?: Duration.DurationInput | undefined
+        readonly lockExpiration?: Duration.DurationInput | undefined
+      }
+    | undefined
+) => Effect.Effect<PersistedQueueStore["Service"], SqlError, SqlClient.SqlClient | Scope.Scope> = Effect.fnUntraced(
+  function* (options) {
+    const sql = (yield* SqlClient.SqlClient).withoutTransforms()
+    const tableName = options?.tableName ?? "effect_queue"
+    const tableNameSql = sql(tableName)
+    const pollInterval = options?.pollInterval
+      ? Duration.fromDurationInputUnsafe(options.pollInterval)
+      : Duration.millis(1000)
+    const lockRefreshInterval = options?.lockRefreshInterval
+      ? Duration.fromDurationInputUnsafe(options.lockRefreshInterval)
+      : Duration.seconds(30)
+    const lockExpiration = options?.lockExpiration
+      ? Duration.fromDurationInputUnsafe(options.lockExpiration)
+      : Duration.minutes(2)
+    const lockExpirationSql = sql.literal(Math.ceil(Duration.toSeconds(lockExpiration)).toString())
+    const workerId = crypto.randomUUID()
 
-  const sqlNow = sql.onDialectOrElse({
-    mssql: () => sql.literal("GETDATE()"),
-    mysql: () => sql.literal("NOW()"),
-    pg: () => sql.literal("NOW()"),
-    // sqlite
-    orElse: () => sql.literal("CURRENT_TIMESTAMP")
-  })
+    const sqlNow = sql.onDialectOrElse({
+      mssql: () => sql.literal("GETDATE()"),
+      mysql: () => sql.literal("NOW()"),
+      pg: () => sql.literal("NOW()"),
+      // sqlite
+      orElse: () => sql.literal("CURRENT_TIMESTAMP")
+    })
 
-  const expiresAt = sql.onDialectOrElse({
-    pg: () => sql`${sqlNow} - INTERVAL '${lockExpirationSql} seconds'`,
-    mysql: () => sql`DATE_SUB(${sqlNow}, INTERVAL ${lockExpirationSql} SECOND)`,
-    mssql: () => sql`DATEADD(SECOND, -${lockExpirationSql}, ${sqlNow})`,
-    orElse: () => sql`datetime(${sqlNow}, '-${lockExpirationSql} seconds')`
-  })
+    const expiresAt = sql.onDialectOrElse({
+      pg: () => sql`${sqlNow} - INTERVAL '${lockExpirationSql} seconds'`,
+      mysql: () => sql`DATE_SUB(${sqlNow}, INTERVAL ${lockExpirationSql} SECOND)`,
+      mssql: () => sql`DATEADD(SECOND, -${lockExpirationSql}, ${sqlNow})`,
+      orElse: () => sql`datetime(${sqlNow}, '-${lockExpirationSql} seconds')`
+    })
 
-  yield* sql.onDialectOrElse({
-    mysql: () =>
-      sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
+    yield* sql.onDialectOrElse({
+      mysql: () =>
+        sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
         sequence BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         id VARCHAR(36) NOT NULL,
         queue_name VARCHAR(100) NOT NULL,
@@ -715,8 +676,8 @@ export const makeStoreSql: (
         created_at DATETIME NOT NULL,
         updated_at DATETIME NOT NULL
       )`,
-    pg: () =>
-      sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
+      pg: () =>
+        sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
         sequence SERIAL PRIMARY KEY,
         id VARCHAR(36) NOT NULL,
         queue_name VARCHAR(100) NOT NULL,
@@ -729,8 +690,8 @@ export const makeStoreSql: (
         created_at TIMESTAMP NOT NULL,
         updated_at TIMESTAMP NOT NULL
       )`,
-    mssql: () =>
-      sql`IF NOT EXISTS (SELECT * FROM sysobjects WHERE name=${tableNameSql} AND xtype='U')
+      mssql: () =>
+        sql`IF NOT EXISTS (SELECT * FROM sysobjects WHERE name=${tableNameSql} AND xtype='U')
       CREATE TABLE ${tableNameSql} (
         sequence INT IDENTITY(1,1) PRIMARY KEY,
         id NVARCHAR(36) NOT NULL,
@@ -744,9 +705,9 @@ export const makeStoreSql: (
         created_at DATETIME2 NOT NULL,
         updated_at DATETIME2 NOT NULL
       )`,
-    // sqlite
-    orElse: () =>
-      sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
+      // sqlite
+      orElse: () =>
+        sql`CREATE TABLE IF NOT EXISTS ${tableNameSql} (
         sequence INTEGER PRIMARY KEY AUTOINCREMENT,
         id TEXT NOT NULL,
         queue_name TEXT NOT NULL,
@@ -759,178 +720,177 @@ export const makeStoreSql: (
         created_at DATETIME NOT NULL,
         updated_at DATETIME NOT NULL
       )`
-  })
+    })
 
-  yield* sql.onDialectOrElse({
-    mssql: () =>
-      sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_id')
+    yield* sql.onDialectOrElse({
+      mssql: () =>
+        sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_id')
         CREATE UNIQUE INDEX idx_${tableNameSql}_id ON ${tableNameSql} (id)`,
-    mysql: () => sql`CREATE UNIQUE INDEX ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id)`.pipe(Effect.ignore),
-    orElse: () => sql`CREATE UNIQUE INDEX IF NOT EXISTS ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id)`
-  })
+      mysql: () => sql`CREATE UNIQUE INDEX ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id)`.pipe(Effect.ignore),
+      orElse: () => sql`CREATE UNIQUE INDEX IF NOT EXISTS ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id)`
+    })
 
-  yield* sql.onDialectOrElse({
-    mssql: () =>
-      sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_take')
+    yield* sql.onDialectOrElse({
+      mssql: () =>
+        sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_take')
         CREATE INDEX idx_${tableNameSql}_take ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`,
-    mysql: () =>
-      sql`CREATE INDEX ${
-        sql(`idx_${tableName}_take`)
-      } ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`
-        .pipe(Effect.ignore),
-    orElse: () =>
-      sql`CREATE INDEX IF NOT EXISTS ${
-        sql(`idx_${tableName}_take`)
-      } ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`
-  })
+      mysql: () =>
+        sql`CREATE INDEX ${sql(
+          `idx_${tableName}_take`
+        )} ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`.pipe(Effect.ignore),
+      orElse: () =>
+        sql`CREATE INDEX IF NOT EXISTS ${sql(
+          `idx_${tableName}_take`
+        )} ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`
+    })
 
-  yield* sql.onDialectOrElse({
-    mssql: () =>
-      sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_update')
+    yield* sql.onDialectOrElse({
+      mssql: () =>
+        sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_update')
         CREATE INDEX ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`,
-    mysql: () =>
-      sql`CREATE INDEX ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`.pipe(
-        Effect.ignore
-      ),
-    orElse: () =>
-      sql`CREATE INDEX IF NOT EXISTS ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`
-  })
+      mysql: () =>
+        sql`CREATE INDEX ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`.pipe(
+          Effect.ignore
+        ),
+      orElse: () =>
+        sql`CREATE INDEX IF NOT EXISTS ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`
+    })
 
-  const offer = sql.onDialectOrElse({
-    pg: () => (id: string, name: string, element: string) =>
-      sql`
+    const offer = sql.onDialectOrElse({
+      pg: () => (id: string, name: string, element: string) =>
+        sql`
         INSERT INTO ${tableNameSql} (id, queue_name, element, completed, attempts, created_at, updated_at)
         VALUES (${id}, ${name}, ${element}, FALSE, 0, ${sqlNow}, ${sqlNow})
         ON CONFLICT (id) DO NOTHING
       `,
-    mysql: () => (id: string, name: string, element: string) =>
-      sql`
+      mysql: () => (id: string, name: string, element: string) =>
+        sql`
         INSERT IGNORE INTO ${tableNameSql} (id, queue_name, element, completed, attempts, created_at, updated_at)
         VALUES (${id}, ${name}, ${element}, FALSE, 0, ${sqlNow}, ${sqlNow})
       `,
-    mssql: () => (id: string, name: string, element: string) =>
-      sql`
+      mssql: () => (id: string, name: string, element: string) =>
+        sql`
         IF NOT EXISTS (SELECT 1 FROM ${tableNameSql} WHERE id = ${id})
         BEGIN
           INSERT INTO ${tableNameSql} (id, queue_name, element, completed, attempts, created_at, updated_at)
           VALUES (${id}, ${name}, ${element}, 0, 0, ${sqlNow}, ${sqlNow})
         END
       `,
-    // sqlite
-    orElse: () => (id: string, name: string, element: string) =>
-      sql`
+      // sqlite
+      orElse: () => (id: string, name: string, element: string) =>
+        sql`
         INSERT OR IGNORE INTO ${tableNameSql} (id, queue_name, element, completed, attempts, created_at, updated_at)
         VALUES (${id}, ${name}, ${element}, FALSE, 0, ${sqlNow}, ${sqlNow})
       `
-  })
+    })
 
-  const wrapString = sql.onDialectOrElse({
-    mssql: () => (s: string) => `N'${s}'`,
-    orElse: () => (s: string) => `'${s}'`
-  })
-  const stringLiteral = (s: string) => sql.literal(wrapString(s))
+    const wrapString = sql.onDialectOrElse({
+      mssql: () => (s: string) => `N'${s}'`,
+      orElse: () => (s: string) => `'${s}'`
+    })
+    const stringLiteral = (s: string) => sql.literal(wrapString(s))
 
-  const sqlTrue = sql.onDialectOrElse({
-    sqlite: () => sql.literal("1"),
-    orElse: () => sql.literal("TRUE")
-  })
+    const sqlTrue = sql.onDialectOrElse({
+      sqlite: () => sql.literal("1"),
+      orElse: () => sql.literal("TRUE")
+    })
 
-  const workerIdSql = stringLiteral(workerId)
-  const elementIds = new Set<number>()
-  const refreshLocks: Effect.Effect<void, SqlError> = Effect.suspend((): Effect.Effect<void, SqlError> => {
-    if (elementIds.size === 0) return Effect.void
-    return sql`
+    const workerIdSql = stringLiteral(workerId)
+    const elementIds = new Set<number>()
+    const refreshLocks: Effect.Effect<void, SqlError> = Effect.suspend((): Effect.Effect<void, SqlError> => {
+      if (elementIds.size === 0) return Effect.void
+      return sql`
       UPDATE ${tableNameSql}
       SET acquired_at = ${sqlNow}
       WHERE acquired_by = ${workerIdSql}
     `
-  })
-  const complete = (sequence: number, attempts: number) => {
-    elementIds.delete(sequence)
-    return sql`
+    })
+    const complete = (sequence: number, attempts: number) => {
+      elementIds.delete(sequence)
+      return sql`
       UPDATE ${tableNameSql}
       SET acquired_at = NULL, acquired_by = NULL, updated_at = ${sqlNow}, completed = ${sqlTrue}, attempts = ${attempts}
       WHERE sequence = ${sequence}
       AND acquired_by = ${workerIdSql}
     `.pipe(
-      Effect.retry({
-        times: 5,
-        schedule: Schedule.exponential(100, 1.5)
-      }),
-      Effect.orDie
-    )
-  }
-  const retry = (sequence: number, attempts: number, cause: Cause.Cause<any>) => {
-    elementIds.delete(sequence)
-    return sql`
-      UPDATE ${tableNameSql}
-      SET acquired_at = NULL, acquired_by = NULL, updated_at = ${sqlNow}, attempts = ${attempts}, last_failure = ${
-      Cause.pretty(cause)
+        Effect.retry({
+          times: 5,
+          schedule: Schedule.exponential(100, 1.5)
+        }),
+        Effect.orDie
+      )
     }
+    const retry = (sequence: number, attempts: number, cause: Cause.Cause<any>) => {
+      elementIds.delete(sequence)
+      return sql`
+      UPDATE ${tableNameSql}
+      SET acquired_at = NULL, acquired_by = NULL, updated_at = ${sqlNow}, attempts = ${attempts}, last_failure = ${Cause.pretty(
+        cause
+      )}
       WHERE sequence = ${sequence}
       AND acquired_by = ${workerIdSql}
     `.pipe(
-      Effect.retry({
-        times: 5,
-        schedule: Schedule.exponential(100, 1.5)
-      }),
-      Effect.orDie
-    )
-  }
-  const interrupt = (ids: Array<number>) => {
-    for (const id of ids) {
-      elementIds.delete(id)
+        Effect.retry({
+          times: 5,
+          schedule: Schedule.exponential(100, 1.5)
+        }),
+        Effect.orDie
+      )
     }
-    return sql`
+    const interrupt = (ids: Array<number>) => {
+      for (const id of ids) {
+        elementIds.delete(id)
+      }
+      return sql`
       UPDATE ${tableNameSql}
       SET acquired_at = NULL, acquired_by = NULL
       WHERE sequence IN (${sql.literal(ids.join(","))})
       AND acquired_by = ${workerIdSql}
     `.pipe(
-      Effect.retry({
-        times: 5,
-        schedule: Schedule.exponential(100, 1.5)
-      }),
-      Effect.orDie
-    )
-  }
-
-  yield* refreshLocks.pipe(
-    Effect.tapCause(Effect.logWarning),
-    Effect.retry(Schedule.spaced(500)),
-    Effect.schedule(Schedule.fixed(lockRefreshInterval)),
-    Effect.annotateLogs({
-      package: "@effect/sql",
-      module: "SqlPersistedQueue",
-      fiber: "refreshLocks"
-    }),
-    Effect.forkScoped
-  )
-
-  type Element = {
-    readonly id: string
-    sequence: number
-    readonly queue_name: string
-    element: string
-    readonly attempts: number
-  }
-  const mailboxes = yield* RcMap.make({
-    lookup: Effect.fnUntraced(function*({ maxAttempts, name }: QueueKey) {
-      const queue = yield* Queue.make<Element>()
-      const takers = MutableRef.make(0)
-      const pollLatch = Effect.makeLatchUnsafe()
-      const takenLatch = Effect.makeLatchUnsafe()
-
-      yield* Effect.addFinalizer(() =>
-        Effect.flatMap(Queue.clear(queue), (elements) => {
-          if (elements.length === 0) return Effect.void
-          return interrupt(Array.from(elements, (e) => e.sequence))
-        })
+        Effect.retry({
+          times: 5,
+          schedule: Schedule.exponential(100, 1.5)
+        }),
+        Effect.orDie
       )
+    }
 
-      const poll = sql.onDialectOrElse({
-        pg: () => (size: number) =>
-          sql<Element>`
+    yield* refreshLocks.pipe(
+      Effect.tapCause(Effect.logWarning),
+      Effect.retry(Schedule.spaced(500)),
+      Effect.schedule(Schedule.fixed(lockRefreshInterval)),
+      Effect.annotateLogs({
+        package: "@effect/sql",
+        module: "SqlPersistedQueue",
+        fiber: "refreshLocks"
+      }),
+      Effect.forkScoped
+    )
+
+    type Element = {
+      readonly id: string
+      sequence: number
+      readonly queue_name: string
+      element: string
+      readonly attempts: number
+    }
+    const mailboxes = yield* RcMap.make({
+      lookup: Effect.fnUntraced(function* ({ maxAttempts, name }: QueueKey) {
+        const queue = yield* Queue.make<Element>()
+        const takers = MutableRef.make(0)
+        const pollLatch = Effect.makeLatchUnsafe()
+        const takenLatch = Effect.makeLatchUnsafe()
+
+        yield* Effect.addFinalizer(() =>
+          Effect.flatMap(Queue.clear(queue), (elements) => {
+            if (elements.length === 0) return Effect.void
+            return interrupt(Array.from(elements, (e) => e.sequence))
+          })
+        )
+
+        const poll = sql.onDialectOrElse({
+          pg: () => (size: number) =>
+            sql<Element>`
             WITH cte AS (
               UPDATE ${tableNameSql}
               SET acquired_at = ${sqlNow}, acquired_by = ${workerIdSql}
@@ -949,8 +909,8 @@ export const makeStoreSql: (
             SELECT sequence, id, queue_name, element, attempts FROM cte
             ORDER BY updated_at ASC, sequence ASC
           `,
-        mysql: () => (size: number) =>
-          sql<Element>`
+          mysql: () => (size: number) =>
+            sql<Element>`
             SELECT sequence, id, queue_name, element, attempts FROM ${tableNameSql} q
             WHERE queue_name = ${name}
             AND completed = FALSE
@@ -960,18 +920,18 @@ export const makeStoreSql: (
             LIMIT ${sql.literal(size.toString())}
             FOR UPDATE SKIP LOCKED
           `.pipe(
-            Effect.tap((rows) => {
-              if (rows.length === 0) return Effect.void
-              return sql`
+              Effect.tap((rows) => {
+                if (rows.length === 0) return Effect.void
+                return sql`
                 UPDATE ${tableNameSql}
                 SET acquired_at = ${sqlNow}, acquired_by = ${workerIdSql}
                 WHERE sequence IN (${sql.literal(rows.map((r) => r.sequence).join(","))})
               `.unprepared
-            }),
-            sql.withTransaction
-          ),
-        mssql: () => (size: number) =>
-          sql<Element>`
+              }),
+              sql.withTransaction
+            ),
+          mssql: () => (size: number) =>
+            sql<Element>`
             WITH cte AS (
               SELECT TOP ${sql.literal(size.toString())} sequence FROM ${tableNameSql}
               WHERE queue_name = ${name}
@@ -986,9 +946,9 @@ export const makeStoreSql: (
             FROM ${tableNameSql} AS q
             INNER JOIN cte ON q.sequence = cte.sequence
           `,
-        // sqlite
-        orElse: () => (size: number) =>
-          sql<Element>`
+          // sqlite
+          orElse: () => (size: number) =>
+            sql<Element>`
             UPDATE ${tableNameSql}
             SET acquired_at = ${sqlNow}, acquired_by = ${workerIdSql}
             WHERE queue_name = ${name}
@@ -999,79 +959,81 @@ export const makeStoreSql: (
             ORDER BY updated_at ASC, sequence ASC
             LIMIT ${sql.literal(size.toString())}
           `
-      })
+        })
 
-      yield* Effect.gen(function*() {
-        while (true) {
-          yield* pollLatch.await
-          yield* Effect.yieldNow
-          const results = takers.current === 0 ? [] : yield* poll(takers.current)
-          if (results.length === 0) {
-            yield* Effect.sleep(pollInterval)
-            continue
-          }
-          takenLatch.closeUnsafe()
-          for (let i = 0; i < results.length; i++) {
-            const element = results[i]
-            element.element = JSON.parse(element.element)
-          }
-          yield* Queue.offerAll(queue, results)
-          yield* takenLatch.await
-          yield* Effect.yieldNow
-        }
-      }).pipe(
-        Effect.sandbox,
-        Effect.retry(Schedule.spaced(500)),
-        Effect.forkScoped
-      )
-
-      return { queue, takers, pollLatch, takenLatch } as const
-    }),
-    idleTimeToLive: Duration.seconds(30)
-  })
-
-  return PersistedQueueStore.of({
-    offer: ({ element, id, name }) =>
-      Effect.catchCause(Effect.suspend(() => offer(id, name, JSON.stringify(element))), (cause) =>
-        Effect.fail(
-          new PersistedQueueError({
-            message: "Failed to offer element to persisted queue",
-            cause
-          })
-        )),
-    take: ({ maxAttempts, name }) =>
-      Effect.uninterruptibleMask((restore) =>
-        RcMap.get(mailboxes, new QueueKey({ name, maxAttempts })).pipe(
-          Effect.flatMap(({ pollLatch, queue, takenLatch, takers }) => {
-            takers.current++
-            if (takers.current === 1) {
-              pollLatch.openUnsafe()
+        yield* Effect.gen(function* () {
+          while (true) {
+            yield* pollLatch.await
+            yield* Effect.yieldNow
+            const results = takers.current === 0 ? [] : yield* poll(takers.current)
+            if (results.length === 0) {
+              yield* Effect.sleep(pollInterval)
+              continue
             }
-            return Effect.tap(restore(Queue.take(queue)), () => {
-              takers.current--
-              if (takers.current === 0) {
-                pollLatch.closeUnsafe()
-                takenLatch.openUnsafe()
-              } else if (Queue.sizeUnsafe(queue) === 0) {
-                takenLatch.openUnsafe()
+            takenLatch.closeUnsafe()
+            for (let i = 0; i < results.length; i++) {
+              const element = results[i]
+              element.element = JSON.parse(element.element)
+            }
+            yield* Queue.offerAll(queue, results)
+            yield* takenLatch.await
+            yield* Effect.yieldNow
+          }
+        }).pipe(Effect.sandbox, Effect.retry(Schedule.spaced(500)), Effect.forkScoped)
+
+        return { queue, takers, pollLatch, takenLatch } as const
+      }),
+      idleTimeToLive: Duration.seconds(30)
+    })
+
+    return PersistedQueueStore.of({
+      offer: ({ element, id, name }) =>
+        Effect.catchCause(
+          Effect.suspend(() => offer(id, name, JSON.stringify(element))),
+          (cause) =>
+            Effect.fail(
+              new PersistedQueueError({
+                message: "Failed to offer element to persisted queue",
+                cause
+              })
+            )
+        ),
+      take: ({ maxAttempts, name }) =>
+        Effect.uninterruptibleMask((restore) =>
+          RcMap.get(mailboxes, new QueueKey({ name, maxAttempts })).pipe(
+            Effect.flatMap(({ pollLatch, queue, takenLatch, takers }) => {
+              takers.current++
+              if (takers.current === 1) {
+                pollLatch.openUnsafe()
               }
-            })
-          }),
-          Effect.scoped,
-          restore,
-          Effect.tap((element) =>
-            Effect.addFinalizer(Exit.match({
-              onFailure: (cause) =>
-                Cause.isInterruptedOnly(cause)
-                  ? interrupt([element.sequence])
-                  : retry(element.sequence, element.attempts + 1, cause),
-              onSuccess: () => complete(element.sequence, element.attempts + 1)
-            }))
+              return Effect.tap(restore(Queue.take(queue)), () => {
+                takers.current--
+                if (takers.current === 0) {
+                  pollLatch.closeUnsafe()
+                  takenLatch.openUnsafe()
+                } else if (Queue.sizeUnsafe(queue) === 0) {
+                  takenLatch.openUnsafe()
+                }
+              })
+            }),
+            Effect.scoped,
+            restore,
+            Effect.tap((element) =>
+              Effect.addFinalizer(
+                Exit.match({
+                  onFailure: (cause) =>
+                    Cause.isInterruptedOnly(cause)
+                      ? interrupt([element.sequence])
+                      : retry(element.sequence, element.attempts + 1, cause),
+                  onSuccess: () => complete(element.sequence, element.attempts + 1)
+                })
+              )
+            )
           )
         )
-      )
-  })
-})
+    })
+  }
+)
 
 class QueueKey extends Data.Class<{
   readonly name: string
@@ -1083,14 +1045,12 @@ class QueueKey extends Data.Class<{
  * @category Store
  */
 export const layerStoreSql: (
-  options?: {
-    readonly tableName?: string | undefined
-    readonly pollInterval?: Duration.DurationInput | undefined
-    readonly lockRefreshInterval?: Duration.DurationInput | undefined
-    readonly lockExpiration?: Duration.DurationInput | undefined
-  } | undefined
-) => Layer.Layer<
-  PersistedQueueStore,
-  SqlError,
-  SqlClient.SqlClient
-> = Layer.effect(PersistedQueueStore, makeStoreSql)
+  options?:
+    | {
+        readonly tableName?: string | undefined
+        readonly pollInterval?: Duration.DurationInput | undefined
+        readonly lockRefreshInterval?: Duration.DurationInput | undefined
+        readonly lockExpiration?: Duration.DurationInput | undefined
+      }
+    | undefined
+) => Layer.Layer<PersistedQueueStore, SqlError, SqlClient.SqlClient> = Layer.effect(PersistedQueueStore, makeStoreSql)

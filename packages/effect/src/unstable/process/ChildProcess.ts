@@ -64,10 +64,7 @@ const TypeId = "~effect/unstable/process/ChildProcess"
  * @since 4.0.0
  * @category Models
  */
-export type Command =
-  | StandardCommand
-  | TemplatedCommand
-  | PipedCommand
+export type Command = StandardCommand | TemplatedCommand | PipedCommand
 
 /**
  * A standard command with pre-parsed command and arguments.
@@ -75,15 +72,15 @@ export type Command =
  * @since 4.0.0
  * @category Models
  */
-export interface StandardCommand extends
-  Pipeable,
-  Effect.Yieldable<
-    StandardCommand,
-    ChildProcessHandle,
-    PlatformError.PlatformError,
-    ChildProcessSpawner | Scope.Scope
-  >
-{
+export interface StandardCommand
+  extends
+    Pipeable,
+    Effect.Yieldable<
+      StandardCommand,
+      ChildProcessHandle,
+      PlatformError.PlatformError,
+      ChildProcessSpawner | Scope.Scope
+    > {
   readonly _tag: "StandardCommand"
   readonly command: string
   readonly args: ReadonlyArray<string>
@@ -96,15 +93,15 @@ export interface StandardCommand extends
  * @since 4.0.0
  * @category Models
  */
-export interface TemplatedCommand extends
-  Pipeable,
-  Effect.Yieldable<
-    TemplatedCommand,
-    ChildProcessHandle,
-    PlatformError.PlatformError,
-    ChildProcessSpawner | Scope.Scope
-  >
-{
+export interface TemplatedCommand
+  extends
+    Pipeable,
+    Effect.Yieldable<
+      TemplatedCommand,
+      ChildProcessHandle,
+      PlatformError.PlatformError,
+      ChildProcessSpawner | Scope.Scope
+    > {
   readonly _tag: "TemplatedCommand"
   readonly templates: TemplateStringsArray
   readonly expressions: ReadonlyArray<TemplateExpression>
@@ -118,15 +115,10 @@ export interface TemplatedCommand extends
  * @since 4.0.0
  * @category Models
  */
-export interface PipedCommand extends
-  Pipeable,
-  Effect.Yieldable<
-    PipedCommand,
-    ChildProcessHandle,
-    PlatformError.PlatformError,
-    ChildProcessSpawner | Scope.Scope
-  >
-{
+export interface PipedCommand
+  extends
+    Pipeable,
+    Effect.Yieldable<PipedCommand, ChildProcessHandle, PlatformError.PlatformError, ChildProcessSpawner | Scope.Scope> {
   readonly _tag: "PipedCommand"
   readonly left: Command
   readonly right: Command
@@ -392,31 +384,31 @@ export interface StderrConfig {
  */
 export type AdditionalFdConfig =
   | {
-    /**
-     * The direction of data flow for this file descriptor.
-     * - "input": Data flows from parent to child (writable by parent)
-     * - "output": Data flows from child to parent (readable by parent)
-     */
-    readonly type: "input"
-    /**
-     * For input file descriptors, an optional stream to pipe into the file
-     * descriptor..
-     */
-    readonly stream?: Stream.Stream<Uint8Array, PlatformError.PlatformError> | undefined
-  }
+      /**
+       * The direction of data flow for this file descriptor.
+       * - "input": Data flows from parent to child (writable by parent)
+       * - "output": Data flows from child to parent (readable by parent)
+       */
+      readonly type: "input"
+      /**
+       * For input file descriptors, an optional stream to pipe into the file
+       * descriptor..
+       */
+      readonly stream?: Stream.Stream<Uint8Array, PlatformError.PlatformError> | undefined
+    }
   | {
-    /**
-     * The direction of data flow for this file descriptor.
-     * - "input": Data flows from parent to child (writable by parent)
-     * - "output": Data flows from child to parent (readable by parent)
-     */
-    readonly type: "output"
-    /**
-     * For output file descriptors, an optional sink which receives data from
-     * the file descriptor.
-     */
-    readonly sink?: Sink.Sink<Uint8Array, Uint8Array, never, PlatformError.PlatformError> | undefined
-  }
+      /**
+       * The direction of data flow for this file descriptor.
+       * - "input": Data flows from parent to child (writable by parent)
+       * - "output": Data flows from child to parent (readable by parent)
+       */
+      readonly type: "output"
+      /**
+       * For output file descriptors, an optional sink which receives data from
+       * the file descriptor.
+       */
+      readonly sink?: Sink.Sink<Uint8Array, Uint8Array, never, PlatformError.PlatformError> | undefined
+    }
 
 /**
  * Options for command execution.
@@ -573,11 +565,7 @@ export const isTemplatedCommand = (command: Command): command is TemplatedComman
  */
 export const isPipedCommand = (command: Command): command is PipedCommand => command._tag === "PipedCommand"
 
-const makeStandardCommand = (
-  command: string,
-  args: ReadonlyArray<string>,
-  options: CommandOptions
-): StandardCommand =>
+const makeStandardCommand = (command: string, args: ReadonlyArray<string>, options: CommandOptions): StandardCommand =>
   Object.assign(Object.create(Proto), {
     _tag: "StandardCommand",
     command,
@@ -597,11 +585,7 @@ const makeTemplatedCommand = (
     options
   })
 
-const makePipedCommand = (
-  left: Command,
-  right: Command,
-  options: PipeOptions = {}
-): PipedCommand =>
+const makePipedCommand = (left: Command, right: Command, options: PipeOptions = {}): PipedCommand =>
   Object.assign(Object.create(Proto), {
     _tag: "PipedCommand",
     left,
@@ -638,25 +622,12 @@ const makePipedCommand = (
  * @category Constructors
  */
 export const make: {
-  (
-    command: string,
-    options?: CommandOptions
-  ): StandardCommand
-  (
-    command: string,
-    args: ReadonlyArray<string>,
-    options?: CommandOptions
-  ): StandardCommand
+  (command: string, options?: CommandOptions): StandardCommand
+  (command: string, args: ReadonlyArray<string>, options?: CommandOptions): StandardCommand
   (
     options: CommandOptions
-  ): (
-    templates: TemplateStringsArray,
-    ...expressions: ReadonlyArray<TemplateExpression>
-  ) => TemplatedCommand
-  (
-    templates: TemplateStringsArray,
-    ...expressions: ReadonlyArray<TemplateExpression>
-  ): TemplatedCommand
+  ): (templates: TemplateStringsArray, ...expressions: ReadonlyArray<TemplateExpression>) => TemplatedCommand
+  (templates: TemplateStringsArray, ...expressions: ReadonlyArray<TemplateExpression>): TemplatedCommand
 } = function make(...args: Array<unknown>): any {
   // Template literal form: make`command`
   if (isTemplateString(args[0])) {
@@ -667,7 +638,7 @@ export const make: {
   // Options form: make({ cwd: "/tmp" })`command`
   if (typeof args[0] === "object" && !Array.isArray(args[0]) && !isTemplateString(args[0])) {
     const options = args[0] as CommandOptions
-    return function(
+    return function (
       templates: TemplateStringsArray,
       ...expressions: ReadonlyArray<TemplateExpression>
     ): TemplatedCommand {
@@ -682,11 +653,7 @@ export const make: {
   }
 
   // Standard form with arguments: make("command", ["arg1", "arg2"], options?)
-  const [command, cmdArgs = [], options = {}] = args as [
-    string,
-    ReadonlyArray<string>?,
-    CommandOptions?
-  ]
+  const [command, cmdArgs = [], options = {}] = args as [string, ReadonlyArray<string>?, CommandOptions?]
   return makeStandardCommand(command, cmdArgs, options)
 }
 
@@ -763,21 +730,17 @@ export const pipeTo: {
  * @since 4.0.0
  * @category Execution
  */
-export const spawn = (command: Command): Effect.Effect<
-  ChildProcessHandle,
-  PlatformError.PlatformError,
-  ChildProcessSpawner | Scope.Scope
-> => ChildProcessSpawner.use((_) => _.spawn(command))
+export const spawn = (
+  command: Command
+): Effect.Effect<ChildProcessHandle, PlatformError.PlatformError, ChildProcessSpawner | Scope.Scope> =>
+  ChildProcessSpawner.use((_) => _.spawn(command))
 
 /**
  * @since 4.0.0
  * @category Execution
  */
-export const exitCode = (command: Command): Effect.Effect<
-  ExitCode,
-  PlatformError.PlatformError,
-  ChildProcessSpawner
-> => Effect.scoped(Effect.flatMap(spawn(command), (handle) => handle.exitCode))
+export const exitCode = (command: Command): Effect.Effect<ExitCode, PlatformError.PlatformError, ChildProcessSpawner> =>
+  Effect.scoped(Effect.flatMap(spawn(command), (handle) => handle.exitCode))
 
 /**
  * @since 4.0.0
@@ -787,25 +750,20 @@ export const streamString: {
   (options?: {
     readonly includeStderr?: boolean | undefined
   }): (self: Command) => Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner>
-  (self: Command, options?: {
-    readonly includeStderr?: boolean | undefined
-  }): Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner>
+  (
+    self: Command,
+    options?: {
+      readonly includeStderr?: boolean | undefined
+    }
+  ): Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner>
 } = dual(
   (args) => isCommand(args[0]),
   (
     self: Command,
     options?: { readonly includeStderr?: boolean | undefined }
-  ): Stream.Stream<
-    string,
-    PlatformError.PlatformError,
-    ChildProcessSpawner
-  > =>
+  ): Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner> =>
     spawn(self).pipe(
-      Effect.map((handle) =>
-        Stream.decodeText(
-          options?.includeStderr === true ? handle.all : handle.stdout
-        )
-      ),
+      Effect.map((handle) => Stream.decodeText(options?.includeStderr === true ? handle.all : handle.stdout)),
       Stream.unwrap
     )
 )
@@ -818,16 +776,19 @@ export const streamLines: {
   (options?: {
     readonly includeStderr?: boolean | undefined
   }): (self: Command) => Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner>
-  (self: Command, options?: {
-    readonly includeStderr?: boolean | undefined
-  }): Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner>
+  (
+    self: Command,
+    options?: {
+      readonly includeStderr?: boolean | undefined
+    }
+  ): Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner>
 } = dual(
   (args) => isCommand(args[0]),
-  (self: Command, options?: { readonly includeStderr?: boolean | undefined }): Stream.Stream<
-    string,
-    PlatformError.PlatformError,
-    ChildProcessSpawner
-  > => Stream.splitLines(streamString(self, options))
+  (
+    self: Command,
+    options?: { readonly includeStderr?: boolean | undefined }
+  ): Stream.Stream<string, PlatformError.PlatformError, ChildProcessSpawner> =>
+    Stream.splitLines(streamString(self, options))
 )
 
 /**
@@ -838,19 +799,19 @@ export const lines: {
   (options?: {
     readonly includeStderr?: boolean | undefined
   }): (self: Command) => Effect.Effect<Array<string>, PlatformError.PlatformError, ChildProcessSpawner>
-  (self: Command, options?: {
-    readonly includeStderr?: boolean | undefined
-  }): Effect.Effect<Array<string>, PlatformError.PlatformError, ChildProcessSpawner>
+  (
+    self: Command,
+    options?: {
+      readonly includeStderr?: boolean | undefined
+    }
+  ): Effect.Effect<Array<string>, PlatformError.PlatformError, ChildProcessSpawner>
 } = dual(
   (args) => isCommand(args[0]),
   (
     self: Command,
     options?: { readonly includeStderr?: boolean | undefined }
-  ): Effect.Effect<
-    Array<string>,
-    PlatformError.PlatformError,
-    ChildProcessSpawner
-  > => Stream.runCollect(streamLines(self, options))
+  ): Effect.Effect<Array<string>, PlatformError.PlatformError, ChildProcessSpawner> =>
+    Stream.runCollect(streamLines(self, options))
 )
 
 /**
@@ -861,19 +822,19 @@ export const string: {
   (options?: {
     readonly includeStderr?: boolean | undefined
   }): (self: Command) => Effect.Effect<string, PlatformError.PlatformError, ChildProcessSpawner>
-  (self: Command, options?: {
-    readonly includeStderr?: boolean | undefined
-  }): Effect.Effect<string, PlatformError.PlatformError, ChildProcessSpawner>
+  (
+    self: Command,
+    options?: {
+      readonly includeStderr?: boolean | undefined
+    }
+  ): Effect.Effect<string, PlatformError.PlatformError, ChildProcessSpawner>
 } = dual(
   (args) => isCommand(args[0]),
   (
     self: Command,
     options?: { readonly includeStderr?: boolean | undefined }
-  ): Effect.Effect<
-    string,
-    PlatformError.PlatformError,
-    ChildProcessSpawner
-  > => Stream.mkString(streamString(self, options))
+  ): Effect.Effect<string, PlatformError.PlatformError, ChildProcessSpawner> =>
+    Stream.mkString(streamString(self, options))
 )
 
 const isTemplateString = (u: unknown): u is TemplateStringsArray =>

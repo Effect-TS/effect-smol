@@ -136,13 +136,11 @@ interface LibsqlConnection extends Connection {
 export const make = (
   options: LibsqlClientConfig
 ): Effect.Effect<LibsqlClient, never, Scope.Scope | Reactivity.Reactivity> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const compiler = Statement.makeCompilerSqlite(options.transformQueryNames)
-    const transformRows = options.transformResultNames ?
-      Statement.defaultTransforms(
-        options.transformResultNames
-      ).array :
-      undefined
+    const transformRows = options.transformResultNames
+      ? Statement.defaultTransforms(options.transformResultNames).array
+      : undefined
 
     const spanAttributes: Array<[string, unknown]> = [
       ...(options.spanAttributes ? Object.entries(options.spanAttributes) : []),
@@ -155,10 +153,7 @@ export const make = (
         this.sdk = sdk
       }
 
-      run(
-        sql: string,
-        params: ReadonlyArray<unknown> = []
-      ) {
+      run(sql: string, params: ReadonlyArray<unknown> = []) {
         return Effect.map(
           Effect.tryPromise({
             try: () => this.sdk.execute({ sql, args: params as Array<any> }),
@@ -168,10 +163,7 @@ export const make = (
         )
       }
 
-      runRaw(
-        sql: string,
-        params: ReadonlyArray<unknown> = []
-      ) {
+      runRaw(sql: string, params: ReadonlyArray<unknown> = []) {
         return Effect.tryPromise({
           try: () => this.sdk.execute({ sql, args: params as Array<any> }),
           catch: (cause) => new SqlError({ cause, message: "Failed to execute statement" })
@@ -183,9 +175,7 @@ export const make = (
         params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
       ) {
-        return transformRows
-          ? Effect.map(this.run(sql, params), transformRows)
-          : this.run(sql, params)
+        return transformRows ? Effect.map(this.run(sql, params), transformRows) : this.run(sql, params)
       }
       executeRaw(sql: string, params: ReadonlyArray<unknown>) {
         return this.runRaw(sql, params)
@@ -226,41 +216,42 @@ export const make = (
       }
     }
 
-    const connection = "liveClient" in options
-      ? new LibsqlConnectionImpl(options.liveClient)
-      : yield* Effect.map(
-        Effect.acquireRelease(
-          Effect.sync(() =>
-            Libsql.createClient(
-              {
-                ...options,
-                authToken: Redacted.isRedacted(options.authToken)
-                  ? Redacted.value(options.authToken)
-                  : options.authToken,
-                encryptionKey: Redacted.isRedacted(options.encryptionKey)
-                  ? Redacted.value(options.encryptionKey)
-                  : options.encryptionKey,
-                url: options.url.toString(),
-                syncUrl: options.syncUrl?.toString()
-              } as Libsql.Config
-            )
-          ),
-          (sdk) => Effect.sync(() => sdk.close())
-        ),
-        (sdk) => new LibsqlConnectionImpl(sdk)
-      )
+    const connection =
+      "liveClient" in options
+        ? new LibsqlConnectionImpl(options.liveClient)
+        : yield* Effect.map(
+            Effect.acquireRelease(
+              Effect.sync(() =>
+                Libsql.createClient({
+                  ...options,
+                  authToken: Redacted.isRedacted(options.authToken)
+                    ? Redacted.value(options.authToken)
+                    : options.authToken,
+                  encryptionKey: Redacted.isRedacted(options.encryptionKey)
+                    ? Redacted.value(options.encryptionKey)
+                    : options.encryptionKey,
+                  url: options.url.toString(),
+                  syncUrl: options.syncUrl?.toString()
+                } as Libsql.Config)
+              ),
+              (sdk) => Effect.sync(() => sdk.close())
+            ),
+            (sdk) => new LibsqlConnectionImpl(sdk)
+          )
     const semaphore = yield* Effect.makeSemaphore(1)
 
     const withTransaction = Client.makeWithTransaction({
       transactionService: LibsqlTransaction,
       spanAttributes,
-      acquireConnection: Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
-        const scope = Scope.makeUnsafe()
-        yield* restore(semaphore.take(1))
-        yield* Scope.addFinalizer(scope, semaphore.release(1))
-        const conn = yield* connection.beginTransaction
-        return [scope, conn] as const
-      })),
+      acquireConnection: Effect.uninterruptibleMask(
+        Effect.fnUntraced(function* (restore) {
+          const scope = Scope.makeUnsafe()
+          yield* restore(semaphore.take(1))
+          yield* Scope.addFinalizer(scope, semaphore.release(1))
+          const conn = yield* connection.beginTransaction
+          return [scope, conn] as const
+        })
+      ),
       begin: () => Effect.void, // already begun in acquireConnection
       savepoint: (conn, id) => conn.executeRaw(`SAVEPOINT effect_sql_${id};`, []),
       commit: (conn) => conn.commit,
@@ -302,26 +293,21 @@ export const layerConfig: (
   config: Config.Wrap<LibsqlClientConfig>
 ): Layer.Layer<LibsqlClient | Client.SqlClient, Config.ConfigError> =>
   Layer.effectServices(
-    Config.unwrap(config).asEffect().pipe(
-      Effect.flatMap(make),
-      Effect.map((client) =>
-        ServiceMap.make(LibsqlClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
-        )
+    Config.unwrap(config)
+      .asEffect()
+      .pipe(
+        Effect.flatMap(make),
+        Effect.map((client) => ServiceMap.make(LibsqlClient, client).pipe(ServiceMap.add(Client.SqlClient, client)))
       )
-    )
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
  * @category layers
  * @since 1.0.0
  */
-export const layer = (
-  config: LibsqlClientConfig
-): Layer.Layer<LibsqlClient | Client.SqlClient> =>
+export const layer = (config: LibsqlClientConfig): Layer.Layer<LibsqlClient | Client.SqlClient> =>
   Layer.effectServices(
     Effect.map(make(config), (client) =>
-      ServiceMap.make(LibsqlClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
-      ))
+      ServiceMap.make(LibsqlClient, client).pipe(ServiceMap.add(Client.SqlClient, client))
+    )
   ).pipe(Layer.provide(Reactivity.layer))

@@ -91,20 +91,21 @@ interface SqliteConnection extends Connection {
 export const make = (
   options: SqliteClientConfig
 ): Effect.Effect<SqliteClient, never, Scope.Scope | Reactivity.Reactivity> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const compiler = Statement.makeCompilerSqlite(options.transformQueryNames)
-    const transformRows = options.transformResultNames ?
-      Statement.defaultTransforms(
-        options.transformResultNames
-      ).array :
-      undefined
+    const transformRows = options.transformResultNames
+      ? Statement.defaultTransforms(options.transformResultNames).array
+      : undefined
 
-    const makeConnection = Effect.gen(function*() {
+    const makeConnection = Effect.gen(function* () {
       const scope = yield* Effect.scope
       const db = new Sqlite(options.filename, {
         readonly: options.readonly ?? false
       })
-      yield* Scope.addFinalizer(scope, Effect.sync(() => db.close()))
+      yield* Scope.addFinalizer(
+        scope,
+        Effect.sync(() => db.close())
+      )
 
       if (options.disableWAL !== true) {
         db.pragma("journal_mode = WAL")
@@ -120,11 +121,7 @@ export const make = (
           })
       })
 
-      const runStatement = (
-        statement: Sqlite.Statement,
-        params: ReadonlyArray<unknown>,
-        raw: boolean
-      ) =>
+      const runStatement = (statement: Sqlite.Statement, params: ReadonlyArray<unknown>, raw: boolean) =>
         Effect.withFiber<ReadonlyArray<any>, SqlError>((fiber) => {
           if (ServiceMap.get(fiber.services, Client.SafeIntegers)) {
             statement.safeIntegers(true)
@@ -134,26 +131,16 @@ export const make = (
               return Effect.succeed(statement.all(...params))
             }
             const result = statement.run(...params)
-            return Effect.succeed(raw ? result as unknown as ReadonlyArray<any> : [])
+            return Effect.succeed(raw ? (result as unknown as ReadonlyArray<any>) : [])
           } catch (cause) {
             return Effect.fail(new SqlError({ cause, message: "Failed to execute statement" }))
           }
         })
 
-      const run = (
-        sql: string,
-        params: ReadonlyArray<unknown>,
-        raw = false
-      ) =>
-        Effect.flatMap(
-          Cache.get(prepareCache, sql),
-          (s) => runStatement(s, params, raw)
-        )
+      const run = (sql: string, params: ReadonlyArray<unknown>, raw = false) =>
+        Effect.flatMap(Cache.get(prepareCache, sql), (s) => runStatement(s, params, raw))
 
-      const runValues = (
-        sql: string,
-        params: ReadonlyArray<unknown>
-      ) =>
+      const runValues = (sql: string, params: ReadonlyArray<unknown>) =>
         Effect.acquireUseRelease(
           Cache.get(prepareCache, sql),
           (statement) =>
@@ -161,9 +148,7 @@ export const make = (
               try: () => {
                 if (statement.reader) {
                   statement.raw(true)
-                  return statement.all(...params) as ReadonlyArray<
-                    ReadonlyArray<unknown>
-                  >
+                  return statement.all(...params) as ReadonlyArray<ReadonlyArray<unknown>>
                 }
                 statement.run(...params)
                 return []
@@ -175,9 +160,7 @@ export const make = (
 
       return identity<SqliteConnection>({
         execute(sql, params, transformRows) {
-          return transformRows
-            ? Effect.map(run(sql, params), transformRows)
-            : run(sql, params)
+          return transformRows ? Effect.map(run(sql, params), transformRows) : run(sql, params)
         },
         executeRaw(sql, params) {
           return run(sql, params, true)
@@ -219,10 +202,7 @@ export const make = (
       const fiber = Fiber.getCurrent()!
       const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
       return Effect.as(
-        Effect.tap(
-          restore(semaphore.take(1)),
-          () => Scope.addFinalizer(scope, semaphore.release(1))
-        ),
+        Effect.tap(restore(semaphore.take(1)), () => Scope.addFinalizer(scope, semaphore.release(1))),
         connection
       )
     })
@@ -256,26 +236,21 @@ export const layerConfig = (
   config: Config.Wrap<SqliteClientConfig>
 ): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError> =>
   Layer.effectServices(
-    Config.unwrap(config).asEffect().pipe(
-      Effect.flatMap(make),
-      Effect.map((client) =>
-        ServiceMap.make(SqliteClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
-        )
+    Config.unwrap(config)
+      .asEffect()
+      .pipe(
+        Effect.flatMap(make),
+        Effect.map((client) => ServiceMap.make(SqliteClient, client).pipe(ServiceMap.add(Client.SqlClient, client)))
       )
-    )
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
  * @category layers
  * @since 1.0.0
  */
-export const layer = (
-  config: SqliteClientConfig
-): Layer.Layer<SqliteClient | Client.SqlClient> =>
+export const layer = (config: SqliteClientConfig): Layer.Layer<SqliteClient | Client.SqlClient> =>
   Layer.effectServices(
     Effect.map(make(config), (client) =>
-      ServiceMap.make(SqliteClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
-      ))
+      ServiceMap.make(SqliteClient, client).pipe(ServiceMap.add(Client.SqlClient, client))
+    )
   ).pipe(Layer.provide(Reactivity.layer))

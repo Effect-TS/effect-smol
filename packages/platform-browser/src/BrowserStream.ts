@@ -15,12 +15,15 @@ import * as Stream from "effect/Stream"
  */
 export const fromEventListenerWindow = <K extends keyof WindowEventMap>(
   type: K,
-  options?: boolean | {
-    readonly capture?: boolean
-    readonly passive?: boolean
-    readonly once?: boolean
-    readonly bufferSize?: number | undefined
-  } | undefined
+  options?:
+    | boolean
+    | {
+        readonly capture?: boolean
+        readonly passive?: boolean
+        readonly once?: boolean
+        readonly bufferSize?: number | undefined
+      }
+    | undefined
 ): Stream.Stream<WindowEventMap[K], never, never> => Stream.fromEventListener<WindowEventMap[K]>(window, type, options)
 
 /**
@@ -34,11 +37,14 @@ export const fromEventListenerWindow = <K extends keyof WindowEventMap>(
  */
 export const fromEventListenerDocument = <K extends keyof DocumentEventMap>(
   type: K,
-  options?: boolean | {
-    readonly capture?: boolean
-    readonly passive?: boolean
-    readonly once?: boolean
-    readonly bufferSize?: number | undefined
-  } | undefined
+  options?:
+    | boolean
+    | {
+        readonly capture?: boolean
+        readonly passive?: boolean
+        readonly once?: boolean
+        readonly bufferSize?: number | undefined
+      }
+    | undefined
 ): Stream.Stream<DocumentEventMap[K], never, never> =>
   Stream.fromEventListener<DocumentEventMap[K]>(document, type, options)

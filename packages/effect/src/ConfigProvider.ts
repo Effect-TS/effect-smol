@@ -24,21 +24,21 @@ import * as Str from "./String.ts"
 export type Node =
   /** A terminal string value */
   | {
-    readonly _tag: "Value"
-    readonly value: string
-  }
+      readonly _tag: "Value"
+      readonly value: string
+    }
   /** An object; keys are unordered */
   | {
-    readonly _tag: "Record"
-    readonly keys: ReadonlySet<string>
-    readonly value: string | undefined
-  }
+      readonly _tag: "Record"
+      readonly keys: ReadonlySet<string>
+      readonly value: string | undefined
+    }
   /** An array-like container; length is the number of elements */
   | {
-    readonly _tag: "Array"
-    readonly length: number
-    readonly value: string | undefined
-  }
+      readonly _tag: "Array"
+      readonly length: number
+      readonly value: string | undefined
+    }
 
 /**
  * @category Constructors
@@ -159,7 +159,7 @@ export const orElse: {
 } = dual(
   2,
   (self: ConfigProvider, that: ConfigProvider): ConfigProvider =>
-    make((path) => Effect.flatMap(self.get(path), (node) => node ? Effect.succeed(node) : that.get(path)))
+    make((path) => Effect.flatMap(self.get(path), (node) => (node ? Effect.succeed(node) : that.get(path))))
 )
 
 /**
@@ -169,19 +169,16 @@ export const orElse: {
 export const mapInput: {
   (f: (path: Path) => Path): (self: ConfigProvider) => ConfigProvider
   (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider
-} = dual(
-  2,
-  (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider => {
-    return make(self.get, self.mapInput ? flow(self.mapInput, f) : f, self.prefix ? f(self.prefix) : undefined)
-  }
-)
+} = dual(2, (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider => {
+  return make(self.get, self.mapInput ? flow(self.mapInput, f) : f, self.prefix ? f(self.prefix) : undefined)
+})
 
 /**
  * @since 4.0.0
  * @category Combinators
  */
 export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((path) =>
-  path.map((seg) => typeof seg === "number" ? seg : Str.constantCase(seg))
+  path.map((seg) => (typeof seg === "number" ? seg : Str.constantCase(seg)))
 )
 
 /**
@@ -191,13 +188,10 @@ export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((
 export const nested: {
   (prefix: string | Path): (self: ConfigProvider) => ConfigProvider
   (self: ConfigProvider, prefix: string | Path): ConfigProvider
-} = dual(
-  2,
-  (self: ConfigProvider, prefix: string | Path): ConfigProvider => {
-    const path = typeof prefix === "string" ? [prefix] : prefix
-    return make(self.get, self.mapInput, self.prefix ? [...self.prefix, ...path] : path)
-  }
-)
+} = dual(2, (self: ConfigProvider, prefix: string | Path): ConfigProvider => {
+  const path = typeof prefix === "string" ? [prefix] : prefix
+  return make(self.get, self.mapInput, self.prefix ? [...self.prefix, ...path] : path)
+})
 
 /**
  * @category Layers
@@ -220,12 +214,14 @@ export const layer = <E = never, R = never>(
  */
 export const layerAdd = <E = never, R = never>(
   self: ConfigProvider | Effect.Effect<ConfigProvider, E, R>,
-  options?: {
-    readonly asPrimary?: boolean | undefined
-  } | undefined
+  options?:
+    | {
+        readonly asPrimary?: boolean | undefined
+      }
+    | undefined
 ): Layer.Layer<never, E, Exclude<R, Scope>> =>
   Layer.effect(ConfigProvider)(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const current = yield* ConfigProvider
       const configProvider = Effect.isEffect(self) ? yield* self : self
       return options?.asPrimary ? orElse(configProvider, current) : orElse(current, configProvider)
@@ -379,9 +375,12 @@ function trieNodeAt(root: EnvTrieNode, path: Path): EnvTrieNode | undefined {
  * @category ConfigProviders
  * @since 4.0.0
  */
-export function fromDotEnvContents(lines: string, options?: {
-  readonly expandVariables?: boolean | undefined
-}): ConfigProvider {
+export function fromDotEnvContents(
+  lines: string,
+  options?: {
+    readonly expandVariables?: boolean | undefined
+  }
+): ConfigProvider {
   let env = parseDotEnvContents(lines)
   if (options?.expandVariables) {
     env = dotEnvExpand(env)
@@ -390,7 +389,7 @@ export function fromDotEnvContents(lines: string, options?: {
 }
 
 const DOT_ENV_LINE =
-  /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg
+  /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/gm
 
 function parseDotEnvContents(lines: string): Record<string, string> {
   const obj: Record<string, string> = {}
@@ -415,7 +414,7 @@ function parseDotEnvContents(lines: string): Record<string, string> {
     value = value.replace(/^(['"`])([\s\S]*)\1$/gm, "$2")
 
     // Expand newlines if double quoted
-    if (maybeQuote === "\"") {
+    if (maybeQuote === '"') {
       value = value.replace(/\\n/g, "\n")
       value = value.replace(/\\r/g, "\r")
     }
@@ -467,10 +466,7 @@ function interpolate(envValue: string, parsed: Record<string, string>): string {
   if (match !== null) {
     const [_, group, variableName, defaultValue] = match
 
-    return interpolate(
-      envValue.replace(group, defaultValue || parsed[variableName] || ""),
-      parsed
-    )
+    return interpolate(envValue.replace(group, defaultValue || parsed[variableName] || ""), parsed)
   }
 
   return envValue
@@ -495,13 +491,11 @@ function searchLast(str: string, rgx: RegExp): number {
 export const fromDotEnv: (options?: {
   readonly path?: string | undefined
   readonly expandVariables?: boolean | undefined
-}) => Effect.Effect<ConfigProvider, PlatformError, FileSystem.FileSystem> = Effect.fnUntraced(
-  function*(options) {
-    const fs = yield* FileSystem.FileSystem
-    const content = yield* fs.readFileString(options?.path ?? ".env")
-    return fromEnv({ env: parseDotEnvContents(content) })
-  }
-)
+}) => Effect.Effect<ConfigProvider, PlatformError, FileSystem.FileSystem> = Effect.fnUntraced(function* (options) {
+  const fs = yield* FileSystem.FileSystem
+  const content = yield* fs.readFileString(options?.path ?? ".env")
+  return fromEnv({ env: parseDotEnvContents(content) })
+})
 
 /**
  * Creates a ConfigProvider from a file tree structure.
@@ -519,11 +513,7 @@ export const fromDotEnv: (options?: {
  */
 export const fromDir: (options?: {
   readonly rootPath?: string | undefined
-}) => Effect.Effect<
-  ConfigProvider,
-  never,
-  Path_.Path | FileSystem.FileSystem
-> = Effect.fnUntraced(function*(options) {
+}) => Effect.Effect<ConfigProvider, never, Path_.Path | FileSystem.FileSystem> = Effect.fnUntraced(function* (options) {
   const platformPath = yield* Path_.Path
   const fs = yield* FileSystem.FileSystem
   const rootPath = options?.rootPath ?? "/"
@@ -532,26 +522,25 @@ export const fromDir: (options?: {
     const fullPath = platformPath.join(rootPath, ...path.map(String))
 
     // Try reading as a *file*
-    const asFile = fs.readFileString(fullPath).pipe(
-      Effect.map((content) => makeValue(content.trim()))
-    )
+    const asFile = fs.readFileString(fullPath).pipe(Effect.map((content) => makeValue(content.trim())))
 
     // If not a file, try reading as a *directory*
     const asDirectory = fs.readDirectory(fullPath).pipe(
       Effect.map((entries: ReadonlyArray<any>) => {
         // Support both string paths and DirEntry-like objects
-        const keys = entries.map((e) => typeof e === "string" ? platformPath.basename(e) : format(e?.name ?? ""))
+        const keys = entries.map((e) => (typeof e === "string" ? platformPath.basename(e) : format(e?.name ?? "")))
         return makeRecord(new Set(keys))
       })
     )
 
     return asFile.pipe(
       Effect.catch(() => asDirectory),
-      Effect.mapError((cause: PlatformError) =>
-        new SourceError({
-          message: `Failed to read file at ${platformPath.join(rootPath, ...path.map(String))}`,
-          cause
-        })
+      Effect.mapError(
+        (cause: PlatformError) =>
+          new SourceError({
+            message: `Failed to read file at ${platformPath.join(rootPath, ...path.map(String))}`,
+            cause
+          })
       )
     )
   })

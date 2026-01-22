@@ -61,10 +61,7 @@ export function makeUnsafe<S extends Schema.Top>(schema: S) {
   const parser = makeEffect(schema)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] => {
     return Effect.runSync(
-      Effect.mapErrorEager(
-        parser(input, options),
-        (issue) => new Error(issue.toString(), { cause: issue })
-      )
+      Effect.mapErrorEager(parser(input, options), (issue) => new Error(issue.toString(), { cause: issue }))
     )
   }
 }
@@ -91,10 +88,12 @@ export function _is<T>(ast: AST.AST) {
 export function _issue<T>(ast: AST.AST) {
   const parser = run<T, never>(ast)
   return (input: unknown, options: AST.ParseOptions): Issue.Issue | undefined => {
-    return Effect.runSync(Effect.matchEager(parser(input, options), {
-      onSuccess: () => undefined,
-      onFailure: identity
-    }))
+    return Effect.runSync(
+      Effect.matchEager(parser(input, options), {
+        onSuccess: () => undefined,
+        onFailure: identity
+      })
+    )
   }
 }
 
@@ -102,9 +101,7 @@ export function _issue<T>(ast: AST.AST) {
  * @category Asserting
  * @since 4.0.0
  */
-export function asserts<S extends Schema.Top & { readonly DecodingServices: never }>(
-  schema: S
-) {
+export function asserts<S extends Schema.Top & { readonly DecodingServices: never }>(schema: S) {
   const parser = asExit(run<S["Type"], never>(AST.toType(schema.ast)))
   return <I>(input: I): asserts input is I & S["Type"] => {
     const exit = parser(input, AST.defaultParseOptions)
@@ -236,7 +233,7 @@ export const encodeEffect: <S extends Schema.Top>(
  */
 export const encodeUnknownPromise = <S extends Schema.Top & { readonly EncodingServices: never }>(
   schema: S
-): (input: unknown, options?: AST.ParseOptions) => Promise<S["Encoded"]> => asPromise(encodeUnknownEffect(schema))
+): ((input: unknown, options?: AST.ParseOptions) => Promise<S["Encoded"]>) => asPromise(encodeUnknownEffect(schema))
 
 /**
  * @category Encoding
@@ -337,10 +334,7 @@ function asSync<T, E, R>(
 ): (input: E, options?: AST.ParseOptions) => T {
   return (input: E, options?: AST.ParseOptions) =>
     Effect.runSync(
-      Effect.mapErrorEager(
-        parser(input, options),
-        (issue) => new Error(issue.toString(), { cause: issue })
-      ) as any
+      Effect.mapErrorEager(parser(input, options), (issue) => new Error(issue.toString(), { cause: issue })) as any
     )
 }
 
@@ -349,78 +343,76 @@ export interface Parser {
   (input: Option.Option<unknown>, options: AST.ParseOptions): Effect.Effect<Option.Option<unknown>, Issue.Issue, any>
 }
 
-const recur = memoize(
-  (ast: AST.AST): Parser => {
-    let parser: Parser
-    if (!ast.context && !ast.encoding && !ast.checks) {
-      return (ou, options) => {
-        parser ??= ast.getParser(recur)
-        return parser(ou, InternalAnnotations.resolve(ast)?.["parseOptions"] ?? options)
-      }
-    }
-    const isStructural = AST.isArrays(ast) || AST.isObjects(ast) ||
-      (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
+const recur = memoize((ast: AST.AST): Parser => {
+  let parser: Parser
+  if (!ast.context && !ast.encoding && !ast.checks) {
     return (ou, options) => {
-      options = InternalAnnotations.resolve(ast)?.["parseOptions"] ?? options
-      const encoding = ast.encoding
-      let srou: Effect.Effect<Option.Option<unknown>, Issue.Issue, unknown> | undefined
-      if (encoding) {
-        const links = encoding
-        const len = links.length
-        for (let i = len - 1; i >= 0; i--) {
-          const link = links[i]
-          const to = link.to
-          const parser = recur(to)
-          srou = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
-          if (link.transformation._tag === "Transformation") {
-            const getter = link.transformation.decode
-            srou = Effect.flatMapEager(srou, (ou) => getter.run(ou, options))
-          } else {
-            srou = link.transformation.decode(srou, options)
-          }
-        }
-        srou = Effect.mapErrorEager(srou!, (issue) => new Issue.Encoding(ast, ou, issue))
-      }
-
       parser ??= ast.getParser(recur)
-      let sroa = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
-
-      if (ast.checks) {
-        const checks = ast.checks
-        if (options?.errors === "all" && isStructural && Option.isSome(ou)) {
-          sroa = Effect.catchEager(sroa, (issue) => {
-            const issues: Array<Issue.Issue> = []
-            AST.collectIssues(
-              checks.filter((check) => check.annotations?.[AST.STRUCTURAL_ANNOTATION_KEY]),
-              ou.value,
-              issues,
-              ast,
-              options
-            )
-            const out: Issue.Issue = Arr.isArrayNonEmpty(issues)
-              ? issue._tag === "Composite" && issue.ast === ast
-                ? new Issue.Composite(ast, issue.actual, [...issue.issues, ...issues])
-                : new Issue.Composite(ast, ou, [issue, ...issues])
-              : issue
-            return Effect.fail(out)
-          })
-        }
-        sroa = Effect.flatMapEager(sroa, (oa) => {
-          if (Option.isSome(oa)) {
-            const value = oa.value
-            const issues: Array<Issue.Issue> = []
-
-            AST.collectIssues(checks, value, issues, ast, options)
-
-            if (Arr.isArrayNonEmpty(issues)) {
-              return Effect.fail(new Issue.Composite(ast, oa, issues))
-            }
-          }
-          return Effect.succeed(oa)
-        })
-      }
-
-      return sroa
+      return parser(ou, InternalAnnotations.resolve(ast)?.["parseOptions"] ?? options)
     }
   }
-)
+  const isStructural =
+    AST.isArrays(ast) || AST.isObjects(ast) || (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
+  return (ou, options) => {
+    options = InternalAnnotations.resolve(ast)?.["parseOptions"] ?? options
+    const encoding = ast.encoding
+    let srou: Effect.Effect<Option.Option<unknown>, Issue.Issue, unknown> | undefined
+    if (encoding) {
+      const links = encoding
+      const len = links.length
+      for (let i = len - 1; i >= 0; i--) {
+        const link = links[i]
+        const to = link.to
+        const parser = recur(to)
+        srou = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
+        if (link.transformation._tag === "Transformation") {
+          const getter = link.transformation.decode
+          srou = Effect.flatMapEager(srou, (ou) => getter.run(ou, options))
+        } else {
+          srou = link.transformation.decode(srou, options)
+        }
+      }
+      srou = Effect.mapErrorEager(srou!, (issue) => new Issue.Encoding(ast, ou, issue))
+    }
+
+    parser ??= ast.getParser(recur)
+    let sroa = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
+
+    if (ast.checks) {
+      const checks = ast.checks
+      if (options?.errors === "all" && isStructural && Option.isSome(ou)) {
+        sroa = Effect.catchEager(sroa, (issue) => {
+          const issues: Array<Issue.Issue> = []
+          AST.collectIssues(
+            checks.filter((check) => check.annotations?.[AST.STRUCTURAL_ANNOTATION_KEY]),
+            ou.value,
+            issues,
+            ast,
+            options
+          )
+          const out: Issue.Issue = Arr.isArrayNonEmpty(issues)
+            ? issue._tag === "Composite" && issue.ast === ast
+              ? new Issue.Composite(ast, issue.actual, [...issue.issues, ...issues])
+              : new Issue.Composite(ast, ou, [issue, ...issues])
+            : issue
+          return Effect.fail(out)
+        })
+      }
+      sroa = Effect.flatMapEager(sroa, (oa) => {
+        if (Option.isSome(oa)) {
+          const value = oa.value
+          const issues: Array<Issue.Issue> = []
+
+          AST.collectIssues(checks, value, issues, ast, options)
+
+          if (Arr.isArrayNonEmpty(issues)) {
+            return Effect.fail(new Issue.Composite(ast, oa, issues))
+          }
+        }
+        return Effect.succeed(oa)
+      })
+    }
+
+    return sroa
+  }
+})

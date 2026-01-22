@@ -88,10 +88,7 @@ export const encodeKeyValueList = (value: { values: ReadonlyArray<KeyValue> }): 
  * @internal
  */
 export const encodeKeyValue = (kv: KeyValue): Uint8Array =>
-  Proto.concat(
-    Proto.stringField(1, kv.key),
-    Proto.messageField(2, encodeAnyValue(kv.value))
-  )
+  Proto.concat(Proto.stringField(1, kv.key), Proto.messageField(2, encodeAnyValue(kv.value)))
 
 /**
  * Encodes an InstrumentationScope message.
@@ -133,9 +130,7 @@ export const encodeInstrumentationScope = (scope: {
 export const encodeResource = (resource: Resource): Uint8Array =>
   Proto.concat(
     Proto.repeatedField(1, resource.attributes, encodeKeyValue),
-    resource.droppedAttributesCount > 0
-      ? Proto.varintField(2, resource.droppedAttributesCount)
-      : new Uint8Array(0)
+    resource.droppedAttributesCount > 0 ? Proto.varintField(2, resource.droppedAttributesCount) : new Uint8Array(0)
   )
 
 // Trace types (opentelemetry.proto.trace.v1)
@@ -175,14 +170,8 @@ export const SpanKind = {
  *
  * @internal
  */
-export const encodeStatus = (status: {
-  readonly code: number
-  readonly message?: string
-}): Uint8Array =>
-  Proto.concat(
-    Proto.optionalStringField(2, status.message),
-    Proto.varintField(3, status.code)
-  )
+export const encodeStatus = (status: { readonly code: number; readonly message?: string }): Uint8Array =>
+  Proto.concat(Proto.optionalStringField(2, status.message), Proto.varintField(3, status.code))
 
 /**
  * Encodes an Event message.
@@ -206,9 +195,7 @@ export const encodeEvent = (event: {
     Proto.fixed64Field(1, BigInt(event.timeUnixNano)),
     Proto.stringField(2, event.name),
     Proto.repeatedField(3, event.attributes, encodeKeyValue),
-    event.droppedAttributesCount > 0
-      ? Proto.varintField(4, event.droppedAttributesCount)
-      : new Uint8Array(0)
+    event.droppedAttributesCount > 0 ? Proto.varintField(4, event.droppedAttributesCount) : new Uint8Array(0)
   )
 
 /**
@@ -238,9 +225,7 @@ export const encodeLink = (link: {
     Proto.bytesFieldFromHex(2, link.spanId),
     Proto.optionalStringField(3, link.traceState),
     Proto.repeatedField(4, link.attributes, encodeKeyValue),
-    link.droppedAttributesCount > 0
-      ? Proto.varintField(5, link.droppedAttributesCount)
-      : new Uint8Array(0),
+    link.droppedAttributesCount > 0 ? Proto.varintField(5, link.droppedAttributesCount) : new Uint8Array(0),
     link.flags !== undefined ? Proto.fixed32Field(6, link.flags) : new Uint8Array(0)
   )
 
@@ -305,25 +290,17 @@ export const encodeSpan = (span: {
     Proto.bytesFieldFromHex(1, span.traceId),
     Proto.bytesFieldFromHex(2, span.spanId),
     Proto.optionalStringField(3, span.traceState),
-    span.parentSpanId !== undefined
-      ? Proto.bytesFieldFromHex(4, span.parentSpanId)
-      : new Uint8Array(0),
+    span.parentSpanId !== undefined ? Proto.bytesFieldFromHex(4, span.parentSpanId) : new Uint8Array(0),
     Proto.stringField(5, span.name),
     Proto.varintField(6, span.kind),
     Proto.fixed64Field(7, BigInt(span.startTimeUnixNano)),
     Proto.fixed64Field(8, BigInt(span.endTimeUnixNano)),
     Proto.repeatedField(9, span.attributes, encodeKeyValue),
-    span.droppedAttributesCount > 0
-      ? Proto.varintField(10, span.droppedAttributesCount)
-      : new Uint8Array(0),
+    span.droppedAttributesCount > 0 ? Proto.varintField(10, span.droppedAttributesCount) : new Uint8Array(0),
     Proto.repeatedField(11, span.events, encodeEvent),
-    span.droppedEventsCount > 0
-      ? Proto.varintField(12, span.droppedEventsCount)
-      : new Uint8Array(0),
+    span.droppedEventsCount > 0 ? Proto.varintField(12, span.droppedEventsCount) : new Uint8Array(0),
     Proto.repeatedField(13, span.links, encodeLink),
-    span.droppedLinksCount > 0
-      ? Proto.varintField(14, span.droppedLinksCount)
-      : new Uint8Array(0),
+    span.droppedLinksCount > 0 ? Proto.varintField(14, span.droppedLinksCount) : new Uint8Array(0),
     Proto.messageField(15, encodeStatus(span.status)),
     span.flags !== undefined ? Proto.fixed32Field(16, span.flags) : new Uint8Array(0)
   )
@@ -417,12 +394,8 @@ export const encodeNumberDataPoint = (point: {
   Proto.concat(
     Proto.fixed64Field(2, BigInt(point.startTimeUnixNano)),
     Proto.fixed64Field(3, BigInt(point.timeUnixNano)),
-    point.asDouble !== undefined
-      ? Proto.doubleField(4, point.asDouble)
-      : new Uint8Array(0),
-    point.asInt !== undefined
-      ? Proto.fixed64Field(6, BigInt(point.asInt))
-      : new Uint8Array(0),
+    point.asDouble !== undefined ? Proto.doubleField(4, point.asDouble) : new Uint8Array(0),
+    point.asInt !== undefined ? Proto.fixed64Field(6, BigInt(point.asInt)) : new Uint8Array(0),
     Proto.repeatedField(7, point.attributes, encodeKeyValue),
     point.flags !== undefined ? Proto.varintField(8, point.flags) : new Uint8Array(0)
   )
@@ -458,13 +431,9 @@ export const encodeHistogramDataPoint = (point: {
   readonly flags?: number | undefined
 }): Uint8Array => {
   // Pack bucket counts as repeated fixed64
-  const bucketCountsEncoded = Proto.concat(
-    ...point.bucketCounts.map((count) => Proto.fixed64Field(6, BigInt(count)))
-  )
+  const bucketCountsEncoded = Proto.concat(...point.bucketCounts.map((count) => Proto.fixed64Field(6, BigInt(count))))
   // Pack explicit bounds as repeated double
-  const explicitBoundsEncoded = Proto.concat(
-    ...point.explicitBounds.map((bound) => Proto.doubleField(7, bound))
-  )
+  const explicitBoundsEncoded = Proto.concat(...point.explicitBounds.map((bound) => Proto.doubleField(7, bound)))
   return Proto.concat(
     Proto.fixed64Field(2, BigInt(point.startTimeUnixNano)),
     Proto.fixed64Field(3, BigInt(point.timeUnixNano)),
@@ -563,15 +532,9 @@ export const encodeMetric = (metric: {
     Proto.stringField(1, metric.name),
     Proto.optionalStringField(2, metric.description),
     Proto.optionalStringField(3, metric.unit),
-    metric.gauge !== undefined
-      ? Proto.messageField(5, encodeGauge(metric.gauge))
-      : new Uint8Array(0),
-    metric.sum !== undefined
-      ? Proto.messageField(7, encodeSum(metric.sum))
-      : new Uint8Array(0),
-    metric.histogram !== undefined
-      ? Proto.messageField(9, encodeHistogram(metric.histogram))
-      : new Uint8Array(0)
+    metric.gauge !== undefined ? Proto.messageField(5, encodeGauge(metric.gauge)) : new Uint8Array(0),
+    metric.sum !== undefined ? Proto.messageField(7, encodeSum(metric.sum)) : new Uint8Array(0),
+    metric.histogram !== undefined ? Proto.messageField(9, encodeHistogram(metric.histogram)) : new Uint8Array(0)
   )
 
 /**
@@ -698,13 +661,9 @@ export const encodeLogRecord = (record: {
 }): Uint8Array =>
   Proto.concat(
     Proto.fixed64Field(1, BigInt(record.timeUnixNano)),
-    record.severityNumber !== undefined
-      ? Proto.varintField(2, record.severityNumber)
-      : new Uint8Array(0),
+    record.severityNumber !== undefined ? Proto.varintField(2, record.severityNumber) : new Uint8Array(0),
     Proto.optionalStringField(3, record.severityText),
-    record.body !== undefined
-      ? Proto.messageField(5, encodeAnyValue(record.body))
-      : new Uint8Array(0),
+    record.body !== undefined ? Proto.messageField(5, encodeAnyValue(record.body)) : new Uint8Array(0),
     Proto.repeatedField(6, record.attributes, encodeKeyValue),
     record.droppedAttributesCount !== undefined && record.droppedAttributesCount > 0
       ? Proto.varintField(7, record.droppedAttributesCount)

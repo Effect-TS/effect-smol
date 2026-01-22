@@ -1,30 +1,31 @@
 {
   "name": "@effect/platform-browser",
-  "type": "module",
   "version": "0.72.0",
-  "license": "MIT",
   "description": "Platform specific implementations for the browser",
+  "keywords": [
+    "algebraic-data-types",
+    "browser",
+    "functional-programming",
+    "typescript"
+  ],
   "homepage": "https://effect.website",
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/platform-browser"
   },
-  "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
-  },
-  "tags": [
-    "browser",
-    "typescript",
-    "algebraic-data-types",
-    "functional-programming"
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "src/**/*.ts"
   ],
-  "keywords": [
-    "browser",
-    "typescript",
-    "algebraic-data-types",
-    "functional-programming"
-  ],
+  "type": "module",
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
@@ -33,22 +34,15 @@
     "./internal/*": null,
     "./*/index": null
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
-    "provenance": true,
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
       "./*/index": null
-    }
+    },
+    "provenance": true
   },
   "scripts": {
     "codegen": "effect-utils codegen",
@@ -59,14 +53,20 @@
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
-  "peerDependencies": {
-    "effect": "workspace:^"
+  "dependencies": {
+    "multipasta": "^0.2.7"
   },
   "devDependencies": {
     "effect": "workspace:^",
     "mock-xmlhttprequest": "^8.4.1"
   },
-  "dependencies": {
-    "multipasta": "^0.2.7"
-  }
+  "peerDependencies": {
+    "effect": "workspace:^"
+  },
+  "tags": [
+    "browser",
+    "typescript",
+    "algebraic-data-types",
+    "functional-programming"
+  ]
 }

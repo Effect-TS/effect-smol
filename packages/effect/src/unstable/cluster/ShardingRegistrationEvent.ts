@@ -11,9 +11,7 @@ import type { SingletonAddress } from "./SingletonAddress.ts"
  * @since 4.0.0
  * @category models
  */
-export type ShardingRegistrationEvent =
-  | EntityRegistered
-  | SingletonRegistered
+export type ShardingRegistrationEvent = EntityRegistered | SingletonRegistered
 
 /**
  * Represents an event that occurs when a new entity is registered with a runner.

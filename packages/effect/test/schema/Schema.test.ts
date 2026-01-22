@@ -36,17 +36,15 @@ const verifyGeneration = true
 
 const equals = TestSchema.Asserts.ast.fields.equals
 
-const SnakeToCamel = Schema.String.pipe(
-  Schema.decode(
-    SchemaTransformation.snakeToCamel()
-  )
-)
+const SnakeToCamel = Schema.String.pipe(Schema.decode(SchemaTransformation.snakeToCamel()))
 
 describe("Schema", () => {
   it("isSchema", () => {
-    class A extends Schema.Class<A>("A")(Schema.Struct({
-      a: Schema.String
-    })) {}
+    class A extends Schema.Class<A>("A")(
+      Schema.Struct({
+        a: Schema.String
+      })
+    ) {}
     class B extends Schema.Opaque<B>()(Schema.Struct({ a: Schema.String })) {}
     assertTrue(Schema.isSchema(Schema.String))
     assertTrue(Schema.isSchema(A))
@@ -97,18 +95,9 @@ Expected an integer, got -1.2`
 
   describe("Literal", () => {
     it("should throw an error if the literal is not a finite number", () => {
-      throws(
-        () => Schema.Literal(Infinity),
-        new Error("A numeric literal must be finite, got Infinity")
-      )
-      throws(
-        () => Schema.Literal(-Infinity),
-        new Error("A numeric literal must be finite, got -Infinity")
-      )
-      throws(
-        () => Schema.Literal(NaN),
-        new Error("A numeric literal must be finite, got NaN")
-      )
+      throws(() => Schema.Literal(Infinity), new Error("A numeric literal must be finite, got Infinity"))
+      throws(() => Schema.Literal(-Infinity), new Error("A numeric literal must be finite, got -Infinity"))
+      throws(() => Schema.Literal(NaN), new Error("A numeric literal must be finite, got NaN"))
     })
 
     it("should expose the literal", () => {
@@ -461,10 +450,12 @@ Expected an integer, got -1.2`
 
       it("optional field with default", () => {
         const schema = Schema.Struct({
-          a: Schema.String.pipe(Schema.encode({
-            decode: SchemaGetter.withDefault(() => "default-a"),
-            encode: SchemaGetter.passthrough()
-          })),
+          a: Schema.String.pipe(
+            Schema.encode({
+              decode: SchemaGetter.withDefault(() => "default-a"),
+              encode: SchemaGetter.passthrough()
+            })
+          ),
           b: Schema.String
         })
 
@@ -514,9 +505,7 @@ Unexpected key with value "c"
 
         const decoding = asserts.decoding({ parseOptions: { onExcessProperty: "preserve" } })
         const sym = Symbol("sym")
-        await decoding.succeed(
-          { a: "a", b: "b", c: "c", [sym]: "sym" }
-        )
+        await decoding.succeed({ a: "a", b: "b", c: "c", [sym]: "sym" })
       })
     })
 
@@ -759,18 +748,13 @@ Missing key
         const from = Schema.Struct({
           a: Schema.String,
           b: Schema.String
-        }).check(
-          Schema.makeFilter(({ a, b }) => a === b, { expected: "a === b" })
-        )
+        }).check(Schema.makeFilter(({ a, b }) => a === b, { expected: "a === b" }))
         const schema = from.mapFields(Struct.assign({ c: Schema.String }), { unsafePreserveChecks: true })
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
         await decoding.succeed({ a: "a", b: "a", c: "c" })
-        await decoding.fail(
-          { a: "", b: "b", c: "c" },
-          `Expected a === b, got {"a":"","b":"b","c":"c"}`
-        )
+        await decoding.fail({ a: "", b: "b", c: "c" }, `Expected a === b, got {"a":"","b":"b","c":"c"}`)
       })
     })
 
@@ -981,10 +965,7 @@ Unexpected key with value "c"
 
     const decoding = asserts.decoding()
     await decoding.succeed("a")
-    await decoding.fail(
-      " a ",
-      `Expected a string with no leading or trailing whitespace, got " a "`
-    )
+    await decoding.fail(" a ", `Expected a string with no leading or trailing whitespace, got " a "`)
   })
 
   describe("Checks", () => {
@@ -995,25 +976,16 @@ Unexpected key with value "c"
 
         const decoding = asserts.decoding()
         await decoding.succeed("abc")
-        await decoding.fail(
-          "ab",
-          `Expected a value with a length of at least 3, got "ab"`
-        )
+        await decoding.fail("ab", `Expected a value with a length of at least 3, got "ab"`)
       })
 
       it("multiple checks", async () => {
-        const schema = Schema.String.check(
-          Schema.isMinLength(3),
-          Schema.isIncludes("c")
-        )
+        const schema = Schema.String.check(Schema.isMinLength(3), Schema.isIncludes("c"))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
         await decoding.succeed("abc")
-        await decoding.fail(
-          "ab",
-          `Expected a value with a length of at least 3, got "ab"`
-        )
+        await decoding.fail("ab", `Expected a value with a length of at least 3, got "ab"`)
         const decodingAll = asserts.decoding({ parseOptions: { errors: "all" } })
         await decodingAll.fail(
           "ab",
@@ -1023,17 +995,11 @@ Expected a string including "c", got "ab"`
       })
 
       it("aborting checks", async () => {
-        const schema = Schema.String.check(
-          Schema.isMinLength(2).abort(),
-          Schema.isIncludes("b")
-        )
+        const schema = Schema.String.check(Schema.isMinLength(2).abort(), Schema.isIncludes("b"))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
-        await decoding.fail(
-          "a",
-          `Expected a value with a length of at least 2, got "a"`
-        )
+        await decoding.fail("a", `Expected a value with a length of at least 2, got "a"`)
       })
 
       it("makeFilterGroup", async () => {
@@ -1057,32 +1023,21 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed("abc")
-        await decoding.fail(
-          "",
-          `Expected a value with a length of at least 3, got ""`
-        )
+        await decoding.fail("", `Expected a value with a length of at least 3, got ""`)
       })
     })
 
     it("refine", async () => {
       const schema = Schema.Option(Schema.String).pipe(
         Schema.refine(Option.isSome, { expected: "isSome" }),
-        Schema.check(
-          Schema.makeFilter(({ value }) => value.length > 0, { expected: "length > 0" })
-        )
+        Schema.check(Schema.makeFilter(({ value }) => value.length > 0, { expected: "length > 0" }))
       )
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
       await decoding.succeed(Option.some("a"))
-      await decoding.fail(
-        Option.some(""),
-        `Expected length > 0, got some("")`
-      )
-      await decoding.fail(
-        Option.none(),
-        `Expected isSome, got none()`
-      )
+      await decoding.fail(Option.some(""), `Expected length > 0, got some("")`)
+      await decoding.fail(Option.none(), `Expected isSome, got none()`)
     })
 
     describe("String checks", () => {
@@ -1092,17 +1047,11 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed("a")
-        await decoding.fail(
-          "b",
-          `Expected a string matching the RegExp ^a, got "b"`
-        )
+        await decoding.fail("b", `Expected a string matching the RegExp ^a, got "b"`)
 
         const encoding = asserts.encoding()
         await encoding.succeed("a")
-        await encoding.fail(
-          "b",
-          `Expected a string matching the RegExp ^a, got "b"`
-        )
+        await encoding.fail("b", `Expected a string matching the RegExp ^a, got "b"`)
       })
 
       it("isStartsWith", async () => {
@@ -1111,17 +1060,11 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed("a")
-        await decoding.fail(
-          "b",
-          `Expected a string starting with "a", got "b"`
-        )
+        await decoding.fail("b", `Expected a string starting with "a", got "b"`)
 
         const encoding = asserts.encoding()
         await encoding.succeed("a")
-        await encoding.fail(
-          "b",
-          `Expected a string starting with "a", got "b"`
-        )
+        await encoding.fail("b", `Expected a string starting with "a", got "b"`)
       })
 
       it("isEndsWith", async () => {
@@ -1130,17 +1073,11 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed("a")
-        await decoding.fail(
-          "b",
-          `Expected a string ending with "a", got "b"`
-        )
+        await decoding.fail("b", `Expected a string ending with "a", got "b"`)
 
         const encoding = asserts.encoding()
         await encoding.succeed("a")
-        await encoding.fail(
-          "b",
-          `Expected a string ending with "a", got "b"`
-        )
+        await encoding.fail("b", `Expected a string ending with "a", got "b"`)
       })
 
       it("isLowercased", async () => {
@@ -1149,17 +1086,11 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed("a")
-        await decoding.fail(
-          "A",
-          `Expected a string with all characters in lowercase, got "A"`
-        )
+        await decoding.fail("A", `Expected a string with all characters in lowercase, got "A"`)
 
         const encoding = asserts.encoding()
         await encoding.succeed("a")
-        await encoding.fail(
-          "A",
-          `Expected a string with all characters in lowercase, got "A"`
-        )
+        await encoding.fail("A", `Expected a string with all characters in lowercase, got "A"`)
       })
 
       it("isUppercased", async () => {
@@ -1168,17 +1099,11 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed("A")
-        await decoding.fail(
-          "a",
-          `Expected a string with all characters in uppercase, got "a"`
-        )
+        await decoding.fail("a", `Expected a string with all characters in uppercase, got "a"`)
 
         const encoding = asserts.encoding()
         await encoding.succeed("A")
-        await encoding.fail(
-          "a",
-          `Expected a string with all characters in uppercase, got "a"`
-        )
+        await encoding.fail("a", `Expected a string with all characters in uppercase, got "a"`)
       })
 
       it("isCapitalized", async () => {
@@ -1187,17 +1112,11 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed("Abc")
-        await decoding.fail(
-          "abc",
-          `Expected a string with the first character in uppercase, got "abc"`
-        )
+        await decoding.fail("abc", `Expected a string with the first character in uppercase, got "abc"`)
 
         const encoding = asserts.encoding()
         await encoding.succeed("Abc")
-        await encoding.fail(
-          "abc",
-          `Expected a string with the first character in uppercase, got "abc"`
-        )
+        await encoding.fail("abc", `Expected a string with the first character in uppercase, got "abc"`)
       })
 
       it("isUncapitalized", async () => {
@@ -1206,17 +1125,11 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed("aBC")
-        await decoding.fail(
-          "ABC",
-          `Expected a string with the first character in lowercase, got "ABC"`
-        )
+        await decoding.fail("ABC", `Expected a string with the first character in lowercase, got "ABC"`)
 
         const encoding = asserts.encoding()
         await encoding.succeed("aBC")
-        await encoding.fail(
-          "ABC",
-          `Expected a string with the first character in lowercase, got "ABC"`
-        )
+        await encoding.fail("ABC", `Expected a string with the first character in lowercase, got "ABC"`)
       })
 
       it("isMinLength", async () => {
@@ -1225,17 +1138,11 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed("a")
-        await decoding.fail(
-          "",
-          `Expected a value with a length of at least 1, got ""`
-        )
+        await decoding.fail("", `Expected a value with a length of at least 1, got ""`)
 
         const encoding = asserts.encoding()
         await encoding.succeed("a")
-        await encoding.fail(
-          "",
-          `Expected a value with a length of at least 1, got ""`
-        )
+        await encoding.fail("", `Expected a value with a length of at least 1, got ""`)
       })
     })
 
@@ -1246,17 +1153,11 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed(2)
-        await decoding.fail(
-          1,
-          `Expected a value greater than 1, got 1`
-        )
+        await decoding.fail(1, `Expected a value greater than 1, got 1`)
 
         const encoding = asserts.encoding()
         await encoding.succeed(2)
-        await encoding.fail(
-          1,
-          `Expected a value greater than 1, got 1`
-        )
+        await encoding.fail(1, `Expected a value greater than 1, got 1`)
       })
 
       it("isGreaterThanOrEqualTo", async () => {
@@ -1265,10 +1166,7 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed(1)
-        await decoding.fail(
-          0,
-          `Expected a value greater than or equal to 1, got 0`
-        )
+        await decoding.fail(0, `Expected a value greater than or equal to 1, got 0`)
       })
 
       it("isLessThan", async () => {
@@ -1277,10 +1175,7 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed(0)
-        await decoding.fail(
-          1,
-          `Expected a value less than 1, got 1`
-        )
+        await decoding.fail(1, `Expected a value less than 1, got 1`)
       })
 
       it("isLessThanOrEqualTo", async () => {
@@ -1289,10 +1184,7 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed(1)
-        await decoding.fail(
-          2,
-          `Expected a value less than or equal to 1, got 2`
-        )
+        await decoding.fail(2, `Expected a value less than or equal to 1, got 2`)
       })
 
       it("isMultipleOf", async () => {
@@ -1301,10 +1193,7 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed(4)
-        await decoding.fail(
-          3,
-          `Expected a value that is a multiple of 2, got 3`
-        )
+        await decoding.fail(3, `Expected a value that is a multiple of 2, got 3`)
       })
 
       describe("isBetween", () => {
@@ -1315,22 +1204,13 @@ Expected a string including "c", got "ab"`
           const decoding = asserts.decoding()
           await decoding.succeed(1)
           await decoding.succeed(3)
-          await decoding.fail(
-            0,
-            `Expected a value between 1 and 3, got 0`
-          )
-          await decoding.fail(
-            4,
-            `Expected a value between 1 and 3, got 4`
-          )
+          await decoding.fail(0, `Expected a value between 1 and 3, got 0`)
+          await decoding.fail(4, `Expected a value between 1 and 3, got 4`)
 
           const encoding = asserts.encoding()
           await encoding.succeed(1)
           await encoding.succeed(3)
-          await encoding.fail(
-            0,
-            `Expected a value between 1 and 3, got 0`
-          )
+          await encoding.fail(0, `Expected a value between 1 and 3, got 0`)
         })
 
         it("included & excluded", async () => {
@@ -1340,22 +1220,13 @@ Expected a string including "c", got "ab"`
           const decoding = asserts.decoding()
           await decoding.succeed(1)
           await decoding.fail(3, `Expected a value between 1 and 3 (excluded), got 3`)
-          await decoding.fail(
-            0,
-            `Expected a value between 1 and 3 (excluded), got 0`
-          )
-          await decoding.fail(
-            4,
-            `Expected a value between 1 and 3 (excluded), got 4`
-          )
+          await decoding.fail(0, `Expected a value between 1 and 3 (excluded), got 0`)
+          await decoding.fail(4, `Expected a value between 1 and 3 (excluded), got 4`)
 
           const encoding = asserts.encoding()
           await encoding.succeed(1)
           await encoding.fail(3, `Expected a value between 1 and 3 (excluded), got 3`)
-          await encoding.fail(
-            0,
-            `Expected a value between 1 and 3 (excluded), got 0`
-          )
+          await encoding.fail(0, `Expected a value between 1 and 3 (excluded), got 0`)
         })
 
         it("excluded & included", async () => {
@@ -1365,22 +1236,13 @@ Expected a string including "c", got "ab"`
           const decoding = asserts.decoding()
           await decoding.fail(1, `Expected a value between 1 (excluded) and 3, got 1`)
           await decoding.succeed(3)
-          await decoding.fail(
-            0,
-            `Expected a value between 1 (excluded) and 3, got 0`
-          )
-          await decoding.fail(
-            4,
-            `Expected a value between 1 (excluded) and 3, got 4`
-          )
+          await decoding.fail(0, `Expected a value between 1 (excluded) and 3, got 0`)
+          await decoding.fail(4, `Expected a value between 1 (excluded) and 3, got 4`)
 
           const encoding = asserts.encoding()
           await encoding.fail(1, `Expected a value between 1 (excluded) and 3, got 1`)
           await encoding.succeed(3)
-          await encoding.fail(
-            0,
-            `Expected a value between 1 (excluded) and 3, got 0`
-          )
+          await encoding.fail(0, `Expected a value between 1 (excluded) and 3, got 0`)
         })
 
         it("excluded & excluded", async () => {
@@ -1393,23 +1255,14 @@ Expected a string including "c", got "ab"`
           await decoding.succeed(2)
           await decoding.fail(1, `Expected a value between 1 (excluded) and 3 (excluded), got 1`)
           await decoding.fail(3, `Expected a value between 1 (excluded) and 3 (excluded), got 3`)
-          await decoding.fail(
-            0,
-            `Expected a value between 1 (excluded) and 3 (excluded), got 0`
-          )
-          await decoding.fail(
-            4,
-            `Expected a value between 1 (excluded) and 3 (excluded), got 4`
-          )
+          await decoding.fail(0, `Expected a value between 1 (excluded) and 3 (excluded), got 0`)
+          await decoding.fail(4, `Expected a value between 1 (excluded) and 3 (excluded), got 4`)
 
           const encoding = asserts.encoding()
           await encoding.succeed(2)
           await encoding.fail(1, `Expected a value between 1 (excluded) and 3 (excluded), got 1`)
           await encoding.fail(3, `Expected a value between 1 (excluded) and 3 (excluded), got 3`)
-          await encoding.fail(
-            0,
-            `Expected a value between 1 (excluded) and 3 (excluded), got 0`
-          )
+          await encoding.fail(0, `Expected a value between 1 (excluded) and 3 (excluded), got 0`)
         })
       })
 
@@ -1419,29 +1272,14 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed(1)
-        await decoding.fail(
-          1.1,
-          `Expected an integer, got 1.1`
-        )
+        await decoding.fail(1.1, `Expected an integer, got 1.1`)
 
         const encoding = asserts.encoding()
         await encoding.succeed(1)
-        await encoding.fail(
-          1.1,
-          `Expected an integer, got 1.1`
-        )
-        await decoding.fail(
-          NaN,
-          `Expected an integer, got NaN`
-        )
-        await decoding.fail(
-          Infinity,
-          `Expected an integer, got Infinity`
-        )
-        await decoding.fail(
-          -Infinity,
-          `Expected an integer, got -Infinity`
-        )
+        await encoding.fail(1.1, `Expected an integer, got 1.1`)
+        await decoding.fail(NaN, `Expected an integer, got NaN`)
+        await decoding.fail(Infinity, `Expected an integer, got Infinity`)
+        await decoding.fail(-Infinity, `Expected an integer, got -Infinity`)
       })
 
       it("isInt32", async () => {
@@ -1450,22 +1288,10 @@ Expected a string including "c", got "ab"`
 
         const decoding = asserts.decoding()
         await decoding.succeed(1)
-        await decoding.fail(
-          1.1,
-          `Expected an integer, got 1.1`
-        )
-        await decoding.fail(
-          Number.MAX_SAFE_INTEGER + 1,
-          `Expected an integer, got 9007199254740992`
-        )
-        await decoding.fail(
-          1.1,
-          `Expected an integer, got 1.1`
-        )
-        await decoding.fail(
-          Number.MIN_SAFE_INTEGER - 1,
-          `Expected an integer, got -9007199254740992`
-        )
+        await decoding.fail(1.1, `Expected an integer, got 1.1`)
+        await decoding.fail(Number.MAX_SAFE_INTEGER + 1, `Expected an integer, got 9007199254740992`)
+        await decoding.fail(1.1, `Expected an integer, got 1.1`)
+        await decoding.fail(Number.MIN_SAFE_INTEGER - 1, `Expected an integer, got -9007199254740992`)
         const decodingAll = asserts.decoding({ parseOptions: { errors: "all" } })
         await decodingAll.fail(
           Number.MAX_SAFE_INTEGER + 1,
@@ -1475,14 +1301,8 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
 
         const encoding = asserts.encoding()
         await encoding.succeed(1)
-        await encoding.fail(
-          1.1,
-          `Expected an integer, got 1.1`
-        )
-        await encoding.fail(
-          Number.MAX_SAFE_INTEGER + 1,
-          `Expected an integer, got 9007199254740992`
-        )
+        await encoding.fail(1.1, `Expected an integer, got 1.1`)
+        await encoding.fail(Number.MAX_SAFE_INTEGER + 1, `Expected an integer, got 9007199254740992`)
       })
     })
 
@@ -1503,10 +1323,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         await decoding.succeed(5n)
         await decoding.succeed(7n)
         await decoding.succeed(10n)
-        await decoding.fail(
-          4n,
-          `Expected a value between 5n and 10n, got 4n`
-        )
+        await decoding.fail(4n, `Expected a value between 5n and 10n, got 4n`)
       })
 
       it("isGreaterThan", async () => {
@@ -1515,10 +1332,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
 
         const decoding = asserts.decoding()
         await decoding.succeed(6n)
-        await decoding.fail(
-          5n,
-          `Expected a value greater than 5n, got 5n`
-        )
+        await decoding.fail(5n, `Expected a value greater than 5n, got 5n`)
       })
 
       it("isGreaterThanOrEqualTo", async () => {
@@ -1528,10 +1342,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         const decoding = asserts.decoding()
         await decoding.succeed(5n)
         await decoding.succeed(6n)
-        await decoding.fail(
-          4n,
-          `Expected a value greater than or equal to 5n, got 4n`
-        )
+        await decoding.fail(4n, `Expected a value greater than or equal to 5n, got 4n`)
       })
 
       it("isLessThan", async () => {
@@ -1540,10 +1351,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
 
         const decoding = asserts.decoding()
         await decoding.succeed(4n)
-        await decoding.fail(
-          5n,
-          `Expected a value less than 5n, got 5n`
-        )
+        await decoding.fail(5n, `Expected a value less than 5n, got 5n`)
       })
 
       it("isLessThanOrEqualTo", async () => {
@@ -1553,10 +1361,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         const decoding = asserts.decoding()
         await decoding.succeed(5n)
         await decoding.succeed(4n)
-        await decoding.fail(
-          6n,
-          `Expected a value less than or equal to 5n, got 6n`
-        )
+        await decoding.fail(6n, `Expected a value less than or equal to 5n, got 6n`)
       })
     })
 
@@ -1567,10 +1372,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
 
         const decoding = asserts.decoding()
         await decoding.succeed({ a: 1, b: 2 })
-        await decoding.fail(
-          {},
-          `Expected an object with at least 1 properties, got {}`
-        )
+        await decoding.fail({}, `Expected an object with at least 1 properties, got {}`)
       })
 
       it("isMaxProperties", async () => {
@@ -1598,10 +1400,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
 
         const decoding = asserts.decoding()
         await decoding.succeed({ a: 1, [sym]: 2 })
-        await decoding.fail(
-          { [sym]: 1 },
-          `Expected an object with at least 2 properties, got {Symbol(test):1}`
-        )
+        await decoding.fail({ [sym]: 1 }, `Expected an object with at least 2 properties, got {Symbol(test):1}`)
       })
 
       it("isMaxProperties with symbol keys", async () => {
@@ -1628,10 +1427,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         const decoding = asserts.decoding()
         await decoding.succeed({ a: 1, b: 2 })
         await decoding.succeed({ ["__proto__"]: 0, "": 0 })
-        await decoding.fail(
-          { a: 1 },
-          `Expected an object with exactly 2 properties, got {"a":1}`
-        )
+        await decoding.fail({ a: 1 }, `Expected an object with exactly 2 properties, got {"a":1}`)
         await decoding.fail(
           { a: 1, b: 2, c: 3 },
           `Expected an object with exactly 2 properties, got {"a":1,"b":2,"c":3}`
@@ -1649,10 +1445,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         const decoding = asserts.decoding()
         await decoding.succeed({ [sym1]: 1, [sym2]: 2 })
         await decoding.succeed({ a: 1, [sym1]: 2 })
-        await decoding.fail(
-          { [sym1]: 1 },
-          `Expected an object with exactly 2 properties, got {Symbol(test1):1}`
-        )
+        await decoding.fail({ [sym1]: 1 }, `Expected an object with exactly 2 properties, got {Symbol(test1):1}`)
         await decoding.fail(
           { [sym1]: 1, [sym2]: 2, a: 3 },
           `Expected an object with exactly 2 properties, got {"a":3,Symbol(test1):1,Symbol(test2):2}`
@@ -1716,10 +1509,7 @@ Expected a value with a length of at least 3, got ["a",""]
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
-        await decoding.fail(
-          null,
-          `Expected object, got null`
-        )
+        await decoding.fail(null, `Expected object, got null`)
         const decodingAll = asserts.decoding({ parseOptions: { errors: "all" } })
         await decodingAll.fail(
           { a: 1, b: NaN, c: 3 },
@@ -1734,13 +1524,14 @@ Expected an object with at most 2 properties, got {"a":1,"b":NaN,"c":3}`
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
-        await decoding.fail(
-          null,
-          `Expected ReadonlyMap, got null`
-        )
+        await decoding.fail(null, `Expected ReadonlyMap, got null`)
         const decodingAll = asserts.decoding({ parseOptions: { errors: "all" } })
         await decodingAll.fail(
-          new Map([["a", 1], ["b", NaN], ["c", 3]]),
+          new Map([
+            ["a", 1],
+            ["b", NaN],
+            ["c", 3]
+          ]),
           `Expected a finite number, got NaN
   at ["entries"][1][1]
 Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
@@ -1750,16 +1541,24 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     describe("Array checks", () => {
       it("UniqueArray", async () => {
-        const schema = Schema.UniqueArray(Schema.Struct({
-          a: Schema.String,
-          b: Schema.String
-        }))
+        const schema = Schema.UniqueArray(
+          Schema.Struct({
+            a: Schema.String,
+            b: Schema.String
+          })
+        )
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
-        await decoding.succeed([{ a: "a", b: "b" }, { a: "c", b: "d" }])
+        await decoding.succeed([
+          { a: "a", b: "b" },
+          { a: "c", b: "d" }
+        ])
         await decoding.fail(
-          [{ a: "a", b: "b" }, { a: "a", b: "b" }],
+          [
+            { a: "a", b: "b" },
+            { a: "a", b: "b" }
+          ],
           `Expected an array with unique items, got [{"a":"a","b":"b"},{"a":"a","b":"b"}]`
         )
       })
@@ -1797,10 +1596,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed(NaN, "NaN")
       await encoding.succeed(Infinity, "Infinity")
       await encoding.succeed(-Infinity, "-Infinity")
-      await encoding.fail(
-        "a",
-        `Expected number, got "a"`
-      )
+      await encoding.fail("a", `Expected number, got "a"`)
     })
 
     it("FiniteFromString", async () => {
@@ -1814,33 +1610,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed("1", 1)
-      await decoding.fail(
-        "a",
-        `Expected a finite number, got NaN`
-      )
-      await decoding.fail(
-        "NaN",
-        `Expected a finite number, got NaN`
-      )
-      await decoding.fail(
-        "Infintiy",
-        `Expected a finite number, got NaN`
-      )
-      await decoding.fail(
-        "+Infintiy",
-        `Expected a finite number, got NaN`
-      )
-      await decoding.fail(
-        "-Infintiy",
-        `Expected a finite number, got NaN`
-      )
+      await decoding.fail("a", `Expected a finite number, got NaN`)
+      await decoding.fail("NaN", `Expected a finite number, got NaN`)
+      await decoding.fail("Infintiy", `Expected a finite number, got NaN`)
+      await decoding.fail("+Infintiy", `Expected a finite number, got NaN`)
+      await decoding.fail("-Infintiy", `Expected a finite number, got NaN`)
 
       const encoding = asserts.encoding()
       await encoding.succeed(1, "1")
-      await encoding.fail(
-        "a",
-        `Expected number, got "a"`
-      )
+      await encoding.fail("a", `Expected number, got "a"`)
     })
 
     it("FiniteFromString & isGreaterThan", async () => {
@@ -1849,17 +1627,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed("3", 3)
-      await decoding.fail(
-        "1",
-        `Expected a value greater than 2, got 1`
-      )
+      await decoding.fail("1", `Expected a value greater than 2, got 1`)
 
       const encoding = asserts.encoding()
       await encoding.succeed(3, "3")
-      await encoding.fail(
-        1,
-        `Expected a value greater than 2, got 1`
-      )
+      await encoding.fail(1, `Expected a value greater than 2, got 1`)
     })
   })
 
@@ -1873,12 +1645,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("required to required", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(
-          Schema.decodeTo(
-            Schema.String,
-            SchemaTransformation.passthrough()
-          )
-        )
+        a: Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.passthrough()))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -1902,13 +1669,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("required to optional", async () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(
-          Schema.decodeTo(
-            Schema.optionalKey(Schema.String),
-            {
-              decode: SchemaGetter.required(),
-              encode: SchemaGetter.withDefault(() => "default")
-            }
-          )
+          Schema.decodeTo(Schema.optionalKey(Schema.String), {
+            decode: SchemaGetter.required(),
+            encode: SchemaGetter.withDefault(() => "default")
+          })
         )
       })
       const asserts = new TestSchema.Asserts(schema)
@@ -1929,13 +1693,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("optionalKey to required", async () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.String).pipe(
-          Schema.decodeTo(
-            Schema.String,
-            {
-              decode: SchemaGetter.withDefault(() => "default"),
-              encode: SchemaGetter.passthrough()
-            }
-          )
+          Schema.decodeTo(Schema.String, {
+            decode: SchemaGetter.withDefault(() => "default"),
+            encode: SchemaGetter.passthrough()
+          })
         )
       })
       const asserts = new TestSchema.Asserts(schema)
@@ -1949,18 +1710,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("double transformation", async () => {
-      const schema = Schema.Trim.pipe(Schema.decodeTo(
-        Schema.FiniteFromString,
-        SchemaTransformation.passthrough()
-      ))
+      const schema = Schema.Trim.pipe(Schema.decodeTo(Schema.FiniteFromString, SchemaTransformation.passthrough()))
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
       await decoding.succeed(" 2 ", 2)
-      await decoding.fail(
-        " a2 ",
-        `Expected a finite number, got NaN`
-      )
+      await decoding.fail(" a2 ", `Expected a finite number, got NaN`)
 
       const encoding = asserts.encoding()
       await encoding.succeed(2, "2")
@@ -1969,14 +1724,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("double transformation with checks", async () => {
       const schema = Schema.Struct({
         a: Schema.String.check(Schema.isMinLength(2)).pipe(
-          Schema.decodeTo(
-            Schema.String.check(Schema.isMinLength(3)),
-            SchemaTransformation.passthrough()
-          ),
-          Schema.decodeTo(
-            Schema.String,
-            SchemaTransformation.passthrough()
-          )
+          Schema.decodeTo(Schema.String.check(Schema.isMinLength(3)), SchemaTransformation.passthrough()),
+          Schema.decodeTo(Schema.String, SchemaTransformation.passthrough())
         )
       })
       const asserts = new TestSchema.Asserts(schema)
@@ -2000,25 +1749,26 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("nested defaults", async () => {
       const schema = Schema.Struct({
-        a: Schema.optionalKey(Schema.Struct({
-          b: Schema.optionalKey(Schema.String)
-        })).pipe(Schema.decodeTo(
+        a: Schema.optionalKey(
           Schema.Struct({
-            b: Schema.optionalKey(Schema.String).pipe(
-              Schema.decodeTo(
-                Schema.String,
-                {
+            b: Schema.optionalKey(Schema.String)
+          })
+        ).pipe(
+          Schema.decodeTo(
+            Schema.Struct({
+              b: Schema.optionalKey(Schema.String).pipe(
+                Schema.decodeTo(Schema.String, {
                   decode: SchemaGetter.withDefault(() => "default-b"),
                   encode: SchemaGetter.passthrough()
-                }
+                })
               )
-            )
-          }),
-          {
-            decode: SchemaGetter.withDefault(() => ({})),
-            encode: SchemaGetter.passthrough()
-          }
-        ))
+            }),
+            {
+              decode: SchemaGetter.withDefault(() => ({})),
+              encode: SchemaGetter.passthrough()
+            }
+          )
+        )
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -2032,11 +1782,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   describe("decode", () => {
     it("double transformation", async () => {
       const schema = Schema.String.pipe(
-        Schema.decode(
-          SchemaTransformation.trim().compose(
-            SchemaTransformation.toLowerCase()
-          )
-        )
+        Schema.decode(SchemaTransformation.trim().compose(SchemaTransformation.toLowerCase()))
       )
       const asserts = new TestSchema.Asserts(schema)
 
@@ -2051,12 +1797,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   describe("encodeTo", () => {
     it("required to required", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(
-          Schema.encodeTo(
-            Schema.String,
-            SchemaTransformation.passthrough()
-          )
-        )
+        a: Schema.String.pipe(Schema.encodeTo(Schema.String, SchemaTransformation.passthrough()))
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -2080,13 +1821,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("required to optionalKey", async () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(
-          Schema.encodeTo(
-            Schema.optionalKey(Schema.String),
-            {
-              decode: SchemaGetter.withDefault(() => "default"),
-              encode: SchemaGetter.passthrough()
-            }
-          )
+          Schema.encodeTo(Schema.optionalKey(Schema.String), {
+            decode: SchemaGetter.withDefault(() => "default"),
+            encode: SchemaGetter.passthrough()
+          })
         )
       })
       const asserts = new TestSchema.Asserts(schema)
@@ -2102,13 +1840,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("optionalKey to required", async () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.String).pipe(
-          Schema.encodeTo(
-            Schema.String,
-            {
-              decode: SchemaGetter.required(),
-              encode: SchemaGetter.withDefault(() => "default")
-            }
-          )
+          Schema.encodeTo(Schema.String, {
+            decode: SchemaGetter.required(),
+            encode: SchemaGetter.withDefault(() => "default")
+          })
         )
       })
       const asserts = new TestSchema.Asserts(schema)
@@ -2127,18 +1862,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("double transformation", async () => {
-      const schema = Schema.FiniteFromString.pipe(Schema.encodeTo(
-        Schema.Trim,
-        SchemaTransformation.passthrough()
-      ))
+      const schema = Schema.FiniteFromString.pipe(Schema.encodeTo(Schema.Trim, SchemaTransformation.passthrough()))
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
       await decoding.succeed(" 2 ", 2)
-      await decoding.fail(
-        " a2 ",
-        `Expected a finite number, got NaN`
-      )
+      await decoding.fail(" a2 ", `Expected a finite number, got NaN`)
 
       const encoding = asserts.encoding()
       await encoding.succeed(2, "2")
@@ -2147,14 +1876,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("double transformation with checks", async () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(
-          Schema.encodeTo(
-            Schema.String.check(Schema.isMinLength(3)),
-            SchemaTransformation.passthrough()
-          ),
-          Schema.encodeTo(
-            Schema.String.check(Schema.isMinLength(2)),
-            SchemaTransformation.passthrough()
-          )
+          Schema.encodeTo(Schema.String.check(Schema.isMinLength(3)), SchemaTransformation.passthrough()),
+          Schema.encodeTo(Schema.String.check(Schema.isMinLength(2)), SchemaTransformation.passthrough())
         )
       })
       const asserts = new TestSchema.Asserts(schema)
@@ -2180,11 +1903,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   describe("encode", () => {
     it("double transformation", async () => {
       const schema = Schema.String.pipe(
-        Schema.encode(
-          SchemaTransformation.trim().compose(
-            SchemaTransformation.toLowerCase()
-          ).flip()
-        )
+        Schema.encode(SchemaTransformation.trim().compose(SchemaTransformation.toLowerCase()).flip())
       )
       const asserts = new TestSchema.Asserts(schema)
 
@@ -2214,14 +1933,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
-      await decoding.fail(
-        2,
-        `Expected a value greater than 2, got 2`
-      )
-      await decoding.fail(
-        3,
-        `Expected a value with a length of at least 3, got "3"`
-      )
+      await decoding.fail(2, `Expected a value greater than 2, got 2`)
+      await decoding.fail(3, `Expected a value with a length of at least 3, got "3"`)
 
       const encoding = asserts.encoding()
       await encoding.succeed("123", 123)
@@ -2253,10 +1966,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   it("declare", async () => {
-    const schema = Schema.declare(
-      (u) => u instanceof File,
-      { expected: "File" }
-    )
+    const schema = Schema.declare((u) => u instanceof File, { expected: "File" })
     const asserts = new TestSchema.Asserts(schema)
 
     const decoding = asserts.decoding()
@@ -2719,10 +2429,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed(Exit.succeed("123"), Exit.succeed(123))
       await decoding.succeed(Exit.fail("boom"))
-      await decoding.fail(
-        null,
-        `Expected Exit, got null`
-      )
+      await decoding.fail(null, `Expected Exit, got null`)
       await decoding.fail(
         Exit.succeed(123),
         `Expected string, got 123
@@ -2770,10 +2477,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed({ a: "1", categories: [] }, { a: 1, categories: [] })
-      await decoding.succeed({ a: "1", categories: [{ a: "2", categories: [] }] }, {
-        a: 1,
-        categories: [{ a: 2, categories: [] }]
-      })
+      await decoding.succeed(
+        { a: "1", categories: [{ a: "2", categories: [] }] },
+        {
+          a: 1,
+          categories: [{ a: 2, categories: [] }]
+        }
+      )
       await decoding.fail(
         {
           a: "1",
@@ -2785,10 +2495,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const encoding = asserts.encoding()
       await encoding.succeed({ a: 1, categories: [] }, { a: "1", categories: [] })
-      await encoding.succeed({ a: 1, categories: [{ a: 2, categories: [] }] }, {
-        a: "1",
-        categories: [{ a: "2", categories: [] }]
-      })
+      await encoding.succeed(
+        { a: 1, categories: [{ a: 2, categories: [] }] },
+        {
+          a: "1",
+          categories: [{ a: "2", categories: [] }]
+        }
+      )
       await encoding.fail(
         { a: 1, categories: [{ a: -1, categories: [] }] },
         `Expected a value greater than 0, got -1
@@ -2801,7 +2514,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     describe("Struct", () => {
       it("should not apply defaults when decoding / encoding", async () => {
         const schema = Schema.Struct({
-          a: Schema.String.pipe(Schema.optionalKey, Schema.withConstructorDefault(() => Option.some("a")))
+          a: Schema.String.pipe(
+            Schema.optionalKey,
+            Schema.withConstructorDefault(() => Option.some("a"))
+          )
         })
         const asserts = new TestSchema.Asserts(schema)
 
@@ -2880,11 +2596,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         })
 
         it("Class", async () => {
-          class A extends Schema.Class<A>("A")(Schema.Struct({
-            a: Schema.Struct({
-              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-            }).pipe(Schema.withConstructorDefault(() => Option.some({})))
-          })) {}
+          class A extends Schema.Class<A>("A")(
+            Schema.Struct({
+              a: Schema.Struct({
+                b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+              }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+            })
+          ) {}
 
           const asserts = new TestSchema.Asserts(A)
 
@@ -2912,12 +2630,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       it("Struct & Effect async", async () => {
         const schema = Schema.Struct({
-          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
-            Effect.gen(function*() {
-              yield* Effect.sleep(100)
-              return Option.some(-1)
-            })
-          ))
+          a: Schema.FiniteFromString.pipe(
+            Schema.withConstructorDefault(() =>
+              Effect.gen(function* () {
+                yield* Effect.sleep(100)
+                return Option.some(-1)
+              })
+            )
+          )
         })
         const asserts = new TestSchema.Asserts(schema)
 
@@ -2930,16 +2650,18 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         class Service extends ServiceMap.Service<Service, { value: Effect.Effect<number> }>()("Service") {}
 
         const schema = Schema.Struct({
-          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
-            Effect.gen(function*() {
-              yield* Effect.sleep(100)
-              const oservice = yield* Effect.serviceOption(Service)
-              if (Option.isNone(oservice)) {
-                return Option.none()
-              }
-              return Option.some(yield* oservice.value.value)
-            })
-          ))
+          a: Schema.FiniteFromString.pipe(
+            Schema.withConstructorDefault(() =>
+              Effect.gen(function* () {
+                yield* Effect.sleep(100)
+                const oservice = yield* Effect.serviceOption(Service)
+                if (Option.isNone(oservice)) {
+                  return Option.none()
+                }
+                return Option.some(yield* oservice.value.value)
+              })
+            )
+          )
         })
         const asserts = new TestSchema.Asserts(schema)
 
@@ -2962,9 +2684,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     describe("Tuple", () => {
       it("Tuple & Some", async () => {
-        const schema = Schema.Tuple(
-          [Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))]
-        )
+        const schema = Schema.Tuple([
+          Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+        ])
         const asserts = new TestSchema.Asserts(schema)
 
         const make = asserts.make()
@@ -2973,13 +2695,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })
 
       it("nested defaults (Struct)", async () => {
-        const schema = Schema.Tuple(
-          [
-            Schema.Struct({
-              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-            }).pipe(Schema.withConstructorDefault(() => Option.some({})))
-          ]
-        )
+        const schema = Schema.Tuple([
+          Schema.Struct({
+            b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+          }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+        ])
         const asserts = new TestSchema.Asserts(schema)
 
         const make = asserts.make()
@@ -2989,13 +2709,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })
 
       it("inner defaults (Tuple)", async () => {
-        const schema = Schema.Tuple(
-          [
-            Schema.Tuple([
-              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-            ])
-          ]
-        )
+        const schema = Schema.Tuple([
+          Schema.Tuple([Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))])
+        ])
         const asserts = new TestSchema.Asserts(schema)
 
         const make = asserts.make()
@@ -3004,13 +2720,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })
 
       it("nested defaults (Tuple)", async () => {
-        const schema = Schema.Tuple(
-          [
-            Schema.Tuple([
-              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-            ]).pipe(Schema.withConstructorDefault(() => Option.some([] as const)))
-          ]
-        )
+        const schema = Schema.Tuple([
+          Schema.Tuple([Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))]).pipe(
+            Schema.withConstructorDefault(() => Option.some([] as const))
+          )
+        ])
         const asserts = new TestSchema.Asserts(schema)
 
         const make = asserts.make()
@@ -3193,10 +2907,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })
 
       it("Record(Literals, mutableKey(optionalKey(Number)))", async () => {
-        const schema = Schema.Record(
-          Schema.Literals(["a", "b"]),
-          Schema.mutableKey(Schema.optionalKey(Schema.Number))
-        )
+        const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.mutableKey(Schema.optionalKey(Schema.Number)))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -3212,13 +2923,16 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
-      await decoding.succeed({ 1: "1", 2.2: "2", Infinity: "3", NaN: "4", "-Infinity": "5" }, {
-        "1": 1,
-        "2.2": 2,
-        Infinity: 3,
-        NaN: 4,
-        "-Infinity": 5
-      })
+      await decoding.succeed(
+        { 1: "1", 2.2: "2", Infinity: "3", NaN: "4", "-Infinity": "5" },
+        {
+          "1": 1,
+          "2.2": 2,
+          Infinity: 3,
+          NaN: 4,
+          "-Infinity": 5
+        }
+      )
       await decoding.fail(
         { 1: null },
         `Expected string, got null
@@ -3310,10 +3024,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed("a")
       await decoding.succeed(1)
-      await decoding.fail(
-        null,
-        `Expected string | number, got null`
-      )
+      await decoding.fail(null, `Expected string | number, got null`)
     })
 
     it(`String | Never`, async () => {
@@ -3326,46 +3037,30 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it(`String & isMinLength(1) | number & isGreaterThan(0)`, async () => {
-      const schema = Schema.Union([
-        Schema.NonEmptyString,
-        Schema.Number.check(Schema.isGreaterThan(0))
-      ])
+      const schema = Schema.Union([Schema.NonEmptyString, Schema.Number.check(Schema.isGreaterThan(0))])
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
       await decoding.succeed("a")
       await decoding.succeed(1)
-      await decoding.fail(
-        "",
-        `Expected a value with a length of at least 1, got ""`
-      )
-      await decoding.fail(
-        -1,
-        `Expected a value greater than 0, got -1`
-      )
+      await decoding.fail("", `Expected a value with a length of at least 1, got ""`)
+      await decoding.fail(-1, `Expected a value greater than 0, got -1`)
     })
 
     it(`mode: "oneOf"`, async () => {
-      const schema = Schema.Union([
-        Schema.Struct({ a: Schema.String }),
-        Schema.Struct({ b: Schema.Number })
-      ], { mode: "oneOf" })
+      const schema = Schema.Union([Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })], {
+        mode: "oneOf"
+      })
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
       await decoding.succeed({ a: "a" })
       await decoding.succeed({ b: 1 })
-      await decoding.fail(
-        { a: "a", b: 1 },
-        `Expected exactly one member to match the input {"a":"a","b":1}`
-      )
+      await decoding.fail({ a: "a", b: 1 }, `Expected exactly one member to match the input {"a":"a","b":1}`)
     })
 
     it("{} & Literal", async () => {
-      const schema = Schema.Union([
-        Schema.Struct({}),
-        Schema.Literal("a")
-      ])
+      const schema = Schema.Union([Schema.Struct({}), Schema.Literal("a")])
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -3374,31 +3069,19 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     describe("should exclude members based on failed sentinels", () => {
       it("string | struct", async () => {
-        const schema = Schema.Union([
-          Schema.String,
-          Schema.Struct({ _tag: Schema.Literal("a"), a: Schema.String })
-        ])
+        const schema = Schema.Union([Schema.String, Schema.Struct({ _tag: Schema.Literal("a"), a: Schema.String })])
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
-        await decoding.fail(
-          {},
-          `Expected string | { readonly "_tag": "a", ... }, got {}`
-        )
+        await decoding.fail({}, `Expected string | { readonly "_tag": "a", ... }, got {}`)
       })
 
       it("string | tuple", async () => {
-        const schema = Schema.Union([
-          Schema.String,
-          Schema.Tuple([Schema.Literal("a"), Schema.String])
-        ])
+        const schema = Schema.Union([Schema.String, Schema.Tuple([Schema.Literal("a"), Schema.String])])
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
-        await decoding.fail(
-          [],
-          `Expected string | readonly [ "a", ... ], got []`
-        )
+        await decoding.fail([], `Expected string | readonly [ "a", ... ], got []`)
       })
 
       it("tagged struct union", async () => {
@@ -3443,10 +3126,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           `Missing key
   at [1]`
         )
-        await decoding.fail(
-          ["c"],
-          `Expected readonly [ "a", ... ] | readonly [ "b", ... ], got ["c"]`
-        )
+        await decoding.fail(["c"], `Expected readonly [ "a", ... ] | readonly [ "b", ... ], got ["c"]`)
       })
     })
   })
@@ -3454,47 +3134,31 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   describe("TupleWithRest", () => {
     it("A required element cannot follow an optional element", () => {
       throws(
-        () =>
-          Schema.TupleWithRest(
-            Schema.Tuple([Schema.optionalKey(Schema.String)]),
-            [Schema.Boolean, Schema.String]
-          ),
+        () => Schema.TupleWithRest(Schema.Tuple([Schema.optionalKey(Schema.String)]), [Schema.Boolean, Schema.String]),
         new Error("A required element cannot follow an optional element. ts(1257)")
       )
       throws(
-        () =>
-          Schema.TupleWithRest(
-            Schema.Tuple([Schema.optional(Schema.String)]),
-            [Schema.Boolean, Schema.String]
-          ),
+        () => Schema.TupleWithRest(Schema.Tuple([Schema.optional(Schema.String)]), [Schema.Boolean, Schema.String]),
         new Error("A required element cannot follow an optional element. ts(1257)")
       )
     })
 
     it("An optional element cannot follow a rest element", () => {
       throws(
-        () =>
-          Schema.TupleWithRest(
-            Schema.Tuple([]),
-            [Schema.Boolean, Schema.optionalKey(Schema.String)]
-          ),
+        () => Schema.TupleWithRest(Schema.Tuple([]), [Schema.Boolean, Schema.optionalKey(Schema.String)]),
         new Error("An optional element cannot follow a rest element. ts(1266)")
       )
       throws(
-        () =>
-          Schema.TupleWithRest(
-            Schema.Tuple([]),
-            [Schema.Boolean, Schema.optional(Schema.String)]
-          ),
+        () => Schema.TupleWithRest(Schema.Tuple([]), [Schema.Boolean, Schema.optional(Schema.String)]),
         new Error("An optional element cannot follow a rest element. ts(1266)")
       )
     })
 
     it("[FiniteFromString, String] + [Boolean, String]", async () => {
-      const schema = Schema.TupleWithRest(
-        Schema.Tuple([Schema.FiniteFromString, Schema.String]),
-        [Schema.Boolean, Schema.String]
-      )
+      const schema = Schema.TupleWithRest(Schema.Tuple([Schema.FiniteFromString, Schema.String]), [
+        Schema.Boolean,
+        Schema.String
+      ])
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -3506,19 +3170,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("should throw an error if there are encodings", () => {
       throws(
         () =>
-          Schema.StructWithRest(
-            Schema.Struct({}).pipe(Schema.encodeTo(Schema.String)),
-            [Schema.Record(Schema.String, Schema.Number)]
-          ),
+          Schema.StructWithRest(Schema.Struct({}).pipe(Schema.encodeTo(Schema.String)), [
+            Schema.Record(Schema.String, Schema.Number)
+          ]),
         new Error(`StructWithRest does not support encodings`)
       )
     })
 
     it("Record(String, Number)", async () => {
-      const schema = Schema.StructWithRest(
-        Schema.Struct({ a: Schema.Number }),
-        [Schema.Record(Schema.String, Schema.Number)]
-      )
+      const schema = Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
+        Schema.Record(Schema.String, Schema.Number)
+      ])
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -3532,10 +3194,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("Record(Symbol, Number)", async () => {
-      const schema = Schema.StructWithRest(
-        Schema.Struct({ a: Schema.Number }),
-        [Schema.Record(Schema.Symbol, Schema.Number)]
-      )
+      const schema = Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
+        Schema.Record(Schema.Symbol, Schema.Number)
+      ])
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -3549,22 +3210,21 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("Record(`a${string}`, Number)", async () => {
-      const schema = Schema.StructWithRest(
-        Schema.Struct({ a: Schema.Number }),
-        [Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Finite)]
-      )
+      const schema = Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
+        Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Finite)
+      ])
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
       await decoding.succeed({ a: 1 })
-      await decoding.succeed({ a: 1, "ab": 2 })
+      await decoding.succeed({ a: 1, ab: 2 })
       await decoding.fail(
-        { a: NaN, "ab": 2 },
+        { a: NaN, ab: 2 },
         `Expected a finite number, got NaN
   at ["a"]`
       )
       await decoding.fail(
-        { a: 1, "ab": "c" },
+        { a: 1, ab: "c" },
         `Expected number, got "c"
   at ["ab"]`
       )
@@ -3572,9 +3232,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("should preserve both checks", async () => {
       const schema = Schema.StructWithRest(
-        Schema.Struct({ a: Schema.Number }).check(
-          Schema.makeFilter((s) => s.a > 0, { expected: "agt(0)" })
-        ),
+        Schema.Struct({ a: Schema.Number }).check(Schema.makeFilter((s) => s.a > 0, { expected: "agt(0)" })),
         [
           Schema.Record(Schema.String, Schema.Number).check(
             Schema.makeFilter((s) => s.b === undefined || s.b > 1, { expected: "bgt(1)" })
@@ -3586,14 +3244,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed({ a: 1 })
       await decoding.succeed({ a: 1, b: 2 })
-      await decoding.fail(
-        { a: 0 },
-        `Expected agt(0), got {"a":0}`
-      )
-      await decoding.fail(
-        { a: 1, b: 1 },
-        `Expected bgt(1), got {"a":1,"b":1}`
-      )
+      await decoding.fail({ a: 0 }, `Expected agt(0), got {"a":0}`)
+      await decoding.fail({ a: 1, b: 1 }, `Expected bgt(1), got {"a":1,"b":1}`)
     })
   })
 
@@ -3606,10 +3258,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a")
       await decoding.succeed(null)
       await decoding.fail(undefined, `Expected string | null, got undefined`)
-      await decoding.fail(
-        "",
-        `Expected a value with a length of at least 1, got ""`
-      )
+      await decoding.fail("", `Expected a value with a length of at least 1, got ""`)
     })
   })
 
@@ -3622,10 +3271,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a")
       await decoding.succeed(undefined)
       await decoding.fail(null, `Expected string | undefined, got null`)
-      await decoding.fail(
-        "",
-        `Expected a value with a length of at least 1, got ""`
-      )
+      await decoding.fail("", `Expected a value with a length of at least 1, got ""`)
     })
   })
 
@@ -3638,10 +3284,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a")
       await decoding.succeed(null)
       await decoding.succeed(undefined)
-      await decoding.fail(
-        "",
-        `Expected a value with a length of at least 1, got ""`
-      )
+      await decoding.fail("", `Expected a value with a length of at least 1, got ""`)
     })
   })
 
@@ -3724,14 +3367,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     }
 
     const decoding = asserts.decoding()
-    await decoding.succeed(
-      "0001020304050607",
-      Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7])
-    )
-    await decoding.succeed(
-      "f0f1f2f3f4f5f6f7",
-      Uint8Array.from([0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7])
-    )
+    await decoding.succeed("0001020304050607", Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]))
+    await decoding.succeed("f0f1f2f3f4f5f6f7", Uint8Array.from([0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7]))
     await decoding.succeed("67", encoder.encode("g"))
     await decoding.fail("0", "Length must be a multiple of 2, but is 1")
     await decoding.fail("2d4aa", "Length must be a multiple of 2, but is 5")
@@ -3884,12 +3521,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
   describe("Transformations", () => {
     it("toLowerCase", async () => {
-      const schema = Schema.String.pipe(
-        Schema.decodeTo(
-          Schema.String,
-          SchemaTransformation.toLowerCase()
-        )
-      )
+      const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.toLowerCase()))
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -3898,9 +3530,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("toUpperCase", async () => {
-      const schema = Schema.String.pipe(
-        Schema.decodeTo(Schema.String, SchemaTransformation.toUpperCase())
-      )
+      const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.toUpperCase()))
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -3931,10 +3561,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         }
       }
 
-      const schema = Schema.instanceOf(
-        MyError,
-        { expected: "MyError" }
-      )
+      const schema = Schema.instanceOf(MyError, { expected: "MyError" })
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -4042,13 +3669,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("decoding: default & encoding: omit & constructor: optional", async () => {
       const schema = Schema.Struct({
         _tag: Schema.tag("a").pipe(
-          Schema.encodeTo(
-            Schema.optionalKey(Schema.Literal("a")),
-            {
-              decode: SchemaGetter.withDefault(() => "a" as const),
-              encode: SchemaGetter.omit()
-            }
-          )
+          Schema.encodeTo(Schema.optionalKey(Schema.Literal("a")), {
+            decode: SchemaGetter.withDefault(() => "a" as const),
+            encode: SchemaGetter.omit()
+          })
         ),
         a: Schema.FiniteFromString
       })
@@ -4126,10 +3750,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     const decoding = asserts.decoding()
     await decoding.succeed("https://effect.website", new URL("https://effect.website"))
-    await decoding.fail(
-      "123",
-      isDeno ? `TypeError: Invalid URL: '123'` : `TypeError: Invalid URL`
-    )
+    await decoding.fail("123", isDeno ? `TypeError: Invalid URL: '123'` : `TypeError: Invalid URL`)
 
     const encoding = asserts.encoding()
     await encoding.succeed(new URL("https://effect.website"), "https://effect.website/")
@@ -4196,14 +3817,16 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   it("fromFormData", async () => {
-    const schema = Schema.fromFormData(Schema.Struct({
-      a: Schema.NonEmptyString,
-      b: Schema.Struct({
-        c: Schema.String,
-        d: Schema.String
-      }),
-      e: Schema.Array(Schema.String)
-    }))
+    const schema = Schema.fromFormData(
+      Schema.Struct({
+        a: Schema.NonEmptyString,
+        b: Schema.Struct({
+          c: Schema.String,
+          d: Schema.String
+        }),
+        e: Schema.Array(Schema.String)
+      })
+    )
     const asserts = new TestSchema.Asserts(schema)
 
     const formData = new FormData()
@@ -4242,14 +3865,16 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   it("fromURLSearchParams", async () => {
-    const schema = Schema.fromURLSearchParams(Schema.Struct({
-      a: Schema.NonEmptyString,
-      b: Schema.Struct({
-        c: Schema.String,
-        d: Schema.String
-      }),
-      e: Schema.Array(Schema.String)
-    }))
+    const schema = Schema.fromURLSearchParams(
+      Schema.Struct({
+        a: Schema.NonEmptyString,
+        b: Schema.Struct({
+          c: Schema.String,
+          d: Schema.String
+        }),
+        e: Schema.Array(Schema.String)
+      })
+    )
     const asserts = new TestSchema.Asserts(schema)
 
     const urlSearchParams = new URLSearchParams("a=a&b[c]=bc&b[d]=bd&e=e0&e=e1")
@@ -4294,10 +3919,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     const encoding = asserts.encoding()
     await encoding.succeed("a")
-    await encoding.fail(
-      "a ",
-      `Expected a string with no leading or trailing whitespace, got "a "`
-    )
+    await encoding.fail("a ", `Expected a string with no leading or trailing whitespace, got "a "`)
   })
 
   it("transformOrFail", async () => {
@@ -4320,17 +3942,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     const decoding = asserts.decoding()
     await decoding.succeed("b")
-    await decoding.fail(
-      "a",
-      `input should not be "a"`
-    )
+    await decoding.fail("a", `input should not be "a"`)
 
     const encoding = asserts.encoding()
     await encoding.succeed("a")
-    await encoding.fail(
-      "b",
-      `input should not be "b"`
-    )
+    await encoding.fail("b", `input should not be "b"`)
   })
 
   describe("TemplateLiteral", () => {
@@ -4341,20 +3957,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("getTemplateLiteralRegExp", () => {
-      const assertSource = (
-        parts: Schema.TemplateLiteral.Parts,
-        source: string
-      ) => {
+      const assertSource = (parts: Schema.TemplateLiteral.Parts, source: string) => {
         strictEqual(SchemaAST.getTemplateLiteralRegExp(Schema.TemplateLiteral(parts).ast).source, source)
       }
 
       assertSource(["a"], "^(a)$")
       assertSource(["a", "b"], "^(a)(b)$")
       assertSource([Schema.Literals(["a", "b"]), "c"], "^(a|b)(c)$")
-      assertSource(
-        [Schema.Literals(["a", "b"]), "c", Schema.Literals(["d", "e"])],
-        "^(a|b)(c)(d|e)$"
-      )
+      assertSource([Schema.Literals(["a", "b"]), "c", Schema.Literals(["d", "e"])], "^(a|b)(c)(d|e)$")
       assertSource(
         [Schema.Literals(["a", "b"]), Schema.String, Schema.Literals(["d", "e"])],
         "^(a|b)([\\s\\S]*?)(d|e)$"
@@ -4372,18 +3982,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         [Schema.Union([Schema.String, Schema.Literal(1)]), Schema.Union([Schema.Number, Schema.Literal("true")])],
         "^([\\s\\S]*?|1)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|true)$"
       )
-      assertSource(
-        [Schema.Union([Schema.Literals(["a", "b"]), Schema.Literals([1, 2])])],
-        "^(a|b|1|2)$"
-      )
+      assertSource([Schema.Union([Schema.Literals(["a", "b"]), Schema.Literals([1, 2])])], "^(a|b|1|2)$")
       assertSource(
         ["c", Schema.Union([Schema.TemplateLiteral(["a", Schema.String, "b"]), Schema.Literal("e")]), "d"],
         "^(c)(a[\\s\\S]*?b|e)(d)$"
       )
-      assertSource(
-        ["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"],
-        "^(<)(h(?:1|2))(>)$"
-      )
+      assertSource(["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"], "^(<)(h(?:1|2))(>)$")
       assertSource(
         [
           "-",
@@ -4403,14 +4007,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed("a")
       await decoding.fail(null, "Expected string, got null")
-      await decoding.fail(
-        "ab",
-        `Expected a value matching ^(a)$, got "ab"`
-      )
-      await decoding.fail(
-        "",
-        `Expected a value matching ^(a)$, got ""`
-      )
+      await decoding.fail("ab", `Expected a value matching ^(a)$, got "ab"`)
+      await decoding.fail("", `Expected a value matching ^(a)$, got ""`)
     })
 
     it(`"a b"`, async () => {
@@ -4420,10 +4018,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed("a b")
 
-      await decoding.fail(
-        "a  b",
-        `Expected a value matching ^(a)( )(b)$, got "a  b"`
-      )
+      await decoding.fail("a  b", `Expected a value matching ^(a)( )(b)$, got "a  b"`)
     })
 
     it(`"[" + string + "]"`, async () => {
@@ -4433,10 +4028,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed("[a]")
 
-      await decoding.fail(
-        "a",
-        `Expected a value matching ^(\\[)([\\s\\S]*?)(\\])$, got "a"`
-      )
+      await decoding.fail("a", `Expected a value matching ^(\\[)([\\s\\S]*?)(\\])$, got "a"`)
     })
 
     it(`"a" + string`, async () => {
@@ -4447,14 +4039,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a")
       await decoding.succeed("ab")
 
-      await decoding.fail(
-        null,
-        "Expected string, got null"
-      )
-      await decoding.fail(
-        "",
-        `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`
-      )
+      await decoding.fail(null, "Expected string, got null")
+      await decoding.fail("", `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`)
     })
 
     it(`"a" + number`, async () => {
@@ -4480,18 +4066,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a1.401298464324817E+45")
       await decoding.succeed("a+1.401298464324817E+45")
 
-      await decoding.fail(
-        null,
-        "Expected string, got null"
-      )
-      await decoding.fail(
-        "",
-        `Expected a value matching ^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$, got ""`
-      )
-      await decoding.fail(
-        "aa",
-        `Expected a value matching ^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$, got "aa"`
-      )
+      await decoding.fail(null, "Expected string, got null")
+      await decoding.fail("", `Expected a value matching ^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$, got ""`)
+      await decoding.fail("aa", `Expected a value matching ^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$, got "aa"`)
     })
 
     it(`"a" + bigint`, async () => {
@@ -4503,26 +4080,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a1")
       await decoding.succeed("a-1")
 
-      await decoding.fail(
-        null,
-        "Expected string, got null"
-      )
-      await decoding.fail(
-        "",
-        `Expected a value matching ^(a)(-?\\d+)$, got ""`
-      )
-      await decoding.fail(
-        "aa",
-        `Expected a value matching ^(a)(-?\\d+)$, got "aa"`
-      )
-      await decoding.fail(
-        "a1.2",
-        `Expected a value matching ^(a)(-?\\d+)$, got "a1.2"`
-      )
-      await decoding.fail(
-        "a+1",
-        `Expected a value matching ^(a)(-?\\d+)$, got "a+1"`
-      )
+      await decoding.fail(null, "Expected string, got null")
+      await decoding.fail("", `Expected a value matching ^(a)(-?\\d+)$, got ""`)
+      await decoding.fail("aa", `Expected a value matching ^(a)(-?\\d+)$, got "aa"`)
+      await decoding.fail("a1.2", `Expected a value matching ^(a)(-?\\d+)$, got "a1.2"`)
+      await decoding.fail("a+1", `Expected a value matching ^(a)(-?\\d+)$, got "a+1"`)
     })
 
     it(`string`, async () => {
@@ -4546,10 +4108,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed("\n")
       await decoding.succeed("\na")
-      await decoding.fail(
-        "a",
-        `Expected a value matching ^(\\n)([\\s\\S]*?)$, got "a"`
-      )
+      await decoding.fail("a", `Expected a value matching ^(\\n)([\\s\\S]*?)$, got "a"`)
     })
 
     it(`a\\nb  + string`, async () => {
@@ -4569,18 +4128,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("ab")
       await decoding.succeed("acb")
       await decoding.succeed("abb")
-      await decoding.fail(
-        "",
-        `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got ""`
-      )
-      await decoding.fail(
-        "a",
-        `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got "a"`
-      )
-      await decoding.fail(
-        "b",
-        `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got "b"`
-      )
+      await decoding.fail("", `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got ""`)
+      await decoding.fail("a", `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got "a"`)
+      await decoding.fail("b", `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got "b"`)
 
       const encoding = asserts.encoding()
       await encoding.succeed("acb")
@@ -4594,14 +4144,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("ab")
       await decoding.succeed("acb")
       await decoding.succeed("acbd")
-      await decoding.fail(
-        "a",
-        `Expected a value matching ^(a)([\\s\\S]*?)(b)([\\s\\S]*?)$, got "a"`
-      )
-      await decoding.fail(
-        "b",
-        `Expected a value matching ^(a)([\\s\\S]*?)(b)([\\s\\S]*?)$, got "b"`
-      )
+      await decoding.fail("a", `Expected a value matching ^(a)([\\s\\S]*?)(b)([\\s\\S]*?)$, got "a"`)
+      await decoding.fail("b", `Expected a value matching ^(a)([\\s\\S]*?)(b)([\\s\\S]*?)$, got "b"`)
     })
 
     it("https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html", async () => {
@@ -4628,10 +4172,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed("a0")
-      await decoding.fail(
-        "a",
-        `Expected a value matching ^([\\s\\S]*?)(0)$, got "a"`
-      )
+      await decoding.fail("a", `Expected a value matching ^([\\s\\S]*?)(0)$, got "a"`)
     })
 
     it(`string + 1n`, async () => {
@@ -4640,10 +4181,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed("a1")
-      await decoding.fail(
-        "a",
-        `Expected a value matching ^([\\s\\S]*?)(1)$, got "a"`
-      )
+      await decoding.fail("a", `Expected a value matching ^([\\s\\S]*?)(1)$, got "a"`)
     })
 
     it(`string + ("a" | 0)`, async () => {
@@ -4653,10 +4191,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed("a0")
       await decoding.succeed("aa")
-      await decoding.fail(
-        "b",
-        `Expected a value matching ^([\\s\\S]*?)(a|0)$, got "b"`
-      )
+      await decoding.fail("b", `Expected a value matching ^([\\s\\S]*?)(a|0)$, got "b"`)
     })
 
     it(`(string | 1) + (number | true)`, async () => {
@@ -4676,10 +4211,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
-    it("`c${`a${string}b` | \"e\"}d`", async () => {
-      const schema = Schema.TemplateLiteral(
-        ["c", Schema.Union([Schema.TemplateLiteral(["a", Schema.String, "b"]), Schema.Literal("e")]), "d"]
-      )
+    it('`c${`a${string}b` | "e"}d`', async () => {
+      const schema = Schema.TemplateLiteral([
+        "c",
+        Schema.Union([Schema.TemplateLiteral(["a", Schema.String, "b"]), Schema.Literal("e")]),
+        "d"
+      ])
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -4687,10 +4224,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("cabd")
       await decoding.succeed("casbd")
       await decoding.succeed("ca  bd")
-      await decoding.fail(
-        "",
-        `Expected a value matching ^(c)(a[\\s\\S]*?b|e)(d)$, got ""`
-      )
+      await decoding.fail("", `Expected a value matching ^(c)(a[\\s\\S]*?b|e)(d)$, got ""`)
     })
 
     it("< + h + (1|2n) + >", async () => {
@@ -4700,10 +4234,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed("<h1>")
       await decoding.succeed("<h2>")
-      await decoding.fail(
-        "<h3>",
-        `Expected a value matching ^(<)(h(?:1|2))(>)$, got "<h3>"`
-      )
+      await decoding.fail("<h3>", `Expected a value matching ^(<)(h(?:1|2))(>)$, got "<h3>"`)
     })
 
     it(`"a" + check`, async () => {
@@ -4712,14 +4243,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed("ab")
-      await decoding.fail(
-        null,
-        "Expected string, got null"
-      )
-      await decoding.fail(
-        "",
-        `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`
-      )
+      await decoding.fail(null, "Expected string, got null")
+      await decoding.fail("", `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`)
       await decoding.fail(
         "a",
         `Expected a value with a length of at least 1, got ""
@@ -4735,14 +4260,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a")
       await decoding.succeed("a1")
 
-      await decoding.fail(
-        null,
-        "Expected string, got null"
-      )
-      await decoding.fail(
-        "",
-        `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`
-      )
+      await decoding.fail(null, "Expected string, got null")
+      await decoding.fail("", `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`)
       await decoding.fail(
         "ab",
         `Expected a finite number, got NaN
@@ -4764,18 +4283,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed("a", ["a"])
-      await decoding.fail(
-        "ab",
-        `Expected a value matching ^(a)$, got "ab"`
-      )
-      await decoding.fail(
-        "",
-        `Expected a value matching ^(a)$, got ""`
-      )
-      await decoding.fail(
-        null,
-        "Expected string, got null"
-      )
+      await decoding.fail("ab", `Expected a value matching ^(a)$, got "ab"`)
+      await decoding.fail("", `Expected a value matching ^(a)$, got ""`)
+      await decoding.fail(null, "Expected string, got null")
     })
 
     it(`"a b"`, async () => {
@@ -4785,10 +4295,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed("a b", ["a", " ", "b"])
 
-      await decoding.fail(
-        "a  b",
-        `Expected a value matching ^(a)( )(b)$, got "a  b"`
-      )
+      await decoding.fail("a  b", `Expected a value matching ^(a)( )(b)$, got "a  b"`)
     })
 
     it(`Int + "a"`, async () => {
@@ -4858,10 +4365,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Expected a value with a length of at least 1, got ""
   at [1][1]`
       )
-      await decoding.fail(
-        "ed",
-        `Expected a value matching ^(c)([\\s\\S]*?|e)(d)$, got "ed"`
-      )
+      await decoding.fail("ed", `Expected a value matching ^(c)([\\s\\S]*?|e)(d)$, got "ed"`)
     })
 
     it(`"c" + (\`a\${number}b\`|"e") + "d"`, async () => {
@@ -4897,10 +4401,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed("<h1>", ["<", "h1", ">"])
       await decoding.succeed("<h2>", ["<", "h2", ">"])
-      await decoding.fail(
-        "<h3>",
-        `Expected a value matching ^(<)(h(?:1|2))(>)$, got "<h3>"`
-      )
+      await decoding.fail("<h3>", `Expected a value matching ^(<)(h(?:1|2))(>)$, got "<h3>"`)
     })
 
     it(`readonly ["<", readonly ["h", 1 | 2], ">"]`, async () => {
@@ -4998,9 +4499,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("Struct with nested Class", async () => {
-      class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(Schema.Struct({
-        a: Schema.String
-      })) {}
+      class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(
+        Schema.Struct({
+          a: Schema.String
+        })
+      ) {}
       const schema = Schema.Struct({
         a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
       })
@@ -5012,12 +4515,16 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("Class with nested Class", async () => {
-      class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(Schema.Struct({
-        a: Schema.String
-      })) {}
-      class B extends Schema.Class<B, { readonly brand: unique symbol }>("B")(Schema.Struct({
-        a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
-      })) {}
+      class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(
+        Schema.Struct({
+          a: Schema.String
+        })
+      ) {}
+      class B extends Schema.Class<B, { readonly brand: unique symbol }>("B")(
+        Schema.Struct({
+          a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
+        })
+      ) {}
       const schema = B
       const asserts = new TestSchema.Asserts(schema)
 
@@ -5079,10 +4586,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed({ a: "a" }, new A({ a: "a" }))
-      await decoding.fail(
-        null,
-        `Expected object, got null`
-      )
+      await decoding.fail(null, `Expected object, got null`)
       await decoding.fail(
         { a: 1 },
         `Expected string, got 1
@@ -5091,20 +4595,16 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const encoding = asserts.encoding()
       await encoding.succeed(new A({ a: "a" }), { a: "a" })
-      await encoding.fail(
-        null,
-        "Expected A, got null"
-      )
-      await encoding.fail(
-        { a: "a" },
-        `Expected A, got {"a":"a"}`
-      )
+      await encoding.fail(null, "Expected A, got null")
+      await encoding.fail({ a: "a" }, `Expected A, got {"a":"a"}`)
     })
 
     it("Struct argument", async () => {
-      class A extends Schema.Class<A>("A")(Schema.Struct({
-        a: Schema.String
-      })) {
+      class A extends Schema.Class<A>("A")(
+        Schema.Struct({
+          a: Schema.String
+        })
+      ) {
         readonly _a = 1
       }
       const asserts = new TestSchema.Asserts(A)
@@ -5148,14 +4648,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const encoding = asserts.encoding()
       await encoding.succeed(new A({ a: "a" }), { a: "a" })
-      await encoding.fail(
-        null,
-        "Expected A, got null"
-      )
-      await encoding.fail(
-        { a: "a" },
-        `Expected A, got {"a":"a"}`
-      )
+      await encoding.fail(null, "Expected A, got null")
+      await encoding.fail({ a: "a" }, `Expected A, got {"a":"a"}`)
     })
 
     it("annotate", async () => {
@@ -5175,9 +4669,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     describe("extend", () => {
       it("basic", async () => {
-        class A extends Schema.Class<A>("A")(Schema.Struct({
-          a: Schema.String
-        })) {
+        class A extends Schema.Class<A>("A")(
+          Schema.Struct({
+            a: Schema.String
+          })
+        ) {
           readonly _a = 1
         }
         class B extends A.extend<B>("B")({
@@ -5240,9 +4736,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("Struct argument", async () => {
-      class E extends Schema.ErrorClass<E>("E")(Schema.Struct({
-        id: Schema.Number
-      })) {}
+      class E extends Schema.ErrorClass<E>("E")(
+        Schema.Struct({
+          id: Schema.Number
+        })
+      ) {}
       const asserts = new TestSchema.Asserts(E)
 
       const err = new E({ id: 1 })
@@ -5323,10 +4821,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed(0)
       await decoding.succeed(1)
 
-      await decoding.fail(
-        3,
-        `Expected 0 | 1, got 3`
-      )
+      await decoding.fail(3, `Expected 0 | 1, got 3`)
 
       const encoding = asserts.encoding()
       await encoding.succeed(Fruits.Apple, 0)
@@ -5350,10 +4845,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed(0)
       await decoding.succeed(0)
 
-      await decoding.fail(
-        "Cantaloupe",
-        `Expected "apple" | "banana" | 0, got "Cantaloupe"`
-      )
+      await decoding.fail("Cantaloupe", `Expected "apple" | "banana" | 0, got "Cantaloupe"`)
 
       const encoding = asserts.encoding()
       await encoding.succeed(Fruits.Apple)
@@ -5375,10 +4867,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("banana")
       await decoding.succeed(3)
 
-      await decoding.fail(
-        "Cantaloupe",
-        `Expected "apple" | "banana" | 3, got "Cantaloupe"`
-      )
+      await decoding.fail("Cantaloupe", `Expected "apple" | "banana" | 3, got "Cantaloupe"`)
 
       const encoding = asserts.encoding()
       await encoding.succeed(Fruits.Apple, "apple")
@@ -5396,17 +4885,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const decoding = asserts.decoding()
       await decoding.succeed("a")
       await decoding.succeed(null, "b")
-      await decoding.fail(
-        "",
-        `Expected a value with a length of at least 1, got ""`
-      )
+      await decoding.fail("", `Expected a value with a length of at least 1, got ""`)
 
       const encoding = asserts.encoding()
       await encoding.succeed("a")
-      await encoding.fail(
-        null,
-        "Expected string, got null"
-      )
+      await encoding.fail(null, "Expected string, got null")
     })
 
     it("async fallback", async () => {
@@ -5423,18 +4906,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   it("catchDecodingWithContext", async () => {
     class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
-    const schema = Schema.String.pipe(Schema.catchDecodingWithContext(() =>
-      Effect.gen(function*() {
-        const service = yield* Service
-        return Option.some(yield* service.fallback)
-      })
-    ))
+    const schema = Schema.String.pipe(
+      Schema.catchDecodingWithContext(() =>
+        Effect.gen(function* () {
+          const service = yield* Service
+          return Option.some(yield* service.fallback)
+        })
+      )
+    )
     const asserts = new TestSchema.Asserts(schema)
 
-    const decoding = asserts.decoding().provide(
-      Service,
-      { fallback: Effect.succeed("b") }
-    )
+    const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed("b") })
     await decoding.succeed("a")
     await decoding.succeed(null, "b")
   })
@@ -5445,7 +4927,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const schema = Schema.FiniteFromString.pipe(
         Schema.catchDecodingWithContext((issue) =>
-          Effect.gen(function*() {
+          Effect.gen(function* () {
             if (issue._tag === "Encoding" && issue.issue._tag === "InvalidType") {
               return yield* Effect.fail(issue)
             }
@@ -5472,47 +4954,41 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
-      await decoding.fail(
-        "1",
-        "my message"
-      )
+      await decoding.fail("1", "my message")
     })
   })
 
   describe("catchEncoding", () => {
     it("sync fallback", async () => {
       const fallback = Effect.succeed(Option.some(0))
-      const schema = Schema.Number.pipe(Schema.catchEncoding(() => fallback), Schema.encodeTo(Schema.Int))
+      const schema = Schema.Number.pipe(
+        Schema.catchEncoding(() => fallback),
+        Schema.encodeTo(Schema.Int)
+      )
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
       await decoding.succeed(1)
-      await decoding.fail(
-        1.2,
-        `Expected an integer, got 1.2`
-      )
+      await decoding.fail(1.2, `Expected an integer, got 1.2`)
 
       const encoding = asserts.encoding()
       await encoding.succeed(1)
       await encoding.succeed(null, 0)
-      await encoding.fail(
-        1.2,
-        `Expected an integer, got 1.2`
-      )
+      await encoding.fail(1.2, `Expected an integer, got 1.2`)
     })
 
     it("async fallback", async () => {
       const fallback = Effect.succeed(Option.some(0)).pipe(Effect.delay(100))
-      const schema = Schema.Number.pipe(Schema.catchEncoding(() => fallback), Schema.encodeTo(Schema.Int))
+      const schema = Schema.Number.pipe(
+        Schema.catchEncoding(() => fallback),
+        Schema.encodeTo(Schema.Int)
+      )
       const asserts = new TestSchema.Asserts(schema)
 
       const encoding = asserts.encoding()
       await encoding.succeed(1)
       await encoding.succeed(null, 0)
-      await encoding.fail(
-        1.2,
-        `Expected an integer, got 1.2`
-      )
+      await encoding.fail(1.2, `Expected an integer, got 1.2`)
     })
   })
 
@@ -5521,7 +4997,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     const schema = Schema.Number.pipe(
       Schema.catchEncodingWithContext(() =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const service = yield* Service
           return Option.some(yield* service.fallback)
         })
@@ -5530,16 +5006,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     )
     const asserts = new TestSchema.Asserts(schema)
 
-    const encoding = asserts.encoding().provide(
-      Service,
-      { fallback: Effect.succeed(0) }
-    )
+    const encoding = asserts.encoding().provide(Service, { fallback: Effect.succeed(0) })
     await encoding.succeed(1)
     await encoding.succeed(null, 0)
-    await encoding.fail(
-      1.2,
-      `Expected an integer, got 1.2`
-    )
+    await encoding.fail(1.2, `Expected an integer, got 1.2`)
   })
 
   describe("middlewareEncoding", () => {
@@ -5548,7 +5018,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const schema = Schema.FiniteFromString.pipe(
         Schema.catchEncodingWithContext((issue) =>
-          Effect.gen(function*() {
+          Effect.gen(function* () {
             if (issue._tag === "InvalidType") {
               return yield* Effect.fail(issue)
             }
@@ -5650,10 +5120,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("Optional Property to Exact Optional Property", async () => {
       const schema = Schema.Struct({
-        a: Schema.optional(Schema.FiniteFromString).pipe(Schema.decodeTo(Schema.optionalKey(Schema.Number), {
-          decode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotUndefined)),
-          encode: SchemaGetter.passthrough()
-        }))
+        a: Schema.optional(Schema.FiniteFromString).pipe(
+          Schema.decodeTo(Schema.optionalKey(Schema.Number), {
+            decode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotUndefined)),
+            encode: SchemaGetter.passthrough()
+          })
+        )
       })
       const asserts = new TestSchema.Asserts(schema)
 
@@ -5720,7 +5192,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           Schema.decodeTo(
             Schema.Option(Schema.Number),
             SchemaTransformation.transformOptional({
-              decode: (on) => on.pipe(Option.filter((nu) => nu !== undefined), Option.some),
+              decode: (on) =>
+                on.pipe(
+                  Option.filter((nu) => nu !== undefined),
+                  Option.some
+                ),
               encode: Option.flatten
             })
           )
@@ -5811,7 +5287,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = Schema.String.pipe(
         Schema.decode({
           decode: SchemaGetter.checkEffect((s) =>
-            Effect.gen(function*() {
+            Effect.gen(function* () {
               if (s.length === 0) {
                 return new SchemaIssue.InvalidValue(Option.some(s), { message: "input should not be empty string" })
               }
@@ -5824,10 +5300,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed("a")
-      await decoding.fail(
-        "",
-        "input should not be empty string"
-      )
+      await decoding.fail("", "input should not be empty string")
     })
 
     it("with context", async () => {
@@ -5836,7 +5309,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = Schema.String.pipe(
         Schema.decode({
           decode: SchemaGetter.checkEffect((s) =>
-            Effect.gen(function*() {
+            Effect.gen(function* () {
               yield* Service
               if (s.length === 0) {
                 return new SchemaIssue.InvalidValue(Option.some(s), { message: "input should not be empty string" })
@@ -5848,15 +5321,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
       const asserts = new TestSchema.Asserts(schema)
 
-      const decoding = asserts.decoding().provide(
-        Service,
-        { fallback: Effect.succeed("b") }
-      )
+      const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed("b") })
       await decoding.succeed("a")
-      await decoding.fail(
-        "",
-        "input should not be empty string"
-      )
+      await decoding.fail("", "input should not be empty string")
     })
   })
 
@@ -5910,15 +5377,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
   describe("decodeUnknownExit", () => {
     it("should throw on async decoding", () => {
-      const AsyncString = Schema.String.pipe(Schema.decode({
-        decode: new SchemaGetter.Getter((os: Option.Option<string>) =>
-          Effect.gen(function*() {
-            yield* Effect.sleep("10 millis")
-            return os
-          })
-        ),
-        encode: SchemaGetter.passthrough()
-      }))
+      const AsyncString = Schema.String.pipe(
+        Schema.decode({
+          decode: new SchemaGetter.Getter((os: Option.Option<string>) =>
+            Effect.gen(function* () {
+              yield* Effect.sleep("10 millis")
+              return os
+            })
+          ),
+          encode: SchemaGetter.passthrough()
+        })
+      )
       const schema = AsyncString
 
       throws(() => SchemaParser.decodeUnknownExit(schema)("1"))
@@ -5926,15 +5395,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("should die on missing dependency", () => {
       class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
-      const DepString = Schema.Number.pipe(Schema.decode({
-        decode: SchemaGetter.onSome((n) =>
-          Effect.gen(function*() {
-            const magicNumber = yield* MagicNumber
-            return Option.some(n * magicNumber)
-          })
-        ),
-        encode: SchemaGetter.passthrough()
-      }))
+      const DepString = Schema.Number.pipe(
+        Schema.decode({
+          decode: SchemaGetter.onSome((n) =>
+            Effect.gen(function* () {
+              const magicNumber = yield* MagicNumber
+              return Option.some(n * magicNumber)
+            })
+          ),
+          encode: SchemaGetter.passthrough()
+        })
+      )
       const schema = DepString
       const exit = SchemaParser.decodeUnknownExit(schema as any)(1)
       assertTrue(Exit.hasDie(exit))
@@ -6149,10 +5620,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: Schema.String,
         b: Schema.FiniteFromString,
         c: Schema.Boolean
-      }).mapFields(flow(
-        Struct.map(Schema.NullOr),
-        Struct.mapPick(["a", "c"], Schema.mutableKey)
-      ))
+      }).mapFields(flow(Struct.map(Schema.NullOr), Struct.mapPick(["a", "c"], Schema.mutableKey)))
 
       equals(schema.fields, {
         a: Schema.mutableKey(Schema.NullOr(Schema.String)),
@@ -6238,11 +5706,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("evolve", () => {
       const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).mapMembers(
-        Tuple.evolve([
-          (v) => Schema.Array(v),
-          undefined,
-          (v) => Schema.Array(v)
-        ])
+        Tuple.evolve([(v) => Schema.Array(v), undefined, (v) => Schema.Array(v)])
       )
 
       TestSchema.Asserts.ast.elements.equals(schema.members, [
@@ -6255,20 +5719,19 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("Array", () => {
       const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.map(Schema.Array))
 
-      TestSchema.Asserts.ast.elements.equals(schema.members, [
-        Schema.Array(Schema.String),
-        Schema.Array(Schema.Number)
-      ])
+      TestSchema.Asserts.ast.elements.equals(schema.members, [Schema.Array(Schema.String), Schema.Array(Schema.Number)])
     })
   })
 
   describe("Literals.mapMembers", () => {
     it("evolve", () => {
-      const schema = Schema.Literals(["a", "b", "c"]).mapMembers(Tuple.evolve([
-        (a) => Schema.Struct({ _tag: a, a: Schema.String }),
-        (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
-        (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
-      ]))
+      const schema = Schema.Literals(["a", "b", "c"]).mapMembers(
+        Tuple.evolve([
+          (a) => Schema.Struct({ _tag: a, a: Schema.String }),
+          (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
+          (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
+        ])
+      )
 
       TestSchema.Asserts.ast.elements.equals(schema.members, [
         Schema.Struct({ _tag: Schema.Literal("a"), a: Schema.String }),
@@ -6311,20 +5774,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = Schema.String.check(Schema.makeFilter(() => false))
       const asserts = new TestSchema.Asserts(schema)
       const decoding = asserts.decoding()
-      await decoding.fail(
-        "a",
-        `Expected <filter>, got "a"`
-      )
+      await decoding.fail("a", `Expected <filter>, got "a"`)
     })
 
     it("returns string", async () => {
       const schema = Schema.String.check(Schema.makeFilter(() => "error message"))
       const asserts = new TestSchema.Asserts(schema)
       const decoding = asserts.decoding()
-      await decoding.fail(
-        "a",
-        `error message`
-      )
+      await decoding.fail("a", `error message`)
     })
 
     describe("returns issue", () => {
@@ -6347,28 +5804,32 @@ error message 2`
 
       it("abort: true", async () => {
         const schema = Schema.String.check(
-          Schema.makeFilter((s) => new SchemaIssue.InvalidValue(Option.some(s), { message: "error message 1" }), {
-            title: "filter title 1"
-          }, true),
+          Schema.makeFilter(
+            (s) => new SchemaIssue.InvalidValue(Option.some(s), { message: "error message 1" }),
+            {
+              title: "filter title 1"
+            },
+            true
+          ),
           Schema.makeFilter(() => false, { title: "filter title 2", message: "error message 2" })
         )
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding({ parseOptions: { errors: "all" } })
-        await decoding.fail(
-          "a",
-          `error message 1`
-        )
+        await decoding.fail("a", `error message 1`)
       })
     })
 
     describe("returns object", () => {
       it("abort: false", async () => {
         const schema = Schema.String.check(
-          Schema.makeFilter(() => ({
-            path: ["a"],
-            message: "error message 1"
-          }), { title: "filter title 1" }),
+          Schema.makeFilter(
+            () => ({
+              path: ["a"],
+              message: "error message 1"
+            }),
+            { title: "filter title 1" }
+          ),
           Schema.makeFilter(() => false, { title: "filter title 2", message: "error message 2" })
         )
         const asserts = new TestSchema.Asserts(schema)
@@ -6404,11 +5865,16 @@ error message 2`
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).pipe(Schema.extendTo({
-        c: Schema.String
-      }, {
-        c: (value) => Option.some(value.a + "c" + value.b)
-      }))
+      }).pipe(
+        Schema.extendTo(
+          {
+            c: Schema.String
+          },
+          {
+            c: (value) => Option.some(value.a + "c" + value.b)
+          }
+        )
+      )
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -6435,16 +5901,22 @@ error message 2`
 
       const decoding = asserts.decoding()
       await decoding.succeed({ radius: 1 }, { radius: 1, kind: "circle" })
-      await decoding.succeed({ sideLength: 1 }, {
-        sideLength: 1,
-        kind: "square"
-      })
+      await decoding.succeed(
+        { sideLength: 1 },
+        {
+          sideLength: 1,
+          kind: "square"
+        }
+      )
 
       const encoding = asserts.encoding()
       await encoding.succeed({ radius: 1, kind: "circle" }, { radius: 1 })
-      await encoding.succeed({ sideLength: 1, kind: "square" }, {
-        sideLength: 1
-      })
+      await encoding.succeed(
+        { sideLength: 1, kind: "square" },
+        {
+          sideLength: 1
+        }
+      )
     })
   })
 
@@ -6571,30 +6043,12 @@ error message 2`
         assertFalse(schema.guards.C({ _tag: "C", c: 1 }))
 
         // match
-        deepStrictEqual(
-          schema.match({ _tag: "A", a: "a" }, { A: () => "A", B: () => "B", C: () => "C" }),
-          "A"
-        )
-        deepStrictEqual(
-          pipe({ _tag: "A", a: "a" }, schema.match({ A: () => "A", B: () => "B", C: () => "C" })),
-          "A"
-        )
-        deepStrictEqual(
-          schema.match({ _tag: "B", b: 1 }, { A: () => "A", B: () => "B", C: () => "C" }),
-          "B"
-        )
-        deepStrictEqual(
-          pipe({ _tag: "B", b: 1 }, schema.match({ A: () => "A", B: () => "B", C: () => "C" })),
-          "B"
-        )
-        deepStrictEqual(
-          schema.match({ _tag: "C", c: true }, { A: () => "A", B: () => "B", C: () => "C" }),
-          "C"
-        )
-        deepStrictEqual(
-          pipe({ _tag: "C", c: true }, schema.match({ A: () => "A", B: () => "B", C: () => "C" })),
-          "C"
-        )
+        deepStrictEqual(schema.match({ _tag: "A", a: "a" }, { A: () => "A", B: () => "B", C: () => "C" }), "A")
+        deepStrictEqual(pipe({ _tag: "A", a: "a" }, schema.match({ A: () => "A", B: () => "B", C: () => "C" })), "A")
+        deepStrictEqual(schema.match({ _tag: "B", b: 1 }, { A: () => "A", B: () => "B", C: () => "C" }), "B")
+        deepStrictEqual(pipe({ _tag: "B", b: 1 }, schema.match({ A: () => "A", B: () => "B", C: () => "C" })), "B")
+        deepStrictEqual(schema.match({ _tag: "C", c: true }, { A: () => "A", B: () => "B", C: () => "C" }), "C")
+        deepStrictEqual(pipe({ _tag: "C", c: true }, schema.match({ A: () => "A", B: () => "B", C: () => "C" })), "C")
       })
     })
   })
@@ -6721,17 +6175,11 @@ error message 2`
 
     const decoding = asserts.decoding()
     await decoding.succeed("a")
-    await decoding.fail(
-      "",
-      `Expected a value with a length of at least 1, got ""`
-    )
+    await decoding.fail("", `Expected a value with a length of at least 1, got ""`)
 
     const encoding = asserts.encoding()
     await encoding.succeed("a")
-    await encoding.fail(
-      "",
-      `Expected a value with a length of at least 1, got ""`
-    )
+    await encoding.fail("", `Expected a value with a length of at least 1, got ""`)
   })
 
   it("Char", async () => {
@@ -6745,17 +6193,11 @@ error message 2`
 
     const decoding = asserts.decoding()
     await decoding.succeed("a")
-    await decoding.fail(
-      "ab",
-      `Expected a value with a length of 1, got "ab"`
-    )
+    await decoding.fail("ab", `Expected a value with a length of 1, got "ab"`)
 
     const encoding = asserts.encoding()
     await encoding.succeed("a")
-    await encoding.fail(
-      "ab",
-      `Expected a value with a length of 1, got "ab"`
-    )
+    await encoding.fail("ab", `Expected a value with a length of 1, got "ab"`)
   })
 
   it("Int", async () => {
@@ -6769,37 +6211,19 @@ error message 2`
 
     const decoding = asserts.decoding()
     await decoding.succeed(1)
-    await decoding.fail(
-      1.1,
-      `Expected an integer, got 1.1`
-    )
-    await decoding.fail(
-      NaN,
-      `Expected an integer, got NaN`
-    )
-    await decoding.fail(
-      Infinity,
-      `Expected an integer, got Infinity`
-    )
-    await decoding.fail(
-      -Infinity,
-      `Expected an integer, got -Infinity`
-    )
+    await decoding.fail(1.1, `Expected an integer, got 1.1`)
+    await decoding.fail(NaN, `Expected an integer, got NaN`)
+    await decoding.fail(Infinity, `Expected an integer, got Infinity`)
+    await decoding.fail(-Infinity, `Expected an integer, got -Infinity`)
 
     const encoding = asserts.encoding()
     await encoding.succeed(1)
-    await encoding.fail(
-      1.1,
-      `Expected an integer, got 1.1`
-    )
+    await encoding.fail(1.1, `Expected an integer, got 1.1`)
   })
 
   it("Capitalize", async () => {
     const schema = Schema.String.pipe(
-      Schema.decodeTo(
-        Schema.String.check(Schema.isCapitalized()),
-        SchemaTransformation.capitalize()
-      )
+      Schema.decodeTo(Schema.String.check(Schema.isCapitalized()), SchemaTransformation.capitalize())
     )
     const asserts = new TestSchema.Asserts(schema)
 
@@ -6813,18 +6237,12 @@ error message 2`
 
     const encoding = asserts.encoding()
     await encoding.succeed("Abc")
-    await encoding.fail(
-      "abc",
-      `Expected a string with the first character in uppercase, got "abc"`
-    )
+    await encoding.fail("abc", `Expected a string with the first character in uppercase, got "abc"`)
   })
 
   it("Uncapitalize", async () => {
     const schema = Schema.String.pipe(
-      Schema.decodeTo(
-        Schema.String.check(Schema.isUncapitalized()),
-        SchemaTransformation.uncapitalize()
-      )
+      Schema.decodeTo(Schema.String.check(Schema.isUncapitalized()), SchemaTransformation.uncapitalize())
     )
     const asserts = new TestSchema.Asserts(schema)
 
@@ -6838,18 +6256,12 @@ error message 2`
 
     const encoding = asserts.encoding()
     await encoding.succeed("abc")
-    await encoding.fail(
-      "Abc",
-      `Expected a string with the first character in lowercase, got "Abc"`
-    )
+    await encoding.fail("Abc", `Expected a string with the first character in lowercase, got "Abc"`)
   })
 
   it("Lowercase", async () => {
     const schema = Schema.String.pipe(
-      Schema.decodeTo(
-        Schema.String.check(Schema.isLowercased()),
-        SchemaTransformation.toLowerCase()
-      )
+      Schema.decodeTo(Schema.String.check(Schema.isLowercased()), SchemaTransformation.toLowerCase())
     )
     const asserts = new TestSchema.Asserts(schema)
 
@@ -6863,18 +6275,12 @@ error message 2`
 
     const encoding = asserts.encoding()
     await encoding.succeed("abc")
-    await encoding.fail(
-      "ABC",
-      `Expected a string with all characters in lowercase, got "ABC"`
-    )
+    await encoding.fail("ABC", `Expected a string with all characters in lowercase, got "ABC"`)
   })
 
   it("Uppercase", async () => {
     const schema = Schema.String.pipe(
-      Schema.decodeTo(
-        Schema.String.check(Schema.isUppercased()),
-        SchemaTransformation.toUpperCase()
-      )
+      Schema.decodeTo(Schema.String.check(Schema.isUppercased()), SchemaTransformation.toUpperCase())
     )
     const asserts = new TestSchema.Asserts(schema)
 
@@ -6888,19 +6294,18 @@ error message 2`
 
     const encoding = asserts.encoding()
     await encoding.succeed("ABC")
-    await encoding.fail(
-      "abc",
-      `Expected a string with all characters in uppercase, got "abc"`
-    )
+    await encoding.fail("abc", `Expected a string with all characters in uppercase, got "abc"`)
   })
 })
 
 describe("Getter", () => {
   it("succeed", async () => {
-    const schema = Schema.Literal(0).pipe(Schema.decodeTo(Schema.Literal("a"), {
-      decode: SchemaGetter.succeed("a"),
-      encode: SchemaGetter.succeed(0)
-    }))
+    const schema = Schema.Literal(0).pipe(
+      Schema.decodeTo(Schema.Literal("a"), {
+        decode: SchemaGetter.succeed("a"),
+        encode: SchemaGetter.succeed(0)
+      })
+    )
     const asserts = new TestSchema.Asserts(schema)
 
     const decoding = asserts.decoding()
@@ -6957,10 +6362,7 @@ describe("Check", () => {
 
     const decoding = asserts.decoding()
     await decoding.succeed("01H4PGGGJVN2DKP2K1H7EH996V")
-    await decoding.fail(
-      "",
-      `Expected a string matching the RegExp ^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$, got ""`
-    )
+    await decoding.fail("", `Expected a string matching the RegExp ^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$, got ""`)
   })
 
   it("isBase64", async () => {

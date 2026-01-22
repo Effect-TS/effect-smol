@@ -665,12 +665,7 @@
               "$ref": "#/components/schemas/String_1"
             }
           },
-          "required": [
-            "key",
-            "name",
-            "contentType",
-            "path"
-          ],
+          "required": ["key", "name", "contentType", "path"],
           "type": "object"
         },
         "type": "array"
@@ -685,10 +680,7 @@
             "$ref": "#/components/schemas/Number_"
           }
         },
-        "required": [
-          "contentType",
-          "length"
-        ],
+        "required": ["contentType", "length"],
         "type": "object"
       },
       "Group": {

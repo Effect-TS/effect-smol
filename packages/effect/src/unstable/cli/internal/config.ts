@@ -147,9 +147,7 @@ export const parseConfig = (config: Config): ConfigInternal => {
     return tree
   }
 
-  function parseValue(
-    value: Param.Any | ReadonlyArray<Param.Any | Config> | Config
-  ): ConfigInternal.Node {
+  function parseValue(value: Param.Any | ReadonlyArray<Param.Any | Config> | Config): ConfigInternal.Node {
     if (Array.isArray(value)) {
       return {
         _tag: "Array",
@@ -195,10 +193,7 @@ export const parseConfig = (config: Config): ConfigInternal => {
  *
  * @internal
  */
-export const reconstructTree = (
-  tree: ConfigInternal.Tree,
-  results: ReadonlyArray<any>
-): Record<string, any> => {
+export const reconstructTree = (tree: ConfigInternal.Tree, results: ReadonlyArray<any>): Record<string, any> => {
   const output: Record<string, any> = {}
 
   for (const key in tree) {

@@ -3,11 +3,13 @@
   "extends": ["./packages/tools/oxc/oxlintrc.json"],
   "ignorePatterns": ["**/dist", "**/build", "**/docs", "**/.tsbuildinfo", "!scratchpad/**/*", ".agents/**/*"],
   "jsPlugins": ["@effect/oxc/oxlint"],
-  "overrides": [{
-    "files": ["**/{test,dtslint,examples,benchmark,bundle,scripts,scratchpad}/**"],
-    "rules": {
-      "eslint/no-console": "off",
-      "effect/no-import-from-barrel-package": "off"
+  "overrides": [
+    {
+      "files": ["**/{test,dtslint,examples,benchmark,bundle,scripts,scratchpad}/**"],
+      "rules": {
+        "eslint/no-console": "off",
+        "effect/no-import-from-barrel-package": "off"
+      }
     }
-  }]
+  ]
 }

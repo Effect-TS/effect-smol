@@ -169,31 +169,34 @@ export const make = <const Steps extends NonEmptyReadonlyArray<make.Step>>(
   provides: make.StepProvides<Steps>
   input: make.StepInput<Steps>
   error:
-    | (Steps[number]["provide"] extends ServiceMap.ServiceMap<infer _P> | Layer.Layer<infer _P, infer E, infer _R> ? E
-      : never)
+    | (Steps[number]["provide"] extends ServiceMap.ServiceMap<infer _P> | Layer.Layer<infer _P, infer E, infer _R>
+        ? E
+        : never)
     | (Steps[number]["while"] extends (input: infer _I) => Effect.Effect<infer _A, infer _E, infer _R> ? _E : never)
   requirements:
     | (Steps[number]["provide"] extends Layer.Layer<infer _A, infer _E, infer R> ? R : never)
     | (Steps[number]["while"] extends (input: infer _I) => Effect.Effect<infer _A, infer _E, infer R> ? R : never)
     | (Steps[number]["schedule"] extends Schedule.Schedule<infer _O, infer _I, infer R> ? R : never)
 }> =>
-  makeProto(steps.map((options, i) => {
-    if (options.attempts && options.attempts < 1) {
-      throw new Error(`ExecutionPlan.make: step[${i}].attempts must be greater than 0`)
-    }
-    return {
-      schedule: options.schedule,
-      attempts: options.attempts,
-      while: options.while
-        ? (input: any) =>
-          effect.suspend(() => {
-            const result = options.while!(input)
-            return typeof result === "boolean" ? effect.succeed(result) : result
-          })
-        : undefined,
-      provide: options.provide
-    }
-  }) as any)
+  makeProto(
+    steps.map((options, i) => {
+      if (options.attempts && options.attempts < 1) {
+        throw new Error(`ExecutionPlan.make: step[${i}].attempts must be greater than 0`)
+      }
+      return {
+        schedule: options.schedule,
+        attempts: options.attempts,
+        while: options.while
+          ? (input: any) =>
+              effect.suspend(() => {
+                const result = options.while!(input)
+                return typeof result === "boolean" ? effect.succeed(result) : result
+              })
+          : undefined,
+        provide: options.provide
+      }
+    }) as any
+  )
 
 /**
  * @since 3.16.0
@@ -212,47 +215,53 @@ export declare namespace make {
   /**
    * @since 3.16.1
    */
-  export type StepProvides<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends
-    readonly [infer Step, ...infer Rest] ? StepProvides<
-      Rest,
-      & Out
-      & (
-        (Step extends { readonly provide: ServiceMap.ServiceMap<infer P> | Layer.Layer<infer P, infer _E, infer _R> } ?
-          P
-          : unknown)
-      )
-    > :
-    Out
+  export type StepProvides<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends readonly [
+    infer Step,
+    ...infer Rest
+  ]
+    ? StepProvides<
+        Rest,
+        Out &
+          (Step extends { readonly provide: ServiceMap.ServiceMap<infer P> | Layer.Layer<infer P, infer _E, infer _R> }
+            ? P
+            : unknown)
+      >
+    : Out
 
   /**
    * @since 3.16.1
    */
-  export type PlanProvides<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends
-    readonly [infer Plan, ...infer Rest] ?
-    PlanProvides<Rest, Out & (Plan extends ExecutionPlan<infer T> ? T["provides"] : unknown)> :
-    Out
+  export type PlanProvides<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends readonly [
+    infer Plan,
+    ...infer Rest
+  ]
+    ? PlanProvides<Rest, Out & (Plan extends ExecutionPlan<infer T> ? T["provides"] : unknown)>
+    : Out
 
   /**
    * @since 3.16.0
    */
-  export type StepInput<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends
-    readonly [infer Step, ...infer Rest] ? StepInput<
-      Rest,
-      & Out
-      & (
-        & (Step extends { readonly while: (input: infer I) => infer _ } ? I : unknown)
-        & (Step extends { readonly schedule: Schedule.Schedule<infer _O, infer I, infer _R> } ? I : unknown)
-      )
-    > :
-    Out
+  export type StepInput<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends readonly [
+    infer Step,
+    ...infer Rest
+  ]
+    ? StepInput<
+        Rest,
+        Out &
+          ((Step extends { readonly while: (input: infer I) => infer _ } ? I : unknown) &
+            (Step extends { readonly schedule: Schedule.Schedule<infer _O, infer I, infer _R> } ? I : unknown))
+      >
+    : Out
 
   /**
    * @since 3.16.0
    */
-  export type PlanInput<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends
-    readonly [infer Plan, ...infer Rest] ?
-    PlanInput<Rest, Out & (Plan extends ExecutionPlan<infer T> ? T["input"] : unknown)> :
-    Out
+  export type PlanInput<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends readonly [
+    infer Plan,
+    ...infer Rest
+  ]
+    ? PlanInput<Rest, Out & (Plan extends ExecutionPlan<infer T> ? T["input"] : unknown)>
+    : Out
 }
 
 const Proto: Omit<ExecutionPlan<any>, "steps"> = {
@@ -260,12 +269,16 @@ const Proto: Omit<ExecutionPlan<any>, "steps"> = {
   get withRequirements() {
     const self = this as any as ExecutionPlan<any>
     return effect.servicesWith((services: ServiceMap.ServiceMap<any>) =>
-      effect.succeed(makeProto(self.steps.map((step) => ({
-        ...step,
-        provide: Layer.isLayer(step.provide)
-          ? Layer.provide(step.provide, Layer.succeedServices(services))
-          : step.provide
-      })) as any))
+      effect.succeed(
+        makeProto(
+          self.steps.map((step) => ({
+            ...step,
+            provide: Layer.isLayer(step.provide)
+              ? Layer.provide(step.provide, Layer.succeedServices(services))
+              : step.provide
+          })) as any
+        )
+      )
     )
   },
   pipe() {

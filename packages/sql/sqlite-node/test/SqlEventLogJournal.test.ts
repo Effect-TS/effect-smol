@@ -6,16 +6,14 @@ import * as SqlEventLogJournal from "effect/unstable/eventlog/SqlEventLogJournal
 import { Reactivity } from "effect/unstable/reactivity"
 import * as SqlClient from "effect/unstable/sql/SqlClient"
 
-const makeJournal = Effect.gen(function*() {
+const makeJournal = Effect.gen(function* () {
   const sql = yield* SqliteClient.make({ filename: ":memory:" })
-  return yield* SqlEventLogJournal.make().pipe(
-    Effect.provideService(SqlClient.SqlClient, sql)
-  )
+  return yield* SqlEventLogJournal.make().pipe(Effect.provideService(SqlClient.SqlClient, sql))
 }).pipe(Effect.provide(Reactivity.layer))
 
 describe("SqlEventLogJournal", () => {
   it.effect("writes and reads entries", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const journal = yield* makeJournal
       let createdAt = 0
       yield* journal.write({
@@ -31,27 +29,34 @@ describe("SqlEventLogJournal", () => {
       assert.strictEqual(entries.length, 1)
       assert.strictEqual(entries[0].event, "UserCreated")
       assert.strictEqual(entries[0].createdAtMillis, createdAt)
-    }))
+    })
+  )
 
   it.effect("writes remote entries and sequences", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const journal = yield* makeJournal
       const remoteId = EventJournal.makeRemoteIdUnsafe()
       const initial = yield* journal.nextRemoteSequence(remoteId)
       assert.strictEqual(initial, 0)
 
-      const entryA = new EventJournal.Entry({
-        id: EventJournal.makeEntryIdUnsafe(),
-        event: "UserCreated",
-        primaryKey: "user-2",
-        payload: new Uint8Array([2])
-      }, { disableValidation: true })
-      const entryB = new EventJournal.Entry({
-        id: EventJournal.makeEntryIdUnsafe(),
-        event: "UserCreated",
-        primaryKey: "user-3",
-        payload: new Uint8Array([3])
-      }, { disableValidation: true })
+      const entryA = new EventJournal.Entry(
+        {
+          id: EventJournal.makeEntryIdUnsafe(),
+          event: "UserCreated",
+          primaryKey: "user-2",
+          payload: new Uint8Array([2])
+        },
+        { disableValidation: true }
+      )
+      const entryB = new EventJournal.Entry(
+        {
+          id: EventJournal.makeEntryIdUnsafe(),
+          event: "UserCreated",
+          primaryKey: "user-3",
+          payload: new Uint8Array([3])
+        },
+        { disableValidation: true }
+      )
       const remoteEntries = [
         new EventJournal.RemoteEntry({ remoteSequence: 0, entry: entryA }),
         new EventJournal.RemoteEntry({ remoteSequence: 1, entry: entryB })
@@ -80,5 +85,6 @@ describe("SqlEventLogJournal", () => {
       assert.strictEqual(seenConflicts.length, 2)
       assert.strictEqual(seenConflicts[0][0]?.idString, entryA.idString)
       assert.strictEqual(seenConflicts[1][0]?.idString, entryB.idString)
-    }))
+    })
+  )
 })

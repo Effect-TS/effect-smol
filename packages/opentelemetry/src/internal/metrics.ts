@@ -83,20 +83,16 @@ export class MetricProducerImpl implements MetricProducer {
     }
 
     const isDelta = this.temporality === "delta"
-    const aggregationTemporality = isDelta
-      ? AggregationTemporality.DELTA
-      : AggregationTemporality.CUMULATIVE
-    const intervalStartTime = isDelta
-      ? this.previousExportTimeNanos
-      : this.startTimeNanos
+    const aggregationTemporality = isDelta ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE
+    const intervalStartTime = isDelta ? this.previousExportTimeNanos : this.startTimeNanos
 
     for (let i = 0, len = snapshot.length; i < len; i++) {
       const state = snapshot[i]
       const attributes = state.attributes
         ? Arr.reduce(Object.entries(state.attributes), {} as Record<string, string>, (acc, [key, value]) => {
-          acc[key] = String(value)
-          return acc
-        })
+            acc[key] = String(value)
+            return acc
+          })
         : {}
       const metricKey = makeMetricKey(state.id, state.attributes)
 
@@ -276,7 +272,7 @@ export class MetricProducerImpl implements MetricProducer {
 
           if (metricDataByName.has(state.id)) {
             // oxlint-disable-next-line no-restricted-syntax
-            metricDataByName.get(state.id)!.dataPoints.push(...dataPoints as any)
+            metricDataByName.get(state.id)!.dataPoints.push(...(dataPoints as any))
           } else {
             const descriptor = descriptorFromState(state, attributes)
             addMetricData({
@@ -291,12 +287,14 @@ export class MetricProducerImpl implements MetricProducer {
         }
         case "Summary": {
           // Quantiles are always computed fresh from the sliding window
-          const dataPoints: Array<DataPoint<number>> = [{
-            startTime: intervalStartTime,
-            endTime: hrTimeNow,
-            attributes: { ...attributes, quantile: "min" },
-            value: state.state.min
-          }]
+          const dataPoints: Array<DataPoint<number>> = [
+            {
+              startTime: intervalStartTime,
+              endTime: hrTimeNow,
+              attributes: { ...attributes, quantile: "min" },
+              value: state.state.min
+            }
+          ]
           for (const [quantile, value] of state.state.quantiles) {
             dataPoints.push({
               startTime: intervalStartTime,
@@ -342,7 +340,7 @@ export class MetricProducerImpl implements MetricProducer {
 
           if (metricDataByName.has(`${state.id}_quantiles`)) {
             // oxlint-disable-next-line no-restricted-syntax
-            metricDataByName.get(`${state.id}_quantiles`)!.dataPoints.push(...dataPoints as any)
+            metricDataByName.get(`${state.id}_quantiles`)!.dataPoints.push(...(dataPoints as any))
             metricDataByName.get(`${state.id}_count`)!.dataPoints.push(countDataPoint as any)
             metricDataByName.get(`${state.id}_sum`)!.dataPoints.push(sumDataPoint as any)
           } else {
@@ -399,10 +397,12 @@ export class MetricProducerImpl implements MetricProducer {
     return Promise.resolve({
       resourceMetrics: {
         resource: this.resource,
-        scopeMetrics: [{
-          scope: { name: sdkName },
-          metrics: metricData
-        }]
+        scopeMetrics: [
+          {
+            scope: { name: sdkName },
+            metrics: metricData
+          }
+        ]
       },
       errors: []
     })

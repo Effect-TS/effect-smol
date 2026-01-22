@@ -76,7 +76,7 @@ export const BarrelGenerator: ServiceMap.Service<BarrelGenerator, BarrelGenerato
  * @category layers
  */
 export const layer: Layer.Layer<BarrelGenerator, never, FileSystem.FileSystem | Path.Path | Glob.Glob> = Effect.gen(
-  function*() {
+  function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const glob = yield* Glob.Glob
@@ -89,7 +89,7 @@ export const layer: Layer.Layer<BarrelGenerator, never, FileSystem.FileSystem | 
       return withoutExt.replace(/\//g, "_")
     }
 
-    const processModule = Effect.fn("processModule")(function*(directory: string, file: string) {
+    const processModule = Effect.fn("processModule")(function* (directory: string, file: string) {
       const fullPath = path.join(directory, file)
       const posixPath = toPosix(file)
       const content = yield* fs.readFileString(fullPath)
@@ -98,13 +98,13 @@ export const layer: Layer.Layer<BarrelGenerator, never, FileSystem.FileSystem | 
       return `${topComment}\nexport * as ${moduleName} from "./${posixPath}"`
     })
 
-    const discoverFile = Effect.fn("discoverFile")(function*(file: string) {
+    const discoverFile = Effect.fn("discoverFile")(function* (file: string) {
       const content = yield* fs.readFileString(file)
       const parsed = findAnnotation(content)
       return parsed ? { path: file, ...parsed } : undefined
     })
 
-    const discoverFiles = Effect.fn("discoverFiles")(function*(pattern: string, cwd: string) {
+    const discoverFiles = Effect.fn("discoverFiles")(function* (pattern: string, cwd: string) {
       const indexFiles = yield* glob.glob(pattern, {
         cwd,
         dot: false,
@@ -116,19 +116,21 @@ export const layer: Layer.Layer<BarrelGenerator, never, FileSystem.FileSystem | 
       return results.filter((file) => file !== undefined)
     })
 
-    const processFile = Effect.fn("processFile")(function*(file: BarrelFile) {
+    const processFile = Effect.fn("processFile")(function* (file: BarrelFile) {
       const { offset, pattern } = file
       const directory = path.dirname(file.path)
       const self = path.basename(file.path)
 
       // Find all matching files relative to the current directory excluding the barrel file itself
-      const matchedFiles = yield* glob.glob(pattern, {
-        cwd: directory,
-        dot: false,
-        follow: false,
-        nodir: true,
-        ignore: [self]
-      }).pipe(Effect.map((files) => files.sort((a, b) => a.localeCompare(b))))
+      const matchedFiles = yield* glob
+        .glob(pattern, {
+          cwd: directory,
+          dot: false,
+          follow: false,
+          nodir: true,
+          ignore: [self]
+        })
+        .pipe(Effect.map((files) => files.sort((a, b) => a.localeCompare(b))))
 
       const moduleContents = yield* Effect.forEach(matchedFiles, (file) => processModule(directory, file))
       const content = yield* fs.readFileString(file.path)

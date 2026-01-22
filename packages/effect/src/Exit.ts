@@ -323,9 +323,8 @@ export const hasInterrupt: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = e
  * @category filters
  * @since 4.0.0
  */
-export const filterSuccess: <A, E>(
-  self: Exit<A, E>
-) => Success<A> | Filter.fail<Failure<never, E>> = effect.exitFilterSuccess
+export const filterSuccess: <A, E>(self: Exit<A, E>) => Success<A> | Filter.fail<Failure<never, E>> =
+  effect.exitFilterSuccess
 
 /**
  * @category filters
@@ -475,9 +474,10 @@ export const mapError: {
  * @since 2.0.0
  */
 export const mapBoth: {
-  <E, E2, A, A2>(
-    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
-  ): (self: Exit<A, E>) => Exit<A2, E2>
+  <E, E2, A, A2>(options: {
+    readonly onFailure: (e: E) => E2
+    readonly onSuccess: (a: A) => A2
+  }): (self: Exit<A, E>) => Exit<A2, E2>
   <A, E, E2, A2>(
     self: Exit<A, E>,
     options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }

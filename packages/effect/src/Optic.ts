@@ -365,7 +365,11 @@ class OptionalImpl<S, A> implements Optional<S, A> {
     return Result.getOrElse(this.replaceResult(a, s), () => s)
   }
   modify(f: (a: A) => A): (s: S) => S {
-    return (s) => Result.getOrElse(Result.flatMap(this.getResult(s), (a) => this.replaceResult(f(a), s)), () => s)
+    return (s) =>
+      Result.getOrElse(
+        Result.flatMap(this.getResult(s), (a) => this.replaceResult(f(a), s)),
+        () => s
+      )
   }
   compose(that: any): any {
     return make(compose(this.node, that.node))
@@ -408,9 +412,7 @@ class OptionalImpl<S, A> implements Optional<S, A> {
         this.node,
         new PrismNode(
           (s) =>
-            s._tag === tag
-              ? Result.succeed(s)
-              : Result.fail(`Expected ${format(tag)} tag, got ${format(s._tag)}`),
+            s._tag === tag ? Result.succeed(s) : Result.fail(`Expected ${format(tag)} tag, got ${format(s._tag)}`),
           identity
         )
       )
@@ -422,7 +424,7 @@ class OptionalImpl<S, A> implements Optional<S, A> {
       compose(
         this.node,
         new OptionalNode(
-          (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : err,
+          (s) => (Object.hasOwn(s, key) ? Result.succeed(s[key]) : err),
           (a, s) => {
             if (Object.hasOwn(s, key)) {
               const copy = cloneShallow(s)
@@ -469,9 +471,7 @@ class OptionalImpl<S, A> implements Optional<S, A> {
 
           // 2) arity check
           if (bs.length !== idxs.length) {
-            return Result.fail(
-              `each: replacement length mismatch: ${bs.length} !== ${idxs.length}`
-            )
+            return Result.fail(`each: replacement length mismatch: ${bs.length} !== ${idxs.length}`)
           }
 
           // 3) update those indices
@@ -501,7 +501,11 @@ class IsoImpl<S, A> extends OptionalImpl<S, A> implements Iso<S, A> {
   readonly get: (s: S) => A
   readonly set: (a: A) => S
   constructor(node: Node, get: (s: S) => A, set: (a: A) => S) {
-    super(node, (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
+    super(
+      node,
+      (s) => Result.succeed(get(s)),
+      (a) => Result.succeed(set(a))
+    )
     this.get = get
     this.set = set
   }
@@ -516,7 +520,11 @@ class IsoImpl<S, A> extends OptionalImpl<S, A> implements Iso<S, A> {
 class LensImpl<S, A> extends OptionalImpl<S, A> implements Lens<S, A> {
   readonly get: (s: S) => A
   constructor(node: Node, get: (s: S) => A, replace: (a: A, s: S) => S) {
-    super(node, (s) => Result.succeed(get(s)), (a, s) => Result.succeed(replace(a, s)))
+    super(
+      node,
+      (s) => Result.succeed(get(s)),
+      (a, s) => Result.succeed(replace(a, s))
+    )
     this.get = get
     this.replace = replace
   }
@@ -535,7 +543,11 @@ class PrismImpl<S, A> extends OptionalImpl<S, A> implements Prism<S, A> {
     return this.set(a)
   }
   override modify(f: (a: A) => A): (s: S) => S {
-    return (s) => Result.getOrElse(Result.map(this.getResult(s), (a) => this.set(f(a))), () => s)
+    return (s) =>
+      Result.getOrElse(
+        Result.map(this.getResult(s), (a) => this.set(f(a))),
+        () => s
+      )
   }
 }
 

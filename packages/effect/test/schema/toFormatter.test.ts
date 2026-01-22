@@ -195,35 +195,43 @@ describe("toFormatter", () => {
     })
 
     it("required fields", () => {
-      const format = Schema.toFormatter(Schema.Struct({
-        a: Schema.Option(Schema.String)
-      }))
+      const format = Schema.toFormatter(
+        Schema.Struct({
+          a: Schema.Option(Schema.String)
+        })
+      )
       strictEqual(format({ a: Option.some("a") }), `{ "a": some("a") }`)
       strictEqual(format({ a: Option.none() }), `{ "a": none() }`)
     })
 
     it("required field with undefined", () => {
-      const format = Schema.toFormatter(Schema.Struct({
-        a: Schema.Option(Schema.UndefinedOr(Schema.String))
-      }))
+      const format = Schema.toFormatter(
+        Schema.Struct({
+          a: Schema.Option(Schema.UndefinedOr(Schema.String))
+        })
+      )
       strictEqual(format({ a: Option.some("a") }), `{ "a": some("a") }`)
       strictEqual(format({ a: Option.some(undefined) }), `{ "a": some(undefined) }`)
       strictEqual(format({ a: Option.none() }), `{ "a": none() }`)
     })
 
     it("optionalKey field", () => {
-      const format = Schema.toFormatter(Schema.Struct({
-        a: Schema.optionalKey(Schema.Option(Schema.String))
-      }))
+      const format = Schema.toFormatter(
+        Schema.Struct({
+          a: Schema.optionalKey(Schema.Option(Schema.String))
+        })
+      )
       strictEqual(format({ a: Option.some("a") }), `{ "a": some("a") }`)
       strictEqual(format({ a: Option.none() }), `{ "a": none() }`)
       strictEqual(format({}), `{}`)
     })
 
     it("optional field", () => {
-      const format = Schema.toFormatter(Schema.Struct({
-        a: Schema.optional(Schema.Option(Schema.String))
-      }))
+      const format = Schema.toFormatter(
+        Schema.Struct({
+          a: Schema.optional(Schema.Option(Schema.String))
+        })
+      )
       strictEqual(format({ a: Option.some("a") }), `{ "a": some("a") }`)
       strictEqual(format({ a: Option.none() }), `{ "a": none() }`)
       strictEqual(format({ a: undefined }), `{ "a": undefined }`)
@@ -246,10 +254,9 @@ describe("toFormatter", () => {
   })
 
   it("StructWithRest", () => {
-    const format = Schema.toFormatter(Schema.StructWithRest(
-      Schema.Struct({ a: Schema.Number }),
-      [Schema.Record(Schema.String, Schema.Number)]
-    ))
+    const format = Schema.toFormatter(
+      Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [Schema.Record(Schema.String, Schema.Number)])
+    )
     strictEqual(format({ a: 1, b: 2 }), `{ "a": 1, "b": 2 }`)
   })
 
@@ -265,10 +272,7 @@ describe("toFormatter", () => {
   describe("suspend", () => {
     it("Tuple", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
-      const schema = Schema.Tuple([
-        Schema.Number,
-        Schema.NullOr(Rec)
-      ])
+      const schema = Schema.Tuple([Schema.Number, Schema.NullOr(Rec)])
       const format = Schema.toFormatter(schema)
       strictEqual(format([1, null]), `[1, null]`)
       strictEqual(format([1, [2, null]]), `[1, [2, null]]`)
@@ -289,7 +293,13 @@ describe("toFormatter", () => {
       })
       const format = Schema.toFormatter(schema)
       strictEqual(
-        format({ a: "a", as: [{ a: "b", as: [] }, { a: "c", as: [] }] }),
+        format({
+          a: "a",
+          as: [
+            { a: "b", as: [] },
+            { a: "c", as: [] }
+          ]
+        }),
         `{ "a": "a", "as": [{ "a": "b", "as": [] }, { "a": "c", "as": [] }] }`
       )
     })
@@ -507,7 +517,7 @@ describe("toFormatter", () => {
       Schema.toFormatter(schema, {
         onBefore: (ast) => {
           if (ast._tag === "Boolean") {
-            return (b: boolean) => b ? "True" : "False"
+            return (b: boolean) => (b ? "True" : "False")
           }
         }
       })

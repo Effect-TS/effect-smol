@@ -20,20 +20,15 @@ import { Resource } from "./Resource.ts"
  * @since 1.0.0
  * @category Services
  */
-export class OtelLoggerProvider extends ServiceMap.Service<
-  OtelLoggerProvider,
-  Otel.LoggerProvider
->()("@effect/opentelemetry/Logger/OtelLoggerProvider") {}
+export class OtelLoggerProvider extends ServiceMap.Service<OtelLoggerProvider, Otel.LoggerProvider>()(
+  "@effect/opentelemetry/Logger/OtelLoggerProvider"
+) {}
 
 /**
  * @since 1.0.0
  * @category Constructors
  */
-export const make: Effect.Effect<
-  Logger.Logger<unknown, void>,
-  never,
-  OtelLoggerProvider
-> = Effect.gen(function*() {
+export const make: Effect.Effect<Logger.Logger<unknown, void>, never, OtelLoggerProvider> = Effect.gen(function* () {
   const loggerProvider = yield* OtelLoggerProvider
   const clock = yield* Clock.Clock
   const otelLogger = loggerProvider.getLogger("@effect/opentelemetry")
@@ -103,15 +98,16 @@ export const layerLoggerProvider = (
 ): Layer.Layer<OtelLoggerProvider, never, Resource> =>
   Layer.effect(
     OtelLoggerProvider,
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const resource = yield* Resource
       return yield* Effect.acquireRelease(
-        Effect.sync(() =>
-          new Otel.LoggerProvider({
-            ...(config ?? undefined),
-            processors: Arr.ensure(processor),
-            resource
-          })
+        Effect.sync(
+          () =>
+            new Otel.LoggerProvider({
+              ...(config ?? undefined),
+              processors: Arr.ensure(processor),
+              resource
+            })
         ),
         (provider) =>
           Effect.promise(() => provider.forceFlush().then(() => provider.shutdown())).pipe(

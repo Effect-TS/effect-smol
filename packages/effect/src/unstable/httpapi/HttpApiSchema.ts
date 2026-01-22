@@ -30,9 +30,7 @@ const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
 /** @internal */
 export const resolveHttpApiMultipart = AST.resolveAt<Multipart_.withLimits.Options>("httpApiMultipart")
 /** @internal */
-export const resolveHttpApiMultipartStream = AST.resolveAt<Multipart_.withLimits.Options>(
-  "httpApiMultipartStream"
-)
+export const resolveHttpApiMultipartStream = AST.resolveAt<Multipart_.withLimits.Options>("httpApiMultipartStream")
 const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
 
 /** @internal */
@@ -91,14 +89,10 @@ export const UnionUnifyAST = (self: AST.AST, that: AST.AST): AST.AST => {
   if (asts.size === 1) {
     return Iterable.headUnsafe(asts)
   }
-  return new AST.Union(
-    Array.from(asts),
-    "anyOf",
-    {
-      ...(AST.isUnion(self) ? self.annotations : {}),
-      ...(AST.isUnion(that) ? that.annotations : {})
-    }
-  )
+  return new AST.Union(Array.from(asts), "anyOf", {
+    ...(AST.isUnion(self) ? self.annotations : {}),
+    ...(AST.isUnion(that) ? that.annotations : {})
+  })
 }
 
 const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
@@ -133,37 +127,30 @@ function shouldExtractUnion(ast: AST.Union): boolean {
 /**
  * @since 4.0.0
  */
-export const UnionUnify = <
-  A extends Schema.Top,
-  B extends Schema.Top
->(
-  self: A,
-  that: B
-): Schema.Top => Schema.make(UnionUnifyAST(self.ast, that.ast))
+export const UnionUnify = <A extends Schema.Top, B extends Schema.Top>(self: A, that: B): Schema.Top =>
+  Schema.make(UnionUnifyAST(self.ast, that.ast))
 
 /**
  * @since 4.0.0
  * @category path params
  */
-export interface Param<Name extends string, S extends Schema.Top> extends
-  Schema.Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    Param<Name, S>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface Param<Name extends string, S extends Schema.Top> extends Schema.Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  Param<Name, S>,
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly name: Name
   readonly schema: S
@@ -175,8 +162,8 @@ export interface Param<Name extends string, S extends Schema.Top> extends
  */
 export function param<Name extends string>(
   name: Name
-): <S extends Schema.Top & { readonly "Encoded": string }>(schema: S) => Param<Name, S>
-export function param<Name extends string, S extends Schema.Top & { readonly "Encoded": string }>(
+): <S extends Schema.Top & { readonly Encoded: string }>(schema: S) => Param<Name, S>
+export function param<Name extends string, S extends Schema.Top & { readonly Encoded: string }>(
   name: Name,
   schema: S
 ): Param<Name, S>
@@ -197,9 +184,7 @@ export const Empty = (status: number): Schema.Void => Schema.Void.annotate({ htt
  * @since 4.0.0
  * @category empty response
  */
-export interface asEmpty<
-  S extends Schema.Top
-> extends Schema.decodeTo<Schema.toType<S>, Schema.Void> {}
+export interface asEmpty<S extends Schema.Top> extends Schema.decodeTo<Schema.toType<S>, Schema.Void> {}
 
 /**
  * @since 4.0.0
@@ -226,18 +211,20 @@ export const asEmpty: {
       readonly decode: LazyArg<S["Type"]>
     }
   ): asEmpty<S> =>
-    Schema.Void.annotate(self.ast.annotations ?? {}).pipe(
-      Schema.decodeTo(
-        Schema.toType(self),
-        Transformation.transform({
-          decode: options.decode,
-          encode: constVoid
-        })
+    Schema.Void.annotate(self.ast.annotations ?? {})
+      .pipe(
+        Schema.decodeTo(
+          Schema.toType(self),
+          Transformation.transform({
+            decode: options.decode,
+            encode: constVoid
+          })
+        )
       )
-    ).annotate({
-      httpApiIsEmpty: true,
-      httpApiStatus: options.status
-    })
+      .annotate({
+        httpApiIsEmpty: true,
+        httpApiStatus: options.status
+      })
 )
 
 /**
@@ -304,13 +291,16 @@ export interface Multipart<S extends Schema.Top> extends Schema.brand<S["~rebuil
  * @since 4.0.0
  * @category multipart
  */
-export const Multipart = <S extends Schema.Top>(self: S, options?: {
-  readonly maxParts?: number | undefined
-  readonly maxFieldSize?: FileSystem.SizeInput | undefined
-  readonly maxFileSize?: FileSystem.SizeInput | undefined
-  readonly maxTotalSize?: FileSystem.SizeInput | undefined
-  readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
-}): Multipart<S> =>
+export const Multipart = <S extends Schema.Top>(
+  self: S,
+  options?: {
+    readonly maxParts?: number | undefined
+    readonly maxFieldSize?: FileSystem.SizeInput | undefined
+    readonly maxFileSize?: FileSystem.SizeInput | undefined
+    readonly maxTotalSize?: FileSystem.SizeInput | undefined
+    readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
+  }
+): Multipart<S> =>
   self.pipe(Schema.brand(MultipartTypeId)).annotate({
     httpApiMultipart: options ?? {}
   })
@@ -337,13 +327,16 @@ export interface MultipartStream<S extends Schema.Top> extends Schema.brand<S["~
  * @since 4.0.0
  * @category multipart
  */
-export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
-  readonly maxParts?: number | undefined
-  readonly maxFieldSize?: FileSystem.SizeInput | undefined
-  readonly maxFileSize?: FileSystem.SizeInput | undefined
-  readonly maxTotalSize?: FileSystem.SizeInput | undefined
-  readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
-}): MultipartStream<S> =>
+export const MultipartStream = <S extends Schema.Top>(
+  self: S,
+  options?: {
+    readonly maxParts?: number | undefined
+    readonly maxFieldSize?: FileSystem.SizeInput | undefined
+    readonly maxFileSize?: FileSystem.SizeInput | undefined
+    readonly maxTotalSize?: FileSystem.SizeInput | undefined
+    readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
+  }
+): MultipartStream<S> =>
   self.pipe(Schema.brand(MultipartStreamTypeId)).annotate({
     httpApiMultipartStream: options ?? {}
   })
@@ -366,13 +359,21 @@ export declare namespace Encoding {
    * @since 4.0.0
    * @category encoding
    */
-  export type Validate<A extends Schema.Top, Kind extends Encoding["kind"]> = Kind extends "Json" ? {}
-    : Kind extends "UrlParams" ? [A["Encoded"]] extends [Readonly<Record<string, string | undefined>>] ? {}
-      : `'UrlParams' kind can only be encoded to 'Record<string, string | undefined>'`
-    : Kind extends "Uint8Array" ?
-      [A["Encoded"]] extends [Uint8Array] ? {} : `'Uint8Array' kind can only be encoded to 'Uint8Array'`
-    : Kind extends "Text" ? [A["Encoded"]] extends [string] ? {} : `'Text' kind can only be encoded to 'string'`
-    : never
+  export type Validate<A extends Schema.Top, Kind extends Encoding["kind"]> = Kind extends "Json"
+    ? {}
+    : Kind extends "UrlParams"
+      ? [A["Encoded"]] extends [Readonly<Record<string, string | undefined>>]
+        ? {}
+        : `'UrlParams' kind can only be encoded to 'Record<string, string | undefined>'`
+      : Kind extends "Uint8Array"
+        ? [A["Encoded"]] extends [Uint8Array]
+          ? {}
+          : `'Uint8Array' kind can only be encoded to 'Uint8Array'`
+        : Kind extends "Text"
+          ? [A["Encoded"]] extends [string]
+            ? {}
+            : `'Text' kind can only be encoded to 'string'`
+          : never
 }
 
 const defaultContentType = (encoding: Encoding["kind"]) => {
@@ -410,24 +411,30 @@ export const withEncoding: {
       readonly contentType?: string | undefined
     } & Encoding.Validate<S, Kind>
   ): S["~rebuild.out"]
-} = dual(2, <S extends Schema.Top>(self: S, options: {
-  readonly kind: Encoding["kind"]
-  readonly contentType?: string | undefined
-}): S["~rebuild.out"] =>
-  self.annotate({
-    httpApiEncoding: {
-      kind: options.kind,
-      contentType: options.contentType ?? defaultContentType(options.kind)
-    },
-    ...(options.kind === "Uint8Array" ?
-      {
-        toJsonSchema: () => ({
-          "type": "string",
-          "format": "binary"
-        })
-      } :
-      undefined)
-  }))
+} = dual(
+  2,
+  <S extends Schema.Top>(
+    self: S,
+    options: {
+      readonly kind: Encoding["kind"]
+      readonly contentType?: string | undefined
+    }
+  ): S["~rebuild.out"] =>
+    self.annotate({
+      httpApiEncoding: {
+        kind: options.kind,
+        contentType: options.contentType ?? defaultContentType(options.kind)
+      },
+      ...(options.kind === "Uint8Array"
+        ? {
+            toJsonSchema: () => ({
+              type: "string",
+              format: "binary"
+            })
+          }
+        : undefined)
+    })
+)
 
 const encodingJson: Encoding = {
   kind: "Json",
@@ -446,25 +453,20 @@ export function getEncoding(ast: AST.AST, fallback = encodingJson): Encoding {
  * @since 4.0.0
  * @category encoding
  */
-export const Text = (options?: {
-  readonly contentType?: string
-}): Schema.String => withEncoding(Schema.String, { kind: "Text", ...options })
+export const Text = (options?: { readonly contentType?: string }): Schema.String =>
+  withEncoding(Schema.String, { kind: "Text", ...options })
 
 /**
  * @since 4.0.0
  * @category encoding
  */
-export const Uint8Array = (options?: {
-  readonly contentType?: string
-}): Schema.Uint8Array => withEncoding(Schema.Uint8Array, { kind: "Uint8Array", ...options })
+export const Uint8Array = (options?: { readonly contentType?: string }): Schema.Uint8Array =>
+  withEncoding(Schema.Uint8Array, { kind: "Uint8Array", ...options })
 
 /**
  * @since 4.0.0
  */
-export const forEachMember = (
-  schema: Schema.Top,
-  f: (member: Schema.Top) => void
-): void => {
+export const forEachMember = (schema: Schema.Top, f: (member: Schema.Top) => void): void => {
   if (astCache.has(schema.ast)) {
     f(astCache.get(schema.ast)!)
     return
@@ -503,18 +505,16 @@ const unionCaches = new WeakMap<AST.AST, WeakMap<AST.AST, Schema.Top>>()
  * @since 4.0.0
  * @category empty errors
  */
-export interface EmptyErrorClass<Self, Tag> extends
-  Schema.Bottom<
-    Self,
-    void,
-    never,
-    never,
-    AST.Declaration,
-    EmptyErrorClass<Self, Tag>, // TODO: Fix this
-    readonly [] // TODO: Fix this
-  >
-{
-  new(): { readonly _tag: Tag } & YieldableError
+export interface EmptyErrorClass<Self, Tag> extends Schema.Bottom<
+  Self,
+  void,
+  never,
+  never,
+  AST.Declaration,
+  EmptyErrorClass<Self, Tag>, // TODO: Fix this
+  readonly [] // TODO: Fix this
+> {
+  new (): { readonly _tag: Tag } & YieldableError
 }
 
 const EmptyErrorTypeId = "~effect/httpapi/HttpApiSchema/EmptyError"
@@ -523,43 +523,44 @@ const EmptyErrorTypeId = "~effect/httpapi/HttpApiSchema/EmptyError"
  * @since 4.0.0
  * @category empty errors
  */
-export const EmptyError = <Self>() =>
-<const Tag extends string>(options: {
-  readonly tag: Tag
-  readonly status: number
-}): EmptyErrorClass<Self, Tag> => {
-  class EmptyError extends Schema.ErrorClass<EmptyError>(`effect/httpapi/HttpApiSchema/EmptyError/${options.tag}`)({
-    _tag: Schema.tag(options.tag)
-  }, {
-    id: options.tag
-  }) {
-    readonly [EmptyErrorTypeId]: typeof EmptyErrorTypeId
-    constructor() {
-      super({}, { disableValidation: true })
-      this[EmptyErrorTypeId] = EmptyErrorTypeId
-      this.name = options.tag
+export const EmptyError =
+  <Self>() =>
+  <const Tag extends string>(options: { readonly tag: Tag; readonly status: number }): EmptyErrorClass<Self, Tag> => {
+    class EmptyError extends Schema.ErrorClass<EmptyError>(`effect/httpapi/HttpApiSchema/EmptyError/${options.tag}`)(
+      {
+        _tag: Schema.tag(options.tag)
+      },
+      {
+        id: options.tag
+      }
+    ) {
+      readonly [EmptyErrorTypeId]: typeof EmptyErrorTypeId
+      constructor() {
+        super({}, { disableValidation: true })
+        this[EmptyErrorTypeId] = EmptyErrorTypeId
+        this.name = options.tag
+      }
     }
-  }
-  let transform: Schema.Top | undefined
-  Object.defineProperty(EmptyError, "ast", {
-    get() {
-      if (transform) {
+    let transform: Schema.Top | undefined
+    Object.defineProperty(EmptyError, "ast", {
+      get() {
+        if (transform) {
+          return transform.ast
+        }
+        const self = this as any
+        const decoded = new self()
+        decoded.stack = options.tag
+        transform = asEmpty(
+          Schema.declare((u: unknown) => Predicate.hasProperty(u, EmptyErrorTypeId), {
+            identifier: options.tag
+          }),
+          {
+            status: options.status,
+            decode: constant(decoded)
+          }
+        )
         return transform.ast
       }
-      const self = this as any
-      const decoded = new self()
-      decoded.stack = options.tag
-      transform = asEmpty(
-        Schema.declare((u: unknown) => Predicate.hasProperty(u, EmptyErrorTypeId), {
-          identifier: options.tag
-        }),
-        {
-          status: options.status,
-          decode: constant(decoded)
-        }
-      )
-      return transform.ast
-    }
-  })
-  return EmptyError as any
-}
+    })
+    return EmptyError as any
+  }

@@ -8,14 +8,14 @@ describe("Headers", () => {
     it("serializer annotation", () => {
       const _Accept = Schema.toIso(Headers.HeadersSchema).at("Accept")
       const headers = Headers.fromRecordUnsafe({
-        "Accept": "application/json, text/plain, */*",
+        Accept: "application/json, text/plain, */*",
         "Cache-Control": "no-cache"
       })
       assertSuccess(_Accept.getResult(headers), "application/json, text/plain, */*")
       assertSuccess(
         _Accept.replaceResult("application/json", headers),
         Headers.fromRecordUnsafe({
-          "accept": "application/json",
+          accept: "application/json",
           "cache-control": "no-cache"
         })
       )

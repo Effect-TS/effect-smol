@@ -31,7 +31,7 @@ export type RequestId = Branded<bigint, "~effect/rpc/RpcMessage/RequestId">
  * @category request
  */
 export const RequestId = (id: bigint | string): RequestId =>
-  typeof id === "bigint" ? id as RequestId : BigInt(id) as RequestId
+  typeof id === "bigint" ? (id as RequestId) : (BigInt(id) as RequestId)
 
 /**
  * @since 4.0.0
@@ -132,11 +132,7 @@ export const constPing: Ping = { _tag: "Ping" }
  * @since 4.0.0
  * @category response
  */
-export type FromServer<A extends Rpc.Any> =
-  | ResponseChunk<A>
-  | ResponseExit<A>
-  | ResponseDefect
-  | ClientEnd
+export type FromServer<A extends Rpc.Any> = ResponseChunk<A> | ResponseExit<A> | ResponseDefect | ClientEnd
 
 /**
  * @since 4.0.0
@@ -192,24 +188,28 @@ export interface ResponseChunk<A extends Rpc.Any> {
  * @since 4.0.0
  * @category response
  */
-export type ExitEncoded<A, E> = {
-  readonly _tag: "Success"
-  readonly value: A
-} | {
-  readonly _tag: "Failure"
-  readonly cause: ReadonlyArray<
-    {
-      readonly _tag: "Fail"
-      readonly error: E
-    } | {
-      readonly _tag: "Die"
-      readonly defect: unknown
-    } | {
-      readonly _tag: "Interrupt"
-      readonly fiberId: number | undefined
+export type ExitEncoded<A, E> =
+  | {
+      readonly _tag: "Success"
+      readonly value: A
     }
-  >
-}
+  | {
+      readonly _tag: "Failure"
+      readonly cause: ReadonlyArray<
+        | {
+            readonly _tag: "Fail"
+            readonly error: E
+          }
+        | {
+            readonly _tag: "Die"
+            readonly defect: unknown
+          }
+        | {
+            readonly _tag: "Interrupt"
+            readonly fiberId: number | undefined
+          }
+      >
+    }
 
 /**
  * @since 4.0.0

@@ -64,68 +64,62 @@ export const CurrentXHRResponseType: ServiceMap.Reference<XHRResponseType> = Ser
  * @since 1.0.0
  * @category References
  */
-export const withXHRArrayBuffer = <A, E, R>(
-  self: Effect.Effect<A, E, R>
-): Effect.Effect<A, E, R> =>
-  Effect.provideService(
-    self,
-    CurrentXHRResponseType,
-    "arraybuffer"
-  )
+export const withXHRArrayBuffer = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  Effect.provideService(self, CurrentXHRResponseType, "arraybuffer")
 
 /**
  * @since 1.0.0
  * @category Services
  */
-export class XMLHttpRequest extends ServiceMap.Service<
-  XMLHttpRequest,
-  LazyArg<globalThis.XMLHttpRequest>
->()("@effect/platform-browser/BrowserHttpClient/XMLHttpRequest") {}
+export class XMLHttpRequest extends ServiceMap.Service<XMLHttpRequest, LazyArg<globalThis.XMLHttpRequest>>()(
+  "@effect/platform-browser/BrowserHttpClient/XMLHttpRequest"
+) {}
 
 const makeXhrRequest = () => new globalThis.XMLHttpRequest()
 
-const makeXmlHttpRequest = HttpClient.make(
-  (request, url, signal, fiber) =>
-    Effect.suspend(() => {
-      const xhr = ServiceMap.getOrElse(
-        fiber.services,
-        XMLHttpRequest,
-        () => makeXhrRequest
-      )()
-      signal.addEventListener("abort", () => {
+const makeXmlHttpRequest = HttpClient.make((request, url, signal, fiber) =>
+  Effect.suspend(() => {
+    const xhr = ServiceMap.getOrElse(fiber.services, XMLHttpRequest, () => makeXhrRequest)()
+    signal.addEventListener(
+      "abort",
+      () => {
         xhr.abort()
         xhr.onreadystatechange = null
-      }, { once: true })
-      xhr.open(request.method, url.toString(), true)
-      xhr.responseType = fiber.getRef(CurrentXHRResponseType)
-      Object.entries(request.headers).forEach(([k, v]) => {
-        xhr.setRequestHeader(k, v)
-      })
-      return Effect.andThen(
-        sendBody(xhr, request),
-        Effect.callback<ClientResponseImpl, HttpClientError.RequestError>((resume) => {
-          let sent = false
-          const onChange = () => {
-            if (!sent && xhr.readyState >= 2) {
-              sent = true
-              resume(Effect.succeed(new ClientResponseImpl(request, xhr)))
-            }
+      },
+      { once: true }
+    )
+    xhr.open(request.method, url.toString(), true)
+    xhr.responseType = fiber.getRef(CurrentXHRResponseType)
+    Object.entries(request.headers).forEach(([k, v]) => {
+      xhr.setRequestHeader(k, v)
+    })
+    return Effect.andThen(
+      sendBody(xhr, request),
+      Effect.callback<ClientResponseImpl, HttpClientError.RequestError>((resume) => {
+        let sent = false
+        const onChange = () => {
+          if (!sent && xhr.readyState >= 2) {
+            sent = true
+            resume(Effect.succeed(new ClientResponseImpl(request, xhr)))
           }
-          xhr.onreadystatechange = onChange
-          xhr.onerror = (_event) => {
-            resume(Effect.fail(
+        }
+        xhr.onreadystatechange = onChange
+        xhr.onerror = (_event) => {
+          resume(
+            Effect.fail(
               new HttpClientError.RequestError({
                 request,
                 reason: "Transport",
                 cause: xhr.statusText
               })
-            ))
-          }
-          onChange()
-          return Effect.void
-        })
-      )
-    })
+            )
+          )
+        }
+        onChange()
+        return Effect.void
+      })
+    )
+  })
 )
 
 const sendBody = (
@@ -144,12 +138,16 @@ const sendBody = (
       return Effect.sync(() => xhr.send(body.formData))
     case "Stream":
       return Effect.matchEffect(
-        Stream.runFold(body.stream, () => new Uint8Array(0), (acc, chunk) => {
-          const next = new Uint8Array(acc.length + chunk.length)
-          next.set(acc, 0)
-          next.set(chunk, acc.length)
-          return next
-        }),
+        Stream.runFold(
+          body.stream,
+          () => new Uint8Array(0),
+          (acc, chunk) => {
+            const next = new Uint8Array(acc.length + chunk.length)
+            next.set(acc, 0)
+            next.set(chunk, acc.length)
+            return next
+          }
+        ),
         {
           onFailure: (cause) =>
             Effect.fail(
@@ -188,13 +186,13 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
       return this._headers
     }
     if (this._rawHeaderString === "") {
-      return this._headers = Headers.empty
+      return (this._headers = Headers.empty)
     }
     const parser = HeaderParser.make()
     const result = parser(encoder.encode(this._rawHeaderString + "\r\n"), 0)
     this._rawHeaders = result._tag === "Headers" ? result.headers : undefined
     const parsed = result._tag === "Headers" ? Headers.fromInput(result.headers) : Headers.empty
-    return this._headers = parsed
+    return (this._headers = parsed)
   }
 
   cachedCookies: Cookies.Cookies | undefined
@@ -205,9 +203,9 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
     if (this._rawHeaders === undefined) {
       return Cookies.empty
     } else if (this._rawHeaders["set-cookie"] === undefined) {
-      return this.cachedCookies = Cookies.empty
+      return (this.cachedCookies = Cookies.empty)
     }
-    return this.cachedCookies = Cookies.fromSetCookie(this._rawHeaders["set-cookie"])
+    return (this.cachedCookies = Cookies.fromSetCookie(this._rawHeaders["set-cookie"]))
   }
 
   get remoteAddress() {
@@ -219,7 +217,7 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
     if (this._textEffect) {
       return this._textEffect
     }
-    return this._textEffect = Effect.callback<string, E>((resume) => {
+    return (this._textEffect = Effect.callback<string, E>((resume) => {
       if (this.source.readyState === 4) {
         resume(Effect.succeed(this.source.responseText))
         return
@@ -239,18 +237,16 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
         this.source.removeEventListener("readystatechange", onReadyStateChange)
         this.source.removeEventListener("error", onError)
       })
-    }).pipe(
-      Effect.cached,
-      Effect.runSync
-    )
+    }).pipe(Effect.cached, Effect.runSync))
   }
 
   get json(): Effect.Effect<unknown, E> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
-        try: () => text === "" ? null : JSON.parse(text) as unknown,
+        try: () => (text === "" ? null : (JSON.parse(text) as unknown)),
         catch: this.onError
-      }))
+      })
+    )
   }
 
   get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, E> {
@@ -258,7 +254,8 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
       Effect.try({
         try: () => UrlParams.fromInput(new URLSearchParams(text)),
         catch: this.onError
-      }))
+      })
+    )
   }
 
   get stream(): Stream.Stream<Uint8Array, E> {
@@ -295,7 +292,7 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
     if (this._arrayBufferEffect) {
       return this._arrayBufferEffect
     }
-    return this._arrayBufferEffect = Effect.callback<ArrayBuffer, E>((resume) => {
+    return (this._arrayBufferEffect = Effect.callback<ArrayBuffer, E>((resume) => {
       if (this.source.readyState === 4) {
         resume(Effect.succeed(this.source.response))
         return
@@ -327,27 +324,28 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
       }),
       Effect.cached,
       Effect.runSync
-    )
+    ))
   }
 }
 
-class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.ResponseError>
+class ClientResponseImpl
+  extends IncomingMessageImpl<HttpClientError.ResponseError>
   implements HttpClientResponse.HttpClientResponse
 {
   readonly [HttpClientResponse.TypeId]: typeof HttpClientResponse.TypeId
   readonly request: HttpClientRequest.HttpClientRequest
 
-  constructor(
-    request: HttpClientRequest.HttpClientRequest,
-    source: globalThis.XMLHttpRequest
-  ) {
-    super(source, (cause) =>
-      new HttpClientError.ResponseError({
-        request,
-        response: this,
-        reason: "Decode",
-        cause
-      }))
+  constructor(request: HttpClientRequest.HttpClientRequest, source: globalThis.XMLHttpRequest) {
+    super(
+      source,
+      (cause) =>
+        new HttpClientError.ResponseError({
+          request,
+          response: this,
+          reason: "Decode",
+          cause
+        })
+    )
     this.request = request
     this[HttpClientResponse.TypeId] = HttpClientResponse.TypeId
   }

@@ -43,24 +43,18 @@ export const layerNoop = Layer.succeed(RunnerHealth, {
  * @since 4.0.0
  * @category Constructors
  */
-export const makePing: Effect.Effect<
-  RunnerHealth["Service"],
-  never,
-  Runners.Runners | Scope.Scope
-> = Effect.gen(function*() {
-  const runners = yield* Runners.Runners
-  const schedule = Schedule.spaced(500)
+export const makePing: Effect.Effect<RunnerHealth["Service"], never, Runners.Runners | Scope.Scope> = Effect.gen(
+  function* () {
+    const runners = yield* Runners.Runners
+    const schedule = Schedule.spaced(500)
 
-  function isAlive(address: RunnerAddress): Effect.Effect<boolean> {
-    return runners.ping(address).pipe(
-      Effect.timeout(10_000),
-      Effect.retry({ times: 5, schedule }),
-      Effect.isSuccess
-    )
+    function isAlive(address: RunnerAddress): Effect.Effect<boolean> {
+      return runners.ping(address).pipe(Effect.timeout(10_000), Effect.retry({ times: 5, schedule }), Effect.isSuccess)
+    }
+
+    return RunnerHealth.of({ isAlive })
   }
-
-  return RunnerHealth.of({ isAlive })
-})
+)
 
 /**
  * A layer which will ping a Runner directly to check if it is healthy.
@@ -68,17 +62,13 @@ export const makePing: Effect.Effect<
  * @since 4.0.0
  * @category layers
  */
-export const layerPing: Layer.Layer<
-  RunnerHealth,
-  never,
-  Runners.Runners
-> = Layer.effect(RunnerHealth, makePing)
+export const layerPing: Layer.Layer<RunnerHealth, never, Runners.Runners> = Layer.effect(RunnerHealth, makePing)
 
 /**
  * @since 4.0.0
  * @category Constructors
  */
-export const makeK8s = Effect.fnUntraced(function*(options?: {
+export const makeK8s = Effect.fnUntraced(function* (options?: {
   readonly namespace?: string | undefined
   readonly labelSelector?: string | undefined
 }) {
@@ -106,12 +96,10 @@ export const makeK8s = Effect.fnUntraced(function*(options?: {
  * @category layers
  */
 export const layerK8s = (
-  options?: {
-    readonly namespace?: string | undefined
-    readonly labelSelector?: string | undefined
-  } | undefined
-): Layer.Layer<
-  RunnerHealth,
-  never,
-  K8s.K8sHttpClient
-> => Layer.effect(RunnerHealth, makeK8s(options))
+  options?:
+    | {
+        readonly namespace?: string | undefined
+        readonly labelSelector?: string | undefined
+      }
+    | undefined
+): Layer.Layer<RunnerHealth, never, K8s.K8sHttpClient> => Layer.effect(RunnerHealth, makeK8s(options))

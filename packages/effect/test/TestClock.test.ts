@@ -6,17 +6,18 @@ import * as TestClock from "effect/testing/TestClock"
 
 describe("TestClock", () => {
   it.effect("sleep - does not require passage of wall time", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       let elapsed = false
       yield* Effect.sync(() => {
         elapsed = true
       }).pipe(Effect.delay("10 hours"), Effect.forkChild)
       yield* TestClock.adjust("11 hours")
       assert.isTrue(elapsed)
-    }))
+    })
+  )
 
   it.effect("sleep - delays effects until time is adjusted", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       let elapsed = false
       const fiber = yield* Effect.sync(() => {
         elapsed = true
@@ -26,10 +27,11 @@ describe("TestClock", () => {
       yield* TestClock.adjust("11 hours")
       assert.deepStrictEqual(fiber.pollUnsafe(), Exit.void)
       assert.isTrue(elapsed)
-    }))
+    })
+  )
 
   it.effect("sleep - handles multiple sleeps", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       let message = ""
       yield* Effect.sync(() => {
         message += "World!"
@@ -41,10 +43,11 @@ describe("TestClock", () => {
       assert.strictEqual(message, "Hello, ")
       yield* TestClock.adjust("4 hours")
       assert.strictEqual(message, "Hello, World!")
-    }))
+    })
+  )
 
   it.effect("setTime - sleep correctly handles new set time", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       let elapsed = false
       yield* Effect.sync(() => {
         elapsed = true
@@ -52,5 +55,6 @@ describe("TestClock", () => {
       assert.isFalse(elapsed)
       yield* TestClock.setTime(Duration.toMillis(Duration.hours(11)))
       assert.isTrue(elapsed)
-    }))
+    })
+  )
 })

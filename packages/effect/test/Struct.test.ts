@@ -73,10 +73,10 @@ describe("Struct", () => {
   })
 
   it("evolveEntries", () => {
-    deepStrictEqual(
-      pipe({ a: "a", b: 2 }, Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), v.length] })),
-      { A: 1, b: 2 }
-    )
+    deepStrictEqual(pipe({ a: "a", b: 2 }, Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), v.length] })), {
+      A: 1,
+      b: 2
+    })
     deepStrictEqual(Struct.evolveEntries({ a: "a", b: 2 }, { a: (k, v) => [Str.toUpperCase(k), v.length] }), {
       A: 1,
       b: 2
@@ -95,37 +95,25 @@ describe("Struct", () => {
   })
 
   it("mapPick", () => {
-    equals(
-      pipe({ a: Schema.String, b: Schema.Number }, Struct.mapPick(["a"], Schema.NullOr)),
-      {
-        a: Schema.NullOr(Schema.String),
-        b: Schema.Number
-      }
-    )
-    equals(
-      Struct.mapPick({ a: Schema.String, b: Schema.Number }, ["a"], Schema.NullOr),
-      {
-        a: Schema.NullOr(Schema.String),
-        b: Schema.Number
-      }
-    )
+    equals(pipe({ a: Schema.String, b: Schema.Number }, Struct.mapPick(["a"], Schema.NullOr)), {
+      a: Schema.NullOr(Schema.String),
+      b: Schema.Number
+    })
+    equals(Struct.mapPick({ a: Schema.String, b: Schema.Number }, ["a"], Schema.NullOr), {
+      a: Schema.NullOr(Schema.String),
+      b: Schema.Number
+    })
   })
 
   it("mapOmit", () => {
-    equals(
-      pipe({ a: Schema.String, b: Schema.Number }, Struct.mapOmit(["b"], Schema.NullOr)),
-      {
-        a: Schema.NullOr(Schema.String),
-        b: Schema.Number
-      }
-    )
-    equals(
-      Struct.mapOmit({ a: Schema.String, b: Schema.Number }, ["b"], Schema.NullOr),
-      {
-        a: Schema.NullOr(Schema.String),
-        b: Schema.Number
-      }
-    )
+    equals(pipe({ a: Schema.String, b: Schema.Number }, Struct.mapOmit(["b"], Schema.NullOr)), {
+      a: Schema.NullOr(Schema.String),
+      b: Schema.Number
+    })
+    equals(Struct.mapOmit({ a: Schema.String, b: Schema.Number }, ["b"], Schema.NullOr), {
+      a: Schema.NullOr(Schema.String),
+      b: Schema.Number
+    })
   })
 
   it("makeEquivalence", () => {

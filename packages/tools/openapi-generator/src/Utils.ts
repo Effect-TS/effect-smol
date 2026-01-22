@@ -6,10 +6,7 @@ export const camelize = (self: string): string => {
   let hadSymbol = false
   for (let i = 0; i < self.length; i++) {
     const charCode = self.charCodeAt(i)
-    if (
-      (charCode >= 65 && charCode <= 90) ||
-      (charCode >= 97 && charCode <= 122)
-    ) {
+    if ((charCode >= 65 && charCode <= 90) || (charCode >= 97 && charCode <= 122)) {
       str += hadSymbol ? self[i].toUpperCase() : self[i]
       hadSymbol = false
     } else if (charCode >= 48 && charCode <= 57) {

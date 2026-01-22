@@ -93,19 +93,14 @@ export const isBoolean = (p: Primitive<unknown>): p is Primitive<boolean> => p._
 
 const makePrimitive = <A>(
   tag: string,
-  parse: (
-    value: string
-  ) => Effect.Effect<A, string, FileSystem.FileSystem | Path.Path>
+  parse: (value: string) => Effect.Effect<A, string, FileSystem.FileSystem | Path.Path>
 ): Primitive<A> =>
   Object.assign(Object.create(Proto), {
     _tag: tag,
     parse
   })
 
-const makeSchemaPrimitive = <T, E>(
-  tag: string,
-  schema: Schema.Codec<T, E>
-): Primitive<T> => {
+const makeSchemaPrimitive = <T, E>(tag: string, schema: Schema.Codec<T, E>): Primitive<T> => {
   const toCodecStringTree = Schema.toCodecStringTree(schema)
   const decode = Schema.decodeUnknownEffect(toCodecStringTree)
   return makePrimitive(tag, (value) => Effect.mapError(decode(value), (error) => error.message))
@@ -141,10 +136,7 @@ const makeSchemaPrimitive = <T, E>(
  * @since 4.0.0
  * @category constructors
  */
-export const boolean: Primitive<boolean> = makeSchemaPrimitive(
-  "Boolean",
-  Config.Boolean
-)
+export const boolean: Primitive<boolean> = makeSchemaPrimitive("Boolean", Config.Boolean)
 
 /**
  * Creates a primitive that parses floating-point numbers from string input.
@@ -169,10 +161,7 @@ export const boolean: Primitive<boolean> = makeSchemaPrimitive(
  * @since 4.0.0
  * @category constructors
  */
-export const float: Primitive<number> = makeSchemaPrimitive(
-  "Float",
-  Schema.Finite
-)
+export const float: Primitive<number> = makeSchemaPrimitive("Float", Schema.Finite)
 
 /**
  * Creates a primitive that parses integer numbers from string input.
@@ -197,10 +186,7 @@ export const float: Primitive<number> = makeSchemaPrimitive(
  * @since 4.0.0
  * @category constructors
  */
-export const integer: Primitive<number> = makeSchemaPrimitive(
-  "Integer",
-  Schema.Int
-)
+export const integer: Primitive<number> = makeSchemaPrimitive("Integer", Schema.Int)
 
 /**
  * Creates a primitive that parses Date objects from string input.
@@ -225,10 +211,7 @@ export const integer: Primitive<number> = makeSchemaPrimitive(
  * @since 4.0.0
  * @category constructors
  */
-export const date: Primitive<Date> = makeSchemaPrimitive(
-  "Date",
-  Schema.DateValid
-)
+export const date: Primitive<Date> = makeSchemaPrimitive("Date", Schema.DateValid)
 
 /**
  * Creates a primitive that accepts any string value without validation.
@@ -284,9 +267,7 @@ export const string: Primitive<string> = makePrimitive("String", (value) => Effe
  * @since 4.0.0
  * @category constructors
  */
-export const choice = <A>(
-  choices: ReadonlyArray<readonly [string, A]>
-): Primitive<A> => {
+export const choice = <A>(choices: ReadonlyArray<readonly [string, A]>): Primitive<A> => {
   const choiceMap = new Map(choices)
   const validChoices = choices.map(([key]) => format(key)).join(" | ")
   return makePrimitive("Choice", (value) => {
@@ -348,13 +329,10 @@ export type PathType = "file" | "directory" | "either"
  * @since 4.0.0
  * @category constructors
  */
-export const path = (
-  pathType: PathType,
-  mustExist?: boolean
-): Primitive<string> =>
+export const path = (pathType: PathType, mustExist?: boolean): Primitive<string> =>
   makePrimitive(
     "Path",
-    Effect.fnUntraced(function*(value) {
+    Effect.fnUntraced(function* (value) {
       const fs = yield* FileSystem.FileSystem
       const path = yield* Path.Path
 
@@ -374,10 +352,7 @@ export const path = (
 
       // Validate path type if it exists
       if (exists && pathType !== "either") {
-        const stat = yield* Effect.mapError(
-          fs.stat(absolutePath),
-          (error) => `Failed to stat path: ${error.message}`
-        )
+        const stat = yield* Effect.mapError(fs.stat(absolutePath), (error) => `Failed to stat path: ${error.message}`)
 
         if (pathType === "file" && stat.type !== "File") {
           return yield* Effect.fail(`Path is not a file: ${absolutePath}`)
@@ -409,9 +384,8 @@ export const path = (
  * @since 4.0.0
  * @category constructors
  */
-export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
-  "Redacted",
-  (value) => Effect.succeed(Redacted.make(value))
+export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive("Redacted", (value) =>
+  Effect.succeed(Redacted.make(value))
 )
 
 /**
@@ -436,14 +410,12 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
  */
 export const fileText: Primitive<string> = makePrimitive(
   "FileText",
-  Effect.fnUntraced(function*(filePath) {
+  Effect.fnUntraced(function* (filePath) {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
 
     // Resolve to absolute path
-    const absolutePath = path.isAbsolute(filePath)
-      ? filePath
-      : path.resolve(filePath)
+    const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath)
 
     // Check if file exists
     const exists = yield* Effect.mapError(
@@ -456,10 +428,7 @@ export const fileText: Primitive<string> = makePrimitive(
     }
 
     // Check if it's actually a file
-    const stat = yield* Effect.mapError(
-      fs.stat(absolutePath),
-      (error) => `Failed to stat file: ${error.message}`
-    )
+    const stat = yield* Effect.mapError(fs.stat(absolutePath), (error) => `Failed to stat file: ${error.message}`)
 
     if (stat.type !== "File") {
       return yield* Effect.fail(`Path is not a file: ${absolutePath}`)
@@ -517,8 +486,8 @@ const fileParsers: Record<string, (content: string) => unknown> = {
 export const fileParse = (options?: FileParseOptions): Primitive<unknown> => {
   return makePrimitive(
     "FileParse",
-    Effect.fnUntraced(function*(filePath) {
-      const fileFormat = options?.format ?? filePath.split(".").pop() as string
+    Effect.fnUntraced(function* (filePath) {
+      const fileFormat = options?.format ?? (filePath.split(".").pop() as string)
       const parser = fileParsers[fileFormat]
       if (parser === undefined) {
         return yield* Effect.fail(`Unsupported file format: ${fileFormat}`)
@@ -580,7 +549,7 @@ export const fileSchema = <A>(
   const decode = Schema.decodeUnknownEffect(schema)
   return makePrimitive(
     "FileSchema",
-    Effect.fnUntraced(function*(filePath) {
+    Effect.fnUntraced(function* (filePath) {
       const content = yield* fileParse(options).parse(filePath)
       return yield* Effect.mapError(
         decode(content),
@@ -615,18 +584,14 @@ export const fileSchema = <A>(
  */
 export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
   "KeyValuePair",
-  Effect.fnUntraced(function*(value) {
+  Effect.fnUntraced(function* (value) {
     const parts = value.split("=")
     if (parts.length !== 2) {
-      return yield* Effect.fail(
-        `Invalid key=value format. Expected format: key=value, got: ${value}`
-      )
+      return yield* Effect.fail(`Invalid key=value format. Expected format: key=value, got: ${value}`)
     }
     const [key, val] = parts
     if (!key || !val) {
-      return yield* Effect.fail(
-        `Invalid key=value format. Both key and value must be non-empty. Got: ${value}`
-      )
+      return yield* Effect.fail(`Invalid key=value format. Both key and value must be non-empty. Got: ${value}`)
     }
     return { [key]: val }
   })

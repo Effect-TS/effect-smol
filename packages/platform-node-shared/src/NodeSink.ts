@@ -14,28 +14,24 @@ import type { Writable } from "node:stream"
  * @category constructors
  * @since 1.0.0
  */
-export const fromWritable = <E, A = Uint8Array | string>(
-  options: {
-    readonly evaluate: LazyArg<Writable | NodeJS.WritableStream>
-    readonly onError: (error: unknown) => E
-    readonly endOnDone?: boolean | undefined
-    readonly encoding?: BufferEncoding | undefined
-  }
-): Sink.Sink<void, A, never, E> =>
+export const fromWritable = <E, A = Uint8Array | string>(options: {
+  readonly evaluate: LazyArg<Writable | NodeJS.WritableStream>
+  readonly onError: (error: unknown) => E
+  readonly endOnDone?: boolean | undefined
+  readonly encoding?: BufferEncoding | undefined
+}): Sink.Sink<void, A, never, E> =>
   Sink.fromChannel(Channel.mapDone(fromWritableChannel<never, E, A>(options), (_) => [_]))
 
 /**
  * @category constructors
  * @since 1.0.0
  */
-export const fromWritableChannel = <IE, E, A = Uint8Array | string>(
-  options: {
-    readonly evaluate: LazyArg<Writable | NodeJS.WritableStream>
-    readonly onError: (error: unknown) => E
-    readonly endOnDone?: boolean | undefined
-    readonly encoding?: BufferEncoding | undefined
-  }
-): Channel.Channel<never, IE | E, void, NonEmptyReadonlyArray<A>, IE> =>
+export const fromWritableChannel = <IE, E, A = Uint8Array | string>(options: {
+  readonly evaluate: LazyArg<Writable | NodeJS.WritableStream>
+  readonly onError: (error: unknown) => E
+  readonly endOnDone?: boolean | undefined
+  readonly encoding?: BufferEncoding | undefined
+}): Channel.Channel<never, IE | E, void, NonEmptyReadonlyArray<A>, IE> =>
   Channel.fromTransform((pull: Pull.Pull<NonEmptyReadonlyArray<A>, IE, unknown>) => {
     const writable = options.evaluate() as Writable
     return Effect.succeed(pullIntoWritable({ ...options, writable, pull }))
@@ -55,7 +51,7 @@ export const pullIntoWritable = <A, IE, E>(options: {
     Effect.flatMap((chunk) => {
       let i = 0
       return Effect.callback<void, E>(function loop(resume) {
-        for (; i < chunk.length;) {
+        for (; i < chunk.length; ) {
           const success = options.writable.write(chunk[i++], options.encoding as any)
           if (!success) {
             options.writable.once("drain", () => (loop as any)(resume))
@@ -66,15 +62,15 @@ export const pullIntoWritable = <A, IE, E>(options: {
       })
     }),
     Effect.forever({ autoYield: false }),
-    options.endOnDone !== false ?
-      Pull.catchDone((_) => {
-        if ("closed" in options.writable && options.writable.closed) {
-          return Cause.done(_)
-        }
-        return Effect.callback<never, E | Cause.Done<unknown>>((resume) => {
-          options.writable.once("finish", () => resume(Cause.done(_)))
-          options.writable.end()
+    options.endOnDone !== false
+      ? Pull.catchDone((_) => {
+          if ("closed" in options.writable && options.writable.closed) {
+            return Cause.done(_)
+          }
+          return Effect.callback<never, E | Cause.Done<unknown>>((resume) => {
+            options.writable.once("finish", () => resume(Cause.done(_)))
+            options.writable.end()
+          })
         })
-      }) :
-      identity
+      : identity
   )

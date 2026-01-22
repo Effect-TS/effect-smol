@@ -8,12 +8,13 @@ import * as Socket from "effect/unstable/socket/Socket"
  * @since 1.0.0
  * @category Layers
  */
-export const layerWebSocket = (url: string, options?: {
-  readonly closeCodeIsError?: (code: number) => boolean
-}): Layer.Layer<Socket.Socket> =>
-  Layer.effect(Socket.Socket, Socket.makeWebSocket(url, options)).pipe(
-    Layer.provide(layerWebSocketConstructor)
-  )
+export const layerWebSocket = (
+  url: string,
+  options?: {
+    readonly closeCodeIsError?: (code: number) => boolean
+  }
+): Layer.Layer<Socket.Socket> =>
+  Layer.effect(Socket.Socket, Socket.makeWebSocket(url, options)).pipe(Layer.provide(layerWebSocketConstructor))
 
 /**
  * A WebSocket constructor that uses `globalThis.WebSocket`.

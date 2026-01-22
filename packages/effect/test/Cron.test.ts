@@ -23,35 +23,41 @@ describe("Cron", () => {
     // At 04:00 on every day-of-month from 8 through 14.
     deepStrictEqual(
       Cron.parse("0 4 8-14 * 0-6"),
-      Result.succeed(Cron.make({
-        minutes: [0],
-        hours: [4],
-        days: [8, 9, 10, 11, 12, 13, 14],
-        months: [],
-        weekdays: []
-      }))
+      Result.succeed(
+        Cron.make({
+          minutes: [0],
+          hours: [4],
+          days: [8, 9, 10, 11, 12, 13, 14],
+          months: [],
+          weekdays: []
+        })
+      )
     )
     // At 00:00 on day-of-month 1 and 15 and on Wednesday.
     deepStrictEqual(
       Cron.parse("0 0 1,15 * 3"),
-      Result.succeed(Cron.make({
-        minutes: [0],
-        hours: [0],
-        days: [1, 15],
-        months: [],
-        weekdays: [3]
-      }))
+      Result.succeed(
+        Cron.make({
+          minutes: [0],
+          hours: [0],
+          days: [1, 15],
+          months: [],
+          weekdays: [3]
+        })
+      )
     )
     // At 00:00 on day-of-month 1 and 15 and on Wednesday.
     deepStrictEqual(
       Cron.parse("23 0-20/2 * * *"),
-      Result.succeed(Cron.make({
-        minutes: [23],
-        hours: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
-        days: [],
-        months: [],
-        weekdays: []
-      }))
+      Result.succeed(
+        Cron.make({
+          minutes: [23],
+          hours: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+          days: [],
+          months: [],
+          weekdays: []
+        })
+      )
     )
   })
 

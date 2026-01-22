@@ -12,11 +12,14 @@ import type * as RpcMessage from "./RpcMessage.ts"
  * @since 4.0.0
  * @category serialization
  */
-export class RpcSerialization extends ServiceMap.Service<RpcSerialization, {
-  makeUnsafe(): Parser
-  readonly contentType: string
-  readonly includesFraming: boolean
-}>()("effect/rpc/RpcSerialization") {}
+export class RpcSerialization extends ServiceMap.Service<
+  RpcSerialization,
+  {
+    makeUnsafe(): Parser
+    readonly contentType: string
+    readonly includesFraming: boolean
+  }
+>()("effect/rpc/RpcSerialization") {}
 
 /**
  * @since 4.0.0
@@ -53,7 +56,7 @@ export const ndjson: RpcSerialization["Service"] = RpcSerialization.of({
   makeUnsafe: () => {
     const decoder = new TextDecoder()
     let buffer = ""
-    return ({
+    return {
       decode: (bytes) => {
         buffer += typeof bytes === "string" ? bytes : decoder.decode(bytes)
         let position = 0
@@ -79,7 +82,7 @@ export const ndjson: RpcSerialization["Service"] = RpcSerialization.of({
         }
         return JSON.stringify(response) + "\n"
       }
-    })
+    }
   }
 })
 
@@ -87,18 +90,19 @@ export const ndjson: RpcSerialization["Service"] = RpcSerialization.of({
  * @since 4.0.0
  * @category serialization
  */
-export const jsonRpc = (options?: {
-  readonly contentType?: string | undefined
-}): RpcSerialization["Service"] =>
+export const jsonRpc = (options?: { readonly contentType?: string | undefined }): RpcSerialization["Service"] =>
   RpcSerialization.of({
     contentType: options?.contentType ?? "application/json",
     includesFraming: false,
     makeUnsafe: () => {
       const decoder = new TextDecoder()
-      const batches = new Map<string, {
-        readonly size: number
-        readonly responses: Map<string, RpcMessage.FromServerEncoded>
-      }>()
+      const batches = new Map<
+        string,
+        {
+          readonly size: number
+          readonly responses: Map<string, RpcMessage.FromServerEncoded>
+        }
+      >()
       return {
         decode: (bytes) => {
           const decoded: JsonRpcMessage | Array<JsonRpcMessage> = JSON.parse(
@@ -122,26 +126,27 @@ export const jsonRpc = (options?: {
  * @since 4.0.0
  * @category serialization
  */
-export const ndJsonRpc = (options?: {
-  readonly contentType?: string | undefined
-}): RpcSerialization["Service"] =>
+export const ndJsonRpc = (options?: { readonly contentType?: string | undefined }): RpcSerialization["Service"] =>
   RpcSerialization.of({
     contentType: options?.contentType ?? "application/json-rpc",
     includesFraming: true,
     makeUnsafe: () => {
       const parser = ndjson.makeUnsafe()
-      const batches = new Map<string, {
-        readonly size: number
-        readonly responses: Map<string, RpcMessage.FromServerEncoded>
-      }>()
-      return ({
+      const batches = new Map<
+        string,
+        {
+          readonly size: number
+          readonly responses: Map<string, RpcMessage.FromServerEncoded>
+        }
+      >()
+      return {
         decode: (bytes) => {
           const frames = parser.decode(bytes)
           if (frames.length === 0) return []
           const messages: Array<RpcMessage.FromClientEncoded | RpcMessage.FromServerEncoded> = []
           for (let i = 0; i < frames.length; i++) {
             const frame = frames[i]
-            messages.push(...decodeJsonRpcRaw(frame as any, batches) as any)
+            messages.push(...(decodeJsonRpcRaw(frame as any, batches) as any))
           }
           return messages
         },
@@ -152,16 +157,19 @@ export const ndJsonRpc = (options?: {
           const encoded = encodeJsonRpcRaw(response as any, batches)
           return encoded && parser.encode(encoded)
         }
-      })
+      }
     }
   })
 
 function decodeJsonRpcRaw(
   decoded: JsonRpcMessage | Array<JsonRpcMessage>,
-  batches: Map<string, {
-    readonly size: number
-    readonly responses: Map<string, RpcMessage.FromServerEncoded>
-  }>
+  batches: Map<
+    string,
+    {
+      readonly size: number
+      readonly responses: Map<string, RpcMessage.FromServerEncoded>
+    }
+  >
 ) {
   if (Array.isArray(decoded)) {
     const batch = {
@@ -188,12 +196,12 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
         | RpcMessage.FromServerEncoded["_tag"]
         | Exclude<RpcMessage.FromClientEncoded["_tag"], "Request">
       const requestId = (decoded as any).params?.requestId
-      return requestId ?
-        {
-          _tag: tag,
-          requestId: String(requestId)
-        } as any :
-        { _tag: tag } as any
+      return requestId
+        ? ({
+            _tag: tag,
+            requestId: String(requestId)
+          } as any)
+        : ({ _tag: tag } as any)
     }
     return {
       _tag: "Request",
@@ -201,13 +209,13 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
       tag: decoded.method,
       payload: decoded.params ?? null,
       headers: decoded.headers ?? [],
-      ...(decoded.spanId ?
-        {
-          traceId: decoded.traceId,
-          spanId: decoded.spanId!,
-          sampled: decoded.sampled!
-        } :
-        {})
+      ...(decoded.spanId
+        ? {
+            traceId: decoded.traceId,
+            spanId: decoded.spanId!,
+            sampled: decoded.sampled!
+          }
+        : {})
     }
   } else if (decoded.error && decoded.error._tag === "Defect") {
     return {
@@ -224,29 +232,36 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
   return {
     _tag: "Exit",
     requestId: String(decoded.id),
-    exit: decoded.error != null ?
-      {
-        _tag: "Failure",
-        cause: decoded.error._tag === "Cause" ?
-          decoded.error.data as any :
-          [{
-            _tag: "Die",
-            defect: decoded.error
-          }]
-      } :
-      {
-        _tag: "Success",
-        value: decoded.result
-      }
+    exit:
+      decoded.error != null
+        ? {
+            _tag: "Failure",
+            cause:
+              decoded.error._tag === "Cause"
+                ? (decoded.error.data as any)
+                : [
+                    {
+                      _tag: "Die",
+                      defect: decoded.error
+                    }
+                  ]
+          }
+        : {
+            _tag: "Success",
+            value: decoded.result
+          }
   }
 }
 
 function encodeJsonRpcRaw(
   response: RpcMessage.FromServerEncoded | RpcMessage.FromClientEncoded,
-  batches: Map<string, {
-    readonly size: number
-    readonly responses: Map<string, RpcMessage.FromServerEncoded>
-  }>
+  batches: Map<
+    string,
+    {
+      readonly size: number
+      readonly responses: Map<string, RpcMessage.FromServerEncoded>
+    }
+  >
 ) {
   if (!("requestId" in response)) {
     return encodeJsonRpcMessage(response)
@@ -305,16 +320,15 @@ function encodeJsonRpcMessage(response: RpcMessage.FromServerEncoded | RpcMessag
       return {
         jsonrpc: "2.0",
         id: response.requestId ? Number(response.requestId) : undefined,
-        error: response.exit._tag === "Failure" ?
-          {
-            _tag: "Cause",
-            code: error && Predicate.hasProperty(error, "code") ? Number(error.code) : 0,
-            message: error && hasProperty(error, "message")
-              ? error.message
-              : JSON.stringify(response.exit.cause),
-            data: response.exit.cause
-          } :
-          undefined
+        error:
+          response.exit._tag === "Failure"
+            ? {
+                _tag: "Cause",
+                code: error && Predicate.hasProperty(error, "code") ? Number(error.code) : 0,
+                message: error && hasProperty(error, "message") ? error.message : JSON.stringify(response.exit.cause),
+                data: response.exit.cause
+              }
+            : undefined
       } as any
     }
     case "Defect":
@@ -432,9 +446,8 @@ export const layerNdjson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSeria
  * @since 4.0.0
  * @category serialization
  */
-export const layerJsonRpc = (options?: {
-  readonly contentType?: string | undefined
-}): Layer.Layer<RpcSerialization> => Layer.succeed(RpcSerialization)(jsonRpc(options))
+export const layerJsonRpc = (options?: { readonly contentType?: string | undefined }): Layer.Layer<RpcSerialization> =>
+  Layer.succeed(RpcSerialization)(jsonRpc(options))
 
 /**
  * A rpc serialization layer that uses JSON-RPC for serialization seperated by

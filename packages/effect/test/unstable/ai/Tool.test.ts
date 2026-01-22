@@ -70,7 +70,7 @@ const HandlerRequired = Tool.providerDefined({
 describe("Tool", () => {
   describe("User Defined", () => {
     it.effect("should return tool call handler success as a Right", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const toolkit = Toolkit.make(FailureModeReturn)
 
         const toolResult = { testSuccess: "failure-mode-return-tool" }
@@ -86,12 +86,14 @@ describe("Tool", () => {
           toolkit
         }).pipe(
           TestUtils.withLanguageModel({
-            generateText: [{
-              type: "tool-call",
-              id: toolCallId,
-              name: toolName,
-              params: { testParam: "test-param" }
-            }]
+            generateText: [
+              {
+                type: "tool-call",
+                id: toolCallId,
+                name: toolName,
+                params: { testParam: "test-param" }
+              }
+            ]
           }),
           Effect.provide(handlers)
         )
@@ -106,10 +108,11 @@ describe("Tool", () => {
         })
 
         assert.deepInclude(response.toolResults, expected)
-      }))
+      })
+    )
 
     it.effect("should return tool call handler failure as a Left", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const toolkit = Toolkit.make(FailureModeReturn)
 
         const toolResult = { testFailure: "failure-mode-return-tool" }
@@ -125,12 +128,14 @@ describe("Tool", () => {
           toolkit
         }).pipe(
           TestUtils.withLanguageModel({
-            generateText: [{
-              type: "tool-call",
-              id: toolCallId,
-              name: toolName,
-              params: { testParam: "test-param" }
-            }]
+            generateText: [
+              {
+                type: "tool-call",
+                id: toolCallId,
+                name: toolName,
+                params: { testParam: "test-param" }
+              }
+            ]
           }),
           Effect.provide(handlers)
         )
@@ -145,10 +150,11 @@ describe("Tool", () => {
         })
 
         assert.deepInclude(response.toolResults, expected)
-      }))
+      })
+    )
 
     it.effect("should raise an error on tool call handler failure", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const toolkit = Toolkit.make(FailureModeError)
 
         const toolResult = { testFailure: "failure-mode-error-tool" }
@@ -164,22 +170,25 @@ describe("Tool", () => {
           toolkit
         }).pipe(
           TestUtils.withLanguageModel({
-            generateText: [{
-              type: "tool-call",
-              id: toolCallId,
-              name: toolName,
-              params: { testParam: "test-param" }
-            }]
+            generateText: [
+              {
+                type: "tool-call",
+                id: toolCallId,
+                name: toolName,
+                params: { testParam: "test-param" }
+              }
+            ]
           }),
           Effect.provide(handlers),
           Effect.flip
         )
 
         assert.deepStrictEqual(response, toolResult)
-      }))
+      })
+    )
 
     it.effect("should raise an error on invalid tool call parameters", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const toolkit = Toolkit.make(FailureModeReturn)
 
         const toolResult = { testSuccess: "failure-mode-return-tool" }
@@ -195,12 +204,14 @@ describe("Tool", () => {
           toolkit
         }).pipe(
           TestUtils.withLanguageModel({
-            generateText: [{
-              type: "tool-call",
-              id: toolCallId,
-              name: toolName,
-              params: {}
-            }]
+            generateText: [
+              {
+                type: "tool-call",
+                id: toolCallId,
+                name: toolName,
+                params: {}
+              }
+            ]
           }),
           Effect.provide(handlers),
           Effect.flip
@@ -213,12 +224,13 @@ describe("Tool", () => {
             assert.strictEqual(response.reason.expectedSchema, "FailureModeReturn")
           }
         }
-      }))
+      })
+    )
   })
 
   describe("Provider Defined", () => {
     it.effect("should return tool call successes from the model as a Right", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const tool = NoHandlerRequired({
           testArg: "test-arg"
         })
@@ -265,10 +277,11 @@ describe("Tool", () => {
         })
 
         assert.deepInclude(response.toolResults, expected)
-      }))
+      })
+    )
 
     it.effect("should return tool call errors from the model as a Left", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const tool = NoHandlerRequired({
           testArg: "test-arg"
         })
@@ -315,10 +328,11 @@ describe("Tool", () => {
         })
 
         assert.deepInclude(response.toolResults, expected)
-      }))
+      })
+    )
 
     it.effect("should return tool call handler success as a Right", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const tool = HandlerRequired({
           testArg: "test-arg"
         })
@@ -363,10 +377,11 @@ describe("Tool", () => {
         })
 
         assert.deepInclude(response.toolResults, expected)
-      }))
+      })
+    )
 
     it.effect("should return tool call handler failure as a Left", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const tool = HandlerRequired({
           failureMode: "return",
           testArg: "test-arg"
@@ -412,10 +427,11 @@ describe("Tool", () => {
         })
 
         assert.deepInclude(response.toolResults, expected)
-      }))
+      })
+    )
 
     it.effect("should raise an error on tool call handler failure", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const tool = HandlerRequired({
           testArg: "test-arg"
         })
@@ -451,10 +467,11 @@ describe("Tool", () => {
         )
 
         assert.deepStrictEqual(response, toolResult)
-      }))
+      })
+    )
 
     it.effect("should raise an error on invalid tool call parameters", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const tool = HandlerRequired({
           failureMode: "return",
           testArg: "test-arg"
@@ -497,6 +514,7 @@ describe("Tool", () => {
             assert.strictEqual(response.reason.expectedSchema, "HandlerRequired")
           }
         }
-      }))
+      })
+    )
   })
 })

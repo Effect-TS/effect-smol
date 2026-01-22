@@ -1,10 +1,10 @@
 import * as Effect from "effect/Effect"
 import * as PubSub from "effect/PubSub"
 
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   const pubsub = yield* PubSub.unbounded<number>()
 
-  yield* Effect.gen(function*() {
+  yield* Effect.gen(function* () {
     const subscription = yield* PubSub.subscribe(pubsub)
     while (true) {
       const element = yield* PubSub.take(subscription)

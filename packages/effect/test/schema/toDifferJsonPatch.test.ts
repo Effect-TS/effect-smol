@@ -100,27 +100,30 @@ describe("Schema.toDifferJsonPatch", () => {
     it("Date: encodes invalid Date as a string on diff", () => {
       const differ = Schema.toDifferJsonPatch(Schema.Date)
 
-      deepStrictEqual(
-        differ.diff(new Date("1970-01-01T00:00:00.000Z"), new Date(NaN)),
-        [{ op: "replace", path: "", value: "Invalid Date" }]
-      )
+      deepStrictEqual(differ.diff(new Date("1970-01-01T00:00:00.000Z"), new Date(NaN)), [
+        { op: "replace", path: "", value: "Invalid Date" }
+      ])
     })
 
     it("Defect: diff encodes an Error to a plain object; patch decodes back to Error", () => {
       const differ = Schema.toDifferJsonPatch(Schema.Defect)
 
-      deepStrictEqual(differ.diff("", new Error("b")), [{
-        op: "replace",
-        path: "",
-        value: { name: "Error", message: "b" }
-      }])
-
-      deepStrictEqual(
-        differ.patch("", [{
+      deepStrictEqual(differ.diff("", new Error("b")), [
+        {
           op: "replace",
           path: "",
           value: { name: "Error", message: "b" }
-        }]),
+        }
+      ])
+
+      deepStrictEqual(
+        differ.patch("", [
+          {
+            op: "replace",
+            path: "",
+            value: { name: "Error", message: "b" }
+          }
+        ]),
         new Error("b")
       )
     })
@@ -129,26 +132,19 @@ describe("Schema.toDifferJsonPatch", () => {
       const differ = Schema.toDifferJsonPatch(Schema.DateTimeUtcFromMillis)
 
       deepStrictEqual(
-        differ.diff(
-          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"),
-          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")
-        ),
+        differ.diff(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")),
         []
       )
 
       deepStrictEqual(
-        differ.diff(
-          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"),
-          DateTime.makeUnsafe("2021-01-02T00:00:00.000Z")
-        ),
+        differ.diff(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), DateTime.makeUnsafe("2021-01-02T00:00:00.000Z")),
         [{ op: "replace", path: "", value: 1609545600000 }]
       )
 
       deepStrictEqual(
-        differ.patch(
-          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"),
-          [{ op: "replace", path: "", value: 1609545600000 }]
-        ),
+        differ.patch(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), [
+          { op: "replace", path: "", value: 1609545600000 }
+        ]),
         DateTime.makeUnsafe("2021-01-02T00:00:00.000Z")
       )
     })
@@ -171,9 +167,11 @@ describe("Schema.toDifferJsonPatch", () => {
 
   describe("roundtrip (property-based)", () => {
     it("patch(diff(a,b)) round-trips for a wide set of codecs", () => {
-      roundtrip(Schema.Any.annotate({
-        toArbitrary: () => (fc) => fc.json()
-      }))
+      roundtrip(
+        Schema.Any.annotate({
+          toArbitrary: () => (fc) => fc.json()
+        })
+      )
 
       roundtrip(Schema.String)
       roundtrip(Schema.Number)
@@ -182,33 +180,31 @@ describe("Schema.toDifferJsonPatch", () => {
       roundtrip(Schema.Symbol)
 
       // includes edgey keys without re-testing pointer logic exhaustively
-      roundtrip(Schema.Struct({
-        a: Schema.String,
-        "-": Schema.NullOr(Schema.String),
-        "": Schema.String
-      }))
+      roundtrip(
+        Schema.Struct({
+          a: Schema.String,
+          "-": Schema.NullOr(Schema.String),
+          "": Schema.String
+        })
+      )
 
       roundtrip(Schema.Record(Schema.String, Schema.Number))
-      roundtrip(Schema.StructWithRest(
-        Schema.Struct({
-          a: Schema.Number,
-          "-": Schema.Number,
-          "": Schema.Number
-        }),
-        [Schema.Record(Schema.String, Schema.Number)]
-      ))
+      roundtrip(
+        Schema.StructWithRest(
+          Schema.Struct({
+            a: Schema.Number,
+            "-": Schema.Number,
+            "": Schema.Number
+          }),
+          [Schema.Record(Schema.String, Schema.Number)]
+        )
+      )
 
       roundtrip(Schema.Tuple([Schema.String, Schema.Number]))
       roundtrip(Schema.Array(Schema.Number))
 
-      roundtrip(Schema.TupleWithRest(
-        Schema.Tuple([Schema.Number]),
-        [Schema.String]
-      ))
-      roundtrip(Schema.TupleWithRest(
-        Schema.Tuple([Schema.Number]),
-        [Schema.String, Schema.Boolean]
-      ))
+      roundtrip(Schema.TupleWithRest(Schema.Tuple([Schema.Number]), [Schema.String]))
+      roundtrip(Schema.TupleWithRest(Schema.Tuple([Schema.Number]), [Schema.String, Schema.Boolean]))
 
       roundtrip(Schema.Union([Schema.String, Schema.Finite]))
 

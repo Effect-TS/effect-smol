@@ -11,7 +11,7 @@ import {
 describe("Dynamic Completion Handler", () => {
   describe("getCompletionContext", () => {
     it.effect("should extract context from environment variables", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const originalEnv = { ...process.env }
 
         try {
@@ -31,10 +31,11 @@ describe("Dynamic Completion Handler", () => {
         } finally {
           process.env = originalEnv
         }
-      }))
+      })
+    )
 
     it.effect("should return null when missing environment variables", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const originalEnv = { ...process.env }
 
         try {
@@ -47,10 +48,11 @@ describe("Dynamic Completion Handler", () => {
         } finally {
           process.env = originalEnv
         }
-      }))
+      })
+    )
 
     it.effect("should handle empty current word", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const originalEnv = { ...process.env }
         const originalArgv = process.argv.slice()
 
@@ -67,10 +69,11 @@ describe("Dynamic Completion Handler", () => {
           process.env = originalEnv
           process.argv = originalArgv
         }
-      }))
+      })
+    )
 
     it.effect("should prefer argv tokens when provided", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const originalEnv = { ...process.env }
         const originalArgv = process.argv.slice()
 
@@ -79,13 +82,7 @@ describe("Dynamic Completion Handler", () => {
           process.env.COMP_LINE = "myapp build path with spaces"
           process.env.COMP_POINT = "29"
 
-          process.argv = [
-            ...originalArgv.slice(0, 2),
-            "--get-completions",
-            "myapp",
-            "build",
-            "path with spaces"
-          ]
+          process.argv = [...originalArgv.slice(0, 2), "--get-completions", "myapp", "build", "path with spaces"]
 
           const context = getCompletionContext()
 
@@ -96,43 +93,52 @@ describe("Dynamic Completion Handler", () => {
           process.env = originalEnv
           process.argv = originalArgv
         }
-      }))
+      })
+    )
   })
 
   describe("generateDynamicCompletions", () => {
     const createTestCommand = () => {
-      const build = Command.make("build", {
-        watch: Flag.boolean("watch").pipe(Flag.withAlias("w")),
-        outDir: Flag.directory("out-dir").pipe(Flag.withAlias("o")),
-        target: Flag.string("target")
-      }, () => Effect.void).pipe(
-        Command.withDescription("Build the project")
-      )
+      const build = Command.make(
+        "build",
+        {
+          watch: Flag.boolean("watch").pipe(Flag.withAlias("w")),
+          outDir: Flag.directory("out-dir").pipe(Flag.withAlias("o")),
+          target: Flag.string("target")
+        },
+        () => Effect.void
+      ).pipe(Command.withDescription("Build the project"))
 
       const deploy = Command.make("deploy", {
         dryRun: Flag.boolean("dry-run")
       }).pipe(
         Command.withDescription("Deploy the application"),
         Command.withSubcommands([
-          Command.make("staging", {
-            force: Flag.boolean("force")
-          }, () => Effect.void),
-          Command.make("production", {
-            confirm: Flag.boolean("confirm")
-          }, () => Effect.void)
+          Command.make(
+            "staging",
+            {
+              force: Flag.boolean("force")
+            },
+            () => Effect.void
+          ),
+          Command.make(
+            "production",
+            {
+              confirm: Flag.boolean("confirm")
+            },
+            () => Effect.void
+          )
         ])
       )
 
       return Command.make("myapp", {
         verbose: Flag.boolean("verbose").pipe(Flag.withAlias("v")),
         config: Flag.file("config").pipe(Flag.withAlias("c"))
-      }).pipe(
-        Command.withSubcommands([build, deploy])
-      )
+      }).pipe(Command.withSubcommands([build, deploy]))
     }
 
     it.effect("should complete root level subcommands", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", ""],
@@ -146,10 +152,11 @@ describe("Dynamic Completion Handler", () => {
 
         assert.isTrue(completions.includes("build"))
         assert.isTrue(completions.includes("deploy"))
-      }))
+      })
+    )
 
     it.effect("should complete partial subcommand names", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", "bu"],
@@ -163,10 +170,11 @@ describe("Dynamic Completion Handler", () => {
 
         assert.isTrue(completions.includes("build"))
         assert.isFalse(completions.includes("deploy"))
-      }))
+      })
+    )
 
     it.effect("should complete flags when current word starts with dash", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", "build", "--"],
@@ -181,10 +189,11 @@ describe("Dynamic Completion Handler", () => {
         assert.isTrue(completions.includes("--watch"))
         assert.isTrue(completions.includes("--out-dir"))
         assert.isTrue(completions.includes("--target"))
-      }))
+      })
+    )
 
     it.effect("should include short aliases when completing a single dash", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", "build", "-"],
@@ -198,10 +207,11 @@ describe("Dynamic Completion Handler", () => {
 
         assert.isTrue(completions.includes("-w"))
         assert.isTrue(completions.includes("-o"))
-      }))
+      })
+    )
 
     it.effect("should complete short flag aliases when specifically requested", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", "build", "-w"],
@@ -214,10 +224,11 @@ describe("Dynamic Completion Handler", () => {
         const completions = generateDynamicCompletions(cmd, context)
 
         assert.isTrue(completions.includes("-w"))
-      }))
+      })
+    )
 
     it.effect("should complete nested subcommands", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", "deploy", ""],
@@ -231,10 +242,11 @@ describe("Dynamic Completion Handler", () => {
 
         assert.isTrue(completions.includes("staging"))
         assert.isTrue(completions.includes("production"))
-      }))
+      })
+    )
 
     it.effect("should navigate through multiple subcommand levels", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", "deploy", "staging", "--"],
@@ -249,10 +261,11 @@ describe("Dynamic Completion Handler", () => {
         assert.isTrue(completions.includes("--force"))
         // Should not include parent command flags
         assert.isFalse(completions.includes("--dry-run"))
-      }))
+      })
+    )
 
     it.effect("should skip option values when navigating", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", "--config", "config.json", "build", ""],
@@ -267,10 +280,11 @@ describe("Dynamic Completion Handler", () => {
         // Should complete build flags, not root subcommands
         assert.isTrue(completions.includes("--watch"))
         assert.isFalse(completions.includes("deploy"))
-      }))
+      })
+    )
 
     it.effect("should return empty completions for option values", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", "build", "--target", ""],
@@ -284,10 +298,11 @@ describe("Dynamic Completion Handler", () => {
 
         // Should return empty to trigger file completion
         assert.strictEqual(completions.length, 0)
-      }))
+      })
+    )
 
     it.effect("should emit zsh file completions when option expects a directory", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const originalEnv = { ...process.env }
 
@@ -308,10 +323,11 @@ describe("Dynamic Completion Handler", () => {
         } finally {
           process.env = originalEnv
         }
-      }))
+      })
+    )
 
     it.effect("should support inline flag assignment for file completions", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const originalEnv = { ...process.env }
 
@@ -332,10 +348,11 @@ describe("Dynamic Completion Handler", () => {
         } finally {
           process.env = originalEnv
         }
-      }))
+      })
+    )
 
     it.effect("should handle complex command line with mixed options", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", "--verbose", "deploy", "--dry-run", "production", "--"],
@@ -352,10 +369,11 @@ describe("Dynamic Completion Handler", () => {
         // Should not include parent flags
         assert.isFalse(completions.includes("--dry-run"))
         assert.isFalse(completions.includes("--verbose"))
-      }))
+      })
+    )
 
     it.effect("should emit grouped metadata in zsh format", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const originalEnv = { ...process.env }
 
@@ -388,10 +406,11 @@ describe("Dynamic Completion Handler", () => {
         } finally {
           process.env = originalEnv
         }
-      }))
+      })
+    )
 
     it.effect("should emit descriptions in fish format", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const originalEnv = { ...process.env }
 
@@ -429,10 +448,11 @@ describe("Dynamic Completion Handler", () => {
         } finally {
           process.env = originalEnv
         }
-      }))
+      })
+    )
 
     it.effect("should handle empty input gracefully", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: [],
@@ -446,10 +466,11 @@ describe("Dynamic Completion Handler", () => {
 
         // Should return empty for malformed input
         assert.strictEqual(completions.length, 0)
-      }))
+      })
+    )
 
     it.effect("should not complete unknown subcommands", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = createTestCommand()
         const context = {
           words: ["myapp", "unknown", ""],
@@ -463,12 +484,13 @@ describe("Dynamic Completion Handler", () => {
 
         // Should not find any completions for unknown command
         assert.strictEqual(completions.length, 0)
-      }))
+      })
+    )
   })
 
   describe("handleCompletionRequest", () => {
     it.effect("should output completions to console", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = Command.make("test", {}).pipe(
           Command.withSubcommands([
             Command.make("sub1", {}, () => Effect.void),
@@ -482,7 +504,8 @@ describe("Dynamic Completion Handler", () => {
 
         try {
           // Mock console.log
-          console.log = (msg: string) => { // oxlint-disable-line no-console
+          console.log = (msg: string) => {
+            // oxlint-disable-line no-console
             logs.push(msg)
           }
 
@@ -499,10 +522,11 @@ describe("Dynamic Completion Handler", () => {
           process.env = originalEnv
           console.log = originalLog // oxlint-disable-line no-console
         }
-      }))
+      })
+    )
 
     it.effect("should handle missing completion context gracefully", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cmd = Command.make("test", {})
         const originalEnv = { ...process.env }
 
@@ -518,12 +542,13 @@ describe("Dynamic Completion Handler", () => {
         } finally {
           process.env = originalEnv
         }
-      }))
+      })
+    )
   })
 
   describe("generateDynamicFishCompletion", () => {
     it.effect("should generate fish completion script with function", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const script = generateDynamicFishCompletion("myapp", "/usr/local/bin/myapp")
 
         // Should include function definition
@@ -541,19 +566,21 @@ describe("Dynamic Completion Handler", () => {
 
         // Should use the provided executable path
         assert.isTrue(script.includes("/usr/local/bin/myapp --get-completions"))
-      }))
+      })
+    )
 
     it.effect("should handle executable name without path", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const script = generateDynamicFishCompletion("myapp")
 
         // Should use executable name as path when no explicit path provided
         assert.isTrue(script.includes("myapp --get-completions"))
         assert.isFalse(script.includes("/myapp --get-completions"))
-      }))
+      })
+    )
 
     it.effect("should include fish-specific command line parsing", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const script = generateDynamicFishCompletion("myapp")
 
         // Should use Fish's commandline builtin
@@ -563,6 +590,7 @@ describe("Dynamic Completion Handler", () => {
 
         // Should handle Fish's 1-based indexing for compatibility
         assert.isTrue(script.includes("math (count $cmd) - 1"))
-      }))
+      })
+    )
   })
 })

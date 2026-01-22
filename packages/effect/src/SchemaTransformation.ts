@@ -55,10 +55,7 @@ export class Transformation<in out T, in out E, RD = never, RE = never> {
   readonly decode: Getter.Getter<T, E, RD>
   readonly encode: Getter.Getter<E, T, RE>
 
-  constructor(
-    decode: Getter.Getter<T, E, RD>,
-    encode: Getter.Getter<E, T, RE>
-  ) {
+  constructor(decode: Getter.Getter<T, E, RD>, encode: Getter.Getter<E, T, RE>) {
     this.decode = decode
     this.encode = encode
   }
@@ -66,10 +63,7 @@ export class Transformation<in out T, in out E, RD = never, RE = never> {
     return new Transformation(this.encode, this.decode)
   }
   compose<T2, RD2, RE2>(other: Transformation<T2, T, RD2, RE2>): Transformation<T2, E, RD | RD2, RE | RE2> {
-    return new Transformation(
-      this.decode.compose(other.decode),
-      other.encode.compose(this.encode)
-    )
+    return new Transformation(this.decode.compose(other.decode), other.encode.compose(this.encode))
   }
 }
 
@@ -100,10 +94,7 @@ export function transformOrFail<T, E, RD = never, RE = never>(options: {
   readonly decode: (e: E, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD>
   readonly encode: (t: T, options: AST.ParseOptions) => Effect.Effect<E, Issue.Issue, RE>
 }): Transformation<T, E, RD, RE> {
-  return new Transformation(
-    Getter.transformOrFail(options.decode),
-    Getter.transformOrFail(options.encode)
-  )
+  return new Transformation(Getter.transformOrFail(options.decode), Getter.transformOrFail(options.encode))
 }
 
 /**
@@ -113,10 +104,7 @@ export function transform<T, E>(options: {
   readonly decode: (input: E) => T
   readonly encode: (input: T) => E
 }): Transformation<T, E> {
-  return new Transformation(
-    Getter.transform(options.decode),
-    Getter.transform(options.encode)
-  )
+  return new Transformation(Getter.transform(options.decode), Getter.transform(options.encode))
 }
 
 /**
@@ -126,10 +114,7 @@ export function transformOptional<T, E>(options: {
   readonly decode: (input: Option.Option<E>) => Option.Option<T>
   readonly encode: (input: Option.Option<T>) => Option.Option<E>
 }): Transformation<T, E> {
-  return new Transformation(
-    Getter.transformOptional(options.decode),
-    Getter.transformOptional(options.encode)
-  )
+  return new Transformation(Getter.transformOptional(options.decode), Getter.transformOptional(options.encode))
 }
 
 /**
@@ -137,10 +122,7 @@ export function transformOptional<T, E>(options: {
  * @since 4.0.0
  */
 export function trim(): Transformation<string, string> {
-  return new Transformation(
-    Getter.trim(),
-    Getter.passthrough()
-  )
+  return new Transformation(Getter.trim(), Getter.passthrough())
 }
 
 /**
@@ -148,10 +130,7 @@ export function trim(): Transformation<string, string> {
  * @since 4.0.0
  */
 export function snakeToCamel(): Transformation<string, string> {
-  return new Transformation(
-    Getter.snakeToCamel(),
-    Getter.camelToSnake()
-  )
+  return new Transformation(Getter.snakeToCamel(), Getter.camelToSnake())
 }
 
 /**
@@ -159,10 +138,7 @@ export function snakeToCamel(): Transformation<string, string> {
  * @since 4.0.0
  */
 export function toLowerCase(): Transformation<string, string> {
-  return new Transformation(
-    Getter.toLowerCase(),
-    Getter.passthrough()
-  )
+  return new Transformation(Getter.toLowerCase(), Getter.passthrough())
 }
 
 /**
@@ -170,10 +146,7 @@ export function toLowerCase(): Transformation<string, string> {
  * @since 4.0.0
  */
 export function toUpperCase(): Transformation<string, string> {
-  return new Transformation(
-    Getter.toUpperCase(),
-    Getter.passthrough()
-  )
+  return new Transformation(Getter.toUpperCase(), Getter.passthrough())
 }
 
 /**
@@ -181,10 +154,7 @@ export function toUpperCase(): Transformation<string, string> {
  * @since 4.0.0
  */
 export function capitalize(): Transformation<string, string> {
-  return new Transformation(
-    Getter.capitalize(),
-    Getter.passthrough()
-  )
+  return new Transformation(Getter.capitalize(), Getter.passthrough())
 }
 
 /**
@@ -192,10 +162,7 @@ export function capitalize(): Transformation<string, string> {
  * @since 4.0.0
  */
 export function uncapitalize(): Transformation<string, string> {
-  return new Transformation(
-    Getter.uncapitalize(),
-    Getter.passthrough()
-  )
+  return new Transformation(Getter.uncapitalize(), Getter.passthrough())
 }
 
 /**
@@ -214,16 +181,10 @@ export function splitKeyValue(options?: {
   readonly separator?: string | undefined
   readonly keyValueSeparator?: string | undefined
 }): Transformation<Record<string, string>, string> {
-  return new Transformation(
-    Getter.splitKeyValue(options),
-    Getter.joinKeyValue(options)
-  )
+  return new Transformation(Getter.splitKeyValue(options), Getter.joinKeyValue(options))
 }
 
-const passthrough_ = new Transformation(
-  Getter.passthrough<any>(),
-  Getter.passthrough<any>()
-)
+const passthrough_ = new Transformation(Getter.passthrough<any>(), Getter.passthrough<any>())
 
 /**
  * @since 4.0.0
@@ -254,19 +215,13 @@ export function passthroughSubtype<T>(): Transformation<T, T> {
  * @category Coercions
  * @since 4.0.0
  */
-export const numberFromString = new Transformation(
-  Getter.Number(),
-  Getter.String()
-)
+export const numberFromString = new Transformation(Getter.Number(), Getter.String())
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const bigintFromString = new Transformation(
-  Getter.BigInt(),
-  Getter.String()
-)
+export const bigintFromString = new Transformation(Getter.BigInt(), Getter.String())
 
 /**
  * @since 4.0.0
@@ -276,9 +231,7 @@ export const durationFromNanos: Transformation<Duration.Duration, bigint> = tran
   encode: (a) => {
     const nanos = Duration.toNanos(a)
     if (Predicate.isUndefined(nanos)) {
-      return Effect.fail(
-        new Issue.InvalidValue(Option.some(a), { message: `Unable to encode ${a} into a bigint` })
-      )
+      return Effect.fail(new Issue.InvalidValue(Option.some(a), { message: `Unable to encode ${a} into a bigint` }))
     }
     return Effect.succeed(nanos)
   }
@@ -293,11 +246,14 @@ export const durationFromMillis: Transformation<Duration.Duration, number> = tra
 })
 
 /** @internal */
-export const errorFromErrorJsonEncoded: Transformation<Error, {
-  message: string
-  name?: string
-  stack?: string
-}> = transform({
+export const errorFromErrorJsonEncoded: Transformation<
+  Error,
+  {
+    message: string
+    name?: string
+    stack?: string
+  }
+> = transform({
   decode: (i) => {
     const err = new Error(i.message)
     if (typeof i.name === "string" && i.name !== "Error") err.name = i.name
@@ -366,18 +322,12 @@ export const uint8ArrayFromBase64String: Transformation<Uint8Array<ArrayBufferLi
 /**
  * @since 4.0.0
  */
-export const fromJsonString = new Transformation<unknown, string>(
-  Getter.parseJson(),
-  Getter.stringifyJson()
-)
+export const fromJsonString = new Transformation<unknown, string>(Getter.parseJson(), Getter.stringifyJson())
 
 /**
  * @since 4.0.0
  */
-export const fromFormData = new Transformation<unknown, FormData>(
-  Getter.decodeFormData(),
-  Getter.encodeFormData()
-)
+export const fromFormData = new Transformation<unknown, FormData>(Getter.decodeFormData(), Getter.encodeFormData())
 
 /**
  * @since 4.0.0

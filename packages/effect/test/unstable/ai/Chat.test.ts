@@ -10,14 +10,11 @@ const withConstantIdGenerator = (id: string) =>
     generateId: () => Effect.succeed(id)
   })
 
-const PersistenceLayer = Layer.provideMerge(
-  Chat.layerPersisted({ storeId: "chat" }),
-  Persistence.layerMemory
-)
+const PersistenceLayer = Layer.provideMerge(Chat.layerPersisted({ storeId: "chat" }), Persistence.layerMemory)
 
 describe("Chat", () => {
   it("should persist chat history to the backing persistence store", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const storeId = "chat"
       const chatId = "1"
 
@@ -29,10 +26,12 @@ describe("Chat", () => {
 
       yield* chat.generateText({ prompt: "test user message" }).pipe(
         TestUtils.withLanguageModel({
-          generateText: [{
-            type: "text",
-            text: "test assistant message"
-          }]
+          generateText: [
+            {
+              type: "text",
+              text: "test assistant message"
+            }
+          ]
         })
       )
 
@@ -53,7 +52,7 @@ describe("Chat", () => {
     }).pipe(withConstantIdGenerator("msg_abc123"), Effect.provide(PersistenceLayer)))
 
   it("should respect the specified time to live", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const storeId = "chat"
       const chatId = "1"
 
@@ -67,10 +66,12 @@ describe("Chat", () => {
 
       yield* chat.generateText({ prompt: "test user message" }).pipe(
         TestUtils.withLanguageModel({
-          generateText: [{
-            type: "text",
-            text: "test assistant message"
-          }]
+          generateText: [
+            {
+              type: "text",
+              text: "test assistant message"
+            }
+          ]
         })
       )
 
@@ -96,7 +97,7 @@ describe("Chat", () => {
     }).pipe(withConstantIdGenerator("msg_abc123"), Effect.provide(PersistenceLayer)))
 
   it("should prefer the message identifier of the most recent assistant message", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const storeId = "chat"
       const chatId = "2"
 
@@ -116,10 +117,12 @@ describe("Chat", () => {
 
       yield* chat.generateText({ prompt: "second user message" }).pipe(
         TestUtils.withLanguageModel({
-          generateText: [{
-            type: "text",
-            text: "second assistant message"
-          }]
+          generateText: [
+            {
+              type: "text",
+              text: "second assistant message"
+            }
+          ]
         })
       )
 
@@ -136,7 +139,7 @@ describe("Chat", () => {
     }).pipe(withConstantIdGenerator("msg_abc123"), Effect.provide(PersistenceLayer)))
 
   it("should raise an error when retrieving a chat that does not exist", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const persistence = yield* Chat.Persistence
 
       const result = yield* Effect.flip(persistence.get("chat-321"))

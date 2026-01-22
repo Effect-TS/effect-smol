@@ -28,17 +28,15 @@ const TestLayer = Layer.mergeAll(
   Layer.mock(ChildProcessSpawner)({})
 )
 
-const runCommand = Effect.fnUntraced(
-  function*(command: ReadonlyArray<string>) {
-    yield* Cli.run(command)
-    const output = yield* TestConsole.logLines
-    return output.join("\n")
-  }
-)
+const runCommand = Effect.fnUntraced(function* (command: ReadonlyArray<string>) {
+  yield* Cli.run(command)
+  const output = yield* TestConsole.logLines
+  return output.join("\n")
+})
 
 describe("Command help output", () => {
   it.effect("root command help", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const helpText = yield* runCommand(["--help"])
 
       expect(helpText).toMatchInlineSnapshot(`
@@ -65,10 +63,11 @@ describe("Command help output", () => {
           app              Application management
           app-nested       Application with nested services"
       `)
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.effect("file operation command with positional args", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const helpText = yield* runCommand(["copy", "--help"])
 
       expect(helpText).toMatchInlineSnapshot(`
@@ -87,10 +86,11 @@ describe("Command help output", () => {
           --force, -f              Overwrite existing files
           --buffer-size integer    Buffer size in KB"
       `)
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.effect("variadic arguments command", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const helpText = yield* runCommand(["remove", "--help"])
 
       expect(helpText).toMatchInlineSnapshot(`
@@ -108,10 +108,11 @@ describe("Command help output", () => {
           --force, -f        Force removal without prompts
           --verbose, -v      Explain what is being done"
       `)
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.effect("deeply nested subcommand", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const helpText = yield* runCommand(["admin", "users", "list", "--help"])
 
       expect(helpText).toMatchInlineSnapshot(`
@@ -126,10 +127,11 @@ describe("Command help output", () => {
           --active           Show only active users
           --verbose, -v      Show detailed information"
       `)
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.effect("command with mixed positional args", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const helpText = yield* runCommand(["admin", "users", "create", "--help"])
 
       expect(helpText).toMatchInlineSnapshot(`
@@ -147,10 +149,11 @@ describe("Command help output", () => {
           --role string    User role (admin, user, guest)
           --notify, -n     Send notification email"
       `)
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.effect("intermediate subcommand with options", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const helpText = yield* runCommand(["admin", "config", "--help"])
 
       expect(helpText).toMatchInlineSnapshot(`
@@ -167,10 +170,11 @@ describe("Command help output", () => {
           set    Set configuration values
           get    Get configuration value"
       `)
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.effect("variadic with minimum count", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const helpText = yield* runCommand(["admin", "config", "set", "--help"])
 
       expect(helpText).toMatchInlineSnapshot(`
@@ -186,5 +190,6 @@ describe("Command help output", () => {
         FLAGS
           --config-file, -f file    Write to specific config file"
       `)
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 })

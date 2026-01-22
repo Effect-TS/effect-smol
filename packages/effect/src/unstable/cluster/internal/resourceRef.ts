@@ -6,20 +6,23 @@ import * as Scope from "../../../Scope.ts"
 import { internalInterruptors } from "./interruptors.ts"
 
 /** @internal */
-export type State<A> = {
-  readonly _tag: "Closed"
-} | {
-  readonly _tag: "Acquiring"
-  readonly scope: Scope.Closeable
-} | {
-  readonly _tag: "Acquired"
-  readonly scope: Scope.Closeable
-  readonly value: A
-}
+export type State<A> =
+  | {
+      readonly _tag: "Closed"
+    }
+  | {
+      readonly _tag: "Acquiring"
+      readonly scope: Scope.Closeable
+    }
+  | {
+      readonly _tag: "Acquired"
+      readonly scope: Scope.Closeable
+      readonly value: A
+    }
 
 /** @internal */
 export class ResourceRef<A, E = never> {
-  static from = Effect.fnUntraced(function*<A, E>(
+  static from = Effect.fnUntraced(function* <A, E>(
     parentScope: Scope.Scope,
     acquire: (scope: Scope.Scope) => Effect.Effect<A, E>
   ) {
@@ -45,10 +48,7 @@ export class ResourceRef<A, E = never> {
 
   readonly state: MutableRef.MutableRef<State<A>>
   readonly acquire: (scope: Scope.Scope) => Effect.Effect<A, E>
-  constructor(
-    state: MutableRef.MutableRef<State<A>>,
-    acquire: (scope: Scope.Scope) => Effect.Effect<A, E>
-  ) {
+  constructor(state: MutableRef.MutableRef<State<A>>, acquire: (scope: Scope.Scope) => Effect.Effect<A, E>) {
     this.state = state
     this.acquire = acquire
   }

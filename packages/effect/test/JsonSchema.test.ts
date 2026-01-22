@@ -52,16 +52,7 @@ describe("JsonSchema", () => {
     })
 
     it("is idempotent", () => {
-      const inputs = [
-        "",
-        "Simple",
-        "a b",
-        "a/b",
-        "a..b",
-        "café",
-        "🤖",
-        "A1.B2-_"
-      ] as const
+      const inputs = ["", "Simple", "a b", "a/b", "a..b", "café", "🤖", "A1.B2-_"] as const
       for (const input of inputs) {
         const once = sanitizeOpenApiComponentsKey(input)
         const twice = sanitizeOpenApiComponentsKey(once)
@@ -127,10 +118,7 @@ describe("JsonSchema", () => {
     it("should convert items array to prefixItems", () => {
       const input: JsonSchema.JsonSchema = {
         type: "array",
-        items: [
-          { type: "string" },
-          { type: "number" }
-        ],
+        items: [{ type: "string" }, { type: "number" }],
         additionalItems: { type: "boolean" }
       }
       const result = JsonSchema.fromSchemaDraft07(input)
@@ -138,10 +126,7 @@ describe("JsonSchema", () => {
         dialect: "draft-2020-12",
         schema: {
           type: "array",
-          prefixItems: [
-            { type: "string" },
-            { type: "number" }
-          ],
+          prefixItems: [{ type: "string" }, { type: "number" }],
           items: { type: "boolean" }
         },
         definitions: {}
@@ -300,14 +285,8 @@ describe("JsonSchema", () => {
       const input: JsonSchema.JsonSchema = {
         enum: ["a", "b", "c"],
         const: "constant",
-        allOf: [
-          { type: "array", items: { type: "string" } },
-          { minItems: 1 }
-        ],
-        anyOf: [
-          { type: "array", items: [{ type: "string" }] },
-          { type: "number" }
-        ],
+        allOf: [{ type: "array", items: { type: "string" } }, { minItems: 1 }],
+        anyOf: [{ type: "array", items: [{ type: "string" }] }, { type: "number" }],
         oneOf: [
           { type: "array", items: [{ type: "string" }], additionalItems: { type: "number" } },
           { type: "boolean" }
@@ -319,18 +298,9 @@ describe("JsonSchema", () => {
         schema: {
           enum: ["a", "b", "c"],
           const: "constant",
-          allOf: [
-            { type: "array", items: { type: "string" } },
-            { minItems: 1 }
-          ],
-          anyOf: [
-            { type: "array", prefixItems: [{ type: "string" }] },
-            { type: "number" }
-          ],
-          oneOf: [
-            { type: "array", prefixItems: [{ type: "string" }], items: { type: "number" } },
-            { type: "boolean" }
-          ]
+          allOf: [{ type: "array", items: { type: "string" } }, { minItems: 1 }],
+          anyOf: [{ type: "array", prefixItems: [{ type: "string" }] }, { type: "number" }],
+          oneOf: [{ type: "array", prefixItems: [{ type: "string" }], items: { type: "number" } }, { type: "boolean" }]
         },
         definitions: {}
       })
@@ -599,10 +569,13 @@ describe("JsonSchema", () => {
   })
 
   describe("fromSchemaOpenApi3_0", () => {
-    function assertFromSchemaOpenApi3_0(input: JsonSchema.JsonSchema, expected: {
-      readonly schema: JsonSchema.JsonSchema
-      readonly definitions?: JsonSchema.Definitions
-    }) {
+    function assertFromSchemaOpenApi3_0(
+      input: JsonSchema.JsonSchema,
+      expected: {
+        readonly schema: JsonSchema.JsonSchema
+        readonly definitions?: JsonSchema.Definitions
+      }
+    ) {
       const result = JsonSchema.fromSchemaOpenApi3_0(input)
       deepStrictEqual(result, {
         dialect: "draft-2020-12",
@@ -688,10 +661,7 @@ describe("JsonSchema", () => {
           { nullable: true },
           {
             schema: {
-              anyOf: [
-                {},
-                { type: "null" }
-              ]
+              anyOf: [{}, { type: "null" }]
             }
           }
         )
@@ -753,10 +723,7 @@ describe("JsonSchema", () => {
         deepStrictEqual(result, {
           dialect: "draft-2020-12",
           schema: {
-            anyOf: [
-              { const: "a" },
-              { type: "null" }
-            ]
+            anyOf: [{ const: "a" }, { type: "null" }]
           },
           definitions: {}
         })
@@ -874,12 +841,11 @@ describe("JsonSchema", () => {
           {
             schema: {
               type: "string",
-              allOf: [{
-                anyOf: [
-                  {},
-                  { type: "null" }
-                ]
-              }]
+              allOf: [
+                {
+                  anyOf: [{}, { type: "null" }]
+                }
+              ]
             }
           }
         )
@@ -892,12 +858,11 @@ describe("JsonSchema", () => {
           {
             schema: {
               type: ["string", "null"],
-              allOf: [{
-                anyOf: [
-                  {},
-                  { type: "null" }
-                ]
-              }]
+              allOf: [
+                {
+                  anyOf: [{}, { type: "null" }]
+                }
+              ]
             }
           }
         )
@@ -1053,10 +1018,7 @@ describe("JsonSchema", () => {
         dialect: "draft-2020-12",
         schema: {
           type: "array",
-          prefixItems: [
-            { type: "string" },
-            { type: "number" }
-          ],
+          prefixItems: [{ type: "string" }, { type: "number" }],
           items: { type: "boolean" }
         },
         definitions: {}
@@ -1066,10 +1028,7 @@ describe("JsonSchema", () => {
         dialect: "draft-07",
         schema: {
           type: "array",
-          items: [
-            { type: "string" },
-            { type: "number" }
-          ],
+          items: [{ type: "string" }, { type: "number" }],
           additionalItems: { type: "boolean" }
         },
         definitions: {}
@@ -1170,13 +1129,13 @@ describe("JsonSchema", () => {
           {
             type: "object",
             properties: {
-              "A.B": { "$ref": "#/$defs/A$B" }
+              "A.B": { $ref: "#/$defs/A$B" }
             }
           }
         ],
         definitions: {
-          "A$B": { "$ref": "#/$defs/B$C" },
-          "B$C": { type: "string" }
+          A$B: { $ref: "#/$defs/B$C" },
+          B$C: { type: "string" }
         }
       }
       const result = JsonSchema.toMultiDocumentOpenApi3_1(input)
@@ -1186,13 +1145,13 @@ describe("JsonSchema", () => {
           {
             type: "object",
             properties: {
-              "A.B": { "$ref": "#/components/schemas/A_B" }
+              "A.B": { $ref: "#/components/schemas/A_B" }
             }
           }
         ],
         definitions: {
-          "A_B": { "$ref": "#/components/schemas/B_C" },
-          "B_C": { type: "string" }
+          A_B: { $ref: "#/components/schemas/B_C" },
+          B_C: { type: "string" }
         }
       })
     })
@@ -1206,10 +1165,7 @@ describe("JsonSchema", () => {
           name: { type: "string" },
           items: {
             type: "array",
-            items: [
-              { type: "string" },
-              { type: "number" }
-            ],
+            items: [{ type: "string" }, { type: "number" }],
             additionalItems: { type: "boolean" }
           },
           ref: {
@@ -1232,10 +1188,7 @@ describe("JsonSchema", () => {
           name: { type: "string" },
           items: {
             type: "array",
-            items: [
-              { type: "string" },
-              { type: "number" }
-            ],
+            items: [{ type: "string" }, { type: "number" }],
             additionalItems: { type: "boolean" }
           },
           ref: {

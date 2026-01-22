@@ -15,35 +15,19 @@ import * as effect from "./effect.ts"
 export const request: {
   <A extends Request.Any, EX = never, RX = never>(
     resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
-  ): (self: A) => Effect<
-    Request.Success<A>,
-    Request.Error<A> | EX,
-    Request.Services<A> | RX
-  >
+  ): (self: A) => Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX>
   <A extends Request.Any, EX = never, RX = never>(
     self: A,
     resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
-  ): Effect<
-    Request.Success<A>,
-    Request.Error<A> | EX,
-    Request.Services<A> | RX
-  >
+  ): Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX>
 } = dual(
   2,
   <A extends Request.Any, EX = never, RX = never>(
     self: A,
     resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
-  ): Effect<
-    Request.Success<A>,
-    Request.Error<A> | EX,
-    Request.Services<A> | RX
-  > => {
+  ): Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX> => {
     const withResolver = (resolver: RequestResolver<A>) =>
-      effect.callback<
-        Request.Success<A>,
-        Request.Error<A>,
-        Request.Services<A>
-      >((resume) => {
+      effect.callback<Request.Success<A>, Request.Error<A>, Request.Services<A>>((resume) => {
         const entry = addEntry(resolver, self, resume, effect.getCurrentFiber()!)
         return maybeRemoveEntry(resolver, entry)
       })
@@ -59,7 +43,7 @@ export const requestUnsafe = <A extends Request.Any>(
     readonly onExit: (exit: Exit<Request.Success<A>, Request.Error<A>>) => void
     readonly services: ServiceMap.ServiceMap<never>
   }
-): () => void => {
+): (() => void) => {
   const entry = addEntry(options.resolver, self, options.onExit, {
     services: options.services,
     currentScheduler: ServiceMap.get(options.services, Scheduler)
@@ -140,8 +124,8 @@ const addEntry = <A extends Request.Any>(
               entry.completeUnsafe(
                 exit._tag === "Success"
                   ? exitDie(
-                    new Error("Effect.request: RequestResolver did not complete request", { cause: entry.request })
-                  )
+                      new Error("Effect.request: RequestResolver did not complete request", { cause: entry.request })
+                    )
                   : exit
               )
             }
@@ -171,10 +155,7 @@ const addEntry = <A extends Request.Any>(
   return entry
 }
 
-const removeEntryUnsafe = <A extends Request.Any>(
-  resolver: RequestResolver<A>,
-  entry: Request.Entry<A>
-) => {
+const removeEntryUnsafe = <A extends Request.Any>(resolver: RequestResolver<A>, entry: Request.Entry<A>) => {
   if (entry.uninterruptible) return
   const batchMap = pendingBatches.get(resolver)
   if (!batchMap) return
@@ -191,10 +172,8 @@ const removeEntryUnsafe = <A extends Request.Any>(
   }
 }
 
-const maybeRemoveEntry = <A extends Request.Any>(
-  resolver: RequestResolver<A>,
-  entry: Request.Entry<A>
-) => effect.sync(() => removeEntryUnsafe(resolver, entry))
+const maybeRemoveEntry = <A extends Request.Any>(resolver: RequestResolver<A>, entry: Request.Entry<A>) =>
+  effect.sync(() => removeEntryUnsafe(resolver, entry))
 
 function runBatch(batch: Batch) {
   if (!batch.map.has(batch.key)) return effect.void

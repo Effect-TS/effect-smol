@@ -113,10 +113,7 @@ export interface Teardown {
  * @category Teardown
  * @since 4.0.0
  */
-export const defaultTeardown: Teardown = <E, A>(
-  exit: Exit.Exit<E, A>,
-  onExit: (code: number) => void
-) => {
+export const defaultTeardown: Teardown = <E, A>(exit: Exit.Exit<E, A>, onExit: (code: number) => void) => {
   onExit(Exit.isFailure(exit) && !Cause.isInterruptedOnly(exit.cause) ? 1 : 0)
 }
 
@@ -177,19 +174,12 @@ export const defaultTeardown: Teardown = <E, A>(
  * @since 4.0.0
  */
 export const makeRunMain = (
-  f: <E, A>(
-    options: {
-      readonly fiber: Fiber.Fiber<A, E>
-      readonly teardown: Teardown
-    }
-  ) => void
+  f: <E, A>(options: { readonly fiber: Fiber.Fiber<A, E>; readonly teardown: Teardown }) => void
 ): {
-  (
-    options?: {
-      readonly disableErrorReporting?: boolean | undefined
-      readonly teardown?: Teardown | undefined
-    }
-  ): <E, A>(effect: Effect.Effect<A, E>) => void
+  (options?: {
+    readonly disableErrorReporting?: boolean | undefined
+    readonly teardown?: Teardown | undefined
+  }): <E, A>(effect: Effect.Effect<A, E>) => void
   <E, A>(
     effect: Effect.Effect<A, E>,
     options?: {
@@ -198,20 +188,27 @@ export const makeRunMain = (
     }
   ): void
 } =>
-  dual((args) => Effect.isEffect(args[0]), (effect: Effect.Effect<any, any>, options?: {
-    readonly disableErrorReporting?: boolean | undefined
-    readonly teardown?: Teardown | undefined
-  }) => {
-    const fiber = options?.disableErrorReporting === true
-      ? Effect.runFork(effect)
-      : Effect.runFork(
-        Effect.tapCause(effect, (cause) => {
-          if (Cause.isInterruptedOnly(cause)) {
-            return Effect.void
-          }
-          return Effect.logError(cause)
-        })
-      )
-    const teardown = options?.teardown ?? defaultTeardown
-    return f({ fiber, teardown })
-  })
+  dual(
+    (args) => Effect.isEffect(args[0]),
+    (
+      effect: Effect.Effect<any, any>,
+      options?: {
+        readonly disableErrorReporting?: boolean | undefined
+        readonly teardown?: Teardown | undefined
+      }
+    ) => {
+      const fiber =
+        options?.disableErrorReporting === true
+          ? Effect.runFork(effect)
+          : Effect.runFork(
+              Effect.tapCause(effect, (cause) => {
+                if (Cause.isInterruptedOnly(cause)) {
+                  return Effect.void
+                }
+                return Effect.logError(cause)
+              })
+            )
+      const teardown = options?.teardown ?? defaultTeardown
+      return f({ fiber, teardown })
+    }
+  )

@@ -40,9 +40,7 @@ describe("Types", () => {
 
   describe("ReasonTags", () => {
     it("extracts reason tags", () => {
-      expect<Types.ReasonTags<AiError> & unknown>().type.toBe<
-        "RateLimitError" | "QuotaExceededError"
-      >()
+      expect<Types.ReasonTags<AiError> & unknown>().type.toBe<"RateLimitError" | "QuotaExceededError">()
     })
 
     it("returns never for errors without reason", () => {
@@ -141,10 +139,7 @@ describe("Effect.tapErrorTag", () => {
   })
 
   it("supports tacit pipe", () => {
-    const result = pipe(
-      simpleEffect,
-      Effect.tapErrorTag("SimpleError", Effect.log)
-    )
+    const result = pipe(simpleEffect, Effect.tapErrorTag("SimpleError", Effect.log))
     expect(result).type.toBe<Effect.Effect<string, SimpleError>>()
   })
 })
@@ -157,8 +152,6 @@ describe("Effect.unwrapReason", () => {
 
   it("preserves other errors in union", () => {
     const result = pipe(mixedEffect, Effect.unwrapReason("AiError"))
-    expect(result).type.toBe<
-      Effect.Effect<string, RateLimitError | QuotaExceededError | OtherError>
-    >()
+    expect(result).type.toBe<Effect.Effect<string, RateLimitError | QuotaExceededError | OtherError>>()
   })
 })

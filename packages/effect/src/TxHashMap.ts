@@ -21,12 +21,12 @@ const TxHashMapProto = {
     return toJson(this)
   },
   toString(this: TxHashMap<unknown, unknown>) {
-    return `TxHashMap(${format(toJson((this).ref))})`
+    return `TxHashMap(${format(toJson(this.ref))})`
   },
   toJSON(this: TxHashMap<unknown, unknown>) {
     return {
       _id: "TxHashMap",
-      ref: toJson((this).ref)
+      ref: toJson(this.ref)
     }
   },
   pipe(this: TxHashMap<unknown, unknown>) {
@@ -237,7 +237,7 @@ export declare namespace TxHashMap {
  * @category constructors
  */
 export const empty = <K, V>(): Effect.Effect<TxHashMap<K, V>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const ref = yield* TxRef.make(HashMap.empty<K, V>())
     return Object.assign(Object.create(TxHashMapProto), { ref })
   })
@@ -274,7 +274,7 @@ export const empty = <K, V>(): Effect.Effect<TxHashMap<K, V>> =>
  * @category constructors
  */
 export const make = <K, V>(...entries: Array<readonly [K, V]>): Effect.Effect<TxHashMap<K, V>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const hashMap = HashMap.make(...entries)
     const ref = yield* TxRef.make(hashMap)
     return Object.assign(Object.create(TxHashMapProto), { ref })
@@ -315,7 +315,7 @@ export const make = <K, V>(...entries: Array<readonly [K, V]>): Effect.Effect<Tx
  * @category constructors
  */
 export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): Effect.Effect<TxHashMap<K, V>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const hashMap = HashMap.fromIterable(entries)
     const ref = yield* TxRef.make(hashMap)
     return Object.assign(Object.create(TxHashMapProto), { ref })
@@ -358,7 +358,7 @@ export const get: {
 } = dual(
   2,
   <K1 extends K, K, V>(self: TxHashMap<K, V>, key: K1): Effect.Effect<Option.Option<V>> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const map = yield* TxRef.get(self.ref)
       return HashMap.get(map, key)
     })
@@ -443,7 +443,7 @@ export const has: {
 } = dual(
   2,
   <K1 extends K, K, V>(self: TxHashMap<K, V>, key: K1): Effect.Effect<boolean> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const map = yield* TxRef.get(self.ref)
       return HashMap.has(map, key)
     })
@@ -493,7 +493,7 @@ export const remove: {
   2,
   <K1 extends K, K, V>(self: TxHashMap<K, V>, key: K1): Effect.Effect<boolean> =>
     Effect.atomic(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const currentMap = yield* TxRef.get(self.ref)
         const existed = HashMap.has(currentMap, key)
         if (existed) {
@@ -575,7 +575,7 @@ export const clear = <K, V>(self: TxHashMap<K, V>): Effect.Effect<void> => TxRef
  * @category combinators
  */
 export const size = <K, V>(self: TxHashMap<K, V>): Effect.Effect<number> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const map = yield* TxRef.get(self.ref)
     return HashMap.size(map)
   })
@@ -609,7 +609,7 @@ export const size = <K, V>(self: TxHashMap<K, V>): Effect.Effect<number> =>
  * @category combinators
  */
 export const isEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const map = yield* TxRef.get(self.ref)
     return HashMap.isEmpty(map)
   })
@@ -690,7 +690,7 @@ export const modify: {
   3,
   <K, V>(self: TxHashMap<K, V>, key: K, f: (value: V) => V): Effect.Effect<Option.Option<V>> =>
     Effect.atomic(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const currentMap = yield* TxRef.get(self.ref)
         const currentValue = HashMap.get(currentMap, key)
         if (Option.isSome(currentValue)) {
@@ -753,7 +753,7 @@ export const modifyAt: {
   3,
   <K, V>(self: TxHashMap<K, V>, key: K, f: (value: Option.Option<V>) => Option.Option<V>): Effect.Effect<void> =>
     Effect.atomic(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const currentMap = yield* TxRef.get(self.ref)
         const currentValue = HashMap.get(currentMap, key)
         const newValue = f(currentValue)
@@ -798,7 +798,7 @@ export const modifyAt: {
  * @category combinators
  */
 export const keys = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<K>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const map = yield* TxRef.get(self.ref)
     return Array.from(HashMap.keys(map))
   })
@@ -835,7 +835,7 @@ export const keys = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<K>> =>
  * @category combinators
  */
 export const values = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<V>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const map = yield* TxRef.get(self.ref)
     return HashMap.toValues(map)
   })
@@ -872,7 +872,7 @@ export const values = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<V>> =>
  * @category combinators
  */
 export const entries = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<readonly [K, V]>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const map = yield* TxRef.get(self.ref)
     return HashMap.toEntries(map)
   })
@@ -1274,7 +1274,7 @@ export const map: {
   2,
   <K, V, A>(self: TxHashMap<K, V>, f: (value: V, key: K) => A): Effect.Effect<TxHashMap<K, A>> =>
     Effect.atomic(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const currentMap = yield* TxRef.get(self.ref)
         const mappedMap = HashMap.map(currentMap, f)
         return yield* fromHashMap(mappedMap)
@@ -1344,7 +1344,7 @@ export const filter: {
   2,
   <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<TxHashMap<K, V>> =>
     Effect.atomic(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const currentMap = yield* TxRef.get(self.ref)
         const filteredMap = HashMap.filter(currentMap, predicate)
         return yield* fromHashMap(filteredMap)
@@ -1479,7 +1479,7 @@ export const filterMap: {
   2,
   <K, V, A>(self: TxHashMap<K, V>, f: (value: V, key: K) => Option.Option<A>): Effect.Effect<TxHashMap<K, A>> =>
     Effect.atomic(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const currentMap = yield* TxRef.get(self.ref)
         const filteredMap = HashMap.filterMap(currentMap, f)
         return yield* fromHashMap(filteredMap)
@@ -1732,7 +1732,7 @@ export const forEach: {
 } = dual(
   2,
   <K, V, R, E>(self: TxHashMap<K, V>, f: (value: V, key: K) => Effect.Effect<void, E, R>): Effect.Effect<void, E, R> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const currentMap = yield* TxRef.get(self.ref)
       const entries = HashMap.toEntries(currentMap)
       yield* Effect.forEach(entries, ([key, value]) => f(value, key))
@@ -1805,7 +1805,7 @@ export const flatMap: {
     f: (value: V, key: K) => Effect.Effect<TxHashMap<K, A>>
   ): Effect.Effect<TxHashMap<K, A>> =>
     Effect.atomic(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const currentMap = yield* TxRef.get(self.ref)
         const result = yield* empty<K, A>()
 
@@ -1868,7 +1868,7 @@ export const flatMap: {
  */
 export const compact = <K, A>(self: TxHashMap<K, Option.Option<A>>): Effect.Effect<TxHashMap<K, A>> =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const currentMap = yield* TxRef.get(self.ref)
       const compactedMap = HashMap.compact(currentMap)
       return yield* fromHashMap(compactedMap)
@@ -1953,7 +1953,7 @@ export const toValues = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<V>> =
  * Helper function to create a TxHashMap from an existing HashMap
  */
 const fromHashMap = <K, V>(hashMap: HashMap.HashMap<K, V>): Effect.Effect<TxHashMap<K, V>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const ref = yield* TxRef.make(hashMap)
     return Object.assign(Object.create(TxHashMapProto), { ref })
   })

@@ -1,10 +1,10 @@
 import * as Effect from "effect/Effect"
 import * as Queue from "effect/Queue"
 
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   const queue = yield* Queue.make<number>()
 
-  yield* Effect.gen(function*() {
+  yield* Effect.gen(function* () {
     yield* Queue.takeN(queue, 3)
   }).pipe(Effect.forever, Effect.forkScoped)
 

@@ -128,9 +128,7 @@ export const empty: <V = never>() => HashSet<V> = internal.empty
  * @since 2.0.0
  * @category constructors
  */
-export const make: <Values extends ReadonlyArray<any>>(
-  ...values: Values
-) => HashSet<Values[number]> = internal.make
+export const make: <Values extends ReadonlyArray<any>>(...values: Values) => HashSet<Values[number]> = internal.make
 
 /**
  * Creates a HashSet from an iterable collection of values.
@@ -202,10 +200,10 @@ export const isHashSet: {
 export const add: {
   <V>(value: V): (self: HashSet<V>) => HashSet<V>
   <V>(self: HashSet<V>, value: V): HashSet<V>
-} = Dual.dual<
-  <V>(value: V) => (self: HashSet<V>) => HashSet<V>,
-  <V>(self: HashSet<V>, value: V) => HashSet<V>
->(2, internal.add)
+} = Dual.dual<<V>(value: V) => (self: HashSet<V>) => HashSet<V>, <V>(self: HashSet<V>, value: V) => HashSet<V>>(
+  2,
+  internal.add
+)
 
 /**
  * Checks if the HashSet contains the specified value.
@@ -244,10 +242,10 @@ export const add: {
 export const has: {
   <V>(value: V): (self: HashSet<V>) => boolean
   <V>(self: HashSet<V>, value: V): boolean
-} = Dual.dual<
-  <V>(value: V) => (self: HashSet<V>) => boolean,
-  <V>(self: HashSet<V>, value: V) => boolean
->(2, internal.has)
+} = Dual.dual<<V>(value: V) => (self: HashSet<V>) => boolean, <V>(self: HashSet<V>, value: V) => boolean>(
+  2,
+  internal.has
+)
 
 /**
  * Removes a value from the HashSet, returning a new HashSet.
@@ -274,10 +272,10 @@ export const has: {
 export const remove: {
   <V>(value: V): (self: HashSet<V>) => HashSet<V>
   <V>(self: HashSet<V>, value: V): HashSet<V>
-} = Dual.dual<
-  <V>(value: V) => (self: HashSet<V>) => HashSet<V>,
-  <V>(self: HashSet<V>, value: V) => HashSet<V>
->(2, internal.remove)
+} = Dual.dual<<V>(value: V) => (self: HashSet<V>) => HashSet<V>, <V>(self: HashSet<V>, value: V) => HashSet<V>>(
+  2,
+  internal.remove
+)
 
 /**
  * Returns the number of values in the HashSet.

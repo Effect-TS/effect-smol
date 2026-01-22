@@ -150,9 +150,7 @@ export const HttpRequestDetails = Schema.Struct({
  * @since 4.0.0
  * @category schemas
  */
-export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>(
-  "effect/ai/AiError/HttpRequestError"
-)({
+export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>("effect/ai/AiError/HttpRequestError")({
   _tag: Schema.tag("HttpRequestError"),
   module: Schema.String,
   method: Schema.String,
@@ -186,7 +184,10 @@ export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>(
    * @since 4.0.0
    * @category constructors
    */
-  static fromRequestError({ error, ...params }: {
+  static fromRequestError({
+    error,
+    ...params
+  }: {
     readonly module: string
     readonly method: string
     readonly error: HttpClientError.RequestError
@@ -342,9 +343,7 @@ export const HttpContext = Schema.Struct({
  * @since 4.0.0
  * @category reason
  */
-export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
-  "effect/ai/AiError/RateLimitError"
-)({
+export class RateLimitError extends Schema.ErrorClass<RateLimitError>("effect/ai/AiError/RateLimitError")({
   _tag: Schema.tag("RateLimitError"),
   retryAfter: Schema.optional(Schema.Duration),
   limit: Schema.optional(Schema.String),
@@ -492,9 +491,7 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
  * @since 4.0.0
  * @category reason
  */
-export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
-  "effect/ai/AiError/ContentPolicyError"
-)({
+export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>("effect/ai/AiError/ContentPolicyError")({
   _tag: Schema.tag("ContentPolicyError"),
   violationType: Schema.optional(Schema.String),
   flaggedInput: Schema.optional(Schema.Boolean),
@@ -598,9 +595,7 @@ export class ModelUnavailableError extends Schema.ErrorClass<ModelUnavailableErr
  * @since 4.0.0
  * @category reason
  */
-export class ContextLengthError extends Schema.ErrorClass<ContextLengthError>(
-  "effect/ai/AiError/ContextLengthError"
-)({
+export class ContextLengthError extends Schema.ErrorClass<ContextLengthError>("effect/ai/AiError/ContextLengthError")({
   _tag: Schema.tag("ContextLengthError"),
   maxTokens: Schema.optional(Schema.Number),
   requestedTokens: Schema.optional(Schema.Number),
@@ -749,9 +744,7 @@ export class ProviderInternalError extends Schema.ErrorClass<ProviderInternalErr
  * @since 4.0.0
  * @category reason
  */
-export class AiTimeoutError extends Schema.ErrorClass<AiTimeoutError>(
-  "effect/ai/AiError/AiTimeoutError"
-)({
+export class AiTimeoutError extends Schema.ErrorClass<AiTimeoutError>("effect/ai/AiError/AiTimeoutError")({
   _tag: Schema.tag("AiTimeoutError"),
   phase: Schema.Literals(["Connection", "Request", "Response"]),
   duration: Schema.optional(Schema.Duration),
@@ -796,9 +789,7 @@ export class AiTimeoutError extends Schema.ErrorClass<AiTimeoutError>(
  * @since 4.0.0
  * @category reason
  */
-export class NetworkError extends Schema.ErrorClass<NetworkError>(
-  "effect/ai/AiError/NetworkError"
-)({
+export class NetworkError extends Schema.ErrorClass<NetworkError>("effect/ai/AiError/NetworkError")({
   _tag: Schema.tag("NetworkError"),
   kind: Schema.Literals(["ConnectionRefused", "DnsLookupFailed", "TlsError", "Unknown"]),
   http: Schema.optional(HttpContext),
@@ -846,9 +837,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
  * @since 4.0.0
  * @category reason
  */
-export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
-  "effect/ai/AiError/OutputParseError"
-)({
+export class OutputParseError extends Schema.ErrorClass<OutputParseError>("effect/ai/AiError/OutputParseError")({
   _tag: Schema.tag("OutputParseError"),
   rawOutput: Schema.optional(Schema.String),
   expectedSchema: Schema.optional(Schema.String),
@@ -920,9 +909,7 @@ export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
  * @since 4.0.0
  * @category reason
  */
-export class AiUnknownError extends Schema.ErrorClass<AiUnknownError>(
-  "effect/ai/AiError/AiUnknownError"
-)({
+export class AiUnknownError extends Schema.ErrorClass<AiUnknownError>("effect/ai/AiError/AiUnknownError")({
   _tag: Schema.tag("AiUnknownError"),
   description: Schema.optional(Schema.String),
   provider: Schema.optional(ProviderMetadata),
@@ -979,20 +966,22 @@ export type AiErrorReason =
  * @since 4.0.0
  * @category schemas
  */
-export const AiErrorReason: Schema.Union<[
-  typeof RateLimitError,
-  typeof QuotaExhaustedError,
-  typeof AuthenticationError,
-  typeof ContentPolicyError,
-  typeof ModelUnavailableError,
-  typeof ContextLengthError,
-  typeof InvalidRequestError,
-  typeof ProviderInternalError,
-  typeof AiTimeoutError,
-  typeof NetworkError,
-  typeof OutputParseError,
-  typeof AiUnknownError
-]> = Schema.Union([
+export const AiErrorReason: Schema.Union<
+  [
+    typeof RateLimitError,
+    typeof QuotaExhaustedError,
+    typeof AuthenticationError,
+    typeof ContentPolicyError,
+    typeof ModelUnavailableError,
+    typeof ContextLengthError,
+    typeof InvalidRequestError,
+    typeof ProviderInternalError,
+    typeof AiTimeoutError,
+    typeof NetworkError,
+    typeof OutputParseError,
+    typeof AiUnknownError
+  ]
+> = Schema.Union([
   RateLimitError,
   QuotaExhaustedError,
   AuthenticationError,
@@ -1044,9 +1033,7 @@ const TypeId = "~effect/unstable/ai/AiError/AiError" as const
  * @since 4.0.0
  * @category schemas
  */
-export class AiError extends Schema.ErrorClass<AiError>(
-  "effect/ai/AiError/AiError"
-)({
+export class AiError extends Schema.ErrorClass<AiError>("effect/ai/AiError/AiError")({
   _tag: Schema.tag("AiError"),
   module: Schema.String,
   method: Schema.String,
@@ -1222,9 +1209,7 @@ export const reasonFromHttpStatus = (params: {
  * @since 4.0.0
  * @category schemas
  */
-export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
-  "effect/ai/AiError/HttpResponseError"
-)({
+export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>("effect/ai/AiError/HttpResponseError")({
   _tag: Schema.tag("HttpResponseError"),
   module: Schema.String,
   method: Schema.String,
@@ -1259,7 +1244,10 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
    * @since 4.0.0
    * @category constructors
    */
-  static fromResponseError({ error, ...params }: {
+  static fromResponseError({
+    error,
+    ...params
+  }: {
     readonly module: string
     readonly method: string
     readonly error: HttpClientError.ResponseError
@@ -1311,13 +1299,15 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
     let suggestion = ""
     switch (this.reason) {
       case "Decode": {
-        suggestion += "The response format does not match what is expected. " +
+        suggestion +=
+          "The response format does not match what is expected. " +
           "Verify API version compatibility, check response content-type, " +
           "and/or examine if the endpoint schema has changed."
         break
       }
       case "EmptyBody": {
-        suggestion += "The response body was empty. This may indicate a server " +
+        suggestion +=
+          "The response body was empty. This may indicate a server " +
           "issue, API version mismatch, or the endpoint may have changed its response format."
         break
       }
@@ -1374,9 +1364,7 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
  * @since 4.0.0
  * @category schemas
  */
-export class MalformedInput extends Schema.ErrorClass<MalformedInput>(
-  "effect/ai/AiError/MalformedInput"
-)({
+export class MalformedInput extends Schema.ErrorClass<MalformedInput>("effect/ai/AiError/MalformedInput")({
   _tag: Schema.tag("MalformedInput"),
   module: Schema.String,
   method: Schema.String,
@@ -1432,9 +1420,7 @@ export class MalformedInput extends Schema.ErrorClass<MalformedInput>(
  * @since 4.0.0
  * @category schemas
  */
-export class MalformedOutput extends Schema.ErrorClass<MalformedOutput>(
-  "effect/ai/AiError/MalformedOutput"
-)({
+export class MalformedOutput extends Schema.ErrorClass<MalformedOutput>("effect/ai/AiError/MalformedOutput")({
   _tag: Schema.tag("MalformedOutput"),
   module: Schema.String,
   method: Schema.String,
@@ -1474,7 +1460,10 @@ export class MalformedOutput extends Schema.ErrorClass<MalformedOutput>(
    * @since 4.0.0
    * @category constructors
    */
-  static fromSchemaError({ error, ...params }: {
+  static fromSchemaError({
+    error,
+    ...params
+  }: {
     readonly module: string
     readonly method: string
     readonly description?: string
@@ -1532,9 +1521,7 @@ export class MalformedOutput extends Schema.ErrorClass<MalformedOutput>(
  * @since 4.0.0
  * @category schemas
  */
-export class UnknownError extends Schema.ErrorClass<UnknownError>(
-  "effect/ai/AiError/UnknownError"
-)({
+export class UnknownError extends Schema.ErrorClass<UnknownError>("effect/ai/AiError/UnknownError")({
   _tag: Schema.tag("UnknownError"),
   module: Schema.String,
   method: Schema.String,

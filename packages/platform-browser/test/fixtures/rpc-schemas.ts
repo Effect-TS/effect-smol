@@ -24,9 +24,12 @@ class Unauthorized extends Schema.ErrorClass<Unauthorized>("Unauthorized")({
   _tag: Schema.tag("Unauthorized")
 }) {}
 
-class AuthMiddleware extends RpcMiddleware.Service<AuthMiddleware, {
-  provides: CurrentUser
-}>()("AuthMiddleware", {
+class AuthMiddleware extends RpcMiddleware.Service<
+  AuthMiddleware,
+  {
+    provides: CurrentUser
+  }
+>()("AuthMiddleware", {
   error: Unauthorized,
   requiredForClient: true
 }) {}
@@ -92,64 +95,58 @@ export const TimingLive = Layer.succeed(TimingMiddleware)(
   )
 )
 
-export const UsersLive = UserRpcs.toLayer(Effect.gen(function*() {
-  let interrupts = 0
-  let emits = 0
-  return UserRpcs.of({
-    GetUser: (_) =>
-      CurrentUser.asEffect().pipe(
-        Rpc.fork
-      ),
-    GetUserOption: Effect.fnUntraced(function*(req) {
-      return Option.some(new User({ id: req.id, name: "John" }))
-    }),
-    StreamUsers: Effect.fnUntraced(function*(req, _) {
-      const mailbox = yield* Queue.bounded<User>(0)
+export const UsersLive = UserRpcs.toLayer(
+  Effect.gen(function* () {
+    let interrupts = 0
+    let emits = 0
+    return UserRpcs.of({
+      GetUser: (_) => CurrentUser.asEffect().pipe(Rpc.fork),
+      GetUserOption: Effect.fnUntraced(function* (req) {
+        return Option.some(new User({ id: req.id, name: "John" }))
+      }),
+      StreamUsers: Effect.fnUntraced(function* (req, _) {
+        const mailbox = yield* Queue.bounded<User>(0)
 
-      yield* Effect.addFinalizer(() =>
-        Effect.sync(() => {
-          interrupts++
+        yield* Effect.addFinalizer(() =>
+          Effect.sync(() => {
+            interrupts++
+          })
+        )
+
+        yield* Queue.offer(mailbox, new User({ id: req.id, name: "John" })).pipe(
+          Effect.tap(() => {
+            emits++
+          }),
+          Effect.delay(100),
+          Effect.forever,
+          Effect.forkScoped
+        )
+
+        return mailbox
+      }),
+      GetInterrupts: () => Effect.sync(() => interrupts),
+      GetEmits: () => Effect.sync(() => emits),
+      ProduceDefect: () => Effect.die("boom"),
+      Never: () => Effect.never.pipe(Effect.onInterrupt(() => Effect.sync(() => interrupts++))),
+      "nested.test": () => Effect.void,
+      TimedMethod: (_) => (_.shouldFail ? Effect.die("boom") : Effect.succeed(1)),
+      GetTimingMiddlewareMetrics: () =>
+        Effect.all({
+          defect: Metric.value(rpcDefects).pipe(Effect.map((_) => _.count)),
+          success: Metric.value(rpcSuccesses).pipe(Effect.map((_) => _.count)),
+          count: Metric.value(rpcCount).pipe(Effect.map((_) => _.count))
         })
-      )
-
-      yield* Queue.offer(mailbox, new User({ id: req.id, name: "John" })).pipe(
-        Effect.tap(() => {
-          emits++
-        }),
-        Effect.delay(100),
-        Effect.forever,
-        Effect.forkScoped
-      )
-
-      return mailbox
-    }),
-    GetInterrupts: () => Effect.sync(() => interrupts),
-    GetEmits: () => Effect.sync(() => emits),
-    ProduceDefect: () => Effect.die("boom"),
-    Never: () => Effect.never.pipe(Effect.onInterrupt(() => Effect.sync(() => interrupts++))),
-    "nested.test": () => Effect.void,
-    TimedMethod: (_) => _.shouldFail ? Effect.die("boom") : Effect.succeed(1),
-    GetTimingMiddlewareMetrics: () =>
-      Effect.all({
-        defect: Metric.value(rpcDefects).pipe(Effect.map((_) => _.count)),
-        success: Metric.value(rpcSuccesses).pipe(Effect.map((_) => _.count)),
-        count: Metric.value(rpcCount).pipe(Effect.map((_) => _.count))
-      })
+    })
   })
-}))
+)
 
 export const RpcLive = RpcServer.layer(UserRpcs, {
   disableFatalDefects: true
-}).pipe(
-  Layer.provide([
-    UsersLive,
-    AuthLive,
-    TimingLive
-  ])
-)
+}).pipe(Layer.provide([UsersLive, AuthLive, TimingLive]))
 
 export const AuthClient = RpcMiddleware.layerClient(AuthMiddleware, ({ next, request }) =>
   next({
     ...request,
     headers: Headers.set(request.headers, "name", "Logged in user")
-  }))
+  })
+)

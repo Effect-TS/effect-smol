@@ -171,7 +171,8 @@ export declare namespace TestClock {
  * The warning message that will be displayed if a test is using time but is
  * not advancing the `TestClock`.
  */
-const warningMessage = "A test is using time, but is not advancing the test " +
+const warningMessage =
+  "A test is using time, but is not advancing the test " +
   "clock, which may result in the test hanging. Use TestClock.adjust to " +
   "manually advance the time."
 
@@ -179,10 +180,12 @@ const defaultOptions: Required<TestClock.Options> = {
   warningDelay: "1 second"
 }
 
-const SleepOrder = Order.flip(Order.Struct({
-  timestamp: Order.Number,
-  sequence: Order.Number
-}))
+const SleepOrder = Order.flip(
+  Order.Struct({
+    timestamp: Order.Number,
+    sequence: Order.Number
+  })
+)
 
 /**
  * Creates a `TestClock` with optional configuration.
@@ -211,9 +214,7 @@ const SleepOrder = Order.flip(Order.Struct({
  * @since 4.0.0
  * @category constructors
  */
-export const make = Effect.fnUntraced(function*(
-  options?: TestClock.Options
-) {
+export const make = Effect.fnUntraced(function* (options?: TestClock.Options) {
   const config = Object.assign({}, defaultOptions, options)
   let sequence = 0
   const sleeps: Array<{
@@ -273,9 +274,11 @@ export const make = Effect.fnUntraced(function*(
       switch (warningState._tag) {
         case "Pending": {
           return Fiber.interrupt(warningState.fiber).pipe(
-            Effect.andThen(Effect.sync(() => {
-              warningState = WarningState.Done()
-            }))
+            Effect.andThen(
+              Effect.sync(() => {
+                warningState = WarningState.Done()
+              })
+            )
           )
         }
         case "Start":
@@ -287,7 +290,7 @@ export const make = Effect.fnUntraced(function*(
     })
   )
 
-  const sleep = Effect.fnUntraced(function*(duration: Duration.Duration) {
+  const sleep = Effect.fnUntraced(function* (duration: Duration.Duration) {
     const millis = Duration.toMillis(duration)
     const end = currentTimestamp + millis
     if (end <= currentTimestamp) return
@@ -303,7 +306,7 @@ export const make = Effect.fnUntraced(function*(
   })
 
   const runSemaphore = yield* Effect.makeSemaphore(1)
-  const run = Effect.fnUntraced(function*(step: (currentTimestamp: number) => number) {
+  const run = Effect.fnUntraced(function* (step: (currentTimestamp: number) => number) {
     yield* Fiber.await(yield* Effect.forkScoped(Effect.yieldNow))
     const endTimestamp = step(currentTimestamp)
     while (Arr.isArrayNonEmpty(sleeps)) {
@@ -391,9 +394,8 @@ export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = La
  * @since 2.0.0
  * @category utils
  */
-export const testClockWith = <A, E, R>(
-  f: (testClock: TestClock) => Effect.Effect<A, E, R>
-): Effect.Effect<A, E, R> => Effect.withFiber((fiber) => f(fiber.getRef(Clock.Clock) as TestClock))
+export const testClockWith = <A, E, R>(f: (testClock: TestClock) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  Effect.withFiber((fiber) => f(fiber.getRef(Clock.Clock) as TestClock))
 
 /**
  * Accesses a `TestClock` instance in the context and increments the time

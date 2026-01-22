@@ -76,15 +76,14 @@ export const schemaJson = <
   options?: ParseOptions | undefined
 ) => {
   const decode = Schema.decodeEffect(Schema.toCodecJson(schema).annotate({ options }))
-  return (
-    self: HttpClientResponse
-  ): Effect.Effect<A, Schema.SchemaError | Error.ResponseError, RD> =>
+  return (self: HttpClientResponse): Effect.Effect<A, Schema.SchemaError | Error.ResponseError, RD> =>
     Effect.flatMap(self.json, (body) =>
       decode({
         status: self.status,
         headers: self.headers,
         body
-      }))
+      })
+    )
 }
 
 /**
@@ -133,7 +132,9 @@ export const matchStatus: {
       readonly "5xx"?: (_: HttpClientResponse) => any
       readonly orElse: (_: HttpClientResponse) => any
     }
-  >(cases: Cases): (self: HttpClientResponse) => Cases[keyof Cases] extends (_: any) => infer R ? Unify<R> : never
+  >(
+    cases: Cases
+  ): (self: HttpClientResponse) => Cases[keyof Cases] extends (_: any) => infer R ? Unify<R> : never
   <
     const Cases extends {
       readonly [status: number]: (_: HttpClientResponse) => any
@@ -143,31 +144,40 @@ export const matchStatus: {
       readonly "5xx"?: (_: HttpClientResponse) => any
       readonly orElse: (_: HttpClientResponse) => any
     }
-  >(self: HttpClientResponse, cases: Cases): Cases[keyof Cases] extends (_: any) => infer R ? Unify<R> : never
-} = dual(2, <
-  const Cases extends {
-    readonly [status: number]: (_: HttpClientResponse) => any
-    readonly "2xx"?: (_: HttpClientResponse) => any
-    readonly "3xx"?: (_: HttpClientResponse) => any
-    readonly "4xx"?: (_: HttpClientResponse) => any
-    readonly "5xx"?: (_: HttpClientResponse) => any
-    readonly orElse: (_: HttpClientResponse) => any
+  >(
+    self: HttpClientResponse,
+    cases: Cases
+  ): Cases[keyof Cases] extends (_: any) => infer R ? Unify<R> : never
+} = dual(
+  2,
+  <
+    const Cases extends {
+      readonly [status: number]: (_: HttpClientResponse) => any
+      readonly "2xx"?: (_: HttpClientResponse) => any
+      readonly "3xx"?: (_: HttpClientResponse) => any
+      readonly "4xx"?: (_: HttpClientResponse) => any
+      readonly "5xx"?: (_: HttpClientResponse) => any
+      readonly orElse: (_: HttpClientResponse) => any
+    }
+  >(
+    self: HttpClientResponse,
+    cases: Cases
+  ) => {
+    const status = self.status
+    if (cases[status]) {
+      return cases[status](self)
+    } else if (status >= 200 && status < 300 && cases["2xx"]) {
+      return cases["2xx"](self)
+    } else if (status >= 300 && status < 400 && cases["3xx"]) {
+      return cases["3xx"](self)
+    } else if (status >= 400 && status < 500 && cases["4xx"]) {
+      return cases["4xx"](self)
+    } else if (status >= 500 && status < 600 && cases["5xx"]) {
+      return cases["5xx"](self)
+    }
+    return cases.orElse(self)
   }
->(self: HttpClientResponse, cases: Cases) => {
-  const status = self.status
-  if (cases[status]) {
-    return cases[status](self)
-  } else if (status >= 200 && status < 300 && cases["2xx"]) {
-    return cases["2xx"](self)
-  } else if (status >= 300 && status < 400 && cases["3xx"]) {
-    return cases["3xx"](self)
-  } else if (status >= 400 && status < 500 && cases["4xx"]) {
-    return cases["4xx"](self)
-  } else if (status >= 500 && status < 600 && cases["5xx"]) {
-    return cases["5xx"](self)
-  }
-  return cases.orElse(self)
-})
+)
 
 /**
  * @since 4.0.0
@@ -176,19 +186,19 @@ export const matchStatus: {
 export const filterStatus: {
   (f: (status: number) => boolean): (self: HttpClientResponse) => Effect.Effect<HttpClientResponse, Error.ResponseError>
   (self: HttpClientResponse, f: (status: number) => boolean): Effect.Effect<HttpClientResponse, Error.ResponseError>
-} = dual(
-  2,
-  (self: HttpClientResponse, f: (status: number) => boolean) =>
-    Effect.suspend(() =>
-      f(self.status) ? Effect.succeed(self) : Effect.fail(
-        new Error.ResponseError({
-          response: self,
-          request: self.request,
-          reason: "StatusCode",
-          description: "invalid status code"
-        })
-      )
-    )
+} = dual(2, (self: HttpClientResponse, f: (status: number) => boolean) =>
+  Effect.suspend(() =>
+    f(self.status)
+      ? Effect.succeed(self)
+      : Effect.fail(
+          new Error.ResponseError({
+            response: self,
+            request: self.request,
+            reason: "StatusCode",
+            description: "invalid status code"
+          })
+        )
+  )
 )
 
 /**
@@ -196,14 +206,16 @@ export const filterStatus: {
  * @category filters
  */
 export const filterStatusOk = (self: HttpClientResponse): Effect.Effect<HttpClientResponse, Error.ResponseError> =>
-  self.status >= 200 && self.status < 300 ? Effect.succeed(self) : Effect.fail(
-    new Error.ResponseError({
-      response: self,
-      request: self.request,
-      reason: "StatusCode",
-      description: "non 2xx status code"
-    })
-  )
+  self.status >= 200 && self.status < 300
+    ? Effect.succeed(self)
+    : Effect.fail(
+        new Error.ResponseError({
+          response: self,
+          request: self.request,
+          reason: "StatusCode",
+          description: "non 2xx status code"
+        })
+      )
 
 // -----------------------------------------------------------------------------
 // internal
@@ -216,10 +228,7 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
   readonly request: HttpClientRequest.HttpClientRequest
   private readonly source: globalThis.Response
 
-  constructor(
-    request: HttpClientRequest.HttpClientRequest,
-    source: globalThis.Response
-  ) {
+  constructor(request: HttpClientRequest.HttpClientRequest, source: globalThis.Response) {
     super()
     this.request = request
     this.source = source
@@ -248,7 +257,7 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
     if (this.cachedCookies) {
       return this.cachedCookies
     }
-    return this.cachedCookies = Cookies.fromSetCookie(this.source.headers.getSetCookie())
+    return (this.cachedCookies = Cookies.fromSetCookie(this.source.headers.getSetCookie()))
   }
 
   get remoteAddress(): string | undefined {
@@ -258,29 +267,29 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
   get stream(): Stream.Stream<Uint8Array, Error.ResponseError> {
     return this.source.body
       ? Stream.fromReadableStream({
-        evaluate: () => this.source.body!,
-        onError: (cause) =>
+          evaluate: () => this.source.body!,
+          onError: (cause) =>
+            new Error.ResponseError({
+              request: this.request,
+              response: this,
+              reason: "Decode",
+              cause
+            })
+        })
+      : Stream.fail(
           new Error.ResponseError({
             request: this.request,
             response: this,
-            reason: "Decode",
-            cause
+            reason: "EmptyBody",
+            description: "can not create stream from empty body"
           })
-      })
-      : Stream.fail(
-        new Error.ResponseError({
-          request: this.request,
-          response: this,
-          reason: "EmptyBody",
-          description: "can not create stream from empty body"
-        })
-      )
+        )
   }
 
   get json(): Effect.Effect<unknown, Error.ResponseError> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
-        try: () => text === "" ? null : JSON.parse(text) as unknown,
+        try: () => (text === "" ? null : (JSON.parse(text) as unknown)),
         catch: (cause) =>
           new Error.ResponseError({
             request: this.request,
@@ -288,12 +297,13 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
             reason: "Decode",
             cause
           })
-      }))
+      })
+    )
   }
 
   private textBody?: Effect.Effect<string, Error.ResponseError>
   get text(): Effect.Effect<string, Error.ResponseError> {
-    return this.textBody ??= Effect.tryPromise({
+    return (this.textBody ??= Effect.tryPromise({
       try: () => this.source.text(),
       catch: (cause) =>
         new Error.ResponseError({
@@ -302,7 +312,7 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
           reason: "Decode",
           cause
         })
-    }).pipe(Effect.cached, Effect.runSync)
+    }).pipe(Effect.cached, Effect.runSync))
   }
 
   get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, Error.ResponseError> {
@@ -316,12 +326,13 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
             reason: "Decode",
             cause
           })
-      }))
+      })
+    )
   }
 
   private formDataBody?: Effect.Effect<FormData, Error.ResponseError>
   get formData(): Effect.Effect<FormData, Error.ResponseError> {
-    return this.formDataBody ??= Effect.tryPromise({
+    return (this.formDataBody ??= Effect.tryPromise({
       try: () => this.source.formData(),
       catch: (cause) =>
         new Error.ResponseError({
@@ -330,12 +341,12 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
           reason: "Decode",
           cause
         })
-    }).pipe(Effect.cached, Effect.runSync)
+    }).pipe(Effect.cached, Effect.runSync))
   }
 
   private arrayBufferBody?: Effect.Effect<ArrayBuffer, Error.ResponseError>
   get arrayBuffer(): Effect.Effect<ArrayBuffer, Error.ResponseError> {
-    return this.arrayBufferBody ??= Effect.tryPromise({
+    return (this.arrayBufferBody ??= Effect.tryPromise({
       try: () => this.source.arrayBuffer(),
       catch: (cause) =>
         new Error.ResponseError({
@@ -344,6 +355,6 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
           reason: "Decode",
           cause
         })
-    }).pipe(Effect.cached, Effect.runSync)
+    }).pipe(Effect.cached, Effect.runSync))
   }
 }

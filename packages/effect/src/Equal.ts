@@ -143,11 +143,7 @@ function compareBoth(self: unknown, that: unknown): boolean {
 }
 
 /** Helper to run comparison with proper visited tracking */
-function withVisitedTracking(
-  self: object,
-  that: object,
-  fn: () => boolean
-): boolean {
+function withVisitedTracking(self: object, that: object, fn: () => boolean): boolean {
   const hasLeft = visitedLeft.has(self)
   const hasRight = visitedRight.has(that)
   // Check for circular references before adding
@@ -247,10 +243,7 @@ function compareArrays(self: Array<unknown>, that: Array<unknown>): boolean {
   return true
 }
 
-function compareRecords(
-  self: Record<PropertyKey, unknown>,
-  that: Record<PropertyKey, unknown>
-): boolean {
+function compareRecords(self: Record<PropertyKey, unknown>, that: Record<PropertyKey, unknown>): boolean {
   const selfKeys = getAllObjectKeys(self)
   const thatKeys = getAllObjectKeys(that)
 
@@ -259,7 +252,7 @@ function compareRecords(
   }
 
   for (const key of selfKeys) {
-    if (!(thatKeys.has(key)) || !compareBoth(self[key], that[key])) {
+    if (!thatKeys.has(key) || !compareBoth(self[key], that[key])) {
       return false
     }
   }

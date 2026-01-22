@@ -32,9 +32,7 @@ export interface Fragment {
  * @category constructors
  * @since 4.0.0
  */
-export const fragment = (
-  segments: ReadonlyArray<Segment>
-): Fragment => ({
+export const fragment = (segments: ReadonlyArray<Segment>): Fragment => ({
   [FragmentTypeId]: FragmentTypeId,
   segments
 })
@@ -55,10 +53,7 @@ export interface Statement<A> extends Fragment, Effect.Effect<ReadonlyArray<A>, 
   readonly stream: Stream.Stream<A, SqlError>
   readonly values: Effect.Effect<ReadonlyArray<ReadonlyArray<unknown>>, SqlError>
   readonly unprepared: Effect.Effect<ReadonlyArray<A>, SqlError>
-  readonly compile: (withoutTransform?: boolean | undefined) => readonly [
-    sql: string,
-    params: ReadonlyArray<unknown>
-  ]
+  readonly compile: (withoutTransform?: boolean | undefined) => readonly [sql: string, params: ReadonlyArray<unknown>]
 }
 
 /**
@@ -90,10 +85,10 @@ export const isFragment = (u: unknown): u is Fragment => hasProperty(u, Fragment
  * @category guard
  * @since 4.0.0
  */
-export const isCustom = <A extends Custom<any, any, any, any>>(
-  kind: A["kind"]
-) =>
-(u: unknown): u is A => hasProperty(u, "_tag") && u._tag === "Custom" && (u as any).kind === kind
+export const isCustom =
+  <A extends Custom<any, any, any, any>>(kind: A["kind"]) =>
+  (u: unknown): u is A =>
+    hasProperty(u, "_tag") && u._tag === "Custom" && (u as any).kind === kind
 
 /**
  * @category model
@@ -210,9 +205,7 @@ const RecordInsertHelperProto = {
  * @category constructors
  * @since 4.0.0
  */
-export const recordInsertHelper = (
-  value: ReadonlyArray<Record<string, unknown>>
-): RecordInsertHelper =>
+export const recordInsertHelper = (value: ReadonlyArray<Record<string, unknown>>): RecordInsertHelper =>
   Object.assign(Object.create(RecordInsertHelperProto), {
     value,
     returningIdentifier: undefined
@@ -240,10 +233,7 @@ const RecordUpdateHelperProto = {
  * @category constructors
  * @since 4.0.0
  */
-export const recordUpdateHelper = (
-  value: ReadonlyArray<Record<string, unknown>>,
-  alias: string
-): RecordUpdateHelper =>
+export const recordUpdateHelper = (value: ReadonlyArray<Record<string, unknown>>, alias: string): RecordUpdateHelper =>
   Object.assign(Object.create(RecordUpdateHelperProto), {
     value,
     alias,
@@ -286,12 +276,7 @@ export const recordUpdateHelperSingle = (
  * @category model
  * @since 4.0.0
  */
-export interface Custom<
-  T extends string = string,
-  A = void,
-  B = void,
-  C = void
-> {
+export interface Custom<T extends string = string, A = void, B = void, C = void> {
   readonly _tag: "Custom"
   readonly kind: T
   readonly paramA: A
@@ -303,28 +288,16 @@ export interface Custom<
  * @category constructor
  * @since 4.0.0
  */
-export const custom = <C extends Custom<any, any, any, any>>(
-  kind: C["kind"]
-) =>
-(
-  paramA: C["paramA"],
-  paramB: C["paramB"],
-  paramC: C["paramC"]
-): C => ({ _tag: "Custom", kind, paramA, paramB, paramC } as C)
+export const custom =
+  <C extends Custom<any, any, any, any>>(kind: C["kind"]) =>
+  (paramA: C["paramA"], paramB: C["paramB"], paramC: C["paramC"]): C =>
+    ({ _tag: "Custom", kind, paramA, paramB, paramC }) as C
 
 /**
  * @category model
  * @since 4.0.0
  */
-export type PrimitiveKind =
-  | "string"
-  | "number"
-  | "bigint"
-  | "boolean"
-  | "Date"
-  | "null"
-  | "Int8Array"
-  | "Uint8Array"
+export type PrimitiveKind = "string" | "number" | "bigint" | "boolean" | "Date" | "null" | "Int8Array" | "Uint8Array"
 
 /**
  * @category model
@@ -343,20 +316,14 @@ export type Helper =
  * @since 4.0.0
  */
 export interface Constructor {
-  <A extends object = Row>(
-    strings: TemplateStringsArray,
-    ...args: Array<any>
-  ): Statement<A>
+  <A extends object = Row>(strings: TemplateStringsArray, ...args: Array<any>): Statement<A>
 
   (value: string): Identifier
 
   /**
    * Create unsafe SQL query
    */
-  readonly unsafe: <A extends object>(
-    sql: string,
-    params?: ReadonlyArray<unknown> | undefined
-  ) => Statement<A>
+  readonly unsafe: <A extends object>(sql: string, params?: ReadonlyArray<unknown> | undefined) => Statement<A>
 
   readonly literal: (sql: string) => Fragment
 
@@ -366,9 +333,7 @@ export interface Constructor {
   }
 
   readonly insert: {
-    (
-      value: ReadonlyArray<Record<string, unknown>>
-    ): RecordInsertHelper
+    (value: ReadonlyArray<Record<string, unknown>>): RecordInsertHelper
     (value: Record<string, unknown>): RecordInsertHelper
   }
 
@@ -383,10 +348,7 @@ export interface Constructor {
    *
    * **Note:** Not supported in sqlite
    */
-  readonly updateValues: (
-    value: ReadonlyArray<Record<string, unknown>>,
-    alias: string
-  ) => RecordUpdateHelper
+  readonly updateValues: (value: ReadonlyArray<Record<string, unknown>>, alias: string) => RecordUpdateHelper
 
   /**
    * Create an `AND` chain for a where clause
@@ -451,39 +413,21 @@ export const make = (
       if (typeof strings === "string") {
         return identifier(strings)
       } else if (Array.isArray(strings) && "raw" in strings) {
-        return statement(
-          acquirer,
-          compiler,
-          strings as TemplateStringsArray,
-          args,
-          spanAttributes,
-          transformRows
-        )
+        return statement(acquirer, compiler, strings as TemplateStringsArray, args, spanAttributes, transformRows)
       }
 
       throw "absurd"
     },
     {
-      unsafe<A extends object = Row>(
-        sql: string,
-        params?: ReadonlyArray<unknown>
-      ) {
-        return makeUnsafe<A>(
-          [literal(sql, params)],
-          acquirer,
-          compiler,
-          spanAttributes,
-          transformRows
-        )
+      unsafe<A extends object = Row>(sql: string, params?: ReadonlyArray<unknown>) {
+        return makeUnsafe<A>([literal(sql, params)], acquirer, compiler, spanAttributes, transformRows)
       },
       literal(sql: string) {
         return fragment([literal(sql)])
       },
       in: in_,
       insert(value: any) {
-        return recordInsertHelper(
-          Array.isArray(value) ? value : [value]
-        )
+        return recordInsertHelper(Array.isArray(value) ? value : [value])
       },
       update(value: any, omit: any) {
         return recordUpdateHelperSingle(value, omit ?? [])
@@ -602,10 +546,8 @@ export const or: (clauses: ReadonlyArray<string | Fragment>) => Fragment = join(
 export const csv: {
   (values: ReadonlyArray<string | Fragment>): Fragment
   (prefix: string, values: ReadonlyArray<string | Fragment>): Fragment
-} = function(
-  ...args:
-    | [values: ReadonlyArray<string | Fragment>]
-    | [prefix: string, values: ReadonlyArray<string | Fragment>]
+} = function (
+  ...args: [values: ReadonlyArray<string | Fragment>] | [prefix: string, values: ReadonlyArray<string | Fragment>]
 ) {
   if (args[args.length - 1].length === 0) {
     return emptyFragment
@@ -615,10 +557,7 @@ export const csv: {
     return csvRaw(args[0])
   }
 
-  return fragment([
-    literal(`${args[0]} `),
-    ...csvRaw(args[1]).segments
-  ])
+  return fragment([literal(`${args[0]} `), ...csvRaw(args[1]).segments])
 }
 
 const csvRaw = join(",", false)
@@ -674,9 +613,7 @@ export type CompilerOptions<C extends Custom<any, any, any, any> = any> = {
  * @category compiler
  * @since 4.0.0
  */
-export const makeCompiler = <C extends Custom<any, any, any, any> = any>(
-  options: CompilerOptions<C>
-): Compiler => {
+export const makeCompiler = <C extends Custom<any, any, any, any> = any>(options: CompilerOptions<C>): Compiler => {
   const self = Object.create(CompilerProto)
   self.options = options
   self.dialect = options.dialect
@@ -776,8 +713,8 @@ const CompilerProto = {
               typeof segment.returningIdentifier === "string"
                 ? [segment.returningIdentifier, []]
                 : segment.returningIdentifier
-                ? this.compile(segment.returningIdentifier, withoutTransform, placeholder)
-                : undefined
+                  ? this.compile(segment.returningIdentifier, withoutTransform, placeholder)
+                  : undefined
             )
             sql += s
             binds.push.apply(binds, b as any)
@@ -793,13 +730,7 @@ const CompilerProto = {
               }
               placeholders += ")"
             }
-            sql += `${
-              generateColumns(
-                keys,
-                opts.onIdentifier,
-                withoutTransform
-              )
-            } VALUES ${placeholders}`
+            sql += `${generateColumns(keys, opts.onIdentifier, withoutTransform)} VALUES ${placeholders}`
 
             if (typeof segment.returningIdentifier === "string") {
               sql += ` RETURNING ${segment.returningIdentifier}`
@@ -822,18 +753,13 @@ const CompilerProto = {
             const [s, b] = opts.onRecordUpdateSingle(
               keys.map((_) => opts.onIdentifier(_, withoutTransform)),
               keys.map((key) =>
-                extractPrimitive(
-                  segment.value[key],
-                  opts.onCustom,
-                  placeholderNoIncrement,
-                  withoutTransform
-                )
+                extractPrimitive(segment.value[key], opts.onCustom, placeholderNoIncrement, withoutTransform)
               ),
               typeof segment.returningIdentifier === "string"
                 ? [segment.returningIdentifier, []]
                 : segment.returningIdentifier
-                ? this.compile(segment.returningIdentifier, withoutTransform, placeholder)
-                : undefined
+                  ? this.compile(segment.returningIdentifier, withoutTransform, placeholder)
+                  : undefined
             )
             sql += s
             binds.push.apply(binds, b as any)
@@ -846,12 +772,7 @@ const CompilerProto = {
                 sql += `, ${column} = ${placeholder(segment.value[keys[i]])}`
               }
               binds.push(
-                extractPrimitive(
-                  segment.value[keys[i]],
-                  opts.onCustom,
-                  placeholderNoIncrement,
-                  withoutTransform
-                )
+                extractPrimitive(segment.value[keys[i]], opts.onCustom, placeholderNoIncrement, withoutTransform)
               )
             }
             if (typeof segment.returningIdentifier === "string") {
@@ -894,8 +815,8 @@ const CompilerProto = {
             typeof segment.returningIdentifier === "string"
               ? [segment.returningIdentifier, []]
               : segment.returningIdentifier
-              ? this.compile(segment.returningIdentifier, withoutTransform, placeholder)
-              : undefined
+                ? this.compile(segment.returningIdentifier, withoutTransform, placeholder)
+                : undefined
           )
           sql += s
           binds.push.apply(binds, b as any)
@@ -915,7 +836,7 @@ const CompilerProto = {
     if (placeholderOverride !== undefined) {
       return result
     }
-    return (statement as any)[cacheSymbol] = result
+    return ((statement as any)[cacheSymbol] = result)
   },
 
   get withoutTransform() {
@@ -937,11 +858,11 @@ export const makeCompilerSqlite = (transform?: ((_: string) => string) | undefin
     placeholder(_) {
       return "?"
     },
-    onIdentifier: transform ?
-      function(value, withoutTransform) {
-        return withoutTransform ? escapeSqlite(value) : escapeSqlite(transform(value))
-      } :
-      escapeSqlite,
+    onIdentifier: transform
+      ? function (value, withoutTransform) {
+          return withoutTransform ? escapeSqlite(value) : escapeSqlite(transform(value))
+        }
+      : escapeSqlite,
     onRecordUpdate() {
       return ["", []]
     },
@@ -957,7 +878,7 @@ export function defaultEscape(c: string) {
   const re = new RegExp(c, "g")
   const double = c + c
   const dot = c + "." + c
-  return function(str: string): string {
+  return function (str: string): string {
     return c + str.replace(re, double).replace(/\./g, dot) + c
   }
 }
@@ -995,10 +916,7 @@ export const primitiveKind = (value: unknown): PrimitiveKind => {
 /**
  * @since 4.0.0
  */
-export const defaultTransforms = (
-  transformer: (str: string) => string,
-  nested = true
-) => {
+export const defaultTransforms = (transformer: (str: string) => string, nested = true) => {
   const transformValue = (value: any) => {
     if (Array.isArray(value)) {
       if (value.length === 0 || value[0].constructor !== Object) {
@@ -1019,9 +937,7 @@ export const defaultTransforms = (
     return newObj
   }
 
-  const transformArrayNested = <A extends object>(
-    rows: ReadonlyArray<A>
-  ): ReadonlyArray<A> => {
+  const transformArrayNested = <A extends object>(rows: ReadonlyArray<A>): ReadonlyArray<A> => {
     const newRows: Array<A> = new Array(rows.length)
     for (let i = 0, len = rows.length; i < len; i++) {
       const row = rows[i]
@@ -1038,9 +954,7 @@ export const defaultTransforms = (
     return newRows
   }
 
-  const transformArray = <A extends object>(
-    rows: ReadonlyArray<A>
-  ): ReadonlyArray<A> => {
+  const transformArray = <A extends object>(rows: ReadonlyArray<A>): ReadonlyArray<A> => {
     const newRows: Array<A> = new Array(rows.length)
     for (let i = 0, len = rows.length; i < len; i++) {
       const row = rows[i]
@@ -1080,20 +994,12 @@ interface StatementImpl<A> extends Statement<A> {
 
   withConnection<XA, E>(
     operation: string,
-    f: (
-      connection: Connection,
-      sql: string,
-      params: ReadonlyArray<unknown>
-    ) => Effect.Effect<XA, E>,
+    f: (connection: Connection, sql: string, params: ReadonlyArray<unknown>) => Effect.Effect<XA, E>,
     withoutTransform?: boolean | undefined
   ): Effect.Effect<XA, E | SqlError>
   withConnectionSpan<XA, E>(
     operation: string,
-    f: (
-      connection: Connection,
-      sql: string,
-      params: ReadonlyArray<unknown>
-    ) => Effect.Effect<XA, E>,
+    f: (connection: Connection, sql: string, params: ReadonlyArray<unknown>) => Effect.Effect<XA, E>,
     withoutTransform: boolean,
     span: Tracer.Span
   ): Effect.Effect<XA, E | SqlError>
@@ -1125,33 +1031,17 @@ const StatementProto: Omit<
   withConnection<XA, E>(
     this: StatementImpl<any>,
     operation: string,
-    f: (
-      connection: Connection,
-      sql: string,
-      params: ReadonlyArray<unknown>
-    ) => Effect.Effect<XA, E>,
+    f: (connection: Connection, sql: string, params: ReadonlyArray<unknown>) => Effect.Effect<XA, E>,
     withoutTransform = false
   ): Effect.Effect<XA, E | SqlError> {
-    return Effect.useSpan(
-      "sql.execute",
-      { kind: "client" },
-      (span) =>
-        this.withConnectionSpan(
-          operation,
-          f,
-          withoutTransform,
-          span
-        )
+    return Effect.useSpan("sql.execute", { kind: "client" }, (span) =>
+      this.withConnectionSpan(operation, f, withoutTransform, span)
     )
   },
   withConnectionSpan<XA, E>(
     this: StatementImpl<any>,
     operation: string,
-    f: (
-      connection: Connection,
-      sql: string,
-      params: ReadonlyArray<unknown>
-    ) => Effect.Effect<XA, E>,
+    f: (connection: Connection, sql: string, params: ReadonlyArray<unknown>) => Effect.Effect<XA, E>,
     withoutTransform: boolean,
     span: Tracer.Span
   ): Effect.Effect<XA, E | SqlError> {
@@ -1175,18 +1065,13 @@ const StatementProto: Omit<
   },
 
   get raw(): Effect.Effect<unknown, SqlError> {
-    return this.withConnection(
-      "executeRaw",
-      (connection, sql, params) => connection.executeRaw(sql, params),
-      true
-    )
+    return this.withConnection("executeRaw", (connection, sql, params) => connection.executeRaw(sql, params), true)
   },
 
   get stream(): Stream.Stream<any, SqlError> {
     const self = this as StatementImpl<any>
-    return Stream.unwrap(Effect.flatMap(
-      Effect.makeSpanScoped("sql.execute", { kind: "client" }),
-      (span) =>
+    return Stream.unwrap(
+      Effect.flatMap(Effect.makeSpanScoped("sql.execute", { kind: "client" }), (span) =>
         withStatement(self, span, (statement) => {
           const [sql, params] = statement.compile()
           for (const [key, value] of self.spanAttributes) {
@@ -1196,28 +1081,22 @@ const StatementProto: Omit<
           span.attribute(ATTR_DB_QUERY_TEXT, sql)
           return Effect.map(self.acquirer, (_) => _.executeStream(sql, params, self.transformRows))
         })
-    ))
+      )
+    )
   },
 
-  get values(): Effect.Effect<
-    ReadonlyArray<ReadonlyArray<unknown>>,
-    SqlError
-  > {
+  get values(): Effect.Effect<ReadonlyArray<ReadonlyArray<unknown>>, SqlError> {
     return this.withConnection("executeValues", (connection, sql, params) => connection.executeValues(sql, params))
   },
 
   get unprepared(): Effect.Effect<ReadonlyArray<any>, SqlError> {
     const self = this as StatementImpl<any>
-    return self.withConnection(
-      "executeUnprepared",
-      (connection, sql, params) => connection.executeUnprepared(sql, params, self.transformRows)
+    return self.withConnection("executeUnprepared", (connection, sql, params) =>
+      connection.executeUnprepared(sql, params, self.transformRows)
     )
   },
 
-  compile(
-    this: StatementImpl<any>,
-    withoutTransform?: boolean | undefined
-  ) {
+  compile(this: StatementImpl<any>, withoutTransform?: boolean | undefined) {
     return this.compiler.compile(this, withoutTransform ?? false)
   },
   [core.evaluate as any](
@@ -1295,18 +1174,20 @@ function convertLiteralOrFragment(clause: string | Fragment): Array<Segment> {
   return clause.segments as Array<Segment>
 }
 
-const makePlaceholdersArray = (evaluate: (u: unknown) => string) => (values: ReadonlyArray<unknown>): string => {
-  if (values.length === 0) {
-    return ""
-  }
+const makePlaceholdersArray =
+  (evaluate: (u: unknown) => string) =>
+  (values: ReadonlyArray<unknown>): string => {
+    if (values.length === 0) {
+      return ""
+    }
 
-  let result = evaluate(values[0])
-  for (let i = 1; i < values.length; i++) {
-    result += `,${evaluate(values[i])}`
-  }
+    let result = evaluate(values[0])
+    for (let i = 1; i < values.length; i++) {
+      result += `,${evaluate(values[i])}`
+    }
 
-  return result
-}
+    return result
+  }
 
 const generateColumns = (
   keys: ReadonlyArray<string>,
@@ -1349,7 +1230,7 @@ const extractPrimitive = (
   return value
 }
 
-const escapeSqlite = defaultEscape("\"")
+const escapeSqlite = defaultEscape('"')
 
 function in_(values: ReadonlyArray<unknown>): ArrayHelper
 function in_(column: string, values: ReadonlyArray<unknown>): Fragment
@@ -1359,11 +1240,7 @@ function in_(): Fragment | ArrayHelper {
   }
   const column = arguments[0]
   const values = arguments[1]
-  return values.length === 0 ? neverFragment : fragment([
-    identifier(column),
-    literal(" IN "),
-    arrayHelper(values)
-  ])
+  return values.length === 0 ? neverFragment : fragment([identifier(column), literal(" IN "), arrayHelper(values)])
 }
 
 const neverFragment = fragment([literal("1=0")])

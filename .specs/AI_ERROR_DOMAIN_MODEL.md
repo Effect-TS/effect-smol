@@ -34,9 +34,7 @@ Replace the current `AiError` design with a comprehensive, provider-agnostic dom
 All errors use `Schema.ErrorClass` with `_tag` defined via `Schema.tag("...")`:
 
 ```typescript
-export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
-  "effect/ai/AiError/RateLimitError"
-)({
+export class RateLimitError extends Schema.ErrorClass<RateLimitError>("effect/ai/AiError/RateLimitError")({
   _tag: Schema.tag("RateLimitError")
   // ... fields
 }) {}
@@ -181,9 +179,7 @@ export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, 
 #### RateLimitError
 
 ```typescript
-export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
-  "effect/ai/AiError/RateLimitError"
-)({
+export class RateLimitError extends Schema.ErrorClass<RateLimitError>("effect/ai/AiError/RateLimitError")({
   _tag: Schema.tag("RateLimitError"),
   retryAfter: Schema.optional(Schema.Duration),
   limit: Schema.optional(Schema.String), // "requests" | "tokens" | etc.
@@ -264,9 +260,7 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
 #### ContentPolicyError
 
 ```typescript
-export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
-  "effect/ai/AiError/ContentPolicyError"
-)({
+export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>("effect/ai/AiError/ContentPolicyError")({
   _tag: Schema.tag("ContentPolicyError"),
   violationType: Schema.optional(Schema.String), // "hate" | "violence" | etc.
   flaggedInput: Schema.optional(Schema.Boolean), // true if input was flagged
@@ -323,9 +317,7 @@ export class ModelUnavailableError extends Schema.ErrorClass<ModelUnavailableErr
 #### ContextLengthError
 
 ```typescript
-export class ContextLengthError extends Schema.ErrorClass<ContextLengthError>(
-  "effect/ai/AiError/ContextLengthError"
-)({
+export class ContextLengthError extends Schema.ErrorClass<ContextLengthError>("effect/ai/AiError/ContextLengthError")({
   _tag: Schema.tag("ContextLengthError"),
   maxTokens: Schema.optional(Schema.Number),
   requestedTokens: Schema.optional(Schema.Number),
@@ -405,9 +397,7 @@ export class ProviderInternalError extends Schema.ErrorClass<ProviderInternalErr
 #### TimeoutError
 
 ```typescript
-export class TimeoutError extends Schema.ErrorClass<TimeoutError>(
-  "effect/ai/AiError/TimeoutError"
-)({
+export class TimeoutError extends Schema.ErrorClass<TimeoutError>("effect/ai/AiError/TimeoutError")({
   _tag: Schema.tag("TimeoutError"),
   phase: Schema.Literals(["Connection", "Request", "Response"]),
   duration: Schema.optional(Schema.Duration),
@@ -430,9 +420,7 @@ export class TimeoutError extends Schema.ErrorClass<TimeoutError>(
 #### NetworkError
 
 ```typescript
-export class NetworkError extends Schema.ErrorClass<NetworkError>(
-  "effect/ai/AiError/NetworkError"
-)({
+export class NetworkError extends Schema.ErrorClass<NetworkError>("effect/ai/AiError/NetworkError")({
   _tag: Schema.tag("NetworkError"),
   kind: Schema.Literals(["ConnectionRefused", "DnsLookupFailed", "TlsError", "Unknown"]),
   http: Schema.optional(HttpContext),
@@ -457,9 +445,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
 #### OutputParseError
 
 ```typescript
-export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
-  "effect/ai/AiError/OutputParseError"
-)({
+export class OutputParseError extends Schema.ErrorClass<OutputParseError>("effect/ai/AiError/OutputParseError")({
   _tag: Schema.tag("OutputParseError"),
   rawOutput: Schema.optional(Schema.String),
   expectedSchema: Schema.optional(Schema.String),
@@ -490,9 +476,7 @@ export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
 #### UnknownError
 
 ```typescript
-export class UnknownError extends Schema.ErrorClass<UnknownError>(
-  "effect/ai/AiError/UnknownError"
-)({
+export class UnknownError extends Schema.ErrorClass<UnknownError>("effect/ai/AiError/UnknownError")({
   _tag: Schema.tag("UnknownError"),
   description: Schema.optional(Schema.String),
   provider: Schema.optional(ProviderMetadata),
@@ -563,20 +547,22 @@ export type AiErrorReason =
   | OutputParseError
   | UnknownError
 
-export const AiErrorReason: Schema.Union<[
-  typeof RateLimitError,
-  typeof QuotaExhaustedError,
-  typeof AuthenticationError,
-  typeof ContentPolicyError,
-  typeof ModelUnavailableError,
-  typeof ContextLengthError,
-  typeof InvalidRequestError,
-  typeof ProviderInternalError,
-  typeof TimeoutError,
-  typeof NetworkError,
-  typeof OutputParseError,
-  typeof UnknownError
-]> = Schema.Union([
+export const AiErrorReason: Schema.Union<
+  [
+    typeof RateLimitError,
+    typeof QuotaExhaustedError,
+    typeof AuthenticationError,
+    typeof ContentPolicyError,
+    typeof ModelUnavailableError,
+    typeof ContextLengthError,
+    typeof InvalidRequestError,
+    typeof ProviderInternalError,
+    typeof TimeoutError,
+    typeof NetworkError,
+    typeof OutputParseError,
+    typeof UnknownError
+  ]
+> = Schema.Union([
   RateLimitError,
   QuotaExhaustedError,
   AuthenticationError,

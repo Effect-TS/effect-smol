@@ -114,11 +114,10 @@ export const HttpClient: ServiceMap.Service<HttpClient, HttpClient> = ServiceMap
   "effect/HttpClient"
 )
 
-const accessor = (method: keyof HttpClient) => (...args: Array<any>): Effect.Effect<any, any, any> =>
-  Effect.flatMap(
-    HttpClient.asEffect(),
-    (client) => (client as any)[method](...args)
-  )
+const accessor =
+  (method: keyof HttpClient) =>
+  (...args: Array<any>): Effect.Effect<any, any, any> =>
+    Effect.flatMap(HttpClient.asEffect(), (client) => (client as any)[method](...args))
 
 /**
  * @since 4.0.0
@@ -132,71 +131,64 @@ export const execute: (
  * @since 4.0.0
  * @category accessors
  */
-export const get: (url: string | URL, options?: HttpClientRequest.Options.NoBody | undefined) => Effect.Effect<
-  HttpClientResponse.HttpClientResponse,
-  Error.HttpClientError,
-  HttpClient
-> = accessor("get")
+export const get: (
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoBody | undefined
+) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> = accessor("get")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const head: (url: string | URL, options?: HttpClientRequest.Options.NoBody | undefined) => Effect.Effect<
-  HttpClientResponse.HttpClientResponse,
-  Error.HttpClientError,
-  HttpClient
-> = accessor("head")
+export const head: (
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoBody | undefined
+) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> = accessor("head")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const post: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
-  HttpClientResponse.HttpClientResponse,
-  Error.HttpClientError,
-  HttpClient
-> = accessor("post")
+export const post: (
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl | undefined
+) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> = accessor("post")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const patch: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
-  HttpClientResponse.HttpClientResponse,
-  Error.HttpClientError,
-  HttpClient
-> = accessor("patch")
+export const patch: (
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl | undefined
+) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> = accessor("patch")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const put: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
-  HttpClientResponse.HttpClientResponse,
-  Error.HttpClientError,
-  HttpClient
-> = accessor("put")
+export const put: (
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl | undefined
+) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> = accessor("put")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const del: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
-  HttpClientResponse.HttpClientResponse,
-  Error.HttpClientError,
-  HttpClient
-> = accessor("del")
+export const del: (
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl | undefined
+) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> = accessor("del")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const options: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
-  HttpClientResponse.HttpClientResponse,
-  Error.HttpClientError,
-  HttpClient
-> = accessor("options")
+export const options: (
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl | undefined
+) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> = accessor("options")
 
 /**
  * @since 4.0.0
@@ -216,17 +208,20 @@ export const transform: {
       request: HttpClientRequest.HttpClientRequest
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
   ): HttpClient.With<E | E1, R | R1>
-} = dual(2, <E, R, E1, R1>(
-  self: HttpClient.With<E, R>,
-  f: (
-    effect: Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>,
-    request: HttpClientRequest.HttpClientRequest
-  ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
-): HttpClient.With<E | E1, R | R1> =>
-  makeWith(
-    Effect.flatMap((request) => f(self.postprocess(Effect.succeed(request)), request)),
-    self.preprocess
-  ))
+} = dual(
+  2,
+  <E, R, E1, R1>(
+    self: HttpClient.With<E, R>,
+    f: (
+      effect: Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>,
+      request: HttpClientRequest.HttpClientRequest
+    ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
+  ): HttpClient.With<E | E1, R | R1> =>
+    makeWith(
+      Effect.flatMap((request) => f(self.postprocess(Effect.succeed(request)), request)),
+      self.preprocess
+    )
+)
 
 /**
  * @since 4.0.0
@@ -244,21 +239,21 @@ export const transformResponse: {
       effect: Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
   ): HttpClient.With<E1, R1>
-} = dual(2, <E, R, E1, R1>(
-  self: HttpClient.With<E, R>,
-  f: (
-    effect: Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-  ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
-): HttpClient.With<E1, R1> => makeWith((request) => f(self.postprocess(request)), self.preprocess))
+} = dual(
+  2,
+  <E, R, E1, R1>(
+    self: HttpClient.With<E, R>,
+    f: (
+      effect: Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
+    ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
+  ): HttpClient.With<E1, R1> => makeWith((request) => f(self.postprocess(request)), self.preprocess)
+)
 
 const catch_: {
   <E, E2, R2>(
     f: (e: E) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
   ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E2, R2 | R>
-  <E, R, A2, E2, R2>(
-    self: HttpClient.With<E, R>,
-    f: (e: E) => Effect.Effect<A2, E2, R2>
-  ): HttpClient.With<E2, R | R2>
+  <E, R, A2, E2, R2>(self: HttpClient.With<E, R>, f: (e: E) => Effect.Effect<A2, E2, R2>): HttpClient.With<E2, R | R2>
 } = dual(
   2,
   <E, R, E2, R2>(
@@ -314,69 +309,57 @@ export const catchTag: {
 export const catchTags: {
   <
     E,
-    Cases extends
-      & {
-        [K in Extract<E, { _tag: string }>["_tag"]]+?: (
-          error: Extract<E, { _tag: K }>
-        ) => Effect.Effect<HttpClientResponse.HttpClientResponse, any, any>
-      }
-      & (unknown extends E ? {} : { [K in Exclude<keyof Cases, Extract<E, { _tag: string }>["_tag"]>]: never })
+    Cases extends {
+      [K in Extract<E, { _tag: string }>["_tag"]]+?: (
+        error: Extract<E, { _tag: K }>
+      ) => Effect.Effect<HttpClientResponse.HttpClientResponse, any, any>
+    } & (unknown extends E ? {} : { [K in Exclude<keyof Cases, Extract<E, { _tag: string }>["_tag"]>]: never })
   >(
     cases: Cases
-  ): <R>(
-    self: HttpClient.With<E, R>
-  ) => HttpClient.With<
+  ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<
     | Exclude<E, { _tag: keyof Cases }>
     | {
-      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect.Effect<any, infer E, any> ? E : never
-    }[keyof Cases],
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect.Effect<any, infer E, any> ? E : never
+      }[keyof Cases],
     | R
     | {
-      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect.Effect<any, any, infer R> ? R : never
-    }[keyof Cases]
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect.Effect<any, any, infer R> ? R : never
+      }[keyof Cases]
   >
   <
     E extends { _tag: string },
     R,
-    Cases extends
-      & {
-        [K in Extract<E, { _tag: string }>["_tag"]]+?: (
-          error: Extract<E, { _tag: K }>
-        ) => Effect.Effect<HttpClientResponse.HttpClientResponse, any, any>
-      }
-      & (unknown extends E ? {} : { [K in Exclude<keyof Cases, Extract<E, { _tag: string }>["_tag"]>]: never })
+    Cases extends {
+      [K in Extract<E, { _tag: string }>["_tag"]]+?: (
+        error: Extract<E, { _tag: K }>
+      ) => Effect.Effect<HttpClientResponse.HttpClientResponse, any, any>
+    } & (unknown extends E ? {} : { [K in Exclude<keyof Cases, Extract<E, { _tag: string }>["_tag"]>]: never })
   >(
     self: HttpClient.With<E, R>,
     cases: Cases
   ): HttpClient.With<
     | Exclude<E, { _tag: keyof Cases }>
     | {
-      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect.Effect<any, infer E, any> ? E : never
-    }[keyof Cases],
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect.Effect<any, infer E, any> ? E : never
+      }[keyof Cases],
     | R
     | {
-      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect.Effect<any, any, infer R> ? R : never
-    }[keyof Cases]
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect.Effect<any, any, infer R> ? R : never
+      }[keyof Cases]
   >
 } = dual(
   2,
   <
     E extends { _tag: string },
     R,
-    Cases extends
-      & {
-        [K in Extract<E, { _tag: string }>["_tag"]]+?: (
-          error: Extract<E, { _tag: K }>
-        ) => Effect.Effect<HttpClientResponse.HttpClientResponse, any, any>
-      }
-      & (unknown extends E ? {}
-        : {
-          [
-            K in Exclude<
-              keyof Cases,
-              Extract<E, { _tag: string }>["_tag"]
-            >
-          ]: never
+    Cases extends {
+      [K in Extract<E, { _tag: string }>["_tag"]]+?: (
+        error: Extract<E, { _tag: K }>
+      ) => Effect.Effect<HttpClientResponse.HttpClientResponse, any, any>
+    } & (unknown extends E
+      ? {}
+      : {
+          [K in Exclude<keyof Cases, Extract<E, { _tag: string }>["_tag"]>]: never
         })
   >(
     self: HttpClient.With<E, R>,
@@ -384,18 +367,12 @@ export const catchTags: {
   ): HttpClient.With<
     | Exclude<E, { _tag: keyof Cases }>
     | {
-      [K in keyof Cases]: Cases[K] extends (
-        ...args: Array<any>
-      ) => Effect.Effect<any, infer E, any> ? E
-        : never
-    }[keyof Cases],
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect.Effect<any, infer E, any> ? E : never
+      }[keyof Cases],
     | R
     | {
-      [K in keyof Cases]: Cases[K] extends (
-        ...args: Array<any>
-      ) => Effect.Effect<any, any, infer R> ? R
-        : never
-    }[keyof Cases]
+        [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect.Effect<any, any, infer R> ? R : never
+      }[keyof Cases]
   > => transformResponse(self, Effect.catchTags(cases) as any)
 )
 
@@ -508,7 +485,7 @@ export const makeWith = <E2, R2, E, R>(
   const self = Object.create(Proto)
   self.preprocess = preprocess
   self.postprocess = postprocess
-  self.execute = function(request: HttpClientRequest.HttpClientRequest) {
+  self.execute = function (request: HttpClientRequest.HttpClientRequest) {
     return postprocess(preprocess(request))
   }
   return self
@@ -526,11 +503,12 @@ const Proto = {
     }
   },
   ...Object.fromEntries(
-    HttpMethod.allShort.map((
-      [fullMethod, method]
-    ) => [method, function(this: HttpClient, url: string | URL, options?: HttpClientRequest.Options.NoUrl) {
-      return this.execute(HttpClientRequest.make(fullMethod)(url, options))
-    }])
+    HttpMethod.allShort.map(([fullMethod, method]) => [
+      method,
+      function (this: HttpClient, url: string | URL, options?: HttpClientRequest.Options.NoUrl) {
+        return this.execute(HttpClientRequest.make(fullMethod)(url, options))
+      }
+    ])
   )
 }
 
@@ -546,40 +524,37 @@ export const make = (
     fiber: Fiber<HttpClientResponse.HttpClientResponse, Error.HttpClientError>
   ) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError>
 ): HttpClient =>
-  makeWith((effect) =>
-    Effect.flatMap(effect, (request) =>
-      Effect.withFiber((fiber) => {
-        const scopedController = scopedRequests.get(request)
-        const controller = scopedController ?? new AbortController()
-        const urlResult = UrlParams.makeUrl(request.url, request.urlParams, request.hash)
-        if (Result.isFailure(urlResult)) {
-          return Effect.fail(new Error.RequestError({ request, reason: "InvalidUrl", cause: urlResult.failure }))
-        }
-        const url = urlResult.success
-        const tracerDisabled = fiber.getRef(Tracer.DisablePropagation) ||
-          fiber.getRef(TracerDisabledWhen)(request)
-        if (tracerDisabled) {
-          const effect = f(request, url, controller.signal, fiber as any)
-          if (scopedController) return effect
-          return Effect.uninterruptibleMask((restore) =>
-            Effect.matchCauseEffect(restore(effect), {
-              onSuccess(response) {
-                responseRegistry.register(response, controller)
-                return Effect.succeed(new InterruptibleResponse(response, controller))
-              },
-              onFailure(cause) {
-                if (Cause.hasInterrupt(cause)) {
-                  controller.abort()
+  makeWith(
+    (effect) =>
+      Effect.flatMap(effect, (request) =>
+        Effect.withFiber((fiber) => {
+          const scopedController = scopedRequests.get(request)
+          const controller = scopedController ?? new AbortController()
+          const urlResult = UrlParams.makeUrl(request.url, request.urlParams, request.hash)
+          if (Result.isFailure(urlResult)) {
+            return Effect.fail(new Error.RequestError({ request, reason: "InvalidUrl", cause: urlResult.failure }))
+          }
+          const url = urlResult.success
+          const tracerDisabled = fiber.getRef(Tracer.DisablePropagation) || fiber.getRef(TracerDisabledWhen)(request)
+          if (tracerDisabled) {
+            const effect = f(request, url, controller.signal, fiber as any)
+            if (scopedController) return effect
+            return Effect.uninterruptibleMask((restore) =>
+              Effect.matchCauseEffect(restore(effect), {
+                onSuccess(response) {
+                  responseRegistry.register(response, controller)
+                  return Effect.succeed(new InterruptibleResponse(response, controller))
+                },
+                onFailure(cause) {
+                  if (Cause.hasInterrupt(cause)) {
+                    controller.abort()
+                  }
+                  return Effect.failCause(cause)
                 }
-                return Effect.failCause(cause)
-              }
-            })
-          )
-        }
-        return Effect.useSpan(
-          fiber.getRef(SpanNameGenerator)(request),
-          { kind: "client" },
-          (span) => {
+              })
+            )
+          }
+          return Effect.useSpan(fiber.getRef(SpanNameGenerator)(request), { kind: "client" }, (span) => {
             span.attribute("http.request.method", request.method)
             span.attribute("server.address", url.origin)
             if (url.port !== "") {
@@ -624,9 +599,11 @@ export const make = (
                 })
               )
             )
-          }
-        )
-      })), Effect.succeed as HttpClient.Preprocess<never, never>)
+          })
+        })
+      ),
+    Effect.succeed as HttpClient.Preprocess<never, never>
+  )
 
 /**
  * Appends a transformation of the request object before sending it.
@@ -727,17 +704,22 @@ export declare namespace Retry {
    * @since 4.0.0
    * @category error handling
    */
-  export type Return<R, E, O extends NoExcessProperties<Effect.Retry.Options<E>, O>> = HttpClient.With<
-    | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer _E, infer _R> } ? E | _E
-      : O extends { until: Predicate.Refinement<E, infer E2> } ? E2
-      : E)
-    | (O extends { while: (...args: Array<any>) => Effect.Effect<infer _A, infer E, infer _R> } ? E : never)
-    | (O extends { until: (...args: Array<any>) => Effect.Effect<infer _A, infer E, infer _R> } ? E : never),
-    | R
-    | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer _E, infer R> } ? R : never)
-    | (O extends { while: (...args: Array<any>) => Effect.Effect<infer _A, infer _E, infer R> } ? R : never)
-    | (O extends { until: (...args: Array<any>) => Effect.Effect<infer _A, infer _E, infer R> } ? R : never)
-  > extends infer Z ? Z : never
+  export type Return<R, E, O extends NoExcessProperties<Effect.Retry.Options<E>, O>> =
+    HttpClient.With<
+      | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer _E, infer _R> }
+          ? E | _E
+          : O extends { until: Predicate.Refinement<E, infer E2> }
+            ? E2
+            : E)
+      | (O extends { while: (...args: Array<any>) => Effect.Effect<infer _A, infer E, infer _R> } ? E : never)
+      | (O extends { until: (...args: Array<any>) => Effect.Effect<infer _A, infer E, infer _R> } ? E : never),
+      | R
+      | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer _E, infer R> } ? R : never)
+      | (O extends { while: (...args: Array<any>) => Effect.Effect<infer _A, infer _E, infer R> } ? R : never)
+      | (O extends { until: (...args: Array<any>) => Effect.Effect<infer _A, infer _E, infer R> } ? R : never)
+    > extends infer Z
+      ? Z
+      : never
 }
 
 /**
@@ -787,16 +769,20 @@ export const retryTransient: {
     ES = never,
     R1 = never,
     const Mode extends "errors-only" | "response-only" | "both" = never,
-    Input = "errors-only" extends Mode ? E
-      : "response-only" extends Mode ? HttpClientResponse.HttpClientResponse
-      : HttpClientResponse.HttpClientResponse | E
+    Input = "errors-only" extends Mode
+      ? E
+      : "response-only" extends Mode
+        ? HttpClientResponse.HttpClientResponse
+        : HttpClientResponse.HttpClientResponse | E
   >(
-    options: {
-      readonly mode?: Mode | undefined
-      readonly while?: Predicate.Predicate<NoInfer<Input>>
-      readonly schedule?: Schedule.Schedule<B, NoInfer<Input>, ES, R1>
-      readonly times?: number
-    } | Schedule.Schedule<B, NoInfer<Input>, ES, R1>
+    options:
+      | {
+          readonly mode?: Mode | undefined
+          readonly while?: Predicate.Predicate<NoInfer<Input>>
+          readonly schedule?: Schedule.Schedule<B, NoInfer<Input>, ES, R1>
+          readonly times?: number
+        }
+      | Schedule.Schedule<B, NoInfer<Input>, ES, R1>
   ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E | ES, R1 | R>
   <
     E,
@@ -805,57 +791,63 @@ export const retryTransient: {
     ES = never,
     R1 = never,
     const Mode extends "errors-only" | "response-only" | "both" = never,
-    Input = "errors-only" extends Mode ? E
-      : "response-only" extends Mode ? HttpClientResponse.HttpClientResponse
-      : HttpClientResponse.HttpClientResponse | E
+    Input = "errors-only" extends Mode
+      ? E
+      : "response-only" extends Mode
+        ? HttpClientResponse.HttpClientResponse
+        : HttpClientResponse.HttpClientResponse | E
   >(
     self: HttpClient.With<E, R>,
-    options: {
-      readonly mode?: Mode | undefined
-      readonly while?: Predicate.Predicate<NoInfer<Input>>
-      readonly schedule?: Schedule.Schedule<B, NoInfer<Input>, ES, R1>
-      readonly times?: number
-    } | Schedule.Schedule<B, NoInfer<Input>, ES, R1>
+    options:
+      | {
+          readonly mode?: Mode | undefined
+          readonly while?: Predicate.Predicate<NoInfer<Input>>
+          readonly schedule?: Schedule.Schedule<B, NoInfer<Input>, ES, R1>
+          readonly times?: number
+        }
+      | Schedule.Schedule<B, NoInfer<Input>, ES, R1>
   ): HttpClient.With<E | ES, R1 | R>
 } = dual(
   2,
-  <
-    E,
-    R,
-    B,
-    ES = never,
-    R1 = never
-  >(
+  <E, R, B, ES = never, R1 = never>(
     self: HttpClient.With<E, R>,
-    options: {
-      readonly mode?: "errors-only" | "response-only" | "both" | undefined
-      readonly while?: Predicate.Predicate<any>
-      readonly schedule?: Schedule.Schedule<B, any, ES, R1>
-      readonly times?: number
-    } | Schedule.Schedule<B, any, ES, R1>
+    options:
+      | {
+          readonly mode?: "errors-only" | "response-only" | "both" | undefined
+          readonly while?: Predicate.Predicate<any>
+          readonly schedule?: Schedule.Schedule<B, any, ES, R1>
+          readonly times?: number
+        }
+      | Schedule.Schedule<B, any, ES, R1>
   ): HttpClient.With<E | ES, R1 | R> => {
     const isOnlySchedule = Schedule.isSchedule(options)
-    const mode = isOnlySchedule ? "both" : options.mode ?? "both"
+    const mode = isOnlySchedule ? "both" : (options.mode ?? "both")
     const schedule = isOnlySchedule ? options : options.schedule
     const passthroughSchedule = schedule && Schedule.passthrough(schedule)
     const times = isOnlySchedule ? undefined : options.times
     return transformResponse(
       self,
       flow(
-        mode === "errors-only" ? identity : Effect.repeat({
-          schedule: passthroughSchedule!,
-          times,
-          while: isOnlySchedule || options.while === undefined
-            ? isTransientResponse
-            : Predicate.and(isTransientResponse, options.while)
-        }),
-        mode === "response-only" ? identity : Effect.retry({
-          while: isOnlySchedule || options.while === undefined
-            ? isTransientError
-            : Predicate.or(isTransientError, options.while),
-          schedule,
-          times
-        })
+        mode === "errors-only"
+          ? identity
+          : Effect.repeat({
+              schedule: passthroughSchedule!,
+              times,
+              while:
+                isOnlySchedule || options.while === undefined
+                  ? isTransientResponse
+                  : Predicate.and(isTransientResponse, options.while)
+            }),
+        mode === "response-only"
+          ? identity
+          : Effect.retry({
+              while:
+                isOnlySchedule || options.while === undefined
+                  ? isTransientError
+                  : Predicate.or(isTransientError, options.while),
+              schedule,
+              times
+            })
       )
     )
   }
@@ -939,25 +931,20 @@ export const withCookiesRef: {
   <E, R>(self: HttpClient.With<E, R>, ref: Ref.Ref<Cookies.Cookies>): HttpClient.With<E, R>
 } = dual(
   2,
-  <E, R>(
-    self: HttpClient.With<E, R>,
-    ref: Ref.Ref<Cookies.Cookies>
-  ): HttpClient.With<E, R> =>
+  <E, R>(self: HttpClient.With<E, R>, ref: Ref.Ref<Cookies.Cookies>): HttpClient.With<E, R> =>
     makeWith(
       (request: Effect.Effect<HttpClientRequest.HttpClientRequest, E, R>) =>
-        Effect.tap(
-          self.postprocess(request),
-          (response) => Ref.update(ref, (cookies) => Cookies.merge(cookies, response.cookies))
+        Effect.tap(self.postprocess(request), (response) =>
+          Ref.update(ref, (cookies) => Cookies.merge(cookies, response.cookies))
         ),
       (request) =>
         Effect.flatMap(self.preprocess(request), (request) =>
-          Effect.map(
-            Ref.get(ref),
-            (cookies) =>
-              Cookies.isEmpty(cookies)
-                ? request
-                : HttpClientRequest.setHeader(request, "cookie", Cookies.toCookieHeader(cookies))
-          ))
+          Effect.map(Ref.get(ref), (cookies) =>
+            Cookies.isEmpty(cookies)
+              ? request
+              : HttpClientRequest.setHeader(request, "cookie", Cookies.toCookieHeader(cookies))
+          )
+        )
     )
 )
 
@@ -967,20 +954,15 @@ export const withCookiesRef: {
  * @since 4.0.0
  * @category Scope
  */
-export const withScope = <E, R>(
-  self: HttpClient.With<E, R>
-): HttpClient.With<E, R | Scope.Scope> =>
-  transform(
-    self,
-    (effect, request) => {
-      const controller = new AbortController()
-      scopedRequests.set(request, controller)
-      return Effect.andThen(
-        Effect.addFinalizer(() => Effect.sync(() => controller.abort())),
-        effect
-      )
-    }
-  )
+export const withScope = <E, R>(self: HttpClient.With<E, R>): HttpClient.With<E, R | Scope.Scope> =>
+  transform(self, (effect, request) => {
+    const controller = new AbortController()
+    scopedRequests.set(request, controller)
+    return Effect.andThen(
+      Effect.addFinalizer(() => Effect.sync(() => controller.abort())),
+      effect
+    )
+  })
 
 /**
  * Follows HTTP redirects up to a specified number of times.
@@ -991,44 +973,39 @@ export const withScope = <E, R>(
 export const followRedirects: {
   (maxRedirects?: number | undefined): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E, R>
   <E, R>(self: HttpClient.With<E, R>, maxRedirects?: number | undefined): HttpClient.With<E, R>
-} = dual((args) => isHttpClient(args[0]), <E, R>(
-  self: HttpClient.With<E, R>,
-  maxRedirects?: number | undefined
-): HttpClient.With<E, R> =>
-  makeWith(
-    (request) => {
+} = dual(
+  (args) => isHttpClient(args[0]),
+  <E, R>(self: HttpClient.With<E, R>, maxRedirects?: number | undefined): HttpClient.With<E, R> =>
+    makeWith((request) => {
       const loop = (
         request: HttpClientRequest.HttpClientRequest,
         redirects: number
       ): Effect.Effect<HttpClientResponse.HttpClientResponse, E, R> =>
-        Effect.flatMap(
-          self.postprocess(Effect.succeed(request)),
-          (response) =>
-            response.status >= 300 && response.status < 400 && response.headers.location &&
-              redirects < (maxRedirects ?? 10)
-              ? loop(
-                HttpClientRequest.setUrl(
-                  request,
-                  new URL(response.headers.location, response.request.url)
-                ),
+        Effect.flatMap(self.postprocess(Effect.succeed(request)), (response) =>
+          response.status >= 300 &&
+          response.status < 400 &&
+          response.headers.location &&
+          redirects < (maxRedirects ?? 10)
+            ? loop(
+                HttpClientRequest.setUrl(request, new URL(response.headers.location, response.request.url)),
                 redirects + 1
               )
-              : Effect.succeed(response)
+            : Effect.succeed(response)
         )
       return Effect.flatMap(request, (request) => loop(request, 0))
-    },
-    self.preprocess
-  ))
+    }, self.preprocess)
+)
 
 /**
  * @since 4.0.0
  * @category References
  */
-export const TracerDisabledWhen = ServiceMap.Reference<
-  Predicate.Predicate<HttpClientRequest.HttpClientRequest>
->("effect/http/HttpClient/TracerDisabledWhen", {
-  defaultValue: () => constFalse
-})
+export const TracerDisabledWhen = ServiceMap.Reference<Predicate.Predicate<HttpClientRequest.HttpClientRequest>>(
+  "effect/http/HttpClient/TracerDisabledWhen",
+  {
+    defaultValue: () => constFalse
+  }
+)
 
 /**
  * @since 4.0.0
@@ -1042,25 +1019,25 @@ export const TracerPropagationEnabled = ServiceMap.Reference<boolean>("effect/Ht
  * @since 4.0.0
  * @category References
  */
-export const SpanNameGenerator = ServiceMap.Reference<
-  (request: HttpClientRequest.HttpClientRequest) => string
->("effect/http/HttpClient/SpanNameGenerator", {
-  defaultValue: () => (request) => `http.client ${request.method}`
-})
+export const SpanNameGenerator = ServiceMap.Reference<(request: HttpClientRequest.HttpClientRequest) => string>(
+  "effect/http/HttpClient/SpanNameGenerator",
+  {
+    defaultValue: () => (request) => `http.client ${request.method}`
+  }
+)
 
 /**
  * @since 4.0.0
  */
-export const layerMergedServices = <E, R>(
-  effect: Effect.Effect<HttpClient, E, R>
-): Layer.Layer<HttpClient, E, R> =>
+export const layerMergedServices = <E, R>(effect: Effect.Effect<HttpClient, E, R>): Layer.Layer<HttpClient, E, R> =>
   Layer.effect(HttpClient)(
     Effect.servicesWith((services: ServiceMap.ServiceMap<never>) =>
       Effect.map(effect, (client) =>
         transformResponse(
           client,
           Effect.updateServices((input: ServiceMap.ServiceMap<never>) => ServiceMap.merge(services, input))
-        ))
+        )
+      )
     )
   )
 
@@ -1086,7 +1063,10 @@ const responseRegistry = (() => {
   const timers = new Map<HttpClientResponse.HttpClientResponse, any>()
   return {
     register(response: HttpClientResponse.HttpClientResponse, controller: AbortController) {
-      timers.set(response, setTimeout(() => controller.abort(), 5000))
+      timers.set(
+        response,
+        setTimeout(() => controller.abort(), 5000)
+      )
     },
     unregister(response: HttpClientResponse.HttpClientResponse) {
       const timer = timers.get(response)
@@ -1103,10 +1083,7 @@ class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
   readonly original: HttpClientResponse.HttpClientResponse
   readonly controller: AbortController
 
-  constructor(
-    original: HttpClientResponse.HttpClientResponse,
-    controller: AbortController
-  ) {
+  constructor(original: HttpClientResponse.HttpClientResponse, controller: AbortController) {
     this.original = original
     this.controller = controller
   }

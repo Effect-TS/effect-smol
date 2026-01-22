@@ -67,19 +67,16 @@ export interface SqliteClientConfig {
 export const make = (
   options: SqliteClientConfig
 ): Effect.Effect<SqliteClient, never, Scope.Scope | Reactivity.Reactivity> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const compiler = Statement.makeCompilerSqlite(options.transformQueryNames)
     const transformRows = options.transformResultNames
       ? Statement.defaultTransforms(options.transformResultNames).array
       : undefined
 
-    const makeConnection = Effect.gen(function*() {
+    const makeConnection = Effect.gen(function* () {
       const db = options.db
 
-      function* runIterator(
-        sql: string,
-        params: ReadonlyArray<unknown> = []
-      ) {
+      function* runIterator(sql: string, params: ReadonlyArray<unknown> = []) {
         const cursor = db.exec(sql, ...params)
         const columns = cursor.columnNames
         for (const result of cursor.raw()) {
@@ -121,9 +118,7 @@ export const make = (
 
       return identity<Connection>({
         execute(sql, params, transformRows) {
-          return transformRows
-            ? Effect.map(runStatement(sql, params), transformRows)
-            : runStatement(sql, params)
+          return transformRows ? Effect.map(runStatement(sql, params), transformRows) : runStatement(sql, params)
         },
         executeRaw(sql, params) {
           return runStatement(sql, params)
@@ -132,19 +127,13 @@ export const make = (
           return runValues(sql, params)
         },
         executeUnprepared(sql, params, transformRows) {
-          return transformRows
-            ? Effect.map(runStatement(sql, params), transformRows)
-            : runStatement(sql, params)
+          return transformRows ? Effect.map(runStatement(sql, params), transformRows) : runStatement(sql, params)
         },
         executeStream(sql, params, transformRows) {
           return Stream.suspend(() => {
             const iterator = runIterator(sql, params)
             return Stream.fromIteratorSucceed(iterator, 128)
-          }).pipe(
-            transformRows
-              ? Stream.mapArray((chunk) => transformRows(chunk) as any)
-              : identity
-          )
+          }).pipe(transformRows ? Stream.mapArray((chunk) => transformRows(chunk) as any) : identity)
         }
       })
     })
@@ -157,10 +146,7 @@ export const make = (
       const fiber = Fiber.getCurrent()!
       const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
       return Effect.as(
-        Effect.tap(
-          restore(semaphore.take(1)),
-          () => Scope.addFinalizer(scope, semaphore.release(1))
-        ),
+        Effect.tap(restore(semaphore.take(1)), () => Scope.addFinalizer(scope, semaphore.release(1))),
         connection
       )
     })
@@ -191,26 +177,21 @@ export const layerConfig = (
   config: Config.Wrap<SqliteClientConfig>
 ): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError> =>
   Layer.effectServices(
-    Config.unwrap(config).asEffect().pipe(
-      Effect.flatMap(make),
-      Effect.map((client) =>
-        ServiceMap.make(SqliteClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
-        )
+    Config.unwrap(config)
+      .asEffect()
+      .pipe(
+        Effect.flatMap(make),
+        Effect.map((client) => ServiceMap.make(SqliteClient, client).pipe(ServiceMap.add(Client.SqlClient, client)))
       )
-    )
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
  * @category layers
  * @since 1.0.0
  */
-export const layer = (
-  config: SqliteClientConfig
-): Layer.Layer<SqliteClient | Client.SqlClient> =>
+export const layer = (config: SqliteClientConfig): Layer.Layer<SqliteClient | Client.SqlClient> =>
   Layer.effectServices(
     Effect.map(make(config), (client) =>
-      ServiceMap.make(SqliteClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
-      ))
+      ServiceMap.make(SqliteClient, client).pipe(ServiceMap.add(Client.SqlClient, client))
+    )
   ).pipe(Layer.provide(Reactivity.layer))

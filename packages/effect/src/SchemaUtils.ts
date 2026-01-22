@@ -9,7 +9,10 @@ import * as Transformation from "./SchemaTransformation.ts"
  * @since 4.0.0
  * @experimental
  */
-export function getNativeClassSchema<C extends new(...args: any) => any, S extends Schema.Struct<Schema.Struct.Fields>>(
+export function getNativeClassSchema<
+  C extends new (...args: any) => any,
+  S extends Schema.Struct<Schema.Struct.Fields>
+>(
   constructor: C,
   options: {
     readonly encoding: S

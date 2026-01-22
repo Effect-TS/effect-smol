@@ -31,7 +31,11 @@ const trieVariance = {
 const TrieProto: TR.Trie<unknown> = {
   [TrieTypeId]: trieVariance,
   [Symbol.iterator]<V>(this: TrieImpl<V>): Iterator<[string, V]> {
-    return new TrieIterator(this, (k, v) => [k, v], () => true)
+    return new TrieIterator(
+      this,
+      (k, v) => [k, v],
+      () => true
+    )
   },
   [Hash.symbol](this: TR.Trie<unknown>): number {
     let hash = Hash.hash(TrieTypeId)
@@ -80,11 +84,7 @@ class TrieIterator<in out V, out T> implements IterableIterator<T> {
   readonly f: TraversalMap<string, V, T>
   readonly filter: TraversalFilter<string, V>
 
-  constructor(
-    trie: TrieImpl<V>,
-    f: TraversalMap<string, V, T>,
-    filter: TraversalFilter<string, V>
-  ) {
+  constructor(trie: TrieImpl<V>, f: TraversalMap<string, V, T>, filter: TraversalFilter<string, V>) {
     this.trie = trie
     this.f = f
     this.filter = filter
@@ -151,9 +151,9 @@ export const fromIterable = <V>(entries: Iterable<readonly [string, V]>) => {
 }
 
 /** @internal */
-export const make = <Entries extends Array<readonly [string, any]>>(...entries: Entries): TR.Trie<
-  Entries[number] extends readonly [any, infer V] ? V : never
-> => {
+export const make = <Entries extends Array<readonly [string, any]>>(
+  ...entries: Entries
+): TR.Trie<Entries[number] extends readonly [any, infer V] ? V : never> => {
   return fromIterable(entries)
 }
 
@@ -255,22 +255,31 @@ export const isEmpty = <V>(self: TR.Trie<V>): boolean => size(self) === 0
 
 /** @internal */
 export const keys = <V>(self: TR.Trie<V>): IterableIterator<string> =>
-  new TrieIterator(self as TrieImpl<V>, (key) => key, () => true)
+  new TrieIterator(
+    self as TrieImpl<V>,
+    (key) => key,
+    () => true
+  )
 
 /** @internal */
 export const values = <V>(self: TR.Trie<V>): IterableIterator<V> =>
-  new TrieIterator(self as TrieImpl<V>, (_, value) => value, () => true)
+  new TrieIterator(
+    self as TrieImpl<V>,
+    (_, value) => value,
+    () => true
+  )
 
 /** @internal */
 export const entries = <V>(self: TR.Trie<V>): IterableIterator<[string, V]> =>
-  new TrieIterator(self as TrieImpl<V>, (key, value) => [key, value], () => true)
+  new TrieIterator(
+    self as TrieImpl<V>,
+    (key, value) => [key, value],
+    () => true
+  )
 
 /** @internal */
 export const reduce = dual<
-  <Z, V>(
-    zero: Z,
-    f: (accumulator: Z, value: V, key: string) => Z
-  ) => (self: TR.Trie<V>) => Z,
+  <Z, V>(zero: Z, f: (accumulator: Z, value: V, key: string) => Z) => (self: TR.Trie<V>) => Z,
   <Z, V>(self: TR.Trie<V>, zero: Z, f: (accumulator: Z, value: V, key: string) => Z) => Z
 >(3, (self, zero, f) => {
   let accumulator = zero
@@ -284,12 +293,7 @@ export const reduce = dual<
 export const map = dual<
   <A, V>(f: (value: V, key: string) => A) => (self: TR.Trie<V>) => TR.Trie<A>,
   <V, A>(self: TR.Trie<V>, f: (value: V, key: string) => A) => TR.Trie<A>
->(2, (self, f) =>
-  reduce(
-    self,
-    empty(),
-    (trie, value, key) => insert(trie, key, f(value, key))
-  ))
+>(2, (self, f) => reduce(self, empty(), (trie, value, key) => insert(trie, key, f(value, key))))
 
 /** @internal */
 export const filter: {
@@ -300,28 +304,19 @@ export const filter: {
 } = dual(
   2,
   <A>(self: TR.Trie<A>, f: (a: A, k: string) => boolean): TR.Trie<A> =>
-    reduce(
-      self,
-      empty(),
-      (trie, value, key) => f(value, key) ? insert(trie, key, value) : trie
-    )
+    reduce(self, empty(), (trie, value, key) => (f(value, key) ? insert(trie, key, value) : trie))
 )
 
 /** @internal */
 export const filterMap = dual<
-  <A, B>(
-    f: (value: A, key: string) => Option.Option<B>
-  ) => (self: TR.Trie<A>) => TR.Trie<B>,
+  <A, B>(f: (value: A, key: string) => Option.Option<B>) => (self: TR.Trie<A>) => TR.Trie<B>,
   <A, B>(self: TR.Trie<A>, f: (value: A, key: string) => Option.Option<B>) => TR.Trie<B>
 >(2, (self, f) =>
-  reduce(
-    self,
-    empty(),
-    (trie, value, key) => {
-      const option = f(value, key)
-      return Option.isSome(option) ? insert(trie, key, option.value) : trie
-    }
-  ))
+  reduce(self, empty(), (trie, value, key) => {
+    const option = f(value, key)
+    return Option.isSome(option) ? insert(trie, key, option.value) : trie
+  })
+)
 
 /** @internal */
 export const compact = <A>(self: TR.Trie<Option.Option<A>>) => filterMap(self, identity)
@@ -339,7 +334,11 @@ export const keysWithPrefix = dual<
 >(
   2,
   <V>(self: TR.Trie<V>, prefix: string): IterableIterator<string> =>
-    new TrieIterator(self as TrieImpl<V>, (key) => key, (key) => key.startsWith(prefix))
+    new TrieIterator(
+      self as TrieImpl<V>,
+      (key) => key,
+      (key) => key.startsWith(prefix)
+    )
 )
 
 /** @internal */
@@ -349,7 +348,11 @@ export const valuesWithPrefix = dual<
 >(
   2,
   <V>(self: TR.Trie<V>, prefix: string): IterableIterator<V> =>
-    new TrieIterator(self as TrieImpl<V>, (_, value) => value, (key) => key.startsWith(prefix))
+    new TrieIterator(
+      self as TrieImpl<V>,
+      (_, value) => value,
+      (key) => key.startsWith(prefix)
+    )
 )
 
 /** @internal */
@@ -359,58 +362,56 @@ export const entriesWithPrefix = dual<
 >(
   2,
   <V>(self: TR.Trie<V>, prefix: string): IterableIterator<[string, V]> =>
-    new TrieIterator(self as TrieImpl<V>, (key, value) => [key, value], (key) => key.startsWith(prefix))
+    new TrieIterator(
+      self as TrieImpl<V>,
+      (key, value) => [key, value],
+      (key) => key.startsWith(prefix)
+    )
 )
 
 /** @internal */
 export const toEntriesWithPrefix = dual<
   (prefix: string) => <V>(self: TR.Trie<V>) => Array<[string, V]>,
   <V>(self: TR.Trie<V>, prefix: string) => Array<[string, V]>
->(
-  2,
-  <V>(self: TR.Trie<V>, prefix: string): Array<[string, V]> => Array.from(entriesWithPrefix(self, prefix))
-)
+>(2, <V>(self: TR.Trie<V>, prefix: string): Array<[string, V]> => Array.from(entriesWithPrefix(self, prefix)))
 
 /** @internal */
 export const get = dual<
   (key: string) => <V>(self: TR.Trie<V>) => Option.Option<V>,
   <V>(self: TR.Trie<V>, key: string) => Option.Option<V>
->(
-  2,
-  <V>(self: TR.Trie<V>, key: string) => {
-    let n: Node<V> | undefined = (self as TrieImpl<V>)._root
-    if (n === undefined || key.length === 0) return Option.none()
-    let cIndex = 0
-    while (cIndex < key.length) {
-      const c = key[cIndex]
-      if (c > n.key) {
-        if (n.right === undefined) {
-          return Option.none()
-        } else {
-          n = n.right
-        }
-      } else if (c < n.key) {
-        if (n.left === undefined) {
-          return Option.none()
-        } else {
-          n = n.left
-        }
+>(2, <V>(self: TR.Trie<V>, key: string) => {
+  let n: Node<V> | undefined = (self as TrieImpl<V>)._root
+  if (n === undefined || key.length === 0) return Option.none()
+  let cIndex = 0
+  while (cIndex < key.length) {
+    const c = key[cIndex]
+    if (c > n.key) {
+      if (n.right === undefined) {
+        return Option.none()
       } else {
-        if (cIndex === key.length - 1) {
-          return Option.fromUndefinedOr(n.value)
+        n = n.right
+      }
+    } else if (c < n.key) {
+      if (n.left === undefined) {
+        return Option.none()
+      } else {
+        n = n.left
+      }
+    } else {
+      if (cIndex === key.length - 1) {
+        return Option.fromUndefinedOr(n.value)
+      } else {
+        if (n.mid === undefined) {
+          return Option.none()
         } else {
-          if (n.mid === undefined) {
-            return Option.none()
-          } else {
-            n = n.mid
-            cIndex += 1
-          }
+          n = n.mid
+          cIndex += 1
         }
       }
     }
-    return Option.none()
   }
-)
+  return Option.none()
+})
 
 /** @internal */
 export const has = dual<
@@ -419,125 +420,122 @@ export const has = dual<
 >(2, (self, key) => Option.isSome(get(self, key)))
 
 /** @internal */
-export const getUnsafe = dual<
-  (key: string) => <V>(self: TR.Trie<V>) => V,
-  <V>(self: TR.Trie<V>, key: string) => V
->(2, (self, key) => {
-  const element = get(self, key)
-  if (Option.isNone(element)) {
-    throw new Error("Expected trie to contain key")
+export const getUnsafe = dual<(key: string) => <V>(self: TR.Trie<V>) => V, <V>(self: TR.Trie<V>, key: string) => V>(
+  2,
+  (self, key) => {
+    const element = get(self, key)
+    if (Option.isNone(element)) {
+      throw new Error("Expected trie to contain key")
+    }
+    return element.value
   }
-  return element.value
-})
+)
 
 /** @internal */
 export const remove = dual<
   (key: string) => <V>(self: TR.Trie<V>) => TR.Trie<V>,
   <V>(self: TR.Trie<V>, key: string) => TR.Trie<V>
->(
-  2,
-  <V>(self: TR.Trie<V>, key: string) => {
-    let n: Node<V> | undefined = (self as TrieImpl<V>)._root
-    if (n === undefined || key.length === 0) return self
+>(2, <V>(self: TR.Trie<V>, key: string) => {
+  let n: Node<V> | undefined = (self as TrieImpl<V>)._root
+  if (n === undefined || key.length === 0) return self
 
-    const count = n.count - 1
-    // -1:left | 0:mid | 1:right
-    const dStack: Array<Ordering.Ordering> = []
-    const nStack: Array<Node<V>> = []
+  const count = n.count - 1
+  // -1:left | 0:mid | 1:right
+  const dStack: Array<Ordering.Ordering> = []
+  const nStack: Array<Node<V>> = []
 
-    let cIndex = 0
-    while (cIndex < key.length) {
-      const c = key[cIndex]
-      if (c > n.key) {
-        if (n.right === undefined) {
+  let cIndex = 0
+  while (cIndex < key.length) {
+    const c = key[cIndex]
+    if (c > n.key) {
+      if (n.right === undefined) {
+        return self
+      } else {
+        nStack.push(n)
+        dStack.push(1)
+        n = n.right
+      }
+    } else if (c < n.key) {
+      if (n.left === undefined) {
+        return self
+      } else {
+        nStack.push(n)
+        dStack.push(-1)
+        n = n.left
+      }
+    } else {
+      if (cIndex === key.length - 1) {
+        if (n.value !== undefined) {
+          nStack.push(n)
+          dStack.push(0)
+          cIndex += 1
+        } else {
+          return self
+        }
+      } else {
+        if (n.mid === undefined) {
           return self
         } else {
           nStack.push(n)
-          dStack.push(1)
-          n = n.right
-        }
-      } else if (c < n.key) {
-        if (n.left === undefined) {
-          return self
-        } else {
-          nStack.push(n)
-          dStack.push(-1)
-          n = n.left
-        }
-      } else {
-        if (cIndex === key.length - 1) {
-          if (n.value !== undefined) {
-            nStack.push(n)
-            dStack.push(0)
-            cIndex += 1
-          } else {
-            return self
-          }
-        } else {
-          if (n.mid === undefined) {
-            return self
-          } else {
-            nStack.push(n)
-            dStack.push(0)
-            n = n.mid
-            cIndex += 1
-          }
+          dStack.push(0)
+          n = n.mid
+          cIndex += 1
         }
       }
     }
-
-    const removeNode = nStack[nStack.length - 1]
-    nStack[nStack.length - 1] = {
-      key: removeNode.key,
-      count,
-      left: removeNode.left,
-      mid: removeNode.mid,
-      right: removeNode.right
-    }
-
-    // Rebuild path to leaf node (Path-copying immutability)
-    for (let s = nStack.length - 2; s >= 0; --s) {
-      const n2 = nStack[s]
-      const d = dStack[s]
-      const child = nStack[s + 1]
-      const nc = child.left === undefined && child.mid === undefined && child.right === undefined ? undefined : child
-      if (d === -1) {
-        // left
-        nStack[s] = {
-          key: n2.key,
-          count,
-          value: n2.value,
-          left: nc,
-          mid: n2.mid,
-          right: n2.right
-        }
-      } else if (d === 1) {
-        // right
-        nStack[s] = {
-          key: n2.key,
-          count,
-          value: n2.value,
-          left: n2.left,
-          mid: n2.mid,
-          right: nc
-        }
-      } else {
-        // mid
-        nStack[s] = {
-          key: n2.key,
-          count,
-          value: n2.value,
-          left: n2.left,
-          mid: nc,
-          right: n2.right
-        }
-      }
-    }
-
-    nStack[0].count = count
-    return makeImpl(nStack[0])
   }
-)
+
+  const removeNode = nStack[nStack.length - 1]
+  nStack[nStack.length - 1] = {
+    key: removeNode.key,
+    count,
+    left: removeNode.left,
+    mid: removeNode.mid,
+    right: removeNode.right
+  }
+
+  // Rebuild path to leaf node (Path-copying immutability)
+  for (let s = nStack.length - 2; s >= 0; --s) {
+    const n2 = nStack[s]
+    const d = dStack[s]
+    const child = nStack[s + 1]
+    const nc = child.left === undefined && child.mid === undefined && child.right === undefined ? undefined : child
+    if (d === -1) {
+      // left
+      nStack[s] = {
+        key: n2.key,
+        count,
+        value: n2.value,
+        left: nc,
+        mid: n2.mid,
+        right: n2.right
+      }
+    } else if (d === 1) {
+      // right
+      nStack[s] = {
+        key: n2.key,
+        count,
+        value: n2.value,
+        left: n2.left,
+        mid: n2.mid,
+        right: nc
+      }
+    } else {
+      // mid
+      nStack[s] = {
+        key: n2.key,
+        count,
+        value: n2.value,
+        left: n2.left,
+        mid: nc,
+        right: n2.right
+      }
+    }
+  }
+
+  nStack[0].count = count
+  return makeImpl(nStack[0])
+})
 
 /** @internal */
 export const removeMany = dual<
@@ -567,155 +565,149 @@ export const insertMany = dual<
 export const modify = dual<
   <V>(key: string, f: (v: V) => V) => (self: TR.Trie<V>) => TR.Trie<V>,
   <V>(self: TR.Trie<V>, key: string, f: (v: V) => V) => TR.Trie<V>
->(
-  3,
-  <V>(self: TR.Trie<V>, key: string, f: (v: V) => V): TR.Trie<V> => {
-    let n: Node<V> | undefined = (self as TrieImpl<V>)._root
-    if (n === undefined || key.length === 0) return self
+>(3, <V>(self: TR.Trie<V>, key: string, f: (v: V) => V): TR.Trie<V> => {
+  let n: Node<V> | undefined = (self as TrieImpl<V>)._root
+  if (n === undefined || key.length === 0) return self
 
-    // -1:left | 0:mid | 1:right
-    const dStack: Array<Ordering.Ordering> = []
-    const nStack: Array<Node<V>> = []
+  // -1:left | 0:mid | 1:right
+  const dStack: Array<Ordering.Ordering> = []
+  const nStack: Array<Node<V>> = []
 
-    let cIndex = 0
-    while (cIndex < key.length) {
-      const c = key[cIndex]
-      if (c > n.key) {
-        if (n.right === undefined) {
-          return self
-        } else {
-          nStack.push(n)
-          dStack.push(1)
-          n = n.right
-        }
-      } else if (c < n.key) {
-        if (n.left === undefined) {
-          return self
-        } else {
-          nStack.push(n)
-          dStack.push(-1)
-          n = n.left
-        }
+  let cIndex = 0
+  while (cIndex < key.length) {
+    const c = key[cIndex]
+    if (c > n.key) {
+      if (n.right === undefined) {
+        return self
       } else {
-        if (cIndex === key.length - 1) {
-          if (n.value !== undefined) {
-            nStack.push(n)
-            dStack.push(0)
-            cIndex += 1
-          } else {
-            return self
-          }
-        } else {
-          if (n.mid === undefined) {
-            return self
-          } else {
-            nStack.push(n)
-            dStack.push(0)
-            n = n.mid
-            cIndex += 1
-          }
-        }
+        nStack.push(n)
+        dStack.push(1)
+        n = n.right
       }
-    }
-
-    const updateNode = nStack[nStack.length - 1]
-    if (updateNode.value === undefined) {
-      return self
-    }
-
-    nStack[nStack.length - 1] = {
-      key: updateNode.key,
-      count: updateNode.count,
-      value: f(updateNode.value), // Update
-      left: updateNode.left,
-      mid: updateNode.mid,
-      right: updateNode.right
-    }
-
-    // Rebuild path to leaf node (Path-copying immutability)
-    for (let s = nStack.length - 2; s >= 0; --s) {
-      const n2 = nStack[s]
-      const d = dStack[s]
-      const child = nStack[s + 1]
-      if (d === -1) {
-        // left
-        nStack[s] = {
-          key: n2.key,
-          count: n2.count,
-          value: n2.value,
-          left: child,
-          mid: n2.mid,
-          right: n2.right
-        }
-      } else if (d === 1) {
-        // right
-        nStack[s] = {
-          key: n2.key,
-          count: n2.count,
-          value: n2.value,
-          left: n2.left,
-          mid: n2.mid,
-          right: child
-        }
+    } else if (c < n.key) {
+      if (n.left === undefined) {
+        return self
       } else {
-        // mid
-        nStack[s] = {
-          key: n2.key,
-          count: n2.count,
-          value: n2.value,
-          left: n2.left,
-          mid: child,
-          right: n2.right
-        }
+        nStack.push(n)
+        dStack.push(-1)
+        n = n.left
       }
-    }
-
-    return makeImpl(nStack[0])
-  }
-)
-
-/** @internal */
-export const longestPrefixOf = dual<
-  (key: string) => <V>(self: TR.Trie<V>) => [string, V] | undefined,
-  <V>(self: TR.Trie<V>, key: string) => [string, V] | undefined
->(
-  2,
-  <V>(self: TR.Trie<V>, key: string): [string, V] | undefined => {
-    let n: Node<V> | undefined = (self as TrieImpl<V>)._root
-    if (n === undefined || key.length === 0) return undefined
-    let longestPrefixNode: [string, V] | undefined = undefined
-    let cIndex = 0
-    while (cIndex < key.length) {
-      const c = key[cIndex]
-      if (n.value !== undefined) {
-        longestPrefixNode = [key.slice(0, cIndex + 1), n.value]
-      }
-
-      if (c > n.key) {
-        if (n.right === undefined) {
-          break
+    } else {
+      if (cIndex === key.length - 1) {
+        if (n.value !== undefined) {
+          nStack.push(n)
+          dStack.push(0)
+          cIndex += 1
         } else {
-          n = n.right
-        }
-      } else if (c < n.key) {
-        if (n.left === undefined) {
-          break
-        } else {
-          n = n.left
+          return self
         }
       } else {
         if (n.mid === undefined) {
-          break
+          return self
         } else {
+          nStack.push(n)
+          dStack.push(0)
           n = n.mid
           cIndex += 1
         }
       }
     }
-
-    return longestPrefixNode
   }
-)
+
+  const updateNode = nStack[nStack.length - 1]
+  if (updateNode.value === undefined) {
+    return self
+  }
+
+  nStack[nStack.length - 1] = {
+    key: updateNode.key,
+    count: updateNode.count,
+    value: f(updateNode.value), // Update
+    left: updateNode.left,
+    mid: updateNode.mid,
+    right: updateNode.right
+  }
+
+  // Rebuild path to leaf node (Path-copying immutability)
+  for (let s = nStack.length - 2; s >= 0; --s) {
+    const n2 = nStack[s]
+    const d = dStack[s]
+    const child = nStack[s + 1]
+    if (d === -1) {
+      // left
+      nStack[s] = {
+        key: n2.key,
+        count: n2.count,
+        value: n2.value,
+        left: child,
+        mid: n2.mid,
+        right: n2.right
+      }
+    } else if (d === 1) {
+      // right
+      nStack[s] = {
+        key: n2.key,
+        count: n2.count,
+        value: n2.value,
+        left: n2.left,
+        mid: n2.mid,
+        right: child
+      }
+    } else {
+      // mid
+      nStack[s] = {
+        key: n2.key,
+        count: n2.count,
+        value: n2.value,
+        left: n2.left,
+        mid: child,
+        right: n2.right
+      }
+    }
+  }
+
+  return makeImpl(nStack[0])
+})
+
+/** @internal */
+export const longestPrefixOf = dual<
+  (key: string) => <V>(self: TR.Trie<V>) => [string, V] | undefined,
+  <V>(self: TR.Trie<V>, key: string) => [string, V] | undefined
+>(2, <V>(self: TR.Trie<V>, key: string): [string, V] | undefined => {
+  let n: Node<V> | undefined = (self as TrieImpl<V>)._root
+  if (n === undefined || key.length === 0) return undefined
+  let longestPrefixNode: [string, V] | undefined = undefined
+  let cIndex = 0
+  while (cIndex < key.length) {
+    const c = key[cIndex]
+    if (n.value !== undefined) {
+      longestPrefixNode = [key.slice(0, cIndex + 1), n.value]
+    }
+
+    if (c > n.key) {
+      if (n.right === undefined) {
+        break
+      } else {
+        n = n.right
+      }
+    } else if (c < n.key) {
+      if (n.left === undefined) {
+        break
+      } else {
+        n = n.left
+      }
+    } else {
+      if (n.mid === undefined) {
+        break
+      } else {
+        n = n.mid
+        cIndex += 1
+      }
+    }
+  }
+
+  return longestPrefixNode
+})
 
 interface Node<V> {
   key: string

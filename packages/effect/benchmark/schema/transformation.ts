@@ -20,18 +20,20 @@ const schema = Schema.Struct({
   id: Schema.String,
   c: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
   d: Schema.String
-}).pipe(Schema.decodeTo(
-  Schema.Struct({
-    a: Schema.String,
-    b: Schema.Struct({ id: Schema.String }),
-    c: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
-    d: Schema.String
-  }),
-  SchemaTransformation.transform({
-    decode: ({ id, ...v }) => ({ ...v, b: { id } }),
-    encode: ({ b: { id }, ...v }) => ({ ...v, id })
-  })
-))
+}).pipe(
+  Schema.decodeTo(
+    Schema.Struct({
+      a: Schema.String,
+      b: Schema.Struct({ id: Schema.String }),
+      c: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+      d: Schema.String
+    }),
+    SchemaTransformation.transform({
+      decode: ({ id, ...v }) => ({ ...v, b: { id } }),
+      encode: ({ b: { id }, ...v }) => ({ ...v, id })
+    })
+  )
+)
 
 const zod = z.codec(
   z.object({
@@ -73,16 +75,16 @@ const decodeUnknownExit = Schema.decodeUnknownExit(schema)
 // console.log(zod.safeDecode(bad))
 
 bench
-  .add("Schema (good)", function() {
+  .add("Schema (good)", function () {
     decodeUnknownExit(good)
   })
-  .add("Zod (good)", function() {
+  .add("Zod (good)", function () {
     zod.safeDecode(good)
   })
-  .add("Schema (bad)", function() {
+  .add("Schema (bad)", function () {
     decodeUnknownExit(bad)
   })
-  .add("Zod (bad)", function() {
+  .add("Zod (bad)", function () {
     zod.safeDecode(bad)
   })
 

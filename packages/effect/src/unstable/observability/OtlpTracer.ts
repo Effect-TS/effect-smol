@@ -22,81 +22,83 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * @since 4.0.0
  * @category Constructors
  */
-export const make: (
-  options: {
-    readonly url: string
-    readonly resource?: {
-      readonly serviceName?: string | undefined
-      readonly serviceVersion?: string | undefined
-      readonly attributes?: Record<string, unknown>
-    } | undefined
-    readonly headers?: Headers.Input | undefined
-    readonly exportInterval?: Duration.DurationInput | undefined
-    readonly maxBatchSize?: number | undefined
-    readonly context?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
-    readonly shutdownTimeout?: Duration.DurationInput | undefined
-  }
-) => Effect.Effect<
-  Tracer.Tracer,
-  never,
-  OtlpSerialization | HttpClient.HttpClient | Scope.Scope
-> = Effect.fnUntraced(function*(options) {
-  const otelResource = yield* OtlpResource.fromConfig(options.resource)
-  const serialization = yield* OtlpSerialization
-  const scope: Scope = {
-    name: OtlpResource.serviceNameUnsafe(otelResource)
-  }
-
-  const exporter = yield* Exporter.make({
-    label: "OtlpTracer",
-    url: options.url,
-    headers: options.headers,
-    exportInterval: options.exportInterval ?? Duration.seconds(5),
-    maxBatchSize: options.maxBatchSize ?? 1000,
-    body(spans) {
-      const data: TraceData = {
-        resourceSpans: [{
-          resource: otelResource,
-          scopeSpans: [{
-            scope,
-            spans
-          }]
-        }]
+export const make: (options: {
+  readonly url: string
+  readonly resource?:
+    | {
+        readonly serviceName?: string | undefined
+        readonly serviceVersion?: string | undefined
+        readonly attributes?: Record<string, unknown>
       }
-      return serialization.traces(data)
-    },
-    shutdownTimeout: options.shutdownTimeout ?? Duration.seconds(3)
-  })
+    | undefined
+  readonly headers?: Headers.Input | undefined
+  readonly exportInterval?: Duration.DurationInput | undefined
+  readonly maxBatchSize?: number | undefined
+  readonly context?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
+  readonly shutdownTimeout?: Duration.DurationInput | undefined
+}) => Effect.Effect<Tracer.Tracer, never, OtlpSerialization | HttpClient.HttpClient | Scope.Scope> = Effect.fnUntraced(
+  function* (options) {
+    const otelResource = yield* OtlpResource.fromConfig(options.resource)
+    const serialization = yield* OtlpSerialization
+    const scope: Scope = {
+      name: OtlpResource.serviceNameUnsafe(otelResource)
+    }
 
-  return Tracer.make({
-    span(name, parent, annotations, links, startTime, kind) {
-      return makeSpan({
-        name,
-        parent,
-        annotations,
-        status: {
-          _tag: "Started",
-          startTime
-        },
-        attributes: new Map(),
-        links,
-        sampled: true,
-        kind,
-        export(span) {
-          exporter.push(makeOtlpSpan(span))
+    const exporter = yield* Exporter.make({
+      label: "OtlpTracer",
+      url: options.url,
+      headers: options.headers,
+      exportInterval: options.exportInterval ?? Duration.seconds(5),
+      maxBatchSize: options.maxBatchSize ?? 1000,
+      body(spans) {
+        const data: TraceData = {
+          resourceSpans: [
+            {
+              resource: otelResource,
+              scopeSpans: [
+                {
+                  scope,
+                  spans
+                }
+              ]
+            }
+          ]
         }
-      })
-    },
-    context: options.context ?
-      function(f, fiber) {
-        if (fiber.currentSpan === undefined) {
-          return f()
-        }
-        return options.context!(f, fiber.currentSpan)
-      } :
-      undefined
-  })
-})
+        return serialization.traces(data)
+      },
+      shutdownTimeout: options.shutdownTimeout ?? Duration.seconds(3)
+    })
+
+    return Tracer.make({
+      span(name, parent, annotations, links, startTime, kind) {
+        return makeSpan({
+          name,
+          parent,
+          annotations,
+          status: {
+            _tag: "Started",
+            startTime
+          },
+          attributes: new Map(),
+          links,
+          sampled: true,
+          kind,
+          export(span) {
+            exporter.push(makeOtlpSpan(span))
+          }
+        })
+      },
+      context: options.context
+        ? function (f, fiber) {
+            if (fiber.currentSpan === undefined) {
+              return f()
+            }
+            return options.context!(f, fiber.currentSpan)
+          }
+        : undefined
+    })
+  }
+)
 
 /**
  * @since 4.0.0
@@ -104,11 +106,13 @@ export const make: (
  */
 export const layer: (options: {
   readonly url: string
-  readonly resource?: {
-    readonly serviceName?: string | undefined
-    readonly serviceVersion?: string | undefined
-    readonly attributes?: Record<string, unknown>
-  } | undefined
+  readonly resource?:
+    | {
+        readonly serviceName?: string | undefined
+        readonly serviceVersion?: string | undefined
+        readonly attributes?: Record<string, unknown>
+      }
+    | undefined
   readonly headers?: Headers.Input | undefined
   readonly exportInterval?: Duration.DurationInput | undefined
   readonly maxBatchSize?: number | undefined
@@ -147,7 +151,7 @@ const SpanProto = {
     this.links.push(...links)
   }
 }
-type RemainingSpanImpl = Omit<Tracer.Span, (keyof typeof SpanProto) | "traceId" | "spanId" | "events">
+type RemainingSpanImpl = Omit<Tracer.Span, keyof typeof SpanProto | "traceId" | "spanId" | "events">
 
 const makeSpan = (options: {
   readonly name: string
@@ -160,10 +164,7 @@ const makeSpan = (options: {
   readonly kind: Tracer.SpanKind
   readonly export: (span: SpanImpl) => void
 }): SpanImpl => {
-  const self: Mutable<SpanImpl> = Object.assign(
-    Object.create(SpanProto),
-    options satisfies RemainingSpanImpl
-  )
+  const self: Mutable<SpanImpl> = Object.assign(Object.create(SpanProto), options satisfies RemainingSpanImpl)
   if (self.parent) {
     self.traceId = self.parent.traceId
   } else {
@@ -189,9 +190,7 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
   const events = self.events.map(([name, startTime, attributes]) => ({
     name,
     timeUnixNano: String(startTime),
-    attributes: attributes
-      ? entriesToAttributes(Object.entries(attributes))
-      : [],
+    attributes: attributes ? entriesToAttributes(Object.entries(attributes)) : [],
     droppedAttributesCount: 0
   }))
   let otelStatus: Status
@@ -203,13 +202,16 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
       code: StatusCode.Ok,
       message: "Interrupted"
     }
-    attributes.push({
-      key: "span.label",
-      value: { stringValue: "⚠︎ Interrupted" }
-    }, {
-      key: "status.interrupted",
-      value: { boolValue: true }
-    })
+    attributes.push(
+      {
+        key: "span.label",
+        value: { stringValue: "⚠︎ Interrupted" }
+      },
+      {
+        key: "status.interrupted",
+        value: { boolValue: true }
+      }
+    )
   } else {
     const errors = Cause.prettyErrors(status.exit.cause)
     otelStatus = {
@@ -224,21 +226,21 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
           droppedAttributesCount: 0,
           attributes: [
             {
-              "key": "exception.type",
-              "value": {
-                "stringValue": error.name
+              key: "exception.type",
+              value: {
+                stringValue: error.name
               }
             },
             {
-              "key": "exception.message",
-              "value": {
-                "stringValue": error.message
+              key: "exception.message",
+              value: {
+                stringValue: error.message
               }
             },
             {
-              "key": "exception.stacktrace",
-              "value": {
-                "stringValue": error.stack ?? "No stack trace available"
+              key: "exception.stacktrace",
+              value: {
+                stringValue: error.stack ?? "No stack trace available"
               }
             }
           ]
@@ -341,7 +343,7 @@ const StatusCode = {
   Error: 2
 } as const
 
-type StatusCode = typeof StatusCode[keyof typeof StatusCode]
+type StatusCode = (typeof StatusCode)[keyof typeof StatusCode]
 
 const SpanKind = {
   unspecified: 0,

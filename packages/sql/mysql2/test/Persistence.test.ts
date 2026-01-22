@@ -4,14 +4,6 @@ import * as PersistedQueueTest from "effect-test/unstable/persistence/PersistedQ
 import { PersistedQueue, Persistence } from "effect/unstable/persistence"
 import { MysqlContainer } from "./utils.ts"
 
-PersistedCacheTest.suite(
-  "sql-mysql2",
-  Persistence.layerSql.pipe(Layer.provide(MysqlContainer.layerClient))
-)
+PersistedCacheTest.suite("sql-mysql2", Persistence.layerSql.pipe(Layer.provide(MysqlContainer.layerClient)))
 
-PersistedQueueTest.suite(
-  "sql-mysql2",
-  PersistedQueue.layerStoreSql().pipe(
-    Layer.provide(MysqlContainer.layerClient)
-  )
-)
+PersistedQueueTest.suite("sql-mysql2", PersistedQueue.layerStoreSql().pipe(Layer.provide(MysqlContainer.layerClient)))

@@ -76,10 +76,7 @@ describe("Optic generation", () => {
       const optic = Schema.toIso(schema).key("0").key("a")
       const modify = optic.modify(addOne)
 
-      deepStrictEqual(
-        modify([Value.makeUnsafe({ a: new Date(0) })]),
-        [Value.makeUnsafe({ a: new Date(1) })]
-      )
+      deepStrictEqual(modify([Value.makeUnsafe({ a: new Date(0) })]), [Value.makeUnsafe({ a: new Date(1) })])
     })
 
     it("Array", () => {
@@ -115,9 +112,10 @@ describe("Optic generation", () => {
       const schema = Schema.TupleWithRest(Schema.Tuple([Value]), [Value])
       const optic = Schema.toIso(schema)
       const item = Schema.toIsoFocus(Value).key("a")
-      const modify = optic.modify((
-        [value, ...rest]
-      ) => [item.modify(addOne)(value), ...rest.map((r) => item.modify(addTwo)(r))])
+      const modify = optic.modify(([value, ...rest]) => [
+        item.modify(addOne)(value),
+        ...rest.map((r) => item.modify(addTwo)(r))
+      ])
 
       deepStrictEqual(
         modify([
@@ -180,10 +178,7 @@ describe("Optic generation", () => {
     })
 
     it("StructWithRest", () => {
-      const schema = Schema.StructWithRest(
-        Schema.Struct({ a: Value }),
-        [Schema.Record(Schema.String, Value)]
-      )
+      const schema = Schema.StructWithRest(Schema.Struct({ a: Value }), [Schema.Record(Schema.String, Value)])
       const optic = Schema.toIso(schema)
       const item = Schema.toIsoFocus(Value).key("a")
       const modify = optic.modify(({ a, ...rest }) => ({
@@ -191,17 +186,17 @@ describe("Optic generation", () => {
         ...Record.map(rest, item.modify(addTwo))
       }))
 
-      deepStrictEqual(
-        modify({ a: Value.makeUnsafe({ a: new Date(0) }), b: Value.makeUnsafe({ a: new Date(1) }) }),
-        { a: Value.makeUnsafe({ a: new Date(1) }), b: Value.makeUnsafe({ a: new Date(3) }) }
-      )
+      deepStrictEqual(modify({ a: Value.makeUnsafe({ a: new Date(0) }), b: Value.makeUnsafe({ a: new Date(1) }) }), {
+        a: Value.makeUnsafe({ a: new Date(1) }),
+        b: Value.makeUnsafe({ a: new Date(3) })
+      })
     })
 
     it("Union", () => {
       const schema = Schema.Union([Schema.String, Value])
       const optic = Schema.toIso(schema)
       const item = Schema.toIsoFocus(Value).key("a")
-      const modify = optic.modify((x) => Predicate.isString(x) ? x : item.modify(addOne)(x))
+      const modify = optic.modify((x) => (Predicate.isString(x) ? x : item.modify(addOne)(x)))
 
       deepStrictEqual(modify("a"), "a")
       deepStrictEqual(modify(Value.makeUnsafe({ a: new Date(0) })), Value.makeUnsafe({ a: new Date(1) }))
@@ -213,7 +208,7 @@ describe("Optic generation", () => {
         readonly as: ReadonlyArray<A>
       }
       interface AIso {
-        readonly a: typeof Value["Iso"]
+        readonly a: (typeof Value)["Iso"]
         readonly as: ReadonlyArray<AIso>
       }
       const schema = Schema.Struct({
@@ -267,10 +262,7 @@ describe("Optic generation", () => {
       const optic = Schema.toIso(schema).tag("Some").key("value").key("a")
       const modify = optic.modify(addOne)
 
-      assertSome(
-        modify(Option.some(Value.makeUnsafe({ a: new Date(0) }))),
-        Value.makeUnsafe({ a: new Date(1) })
-      )
+      assertSome(modify(Option.some(Value.makeUnsafe({ a: new Date(0) }))), Value.makeUnsafe({ a: new Date(1) }))
       assertNone(modify(Option.none()))
     })
 
@@ -342,7 +334,9 @@ describe("Optic generation", () => {
     it("ReadonlyMap", () => {
       const schema = Schema.ReadonlyMap(Schema.String, Value)
       const optic = Schema.toIso(schema)
-      const entry = Schema.toIsoFocus(Schema.Tuple([Schema.String, Value])).key("1").key("a")
+      const entry = Schema.toIsoFocus(Schema.Tuple([Schema.String, Value]))
+        .key("1")
+        .key("a")
       const modify = optic.modify((entries) => entries.map(([key, value]) => entry.modify(addOne)([key, value])))
 
       deepStrictEqual(

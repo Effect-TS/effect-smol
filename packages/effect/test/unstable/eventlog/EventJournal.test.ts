@@ -4,7 +4,7 @@ import * as EventJournal from "effect/unstable/eventlog/EventJournal"
 
 describe("EventJournal", () => {
   it.effect("records entries in memory", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const journal = yield* EventJournal.EventJournal
       let created = 0
       yield* journal.write({
@@ -21,5 +21,6 @@ describe("EventJournal", () => {
       assert.strictEqual(entries[0].event, "test")
       assert.strictEqual(entries[0].primaryKey, "pk-1")
       assert.strictEqual(entries[0].createdAtMillis, created)
-    }).pipe(Effect.provide(EventJournal.layerMemory)))
+    }).pipe(Effect.provide(EventJournal.layerMemory))
+  )
 })

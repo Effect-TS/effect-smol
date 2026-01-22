@@ -206,8 +206,10 @@ export const uncapitalize = <T extends string>(self: T): Uncapitalize<T> => {
  * @category transforming
  * @since 2.0.0
  */
-export const replace = (searchValue: string | RegExp, replaceValue: string) => (self: string): string =>
-  self.replace(searchValue, replaceValue)
+export const replace =
+  (searchValue: string | RegExp, replaceValue: string) =>
+  (self: string): string =>
+    self.replace(searchValue, replaceValue)
 
 /**
  * Type-level representation of trimming whitespace from both ends of a string.
@@ -320,7 +322,10 @@ export const trimEnd = <A extends string>(self: A): TrimEnd<A> => self.trimEnd()
  * @category transforming
  * @since 2.0.0
  */
-export const slice = (start?: number, end?: number) => (self: string): string => self.slice(start, end)
+export const slice =
+  (start?: number, end?: number) =>
+  (self: string): string =>
+    self.slice(start, end)
 
 /**
  * Test whether a `string` is empty.
@@ -412,8 +417,10 @@ export const split: {
  * @category predicates
  * @since 2.0.0
  */
-export const includes = (searchString: string, position?: number) => (self: string): boolean =>
-  self.includes(searchString, position)
+export const includes =
+  (searchString: string, position?: number) =>
+  (self: string): boolean =>
+    self.includes(searchString, position)
 
 /**
  * Returns `true` if the string starts with the specified search string.
@@ -430,8 +437,10 @@ export const includes = (searchString: string, position?: number) => (self: stri
  * @category predicates
  * @since 2.0.0
  */
-export const startsWith = (searchString: string, position?: number) => (self: string): boolean =>
-  self.startsWith(searchString, position)
+export const startsWith =
+  (searchString: string, position?: number) =>
+  (self: string): boolean =>
+    self.startsWith(searchString, position)
 
 /**
  * Returns `true` if the string ends with the specified search string.
@@ -448,8 +457,10 @@ export const startsWith = (searchString: string, position?: number) => (self: st
  * @category predicates
  * @since 2.0.0
  */
-export const endsWith = (searchString: string, position?: number) => (self: string): boolean =>
-  self.endsWith(searchString, position)
+export const endsWith =
+  (searchString: string, position?: number) =>
+  (self: string): boolean =>
+    self.endsWith(searchString, position)
 
 /**
  * Returns the character code at the specified index, or `undefined` if the index is out of bounds.
@@ -469,13 +480,10 @@ export const endsWith = (searchString: string, position?: number) => (self: stri
 export const charCodeAt: {
   (index: number): (self: string) => number | undefined
   (self: string, index: number): number | undefined
-} = dual(
-  2,
-  (self: string, index: number): number | undefined => {
-    const out = self.charCodeAt(index)
-    return isNaN(out) ? undefined : out
-  }
-)
+} = dual(2, (self: string, index: number): number | undefined => {
+  const out = self.charCodeAt(index)
+  return isNaN(out) ? undefined : out
+})
 
 /**
  * Extracts characters from a string between two specified indices.
@@ -492,7 +500,10 @@ export const charCodeAt: {
  * @category transforming
  * @since 2.0.0
  */
-export const substring = (start: number, end?: number) => (self: string): string => self.substring(start, end)
+export const substring =
+  (start: number, end?: number) =>
+  (self: string): string =>
+    self.substring(start, end)
 
 /**
  * A `pipe`-able version of the native `charAt` method.
@@ -509,9 +520,11 @@ export const substring = (start: number, end?: number) => (self: string): string
  * @category elements
  * @since 2.0.0
  */
-export const at = (index: number) => (self: string): string | undefined => {
-  return self.charAt(index)
-}
+export const at =
+  (index: number) =>
+  (self: string): string | undefined => {
+    return self.charAt(index)
+  }
 
 /**
  * Returns the character at the specified index, or `None` if the index is out of bounds.
@@ -531,13 +544,10 @@ export const at = (index: number) => (self: string): string | undefined => {
 export const charAt: {
   (index: number): (self: string) => string | undefined
   (self: string, index: number): string | undefined
-} = dual(
-  2,
-  (self: string, index: number): string | undefined => {
-    const out = self.charAt(index)
-    return isNonEmpty(out) ? out : undefined
-  }
-)
+} = dual(2, (self: string, index: number): string | undefined => {
+  const out = self.charAt(index)
+  return isNonEmpty(out) ? out : undefined
+})
 
 /**
  * A `pipe`-able version of the native `codePointAt` method.
@@ -554,9 +564,11 @@ export const charAt: {
  * @category elements
  * @since 2.0.0
  */
-export const codePointAt = (index: number) => (self: string): number | undefined => {
-  return self.codePointAt(index)
-}
+export const codePointAt =
+  (index: number) =>
+  (self: string): number | undefined => {
+    return self.codePointAt(index)
+  }
 
 /**
  * Returns the index of the first occurrence of a substring, or `None` if not found.
@@ -573,10 +585,12 @@ export const codePointAt = (index: number) => (self: string): number | undefined
  * @category searching
  * @since 2.0.0
  */
-export const indexOf = (searchString: string) => (self: string): number | undefined => {
-  const out = self.indexOf(searchString)
-  return out >= 0 ? out : undefined
-}
+export const indexOf =
+  (searchString: string) =>
+  (self: string): number | undefined => {
+    const out = self.indexOf(searchString)
+    return out >= 0 ? out : undefined
+  }
 
 /**
  * Returns the index of the last occurrence of a substring, or `None` if not found.
@@ -593,10 +607,12 @@ export const indexOf = (searchString: string) => (self: string): number | undefi
  * @category searching
  * @since 2.0.0
  */
-export const lastIndexOf = (searchString: string) => (self: string): number | undefined => {
-  const out = self.lastIndexOf(searchString)
-  return out >= 0 ? out : undefined
-}
+export const lastIndexOf =
+  (searchString: string) =>
+  (self: string): number | undefined => {
+    const out = self.lastIndexOf(searchString)
+    return out >= 0 ? out : undefined
+  }
 
 /**
  * Compares two strings according to the current locale.
@@ -615,7 +631,8 @@ export const lastIndexOf = (searchString: string) => (self: string): number | un
  * @since 2.0.0
  */
 export const localeCompare =
-  (that: string, locales?: Array<string>, options?: Intl.CollatorOptions) => (self: string): Ordering.Ordering =>
+  (that: string, locales?: Array<string>, options?: Intl.CollatorOptions) =>
+  (self: string): Ordering.Ordering =>
     number.sign(self.localeCompare(that, locales, options))
 
 /**
@@ -633,7 +650,10 @@ export const localeCompare =
  * @category searching
  * @since 2.0.0
  */
-export const match = (regExp: RegExp | string) => (self: string): RegExpMatchArray | null => self.match(regExp)
+export const match =
+  (regExp: RegExp | string) =>
+  (self: string): RegExpMatchArray | null =>
+    self.match(regExp)
 
 /**
  * It is the `pipe`-able version of the native `matchAll` method.
@@ -649,7 +669,10 @@ export const match = (regExp: RegExp | string) => (self: string): RegExpMatchArr
  * @category searching
  * @since 2.0.0
  */
-export const matchAll = (regExp: RegExp) => (self: string): IterableIterator<RegExpMatchArray> => self.matchAll(regExp)
+export const matchAll =
+  (regExp: RegExp) =>
+  (self: string): IterableIterator<RegExpMatchArray> =>
+    self.matchAll(regExp)
 
 /**
  * Normalizes a string according to the specified Unicode normalization form.
@@ -673,7 +696,10 @@ export const matchAll = (regExp: RegExp) => (self: string): IterableIterator<Reg
  * @category transforming
  * @since 2.0.0
  */
-export const normalize = (form?: "NFC" | "NFD" | "NFKC" | "NFKD") => (self: string): string => self.normalize(form)
+export const normalize =
+  (form?: "NFC" | "NFD" | "NFKC" | "NFKD") =>
+  (self: string): string =>
+    self.normalize(form)
 
 /**
  * Pads the string from the end with a given fill string to a specified length.
@@ -690,8 +716,10 @@ export const normalize = (form?: "NFC" | "NFD" | "NFKC" | "NFKD") => (self: stri
  * @category transforming
  * @since 2.0.0
  */
-export const padEnd = (maxLength: number, fillString?: string) => (self: string): string =>
-  self.padEnd(maxLength, fillString)
+export const padEnd =
+  (maxLength: number, fillString?: string) =>
+  (self: string): string =>
+    self.padEnd(maxLength, fillString)
 
 /**
  * Pads the string from the start with a given fill string to a specified length.
@@ -708,8 +736,10 @@ export const padEnd = (maxLength: number, fillString?: string) => (self: string)
  * @category transforming
  * @since 2.0.0
  */
-export const padStart = (maxLength: number, fillString?: string) => (self: string): string =>
-  self.padStart(maxLength, fillString)
+export const padStart =
+  (maxLength: number, fillString?: string) =>
+  (self: string): string =>
+    self.padStart(maxLength, fillString)
 
 /**
  * Repeats the string the specified number of times.
@@ -726,7 +756,10 @@ export const padStart = (maxLength: number, fillString?: string) => (self: strin
  * @category transforming
  * @since 2.0.0
  */
-export const repeat = (count: number) => (self: string): string => self.repeat(count)
+export const repeat =
+  (count: number) =>
+  (self: string): string =>
+    self.repeat(count)
 
 /**
  * Replaces all occurrences of a substring or pattern in a string.
@@ -743,8 +776,10 @@ export const repeat = (count: number) => (self: string): string => self.repeat(c
  * @category transforming
  * @since 2.0.0
  */
-export const replaceAll = (searchValue: string | RegExp, replaceValue: string) => (self: string): string =>
-  self.replaceAll(searchValue, replaceValue)
+export const replaceAll =
+  (searchValue: string | RegExp, replaceValue: string) =>
+  (self: string): string =>
+    self.replaceAll(searchValue, replaceValue)
 
 /**
  * Searches for a match between a regular expression and the string.
@@ -765,13 +800,10 @@ export const replaceAll = (searchValue: string | RegExp, replaceValue: string) =
 export const search: {
   (regExp: RegExp | string): (self: string) => number | undefined
   (self: string, regExp: RegExp | string): number | undefined
-} = dual(
-  2,
-  (self: string, regExp: RegExp | string): number | undefined => {
-    const out = self.search(regExp)
-    return out >= 0 ? out : undefined
-  }
-)
+} = dual(2, (self: string, regExp: RegExp | string): number | undefined => {
+  const out = self.search(regExp)
+  return out >= 0 ? out : undefined
+})
 
 /**
  * Converts the string to lowercase according to the specified locale.
@@ -788,8 +820,10 @@ export const search: {
  * @category transforming
  * @since 2.0.0
  */
-export const toLocaleLowerCase = (locale?: string | Array<string>) => (self: string): string =>
-  self.toLocaleLowerCase(locale)
+export const toLocaleLowerCase =
+  (locale?: string | Array<string>) =>
+  (self: string): string =>
+    self.toLocaleLowerCase(locale)
 
 /**
  * Converts the string to uppercase according to the specified locale.
@@ -806,8 +840,10 @@ export const toLocaleLowerCase = (locale?: string | Array<string>) => (self: str
  * @category transforming
  * @since 2.0.0
  */
-export const toLocaleUpperCase = (locale?: string | Array<string>) => (self: string): string =>
-  self.toLocaleUpperCase(locale)
+export const toLocaleUpperCase =
+  (locale?: string | Array<string>) =>
+  (self: string): string =>
+    self.toLocaleUpperCase(locale)
 
 /**
  * Keep the specified number of characters from the start of a string.
@@ -859,10 +895,7 @@ export const takeLeft: {
 export const takeRight: {
   (n: number): (self: string) => string
   (self: string, n: number): string
-} = dual(
-  2,
-  (self: string, n: number): string => self.slice(Math.max(0, self.length - Math.floor(n)), Infinity)
-)
+} = dual(2, (self: string, n: number): string => self.slice(Math.max(0, self.length - Math.floor(n)), Infinity))
 
 const CR = 0x0d
 const LF = 0x0a
@@ -931,9 +964,7 @@ export const stripMarginWith: {
       index = index + 1
     }
 
-    const stripped = index < line.length && line.charAt(index) === marginChar
-      ? line.substring(index + 1)
-      : line
+    const stripped = index < line.length && line.charAt(index) === marginChar ? line.substring(index + 1) : line
 
     out = out + stripped
   }
@@ -1074,10 +1105,7 @@ class LinesIterator implements IterableIterator<string> {
   readonly s: string
   readonly stripped: boolean
 
-  constructor(
-    s: string,
-    stripped: boolean = false
-  ) {
+  constructor(s: string, stripped: boolean = false) {
     this.s = s
     this.stripped = stripped
     this.index = 0
@@ -1145,37 +1173,46 @@ export const noCase: {
     readonly delimiter?: string | undefined
     readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
   }): (self: string) => string
-  (self: string, options?: {
-    readonly splitRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
-    readonly stripRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
-    readonly delimiter?: string | undefined
-    readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
-  }): string
-} = dual((args) => typeof args[0] === "string", (input: string, options?: {
-  readonly splitRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
-  readonly stripRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
-  readonly delimiter?: string | undefined
-  readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
-}): string => {
-  const delimiter = options?.delimiter ?? " "
-  const transform = options?.transform ?? toLowerCase
-  const result = input
-    .replace(SPLIT_REGEXP[0], "$1\0$2")
-    .replace(SPLIT_REGEXP[1], "$1\0$2")
-    .replace(STRIP_REGEXP, "\0")
-  let start = 0
-  let end = result.length
-  // Trim the delimiter from around the output string.
-  while (result.charAt(start) === "\0") {
-    start++
-  }
-  while (result.charAt(end - 1) === "\0") {
-    end--
-  }
+  (
+    self: string,
+    options?: {
+      readonly splitRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
+      readonly stripRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
+      readonly delimiter?: string | undefined
+      readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
+    }
+  ): string
+} = dual(
+  (args) => typeof args[0] === "string",
+  (
+    input: string,
+    options?: {
+      readonly splitRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
+      readonly stripRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
+      readonly delimiter?: string | undefined
+      readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
+    }
+  ): string => {
+    const delimiter = options?.delimiter ?? " "
+    const transform = options?.transform ?? toLowerCase
+    const result = input
+      .replace(SPLIT_REGEXP[0], "$1\0$2")
+      .replace(SPLIT_REGEXP[1], "$1\0$2")
+      .replace(STRIP_REGEXP, "\0")
+    let start = 0
+    let end = result.length
+    // Trim the delimiter from around the output string.
+    while (result.charAt(start) === "\0") {
+      start++
+    }
+    while (result.charAt(end - 1) === "\0") {
+      end--
+    }
 
-  // Transform each token independently.
-  return result.slice(start, end).split("\0").map(transform).join(delimiter)
-})
+    // Transform each token independently.
+    return result.slice(start, end).split("\0").map(transform).join(delimiter)
+  }
+)
 
 // Support camel case ("camelCase" -> "camel Case" and "CAMELCase" -> "CAMEL Case").
 const SPLIT_REGEXP = [/([a-z0-9])([A-Z])/g, /([A-Z])([A-Z][a-z])/g]
@@ -1204,9 +1241,7 @@ export const pascalCase: (self: string) => string = noCase({
 })
 
 const camelCaseTransform = (input: string, index: number): string =>
-  index === 0
-    ? input.toLowerCase()
-    : pascalCaseTransform(input, index)
+  index === 0 ? input.toLowerCase() : pascalCaseTransform(input, index)
 
 /**
  * Converts a string to camelCase.

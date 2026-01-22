@@ -112,12 +112,10 @@ export const dual: {
     isDataFirst: (args: IArguments) => boolean,
     body: DataFirst
   ): DataLast & DataFirst
-} = function(arity, body) {
+} = function (arity, body) {
   if (typeof arity === "function") {
-    return function(this: any) {
-      return arity(arguments)
-        ? body.apply(this, arguments as any)
-        : ((self: any) => body(self, ...arguments)) as any
+    return function (this: any) {
+      return arity(arguments) ? body.apply(this, arguments as any) : (((self: any) => body(self, ...arguments)) as any)
     }
   }
 
@@ -127,33 +125,33 @@ export const dual: {
       throw new RangeError(`Invalid arity ${arity}`)
 
     case 2:
-      return function(a, b) {
+      return function (a, b) {
         if (arguments.length >= 2) {
           return body(a, b)
         }
-        return function(self: any) {
+        return function (self: any) {
           return body(self, a)
         }
       }
 
     case 3:
-      return function(a, b, c) {
+      return function (a, b, c) {
         if (arguments.length >= 3) {
           return body(a, b, c)
         }
-        return function(self: any) {
+        return function (self: any) {
           return body(self, a, b)
         }
       }
 
     default:
-      return function() {
+      return function () {
         if (arguments.length >= arity) {
           // @ts-expect-error
           return body.apply(this, arguments)
         }
         const args = arguments
-        return function(self: any) {
+        return function (self: any) {
           return body(self, ...args)
         }
       }
@@ -174,7 +172,10 @@ export const dual: {
  * @category combinators
  * @since 2.0.0
  */
-export const apply = <A>(a: A) => <B>(self: (a: A) => B): B => self(a)
+export const apply =
+  <A>(a: A) =>
+  <B>(self: (a: A) => B): B =>
+    self(a)
 
 /**
  * A lazy argument.
@@ -245,7 +246,10 @@ export const identity = <A>(a: A): A => a
  * @category type utils
  * @since 2.0.0
  */
-export const satisfies = <A>() => <B extends A>(b: B) => b
+export const satisfies =
+  <A>() =>
+  <B extends A>(b: B) =>
+    b
 
 /**
  * Casts the result to the specified type.
@@ -283,7 +287,10 @@ export const coerceUnsafe: <A, B>(a: A) => B = identity as any
  * @category constructors
  * @since 2.0.0
  */
-export const constant = <A>(value: A): LazyArg<A> => () => value
+export const constant =
+  <A>(value: A): LazyArg<A> =>
+  () =>
+    value
 
 /**
  * A thunk that returns always `true`.
@@ -381,11 +388,13 @@ export const constVoid: LazyArg<void> = constUndefined
  * @category combinators
  * @since 2.0.0
  */
-export const flip = <A extends Array<unknown>, B extends Array<unknown>, C>(
-  f: (...a: A) => (...b: B) => C
-): (...b: B) => (...a: A) => C =>
-(...b) =>
-(...a) => f(...a)(...b)
+export const flip =
+  <A extends Array<unknown>, B extends Array<unknown>, C>(
+    f: (...a: A) => (...b: B) => C
+  ): ((...b: B) => (...a: A) => C) =>
+  (...b) =>
+  (...a) =>
+    f(...a)(...b)
 
 /**
  * Composes two functions, `ab` and `bc` into a single function that takes in an argument `a` of type `A` and returns a result of type `C`.
@@ -408,7 +417,12 @@ export const flip = <A extends Array<unknown>, B extends Array<unknown>, C>(
 export const compose: {
   <B, C>(bc: (b: B) => C): <A>(self: (a: A) => B) => (a: A) => C
   <A, B, C>(self: (a: A) => B, bc: (b: B) => C): (a: A) => C
-} = dual(2, <A, B, C>(ab: (a: A) => B, bc: (b: B) => C): (a: A) => C => (a) => bc(ab(a)))
+} = dual(
+  2,
+  <A, B, C>(ab: (a: A) => B, bc: (b: B) => C): ((a: A) => C) =>
+    (a) =>
+      bc(ab(a))
+)
 
 /**
  * The `absurd` function is a stub for cases where a value of type `never` is encountered in your code,
@@ -448,7 +462,10 @@ export const absurd = <A>(_: never): A => {
  * @category combinators
  * @since 2.0.0
  */
-export const tupled = <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): (a: A) => B => (a) => f(...a)
+export const tupled =
+  <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): ((a: A) => B) =>
+  (a) =>
+    f(...a)
 
 /**
  * Inverse function of `tupled`
@@ -466,7 +483,10 @@ export const tupled = <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): 
  * @category combinators
  * @since 2.0.0
  */
-export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (...a: A) => B => (...a) => f(a)
+export const untupled =
+  <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): ((...a: A) => B) =>
+  (...a) =>
+    f(a)
 
 /**
  * Pipes the value of an expression into a pipeline of functions.
@@ -554,17 +574,8 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  */
 export function pipe<A>(a: A): A
 export function pipe<A, B = never>(a: A, ab: (a: A) => B): B
-export function pipe<A, B = never, C = never>(
-  a: A,
-  ab: (a: A) => B,
-  bc: (b: B) => C
-): C
-export function pipe<A, B = never, C = never, D = never>(
-  a: A,
-  ab: (a: A) => B,
-  bc: (b: B) => C,
-  cd: (c: C) => D
-): D
+export function pipe<A, B = never, C = never>(a: A, ab: (a: A) => B, bc: (b: B) => C): C
+export function pipe<A, B = never, C = never, D = never>(a: A, ab: (a: A) => B, bc: (b: B) => C, cd: (c: C) => D): D
 export function pipe<A, B = never, C = never, D = never, E = never>(
   a: A,
   ab: (a: A) => B,
@@ -580,15 +591,7 @@ export function pipe<A, B = never, C = never, D = never, E = never, F = never>(
   de: (d: D) => E,
   ef: (e: E) => F
 ): F
-export function pipe<
-  A,
-  B = never,
-  C = never,
-  D = never,
-  E = never,
-  F = never,
-  G = never
->(
+export function pipe<A, B = never, C = never, D = never, E = never, F = never, G = never>(
   a: A,
   ab: (a: A) => B,
   bc: (b: B) => C,
@@ -597,16 +600,7 @@ export function pipe<
   ef: (e: E) => F,
   fg: (f: F) => G
 ): G
-export function pipe<
-  A,
-  B = never,
-  C = never,
-  D = never,
-  E = never,
-  F = never,
-  G = never,
-  H = never
->(
+export function pipe<A, B = never, C = never, D = never, E = never, F = never, G = never, H = never>(
   a: A,
   ab: (a: A) => B,
   bc: (b: B) => C,
@@ -616,17 +610,7 @@ export function pipe<
   fg: (f: F) => G,
   gh: (g: G) => H
 ): H
-export function pipe<
-  A,
-  B = never,
-  C = never,
-  D = never,
-  E = never,
-  F = never,
-  G = never,
-  H = never,
-  I = never
->(
+export function pipe<A, B = never, C = never, D = never, E = never, F = never, G = never, H = never, I = never>(
   a: A,
   ab: (a: A) => B,
   bc: (b: B) => C,
@@ -1025,39 +1009,23 @@ export function pipe(a: unknown, ...args: Array<any>): unknown {
  * @category combinators
  * @since 2.0.0
  */
-export function flow<A extends ReadonlyArray<unknown>, B = never>(
-  ab: (...a: A) => B
-): (...a: A) => B
+export function flow<A extends ReadonlyArray<unknown>, B = never>(ab: (...a: A) => B): (...a: A) => B
 export function flow<A extends ReadonlyArray<unknown>, B = never, C = never>(
   ab: (...a: A) => B,
   bc: (b: B) => C
 ): (...a: A) => C
-export function flow<
-  A extends ReadonlyArray<unknown>,
-  B = never,
-  C = never,
-  D = never
->(ab: (...a: A) => B, bc: (b: B) => C, cd: (c: C) => D): (...a: A) => D
-export function flow<
-  A extends ReadonlyArray<unknown>,
-  B = never,
-  C = never,
-  D = never,
-  E = never
->(
+export function flow<A extends ReadonlyArray<unknown>, B = never, C = never, D = never>(
+  ab: (...a: A) => B,
+  bc: (b: B) => C,
+  cd: (c: C) => D
+): (...a: A) => D
+export function flow<A extends ReadonlyArray<unknown>, B = never, C = never, D = never, E = never>(
   ab: (...a: A) => B,
   bc: (b: B) => C,
   cd: (c: C) => D,
   de: (d: D) => E
 ): (...a: A) => E
-export function flow<
-  A extends ReadonlyArray<unknown>,
-  B = never,
-  C = never,
-  D = never,
-  E = never,
-  F = never
->(
+export function flow<A extends ReadonlyArray<unknown>, B = never, C = never, D = never, E = never, F = never>(
   ab: (...a: A) => B,
   bc: (b: B) => C,
   cd: (c: C) => D,
@@ -1155,35 +1123,35 @@ export function flow(
     case 1:
       return ab
     case 2:
-      return function(this: unknown) {
+      return function (this: unknown) {
         return bc!(ab.apply(this, arguments))
       }
     case 3:
-      return function(this: unknown) {
+      return function (this: unknown) {
         return cd!(bc!(ab.apply(this, arguments)))
       }
     case 4:
-      return function(this: unknown) {
+      return function (this: unknown) {
         return de!(cd!(bc!(ab.apply(this, arguments))))
       }
     case 5:
-      return function(this: unknown) {
+      return function (this: unknown) {
         return ef!(de!(cd!(bc!(ab.apply(this, arguments)))))
       }
     case 6:
-      return function(this: unknown) {
+      return function (this: unknown) {
         return fg!(ef!(de!(cd!(bc!(ab.apply(this, arguments))))))
       }
     case 7:
-      return function(this: unknown) {
+      return function (this: unknown) {
         return gh!(fg!(ef!(de!(cd!(bc!(ab.apply(this, arguments)))))))
       }
     case 8:
-      return function(this: unknown) {
+      return function (this: unknown) {
         return hi!(gh!(fg!(ef!(de!(cd!(bc!(ab.apply(this, arguments))))))))
       }
     case 9:
-      return function(this: unknown) {
+      return function (this: unknown) {
         return ij!(hi!(gh!(fg!(ef!(de!(cd!(bc!(ab.apply(this, arguments)))))))))
       }
   }

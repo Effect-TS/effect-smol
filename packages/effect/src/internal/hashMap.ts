@@ -49,7 +49,7 @@ const BITMAP_INDEX_MASK = BUCKET_SIZE - 1 // 31
 const popcount = (n: number): number => {
   n = n - ((n >>> 1) & 0x55555555)
   n = (n & 0x33333333) + ((n >>> 2) & 0x33333333)
-  return (((n + (n >>> 4)) & 0xF0F0F0F) * 0x1010101) >>> 24
+  return (((n + (n >>> 4)) & 0xf0f0f0f) * 0x1010101) >>> 24
 }
 
 /** @internal */
@@ -83,9 +83,7 @@ function mergeLeaves<K, V>(
   }
 
   const bitmap = bit1 | bit2
-  const children: Array<Node<K, V>> = bit1 < bit2
-    ? [node1, node2]
-    : [node2, node1]
+  const children: Array<Node<K, V>> = bit1 < bit2 ? [node1, node2] : [node2, node1]
 
   return new IndexedNode(edit, bitmap, children)
 }
@@ -97,14 +95,7 @@ abstract class Node<K, V> {
   abstract get size(): number
   abstract get(shift: number, hash: number, key: K): Option.Option<V>
   abstract has(shift: number, hash: number, key: K): boolean
-  abstract set(
-    edit: number,
-    shift: number,
-    hash: number,
-    key: K,
-    value: V,
-    added: { value: boolean }
-  ): Node<K, V>
+  abstract set(edit: number, shift: number, hash: number, key: K, value: V, added: { value: boolean }): Node<K, V>
   abstract remove(
     edit: number,
     shift: number,
@@ -138,25 +129,12 @@ class EmptyNode<K, V> extends Node<K, V> {
     return false
   }
 
-  set(
-    edit: number,
-    _shift: number,
-    hash: number,
-    key: K,
-    value: V,
-    added: { value: boolean }
-  ): Node<K, V> {
+  set(edit: number, _shift: number, hash: number, key: K, value: V, added: { value: boolean }): Node<K, V> {
     added.value = true
     return new LeafNode(edit, hash, key, value)
   }
 
-  remove(
-    _edit: number,
-    _shift: number,
-    _hash: number,
-    _key: K,
-    _removed: { value: boolean }
-  ): Node<K, V> | undefined {
+  remove(_edit: number, _shift: number, _hash: number, _key: K, _removed: { value: boolean }): Node<K, V> | undefined {
     return this
   }
 
@@ -182,12 +160,7 @@ class LeafNode<K, V> extends Node<K, V> {
   key: K
   value: V
 
-  constructor(
-    edit: number,
-    hash: number,
-    key: K,
-    value: V
-  ) {
+  constructor(edit: number, hash: number, key: K, value: V) {
     super()
     this.edit = edit
     this.hash = hash
@@ -210,14 +183,7 @@ class LeafNode<K, V> extends Node<K, V> {
     return this.hash === hash && Equal_.equals(this.key, key)
   }
 
-  set(
-    edit: number,
-    shift: number,
-    hash: number,
-    key: K,
-    value: V,
-    added: { value: boolean }
-  ): Node<K, V> {
+  set(edit: number, shift: number, hash: number, key: K, value: V, added: { value: boolean }): Node<K, V> {
     if (this.hash === hash && Equal_.equals(this.key, key)) {
       if (Equal_.equals(this.value, value)) {
         return this
@@ -233,35 +199,27 @@ class LeafNode<K, V> extends Node<K, V> {
     added.value = true
 
     if (this.hash === hash) {
-      return new CollisionNode(edit, hash, [[this.key, this.value], [key, value]])
+      return new CollisionNode(edit, hash, [
+        [this.key, this.value],
+        [key, value]
+      ])
     }
 
     const newBit = bitpos(hash, shift)
     const existingBit = bitpos(this.hash, shift)
 
     if (newBit === existingBit) {
-      return new IndexedNode(
-        edit,
-        newBit,
-        [this.set(edit, shift + SHIFT, hash, key, value, added)]
-      )
+      return new IndexedNode(edit, newBit, [this.set(edit, shift + SHIFT, hash, key, value, added)])
     }
 
     const bitmap = newBit | existingBit
-    const nodes: Array<Node<K, V>> = newBit < existingBit
-      ? [new LeafNode(edit, hash, key, value), this]
-      : [this, new LeafNode(edit, hash, key, value)]
+    const nodes: Array<Node<K, V>> =
+      newBit < existingBit ? [new LeafNode(edit, hash, key, value), this] : [this, new LeafNode(edit, hash, key, value)]
 
     return new IndexedNode(edit, bitmap, nodes)
   }
 
-  remove(
-    _edit: number,
-    _shift: number,
-    hash: number,
-    key: K,
-    removed: { value: boolean }
-  ): Node<K, V> | undefined {
+  remove(_edit: number, _shift: number, hash: number, key: K, removed: { value: boolean }): Node<K, V> | undefined {
     if (this.hash === hash && Equal_.equals(this.key, key)) {
       removed.value = true
       return undefined
@@ -286,11 +244,7 @@ class CollisionNode<K, V> extends Node<K, V> {
   readonly hash: number
   entries: Array<[K, V]>
 
-  constructor(
-    edit: number,
-    hash: number,
-    entries: Array<[K, V]>
-  ) {
+  constructor(edit: number, hash: number, entries: Array<[K, V]>) {
     super()
     this.edit = edit
     this.hash = hash
@@ -327,25 +281,11 @@ class CollisionNode<K, V> extends Node<K, V> {
     return false
   }
 
-  set(
-    edit: number,
-    shift: number,
-    hash: number,
-    key: K,
-    value: V,
-    added: { value: boolean }
-  ): Node<K, V> {
+  set(edit: number, shift: number, hash: number, key: K, value: V, added: { value: boolean }): Node<K, V> {
     if (this.hash !== hash) {
       added.value = true
       // Need to merge this collision node with new leaf
-      return mergeLeaves(
-        edit,
-        shift,
-        this.hash,
-        this,
-        hash,
-        new LeafNode(edit, hash, key, value)
-      )
+      return mergeLeaves(edit, shift, this.hash, this, hash, new LeafNode(edit, hash, key, value))
     }
 
     // Same hash - update or add to collision list
@@ -372,13 +312,7 @@ class CollisionNode<K, V> extends Node<K, V> {
     return new CollisionNode(edit, this.hash, [...this.entries, [key, value]])
   }
 
-  remove(
-    edit: number,
-    _shift: number,
-    hash: number,
-    key: K,
-    removed: { value: boolean }
-  ): Node<K, V> | undefined {
+  remove(edit: number, _shift: number, hash: number, key: K, removed: { value: boolean }): Node<K, V> | undefined {
     if (this.hash !== hash) {
       return this
     }
@@ -427,11 +361,7 @@ class IndexedNode<K, V> extends Node<K, V> {
   bitmap: number
   children: Array<Node<K, V>>
 
-  constructor(
-    edit: number,
-    bitmap: number,
-    children: Array<Node<K, V>>
-  ) {
+  constructor(edit: number, bitmap: number, children: Array<Node<K, V>>) {
     super()
     this.edit = edit
     this.bitmap = bitmap
@@ -463,14 +393,7 @@ class IndexedNode<K, V> extends Node<K, V> {
     return this.children[idx].has(shift + SHIFT, hash, key)
   }
 
-  set(
-    edit: number,
-    shift: number,
-    hash: number,
-    key: K,
-    value: V,
-    added: { value: boolean }
-  ): Node<K, V> {
+  set(edit: number, shift: number, hash: number, key: K, value: V, added: { value: boolean }): Node<K, V> {
     const bit = bitpos(hash, shift)
     const idx = index(this.bitmap, bit)
 
@@ -518,13 +441,7 @@ class IndexedNode<K, V> extends Node<K, V> {
     }
   }
 
-  remove(
-    edit: number,
-    shift: number,
-    hash: number,
-    key: K,
-    removed: { value: boolean }
-  ): Node<K, V> | undefined {
+  remove(edit: number, shift: number, hash: number, key: K, removed: { value: boolean }): Node<K, V> | undefined {
     const bit = bitpos(hash, shift)
     if ((this.bitmap & bit) === 0) {
       return this
@@ -627,11 +544,7 @@ class ArrayNode<K, V> extends Node<K, V> {
   count: number
   children: Array<Node<K, V> | undefined>
 
-  constructor(
-    edit: number,
-    count: number,
-    children: Array<Node<K, V> | undefined>
-  ) {
+  constructor(edit: number, count: number, children: Array<Node<K, V> | undefined>) {
     super()
     this.edit = edit
     this.count = count
@@ -657,14 +570,7 @@ class ArrayNode<K, V> extends Node<K, V> {
     return child ? child.has(shift + SHIFT, hash, key) : false
   }
 
-  set(
-    edit: number,
-    shift: number,
-    hash: number,
-    key: K,
-    value: V,
-    added: { value: boolean }
-  ): Node<K, V> {
+  set(edit: number, shift: number, hash: number, key: K, value: V, added: { value: boolean }): Node<K, V> {
     const idx = mask(hash, shift)
     const child = this.children[idx]
 
@@ -699,13 +605,7 @@ class ArrayNode<K, V> extends Node<K, V> {
     }
   }
 
-  remove(
-    edit: number,
-    shift: number,
-    hash: number,
-    key: K,
-    removed: { value: boolean }
-  ): Node<K, V> | undefined {
+  remove(edit: number, shift: number, hash: number, key: K, removed: { value: boolean }): Node<K, V> | undefined {
     const idx = mask(hash, shift)
     const child = this.children[idx]
 
@@ -810,12 +710,7 @@ class HashMapImpl<K, V> implements HashMap<K, V> {
   _root: Node<K, V>
   _size: number
 
-  constructor(
-    editable: boolean,
-    edit: number,
-    root: Node<K, V>,
-    size: number
-  ) {
+  constructor(editable: boolean, edit: number, root: Node<K, V>, size: number) {
     this._editable = editable
     this._edit = edit
     this._root = root

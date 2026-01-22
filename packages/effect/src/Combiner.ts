@@ -44,7 +44,7 @@ export function flip<A>(combiner: Combiner<A>): Combiner<A> {
  * @since 4.0.0
  */
 export function min<A>(order: Order.Order<A>): Combiner<A> {
-  return make((self, that) => order(self, that) === -1 ? self : that)
+  return make((self, that) => (order(self, that) === -1 ? self : that))
 }
 
 /**
@@ -53,7 +53,7 @@ export function min<A>(order: Order.Order<A>): Combiner<A> {
  * @since 4.0.0
  */
 export function max<A>(order: Order.Order<A>): Combiner<A> {
-  return make((self, that) => order(self, that) === 1 ? self : that)
+  return make((self, that) => (order(self, that) === 1 ? self : that))
 }
 
 /**

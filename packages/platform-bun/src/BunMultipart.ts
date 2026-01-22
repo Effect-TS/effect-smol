@@ -17,9 +17,7 @@ export const stream = (source: Request): Stream.Stream<Multipart.Part, Multipart
   BunStream.fromReadableStream({
     evaluate: () => source.body!,
     onError: (cause) => new Multipart.MultipartError({ reason: "InternalError", cause })
-  }).pipe(
-    Stream.pipeThroughChannel(Multipart.makeChannel(Object.fromEntries(source.headers)))
-  )
+  }).pipe(Stream.pipeThroughChannel(Multipart.makeChannel(Object.fromEntries(source.headers))))
 
 /**
  * @since 1.0.0
@@ -27,10 +25,5 @@ export const stream = (source: Request): Stream.Stream<Multipart.Part, Multipart
  */
 export const persisted = (
   source: Request
-): Effect.Effect<
-  Multipart.Persisted,
-  Multipart.MultipartError,
-  | FileSystem
-  | Path
-  | Scope.Scope
-> => Multipart.toPersisted(stream(source))
+): Effect.Effect<Multipart.Persisted, Multipart.MultipartError, FileSystem | Path | Scope.Scope> =>
+  Multipart.toPersisted(stream(source))

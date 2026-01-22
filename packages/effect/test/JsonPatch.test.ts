@@ -18,14 +18,7 @@ describe("JsonPatch", () => {
   describe("get", () => {
     describe("root values", () => {
       it("returns [] for identical values", () => {
-        const cases: ReadonlyArray<Schema.Json> = [
-          1,
-          "hello",
-          true,
-          null,
-          [1, 2, 3],
-          { a: 1 }
-        ]
+        const cases: ReadonlyArray<Schema.Json> = [1, "hello", true, null, [1, 2, 3], { a: 1 }]
         for (const v of cases) {
           deepStrictEqual(JsonPatch.get(v, v), [])
         }
@@ -64,11 +57,12 @@ describe("JsonPatch", () => {
         deepStrictEqual(JsonPatch.get([1, 2, 3], [1, 2]), [{ op: "remove", path: "/2" }])
 
         const patch = JsonPatch.get([0, 1, 2, 3, 4, 5], [0, 1, 3])
-        const removeIdx = patch
-          .filter((op) => op.op === "remove")
-          .map((op) => Number(op.path.slice(1)))
+        const removeIdx = patch.filter((op) => op.op === "remove").map((op) => Number(op.path.slice(1)))
 
-        deepStrictEqual(removeIdx, [...removeIdx].sort((a, b) => b - a))
+        deepStrictEqual(
+          removeIdx,
+          [...removeIdx].sort((a, b) => b - a)
+        )
         expectAppliesTo(patch, [0, 1, 2, 3, 4, 5], [0, 1, 3])
       })
 
@@ -91,13 +85,30 @@ describe("JsonPatch", () => {
       })
 
       it("supports nested arrays", () => {
-        deepStrictEqual(JsonPatch.get([[1, 2], [3, 4]], [[1, 2], [3, 5]]), [
-          { op: "replace", path: "/1/1", value: 5 }
-        ])
+        deepStrictEqual(
+          JsonPatch.get(
+            [
+              [1, 2],
+              [3, 4]
+            ],
+            [
+              [1, 2],
+              [3, 5]
+            ]
+          ),
+          [{ op: "replace", path: "/1/1", value: 5 }]
+        )
 
-        deepStrictEqual(JsonPatch.get([[1, 2]], [[1, 2], [3, 4]]), [
-          { op: "add", path: "/1", value: [3, 4] }
-        ])
+        deepStrictEqual(
+          JsonPatch.get(
+            [[1, 2]],
+            [
+              [1, 2],
+              [3, 4]
+            ]
+          ),
+          [{ op: "add", path: "/1", value: [3, 4] }]
+        )
       })
     })
 
@@ -134,37 +145,23 @@ describe("JsonPatch", () => {
       })
 
       it("supports nested objects", () => {
-        deepStrictEqual(JsonPatch.get({ a: { b: 1 } }, { a: { b: 2 } }), [
-          { op: "replace", path: "/a/b", value: 2 }
-        ])
-        deepStrictEqual(JsonPatch.get({ a: { b: 1 } }, { a: { b: 1, c: 2 } }), [
-          { op: "add", path: "/a/c", value: 2 }
-        ])
-        deepStrictEqual(JsonPatch.get({ a: { b: 1, c: 2 } }, { a: { b: 1 } }), [
-          { op: "remove", path: "/a/c" }
-        ])
+        deepStrictEqual(JsonPatch.get({ a: { b: 1 } }, { a: { b: 2 } }), [{ op: "replace", path: "/a/b", value: 2 }])
+        deepStrictEqual(JsonPatch.get({ a: { b: 1 } }, { a: { b: 1, c: 2 } }), [{ op: "add", path: "/a/c", value: 2 }])
+        deepStrictEqual(JsonPatch.get({ a: { b: 1, c: 2 } }, { a: { b: 1 } }), [{ op: "remove", path: "/a/c" }])
       })
 
       describe("JSON Pointer escaping in keys", () => {
         it("escapes '/' as '~1' and '~' as '~0'", () => {
-          deepStrictEqual(JsonPatch.get({ "a/b": 1 }, { "a/b": 2 }), [
-            { op: "replace", path: "/a~1b", value: 2 }
-          ])
-          deepStrictEqual(JsonPatch.get({ "a~b": 1 }, { "a~b": 2 }), [
-            { op: "replace", path: "/a~0b", value: 2 }
-          ])
+          deepStrictEqual(JsonPatch.get({ "a/b": 1 }, { "a/b": 2 }), [{ op: "replace", path: "/a~1b", value: 2 }])
+          deepStrictEqual(JsonPatch.get({ "a~b": 1 }, { "a~b": 2 }), [{ op: "replace", path: "/a~0b", value: 2 }])
         })
 
         it("represents a literal key '~1' as token '~01'", () => {
-          deepStrictEqual(JsonPatch.get({}, { "~1": 0 }), [
-            { op: "add", path: "/~01", value: 0 }
-          ])
+          deepStrictEqual(JsonPatch.get({}, { "~1": 0 }), [{ op: "add", path: "/~01", value: 0 }])
         })
 
         it("does not confuse '~01' with '/' (unescape order)", () => {
-          deepStrictEqual(JsonPatch.get({ "a~1b": 1 }, { "a~1b": 2 }), [
-            { op: "replace", path: "/a~01b", value: 2 }
-          ])
+          deepStrictEqual(JsonPatch.get({ "a~1b": 1 }, { "a~1b": 2 }), [{ op: "replace", path: "/a~01b", value: 2 }])
         })
       })
     })
@@ -241,7 +238,10 @@ describe("JsonPatch", () => {
 
       it("handles non-empty array to empty array", () => {
         const patch = JsonPatch.get([1, 2], [])
-        deepStrictEqual(patch, [{ op: "remove", path: "/1" }, { op: "remove", path: "/0" }])
+        deepStrictEqual(patch, [
+          { op: "remove", path: "/1" },
+          { op: "remove", path: "/0" }
+        ])
         expectAppliesTo(patch, [1, 2], [])
       })
 
@@ -400,37 +400,19 @@ describe("JsonPatch", () => {
       it("replace", () => {
         deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "", value: 42 }], 1), 42)
 
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "/a", value: 2 }], { a: 1 }),
-          { a: 2 }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "/a", value: 2 }], { a: 1 }), { a: 2 })
 
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "/1", value: 20 }], [1, 2, 3]),
-          [1, 20, 3]
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "/1", value: 20 }], [1, 2, 3]), [1, 20, 3])
 
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "/a/b", value: 2 }], { a: { b: 1 } }),
-          { a: { b: 2 } }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "/a/b", value: 2 }], { a: { b: 1 } }), { a: { b: 2 } })
       })
 
       it("add", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/b", value: 2 }], { a: 1 }),
-          { a: 1, b: 2 }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/b", value: 2 }], { a: 1 }), { a: 1, b: 2 })
 
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/1", value: 10 }], [1, 2, 3]),
-          [1, 10, 2, 3]
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/1", value: 10 }], [1, 2, 3]), [1, 10, 2, 3])
 
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/-", value: 4 }], [1, 2, 3]),
-          [1, 2, 3, 4]
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/-", value: 4 }], [1, 2, 3]), [1, 2, 3, 4])
 
         deepStrictEqual(
           JsonPatch.apply([{ op: "add", path: "/users/0/tags/-", value: "admin" }], {
@@ -441,20 +423,11 @@ describe("JsonPatch", () => {
       })
 
       it("remove", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "remove", path: "/a" }], { a: 1, b: 2 }),
-          { b: 2 }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "remove", path: "/a" }], { a: 1, b: 2 }), { b: 2 })
 
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "remove", path: "/1" }], [1, 2, 3]),
-          [1, 3]
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "remove", path: "/1" }], [1, 2, 3]), [1, 3])
 
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "remove", path: "/a/b" }], { a: { b: 1, c: 2 } }),
-          { a: { c: 2 } }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "remove", path: "/a/b" }], { a: { b: 1, c: 2 } }), { a: { c: 2 } })
       })
 
       it("applies multiple operations in sequence", () => {
@@ -474,50 +447,31 @@ describe("JsonPatch", () => {
 
     describe("JSON Pointer decoding", () => {
       it("decodes '~1' as '/' and '~0' as '~'", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "/a~1b", value: 2 }], { "a/b": 1 }),
-          { "a/b": 2 }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "/a~1b", value: 2 }], { "a/b": 1 }), { "a/b": 2 })
 
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/a~0b", value: 1 }], {}),
-          { "a~b": 1 }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/a~0b", value: 1 }], {}), { "a~b": 1 })
 
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/path~1to~0key", value: "value" }], {}),
-          { "path/to~key": "value" }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/path~1to~0key", value: "value" }], {}), {
+          "path/to~key": "value"
+        })
       })
 
       it("decodes '~01' as a literal '~1' (unescape order)", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/a~01b", value: 1 }], {}),
-          { "a~1b": 1 }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/a~01b", value: 1 }], {}), { "a~1b": 1 })
       })
 
       it("addresses a literal key '~1' via token '~01'", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/~01", value: 0 }], {}),
-          { "~1": 0 }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/~01", value: 0 }], {}), { "~1": 0 })
       })
     })
 
     describe("errors", () => {
       it("rejects non-empty pointers that do not start with '/'", () => {
-        expectMessage(
-          () => JsonPatch.apply([{ op: "add", path: "invalid", value: 1 }], {}),
-          `must start with "/"`
-        )
+        expectMessage(() => JsonPatch.apply([{ op: "add", path: "invalid", value: 1 }], {}), `must start with "/"`)
       })
 
       it("rejects invalid array indices", () => {
-        expectMessage(
-          () => JsonPatch.apply([{ op: "add", path: "/abc", value: 1 }], []),
-          `Invalid array index`
-        )
+        expectMessage(() => JsonPatch.apply([{ op: "add", path: "/abc", value: 1 }], []), `Invalid array index`)
         expectMessage(
           () => JsonPatch.apply([{ op: "replace", path: "/-1", value: 1 }], [1, 2, 3]),
           `Invalid array index`
@@ -533,10 +487,7 @@ describe("JsonPatch", () => {
           () => JsonPatch.apply([{ op: "add", path: "/10", value: 1 }], [1, 2, 3]),
           "Array index out of bounds"
         )
-        expectMessage(
-          () => JsonPatch.apply([{ op: "remove", path: "/10" }], [1, 2, 3]),
-          "Array index out of bounds"
-        )
+        expectMessage(() => JsonPatch.apply([{ op: "remove", path: "/10" }], [1, 2, 3]), "Array index out of bounds")
       })
 
       it("rejects '-' for replace/remove", () => {
@@ -545,10 +496,7 @@ describe("JsonPatch", () => {
           `"-" is not valid for replace`
         )
 
-        expectMessage(
-          () => JsonPatch.apply([{ op: "remove", path: "/-" }], [1, 2, 3]),
-          `"-" is not valid for remove`
-        )
+        expectMessage(() => JsonPatch.apply([{ op: "remove", path: "/-" }], [1, 2, 3]), `"-" is not valid for remove`)
       })
 
       it("rejects replace/remove of non-existent object members", () => {
@@ -556,30 +504,18 @@ describe("JsonPatch", () => {
           () => JsonPatch.apply([{ op: "replace", path: "/nonexistent", value: 1 }], { a: 1 }),
           `does not exist`
         )
-        expectMessage(
-          () => JsonPatch.apply([{ op: "remove", path: "/nonexistent" }], { a: 1 }),
-          `does not exist`
-        )
+        expectMessage(() => JsonPatch.apply([{ op: "remove", path: "/nonexistent" }], { a: 1 }), `does not exist`)
       })
 
       it("rejects add/replace when the parent is missing or not a container", () => {
-        expectMessage(
-          () => JsonPatch.apply([{ op: "add", path: "/a/b", value: 1 }], { a: null }),
-          "Cannot add at"
-        )
-        expectMessage(
-          () => JsonPatch.apply([{ op: "add", path: "/a/b", value: 1 }], {}),
-          "Cannot add at"
-        )
+        expectMessage(() => JsonPatch.apply([{ op: "add", path: "/a/b", value: 1 }], { a: null }), "Cannot add at")
+        expectMessage(() => JsonPatch.apply([{ op: "add", path: "/a/b", value: 1 }], {}), "Cannot add at")
 
         expectMessage(
           () => JsonPatch.apply([{ op: "add", path: "/a/b", value: 1 }], { a: "string" }),
           "not a container"
         )
-        expectMessage(
-          () => JsonPatch.apply([{ op: "replace", path: "/a/b", value: 1 }], { a: 42 }),
-          "not a container"
-        )
+        expectMessage(() => JsonPatch.apply([{ op: "replace", path: "/a/b", value: 1 }], { a: 42 }), "not a container")
 
         expectMessage(
           () => JsonPatch.apply([{ op: "add", path: "/a/b/c", value: 1 }], { a: { b: "not-object" } }),
@@ -588,10 +524,7 @@ describe("JsonPatch", () => {
       })
 
       it("rejects remove at the root", () => {
-        expectMessage(
-          () => JsonPatch.apply([{ op: "remove", path: "" }], { a: 1 }),
-          "root"
-        )
+        expectMessage(() => JsonPatch.apply([{ op: "remove", path: "" }], { a: 1 }), "root")
       })
     })
 
@@ -693,74 +626,35 @@ describe("JsonPatch", () => {
 
     describe("edge cases", () => {
       it("handles operations on empty arrays", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/-", value: 1 }], []),
-          [1]
-        )
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/0", value: 1 }], []),
-          [1]
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/-", value: 1 }], []), [1])
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/0", value: 1 }], []), [1])
       })
 
       it("handles operations on empty objects", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/key", value: "value" }], {}),
-          { key: "value" }
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/key", value: "value" }], {}), { key: "value" })
       })
 
       it("handles array operations at index 0", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "/0", value: 10 }], [1, 2, 3]),
-          [10, 2, 3]
-        )
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "remove", path: "/0" }], [1, 2, 3]),
-          [2, 3]
-        )
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/0", value: 0 }], [1, 2, 3]),
-          [0, 1, 2, 3]
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "/0", value: 10 }], [1, 2, 3]), [10, 2, 3])
+        deepStrictEqual(JsonPatch.apply([{ op: "remove", path: "/0" }], [1, 2, 3]), [2, 3])
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/0", value: 0 }], [1, 2, 3]), [0, 1, 2, 3])
       })
 
       it("handles array operations at last index", () => {
         const arr = [1, 2, 3]
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "/2", value: 30 }], arr),
-          [1, 2, 30]
-        )
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "remove", path: "/2" }], arr),
-          [1, 2]
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "/2", value: 30 }], arr), [1, 2, 30])
+        deepStrictEqual(JsonPatch.apply([{ op: "remove", path: "/2" }], arr), [1, 2])
       })
 
       it("handles single-element array operations", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "/0", value: 2 }], [1]),
-          [2]
-        )
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "remove", path: "/0" }], [1]),
-          []
-        )
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "add", path: "/0", value: 0 }], [1]),
-          [0, 1]
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "/0", value: 2 }], [1]), [2])
+        deepStrictEqual(JsonPatch.apply([{ op: "remove", path: "/0" }], [1]), [])
+        deepStrictEqual(JsonPatch.apply([{ op: "add", path: "/0", value: 0 }], [1]), [0, 1])
       })
 
       it("handles single-property object operations", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "/a", value: 2 }], { a: 1 }),
-          { a: 2 }
-        )
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "remove", path: "/a" }], { a: 1 }),
-          {}
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "/a", value: 2 }], { a: 1 }), { a: 2 })
+        deepStrictEqual(JsonPatch.apply([{ op: "remove", path: "/a" }], { a: 1 }), {})
       })
     })
 
@@ -778,18 +672,9 @@ describe("JsonPatch", () => {
       })
 
       it("applies root replace to different types", () => {
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "", value: [] }], { a: 1 }),
-          []
-        )
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "", value: "string" }], 42),
-          "string"
-        )
-        deepStrictEqual(
-          JsonPatch.apply([{ op: "replace", path: "", value: null }], true),
-          null
-        )
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "", value: [] }], { a: 1 }), [])
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "", value: "string" }], 42), "string")
+        deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "", value: null }], true), null)
       })
     })
   })
@@ -895,13 +780,13 @@ describe("JsonPatch", () => {
       const oldValue: Schema.Json = {
         "key/with/slash": 1,
         "key~with~tilde": 2,
-        "normal": 3
+        normal: 3
       }
 
       const newValue: Schema.Json = {
         "key/with/slash": 10,
         "key~with~tilde": 20,
-        "normal": 30,
+        normal: 30,
         "new/key": 40
       }
 
@@ -934,7 +819,10 @@ describe("JsonPatch", () => {
         true,
         null,
         { nested: { deep: { value: "test" } } },
-        [[1, 2], [3, 4]]
+        [
+          [1, 2],
+          [3, 4]
+        ]
       ]
 
       for (const value of identicalCases) {

@@ -112,25 +112,25 @@ export interface LayerMap<in out K, in out I, in out E = never> {
  * })
  * ```
  */
-export const make: <
-  K,
-  L extends Layer.Layer<any, any, any>,
-  PreloadKeys extends Iterable<K> | undefined = undefined
->(
+export const make: <K, L extends Layer.Layer<any, any, any>, PreloadKeys extends Iterable<K> | undefined = undefined>(
   lookup: (key: K) => L,
-  options?: {
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
-    readonly preloadKeys?: PreloadKeys
-  } | undefined
+  options?:
+    | {
+        readonly idleTimeToLive?: Duration.DurationInput | undefined
+        readonly preloadKeys?: PreloadKeys
+      }
+    | undefined
 ) => Effect.Effect<
   LayerMap<K, Layer.Success<L>, Layer.Error<L>>,
   PreloadKeys extends undefined ? never : Layer.Error<L>,
   Scope.Scope | Layer.Services<L>
-> = Effect.fnUntraced(function*<I, K, EL, RL>(
+> = Effect.fnUntraced(function* <I, K, EL, RL>(
   lookup: (key: K) => Layer.Layer<I, EL, RL>,
-  options?: {
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
-  } | undefined
+  options?:
+    | {
+        readonly idleTimeToLive?: Duration.DurationInput | undefined
+      }
+    | undefined
 ) {
   const services = yield* Effect.services<never>()
   const memoMap = ServiceMap.get(services, Layer.CurrentMemoMap)
@@ -197,16 +197,14 @@ export const fromRecord = <
   const Preload extends boolean = false
 >(
   layers: Layers,
-  options?: {
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
-    readonly preload?: Preload | undefined
-  } | undefined
+  options?:
+    | {
+        readonly idleTimeToLive?: Duration.DurationInput | undefined
+        readonly preload?: Preload | undefined
+      }
+    | undefined
 ): Effect.Effect<
-  LayerMap<
-    keyof Layers,
-    Layer.Success<Layers[keyof Layers]>,
-    Layer.Error<Layers[keyof Layers]>
-  >,
+  LayerMap<keyof Layers, Layer.Success<Layers[keyof Layers]>, Layer.Error<Layers[keyof Layers]>>,
   Preload extends true ? Layer.Error<Layers[keyof Layers]> : never,
   Scope.Scope | (Layers[keyof Layers] extends Layer.Layer<infer _A, infer _E, infer _R> ? _R : never)
 > =>
@@ -235,7 +233,7 @@ export interface TagClass<
   readonly layer: Layer.Layer<
     Self,
     (Deps extends Layer.Layer<infer _A, infer _E, infer _R> ? _E : never) | LE,
-    | Exclude<R, (Deps extends Layer.Layer<infer _A, infer _E, infer _R> ? _A : never)>
+    | Exclude<R, Deps extends Layer.Layer<infer _A, infer _E, infer _R> ? _A : never>
     | (Deps extends Layer.Layer<infer _A, infer _E, infer _R> ? _R : never)
   >
 
@@ -302,73 +300,84 @@ export interface TagClass<
  * )
  * ```
  */
-export const Service = <Self>() =>
-<
-  const Id extends string,
-  const Options extends
-    | NoExcessProperties<{
-      readonly lookup: (key: any) => Layer.Layer<any, any, any>
-      readonly dependencies?: ReadonlyArray<Layer.Layer<any, any, any>> | undefined
-      readonly idleTimeToLive?: Duration.DurationInput | undefined
-      readonly preloadKeys?:
-        | Iterable<Options extends { readonly lookup: (key: infer K) => any } ? K : never>
-        | undefined
-    }, Options>
-    | NoExcessProperties<{
-      readonly layers: Record<string, Layer.Layer<any, any, any>>
-      readonly dependencies?: ReadonlyArray<Layer.Layer<any, any, any>> | undefined
-      readonly idleTimeToLive?: Duration.DurationInput | undefined
-      readonly preload?: boolean | undefined
-    }, Options>
->(
-  id: Id,
-  options: Options
-): TagClass<
-  Self,
-  Id,
-  Options extends { readonly lookup: (key: infer K) => any } ? K
-    : Options extends { readonly layers: infer Layers } ? keyof Layers
-    : never,
-  Service.Success<Options>,
-  Options extends { readonly preload: true } ? never : Service.Error<Options>,
-  Service.Services<Options>,
-  Options extends { readonly preload: true } ? Service.Error<Options>
-    : Options extends { readonly preloadKeys: Iterable<any> } ? Service.Error<Options>
-    : never,
-  Options extends { readonly dependencies: ReadonlyArray<Layer.Layer<any, any, any>> } ? Options["dependencies"][number]
-    : never
-> => {
-  const Err = globalThis.Error as any
-  const limit = Err.stackTraceLimit
-  Err.stackTraceLimit = 2
-  const creationError = new Err()
-  Err.stackTraceLimit = limit
+export const Service =
+  <Self>() =>
+  <
+    const Id extends string,
+    const Options extends
+      | NoExcessProperties<
+          {
+            readonly lookup: (key: any) => Layer.Layer<any, any, any>
+            readonly dependencies?: ReadonlyArray<Layer.Layer<any, any, any>> | undefined
+            readonly idleTimeToLive?: Duration.DurationInput | undefined
+            readonly preloadKeys?:
+              | Iterable<Options extends { readonly lookup: (key: infer K) => any } ? K : never>
+              | undefined
+          },
+          Options
+        >
+      | NoExcessProperties<
+          {
+            readonly layers: Record<string, Layer.Layer<any, any, any>>
+            readonly dependencies?: ReadonlyArray<Layer.Layer<any, any, any>> | undefined
+            readonly idleTimeToLive?: Duration.DurationInput | undefined
+            readonly preload?: boolean | undefined
+          },
+          Options
+        >
+  >(
+    id: Id,
+    options: Options
+  ): TagClass<
+    Self,
+    Id,
+    Options extends { readonly lookup: (key: infer K) => any }
+      ? K
+      : Options extends { readonly layers: infer Layers }
+        ? keyof Layers
+        : never,
+    Service.Success<Options>,
+    Options extends { readonly preload: true } ? never : Service.Error<Options>,
+    Service.Services<Options>,
+    Options extends { readonly preload: true }
+      ? Service.Error<Options>
+      : Options extends { readonly preloadKeys: Iterable<any> }
+        ? Service.Error<Options>
+        : never,
+    Options extends { readonly dependencies: ReadonlyArray<Layer.Layer<any, any, any>> }
+      ? Options["dependencies"][number]
+      : never
+  > => {
+    const Err = globalThis.Error as any
+    const limit = Err.stackTraceLimit
+    Err.stackTraceLimit = 2
+    const creationError = new Err()
+    Err.stackTraceLimit = limit
 
-  function TagClass() {}
-  const TagClass_ = TagClass as any as Mutable<TagClass<Self, Id, string, any, any, any, any, any>>
-  Object.setPrototypeOf(TagClass, Object.getPrototypeOf(ServiceMap.Service<Self, any>(id)))
-  TagClass.key = id
-  Object.defineProperty(TagClass, "stack", {
-    get() {
-      return creationError.stack
-    }
-  })
+    function TagClass() {}
+    const TagClass_ = TagClass as any as Mutable<TagClass<Self, Id, string, any, any, any, any, any>>
+    Object.setPrototypeOf(TagClass, Object.getPrototypeOf(ServiceMap.Service<Self, any>(id)))
+    TagClass.key = id
+    Object.defineProperty(TagClass, "stack", {
+      get() {
+        return creationError.stack
+      }
+    })
 
-  TagClass_.layerNoDeps = Layer.effect(TagClass_)(
-    "lookup" in options
-      ? make(options.lookup, options)
-      : fromRecord(options.layers as any, options) as any
-  )
-  TagClass_.layer = options.dependencies && options.dependencies.length > 0 ?
-    Layer.provide(TagClass_.layerNoDeps, options.dependencies as any) :
-    TagClass_.layerNoDeps
+    TagClass_.layerNoDeps = Layer.effect(TagClass_)(
+      "lookup" in options ? make(options.lookup, options) : (fromRecord(options.layers as any, options) as any)
+    )
+    TagClass_.layer =
+      options.dependencies && options.dependencies.length > 0
+        ? Layer.provide(TagClass_.layerNoDeps, options.dependencies as any)
+        : TagClass_.layerNoDeps
 
-  TagClass_.get = (key: string) => Layer.unwrap(Effect.map(TagClass_.asEffect(), (layerMap) => layerMap.get(key)))
-  TagClass_.services = (key: string) => Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.services(key))
-  TagClass_.invalidate = (key: string) => Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.invalidate(key))
+    TagClass_.get = (key: string) => Layer.unwrap(Effect.map(TagClass_.asEffect(), (layerMap) => layerMap.get(key)))
+    TagClass_.services = (key: string) => Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.services(key))
+    TagClass_.invalidate = (key: string) => Effect.flatMap(TagClass_.asEffect(), (layerMap) => layerMap.invalidate(key))
 
-  return TagClass as any
-}
+    return TagClass as any
+  }
 
 /**
  * @since 3.14.0
@@ -379,17 +388,21 @@ export declare namespace Service {
    * @since 3.14.0
    * @category Service
    */
-  export type Key<Options> = Options extends { readonly lookup: (key: infer K) => any } ? K
-    : Options extends { readonly layers: infer Layers } ? keyof Layers
-    : never
+  export type Key<Options> = Options extends { readonly lookup: (key: infer K) => any }
+    ? K
+    : Options extends { readonly layers: infer Layers }
+      ? keyof Layers
+      : never
 
   /**
    * @since 3.14.0
    * @category Service
    */
-  export type Layers<Options> = Options extends { readonly lookup: (key: infer _K) => infer Layers } ? Layers
-    : Options extends { readonly layers: infer Layers } ? Layers[keyof Layers]
-    : never
+  export type Layers<Options> = Options extends { readonly lookup: (key: infer _K) => infer Layers }
+    ? Layers
+    : Options extends { readonly layers: infer Layers }
+      ? Layers[keyof Layers]
+      : never
 
   /**
    * @since 3.14.0

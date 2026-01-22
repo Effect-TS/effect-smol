@@ -21,7 +21,7 @@ export const makeClient: <Rpcs extends Rpc.Any, const Flatten extends boolean = 
   Flatten extends true ? RpcClient.RpcClient.Flat<Rpcs> : RpcClient.RpcClient<Rpcs>,
   never,
   Scope.Scope | Rpc.ToHandler<Rpcs> | Rpc.Middleware<Rpcs> | Rpc.MiddlewareClient<Rpcs>
-> = Effect.fnUntraced(function*<Rpcs extends Rpc.Any, const Flatten extends boolean = false>(
+> = Effect.fnUntraced(function* <Rpcs extends Rpc.Any, const Flatten extends boolean = false>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options?: {
     readonly flatten?: Flatten | undefined

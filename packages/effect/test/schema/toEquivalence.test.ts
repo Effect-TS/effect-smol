@@ -14,17 +14,16 @@ describe("toEquivalence", () => {
   it("Never", () => {
     throws(
       () =>
-        Schema.toEquivalence(Schema.Struct({
-          a: Schema.Never
-        })),
+        Schema.toEquivalence(
+          Schema.Struct({
+            a: Schema.Never
+          })
+        ),
       `Unsupported AST Never
   at ["a"]`
     )
     throws(
-      () =>
-        Schema.toEquivalence(Schema.Tuple([
-          Schema.Never
-        ])),
+      () => Schema.toEquivalence(Schema.Tuple([Schema.Never])),
       `Unsupported AST Never
   at [0]`
     )
@@ -135,15 +134,9 @@ describe("toEquivalence", () => {
         [b]: Schema.Number
       })
       const equivalence = Schema.toEquivalence(schema)
-      assertTrue(
-        equivalence({ [a]: "a", [b]: 1 }, { [a]: "a", [b]: 1 })
-      )
-      assertFalse(
-        equivalence({ [a]: "a", [b]: 1 }, { [a]: "b", [b]: 1 })
-      )
-      assertFalse(
-        equivalence({ [a]: "a", [b]: 1 }, { [a]: "a", [b]: 2 })
-      )
+      assertTrue(equivalence({ [a]: "a", [b]: 1 }, { [a]: "a", [b]: 1 }))
+      assertFalse(equivalence({ [a]: "a", [b]: 1 }, { [a]: "b", [b]: 1 }))
+      assertFalse(equivalence({ [a]: "a", [b]: 1 }, { [a]: "a", [b]: 2 }))
     })
 
     it("optionalKey fields", () => {
@@ -200,27 +193,27 @@ describe("toEquivalence", () => {
       const c = Symbol.for("c")
       const schema = Schema.Record(Schema.Symbol, Schema.Number)
       const equivalence = Schema.toEquivalence(schema)
-      assertTrue(
-        equivalence({ [a]: 1, [b]: 2 }, { [a]: 1, [b]: 2 })
+      assertTrue(equivalence({ [a]: 1, [b]: 2 }, { [a]: 1, [b]: 2 }))
+      assertFalse(equivalence({ [a]: 1, [b]: 2 }, { [a]: 1, [b]: 3 }))
+      assertFalse(equivalence({ [a]: 1, [b]: 2 }, { [a]: 2, [b]: 2 }))
+      assertFalse(
+        equivalence(
+          { [a]: 1, [b]: 2 },
+          {
+            [a]: 1,
+            [b]: 2,
+            [c]: 3
+          }
+        )
       )
       assertFalse(
-        equivalence({ [a]: 1, [b]: 2 }, { [a]: 1, [b]: 3 })
-      )
-      assertFalse(
-        equivalence({ [a]: 1, [b]: 2 }, { [a]: 2, [b]: 2 })
-      )
-      assertFalse(
-        equivalence({ [a]: 1, [b]: 2 }, {
-          [a]: 1,
-          [b]: 2,
-          [c]: 3
-        })
-      )
-      assertFalse(
-        equivalence({ [a]: 1, [b]: 2, [c]: 3 }, {
-          [a]: 1,
-          [b]: 2
-        })
+        equivalence(
+          { [a]: 1, [b]: 2, [c]: 3 },
+          {
+            [a]: 1,
+            [b]: 2
+          }
+        )
       )
     })
   })
@@ -270,56 +263,68 @@ describe("toEquivalence", () => {
       const schema = Operation
       const equivalence = Schema.toEquivalence(schema)
       assertTrue(
-        equivalence({
-          type: "operation",
-          operator: "+",
-          left: { type: "expression", value: 1 },
-          right: { type: "expression", value: 2 }
-        }, {
-          type: "operation",
-          operator: "+",
-          left: { type: "expression", value: 1 },
-          right: { type: "expression", value: 2 }
-        })
+        equivalence(
+          {
+            type: "operation",
+            operator: "+",
+            left: { type: "expression", value: 1 },
+            right: { type: "expression", value: 2 }
+          },
+          {
+            type: "operation",
+            operator: "+",
+            left: { type: "expression", value: 1 },
+            right: { type: "expression", value: 2 }
+          }
+        )
       )
       assertFalse(
-        equivalence({
-          type: "operation",
-          operator: "+",
-          left: { type: "expression", value: 1 },
-          right: { type: "expression", value: 2 }
-        }, {
-          type: "operation",
-          operator: "+",
-          left: { type: "expression", value: 1 },
-          right: { type: "expression", value: 3 }
-        })
+        equivalence(
+          {
+            type: "operation",
+            operator: "+",
+            left: { type: "expression", value: 1 },
+            right: { type: "expression", value: 2 }
+          },
+          {
+            type: "operation",
+            operator: "+",
+            left: { type: "expression", value: 1 },
+            right: { type: "expression", value: 3 }
+          }
+        )
       )
       assertFalse(
-        equivalence({
-          type: "operation",
-          operator: "+",
-          left: { type: "expression", value: 1 },
-          right: { type: "expression", value: 2 }
-        }, {
-          type: "operation",
-          operator: "-",
-          left: { type: "expression", value: 1 },
-          right: { type: "expression", value: 2 }
-        })
+        equivalence(
+          {
+            type: "operation",
+            operator: "+",
+            left: { type: "expression", value: 1 },
+            right: { type: "expression", value: 2 }
+          },
+          {
+            type: "operation",
+            operator: "-",
+            left: { type: "expression", value: 1 },
+            right: { type: "expression", value: 2 }
+          }
+        )
       )
       assertFalse(
-        equivalence({
-          type: "operation",
-          operator: "+",
-          left: { type: "expression", value: 1 },
-          right: { type: "expression", value: 2 }
-        }, {
-          type: "operation",
-          operator: "+",
-          left: { type: "expression", value: 2 },
-          right: { type: "expression", value: 2 }
-        })
+        equivalence(
+          {
+            type: "operation",
+            operator: "+",
+            left: { type: "expression", value: 1 },
+            right: { type: "expression", value: 2 }
+          },
+          {
+            type: "operation",
+            operator: "+",
+            left: { type: "expression", value: 2 },
+            right: { type: "expression", value: 2 }
+          }
+        )
       )
     })
   })
@@ -402,13 +407,57 @@ describe("toEquivalence", () => {
     assertTrue(equivalence(new Map(), new Map()))
     assertTrue(equivalence(new Map([[0, 1]]), new Map([[0, 1]])))
     assertTrue(equivalence(new Map([[0, 1]]), new Map([[2, 4]])))
-    assertTrue(equivalence(new Map([[0, 1], [1, 2]]), new Map([[0, 1], [1, 2]])))
-    assertTrue(equivalence(new Map([[0, 1], [1, 2]]), new Map([[1, 2], [0, 1]])))
+    assertTrue(
+      equivalence(
+        new Map([
+          [0, 1],
+          [1, 2]
+        ]),
+        new Map([
+          [0, 1],
+          [1, 2]
+        ])
+      )
+    )
+    assertTrue(
+      equivalence(
+        new Map([
+          [0, 1],
+          [1, 2]
+        ]),
+        new Map([
+          [1, 2],
+          [0, 1]
+        ])
+      )
+    )
 
     assertFalse(equivalence(new Map([[0, 1]]), new Map([[1, 1]])))
     assertFalse(equivalence(new Map([[0, 1]]), new Map([[0, 2]])))
-    assertFalse(equivalence(new Map([[0, 1], [1, 2]]), new Map([[0, 1], [1, 3]])))
-    assertFalse(equivalence(new Map([[0, 1], [1, 2]]), new Map([[0, 1], [2, 2]])))
+    assertFalse(
+      equivalence(
+        new Map([
+          [0, 1],
+          [1, 2]
+        ]),
+        new Map([
+          [0, 1],
+          [1, 3]
+        ])
+      )
+    )
+    assertFalse(
+      equivalence(
+        new Map([
+          [0, 1],
+          [1, 2]
+        ]),
+        new Map([
+          [0, 1],
+          [2, 2]
+        ])
+      )
+    )
   })
 
   it("Duration", () => {

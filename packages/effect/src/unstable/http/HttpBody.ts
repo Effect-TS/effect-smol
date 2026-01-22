@@ -77,12 +77,14 @@ export class HttpBodyError extends Data.TaggedError("HttpBodyError")<{
  * @since 4.0.0
  * @category errors
  */
-export type ErrorReason = {
-  readonly _tag: "JsonError"
-} | {
-  readonly _tag: "SchemaError"
-  readonly issue: Issue
-}
+export type ErrorReason =
+  | {
+      readonly _tag: "JsonError"
+    }
+  | {
+      readonly _tag: "SchemaError"
+      readonly issue: Issue
+    }
 
 abstract class Proto implements HttpBody.Proto {
   readonly [TypeId]: typeof TypeId
@@ -129,11 +131,7 @@ export class Raw extends Proto {
   readonly contentType: string | undefined
   readonly contentLength: number | undefined
 
-  constructor(
-    body: unknown,
-    contentType: string | undefined,
-    contentLength: number | undefined
-  ) {
+  constructor(body: unknown, contentType: string | undefined, contentLength: number | undefined) {
     super()
     this.body = body
     this.contentType = contentType
@@ -156,10 +154,12 @@ export class Raw extends Proto {
  */
 export const raw = (
   body: unknown,
-  options?: {
-    readonly contentType?: string | undefined
-    readonly contentLength?: number | undefined
-  } | undefined
+  options?:
+    | {
+        readonly contentType?: string | undefined
+        readonly contentLength?: number | undefined
+      }
+    | undefined
 ): Raw => new Raw(body, options?.contentType, options?.contentLength)
 
 /**
@@ -172,11 +172,7 @@ export class Uint8Array extends Proto {
   readonly contentType: string
   readonly contentLength: number
 
-  constructor(
-    body: globalThis.Uint8Array,
-    contentType: string,
-    contentLength: number
-  ) {
+  constructor(body: globalThis.Uint8Array, contentType: string, contentLength: number) {
     super()
     this.body = body
     this.contentType = contentType
@@ -231,10 +227,7 @@ export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Ar
  * @since 4.0.0
  * @category constructors
  */
-export const jsonSchema = <S extends Schema.Schema<any>>(
-  schema: S,
-  options?: ParseOptions | undefined
-) => {
+export const jsonSchema = <S extends Schema.Schema<any>>(schema: S, options?: ParseOptions | undefined) => {
   const encode = Parser.encodeUnknownEffect(Schema.toCodecJson(schema))
   return (body: S["Type"], contentType?: string): Effect.Effect<Uint8Array, HttpBodyError, S["EncodingServices"]> =>
     encode(body, options).pipe(
@@ -260,9 +253,7 @@ export class FormData extends Proto {
   readonly contentLength = undefined
   readonly formData: globalThis.FormData
 
-  constructor(
-    formData: globalThis.FormData
-  ) {
+  constructor(formData: globalThis.FormData) {
     super()
     this.formData = formData
   }
@@ -334,15 +325,8 @@ export const file = (
     readonly contentType?: string | undefined
   }
 ): Effect.Effect<Stream, PlatformError.PlatformError, FileSystem.FileSystem> =>
-  Effect.flatMap(
-    FileSystem.FileSystem.asEffect(),
-    (fs) =>
-      Effect.map(fs.stat(path), (info) =>
-        stream(
-          fs.stream(path, options),
-          options?.contentType,
-          Number(info.size)
-        ))
+  Effect.flatMap(FileSystem.FileSystem.asEffect(), (fs) =>
+    Effect.map(fs.stat(path), (info) => stream(fs.stream(path, options), options?.contentType, Number(info.size)))
   )
 
 /**
@@ -359,12 +343,6 @@ export const fileFromInfo = (
     readonly contentType?: string | undefined
   }
 ): Effect.Effect<Stream, PlatformError.PlatformError, FileSystem.FileSystem> =>
-  Effect.map(
-    FileSystem.FileSystem.asEffect(),
-    (fs) =>
-      stream(
-        fs.stream(path, options),
-        options?.contentType,
-        Number(info.size)
-      )
+  Effect.map(FileSystem.FileSystem.asEffect(), (fs) =>
+    stream(fs.stream(path, options), options?.contentType, Number(info.size))
   )

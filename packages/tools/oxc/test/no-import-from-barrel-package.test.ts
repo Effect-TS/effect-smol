@@ -9,11 +9,7 @@ describe("no-import-from-barrel-package", () => {
     ruleOptions: [{ checkPatterns: ["^effect$"] }]
   }
 
-  const createImportDeclaration = (
-    source: string,
-    specifiers: Array<unknown>,
-    importKind?: "type" | "value"
-  ) => {
+  const createImportDeclaration = (source: string, specifiers: Array<unknown>, importKind?: "type" | "value") => {
     const base = {
       type: "ImportDeclaration" as const,
       source: { value: source },
@@ -23,11 +19,7 @@ describe("no-import-from-barrel-package", () => {
     return importKind !== undefined ? { ...base, importKind } : base
   }
 
-  const createNamedSpecifier = (
-    name: string,
-    local?: string,
-    importKind?: "type" | "value"
-  ) => {
+  const createNamedSpecifier = (name: string, local?: string, importKind?: "type" | "value") => {
     const base = {
       type: "ImportSpecifier" as const,
       imported: { type: "Identifier" as const, name },
@@ -37,22 +29,16 @@ describe("no-import-from-barrel-package", () => {
   }
 
   it("should not report for imports from non-barrel packages", () => {
-    const node = createImportDeclaration("effect/Effect", [
-      createNamedSpecifier("Effect")
-    ])
+    const node = createImportDeclaration("effect/Effect", [createNamedSpecifier("Effect")])
     const errors = runRule(rule, "ImportDeclaration", node, testOptions)
     expect(errors).toHaveLength(0)
   })
 
   it("should report for named imports from effect barrel", () => {
-    const node = createImportDeclaration("effect", [
-      createNamedSpecifier("Effect")
-    ])
+    const node = createImportDeclaration("effect", [createNamedSpecifier("Effect")])
     const errors = runRule(rule, "ImportDeclaration", node, testOptions)
     expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe(
-      `Use import * as Effect from "effect/Effect" instead`
-    )
+    expect(errors[0].message).toBe(`Use import * as Effect from "effect/Effect" instead`)
   })
 
   it("should report for multiple named imports from effect barrel", () => {
@@ -66,32 +52,22 @@ describe("no-import-from-barrel-package", () => {
   })
 
   it("should not report for type-only import declarations", () => {
-    const node = createImportDeclaration(
-      "effect",
-      [createNamedSpecifier("Effect")],
-      "type"
-    )
+    const node = createImportDeclaration("effect", [createNamedSpecifier("Effect")], "type")
     const errors = runRule(rule, "ImportDeclaration", node, testOptions)
     expect(errors).toHaveLength(0)
   })
 
   it("should not report for type imports within named specifiers", () => {
-    const node = createImportDeclaration("effect", [
-      createNamedSpecifier("Effect", "Effect", "type")
-    ])
+    const node = createImportDeclaration("effect", [createNamedSpecifier("Effect", "Effect", "type")])
     const errors = runRule(rule, "ImportDeclaration", node, testOptions)
     expect(errors).toHaveLength(0)
   })
 
   it("should handle aliased imports", () => {
-    const node = createImportDeclaration("effect", [
-      createNamedSpecifier("Effect", "Eff")
-    ])
+    const node = createImportDeclaration("effect", [createNamedSpecifier("Effect", "Eff")])
     const errors = runRule(rule, "ImportDeclaration", node, testOptions)
     expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe(
-      `Use import * as Eff from "effect/Effect" instead`
-    )
+    expect(errors[0].message).toBe(`Use import * as Eff from "effect/Effect" instead`)
   })
 
   it("should report for namespace imports from barrel", () => {
@@ -132,9 +108,7 @@ describe("no-import-from-barrel-package", () => {
 
   describe("configuration", () => {
     it("should match regex patterns", () => {
-      const node = createImportDeclaration("@myorg/utils", [
-        createNamedSpecifier("helper")
-      ])
+      const node = createImportDeclaration("@myorg/utils", [createNamedSpecifier("helper")])
       // No patterns configured - doesn't match
       const defaultErrors = runRule(rule, "ImportDeclaration", node, testOptions)
       expect(defaultErrors).toHaveLength(0)
@@ -148,9 +122,7 @@ describe("no-import-from-barrel-package", () => {
     })
 
     it("should match exact package with pattern", () => {
-      const node = createImportDeclaration("lodash", [
-        createNamedSpecifier("map")
-      ])
+      const node = createImportDeclaration("lodash", [createNamedSpecifier("map")])
       // No patterns - doesn't match
       const defaultErrors = runRule(rule, "ImportDeclaration", node, testOptions)
       expect(defaultErrors).toHaveLength(0)
@@ -164,9 +136,7 @@ describe("no-import-from-barrel-package", () => {
     })
 
     it("should disable relative index checking when configured", () => {
-      const node = createImportDeclaration("./index.ts", [
-        createNamedSpecifier("foo")
-      ])
+      const node = createImportDeclaration("./index.ts", [createNamedSpecifier("foo")])
       // Default checks relative imports
       const defaultErrors = runRule(rule, "ImportDeclaration", node, testOptions)
       expect(defaultErrors).toHaveLength(1)

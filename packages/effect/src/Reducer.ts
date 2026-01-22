@@ -39,7 +39,8 @@ export function make<A>(
   return {
     combine,
     initialValue,
-    combineAll: combineAll ??
+    combineAll:
+      combineAll ??
       ((collection) => {
         let out = initialValue
         for (const value of collection) {

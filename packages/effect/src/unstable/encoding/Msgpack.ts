@@ -68,18 +68,18 @@ export const encode = <IE = never, Done = unknown>(): Channel.Channel<
  * @since 4.0.0
  * @category constructors
  */
-export const encodeSchema = <S extends Schema.Top>(
-  schema: S
-) =>
-<IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
-  MsgPackError | Schema.SchemaError | IE,
-  Done,
-  Arr.NonEmptyReadonlyArray<S["Type"]>,
-  IE,
-  Done,
-  S["EncodingServices"]
-> => Channel.pipeTo(ChannelSchema.encode(schema)(), encode())
+export const encodeSchema =
+  <S extends Schema.Top>(schema: S) =>
+  <IE = never, Done = unknown>(): Channel.Channel<
+    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+    MsgPackError | Schema.SchemaError | IE,
+    Done,
+    Arr.NonEmptyReadonlyArray<S["Type"]>,
+    IE,
+    Done,
+    S["EncodingServices"]
+  > =>
+    Channel.pipeTo(ChannelSchema.encode(schema)(), encode())
 
 /**
  * @since 4.0.0
@@ -97,36 +97,37 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
     Effect.sync(() => {
       const unpackr = new Unpackr()
       let incomplete: Uint8Array<ArrayBuffer> | undefined = undefined
-      return Effect.flatMap(
-        upstream,
-        function loop(chunk): Pull.Pull<Arr.NonEmptyReadonlyArray<unknown>, IE | MsgPackError, Done> {
-          const out = Arr.empty<unknown>()
-          for (let i = 0; i < chunk.length; i++) {
-            let buf = chunk[i]
-            if (incomplete !== undefined) {
-              const prev = buf
-              buf = new Uint8Array(incomplete.length + buf.length)
-              buf.set(incomplete)
-              buf.set(prev, incomplete.length)
-              incomplete = undefined
-            }
-            try {
-              out.push(...unpackr.unpackMultiple(buf))
-            } catch (cause) {
-              const error: any = cause
-              if (error.incomplete) {
-                incomplete = buf.subarray(error.lastPosition)
-                if (error.values) {
-                  out.push(...error.values)
-                }
-              } else {
-                return Effect.fail(new MsgPackError({ reason: "Unpack", cause }))
+      return Effect.flatMap(upstream, function loop(chunk): Pull.Pull<
+        Arr.NonEmptyReadonlyArray<unknown>,
+        IE | MsgPackError,
+        Done
+      > {
+        const out = Arr.empty<unknown>()
+        for (let i = 0; i < chunk.length; i++) {
+          let buf = chunk[i]
+          if (incomplete !== undefined) {
+            const prev = buf
+            buf = new Uint8Array(incomplete.length + buf.length)
+            buf.set(incomplete)
+            buf.set(prev, incomplete.length)
+            incomplete = undefined
+          }
+          try {
+            out.push(...unpackr.unpackMultiple(buf))
+          } catch (cause) {
+            const error: any = cause
+            if (error.incomplete) {
+              incomplete = buf.subarray(error.lastPosition)
+              if (error.values) {
+                out.push(...error.values)
               }
+            } else {
+              return Effect.fail(new MsgPackError({ reason: "Unpack", cause }))
             }
           }
-          return Arr.isReadonlyArrayNonEmpty(out) ? Effect.succeed(out) : Effect.flatMap(upstream, loop)
         }
-      )
+        return Arr.isReadonlyArrayNonEmpty(out) ? Effect.succeed(out) : Effect.flatMap(upstream, loop)
+      })
     })
   )
 
@@ -134,18 +135,18 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
  * @since 4.0.0
  * @category constructors
  */
-export const decodeSchema = <S extends Schema.Top>(
-  schema: S
-) =>
-<IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<S["Type"]>,
-  Schema.SchemaError | MsgPackError | IE,
-  Done,
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
-  IE,
-  Done,
-  S["DecodingServices"]
-> => Channel.pipeTo(decode<IE, Done>(), ChannelSchema.decodeUnknown(schema)())
+export const decodeSchema =
+  <S extends Schema.Top>(schema: S) =>
+  <IE = never, Done = unknown>(): Channel.Channel<
+    Arr.NonEmptyReadonlyArray<S["Type"]>,
+    Schema.SchemaError | MsgPackError | IE,
+    Done,
+    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+    IE,
+    Done,
+    S["DecodingServices"]
+  > =>
+    Channel.pipeTo(decode<IE, Done>(), ChannelSchema.decodeUnknown(schema)())
 
 /**
  * @since 4.0.0
@@ -169,23 +170,17 @@ export const duplex = <R, IE, OE, OutDone, InDone>(
   IE,
   InDone,
   R
-> =>
-  encode<IE, InDone>().pipe(
-    Channel.pipeTo(self),
-    Channel.pipeTo(decode())
-  )
+> => encode<IE, InDone>().pipe(Channel.pipeTo(self), Channel.pipeTo(decode()))
 
 /**
  * @since 4.0.0
  * @category combinators
  */
 export const duplexSchema: {
-  <In extends Schema.Top, Out extends Schema.Top>(
-    options: {
-      readonly inputSchema: In
-      readonly outputSchema: Out
-    }
-  ): <OutErr, OutDone, InErr, InDone, R>(
+  <In extends Schema.Top, Out extends Schema.Top>(options: {
+    readonly inputSchema: In
+    readonly outputSchema: Out
+  }): <OutErr, OutDone, InErr, InDone, R>(
     self: Channel.Channel<
       Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
       OutErr,
@@ -227,29 +222,32 @@ export const duplexSchema: {
     InDone,
     R | In["EncodingServices"] | Out["DecodingServices"]
   >
-} = dual(2, <Out extends Schema.Top, In extends Schema.Top, OutErr, OutDone, InErr, InDone, R>(
-  self: Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
-    OutErr,
+} = dual(
+  2,
+  <Out extends Schema.Top, In extends Schema.Top, OutErr, OutDone, InErr, InDone, R>(
+    self: Channel.Channel<
+      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      OutErr,
+      OutDone,
+      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      MsgPackError | Schema.SchemaError | InErr,
+      InDone,
+      R
+    >,
+    options: {
+      readonly inputSchema: In
+      readonly outputSchema: Out
+    }
+  ): Channel.Channel<
+    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    MsgPackError | Schema.SchemaError | OutErr,
     OutDone,
-    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
-    MsgPackError | Schema.SchemaError | InErr,
+    Arr.NonEmptyReadonlyArray<In["Type"]>,
+    InErr,
     InDone,
-    R
-  >,
-  options: {
-    readonly inputSchema: In
-    readonly outputSchema: Out
-  }
-): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Out["Type"]>,
-  MsgPackError | Schema.SchemaError | OutErr,
-  OutDone,
-  Arr.NonEmptyReadonlyArray<In["Type"]>,
-  InErr,
-  InDone,
-  R | In["EncodingServices"] | Out["DecodingServices"]
-> => ChannelSchema.duplexUnknown(duplex(self), options))
+    R | In["EncodingServices"] | Out["DecodingServices"]
+  > => ChannelSchema.duplexUnknown(duplex(self), options)
+)
 
 /**
  * @since 4.0.0
@@ -294,6 +292,4 @@ export const transformation: Transformation.Transformation<
  * @category schemas
  */
 export const schema = <S extends Schema.Top>(schema: S): schema<S> =>
-  (Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>).pipe(
-    Schema.decodeTo(schema, transformation)
-  )
+  (Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>).pipe(Schema.decodeTo(schema, transformation))

@@ -4,7 +4,7 @@ import { Cause, Effect, Fiber, Option, TxQueue } from "effect"
 describe("TxQueue", () => {
   describe("interfaces", () => {
     it.effect("TxEnqueue provides write-only interface", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
 
         // Can assign to TxEnqueue interface
@@ -19,10 +19,11 @@ describe("TxQueue", () => {
 
         const rejected = yield* TxQueue.offerAll(queue, [1, 2, 3])
         assert.deepStrictEqual(rejected, [])
-      }))
+      })
+    )
 
     it.effect("TxDequeue provides read-only interface", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
 
@@ -38,10 +39,11 @@ describe("TxQueue", () => {
 
         const maybe = yield* TxQueue.poll(queue)
         assert.deepStrictEqual(maybe, Option.some(2))
-      }))
+      })
+    )
 
     it.effect("TxQueue provides both enqueue and dequeue operations", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
 
         // TxQueue should be both TxEnqueue and TxDequeue
@@ -53,12 +55,13 @@ describe("TxQueue", () => {
         yield* TxQueue.offer(queue, 42)
         const item = yield* TxQueue.take(queue)
         assert.strictEqual(item, 42)
-      }))
+      })
+    )
   })
 
   describe("interface segregation", () => {
     it.effect("TxEnqueue interface enforces write-only operations", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number, string | Cause.Done>(5)
         const enqueue: TxQueue.TxEnqueue<number, string | Cause.Done> = queue
 
@@ -75,10 +78,11 @@ describe("TxQueue", () => {
 
         const endResult = yield* TxQueue.end(enqueue)
         assert.strictEqual(endResult, false) // Already done
-      }))
+      })
+    )
 
     it.effect("TxDequeue interface enforces read-only operations", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number, string>(5)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
         const dequeue: TxQueue.TxDequeue<number, string> = queue
@@ -102,10 +106,11 @@ describe("TxQueue", () => {
 
         const isOpen = yield* TxQueue.isOpen(dequeue)
         assert.strictEqual(isOpen, true)
-      }))
+      })
+    )
 
     it.effect("Interface assignments maintain type safety", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
 
         // Full queue can be assigned to either interface
@@ -127,10 +132,11 @@ describe("TxQueue", () => {
         const size1 = yield* TxQueue.size(dequeue)
         const size2 = yield* TxQueue.size(fullQueue)
         assert.strictEqual(size1, size2)
-      }))
+      })
+    )
 
     it.effect("Interface type guards work correctly", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
         const enqueue: TxQueue.TxEnqueue<number> = queue
         const dequeue: TxQueue.TxDequeue<number> = queue
@@ -145,54 +151,59 @@ describe("TxQueue", () => {
         assert.strictEqual(TxQueue.isTxDequeue(queue), true)
         assert.strictEqual(TxQueue.isTxQueue(enqueue), true)
         assert.strictEqual(TxQueue.isTxQueue(dequeue), true)
-      }))
+      })
+    )
   })
 
   describe("constructors", () => {
     it.effect("bounded creates queue with specified capacity", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
         const size = yield* TxQueue.size(queue)
         const isEmpty = yield* TxQueue.isEmpty(queue)
 
         assert.strictEqual(size, 0)
         assert.strictEqual(isEmpty, true)
-      }))
+      })
+    )
 
     it.effect("unbounded creates queue with unlimited capacity", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.unbounded<string>()
         const size = yield* TxQueue.size(queue)
         const isEmpty = yield* TxQueue.isEmpty(queue)
 
         assert.strictEqual(size, 0)
         assert.strictEqual(isEmpty, true)
-      }))
+      })
+    )
 
     it.effect("dropping creates queue with dropping strategy", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.dropping<number>(2)
         const size = yield* TxQueue.size(queue)
         const isEmpty = yield* TxQueue.isEmpty(queue)
 
         assert.strictEqual(size, 0)
         assert.strictEqual(isEmpty, true)
-      }))
+      })
+    )
 
     it.effect("sliding creates queue with sliding strategy", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.sliding<number>(2)
         const size = yield* TxQueue.size(queue)
         const isEmpty = yield* TxQueue.isEmpty(queue)
 
         assert.strictEqual(size, 0)
         assert.strictEqual(isEmpty, true)
-      }))
+      })
+    )
   })
 
   describe("basic operations", () => {
     it.effect("offer and take work correctly", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<string>(10)
 
         const offered = yield* TxQueue.offer(queue, "hello")
@@ -200,27 +211,30 @@ describe("TxQueue", () => {
 
         const item = yield* TxQueue.take(queue)
         assert.strictEqual(item, "hello")
-      }))
+      })
+    )
 
     it.effect("poll returns Option.none for empty queue", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
 
         const maybe = yield* TxQueue.poll(queue)
         assert.deepStrictEqual(maybe, Option.none())
-      }))
+      })
+    )
 
     it.effect("poll returns Option.some for non-empty queue", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offer(queue, 42)
 
         const maybe = yield* TxQueue.poll(queue)
         assert.deepStrictEqual(maybe, Option.some(42))
-      }))
+      })
+    )
 
     it.effect("offerAll works correctly", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
 
         const rejected = yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
@@ -228,10 +242,11 @@ describe("TxQueue", () => {
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 5)
-      }))
+      })
+    )
 
     it.effect("takeAll works correctly with new signature", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
 
@@ -240,10 +255,11 @@ describe("TxQueue", () => {
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 0)
-      }))
+      })
+    )
 
     it.effect("takeAll with interrupted queue returns done flag", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2])
         yield* TxQueue.interrupt(queue) // Interrupt the queue
@@ -251,10 +267,11 @@ describe("TxQueue", () => {
         // takeAll should return all items
         const items = yield* TxQueue.takeAll(queue)
         assert.deepStrictEqual(items, [1, 2])
-      }))
+      })
+    )
 
     it.effect("takeAll with failed queue propagates error", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number, string>(10)
         yield* TxQueue.offerAll(queue, [1, 2])
         yield* TxQueue.fail(queue, "queue failed")
@@ -262,10 +279,11 @@ describe("TxQueue", () => {
         // takeAll should fail with the queue error
         const result = yield* Effect.flip(TxQueue.takeAll(queue))
         assert.strictEqual(result, "queue failed")
-      }))
+      })
+    )
 
     it.effect("takeN works correctly with new signature", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
 
@@ -274,10 +292,11 @@ describe("TxQueue", () => {
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 2)
-      }))
+      })
+    )
 
     it.effect("takeN with queue completion gets available items", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2])
         yield* TxQueue.interrupt(queue) // Interrupt the queue
@@ -285,10 +304,11 @@ describe("TxQueue", () => {
         // Take more than available - should get all items
         const items = yield* TxQueue.takeN(queue, 5)
         assert.deepStrictEqual(items, [1, 2])
-      }))
+      })
+    )
 
     it.effect("takeN with failed queue propagates error", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number, string>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
         yield* TxQueue.fail(queue, "queue failed")
@@ -296,10 +316,11 @@ describe("TxQueue", () => {
         // takeN should fail with the queue error
         const result = yield* Effect.flip(TxQueue.takeN(queue, 2))
         assert.strictEqual(result, "queue failed")
-      }))
+      })
+    )
 
     it.effect("takeN with capacity constraint takes available items", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(3) // Capacity is 3
         yield* TxQueue.offerAll(queue, [1, 2, 3]) // Fill to capacity
 
@@ -309,10 +330,11 @@ describe("TxQueue", () => {
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 0)
-      }))
+      })
+    )
 
     it.effect("takeAll() on empty closed queue gets interrupted", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
         yield* TxQueue.interrupt(queue) // Empty queue becomes Done immediately
 
@@ -322,10 +344,11 @@ describe("TxQueue", () => {
         if (result._tag === "Failure") {
           assert.strictEqual(Cause.isInterruptedOnly(result.cause), true)
         }
-      }))
+      })
+    )
 
     it.effect("takeAll() waits when empty then returns items when available", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
 
         // Start takeAll in a fiber - it should wait because queue is empty
@@ -337,10 +360,11 @@ describe("TxQueue", () => {
         // Now takeAll should complete and return the items
         const items = yield* Fiber.join(fiber)
         assert.deepStrictEqual(items, [1, 2, 3])
-      }))
+      })
+    )
 
     it.effect("takeAll() during state transition handles race condition", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
         yield* TxQueue.offerAll(queue, [1, 2])
 
@@ -354,10 +378,11 @@ describe("TxQueue", () => {
         // Verify queue is now Done
         const isDone = yield* TxQueue.isDone(queue)
         assert.strictEqual(isDone, true)
-      }))
+      })
+    )
 
     it.effect("takeN(0) returns empty array", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
 
@@ -367,10 +392,11 @@ describe("TxQueue", () => {
         // Queue should still have all items
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 3)
-      }))
+      })
+    )
 
     it.effect("takeN() with closing queue returns available items", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
         yield* TxQueue.offerAll(queue, [1, 2])
         yield* TxQueue.interrupt(queue) // Put in Closing state
@@ -382,10 +408,11 @@ describe("TxQueue", () => {
         // Queue should now be Done
         const isDone = yield* TxQueue.isDone(queue)
         assert.strictEqual(isDone, true)
-      }))
+      })
+    )
 
     it.effect("takeN() signature validation - returns Array<A> not [Array<A>, boolean]", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
 
@@ -397,10 +424,11 @@ describe("TxQueue", () => {
 
         // Verify it's not a tuple - should not have boolean as second element
         assert.strictEqual(typeof items[2], "undefined")
-      }))
+      })
+    )
 
     it.effect("takeBetween() basic functionality", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5, 6, 7, 8])
 
@@ -417,10 +445,11 @@ describe("TxQueue", () => {
         // Verify queue is empty
         const empty = yield* TxQueue.isEmpty(queue)
         assert.strictEqual(empty, true)
-      }))
+      })
+    )
 
     it.effect("takeBetween() takes up to maximum when available", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5, 6, 7])
 
@@ -432,10 +461,11 @@ describe("TxQueue", () => {
         // Remaining items should still be in queue
         const remaining = yield* TxQueue.takeAll(queue)
         assert.deepStrictEqual(remaining, [6, 7])
-      }))
+      })
+    )
 
     it.effect("takeBetween() with invalid parameters", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
 
@@ -452,10 +482,11 @@ describe("TxQueue", () => {
         // Queue should still have all items
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 3)
-      }))
+      })
+    )
 
     it.effect("takeBetween() with failed queue propagates error", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number, string>(10)
         yield* TxQueue.fail(queue, "test error")
 
@@ -465,10 +496,11 @@ describe("TxQueue", () => {
           const error = Cause.filterError(result.cause)
           assert.strictEqual(error, "test error")
         }
-      }))
+      })
+    )
 
     it.effect("takeBetween() with closing queue returns available items", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2])
 
@@ -482,10 +514,11 @@ describe("TxQueue", () => {
         // Queue should be done now
         const done = yield* TxQueue.isDone(queue)
         assert.strictEqual(done, true)
-      }))
+      })
+    )
 
     it.effect("takeBetween() exact minimum and maximum", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
 
@@ -496,10 +529,11 @@ describe("TxQueue", () => {
 
         const empty = yield* TxQueue.isEmpty(queue)
         assert.strictEqual(empty, true)
-      }))
+      })
+    )
 
     it.effect("takeBetween() returns Array<A> not tuple", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(5)
         yield* TxQueue.offerAll(queue, [1, 2, 3, 4])
 
@@ -511,10 +545,11 @@ describe("TxQueue", () => {
 
         // Verify it's not a tuple - should not have boolean as extra element
         assert.strictEqual(typeof items[3], "undefined")
-      }))
+      })
+    )
 
     it.effect("peek works correctly", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offer(queue, 42)
 
@@ -524,21 +559,23 @@ describe("TxQueue", () => {
         // Item should still be in queue
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 1)
-      }))
+      })
+    )
   })
 
   describe("queue state", () => {
     it.effect("size returns correct count", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 3)
-      }))
+      })
+    )
 
     it.effect("isEmpty works correctly", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
 
         const empty1 = yield* TxQueue.isEmpty(queue)
@@ -547,10 +584,11 @@ describe("TxQueue", () => {
         yield* TxQueue.offer(queue, 1)
         const empty2 = yield* TxQueue.isEmpty(queue)
         assert.strictEqual(empty2, false)
-      }))
+      })
+    )
 
     it.effect("isFull works correctly for bounded queue", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(2)
 
         const full1 = yield* TxQueue.isFull(queue)
@@ -559,21 +597,23 @@ describe("TxQueue", () => {
         yield* TxQueue.offerAll(queue, [1, 2])
         const full2 = yield* TxQueue.isFull(queue)
         assert.strictEqual(full2, true)
-      }))
+      })
+    )
 
     it.effect("isFull returns false for unbounded queue", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.unbounded<number>()
         yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
 
         const full = yield* TxQueue.isFull(queue)
         assert.strictEqual(full, false)
-      }))
+      })
+    )
   })
 
   describe("clear", () => {
     it.effect("clear removes all items from queue and returns them", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
 
@@ -588,10 +628,11 @@ describe("TxQueue", () => {
 
         const isEmpty = yield* TxQueue.isEmpty(queue)
         assert.strictEqual(isEmpty, true)
-      }))
+      })
+    )
 
     it.effect("clear does not affect queue state", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
 
@@ -608,10 +649,11 @@ describe("TxQueue", () => {
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 1)
-      }))
+      })
+    )
 
     it.effect("clear works on empty queue", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
 
         const cleared = yield* TxQueue.clear(queue)
@@ -622,10 +664,11 @@ describe("TxQueue", () => {
 
         const isEmpty = yield* TxQueue.isEmpty(queue)
         assert.strictEqual(isEmpty, true)
-      }))
+      })
+    )
 
     it.effect("clear works on queue ended with Done", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number, Cause.Done>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
         yield* TxQueue.end(queue)
@@ -647,12 +690,13 @@ describe("TxQueue", () => {
         // Should still be done after clearing
         const isDoneAfter = yield* TxQueue.isDone(queue)
         assert.strictEqual(isDoneAfter, true)
-      }))
+      })
+    )
   })
 
   describe("shutdown", () => {
     it.effect("shutdown and isShutdown work correctly", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
 
         const isShutdown1 = yield* TxQueue.isShutdown(queue)
@@ -661,31 +705,34 @@ describe("TxQueue", () => {
         yield* TxQueue.shutdown(queue)
         const isShutdown2 = yield* TxQueue.isShutdown(queue)
         assert.strictEqual(isShutdown2, true)
-      }))
+      })
+    )
 
     it.effect("offer fails after shutdown", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.shutdown(queue)
 
         const offered = yield* TxQueue.offer(queue, 42)
         assert.strictEqual(offered, false)
-      }))
+      })
+    )
 
     it.effect("poll returns none after shutdown", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offer(queue, 42)
         yield* TxQueue.shutdown(queue)
 
         const maybe = yield* TxQueue.poll(queue)
         assert.deepStrictEqual(maybe, Option.none())
-      }))
+      })
+    )
   })
 
   describe("dropping strategy", () => {
     it.effect("dropping queue rejects items when full", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.dropping<number>(2)
 
         // Fill to capacity
@@ -700,12 +747,13 @@ describe("TxQueue", () => {
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 2)
-      }))
+      })
+    )
   })
 
   describe("sliding strategy", () => {
     it.effect("sliding queue evicts old items when full", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.sliding<number>(2)
 
         // Fill to capacity
@@ -722,35 +770,38 @@ describe("TxQueue", () => {
         // First item should be 2 (item 1 was evicted)
         const item = yield* TxQueue.take(queue)
         assert.strictEqual(item, 2)
-      }))
+      })
+    )
   })
 
   describe("E-channel and exit signaling", () => {
     describe("type ergonomics", () => {
       it.effect("default E parameter provides clean typing", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           // Clean, concise typing with default E = never
           const queue = yield* TxQueue.bounded<number>(5)
 
           yield* TxQueue.offer(queue, 42)
           const item = yield* TxQueue.take(queue) // Effect<number, never>
           assert.strictEqual(item, 42)
-        }))
+        })
+      )
 
       it.effect("explicit E parameter works correctly", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           // Explicit error channel typing
           const queue = yield* TxQueue.bounded<number, string>(5)
 
           yield* TxQueue.offer(queue, 42)
           const item = yield* TxQueue.take(queue) // Effect<number, never> (no errors when queue is open)
           assert.strictEqual(item, 42)
-        }))
+        })
+      )
     })
 
     describe("state transitions", () => {
       it.effect("queue starts in Open state", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
 
           const isOpen = yield* TxQueue.isOpen(queue)
@@ -760,10 +811,11 @@ describe("TxQueue", () => {
           assert.strictEqual(isOpen, true)
           assert.strictEqual(isClosing, false)
           assert.strictEqual(isDone, false)
-        }))
+        })
+      )
 
       it.effect("interrupt() transitions Open → Done when empty", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
 
           const result = yield* TxQueue.interrupt(queue)
@@ -776,10 +828,11 @@ describe("TxQueue", () => {
           assert.strictEqual(isOpen, false)
           assert.strictEqual(isClosing, false)
           assert.strictEqual(isDone, true)
-        }))
+        })
+      )
 
       it.effect("interrupt() transitions Open → Closing → Done when not empty", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
           yield* TxQueue.offerAll(queue, [1, 2, 3])
 
@@ -806,10 +859,11 @@ describe("TxQueue", () => {
           assert.strictEqual(isOpen2, false)
           assert.strictEqual(isClosing2, false)
           assert.strictEqual(isDone2, true)
-        }))
+        })
+      )
 
       it.effect("fail() transitions directly to Done", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           yield* TxQueue.offer(queue, 42)
 
@@ -823,10 +877,11 @@ describe("TxQueue", () => {
           assert.strictEqual(isOpen, false)
           assert.strictEqual(isClosing, false)
           assert.strictEqual(isDone, true)
-        }))
+        })
+      )
 
       it.effect("done() with custom cause works correctly", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
 
           const customCause = Cause.interrupt()
@@ -835,12 +890,13 @@ describe("TxQueue", () => {
 
           const isDone = yield* TxQueue.isDone(queue)
           assert.strictEqual(isDone, true)
-        }))
+        })
+      )
     })
 
     describe("completion operations", () => {
       it.effect("interrupt() completes queue successfully", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
 
           const interruptResult = yield* TxQueue.interrupt(queue)
@@ -848,10 +904,11 @@ describe("TxQueue", () => {
 
           // awaitCompletion should succeed
           yield* TxQueue.awaitCompletion(queue)
-        }))
+        })
+      )
 
       it.effect("fail() completes queue with error", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
 
           const failResult = yield* TxQueue.fail(queue, "test error")
@@ -859,10 +916,11 @@ describe("TxQueue", () => {
 
           // awaitCompletion should succeed once queue is done (not propagate the error)
           yield* TxQueue.awaitCompletion(queue)
-        }))
+        })
+      )
 
       it.effect("multiple interrupt() calls return false after first", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
 
           const result1 = yield* TxQueue.interrupt(queue)
@@ -870,10 +928,11 @@ describe("TxQueue", () => {
 
           assert.strictEqual(result1, true)
           assert.strictEqual(result2, false)
-        }))
+        })
+      )
 
       it.effect("operations on closed queue fail appropriately", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
           yield* TxQueue.interrupt(queue)
 
@@ -884,48 +943,53 @@ describe("TxQueue", () => {
           // Poll should return none
           const pollResult = yield* TxQueue.poll(queue)
           assert.deepStrictEqual(pollResult, Option.none())
-        }))
+        })
+      )
     })
 
     describe("awaitCompletion operation", () => {
       it.effect("awaitCompletion succeeds when queue is interrupted", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
           yield* TxQueue.interrupt(queue)
 
           // Should succeed immediately when queue is already interrupted
           yield* TxQueue.awaitCompletion(queue)
-        }))
+        })
+      )
 
       it.effect("awaitCompletion succeeds when queue fails", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           yield* TxQueue.fail(queue, "connection lost")
 
           // Should succeed immediately since queue is done (errors are not propagated)
           yield* TxQueue.awaitCompletion(queue)
-        }))
+        })
+      )
 
       it.effect("awaitCompletion on already completed queue", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
           yield* TxQueue.interrupt(queue)
 
           // Should immediately succeed
           yield* TxQueue.awaitCompletion(queue)
-        }))
+        })
+      )
 
       it.effect("awaitCompletion on already failed queue", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           yield* TxQueue.fail(queue, "already failed")
 
           // Should immediately succeed since queue is done
           yield* TxQueue.awaitCompletion(queue)
-        }))
+        })
+      )
 
       it.effect("awaitCompletion with custom Cause.die() succeeds", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           const defect = new Error("system failure")
           const defectCause = Cause.die(defect)
@@ -934,10 +998,11 @@ describe("TxQueue", () => {
 
           // awaitCompletion should succeed since queue is done (defects are not propagated)
           yield* TxQueue.awaitCompletion(queue)
-        }))
+        })
+      )
 
       it.effect("awaitCompletion with custom interrupt cause succeeds", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
           const customInterrupt = Cause.interrupt(12345)
 
@@ -945,10 +1010,11 @@ describe("TxQueue", () => {
 
           // awaitCompletion should succeed with interrupt-only causes
           yield* TxQueue.awaitCompletion(queue)
-        }))
+        })
+      )
 
       it.effect("awaitCompletion with fail cause succeeds", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
 
           // Complete queue with failure cause
@@ -956,21 +1022,23 @@ describe("TxQueue", () => {
 
           // awaitCompletion should succeed since queue is done (failures are not propagated)
           yield* TxQueue.awaitCompletion(queue)
-        }))
+        })
+      )
 
       it.effect("awaitCompletion concurrent behavior works", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
 
           // Interrupt first, then await completion - should succeed immediately
           yield* TxQueue.interrupt(queue)
           yield* TxQueue.awaitCompletion(queue)
-        }))
+        })
+      )
     })
 
     describe("legacy compatibility", () => {
       it.effect("isShutdown works as alias for isDone", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
 
           const shutdown1 = yield* TxQueue.isShutdown(queue)
@@ -984,10 +1052,11 @@ describe("TxQueue", () => {
           const done2 = yield* TxQueue.isDone(queue)
           assert.strictEqual(shutdown2, done2)
           assert.strictEqual(shutdown2, true)
-        }))
+        })
+      )
 
       it.effect("shutdown() clears queue and marks as done", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
           yield* TxQueue.offerAll(queue, [1, 2, 3])
 
@@ -998,42 +1067,46 @@ describe("TxQueue", () => {
 
           assert.strictEqual(size, 0)
           assert.strictEqual(isDone, true)
-        }))
+        })
+      )
     })
 
     describe("error channel behavior", () => {
       it.effect("take() on successfully interrupted queue interrupts", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
           yield* TxQueue.interrupt(queue)
 
           // take() should interrupt on successfully interrupted queue
           const result = yield* Effect.exit(TxQueue.take(queue))
           assert.strictEqual(result._tag, "Failure")
-        }))
+        })
+      )
 
       it.effect("take() on failed queue fails with error directly", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           yield* TxQueue.fail(queue, "test error")
 
           // take() should fail with the error directly
           const result = yield* Effect.flip(TxQueue.take(queue))
           assert.strictEqual(result, "test error")
-        }))
+        })
+      )
 
       it.effect("take() on shutdown queue interrupts (success exit)", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           yield* TxQueue.shutdown(queue) // shutdown creates success exit
 
           // take() should interrupt since shutdown creates success exit
           const result = yield* Effect.exit(TxQueue.take(queue))
           assert.strictEqual(result._tag, "Failure")
-        }))
+        })
+      )
 
       it.effect("take() with explicit interrupt cause propagates interruption", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           const interruptCause = Cause.interrupt(123)
           yield* TxQueue.failCause(queue, interruptCause)
@@ -1045,10 +1118,11 @@ describe("TxQueue", () => {
           if (result._tag === "Failure") {
             assert.strictEqual(Cause.hasInterrupt(result.cause), true)
           }
-        }))
+        })
+      )
 
       it.effect("take() with custom Cause.fail extracts error correctly", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, Error>(5)
           const customError = new Error("custom failure")
           const customCause = Cause.fail(customError)
@@ -1058,10 +1132,11 @@ describe("TxQueue", () => {
           // take() should extract the custom error directly
           const result = yield* Effect.flip(TxQueue.take(queue))
           assert.strictEqual(result, customError)
-        }))
+        })
+      )
 
       it.effect("take() with Cause.die (defect) propagates defect", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           const defect = new Error("unexpected defect")
           const defectCause = Cause.die(defect)
@@ -1075,10 +1150,11 @@ describe("TxQueue", () => {
           if (result._tag === "Failure") {
             assert.strictEqual(Cause.hasDie(result.cause), true)
           }
-        }))
+        })
+      )
 
       it.effect("take() with typed error cause extracts error directly", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
 
           // Create a cause with typed error
@@ -1090,30 +1166,33 @@ describe("TxQueue", () => {
           // take() should extract the typed error directly
           const result = yield* Effect.flip(TxQueue.take(queue))
           assert.strictEqual(result, "typed error")
-        }))
+        })
+      )
 
       it.effect("peek() on successfully interrupted queue interrupts", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
           yield* TxQueue.interrupt(queue)
 
           // peek() should interrupt on interrupted queue
           const result = yield* Effect.exit(TxQueue.peek(queue))
           assert.strictEqual(result._tag, "Failure")
-        }))
+        })
+      )
 
       it.effect("peek() on failed queue fails with error directly", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           yield* TxQueue.fail(queue, "peek error")
 
           // peek() should fail with the error directly
           const result = yield* Effect.flip(TxQueue.peek(queue))
           assert.strictEqual(result, "peek error")
-        }))
+        })
+      )
 
       it.effect("poll() on failed queue returns none", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           yield* TxQueue.offer(queue, 42)
           yield* TxQueue.fail(queue, "poll error")
@@ -1121,10 +1200,11 @@ describe("TxQueue", () => {
           // poll() should return none on failed queue (doesn't propagate errors)
           const result = yield* TxQueue.poll(queue)
           assert.deepStrictEqual(result, Option.none())
-        }))
+        })
+      )
 
       it.effect("takeN() with partial items available before failure", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number, string>(5)
           yield* TxQueue.offerAll(queue, [1, 2])
           yield* TxQueue.fail(queue, "partial error")
@@ -1132,10 +1212,11 @@ describe("TxQueue", () => {
           // takeN should fail even with some items available when queue is failed
           const result = yield* Effect.flip(TxQueue.takeN(queue, 3))
           assert.strictEqual(result, "partial error")
-        }))
+        })
+      )
 
       it.effect("error propagation with different error types", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue1 = yield* TxQueue.bounded<number, Error>(5)
           const queue2 = yield* TxQueue.bounded<number, { code: number; message: string }>(5)
 
@@ -1152,10 +1233,11 @@ describe("TxQueue", () => {
           // Should propagate custom object errors correctly
           const result2 = yield* Effect.flip(TxQueue.take(queue2))
           assert.deepStrictEqual(result2, customObject)
-        }))
+        })
+      )
 
       it.effect("closing queue allows remaining items to be consumed", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* TxQueue.bounded<number>(5)
           yield* TxQueue.offerAll(queue, [1, 2, 3])
 
@@ -1180,13 +1262,14 @@ describe("TxQueue", () => {
           // Queue should now be Done
           const isDone = yield* TxQueue.isDone(queue)
           assert.strictEqual(isDone, true)
-        }))
+        })
+      )
     })
   })
 
   describe("Done and end function", () => {
     it.effect("end() signals completion with Done", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number, Cause.Done>(5)
         yield* TxQueue.offer(queue, 1)
         yield* TxQueue.offer(queue, 2)
@@ -1205,10 +1288,11 @@ describe("TxQueue", () => {
         // Queue should now be done
         const isDone = yield* TxQueue.isDone(queue)
         assert.strictEqual(isDone, true)
-      }))
+      })
+    )
 
     it.effect("take() on ended queue fails with Done", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number, Cause.Done>(5)
         yield* TxQueue.offer(queue, 42)
         yield* TxQueue.end(queue)
@@ -1221,10 +1305,11 @@ describe("TxQueue", () => {
         const takeResult = yield* Effect.flip(TxQueue.take(queue))
         assert.strictEqual(Cause.isDone(takeResult), true)
         assert.strictEqual(takeResult, Cause.Done())
-      }))
+      })
+    )
 
     it.effect("end() works with TxEnqueue interface", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number, Cause.Done>(5)
 
         yield* TxQueue.offer(queue, 1)
@@ -1241,10 +1326,11 @@ describe("TxQueue", () => {
         // Now verify queue is done
         const isDone = yield* TxQueue.isDone(queue)
         assert.strictEqual(isDone, true)
-      }))
+      })
+    )
 
     it.effect("end() returns false if queue is already done", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* TxQueue.bounded<number, Cause.Done>(5)
 
         // End the queue once
@@ -1254,6 +1340,7 @@ describe("TxQueue", () => {
         // Try to end it again
         const result2 = yield* TxQueue.end(queue)
         assert.strictEqual(result2, false)
-      }))
+      })
+    )
   })
 })

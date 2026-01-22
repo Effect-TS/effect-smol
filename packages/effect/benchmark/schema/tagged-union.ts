@@ -51,16 +51,16 @@ const decodeUnknownExitCandidate = Schema.decodeUnknownExit(candidate)
 // console.log(decodeUnknownExitCandidate(bad))
 
 bench
-  .add("Schema (good)", function() {
+  .add("Schema (good)", function () {
     decodeUnknownExit(good)
   })
-  .add("Schema (bad)", function() {
+  .add("Schema (bad)", function () {
     decodeUnknownExit(bad)
   })
-  .add("candidate (good)", function() {
+  .add("candidate (good)", function () {
     decodeUnknownExitCandidate(good)
   })
-  .add("candidate (bad)", function() {
+  .add("candidate (bad)", function () {
     decodeUnknownExitCandidate(bad)
   })
 

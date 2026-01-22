@@ -173,11 +173,14 @@ export const choice = <const Choices extends ReadonlyArray<string>>(
  * @since 4.0.0
  * @category constructors
  */
-export const path = (name: string, options?: {
-  readonly pathType?: "file" | "directory" | "either" | undefined
-  readonly mustExist?: boolean | undefined
-  readonly typeName?: string | undefined
-}): Flag<string> => Param.path(Param.flagKind, name, options)
+export const path = (
+  name: string,
+  options?: {
+    readonly pathType?: "file" | "directory" | "either" | undefined
+    readonly mustExist?: boolean | undefined
+    readonly typeName?: string | undefined
+  }
+): Flag<string> => Param.path(Param.flagKind, name, options)
 
 /**
  * Creates a file path flag that accepts file paths with optional existence validation.
@@ -198,9 +201,12 @@ export const path = (name: string, options?: {
  * @since 4.0.0
  * @category constructors
  */
-export const file = (name: string, options?: {
-  readonly mustExist?: boolean | undefined
-}): Flag<string> => Param.file(Param.flagKind, name, options)
+export const file = (
+  name: string,
+  options?: {
+    readonly mustExist?: boolean | undefined
+  }
+): Flag<string> => Param.file(Param.flagKind, name, options)
 
 /**
  * Creates a directory path flag that accepts directory paths with optional existence validation.
@@ -221,9 +227,12 @@ export const file = (name: string, options?: {
  * @since 4.0.0
  * @category constructors
  */
-export const directory = (name: string, options?: {
-  readonly mustExist?: boolean | undefined
-}): Flag<string> => Param.directory(Param.flagKind, name, options)
+export const directory = (
+  name: string,
+  options?: {
+    readonly mustExist?: boolean | undefined
+  }
+): Flag<string> => Param.directory(Param.flagKind, name, options)
 
 /**
  * Creates a redacted flag that securely handles sensitive string input.
@@ -287,10 +296,8 @@ export const fileText = (name: string): Flag<string> => Param.fileText(Param.fla
  * @since 4.0.0
  * @category constructors
  */
-export const fileParse = (
-  name: string,
-  options?: Primitive.FileParseOptions | undefined
-): Flag<unknown> => Param.fileParse(Param.flagKind, name, options)
+export const fileParse = (name: string, options?: Primitive.FileParseOptions | undefined): Flag<unknown> =>
+  Param.fileParse(Param.flagKind, name, options)
 
 /**
  * Creates a flag that reads and validates file content using the specified
@@ -587,17 +594,11 @@ export const map: {
  * @category mapping
  */
 export const mapEffect: {
-  <A, B>(
-    f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
-  ): (self: Flag<A>) => Flag<B>
-  <A, B>(
-    self: Flag<A>,
-    f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
-  ): Flag<B>
-} = dual(2, <A, B>(
-  self: Flag<A>,
-  f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
-) => Param.mapEffect(self, f))
+  <A, B>(f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>): (self: Flag<A>) => Flag<B>
+  <A, B>(self: Flag<A>, f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>): Flag<B>
+} = dual(2, <A, B>(self: Flag<A>, f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>) =>
+  Param.mapEffect(self, f)
+)
 
 /**
  * Transforms the parsed value using a function that might throw, with error handling.
@@ -629,11 +630,9 @@ export const mapEffect: {
 export const mapTryCatch: {
   <A, B>(f: (a: A) => B, onError: (error: unknown) => string): (self: Flag<A>) => Flag<B>
   <A, B>(self: Flag<A>, f: (a: A) => B, onError: (error: unknown) => string): Flag<B>
-} = dual(3, <A, B>(
-  self: Flag<A>,
-  f: (a: A) => B,
-  onError: (error: unknown) => string
-) => Param.mapTryCatch(self, f, onError))
+} = dual(3, <A, B>(self: Flag<A>, f: (a: A) => B, onError: (error: unknown) => string) =>
+  Param.mapTryCatch(self, f, onError)
+)
 
 /**
  * Requires a flag to be specified at least a minimum number of times.
@@ -741,11 +740,9 @@ export const between: {
 export const filterMap: {
   <A, B>(f: (a: A) => Option.Option<B>, onNone: (a: A) => string): (self: Flag<A>) => Flag<B>
   <A, B>(self: Flag<A>, f: (a: A) => Option.Option<B>, onNone: (a: A) => string): Flag<B>
-} = dual(3, <A, B>(
-  self: Flag<A>,
-  f: (a: A) => Option.Option<B>,
-  onNone: (a: A) => string
-) => Param.filterMap(self, f, onNone))
+} = dual(3, <A, B>(self: Flag<A>, f: (a: A) => Option.Option<B>, onNone: (a: A) => string) =>
+  Param.filterMap(self, f, onNone)
+)
 
 /**
  * Filters a flag value based on a predicate, failing with a custom error if the predicate returns false.
@@ -777,11 +774,9 @@ export const filterMap: {
 export const filter: {
   <A>(predicate: (a: A) => boolean, onFalse: (a: A) => string): (self: Flag<A>) => Flag<A>
   <A>(self: Flag<A>, predicate: (a: A) => boolean, onFalse: (a: A) => string): Flag<A>
-} = dual(3, <A>(
-  self: Flag<A>,
-  predicate: (a: A) => boolean,
-  onFalse: (a: A) => string
-) => Param.filter(self, predicate, onFalse))
+} = dual(3, <A>(self: Flag<A>, predicate: (a: A) => boolean, onFalse: (a: A) => string) =>
+  Param.filter(self, predicate, onFalse)
+)
 
 /**
  * Provides an alternative flag if the first one fails to parse.

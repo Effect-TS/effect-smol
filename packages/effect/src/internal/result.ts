@@ -25,9 +25,7 @@ const SuccessProto = Object.assign(Object.create(CommonProto), {
   _tag: "Success",
   _op: "Success",
   [Equal.symbol]<A, E>(this: Result.Success<A, E>, that: unknown): boolean {
-    return (
-      isResult(that) && isSuccess(that) && Equal.equals(this.success, that.success)
-    )
+    return isResult(that) && isSuccess(that) && Equal.equals(this.success, that.success)
   },
   [Hash.symbol]<A, E>(this: Result.Success<A, E>) {
     return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.success))

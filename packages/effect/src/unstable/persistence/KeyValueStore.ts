@@ -57,10 +57,7 @@ export interface KeyValueStore {
   /**
    * Updates the value of the specified key if it exists.
    */
-  readonly modify: (
-    key: string,
-    f: (value: string) => string
-  ) => Effect.Effect<string | undefined, KeyValueStoreError>
+  readonly modify: (key: string, f: (value: string) => string) => Effect.Effect<string | undefined, KeyValueStoreError>
 
   /**
    * Updates the value of the specified key if it exists.
@@ -170,10 +167,9 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
  * @since 4.0.0
  * @category tags
  */
-export const KeyValueStore: ServiceMap.Service<
-  KeyValueStore,
-  KeyValueStore
-> = ServiceMap.Service("effect/persistence/KeyValueStore")
+export const KeyValueStore: ServiceMap.Service<KeyValueStore, KeyValueStore> = ServiceMap.Service(
+  "effect/persistence/KeyValueStore"
+)
 
 /**
  * @since 4.0.0
@@ -185,30 +181,21 @@ export const make = (options: MakeOptions): KeyValueStore =>
     has: (key) => Effect.map(options.get(key), Predicate.isNotUndefined),
     isEmpty: Effect.map(options.size, (size) => size === 0),
     modify: (key, f) =>
-      Effect.flatMap(
-        options.get(key),
-        (o) => {
-          if (o === undefined) {
-            return Effect.undefined
-          }
-          const newValue = f(o)
-          return Effect.as(
-            options.set(key, newValue),
-            newValue
-          )
+      Effect.flatMap(options.get(key), (o) => {
+        if (o === undefined) {
+          return Effect.undefined
         }
-      ),
+        const newValue = f(o)
+        return Effect.as(options.set(key, newValue), newValue)
+      }),
     modifyUint8Array: (key, f) =>
-      Effect.flatMap(
-        options.getUint8Array(key),
-        (o) => {
-          if (o === undefined) {
-            return Effect.undefined
-          }
-          const newValue = f(o)
-          return Effect.as(options.set(key, newValue), newValue)
+      Effect.flatMap(options.getUint8Array(key), (o) => {
+        if (o === undefined) {
+          return Effect.undefined
         }
-      ),
+        const newValue = f(o)
+        return Effect.as(options.set(key, newValue), newValue)
+      }),
     ...options
   })
 
@@ -216,25 +203,23 @@ export const make = (options: MakeOptions): KeyValueStore =>
  * @since 4.0.0
  * @category constructors
  */
-export const makeStringOnly = (
-  options: MakeStringOptions
-): KeyValueStore => {
+export const makeStringOnly = (options: MakeStringOptions): KeyValueStore => {
   const encoder = new TextEncoder()
   return make({
     ...options,
     getUint8Array: (key) =>
       options.get(key).pipe(
-        Effect.map(UndefinedOr.map((value) =>
-          Result.match(Base64.decode(value), {
-            onFailure: () => encoder.encode(value),
-            onSuccess: identity
-          })
-        ))
+        Effect.map(
+          UndefinedOr.map((value) =>
+            Result.match(Base64.decode(value), {
+              onFailure: () => encoder.encode(value),
+              onSuccess: identity
+            })
+          )
+        )
       ),
     set: (key, value) =>
-      typeof value === "string"
-        ? options.set(key, value)
-        : Effect.suspend(() => options.set(key, Base64.encode(value)))
+      typeof value === "string" ? options.set(key, value) : Effect.suspend(() => options.set(key, Base64.encode(value)))
   })
 }
 
@@ -245,16 +230,19 @@ export const makeStringOnly = (
 export const prefix: {
   (prefix: string): (self: KeyValueStore) => KeyValueStore
   (self: KeyValueStore, prefix: string): KeyValueStore
-} = dual(2, (self: KeyValueStore, prefix: string): KeyValueStore => ({
-  ...self,
-  get: (key) => self.get(`${prefix}${key}`),
-  getUint8Array: (key) => self.getUint8Array(`${prefix}${key}`),
-  set: (key, value) => self.set(`${prefix}${key}`, value),
-  remove: (key) => self.remove(`${prefix}${key}`),
-  has: (key) => self.has(`${prefix}${key}`),
-  modify: (key, f) => self.modify(`${prefix}${key}`, f),
-  modifyUint8Array: (key, f) => self.modifyUint8Array(`${prefix}${key}`, f)
-}))
+} = dual(
+  2,
+  (self: KeyValueStore, prefix: string): KeyValueStore => ({
+    ...self,
+    get: (key) => self.get(`${prefix}${key}`),
+    getUint8Array: (key) => self.getUint8Array(`${prefix}${key}`),
+    set: (key, value) => self.set(`${prefix}${key}`, value),
+    remove: (key) => self.remove(`${prefix}${key}`),
+    has: (key) => self.has(`${prefix}${key}`),
+    modify: (key, f) => self.modify(`${prefix}${key}`, f),
+    modifyUint8Array: (key, f) => self.modifyUint8Array(`${prefix}${key}`, f)
+  })
+)
 
 /**
  * @since 4.0.0
@@ -289,86 +277,86 @@ export const layerMemory: Layer.Layer<KeyValueStore> = Layer.sync(KeyValueStore)
 export const layerFileSystem = (
   directory: string
 ): Layer.Layer<KeyValueStore, PlatformError, FileSystem.FileSystem | Path.Path> =>
-  Layer.effect(KeyValueStore)(Effect.gen(function*() {
-    const fs = yield* FileSystem.FileSystem
-    const path = yield* Path.Path
-    const keyPath = (key: string) => path.join(directory, encodeURIComponent(key))
+  Layer.effect(KeyValueStore)(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const keyPath = (key: string) => path.join(directory, encodeURIComponent(key))
 
-    if (!(yield* fs.exists(directory))) {
-      yield* fs.makeDirectory(directory, { recursive: true })
-    }
+      if (!(yield* fs.exists(directory))) {
+        yield* fs.makeDirectory(directory, { recursive: true })
+      }
 
-    return make({
-      get: (key: string) =>
-        Effect.catchTag(
-          fs.readFileString(keyPath(key)),
-          "PlatformError",
-          (cause) =>
-            cause.reason === "NotFound" ? Effect.undefined : Effect.fail(
+      return make({
+        get: (key: string) =>
+          Effect.catchTag(fs.readFileString(keyPath(key)), "PlatformError", (cause) =>
+            cause.reason === "NotFound"
+              ? Effect.undefined
+              : Effect.fail(
+                  new KeyValueStoreError({
+                    method: "get",
+                    key,
+                    message: `Unable to get item with key ${key}`,
+                    cause
+                  })
+                )
+          ),
+        getUint8Array: (key: string) =>
+          Effect.catchTag(fs.readFile(keyPath(key)), "PlatformError", (cause) =>
+            cause.reason === "NotFound"
+              ? Effect.undefined
+              : Effect.fail(
+                  new KeyValueStoreError({
+                    method: "getUint8Array",
+                    key,
+                    message: `Unable to get item with key ${key}`,
+                    cause
+                  })
+                )
+          ),
+        set: (key: string, value: string | Uint8Array) =>
+          Effect.mapError(
+            typeof value === "string" ? fs.writeFileString(keyPath(key), value) : fs.writeFile(keyPath(key), value),
+            (cause) =>
               new KeyValueStoreError({
-                method: "get",
+                method: "set",
                 key,
-                message: `Unable to get item with key ${key}`,
+                message: `Unable to set item with key ${key}`,
                 cause
               })
-            )
-        ),
-      getUint8Array: (key: string) =>
-        Effect.catchTag(
-          fs.readFile(keyPath(key)),
-          "PlatformError",
-          (cause) =>
-            cause.reason === "NotFound" ? Effect.undefined : Effect.fail(
+          ),
+        remove: (key: string) =>
+          Effect.mapError(
+            fs.remove(keyPath(key)),
+            (cause) =>
               new KeyValueStoreError({
-                method: "getUint8Array",
+                method: "remove",
                 key,
-                message: `Unable to get item with key ${key}`,
+                message: `Unable to remove item with key ${key}`,
                 cause
               })
-            )
-        ),
-      set: (key: string, value: string | Uint8Array) =>
-        Effect.mapError(
-          typeof value === "string" ? fs.writeFileString(keyPath(key), value) : fs.writeFile(keyPath(key), value),
+          ),
+        has: (key: string) =>
+          Effect.mapError(
+            fs.exists(keyPath(key)),
+            (cause) =>
+              new KeyValueStoreError({
+                method: "has",
+                key,
+                message: `Unable to check existence of item with key ${key}`,
+                cause
+              })
+          ),
+        clear: Effect.mapError(
+          Effect.andThen(fs.remove(directory, { recursive: true }), fs.makeDirectory(directory, { recursive: true })),
           (cause) =>
             new KeyValueStoreError({
-              method: "set",
-              key,
-              message: `Unable to set item with key ${key}`,
+              method: "clear",
+              message: `Unable to clear storage`,
               cause
             })
         ),
-      remove: (key: string) =>
-        Effect.mapError(fs.remove(keyPath(key)), (cause) =>
-          new KeyValueStoreError({
-            method: "remove",
-            key,
-            message: `Unable to remove item with key ${key}`,
-            cause
-          })),
-      has: (key: string) =>
-        Effect.mapError(fs.exists(keyPath(key)), (cause) =>
-          new KeyValueStoreError({
-            method: "has",
-            key,
-            message: `Unable to check existence of item with key ${key}`,
-            cause
-          })),
-      clear: Effect.mapError(
-        Effect.andThen(
-          fs.remove(directory, { recursive: true }),
-          fs.makeDirectory(directory, { recursive: true })
-        ),
-        (cause) =>
-          new KeyValueStoreError({
-            method: "clear",
-            message: `Unable to clear storage`,
-            cause
-          })
-      ),
-      size: Effect.matchEffect(
-        fs.readDirectory(directory),
-        {
+        size: Effect.matchEffect(fs.readDirectory(directory), {
           onSuccess: (files) => Effect.succeed(files.length),
           onFailure: (cause) =>
             Effect.fail(
@@ -378,10 +366,10 @@ export const layerFileSystem = (
                 cause
               })
             )
-        }
-      )
+        })
+      })
     })
-  }))
+  )
 
 const SchemaStoreTypeId = "~effect/persistence/KeyValueStore/SchemaStore" as const
 
@@ -466,19 +454,13 @@ export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema:
   const set = (key: string, value: S["Type"]) => Effect.flatMap(encode(value), (json) => self.set(key, json))
 
   const modify = (key: string, f: (value: S["Type"]) => S["Type"]) =>
-    Effect.flatMap(
-      get(key),
-      (o) => {
-        if (Option.isNone(o)) {
-          return Effect.succeedNone
-        }
-        const newValue = f(o.value)
-        return Effect.as(
-          set(key, newValue),
-          Option.some(newValue)
-        )
+    Effect.flatMap(get(key), (o) => {
+      if (Option.isNone(o)) {
+        return Effect.succeedNone
       }
-    )
+      const newValue = f(o.value)
+      return Effect.as(set(key, newValue), Option.some(newValue))
+    })
 
   return {
     [SchemaStoreTypeId]: SchemaStoreTypeId,
@@ -501,9 +483,7 @@ export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema:
  * @since 4.0.0
  * @category layers
  */
-export const layerStorage = (
-  evaluate: LazyArg<Storage>
-): Layer.Layer<KeyValueStore> =>
+export const layerStorage = (evaluate: LazyArg<Storage>): Layer.Layer<KeyValueStore> =>
   Layer.sync(KeyValueStore)(() => {
     const storage = evaluate()
     return makeStringOnly({

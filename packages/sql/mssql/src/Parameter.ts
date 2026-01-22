@@ -33,11 +33,7 @@ export interface Parameter<out A> {
  * @category constructor
  * @since 1.0.0
  */
-export const make = <A>(
-  name: string,
-  type: DataType,
-  options: ParameterOptions = {}
-): Parameter<A> => ({
+export const make = <A>(name: string, type: DataType, options: ParameterOptions = {}): Parameter<A> => ({
   [TypeId]: identity,
   _tag: "Parameter",
   name,

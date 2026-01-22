@@ -54,7 +54,7 @@ export const b3: FromHeaders = (headers) => {
  * @category decoding
  */
 export const xb3: FromHeaders = (headers) => {
-  if (!(headers["x-b3-traceid"]) || !(headers["x-b3-spanid"])) {
+  if (!headers["x-b3-traceid"] || !headers["x-b3-spanid"]) {
     return undefined
   }
   return Tracer.externalSpan({
@@ -72,7 +72,7 @@ const w3cSpanId = /^[0-9a-f]{16}$/i
  * @category decoding
  */
 export const w3c: FromHeaders = (headers) => {
-  if (!(headers["traceparent"])) {
+  if (!headers["traceparent"]) {
     return undefined
   }
   const parts = headers["traceparent"].split("-")

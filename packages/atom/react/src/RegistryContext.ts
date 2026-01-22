@@ -21,10 +21,12 @@ export function scheduleTask(f: () => void): () => void {
  * @since 1.0.0
  * @category context
  */
-export const RegistryContext = React.createContext<AtomRegistry.AtomRegistry>(AtomRegistry.make({
-  scheduleTask,
-  defaultIdleTTL: 400
-}))
+export const RegistryContext = React.createContext<AtomRegistry.AtomRegistry>(
+  AtomRegistry.make({
+    scheduleTask,
+    defaultIdleTTL: 400
+  })
+)
 
 /**
  * @since 1.0.0

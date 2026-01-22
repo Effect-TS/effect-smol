@@ -86,9 +86,11 @@
       // TODO: This is a special alias used by some tests. We should try to get rid of it.
       "effect-test/*": ["./packages/effect/test/*.ts"]
     },
-    "plugins": [{
-      "name": "@effect/language-service",
-      "namespaceImportPackages": []
-    }]
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "namespaceImportPackages": []
+      }
+    ]
   }
 }
