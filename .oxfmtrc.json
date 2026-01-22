@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "**/dist",
+    "**/build",
+    "**/docs",
+    "**/.tsbuildinfo",
+    ".agents/**/*"
+  ],
+  "printWidth": 120,
+  "semi": false,
+  "trailingComma": "none",
+  "operatorPosition": "maintain",
+  "arrowFunction.useParentheses": "force"
+}

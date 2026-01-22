@@ -105,7 +105,7 @@ export const layer: Layer.Layer<
   })
 
   const format = Effect.fn("format")(function*(filePath: string) {
-    yield* runCommand("pnpm", ["exec", "dprint", "--log-level", "silent", "fmt", filePath], "format", filePath)
+    yield* runCommand("pnpm", ["exec", "oxfmt", "--write", filePath], "format", filePath)
   })
 
   return { lint, format }

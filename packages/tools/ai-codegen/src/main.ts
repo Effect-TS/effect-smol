@@ -28,11 +28,11 @@ const providerFlag = Flag.string("provider").pipe(
 )
 
 const skipLintFlag = Flag.boolean("skip-lint").pipe(
-  Flag.withDescription("Skip Oxlint step")
+  Flag.withDescription("Skip linting step")
 )
 
 const skipFormatFlag = Flag.boolean("skip-format").pipe(
-  Flag.withDescription("Skip Dprint step")
+  Flag.withDescription("Skip formatting step")
 )
 
 // =============================================================================
@@ -74,7 +74,7 @@ const generateProvider = Effect.fn("generateProvider")(function*(
   }
 
   if (!options.skipFormat) {
-    yield* Console.log(`  Running dprint fmt...`)
+    yield* Console.log(`  Running oxfmt --write..`)
     yield* postProcessor.format(provider.outputPath)
   }
 
