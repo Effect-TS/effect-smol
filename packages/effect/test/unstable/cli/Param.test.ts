@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { Config, ConfigProvider, Effect, FileSystem, Layer, Path } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliError, Flag, Prompt } from "effect/unstable/cli"
+import { ChildProcessSpawner } from "effect/unstable/process"
 import * as MockTerminal from "./services/MockTerminal.ts"
 
 const ConsoleLayer = TestConsole.layer
@@ -13,7 +14,8 @@ const TestLayer = Layer.mergeAll(
   ConsoleLayer,
   FileSystemLayer,
   PathLayer,
-  TerminalLayer
+  TerminalLayer,
+  Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({})
 )
 
 describe("Param", () => {

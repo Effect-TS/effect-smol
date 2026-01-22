@@ -2,6 +2,7 @@ import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Option, Path } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
+import { ChildProcessSpawner } from "effect/unstable/process"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
 import * as MockTerminal from "./services/MockTerminal.ts"
 import * as TestActions from "./services/TestActions.ts"
@@ -23,7 +24,8 @@ const TestLayer = Layer.mergeAll(
   FileSystemLayer,
   PathLayer,
   TerminalLayer,
-  CliOutputLayer
+  CliOutputLayer,
+  Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({})
 )
 
 describe("Command", () => {

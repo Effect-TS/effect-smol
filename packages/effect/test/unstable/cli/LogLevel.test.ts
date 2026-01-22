@@ -1,6 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Logger, Path } from "effect"
 import { CliOutput, Command, Flag } from "effect/unstable/cli"
+import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 import * as MockTerminal from "./services/MockTerminal.ts"
 
 // Create a test logger that captures log messages
@@ -35,6 +36,7 @@ const CliOutputLayer = CliOutput.layer(
     colors: false
   })
 )
+const SpawnerLayer = Layer.mock(ChildProcessSpawner)({})
 
 const makeTestLayer = (testLogger: Logger.Logger<unknown, void>) =>
   Layer.mergeAll(
@@ -42,6 +44,7 @@ const makeTestLayer = (testLogger: Logger.Logger<unknown, void>) =>
     PathLayer,
     TerminalLayer,
     CliOutputLayer,
+    SpawnerLayer,
     Logger.layer([testLogger])
   )
 

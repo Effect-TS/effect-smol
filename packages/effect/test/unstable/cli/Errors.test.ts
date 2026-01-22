@@ -4,16 +4,19 @@ import { CliError, CliOutput, Command, Flag } from "effect/unstable/cli"
 import { toImpl } from "effect/unstable/cli/internal/command"
 import * as Lexer from "effect/unstable/cli/internal/lexer"
 import * as Parser from "effect/unstable/cli/internal/parser"
+import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 import * as MockTerminal from "./services/MockTerminal.ts"
 
 const FileSystemLayer = FileSystem.layerNoop({})
 const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
+const SpawnerLayer = Layer.mock(ChildProcessSpawner)({})
 
 const TestLayer = Layer.mergeAll(
   FileSystemLayer,
   PathLayer,
-  TerminalLayer
+  TerminalLayer,
+  SpawnerLayer
 )
 
 describe("Command errors", () => {
