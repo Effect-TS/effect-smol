@@ -148,6 +148,54 @@ describe("ChildProcess", () => {
     })
   })
 
+  describe("prefix", () => {
+    it("should prefix a standard command and preserve options", () => {
+      const command = ChildProcess.make("echo", ["hello"], { cwd: "/tmp", env: { TEST: "1" } })
+      const prefixed = command.pipe(ChildProcess.prefix`time`)
+      assert(prefixed._tag === "StandardCommand")
+      if (prefixed._tag === "StandardCommand") {
+        assert.strictEqual(prefixed.command, "time")
+        assert.deepStrictEqual(prefixed.args, ["echo", "hello"])
+        assert.strictEqual(prefixed.options.cwd, "/tmp")
+        assert.deepStrictEqual(prefixed.options.env, { TEST: "1" })
+      }
+    })
+
+    it("should prefix the leftmost command in a pipeline", () => {
+      const pipeline = ChildProcess.make`cat file`.pipe(
+        ChildProcess.pipeTo(ChildProcess.make`grep pattern`),
+        ChildProcess.pipeTo(ChildProcess.make`wc -l`, { from: "stderr" })
+      )
+      const prefixed = pipeline.pipe(ChildProcess.prefix`time`)
+      assert(prefixed._tag === "PipedCommand")
+      if (prefixed._tag === "PipedCommand") {
+        assert.strictEqual(prefixed.options.from, "stderr")
+        const left = prefixed.left
+        assert(left._tag === "PipedCommand")
+        if (left._tag === "PipedCommand") {
+          const leftmost = left.left
+          assert(leftmost._tag === "StandardCommand")
+          if (leftmost._tag === "StandardCommand") {
+            assert.strictEqual(leftmost.command, "time")
+            assert.deepStrictEqual(leftmost.args, ["cat", "file"])
+          }
+          const middle = left.right
+          assert(middle._tag === "StandardCommand")
+          if (middle._tag === "StandardCommand") {
+            assert.strictEqual(middle.command, "grep")
+            assert.deepStrictEqual(middle.args, ["pattern"])
+          }
+        }
+        const right = prefixed.right
+        assert(right._tag === "StandardCommand")
+        if (right._tag === "StandardCommand") {
+          assert.strictEqual(right.command, "wc")
+          assert.deepStrictEqual(right.args, ["-l"])
+        }
+      }
+    })
+  })
+
   describe("guards", () => {
     it("isCommand should detect commands", () => {
       const cmd = ChildProcess.make`echo hello`
