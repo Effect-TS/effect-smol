@@ -34,14 +34,11 @@ const MockExecutorLayer = Layer.succeed(ChildProcessSpawner.ChildProcessSpawner,
 
 describe("ChildProcess", () => {
   describe("make", () => {
-    it("template literal form should create a templated command", () => {
+    it("template literal form should create a standard command", () => {
       const cmd = ChildProcess.make`echo hello`
-      assert.strictEqual(cmd._tag, "TemplatedCommand")
-      assert.isTrue(ChildProcess.isTemplatedCommand(cmd))
-      // Templates are stored unparsed
-      if (cmd._tag === "TemplatedCommand") {
-        assert.strictEqual(cmd.templates.length, 1)
-      }
+      assert(ChildProcess.isStandardCommand(cmd))
+      assert.strictEqual(cmd.command, "echo")
+      assert.deepStrictEqual(cmd.args, ["hello"])
     })
 
     it("array form should create a standard command", () => {
@@ -54,7 +51,7 @@ describe("ChildProcess", () => {
 
     it("options form should pass options to templated command", () => {
       const cmd = ChildProcess.make({ cwd: "/tmp" })`ls -la`
-      assert.strictEqual(cmd._tag, "TemplatedCommand")
+      assert(ChildProcess.isStandardCommand(cmd))
       assert.strictEqual(cmd.options.cwd, "/tmp")
     })
 
@@ -126,21 +123,12 @@ describe("ChildProcess", () => {
   })
 
   describe("setCwd", () => {
-    it("should set cwd on standard and templated commands", () => {
+    it("should set cwd on standard commands", () => {
       const standard = ChildProcess.make("ls", ["-la"], { env: { TEST: "1" } })
       const updatedStandard = ChildProcess.setCwd(standard, "/tmp")
-      assert.strictEqual(updatedStandard._tag, "StandardCommand")
-      if (updatedStandard._tag === "StandardCommand") {
-        assert.strictEqual(updatedStandard.options.cwd, "/tmp")
-        assert.deepStrictEqual(updatedStandard.options.env, { TEST: "1" })
-      }
-
-      const templated = ChildProcess.make`ls -la`
-      const updatedTemplated = ChildProcess.setCwd("/tmp")(templated)
-      assert.strictEqual(updatedTemplated._tag, "TemplatedCommand")
-      if (updatedTemplated._tag === "TemplatedCommand") {
-        assert.strictEqual(updatedTemplated.options.cwd, "/tmp")
-      }
+      assert(updatedStandard._tag === "StandardCommand")
+      assert.strictEqual(updatedStandard.options.cwd, "/tmp")
+      assert.deepStrictEqual(updatedStandard.options.env, { TEST: "1" })
     })
 
     it("should set cwd on all commands in a pipeline", () => {
@@ -152,12 +140,10 @@ describe("ChildProcess", () => {
       if (updated._tag === "PipedCommand") {
         const left = updated.left
         const right = updated.right
-        if (left._tag === "TemplatedCommand") {
-          assert.strictEqual(left.options.cwd, "/tmp")
-        }
-        if (right._tag === "TemplatedCommand") {
-          assert.strictEqual(right.options.cwd, "/tmp")
-        }
+        assert(left._tag === "StandardCommand")
+        assert.strictEqual(left.options.cwd, "/tmp")
+        assert(right._tag === "StandardCommand")
+        assert.strictEqual(right.options.cwd, "/tmp")
       }
     })
   })
@@ -177,19 +163,8 @@ describe("ChildProcess", () => {
         ChildProcess.pipeTo(ChildProcess.make`grep pattern`)
       )
       assert.isTrue(ChildProcess.isStandardCommand(standard))
-      assert.isFalse(ChildProcess.isStandardCommand(templated))
+      assert.isTrue(ChildProcess.isStandardCommand(templated))
       assert.isFalse(ChildProcess.isStandardCommand(piped))
-    })
-
-    it("isTemplatedCommand should detect templated commands", () => {
-      const standard = ChildProcess.make("echo", ["hello"])
-      const templated = ChildProcess.make`echo hello`
-      const piped = ChildProcess.make`cat file`.pipe(
-        ChildProcess.pipeTo(ChildProcess.make`grep pattern`)
-      )
-      assert.isFalse(ChildProcess.isTemplatedCommand(standard))
-      assert.isTrue(ChildProcess.isTemplatedCommand(templated))
-      assert.isFalse(ChildProcess.isTemplatedCommand(piped))
     })
 
     it("isPipedCommand should detect piped commands", () => {

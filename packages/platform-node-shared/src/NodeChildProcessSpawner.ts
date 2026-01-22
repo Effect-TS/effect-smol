@@ -20,7 +20,6 @@ import type { ChildProcessHandle } from "effect/unstable/process/ChildProcessSpa
 import { ChildProcessSpawner, ExitCode, makeHandle, ProcessId } from "effect/unstable/process/ChildProcessSpawner"
 import * as NodeChildProcess from "node:child_process"
 import * as NodeJSStream from "node:stream"
-import { parseTemplates } from "./internal/process.ts"
 import { handleErrnoException } from "./internal/utils.ts"
 import * as NodeSink from "./NodeSink.ts"
 import * as NodeStream from "./NodeStream.ts"
@@ -49,14 +48,6 @@ type ExitSignal = Deferred.Deferred<ExitCodeWithSignal>
 const make = Effect.gen(function*() {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
-
-  const resolveCommand = Effect.fnUntraced(function*(
-    command: ChildProcess.StandardCommand | ChildProcess.TemplatedCommand
-  ) {
-    if (ChildProcess.isStandardCommand(command)) return command
-    const parsed = yield* Effect.sync(() => parseTemplates(command.templates, command.expressions))
-    return ChildProcess.make(parsed[0], parsed.slice(1), command.options)
-  })
 
   const resolveWorkingDirectory = Effect.fnUntraced(
     function*(options: ChildProcess.CommandOptions) {
@@ -234,30 +225,31 @@ const make = Effect.gen(function*() {
     }
   })
 
-  const setupChildStdin = Effect.fnUntraced(function*(
+  const setupChildStdin = (
     command: ChildProcess.StandardCommand,
     childProcess: NodeChildProcess.ChildProcess,
     config: ChildProcess.StdinConfig
-  ) {
-    // If the child process has a standard input stream, connect it to the
-    // sink that will attached to the process handle
-    let sink: Sink.Sink<void, unknown, never, PlatformError.PlatformError> = Sink.drain
-    if (Predicate.isNotNull(childProcess.stdin)) {
-      sink = NodeSink.fromWritable({
-        evaluate: () => childProcess.stdin!,
-        onError: (error) => toPlatformError("fromWritable(stdin)", toError(error), command),
-        endOnDone: config.endOnDone,
-        encoding: config.encoding
-      })
-    }
+  ) =>
+    Effect.suspend(() => {
+      // If the child process has a standard input stream, connect it to the
+      // sink that will attached to the process handle
+      let sink: Sink.Sink<void, unknown, never, PlatformError.PlatformError> = Sink.drain
+      if (Predicate.isNotNull(childProcess.stdin)) {
+        sink = NodeSink.fromWritable({
+          evaluate: () => childProcess.stdin!,
+          onError: (error) => toPlatformError("fromWritable(stdin)", toError(error), command),
+          endOnDone: config.endOnDone,
+          encoding: config.encoding
+        })
+      }
 
-    // If the user provided a `Stream`, run it into the stdin sink
-    if (Stream.isStream(config.stream)) {
-      yield* Effect.forkScoped(Stream.run(config.stream, sink))
-    }
+      // If the user provided a `Stream`, run it into the stdin sink
+      if (Stream.isStream(config.stream)) {
+        return Effect.as(Effect.forkScoped(Stream.run(config.stream, sink)), sink)
+      }
 
-    return sink
-  })
+      return Effect.succeed(sink)
+    })
 
   /**
    * Given that `NodeStream.fromReadable` uses `.read` to read data from the
@@ -381,45 +373,41 @@ const make = Effect.gen(function*() {
     return { stdout, stderr, all }
   }
 
-  const spawn = Effect.fnUntraced(
-    function*(
-      command: ChildProcess.StandardCommand,
-      spawnOptions: NodeChildProcess.SpawnOptions
-    ) {
-      const deferred = yield* Deferred.make<ExitCodeWithSignal>()
-
-      return yield* Effect.callback<
-        readonly [NodeChildProcess.ChildProcess, ExitSignal],
-        PlatformError.PlatformError
-      >((resume) => {
-        const handle = NodeChildProcess.spawn(
-          command.command,
-          command.args,
-          spawnOptions
-        )
-        handle.on("error", (error) => {
-          resume(Effect.fail(toPlatformError("spawn", error, command)))
-        })
-        handle.on("exit", (...args) => {
-          Deferred.doneUnsafe(deferred, Exit.succeed(args))
-        })
-        handle.on("spawn", () => {
-          resume(Effect.succeed([handle, deferred]))
-        })
-        return Effect.sync(() => {
-          handle.kill("SIGTERM")
-        })
+  const spawn = (
+    command: ChildProcess.StandardCommand,
+    spawnOptions: NodeChildProcess.SpawnOptions
+  ) =>
+    Effect.callback<
+      readonly [NodeChildProcess.ChildProcess, ExitSignal],
+      PlatformError.PlatformError
+    >((resume) => {
+      const deferred = Deferred.makeUnsafe<ExitCodeWithSignal>()
+      const handle = NodeChildProcess.spawn(
+        command.command,
+        command.args,
+        spawnOptions
+      )
+      handle.on("error", (error) => {
+        resume(Effect.fail(toPlatformError("spawn", error, command)))
       })
-    }
-  )
+      handle.on("exit", (...args) => {
+        Deferred.doneUnsafe(deferred, Exit.succeed(args))
+      })
+      handle.on("spawn", () => {
+        resume(Effect.succeed([handle, deferred]))
+      })
+      return Effect.sync(() => {
+        handle.kill("SIGTERM")
+      })
+    })
 
-  const killProcessGroup = Effect.fnUntraced(function*(
+  const killProcessGroup = (
     command: ChildProcess.StandardCommand,
     childProcess: NodeChildProcess.ChildProcess,
     signal: NodeJS.Signals
-  ) {
+  ) => {
     if (globalThis.process.platform === "win32") {
-      return yield* Effect.callback<void, PlatformError.PlatformError>((resume) => {
+      return Effect.callback<void, PlatformError.PlatformError>((resume) => {
         NodeChildProcess.exec(`taskkill /pid ${childProcess.pid} /T /F`, (error) => {
           if (error) {
             resume(Effect.fail(toPlatformError("kill", toError(error), command)))
@@ -429,26 +417,27 @@ const make = Effect.gen(function*() {
         })
       })
     }
-    return yield* Effect.try({
+    return Effect.try({
       try: () => {
         globalThis.process.kill(-childProcess.pid!, signal)
       },
       catch: (error) => toPlatformError("kill", toError(error), command)
     })
-  })
+  }
 
-  const killProcess = Effect.fnUntraced(function*(
+  const killProcess = (
     command: ChildProcess.StandardCommand,
     childProcess: NodeChildProcess.ChildProcess,
     signal: NodeJS.Signals
-  ) {
-    const killed = childProcess.kill(signal)
-    if (!killed) {
-      const error = new globalThis.Error("Failed to kill child process")
-      return yield* Effect.fail(toPlatformError("kill", error, command))
-    }
-    return yield* Effect.void
-  })
+  ) =>
+    Effect.suspend(() => {
+      const killed = childProcess.kill(signal)
+      if (!killed) {
+        const error = new globalThis.Error("Failed to kill child process")
+        return Effect.fail(toPlatformError("kill", error, command))
+      }
+      return Effect.void
+    })
 
   const withTimeout = (
     childProcess: NodeChildProcess.ChildProcess,
@@ -507,30 +496,27 @@ const make = Effect.gen(function*() {
     Scope.Scope
   > = Effect.fnUntraced(function*(cmd) {
     switch (cmd._tag) {
-      case "StandardCommand":
-      case "TemplatedCommand": {
-        const command = yield* resolveCommand(cmd)
+      case "StandardCommand": {
+        const stdinConfig = resolveStdinOption(cmd.options)
+        const stdoutConfig = resolveOutputOption(cmd.options, "stdout")
+        const stderrConfig = resolveOutputOption(cmd.options, "stderr")
+        const resolvedAdditionalFds = resolveAdditionalFds(cmd.options)
 
-        const stdinConfig = resolveStdinOption(command.options)
-        const stdoutConfig = resolveOutputOption(command.options, "stdout")
-        const stderrConfig = resolveOutputOption(command.options, "stderr")
-        const resolvedAdditionalFds = resolveAdditionalFds(command.options)
-
-        const cwd = yield* resolveWorkingDirectory(command.options)
-        const env = resolveEnvironment(command.options)
+        const cwd = yield* resolveWorkingDirectory(cmd.options)
+        const env = resolveEnvironment(cmd.options)
         const stdio = buildStdioArray(stdinConfig, stdoutConfig, stderrConfig, resolvedAdditionalFds)
 
         const [childProcess, exitSignal] = yield* Effect.acquireRelease(
-          spawn(command, {
+          spawn(cmd, {
             cwd,
             env,
             stdio,
-            detached: command.options.detached ?? process.platform !== "win32",
-            shell: command.options.shell
+            detached: cmd.options.detached ?? process.platform !== "win32",
+            shell: cmd.options.shell
           }),
           Effect.fnUntraced(function*([childProcess, exitSignal]) {
             const exited = yield* Deferred.isDone(exitSignal)
-            const killWithTimeout = withTimeout(childProcess, command, command.options)
+            const killWithTimeout = withTimeout(childProcess, cmd, cmd.options)
             if (exited) {
               // Process already exited, check if children need cleanup
               const [code] = yield* Deferred.await(exitSignal)
@@ -554,9 +540,9 @@ const make = Effect.gen(function*() {
         )
 
         const pid = ProcessId(childProcess.pid!)
-        const stdin = yield* setupChildStdin(command, childProcess, stdinConfig)
-        const { all, stderr, stdout } = setupChildOutputStreams(command, childProcess, stdoutConfig, stderrConfig)
-        const { getInputFd, getOutputFd } = yield* setupAdditionalFds(command, childProcess, resolvedAdditionalFds)
+        const stdin = yield* setupChildStdin(cmd, childProcess, stdinConfig)
+        const { all, stderr, stdout } = setupChildOutputStreams(cmd, childProcess, stdoutConfig, stderrConfig)
+        const { getInputFd, getOutputFd } = yield* setupAdditionalFds(cmd, childProcess, resolvedAdditionalFds)
         const isRunning = Effect.map(Deferred.isDone(exitSignal), (done) => !done)
         const exitCode = Effect.flatMap(Deferred.await(exitSignal), ([code, signal]) => {
           if (Predicate.isNotNull(code)) {
@@ -566,18 +552,20 @@ const make = Effect.gen(function*() {
           // documentation for the `"exit"` event on a `child_process`.
           // https://nodejs.org/api/child_process.html#child_process_event_exit
           const error = new globalThis.Error(`Process interrupted due to receipt of signal: '${signal}'`)
-          return Effect.fail(toPlatformError("exitCode", error, command))
+          return Effect.fail(toPlatformError("exitCode", error, cmd))
         })
-        const kill = Effect.fnUntraced(function*(options?: ChildProcess.KillOptions | undefined) {
-          const killWithTimeout = withTimeout(childProcess, command, options)
-          yield* killWithTimeout((command, childProcess, signal) =>
+        const kill = (options?: ChildProcess.KillOptions | undefined) => {
+          const killWithTimeout = withTimeout(childProcess, cmd, options)
+          return killWithTimeout((command, childProcess, signal) =>
             Effect.catch(
               killProcessGroup(command, childProcess, signal),
               () => killProcess(command, childProcess, signal)
             )
+          ).pipe(
+            Effect.andThen(Deferred.await(exitSignal)),
+            Effect.asVoid
           )
-          return yield* Effect.asVoid(Deferred.await(exitSignal))
-        })
+        }
 
         return makeHandle({
           pid,
@@ -694,18 +682,6 @@ export const flattenCommand = (
     switch (cmd._tag) {
       case "StandardCommand": {
         commands.push(cmd)
-        break
-      }
-      case "TemplatedCommand": {
-        const parsed = parseTemplates(
-          cmd.templates,
-          cmd.expressions
-        )
-        commands.push(ChildProcess.make(
-          parsed[0],
-          parsed.slice(1),
-          cmd.options
-        ))
         break
       }
       case "PipedCommand": {
