@@ -147,15 +147,14 @@ export const prop: Vitest.Vitest.Methods["prop"] = (name, arbitraries, self, tim
       }
       return arbitrary
     })
-    return V.it(
-      name,
-      testOptions(timeout),
+    return V.it(name, testOptions(timeout), (ctx) =>
       // @ts-ignore
-      (ctx) =>
-        fc.assert(
-          fc.property(...arbs, (...as) => self(as, ctx)),
-          isObject(timeout) ? timeout?.fastCheck : {}
-        )
+      fc.assert(
+        // @ts-ignore
+        fc.property(...arbs, (...as) => self(as, ctx)),
+        // @ts-ignore
+        isObject(timeout) ? timeout?.fastCheck : {}
+      )
     )
   }
 
@@ -173,15 +172,14 @@ export const prop: Vitest.Vitest.Methods["prop"] = (name, arbitraries, self, tim
     )
   )
 
-  return V.it(
-    name,
-    testOptions(timeout),
+  return V.it(name, testOptions(timeout), (ctx) =>
     // @ts-ignore
-    (ctx) =>
-      fc.assert(
-        fc.property(arbs, (as) => self(as, ctx)),
-        isObject(timeout) ? timeout?.fastCheck : {}
-      )
+    fc.assert(
+      // @ts-ignore
+      fc.property(arbs, (as) => self(as, ctx)),
+      // @ts-ignore
+      isObject(timeout) ? timeout?.fastCheck : {}
+    )
   )
 }
 
