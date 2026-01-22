@@ -567,30 +567,6 @@ const makePipedCommand = (
     options
   })
 
-type PrefixSpec = {
-  readonly command: string
-  readonly args: ReadonlyArray<string>
-}
-
-const parsePrefixSpec = (args: ReadonlyArray<unknown>): PrefixSpec => {
-  if (isTemplateString(args[0])) {
-    const [templates, ...expressions] = args as [TemplateStringsArray, ...ReadonlyArray<TemplateExpression>]
-    const tokens = parseTemplates(templates, expressions)
-    return { command: tokens[0] ?? "", args: tokens.slice(1) }
-  }
-
-  if (isCommand(args[0]) && isStandardCommand(args[0])) {
-    return { command: args[0].command, args: args[0].args }
-  }
-
-  if (typeof args[0] === "string") {
-    const [command, cmdArgs = []] = args as [string, ReadonlyArray<string>?]
-    return { command, args: cmdArgs }
-  }
-
-  throw new Error("Invalid prefix arguments")
-}
-
 /**
  * Create a command from a template literal, options + template, or array form.
  *
@@ -739,11 +715,41 @@ export const prefix: {
 } = function prefix(...args: Array<unknown>): any {
   if (isCommand(args[0]) && args.length > 1) {
     const [self, ...rest] = args as [Command, ...Array<unknown>]
-    const prefixSpec = parsePrefixSpec(rest)
+    const prefixSpec = parsePrefixArgs(rest)
     return applyPrefix(self, prefixSpec)
   }
-  const prefixSpec = parsePrefixSpec(args)
+  const prefixSpec = parsePrefixArgs(args)
   return (self: Command): Command => applyPrefix(self, prefixSpec)
+}
+
+type PrefixSpec = {
+  readonly command: string
+  readonly args: ReadonlyArray<string>
+}
+
+const parsePrefixArgs = (args: ReadonlyArray<unknown>): PrefixSpec => {
+  if (isTemplateString(args[0])) {
+    const [templates, ...expressions] = args as [TemplateStringsArray, ...ReadonlyArray<TemplateExpression>]
+    const tokens = parseTemplates(templates, expressions)
+    return { command: tokens[0] ?? "", args: tokens.slice(1) }
+  }
+  const [command, cmdArgs = []] = args as [string, ReadonlyArray<string>?]
+  return { command, args: cmdArgs }
+}
+
+const applyPrefix = (self: Command, prefixSpec: PrefixSpec): Command => {
+  switch (self._tag) {
+    case "StandardCommand": {
+      return makeStandardCommand(
+        prefixSpec.command,
+        [...prefixSpec.args, self.command, ...self.args],
+        self.options
+      )
+    }
+    case "PipedCommand": {
+      return makePipedCommand(applyPrefix(self.left, prefixSpec), self.right, self.options)
+    }
+  }
 }
 
 /**
@@ -779,21 +785,6 @@ export const setCwd: {
     }
   }
 )
-
-const applyPrefix = (self: Command, prefixSpec: PrefixSpec): Command => {
-  switch (self._tag) {
-    case "StandardCommand": {
-      return makeStandardCommand(
-        prefixSpec.command,
-        [...prefixSpec.args, self.command, ...self.args],
-        self.options
-      )
-    }
-    case "PipedCommand": {
-      return makePipedCommand(applyPrefix(self.left, prefixSpec), self.right, self.options)
-    }
-  }
-}
 
 /**
  * Spawn a command and return a handle for interaction.
