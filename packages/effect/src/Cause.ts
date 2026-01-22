@@ -230,9 +230,12 @@ export declare namespace Cause {
     readonly [FailureTypeId]: typeof FailureTypeId
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>
-    annotate(annotations: ServiceMap.ServiceMap<never> | ReadonlyMap<string, unknown>, options?: {
-      readonly overwrite?: boolean | undefined
-    }): this
+    annotate(
+      annotations: ServiceMap.ServiceMap<never> | ReadonlyMap<string, unknown>,
+      options?: {
+        readonly overwrite?: boolean | undefined
+      }
+    ): this
   }
 }
 
@@ -340,9 +343,7 @@ export interface Interrupt extends Cause.FailureProto<"Interrupt"> {
  * @category constructors
  * @since 2.0.0
  */
-export const fromFailures: <E>(
-  failures: ReadonlyArray<Failure<E>>
-) => Cause<E> = core.causeFromFailures
+export const fromFailures: <E>(failures: ReadonlyArray<Failure<E>>) => Cause<E> = core.causeFromFailures
 
 /**
  * A `Cause` that that contains no failures, representing a successful
@@ -699,7 +700,7 @@ export interface NoSuchElementError extends YieldableError {
  * @category constructors
  * @since 4.0.0
  */
-export const NoSuchElementError: new(message?: string) => NoSuchElementError = core.NoSuchElementError
+export const NoSuchElementError: new (message?: string) => NoSuchElementError = core.NoSuchElementError
 
 /**
  * Tests if a value is a `Done` error.
@@ -851,7 +852,7 @@ export interface TimeoutError extends YieldableError {
  * @category constructors
  * @since 4.0.0
  */
-export const TimeoutError: new(message?: string) => TimeoutError = effect.TimeoutError
+export const TimeoutError: new (message?: string) => TimeoutError = effect.TimeoutError
 
 /**
  * @category errors
@@ -911,7 +912,7 @@ export interface IllegalArgumentError extends YieldableError {
  * @category constructors
  * @since 4.0.0
  */
-export const IllegalArgumentError: new(message?: string) => IllegalArgumentError = effect.IllegalArgumentError
+export const IllegalArgumentError: new (message?: string) => IllegalArgumentError = effect.IllegalArgumentError
 
 /**
  * Tests if a value is an `ExceededCapacityError`.
@@ -971,7 +972,7 @@ export interface ExceededCapacityError extends YieldableError {
  * @category constructors
  * @since 4.0.0
  */
-export const ExceededCapacityError: new(message?: string) => ExceededCapacityError = effect.ExceededCapacityError
+export const ExceededCapacityError: new (message?: string) => ExceededCapacityError = effect.ExceededCapacityError
 
 /**
  * @category errors
@@ -1032,7 +1033,7 @@ export interface UnknownError extends YieldableError {
  * @category constructors
  * @since 4.0.0
  */
-export const UnknownError: new(cause: unknown, message?: string) => UnknownError = effect.UnknownError
+export const UnknownError: new (cause: unknown, message?: string) => UnknownError = effect.UnknownError
 
 /**
  * Adds annotations to a `Cause` using a `ServiceMap` to store metadata
@@ -1083,6 +1084,6 @@ export class StackTrace extends ServiceMap.Service<StackTrace, StackFrame>()("ef
  * @category Annotations
  * @since 4.0.0
  */
-export class InterruptorStackTrace
-  extends ServiceMap.Service<InterruptorStackTrace, StackFrame>()("effect/Cause/InterruptorStackTrace")
-{}
+export class InterruptorStackTrace extends ServiceMap.Service<InterruptorStackTrace, StackFrame>()(
+  "effect/Cause/InterruptorStackTrace"
+) {}

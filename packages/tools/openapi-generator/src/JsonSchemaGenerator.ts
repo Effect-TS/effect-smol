@@ -14,18 +14,11 @@ export function make() {
     return name
   }
 
-  function generate(
-    source: "openapi-3.0" | "openapi-3.1",
-    components: JsonSchema.Definitions,
-    typeOnly: boolean
-  ) {
+  function generate(source: "openapi-3.0" | "openapi-3.1", components: JsonSchema.Definitions, typeOnly: boolean) {
     const nameMap: Array<string> = []
     const schemas: Array<JsonSchema.JsonSchema> = []
 
-    const definitions: JsonSchema.Definitions = Rec.map(
-      components,
-      (js) => fromSchemaOpenApi(js).schema
-    )
+    const definitions: JsonSchema.Definitions = Rec.map(components, (js) => fromSchemaOpenApi(js).schema)
 
     for (const [name, js] of Object.entries(store)) {
       nameMap.push(name)
@@ -33,13 +26,16 @@ export function make() {
     }
 
     if (Arr.isArrayNonEmpty(schemas)) {
-      const multiDocument: SchemaRepresentation.MultiDocument = SchemaRepresentation.fromJsonSchemaMultiDocument({
-        dialect: "draft-2020-12",
-        schemas,
-        definitions
-      }, {
-        additionalProperties: false
-      })
+      const multiDocument: SchemaRepresentation.MultiDocument = SchemaRepresentation.fromJsonSchemaMultiDocument(
+        {
+          dialect: "draft-2020-12",
+          schemas,
+          definitions
+        },
+        {
+          additionalProperties: false
+        }
+      )
 
       const codeDocument = SchemaRepresentation.toCodeDocument(multiDocument)
 
@@ -49,7 +45,8 @@ export function make() {
       )
       const codes = codeDocument.codes.map((code, i) => renderSchema(nameMap[i], code))
 
-      const s = render("non-recursive definitions", nonRecursives) +
+      const s =
+        render("non-recursive definitions", nonRecursives) +
         render("recursive definitions", recursives) +
         render("schemas", codes)
 

@@ -1352,8 +1352,7 @@ export declare namespace Metric {
    * @since 2.0.0
    * @category types
    */
-  export type Input<A> = A extends Metric<infer _Input, infer _State> ? _Input
-    : never
+  export type Input<A> = A extends Metric<infer _Input, infer _State> ? _Input : never
 
   /**
    * Utility type to extract the State type from a Metric type.
@@ -1411,8 +1410,7 @@ export declare namespace Metric {
    * @since 2.0.0
    * @category types
    */
-  export type State<A> = A extends Metric<infer _Input, infer _State> ? _State
-    : never
+  export type State<A> = A extends Metric<infer _Input, infer _State> ? _State : never
 
   /**
    * Interface defining the core hooks for metric operations: get, update, and modify.
@@ -1773,10 +1771,9 @@ const MetricRegistryKey = "~effect/observability/Metric/MetricRegistryKey"
  * @since 4.0.0
  * @category References
  */
-export const MetricRegistry = ServiceMap.Reference<Map<string, Metric.Metadata<any, any>>>(
-  MetricRegistryKey,
-  { defaultValue: () => new Map() }
-)
+export const MetricRegistry = ServiceMap.Reference<Map<string, Metric.Metadata<any, any>>>(MetricRegistryKey, {
+  defaultValue: () => new Map()
+})
 
 const TypeId = "~effect/observability/Metric"
 
@@ -1795,11 +1792,7 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
   readonly description: string | undefined
   readonly attributes: Metric.AttributeSet | undefined
 
-  constructor(
-    id: string,
-    description: string | undefined,
-    attributes: Metric.AttributeSet | undefined
-  ) {
+  constructor(id: string, description: string | undefined, attributes: Metric.AttributeSet | undefined) {
     this.id = id
     this.description = description
     this.attributes = attributes
@@ -1871,12 +1864,15 @@ class CounterMetric<Input extends number | bigint> extends Metric$<Input, Counte
   readonly #bigint: boolean
   readonly #incremental: boolean
 
-  constructor(id: string, options?: {
-    readonly description?: string | undefined
-    readonly attributes?: Metric.Attributes | undefined
-    readonly bigint?: boolean | undefined
-    readonly incremental?: boolean | undefined
-  }) {
+  constructor(
+    id: string,
+    options?: {
+      readonly description?: string | undefined
+      readonly attributes?: Metric.Attributes | undefined
+      readonly bigint?: boolean | undefined
+      readonly incremental?: boolean | undefined
+    }
+  ) {
     super(id, options?.description, attributesToRecord(options?.attributes))
     this.#bigint = options?.bigint ?? false
     this.#incremental = options?.incremental ?? false
@@ -1902,17 +1898,20 @@ class GaugeMetric<Input extends number | bigint> extends Metric$<Input, GaugeSta
   readonly type = "Gauge"
   readonly #bigint: boolean
 
-  constructor(id: string, options?: {
-    readonly description?: string | undefined
-    readonly attributes?: Metric.Attributes | undefined
-    readonly bigint?: boolean | undefined
-  }) {
+  constructor(
+    id: string,
+    options?: {
+      readonly description?: string | undefined
+      readonly attributes?: Metric.Attributes | undefined
+      readonly bigint?: boolean | undefined
+    }
+  ) {
     super(id, options?.description, attributesToRecord(options?.attributes))
     this.#bigint = options?.bigint ?? false
   }
 
   createHooks(): Metric.Hooks<Input, GaugeState<Input>> {
-    let value = this.#bigint ? BigInt(0) as any : 0
+    let value = this.#bigint ? (BigInt(0) as any) : 0
     const update = (input: number | bigint) => {
       value = input
     }
@@ -1927,11 +1926,14 @@ class FrequencyMetric extends Metric$<string, FrequencyState> {
   readonly type = "Frequency"
   readonly #preregisteredWords: ReadonlyArray<string> | undefined
 
-  constructor(id: string, options?: {
-    readonly description?: string | undefined
-    readonly attributes?: Metric.Attributes | undefined
-    readonly preregisteredWords?: ReadonlyArray<string> | undefined
-  }) {
+  constructor(
+    id: string,
+    options?: {
+      readonly description?: string | undefined
+      readonly attributes?: Metric.Attributes | undefined
+      readonly preregisteredWords?: ReadonlyArray<string> | undefined
+    }
+  ) {
     super(id, options?.description, attributesToRecord(options?.attributes))
     this.#preregisteredWords = options?.preregisteredWords
   }
@@ -1955,11 +1957,14 @@ class HistogramMetric extends Metric$<number, HistogramState> {
   readonly type = "Histogram"
   readonly #boundaries: ReadonlyArray<number>
 
-  constructor(id: string, options: {
-    readonly description?: string | undefined
-    readonly attributes?: Metric.Attributes | undefined
-    readonly boundaries: ReadonlyArray<number>
-  }) {
+  constructor(
+    id: string,
+    options: {
+      readonly description?: string | undefined
+      readonly attributes?: Metric.Attributes | undefined
+      readonly boundaries: ReadonlyArray<number>
+    }
+  ) {
     super(id, options?.description, attributesToRecord(options?.attributes))
     this.#boundaries = options.boundaries
   }
@@ -2032,13 +2037,16 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
   readonly #maxSize: number
   readonly #quantiles: ReadonlyArray<number>
 
-  constructor(id: string, options: {
-    readonly description?: string | undefined
-    readonly attributes?: Metric.Attributes | undefined
-    readonly maxAge: Duration.DurationInput
-    readonly maxSize: number
-    readonly quantiles: ReadonlyArray<number>
-  }) {
+  constructor(
+    id: string,
+    options: {
+      readonly description?: string | undefined
+      readonly attributes?: Metric.Attributes | undefined
+      readonly maxAge: Duration.DurationInput
+      readonly maxSize: number
+      readonly quantiles: ReadonlyArray<number>
+    }
+  ) {
     super(id, options?.description, attributesToRecord(options?.attributes))
     this.#maxAge = Duration.toMillis(Duration.fromDurationInputUnsafe(options.maxAge))
     this.#maxSize = options.maxSize
@@ -2313,16 +2321,22 @@ export const counter: {
  * @category Constructors
  */
 export const gauge: {
-  (name: string, options?: {
-    readonly description?: string | undefined
-    readonly attributes?: Metric.Attributes | undefined
-    readonly bigint?: false | undefined
-  }): Gauge<number>
-  (name: string, options: {
-    readonly description?: string | undefined
-    readonly attributes?: Metric.Attributes | undefined
-    readonly bigint: true
-  }): Gauge<bigint>
+  (
+    name: string,
+    options?: {
+      readonly description?: string | undefined
+      readonly attributes?: Metric.Attributes | undefined
+      readonly bigint?: false | undefined
+    }
+  ): Gauge<number>
+  (
+    name: string,
+    options: {
+      readonly description?: string | undefined
+      readonly attributes?: Metric.Attributes | undefined
+      readonly bigint: true
+    }
+  ): Gauge<bigint>
 } = (name, options) => new GaugeMetric(name, options) as any
 
 /**
@@ -2400,11 +2414,14 @@ export const gauge: {
  * @since 2.0.0
  * @category Constructors
  */
-export const frequency = (name: string, options?: {
-  readonly description?: string | undefined
-  readonly attributes?: Metric.Attributes | undefined
-  readonly preregisteredWords?: ReadonlyArray<string> | undefined
-}): Frequency => new FrequencyMetric(name, options)
+export const frequency = (
+  name: string,
+  options?: {
+    readonly description?: string | undefined
+    readonly attributes?: Metric.Attributes | undefined
+    readonly preregisteredWords?: ReadonlyArray<string> | undefined
+  }
+): Frequency => new FrequencyMetric(name, options)
 
 /**
  * Represents a `Histogram` metric that records observations into buckets.
@@ -2476,11 +2493,14 @@ export const frequency = (name: string, options?: {
  * @since 2.0.0
  * @category Constructors
  */
-export const histogram = (name: string, options: {
-  readonly description?: string | undefined
-  readonly attributes?: Metric.Attributes | undefined
-  readonly boundaries: ReadonlyArray<number>
-}): Histogram<number> => new HistogramMetric(name, options)
+export const histogram = (
+  name: string,
+  options: {
+    readonly description?: string | undefined
+    readonly attributes?: Metric.Attributes | undefined
+    readonly boundaries: ReadonlyArray<number>
+  }
+): Histogram<number> => new HistogramMetric(name, options)
 
 /**
  * Creates a `Summary` metric that records observations and calculates quantiles
@@ -2557,18 +2577,21 @@ export const histogram = (name: string, options: {
  * @since 2.0.0
  * @category Constructors
  */
-export const summary = (name: string, options: {
-  readonly description?: string | undefined
-  readonly attributes?: Metric.Attributes | undefined
-  readonly maxAge: Duration.DurationInput
-  readonly maxSize: number
-  readonly quantiles: ReadonlyArray<number>
-}): Summary<number> =>
-  mapInput(summaryWithTimestamp(name, options), (input, context) =>
-    [
-      input,
-      ServiceMap.get(context, InternalEffect.ClockRef).currentTimeMillisUnsafe()
-    ] as [number, number])
+export const summary = (
+  name: string,
+  options: {
+    readonly description?: string | undefined
+    readonly attributes?: Metric.Attributes | undefined
+    readonly maxAge: Duration.DurationInput
+    readonly maxSize: number
+    readonly quantiles: ReadonlyArray<number>
+  }
+): Summary<number> =>
+  mapInput(
+    summaryWithTimestamp(name, options),
+    (input, context) =>
+      [input, ServiceMap.get(context, InternalEffect.ClockRef).currentTimeMillisUnsafe()] as [number, number]
+  )
 
 /**
  * Creates a `Summary` metric that records observations and calculates quantiles
@@ -2603,13 +2626,16 @@ export const summary = (name: string, options: {
  * @since 2.0.0
  * @category Constructors
  */
-export const summaryWithTimestamp = (name: string, options: {
-  readonly description?: string | undefined
-  readonly attributes?: Metric.Attributes | undefined
-  readonly maxAge: Duration.DurationInput
-  readonly maxSize: number
-  readonly quantiles: ReadonlyArray<number>
-}): Summary<[value: number, timestamp: number]> => new SummaryMetric(name, options)
+export const summaryWithTimestamp = (
+  name: string,
+  options: {
+    readonly description?: string | undefined
+    readonly attributes?: Metric.Attributes | undefined
+    readonly maxAge: Duration.DurationInput
+    readonly maxSize: number
+    readonly quantiles: ReadonlyArray<number>
+  }
+): Summary<[value: number, timestamp: number]> => new SummaryMetric(name, options)
 
 /**
  * Creates a timer metric, based on a `Histogram`, which keeps track of
@@ -2649,11 +2675,14 @@ export const summaryWithTimestamp = (name: string, options: {
  * @since 2.0.0
  * @category Constructors
  */
-export const timer = (name: string, options?: {
-  readonly description?: string | undefined
-  readonly attributes?: Metric.Attributes | undefined
-  readonly boundaries?: ReadonlyArray<number>
-}): Histogram<Duration.Duration> => {
+export const timer = (
+  name: string,
+  options?: {
+    readonly description?: string | undefined
+    readonly attributes?: Metric.Attributes | undefined
+    readonly boundaries?: ReadonlyArray<number>
+  }
+): Histogram<Duration.Duration> => {
   const boundaries = Predicate.isNotUndefined(options?.boundaries)
     ? options.boundaries
     : exponentialBoundaries({ start: 0.5, factor: 2, count: 35 })
@@ -2704,13 +2733,8 @@ export const timer = (name: string, options?: {
  * @since 2.0.0
  * @category Utilities
  */
-export const value = <Input, State>(
-  self: Metric<Input, State>
-): Effect<State> =>
-  InternalEffect.flatMap(
-    InternalEffect.services(),
-    (context) => InternalEffect.sync(() => self.valueUnsafe(context))
-  )
+export const value = <Input, State>(self: Metric<Input, State>): Effect<State> =>
+  InternalEffect.flatMap(InternalEffect.services(), (context) => InternalEffect.sync(() => self.valueUnsafe(context)))
 
 /**
  * Modifies the metric with the specified input.
@@ -2759,10 +2783,10 @@ export const modify: {
   <Input>(input: Input) => <State>(self: Metric<Input, State>) => Effect<void>,
   <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
 >(2, (self, input) =>
-  InternalEffect.flatMap(
-    InternalEffect.services(),
-    (context) => InternalEffect.sync(() => self.modifyUnsafe(input, context))
-  ))
+  InternalEffect.flatMap(InternalEffect.services(), (context) =>
+    InternalEffect.sync(() => self.modifyUnsafe(input, context))
+  )
+)
 
 /**
  * Updates the metric with the specified input.
@@ -2819,10 +2843,8 @@ export const update: {
 } = dual<
   <Input>(input: Input) => <State>(self: Metric<Input, State>) => Effect<void>,
   <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
->(
-  2,
-  (self, input) =>
-    InternalEffect.servicesWith((services) => InternalEffect.sync(() => self.updateUnsafe(input, services)))
+>(2, (self, input) =>
+  InternalEffect.servicesWith((services) => InternalEffect.sync(() => self.updateUnsafe(input, services)))
 )
 
 /**
@@ -2879,16 +2901,19 @@ export const mapInput: {
     self: Metric<Input, State>,
     f: (input: Input2, context: ServiceMap.ServiceMap<never>) => Input
   ) => Metric<Input2, State>
->(2, <Input, State, Input2>(
-  self: Metric<Input, State>,
-  f: (input: Input2, context: ServiceMap.ServiceMap<never>) => Input
-): Metric<Input2, State> =>
-  new MetricTransform(
-    self,
-    (context) => self.valueUnsafe(context),
-    (input, context) => self.updateUnsafe(f(input, context), context),
-    (input, context) => self.modifyUnsafe(f(input, context), context)
-  ))
+>(
+  2,
+  <Input, State, Input2>(
+    self: Metric<Input, State>,
+    f: (input: Input2, context: ServiceMap.ServiceMap<never>) => Input
+  ): Metric<Input2, State> =>
+    new MetricTransform(
+      self,
+      (context) => self.valueUnsafe(context),
+      (input, context) => self.updateUnsafe(f(input, context), context),
+      (input, context) => self.modifyUnsafe(f(input, context), context)
+    )
+)
 
 /**
  * Returns a new metric that is powered by this one, but which accepts updates
@@ -2994,16 +3019,16 @@ export const withAttributes: {
 } = dual<
   (attributes: Metric.Attributes) => <Input, State>(self: Metric<Input, State>) => Metric<Input, State>,
   <Input, State>(self: Metric<Input, State>, attributes: Metric.Attributes) => Metric<Input, State>
->(2, <Input, State>(
-  self: Metric<Input, State>,
-  attributes: Metric.Attributes
-): Metric<Input, State> =>
-  new MetricTransform(
-    self,
-    (context) => self.valueUnsafe(addAttributesToServiceMap(context, attributes)),
-    (input, context) => self.updateUnsafe(input, addAttributesToServiceMap(context, attributes)),
-    (input, context) => self.modifyUnsafe(input, addAttributesToServiceMap(context, attributes))
-  ))
+>(
+  2,
+  <Input, State>(self: Metric<Input, State>, attributes: Metric.Attributes): Metric<Input, State> =>
+    new MetricTransform(
+      self,
+      (context) => self.valueUnsafe(addAttributesToServiceMap(context, attributes)),
+      (input, context) => self.updateUnsafe(input, addAttributesToServiceMap(context, attributes)),
+      (input, context) => self.modifyUnsafe(input, addAttributesToServiceMap(context, attributes))
+    )
+)
 
 // Metric Snapshots
 
@@ -3117,33 +3142,42 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
 export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.services(), (context) => {
   const metrics = snapshotUnsafe(context)
   if (metrics.length > 0) {
-    const maxNameLength = metrics.reduce((max, metric) => {
-      const length = metric.id.length
-      return length > max ? length : max
-    }, 0) + 2
-    const maxDescriptionLength = metrics.reduce((max, metric) => {
-      const length = Predicate.isNotUndefined(metric.description) ? metric.description.length : 0
-      return length > max ? length : max
-    }, 0) + 2
-    const maxTypeLength = metrics.reduce((max, metric) => {
-      const length = metric.type.length
-      return length > max ? length : max
-    }, 0) + 2
-    const maxAttributesLength = metrics.reduce((max, metric) => {
-      const length = Predicate.isNotUndefined(metric.attributes) ? attributesToString(metric.attributes).length : 0
-      return length > max ? length : max
-    }, 0) + 2
+    const maxNameLength =
+      metrics.reduce((max, metric) => {
+        const length = metric.id.length
+        return length > max ? length : max
+      }, 0) + 2
+    const maxDescriptionLength =
+      metrics.reduce((max, metric) => {
+        const length = Predicate.isNotUndefined(metric.description) ? metric.description.length : 0
+        return length > max ? length : max
+      }, 0) + 2
+    const maxTypeLength =
+      metrics.reduce((max, metric) => {
+        const length = metric.type.length
+        return length > max ? length : max
+      }, 0) + 2
+    const maxAttributesLength =
+      metrics.reduce((max, metric) => {
+        const length = Predicate.isNotUndefined(metric.attributes) ? attributesToString(metric.attributes).length : 0
+        return length > max ? length : max
+      }, 0) + 2
     const grouped = Object.entries(Arr.groupBy(metrics, (metric) => metric.id))
     const sorted = Arr.sortWith(grouped, (entry) => entry[0], _String.Order)
-    const rendered = sorted.map(([, group]) =>
-      group.map((metric) =>
-        renderName(metric, maxNameLength) +
-        renderDescription(metric, maxDescriptionLength) +
-        renderType(metric, maxTypeLength) +
-        renderAttributes(metric, maxAttributesLength) +
-        renderState(metric)
-      ).join("\n")
-    ).join("\n")
+    const rendered = sorted
+      .map(([, group]) =>
+        group
+          .map(
+            (metric) =>
+              renderName(metric, maxNameLength) +
+              renderDescription(metric, maxDescriptionLength) +
+              renderType(metric, maxTypeLength) +
+              renderAttributes(metric, maxAttributesLength) +
+              renderState(metric)
+          )
+          .join("\n")
+      )
+      .join("\n")
     return InternalEffect.succeed(rendered)
   }
   return InternalEffect.succeed("")
@@ -3268,7 +3302,9 @@ const renderState = (metric: Metric.Snapshot): string => {
 }
 
 const renderKeyValues = (keyValues: Iterable<[number | string, string | number]>): string =>
-  Array.from(keyValues).map(([key, value]) => `(${key} -> ${value})`).join(", ")
+  Array.from(keyValues)
+    .map(([key, value]) => `(${key} -> ${value})`)
+    .join(", ")
 
 const attributesToString = (attributes: Metric.AttributeSet): string => {
   const attrs = Object.entries(attributes)
@@ -3344,7 +3380,10 @@ const attributesToString = (attributes: Metric.AttributeSet): string => {
  * @category Boundaries
  */
 export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArray<number> =>
-  Arr.append(Arr.filter(new Set(iterable), (n) => n > 0), Number.POSITIVE_INFINITY)
+  Arr.append(
+    Arr.filter(new Set(iterable), (n) => n > 0),
+    Number.POSITIVE_INFINITY
+  )
 
 /**
  * A helper method to create histogram bucket boundaries with linearly
@@ -3977,10 +4016,7 @@ export const disableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A
 
 // Utilities
 
-function makeKey<Input, State>(
-  metric: Metric<Input, State>,
-  attributes: Metric.Attributes | undefined
-) {
+function makeKey<Input, State>(metric: Metric<Input, State>, attributes: Metric.Attributes | undefined) {
   let key = `${metric.type}:${metric.id}`
   if (Predicate.isNotUndefined(metric.description)) {
     key += `:${metric.description}`

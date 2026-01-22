@@ -22,14 +22,17 @@ import { EncryptedEntry, EncryptedRemoteEntry, EventLogEncryption, layerSubtle }
  * @since 4.0.0
  * @category models
  */
-export class EventLogRemote extends ServiceMap.Service<EventLogRemote, {
-  readonly id: RemoteId
-  readonly changes: (
-    identity: Identity["Service"],
-    startSequence: number
-  ) => Effect.Effect<Queue.Dequeue<RemoteEntry>, never, Scope.Scope>
-  readonly write: (identity: Identity["Service"], entries: ReadonlyArray<Entry>) => Effect.Effect<void>
-}>()("effect/eventlog/EventLogRemote") {}
+export class EventLogRemote extends ServiceMap.Service<
+  EventLogRemote,
+  {
+    readonly id: RemoteId
+    readonly changes: (
+      identity: Identity["Service"],
+      startSequence: number
+    ) => Effect.Effect<Queue.Dequeue<RemoteEntry>, never, Scope.Scope>
+    readonly write: (identity: Identity["Service"], entries: ReadonlyArray<Entry>) => Effect.Effect<void>
+  }
+>()("effect/eventlog/EventLogRemote") {}
 
 /**
  * @since 4.0.0
@@ -73,11 +76,14 @@ export class ChunkedMessage extends Schema.Class<ChunkedMessage>("effect/eventlo
    * @since 4.0.0
    */
   static join(
-    map: Map<number, {
-      readonly parts: Array<Uint8Array>
-      count: number
-      bytes: number
-    }>,
+    map: Map<
+      number,
+      {
+        readonly parts: Array<Uint8Array>
+        count: number
+        bytes: number
+      }
+    >,
     part: ChunkedMessage
   ): Uint8Array | undefined {
     const [index, total] = part.part
@@ -257,13 +263,13 @@ export const RemoteEntryChange = Schema.Tuple([RemoteId, Schema.Array(EntryId)])
 export const fromSocket = (options?: {
   readonly disablePing?: boolean
 }): Effect.Effect<EventLogRemote["Service"], never, Scope.Scope | EventLogEncryption | Socket.Socket> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const socket = yield* Socket.Socket
     const encryption = yield* EventLogEncryption
     const writeRaw = yield* socket.writer
 
     const writeRequest = (request: typeof ProtocolRequest.Type) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const data = yield* encodeRequest(request)
         if (request._tag !== "WriteEntries" || data.byteLength <= constChunkSize) {
           return yield* writeRaw(data)
@@ -275,25 +281,27 @@ export const fromSocket = (options?: {
       })
 
     let pendingCounter = 0
-    const pending = new Map<number, {
-      readonly entries: ReadonlyArray<Entry>
-      readonly deferred: Deferred.Deferred<void>
-      readonly publicKey: string
-    }>()
-    const chunks = new Map<number, {
-      readonly parts: Array<Uint8Array>
-      count: number
-      bytes: number
-    }>()
+    const pending = new Map<
+      number,
+      {
+        readonly entries: ReadonlyArray<Entry>
+        readonly deferred: Deferred.Deferred<void>
+        readonly publicKey: string
+      }
+    >()
+    const chunks = new Map<
+      number,
+      {
+        readonly parts: Array<Uint8Array>
+        count: number
+        bytes: number
+      }
+    >()
 
     const subscriptions = yield* RcMap.make({
       lookup: (publicKey: string) =>
-        Effect.acquireRelease(
-          Queue.make<RemoteEntry>(),
-          (queue) =>
-            Queue.shutdown(queue).pipe(
-              Effect.andThen(Effect.ignore(writeRequest(new StopChanges({ publicKey }))))
-            )
+        Effect.acquireRelease(Queue.make<RemoteEntry>(), (queue) =>
+          Queue.shutdown(queue).pipe(Effect.andThen(Effect.ignore(writeRequest(new StopChanges({ publicKey })))))
         )
     })
     const identities = new Map<string, Identity["Service"]>()
@@ -309,13 +317,7 @@ export const fromSocket = (options?: {
           return Deferred.fail(badPing, new Error("Ping timeout"))
         }
         return writeRequest(new Ping({ id: ++latestPing }))
-      }).pipe(
-        Effect.delay("10 seconds"),
-        Effect.ignore,
-        Effect.forever,
-        Effect.interruptible,
-        Effect.forkScoped
-      )
+      }).pipe(Effect.delay("10 seconds"), Effect.ignore, Effect.forever, Effect.interruptible, Effect.forkScoped)
     }
 
     const handleMessage = (res: typeof ProtocolResponse.Type): Effect.Effect<void, unknown, Scope.Scope> => {
@@ -324,7 +326,7 @@ export const fromSocket = (options?: {
           return Deferred.succeed(remoteId, res.remoteId).pipe(Effect.asVoid)
         }
         case "Ack": {
-          return Effect.gen(function*() {
+          return Effect.gen(function* () {
             const entry = pending.get(res.id)
             if (!entry) return
             pending.delete(res.id)
@@ -346,12 +348,10 @@ export const fromSocket = (options?: {
           if (res.id === latestPing) {
             return Effect.void
           }
-          return Deferred.fail(badPing, new Error("Pong id mismatch")).pipe(
-            Effect.asVoid
-          )
+          return Deferred.fail(badPing, new Error("Pong id mismatch")).pipe(Effect.asVoid)
         }
         case "Changes": {
-          return Effect.gen(function*() {
+          return Effect.gen(function* () {
             const queue = yield* RcMap.get(subscriptions, res.publicKey)
             const identity = identities.get(res.publicKey)
             if (!identity) {
@@ -364,35 +364,33 @@ export const fromSocket = (options?: {
         case "ChunkedMessage": {
           const data = ChunkedMessage.join(chunks, res)
           if (!data) return Effect.void
-          return Effect.scoped(
-            Effect.flatMap(decodeResponse(data), handleMessage)
-          )
+          return Effect.scoped(Effect.flatMap(decodeResponse(data), handleMessage))
         }
       }
     }
 
-    yield* socket.run((data) => Effect.flatMap(decodeResponse(data), handleMessage)).pipe(
-      Effect.raceFirst(Deferred.await(badPing)),
-      Effect.tapCause(Effect.logDebug),
-      Effect.retry({
-        schedule: Schedule.exponential(100).pipe(
-          Schedule.either(Schedule.spaced(5000))
-        )
-      }),
-      Effect.annotateLogs({
-        service: "EventLogRemote",
-        method: "fromSocket"
-      }),
-      Effect.forkScoped,
-      Effect.interruptible
-    )
+    yield* socket
+      .run((data) => Effect.flatMap(decodeResponse(data), handleMessage))
+      .pipe(
+        Effect.raceFirst(Deferred.await(badPing)),
+        Effect.tapCause(Effect.logDebug),
+        Effect.retry({
+          schedule: Schedule.exponential(100).pipe(Schedule.either(Schedule.spaced(5000)))
+        }),
+        Effect.annotateLogs({
+          service: "EventLogRemote",
+          method: "fromSocket"
+        }),
+        Effect.forkScoped,
+        Effect.interruptible
+      )
 
     const id = yield* Deferred.await(remoteId)
 
     return {
       id,
       write: (identity, entries) =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const encrypted = yield* encryption.encrypt(identity, entries)
           const deferred = yield* Deferred.make<void>()
           const id = pendingCounter++
@@ -401,29 +399,33 @@ export const fromSocket = (options?: {
             deferred,
             publicKey: identity.publicKey
           })
-          yield* Effect.orDie(writeRequest(
-            new WriteEntries({
-              publicKey: identity.publicKey,
-              id,
-              iv: encrypted.iv,
-              encryptedEntries: encrypted.encryptedEntries.map((encryptedEntry, i) => ({
-                entryId: entries[i].id,
-                encryptedEntry
-              }))
-            })
-          ))
+          yield* Effect.orDie(
+            writeRequest(
+              new WriteEntries({
+                publicKey: identity.publicKey,
+                id,
+                iv: encrypted.iv,
+                encryptedEntries: encrypted.encryptedEntries.map((encryptedEntry, i) => ({
+                  entryId: entries[i].id,
+                  encryptedEntry
+                }))
+              })
+            )
+          )
           yield* Deferred.await(deferred)
         }),
       changes: (identity, startSequence) =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const queue = yield* RcMap.get(subscriptions, identity.publicKey)
           identities.set(identity.publicKey, identity)
-          yield* Effect.orDie(writeRequest(
-            new RequestChanges({
-              publicKey: identity.publicKey,
-              startSequence
-            })
-          ))
+          yield* Effect.orDie(
+            writeRequest(
+              new RequestChanges({
+                publicKey: identity.publicKey,
+                startSequence
+              })
+            )
+          )
           return queue
         })
     }
@@ -439,11 +441,9 @@ export const fromWebSocket = (
     readonly disablePing?: boolean
   }
 ): Effect.Effect<EventLogRemote["Service"], never, Scope.Scope | EventLogEncryption | Socket.WebSocketConstructor> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const socket = yield* Socket.makeWebSocket(url)
-    return yield* fromSocket(options).pipe(
-      Effect.provideService(Socket.Socket, socket)
-    )
+    return yield* fromSocket(options).pipe(Effect.provideService(Socket.Socket, socket))
   })
 
 /**
@@ -468,6 +468,4 @@ export const layerWebSocketBrowser = (
     readonly disablePing?: boolean
   }
 ): Layer.Layer<never> =>
-  layerWebSocket(url, options).pipe(
-    Layer.provide([layerSubtle, Socket.layerWebSocketConstructorGlobal])
-  )
+  layerWebSocket(url, options).pipe(Layer.provide([layerSubtle, Socket.layerWebSocketConstructorGlobal]))

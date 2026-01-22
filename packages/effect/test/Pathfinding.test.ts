@@ -72,11 +72,7 @@ describe("A*", () => {
 /**
  * Assert that the result path matches the expected path.
  */
-const assertPath = (
-  terrain: Terrain,
-  actual: Graph.PathResult<number> | undefined,
-  sequence: Sequence
-) => {
+const assertPath = (terrain: Terrain, actual: Graph.PathResult<number> | undefined, sequence: Sequence) => {
   const derived = sequenceFromPath(terrain, actual)
   if (derived !== sequence) {
     let message = "Path finding result did not match the expected sequence"
@@ -99,10 +95,7 @@ type Sequence = `${number}:${number};${string}`
 /**
  * Make a path from a sequence of moves.
  */
-const pathFromSequence = (
-  terrain: Terrain,
-  sequence: Sequence
-): Graph.PathResult<number> => {
+const pathFromSequence = (terrain: Terrain, sequence: Sequence): Graph.PathResult<number> => {
   const [start, rest] = sequence.split(";") as [`${number}:${number}`, string]
   if (!terrain.nodes.has(start)) {
     throw new Error(`Start location ${start} not found in terrain`)
@@ -153,10 +146,7 @@ const pathFromSequence = (
 /**
  * Derive a sequence of moves from a path.
  */
-const sequenceFromPath = (
-  terrain: Terrain,
-  path?: Graph.PathResult<number>
-): Sequence | undefined => {
+const sequenceFromPath = (terrain: Terrain, path?: Graph.PathResult<number>): Sequence | undefined => {
   if (path === undefined || path.path.length === 0) {
     return undefined
   }
@@ -229,7 +219,11 @@ interface Terrain {
  * a node, and edges connect adjacent walkable cells with weights based on terrain type.
  */
 const parseTerrain = (ascii: string): Terrain => {
-  const lines = ascii.trim().split("\n").map((line) => line.trim()).filter((line) => line.length > 0)
+  const lines = ascii
+    .trim()
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
   if (lines.length === 0) {
     throw new Error("Terrain must have at least one line")
   }

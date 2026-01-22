@@ -18,22 +18,26 @@ import * as TestConsole from "effect/testing/TestConsole"
 import * as V from "vitest"
 import type * as Vitest from "../index.ts"
 
-const runPromise: <E, A>(
-  _: Effect.Effect<A, E, never>,
-  ctx?: V.TestContext | undefined
-) => Promise<A> = Effect.fnUntraced(function*<E, A>(effect: Effect.Effect<A, E>, _ctx?: Vitest.TestContext) {
-  const exit = yield* Effect.exit(effect)
-  if (Exit.isFailure(exit)) {
-    const errors = Cause.prettyErrors(exit.cause)
-    for (let i = 0; i < errors.length; i++) {
-      yield* Effect.logError(errors[i])
-    }
-  }
-  return yield* exit
-}, (effect, _, ctx) => Effect.runPromise(effect, { signal: ctx?.signal }))
+const runPromise: <E, A>(_: Effect.Effect<A, E, never>, ctx?: V.TestContext | undefined) => Promise<A> =
+  Effect.fnUntraced(
+    function* <E, A>(effect: Effect.Effect<A, E>, _ctx?: Vitest.TestContext) {
+      const exit = yield* Effect.exit(effect)
+      if (Exit.isFailure(exit)) {
+        const errors = Cause.prettyErrors(exit.cause)
+        for (let i = 0; i < errors.length; i++) {
+          yield* Effect.logError(errors[i])
+        }
+      }
+      return yield* exit
+    },
+    (effect, _, ctx) => Effect.runPromise(effect, { signal: ctx?.signal })
+  )
 
 /** @internal */
-const runTest = (ctx?: Vitest.TestContext) => <E, A>(effect: Effect.Effect<A, E>) => runPromise(effect, ctx)
+const runTest =
+  (ctx?: Vitest.TestContext) =>
+  <E, A>(effect: Effect.Effect<A, E>) =>
+    runPromise(effect, ctx)
 
 /** @internal */
 export type TestContext = TestConsole.TestConsole | TestClock.TestClock
@@ -46,7 +50,7 @@ export const addEqualityTesters = () => {
 }
 
 /** @internal */
-const testOptions = (timeout?: number | V.TestOptions) => typeof timeout === "number" ? { timeout } : timeout ?? {}
+const testOptions = (timeout?: number | V.TestOptions) => (typeof timeout === "number" ? { timeout } : (timeout ?? {}))
 
 /** @internal */
 const makeTester = <R>(
@@ -57,7 +61,12 @@ const makeTester = <R>(
     ctx: V.TestContext & object,
     args: TestArgs,
     self: Vitest.Vitest.TestFunction<A, E, R, TestArgs>
-  ) => pipe(Effect.suspend(() => self(...args)), mapEffect, runTest(ctx))
+  ) =>
+    pipe(
+      Effect.suspend(() => self(...args)),
+      mapEffect,
+      runTest(ctx)
+    )
 
   const f: Vitest.Vitest.Test<R> = (name, self, timeout) =>
     it(name, testOptions(timeout), (ctx) => run(ctx, [ctx], self))
@@ -75,11 +84,7 @@ const makeTester = <R>(
     it.only(name, testOptions(timeout), (ctx) => run(ctx, [ctx], self))
 
   const each: Vitest.Vitest.Tester<R>["each"] = (cases) => (name, self, timeout) =>
-    it.for(cases)(
-      name,
-      testOptions(timeout),
-      (args, ctx) => run(ctx, [args], self) as any
-    )
+    it.for(cases)(name, testOptions(timeout), (args, ctx) => run(ctx, [args], self) as any)
 
   const fails: Vitest.Vitest.Tester<R>["fails"] = (name, self, timeout) =>
     V.it.fails(name, testOptions(timeout), (ctx) => run(ctx, [ctx], self))
@@ -92,43 +97,41 @@ const makeTester = <R>(
         }
         return arbitrary as fc.Arbitrary<any>
       })
-      return it(
-        name,
-        testOptions(timeout),
-        (ctx) =>
+      return it(name, testOptions(timeout), (ctx) =>
+        // @ts-ignore
+        fc.assert(
           // @ts-ignore
-          fc.assert(
-            // @ts-ignore
-            fc.asyncProperty(...arbs, (...as) => run(ctx, [as as any, ctx], self)),
-            // @ts-ignore
-            isObject(timeout) ? timeout?.fastCheck : {}
-          )
+          fc.asyncProperty(...arbs, (...as) => run(ctx, [as as any, ctx], self)),
+          // @ts-ignore
+          isObject(timeout) ? timeout?.fastCheck : {}
+        )
       )
     }
 
     const arbs = fc.record(
-      Object.keys(arbitraries).reduce(function(result, key) {
-        const arb: any = arbitraries[key]
-        if (Schema.isSchema(arb)) {
-          result[key] = Schema.toArbitrary(arb)
-        }
-        result[key] = arb
-        return result
-      }, {} as Record<string, fc.Arbitrary<any>>)
+      Object.keys(arbitraries).reduce(
+        function (result, key) {
+          const arb: any = arbitraries[key]
+          if (Schema.isSchema(arb)) {
+            result[key] = Schema.toArbitrary(arb)
+          }
+          result[key] = arb
+          return result
+        },
+        {} as Record<string, fc.Arbitrary<any>>
+      )
     )
 
-    return it(
-      name,
-      testOptions(timeout),
-      (ctx) =>
-        // @ts-ignore
-        fc.assert(
-          fc.asyncProperty(arbs, (...as) =>
-            // @ts-ignore
-            run(ctx, [as[0] as any, ctx], self)),
+    return it(name, testOptions(timeout), (ctx) =>
+      // @ts-ignore
+      fc.assert(
+        fc.asyncProperty(arbs, (...as) =>
           // @ts-ignore
-          isObject(timeout) ? timeout?.fastCheck : {}
-        )
+          run(ctx, [as[0] as any, ctx], self)
+        ),
+        // @ts-ignore
+        isObject(timeout) ? timeout?.fastCheck : {}
+      )
     )
   }
 
@@ -144,114 +147,112 @@ export const prop: Vitest.Vitest.Methods["prop"] = (name, arbitraries, self, tim
       }
       return arbitrary
     })
-    return V.it(
-      name,
-      testOptions(timeout),
+    return V.it(name, testOptions(timeout), (ctx) =>
       // @ts-ignore
-      (ctx) => fc.assert(fc.property(...arbs, (...as) => self(as, ctx)), isObject(timeout) ? timeout?.fastCheck : {})
+      fc.assert(
+        // @ts-ignore
+        fc.property(...arbs, (...as) => self(as, ctx)),
+        // @ts-ignore
+        isObject(timeout) ? timeout?.fastCheck : {}
+      )
     )
   }
 
   const arbs = fc.record(
-    Object.keys(arbitraries).reduce(function(result, key) {
-      const arb: any = arbitraries[key]
-      if (Schema.isSchema(arb)) {
-        throw new Error("Schemas are not supported yet")
-      }
-      result[key] = arb
-      return result
-    }, {} as Record<string, fc.Arbitrary<any>>)
+    Object.keys(arbitraries).reduce(
+      function (result, key) {
+        const arb: any = arbitraries[key]
+        if (Schema.isSchema(arb)) {
+          throw new Error("Schemas are not supported yet")
+        }
+        result[key] = arb
+        return result
+      },
+      {} as Record<string, fc.Arbitrary<any>>
+    )
   )
 
-  return V.it(
-    name,
-    testOptions(timeout),
+  return V.it(name, testOptions(timeout), (ctx) =>
     // @ts-ignore
-    (ctx) => fc.assert(fc.property(arbs, (as) => self(as, ctx)), isObject(timeout) ? timeout?.fastCheck : {})
+    fc.assert(
+      // @ts-ignore
+      fc.property(arbs, (as) => self(as, ctx)),
+      // @ts-ignore
+      isObject(timeout) ? timeout?.fastCheck : {}
+    )
   )
 }
 
 /** @internal */
-export const layer = <R, E>(
-  layer_: Layer.Layer<R, E>,
-  options?: {
-    readonly memoMap?: Layer.MemoMap
-    readonly timeout?: Duration.DurationInput
-    readonly excludeTestServices?: boolean
-  }
-): {
-  (f: (it: Vitest.Vitest.MethodsNonLive<R>) => void): void
+export const layer =
+  <R, E>(
+    layer_: Layer.Layer<R, E>,
+    options?: {
+      readonly memoMap?: Layer.MemoMap
+      readonly timeout?: Duration.DurationInput
+      readonly excludeTestServices?: boolean
+    }
+  ): {
+    (f: (it: Vitest.Vitest.MethodsNonLive<R>) => void): void
+    (name: string, f: (it: Vitest.Vitest.MethodsNonLive<R>) => void): void
+  } =>
   (
-    name: string,
-    f: (it: Vitest.Vitest.MethodsNonLive<R>) => void
-  ): void
-} =>
-(
-  ...args: [
-    name: string,
-    f: (
-      it: Vitest.Vitest.MethodsNonLive<R>
-    ) => void
-  ] | [
-    f: (it: Vitest.Vitest.MethodsNonLive<R>) => void
-  ]
-) => {
-  const excludeTestServices = options?.excludeTestServices ?? false
-  const withTestEnv = excludeTestServices
-    ? layer_ as Layer.Layer<R, E>
-    : Layer.provideMerge(layer_, TestEnv)
-  const memoMap = options?.memoMap ?? Effect.runSync(Layer.makeMemoMap)
-  const scope = Effect.runSync(Scope.make())
-  const contextEffect = Layer.buildWithMemoMap(withTestEnv, memoMap, scope).pipe(
-    Effect.orDie,
-    Effect.cached,
-    Effect.runSync
-  )
+    ...args:
+      | [name: string, f: (it: Vitest.Vitest.MethodsNonLive<R>) => void]
+      | [f: (it: Vitest.Vitest.MethodsNonLive<R>) => void]
+  ) => {
+    const excludeTestServices = options?.excludeTestServices ?? false
+    const withTestEnv = excludeTestServices ? (layer_ as Layer.Layer<R, E>) : Layer.provideMerge(layer_, TestEnv)
+    const memoMap = options?.memoMap ?? Effect.runSync(Layer.makeMemoMap)
+    const scope = Effect.runSync(Scope.make())
+    const contextEffect = Layer.buildWithMemoMap(withTestEnv, memoMap, scope).pipe(
+      Effect.orDie,
+      Effect.cached,
+      Effect.runSync
+    )
 
-  const makeIt = (it: V.TestAPI): Vitest.Vitest.MethodsNonLive<R> =>
-    Object.assign(it, {
-      effect: makeTester<R | Scope.Scope>(
-        (effect) =>
-          Effect.flatMap(contextEffect, (context) =>
-            effect.pipe(
-              Effect.scoped,
-              Effect.provide(context)
-            )),
-        it
-      ),
-      prop,
-      flakyTest,
-      layer<R2, E2>(nestedLayer: Layer.Layer<R2, E2, R>, options?: {
-        readonly timeout?: Duration.DurationInput
-      }) {
-        return layer(Layer.provideMerge(nestedLayer, withTestEnv), { ...options, memoMap, excludeTestServices })
-      }
+    const makeIt = (it: V.TestAPI): Vitest.Vitest.MethodsNonLive<R> =>
+      Object.assign(it, {
+        effect: makeTester<R | Scope.Scope>(
+          (effect) => Effect.flatMap(contextEffect, (context) => effect.pipe(Effect.scoped, Effect.provide(context))),
+          it
+        ),
+        prop,
+        flakyTest,
+        layer<R2, E2>(
+          nestedLayer: Layer.Layer<R2, E2, R>,
+          options?: {
+            readonly timeout?: Duration.DurationInput
+          }
+        ) {
+          return layer(Layer.provideMerge(nestedLayer, withTestEnv), { ...options, memoMap, excludeTestServices })
+        }
+      })
+
+    if (args.length === 1) {
+      V.beforeAll(
+        () => runPromise(Effect.asVoid(contextEffect)),
+        options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
+      )
+      V.afterAll(
+        () => runPromise(Scope.close(scope, Exit.void)),
+        options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
+      )
+      return args[0](makeIt(V.it))
+    }
+
+    return V.describe(args[0], () => {
+      V.beforeAll(
+        () => runPromise(Effect.asVoid(contextEffect)),
+        options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
+      )
+      V.afterAll(
+        () => runPromise(Scope.close(scope, Exit.void)),
+        options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
+      )
+      return args[1](makeIt(V.it))
     })
-
-  if (args.length === 1) {
-    V.beforeAll(
-      () => runPromise(Effect.asVoid(contextEffect)),
-      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
-    )
-    V.afterAll(
-      () => runPromise(Scope.close(scope, Exit.void)),
-      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
-    )
-    return args[0](makeIt(V.it))
   }
-
-  return V.describe(args[0], () => {
-    V.beforeAll(
-      () => runPromise(Effect.asVoid(contextEffect)),
-      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
-    )
-    V.afterAll(
-      () => runPromise(Scope.close(scope, Exit.void)),
-      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
-    )
-    return args[1](makeIt(V.it))
-  })
-}
 
 /** @internal */
 export const flakyTest = <A, E, R>(

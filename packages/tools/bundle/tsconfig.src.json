@@ -5,8 +5,5 @@
   "compilerOptions": {
     "resolveJsonModule": true
   },
-  "references": [
-    { "path": "../../effect" },
-    { "path": "../../platform-node" }
-  ]
+  "references": [{ "path": "../../effect" }, { "path": "../../platform-node" }]
 }

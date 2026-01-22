@@ -266,58 +266,178 @@ describe("Array", () => {
     })
 
     it("findFirstIndex", () => {
-      assertUndefined(pipe([], Arr.findFirstIndex((n) => n % 2 === 0)))
-      deepStrictEqual(pipe([1, 2, 3], Arr.findFirstIndex((n) => n % 2 === 0)), 1)
-      deepStrictEqual(pipe([1, 2, 3, 1], Arr.findFirstIndex((n) => n % 2 === 0)), 1)
+      assertUndefined(
+        pipe(
+          [],
+          Arr.findFirstIndex((n) => n % 2 === 0)
+        )
+      )
+      deepStrictEqual(
+        pipe(
+          [1, 2, 3],
+          Arr.findFirstIndex((n) => n % 2 === 0)
+        ),
+        1
+      )
+      deepStrictEqual(
+        pipe(
+          [1, 2, 3, 1],
+          Arr.findFirstIndex((n) => n % 2 === 0)
+        ),
+        1
+      )
 
-      assertUndefined(pipe(new Set<number>(), Arr.findFirstIndex((n) => n % 2 === 0)))
-      deepStrictEqual(pipe(new Set([1, 2, 3]), Arr.findFirstIndex((n) => n % 2 === 0)), 1)
-      deepStrictEqual(pipe(new Set([1, 2, 3, 4]), Arr.findFirstIndex((n) => n % 2 === 0)), 1)
+      assertUndefined(
+        pipe(
+          new Set<number>(),
+          Arr.findFirstIndex((n) => n % 2 === 0)
+        )
+      )
+      deepStrictEqual(
+        pipe(
+          new Set([1, 2, 3]),
+          Arr.findFirstIndex((n) => n % 2 === 0)
+        ),
+        1
+      )
+      deepStrictEqual(
+        pipe(
+          new Set([1, 2, 3, 4]),
+          Arr.findFirstIndex((n) => n % 2 === 0)
+        ),
+        1
+      )
     })
 
     it("findLastIndex", () => {
-      assertUndefined(pipe([], Arr.findLastIndex((n) => n % 2 === 0)))
-      deepStrictEqual(pipe([1, 2, 3], Arr.findLastIndex((n) => n % 2 === 0)), 1)
-      deepStrictEqual(pipe([1, 2, 3, 4], Arr.findLastIndex((n) => n % 2 === 0)), 3)
+      assertUndefined(
+        pipe(
+          [],
+          Arr.findLastIndex((n) => n % 2 === 0)
+        )
+      )
+      deepStrictEqual(
+        pipe(
+          [1, 2, 3],
+          Arr.findLastIndex((n) => n % 2 === 0)
+        ),
+        1
+      )
+      deepStrictEqual(
+        pipe(
+          [1, 2, 3, 4],
+          Arr.findLastIndex((n) => n % 2 === 0)
+        ),
+        3
+      )
 
-      assertUndefined(pipe(new Set<number>(), Arr.findLastIndex((n) => n % 2 === 0)))
-      deepStrictEqual(pipe(new Set([1, 2, 3]), Arr.findLastIndex((n) => n % 2 === 0)), 1)
-      deepStrictEqual(pipe(new Set([1, 2, 3, 4]), Arr.findLastIndex((n) => n % 2 === 0)), 3)
+      assertUndefined(
+        pipe(
+          new Set<number>(),
+          Arr.findLastIndex((n) => n % 2 === 0)
+        )
+      )
+      deepStrictEqual(
+        pipe(
+          new Set([1, 2, 3]),
+          Arr.findLastIndex((n) => n % 2 === 0)
+        ),
+        1
+      )
+      deepStrictEqual(
+        pipe(
+          new Set([1, 2, 3, 4]),
+          Arr.findLastIndex((n) => n % 2 === 0)
+        ),
+        3
+      )
     })
 
     describe("findFirst", () => {
       it("boolean-returning overloads", () => {
-        assertNone(pipe([], Arr.findFirst((n) => n % 2 === 0)))
-        assertSome(pipe([1, 2, 3], Arr.findFirst((n) => n % 2 === 0)), 2)
-        assertSome(pipe([1, 2, 3, 4], Arr.findFirst((n) => n % 2 === 0)), 2)
+        assertNone(
+          pipe(
+            [],
+            Arr.findFirst((n) => n % 2 === 0)
+          )
+        )
+        assertSome(
+          pipe(
+            [1, 2, 3],
+            Arr.findFirst((n) => n % 2 === 0)
+          ),
+          2
+        )
+        assertSome(
+          pipe(
+            [1, 2, 3, 4],
+            Arr.findFirst((n) => n % 2 === 0)
+          ),
+          2
+        )
 
-        assertNone(pipe(new Set<number>(), Arr.findFirst((n) => n % 2 === 0)))
-        assertSome(pipe(new Set([1, 2, 3]), Arr.findFirst((n) => n % 2 === 0)), 2)
-        assertSome(pipe(new Set([1, 2, 3, 4]), Arr.findFirst((n) => n % 2 === 0)), 2)
+        assertNone(
+          pipe(
+            new Set<number>(),
+            Arr.findFirst((n) => n % 2 === 0)
+          )
+        )
+        assertSome(
+          pipe(
+            new Set([1, 2, 3]),
+            Arr.findFirst((n) => n % 2 === 0)
+          ),
+          2
+        )
+        assertSome(
+          pipe(
+            new Set([1, 2, 3, 4]),
+            Arr.findFirst((n) => n % 2 === 0)
+          ),
+          2
+        )
       })
 
       it("Option-returning overloads", () => {
         assertNone(
-          pipe([], Arr.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          pipe(
+            [],
+            Arr.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          )
         )
         assertSome(
-          pipe([1, 2, 3], Arr.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            [1, 2, 3],
+            Arr.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
         assertSome(
-          pipe([1, 2, 3, 4], Arr.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            [1, 2, 3, 4],
+            Arr.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
 
         assertNone(
-          pipe(new Set<number>(), Arr.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          pipe(
+            new Set<number>(),
+            Arr.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          )
         )
         assertSome(
-          pipe(new Set([1, 2, 3]), Arr.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            new Set([1, 2, 3]),
+            Arr.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
         assertSome(
-          pipe(new Set([1, 2, 3, 4]), Arr.findFirst((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            new Set([1, 2, 3, 4]),
+            Arr.findFirst((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
       })
@@ -325,37 +445,89 @@ describe("Array", () => {
 
     describe("findFirstWithIndex", () => {
       it("boolean-returning overloads", () => {
-        assertUndefined(pipe([], Arr.findFirstWithIndex((n) => n % 2 === 0)))
-        deepStrictEqual(pipe([1, 2, 3], Arr.findFirstWithIndex((n) => n % 2 === 0)), [2, 1])
-        deepStrictEqual(pipe([1, 2, 3, 4], Arr.findFirstWithIndex((n) => n % 2 === 0)), [2, 1])
+        assertUndefined(
+          pipe(
+            [],
+            Arr.findFirstWithIndex((n) => n % 2 === 0)
+          )
+        )
+        deepStrictEqual(
+          pipe(
+            [1, 2, 3],
+            Arr.findFirstWithIndex((n) => n % 2 === 0)
+          ),
+          [2, 1]
+        )
+        deepStrictEqual(
+          pipe(
+            [1, 2, 3, 4],
+            Arr.findFirstWithIndex((n) => n % 2 === 0)
+          ),
+          [2, 1]
+        )
 
-        assertUndefined(pipe(new Set<number>(), Arr.findFirstWithIndex((n) => n % 2 === 0)))
-        deepStrictEqual(pipe(new Set([1, 2, 3]), Arr.findFirstWithIndex((n) => n % 2 === 0)), [2, 1])
-        deepStrictEqual(pipe(new Set([1, 2, 3, 4]), Arr.findFirstWithIndex((n) => n % 2 === 0)), [2, 1])
+        assertUndefined(
+          pipe(
+            new Set<number>(),
+            Arr.findFirstWithIndex((n) => n % 2 === 0)
+          )
+        )
+        deepStrictEqual(
+          pipe(
+            new Set([1, 2, 3]),
+            Arr.findFirstWithIndex((n) => n % 2 === 0)
+          ),
+          [2, 1]
+        )
+        deepStrictEqual(
+          pipe(
+            new Set([1, 2, 3, 4]),
+            Arr.findFirstWithIndex((n) => n % 2 === 0)
+          ),
+          [2, 1]
+        )
       })
 
       it("Option-returning overloads", () => {
         assertUndefined(
-          pipe([], Arr.findFirstWithIndex((n) => n % 2 === 0 ? Option.some(n + 1) : Option.none()))
+          pipe(
+            [],
+            Arr.findFirstWithIndex((n) => (n % 2 === 0 ? Option.some(n + 1) : Option.none()))
+          )
         )
         deepStrictEqual(
-          pipe([1, 2, 3], Arr.findFirstWithIndex((n) => n % 2 === 0 ? Option.some(n + 1) : Option.none())),
+          pipe(
+            [1, 2, 3],
+            Arr.findFirstWithIndex((n) => (n % 2 === 0 ? Option.some(n + 1) : Option.none()))
+          ),
           [3, 1]
         )
         deepStrictEqual(
-          pipe([1, 2, 3, 4], Arr.findFirstWithIndex((n) => n % 2 === 0 ? Option.some(n + 1) : Option.none())),
+          pipe(
+            [1, 2, 3, 4],
+            Arr.findFirstWithIndex((n) => (n % 2 === 0 ? Option.some(n + 1) : Option.none()))
+          ),
           [3, 1]
         )
 
         assertUndefined(
-          pipe(new Set<number>(), Arr.findFirstWithIndex((n) => n % 2 === 0 ? Option.some(n + 1) : Option.none()))
+          pipe(
+            new Set<number>(),
+            Arr.findFirstWithIndex((n) => (n % 2 === 0 ? Option.some(n + 1) : Option.none()))
+          )
         )
         deepStrictEqual(
-          pipe(new Set([1, 2, 3]), Arr.findFirstWithIndex((n) => n % 2 === 0 ? Option.some(n + 1) : Option.none())),
+          pipe(
+            new Set([1, 2, 3]),
+            Arr.findFirstWithIndex((n) => (n % 2 === 0 ? Option.some(n + 1) : Option.none()))
+          ),
           [3, 1]
         )
         deepStrictEqual(
-          pipe(new Set([1, 2, 3, 4]), Arr.findFirstWithIndex((n) => n % 2 === 0 ? Option.some(n + 1) : Option.none())),
+          pipe(
+            new Set([1, 2, 3, 4]),
+            Arr.findFirstWithIndex((n) => (n % 2 === 0 ? Option.some(n + 1) : Option.none()))
+          ),
           [3, 1]
         )
       })
@@ -363,37 +535,89 @@ describe("Array", () => {
 
     describe("findLast", () => {
       it("boolean-returning overloads", () => {
-        assertNone(pipe([], Arr.findLast((n) => n % 2 === 0)))
-        assertSome(pipe([1, 2, 3], Arr.findLast((n) => n % 2 === 0)), 2)
-        assertSome(pipe([1, 2, 3, 4], Arr.findLast((n) => n % 2 === 0)), 4)
+        assertNone(
+          pipe(
+            [],
+            Arr.findLast((n) => n % 2 === 0)
+          )
+        )
+        assertSome(
+          pipe(
+            [1, 2, 3],
+            Arr.findLast((n) => n % 2 === 0)
+          ),
+          2
+        )
+        assertSome(
+          pipe(
+            [1, 2, 3, 4],
+            Arr.findLast((n) => n % 2 === 0)
+          ),
+          4
+        )
 
-        assertNone(pipe(new Set<number>(), Arr.findLast((n) => n % 2 === 0)))
-        assertSome(pipe(new Set([1, 2, 3]), Arr.findLast((n) => n % 2 === 0)), 2)
-        assertSome(pipe(new Set([1, 2, 3, 4]), Arr.findLast((n) => n % 2 === 0)), 4)
+        assertNone(
+          pipe(
+            new Set<number>(),
+            Arr.findLast((n) => n % 2 === 0)
+          )
+        )
+        assertSome(
+          pipe(
+            new Set([1, 2, 3]),
+            Arr.findLast((n) => n % 2 === 0)
+          ),
+          2
+        )
+        assertSome(
+          pipe(
+            new Set([1, 2, 3, 4]),
+            Arr.findLast((n) => n % 2 === 0)
+          ),
+          4
+        )
       })
 
       it("Option-returning overloads", () => {
         assertNone(
-          pipe([], Arr.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          pipe(
+            [],
+            Arr.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          )
         )
         assertSome(
-          pipe([1, 2, 3], Arr.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            [1, 2, 3],
+            Arr.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
         assertSome(
-          pipe([1, 2, 3, 4], Arr.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            [1, 2, 3, 4],
+            Arr.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [4, 3]
         )
 
         assertNone(
-          pipe(new Set<number>(), Arr.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          pipe(
+            new Set<number>(),
+            Arr.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          )
         )
         assertSome(
-          pipe(new Set([1, 2, 3]), Arr.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            new Set([1, 2, 3]),
+            Arr.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [2, 1]
         )
         assertSome(
-          pipe(new Set([1, 2, 3, 4]), Arr.findLast((n, i) => n % 2 === 0 ? Option.some([n, i]) : Option.none())),
+          pipe(
+            new Set([1, 2, 3, 4]),
+            Arr.findLast((n, i) => (n % 2 === 0 ? Option.some([n, i]) : Option.none()))
+          ),
           [4, 3]
         )
       })
@@ -490,19 +714,31 @@ describe("Array", () => {
 
     it("zipWith", () => {
       deepStrictEqual(
-        pipe(new Set([1, 2, 3]), Arr.zipWith(new Set([]), (n, s) => s + n)),
+        pipe(
+          new Set([1, 2, 3]),
+          Arr.zipWith(new Set([]), (n, s) => s + n)
+        ),
         []
       )
       deepStrictEqual(
-        pipe(new Set([]), Arr.zipWith(new Set(["a", "b", "c", "d"]), (n, s) => s + n)),
+        pipe(
+          new Set([]),
+          Arr.zipWith(new Set(["a", "b", "c", "d"]), (n, s) => s + n)
+        ),
         []
       )
       deepStrictEqual(
-        pipe(new Set([]), Arr.zipWith(new Set([]), (n, s) => s + n)),
+        pipe(
+          new Set([]),
+          Arr.zipWith(new Set([]), (n, s) => s + n)
+        ),
         []
       )
       deepStrictEqual(
-        pipe(new Set([1, 2, 3]), Arr.zipWith(new Set(["a", "b", "c", "d"]), (n, s) => s + n)),
+        pipe(
+          new Set([1, 2, 3]),
+          Arr.zipWith(new Set(["a", "b", "c", "d"]), (n, s) => s + n)
+        ),
         ["a1", "b2", "c3"]
       )
     })
@@ -511,13 +747,11 @@ describe("Array", () => {
       deepStrictEqual(Arr.unzip(new Set([])), [[], []])
       deepStrictEqual(
         Arr.unzip(
-          new Set(
-            [
-              [1, "a"],
-              [2, "b"],
-              [3, "c"]
-            ] as const
-          )
+          new Set([
+            [1, "a"],
+            [2, "b"],
+            [3, "c"]
+          ] as const)
         ),
         [
           [1, 2, 3],
@@ -633,7 +867,10 @@ describe("Array", () => {
   })
 
   it("splitAtNonEmpty", () => {
-    deepStrictEqual(pipe(Arr.make(1, 2, 3, 4), Arr.splitAtNonEmpty(2)), [[1, 2], [3, 4]])
+    deepStrictEqual(pipe(Arr.make(1, 2, 3, 4), Arr.splitAtNonEmpty(2)), [
+      [1, 2],
+      [3, 4]
+    ])
     deepStrictEqual(pipe(Arr.make(1, 2, 3, 4), Arr.splitAtNonEmpty(10)), [[1, 2, 3, 4], []])
   })
 
@@ -684,15 +921,9 @@ describe("Array", () => {
 
   it("unappend", () => {
     deepStrictEqual(Arr.unappend([0]), [[], 0])
-    deepStrictEqual(Arr.unappend([1, 2, 3, 4]), [
-      Arr.make(1, 2, 3),
-      4
-    ])
+    deepStrictEqual(Arr.unappend([1, 2, 3, 4]), [Arr.make(1, 2, 3), 4])
     deepStrictEqual(Arr.unappend([0]), [[], 0])
-    deepStrictEqual(Arr.unappend([1, 2, 3, 4]), [
-      Arr.make(1, 2, 3),
-      4
-    ])
+    deepStrictEqual(Arr.unappend([1, 2, 3, 4]), [Arr.make(1, 2, 3), 4])
   })
 
   it("modifyHeadNonEmpty", () => {
@@ -722,7 +953,7 @@ describe("Array", () => {
   })
 
   it("liftResult", () => {
-    const f = Arr.liftResult((s: string) => s.length > 2 ? Result.succeed(s.length) : Result.fail("e"))
+    const f = Arr.liftResult((s: string) => (s.length > 2 ? Result.succeed(s.length) : Result.fail("e")))
     deepStrictEqual(f("a"), [])
     deepStrictEqual(f("aaa"), [3])
   })
@@ -741,10 +972,7 @@ describe("Array", () => {
   })
 
   it("initNonEmpty", () => {
-    deepStrictEqual(
-      Arr.initNonEmpty(Arr.make(1, 2, 3)),
-      Arr.make(1, 2)
-    )
+    deepStrictEqual(Arr.initNonEmpty(Arr.make(1, 2, 3)), Arr.make(1, 2))
     deepStrictEqual(Arr.initNonEmpty([1]), [])
   })
 
@@ -760,18 +988,27 @@ describe("Array", () => {
 
   it("map", () => {
     deepStrictEqual(
-      pipe([1, 2, 3], Arr.map((n) => n * 2)),
+      pipe(
+        [1, 2, 3],
+        Arr.map((n) => n * 2)
+      ),
       [2, 4, 6]
     )
     deepStrictEqual(
-      pipe(["a", "b"], Arr.map((s, i) => s + i)),
+      pipe(
+        ["a", "b"],
+        Arr.map((s, i) => s + i)
+      ),
       ["a0", "b1"]
     )
   })
 
   it("flatMap", () => {
     deepStrictEqual(
-      pipe([1, 2, 3], Arr.flatMap((n) => [n, n + 1])),
+      pipe(
+        [1, 2, 3],
+        Arr.flatMap((n) => [n, n + 1])
+      ),
       [1, 2, 2, 3, 3, 4]
     )
     const f = Arr.flatMap((n: number, i) => [n + i])
@@ -781,25 +1018,13 @@ describe("Array", () => {
 
   it("extend", () => {
     deepStrictEqual(pipe([1, 2, 3, 4], Arr.extend(Num.sumAll)), [10, 9, 7, 4])
-    deepStrictEqual(pipe([1, 2, 3, 4], Arr.extend(identity)), [
-      [1, 2, 3, 4],
-      [2, 3, 4],
-      [3, 4],
-      [4]
-    ])
+    deepStrictEqual(pipe([1, 2, 3, 4], Arr.extend(identity)), [[1, 2, 3, 4], [2, 3, 4], [3, 4], [4]])
   })
 
   it("compact", () => {
     deepStrictEqual(Arr.getSomes([]), [])
-    deepStrictEqual(Arr.getSomes([Option.some(1), Option.some(2), Option.some(3)]), [
-      1,
-      2,
-      3
-    ])
-    deepStrictEqual(Arr.getSomes([Option.some(1), Option.none(), Option.some(3)]), [
-      1,
-      3
-    ])
+    deepStrictEqual(Arr.getSomes([Option.some(1), Option.some(2), Option.some(3)]), [1, 2, 3])
+    deepStrictEqual(Arr.getSomes([Option.some(1), Option.none(), Option.some(3)]), [1, 3])
   })
 
   it("separate", () => {
@@ -811,7 +1036,10 @@ describe("Array", () => {
   })
 
   it("filter", () => {
-    deepStrictEqual(Arr.filter([1, 2, 3], (n) => n % 2 === 1), [1, 3])
+    deepStrictEqual(
+      Arr.filter([1, 2, 3], (n) => n % 2 === 1),
+      [1, 3]
+    )
     deepStrictEqual(Arr.filter([Option.some(3), Option.some(2), Option.some(1)], Option.isSome), [
       Option.some(3),
       Option.some(2),
@@ -821,7 +1049,10 @@ describe("Array", () => {
       Option.some(3),
       Option.some(1)
     ])
-    deepStrictEqual(Arr.filter(["a", "b", "c"], (_, i) => i % 2 === 0), ["a", "c"])
+    deepStrictEqual(
+      Arr.filter(["a", "b", "c"], (_, i) => i % 2 === 0),
+      ["a", "c"]
+    )
   })
 
   it("filterMap", () => {
@@ -835,22 +1066,40 @@ describe("Array", () => {
 
   it("partitionMap", () => {
     deepStrictEqual(Arr.partitionMap([], identity), [[], []])
-    deepStrictEqual(Arr.partitionMap([Result.succeed(1), Result.fail("a"), Result.succeed(2)], identity), [["a"], [
-      1,
-      2
-    ]])
+    deepStrictEqual(Arr.partitionMap([Result.succeed(1), Result.fail("a"), Result.succeed(2)], identity), [
+      ["a"],
+      [1, 2]
+    ])
   })
 
   it("partition", () => {
-    deepStrictEqual(Arr.partition([], (n) => n > 2), [[], []])
-    deepStrictEqual(Arr.partition([1, 3], (n) => n > 2), [[1], [3]])
+    deepStrictEqual(
+      Arr.partition([], (n) => n > 2),
+      [[], []]
+    )
+    deepStrictEqual(
+      Arr.partition([1, 3], (n) => n > 2),
+      [[1], [3]]
+    )
 
-    deepStrictEqual(Arr.partition([], (n, i) => n + i > 2), [[], []])
-    deepStrictEqual(Arr.partition([1, 2], (n, i) => n + i > 2), [[1], [2]])
+    deepStrictEqual(
+      Arr.partition([], (n, i) => n + i > 2),
+      [[], []]
+    )
+    deepStrictEqual(
+      Arr.partition([1, 2], (n, i) => n + i > 2),
+      [[1], [2]]
+    )
   })
 
   it("reduce", () => {
-    deepStrictEqual(pipe(["a", "b", "c"], Arr.reduce("", (b, a) => b + a)), "abc")
+    deepStrictEqual(
+      pipe(
+        ["a", "b", "c"],
+        Arr.reduce("", (b, a) => b + a)
+      ),
+      "abc"
+    )
     deepStrictEqual(
       pipe(
         ["a", "b"],
@@ -932,26 +1181,15 @@ describe("Array", () => {
   })
 
   it("chunksOf", () => {
-    deepStrictEqual(Arr.chunksOf(2)([1, 2, 3, 4, 5]), [
-      Arr.make(1, 2),
-      [3, 4],
-      [5]
-    ])
-    deepStrictEqual(Arr.chunksOf(2)([1, 2, 3, 4, 5, 6]), [
-      Arr.make(1, 2),
-      [3, 4],
-      [5, 6]
-    ])
+    deepStrictEqual(Arr.chunksOf(2)([1, 2, 3, 4, 5]), [Arr.make(1, 2), [3, 4], [5]])
+    deepStrictEqual(Arr.chunksOf(2)([1, 2, 3, 4, 5, 6]), [Arr.make(1, 2), [3, 4], [5, 6]])
     deepStrictEqual(Arr.chunksOf(1)([1, 2, 3, 4, 5]), [[1], [2], [3], [4], [5]])
     deepStrictEqual(Arr.chunksOf(5)([1, 2, 3, 4, 5]), [[1, 2, 3, 4, 5]])
     // out of bounds
     deepStrictEqual(Arr.chunksOf(0)([1, 2, 3, 4, 5]), [[1], [2], [3], [4], [5]])
     deepStrictEqual(Arr.chunksOf(-1)([1, 2, 3, 4, 5]), [[1], [2], [3], [4], [5]])
 
-    const assertSingleChunk = (
-      input: Arr.NonEmptyReadonlyArray<number>,
-      n: number
-    ) => {
+    const assertSingleChunk = (input: Arr.NonEmptyReadonlyArray<number>, n: number) => {
       const chunks = Arr.chunksOf(n)(input)
       strictEqual(chunks.length, 1)
       deepStrictEqual(Arr.headNonEmpty(chunks), input)
@@ -965,8 +1203,17 @@ describe("Array", () => {
   it("window", () => {
     deepStrictEqual(Arr.window([], 0), [])
     deepStrictEqual(Arr.window([], 2), [])
-    deepStrictEqual(Arr.window([1, 2, 3, 4, 5], 2), [[1, 2], [2, 3], [3, 4], [4, 5]])
-    deepStrictEqual(Arr.window([1, 2, 3, 4, 5], 3), [[1, 2, 3], [2, 3, 4], [3, 4, 5]])
+    deepStrictEqual(Arr.window([1, 2, 3, 4, 5], 2), [
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [4, 5]
+    ])
+    deepStrictEqual(Arr.window([1, 2, 3, 4, 5], 3), [
+      [1, 2, 3],
+      [2, 3, 4],
+      [3, 4, 5]
+    ])
 
     // n out of bounds
     deepStrictEqual(Arr.window([1, 2, 3, 4, 5], 6), [])
@@ -980,10 +1227,7 @@ describe("Array", () => {
   })
 
   it("max", () => {
-    deepStrictEqual(
-      Arr.max(Num.Order)(Arr.make(1, 2, 3)),
-      3
-    )
+    deepStrictEqual(Arr.max(Num.Order)(Arr.make(1, 2, 3)), 3)
     deepStrictEqual(Arr.max(Num.Order)([1]), 1)
   })
 
@@ -1000,22 +1244,25 @@ describe("Array", () => {
   it("groupBy", () => {
     deepStrictEqual(Arr.groupBy((_) => "")([]), {})
     deepStrictEqual(Arr.groupBy((a) => `${a}`)([1]), { "1": [1] })
+    deepStrictEqual(Arr.groupBy((s: string) => `${s.length}`)(["foo", "bar", "foobar"]), {
+      "3": ["foo", "bar"],
+      "6": ["foobar"]
+    })
     deepStrictEqual(
-      Arr.groupBy((s: string) => `${s.length}`)(["foo", "bar", "foobar"]),
+      Arr.groupBy(["a", "b"], (s) => (s === "a" ? symA : s === "b" ? symB : symC)),
       {
-        "3": ["foo", "bar"],
-        "6": ["foobar"]
+        [symA]: ["a"],
+        [symB]: ["b"]
       }
     )
-    deepStrictEqual(Arr.groupBy(["a", "b"], (s) => s === "a" ? symA : s === "b" ? symB : symC), {
-      [symA]: ["a"],
-      [symB]: ["b"]
-    })
-    deepStrictEqual(Arr.groupBy(["a", "b", "c", "d"], (s) => s === "a" ? symA : s === "b" ? symB : symC), {
-      [symA]: ["a"],
-      [symB]: ["b"],
-      [symC]: ["c", "d"]
-    })
+    deepStrictEqual(
+      Arr.groupBy(["a", "b", "c", "d"], (s) => (s === "a" ? symA : s === "b" ? symB : symC)),
+      {
+        [symA]: ["a"],
+        [symB]: ["b"],
+        [symC]: ["c", "d"]
+      }
+    )
   })
 
   it("match", () => {
@@ -1101,8 +1348,20 @@ describe("Array", () => {
   })
 
   it("chop", () => {
-    deepStrictEqual(pipe([], Arr.chop((as) => [as[0] * 2, as.slice(1)])), [])
-    deepStrictEqual(pipe([1, 2, 3], Arr.chop((as) => [as[0] * 2, as.slice(1)])), [2, 4, 6])
+    deepStrictEqual(
+      pipe(
+        [],
+        Arr.chop((as) => [as[0] * 2, as.slice(1)])
+      ),
+      []
+    )
+    deepStrictEqual(
+      pipe(
+        [1, 2, 3],
+        Arr.chop((as) => [as[0] * 2, as.slice(1)])
+      ),
+      [2, 4, 6]
+    )
   })
 
   it("pad", () => {
@@ -1151,10 +1410,7 @@ describe("Array", () => {
     it("should respect the law: chunksOf(n)(xs).concat(chunksOf(n)(ys)) == chunksOf(n)(xs.concat(ys)))", () => {
       const xs: ReadonlyArray<number> = []
       const ys: ReadonlyArray<number> = [1, 2]
-      deepStrictEqual(
-        Arr.chunksOf(2)(xs).concat(Arr.chunksOf(2)(ys)),
-        Arr.chunksOf(2)(xs.concat(ys))
-      )
+      deepStrictEqual(Arr.chunksOf(2)(xs).concat(Arr.chunksOf(2)(ys)), Arr.chunksOf(2)(xs.concat(ys)))
       fc.assert(
         fc.property(
           fc.array(fc.integer()).filter((xs) => xs.length % 2 === 0), // Ensures `xs.length` is even
@@ -1171,9 +1427,15 @@ describe("Array", () => {
   })
 
   it("makeBy", () => {
-    deepStrictEqual(Arr.makeBy(5, (n) => n * 2), [0, 2, 4, 6, 8])
+    deepStrictEqual(
+      Arr.makeBy(5, (n) => n * 2),
+      [0, 2, 4, 6, 8]
+    )
     deepStrictEqual(Arr.makeBy((n) => n * 2)(5), [0, 2, 4, 6, 8])
-    deepStrictEqual(Arr.makeBy(2.2, (n) => n * 2), [0, 2])
+    deepStrictEqual(
+      Arr.makeBy(2.2, (n) => n * 2),
+      [0, 2]
+    )
     deepStrictEqual(Arr.makeBy((n) => n * 2)(2.2), [0, 2])
   })
 
@@ -1203,10 +1465,7 @@ describe("Array", () => {
     deepStrictEqual(pipe(two, Arr.unionWith([1, 2], Equivalence.strictEqual<number>())), [1, 2])
     deepStrictEqual(pipe(two, Arr.unionWith(Arr.empty(), Equivalence.strictEqual<number>())), two)
     deepStrictEqual(pipe(Arr.empty(), Arr.unionWith(two, Equivalence.strictEqual<number>())), two)
-    deepStrictEqual(
-      pipe(Arr.empty(), Arr.unionWith(Arr.empty(), Equivalence.strictEqual<number>())),
-      Arr.empty()
-    )
+    deepStrictEqual(pipe(Arr.empty(), Arr.unionWith(Arr.empty(), Equivalence.strictEqual<number>())), Arr.empty())
   })
 
   it("intersectionWith", () => {
@@ -1261,13 +1520,31 @@ describe("Array", () => {
       a: string
       b: number
     }
-    const arr: ReadonlyArray<X> = [{ a: "a", b: 2 }, { a: "b", b: 1 }]
-    deepStrictEqual(Arr.sortWith(arr, (x) => x.b, Order.Number), [{ a: "b", b: 1 }, { a: "a", b: 2 }])
+    const arr: ReadonlyArray<X> = [
+      { a: "a", b: 2 },
+      { a: "b", b: 1 }
+    ]
+    deepStrictEqual(
+      Arr.sortWith(arr, (x) => x.b, Order.Number),
+      [
+        { a: "b", b: 1 },
+        { a: "a", b: 2 }
+      ]
+    )
   })
 
   it("countBy", () => {
-    deepStrictEqual(Arr.countBy([1, 2, 3, 4, 5], (n) => n % 2 === 0), 2)
-    deepStrictEqual(pipe([1, 2, 3, 4, 5], Arr.countBy((n) => n % 2 === 0)), 2)
+    deepStrictEqual(
+      Arr.countBy([1, 2, 3, 4, 5], (n) => n % 2 === 0),
+      2
+    )
+    deepStrictEqual(
+      pipe(
+        [1, 2, 3, 4, 5],
+        Arr.countBy((n) => n % 2 === 0)
+      ),
+      2
+    )
   })
 
   it("Do notation", () => {

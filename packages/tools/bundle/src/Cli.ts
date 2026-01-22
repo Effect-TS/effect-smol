@@ -19,53 +19,59 @@ const outputPath = Flag.file("output-path").pipe(
   Flag.withAlias("o"),
   Flag.withDescription("The name of the file to write the bundle size report to"),
   Flag.withDefault("stats.txt"),
-  Flag.mapEffect(Effect.fnUntraced(function*(outputPath) {
-    const path = yield* Path.Path
-    return path.resolve(outputPath)
-  }))
+  Flag.mapEffect(
+    Effect.fnUntraced(function* (outputPath) {
+      const path = yield* Path.Path
+      return path.resolve(outputPath)
+    })
+  )
 )
 
 const compare = Command.make("compare", { baseDirectory, outputPath }).pipe(
-  Command.withHandler(Effect.fnUntraced(function*({ baseDirectory, outputPath }) {
-    const fs = yield* FileSystem.FileSystem
-    const reporter = yield* Reporter
-    const report = yield* reporter.report({ baseDirectory })
-    yield* fs.writeFileString(outputPath, report)
-    yield* Effect.log(`Bundle size report written to: '${outputPath}'`)
-  }))
+  Command.withHandler(
+    Effect.fnUntraced(function* ({ baseDirectory, outputPath }) {
+      const fs = yield* FileSystem.FileSystem
+      const reporter = yield* Reporter
+      const report = yield* reporter.report({ baseDirectory })
+      yield* fs.writeFileString(outputPath, report)
+      yield* Effect.log(`Bundle size report written to: '${outputPath}'`)
+    })
+  )
 )
 
 const outputDirectory = Flag.file("output-dir").pipe(
   Flag.withAlias("o"),
   Flag.withDescription("The name of the directory to write the bundle size visualizations to"),
-  Flag.mapEffect(Effect.fnUntraced(function*(outputPath) {
-    const path = yield* Path.Path
-    return path.resolve(outputPath)
-  }))
+  Flag.mapEffect(
+    Effect.fnUntraced(function* (outputPath) {
+      const path = yield* Path.Path
+      return path.resolve(outputPath)
+    })
+  )
 )
 
 const visualize = Command.make("visualize", { outputDirectory }).pipe(
-  Command.withHandler(Effect.fnUntraced(function*({ outputDirectory }) {
-    const path = yield* Path.Path
-    const { fixtures, fixturesDir } = yield* Fixtures
-    const reporter = yield* Reporter
+  Command.withHandler(
+    Effect.fnUntraced(function* ({ outputDirectory }) {
+      const path = yield* Path.Path
+      const { fixtures, fixturesDir } = yield* Fixtures
+      const reporter = yield* Reporter
 
-    const paths = yield* Prompt.multiSelect({
-      message: "Select files whose bundle size you would like to visualize",
-      choices: fixtures.map((fixture) => ({
-        title: fixture,
-        value: path.join(fixturesDir, fixture)
-      }))
+      const paths = yield* Prompt.multiSelect({
+        message: "Select files whose bundle size you would like to visualize",
+        choices: fixtures.map((fixture) => ({
+          title: fixture,
+          value: path.join(fixturesDir, fixture)
+        }))
+      })
+
+      yield* reporter.visualize({ paths, outputDirectory })
     })
-
-    yield* reporter.visualize({ paths, outputDirectory })
-  }))
+  )
 )
 
 /**
  * @since 1.0.0
  * @category commands
  */
-export const cli = Command.make("bundle").pipe(
-  Command.withSubcommands([compare, visualize])
-)
+export const cli = Command.make("bundle").pipe(Command.withSubcommands([compare, visualize]))

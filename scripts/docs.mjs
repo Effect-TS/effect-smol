@@ -2,14 +2,11 @@ import * as Fs from "node:fs"
 import * as Path from "node:path"
 
 function packages() {
-  return Fs.readdirSync("packages")
-    .filter((_) => Fs.existsSync(Path.join("packages", _, "docs/modules")))
+  return Fs.readdirSync("packages").filter((_) => Fs.existsSync(Path.join("packages", _, "docs/modules")))
 }
 
 function pkgName(pkg) {
-  const packageJson = Fs.readFileSync(
-    Path.join("packages", pkg, "package.json")
-  )
+  const packageJson = Fs.readFileSync(Path.join("packages", pkg, "package.json"))
   return JSON.parse(packageJson).name
 }
 
@@ -30,10 +27,7 @@ function copyFiles(pkg) {
         continue
       }
 
-      const content = Fs.readFileSync(path, "utf8").replace(
-        /^parent: Modules$/m,
-        `parent: "${name}"`
-      )
+      const content = Fs.readFileSync(path, "utf8").replace(/^parent: Modules$/m, `parent: "${name}"`)
       Fs.writeFileSync(destPath, content)
     }
   }

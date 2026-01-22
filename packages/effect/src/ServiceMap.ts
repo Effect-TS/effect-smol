@@ -42,8 +42,7 @@ const ServiceTypeId = "~effect/ServiceMap/Service" as const
  * @category Models
  */
 export interface Service<in out Identifier, in out Shape>
-  extends Pipeable, Inspectable, Yieldable<Service<Identifier, Shape>, Shape, never, Identifier>
-{
+  extends Pipeable, Inspectable, Yieldable<Service<Identifier, Shape>, Shape, never, Identifier> {
   readonly [ServiceTypeId]: {
     readonly _Service: Types.Invariant<Shape>
     readonly _Identifier: Types.Invariant<Identifier>
@@ -63,10 +62,11 @@ export interface Service<in out Identifier, in out Shape>
  * @since 4.0.0
  * @category Models
  */
-export interface ServiceClass<in out Self, in out Identifier extends string, in out Shape>
-  extends Service<Self, Shape>
-{
-  new(_: never): ServiceClass.Shape<Identifier, Shape>
+export interface ServiceClass<in out Self, in out Identifier extends string, in out Shape> extends Service<
+  Self,
+  Shape
+> {
+  new (_: never): ServiceClass.Shape<Identifier, Shape>
   readonly key: Identifier
 }
 
@@ -113,19 +113,16 @@ export declare namespace ServiceClass {
  */
 export const Service: {
   <Identifier, Shape = Identifier>(key: string): Service<Identifier, Shape>
-  <Self, Shape>(): <
-    const Identifier extends string,
-    E,
-    R = Types.unassigned,
-    Args extends ReadonlyArray<any> = never
-  >(
+  <Self, Shape>(): <const Identifier extends string, E, R = Types.unassigned, Args extends ReadonlyArray<any> = never>(
     id: Identifier,
-    options?: {
-      readonly make: ((...args: Args) => Effect<Shape, E, R>) | Effect<Shape, E, R> | undefined
-    } | undefined
-  ) =>
-    & ServiceClass<Self, Identifier, Shape>
-    & ([Types.unassigned] extends [R] ? unknown
+    options?:
+      | {
+          readonly make: ((...args: Args) => Effect<Shape, E, R>) | Effect<Shape, E, R> | undefined
+        }
+      | undefined
+  ) => ServiceClass<Self, Identifier, Shape> &
+    ([Types.unassigned] extends [R]
+      ? unknown
       : { readonly make: [Args] extends [never] ? Effect<Shape, E, R> : (...args: Args) => Effect<Shape, E, R> })
   <Self>(): <
     const Identifier extends string,
@@ -135,19 +132,16 @@ export const Service: {
     options: {
       readonly make: Make
     }
-  ) =>
-    & ServiceClass<
-      Self,
-      Identifier,
-      Make extends
-        Effect<infer _A, infer _E, infer _R> | ((...args: infer _Args) => Effect<infer _A, infer _E, infer _R>) ? _A
-        : never
-    >
-    & { readonly make: Make }
-} = function() {
+  ) => ServiceClass<
+    Self,
+    Identifier,
+    Make extends Effect<infer _A, infer _E, infer _R> | ((...args: infer _Args) => Effect<infer _A, infer _E, infer _R>)
+      ? _A
+      : never
+  > & { readonly make: Make }
+} = function () {
   const prevLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
-  ;(Error as ErrorWithStackTraceLimit)
-    .stackTraceLimit = 2
+  ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 2
   const err = new Error()
   ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
   function KeyClass() {}
@@ -166,9 +160,12 @@ export const Service: {
     }
     return self
   }
-  return function(key: string, options?: {
-    readonly make?: any
-  }) {
+  return function (
+    key: string,
+    options?: {
+      readonly make?: any
+    }
+  ) {
     self.key = key
     if (options?.make) {
       ;(self as any).make = options.make
@@ -192,16 +189,13 @@ const ServiceProto: any = {
     }
   },
   asEffect(this: any) {
-    const fn = this.asEffect = constant(withFiber((fiber) => exitSucceed(get(fiber.services, this))))
+    const fn = (this.asEffect = constant(withFiber((fiber) => exitSucceed(get(fiber.services, this)))))
     return fn()
   },
   of<Service>(self: Service): Service {
     return self
   },
-  serviceMap<Identifier, Shape>(
-    this: Service<Identifier, Shape>,
-    self: Shape
-  ): ServiceMap<Identifier> {
+  serviceMap<Identifier, Shape>(this: Service<Identifier, Shape>, self: Shape): ServiceMap<Identifier> {
     return make(this, self)
   },
   use<A, E, R>(this: Service<never, any>, f: (service: any) => Effect<A, E, R>): Effect<A, E, R> {
@@ -397,15 +391,9 @@ const Proto: Omit<ServiceMap<never>, "mapUnsafe"> = {
     }
   },
   [Equal.symbol]<A>(this: ServiceMap<A>, that: unknown): boolean {
-    if (
-      !isServiceMap(that)
-      || this.mapUnsafe.size !== that.mapUnsafe.size
-    ) return false
+    if (!isServiceMap(that) || this.mapUnsafe.size !== that.mapUnsafe.size) return false
     for (const k of this.mapUnsafe.keys()) {
-      if (
-        !that.mapUnsafe.has(k) ||
-        !Equal.equals(this.mapUnsafe.get(k), that.mapUnsafe.get(k))
-      ) {
+      if (!that.mapUnsafe.has(k) || !Equal.equals(this.mapUnsafe.get(k), that.mapUnsafe.get(k))) {
         return false
       }
     }
@@ -504,10 +492,8 @@ const emptyServiceMap = makeUnsafe(new Map())
  * @since 4.0.0
  * @category Constructors
  */
-export const make = <I, S>(
-  key: Service<I, S>,
-  service: Types.NoInfer<S>
-): ServiceMap<I> => makeUnsafe(new Map([[key.key, service]]))
+export const make = <I, S>(key: Service<I, S>, service: Types.NoInfer<S>): ServiceMap<I> =>
+  makeUnsafe(new Map([[key.key, service]]))
 
 /**
  * Adds a service to a given `ServiceMap`.
@@ -539,20 +525,19 @@ export const add: {
     key: Service<I, S>,
     service: Types.NoInfer<S>
   ): <Services>(self: ServiceMap<Services>) => ServiceMap<Services | I>
+  <Services, I, S>(self: ServiceMap<Services>, key: Service<I, S>, service: Types.NoInfer<S>): ServiceMap<Services | I>
+} = dual(
+  3,
   <Services, I, S>(
     self: ServiceMap<Services>,
     key: Service<I, S>,
     service: Types.NoInfer<S>
-  ): ServiceMap<Services | I>
-} = dual(3, <Services, I, S>(
-  self: ServiceMap<Services>,
-  key: Service<I, S>,
-  service: Types.NoInfer<S>
-): ServiceMap<Services | I> => {
-  const map = new Map(self.mapUnsafe)
-  map.set(key.key, service)
-  return makeUnsafe(map)
-})
+  ): ServiceMap<Services | I> => {
+    const map = new Map(self.mapUnsafe)
+    map.set(key.key, service)
+    return makeUnsafe(map)
+  }
+)
 
 /**
  * @since 4.0.0
@@ -568,19 +553,22 @@ export const addOrOmit: {
     key: Service<I, S>,
     service: Option.Option<Types.NoInfer<S>>
   ): ServiceMap<Services | I>
-} = dual(3, <Services, I, S>(
-  self: ServiceMap<Services>,
-  key: Service<I, S>,
-  service: Option.Option<Types.NoInfer<S>>
-): ServiceMap<Services | I> => {
-  const map = new Map(self.mapUnsafe)
-  if (service._tag === "None") {
-    map.delete(key.key)
-  } else {
-    map.set(key.key, service.value)
+} = dual(
+  3,
+  <Services, I, S>(
+    self: ServiceMap<Services>,
+    key: Service<I, S>,
+    service: Option.Option<Types.NoInfer<S>>
+  ): ServiceMap<Services | I> => {
+    const map = new Map(self.mapUnsafe)
+    if (service._tag === "None") {
+      map.delete(key.key)
+    } else {
+      map.set(key.key, service.value)
+    }
+    return makeUnsafe(map)
   }
-  return makeUnsafe(map)
-})
+)
 
 /**
  * Get a service from the context that corresponds to the given key, or
@@ -631,9 +619,8 @@ export const getOrElse: {
 export const getOrUndefined: {
   <S, I>(key: Service<I, S>): <Services>(self: ServiceMap<Services>) => S | undefined
   <Services, S, I>(self: ServiceMap<Services>, key: Service<I, S>): S | undefined
-} = dual(
-  2,
-  <Services, S, I>(self: ServiceMap<Services>, key: Service<I, S>): S | undefined => self.mapUnsafe.get(key.key)
+} = dual(2, <Services, S, I>(self: ServiceMap<Services>, key: Service<I, S>): S | undefined =>
+  self.mapUnsafe.get(key.key)
 )
 
 /**
@@ -667,16 +654,13 @@ export const getOrUndefined: {
 export const getUnsafe: {
   <S, I>(service: Service<I, S>): <Services>(self: ServiceMap<Services>) => S
   <Services, S, I>(self: ServiceMap<Services>, services: Service<I, S>): S
-} = dual(
-  2,
-  <Services, I extends Services, S>(self: ServiceMap<Services>, service: Service<I, S>): S => {
-    if (!self.mapUnsafe.has(service.key)) {
-      if (ReferenceTypeId in service) return getDefaultValue(service as any)
-      throw serviceNotFoundError(service)
-    }
-    return self.mapUnsafe.get(service.key)! as any
+} = dual(2, <Services, I extends Services, S>(self: ServiceMap<Services>, service: Service<I, S>): S => {
+  if (!self.mapUnsafe.has(service.key)) {
+    if (ReferenceTypeId in service) return getDefaultValue(service as any)
+    throw serviceNotFoundError(service)
   }
-)
+  return self.mapUnsafe.get(service.key)! as any
+})
 
 /**
  * Get a service from the context that corresponds to the given key.
@@ -740,13 +724,11 @@ const getDefaultValue = (ref: Reference<any>) => {
   if (defaultValueCacheKey in ref) {
     return ref[defaultValueCacheKey] as any
   }
-  return (ref as any)[defaultValueCacheKey] = ref.defaultValue()
+  return ((ref as any)[defaultValueCacheKey] = ref.defaultValue())
 }
 
 const serviceNotFoundError = (service: Service<any, any>) => {
-  const error = new Error(
-    `Service not found${service.key ? `: ${String(service.key)}` : ""}`
-  )
+  const error = new Error(`Service not found${service.key ? `: ${String(service.key)}` : ""}`)
   if (service.stack) {
     const lines = service.stack.split("\n")
     if (lines.length > 2) {
@@ -911,19 +893,18 @@ export const mergeAll = <T extends Array<unknown>>(
  * @since 4.0.0
  * @category Utils
  */
-export const pick = <S extends ReadonlyArray<Service<any, any>>>(
-  ...services: S
-) =>
-<Services>(self: ServiceMap<Services>): ServiceMap<Services & Service.Identifier<S[number]>> => {
-  const map = new Map<string, any>()
-  const keySet = new Set(services.map((key) => key.key))
-  self.mapUnsafe.forEach((value, key) => {
-    if (keySet.has(key)) {
-      map.set(key, value)
-    }
-  })
-  return makeUnsafe(map)
-}
+export const pick =
+  <S extends ReadonlyArray<Service<any, any>>>(...services: S) =>
+  <Services>(self: ServiceMap<Services>): ServiceMap<Services & Service.Identifier<S[number]>> => {
+    const map = new Map<string, any>()
+    const keySet = new Set(services.map((key) => key.key))
+    self.mapUnsafe.forEach((value, key) => {
+      if (keySet.has(key)) {
+        map.set(key, value)
+      }
+    })
+    return makeUnsafe(map)
+  }
 
 /**
  * @example
@@ -951,16 +932,15 @@ export const pick = <S extends ReadonlyArray<Service<any, any>>>(
  * @since 4.0.0
  * @category Utils
  */
-export const omit = <S extends ReadonlyArray<Service<any, any>>>(
-  ...keys: S
-) =>
-<Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Service.Identifier<S[number]>>> => {
-  const map = new Map(self.mapUnsafe)
-  for (let i = 0; i < keys.length; i++) {
-    map.delete(keys[i].key)
+export const omit =
+  <S extends ReadonlyArray<Service<any, any>>>(...keys: S) =>
+  <Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Service.Identifier<S[number]>>> => {
+    const map = new Map(self.mapUnsafe)
+    for (let i = 0; i < keys.length; i++) {
+      map.delete(keys[i].key)
+    }
+    return makeUnsafe(map)
   }
-  return makeUnsafe(map)
-}
 
 /**
  * Creates a service map key with a default value.

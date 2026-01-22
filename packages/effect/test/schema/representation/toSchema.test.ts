@@ -3,10 +3,13 @@ import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual } from "../../utils/assert.ts"
 
 describe("toSchema", () => {
-  function assertToSchemaRoundtrip(input: {
-    schema: Schema.Top
-    readonly reviver?: SchemaRepresentation.Reviver<Schema.Top> | undefined
-  }, runtime: string) {
+  function assertToSchemaRoundtrip(
+    input: {
+      schema: Schema.Top
+      readonly reviver?: SchemaRepresentation.Reviver<Schema.Top> | undefined
+    },
+    runtime: string
+  ) {
     const document = SchemaRepresentation.fromAST(input.schema.ast)
     const roundtrip = SchemaRepresentation.fromAST(
       SchemaRepresentation.toSchema(document, { reviver: input.reviver }).ast
@@ -18,10 +21,7 @@ describe("toSchema", () => {
 
   describe("String", () => {
     it("String", () => {
-      assertToSchemaRoundtrip(
-        { schema: Schema.String },
-        `Schema.String`
-      )
+      assertToSchemaRoundtrip({ schema: Schema.String }, `Schema.String`)
     })
 
     it("String & check", () => {
@@ -49,14 +49,8 @@ describe("toSchema", () => {
   })
 
   it("Struct", () => {
-    assertToSchemaRoundtrip(
-      { schema: Schema.Struct({}) },
-      `Schema.Struct({  })`
-    )
-    assertToSchemaRoundtrip(
-      { schema: Schema.Struct({ a: Schema.String }) },
-      `Schema.Struct({ "a": Schema.String })`
-    )
+    assertToSchemaRoundtrip({ schema: Schema.Struct({}) }, `Schema.Struct({  })`)
+    assertToSchemaRoundtrip({ schema: Schema.Struct({ a: Schema.String }) }, `Schema.Struct({ "a": Schema.String })`)
     assertToSchemaRoundtrip(
       { schema: Schema.Struct({ [Symbol.for("a")]: Schema.String }) },
       `Schema.Struct({ [_symbol]: Schema.String })`
@@ -98,10 +92,7 @@ describe("toSchema", () => {
   })
 
   it("Tuple", () => {
-    assertToSchemaRoundtrip(
-      { schema: Schema.Tuple([]) },
-      `Schema.Tuple([])`
-    )
+    assertToSchemaRoundtrip({ schema: Schema.Tuple([]) }, `Schema.Tuple([])`)
     assertToSchemaRoundtrip(
       { schema: Schema.Tuple([Schema.String, Schema.Number]) },
       `Schema.Tuple([Schema.String, Schema.Number])`
@@ -113,10 +104,7 @@ describe("toSchema", () => {
   })
 
   it("Array", () => {
-    assertToSchemaRoundtrip(
-      { schema: Schema.Array(Schema.String) },
-      `Schema.Array(Schema.String)`
-    )
+    assertToSchemaRoundtrip({ schema: Schema.Array(Schema.String) }, `Schema.Array(Schema.String)`)
   })
 
   it("TupleWithRest", () => {
@@ -141,10 +129,7 @@ describe("toSchema", () => {
       children: Schema.Array(Schema.suspend((): Schema.Codec<Category> => OuterCategory))
     }).annotate({ identifier: "Category" })
 
-    assertToSchemaRoundtrip(
-      { schema: OuterCategory },
-      `Category`
-    )
+    assertToSchemaRoundtrip({ schema: OuterCategory }, `Category`)
   })
 
   describe("brand", () => {
@@ -190,28 +175,16 @@ describe("toSchema", () => {
     }
 
     it("Option", () => {
-      assertToSchemaWithReviver(
-        Schema.Option(Schema.String),
-        `Schema.Option(String_)`
-      )
-      assertToSchemaWithReviver(
-        Schema.Option(Schema.URL),
-        `Schema.Option(Declaration1)`
-      )
+      assertToSchemaWithReviver(Schema.Option(Schema.String), `Schema.Option(String_)`)
+      assertToSchemaWithReviver(Schema.Option(Schema.URL), `Schema.Option(Declaration1)`)
     })
 
     it("Result", () => {
-      assertToSchemaWithReviver(
-        Schema.Result(Schema.String, Schema.Number),
-        `Schema.Result(String_, Number_)`
-      )
+      assertToSchemaWithReviver(Schema.Result(Schema.String, Schema.Number), `Schema.Result(String_, Number_)`)
     })
 
     it("Redacted", () => {
-      assertToSchemaWithReviver(
-        Schema.Redacted(Schema.String),
-        `Schema.Redacted(String_)`
-      )
+      assertToSchemaWithReviver(Schema.Redacted(Schema.String), `Schema.Redacted(String_)`)
     })
 
     it("CauseFailure", () => {
@@ -222,17 +195,11 @@ describe("toSchema", () => {
     })
 
     it("Cause", () => {
-      assertToSchemaWithReviver(
-        Schema.Cause(Schema.String, Schema.Number),
-        `Schema.Cause(String_, Number_)`
-      )
+      assertToSchemaWithReviver(Schema.Cause(Schema.String, Schema.Number), `Schema.Cause(String_, Number_)`)
     })
 
     it("Error", () => {
-      assertToSchemaWithReviver(
-        Schema.Error,
-        `Schema.Error`
-      )
+      assertToSchemaWithReviver(Schema.Error, `Schema.Error`)
     })
 
     it("Exit", () => {
@@ -250,40 +217,25 @@ describe("toSchema", () => {
     })
 
     it("ReadonlySet", () => {
-      assertToSchemaWithReviver(
-        Schema.ReadonlySet(Schema.String),
-        `Schema.ReadonlySet(String_)`
-      )
+      assertToSchemaWithReviver(Schema.ReadonlySet(Schema.String), `Schema.ReadonlySet(String_)`)
     })
 
     it("RegExp", () => {
-      assertToSchemaWithReviver(
-        Schema.RegExp,
-        `Schema.RegExp`
-      )
+      assertToSchemaWithReviver(Schema.RegExp, `Schema.RegExp`)
     })
 
     it("URL", () => {
-      assertToSchemaWithReviver(
-        Schema.URL,
-        `Schema.URL`
-      )
+      assertToSchemaWithReviver(Schema.URL, `Schema.URL`)
     })
 
     describe("Date", () => {
       it("Date", () => {
-        assertToSchemaWithReviver(
-          Schema.Date,
-          `Schema.Date`
-        )
+        assertToSchemaWithReviver(Schema.Date, `Schema.Date`)
       })
 
       describe("checks", () => {
         it("isDateValid", () => {
-          assertToSchemaWithReviver(
-            Schema.Date.check(Schema.isDateValid()),
-            `Schema.Date.check(Schema.isDateValid())`
-          )
+          assertToSchemaWithReviver(Schema.Date.check(Schema.isDateValid()), `Schema.Date.check(Schema.isDateValid())`)
         })
 
         it("isGreaterThanDate", () => {
@@ -317,46 +269,28 @@ describe("toSchema", () => {
     })
 
     it("Duration", () => {
-      assertToSchemaWithReviver(
-        Schema.Duration,
-        `Schema.Duration`
-      )
+      assertToSchemaWithReviver(Schema.Duration, `Schema.Duration`)
     })
 
     it("FormData", () => {
-      assertToSchemaWithReviver(
-        Schema.FormData,
-        `Schema.FormData`
-      )
+      assertToSchemaWithReviver(Schema.FormData, `Schema.FormData`)
     })
 
     it("URLSearchParams", () => {
-      assertToSchemaWithReviver(
-        Schema.URLSearchParams,
-        `Schema.URLSearchParams`
-      )
+      assertToSchemaWithReviver(Schema.URLSearchParams, `Schema.URLSearchParams`)
     })
 
     it("Uint8Array", () => {
-      assertToSchemaWithReviver(
-        Schema.Uint8Array,
-        `Schema.Uint8Array`
-      )
+      assertToSchemaWithReviver(Schema.Uint8Array, `Schema.Uint8Array`)
     })
 
     it("DateTime.Utc", () => {
-      assertToSchemaWithReviver(
-        Schema.DateTimeUtc,
-        `Schema.DateTimeUtc`
-      )
+      assertToSchemaWithReviver(Schema.DateTimeUtc, `Schema.DateTimeUtc`)
     })
 
     describe("ReadonlySet", () => {
       it("ReadonlySet(String)", () => {
-        assertToSchemaWithReviver(
-          Schema.ReadonlySet(Schema.String),
-          `Schema.ReadonlySet(String_)`
-        )
+        assertToSchemaWithReviver(Schema.ReadonlySet(Schema.String), `Schema.ReadonlySet(String_)`)
       })
 
       describe("checks", () => {

@@ -357,13 +357,13 @@ import { Optic } from "effect"
 // A union of two tagged types
 type S =
   | {
-    readonly _tag: "A"
-    readonly a: number
-  }
+      readonly _tag: "A"
+      readonly a: number
+    }
   | {
-    readonly _tag: "B"
-    readonly b: number
-  }
+      readonly _tag: "B"
+      readonly b: number
+    }
 
 // Build an optic that focuses on the "a" field of the "A" variant
 const _a = Optic.id<S>().tag("A").key("a")

@@ -53,10 +53,7 @@ describe("SchemaAST", () => {
       class A {
         readonly _tag = "A"
       }
-      const schema = Schema.instanceOf(
-        A,
-        { "~sentinels": [{ key: "_tag", literal: "A" }] }
-      )
+      const schema = Schema.instanceOf(A, { "~sentinels": [{ key: "_tag", literal: "A" }] })
       const ast = schema.ast
       deepStrictEqual(SchemaAST.collectSentinels(ast), [{ key: "_tag", literal: "A" }])
     })
@@ -79,11 +76,7 @@ describe("SchemaAST", () => {
     })
 
     it("should exclude by literals", () => {
-      const schema = Schema.Union([
-        Schema.UniqueSymbol(Symbol.for("a")),
-        Schema.Literal("b"),
-        Schema.String
-      ])
+      const schema = Schema.Union([Schema.UniqueSymbol(Symbol.for("a")), Schema.Literal("b"), Schema.String])
       const ast = schema.ast
       deepStrictEqual(SchemaAST.getCandidates(Symbol.for("a"), ast.types), [ast.types[0]])
       deepStrictEqual(SchemaAST.getCandidates("b", ast.types), [ast.types[1], ast.types[2]])

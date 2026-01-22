@@ -41,11 +41,7 @@ describe("Union", () => {
 
     it("evolve", () => {
       const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).mapMembers(
-        Tuple.evolve([
-          (v) => Schema.Array(v),
-          undefined,
-          (v) => Schema.Array(v)
-        ])
+        Tuple.evolve([(v) => Schema.Array(v), undefined, (v) => Schema.Array(v)])
       )
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<

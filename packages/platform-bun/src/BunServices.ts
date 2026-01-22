@@ -24,10 +24,5 @@ export type BunServices = ChildProcessSpawner | FileSystem | Path | Terminal | S
  * @category layer
  */
 export const layer: Layer.Layer<BunServices> = BunChildProcessSpawner.layer.pipe(
-  Layer.provideMerge(Layer.mergeAll(
-    BunFileSystem.layer,
-    BunPath.layer,
-    BunStdio.layer,
-    BunTerminal.layer
-  ))
+  Layer.provideMerge(Layer.mergeAll(BunFileSystem.layer, BunPath.layer, BunStdio.layer, BunTerminal.layer))
 )

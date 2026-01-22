@@ -33,12 +33,10 @@ import type { Teardown } from "effect/Runtime"
  * @category Run main
  */
 export const runMain: {
-  (
-    options?: {
-      readonly disableErrorReporting?: boolean | undefined
-      readonly teardown?: Teardown | undefined
-    }
-  ): <E, A>(effect: Effect<A, E>) => void
+  (options?: {
+    readonly disableErrorReporting?: boolean | undefined
+    readonly teardown?: Teardown | undefined
+  }): <E, A>(effect: Effect<A, E>) => void
   <E, A>(
     effect: Effect<A, E>,
     options?: {

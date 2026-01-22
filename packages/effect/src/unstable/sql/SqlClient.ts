@@ -42,9 +42,7 @@ export interface SqlClient extends Constructor {
   /**
    * With the given effect, ensure all sql queries are run in a transaction.
    */
-  readonly withTransaction: <R, E, A>(
-    self: Effect.Effect<A, E, R>
-  ) => Effect.Effect<A, E | SqlError, R>
+  readonly withTransaction: <R, E, A>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | SqlError, R>
 
   /**
    * Use the Reactivity service from @effect/experimental to create a reactive
@@ -102,7 +100,7 @@ export namespace SqlClient {
  * @category constructors
  * @since 4.0.0
  */
-export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) {
+export const make = Effect.fnUntraced(function* (options: SqlClient.MakeOptions) {
   const getConnection = Effect.flatMap(
     Effect.serviceOption(TransactionConnection),
     Option.match({
@@ -120,9 +118,8 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
   const withTransaction = makeWithTransaction({
     transactionService: TransactionConnection,
     spanAttributes: options.spanAttributes,
-    acquireConnection: Effect.flatMap(
-      Scope.make(),
-      (scope) => Effect.map(Scope.provide(transactionAcquirer!, scope), (conn) => [scope, conn] as const)
+    acquireConnection: Effect.flatMap(Scope.make(), (scope) =>
+      Effect.map(Scope.provide(transactionAcquirer!, scope), (conn) => [scope, conn] as const)
     ),
     begin: (conn) => conn.executeUnprepared(beginTransaction, [], undefined),
     savepoint: (conn, id) => conn.executeUnprepared(savepoint(`effect_sql_${id}`), [], undefined),
@@ -157,16 +154,12 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
         ;(client as any).withoutTransforms = () => client
         return client
       },
-      reactive: options.reactiveQueue ?
-        <A, E, R>(
-          keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
-          effect: Effect.Effect<A, E, R>
-        ) =>
-          options.reactiveQueue!(keys, effect).pipe(
-            Effect.map(Stream.fromQueue),
-            Stream.unwrap
-          ) :
-        reactivity.stream,
+      reactive: options.reactiveQueue
+        ? <A, E, R>(
+            keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
+            effect: Effect.Effect<A, E, R>
+          ) => options.reactiveQueue!(keys, effect).pipe(Effect.map(Stream.fromQueue), Stream.unwrap)
+        : reactivity.stream,
       reactiveMailbox: options.reactiveQueue ?? reactivity.query
     }
   )
@@ -179,22 +172,20 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
  * @since 4.0.0
  * @category transactions
  */
-export const makeWithTransaction = <I, S>(options: {
-  readonly transactionService: ServiceMap.Service<I, readonly [conn: S, counter: number]>
-  readonly spanAttributes: ReadonlyArray<readonly [string, unknown]>
-  readonly acquireConnection: Effect.Effect<readonly [Scope.Closeable | undefined, S], SqlError>
-  readonly begin: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>
-  readonly savepoint: (conn: NoInfer<S>, id: number) => Effect.Effect<void, SqlError>
-  readonly commit: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>
-  readonly rollback: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>
-  readonly rollbackSavepoint: (conn: NoInfer<S>, id: number) => Effect.Effect<void, SqlError>
-}) =>
-<R, E, A>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | SqlError, R> =>
-  Effect.uninterruptibleMask((restore) =>
-    Effect.useSpan(
-      "sql.transaction",
-      { kind: "client" },
-      (span) =>
+export const makeWithTransaction =
+  <I, S>(options: {
+    readonly transactionService: ServiceMap.Service<I, readonly [conn: S, counter: number]>
+    readonly spanAttributes: ReadonlyArray<readonly [string, unknown]>
+    readonly acquireConnection: Effect.Effect<readonly [Scope.Closeable | undefined, S], SqlError>
+    readonly begin: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>
+    readonly savepoint: (conn: NoInfer<S>, id: number) => Effect.Effect<void, SqlError>
+    readonly commit: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>
+    readonly rollback: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>
+    readonly rollbackSavepoint: (conn: NoInfer<S>, id: number) => Effect.Effect<void, SqlError>
+  }) =>
+  <R, E, A>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | SqlError, R> =>
+    Effect.uninterruptibleMask((restore) =>
+      Effect.useSpan("sql.transaction", { kind: "client" }, (span) =>
         Effect.withFiber<A, E | SqlError, R>((fiber) => {
           for (const [key, value] of options.spanAttributes) {
             span.attribute(key, value)
@@ -202,60 +193,52 @@ export const makeWithTransaction = <I, S>(options: {
           const services = fiber.services
           const clock = fiber.getRef(Clock)
           const connOption = ServiceMap.getOption(services, options.transactionService)
-          const conn = connOption._tag === "Some"
-            ? Effect.succeed([undefined, connOption.value[0]] as const)
-            : options.acquireConnection
+          const conn =
+            connOption._tag === "Some"
+              ? Effect.succeed([undefined, connOption.value[0]] as const)
+              : options.acquireConnection
           const id = connOption._tag === "Some" ? connOption.value[1] + 1 : 0
-          return Effect.flatMap(
-            conn,
-            (
-              [scope, conn]
-            ) =>
-              (id === 0 ? options.begin(conn) : options.savepoint(conn, id)).pipe(
-                Effect.flatMap(() =>
-                  Effect.provideServices(
-                    restore(effect),
-                    ServiceMap.add(services, options.transactionService, [conn, id]).pipe(
-                      ServiceMap.add(Tracer.ParentSpan, span)
-                    )
+          return Effect.flatMap(conn, ([scope, conn]) =>
+            (id === 0 ? options.begin(conn) : options.savepoint(conn, id)).pipe(
+              Effect.flatMap(() =>
+                Effect.provideServices(
+                  restore(effect),
+                  ServiceMap.add(services, options.transactionService, [conn, id]).pipe(
+                    ServiceMap.add(Tracer.ParentSpan, span)
                   )
-                ),
-                Effect.exit,
-                Effect.flatMap((exit) => {
-                  let effect: Effect.Effect<void>
-                  if (Exit.isSuccess(exit)) {
-                    if (id === 0) {
-                      span.event("db.transaction.commit", clock.currentTimeNanosUnsafe())
-                      effect = Effect.orDie(options.commit(conn))
-                    } else {
-                      span.event("db.transaction.savepoint", clock.currentTimeNanosUnsafe())
-                      effect = Effect.void
-                    }
+                )
+              ),
+              Effect.exit,
+              Effect.flatMap((exit) => {
+                let effect: Effect.Effect<void>
+                if (Exit.isSuccess(exit)) {
+                  if (id === 0) {
+                    span.event("db.transaction.commit", clock.currentTimeNanosUnsafe())
+                    effect = Effect.orDie(options.commit(conn))
                   } else {
-                    span.event("db.transaction.rollback", clock.currentTimeNanosUnsafe())
-                    effect = Effect.orDie(
-                      id > 0
-                        ? options.rollbackSavepoint(conn, id)
-                        : options.rollback(conn)
-                    )
+                    span.event("db.transaction.savepoint", clock.currentTimeNanosUnsafe())
+                    effect = Effect.void
                   }
-                  const withScope = scope !== undefined ? Effect.ensuring(effect, Scope.close(scope, exit)) : effect
-                  return Effect.flatMap(withScope, () => exit)
-                })
-              )
+                } else {
+                  span.event("db.transaction.rollback", clock.currentTimeNanosUnsafe())
+                  effect = Effect.orDie(id > 0 ? options.rollbackSavepoint(conn, id) : options.rollback(conn))
+                }
+                const withScope = scope !== undefined ? Effect.ensuring(effect, Scope.close(scope, exit)) : effect
+                return Effect.flatMap(withScope, () => exit)
+              })
+            )
           )
         })
+      )
     )
-  )
 
 /**
  * @since 4.0.0
  */
-export class TransactionConnection
-  extends ServiceMap.Service<TransactionConnection, readonly [conn: Connection.Connection, depth: number]>()(
-    "effect/sql/SqlClient/TransactionConnection"
-  )
-{}
+export class TransactionConnection extends ServiceMap.Service<
+  TransactionConnection,
+  readonly [conn: Connection.Connection, depth: number]
+>()("effect/sql/SqlClient/TransactionConnection") {}
 
 /**
  * @since 4.0.0

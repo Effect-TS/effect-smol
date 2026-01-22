@@ -22,12 +22,12 @@ const TxHashSetProto = {
     return toJson(this)
   },
   toString(this: TxHashSet<unknown>) {
-    return `TxHashSet(${format(toJson((this).ref))})`
+    return `TxHashSet(${format(toJson(this.ref))})`
   },
   toJSON(this: TxHashSet<unknown>) {
     return {
       _id: "TxHashSet",
-      ref: toJson((this).ref)
+      ref: toJson(this.ref)
     }
   },
   pipe(this: TxHashSet<unknown>) {
@@ -166,7 +166,7 @@ const makeTxHashSet = <V>(ref: TxRef.TxRef<HashSet.HashSet<V>>): TxHashSet<V> =>
  * @category constructors
  */
 export const empty = <V = never>(): Effect.Effect<TxHashSet<V>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const ref = yield* TxRef.make(HashSet.empty<V>())
     return makeTxHashSet(ref)
   })
@@ -193,10 +193,8 @@ export const empty = <V = never>(): Effect.Effect<TxHashSet<V>> =>
  * @since 2.0.0
  * @category constructors
  */
-export const make = <Values extends ReadonlyArray<any>>(
-  ...values: Values
-): Effect.Effect<TxHashSet<Values[number]>> =>
-  Effect.gen(function*() {
+export const make = <Values extends ReadonlyArray<any>>(...values: Values): Effect.Effect<TxHashSet<Values[number]>> =>
+  Effect.gen(function* () {
     const hashSet = HashSet.make(...values)
     const ref = yield* TxRef.make(hashSet)
     return makeTxHashSet(ref)
@@ -226,7 +224,7 @@ export const make = <Values extends ReadonlyArray<any>>(
  * @category constructors
  */
 export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const hashSet = HashSet.fromIterable(values)
     const ref = yield* TxRef.make(hashSet)
     return makeTxHashSet(ref)
@@ -258,7 +256,7 @@ export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>
  * @category constructors
  */
 export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHashSet<V>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const ref = yield* TxRef.make(hashSet)
     return makeTxHashSet(ref)
   })
@@ -357,7 +355,7 @@ export const remove: {
   <V>(self: TxHashSet<V>, value: V) => Effect.Effect<boolean>
 >(2, <V>(self: TxHashSet<V>, value: V) =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const currentSet = yield* TxRef.get(self.ref)
       const existed = HashSet.has(currentSet, value)
       if (existed) {
@@ -365,7 +363,8 @@ export const remove: {
       }
       return existed
     })
-  ))
+  )
+)
 
 /**
  * Checks if the TxHashSet contains the specified value.
@@ -408,10 +407,11 @@ export const has: {
   <V>(value: V) => (self: TxHashSet<V>) => Effect.Effect<boolean>,
   <V>(self: TxHashSet<V>, value: V) => Effect.Effect<boolean>
 >(2, <V>(self: TxHashSet<V>, value: V) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const set = yield* TxRef.get(self.ref)
     return HashSet.has(set, value)
-  }))
+  })
+)
 
 /**
  * Returns the number of values in the TxHashSet.
@@ -436,7 +436,7 @@ export const has: {
  * @category getters
  */
 export const size = <V>(self: TxHashSet<V>): Effect.Effect<number> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const set = yield* TxRef.get(self.ref)
     return HashSet.size(set)
   })
@@ -461,7 +461,7 @@ export const size = <V>(self: TxHashSet<V>): Effect.Effect<number> =>
  * @category getters
  */
 export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const set = yield* TxRef.get(self.ref)
     return HashSet.isEmpty(set)
   })
@@ -520,13 +520,14 @@ export const union: {
   <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<TxHashSet<V0 | V1>>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const set1 = yield* TxRef.get(self.ref)
       const set2 = yield* TxRef.get(that.ref)
       const combined = HashSet.union(set1, set2)
       return yield* fromHashSet(combined)
     })
-  ))
+  )
+)
 
 /**
  * Creates the intersection of two TxHashSets, returning a new TxHashSet.
@@ -557,13 +558,14 @@ export const intersection: {
   <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<TxHashSet<V0 & V1>>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const set1 = yield* TxRef.get(self.ref)
       const set2 = yield* TxRef.get(that.ref)
       const common = HashSet.intersection(set1, set2)
       return yield* fromHashSet(common)
     })
-  ))
+  )
+)
 
 /**
  * Creates the difference of two TxHashSets (elements in the first set that are not in the second), returning a new TxHashSet.
@@ -594,13 +596,14 @@ export const difference: {
   <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<TxHashSet<V0>>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const set1 = yield* TxRef.get(self.ref)
       const set2 = yield* TxRef.get(that.ref)
       const diff = HashSet.difference(set1, set2)
       return yield* fromHashSet(diff)
     })
-  ))
+  )
+)
 
 /**
  * Checks if a TxHashSet is a subset of another TxHashSet.
@@ -632,12 +635,13 @@ export const isSubset: {
   <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<boolean>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const set1 = yield* TxRef.get(self.ref)
       const set2 = yield* TxRef.get(that.ref)
       return HashSet.isSubset(set1, set2)
     })
-  ))
+  )
+)
 
 /**
  * Tests whether at least one value in the TxHashSet satisfies the predicate.
@@ -667,10 +671,11 @@ export const some: {
   <V>(predicate: Predicate<V>) => (self: TxHashSet<V>) => Effect.Effect<boolean>,
   <V>(self: TxHashSet<V>, predicate: Predicate<V>) => Effect.Effect<boolean>
 >(2, <V>(self: TxHashSet<V>, predicate: Predicate<V>) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const set = yield* TxRef.get(self.ref)
     return HashSet.some(set, predicate)
-  }))
+  })
+)
 
 /**
  * Tests whether all values in the TxHashSet satisfy the predicate.
@@ -700,10 +705,11 @@ export const every: {
   <V>(predicate: Predicate<V>) => (self: TxHashSet<V>) => Effect.Effect<boolean>,
   <V>(self: TxHashSet<V>, predicate: Predicate<V>) => Effect.Effect<boolean>
 >(2, <V>(self: TxHashSet<V>, predicate: Predicate<V>) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const set = yield* TxRef.get(self.ref)
     return HashSet.every(set, predicate)
-  }))
+  })
+)
 
 /**
  * Maps each value in the TxHashSet using the provided function, returning a new TxHashSet.
@@ -739,12 +745,13 @@ export const map: {
   <V, U>(self: TxHashSet<V>, f: (value: V) => U) => Effect.Effect<TxHashSet<U>>
 >(2, <V, U>(self: TxHashSet<V>, f: (value: V) => U) =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const currentSet = yield* TxRef.get(self.ref)
       const mappedSet = HashSet.map(currentSet, f)
       return yield* fromHashSet(mappedSet)
     })
-  ))
+  )
+)
 
 /**
  * Filters the TxHashSet keeping only values that satisfy the predicate, returning a new TxHashSet.
@@ -782,12 +789,13 @@ export const filter: {
   }
 >(2, <V>(self: TxHashSet<V>, predicate: Predicate<V>) =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const currentSet = yield* TxRef.get(self.ref)
       const filteredSet = HashSet.filter(currentSet, predicate)
       return yield* fromHashSet(filteredSet)
     })
-  ))
+  )
+)
 
 /**
  * Reduces the TxHashSet to a single value by iterating through the values and applying an accumulator function.
@@ -818,10 +826,11 @@ export const reduce: {
   <V, U>(zero: U, f: (accumulator: U, value: V) => U) => (self: TxHashSet<V>) => Effect.Effect<U>,
   <V, U>(self: TxHashSet<V>, zero: U, f: (accumulator: U, value: V) => U) => Effect.Effect<U>
 >(3, <V, U>(self: TxHashSet<V>, zero: U, f: (accumulator: U, value: V) => U) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const set = yield* TxRef.get(self.ref)
     return HashSet.reduce(set, zero, f)
-  }))
+  })
+)
 
 /**
  * Converts the TxHashSet to an immutable HashSet snapshot.

@@ -23,7 +23,7 @@ const TypeId = "~effect/rpc/RpcGroup"
  * @category groups
  */
 export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
-  new(_: never): {}
+  new (_: never): {}
 
   readonly [TypeId]: typeof TypeId
   readonly requests: ReadonlyMap<string, R>
@@ -32,16 +32,12 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
   /**
    * Add one or more procedures to the group.
    */
-  add<const Rpcs2 extends ReadonlyArray<Rpc.Any>>(
-    ...rpcs: Rpcs2
-  ): RpcGroup<R | Rpcs2[number]>
+  add<const Rpcs2 extends ReadonlyArray<Rpc.Any>>(...rpcs: Rpcs2): RpcGroup<R | Rpcs2[number]>
 
   /**
    * Merge this group with one or more other groups.
    */
-  merge<const Groups extends ReadonlyArray<Any>>(
-    ...groups: Groups
-  ): RpcGroup<R | Rpcs<Groups[number]>>
+  merge<const Groups extends ReadonlyArray<Any>>(...groups: Groups): RpcGroup<R | Rpcs<Groups[number]>>
 
   /**
    * Add middleware to all the procedures added to the group until this point.
@@ -57,65 +53,33 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
    * Implement the handlers for the procedures in this group, returning a
    * context object.
    */
-  toHandlers<
-    Handlers extends HandlersFrom<R>,
-    EX = never,
-    RX = never
-  >(
-    build:
-      | Handlers
-      | Effect.Effect<Handlers, EX, RX>
-  ): Effect.Effect<
-    ServiceMap.ServiceMap<Rpc.ToHandler<R>>,
-    EX,
-    | RX
-    | HandlersServices<R, Handlers>
-  >
+  toHandlers<Handlers extends HandlersFrom<R>, EX = never, RX = never>(
+    build: Handlers | Effect.Effect<Handlers, EX, RX>
+  ): Effect.Effect<ServiceMap.ServiceMap<Rpc.ToHandler<R>>, EX, RX | HandlersServices<R, Handlers>>
 
   /**
    * Implement the handlers for the procedures in this group.
    */
-  toLayer<
-    Handlers extends HandlersFrom<R>,
-    EX = never,
-    RX = never
-  >(
-    build:
-      | Handlers
-      | Effect.Effect<Handlers, EX, RX>
-  ): Layer.Layer<
-    Rpc.ToHandler<R>,
-    EX,
-    | Exclude<RX, Scope>
-    | HandlersServices<R, Handlers>
-  >
+  toLayer<Handlers extends HandlersFrom<R>, EX = never, RX = never>(
+    build: Handlers | Effect.Effect<Handlers, EX, RX>
+  ): Layer.Layer<Rpc.ToHandler<R>, EX, Exclude<RX, Scope> | HandlersServices<R, Handlers>>
 
   of<const Handlers extends HandlersFrom<R>>(handlers: Handlers): Handlers
 
   /**
    * Implement a single handler from the group.
    */
-  toLayerHandler<
-    const Tag extends R["_tag"],
-    Handler extends HandlerFrom<R, Tag>,
-    EX = never,
-    RX = never
-  >(
+  toLayerHandler<const Tag extends R["_tag"], Handler extends HandlerFrom<R, Tag>, EX = never, RX = never>(
     tag: Tag,
-    build:
-      | Handler
-      | Effect.Effect<Handler, EX, RX>
-  ): Layer.Layer<
-    Rpc.Handler<Tag>,
-    EX,
-    | Exclude<RX, Scope>
-    | HandlerServices<R, Tag, Handler>
-  >
+    build: Handler | Effect.Effect<Handler, EX, RX>
+  ): Layer.Layer<Rpc.Handler<Tag>, EX, Exclude<RX, Scope> | HandlerServices<R, Tag, Handler>>
 
   /**
    * Retrieve a handler for a specific procedure in the group.
    */
-  accessHandler<const Tag extends R["_tag"]>(tag: Tag): Effect.Effect<
+  accessHandler<const Tag extends R["_tag"]>(
+    tag: Tag
+  ): Effect.Effect<
     (
       payload: Rpc.Payload<Extract<R, { readonly _tag: Tag }>>,
       options: {
@@ -169,49 +133,50 @@ export type HandlersFrom<Rpc extends Rpc.Any> = {
  * @since 4.0.0
  * @category groups
  */
-export type HandlerFrom<Rpc extends Rpc.Any, Tag extends Rpc["_tag"]> = Extract<Rpc, { readonly _tag: Tag }> extends
-  infer Current ? Current extends Rpc.Any ? Rpc.ToHandlerFn<Current> : never : never
+export type HandlerFrom<Rpc extends Rpc.Any, Tag extends Rpc["_tag"]> =
+  Extract<Rpc, { readonly _tag: Tag }> extends infer Current
+    ? Current extends Rpc.Any
+      ? Rpc.ToHandlerFn<Current>
+      : never
+    : never
 
 /**
  * @since 4.0.0
  * @category groups
  */
-export type HandlersServices<Rpcs extends Rpc.Any, Handlers> = keyof Handlers extends infer K ?
-  K extends keyof Handlers & string ? HandlerServices<Rpcs, K, Handlers[K]> : never :
-  never
-
-/**
- * @since 4.0.0
- * @category groups
- */
-export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler> = [Rpc.IsStream<Rpcs, K>] extends
-  [true] ? Handler extends (...args: any) =>
-    | Stream.Stream<infer _A, infer _E, infer _R>
-    | Rpc.Wrapper<Stream.Stream<infer _A, infer _E, infer _R>>
-    | Effect.Effect<
-      Queue.Dequeue<infer _A, infer _E | Cause.Done>,
-      infer _EX,
-      infer _R
-    >
-    | Rpc.Wrapper<
-      Effect.Effect<
-        Queue.Dequeue<infer _A, infer _E | Cause.Done>,
-        infer _EX,
-        infer _R
-      >
-    > ? Exclude<Rpc.ExcludeProvides<_R, Rpcs, K>, Scope> | Rpc.ExtractRequires<Rpcs, K> :
-  never :
-  Handler extends (
-    ...args: any
-  ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Wrapper<Effect.Effect<infer _A, infer _E, infer _R>> ?
-    Rpc.ExcludeProvides<_R, Rpcs, K> | Rpc.ExtractRequires<Rpcs, K>
+export type HandlersServices<Rpcs extends Rpc.Any, Handlers> = keyof Handlers extends infer K
+  ? K extends keyof Handlers & string
+    ? HandlerServices<Rpcs, K, Handlers[K]>
+    : never
   : never
 
 /**
  * @since 4.0.0
  * @category groups
  */
-export type Rpcs<Group> = Group extends RpcGroup<infer R> ? string extends R["_tag"] ? never : R : never
+export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler> = [Rpc.IsStream<Rpcs, K>] extends [
+  true
+]
+  ? Handler extends (
+      ...args: any
+    ) =>
+      | Stream.Stream<infer _A, infer _E, infer _R>
+      | Rpc.Wrapper<Stream.Stream<infer _A, infer _E, infer _R>>
+      | Effect.Effect<Queue.Dequeue<infer _A, (infer _E) | Cause.Done>, infer _EX, infer _R>
+      | Rpc.Wrapper<Effect.Effect<Queue.Dequeue<infer _A, (infer _E) | Cause.Done>, infer _EX, infer _R>>
+    ? Exclude<Rpc.ExcludeProvides<_R, Rpcs, K>, Scope> | Rpc.ExtractRequires<Rpcs, K>
+    : never
+  : Handler extends (
+        ...args: any
+      ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Wrapper<Effect.Effect<infer _A, infer _E, infer _R>>
+    ? Rpc.ExcludeProvides<_R, Rpcs, K> | Rpc.ExtractRequires<Rpcs, K>
+    : never
+
+/**
+ * @since 4.0.0
+ * @category groups
+ */
+export type Rpcs<Group> = Group extends RpcGroup<infer R> ? (string extends R["_tag"] ? never : R) : never
 
 const RpcGroupProto = {
   add(this: RpcGroup<any>, ...rpcs: Array<Rpc.Any>) {
@@ -253,7 +218,7 @@ const RpcGroupProto = {
     })
   },
   toHandlers(this: RpcGroup<any>, build: Effect.Effect<Record<string, (request: any) => any>>) {
-    return Effect.gen(this, function*() {
+    return Effect.gen(this, function* () {
       const services = yield* Effect.services<never>()
       const handlers = Effect.isEffect(build) ? yield* build : build
       const contextMap = new Map<string, unknown>()
@@ -284,17 +249,19 @@ const RpcGroupProto = {
   },
   of: identity,
   toLayerHandler(this: RpcGroup<any>, service: string, build: Effect.Effect<Record<string, (request: any) => any>>) {
-    return Layer.effectServices(Effect.gen(this, function*() {
-      const services = yield* Effect.services<never>()
-      const handler = Effect.isEffect(build) ? yield* build : build
-      const contextMap = new Map<string, unknown>()
-      const rpc = this.requests.get(service)!
-      contextMap.set(rpc.key, {
-        handler,
-        services
+    return Layer.effectServices(
+      Effect.gen(this, function* () {
+        const services = yield* Effect.services<never>()
+        const handler = Effect.isEffect(build) ? yield* build : build
+        const contextMap = new Map<string, unknown>()
+        const rpc = this.requests.get(service)!
+        contextMap.set(rpc.key, {
+          handler,
+          services
+        })
+        return ServiceMap.makeUnsafe(contextMap)
       })
-      return ServiceMap.makeUnsafe(contextMap)
-    }))
+    )
   },
   accessHandler(this: RpcGroup<any>, service: string) {
     return Effect.servicesWith((parentServices: ServiceMap.ServiceMap<any>) => {
@@ -341,7 +308,7 @@ const makeProto = <Rpcs extends Rpc.Any>(options: {
   readonly requests: ReadonlyMap<string, Rpcs>
   readonly annotations: ServiceMap.ServiceMap<never>
 }): RpcGroup<Rpcs> =>
-  Object.assign(function() {}, RpcGroupProto, {
+  Object.assign(function () {}, RpcGroupProto, {
     requests: options.requests,
     annotations: options.annotations
   }) as any
@@ -350,9 +317,7 @@ const makeProto = <Rpcs extends Rpc.Any>(options: {
  * @since 4.0.0
  * @category groups
  */
-export const make = <const Rpcs extends ReadonlyArray<Rpc.Any>>(
-  ...rpcs: Rpcs
-): RpcGroup<Rpcs[number]> =>
+export const make = <const Rpcs extends ReadonlyArray<Rpc.Any>>(...rpcs: Rpcs): RpcGroup<Rpcs[number]> =>
   makeProto({
     requests: new Map(rpcs.map((rpc) => [rpc._tag, rpc])),
     annotations: ServiceMap.empty()

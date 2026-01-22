@@ -42,9 +42,7 @@ import type { LexResult, Token } from "./lexer.ts"
 
 /** @internal */
 export const getCommandPath = (parsedInput: ParsedTokens): ReadonlyArray<string> =>
-  parsedInput.subcommand
-    ? [parsedInput.subcommand.name, ...getCommandPath(parsedInput.subcommand.parsedInput)]
-    : []
+  parsedInput.subcommand ? [parsedInput.subcommand.name, ...getCommandPath(parsedInput.subcommand.parsedInput)] : []
 
 /** @internal */
 export const extractBuiltInOptions = (
@@ -60,7 +58,7 @@ export const extractBuiltInOptions = (
   CliError.CliError,
   Param.Environment
 > =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const { flagMap, remainder } = consumeKnownFlags(tokens, builtInFlagRegistry)
     const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
     const [, help] = yield* helpFlag.parse(emptyArgs)
@@ -82,7 +80,7 @@ export const parseArgs = (
   command: Command.Any,
   commandPath: ReadonlyArray<string> = []
 ): Effect.Effect<ParsedTokens, CliError.CliError, Param.Environment> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const { tokens, trailingOperands: afterEndOfOptions } = lexResult
     const newCommandPath = [...commandPath, command.name]
 
@@ -108,11 +106,7 @@ export const parseArgs = (
     }
 
     const subLex: LexResult = { tokens: result.childTokens, trailingOperands: [] }
-    const subParsed = yield* parseArgs(
-      subLex,
-      result.sub,
-      newCommandPath
-    )
+    const subParsed = yield* parseArgs(subLex, result.sub, newCommandPath)
 
     const allErrors = [...result.errors, ...(subParsed.errors ?? [])]
     return {
@@ -172,9 +166,7 @@ type CommandContext = {
  * Parsing mode during command-level scanning.
  * Determines how value tokens are interpreted.
  */
-type ParseMode =
-  | { readonly _tag: "AwaitingFirstValue" }
-  | { readonly _tag: "CollectingArguments" }
+type ParseMode = { readonly _tag: "AwaitingFirstValue" } | { readonly _tag: "CollectingArguments" }
 
 /**
  * Mutable state accumulated during command-level parsing.
@@ -317,7 +309,7 @@ type FlagToken = Extract<Token, { _tag: "LongOption" | "ShortOption" }>
 
 const isFlagToken = (t: Token): t is FlagToken => t._tag === "LongOption" || t._tag === "ShortOption"
 
-const getFlagName = (t: FlagToken): string => t._tag === "LongOption" ? t.name : t.flag
+const getFlagName = (t: FlagToken): string => (t._tag === "LongOption" ? t.name : t.flag)
 
 /**
  * Checks if a token is a boolean literal value.
@@ -340,11 +332,7 @@ const asBooleanLiteral = (token: Token | undefined): string | undefined =>
  * 2. Boolean special case: implicit "true" or explicit boolean literal
  * 3. Next token: consume following Value token if present
  */
-const consumeFlagValue = (
-  cursor: TokenCursor,
-  token: FlagToken,
-  spec: FlagParam
-): string | undefined => {
+const consumeFlagValue = (cursor: TokenCursor, token: FlagToken, spec: FlagParam): string | undefined => {
   // Inline value has highest priority
   if (token.value !== undefined) {
     return token.value
@@ -433,8 +421,7 @@ const createUnrecognizedFlagError = (
     }
   }
 
-  const suggestions = suggest(getFlagName(token), validNames)
-    .map((n) => (n.length === 1 ? `-${n}` : `--${n}`))
+  const suggestions = suggest(getFlagName(token), validNames).map((n) => (n.length === 1 ? `-${n}` : `--${n}`))
 
   return new CliError.UnrecognizedOption({
     option: printable,
@@ -506,7 +493,10 @@ const resolveFirstValue = (
   // Not a subcommand. Check if this looks like a typo.
   const expectsArgs = toImpl(command).config.arguments.length > 0
   if (!expectsArgs && subIndex.size > 0) {
-    const suggestions = suggest(value, command.subcommands.map((s) => s.name))
+    const suggestions = suggest(
+      value,
+      command.subcommands.map((s) => s.name)
+    )
     state.errors.push(
       new CliError.UnknownSubcommand({
         subcommand: value,
@@ -527,12 +517,7 @@ const resolveFirstValue = (
  * Processes a flag token: looks up in registry, consumes value, records it.
  * Reports unrecognized flags as errors.
  */
-const processFlag = (
-  token: FlagToken,
-  cursor: TokenCursor,
-  context: CommandContext,
-  state: ParseState
-): void => {
+const processFlag = (token: FlagToken, cursor: TokenCursor, context: CommandContext, state: ParseState): void => {
   const { commandPath, flagRegistry } = context
   const name = getFlagName(token)
   const spec = flagRegistry.index.get(name)
@@ -589,10 +574,7 @@ const processValue = (
  *
  * Returns LeafResult if no subcommand detected, SubcommandResult otherwise.
  */
-const scanCommandLevel = (
-  tokens: ReadonlyArray<Token>,
-  context: CommandContext
-): LevelResult => {
+const scanCommandLevel = (tokens: ReadonlyArray<Token>, context: CommandContext): LevelResult => {
   const cursor = makeCursor(tokens)
   const state = createParseState(context.flagRegistry)
 

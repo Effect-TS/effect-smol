@@ -5,10 +5,7 @@
  */
 
 /** @internal */
-export const generateDynamicFishCompletion = (
-  executableName: string,
-  executablePath?: string
-): string => {
+export const generateDynamicFishCompletion = (executableName: string, executablePath?: string): string => {
   const appPath = executablePath || executableName
 
   const template = `###-begin-${executableName}-completions-###

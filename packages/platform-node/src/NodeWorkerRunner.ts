@@ -17,7 +17,7 @@ import * as WorkerThreads from "node:worker_threads"
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succeed(WorkerRunner.WorkerRunnerPlatform)({
   start<O = unknown, I = unknown>() {
-    return Effect.gen(function*() {
+    return Effect.gen(function* () {
       if (!WorkerThreads.parentPort && !process.send) {
         return yield* new WorkerError({
           reason: "Spawn",
@@ -34,61 +34,63 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
       const run = <A, E, R>(
         handler: (portId: number, message: I) => Effect.Effect<A, E, R> | void
       ): Effect.Effect<void, WorkerError, R> =>
-        Effect.scopedWith(Effect.fnUntraced(function*(scope) {
-          const closeLatch = Deferred.makeUnsafe<void, WorkerError>()
-          const trackFiber = Fiber.runIn(scope)
-          const services = yield* Effect.services<R>()
-          const runFork = Effect.runForkWith(services)
-          const onExit = (exit: Exit.Exit<any, E>) => {
-            if (exit._tag === "Failure" && !Cause.isInterruptedOnly(exit.cause)) {
-              runFork(Effect.logError("unhandled error in worker", exit.cause))
-            }
-          }
-          ;(WorkerThreads.parentPort ?? process).on("message", (message: WorkerRunner.PlatformMessage<I>) => {
-            if (message[0] === 0) {
-              const result = handler(0, message[1])
-              if (Effect.isEffect(result)) {
-                const fiber = runFork(result)
-                fiber.addObserver(onExit)
-                trackFiber(fiber)
+        Effect.scopedWith(
+          Effect.fnUntraced(function* (scope) {
+            const closeLatch = Deferred.makeUnsafe<void, WorkerError>()
+            const trackFiber = Fiber.runIn(scope)
+            const services = yield* Effect.services<R>()
+            const runFork = Effect.runForkWith(services)
+            const onExit = (exit: Exit.Exit<any, E>) => {
+              if (exit._tag === "Failure" && !Cause.isInterruptedOnly(exit.cause)) {
+                runFork(Effect.logError("unhandled error in worker", exit.cause))
               }
-            } else {
-              if (WorkerThreads.parentPort) {
-                WorkerThreads.parentPort.close()
+            }
+            ;(WorkerThreads.parentPort ?? process).on("message", (message: WorkerRunner.PlatformMessage<I>) => {
+              if (message[0] === 0) {
+                const result = handler(0, message[1])
+                if (Effect.isEffect(result)) {
+                  const fiber = runFork(result)
+                  fiber.addObserver(onExit)
+                  trackFiber(fiber)
+                }
               } else {
-                process.channel?.unref()
+                if (WorkerThreads.parentPort) {
+                  WorkerThreads.parentPort.close()
+                } else {
+                  process.channel?.unref()
+                }
+                Deferred.doneUnsafe(closeLatch, Exit.void)
               }
-              Deferred.doneUnsafe(closeLatch, Exit.void)
+            })
+
+            if (WorkerThreads.parentPort) {
+              WorkerThreads.parentPort.on("messageerror", (cause) => {
+                Deferred.doneUnsafe(
+                  closeLatch,
+                  new WorkerError({
+                    reason: "Receive",
+                    message: "received messageerror event",
+                    cause
+                  }).asEffect()
+                )
+              })
+              WorkerThreads.parentPort.on("error", (cause) => {
+                Deferred.doneUnsafe(
+                  closeLatch,
+                  new WorkerError({
+                    reason: "Receive",
+                    message: "received messageerror event",
+                    cause
+                  }).asEffect()
+                )
+              })
             }
+
+            sendUnsafe(0, [0])
+
+            return yield* Deferred.await(closeLatch)
           })
-
-          if (WorkerThreads.parentPort) {
-            WorkerThreads.parentPort.on("messageerror", (cause) => {
-              Deferred.doneUnsafe(
-                closeLatch,
-                new WorkerError({
-                  reason: "Receive",
-                  message: "received messageerror event",
-                  cause
-                }).asEffect()
-              )
-            })
-            WorkerThreads.parentPort.on("error", (cause) => {
-              Deferred.doneUnsafe(
-                closeLatch,
-                new WorkerError({
-                  reason: "Receive",
-                  message: "received messageerror event",
-                  cause
-                }).asEffect()
-              )
-            })
-          }
-
-          sendUnsafe(0, [0])
-
-          return yield* Deferred.await(closeLatch)
-        }))
+        )
 
       return { run, send, sendUnsafe }
     })

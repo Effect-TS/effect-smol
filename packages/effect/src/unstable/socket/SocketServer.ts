@@ -10,12 +10,15 @@ import type * as Socket from "./Socket.ts"
  * @since 4.0.0
  * @category tags
  */
-export class SocketServer extends ServiceMap.Service<SocketServer, {
-  readonly address: Address
-  readonly run: <R, E, _>(
-    handler: (socket: Socket.Socket) => Effect.Effect<_, E, R>
-  ) => Effect.Effect<never, SocketServerError, R>
-}>()("@effect/platform/SocketServer") {}
+export class SocketServer extends ServiceMap.Service<
+  SocketServer,
+  {
+    readonly address: Address
+    readonly run: <R, E, _>(
+      handler: (socket: Socket.Socket) => Effect.Effect<_, E, R>
+    ) => Effect.Effect<never, SocketServerError, R>
+  }
+>()("@effect/platform/SocketServer") {}
 
 /**
  * @since 4.0.0

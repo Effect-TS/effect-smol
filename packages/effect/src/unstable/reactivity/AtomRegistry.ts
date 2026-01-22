@@ -51,9 +51,13 @@ export interface AtomRegistry {
   readonly setSerializable: (key: string, encoded: unknown) => void
   readonly modify: <R, W, A>(atom: Atom.Writable<R, W>, f: (_: R) => [returnValue: A, nextValue: W]) => A
   readonly update: <R, W>(atom: Atom.Writable<R, W>, f: (_: R) => W) => void
-  readonly subscribe: <A>(atom: Atom.Atom<A>, f: (_: A) => void, options?: {
-    readonly immediate?: boolean
-  }) => () => void
+  readonly subscribe: <A>(
+    atom: Atom.Atom<A>,
+    f: (_: A) => void,
+    options?: {
+      readonly immediate?: boolean
+    }
+  ) => () => void
   readonly reset: () => void
   readonly dispose: () => void
 }
@@ -72,19 +76,16 @@ export interface Node<A> {
  * @category constructors
  */
 export const make = (
-  options?: {
-    readonly initialValues?: Iterable<readonly [Atom.Atom<any>, any]> | undefined
-    readonly scheduleTask?: ((f: () => void) => () => void) | undefined
-    readonly timeoutResolution?: number | undefined
-    readonly defaultIdleTTL?: number | undefined
-  } | undefined
+  options?:
+    | {
+        readonly initialValues?: Iterable<readonly [Atom.Atom<any>, any]> | undefined
+        readonly scheduleTask?: ((f: () => void) => () => void) | undefined
+        readonly timeoutResolution?: number | undefined
+        readonly defaultIdleTTL?: number | undefined
+      }
+    | undefined
 ): AtomRegistry =>
-  new RegistryImpl(
-    options?.initialValues,
-    options?.scheduleTask,
-    options?.timeoutResolution,
-    options?.defaultIdleTTL
-  )
+  new RegistryImpl(options?.initialValues, options?.scheduleTask, options?.timeoutResolution, options?.defaultIdleTTL)
 
 /**
  * @since 4.0.0
@@ -104,13 +105,16 @@ export const layerOptions = (options?: {
 }): Layer.Layer<AtomRegistry> =>
   Layer.effect(
     AtomRegistry,
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const scope = yield* Effect.scope
       const registry = make({
         ...options,
         scheduleTask: options?.scheduleTask
       })
-      yield* Scope.addFinalizer(scope, Effect.sync(() => registry.dispose()))
+      yield* Scope.addFinalizer(
+        scope,
+        Effect.sync(() => registry.dispose())
+      )
       return registry
     })
   )
@@ -132,19 +136,17 @@ export const layer: Layer.Layer<AtomRegistry> = layerOptions()
 export const toStream: {
   <A>(atom: Atom.Atom<A>): (self: AtomRegistry) => Stream.Stream<A>
   <A>(self: AtomRegistry, atom: Atom.Atom<A>): Stream.Stream<A>
-} = dual(
-  2,
-  <A>(self: AtomRegistry, atom: Atom.Atom<A>) =>
-    Stream.callback<A>((queue) =>
-      Effect.suspend(() => {
-        const fiber = Fiber.getCurrent()!
-        const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
-        const cancel = self.subscribe(atom, (value) => Queue.offerUnsafe(queue, value), {
-          immediate: true
-        })
-        return Scope.addFinalizer(scope, Effect.sync(cancel))
+} = dual(2, <A>(self: AtomRegistry, atom: Atom.Atom<A>) =>
+  Stream.callback<A>((queue) =>
+    Effect.suspend(() => {
+      const fiber = Fiber.getCurrent()!
+      const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+      const cancel = self.subscribe(atom, (value) => Queue.offerUnsafe(queue, value), {
+        immediate: true
       })
-    )
+      return Scope.addFinalizer(scope, Effect.sync(cancel))
+    })
+  )
 )
 
 /**
@@ -170,17 +172,28 @@ export const toStreamResult: {
  * @category Conversions
  */
 export const getResult: {
-  <A, E>(atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {
-    readonly suspendOnWaiting?: boolean | undefined
-  }): (self: AtomRegistry) => Effect.Effect<A, E>
-  <A, E>(self: AtomRegistry, atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {
-    readonly suspendOnWaiting?: boolean | undefined
-  }): Effect.Effect<A, E>
+  <A, E>(
+    atom: Atom.Atom<Result.AsyncResult<A, E>>,
+    options?: {
+      readonly suspendOnWaiting?: boolean | undefined
+    }
+  ): (self: AtomRegistry) => Effect.Effect<A, E>
+  <A, E>(
+    self: AtomRegistry,
+    atom: Atom.Atom<Result.AsyncResult<A, E>>,
+    options?: {
+      readonly suspendOnWaiting?: boolean | undefined
+    }
+  ): Effect.Effect<A, E>
 } = dual(
   (args) => isAtomRegistry(args[0]),
-  <A, E>(self: AtomRegistry, atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {
-    readonly suspendOnWaiting?: boolean | undefined
-  }): Effect.Effect<A, E> => {
+  <A, E>(
+    self: AtomRegistry,
+    atom: Atom.Atom<Result.AsyncResult<A, E>>,
+    options?: {
+      readonly suspendOnWaiting?: boolean | undefined
+    }
+  ): Effect.Effect<A, E> => {
     const suspendOnWaiting = options?.suspendOnWaiting ?? false
     return Effect.callback((resume) => {
       const result = self.get(atom)
@@ -285,7 +298,7 @@ class RegistryImpl implements AtomRegistry {
     if (options?.immediate) {
       f(node.value())
     }
-    const remove = node.subscribe(function() {
+    const remove = node.subscribe(function () {
       f(node._value)
     })
     return () => {
@@ -383,10 +396,7 @@ class RegistryImpl implements AtomRegistry {
 
     let entry = this.timeoutBuckets.get(bucket)
     if (entry === undefined) {
-      entry = [
-        new Set<NodeImpl<any>>(),
-        setTimeout(() => this.sweepBucket(bucket), bucket - Date.now()) as any
-      ]
+      entry = [new Set<NodeImpl<any>>(), setTimeout(() => this.sweepBucket(bucket), bucket - Date.now()) as any]
       this.timeoutBuckets.set(bucket, entry)
     }
     entry[0].add(node)
@@ -446,7 +456,7 @@ const NodeFlags = {
   initialized: 2, // 1 << 1,
   waitingForValue: 4 // 1 << 2
 } as const
-type NodeFlags = typeof NodeFlags[keyof typeof NodeFlags]
+type NodeFlags = (typeof NodeFlags)[keyof typeof NodeFlags]
 
 const NodeState = {
   uninitialized: NodeFlags.alive | NodeFlags.waitingForValue,
@@ -457,10 +467,7 @@ const NodeState = {
 type NodeState = number
 
 class NodeImpl<A> {
-  constructor(
-    registry: RegistryImpl,
-    atom: Atom.Atom<A>
-  ) {
+  constructor(registry: RegistryImpl, atom: Atom.Atom<A>) {
     this.registry = registry
     this.atom = atom
     this.writeContext = new WriteContextImpl(registry, this)
@@ -719,9 +726,13 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     return parent.value()
   },
 
-  result<A, E>(this: Lifetime<any>, atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {
-    readonly suspendOnWaiting?: boolean | undefined
-  }): Effect.Effect<A, E> {
+  result<A, E>(
+    this: Lifetime<any>,
+    atom: Atom.Atom<Result.AsyncResult<A, E>>,
+    options?: {
+      readonly suspendOnWaiting?: boolean | undefined
+    }
+  ): Effect.Effect<A, E> {
     if (this.disposed) {
       throw disposedError(this.node.atom)
     } else if (this.isFn) {
@@ -744,9 +755,13 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     }
   },
 
-  resultOnce<A, E>(this: Lifetime<any>, atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {
-    readonly suspendOnWaiting?: boolean | undefined
-  }): Effect.Effect<A, E> {
+  resultOnce<A, E>(
+    this: Lifetime<any>,
+    atom: Atom.Atom<Result.AsyncResult<A, E>>,
+    options?: {
+      readonly suspendOnWaiting?: boolean | undefined
+    }
+  ): Effect.Effect<A, E> {
     if (this.disposed) {
       throw disposedError(this.node.atom)
     }
@@ -755,11 +770,15 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
       if (result._tag !== "Initial" && !(options?.suspendOnWaiting && result.waiting)) {
         return resume(Result.toExit(result) as any)
       }
-      const cancel = this.node.registry.subscribe(atom, (result) => {
-        if (result._tag === "Initial" || (options?.suspendOnWaiting && result.waiting)) return
-        cancel()
-        resume(Result.toExit(result) as any)
-      }, { immediate: false })
+      const cancel = this.node.registry.subscribe(
+        atom,
+        (result) => {
+          if (result._tag === "Initial" || (options?.suspendOnWaiting && result.waiting)) return
+          cancel()
+          resume(Result.toExit(result) as any)
+        },
+        { immediate: false }
+      )
       return Effect.sync(cancel)
     })
   },
@@ -795,11 +814,15 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
       if (Option.isSome(result)) {
         return resume(Effect.succeed(result.value))
       }
-      const cancel = this.node.registry.subscribe(atom, (result) => {
-        if (Option.isNone(result)) return
-        cancel()
-        resume(Effect.succeed(result.value))
-      }, { immediate: false })
+      const cancel = this.node.registry.subscribe(
+        atom,
+        (result) => {
+          if (Option.isNone(result)) return
+          cancel()
+          resume(Effect.succeed(result.value))
+        },
+        { immediate: false }
+      )
       return Effect.sync(cancel)
     })
   },
@@ -839,9 +862,14 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     this.addFinalizer(this.node.registry.mount(atom))
   },
 
-  subscribe<A>(this: Lifetime<any>, atom: Atom.Atom<A>, f: (_: A) => void, options?: {
-    readonly immediate?: boolean
-  }): void {
+  subscribe<A>(
+    this: Lifetime<any>,
+    atom: Atom.Atom<A>,
+    f: (_: A) => void,
+    options?: {
+      readonly immediate?: boolean
+    }
+  ): void {
     if (this.disposed) {
       throw disposedError(this.node.atom)
     }
@@ -862,9 +890,13 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     this.node.registry.set(atom, value)
   },
 
-  stream<A>(this: Lifetime<any>, atom: Atom.Atom<A>, options?: {
-    readonly withoutInitialValue?: boolean
-  }) {
+  stream<A>(
+    this: Lifetime<any>,
+    atom: Atom.Atom<A>,
+    options?: {
+      readonly withoutInitialValue?: boolean
+    }
+  ) {
     if (this.disposed) {
       throw disposedError(this.node.atom)
     }
@@ -876,10 +908,14 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     })
   },
 
-  streamResult<A, E>(this: Lifetime<any>, atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {
-    readonly withoutInitialValue?: boolean
-    readonly bufferSize?: number
-  }): Stream.Stream<A, E> {
+  streamResult<A, E>(
+    this: Lifetime<any>,
+    atom: Atom.Atom<Result.AsyncResult<A, E>>,
+    options?: {
+      readonly withoutInitialValue?: boolean
+      readonly bufferSize?: number
+    }
+  ): Stream.Stream<A, E> {
     return this.stream(atom, options).pipe(
       Stream.filter(Result.isNotInitial),
       Stream.mapEffect((result) =>
@@ -923,10 +959,7 @@ const makeLifetime = <A>(node: NodeImpl<A>): Lifetime<A> => {
 }
 
 class WriteContextImpl<A> implements Atom.WriteContext<A> {
-  constructor(
-    registry: RegistryImpl,
-    node: NodeImpl<A>
-  ) {
+  constructor(registry: RegistryImpl, node: NodeImpl<A>) {
     this.registry = registry
     this.node = node
   }
@@ -958,7 +991,7 @@ export const BatchPhase = {
 } as const
 
 /** @internal */
-export type BatchPhase = typeof BatchPhase[keyof typeof BatchPhase]
+export type BatchPhase = (typeof BatchPhase)[keyof typeof BatchPhase]
 
 /** @internal */
 export const batchState = {

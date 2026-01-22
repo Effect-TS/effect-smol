@@ -12,8 +12,8 @@ import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
  * @since 1.0.0
  * @category Layers
  */
-export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyValueStore.layerStorage(() =>
-  globalThis.localStorage
+export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyValueStore.layerStorage(
+  () => globalThis.localStorage
 )
 
 /**
@@ -24,6 +24,6 @@ export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyVa
  * @since 1.0.0
  * @category Layers
  */
-export const layerSessionStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyValueStore.layerStorage(() =>
-  globalThis.sessionStorage
+export const layerSessionStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyValueStore.layerStorage(
+  () => globalThis.sessionStorage
 )

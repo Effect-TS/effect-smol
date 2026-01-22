@@ -114,31 +114,23 @@ function makeProto(
  * @since 4.0.0
  * @category constructors
  */
-export const empty: HttpClientRequest = makeProto(
-  "GET",
-  "",
-  UrlParams.empty,
-  undefined,
-  Headers.empty,
-  HttpBody.empty
-)
+export const empty: HttpClientRequest = makeProto("GET", "", UrlParams.empty, undefined, Headers.empty, HttpBody.empty)
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const make = <M extends HttpMethod>(
-  method: M
-) =>
-(
-  url: string | URL,
-  options?: (M extends "GET" | "HEAD" ? Options.NoBody : Options.NoUrl) | undefined
-): HttpClientRequest =>
-  modify(empty, {
-    method,
-    url,
-    ...(options ?? undefined)
-  })
+export const make =
+  <M extends HttpMethod>(method: M) =>
+  (
+    url: string | URL,
+    options?: (M extends "GET" | "HEAD" ? Options.NoBody : Options.NoUrl) | undefined
+  ): HttpClientRequest =>
+    modify(empty, {
+      method,
+      url,
+      ...(options ?? undefined)
+    })
 
 /**
  * @since 4.0.0
@@ -240,15 +232,11 @@ export const setMethod: {
 export const setHeader: {
   (key: string, value: string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, key: string, value: string): HttpClientRequest
-} = dual(3, (self: HttpClientRequest, key: string, value: string): HttpClientRequest =>
-  makeProto(
-    self.method,
-    self.url,
-    self.urlParams,
-    self.hash,
-    Headers.set(self.headers, key, value),
-    self.body
-  ))
+} = dual(
+  3,
+  (self: HttpClientRequest, key: string, value: string): HttpClientRequest =>
+    makeProto(self.method, self.url, self.urlParams, self.hash, Headers.set(self.headers, key, value), self.body)
+)
 
 /**
  * @since 4.0.0
@@ -257,15 +245,11 @@ export const setHeader: {
 export const setHeaders: {
   (input: Headers.Input): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, input: Headers.Input): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, input: Headers.Input): HttpClientRequest =>
-  makeProto(
-    self.method,
-    self.url,
-    self.urlParams,
-    self.hash,
-    Headers.setAll(self.headers, input),
-    self.body
-  ))
+} = dual(
+  2,
+  (self: HttpClientRequest, input: Headers.Input): HttpClientRequest =>
+    makeProto(self.method, self.url, self.urlParams, self.hash, Headers.setAll(self.headers, input), self.body)
+)
 
 /**
  * @since 4.0.0
@@ -328,28 +312,14 @@ export const setUrl: {
   (self: HttpClientRequest, url: string | URL): HttpClientRequest
 } = dual(2, (self: HttpClientRequest, url: string | URL): HttpClientRequest => {
   if (typeof url === "string") {
-    return makeProto(
-      self.method,
-      url,
-      self.urlParams,
-      self.hash,
-      self.headers,
-      self.body
-    )
+    return makeProto(self.method, url, self.urlParams, self.hash, self.headers, self.body)
   }
   const clone = new URL(url.toString())
   const urlParams = UrlParams.fromInput(clone.searchParams)
   const hash = clone.hash ? clone.hash.slice(1) : undefined
   clone.search = ""
   clone.hash = ""
-  return makeProto(
-    self.method,
-    clone.toString(),
-    urlParams,
-    hash,
-    self.headers,
-    self.body
-  )
+  return makeProto(self.method, clone.toString(), urlParams, hash, self.headers, self.body)
 })
 
 /**
@@ -359,17 +329,18 @@ export const setUrl: {
 export const prependUrl: {
   (path: string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, path: string): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, path: string): HttpClientRequest =>
-  makeProto(
-    self.method,
-    path.endsWith("/") && self.url.startsWith("/") ?
-      path + self.url.slice(1) :
-      path + self.url,
-    self.urlParams,
-    self.hash,
-    self.headers,
-    self.body
-  ))
+} = dual(
+  2,
+  (self: HttpClientRequest, path: string): HttpClientRequest =>
+    makeProto(
+      self.method,
+      path.endsWith("/") && self.url.startsWith("/") ? path + self.url.slice(1) : path + self.url,
+      self.urlParams,
+      self.hash,
+      self.headers,
+      self.body
+    )
+)
 
 /**
  * @since 4.0.0
@@ -378,17 +349,18 @@ export const prependUrl: {
 export const appendUrl: {
   (path: string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, path: string): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, path: string): HttpClientRequest =>
-  makeProto(
-    self.method,
-    self.url.endsWith("/") && path.startsWith("/") ?
-      self.url + path.slice(1) :
-      self.url + path,
-    self.urlParams,
-    self.hash,
-    self.headers,
-    self.body
-  ))
+} = dual(
+  2,
+  (self: HttpClientRequest, path: string): HttpClientRequest =>
+    makeProto(
+      self.method,
+      self.url.endsWith("/") && path.startsWith("/") ? self.url + path.slice(1) : self.url + path,
+      self.urlParams,
+      self.hash,
+      self.headers,
+      self.body
+    )
+)
 
 /**
  * @since 4.0.0
@@ -397,15 +369,11 @@ export const appendUrl: {
 export const updateUrl: {
   (f: (url: string) => string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, f: (url: string) => string): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, f: (url: string) => string): HttpClientRequest =>
-  makeProto(
-    self.method,
-    f(self.url),
-    self.urlParams,
-    self.hash,
-    self.headers,
-    self.body
-  ))
+} = dual(
+  2,
+  (self: HttpClientRequest, f: (url: string) => string): HttpClientRequest =>
+    makeProto(self.method, f(self.url), self.urlParams, self.hash, self.headers, self.body)
+)
 
 /**
  * @since 4.0.0
@@ -414,15 +382,11 @@ export const updateUrl: {
 export const setUrlParam: {
   (key: string, value: string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, key: string, value: string): HttpClientRequest
-} = dual(3, (self: HttpClientRequest, key: string, value: string): HttpClientRequest =>
-  makeProto(
-    self.method,
-    self.url,
-    UrlParams.set(self.urlParams, key, value),
-    self.hash,
-    self.headers,
-    self.body
-  ))
+} = dual(
+  3,
+  (self: HttpClientRequest, key: string, value: string): HttpClientRequest =>
+    makeProto(self.method, self.url, UrlParams.set(self.urlParams, key, value), self.hash, self.headers, self.body)
+)
 
 /**
  * @since 4.0.0
@@ -431,15 +395,11 @@ export const setUrlParam: {
 export const setUrlParams: {
   (input: UrlParams.Input): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest =>
-  makeProto(
-    self.method,
-    self.url,
-    UrlParams.setAll(self.urlParams, input),
-    self.hash,
-    self.headers,
-    self.body
-  ))
+} = dual(
+  2,
+  (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest =>
+    makeProto(self.method, self.url, UrlParams.setAll(self.urlParams, input), self.hash, self.headers, self.body)
+)
 
 /**
  * @since 4.0.0
@@ -448,15 +408,11 @@ export const setUrlParams: {
 export const appendUrlParam: {
   (key: string, value: string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, key: string, value: string): HttpClientRequest
-} = dual(3, (self: HttpClientRequest, key: string, value: string): HttpClientRequest =>
-  makeProto(
-    self.method,
-    self.url,
-    UrlParams.append(self.urlParams, key, value),
-    self.hash,
-    self.headers,
-    self.body
-  ))
+} = dual(
+  3,
+  (self: HttpClientRequest, key: string, value: string): HttpClientRequest =>
+    makeProto(self.method, self.url, UrlParams.append(self.urlParams, key, value), self.hash, self.headers, self.body)
+)
 
 /**
  * @since 4.0.0
@@ -465,15 +421,11 @@ export const appendUrlParam: {
 export const appendUrlParams: {
   (input: UrlParams.Input): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest =>
-  makeProto(
-    self.method,
-    self.url,
-    UrlParams.appendAll(self.urlParams, input),
-    self.hash,
-    self.headers,
-    self.body
-  ))
+} = dual(
+  2,
+  (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest =>
+    makeProto(self.method, self.url, UrlParams.appendAll(self.urlParams, input), self.hash, self.headers, self.body)
+)
 
 /**
  * @since 4.0.0
@@ -482,29 +434,18 @@ export const appendUrlParams: {
 export const setHash: {
   (hash: string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, hash: string): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, hash: string): HttpClientRequest =>
-  makeProto(
-    self.method,
-    self.url,
-    self.urlParams,
-    hash,
-    self.headers,
-    self.body
-  ))
+} = dual(
+  2,
+  (self: HttpClientRequest, hash: string): HttpClientRequest =>
+    makeProto(self.method, self.url, self.urlParams, hash, self.headers, self.body)
+)
 
 /**
  * @since 4.0.0
  * @category combinators
  */
 export const removeHash = (self: HttpClientRequest): HttpClientRequest =>
-  makeProto(
-    self.method,
-    self.url,
-    self.urlParams,
-    undefined,
-    self.headers,
-    self.body
-  )
+  makeProto(self.method, self.url, self.urlParams, undefined, self.headers, self.body)
 
 /**
  * @since 4.0.0
@@ -525,14 +466,7 @@ export const setBody: {
       headers = Headers.set(headers, "content-length", body.contentLength.toString())
     }
   }
-  return makeProto(
-    self.method,
-    self.url,
-    self.urlParams,
-    self.hash,
-    headers,
-    body
-  )
+  return makeProto(self.method, self.url, self.urlParams, self.hash, headers, body)
 })
 
 /**
@@ -593,9 +527,7 @@ export const schemaBodyJson = <S extends Schema.Schema<any>>(
 ): {
   (
     body: S["Type"]
-  ): (
-    self: HttpClientRequest
-  ) => Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingServices"]>
+  ): (self: HttpClientRequest) => Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingServices"]>
   (
     self: HttpClientRequest,
     body: S["Type"]
@@ -654,11 +586,7 @@ export const bodyStream: {
     self: HttpClientRequest,
     body: Stream.Stream<Uint8Array, unknown>,
     options?: { readonly contentType?: string | undefined; readonly contentLength?: number | undefined } | undefined
-  ): HttpClientRequest =>
-    setBody(
-      self,
-      HttpBody.stream(body, options?.contentType, options?.contentLength)
-    )
+  ): HttpClientRequest => setBody(self, HttpBody.stream(body, options?.contentType, options?.contentLength))
 )
 
 /**
@@ -697,10 +625,7 @@ export const bodyFile: {
       readonly contentType?: string
     }
   ): Effect.Effect<HttpClientRequest, PlatformError.PlatformError, FileSystem.FileSystem> =>
-    Effect.map(
-      HttpBody.file(path, options),
-      (body) => setBody(self, body)
-    )
+    Effect.map(HttpBody.file(path, options), (body) => setBody(self, body))
 )
 
 /**

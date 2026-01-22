@@ -26,14 +26,12 @@ export interface Activity<
   Success extends Schema.Top = Schema.Void,
   Error extends Schema.Top = Schema.Never,
   R = never
-> extends
-  Effect.Yieldable<
-    Activity<Success, Error, R>,
-    Success["Type"],
-    Error["Type"],
-    Success["DecodingServices"] | Error["DecodingServices"] | R | WorkflowEngine | WorkflowInstance
-  >
-{
+> extends Effect.Yieldable<
+  Activity<Success, Error, R>,
+  Success["Type"],
+  Error["Type"],
+  Success["DecodingServices"] | Error["DecodingServices"] | R | WorkflowEngine | WorkflowInstance
+> {
   readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly successSchema: Success
@@ -91,11 +89,7 @@ export interface AnyWithProps {
  * @since 4.0.0
  * @category Constructors
  */
-export const make = <
-  R,
-  Success extends Schema.Top = Schema.Void,
-  Error extends Schema.Top = Schema.Never
->(options: {
+export const make = <R, Success extends Schema.Top = Schema.Void, Error extends Schema.Top = Schema.Never>(options: {
   readonly name: string
   readonly success?: Success | undefined
   readonly error?: Error | undefined
@@ -108,10 +102,7 @@ export const make = <
   const errorSchemaJson = Schema.toCodecJson(errorSchema)
   // oxlint-disable-next-line prefer-const
   let execute!: Effect.Effect<Success["Type"], Error["Type"], any>
-  const executeWithoutInterrupt = retryOnInterrupt(
-    options.name,
-    options.interruptRetryPolicy
-  )(options.execute)
+  const executeWithoutInterrupt = retryOnInterrupt(options.name, options.interruptRetryPolicy)(options.execute)
   const self: Activity<Success, Error, Exclude<R, WorkflowInstance | WorkflowEngine>> = {
     ...PipeInspectableProto,
     ...YieldableProto,
@@ -140,19 +131,17 @@ const interruptRetryPolicy = Schedule.exponential(4.0, 1.5).pipe(
   Schedule.while((meta) => Cause.hasInterrupt(meta.input))
 )
 
-const retryOnInterrupt = (
-  name: string,
-  policy: Schedule.Schedule<any, Cause.Cause<unknown>> = interruptRetryPolicy
-) =>
-<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  effect.pipe(
-    Effect.sandbox,
-    Effect.retry(policy),
-    Effect.catch((cause) => {
-      if (!Cause.hasInterrupt(cause)) return Effect.failCause(cause)
-      return Effect.die(`Activity "${name}" interrupted and retry attempts exhausted`)
-    })
-  )
+const retryOnInterrupt =
+  (name: string, policy: Schedule.Schedule<any, Cause.Cause<unknown>> = interruptRetryPolicy) =>
+  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+    effect.pipe(
+      Effect.sandbox,
+      Effect.retry(policy),
+      Effect.catch((cause) => {
+        if (!Cause.hasInterrupt(cause)) return Effect.failCause(cause)
+        return Effect.die(`Activity "${name}" interrupted and retry attempts exhausted`)
+      })
+    )
 
 /**
  * @since 4.0.0
@@ -166,23 +155,20 @@ export const retry: {
     self: Effect.Effect<A, E, R>,
     options: O
   ): Effect.Retry.Return<R, E, A, O>
-} = dual(
-  2,
-  (effect: Effect.Effect<any, any, any>, options: {}) =>
-    Effect.suspend(() => {
-      let attempt = 1
-      return Effect.suspend(() => Effect.provideService(effect, CurrentAttempt, attempt++)).pipe(Effect.retry(options))
-    })
+} = dual(2, (effect: Effect.Effect<any, any, any>, options: {}) =>
+  Effect.suspend(() => {
+    let attempt = 1
+    return Effect.suspend(() => Effect.provideService(effect, CurrentAttempt, attempt++)).pipe(Effect.retry(options))
+  })
 )
 
 /**
  * @since 4.0.0
  * @category Attempts
  */
-export const CurrentAttempt = ServiceMap.Reference<number>(
-  "effect/workflow/Activity/CurrentAttempt",
-  { defaultValue: () => 1 }
-)
+export const CurrentAttempt = ServiceMap.Reference<number>("effect/workflow/Activity/CurrentAttempt", {
+  defaultValue: () => 1
+})
 
 /**
  * @since 4.0.0
@@ -190,12 +176,17 @@ export const CurrentAttempt = ServiceMap.Reference<number>(
  */
 export const idempotencyKey: (
   name: string,
+  options?:
+    | {
+        readonly includeAttempt?: boolean | undefined
+      }
+    | undefined
+) => Effect.Effect<string, never, WorkflowInstance> = Effect.fnUntraced(function* (
+  name: string,
   options?: {
     readonly includeAttempt?: boolean | undefined
-  } | undefined
-) => Effect.Effect<string, never, WorkflowInstance> = Effect.fnUntraced(function*(name: string, options?: {
-  readonly includeAttempt?: boolean | undefined
-}) {
+  }
+) {
   const instance = yield* InstanceTag
   let key = `${instance.executionId}`
   if (options?.includeAttempt) {
@@ -217,19 +208,15 @@ export const raceAll = <const Activities extends NonEmptyReadonlyArray<Any>>(
   Activities[number] extends Activity<infer _A, infer _E, infer _R> ? _A["Type"] : never,
   Activities[number] extends Activity<infer _A, infer _E, infer _R> ? _E["Type"] : never,
   | (Activities[number] extends Activity<infer Success, infer Error, infer R>
-    ? Success["DecodingServices"] | Error["DecodingServices"] | R
-    : never)
+      ? Success["DecodingServices"] | Error["DecodingServices"] | R
+      : never)
   | WorkflowEngine
   | WorkflowInstance
 > =>
   DurableDeferred.raceAll({
     name: `Activity/${name}`,
-    success: Schema.Union(
-      activities.map((activity) => (activity as any).successSchema)
-    ),
-    error: Schema.Union(
-      activities.map((activity) => (activity as any).errorSchema)
-    ),
+    success: Schema.Union(activities.map((activity) => (activity as any).successSchema)),
+    error: Schema.Union(activities.map((activity) => (activity as any).errorSchema)),
     effects: activities.map((activity) => (activity as any).asEffect()) as any
   }) as any
 
@@ -244,24 +231,25 @@ const InstanceTag = ServiceMap.Service<WorkflowInstance, WorkflowInstance["Servi
   "effect/workflow/WorkflowEngine/WorkflowInstance" satisfies typeof WorkflowInstance.key
 )
 
-const makeExecute = Effect.fnUntraced(function*<
-  R,
-  Success extends Schema.Top = typeof Schema.Void,
-  Error extends Schema.Top = typeof Schema.Never
->(activity: Activity<Success, Error, R>) {
-  const engine = yield* EngineTag
-  const instance = yield* InstanceTag
-  const attempt = yield* CurrentAttempt
-  yield* Effect.annotateCurrentSpan({ executionId: instance.executionId })
-  const result = yield* Workflow.wrapActivityResult(
-    engine.activityExecute(activity, attempt),
-    (_) => _._tag === "Suspended"
-  )
-  if (result._tag === "Suspended") {
-    return yield* Workflow.suspend(instance)
-  }
-  return yield* result.exit
-}, (effect, activity) =>
-  Effect.withSpan(effect, activity.name, {
-    captureStackTrace: false
-  }))
+const makeExecute = Effect.fnUntraced(
+  function* <R, Success extends Schema.Top = typeof Schema.Void, Error extends Schema.Top = typeof Schema.Never>(
+    activity: Activity<Success, Error, R>
+  ) {
+    const engine = yield* EngineTag
+    const instance = yield* InstanceTag
+    const attempt = yield* CurrentAttempt
+    yield* Effect.annotateCurrentSpan({ executionId: instance.executionId })
+    const result = yield* Workflow.wrapActivityResult(
+      engine.activityExecute(activity, attempt),
+      (_) => _._tag === "Suspended"
+    )
+    if (result._tag === "Suspended") {
+      return yield* Workflow.suspend(instance)
+    }
+    return yield* result.exit
+  },
+  (effect, activity) =>
+    Effect.withSpan(effect, activity.name, {
+      captureStackTrace: false
+    })
+)

@@ -21,7 +21,7 @@ export class TransientError extends Data.TaggedError("TransientError") {}
 export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistence, unknown>) =>
   describe(`PersistedCache (${storeId})`, { timeout: 30_000 }, () => {
     it.effect("smoke test", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const persistence = yield* Persistence.Persistence
         const store = yield* persistence.make({ storeId: "users" })
         let invocations = 0
@@ -61,12 +61,13 @@ export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistenc
           [new TTLRequest({ id: 2 }), Exit.succeed(new User({ id: 2, name: "Jane" }))]
         ])
         const results = yield* store.getMany([new TTLRequest({ id: 1 }), new TTLRequest({ id: 2 })])
-        assert.deepStrictEqual(results, [
-          Exit.fail("Not found"),
-          Exit.succeed(new User({ id: 2, name: "Jane" }))
-        ])
+        assert.deepStrictEqual(results, [Exit.fail("Not found"), Exit.succeed(new User({ id: 2, name: "Jane" }))])
       }).pipe(
         Effect.provide(layer),
-        Effect.catchFilter((e) => e instanceof TransientError ? e : Filter.fail(e), () => Effect.void)
-      ))
+        Effect.catchFilter(
+          (e) => (e instanceof TransientError ? e : Filter.fail(e)),
+          () => Effect.void
+        )
+      )
+    )
   })

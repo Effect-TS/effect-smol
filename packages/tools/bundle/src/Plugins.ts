@@ -103,10 +103,12 @@ export const createPlugins = (pathService: Path.Path, options: PluginOptions = {
   ]
 
   if (resolved.visualize) {
-    plugins.push(visualizer({
-      open: true,
-      gzipSize: true
-    }))
+    plugins.push(
+      visualizer({
+        open: true,
+        gzipSize: true
+      })
+    )
   }
 
   return plugins

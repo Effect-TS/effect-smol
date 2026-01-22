@@ -43,17 +43,19 @@ class GetNameById extends Request.TaggedClass("GetNameById")<
   string
 > {}
 
-const makeUserResolver = Effect.gen(function*() {
+const makeUserResolver = Effect.gen(function* () {
   const counter = yield* Counter
   const requests_ = yield* Requests
 
-  const resolver = Resolver.make<UserRequest>(Effect.fnUntraced(function*(entries) {
-    counter.count++
-    requests_.count += entries.length
-    for (const entry of entries) {
-      yield* delay(processRequest(entry))
-    }
-  })).pipe(Resolver.batchN(15))
+  const resolver = Resolver.make<UserRequest>(
+    Effect.fnUntraced(function* (entries) {
+      counter.count++
+      requests_.count += entries.length
+      for (const entry of entries) {
+        yield* delay(processRequest(entry))
+      }
+    })
+  ).pipe(Resolver.batchN(15))
 
   const getIds = Effect.request(GetAllIds({}), resolver)
   const getNameById = (id: number) => Effect.request(new GetNameById({ id }), resolver)
@@ -66,17 +68,17 @@ const makeUserResolver = Effect.gen(function*() {
   return { getNames, getIds, getNameById, getNameByIdPiped } as const
 })
 
-const makeUserResolverTagged = Effect.gen(function*() {
+const makeUserResolverTagged = Effect.gen(function* () {
   const counter = yield* Counter
   const requests = yield* Requests
 
   const resolver = Resolver.fromEffectTagged<UserRequest>()({
-    GetAllIds: Effect.fnUntraced(function*(reqs) {
+    GetAllIds: Effect.fnUntraced(function* (reqs) {
       counter.count++
       requests.count += reqs.length
       return reqs.map(() => userIds)
     }),
-    GetNameById: Effect.fnUntraced(function*(reqs) {
+    GetNameById: Effect.fnUntraced(function* (reqs) {
       counter.count++
       requests.count += reqs.length
 
@@ -92,9 +94,7 @@ const makeUserResolverTagged = Effect.gen(function*() {
 
   const getIds = Effect.request(GetAllIds({}), resolver)
   const getNameById = (id: number) => Effect.request(new GetNameById({ id }), resolver)
-  const allNames = getIds.pipe(
-    Effect.flatMap(Effect.forEach(getNameById, { concurrency: "unbounded" }))
-  )
+  const allNames = getIds.pipe(Effect.flatMap(Effect.forEach(getNameById, { concurrency: "unbounded" })))
 
   return { allNames, getIds, getNameById } as const
 })
@@ -115,39 +115,51 @@ const processRequest = (entry: Request.Entry<UserRequest>): Effect.Effect<void> 
 }
 
 const provideEnv = flow(
-  Effect.provideServiceEffect(Counter, Effect.sync(() => ({ count: 0 }))),
-  Effect.provideServiceEffect(Requests, Effect.sync(() => ({ count: 0 })))
+  Effect.provideServiceEffect(
+    Counter,
+    Effect.sync(() => ({ count: 0 }))
+  ),
+  Effect.provideServiceEffect(
+    Requests,
+    Effect.sync(() => ({ count: 0 }))
+  )
 )
 
 describe.sequential("Request", () => {
   it.effect(
     "requests are executed correctly",
-    Effect.fnUntraced(function*() {
+    Effect.fnUntraced(function* () {
       const { getNames } = yield* makeUserResolver
       const names = yield* getNames
       const counter = yield* Counter
       const requests = yield* Requests
       assert.strictEqual(counter.count, 3)
       assert.strictEqual(requests.count, userIds.length + 1)
-      assert.deepStrictEqual(names, userIds.map((id) => userNames.get(id)))
+      assert.deepStrictEqual(
+        names,
+        userIds.map((id) => userNames.get(id))
+      )
     }, provideEnv)
   )
 
   it.effect(
     "requests with dual syntax are executed correctly",
-    Effect.fnUntraced(function*() {
+    Effect.fnUntraced(function* () {
       const names = yield* (yield* makeUserResolver).getNames
       const counter = yield* Counter
       const requests = yield* Requests
       assert.strictEqual(counter.count, 3)
       assert.strictEqual(requests.count, userIds.length + 1)
-      assert.deepStrictEqual(names, userIds.map((id) => userNames.get(id)))
+      assert.deepStrictEqual(
+        names,
+        userIds.map((id) => userNames.get(id))
+      )
     }, provideEnv)
   )
 
   it.effect(
     "requests are executed correctly with fromEffectTagged",
-    Effect.fnUntraced(function*() {
+    Effect.fnUntraced(function* () {
       const { allNames } = yield* makeUserResolverTagged
       const names = yield* allNames
       const count = yield* Counter
@@ -160,7 +172,7 @@ describe.sequential("Request", () => {
   it.effect(
     "requests don't break interruption",
     Effect.fnUntraced(
-      function*() {
+      function* () {
         const { getNames } = yield* makeUserResolver
         const fiber = yield* Effect.forkChild(getNames)
         yield* Effect.yieldNow
@@ -181,7 +193,7 @@ describe.sequential("Request", () => {
   it.effect(
     "requests work with uninterruptible",
     Effect.fnUntraced(
-      function*() {
+      function* () {
         const { getNames } = yield* makeUserResolver
         const fiber = yield* Effect.forkChild(Effect.uninterruptible(getNames))
         yield* Effect.yieldNow
@@ -201,7 +213,7 @@ describe.sequential("Request", () => {
 
   it.effect(
     "batching preserves individual & identical requests",
-    Effect.fnUntraced(function*() {
+    Effect.fnUntraced(function* () {
       const { getNameById } = yield* makeUserResolver
       yield* Effect.all([getNameById(userIds[0]), getNameById(userIds[0])], {
         concurrency: "unbounded",
@@ -216,19 +228,21 @@ describe.sequential("Request", () => {
 
   it.effect(
     "grouped requests + batchN",
-    Effect.fnUntraced(function*() {
+    Effect.fnUntraced(function* () {
       let count = 0
       let requestsCount = 0
 
       class Key extends Data.Class<{ id: number }> {}
 
-      const resolver = Resolver.make<GetNameById>(Effect.fnUntraced(function*(entries) {
-        count++
-        requestsCount += entries.length
-        for (const entry of entries) {
-          entry.completeUnsafe(Exit.succeed(userNames.get(entry.request.id)!))
-        }
-      })).pipe(
+      const resolver = Resolver.make<GetNameById>(
+        Effect.fnUntraced(function* (entries) {
+          count++
+          requestsCount += entries.length
+          for (const entry of entries) {
+            entry.completeUnsafe(Exit.succeed(userNames.get(entry.request.id)!))
+          }
+        })
+      ).pipe(
         Resolver.batchN(5),
         Resolver.grouped(({ request }) => new Key({ id: request.id % 2 }))
       )

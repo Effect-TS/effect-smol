@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
 
 function assertRuntime(spec: OpenAPISpec, expected: string) {
-  return Effect.gen(function*() {
+  return Effect.gen(function* () {
     const generator = yield* OpenApiGenerator.OpenApiGenerator
 
     const result = yield* generator.generate(spec, {
@@ -14,13 +14,11 @@ function assertRuntime(spec: OpenAPISpec, expected: string) {
 
     // console.log(result)
     assert.strictEqual(result, expected)
-  }).pipe(
-    Effect.provide(OpenApiGenerator.layerTransformerSchema)
-  )
+  }).pipe(Effect.provide(OpenApiGenerator.layerTransformerSchema))
 }
 
 function assertTypeOnly(spec: OpenAPISpec, expected: string) {
-  return Effect.gen(function*() {
+  return Effect.gen(function* () {
     const generator = yield* OpenApiGenerator.OpenApiGenerator
 
     const result = yield* generator.generate(spec, {
@@ -30,9 +28,7 @@ function assertTypeOnly(spec: OpenAPISpec, expected: string) {
 
     // console.log(result)
     assert.strictEqual(result, expected)
-  }).pipe(
-    Effect.provide(OpenApiGenerator.layerTransformerTs)
-  )
+  }).pipe(Effect.provide(OpenApiGenerator.layerTransformerTs))
 }
 
 describe("OpenApiGenerator", () => {
@@ -215,7 +211,8 @@ export const TestClientError = <Tag extends string, E>(
     response,
     request: response.request,
   }) as any`
-      ))
+      )
+    )
   })
 
   describe("type-only", () => {
@@ -413,6 +410,7 @@ export const TestClientError = <Tag extends string, E>(
     response,
     request: response.request,
   }) as any`
-      ))
+      )
+    )
   })
 })

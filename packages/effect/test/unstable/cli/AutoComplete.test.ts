@@ -9,12 +9,7 @@ const FileSystemLayer = FileSystem.layerNoop({})
 const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
 
-const TestLayer = Layer.mergeAll(
-  ConsoleLayer,
-  FileSystemLayer,
-  PathLayer,
-  TerminalLayer
-)
+const TestLayer = Layer.mergeAll(ConsoleLayer, FileSystemLayer, PathLayer, TerminalLayer)
 
 const escape = String.fromCharCode(27)
 const bell = String.fromCharCode(7)
@@ -40,15 +35,13 @@ const stripAnsi = (text: string) => {
 }
 
 const toFrames = (lines: ReadonlyArray<unknown>) =>
-  lines
-    .map((line) => stripAnsi(String(line)))
-    .filter((line) => line.split(bell).join("").trim().length > 0)
+  lines.map((line) => stripAnsi(String(line))).filter((line) => line.split(bell).join("").trim().length > 0)
 
 const findFrame = (frames: ReadonlyArray<string>, text: string) => frames.find((frame) => frame.includes(text))
 
 describe("Prompt.autoComplete", () => {
   it.effect("filters choices as you type", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const prompt = Prompt.autoComplete({
         message: "Pick fruit",
         choices: [
@@ -71,10 +64,11 @@ describe("Prompt.autoComplete", () => {
       assert.isTrue(filteredFrame !== undefined)
       assert.isTrue(filteredFrame?.includes("Banana"))
       assert.isFalse(filteredFrame?.includes("Apple"))
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.effect("removes the last character on backspace", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const prompt = Prompt.autoComplete({
         message: "Pick item",
         choices: [
@@ -100,10 +94,11 @@ describe("Prompt.autoComplete", () => {
       assert.isTrue(expandedFrame !== undefined)
       assert.isFalse(narrowedFrame?.includes("Beta"))
       assert.isTrue(expandedFrame?.includes("Beta"))
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.effect("renders empty message and beeps on submit with no matches", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const prompt = Prompt.autoComplete({
         message: "Pick pet",
         choices: [
@@ -127,10 +122,11 @@ describe("Prompt.autoComplete", () => {
 
       assert.isTrue(output.some((line) => String(line).includes("\x07")))
       assert.isTrue(findFrame(frames, "No matches") !== undefined)
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.effect("beeps when submitting a disabled choice", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const prompt = Prompt.autoComplete({
         message: "Pick mode",
         choices: [
@@ -148,10 +144,11 @@ describe("Prompt.autoComplete", () => {
 
       const output = yield* TestConsole.logLines
       assert.isTrue(output.some((line) => String(line).includes("\x07")))
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 
   it.effect("renders empty message with no choices", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const prompt = Prompt.autoComplete({
         message: "Pick option",
         choices: []
@@ -165,5 +162,6 @@ describe("Prompt.autoComplete", () => {
       const frames = toFrames(output)
 
       assert.isTrue(findFrame(frames, "No matches") !== undefined)
-    }).pipe(Effect.provide(TestLayer)))
+    }).pipe(Effect.provide(TestLayer))
+  )
 })

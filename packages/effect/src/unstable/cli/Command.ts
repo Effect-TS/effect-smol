@@ -73,15 +73,8 @@ import * as Prompt from "./Prompt.ts"
  * @since 4.0.0
  * @category models
  */
-export interface Command<Name extends string, Input, E = never, R = never> extends
-  Pipeable,
-  Effect.Yieldable<
-    Command<Name, Input, E, R>,
-    Input,
-    never,
-    CommandContext<Name>
-  >
-{
+export interface Command<Name extends string, Input, E = never, R = never>
+  extends Pipeable, Effect.Yieldable<Command<Name, Input, E, R>, Input, never, CommandContext<Name>> {
   readonly [TypeId]: typeof TypeId
 
   /**
@@ -186,9 +179,7 @@ export declare namespace Command {
      * @since 4.0.0
      * @category models
      */
-    export type Infer<A extends Config> = Simplify<
-      { readonly [Key in keyof A]: InferValue<A[Key]> }
-    >
+    export type Infer<A extends Config> = Simplify<{ readonly [Key in keyof A]: InferValue<A[Key]> }>
 
     /**
      * Helper type utility for recursively inferring types from Config values.
@@ -196,10 +187,14 @@ export declare namespace Command {
      * @since 4.0.0
      * @category models
      */
-    export type InferValue<A> = A extends ReadonlyArray<any> ? { readonly [Key in keyof A]: InferValue<A[Key]> }
-      : A extends Param.Param<infer _Kind, infer _Value> ? _Value
-      : A extends Config ? Infer<A>
-      : never
+    export type InferValue<A> =
+      A extends ReadonlyArray<any>
+        ? { readonly [Key in keyof A]: InferValue<A[Key]> }
+        : A extends Param.Param<infer _Kind, infer _Value>
+          ? _Value
+          : A extends Config
+            ? Infer<A>
+            : never
   }
 
   /**
@@ -225,13 +220,7 @@ export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal 
  * @since 4.0.0
  * @category utility types
  */
-export type Error<C> = C extends Command<
-  infer _Name,
-  infer _Input,
-  infer _Error,
-  infer _Requirements
-> ? _Error :
-  never
+export type Error<C> = C extends Command<infer _Name, infer _Input, infer _Error, infer _Requirements> ? _Error : never
 
 /**
  * Service context for a specific command, enabling subcommands to access their parent's parsed configuration.
@@ -360,11 +349,7 @@ export const make: {
     config: Config,
     handler: (config: Command.Config.Infer<Config>) => Effect.Effect<void, E, R>
   ): Command<Name, Command.Config.Infer<Config>, E, R>
-} = ((
-  name: string,
-  config?: Command.Config,
-  handler?: (config: unknown) => Effect.Effect<void, unknown, unknown>
-) => {
+} = ((name: string, config?: Command.Config, handler?: (config: unknown) => Effect.Effect<void, unknown, unknown>) => {
   const parsedConfig = parseConfig(config ?? {})
   return makeCommand({
     name,
@@ -442,17 +427,18 @@ export const prompt = <Name extends string, A, E, R>(
 export const withHandler: {
   <A, R, E>(
     handler: (value: A) => Effect.Effect<void, E, R>
-  ): <Name extends string, XR, XE>(
-    self: Command<Name, A, XE, XR>
-  ) => Command<Name, A, E, R>
+  ): <Name extends string, XR, XE>(self: Command<Name, A, XE, XR>) => Command<Name, A, E, R>
   <Name extends string, A, XR, XE, R, E>(
     self: Command<Name, A, XE, XR>,
     handler: (value: A) => Effect.Effect<void, E, R>
   ): Command<Name, A, E, R>
-} = dual(2, <Name extends string, A, XR, XE, R, E>(
-  self: Command<Name, A, XE, XR>,
-  handler: (value: A) => Effect.Effect<void, E, R>
-): Command<Name, A, E, R> => makeCommand({ ...toImpl(self), handle: handler }))
+} = dual(
+  2,
+  <Name extends string, A, XR, XE, R, E>(
+    self: Command<Name, A, XE, XR>,
+    handler: (value: A) => Effect.Effect<void, E, R>
+  ): Command<Name, A, E, R> => makeCommand({ ...toImpl(self), handle: handler })
+)
 
 /**
  * Adds subcommands to a command, creating a hierarchical command structure.
@@ -501,13 +487,7 @@ export const withSubcommands: {
     E | ExtractSubcommandErrors<Subcommands>,
     R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
   >
-  <
-    Name extends string,
-    Input,
-    E,
-    R,
-    const Subcommands extends ReadonlyArray<Command<any, any, any, any>>
-  >(
+  <Name extends string, Input, E, R, const Subcommands extends ReadonlyArray<Command<any, any, any, any>>>(
     self: Command<Name, Input, E, R>,
     subcommands: Subcommands
   ): Command<
@@ -516,76 +496,73 @@ export const withSubcommands: {
     E | ExtractSubcommandErrors<Subcommands>,
     R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
   >
-} = dual(2, <
-  Name extends string,
-  Input,
-  E,
-  R,
-  const Subcommands extends ReadonlyArray<Command<any, any, any, any>>
->(
-  self: Command<Name, Input, E, R>,
-  subcommands: Subcommands
-): Command<
-  Name,
-  Input,
-  E | ExtractSubcommandErrors<Subcommands>,
-  R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
-> => {
-  checkForDuplicateFlags(self, subcommands)
+} = dual(
+  2,
+  <Name extends string, Input, E, R, const Subcommands extends ReadonlyArray<Command<any, any, any, any>>>(
+    self: Command<Name, Input, E, R>,
+    subcommands: Subcommands
+  ): Command<
+    Name,
+    Input,
+    E | ExtractSubcommandErrors<Subcommands>,
+    R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
+  > => {
+    checkForDuplicateFlags(self, subcommands)
 
-  const impl = toImpl(self)
-  const byName = new Map(subcommands.map((s) => [s.name, toImpl(s)] as const))
+    const impl = toImpl(self)
+    const byName = new Map(subcommands.map((s) => [s.name, toImpl(s)] as const))
 
-  // Internal type for routing - not exposed in public type
-  type SubcommandInfo = { readonly name: string; readonly result: unknown }
-  type InternalInput = Input & { readonly _subcommand?: SubcommandInfo }
+    // Internal type for routing - not exposed in public type
+    type SubcommandInfo = { readonly name: string; readonly result: unknown }
+    type InternalInput = Input & { readonly _subcommand?: SubcommandInfo }
 
-  const parse = Effect.fnUntraced(function*(raw: ParsedTokens) {
-    const parent = yield* impl.parse(raw)
+    const parse = Effect.fnUntraced(function* (raw: ParsedTokens) {
+      const parent = yield* impl.parse(raw)
 
-    if (!raw.subcommand) {
-      return parent
-    }
-
-    const sub = byName.get(raw.subcommand.name)
-    if (!sub) {
-      return parent
-    }
-
-    const result = yield* sub.parse(raw.subcommand.parsedInput)
-    // Attach subcommand info internally for routing
-    return Object.assign({}, parent, { _subcommand: { name: sub.name, result } }) as InternalInput
-  })
-
-  const handle = Effect.fnUntraced(function*(input: Input, path: ReadonlyArray<string>) {
-    const internal = input as InternalInput
-    if (internal._subcommand) {
-      const child = byName.get(internal._subcommand.name)
-      if (!child) {
-        return yield* new CliError.ShowHelp({ commandPath: path })
+      if (!raw.subcommand) {
+        return parent
       }
-      return yield* child
-        .handle(internal._subcommand.result, [...path, child.name])
-        .pipe(Effect.provideService(impl.service, input))
-    }
-    return yield* impl.handle(input, path)
-  })
 
-  return makeCommand({
-    name: impl.name,
-    config: impl.config,
-    description: impl.description,
-    service: impl.service,
-    subcommands,
-    parse,
-    handle
-  })
-})
+      const sub = byName.get(raw.subcommand.name)
+      if (!sub) {
+        return parent
+      }
+
+      const result = yield* sub.parse(raw.subcommand.parsedInput)
+      // Attach subcommand info internally for routing
+      return Object.assign({}, parent, { _subcommand: { name: sub.name, result } }) as InternalInput
+    })
+
+    const handle = Effect.fnUntraced(function* (input: Input, path: ReadonlyArray<string>) {
+      const internal = input as InternalInput
+      if (internal._subcommand) {
+        const child = byName.get(internal._subcommand.name)
+        if (!child) {
+          return yield* new CliError.ShowHelp({ commandPath: path })
+        }
+        return yield* child
+          .handle(internal._subcommand.result, [...path, child.name])
+          .pipe(Effect.provideService(impl.service, input))
+      }
+      return yield* impl.handle(input, path)
+    })
+
+    return makeCommand({
+      name: impl.name,
+      config: impl.config,
+      description: impl.description,
+      service: impl.service,
+      subcommands,
+      parse,
+      handle
+    })
+  }
+)
 
 // Type extractors for subcommand arrays - T[number] gives union of all elements
 type ExtractSubcommandErrors<T extends ReadonlyArray<Command<any, any, any, any>>> = Error<T[number]>
-type ExtractSubcommandContext<T extends ReadonlyArray<Command<any, any, any, any>>> = T[number] extends
-  Command<any, any, any, infer R> ? R : never
+type ExtractSubcommandContext<T extends ReadonlyArray<Command<any, any, any, any>>> =
+  T[number] extends Command<any, any, any, infer R> ? R : never
 
 /**
  * Sets the description for a command.
@@ -612,17 +589,16 @@ type ExtractSubcommandContext<T extends ReadonlyArray<Command<any, any, any, any
  * @category combinators
  */
 export const withDescription: {
-  (description: string): <const Name extends string, Input, E, R>(
-    self: Command<Name, Input, E, R>
-  ) => Command<Name, Input, E, R>
+  (
+    description: string
+  ): <const Name extends string, Input, E, R>(self: Command<Name, Input, E, R>) => Command<Name, Input, E, R>
   <const Name extends string, Input, E, R>(
     self: Command<Name, Input, E, R>,
     description: string
   ): Command<Name, Input, E, R>
-} = dual(2, <const Name extends string, Input, E, R>(
-  self: Command<Name, Input, E, R>,
-  description: string
-) => makeCommand({ ...toImpl(self), description }))
+} = dual(2, <const Name extends string, Input, E, R>(self: Command<Name, Input, E, R>, description: string) =>
+  makeCommand({ ...toImpl(self), description })
+)
 
 /* ========================================================================== */
 /* Providing Services                                                         */
@@ -683,10 +659,13 @@ export const provide: {
     self: Command<Name, Input, E, R>,
     layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>)
   ): Command<Name, Input, E | LE, Exclude<R, LA> | LR>
-} = dual(2, <const Name extends string, Input, E, R, LA, LE, LR>(
-  self: Command<Name, Input, E, R>,
-  layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>)
-) => mapHandler(self, (handler, input) => Effect.provide(handler, typeof layer === "function" ? layer(input) : layer)))
+} = dual(
+  2,
+  <const Name extends string, Input, E, R, LA, LE, LR>(
+    self: Command<Name, Input, E, R>,
+    layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>)
+  ) => mapHandler(self, (handler, input) => Effect.provide(handler, typeof layer === "function" ? layer(input) : layer))
+)
 
 /**
  * Provides the handler of a command with the implementation of a service that
@@ -699,25 +678,27 @@ export const provideSync: {
   <I, S, Input>(
     service: ServiceMap.Service<I, S>,
     implementation: S | ((input: Input) => S)
-  ): <const Name extends string, E, R>(
-    self: Command<Name, Input, E, R>
-  ) => Command<Name, Input, E, Exclude<R, I>>
+  ): <const Name extends string, E, R>(self: Command<Name, Input, E, R>) => Command<Name, Input, E, Exclude<R, I>>
   <const Name extends string, Input, E, R, I, S>(
     self: Command<Name, Input, E, R>,
     service: ServiceMap.Service<I, S>,
     implementation: S | ((input: Input) => S)
   ): Command<Name, Input, E, Exclude<R, I>>
-} = dual(3, <const Name extends string, Input, E, R, I, S>(
-  self: Command<Name, Input, E, R>,
-  service: ServiceMap.Service<I, S>,
-  implementation: S | ((input: Input) => S)
-) =>
-  mapHandler(self, (handler, input) =>
-    Effect.provideService(
-      handler,
-      service,
-      typeof implementation === "function" ? (implementation as (input: Input) => S)(input) : implementation
-    )))
+} = dual(
+  3,
+  <const Name extends string, Input, E, R, I, S>(
+    self: Command<Name, Input, E, R>,
+    service: ServiceMap.Service<I, S>,
+    implementation: S | ((input: Input) => S)
+  ) =>
+    mapHandler(self, (handler, input) =>
+      Effect.provideService(
+        handler,
+        service,
+        typeof implementation === "function" ? (implementation as (input: Input) => S)(input) : implementation
+      )
+    )
+)
 
 /**
  * Provides the handler of a command with the service produced by an effect
@@ -738,16 +719,17 @@ export const provideEffect: {
     service: ServiceMap.Service<I, S>,
     effect: Effect.Effect<S, E2, R2> | ((input: Input) => Effect.Effect<S, E2, R2>)
   ): Command<Name, Input, E | E2, Exclude<R, I> | R2>
-} = dual(3, <const Name extends string, Input, E, R, I, S, R2, E2>(
-  self: Command<Name, Input, E, R>,
-  service: ServiceMap.Service<I, S>,
-  effect: Effect.Effect<S, E2, R2> | ((input: Input) => Effect.Effect<S, E2, R2>)
-) =>
-  mapHandler(
-    self,
-    (handler, input) =>
+} = dual(
+  3,
+  <const Name extends string, Input, E, R, I, S, R2, E2>(
+    self: Command<Name, Input, E, R>,
+    service: ServiceMap.Service<I, S>,
+    effect: Effect.Effect<S, E2, R2> | ((input: Input) => Effect.Effect<S, E2, R2>)
+  ) =>
+    mapHandler(self, (handler, input) =>
       Effect.provideServiceEffect(handler, service, typeof effect === "function" ? effect(input) : effect)
-  ))
+    )
+)
 
 /**
  * Allows for execution of an effect, which optionally depends on command-line
@@ -759,18 +741,19 @@ export const provideEffect: {
 export const provideEffectDiscard: {
   <_, Input, E2, R2>(
     effect: Effect.Effect<_, E2, R2> | ((input: Input) => Effect.Effect<_, E2, R2>)
-  ): <const Name extends string, E, R>(
-    self: Command<Name, Input, E, R>
-  ) => Command<Name, Input, E | E2, R | R2>
+  ): <const Name extends string, E, R>(self: Command<Name, Input, E, R>) => Command<Name, Input, E | E2, R | R2>
   <const Name extends string, Input, E, R, _, E2, R2>(
     self: Command<Name, Input, E, R>,
     effect: Effect.Effect<_, E2, R2> | ((input: Input) => Effect.Effect<_, E2, R2>)
   ): Command<Name, Input, E | E2, R | R2>
-} = dual(2, <const Name extends string, Input, E, R, _, E2, R2>(
-  self: Command<Name, Input, E, R>,
-  effect: Effect.Effect<_, E2, R2> | ((input: Input) => Effect.Effect<_, E2, R2>)
-) =>
-  mapHandler(self, (handler, input) => Effect.andThen(typeof effect === "function" ? effect(input) : effect, handler)))
+} = dual(
+  2,
+  <const Name extends string, Input, E, R, _, E2, R2>(
+    self: Command<Name, Input, E, R>,
+    effect: Effect.Effect<_, E2, R2> | ((input: Input) => Effect.Effect<_, E2, R2>)
+  ) =>
+    mapHandler(self, (handler, input) => Effect.andThen(typeof effect === "function" ? effect(input) : effect, handler))
+)
 
 /* ========================================================================== */
 /* Execution                                                                  */
@@ -781,7 +764,7 @@ const showHelp = <Name extends string, Input, E, R>(
   commandPath: ReadonlyArray<string>,
   errors?: ReadonlyArray<CliError.CliError>
 ): Effect.Effect<void, never, Environment> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const formatter = yield* CliOutput.Formatter
     const helpDoc = getHelpForCommandPath(command, commandPath)
     yield* Console.log(formatter.formatHelpDoc(helpDoc))
@@ -877,10 +860,10 @@ export const runWith = <const Name extends string, Input, E, R>(
   config: {
     readonly version: string
   }
-): (input: ReadonlyArray<string>) => Effect.Effect<void, E | CliError.CliError, R | Environment> => {
+): ((input: ReadonlyArray<string>) => Effect.Effect<void, E | CliError.CliError, R | Environment>) => {
   const commandImpl = toImpl(command)
   return Effect.fnUntraced(
-    function*(args: ReadonlyArray<string>) {
+    function* (args: ReadonlyArray<string>) {
       // Check for dynamic completion request early (before normal parsing)
       if (isCompletionRequest(args)) {
         handleCompletionRequest(command)
@@ -920,9 +903,8 @@ export const runWith = <const Name extends string, Input, E, R>(
 
       // Create and run the execution program
       const program = commandImpl.handle(parsed, [command.name])
-      const withLogLevel = logLevel !== undefined
-        ? Effect.provideService(program, References.MinimumLogLevel, logLevel)
-        : program
+      const withLogLevel =
+        logLevel !== undefined ? Effect.provideService(program, References.MinimumLogLevel, logLevel) : program
 
       yield* withLogLevel
     },

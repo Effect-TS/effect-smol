@@ -71,7 +71,9 @@ export interface MutableHashSet<out V> extends Iterable<V>, Pipeable, Inspectabl
 const MutableHashSetProto: Omit<MutableHashSet<unknown>, "keyMap"> = {
   [TypeId]: TypeId,
   [Symbol.iterator](this: MutableHashSet<unknown>): Iterator<unknown> {
-    return Array.from(this.keyMap).map(([_]) => _)[Symbol.iterator]()
+    return Array.from(this.keyMap)
+      .map(([_]) => _)
+      [Symbol.iterator]()
   },
   toString() {
     return `MutableHashSet(${format(Array.from(this))})`
@@ -174,9 +176,8 @@ export const fromIterable = <K = never>(keys: Iterable<K>): MutableHashSet<K> =>
  * @since 2.0.0
  * @category constructors
  */
-export const make = <Keys extends ReadonlyArray<unknown>>(
-  ...keys: Keys
-): MutableHashSet<Keys[number]> => fromIterable(keys)
+export const make = <Keys extends ReadonlyArray<unknown>>(...keys: Keys): MutableHashSet<Keys[number]> =>
+  fromIterable(keys)
 
 /**
  * Adds a value to the MutableHashSet, mutating the set in place.
@@ -243,10 +244,10 @@ export const add: {
 export const has: {
   <V>(key: V): (self: MutableHashSet<V>) => boolean
   <V>(self: MutableHashSet<V>, key: V): boolean
-} = Dual.dual<
-  <V>(key: V) => (self: MutableHashSet<V>) => boolean,
-  <V>(self: MutableHashSet<V>, key: V) => boolean
->(2, (self, key) => MutableHashMap.has(self.keyMap, key))
+} = Dual.dual<<V>(key: V) => (self: MutableHashSet<V>) => boolean, <V>(self: MutableHashSet<V>, key: V) => boolean>(
+  2,
+  (self, key) => MutableHashMap.has(self.keyMap, key)
+)
 
 /**
  * Removes the specified value from the MutableHashSet, mutating the set in place.

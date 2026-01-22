@@ -7,12 +7,14 @@ import { InMemorySpanExporter, SimpleSpanProcessor } from "@opentelemetry/sdk-tr
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 
-const TracingLive = NodeSdk.layer(Effect.sync(() => ({
-  resource: {
-    serviceName: "test"
-  },
-  spanProcessor: [new SimpleSpanProcessor(new InMemorySpanExporter())]
-})))
+const TracingLive = NodeSdk.layer(
+  Effect.sync(() => ({
+    resource: {
+      serviceName: "test"
+    },
+    spanProcessor: [new SimpleSpanProcessor(new InMemorySpanExporter())]
+  }))
+)
 
 // needed to test context propagation
 const contextManager = new AsyncHooksContextManager()
@@ -21,59 +23,46 @@ OtelApi.context.setGlobalContextManager(contextManager)
 describe("Tracer", () => {
   describe("provided", () => {
     it.effect("withSpan", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const span = yield* Effect.currentSpan
         assert.instanceOf(span, Tracer.OtelSpan)
-      }).pipe(
-        Effect.withSpan("ok"),
-        Effect.provide(TracingLive)
-      ))
+      }).pipe(Effect.withSpan("ok"), Effect.provide(TracingLive))
+    )
 
     it.effect("withSpan links", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const linkedSpan = yield* Effect.makeSpanScoped("B")
-        const span = yield* Effect.currentSpan.pipe(
-          Effect.withSpan("A"),
-          Effect.linkSpans(linkedSpan)
-        )
+        const span = yield* Effect.currentSpan.pipe(Effect.withSpan("A"), Effect.linkSpans(linkedSpan))
         assert.instanceOf(span, Tracer.OtelSpan)
         assert.lengthOf(span.links, 1)
-      }).pipe(
-        Effect.scoped,
-        Effect.provide(TracingLive)
-      ))
+      }).pipe(Effect.scoped, Effect.provide(TracingLive))
+    )
 
     it.effect("supervisor sets context", () =>
       Effect.sync(() => {
         const context = OtelApi.context.active()
         assert.isDefined(OtelApi.trace.getSpan(context))
-      }).pipe(
-        Effect.withSpan("ok"),
-        Effect.provide(TracingLive)
-      ))
+      }).pipe(Effect.withSpan("ok"), Effect.provide(TracingLive))
+    )
 
     it.effect("supervisor sets context generator", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.yieldNow
         const context = OtelApi.context.active()
         assert.isDefined(OtelApi.trace.getSpan(context))
-      }).pipe(
-        Effect.withSpan("ok"),
-        Effect.provide(TracingLive)
-      ))
+      }).pipe(Effect.withSpan("ok"), Effect.provide(TracingLive))
+    )
 
     it.effect("currentOtelSpan", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const span = yield* Effect.currentSpan
         const otelSpan = yield* Tracer.currentOtelSpan
         assert.strictEqual((span as Tracer.OtelSpan).span, otelSpan)
-      }).pipe(
-        Effect.withSpan("ok"),
-        Effect.provide(TracingLive)
-      ))
+      }).pipe(Effect.withSpan("ok"), Effect.provide(TracingLive))
+    )
 
     it.effect("records every pretty error", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const exporter = new InMemorySpanExporter()
         const spanProcessor = new SimpleSpanProcessor(exporter)
         const firstFailure = Cause.fail(new Error("first"))
@@ -83,12 +72,14 @@ describe("Tracer", () => {
         yield* Effect.failCause(cause).pipe(
           Effect.withSpan("error-span"),
           Effect.andThen(Effect.never), // keep the exporter alive
-          Effect.provide(NodeSdk.layer(() => ({
-            resource: {
-              serviceName: "test"
-            },
-            spanProcessor: [spanProcessor]
-          }))),
+          Effect.provide(
+            NodeSdk.layer(() => ({
+              resource: {
+                serviceName: "test"
+              },
+              spanProcessor: [spanProcessor]
+            }))
+          ),
           Effect.forkChild({ startImmediately: true })
         )
 
@@ -99,11 +90,12 @@ describe("Tracer", () => {
         const exceptionEvents = spanData.events.filter((event) => event.name === "exception")
         assert.lengthOf(exceptionEvents, 2)
         assert.strictEqual(spanData.status.message, "first")
-      }))
+      })
+    )
 
     it.effect("withSpanContext", () =>
-      Effect.gen(function*() {
-        const effect = Effect.gen(function*() {
+      Effect.gen(function* () {
+        const effect = Effect.gen(function* () {
           const span = yield* Effect.currentParentSpan
           assert(span._tag === "Span")
           if (span.parent === undefined) {
@@ -115,39 +107,40 @@ describe("Tracer", () => {
         const services = yield* Effect.services<never>()
 
         yield* Effect.promise(async () => {
-          await OtelApi.trace.getTracer("test").startActiveSpan("otel-span", {
-            root: true,
-            attributes: { "root": "yes" }
-          }, async (span) => {
-            try {
-              const parent = await effect.pipe(
-                Tracer.withSpanContext(span.spanContext()),
-                Effect.provideServices(services),
-                Effect.runPromise
-              )
-              const { spanId, traceId } = span.spanContext()
-              assert.containsSubset(parent, {
-                spanId,
-                traceId
-              })
-            } finally {
-              span.end()
+          await OtelApi.trace.getTracer("test").startActiveSpan(
+            "otel-span",
+            {
+              root: true,
+              attributes: { root: "yes" }
+            },
+            async (span) => {
+              try {
+                const parent = await effect.pipe(
+                  Tracer.withSpanContext(span.spanContext()),
+                  Effect.provideServices(services),
+                  Effect.runPromise
+                )
+                const { spanId, traceId } = span.spanContext()
+                assert.containsSubset(parent, {
+                  spanId,
+                  traceId
+                })
+              } finally {
+                span.end()
+              }
             }
-          })
+          )
         })
-      }).pipe(
-        Effect.scoped,
-        Effect.provide(TracingLive)
-      ))
+      }).pipe(Effect.scoped, Effect.provide(TracingLive))
+    )
   })
 
   describe("not provided", () => {
     it.effect("withSpan", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const span = yield* Effect.currentSpan
         assert.notInstanceOf(span, Tracer.OtelSpan)
-      }).pipe(
-        Effect.withSpan("ok")
-      ))
+      }).pipe(Effect.withSpan("ok"))
+    )
   })
 })

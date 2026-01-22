@@ -14,18 +14,24 @@ import * as Redis from "effect/unstable/persistence/Redis"
  * @since 1.0.0
  * @category Service
  */
-export class BunRedis extends ServiceMap.Service<BunRedis, {
-  readonly client: RedisClient
-  readonly use: <A>(f: (client: RedisClient) => Promise<A>) => Effect.Effect<A, Redis.RedisError>
-}>()("@effect/platform-bun/BunRedis") {}
+export class BunRedis extends ServiceMap.Service<
+  BunRedis,
+  {
+    readonly client: RedisClient
+    readonly use: <A>(f: (client: RedisClient) => Promise<A>) => Effect.Effect<A, Redis.RedisError>
+  }
+>()("@effect/platform-bun/BunRedis") {}
 
-const make = Effect.fnUntraced(function*(
+const make = Effect.fnUntraced(function* (
   options?: {
     readonly url?: string
   } & RedisOptions
 ) {
   const scope = yield* Effect.scope
-  yield* Scope.addFinalizer(scope, Effect.sync(() => client.close()))
+  yield* Scope.addFinalizer(
+    scope,
+    Effect.sync(() => client.close())
+  )
   const client = new RedisClient(options?.url, options)
 
   const use = <A>(f: (client: RedisClient) => Promise<A>) =>
@@ -47,9 +53,7 @@ const make = Effect.fnUntraced(function*(
     use
   })
 
-  return ServiceMap.make(BunRedis, bunRedis).pipe(
-    ServiceMap.add(Redis.Redis, redis)
-  )
+  return ServiceMap.make(BunRedis, bunRedis).pipe(ServiceMap.add(Redis.Redis, redis))
 })
 
 /**
@@ -67,8 +71,4 @@ export const layer = (
 export const layerConfig = (
   options: Config.Wrap<{ readonly url?: string } & RedisOptions>
 ): Layer.Layer<Redis.Redis | BunRedis, Config.ConfigError> =>
-  Layer.effectServices(
-    Config.unwrap(options).asEffect().pipe(
-      Effect.flatMap(make)
-    )
-  )
+  Layer.effectServices(Config.unwrap(options).asEffect().pipe(Effect.flatMap(make)))

@@ -27,13 +27,9 @@ const providerFlag = Flag.string("provider").pipe(
   Flag.optional
 )
 
-const skipLintFlag = Flag.boolean("skip-lint").pipe(
-  Flag.withDescription("Skip Oxlint step")
-)
+const skipLintFlag = Flag.boolean("skip-lint").pipe(Flag.withDescription("Skip linting step"))
 
-const skipFormatFlag = Flag.boolean("skip-format").pipe(
-  Flag.withDescription("Skip Dprint step")
-)
+const skipFormatFlag = Flag.boolean("skip-format").pipe(Flag.withDescription("Skip formatting step"))
 
 // =============================================================================
 // Generate Command
@@ -44,7 +40,7 @@ interface GenerateOptions {
   readonly skipFormat: boolean
 }
 
-const generateProvider = Effect.fn("generateProvider")(function*(
+const generateProvider = Effect.fn("generateProvider")(function* (
   provider: ProviderDiscovery.DiscoveredProvider,
   options: GenerateOptions
 ) {
@@ -74,7 +70,7 @@ const generateProvider = Effect.fn("generateProvider")(function*(
   }
 
   if (!options.skipFormat) {
-    yield* Console.log(`  Running dprint fmt...`)
+    yield* Console.log(`  Running oxfmt --write..`)
     yield* postProcessor.format(provider.outputPath)
   }
 
@@ -87,27 +83,29 @@ const generate = Command.make("generate", {
   skipLint: skipLintFlag,
   skipFormat: skipFormatFlag
 }).pipe(
-  Command.withHandler(Effect.fnUntraced(function*({ provider, skipLint, skipFormat }) {
-    const discovery = yield* ProviderDiscovery.ProviderDiscovery
+  Command.withHandler(
+    Effect.fnUntraced(function* ({ provider, skipLint, skipFormat }) {
+      const discovery = yield* ProviderDiscovery.ProviderDiscovery
 
-    const providers = yield* Option.match(provider, {
-      onNone: () => discovery.discover(),
-      onSome: (name) => discovery.discoverOne(name).pipe(Effect.map((p) => [p]))
+      const providers = yield* Option.match(provider, {
+        onNone: () => discovery.discover(),
+        onSome: (name) => discovery.discoverOne(name).pipe(Effect.map((p) => [p]))
+      })
+
+      if (providers.length === 0) {
+        yield* Console.log("No providers found.")
+        return
+      }
+
+      yield* Console.log(`Found ${providers.length} provider(s)`)
+
+      for (const p of providers) {
+        yield* generateProvider(p, { skipLint, skipFormat })
+      }
+
+      yield* Console.log("\nAll providers generated successfully!")
     })
-
-    if (providers.length === 0) {
-      yield* Console.log("No providers found.")
-      return
-    }
-
-    yield* Console.log(`Found ${providers.length} provider(s)`)
-
-    for (const p of providers) {
-      yield* generateProvider(p, { skipLint, skipFormat })
-    }
-
-    yield* Console.log("\nAll providers generated successfully!")
-  }))
+  )
 )
 
 // =============================================================================
@@ -127,42 +125,42 @@ const colors = {
 } as const
 
 const list = Command.make("list").pipe(
-  Command.withHandler(Effect.fnUntraced(function*() {
-    const discovery = yield* ProviderDiscovery.ProviderDiscovery
-    const providers = yield* discovery.discover()
+  Command.withHandler(
+    Effect.fnUntraced(function* () {
+      const discovery = yield* ProviderDiscovery.ProviderDiscovery
+      const providers = yield* discovery.discover()
 
-    if (providers.length === 0) {
-      yield* Console.log(`${colors.yellow}No providers found.${colors.reset}`)
-      return
-    }
-
-    yield* Console.log(`${colors.green}Found ${providers.length} provider(s):${colors.reset}\n`)
-
-    for (const p of providers) {
-      yield* Console.log(`${colors.bold}${colors.cyan}${p.name}${colors.reset}`)
-      yield* Console.log(`  ${colors.gray}spec:${colors.reset}     ${p.config.spec}`)
-      yield* Console.log(`  ${colors.gray}output:${colors.reset}   ${p.config.output}`)
-      yield* Console.log(
-        `  ${colors.gray}client:${colors.reset}   ${colors.white}${p.config.clientName}${colors.reset}`
-      )
-      yield* Console.log(`  ${colors.gray}typeOnly:${colors.reset} ${p.config.isTypeOnly}`)
-      if (p.config.patchList.length > 0) {
-        yield* Console.log(
-          `  ${colors.gray}patches:${colors.reset}  ${colors.yellow}${p.config.patchList.length} file(s)${colors.reset}`
-        )
+      if (providers.length === 0) {
+        yield* Console.log(`${colors.yellow}No providers found.${colors.reset}`)
+        return
       }
-      yield* Console.log("")
-    }
-  }))
+
+      yield* Console.log(`${colors.green}Found ${providers.length} provider(s):${colors.reset}\n`)
+
+      for (const p of providers) {
+        yield* Console.log(`${colors.bold}${colors.cyan}${p.name}${colors.reset}`)
+        yield* Console.log(`  ${colors.gray}spec:${colors.reset}     ${p.config.spec}`)
+        yield* Console.log(`  ${colors.gray}output:${colors.reset}   ${p.config.output}`)
+        yield* Console.log(
+          `  ${colors.gray}client:${colors.reset}   ${colors.white}${p.config.clientName}${colors.reset}`
+        )
+        yield* Console.log(`  ${colors.gray}typeOnly:${colors.reset} ${p.config.isTypeOnly}`)
+        if (p.config.patchList.length > 0) {
+          yield* Console.log(
+            `  ${colors.gray}patches:${colors.reset}  ${colors.yellow}${p.config.patchList.length} file(s)${colors.reset}`
+          )
+        }
+        yield* Console.log("")
+      }
+    })
+  )
 )
 
 // =============================================================================
 // Root Command
 // =============================================================================
 
-const root = Command.make("effect-ai-codegen").pipe(
-  Command.withSubcommands([generate, list])
-)
+const root = Command.make("effect-ai-codegen").pipe(Command.withSubcommands([generate, list]))
 
 // =============================================================================
 // Layer Composition
@@ -174,20 +172,11 @@ const root = Command.make("effect-ai-codegen").pipe(
 // PostProcessor depends on ChildProcessSpawner
 
 // Build up layers with dependencies
-const DiscoveryLayer = ProviderDiscovery.layer.pipe(
-  Layer.provide(Glob.layer)
-)
+const DiscoveryLayer = ProviderDiscovery.layer.pipe(Layer.provide(Glob.layer))
 
-const SpecFetcherLayer = SpecFetcher.layer.pipe(
-  Layer.provide(FetchHttpClient.layer)
-)
+const SpecFetcherLayer = SpecFetcher.layer.pipe(Layer.provide(FetchHttpClient.layer))
 
-const ServicesLayer = Layer.mergeAll(
-  DiscoveryLayer,
-  SpecFetcherLayer,
-  CodeGenerator.layerSchema,
-  PostProcessor.layer
-)
+const ServicesLayer = Layer.mergeAll(DiscoveryLayer, SpecFetcherLayer, CodeGenerator.layerSchema, PostProcessor.layer)
 
 // =============================================================================
 // Export
@@ -199,6 +188,4 @@ const ServicesLayer = Layer.mergeAll(
  * @since 1.0.0
  * @category execution
  */
-export const run = Command.run(root, { version: "0.0.0" }).pipe(
-  Effect.provide(ServicesLayer)
-)
+export const run = Command.run(root, { version: "0.0.0" }).pipe(Effect.provide(ServicesLayer))

@@ -19,14 +19,17 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
  * @since 4.0.0
  * @category errors
  */
-export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>("effect/HttpApiSchemaError")({
-  _tag: Schema.tag("HttpApiSchemaError"),
-  // issues: Schema.Array(Issue),
-  message: Schema.String
-}, {
-  httpApiStatus: 400,
-  description: "The request or response did not match the expected schema"
-}) {
+export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>("effect/HttpApiSchemaError")(
+  {
+    _tag: Schema.tag("HttpApiSchemaError"),
+    // issues: Schema.Array(Issue),
+    message: Schema.String
+  },
+  {
+    httpApiStatus: 400,
+    description: "The request or response did not match the expected schema"
+  }
+) {
   /**
    * @since 4.0.0
    */

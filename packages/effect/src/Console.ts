@@ -650,12 +650,10 @@ export const warn = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * @category accessor
  */
 export const withGroup = dual<
-  (
-    options?: {
-      readonly label?: string | undefined
-      readonly collapsed?: boolean | undefined
-    }
-  ) => <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>,
+  (options?: {
+    readonly label?: string | undefined
+    readonly collapsed?: boolean | undefined
+  }) => <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>,
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
     options?: {
@@ -663,23 +661,26 @@ export const withGroup = dual<
       readonly collapsed?: boolean | undefined
     }
   ) => Effect.Effect<A, E, R>
->((args) => core.isEffect(args[0]), (self, options) =>
-  consoleWith((console) =>
-    effect.acquireUseRelease(
-      effect.sync(() => {
-        if (options?.collapsed) {
-          console.groupCollapsed(options.label)
-        } else {
-          console.group(options?.label)
-        }
-      }),
-      () => self,
-      () =>
+>(
+  (args) => core.isEffect(args[0]),
+  (self, options) =>
+    consoleWith((console) =>
+      effect.acquireUseRelease(
         effect.sync(() => {
-          console.groupEnd()
-        })
+          if (options?.collapsed) {
+            console.groupCollapsed(options.label)
+          } else {
+            console.group(options?.label)
+          }
+        }),
+        () => self,
+        () =>
+          effect.sync(() => {
+            console.groupEnd()
+          })
+      )
     )
-  ))
+)
 
 /**
  * Wraps an Effect with a timer.
@@ -709,16 +710,19 @@ export const withGroup = dual<
 export const withTime = dual<
   (label?: string) => <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>,
   <A, E, R>(self: Effect.Effect<A, E, R>, label?: string) => Effect.Effect<A, E, R>
->((args) => core.isEffect(args[0]), (self, label) =>
-  consoleWith((console) =>
-    effect.acquireUseRelease(
-      effect.sync(() => {
-        console.time(label)
-      }),
-      () => self,
-      () =>
+>(
+  (args) => core.isEffect(args[0]),
+  (self, label) =>
+    consoleWith((console) =>
+      effect.acquireUseRelease(
         effect.sync(() => {
-          console.timeEnd(label)
-        })
+          console.time(label)
+        }),
+        () => self,
+        () =>
+          effect.sync(() => {
+            console.timeEnd(label)
+          })
+      )
     )
-  ))
+)

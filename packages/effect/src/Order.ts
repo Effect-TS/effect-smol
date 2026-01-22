@@ -150,10 +150,8 @@ export interface OrderTypeLambda extends TypeLambda {
  * @category constructors
  * @since 2.0.0
  */
-export function make<A>(
-  compare: (self: A, that: A) => -1 | 0 | 1
-): Order<A> {
-  return (self, that) => self === that ? 0 : compare(self, that)
+export function make<A>(compare: (self: A, that: A) => -1 | 0 | 1): Order<A> {
+  return (self, that) => (self === that ? 0 : compare(self, that))
 }
 
 /**
@@ -187,7 +185,7 @@ export function make<A>(
  * @category instances
  * @since 4.0.0
  */
-export const String: Order<string> = make((self, that) => self < that ? -1 : 1)
+export const String: Order<string> = make((self, that) => (self < that ? -1 : 1))
 
 /**
  * An `Order` instance for numbers that compares them numerically.
@@ -260,7 +258,7 @@ export const Number: Order<number> = make((self, that) => {
  * @category instances
  * @since 4.0.0
  */
-export const Boolean: Order<boolean> = make((self, that) => self < that ? -1 : 1)
+export const Boolean: Order<boolean> = make((self, that) => (self < that ? -1 : 1))
 
 /**
  * An `Order` instance for bigints that compares them numerically.
@@ -292,7 +290,7 @@ export const Boolean: Order<boolean> = make((self, that) => self < that ? -1 : 1
  * @category instances
  * @since 4.0.0
  */
-export const BigInt: Order<bigint> = make((self, that) => self < that ? -1 : 1)
+export const BigInt: Order<bigint> = make((self, that) => (self < that ? -1 : 1))
 
 /**
  * Creates a new `Order` that reverses the comparison order of the input `Order`.
@@ -378,14 +376,17 @@ export function flip<A>(O: Order<A>): Order<A> {
 export const combine: {
   <A>(that: Order<A>): (self: Order<A>) => Order<A>
   <A>(self: Order<A>, that: Order<A>): Order<A>
-} = dual(2, <A>(self: Order<A>, that: Order<A>): Order<A> =>
-  make((a1, a2) => {
-    const out = self(a1, a2)
-    if (out !== 0) {
-      return out
-    }
-    return that(a1, a2)
-  }))
+} = dual(
+  2,
+  <A>(self: Order<A>, that: Order<A>): Order<A> =>
+    make((a1, a2) => {
+      const out = self(a1, a2)
+      if (out !== 0) {
+        return out
+      }
+      return that(a1, a2)
+    })
+)
 
 /**
  * Creates an `Order` that considers all values as equal.
@@ -517,10 +518,7 @@ export function combineAll<A>(collection: Iterable<Order<A>>): Order<A> {
 export const mapInput: {
   <B, A>(f: (b: B) => A): (self: Order<A>) => Order<B>
   <A, B>(self: Order<A>, f: (b: B) => A): Order<B>
-} = dual(
-  2,
-  <A, B>(self: Order<A>, f: (b: B) => A): Order<B> => make((b1, b2) => self(f(b1), f(b2)))
-)
+} = dual(2, <A, B>(self: Order<A>, f: (b: B) => A): Order<B> => make((b1, b2) => self(f(b1), f(b2))))
 
 /**
  * An `Order` instance for `Date` objects that compares them chronologically by their timestamp.
@@ -743,7 +741,9 @@ export function Struct<const R extends { readonly [x: string]: Order<any> }>(
  * @category predicates
  * @since 2.0.0
  */
-export const isLessThan = <A>(O: Order<A>): {
+export const isLessThan = <A>(
+  O: Order<A>
+): {
   (that: A): (self: A) => boolean
   (self: A, that: A): boolean
 } => dual(2, (self: A, that: A) => O(self, that) === -1)
@@ -781,7 +781,9 @@ export const isLessThan = <A>(O: Order<A>): {
  * @category predicates
  * @since 2.0.0
  */
-export const isGreaterThan = <A>(O: Order<A>): {
+export const isGreaterThan = <A>(
+  O: Order<A>
+): {
   (that: A): (self: A) => boolean
   (self: A, that: A): boolean
 } => dual(2, (self: A, that: A) => O(self, that) === 1)
@@ -819,7 +821,9 @@ export const isGreaterThan = <A>(O: Order<A>): {
  * @category predicates
  * @since 2.0.0
  */
-export const isLessThanOrEqualTo = <A>(O: Order<A>): {
+export const isLessThanOrEqualTo = <A>(
+  O: Order<A>
+): {
   (that: A): (self: A) => boolean
   (self: A, that: A): boolean
 } => dual(2, (self: A, that: A) => O(self, that) !== 1)
@@ -857,7 +861,9 @@ export const isLessThanOrEqualTo = <A>(O: Order<A>): {
  * @category predicates
  * @since 2.0.0
  */
-export const isGreaterThanOrEqualTo = <A>(O: Order<A>): {
+export const isGreaterThanOrEqualTo = <A>(
+  O: Order<A>
+): {
   (that: A): (self: A) => boolean
   (self: A, that: A): boolean
 } => dual(2, (self: A, that: A) => O(self, that) !== -1)
@@ -895,10 +901,12 @@ export const isGreaterThanOrEqualTo = <A>(O: Order<A>): {
  * @category comparisons
  * @since 2.0.0
  */
-export const min = <A>(O: Order<A>): {
+export const min = <A>(
+  O: Order<A>
+): {
   (that: A): (self: A) => A
   (self: A, that: A): A
-} => dual(2, (self: A, that: A) => self === that || O(self, that) < 1 ? self : that)
+} => dual(2, (self: A, that: A) => (self === that || O(self, that) < 1 ? self : that))
 
 /**
  * Returns the maximum of two values according to the given order. If they are equal, returns the first argument.
@@ -933,10 +941,12 @@ export const min = <A>(O: Order<A>): {
  * @category comparisons
  * @since 2.0.0
  */
-export const max = <A>(O: Order<A>): {
+export const max = <A>(
+  O: Order<A>
+): {
   (that: A): (self: A) => A
   (self: A, that: A): A
-} => dual(2, (self: A, that: A) => self === that || O(self, that) > -1 ? self : that)
+} => dual(2, (self: A, that: A) => (self === that || O(self, that) > -1 ? self : that))
 
 /**
  * Clamps a value between a minimum and a maximum according to the given order.
@@ -974,22 +984,27 @@ export const max = <A>(O: Order<A>): {
  * @category comparisons
  * @since 2.0.0
  */
-export const clamp = <A>(O: Order<A>): {
-  (options: {
-    minimum: A
-    maximum: A
-  }): (self: A) => A
-  (self: A, options: {
-    minimum: A
-    maximum: A
-  }): A
+export const clamp = <A>(
+  O: Order<A>
+): {
+  (options: { minimum: A; maximum: A }): (self: A) => A
+  (
+    self: A,
+    options: {
+      minimum: A
+      maximum: A
+    }
+  ): A
 } =>
   dual(
     2,
-    (self: A, options: {
-      minimum: A
-      maximum: A
-    }): A => min(O)(options.maximum, max(O)(options.minimum, self))
+    (
+      self: A,
+      options: {
+        minimum: A
+        maximum: A
+      }
+    ): A => min(O)(options.maximum, max(O)(options.minimum, self))
   )
 
 /**
@@ -1029,22 +1044,27 @@ export const clamp = <A>(O: Order<A>): {
  * @category predicates
  * @since 4.0.0
  */
-export const isBetween = <A>(O: Order<A>): {
-  (options: {
-    minimum: A
-    maximum: A
-  }): (self: A) => boolean
-  (self: A, options: {
-    minimum: A
-    maximum: A
-  }): boolean
+export const isBetween = <A>(
+  O: Order<A>
+): {
+  (options: { minimum: A; maximum: A }): (self: A) => boolean
+  (
+    self: A,
+    options: {
+      minimum: A
+      maximum: A
+    }
+  ): boolean
 } =>
   dual(
     2,
-    (self: A, options: {
-      minimum: A
-      maximum: A
-    }): boolean => !isLessThan(O)(self, options.minimum) && !isGreaterThan(O)(self, options.maximum)
+    (
+      self: A,
+      options: {
+        minimum: A
+        maximum: A
+      }
+    ): boolean => !isLessThan(O)(self, options.minimum) && !isGreaterThan(O)(self, options.maximum)
   )
 
 /**
@@ -1082,9 +1102,5 @@ export const isBetween = <A>(O: Order<A>): {
  * @since 4.0.0
  */
 export function makeReducer<A>() {
-  return Reducer.make<Order<A>>(
-    combine,
-    () => 0,
-    combineAll
-  )
+  return Reducer.make<Order<A>>(combine, () => 0, combineAll)
 }

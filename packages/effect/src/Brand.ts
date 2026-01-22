@@ -117,7 +117,7 @@ export declare namespace Brand {
    *
    * @since 2.0.0
    */
-  export type Unbranded<B extends Brand<any>> = B extends infer U & Brands<B> ? U : B
+  export type Unbranded<B extends Brand<any>> = B extends (infer U) & Brands<B> ? U : B
 
   /**
    * A utility type to extract the keys of a branded type.
@@ -140,14 +140,13 @@ export declare namespace Brand {
    *
    * @since 2.0.0
    */
-  export type EnsureCommonBase<
-    Brands extends readonly [Constructor<any>, ...Array<Constructor<any>>]
-  > = {
-    [B in keyof Brands]: Brand.Unbranded<Brand.FromConstructor<Brands[0]>> extends
-      Brand.Unbranded<Brand.FromConstructor<Brands[B]>>
+  export type EnsureCommonBase<Brands extends readonly [Constructor<any>, ...Array<Constructor<any>>]> = {
+    [B in keyof Brands]: Brand.Unbranded<Brand.FromConstructor<Brands[0]>> extends Brand.Unbranded<
+      Brand.FromConstructor<Brands[B]>
+    >
       ? Brand.Unbranded<Brand.FromConstructor<Brands[B]>> extends Brand.Unbranded<Brand.FromConstructor<Brands[0]>>
         ? Brands[B]
-      : Brands[B]
+        : Brands[B]
       : "ERROR: All brands should have the same base type"
   }
 }
@@ -192,10 +191,15 @@ export function nominal<A extends Brand<any>>(): Constructor<A> {
  * @since 2.0.0
  */
 export function make<A extends Brand<any>>(
-  filter: (unbranded: Brand.Unbranded<A>) => undefined | boolean | string | Issue.Issue | {
-    readonly path: ReadonlyArray<PropertyKey>
-    readonly message: string
-  }
+  filter: (unbranded: Brand.Unbranded<A>) =>
+    | undefined
+    | boolean
+    | string
+    | Issue.Issue
+    | {
+        readonly path: ReadonlyArray<PropertyKey>
+        readonly message: string
+      }
 ): Constructor<A> {
   return check(AST.makeFilter(filter))
 }
@@ -204,10 +208,7 @@ export function make<A extends Brand<any>>(
  * @since 4.0.0
  */
 export function check<A extends Brand<any>>(
-  ...checks: readonly [
-    AST.Check<Brand.Unbranded<A>>,
-    ...Array<AST.Check<Brand.Unbranded<A>>>
-  ]
+  ...checks: readonly [AST.Check<Brand.Unbranded<A>>, ...Array<AST.Check<Brand.Unbranded<A>>>]
 ): Constructor<A> {
   const result = (input: Brand.Unbranded<A>): Result.Result<A, BrandError> => {
     return Result.mapError(AST.runChecks(checks, input), (issue) => new BrandError(issue)) as any
@@ -231,11 +232,11 @@ export function check<A extends Brand<any>>(
 export function all<Brands extends readonly [Constructor<any>, ...Array<Constructor<any>>]>(
   ...brands: Brand.EnsureCommonBase<Brands>
 ): Constructor<
-  Types.UnionToIntersection<{ [B in keyof Brands]: Brand.FromConstructor<Brands[B]> }[number]> extends
-    infer X extends Brand<any> ? X : Brand<any>
+  Types.UnionToIntersection<{ [B in keyof Brands]: Brand.FromConstructor<Brands[B]> }[number]> extends infer X extends
+    Brand<any>
+    ? X
+    : Brand<any>
 > {
   const checks = brands.flatMap((brand) => brand.checks ?? [])
-  return Arr.isArrayNonEmpty(checks) ?
-    check(...checks) :
-    nominal()
+  return Arr.isArrayNonEmpty(checks) ? check(...checks) : nominal()
 }

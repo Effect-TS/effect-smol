@@ -18,7 +18,7 @@ export class PgContainer extends ServiceMap.Service<PgContainer>()("test/PgConta
   static layer = Layer.effect(this)(this.make)
 
   static layerClient = Layer.unwrap(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const container = yield* PgContainer
       return PgClient.layer({
         url: Redacted.make(container.getConnectionUri())
@@ -27,7 +27,7 @@ export class PgContainer extends ServiceMap.Service<PgContainer>()("test/PgConta
   ).pipe(Layer.provide(this.layer))
 
   static layerClientWithTransforms = Layer.unwrap(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const container = yield* PgContainer
       return PgClient.layer({
         url: Redacted.make(container.getConnectionUri()),

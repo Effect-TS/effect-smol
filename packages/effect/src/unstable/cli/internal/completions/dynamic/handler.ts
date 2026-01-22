@@ -65,13 +65,9 @@ interface CompletionItem {
   readonly description?: string
 }
 
-const lookupFlag = (
-  token: string,
-  flags: ReadonlyArray<FlagDescriptor>
-): FlagDescriptor | undefined =>
-  flags.find((flag) =>
-    token === `--${flag.name}` ||
-    flag.aliases.some((a) => token === (a.length === 1 ? `-${a}` : `--${a}`))
+const lookupFlag = (token: string, flags: ReadonlyArray<FlagDescriptor>): FlagDescriptor | undefined =>
+  flags.find(
+    (flag) => token === `--${flag.name}` || flag.aliases.some((a) => token === (a.length === 1 ? `-${a}` : `--${a}`))
   )
 
 const formatAlias = (alias: string): string => {
@@ -114,9 +110,7 @@ const getTypeLabel = (flag: FlagDescriptor): string | undefined => {
 
 const buildFlagDescription = (flag: FlagDescriptor): string => {
   const parts: Array<string> = []
-  const aliasParts = flag.aliases
-    .map(formatAlias)
-    .filter((alias) => alias !== `--${flag.name}`)
+  const aliasParts = flag.aliases.map(formatAlias).filter((alias) => alias !== `--${flag.name}`)
 
   const baseDescription = flag.description ?? `--${flag.name}`
 
@@ -166,11 +160,7 @@ const addFlagCandidates = (
 }
 
 const sanitizeDescription = (description: string): string =>
-  description
-    .replace(/\\/g, "\\\\")
-    .replace(/\t/g, " ")
-    .replace(/\n/g, " ")
-    .replace(/:/g, "\\:")
+  description.replace(/\\/g, "\\\\").replace(/\t/g, " ").replace(/\n/g, " ").replace(/:/g, "\\:")
 
 export const generateDynamicCompletions = <Name extends string, I, E, R>(
   rootCmd: Command<Name, I, E, R>,
@@ -215,9 +205,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
 
       wordIndex++ // Move past the option
 
-      if (
-        matchingFlag && optionRequiresValue(matchingFlag) && !hasInlineValue && wordIndex < context.currentIndex
-      ) {
+      if (matchingFlag && optionRequiresValue(matchingFlag) && !hasInlineValue && wordIndex < context.currentIndex) {
         wordIndex++ // Skip the option value
       }
     } else {
@@ -245,10 +233,13 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
 
     if (matchingFlag && optionRequiresValue(matchingFlag)) {
       const candidateKind = matchingFlag.typeName ?? (matchingFlag.primitiveTag === "Path" ? "path" : undefined)
-      const fileKind = candidateKind === "directory" || candidateKind === "file" || candidateKind === "either" ||
-          candidateKind === "path"
-        ? candidateKind
-        : undefined
+      const fileKind =
+        candidateKind === "directory" ||
+        candidateKind === "file" ||
+        candidateKind === "either" ||
+        candidateKind === "path"
+          ? candidateKind
+          : undefined
 
       if (completionFormat === "zsh" && fileKind) {
         return [`files\t${fileKind}`]
@@ -275,10 +266,13 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
 
         if (matchingFlag && optionRequiresValue(matchingFlag)) {
           const candidateKind = matchingFlag.typeName ?? (matchingFlag.primitiveTag === "Path" ? "path" : undefined)
-          const fileKind = candidateKind === "directory" || candidateKind === "file" || candidateKind === "either" ||
-              candidateKind === "path"
-            ? candidateKind
-            : undefined
+          const fileKind =
+            candidateKind === "directory" ||
+            candidateKind === "file" ||
+            candidateKind === "either" ||
+            candidateKind === "path"
+              ? candidateKind
+              : undefined
 
           if (completionFormat === "zsh" && fileKind) {
             return [`files\t${fileKind}`]
@@ -312,9 +306,8 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
 
   if (completionFormat === "zsh") {
     return flatItems.map((item) => {
-      const payload = item.description !== undefined
-        ? `${item.value}:${sanitizeDescription(item.description)}`
-        : item.value
+      const payload =
+        item.description !== undefined ? `${item.value}:${sanitizeDescription(item.description)}` : item.value
       return `${item.type}\t${payload}`
     })
   }
@@ -322,9 +315,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
   if (completionFormat === "fish") {
     return flatItems.map((item) => {
       // Fish uses tab-separated value and description format
-      return item.description !== undefined
-        ? `${item.value}\t${item.description}`
-        : item.value
+      return item.description !== undefined ? `${item.value}\t${item.description}` : item.value
     })
   }
 
@@ -337,9 +328,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
  *
  * @internal
  */
-export const handleCompletionRequest = <Name extends string, I, E, R>(
-  rootCmd: Command<Name, I, E, R>
-): void => {
+export const handleCompletionRequest = <Name extends string, I, E, R>(rootCmd: Command<Name, I, E, R>): void => {
   const context = getCompletionContext()
 
   if (!context) {

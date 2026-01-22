@@ -17,7 +17,9 @@ export const make = <E, R>(
     readonly shardGroup?: string | undefined
   }
 ): Layer.Layer<never, never, Sharding | Exclude<R, Scope>> =>
-  Layer.effectDiscard(Effect.gen(function*() {
-    const sharding = yield* Sharding
-    yield* sharding.registerSingleton(name, run, options)
-  }))
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      const sharding = yield* Sharding
+      yield* sharding.registerSingleton(name, run, options)
+    })
+  )

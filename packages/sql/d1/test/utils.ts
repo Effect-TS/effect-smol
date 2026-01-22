@@ -7,10 +7,7 @@ export class MiniflareError extends Data.TaggedError("MiniflareError")<{
   cause: unknown
 }> {}
 
-export class D1Miniflare extends ServiceMap.Service<
-  D1Miniflare,
-  Miniflare
->()("test/D1Miniflare") {
+export class D1Miniflare extends ServiceMap.Service<D1Miniflare, Miniflare>()("test/D1Miniflare") {
   static layer = Layer.effect(this)(
     Effect.acquireRelease(
       Effect.try({
@@ -29,7 +26,7 @@ export class D1Miniflare extends ServiceMap.Service<
   )
 
   static layerClient = Layer.unwrap(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const miniflare = yield* D1Miniflare
       const db: D1Database = yield* Effect.tryPromise(() => miniflare.getD1Database("DB"))
       return D1Client.layer({ db })

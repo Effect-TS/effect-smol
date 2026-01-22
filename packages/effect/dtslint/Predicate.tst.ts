@@ -118,11 +118,13 @@ describe("Predicate", () => {
     type NonEmptyString = string & NonEmptyStringBrand
     const isNonEmptyString = hole<Predicate.Refinement<string, NonEmptyString>>()
 
-    expect(pipe(Predicate.isString, Predicate.compose(isNonEmptyString)))
-      .type.toBe<Predicate.Refinement<unknown, NonEmptyString>>()
+    expect(pipe(Predicate.isString, Predicate.compose(isNonEmptyString))).type.toBe<
+      Predicate.Refinement<unknown, NonEmptyString>
+    >()
 
-    expect(Predicate.compose(Predicate.isString, isNonEmptyString))
-      .type.toBe<Predicate.Refinement<unknown, NonEmptyString>>()
+    expect(Predicate.compose(Predicate.isString, isNonEmptyString)).type.toBe<
+      Predicate.Refinement<unknown, NonEmptyString>
+    >()
 
     expect(
       pipe(
@@ -134,58 +136,57 @@ describe("Predicate", () => {
       )
     ).type.toBe<Predicate.Refinement<unknown, NonEmptyString>>()
 
-    expect(Predicate.compose(Predicate.isString, (s): s is NonEmptyString => {
-      expect(s).type.toBe<string>()
-      return s.length > 0
-    }))
-      .type.toBe<Predicate.Refinement<unknown, NonEmptyString>>()
+    expect(
+      Predicate.compose(Predicate.isString, (s): s is NonEmptyString => {
+        expect(s).type.toBe<string>()
+        return s.length > 0
+      })
+    ).type.toBe<Predicate.Refinement<unknown, NonEmptyString>>()
 
-    expect(pipe(Predicate.isString, Predicate.compose((s) => s.startsWith("a"))))
-      .type.toBe<Predicate.Refinement<unknown, string>>()
+    expect(
+      pipe(
+        Predicate.isString,
+        Predicate.compose((s) => s.startsWith("a"))
+      )
+    ).type.toBe<Predicate.Refinement<unknown, string>>()
   })
 
   it("and", () => {
     const isPositive = hole<Predicate.Predicate<number>>()
     const isLessThan2 = hole<Predicate.Predicate<number>>()
 
-    expect(pipe(isPositive, Predicate.and(isLessThan2)))
-      .type.toBe<Predicate.Predicate<number>>()
+    expect(pipe(isPositive, Predicate.and(isLessThan2))).type.toBe<Predicate.Predicate<number>>()
 
-    expect(Predicate.and(isPositive, isLessThan2))
-      .type.toBe<Predicate.Predicate<number>>()
+    expect(Predicate.and(isPositive, isLessThan2)).type.toBe<Predicate.Predicate<number>>()
 
-    expect(pipe(Predicate.isNumber, Predicate.and(isPositive)))
-      .type.toBe<Predicate.Predicate<number>>()
+    expect(pipe(Predicate.isNumber, Predicate.and(isPositive))).type.toBe<Predicate.Predicate<number>>()
 
-    expect(Predicate.and(Predicate.isNumber, isPositive))
-      .type.toBe<Predicate.Predicate<number>>()
+    expect(Predicate.and(Predicate.isNumber, isPositive)).type.toBe<Predicate.Predicate<number>>()
 
     const hasa = hole<Predicate.Refinement<unknown, { a: unknown }>>()
     const hasb = hole<Predicate.Refinement<unknown, { b: unknown }>>()
 
-    expect(pipe(hasa, Predicate.and(hasb)))
-      .type.toBe<Predicate.Refinement<unknown, { a: unknown } & { b: unknown }>>()
+    expect(pipe(hasa, Predicate.and(hasb))).type.toBe<Predicate.Refinement<unknown, { a: unknown } & { b: unknown }>>()
 
-    expect(Predicate.and(hasa, hasb))
-      .type.toBe<Predicate.Refinement<unknown, { a: unknown } & { b: unknown }>>()
+    expect(Predicate.and(hasa, hasb)).type.toBe<Predicate.Refinement<unknown, { a: unknown } & { b: unknown }>>()
   })
 
   it("or", () => {
-    expect(
-      pipe(
-        hole<Predicate.Predicate<number>>(),
-        Predicate.or(hole<Predicate.Predicate<number>>())
-      )
-    ).type.toBe<Predicate.Predicate<number>>()
+    expect(pipe(hole<Predicate.Predicate<number>>(), Predicate.or(hole<Predicate.Predicate<number>>()))).type.toBe<
+      Predicate.Predicate<number>
+    >()
 
-    expect(Predicate.or(hole<Predicate.Predicate<number>>(), hole<Predicate.Predicate<number>>()))
-      .type.toBe<Predicate.Predicate<number>>()
+    expect(Predicate.or(hole<Predicate.Predicate<number>>(), hole<Predicate.Predicate<number>>())).type.toBe<
+      Predicate.Predicate<number>
+    >()
 
-    expect(pipe(Predicate.isString, Predicate.or(Predicate.isNumber)))
-      .type.toBe<Predicate.Refinement<unknown, string | number>>()
+    expect(pipe(Predicate.isString, Predicate.or(Predicate.isNumber))).type.toBe<
+      Predicate.Refinement<unknown, string | number>
+    >()
 
-    expect(Predicate.or(Predicate.isString, Predicate.isNumber))
-      .type.toBe<Predicate.Refinement<unknown, string | number>>()
+    expect(Predicate.or(Predicate.isString, Predicate.isNumber)).type.toBe<
+      Predicate.Refinement<unknown, string | number>
+    >()
   })
 
   it("Tuple", () => {
@@ -193,23 +194,27 @@ describe("Predicate", () => {
     const isTrue = hole<Predicate.Refinement<boolean, true>>()
     const isOdd = hole<Predicate.Predicate<number>>()
 
-    expect(Predicate.Tuple([isTrue, isA]))
-      .type.toBe<Predicate.Refinement<readonly [boolean, string], readonly [true, "a"]>>()
+    expect(Predicate.Tuple([isTrue, isA])).type.toBe<
+      Predicate.Refinement<readonly [boolean, string], readonly [true, "a"]>
+    >()
 
-    expect(Predicate.Tuple([isTrue, isOdd]))
-      .type.toBe<Predicate.Refinement<readonly [boolean, number], readonly [true, number]>>()
+    expect(Predicate.Tuple([isTrue, isOdd])).type.toBe<
+      Predicate.Refinement<readonly [boolean, number], readonly [true, number]>
+    >()
 
-    expect(Predicate.Tuple([isOdd, isOdd]))
-      .type.toBe<Predicate.Predicate<readonly [number, number]>>()
+    expect(Predicate.Tuple([isOdd, isOdd])).type.toBe<Predicate.Predicate<readonly [number, number]>>()
 
-    expect(Predicate.Tuple([...hole<Array<Predicate.Predicate<number>>>()]))
-      .type.toBe<Predicate.Predicate<ReadonlyArray<number>>>()
+    expect(Predicate.Tuple([...hole<Array<Predicate.Predicate<number>>>()])).type.toBe<
+      Predicate.Predicate<ReadonlyArray<number>>
+    >()
 
-    expect(Predicate.Tuple([...hole<Array<Predicate.Predicate<number> | Predicate.Refinement<boolean, true>>>()]))
-      .type.toBe<Predicate.Refinement<ReadonlyArray<never>, ReadonlyArray<never>>>()
+    expect(
+      Predicate.Tuple([...hole<Array<Predicate.Predicate<number> | Predicate.Refinement<boolean, true>>>()])
+    ).type.toBe<Predicate.Refinement<ReadonlyArray<never>, ReadonlyArray<never>>>()
 
-    expect(Predicate.Tuple([...hole<Array<Predicate.Refinement<boolean, true>>>()]))
-      .type.toBe<Predicate.Refinement<ReadonlyArray<boolean>, ReadonlyArray<true>>>()
+    expect(Predicate.Tuple([...hole<Array<Predicate.Refinement<boolean, true>>>()])).type.toBe<
+      Predicate.Refinement<ReadonlyArray<boolean>, ReadonlyArray<true>>
+    >()
   })
 
   it("Struct", () => {
@@ -219,10 +224,7 @@ describe("Predicate", () => {
         true: hole<Predicate.Refinement<boolean, true>>()
       })
     ).type.toBe<
-      Predicate.Refinement<
-        { readonly a: string; readonly true: boolean },
-        { readonly a: "a"; readonly true: true }
-      >
+      Predicate.Refinement<{ readonly a: string; readonly true: boolean }, { readonly a: "a"; readonly true: true }>
     >()
 
     expect(

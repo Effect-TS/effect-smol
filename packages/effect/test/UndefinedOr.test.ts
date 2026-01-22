@@ -17,7 +17,10 @@ describe("UndefinedOr", () => {
   })
 
   it("getOrThrowWith", () => {
-    strictEqual(UndefinedOr.getOrThrowWith(1, () => new Error("test")), 1)
+    strictEqual(
+      UndefinedOr.getOrThrowWith(1, () => new Error("test")),
+      1
+    )
     throws(() => UndefinedOr.getOrThrowWith(undefined, () => new Error("test")), new Error("test"))
   })
 

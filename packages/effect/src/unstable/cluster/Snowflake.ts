@@ -33,7 +33,7 @@ export type Snowflake = Brand.Branded<bigint, TypeId>
  * @category Models
  */
 export const Snowflake = (input: string | bigint): Snowflake =>
-  typeof input === "string" ? BigInt(input) as Snowflake : input as Snowflake
+  typeof input === "string" ? (BigInt(input) as Snowflake) : (input as Snowflake)
 
 /**
  * @since 4.0.0
@@ -107,9 +107,9 @@ export const make = (options: {
   readonly sequence: number
   readonly timestamp: number
 }): Snowflake =>
-  (BigInt(options.timestamp - constEpochMillis) << constBigInt22
-    | (BigInt(options.machineId % 1024) << constBigInt12)
-    | BigInt(options.sequence % 4096)) as Snowflake
+  ((BigInt(options.timestamp - constEpochMillis) << constBigInt22) |
+    (BigInt(options.machineId % 1024) << constBigInt12) |
+    BigInt(options.sequence % 4096)) as Snowflake
 
 /**
  * @since 4.0.0
@@ -150,7 +150,7 @@ export const toParts = (snowflake: Snowflake): Snowflake.Parts => ({
  * @since 4.0.0
  * @category Generator
  */
-export const makeGenerator: Effect.Effect<Snowflake.Generator> = Effect.gen(function*() {
+export const makeGenerator: Effect.Effect<Snowflake.Generator> = Effect.gen(function* () {
   let machineId = Math.floor(Math.random() * 1024) as MachineId
   const clock = yield* Clock
 
@@ -192,10 +192,9 @@ export const makeGenerator: Effect.Effect<Snowflake.Generator> = Effect.gen(func
  * @since 4.0.0
  * @category Generator
  */
-export class Generator extends ServiceMap.Service<
-  Generator,
-  Snowflake.Generator
->()("effect/cluster/Snowflake/Generator") {}
+export class Generator extends ServiceMap.Service<Generator, Snowflake.Generator>()(
+  "effect/cluster/Snowflake/Generator"
+) {}
 
 /**
  * @since 4.0.0

@@ -23,10 +23,8 @@ export interface OpfsWorkerConfig {
  * @category constructor
  * @since 1.0.0
  */
-export const run = (
-  options: OpfsWorkerConfig
-): Effect.Effect<void, SqlError> =>
-  Effect.gen(function*() {
+export const run = (options: OpfsWorkerConfig): Effect.Effect<void, SqlError> =>
+  Effect.gen(function* () {
     const factory = yield* Effect.promise(() => SQLiteESMFactory())
     const sqlite3 = WaSqlite.Factory(factory)
     const vfs = yield* Effect.promise(() => AccessHandlePoolVFS.create("opfs", factory))

@@ -22,10 +22,7 @@ export type Primitive = PrimitiveValue | ReadonlyArray<PrimitiveValue>
  * @category models
  * @since 4.0.0
  */
-export type Interpolated =
-  | Primitive
-  | Option.Option<Primitive>
-  | Effect.Effect<Primitive, any, any>
+export type Interpolated = Primitive | Option.Option<Primitive> | Effect.Effect<Primitive, any, any>
 
 /**
  * @category models
@@ -42,20 +39,28 @@ export declare namespace Interpolated {
    * @category models
    * @since 4.0.0
    */
-  export type Context<A> = A extends infer T ? T extends Option.Option<infer _> ? never
-    : T extends Effect.Effect<infer _A, infer _E, infer R> ? R
-    : T extends Stream.Stream<infer _A, infer _E, infer R> ? R
-    : never
+  export type Context<A> = A extends infer T
+    ? T extends Option.Option<infer _>
+      ? never
+      : T extends Effect.Effect<infer _A, infer _E, infer R>
+        ? R
+        : T extends Stream.Stream<infer _A, infer _E, infer R>
+          ? R
+          : never
     : never
 
   /**
    * @category models
    * @since 4.0.0
    */
-  export type Error<A> = A extends infer T ? T extends Option.Option<infer _> ? never
-    : T extends Stream.Stream<infer _A, infer E, infer _R> ? E
-    : T extends Effect.Effect<infer _A, infer E, infer _R> ? E
-    : never
+  export type Error<A> = A extends infer T
+    ? T extends Option.Option<infer _>
+      ? never
+      : T extends Stream.Stream<infer _A, infer E, infer _R>
+        ? E
+        : T extends Effect.Effect<infer _A, infer E, infer _R>
+          ? E
+          : never
     : never
 }
 
@@ -66,16 +71,10 @@ export declare namespace Interpolated {
 export function make<A extends ReadonlyArray<Interpolated>>(
   strings: TemplateStringsArray,
   ...args: A
-): Effect.Effect<
-  string,
-  Interpolated.Error<A[number]>,
-  Interpolated.Context<A[number]>
-> {
+): Effect.Effect<string, Interpolated.Error<A[number]>, Interpolated.Context<A[number]>> {
   const argsLength = args.length
   const values = new Array<string>(argsLength)
-  const effects: Array<
-    [index: number, effect: Effect.Effect<Primitive, any, any>]
-  > = []
+  const effects: Array<[index: number, effect: Effect.Effect<Primitive, any, any>]> = []
 
   for (let i = 0; i < argsLength; i++) {
     const arg = args[i]
@@ -118,11 +117,7 @@ export function make<A extends ReadonlyArray<Interpolated>>(
 export function stream<A extends ReadonlyArray<InterpolatedWithStream>>(
   strings: TemplateStringsArray,
   ...args: A
-): Stream.Stream<
-  string,
-  Interpolated.Error<A[number]>,
-  Interpolated.Context<A[number]>
-> {
+): Stream.Stream<string, Interpolated.Error<A[number]>, Interpolated.Context<A[number]>> {
   const chunks: Array<string | Stream.Stream<string, any, any> | Effect.Effect<string, any, any>> = []
   let buffer = ""
 
@@ -186,10 +181,7 @@ function primitiveToString(value: Primitive): string {
   }
 }
 
-function consolidate(
-  strings: ReadonlyArray<string>,
-  values: ReadonlyArray<string>
-): string {
+function consolidate(strings: ReadonlyArray<string>, values: ReadonlyArray<string>): string {
   let out = ""
   for (let i = 0, len = values.length; i < len; i++) {
     out += strings[i]

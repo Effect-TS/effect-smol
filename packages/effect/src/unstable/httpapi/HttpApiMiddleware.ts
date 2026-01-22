@@ -107,7 +107,9 @@ export type ApplyServices<A extends AnyId, R> = Exclude<R, Provides<A>> | Requir
  * @category models
  */
 export type ErrorSchema<A> = A extends { readonly [TypeId]: { readonly error: infer E } }
-  ? E extends Schema.Top ? E : never
+  ? E extends Schema.Top
+    ? E
+    : never
   : never
 
 /**
@@ -141,84 +143,89 @@ export type ServiceClass<
     error: Schema.Top
     security: Record<string, HttpApiSecurity.HttpApiSecurity>
   },
-  Service =
-    ([keyof Config["security"]] extends [never] ?
-      HttpApiMiddleware<Config["provides"], Config["error"], Config["requires"]>
-      : Simplify<
-        HttpApiMiddlewareSecurity<Config["security"], Config["provides"], Config["error"], Config["requires"]>
-      >)
-> =
-  & ServiceMap.Service<Self, Service>
-  & {
-    new(_: never): ServiceMap.ServiceClass.Shape<Id, Service> & {
-      readonly [TypeId]: {
-        readonly error: Config["error"]
-        readonly requires: Config["requires"]
-        readonly provides: Config["provides"]
-      }
+  Service = [keyof Config["security"]] extends [never]
+    ? HttpApiMiddleware<Config["provides"], Config["error"], Config["requires"]>
+    : Simplify<HttpApiMiddlewareSecurity<Config["security"], Config["provides"], Config["error"], Config["requires"]>>
+> = ServiceMap.Service<Self, Service> & {
+  new (_: never): ServiceMap.ServiceClass.Shape<Id, Service> & {
+    readonly [TypeId]: {
+      readonly error: Config["error"]
+      readonly requires: Config["requires"]
+      readonly provides: Config["provides"]
     }
-    readonly [TypeId]: typeof TypeId
-    readonly error: Config["error"]
   }
-  & ([keyof Config["security"]] extends [never] ? {} : {
-    readonly [SecurityTypeId]: typeof SecurityTypeId
-    readonly security: Config["security"]
-  })
+  readonly [TypeId]: typeof TypeId
+  readonly error: Config["error"]
+} & ([keyof Config["security"]] extends [never]
+    ? {}
+    : {
+        readonly [SecurityTypeId]: typeof SecurityTypeId
+        readonly security: Config["security"]
+      })
 
 /**
  * @since 4.0.0
  * @category Schemas
  */
-export const Service = <
-  Self,
-  Config extends {
-    requires?: any
-    provides?: any
-  } = { requires: never; provides: never }
->(): <
-  const Id extends string,
-  Error extends Schema.Top = Schema.Never,
-  const Security extends Record<string, HttpApiSecurity.HttpApiSecurity> = {}
->(
-  id: Id,
-  options?: {
-    readonly error?: Error | undefined
-    readonly security?: Security | undefined
-  } | undefined
-) => ServiceClass<Self, Id, {
-  requires: "requires" extends keyof Config ? Config["requires"] : never
-  provides: "provides" extends keyof Config ? Config["provides"] : never
-  error: Error
-  security: Security
-}> =>
-(
-  id: string,
-  options?: {
-    readonly security?: Record<string, HttpApiSecurity.HttpApiSecurity> | undefined
-    readonly error?: Schema.Top | undefined
-  } | undefined
-) => {
-  const Err = globalThis.Error as any
-  const limit = Err.stackTraceLimit
-  Err.stackTraceLimit = 2
-  const creationError = new Err()
-  Err.stackTraceLimit = limit
+export const Service =
+  <
+    Self,
+    Config extends {
+      requires?: any
+      provides?: any
+    } = { requires: never; provides: never }
+  >(): (<
+    const Id extends string,
+    Error extends Schema.Top = Schema.Never,
+    const Security extends Record<string, HttpApiSecurity.HttpApiSecurity> = {}
+  >(
+    id: Id,
+    options?:
+      | {
+          readonly error?: Error | undefined
+          readonly security?: Security | undefined
+        }
+      | undefined
+  ) => ServiceClass<
+    Self,
+    Id,
+    {
+      requires: "requires" extends keyof Config ? Config["requires"] : never
+      provides: "provides" extends keyof Config ? Config["provides"] : never
+      error: Error
+      security: Security
+    }
+  >) =>
+  (
+    id: string,
+    options?:
+      | {
+          readonly security?: Record<string, HttpApiSecurity.HttpApiSecurity> | undefined
+          readonly error?: Schema.Top | undefined
+        }
+      | undefined
+  ) => {
+    const Err = globalThis.Error as any
+    const limit = Err.stackTraceLimit
+    Err.stackTraceLimit = 2
+    const creationError = new Err()
+    Err.stackTraceLimit = limit
 
-  class Service extends ServiceMap.Service<Self, any>()(id) {}
-  const self = Service as any
-  Object.defineProperty(Service, "stack", {
-    get() {
-      return creationError.stack
+    class Service extends ServiceMap.Service<Self, any>()(id) {}
+    const self = Service as any
+    Object.defineProperty(Service, "stack", {
+      get() {
+        return creationError.stack
+      }
+    })
+    self[TypeId] = TypeId
+    self.error = options?.error === undefined ? Schema.Never : options.error
+    if (options?.security) {
+      if (Object.keys(options.security).length === 0) {
+        throw new Error("HttpApiMiddleware.Tag: security object must not be empty")
+      }
+      self[SecurityTypeId] = SecurityTypeId
+      self.security = options.security
     }
-  })
-  self[TypeId] = TypeId
-  self.error = options?.error === undefined ? Schema.Never : options.error
-  if (options?.security) {
-    if (Object.keys(options.security).length === 0) {
-      throw new Error("HttpApiMiddleware.Tag: security object must not be empty")
-    }
-    self[SecurityTypeId] = SecurityTypeId
-    self.security = options.security
+    return self
   }
-  return self
-}

@@ -7,10 +7,7 @@ export class ContainerError extends Data.TaggedError("ContainerError")<{
   cause: unknown
 }> {}
 
-export class MysqlContainer extends ServiceMap.Service<
-  MysqlContainer,
-  StartedMySqlContainer
->()("test/MysqlContainer") {
+export class MysqlContainer extends ServiceMap.Service<MysqlContainer, StartedMySqlContainer>()("test/MysqlContainer") {
   static layer = Layer.effect(this)(
     Effect.acquireRelease(
       Effect.tryPromise({
@@ -22,7 +19,7 @@ export class MysqlContainer extends ServiceMap.Service<
   )
 
   static client = Layer.unwrap(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const container = yield* MysqlContainer
       return MysqlClient.layer({
         url: Redacted.make(container.getConnectionUri())
@@ -33,7 +30,7 @@ export class MysqlContainer extends ServiceMap.Service<
   static layerClient = this.client.pipe(Layer.provide(this.layer))
 
   static layerClientWithTransforms = Layer.unwrap(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const container = yield* MysqlContainer
       return MysqlClient.layer({
         url: Redacted.make(container.getConnectionUri()),
@@ -48,12 +45,14 @@ export class MysqlContainer extends ServiceMap.Service<
     Effect.acquireRelease(
       Effect.tryPromise({
         try: () =>
-          new MySqlContainer("vitess/vttestserver:mysql80").withEnvironment({
-            KEYSPACES: "test,unsharded",
-            NUM_SHARDS: "1,1",
-            MYSQL_BIND_HOST: "0.0.0.0",
-            PORT: "3303"
-          }).start(),
+          new MySqlContainer("vitess/vttestserver:mysql80")
+            .withEnvironment({
+              KEYSPACES: "test,unsharded",
+              NUM_SHARDS: "1,1",
+              MYSQL_BIND_HOST: "0.0.0.0",
+              PORT: "3303"
+            })
+            .start(),
         catch: (cause) => new ContainerError({ cause })
       }),
       (container) => Effect.promise(() => container.stop())

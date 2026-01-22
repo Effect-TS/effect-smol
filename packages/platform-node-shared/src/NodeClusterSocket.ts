@@ -16,27 +16,24 @@ import * as NodeSocketServer from "./NodeSocketServer.ts"
  * @since 1.0.0
  * @category Layers
  */
-export const layerClientProtocol: Layer.Layer<
-  Runners.RpcClientProtocol,
-  never,
-  RpcSerialization.RpcSerialization
-> = Layer.effect(Runners.RpcClientProtocol)(
-  Effect.gen(function*() {
-    const serialization = yield* RpcSerialization.RpcSerialization
-    return Effect.fnUntraced(function*(address) {
-      const socket = yield* NodeSocket.makeNet({
-        openTimeout: 1000,
-        timeout: 5500,
-        host: address.host,
-        port: address.port
-      })
-      return yield* RpcClient.makeProtocolSocket().pipe(
-        Effect.provideService(Socket, socket),
-        Effect.provideService(RpcSerialization.RpcSerialization, serialization)
-      )
-    }, Effect.orDie)
-  })
-)
+export const layerClientProtocol: Layer.Layer<Runners.RpcClientProtocol, never, RpcSerialization.RpcSerialization> =
+  Layer.effect(Runners.RpcClientProtocol)(
+    Effect.gen(function* () {
+      const serialization = yield* RpcSerialization.RpcSerialization
+      return Effect.fnUntraced(function* (address) {
+        const socket = yield* NodeSocket.makeNet({
+          openTimeout: 1000,
+          timeout: 5500,
+          host: address.host,
+          port: address.port
+        })
+        return yield* RpcClient.makeProtocolSocket().pipe(
+          Effect.provideService(Socket, socket),
+          Effect.provideService(RpcSerialization.RpcSerialization, serialization)
+        )
+      }, Effect.orDie)
+    })
+  )
 
 /**
  * @since 1.0.0
@@ -46,7 +43,7 @@ export const layerSocketServer: Layer.Layer<
   SocketServer.SocketServer,
   SocketServer.SocketServerError,
   ShardingConfig.ShardingConfig
-> = Effect.gen(function*() {
+> = Effect.gen(function* () {
   const config = yield* ShardingConfig.ShardingConfig
   const listenAddress = config.runnerListenAddress ?? config.runnerAddress
   if (listenAddress === undefined) {

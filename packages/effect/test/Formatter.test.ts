@@ -66,7 +66,15 @@ describe("Formatter", () => {
     })
 
     it("Map", () => {
-      strictEqual(format(new Map([["a", 1], ["b", 2]])), `Map([["a",1],["b",2]])`)
+      strictEqual(
+        format(
+          new Map([
+            ["a", 1],
+            ["b", 2]
+          ])
+        ),
+        `Map([["a",1],["b",2]])`
+      )
     })
 
     it("circular Map contents", () => {
@@ -120,14 +128,8 @@ describe("Formatter", () => {
     })
 
     it("Option", () => {
-      strictEqual(
-        format(Option.some(1)),
-        `some(1)`
-      )
-      strictEqual(
-        format(Option.none()),
-        `none()`
-      )
+      strictEqual(format(Option.some(1)), `some(1)`)
+      strictEqual(format(Option.none()), `none()`)
     })
 
     it("Class", () => {
@@ -193,10 +195,7 @@ describe("Formatter", () => {
 
       it("object with null prototype", () => {
         strictEqual(format(Object.create(null), { space: 2 }), `{}`)
-        strictEqual(
-          format(Object.create(null, { a: { value: 1 } }), { space: 2 }),
-          `{"a":1}`
-        )
+        strictEqual(format(Object.create(null, { a: { value: 1 } }), { space: 2 }), `{"a":1}`)
       })
     })
 

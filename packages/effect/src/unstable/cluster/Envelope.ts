@@ -61,17 +61,19 @@ export interface Request<in out Rpc extends Rpc.Any> {
  * @since 4.0.0
  * @category models
  */
-export class PartialRequest extends Schema.Opaque<PartialRequest>()(Schema.Struct({
-  _tag: Schema.tag("Request"),
-  requestId: SnowflakeFromBigInt,
-  address: EntityAddress,
-  tag: Schema.String,
-  payload: Schema.Any,
-  headers: Headers.HeadersSchema,
-  traceId: Schema.optional(Schema.String),
-  spanId: Schema.optional(Schema.String),
-  sampled: Schema.optional(Schema.Boolean)
-})) {}
+export class PartialRequest extends Schema.Opaque<PartialRequest>()(
+  Schema.Struct({
+    _tag: Schema.tag("Request"),
+    requestId: SnowflakeFromBigInt,
+    address: EntityAddress,
+    tag: Schema.String,
+    payload: Schema.Any,
+    headers: Headers.HeadersSchema,
+    traceId: Schema.optional(Schema.String),
+    spanId: Schema.optional(Schema.String),
+    sampled: Schema.optional(Schema.Boolean)
+  })
+) {}
 
 /**
  * @since 4.0.0
@@ -190,13 +192,11 @@ export interface InterruptEncoded {
  * @since 4.0.0
  * @category schemas
  */
-export const Partial: Schema.Union<
-  readonly [
-    typeof PartialRequest,
-    typeof AckChunk,
-    typeof Interrupt
-  ]
-> = Schema.Union([PartialRequest, AckChunk, Interrupt])
+export const Partial: Schema.Union<readonly [typeof PartialRequest, typeof AckChunk, typeof Interrupt]> = Schema.Union([
+  PartialRequest,
+  AckChunk,
+  Interrupt
+])
 
 /**
  * @since 4.0.0
@@ -208,18 +208,16 @@ export type Partial = typeof Partial.Type
  * @since 4.0.0
  * @category schemas
  */
-export const PartialJson: Schema.Codec<
-  AckChunk | Interrupt | PartialRequest,
-  Encoded
-> = Schema.toCodecJson(Partial) as any
+export const PartialJson: Schema.Codec<AckChunk | Interrupt | PartialRequest, Encoded> = Schema.toCodecJson(
+  Partial
+) as any
 
 /**
  * @since 4.0.0
  * @category schemas
  */
-export const PartialArray: Schema.mutable<
-  Schema.Array$<Schema.Codec<AckChunk | Interrupt | PartialRequest, Encoded>>
-> = Schema.mutable(Schema.Array(PartialJson))
+export const PartialArray: Schema.mutable<Schema.Array$<Schema.Codec<AckChunk | Interrupt | PartialRequest, Encoded>>> =
+  Schema.mutable(Schema.Array(PartialJson))
 
 /**
  * @since 4.0.0
@@ -242,18 +240,16 @@ export const isEnvelope = (u: unknown): u is Envelope<any> => Predicate.hasPrope
  * @since 4.0.0
  * @category constructors
  */
-export const makeRequest = <Rpc extends Rpc.Any>(
-  options: {
-    readonly requestId: Snowflake
-    readonly address: EntityAddress
-    readonly tag: Rpc.Tag<Rpc>
-    readonly payload: Rpc.Payload<Rpc>
-    readonly headers: Headers.Headers
-    readonly traceId?: string | undefined
-    readonly spanId?: string | undefined
-    readonly sampled?: boolean | undefined
-  }
-): Request<Rpc> => ({
+export const makeRequest = <Rpc extends Rpc.Any>(options: {
+  readonly requestId: Snowflake
+  readonly address: EntityAddress
+  readonly tag: Rpc.Tag<Rpc>
+  readonly payload: Rpc.Payload<Rpc>
+  readonly headers: Headers.Headers
+  readonly traceId?: string | undefined
+  readonly spanId?: string | undefined
+  readonly sampled?: boolean | undefined
+}): Request<Rpc> => ({
   [TypeId]: TypeId,
   _tag: "Request",
   requestId: options.requestId,
@@ -261,13 +257,13 @@ export const makeRequest = <Rpc extends Rpc.Any>(
   address: options.address,
   payload: options.payload,
   headers: options.headers,
-  ...(options.traceId !== undefined ?
-    {
-      traceId: options.traceId!,
-      spanId: options.spanId!,
-      sampled: options.sampled!
-    } :
-    {})
+  ...(options.traceId !== undefined
+    ? {
+        traceId: options.traceId!,
+        spanId: options.spanId!,
+        sampled: options.sampled!
+      }
+    : {})
 })
 
 /**
@@ -282,19 +278,15 @@ export const Envelope = Schema.declare(isEnvelope, {
  * @since 4.0.0
  * @category serialization / deserialization
  */
-export const Request = Schema.declare(
-  (u): u is Request.Any => isEnvelope(u) && u._tag === "Request",
-  { identifier: "Request" }
-)
+export const Request = Schema.declare((u): u is Request.Any => isEnvelope(u) && u._tag === "Request", {
+  identifier: "Request"
+})
 
 /**
  * @since 4.0.0
  * @category serialization / deserialization
  */
-export const RequestTransform: Transformation.Transformation<
-  Request.Any,
-  any
-> = Transformation.transform({
+export const RequestTransform: Transformation.Transformation<Request.Any, any> = Transformation.transform({
   decode: (u: any) => makeRequest(u),
   encode: (u) => u as any
 })

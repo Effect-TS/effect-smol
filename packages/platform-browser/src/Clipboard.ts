@@ -44,9 +44,7 @@ export const Clipboard: ServiceMap.Service<Clipboard, Clipboard> = ServiceMap.Se
  * @since 1.0.0
  * @category Constructors
  */
-export const make = (
-  impl: Omit<Clipboard, "clear" | "writeBlob" | typeof TypeId>
-): Clipboard =>
+export const make = (impl: Omit<Clipboard, "clear" | "writeBlob" | typeof TypeId>): Clipboard =>
   Clipboard.of({
     ...impl,
     [TypeId]: TypeId,
@@ -68,7 +66,7 @@ export const layer: Layer.Layer<Clipboard> = Layer.succeed(
       catch: (cause) =>
         new ClipboardError({
           cause,
-          "message": "Unable to read from clipboard"
+          message: "Unable to read from clipboard"
         })
     }),
     write: (s: Array<ClipboardItem>) =>
@@ -77,7 +75,7 @@ export const layer: Layer.Layer<Clipboard> = Layer.succeed(
         catch: (cause) =>
           new ClipboardError({
             cause,
-            "message": "Unable to write to clipboard"
+            message: "Unable to write to clipboard"
           })
       }),
     readString: Effect.tryPromise({
@@ -85,7 +83,7 @@ export const layer: Layer.Layer<Clipboard> = Layer.succeed(
       catch: (cause) =>
         new ClipboardError({
           cause,
-          "message": "Unable to read a string from clipboard"
+          message: "Unable to read a string from clipboard"
         })
     }),
     writeString: (text: string) =>
@@ -94,7 +92,7 @@ export const layer: Layer.Layer<Clipboard> = Layer.succeed(
         catch: (cause) =>
           new ClipboardError({
             cause,
-            "message": "Unable to write a string to clipboard"
+            message: "Unable to write a string to clipboard"
           })
       })
   })

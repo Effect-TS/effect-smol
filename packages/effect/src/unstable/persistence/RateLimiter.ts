@@ -49,11 +49,7 @@ export const RateLimiter: ServiceMap.Service<RateLimiter, RateLimiter> = Service
  * @since 4.0.0
  * @category Constructors
  */
-export const make: Effect.Effect<
-  RateLimiter,
-  never,
-  RateLimiterStore
-> = Effect.gen(function*() {
+export const make: Effect.Effect<RateLimiter, never, RateLimiterStore> = Effect.gen(function* () {
   const store = yield* RateLimiterStore
 
   return identity<RateLimiter>({
@@ -70,19 +66,19 @@ export const make: Effect.Effect<
       if (tokens > options.limit) {
         return onExceeded === "fail"
           ? Effect.fail(
-            new RateLimitExceeded({
-              key: options.key,
-              retryAfter: window,
-              limit: options.limit,
-              remaining: 0
-            })
-          )
+              new RateLimitExceeded({
+                key: options.key,
+                retryAfter: window,
+                limit: options.limit,
+                remaining: 0
+              })
+            )
           : Effect.succeed<ConsumeResult>({
-            delay: window,
-            limit: options.limit,
-            remaining: 0,
-            resetAfter: window
-          })
+              delay: window,
+              limit: options.limit,
+              remaining: 0,
+              resetAfter: window
+            })
       }
 
       if (algorithm === "fixed-window") {
@@ -116,7 +112,7 @@ export const make: Effect.Effect<
             const ttlTotal = count * refillRateMillis
             const elapsed = ttlTotal - ttl
             const windowNumber = Math.floor((count - 1) / options.limit)
-            const remaining = (windowNumber * windowMillis) - elapsed
+            const remaining = windowNumber * windowMillis - elapsed
             const delay = remaining <= 0 ? Duration.zero : Duration.millis(remaining)
             return Effect.succeed<ConsumeResult>({
               delay,
@@ -179,11 +175,7 @@ export const make: Effect.Effect<
  * @since 4.0.0
  * @category Layers
  */
-export const layer: Layer.Layer<
-  RateLimiter,
-  never,
-  RateLimiterStore
-> = Layer.effect(RateLimiter, make)
+export const layer: Layer.Layer<RateLimiter, never, RateLimiterStore> = Layer.effect(RateLimiter, make)
 
 /**
  * Access a function that applies rate limiting to an effect.
@@ -213,22 +205,23 @@ export const layer: Layer.Layer<
  * @category Accessors
  */
 export const makeWithRateLimiter: Effect.Effect<
-  ((options: {
+  (options: {
     readonly algorithm?: "fixed-window" | "token-bucket" | undefined
     readonly onExceeded?: "delay" | "fail" | undefined
     readonly window: Duration.DurationInput
     readonly limit: number
     readonly key: string
     readonly tokens?: number | undefined
-  }) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E | RateLimiterError, R>),
+  }) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E | RateLimiterError, R>,
   never,
   RateLimiter
 > = RateLimiter.use((limiter) =>
-  Effect.succeed((options) => (effect) =>
-    Effect.flatMap(limiter.consume(options), ({ delay }) => {
-      if (Duration.isZero(delay)) return effect
-      return Effect.delay(effect, delay)
-    })
+  Effect.succeed(
+    (options) => (effect) =>
+      Effect.flatMap(limiter.consume(options), ({ delay }) => {
+        if (Duration.isZero(delay)) return effect
+        return Effect.delay(effect, delay)
+      })
   )
 )
 
@@ -258,13 +251,13 @@ export const makeWithRateLimiter: Effect.Effect<
  * @category Accessors
  */
 export const makeSleep: Effect.Effect<
-  ((options: {
+  (options: {
     readonly algorithm?: "fixed-window" | "token-bucket" | undefined
     readonly window: Duration.DurationInput
     readonly limit: number
     readonly key: string
     readonly tokens?: number | undefined
-  }) => Effect.Effect<ConsumeResult, RateLimitStoreError>),
+  }) => Effect.Effect<ConsumeResult, RateLimitStoreError>,
   never,
   RateLimiter
 > = RateLimiter.use((limiter) =>
@@ -436,9 +429,7 @@ export class RateLimiterStore extends ServiceMap.Service<
  * @since 4.0.0
  * @category RateLimiterStore
  */
-export const layerStoreMemory: Layer.Layer<
-  RateLimiterStore
-> = Layer.sync(RateLimiterStore, () => {
+export const layerStoreMemory: Layer.Layer<RateLimiterStore> = Layer.sync(RateLimiterStore, () => {
   const fixedCounters = new Map<string, { count: number; expiresAt: number }>()
   const tokenBuckets = new Map<string, { tokens: number; lastRefill: number }>()
 
@@ -493,11 +484,7 @@ export const layerStoreMemory: Layer.Layer<
  * @since 4.0.0
  * @category RateLimiterStore
  */
-export const makeStoreRedis = Effect.fnUntraced(function*(
-  options?: {
-    readonly prefix?: string | undefined
-  }
-) {
+export const makeStoreRedis = Effect.fnUntraced(function* (options?: { readonly prefix?: string | undefined }) {
   const prefix = options?.prefix ?? "ratelimiter:"
   const redis = yield* Redis.Redis
 
@@ -572,14 +559,14 @@ return { next, nextpttl }
 ).withReturnType<readonly [currentTokens: number, nextPttl: number]>()
 
 const tokenBucketScript = Redis.script(
-  (
-    key: string,
-    tokens: number,
-    refillMillis: number,
-    limit: number,
-    now: number,
-    overflow: 0 | 1
-  ) => [key, tokens, refillMillis, limit, now, overflow],
+  (key: string, tokens: number, refillMillis: number, limit: number, now: number, overflow: 0 | 1) => [
+    key,
+    tokens,
+    refillMillis,
+    limit,
+    now,
+    overflow
+  ],
   {
     numberOfKeys: 1,
     lua: `
@@ -624,13 +611,9 @@ return next
  * @since 4.0.0
  * @category Layers
  */
-export const layerStoreRedis: (
-  options?: { readonly prefix?: string | undefined }
-) => Layer.Layer<
-  RateLimiterStore,
-  never,
-  Redis.Redis
-> = Layer.effect(RateLimiterStore, makeStoreRedis)
+export const layerStoreRedis: (options?: {
+  readonly prefix?: string | undefined
+}) => Layer.Layer<RateLimiterStore, never, Redis.Redis> = Layer.effect(RateLimiterStore, makeStoreRedis)
 
 /**
  * @since 4.0.0
@@ -639,7 +622,4 @@ export const layerStoreRedis: (
 export const layerStoreRedisConfig = (
   options: Config.Wrap<{ readonly prefix?: string | undefined }>
 ): Layer.Layer<RateLimiterStore, Config.ConfigError, Redis.Redis> =>
-  Layer.effect(
-    RateLimiterStore,
-    Effect.flatMap(Config.unwrap(options).asEffect(), makeStoreRedis)
-  )
+  Layer.effect(RateLimiterStore, Effect.flatMap(Config.unwrap(options).asEffect(), makeStoreRedis))

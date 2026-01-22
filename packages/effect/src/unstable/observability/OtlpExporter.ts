@@ -19,11 +19,7 @@ import type { HttpBody } from "../http/HttpBody.ts"
 const policy = Schedule.forever.pipe(
   Schedule.passthrough,
   Schedule.addDelay((error) => {
-    if (
-      HttpClientError.isHttpClientError(error)
-      && error._tag === "ResponseError"
-      && error.response.status === 429
-    ) {
+    if (HttpClientError.isHttpClientError(error) && error._tag === "ResponseError" && error.response.status === 429) {
       const retryAfter = UndefinedOr.map(error.response.headers["retry-after"], Num.parse) ?? 5
       return Duration.seconds(retryAfter)
     }
@@ -35,95 +31,79 @@ const policy = Schedule.forever.pipe(
  * @since 4.0.0
  * @category Constructors
  */
-export const make: (
-  options: {
-    readonly url: string
-    readonly headers: Headers.Input | undefined
-    readonly label: string
-    readonly exportInterval: Duration.DurationInput
-    readonly maxBatchSize: number | "disabled"
-    readonly body: (data: Array<any>) => HttpBody
-    readonly shutdownTimeout: Duration.DurationInput
-  }
-) => Effect.Effect<
-  { readonly push: (data: unknown) => void },
-  never,
-  HttpClient.HttpClient | Scope.Scope
-> = Effect.fnUntraced(function*(options) {
-  const services = yield* Effect.services<Scope.Scope | HttpClient.HttpClient>()
-  const clock = ServiceMap.get(services, Clock)
-  const scope = ServiceMap.get(services, Scope.Scope)
-  const runFork = Effect.runForkWith(services)
-  const exportInterval = Duration.fromDurationInputUnsafe(options.exportInterval)
-  let disabledUntil: number | undefined = undefined
+export const make: (options: {
+  readonly url: string
+  readonly headers: Headers.Input | undefined
+  readonly label: string
+  readonly exportInterval: Duration.DurationInput
+  readonly maxBatchSize: number | "disabled"
+  readonly body: (data: Array<any>) => HttpBody
+  readonly shutdownTimeout: Duration.DurationInput
+}) => Effect.Effect<{ readonly push: (data: unknown) => void }, never, HttpClient.HttpClient | Scope.Scope> =
+  Effect.fnUntraced(function* (options) {
+    const services = yield* Effect.services<Scope.Scope | HttpClient.HttpClient>()
+    const clock = ServiceMap.get(services, Clock)
+    const scope = ServiceMap.get(services, Scope.Scope)
+    const runFork = Effect.runForkWith(services)
+    const exportInterval = Duration.fromDurationInputUnsafe(options.exportInterval)
+    let disabledUntil: number | undefined = undefined
 
-  const client = HttpClient.filterStatusOk(ServiceMap.get(services, HttpClient.HttpClient)).pipe(
-    HttpClient.retryTransient({ schedule: policy, times: 3 })
-  )
-
-  let headers = Headers.fromRecordUnsafe({
-    "user-agent": `effect-opentelemetry-${options.label}/0.0.0`
-  })
-  if (options.headers) {
-    headers = Headers.merge(Headers.fromInput(options.headers), headers)
-  }
-
-  const request = HttpClientRequest.post(options.url, { headers })
-  let buffer: Array<any> = []
-  const runExport = Effect.suspend(() => {
-    if (disabledUntil !== undefined && clock.currentTimeMillisUnsafe() < disabledUntil) {
-      return Effect.void
-    } else if (disabledUntil !== undefined) {
-      disabledUntil = undefined
-    }
-    const items = buffer
-    if (options.maxBatchSize !== "disabled") {
-      if (buffer.length === 0) {
-        return Effect.void
-      }
-      buffer = []
-    }
-    return client.execute(
-      HttpClientRequest.setBody(request, options.body(items))
-    ).pipe(
-      Effect.asVoid,
-      Effect.withTracerEnabled(false)
+    const client = HttpClient.filterStatusOk(ServiceMap.get(services, HttpClient.HttpClient)).pipe(
+      HttpClient.retryTransient({ schedule: policy, times: 3 })
     )
-  }).pipe(
-    Effect.catchCause((cause) => {
-      if (disabledUntil !== undefined) return Effect.void
-      disabledUntil = clock.currentTimeMillisUnsafe() + 60_000
-      buffer = []
-      return Effect.logDebug("Disabling exporter for 60 seconds", cause)
-    }),
-    Effect.annotateLogs({
-      package: "@effect/opentelemetry",
-      module: options.label
+
+    let headers = Headers.fromRecordUnsafe({
+      "user-agent": `effect-opentelemetry-${options.label}/0.0.0`
     })
-  )
+    if (options.headers) {
+      headers = Headers.merge(Headers.fromInput(options.headers), headers)
+    }
 
-  yield* Scope.addFinalizer(
-    scope,
-    runExport.pipe(
-      Effect.ignore,
-      Effect.interruptible,
-      Effect.timeoutOption(options.shutdownTimeout)
+    const request = HttpClientRequest.post(options.url, { headers })
+    let buffer: Array<any> = []
+    const runExport = Effect.suspend(() => {
+      if (disabledUntil !== undefined && clock.currentTimeMillisUnsafe() < disabledUntil) {
+        return Effect.void
+      } else if (disabledUntil !== undefined) {
+        disabledUntil = undefined
+      }
+      const items = buffer
+      if (options.maxBatchSize !== "disabled") {
+        if (buffer.length === 0) {
+          return Effect.void
+        }
+        buffer = []
+      }
+      return client
+        .execute(HttpClientRequest.setBody(request, options.body(items)))
+        .pipe(Effect.asVoid, Effect.withTracerEnabled(false))
+    }).pipe(
+      Effect.catchCause((cause) => {
+        if (disabledUntil !== undefined) return Effect.void
+        disabledUntil = clock.currentTimeMillisUnsafe() + 60_000
+        buffer = []
+        return Effect.logDebug("Disabling exporter for 60 seconds", cause)
+      }),
+      Effect.annotateLogs({
+        package: "@effect/opentelemetry",
+        module: options.label
+      })
     )
-  )
 
-  yield* Effect.sleep(exportInterval).pipe(
-    Effect.andThen(runExport),
-    Effect.forever,
-    Effect.forkIn(scope)
-  )
+    yield* Scope.addFinalizer(
+      scope,
+      runExport.pipe(Effect.ignore, Effect.interruptible, Effect.timeoutOption(options.shutdownTimeout))
+    )
 
-  return {
-    push(data) {
-      if (disabledUntil !== undefined) return
-      buffer.push(data)
-      if (options.maxBatchSize !== "disabled" && buffer.length >= options.maxBatchSize) {
-        Fiber.runIn(runFork(runExport), scope)
+    yield* Effect.sleep(exportInterval).pipe(Effect.andThen(runExport), Effect.forever, Effect.forkIn(scope))
+
+    return {
+      push(data) {
+        if (disabledUntil !== undefined) return
+        buffer.push(data)
+        if (options.maxBatchSize !== "disabled" && buffer.length >= options.maxBatchSize) {
+          Fiber.runIn(runFork(runExport), scope)
+        }
       }
     }
-  }
-})
+  })

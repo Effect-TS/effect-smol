@@ -26,9 +26,7 @@ export const make = (options: {
   readonly serviceVersion?: string | undefined
   readonly attributes?: Record<string, unknown> | undefined
 }): Resource => {
-  const resourceAttributes = options.attributes
-    ? entriesToAttributes(Object.entries(options.attributes))
-    : []
+  const resourceAttributes = options.attributes ? entriesToAttributes(Object.entries(options.attributes)) : []
   resourceAttributes.push({
     key: "service.name",
     value: {
@@ -55,27 +53,33 @@ export const make = (options: {
  * @category Constructors
  */
 export const fromConfig: (
-  options?: {
-    readonly serviceName?: string | undefined
-    readonly serviceVersion?: string | undefined
-    readonly attributes?: Record<string, unknown> | undefined
-  } | undefined
-) => Effect.Effect<Resource> = Effect.fnUntraced(function*(options?: {
+  options?:
+    | {
+        readonly serviceName?: string | undefined
+        readonly serviceVersion?: string | undefined
+        readonly attributes?: Record<string, unknown> | undefined
+      }
+    | undefined
+) => Effect.Effect<Resource> = Effect.fnUntraced(function* (options?: {
   readonly serviceName?: string | undefined
   readonly serviceVersion?: string | undefined
   readonly attributes?: Record<string, unknown> | undefined
 }) {
   const attributes = {
-    ...yield* Config.schema(
+    ...(yield* Config.schema(
       Schema.UndefinedOr(Config.Record(Schema.String, Schema.String)),
       "OTEL_RESOURCE_ATTRIBUTES"
-    ),
+    )),
     ...options?.attributes
   }
-  const serviceName = options?.serviceName ?? attributes["service.name"] as string ??
+  const serviceName =
+    options?.serviceName ??
+    (attributes["service.name"] as string) ??
     (yield* Config.schema(Schema.String, "OTEL_SERVICE_NAME"))
   delete attributes["service.name"]
-  const serviceVersion = options?.serviceVersion ?? attributes["service.version"] as string ??
+  const serviceVersion =
+    options?.serviceVersion ??
+    (attributes["service.version"] as string) ??
     (yield* Config.schema(Schema.UndefinedOr(Schema.String), "OTEL_SERVICE_VERSION"))
   delete attributes["service.version"]
   return make({
@@ -90,9 +94,7 @@ export const fromConfig: (
  * @category Attributes
  */
 export const serviceNameUnsafe = (resource: Resource): string => {
-  const serviceNameAttribute = resource.attributes.find(
-    (attr) => attr.key === "service.name"
-  )
+  const serviceNameAttribute = resource.attributes.find((attr) => attr.key === "service.name")
   if (!serviceNameAttribute || !serviceNameAttribute.value.stringValue) {
     throw new Error("Resource does not contain a service name")
   }
@@ -138,11 +140,11 @@ export const unknownToAttributeValue = (value: unknown): AnyValue => {
     case "number":
       return Number.isInteger(value)
         ? {
-          intValue: value
-        }
+            intValue: value
+          }
         : {
-          doubleValue: value
-        }
+            doubleValue: value
+          }
     case "boolean":
       return {
         boolValue: value

@@ -72,18 +72,24 @@ export const isBoolean: (input: unknown) => input is boolean = predicate.isBoole
  * @since 2.0.0
  */
 export const match: {
-  <A, B = A>(options: {
-    readonly onFalse: LazyArg<A>
-    readonly onTrue: LazyArg<B>
-  }): (value: boolean) => A | B
-  <A, B>(value: boolean, options: {
-    readonly onFalse: LazyArg<A>
-    readonly onTrue: LazyArg<B>
-  }): A | B
-} = dual(2, <A, B>(value: boolean, options: {
-  readonly onFalse: LazyArg<A>
-  readonly onTrue: LazyArg<B>
-}): A | B => value ? options.onTrue() : options.onFalse())
+  <A, B = A>(options: { readonly onFalse: LazyArg<A>; readonly onTrue: LazyArg<B> }): (value: boolean) => A | B
+  <A, B>(
+    value: boolean,
+    options: {
+      readonly onFalse: LazyArg<A>
+      readonly onTrue: LazyArg<B>
+    }
+  ): A | B
+} = dual(
+  2,
+  <A, B>(
+    value: boolean,
+    options: {
+      readonly onFalse: LazyArg<A>
+      readonly onTrue: LazyArg<B>
+    }
+  ): A | B => (value ? options.onTrue() : options.onFalse())
+)
 
 /**
  * Provides an `Order` instance for `boolean` that allows comparing and sorting boolean values.
@@ -272,7 +278,7 @@ export const eqv: {
 export const implies: {
   (that: boolean): (self: boolean) => boolean
   (self: boolean, that: boolean): boolean
-} = dual(2, (self, that) => self ? that : true)
+} = dual(2, (self, that) => (self ? that : true))
 
 /**
  * This utility function is used to check if all the elements in a collection of boolean values are `true`.

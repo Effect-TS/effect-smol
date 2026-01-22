@@ -1,28 +1,30 @@
 {
   "name": "@effect/sql-mssql",
   "version": "0.45.1",
-  "type": "module",
-  "license": "MIT",
   "description": "A Microsoft SQL Server toolkit for Effect",
+  "keywords": [
+    "database",
+    "sql",
+    "typescript"
+  ],
   "homepage": "https://effect.website",
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/sql/mssql"
   },
-  "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
-  },
-  "tags": [
-    "typescript",
-    "sql",
-    "database"
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "src/**/*.ts"
   ],
-  "keywords": [
-    "typescript",
-    "sql",
-    "database"
-  ],
+  "type": "module",
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
@@ -31,22 +33,15 @@
     "./internal/*": null,
     "./*/index": null
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
-    "provenance": true,
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
       "./*/index": null
-    }
+    },
+    "provenance": true
   },
   "scripts": {
     "codegen": "effect-utils codegen",
@@ -57,13 +52,18 @@
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
+  "dependencies": {
+    "tedious": "^18.6.2"
+  },
   "devDependencies": {
     "effect": "workspace:^"
   },
   "peerDependencies": {
     "effect": "workspace:^"
   },
-  "dependencies": {
-    "tedious": "^18.6.2"
-  }
+  "tags": [
+    "typescript",
+    "sql",
+    "database"
+  ]
 }

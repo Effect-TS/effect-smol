@@ -7,7 +7,7 @@ import { OtlpMetrics, OtlpSerialization } from "effect/unstable/observability"
 describe("OtlpMetrics", () => {
   describe("cumulative temporality", () => {
     it.effect("Counter", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const metricName = "cumulative_counter_test"
         const counter = Metric.counter(metricName, {
           description: "Test counter"
@@ -30,10 +30,11 @@ describe("OtlpMetrics", () => {
         // Second export should report cumulative 8
         const secondMetric = findMetric(requests[1], metricName)
         assert.strictEqual(secondMetric?.sum?.dataPoints[0].asDouble, 8)
-      }).pipe(Effect.provide(TestLayerCumulative)))
+      }).pipe(Effect.provide(TestLayerCumulative))
+    )
 
     it.effect("Histogram", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const metricName = "cumulative_histogram_test"
 
         const histogram = Metric.histogram(metricName, {
@@ -61,10 +62,11 @@ describe("OtlpMetrics", () => {
         assert.isDefined(secondMetric)
         assert.strictEqual(secondMetric?.histogram?.dataPoints[0].count, 3)
         assert.strictEqual(secondMetric?.histogram?.dataPoints[0].sum, 130)
-      }).pipe(Effect.provide(TestLayerCumulative)))
+      }).pipe(Effect.provide(TestLayerCumulative))
+    )
 
     it.effect("Frequency", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const metricName = "cumulative_frequency_test"
         const frequency = Metric.frequency(metricName, {
           description: "Test frequency"
@@ -88,17 +90,15 @@ describe("OtlpMetrics", () => {
         const firstMetric = findMetric(requests[0], metricName)
         const firstDataPoints = firstMetric?.sum?.dataPoints
         const firstA = firstDataPoints?.find((dp) =>
-          dp.attributes.some((attr) =>
-            attr.key === "key" &&
-            Predicate.hasProperty(attr.value, "stringValue") &&
-            attr.value.stringValue === "a"
+          dp.attributes.some(
+            (attr) =>
+              attr.key === "key" && Predicate.hasProperty(attr.value, "stringValue") && attr.value.stringValue === "a"
           )
         )
         const firstB = firstDataPoints?.find((dp) =>
-          dp.attributes.some((attr) =>
-            attr.key === "key" &&
-            Predicate.hasProperty(attr.value, "stringValue") &&
-            attr.value.stringValue === "b"
+          dp.attributes.some(
+            (attr) =>
+              attr.key === "key" && Predicate.hasProperty(attr.value, "stringValue") && attr.value.stringValue === "b"
           )
         )
         assert.strictEqual(firstA?.asInt, 2)
@@ -109,25 +109,24 @@ describe("OtlpMetrics", () => {
         assert.isDefined(secondMetric)
         const secondDataPoints = secondMetric?.sum?.dataPoints
         const secondA = secondDataPoints?.find((dp) =>
-          dp.attributes.some((attr) =>
-            attr.key === "key" &&
-            Predicate.hasProperty(attr.value, "stringValue") &&
-            attr.value.stringValue === "a"
+          dp.attributes.some(
+            (attr) =>
+              attr.key === "key" && Predicate.hasProperty(attr.value, "stringValue") && attr.value.stringValue === "a"
           )
         )
         const secondB = secondDataPoints?.find((dp) =>
-          dp.attributes.some((attr) =>
-            attr.key === "key" &&
-            Predicate.hasProperty(attr.value, "stringValue") &&
-            attr.value.stringValue === "b"
+          dp.attributes.some(
+            (attr) =>
+              attr.key === "key" && Predicate.hasProperty(attr.value, "stringValue") && attr.value.stringValue === "b"
           )
         )
         assert.strictEqual(secondA?.asInt, 3) // Cumulative: 2+1=3
         assert.strictEqual(secondB?.asInt, 3) // Cumulative: 1+2=3
-      }).pipe(Effect.provide(TestLayerCumulative)))
+      }).pipe(Effect.provide(TestLayerCumulative))
+    )
 
     it.effect("Summary", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const metricName = "cumulative_summary_test"
         const summary = Metric.summary(metricName, {
           description: "Test summary",
@@ -162,12 +161,13 @@ describe("OtlpMetrics", () => {
 
         const secondSum = findMetric(requests[1], `${metricName}_sum`)
         assert.strictEqual(secondSum?.sum?.dataPoints[0].asDouble, 100)
-      }).pipe(Effect.provide(TestLayerCumulative)))
+      }).pipe(Effect.provide(TestLayerCumulative))
+    )
   })
 
   describe("delta temporality", () => {
     it.effect("Counter", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const metricName = "delta_counter_test"
         const counter = Metric.counter(metricName, {
           description: "Test counter"
@@ -189,10 +189,11 @@ describe("OtlpMetrics", () => {
 
         const secondMetric = findMetric(requests[1], metricName)
         assert.strictEqual(secondMetric?.sum?.dataPoints[0].asDouble, 3)
-      }).pipe(Effect.provide(TestLayerDelta)))
+      }).pipe(Effect.provide(TestLayerDelta))
+    )
 
     it.effect("Histogram", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const metricName = "delta_histogram_test"
         const histogram = Metric.histogram(metricName, {
           description: "Test histogram",
@@ -218,10 +219,11 @@ describe("OtlpMetrics", () => {
         const secondMetric = findMetric(requests[1], metricName)
         assert.strictEqual(secondMetric?.histogram?.dataPoints[0].count, 1)
         assert.strictEqual(secondMetric?.histogram?.dataPoints[0].sum, 30)
-      }).pipe(Effect.provide(TestLayerDelta)))
+      }).pipe(Effect.provide(TestLayerDelta))
+    )
 
     it.effect("Frequency", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const metricName = "delta_frequency_test"
         const frequency = Metric.frequency(metricName, {
           description: "Test frequency"
@@ -245,17 +247,15 @@ describe("OtlpMetrics", () => {
         const firstMetric = findMetric(requests[0], metricName)
         const firstDataPoints = firstMetric?.sum?.dataPoints
         const firstA = firstDataPoints?.find((dp) =>
-          dp.attributes.some((attr) =>
-            attr.key === "key" &&
-            Predicate.hasProperty(attr.value, "stringValue") &&
-            attr.value.stringValue === "a"
+          dp.attributes.some(
+            (attr) =>
+              attr.key === "key" && Predicate.hasProperty(attr.value, "stringValue") && attr.value.stringValue === "a"
           )
         )
         const firstB = firstDataPoints?.find((dp) =>
-          dp.attributes.some((attr) =>
-            attr.key === "key" &&
-            Predicate.hasProperty(attr.value, "stringValue") &&
-            attr.value.stringValue === "b"
+          dp.attributes.some(
+            (attr) =>
+              attr.key === "key" && Predicate.hasProperty(attr.value, "stringValue") && attr.value.stringValue === "b"
           )
         )
         assert.strictEqual(firstA?.asInt, 2)
@@ -265,25 +265,24 @@ describe("OtlpMetrics", () => {
         assert.isDefined(secondMetric)
         const secondDataPoints = secondMetric?.sum?.dataPoints
         const secondA = secondDataPoints?.find((dp) =>
-          dp.attributes.some((attr) =>
-            attr.key === "key" &&
-            Predicate.hasProperty(attr.value, "stringValue") &&
-            attr.value.stringValue === "a"
+          dp.attributes.some(
+            (attr) =>
+              attr.key === "key" && Predicate.hasProperty(attr.value, "stringValue") && attr.value.stringValue === "a"
           )
         )
         const secondB = secondDataPoints?.find((dp) =>
-          dp.attributes.some((attr) =>
-            attr.key === "key" &&
-            Predicate.hasProperty(attr.value, "stringValue") &&
-            attr.value.stringValue === "b"
+          dp.attributes.some(
+            (attr) =>
+              attr.key === "key" && Predicate.hasProperty(attr.value, "stringValue") && attr.value.stringValue === "b"
           )
         )
         assert.strictEqual(secondA?.asInt, 1) // Delta: 3-2=1
         assert.strictEqual(secondB?.asInt, 2) // Delta: 3-1=2
-      }).pipe(Effect.provide(TestLayerDelta)))
+      }).pipe(Effect.provide(TestLayerDelta))
+    )
 
     it.effect("Summary", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const metricName = "delta_summary_test"
         const summary = Metric.summary(metricName, {
           description: "Test summary",
@@ -318,12 +317,13 @@ describe("OtlpMetrics", () => {
 
         const secondSum = findMetric(requests[1], `${metricName}_sum`)
         assert.strictEqual(secondSum?.sum?.dataPoints[0].asDouble, 40) // Delta: 100-60=40
-      }).pipe(Effect.provide(TestLayerDelta)))
+      }).pipe(Effect.provide(TestLayerDelta))
+    )
   })
 
   describe("Summary", () => {
     it.effect("exports quantile metrics", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const metricName = "summary_quantiles_test"
         const summary = Metric.summary(metricName, {
           description: "Test summary",
@@ -351,53 +351,56 @@ describe("OtlpMetrics", () => {
 
         // Find min and max quantile data points
         const minPoint = dataPoints.find((dp) =>
-          dp.attributes.some((attr) =>
-            attr.key === "quantile" &&
-            Predicate.hasProperty(attr.value, "stringValue") &&
-            attr.value.stringValue === "min"
+          dp.attributes.some(
+            (attr) =>
+              attr.key === "quantile" &&
+              Predicate.hasProperty(attr.value, "stringValue") &&
+              attr.value.stringValue === "min"
           )
         )
         const maxPoint = dataPoints.find((dp) =>
-          dp.attributes.some((attr) =>
-            attr.key === "quantile" &&
-            Predicate.hasProperty(attr.value, "stringValue") &&
-            attr.value.stringValue === "max"
+          dp.attributes.some(
+            (attr) =>
+              attr.key === "quantile" &&
+              Predicate.hasProperty(attr.value, "stringValue") &&
+              attr.value.stringValue === "max"
           )
         )
         assert.strictEqual(minPoint?.asDouble, 10)
         assert.strictEqual(maxPoint?.asDouble, 30)
-      }).pipe(Effect.provide(TestLayerCumulative)))
+      }).pipe(Effect.provide(TestLayerCumulative))
+    )
   })
 
   describe("Gauge (no temporality)", () => {
-    it.effect.each([
-      ["cumulative", TestLayerCumulative] as const,
-      ["delta", TestLayerDelta] as const
-    ])("%s temporality reports current value", ([_, layer]) =>
-      Effect.gen(function*() {
-        const metricName = "delta_gauge_test"
+    it.effect.each([["cumulative", TestLayerCumulative] as const, ["delta", TestLayerDelta] as const])(
+      "%s temporality reports current value",
+      ([_, layer]) =>
+        Effect.gen(function* () {
+          const metricName = "delta_gauge_test"
 
-        const gauge = Metric.gauge(metricName, {
-          description: "Test gauge"
-        })
+          const gauge = Metric.gauge(metricName, {
+            description: "Test gauge"
+          })
 
-        yield* Metric.update(gauge, 100)
-        yield* triggerExport
+          yield* Metric.update(gauge, 100)
+          yield* triggerExport
 
-        yield* Metric.update(gauge, 50)
-        yield* triggerExport
+          yield* Metric.update(gauge, 50)
+          yield* triggerExport
 
-        const requests = yield* MockHttpClient.requests
-        assert.isAtLeast(requests.length, 2)
+          const requests = yield* MockHttpClient.requests
+          assert.isAtLeast(requests.length, 2)
 
-        // First export should report current value 100
-        const firstMetric = findMetric(requests[0], metricName)
-        assert.strictEqual(firstMetric?.gauge?.dataPoints[0].asDouble, 100)
+          // First export should report current value 100
+          const firstMetric = findMetric(requests[0], metricName)
+          assert.strictEqual(firstMetric?.gauge?.dataPoints[0].asDouble, 100)
 
-        // Second export should report current value 50 (not delta -50)
-        const secondMetric = findMetric(requests[1], metricName)
-        assert.strictEqual(secondMetric?.gauge?.dataPoints[0].asDouble, 50)
-      }).pipe(Effect.provide(layer)))
+          // Second export should report current value 50 (not delta -50)
+          const secondMetric = findMetric(requests[1], metricName)
+          assert.strictEqual(secondMetric?.gauge?.dataPoints[0].asDouble, 50)
+        }).pipe(Effect.provide(layer))
+    )
   })
 })
 
@@ -415,18 +418,24 @@ interface OtlpMetric {
   readonly name: string
   readonly description?: string | undefined
   readonly unit?: string | undefined
-  readonly sum?: {
-    readonly dataPoints: Array<OtlpNumberDataPoint>
-    readonly aggregationTemporality: number
-    readonly isMonotonic: boolean
-  } | undefined
-  readonly gauge?: {
-    readonly dataPoints: Array<OtlpNumberDataPoint>
-  } | undefined
-  readonly histogram?: {
-    readonly dataPoints: Array<OtlpHistogramDataPoint>
-    readonly aggregationTemporality: number
-  } | undefined
+  readonly sum?:
+    | {
+        readonly dataPoints: Array<OtlpNumberDataPoint>
+        readonly aggregationTemporality: number
+        readonly isMonotonic: boolean
+      }
+    | undefined
+  readonly gauge?:
+    | {
+        readonly dataPoints: Array<OtlpNumberDataPoint>
+      }
+    | undefined
+  readonly histogram?:
+    | {
+        readonly dataPoints: Array<OtlpHistogramDataPoint>
+        readonly aggregationTemporality: number
+      }
+    | undefined
 }
 
 interface OtlpNumberDataPoint {
@@ -449,23 +458,24 @@ interface OtlpHistogramDataPoint {
   readonly max?: number | undefined
 }
 
-class MockHttpClient extends ServiceMap.Service<MockHttpClient, {
-  readonly requests: Effect.Effect<ReadonlyArray<OtlpExportRequest>>
-}>()("MockHttpClient") {
-  static requests = Effect.service(MockHttpClient).pipe(
-    Effect.flatMap((client) => client.requests)
-  )
+class MockHttpClient extends ServiceMap.Service<
+  MockHttpClient,
+  {
+    readonly requests: Effect.Effect<ReadonlyArray<OtlpExportRequest>>
+  }
+>()("MockHttpClient") {
+  static requests = Effect.service(MockHttpClient).pipe(Effect.flatMap((client) => client.requests))
 }
 
-const makeHttpClient = Effect.gen(function*() {
+const makeHttpClient = Effect.gen(function* () {
   const capturedRequests = yield* Ref.make<ReadonlyArray<OtlpExportRequest>>([])
 
   const httpClient = HttpClient.makeWith(
-    Effect.fnUntraced(function*(requestEffect) {
+    Effect.fnUntraced(function* (requestEffect) {
       const request = yield* requestEffect
-      const body = (request.body._tag === "Uint8Array"
-        ? JSON.parse(new TextDecoder().decode(request.body.body))
-        : {}) as OtlpExportRequest
+      const body = (
+        request.body._tag === "Uint8Array" ? JSON.parse(new TextDecoder().decode(request.body.body)) : {}
+      ) as OtlpExportRequest
       yield* Ref.update(capturedRequests, Array.append(body))
       return HttpClientResponse.fromWeb(request, new Response())
     }),

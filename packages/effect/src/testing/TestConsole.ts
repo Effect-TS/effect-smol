@@ -124,7 +124,7 @@ export declare namespace TestConsole {
  * @since 4.0.0
  * @category constructors
  */
-export const make = Effect.gen(function*() {
+export const make = Effect.gen(function* () {
   const entries: Array<TestConsole.Entry> = []
 
   function createEntryUnsafe(method: TestConsole.Method) {
@@ -134,17 +134,13 @@ export const make = Effect.gen(function*() {
   }
 
   const logLines = Effect.sync(() => {
-    return Array.filterMap(entries, (entry) =>
-      entry.method === "log"
-        ? Option.some(entry.parameters) :
-        Option.none())
+    return Array.filterMap(entries, (entry) => (entry.method === "log" ? Option.some(entry.parameters) : Option.none()))
   }).pipe(Effect.map(Array.flatten))
 
   const errorLines = Effect.sync(() => {
     return Array.filterMap(entries, (entry) =>
-      entry.method === "error"
-        ? Option.some(entry.parameters) :
-        Option.none())
+      entry.method === "error" ? Option.some(entry.parameters) : Option.none()
+    )
   }).pipe(Effect.map(Array.flatten))
 
   return {

@@ -5,12 +5,15 @@ export interface TestAction {
   readonly details: Record<string, unknown>
 }
 
-export class TestActions extends ServiceMap.Service<TestActions, {
-  readonly log: (action: TestAction) => Effect.Effect<void>
-  readonly getActions: Effect.Effect<ReadonlyArray<TestAction>>
-}>()("TestActions") {}
+export class TestActions extends ServiceMap.Service<
+  TestActions,
+  {
+    readonly log: (action: TestAction) => Effect.Effect<void>
+    readonly getActions: Effect.Effect<ReadonlyArray<TestAction>>
+  }
+>()("TestActions") {}
 
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const actions = yield* Ref.make<ReadonlyArray<TestAction>>([])
   return TestActions.of({
     getActions: Ref.get(actions),
@@ -24,13 +27,9 @@ export const logAction = (
   command: string,
   details: Record<string, unknown> = {}
 ): Effect.Effect<void, never, TestActions> =>
-  Effect.flatMap(
-    TestActions.asEffect(),
-    (actions) => actions.log({ command, details })
-  )
+  Effect.flatMap(TestActions.asEffect(), (actions) => actions.log({ command, details }))
 
-export const getActions: Effect.Effect<
-  ReadonlyArray<TestAction>,
-  never,
-  TestActions
-> = Effect.flatMap(TestActions.asEffect(), (actions) => actions.getActions)
+export const getActions: Effect.Effect<ReadonlyArray<TestAction>, never, TestActions> = Effect.flatMap(
+  TestActions.asEffect(),
+  (actions) => actions.getActions
+)

@@ -275,9 +275,10 @@ export const make: {
       lookup: options.lookup as any,
       services,
       scope,
-      idleTimeToLive: typeof options.idleTimeToLive === "function"
-        ? flow(options.idleTimeToLive, Duration.fromDurationInputUnsafe)
-        : constant(Duration.fromDurationInputUnsafe(options.idleTimeToLive ?? Duration.zero)),
+      idleTimeToLive:
+        typeof options.idleTimeToLive === "function"
+          ? flow(options.idleTimeToLive, Duration.fromDurationInputUnsafe)
+          : constant(Duration.fromDurationInputUnsafe(options.idleTimeToLive ?? Duration.zero)),
       capacity: Math.max(options.capacity ?? Number.POSITIVE_INFINITY, 0)
     })
     return Effect.as(
@@ -287,10 +288,7 @@ export const make: {
         }
         const map = self.state.map
         self.state = { _tag: "Closed" }
-        return Effect.forEach(
-          map,
-          ([, entry]) => Effect.exit(Scope.close(entry.scope, Exit.void))
-        ).pipe(
+        return Effect.forEach(map, ([, entry]) => Effect.exit(Scope.close(entry.scope, Exit.void))).pipe(
           Effect.tap(() => {
             MutableHashMap.clear(map)
           })
@@ -364,15 +362,13 @@ export const get: {
           services.set(key, value)
         })
         services.set(Scope.Scope.key, entry.scope)
-        self.lookup(key).pipe(
-          Effect.runForkWith(ServiceMap.makeUnsafe(services)),
-          Fiber.runIn(entry.scope)
-        ).addObserver((exit) => Deferred.doneUnsafe(entry.deferred, exit))
+        self
+          .lookup(key)
+          .pipe(Effect.runForkWith(ServiceMap.makeUnsafe(services)), Fiber.runIn(entry.scope))
+          .addObserver((exit) => Deferred.doneUnsafe(entry.deferred, exit))
       }
       const scope = ServiceMap.getUnsafe(parent.services, Scope.Scope)
-      return Scope.addFinalizer(scope, entry.finalizer).pipe(
-        Effect.andThen(restore(Deferred.await(entry.deferred)))
-      )
+      return Scope.addFinalizer(scope, entry.finalizer).pipe(Effect.andThen(restore(Deferred.await(entry.deferred))))
     })
 )
 
@@ -382,9 +378,9 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
     if (entry.refCount > 0) {
       return Effect.void
     } else if (
-      self.state._tag === "Closed"
-      || !MutableHashMap.has(self.state.map, key)
-      || Duration.isZero(entry.idleTimeToLive)
+      self.state._tag === "Closed" ||
+      !MutableHashMap.has(self.state.map, key) ||
+      Duration.isZero(entry.idleTimeToLive)
     ) {
       if (self.state._tag === "Open") {
         MutableHashMap.remove(self.state.map, key)
@@ -408,9 +404,11 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
       }
       return Effect.flatMap(clock.sleep(Duration.millis(remaining)), () => loop(restore))
     }).pipe(
-      Effect.ensuring(Effect.sync(() => {
-        entry.fiber = undefined
-      })),
+      Effect.ensuring(
+        Effect.sync(() => {
+          entry.fiber = undefined
+        })
+      ),
       Effect.runForkWith(fiber.services),
       Fiber.runIn(self.scope)
     )
@@ -484,7 +482,7 @@ export const invalidate: {
   <K, A, E>(self: RcMap<K, A, E>, key: K): Effect.Effect<void>
 } = dual(
   2,
-  Effect.fnUntraced(function*<K, A, E>(self: RcMap<K, A, E>, key: K) {
+  Effect.fnUntraced(function* <K, A, E>(self: RcMap<K, A, E>, key: K) {
     if (self.state._tag === "Closed") return
     const o = MutableHashMap.get(self.state.map, key)
     if (o._tag === "None") return
@@ -503,13 +501,11 @@ export const invalidate: {
 export const has: {
   <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<boolean>
   <K, A, E>(self: RcMap<K, A, E>, key: K): Effect.Effect<boolean>
-} = dual(
-  2,
-  <K, A, E>(self: RcMap<K, A, E>, key: K) =>
-    Effect.sync(() => {
-      if (self.state._tag === "Closed") return false
-      return MutableHashMap.has(self.state.map, key)
-    })
+} = dual(2, <K, A, E>(self: RcMap<K, A, E>, key: K) =>
+  Effect.sync(() => {
+    if (self.state._tag === "Closed") return false
+    return MutableHashMap.has(self.state.map, key)
+  })
 )
 
 /**
@@ -548,19 +544,17 @@ export const has: {
 export const touch: {
   <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<void>
   <K, A, E>(self: RcMap<K, A, E>, key: K): Effect.Effect<void>
-} = dual(
-  2,
-  <K, A, E>(self: RcMap<K, A, E>, key: K) =>
-    Effect.clockWith((clock) => {
-      if (self.state._tag === "Closed") {
-        return Effect.void
-      }
-      const o = MutableHashMap.get(self.state.map, key)
-      if (o._tag === "None" || Duration.isZero(o.value.idleTimeToLive)) {
-        return Effect.void
-      }
-      const entry = o.value
-      entry.expiresAt = clock.currentTimeMillisUnsafe() + Duration.toMillis(entry.idleTimeToLive)
+} = dual(2, <K, A, E>(self: RcMap<K, A, E>, key: K) =>
+  Effect.clockWith((clock) => {
+    if (self.state._tag === "Closed") {
       return Effect.void
-    })
+    }
+    const o = MutableHashMap.get(self.state.map, key)
+    if (o._tag === "None" || Duration.isZero(o.value.idleTimeToLive)) {
+      return Effect.void
+    }
+    const entry = o.value
+    entry.expiresAt = clock.currentTimeMillisUnsafe() + Duration.toMillis(entry.idleTimeToLive)
+    return Effect.void
+  })
 )

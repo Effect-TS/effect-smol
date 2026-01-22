@@ -1,31 +1,30 @@
 {
   "name": "@effect/platform-node-shared",
-  "type": "module",
   "version": "0.31.6",
-  "license": "MIT",
   "description": "Unified interfaces for common platform-specific services",
+  "keywords": [
+    "algebraic-data-types",
+    "functional-programming",
+    "typescript"
+  ],
   "homepage": "https://effect.website",
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/platform-node-shared"
   },
-  "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
-  },
-  "tags": [
-    "typescript",
-    "algebraic-data-types",
-    "functional-programming"
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "src/**/*.ts"
   ],
-  "keywords": [
-    "typescript",
-    "algebraic-data-types",
-    "functional-programming"
-  ],
-  "engines": {
-    "node": ">=18.0.0"
-  },
+  "type": "module",
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
@@ -34,22 +33,15 @@
     "./internal/*": null,
     "./*/index": null
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
-    "provenance": true,
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
       "./*/index": null
-    }
+    },
+    "provenance": true
   },
   "scripts": {
     "build": "tsc -b tsconfig.json && pnpm babel",
@@ -59,16 +51,24 @@
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
-  "peerDependencies": {
-    "effect": "workspace:^"
+  "dependencies": {
+    "@types/ws": "^8.18.1",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@types/node": "^25.0.6",
     "effect": "workspace:^",
     "tar": "^7.5.2"
   },
-  "dependencies": {
-    "@types/ws": "^8.18.1",
-    "ws": "^8.18.3"
-  }
+  "peerDependencies": {
+    "effect": "workspace:^"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "tags": [
+    "typescript",
+    "algebraic-data-types",
+    "functional-programming"
+  ]
 }

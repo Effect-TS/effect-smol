@@ -41,11 +41,7 @@ export interface HttpRouter {
       | Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>
       | ((request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>),
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
-  ) => Effect.Effect<
-    void,
-    never,
-    Request.From<"Requires", Exclude<R, Provided>> | Request.From<"Error", E>
-  >
+  ) => Effect.Effect<void, never, Request.From<"Requires", Exclude<R, Provided>> | Request.From<"Error", E>>
 
   readonly addAll: <const Routes extends ReadonlyArray<Route<any, any>>>(
     routes: Routes
@@ -57,11 +53,10 @@ export interface HttpRouter {
   >
 
   readonly addGlobalMiddleware: <E, R>(
-    middleware:
-      & ((
-        effect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled>
-      ) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>)
-      & (Types.unhandled extends E ? unknown : "You cannot handle any errors")
+    middleware: ((
+      effect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled>
+    ) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>) &
+      (Types.unhandled extends E ? unknown : "You cannot handle any errors")
   ) => Effect.Effect<
     void,
     never,
@@ -80,15 +75,14 @@ export interface HttpRouter {
  * @since 4.0.0
  * @category HttpRouter
  */
-export const HttpRouter: ServiceMap.Service<HttpRouter, HttpRouter> = ServiceMap.Service<HttpRouter>(
-  "effect/http/HttpRouter"
-)
+export const HttpRouter: ServiceMap.Service<HttpRouter, HttpRouter> =
+  ServiceMap.Service<HttpRouter>("effect/http/HttpRouter")
 
 /**
  * @since 4.0.0
  * @category HttpRouter
  */
-export const make = Effect.gen(function*() {
+export const make = Effect.gen(function* () {
   const router = FindMyWay.make<Route<any, never>>(yield* RouterConfig)
   const middleware = new Set<middleware.Fn>()
 
@@ -109,10 +103,13 @@ export const make = Effect.gen(function*() {
         return effect
       }
       for (let i = 0; i < routes.length; i++) {
-        const route = middleware.length === 0 ? routes[i] : makeRoute({
-          ...routes[i],
-          handler: applyMiddleware(routes[i].handler as Effect.Effect<HttpServerResponse.HttpServerResponse>)
-        })
+        const route =
+          middleware.length === 0
+            ? routes[i]
+            : makeRoute({
+                ...routes[i],
+                handler: applyMiddleware(routes[i].handler as Effect.Effect<HttpServerResponse.HttpServerResponse>)
+              })
         if (route.method === "*") {
           if (route.path.endsWith("/*")) {
             router.all(route.path, route as any)
@@ -144,11 +141,11 @@ export const make = Effect.gen(function*() {
             makeRoute({
               method,
               path: prefixPath(path, prefix) as PathInput,
-              handler: HttpServerResponse.isHttpServerResponse(handler) ?
-                Effect.succeed(handler) :
-                Effect.isEffect(handler)
-                ? handler
-                : Effect.flatMap(HttpServerRequest.HttpServerRequest.asEffect(), handler),
+              handler: HttpServerResponse.isHttpServerResponse(handler)
+                ? Effect.succeed(handler)
+                : Effect.isEffect(handler)
+                  ? handler
+                  : Effect.flatMap(HttpServerRequest.HttpServerRequest.asEffect(), handler),
               uninterruptible: options?.uninterruptible ?? false,
               prefix
             })
@@ -187,12 +184,10 @@ export const make = Effect.gen(function*() {
           span.attribute("http.route", route.path)
         }
         return Effect.provideServices(
-          (route.uninterruptible ?
-            route.handler :
-            Effect.interruptible(route.handler)) as Effect.Effect<
-              HttpServerResponse.HttpServerResponse,
-              unknown
-            >,
+          (route.uninterruptible ? route.handler : Effect.interruptible(route.handler)) as Effect.Effect<
+            HttpServerResponse.HttpServerResponse,
+            unknown
+          >,
           ServiceMap.makeUnsafe(contextMap)
         )
       })
@@ -223,20 +218,22 @@ export const RouterConfig = ServiceMap.Reference<Partial<FindMyWay.RouterConfig>
  * @since 4.0.0
  * @category RouteContext
  */
-export class RouteContext extends ServiceMap.Service<RouteContext, {
-  readonly params: Readonly<Record<string, string | undefined>>
-  readonly route: Route<unknown, unknown>
-}>()("effect/http/HttpRouter/RouteContext") {}
+export class RouteContext extends ServiceMap.Service<
+  RouteContext,
+  {
+    readonly params: Readonly<Record<string, string | undefined>>
+    readonly route: Route<unknown, unknown>
+  }
+>()("effect/http/HttpRouter/RouteContext") {}
 
 /**
  * @since 4.0.0
  * @category RouteContext
  */
-export const params: Effect.Effect<
-  ReadonlyRecord<string, string | undefined>,
-  never,
-  RouteContext
-> = Effect.map(RouteContext.asEffect(), (_) => _.params)
+export const params: Effect.Effect<ReadonlyRecord<string, string | undefined>, never, RouteContext> = Effect.map(
+  RouteContext.asEffect(),
+  (_) => _.params
+)
 
 /**
  * @since 4.0.0
@@ -274,15 +271,19 @@ export const schemaJson = <
       const searchParams = ServiceMap.get(services, HttpServerRequest.ParsedSearchParams)
       const routeContext = ServiceMap.get(services, RouteContext)
       return Effect.flatMap(request.json, (body) =>
-        parse({
-          method: request.method,
-          url: request.url,
-          headers: request.headers,
-          cookies: request.cookies,
-          pathParams: routeContext.params,
-          searchParams,
-          body
-        }, options))
+        parse(
+          {
+            method: request.method,
+            url: request.url,
+            headers: request.headers,
+            cookies: request.cookies,
+            pathParams: routeContext.params,
+            searchParams,
+            body
+          },
+          options
+        )
+      )
     }
   )
 }
@@ -321,14 +322,17 @@ export const schemaNoBody = <
       const request = ServiceMap.get(services, HttpServerRequest.HttpServerRequest)
       const searchParams = ServiceMap.get(services, HttpServerRequest.ParsedSearchParams)
       const routeContext = ServiceMap.get(services, RouteContext)
-      return parse({
-        method: request.method,
-        url: request.url,
-        headers: request.headers,
-        cookies: request.cookies,
-        pathParams: routeContext.params,
-        searchParams
-      }, options)
+      return parse(
+        {
+          method: request.method,
+          url: request.url,
+          headers: request.headers,
+          cookies: request.cookies,
+          pathParams: routeContext.params,
+          searchParams
+        },
+        options
+      )
     }
   )
 }
@@ -448,14 +452,16 @@ export const addAll = <Routes extends ReadonlyArray<Route<any, any>>, EX = never
   | Request.From<"Requires", Exclude<Route.Context<Routes[number]>, Provided>>
   | Request.From<"Error", Route.Error<Routes[number]>>
 > =>
-  Layer.effectDiscard(Effect.gen(function*() {
-    const toAdd = Effect.isEffect(routes) ? yield* routes : routes
-    let router = yield* HttpRouter
-    if (options?.prefix) {
-      router = router.prefixed(options.prefix)
-    }
-    yield* router.addAll(toAdd)
-  }))
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      const toAdd = Effect.isEffect(routes) ? yield* routes : routes
+      let router = yield* HttpRouter
+      if (options?.prefix) {
+        router = router.prefixed(options.prefix)
+      }
+      yield* router.addAll(toAdd)
+    })
+  )
 
 /**
  * @since 4.0.0
@@ -478,14 +484,10 @@ export const toHttpEffect = <A, E, R>(
   Request.Without<E>,
   Exclude<Request.Without<R>, HttpRouter> | Scope.Scope
 > =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const scope = yield* Effect.scope
     const memoMap = yield* Layer.CurrentMemoMap
-    const context = yield* Layer.buildWithMemoMap(
-      Layer.provideMerge(appLayer, layer),
-      memoMap,
-      scope
-    )
+    const context = yield* Layer.buildWithMemoMap(Layer.provideMerge(appLayer, layer), memoMap, scope)
     const router = ServiceMap.get(context, HttpRouter)
     // @effect-diagnostics effect/returnEffectInGen:off
     return router.asHttpEffect()
@@ -557,11 +559,11 @@ export const route = <E = never, R = never>(
     ...options,
     method,
     path,
-    handler: HttpServerResponse.isHttpServerResponse(handler) ?
-      Effect.succeed(handler) :
-      Effect.isEffect(handler)
-      ? handler
-      : Effect.flatMap(HttpServerRequest.HttpServerRequest.asEffect(), handler),
+    handler: HttpServerResponse.isHttpServerResponse(handler)
+      ? Effect.succeed(handler)
+      : Effect.isEffect(handler)
+        ? handler
+        : Effect.flatMap(HttpServerRequest.HttpServerRequest.asEffect(), handler),
     uninterruptible: options?.uninterruptible ?? false
   })
 
@@ -571,9 +573,7 @@ export const route = <E = never, R = never>(
  */
 export type PathInput = `/${string}` | "*"
 
-const removeTrailingSlash = (
-  path: PathInput
-): PathInput => (path.endsWith("/") ? path.slice(0, -1) : path) as any
+const removeTrailingSlash = (path: PathInput): PathInput => (path.endsWith("/") ? path.slice(0, -1) : path) as any
 
 /**
  * @since 4.0.0
@@ -596,15 +596,18 @@ export const prefixPath: {
 export const prefixRoute: {
   (prefix: string): <E, R>(self: Route<E, R>) => Route<E, R>
   <E, R>(self: Route<E, R>, prefix: string): Route<E, R>
-} = dual(2, <E, R>(self: Route<E, R>, prefix: string): Route<E, R> =>
-  makeRoute({
-    ...self,
-    path: prefixPath(self.path, prefix) as PathInput,
-    prefix: UndefinedOr.match(self.prefix, {
-      onUndefined: () => prefix as string,
-      onDefined: (existingPrefix) => prefixPath(existingPrefix, prefix) as string
+} = dual(
+  2,
+  <E, R>(self: Route<E, R>, prefix: string): Route<E, R> =>
+    makeRoute({
+      ...self,
+      path: prefixPath(self.path, prefix) as PathInput,
+      prefix: UndefinedOr.match(self.prefix, {
+        onUndefined: () => prefix as string,
+        onDefined: (existingPrefix) => prefixPath(existingPrefix, prefix) as string
+      })
     })
-  }))
+)
 
 /**
  * Represents a request-level dependency, that needs to be provided by
@@ -662,9 +665,7 @@ export type Provided =
  * @since 4.0.0
  * @category Request types
  */
-export type GlobalProvided =
-  | HttpServerRequest.HttpServerRequest
-  | Scope.Scope
+export type GlobalProvided = HttpServerRequest.HttpServerRequest | Scope.Scope
 
 const MiddlewareTypeId = "~effect/http/HttpRouter/Middleware"
 
@@ -684,13 +685,12 @@ export interface Middleware<
 > {
   readonly [MiddlewareTypeId]: Config
 
-  readonly layer: [Config["requires"]] extends [never] ? Layer.Layer<
-      Request.From<"Requires", Config["provides"]>,
-      Config["layerError"],
-      | Config["layerRequires"]
-      | Request.From<"Requires", Config["requires"]>
-      | Request.From<"Error", Config["error"]>
-    >
+  readonly layer: [Config["requires"]] extends [never]
+    ? Layer.Layer<
+        Request.From<"Requires", Config["provides"]>,
+        Config["layerError"],
+        Config["layerRequires"] | Request.From<"Requires", Config["requires"]> | Request.From<"Error", Config["error"]>
+      >
     : "Need to .combine(middleware) that satisfy the missing request dependencies"
 
   readonly combine: <
@@ -702,7 +702,9 @@ export interface Middleware<
       layerError: any
       layerRequires: any
     }
-  >(other: Middleware<Config2>) => Middleware<{
+  >(
+    other: Middleware<Config2>
+  ) => Middleware<{
     provides: Config2["provides"] | Config["provides"]
     handles: Config2["handles"] | Config["handles"]
     error: Config2["error"] | Exclude<Config["error"], Config2["handles"]>
@@ -773,9 +775,8 @@ export interface Middleware<
  * @since 4.0.0
  * @category Middleware
  */
-export const middleware:
-  & middleware.Make<never, never>
-  & (<
+export const middleware: middleware.Make<never, never> &
+  (<
     Config extends {
       provides?: any
       handles?: any
@@ -783,27 +784,32 @@ export const middleware:
   >() => middleware.Make<
     Config extends { provides: infer R } ? R : never,
     Config extends { handles: infer E } ? E : never
-  >) = function() {
-    if (arguments.length === 0) {
-      return makeMiddleware as any
-    }
-    return makeMiddleware(arguments[0], arguments[1]) as any
+  >) = function () {
+  if (arguments.length === 0) {
+    return makeMiddleware as any
   }
+  return makeMiddleware(arguments[0], arguments[1]) as any
+}
 
-const makeMiddleware = (middleware: any, options?: {
-  readonly global?: boolean | undefined
-}) =>
-  options?.global ?
-    Layer.effectDiscard(Effect.gen(function*() {
-      const router = yield* HttpRouter
-      const fn = Effect.isEffect(middleware) ? yield* middleware : middleware
-      yield* router.addGlobalMiddleware(fn)
-    }))
+const makeMiddleware = (
+  middleware: any,
+  options?: {
+    readonly global?: boolean | undefined
+  }
+) =>
+  options?.global
+    ? Layer.effectDiscard(
+        Effect.gen(function* () {
+          const router = yield* HttpRouter
+          const fn = Effect.isEffect(middleware) ? yield* middleware : middleware
+          yield* router.addGlobalMiddleware(fn)
+        })
+      )
     : new MiddlewareImpl(
-      Effect.isEffect(middleware) ?
-        Layer.effectServices(Effect.map(middleware, (fn) => ServiceMap.makeUnsafe(new Map([[fnContextKey, fn]])))) :
-        Layer.succeedServices(ServiceMap.makeUnsafe(new Map([[fnContextKey, middleware]]))) as any
-    )
+        Effect.isEffect(middleware)
+          ? Layer.effectServices(Effect.map(middleware, (fn) => ServiceMap.makeUnsafe(new Map([[fnContextKey, fn]]))))
+          : (Layer.succeedServices(ServiceMap.makeUnsafe(new Map([[fnContextKey, middleware]]))) as any)
+      )
 
 let middlewareId = 0
 const fnContextKey = "effect/http/HttpRouter/MiddlewareFn"
@@ -823,24 +829,23 @@ class MiddlewareImpl<
   readonly layerFn: Layer.Layer<never>
   readonly dependencies?: Layer.Layer<any, any, any> | undefined
 
-  constructor(
-    layerFn: Layer.Layer<never>,
-    dependencies?: Layer.Layer<any, any, any>
-  ) {
+  constructor(layerFn: Layer.Layer<never>, dependencies?: Layer.Layer<any, any, any>) {
     this.layerFn = layerFn
     this.dependencies = dependencies
     const contextKey = `effect/http/HttpRouter/Middleware-${++middlewareId}` as const
-    this.layer = Layer.effectServices(Effect.gen(this, function*() {
-      const context = yield* Effect.services<Scope.Scope>()
-      const stack = [context.mapUnsafe.get(fnContextKey)]
-      if (this.dependencies) {
-        const memoMap = yield* Layer.CurrentMemoMap
-        const scope = ServiceMap.get(context, Scope.Scope)
-        const depsContext = yield* Layer.buildWithMemoMap(this.dependencies, memoMap, scope)
-        stack.push(...getMiddleware(depsContext))
-      }
-      return ServiceMap.makeUnsafe<never>(new Map([[contextKey, stack]]))
-    })).pipe(Layer.provide(this.layerFn))
+    this.layer = Layer.effectServices(
+      Effect.gen(this, function* () {
+        const context = yield* Effect.services<Scope.Scope>()
+        const stack = [context.mapUnsafe.get(fnContextKey)]
+        if (this.dependencies) {
+          const memoMap = yield* Layer.CurrentMemoMap
+          const scope = ServiceMap.get(context, Scope.Scope)
+          const depsContext = yield* Layer.buildWithMemoMap(this.dependencies, memoMap, scope)
+          stack.push(...getMiddleware(depsContext))
+        }
+        return ServiceMap.makeUnsafe<never>(new Map([[contextKey, stack]]))
+      })
+    ).pipe(Layer.provide(this.layerFn))
   }
 
   layer: any
@@ -857,7 +862,7 @@ class MiddlewareImpl<
   >(other: Middleware<Config2>): Middleware<any> {
     return new MiddlewareImpl(
       this.layerFn,
-      this.dependencies ? Layer.provideMerge(this.dependencies, other.layer as any) : other.layer as any
+      this.dependencies ? Layer.provideMerge(this.dependencies, other.layer as any) : (other.layer as any)
     ) as any
   }
 }
@@ -911,73 +916,65 @@ export declare namespace middleware {
             Types.NoInfer<Handles | Types.unhandled>,
             Types.NoInfer<Provides>
           >
-        ) =>
-          & Effect.Effect<
-            HttpServerResponse.HttpServerResponse,
-            E,
-            R
-          >
-          & (Types.unhandled extends E ? unknown : "You must only handle the configured errors"),
+        ) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R> &
+          (Types.unhandled extends E ? unknown : "You must only handle the configured errors"),
         EX,
         RX
       >,
       options?: {
         readonly global?: Global | undefined
       }
-    ): Global extends true ? Layer.Layer<
-        | Request.From<"Requires", Provides>
-        | Request.From<"Error", Handles>
-        | Request.From<"GlobalRequires", Provides>
-        | Request.From<"GlobalError", Handles>,
-        EX,
-        | HttpRouter
-        | Exclude<RX, Scope.Scope>
-        | Request.From<"GlobalRequires", Exclude<R, GlobalProvided>>
-        | Request.From<"GlobalError", Exclude<E, Types.unhandled>>
-      > :
-      Middleware<{
-        provides: Provides
-        handles: Handles
-        error: Exclude<E, Types.unhandled>
-        requires: Exclude<R, Provided>
-        layerError: EX
-        layerRequires: Exclude<RX, Scope.Scope>
-      }>
+    ): Global extends true
+      ? Layer.Layer<
+          | Request.From<"Requires", Provides>
+          | Request.From<"Error", Handles>
+          | Request.From<"GlobalRequires", Provides>
+          | Request.From<"GlobalError", Handles>,
+          EX,
+          | HttpRouter
+          | Exclude<RX, Scope.Scope>
+          | Request.From<"GlobalRequires", Exclude<R, GlobalProvided>>
+          | Request.From<"GlobalError", Exclude<E, Types.unhandled>>
+        >
+      : Middleware<{
+          provides: Provides
+          handles: Handles
+          error: Exclude<E, Types.unhandled>
+          requires: Exclude<R, Provided>
+          layerError: EX
+          layerRequires: Exclude<RX, Scope.Scope>
+        }>
     <E, R, const Global extends boolean = false>(
-      middleware:
-        & ((
-          effect: Effect.Effect<
-            HttpServerResponse.HttpServerResponse,
-            Types.NoInfer<Handles | Types.unhandled>,
-            Types.NoInfer<Provides>
-          >
-        ) => Effect.Effect<
+      middleware: ((
+        effect: Effect.Effect<
           HttpServerResponse.HttpServerResponse,
-          E,
-          R
-        >)
-        & (Types.unhandled extends E ? unknown : "You must only handle the configured errors"),
+          Types.NoInfer<Handles | Types.unhandled>,
+          Types.NoInfer<Provides>
+        >
+      ) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>) &
+        (Types.unhandled extends E ? unknown : "You must only handle the configured errors"),
       options?: {
         readonly global?: Global | undefined
       }
-    ): Global extends true ? Layer.Layer<
-        | Request.From<"Requires", Provides>
-        | Request.From<"Error", Handles>
-        | Request.From<"GlobalRequires", Provides>
-        | Request.From<"GlobalError", Handles>,
-        never,
-        | HttpRouter
-        | Request.From<"GlobalRequires", Exclude<R, GlobalProvided>>
-        | Request.From<"GlobalError", Exclude<E, Types.unhandled>>
-      > :
-      Middleware<{
-        provides: Provides
-        handles: Handles
-        error: Exclude<E, Types.unhandled>
-        requires: Exclude<R, Provided>
-        layerError: never
-        layerRequires: never
-      }>
+    ): Global extends true
+      ? Layer.Layer<
+          | Request.From<"Requires", Provides>
+          | Request.From<"Error", Handles>
+          | Request.From<"GlobalRequires", Provides>
+          | Request.From<"GlobalError", Handles>,
+          never,
+          | HttpRouter
+          | Request.From<"GlobalRequires", Exclude<R, GlobalProvided>>
+          | Request.From<"GlobalError", Exclude<E, Types.unhandled>>
+        >
+      : Middleware<{
+          provides: Provides
+          handles: Handles
+          error: Exclude<E, Types.unhandled>
+          requires: Exclude<R, Provided>
+          layerError: never
+          layerRequires: never
+        }>
   }
 
   /**
@@ -996,14 +993,16 @@ export declare namespace middleware {
  * @category Middleware
  */
 export const cors = (
-  options?: {
-    readonly allowedOrigins?: ReadonlyArray<string> | undefined
-    readonly allowedMethods?: ReadonlyArray<string> | undefined
-    readonly allowedHeaders?: ReadonlyArray<string> | undefined
-    readonly exposedHeaders?: ReadonlyArray<string> | undefined
-    readonly maxAge?: number | undefined
-    readonly credentials?: boolean | undefined
-  } | undefined
+  options?:
+    | {
+        readonly allowedOrigins?: ReadonlyArray<string> | undefined
+        readonly allowedMethods?: ReadonlyArray<string> | undefined
+        readonly allowedHeaders?: ReadonlyArray<string> | undefined
+        readonly exposedHeaders?: ReadonlyArray<string> | undefined
+        readonly maxAge?: number | undefined
+        readonly credentials?: boolean | undefined
+      }
+    | undefined
 ): Layer.Layer<never, never, HttpRouter> => middleware(HttpMiddleware.cors(options), { global: true })
 
 /**
@@ -1038,23 +1037,21 @@ export const disableLogger: Layer.Layer<never> = middleware(HttpMiddleware.withL
  */
 export const provideRequest =
   <A2, E2, R2>(layer: Layer.Layer<A2, E2, R2>) =>
-  <A, E, R>(self: Layer.Layer<A, E, R>): Layer.Layer<
-    A,
-    E | E2,
-    R2 | Exclude<R, Request.From<"Requires", A2>>
-  > =>
+  <A, E, R>(self: Layer.Layer<A, E, R>): Layer.Layer<A, E | E2, R2 | Exclude<R, Request.From<"Requires", A2>>> =>
     Layer.provide(
       self,
-      middleware<{ provides: A2 }>()(Effect.gen(function*() {
-        const scope = yield* Effect.scope
-        const memoMap = yield* Layer.CurrentMemoMap
-        const services = yield* Layer.buildWithMemoMap(layer as Layer.Layer<A2>, memoMap, scope)
-        return (effect) =>
-          Effect.provideServices(effect, services) as Effect.Effect<
-            HttpServerResponse.HttpServerResponse,
-            Types.unhandled
-          >
-      })).layer
+      middleware<{ provides: A2 }>()(
+        Effect.gen(function* () {
+          const scope = yield* Effect.scope
+          const memoMap = yield* Layer.CurrentMemoMap
+          const services = yield* Layer.buildWithMemoMap(layer as Layer.Layer<A2>, memoMap, scope)
+          return (effect) =>
+            Effect.provideServices(effect, services) as Effect.Effect<
+              HttpServerResponse.HttpServerResponse,
+              Types.unhandled
+            >
+        })
+      ).layer
     )
 
 /**
@@ -1103,7 +1100,7 @@ export const serve = <A, E, R, HE, HR = Request.Only<"Requires", R> | Request.On
   const RouterLayer = options?.routerConfig
     ? Layer.provide(layer, Layer.succeed(RouterConfig)(options.routerConfig))
     : layer
-  return Effect.gen(function*() {
+  return Effect.gen(function* () {
     const router = yield* HttpRouter
     const handler = router.asHttpEffect()
     return middleware ? HttpServer.serve(handler, middleware) : HttpServer.serve(handler)
@@ -1160,8 +1157,8 @@ export const toWebHandler = <
   }
 ): {
   readonly handler: [HR] extends [never]
-    ? ((request: globalThis.Request, context?: ServiceMap.ServiceMap<never> | undefined) => Promise<Response>)
-    : ((request: globalThis.Request, context: ServiceMap.ServiceMap<HR>) => Promise<Response>)
+    ? (request: globalThis.Request, context?: ServiceMap.ServiceMap<never> | undefined) => Promise<Response>
+    : (request: globalThis.Request, context: ServiceMap.ServiceMap<HR>) => Promise<Response>
   readonly dispose: () => Promise<void>
 } => {
   let middleware: any = options?.middleware

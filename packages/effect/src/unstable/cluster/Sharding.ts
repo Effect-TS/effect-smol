@@ -63,127 +63,121 @@ import * as Snowflake from "./Snowflake.ts"
  * @since 4.0.0
  * @category models
  */
-export class Sharding extends ServiceMap.Service<Sharding, {
-  /**
-   * Returns a stream of events that occur when the runner registers entities or
-   * singletons.
-   */
-  readonly getRegistrationEvents: Stream.Stream<ShardingRegistrationEvent>
+export class Sharding extends ServiceMap.Service<
+  Sharding,
+  {
+    /**
+     * Returns a stream of events that occur when the runner registers entities or
+     * singletons.
+     */
+    readonly getRegistrationEvents: Stream.Stream<ShardingRegistrationEvent>
 
-  /**
-   * Returns the `ShardId` of the shard to which the entity at the specified
-   * `address` is assigned.
-   */
-  readonly getShardId: (entityId: EntityId, group: string) => ShardId
+    /**
+     * Returns the `ShardId` of the shard to which the entity at the specified
+     * `address` is assigned.
+     */
+    readonly getShardId: (entityId: EntityId, group: string) => ShardId
 
-  /**
-   * Returns `true` if the specified `shardId` is assigned to this runner.
-   */
-  readonly hasShardId: (shardId: ShardId) => boolean
+    /**
+     * Returns `true` if the specified `shardId` is assigned to this runner.
+     */
+    readonly hasShardId: (shardId: ShardId) => boolean
 
-  /**
-   * Generate a Snowflake ID that is unique to this runner.
-   */
-  readonly getSnowflake: Effect.Effect<Snowflake.Snowflake>
+    /**
+     * Generate a Snowflake ID that is unique to this runner.
+     */
+    readonly getSnowflake: Effect.Effect<Snowflake.Snowflake>
 
-  /**
-   * Returns `true` if sharding is shutting down, `false` otherwise.
-   */
-  readonly isShutdown: Effect.Effect<boolean>
+    /**
+     * Returns `true` if sharding is shutting down, `false` otherwise.
+     */
+    readonly isShutdown: Effect.Effect<boolean>
 
-  /**
-   * Constructs a `RpcClient` which can be used to send messages to the
-   * specified `Entity`.
-   */
-  readonly makeClient: <Type extends string, Rpcs extends Rpc.Any>(
-    entity: Entity<Type, Rpcs>
-  ) => Effect.Effect<
-    (
-      entityId: string
-    ) => RpcClient.RpcClient.From<
-      Rpcs,
-      MailboxFull | AlreadyProcessingMessage | PersistenceError
+    /**
+     * Constructs a `RpcClient` which can be used to send messages to the
+     * specified `Entity`.
+     */
+    readonly makeClient: <Type extends string, Rpcs extends Rpc.Any>(
+      entity: Entity<Type, Rpcs>
+    ) => Effect.Effect<
+      (entityId: string) => RpcClient.RpcClient.From<Rpcs, MailboxFull | AlreadyProcessingMessage | PersistenceError>
     >
-  >
 
-  /**
-   * Registers a new entity with the runner.
-   */
-  readonly registerEntity: <Type extends string, Rpcs extends Rpc.Any, Handlers extends HandlersFrom<Rpcs>, RX>(
-    entity: Entity<Type, Rpcs>,
-    handlers: Effect.Effect<Handlers, never, RX>,
-    options?: {
-      readonly maxIdleTime?: DurationInput | undefined
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly mailboxCapacity?: number | "unbounded" | undefined
-      readonly disableFatalDefects?: boolean | undefined
-      readonly defectRetryPolicy?: Schedule.Schedule<any, unknown> | undefined
-      readonly spanAttributes?: Record<string, string> | undefined
-    }
-  ) => Effect.Effect<
-    void,
-    never,
-    | Scope.Scope
-    | Rpc.ServicesServer<Rpcs>
-    | Rpc.Middleware<Rpcs>
-    | Exclude<RX, Scope.Scope | CurrentAddress | CurrentRunnerAddress>
-  >
+    /**
+     * Registers a new entity with the runner.
+     */
+    readonly registerEntity: <Type extends string, Rpcs extends Rpc.Any, Handlers extends HandlersFrom<Rpcs>, RX>(
+      entity: Entity<Type, Rpcs>,
+      handlers: Effect.Effect<Handlers, never, RX>,
+      options?: {
+        readonly maxIdleTime?: DurationInput | undefined
+        readonly concurrency?: number | "unbounded" | undefined
+        readonly mailboxCapacity?: number | "unbounded" | undefined
+        readonly disableFatalDefects?: boolean | undefined
+        readonly defectRetryPolicy?: Schedule.Schedule<any, unknown> | undefined
+        readonly spanAttributes?: Record<string, string> | undefined
+      }
+    ) => Effect.Effect<
+      void,
+      never,
+      | Scope.Scope
+      | Rpc.ServicesServer<Rpcs>
+      | Rpc.Middleware<Rpcs>
+      | Exclude<RX, Scope.Scope | CurrentAddress | CurrentRunnerAddress>
+    >
 
-  /**
-   * Registers a new singleton with the runner.
-   */
-  readonly registerSingleton: <E, R>(
-    name: string,
-    run: Effect.Effect<void, E, R>,
-    options?: {
-      readonly shardGroup?: string | undefined
-    }
-  ) => Effect.Effect<void, never, R | Scope.Scope>
+    /**
+     * Registers a new singleton with the runner.
+     */
+    readonly registerSingleton: <E, R>(
+      name: string,
+      run: Effect.Effect<void, E, R>,
+      options?: {
+        readonly shardGroup?: string | undefined
+      }
+    ) => Effect.Effect<void, never, R | Scope.Scope>
 
-  /**
-   * Sends a message to the specified entity.
-   */
-  readonly send: (message: Message.Incoming<any>) => Effect.Effect<
-    void,
-    EntityNotAssignedToRunner | MailboxFull | AlreadyProcessingMessage
-  >
+    /**
+     * Sends a message to the specified entity.
+     */
+    readonly send: (
+      message: Message.Incoming<any>
+    ) => Effect.Effect<void, EntityNotAssignedToRunner | MailboxFull | AlreadyProcessingMessage>
 
-  /**
-   * Sends an outgoing message
-   */
-  readonly sendOutgoing: (
-    message: Message.Outgoing<any>,
-    discard: boolean
-  ) => Effect.Effect<
-    void,
-    MailboxFull | AlreadyProcessingMessage | PersistenceError
-  >
+    /**
+     * Sends an outgoing message
+     */
+    readonly sendOutgoing: (
+      message: Message.Outgoing<any>,
+      discard: boolean
+    ) => Effect.Effect<void, MailboxFull | AlreadyProcessingMessage | PersistenceError>
 
-  /**
-   * Notify sharding that a message has been persisted to storage.
-   */
-  readonly notify: (message: Message.Incoming<any>, options?: {
-    readonly waitUntilRead?: boolean | undefined
-  }) => Effect.Effect<
-    void,
-    EntityNotAssignedToRunner | AlreadyProcessingMessage
-  >
+    /**
+     * Notify sharding that a message has been persisted to storage.
+     */
+    readonly notify: (
+      message: Message.Incoming<any>,
+      options?: {
+        readonly waitUntilRead?: boolean | undefined
+      }
+    ) => Effect.Effect<void, EntityNotAssignedToRunner | AlreadyProcessingMessage>
 
-  /**
-   * Reset the state of a message
-   */
-  readonly reset: (requestId: Snowflake.Snowflake) => Effect.Effect<boolean>
+    /**
+     * Reset the state of a message
+     */
+    readonly reset: (requestId: Snowflake.Snowflake) => Effect.Effect<boolean>
 
-  /**
-   * Trigger a storage read, which will read all unprocessed messages.
-   */
-  readonly pollStorage: Effect.Effect<void>
+    /**
+     * Trigger a storage read, which will read all unprocessed messages.
+     */
+    readonly pollStorage: Effect.Effect<void>
 
-  /**
-   * Retrieves the active entity count for the current runner.
-   */
-  readonly activeEntityCount: Effect.Effect<number>
-}>()("effect/cluster/Sharding") {}
+    /**
+     * Retrieves the active entity count for the current runner.
+     */
+    readonly activeEntityCount: Effect.Effect<number>
+  }
+>()("effect/cluster/Sharding") {}
 
 // -----------------------------------------------------------------------------
 // Implementation
@@ -195,7 +189,7 @@ interface EntityManagerState {
   status: "alive" | "closing" | "closed"
 }
 
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const config = yield* ShardingConfig
   const clock = yield* Clock
 
@@ -205,10 +199,7 @@ const make = Effect.gen(function*() {
   const shardingScope = yield* Effect.scope
   const isShutdown = MutableRef.make(false)
   const services = ServiceMap.omit(Scope.Scope)(yield* Effect.services<ShardingConfig>())
-  const runFork = flow(
-    Effect.runForkWith(services),
-    Fiber.runIn(shardingScope)
-  )
+  const runFork = flow(Effect.runForkWith(services), Fiber.runIn(shardingScope))
 
   const storage = yield* MessageStorage.MessageStorage
   const storageEnabled = storage !== MessageStorage.noop
@@ -239,9 +230,11 @@ const make = Effect.gen(function*() {
 
   yield* Scope.addFinalizer(
     shardingScope,
-    Effect.logDebug("Shutdown complete").pipe(Effect.annotateLogs({
-      module: "effect/cluster/Sharding"
-    }))
+    Effect.logDebug("Shutdown complete").pipe(
+      Effect.annotateLogs({
+        module: "effect/cluster/Sharding"
+      })
+    )
   )
 
   // --- Shard acquisition ---
@@ -261,7 +254,7 @@ const make = Effect.gen(function*() {
 
     const releaseShardsMap = yield* FiberMap.make<ShardId>()
     const releaseShard = Effect.fnUntraced(
-      function*(shardId: ShardId) {
+      function* (shardId: ShardId) {
         const fibers = Arr.empty<Fiber.Fiber<void>>()
         for (const state of entityManagers.values()) {
           if (state.status === "closed") continue
@@ -289,14 +282,14 @@ const make = Effect.gen(function*() {
           FiberMap.run(releaseShardsMap, shardId, { onlyIfMissing: true })
         )
     )
-    const releaseShards = Effect.gen(function*() {
+    const releaseShards = Effect.gen(function* () {
       for (const shardId of releasingShards) {
         if (FiberMap.hasUnsafe(releaseShardsMap, shardId)) continue
         yield* releaseShard(shardId)
       }
     })
 
-    yield* Effect.gen(function*() {
+    yield* Effect.gen(function* () {
       activeShardsLatch.openUnsafe()
 
       while (true) {
@@ -326,19 +319,16 @@ const make = Effect.gen(function*() {
           continue
         }
 
-        const oacquired = yield* runnerStorage.acquire(selfAddress, unacquiredShards).pipe(
-          Effect.timeoutOption(config.shardLockRefreshInterval)
-        )
+        const oacquired = yield* runnerStorage
+          .acquire(selfAddress, unacquiredShards)
+          .pipe(Effect.timeoutOption(config.shardLockRefreshInterval))
         if (Option.isNone(oacquired)) {
           activeShardsLatch.openUnsafe()
           continue
         }
 
         const acquired = oacquired.value
-        yield* storage.resetShards(acquired).pipe(
-          Effect.ignore,
-          Effect.timeoutOption(config.shardLockRefreshInterval)
-        )
+        yield* storage.resetShards(acquired).pipe(Effect.ignore, Effect.timeoutOption(config.shardLockRefreshInterval))
         for (const shardId of acquired) {
           if (MutableHashSet.has(releasingShards, shardId) || !MutableHashSet.has(selfShards, shardId)) {
             continue
@@ -367,12 +357,7 @@ const make = Effect.gen(function*() {
     )
 
     // refresh the shard locks every `shardLockRefreshInterval`
-    yield* Effect.suspend(() =>
-      runnerStorage.refresh(selfAddress, [
-        ...acquiredShards,
-        ...releasingShards
-      ])
-    ).pipe(
+    yield* Effect.suspend(() => runnerStorage.refresh(selfAddress, [...acquiredShards, ...releasingShards])).pipe(
       Effect.flatMap((acquired) => {
         for (const shardId of acquiredShards) {
           if (!acquired.includes(shardId)) {
@@ -387,18 +372,14 @@ const make = Effect.gen(function*() {
             MutableHashSet.add(releasingShards, shardId)
           }
         }
-        return MutableHashSet.size(releasingShards) > 0
-          ? activeShardsLatch.open
-          : Effect.void
+        return MutableHashSet.size(releasingShards) > 0 ? activeShardsLatch.open : Effect.void
       }),
       Effect.retry({
         times: 5,
         schedule: Schedule.spaced(50)
       }),
       Effect.catchCause((cause) =>
-        Effect.logError("Could not refresh shard locks", cause).pipe(
-          Effect.andThen(clearSelfShards)
-        )
+        Effect.logError("Could not refresh shard locks", cause).pipe(Effect.andThen(clearSelfShards))
       ),
       Effect.repeat(Schedule.fixed(config.shardLockRefreshInterval)),
       Effect.forever,
@@ -442,7 +423,7 @@ const make = Effect.gen(function*() {
     )
     const storageStartMillis = clock.currentTimeMillisUnsafe()
 
-    yield* Effect.gen(function*() {
+    yield* Effect.gen(function* () {
       yield* Effect.logDebug("Starting")
       yield* Effect.addFinalizer(() => Effect.logDebug("Shutting down"))
 
@@ -515,11 +496,13 @@ const make = Effect.gen(function*() {
             if (Cause.hasInterrupt(cause)) {
               return Effect.void
             }
-            return storage.saveReply(Reply.ReplyWithContext.fromDefect({
-              id: snowflakeGen.nextUnsafe(),
-              requestId: message.envelope.requestId,
-              defect: Cause.squash(cause)
-            }))
+            return storage.saveReply(
+              Reply.ReplyWithContext.fromDefect({
+                id: snowflakeGen.nextUnsafe(),
+                requestId: message.envelope.requestId,
+                defect: Cause.squash(cause)
+              })
+            )
           }
           if (error._tag === "MailboxFull") {
             // MailboxFull can only happen for requests, so this cast is safe
@@ -592,10 +575,13 @@ const make = Effect.gen(function*() {
     )
 
     // Resume unprocessed messages for entities that reached a full mailbox.
-    const entityResumptionState = MutableHashMap.empty<EntityAddress, {
-      unprocessed: Set<Snowflake.Snowflake>
-      interrupts: Map<Snowflake.Snowflake, Message.IncomingEnvelope>
-    }>()
+    const entityResumptionState = MutableHashMap.empty<
+      EntityAddress,
+      {
+        unprocessed: Set<Snowflake.Snowflake>
+        interrupts: Map<Snowflake.Snowflake, Message.IncomingEnvelope>
+      }
+    >()
     const resumeEntityFromStorage = (lastReceivedMessage: Message.IncomingRequest<any>) => {
       const address = lastReceivedMessage.envelope.address
       const resumptionState = MutableHashMap.get(entityResumptionState, address)
@@ -610,7 +596,7 @@ const make = Effect.gen(function*() {
       return resumeEntityFromStorageImpl(address)
     }
     const resumeEntityFromStorageImpl = Effect.fnUntraced(
-      function*(address: EntityAddress) {
+      function* (address: EntityAddress) {
         const state = entityManagers.get(address.entityType)
         if (!state) {
           MutableHashMap.remove(entityResumptionState, address)
@@ -643,10 +629,7 @@ const make = Effect.gen(function*() {
 
           let index = 0
 
-          const sendWithRetry: Effect.Effect<
-            void,
-            EntityNotAssignedToRunner
-          > = Effect.catchTags(
+          const sendWithRetry: Effect.Effect<void, EntityNotAssignedToRunner> = Effect.catchTags(
             Effect.suspend(() => {
               if (!MutableHashSet.has(acquiredShards, address.shardId)) {
                 return Effect.fail(new EntityNotAssignedToRunner({ address }))
@@ -654,14 +637,14 @@ const make = Effect.gen(function*() {
 
               const message = messages[index]
               // check if this is a request that was interrupted
-              const interrupt = message._tag === "IncomingRequest" &&
-                resumptionState.interrupts.get(message.envelope.requestId)
-              return interrupt ?
-                Effect.flatMap(state.manager.send(message), () => {
-                  resumptionState.interrupts.delete(message.envelope.requestId)
-                  return state.manager.send(interrupt)
-                }) :
-                state.manager.send(message)
+              const interrupt =
+                message._tag === "IncomingRequest" && resumptionState.interrupts.get(message.envelope.requestId)
+              return interrupt
+                ? Effect.flatMap(state.manager.send(message), () => {
+                    resumptionState.interrupts.delete(message.envelope.requestId)
+                    return state.manager.send(interrupt)
+                  })
+                : state.manager.send(message)
             }),
             {
               MailboxFull: () => Effect.delay(sendWithRetry, config.sendRetryInterval),
@@ -681,12 +664,14 @@ const make = Effect.gen(function*() {
           if (resumptionState.unprocessed.size > 0) continue
 
           // if we have caught up to the main storage loop, we let it take over
-          yield* withStorageReadLock(Effect.sync(() => {
-            if (resumptionState.unprocessed.size === 0) {
-              MutableHashMap.remove(entityResumptionState, address)
-              done = true
-            }
-          }))
+          yield* withStorageReadLock(
+            Effect.sync(() => {
+              if (resumptionState.unprocessed.size === 0) {
+                MutableHashMap.remove(entityResumptionState, address)
+                done = true
+              }
+            })
+          )
         }
       },
       Effect.retry({
@@ -732,13 +717,13 @@ const make = Effect.gen(function*() {
         return Effect.fail(new EntityNotAssignedToRunner({ address }))
       }
 
-      return message._tag === "IncomingRequest" || message._tag === "IncomingEnvelope" ?
-        state.manager.send(message) :
-        runnersService.sendLocal({
-          message,
-          send: state.manager.sendLocal,
-          simulateRemoteSerialization: config.simulateRemoteSerialization
-        }) as any
+      return message._tag === "IncomingRequest" || message._tag === "IncomingEnvelope"
+        ? state.manager.send(message)
+        : (runnersService.sendLocal({
+            message,
+            send: state.manager.sendLocal,
+            simulateRemoteSerialization: config.simulateRemoteSerialization
+          }) as any)
     })
 
   type PendingNotification = {
@@ -776,7 +761,8 @@ const make = Effect.gen(function*() {
         if (!isLocal) {
           return Effect.fail(new EntityNotAssignedToRunner({ address }))
         } else if (
-          message._tag === "IncomingRequest" && state.manager.isProcessingFor(message, { excludeReplies: true })
+          message._tag === "IncomingRequest" &&
+          state.manager.isProcessingFor(message, { excludeReplies: true })
         ) {
           return Effect.fail(new AlreadyProcessingMessage({ address, envelopeId: message.envelope.requestId }))
         } else if (message._tag === "IncomingRequest" && options?.waitUntilRead) {
@@ -806,10 +792,7 @@ const make = Effect.gen(function*() {
     message: Message.Outgoing<any>,
     discard: boolean,
     retries?: number
-  ): Effect.Effect<
-    void,
-    MailboxFull | AlreadyProcessingMessage | PersistenceError
-  > {
+  ): Effect.Effect<void, MailboxFull | AlreadyProcessingMessage | PersistenceError> {
     return Effect.catchFilter(
       Effect.suspend(() => {
         const address = message.envelope.address
@@ -826,9 +809,7 @@ const make = Effect.gen(function*() {
         } else if (Option.isNone(maybeRunner)) {
           return Effect.fail(new EntityNotAssignedToRunner({ address }))
         }
-        return runnerIsLocal
-          ? sendLocal(message)
-          : runnersService.send({ address: maybeRunner.value, message })
+        return runnerIsLocal ? sendLocal(message) : runnersService.send({ address: maybeRunner.value, message })
       }),
       (error) =>
         error._tag === "EntityNotAssignedToRunner" || error._tag === "RunnerUnavailable" ? error : Filter.fail(error),
@@ -856,13 +837,13 @@ const make = Effect.gen(function*() {
   // shard assignments for outgoing messages (they could still be in use by
   // entities that are shutting down).
 
-  const selfRunner = config.runnerAddress ?
-    new Runner({
-      address: config.runnerAddress,
-      groups: config.shardGroups,
-      weight: config.runnerShardWeight
-    }) :
-    undefined
+  const selfRunner = config.runnerAddress
+    ? new Runner({
+        address: config.runnerAddress,
+        groups: config.shardGroups,
+        weight: config.runnerShardWeight
+      })
+    : undefined
 
   let allRunners = MutableHashMap.empty<Runner, boolean>()
   let healthyRunnerCount = 0
@@ -873,7 +854,7 @@ const make = Effect.gen(function*() {
     ClusterMetrics.runnersHealthy.updateUnsafe(BigInt(1), ServiceMap.empty())
   }
 
-  yield* Effect.gen(function*() {
+  yield* Effect.gen(function* () {
     const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
     let nextRunners = MutableHashMap.empty<Runner, boolean>()
     const healthyRunners = MutableHashSet.empty<Runner>()
@@ -997,184 +978,185 @@ const make = Effect.gen(function*() {
 
   const clients: ResourceMap<
     Entity<any, any>,
-    (entityId: string) => RpcClient.RpcClient<
-      any,
-      MailboxFull | AlreadyProcessingMessage
-    >,
+    (entityId: string) => RpcClient.RpcClient<any, MailboxFull | AlreadyProcessingMessage>,
     never
-  > = yield* ResourceMap.make(Effect.fnUntraced(function*(entity: Entity<string, any>) {
-    const client = yield* RpcClient.makeNoSerialization(entity.protocol, {
-      spanPrefix: `${entity.type}.client`,
-      disableTracing: !ServiceMap.get(entity.protocol.annotations, ClusterSchema.ClientTracingEnabled),
-      supportsAck: true,
-      generateRequestId: () => RequestId(snowflakeGen.nextUnsafe()),
-      flatten: true,
-      onFromClient(options): Effect.Effect<
-        void,
-        MailboxFull | AlreadyProcessingMessage | PersistenceError
-      > {
-        const address = ServiceMap.getUnsafe(options.context, ClientAddressTag)
-        switch (options.message._tag) {
-          case "Request": {
-            const fiber = Fiber.getCurrent()!
-            const id = Snowflake.Snowflake(options.message.id)
-            const rpc = entity.protocol.requests.get(options.message.tag)!
-            let respond: (reply: Reply.Reply<any>) => Effect.Effect<void>
-            if (!options.discard) {
-              const entry: ClientRequestEntry = {
-                rpc: rpc as any,
-                services: fiber.currentContext
+  > = yield* ResourceMap.make(
+    Effect.fnUntraced(function* (entity: Entity<string, any>) {
+      const client = yield* RpcClient.makeNoSerialization(entity.protocol, {
+        spanPrefix: `${entity.type}.client`,
+        disableTracing: !ServiceMap.get(entity.protocol.annotations, ClusterSchema.ClientTracingEnabled),
+        supportsAck: true,
+        generateRequestId: () => RequestId(snowflakeGen.nextUnsafe()),
+        flatten: true,
+        onFromClient(options): Effect.Effect<void, MailboxFull | AlreadyProcessingMessage | PersistenceError> {
+          const address = ServiceMap.getUnsafe(options.context, ClientAddressTag)
+          switch (options.message._tag) {
+            case "Request": {
+              const fiber = Fiber.getCurrent()!
+              const id = Snowflake.Snowflake(options.message.id)
+              const rpc = entity.protocol.requests.get(options.message.tag)!
+              let respond: (reply: Reply.Reply<any>) => Effect.Effect<void>
+              if (!options.discard) {
+                const entry: ClientRequestEntry = {
+                  rpc: rpc as any,
+                  services: fiber.currentContext
+                }
+                clientRequests.set(id, entry)
+                respond = makeClientRespond(entry, client.write)
+              } else {
+                respond = clientRespondDiscard
               }
-              clientRequests.set(id, entry)
-              respond = makeClientRespond(entry, client.write)
-            } else {
-              respond = clientRespondDiscard
-            }
-            return sendOutgoing(
-              new Message.OutgoingRequest({
-                envelope: Envelope.makeRequest({
-                  requestId: id,
-                  address,
-                  tag: options.message.tag,
-                  payload: options.message.payload,
-                  headers: options.message.headers,
-                  traceId: options.message.traceId,
-                  spanId: options.message.spanId,
-                  sampled: options.message.sampled
+              return sendOutgoing(
+                new Message.OutgoingRequest({
+                  envelope: Envelope.makeRequest({
+                    requestId: id,
+                    address,
+                    tag: options.message.tag,
+                    payload: options.message.payload,
+                    headers: options.message.headers,
+                    traceId: options.message.traceId,
+                    spanId: options.message.spanId,
+                    sampled: options.message.sampled
+                  }),
+                  lastReceivedReply: undefined,
+                  rpc,
+                  services: fiber.services as ServiceMap.ServiceMap<any>,
+                  respond
                 }),
-                lastReceivedReply: undefined,
-                rpc,
-                services: fiber.services as ServiceMap.ServiceMap<any>,
-                respond
-              }),
-              options.discard
-            )
-          }
-          case "Ack": {
-            const requestId = Snowflake.Snowflake(options.message.requestId)
-            const entry = clientRequests.get(requestId)
-            if (!entry) return Effect.void
-            return sendOutgoing(
-              new Message.OutgoingEnvelope({
-                envelope: new Envelope.AckChunk({
-                  id: snowflakeGen.nextUnsafe(),
-                  address,
-                  requestId,
-                  replyId: entry.lastChunkId!
-                }),
-                rpc: entry.rpc
-              }),
-              false
-            )
-          }
-          case "Interrupt": {
-            const requestId = Snowflake.Snowflake(options.message.requestId)
-            const entry = clientRequests.get(requestId)!
-            if (!entry) return Effect.void
-            clientRequests.delete(requestId)
-            if (ClusterSchema.isUninterruptibleForClient(entry.rpc.annotations)) {
-              return Effect.void
+                options.discard
+              )
             }
-            // for durable messages, we ignore interrupts on shutdown or as a
-            // result of a shard being resassigned
-            const isTransientInterrupt = MutableRef.get(isShutdown) ||
-              options.message.interruptors.some((id) => internalInterruptors.has(id))
-            if (isTransientInterrupt && ServiceMap.get(entry.rpc.annotations, Persisted)) {
-              return Effect.void
-            }
-            return Effect.ignore(sendOutgoing(
-              new Message.OutgoingEnvelope({
-                envelope: new Envelope.Interrupt({
-                  id: snowflakeGen.nextUnsafe(),
-                  address,
-                  requestId
+            case "Ack": {
+              const requestId = Snowflake.Snowflake(options.message.requestId)
+              const entry = clientRequests.get(requestId)
+              if (!entry) return Effect.void
+              return sendOutgoing(
+                new Message.OutgoingEnvelope({
+                  envelope: new Envelope.AckChunk({
+                    id: snowflakeGen.nextUnsafe(),
+                    address,
+                    requestId,
+                    replyId: entry.lastChunkId!
+                  }),
+                  rpc: entry.rpc
                 }),
-                rpc: entry.rpc
-              }),
-              false,
-              3
-            ))
+                false
+              )
+            }
+            case "Interrupt": {
+              const requestId = Snowflake.Snowflake(options.message.requestId)
+              const entry = clientRequests.get(requestId)!
+              if (!entry) return Effect.void
+              clientRequests.delete(requestId)
+              if (ClusterSchema.isUninterruptibleForClient(entry.rpc.annotations)) {
+                return Effect.void
+              }
+              // for durable messages, we ignore interrupts on shutdown or as a
+              // result of a shard being resassigned
+              const isTransientInterrupt =
+                MutableRef.get(isShutdown) || options.message.interruptors.some((id) => internalInterruptors.has(id))
+              if (isTransientInterrupt && ServiceMap.get(entry.rpc.annotations, Persisted)) {
+                return Effect.void
+              }
+              return Effect.ignore(
+                sendOutgoing(
+                  new Message.OutgoingEnvelope({
+                    envelope: new Envelope.Interrupt({
+                      id: snowflakeGen.nextUnsafe(),
+                      address,
+                      requestId
+                    }),
+                    rpc: entry.rpc
+                  }),
+                  false,
+                  3
+                )
+              )
+            }
           }
+          return Effect.void
         }
-        return Effect.void
-      }
-    })
-
-    yield* Scope.addFinalizer(
-      yield* Effect.scope,
-      Effect.withFiber((fiber) => {
-        internalInterruptors.add(fiber.id)
-        return Effect.void
       })
-    )
 
-    return (entityId: string) => {
-      const id = makeEntityId(entityId)
-      const address = ClientAddressTag.serviceMap(makeEntityAddress({
-        shardId: getShardId(id, entity.getShardGroup(entityId as EntityId)),
-        entityId: id,
-        entityType: entity.type
-      }))
-      const clientFn = function(tag: string, payload: any, options?: {
-        readonly context?: ServiceMap.ServiceMap<never>
-      }) {
-        const context = options?.context ? ServiceMap.merge(options.context, address) : address
-        return client.client(tag, payload, {
-          ...options,
-          context
+      yield* Scope.addFinalizer(
+        yield* Effect.scope,
+        Effect.withFiber((fiber) => {
+          internalInterruptors.add(fiber.id)
+          return Effect.void
+        })
+      )
+
+      return (entityId: string) => {
+        const id = makeEntityId(entityId)
+        const address = ClientAddressTag.serviceMap(
+          makeEntityAddress({
+            shardId: getShardId(id, entity.getShardGroup(entityId as EntityId)),
+            entityId: id,
+            entityType: entity.type
+          })
+        )
+        const clientFn = function (
+          tag: string,
+          payload: any,
+          options?: {
+            readonly context?: ServiceMap.ServiceMap<never>
+          }
+        ) {
+          const context = options?.context ? ServiceMap.merge(options.context, address) : address
+          return client.client(tag, payload, {
+            ...options,
+            context
+          })
+        }
+        const proxyClient: any = {}
+        return new Proxy(proxyClient, {
+          has(_, p) {
+            return entity.protocol.requests.has(p as string)
+          },
+          get(target, p) {
+            if (p in target) {
+              return target[p]
+            } else if (!entity.protocol.requests.has(p as string)) {
+              return undefined
+            }
+            return (target[p] = (payload: any, options?: {}) => clientFn(p as string, payload, options))
+          }
         })
       }
-      const proxyClient: any = {}
-      return new Proxy(proxyClient, {
-        has(_, p) {
-          return entity.protocol.requests.has(p as string)
-        },
-        get(target, p) {
-          if (p in target) {
-            return target[p]
-          } else if (!entity.protocol.requests.has(p as string)) {
-            return undefined
-          }
-          return target[p] = (payload: any, options?: {}) => clientFn(p as string, payload, options)
-        }
-      })
-    }
-  }))
+    })
+  )
 
-  const makeClient = <Type extends string, Rpcs extends Rpc.Any>(entity: Entity<Type, Rpcs>): Effect.Effect<
-    (
-      entityId: string
-    ) => RpcClient.RpcClient.From<Rpcs, MailboxFull | AlreadyProcessingMessage>
-  > => clients.get(entity) as any
+  const makeClient = <Type extends string, Rpcs extends Rpc.Any>(
+    entity: Entity<Type, Rpcs>
+  ): Effect.Effect<(entityId: string) => RpcClient.RpcClient.From<Rpcs, MailboxFull | AlreadyProcessingMessage>> =>
+    clients.get(entity) as any
 
   const clientRespondDiscard = (_reply: Reply.Reply<any>) => Effect.void
 
-  const makeClientRespond = (
-    entry: ClientRequestEntry,
-    write: (reply: FromServer<any>) => Effect.Effect<void>
-  ) =>
-  (reply: Reply.Reply<any>) => {
-    switch (reply._tag) {
-      case "Chunk": {
-        entry.lastChunkId = reply.id
-        return write({
-          _tag: "Chunk",
-          clientId: 0,
-          requestId: RequestId(reply.requestId),
-          values: reply.values
-        })
-      }
-      case "WithExit": {
-        clientRequests.delete(reply.requestId)
-        return write({
-          _tag: "Exit",
-          clientId: 0,
-          requestId: RequestId(reply.requestId),
-          exit: reply.exit
-        })
+  const makeClientRespond =
+    (entry: ClientRequestEntry, write: (reply: FromServer<any>) => Effect.Effect<void>) =>
+    (reply: Reply.Reply<any>) => {
+      switch (reply._tag) {
+        case "Chunk": {
+          entry.lastChunkId = reply.id
+          return write({
+            _tag: "Chunk",
+            clientId: 0,
+            requestId: RequestId(reply.requestId),
+            values: reply.values
+          })
+        }
+        case "WithExit": {
+          clientRequests.delete(reply.requestId)
+          return write({
+            _tag: "Exit",
+            clientId: 0,
+            requestId: RequestId(reply.requestId),
+            exit: reply.exit
+          })
+        }
       }
     }
-  }
 
   // --- Singletons ---
 
@@ -1182,128 +1164,126 @@ const make = Effect.gen(function*() {
   const singletonFibers = yield* FiberMap.make<SingletonAddress>()
   const withSingletonLock = Effect.makeSemaphoreUnsafe(1).withPermits(1)
 
-  const registerSingleton: Sharding["Service"]["registerSingleton"] = Effect.fnUntraced(
-    function*(name, run, options) {
-      const shardGroup = options?.shardGroup ?? "default"
-      const address = new SingletonAddress({
-        shardId: getShardId(makeEntityId(name), shardGroup),
-        name
-      })
+  const registerSingleton: Sharding["Service"]["registerSingleton"] = Effect.fnUntraced(function* (name, run, options) {
+    const shardGroup = options?.shardGroup ?? "default"
+    const address = new SingletonAddress({
+      shardId: getShardId(makeEntityId(name), shardGroup),
+      name
+    })
 
-      let map = singletons.get(address.shardId)
-      if (!map) {
-        map = MutableHashMap.empty()
-        singletons.set(address.shardId, map)
-      }
-      if (MutableHashMap.has(map, address)) {
-        return yield* Effect.die(`Singleton '${name}' is already registered`)
-      }
+    let map = singletons.get(address.shardId)
+    if (!map) {
+      map = MutableHashMap.empty()
+      singletons.set(address.shardId, map)
+    }
+    if (MutableHashMap.has(map, address)) {
+      return yield* Effect.die(`Singleton '${name}' is already registered`)
+    }
 
-      const services = yield* Effect.services<never>()
-      const wrappedRun = run.pipe(
-        Effect.andThen(Effect.never),
-        Effect.scoped,
-        Effect.provideService(CurrentLogAnnotations, {}),
-        Effect.provideServices(services),
-        Effect.orDie,
-        Effect.interruptible
-      ) as Effect.Effect<never>
-      MutableHashMap.set(map, address, wrappedRun)
+    const services = yield* Effect.services<never>()
+    const wrappedRun = run.pipe(
+      Effect.andThen(Effect.never),
+      Effect.scoped,
+      Effect.provideService(CurrentLogAnnotations, {}),
+      Effect.provideServices(services),
+      Effect.orDie,
+      Effect.interruptible
+    ) as Effect.Effect<never>
+    MutableHashMap.set(map, address, wrappedRun)
 
-      yield* PubSub.publish(events, SingletonRegistered({ address }))
+    yield* PubSub.publish(events, SingletonRegistered({ address }))
 
-      // start if we are on the right shard
-      if (MutableHashSet.has(acquiredShards, address.shardId)) {
-        yield* Effect.logDebug("Starting singleton", address)
-        yield* FiberMap.run(singletonFibers, address, wrappedRun)
-      }
+    // start if we are on the right shard
+    if (MutableHashSet.has(acquiredShards, address.shardId)) {
+      yield* Effect.logDebug("Starting singleton", address)
+      yield* FiberMap.run(singletonFibers, address, wrappedRun)
+    }
 
-      yield* Effect.addFinalizer(() => {
-        const map = singletons.get(address.shardId)!
-        MutableHashMap.remove(map, address)
-        return FiberMap.remove(singletonFibers, address)
-      })
-    },
-    withSingletonLock
-  )
+    yield* Effect.addFinalizer(() => {
+      const map = singletons.get(address.shardId)!
+      MutableHashMap.remove(map, address)
+      return FiberMap.remove(singletonFibers, address)
+    })
+  }, withSingletonLock)
 
-  const syncSingletons = withSingletonLock(Effect.gen(function*() {
-    for (const [shardId, map] of singletons) {
-      for (const [address, run] of map) {
-        const running = FiberMap.hasUnsafe(singletonFibers, address)
-        const shouldBeRunning = MutableHashSet.has(acquiredShards, shardId)
-        if (running && !shouldBeRunning) {
-          yield* Effect.logDebug("Stopping singleton", address)
-          internalInterruptors.add(yield* Effect.fiberId)
-          yield* FiberMap.remove(singletonFibers, address)
-        } else if (!running && shouldBeRunning) {
-          yield* Effect.logDebug("Starting singleton", address)
-          yield* FiberMap.run(singletonFibers, address, run)
+  const syncSingletons = withSingletonLock(
+    Effect.gen(function* () {
+      for (const [shardId, map] of singletons) {
+        for (const [address, run] of map) {
+          const running = FiberMap.hasUnsafe(singletonFibers, address)
+          const shouldBeRunning = MutableHashSet.has(acquiredShards, shardId)
+          if (running && !shouldBeRunning) {
+            yield* Effect.logDebug("Stopping singleton", address)
+            internalInterruptors.add(yield* Effect.fiberId)
+            yield* FiberMap.remove(singletonFibers, address)
+          } else if (!running && shouldBeRunning) {
+            yield* Effect.logDebug("Starting singleton", address)
+            yield* FiberMap.run(singletonFibers, address, run)
+          }
         }
       }
-    }
-    ClusterMetrics.singletons.updateUnsafe(
-      BigInt(yield* FiberMap.size(singletonFibers)),
-      ServiceMap.empty()
-    )
-  }))
+      ClusterMetrics.singletons.updateUnsafe(BigInt(yield* FiberMap.size(singletonFibers)), ServiceMap.empty())
+    })
+  )
 
   // --- Entities ---
 
   const reaper = yield* EntityReaper
   const entityManagerLatches = new Map<string, Effect.Latch>()
 
-  const registerEntity: Sharding["Service"]["registerEntity"] = Effect.fnUntraced(
-    function*(entity, build, options) {
-      if (!config.runnerAddress || entityManagers.has(entity.type)) return
-      const scope = yield* Effect.scope
-      yield* Scope.addFinalizer(
-        scope,
-        Effect.sync(() => {
-          state.status = "closed"
-        })
-      )
-      const manager = yield* EntityManager.make(entity, build, {
-        ...options,
-        storage,
-        runnerAddress: config.runnerAddress,
-        sharding
-      }).pipe(
-        Effect.provideServices(services.pipe(
+  const registerEntity: Sharding["Service"]["registerEntity"] = Effect.fnUntraced(function* (entity, build, options) {
+    if (!config.runnerAddress || entityManagers.has(entity.type)) return
+    const scope = yield* Effect.scope
+    yield* Scope.addFinalizer(
+      scope,
+      Effect.sync(() => {
+        state.status = "closed"
+      })
+    )
+    const manager = yield* EntityManager.make(entity, build, {
+      ...options,
+      storage,
+      runnerAddress: config.runnerAddress,
+      sharding
+    }).pipe(
+      Effect.provideServices(
+        services.pipe(
           ServiceMap.add(EntityReaper, reaper),
           ServiceMap.add(Scope.Scope, scope),
           ServiceMap.add(Snowflake.Generator, snowflakeGen)
-        ))
-      ) as Effect.Effect<EntityManager.EntityManager>
-      const state: EntityManagerState = {
-        entity,
-        status: "alive",
-        manager
-      }
-      yield* Scope.addFinalizer(
-        scope,
-        Effect.withFiber((fiber) => {
-          state.status = "closing"
-          internalInterruptors.add(fiber.id)
-          // if preemptive shutdown is enabled, we start shutting down Sharding
-          // too
-          return config.preemptiveShutdown ? shutdown() : Effect.void
-        })
+        )
       )
+    ) as Effect.Effect<EntityManager.EntityManager>
+    const state: EntityManagerState = {
+      entity,
+      status: "alive",
+      manager
+    }
+    yield* Scope.addFinalizer(
+      scope,
+      Effect.withFiber((fiber) => {
+        state.status = "closing"
+        internalInterruptors.add(fiber.id)
+        // if preemptive shutdown is enabled, we start shutting down Sharding
+        // too
+        return config.preemptiveShutdown ? shutdown() : Effect.void
+      })
+    )
 
-      // register entities while storage is idle
-      // this ensures message order is preserved
-      yield* withStorageReadLock(Effect.sync(() => {
+    // register entities while storage is idle
+    // this ensures message order is preserved
+    yield* withStorageReadLock(
+      Effect.sync(() => {
         entityManagers.set(entity.type, state)
         if (entityManagerLatches.has(entity.type)) {
           entityManagerLatches.get(entity.type)!.openUnsafe()
           entityManagerLatches.delete(entity.type)
         }
-      }))
+      })
+    )
 
-      yield* PubSub.publish(events, EntityRegistered({ entity }))
-    }
-  )
+    yield* PubSub.publish(events, EntityRegistered({ entity }))
+  })
 
   const waitForEntityManager = (entityType: string) => {
     let latch = entityManagerLatches.get(entityType)
@@ -1338,7 +1318,7 @@ const make = Effect.gen(function*() {
 
     yield* registerSingleton(
       "effect/cluster/Sharding/RunnerHealth",
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         while (true) {
           // Skip health checks if we are the only runner
           if (MutableHashMap.size(allRunners) > 1) {
@@ -1359,7 +1339,7 @@ const make = Effect.gen(function*() {
 
   // --- Finalization ---
 
-  const shutdown = Effect.fnUntraced(function*(exit?: Exit.Exit<unknown, unknown>) {
+  const shutdown = Effect.fnUntraced(function* (exit?: Exit.Exit<unknown, unknown>) {
     if (exit) {
       yield* Effect.logDebug("Shutting down", exit._tag === "Failure" ? exit.cause : {}).pipe(
         Effect.annotateLogs({
@@ -1379,7 +1359,7 @@ const make = Effect.gen(function*() {
 
   yield* Scope.addFinalizerExit(shardingScope, shutdown)
 
-  const activeEntityCount = Effect.gen(function*() {
+  const activeEntityCount = Effect.gen(function* () {
     let count = 0
     for (const state of entityManagers.values()) {
       count += yield* state.manager.activeEntityCount
@@ -1418,9 +1398,7 @@ export const layer: Layer.Layer<
   Sharding,
   never,
   ShardingConfig | Runners | MessageStorage.MessageStorage | RunnerStorage | RunnerHealth.RunnerHealth
-> = Layer.effect(Sharding)(make).pipe(
-  Layer.provide([Snowflake.layerGenerator, EntityReaper.layer])
-)
+> = Layer.effect(Sharding)(make).pipe(Layer.provide([Snowflake.layerGenerator, EntityReaper.layer]))
 
 // Utilities
 

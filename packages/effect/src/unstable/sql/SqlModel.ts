@@ -23,12 +23,15 @@ import * as SqlSchema from "./SqlSchema.ts"
  */
 export const makeRepository = <
   S extends Model.Any,
-  Id extends (keyof S["Type"]) & (keyof S["update"]["Type"]) & (keyof S["fields"])
->(Model: S, options: {
-  readonly tableName: string
-  readonly spanPrefix: string
-  readonly idColumn: Id
-}): Effect.Effect<
+  Id extends keyof S["Type"] & keyof S["update"]["Type"] & keyof S["fields"]
+>(
+  Model: S,
+  options: {
+    readonly tableName: string
+    readonly spanPrefix: string
+    readonly idColumn: Id
+  }
+): Effect.Effect<
   {
     readonly insert: (
       insert: S["insert"]["Type"]
@@ -64,7 +67,7 @@ export const makeRepository = <
   never,
   SqlClient
 > =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const sql = yield* SqlClient
     const idSchema = Model.fields[options.idColumn] as Schema.Top
     const idColumn = options.idColumn as string
@@ -102,9 +105,13 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       insert: S["insert"]["Type"]
     ): Effect.Effect<void, Schema.SchemaError | SqlError, S["insert"]["EncodingServices"]> =>
       insertVoidSchema(insert).pipe(
-        Effect.withSpan(`${options.spanPrefix}.insertVoid`, {}, {
-          captureStackTrace: false
-        })
+        Effect.withSpan(
+          `${options.spanPrefix}.insertVoid`,
+          {},
+          {
+            captureStackTrace: false
+          }
+        )
       ) as any
 
     const updateSchema = SqlSchema.findOne({
@@ -134,11 +141,15 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
     > =>
       updateSchema(update).pipe(
         Effect.catchTag("NoSuchElementError", Effect.die),
-        Effect.withSpan(`${options.spanPrefix}.update`, {
-          attributes: { id: (update as any)[idColumn] }
-        }, {
-          captureStackTrace: false
-        })
+        Effect.withSpan(
+          `${options.spanPrefix}.update`,
+          {
+            attributes: { id: (update as any)[idColumn] }
+          },
+          {
+            captureStackTrace: false
+          }
+        )
       ) as any
 
     const updateVoidSchema = SqlSchema.void({
@@ -152,11 +163,15 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
       update: S["update"]["Type"]
     ): Effect.Effect<void, Schema.SchemaError | SqlError, S["update"]["EncodingServices"]> =>
       updateVoidSchema(update).pipe(
-        Effect.withSpan(`${options.spanPrefix}.updateVoid`, {
-          attributes: { id: (update as any)[idColumn] }
-        }, {
-          captureStackTrace: false
-        })
+        Effect.withSpan(
+          `${options.spanPrefix}.updateVoid`,
+          {
+            attributes: { id: (update as any)[idColumn] }
+          },
+          {
+            captureStackTrace: false
+          }
+        )
       ) as any
 
     const findByIdSchema = SqlSchema.findOne({
@@ -172,9 +187,13 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
       S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
     > =>
       findByIdSchema(id).pipe(
-        Effect.withSpan(`${options.spanPrefix}.findById`, { attributes: { id } }, {
-          captureStackTrace: false
-        })
+        Effect.withSpan(
+          `${options.spanPrefix}.findById`,
+          { attributes: { id } },
+          {
+            captureStackTrace: false
+          }
+        )
       ) as any
 
     const deleteSchema = SqlSchema.void({
@@ -185,11 +204,15 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
       id: S["fields"][Id]["Type"]
     ): Effect.Effect<void, Schema.SchemaError | SqlError, S["fields"][Id]["EncodingServices"]> =>
       deleteSchema(id).pipe(
-        Effect.withSpan(`${options.spanPrefix}.delete`, {
-          attributes: { id }
-        }, {
-          captureStackTrace: false
-        })
+        Effect.withSpan(
+          `${options.spanPrefix}.delete`,
+          {
+            attributes: { id }
+          },
+          {
+            captureStackTrace: false
+          }
+        )
       ) as any
 
     return { insert, insertVoid, update, updateVoid, findById, delete: delete_ } as const
@@ -203,7 +226,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
  */
 export const makeDataLoaders = <
   S extends Model.Any,
-  Id extends (keyof S["Type"]) & (keyof S["update"]["Type"]) & (keyof S["fields"])
+  Id extends keyof S["Type"] & keyof S["update"]["Type"] & keyof S["fields"]
 >(
   Model: S,
   options: {
@@ -239,7 +262,7 @@ export const makeDataLoaders = <
   never,
   SqlClient | Scope
 > =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const sql = yield* SqlClient
     const idSchema = Model.fields[options.idColumn] as Schema.Top
     const idColumn = options.idColumn as string
@@ -251,11 +274,15 @@ export const makeDataLoaders = <
       execute: (request: any) =>
         sql.onDialectOrElse({
           mysql: () =>
-            Effect.forEach(request, (request: any) =>
-              sql`insert into ${sql(options.tableName)} ${sql.insert(request)};
+            Effect.forEach(
+              request,
+              (request: any) =>
+                sql`insert into ${sql(options.tableName)} ${sql.insert(request)};
 select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID();`.unprepared.pipe(
-                Effect.map(([, results]) => results[0] as any)
-              ), { concurrency: 10 }),
+                  Effect.map(([, results]) => results[0] as any)
+                ),
+              { concurrency: 10 }
+            ),
           orElse: () => sql`insert into ${sql(options.tableName)} ${sql.insert(request).returning("*")}`
         })
     }).pipe(
@@ -273,9 +300,13 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
     > =>
       insertExecute(insert).pipe(
         Effect.catchTag("ResultLengthMismatch", Effect.die),
-        Effect.withSpan(`${options.spanPrefix}.insert`, {}, {
-          captureStackTrace: false
-        })
+        Effect.withSpan(
+          `${options.spanPrefix}.insert`,
+          {},
+          {
+            captureStackTrace: false
+          }
+        )
       ) as any
 
     const insertVoidResolver = SqlResolver.void({
@@ -291,9 +322,13 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       insert: S["insert"]["Type"]
     ): Effect.Effect<void, SqlError | Schema.SchemaError, S["insert"]["EncodingServices"]> =>
       insertVoidExecute(insert).pipe(
-        Effect.withSpan(`${options.spanPrefix}.insertVoid`, {}, {
-          captureStackTrace: false
-        })
+        Effect.withSpan(
+          `${options.spanPrefix}.insertVoid`,
+          {},
+          {
+            captureStackTrace: false
+          }
+        )
       ) as any
 
     const findByIdResolver = SqlResolver.findById({
@@ -317,9 +352,13 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
     > =>
       findByIdExecute(id).pipe(
-        Effect.withSpan(`${options.spanPrefix}.findById`, { attributes: { id } }, {
-          captureStackTrace: false
-        })
+        Effect.withSpan(
+          `${options.spanPrefix}.findById`,
+          { attributes: { id } },
+          {
+            captureStackTrace: false
+          }
+        )
       ) as any
 
     const deleteResolver = SqlResolver.void({
@@ -335,9 +374,13 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       id: S["fields"][Id]["Type"]
     ): Effect.Effect<void, SqlError | Schema.SchemaError, S["fields"][Id]["EncodingServices"]> =>
       deleteExecute(id).pipe(
-        Effect.withSpan(`${options.spanPrefix}.delete`, { attributes: { id } }, {
-          captureStackTrace: false
-        })
+        Effect.withSpan(
+          `${options.spanPrefix}.delete`,
+          { attributes: { id } },
+          {
+            captureStackTrace: false
+          }
+        )
       ) as any
 
     return { insert, insertVoid, findById, delete: delete_ } as const

@@ -17,68 +17,71 @@ import * as Msgpack from "../encoding/Msgpack.ts"
  * @since 4.0.0
  * @category context
  */
-export class EventJournal extends ServiceMap.Service<EventJournal, {
-  /**
-   * Read all the entries in the journal.
-   */
-  readonly entries: Effect.Effect<ReadonlyArray<Entry>, EventJournalError>
+export class EventJournal extends ServiceMap.Service<
+  EventJournal,
+  {
+    /**
+     * Read all the entries in the journal.
+     */
+    readonly entries: Effect.Effect<ReadonlyArray<Entry>, EventJournalError>
 
-  /**
-   * Write an event to the journal, performing an effect before committing the
-   * event.
-   */
-  readonly write: <A, E, R>(options: {
-    readonly event: string
-    readonly primaryKey: string
-    readonly payload: Uint8Array
-    readonly effect: (entry: Entry) => Effect.Effect<A, E, R>
-  }) => Effect.Effect<A, EventJournalError | E, R>
+    /**
+     * Write an event to the journal, performing an effect before committing the
+     * event.
+     */
+    readonly write: <A, E, R>(options: {
+      readonly event: string
+      readonly primaryKey: string
+      readonly payload: Uint8Array
+      readonly effect: (entry: Entry) => Effect.Effect<A, E, R>
+    }) => Effect.Effect<A, EventJournalError | E, R>
 
-  /**
-   * Write events from a remote source to the journal.
-   *
-   * Effects run sequentially in compaction bracket order.
-   */
-  readonly writeFromRemote: (
-    options: {
+    /**
+     * Write events from a remote source to the journal.
+     *
+     * Effects run sequentially in compaction bracket order.
+     */
+    readonly writeFromRemote: (options: {
       readonly remoteId: RemoteId
       readonly entries: ReadonlyArray<RemoteEntry>
       readonly compact?:
-        | ((uncommitted: ReadonlyArray<RemoteEntry>) => Effect.Effect<
-          ReadonlyArray<[compacted: ReadonlyArray<Entry>, remoteEntries: ReadonlyArray<RemoteEntry>]>,
-          EventJournalError
-        >)
+        | ((
+            uncommitted: ReadonlyArray<RemoteEntry>
+          ) => Effect.Effect<
+            ReadonlyArray<[compacted: ReadonlyArray<Entry>, remoteEntries: ReadonlyArray<RemoteEntry>]>,
+            EventJournalError
+          >)
         | undefined
       readonly effect: (options: {
         readonly entry: Entry
         readonly conflicts: ReadonlyArray<Entry>
       }) => Effect.Effect<void, EventJournalError>
-    }
-  ) => Effect.Effect<void, EventJournalError>
+    }) => Effect.Effect<void, EventJournalError>
 
-  /**
-   * Return the uncommitted entries for a remote source.
-   */
-  readonly withRemoteUncommited: <A, E, R>(
-    remoteId: RemoteId,
-    f: (entries: ReadonlyArray<Entry>) => Effect.Effect<A, E, R>
-  ) => Effect.Effect<A, EventJournalError | E, R>
+    /**
+     * Return the uncommitted entries for a remote source.
+     */
+    readonly withRemoteUncommited: <A, E, R>(
+      remoteId: RemoteId,
+      f: (entries: ReadonlyArray<Entry>) => Effect.Effect<A, E, R>
+    ) => Effect.Effect<A, EventJournalError | E, R>
 
-  /**
-   * Retrieve the last known sequence number for a remote source.
-   */
-  readonly nextRemoteSequence: (remoteId: RemoteId) => Effect.Effect<number, EventJournalError>
+    /**
+     * Retrieve the last known sequence number for a remote source.
+     */
+    readonly nextRemoteSequence: (remoteId: RemoteId) => Effect.Effect<number, EventJournalError>
 
-  /**
-   * The entries added to the local journal.
-   */
-  readonly changes: Effect.Effect<PubSub.Subscription<Entry>, never, Scope>
+    /**
+     * The entries added to the local journal.
+     */
+    readonly changes: Effect.Effect<PubSub.Subscription<Entry>, never, Scope>
 
-  /**
-   * Remove all data
-   */
-  readonly destroy: Effect.Effect<void, EventJournalError>
-}>()("effect/eventlog/EventJournal") {}
+    /**
+     * Remove all data
+     */
+    readonly destroy: Effect.Effect<void, EventJournalError>
+  }
+>()("effect/eventlog/EventJournal") {}
 
 const TypeId = "effect/eventlog/EventJournal/EventJournalError" as const
 
@@ -227,7 +230,7 @@ export class RemoteEntry extends Schema.Class<RemoteEntry>("effect/eventlog/Even
  * @since 4.0.0
  * @category memory
  */
-export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(function*() {
+export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(function* () {
   const journal: Array<Entry> = []
   const byId = new Map<string, Entry>()
   const remotes = new Map<string, { sequence: number; missing: Array<Entry> }>()
@@ -246,13 +249,17 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
     entries: Effect.sync(() => journal.slice()),
     write({ effect, event, payload, primaryKey }) {
       return Effect.acquireUseRelease(
-        Effect.sync(() =>
-          new Entry({
-            id: makeEntryIdUnsafe(),
-            event,
-            primaryKey,
-            payload
-          }, { disableValidation: true })
+        Effect.sync(
+          () =>
+            new Entry(
+              {
+                id: makeEntryIdUnsafe(),
+                event,
+                primaryKey,
+                payload
+              },
+              { disableValidation: true }
+            )
         ),
         effect,
         (entry, exit) =>
@@ -267,7 +274,7 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
           })
       )
     },
-    writeFromRemote: Effect.fnUntraced(function*(options) {
+    writeFromRemote: Effect.fnUntraced(function* (options) {
       const remote = ensureRemote(options.remoteId)
       const uncommittedRemotes: Array<RemoteEntry> = []
       const uncommitted: Array<Entry> = []
@@ -284,7 +291,7 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
 
       const brackets = options.compact
         ? yield* options.compact(uncommittedRemotes)
-        : [[uncommitted, uncommittedRemotes]] as const
+        : ([[uncommitted, uncommittedRemotes]] as const)
 
       for (const [compacted, remoteEntries] of brackets) {
         for (const originEntry of compacted) {
@@ -355,7 +362,7 @@ export const layerMemory: Layer.Layer<EventJournal> = Layer.effect(EventJournal,
 export const makeIndexedDb = (options?: {
   readonly database?: string
 }): Effect.Effect<EventJournal["Service"], EventJournalError, Scope> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const database = options?.database ?? "effect_event_journal"
     const openRequest = indexedDB.open(database, 1)
     openRequest.onupgradeneeded = () => {
@@ -382,35 +389,33 @@ export const makeIndexedDb = (options?: {
 
     return EventJournal.of({
       entries: idbReq("entries", () =>
-        db.transaction("entries", "readonly")
-          .objectStore("entries")
-          .index("id")
-          .getAll()).pipe(
-          Effect.flatMap((_) =>
-            decodeEntryIdbArray(_).pipe(
-              Effect.mapError((cause) => new EventJournalError({ method: "entries", cause }))
-            )
-          )
-        ),
+        db.transaction("entries", "readonly").objectStore("entries").index("id").getAll()
+      ).pipe(
+        Effect.flatMap((_) =>
+          decodeEntryIdbArray(_).pipe(Effect.mapError((cause) => new EventJournalError({ method: "entries", cause })))
+        )
+      ),
       write: ({ effect, event, payload, primaryKey }) =>
         Effect.uninterruptibleMask((restore) => {
-          const entry = new Entry({
-            id: makeEntryIdUnsafe(),
-            event,
-            primaryKey,
-            payload
-          }, { disableValidation: true })
+          const entry = new Entry(
+            {
+              id: makeEntryIdUnsafe(),
+              event,
+              primaryKey,
+              payload
+            },
+            { disableValidation: true }
+          )
           return restore(effect(entry)).pipe(
             Effect.tap(
               idbReq("write", () =>
-                db.transaction("entries", "readwrite")
-                  .objectStore("entries")
-                  .put(encodeEntryIdb(entry)))
+                db.transaction("entries", "readwrite").objectStore("entries").put(encodeEntryIdb(entry))
+              )
             ),
             Effect.tap(PubSub.publish(pubsub, entry))
           )
         }),
-      writeFromRemote: Effect.fnUntraced(function*(options) {
+      writeFromRemote: Effect.fnUntraced(function* (options) {
         const uncommitted: Array<Entry> = []
         const uncommittedRemotes: Array<RemoteEntry> = []
 
@@ -447,7 +452,7 @@ export const makeIndexedDb = (options?: {
 
         const brackets = options.compact
           ? yield* options.compact(uncommittedRemotes)
-          : [[uncommitted, uncommittedRemotes]] as const
+          : ([[uncommitted, uncommittedRemotes]] as const)
 
         for (const [compacted, remoteEntries] of brackets) {
           for (const originEntry of compacted) {
@@ -455,18 +460,14 @@ export const makeIndexedDb = (options?: {
             yield* Effect.callback<void, EventJournalError>((resume) => {
               const tx = db.transaction("entries", "readonly")
               const entries = tx.objectStore("entries")
-              const cursorRequest = entries.index("id").openCursor(
-                IDBKeyRange.lowerBound(originEntry.id as IDBValidKey, true),
-                "next"
-              )
+              const cursorRequest = entries
+                .index("id")
+                .openCursor(IDBKeyRange.lowerBound(originEntry.id as IDBValidKey, true), "next")
               cursorRequest.onsuccess = () => {
                 const cursor = cursorRequest.result
                 if (!cursor) return
                 const decodedEntry = decodeEntryIdb(cursor.value)
-                if (
-                  decodedEntry.event === originEntry.event &&
-                  decodedEntry.primaryKey === originEntry.primaryKey
-                ) {
+                if (decodedEntry.event === originEntry.event && decodedEntry.primaryKey === originEntry.primaryKey) {
                   conflicts.push(decodedEntry)
                 }
                 cursor.continue()
@@ -512,10 +513,9 @@ export const makeIndexedDb = (options?: {
           const request = remoteEntryIdStore.get(remoteIdKey) as IDBRequest<{ entryId: IDBValidKey } | undefined>
           request.onsuccess = () => {
             const startEntryId = request.result?.entryId
-            const entryCursor = entriesStore.index("id").openCursor(
-              startEntryId ? IDBKeyRange.lowerBound(startEntryId, true) : null,
-              "next"
-            )
+            const entryCursor = entriesStore
+              .index("id")
+              .openCursor(startEntryId ? IDBKeyRange.lowerBound(startEntryId, true) : null, "next")
             entryCursor.onsuccess = () => {
               const cursor = entryCursor.result
               if (!cursor) return
@@ -537,12 +537,16 @@ export const makeIndexedDb = (options?: {
             const entryId = entries[entries.length - 1].id
             return Effect.uninterruptibleMask((restore) =>
               restore(f(entries)).pipe(
-                Effect.tap(() =>
-                  idbReq("withRemoteUncommited", () =>
-                    db.transaction("remoteEntryId", "readwrite").objectStore("remoteEntryId").put({
-                      remoteId,
-                      entryId
-                    })), { onlyEffect: true })
+                Effect.tap(
+                  () =>
+                    idbReq("withRemoteUncommited", () =>
+                      db.transaction("remoteEntryId", "readwrite").objectStore("remoteEntryId").put({
+                        remoteId,
+                        entryId
+                      })
+                    ),
+                  { onlyEffect: true }
+                )
               )
             )
           })
@@ -552,10 +556,10 @@ export const makeIndexedDb = (options?: {
           const tx = db.transaction("remotes", "readonly")
           let sequence = 0
           const remoteIdKey = remoteId as IDBValidKey
-          const cursorRequest = tx.objectStore("remotes").index("sequence").openCursor(
-            IDBKeyRange.bound([remoteIdKey, 0], [remoteIdKey, Infinity]),
-            "prev"
-          )
+          const cursorRequest = tx
+            .objectStore("remotes")
+            .index("sequence")
+            .openCursor(IDBKeyRange.bound([remoteIdKey, 0], [remoteIdKey, Infinity]), "prev")
           cursorRequest.onsuccess = () => {
             const cursor = cursorRequest.result
             if (!cursor) return
@@ -584,11 +588,7 @@ const decodeEntryIdbArray = Schema.decodeUnknownEffect(EntryIdbArray)
  */
 export const layerIndexedDb = (options?: {
   readonly database?: string
-}): Layer.Layer<EventJournal, EventJournalError> =>
-  Layer.effect(
-    EventJournal,
-    makeIndexedDb(options)
-  )
+}): Layer.Layer<EventJournal, EventJournalError> => Layer.effect(EventJournal, makeIndexedDb(options))
 
 const idbReq = <T>(method: string, evaluate: () => IDBRequest<T>) =>
   Effect.callback<T, EventJournalError>((resume) => {

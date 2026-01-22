@@ -131,11 +131,7 @@ export const serialize = <Rpc extends Rpc.Any>(
   if (message._tag !== "OutgoingRequest") {
     return Effect.succeed(message.envelope)
   }
-  return Effect.suspend(() =>
-    message.encodedCache
-      ? Effect.succeed(message.encodedCache)
-      : serializeRequest(message)
-  )
+  return Effect.suspend(() => (message.encodedCache ? Effect.succeed(message.encodedCache) : serializeRequest(message)))
 }
 
 /**
@@ -145,9 +141,8 @@ export const serialize = <Rpc extends Rpc.Any>(
 export const serializeEnvelope = <Rpc extends Rpc.Any>(
   message: Outgoing<Rpc>
 ): Effect.Effect<Envelope.Encoded, MalformedMessage, never> =>
-  Effect.flatMap(
-    serialize(message),
-    (envelope) => MalformedMessage.refail(Schema.encodeEffect(Envelope.PartialJson)(envelope))
+  Effect.flatMap(serialize(message), (envelope) =>
+    MalformedMessage.refail(Schema.encodeEffect(Envelope.PartialJson)(envelope))
   )
 
 /**
@@ -175,10 +170,7 @@ export const serializeRequest = <Rpc extends Rpc.Any>(
 export const deserializeLocal = <Rpc extends Rpc.Any>(
   self: Outgoing<Rpc>,
   encoded: Envelope.Partial
-): Effect.Effect<
-  IncomingLocal<Rpc>,
-  MalformedMessage
-> => {
+): Effect.Effect<IncomingLocal<Rpc>, MalformedMessage> => {
   if (encoded._tag !== "Request") {
     return Effect.succeed(new IncomingEnvelope({ envelope: encoded }))
   } else if (self._tag !== "OutgoingRequest") {
@@ -190,15 +182,16 @@ export const deserializeLocal = <Rpc extends Rpc.Any>(
   return Schema.decodeEffect(Schema.toCodecJson(rpc.payloadSchema))(encoded.payload).pipe(
     Effect.provideServices(self.services),
     MalformedMessage.refail,
-    Effect.map((payload) =>
-      new IncomingRequestLocal({
-        envelope: Envelope.makeRequest({
-          ...encoded,
-          payload
-        } as any),
-        lastSentReply: undefined,
-        respond: self.respond
-      })
+    Effect.map(
+      (payload) =>
+        new IncomingRequestLocal({
+          envelope: Envelope.makeRequest({
+            ...encoded,
+            payload
+          } as any),
+          lastSentReply: undefined,
+          respond: self.respond
+        })
     )
   ) as Effect.Effect<IncomingRequestLocal<Rpc>, MalformedMessage>
 }

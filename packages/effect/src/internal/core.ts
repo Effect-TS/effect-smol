@@ -146,14 +146,8 @@ export const isCauseFailure = (self: unknown): self is Cause.Failure<unknown> =>
 /** @internal */
 export class CauseImpl<E> implements Cause.Cause<E> {
   readonly [CauseTypeId]: typeof CauseTypeId
-  readonly failures: ReadonlyArray<
-    Cause.Fail<E> | Cause.Die | Cause.Interrupt
-  >
-  constructor(
-    failures: ReadonlyArray<
-      Cause.Fail<E> | Cause.Die | Cause.Interrupt
-    >
-  ) {
+  readonly failures: ReadonlyArray<Cause.Fail<E> | Cause.Die | Cause.Interrupt>
+  constructor(failures: ReadonlyArray<Cause.Fail<E> | Cause.Die | Cause.Interrupt>) {
     this[CauseTypeId] = CauseTypeId
     this.failures = failures
   }
@@ -192,33 +186,25 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
   readonly annotations: ReadonlyMap<string, unknown>
   readonly _tag: Tag
 
-  constructor(
-    _tag: Tag,
-    annotations: ReadonlyMap<string, unknown>,
-    originalError: unknown
-  ) {
+  constructor(_tag: Tag, annotations: ReadonlyMap<string, unknown>, originalError: unknown) {
     this[CauseFailureTypeId] = CauseFailureTypeId
     this._tag = _tag
     if (
-      annotations !== constEmptyAnnotations && typeof originalError === "object" && originalError !== null &&
+      annotations !== constEmptyAnnotations &&
+      typeof originalError === "object" &&
+      originalError !== null &&
       annotations.size > 0
     ) {
       const prevAnnotations = annotationsMap.get(originalError)
       if (prevAnnotations) {
-        annotations = new Map([
-          ...prevAnnotations,
-          ...annotations
-        ])
+        annotations = new Map([...prevAnnotations, ...annotations])
       }
       annotationsMap.set(originalError, annotations)
     }
     this.annotations = annotations
   }
 
-  annotate(
-    annotations: ServiceMap.ServiceMap<never>,
-    options?: { readonly overwrite?: boolean | undefined }
-  ): this {
+  annotate(annotations: ServiceMap.ServiceMap<never>, options?: { readonly overwrite?: boolean | undefined }): this {
     if (annotations.mapUnsafe.size === 0) return this
     const newAnnotations = new Map(this.annotations)
     annotations.mapUnsafe.forEach((value, key) => {
@@ -253,10 +239,7 @@ export const constEmptyAnnotations = new Map<string, unknown>()
 /** @internal */
 export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
   readonly error: E
-  constructor(
-    error: E,
-    annotations = constEmptyAnnotations
-  ) {
+  constructor(error: E, annotations = constEmptyAnnotations) {
     super("Fail", annotations, error)
     this.error = error
   }
@@ -271,22 +254,17 @@ export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
   }
   [Equal.symbol](that: any): boolean {
     return (
-      failureIsFail(that) &&
-      Equal.equals(this.error, that.error) &&
-      Equal.equals(this.annotations, that.annotations)
+      failureIsFail(that) && Equal.equals(this.error, that.error) && Equal.equals(this.annotations, that.annotations)
     )
   }
   [Hash.symbol](): number {
-    return Hash.combine(Hash.string(this._tag))(
-      Hash.combine(Hash.hash(this.error))(Hash.hash(this.annotations))
-    )
+    return Hash.combine(Hash.string(this._tag))(Hash.combine(Hash.hash(this.error))(Hash.hash(this.annotations)))
   }
 }
 
 /** @internal */
-export const causeFromFailures = <E>(
-  failures: ReadonlyArray<Cause.Failure<E>>
-): Cause.Cause<E> => new CauseImpl(failures)
+export const causeFromFailures = <E>(failures: ReadonlyArray<Cause.Failure<E>>): Cause.Cause<E> =>
+  new CauseImpl(failures)
 
 /** @internal */
 export const causeEmpty: Cause.Cause<never> = new CauseImpl([])
@@ -297,10 +275,7 @@ export const causeFail = <E>(error: E): Cause.Cause<E> => new CauseImpl([new Fai
 /** @internal */
 export class Die extends FailureBase<"Die"> implements Cause.Die {
   readonly defect: unknown
-  constructor(
-    defect: unknown,
-    annotations = constEmptyAnnotations
-  ) {
+  constructor(defect: unknown, annotations = constEmptyAnnotations) {
     super("Die", annotations, defect)
     this.defect = defect
   }
@@ -315,15 +290,11 @@ export class Die extends FailureBase<"Die"> implements Cause.Die {
   }
   [Equal.symbol](that: any): boolean {
     return (
-      failureIsDie(that) &&
-      Equal.equals(this.defect, that.defect) &&
-      Equal.equals(this.annotations, that.annotations)
+      failureIsDie(that) && Equal.equals(this.defect, that.defect) && Equal.equals(this.annotations, that.annotations)
     )
   }
   [Hash.symbol](): number {
-    return Hash.combine(Hash.string(this._tag))(
-      Hash.combine(Hash.hash(this.defect))(Hash.hash(this.annotations))
-    )
+    return Hash.combine(Hash.string(this._tag))(Hash.combine(Hash.hash(this.defect))(Hash.hash(this.annotations)))
   }
 }
 
@@ -360,9 +331,7 @@ export const causeAnnotate: {
 )
 
 /** @internal */
-export const failureIsFail = <E>(
-  self: Cause.Failure<E>
-): self is Cause.Fail<E> => self._tag === "Fail"
+export const failureIsFail = <E>(self: Cause.Failure<E>): self is Cause.Fail<E> => self._tag === "Fail"
 
 /** @internal */
 export const failureIsDie = <E>(self: Cause.Failure<E>): self is Cause.Die => self._tag === "Die"
@@ -373,18 +342,12 @@ export const failureIsInterrupt = <E>(self: Cause.Failure<E>): self is Cause.Int
 /** @internal */
 export interface Primitive {
   readonly [identifier]: string
-  readonly [contA]:
-    | ((value: unknown, fiber: FiberImpl, exit?: Exit.Exit<any, any>) => Primitive | Yield)
-    | undefined
+  readonly [contA]: ((value: unknown, fiber: FiberImpl, exit?: Exit.Exit<any, any>) => Primitive | Yield) | undefined
   readonly [contE]:
     | ((cause: Cause.Cause<unknown>, fiber: FiberImpl, exit?: Exit.Exit<any, any>) => Primitive | Yield)
     | undefined
   readonly [contAll]:
-    | ((
-      fiber: FiberImpl
-    ) =>
-      | ((value: unknown, fiber: FiberImpl) => Primitive | Yield)
-      | undefined)
+    | ((fiber: FiberImpl) => ((value: unknown, fiber: FiberImpl) => Primitive | Yield) | undefined)
     | undefined
   [evaluate](fiber: FiberImpl): Primitive | Yield
 }
@@ -396,23 +359,14 @@ function defaultEvaluate(_fiber: FiberImpl): Primitive | Yield {
 /** @internal */
 export const makePrimitiveProto = <Op extends string>(options: {
   readonly op: Op
-  readonly [evaluate]?: (
-    fiber: FiberImpl
-  ) => Primitive | Effect.Effect<any, any, any> | Yield
-  readonly [contA]?: (
-    this: Primitive,
-    value: any,
-    fiber: FiberImpl
-  ) => Primitive | Effect.Effect<any, any, any> | Yield
+  readonly [evaluate]?: (fiber: FiberImpl) => Primitive | Effect.Effect<any, any, any> | Yield
+  readonly [contA]?: (this: Primitive, value: any, fiber: FiberImpl) => Primitive | Effect.Effect<any, any, any> | Yield
   readonly [contE]?: (
     this: Primitive,
     cause: Cause.Cause<any>,
     fiber: FiberImpl
   ) => Primitive | Effect.Effect<any, any, any> | Yield
-  readonly [contAll]?: (
-    this: Primitive,
-    fiber: FiberImpl
-  ) => void | ((value: any, fiber: FiberImpl) => void)
+  readonly [contAll]?: (this: Primitive, fiber: FiberImpl) => void | ((value: any, fiber: FiberImpl) => void)
 }): Primitive =>
   ({
     ...EffectProto,
@@ -424,10 +378,7 @@ export const makePrimitiveProto = <Op extends string>(options: {
   }) as any
 
 /** @internal */
-export const makePrimitive = <
-  Fn extends (...args: Array<any>) => any,
-  Single extends boolean = true
->(options: {
+export const makePrimitive = <Fn extends (...args: Array<any>) => any, Single extends boolean = true>(options: {
   readonly op: string
   readonly single?: Single
   readonly [evaluate]?: (
@@ -460,7 +411,7 @@ export const makePrimitive = <
   ) => void | ((value: any, fiber: FiberImpl) => void)
 }): Fn => {
   const Proto = makePrimitiveProto(options as any)
-  return function() {
+  return function () {
     const self = Object.create(Proto)
     self[args] = options.single === false ? arguments : arguments[0]
     return self
@@ -468,10 +419,7 @@ export const makePrimitive = <
 }
 
 /** @internal */
-export const makeExit = <
-  Fn extends (...args: Array<any>) => any,
-  Prop extends string
->(options: {
+export const makeExit = <Fn extends (...args: Array<any>) => any, Prop extends string>(options: {
   readonly op: "Success" | "Failure"
   readonly prop: Prop
   readonly [evaluate]: (
@@ -497,17 +445,13 @@ export const makeExit = <
       }
     },
     [Equal.symbol](this: any, that: any): boolean {
-      return (
-        isExit(that) &&
-        that._tag === this._tag &&
-        Equal.equals(this[args], (that as any)[args])
-      )
+      return isExit(that) && that._tag === this._tag && Equal.equals(this[args], (that as any)[args])
     },
     [Hash.symbol](this: any): number {
       return Hash.combine(Hash.string(options.op), Hash.hash(this[args]))
     }
   }
-  return function(value: unknown) {
+  return function (value: unknown) {
     const self = Object.create(Proto)
     self[args] = value
     self[contA] = undefined
@@ -575,10 +519,7 @@ export const withFiber: <A, E = never, R = never>(
 })
 
 /** @internal */
-export const YieldableError: new(
-  message?: string,
-  options?: ErrorOptions
-) => Cause.YieldableError = (function() {
+export const YieldableError: new (message?: string, options?: ErrorOptions) => Cause.YieldableError = (function () {
   class YieldableError extends globalThis.Error {
     asEffect() {
       return exitFail(this)
@@ -589,9 +530,9 @@ export const YieldableError: new(
 })()
 
 /** @internal */
-export const Error: new<A extends Record<string, any> = {}>(
+export const Error: new <A extends Record<string, any> = {}>(
   args: Equals<A, {}> extends true ? void : { readonly [P in keyof A]: A[P] }
-) => Cause.YieldableError & Readonly<A> = (function() {
+) => Cause.YieldableError & Readonly<A> = (function () {
   const plainArgsSymbol = Symbol.for("effect/Data/Error/plainArgs")
   return class Base extends YieldableError {
     constructor(args: any) {
@@ -613,10 +554,9 @@ export const Error: new<A extends Record<string, any> = {}>(
 /** @internal */
 export const TaggedError = <Tag extends string>(
   tag: Tag
-): new<A extends Record<string, any> = {}>(
-  args: Equals<A, {}> extends true ? void
-    : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
-) => Cause.YieldableError & { readonly _tag: Tag } & Readonly<A> => {
+): (new <A extends Record<string, any> = {}>(
+  args: Equals<A, {}> extends true ? void : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
+) => Cause.YieldableError & { readonly _tag: Tag } & Readonly<A>) => {
   class Base extends Error<{}> {
     readonly _tag = tag
   }
@@ -628,9 +568,8 @@ export const TaggedError = <Tag extends string>(
 export const NoSuchElementErrorTypeId = "~effect/Cause/NoSuchElementError"
 
 /** @internal */
-export const isNoSuchElementError = (
-  u: unknown
-): u is Cause.NoSuchElementError => hasProperty(u, NoSuchElementErrorTypeId)
+export const isNoSuchElementError = (u: unknown): u is Cause.NoSuchElementError =>
+  hasProperty(u, NoSuchElementErrorTypeId)
 
 /** @internal */
 export class NoSuchElementError extends TaggedError("NoSuchElementError") {
@@ -644,9 +583,7 @@ export class NoSuchElementError extends TaggedError("NoSuchElementError") {
 export const DoneTypeId = "~effect/Cause/Done"
 
 /** @internal */
-export const isDone = (
-  u: unknown
-): u is Cause.Done => hasProperty(u, DoneTypeId)
+export const isDone = (u: unknown): u is Cause.Done => hasProperty(u, DoneTypeId)
 
 const DoneVoid: Cause.Done<void> = {
   [DoneTypeId]: DoneTypeId,

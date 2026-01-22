@@ -6,7 +6,7 @@ import { RateLimiter } from "effect/unstable/persistence"
 describe(`RateLimiter`, () => {
   describe("fixed-window", () => {
     it.effect("onExceeded delay", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const limiter = yield* RateLimiter.make
         const consume = limiter.consume({
           algorithm: "fixed-window",
@@ -37,12 +37,11 @@ describe(`RateLimiter`, () => {
 
         result = yield* consume // 13
         expect(result.delay).toEqual(Duration.seconds(45))
-      }).pipe(
-        Effect.provide(RateLimiter.layerStoreMemory)
-      ))
+      }).pipe(Effect.provide(RateLimiter.layerStoreMemory))
+    )
 
     it.effect("onExceeded fail", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const limiter = yield* RateLimiter.make
         const consume = limiter.consume({
           algorithm: "fixed-window",
@@ -72,14 +71,13 @@ describe(`RateLimiter`, () => {
         result = yield* consume
         expect(result.delay).toEqual(Duration.zero)
         expect(result.remaining).toEqual(4)
-      }).pipe(
-        Effect.provide(RateLimiter.layerStoreMemory)
-      ))
+      }).pipe(Effect.provide(RateLimiter.layerStoreMemory))
+    )
   })
 
   describe("token-bucket", () => {
     it.effect("onExceeded delay", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const limiter = yield* RateLimiter.make
         const consume = limiter.consume({
           algorithm: "token-bucket",
@@ -103,12 +101,11 @@ describe(`RateLimiter`, () => {
         result = yield* consume // 3
         expect(result.delay).toEqual(Duration.zero)
         expect(result.remaining).toEqual(2)
-      }).pipe(
-        Effect.provide(RateLimiter.layerStoreMemory)
-      ))
+      }).pipe(Effect.provide(RateLimiter.layerStoreMemory))
+    )
 
     it.effect("onExceeded fail", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const limiter = yield* RateLimiter.make
         const consume = limiter.consume({
           algorithm: "token-bucket",
@@ -132,8 +129,7 @@ describe(`RateLimiter`, () => {
         result = yield* consume
         expect(result.delay).toEqual(Duration.zero)
         expect(result.remaining).toEqual(2)
-      }).pipe(
-        Effect.provide(RateLimiter.layerStoreMemory)
-      ))
+      }).pipe(Effect.provide(RateLimiter.layerStoreMemory))
+    )
   })
 })

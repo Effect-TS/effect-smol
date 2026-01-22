@@ -6,7 +6,7 @@ import * as Scope from "effect/Scope"
 
 describe("RcRef", () => {
   it.effect("deallocation", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       let acquired = 0
       let released = 0
       const refScope = yield* Scope.make()
@@ -21,9 +21,7 @@ describe("RcRef", () => {
               released++
             })
         )
-      }).pipe(
-        Scope.provide(refScope)
-      )
+      }).pipe(Scope.provide(refScope))
 
       assert.strictEqual(acquired, 0)
       assert.strictEqual(yield* Effect.scoped(RcRef.get(ref)), "foo")
@@ -54,7 +52,8 @@ describe("RcRef", () => {
 
       const exit = yield* RcRef.get(ref).pipe(Effect.scoped, Effect.exit)
       assert.isTrue(Exit.hasInterrupt(exit))
-    }))
+    })
+  )
 
   // it.scoped("idleTimeToLive", () =>
   //   Effect.gen(function*() {

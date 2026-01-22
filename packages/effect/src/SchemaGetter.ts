@@ -20,16 +20,10 @@ import * as Str from "./String.ts"
  * @since 4.0.0
  */
 export class Getter<out T, in E, R = never> extends Class {
-  readonly run: (
-    input: Option.Option<E>,
-    options: AST.ParseOptions
-  ) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+  readonly run: (input: Option.Option<E>, options: AST.ParseOptions) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
 
   constructor(
-    run: (
-      input: Option.Option<E>,
-      options: AST.ParseOptions
-    ) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+    run: (input: Option.Option<E>, options: AST.ParseOptions) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
   ) {
     super()
     this.run = run
@@ -124,7 +118,7 @@ export function passthroughSubtype<T>(): Getter<T, T> {
 export function onNone<T, E extends T = T, R = never>(
   f: (options: AST.ParseOptions) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
 ): Getter<T, E, R> {
-  return new Getter((ot, options) => Option.isNone(ot) ? f(options) : Effect.succeed(ot))
+  return new Getter((ot, options) => (Option.isNone(ot) ? f(options) : Effect.succeed(ot)))
 }
 
 /**
@@ -146,7 +140,7 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
 export function onSome<T, E, R = never>(
   f: (e: E, options: AST.ParseOptions) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
 ): Getter<T, E, R> {
-  return new Getter((oe, options) => Option.isNone(oe) ? Effect.succeedNone : f(oe.value, options))
+  return new Getter((oe, options) => (Option.isNone(oe) ? Effect.succeedNone : f(oe.value, options)))
 }
 
 /**
@@ -157,22 +151,29 @@ export function onSome<T, E, R = never>(
  * @since 4.0.0
  */
 export function checkEffect<T, R = never>(
-  f: (input: T, options: AST.ParseOptions) => Effect.Effect<
-    undefined | boolean | string | Issue.Issue | {
-      readonly path: ReadonlyArray<PropertyKey>
-      readonly message: string
-    },
+  f: (
+    input: T,
+    options: AST.ParseOptions
+  ) => Effect.Effect<
+    | undefined
+    | boolean
+    | string
+    | Issue.Issue
+    | {
+        readonly path: ReadonlyArray<PropertyKey>
+        readonly message: string
+      },
     never,
     R
   >
 ): Getter<T, T, R> {
   return onSome((t, options) => {
-    return f(t, options).pipe(Effect.flatMapEager((out) => {
-      const issue = Issue.make(t, out)
-      return issue ?
-        Effect.fail(issue) :
-        Effect.succeed(Option.some(t))
-    }))
+    return f(t, options).pipe(
+      Effect.flatMapEager((out) => {
+        const issue = Issue.make(t, out)
+        return issue ? Effect.fail(issue) : Effect.succeed(Option.some(t))
+      })
+    )
   })
 }
 
@@ -227,12 +228,7 @@ export function omit<T>(): Getter<never, T> {
  * @since 4.0.0
  */
 export function withDefault<T>(defaultValue: () => T): Getter<T, T | undefined> {
-  return transformOptional((o) =>
-    o.pipe(
-      Option.filter(Predicate.isNotUndefined),
-      Option.orElseSome(defaultValue)
-    )
-  )
+  return transformOptional((o) => o.pipe(Option.filter(Predicate.isNotUndefined), Option.orElseSome(defaultValue)))
 }
 
 /**
@@ -386,13 +382,16 @@ export function splitKeyValue<E extends string>(options?: {
   const separator = options?.separator ?? ","
   const keyValueSeparator = options?.keyValueSeparator ?? "="
   return transform((input) =>
-    input.split(separator).reduce((acc, pair) => {
-      const [key, value] = pair.split(keyValueSeparator)
-      if (key && value) {
-        acc[key] = value
-      }
-      return acc
-    }, {} as Record<string, string>)
+    input.split(separator).reduce(
+      (acc, pair) => {
+        const [key, value] = pair.split(keyValueSeparator)
+        if (key && value) {
+          acc[key] = value
+        }
+        return acc
+      },
+      {} as Record<string, string>
+    )
   )
 }
 
@@ -414,7 +413,9 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
   const separator = options?.separator ?? ","
   const keyValueSeparator = options?.keyValueSeparator ?? "="
   return transform((input) =>
-    Object.entries(input).map(([key, value]) => `${key}${keyValueSeparator}${value}`).join(separator)
+    Object.entries(input)
+      .map(([key, value]) => `${key}${keyValueSeparator}${value}`)
+      .join(separator)
   )
 }
 
@@ -430,7 +431,7 @@ export function split<E extends string>(options?: {
   readonly separator?: string | undefined
 }): Getter<ReadonlyArray<string>, E> {
   const separator = options?.separator ?? ","
-  return transform((input) => input === "" ? [] : input.split(separator))
+  return transform((input) => (input === "" ? [] : input.split(separator)))
 }
 
 /**
@@ -556,8 +557,8 @@ export function decodeFormData(): Getter<Schema.TreeObject<string | Blob>, FormD
   return transform((input) => makeTreeRecord(Array.from(input.entries())))
 }
 
-const collectFormDataEntries = collectBracketPathEntries((value): value is string | Blob =>
-  typeof value === "string" || (typeof Blob !== "undefined" && value instanceof Blob)
+const collectFormDataEntries = collectBracketPathEntries(
+  (value): value is string | Blob => typeof value === "string" || (typeof Blob !== "undefined" && value instanceof Blob)
 )
 
 /**
@@ -613,9 +614,7 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
   // if bracket path started with "[...]" we get ".foo" => ["", "foo"]; drop the synthetic first ""
   const start = replaced.startsWith(".") ? 1 : 0
 
-  return parts
-    .slice(start)
-    .map((part) => (INDEX_REGEXP.test(part) ? globalThis.Number(part) : part))
+  return parts.slice(start).map((part) => (INDEX_REGEXP.test(part) ? globalThis.Number(part) : part))
 }
 
 /**

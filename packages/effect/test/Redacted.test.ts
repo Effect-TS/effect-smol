@@ -28,7 +28,7 @@ describe("Redacted", () => {
 
   it("toJSON", () => {
     const redacted = Redacted.make("redacted")
-    strictEqual(JSON.stringify(redacted), "\"<redacted>\"")
+    strictEqual(JSON.stringify(redacted), '"<redacted>"')
   })
 
   it("label", () => {
@@ -38,7 +38,7 @@ describe("Redacted", () => {
     strictEqual(JSON.stringify(redacted), `"<redacted:MY_LABEL>"`)
 
     assertTrue(Redacted.wipeUnsafe(redacted))
-    throws(() => Redacted.value(redacted), new Error("Unable to get redacted value with label: \"MY_LABEL\""))
+    throws(() => Redacted.value(redacted), new Error('Unable to get redacted value with label: "MY_LABEL"'))
   })
 
   it("wipeUnsafe", () => {

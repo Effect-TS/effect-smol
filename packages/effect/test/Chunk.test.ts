@@ -16,10 +16,7 @@ import { Array as Arr, Chunk, Equal, Equivalence, Option, Order, Result } from "
 import { identity, pipe } from "effect/Function"
 import { FastCheck as fc } from "effect/testing"
 
-const assertTuple = <A, B>(
-  actual: [Chunk.Chunk<A>, Chunk.Chunk<B>],
-  expected: [Chunk.Chunk<A>, Chunk.Chunk<B>]
-) => {
+const assertTuple = <A, B>(actual: [Chunk.Chunk<A>, Chunk.Chunk<B>], expected: [Chunk.Chunk<A>, Chunk.Chunk<B>]) => {
   assertEquals(actual[0], expected[0])
   assertEquals(actual[1], expected[1])
 }
@@ -35,14 +32,8 @@ describe("Chunk", () => {
   })
 
   it("toString", () => {
-    strictEqual(
-      String(Chunk.make(0, 1, 2)),
-      `Chunk([0,1,2])`
-    )
-    strictEqual(
-      String(Chunk.make(Chunk.make(1, 2, 3))),
-      `Chunk([Chunk([1,2,3])])`
-    )
+    strictEqual(String(Chunk.make(0, 1, 2)), `Chunk([0,1,2])`)
+    strictEqual(String(Chunk.make(Chunk.make(1, 2, 3))), `Chunk([Chunk([1,2,3])])`)
   })
 
   it("toJSON", () => {
@@ -62,9 +53,17 @@ describe("Chunk", () => {
   })
 
   it("modify", () => {
-    assertUndefined(pipe(Chunk.empty(), Chunk.modify(0, (n: number) => n * 2)))
+    assertUndefined(
+      pipe(
+        Chunk.empty(),
+        Chunk.modify(0, (n: number) => n * 2)
+      )
+    )
     deepStrictEqual(
-      pipe(Chunk.make(1, 2, 3), Chunk.modify(0, (n: number) => n * 2)),
+      pipe(
+        Chunk.make(1, 2, 3),
+        Chunk.modify(0, (n: number) => n * 2)
+      ),
       Chunk.make(2, 2, 3)
     )
   })
@@ -252,13 +251,15 @@ describe("Chunk", () => {
 
     describe("Given a prepended Chunk and an index out of bounds", () => {
       it("should throw", () => {
-        fc.assert(fc.property(fc.array(fc.anything()), (array) => {
-          let chunk: Chunk.Chunk<unknown> = Chunk.empty()
-          array.forEach((e) => {
-            chunk = pipe(chunk, Chunk.prepend(e))
+        fc.assert(
+          fc.property(fc.array(fc.anything()), (array) => {
+            let chunk: Chunk.Chunk<unknown> = Chunk.empty()
+            array.forEach((e) => {
+              chunk = pipe(chunk, Chunk.prepend(e))
+            })
+            throws(() => pipe(chunk, Chunk.getUnsafe(array.length)))
           })
-          throws(() => pipe(chunk, Chunk.getUnsafe(array.length)))
-        }))
+        )
       })
     })
 
@@ -289,10 +290,12 @@ describe("Chunk", () => {
 
     describe("Given a concat Chunk and an index out of bounds", () => {
       it("should throw", () => {
-        fc.assert(fc.property(fc.array(fc.anything()), fc.array(fc.anything()), (arr1, arr2) => {
-          const chunk: Chunk.Chunk<unknown> = Chunk.appendAll(Chunk.fromIterable(arr2))(Chunk.fromArrayUnsafe(arr1))
-          throws(() => pipe(chunk, Chunk.getUnsafe(arr1.length + arr2.length)))
-        }))
+        fc.assert(
+          fc.property(fc.array(fc.anything()), fc.array(fc.anything()), (arr1, arr2) => {
+            const chunk: Chunk.Chunk<unknown> = Chunk.appendAll(Chunk.fromIterable(arr2))(Chunk.fromArrayUnsafe(arr1))
+            throws(() => pipe(chunk, Chunk.getUnsafe(arr1.length + arr2.length)))
+          })
+        )
       })
     })
 
@@ -334,13 +337,15 @@ describe("Chunk", () => {
 
     describe("Given a concat Chunk and an index in bounds", () => {
       it("should return the value", () => {
-        fc.assert(fc.property(fc.array(fc.anything()), fc.array(fc.anything()), (a, b) => {
-          const c = [...a, ...b]
-          const d = Chunk.appendAll(Chunk.fromArrayUnsafe(b))(Chunk.fromArrayUnsafe(a))
-          for (let i = 0; i < c.length; i++) {
-            deepStrictEqual(Chunk.getUnsafe(i)(d), c[i])
-          }
-        }))
+        fc.assert(
+          fc.property(fc.array(fc.anything()), fc.array(fc.anything()), (a, b) => {
+            const c = [...a, ...b]
+            const d = Chunk.appendAll(Chunk.fromArrayUnsafe(b))(Chunk.fromArrayUnsafe(a))
+            for (let i = 0; i < c.length; i++) {
+              deepStrictEqual(Chunk.getUnsafe(i)(d), c[i])
+            }
+          })
+        )
       })
     })
   })
@@ -539,10 +544,7 @@ describe("Chunk", () => {
     })
 
     describe("Given 2 chunks where the first one is appended", () => {
-      const chunk1 = pipe(
-        Chunk.empty(),
-        Chunk.append(1)
-      )
+      const chunk1 = pipe(Chunk.empty(), Chunk.append(1))
       const chunk2 = Chunk.fromArrayUnsafe([2, 3, 4])
 
       it("should concatenate them following order", () => {
@@ -552,10 +554,7 @@ describe("Chunk", () => {
 
     describe("Given 2 chunks where the second one is appended", () => {
       const chunk1 = Chunk.fromArrayUnsafe([1])
-      const chunk2 = pipe(
-        Chunk.empty(),
-        Chunk.prepend(2)
-      )
+      const chunk2 = pipe(Chunk.empty(), Chunk.prepend(2))
 
       it("should concatenate them following order", () => {
         assertEquals(pipe(chunk1, Chunk.appendAll(chunk2)), Chunk.fromArrayUnsafe([1, 2]))
@@ -614,8 +613,14 @@ describe("Chunk", () => {
       // Create two non-materialized Chunks
       const left = pipe(Chunk.make(-1, 0, 1), Chunk.drop(1))
       const right = pipe(Chunk.make(1, 0, 0, 1), Chunk.drop(1))
-      const zipped = pipe(left, Chunk.zipWith(pipe(right, Chunk.take(left.length)), (a, b) => [a, b]))
-      deepStrictEqual(Array.from(zipped), [[0, 0], [1, 0]])
+      const zipped = pipe(
+        left,
+        Chunk.zipWith(pipe(right, Chunk.take(left.length)), (a, b) => [a, b])
+      )
+      deepStrictEqual(Array.from(zipped), [
+        [0, 0],
+        [1, 0]
+      ])
     })
   })
 
@@ -625,22 +630,49 @@ describe("Chunk", () => {
   })
 
   it("map", () => {
-    assertEquals(Chunk.map(Chunk.empty(), (n) => n + 1), Chunk.empty())
-    assertEquals(Chunk.map(Chunk.of(1), (n) => n + 1), Chunk.of(2))
-    assertEquals(Chunk.map(Chunk.make(1, 2, 3), (n) => n + 1), Chunk.make(2, 3, 4))
-    assertEquals(Chunk.map(Chunk.make(1, 2, 3), (n, i) => n + i), Chunk.make(1, 3, 5))
+    assertEquals(
+      Chunk.map(Chunk.empty(), (n) => n + 1),
+      Chunk.empty()
+    )
+    assertEquals(
+      Chunk.map(Chunk.of(1), (n) => n + 1),
+      Chunk.of(2)
+    )
+    assertEquals(
+      Chunk.map(Chunk.make(1, 2, 3), (n) => n + 1),
+      Chunk.make(2, 3, 4)
+    )
+    assertEquals(
+      Chunk.map(Chunk.make(1, 2, 3), (n, i) => n + i),
+      Chunk.make(1, 3, 5)
+    )
   })
 
   it("mapAccum", () => {
-    deepStrictEqual(Chunk.mapAccum(Chunk.make(1, 2, 3), "-", (s, a) => [s + a, a + 1]), ["-123", Chunk.make(2, 3, 4)])
+    deepStrictEqual(
+      Chunk.mapAccum(Chunk.make(1, 2, 3), "-", (s, a) => [s + a, a + 1]),
+      ["-123", Chunk.make(2, 3, 4)]
+    )
   })
 
   it("partition", () => {
-    assertTuple(Chunk.partition(Chunk.empty(), (n) => n > 2), [Chunk.empty(), Chunk.empty()])
-    assertTuple(Chunk.partition(Chunk.make(1, 3), (n) => n > 2), [Chunk.make(1), Chunk.make(3)])
+    assertTuple(
+      Chunk.partition(Chunk.empty(), (n) => n > 2),
+      [Chunk.empty(), Chunk.empty()]
+    )
+    assertTuple(
+      Chunk.partition(Chunk.make(1, 3), (n) => n > 2),
+      [Chunk.make(1), Chunk.make(3)]
+    )
 
-    assertTuple(Chunk.partition(Chunk.empty(), (n, i) => n + i > 2), [Chunk.empty(), Chunk.empty()])
-    assertTuple(Chunk.partition(Chunk.make(1, 2), (n, i) => n + i > 2), [Chunk.make(1), Chunk.make(2)])
+    assertTuple(
+      Chunk.partition(Chunk.empty(), (n, i) => n + i > 2),
+      [Chunk.empty(), Chunk.empty()]
+    )
+    assertTuple(
+      Chunk.partition(Chunk.make(1, 2), (n, i) => n + i > 2),
+      [Chunk.make(1), Chunk.make(2)]
+    )
   })
 
   it("partitionMap", () => {
@@ -681,7 +713,10 @@ describe("Chunk", () => {
   })
 
   it("filter", () => {
-    assertEquals(Chunk.filter(Chunk.make(1, 2, 3), (n) => n % 2 === 1), Chunk.make(1, 3))
+    assertEquals(
+      Chunk.filter(Chunk.make(1, 2, 3), (n) => n % 2 === 1),
+      Chunk.make(1, 3)
+    )
     assertEquals(
       Chunk.filter(Chunk.make(Option.some(3), Option.some(2), Option.some(1)), Option.isSome),
       Chunk.make(Option.some(3), Option.some(2), Option.some(1)) as any
@@ -694,7 +729,7 @@ describe("Chunk", () => {
 
   it("filterMapWhile", () => {
     assertEquals(
-      Chunk.filterMapWhile(Chunk.make(1, 3, 4, 5), (n) => n % 2 === 1 ? Option.some(n) : Option.none()),
+      Chunk.filterMapWhile(Chunk.make(1, 3, 4, 5), (n) => (n % 2 === 1 ? Option.some(n) : Option.none())),
       Chunk.make(1, 3)
     )
   })
@@ -712,8 +747,14 @@ describe("Chunk", () => {
   })
 
   it("flatMap", () => {
-    assertEquals(Chunk.flatMap(Chunk.make(1), (n) => Chunk.make(n, n + 1)), Chunk.make(1, 2))
-    assertEquals(Chunk.flatMap(Chunk.make(1, 2, 3), (n) => Chunk.make(n, n + 1)), Chunk.make(1, 2, 2, 3, 3, 4))
+    assertEquals(
+      Chunk.flatMap(Chunk.make(1), (n) => Chunk.make(n, n + 1)),
+      Chunk.make(1, 2)
+    )
+    assertEquals(
+      Chunk.flatMap(Chunk.make(1, 2, 3), (n) => Chunk.make(n, n + 1)),
+      Chunk.make(1, 2, 2, 3, 3, 4)
+    )
   })
 
   it("union", () => {
@@ -745,13 +786,25 @@ describe("Chunk", () => {
   })
 
   it("splitWhere", () => {
-    assertTuple(Chunk.splitWhere(Chunk.empty(), (n) => n > 1), [Chunk.empty(), Chunk.empty()])
-    assertTuple(Chunk.splitWhere(Chunk.make(1, 2, 3), (n) => n > 1), [Chunk.make(1), Chunk.make(2, 3)])
+    assertTuple(
+      Chunk.splitWhere(Chunk.empty(), (n) => n > 1),
+      [Chunk.empty(), Chunk.empty()]
+    )
+    assertTuple(
+      Chunk.splitWhere(Chunk.make(1, 2, 3), (n) => n > 1),
+      [Chunk.make(1), Chunk.make(2, 3)]
+    )
   })
 
   it("takeWhile", () => {
-    assertEquals(Chunk.takeWhile(Chunk.empty(), (n) => n <= 2), Chunk.empty())
-    assertEquals(Chunk.takeWhile(Chunk.make(1, 2, 3), (n) => n <= 2), Chunk.make(1, 2))
+    assertEquals(
+      Chunk.takeWhile(Chunk.empty(), (n) => n <= 2),
+      Chunk.empty()
+    )
+    assertEquals(
+      Chunk.takeWhile(Chunk.make(1, 2, 3), (n) => n <= 2),
+      Chunk.make(1, 2)
+    )
   })
 
   it("dedupe", () => {
@@ -762,10 +815,7 @@ describe("Chunk", () => {
 
   it("unzip", () => {
     assertTuple(Chunk.unzip(Chunk.empty()), [Chunk.empty(), Chunk.empty()])
-    assertTuple(Chunk.unzip(Chunk.make(["a", 1] as const, ["b", 2] as const)), [
-      Chunk.make("a", "b"),
-      Chunk.make(1, 2)
-    ])
+    assertTuple(Chunk.unzip(Chunk.make(["a", 1] as const, ["b", 2] as const)), [Chunk.make("a", "b"), Chunk.make(1, 2)])
   })
 
   it("reverse", () => {
@@ -779,8 +829,14 @@ describe("Chunk", () => {
   })
 
   it("makeBy", () => {
-    assertEquals(Chunk.makeBy(5, (n) => n * 2), Chunk.make(0, 2, 4, 6, 8))
-    assertEquals(Chunk.makeBy(2.2, (n) => n * 2), Chunk.make(0, 2))
+    assertEquals(
+      Chunk.makeBy(5, (n) => n * 2),
+      Chunk.make(0, 2, 4, 6, 8)
+    )
+    assertEquals(
+      Chunk.makeBy(2.2, (n) => n * 2),
+      Chunk.make(0, 2)
+    )
   })
 
   it("range", () => {
@@ -813,7 +869,10 @@ describe("Chunk", () => {
       b: number
     }
     const chunk: Chunk.Chunk<X> = Chunk.make({ a: "a", b: 2 }, { a: "b", b: 1 })
-    deepStrictEqual(Chunk.sortWith(chunk, (x) => x.b, Order.Number), Chunk.make({ a: "b", b: 1 }, { a: "a", b: 2 }))
+    deepStrictEqual(
+      Chunk.sortWith(chunk, (x) => x.b, Order.Number),
+      Chunk.make({ a: "b", b: 1 }, { a: "a", b: 2 })
+    )
   })
 
   it("makeEquivalence", () => {

@@ -40,7 +40,7 @@ export interface Rpc<
   out Middleware extends RpcMiddleware.AnyService = never,
   out Requires = never
 > extends Pipeable {
-  new(_: never): {}
+  new (_: never): {}
 
   readonly [TypeId]: typeof TypeId
   readonly _tag: Tag
@@ -55,79 +55,43 @@ export interface Rpc<
   /**
    * Set the schema for the success response of the rpc.
    */
-  setSuccess<S extends Schema.Top>(schema: S): Rpc<
-    Tag,
-    Payload,
-    S,
-    Error,
-    Middleware,
-    Requires
-  >
+  setSuccess<S extends Schema.Top>(schema: S): Rpc<Tag, Payload, S, Error, Middleware, Requires>
 
   /**
    * Set the schema for the error response of the rpc.
    */
-  setError<E extends Schema.Top>(schema: E): Rpc<
-    Tag,
-    Payload,
-    Success,
-    E,
-    Middleware,
-    Requires
-  >
+  setError<E extends Schema.Top>(schema: E): Rpc<Tag, Payload, Success, E, Middleware, Requires>
 
   /**
    * Set the schema for the payload of the rpc.
    */
   setPayload<P extends Schema.Top | Schema.Struct.Fields>(
     schema: P
-  ): Rpc<
-    Tag,
-    P extends Schema.Struct.Fields ? Schema.Struct<P> : P,
-    Success,
-    Error,
-    Middleware,
-    Requires
-  >
+  ): Rpc<Tag, P extends Schema.Struct.Fields ? Schema.Struct<P> : P, Success, Error, Middleware, Requires>
 
   /**
    * Add an `RpcMiddleware` to this procedure.
    */
-  middleware<M extends RpcMiddleware.AnyService>(middleware: M): Rpc<
-    Tag,
-    Payload,
-    Success,
-    Error,
-    Middleware | M,
-    RpcMiddleware.ApplyServices<M["Identifier"], Requires>
-  >
+  middleware<M extends RpcMiddleware.AnyService>(
+    middleware: M
+  ): Rpc<Tag, Payload, Success, Error, Middleware | M, RpcMiddleware.ApplyServices<M["Identifier"], Requires>>
 
   /**
    * Set the schema for the error response of the rpc.
    */
-  prefix<const Prefix extends string>(prefix: Prefix): Rpc<
-    `${Prefix}${Tag}`,
-    Payload,
-    Success,
-    Error,
-    Middleware,
-    Requires
-  >
+  prefix<const Prefix extends string>(
+    prefix: Prefix
+  ): Rpc<`${Prefix}${Tag}`, Payload, Success, Error, Middleware, Requires>
 
   /**
    * Add an annotation on the rpc.
    */
-  annotate<I, S>(
-    tag: ServiceMap.Service<I, S>,
-    value: S
-  ): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
+  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
 
   /**
    * Merge the annotations of the rpc with the provided annotations.
    */
-  annotateMerge<I>(
-    annotations: ServiceMap.ServiceMap<I>
-  ): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
+  annotateMerge<I>(annotations: ServiceMap.ServiceMap<I>): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
 }
 
 /**
@@ -139,12 +103,15 @@ export interface Rpc<
 export interface Handler<Tag extends string> {
   readonly _: unique symbol
   readonly tag: Tag
-  readonly handler: (request: any, options: {
-    readonly clientId: number
-    readonly requestId: RequestId
-    readonly headers: Headers
-    readonly rpc: Any
-  }) => Effect<any, any> | Stream<any, any>
+  readonly handler: (
+    request: any,
+    options: {
+      readonly clientId: number
+      readonly requestId: RequestId
+      readonly headers: Headers
+      readonly rpc: Any
+    }
+  ) => Effect<any, any> | Stream<any, any>
   readonly services: ServiceMap.ServiceMap<never>
 }
 
@@ -178,29 +145,19 @@ export interface AnyWithProps extends Pipeable {
  * @since 4.0.0
  * @category models
  */
-export type Tag<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? _Tag
-  : never
+export type Tag<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? _Tag
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type SuccessSchema<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? _Success
-  : never
+export type SuccessSchema<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? _Success
+    : never
 
 /**
  * @since 4.0.0
@@ -212,15 +169,10 @@ export type Success<R> = SuccessSchema<R>["Type"]
  * @since 4.0.0
  * @category models
  */
-export type SuccessEncoded<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? _Success["Encoded"]
-  : never
+export type SuccessEncoded<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? _Success["Encoded"]
+    : never
 
 /**
  * @since 4.0.0
@@ -232,8 +184,8 @@ export type SuccessExitSchema<R> = SuccessSchema<R> extends RpcSchema.Stream<inf
  * @since 4.0.0
  * @category models
  */
-export type SuccessExit<R> = Success<R> extends infer T ? T extends Stream<infer _A, infer _E, infer _Env> ? void : T
-  : never
+export type SuccessExit<R> =
+  Success<R> extends infer T ? (T extends Stream<infer _A, infer _E, infer _Env> ? void : T) : never
 
 /**
  * @since 4.0.0
@@ -245,15 +197,10 @@ export type SuccessChunk<R> = Success<R> extends Stream<infer _A, infer _E, infe
  * @since 4.0.0
  * @category models
  */
-export type ErrorSchema<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? _Error | _Middleware["error"]
-  : never
+export type ErrorSchema<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? _Error | _Middleware["error"]
+    : never
 
 /**
  * @since 4.0.0
@@ -265,8 +212,8 @@ export type Error<R> = Schema.Schema.Type<ErrorSchema<R>>
  * @since 4.0.0
  * @category models
  */
-export type ErrorExitSchema<R> = SuccessSchema<R> extends RpcSchema.Stream<infer _A, infer _E> ? _E | ErrorSchema<R>
-  : ErrorSchema<R>
+export type ErrorExitSchema<R> =
+  SuccessSchema<R> extends RpcSchema.Stream<infer _A, infer _E> ? _E | ErrorSchema<R> : ErrorSchema<R>
 
 /**
  * @since 4.0.0
@@ -284,174 +231,116 @@ export type Exit<R> = Exit_<SuccessExit<R>, ErrorExit<R>>
  * @since 4.0.0
  * @category models
  */
-export type PayloadConstructor<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? _Payload["~type.make.in"]
-  : never
+export type PayloadConstructor<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? _Payload["~type.make.in"]
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Payload<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? _Payload["Type"]
-  : never
+export type Payload<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? _Payload["Type"]
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Services<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ?
-    | _Payload["DecodingServices"]
-    | _Payload["EncodingServices"]
-    | _Success["DecodingServices"]
-    | _Success["EncodingServices"]
-    | _Error["DecodingServices"]
-    | _Error["EncodingServices"]
-    | _Middleware["error"]["DecodingServices"]
-    | _Middleware["error"]["EncodingServices"]
-  : never
+export type Services<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ?
+        | _Payload["DecodingServices"]
+        | _Payload["EncodingServices"]
+        | _Success["DecodingServices"]
+        | _Success["EncodingServices"]
+        | _Error["DecodingServices"]
+        | _Error["EncodingServices"]
+        | _Middleware["error"]["DecodingServices"]
+        | _Middleware["error"]["EncodingServices"]
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ServicesClient<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ?
-    | _Payload["EncodingServices"]
-    | _Success["DecodingServices"]
-    | _Error["DecodingServices"]
-    | _Middleware["error"]["DecodingServices"]
-  : never
+export type ServicesClient<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ?
+        | _Payload["EncodingServices"]
+        | _Success["DecodingServices"]
+        | _Error["DecodingServices"]
+        | _Middleware["error"]["DecodingServices"]
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ServicesServer<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ?
-    | _Payload["DecodingServices"]
-    | _Success["EncodingServices"]
-    | _Error["EncodingServices"]
-    | _Middleware["error"]["EncodingServices"]
-  : never
+export type ServicesServer<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ?
+        | _Payload["DecodingServices"]
+        | _Success["EncodingServices"]
+        | _Error["EncodingServices"]
+        | _Middleware["error"]["EncodingServices"]
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Middleware<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? ServiceMap.Service.Identifier<_Middleware>
-  : never
+export type Middleware<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? ServiceMap.Service.Identifier<_Middleware>
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type MiddlewareClient<R> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ?
-  _Middleware extends { readonly requiredForClient: true }
-    ? RpcMiddleware.ForClient<ServiceMap.Service.Identifier<_Middleware>>
-  : never
-  : never
+export type MiddlewareClient<R> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? _Middleware extends { readonly requiredForClient: true }
+      ? RpcMiddleware.ForClient<ServiceMap.Service.Identifier<_Middleware>>
+      : never
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type AddError<R extends Any, Error extends Schema.Top> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? Rpc<
-    _Tag,
-    _Payload,
-    _Success,
-    _Error | Error,
-    _Middleware,
-    _Requires
-  > :
-  never
+export type AddError<R extends Any, Error extends Schema.Top> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? Rpc<_Tag, _Payload, _Success, _Error | Error, _Middleware, _Requires>
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type AddMiddleware<R extends Any, Middleware extends RpcMiddleware.AnyService> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? Rpc<
-    _Tag,
-    _Payload,
-    _Success,
-    _Error,
-    _Middleware | Middleware,
-    RpcMiddleware.ApplyServices<Middleware["Identifier"], _Requires>
-  > :
-  never
+export type AddMiddleware<R extends Any, Middleware extends RpcMiddleware.AnyService> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? Rpc<
+        _Tag,
+        _Payload,
+        _Success,
+        _Error,
+        _Middleware | Middleware,
+        RpcMiddleware.ApplyServices<Middleware["Identifier"], _Requires>
+      >
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ToHandler<R extends Any> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? Handler<_Tag> :
-  never
+export type ToHandler<R extends Any> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? Handler<_Tag>
+    : never
 
 /**
  * @since 4.0.0
@@ -471,126 +360,81 @@ export type ToHandlerFn<Current extends Any, R = any> = (
  * @since 4.0.0
  * @category models
  */
-export type IsStream<R extends Any, Tag extends string> = R extends Rpc<
-  Tag,
-  infer _Payload,
-  RpcSchema.Stream<infer _A, infer _E>,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? true :
-  never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type ExtractTag<R extends Any, Tag extends string> = R extends Rpc<
-  Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? R :
-  never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type ExtractProvides<R extends Any, Tag extends string> = R extends Rpc<
-  Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? RpcMiddleware.Provides<_Middleware> :
-  never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type ExtractRequires<R extends Any, Tag extends string> = R extends Rpc<
-  Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? _Requires :
-  never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type ExcludeProvides<Env, R extends Any, Tag extends string> = Exclude<
-  Env,
-  ExtractProvides<R, Tag>
->
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type ResultFrom<R extends Any, Services> = R extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? [_Success] extends [RpcSchema.Stream<infer _SA, infer _SE>] ?
-      | Stream<
-        _SA["Type"],
-        _SE["Type"] | _Error["Type"],
-        Services
-      >
-      | Effect<
-        Queue.Dequeue<_SA["Type"], _SE["Type"] | _Error["Type"] | Cause.Done>,
-        _SE["Type"] | Schema.Schema.Type<_Error>,
-        Services
-      > :
-  Effect<
-    _Success["Type"],
-    _Error["Type"],
-    Services
-  > :
-  never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type Prefixed<Rpcs extends Any, Prefix extends string> = Rpcs extends Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware,
-  infer _Requires
-> ? Rpc<
-    `${Prefix}${_Tag}`,
-    _Payload,
-    _Success,
-    _Error,
-    _Middleware,
-    _Requires
+export type IsStream<R extends Any, Tag extends string> =
+  R extends Rpc<
+    Tag,
+    infer _Payload,
+    RpcSchema.Stream<infer _A, infer _E>,
+    infer _Error,
+    infer _Middleware,
+    infer _Requires
   >
-  : never
+    ? true
+    : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ExtractTag<R extends Any, Tag extends string> =
+  R extends Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires> ? R : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ExtractProvides<R extends Any, Tag extends string> =
+  R extends Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? RpcMiddleware.Provides<_Middleware>
+    : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ExtractRequires<R extends Any, Tag extends string> =
+  R extends Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? _Requires
+    : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ExcludeProvides<Env, R extends Any, Tag extends string> = Exclude<Env, ExtractProvides<R, Tag>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ResultFrom<R extends Any, Services> =
+  R extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? [_Success] extends [RpcSchema.Stream<infer _SA, infer _SE>]
+      ?
+          | Stream<_SA["Type"], _SE["Type"] | _Error["Type"], Services>
+          | Effect<
+              Queue.Dequeue<_SA["Type"], _SE["Type"] | _Error["Type"] | Cause.Done>,
+              _SE["Type"] | Schema.Schema.Type<_Error>,
+              Services
+            >
+      : Effect<_Success["Type"], _Error["Type"], Services>
+    : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type Prefixed<Rpcs extends Any, Prefix extends string> =
+  Rpcs extends Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires>
+    ? Rpc<`${Prefix}${_Tag}`, _Payload, _Success, _Error, _Middleware, _Requires>
+    : never
 
 const Proto = {
   [TypeId]: TypeId,
   pipe() {
     return pipeArguments(this, arguments)
   },
-  setSuccess(
-    this: AnyWithProps,
-    successSchema: Schema.Top
-  ) {
+  setSuccess(this: AnyWithProps, successSchema: Schema.Top) {
     return makeProto({
       _tag: this._tag,
       payloadSchema: this.payloadSchema,
@@ -613,7 +457,7 @@ const Proto = {
   setPayload(this: AnyWithProps, payloadSchema: Schema.Struct<any> | Schema.Struct.Fields) {
     return makeProto({
       _tag: this._tag,
-      payloadSchema: Schema.isSchema(payloadSchema) ? payloadSchema as any : Schema.Struct(payloadSchema as any),
+      payloadSchema: Schema.isSchema(payloadSchema) ? (payloadSchema as any) : Schema.Struct(payloadSchema as any),
       successSchema: this.successSchema,
       errorSchema: this.errorSchema,
       annotations: this.annotations,
@@ -694,16 +538,22 @@ export const make = <
   Success extends Schema.Top = Schema.Void,
   Error extends Schema.Top = Schema.Never,
   const Stream extends boolean = false
->(tag: Tag, options?: {
-  readonly payload?: Payload
-  readonly success?: Success
-  readonly error?: Error
-  readonly stream?: Stream
-  readonly primaryKey?: [Payload] extends [Schema.Struct.Fields] ? ((
-      payload: Payload extends Schema.Struct.Fields ? Struct.Simplify<Schema.Struct<Payload>["Type"]> : Payload["Type"]
-    ) => string) :
-    never
-}): Rpc<
+>(
+  tag: Tag,
+  options?: {
+    readonly payload?: Payload
+    readonly success?: Success
+    readonly error?: Error
+    readonly stream?: Stream
+    readonly primaryKey?: [Payload] extends [Schema.Struct.Fields]
+      ? (
+          payload: Payload extends Schema.Struct.Fields
+            ? Struct.Simplify<Schema.Struct<Payload>["Type"]>
+            : Payload["Type"]
+        ) => string
+      : never
+  }
+): Rpc<
   Tag,
   Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
   Stream extends true ? RpcSchema.Stream<Success, Error> : Success,
@@ -720,17 +570,15 @@ export const make = <
     }
   } else {
     payloadSchema = Schema.isSchema(options?.payload)
-      ? options?.payload as any
+      ? (options?.payload as any)
       : options?.payload
-      ? Schema.Struct(options?.payload as any)
-      : Schema.Void
+        ? Schema.Struct(options?.payload as any)
+        : Schema.Void
   }
   return makeProto({
     _tag: tag,
     payloadSchema,
-    successSchema: options?.stream ?
-      RpcSchema.Stream(successSchema, errorSchema) :
-      successSchema,
+    successSchema: options?.stream ? RpcSchema.Stream(successSchema, errorSchema) : successSchema,
     errorSchema: options?.stream ? Schema.Never : errorSchema,
     annotations: ServiceMap.empty(),
     middlewares: new Set<never>()
@@ -745,11 +593,7 @@ const exitSchemaCache = new WeakMap<Any, Schema.Exit<Schema.Top, Schema.Top, Sch
  */
 export const exitSchema = <R extends Any>(
   self: R
-): Schema.Exit<
-  SuccessExitSchema<R>,
-  ErrorExitSchema<R>,
-  Schema.Defect
-> => {
+): Schema.Exit<SuccessExitSchema<R>, ErrorExitSchema<R>, Schema.Defect> => {
   if (exitSchemaCache.has(self)) {
     return exitSchemaCache.get(self) as any
   }
@@ -794,24 +638,22 @@ export const isWrapper = (u: object): u is Wrapper<any> => WrapperTypeId in u
  * @since 4.0.0
  * @category Wrapper
  */
-export const wrap = (options: {
-  readonly fork?: boolean | undefined
-  readonly uninterruptible?: boolean | undefined
-}) =>
-<A extends object>(value: A): Wrapper<A> =>
-  isWrapper(value) ?
-    {
-      [WrapperTypeId]: WrapperTypeId,
-      value: value.value,
-      fork: options.fork ?? value.fork,
-      uninterruptible: options.uninterruptible ?? value.uninterruptible
-    } :
-    {
-      [WrapperTypeId]: WrapperTypeId,
-      value,
-      fork: options.fork ?? false,
-      uninterruptible: options.uninterruptible ?? false
-    }
+export const wrap =
+  (options: { readonly fork?: boolean | undefined; readonly uninterruptible?: boolean | undefined }) =>
+  <A extends object>(value: A): Wrapper<A> =>
+    isWrapper(value)
+      ? {
+          [WrapperTypeId]: WrapperTypeId,
+          value: value.value,
+          fork: options.fork ?? value.fork,
+          uninterruptible: options.uninterruptible ?? value.uninterruptible
+        }
+      : {
+          [WrapperTypeId]: WrapperTypeId,
+          value,
+          fork: options.fork ?? false,
+          uninterruptible: options.uninterruptible ?? false
+        }
 
 /**
  * You can use `fork` to wrap a response Effect or Stream, to ensure that the

@@ -30,67 +30,74 @@ const isClosed = (self: State): boolean => self._tag === "Closed"
 
 describe("SynchronizedRef", () => {
   it.effect("get", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const result = yield* pipe(SynchronizedRef.make(current), Effect.flatMap(SynchronizedRef.get))
       strictEqual(result, current)
-    }))
+    })
+  )
   it.effect("getAndUpdateEffect - happy path", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const ref = yield* SynchronizedRef.make(current)
       const result1 = yield* SynchronizedRef.getAndUpdateEffect(ref, () => Effect.succeed(update))
       const result2 = yield* SynchronizedRef.get(ref)
       strictEqual(result1, current)
       strictEqual(result2, update)
-    }))
+    })
+  )
   it.effect("getAndUpdateEffect - with failure", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const ref = yield* SynchronizedRef.make(current)
-      const result = yield* pipe(SynchronizedRef.getAndUpdateEffect(ref, (_) => Effect.fail(failure)), Effect.exit)
+      const result = yield* pipe(
+        SynchronizedRef.getAndUpdateEffect(ref, (_) => Effect.fail(failure)),
+        Effect.exit
+      )
       deepStrictEqual(result, Exit.fail(failure))
-    }))
+    })
+  )
   it.effect("getAndUpdateSomeEffect - happy path", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const ref = yield* SynchronizedRef.make<State>(Active)
-      const result1 = yield* (SynchronizedRef.getAndUpdateSomeEffect(ref, (state) =>
-        isClosed(state) ?
-          Effect.succeedSome(Changed) :
-          Effect.succeedNone))
+      const result1 = yield* SynchronizedRef.getAndUpdateSomeEffect(ref, (state) =>
+        isClosed(state) ? Effect.succeedSome(Changed) : Effect.succeedNone
+      )
       const result2 = yield* SynchronizedRef.get(ref)
       deepStrictEqual(result1, Active)
       deepStrictEqual(result2, Active)
-    }))
+    })
+  )
   it.effect("getAndUpdateSomeEffect - twice", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const ref = yield* SynchronizedRef.make<State>(Active)
       const result1 = yield* SynchronizedRef.getAndUpdateSomeEffect(ref, (state) =>
-        isActive(state) ?
-          Effect.succeedSome(Changed) :
-          Effect.succeedNone)
+        isActive(state) ? Effect.succeedSome(Changed) : Effect.succeedNone
+      )
       const result2 = yield* SynchronizedRef.getAndUpdateSomeEffect(ref, (state) =>
         isClosed(state)
           ? Effect.succeedSome(Active)
           : isChanged(state)
-          ? Effect.succeedSome(Closed)
-          : Effect.succeedNone)
+            ? Effect.succeedSome(Closed)
+            : Effect.succeedNone
+      )
       const result3 = yield* SynchronizedRef.get(ref)
       deepStrictEqual(result1, Active)
       deepStrictEqual(result2, Changed)
       deepStrictEqual(result3, Closed)
-    }))
+    })
+  )
   it.effect("getAndUpdateSomeEffect - with failure", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const ref = yield* SynchronizedRef.make<State>(Active)
       const result = yield* pipe(
         SynchronizedRef.getAndUpdateSomeEffect(ref, (state) =>
-          isActive(state) ?
-            Effect.fail(failure) :
-            Effect.succeedNone),
+          isActive(state) ? Effect.fail(failure) : Effect.succeedNone
+        ),
         Effect.exit
       )
       deepStrictEqual(result, Exit.fail(failure))
-    }))
+    })
+  )
   it.effect("getAndUpdateSomeEffect - interrupt parent fiber and update", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const deferred = yield* Deferred.make<SynchronizedRef.SynchronizedRef<State>>()
       const latch = yield* Deferred.make<void>()
       const makeAndWait = Deferred.complete(deferred, SynchronizedRef.make<State>(Active)).pipe(
@@ -101,5 +108,6 @@ describe("SynchronizedRef", () => {
       yield* Fiber.interrupt(fiber)
       const result = yield* SynchronizedRef.updateAndGetEffect(ref, (_) => Effect.succeed(Closed))
       deepStrictEqual(result, Closed)
-    }))
+    })
+  )
 })

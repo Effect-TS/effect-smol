@@ -115,7 +115,7 @@ export interface Some<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
  * @since 2.0.0
  */
 export interface OptionUnify<A extends { [Unify.typeSymbol]?: any }> {
-  Option?: () => A[Unify.typeSymbol] extends Option<infer A0> | infer _ ? Option<A0> : never
+  Option?: () => A[Unify.typeSymbol] extends Option<infer A0> | (infer _) ? Option<A0> : never
 }
 
 /**
@@ -349,20 +349,26 @@ export const isSome: <A>(self: Option<A>) => self is Some<A> = option.isSome
  * @since 2.0.0
  */
 export const match: {
-  <B, A, C = B>(options: {
-    readonly onNone: LazyArg<B>
-    readonly onSome: (a: A) => C
-  }): (self: Option<A>) => B | C
-  <A, B, C = B>(self: Option<A>, options: {
-    readonly onNone: LazyArg<B>
-    readonly onSome: (a: A) => C
-  }): B | C
+  <B, A, C = B>(options: { readonly onNone: LazyArg<B>; readonly onSome: (a: A) => C }): (self: Option<A>) => B | C
+  <A, B, C = B>(
+    self: Option<A>,
+    options: {
+      readonly onNone: LazyArg<B>
+      readonly onSome: (a: A) => C
+    }
+  ): B | C
 } = dual(
   2,
-  <A, B, C = B>(self: Option<A>, { onNone, onSome }: {
-    readonly onNone: LazyArg<B>
-    readonly onSome: (a: A) => C
-  }): B | C => isNone(self) ? onNone() : onSome(self.value)
+  <A, B, C = B>(
+    self: Option<A>,
+    {
+      onNone,
+      onSome
+    }: {
+      readonly onNone: LazyArg<B>
+      readonly onSome: (a: A) => C
+    }
+  ): B | C => (isNone(self) ? onNone() : onSome(self.value))
 )
 
 /**
@@ -405,7 +411,10 @@ export const match: {
  * @category Conversions
  * @since 2.0.0
  */
-export const toRefinement = <A, B extends A>(f: (a: A) => Option<B>): (a: A) => a is B => (a: A): a is B => isSome(f(a))
+export const toRefinement =
+  <A, B extends A>(f: (a: A) => Option<B>): ((a: A) => a is B) =>
+  (a: A): a is B =>
+    isSome(f(a))
 
 /**
  * Converts an `Iterable` into an `Option`, wrapping the first element if it
@@ -552,10 +561,7 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
 export const getOrElse: {
   <B>(onNone: LazyArg<B>): <A>(self: Option<A>) => B | A
   <A, B>(self: Option<A>, onNone: LazyArg<B>): A | B
-} = dual(
-  2,
-  <A, B>(self: Option<A>, onNone: LazyArg<B>): A | B => isNone(self) ? onNone() : self.value
-)
+} = dual(2, <A, B>(self: Option<A>, onNone: LazyArg<B>): A | B => (isNone(self) ? onNone() : self.value))
 
 /**
  * Returns the provided `Option` `that` if the current `Option` (`self`) is
@@ -596,10 +602,7 @@ export const getOrElse: {
 export const orElse: {
   <B>(that: LazyArg<Option<B>>): <A>(self: Option<A>) => Option<B | A>
   <A, B>(self: Option<A>, that: LazyArg<Option<B>>): Option<A | B>
-} = dual(
-  2,
-  <A, B>(self: Option<A>, that: LazyArg<Option<B>>): Option<A | B> => isNone(self) ? that() : self
-)
+} = dual(2, <A, B>(self: Option<A>, that: LazyArg<Option<B>>): Option<A | B> => (isNone(self) ? that() : self))
 
 /**
  * Returns the provided default value wrapped in `Some` if the current `Option`
@@ -633,10 +636,7 @@ export const orElse: {
 export const orElseSome: {
   <B>(onNone: LazyArg<B>): <A>(self: Option<A>) => Option<B | A>
   <A, B>(self: Option<A>, onNone: LazyArg<B>): Option<A | B>
-} = dual(
-  2,
-  <A, B>(self: Option<A>, onNone: LazyArg<B>): Option<A | B> => isNone(self) ? some(onNone()) : self
-)
+} = dual(2, <A, B>(self: Option<A>, onNone: LazyArg<B>): Option<A | B> => (isNone(self) ? some(onNone()) : self))
 
 /**
  * Similar to {@link orElse}, but returns an `Result` wrapped in an `Option` to
@@ -752,25 +752,20 @@ export const firstSomeOf = <T, C extends Iterable<Option<T>> = Iterable<Option<T
  * @category Conversions
  * @since 2.0.0
  */
-export const fromNullishOr = <A>(
-  a: A
-): Option<NonNullable<A>> => (a == null ? none() : some(a as NonNullable<A>))
+export const fromNullishOr = <A>(a: A): Option<NonNullable<A>> => (a == null ? none() : some(a as NonNullable<A>))
 
 /**
  * @category Conversions
  * @since 4.0.0
  */
-export const fromUndefinedOr = <A>(
-  a: A
-): Option<Exclude<A, undefined>> => (a === undefined ? none() : some(a as Exclude<A, undefined>))
+export const fromUndefinedOr = <A>(a: A): Option<Exclude<A, undefined>> =>
+  a === undefined ? none() : some(a as Exclude<A, undefined>)
 
 /**
  * @category Conversions
  * @since 4.0.0
  */
-export const fromNullOr = <A>(
-  a: A
-): Option<Exclude<A, null>> => (a === null ? none() : some(a as Exclude<A, null>))
+export const fromNullOr = <A>(a: A): Option<Exclude<A, null>> => (a === null ? none() : some(a as Exclude<A, null>))
 
 /**
  * Lifts a function that returns `null` or `undefined` into the `Option`
@@ -805,10 +800,10 @@ export const fromNullOr = <A>(
  * @category Conversions
  * @since 2.0.0
  */
-export const liftNullishOr = <A extends ReadonlyArray<unknown>, B>(
-  f: (...a: A) => B
-): (...a: A) => Option<NonNullable<B>> =>
-(...a) => fromNullishOr(f(...a))
+export const liftNullishOr =
+  <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): ((...a: A) => Option<NonNullable<B>>) =>
+  (...a) =>
+    fromNullishOr(f(...a))
 
 /**
  * Returns the value contained in the `Option` if it is `Some`; otherwise,
@@ -896,16 +891,15 @@ export const getOrUndefined: <A>(self: Option<A>) => A | undefined = getOrElse(c
  * @category Conversions
  * @since 2.0.0
  */
-export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
-  f: (...a: A) => B
-): (...a: A) => Option<B> =>
-(...a) => {
-  try {
-    return some(f(...a))
-  } catch {
-    return none()
+export const liftThrowable =
+  <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): ((...a: A) => Option<B>) =>
+  (...a) => {
+    try {
+      return some(f(...a))
+    } catch {
+      return none()
+    }
   }
-}
 
 /**
  * Extracts the value of an `Option` or throws an error if the `Option` is
@@ -1012,10 +1006,7 @@ export const getOrThrow: <A>(self: Option<A>) => A = getOrThrowWith(() => new Er
 export const map: {
   <A, B>(f: (a: A) => B): (self: Option<A>) => Option<B>
   <A, B>(self: Option<A>, f: (a: A) => B): Option<B>
-} = dual(
-  2,
-  <A, B>(self: Option<A>, f: (a: A) => B): Option<B> => isNone(self) ? none() : some(f(self.value))
-)
+} = dual(2, <A, B>(self: Option<A>, f: (a: A) => B): Option<B> => (isNone(self) ? none() : some(f(self.value))))
 
 /**
  * Replaces the value inside a `Some` with the specified constant value, leaving
@@ -1168,10 +1159,7 @@ export {
 export const flatMap: {
   <A, B>(f: (a: A) => Option<B>): (self: Option<A>) => Option<B>
   <A, B>(self: Option<A>, f: (a: A) => Option<B>): Option<B>
-} = dual(
-  2,
-  <A, B>(self: Option<A>, f: (a: A) => Option<B>): Option<B> => isNone(self) ? none() : f(self.value)
-)
+} = dual(2, <A, B>(self: Option<A>, f: (a: A) => Option<B>): Option<B> => (isNone(self) ? none() : f(self.value)))
 
 /**
  * Chains two `Option`s together. The second `Option` can either be a static
@@ -1451,7 +1439,12 @@ export const zipLeft: {
 export const composeK: {
   <B, C>(bfc: (b: B) => Option<C>): <A>(afb: (a: A) => Option<B>) => (a: A) => Option<C>
   <A, B, C>(afb: (a: A) => Option<B>, bfc: (b: B) => Option<C>): (a: A) => Option<C>
-} = dual(2, <A, B, C>(afb: (a: A) => Option<B>, bfc: (b: B) => Option<C>) => (a: A): Option<C> => flatMap(afb(a), bfc))
+} = dual(
+  2,
+  <A, B, C>(afb: (a: A) => Option<B>, bfc: (b: B) => Option<C>) =>
+    (a: A): Option<C> =>
+      flatMap(afb(a), bfc)
+)
 
 /**
  * Applies the provided function `f` to the value of the `Option` if it is
@@ -1555,10 +1548,7 @@ export const product = <A, B>(self: Option<A>, that: Option<B>): Option<[A, B]> 
  * @category Combining
  * @since 2.0.0
  */
-export const productMany = <A>(
-  self: Option<A>,
-  collection: Iterable<Option<A>>
-): Option<[A, ...Array<A>]> => {
+export const productMany = <A>(self: Option<A>, collection: Iterable<Option<A>>): Option<[A, ...Array<A>]> => {
   if (isNone(self)) {
     return none()
   }
@@ -1619,34 +1609,34 @@ export const productMany = <A>(
 // @ts-expect-error
 export const all: <const I extends Iterable<Option<any>> | Record<string, Option<any>>>(
   input: I
-) => [I] extends [ReadonlyArray<Option<any>>] ? Option<
-    { -readonly [K in keyof I]: [I[K]] extends [Option<infer A>] ? A : never }
-  >
-  : [I] extends [Iterable<Option<infer A>>] ? Option<Array<A>>
-  : Option<{ -readonly [K in keyof I]: [I[K]] extends [Option<infer A>] ? A : never }> = (
-    input: Iterable<Option<any>> | Record<string, Option<any>>
-  ): Option<any> => {
-    if (Symbol.iterator in input) {
-      const out: Array<Option<any>> = []
-      for (const o of (input as Iterable<Option<any>>)) {
-        if (isNone(o)) {
-          return none()
-        }
-        out.push(o.value)
-      }
-      return some(out)
-    }
-
-    const out: Record<string, any> = {}
-    for (const key of Object.keys(input)) {
-      const o = input[key]
+) => [I] extends [ReadonlyArray<Option<any>>]
+  ? Option<{ -readonly [K in keyof I]: [I[K]] extends [Option<infer A>] ? A : never }>
+  : [I] extends [Iterable<Option<infer A>>]
+    ? Option<Array<A>>
+    : Option<{ -readonly [K in keyof I]: [I[K]] extends [Option<infer A>] ? A : never }> = (
+  input: Iterable<Option<any>> | Record<string, Option<any>>
+): Option<any> => {
+  if (Symbol.iterator in input) {
+    const out: Array<Option<any>> = []
+    for (const o of input as Iterable<Option<any>>) {
       if (isNone(o)) {
         return none()
       }
-      out[key] = o.value
+      out.push(o.value)
     }
     return some(out)
   }
+
+  const out: Record<string, any> = {}
+  for (const key of Object.keys(input)) {
+    const o = input[key]
+    if (isNone(o)) {
+      return none()
+    }
+    out[key] = o.value
+  }
+  return some(out)
+}
 
 /**
  * Combines two `Option` values into a new `Option` by applying a provided
@@ -1759,18 +1749,15 @@ export const ap: {
 export const reduceCompact: {
   <B, A>(b: B, f: (b: B, a: A) => B): (self: Iterable<Option<A>>) => B
   <A, B>(self: Iterable<Option<A>>, b: B, f: (b: B, a: A) => B): B
-} = dual(
-  3,
-  <A, B>(self: Iterable<Option<A>>, b: B, f: (b: B, a: A) => B): B => {
-    let out: B = b
-    for (const oa of self) {
-      if (isSome(oa)) {
-        out = f(out, oa.value)
-      }
+} = dual(3, <A, B>(self: Iterable<Option<A>>, b: B, f: (b: B, a: A) => B): B => {
+  let out: B = b
+  for (const oa of self) {
+    if (isSome(oa)) {
+      out = f(out, oa.value)
     }
-    return out
   }
-)
+  return out
+})
 
 /**
  * Converts an `Option` into an `Array`.
@@ -1799,7 +1786,7 @@ export const reduceCompact: {
  * @category Conversions
  * @since 2.0.0
  */
-export const toArray = <A>(self: Option<A>): Array<A> => isNone(self) ? [] : [self.value]
+export const toArray = <A>(self: Option<A>): Array<A> => (isNone(self) ? [] : [self.value])
 
 /**
  * Splits an `Option` into two `Option`s based on the result of a mapping
@@ -1845,10 +1832,7 @@ export const toArray = <A>(self: Option<A>): Array<A> => isNone(self) ? [] : [se
 export const partitionMap: {
   <A, B, C>(f: (a: A) => Result<C, B>): (self: Option<A>) => [left: Option<B>, right: Option<C>]
   <A, B, C>(self: Option<A>, f: (a: A) => Result<C, B>): [left: Option<B>, right: Option<C>]
-} = dual(2, <A, B, C>(
-  self: Option<A>,
-  f: (a: A) => Result<C, B>
-): [excluded: Option<B>, satisfying: Option<C>] => {
+} = dual(2, <A, B, C>(self: Option<A>, f: (a: A) => Result<C, B>): [excluded: Option<B>, satisfying: Option<C>] => {
   if (isNone(self)) {
     return [none(), none()]
   }
@@ -1974,7 +1958,7 @@ export const filter: {
  * @since 2.0.0
  */
 export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Option<A>> =>
-  Equivalence.make((x, y) => isNone(x) ? isNone(y) : isNone(y) ? false : isEquivalent(x.value, y.value))
+  Equivalence.make((x, y) => (isNone(x) ? isNone(y) : isNone(y) ? false : isEquivalent(x.value, y.value)))
 
 /**
  * Creates an `Order` instance for comparing `Option` values, using a provided
@@ -2016,7 +2000,7 @@ export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Eq
  * @since 2.0.0
  */
 export const makeOrder = <A>(O: Order<A>): Order<Option<A>> =>
-  order.make((self, that) => isSome(self) ? (isSome(that) ? O(self.value, that.value) : 1) : -1)
+  order.make((self, that) => (isSome(self) ? (isSome(that) ? O(self.value, that.value) : 1) : -1))
 
 /**
  * Lifts a binary function to work with `Option` values, allowing the function
@@ -2052,7 +2036,9 @@ export const makeOrder = <A>(O: Order<A>): Order<Option<A>> =>
  * @category Lifting
  * @since 2.0.0
  */
-export const lift2 = <A, B, C>(f: (a: A, b: B) => C): {
+export const lift2 = <A, B, C>(
+  f: (a: A, b: B) => C
+): {
   (that: Option<B>): (self: Option<A>) => Option<C>
   (self: Option<A>, that: Option<B>): Option<C>
 } => dual(2, (self: Option<A>, that: Option<B>): Option<C> => zipWith(self, that, f))
@@ -2089,21 +2075,13 @@ export const lift2 = <A, B, C>(f: (a: A, b: B) => C): {
  * @category Lifting
  * @since 2.0.0
  */
-export const liftPredicate: { // Note: I intentionally avoid using the NoInfer pattern here.
+export const liftPredicate: {
+  // Note: I intentionally avoid using the NoInfer pattern here.
   <A, B extends A>(refinement: Refinement<A, B>): (a: A) => Option<B>
   <B extends A, A = B>(predicate: Predicate<A>): (b: B) => Option<B>
-  <A, B extends A>(
-    self: A,
-    refinement: Refinement<A, B>
-  ): Option<B>
-  <B extends A, A = B>(
-    self: B,
-    predicate: Predicate<A>
-  ): Option<B>
-} = dual(
-  2,
-  <B extends A, A = B>(b: B, predicate: Predicate<A>): Option<B> => predicate(b) ? some(b) : none()
-)
+  <A, B extends A>(self: A, refinement: Refinement<A, B>): Option<B>
+  <B extends A, A = B>(self: B, predicate: Predicate<A>): Option<B>
+} = dual(2, <B extends A, A = B>(b: B, predicate: Predicate<A>): Option<B> => (predicate(b) ? some(b) : none()))
 
 /**
  * Returns a function that checks if an `Option` contains a specified value,
@@ -2138,10 +2116,12 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  * @category Elements
  * @since 2.0.0
  */
-export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
+export const containsWith = <A>(
+  isEquivalent: (self: A, that: A) => boolean
+): {
   (a: A): (self: Option<A>) => boolean
   (self: Option<A>, a: A): boolean
-} => dual(2, (self: Option<A>, a: A): boolean => isNone(self) ? false : isEquivalent(self.value, a))
+} => dual(2, (self: Option<A>, a: A): boolean => (isNone(self) ? false : isEquivalent(self.value, a)))
 
 /**
  * Returns a function that checks if an `Option` contains a specified value
@@ -2216,10 +2196,8 @@ export const exists: {
   <A>(predicate: Predicate<NoInfer<A>>): (self: Option<A>) => boolean
   <A, B extends A>(self: Option<A>, refinement: Refinement<A, B>): self is Option<B>
   <A>(self: Option<A>, predicate: Predicate<A>): boolean
-} = dual(
-  2,
-  <A, B extends A>(self: Option<A>, refinement: Refinement<A, B>): self is Option<B> =>
-    isNone(self) ? false : refinement(self.value)
+} = dual(2, <A, B extends A>(self: Option<A>, refinement: Refinement<A, B>): self is Option<B> =>
+  isNone(self) ? false : refinement(self.value)
 )
 
 // -------------------------------------------------------------------------------------
@@ -2425,9 +2403,7 @@ export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {
   const iterator = f()
   let state: IteratorResult<any> = iterator.next()
   while (!state.done) {
-    const current = Gen.isGenKind(state.value)
-      ? state.value.value
-      : state.value
+    const current = Gen.isGenKind(state.value) ? state.value.value : state.value
     if (isNone(current)) {
       return current
     }
@@ -2442,14 +2418,16 @@ export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {
  *
  * @internal
  */
-export const mergeWith = <A>(f: (a1: A, a2: A) => A) => (o1: Option<A>, o2: Option<A>): Option<A> => {
-  if (isNone(o1)) {
-    return o2
-  } else if (isNone(o2)) {
-    return o1
+export const mergeWith =
+  <A>(f: (a1: A, a2: A) => A) =>
+  (o1: Option<A>, o2: Option<A>): Option<A> => {
+    if (isNone(o1)) {
+      return o2
+    } else if (isNone(o2)) {
+      return o1
+    }
+    return some(f(o1.value, o2.value))
   }
-  return some(f(o1.value, o2.value))
-}
 
 /**
  * Creates a `Reducer` for `Option<A>` that prioritizes the first non-`None`

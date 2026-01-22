@@ -4,7 +4,7 @@ import { TestClock } from "effect/testing"
 
 describe("RcMap", () => {
   it.effect("deallocation", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const acquired: Array<string> = []
       const released: Array<string> = []
       const mapScope = yield* Scope.make()
@@ -17,9 +17,7 @@ describe("RcMap", () => {
             }),
             () => Effect.sync(() => released.push(key))
           )
-      }).pipe(
-        Scope.provide(mapScope)
-      )
+      }).pipe(Scope.provide(mapScope))
 
       assert.deepStrictEqual(acquired, [])
       assert.strictEqual(yield* Effect.scoped(RcMap.get(map, "foo")), "foo")
@@ -52,10 +50,11 @@ describe("RcMap", () => {
 
       const exit = yield* RcMap.get(map, "boom").pipe(Effect.scoped, Effect.exit)
       assert.isTrue(Exit.hasInterrupt(exit))
-    }))
+    })
+  )
 
   it.effect("idleTimeToLive", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const acquired: Array<string> = []
       const released: Array<string> = []
       const map = yield* RcMap.make({
@@ -95,10 +94,11 @@ describe("RcMap", () => {
       yield* RcMap.invalidate(map, "baz")
       assert.deepStrictEqual(acquired, ["foo", "bar", "baz"])
       assert.deepStrictEqual(released, ["foo", "bar", "baz"])
-    }))
+    })
+  )
 
   it.effect(".touch", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const acquired: Array<string> = []
       const released: Array<string> = []
       const map = yield* RcMap.make({
@@ -126,10 +126,11 @@ describe("RcMap", () => {
       assert.deepStrictEqual(released, [])
       yield* TestClock.adjust(500)
       assert.deepStrictEqual(released, ["foo"])
-    }))
+    })
+  )
 
   it.effect("capacity", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const map = yield* RcMap.make({
         lookup: (key: string) => Effect.succeed(key),
         capacity: 2,
@@ -148,10 +149,11 @@ describe("RcMap", () => {
 
       yield* TestClock.adjust(1000)
       assert.strictEqual(yield* Effect.scoped(RcMap.get(map, "baz")), "baz")
-    }))
+    })
+  )
 
   it.effect("complex key", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       class Key extends Data.Class<{ readonly id: number }> {}
       const map = yield* RcMap.make({
         lookup: (key: Key) => Effect.succeed(key.id),
@@ -161,10 +163,11 @@ describe("RcMap", () => {
       assert.strictEqual(yield* RcMap.get(map, new Key({ id: 1 })), 1)
       // no failure means a hit
       assert.strictEqual(yield* RcMap.get(map, new Key({ id: 1 })), 1)
-    }))
+    })
+  )
 
   it.effect("keys lookup", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const map = yield* RcMap.make({
         lookup: (key: string) => Effect.succeed(key)
       })
@@ -174,10 +177,11 @@ describe("RcMap", () => {
       yield* RcMap.get(map, "baz")
 
       assert.deepStrictEqual(Array.from(yield* RcMap.keys(map)), ["foo", "bar", "baz"])
-    }))
+    })
+  )
 
   it.effect("dynamic idleTimeToLive", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const acquired: Array<string> = []
       const released: Array<string> = []
       const map = yield* RcMap.make({
@@ -189,7 +193,7 @@ describe("RcMap", () => {
             }),
             () => Effect.sync(() => released.push(key))
           ),
-        idleTimeToLive: (key: string) => key.startsWith("short:") ? 500 : 2000
+        idleTimeToLive: (key: string) => (key.startsWith("short:") ? 500 : 2000)
       })
 
       assert.deepStrictEqual(acquired, [])
@@ -204,10 +208,11 @@ describe("RcMap", () => {
 
       yield* TestClock.adjust(1500)
       assert.deepStrictEqual(released, ["short:a", "long:b"])
-    }))
+    })
+  )
 
   it.effect("dynamic idleTimeToLive with touch", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const acquired: Array<string> = []
       const released: Array<string> = []
       const map = yield* RcMap.make({
@@ -219,7 +224,7 @@ describe("RcMap", () => {
             }),
             () => Effect.sync(() => released.push(key))
           ),
-        idleTimeToLive: (key: string) => key.startsWith("short:") ? 500 : 2000
+        idleTimeToLive: (key: string) => (key.startsWith("short:") ? 500 : 2000)
       })
 
       yield* Effect.scoped(RcMap.get(map, "short:a"))
@@ -233,5 +238,6 @@ describe("RcMap", () => {
 
       yield* TestClock.adjust(250)
       assert.deepStrictEqual(released, ["short:a"])
-    }))
+    })
+  )
 })

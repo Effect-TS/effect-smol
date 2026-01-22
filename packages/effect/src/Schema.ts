@@ -119,7 +119,8 @@ export interface Bottom<
   out TypeConstructorDefault extends ConstructorDefault = "no-default",
   out EncodedMutability extends Mutability = "readonly",
   out EncodedOptionality extends Optionality = "required"
-> extends Pipeable.Pipeable {
+>
+  extends Pipeable.Pipeable {
   readonly [TypeId]: typeof TypeId
 
   readonly ast: Ast
@@ -127,15 +128,15 @@ export interface Bottom<
   readonly "~type.parameters": TypeParameters
   readonly "~annotate.in": Annotations.Bottom<T, TypeParameters>
 
-  readonly "Type": T
-  readonly "Encoded": E
-  readonly "DecodingServices": RD
-  readonly "EncodingServices": RE
+  readonly Type: T
+  readonly Encoded: E
+  readonly DecodingServices: RD
+  readonly EncodingServices: RE
 
   readonly "~type.make.in": TypeMakeIn
   readonly "~type.make": TypeMake // useful to type the `refine` interface
   readonly "~type.constructor.default": TypeConstructorDefault
-  readonly "Iso": Iso
+  readonly Iso: Iso
 
   readonly "~type.mutability": TypeMutability
   readonly "~type.optionality": TypeOptionality
@@ -155,19 +156,17 @@ export interface Bottom<
 /**
  * @since 4.0.0
  */
-export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<Top>, Iso = T> extends
-  Bottom<
-    T,
-    E,
-    TypeParameters[number]["DecodingServices"],
-    TypeParameters[number]["EncodingServices"],
-    AST.Declaration,
-    declareConstructor<T, E, TypeParameters, Iso>,
-    T,
-    Iso,
-    TypeParameters
-  >
-{
+export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<Top>, Iso = T> extends Bottom<
+  T,
+  E,
+  TypeParameters[number]["DecodingServices"],
+  TypeParameters[number]["EncodingServices"],
+  AST.Declaration,
+  declareConstructor<T, E, TypeParameters, Iso>,
+  T,
+  Iso,
+  TypeParameters
+> {
   readonly "~rebuild.out": this
 }
 
@@ -182,11 +181,9 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
 export function declareConstructor<T, E = T, Iso = T>() {
   return <const TypeParameters extends ReadonlyArray<Top>>(
     typeParameters: TypeParameters,
-    run: (
-      typeParameters: {
-        readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"], TypeParameters[K]["Encoded"]>
-      }
-    ) => (u: unknown, self: AST.Declaration, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>,
+    run: (typeParameters: {
+      readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"], TypeParameters[K]["Encoded"]>
+    }) => (u: unknown, self: AST.Declaration, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>,
     annotations?: Annotations.Declaration<T, TypeParameters>
   ): declareConstructor<T, E, TypeParameters, Iso> => {
     return make(
@@ -219,9 +216,7 @@ export function declare<T, Iso = T>(
   return declareConstructor<T, T, Iso>()(
     [],
     () => (input, ast) =>
-      is(input) ?
-        Effect.succeed(input) :
-        Effect.fail(new Issue.InvalidType(ast, Option_.some(input))),
+      is(input) ? Effect.succeed(input) : Effect.fail(new Issue.InvalidType(ast, Option_.some(input))),
     annotations
   )
 }
@@ -295,25 +290,23 @@ export function annotateKey<S extends Top>(annotations: Annotations.Key<S["Type"
  *
  * @since 4.0.0
  */
-export interface Top extends
-  Bottom<
-    unknown,
-    unknown,
-    unknown,
-    unknown,
-    AST.AST,
-    Top,
-    unknown,
-    unknown,
-    any, // this is because TypeParameters is invariant
-    unknown,
-    Mutability,
-    Optionality,
-    ConstructorDefault,
-    Mutability,
-    Optionality
-  >
-{}
+export interface Top extends Bottom<
+  unknown,
+  unknown,
+  unknown,
+  unknown,
+  AST.AST,
+  Top,
+  unknown,
+  unknown,
+  any, // this is because TypeParameters is invariant
+  unknown,
+  Mutability,
+  Optionality,
+  ConstructorDefault,
+  Mutability,
+  Optionality
+> {}
 
 /**
  * @since 4.0.0
@@ -339,7 +332,7 @@ export declare namespace Schema {
  * @since 4.0.0
  */
 export interface Schema<out T> extends Top {
-  readonly "Type": T
+  readonly Type: T
   readonly "~rebuild.out": Schema<T>
 }
 
@@ -371,9 +364,9 @@ export declare namespace Codec {
  * @since 4.0.0
  */
 export interface Optic<out T, out Iso> extends Schema<T> {
-  readonly "Iso": Iso
-  readonly "DecodingServices": never
-  readonly "EncodingServices": never
+  readonly Iso: Iso
+  readonly DecodingServices: never
+  readonly EncodingServices: never
   readonly "~rebuild.out": Optic<T, Iso>
 }
 
@@ -392,9 +385,9 @@ export interface Optic<out T, out Iso> extends Schema<T> {
  * @since 4.0.0
  */
 export interface Codec<out T, out E = T, out RD = never, out RE = never> extends Schema<T> {
-  readonly "Encoded": E
-  readonly "DecodingServices": RD
-  readonly "EncodingServices": RE
+  readonly Encoded: E
+  readonly DecodingServices: RD
+  readonly EncodingServices: RE
   readonly "~rebuild.out": Codec<T, E, RD, RE>
 }
 
@@ -463,9 +456,11 @@ export function isSchemaError(u: unknown): u is SchemaError {
 }
 
 function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
-  return Exit_.isSuccess(exit) ? exit.value : {
-    issues: [{ message: Cause_.pretty(exit.cause) }]
-  }
+  return Exit_.isSuccess(exit)
+    ? exit.value
+    : {
+        issues: [{ message: Cause_.pretty(exit.cause) }]
+      }
 }
 
 /**
@@ -529,9 +524,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  * @category Standard Schema
  * @since 4.0.0
  */
-export function toStandardSchemaV1<
-  S extends Top & { readonly DecodingServices: never }
->(
+export function toStandardSchemaV1<S extends Top & { readonly DecodingServices: never }>(
   self: S,
   options?: {
     readonly leafHook?: Issue.LeafHook | undefined
@@ -886,25 +879,23 @@ export function isSchema(u: unknown): u is Top {
 /**
  * @since 4.0.0
  */
-export interface optionalKey<S extends Top> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    optionalKey<S>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    "optional",
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    "optional"
-  >
-{
+export interface optionalKey<S extends Top> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  optionalKey<S>,
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  S["~type.make"],
+  S["~type.mutability"],
+  "optional",
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  "optional"
+> {
   readonly "~rebuild.out": this
   readonly schema: S
 }
@@ -939,7 +930,8 @@ export const optionalKey = Struct_.lambda<optionalKeyLambda>((schema) => make(AS
 
 interface requiredKeyLambda extends Lambda {
   <S extends Top>(self: optionalKey<S>): S
-  readonly "~lambda.out": this["~lambda.in"] extends optionalKey<Top> ? this["~lambda.in"]["schema"]
+  readonly "~lambda.out": this["~lambda.in"] extends optionalKey<Top>
+    ? this["~lambda.in"]["schema"]
     : "Error: schema not eligible for requiredKey"
 }
 
@@ -988,7 +980,8 @@ export const optional = Struct_.lambda<optionalLambda>((self) => optionalKey(Und
 
 interface requiredLambda extends Lambda {
   <S extends Top>(self: optional<S>): S
-  readonly "~lambda.out": this["~lambda.in"] extends optional<Top> ? this["~lambda.in"]["schema"]["members"][0]
+  readonly "~lambda.out": this["~lambda.in"] extends optional<Top>
+    ? this["~lambda.in"]["schema"]["members"][0]
     : "Error: schema not eligible for required"
 }
 
@@ -1000,25 +993,23 @@ export const required = Struct_.lambda<requiredLambda>((self) => self.schema.mem
 /**
  * @since 4.0.0
  */
-export interface mutableKey<S extends Top> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    mutableKey<S>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    "mutable",
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    "mutable",
-    S["~encoded.optionality"]
-  >
-{
+export interface mutableKey<S extends Top> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  mutableKey<S>,
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  S["~type.make"],
+  "mutable",
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  "mutable",
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly schema: S
 }
@@ -1035,7 +1026,8 @@ export const mutableKey = Struct_.lambda<mutableKeyLambda>((schema) => make(AST.
 
 interface readonlyKeyLambda extends Lambda {
   <S extends Top>(self: mutableKey<S>): S
-  readonly "~lambda.out": this["~lambda.in"] extends mutableKey<Top> ? this["~lambda.in"]["schema"]
+  readonly "~lambda.out": this["~lambda.in"] extends mutableKey<Top>
+    ? this["~lambda.in"]["schema"]
     : "Error: schema not eligible for readonlyKey"
 }
 
@@ -1047,25 +1039,23 @@ export const readonlyKey = Struct_.lambda<readonlyKeyLambda>((self) => self.sche
 /**
  * @since 4.0.0
  */
-export interface toType<S extends Top> extends
-  Bottom<
-    S["Type"],
-    S["Type"],
-    never,
-    never,
-    S["ast"],
-    toType<S>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface toType<S extends Top> extends Bottom<
+  S["Type"],
+  S["Type"],
+  never,
+  never,
+  S["ast"],
+  toType<S>,
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
 }
 
@@ -1082,25 +1072,23 @@ export const toType = Struct_.lambda<toTypeLambda>((schema) => make(AST.toType(s
 /**
  * @since 4.0.0
  */
-export interface toEncoded<S extends Top> extends
-  Bottom<
-    S["Encoded"],
-    S["Encoded"],
-    never,
-    never,
-    AST.AST,
-    toEncoded<S>,
-    S["Encoded"],
-    S["Encoded"],
-    ReadonlyArray<Top>,
-    S["Encoded"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface toEncoded<S extends Top> extends Bottom<
+  S["Encoded"],
+  S["Encoded"],
+  never,
+  never,
+  AST.AST,
+  toEncoded<S>,
+  S["Encoded"],
+  S["Encoded"],
+  ReadonlyArray<Top>,
+  S["Encoded"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
 }
 
@@ -1119,25 +1107,23 @@ const FlipTypeId = "~effect/Schema/flip"
 /**
  * @since 4.0.0
  */
-export interface flip<S extends Top> extends
-  Bottom<
-    S["Encoded"],
-    S["Type"],
-    S["EncodingServices"],
-    S["DecodingServices"],
-    AST.AST,
-    flip<S>,
-    S["Encoded"],
-    S["Encoded"],
-    ReadonlyArray<Top>,
-    S["Encoded"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"],
-    ConstructorDefault,
-    S["~type.mutability"],
-    S["~type.optionality"]
-  >
-{
+export interface flip<S extends Top> extends Bottom<
+  S["Encoded"],
+  S["Type"],
+  S["EncodingServices"],
+  S["DecodingServices"],
+  AST.AST,
+  flip<S>,
+  S["Encoded"],
+  S["Encoded"],
+  ReadonlyArray<Top>,
+  S["Encoded"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"],
+  ConstructorDefault,
+  S["~type.mutability"],
+  S["~type.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly [FlipTypeId]: typeof FlipTypeId
   readonly schema: S
@@ -1177,10 +1163,12 @@ export function Literal<L extends AST.LiteralValue>(literal: L): Literal<L> {
   const out = make<Literal<L>>(new AST.Literal(literal), {
     literal,
     transform<L2 extends AST.LiteralValue>(to: L2): decodeTo<Literal<L2>, Literal<L>> {
-      return out.pipe(decodeTo(Literal(to), {
-        decode: Getter.transform(() => to),
-        encode: Getter.transform(() => literal)
-      }))
+      return out.pipe(
+        decodeTo(Literal(to), {
+          decode: Getter.transform(() => to),
+          encode: Getter.transform(() => literal)
+        })
+      )
     }
   })
   return out
@@ -1212,39 +1200,35 @@ export declare namespace TemplateLiteral {
    */
   export type Parts = ReadonlyArray<Part>
 
-  type AppendType<
-    Template extends string,
-    Next
-  > = Next extends LiteralPart ? `${Template}${Next}`
-    : Next extends Codec<unknown, infer E extends LiteralPart, unknown, unknown> ? `${Template}${E}`
-    : never
+  type AppendType<Template extends string, Next> = Next extends LiteralPart
+    ? `${Template}${Next}`
+    : Next extends Codec<unknown, infer E extends LiteralPart, unknown, unknown>
+      ? `${Template}${E}`
+      : never
 
   /**
    * @since 4.0.0
    */
-  export type Encoded<Parts> = Parts extends readonly [...infer Init, infer Last] ? AppendType<Encoded<Init>, Last>
-    : ``
+  export type Encoded<Parts> = Parts extends readonly [...infer Init, infer Last] ? AppendType<Encoded<Init>, Last> : ``
 }
 
 /**
  * @since 4.0.0
  */
-export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
-  Bottom<
-    TemplateLiteral.Encoded<Parts>,
-    TemplateLiteral.Encoded<Parts>,
-    never,
-    never,
-    AST.TemplateLiteral,
-    TemplateLiteral<Parts>
-  >
-{
+export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends Bottom<
+  TemplateLiteral.Encoded<Parts>,
+  TemplateLiteral.Encoded<Parts>,
+  never,
+  never,
+  AST.TemplateLiteral,
+  TemplateLiteral<Parts>
+> {
   readonly "~rebuild.out": this
   readonly parts: Parts
 }
 
 function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Parts) {
-  return new AST.TemplateLiteral(parts.map((part) => isSchema(part) ? part.ast : new AST.Literal(part)))
+  return new AST.TemplateLiteral(parts.map((part) => (isSchema(part) ? part.ast : new AST.Literal(part))))
 }
 
 /**
@@ -1261,28 +1245,29 @@ export declare namespace TemplateLiteralParser {
   /**
    * @since 4.0.0
    */
-  export type Type<Parts> = Parts extends readonly [infer Head, ...infer Tail] ? readonly [
-      Head extends TemplateLiteral.LiteralPart ? Head :
-        Head extends Codec<infer T, unknown, unknown, unknown> ? T
-        : never,
-      ...Type<Tail>
-    ]
+  export type Type<Parts> = Parts extends readonly [infer Head, ...infer Tail]
+    ? readonly [
+        Head extends TemplateLiteral.LiteralPart
+          ? Head
+          : Head extends Codec<infer T, unknown, unknown, unknown>
+            ? T
+            : never,
+        ...Type<Tail>
+      ]
     : []
 }
 
 /**
  * @since 4.0.0
  */
-export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> extends
-  Bottom<
-    TemplateLiteralParser.Type<Parts>,
-    TemplateLiteral.Encoded<Parts>,
-    never,
-    never,
-    AST.Arrays,
-    TemplateLiteralParser<Parts>
-  >
-{
+export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> extends Bottom<
+  TemplateLiteralParser.Type<Parts>,
+  TemplateLiteral.Encoded<Parts>,
+  never,
+  never,
+  AST.Arrays,
+  TemplateLiteralParser<Parts>
+> {
   readonly "~rebuild.out": this
   readonly parts: Parts
 }
@@ -1299,9 +1284,14 @@ export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>
 /**
  * @since 4.0.0
  */
-export interface Enum<A extends { [x: string]: string | number }>
-  extends Bottom<A[keyof A], A[keyof A], never, never, AST.Enum, Enum<A>>
-{
+export interface Enum<A extends { [x: string]: string | number }> extends Bottom<
+  A[keyof A],
+  A[keyof A],
+  never,
+  never,
+  AST.Enum,
+  Enum<A>
+> {
   readonly "~rebuild.out": this
   readonly enums: A
 }
@@ -1312,9 +1302,9 @@ export interface Enum<A extends { [x: string]: string | number }>
 export function Enum<A extends { [x: string]: string | number }>(enums: A): Enum<A> {
   return make(
     new AST.Enum(
-      Object.keys(enums).filter(
-        (key) => typeof enums[enums[key]] !== "number"
-      ).map((key) => [key, enums[key]])
+      Object.keys(enums)
+        .filter((key) => typeof enums[enums[key]] !== "number")
+        .map((key) => [key, enums[key]])
     ),
     { enums }
   )
@@ -1487,9 +1477,14 @@ export const ObjectKeyword: ObjectKeyword = make(AST.objectKeyword)
 /**
  * @since 4.0.0
  */
-export interface UniqueSymbol<sym extends symbol>
-  extends Bottom<sym, sym, never, never, AST.UniqueSymbol, UniqueSymbol<sym>>
-{
+export interface UniqueSymbol<sym extends symbol> extends Bottom<
+  sym,
+  sym,
+  never,
+  never,
+  AST.UniqueSymbol,
+  UniqueSymbol<sym>
+> {
   readonly "~rebuild.out": this
 }
 
@@ -1520,39 +1515,29 @@ export declare namespace Struct {
   export type Fields = { readonly [x: PropertyKey]: Top }
 
   type TypeOptionalKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~type.optionality": "optional" } ? K
-      : never
+    [K in keyof Fields]: Fields[K] extends { readonly "~type.optionality": "optional" } ? K : never
   }[keyof Fields]
 
   type TypeMutableKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~type.mutability": "mutable" } ? K
-      : never
+    [K in keyof Fields]: Fields[K] extends { readonly "~type.mutability": "mutable" } ? K : never
   }[keyof Fields]
 
-  type Type_<
-    F extends Fields,
-    O extends keyof F = TypeOptionalKeys<F>,
-    M extends keyof F = TypeMutableKeys<F>
-  > =
-    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["Type"] }
-    & { readonly [K in Exclude<O, M>]?: F[K]["Type"] }
-    & { [K in Exclude<M, O>]: F[K]["Type"] }
-    & { [K in M & O]?: F[K]["Type"] }
+  type Type_<F extends Fields, O extends keyof F = TypeOptionalKeys<F>, M extends keyof F = TypeMutableKeys<F>> = {
+    readonly [K in Exclude<keyof F, M | O>]: F[K]["Type"]
+  } & { readonly [K in Exclude<O, M>]?: F[K]["Type"] } & { [K in Exclude<M, O>]: F[K]["Type"] } & {
+    [K in M & O]?: F[K]["Type"]
+  }
 
   /**
    * @since 4.0.0
    */
   export type Type<F extends Fields> = Type_<F>
 
-  type Iso_<
-    F extends Fields,
-    O extends keyof F = TypeOptionalKeys<F>,
-    M extends keyof F = TypeMutableKeys<F>
-  > =
-    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["Iso"] }
-    & { readonly [K in Exclude<O, M>]?: F[K]["Iso"] }
-    & { [K in Exclude<M, O>]: F[K]["Iso"] }
-    & { [K in M & O]?: F[K]["Iso"] }
+  type Iso_<F extends Fields, O extends keyof F = TypeOptionalKeys<F>, M extends keyof F = TypeMutableKeys<F>> = {
+    readonly [K in Exclude<keyof F, M | O>]: F[K]["Iso"]
+  } & { readonly [K in Exclude<O, M>]?: F[K]["Iso"] } & { [K in Exclude<M, O>]: F[K]["Iso"] } & {
+    [K in M & O]?: F[K]["Iso"]
+  }
 
   /**
    * @since 4.0.0
@@ -1560,24 +1545,20 @@ export declare namespace Struct {
   export type Iso<F extends Fields> = Iso_<F>
 
   type EncodedOptionalKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~encoded.optionality": "optional" } ? K
-      : never
+    [K in keyof Fields]: Fields[K] extends { readonly "~encoded.optionality": "optional" } ? K : never
   }[keyof Fields]
 
   type EncodedMutableKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~encoded.mutability": "mutable" } ? K
-      : never
+    [K in keyof Fields]: Fields[K] extends { readonly "~encoded.mutability": "mutable" } ? K : never
   }[keyof Fields]
 
   type Encoded_<
     F extends Fields,
     O extends keyof F = EncodedOptionalKeys<F>,
     M extends keyof F = EncodedMutableKeys<F>
-  > =
-    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["Encoded"] }
-    & { readonly [K in Exclude<O, M>]?: F[K]["Encoded"] }
-    & { [K in Exclude<M, O>]: F[K]["Encoded"] }
-    & { [K in M & O]?: F[K]["Encoded"] }
+  > = { readonly [K in Exclude<keyof F, M | O>]: F[K]["Encoded"] } & {
+    readonly [K in Exclude<O, M>]?: F[K]["Encoded"]
+  } & { [K in Exclude<M, O>]: F[K]["Encoded"] } & { [K in M & O]?: F[K]["Encoded"] }
 
   /**
    * @since 4.0.0
@@ -1595,16 +1576,12 @@ export declare namespace Struct {
   export type EncodingServices<F extends Fields> = { readonly [K in keyof F]: F[K]["EncodingServices"] }[keyof F]
 
   type TypeConstructorDefaultedKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~type.constructor.default": "with-default" } ? K
-      : never
+    [K in keyof Fields]: Fields[K] extends { readonly "~type.constructor.default": "with-default" } ? K : never
   }[keyof Fields]
 
-  type MakeIn_<
-    F extends Fields,
-    O = TypeOptionalKeys<F> | TypeConstructorDefaultedKeys<F>
-  > =
-    & { readonly [K in keyof F as K extends O ? never : K]: F[K]["~type.make"] }
-    & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["~type.make"] }
+  type MakeIn_<F extends Fields, O = TypeOptionalKeys<F> | TypeConstructorDefaultedKeys<F>> = {
+    readonly [K in keyof F as K extends O ? never : K]: F[K]["~type.make"]
+  } & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["~type.make"] }
 
   /**
    * @since 4.0.0
@@ -1615,18 +1592,16 @@ export declare namespace Struct {
 /**
  * @since 4.0.0
  */
-export interface Struct<Fields extends Struct.Fields> extends
-  Bottom<
-    Simplify<Struct.Type<Fields>>,
-    Simplify<Struct.Encoded<Fields>>,
-    Struct.DecodingServices<Fields>,
-    Struct.EncodingServices<Fields>,
-    AST.Objects,
-    Struct<Fields>,
-    Simplify<Struct.MakeIn<Fields>>,
-    Simplify<Struct.Iso<Fields>>
-  >
-{
+export interface Struct<Fields extends Struct.Fields> extends Bottom<
+  Simplify<Struct.Type<Fields>>,
+  Simplify<Struct.Encoded<Fields>>,
+  Struct.DecodingServices<Fields>,
+  Struct.EncodingServices<Fields>,
+  AST.Objects,
+  Struct<Fields>,
+  Simplify<Struct.MakeIn<Fields>>,
+  Simplify<Struct.Iso<Fields>>
+> {
   readonly "~rebuild.out": this
   readonly fields: Fields
   /**
@@ -1645,9 +1620,11 @@ export interface Struct<Fields extends Struct.Fields> extends
    */
   mapFields<To extends Struct.Fields>(
     f: (fields: Fields) => To,
-    options?: {
-      readonly unsafePreserveChecks?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly unsafePreserveChecks?: boolean | undefined
+        }
+      | undefined
   ): Struct<Simplify<Readonly<To>>>
 }
 
@@ -1657,9 +1634,11 @@ function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields
     mapFields<To extends Struct.Fields>(
       this: Struct<Fields>,
       f: (fields: Fields) => To,
-      options?: {
-        readonly unsafePreserveChecks?: boolean | undefined
-      } | undefined
+      options?:
+        | {
+            readonly unsafePreserveChecks?: boolean | undefined
+          }
+        | undefined
     ): Struct<To> {
       const fields = f(this.fields)
       return makeStruct(AST.struct(fields, options?.unsafePreserveChecks ? this.ast.checks : undefined), fields)
@@ -1675,9 +1654,7 @@ export function Struct<const Fields extends Struct.Fields>(fields: Fields): Stru
 }
 
 interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
-  <Fields extends Struct.Fields>(
-    struct: Struct<Fields>
-  ): Struct<Struct_.Simplify<Struct_.Assign<Fields, NewFields>>>
+  <Fields extends Struct.Fields>(struct: Struct<Fields>): Struct<Struct_.Simplify<Struct_.Assign<Fields, NewFields>>>
   readonly "~lambda.out": this["~lambda.in"] extends Struct<Struct.Fields>
     ? Struct<Struct_.Simplify<Struct_.Assign<this["~lambda.in"]["fields"], NewFields>>>
     : "Error: schema not eligible for fieldsAssign"
@@ -1713,17 +1690,13 @@ export function encodeKeys<
   S extends Struct<Struct.Fields>,
   const M extends { readonly [K in keyof S["fields"]]?: PropertyKey }
 >(mapping: M) {
-  return function(
-    self: S
-  ): decodeTo<
+  return function (self: S): decodeTo<
     S,
-    Struct<
-      {
-        [
-          K in keyof S["fields"] as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K
-        ]: toEncoded<S["fields"][K]>
-      }
-    >
+    Struct<{
+      [K in keyof S["fields"] as K extends keyof M ? (M[K] extends PropertyKey ? M[K] : K) : K]: toEncoded<
+        S["fields"][K]
+      >
+    }>
   > {
     const fields: any = {}
     const reverseMapping: any = {}
@@ -1735,13 +1708,15 @@ export function encodeKeys<
         fields[k] = self.fields[k]
       }
     }
-    return Struct(fields).pipe(decodeTo(
-      self,
-      Transformation.transform<any, any>({
-        decode: Struct_.renameKeys(reverseMapping),
-        encode: Struct_.renameKeys(mapping)
-      })
-    ))
+    return Struct(fields).pipe(
+      decodeTo(
+        self,
+        Transformation.transform<any, any>({
+          decode: Struct_.renameKeys(reverseMapping),
+          encode: Struct_.renameKeys(mapping)
+        })
+      )
+    )
   }
 }
 
@@ -1755,34 +1730,34 @@ export function extendTo<S extends Struct<Struct.Fields>, const Fields extends S
   /** A function per field to derive its value from the original input */
   derive: { readonly [K in keyof Fields]: (s: S["Type"]) => Option_.Option<Fields[K]["Type"]> }
 ) {
-  return (
-    self: S
-  ): decodeTo<Struct<Simplify<{ [K in keyof S["fields"]]: toType<S["fields"][K]> } & Fields>>, S> => {
+  return (self: S): decodeTo<Struct<Simplify<{ [K in keyof S["fields"]]: toType<S["fields"][K]> } & Fields>>, S> => {
     const f = Record_.map(self.fields, toType)
     const to = Struct({ ...f, ...fields })
-    return self.pipe(decodeTo(
-      to,
-      Transformation.transform({
-        decode: (input) => {
-          const out: any = { ...input }
-          for (const k in fields) {
-            const f = derive[k]
-            const o = f(input)
-            if (Option_.isSome(o)) {
-              out[k] = o.value
+    return self.pipe(
+      decodeTo(
+        to,
+        Transformation.transform({
+          decode: (input) => {
+            const out: any = { ...input }
+            for (const k in fields) {
+              const f = derive[k]
+              const o = f(input)
+              if (Option_.isSome(o)) {
+                out[k] = o.value
+              }
             }
+            return out
+          },
+          encode: (input) => {
+            const out = { ...input }
+            for (const k in fields) {
+              delete out[k]
+            }
+            return out
           }
-          return out
-        },
-        encode: (input) => {
-          const out = { ...input }
-          for (const k in fields) {
-            delete out[k]
-          }
-          return out
-        }
-      })
-    )) as any
+        })
+      )
+    ) as any
   }
 }
 
@@ -1795,7 +1770,7 @@ export declare namespace Record {
    */
   export interface Key extends Codec<PropertyKey, PropertyKey, unknown, unknown> {
     readonly "~type.make": PropertyKey
-    readonly "Iso": PropertyKey
+    readonly Iso: PropertyKey
   }
 
   /**
@@ -1806,32 +1781,41 @@ export declare namespace Record {
   /**
    * @since 4.0.0
    */
-  export type Type<Key extends Record.Key, Value extends Top> = Value extends
-    { readonly "~type.optionality": "optional" } ?
-    Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["Type"]]?: Value["Type"] }
-    : { readonly [P in Key["Type"]]?: Value["Type"] }
-    : Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["Type"]]: Value["Type"] }
-    : { readonly [P in Key["Type"]]: Value["Type"] }
+  export type Type<Key extends Record.Key, Value extends Top> = Value extends {
+    readonly "~type.optionality": "optional"
+  }
+    ? Value extends { readonly "~type.mutability": "mutable" }
+      ? { [P in Key["Type"]]?: Value["Type"] }
+      : { readonly [P in Key["Type"]]?: Value["Type"] }
+    : Value extends { readonly "~type.mutability": "mutable" }
+      ? { [P in Key["Type"]]: Value["Type"] }
+      : { readonly [P in Key["Type"]]: Value["Type"] }
 
   /**
    * @since 4.0.0
    */
-  export type Iso<Key extends Record.Key, Value extends Top> = Value extends
-    { readonly "~type.optionality": "optional" } ?
-    Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["Iso"]]?: Value["Iso"] }
-    : { readonly [P in Key["Iso"]]?: Value["Iso"] }
-    : Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["Iso"]]: Value["Iso"] }
-    : { readonly [P in Key["Iso"]]: Value["Iso"] }
+  export type Iso<Key extends Record.Key, Value extends Top> = Value extends {
+    readonly "~type.optionality": "optional"
+  }
+    ? Value extends { readonly "~type.mutability": "mutable" }
+      ? { [P in Key["Iso"]]?: Value["Iso"] }
+      : { readonly [P in Key["Iso"]]?: Value["Iso"] }
+    : Value extends { readonly "~type.mutability": "mutable" }
+      ? { [P in Key["Iso"]]: Value["Iso"] }
+      : { readonly [P in Key["Iso"]]: Value["Iso"] }
 
   /**
    * @since 4.0.0
    */
-  export type Encoded<Key extends Record.Key, Value extends Top> = Value extends
-    { readonly "~encoded.optionality": "optional" } ?
-    Value extends { readonly "~encoded.mutability": "mutable" } ? { [P in Key["Encoded"]]?: Value["Encoded"] }
-    : { readonly [P in Key["Encoded"]]?: Value["Encoded"] }
-    : Value extends { readonly "~encoded.mutability": "mutable" } ? { [P in Key["Encoded"]]: Value["Encoded"] }
-    : { readonly [P in Key["Encoded"]]: Value["Encoded"] }
+  export type Encoded<Key extends Record.Key, Value extends Top> = Value extends {
+    readonly "~encoded.optionality": "optional"
+  }
+    ? Value extends { readonly "~encoded.mutability": "mutable" }
+      ? { [P in Key["Encoded"]]?: Value["Encoded"] }
+      : { readonly [P in Key["Encoded"]]?: Value["Encoded"] }
+    : Value extends { readonly "~encoded.mutability": "mutable" }
+      ? { [P in Key["Encoded"]]: Value["Encoded"] }
+      : { readonly [P in Key["Encoded"]]: Value["Encoded"] }
 
   /**
    * @since 4.0.0
@@ -1850,29 +1834,30 @@ export declare namespace Record {
   /**
    * @since 4.0.0
    */
-  export type MakeIn<Key extends Record.Key, Value extends Top> = Value extends
-    { readonly "~encoded.optionality": "optional" } ?
-    Value extends { readonly "~encoded.mutability": "mutable" } ? { [P in Key["~type.make"]]?: Value["~type.make"] }
-    : { readonly [P in Key["~type.make"]]?: Value["~type.make"] }
-    : Value extends { readonly "~encoded.mutability": "mutable" } ? { [P in Key["~type.make"]]: Value["~type.make"] }
-    : { readonly [P in Key["~type.make"]]: Value["~type.make"] }
+  export type MakeIn<Key extends Record.Key, Value extends Top> = Value extends {
+    readonly "~encoded.optionality": "optional"
+  }
+    ? Value extends { readonly "~encoded.mutability": "mutable" }
+      ? { [P in Key["~type.make"]]?: Value["~type.make"] }
+      : { readonly [P in Key["~type.make"]]?: Value["~type.make"] }
+    : Value extends { readonly "~encoded.mutability": "mutable" }
+      ? { [P in Key["~type.make"]]: Value["~type.make"] }
+      : { readonly [P in Key["~type.make"]]: Value["~type.make"] }
 }
 
 /**
  * @since 4.0.0
  */
-export interface Record$<Key extends Record.Key, Value extends Top> extends
-  Bottom<
-    Record.Type<Key, Value>,
-    Record.Encoded<Key, Value>,
-    Record.DecodingServices<Key, Value>,
-    Record.EncodingServices<Key, Value>,
-    AST.Objects,
-    Record$<Key, Value>,
-    Simplify<Record.MakeIn<Key, Value>>,
-    Record.Iso<Key, Value>
-  >
-{
+export interface Record$<Key extends Record.Key, Value extends Top> extends Bottom<
+  Record.Type<Key, Value>,
+  Record.Encoded<Key, Value>,
+  Record.DecodingServices<Key, Value>,
+  Record.EncodingServices<Key, Value>,
+  AST.Objects,
+  Record$<Key, Value>,
+  Simplify<Record.MakeIn<Key, Value>>,
+  Record.Iso<Key, Value>
+> {
   readonly "~rebuild.out": this
   readonly key: Key
   readonly value: Value
@@ -1891,9 +1876,10 @@ export function Record<Key extends Record.Key, Value extends Top>(
     }
   }
 ): Record$<Key, Value> {
-  const keyValueCombiner = options?.keyValueCombiner?.decode || options?.keyValueCombiner?.encode
-    ? new AST.KeyValueCombiner(options.keyValueCombiner.decode, options.keyValueCombiner.encode)
-    : undefined
+  const keyValueCombiner =
+    options?.keyValueCombiner?.decode || options?.keyValueCombiner?.encode
+      ? new AST.KeyValueCombiner(options.keyValueCombiner.decode, options.keyValueCombiner.encode)
+      : undefined
   return make(AST.record(key.ast, value.ast, keyValueCombiner), { key, value })
 }
 
@@ -1911,30 +1897,27 @@ export declare namespace StructWithRest {
    */
   export type Records = ReadonlyArray<Record.Record>
 
-  type MergeTuple<T extends ReadonlyArray<unknown>> = T extends readonly [infer Head, ...infer Tail] ?
-    Head & MergeTuple<Tail>
+  type MergeTuple<T extends ReadonlyArray<unknown>> = T extends readonly [infer Head, ...infer Tail]
+    ? Head & MergeTuple<Tail>
     : {}
 
   /**
    * @since 4.0.0
    */
-  export type Type<S extends Objects, Records extends StructWithRest.Records> =
-    & S["Type"]
-    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Type"] }>
+  export type Type<S extends Objects, Records extends StructWithRest.Records> = S["Type"] &
+    MergeTuple<{ readonly [K in keyof Records]: Records[K]["Type"] }>
 
   /**
    * @since 4.0.0
    */
-  export type Iso<S extends Objects, Records extends StructWithRest.Records> =
-    & S["Iso"]
-    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Iso"] }>
+  export type Iso<S extends Objects, Records extends StructWithRest.Records> = S["Iso"] &
+    MergeTuple<{ readonly [K in keyof Records]: Records[K]["Iso"] }>
 
   /**
    * @since 4.0.0
    */
-  export type Encoded<S extends Objects, Records extends StructWithRest.Records> =
-    & S["Encoded"]
-    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Encoded"] }>
+  export type Encoded<S extends Objects, Records extends StructWithRest.Records> = S["Encoded"] &
+    MergeTuple<{ readonly [K in keyof Records]: Records[K]["Encoded"] }>
 
   /**
    * @since 4.0.0
@@ -1953,9 +1936,8 @@ export declare namespace StructWithRest {
   /**
    * @since 4.0.0
    */
-  export type MakeIn<S extends Objects, Records extends StructWithRest.Records> =
-    & S["~type.make"]
-    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["~type.make"] }>
+  export type MakeIn<S extends Objects, Records extends StructWithRest.Records> = S["~type.make"] &
+    MergeTuple<{ readonly [K in keyof Records]: Records[K]["~type.make"] }>
 }
 
 /**
@@ -1964,18 +1946,16 @@ export declare namespace StructWithRest {
 export interface StructWithRest<
   S extends StructWithRest.Objects,
   Records extends StructWithRest.Records
-> extends
-  Bottom<
-    Simplify<StructWithRest.Type<S, Records>>,
-    Simplify<StructWithRest.Encoded<S, Records>>,
-    StructWithRest.DecodingServices<S, Records>,
-    StructWithRest.EncodingServices<S, Records>,
-    AST.Objects,
-    StructWithRest<S, Records>,
-    Simplify<StructWithRest.MakeIn<S, Records>>,
-    Simplify<StructWithRest.Iso<S, Records>>
-  >
-{
+> extends Bottom<
+  Simplify<StructWithRest.Type<S, Records>>,
+  Simplify<StructWithRest.Encoded<S, Records>>,
+  StructWithRest.DecodingServices<S, Records>,
+  StructWithRest.EncodingServices<S, Records>,
+  AST.Objects,
+  StructWithRest<S, Records>,
+  Simplify<StructWithRest.MakeIn<S, Records>>,
+  Simplify<StructWithRest.Iso<S, Records>>
+> {
   readonly "~rebuild.out": this
   readonly schema: S
   readonly records: Records
@@ -1984,10 +1964,7 @@ export interface StructWithRest<
 /**
  * @since 4.0.0
  */
-export function StructWithRest<
-  const S extends StructWithRest.Objects,
-  const Records extends StructWithRest.Records
->(
+export function StructWithRest<const S extends StructWithRest.Objects, const Records extends StructWithRest.Records>(
   schema: S,
   records: Records
 ): StructWithRest<S, Records> {
@@ -2003,14 +1980,15 @@ export declare namespace Tuple {
    */
   export type Elements = ReadonlyArray<Top>
 
-  type Type_<
-    Elements,
-    Out extends ReadonlyArray<any> = readonly []
-  > = Elements extends readonly [infer Head, ...infer Tail] ?
-    Head extends { readonly "Type": infer T } ?
-      Head extends { readonly "~type.optionality": "optional" } ? Type_<Tail, readonly [...Out, T?]>
-      : Type_<Tail, readonly [...Out, T]>
-    : Out
+  type Type_<Elements, Out extends ReadonlyArray<any> = readonly []> = Elements extends readonly [
+    infer Head,
+    ...infer Tail
+  ]
+    ? Head extends { readonly Type: infer T }
+      ? Head extends { readonly "~type.optionality": "optional" }
+        ? Type_<Tail, readonly [...Out, T?]>
+        : Type_<Tail, readonly [...Out, T]>
+      : Out
     : Out
 
   /**
@@ -2018,14 +1996,15 @@ export declare namespace Tuple {
    */
   export type Type<E extends Elements> = Type_<E>
 
-  type Iso_<
-    Elements,
-    Out extends ReadonlyArray<any> = readonly []
-  > = Elements extends readonly [infer Head, ...infer Tail] ?
-    Head extends { readonly "Iso": infer T } ?
-      Head extends { readonly "~type.optionality": "optional" } ? Iso_<Tail, readonly [...Out, T?]>
-      : Iso_<Tail, readonly [...Out, T]>
-    : Out
+  type Iso_<Elements, Out extends ReadonlyArray<any> = readonly []> = Elements extends readonly [
+    infer Head,
+    ...infer Tail
+  ]
+    ? Head extends { readonly Iso: infer T }
+      ? Head extends { readonly "~type.optionality": "optional" }
+        ? Iso_<Tail, readonly [...Out, T?]>
+        : Iso_<Tail, readonly [...Out, T]>
+      : Out
     : Out
 
   /**
@@ -2033,14 +2012,15 @@ export declare namespace Tuple {
    */
   export type Iso<E extends Elements> = Iso_<E>
 
-  type Encoded_<
-    Elements,
-    Out extends ReadonlyArray<any> = readonly []
-  > = Elements extends readonly [infer Head, ...infer Tail] ?
-    Head extends { readonly "Encoded": infer T } ?
-      Head extends { readonly "~encoded.optionality": "optional" } ? Encoded_<Tail, readonly [...Out, T?]>
-      : Encoded_<Tail, readonly [...Out, T]>
-    : Out
+  type Encoded_<Elements, Out extends ReadonlyArray<any> = readonly []> = Elements extends readonly [
+    infer Head,
+    ...infer Tail
+  ]
+    ? Head extends { readonly Encoded: infer T }
+      ? Head extends { readonly "~encoded.optionality": "optional" }
+        ? Encoded_<Tail, readonly [...Out, T?]>
+        : Encoded_<Tail, readonly [...Out, T]>
+      : Out
     : Out
 
   /**
@@ -2058,17 +2038,15 @@ export declare namespace Tuple {
    */
   export type EncodingServices<E extends Elements> = E[number]["EncodingServices"]
 
-  type MakeIn_<
-    E,
-    Out extends ReadonlyArray<any> = readonly []
-  > = E extends readonly [infer Head, ...infer Tail] ?
-    Head extends { "~type.make": infer T } ?
-      Head extends
-        { readonly "~type.optionality": "optional" } | { readonly "~type.constructor.default": "with-default" } ?
-        MakeIn_<Tail, readonly [...Out, T?]> :
-      MakeIn_<Tail, readonly [...Out, T]>
-    : Out :
-    Out
+  type MakeIn_<E, Out extends ReadonlyArray<any> = readonly []> = E extends readonly [infer Head, ...infer Tail]
+    ? Head extends { "~type.make": infer T }
+      ? Head extends
+          | { readonly "~type.optionality": "optional" }
+          | { readonly "~type.constructor.default": "with-default" }
+        ? MakeIn_<Tail, readonly [...Out, T?]>
+        : MakeIn_<Tail, readonly [...Out, T]>
+      : Out
+    : Out
 
   /**
    * @since 4.0.0
@@ -2079,18 +2057,16 @@ export declare namespace Tuple {
 /**
  * @since 4.0.0
  */
-export interface Tuple<Elements extends Tuple.Elements> extends
-  Bottom<
-    Tuple.Type<Elements>,
-    Tuple.Encoded<Elements>,
-    Tuple.DecodingServices<Elements>,
-    Tuple.EncodingServices<Elements>,
-    AST.Arrays,
-    Tuple<Elements>,
-    Tuple.MakeIn<Elements>,
-    Tuple.Iso<Elements>
-  >
-{
+export interface Tuple<Elements extends Tuple.Elements> extends Bottom<
+  Tuple.Type<Elements>,
+  Tuple.Encoded<Elements>,
+  Tuple.DecodingServices<Elements>,
+  Tuple.EncodingServices<Elements>,
+  AST.Arrays,
+  Tuple<Elements>,
+  Tuple.MakeIn<Elements>,
+  Tuple.Iso<Elements>
+> {
   readonly "~rebuild.out": this
   readonly elements: Elements
   /**
@@ -2109,9 +2085,11 @@ export interface Tuple<Elements extends Tuple.Elements> extends
    */
   mapElements<To extends Tuple.Elements>(
     f: (elements: Elements) => To,
-    options?: {
-      readonly unsafePreserveChecks?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly unsafePreserveChecks?: boolean | undefined
+        }
+      | undefined
   ): Tuple<Simplify<Readonly<To>>>
 }
 
@@ -2121,9 +2099,11 @@ function makeTuple<Elements extends Tuple.Elements>(ast: AST.Arrays, elements: E
     mapElements<To extends Tuple.Elements>(
       this: Tuple<Elements>,
       f: (elements: Elements) => To,
-      options?: {
-        readonly unsafePreserveChecks?: boolean | undefined
-      } | undefined
+      options?:
+        | {
+            readonly unsafePreserveChecks?: boolean | undefined
+          }
+        | undefined
     ): Tuple<Simplify<Readonly<To>>> {
       const elements = f(this.elements)
       return makeTuple(AST.tuple(elements, options?.unsafePreserveChecks ? this.ast.checks : undefined), elements)
@@ -2151,7 +2131,7 @@ export declare namespace TupleWithRest {
     readonly Encoded: ReadonlyArray<unknown>
     readonly ast: AST.Arrays
     readonly "~type.make": ReadonlyArray<unknown>
-    readonly "Iso": ReadonlyArray<unknown>
+    readonly Iso: ReadonlyArray<unknown>
   }
 
   /**
@@ -2162,66 +2142,57 @@ export declare namespace TupleWithRest {
   /**
    * @since 4.0.0
    */
-  export type Type<T extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
-    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? Readonly<[
-      ...T,
-      ...Array<Head["Type"]>,
-      ...{ readonly [K in keyof Tail]: Tail[K]["Type"] }
-    ]> :
-    T
+  export type Type<T extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends readonly [
+    infer Head extends Top,
+    ...infer Tail extends ReadonlyArray<Top>
+  ]
+    ? Readonly<[...T, ...Array<Head["Type"]>, ...{ readonly [K in keyof Tail]: Tail[K]["Type"] }]>
+    : T
 
   /**
    * @since 4.0.0
    */
-  export type Iso<T extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
-    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? Readonly<[
-      ...T,
-      ...Array<Head["Iso"]>,
-      ...{ readonly [K in keyof Tail]: Tail[K]["Iso"] }
-    ]> :
-    T
+  export type Iso<T extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends readonly [
+    infer Head extends Top,
+    ...infer Tail extends ReadonlyArray<Top>
+  ]
+    ? Readonly<[...T, ...Array<Head["Iso"]>, ...{ readonly [K in keyof Tail]: Tail[K]["Iso"] }]>
+    : T
 
   /**
    * @since 4.0.0
    */
-  export type Encoded<E extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
-    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? readonly [
-      ...E,
-      ...Array<Head["Encoded"]>,
-      ...{ readonly [K in keyof Tail]: Tail[K]["Encoded"] }
-    ] :
-    E
+  export type Encoded<E extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends readonly [
+    infer Head extends Top,
+    ...infer Tail extends ReadonlyArray<Top>
+  ]
+    ? readonly [...E, ...Array<Head["Encoded"]>, ...{ readonly [K in keyof Tail]: Tail[K]["Encoded"] }]
+    : E
 
   /**
    * @since 4.0.0
    */
-  export type MakeIn<M extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
-    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? readonly [
-      ...M,
-      ...Array<Head["~type.make"]>,
-      ...{ readonly [K in keyof Tail]: Tail[K]["~type.make"] }
-    ] :
-    M
+  export type MakeIn<M extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends readonly [
+    infer Head extends Top,
+    ...infer Tail extends ReadonlyArray<Top>
+  ]
+    ? readonly [...M, ...Array<Head["~type.make"]>, ...{ readonly [K in keyof Tail]: Tail[K]["~type.make"] }]
+    : M
 }
 
 /**
  * @since 4.0.0
  */
-export interface TupleWithRest<
-  S extends TupleWithRest.TupleType,
-  Rest extends TupleWithRest.Rest
-> extends
-  Bottom<
-    TupleWithRest.Type<S["Type"], Rest>,
-    TupleWithRest.Encoded<S["Encoded"], Rest>,
-    S["DecodingServices"] | Rest[number]["DecodingServices"],
-    S["EncodingServices"] | Rest[number]["EncodingServices"],
-    AST.Arrays,
-    TupleWithRest<S, Rest>,
-    TupleWithRest.MakeIn<S["~type.make"], Rest>,
-    TupleWithRest.Iso<S["Iso"], Rest>
-  >
-{
+export interface TupleWithRest<S extends TupleWithRest.TupleType, Rest extends TupleWithRest.Rest> extends Bottom<
+  TupleWithRest.Type<S["Type"], Rest>,
+  TupleWithRest.Encoded<S["Encoded"], Rest>,
+  S["DecodingServices"] | Rest[number]["DecodingServices"],
+  S["EncodingServices"] | Rest[number]["EncodingServices"],
+  AST.Arrays,
+  TupleWithRest<S, Rest>,
+  TupleWithRest.MakeIn<S["~type.make"], Rest>,
+  TupleWithRest.Iso<S["Iso"], Rest>
+> {
   readonly "~rebuild.out": this
   readonly schema: S
   readonly rest: Rest
@@ -2241,18 +2212,16 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
 /**
  * @since 4.0.0
  */
-export interface Array$<S extends Top> extends
-  Bottom<
-    ReadonlyArray<S["Type"]>,
-    ReadonlyArray<S["Encoded"]>,
-    S["DecodingServices"],
-    S["EncodingServices"],
-    AST.Arrays,
-    Array$<S>,
-    ReadonlyArray<S["~type.make"]>,
-    ReadonlyArray<S["Iso"]>
-  >
-{
+export interface Array$<S extends Top> extends Bottom<
+  ReadonlyArray<S["Type"]>,
+  ReadonlyArray<S["Encoded"]>,
+  S["DecodingServices"],
+  S["EncodingServices"],
+  AST.Arrays,
+  Array$<S>,
+  ReadonlyArray<S["~type.make"]>,
+  ReadonlyArray<S["Iso"]>
+> {
   readonly "~rebuild.out": this
   readonly schema: S
 }
@@ -2271,18 +2240,16 @@ export const Array = Struct_.lambda<ArrayLambda>((schema) => make(new AST.Arrays
 /**
  * @since 4.0.0
  */
-export interface NonEmptyArray<S extends Top> extends
-  Bottom<
-    readonly [S["Type"], ...Array<S["Type"]>],
-    readonly [S["Encoded"], ...Array<S["Encoded"]>],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    AST.Arrays,
-    NonEmptyArray<S>,
-    readonly [S["~type.make"], ...Array<S["~type.make"]>],
-    readonly [S["Iso"], ...Array<S["Iso"]>]
-  >
-{
+export interface NonEmptyArray<S extends Top> extends Bottom<
+  readonly [S["Type"], ...Array<S["Type"]>],
+  readonly [S["Encoded"], ...Array<S["Encoded"]>],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  AST.Arrays,
+  NonEmptyArray<S>,
+  readonly [S["~type.make"], ...Array<S["~type.make"]>],
+  readonly [S["Iso"], ...Array<S["Iso"]>]
+> {
   readonly "~rebuild.out": this
   readonly schema: S
 }
@@ -2321,33 +2288,32 @@ export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
 /**
  * @since 4.0.0
  */
-export interface mutable<S extends Top & { readonly "ast": AST.Arrays }> extends
-  Bottom<
-    Mutable<S["Type"]>,
-    Mutable<S["Encoded"]>,
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    mutable<S>,
-    // "~type.make" and "~type.make.in" as they are because they are contravariant
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface mutable<S extends Top & { readonly ast: AST.Arrays }> extends Bottom<
+  Mutable<S["Type"]>,
+  Mutable<S["Encoded"]>,
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  mutable<S>,
+  // "~type.make" and "~type.make.in" as they are because they are contravariant
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly schema: S
 }
 
 interface mutableLambda extends Lambda {
-  <S extends Top & { readonly "ast": AST.Arrays }>(self: S): mutable<S>
-  readonly "~lambda.out": this["~lambda.in"] extends Top & { readonly "ast": AST.Arrays } ? mutable<this["~lambda.in"]>
+  <S extends Top & { readonly ast: AST.Arrays }>(self: S): mutable<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top & { readonly ast: AST.Arrays }
+    ? mutable<this["~lambda.in"]>
     : "Error: schema not eligible for mutable"
 }
 
@@ -2363,18 +2329,16 @@ export const mutable = Struct_.lambda<mutableLambda>((schema) => {
 /**
  * @since 4.0.0
  */
-export interface Union<Members extends ReadonlyArray<Top>> extends
-  Bottom<
-    { [K in keyof Members]: Members[K]["Type"] }[number],
-    { [K in keyof Members]: Members[K]["Encoded"] }[number],
-    { [K in keyof Members]: Members[K]["DecodingServices"] }[number],
-    { [K in keyof Members]: Members[K]["EncodingServices"] }[number],
-    AST.Union<{ [K in keyof Members]: Members[K]["ast"] }[number]>,
-    Union<Members>,
-    { [K in keyof Members]: Members[K]["~type.make"] }[number],
-    { [K in keyof Members]: Members[K]["Iso"] }[number]
-  >
-{
+export interface Union<Members extends ReadonlyArray<Top>> extends Bottom<
+  { [K in keyof Members]: Members[K]["Type"] }[number],
+  { [K in keyof Members]: Members[K]["Encoded"] }[number],
+  { [K in keyof Members]: Members[K]["DecodingServices"] }[number],
+  { [K in keyof Members]: Members[K]["EncodingServices"] }[number],
+  AST.Union<{ [K in keyof Members]: Members[K]["ast"] }[number]>,
+  Union<Members>,
+  { [K in keyof Members]: Members[K]["~type.make"] }[number],
+  { [K in keyof Members]: Members[K]["Iso"] }[number]
+> {
   readonly "~rebuild.out": this
   readonly members: Members
   /**
@@ -2393,9 +2357,11 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
    */
   mapMembers<To extends ReadonlyArray<Top>>(
     f: (members: Members) => To,
-    options?: {
-      readonly unsafePreserveChecks?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly unsafePreserveChecks?: boolean | undefined
+        }
+      | undefined
   ): Union<Simplify<Readonly<To>>>
 }
 
@@ -2408,9 +2374,11 @@ function makeUnion<Members extends ReadonlyArray<Top>>(
     mapMembers<To extends ReadonlyArray<Top>>(
       this: Union<Members>,
       f: (members: Members) => To,
-      options?: {
-        readonly unsafePreserveChecks?: boolean | undefined
-      } | undefined
+      options?:
+        | {
+            readonly unsafePreserveChecks?: boolean | undefined
+          }
+        | undefined
     ): Union<Simplify<Readonly<To>>> {
       const members = f(this.members)
       return makeUnion(
@@ -2442,9 +2410,14 @@ export function Union<const Members extends ReadonlyArray<Top>>(
 /**
  * @since 4.0.0
  */
-export interface Literals<L extends ReadonlyArray<AST.LiteralValue>>
-  extends Bottom<L[number], L[number], never, never, AST.Union<AST.Literal>, Literals<L>>
-{
+export interface Literals<L extends ReadonlyArray<AST.LiteralValue>> extends Bottom<
+  L[number],
+  L[number],
+  never,
+  never,
+  AST.Union<AST.Literal>,
+  Literals<L>
+> {
   readonly "~rebuild.out": this
   readonly literals: L
   readonly members: { readonly [K in keyof L]: Literal<L[K]> }
@@ -2538,25 +2511,23 @@ export const NullishOr = Struct_.lambda<NullishOrLambda>((self) => Union([self, 
 /**
  * @since 4.0.0
  */
-export interface suspend<S extends Top> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    AST.Suspend,
-    suspend<S>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface suspend<S extends Top> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  AST.Suspend,
+  suspend<S>,
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
 }
 
@@ -2583,25 +2554,23 @@ export function check<S extends Top>(...checks: readonly [AST.Check<S["Type"]>, 
 /**
  * @since 4.0.0
  */
-export interface refine<T extends S["Type"], S extends Top> extends
-  Bottom<
-    T,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    refine<T, S>,
-    S["~type.make.in"],
-    T,
-    S["~type.parameters"],
-    T,
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface refine<T extends S["Type"], S extends Top> extends Bottom<
+  T,
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  refine<T, S>,
+  S["~type.make.in"],
+  T,
+  S["~type.parameters"],
+  T,
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly schema: S
 }
@@ -2623,25 +2592,23 @@ type DistributeBrands<B> = UnionToIntersection<B extends infer U extends string 
 /**
  * @since 4.0.0
  */
-export interface brand<S extends Top, B> extends
-  Bottom<
-    S["Type"] & DistributeBrands<B>,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    brand<S, B>,
-    S["~type.make.in"],
-    S["Type"] & DistributeBrands<B>,
-    S["~type.parameters"],
-    S["Type"] & DistributeBrands<B>,
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface brand<S extends Top, B> extends Bottom<
+  S["Type"] & DistributeBrands<B>,
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  brand<S, B>,
+  S["~type.make.in"],
+  S["Type"] & DistributeBrands<B>,
+  S["~type.parameters"],
+  S["Type"] & DistributeBrands<B>,
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly schema: S
   readonly identifier: string
@@ -2663,7 +2630,7 @@ export function brand<B extends string>(identifier: B) {
  * @since 4.0.0
  */
 export function fromBrand<A extends Brand.Brand<any>>(identifier: string, ctor: Brand.Constructor<A>) {
-  return <S extends Top & { readonly "Type": Brand.Brand.Unbranded<A> }>(
+  return <S extends Top & { readonly Type: Brand.Brand.Unbranded<A> }>(
     self: S
   ): brand<S["~rebuild.out"], Brand.Brand.Keys<A>> => {
     return (ctor.checks ? self.check(...ctor.checks) : self).pipe(brand(identifier))
@@ -2673,25 +2640,23 @@ export function fromBrand<A extends Brand.Brand<any>>(identifier: string, ctor: 
 /**
  * @since 4.0.0
  */
-export interface middlewareDecoding<S extends Top, RD> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    RD,
-    S["EncodingServices"],
-    S["ast"],
-    middlewareDecoding<S, RD>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface middlewareDecoding<S extends Top, RD> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  RD,
+  S["EncodingServices"],
+  S["ast"],
+  middlewareDecoding<S, RD>,
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly schema: S
 }
@@ -2706,34 +2671,29 @@ export function middlewareDecoding<S extends Top, RD>(
   ) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, RD>
 ) {
   return (schema: S): middlewareDecoding<S, RD> =>
-    make(
-      AST.middlewareDecoding(schema.ast, new Transformation.Middleware(decode, identity)),
-      { schema }
-    )
+    make(AST.middlewareDecoding(schema.ast, new Transformation.Middleware(decode, identity)), { schema })
 }
 
 /**
  * @since 4.0.0
  */
-export interface middlewareEncoding<S extends Top, RE> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    RE,
-    S["ast"],
-    middlewareEncoding<S, RE>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface middlewareEncoding<S extends Top, RE> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  RE,
+  S["ast"],
+  middlewareEncoding<S, RE>,
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly schema: S
 }
@@ -2748,10 +2708,7 @@ export function middlewareEncoding<S extends Top, RE>(
   ) => Effect.Effect<Option_.Option<S["Encoded"]>, Issue.Issue, RE>
 ) {
   return (schema: S): middlewareEncoding<S, RE> =>
-    make(
-      AST.middlewareEncoding(schema.ast, new Transformation.Middleware(identity, encode)),
-      { schema }
-    )
+    make(AST.middlewareEncoding(schema.ast, new Transformation.Middleware(identity, encode)), { schema })
 }
 
 /**
@@ -2795,25 +2752,23 @@ export function catchEncodingWithContext<S extends Top, R = never>(
 /**
  * @since 4.0.0
  */
-export interface decodeTo<To extends Top, From extends Top, RD = never, RE = never> extends
-  Bottom<
-    To["Type"],
-    From["Encoded"],
-    To["DecodingServices"] | From["DecodingServices"] | RD,
-    To["EncodingServices"] | From["EncodingServices"] | RE,
-    To["ast"],
-    decodeTo<To, From, RD, RE>,
-    To["~type.make.in"],
-    To["Iso"],
-    To["~type.parameters"],
-    To["~type.make"],
-    To["~type.mutability"],
-    To["~type.optionality"],
-    To["~type.constructor.default"],
-    From["~encoded.mutability"],
-    From["~encoded.optionality"]
-  >
-{
+export interface decodeTo<To extends Top, From extends Top, RD = never, RE = never> extends Bottom<
+  To["Type"],
+  From["Encoded"],
+  To["DecodingServices"] | From["DecodingServices"] | RD,
+  To["EncodingServices"] | From["EncodingServices"] | RE,
+  To["ast"],
+  decodeTo<To, From, RD, RE>,
+  To["~type.make.in"],
+  To["Iso"],
+  To["~type.parameters"],
+  To["~type.make"],
+  To["~type.mutability"],
+  To["~type.optionality"],
+  To["~type.constructor.default"],
+  From["~encoded.mutability"],
+  From["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly from: From
   readonly to: To
@@ -2876,10 +2831,12 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
 ): (from: From) => decodeTo<To, From, RD, RE>
 export function decodeTo<To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
-  transformation?: {
-    readonly decode: Getter.Getter<To["Encoded"], From["Type"], RD>
-    readonly encode: Getter.Getter<From["Type"], To["Encoded"], RE>
-  } | undefined
+  transformation?:
+    | {
+        readonly decode: Getter.Getter<To["Encoded"], From["Type"], RD>
+        readonly encode: Getter.Getter<From["Type"], To["Encoded"], RE>
+      }
+    | undefined
 ) {
   return (from: From) => {
     return make(
@@ -2945,9 +2902,7 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
 /**
  * @since 4.0.0
  */
-export function encodeTo<To extends Top>(
-  to: To
-): <From extends Top>(from: From) => decodeTo<From, To>
+export function encodeTo<To extends Top>(to: To): <From extends Top>(from: From) => decodeTo<From, To>
 export function encodeTo<To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation: {
@@ -2963,9 +2918,7 @@ export function encodeTo<To extends Top, From extends Top, RD = never, RE = neve
   }
 ) {
   return (from: From): decodeTo<From, To, RD, RE> => {
-    return transformation ?
-      to.pipe(decodeTo(from, transformation)) :
-      to.pipe(decodeTo(from))
+    return transformation ? to.pipe(decodeTo(from, transformation)) : to.pipe(decodeTo(from))
   }
 }
 
@@ -2991,25 +2944,23 @@ export interface WithoutConstructorDefault {
 /**
  * @since 4.0.0
  */
-export interface withConstructorDefault<S extends Top & WithoutConstructorDefault> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    withConstructorDefault<S>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    "with-default",
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface withConstructorDefault<S extends Top & WithoutConstructorDefault> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  withConstructorDefault<S>,
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  "with-default",
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly schema: S
 }
@@ -3025,10 +2976,7 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
   ) => Option_.Option<S["~type.make.in"]> | Effect.Effect<Option_.Option<S["~type.make.in"]>>
 ) {
   return (schema: S): withConstructorDefault<S> => {
-    return make(
-      AST.withConstructorDefault(schema.ast, defaultValue),
-      { schema }
-    )
+    return make(AST.withConstructorDefault(schema.ast, defaultValue), { schema })
   }
 }
 
@@ -3059,10 +3007,12 @@ export function withDecodingDefaultKey<S extends Top>(
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
   return (self: S): withDecodingDefaultKey<S> => {
-    return optionalKey(toEncoded(self)).pipe(decodeTo(self, {
-      decode: Getter.withDefault(defaultValue),
-      encode
-    }))
+    return optionalKey(toEncoded(self)).pipe(
+      decodeTo(self, {
+        decode: Getter.withDefault(defaultValue),
+        encode
+      })
+    )
   }
 }
 
@@ -3080,16 +3030,15 @@ export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional
  *
  * @since 4.0.0
  */
-export function withDecodingDefault<S extends Top>(
-  defaultValue: () => S["Encoded"],
-  options?: DecodingDefaultOptions
-) {
+export function withDecodingDefault<S extends Top>(defaultValue: () => S["Encoded"], options?: DecodingDefaultOptions) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
   return (self: S): withDecodingDefault<S> => {
-    return optional(toEncoded(self)).pipe(decodeTo(self, {
-      decode: Getter.withDefault(defaultValue),
-      encode
-    }))
+    return optional(toEncoded(self)).pipe(
+      decodeTo(self, {
+        decode: Getter.withDefault(defaultValue),
+        encode
+      })
+    )
   }
 }
 
@@ -3183,16 +3132,15 @@ export function TaggedStruct<const Tag extends AST.LiteralValue, const Fields ex
  * Recursively flatten any nested Schema.Union members into a single tuple of leaf schemas.
  */
 type Flatten<Schemas> = Schemas extends readonly [infer Head, ...infer Tail]
-  ? Head extends Union<infer Inner> ? [...Flatten<Inner>, ...Flatten<Tail>]
-  : [Head, ...Flatten<Tail>]
+  ? Head extends Union<infer Inner>
+    ? [...Flatten<Inner>, ...Flatten<Tail>]
+    : [Head, ...Flatten<Tail>]
   : []
 
 type TaggedUnionUtils<
   Tag extends PropertyKey,
   Members extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>,
-  Flattened extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }> = Flatten<
-    Members
-  >
+  Flattened extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }> = Flatten<Members>
 > = {
   readonly cases: Simplify<{ [M in Flattened[number] as M["Type"][Tag]]: M }>
   readonly isAnyOf: <const Keys>(
@@ -3204,9 +3152,9 @@ type TaggedUnionUtils<
       value: Members[number]["Type"],
       cases: { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => Output }
     ): Output
-    <Output>(
-      cases: { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => Output }
-    ): (value: Members[number]["Type"]) => Output
+    <Output>(cases: { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => Output }): (
+      value: Members[number]["Type"]
+    ) => Output
   }
 }
 
@@ -3251,7 +3199,9 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
       const ast = schema.ast
 
       if (
-        AST.isUnion(ast) && "members" in schema && globalThis.Array.isArray(schema.members) &&
+        AST.isUnion(ast) &&
+        "members" in schema &&
+        globalThis.Array.isArray(schema.members) &&
         schema.members.every(isSchema)
       ) {
         return schema.members.forEach(walk)
@@ -3272,7 +3222,7 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
     function match() {
       if (arguments.length === 1) {
         const cases = arguments[0]
-        return function(value: any) {
+        return function (value: any) {
           return cases[value[tag]](value)
         }
       }
@@ -3287,17 +3237,15 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
  * @since 4.0.0
  * @experimental
  */
-export interface TaggedUnion<Cases extends Record<string, Top>> extends
-  Bottom<
-    { [K in keyof Cases]: Cases[K]["Type"] }[keyof Cases],
-    { [K in keyof Cases]: Cases[K]["Encoded"] }[keyof Cases],
-    { [K in keyof Cases]: Cases[K]["DecodingServices"] }[keyof Cases],
-    { [K in keyof Cases]: Cases[K]["EncodingServices"] }[keyof Cases],
-    AST.Union<AST.Objects>,
-    TaggedUnion<Cases>,
-    { [K in keyof Cases]: Cases[K]["~type.make"] }[keyof Cases]
-  >
-{
+export interface TaggedUnion<Cases extends Record<string, Top>> extends Bottom<
+  { [K in keyof Cases]: Cases[K]["Type"] }[keyof Cases],
+  { [K in keyof Cases]: Cases[K]["Encoded"] }[keyof Cases],
+  { [K in keyof Cases]: Cases[K]["DecodingServices"] }[keyof Cases],
+  { [K in keyof Cases]: Cases[K]["EncodingServices"] }[keyof Cases],
+  AST.Union<AST.Objects>,
+  TaggedUnion<Cases>,
+  { [K in keyof Cases]: Cases[K]["~type.make"] }[keyof Cases]
+> {
   readonly "~rebuild.out": this
   readonly cases: Cases
   readonly isAnyOf: <const Keys>(
@@ -3309,9 +3257,9 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
       value: Cases[keyof Cases]["Type"],
       cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
     ): Output
-    <Output>(
-      cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
-    ): (value: Cases[keyof Cases]["Type"]) => Output
+    <Output>(cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }): (
+      value: Cases[keyof Cases]["Type"]
+    ) => Output
   }
 }
 
@@ -3325,7 +3273,7 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
   const cases: any = {}
   const members: any = []
   for (const key of Object.keys(casesByTag)) {
-    members.push(cases[key] = TaggedStruct(key, casesByTag[key]))
+    members.push((cases[key] = TaggedStruct(key, casesByTag[key])))
   }
   const union = Union(members)
   const { guards, isAnyOf, match } = toTaggedUnion("_tag")(union)
@@ -3335,27 +3283,25 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
 /**
  * @since 4.0.0
  */
-export interface Opaque<Self, S extends Top, Brand> extends
-  Bottom<
-    Self,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    S["~rebuild.out"],
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface Opaque<Self, S extends Top, Brand> extends Bottom<
+  Self,
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  S["~rebuild.out"],
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.parameters"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   // intentionally left without `readonly "~rebuild.out": this`
-  new(_: never): S["Type"] & Brand
+  new (_: never): S["Type"] & Brand
 }
 
 /**
@@ -3383,7 +3329,7 @@ export interface instanceOf<T, Iso = T> extends declare<T, Iso> {
  * @category Constructors
  * @since 4.0.0
  */
-export function instanceOf<C extends abstract new(...args: any) => any, Iso = InstanceType<C>>(
+export function instanceOf<C extends abstract new (...args: any) => any, Iso = InstanceType<C>>(
   constructor: C,
   annotations?: Annotations.Declaration<InstanceType<C>> | undefined
 ): instanceOf<InstanceType<C>, Iso> {
@@ -3394,7 +3340,8 @@ export function instanceOf<C extends abstract new(...args: any) => any, Iso = In
  * @since 4.0.0
  * @experimental
  */
-export function link<T>() { // TODO: better name
+export function link<T>() {
+  // TODO: better name
   return <To extends Top>(
     encodeTo: To,
     transformation: {
@@ -3415,10 +3362,19 @@ export function link<T>() { // TODO: better name
  * @since 4.0.0
  */
 export const makeFilter: <T>(
-  filter: (input: T, ast: AST.AST, options: AST.ParseOptions) => undefined | boolean | string | Issue.Issue | {
-    readonly path: ReadonlyArray<PropertyKey>
-    readonly message: string
-  },
+  filter: (
+    input: T,
+    ast: AST.AST,
+    options: AST.ParseOptions
+  ) =>
+    | undefined
+    | boolean
+    | string
+    | Issue.Issue
+    | {
+        readonly path: ReadonlyArray<PropertyKey>
+        readonly message: string
+      },
   annotations?: Annotations.Filter | undefined,
   abort?: boolean
 ) => AST.Filter<T> = AST.makeFilter
@@ -3453,22 +3409,19 @@ const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"
  * @since 4.0.0
  */
 export function isTrimmed(annotations?: Annotations.Filter) {
-  return makeFilter(
-    (s: string) => s.trim() === s,
-    {
-      expected: "a string with no leading or trailing whitespace",
-      meta: {
-        _tag: "isTrimmed",
-        regExp: new globalThis.RegExp(TRIMMED_PATTERN)
-      },
-      toArbitraryConstraint: {
-        string: {
-          patterns: [TRIMMED_PATTERN]
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((s: string) => s.trim() === s, {
+    expected: "a string with no leading or trailing whitespace",
+    meta: {
+      _tag: "isTrimmed",
+      regExp: new globalThis.RegExp(TRIMMED_PATTERN)
+    },
+    toArbitraryConstraint: {
+      string: {
+        patterns: [TRIMMED_PATTERN]
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -3577,18 +3530,15 @@ const getUUIDRegExp = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): globalThis.RegE
  */
 export function isUUID(version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | undefined, annotations?: Annotations.Filter) {
   const regExp = getUUIDRegExp(version)
-  return isPattern(
-    regExp,
-    {
-      expected: version ? `a UUID v${version}` : "a UUID",
-      meta: {
-        _tag: "isUUID",
-        regExp,
-        version
-      },
-      ...annotations
-    }
-  )
+  return isPattern(regExp, {
+    expected: version ? `a UUID v${version}` : "a UUID",
+    meta: {
+      _tag: "isUUID",
+      regExp,
+      version
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -3610,16 +3560,13 @@ export function isUUID(version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | undefined, annot
  */
 export function isULID(annotations?: Annotations.Filter) {
   const regExp = /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
-  return isPattern(
-    regExp,
-    {
-      meta: {
-        _tag: "isULID",
-        regExp
-      },
-      ...annotations
-    }
-  )
+  return isPattern(regExp, {
+    meta: {
+      _tag: "isULID",
+      regExp
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -3640,17 +3587,14 @@ export function isULID(annotations?: Annotations.Filter) {
  */
 export function isBase64(annotations?: Annotations.Filter) {
   const regExp = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
-  return isPattern(
-    regExp,
-    {
-      expected: "a base64 encoded string",
-      meta: {
-        _tag: "isBase64",
-        regExp
-      },
-      ...annotations
-    }
-  )
+  return isPattern(regExp, {
+    expected: "a base64 encoded string",
+    meta: {
+      _tag: "isBase64",
+      regExp
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -3672,17 +3616,14 @@ export function isBase64(annotations?: Annotations.Filter) {
  */
 export function isBase64Url(annotations?: Annotations.Filter) {
   const regExp = /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
-  return isPattern(
-    regExp,
-    {
-      expected: "a base64url encoded string",
-      meta: {
-        _tag: "isBase64Url",
-        regExp
-      },
-      ...annotations
-    }
-  )
+  return isPattern(regExp, {
+    expected: "a base64url encoded string",
+    meta: {
+      _tag: "isBase64Url",
+      regExp
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -3703,23 +3644,20 @@ export function isBase64Url(annotations?: Annotations.Filter) {
  */
 export function isStartsWith(startsWith: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(startsWith)
-  return makeFilter(
-    (s: string) => s.startsWith(startsWith),
-    {
-      expected: `a string starting with ${formatted}`,
-      meta: {
-        _tag: "isStartsWith",
-        startsWith,
-        regExp: new globalThis.RegExp(`^${startsWith}`)
-      },
-      toArbitraryConstraint: {
-        string: {
-          patterns: [`^${startsWith}`]
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((s: string) => s.startsWith(startsWith), {
+    expected: `a string starting with ${formatted}`,
+    meta: {
+      _tag: "isStartsWith",
+      startsWith,
+      regExp: new globalThis.RegExp(`^${startsWith}`)
+    },
+    toArbitraryConstraint: {
+      string: {
+        patterns: [`^${startsWith}`]
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -3740,23 +3678,20 @@ export function isStartsWith(startsWith: string, annotations?: Annotations.Filte
  */
 export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(endsWith)
-  return makeFilter(
-    (s: string) => s.endsWith(endsWith),
-    {
-      expected: `a string ending with ${formatted}`,
-      meta: {
-        _tag: "isEndsWith",
-        endsWith,
-        regExp: new globalThis.RegExp(`${endsWith}$`)
-      },
-      toArbitraryConstraint: {
-        string: {
-          patterns: [`${endsWith}$`]
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((s: string) => s.endsWith(endsWith), {
+    expected: `a string ending with ${formatted}`,
+    meta: {
+      _tag: "isEndsWith",
+      endsWith,
+      regExp: new globalThis.RegExp(`${endsWith}$`)
+    },
+    toArbitraryConstraint: {
+      string: {
+        patterns: [`${endsWith}$`]
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -3777,23 +3712,20 @@ export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
  */
 export function isIncludes(includes: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(includes)
-  return makeFilter(
-    (s: string) => s.includes(includes),
-    {
-      expected: `a string including ${formatted}`,
-      meta: {
-        _tag: "isIncludes",
-        includes,
-        regExp: new globalThis.RegExp(includes)
-      },
-      toArbitraryConstraint: {
-        string: {
-          patterns: [includes]
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((s: string) => s.includes(includes), {
+    expected: `a string including ${formatted}`,
+    meta: {
+      _tag: "isIncludes",
+      includes,
+      regExp: new globalThis.RegExp(includes)
+    },
+    toArbitraryConstraint: {
+      string: {
+        patterns: [includes]
+      }
+    },
+    ...annotations
+  })
 }
 
 const UPPERCASED_PATTERN = "^[^a-z]*$"
@@ -3815,22 +3747,19 @@ const UPPERCASED_PATTERN = "^[^a-z]*$"
  * @since 4.0.0
  */
 export function isUppercased(annotations?: Annotations.Filter) {
-  return makeFilter(
-    (s: string) => s.toUpperCase() === s,
-    {
-      expected: "a string with all characters in uppercase",
-      meta: {
-        _tag: "isUppercased",
-        regExp: new globalThis.RegExp(UPPERCASED_PATTERN)
-      },
-      toArbitraryConstraint: {
-        string: {
-          patterns: [UPPERCASED_PATTERN]
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((s: string) => s.toUpperCase() === s, {
+    expected: "a string with all characters in uppercase",
+    meta: {
+      _tag: "isUppercased",
+      regExp: new globalThis.RegExp(UPPERCASED_PATTERN)
+    },
+    toArbitraryConstraint: {
+      string: {
+        patterns: [UPPERCASED_PATTERN]
+      }
+    },
+    ...annotations
+  })
 }
 
 const LOWERCASED_PATTERN = "^[^A-Z]*$"
@@ -3852,22 +3781,19 @@ const LOWERCASED_PATTERN = "^[^A-Z]*$"
  * @since 4.0.0
  */
 export function isLowercased(annotations?: Annotations.Filter) {
-  return makeFilter(
-    (s: string) => s.toLowerCase() === s,
-    {
-      expected: "a string with all characters in lowercase",
-      meta: {
-        _tag: "isLowercased",
-        regExp: new globalThis.RegExp(LOWERCASED_PATTERN)
-      },
-      toArbitraryConstraint: {
-        string: {
-          patterns: [LOWERCASED_PATTERN]
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((s: string) => s.toLowerCase() === s, {
+    expected: "a string with all characters in lowercase",
+    meta: {
+      _tag: "isLowercased",
+      regExp: new globalThis.RegExp(LOWERCASED_PATTERN)
+    },
+    toArbitraryConstraint: {
+      string: {
+        patterns: [LOWERCASED_PATTERN]
+      }
+    },
+    ...annotations
+  })
 }
 
 const CAPITALIZED_PATTERN = "^[^a-z]?.*$"
@@ -3889,22 +3815,19 @@ const CAPITALIZED_PATTERN = "^[^a-z]?.*$"
  * @since 4.0.0
  */
 export function isCapitalized(annotations?: Annotations.Filter) {
-  return makeFilter(
-    (s: string) => s.charAt(0).toUpperCase() === s.charAt(0),
-    {
-      expected: "a string with the first character in uppercase",
-      meta: {
-        _tag: "isCapitalized",
-        regExp: new globalThis.RegExp(CAPITALIZED_PATTERN)
-      },
-      toArbitraryConstraint: {
-        string: {
-          patterns: [CAPITALIZED_PATTERN]
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((s: string) => s.charAt(0).toUpperCase() === s.charAt(0), {
+    expected: "a string with the first character in uppercase",
+    meta: {
+      _tag: "isCapitalized",
+      regExp: new globalThis.RegExp(CAPITALIZED_PATTERN)
+    },
+    toArbitraryConstraint: {
+      string: {
+        patterns: [CAPITALIZED_PATTERN]
+      }
+    },
+    ...annotations
+  })
 }
 
 const UNCAPITALIZED_PATTERN = "^[^A-Z]?.*$"
@@ -3926,22 +3849,19 @@ const UNCAPITALIZED_PATTERN = "^[^A-Z]?.*$"
  * @since 4.0.0
  */
 export function isUncapitalized(annotations?: Annotations.Filter) {
-  return makeFilter(
-    (s: string) => s.charAt(0).toLowerCase() === s.charAt(0),
-    {
-      expected: "a string with the first character in lowercase",
-      meta: {
-        _tag: "isUncapitalized",
-        regExp: new globalThis.RegExp(UNCAPITALIZED_PATTERN)
-      },
-      toArbitraryConstraint: {
-        string: {
-          patterns: [UNCAPITALIZED_PATTERN]
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((s: string) => s.charAt(0).toLowerCase() === s.charAt(0), {
+    expected: "a string with the first character in lowercase",
+    meta: {
+      _tag: "isUncapitalized",
+      regExp: new globalThis.RegExp(UNCAPITALIZED_PATTERN)
+    },
+    toArbitraryConstraint: {
+      string: {
+        patterns: [UNCAPITALIZED_PATTERN]
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -3961,22 +3881,19 @@ export function isUncapitalized(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isFinite(annotations?: Annotations.Filter) {
-  return makeFilter(
-    (n: number) => globalThis.Number.isFinite(n),
-    {
-      expected: "a finite number",
-      meta: {
-        _tag: "isFinite"
-      },
-      toArbitraryConstraint: {
-        number: {
-          noDefaultInfinity: true,
-          noNaN: true
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((n: number) => globalThis.Number.isFinite(n), {
+    expected: "a finite number",
+    meta: {
+      _tag: "isFinite"
+    },
+    toArbitraryConstraint: {
+      number: {
+        noDefaultInfinity: true,
+        noNaN: true
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -3991,14 +3908,11 @@ export function makeIsGreaterThan<T>(options: {
   const gt = Order.isGreaterThan(options.order)
   const formatter = options.formatter ?? format
   return (exclusiveMinimum: T, annotations?: Annotations.Filter) => {
-    return makeFilter<T>(
-      (input) => gt(input, exclusiveMinimum),
-      {
-        expected: `a value greater than ${formatter(exclusiveMinimum)}`,
-        ...options.annotate?.(exclusiveMinimum),
-        ...annotations
-      }
-    )
+    return makeFilter<T>((input) => gt(input, exclusiveMinimum), {
+      expected: `a value greater than ${formatter(exclusiveMinimum)}`,
+      ...options.annotate?.(exclusiveMinimum),
+      ...annotations
+    })
   }
 }
 
@@ -4014,14 +3928,11 @@ export function makeIsGreaterThanOrEqualTo<T>(options: {
   const gte = Order.isGreaterThanOrEqualTo(options.order)
   const formatter = options.formatter ?? format
   return (minimum: T, annotations?: Annotations.Filter) => {
-    return makeFilter<T>(
-      (input) => gte(input, minimum),
-      {
-        expected: `a value greater than or equal to ${formatter(minimum)}`,
-        ...options.annotate?.(minimum),
-        ...annotations
-      }
-    )
+    return makeFilter<T>((input) => gte(input, minimum), {
+      expected: `a value greater than or equal to ${formatter(minimum)}`,
+      ...options.annotate?.(minimum),
+      ...annotations
+    })
   }
 }
 
@@ -4037,14 +3948,11 @@ export function makeIsLessThan<T>(options: {
   const lt = Order.isLessThan(options.order)
   const formatter = options.formatter ?? format
   return (exclusiveMaximum: T, annotations?: Annotations.Filter) => {
-    return makeFilter<T>(
-      (input) => lt(input, exclusiveMaximum),
-      {
-        expected: `a value less than ${formatter(exclusiveMaximum)}`,
-        ...options.annotate?.(exclusiveMaximum),
-        ...annotations
-      }
-    )
+    return makeFilter<T>((input) => lt(input, exclusiveMaximum), {
+      expected: `a value less than ${formatter(exclusiveMaximum)}`,
+      ...options.annotate?.(exclusiveMaximum),
+      ...annotations
+    })
   }
 }
 
@@ -4060,14 +3968,11 @@ export function makeIsLessThanOrEqualTo<T>(options: {
   const lte = Order.isLessThanOrEqualTo(options.order)
   const formatter = options.formatter ?? format
   return (maximum: T, annotations?: Annotations.Filter) => {
-    return makeFilter<T>(
-      (input) => lte(input, maximum),
-      {
-        expected: `a value less than or equal to ${formatter(maximum)}`,
-        ...options.annotate?.(maximum),
-        ...annotations
-      }
-    )
+    return makeFilter<T>((input) => lte(input, maximum), {
+      expected: `a value less than or equal to ${formatter(maximum)}`,
+      ...options.annotate?.(maximum),
+      ...annotations
+    })
   }
 }
 
@@ -4079,11 +3984,11 @@ export function makeIsBetween<T>(deriveOptions: {
   readonly order: Order.Order<T>
   readonly annotate?:
     | ((options: {
-      readonly minimum: T
-      readonly maximum: T
-      readonly exclusiveMinimum?: boolean | undefined
-      readonly exclusiveMaximum?: boolean | undefined
-    }) => Annotations.Filter)
+        readonly minimum: T
+        readonly maximum: T
+        readonly exclusiveMinimum?: boolean | undefined
+        readonly exclusiveMaximum?: boolean | undefined
+      }) => Annotations.Filter)
     | undefined
   readonly formatter?: Formatter<T> | undefined
 }) {
@@ -4092,24 +3997,24 @@ export function makeIsBetween<T>(deriveOptions: {
   const lessThanOrEqualTo = Order.isLessThanOrEqualTo(deriveOptions.order)
   const lessThan = Order.isLessThan(deriveOptions.order)
   const formatter = deriveOptions.formatter ?? format
-  return (options: {
-    readonly minimum: T
-    readonly maximum: T
-    readonly exclusiveMinimum?: boolean | undefined
-    readonly exclusiveMaximum?: boolean | undefined
-  }, annotations?: Annotations.Filter) => {
+  return (
+    options: {
+      readonly minimum: T
+      readonly maximum: T
+      readonly exclusiveMinimum?: boolean | undefined
+      readonly exclusiveMaximum?: boolean | undefined
+    },
+    annotations?: Annotations.Filter
+  ) => {
     const gte = options.exclusiveMinimum ? greaterThan : greaterThanOrEqualTo
     const lte = options.exclusiveMaximum ? lessThan : lessThanOrEqualTo
-    return makeFilter<T>(
-      (input) => gte(input, options.minimum) && lte(input, options.maximum),
-      {
-        expected: `a value between ${formatter(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${
-          formatter(options.maximum)
-        }${options.exclusiveMaximum ? " (excluded)" : ""}`,
-        ...deriveOptions.annotate?.(options),
-        ...annotations
-      }
-    )
+    return makeFilter<T>((input) => gte(input, options.minimum) && lte(input, options.maximum), {
+      expected: `a value between ${formatter(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${formatter(
+        options.maximum
+      )}${options.exclusiveMaximum ? " (excluded)" : ""}`,
+      ...deriveOptions.annotate?.(options),
+      ...annotations
+    })
   }
 }
 
@@ -4125,14 +4030,11 @@ export function makeIsMultipleOf<T>(options: {
 }) {
   return (divisor: T, annotations?: Annotations.Filter) => {
     const formatter = options.formatter ?? format
-    return makeFilter<T>(
-      (input) => options.remainder(input, divisor) === options.zero,
-      {
-        expected: `a value that is a multiple of ${formatter(divisor)}`,
-        ...options.annotate?.(divisor),
-        ...annotations
-      }
-    )
+    return makeFilter<T>((input) => options.remainder(input, divisor) === options.zero, {
+      expected: `a value that is a multiple of ${formatter(divisor)}`,
+      ...options.annotate?.(divisor),
+      ...annotations
+    })
   }
 }
 
@@ -4344,21 +4246,18 @@ export const isMultipleOf = makeIsMultipleOf({
  * @since 4.0.0
  */
 export function isInt(annotations?: Annotations.Filter) {
-  return makeFilter(
-    (n: number) => globalThis.Number.isSafeInteger(n),
-    {
-      expected: "an integer",
-      meta: {
-        _tag: "isInt"
-      },
-      toArbitraryConstraint: {
-        number: {
-          isInteger: true
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((n: number) => globalThis.Number.isSafeInteger(n), {
+    expected: "an integer",
+    meta: {
+      _tag: "isInt"
+    },
+    toArbitraryConstraint: {
+      number: {
+        isInteger: true
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -4379,16 +4278,10 @@ export function isInt(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isInt32(annotations?: Annotations.Filter) {
-  return new AST.FilterGroup(
-    [
-      isInt(annotations),
-      isBetween({ minimum: -2147483648, maximum: 2147483647 })
-    ],
-    {
-      expected: "a 32-bit integer",
-      ...annotations
-    }
-  )
+  return new AST.FilterGroup([isInt(annotations), isBetween({ minimum: -2147483648, maximum: 2147483647 })], {
+    expected: "a 32-bit integer",
+    ...annotations
+  })
 }
 
 /**
@@ -4409,16 +4302,10 @@ export function isInt32(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isUint32(annotations?: Annotations.Filter) {
-  return new AST.FilterGroup(
-    [
-      isInt(),
-      isBetween({ minimum: 0, maximum: 4294967295 })
-    ],
-    {
-      expected: "a 32-bit unsigned integer",
-      ...annotations
-    }
-  )
+  return new AST.FilterGroup([isInt(), isBetween({ minimum: 0, maximum: 4294967295 })], {
+    expected: "a 32-bit unsigned integer",
+    ...annotations
+  })
 }
 
 /**
@@ -4439,21 +4326,18 @@ export function isUint32(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isDateValid(annotations?: Annotations.Filter) {
-  return makeFilter<globalThis.Date>(
-    (date) => !isNaN(date.getTime()),
-    {
-      expected: "a valid date",
-      meta: {
-        _tag: "isDateValid"
-      },
-      toArbitraryConstraint: {
-        date: {
-          noInvalidDate: true
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter<globalThis.Date>((date) => !isNaN(date.getTime()), {
+    expected: "a valid date",
+    meta: {
+      _tag: "isDateValid"
+    },
+    toArbitraryConstraint: {
+      date: {
+        noInvalidDate: true
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -4772,26 +4656,23 @@ export const isBetweenBigInt = makeIsBetween({
  */
 export function isMinLength(minLength: number, annotations?: Annotations.Filter) {
   minLength = Math.max(0, Math.floor(minLength))
-  return makeFilter<{ readonly length: number }>(
-    (input) => input.length >= minLength,
-    {
-      expected: `a value with a length of at least ${minLength}`,
-      meta: {
-        _tag: "isMinLength",
+  return makeFilter<{ readonly length: number }>((input) => input.length >= minLength, {
+    expected: `a value with a length of at least ${minLength}`,
+    meta: {
+      _tag: "isMinLength",
+      minLength
+    },
+    [AST.STRUCTURAL_ANNOTATION_KEY]: true,
+    toArbitraryConstraint: {
+      string: {
         minLength
       },
-      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
-      toArbitraryConstraint: {
-        string: {
-          minLength
-        },
-        array: {
-          minLength
-        }
-      },
-      ...annotations
-    }
-  )
+      array: {
+        minLength
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -4835,26 +4716,23 @@ export function isNonEmpty(annotations?: Annotations.Filter) {
  */
 export function isMaxLength(maxLength: number, annotations?: Annotations.Filter) {
   maxLength = Math.max(0, Math.floor(maxLength))
-  return makeFilter<{ readonly length: number }>(
-    (input) => input.length <= maxLength,
-    {
-      expected: `a value with a length of at most ${maxLength}`,
-      meta: {
-        _tag: "isMaxLength",
+  return makeFilter<{ readonly length: number }>((input) => input.length <= maxLength, {
+    expected: `a value with a length of at most ${maxLength}`,
+    meta: {
+      _tag: "isMaxLength",
+      maxLength
+    },
+    [AST.STRUCTURAL_ANNOTATION_KEY]: true,
+    toArbitraryConstraint: {
+      string: {
         maxLength
       },
-      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
-      toArbitraryConstraint: {
-        string: {
-          maxLength
-        },
-        array: {
-          maxLength
-        }
-      },
-      ...annotations
-    }
-  )
+      array: {
+        maxLength
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -4878,28 +4756,25 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
  */
 export function isLength(length: number, annotations?: Annotations.Filter) {
   length = Math.max(0, Math.floor(length))
-  return makeFilter<{ readonly length: number }>(
-    (input) => input.length === length,
-    {
-      expected: `a value with a length of ${length}`,
-      meta: {
-        _tag: "isLength",
-        length
+  return makeFilter<{ readonly length: number }>((input) => input.length === length, {
+    expected: `a value with a length of ${length}`,
+    meta: {
+      _tag: "isLength",
+      length
+    },
+    [AST.STRUCTURAL_ANNOTATION_KEY]: true,
+    toArbitraryConstraint: {
+      string: {
+        minLength: length,
+        maxLength: length
       },
-      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
-      toArbitraryConstraint: {
-        string: {
-          minLength: length,
-          maxLength: length
-        },
-        array: {
-          minLength: length,
-          maxLength: length
-        }
-      },
-      ...annotations
-    }
-  )
+      array: {
+        minLength: length,
+        maxLength: length
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -4922,23 +4797,20 @@ export function isLength(length: number, annotations?: Annotations.Filter) {
  */
 export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
   minSize = Math.max(0, Math.floor(minSize))
-  return makeFilter<{ readonly size: number }>(
-    (input) => input.size >= minSize,
-    {
-      expected: `a value with a size of at least ${minSize}`,
-      meta: {
-        _tag: "isMinSize",
-        minSize
-      },
-      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
-      toArbitraryConstraint: {
-        array: {
-          minLength: minSize
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter<{ readonly size: number }>((input) => input.size >= minSize, {
+    expected: `a value with a size of at least ${minSize}`,
+    meta: {
+      _tag: "isMinSize",
+      minSize
+    },
+    [AST.STRUCTURAL_ANNOTATION_KEY]: true,
+    toArbitraryConstraint: {
+      array: {
+        minLength: minSize
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -4961,23 +4833,20 @@ export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
  */
 export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
   maxSize = Math.max(0, Math.floor(maxSize))
-  return makeFilter<{ readonly size: number }>(
-    (input) => input.size <= maxSize,
-    {
-      expected: `a value with a size of at most ${maxSize}`,
-      meta: {
-        _tag: "isMaxSize",
-        maxSize
-      },
-      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
-      toArbitraryConstraint: {
-        array: {
-          maxLength: maxSize
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter<{ readonly size: number }>((input) => input.size <= maxSize, {
+    expected: `a value with a size of at most ${maxSize}`,
+    meta: {
+      _tag: "isMaxSize",
+      maxSize
+    },
+    [AST.STRUCTURAL_ANNOTATION_KEY]: true,
+    toArbitraryConstraint: {
+      array: {
+        maxLength: maxSize
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -5000,24 +4869,21 @@ export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
  */
 export function isSize(size: number, annotations?: Annotations.Filter) {
   size = Math.max(0, Math.floor(size))
-  return makeFilter<{ readonly size: number }>(
-    (input) => input.size === size,
-    {
-      expected: `a value with a size of ${size}`,
-      meta: {
-        _tag: "isSize",
-        size
-      },
-      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
-      toArbitraryConstraint: {
-        array: {
-          minLength: size,
-          maxLength: size
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter<{ readonly size: number }>((input) => input.size === size, {
+    expected: `a value with a size of ${size}`,
+    meta: {
+      _tag: "isSize",
+      size
+    },
+    [AST.STRUCTURAL_ANNOTATION_KEY]: true,
+    toArbitraryConstraint: {
+      array: {
+        minLength: size,
+        maxLength: size
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -5041,23 +4907,20 @@ export function isSize(size: number, annotations?: Annotations.Filter) {
  */
 export function isMinProperties(minProperties: number, annotations?: Annotations.Filter) {
   minProperties = Math.max(0, Math.floor(minProperties))
-  return makeFilter<object>(
-    (input) => Reflect.ownKeys(input).length >= minProperties,
-    {
-      expected: `an object with at least ${minProperties} properties`,
-      meta: {
-        _tag: "isMinProperties",
-        minProperties
-      },
-      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
-      toArbitraryConstraint: {
-        array: {
-          minLength: minProperties
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter<object>((input) => Reflect.ownKeys(input).length >= minProperties, {
+    expected: `an object with at least ${minProperties} properties`,
+    meta: {
+      _tag: "isMinProperties",
+      minProperties
+    },
+    [AST.STRUCTURAL_ANNOTATION_KEY]: true,
+    toArbitraryConstraint: {
+      array: {
+        minLength: minProperties
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -5080,23 +4943,20 @@ export function isMinProperties(minProperties: number, annotations?: Annotations
  */
 export function isMaxProperties(maxProperties: number, annotations?: Annotations.Filter) {
   maxProperties = Math.max(0, Math.floor(maxProperties))
-  return makeFilter<object>(
-    (input) => Reflect.ownKeys(input).length <= maxProperties,
-    {
-      expected: `an object with at most ${maxProperties} properties`,
-      meta: {
-        _tag: "isMaxProperties",
-        maxProperties
-      },
-      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
-      toArbitraryConstraint: {
-        array: {
-          maxLength: maxProperties
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter<object>((input) => Reflect.ownKeys(input).length <= maxProperties, {
+    expected: `an object with at most ${maxProperties} properties`,
+    meta: {
+      _tag: "isMaxProperties",
+      maxProperties
+    },
+    [AST.STRUCTURAL_ANNOTATION_KEY]: true,
+    toArbitraryConstraint: {
+      array: {
+        maxLength: maxProperties
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -5120,24 +4980,21 @@ export function isMaxProperties(maxProperties: number, annotations?: Annotations
  */
 export function isPropertiesLength(length: number, annotations?: Annotations.Filter) {
   length = Math.max(0, Math.floor(length))
-  return makeFilter<object>(
-    (input) => Reflect.ownKeys(input).length === length,
-    {
-      expected: `an object with exactly ${length} properties`,
-      meta: {
-        _tag: "isPropertiesLength",
-        length
-      },
-      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
-      toArbitraryConstraint: {
-        array: {
-          minLength: length,
-          maxLength: length
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter<object>((input) => Reflect.ownKeys(input).length === length, {
+    expected: `an object with exactly ${length} properties`,
+    meta: {
+      _tag: "isPropertiesLength",
+      length
+    },
+    [AST.STRUCTURAL_ANNOTATION_KEY]: true,
+    toArbitraryConstraint: {
+      array: {
+        minLength: length,
+        maxLength: length
+      }
+    },
+    ...annotations
+  })
 }
 
 /**
@@ -5200,21 +5057,18 @@ export function isPropertyNames(keySchema: Top, annotations?: Annotations.Filter
  */
 export function isUnique<T>(annotations?: Annotations.Filter) {
   const equivalence = Equal.asEquivalence<T>()
-  return makeFilter<ReadonlyArray<T>>(
-    (input) => Arr.dedupeWith(input, equivalence).length === input.length,
-    {
-      expected: "an array with unique items",
-      meta: {
-        _tag: "isUnique"
-      },
-      toArbitraryConstraint: {
-        array: {
-          comparator: equivalence
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter<ReadonlyArray<T>>((input) => Arr.dedupeWith(input, equivalence).length === input.length, {
+    expected: "an array with unique items",
+    meta: {
+      _tag: "isUnique"
+    },
+    toArbitraryConstraint: {
+      array: {
+        comparator: equivalence
+      }
+    },
+    ...annotations
+  })
 }
 
 // -----------------------------------------------------------------------------
@@ -5240,14 +5094,12 @@ export const Char = String.check(isLength(1))
  * @category Option
  * @since 4.0.0
  */
-export interface Option<A extends Top> extends
-  declareConstructor<
-    Option_.Option<A["Type"]>,
-    Option_.Option<A["Encoded"]>,
-    readonly [A],
-    OptionIso<A>
-  >
-{
+export interface Option<A extends Top> extends declareConstructor<
+  Option_.Option<A["Type"]>,
+  Option_.Option<A["Encoded"]>,
+  readonly [A],
+  OptionIso<A>
+> {
   readonly value: A
 }
 
@@ -5255,36 +5107,28 @@ export interface Option<A extends Top> extends
  * @category Option
  * @since 4.0.0
  */
-export type OptionIso<A extends Top> =
-  | { readonly _tag: "None" }
-  | { readonly _tag: "Some"; readonly value: A["Iso"] }
+export type OptionIso<A extends Top> = { readonly _tag: "None" } | { readonly _tag: "Some"; readonly value: A["Iso"] }
 
 /**
  * @category Option
  * @since 4.0.0
  */
 export function Option<A extends Top>(value: A): Option<A> {
-  const schema = declareConstructor<
-    Option_.Option<A["Type"]>,
-    Option_.Option<A["Encoded"]>,
-    OptionIso<A>
-  >()(
+  const schema = declareConstructor<Option_.Option<A["Type"]>, Option_.Option<A["Encoded"]>, OptionIso<A>>()(
     [value],
-    ([value]) => (input, ast, options) => {
-      if (Option_.isOption(input)) {
-        if (Option_.isNone(input)) {
-          return Effect.succeedNone
-        }
-        return Effect.mapBothEager(
-          Parser.decodeUnknownEffect(value)(input.value, options),
-          {
+    ([value]) =>
+      (input, ast, options) => {
+        if (Option_.isOption(input)) {
+          if (Option_.isNone(input)) {
+            return Effect.succeedNone
+          }
+          return Effect.mapBothEager(Parser.decodeUnknownEffect(value)(input.value, options), {
             onSuccess: Option_.some,
             onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["value"], issue)])
-          }
-        )
-      }
-      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
-    },
+          })
+        }
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+      },
     {
       typeConstructor: {
         _tag: "effect/Option"
@@ -5297,22 +5141,22 @@ export function Option<A extends Top>(value: A): Option<A> {
       expected: "Option",
       toCodec: ([value]) =>
         link<Option_.Option<A["Encoded"]>>()(
-          Union([
-            Struct({ _tag: Literal("Some"), value }),
-            Struct({ _tag: Literal("None") })
-          ]),
+          Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
           Transformation.transform({
-            decode: (e) => e._tag === "None" ? Option_.none() : Option_.some(e.value),
-            encode: (o) => (Option_.isSome(o) ? { _tag: "Some", value: o.value } as const : { _tag: "None" } as const)
+            decode: (e) => (e._tag === "None" ? Option_.none() : Option_.some(e.value)),
+            encode: (o) =>
+              Option_.isSome(o) ? ({ _tag: "Some", value: o.value } as const) : ({ _tag: "None" } as const)
           })
         ),
-      toArbitrary: ([value]) => (fc, ctx) => {
-        return fc.oneof(
-          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Option" } : {},
-          fc.constant(Option_.none()),
-          value.map(Option_.some)
-        )
-      },
+      toArbitrary:
+        ([value]) =>
+        (fc, ctx) => {
+          return fc.oneof(
+            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Option" } : {},
+            fc.constant(Option_.none()),
+            value.map(Option_.some)
+          )
+        },
       toEquivalence: ([value]) => Option_.makeEquivalence(value),
       toFormatter: ([value]) =>
         Option_.match({
@@ -5344,10 +5188,7 @@ export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<toType<
  * @since 4.0.0
  */
 export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> {
-  return NullOr(schema).pipe(decodeTo(
-    Option(toType(schema)),
-    Transformation.optionFromNullOr()
-  ))
+  return NullOr(schema).pipe(decodeTo(Option(toType(schema)), Transformation.optionFromNullOr()))
 }
 
 /**
@@ -5370,10 +5211,7 @@ export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<to
  * @since 4.0.0
  */
 export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptionalKey<S> {
-  return optionalKey(schema).pipe(decodeTo(
-    Option(toType(schema)),
-    Transformation.optionFromOptionalKey()
-  ))
+  return optionalKey(schema).pipe(decodeTo(Option(toType(schema)), Transformation.optionFromOptionalKey()))
 }
 
 /**
@@ -5398,24 +5236,19 @@ export interface OptionFromOptional<S extends Top> extends decodeTo<Option<toTyp
  * @since 4.0.0
  */
 export function OptionFromOptional<S extends Top>(schema: S): OptionFromOptional<S> {
-  return optional(schema).pipe(decodeTo(
-    Option(toType(schema)),
-    Transformation.optionFromOptional<any>()
-  ))
+  return optional(schema).pipe(decodeTo(Option(toType(schema)), Transformation.optionFromOptional<any>()))
 }
 
 /**
  * @category Result
  * @since 4.0.0
  */
-export interface Result<A extends Top, E extends Top> extends
-  declareConstructor<
-    Result_.Result<A["Type"], E["Type"]>,
-    Result_.Result<A["Encoded"], E["Encoded"]>,
-    readonly [A, E],
-    ResultIso<A, E>
-  >
-{
+export interface Result<A extends Top, E extends Top> extends declareConstructor<
+  Result_.Result<A["Type"], E["Type"]>,
+  Result_.Result<A["Encoded"], E["Encoded"]>,
+  readonly [A, E],
+  ResultIso<A, E>
+> {
   readonly success: A
   readonly failure: E
 }
@@ -5432,33 +5265,33 @@ export type ResultIso<A extends Top, E extends Top> =
  * @category Result
  * @since 4.0.0
  */
-export function Result<A extends Top, E extends Top>(
-  success: A,
-  failure: E
-): Result<A, E> {
+export function Result<A extends Top, E extends Top>(success: A, failure: E): Result<A, E> {
   const schema = declareConstructor<
     Result_.Result<A["Type"], E["Type"]>,
     Result_.Result<A["Encoded"], E["Encoded"]>,
     ResultIso<A, E>
   >()(
     [success, failure],
-    ([success, failure]) => (input, ast, options) => {
-      if (!Result_.isResult(input)) {
-        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
-      }
-      switch (input._tag) {
-        case "Success":
-          return Effect.mapBothEager(Parser.decodeEffect(success)(input.success, options), {
-            onSuccess: Result_.succeed,
-            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["success"], issue)])
-          })
-        case "Failure":
-          return Effect.mapBothEager(Parser.decodeEffect(failure)(input.failure, options), {
-            onSuccess: Result_.fail,
-            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failure"], issue)])
-          })
-      }
-    },
+    ([success, failure]) =>
+      (input, ast, options) => {
+        if (!Result_.isResult(input)) {
+          return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+        }
+        switch (input._tag) {
+          case "Success":
+            return Effect.mapBothEager(Parser.decodeEffect(success)(input.success, options), {
+              onSuccess: Result_.succeed,
+              onFailure: (issue) =>
+                new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["success"], issue)])
+            })
+          case "Failure":
+            return Effect.mapBothEager(Parser.decodeEffect(failure)(input.failure, options), {
+              onSuccess: Result_.fail,
+              onFailure: (issue) =>
+                new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failure"], issue)])
+            })
+        }
+      },
     {
       typeConstructor: {
         _tag: "effect/Result"
@@ -5471,25 +5304,24 @@ export function Result<A extends Top, E extends Top>(
       expected: "Result",
       toCodec: ([success, failure]) =>
         link<Result_.Result<A["Encoded"], E["Encoded"]>>()(
-          Union([
-            Struct({ _tag: Literal("Success"), success }),
-            Struct({ _tag: Literal("Failure"), failure })
-          ]),
+          Union([Struct({ _tag: Literal("Success"), success }), Struct({ _tag: Literal("Failure"), failure })]),
           Transformation.transform({
-            decode: (e) => e._tag === "Success" ? Result_.succeed(e.success) : Result_.fail(e.failure),
+            decode: (e) => (e._tag === "Success" ? Result_.succeed(e.success) : Result_.fail(e.failure)),
             encode: (r) =>
               Result_.isSuccess(r)
-                ? { _tag: "Success", success: r.success } as const
-                : { _tag: "Failure", failure: r.failure } as const
+                ? ({ _tag: "Success", success: r.success } as const)
+                : ({ _tag: "Failure", failure: r.failure } as const)
           })
         ),
-      toArbitrary: ([success, failure]) => (fc, ctx) => {
-        return fc.oneof(
-          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Result" } : {},
-          success.map(Result_.succeed),
-          failure.map(Result_.fail)
-        )
-      },
+      toArbitrary:
+        ([success, failure]) =>
+        (fc, ctx) => {
+          return fc.oneof(
+            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Result" } : {},
+            success.map(Result_.succeed),
+            failure.map(Result_.fail)
+          )
+        },
       toEquivalence: ([success, failure]) => Result_.makeEquivalence(success, failure),
       toFormatter: ([success, failure]) =>
         Result_.match({
@@ -5505,13 +5337,11 @@ export function Result<A extends Top, E extends Top>(
  * @category Redacted
  * @since 4.0.0
  */
-export interface Redacted<S extends Top> extends
-  declareConstructor<
-    Redacted_.Redacted<S["Type"]>,
-    Redacted_.Redacted<S["Encoded"]>,
-    readonly [S]
-  >
-{
+export interface Redacted<S extends Top> extends declareConstructor<
+  Redacted_.Redacted<S["Type"]>,
+  Redacted_.Redacted<S["Encoded"]>,
+  readonly [S]
+> {
   readonly value: S
 }
 
@@ -5538,41 +5368,35 @@ export interface Redacted<S extends Top> extends
  * @category Redacted
  * @since 4.0.0
  */
-export function Redacted<S extends Top>(value: S, options?: {
-  readonly label?: string | undefined
-}): Redacted<S> {
-  const decodeLabel = typeof options?.label === "string"
-    ? Parser.decodeUnknownEffect(Literal(options.label))
-    : undefined
+export function Redacted<S extends Top>(
+  value: S,
+  options?: {
+    readonly label?: string | undefined
+  }
+): Redacted<S> {
+  const decodeLabel =
+    typeof options?.label === "string" ? Parser.decodeUnknownEffect(Literal(options.label)) : undefined
   const schema = declareConstructor<Redacted_.Redacted<S["Type"]>, Redacted_.Redacted<S["Encoded"]>>()(
     [value],
-    ([value]) => (input, ast, poptions) => {
-      if (Redacted_.isRedacted(input)) {
-        const label: Effect.Effect<void, Issue.Issue, never> = decodeLabel !== undefined
-          ? Effect.mapErrorEager(
-            decodeLabel(input.label, poptions),
-            (issue) => new Issue.Pointer(["label"], issue)
-          )
-          : Effect.void
-        return Effect.flatMapEager(
-          label,
-          () =>
-            Effect.mapBothEager(
-              Parser.decodeUnknownEffect(value)(Redacted_.value(input), poptions),
-              {
-                onSuccess: () => input,
-                onFailure: (/** ignore the actual issue because of security reasons */) => {
-                  const oinput = Option_.some(input)
-                  return new Issue.Composite(ast, oinput, [
-                    new Issue.Pointer(["value"], new Issue.InvalidValue(oinput))
-                  ])
-                }
+    ([value]) =>
+      (input, ast, poptions) => {
+        if (Redacted_.isRedacted(input)) {
+          const label: Effect.Effect<void, Issue.Issue, never> =
+            decodeLabel !== undefined
+              ? Effect.mapErrorEager(decodeLabel(input.label, poptions), (issue) => new Issue.Pointer(["label"], issue))
+              : Effect.void
+          return Effect.flatMapEager(label, () =>
+            Effect.mapBothEager(Parser.decodeUnknownEffect(value)(Redacted_.value(input), poptions), {
+              onSuccess: () => input,
+              onFailure: (/** ignore the actual issue because of security reasons */) => {
+                const oinput = Option_.some(input)
+                return new Issue.Composite(ast, oinput, [new Issue.Pointer(["value"], new Issue.InvalidValue(oinput))])
               }
-            )
-        )
-      }
-      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
-    },
+            })
+          )
+        }
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+      },
     {
       typeConstructor: {
         _tag: "effect/Redacted"
@@ -5584,17 +5408,18 @@ export function Redacted<S extends Top>(value: S, options?: {
       },
       expected: "Redacted",
       toCodecJson: ([value]) =>
-        link<Redacted_.Redacted<S["Encoded"]>>()(
-          redact(value),
-          {
-            decode: Getter.transform((e) => Redacted_.make(e, { label: options?.label })),
-            encode: Getter.forbidden((oe) =>
+        link<Redacted_.Redacted<S["Encoded"]>>()(redact(value), {
+          decode: Getter.transform((e) => Redacted_.make(e, { label: options?.label })),
+          encode: Getter.forbidden(
+            (oe) =>
               "Cannot serialize Redacted" +
               (Option_.isSome(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")
-            )
-          }
-        ),
-      toArbitrary: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label })),
+          )
+        }),
+      toArbitrary:
+        ([value]) =>
+        () =>
+          value.map((a) => Redacted_.make(a, { label: options?.label })),
       toFormatter: () => globalThis.String,
       toEquivalence: ([value]) => Redacted_.makeEquivalence(value)
     }
@@ -5606,9 +5431,10 @@ export function Redacted<S extends Top>(value: S, options?: {
  * @category Redacted
  * @since 4.0.0
  */
-export interface RedactedFromValue<S extends Top>
-  extends decodeTo<Redacted<toType<S>>, middlewareDecoding<S, S["DecodingServices"]>>
-{}
+export interface RedactedFromValue<S extends Top> extends decodeTo<
+  Redacted<toType<S>>,
+  middlewareDecoding<S, S["DecodingServices"]>
+> {}
 
 /**
  * @category Redacted
@@ -5622,15 +5448,19 @@ export function redact<S extends Top>(schema: S): middlewareDecoding<S, S["Decod
  * @category Redacted
  * @since 4.0.0
  */
-export function RedactedFromValue<S extends Top>(value: S, options?: {
-  readonly label?: string | undefined
-}): RedactedFromValue<S> {
+export function RedactedFromValue<S extends Top>(
+  value: S,
+  options?: {
+    readonly label?: string | undefined
+  }
+): RedactedFromValue<S> {
   return redact(value).pipe(
     decodeTo(Redacted(toType(value), options), {
       decode: Getter.transform((t) => Redacted_.make(t, { label: options?.label })),
-      encode: Getter.forbidden((oe) =>
-        "Cannot encode Redacted" +
-        (Option_.isSome(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")
+      encode: Getter.forbidden(
+        (oe) =>
+          "Cannot encode Redacted" +
+          (Option_.isSome(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")
       )
     })
   )
@@ -5640,14 +5470,12 @@ export function RedactedFromValue<S extends Top>(value: S, options?: {
  * @category CauseFailure
  * @since 4.0.0
  */
-export interface CauseFailure<E extends Top, D extends Top> extends
-  declareConstructor<
-    Cause_.Failure<E["Type"]>,
-    Cause_.Failure<E["Encoded"]>,
-    readonly [E, D],
-    CauseFailureIso<E, D>
-  >
-{
+export interface CauseFailure<E extends Top, D extends Top> extends declareConstructor<
+  Cause_.Failure<E["Type"]>,
+  Cause_.Failure<E["Encoded"]>,
+  readonly [E, D],
+  CauseFailureIso<E, D>
+> {
   readonly error: E
   readonly defect: D
 }
@@ -5656,16 +5484,19 @@ export interface CauseFailure<E extends Top, D extends Top> extends
  * @category CauseFailure
  * @since 4.0.0
  */
-export type CauseFailureIso<E extends Top, D extends Top> = {
-  readonly _tag: "Fail"
-  readonly error: E["Iso"]
-} | {
-  readonly _tag: "Die"
-  readonly error: D["Iso"]
-} | {
-  readonly _tag: "Interrupt"
-  readonly fiberId: number | undefined
-}
+export type CauseFailureIso<E extends Top, D extends Top> =
+  | {
+      readonly _tag: "Fail"
+      readonly error: E["Iso"]
+    }
+  | {
+      readonly _tag: "Die"
+      readonly error: D["Iso"]
+    }
+  | {
+      readonly _tag: "Interrupt"
+      readonly fiberId: number | undefined
+    }
 
 /**
  * @category CauseFailure
@@ -5674,32 +5505,27 @@ export type CauseFailureIso<E extends Top, D extends Top> = {
 export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D): CauseFailure<E, D> {
   const schema = declareConstructor<Cause_.Failure<E["Type"]>, Cause_.Failure<E["Encoded"]>, CauseFailureIso<E, D>>()(
     [error, defect],
-    ([error, defect]) => (input, ast, options) => {
-      if (!Cause_.isFailure(input)) {
-        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
-      }
-      switch (input._tag) {
-        case "Fail":
-          return Effect.mapBothEager(
-            Parser.decodeUnknownEffect(error)(input.error, options),
-            {
+    ([error, defect]) =>
+      (input, ast, options) => {
+        if (!Cause_.isFailure(input)) {
+          return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+        }
+        switch (input._tag) {
+          case "Fail":
+            return Effect.mapBothEager(Parser.decodeUnknownEffect(error)(input.error, options), {
               onSuccess: Cause_.failureFail,
               onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["error"], issue)])
-            }
-          )
-        case "Die":
-          return Effect.mapBothEager(
-            Parser.decodeUnknownEffect(defect)(input.defect, options),
-            {
+            })
+          case "Die":
+            return Effect.mapBothEager(Parser.decodeUnknownEffect(defect)(input.defect, options), {
               onSuccess: Cause_.failureDie,
               onFailure: (issue) =>
                 new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["defect"], issue)])
-            }
-          )
-        case "Interrupt":
-          return Effect.succeed(input)
-      }
-    },
+            })
+          case "Interrupt":
+            return Effect.succeed(input)
+        }
+      },
     {
       typeConstructor: {
         _tag: "effect/Cause/Failure"
@@ -5782,14 +5608,12 @@ function causeFailureToFormatter<E>(error: Formatter<E>, defect: Formatter<unkno
  * @category Cause
  * @since 4.0.0
  */
-export interface Cause<E extends Top, D extends Top> extends
-  declareConstructor<
-    Cause_.Cause<E["Type"]>,
-    Cause_.Cause<E["Encoded"]>,
-    readonly [E, D],
-    CauseIso<E, D>
-  >
-{
+export interface Cause<E extends Top, D extends Top> extends declareConstructor<
+  Cause_.Cause<E["Type"]>,
+  Cause_.Cause<E["Encoded"]>,
+  readonly [E, D],
+  CauseIso<E, D>
+> {
   readonly error: E
   readonly defect: D
 }
@@ -5807,16 +5631,17 @@ export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseFailureI
 export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
   const schema = declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, CauseIso<E, D>>()(
     [error, defect],
-    ([error, defect]) => (input, ast, options) => {
-      if (!Cause_.isCause(input)) {
-        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
-      }
-      const failures = Array(CauseFailure(error, defect))
-      return Effect.mapBothEager(Parser.decodeUnknownEffect(failures)(input.failures, options), {
-        onSuccess: Cause_.fromFailures,
-        onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failures"], issue)])
-      })
-    },
+    ([error, defect]) =>
+      (input, ast, options) => {
+        if (!Cause_.isCause(input)) {
+          return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+        }
+        const failures = Array(CauseFailure(error, defect))
+        return Effect.mapBothEager(Parser.decodeUnknownEffect(failures)(input.failures, options), {
+          onSuccess: Cause_.fromFailures,
+          onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failures"], issue)])
+        })
+      },
     {
       typeConstructor: {
         _tag: "effect/Cause"
@@ -5895,21 +5720,19 @@ export const Error: Error = instanceOf(globalThis.Error, {
 /**
  * @since 4.0.0
  */
-export interface Defect extends
-  Union<
-    readonly [
-      decodeTo<
-        Error,
-        Struct<{
-          readonly message: String
-          readonly name: optionalKey<String>
-          readonly stack: optionalKey<String>
-        }>
-      >,
-      decodeTo<Unknown, Any>
-    ]
-  >
-{}
+export interface Defect extends Union<
+  readonly [
+    decodeTo<
+      Error,
+      Struct<{
+        readonly message: String
+        readonly name: optionalKey<String>
+        readonly stack: optionalKey<String>
+      }>
+    >,
+    decodeTo<Unknown, Any>
+  ]
+> {}
 
 const defectTransformation = new Transformation.Transformation(
   Getter.passthrough(),
@@ -5930,27 +5753,27 @@ const defectTransformation = new Transformation.Transformation(
  */
 export const Defect: Defect = Union([
   ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.errorFromErrorJsonEncoded)),
-  Any.pipe(decodeTo(
-    Unknown.annotate({
-      toCodecJson: () => link<unknown>()(Any, defectTransformation),
-      toArbitrary: () => (fc) => fc.json()
-    }),
-    defectTransformation
-  ))
+  Any.pipe(
+    decodeTo(
+      Unknown.annotate({
+        toCodecJson: () => link<unknown>()(Any, defectTransformation),
+        toArbitrary: () => (fc) => fc.json()
+      }),
+      defectTransformation
+    )
+  )
 ])
 
 /**
  * @category Exit
  * @since 4.0.0
  */
-export interface Exit<A extends Top, E extends Top, D extends Top> extends
-  declareConstructor<
-    Exit_.Exit<A["Type"], E["Type"]>,
-    Exit_.Exit<A["Encoded"], E["Encoded"]>,
-    readonly [A, E, D],
-    ExitIso<A, E, D>
-  >
-{
+export interface Exit<A extends Top, E extends Top, D extends Top> extends declareConstructor<
+  Exit_.Exit<A["Type"], E["Type"]>,
+  Exit_.Exit<A["Encoded"], E["Encoded"]>,
+  readonly [A, E, D],
+  ExitIso<A, E, D>
+> {
   readonly value: A
   readonly error: E
   readonly defect: D
@@ -5960,13 +5783,15 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
  * @category Exit
  * @since 4.0.0
  */
-export type ExitIso<A extends Top, E extends Top, D extends Top> = {
-  readonly _tag: "Success"
-  readonly value: A["Iso"]
-} | {
-  readonly _tag: "Failure"
-  readonly cause: CauseIso<E, D>
-}
+export type ExitIso<A extends Top, E extends Top, D extends Top> =
+  | {
+      readonly _tag: "Success"
+      readonly value: A["Iso"]
+    }
+  | {
+      readonly _tag: "Failure"
+      readonly cause: CauseIso<E, D>
+    }
 
 /**
  * @category Exit
@@ -5979,30 +5804,25 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
     ExitIso<A, E, D>
   >()(
     [value, error, defect],
-    ([value, error, defect]) => (input, ast, options) => {
-      if (!Exit_.isExit(input)) {
-        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
-      }
-      const cause = Cause(error, defect)
-      switch (input._tag) {
-        case "Success":
-          return Effect.mapBothEager(
-            Parser.decodeUnknownEffect(value)(input.value, options),
-            {
+    ([value, error, defect]) =>
+      (input, ast, options) => {
+        if (!Exit_.isExit(input)) {
+          return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+        }
+        const cause = Cause(error, defect)
+        switch (input._tag) {
+          case "Success":
+            return Effect.mapBothEager(Parser.decodeUnknownEffect(value)(input.value, options), {
               onSuccess: Exit_.succeed,
               onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["value"], issue)])
-            }
-          )
-        case "Failure":
-          return Effect.mapBothEager(
-            Parser.decodeUnknownEffect(cause)(input.cause, options),
-            {
+            })
+          case "Failure":
+            return Effect.mapBothEager(Parser.decodeUnknownEffect(cause)(input.cause, options), {
               onSuccess: Exit_.failCause,
               onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["cause"], issue)])
-            }
-          )
-      }
-    },
+            })
+        }
+      },
     {
       typeConstructor: {
         _tag: "effect/Exit"
@@ -6024,16 +5844,18 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
               e._tag === "Success" ? Exit_.succeed(e.value) : Exit_.failCause(e.cause),
             encode: (exit) =>
               Exit_.isSuccess(exit)
-                ? { _tag: "Success", value: exit.value } as const
-                : { _tag: "Failure", cause: exit.cause } as const
+                ? ({ _tag: "Success", value: exit.value } as const)
+                : ({ _tag: "Failure", cause: exit.cause } as const)
           })
         ),
-      toArbitrary: ([value, error, defect]) => (fc, ctx) =>
-        fc.oneof(
-          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Exit" } : {},
-          value.map((v) => Exit_.succeed(v)),
-          causeToArbitrary(error, defect)(fc, ctx).map((cause) => Exit_.failCause(cause))
-        ),
+      toArbitrary:
+        ([value, error, defect]) =>
+        (fc, ctx) =>
+          fc.oneof(
+            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Exit" } : {},
+            value.map((v) => Exit_.succeed(v)),
+            causeToArbitrary(error, defect)(fc, ctx).map((cause) => Exit_.failCause(cause))
+          ),
       toEquivalence: ([value, error, defect]) => {
         const cause = causeToEquivalence(error, defect)
         return (a, b) => {
@@ -6066,14 +5888,12 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
  * @category ReadonlyMap
  * @since 4.0.0
  */
-export interface ReadonlyMap$<Key extends Top, Value extends Top> extends
-  declareConstructor<
-    globalThis.ReadonlyMap<Key["Type"], Value["Type"]>,
-    globalThis.ReadonlyMap<Key["Encoded"], Value["Encoded"]>,
-    readonly [Key, Value],
-    ReadonlyMapIso<Key, Value>
-  >
-{
+export interface ReadonlyMap$<Key extends Top, Value extends Top> extends declareConstructor<
+  globalThis.ReadonlyMap<Key["Type"], Value["Type"]>,
+  globalThis.ReadonlyMap<Key["Encoded"], Value["Encoded"]>,
+  readonly [Key, Value],
+  ReadonlyMapIso<Key, Value>
+> {
   readonly key: Key
   readonly value: Value
 }
@@ -6098,19 +5918,17 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
     ReadonlyMapIso<Key, Value>
   >()(
     [key, value],
-    ([key, value]) => (input, ast, options) => {
-      if (input instanceof globalThis.Map) {
-        const array = Array(Tuple([key, value]))
-        return Effect.mapBothEager(
-          Parser.decodeUnknownEffect(array)([...input], options),
-          {
+    ([key, value]) =>
+      (input, ast, options) => {
+        if (input instanceof globalThis.Map) {
+          const array = Array(Tuple([key, value]))
+          return Effect.mapBothEager(Parser.decodeUnknownEffect(array)([...input], options), {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
             onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["entries"], issue)])
-          }
-        )
-      }
-      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
-    },
+          })
+        }
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+      },
     {
       typeConstructor: {
         _tag: "ReadonlyMap"
@@ -6128,22 +5946,30 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
             encode: (map) => [...map.entries()]
           })
         ),
-      toArbitrary: ([key, value]) => (fc, ctx) => {
-        return fc.oneof(
-          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlyMap" } : {},
-          fc.constant([]),
-          fc.array(fc.tuple(key, value), ctx?.constraints?.array)
-        ).map((as) => new globalThis.Map(as))
-      },
+      toArbitrary:
+        ([key, value]) =>
+        (fc, ctx) => {
+          return fc
+            .oneof(
+              ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlyMap" } : {},
+              fc.constant([]),
+              fc.array(fc.tuple(key, value), ctx?.constraints?.array)
+            )
+            .map((as) => new globalThis.Map(as))
+        },
       toEquivalence: ([key, value]) => Equal.makeCompareMap(key, value),
-      toFormatter: ([key, value]) => (t) => {
-        const size = t.size
-        if (size === 0) {
-          return "ReadonlyMap(0) {}"
+      toFormatter:
+        ([key, value]) =>
+        (t) => {
+          const size = t.size
+          if (size === 0) {
+            return "ReadonlyMap(0) {}"
+          }
+          const entries = globalThis.Array.from(t.entries())
+            .sort()
+            .map(([k, v]) => `${key(k)} => ${value(v)}`)
+          return `ReadonlyMap(${size}) { ${entries.join(", ")} }`
         }
-        const entries = globalThis.Array.from(t.entries()).sort().map(([k, v]) => `${key(k)} => ${value(v)}`)
-        return `ReadonlyMap(${size}) { ${entries.join(", ")} }`
-      }
     }
   )
   return make(schema.ast, { key, value })
@@ -6153,14 +5979,12 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
  * @category ReadonlySet
  * @since 4.0.0
  */
-export interface ReadonlySet$<Value extends Top> extends
-  declareConstructor<
-    globalThis.ReadonlySet<Value["Type"]>,
-    globalThis.ReadonlySet<Value["Encoded"]>,
-    readonly [Value],
-    ReadonlySetIso<Value>
-  >
-{
+export interface ReadonlySet$<Value extends Top> extends declareConstructor<
+  globalThis.ReadonlySet<Value["Type"]>,
+  globalThis.ReadonlySet<Value["Encoded"]>,
+  readonly [Value],
+  ReadonlySetIso<Value>
+> {
   readonly value: Value
 }
 
@@ -6181,19 +6005,17 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
     ReadonlySetIso<Value>
   >()(
     [value],
-    ([value]) => (input, ast, options) => {
-      if (input instanceof globalThis.Set) {
-        const array = Array(value)
-        return Effect.mapBothEager(
-          Parser.decodeUnknownEffect(array)([...input], options),
-          {
+    ([value]) =>
+      (input, ast, options) => {
+        if (input instanceof globalThis.Set) {
+          const array = Array(value)
+          return Effect.mapBothEager(Parser.decodeUnknownEffect(array)([...input], options), {
             onSuccess: (array: ReadonlyArray<Value["Type"]>) => new globalThis.Set(array),
             onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["values"], issue)])
-          }
-        )
-      }
-      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
-    },
+          })
+        }
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+      },
     {
       typeConstructor: {
         _tag: "ReadonlySet"
@@ -6211,22 +6033,30 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
             encode: (set) => [...set.values()]
           })
         ),
-      toArbitrary: ([value]) => (fc, ctx) => {
-        return fc.oneof(
-          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlySet" } : {},
-          fc.constant([]),
-          fc.array(value, ctx?.constraints?.array)
-        ).map((as) => new globalThis.Set(as))
-      },
+      toArbitrary:
+        ([value]) =>
+        (fc, ctx) => {
+          return fc
+            .oneof(
+              ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlySet" } : {},
+              fc.constant([]),
+              fc.array(value, ctx?.constraints?.array)
+            )
+            .map((as) => new globalThis.Set(as))
+        },
       toEquivalence: ([value]) => Equal.makeCompareSet(value),
-      toFormatter: ([value]) => (t) => {
-        const size = t.size
-        if (size === 0) {
-          return "ReadonlySet(0) {}"
+      toFormatter:
+        ([value]) =>
+        (t) => {
+          const size = t.size
+          if (size === 0) {
+            return "ReadonlySet(0) {}"
+          }
+          const values = globalThis.Array.from(t.values())
+            .sort()
+            .map((v) => `${value(v)}`)
+          return `ReadonlySet(${size}) { ${values.join(", ")} }`
         }
-        const values = globalThis.Array.from(t.values()).sort().map((v) => `${value(v)}`)
-        return `ReadonlySet(${size}) { ${values.join(", ")} }`
-      }
     }
   )
   return make(schema.ast, { value })
@@ -6240,61 +6070,58 @@ export interface RegExp extends instanceOf<globalThis.RegExp> {}
 /**
  * @since 4.0.0
  */
-export const RegExp: RegExp = instanceOf(
-  globalThis.RegExp,
-  {
-    typeConstructor: {
-      _tag: "RegExp"
-    },
-    generation: {
-      runtime: `Schema.RegExp`,
-      Type: `globalThis.RegExp`
-    },
-    expected: "RegExp",
-    toCodecJson: () =>
-      link<globalThis.RegExp>()(
-        Struct({
-          source: String,
-          flags: String
-        }),
-        Transformation.transformOrFail({
-          decode: (e) =>
-            Effect.try({
-              try: () => new globalThis.RegExp(e.source, e.flags),
-              catch: (e) => new Issue.InvalidValue(Option_.some(e), { message: globalThis.String(e) })
-            }),
-          encode: (regExp) =>
-            Effect.succeed({
-              source: regExp.source,
-              flags: regExp.flags
-            })
-        })
-      ),
-    toArbitrary: () => (fc) =>
-      fc
-        .tuple(
-          fc.constantFrom(
-            ".",
-            ".*",
-            "\\d+",
-            "\\w+",
-            "[a-z]+",
-            "[A-Z]+",
-            "[0-9]+",
-            "^[a-zA-Z0-9]+$",
-            "^\\d{4}-\\d{2}-\\d{2}$" // date pattern
-          ),
-          fc
-            .uniqueArray(fc.constantFrom("g", "i", "m", "s", "u", "y"), {
-              minLength: 0,
-              maxLength: 6
-            })
-            .map((flags) => flags.join(""))
-        )
-        .map(([source, flags]) => new globalThis.RegExp(source, flags)),
-    toEquivalence: () => (a, b) => a.source === b.source && a.flags === b.flags
-  }
-)
+export const RegExp: RegExp = instanceOf(globalThis.RegExp, {
+  typeConstructor: {
+    _tag: "RegExp"
+  },
+  generation: {
+    runtime: `Schema.RegExp`,
+    Type: `globalThis.RegExp`
+  },
+  expected: "RegExp",
+  toCodecJson: () =>
+    link<globalThis.RegExp>()(
+      Struct({
+        source: String,
+        flags: String
+      }),
+      Transformation.transformOrFail({
+        decode: (e) =>
+          Effect.try({
+            try: () => new globalThis.RegExp(e.source, e.flags),
+            catch: (e) => new Issue.InvalidValue(Option_.some(e), { message: globalThis.String(e) })
+          }),
+        encode: (regExp) =>
+          Effect.succeed({
+            source: regExp.source,
+            flags: regExp.flags
+          })
+      })
+    ),
+  toArbitrary: () => (fc) =>
+    fc
+      .tuple(
+        fc.constantFrom(
+          ".",
+          ".*",
+          "\\d+",
+          "\\w+",
+          "[a-z]+",
+          "[A-Z]+",
+          "[0-9]+",
+          "^[a-zA-Z0-9]+$",
+          "^\\d{4}-\\d{2}-\\d{2}$" // date pattern
+        ),
+        fc
+          .uniqueArray(fc.constantFrom("g", "i", "m", "s", "u", "y"), {
+            minLength: 0,
+            maxLength: 6
+          })
+          .map((flags) => flags.join(""))
+      )
+      .map(([source, flags]) => new globalThis.RegExp(source, flags)),
+  toEquivalence: () => (a, b) => a.source === b.source && a.flags === b.flags
+})
 
 /**
  * @since 4.0.0
@@ -6311,26 +6138,23 @@ export interface URL extends instanceOf<globalThis.URL> {}
  * @since 4.0.0
  * @category URL
  */
-export const URL: URL = instanceOf(
-  globalThis.URL,
-  {
-    typeConstructor: {
-      _tag: "URL"
-    },
-    generation: {
-      runtime: `Schema.URL`,
-      Type: `globalThis.URL`
-    },
-    expected: "URL",
-    toCodecJson: () =>
-      link<globalThis.URL>()(
-        String.annotate({ expected: "a string that will be decoded as a URL" }),
-        Transformation.urlFromString
-      ),
-    toArbitrary: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s)),
-    toEquivalence: () => (a, b) => a.toString() === b.toString()
-  }
-)
+export const URL: URL = instanceOf(globalThis.URL, {
+  typeConstructor: {
+    _tag: "URL"
+  },
+  generation: {
+    runtime: `Schema.URL`,
+    Type: `globalThis.URL`
+  },
+  expected: "URL",
+  toCodecJson: () =>
+    link<globalThis.URL>()(
+      String.annotate({ expected: "a string that will be decoded as a URL" }),
+      Transformation.urlFromString
+    ),
+  toArbitrary: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s)),
+  toEquivalence: () => (a, b) => a.toString() === b.toString()
+})
 
 /**
  * @since 4.0.0
@@ -6349,8 +6173,9 @@ export interface URLFromString extends decodeTo<URL, String> {}
  * @category URL
  * @since 4.0.0
  */
-export const URLFromString: URLFromString = String.annotate({ expected: "a string that will be decoded as a URL" })
-  .pipe(decodeTo(URL, Transformation.urlFromString)) // TODO: remove duplication with URL schema
+export const URLFromString: URLFromString = String.annotate({
+  expected: "a string that will be decoded as a URL"
+}).pipe(decodeTo(URL, Transformation.urlFromString)) // TODO: remove duplication with URL schema
 
 /**
  * @since 4.0.0
@@ -6365,28 +6190,25 @@ export interface Date extends instanceOf<globalThis.Date> {}
  *
  * @since 4.0.0
  */
-export const Date: Date = instanceOf(
-  globalThis.Date,
-  {
-    typeConstructor: {
-      _tag: "Date"
-    },
-    generation: {
-      runtime: `Schema.Date`,
-      Type: `globalThis.Date`
-    },
-    expected: "Date",
-    toCodecJson: () =>
-      link<globalThis.Date>()(
-        String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" }),
-        Transformation.transform({
-          decode: (s) => new globalThis.Date(s),
-          encode: formatDate
-        })
-      ),
-    toArbitrary: () => (fc, ctx) => fc.date(ctx?.constraints?.date)
-  }
-)
+export const Date: Date = instanceOf(globalThis.Date, {
+  typeConstructor: {
+    _tag: "Date"
+  },
+  generation: {
+    runtime: `Schema.Date`,
+    Type: `globalThis.Date`
+  },
+  expected: "Date",
+  toCodecJson: () =>
+    link<globalThis.Date>()(
+      String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" }),
+      Transformation.transform({
+        decode: (s) => new globalThis.Date(s),
+        encode: formatDate
+      })
+    ),
+  toArbitrary: () => (fc, ctx) => fc.date(ctx?.constraints?.date)
+})
 
 /**
  * @since 4.0.0
@@ -6417,58 +6239,55 @@ export interface Duration extends declare<Duration_.Duration> {}
  *
  * @since 4.0.0
  */
-export const Duration: Duration = declare(
-  Duration_.isDuration,
-  {
-    typeConstructor: {
-      _tag: "effect/Duration"
-    },
-    generation: {
-      runtime: `Schema.Duration`,
-      Type: `Duration.Duration`,
-      importDeclaration: `import * as Duration from "effect/Duration"`
-    },
-    expected: "Duration",
-    toCodecJson: () =>
-      link<Duration_.Duration>()(
-        Union([
-          Struct({ _tag: Literal("Infinity") }),
-          Struct({ _tag: Literal("Nanos"), value: BigInt }),
-          Struct({ _tag: Literal("Millis"), value: Int.check(isGreaterThanOrEqualTo(0)) })
-        ]),
-        Transformation.transform({
-          decode: (e) => {
-            switch (e._tag) {
-              case "Infinity":
-                return Duration_.infinity
-              case "Nanos":
-                return Duration_.nanos(e.value)
-              case "Millis":
-                return Duration_.millis(e.value)
-            }
-          },
-          encode: (duration) => {
-            switch (duration.value._tag) {
-              case "Infinity":
-                return { _tag: "Infinity" } as const
-              case "Nanos":
-                return { _tag: "Nanos", value: duration.value.nanos } as const
-              case "Millis":
-                return { _tag: "Millis", value: duration.value.millis } as const
-            }
+export const Duration: Duration = declare(Duration_.isDuration, {
+  typeConstructor: {
+    _tag: "effect/Duration"
+  },
+  generation: {
+    runtime: `Schema.Duration`,
+    Type: `Duration.Duration`,
+    importDeclaration: `import * as Duration from "effect/Duration"`
+  },
+  expected: "Duration",
+  toCodecJson: () =>
+    link<Duration_.Duration>()(
+      Union([
+        Struct({ _tag: Literal("Infinity") }),
+        Struct({ _tag: Literal("Nanos"), value: BigInt }),
+        Struct({ _tag: Literal("Millis"), value: Int.check(isGreaterThanOrEqualTo(0)) })
+      ]),
+      Transformation.transform({
+        decode: (e) => {
+          switch (e._tag) {
+            case "Infinity":
+              return Duration_.infinity
+            case "Nanos":
+              return Duration_.nanos(e.value)
+            case "Millis":
+              return Duration_.millis(e.value)
           }
-        })
-      ),
-    toArbitrary: () => (fc) =>
-      fc.oneof(
-        fc.constant(Duration_.infinity),
-        fc.bigInt({ min: 0n }).map(Duration_.nanos),
-        fc.maxSafeNat().map(Duration_.millis)
-      ),
-    toFormatter: () => globalThis.String,
-    toEquivalence: () => Duration_.Equivalence
-  }
-)
+        },
+        encode: (duration) => {
+          switch (duration.value._tag) {
+            case "Infinity":
+              return { _tag: "Infinity" } as const
+            case "Nanos":
+              return { _tag: "Nanos", value: duration.value.nanos } as const
+            case "Millis":
+              return { _tag: "Millis", value: duration.value.millis } as const
+          }
+        }
+      })
+    ),
+  toArbitrary: () => (fc) =>
+    fc.oneof(
+      fc.constant(Duration_.infinity),
+      fc.bigInt({ min: 0n }).map(Duration_.nanos),
+      fc.maxSafeNat().map(Duration_.millis)
+    ),
+  toFormatter: () => globalThis.String,
+  toEquivalence: () => Duration_.Equivalence
+})
 
 /**
  * @since 4.0.0
@@ -6705,10 +6524,7 @@ export const FormData: FormData = instanceOf(globalThis.FormData, {
       Array(
         Tuple([
           String,
-          Union([
-            Struct({ _tag: tag("String"), value: String }),
-            Struct({ _tag: tag("File"), value: File })
-          ])
+          Union([Struct({ _tag: tag("String"), value: String }), Struct({ _tag: tag("File"), value: File })])
         ])
       ),
       Transformation.transformOrFail({
@@ -7042,10 +6858,12 @@ export const PropertyKey = Union([Finite, Symbol, String])
  * @since 4.0.0
  */
 export const StandardSchemaV1FailureResult = Struct({
-  issues: Array(Struct({
-    message: String,
-    path: optional(Array(Union([PropertyKey, Struct({ key: PropertyKey })])))
-  }))
+  issues: Array(
+    Struct({
+      message: String,
+      path: optional(Array(Union([PropertyKey, Struct({ key: PropertyKey })])))
+    })
+  )
 })
 
 /**
@@ -7064,7 +6882,7 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
     Boolean,
     Transformation.transform({
       decode: (bit) => bit === 1,
-      encode: (bool) => bool ? 1 : 0
+      encode: (bool) => (bool ? 1 : 0)
     })
   )
 )
@@ -7192,32 +7010,26 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {}
  * @category DateTime
  * @since 4.0.0
  */
-export const DateTimeUtc: DateTimeUtc = declare(
-  (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
-  {
-    typeConstructor: {
-      _tag: "DateTime.Utc"
-    },
-    generation: {
-      runtime: `Schema.DateTimeUtc`,
-      Type: `DateTime.Utc`,
-      importDeclaration: `import * as DateTime from "effect/DateTime"`
-    },
-    expected: "DateTime.Utc",
-    toCodecJson: () =>
-      link<DateTime.Utc>()(
-        String,
-        {
-          decode: Getter.dateTimeUtcFromInput(),
-          encode: Getter.transform(DateTime.formatIso)
-        }
-      ),
-    toArbitrary: () => (fc, ctx) =>
-      fc.date({ noInvalidDate: true, ...ctx?.constraints?.date }).map((date) => DateTime.fromDateUnsafe(date)),
-    toFormatter: () => (utc) => utc.toString(),
-    toEquivalence: () => DateTime.Equivalence
-  }
-)
+export const DateTimeUtc: DateTimeUtc = declare((u) => DateTime.isDateTime(u) && DateTime.isUtc(u), {
+  typeConstructor: {
+    _tag: "DateTime.Utc"
+  },
+  generation: {
+    runtime: `Schema.DateTimeUtc`,
+    Type: `DateTime.Utc`,
+    importDeclaration: `import * as DateTime from "effect/DateTime"`
+  },
+  expected: "DateTime.Utc",
+  toCodecJson: () =>
+    link<DateTime.Utc>()(String, {
+      decode: Getter.dateTimeUtcFromInput(),
+      encode: Getter.transform(DateTime.formatIso)
+    }),
+  toArbitrary: () => (fc, ctx) =>
+    fc.date({ noInvalidDate: true, ...ctx?.constraints?.date }).map((date) => DateTime.fromDateUnsafe(date)),
+  toFormatter: () => (utc) => utc.toString(),
+  toEquivalence: () => DateTime.Equivalence
+})
 
 /**
  * @since 4.0.0
@@ -7305,27 +7117,25 @@ export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.pipe(
 /**
  * @since 4.0.0
  */
-export interface Class<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited> extends
-  Bottom<
-    Self,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    AST.Declaration,
-    decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
-    S["~type.make.in"],
-    S["Iso"],
-    readonly [S],
-    Self,
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface Class<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited> extends Bottom<
+  Self,
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  AST.Declaration,
+  decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
+  S["~type.make.in"],
+  S["Iso"],
+  readonly [S],
+  Self,
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   // intentionally left without `readonly "~rebuild.out": this`
-  new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
+  new (props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
   readonly identifier: string
   readonly fields: S["fields"]
   /**
@@ -7344,9 +7154,11 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
    */
   mapFields<To extends Struct.Fields>(
     f: (fields: S["fields"]) => To,
-    options?: {
-      readonly unsafePreserveChecks?: boolean | undefined
-    } | undefined
+    options?:
+      | {
+          readonly unsafePreserveChecks?: boolean | undefined
+        }
+      | undefined
   ): Struct<Simplify<Readonly<To>>>
 }
 
@@ -7357,9 +7169,11 @@ type AddStaticMembers<C, Static> = C & Pick<Static, Exclude<keyof Static, keyof 
  *
  * @since 4.0.0
  */
-export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
-  extends Class<Self, S, Inherited>
-{
+export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited> extends Class<
+  Self,
+  S,
+  Inherited
+> {
   extend<Extended, Static = {}, Brand = {}>(
     identifier: string
   ): <NewFields extends Struct.Fields>(
@@ -7373,11 +7187,7 @@ export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct
 
 const immerable: unique symbol = globalThis.Symbol.for("immer-draftable") as any
 
-function makeClass<
-  Self,
-  S extends Struct<Struct.Fields>,
-  Inherited extends new(...args: ReadonlyArray<any>) => any
->(
+function makeClass<Self, S extends Struct<Struct.Fields>, Inherited extends new (...args: ReadonlyArray<any>) => any>(
   Inherited: Inherited,
   identifier: string,
   struct: S,
@@ -7411,15 +7221,15 @@ function makeClass<
     declare static readonly "~rebuild.out": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
     declare static readonly "~annotate.in": Annotations.Bottom<Self, readonly [S]>
 
-    declare static readonly "Type": Self
-    declare static readonly "Encoded": S["Encoded"]
-    declare static readonly "DecodingServices": S["DecodingServices"]
-    declare static readonly "EncodingServices": S["EncodingServices"]
+    declare static readonly Type: Self
+    declare static readonly Encoded: S["Encoded"]
+    declare static readonly DecodingServices: S["DecodingServices"]
+    declare static readonly EncodingServices: S["EncodingServices"]
 
     declare static readonly "~type.make.in": S["~type.make.in"]
     declare static readonly "~type.make": Self
     declare static readonly "~type.constructor.default": S["~type.constructor.default"]
-    declare static readonly "Iso": S["Iso"]
+    declare static readonly Iso: S["Iso"]
 
     declare static readonly "~type.mutability": S["~type.mutability"]
     declare static readonly "~type.optionality": S["~type.optionality"]
@@ -7468,16 +7278,18 @@ function makeClass<
     }
     static mapFields<To extends Struct.Fields>(
       f: (fields: S["fields"]) => To,
-      options?: {
-        readonly unsafePreserveChecks?: boolean | undefined
-      } | undefined
+      options?:
+        | {
+            readonly unsafePreserveChecks?: boolean | undefined
+          }
+        | undefined
     ): Struct<Simplify<Readonly<To>>> {
       return struct.mapFields(f, options)
     }
   }
 }
 
-function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
+function getClassTransformation(self: new (...args: ReadonlyArray<any>) => any) {
   return new Transformation.Transformation<any, any, never, never>(
     Getter.transform((input) => new self(input)),
     Getter.passthrough()
@@ -7494,7 +7306,7 @@ function getClassSchemaFactory<S extends Top>(
   annotations: Annotations.Declaration<any, readonly [S]> | undefined
 ) {
   let memo: decodeTo<declareConstructor<any, S["Encoded"], readonly [S]>, S> | undefined
-  return <Self extends (new(...args: ReadonlyArray<any>) => any) & { readonly identifier: string }>(
+  return <Self extends (new (...args: ReadonlyArray<any>) => any) & { readonly identifier: string }>(
     self: Self
   ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
     if (memo === undefined) {
@@ -7503,18 +7315,22 @@ function getClassSchemaFactory<S extends Top>(
         new AST.Declaration(
           [from.ast],
           () => (input, ast) => {
-            return input instanceof self ||
-                Predicate.hasProperty(input, getClassTypeId(identifier)) ?
-              Effect.succeed(input) :
-              Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+            return input instanceof self || Predicate.hasProperty(input, getClassTypeId(identifier))
+              ? Effect.succeed(input)
+              : Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
           },
           {
             identifier,
             [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
             toCodec: ([from]: readonly [Codec<S["Encoded"]>]) => new AST.Link(from.ast, transformation),
-            toArbitrary: ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) => () =>
-              from.map((args) => new self(args)),
-            toFormatter: ([from]: readonly [Formatter<S["Type"]>]) => (t: Self) => `${self.identifier}(${from(t)})`,
+            toArbitrary:
+              ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) =>
+              () =>
+                from.map((args) => new self(args)),
+            toFormatter:
+              ([from]: readonly [Formatter<S["Type"]>]) =>
+              (t: Self) =>
+                `${self.identifier}(${from(t)})`,
             ...annotations
           }
         )
@@ -7534,7 +7350,9 @@ function isStruct(schema: Struct.Fields | Struct<Struct.Fields>): schema is Stru
  * @since 4.0.0
  */
 export const Class: {
-  <Self, Brand = {}>(identifier: string): {
+  <Self, Brand = {}>(
+    identifier: string
+  ): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
@@ -7544,28 +7362,33 @@ export const Class: {
       annotations?: Annotations.Declaration<Self, readonly [S]>
     ): ExtendableClass<Self, S, Brand>
   }
-} = <Self, Brand = {}>(identifier: string) =>
-(
-  schema: Struct.Fields | Struct<Struct.Fields>,
-  annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
-): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
-  const struct = isStruct(schema) ? schema : Struct(schema)
-  return makeClass(Data.Class, identifier, struct, annotations)
-}
+} =
+  <Self, Brand = {}>(identifier: string) =>
+  (
+    schema: Struct.Fields | Struct<Struct.Fields>,
+    annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
+  ): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
+    const struct = isStruct(schema) ? schema : Struct(schema)
+    return makeClass(Data.Class, identifier, struct, annotations)
+  }
 
 /**
  * @since 4.0.0
  */
-export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
-  extends ExtendableClass<Self, S, Inherited>
-{}
+export interface ErrorClass<
+  Self,
+  S extends Top & { readonly fields: Struct.Fields },
+  Inherited
+> extends ExtendableClass<Self, S, Inherited> {}
 
 /**
  * @category Constructors
  * @since 4.0.0
  */
 export const ErrorClass: {
-  <Self, Brand = {}>(identifier: string): {
+  <Self, Brand = {}>(
+    identifier: string
+  ): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
@@ -7575,14 +7398,15 @@ export const ErrorClass: {
       annotations?: Annotations.Declaration<Self, readonly [S]>
     ): ErrorClass<Self, S, Cause_.YieldableError & Brand>
   }
-} = <Self, Brand = {}>(identifier: string) =>
-(
-  schema: Struct.Fields | Struct<Struct.Fields>,
-  annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
-): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
-  const struct = isStruct(schema) ? schema : Struct(schema)
-  return makeClass(core.Error, identifier, struct, annotations)
-}
+} =
+  <Self, Brand = {}>(identifier: string) =>
+  (
+    schema: Struct.Fields | Struct<Struct.Fields>,
+    annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
+  ): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
+    const struct = isStruct(schema) ? schema : Struct(schema)
+    return makeClass(core.Error, identifier, struct, annotations)
+  }
 
 /**
  * @since 4.0.0
@@ -7606,14 +7430,12 @@ export interface RequestClass<
  */
 export const RequestClass =
   <Self, Brand = {}>(identifier: string) =>
-  <Payload extends Struct<Struct.Fields>, Success extends Top, Error extends Top>(
-    options: {
-      readonly payload: Payload
-      readonly success: Success
-      readonly error: Error
-      readonly annotations?: Annotations.Declaration<Self, readonly [Payload]>
-    }
-  ): RequestClass<
+  <Payload extends Struct<Struct.Fields>, Success extends Top, Error extends Top>(options: {
+    readonly payload: Payload
+    readonly success: Success
+    readonly error: Error
+    readonly annotations?: Annotations.Declaration<Self, readonly [Payload]>
+  }): RequestClass<
     Self,
     Payload,
     Success,
@@ -7622,7 +7444,8 @@ export const RequestClass =
       Success["Type"],
       Error["Type"],
       Success["DecodingServices"] | Success["EncodingServices"] | Error["DecodingServices"] | Error["EncodingServices"]
-    > & Brand
+    > &
+      Brand
   > => {
     return class RequestClass extends makeClass(Request.Class, identifier, options.payload, options.annotations) {
       static readonly payload = options.payload
@@ -7681,11 +7504,14 @@ export function overrideToFormatter<S extends Top>(toFormatter: () => Formatter<
  * @category Formatter
  * @since 4.0.0
  */
-export function toFormatter<T>(schema: Schema<T>, options?: {
-  readonly onBefore?:
-    | ((ast: AST.AST, recur: (ast: AST.AST) => Formatter<any>) => Formatter<any> | undefined)
-    | undefined
-}): Formatter<T> {
+export function toFormatter<T>(
+  schema: Schema<T>,
+  options?: {
+    readonly onBefore?:
+      | ((ast: AST.AST, recur: (ast: AST.AST) => Formatter<any>) => Formatter<any> | undefined)
+      | undefined
+  }
+): Formatter<T> {
   return recur(schema.ast)
 
   function recur(ast: AST.AST): Formatter<T> {
@@ -7974,10 +7800,7 @@ type XmlEncoderOptions = {
  * @category Serializer
  * @since 4.0.0
  */
-export function toEncoderXml<T, E, RD, RE>(
-  codec: Codec<T, E, RD, RE>,
-  options?: XmlEncoderOptions
-) {
+export function toEncoderXml<T, E, RD, RE>(codec: Codec<T, E, RD, RE>, options?: XmlEncoderOptions) {
   const rootName = InternalAnnotations.resolveIdentifier(codec.ast) ?? InternalAnnotations.resolveTitle(codec.ast)
   const serialize = encodeEffect(toCodecStringTree(codec))
   return (t: T): Effect.Effect<string, SchemaError, RE> =>
@@ -8096,9 +7919,7 @@ function serializerTree(
     case "Declaration": {
       const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.toCodec
       if (Predicate.isFunction(getLink)) {
-        const tps = AST.isDeclaration(ast)
-          ? ast.typeParameters.map((tp) => make(recur(AST.toEncoded(tp))))
-          : []
+        const tps = AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => make(recur(AST.toEncoded(tp)))) : []
         const link = getLink(tps)
         const to = recur(link.to)
         return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
@@ -8125,14 +7946,7 @@ function serializerTree(
     case "Union": {
       const sortedTypes = treeReorder(ast.types)
       if (sortedTypes !== ast.types) {
-        return new AST.Union(
-          sortedTypes,
-          ast.mode,
-          ast.annotations,
-          ast.checks,
-          ast.encoding,
-          ast.context
-        ).recur(recur)
+        return new AST.Union(sortedTypes, ast.mode, ast.annotations, ast.checks, ast.encoding, ast.context).recur(recur)
       }
       return ast.recur(recur)
     }
@@ -8193,17 +8007,7 @@ const toCodecEnsureArray = AST.toCodec((ast) => {
   const out = onSerializerEnsureArray(ast)
   if (AST.isArrays(out)) {
     const ensure = new AST.Union(
-      [
-        out,
-        AST.decodeTo(
-          AST.string,
-          out,
-          new Transformation.Transformation(
-            Getter.split(),
-            Getter.passthrough()
-          )
-        )
-      ],
+      [out, AST.decodeTo(AST.string, out, new Transformation.Transformation(Getter.split(), Getter.passthrough()))],
       "anyOf",
       { [SERIALIZER_ENSURE_ARRAY]: true }
     )
@@ -8258,25 +8062,23 @@ export function toIsoFocus<S extends Top>(_: S): Optic_.Iso<S["Iso"], S["Iso"]> 
  * @category Optic
  * @since 4.0.0
  */
-export interface overrideToCodecIso<S extends Top, Iso> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    overrideToCodecIso<S, Iso>,
-    S["~type.make.in"],
-    Iso,
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
+export interface overrideToCodecIso<S extends Top, Iso> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  overrideToCodecIso<S, Iso>,
+  S["~type.make.in"],
+  Iso,
+  S["~type.parameters"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
   readonly "~rebuild.out": this
   readonly schema: S
 }
@@ -8350,17 +8152,10 @@ export interface TreeObject<A> {
  * @since 4.0.0
  */
 export function Tree<S extends Top>(node: S) {
-  const Tree$ref = suspend((): Codec<
-    Tree<S["Type"]>,
-    Tree<S["Encoded"]>,
-    S["DecodingServices"],
-    S["EncodingServices"]
-  > => Tree)
-  const Tree = Union([
-    node,
-    Array(Tree$ref),
-    Record(String, Tree$ref)
-  ])
+  const Tree$ref = suspend(
+    (): Codec<Tree<S["Type"]>, Tree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> => Tree
+  )
+  const Tree = Union([node, Array(Tree$ref), Record(String, Tree$ref)])
   return Tree
 }
 
@@ -8383,17 +8178,11 @@ export interface MutableTreeRecord<A> {
  * @since 4.0.0
  */
 export function MutableTree<S extends Top>(node: S) {
-  const MutableTree$ref = suspend((): Codec<
-    MutableTree<S["Type"]>,
-    MutableTree<S["Encoded"]>,
-    S["DecodingServices"],
-    S["EncodingServices"]
-  > => MutableTree)
-  const MutableTree = Union([
-    node,
-    mutable(Array(MutableTree$ref)),
-    Record(String, mutableKey(MutableTree$ref))
-  ])
+  const MutableTree$ref = suspend(
+    (): Codec<MutableTree<S["Type"]>, MutableTree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> =>
+      MutableTree
+  )
+  const MutableTree = Union([node, mutable(Array(MutableTree$ref)), Record(String, mutableKey(MutableTree$ref))])
   return MutableTree
 }
 
@@ -8566,9 +8355,7 @@ export declare namespace Annotations {
      * Accumulated brands when multiple brands are added with `Schema.brand`.
      */
     readonly brands?: ReadonlyArray<string> | undefined
-    readonly toArbitrary?:
-      | ToArbitrary.Declaration<T, TypeParameters>
-      | undefined
+    readonly toArbitrary?: ToArbitrary.Declaration<T, TypeParameters> | undefined
   }
 
   /**
@@ -8593,30 +8380,29 @@ export declare namespace Annotations {
    * @category Model
    * @since 4.0.0
    */
-  export interface Declaration<T, TypeParameters extends ReadonlyArray<Top> = readonly []>
-    extends Bottom<T, TypeParameters>
-  {
-    readonly toCodec?:
-      | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
-      | undefined
-    readonly toCodecJson?:
-      | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
-      | undefined
-    readonly toCodecIso?:
-      | ((typeParameters: TypeParameters.Type<TypeParameters>) => AST.Link)
-      | undefined
+  export interface Declaration<T, TypeParameters extends ReadonlyArray<Top> = readonly []> extends Bottom<
+    T,
+    TypeParameters
+  > {
+    readonly toCodec?: ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link) | undefined
+    readonly toCodecJson?: ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link) | undefined
+    readonly toCodecIso?: ((typeParameters: TypeParameters.Type<TypeParameters>) => AST.Link) | undefined
     readonly toArbitrary?: ToArbitrary.Declaration<T, TypeParameters> | undefined
     readonly toEquivalence?: ToEquivalence.Declaration<T, TypeParameters> | undefined
     readonly toFormatter?: ToFormatter.Declaration<T, TypeParameters> | undefined
-    readonly typeConstructor?: {
-      readonly _tag: string
-    } | undefined
-    readonly generation?: {
-      readonly runtime: string
-      readonly Type: string
-      readonly Encoded?: string | undefined
-      readonly importDeclaration?: string | undefined
-    } | undefined
+    readonly typeConstructor?:
+      | {
+          readonly _tag: string
+        }
+      | undefined
+    readonly generation?:
+      | {
+          readonly runtime: string
+          readonly Type: string
+          readonly Encoded?: string | undefined
+          readonly importDeclaration?: string | undefined
+        }
+      | undefined
     /**
      * Used to collect sentinels from a Declaration AST.
      *
@@ -8641,9 +8427,7 @@ export declare namespace Annotations {
      * Optional metadata used to identify or extend the filter with custom data.
      */
     readonly meta?: Meta | undefined
-    readonly toArbitraryConstraint?:
-      | ToArbitrary.Constraint
-      | undefined
+    readonly toArbitraryConstraint?: ToArbitrary.Constraint | undefined
     /**
      * Marks the filter as *structural*, meaning it applies to the shape or
      * structure of the container (e.g., array length, object keys) rather than

@@ -33,65 +33,78 @@ describe("no-opaque-instance-fields", () => {
   })
 
   const createSchemaOpaqueClass = (members: Array<{ type: string; static: boolean }>) =>
-    createOpaqueClass({
-      type: "MemberExpression",
-      object: { type: "Identifier", name: "Schema" },
-      property: { type: "Identifier", name: "Opaque" }
-    }, members)
+    createOpaqueClass(
+      {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "Schema" },
+        property: { type: "Identifier", name: "Opaque" }
+      },
+      members
+    )
 
   const createSchemaImport = () => ({
     type: "ImportDeclaration",
     source: { type: "Literal", value: "effect" },
-    specifiers: [{
-      type: "ImportSpecifier",
-      imported: { type: "Identifier", name: "Schema" },
-      local: { type: "Identifier", name: "Schema" },
-      importKind: "value"
-    }],
+    specifiers: [
+      {
+        type: "ImportSpecifier",
+        imported: { type: "Identifier", name: "Schema" },
+        local: { type: "Identifier", name: "Schema" },
+        importKind: "value"
+      }
+    ],
     importKind: "value"
   })
 
   const createOpaqueImport = (localName = "Opaque") => ({
     type: "ImportDeclaration",
     source: { type: "Literal", value: "effect/Schema" },
-    specifiers: [{
-      type: "ImportSpecifier",
-      imported: { type: "Identifier", name: "Opaque" },
-      local: { type: "Identifier", name: localName },
-      importKind: "value"
-    }],
+    specifiers: [
+      {
+        type: "ImportSpecifier",
+        imported: { type: "Identifier", name: "Opaque" },
+        local: { type: "Identifier", name: localName },
+        importKind: "value"
+      }
+    ],
     importKind: "value"
   })
 
   const createSchemaNamespaceImport = (localName = "S") => ({
     type: "ImportDeclaration",
     source: { type: "Literal", value: "effect/Schema" },
-    specifiers: [{
-      type: "ImportNamespaceSpecifier",
-      local: { type: "Identifier", name: localName }
-    }],
+    specifiers: [
+      {
+        type: "ImportNamespaceSpecifier",
+        local: { type: "Identifier", name: localName }
+      }
+    ],
     importKind: "value"
   })
 
   const createOtherOpaqueImport = (localName = "Opaque") => ({
     type: "ImportDeclaration",
     source: { type: "Literal", value: "other" },
-    specifiers: [{
-      type: "ImportSpecifier",
-      imported: { type: "Identifier", name: "Opaque" },
-      local: { type: "Identifier", name: localName },
-      importKind: "value"
-    }],
+    specifiers: [
+      {
+        type: "ImportSpecifier",
+        imported: { type: "Identifier", name: "Opaque" },
+        local: { type: "Identifier", name: localName },
+        importKind: "value"
+      }
+    ],
     importKind: "value"
   })
 
   const createOtherNamespaceImport = (localName = "S") => ({
     type: "ImportDeclaration",
     source: { type: "Literal", value: "other" },
-    specifiers: [{
-      type: "ImportNamespaceSpecifier",
-      local: { type: "Identifier", name: localName }
-    }],
+    specifiers: [
+      {
+        type: "ImportNamespaceSpecifier",
+        local: { type: "Identifier", name: localName }
+      }
+    ],
     importKind: "value"
   })
 
@@ -116,9 +129,7 @@ describe("no-opaque-instance-fields", () => {
   })
 
   it("should not report for static fields in Schema.Opaque class", () => {
-    const node = createSchemaOpaqueClass([
-      { type: "PropertyDefinition", static: true }
-    ])
+    const node = createSchemaOpaqueClass([{ type: "PropertyDefinition", static: true }])
     const errors = runRuleWithNodes([
       { visitor: "ImportDeclaration", node: createSchemaImport() },
       { visitor: "ClassDeclaration", node }
@@ -127,9 +138,7 @@ describe("no-opaque-instance-fields", () => {
   })
 
   it("should report for instance fields in Schema.Opaque class", () => {
-    const node = createSchemaOpaqueClass([
-      { type: "PropertyDefinition", static: false }
-    ])
+    const node = createSchemaOpaqueClass([{ type: "PropertyDefinition", static: false }])
     const errors = runRuleWithNodes([
       { visitor: "ImportDeclaration", node: createSchemaImport() },
       { visitor: "ClassDeclaration", node }
@@ -139,18 +148,15 @@ describe("no-opaque-instance-fields", () => {
   })
 
   it("should not report when Schema.Opaque has no Schema import", () => {
-    const node = createSchemaOpaqueClass([
-      { type: "PropertyDefinition", static: false }
-    ])
+    const node = createSchemaOpaqueClass([{ type: "PropertyDefinition", static: false }])
     const errors = runRule(rule, "ClassDeclaration", node)
     expect(errors).toHaveLength(0)
   })
 
   it("should report for instance fields in Opaque class", () => {
-    const node = createOpaqueClass(
-      { type: "Identifier", name: "Opaque" },
-      [{ type: "PropertyDefinition", static: false }]
-    )
+    const node = createOpaqueClass({ type: "Identifier", name: "Opaque" }, [
+      { type: "PropertyDefinition", static: false }
+    ])
     const errors = runRuleWithNodes([
       { visitor: "ImportDeclaration", node: createOpaqueImport() },
       { visitor: "ClassDeclaration", node }
@@ -175,10 +181,9 @@ describe("no-opaque-instance-fields", () => {
   })
 
   it("should not report for Opaque import from other module", () => {
-    const node = createOpaqueClass(
-      { type: "Identifier", name: "Opaque" },
-      [{ type: "PropertyDefinition", static: false }]
-    )
+    const node = createOpaqueClass({ type: "Identifier", name: "Opaque" }, [
+      { type: "PropertyDefinition", static: false }
+    ])
     const errors = runRuleWithNodes([
       { visitor: "ImportDeclaration", node: createOtherOpaqueImport() },
       { visitor: "ClassDeclaration", node }
@@ -216,9 +221,7 @@ describe("no-opaque-instance-fields", () => {
   })
 
   it("should report for instance methods", () => {
-    const node = createSchemaOpaqueClass([
-      { type: "MethodDefinition", static: false }
-    ])
+    const node = createSchemaOpaqueClass([{ type: "MethodDefinition", static: false }])
     const errors = runRuleWithNodes([
       { visitor: "ImportDeclaration", node: createSchemaImport() },
       { visitor: "ClassDeclaration", node }
@@ -227,18 +230,14 @@ describe("no-opaque-instance-fields", () => {
   })
 
   it("should not report for non-Schema.Opaque classes", () => {
-    const node = createRegularClass([
-      { type: "PropertyDefinition", static: false }
-    ])
+    const node = createRegularClass([{ type: "PropertyDefinition", static: false }])
     const errors = runRule(rule, "ClassDeclaration", node)
     expect(errors).toHaveLength(0)
   })
 
   it("should work with ClassExpression", () => {
     const node = {
-      ...createSchemaOpaqueClass([
-        { type: "PropertyDefinition", static: false }
-      ]),
+      ...createSchemaOpaqueClass([{ type: "PropertyDefinition", static: false }]),
       type: "ClassExpression"
     }
     const errors = runRuleWithNodes([

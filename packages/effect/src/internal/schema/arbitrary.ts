@@ -16,10 +16,9 @@ import * as InternalAnnotations from "./annotations.ts"
 const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitraryWithContext<any>>()
 
 function applyChecks(ast: AST.AST, filters: Array<AST.Filter<any>>, arbitrary: FastCheck.Arbitrary<any>) {
-  return filters.map((filter) => (a: any) => filter.run(a, ast, AST.defaultParseOptions) === undefined).reduce(
-    (acc, filter) => acc.filter(filter),
-    arbitrary
-  )
+  return filters
+    .map((filter) => (a: any) => filter.run(a, ast, AST.defaultParseOptions) === undefined)
+    .reduce((acc, filter) => acc.filter(filter), arbitrary)
 }
 
 function isUniqueArrayConstraintsCustomCompare(
@@ -34,11 +33,7 @@ function array(fc: typeof FastCheck, ctx: Schema.Annotations.ToArbitrary.Context
     ? fc.uniqueArray(item, constraint)
     : fc.array(item, constraint)
   if (ctx.isSuspend) {
-    return fc.oneof(
-      { maxDepth: 2, depthIdentifier: "" },
-      fc.constant([]),
-      out
-    )
+    return fc.oneof({ maxDepth: 2, depthIdentifier: "" }, fc.constant([]), out)
   }
   return out
 }
@@ -48,23 +43,26 @@ const min = UndefinedOr.makeReducer(Number.ReducerMin)
 const or = UndefinedOr.makeReducer(Boolean.ReducerOr)
 const concat = UndefinedOr.makeReducer(Array.makeReducerConcat())
 
-const combiner: Combiner.Combiner<any> = Struct.makeCombiner({
-  isInteger: or,
-  max: min,
-  maxExcluded: or,
-  maxLength: min,
-  min: max,
-  minExcluded: or,
-  minLength: max,
-  noDefaultInfinity: or,
-  noInteger: or,
-  noInvalidDate: or,
-  noNaN: or,
-  patterns: concat,
-  comparator: or
-}, {
-  omitKeyWhen: Predicate.isUndefined
-})
+const combiner: Combiner.Combiner<any> = Struct.makeCombiner(
+  {
+    isInteger: or,
+    max: min,
+    maxExcluded: or,
+    maxLength: min,
+    min: max,
+    minExcluded: or,
+    minLength: max,
+    noDefaultInfinity: or,
+    noInteger: or,
+    noInvalidDate: or,
+    noNaN: or,
+    patterns: concat,
+    comparator: or
+  },
+  {
+    omitKeyWhen: Predicate.isUndefined
+  }
+)
 
 type FastCheckConstraint =
   | Schema.Annotations.ToArbitrary.StringConstraints
@@ -101,9 +99,9 @@ function isConstraintKey(key: string): key is keyof Schema.Annotations.ToArbitra
 export function constraintContext(
   filters: Array<AST.Filter<any>>
 ): (ctx: Schema.Annotations.ToArbitrary.Context) => Schema.Annotations.ToArbitrary.Context {
-  const annotations = filters.map((filter) => filter.annotations?.toArbitraryConstraint).filter(
-    Predicate.isNotUndefined
-  )
+  const annotations = filters
+    .map((filter) => filter.annotations?.toArbitraryConstraint)
+    .filter(Predicate.isNotUndefined)
   return (ctx) => {
     const constraints = annotations.reduce((acc: Schema.Annotations.ToArbitrary.Constraint, c) => {
       const keys = Object.keys(c)
@@ -158,11 +156,7 @@ function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWit
     const filters = getFilters(ast.checks)
     const f = constraintContext(filters)
     return (fc, ctx) =>
-      applyChecks(
-        ast,
-        filters,
-        annotation(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, f(ctx))
-      )
+      applyChecks(ast, filters, annotation(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, f(ctx)))
   }
   if (ast.checks) {
     const filters = getFilters(ast.checks)
@@ -230,7 +224,7 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
           if (!AST.isOptional(e)) {
             return out.map(Option.some)
           }
-          return out.chain((a) => fc.boolean().map((b) => b ? Option.some(a) : Option.none()))
+          return out.chain((a) => fc.boolean().map((b) => (b ? Option.some(a) : Option.none())))
         })
         let out = fc.tuple(...elements).map(Array.getSomes)
         // ---------------------------------------------

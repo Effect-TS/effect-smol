@@ -45,16 +45,13 @@ export const stream = (
 export const persisted = (
   source: Readable,
   headers: IncomingHttpHeaders
-): Effect.Effect<
-  Multipart.Persisted,
-  Multipart.MultipartError,
-  Scope.Scope | FileSystem.FileSystem | Path.Path
-> =>
+): Effect.Effect<Multipart.Persisted, Multipart.MultipartError, Scope.Scope | FileSystem.FileSystem | Path.Path> =>
   Multipart.toPersisted(stream(source, headers), (path, file) =>
     Effect.tryPromise({
       try: (signal) => NodeStreamP.pipeline((file as FileImpl).file, NFS.createWriteStream(path), { signal }),
       catch: (cause) => new Multipart.MultipartError({ reason: "InternalError", cause })
-    }))
+    })
+  )
 
 /**
  * @since 1.0.0
@@ -82,10 +79,7 @@ class FieldImpl extends PartBase implements Multipart.Field {
   readonly contentType: string
   readonly value: string
 
-  constructor(
-    info: MP.PartInfo,
-    value: Uint8Array
-  ) {
+  constructor(info: MP.PartInfo, value: Uint8Array) {
     super()
     this.key = info.name
     this.contentType = info.contentType

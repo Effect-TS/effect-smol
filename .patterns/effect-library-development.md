@@ -12,7 +12,7 @@ Fundamental patterns for developing high-quality, type-safe code within the Effe
 
 ```typescript
 // ❌ WRONG - This will cause runtime errors
-Effect.gen(function*() {
+Effect.gen(function* () {
   try {
     const result = yield* someEffect
     return result
@@ -23,7 +23,7 @@ Effect.gen(function*() {
 })
 
 // ✅ CORRECT - Use Effect's built-in error handling
-Effect.gen(function*() {
+Effect.gen(function* () {
   const result = yield* Effect.result(someEffect)
   if (result._tag === "Failure") {
     // Handle error case properly
@@ -56,13 +56,13 @@ const safeValue = Effect.try(() => JSON.parse(jsonString))
 
 ## ✅ MANDATORY PATTERNS
 
-### 🔄 return yield* Pattern for Errors
+### 🔄 return yield\* Pattern for Errors
 
 **CRITICAL**: Always use `return yield*` when yielding terminal effects.
 
 ```typescript
 // ✅ CORRECT - Makes termination explicit
-Effect.gen(function*() {
+Effect.gen(function* () {
   if (invalidCondition) {
     return yield* Effect.fail("Validation failed")
   }
@@ -77,7 +77,7 @@ Effect.gen(function*() {
 })
 
 // ❌ WRONG - Missing return keyword leads to unreachable code
-Effect.gen(function*() {
+Effect.gen(function* () {
   if (invalidCondition) {
     yield* Effect.fail("Validation failed") // Missing return!
     // Unreachable code after error!
@@ -95,7 +95,7 @@ Use `Effect.gen` for sequential operations with proper error propagation:
 import { Console, Effect } from "effect"
 
 const processData = (input: string) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     // Validate input
     if (input.length === 0) {
       return yield* Effect.fail("Input cannot be empty")
@@ -134,7 +134,7 @@ Use for one-off effect composition that doesn't need to be reused as a function:
 import { Effect } from "effect"
 
 // One-off effect, no function wrapper needed
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   const user = yield* fetchUser(id)
   const posts = yield* fetchPosts(user.id)
   return { user, posts }
@@ -149,7 +149,7 @@ Use for reusable effectful functions that benefit from tracing and stack traces:
 import { Effect } from "effect"
 
 // Creates a traced function with span + stack capture
-const fetchUserPosts = Effect.fn("fetchUserPosts")(function*(userId: string) {
+const fetchUserPosts = Effect.fn("fetchUserPosts")(function* (userId: string) {
   yield* Effect.annotateCurrentSpan("userId", userId)
   const user = yield* fetchUser(userId)
   const posts = yield* fetchPosts(user.id)
@@ -164,7 +164,7 @@ await Effect.runPromise(fetchUserPosts("123"))
 
 ```typescript
 const fetchWithTimeout = Effect.fn("fetchWithTimeout")(
-  function*(url: string) {
+  function* (url: string) {
     return yield* Effect.tryPromise(() => fetch(url))
   },
   Effect.timeout("5 seconds"),
@@ -180,9 +180,12 @@ Use for internal implementations where tracing overhead is unacceptable:
 import { Effect, Scope } from "effect"
 
 // No tracing overhead - used in Stream, Channel, Sink internals
-const internalTransform = Effect.fnUntraced(function*(pull, scope) {
+const internalTransform = Effect.fnUntraced(function* (pull, scope) {
   const reader = options.evaluate().getReader()
-  yield* Scope.addFinalizer(scope, Effect.sync(() => reader.releaseLock()))
+  yield* Scope.addFinalizer(
+    scope,
+    Effect.sync(() => reader.releaseLock())
+  )
   // ... internal implementation
 })
 ```
@@ -229,7 +232,7 @@ class NetworkError extends Data.TaggedError("NetworkError")<{
 
 // Use in operations
 const validateAndFetch = (url: string) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     if (!url.startsWith("https://")) {
       return yield* Effect.fail(
         new ValidationError({
@@ -283,7 +286,7 @@ const withDatabase = <A, E>(
 // Usage
 const queryUser = (id: string) =>
   withDatabase((db) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const user = yield* Effect.tryPromise({
         try: () => db.query("SELECT * FROM users WHERE id = ?", [id]),
         catch: (error) => new QueryError({ query: "users", cause: error })
@@ -331,12 +334,12 @@ const DatabaseServiceLive = Layer.succeed(
 
 const UserServiceLive = Layer.effect(
   UserService,
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const db = yield* DatabaseService
 
     return UserService.of({
       getUser: (id) =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const rows = yield* db.query(`SELECT * FROM users WHERE id = '${id}'`)
           if (rows.length === 0) {
             return yield* Effect.fail(new UserError({ message: "User not found" }))
@@ -348,9 +351,7 @@ const UserServiceLive = Layer.effect(
 )
 
 // Compose layers
-const AppLayer = UserServiceLive.pipe(
-  Layer.provide(DatabaseServiceLive)
-)
+const AppLayer = UserServiceLive.pipe(Layer.provide(DatabaseServiceLive))
 ```
 
 ## 🔧 DEVELOPMENT WORKFLOW PATTERNS
@@ -403,7 +404,7 @@ interface FeatureConfig {
 
 // Step 2: Core implementation
 const createFeature = (config: FeatureConfig) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     // Basic implementation
     yield* Console.log("Feature created")
     return { config }
@@ -411,7 +412,7 @@ const createFeature = (config: FeatureConfig) =>
 
 // Step 3: Add error handling
 const createFeatureWithValidation = (config: FeatureConfig) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     if (config.option2 < 0) {
       return yield* Effect.fail("Option2 must be positive")
     }
@@ -494,37 +495,38 @@ import * as ModuleName from "../src/ModuleName.js"
 describe("ModuleName", () => {
   describe("constructors", () => {
     it.effect("create should initialize with config", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const config = { value: 42 }
         const instance = yield* ModuleName.create(config)
 
         assert.deepStrictEqual(instance.config, config)
-      }))
+      })
+    )
   })
 
   describe("combinators", () => {
     it.effect("map should transform instance", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const instance = yield* ModuleName.create({ value: 10 })
         const transformed = yield* ModuleName.map(instance, (x) => x * 2)
 
         assert.strictEqual(transformed.config.value, 20)
-      }))
+      })
+    )
   })
 
   describe("time-dependent operations", () => {
     it.effect("should handle delays properly", () =>
-      Effect.gen(function*() {
-        const fiber = yield* Effect.fork(
-          ModuleName.delayedOperation(Duration.seconds(5))
-        )
+      Effect.gen(function* () {
+        const fiber = yield* Effect.fork(ModuleName.delayedOperation(Duration.seconds(5)))
 
         // Use TestClock to advance time
         yield* TestClock.advance(Duration.seconds(5))
 
         const result = yield* Effect.join(fiber)
         assert.strictEqual(result, "completed")
-      }))
+      })
+    )
   })
 })
 ```

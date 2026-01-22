@@ -22,7 +22,10 @@ describe("Result", () => {
     })
 
     it("try", () => {
-      deepStrictEqual(Result.try(() => 1), Result.succeed(1))
+      deepStrictEqual(
+        Result.try(() => 1),
+        Result.succeed(1)
+      )
       deepStrictEqual(
         Result.try(() => {
           throw "b"
@@ -42,43 +45,40 @@ describe("Result", () => {
     })
 
     it("fromNullable", () => {
-      deepStrictEqual(Result.fromNullishOr(null, () => "fallback"), Result.fail("fallback"))
-      deepStrictEqual(Result.fromNullishOr(undefined, () => "fallback"), Result.fail("fallback"))
-      deepStrictEqual(Result.fromNullishOr(1, () => "fallback"), Result.succeed(1))
+      deepStrictEqual(
+        Result.fromNullishOr(null, () => "fallback"),
+        Result.fail("fallback")
+      )
+      deepStrictEqual(
+        Result.fromNullishOr(undefined, () => "fallback"),
+        Result.fail("fallback")
+      )
+      deepStrictEqual(
+        Result.fromNullishOr(1, () => "fallback"),
+        Result.succeed(1)
+      )
     })
 
     it("fromOption", () => {
-      deepStrictEqual(Result.fromOption(Option.none(), () => "none"), Result.fail("none"))
-      deepStrictEqual(Result.fromOption(Option.some(1), () => "none"), Result.succeed(1))
+      deepStrictEqual(
+        Result.fromOption(Option.none(), () => "none"),
+        Result.fail("none")
+      )
+      deepStrictEqual(
+        Result.fromOption(Option.some(1), () => "none"),
+        Result.succeed(1)
+      )
     })
   })
 
   describe("Methods", () => {
     it("toString", () => {
-      strictEqual(
-        String(Result.succeed(1)),
-        `success(1)`
-      )
-      strictEqual(
-        String(Result.fail("e")),
-        `failure("e")`
-      )
-      strictEqual(
-        String(Result.succeed(Chunk.make(1, 2, 3))),
-        `success(Chunk([1,2,3]))`
-      )
-      strictEqual(
-        String(Result.fail(Chunk.make(1, 2, 3))),
-        `failure(Chunk([1,2,3]))`
-      )
-      strictEqual(
-        String(Result.succeed(Option.some(1))),
-        `success(some(1))`
-      )
-      strictEqual(
-        String(Result.fail(Option.none())),
-        `failure(none())`
-      )
+      strictEqual(String(Result.succeed(1)), `success(1)`)
+      strictEqual(String(Result.fail("e")), `failure("e")`)
+      strictEqual(String(Result.succeed(Chunk.make(1, 2, 3))), `success(Chunk([1,2,3]))`)
+      strictEqual(String(Result.fail(Chunk.make(1, 2, 3))), `failure(Chunk([1,2,3]))`)
+      strictEqual(String(Result.succeed(Option.some(1))), `success(some(1))`)
+      strictEqual(String(Result.fail(Option.none())), `failure(none())`)
     })
 
     it("toJSON", () => {
@@ -138,8 +138,14 @@ describe("Result", () => {
     })
 
     it("getOrElse", () => {
-      strictEqual(Result.getOrElse(Result.succeed(1), (error) => error + "!"), 1)
-      strictEqual(Result.getOrElse(Result.fail("not a number"), (error) => error + "!"), "not a number!")
+      strictEqual(
+        Result.getOrElse(Result.succeed(1), (error) => error + "!"),
+        1
+      )
+      strictEqual(
+        Result.getOrElse(Result.fail("not a number"), (error) => error + "!"),
+        "not a number!"
+      )
     })
 
     it("getOrNull", () => {
@@ -153,8 +159,19 @@ describe("Result", () => {
     })
 
     it("getOrThrowWith", () => {
-      strictEqual(pipe(Result.succeed(1), Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))), 1)
-      throws(() => pipe(Result.fail("e"), Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))))
+      strictEqual(
+        pipe(
+          Result.succeed(1),
+          Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))
+        ),
+        1
+      )
+      throws(() =>
+        pipe(
+          Result.fail("e"),
+          Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))
+        )
+      )
     })
 
     it("getOrThrow", () => {
@@ -213,35 +230,17 @@ describe("Result", () => {
       const isNumberRefinement = (n: string | number): n is number => typeof n === "number"
       const onNumberRefinementError = (n: string | number) => `${n} is not a number`
 
-      assertSuccess(
-        pipe(1, Result.liftPredicate(isPositivePredicate, onPositivePredicateError)),
-        1
-      )
-      assertFailure(
-        pipe(-1, Result.liftPredicate(isPositivePredicate, onPositivePredicateError)),
-        "-1 is not positive"
-      )
-      assertSuccess(
-        pipe(1, Result.liftPredicate(isNumberRefinement, onNumberRefinementError)),
-        1
-      )
+      assertSuccess(pipe(1, Result.liftPredicate(isPositivePredicate, onPositivePredicateError)), 1)
+      assertFailure(pipe(-1, Result.liftPredicate(isPositivePredicate, onPositivePredicateError)), "-1 is not positive")
+      assertSuccess(pipe(1, Result.liftPredicate(isNumberRefinement, onNumberRefinementError)), 1)
       assertFailure(
         pipe("string", Result.liftPredicate(isNumberRefinement, onNumberRefinementError)),
         "string is not a number"
       )
 
-      assertSuccess(
-        Result.liftPredicate(1, isPositivePredicate, onPositivePredicateError),
-        1
-      )
-      assertFailure(
-        Result.liftPredicate(-1, isPositivePredicate, onPositivePredicateError),
-        "-1 is not positive"
-      )
-      assertSuccess(
-        Result.liftPredicate(1, isNumberRefinement, onNumberRefinementError),
-        1
-      )
+      assertSuccess(Result.liftPredicate(1, isPositivePredicate, onPositivePredicateError), 1)
+      assertFailure(Result.liftPredicate(-1, isPositivePredicate, onPositivePredicateError), "-1 is not positive")
+      assertSuccess(Result.liftPredicate(1, isNumberRefinement, onNumberRefinementError), 1)
       assertFailure(
         Result.liftPredicate("string", isNumberRefinement, onNumberRefinementError),
         "string is not a number"
@@ -251,22 +250,64 @@ describe("Result", () => {
 
   describe("Filtering", () => {
     it("filterOrFail", () => {
-      deepStrictEqual(Result.filterOrFail(Result.succeed(1), (n) => n > 0, () => "a"), Result.succeed(1))
-      deepStrictEqual(Result.filterOrFail(Result.succeed(1), (n) => n > 1, () => "a"), Result.fail("a"))
-      deepStrictEqual(Result.filterOrFail(Result.fail(1), (n) => n > 0, () => "a"), Result.fail(1))
+      deepStrictEqual(
+        Result.filterOrFail(
+          Result.succeed(1),
+          (n) => n > 0,
+          () => "a"
+        ),
+        Result.succeed(1)
+      )
+      deepStrictEqual(
+        Result.filterOrFail(
+          Result.succeed(1),
+          (n) => n > 1,
+          () => "a"
+        ),
+        Result.fail("a")
+      )
+      deepStrictEqual(
+        Result.filterOrFail(
+          Result.fail(1),
+          (n) => n > 0,
+          () => "a"
+        ),
+        Result.fail(1)
+      )
 
-      deepStrictEqual(Result.succeed(1).pipe(Result.filterOrFail((n) => n > 0, () => "a")), Result.succeed(1))
-      deepStrictEqual(Result.succeed(1).pipe(Result.filterOrFail((n) => n > 1, () => "a")), Result.fail("a"))
-      deepStrictEqual(Result.fail(1).pipe(Result.filterOrFail((n) => n > 0, () => "a")), Result.fail(1))
+      deepStrictEqual(
+        Result.succeed(1).pipe(
+          Result.filterOrFail(
+            (n) => n > 0,
+            () => "a"
+          )
+        ),
+        Result.succeed(1)
+      )
+      deepStrictEqual(
+        Result.succeed(1).pipe(
+          Result.filterOrFail(
+            (n) => n > 1,
+            () => "a"
+          )
+        ),
+        Result.fail("a")
+      )
+      deepStrictEqual(
+        Result.fail(1).pipe(
+          Result.filterOrFail(
+            (n) => n > 0,
+            () => "a"
+          )
+        ),
+        Result.fail(1)
+      )
     })
   })
 
   describe("Equivalence", () => {
     it("makeEquivalence", () => {
-      const isEquivalent = Result.makeEquivalence(
-        Equivalence.strictEqual<number>(),
-        Equivalence.strictEqual<string>()
-      )
+      const isEquivalent = Result.makeEquivalence(Equivalence.strictEqual<number>(), Equivalence.strictEqual<string>())
       deepStrictEqual(isEquivalent(Result.succeed(1), Result.succeed(1)), true)
       deepStrictEqual(isEquivalent(Result.succeed(1), Result.succeed(2)), false)
       deepStrictEqual(isEquivalent(Result.succeed(1), Result.fail("foo")), false)
@@ -284,16 +325,43 @@ describe("Result", () => {
     })
 
     it("andThen", () => {
-      assertSuccess(pipe(Result.succeed(1), Result.andThen(() => Result.succeed(2))), 2)
+      assertSuccess(
+        pipe(
+          Result.succeed(1),
+          Result.andThen(() => Result.succeed(2))
+        ),
+        2
+      )
       assertSuccess(pipe(Result.succeed(1), Result.andThen(Result.succeed(2))), 2)
       assertSuccess(pipe(Result.succeed(1), Result.andThen(2)), 2)
-      assertSuccess(pipe(Result.succeed(1), Result.andThen(() => 2)), 2)
-      assertSuccess(pipe(Result.succeed(1), Result.andThen((a) => a)), 1)
-      assertSuccess(Result.andThen(Result.succeed(1), () => Result.succeed(2)), 2)
+      assertSuccess(
+        pipe(
+          Result.succeed(1),
+          Result.andThen(() => 2)
+        ),
+        2
+      )
+      assertSuccess(
+        pipe(
+          Result.succeed(1),
+          Result.andThen((a) => a)
+        ),
+        1
+      )
+      assertSuccess(
+        Result.andThen(Result.succeed(1), () => Result.succeed(2)),
+        2
+      )
       assertSuccess(Result.andThen(Result.succeed(1), Result.succeed(2)), 2)
-      assertSuccess(Result.andThen(Result.succeed(1), () => 2), 2)
+      assertSuccess(
+        Result.andThen(Result.succeed(1), () => 2),
+        2
+      )
       assertSuccess(Result.andThen(Result.succeed(1), 2), 2)
-      assertSuccess(Result.andThen(Result.succeed(1), (a) => a), 1)
+      assertSuccess(
+        Result.andThen(Result.succeed(1), (a) => a),
+        1
+      )
     })
 
     it("all", () => {
@@ -312,10 +380,34 @@ describe("Result", () => {
 
   describe("Error Handling", () => {
     it("orElse", () => {
-      assertSuccess(pipe(Result.succeed(1), Result.orElse(() => Result.succeed(2))), 1)
-      assertSuccess(pipe(Result.succeed(1), Result.orElse(() => Result.fail("b"))), 1)
-      assertSuccess(pipe(Result.fail("a"), Result.orElse(() => Result.succeed(2))), 2)
-      assertFailure(pipe(Result.fail("a"), Result.orElse(() => Result.fail("b"))), "b")
+      assertSuccess(
+        pipe(
+          Result.succeed(1),
+          Result.orElse(() => Result.succeed(2))
+        ),
+        1
+      )
+      assertSuccess(
+        pipe(
+          Result.succeed(1),
+          Result.orElse(() => Result.fail("b"))
+        ),
+        1
+      )
+      assertSuccess(
+        pipe(
+          Result.fail("a"),
+          Result.orElse(() => Result.succeed(2))
+        ),
+        2
+      )
+      assertFailure(
+        pipe(
+          Result.fail("a"),
+          Result.orElse(() => Result.fail("b"))
+        ),
+        "b"
+      )
     })
   })
 
@@ -332,58 +424,96 @@ describe("Result", () => {
     })
 
     it("bind", () => {
-      assertSuccess(pipe(Result.succeed(1), Result.bindTo("a"), Result.bind("b", ({ a }) => Result.succeed(a + 1))), {
-        a: 1,
-        b: 2
-      })
+      assertSuccess(
+        pipe(
+          Result.succeed(1),
+          Result.bindTo("a"),
+          Result.bind("b", ({ a }) => Result.succeed(a + 1))
+        ),
+        {
+          a: 1,
+          b: 2
+        }
+      )
       assertFailure(
-        pipe(Result.succeed(1), Result.bindTo("a"), Result.bind("b", () => Result.fail("left"))),
+        pipe(
+          Result.succeed(1),
+          Result.bindTo("a"),
+          Result.bind("b", () => Result.fail("left"))
+        ),
         "left"
       )
       assertFailure(
-        pipe(Result.fail("left"), Result.bindTo("a"), Result.bind("b", () => Result.succeed(2))),
+        pipe(
+          Result.fail("left"),
+          Result.bindTo("a"),
+          Result.bind("b", () => Result.succeed(2))
+        ),
         "left"
       )
-      assertSuccess(pipe(Result.Do, Result.bind("__proto__", () => Result.succeed(1))), { ["__proto__"]: 1 })
+      assertSuccess(
+        pipe(
+          Result.Do,
+          Result.bind("__proto__", () => Result.succeed(1))
+        ),
+        { ["__proto__"]: 1 }
+      )
     })
 
     it("let", () => {
-      assertSuccess(pipe(Result.succeed(1), Result.bindTo("a"), Result.let("b", ({ a }) => a + 1)), { a: 1, b: 2 })
+      assertSuccess(
+        pipe(
+          Result.succeed(1),
+          Result.bindTo("a"),
+          Result.let("b", ({ a }) => a + 1)
+        ),
+        { a: 1, b: 2 }
+      )
       assertFailure(
-        pipe(Result.fail("left"), Result.bindTo("a"), Result.let("b", () => 2)),
+        pipe(
+          Result.fail("left"),
+          Result.bindTo("a"),
+          Result.let("b", () => 2)
+        ),
         "left"
       )
-      assertSuccess(pipe(Result.Do, Result.let("__proto__", () => 1)), { ["__proto__"]: 1 })
+      assertSuccess(
+        pipe(
+          Result.Do,
+          Result.let("__proto__", () => 1)
+        ),
+        { ["__proto__"]: 1 }
+      )
     })
   })
 
   describe("Generators", () => {
     it("gen", () => {
-      const a = Result.gen(function*() {
+      const a = Result.gen(function* () {
         const x = yield* Result.succeed(1)
         const y = yield* Result.succeed(2)
         return x + y
       })
-      const b = Result.gen(function*() {
+      const b = Result.gen(function* () {
         return 10
       })
-      const c = Result.gen(function*() {
+      const c = Result.gen(function* () {
         yield* Result.succeed(1)
         yield* Result.succeed(2)
       })
-      const d = Result.gen(function*() {
+      const d = Result.gen(function* () {
         yield* Result.succeed(1)
         return yield* Result.succeed(2)
       })
-      const e = Result.gen(function*() {
+      const e = Result.gen(function* () {
         yield* Result.succeed(1)
         yield* Result.fail("err")
         return yield* Result.succeed(2)
       })
-      const f = Result.gen(function*() {
+      const f = Result.gen(function* () {
         yield* Result.fail("err")
       })
-      const g = Result.gen({ context: "testContext" as const }, function*() {
+      const g = Result.gen({ context: "testContext" as const }, function* () {
         return yield* Result.succeed(this.context)
       })
 

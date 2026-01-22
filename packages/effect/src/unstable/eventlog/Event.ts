@@ -81,37 +81,21 @@ export interface AnyWithProps extends Any {}
  * @since 4.0.0
  * @category models
  */
-export type ToService<A> = A extends Event<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ? EventHandler<_Tag> :
-  never
+export type ToService<A> =
+  A extends Event<infer _Tag, infer _Payload, infer _Success, infer _Error> ? EventHandler<_Tag> : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Tag<A> = A extends Event<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ? _Tag :
-  never
+export type Tag<A> = A extends Event<infer _Tag, infer _Payload, infer _Success, infer _Error> ? _Tag : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ErrorSchema<A extends Any> = A extends Event<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ? _Error
-  : never
+export type ErrorSchema<A extends Any> =
+  A extends Event<infer _Tag, infer _Payload, infer _Success, infer _Error> ? _Error : never
 
 /**
  * @since 4.0.0
@@ -123,37 +107,24 @@ export type Error<A extends Any> = Schema.Schema.Type<ErrorSchema<A>>
  * @since 4.0.0
  * @category models
  */
-export type AddError<A extends Any, Error extends Schema.Top> = A extends Event<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ? Event<_Tag, _Payload, _Success, _Error | Error>
-  : never
+export type AddError<A extends Any, Error extends Schema.Top> =
+  A extends Event<infer _Tag, infer _Payload, infer _Success, infer _Error>
+    ? Event<_Tag, _Payload, _Success, _Error | Error>
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type PayloadSchema<A extends Any> = A extends Event<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ? _Payload
-  : never
+export type PayloadSchema<A extends Any> =
+  A extends Event<infer _Tag, infer _Payload, infer _Success, infer _Error> ? _Payload : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type PayloadSchemaWithTag<A extends Any, Tag extends string> = A extends Event<
-  Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ? _Payload
-  : never
+export type PayloadSchemaWithTag<A extends Any, Tag extends string> =
+  A extends Event<Tag, infer _Payload, infer _Success, infer _Error> ? _Payload : never
 
 /**
  * @since 4.0.0
@@ -165,28 +136,20 @@ export type Payload<A extends Any> = Schema.Schema.Type<PayloadSchema<A>>
  * @since 4.0.0
  * @category models
  */
-export type TaggedPayload<A extends Any> = A extends Event<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ? {
-    readonly _tag: _Tag
-    readonly payload: Schema.Schema.Type<_Payload>
-  }
-  : never
+export type TaggedPayload<A extends Any> =
+  A extends Event<infer _Tag, infer _Payload, infer _Success, infer _Error>
+    ? {
+        readonly _tag: _Tag
+        readonly payload: Schema.Schema.Type<_Payload>
+      }
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type SuccessSchema<A extends Any> = A extends Event<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ? _Success
-  : never
+export type SuccessSchema<A extends Any> =
+  A extends Event<infer _Tag, infer _Payload, infer _Success, infer _Error> ? _Success : never
 
 /**
  * @since 4.0.0
@@ -198,49 +161,34 @@ export type Success<A extends Any> = Schema.Schema.Type<SuccessSchema<A>>
  * @since 4.0.0
  * @category models
  */
-export type ServicesClient<A> = A extends Event<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ?
-    | _Payload["EncodingServices"]
-    | _Success["DecodingServices"]
-    | _Error["DecodingServices"]
-  : never
+export type ServicesClient<A> =
+  A extends Event<infer _Tag, infer _Payload, infer _Success, infer _Error>
+    ? _Payload["EncodingServices"] | _Success["DecodingServices"] | _Error["DecodingServices"]
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ServicesServer<A> = A extends Event<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ?
-    | _Payload["DecodingServices"]
-    | _Success["EncodingServices"]
-    | _Error["EncodingServices"]
-  : never
+export type ServicesServer<A> =
+  A extends Event<infer _Tag, infer _Payload, infer _Success, infer _Error>
+    ? _Payload["DecodingServices"] | _Success["EncodingServices"] | _Error["EncodingServices"]
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Services<A> = A extends Event<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ?
-    | _Payload["DecodingServices"]
-    | _Success["EncodingServices"]
-    | _Error["EncodingServices"]
-    | _Payload["EncodingServices"]
-    | _Success["DecodingServices"]
-    | _Error["DecodingServices"]
-  : never
+export type Services<A> =
+  A extends Event<infer _Tag, infer _Payload, infer _Success, infer _Error>
+    ?
+        | _Payload["DecodingServices"]
+        | _Success["EncodingServices"]
+        | _Error["EncodingServices"]
+        | _Payload["EncodingServices"]
+        | _Success["DecodingServices"]
+        | _Error["DecodingServices"]
+    : never
 
 /**
  * @since 4.0.0
@@ -326,10 +274,7 @@ export function make(options: {
  * @since 4.0.0
  * @category constructors
  */
-export function addError<A extends Any, Error2 extends Schema.Top>(
-  event: A,
-  error: Error2
-): AddError<A, Error2>
+export function addError<A extends Any, Error2 extends Schema.Top>(event: A, error: Error2): AddError<A, Error2>
 export function addError(event: Any, error: Schema.Top): Any {
   return make({
     tag: event.tag,

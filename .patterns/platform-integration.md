@@ -38,11 +38,14 @@ Use service classes for type-safe dependency injection:
 
 ```typescript
 // HTTP platform service
-export class HttpPlatform extends ServiceMap.Service<HttpPlatform, {
-  readonly fileResponse: (path: string, options?: FileResponseOptions) => Effect.Effect<Response>
-  readonly fileWebResponse: (file: FileLike, options?: FileWebResponseOptions) => Effect.Effect<Response>
-  readonly formData: (source: Readable) => Effect.Effect<FormData>
-}>()("effect/http/HttpPlatform") {}
+export class HttpPlatform extends ServiceMap.Service<
+  HttpPlatform,
+  {
+    readonly fileResponse: (path: string, options?: FileResponseOptions) => Effect.Effect<Response>
+    readonly fileWebResponse: (file: FileLike, options?: FileWebResponseOptions) => Effect.Effect<Response>
+    readonly formData: (source: Readable) => Effect.Effect<FormData>
+  }
+>()("effect/http/HttpPlatform") {}
 
 // Socket service
 export class NetSocket extends ServiceMap.Service<NetSocket, Net.Socket>()(
@@ -61,15 +64,9 @@ import * as FileSystem from "effect/platform/FileSystem"
 import * as NFS from "node:fs/promises"
 
 // Effectify Node.js callback APIs
-const nodeAccess = effectify(
-  NFS.access,
-  handleErrnoException("FileSystem", "access")
-)
+const nodeAccess = effectify(NFS.access, handleErrnoException("FileSystem", "access"))
 
-const nodeReadFile = effectify(
-  NFS.readFile,
-  handleErrnoException("FileSystem", "readFile")
-)
+const nodeReadFile = effectify(NFS.readFile, handleErrnoException("FileSystem", "readFile"))
 
 // Core implementation
 const make = (): FileSystem.FileSystem => ({
@@ -82,10 +79,7 @@ const make = (): FileSystem.FileSystem => ({
     return nodeAccess(path, mode)
   },
 
-  readFile: (path: string) =>
-    nodeReadFile(path).pipe(
-      Effect.map((buffer) => new Uint8Array(buffer))
-    ),
+  readFile: (path: string) => nodeReadFile(path).pipe(Effect.map((buffer) => new Uint8Array(buffer))),
 
   writeFile: (path: string, data: Uint8Array) => nodeWriteFile(path, data)
   // ... other methods
@@ -119,7 +113,8 @@ Convert platform-specific errors to structured Effect errors:
 ```typescript
 // packages/platform-node-shared/src/internal/utils.ts
 export const handleErrnoException =
-  (module: string, method: string) => (err: NodeJS.ErrnoException, args: Array<any>): PlatformError.PlatformError => {
+  (module: string, method: string) =>
+  (err: NodeJS.ErrnoException, args: Array<any>): PlatformError.PlatformError => {
     switch (err.code) {
       case "ENOENT":
         return new PlatformError.SystemError({
@@ -163,11 +158,7 @@ export const handleErrnoException =
 // Usage with effectify (from effect/Effect)
 import { effectify } from "effect/Effect"
 
-const nodeAccess = effectify(
-  NFS.access,
-  handleErrnoException("FileSystem", "access"),
-  handleBadArgument("access")
-)
+const nodeAccess = effectify(NFS.access, handleErrnoException("FileSystem", "access"), handleBadArgument("access"))
 
 const nodeCopyFile = effectify(
   NFS.copyFile,
@@ -219,24 +210,15 @@ Combine related services into unified layers:
 
 ```typescript
 // packages/platform-node/src/NodeServices.ts
-export const layer: Layer.Layer<
-  FileSystem.FileSystem | Path.Path
-> = Layer.mergeAll(
+export const layer: Layer.Layer<FileSystem.FileSystem | Path.Path> = Layer.mergeAll(
   NodeFileSystem.layer,
   NodePath.layer
 )
 
 // HTTP server with all dependencies
 export const layerHttpServices: Layer.Layer<
-  | FileSystem.FileSystem
-  | Path.Path
-  | HttpPlatform.HttpPlatform
-  | Etag.Generator
-> = Layer.mergeAll(
-  NodeHttpPlatform.layer,
-  Etag.layerWeak,
-  NodeServices.layer
-)
+  FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform | Etag.Generator
+> = Layer.mergeAll(NodeHttpPlatform.layer, Etag.layerWeak, NodeServices.layer)
 ```
 
 ### Test Layer Pattern
@@ -300,7 +282,7 @@ export const fromReadableChannel = <A = Uint8Array, E = Cause.UnknownError>(opti
     readableToPullUnsafe({
       scope,
       readable: options.evaluate(),
-      onError: options.onError ?? defaultOnError as any,
+      onError: options.onError ?? (defaultOnError as any),
       chunkSize: options.chunkSize,
       closeOnDone: options.closeOnDone
     })
@@ -313,36 +295,38 @@ Bun provides an optimized stream conversion using the `.readMany()` API:
 
 ```typescript
 // packages/platform-bun/src/BunStream.ts
-export const fromReadableStream = <A, E>(
-  options: {
-    readonly evaluate: LazyArg<ReadableStream<A>>
-    readonly onError: (error: unknown) => E
-    readonly releaseLockOnEnd?: boolean | undefined
-  }
-): Stream.Stream<A, E> =>
-  Stream.fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
-    const reader = options.evaluate().getReader()
-    yield* Scope.addFinalizer(
-      scope,
-      options.releaseLockOnEnd ? Effect.sync(() => reader.releaseLock()) : Effect.promise(() => reader.cancel())
+export const fromReadableStream = <A, E>(options: {
+  readonly evaluate: LazyArg<ReadableStream<A>>
+  readonly onError: (error: unknown) => E
+  readonly releaseLockOnEnd?: boolean | undefined
+}): Stream.Stream<A, E> =>
+  Stream.fromChannel(
+    Channel.fromTransform(
+      Effect.fnUntraced(function* (_, scope) {
+        const reader = options.evaluate().getReader()
+        yield* Scope.addFinalizer(
+          scope,
+          options.releaseLockOnEnd ? Effect.sync(() => reader.releaseLock()) : Effect.promise(() => reader.cancel())
+        )
+        const readMany = Effect.callback<Bun.ReadableStreamDefaultReadManyResult<A>, E>((resume) => {
+          const result = reader.readMany()
+          if ("then" in result) {
+            result.then(
+              (_) => resume(Effect.succeed(_)),
+              (e) => resume(Effect.fail(options.onError(e)))
+            )
+          } else {
+            resume(Effect.succeed(result))
+          }
+        })
+        return Effect.flatMap(readMany, function loop({ done, value }): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
+          if (done) return Pull.haltVoid
+          if (!Arr.isReadonlyArrayNonEmpty(value)) return Effect.flatMap(readMany, loop)
+          return Effect.succeed(value)
+        })
+      })
     )
-    const readMany = Effect.callback<Bun.ReadableStreamDefaultReadManyResult<A>, E>((resume) => {
-      const result = reader.readMany()
-      if ("then" in result) {
-        result.then((_) => resume(Effect.succeed(_)), (e) => resume(Effect.fail(options.onError(e))))
-      } else {
-        resume(Effect.succeed(result))
-      }
-    })
-    return Effect.flatMap(
-      readMany,
-      function loop({ done, value }): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
-        if (done) return Pull.haltVoid
-        if (!Arr.isReadonlyArrayNonEmpty(value)) return Effect.flatMap(readMany, loop)
-        return Effect.succeed(value)
-      }
-    )
-  })))
+  )
 ```
 
 ### Stream to Node.js Readable
@@ -352,10 +336,7 @@ Convert Effect streams back to Node.js Readable streams:
 ```typescript
 // packages/platform-node-shared/src/NodeStream.ts
 export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R>): Effect.Effect<Readable, never, R> =>
-  Effect.map(
-    Effect.services<R>(),
-    (context) => new StreamAdapter(context, stream)
-  )
+  Effect.map(Effect.services<R>(), (context) => new StreamAdapter(context, stream))
 
 export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E, never>): Readable =>
   new StreamAdapter(ServiceMap.empty(), stream)
@@ -369,21 +350,19 @@ Proper cleanup using Effect's Scope system:
 
 ```typescript
 // HTTP Server with automatic cleanup
-export const make = Effect.fnUntraced(function*(
-  evaluate: LazyArg<NodeHttp.Server>,
-  options: Net.ListenOptions
-) {
+export const make = Effect.fnUntraced(function* (evaluate: LazyArg<NodeHttp.Server>, options: Net.ListenOptions) {
   const scope = yield* Effect.scope
   const server = evaluate()
 
   // Ensure server is closed when scope closes
   yield* Scope.addFinalizer(
     scope,
-    Effect.promise(() =>
-      new Promise<void>((resolve, reject) => {
-        if (!server.listening) return resolve()
-        server.close((error) => error ? reject(error) : resolve())
-      })
+    Effect.promise(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          if (!server.listening) return resolve()
+          server.close((error) => (error ? reject(error) : resolve()))
+        })
     )
   )
 
@@ -412,7 +391,7 @@ Managed resource pools for expensive resources:
 ```typescript
 // Database connection pool example
 const makeConnectionPool = (config: PoolConfig) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const pool = yield* Pool.make({
       acquire: createConnection(config.connectionString),
       size: config.poolSize
@@ -421,11 +400,7 @@ const makeConnectionPool = (config: PoolConfig) =>
     return {
       withConnection: <A, E, R>(
         operation: (conn: Connection) => Effect.Effect<A, E, R>
-      ): Effect.Effect<A, E | PoolError, R> =>
-        Pool.get(pool).pipe(
-          Effect.flatMap(operation),
-          Effect.scoped
-        )
+      ): Effect.Effect<A, E | PoolError, R> => Pool.get(pool).pipe(Effect.flatMap(operation), Effect.scoped)
     }
   })
 ```
@@ -450,13 +425,13 @@ const mockFileSystem: FileSystem.FileSystem = {
     return path in mockFiles
       ? Effect.succeed(new TextEncoder().encode(mockFiles[path]))
       : Effect.fail(
-        new PlatformError.SystemError({
-          module: "FileSystem",
-          method: "readFile",
-          reason: "NotFound",
-          pathOrDescriptor: path
-        })
-      )
+          new PlatformError.SystemError({
+            module: "FileSystem",
+            method: "readFile",
+            reason: "NotFound",
+            pathOrDescriptor: path
+          })
+        )
   }
   // ... other mocked methods
 }
@@ -471,7 +446,7 @@ export const testLayer: Layer.Layer<FileSystem.FileSystem> = Layer.succeed(FileS
 // Test that works across all platforms
 describe("FileSystem", () => {
   it.effect("should read and write files", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const testData = new TextEncoder().encode("test content")
 
@@ -481,7 +456,8 @@ describe("FileSystem", () => {
       assert.deepStrictEqual(content, testData)
     }).pipe(
       Effect.provide(NodeFileSystem.layer) // Can be swapped for other platforms
-    ))
+    )
+  )
 })
 ```
 

@@ -13,11 +13,14 @@ import type { TraceData } from "./OtlpTracer.ts"
  * @since 4.0.0
  * @category Services
  */
-export class OtlpSerialization extends ServiceMap.Service<OtlpSerialization, {
-  readonly traces: (data: TraceData) => HttpBody.HttpBody
-  readonly metrics: (data: MetricsData) => HttpBody.HttpBody
-  readonly logs: (data: LogsData) => HttpBody.HttpBody
-}>()("effect/observability/OtlpSerialization") {}
+export class OtlpSerialization extends ServiceMap.Service<
+  OtlpSerialization,
+  {
+    readonly traces: (data: TraceData) => HttpBody.HttpBody
+    readonly metrics: (data: MetricsData) => HttpBody.HttpBody
+    readonly logs: (data: LogsData) => HttpBody.HttpBody
+  }
+>()("effect/observability/OtlpSerialization") {}
 
 /**
  * @since 4.0.0
@@ -34,19 +37,7 @@ export const layerJson = Layer.succeed(OtlpSerialization, {
  * @category Layers
  */
 export const layerProtobuf = Layer.succeed(OtlpSerialization, {
-  traces: (spans) =>
-    HttpBody.uint8Array(
-      otlpProtobuf.encodeTracesData(spans as any),
-      "application/x-protobuf"
-    ),
-  metrics: (metrics) =>
-    HttpBody.uint8Array(
-      otlpProtobuf.encodeMetricsData(metrics as any),
-      "application/x-protobuf"
-    ),
-  logs: (logs) =>
-    HttpBody.uint8Array(
-      otlpProtobuf.encodeLogsData(logs as any),
-      "application/x-protobuf"
-    )
+  traces: (spans) => HttpBody.uint8Array(otlpProtobuf.encodeTracesData(spans as any), "application/x-protobuf"),
+  metrics: (metrics) => HttpBody.uint8Array(otlpProtobuf.encodeMetricsData(metrics as any), "application/x-protobuf"),
+  logs: (logs) => HttpBody.uint8Array(otlpProtobuf.encodeLogsData(logs as any), "application/x-protobuf")
 })

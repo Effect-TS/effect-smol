@@ -20,22 +20,25 @@ const InnerCategory = Schema.Struct({
 })
 
 describe("toCodeDocument", () => {
-  function assertToCodeDocument(input: {
-    readonly schema: Schema.Top
-    readonly reviver?: SchemaRepresentation.Reviver<SchemaRepresentation.Code> | undefined
-  }, expected: {
-    readonly codes: SchemaRepresentation.Code | ReadonlyArray<SchemaRepresentation.Code>
-    readonly references?: {
-      readonly nonRecursives?: ReadonlyArray<{
-        readonly $ref: string
-        readonly code: SchemaRepresentation.Code
-      }>
-      readonly recursives?: {
-        readonly [$ref: string]: SchemaRepresentation.Code
+  function assertToCodeDocument(
+    input: {
+      readonly schema: Schema.Top
+      readonly reviver?: SchemaRepresentation.Reviver<SchemaRepresentation.Code> | undefined
+    },
+    expected: {
+      readonly codes: SchemaRepresentation.Code | ReadonlyArray<SchemaRepresentation.Code>
+      readonly references?: {
+        readonly nonRecursives?: ReadonlyArray<{
+          readonly $ref: string
+          readonly code: SchemaRepresentation.Code
+        }>
+        readonly recursives?: {
+          readonly [$ref: string]: SchemaRepresentation.Code
+        }
       }
+      readonly artifacts?: ReadonlyArray<SchemaRepresentation.Artifact>
     }
-    readonly artifacts?: ReadonlyArray<SchemaRepresentation.Artifact>
-  }) {
+  ) {
     const multiDocument = SchemaRepresentation.fromASTs([input.schema.ast])
     const codeDocument = SchemaRepresentation.toCodeDocument(multiDocument, { reviver: input.reviver })
     deepStrictEqual(codeDocument, {
@@ -51,70 +54,99 @@ describe("toCodeDocument", () => {
   const makeCode = SchemaRepresentation.makeCode
 
   describe("options", () => {
-    it("sanitizeReference", () => {
-    })
+    it("sanitizeReference", () => {})
   })
 
   describe("Declaration", () => {
     it("declaration without typeConstructor annotation", () => {
-      assertToCodeDocument({ schema: Schema.instanceOf(URL) }, {
-        codes: makeCode("Schema.Null", "null")
-      })
+      assertToCodeDocument(
+        { schema: Schema.instanceOf(URL) },
+        {
+          codes: makeCode("Schema.Null", "null")
+        }
+      )
     })
 
     it("Error", () => {
-      assertToCodeDocument({ schema: Schema.Error }, {
-        codes: makeCode(`Schema.Error`, "globalThis.Error")
-      })
+      assertToCodeDocument(
+        { schema: Schema.Error },
+        {
+          codes: makeCode(`Schema.Error`, "globalThis.Error")
+        }
+      )
     })
 
     it("RegExp", () => {
-      assertToCodeDocument({ schema: Schema.RegExp }, {
-        codes: makeCode(`Schema.RegExp`, "globalThis.RegExp")
-      })
+      assertToCodeDocument(
+        { schema: Schema.RegExp },
+        {
+          codes: makeCode(`Schema.RegExp`, "globalThis.RegExp")
+        }
+      )
     })
 
     it("URL", () => {
-      assertToCodeDocument({ schema: Schema.URL }, {
-        codes: makeCode(`Schema.URL`, "globalThis.URL")
-      })
+      assertToCodeDocument(
+        { schema: Schema.URL },
+        {
+          codes: makeCode(`Schema.URL`, "globalThis.URL")
+        }
+      )
     })
 
     it("Uint8Array", () => {
-      assertToCodeDocument({ schema: Schema.Uint8Array }, {
-        codes: makeCode(`Schema.Uint8Array`, "globalThis.Uint8Array")
-      })
+      assertToCodeDocument(
+        { schema: Schema.Uint8Array },
+        {
+          codes: makeCode(`Schema.Uint8Array`, "globalThis.Uint8Array")
+        }
+      )
     })
 
     it("URLSearchParams", () => {
-      assertToCodeDocument({ schema: Schema.URLSearchParams }, {
-        codes: makeCode(`Schema.URLSearchParams`, "globalThis.URLSearchParams")
-      })
+      assertToCodeDocument(
+        { schema: Schema.URLSearchParams },
+        {
+          codes: makeCode(`Schema.URLSearchParams`, "globalThis.URLSearchParams")
+        }
+      )
     })
 
     it("File", () => {
-      assertToCodeDocument({ schema: Schema.File }, {
-        codes: makeCode(`Schema.File`, "globalThis.File")
-      })
+      assertToCodeDocument(
+        { schema: Schema.File },
+        {
+          codes: makeCode(`Schema.File`, "globalThis.File")
+        }
+      )
     })
 
     it("FormData", () => {
-      assertToCodeDocument({ schema: Schema.FormData }, {
-        codes: makeCode(`Schema.FormData`, "globalThis.FormData")
-      })
+      assertToCodeDocument(
+        { schema: Schema.FormData },
+        {
+          codes: makeCode(`Schema.FormData`, "globalThis.FormData")
+        }
+      )
     })
 
     it("URLSearchParams", () => {
-      assertToCodeDocument({ schema: Schema.URLSearchParams }, {
-        codes: makeCode(`Schema.URLSearchParams`, "globalThis.URLSearchParams")
-      })
+      assertToCodeDocument(
+        { schema: Schema.URLSearchParams },
+        {
+          codes: makeCode(`Schema.URLSearchParams`, "globalThis.URLSearchParams")
+        }
+      )
     })
 
     describe("Date", () => {
       it("Date", () => {
-        assertToCodeDocument({ schema: Schema.Date }, {
-          codes: makeCode(`Schema.Date`, "globalThis.Date")
-        })
+        assertToCodeDocument(
+          { schema: Schema.Date },
+          {
+            codes: makeCode(`Schema.Date`, "globalThis.Date")
+          }
+        )
       })
 
       it("Date & check", () => {
@@ -140,10 +172,12 @@ describe("toCodeDocument", () => {
               }
             ]
           },
-          artifacts: [{
-            _tag: "Import",
-            importDeclaration: `import * as Option from "effect/Option"`
-          }]
+          artifacts: [
+            {
+              _tag: "Import",
+              importDeclaration: `import * as Option from "effect/Option"`
+            }
+          ]
         }
       )
     })
@@ -165,97 +199,117 @@ describe("toCodeDocument", () => {
               }
             ]
           },
-          artifacts: [{
-            _tag: "Import",
-            importDeclaration: `import * as Result from "effect/Result"`
-          }]
+          artifacts: [
+            {
+              _tag: "Import",
+              importDeclaration: `import * as Result from "effect/Result"`
+            }
+          ]
         }
       )
     })
 
     it("CauseFailure(String, Number)", () => {
-      assertToCodeDocument({ schema: Schema.CauseFailure(Schema.String, Schema.Number) }, {
-        codes: makeCode("Schema.CauseFailure(String_, Number_)", "Cause.Failure<String_, Number_>"),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "String_",
-              code: makeCode("Schema.String", "string")
-            },
-            {
-              $ref: "Number_",
-              code: makeCode("Schema.Number", "number")
-            }
-          ]
-        },
-        artifacts: [{ _tag: "Import", importDeclaration: `import * as Cause from "effect/Cause"` }]
-      })
+      assertToCodeDocument(
+        { schema: Schema.CauseFailure(Schema.String, Schema.Number) },
+        {
+          codes: makeCode("Schema.CauseFailure(String_, Number_)", "Cause.Failure<String_, Number_>"),
+          references: {
+            nonRecursives: [
+              {
+                $ref: "String_",
+                code: makeCode("Schema.String", "string")
+              },
+              {
+                $ref: "Number_",
+                code: makeCode("Schema.Number", "number")
+              }
+            ]
+          },
+          artifacts: [{ _tag: "Import", importDeclaration: `import * as Cause from "effect/Cause"` }]
+        }
+      )
     })
 
     it("Cause(String, Number)", () => {
-      assertToCodeDocument({ schema: Schema.Cause(Schema.String, Schema.Number) }, {
-        codes: makeCode("Schema.Cause(String_, Number_)", "Cause.Cause<String_, Number_>"),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "String_",
-              code: makeCode("Schema.String", "string")
-            },
-            {
-              $ref: "Number_",
-              code: makeCode("Schema.Number", "number")
-            }
-          ]
-        },
-        artifacts: [{ _tag: "Import", importDeclaration: `import * as Cause from "effect/Cause"` }]
-      })
+      assertToCodeDocument(
+        { schema: Schema.Cause(Schema.String, Schema.Number) },
+        {
+          codes: makeCode("Schema.Cause(String_, Number_)", "Cause.Cause<String_, Number_>"),
+          references: {
+            nonRecursives: [
+              {
+                $ref: "String_",
+                code: makeCode("Schema.String", "string")
+              },
+              {
+                $ref: "Number_",
+                code: makeCode("Schema.Number", "number")
+              }
+            ]
+          },
+          artifacts: [{ _tag: "Import", importDeclaration: `import * as Cause from "effect/Cause"` }]
+        }
+      )
     })
 
     it("Exit(String, Number, String)", () => {
-      assertToCodeDocument({ schema: Schema.Exit(Schema.String, Schema.Number, Schema.Boolean) }, {
-        codes: makeCode("Schema.Exit(String_, Number_, Boolean_)", "Exit.Exit<String_, Number_, Boolean_>"),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "String_",
-              code: makeCode("Schema.String", "string")
-            },
-            {
-              $ref: "Number_",
-              code: makeCode("Schema.Number", "number")
-            },
-            {
-              $ref: "Boolean_",
-              code: makeCode("Schema.Boolean", "boolean")
-            }
-          ]
-        },
-        artifacts: [{ _tag: "Import", importDeclaration: `import * as Exit from "effect/Exit"` }]
-      })
+      assertToCodeDocument(
+        { schema: Schema.Exit(Schema.String, Schema.Number, Schema.Boolean) },
+        {
+          codes: makeCode("Schema.Exit(String_, Number_, Boolean_)", "Exit.Exit<String_, Number_, Boolean_>"),
+          references: {
+            nonRecursives: [
+              {
+                $ref: "String_",
+                code: makeCode("Schema.String", "string")
+              },
+              {
+                $ref: "Number_",
+                code: makeCode("Schema.Number", "number")
+              },
+              {
+                $ref: "Boolean_",
+                code: makeCode("Schema.Boolean", "boolean")
+              }
+            ]
+          },
+          artifacts: [{ _tag: "Import", importDeclaration: `import * as Exit from "effect/Exit"` }]
+        }
+      )
     })
   })
 
   it("Null", () => {
-    assertToCodeDocument({ schema: Schema.Null }, {
-      codes: makeCode("Schema.Null", "null")
-    })
     assertToCodeDocument(
-      { schema: Schema.Null.annotate({ "description": "a" }) },
+      { schema: Schema.Null },
+      {
+        codes: makeCode("Schema.Null", "null")
+      }
+    )
+    assertToCodeDocument(
+      { schema: Schema.Null.annotate({ description: "a" }) },
       {
         codes: makeCode(`Schema.Null.annotate({ "description": "a" })`, "null")
       }
     )
-    assertToCodeDocument({ schema: Schema.Null.annotate({}) }, {
-      codes: makeCode("Schema.Null", "null")
-    })
+    assertToCodeDocument(
+      { schema: Schema.Null.annotate({}) },
+      {
+        codes: makeCode("Schema.Null", "null")
+      }
+    )
   })
 
   it("Undefined", () => {
-    assertToCodeDocument({ schema: Schema.Undefined }, {
-      codes: makeCode("Schema.Undefined", "undefined")
-    })
     assertToCodeDocument(
-      { schema: Schema.Undefined.annotate({ "description": "a" }) },
+      { schema: Schema.Undefined },
+      {
+        codes: makeCode("Schema.Undefined", "undefined")
+      }
+    )
+    assertToCodeDocument(
+      { schema: Schema.Undefined.annotate({ description: "a" }) },
       {
         codes: makeCode(`Schema.Undefined.annotate({ "description": "a" })`, "undefined")
       }
@@ -263,11 +317,14 @@ describe("toCodeDocument", () => {
   })
 
   it("Void", () => {
-    assertToCodeDocument({ schema: Schema.Void }, {
-      codes: makeCode("Schema.Void", "void")
-    })
     assertToCodeDocument(
-      { schema: Schema.Void.annotate({ "description": "a" }) },
+      { schema: Schema.Void },
+      {
+        codes: makeCode("Schema.Void", "void")
+      }
+    )
+    assertToCodeDocument(
+      { schema: Schema.Void.annotate({ description: "a" }) },
       {
         codes: makeCode(`Schema.Void.annotate({ "description": "a" })`, "void")
       }
@@ -275,11 +332,14 @@ describe("toCodeDocument", () => {
   })
 
   it("Never", () => {
-    assertToCodeDocument({ schema: Schema.Never }, {
-      codes: makeCode("Schema.Never", "never")
-    })
     assertToCodeDocument(
-      { schema: Schema.Never.annotate({ "description": "a" }) },
+      { schema: Schema.Never },
+      {
+        codes: makeCode("Schema.Never", "never")
+      }
+    )
+    assertToCodeDocument(
+      { schema: Schema.Never.annotate({ description: "a" }) },
       {
         codes: makeCode(`Schema.Never.annotate({ "description": "a" })`, "never")
       }
@@ -287,11 +347,14 @@ describe("toCodeDocument", () => {
   })
 
   it("Unknown", () => {
-    assertToCodeDocument({ schema: Schema.Unknown }, {
-      codes: makeCode("Schema.Unknown", "unknown")
-    })
     assertToCodeDocument(
-      { schema: Schema.Unknown.annotate({ "description": "a" }) },
+      { schema: Schema.Unknown },
+      {
+        codes: makeCode("Schema.Unknown", "unknown")
+      }
+    )
+    assertToCodeDocument(
+      { schema: Schema.Unknown.annotate({ description: "a" }) },
       {
         codes: makeCode(`Schema.Unknown.annotate({ "description": "a" })`, "unknown")
       }
@@ -299,11 +362,14 @@ describe("toCodeDocument", () => {
   })
 
   it("Any", () => {
-    assertToCodeDocument({ schema: Schema.Any }, {
-      codes: makeCode("Schema.Any", "any")
-    })
     assertToCodeDocument(
-      { schema: Schema.Any.annotate({ "description": "a" }) },
+      { schema: Schema.Any },
+      {
+        codes: makeCode("Schema.Any", "any")
+      }
+    )
+    assertToCodeDocument(
+      { schema: Schema.Any.annotate({ description: "a" }) },
       {
         codes: makeCode(`Schema.Any.annotate({ "description": "a" })`, "any")
       }
@@ -312,20 +378,26 @@ describe("toCodeDocument", () => {
 
   describe("String", () => {
     it("String", () => {
-      assertToCodeDocument({ schema: Schema.String }, {
-        codes: makeCode("Schema.String", "string")
-      })
+      assertToCodeDocument(
+        { schema: Schema.String },
+        {
+          codes: makeCode("Schema.String", "string")
+        }
+      )
     })
 
     it("String & identifier", () => {
-      assertToCodeDocument({ schema: Schema.String.annotate({ identifier: "ID" }) }, {
-        codes: makeCode(`Schema.String.annotate({ "identifier": "ID" })`, "string")
-      })
+      assertToCodeDocument(
+        { schema: Schema.String.annotate({ identifier: "ID" }) },
+        {
+          codes: makeCode(`Schema.String.annotate({ "identifier": "ID" })`, "string")
+        }
+      )
     })
 
     it("String & annotations", () => {
       assertToCodeDocument(
-        { schema: Schema.String.annotate({ "description": "a" }) },
+        { schema: Schema.String.annotate({ description: "a" }) },
         {
           codes: makeCode(`Schema.String.annotate({ "description": "a" })`, "string")
         }
@@ -343,12 +415,9 @@ describe("toCodeDocument", () => {
 
     it("String & annotations & check", () => {
       assertToCodeDocument(
-        { schema: Schema.String.annotate({ "description": "a" }).check(Schema.isMinLength(1)) },
+        { schema: Schema.String.annotate({ description: "a" }).check(Schema.isMinLength(1)) },
         {
-          codes: makeCode(
-            `Schema.String.annotate({ "description": "a" }).check(Schema.isMinLength(1))`,
-            "string"
-          )
+          codes: makeCode(`Schema.String.annotate({ "description": "a" }).check(Schema.isMinLength(1))`, "string")
         }
       )
     })
@@ -364,7 +433,7 @@ describe("toCodeDocument", () => {
 
     it("String & check & annotations", () => {
       assertToCodeDocument(
-        { schema: Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "a" }) },
+        { schema: Schema.String.check(Schema.isMinLength(1)).annotate({ description: "a" }) },
         {
           codes: makeCode(`Schema.String.check(Schema.isMinLength(1, { "description": "a" }))`, "string")
         }
@@ -403,11 +472,14 @@ describe("toCodeDocument", () => {
 
   describe("Number", () => {
     it("Number", () => {
-      assertToCodeDocument({ schema: Schema.Number }, {
-        codes: makeCode("Schema.Number", "number")
-      })
       assertToCodeDocument(
-        { schema: Schema.Number.annotate({ "description": "a" }) },
+        { schema: Schema.Number },
+        {
+          codes: makeCode("Schema.Number", "number")
+        }
+      )
+      assertToCodeDocument(
+        { schema: Schema.Number.annotate({ description: "a" }) },
         {
           codes: makeCode(`Schema.Number.annotate({ "description": "a" })`, "number")
         }
@@ -425,11 +497,14 @@ describe("toCodeDocument", () => {
   })
 
   it("Boolean", () => {
-    assertToCodeDocument({ schema: Schema.Boolean }, {
-      codes: makeCode("Schema.Boolean", "boolean")
-    })
     assertToCodeDocument(
-      { schema: Schema.Boolean.annotate({ "description": "a" }) },
+      { schema: Schema.Boolean },
+      {
+        codes: makeCode("Schema.Boolean", "boolean")
+      }
+    )
+    assertToCodeDocument(
+      { schema: Schema.Boolean.annotate({ description: "a" }) },
       {
         codes: makeCode(`Schema.Boolean.annotate({ "description": "a" })`, "boolean")
       }
@@ -438,11 +513,14 @@ describe("toCodeDocument", () => {
 
   describe("BigInt", () => {
     it("BigInt", () => {
-      assertToCodeDocument({ schema: Schema.BigInt }, {
-        codes: makeCode("Schema.BigInt", "bigint")
-      })
       assertToCodeDocument(
-        { schema: Schema.BigInt.annotate({ "description": "a" }) },
+        { schema: Schema.BigInt },
+        {
+          codes: makeCode("Schema.BigInt", "bigint")
+        }
+      )
+      assertToCodeDocument(
+        { schema: Schema.BigInt.annotate({ description: "a" }) },
         {
           codes: makeCode(`Schema.BigInt.annotate({ "description": "a" })`, "bigint")
         }
@@ -460,11 +538,14 @@ describe("toCodeDocument", () => {
   })
 
   it("Symbol", () => {
-    assertToCodeDocument({ schema: Schema.Symbol }, {
-      codes: makeCode("Schema.Symbol", "symbol")
-    })
     assertToCodeDocument(
-      { schema: Schema.Symbol.annotate({ "description": "a" }) },
+      { schema: Schema.Symbol },
+      {
+        codes: makeCode("Schema.Symbol", "symbol")
+      }
+    )
+    assertToCodeDocument(
+      { schema: Schema.Symbol.annotate({ description: "a" }) },
       {
         codes: makeCode(`Schema.Symbol.annotate({ "description": "a" })`, "symbol")
       }
@@ -472,11 +553,14 @@ describe("toCodeDocument", () => {
   })
 
   it("ObjectKeyword", () => {
-    assertToCodeDocument({ schema: Schema.ObjectKeyword }, {
-      codes: makeCode("Schema.ObjectKeyword", "object")
-    })
     assertToCodeDocument(
-      { schema: Schema.ObjectKeyword.annotate({ "description": "a" }) },
+      { schema: Schema.ObjectKeyword },
+      {
+        codes: makeCode("Schema.ObjectKeyword", "object")
+      }
+    )
+    assertToCodeDocument(
+      { schema: Schema.ObjectKeyword.annotate({ description: "a" }) },
       {
         codes: makeCode(`Schema.ObjectKeyword.annotate({ "description": "a" })`, "object")
       }
@@ -485,11 +569,14 @@ describe("toCodeDocument", () => {
 
   describe("Literal", () => {
     it("string literal", () => {
-      assertToCodeDocument({ schema: Schema.Literal("a") }, {
-        codes: makeCode(`Schema.Literal("a")`, `"a"`)
-      })
       assertToCodeDocument(
-        { schema: Schema.Literal("a").annotate({ "description": "a" }) },
+        { schema: Schema.Literal("a") },
+        {
+          codes: makeCode(`Schema.Literal("a")`, `"a"`)
+        }
+      )
+      assertToCodeDocument(
+        { schema: Schema.Literal("a").annotate({ description: "a" }) },
         {
           codes: makeCode(`Schema.Literal("a").annotate({ "description": "a" })`, `"a"`)
         }
@@ -497,11 +584,14 @@ describe("toCodeDocument", () => {
     })
 
     it("number literal", () => {
-      assertToCodeDocument({ schema: Schema.Literal(1) }, {
-        codes: makeCode(`Schema.Literal(1)`, "1")
-      })
       assertToCodeDocument(
-        { schema: Schema.Literal(1).annotate({ "description": "a" }) },
+        { schema: Schema.Literal(1) },
+        {
+          codes: makeCode(`Schema.Literal(1)`, "1")
+        }
+      )
+      assertToCodeDocument(
+        { schema: Schema.Literal(1).annotate({ description: "a" }) },
         {
           codes: makeCode(`Schema.Literal(1).annotate({ "description": "a" })`, "1")
         }
@@ -509,11 +599,14 @@ describe("toCodeDocument", () => {
     })
 
     it("boolean literal", () => {
-      assertToCodeDocument({ schema: Schema.Literal(true) }, {
-        codes: makeCode(`Schema.Literal(true)`, "true")
-      })
       assertToCodeDocument(
-        { schema: Schema.Literal(true).annotate({ "description": "a" }) },
+        { schema: Schema.Literal(true) },
+        {
+          codes: makeCode(`Schema.Literal(true)`, "true")
+        }
+      )
+      assertToCodeDocument(
+        { schema: Schema.Literal(true).annotate({ description: "a" }) },
         {
           codes: makeCode(`Schema.Literal(true).annotate({ "description": "a" })`, "true")
         }
@@ -521,11 +614,14 @@ describe("toCodeDocument", () => {
     })
 
     it("bigint literal", () => {
-      assertToCodeDocument({ schema: Schema.Literal(100n) }, {
-        codes: makeCode(`Schema.Literal(100n)`, "100n")
-      })
       assertToCodeDocument(
-        { schema: Schema.Literal(100n).annotate({ "description": "a" }) },
+        { schema: Schema.Literal(100n) },
+        {
+          codes: makeCode(`Schema.Literal(100n)`, "100n")
+        }
+      )
+      assertToCodeDocument(
+        { schema: Schema.Literal(100n).annotate({ description: "a" }) },
         {
           codes: makeCode(`Schema.Literal(100n).annotate({ "description": "a" })`, "100n")
         }
@@ -539,22 +635,26 @@ describe("toCodeDocument", () => {
         { schema: Schema.UniqueSymbol(Symbol("a")) },
         {
           codes: makeCode(`Schema.UniqueSymbol(_symbol)`, "typeof _symbol"),
-          artifacts: [{
-            _tag: "Symbol",
-            identifier: "_symbol",
-            generation: makeCode(`Symbol("a")`, `typeof _symbol`)
-          }]
+          artifacts: [
+            {
+              _tag: "Symbol",
+              identifier: "_symbol",
+              generation: makeCode(`Symbol("a")`, `typeof _symbol`)
+            }
+          ]
         }
       )
       assertToCodeDocument(
         { schema: Schema.UniqueSymbol(Symbol()) },
         {
           codes: makeCode(`Schema.UniqueSymbol(_symbol)`, "typeof _symbol"),
-          artifacts: [{
-            _tag: "Symbol",
-            identifier: "_symbol",
-            generation: makeCode(`Symbol()`, `typeof _symbol`)
-          }]
+          artifacts: [
+            {
+              _tag: "Symbol",
+              identifier: "_symbol",
+              generation: makeCode(`Symbol()`, `typeof _symbol`)
+            }
+          ]
         }
       )
     })
@@ -564,25 +664,26 @@ describe("toCodeDocument", () => {
         { schema: Schema.UniqueSymbol(Symbol.for("a")) },
         {
           codes: makeCode(`Schema.UniqueSymbol(_symbol)`, "typeof _symbol"),
-          artifacts: [{
-            _tag: "Symbol",
-            identifier: "_symbol",
-            generation: makeCode(`Symbol.for("a")`, `typeof _symbol`)
-          }]
+          artifacts: [
+            {
+              _tag: "Symbol",
+              identifier: "_symbol",
+              generation: makeCode(`Symbol.for("a")`, `typeof _symbol`)
+            }
+          ]
         }
       )
       assertToCodeDocument(
-        { schema: Schema.UniqueSymbol(Symbol.for("a")).annotate({ "description": "a" }) },
+        { schema: Schema.UniqueSymbol(Symbol.for("a")).annotate({ description: "a" }) },
         {
-          codes: makeCode(
-            `Schema.UniqueSymbol(_symbol).annotate({ "description": "a" })`,
-            "typeof _symbol"
-          ),
-          artifacts: [{
-            _tag: "Symbol",
-            identifier: "_symbol",
-            generation: makeCode(`Symbol.for("a")`, `typeof _symbol`)
-          }]
+          codes: makeCode(`Schema.UniqueSymbol(_symbol).annotate({ "description": "a" })`, "typeof _symbol"),
+          artifacts: [
+            {
+              _tag: "Symbol",
+              identifier: "_symbol",
+              generation: makeCode(`Symbol.for("a")`, `typeof _symbol`)
+            }
+          ]
         }
       )
     })
@@ -599,11 +700,13 @@ describe("toCodeDocument", () => {
         },
         {
           codes: makeCode(`Schema.Enum(_Enum)`, `typeof _Enum`),
-          artifacts: [{
-            _tag: "Enum",
-            identifier: "_Enum",
-            generation: makeCode(`enum _Enum { "A": "a", "B": "b" }`, `typeof _Enum`)
-          }]
+          artifacts: [
+            {
+              _tag: "Enum",
+              identifier: "_Enum",
+              generation: makeCode(`enum _Enum { "A": "a", "B": "b" }`, `typeof _Enum`)
+            }
+          ]
         }
       )
       assertToCodeDocument(
@@ -611,18 +714,17 @@ describe("toCodeDocument", () => {
           schema: Schema.Enum({
             A: "a",
             B: "b"
-          }).annotate({ "description": "a" })
+          }).annotate({ description: "a" })
         },
         {
-          codes: makeCode(
-            `Schema.Enum(_Enum).annotate({ "description": "a" })`,
-            `typeof _Enum`
-          ),
-          artifacts: [{
-            _tag: "Enum",
-            identifier: "_Enum",
-            generation: makeCode(`enum _Enum { "A": "a", "B": "b" }`, `typeof _Enum`)
-          }]
+          codes: makeCode(`Schema.Enum(_Enum).annotate({ "description": "a" })`, `typeof _Enum`),
+          artifacts: [
+            {
+              _tag: "Enum",
+              identifier: "_Enum",
+              generation: makeCode(`enum _Enum { "A": "a", "B": "b" }`, `typeof _Enum`)
+            }
+          ]
         }
       )
     })
@@ -637,11 +739,13 @@ describe("toCodeDocument", () => {
         },
         {
           codes: makeCode(`Schema.Enum(_Enum)`, `typeof _Enum`),
-          artifacts: [{
-            _tag: "Enum",
-            identifier: "_Enum",
-            generation: makeCode(`enum _Enum { "One": 1, "Two": 2 }`, `typeof _Enum`)
-          }]
+          artifacts: [
+            {
+              _tag: "Enum",
+              identifier: "_Enum",
+              generation: makeCode(`enum _Enum { "One": 1, "Two": 2 }`, `typeof _Enum`)
+            }
+          ]
         }
       )
       assertToCodeDocument(
@@ -649,18 +753,17 @@ describe("toCodeDocument", () => {
           schema: Schema.Enum({
             One: 1,
             Two: 2
-          }).annotate({ "description": "a" })
+          }).annotate({ description: "a" })
         },
         {
-          codes: makeCode(
-            `Schema.Enum(_Enum).annotate({ "description": "a" })`,
-            `typeof _Enum`
-          ),
-          artifacts: [{
-            _tag: "Enum",
-            identifier: "_Enum",
-            generation: makeCode(`enum _Enum { "One": 1, "Two": 2 }`, `typeof _Enum`)
-          }]
+          codes: makeCode(`Schema.Enum(_Enum).annotate({ "description": "a" })`, `typeof _Enum`),
+          artifacts: [
+            {
+              _tag: "Enum",
+              identifier: "_Enum",
+              generation: makeCode(`enum _Enum { "One": 1, "Two": 2 }`, `typeof _Enum`)
+            }
+          ]
         }
       )
     })
@@ -675,11 +778,13 @@ describe("toCodeDocument", () => {
         },
         {
           codes: makeCode(`Schema.Enum(_Enum)`, `typeof _Enum`),
-          artifacts: [{
-            _tag: "Enum",
-            identifier: "_Enum",
-            generation: makeCode(`enum _Enum { "A": "a", "One": 1 }`, `typeof _Enum`)
-          }]
+          artifacts: [
+            {
+              _tag: "Enum",
+              identifier: "_Enum",
+              generation: makeCode(`enum _Enum { "A": "a", "One": 1 }`, `typeof _Enum`)
+            }
+          ]
         }
       )
       assertToCodeDocument(
@@ -687,18 +792,17 @@ describe("toCodeDocument", () => {
           schema: Schema.Enum({
             A: "a",
             One: 1
-          }).annotate({ "description": "a" })
+          }).annotate({ description: "a" })
         },
         {
-          codes: makeCode(
-            `Schema.Enum(_Enum).annotate({ "description": "a" })`,
-            `typeof _Enum`
-          ),
-          artifacts: [{
-            _tag: "Enum",
-            identifier: "_Enum",
-            generation: makeCode(`enum _Enum { "A": "a", "One": 1 }`, `typeof _Enum`)
-          }]
+          codes: makeCode(`Schema.Enum(_Enum).annotate({ "description": "a" })`, `typeof _Enum`),
+          artifacts: [
+            {
+              _tag: "Enum",
+              identifier: "_Enum",
+              generation: makeCode(`enum _Enum { "A": "a", "One": 1 }`, `typeof _Enum`)
+            }
+          ]
         }
       )
     })
@@ -757,19 +861,13 @@ describe("toCodeDocument", () => {
       assertToCodeDocument(
         { schema: Schema.TemplateLiteral([Schema.Literal("a b"), Schema.String]) },
         {
-          codes: makeCode(
-            `Schema.TemplateLiteral([Schema.Literal("a b"), Schema.String])`,
-            "`a b${string}`"
-          )
+          codes: makeCode(`Schema.TemplateLiteral([Schema.Literal("a b"), Schema.String])`, "`a b${string}`")
         }
       )
       assertToCodeDocument(
         { schema: Schema.TemplateLiteral([Schema.Literal("\n"), Schema.String]) },
         {
-          codes: makeCode(
-            `Schema.TemplateLiteral([Schema.Literal("\\n"), Schema.String])`,
-            "`\n${string}`"
-          )
+          codes: makeCode(`Schema.TemplateLiteral([Schema.Literal("\\n"), Schema.String])`, "`\n${string}`")
         }
       )
     })
@@ -796,10 +894,7 @@ describe("toCodeDocument", () => {
       assertToCodeDocument(
         { schema: Schema.TemplateLiteral([Schema.String, Schema.Number]) },
         {
-          codes: makeCode(
-            `Schema.TemplateLiteral([Schema.String, Schema.Number])`,
-            "`${string}${number}`"
-          )
+          codes: makeCode(`Schema.TemplateLiteral([Schema.String, Schema.Number])`, "`${string}${number}`")
         }
       )
     })
@@ -808,28 +903,19 @@ describe("toCodeDocument", () => {
       assertToCodeDocument(
         { schema: Schema.TemplateLiteral([Schema.String, Schema.Literal("a")]) },
         {
-          codes: makeCode(
-            `Schema.TemplateLiteral([Schema.String, Schema.Literal("a")])`,
-            "`${string}a`"
-          )
+          codes: makeCode(`Schema.TemplateLiteral([Schema.String, Schema.Literal("a")])`, "`${string}a`")
         }
       )
       assertToCodeDocument(
         { schema: Schema.TemplateLiteral([Schema.Number, Schema.Literal("a")]) },
         {
-          codes: makeCode(
-            `Schema.TemplateLiteral([Schema.Number, Schema.Literal("a")])`,
-            "`${number}a`"
-          )
+          codes: makeCode(`Schema.TemplateLiteral([Schema.Number, Schema.Literal("a")])`, "`${number}a`")
         }
       )
       assertToCodeDocument(
         { schema: Schema.TemplateLiteral([Schema.BigInt, Schema.Literal("a")]) },
         {
-          codes: makeCode(
-            `Schema.TemplateLiteral([Schema.BigInt, Schema.Literal("a")])`,
-            "`${bigint}a`"
-          )
+          codes: makeCode(`Schema.TemplateLiteral([Schema.BigInt, Schema.Literal("a")])`, "`${bigint}a`")
         }
       )
     })
@@ -838,28 +924,19 @@ describe("toCodeDocument", () => {
       assertToCodeDocument(
         { schema: Schema.TemplateLiteral([Schema.Literal("a"), Schema.String]) },
         {
-          codes: makeCode(
-            `Schema.TemplateLiteral([Schema.Literal("a"), Schema.String])`,
-            "`a${string}`"
-          )
+          codes: makeCode(`Schema.TemplateLiteral([Schema.Literal("a"), Schema.String])`, "`a${string}`")
         }
       )
       assertToCodeDocument(
         { schema: Schema.TemplateLiteral([Schema.Literal("a"), Schema.Number]) },
         {
-          codes: makeCode(
-            `Schema.TemplateLiteral([Schema.Literal("a"), Schema.Number])`,
-            "`a${number}`"
-          )
+          codes: makeCode(`Schema.TemplateLiteral([Schema.Literal("a"), Schema.Number])`, "`a${number}`")
         }
       )
       assertToCodeDocument(
         { schema: Schema.TemplateLiteral([Schema.Literal("a"), Schema.BigInt]) },
         {
-          codes: makeCode(
-            `Schema.TemplateLiteral([Schema.Literal("a"), Schema.BigInt])`,
-            "`a${bigint}`"
-          )
+          codes: makeCode(`Schema.TemplateLiteral([Schema.Literal("a"), Schema.BigInt])`, "`a${bigint}`")
         }
       )
     })
@@ -877,7 +954,7 @@ describe("toCodeDocument", () => {
       assertToCodeDocument(
         {
           schema: Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]).annotate({
-            "description": "ad"
+            description: "ad"
           })
         },
         {
@@ -955,11 +1032,14 @@ describe("toCodeDocument", () => {
 
   describe("Tuple", () => {
     it("empty tuple", () => {
-      assertToCodeDocument({ schema: Schema.Tuple([]) }, {
-        codes: makeCode("Schema.Tuple([])", "readonly []")
-      })
       assertToCodeDocument(
-        { schema: Schema.Tuple([]).annotate({ "description": "a" }) },
+        { schema: Schema.Tuple([]) },
+        {
+          codes: makeCode("Schema.Tuple([])", "readonly []")
+        }
+      )
+      assertToCodeDocument(
+        { schema: Schema.Tuple([]).annotate({ description: "a" }) },
         {
           codes: makeCode(`Schema.Tuple([]).annotate({ "description": "a" })`, "readonly []")
         }
@@ -974,12 +1054,9 @@ describe("toCodeDocument", () => {
         }
       )
       assertToCodeDocument(
-        { schema: Schema.Tuple([Schema.String]).annotate({ "description": "a" }) },
+        { schema: Schema.Tuple([Schema.String]).annotate({ description: "a" }) },
         {
-          codes: makeCode(
-            `Schema.Tuple([Schema.String]).annotate({ "description": "a" })`,
-            "readonly [string]"
-          )
+          codes: makeCode(`Schema.Tuple([Schema.String]).annotate({ "description": "a" })`, "readonly [string]")
         }
       )
     })
@@ -992,7 +1069,7 @@ describe("toCodeDocument", () => {
         }
       )
       assertToCodeDocument(
-        { schema: Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ "description": "a" }) },
+        { schema: Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ description: "a" }) },
         {
           codes: makeCode(
             `Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ "description": "a" })`,
@@ -1004,12 +1081,9 @@ describe("toCodeDocument", () => {
 
     it("annotateKey", () => {
       assertToCodeDocument(
-        { schema: Schema.Tuple([Schema.String.annotateKey({ "description": "a" })]) },
+        { schema: Schema.Tuple([Schema.String.annotateKey({ description: "a" })]) },
         {
-          codes: makeCode(
-            `Schema.Tuple([Schema.String.annotateKey({ "description": "a" })])`,
-            "readonly [string]"
-          )
+          codes: makeCode(`Schema.Tuple([Schema.String.annotateKey({ "description": "a" })])`, "readonly [string]")
         }
       )
     })
@@ -1023,12 +1097,9 @@ describe("toCodeDocument", () => {
       }
     )
     assertToCodeDocument(
-      { schema: Schema.Array(Schema.String).annotate({ "description": "a" }) },
+      { schema: Schema.Array(Schema.String).annotate({ description: "a" }) },
       {
-        codes: makeCode(
-          `Schema.Array(Schema.String).annotate({ "description": "a" })`,
-          "ReadonlyArray<string>"
-        )
+        codes: makeCode(`Schema.Array(Schema.String).annotate({ "description": "a" })`, "ReadonlyArray<string>")
       }
     )
   })
@@ -1046,7 +1117,7 @@ describe("toCodeDocument", () => {
     assertToCodeDocument(
       {
         schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({
-          "description": "a"
+          description: "a"
         })
       },
       {
@@ -1069,11 +1140,14 @@ describe("toCodeDocument", () => {
 
   describe("Struct", () => {
     it("empty struct", () => {
-      assertToCodeDocument({ schema: Schema.Struct({}) }, {
-        codes: makeCode("Schema.Struct({  })", "{  }")
-      })
       assertToCodeDocument(
-        { schema: Schema.Struct({}).annotate({ "description": "a" }) },
+        { schema: Schema.Struct({}) },
+        {
+          codes: makeCode("Schema.Struct({  })", "{  }")
+        }
+      )
+      assertToCodeDocument(
+        { schema: Schema.Struct({}).annotate({ description: "a" }) },
         {
           codes: makeCode(`Schema.Struct({  }).annotate({ "description": "a" })`, "{  }")
         }
@@ -1088,10 +1162,7 @@ describe("toCodeDocument", () => {
           })
         },
         {
-          codes: makeCode(
-            `Schema.Struct({ "a": Schema.String })`,
-            `{ readonly "a": string }`
-          )
+          codes: makeCode(`Schema.Struct({ "a": Schema.String })`, `{ readonly "a": string }`)
         }
       )
       assertToCodeDocument(
@@ -1118,10 +1189,7 @@ describe("toCodeDocument", () => {
           })
         },
         {
-          codes: makeCode(
-            `Schema.Struct({ "a": Schema.optionalKey(Schema.String) })`,
-            `{ readonly "a"?: string }`
-          )
+          codes: makeCode(`Schema.Struct({ "a": Schema.optionalKey(Schema.String) })`, `{ readonly "a"?: string }`)
         }
       )
     })
@@ -1134,10 +1202,7 @@ describe("toCodeDocument", () => {
           })
         },
         {
-          codes: makeCode(
-            `Schema.Struct({ "a": Schema.mutableKey(Schema.String) })`,
-            `{ "a": string }`
-          )
+          codes: makeCode(`Schema.Struct({ "a": Schema.mutableKey(Schema.String) })`, `{ "a": string }`)
         }
       )
     })
@@ -1162,7 +1227,7 @@ describe("toCodeDocument", () => {
       assertToCodeDocument(
         {
           schema: Schema.Struct({
-            a: Schema.String.annotateKey({ "description": "a" })
+            a: Schema.String.annotateKey({ description: "a" })
           })
         },
         {
@@ -1183,15 +1248,14 @@ describe("toCodeDocument", () => {
           })
         },
         {
-          codes: makeCode(
-            `Schema.Struct({ [_symbol]: Schema.String })`,
-            `{ readonly [typeof _symbol]: string }`
-          ),
-          artifacts: [{
-            _tag: "Symbol",
-            identifier: "_symbol",
-            generation: makeCode(`Symbol.for("a")`, `typeof _symbol`)
-          }]
+          codes: makeCode(`Schema.Struct({ [_symbol]: Schema.String })`, `{ readonly [typeof _symbol]: string }`),
+          artifacts: [
+            {
+              _tag: "Symbol",
+              identifier: "_symbol",
+              generation: makeCode(`Symbol.for("a")`, `typeof _symbol`)
+            }
+          ]
         }
       )
     })
@@ -1208,7 +1272,7 @@ describe("toCodeDocument", () => {
     )
     assertToCodeDocument(
       {
-        schema: Schema.Record(Schema.String, Schema.Number).annotate({ "description": "a" })
+        schema: Schema.Record(Schema.String, Schema.Number).annotate({ description: "a" })
       },
       {
         codes: makeCode(
@@ -1260,7 +1324,7 @@ describe("toCodeDocument", () => {
       )
       assertToCodeDocument(
         {
-          schema: Schema.Union([Schema.String, Schema.Number]).annotate({ "description": "z" })
+          schema: Schema.Union([Schema.String, Schema.Number]).annotate({ description: "z" })
         },
         {
           codes: makeCode(
@@ -1277,15 +1341,12 @@ describe("toCodeDocument", () => {
           schema: Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" })
         },
         {
-          codes: makeCode(
-            `Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" })`,
-            "string | number"
-          )
+          codes: makeCode(`Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" })`, "string | number")
         }
       )
       assertToCodeDocument(
         {
-          schema: Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }).annotate({ "description": "aa" })
+          schema: Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }).annotate({ description: "aa" })
         },
         {
           codes: makeCode(
@@ -1302,15 +1363,12 @@ describe("toCodeDocument", () => {
           schema: Schema.Union([Schema.String, Schema.Number, Schema.Boolean])
         },
         {
-          codes: makeCode(
-            "Schema.Union([Schema.String, Schema.Number, Schema.Boolean])",
-            "string | number | boolean"
-          )
+          codes: makeCode("Schema.Union([Schema.String, Schema.Number, Schema.Boolean])", "string | number | boolean")
         }
       )
       assertToCodeDocument(
         {
-          schema: Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).annotate({ "description": "a" })
+          schema: Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).annotate({ description: "a" })
         },
         {
           codes: makeCode(
@@ -1342,17 +1400,20 @@ describe("toCodeDocument", () => {
         a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A))
       })
 
-      assertToCodeDocument({ schema: A }, {
-        codes: makeCode(`Objects_`, `Objects_`),
-        references: {
-          recursives: {
-            Objects_: makeCode(
-              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<Objects_> => Objects_)) })`,
-              `{ readonly "a"?: Objects_ }`
-            )
+      assertToCodeDocument(
+        { schema: A },
+        {
+          codes: makeCode(`Objects_`, `Objects_`),
+          references: {
+            recursives: {
+              Objects_: makeCode(
+                `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<Objects_> => Objects_)) })`,
+                `{ readonly "a"?: Objects_ }`
+              )
+            }
           }
         }
-      })
+      )
     })
 
     it("outer identifier annotation", () => {
@@ -1363,17 +1424,20 @@ describe("toCodeDocument", () => {
         a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A))
       }).annotate({ identifier: "A" }) // outer identifier annotation
 
-      assertToCodeDocument({ schema: A }, {
-        codes: makeCode(`A`, `A`),
-        references: {
-          recursives: {
-            A: makeCode(
-              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A)) }).annotate({ "identifier": "A" })`,
-              `{ readonly "a"?: A }`
-            )
+      assertToCodeDocument(
+        { schema: A },
+        {
+          codes: makeCode(`A`, `A`),
+          references: {
+            recursives: {
+              A: makeCode(
+                `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A)) }).annotate({ "identifier": "A" })`,
+                `{ readonly "a"?: A }`
+              )
+            }
           }
         }
-      })
+      )
     })
 
     it("inner identifier annotation", () => {
@@ -1384,20 +1448,20 @@ describe("toCodeDocument", () => {
         a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A.annotate({ identifier: "A" })))
       })
 
-      assertToCodeDocument({ schema: A }, {
-        codes: makeCode(
-          `Schema.Struct({ "a": Schema.optionalKey(Suspend_) })`,
-          `{ readonly "a"?: Suspend_ }`
-        ),
-        references: {
-          recursives: {
-            Suspend_: makeCode(
-              `Schema.suspend((): Schema.Codec<{ readonly "a"?: Suspend_ }> => Schema.Struct({ "a": Schema.optionalKey(Suspend_) }).annotate({ "identifier": "A" }))`,
-              `{ readonly "a"?: Suspend_ }`
-            )
+      assertToCodeDocument(
+        { schema: A },
+        {
+          codes: makeCode(`Schema.Struct({ "a": Schema.optionalKey(Suspend_) })`, `{ readonly "a"?: Suspend_ }`),
+          references: {
+            recursives: {
+              Suspend_: makeCode(
+                `Schema.suspend((): Schema.Codec<{ readonly "a"?: Suspend_ }> => Schema.Struct({ "a": Schema.optionalKey(Suspend_) }).annotate({ "identifier": "A" }))`,
+                `{ readonly "a"?: Suspend_ }`
+              )
+            }
           }
         }
-      })
+      )
     })
 
     it("suspend identifier annotation", () => {
@@ -1408,17 +1472,20 @@ describe("toCodeDocument", () => {
         a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A).annotate({ identifier: "A" }))
       })
 
-      assertToCodeDocument({ schema: A }, {
-        codes: makeCode(`Objects_`, `Objects_`),
-        references: {
-          recursives: {
-            Objects_: makeCode(
-              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<Objects_> => Objects_).annotate({ "identifier": "A" })) })`,
-              `{ readonly "a"?: Objects_ }`
-            )
+      assertToCodeDocument(
+        { schema: A },
+        {
+          codes: makeCode(`Objects_`, `Objects_`),
+          references: {
+            recursives: {
+              Objects_: makeCode(
+                `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<Objects_> => Objects_).annotate({ "identifier": "A" })) })`,
+                `{ readonly "a"?: Objects_ }`
+              )
+            }
           }
         }
-      })
+      )
     })
   })
 
@@ -1429,14 +1496,13 @@ describe("toCodeDocument", () => {
           schema: Schema.String.pipe(Schema.brand("a"))
         },
         {
-          codes: makeCode(
-            `Schema.String.pipe(Schema.brand("a"))`,
-            `string & Brand.Brand<"a">`
-          ),
-          artifacts: [{
-            _tag: "Import",
-            importDeclaration: `import type * as Brand from "effect/Brand"`
-          }]
+          codes: makeCode(`Schema.String.pipe(Schema.brand("a"))`, `string & Brand.Brand<"a">`),
+          artifacts: [
+            {
+              _tag: "Import",
+              importDeclaration: `import type * as Brand from "effect/Brand"`
+            }
+          ]
         }
       )
     })
@@ -1451,10 +1517,12 @@ describe("toCodeDocument", () => {
             `Schema.String.pipe(Schema.brand("a"), Schema.brand("b"))`,
             `string & Brand.Brand<"a"> & Brand.Brand<"b">`
           ),
-          artifacts: [{
-            _tag: "Import",
-            importDeclaration: `import type * as Brand from "effect/Brand"`
-          }]
+          artifacts: [
+            {
+              _tag: "Import",
+              importDeclaration: `import type * as Brand from "effect/Brand"`
+            }
+          ]
         }
       )
     })
@@ -1469,10 +1537,12 @@ describe("toCodeDocument", () => {
             `Schema.String.check(Schema.isMinLength(1)).pipe(Schema.brand("b"))`,
             `string & Brand.Brand<"b">`
           ),
-          artifacts: [{
-            _tag: "Import",
-            importDeclaration: `import type * as Brand from "effect/Brand"`
-          }]
+          artifacts: [
+            {
+              _tag: "Import",
+              importDeclaration: `import type * as Brand from "effect/Brand"`
+            }
+          ]
         }
       )
     })
@@ -1487,10 +1557,12 @@ describe("toCodeDocument", () => {
             `Schema.String.pipe(Schema.brand("a")).check(Schema.isMinLength(1)).pipe(Schema.brand("b"))`,
             `string & Brand.Brand<"a"> & Brand.Brand<"b">`
           ),
-          artifacts: [{
-            _tag: "Import",
-            importDeclaration: `import type * as Brand from "effect/Brand"`
-          }]
+          artifacts: [
+            {
+              _tag: "Import",
+              importDeclaration: `import type * as Brand from "effect/Brand"`
+            }
+          ]
         }
       )
     })
@@ -1505,10 +1577,12 @@ describe("toCodeDocument", () => {
             `Schema.String.check(Schema.isMinLength(1)).pipe(Schema.brand("b")).check(Schema.isMaxLength(2))`,
             `string & Brand.Brand<"b">`
           ),
-          artifacts: [{
-            _tag: "Import",
-            importDeclaration: `import type * as Brand from "effect/Brand"`
-          }]
+          artifacts: [
+            {
+              _tag: "Import",
+              importDeclaration: `import type * as Brand from "effect/Brand"`
+            }
+          ]
         }
       )
     })
@@ -1516,9 +1590,12 @@ describe("toCodeDocument", () => {
 
   describe("Date", () => {
     it("Date", () => {
-      assertToCodeDocument({ schema: Schema.Date }, {
-        codes: makeCode(`Schema.Date`, "globalThis.Date")
-      })
+      assertToCodeDocument(
+        { schema: Schema.Date },
+        {
+          codes: makeCode(`Schema.Date`, "globalThis.Date")
+        }
+      )
     })
 
     describe("checks", () => {
@@ -1583,20 +1660,20 @@ describe("toCodeDocument", () => {
 
   describe("ReadonlySet", () => {
     it("ReadonlySet(String)", () => {
-      assertToCodeDocument({ schema: Schema.ReadonlySet(Schema.String) }, {
-        codes: makeCode(
-          `Schema.ReadonlySet(String_)`,
-          "globalThis.ReadonlySet<String_>"
-        ),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "String_",
-              code: makeCode(`Schema.String`, "string")
-            }
-          ]
+      assertToCodeDocument(
+        { schema: Schema.ReadonlySet(Schema.String) },
+        {
+          codes: makeCode(`Schema.ReadonlySet(String_)`, "globalThis.ReadonlySet<String_>"),
+          references: {
+            nonRecursives: [
+              {
+                $ref: "String_",
+                code: makeCode(`Schema.String`, "string")
+              }
+            ]
+          }
         }
-      })
+      )
     })
 
     describe("checks", () => {
@@ -1645,10 +1722,7 @@ describe("toCodeDocument", () => {
       assertToCodeDocument(
         { schema: Schema.ReadonlySet(Schema.String).check(Schema.isSize(2)) },
         {
-          codes: makeCode(
-            `Schema.ReadonlySet(String_).check(Schema.isSize(2))`,
-            "globalThis.ReadonlySet<String_>"
-          ),
+          codes: makeCode(`Schema.ReadonlySet(String_).check(Schema.isSize(2))`, "globalThis.ReadonlySet<String_>"),
           references: {
             nonRecursives: [
               {
@@ -1727,20 +1801,7 @@ describe("sanitizeJavaScriptIdentifier", () => {
   })
 
   it("keeps already-sanitized results stable (idempotent)", () => {
-    const cases = [
-      "",
-      "abc",
-      "_",
-      "$",
-      "a1b2",
-      "a-b",
-      "a b",
-      "1a",
-      "-a",
-      "class",
-      "café",
-      "a🤖b"
-    ] as const
+    const cases = ["", "abc", "_", "$", "a1b2", "a-b", "a b", "1a", "-a", "class", "café", "a🤖b"] as const
 
     for (const input of cases) {
       const once = sanitizeJavaScriptIdentifier(input)
@@ -1770,10 +1831,7 @@ describe("topologicalSort", () => {
   }
 
   it("empty definitions", () => {
-    assertTopologicalSort(
-      {},
-      { nonRecursives: [], recursives: {} }
-    )
+    assertTopologicalSort({}, { nonRecursives: [], recursives: {} })
   })
 
   it("single definition with no dependencies", () => {
@@ -1782,236 +1840,273 @@ describe("topologicalSort", () => {
         A: { _tag: "String", checks: [] }
       },
       {
-        nonRecursives: [
-          { $ref: "A", representation: { _tag: "String", checks: [] } }
-        ],
+        nonRecursives: [{ $ref: "A", representation: { _tag: "String", checks: [] } }],
         recursives: {}
       }
     )
   })
 
   it("multiple independent definitions", () => {
-    assertTopologicalSort({
-      A: { _tag: "String", checks: [] },
-      B: { _tag: "Number", checks: [] },
-      C: { _tag: "Boolean" }
-    }, {
-      nonRecursives: [
-        { $ref: "A", representation: { _tag: "String", checks: [] } },
-        { $ref: "B", representation: { _tag: "Number", checks: [] } },
-        { $ref: "C", representation: { _tag: "Boolean" } }
-      ],
-      recursives: {}
-    })
+    assertTopologicalSort(
+      {
+        A: { _tag: "String", checks: [] },
+        B: { _tag: "Number", checks: [] },
+        C: { _tag: "Boolean" }
+      },
+      {
+        nonRecursives: [
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          { $ref: "B", representation: { _tag: "Number", checks: [] } },
+          { $ref: "C", representation: { _tag: "Boolean" } }
+        ],
+        recursives: {}
+      }
+    )
   })
 
   it("A -> B -> C", () => {
-    assertTopologicalSort({
-      A: { _tag: "String", checks: [] },
-      B: { _tag: "Reference", $ref: "A" },
-      C: { _tag: "Reference", $ref: "B" }
-    }, {
-      nonRecursives: [
-        { $ref: "A", representation: { _tag: "String", checks: [] } },
-        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
-        { $ref: "C", representation: { _tag: "Reference", $ref: "B" } }
-      ],
-      recursives: {}
-    })
+    assertTopologicalSort(
+      {
+        A: { _tag: "String", checks: [] },
+        B: { _tag: "Reference", $ref: "A" },
+        C: { _tag: "Reference", $ref: "B" }
+      },
+      {
+        nonRecursives: [
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
+          { $ref: "C", representation: { _tag: "Reference", $ref: "B" } }
+        ],
+        recursives: {}
+      }
+    )
   })
 
   it("A -> B, A -> C", () => {
-    assertTopologicalSort({
-      A: { _tag: "String", checks: [] },
-      B: { _tag: "Reference", $ref: "A" },
-      C: { _tag: "Reference", $ref: "A" }
-    }, {
-      nonRecursives: [
-        { $ref: "A", representation: { _tag: "String", checks: [] } },
-        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
-        { $ref: "C", representation: { _tag: "Reference", $ref: "A" } }
-      ],
-      recursives: {}
-    })
+    assertTopologicalSort(
+      {
+        A: { _tag: "String", checks: [] },
+        B: { _tag: "Reference", $ref: "A" },
+        C: { _tag: "Reference", $ref: "A" }
+      },
+      {
+        nonRecursives: [
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
+          { $ref: "C", representation: { _tag: "Reference", $ref: "A" } }
+        ],
+        recursives: {}
+      }
+    )
   })
 
   it("A -> B -> C, A -> D", () => {
-    assertTopologicalSort({
-      A: { _tag: "String", checks: [] },
-      B: { _tag: "Reference", $ref: "A" },
-      C: { _tag: "Reference", $ref: "B" },
-      D: { _tag: "Reference", $ref: "A" }
-    }, {
-      nonRecursives: [
-        { $ref: "A", representation: { _tag: "String", checks: [] } },
-        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
-        { $ref: "D", representation: { _tag: "Reference", $ref: "A" } },
-        { $ref: "C", representation: { _tag: "Reference", $ref: "B" } }
-      ],
-      recursives: {}
-    })
+    assertTopologicalSort(
+      {
+        A: { _tag: "String", checks: [] },
+        B: { _tag: "Reference", $ref: "A" },
+        C: { _tag: "Reference", $ref: "B" },
+        D: { _tag: "Reference", $ref: "A" }
+      },
+      {
+        nonRecursives: [
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
+          { $ref: "D", representation: { _tag: "Reference", $ref: "A" } },
+          { $ref: "C", representation: { _tag: "Reference", $ref: "B" } }
+        ],
+        recursives: {}
+      }
+    )
   })
 
   it("self-referential definition (A -> A)", () => {
-    assertTopologicalSort({
-      A: { _tag: "Reference", $ref: "A" }
-    }, {
-      nonRecursives: [],
-      recursives: {
+    assertTopologicalSort(
+      {
         A: { _tag: "Reference", $ref: "A" }
+      },
+      {
+        nonRecursives: [],
+        recursives: {
+          A: { _tag: "Reference", $ref: "A" }
+        }
       }
-    })
+    )
   })
 
   it("mutual recursion (A -> B -> A)", () => {
-    assertTopologicalSort({
-      A: { _tag: "Reference", $ref: "B" },
-      B: { _tag: "Reference", $ref: "A" }
-    }, {
-      nonRecursives: [],
-      recursives: {
+    assertTopologicalSort(
+      {
         A: { _tag: "Reference", $ref: "B" },
         B: { _tag: "Reference", $ref: "A" }
+      },
+      {
+        nonRecursives: [],
+        recursives: {
+          A: { _tag: "Reference", $ref: "B" },
+          B: { _tag: "Reference", $ref: "A" }
+        }
       }
-    })
+    )
   })
 
   it("complex cycle (A -> B -> C -> A)", () => {
-    assertTopologicalSort({
-      A: { _tag: "Reference", $ref: "B" },
-      B: { _tag: "Reference", $ref: "C" },
-      C: { _tag: "Reference", $ref: "A" }
-    }, {
-      nonRecursives: [],
-      recursives: {
+    assertTopologicalSort(
+      {
         A: { _tag: "Reference", $ref: "B" },
         B: { _tag: "Reference", $ref: "C" },
         C: { _tag: "Reference", $ref: "A" }
+      },
+      {
+        nonRecursives: [],
+        recursives: {
+          A: { _tag: "Reference", $ref: "B" },
+          B: { _tag: "Reference", $ref: "C" },
+          C: { _tag: "Reference", $ref: "A" }
+        }
       }
-    })
+    )
   })
 
   it("mixed recursive and non-recursive definitions", () => {
-    assertTopologicalSort({
-      A: { _tag: "String", checks: [] },
-      B: { _tag: "Reference", $ref: "A" },
-      C: { _tag: "Reference", $ref: "C" },
-      D: { _tag: "Reference", $ref: "E" },
-      E: { _tag: "Reference", $ref: "D" }
-    }, {
-      nonRecursives: [
-        { $ref: "A", representation: { _tag: "String", checks: [] } },
-        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
-      ],
-      recursives: {
+    assertTopologicalSort(
+      {
+        A: { _tag: "String", checks: [] },
+        B: { _tag: "Reference", $ref: "A" },
         C: { _tag: "Reference", $ref: "C" },
         D: { _tag: "Reference", $ref: "E" },
         E: { _tag: "Reference", $ref: "D" }
+      },
+      {
+        nonRecursives: [
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
+        ],
+        recursives: {
+          C: { _tag: "Reference", $ref: "C" },
+          D: { _tag: "Reference", $ref: "E" },
+          E: { _tag: "Reference", $ref: "D" }
+        }
       }
-    })
+    )
   })
 
   it("nested $ref in object properties", () => {
-    assertTopologicalSort({
-      A: { _tag: "String", checks: [] },
-      B: {
-        _tag: "Objects",
-        propertySignatures: [{
-          name: "value",
-          type: { _tag: "Reference", $ref: "A" },
-          isOptional: false,
-          isMutable: false
-        }],
-        indexSignatures: [],
-        checks: []
-      }
-    }, {
-      nonRecursives: [
-        { $ref: "A", representation: { _tag: "String", checks: [] } },
-        {
-          $ref: "B",
-          representation: {
-            _tag: "Objects",
-            propertySignatures: [{
+    assertTopologicalSort(
+      {
+        A: { _tag: "String", checks: [] },
+        B: {
+          _tag: "Objects",
+          propertySignatures: [
+            {
               name: "value",
               type: { _tag: "Reference", $ref: "A" },
               isOptional: false,
               isMutable: false
-            }],
-            indexSignatures: [],
-            checks: []
-          }
+            }
+          ],
+          indexSignatures: [],
+          checks: []
         }
-      ],
-      recursives: {}
-    })
+      },
+      {
+        nonRecursives: [
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          {
+            $ref: "B",
+            representation: {
+              _tag: "Objects",
+              propertySignatures: [
+                {
+                  name: "value",
+                  type: { _tag: "Reference", $ref: "A" },
+                  isOptional: false,
+                  isMutable: false
+                }
+              ],
+              indexSignatures: [],
+              checks: []
+            }
+          }
+        ],
+        recursives: {}
+      }
+    )
   })
 
   it("nested $ref in array rest", () => {
-    assertTopologicalSort({
-      A: { _tag: "String", checks: [] },
-      B: {
-        _tag: "Arrays",
-        elements: [],
-        rest: [{ _tag: "Reference", $ref: "A" }],
-        checks: []
-      }
-    }, {
-      nonRecursives: [
-        { $ref: "A", representation: { _tag: "String", checks: [] } },
-        {
-          $ref: "B",
-          representation: { _tag: "Arrays", elements: [], rest: [{ _tag: "Reference", $ref: "A" }], checks: [] }
+    assertTopologicalSort(
+      {
+        A: { _tag: "String", checks: [] },
+        B: {
+          _tag: "Arrays",
+          elements: [],
+          rest: [{ _tag: "Reference", $ref: "A" }],
+          checks: []
         }
-      ],
-      recursives: {}
-    })
+      },
+      {
+        nonRecursives: [
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          {
+            $ref: "B",
+            representation: { _tag: "Arrays", elements: [], rest: [{ _tag: "Reference", $ref: "A" }], checks: [] }
+          }
+        ],
+        recursives: {}
+      }
+    )
   })
 
   it("external $ref (not in definitions) should be ignored", () => {
-    assertTopologicalSort({
-      A: { _tag: "Reference", $ref: "#/definitions/External" },
-      B: { _tag: "Reference", $ref: "A" }
-    }, {
-      nonRecursives: [
-        { $ref: "A", representation: { _tag: "Reference", $ref: "#/definitions/External" } },
-        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
-      ],
-      recursives: {}
-    })
+    assertTopologicalSort(
+      {
+        A: { _tag: "Reference", $ref: "#/definitions/External" },
+        B: { _tag: "Reference", $ref: "A" }
+      },
+      {
+        nonRecursives: [
+          { $ref: "A", representation: { _tag: "Reference", $ref: "#/definitions/External" } },
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
+        ],
+        recursives: {}
+      }
+    )
   })
 
   it("multiple cycles with independent definitions", () => {
-    assertTopologicalSort({
-      Independent: { _tag: "String", checks: [] },
-      A: { _tag: "Reference", $ref: "B" },
-      B: { _tag: "Reference", $ref: "A" },
-      C: { _tag: "Reference", $ref: "D" },
-      D: { _tag: "Reference", $ref: "C" }
-    }, {
-      nonRecursives: [
-        { $ref: "Independent", representation: { _tag: "String", checks: [] } }
-      ],
-      recursives: {
+    assertTopologicalSort(
+      {
+        Independent: { _tag: "String", checks: [] },
         A: { _tag: "Reference", $ref: "B" },
         B: { _tag: "Reference", $ref: "A" },
         C: { _tag: "Reference", $ref: "D" },
         D: { _tag: "Reference", $ref: "C" }
+      },
+      {
+        nonRecursives: [{ $ref: "Independent", representation: { _tag: "String", checks: [] } }],
+        recursives: {
+          A: { _tag: "Reference", $ref: "B" },
+          B: { _tag: "Reference", $ref: "A" },
+          C: { _tag: "Reference", $ref: "D" },
+          D: { _tag: "Reference", $ref: "C" }
+        }
       }
-    })
+    )
   })
 
   it("definition depending on recursive definition", () => {
-    assertTopologicalSort({
-      A: { _tag: "Reference", $ref: "A" },
-      B: { _tag: "Reference", $ref: "A" }
-    }, {
-      nonRecursives: [
-        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
-      ],
-      recursives: {
-        A: { _tag: "Reference", $ref: "A" }
+    assertTopologicalSort(
+      {
+        A: { _tag: "Reference", $ref: "A" },
+        B: { _tag: "Reference", $ref: "A" }
+      },
+      {
+        nonRecursives: [{ $ref: "B", representation: { _tag: "Reference", $ref: "A" } }],
+        recursives: {
+          A: { _tag: "Reference", $ref: "A" }
+        }
       }
-    })
+    )
   })
 })

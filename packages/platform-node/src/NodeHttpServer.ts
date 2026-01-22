@@ -52,10 +52,7 @@ import { NodeWS } from "./NodeSocket.ts"
  * @since 1.0.0
  * @category constructors
  */
-export const make = Effect.fnUntraced(function*(
-  evaluate: LazyArg<Http.Server>,
-  options: Net.ListenOptions
-) {
+export const make = Effect.fnUntraced(function* (evaluate: LazyArg<Http.Server>, options: Net.ListenOptions) {
   const scope = yield* Effect.scope
   const server = evaluate()
   yield* Scope.addFinalizer(
@@ -93,28 +90,26 @@ export const make = Effect.fnUntraced(function*(
       Effect.callback<void>((resume) => {
         wss.close(() => resume(Effect.void))
       })
-  ).pipe(
-    Scope.provide(scope),
-    Effect.cached
-  )
+  ).pipe(Scope.provide(scope), Effect.cached)
 
   return HttpServer.make({
-    address: typeof address === "string" ?
-      {
-        _tag: "UnixAddress",
-        path: address
-      } :
-      {
-        _tag: "TcpAddress",
-        hostname: address.address === "::" ? "0.0.0.0" : address.address,
-        port: address.port
-      },
-    serve: Effect.fnUntraced(function*(httpApp, middleware) {
+    address:
+      typeof address === "string"
+        ? {
+            _tag: "UnixAddress",
+            path: address
+          }
+        : {
+            _tag: "TcpAddress",
+            hostname: address.address === "::" ? "0.0.0.0" : address.address,
+            port: address.port
+          },
+    serve: Effect.fnUntraced(function* (httpApp, middleware) {
       const scope = yield* Effect.scope
-      const handler = yield* (makeHandler(httpApp, {
+      const handler = yield* makeHandler(httpApp, {
         middleware: middleware as any,
         scope
-      }) as Effect.Effect<(nodeRequest: Http.IncomingMessage, nodeResponse: Http.ServerResponse) => void>)
+      }) as Effect.Effect<(nodeRequest: Http.IncomingMessage, nodeResponse: Http.ServerResponse) => void>
       const upgradeHandler = yield* makeUpgradeHandler(wss, httpApp, {
         middleware: middleware as any,
         scope
@@ -152,10 +147,7 @@ export const makeHandler = <
 > => {
   const handled = HttpEffect.toHandled(httpEffect, handleResponse, options.middleware as any)
   return Effect.map(Effect.services<any>(), (services) => {
-    return function handler(
-      nodeRequest: Http.IncomingMessage,
-      nodeResponse: Http.ServerResponse
-    ) {
+    return function handler(nodeRequest: Http.IncomingMessage, nodeResponse: Http.ServerResponse) {
       const map = new Map(services.mapUnsafe)
       map.set(HttpServerRequest.key, new ServerRequestImpl(nodeRequest, nodeResponse))
       const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(handled), options.scope)
@@ -189,44 +181,43 @@ export const makeUpgradeHandler = <
   Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>
 > => {
   const handledApp = HttpEffect.toHandled(httpEffect, handleResponse, options.middleware as any)
-  return Effect.map(Effect.services<any>(), (services) =>
-    function handler(
-      nodeRequest: Http.IncomingMessage,
-      socket: Duplex,
-      head: Buffer
-    ) {
-      let nodeResponse_: Http.ServerResponse | undefined = undefined
-      const nodeResponse = () => {
-        if (nodeResponse_ === undefined) {
-          nodeResponse_ = new Http.ServerResponse(nodeRequest)
-          nodeResponse_.assignSocket(socket as any)
-          nodeResponse_.on("finish", () => {
-            socket.end()
-          })
+  return Effect.map(
+    Effect.services<any>(),
+    (services) =>
+      function handler(nodeRequest: Http.IncomingMessage, socket: Duplex, head: Buffer) {
+        let nodeResponse_: Http.ServerResponse | undefined = undefined
+        const nodeResponse = () => {
+          if (nodeResponse_ === undefined) {
+            nodeResponse_ = new Http.ServerResponse(nodeRequest)
+            nodeResponse_.assignSocket(socket as any)
+            nodeResponse_.on("finish", () => {
+              socket.end()
+            })
+          }
+          return nodeResponse_
         }
-        return nodeResponse_
-      }
-      const upgradeEffect = Socket.fromWebSocket(Effect.flatMap(
-        lazyWss,
-        (wss) =>
-          Effect.acquireRelease(
-            Effect.callback<globalThis.WebSocket>((resume) =>
-              wss.handleUpgrade(nodeRequest, socket, head, (ws) => {
-                resume(Effect.succeed(ws as any))
-              })
-            ),
-            (ws) => Effect.sync(() => ws.close())
+        const upgradeEffect = Socket.fromWebSocket(
+          Effect.flatMap(lazyWss, (wss) =>
+            Effect.acquireRelease(
+              Effect.callback<globalThis.WebSocket>((resume) =>
+                wss.handleUpgrade(nodeRequest, socket, head, (ws) => {
+                  resume(Effect.succeed(ws as any))
+                })
+              ),
+              (ws) => Effect.sync(() => ws.close())
+            )
           )
-      ))
-      const map = new Map(services.mapUnsafe)
-      map.set(HttpServerRequest.key, new ServerRequestImpl(nodeRequest, nodeResponse, upgradeEffect))
-      const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(handledApp), options.scope)
-      socket.on("close", () => {
-        if (!socket.writableEnded) {
-          fiber.interruptUnsafe(clientAbortFiberId)
-        }
-      })
-    })
+        )
+        const map = new Map(services.mapUnsafe)
+        map.set(HttpServerRequest.key, new ServerRequestImpl(nodeRequest, nodeResponse, upgradeEffect))
+        const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(handledApp), options.scope)
+        socket.on("close", () => {
+          if (!socket.writableEnded) {
+            fiber.interruptUnsafe(clientAbortFiberId)
+          }
+        })
+      }
+  )
 }
 
 class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> implements HttpServerRequest {
@@ -244,12 +235,16 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
     headersOverride?: Headers.Headers,
     remoteAddressOverride?: string
   ) {
-    super(source, (cause) =>
-      new RequestError({
-        request: this,
-        reason: "RequestParseError",
-        cause
-      }), remoteAddressOverride)
+    super(
+      source,
+      (cause) =>
+        new RequestError({
+          request: this,
+          reason: "RequestParseError",
+          cause
+        }),
+      remoteAddressOverride
+    )
     this[Request.TypeId] = Request.TypeId
     this.response = response
     this.upgradeEffect = upgradeEffect
@@ -262,20 +257,18 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
     if (this.cachedCookies) {
       return this.cachedCookies
     }
-    return this.cachedCookies = Cookies.parseHeader(this.headers.cookie ?? "")
+    return (this.cachedCookies = Cookies.parseHeader(this.headers.cookie ?? ""))
   }
 
   get resolvedResponse(): Http.ServerResponse {
     return typeof this.response === "function" ? this.response() : this.response
   }
 
-  modify(
-    options: {
-      readonly url?: string | undefined
-      readonly headers?: Headers.Headers | undefined
-      readonly remoteAddress?: string | undefined
-    }
-  ) {
+  modify(options: {
+    readonly url?: string | undefined
+    readonly headers?: Headers.Headers | undefined
+    readonly remoteAddress?: string | undefined
+  }) {
     return new ServerRequestImpl(
       this.source,
       this.response,
@@ -300,11 +293,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
   }
 
   private multipartEffect:
-    | Effect.Effect<
-      Multipart.Persisted,
-      Multipart.MultipartError,
-      Scope.Scope | FileSystem.FileSystem | Path.Path
-    >
+    | Effect.Effect<Multipart.Persisted, Multipart.MultipartError, Scope.Scope | FileSystem.FileSystem | Path.Path>
     | undefined
   get multipart(): Effect.Effect<
     Multipart.Persisted,
@@ -314,9 +303,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
     if (this.multipartEffect) {
       return this.multipartEffect
     }
-    this.multipartEffect = Effect.runSync(Effect.cached(
-      NodeMultipart.persisted(this.source, this.source.headers)
-    ))
+    this.multipartEffect = Effect.runSync(Effect.cached(NodeMultipart.persisted(this.source, this.source.headers)))
     return this.multipartEffect
   }
 
@@ -325,12 +312,15 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
   }
 
   get upgrade(): Effect.Effect<Socket.Socket, HttpServerError> {
-    return this.upgradeEffect ?? Effect.fail(
-      new RequestError({
-        request: this,
-        reason: "RequestParseError",
-        description: "not an upgradeable ServerRequest"
-      })
+    return (
+      this.upgradeEffect ??
+      Effect.fail(
+        new RequestError({
+          request: this,
+          reason: "RequestParseError",
+          description: "not an upgradeable ServerRequest"
+        })
+      )
     )
   }
 
@@ -360,13 +350,8 @@ export const layerServer: (
  * @since 1.0.0
  * @category Layers
  */
-export const layerHttpServices: Layer.Layer<
-  NodeServices.NodeServices | HttpPlatform.HttpPlatform | Etag.Generator
-> = Layer.mergeAll(
-  NodeHttpPlatform.layer,
-  Etag.layerWeak,
-  NodeServices.layer
-)
+export const layerHttpServices: Layer.Layer<NodeServices.NodeServices | HttpPlatform.HttpPlatform | Etag.Generator> =
+  Layer.mergeAll(NodeHttpPlatform.layer, Etag.layerWeak, NodeServices.layer)
 
 /**
  * @since 1.0.0
@@ -378,11 +363,7 @@ export const layer = (
 ): Layer.Layer<
   HttpServer.HttpServer | NodeServices.NodeServices | HttpPlatform.HttpPlatform | Etag.Generator,
   ServeError
-> =>
-  Layer.mergeAll(
-    layerServer(evaluate, options),
-    layerHttpServices
-  )
+> => Layer.mergeAll(layerServer(evaluate, options), layerHttpServices)
 
 /**
  * @since 1.0.0
@@ -407,12 +388,7 @@ export const layerConfig = (
  * @category Testing
  */
 export const layerTest: Layer.Layer<
-  | HttpServer.HttpServer
-  | FileSystem.FileSystem
-  | Path.Path
-  | HttpPlatform.HttpPlatform
-  | Etag.Generator
-  | HttpClient,
+  HttpServer.HttpServer | FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform | Etag.Generator | HttpClient,
   ServeError,
   never
 > = HttpServer.layerTestClient.pipe(
@@ -463,7 +439,9 @@ const handleResponse = (
     case "Raw": {
       nodeResponse.writeHead(response.status, headers)
       if (
-        typeof body.body === "object" && body.body !== null && "pipe" in body.body &&
+        typeof body.body === "object" &&
+        body.body !== null &&
+        "pipe" in body.body &&
         typeof body.body.pipe === "function"
       ) {
         return Effect.tryPromise({
@@ -475,10 +453,7 @@ const handleResponse = (
               description: "Error writing raw response",
               cause
             })
-        }).pipe(
-          Effect.interruptible,
-          Effect.tapCause(handleCause(nodeResponse, response))
-        )
+        }).pipe(Effect.interruptible, Effect.tapCause(handleCause(nodeResponse, response)))
       }
       return Effect.callback<void>((resume) => {
         nodeResponse.end(body.body, () => resume(Effect.void))
@@ -506,22 +481,21 @@ const handleResponse = (
           Readable.fromWeb(r.body as any, { signal })
             .pipe(nodeResponse)
             .on("error", (cause) => {
-              resume(Effect.fail(
-                new ResponseError({
-                  request,
-                  response,
-                  description: "Error writing FormData response",
-                  cause
-                })
-              ))
+              resume(
+                Effect.fail(
+                  new ResponseError({
+                    request,
+                    response,
+                    description: "Error writing FormData response",
+                    cause
+                  })
+                )
+              )
             })
             .once("finish", () => {
               resume(Effect.void)
             })
-        }).pipe(
-          Effect.interruptible,
-          Effect.tapCause(handleCause(nodeResponse, response))
-        )
+        }).pipe(Effect.interruptible, Effect.tapCause(handleCause(nodeResponse, response)))
       })
     }
     case "Stream": {
@@ -554,22 +528,16 @@ const handleResponse = (
   }
 }
 
-const handleCause = (
-  nodeResponse: Http.ServerResponse,
-  originalResponse: HttpServerResponse
-) =>
-<E>(originalCause: Cause.Cause<E>) =>
-  Effect.flatMap(causeResponse(originalCause), ([response, cause]) => {
-    const headersSent = nodeResponse.headersSent
-    if (!headersSent) {
-      nodeResponse.writeHead(response.status)
-    }
-    if (!nodeResponse.writableEnded) {
-      nodeResponse.end()
-    }
-    return Effect.failCause(
-      headersSent
-        ? Cause.merge(originalCause, Cause.die(originalResponse))
-        : cause
-    )
-  })
+const handleCause =
+  (nodeResponse: Http.ServerResponse, originalResponse: HttpServerResponse) =>
+  <E>(originalCause: Cause.Cause<E>) =>
+    Effect.flatMap(causeResponse(originalCause), ([response, cause]) => {
+      const headersSent = nodeResponse.headersSent
+      if (!headersSent) {
+        nodeResponse.writeHead(response.status)
+      }
+      if (!nodeResponse.writableEnded) {
+        nodeResponse.end()
+      }
+      return Effect.failCause(headersSent ? Cause.merge(originalCause, Cause.die(originalResponse)) : cause)
+    })

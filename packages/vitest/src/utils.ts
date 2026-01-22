@@ -80,7 +80,7 @@ export function doesNotThrow(thunk: () => void, message?: string, ..._: Array<ne
  *
  * @since 4.0.0
  */
-export function assertInstanceOf<C extends abstract new(...args: any) => any>(
+export function assertInstanceOf<C extends abstract new (...args: any) => any>(
   value: unknown,
   constructor: C,
   message?: string,
@@ -193,10 +193,7 @@ export function assertNone<A>(option: Option.Option<A>, ..._: Array<never>): ass
  *
  * @since 4.0.0
  */
-export function assertDefined<A>(
-  a: A | undefined,
-  ..._: Array<never>
-): asserts a is Exclude<A, undefined> {
+export function assertDefined<A>(a: A | undefined, ..._: Array<never>): asserts a is Exclude<A, undefined> {
   if (a === undefined) {
     fail("Expected value to be defined")
   }
@@ -207,10 +204,7 @@ export function assertDefined<A>(
  *
  * @since 4.0.0
  */
-export function assertUndefined<A>(
-  a: A | undefined,
-  ..._: Array<never>
-): asserts a is undefined {
+export function assertUndefined<A>(a: A | undefined, ..._: Array<never>): asserts a is undefined {
   if (a !== undefined) {
     fail("Expected value to be undefined")
   }

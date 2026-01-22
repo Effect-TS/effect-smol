@@ -58,9 +58,7 @@ describe("Optic", () => {
 
   describe("at", () => {
     it("should not be allowed on union types", () => {
-      type S =
-        | Record<string, string>
-        | Record<string, number>
+      type S = Record<string, string> | Record<string, number>
 
       expect(Optic.id<S>().at).type.not.toBeCallableWith("a")
     })

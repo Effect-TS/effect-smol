@@ -26,7 +26,7 @@ if (typeof self !== "undefined" && "onconnect" in self) {
  * @category Constructors
  */
 export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatform["Service"] => ({
-  start: Effect.fnUntraced(function*<O = unknown, I = unknown>() {
+  start: Effect.fnUntraced(function* <O = unknown, I = unknown>() {
     const disconnects = yield* Queue.make<number>()
     let currentPortId = 0
 
@@ -38,111 +38,113 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
     const send = (portId: number, message: O, transfer?: ReadonlyArray<unknown>) =>
       Effect.sync(() => sendUnsafe(portId, message, transfer))
 
-    const run = <A, E, R>(
-      handler: (portId: number, message: I) => Effect.Effect<A, E, R> | void
-    ) =>
-      Effect.scopedWith(Effect.fnUntraced(function*(scope) {
-        const closeLatch = Deferred.makeUnsafe<void, WorkerError>()
-        const trackFiber = Fiber.runIn(scope)
-        const services = yield* Effect.services<R>()
-        const runFork = Effect.runForkWith(services)
-        const onExit = (exit: Exit.Exit<any, E>) => {
-          if (exit._tag === "Failure" && !Cause.isInterruptedOnly(exit.cause)) {
-            runFork(Effect.logError("unhandled error in worker", exit.cause))
-          }
-        }
-
-        function onMessage(portId: number) {
-          return function(event: MessageEvent) {
-            const message = event.data as WorkerRunner.PlatformMessage<I>
-            if (message[0] === 0) {
-              const result = handler(portId, message[1])
-              if (Effect.isEffect(result)) {
-                const fiber = runFork(result)
-                fiber.addObserver(onExit)
-                trackFiber(fiber)
-              }
-            } else {
-              const port = ports.get(portId)
-              if (!port) {
-                return
-              } else if (ports.size === 1) {
-                // let the last port close with the outer scope
-                return Deferred.doneUnsafe(closeLatch, Exit.void)
-              }
-              ports.delete(portId)
-              Effect.runFork(Scope.close(port[1], Exit.void))
+    const run = <A, E, R>(handler: (portId: number, message: I) => Effect.Effect<A, E, R> | void) =>
+      Effect.scopedWith(
+        Effect.fnUntraced(function* (scope) {
+          const closeLatch = Deferred.makeUnsafe<void, WorkerError>()
+          const trackFiber = Fiber.runIn(scope)
+          const services = yield* Effect.services<R>()
+          const runFork = Effect.runForkWith(services)
+          const onExit = (exit: Exit.Exit<any, E>) => {
+            if (exit._tag === "Failure" && !Cause.isInterruptedOnly(exit.cause)) {
+              runFork(Effect.logError("unhandled error in worker", exit.cause))
             }
           }
-        }
-        function onMessageError(error: MessageEvent) {
-          Deferred.doneUnsafe(
-            closeLatch,
-            new WorkerError({
-              reason: "Receive",
-              message: "An messageerror event was emitted",
-              cause: error.data
-            }).asEffect()
-          )
-        }
-        function onError(error: any) {
-          Deferred.doneUnsafe(
-            closeLatch,
-            new WorkerError({
-              reason: "Receive",
-              message: "An error event was emitted",
-              cause: error.data
-            }).asEffect()
-          )
-        }
-        function handlePort(port: MessagePort) {
-          const portScope = Scope.forkUnsafe(scope)
-          const portId = currentPortId++
-          ports.set(portId, [port, portScope])
-          const onMsg = onMessage(portId)
-          port.addEventListener("message", onMsg)
-          port.addEventListener("messageerror", onMessageError)
-          if ("start" in port) {
-            port.start()
+
+          function onMessage(portId: number) {
+            return function (event: MessageEvent) {
+              const message = event.data as WorkerRunner.PlatformMessage<I>
+              if (message[0] === 0) {
+                const result = handler(portId, message[1])
+                if (Effect.isEffect(result)) {
+                  const fiber = runFork(result)
+                  fiber.addObserver(onExit)
+                  trackFiber(fiber)
+                }
+              } else {
+                const port = ports.get(portId)
+                if (!port) {
+                  return
+                } else if (ports.size === 1) {
+                  // let the last port close with the outer scope
+                  return Deferred.doneUnsafe(closeLatch, Exit.void)
+                }
+                ports.delete(portId)
+                Effect.runFork(Scope.close(port[1], Exit.void))
+              }
+            }
           }
-          port.postMessage([0])
-          Effect.runSync(Scope.addFinalizer(
-            portScope,
+          function onMessageError(error: MessageEvent) {
+            Deferred.doneUnsafe(
+              closeLatch,
+              new WorkerError({
+                reason: "Receive",
+                message: "An messageerror event was emitted",
+                cause: error.data
+              }).asEffect()
+            )
+          }
+          function onError(error: any) {
+            Deferred.doneUnsafe(
+              closeLatch,
+              new WorkerError({
+                reason: "Receive",
+                message: "An error event was emitted",
+                cause: error.data
+              }).asEffect()
+            )
+          }
+          function handlePort(port: MessagePort) {
+            const portScope = Scope.forkUnsafe(scope)
+            const portId = currentPortId++
+            ports.set(portId, [port, portScope])
+            const onMsg = onMessage(portId)
+            port.addEventListener("message", onMsg)
+            port.addEventListener("messageerror", onMessageError)
+            if ("start" in port) {
+              port.start()
+            }
+            port.postMessage([0])
+            Effect.runSync(
+              Scope.addFinalizer(
+                portScope,
+                Effect.sync(() => {
+                  port.removeEventListener("message", onMsg)
+                  port.removeEventListener("messageerror", onError)
+                  port.close()
+                })
+              )
+            )
+          }
+          self.addEventListener("error", onError)
+          let prevOnConnect: unknown | undefined
+          if ("onconnect" in self) {
+            prevOnConnect = self.onconnect
+            self.onconnect = function (event: MessageEvent) {
+              const port = (event as MessageEvent).ports[0]
+              handlePort(port)
+            }
+            for (const port of cachedPorts) {
+              handlePort(port)
+            }
+            cachedPorts.clear()
+          } else {
+            handlePort(self as any)
+          }
+          yield* Scope.addFinalizer(
+            scope,
             Effect.sync(() => {
-              port.removeEventListener("message", onMsg)
-              port.removeEventListener("messageerror", onError)
-              port.close()
+              self.removeEventListener("error", onError)
+              if ("onconnect" in self) {
+                self.close()
+                self.onconnect = prevOnConnect
+              }
             })
-          ))
-        }
-        self.addEventListener("error", onError)
-        let prevOnConnect: unknown | undefined
-        if ("onconnect" in self) {
-          prevOnConnect = self.onconnect
-          self.onconnect = function(event: MessageEvent) {
-            const port = (event as MessageEvent).ports[0]
-            handlePort(port)
-          }
-          for (const port of cachedPorts) {
-            handlePort(port)
-          }
-          cachedPorts.clear()
-        } else {
-          handlePort(self as any)
-        }
-        yield* Scope.addFinalizer(
-          scope,
-          Effect.sync(() => {
-            self.removeEventListener("error", onError)
-            if ("onconnect" in self) {
-              self.close()
-              self.onconnect = prevOnConnect
-            }
-          })
-        )
+          )
 
-        yield* Deferred.await(closeLatch)
-      }))
+          yield* Deferred.await(closeLatch)
+        })
+      )
 
     return identity<WorkerRunner.WorkerRunner<O, I>>({ run, send, sendUnsafe, disconnects })
   }) as any

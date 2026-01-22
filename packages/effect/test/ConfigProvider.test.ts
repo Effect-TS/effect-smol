@@ -24,12 +24,12 @@ describe("ConfigProvider", () => {
   it("orElse", async () => {
     const provider1 = ConfigProvider.fromEnv({
       env: {
-        "A": "value1"
+        A: "value1"
       }
     })
     const provider2 = ConfigProvider.fromEnv({
       env: {
-        "B": "value2"
+        B: "value2"
       }
     })
     const provider = provider1.pipe(ConfigProvider.orElse(provider2))
@@ -38,21 +38,23 @@ describe("ConfigProvider", () => {
   })
 
   it("constantCase", async () => {
-    const provider = ConfigProvider.constantCase(ConfigProvider.fromEnv({
-      env: {
-        "CONSTANT_CASE": "value1"
-      }
-    }))
+    const provider = ConfigProvider.constantCase(
+      ConfigProvider.fromEnv({
+        env: {
+          CONSTANT_CASE: "value1"
+        }
+      })
+    )
     await assertSuccess(provider, ["constant.case"], ConfigProvider.makeValue("value1"))
   })
 
   describe("mapInput", () => {
     it("two mappings", async () => {
-      const appendA = ConfigProvider.mapInput((path) => path.map((sn) => typeof sn === "string" ? sn + "_A" : sn))
-      const appendB = ConfigProvider.mapInput((path) => path.map((sn) => typeof sn === "string" ? sn + "_B" : sn))
+      const appendA = ConfigProvider.mapInput((path) => path.map((sn) => (typeof sn === "string" ? sn + "_A" : sn)))
+      const appendB = ConfigProvider.mapInput((path) => path.map((sn) => (typeof sn === "string" ? sn + "_B" : sn)))
       const provider = ConfigProvider.fromEnv({
         env: {
-          "KEY_A_B": "value"
+          KEY_A_B: "value"
         }
       }).pipe(appendA, appendB)
       await assertSuccess(provider, ["KEY"], ConfigProvider.makeValue("value"))
@@ -63,7 +65,7 @@ describe("ConfigProvider", () => {
     it("should add a prefix to the path", async () => {
       const provider = ConfigProvider.fromEnv({
         env: {
-          "prefix_A": "value"
+          prefix_A: "value"
         }
       }).pipe(ConfigProvider.nested("prefix"))
       await assertSuccess(provider, ["A"], ConfigProvider.makeValue("value"))
@@ -72,7 +74,7 @@ describe("ConfigProvider", () => {
     it("constantCase + nested", async () => {
       const provider = ConfigProvider.fromEnv({
         env: {
-          "prefix_KEY_WITH_DOTS": "value"
+          prefix_KEY_WITH_DOTS: "value"
         }
       }).pipe(ConfigProvider.constantCase, ConfigProvider.nested("prefix"))
       await assertSuccess(provider, ["key.with.dots"], ConfigProvider.makeValue("value"))
@@ -81,7 +83,7 @@ describe("ConfigProvider", () => {
     it("nested + constantCase", async () => {
       const provider = ConfigProvider.fromEnv({
         env: {
-          "PREFIX_WITH_DOTS_KEY_WITH_DOTS": "value"
+          PREFIX_WITH_DOTS_KEY_WITH_DOTS: "value"
         }
       }).pipe(ConfigProvider.nested("prefix.with.dots"), ConfigProvider.constantCase)
       await assertSuccess(provider, ["key.with.dots"], ConfigProvider.makeValue("value"))
@@ -282,7 +284,7 @@ describe("ConfigProvider", () => {
     })
 
     it("underscore-only key creates empty segments", async () => {
-      const env = { "_": "value1" }
+      const env = { _: "value1" }
       const provider = ConfigProvider.fromEnv({ env })
 
       await assertSuccess(provider, ["_"], ConfigProvider.makeValue("value1"))
@@ -308,9 +310,13 @@ describe("ConfigProvider", () => {
           key3: "value3"
         }
       },
-      array: ["value4", {
-        key4: "value5"
-      }, ["value6"]],
+      array: [
+        "value4",
+        {
+          key4: "value5"
+        },
+        ["value6"]
+      ],
       null: null,
       number: 42,
       boolean: true,
@@ -478,11 +484,13 @@ DB_PASS=$PASSWORD
     it("should load configuration from .env file", async () => {
       const provider = await Effect.runPromise(
         ConfigProvider.fromDotEnv().pipe(
-          Effect.provide(FileSystem.layerNoop({
-            readFileString: (path) =>
-              Effect.succeed(`PATH=${path}
+          Effect.provide(
+            FileSystem.layerNoop({
+              readFileString: (path) =>
+                Effect.succeed(`PATH=${path}
 A=1`)
-          }))
+            })
+          )
         )
       )
 
@@ -493,11 +501,13 @@ A=1`)
     it("should support `path` option to specify the path to the .env file", async () => {
       const provider = await Effect.runPromise(
         ConfigProvider.fromDotEnv({ path: "custom.env" }).pipe(
-          Effect.provide(FileSystem.layerNoop({
-            readFileString: (path) =>
-              Effect.succeed(`CUSTOM_PATH=${path}
+          Effect.provide(
+            FileSystem.layerNoop({
+              readFileString: (path) =>
+                Effect.succeed(`CUSTOM_PATH=${path}
 A=1`)
-          }))
+            })
+          )
         )
       )
 
@@ -541,23 +551,31 @@ A=1`)
     const Platform = Layer.mergeAll(Fs, Path.layer)
     const SetLayer = ConfigProvider.layer(provider).pipe(
       Layer.provide(Platform),
-      Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({
-        env: { secret: "fail" }
-      })))
+      Layer.provide(
+        ConfigProvider.layer(
+          ConfigProvider.fromEnv({
+            env: { secret: "fail" }
+          })
+        )
+      )
     )
     const AddLayer = ConfigProvider.layerAdd(provider).pipe(
       Layer.provide(Platform),
-      Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({
-        env: {
-          secret: "shh",
-          fallback: "value"
-        }
-      })))
+      Layer.provide(
+        ConfigProvider.layer(
+          ConfigProvider.fromEnv({
+            env: {
+              secret: "shh",
+              fallback: "value"
+            }
+          })
+        )
+      )
     )
 
     it("reads config", async () => {
       const result = await Effect.runPromise(
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const provider = yield* ConfigProvider.ConfigProvider
           const secret = yield* provider.load(["secret"])
           const shouting = yield* provider.load(["SHOUTING"])
@@ -576,7 +594,7 @@ A=1`)
       // Test that non-existent path throws an error
       const error = await Effect.runPromise(
         Effect.flip(
-          Effect.gen(function*() {
+          Effect.gen(function* () {
             const provider = yield* ConfigProvider.ConfigProvider
             yield* provider.load(["fallback"])
           }).pipe(Effect.provide(SetLayer))
@@ -588,7 +606,7 @@ A=1`)
 
     it("layerAdd uses fallback", async () => {
       const result = await Effect.runPromise(
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const provider = yield* ConfigProvider.ConfigProvider
           const secret = yield* provider.load(["secret"])
           const integer = yield* provider.load(["integer"])

@@ -226,12 +226,7 @@ export {
 export const awaitAll: <A extends Fiber<any, any>>(
   self: Iterable<A>
 ) => Effect<
-  Array<
-    Exit<
-      A extends Fiber<infer _A, infer _E> ? _A : never,
-      A extends Fiber<infer _A, infer _E> ? _E : never
-    >
-  >
+  Array<Exit<A extends Fiber<infer _A, infer _E> ? _A : never, A extends Fiber<infer _A, infer _E> ? _E : never>>
 > = effect.fiberAwaitAll
 
 /**
@@ -261,10 +256,7 @@ export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
 export const joinAll: <A extends Iterable<Fiber<any, any>>>(
   self: A
 ) => Effect<
-  Arr.ReadonlyArray.With<
-    A,
-    A extends Iterable<Fiber<infer _A, infer _E>> ? _A : never
-  >,
+  Arr.ReadonlyArray.With<A, A extends Iterable<Fiber<infer _A, infer _E>> ? _A : never>,
   A extends Fiber<infer _A, infer _E> ? _E : never
 > = effect.fiberJoinAll
 
@@ -362,9 +354,7 @@ export const interruptAs: {
  * @since 2.0.0
  * @category interruption
  */
-export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
-  fibers: A
-) => Effect<void> = effect.fiberInterruptAll
+export const interruptAll: <A extends Iterable<Fiber<any, any>>>(fibers: A) => Effect<void> = effect.fiberInterruptAll
 
 /**
  * Interrupts all fibers in the provided iterable using the specified fiber ID as the
@@ -442,9 +432,7 @@ export const interruptAllAs: {
  * @since 2.0.0
  * @category guards
  */
-export const isFiber = (
-  u: unknown
-): u is Fiber<unknown, unknown> => hasProperty(u, effect.FiberTypeId)
+export const isFiber = (u: unknown): u is Fiber<unknown, unknown> => hasProperty(u, effect.FiberTypeId)
 
 /**
  * Returns the current fiber if called from within a fiber context,

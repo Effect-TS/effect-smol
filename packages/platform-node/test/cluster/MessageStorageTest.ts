@@ -24,17 +24,18 @@ const MemoryLive = MessageStorage.layerMemory.pipe(
 describe("MessageStorage", () => {
   describe("memory", () => {
     it.effect("saves a request", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const storage = yield* MessageStorage.MessageStorage
         const request = yield* makeRequest()
         const result = yield* storage.saveRequest(request)
         expect(result._tag).toEqual("Success")
         const messages = yield* storage.unprocessedMessages([request.envelope.address.shardId])
         expect(messages).toHaveLength(1)
-      }).pipe(Effect.provide(MemoryLive)))
+      }).pipe(Effect.provide(MemoryLive))
+    )
 
     it.effect("detects duplicates", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const storage = yield* MessageStorage.MessageStorage
         yield* storage.saveRequest(
           yield* makeRequest({
@@ -49,20 +50,22 @@ describe("MessageStorage", () => {
           })
         )
         expect(result._tag).toEqual("Duplicate")
-      }).pipe(Effect.provide(MemoryLive)))
+      }).pipe(Effect.provide(MemoryLive))
+    )
 
     it.effect("unprocessedMessages excludes complete requests", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const storage = yield* MessageStorage.MessageStorage
         const request = yield* makeRequest()
         yield* storage.saveRequest(request)
         yield* storage.saveReply(yield* makeReply(request))
         const messages = yield* storage.unprocessedMessages([request.envelope.address.shardId])
         expect(messages).toHaveLength(0)
-      }).pipe(Effect.provide(MemoryLive)))
+      }).pipe(Effect.provide(MemoryLive))
+    )
 
     it.effect("repliesFor", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const storage = yield* MessageStorage.MessageStorage
         const request = yield* makeRequest()
         yield* storage.saveRequest(request)
@@ -72,25 +75,29 @@ describe("MessageStorage", () => {
         replies = yield* storage.repliesFor([request])
         expect(replies).toHaveLength(1)
         expect(replies[0].requestId).toEqual(request.envelope.requestId)
-      }).pipe(Effect.provide(MemoryLive)))
+      }).pipe(Effect.provide(MemoryLive))
+    )
 
     it.effect("registerReplyHandler", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const storage = yield* MessageStorage.MessageStorage
         const latch = yield* Effect.makeLatch()
         const request = yield* makeRequest()
         yield* storage.saveRequest(request)
-        const fiber = yield* storage.registerReplyHandler(
-          new Message.OutgoingRequest({
-            ...request,
-            respond: () => latch.open
-          })
-        ).pipe(Effect.forkChild)
+        const fiber = yield* storage
+          .registerReplyHandler(
+            new Message.OutgoingRequest({
+              ...request,
+              respond: () => latch.open
+            })
+          )
+          .pipe(Effect.forkChild)
         yield* TestClock.adjust(1)
         yield* storage.saveReply(yield* makeReply(request))
         yield* latch.await
         yield* Fiber.await(fiber)
-      }).pipe(Effect.provide(MemoryLive)))
+      }).pipe(Effect.provide(MemoryLive))
+    )
   })
 })
 
@@ -98,7 +105,7 @@ export const GetUserRpc = Rpc.make("GetUser", {
   payload: { id: Schema.Number }
 })
 
-export const makeRequest = Effect.fnUntraced(function*(options?: {
+export const makeRequest = Effect.fnUntraced(function* (options?: {
   readonly rpc?: Rpc.AnyWithProps
   readonly payload?: any
 }) {
@@ -143,7 +150,7 @@ export class StreamRpc extends Rpc.make("StreamTest", {
   primaryKey: (value) => value.id.toString()
 }) {}
 
-export const makeReply = Effect.fnUntraced(function*(request: Message.OutgoingRequest<any>) {
+export const makeReply = Effect.fnUntraced(function* (request: Message.OutgoingRequest<any>) {
   const snowflake = yield* Snowflake.Generator
   return new Reply.ReplyWithContext({
     reply: new Reply.WithExit({
@@ -156,7 +163,7 @@ export const makeReply = Effect.fnUntraced(function*(request: Message.OutgoingRe
   })
 })
 
-export const makeAckChunk = Effect.fnUntraced(function*(
+export const makeAckChunk = Effect.fnUntraced(function* (
   request: Message.OutgoingRequest<any>,
   chunk: Reply.ReplyWithContext<any>
 ) {
@@ -172,7 +179,7 @@ export const makeAckChunk = Effect.fnUntraced(function*(
   })
 })
 
-export const makeChunkReply = Effect.fnUntraced(function*(request: Message.OutgoingRequest<any>, sequence = 0) {
+export const makeChunkReply = Effect.fnUntraced(function* (request: Message.OutgoingRequest<any>, sequence = 0) {
   const snowflake = yield* Snowflake.Generator
   return new Reply.ReplyWithContext({
     reply: new Reply.Chunk({

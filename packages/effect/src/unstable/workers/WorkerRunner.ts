@@ -14,16 +14,8 @@ export interface WorkerRunner<O = unknown, I = unknown> {
   readonly run: <A, E, R>(
     handler: (portId: number, message: I) => Effect.Effect<A, E, R> | void
   ) => Effect.Effect<void, WorkerError, R>
-  readonly send: (
-    portId: number,
-    message: O,
-    transfers?: ReadonlyArray<unknown>
-  ) => Effect.Effect<void>
-  readonly sendUnsafe: (
-    portId: number,
-    message: O,
-    transfers?: ReadonlyArray<unknown>
-  ) => void
+  readonly send: (portId: number, message: O, transfers?: ReadonlyArray<unknown>) => Effect.Effect<void>
+  readonly sendUnsafe: (portId: number, message: O, transfers?: ReadonlyArray<unknown>) => void
   readonly disconnects?: Queue.Dequeue<number> | undefined
 }
 
@@ -37,6 +29,9 @@ export type PlatformMessage<I> = readonly [request: 0, I] | readonly [close: 1]
  * @since 4.0.0
  * @category models
  */
-export class WorkerRunnerPlatform extends ServiceMap.Service<WorkerRunnerPlatform, {
-  readonly start: <O = unknown, I = unknown>() => Effect.Effect<WorkerRunner<O, I>, WorkerError>
-}>()("effect/workers/WorkerRunner/WorkerRunnerPlatform") {}
+export class WorkerRunnerPlatform extends ServiceMap.Service<
+  WorkerRunnerPlatform,
+  {
+    readonly start: <O = unknown, I = unknown>() => Effect.Effect<WorkerRunner<O, I>, WorkerError>
+  }
+>()("effect/workers/WorkerRunner/WorkerRunnerPlatform") {}

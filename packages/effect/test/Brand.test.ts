@@ -55,9 +55,7 @@ describe("Brand", () => {
 
   it("make", () => {
     type Int = number & Brand.Brand<"Int">
-    const Int = Brand.make<Int>(
-      (n) => Number.isInteger(n) || `Expected ${n} to be an integer`
-    )
+    const Int = Brand.make<Int>((n) => Number.isInteger(n) || `Expected ${n} to be an integer`)
 
     strictEqual(Int(1), 1)
     throws(() => Int(1.1))

@@ -9,9 +9,7 @@ import { RpcLive, User } from "./fixtures/rpc-schemas.ts"
 
 describe("RpcServer", () => {
   // http ndjson
-  const HttpProtocol = RpcServer.layerProtocolHttp({ path: "/rpc" }).pipe(
-    Layer.provide(HttpRouter.layer)
-  )
+  const HttpProtocol = RpcServer.layerProtocolHttp({ path: "/rpc" }).pipe(Layer.provide(HttpRouter.layer))
   const HttpNdjsonServer = RpcLive.pipe(
     Layer.provideMerge(HttpProtocol),
     Layer.provide(HttpRouter.serve(HttpProtocol, { disableListenLog: true, disableLogger: true }))
@@ -47,9 +45,7 @@ describe("RpcServer", () => {
   )
 
   // websocket
-  const WsProtocol = RpcServer.layerProtocolWebsocket({ path: "/rpc" }).pipe(
-    Layer.provide(HttpRouter.layer)
-  )
+  const WsProtocol = RpcServer.layerProtocolWebsocket({ path: "/rpc" }).pipe(Layer.provide(HttpRouter.layer))
   const HttpWsServer = RpcLive.pipe(
     Layer.provideMerge(WsProtocol),
     Layer.provide(HttpRouter.serve(WsProtocol, { disableListenLog: true, disableLogger: true }))
@@ -57,7 +53,7 @@ describe("RpcServer", () => {
   const HttpWsClient = UsersClient.layer.pipe(
     Layer.provide(RpcClient.layerProtocolSocket()),
     Layer.provide(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const server = yield* HttpServer.HttpServer
         const address = server.address as HttpServer.TcpAddress
         return NodeSocket.layerWebSocket(`http://127.0.0.1:${address.port}/rpc`)
@@ -101,7 +97,7 @@ describe("RpcServer", () => {
   const TcpClient = UsersClient.layer.pipe(
     Layer.provide(RpcClient.layerProtocolSocket()),
     Layer.provide(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const server = yield* SocketServer.SocketServer
         const address = server.address as SocketServer.TcpAddress
         return NodeSocket.layerNet({ port: address.port })
@@ -148,10 +144,11 @@ describe("RpcServer", () => {
 
   describe("RpcTest", () => {
     it.effect("works", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const client = yield* UsersClient
         const user = yield* client.GetUser({ id: "1" })
         assert.deepStrictEqual(user, new User({ id: "1", name: "Logged in user" }))
-      }).pipe(Effect.provide(UsersClient.layerTest)))
+      }).pipe(Effect.provide(UsersClient.layerTest))
+    )
   })
 })

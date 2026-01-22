@@ -208,10 +208,9 @@ export interface Formatter {
  * @since 4.0.0
  * @category services
  */
-export const Formatter: ServiceMap.Reference<Formatter> = ServiceMap.Reference(
-  "effect/cli/CliOutput",
-  { defaultValue: () => defaultFormatter() }
-)
+export const Formatter: ServiceMap.Reference<Formatter> = ServiceMap.Reference("effect/cli/CliOutput", {
+  defaultValue: () => defaultFormatter()
+})
 
 /**
  * Creates a Layer that provides a custom Formatter implementation.
@@ -295,35 +294,36 @@ export const defaultFormatter = (options?: { colors?: boolean }): Formatter => {
   const globalProcess = (globalThis as any).process
   const hasProcess = typeof globalProcess === "object" && globalProcess !== null
 
-  const useColor = options?.colors !== undefined
-    ? options.colors
-    // Auto-detect based on environment
-    : (hasProcess &&
-      typeof globalProcess.stdout === "object" &&
-      globalProcess.stdout !== null &&
-      globalProcess.stdout.isTTY === true &&
-      globalProcess.env?.NO_COLOR !== "1")
+  const useColor =
+    options?.colors !== undefined
+      ? options.colors
+      : // Auto-detect based on environment
+        hasProcess &&
+        typeof globalProcess.stdout === "object" &&
+        globalProcess.stdout !== null &&
+        globalProcess.stdout.isTTY === true &&
+        globalProcess.env?.NO_COLOR !== "1"
 
   // Color palette using ANSI escape codes
   const colors = useColor
     ? {
-      bold: (text: string): string => `\x1b[1m${text}\x1b[0m`,
-      dim: (text: string): string => `\x1b[2m${text}\x1b[0m`,
-      cyan: (text: string): string => `\x1b[36m${text}\x1b[0m`,
-      green: (text: string): string => `\x1b[32m${text}\x1b[0m`,
-      blue: (text: string): string => `\x1b[34m${text}\x1b[0m`,
-      yellow: (text: string): string => `\x1b[33m${text}\x1b[0m`,
-      magenta: (text: string): string => `\x1b[35m${text}\x1b[0m`
-    }
+        bold: (text: string): string => `\x1b[1m${text}\x1b[0m`,
+        dim: (text: string): string => `\x1b[2m${text}\x1b[0m`,
+        cyan: (text: string): string => `\x1b[36m${text}\x1b[0m`,
+        green: (text: string): string => `\x1b[32m${text}\x1b[0m`,
+        blue: (text: string): string => `\x1b[34m${text}\x1b[0m`,
+        yellow: (text: string): string => `\x1b[33m${text}\x1b[0m`,
+        magenta: (text: string): string => `\x1b[35m${text}\x1b[0m`
+      }
     : {
-      bold: (text: string): string => text,
-      dim: (text: string): string => text,
-      cyan: (text: string): string => text,
-      green: (text: string): string => text,
-      blue: (text: string): string => text,
-      yellow: (text: string): string => text,
-      magenta: (text: string): string => text
-    }
+        bold: (text: string): string => text,
+        dim: (text: string): string => text,
+        cyan: (text: string): string => text,
+        green: (text: string): string => text,
+        blue: (text: string): string => text,
+        yellow: (text: string): string => text,
+        magenta: (text: string): string => text
+      }
 
   const reset = useColor ? "\x1b[0m" : ""
   const red = useColor ? "\x1b[31m" : ""

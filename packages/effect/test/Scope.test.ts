@@ -5,7 +5,7 @@ import { TestClock } from "effect/testing"
 describe("Scope", () => {
   describe("parallel finalization", () => {
     it.effect("executes finalizers in parallel", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const scope = Scope.makeUnsafe("parallel")
         yield* Scope.addFinalizer(scope, Effect.sleep(Duration.seconds(1)))
         yield* Scope.addFinalizer(scope, Effect.sleep(Duration.seconds(1)))
@@ -14,6 +14,7 @@ describe("Scope", () => {
         expect(fiber.pollUnsafe()).toBeUndefined()
         yield* TestClock.adjust(Duration.seconds(1))
         expect(fiber.pollUnsafe()).toBeDefined()
-      }))
+      })
+    )
   })
 })

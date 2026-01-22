@@ -454,13 +454,14 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
   }
 
   const [seconds, minutes, hours, days, months, weekdays] = segments
-  const zone = tz === undefined || dateTime.isTimeZone(tz) ?
-    Result.succeed(tz) :
-    UndefinedOr.match(dateTime.zoneFromString(tz), {
-      onUndefined: () =>
-        Result.fail(new CronParseError({ message: `Invalid time zone in cron expression`, input: tz })),
-      onDefined: (zone) => Result.succeed(zone)
-    })
+  const zone =
+    tz === undefined || dateTime.isTimeZone(tz)
+      ? Result.succeed(tz)
+      : UndefinedOr.match(dateTime.zoneFromString(tz), {
+          onUndefined: () =>
+            Result.fail(new CronParseError({ message: `Invalid time zone in cron expression`, input: tz })),
+          onDefined: (zone) => Result.succeed(zone)
+        })
 
   return Result.all({
     tz: zone,
@@ -527,9 +528,11 @@ export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron
  * @category utils
  */
 export const match = (cron: Cron, date: DateTime.DateTime.Input): boolean => {
-  const parts = dateTime.makeZonedUnsafe(date, {
-    timeZone: cron.tz
-  }).pipe(dateTime.toParts)
+  const parts = dateTime
+    .makeZonedUnsafe(date, {
+      timeZone: cron.tz
+    })
+    .pipe(dateTime.toParts)
 
   if (cron.seconds.size !== 0 && !cron.seconds.has(parts.seconds)) {
     return false
@@ -598,18 +601,22 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
   })
 
   const utc = tz !== undefined && dateTime.isTimeZoneNamed(tz) && tz.id === "UTC"
-  const adjustDst = utc ? constVoid : (current: Date) => {
-    const adjusted = dateTime.makeZonedUnsafe(current, {
-      timeZone: zoned.zone,
-      adjustForTimeZone: true
-    }).pipe(dateTime.toDate)
+  const adjustDst = utc
+    ? constVoid
+    : (current: Date) => {
+        const adjusted = dateTime
+          .makeZonedUnsafe(current, {
+            timeZone: zoned.zone,
+            adjustForTimeZone: true
+          })
+          .pipe(dateTime.toDate)
 
-    // TODO: This implementation currently only skips forward when transitioning into daylight savings time.
-    const drift = current.getTime() - adjusted.getTime()
-    if (drift > 0) {
-      current.setTime(current.getTime() + drift)
-    }
-  }
+        // TODO: This implementation currently only skips forward when transitioning into daylight savings time.
+        const drift = current.getTime() - adjusted.getTime()
+        if (drift > 0) {
+          current.setTime(current.getTime() + drift)
+        }
+      }
 
   const result = dateTime.mutate(zoned, (current) => {
     current.setUTCSeconds(current.getUTCSeconds() + 1, 0)
@@ -737,9 +744,9 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
  * @since 2.0.0
  * @category utils
  */
-export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): IterableIterator<Date> {
+export const sequence = function* (cron: Cron, now?: DateTime.DateTime.Input): IterableIterator<Date> {
   while (true) {
-    yield now = next(cron, now)
+    yield (now = next(cron, now))
   }
 }
 
@@ -776,13 +783,14 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
  * @since 2.0.0
  * @category instances
  */
-export const Equivalence: equivalence.Equivalence<Cron> = equivalence.make((self, that) =>
-  restrictionsEquals(self.seconds, that.seconds) &&
-  restrictionsEquals(self.minutes, that.minutes) &&
-  restrictionsEquals(self.hours, that.hours) &&
-  restrictionsEquals(self.days, that.days) &&
-  restrictionsEquals(self.months, that.months) &&
-  restrictionsEquals(self.weekdays, that.weekdays)
+export const Equivalence: equivalence.Equivalence<Cron> = equivalence.make(
+  (self, that) =>
+    restrictionsEquals(self.seconds, that.seconds) &&
+    restrictionsEquals(self.minutes, that.minutes) &&
+    restrictionsEquals(self.hours, that.hours) &&
+    restrictionsEquals(self.days, that.days) &&
+    restrictionsEquals(self.months, that.months) &&
+    restrictionsEquals(self.weekdays, that.weekdays)
 )
 
 const restrictionsArrayEquals = equivalence.Array(equivalence.strictEqual<number>())
@@ -886,10 +894,7 @@ const weekdayOptions: SegmentOptions = {
   }
 }
 
-const parseSegment = (
-  input: string,
-  options: SegmentOptions
-): Result.Result<ReadonlySet<number>, CronParseError> => {
+const parseSegment = (input: string, options: SegmentOptions): Result.Result<ReadonlySet<number>, CronParseError> => {
   const capacity = options.max - options.min + 1
   const values = new Set<number>()
   const fields = input.split(",")

@@ -183,26 +183,25 @@ export const makeEffect = <Input, Pass, Fail, E, R>(
  */
 export const mapFail: {
   <Fail, Fail2>(f: (fail: Fail) => Fail2): <Input, Pass>(self: Filter<Input, Pass, Fail>) => Filter<Input, Pass, Fail2>
-  <Input, Pass, Fail, Fail2>(
-    self: Filter<Input, Pass, Fail>,
-    f: (fail: Fail) => Fail2
-  ): Filter<Input, Pass, Fail2>
-} = dual(2, <Input, Pass, Fail, Fail2>(
-  self: Filter<Input, Pass, Fail>,
-  f: (fail: Fail) => Fail2
-): Filter<Input, Pass, Fail2> =>
-(input: Input): Pass | fail<Fail2> => {
-  const result = self(input)
-  return isFail(result) ? fail(f(result.fail)) : result
-})
+  <Input, Pass, Fail, Fail2>(self: Filter<Input, Pass, Fail>, f: (fail: Fail) => Fail2): Filter<Input, Pass, Fail2>
+} = dual(
+  2,
+  <Input, Pass, Fail, Fail2>(self: Filter<Input, Pass, Fail>, f: (fail: Fail) => Fail2): Filter<Input, Pass, Fail2> =>
+    (input: Input): Pass | fail<Fail2> => {
+      const result = self(input)
+      return isFail(result) ? fail(f(result.fail)) : result
+    }
+)
 
-const try_ = <Input, Output>(f: (input: Input) => Output): Filter<Input, Output> => (input) => {
-  try {
-    return f(input)
-  } catch {
-    return fail(input)
+const try_ =
+  <Input, Output>(f: (input: Input) => Output): Filter<Input, Output> =>
+  (input) => {
+    try {
+      return f(input)
+    } catch {
+      return fail(input)
+    }
   }
-}
 
 export {
   /**
@@ -247,8 +246,10 @@ export {
 export const fromPredicate: {
   <A, B extends A>(refinement: Predicate.Refinement<A, B>): Filter<A, B, EqualsWith<A, B, A, Exclude<A, B>>>
   <A>(predicate: Predicate.Predicate<A>): Filter<A>
-} = <A, B extends A = A>(predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>): Filter<A, B> => (input: A) =>
-  predicate(input) ? input as B : fail(input)
+} =
+  <A, B extends A = A>(predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>): Filter<A, B> =>
+  (input: A) =>
+    predicate(input) ? (input as B) : fail(input)
 
 /**
  * Creates a Filter from a function that returns an Option.
@@ -256,10 +257,12 @@ export const fromPredicate: {
  * @since 4.0.0
  * @category Constructors
  */
-export const fromPredicateOption = <A, B>(predicate: (a: A) => Option.Option<B>): Filter<A, B> => (input) => {
-  const o = predicate(input)
-  return o._tag === "None" ? fail(input) : o.value
-}
+export const fromPredicateOption =
+  <A, B>(predicate: (a: A) => Option.Option<B>): Filter<A, B> =>
+  (input) => {
+    const o = predicate(input)
+    return o._tag === "None" ? fail(input) : o.value
+  }
 
 /**
  * Creates a Filter from a function that returns an Result.
@@ -268,7 +271,8 @@ export const fromPredicateOption = <A, B>(predicate: (a: A) => Option.Option<B>)
  * @category Constructors
  */
 export const fromPredicateResult =
-  <A, Pass, Fail>(predicate: (a: A) => Result.Result<Pass, Fail>): Filter<A, Pass, Fail> => (input) => {
+  <A, Pass, Fail>(predicate: (a: A) => Result.Result<Pass, Fail>): Filter<A, Pass, Fail> =>
+  (input) => {
     const r = predicate(input)
     return r._tag === "Success" ? r.success : fail(r.failure)
   }
@@ -279,10 +283,10 @@ export const fromPredicateResult =
  * @since 4.0.0
  * @category Constructors
  */
-export const toPredicate = <A, Pass, Fail>(
-  self: Filter<A, Pass, Fail>
-): Predicate.Predicate<A> =>
-(input: A) => !isFail(self(input))
+export const toPredicate =
+  <A, Pass, Fail>(self: Filter<A, Pass, Fail>): Predicate.Predicate<A> =>
+  (input: A) =>
+    !isFail(self(input))
 
 /**
  * A predefined filter that only passes through string values.
@@ -316,7 +320,8 @@ export const string: Filter<unknown, string> = fromPredicate(Predicate.isString)
  * @category Constructors
  */
 export const equalsStrict =
-  <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> => (u) =>
+  <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> =>
+  (u) =>
     (u as unknown) === value ? value : fail(u as any)
 
 /**
@@ -324,7 +329,8 @@ export const equalsStrict =
  * @category Constructors
  */
 export const has =
-  <K>(key: K) => <Input extends { readonly has: (key: K) => boolean }>(input: Input): Input | fail<Input> =>
+  <K>(key: K) =>
+  <Input extends { readonly has: (key: K) => boolean }>(input: Input): Input | fail<Input> =>
     input.has(key) ? input : fail(input)
 
 /**
@@ -338,9 +344,9 @@ export const has =
  * @category Constructors
  */
 export const instanceOf =
-  <K extends new(...args: any) => any>(constructor: K) =>
+  <K extends new (...args: any) => any>(constructor: K) =>
   <Input>(u: Input): InstanceType<K> | fail<Exclude<Input, InstanceType<K>>> =>
-    u instanceof constructor ? u as InstanceType<K> : fail(u) as any
+    u instanceof constructor ? (u as InstanceType<K>) : (fail(u) as any)
 
 /**
  * A predefined filter that only passes through number values.
@@ -436,18 +442,16 @@ export const date: Filter<unknown, Date> = fromPredicate(Predicate.isDate)
  */
 export const tagged: {
   <Input>(): <const Tag extends Tags<Input>>(tag: Tag) => Filter<Input, ExtractTag<Input, Tag>, ExcludeTag<Input, Tag>>
-  <Input, const Tag extends Tags<Input>>(
-    tag: Tag
-  ): Filter<Input, ExtractTag<Input, Tag>, ExcludeTag<Input, Tag>>
+  <Input, const Tag extends Tags<Input>>(tag: Tag): Filter<Input, ExtractTag<Input, Tag>, ExcludeTag<Input, Tag>>
   <const Tag extends string>(tag: Tag): <Input>(input: Input) => ExtractTag<Input, Tag> | fail<ExcludeTag<Input, Tag>>
-} = function() {
+} = function () {
   return arguments.length === 0 ? taggedImpl : taggedImpl(arguments[0] as any)
 } as any
 
 const taggedImpl =
   <const Tag extends string>(tag: Tag) =>
   <Input>(input: Input): ExtractTag<Input, Tag> | fail<ExcludeTag<Input, Tag>> =>
-    Predicate.isTagged(input, tag) ? input as any : fail(input as ExcludeTag<Input, Tag>)
+    Predicate.isTagged(input, tag) ? (input as any) : fail(input as ExcludeTag<Input, Tag>)
 
 /**
  * Creates a filter that only passes values equal to the specified value using structural equality.
@@ -456,7 +460,8 @@ const taggedImpl =
  * @category Constructors
  */
 export const equals =
-  <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> => (u) =>
+  <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> =>
+  (u) =>
     Equal.equals(u, value) ? value : fail(u as any)
 
 /**
@@ -473,14 +478,17 @@ export const or: {
     self: Filter<Input1, Pass1, Fail1>,
     that: Filter<Input2, Pass2, Fail2>
   ): Filter<Input1 & Input2, Pass1 | Pass2, Fail2>
-} = dual(2, <Input1, Pass1, Fail1, Input2, Pass2, Fail2>(
-  self: Filter<Input1, Pass1, Fail1>,
-  that: Filter<Input2, Pass2, Fail2>
-): Filter<Input1 & Input2, Pass1 | Pass2, Fail2> =>
-(input) => {
-  const selfResult = self(input)
-  return !isFail(selfResult) ? selfResult : that(input)
-})
+} = dual(
+  2,
+  <Input1, Pass1, Fail1, Input2, Pass2, Fail2>(
+    self: Filter<Input1, Pass1, Fail1>,
+    that: Filter<Input2, Pass2, Fail2>
+  ): Filter<Input1 & Input2, Pass1 | Pass2, Fail2> =>
+    (input) => {
+      const selfResult = self(input)
+      return !isFail(selfResult) ? selfResult : that(input)
+    }
+)
 
 /**
  * Combines two filters and applies a function to their results.
@@ -502,18 +510,21 @@ export const zipWith: {
     right: Filter<InputR, PassR, FailR>,
     f: (left: PassL, right: PassR) => A
   ): Filter<InputL & InputR, A, FailL | FailR>
-} = dual(3, <InputL, PassL, FailL, InputR, PassR, FailR, A>(
-  left: Filter<InputL, PassL, FailL>,
-  right: Filter<InputR, PassR, FailR>,
-  f: (left: PassL, right: PassR) => A
-): Filter<InputL & InputR, A, FailL | FailR> =>
-(input) => {
-  const leftResult = left(input)
-  if (isFail(leftResult)) return leftResult
-  const rightResult = right(input)
-  if (isFail(rightResult)) return rightResult
-  return f(leftResult, rightResult)
-})
+} = dual(
+  3,
+  <InputL, PassL, FailL, InputR, PassR, FailR, A>(
+    left: Filter<InputL, PassL, FailL>,
+    right: Filter<InputR, PassR, FailR>,
+    f: (left: PassL, right: PassR) => A
+  ): Filter<InputL & InputR, A, FailL | FailR> =>
+    (input) => {
+      const leftResult = left(input)
+      if (isFail(leftResult)) return leftResult
+      const rightResult = right(input)
+      if (isFail(rightResult)) return rightResult
+      return f(leftResult, rightResult)
+    }
+)
 
 /**
  * Combines two filters into a tuple of their results.
@@ -556,11 +567,14 @@ export const zip: {
     left: Filter<InputL, PassL, FailL>,
     right: Filter<InputR, PassR, FailR>
   ): Filter<InputL & InputR, [PassL, PassR], FailL | FailR>
-} = dual(2, <InputL, PassL, FailL, InputR, PassR, FailR>(
-  left: Filter<InputL, PassL, FailL>,
-  right: Filter<InputR, PassR, FailR>
-): Filter<InputL & InputR, [PassL, PassR], FailL | FailR> =>
-  zipWith(left, right, (leftResult, rightResult) => [leftResult, rightResult]))
+} = dual(
+  2,
+  <InputL, PassL, FailL, InputR, PassR, FailR>(
+    left: Filter<InputL, PassL, FailL>,
+    right: Filter<InputR, PassR, FailR>
+  ): Filter<InputL & InputR, [PassL, PassR], FailL | FailR> =>
+    zipWith(left, right, (leftResult, rightResult) => [leftResult, rightResult])
+)
 
 /**
  * Combines two filters but only returns the result of the left filter.
@@ -596,17 +610,18 @@ export const zip: {
 export const andLeft: {
   <InputR, PassR, FailR>(
     right: Filter<InputR, PassR, FailR>
-  ): <InputL, PassL, FailL>(
-    left: Filter<InputL, PassL, FailL>
-  ) => Filter<InputL & InputR, PassL, FailL | FailR>
+  ): <InputL, PassL, FailL>(left: Filter<InputL, PassL, FailL>) => Filter<InputL & InputR, PassL, FailL | FailR>
   <InputL, PassL, FailL, InputR, PassR, FailR>(
     left: Filter<InputL, PassL, FailL>,
     right: Filter<InputR, PassR, FailR>
   ): Filter<InputL & InputR, PassL, FailL | FailR>
-} = dual(2, <InputL, PassL, FailL, InputR, PassR, FailR>(
-  left: Filter<InputL, PassL, FailL>,
-  right: Filter<InputR, PassR, FailR>
-): Filter<InputL & InputR, PassL, FailL | FailR> => zipWith(left, right, (leftResult) => leftResult))
+} = dual(
+  2,
+  <InputL, PassL, FailL, InputR, PassR, FailR>(
+    left: Filter<InputL, PassL, FailL>,
+    right: Filter<InputR, PassR, FailR>
+  ): Filter<InputL & InputR, PassL, FailL | FailR> => zipWith(left, right, (leftResult) => leftResult)
+)
 
 /**
  * Combines two filters but only returns the result of the right filter.
@@ -643,17 +658,18 @@ export const andLeft: {
 export const andRight: {
   <InputR, PassR, FailR>(
     right: Filter<InputR, PassR, FailR>
-  ): <InputL, PassL, FailL>(
-    left: Filter<InputL, PassL, FailL>
-  ) => Filter<InputL & InputR, PassR, FailL | FailR>
+  ): <InputL, PassL, FailL>(left: Filter<InputL, PassL, FailL>) => Filter<InputL & InputR, PassR, FailL | FailR>
   <InputL, PassL, FailL, InputR, PassR, FailR>(
     left: Filter<InputL, PassL, FailL>,
     right: Filter<InputR, PassR, FailR>
   ): Filter<InputL & InputR, PassR, FailL | FailR>
-} = dual(2, <InputL, PassL, FailL, InputR, PassR, FailR>(
-  left: Filter<InputL, PassL, FailL>,
-  right: Filter<InputR, PassR, FailR>
-): Filter<InputL & InputR, PassR, FailL | FailR> => zipWith(left, right, (_, rightResult) => rightResult))
+} = dual(
+  2,
+  <InputL, PassL, FailL, InputR, PassR, FailR>(
+    left: Filter<InputL, PassL, FailL>,
+    right: Filter<InputR, PassR, FailR>
+  ): Filter<InputL & InputR, PassR, FailL | FailR> => zipWith(left, right, (_, rightResult) => rightResult)
+)
 
 /**
  * Composes two filters sequentially, feeding the output of the first into the second.
@@ -698,15 +714,18 @@ export const compose: {
     left: Filter<InputL, PassL, FailL>,
     right: Filter<PassL, PassR, FailR>
   ): Filter<InputL, PassR, FailL | FailR>
-} = dual(2, <InputL, PassL, FailL, PassR, FailR>(
-  left: Filter<InputL, PassL, FailL>,
-  right: Filter<PassL, PassR, FailR>
-): Filter<InputL, PassR, FailL | FailR> =>
-(input) => {
-  const leftOut = left(input)
-  if (isFail(leftOut)) return leftOut
-  return right(leftOut)
-})
+} = dual(
+  2,
+  <InputL, PassL, FailL, PassR, FailR>(
+    left: Filter<InputL, PassL, FailL>,
+    right: Filter<PassL, PassR, FailR>
+  ): Filter<InputL, PassR, FailL | FailR> =>
+    (input) => {
+      const leftOut = left(input)
+      if (isFail(leftOut)) return leftOut
+      return right(leftOut)
+    }
+)
 
 /**
  * Composes two filters sequentially, allowing the output of the first to be
@@ -726,38 +745,39 @@ export const composePassthrough: {
     left: Filter<InputL, PassL, FailL>,
     right: Filter<PassL, PassR, FailR>
   ): Filter<InputL, PassR, InputL>
-} = dual(2, <InputL, PassL, FailL, PassR, FailR>(
-  left: Filter<InputL, PassL, FailL>,
-  right: Filter<PassL, PassR, FailR>
-): Filter<InputL, PassR, InputL> =>
-(input) => {
-  const leftOut = left(input)
-  if (isFail(leftOut)) return fail(input)
-  const rightOut = right(leftOut)
-  if (isFail(rightOut)) return fail(input)
-  return rightOut
-})
+} = dual(
+  2,
+  <InputL, PassL, FailL, PassR, FailR>(
+    left: Filter<InputL, PassL, FailL>,
+    right: Filter<PassL, PassR, FailR>
+  ): Filter<InputL, PassR, InputL> =>
+    (input) => {
+      const leftOut = left(input)
+      if (isFail(leftOut)) return fail(input)
+      const rightOut = right(leftOut)
+      if (isFail(rightOut)) return fail(input)
+      return rightOut
+    }
+)
 
 /**
  * @since 4.0.0
  * @category Conversions
  */
-export const toOption = <A, Pass, Fail>(
-  self: Filter<A, Pass, Fail>
-): (input: A) => Option.Option<Pass> =>
-(input: A) => {
-  const result = self(input)
-  return isFail(result) ? Option.none() : Option.some(result)
-}
+export const toOption =
+  <A, Pass, Fail>(self: Filter<A, Pass, Fail>): ((input: A) => Option.Option<Pass>) =>
+  (input: A) => {
+    const result = self(input)
+    return isFail(result) ? Option.none() : Option.some(result)
+  }
 
 /**
  * @since 4.0.0
  * @category Conversions
  */
-export const toResult = <A, Pass, Fail>(
-  self: Filter<A, Pass, Fail>
-): (input: A) => Result.Result<Pass, Fail> =>
-(input: A) => {
-  const result = self(input)
-  return isFail(result) ? Result.fail(result.fail) : Result.succeed(result)
-}
+export const toResult =
+  <A, Pass, Fail>(self: Filter<A, Pass, Fail>): ((input: A) => Result.Result<Pass, Fail>) =>
+  (input: A) => {
+    const result = self(input)
+    return isFail(result) ? Result.fail(result.fail) : Result.succeed(result)
+  }

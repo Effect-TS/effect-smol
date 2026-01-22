@@ -67,9 +67,8 @@ export const keyMap = <V>(self: HashSet<V>): HashMap.HashMap<V, boolean> => (sel
 export const empty = <V = never>(): HashSet<V> => makeImpl(HashMap.empty<V, boolean>())
 
 /** @internal */
-export const make = <Values extends ReadonlyArray<any>>(
-  ...values: Values
-): HashSet<Values[number]> => fromIterable(values)
+export const make = <Values extends ReadonlyArray<any>>(...values: Values): HashSet<Values[number]> =>
+  fromIterable(values)
 
 /** @internal */
 export const fromIterable = <V>(values: Iterable<V>): HashSet<V> => {

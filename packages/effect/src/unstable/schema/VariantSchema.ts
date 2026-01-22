@@ -50,11 +50,7 @@ export declare namespace Struct {
    * @category models
    */
   export type Fields = {
-    readonly [key: string]:
-      | Schema.Top
-      | Field<any>
-      | Struct<any>
-      | undefined
+    readonly [key: string]: Schema.Top | Field<any> | Struct<any> | undefined
   }
 
   /**
@@ -62,9 +58,13 @@ export declare namespace Struct {
    * @category models
    */
   export type Validate<A, Variant extends string> = {
-    readonly [K in keyof A]: A[K] extends { readonly [TypeId]: infer _ } ? Validate<A[K], Variant> :
-      A[K] extends Field<infer Config> ? [keyof Config] extends [Variant] ? {} : "field must have valid variants"
-      : {}
+    readonly [K in keyof A]: A[K] extends { readonly [TypeId]: infer _ }
+      ? Validate<A[K], Variant>
+      : A[K] extends Field<infer Config>
+        ? [keyof Config] extends [Variant]
+          ? {}
+          : "field must have valid variants"
+        : {}
   }
 }
 
@@ -117,11 +117,7 @@ export declare namespace Field {
    * @category models
    */
   export type Fields = {
-    readonly [key: string]:
-      | Schema.Top
-      | Field<any>
-      | Struct<any>
-      | undefined
+    readonly [key: string]: Schema.Top | Field<any> | Struct<any> | undefined
   }
 }
 
@@ -130,25 +126,31 @@ export declare namespace Field {
  * @category extractors
  */
 export type ExtractFields<V extends string, Fields extends Struct.Fields, IsDefault = false> = {
-  readonly [
-    K in keyof Fields as [Fields[K]] extends [Field<infer Config>] ? V extends keyof Config ? K
+  readonly [K in keyof Fields as [Fields[K]] extends [Field<infer Config>]
+    ? V extends keyof Config
+      ? K
       : never
-      : K
-  ]: [Fields[K]] extends [Struct<infer _>] ? Extract<V, Fields[K], IsDefault>
-    : [Fields[K]] extends [Field<infer Config>] ? [Config[V]] extends [Schema.Top] ? Config[V]
-      : never
-    : [Fields[K]] extends [Schema.Top] ? Fields[K]
-    : never
+    : K]: [Fields[K]] extends [Struct<infer _>]
+    ? Extract<V, Fields[K], IsDefault>
+    : [Fields[K]] extends [Field<infer Config>]
+      ? [Config[V]] extends [Schema.Top]
+        ? Config[V]
+        : never
+      : [Fields[K]] extends [Schema.Top]
+        ? Fields[K]
+        : never
 }
 
 /**
  * @since 4.0.0
  * @category extractors
  */
-export type Extract<V extends string, A extends Struct<any>, IsDefault = false> = [A] extends [
-  Struct<infer Fields>
-] ? IsDefault extends true ? [A] extends [Schema.Top] ? A : Schema.Struct<Struct_.Simplify<ExtractFields<V, Fields>>>
-  : Schema.Struct<Struct_.Simplify<ExtractFields<V, Fields>>>
+export type Extract<V extends string, A extends Struct<any>, IsDefault = false> = [A] extends [Struct<infer Fields>]
+  ? IsDefault extends true
+    ? [A] extends [Schema.Top]
+      ? A
+      : Schema.Struct<Struct_.Simplify<ExtractFields<V, Fields>>>
+    : Schema.Struct<Struct_.Simplify<ExtractFields<V, Fields>>>
   : never
 
 const extract: {
@@ -158,9 +160,13 @@ const extract: {
       readonly isDefault?: IsDefault | undefined
     }
   ): <A extends Struct<any>>(self: A) => Extract<V, A, IsDefault>
-  <V extends string, A extends Struct<any>, const IsDefault extends boolean = false>(self: A, variant: V, options?: {
-    readonly isDefault?: IsDefault | undefined
-  }): Extract<V, A, IsDefault>
+  <V extends string, A extends Struct<any>, const IsDefault extends boolean = false>(
+    self: A,
+    variant: V,
+    options?: {
+      readonly isDefault?: IsDefault | undefined
+    }
+  ): Extract<V, A, IsDefault>
 } = dual(
   (args) => isStruct(args[0]),
   <V extends string, A extends Struct<any>>(
@@ -192,7 +198,7 @@ const extract: {
         fields[key] = value
       }
     }
-    return cache[cacheKey] = Schema.Struct(fields) as any
+    return (cache[cacheKey] = Schema.Struct(fields) as any)
   }
 )
 
@@ -212,37 +218,36 @@ export interface Class<
   S extends Schema.Top & {
     readonly fields: Schema.Struct.Fields
   }
-> extends
-  Schema.Bottom<
-    Self,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    AST.Declaration,
-    Schema.decodeTo<Schema.declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
-    S["~type.make.in"],
-    S["Iso"],
-    readonly [S],
-    Self,
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >,
-  Struct<Struct_.Simplify<Fields>>
-{
-  new(
+>
+  extends
+    Schema.Bottom<
+      Self,
+      S["Encoded"],
+      S["DecodingServices"],
+      S["EncodingServices"],
+      AST.Declaration,
+      Schema.decodeTo<Schema.declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
+      S["~type.make.in"],
+      S["Iso"],
+      readonly [S],
+      Self,
+      S["~type.mutability"],
+      S["~type.optionality"],
+      S["~type.constructor.default"],
+      S["~encoded.mutability"],
+      S["~encoded.optionality"]
+    >,
+    Struct<Struct_.Simplify<Fields>> {
+  new (
     props: S["~type.make.in"],
-    options?: {
-      readonly disableValidation?: boolean
-    } | undefined
+    options?:
+      | {
+          readonly disableValidation?: boolean
+        }
+      | undefined
   ): S["Type"]
 
-  make<Args extends Array<any>, X>(
-    this: { new(...args: Args): X },
-    ...args: Args
-  ): X
+  make<Args extends Array<any>, X>(this: { new (...args: Args): X }, ...args: Args): X
 
   readonly fields: S["fields"]
 }
@@ -254,13 +259,9 @@ type MissingSelfGeneric<Params extends string = ""> =
  * @since 4.0.0
  * @category models
  */
-export interface Union<Members extends ReadonlyArray<Struct<any>>> extends
-  Schema.Union<
-    {
-      readonly [K in keyof Members]: [Members[K]] extends [Schema.Top] ? Members[K] : never
-    }
-  >
-{}
+export interface Union<Members extends ReadonlyArray<Struct<any>>> extends Schema.Union<{
+  readonly [K in keyof Members]: [Members[K]] extends [Schema.Top] ? Members[K] : never
+}> {}
 
 /**
  * @since 4.0.0
@@ -272,11 +273,9 @@ export declare namespace Union {
    * @category models
    */
   export type Variants<Members extends ReadonlyArray<Struct<any>>, Variants extends string> = {
-    readonly [Variant in Variants]: Schema.Union<
-      {
-        [K in keyof Members]: Extract<Variant, Members[K]>
-      }
-    >
+    readonly [Variant in Variants]: Schema.Union<{
+      [K in keyof Members]: Extract<Variant, Members[K]>
+    }>
   }
 }
 
@@ -284,63 +283,71 @@ export declare namespace Union {
  * @since 4.0.0
  * @category constructors
  */
-export const make = <
-  const Variants extends ReadonlyArray<string>,
-  const Default extends Variants[number]
->(options: {
+export const make = <const Variants extends ReadonlyArray<string>, const Default extends Variants[number]>(options: {
   readonly variants: Variants
   readonly defaultVariant: Default
 }): {
-  readonly Struct: <const A extends Struct.Fields>(
-    fields: A & Struct.Validate<A, Variants[number]>
-  ) => Struct<A>
+  readonly Struct: <const A extends Struct.Fields>(fields: A & Struct.Validate<A, Variants[number]>) => Struct<A>
   readonly Field: <const A extends Field.ConfigWithKeys<Variants[number]>>(
     config: A & { readonly [K in Exclude<keyof A, Variants[number]>]: never }
   ) => Field<A>
   readonly FieldOnly: <const Keys extends ReadonlyArray<Variants[number]>>(
     ...keys: Keys
-  ) => <S extends Schema.Top>(
-    schema: S
-  ) => Field<{ readonly [K in Keys[number]]: S }>
+  ) => <S extends Schema.Top>(schema: S) => Field<{ readonly [K in Keys[number]]: S }>
   readonly FieldExcept: <const Keys extends ReadonlyArray<Variants[number]>>(
     ...keys: Keys
-  ) => <S extends Schema.Top>(
-    schema: S
-  ) => Field<{ readonly [K in Exclude<Variants[number], Keys[number]>]: S }>
+  ) => <S extends Schema.Top>(schema: S) => Field<{ readonly [K in Exclude<Variants[number], Keys[number]>]: S }>
   readonly fieldEvolve: {
     <
       Self extends Field<any> | Schema.Top,
-      const Mapping extends (Self extends Field<infer S> ? { readonly [K in keyof S]?: (variant: S[K]) => Schema.Top }
-        : { readonly [K in Variants[number]]?: (variant: Self) => Schema.Top })
-    >(f: Mapping): (self: Self) => Field<
-      Self extends Field<infer S> ? {
-          readonly [K in keyof S]: K extends keyof Mapping
-            ? Mapping[K] extends (arg: any) => any ? ReturnType<Mapping[K]> : S[K]
-            : S[K]
-        } :
-        {
-          readonly [K in Variants[number]]: K extends keyof Mapping
-            ? Mapping[K] extends (arg: any) => any ? ReturnType<Mapping[K]> : Self
-            : Self
-        }
+      const Mapping extends Self extends Field<infer S>
+        ? { readonly [K in keyof S]?: (variant: S[K]) => Schema.Top }
+        : { readonly [K in Variants[number]]?: (variant: Self) => Schema.Top }
+    >(
+      f: Mapping
+    ): (self: Self) => Field<
+      Self extends Field<infer S>
+        ? {
+            readonly [K in keyof S]: K extends keyof Mapping
+              ? Mapping[K] extends (arg: any) => any
+                ? ReturnType<Mapping[K]>
+                : S[K]
+              : S[K]
+          }
+        : {
+            readonly [K in Variants[number]]: K extends keyof Mapping
+              ? Mapping[K] extends (arg: any) => any
+                ? ReturnType<Mapping[K]>
+                : Self
+              : Self
+          }
     >
     <
       Self extends Field<any> | Schema.Top,
-      const Mapping extends (Self extends Field<infer S> ? {
-          readonly [K in keyof S]?: (variant: S[K]) => Schema.Top
-        }
-        : { readonly [K in Variants[number]]?: (variant: Self) => Schema.Top })
-    >(self: Self, f: Mapping): Field<
-      Self extends Field<infer S> ? {
-          readonly [K in keyof S]: K extends keyof Mapping
-            ? Mapping[K] extends (arg: any) => any ? ReturnType<Mapping[K]> : S[K]
-            : S[K]
-        } :
-        {
-          readonly [K in Variants[number]]: K extends keyof Mapping
-            ? Mapping[K] extends (arg: any) => any ? ReturnType<Mapping[K]> : Self
-            : Self
-        }
+      const Mapping extends Self extends Field<infer S>
+        ? {
+            readonly [K in keyof S]?: (variant: S[K]) => Schema.Top
+          }
+        : { readonly [K in Variants[number]]?: (variant: Self) => Schema.Top }
+    >(
+      self: Self,
+      f: Mapping
+    ): Field<
+      Self extends Field<infer S>
+        ? {
+            readonly [K in keyof S]: K extends keyof Mapping
+              ? Mapping[K] extends (arg: any) => any
+                ? ReturnType<Mapping[K]>
+                : S[K]
+              : S[K]
+          }
+        : {
+            readonly [K in Variants[number]]: K extends keyof Mapping
+              ? Mapping[K] extends (arg: any) => any
+                ? ReturnType<Mapping[K]>
+                : Self
+              : Self
+          }
     >
   }
   readonly Class: <Self = never>(
@@ -350,14 +357,9 @@ export const make = <
     annotations?:
       | Schema.Annotations.Declaration<Self, readonly [Schema.Struct<ExtractFields<Default, Fields, true>>]>
       | undefined
-  ) => [Self] extends [never] ? MissingSelfGeneric
-    :
-      & Class<
-        Self,
-        Fields,
-        Schema.Struct<ExtractFields<Default, Fields, true>>
-      >
-      & {
+  ) => [Self] extends [never]
+    ? MissingSelfGeneric
+    : Class<Self, Fields, Schema.Struct<ExtractFields<Default, Fields, true>>> & {
         readonly [V in Variants[number]]: Extract<V, Struct<Fields>>
       }
   readonly Union: <const Members extends ReadonlyArray<Struct<any>>>(
@@ -374,7 +376,7 @@ export const make = <
   }
 } => {
   function Class<Self>(identifier: string) {
-    return function(
+    return function (
       fields: Struct.Fields,
       annotations?: Schema.Annotations.Declaration<
         Self,
@@ -401,7 +403,7 @@ export const make = <
     }
   }
   function FieldOnly<Keys extends Variants>(...keys: Keys) {
-    return function<S extends Schema.Top>(schema: S) {
+    return function <S extends Schema.Top>(schema: S) {
       const obj: Record<string, S> = {}
       for (const key of keys) {
         obj[key] = schema
@@ -410,7 +412,7 @@ export const make = <
     }
   }
   function FieldExcept<Keys extends Variants>(...keys: Keys) {
-    return function<S extends Schema.Top>(schema: S) {
+    return function <S extends Schema.Top>(schema: S) {
       const obj: Record<string, S> = {}
       for (const variant of options.variants) {
         if (!keys.includes(variant)) {
@@ -425,22 +427,15 @@ export const make = <
   }
   const fieldEvolve = dual(
     2,
-    (
-      self: Field<any> | Schema.Top,
-      f: Record<string, (schema: Schema.Top) => Schema.Top>
-    ): Field<any> => {
-      const field = isField(self) ? self : Field(Object.fromEntries(
-        options.variants.map((variant) => [variant, self])
-      ))
+    (self: Field<any> | Schema.Top, f: Record<string, (schema: Schema.Top) => Schema.Top>): Field<any> => {
+      const field = isField(self) ? self : Field(Object.fromEntries(options.variants.map((variant) => [variant, self])))
       return Field(Struct_.evolve(field.schemas, f))
     }
   )
-  const extractVariants = dual(
-    2,
-    (self: Struct<any>, variant: string): any =>
-      extract(self, variant, {
-        isDefault: variant === options.defaultVariant
-      })
+  const extractVariants = dual(2, (self: Struct<any>, variant: string): any =>
+    extract(self, variant, {
+      isDefault: variant === options.defaultVariant
+    })
   )
   return {
     Struct,
@@ -465,9 +460,10 @@ export const Override = <A>(value: A): A & Brand<"Override"> => value as any
  * @since 4.0.0
  * @category overrideable
  */
-export interface Overrideable<S extends Schema.Top & Schema.WithoutConstructorDefault>
-  extends Schema.brand<Schema.withConstructorDefault<S>, "Override">
-{}
+export interface Overrideable<S extends Schema.Top & Schema.WithoutConstructorDefault> extends Schema.brand<
+  Schema.withConstructorDefault<S>,
+  "Override"
+> {}
 
 /**
  * @since 4.0.0
@@ -478,11 +474,7 @@ export const Overrideable = <S extends Schema.Top & Schema.WithoutConstructorDef
   options: {
     readonly defaultValue: Effect.Effect<S["~type.make.in"]>
   }
-) =>
-  schema.pipe(
-    Schema.withConstructorDefault(constant(Effect.asSome(options.defaultValue))),
-    Schema.brand("Override")
-  )
+) => schema.pipe(Schema.withConstructorDefault(constant(Effect.asSome(options.defaultValue))), Schema.brand("Override"))
 
 const StructProto = {
   pipe() {

@@ -47,21 +47,24 @@ const toBufferSource = (data: Uint8Array): ArrayBufferView<ArrayBuffer> => new U
  * @since 4.0.0
  * @category services
  */
-export class EventLogEncryption extends ServiceMap.Service<EventLogEncryption, {
-  readonly encrypt: (
-    identity: Identity["Service"],
-    entries: ReadonlyArray<Entry>
-  ) => Effect.Effect<{
-    readonly iv: Uint8Array
-    readonly encryptedEntries: ReadonlyArray<Uint8Array>
-  }>
-  readonly decrypt: (
-    identity: Identity["Service"],
-    entries: ReadonlyArray<EncryptedRemoteEntry>
-  ) => Effect.Effect<Array<RemoteEntry>>
-  readonly sha256String: (data: Uint8Array) => Effect.Effect<string>
-  readonly sha256: (data: Uint8Array) => Effect.Effect<Uint8Array>
-}>()("effect/eventlog/EventLogEncryption") {}
+export class EventLogEncryption extends ServiceMap.Service<
+  EventLogEncryption,
+  {
+    readonly encrypt: (
+      identity: Identity["Service"],
+      entries: ReadonlyArray<Entry>
+    ) => Effect.Effect<{
+      readonly iv: Uint8Array
+      readonly encryptedEntries: ReadonlyArray<Uint8Array>
+    }>
+    readonly decrypt: (
+      identity: Identity["Service"],
+      entries: ReadonlyArray<EncryptedRemoteEntry>
+    ) => Effect.Effect<Array<RemoteEntry>>
+    readonly sha256String: (data: Uint8Array) => Effect.Effect<string>
+    readonly sha256: (data: Uint8Array) => Effect.Effect<Uint8Array>
+  }
+>()("effect/eventlog/EventLogEncryption") {}
 
 /**
  * @since 4.0.0
@@ -76,13 +79,10 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
           return Effect.succeed(keyCache.get(identity)!)
         }
         return Effect.promise(() =>
-          crypto.subtle.importKey(
-            "raw",
-            toArrayBuffer(Redacted.value(identity.privateKey)),
-            "AES-GCM",
-            true,
-            ["encrypt", "decrypt"]
-          )
+          crypto.subtle.importKey("raw", toArrayBuffer(Redacted.value(identity.privateKey)), "AES-GCM", true, [
+            "encrypt",
+            "decrypt"
+          ])
         ).pipe(
           Effect.tap((key) => {
             keyCache.set(identity, key)
@@ -91,7 +91,7 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
       })
 
     return EventLogEncryption.of({
-      encrypt: Effect.fnUntraced(function*(identity, entries) {
+      encrypt: Effect.fnUntraced(function* (identity, entries) {
         const data = yield* Effect.orDie(Entry.encodeArray(entries))
         const key = yield* getKey(identity)
         const iv = crypto.getRandomValues(new Uint8Array(12))
@@ -111,16 +111,18 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
           encryptedEntries: encryptedEntries.map((entry) => new Uint8Array(entry))
         }
       }),
-      decrypt: Effect.fnUntraced(function*(identity, entries) {
+      decrypt: Effect.fnUntraced(function* (identity, entries) {
         const key = yield* getKey(identity)
         const decryptedData = (yield* Effect.promise(() =>
-          Promise.all(entries.map((data) =>
-            crypto.subtle.decrypt(
-              { name: "AES-GCM", iv: toBufferSource(data.iv), tagLength: 128 },
-              key,
-              toBufferSource(data.encryptedEntry)
+          Promise.all(
+            entries.map((data) =>
+              crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: toBufferSource(data.iv), tagLength: 128 },
+                key,
+                toBufferSource(data.encryptedEntry)
+              )
             )
-          ))
+          )
         )).map((buffer) => new Uint8Array(buffer))
         const decoded = yield* Effect.orDie(Entry.decodeArray(decryptedData))
         return decoded.map((entry, index) => new RemoteEntry({ remoteSequence: entries[index].sequence, entry }))
@@ -134,9 +136,7 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
           Effect.promise(() => crypto.subtle.digest("SHA-256", toArrayBuffer(data))),
           (hash) => {
             const hashArray = Array.from(new Uint8Array(hash))
-            const hashHex = hashArray
-              .map((bytes) => bytes.toString(16).padStart(2, "0"))
-              .join("")
+            const hashHex = hashArray.map((bytes) => bytes.toString(16).padStart(2, "0")).join("")
             return hashHex
           }
         )

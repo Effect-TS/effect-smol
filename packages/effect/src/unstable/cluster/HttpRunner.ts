@@ -30,13 +30,9 @@ import type * as ShardingConfig from "./ShardingConfig.ts"
 export const layerClientProtocolHttp = (options: {
   readonly path: string
   readonly https?: boolean | undefined
-}): Layer.Layer<
-  RpcClientProtocol,
-  never,
-  RpcSerialization.RpcSerialization | HttpClient.HttpClient
-> =>
+}): Layer.Layer<RpcClientProtocol, never, RpcSerialization.RpcSerialization | HttpClient.HttpClient> =>
   Layer.effect(RpcClientProtocol)(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const serialization = yield* RpcSerialization.RpcSerialization
       const client = yield* HttpClient.HttpClient
       const https = options.https ?? false
@@ -69,22 +65,16 @@ export const layerClientProtocolHttpDefault: Layer.Layer<
 export const layerClientProtocolWebsocket = (options: {
   readonly path: string
   readonly https?: boolean | undefined
-}): Layer.Layer<
-  RpcClientProtocol,
-  never,
-  RpcSerialization.RpcSerialization | Socket.WebSocketConstructor
-> =>
+}): Layer.Layer<RpcClientProtocol, never, RpcSerialization.RpcSerialization | Socket.WebSocketConstructor> =>
   Layer.effect(RpcClientProtocol)(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const serialization = yield* RpcSerialization.RpcSerialization
       const https = options.https ?? false
       const constructor = yield* Socket.WebSocketConstructor
-      return Effect.fnUntraced(function*(address) {
+      return Effect.fnUntraced(function* (address) {
         const socket = yield* Socket.makeWebSocket(
           `ws${https ? "s" : ""}://${address.host}:${address.port}/${options.path}`
-        ).pipe(
-          Effect.provideService(Socket.WebSocketConstructor, constructor)
-        )
+        ).pipe(Effect.provideService(Socket.WebSocketConstructor, constructor))
         return yield* RpcClient.makeProtocolSocket().pipe(
           Effect.provideService(Socket.Socket, socket),
           Effect.provideService(RpcSerialization.RpcSerialization, serialization)
@@ -111,7 +101,7 @@ export const toHttpEffect: Effect.Effect<
   Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
   never,
   Scope | RpcSerialization.RpcSerialization | Sharding.Sharding | MessageStorage
-> = Effect.gen(function*() {
+> = Effect.gen(function* () {
   const handlers = yield* Layer.build(RunnerServer.layerHandlers)
   return yield* RpcServer.toHttpEffect(Runners.Rpcs, {
     spanPrefix: "RunnerServer",
@@ -127,7 +117,7 @@ export const toHttpEffectWebsocket: Effect.Effect<
   Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
   never,
   Scope | RpcSerialization.RpcSerialization | Sharding.Sharding | MessageStorage
-> = Effect.gen(function*() {
+> = Effect.gen(function* () {
   const handlers = yield* Layer.build(RunnerServer.layerHandlers)
   return yield* RpcServer.toHttpEffectWebsocket(Runners.Rpcs, {
     spanPrefix: "RunnerServer",
@@ -143,9 +133,7 @@ export const layerClient: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
   never,
   ShardingConfig.ShardingConfig | Runners.RpcClientProtocol | MessageStorage | RunnerStorage | RunnerHealth
-> = Sharding.layer.pipe(
-  Layer.provideMerge(Runners.layerRpc)
-)
+> = Sharding.layer.pipe(Layer.provideMerge(Runners.layerRpc))
 
 /**
  * A HTTP layer for the `Runners` services, that adds a route to the provided
@@ -166,10 +154,7 @@ export const layerHttpOptions = (options: {
   | ShardingConfig.ShardingConfig
   | Runners.RpcClientProtocol
   | HttpRouter.HttpRouter
-> =>
-  RunnerServer.layerWithClients.pipe(
-    Layer.provide(RpcServer.layerProtocolHttp(options))
-  )
+> => RunnerServer.layerWithClients.pipe(Layer.provide(RpcServer.layerProtocolHttp(options)))
 
 /**
  * @since 4.0.0
@@ -187,10 +172,7 @@ export const layerWebsocketOptions = (options: {
   | RunnerHealth
   | RpcSerialization.RpcSerialization
   | HttpRouter.HttpRouter
-> =>
-  RunnerServer.layerWithClients.pipe(
-    Layer.provide(RpcServer.layerProtocolWebsocket(options))
-  )
+> => RunnerServer.layerWithClients.pipe(Layer.provide(RpcServer.layerProtocolWebsocket(options)))
 
 /**
  * @since 4.0.0
@@ -206,9 +188,7 @@ export const layerHttp: Layer.Layer<
   | MessageStorage
   | RunnerStorage
   | RunnerHealth
-> = HttpRouter.serve(layerHttpOptions({ path: "/" })).pipe(
-  Layer.provide(layerClientProtocolHttpDefault)
-)
+> = HttpRouter.serve(layerHttpOptions({ path: "/" })).pipe(Layer.provide(layerClientProtocolHttpDefault))
 
 /**
  * @since 4.0.0
@@ -222,9 +202,7 @@ export const layerHttpClientOnly: Layer.Layer<
   | HttpClient.HttpClient
   | MessageStorage
   | RunnerStorage
-> = RunnerServer.layerClientOnly.pipe(
-  Layer.provide(layerClientProtocolHttpDefault)
-)
+> = RunnerServer.layerClientOnly.pipe(Layer.provide(layerClientProtocolHttpDefault))
 
 /**
  * @since 4.0.0
@@ -240,9 +218,7 @@ export const layerWebsocket: Layer.Layer<
   | MessageStorage
   | RunnerStorage
   | RunnerHealth
-> = HttpRouter.serve(layerWebsocketOptions({ path: "/" })).pipe(
-  Layer.provide(layerClientProtocolWebsocketDefault)
-)
+> = HttpRouter.serve(layerWebsocketOptions({ path: "/" })).pipe(Layer.provide(layerClientProtocolWebsocketDefault))
 
 /**
  * @since 4.0.0
@@ -256,6 +232,4 @@ export const layerWebsocketClientOnly: Layer.Layer<
   | RunnerStorage
   | RpcSerialization.RpcSerialization
   | Socket.WebSocketConstructor
-> = RunnerServer.layerClientOnly.pipe(
-  Layer.provide(layerClientProtocolWebsocketDefault)
-)
+> = RunnerServer.layerClientOnly.pipe(Layer.provide(layerClientProtocolWebsocketDefault))

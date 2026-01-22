@@ -67,16 +67,14 @@ export interface D1ClientConfig {
  * @category constructor
  * @since 1.0.0
  */
-export const make = (
-  options: D1ClientConfig
-): Effect.Effect<D1Client, never, Scope.Scope | Reactivity.Reactivity> =>
-  Effect.gen(function*() {
+export const make = (options: D1ClientConfig): Effect.Effect<D1Client, never, Scope.Scope | Reactivity.Reactivity> =>
+  Effect.gen(function* () {
     const compiler = Statement.makeCompilerSqlite(options.transformQueryNames)
-    const transformRows = options.transformResultNames ?
-      Statement.defaultTransforms(options.transformResultNames).array :
-      undefined
+    const transformRows = options.transformResultNames
+      ? Statement.defaultTransforms(options.transformResultNames).array
+      : undefined
 
-    const makeConnection = Effect.gen(function*() {
+    const makeConnection = Effect.gen(function* () {
       const db = options.db
 
       const prepareCache = yield* Cache.make({
@@ -104,45 +102,26 @@ export const make = (
           catch: (cause) => new SqlError({ cause, message: `Failed to execute statement` })
         })
 
-      const runRaw = (
-        sql: string,
-        params: ReadonlyArray<unknown> = []
-      ) => runStatement(db.prepare(sql), params)
+      const runRaw = (sql: string, params: ReadonlyArray<unknown> = []) => runStatement(db.prepare(sql), params)
 
-      const runCached = (
-        sql: string,
-        params: ReadonlyArray<unknown> = []
-      ) => Effect.flatMap(Cache.get(prepareCache, sql), (s) => runStatement(s, params))
+      const runCached = (sql: string, params: ReadonlyArray<unknown> = []) =>
+        Effect.flatMap(Cache.get(prepareCache, sql), (s) => runStatement(s, params))
 
-      const runUncached = (
-        sql: string,
-        params: ReadonlyArray<unknown> = []
-      ) => runRaw(sql, params)
+      const runUncached = (sql: string, params: ReadonlyArray<unknown> = []) => runRaw(sql, params)
 
-      const runValues = (
-        sql: string,
-        params: ReadonlyArray<unknown>
-      ) =>
-        Effect.flatMap(
-          Cache.get(prepareCache, sql),
-          (statement) =>
-            Effect.tryPromise({
-              try: () => {
-                return statement.bind(...params).raw() as Promise<
-                  ReadonlyArray<
-                    ReadonlyArray<unknown>
-                  >
-                >
-              },
-              catch: (cause) => new SqlError({ cause, message: `Failed to execute statement` })
-            })
+      const runValues = (sql: string, params: ReadonlyArray<unknown>) =>
+        Effect.flatMap(Cache.get(prepareCache, sql), (statement) =>
+          Effect.tryPromise({
+            try: () => {
+              return statement.bind(...params).raw() as Promise<ReadonlyArray<ReadonlyArray<unknown>>>
+            },
+            catch: (cause) => new SqlError({ cause, message: `Failed to execute statement` })
+          })
         )
 
       return identity<Connection>({
         execute(sql, params, transformRows) {
-          return transformRows
-            ? Effect.map(runCached(sql, params), transformRows)
-            : runCached(sql, params)
+          return transformRows ? Effect.map(runCached(sql, params), transformRows) : runCached(sql, params)
         },
         executeRaw(sql, params) {
           return runRaw(sql, params)
@@ -151,9 +130,7 @@ export const make = (
           return runValues(sql, params)
         },
         executeUnprepared(sql, params, transformRows) {
-          return transformRows
-            ? Effect.map(runUncached(sql, params), transformRows)
-            : runUncached(sql, params)
+          return transformRows ? Effect.map(runUncached(sql, params), transformRows) : runUncached(sql, params)
         },
         executeStream(_sql, _params) {
           return Stream.die("executeStream not implemented")
@@ -191,26 +168,21 @@ export const layerConfig = (
   config: Config.Wrap<D1ClientConfig>
 ): Layer.Layer<D1Client | Client.SqlClient, Config.ConfigError> =>
   Layer.effectServices(
-    Config.unwrap(config).asEffect().pipe(
-      Effect.flatMap(make),
-      Effect.map((client) =>
-        ServiceMap.make(D1Client, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
-        )
+    Config.unwrap(config)
+      .asEffect()
+      .pipe(
+        Effect.flatMap(make),
+        Effect.map((client) => ServiceMap.make(D1Client, client).pipe(ServiceMap.add(Client.SqlClient, client)))
       )
-    )
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
  * @category layers
  * @since 1.0.0
  */
-export const layer = (
-  config: D1ClientConfig
-): Layer.Layer<D1Client | Client.SqlClient, Config.ConfigError> =>
+export const layer = (config: D1ClientConfig): Layer.Layer<D1Client | Client.SqlClient, Config.ConfigError> =>
   Layer.effectServices(
     Effect.map(make(config), (client) =>
-      ServiceMap.make(D1Client, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
-      ))
+      ServiceMap.make(D1Client, client).pipe(ServiceMap.add(Client.SqlClient, client))
+    )
   ).pipe(Layer.provide(Reactivity.layer))

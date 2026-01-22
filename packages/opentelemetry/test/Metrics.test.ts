@@ -10,7 +10,7 @@ const findMetric = (metrics: any, name: string) =>
 
 describe("Metrics", () => {
   it.effect("gauge", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const services = yield* Effect.services<never>()
       const resource = resourceFromAttributes({
         name: "test",
@@ -39,40 +39,41 @@ describe("Metrics", () => {
       assert.equal(object.resourceMetrics.scopeMetrics.length, 1)
       const metric = findMetric(object, "rps")
       assert.deepStrictEqual(metric, {
-        "dataPointType": 2,
-        "descriptor": {
-          "advice": {},
-          "name": "rps",
-          "description": "",
-          "unit": "requests",
-          "type": "OBSERVABLE_GAUGE",
-          "valueType": ValueType.DOUBLE
+        dataPointType: 2,
+        descriptor: {
+          advice: {},
+          name: "rps",
+          description: "",
+          unit: "requests",
+          type: "OBSERVABLE_GAUGE",
+          valueType: ValueType.DOUBLE
         },
-        "aggregationTemporality": 1,
-        "dataPoints": [
+        aggregationTemporality: 1,
+        dataPoints: [
           {
-            "startTime": metric.dataPoints[0].startTime,
-            "endTime": metric.dataPoints[0].endTime,
-            "attributes": {
-              "unit": "requests",
-              "key": "value"
+            startTime: metric.dataPoints[0].startTime,
+            endTime: metric.dataPoints[0].endTime,
+            attributes: {
+              unit: "requests",
+              key: "value"
             },
-            "value": 10
+            value: 10
           },
           {
-            "startTime": metric.dataPoints[0].startTime,
-            "endTime": metric.dataPoints[0].endTime,
-            "attributes": {
-              "key": "value"
+            startTime: metric.dataPoints[0].startTime,
+            endTime: metric.dataPoints[0].endTime,
+            attributes: {
+              key: "value"
             },
-            "value": 20
+            value: 20
           }
         ]
       })
-    }))
+    })
+  )
 
   it.effect("gauge bigint", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const services = yield* Effect.services<never>()
       const producer = new internal.MetricProducerImpl(
         resourceFromAttributes({
@@ -103,40 +104,41 @@ describe("Metrics", () => {
       assert.equal(object.resourceMetrics.scopeMetrics.length, 1)
       const metric = findMetric(object, "rps-bigint")
       assert.deepEqual(metric, {
-        "dataPointType": 2,
-        "descriptor": {
-          "advice": {},
-          "name": "rps-bigint",
-          "description": "",
-          "unit": "requests",
-          "type": "OBSERVABLE_GAUGE",
-          "valueType": ValueType.INT
+        dataPointType: 2,
+        descriptor: {
+          advice: {},
+          name: "rps-bigint",
+          description: "",
+          unit: "requests",
+          type: "OBSERVABLE_GAUGE",
+          valueType: ValueType.INT
         },
-        "aggregationTemporality": 1,
-        "dataPoints": [
+        aggregationTemporality: 1,
+        dataPoints: [
           {
-            "startTime": metric.dataPoints[0].startTime,
-            "endTime": metric.dataPoints[0].endTime,
-            "attributes": {
-              "unit": "requests",
-              "key": "value"
+            startTime: metric.dataPoints[0].startTime,
+            endTime: metric.dataPoints[0].endTime,
+            attributes: {
+              unit: "requests",
+              key: "value"
             },
-            "value": 10
+            value: 10
           },
           {
-            "startTime": metric.dataPoints[0].startTime,
-            "endTime": metric.dataPoints[0].endTime,
-            "attributes": {
-              "key": "value"
+            startTime: metric.dataPoints[0].startTime,
+            endTime: metric.dataPoints[0].endTime,
+            attributes: {
+              key: "value"
             },
-            "value": 20
+            value: 20
           }
         ]
       })
-    }))
+    })
+  )
 
   it.effect("counter", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const services = yield* Effect.services<never>()
       const producer = new internal.MetricProducerImpl(
         resourceFromAttributes({
@@ -167,41 +169,42 @@ describe("Metrics", () => {
       assert.equal(object.resourceMetrics.scopeMetrics.length, 1)
       const metric = findMetric(object, "counter")
       assert.deepEqual(metric, {
-        "dataPointType": 3,
-        "descriptor": {
-          "advice": {},
-          "name": "counter",
-          "description": "Example",
-          "unit": "requests",
-          "type": "UP_DOWN_COUNTER",
-          "valueType": ValueType.DOUBLE
+        dataPointType: 3,
+        descriptor: {
+          advice: {},
+          name: "counter",
+          description: "Example",
+          unit: "requests",
+          type: "UP_DOWN_COUNTER",
+          valueType: ValueType.DOUBLE
         },
-        "isMonotonic": false,
-        "aggregationTemporality": 1,
-        "dataPoints": [
+        isMonotonic: false,
+        aggregationTemporality: 1,
+        dataPoints: [
           {
-            "startTime": metric.dataPoints[0].startTime,
-            "endTime": metric.dataPoints[0].endTime,
-            "attributes": {
-              "unit": "requests",
-              "key": "value"
+            startTime: metric.dataPoints[0].startTime,
+            endTime: metric.dataPoints[0].endTime,
+            attributes: {
+              unit: "requests",
+              key: "value"
             },
-            "value": 1
+            value: 1
           },
           {
-            "startTime": metric.dataPoints[0].startTime,
-            "endTime": metric.dataPoints[0].endTime,
-            "attributes": {
-              "key": "value"
+            startTime: metric.dataPoints[0].startTime,
+            endTime: metric.dataPoints[0].endTime,
+            attributes: {
+              key: "value"
             },
-            "value": 2
+            value: 2
           }
         ]
       })
-    }))
+    })
+  )
 
   it.effect("counter-inc", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const services = yield* Effect.services<never>()
       const producer = new internal.MetricProducerImpl(
         resourceFromAttributes({
@@ -235,41 +238,42 @@ describe("Metrics", () => {
       assert.equal(object.resourceMetrics.scopeMetrics.length, 1)
       const metric = findMetric(object, "counter-inc")
       assert.deepEqual(metric, {
-        "dataPointType": 3,
-        "descriptor": {
-          "advice": {},
-          "name": "counter-inc",
-          "description": "Example",
-          "unit": "requests",
-          "type": "COUNTER",
-          "valueType": ValueType.DOUBLE
+        dataPointType: 3,
+        descriptor: {
+          advice: {},
+          name: "counter-inc",
+          description: "Example",
+          unit: "requests",
+          type: "COUNTER",
+          valueType: ValueType.DOUBLE
         },
-        "isMonotonic": true,
-        "aggregationTemporality": 1,
-        "dataPoints": [
+        isMonotonic: true,
+        aggregationTemporality: 1,
+        dataPoints: [
           {
-            "startTime": metric.dataPoints[0].startTime,
-            "endTime": metric.dataPoints[0].endTime,
-            "attributes": {
-              "unit": "requests",
-              "key": "value"
+            startTime: metric.dataPoints[0].startTime,
+            endTime: metric.dataPoints[0].endTime,
+            attributes: {
+              unit: "requests",
+              key: "value"
             },
-            "value": 1
+            value: 1
           },
           {
-            "startTime": metric.dataPoints[0].startTime,
-            "endTime": metric.dataPoints[0].endTime,
-            "attributes": {
-              "key": "value"
+            startTime: metric.dataPoints[0].startTime,
+            endTime: metric.dataPoints[0].endTime,
+            attributes: {
+              key: "value"
             },
-            "value": 2
+            value: 2
           }
         ]
       })
-    }))
+    })
+  )
 
   it.effect("counter-bigint", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const services = yield* Effect.services<never>()
       const producer = new internal.MetricProducerImpl(
         resourceFromAttributes({
@@ -304,36 +308,37 @@ describe("Metrics", () => {
       assert.equal(object.resourceMetrics.scopeMetrics.length, 1)
       const metric = findMetric(object, "counter-bigint")
       assert.deepEqual(metric, {
-        "dataPointType": 3,
-        "descriptor": {
-          "advice": {},
-          "name": "counter-bigint",
-          "description": "Example",
-          "unit": "requests",
-          "type": "COUNTER",
-          "valueType": ValueType.INT
+        dataPointType: 3,
+        descriptor: {
+          advice: {},
+          name: "counter-bigint",
+          description: "Example",
+          unit: "requests",
+          type: "COUNTER",
+          valueType: ValueType.INT
         },
-        "isMonotonic": true,
-        "aggregationTemporality": 1,
-        "dataPoints": [
+        isMonotonic: true,
+        aggregationTemporality: 1,
+        dataPoints: [
           {
-            "startTime": metric.dataPoints[0].startTime,
-            "endTime": metric.dataPoints[0].endTime,
-            "attributes": {
-              "unit": "requests",
-              "key": "value"
+            startTime: metric.dataPoints[0].startTime,
+            endTime: metric.dataPoints[0].endTime,
+            attributes: {
+              unit: "requests",
+              key: "value"
             },
-            "value": 1
+            value: 1
           },
           {
-            "startTime": metric.dataPoints[0].startTime,
-            "endTime": metric.dataPoints[0].endTime,
-            "attributes": {
-              "key": "value"
+            startTime: metric.dataPoints[0].startTime,
+            endTime: metric.dataPoints[0].endTime,
+            attributes: {
+              key: "value"
             },
-            "value": 2
+            value: 2
           }
         ]
       })
-    }))
+    })
+  )
 })

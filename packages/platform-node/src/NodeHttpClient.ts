@@ -94,7 +94,7 @@ export const UndiciOptions = ServiceMap.Reference<Partial<Undici.Dispatcher.Requ
  * @since 1.0.0
  * @category undici
  */
-export const makeUndici = Effect.gen(function*() {
+export const makeUndici = Effect.gen(function* () {
   const dispatcher = yield* Dispatcher
   return Client.make((request, url, signal, fiber) =>
     convertBody(request.body).pipe(
@@ -154,10 +154,7 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
   readonly request: HttpClientRequest
   readonly source: Undici.Dispatcher.ResponseData
 
-  constructor(
-    request: HttpClientRequest,
-    source: Undici.Dispatcher.ResponseData
-  ) {
+  constructor(request: HttpClientRequest, source: Undici.Dispatcher.ResponseData) {
     super()
     this[IncomingMessage.TypeId] = IncomingMessage.TypeId
     this[Response.TypeId] = Response.TypeId
@@ -184,7 +181,7 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
       return this.cachedCookies
     }
     const header = this.source.headers["set-cookie"]
-    return this.cachedCookies = header ? Cookies.fromSetCookie(header) : Cookies.empty
+    return (this.cachedCookies = header ? Cookies.fromSetCookie(header) : Cookies.empty)
   }
 
   get remoteAddress(): string | undefined {
@@ -207,7 +204,7 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
   get json(): Effect.Effect<unknown, Error.ResponseError> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
-        try: () => text === "" ? null : JSON.parse(text) as unknown,
+        try: () => (text === "" ? null : (JSON.parse(text) as unknown)),
         catch: (cause) =>
           new Error.ResponseError({
             request: this.request,
@@ -215,12 +212,13 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
             reason: "Decode",
             cause
           })
-      }))
+      })
+    )
   }
 
   private textBody?: Effect.Effect<string, Error.ResponseError>
   get text(): Effect.Effect<string, Error.ResponseError> {
-    return this.textBody ??= Effect.tryPromise({
+    return (this.textBody ??= Effect.tryPromise({
       try: () => this.source.body.text(),
       catch: (cause) =>
         new Error.ResponseError({
@@ -229,7 +227,7 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
           reason: "Decode",
           cause
         })
-    }).pipe(Effect.cached, Effect.runSync)
+    }).pipe(Effect.cached, Effect.runSync))
   }
 
   get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, Error.ResponseError> {
@@ -243,12 +241,13 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
             reason: "Decode",
             cause
           })
-      }))
+      })
+    )
   }
 
   private formDataBody?: Effect.Effect<FormData, Error.ResponseError>
   get formData(): Effect.Effect<FormData, Error.ResponseError> {
-    return this.formDataBody ??= Effect.tryPromise({
+    return (this.formDataBody ??= Effect.tryPromise({
       try: () => this.source.body.formData() as Promise<FormData>,
       catch: (cause) =>
         new Error.ResponseError({
@@ -257,12 +256,12 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
           reason: "Decode",
           cause
         })
-    }).pipe(Effect.cached, Effect.runSync)
+    }).pipe(Effect.cached, Effect.runSync))
   }
 
   private arrayBufferBody?: Effect.Effect<ArrayBuffer, Error.ResponseError>
   get arrayBuffer(): Effect.Effect<ArrayBuffer, Error.ResponseError> {
-    return this.arrayBufferBody ??= Effect.tryPromise({
+    return (this.arrayBufferBody ??= Effect.tryPromise({
       try: () => this.source.body.arrayBuffer(),
       catch: (cause) =>
         new Error.ResponseError({
@@ -271,7 +270,7 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
           reason: "Decode",
           cause
         })
-    }).pipe(Effect.cached, Effect.runSync)
+    }).pipe(Effect.cached, Effect.runSync))
   }
 
   toJSON(): unknown {
@@ -287,11 +286,8 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
  * @since 1.0.0
  * @category Undici
  */
-export const layerUndiciNoDispatcher: Layer.Layer<
-  Client.HttpClient,
-  never,
-  Dispatcher
-> = Client.layerMergedServices(makeUndici)
+export const layerUndiciNoDispatcher: Layer.Layer<Client.HttpClient, never, Dispatcher> =
+  Client.layerMergedServices(makeUndici)
 
 /**
  * @since 1.0.0
@@ -307,10 +303,13 @@ export const layerUndici: Layer.Layer<Client.HttpClient> = Layer.provide(layerUn
  * @since 1.0.0
  * @category HttpAgent
  */
-export class HttpAgent extends ServiceMap.Service<HttpAgent, {
-  readonly http: Http.Agent
-  readonly https: Https.Agent
-}>()("@effect/platform-node/NodeHttpClient/HttpAgent") {}
+export class HttpAgent extends ServiceMap.Service<
+  HttpAgent,
+  {
+    readonly http: Http.Agent
+    readonly https: Https.Agent
+  }
+>()("@effect/platform-node/NodeHttpClient/HttpAgent") {}
 
 /**
  * @since 1.0.0
@@ -333,9 +332,8 @@ export const makeAgent = (options?: Https.AgentOptions): Effect.Effect<HttpAgent
  * @since 1.0.0
  * @category HttpAgent
  */
-export const layerAgentOptions: (options?: Https.AgentOptions | undefined) => Layer.Layer<
-  HttpAgent
-> = Layer.effect(HttpAgent)(makeAgent)
+export const layerAgentOptions: (options?: Https.AgentOptions | undefined) => Layer.Layer<HttpAgent> =
+  Layer.effect(HttpAgent)(makeAgent)
 
 /**
  * @since 1.0.0
@@ -347,22 +345,23 @@ export const layerAgent: Layer.Layer<HttpAgent> = layerAgentOptions()
  * @since 1.0.0
  * @category node:http
  */
-export const makeNodeHttp = Effect.gen(function*() {
+export const makeNodeHttp = Effect.gen(function* () {
   const agent = yield* HttpAgent
   return Client.make((request, url, signal) => {
-    const nodeRequest = url.protocol === "https:" ?
-      Https.request(url, {
-        agent: agent.https,
-        method: request.method,
-        headers: request.headers,
-        signal
-      }) :
-      Http.request(url, {
-        agent: agent.http,
-        method: request.method,
-        headers: request.headers,
-        signal
-      })
+    const nodeRequest =
+      url.protocol === "https:"
+        ? Https.request(url, {
+            agent: agent.https,
+            method: request.method,
+            headers: request.headers,
+            signal
+          })
+        : Http.request(url, {
+            agent: agent.http,
+            method: request.method,
+            headers: request.headers,
+            signal
+          })
     return Effect.forkChild(sendBody(nodeRequest, request, request.body)).pipe(
       Effect.flatMap(() => waitForResponse(nodeRequest, request)),
       Effect.map((_) => new NodeHttpResponse(request, _))
@@ -405,12 +404,15 @@ const sendBody = (
       }
       case "Stream": {
         return Stream.run(
-          Stream.mapError(body.stream, (cause) =>
-            new Error.RequestError({
-              request,
-              reason: "Encode",
-              cause
-            })),
+          Stream.mapError(
+            body.stream,
+            (cause) =>
+              new Error.RequestError({
+                request,
+                reason: "Encode",
+                cause
+              })
+          ),
           NodeSink.fromWritable({
             evaluate: () => nodeRequest,
             onError: (cause) =>
@@ -428,13 +430,15 @@ const sendBody = (
 const waitForResponse = (nodeRequest: Http.ClientRequest, request: HttpClientRequest) =>
   Effect.callback<Http.IncomingMessage, Error.RequestError>((resume) => {
     function onError(cause: Error) {
-      resume(Effect.fail(
-        new Error.RequestError({
-          request,
-          reason: "Transport",
-          cause
-        })
-      ))
+      resume(
+        Effect.fail(
+          new Error.RequestError({
+            request,
+            reason: "Transport",
+            cause
+          })
+        )
+      )
     }
     nodeRequest.on("error", onError)
 
@@ -455,13 +459,15 @@ const waitForResponse = (nodeRequest: Http.ClientRequest, request: HttpClientReq
 const waitForFinish = (nodeRequest: Http.ClientRequest, request: HttpClientRequest) =>
   Effect.callback<void, Error.RequestError>((resume) => {
     function onError(cause: Error) {
-      resume(Effect.fail(
-        new Error.RequestError({
-          request,
-          reason: "Transport",
-          cause
-        })
-      ))
+      resume(
+        Effect.fail(
+          new Error.RequestError({
+            request,
+            reason: "Transport",
+            cause
+          })
+        )
+      )
     }
     nodeRequest.once("error", onError)
 
@@ -481,17 +487,17 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.ResponseError> impl
   readonly [Response.TypeId]: typeof Response.TypeId
   readonly request: HttpClientRequest
 
-  constructor(
-    request: HttpClientRequest,
-    source: Http.IncomingMessage
-  ) {
-    super(source, (cause) =>
-      new Error.ResponseError({
-        request,
-        response: this,
-        reason: "Decode",
-        cause
-      }))
+  constructor(request: HttpClientRequest, source: Http.IncomingMessage) {
+    super(
+      source,
+      (cause) =>
+        new Error.ResponseError({
+          request,
+          response: this,
+          reason: "Decode",
+          cause
+        })
+    )
     this[Response.TypeId] = Response.TypeId
     this.request = request
   }
@@ -506,7 +512,7 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.ResponseError> impl
       return this.cachedCookies
     }
     const header = this.source.headers["set-cookie"]
-    return this.cachedCookies = header ? Cookies.fromSetCookie(header) : Cookies.empty
+    return (this.cachedCookies = header ? Cookies.fromSetCookie(header) : Cookies.empty)
   }
 
   get formData(): Effect.Effect<FormData, Error.ResponseError> {
@@ -547,11 +553,8 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.ResponseError> impl
  * @since 1.0.0
  * @category node:http
  */
-export const layerNodeHttpNoAgent: Layer.Layer<
-  Client.HttpClient,
-  never,
-  HttpAgent
-> = Client.layerMergedServices(makeNodeHttp)
+export const layerNodeHttpNoAgent: Layer.Layer<Client.HttpClient, never, HttpAgent> =
+  Client.layerMergedServices(makeNodeHttp)
 
 /**
  * @since 1.0.0

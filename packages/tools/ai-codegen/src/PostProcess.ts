@@ -59,54 +59,54 @@ export const PostProcessor: ServiceMap.Service<PostProcessor, PostProcessor> = S
  * @since 1.0.0
  * @category layers
  */
-export const layer: Layer.Layer<
-  PostProcessor,
-  never,
-  ChildProcessSpawner.ChildProcessSpawner
-> = Effect.gen(function*() {
-  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner
+export const layer: Layer.Layer<PostProcessor, never, ChildProcessSpawner.ChildProcessSpawner> = Effect.gen(
+  function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner
 
-  const runCommand = Effect.fn("runCommand")(function*(
-    command: string,
-    args: ReadonlyArray<string>,
-    step: "lint" | "format",
-    filePath: string
-  ) {
-    const cmd = ChildProcess.make(command, args, {
-      stdout: "inherit",
-      stderr: "inherit"
+    const runCommand = Effect.fn("runCommand")(function* (
+      command: string,
+      args: ReadonlyArray<string>,
+      step: "lint" | "format",
+      filePath: string
+    ) {
+      const cmd = ChildProcess.make(command, args, {
+        stdout: "inherit",
+        stderr: "inherit"
+      })
+
+      yield* Effect.scoped(
+        Effect.gen(function* () {
+          const handle = yield* spawner
+            .spawn(cmd)
+            .pipe(Effect.mapError((cause) => new PostProcessError({ step, filePath, cause })))
+
+          // Drain stdout/stderr streams
+          yield* Stream.runDrain(handle.stdout).pipe(Effect.ignore)
+          yield* Stream.runDrain(handle.stderr).pipe(Effect.ignore)
+
+          const exitCode = yield* handle.exitCode.pipe(
+            Effect.mapError((cause) => new PostProcessError({ step, filePath, cause }))
+          )
+
+          if (exitCode !== 0) {
+            return yield* new PostProcessError({
+              step,
+              filePath,
+              cause: new Error(`Command exited with code ${exitCode}`)
+            })
+          }
+        })
+      )
     })
 
-    yield* Effect.scoped(Effect.gen(function*() {
-      const handle = yield* spawner.spawn(cmd).pipe(
-        Effect.mapError((cause) => new PostProcessError({ step, filePath, cause }))
-      )
+    const lint = Effect.fn("lint")(function* (filePath: string) {
+      yield* runCommand("pnpm", ["exec", "oxlint", "--silent", "--fix", filePath], "lint", filePath)
+    })
 
-      // Drain stdout/stderr streams
-      yield* Stream.runDrain(handle.stdout).pipe(Effect.ignore)
-      yield* Stream.runDrain(handle.stderr).pipe(Effect.ignore)
+    const format = Effect.fn("format")(function* (filePath: string) {
+      yield* runCommand("pnpm", ["exec", "oxfmt", "--write", filePath], "format", filePath)
+    })
 
-      const exitCode = yield* handle.exitCode.pipe(
-        Effect.mapError((cause) => new PostProcessError({ step, filePath, cause }))
-      )
-
-      if (exitCode !== 0) {
-        return yield* new PostProcessError({
-          step,
-          filePath,
-          cause: new Error(`Command exited with code ${exitCode}`)
-        })
-      }
-    }))
-  })
-
-  const lint = Effect.fn("lint")(function*(filePath: string) {
-    yield* runCommand("pnpm", ["exec", "oxlint", "--silent", "--fix", filePath], "lint", filePath)
-  })
-
-  const format = Effect.fn("format")(function*(filePath: string) {
-    yield* runCommand("pnpm", ["exec", "dprint", "--log-level", "silent", "fmt", filePath], "format", filePath)
-  })
-
-  return { lint, format }
-}).pipe(Layer.effect(PostProcessor))
+    return { lint, format }
+  }
+).pipe(Layer.effect(PostProcessor))

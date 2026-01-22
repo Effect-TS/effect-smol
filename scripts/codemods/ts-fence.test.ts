@@ -4,19 +4,8 @@ import type * as cs from "jscodeshift"
 import * as TestUtils from "jscodeshift/src/testUtils"
 import transformer from "./ts-fence.ts"
 
-const expectTransformation_ = (transformer: cs.Transform) =>
-(
-  description: string,
-  input: string,
-  output: string
-) => {
-  TestUtils.defineInlineTest(
-    { default: transformer, parser: "ts" },
-    {},
-    input,
-    output,
-    description
-  )
+const expectTransformation_ = (transformer: cs.Transform) => (description: string, input: string, output: string) => {
+  TestUtils.defineInlineTest({ default: transformer, parser: "ts" }, {}, input, output, description)
 }
 
 const expectTransformation = expectTransformation_(transformer)

@@ -126,7 +126,7 @@ pnpm docgen
 # 3. Run type checking
 pnpm check
 
-# 4. Run relevant tests  
+# 4. Run relevant tests
 pnpm test <test-file>
 
 # 5. Build project

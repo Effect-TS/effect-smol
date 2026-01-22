@@ -43,13 +43,16 @@ export interface Formatter<in Value, out Format = string> {
  *
  * @since 4.0.0
  */
-export function format(input: unknown, options?: {
-  readonly space?: number | string | undefined
-  readonly ignoreToString?: boolean | undefined
-}): string {
+export function format(
+  input: unknown,
+  options?: {
+    readonly space?: number | string | undefined
+    readonly ignoreToString?: boolean | undefined
+  }
+): string {
   const space = options?.space ?? 0
   const seen = new WeakSet<object>()
-  const gap = !space ? "" : (typeof space === "number" ? " ".repeat(space) : space)
+  const gap = !space ? "" : typeof space === "number" ? " ".repeat(space) : space
   const ind = (d: number) => gap.repeat(d)
 
   const wrap = (v: unknown, body: string): string => {
@@ -92,12 +95,7 @@ export function format(input: unknown, options?: {
 
     if (typeof v === "string") return JSON.stringify(v)
 
-    if (
-      typeof v === "number" ||
-      v == null ||
-      typeof v === "boolean" ||
-      typeof v === "symbol"
-    ) return String(v)
+    if (typeof v === "number" || v == null || typeof v === "boolean" || typeof v === "symbol") return String(v)
 
     if (typeof v === "bigint") return String(v) + "n"
 
@@ -116,9 +114,9 @@ export function format(input: unknown, options?: {
         const body = `{${keys.map((k) => `${formatPropertyKey(k)}:${recur((v as any)[k], d)}`).join(",")}}`
         return wrap(v, body)
       }
-      const body = `{\n${
-        keys.map((k) => `${ind(d + 1)}${formatPropertyKey(k)}: ${recur((v as any)[k], d + 1)}`).join(",\n")
-      }\n${ind(d)}}`
+      const body = `{\n${keys
+        .map((k) => `${ind(d + 1)}${formatPropertyKey(k)}: ${recur((v as any)[k], d + 1)}`)
+        .join(",\n")}\n${ind(d)}}`
       return wrap(v, body)
     }
 
@@ -209,9 +207,12 @@ function safeToString(input: any): string {
  *
  * @since 4.0.0
  */
-export function formatJson(input: unknown, options?: {
-  readonly space?: number | string | undefined
-}): string {
+export function formatJson(
+  input: unknown,
+  options?: {
+    readonly space?: number | string | undefined
+  }
+): string {
   let cache: Array<unknown> = []
   const out = JSON.stringify(
     input,

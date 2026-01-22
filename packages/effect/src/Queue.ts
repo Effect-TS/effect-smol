@@ -71,9 +71,7 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
  * @since 3.8.0
  * @category guards
  */
-export const isQueue = <A = unknown, E = unknown>(
-  u: unknown
-): u is Queue<A, E> => hasProperty(u, TypeId)
+export const isQueue = <A = unknown, E = unknown>(u: unknown): u is Queue<A, E> => hasProperty(u, TypeId)
 
 /**
  * Type guard to check if a value is an Enqueue.
@@ -93,9 +91,7 @@ export const isQueue = <A = unknown, E = unknown>(
  * @since 4.0.0
  * @category guards
  */
-export const isEnqueue = <A = unknown, E = unknown>(
-  u: unknown
-): u is Enqueue<A, E> => hasProperty(u, EnqueueTypeId)
+export const isEnqueue = <A = unknown, E = unknown>(u: unknown): u is Enqueue<A, E> => hasProperty(u, EnqueueTypeId)
 
 /**
  * Type guard to check if a value is a Dequeue.
@@ -115,9 +111,7 @@ export const isEnqueue = <A = unknown, E = unknown>(
  * @since 4.0.0
  * @category guards
  */
-export const isDequeue = <A = unknown, E = unknown>(
-  u: unknown
-): u is Dequeue<A, E> => hasProperty(u, DequeueTypeId)
+export const isDequeue = <A = unknown, E = unknown>(u: unknown): u is Dequeue<A, E> => hasProperty(u, DequeueTypeId)
 
 /**
  * Converts a Queue to an Enqueue (write-only interface).
@@ -317,22 +311,22 @@ export declare namespace Queue {
    */
   export type State<A, E> =
     | {
-      readonly _tag: "Open"
-      readonly takers: Set<(_: Effect<void, E>) => void>
-      readonly offers: Set<OfferEntry<A>>
-      readonly awaiters: Set<(_: Effect<void, E>) => void>
-    }
+        readonly _tag: "Open"
+        readonly takers: Set<(_: Effect<void, E>) => void>
+        readonly offers: Set<OfferEntry<A>>
+        readonly awaiters: Set<(_: Effect<void, E>) => void>
+      }
     | {
-      readonly _tag: "Closing"
-      readonly takers: Set<(_: Effect<void, E>) => void>
-      readonly offers: Set<OfferEntry<A>>
-      readonly awaiters: Set<(_: Effect<void, E>) => void>
-      readonly exit: Failure<never, E>
-    }
+        readonly _tag: "Closing"
+        readonly takers: Set<(_: Effect<void, E>) => void>
+        readonly offers: Set<OfferEntry<A>>
+        readonly awaiters: Set<(_: Effect<void, E>) => void>
+        readonly exit: Failure<never, E>
+      }
     | {
-      readonly _tag: "Done"
-      readonly exit: Failure<never, E>
-    }
+        readonly _tag: "Done"
+        readonly exit: Failure<never, E>
+      }
 
   /**
    * Represents an entry in the queue's offer buffer.
@@ -342,16 +336,16 @@ export declare namespace Queue {
    */
   export type OfferEntry<A> =
     | {
-      readonly _tag: "Array"
-      readonly remaining: Array<A>
-      offset: number
-      readonly resume: (_: Effect<Array<A>>) => void
-    }
+        readonly _tag: "Array"
+        readonly remaining: Array<A>
+        offset: number
+        readonly resume: (_: Effect<Array<A>>) => void
+      }
     | {
-      readonly _tag: "Single"
-      readonly message: A
-      readonly resume: (_: Effect<boolean>) => void
-    }
+        readonly _tag: "Single"
+        readonly message: A
+        readonly resume: (_: Effect<boolean>) => void
+      }
 }
 
 const variance = {
@@ -413,10 +407,12 @@ const QueueProto = {
  * ```
  */
 export const make = <A, E = never>(
-  options?: {
-    readonly capacity?: number | undefined
-    readonly strategy?: "suspend" | "dropping" | "sliding" | undefined
-  } | undefined
+  options?:
+    | {
+        readonly capacity?: number | undefined
+        readonly strategy?: "suspend" | "dropping" | "sliding" | undefined
+      }
+    | undefined
 ): Effect<Queue<A, E>> =>
   core.withFiber((fiber) => {
     const self = Object.create(QueueProto)
@@ -748,10 +744,7 @@ export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect
 export const offerAllUnsafe = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Array<A> => {
   if (self.state._tag !== "Open") {
     return Arr.fromIterable(messages)
-  } else if (
-    self.capacity === Number.POSITIVE_INFINITY ||
-    self.strategy === "sliding"
-  ) {
+  } else if (self.capacity === Number.POSITIVE_INFINITY || self.strategy === "sliding") {
     MutableList.appendAll(self.messages, messages)
     if (self.strategy === "sliding") {
       MutableList.takeN(self.messages, self.messages.length - self.capacity)
@@ -759,9 +752,7 @@ export const offerAllUnsafe = <A, E>(self: Queue<A, E>, messages: Iterable<A>): 
     scheduleReleaseTaker(self)
     return []
   }
-  const free = self.capacity <= 0
-    ? self.state.takers.size
-    : self.capacity - self.messages.length
+  const free = self.capacity <= 0 ? self.state.takers.size : self.capacity - self.messages.length
   if (free === 0) {
     return Arr.fromIterable(messages)
   }
@@ -878,10 +869,7 @@ export const failCauseUnsafe = <A, E>(self: Queue<A, E>, cause: Cause<E>): boole
   }
   const exit = core.exitFailCause(cause)
   const fail = internalEffect.exitZipRight(exit, exitFailDone) as Failure<never, E>
-  if (
-    self.state.offers.size === 0 &&
-    self.messages.length === 0
-  ) {
+  if (self.state.offers.size === 0 && self.messages.length === 0) {
     finalize(self, fail)
     return true
   }
@@ -1198,10 +1186,7 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
  * @category taking
  * @since 4.0.0
  */
-export const takeN = <A, E>(
-  self: Dequeue<A, E>,
-  n: number
-): Effect<Array<A>, E> => takeBetween(self, n, n)
+export const takeN = <A, E>(self: Dequeue<A, E>, n: number): Effect<Array<A>, E> => takeBetween(self, n, n)
 
 /**
  * Take a variable number of messages from the queue, between specified min and max.
@@ -1236,13 +1221,9 @@ export const takeN = <A, E>(
  * @category taking
  * @since 4.0.0
  */
-export const takeBetween = <A, E>(
-  self: Dequeue<A, E>,
-  min: number,
-  max: number
-): Effect<Array<A>, E> =>
-  internalEffect.suspend(() =>
-    takeBetweenUnsafe(self, min, max) ?? internalEffect.andThen(awaitTake(self), takeBetween(self, 1, max))
+export const takeBetween = <A, E>(self: Dequeue<A, E>, min: number, max: number): Effect<Array<A>, E> =>
+  internalEffect.suspend(
+    () => takeBetweenUnsafe(self, min, max) ?? internalEffect.andThen(awaitTake(self), takeBetween(self, 1, max))
   )
 
 /**
@@ -1284,9 +1265,7 @@ export const takeBetween = <A, E>(
  * @since 4.0.0
  */
 export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
-  internalEffect.suspend(
-    () => takeUnsafe(self) ?? internalEffect.andThen(awaitTake(self), take(self))
-  )
+  internalEffect.suspend(() => takeUnsafe(self) ?? internalEffect.andThen(awaitTake(self), take(self)))
 
 /**
  * Tries to take an item from the queue without blocking.
@@ -1538,7 +1517,7 @@ export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEf
  * @category size
  * @since 4.0.0
  */
-export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => self.state._tag === "Done" ? 0 : self.messages.length
+export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => (self.state._tag === "Done" ? 0 : self.messages.length)
 
 /**
  * @category size
@@ -1613,21 +1592,11 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  * @category combinators
  */
 export const into: {
-  <A, E>(
-    self: Queue<A, E | Done>
-  ): <AX, EX extends E, RX>(
-    effect: Effect<AX, EX, RX>
-  ) => Effect<boolean, never, RX>
-  <AX, E, EX extends E, RX, A>(
-    effect: Effect<AX, EX, RX>,
-    self: Queue<A, E | Done>
-  ): Effect<boolean, never, RX>
+  <A, E>(self: Queue<A, E | Done>): <AX, EX extends E, RX>(effect: Effect<AX, EX, RX>) => Effect<boolean, never, RX>
+  <AX, E, EX extends E, RX, A>(effect: Effect<AX, EX, RX>, self: Queue<A, E | Done>): Effect<boolean, never, RX>
 } = dual(
   2,
-  <AX, E, EX extends E, RX, A>(
-    effect: Effect<AX, EX, RX>,
-    self: Queue<A, E | Done>
-  ): Effect<boolean, never, RX> =>
+  <AX, E, EX extends E, RX, A>(effect: Effect<AX, EX, RX>, self: Queue<A, E | Done>): Effect<boolean, never, RX> =>
     internalEffect.uninterruptibleMask((restore) =>
       internalEffect.matchCauseEffect(restore(effect), {
         onFailure: (cause) => failCause(self, cause),
@@ -1668,11 +1637,7 @@ const scheduleReleaseTaker = <A, E>(self: Queue<A, E>) => {
   self.scheduler.scheduleTask(() => releaseTakers(self), 0)
 }
 
-const takeBetweenUnsafe = <A, E>(
-  self: Dequeue<A, E>,
-  min: number,
-  max: number
-): Exit<Array<A>, E> | undefined => {
+const takeBetweenUnsafe = <A, E>(self: Dequeue<A, E>, min: number, max: number): Exit<Array<A>, E> | undefined => {
   if (self.state._tag === "Done") {
     return self.state.exit
   } else if (max <= 0 || min <= 0) {
@@ -1732,10 +1697,7 @@ const releaseCapacity = <A, E>(self: Dequeue<A, E>): boolean => {
   if (self.state._tag === "Done") {
     return Pull.isDoneCause(self.state.exit.cause)
   } else if (self.state.offers.size === 0) {
-    if (
-      self.state._tag === "Closing" &&
-      self.messages.length === 0
-    ) {
+    if (self.state._tag === "Closing" && self.messages.length === 0) {
       finalize(self, self.state.exit)
       return Pull.isDoneCause(self.state.exit.cause)
     }

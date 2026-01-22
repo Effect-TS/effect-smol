@@ -3,6 +3,4 @@ import * as Schema from "effect/Schema"
 
 const schema = Schema.String
 
-Schema.decodeUnknownEffect(schema)("a").pipe(
-  Effect.runFork
-)
+Schema.decodeUnknownEffect(schema)("a").pipe(Effect.runFork)

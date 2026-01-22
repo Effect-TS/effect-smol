@@ -103,9 +103,8 @@ export type NonEmptyArray<A> = [A, ...Array<A>]
  * @category constructors
  * @since 2.0.0
  */
-export const make = <Elements extends NonEmptyArray<unknown>>(
-  ...elements: Elements
-): NonEmptyArray<Elements[number]> => elements
+export const make = <Elements extends NonEmptyArray<unknown>>(...elements: Elements): NonEmptyArray<Elements[number]> =>
+  elements
 
 /**
  * Creates a new `Array` of the specified length.
@@ -223,7 +222,7 @@ export const fromIterable = <A>(collection: Iterable<A>): Array<A> =>
  * @category constructors
  * @since 3.3.0
  */
-export const ensure = <A>(self: ReadonlyArray<A> | A): Array<A> => Array.isArray(self) ? self : [self as A]
+export const ensure = <A>(self: ReadonlyArray<A> | A): Array<A> => (Array.isArray(self) ? self : [self as A])
 
 /**
  * Takes a record and returns an array of tuples containing its keys and values.
@@ -277,12 +276,10 @@ export const fromOption: <A>(self: Option.Option<A>) => Array<A> = Option.toArra
  * @since 2.0.0
  */
 export const match: {
-  <B, A, C = B>(
-    options: {
-      readonly onEmpty: LazyArg<B>
-      readonly onNonEmpty: (self: NonEmptyReadonlyArray<A>) => C
-    }
-  ): (self: ReadonlyArray<A>) => B | C
+  <B, A, C = B>(options: {
+    readonly onEmpty: LazyArg<B>
+    readonly onNonEmpty: (self: NonEmptyReadonlyArray<A>) => C
+  }): (self: ReadonlyArray<A>) => B | C
   <A, B, C = B>(
     self: ReadonlyArray<A>,
     options: {
@@ -290,13 +287,19 @@ export const match: {
       readonly onNonEmpty: (self: NonEmptyReadonlyArray<A>) => C
     }
   ): B | C
-} = dual(2, <A, B, C = B>(
-  self: ReadonlyArray<A>,
-  { onEmpty, onNonEmpty }: {
-    readonly onEmpty: LazyArg<B>
-    readonly onNonEmpty: (self: NonEmptyReadonlyArray<A>) => C
-  }
-): B | C => isReadonlyArrayNonEmpty(self) ? onNonEmpty(self) : onEmpty())
+} = dual(
+  2,
+  <A, B, C = B>(
+    self: ReadonlyArray<A>,
+    {
+      onEmpty,
+      onNonEmpty
+    }: {
+      readonly onEmpty: LazyArg<B>
+      readonly onNonEmpty: (self: NonEmptyReadonlyArray<A>) => C
+    }
+  ): B | C => (isReadonlyArrayNonEmpty(self) ? onNonEmpty(self) : onEmpty())
+)
 
 /**
  * Matches the elements of an array from the left, applying functions to cases of empty and non-empty arrays.
@@ -317,12 +320,10 @@ export const match: {
  * @since 2.0.0
  */
 export const matchLeft: {
-  <B, A, C = B>(
-    options: {
-      readonly onEmpty: LazyArg<B>
-      readonly onNonEmpty: (head: A, tail: Array<A>) => C
-    }
-  ): (self: ReadonlyArray<A>) => B | C
+  <B, A, C = B>(options: {
+    readonly onEmpty: LazyArg<B>
+    readonly onNonEmpty: (head: A, tail: Array<A>) => C
+  }): (self: ReadonlyArray<A>) => B | C
   <A, B, C = B>(
     self: ReadonlyArray<A>,
     options: {
@@ -330,13 +331,19 @@ export const matchLeft: {
       readonly onNonEmpty: (head: A, tail: Array<A>) => C
     }
   ): B | C
-} = dual(2, <A, B, C = B>(
-  self: ReadonlyArray<A>,
-  { onEmpty, onNonEmpty }: {
-    readonly onEmpty: LazyArg<B>
-    readonly onNonEmpty: (head: A, tail: Array<A>) => C
-  }
-): B | C => isReadonlyArrayNonEmpty(self) ? onNonEmpty(headNonEmpty(self), tailNonEmpty(self)) : onEmpty())
+} = dual(
+  2,
+  <A, B, C = B>(
+    self: ReadonlyArray<A>,
+    {
+      onEmpty,
+      onNonEmpty
+    }: {
+      readonly onEmpty: LazyArg<B>
+      readonly onNonEmpty: (head: A, tail: Array<A>) => C
+    }
+  ): B | C => (isReadonlyArrayNonEmpty(self) ? onNonEmpty(headNonEmpty(self), tailNonEmpty(self)) : onEmpty())
+)
 
 /**
  * Matches the elements of an array from the right, applying functions to cases of empty and non-empty arrays.
@@ -357,12 +364,10 @@ export const matchLeft: {
  * @since 2.0.0
  */
 export const matchRight: {
-  <B, A, C = B>(
-    options: {
-      readonly onEmpty: LazyArg<B>
-      readonly onNonEmpty: (init: Array<A>, last: A) => C
-    }
-  ): (self: ReadonlyArray<A>) => B | C
+  <B, A, C = B>(options: {
+    readonly onEmpty: LazyArg<B>
+    readonly onNonEmpty: (init: Array<A>, last: A) => C
+  }): (self: ReadonlyArray<A>) => B | C
   <A, B, C = B>(
     self: ReadonlyArray<A>,
     options: {
@@ -370,16 +375,19 @@ export const matchRight: {
       readonly onNonEmpty: (init: Array<A>, last: A) => C
     }
   ): B | C
-} = dual(2, <A, B, C = B>(
-  self: ReadonlyArray<A>,
-  { onEmpty, onNonEmpty }: {
-    readonly onEmpty: LazyArg<B>
-    readonly onNonEmpty: (init: Array<A>, last: A) => C
-  }
-): B | C =>
-  isReadonlyArrayNonEmpty(self) ?
-    onNonEmpty(initNonEmpty(self), lastNonEmpty(self)) :
-    onEmpty())
+} = dual(
+  2,
+  <A, B, C = B>(
+    self: ReadonlyArray<A>,
+    {
+      onEmpty,
+      onNonEmpty
+    }: {
+      readonly onEmpty: LazyArg<B>
+      readonly onNonEmpty: (init: Array<A>, last: A) => C
+    }
+  ): B | C => (isReadonlyArrayNonEmpty(self) ? onNonEmpty(initNonEmpty(self), lastNonEmpty(self)) : onEmpty())
+)
 
 /**
  * Prepend an element to the front of an `Iterable`, creating a new `NonEmptyArray`.
@@ -423,10 +431,7 @@ export const prependAll: {
   <A, B>(self: Iterable<A>, that: NonEmptyReadonlyArray<B>): NonEmptyArray<A | B>
   <A, B>(self: NonEmptyReadonlyArray<A>, that: Iterable<B>): NonEmptyArray<A | B>
   <A, B>(self: Iterable<A>, that: Iterable<B>): Array<A | B>
-} = dual(
-  2,
-  <A>(self: Iterable<A>, that: Iterable<A>): Array<A> => fromIterable(that).concat(fromIterable(self))
-)
+} = dual(2, <A>(self: Iterable<A>, that: Iterable<A>): Array<A> => fromIterable(that).concat(fromIterable(self)))
 
 /**
  * Append an element to the end of an `Iterable`, creating a new `NonEmptyArray`.
@@ -470,10 +475,7 @@ export const appendAll: {
   <A, B>(self: Iterable<A>, that: NonEmptyReadonlyArray<B>): NonEmptyArray<A | B>
   <A, B>(self: NonEmptyReadonlyArray<A>, that: Iterable<B>): NonEmptyArray<A | B>
   <A, B>(self: Iterable<A>, that: Iterable<B>): Array<A | B>
-} = dual(
-  2,
-  <A>(self: Iterable<A>, that: Iterable<A>): Array<A> => fromIterable(self).concat(fromIterable(that))
-)
+} = dual(2, <A>(self: Iterable<A>, that: Iterable<A>): Array<A> => fromIterable(self).concat(fromIterable(that)))
 
 /**
  * Accumulates values from an `Iterable` starting from the left, storing
@@ -725,9 +727,10 @@ export const getUnsafe: {
  * @category splitting
  * @since 2.0.0
  */
-export const unprepend = <A>(
-  self: NonEmptyReadonlyArray<A>
-): [firstElement: A, remainingElements: Array<A>] => [headNonEmpty(self), tailNonEmpty(self)]
+export const unprepend = <A>(self: NonEmptyReadonlyArray<A>): [firstElement: A, remainingElements: Array<A>] => [
+  headNonEmpty(self),
+  tailNonEmpty(self)
+]
 
 /**
  * Return a tuple containing a copy of the `NonEmptyReadonlyArray` without its last element, and that last element.
@@ -744,9 +747,10 @@ export const unprepend = <A>(
  * @category splitting
  * @since 2.0.0
  */
-export const unappend = <A>(
-  self: NonEmptyReadonlyArray<A>
-): [arrayWithoutLastElement: Array<A>, lastElement: A] => [initNonEmpty(self), lastNonEmpty(self)]
+export const unappend = <A>(self: NonEmptyReadonlyArray<A>): [arrayWithoutLastElement: Array<A>, lastElement: A] => [
+  initNonEmpty(self),
+  lastNonEmpty(self)
+]
 
 /**
  * Get the first element of a `ReadonlyArray`, or `None` if the `ReadonlyArray` is empty.
@@ -1021,10 +1025,8 @@ export const span: {
     refinement: (a: A, i: number) => a is B
   ): [init: Array<B>, rest: Array<Exclude<A, B>>]
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [init: Array<A>, rest: Array<A>]
-} = dual(
-  2,
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [init: Array<A>, rest: Array<A>] =>
-    splitAt(self, spanIndex(self, predicate))
+} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [init: Array<A>, rest: Array<A>] =>
+  splitAt(self, spanIndex(self, predicate))
 )
 
 /**
@@ -1320,18 +1322,16 @@ export const insertAt: {
  * @since 2.0.0
  */
 export const replace: {
-  <B>(i: number, b: B): <A, S extends Iterable<A> = Iterable<A>>(
-    self: S
-  ) => ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
+  <B>(
+    i: number,
+    b: B
+  ): <A, S extends Iterable<A> = Iterable<A>>(self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
   <A, B, S extends Iterable<A> = Iterable<A>>(
     self: S,
     i: number,
     b: B
   ): ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
-} = dual(
-  3,
-  <A, B>(self: Iterable<A>, i: number, b: B): Array<A | B> | undefined => modify(self, i, () => b)
-)
+} = dual(3, <A, B>(self: Iterable<A>, i: number, b: B): Array<A | B> | undefined => modify(self, i, () => b))
 
 /**
  * Apply a function to the element at the specified index, creating a new `Array`,
@@ -1442,9 +1442,7 @@ export const reverse = <S extends Iterable<any>>(
  * @since 2.0.0
  */
 export const sort: {
-  <B>(
-    O: Order.Order<B>
-  ): <A extends B, S extends Iterable<A>>(self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S>>
+  <B>(O: Order.Order<B>): <A extends B, S extends Iterable<A>>(self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S>>
   <A extends B, B>(self: NonEmptyReadonlyArray<A>, O: Order.Order<B>): NonEmptyArray<A>
   <A extends B, B>(self: Iterable<A>, O: Order.Order<B>): Array<A>
 } = dual(2, <A extends B, B>(self: Iterable<A>, O: Order.Order<B>): Array<A> => {
@@ -1485,7 +1483,10 @@ export const sortWith: {
 } = dual(
   3,
   <A, B>(self: Iterable<A>, f: (a: A) => B, order: Order.Order<B>): Array<A> =>
-    Array.from(self).map((a) => [a, f(a)] as const).sort(([, a], [, b]) => order(a, b)).map(([_]) => _)
+    Array.from(self)
+      .map((a) => [a, f(a)] as const)
+      .sort(([, a], [, b]) => order(a, b))
+      .map(([_]) => _)
 )
 
 /**
@@ -1527,9 +1528,7 @@ export const sortWith: {
  * @category sorting
  * @since 2.0.0
  */
-export const sortBy = <S extends Iterable<any>>(
-  ...orders: ReadonlyArray<Order.Order<ReadonlyArray.Infer<S>>>
-) => {
+export const sortBy = <S extends Iterable<any>>(...orders: ReadonlyArray<Order.Order<ReadonlyArray.Infer<S>>>) => {
   const sortByAll = sort(Order.combineAll(orders))
   return (
     self: S
@@ -1564,10 +1563,7 @@ export const zip: {
   <B>(that: Iterable<B>): <A>(self: Iterable<A>) => Array<[A, B]>
   <A, B>(self: NonEmptyReadonlyArray<A>, that: NonEmptyReadonlyArray<B>): NonEmptyArray<[A, B]>
   <A, B>(self: Iterable<A>, that: Iterable<B>): Array<[A, B]>
-} = dual(
-  2,
-  <A, B>(self: Iterable<A>, that: Iterable<B>): Array<[A, B]> => zipWith(self, that, Tuple.make)
-)
+} = dual(2, <A, B>(self: Iterable<A>, that: Iterable<B>): Array<[A, B]> => zipWith(self, that, Tuple.make))
 
 /**
  * Apply a function to pairs of elements at the same index in two `Iterable`s, collecting the results in a new `Array`. If one
@@ -1621,21 +1617,23 @@ export const zipWith: {
  */
 export const unzip: <S extends Iterable<readonly [any, any]>>(
   self: S
-) => S extends NonEmptyReadonlyArray<readonly [infer A, infer B]> ? [NonEmptyArray<A>, NonEmptyArray<B>]
-  : S extends Iterable<readonly [infer A, infer B]> ? [Array<A>, Array<B>]
-  : never = (<A, B>(self: Iterable<readonly [A, B]>): [Array<A>, Array<B>] => {
-    const input = fromIterable(self)
-    if (isReadonlyArrayNonEmpty(input)) {
-      const fa: NonEmptyArray<A> = [input[0][0]]
-      const fb: NonEmptyArray<B> = [input[0][1]]
-      for (let i = 1; i < input.length; i++) {
-        fa[i] = input[i][0]
-        fb[i] = input[i][1]
-      }
-      return [fa, fb]
+) => S extends NonEmptyReadonlyArray<readonly [infer A, infer B]>
+  ? [NonEmptyArray<A>, NonEmptyArray<B>]
+  : S extends Iterable<readonly [infer A, infer B]>
+    ? [Array<A>, Array<B>]
+    : never = (<A, B>(self: Iterable<readonly [A, B]>): [Array<A>, Array<B>] => {
+  const input = fromIterable(self)
+  if (isReadonlyArrayNonEmpty(input)) {
+    const fa: NonEmptyArray<A> = [input[0][0]]
+    const fb: NonEmptyArray<B> = [input[0][1]]
+    for (let i = 1; i < input.length; i++) {
+      fa[i] = input[i][0]
+      fb[i] = input[i][1]
     }
-    return [[], []]
-  }) as any
+    return [fa, fb]
+  }
+  return [[], []]
+}) as any
 
 /**
  * Places an element in between members of an `Iterable`.
@@ -1654,9 +1652,7 @@ export const unzip: <S extends Iterable<readonly [any, any]>>(
  * @since 2.0.0
  */
 export const intersperse: {
-  <B>(
-    middle: B
-  ): <S extends Iterable<any>>(self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>
+  <B>(middle: B): <S extends Iterable<any>>(self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>
   <A, B>(self: NonEmptyReadonlyArray<A>, middle: B): NonEmptyArray<A | B>
   <A, B>(self: Iterable<A>, middle: B): Array<A | B>
 } = dual(2, <A, B>(self: Iterable<A>, middle: B): Array<A | B> => {
@@ -1695,10 +1691,10 @@ export const modifyHeadNonEmpty: {
   <A, B>(self: NonEmptyReadonlyArray<A>, f: (a: A) => B): NonEmptyArray<A | B>
 } = dual(
   2,
-  <A, B>(
-    self: NonEmptyReadonlyArray<A>,
-    f: (a: A) => B
-  ): NonEmptyArray<A | B> => [f(headNonEmpty(self)), ...tailNonEmpty(self)]
+  <A, B>(self: NonEmptyReadonlyArray<A>, f: (a: A) => B): NonEmptyArray<A | B> => [
+    f(headNonEmpty(self)),
+    ...tailNonEmpty(self)
+  ]
 )
 
 /**
@@ -1719,10 +1715,7 @@ export const modifyHeadNonEmpty: {
 export const setHeadNonEmpty: {
   <B>(b: B): <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<A | B>
   <A, B>(self: NonEmptyReadonlyArray<A>, b: B): NonEmptyArray<A | B>
-} = dual(
-  2,
-  <A, B>(self: NonEmptyReadonlyArray<A>, b: B): NonEmptyArray<A | B> => modifyHeadNonEmpty(self, () => b)
-)
+} = dual(2, <A, B>(self: NonEmptyReadonlyArray<A>, b: B): NonEmptyArray<A | B> => modifyHeadNonEmpty(self, () => b))
 
 /**
  * Apply a function to the last element, creating a new `NonEmptyReadonlyArray`.
@@ -1766,10 +1759,7 @@ export const modifyLastNonEmpty: {
 export const setLastNonEmpty: {
   <B>(b: B): <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<A | B>
   <A, B>(self: NonEmptyReadonlyArray<A>, b: B): NonEmptyArray<A | B>
-} = dual(
-  2,
-  <A, B>(self: NonEmptyReadonlyArray<A>, b: B): NonEmptyArray<A | B> => modifyLastNonEmpty(self, () => b)
-)
+} = dual(2, <A, B>(self: NonEmptyReadonlyArray<A>, b: B): NonEmptyArray<A | B> => modifyLastNonEmpty(self, () => b))
 
 /**
  * Rotate an `Iterable` by `n` steps.
@@ -1826,7 +1816,9 @@ export const rotate: {
  * @category elements
  * @since 2.0.0
  */
-export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
+export const containsWith = <A>(
+  isEquivalent: (self: A, that: A) => boolean
+): {
   (a: A): (self: Iterable<A>) => boolean
   (self: Iterable<A>, a: A): boolean
 } =>
@@ -1892,28 +1884,25 @@ export const chop: {
     self: NonEmptyReadonlyArray<A>,
     f: (as: NonEmptyReadonlyArray<A>) => readonly [B, ReadonlyArray<A>]
   ): NonEmptyArray<B>
-  <A, B>(
-    self: Iterable<A>,
-    f: (as: NonEmptyReadonlyArray<A>) => readonly [B, ReadonlyArray<A>]
-  ): Array<B>
-} = dual(2, <A, B>(
-  self: Iterable<A>,
-  f: (as: NonEmptyReadonlyArray<A>) => readonly [B, ReadonlyArray<A>]
-): Array<B> => {
-  const input = fromIterable(self)
-  if (isReadonlyArrayNonEmpty(input)) {
-    const [b, rest] = f(input)
-    const out: NonEmptyArray<B> = [b]
-    let next: ReadonlyArray<A> = rest
-    while (internalArray.isArrayNonEmpty(next)) {
-      const [b, rest] = f(next)
-      out.push(b)
-      next = rest
+  <A, B>(self: Iterable<A>, f: (as: NonEmptyReadonlyArray<A>) => readonly [B, ReadonlyArray<A>]): Array<B>
+} = dual(
+  2,
+  <A, B>(self: Iterable<A>, f: (as: NonEmptyReadonlyArray<A>) => readonly [B, ReadonlyArray<A>]): Array<B> => {
+    const input = fromIterable(self)
+    if (isReadonlyArrayNonEmpty(input)) {
+      const [b, rest] = f(input)
+      const out: NonEmptyArray<B> = [b]
+      let next: ReadonlyArray<A> = rest
+      while (internalArray.isArrayNonEmpty(next)) {
+        const [b, rest] = f(next)
+        out.push(b)
+        next = rest
+      }
+      return out
     }
-    return out
+    return []
   }
-  return []
-})
+)
 
 /**
  * Splits an `Iterable` into two segments, with the first segment containing a maximum of `n` elements.
@@ -1967,9 +1956,7 @@ export const splitAtNonEmpty: {
   <A>(self: NonEmptyReadonlyArray<A>, n: number): [beforeIndex: NonEmptyArray<A>, fromIndex: Array<A>]
 } = dual(2, <A>(self: NonEmptyReadonlyArray<A>, n: number): [NonEmptyArray<A>, Array<A>] => {
   const _n = Math.max(1, Math.floor(n))
-  return _n >= self.length ?
-    [copy(self), []] :
-    [prepend(self.slice(1, _n), headNonEmpty(self)), self.slice(_n)]
+  return _n >= self.length ? [copy(self), []] : [prepend(self.slice(1, _n), headNonEmpty(self)), self.slice(_n)]
 })
 
 /**
@@ -2061,12 +2048,7 @@ export const copy: {
  * @since 3.8.4
  */
 export const pad: {
-  <A, T>(
-    n: number,
-    fill: T
-  ): (
-    self: Array<A>
-  ) => Array<A | T>
+  <A, T>(n: number, fill: T): (self: Array<A>) => Array<A | T>
   <A, T>(self: Array<A>, n: number, fill: T): Array<A | T>
 } = dual(3, <A, T>(self: Array<A>, n: number, fill: T): Array<A | T> => {
   if (self.length >= n) {
@@ -2108,11 +2090,7 @@ export const pad: {
  * @since 2.0.0
  */
 export const chunksOf: {
-  (
-    n: number
-  ): <S extends Iterable<any>>(
-    self: S
-  ) => ReadonlyArray.With<S, NonEmptyArray<ReadonlyArray.Infer<S>>>
+  (n: number): <S extends Iterable<any>>(self: S) => ReadonlyArray.With<S, NonEmptyArray<ReadonlyArray.Infer<S>>>
   <A>(self: NonEmptyReadonlyArray<A>, n: number): NonEmptyArray<NonEmptyArray<A>>
   <A>(self: Iterable<A>, n: number): Array<NonEmptyArray<A>>
 } = dual(2, <A>(self: Iterable<A>, n: number): Array<NonEmptyArray<A>> => {
@@ -2148,10 +2126,7 @@ export const window: {
 } = dual(2, <A>(self: Iterable<A>, n: number): Array<Array<A>> => {
   const input = fromIterable(self)
   if (n > 0 && isReadonlyArrayNonEmpty(input)) {
-    return Array.from(
-      { length: input.length - (n - 1) },
-      (_, index) => input.slice(index, index + n)
-    )
+    return Array.from({ length: input.length - (n - 1) }, (_, index) => input.slice(index, index + n))
   }
   return []
 })
@@ -2249,21 +2224,24 @@ export const groupBy: {
     self: Iterable<A>,
     f: (a: A) => K
   ): Record<Record.ReadonlyRecord.NonLiteralKey<K>, NonEmptyArray<A>>
-} = dual(2, <A, K extends string | symbol>(
-  self: Iterable<A>,
-  f: (a: A) => K
-): Record<Record.ReadonlyRecord.NonLiteralKey<K>, NonEmptyArray<A>> => {
-  const out: Record<string | symbol, NonEmptyArray<A>> = {}
-  for (const a of self) {
-    const k = f(a)
-    if (Object.hasOwn(out, k)) {
-      out[k].push(a)
-    } else {
-      out[k] = [a]
+} = dual(
+  2,
+  <A, K extends string | symbol>(
+    self: Iterable<A>,
+    f: (a: A) => K
+  ): Record<Record.ReadonlyRecord.NonLiteralKey<K>, NonEmptyArray<A>> => {
+    const out: Record<string | symbol, NonEmptyArray<A>> = {}
+    for (const a of self) {
+      const k = f(a)
+      if (Object.hasOwn(out, k)) {
+        out[k].push(a)
+      } else {
+        out[k] = [a]
+      }
     }
+    return out
   }
-  return out
-})
+)
 
 /**
  * Calculates the union of two arrays using the provided equivalence relation.
@@ -2357,15 +2335,14 @@ export const union: {
  * @category elements
  * @since 2.0.0
  */
-export const intersectionWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
+export const intersectionWith = <A>(
+  isEquivalent: (self: A, that: A) => boolean
+): {
   (that: Iterable<A>): (self: Iterable<A>) => Array<A>
   (self: Iterable<A>, that: Iterable<A>): Array<A>
 } => {
   const has = containsWith(isEquivalent)
-  return dual(
-    2,
-    (self: Iterable<A>, that: Iterable<A>): Array<A> => fromIterable(self).filter((a) => has(that, a))
-  )
+  return dual(2, (self: Iterable<A>, that: Iterable<A>): Array<A> => fromIterable(self).filter((a) => has(that, a)))
 }
 
 /**
@@ -2410,15 +2387,14 @@ export const intersection: {
  * @category elements
  * @since 2.0.0
  */
-export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
+export const differenceWith = <A>(
+  isEquivalent: (self: A, that: A) => boolean
+): {
   (that: Iterable<A>): (self: Iterable<A>) => Array<A>
   (self: Iterable<A>, that: Iterable<A>): Array<A>
 } => {
   const has = containsWith(isEquivalent)
-  return dual(
-    2,
-    (self: Iterable<A>, that: Iterable<A>): Array<A> => fromIterable(self).filter((a) => !has(that, a))
-  )
+  return dual(2, (self: Iterable<A>, that: Iterable<A>): Array<A> => fromIterable(self).filter((a) => !has(that, a)))
 }
 
 /**
@@ -2517,9 +2493,8 @@ export declare namespace ReadonlyArray {
    * @category types
    * @since 2.0.0
    */
-  export type Infer<S extends Iterable<any>> = S extends ReadonlyArray<infer A> ? A
-    : S extends Iterable<infer A> ? A
-    : never
+  export type Infer<S extends Iterable<any>> =
+    S extends ReadonlyArray<infer A> ? A : S extends Iterable<infer A> ? A : never
 
   /**
    * Constructs an array type preserving non-emptiness.
@@ -2535,8 +2510,7 @@ export declare namespace ReadonlyArray {
    * @category types
    * @since 2.0.0
    */
-  export type With<S extends Iterable<any>, A> = S extends NonEmptyReadonlyArray<any> ? NonEmptyArray<A>
-    : Array<A>
+  export type With<S extends Iterable<any>, A> = S extends NonEmptyReadonlyArray<any> ? NonEmptyArray<A> : Array<A>
 
   /**
    * Creates a non-empty array if either input is non-empty.
@@ -2556,13 +2530,12 @@ export declare namespace ReadonlyArray {
    * @category types
    * @since 2.0.0
    */
-  export type OrNonEmpty<
-    S extends Iterable<any>,
-    T extends Iterable<any>,
-    A
-  > = S extends NonEmptyReadonlyArray<any> ? NonEmptyArray<A>
-    : T extends NonEmptyReadonlyArray<any> ? NonEmptyArray<A>
-    : Array<A>
+  export type OrNonEmpty<S extends Iterable<any>, T extends Iterable<any>, A> =
+    S extends NonEmptyReadonlyArray<any>
+      ? NonEmptyArray<A>
+      : T extends NonEmptyReadonlyArray<any>
+        ? NonEmptyArray<A>
+        : Array<A>
 
   /**
    * Creates a non-empty array only if both inputs are non-empty.
@@ -2582,13 +2555,12 @@ export declare namespace ReadonlyArray {
    * @category types
    * @since 2.0.0
    */
-  export type AndNonEmpty<
-    S extends Iterable<any>,
-    T extends Iterable<any>,
-    A
-  > = S extends NonEmptyReadonlyArray<any> ? T extends NonEmptyReadonlyArray<any> ? NonEmptyArray<A>
-    : Array<A>
-    : Array<A>
+  export type AndNonEmpty<S extends Iterable<any>, T extends Iterable<any>, A> =
+    S extends NonEmptyReadonlyArray<any>
+      ? T extends NonEmptyReadonlyArray<any>
+        ? NonEmptyArray<A>
+        : Array<A>
+      : Array<A>
 
   /**
    * Flattens a nested array type.
@@ -2605,9 +2577,10 @@ export declare namespace ReadonlyArray {
    * @category types
    * @since 2.0.0
    */
-  export type Flatten<T extends ReadonlyArray<ReadonlyArray<any>>> = T extends
-    NonEmptyReadonlyArray<NonEmptyReadonlyArray<any>> ? NonEmptyArray<T[number][number]>
-    : Array<T[number][number]>
+  export type Flatten<T extends ReadonlyArray<ReadonlyArray<any>>> =
+    T extends NonEmptyReadonlyArray<NonEmptyReadonlyArray<any>>
+      ? NonEmptyArray<T[number][number]>
+      : Array<T[number][number]>
 }
 
 /**
@@ -2651,22 +2624,19 @@ export const flatMap: {
   ): (self: S) => ReadonlyArray.AndNonEmpty<S, T, ReadonlyArray.Infer<T>>
   <A, B>(self: NonEmptyReadonlyArray<A>, f: (a: A, i: number) => NonEmptyReadonlyArray<B>): NonEmptyArray<B>
   <A, B>(self: ReadonlyArray<A>, f: (a: A, i: number) => ReadonlyArray<B>): Array<B>
-} = dual(
-  2,
-  <A, B>(self: ReadonlyArray<A>, f: (a: A, i: number) => ReadonlyArray<B>): Array<B> => {
-    if (isReadonlyArrayEmpty(self)) {
-      return []
-    }
-    const out: Array<B> = []
-    for (let i = 0; i < self.length; i++) {
-      const inner = f(self[i], i)
-      for (let j = 0; j < inner.length; j++) {
-        out.push(inner[j])
-      }
-    }
-    return out
+} = dual(2, <A, B>(self: ReadonlyArray<A>, f: (a: A, i: number) => ReadonlyArray<B>): Array<B> => {
+  if (isReadonlyArrayEmpty(self)) {
+    return []
   }
-)
+  const out: Array<B> = []
+  for (let i = 0; i < self.length; i++) {
+    const inner = f(self[i], i)
+    for (let j = 0; j < inner.length; j++) {
+      out.push(inner[j])
+    }
+  }
+  return out
+})
 
 /**
  * Combines multiple arrays into a single array by concatenating all elements
@@ -2711,20 +2681,17 @@ export const flatten: <const S extends ReadonlyArray<ReadonlyArray<any>>>(self: 
 export const filterMap: {
   <A, B>(f: (a: A, i: number) => Option.Option<B>): (self: Iterable<A>) => Array<B>
   <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): Array<B>
-} = dual(
-  2,
-  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): Array<B> => {
-    const as = fromIterable(self)
-    const out: Array<B> = []
-    for (let i = 0; i < as.length; i++) {
-      const o = f(as[i], i)
-      if (Option.isSome(o)) {
-        out.push(o.value)
-      }
+} = dual(2, <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): Array<B> => {
+  const as = fromIterable(self)
+  const out: Array<B> = []
+  for (let i = 0; i < as.length; i++) {
+    const o = f(as[i], i)
+    if (Option.isSome(o)) {
+      out.push(o.value)
     }
-    return out
   }
-)
+  return out
+})
 
 /**
  * Applies a function to each element of the array and filters based on the result, stopping when a condition is not met.
@@ -2940,19 +2907,16 @@ export const filter: {
   <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Array<A>
   <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): Array<B>
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A>
-} = dual(
-  2,
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A> => {
-    const as = fromIterable(self)
-    const out: Array<A> = []
-    for (let i = 0; i < as.length; i++) {
-      if (predicate(as[i], i)) {
-        out.push(as[i])
-      }
+} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A> => {
+  const as = fromIterable(self)
+  const out: Array<A> = []
+  for (let i = 0; i < as.length; i++) {
+    if (predicate(as[i], i)) {
+      out.push(as[i])
     }
-    return out
   }
-)
+  return out
+})
 
 /**
  * Separate elements based on a predicate that also exposes the index of the element.
@@ -2970,9 +2934,9 @@ export const filter: {
  * @since 2.0.0
  */
 export const partition: {
-  <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (
-    self: Iterable<A>
-  ) => [excluded: Array<Exclude<A, B>>, satisfying: Array<B>]
+  <A, B extends A>(
+    refinement: (a: NoInfer<A>, i: number) => a is B
+  ): (self: Iterable<A>) => [excluded: Array<Exclude<A, B>>, satisfying: Array<B>]
   <A>(
     predicate: (a: NoInfer<A>, i: number) => boolean
   ): (self: Iterable<A>) => [excluded: Array<A>, satisfying: Array<A>]
@@ -3017,9 +2981,7 @@ export const partition: {
 export const separate: <T extends Iterable<Result.Result<any, any>>>(
   self: T
 ) => [Array<Result.Result.Failure<ReadonlyArray.Infer<T>>>, Array<Result.Result.Success<ReadonlyArray.Infer<T>>>] =
-  partitionMap(
-    identity
-  )
+  partitionMap(identity)
 
 /**
  * Reduces an array from the left.
@@ -3086,10 +3048,14 @@ export const reduceRight: {
  * @category lifting
  * @since 2.0.0
  */
-export const liftPredicate: { // Note: I intentionally avoid using the NoInfer pattern here.
+export const liftPredicate: {
+  // Note: I intentionally avoid using the NoInfer pattern here.
   <A, B extends A>(refinement: Predicate.Refinement<A, B>): (a: A) => Array<B>
   <A>(predicate: Predicate.Predicate<A>): <B extends A>(b: B) => Array<B>
-} = <A>(predicate: Predicate.Predicate<A>) => <B extends A>(b: B): Array<B> => predicate(b) ? [b] : []
+} =
+  <A>(predicate: Predicate.Predicate<A>) =>
+  <B extends A>(b: B): Array<B> =>
+    predicate(b) ? [b] : []
 
 /**
  * Lifts a function that returns an Option into the Array context.
@@ -3111,10 +3077,10 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  * @category lifting
  * @since 2.0.0
  */
-export const liftOption = <A extends Array<unknown>, B>(
-  f: (...a: A) => Option.Option<B>
-) =>
-(...a: A): Array<B> => fromOption(f(...a))
+export const liftOption =
+  <A extends Array<unknown>, B>(f: (...a: A) => Option.Option<B>) =>
+  (...a: A): Array<B> =>
+    fromOption(f(...a))
 
 /**
  * Converts a nullable value to an array. If the value is null or undefined, returns an empty array.
@@ -3131,7 +3097,7 @@ export const liftOption = <A extends Array<unknown>, B>(
  * @category conversions
  * @since 2.0.0
  */
-export const fromNullishOr = <A>(a: A): Array<NonNullable<A>> => a == null ? empty() : [a as NonNullable<A>]
+export const fromNullishOr = <A>(a: A): Array<NonNullable<A>> => (a == null ? empty() : [a as NonNullable<A>])
 
 /**
  * Lifts a function that returns a nullable value into the Array context.
@@ -3152,10 +3118,10 @@ export const fromNullishOr = <A>(a: A): Array<NonNullable<A>> => a == null ? emp
  * @category lifting
  * @since 2.0.0
  */
-export const liftNullishOr = <A extends Array<unknown>, B>(
-  f: (...a: A) => B
-): (...a: A) => Array<NonNullable<B>> =>
-(...a) => fromNullishOr(f(...a))
+export const liftNullishOr =
+  <A extends Array<unknown>, B>(f: (...a: A) => B): ((...a: A) => Array<NonNullable<B>>) =>
+  (...a) =>
+    fromNullishOr(f(...a))
 
 /**
  * Maps over an array and flattens the result, removing null and undefined values.
@@ -3220,13 +3186,12 @@ export const flatMapNullishOr: {
  * @category lifting
  * @since 2.0.0
  */
-export const liftResult = <A extends Array<unknown>, E, B>(
-  f: (...a: A) => Result.Result<B, E>
-) =>
-(...a: A): Array<B> => {
-  const e = f(...a)
-  return Result.isFailure(e) ? [] : [e.success]
-}
+export const liftResult =
+  <A extends Array<unknown>, E, B>(f: (...a: A) => Result.Result<B, E>) =>
+  (...a: A): Array<B> => {
+    const e = f(...a)
+    return Result.isFailure(e) ? [] : [e.success]
+  }
 
 /**
  * Check if a predicate holds true for every `ReadonlyArray` element.
@@ -3276,14 +3241,10 @@ export const every: {
  * @since 2.0.0
  */
 export const some: {
-  <A>(
-    predicate: (a: NoInfer<A>, i: number) => boolean
-  ): (self: ReadonlyArray<A>) => self is NonEmptyReadonlyArray<A>
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: ReadonlyArray<A>) => self is NonEmptyReadonlyArray<A>
   <A>(self: ReadonlyArray<A>, predicate: (a: A, i: number) => boolean): self is NonEmptyReadonlyArray<A>
-} = dual(
-  2,
-  <A>(self: ReadonlyArray<A>, predicate: (a: A, i: number) => boolean): self is NonEmptyReadonlyArray<A> =>
-    self.some(predicate)
+} = dual(2, <A>(self: ReadonlyArray<A>, predicate: (a: A, i: number) => boolean): self is NonEmptyReadonlyArray<A> =>
+  self.some(predicate)
 )
 
 /**
@@ -3460,23 +3421,20 @@ export const dedupeWith: {
   ): (self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S>>
   <A>(self: NonEmptyReadonlyArray<A>, isEquivalent: (self: A, that: A) => boolean): NonEmptyArray<A>
   <A>(self: Iterable<A>, isEquivalent: (self: A, that: A) => boolean): Array<A>
-} = dual(
-  2,
-  <A>(self: Iterable<A>, isEquivalent: (self: A, that: A) => boolean): Array<A> => {
-    const input = fromIterable(self)
-    if (isReadonlyArrayNonEmpty(input)) {
-      const out: NonEmptyArray<A> = [headNonEmpty(input)]
-      const rest = tailNonEmpty(input)
-      for (const r of rest) {
-        if (out.every((a) => !isEquivalent(r, a))) {
-          out.push(r)
-        }
+} = dual(2, <A>(self: Iterable<A>, isEquivalent: (self: A, that: A) => boolean): Array<A> => {
+  const input = fromIterable(self)
+  if (isReadonlyArrayNonEmpty(input)) {
+    const out: NonEmptyArray<A> = [headNonEmpty(input)]
+    const rest = tailNonEmpty(input)
+    for (const r of rest) {
+      if (out.every((a) => !isEquivalent(r, a))) {
+        out.push(r)
       }
-      return out
     }
-    return []
+    return out
   }
-)
+  return []
+})
 
 /**
  * Remove duplicates from an `Iterable`, preserving the order of the first occurrence of each element.
@@ -3758,9 +3716,7 @@ export const bind: {
   <A extends object, N extends string, B>(
     tag: Exclude<N, keyof A>,
     f: (a: NoInfer<A>) => ReadonlyArray<B>
-  ): (
-    self: ReadonlyArray<A>
-  ) => Array<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }>
+  ): (self: ReadonlyArray<A>) => Array<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }>
   <A extends object, N extends string, B>(
     self: ReadonlyArray<A>,
     tag: Exclude<N, keyof A>,
@@ -3921,20 +3877,14 @@ export function makeReducerConcat<A>(): Reducer.Reducer<Array<A>> {
 export const countBy: {
   <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => number
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number
-} = dual(
-  2,
-  <A>(
-    self: Iterable<A>,
-    f: (a: A, i: number) => boolean
-  ): number => {
-    let count = 0
-    const as = fromIterable(self)
-    for (let i = 0; i < as.length; i++) {
-      const a = as[i]
-      if (f(a, i)) {
-        count++
-      }
+} = dual(2, <A>(self: Iterable<A>, f: (a: A, i: number) => boolean): number => {
+  let count = 0
+  const as = fromIterable(self)
+  for (let i = 0; i < as.length; i++) {
+    const a = as[i]
+    if (f(a, i)) {
+      count++
     }
-    return count
   }
-)
+  return count
+})

@@ -21,57 +21,58 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * @since 4.0.0
  * @category Constructors
  */
-export const make: (
-  options: {
-    readonly url: string
-    readonly resource?: {
-      readonly serviceName?: string | undefined
-      readonly serviceVersion?: string | undefined
-      readonly attributes?: Record<string, unknown>
-    } | undefined
-    readonly headers?: Headers.Input | undefined
-    readonly exportInterval?: Duration.DurationInput | undefined
-    readonly maxBatchSize?: number | undefined
-    readonly shutdownTimeout?: Duration.DurationInput | undefined
-    readonly excludeLogSpans?: boolean | undefined
-  }
-) => Effect.Effect<
-  Logger.Logger<unknown, void>,
-  never,
-  OtlpSerialization | HttpClient.HttpClient | Scope.Scope
-> = Effect.fnUntraced(function*(options) {
-  const serialization = yield* OtlpSerialization
-  const otelResource = yield* OtlpResource.fromConfig(options.resource)
-  const scope: IInstrumentationScope = {
-    name: OtlpResource.serviceNameUnsafe(otelResource)
-  }
+export const make: (options: {
+  readonly url: string
+  readonly resource?:
+    | {
+        readonly serviceName?: string | undefined
+        readonly serviceVersion?: string | undefined
+        readonly attributes?: Record<string, unknown>
+      }
+    | undefined
+  readonly headers?: Headers.Input | undefined
+  readonly exportInterval?: Duration.DurationInput | undefined
+  readonly maxBatchSize?: number | undefined
+  readonly shutdownTimeout?: Duration.DurationInput | undefined
+  readonly excludeLogSpans?: boolean | undefined
+}) => Effect.Effect<Logger.Logger<unknown, void>, never, OtlpSerialization | HttpClient.HttpClient | Scope.Scope> =
+  Effect.fnUntraced(function* (options) {
+    const serialization = yield* OtlpSerialization
+    const otelResource = yield* OtlpResource.fromConfig(options.resource)
+    const scope: IInstrumentationScope = {
+      name: OtlpResource.serviceNameUnsafe(otelResource)
+    }
 
-  const exporter = yield* Exporter.make({
-    label: "OtlpLogger",
-    url: options.url,
-    headers: options.headers,
-    maxBatchSize: options.maxBatchSize ?? 1000,
-    exportInterval: options.exportInterval ?? Duration.seconds(1),
-    body: (data) =>
-      serialization.logs({
-        resourceLogs: [{
-          resource: otelResource,
-          scopeLogs: [{
-            scope,
-            logRecords: data
-          }]
-        }]
-      }),
-    shutdownTimeout: options.shutdownTimeout ?? Duration.seconds(3)
-  })
+    const exporter = yield* Exporter.make({
+      label: "OtlpLogger",
+      url: options.url,
+      headers: options.headers,
+      maxBatchSize: options.maxBatchSize ?? 1000,
+      exportInterval: options.exportInterval ?? Duration.seconds(1),
+      body: (data) =>
+        serialization.logs({
+          resourceLogs: [
+            {
+              resource: otelResource,
+              scopeLogs: [
+                {
+                  scope,
+                  logRecords: data
+                }
+              ]
+            }
+          ]
+        }),
+      shutdownTimeout: options.shutdownTimeout ?? Duration.seconds(3)
+    })
 
-  const opts = {
-    excludeLogSpans: options.excludeLogSpans ?? false
-  }
-  return Logger.make((options) => {
-    exporter.push(makeLogRecord(options, opts))
+    const opts = {
+      excludeLogSpans: options.excludeLogSpans ?? false
+    }
+    return Logger.make((options) => {
+      exporter.push(makeLogRecord(options, opts))
+    })
   })
-})
 
 /**
  * @since 4.0.0
@@ -79,11 +80,13 @@ export const make: (
  */
 export const layer = (options: {
   readonly url: string
-  readonly resource?: {
-    readonly serviceName?: string | undefined
-    readonly serviceVersion?: string | undefined
-    readonly attributes?: Record<string, unknown>
-  } | undefined
+  readonly resource?:
+    | {
+        readonly serviceName?: string | undefined
+        readonly serviceVersion?: string | undefined
+        readonly attributes?: Record<string, unknown>
+      }
+    | undefined
   readonly headers?: Headers.Input | undefined
   readonly exportInterval?: Duration.DurationInput | undefined
   readonly maxBatchSize?: number | undefined
@@ -104,9 +107,12 @@ export interface LogsData {
 
 // internal
 
-const makeLogRecord = (options: Logger.Logger.Options<unknown>, opts: {
-  readonly excludeLogSpans: boolean
-}): ILogRecord => {
+const makeLogRecord = (
+  options: Logger.Logger.Options<unknown>,
+  opts: {
+    readonly excludeLogSpans: boolean
+  }
+): ILogRecord => {
   const now = options.date.getTime()
   const nanosString = `${now}000000`
 
@@ -254,4 +260,4 @@ const ESeverityNumber = {
   SEVERITY_NUMBER_FATAL4: 24
 } as const
 
-type ESeverityNumber = typeof ESeverityNumber[keyof typeof ESeverityNumber]
+type ESeverityNumber = (typeof ESeverityNumber)[keyof typeof ESeverityNumber]

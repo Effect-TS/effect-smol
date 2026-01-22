@@ -18,7 +18,11 @@ describe("HashMap", () => {
     })
 
     it("fromIterable", () => {
-      const entries = [["a", 1], ["b", 2], ["c", 3]] as const
+      const entries = [
+        ["a", 1],
+        ["b", 2],
+        ["c", 3]
+      ] as const
       const map = HashMap.fromIterable(entries)
       expect(HashMap.size(map)).toBe(3)
       expect(HashMap.get(map, "a")).toEqual(Option.some(1))
@@ -124,19 +128,28 @@ describe("HashMap", () => {
     it("entries", () => {
       const map = HashMap.make(["a", 1], ["b", 2])
       const entries = Array.from(HashMap.entries(map)).sort(([a], [b]) => a.localeCompare(b))
-      expect(entries).toEqual([["a", 1], ["b", 2]])
+      expect(entries).toEqual([
+        ["a", 1],
+        ["b", 2]
+      ])
     })
 
     it("toEntries", () => {
       const map = HashMap.make(["a", 1], ["b", 2])
       const entries = HashMap.toEntries(map).sort(([a], [b]) => a.localeCompare(b))
-      expect(entries).toEqual([["a", 1], ["b", 2]])
+      expect(entries).toEqual([
+        ["a", 1],
+        ["b", 2]
+      ])
     })
 
     it("Symbol.iterator", () => {
       const map = HashMap.make(["a", 1], ["b", 2])
       const entries = Array.from(map).sort(([a], [b]) => a.localeCompare(b))
-      expect(entries).toEqual([["a", 1], ["b", 2]])
+      expect(entries).toEqual([
+        ["a", 1],
+        ["b", 2]
+      ])
     })
   })
 
@@ -153,7 +166,11 @@ describe("HashMap", () => {
 
     it("setMany", () => {
       const map1 = HashMap.make(["a", 1], ["b", 2])
-      const newEntries = [["c", 3], ["d", 4], ["a", 10]] as const // "a" should be overwritten
+      const newEntries = [
+        ["c", 3],
+        ["d", 4],
+        ["a", 10]
+      ] as const // "a" should be overwritten
       const map2 = HashMap.setMany(map1, newEntries)
 
       expect(HashMap.size(map2)).toBe(4)
@@ -165,7 +182,10 @@ describe("HashMap", () => {
 
     it("setMany - pipe syntax", () => {
       const map1 = HashMap.empty<string, number>()
-      const map2 = HashMap.setMany([["x", 100], ["y", 200]])(map1)
+      const map2 = HashMap.setMany([
+        ["x", 100],
+        ["y", 200]
+      ])(map1)
 
       expect(HashMap.size(map2)).toBe(2)
       expect(HashMap.get(map2, "x")).toEqual(Option.some(100))
@@ -176,7 +196,10 @@ describe("HashMap", () => {
       const map1 = HashMap.make(["existing", 1])
 
       // Test with Map
-      const jsMap = new Map([["from-map", 2], ["another", 3]])
+      const jsMap = new Map([
+        ["from-map", 2],
+        ["another", 3]
+      ])
       const map2 = HashMap.setMany(map1, jsMap)
 
       expect(HashMap.size(map2)).toBe(3)
@@ -236,11 +259,7 @@ describe("HashMap", () => {
     })
 
     it("compact", () => {
-      const map1 = HashMap.make(
-        ["a", Option.some(1)],
-        ["b", Option.none()],
-        ["c", Option.some(3)]
-      )
+      const map1 = HashMap.make(["a", Option.some(1)], ["b", Option.none()], ["c", Option.some(3)])
       const map2 = HashMap.compact(map1)
       expect(HashMap.size(map2)).toBe(2)
       expect(HashMap.get(map2, "a")).toEqual(Option.some(1))
@@ -250,7 +269,7 @@ describe("HashMap", () => {
 
     it("filterMap", () => {
       const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
-      const map2 = HashMap.filterMap(map1, (value) => value % 2 === 0 ? Option.some(value * 2) : Option.none())
+      const map2 = HashMap.filterMap(map1, (value) => (value % 2 === 0 ? Option.some(value * 2) : Option.none()))
       expect(HashMap.size(map2)).toBe(2)
       expect(HashMap.get(map2, "b")).toEqual(Option.some(4))
       expect(HashMap.get(map2, "d")).toEqual(Option.some(8))
@@ -294,17 +313,15 @@ describe("HashMap", () => {
   describe("modification operations", () => {
     it("modifyAt - existing key", () => {
       const map1 = HashMap.make(["a", 1], ["b", 2])
-      const map2 = HashMap.modifyAt(
-        map1,
-        "a",
-        (option) => Option.isSome(option) ? Option.some(option.value * 2) : Option.none()
+      const map2 = HashMap.modifyAt(map1, "a", (option) =>
+        Option.isSome(option) ? Option.some(option.value * 2) : Option.none()
       )
       expect(HashMap.get(map2, "a")).toEqual(Option.some(2))
     })
 
     it("modifyAt - non-existing key", () => {
       const map1 = HashMap.make(["a", 1])
-      const map2 = HashMap.modifyAt(map1, "b", (option) => Option.isSome(option) ? option : Option.some(10))
+      const map2 = HashMap.modifyAt(map1, "b", (option) => (Option.isSome(option) ? option : Option.some(10)))
       expect(HashMap.get(map2, "b")).toEqual(Option.some(10))
     })
 
@@ -336,7 +353,10 @@ describe("HashMap", () => {
       HashMap.forEach(map, (value, key) => {
         collected.push([key, value])
       })
-      expect(collected.sort()).toEqual([["a", 1], ["b", 2]])
+      expect(collected.sort()).toEqual([
+        ["a", 1],
+        ["b", 2]
+      ])
     })
   })
 
@@ -413,12 +433,13 @@ describe("HashMap", () => {
 
   describe("custom hash with Equal objects", () => {
     class Person implements Equal.Equal {
-      constructor(readonly name: string, readonly age: number) {}
+      constructor(
+        readonly name: string,
+        readonly age: number
+      ) {}
 
       [Equal.symbol](that: Equal.Equal): boolean {
-        return that instanceof Person &&
-          this.name === that.name &&
-          this.age === that.age
+        return that instanceof Person && this.name === that.name && this.age === that.age
       }
 
       [Hash.symbol](): number {

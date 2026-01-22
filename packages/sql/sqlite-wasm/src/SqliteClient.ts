@@ -85,13 +85,9 @@ interface SqliteConnection extends Connection {
   readonly import: (data: Uint8Array) => Effect.Effect<void, SqlError>
 }
 
-const initModule = Effect.runSync(
-  Effect.cached(Effect.promise(() => SQLiteESMFactory()))
-)
+const initModule = Effect.runSync(Effect.cached(Effect.promise(() => SQLiteESMFactory())))
 
-const initEffect = Effect.runSync(
-  Effect.cached(initModule.pipe(Effect.map((module) => WaSqlite.Factory(module))))
-)
+const initEffect = Effect.runSync(Effect.cached(initModule.pipe(Effect.map((module) => WaSqlite.Factory(module)))))
 
 const registered = new Set<string>()
 
@@ -102,16 +98,14 @@ const registered = new Set<string>()
 export const makeMemory = (
   options: SqliteClientMemoryConfig
 ): Effect.Effect<SqliteClient, SqlError, Scope.Scope | Reactivity.Reactivity> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const reactivity = yield* Reactivity.Reactivity
     const compiler = Statement.makeCompilerSqlite(options.transformQueryNames)
-    const transformRows = options.transformResultNames ?
-      Statement.defaultTransforms(
-        options.transformResultNames
-      ).array :
-      undefined
+    const transformRows = options.transformResultNames
+      ? Statement.defaultTransforms(options.transformResultNames).array
+      : undefined
 
-    const makeConnection = Effect.gen(function*() {
+    const makeConnection = Effect.gen(function* () {
       const sqlite3 = yield* initEffect
 
       if (registered.has("memory-vfs") === false) {
@@ -137,11 +131,7 @@ export const makeMemory = (
         })
       }
 
-      const run = (
-        sql: string,
-        params: ReadonlyArray<unknown> = [],
-        rowMode: "object" | "array" = "object"
-      ) =>
+      const run = (sql: string, params: ReadonlyArray<unknown> = [], rowMode: "object" | "array" = "object") =>
         Effect.try({
           try: () => {
             const results: Array<any> = []
@@ -169,9 +159,7 @@ export const makeMemory = (
 
       return identity<SqliteConnection>({
         execute(sql, params, transformRows) {
-          return transformRows
-            ? Effect.map(run(sql, params), transformRows)
-            : run(sql, params)
+          return transformRows ? Effect.map(run(sql, params), transformRows) : run(sql, params)
         },
         executeRaw(sql, params) {
           return run(sql, params)
@@ -199,9 +187,7 @@ export const makeMemory = (
             }
           }
           return Stream.suspend(() => Stream.fromIteratorSucceed(stream()[Symbol.iterator]())).pipe(
-            transformRows
-              ? Stream.mapArray((chunk) => transformRows(chunk) as any)
-              : identity,
+            transformRows ? Stream.mapArray((chunk) => transformRows(chunk) as any) : identity,
             Stream.mapError((cause) => new SqlError({ cause, message: "Failed to execute statement" }))
           )
         },
@@ -226,10 +212,7 @@ export const makeMemory = (
       const fiber = Fiber.getCurrent()!
       const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
       return Effect.as(
-        Effect.tap(
-          restore(semaphore.take(1)),
-          () => Scope.addFinalizer(scope, semaphore.release(1))
-        ),
+        Effect.tap(restore(semaphore.take(1)), () => Scope.addFinalizer(scope, semaphore.release(1))),
         connection
       )
     })
@@ -263,15 +246,15 @@ export const makeMemory = (
 export const make = (
   options: SqliteClientConfig
 ): Effect.Effect<SqliteClient, SqlError, Scope.Scope | Reactivity.Reactivity> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const reactivity = yield* Reactivity.Reactivity
     const compiler = Statement.makeCompilerSqlite(options.transformQueryNames)
-    const transformRows = options.transformResultNames ?
-      Statement.defaultTransforms(options.transformResultNames).array :
-      undefined
+    const transformRows = options.transformResultNames
+      ? Statement.defaultTransforms(options.transformResultNames).array
+      : undefined
     const pending = new Map<number, (effect: Exit.Exit<any, SqlError>) => void>()
 
-    const makeConnection = Effect.gen(function*() {
+    const makeConnection = Effect.gen(function* () {
       let currentId = 0
       const scope = yield* Effect.scope
       const readyDeferred = yield* Deferred.make<void>()
@@ -281,7 +264,10 @@ export const make = (
       const postMessage = (message: OpfsWorkerMessage, transferables?: ReadonlyArray<any>) =>
         port.postMessage(message, transferables as any)
 
-      yield* Scope.addFinalizer(scope, Effect.sync(() => postMessage(["close"])))
+      yield* Scope.addFinalizer(
+        scope,
+        Effect.sync(() => postMessage(["close"]))
+      )
 
       const onMessage = (event: any) => {
         const [id, error, results] = event.data
@@ -340,16 +326,12 @@ export const make = (
           const id = currentId++
           return send(id, [id, sql, params], fiber.getRef(Transferables))
         })
-        return rowMode === "object"
-          ? Effect.map(rows, extractObject)
-          : Effect.map(rows, extractRows)
+        return rowMode === "object" ? Effect.map(rows, extractObject) : Effect.map(rows, extractRows)
       }
 
       return identity<SqliteConnection>({
         execute(sql, params, transformRows) {
-          return transformRows
-            ? Effect.map(run(sql, params), transformRows)
-            : run(sql, params)
+          return transformRows ? Effect.map(run(sql, params), transformRows) : run(sql, params)
         },
         executeRaw(sql, params) {
           return run(sql, params)
@@ -380,13 +362,15 @@ export const make = (
 
     const semaphore = yield* Effect.makeSemaphore(1)
     const acquirer = semaphore.withPermits(1)(ScopedRef.get(connectionRef))
-    const transactionAcquirer = Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
-      const fiber = Fiber.getCurrent()!
-      const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
-      yield* restore(semaphore.take(1))
-      yield* Scope.addFinalizer(scope, semaphore.release(1))
-      return yield* ScopedRef.get(connectionRef)
-    }))
+    const transactionAcquirer = Effect.uninterruptibleMask(
+      Effect.fnUntraced(function* (restore) {
+        const fiber = Fiber.getCurrent()!
+        const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+        yield* restore(semaphore.take(1))
+        yield* Scope.addFinalizer(scope, semaphore.release(1))
+        return yield* ScopedRef.get(connectionRef)
+      })
+    )
 
     return Object.assign(
       (yield* Client.make({
@@ -434,7 +418,8 @@ export const Transferables = ServiceMap.Reference<ReadonlyArray<Transferable>>(
  * @since 1.0.0
  */
 export const withTransferables =
-  (transferables: ReadonlyArray<Transferable>) => <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  (transferables: ReadonlyArray<Transferable>) =>
+  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
     Effect.provideService(effect, Transferables, transferables)
 
 /**
@@ -445,13 +430,22 @@ export const layerMemoryConfig = (
   config: Config.Wrap<SqliteClientMemoryConfig>
 ): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError | SqlError> =>
   Layer.effectServices(
-    Config.unwrap(config).asEffect().pipe(
-      Effect.flatMap(makeMemory),
-      Effect.map((client) =>
-        ServiceMap.make(SqliteClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
-        )
+    Config.unwrap(config)
+      .asEffect()
+      .pipe(
+        Effect.flatMap(makeMemory),
+        Effect.map((client) => ServiceMap.make(SqliteClient, client).pipe(ServiceMap.add(Client.SqlClient, client)))
       )
+  ).pipe(Layer.provide(Reactivity.layer))
+
+/**
+ * @category layers
+ * @since 1.0.0
+ */
+export const layerMemory = (config: SqliteClientMemoryConfig): Layer.Layer<SqliteClient | Client.SqlClient, SqlError> =>
+  Layer.effectServices(
+    Effect.map(makeMemory(config), (client) =>
+      ServiceMap.make(SqliteClient, client).pipe(ServiceMap.add(Client.SqlClient, client))
     )
   ).pipe(Layer.provide(Reactivity.layer))
 
@@ -459,28 +453,11 @@ export const layerMemoryConfig = (
  * @category layers
  * @since 1.0.0
  */
-export const layerMemory = (
-  config: SqliteClientMemoryConfig
-): Layer.Layer<SqliteClient | Client.SqlClient, SqlError> =>
-  Layer.effectServices(
-    Effect.map(makeMemory(config), (client) =>
-      ServiceMap.make(SqliteClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
-      ))
-  ).pipe(Layer.provide(Reactivity.layer))
-
-/**
- * @category layers
- * @since 1.0.0
- */
-export const layer = (
-  config: SqliteClientConfig
-): Layer.Layer<SqliteClient | Client.SqlClient, SqlError> =>
+export const layer = (config: SqliteClientConfig): Layer.Layer<SqliteClient | Client.SqlClient, SqlError> =>
   Layer.effectServices(
     Effect.map(make(config), (client) =>
-      ServiceMap.make(SqliteClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
-      ))
+      ServiceMap.make(SqliteClient, client).pipe(ServiceMap.add(Client.SqlClient, client))
+    )
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
@@ -491,12 +468,10 @@ export const layerConfig = (
   config: Config.Wrap<SqliteClientConfig>
 ): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError | SqlError> =>
   Layer.effectServices(
-    Config.unwrap(config).asEffect().pipe(
-      Effect.flatMap(make),
-      Effect.map((client) =>
-        ServiceMap.make(SqliteClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
-        )
+    Config.unwrap(config)
+      .asEffect()
+      .pipe(
+        Effect.flatMap(make),
+        Effect.map((client) => ServiceMap.make(SqliteClient, client).pipe(ServiceMap.add(Client.SqlClient, client)))
       )
-    )
   ).pipe(Layer.provide(Reactivity.layer))

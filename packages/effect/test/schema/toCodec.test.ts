@@ -18,23 +18,27 @@ import { assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/asser
 
 const isDeno = "Deno" in globalThis
 
-const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
-  Schema.Number,
-  SchemaTransformation.transform({
-    decode: (date) => date.getTime(),
-    encode: (n) => new Date(n)
-  })
-))
+const FiniteFromDate = Schema.Date.pipe(
+  Schema.decodeTo(
+    Schema.Number,
+    SchemaTransformation.transform({
+      decode: (date) => date.getTime(),
+      encode: (n) => new Date(n)
+    })
+  )
+)
 
 describe("Serializers", () => {
   describe("toCodecJson", () => {
     it("should reorder the types in the Union based on the encoded side", async () => {
       const schema = Schema.Union([
         Schema.String,
-        Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
-          decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
-          encode: SchemaGetter.transform(() => 0n)
-        }))
+        Schema.String.pipe(
+          Schema.encodeTo(Schema.BigInt, {
+            decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
+            encode: SchemaGetter.transform(() => 0n)
+          })
+        )
       ])
       const serializer = Schema.toCodecJson(schema)
       const asserts = new TestSchema.Asserts(Schema.toCodecJson(serializer))
@@ -50,10 +54,7 @@ describe("Serializers", () => {
           const schema = Schema.Struct({
             [a]: Schema.String
           })
-          throws(
-            () => Schema.toCodecJson(schema),
-            "Objects property names must be strings"
-          )
+          throws(() => Schema.toCodecJson(schema), "Objects property names must be strings")
         })
       })
 
@@ -130,21 +131,20 @@ describe("Serializers", () => {
       it("should apply the construction process to the provided link in the serializer annotation", async () => {
         const schema = Schema.Struct({
           a: Schema.Date.annotate({
-            toCodec: () =>
-              Schema.link<Date>()(
-                Schema.Date,
-                SchemaTransformation.passthrough()
-              )
+            toCodec: () => Schema.link<Date>()(Schema.Date, SchemaTransformation.passthrough())
           }),
           b: Schema.Number
         })
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed({ a: new Date("2021-01-01"), b: 1 }, {
-          a: "2021-01-01T00:00:00.000Z",
-          b: 1
-        })
+        await encoding.succeed(
+          { a: new Date("2021-01-01"), b: 1 },
+          {
+            a: "2021-01-01T00:00:00.000Z",
+            b: 1
+          }
+        )
       })
 
       describe("instanceOf with serializer annotation", () => {
@@ -157,20 +157,17 @@ describe("Serializers", () => {
             }
           }
 
-          const schema = Schema.instanceOf(
-            MyError,
-            {
-              title: "MyError",
-              toCodec: () =>
-                Schema.link<MyError>()(
-                  Schema.String,
-                  SchemaTransformation.transform({
-                    decode: (message) => new MyError(message),
-                    encode: (e) => e.message
-                  })
-                )
-            }
-          )
+          const schema = Schema.instanceOf(MyError, {
+            title: "MyError",
+            toCodec: () =>
+              Schema.link<MyError>()(
+                Schema.String,
+                SchemaTransformation.transform({
+                  decode: (message) => new MyError(message),
+                  encode: (e) => e.message
+                })
+              )
+          })
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
@@ -187,29 +184,26 @@ describe("Serializers", () => {
               cause: Schema.String
             })
 
-            constructor(props: typeof MyError.Props["Type"]) {
+            constructor(props: (typeof MyError.Props)["Type"]) {
               super(props.message, { cause: props.cause })
               this.name = "MyError"
               Object.setPrototypeOf(this, MyError.prototype)
             }
 
-            static schema = Schema.instanceOf(
-              MyError,
-              {
-                title: "MyError",
-                toCodec: () =>
-                  Schema.link<MyError>()(
-                    MyError.Props,
-                    SchemaTransformation.transform({
-                      decode: (props) => new MyError(props),
-                      encode: (e) => ({
-                        message: e.message,
-                        cause: typeof e.cause === "string" ? e.cause : String(e.cause)
-                      })
+            static schema = Schema.instanceOf(MyError, {
+              title: "MyError",
+              toCodec: () =>
+                Schema.link<MyError>()(
+                  MyError.Props,
+                  SchemaTransformation.transform({
+                    decode: (props) => new MyError(props),
+                    encode: (e) => ({
+                      message: e.message,
+                      cause: typeof e.cause === "string" ? e.cause : String(e.cause)
                     })
-                  )
-              }
-            )
+                  })
+                )
+            })
           }
 
           const schema = MyError.schema
@@ -405,14 +399,8 @@ describe("Serializers", () => {
 
         const encoding = asserts.encoding()
         await encoding.succeed(Symbol.for("a"), "Symbol(a)")
-        await encoding.fail(
-          Symbol("a"),
-          "cannot serialize to string, Symbol is not registered"
-        )
-        await encoding.fail(
-          Symbol(),
-          "cannot serialize to string, Symbol is not registered"
-        )
+        await encoding.fail(Symbol("a"), "cannot serialize to string, Symbol is not registered")
+        await encoding.fail(Symbol(), "cannot serialize to string, Symbol is not registered")
 
         const decoding = asserts.decoding()
         await decoding.succeed("Symbol(a)", Symbol.for("a"))
@@ -506,10 +494,7 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const decoding = asserts.decoding()
-        await decoding.fail(
-          "-",
-          `Expected "a" | 1 | "2" | true, got "-"`
-        )
+        await decoding.fail("-", `Expected "a" | 1 | "2" | true, got "-"`)
       })
 
       describe("TemplateLiteral", () => {
@@ -561,10 +546,7 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed(
-            { a: new Date("2021-01-01") },
-            { a: "2021-01-01T00:00:00.000Z" }
-          )
+          await encoding.succeed({ a: new Date("2021-01-01") }, { a: "2021-01-01T00:00:00.000Z" })
         })
 
         it("UndefinedOr(Date)", async () => {
@@ -574,15 +556,21 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed({ a: new Date("2021-01-01") }, {
-            a: "2021-01-01T00:00:00.000Z"
-          })
+          await encoding.succeed(
+            { a: new Date("2021-01-01") },
+            {
+              a: "2021-01-01T00:00:00.000Z"
+            }
+          )
           await encoding.succeed({ a: undefined }, { a: null })
 
           const decoding = asserts.decoding()
-          await decoding.succeed({ a: "2021-01-01T00:00:00.000Z" }, {
-            a: new Date("2021-01-01")
-          })
+          await decoding.succeed(
+            { a: "2021-01-01T00:00:00.000Z" },
+            {
+              a: new Date("2021-01-01")
+            }
+          )
           await decoding.succeed({ a: null }, { a: undefined })
         })
 
@@ -593,15 +581,21 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed({ a: new Date("2021-01-01") }, {
-            a: "2021-01-01T00:00:00.000Z"
-          })
+          await encoding.succeed(
+            { a: new Date("2021-01-01") },
+            {
+              a: "2021-01-01T00:00:00.000Z"
+            }
+          )
           await encoding.succeed({ a: null }, { a: null })
 
           const decoding = asserts.decoding()
-          await decoding.succeed({ a: "2021-01-01T00:00:00.000Z" }, {
-            a: new Date("2021-01-01")
-          })
+          await decoding.succeed(
+            { a: "2021-01-01T00:00:00.000Z" },
+            {
+              a: new Date("2021-01-01")
+            }
+          )
           await decoding.succeed({ a: null }, { a: null })
         })
 
@@ -612,15 +606,21 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed({ a: new Date("2021-01-01") }, {
-            a: "2021-01-01T00:00:00.000Z"
-          })
+          await encoding.succeed(
+            { a: new Date("2021-01-01") },
+            {
+              a: "2021-01-01T00:00:00.000Z"
+            }
+          )
           await encoding.succeed({}, {})
 
           const decoding = asserts.decoding()
-          await decoding.succeed({ a: "2021-01-01T00:00:00.000Z" }, {
-            a: new Date("2021-01-01")
-          })
+          await decoding.succeed(
+            { a: "2021-01-01T00:00:00.000Z" },
+            {
+              a: new Date("2021-01-01")
+            }
+          )
           await decoding.succeed({}, {})
         })
 
@@ -631,16 +631,22 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed({ a: new Date("2021-01-01") }, {
-            a: "2021-01-01T00:00:00.000Z"
-          })
+          await encoding.succeed(
+            { a: new Date("2021-01-01") },
+            {
+              a: "2021-01-01T00:00:00.000Z"
+            }
+          )
           await encoding.succeed({}, {})
           await encoding.succeed({ a: undefined }, { a: null })
 
           const decoding = asserts.decoding()
-          await decoding.succeed({ a: "2021-01-01T00:00:00.000Z" }, {
-            a: new Date("2021-01-01")
-          })
+          await decoding.succeed(
+            { a: "2021-01-01T00:00:00.000Z" },
+            {
+              a: new Date("2021-01-01")
+            }
+          )
           await decoding.succeed({}, {})
           await decoding.succeed({ a: null }, { a: undefined })
         })
@@ -669,16 +675,10 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed(
-            [new Date("2021-01-01")],
-            ["2021-01-01T00:00:00.000Z"]
-          )
+          await encoding.succeed([new Date("2021-01-01")], ["2021-01-01T00:00:00.000Z"])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(
-            ["2021-01-01T00:00:00.000Z"],
-            [new Date("2021-01-01")]
-          )
+          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [new Date("2021-01-01")])
         })
 
         it("UndefinedOr(Date)", async () => {
@@ -686,16 +686,11 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed(
-            [new Date("2021-01-01")],
-            ["2021-01-01T00:00:00.000Z"]
-          )
+          await encoding.succeed([new Date("2021-01-01")], ["2021-01-01T00:00:00.000Z"])
           await encoding.succeed([undefined], [null])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [
-            new Date("2021-01-01")
-          ])
+          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [new Date("2021-01-01")])
           await decoding.succeed([null], [undefined])
         })
 
@@ -704,15 +699,11 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed([new Date("2021-01-01")], [
-            "2021-01-01T00:00:00.000Z"
-          ])
+          await encoding.succeed([new Date("2021-01-01")], ["2021-01-01T00:00:00.000Z"])
           await encoding.succeed([null], [null])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [
-            new Date("2021-01-01")
-          ])
+          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [new Date("2021-01-01")])
           await decoding.succeed([null], [null])
         })
 
@@ -721,15 +712,11 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed([new Date("2021-01-01")], [
-            "2021-01-01T00:00:00.000Z"
-          ])
+          await encoding.succeed([new Date("2021-01-01")], ["2021-01-01T00:00:00.000Z"])
           await encoding.succeed([], [])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [
-            new Date("2021-01-01")
-          ])
+          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [new Date("2021-01-01")])
           await decoding.succeed([], [])
         })
 
@@ -738,16 +725,12 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed([new Date("2021-01-01")], [
-            "2021-01-01T00:00:00.000Z"
-          ])
+          await encoding.succeed([new Date("2021-01-01")], ["2021-01-01T00:00:00.000Z"])
           await encoding.succeed([], [])
           await encoding.succeed([undefined], [null])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [
-            new Date("2021-01-01")
-          ])
+          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [new Date("2021-01-01")])
           await decoding.succeed([], [])
           await decoding.succeed([null], [undefined])
         })
@@ -807,10 +790,7 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed(
-            new Date("2021-01-01"),
-            "2021-01-01T00:00:00.000Z"
-          )
+          await encoding.succeed(new Date("2021-01-01"), "2021-01-01T00:00:00.000Z")
           await encoding.succeed(0)
         })
       })
@@ -828,37 +808,47 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed({ a: 1, categories: [] }, {
-          a: 1,
-          categories: []
-        })
-        await encoding.succeed({
-          a: 1,
-          categories: [{ a: 2, categories: [] }]
-        }, {
-          a: 1,
-          categories: [
-            { a: 2, categories: [] }
-          ]
-        })
+        await encoding.succeed(
+          { a: 1, categories: [] },
+          {
+            a: 1,
+            categories: []
+          }
+        )
+        await encoding.succeed(
+          {
+            a: 1,
+            categories: [{ a: 2, categories: [] }]
+          },
+          {
+            a: 1,
+            categories: [{ a: 2, categories: [] }]
+          }
+        )
 
         const decoding = asserts.decoding()
-        await decoding.succeed({
-          a: 1,
-          categories: []
-        }, { a: 1, categories: [] })
-        await decoding.succeed({
-          a: 1,
-          categories: [
-            { a: 2, categories: [] }
-          ]
-        }, { a: 1, categories: [{ a: 2, categories: [] }] })
+        await decoding.succeed(
+          {
+            a: 1,
+            categories: []
+          },
+          { a: 1, categories: [] }
+        )
+        await decoding.succeed(
+          {
+            a: 1,
+            categories: [{ a: 2, categories: [] }]
+          },
+          { a: 1, categories: [{ a: 2, categories: [] }] }
+        )
       })
 
       it("Class", async () => {
-        class A extends Schema.Class<A>("A")(Schema.Struct({
-          a: Schema.Finite
-        })) {}
+        class A extends Schema.Class<A>("A")(
+          Schema.Struct({
+            a: Schema.Finite
+          })
+        ) {}
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(Schema.toType(A)))
 
         const encoding = asserts.encoding()
@@ -886,10 +876,7 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new Date("2021-01-01"),
-          "2021-01-01T00:00:00.000Z"
-        )
+        await encoding.succeed(new Date("2021-01-01"), "2021-01-01T00:00:00.000Z")
       })
 
       it("Error", async () => {
@@ -897,17 +884,11 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new Error("a"),
-          { name: "Error", message: "a" }
-        )
+        await encoding.succeed(new Error("a"), { name: "Error", message: "a" })
 
         const decoding = asserts.decoding()
         // Error: message only
-        await decoding.succeed(
-          { message: "a" },
-          new Error("a")
-        )
+        await decoding.succeed({ message: "a" }, new Error("a"))
         // Error: message and name
         await decoding.succeed(
           { name: "b", message: "a" },
@@ -934,24 +915,12 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new URL("https://example.com"),
-          "https://example.com/"
-        )
+        await encoding.succeed(new URL("https://example.com"), "https://example.com/")
 
         const decoding = asserts.decoding()
-        await decoding.succeed(
-          "https://example.com",
-          new URL("https://example.com")
-        )
-        await decoding.succeed(
-          "https://example.com/",
-          new URL("https://example.com")
-        )
-        await decoding.fail(
-          "not a url",
-          isDeno ? `TypeError: Invalid URL: 'not a url'` : `TypeError: Invalid URL`
-        )
+        await decoding.succeed("https://example.com", new URL("https://example.com"))
+        await decoding.succeed("https://example.com/", new URL("https://example.com"))
+        await decoding.fail("not a url", isDeno ? `TypeError: Invalid URL: 'not a url'` : `TypeError: Invalid URL`)
       })
 
       it("URLSearchParams", async () => {
@@ -959,16 +928,10 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new URLSearchParams("a=1&b=two"),
-          "a=1&b=two"
-        )
+        await encoding.succeed(new URLSearchParams("a=1&b=two"), "a=1&b=two")
 
         const decoding = asserts.decoding()
-        await decoding.succeed(
-          "a=1&b=two",
-          new URLSearchParams("a=1&b=two")
-        )
+        await decoding.succeed("a=1&b=two", new URLSearchParams("a=1&b=two"))
       })
 
       it("File", async () => {
@@ -976,10 +939,12 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new File(["hi"], "note.txt", { type: "text/plain", lastModified: 123 }),
-          { data: "aGk=", type: "text/plain", name: "note.txt", lastModified: 123 }
-        )
+        await encoding.succeed(new File(["hi"], "note.txt", { type: "text/plain", lastModified: 123 }), {
+          data: "aGk=",
+          type: "text/plain",
+          name: "note.txt",
+          lastModified: 123
+        })
 
         const decoding = asserts.decoding()
         await decoding.succeed(
@@ -996,13 +961,10 @@ describe("Serializers", () => {
         const formData = new FormData()
         formData.append("a", "1")
         formData.append("b", new File(["hi"], "note.txt", { type: "text/plain", lastModified: 123 }))
-        await encoding.succeed(
-          formData,
-          [
-            ["a", { _tag: "String", value: "1" }],
-            ["b", { _tag: "File", value: { data: "aGk=", type: "text/plain", name: "note.txt", lastModified: 123 } }]
-          ]
-        )
+        await encoding.succeed(formData, [
+          ["a", { _tag: "String", value: "1" }],
+          ["b", { _tag: "File", value: { data: "aGk=", type: "text/plain", name: "note.txt", lastModified: 123 } }]
+        ])
 
         const decoding = asserts.decoding()
         const expected = new FormData()
@@ -1047,10 +1009,7 @@ describe("Serializers", () => {
 
         const decoding = asserts.decoding()
         await decoding.succeed("AQID", new Uint8Array([1, 2, 3]))
-        await decoding.fail(
-          "not a base64 string",
-          "Length must be a multiple of 4, but is 19"
-        )
+        await decoding.fail("not a base64 string", "Length must be a multiple of 4, but is 19")
       })
 
       it("Duration", async () => {
@@ -1074,16 +1033,10 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"),
-          "2021-01-01T00:00:00.000Z"
-        )
+        await encoding.succeed(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), "2021-01-01T00:00:00.000Z")
 
         const decoding = asserts.decoding()
-        await decoding.succeed(
-          "2021-01-01T00:00:00.000Z",
-          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")
-        )
+        await decoding.succeed("2021-01-01T00:00:00.000Z", DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"))
       })
 
       it("Option(Date)", async () => {
@@ -1104,24 +1057,12 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.fail(
-            Redacted.make(Option.none()),
-            `Cannot serialize Redacted`
-          )
-          await encoding.fail(
-            Redacted.make(Option.some("a")),
-            `Cannot serialize Redacted`
-          )
+          await encoding.fail(Redacted.make(Option.none()), `Cannot serialize Redacted`)
+          await encoding.fail(Redacted.make(Option.some("a")), `Cannot serialize Redacted`)
 
           const decoding = asserts.decoding()
-          await decoding.succeed(
-            { _tag: "None" },
-            Redacted.make(Option.none())
-          )
-          await decoding.succeed(
-            { _tag: "Some", value: "a" },
-            Redacted.make(Option.some("a"))
-          )
+          await decoding.succeed({ _tag: "None" }, Redacted.make(Option.none()))
+          await decoding.succeed({ _tag: "Some", value: "a" }, Redacted.make(Option.some("a")))
         })
 
         it("encoding a Redacted with a label", async () => {
@@ -1153,10 +1094,12 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(new Set([Option.some(new Date("2021-01-01"))]), [{
-          _tag: "Some",
-          value: "2021-01-01T00:00:00.000Z"
-        }])
+        await encoding.succeed(new Set([Option.some(new Date("2021-01-01"))]), [
+          {
+            _tag: "Some",
+            value: "2021-01-01T00:00:00.000Z"
+          }
+        ])
 
         const decoding = asserts.decoding()
         await decoding.succeed(
@@ -1170,13 +1113,9 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new Map([[Option.some(new Date("2021-01-01")), 0]]),
-          [[
-            { _tag: "Some", value: "2021-01-01T00:00:00.000Z" },
-            0
-          ]]
-        )
+        await encoding.succeed(new Map([[Option.some(new Date("2021-01-01")), 0]]), [
+          [{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, 0]
+        ])
 
         const decoding = asserts.decoding()
         await decoding.succeed(
@@ -1203,10 +1142,7 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          { a: 0, b: 0 },
-          { a: "1970-01-01T00:00:00.000Z", b: "1970-01-01T00:00:00.000Z" }
-        )
+        await encoding.succeed({ a: 0, b: 0 }, { a: "1970-01-01T00:00:00.000Z", b: "1970-01-01T00:00:00.000Z" })
       })
 
       it("Tuple(Schema.Date, Schema.Date)", async () => {
@@ -1214,16 +1150,15 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          [0, 0],
-          ["1970-01-01T00:00:00.000Z", "1970-01-01T00:00:00.000Z"]
-        )
+        await encoding.succeed([0, 0], ["1970-01-01T00:00:00.000Z", "1970-01-01T00:00:00.000Z"])
       })
 
       it("Class", async () => {
-        class A extends Schema.Class<A>("A")(Schema.Struct({
-          a: FiniteFromDate
-        })) {}
+        class A extends Schema.Class<A>("A")(
+          Schema.Struct({
+            a: FiniteFromDate
+          })
+        ) {}
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(A))
 
         const encoding = asserts.encoding()
@@ -1281,13 +1216,9 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]]),
-          [[
-            { _tag: "Some", value: "Symbol(a)" },
-            "2021-01-01T00:00:00.000Z"
-          ]]
-        )
+        await encoding.succeed(new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]]), [
+          [{ _tag: "Some", value: "Symbol(a)" }, "2021-01-01T00:00:00.000Z"]
+        ])
 
         const decoding = asserts.decoding()
         await decoding.succeed(
@@ -1311,22 +1242,30 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(Cause.fail(Option.some(1)), [{
-          _tag: "Fail",
-          error: { _tag: "Some", value: 1 }
-        }])
-        await encoding.succeed(Cause.die(Option.some("a")), [{
-          _tag: "Die",
-          defect: { _tag: "Some", value: "a" }
-        }])
-        await encoding.succeed(Cause.interrupt(1), [{
-          _tag: "Interrupt",
-          fiberId: 1
-        }])
-        await encoding.succeed(Cause.interrupt(), [{
-          _tag: "Interrupt",
-          fiberId: null
-        }])
+        await encoding.succeed(Cause.fail(Option.some(1)), [
+          {
+            _tag: "Fail",
+            error: { _tag: "Some", value: 1 }
+          }
+        ])
+        await encoding.succeed(Cause.die(Option.some("a")), [
+          {
+            _tag: "Die",
+            defect: { _tag: "Some", value: "a" }
+          }
+        ])
+        await encoding.succeed(Cause.interrupt(1), [
+          {
+            _tag: "Interrupt",
+            fiberId: 1
+          }
+        ])
+        await encoding.succeed(Cause.interrupt(), [
+          {
+            _tag: "Interrupt",
+            fiberId: null
+          }
+        ])
       })
 
       it("DateTimeUtcFromValidDate", async () => {
@@ -1334,16 +1273,10 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"),
-          "2021-01-01T00:00:00.000Z"
-        )
+        await encoding.succeed(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), "2021-01-01T00:00:00.000Z")
 
         const decoding = asserts.decoding()
-        await decoding.succeed(
-          "2021-01-01T00:00:00.000Z",
-          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")
-        )
+        await decoding.succeed("2021-01-01T00:00:00.000Z", DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"))
       })
     })
 
@@ -1379,13 +1312,16 @@ describe("Serializers", () => {
       })
 
       const decoding = asserts.decoding()
-      await decoding.succeed({
-        issues: [
-          { path: ["a"], message: `Expected a value with a length of at least 1, got ""` },
-          { path: ["c", 0], message: "Missing key" },
-          { path: ["Symbol(b)"], message: "Missing key" }
-        ]
-      }, failureResult)
+      await decoding.succeed(
+        {
+          issues: [
+            { path: ["a"], message: `Expected a value with a length of at least 1, got ""` },
+            { path: ["c", 0], message: "Missing key" },
+            { path: ["Symbol(b)"], message: "Missing key" }
+          ]
+        },
+        failureResult
+      )
     })
   })
 
@@ -1407,10 +1343,12 @@ describe("Serializers", () => {
       it("should reorder the types in the Union based on the encoded side", async () => {
         const schema = Schema.Union([
           Schema.String,
-          Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
-            decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
-            encode: SchemaGetter.transform(() => 0n)
-          }))
+          Schema.String.pipe(
+            Schema.encodeTo(Schema.BigInt, {
+              decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
+              encode: SchemaGetter.transform(() => 0n)
+            })
+          )
         ])
         const serializer = Schema.toCodecStringTree(schema, { keepDeclarations: true })
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(serializer))
@@ -1427,26 +1365,34 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema, { keepDeclarations: true }))
 
         const encoding = asserts.encoding()
-        await encoding.succeed({ a: new URL("https://effect.website"), b: 1 }, {
-          a: new URL("https://effect.website"),
-          b: "1"
-        })
+        await encoding.succeed(
+          { a: new URL("https://effect.website"), b: 1 },
+          {
+            a: new URL("https://effect.website"),
+            b: "1"
+          }
+        )
 
         const decoding = asserts.decoding()
-        await decoding.succeed({
-          a: new URL("https://effect.website"),
-          b: "1"
-        }, { a: new URL("https://effect.website"), b: 1 })
+        await decoding.succeed(
+          {
+            a: new URL("https://effect.website"),
+            b: "1"
+          },
+          { a: new URL("https://effect.website"), b: 1 }
+        )
       })
     })
 
     it("should reorder the types in the Union based on the encoded side", async () => {
       const schema = Schema.Union([
         Schema.String,
-        Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
-          decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
-          encode: SchemaGetter.transform(() => 0n)
-        }))
+        Schema.String.pipe(
+          Schema.encodeTo(Schema.BigInt, {
+            decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
+            encode: SchemaGetter.transform(() => 0n)
+          })
+        )
       ])
       const serializer = Schema.toCodecStringTree(schema)
       const asserts = new TestSchema.Asserts(Schema.toCodecJson(serializer))
@@ -1494,10 +1440,7 @@ describe("Serializers", () => {
           const schema = Schema.Struct({
             [a]: Schema.String
           })
-          throws(
-            () => Schema.toCodecStringTree(schema),
-            "Objects property names must be strings"
-          )
+          throws(() => Schema.toCodecStringTree(schema), "Objects property names must be strings")
         })
       })
 
@@ -1734,14 +1677,8 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
 
         const encoding = asserts.encoding()
         await encoding.succeed(Symbol.for("a"), "Symbol(a)")
-        await encoding.fail(
-          Symbol("a"),
-          "cannot serialize to string, Symbol is not registered"
-        )
-        await encoding.fail(
-          Symbol(),
-          "cannot serialize to string, Symbol is not registered"
-        )
+        await encoding.fail(Symbol("a"), "cannot serialize to string, Symbol is not registered")
+        await encoding.fail(Symbol(), "cannot serialize to string, Symbol is not registered")
 
         const decoding = asserts.decoding()
         await decoding.succeed("Symbol(a)", Symbol.for("a"))
@@ -1838,10 +1775,7 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
         const decoding = asserts.decoding()
-        await decoding.fail(
-          "-",
-          `Expected "a" | "1" | "2" | "true", got "-"`
-        )
+        await decoding.fail("-", `Expected "a" | "1" | "2" | "true", got "-"`)
       })
 
       describe("TemplateLiteral", () => {
@@ -1893,14 +1827,20 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed({ a: new Date("2021-01-01") }, {
-            a: "2021-01-01T00:00:00.000Z"
-          })
+          await encoding.succeed(
+            { a: new Date("2021-01-01") },
+            {
+              a: "2021-01-01T00:00:00.000Z"
+            }
+          )
 
           const decoding = asserts.decoding()
-          await decoding.succeed({ a: "2021-01-01T00:00:00.000Z" }, {
-            a: new Date("2021-01-01")
-          })
+          await decoding.succeed(
+            { a: "2021-01-01T00:00:00.000Z" },
+            {
+              a: new Date("2021-01-01")
+            }
+          )
         })
 
         it("UndefinedOr(Date)", async () => {
@@ -1910,15 +1850,21 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed({ a: new Date("2021-01-01") }, {
-            a: "2021-01-01T00:00:00.000Z"
-          })
+          await encoding.succeed(
+            { a: new Date("2021-01-01") },
+            {
+              a: "2021-01-01T00:00:00.000Z"
+            }
+          )
           await encoding.succeed({ a: undefined }, { a: undefined })
 
           const decoding = asserts.decoding()
-          await decoding.succeed({ a: "2021-01-01T00:00:00.000Z" }, {
-            a: new Date("2021-01-01")
-          })
+          await decoding.succeed(
+            { a: "2021-01-01T00:00:00.000Z" },
+            {
+              a: new Date("2021-01-01")
+            }
+          )
           await decoding.succeed({ a: undefined }, { a: undefined })
         })
 
@@ -1929,15 +1875,21 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed({ a: new Date("2021-01-01") }, {
-            a: "2021-01-01T00:00:00.000Z"
-          })
+          await encoding.succeed(
+            { a: new Date("2021-01-01") },
+            {
+              a: "2021-01-01T00:00:00.000Z"
+            }
+          )
           await encoding.succeed({ a: null }, { a: "null" })
 
           const decoding = asserts.decoding()
-          await decoding.succeed({ a: "2021-01-01T00:00:00.000Z" }, {
-            a: new Date("2021-01-01")
-          })
+          await decoding.succeed(
+            { a: "2021-01-01T00:00:00.000Z" },
+            {
+              a: new Date("2021-01-01")
+            }
+          )
           await decoding.succeed({ a: "null" }, { a: null })
         })
 
@@ -1948,15 +1900,21 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed({ a: new Date("2021-01-01") }, {
-            a: "2021-01-01T00:00:00.000Z"
-          })
+          await encoding.succeed(
+            { a: new Date("2021-01-01") },
+            {
+              a: "2021-01-01T00:00:00.000Z"
+            }
+          )
           await encoding.succeed({}, {})
 
           const decoding = asserts.decoding()
-          await decoding.succeed({ a: "2021-01-01T00:00:00.000Z" }, {
-            a: new Date("2021-01-01")
-          })
+          await decoding.succeed(
+            { a: "2021-01-01T00:00:00.000Z" },
+            {
+              a: new Date("2021-01-01")
+            }
+          )
           await decoding.succeed({}, {})
         })
 
@@ -1967,16 +1925,22 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed({ a: new Date("2021-01-01") }, {
-            a: "2021-01-01T00:00:00.000Z"
-          })
+          await encoding.succeed(
+            { a: new Date("2021-01-01") },
+            {
+              a: "2021-01-01T00:00:00.000Z"
+            }
+          )
           await encoding.succeed({}, {})
           await encoding.succeed({ a: undefined }, { a: undefined })
 
           const decoding = asserts.decoding()
-          await decoding.succeed({ a: "2021-01-01T00:00:00.000Z" }, {
-            a: new Date("2021-01-01")
-          })
+          await decoding.succeed(
+            { a: "2021-01-01T00:00:00.000Z" },
+            {
+              a: new Date("2021-01-01")
+            }
+          )
           await decoding.succeed({}, {})
           await decoding.succeed({ a: undefined }, { a: undefined })
         })
@@ -2005,16 +1969,10 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed(
-            [new Date("2021-01-01")],
-            ["2021-01-01T00:00:00.000Z"]
-          )
+          await encoding.succeed([new Date("2021-01-01")], ["2021-01-01T00:00:00.000Z"])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(
-            ["2021-01-01T00:00:00.000Z"],
-            [new Date("2021-01-01")]
-          )
+          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [new Date("2021-01-01")])
         })
 
         it("UndefinedOr(Date)", async () => {
@@ -2022,16 +1980,11 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed(
-            [new Date("2021-01-01")],
-            ["2021-01-01T00:00:00.000Z"]
-          )
+          await encoding.succeed([new Date("2021-01-01")], ["2021-01-01T00:00:00.000Z"])
           await encoding.succeed([undefined])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [
-            new Date("2021-01-01")
-          ])
+          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [new Date("2021-01-01")])
           await decoding.succeed([undefined])
         })
 
@@ -2040,15 +1993,11 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed([new Date("2021-01-01")], [
-            "2021-01-01T00:00:00.000Z"
-          ])
+          await encoding.succeed([new Date("2021-01-01")], ["2021-01-01T00:00:00.000Z"])
           await encoding.succeed([null], ["null"])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [
-            new Date("2021-01-01")
-          ])
+          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [new Date("2021-01-01")])
           await decoding.succeed(["null"], [null])
         })
 
@@ -2057,15 +2006,11 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed([new Date("2021-01-01")], [
-            "2021-01-01T00:00:00.000Z"
-          ])
+          await encoding.succeed([new Date("2021-01-01")], ["2021-01-01T00:00:00.000Z"])
           await encoding.succeed([], [])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [
-            new Date("2021-01-01")
-          ])
+          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [new Date("2021-01-01")])
           await decoding.succeed([], [])
         })
 
@@ -2074,16 +2019,12 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed([new Date("2021-01-01")], [
-            "2021-01-01T00:00:00.000Z"
-          ])
+          await encoding.succeed([new Date("2021-01-01")], ["2021-01-01T00:00:00.000Z"])
           await encoding.succeed([], [])
           await encoding.succeed([undefined])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [
-            new Date("2021-01-01")
-          ])
+          await decoding.succeed(["2021-01-01T00:00:00.000Z"], [new Date("2021-01-01")])
           await decoding.succeed([], [])
           await decoding.succeed([undefined])
         })
@@ -2143,10 +2084,7 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
           const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed(
-            new Date("2021-01-01"),
-            "2021-01-01T00:00:00.000Z"
-          )
+          await encoding.succeed(new Date("2021-01-01"), "2021-01-01T00:00:00.000Z")
           await encoding.succeed(0, "0")
         })
       })
@@ -2164,37 +2102,47 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed({ a: 1, categories: [] }, {
-          a: "1",
-          categories: []
-        })
-        await encoding.succeed({
-          a: 1,
-          categories: [{ a: 2, categories: [] }]
-        }, {
-          a: "1",
-          categories: [
-            { a: "2", categories: [] }
-          ]
-        })
+        await encoding.succeed(
+          { a: 1, categories: [] },
+          {
+            a: "1",
+            categories: []
+          }
+        )
+        await encoding.succeed(
+          {
+            a: 1,
+            categories: [{ a: 2, categories: [] }]
+          },
+          {
+            a: "1",
+            categories: [{ a: "2", categories: [] }]
+          }
+        )
 
         const decoding = asserts.decoding()
-        await decoding.succeed({
-          a: "1",
-          categories: []
-        }, { a: 1, categories: [] })
-        await decoding.succeed({
-          a: "1",
-          categories: [
-            { a: "2", categories: [] }
-          ]
-        }, { a: 1, categories: [{ a: 2, categories: [] }] })
+        await decoding.succeed(
+          {
+            a: "1",
+            categories: []
+          },
+          { a: 1, categories: [] }
+        )
+        await decoding.succeed(
+          {
+            a: "1",
+            categories: [{ a: "2", categories: [] }]
+          },
+          { a: 1, categories: [{ a: 2, categories: [] }] }
+        )
       })
 
       it("Class", async () => {
-        class A extends Schema.Class<A>("A")(Schema.Struct({
-          a: Schema.Finite
-        })) {}
+        class A extends Schema.Class<A>("A")(
+          Schema.Struct({
+            a: Schema.Finite
+          })
+        ) {}
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(Schema.toType(A)))
 
         const encoding = asserts.encoding()
@@ -2222,10 +2170,7 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new Date("2021-01-01"),
-          "2021-01-01T00:00:00.000Z"
-        )
+        await encoding.succeed(new Date("2021-01-01"), "2021-01-01T00:00:00.000Z")
       })
 
       it("Error", async () => {
@@ -2233,17 +2178,11 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new Error("a"),
-          { name: "Error", message: "a" }
-        )
+        await encoding.succeed(new Error("a"), { name: "Error", message: "a" })
 
         const decoding = asserts.decoding()
         // Error: message only
-        await decoding.succeed(
-          { message: "a" },
-          new Error("a")
-        )
+        await decoding.succeed({ message: "a" }, new Error("a"))
         // Error: message and name
         await decoding.succeed(
           { name: "b", message: "a" },
@@ -2270,24 +2209,12 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new URL("https://example.com"),
-          "https://example.com/"
-        )
+        await encoding.succeed(new URL("https://example.com"), "https://example.com/")
 
         const decoding = asserts.decoding()
-        await decoding.succeed(
-          "https://example.com",
-          new URL("https://example.com")
-        )
-        await decoding.succeed(
-          "https://example.com/",
-          new URL("https://example.com")
-        )
-        await decoding.fail(
-          "not a url",
-          isDeno ? `TypeError: Invalid URL: 'not a url'` : `TypeError: Invalid URL`
-        )
+        await decoding.succeed("https://example.com", new URL("https://example.com"))
+        await decoding.succeed("https://example.com/", new URL("https://example.com"))
+        await decoding.fail("not a url", isDeno ? `TypeError: Invalid URL: 'not a url'` : `TypeError: Invalid URL`)
       })
 
       it("RegExp", async () => {
@@ -2324,24 +2251,12 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
         const encoding = asserts.encoding()
-        await encoding.fail(
-          Redacted.make(Option.none()),
-          `Cannot serialize Redacted`
-        )
-        await encoding.fail(
-          Redacted.make(Option.some("a")),
-          `Cannot serialize Redacted`
-        )
+        await encoding.fail(Redacted.make(Option.none()), `Cannot serialize Redacted`)
+        await encoding.fail(Redacted.make(Option.some("a")), `Cannot serialize Redacted`)
 
         const decoding = asserts.decoding()
-        await decoding.succeed(
-          { _tag: "None" },
-          Redacted.make(Option.none())
-        )
-        await decoding.succeed(
-          { _tag: "Some", value: "a" },
-          Redacted.make(Option.some("a"))
-        )
+        await decoding.succeed({ _tag: "None" }, Redacted.make(Option.none()))
+        await decoding.succeed({ _tag: "Some", value: "a" }, Redacted.make(Option.some("a")))
       })
 
       it("ReadonlySet", async () => {
@@ -2349,10 +2264,12 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(new Set([Option.some(new Date("2021-01-01"))]), [{
-          _tag: "Some",
-          value: "2021-01-01T00:00:00.000Z"
-        }])
+        await encoding.succeed(new Set([Option.some(new Date("2021-01-01"))]), [
+          {
+            _tag: "Some",
+            value: "2021-01-01T00:00:00.000Z"
+          }
+        ])
 
         const decoding = asserts.decoding()
         await decoding.succeed(
@@ -2366,13 +2283,9 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(
-          new Map([[Option.some(new Date("2021-01-01")), 0]]),
-          [[
-            { _tag: "Some", value: "2021-01-01T00:00:00.000Z" },
-            "0"
-          ]]
-        )
+        await encoding.succeed(new Map([[Option.some(new Date("2021-01-01")), 0]]), [
+          [{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, "0"]
+        ])
 
         const decoding = asserts.decoding()
         await decoding.succeed(
@@ -2688,23 +2601,15 @@ line2</root>`
         `<test_value_ data-name="test&lt;value&gt;">content</test_value_>`
       )
       await assertXml(
-        Schema.String.annotate({ title: "test\"value" }),
+        Schema.String.annotate({ title: 'test"value' }),
         "content",
         `<test_value data-name="test&quot;value">content</test_value>`
       )
     })
 
     it("XML Reserved Names", async () => {
-      await assertXml(
-        Schema.String.annotate({ title: "xml" }),
-        "content",
-        `<_xml data-name="xml">content</_xml>`
-      )
-      await assertXml(
-        Schema.String.annotate({ title: "XML" }),
-        "content",
-        `<_XML data-name="XML">content</_XML>`
-      )
+      await assertXml(Schema.String.annotate({ title: "xml" }), "content", `<_xml data-name="xml">content</_xml>`)
+      await assertXml(Schema.String.annotate({ title: "XML" }), "content", `<_XML data-name="XML">content</_XML>`)
       await assertXml(
         Schema.String.annotate({ title: "xmlns" }),
         "content",
@@ -2749,10 +2654,12 @@ line2</root>`
 
     it("XML Encoder Options - pretty: false", async () => {
       const serializer = Schema.toEncoderXml(
-        Schema.toCodecStringTree(Schema.Struct({
-          a: Schema.Number,
-          b: Schema.String
-        })),
+        Schema.toCodecStringTree(
+          Schema.Struct({
+            a: Schema.Number,
+            b: Schema.String
+          })
+        ),
         {
           pretty: false
         }
@@ -2762,9 +2669,11 @@ line2</root>`
 
     it("XML Encoder Options - custom indent", async () => {
       const serializer = Schema.toEncoderXml(
-        Schema.toCodecStringTree(Schema.Struct({
-          a: Schema.Number
-        })),
+        Schema.toCodecStringTree(
+          Schema.Struct({
+            a: Schema.Number
+          })
+        ),
         {
           indent: "    "
         }
@@ -2779,11 +2688,13 @@ line2</root>`
 
     it("XML Encoder Options - sortKeys: false", async () => {
       const serializer = Schema.toEncoderXml(
-        Schema.toCodecStringTree(Schema.Struct({
-          z: Schema.Number,
-          a: Schema.Number,
-          m: Schema.Number
-        })),
+        Schema.toCodecStringTree(
+          Schema.Struct({
+            z: Schema.Number,
+            a: Schema.Number,
+            m: Schema.Number
+          })
+        ),
         {
           sortKeys: false
         }
@@ -2815,7 +2726,10 @@ line2</root>`
       const schema = Schema.Array(Schema.Array(Schema.Number))
       await assertXml(
         schema,
-        [[1, 2], [3, 4]],
+        [
+          [1, 2],
+          [3, 4]
+        ],
         `<root>
   <item>
     <item>1</item>

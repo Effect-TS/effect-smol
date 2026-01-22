@@ -51,13 +51,7 @@ describe("Prompt", () => {
       const left = Prompt.fromMessages(leftMessages)
       const right = Prompt.fromMessages(rightMessages)
       const merged = Prompt.concat(left, right)
-      assert.deepStrictEqual(
-        merged,
-        Prompt.fromMessages([
-          ...leftMessages,
-          ...rightMessages
-        ])
-      )
+      assert.deepStrictEqual(merged, Prompt.fromMessages([...leftMessages, ...rightMessages]))
     })
 
     it("should return an empty prompt if there are no messages", () => {
@@ -117,9 +111,7 @@ describe("Prompt", () => {
     })
 
     it("should create a new system message if none exists", () => {
-      const prompt = Prompt.make([
-        { role: "user", content: "Hello, world!" }
-      ])
+      const prompt = Prompt.make([{ role: "user", content: "Hello, world!" }])
 
       const result = Prompt.appendSystem(prompt, "You are a helpful assistant.")
 

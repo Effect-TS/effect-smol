@@ -221,7 +221,9 @@ function normalizeStringPosix(path: string, allowAboveRoot: boolean) {
         // NOOP
       } else if (lastSlash !== i - 1 && dots === 2) {
         if (
-          res.length < 2 || lastSegmentLength !== 2 || res.charCodeAt(res.length - 1) !== 46 /*.*/ ||
+          res.length < 2 ||
+          lastSegmentLength !== 2 ||
+          res.charCodeAt(res.length - 1) !== 46 /*.*/ ||
           res.charCodeAt(res.length - 2) !== 46 /*.*/
         ) {
           if (res.length > 2) {
@@ -333,7 +335,8 @@ const resolve: Path["resolve"] = function resolve() {
     } else {
       const process = (globalThis as any).process
       if (
-        cwd === undefined && "process" in globalThis &&
+        cwd === undefined &&
+        "process" in globalThis &&
         typeof process === "object" &&
         process !== null &&
         typeof process.cwd === "function"
@@ -378,10 +381,7 @@ function toFileUrl(filepath: string) {
   let resolved = resolve(filepath)
   // path.resolve strips trailing slashes so we must add them back
   const filePathLast = filepath.charCodeAt(filepath.length - 1)
-  if (
-    (filePathLast === CHAR_FORWARD_SLASH) &&
-    resolved[resolved.length - 1] !== "/"
-  ) {
+  if (filePathLast === CHAR_FORWARD_SLASH && resolved[resolved.length - 1] !== "/") {
     resolved += "/"
   }
   outURL.pathname = encodePathChars(resolved)
@@ -682,11 +682,12 @@ const posixImpl = Path.of({
     }
 
     if (
-      startDot === -1 || end === -1 ||
+      startDot === -1 ||
+      end === -1 ||
       // We saw a non-dot character immediately before the dot
       preDotState === 0 ||
       // The (right-most) trimmed path component is exactly '..'
-      preDotState === 1 && startDot === end - 1 && startDot === startPart + 1
+      (preDotState === 1 && startDot === end - 1 && startDot === startPart + 1)
     ) {
       return ""
     }
@@ -695,7 +696,7 @@ const posixImpl = Path.of({
 
   format: function format(pathObject) {
     if (pathObject === null || typeof pathObject !== "object") {
-      throw new TypeError("The \"pathObject\" argument must be of type Object. Received type " + typeof pathObject)
+      throw new TypeError('The "pathObject" argument must be of type Object. Received type ' + typeof pathObject)
     }
     return _format("/", pathObject)
   },
@@ -752,11 +753,12 @@ const posixImpl = Path.of({
     }
 
     if (
-      startDot === -1 || end === -1 ||
+      startDot === -1 ||
+      end === -1 ||
       // We saw a non-dot character immediately before the dot
       preDotState === 0 ||
       // The (right-most) trimmed path component is exactly '..'
-      preDotState === 1 && startDot === end - 1 && startDot === startPart + 1
+      (preDotState === 1 && startDot === end - 1 && startDot === startPart + 1)
     ) {
       if (end !== -1) {
         if (startPart === 0 && isAbsolute) ret.base = ret.name = path.slice(1, end)

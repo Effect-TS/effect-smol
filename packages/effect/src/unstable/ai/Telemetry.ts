@@ -50,12 +50,12 @@ import type * as Response from "./Response.ts"
  * @category models
  */
 export type GenAITelemetryAttributes = Struct.Simplify<
-  & AttributesWithPrefix<BaseAttributes, "gen_ai">
-  & AttributesWithPrefix<OperationAttributes, "gen_ai.operation">
-  & AttributesWithPrefix<TokenAttributes, "gen_ai.token">
-  & AttributesWithPrefix<UsageAttributes, "gen_ai.usage">
-  & AttributesWithPrefix<RequestAttributes, "gen_ai.request">
-  & AttributesWithPrefix<ResponseAttributes, "gen_ai.response">
+  AttributesWithPrefix<BaseAttributes, "gen_ai"> &
+    AttributesWithPrefix<OperationAttributes, "gen_ai.operation"> &
+    AttributesWithPrefix<TokenAttributes, "gen_ai.token"> &
+    AttributesWithPrefix<UsageAttributes, "gen_ai.usage"> &
+    AttributesWithPrefix<RequestAttributes, "gen_ai.request"> &
+    AttributesWithPrefix<ResponseAttributes, "gen_ai.response">
 >
 
 /**
@@ -64,13 +64,12 @@ export type GenAITelemetryAttributes = Struct.Simplify<
  * @since 4.0.0
  * @category models
  */
-export type AllAttributes =
-  & BaseAttributes
-  & OperationAttributes
-  & TokenAttributes
-  & UsageAttributes
-  & RequestAttributes
-  & ResponseAttributes
+export type AllAttributes = BaseAttributes &
+  OperationAttributes &
+  TokenAttributes &
+  UsageAttributes &
+  RequestAttributes &
+  ResponseAttributes
 
 /**
  * Telemetry attributes which are part of the GenAI specification and are
@@ -283,11 +282,11 @@ export type AttributesWithPrefix<Attributes extends Record<string, any>, Prefix 
  * @since 4.0.0
  * @category utility types
  */
-export type FormatAttributeName<T extends string | number | symbol> = T extends string ?
-  T extends `${infer First}${infer Rest}`
+export type FormatAttributeName<T extends string | number | symbol> = T extends string
+  ? T extends `${infer First}${infer Rest}`
     ? `${First extends Uppercase<First> ? "_" : ""}${Lowercase<First>}${FormatAttributeName<Rest>}`
-  : T :
-  never
+    : T
+  : never
 
 /**
  * Creates a function to add attributes to a span with a given prefix and key transformation.
@@ -318,32 +317,33 @@ export type FormatAttributeName<T extends string | number | symbol> = T extends 
  * @since 4.0.0
  * @category utilities
  */
-export const addSpanAttributes = (
-  /**
-   * The prefix to add to all attribute keys.
-   */
-  keyPrefix: string,
-  /**
-   * Function to transform attribute keys (e.g., camelCase to snake_case).
-   */
-  transformKey: (key: string) => string
-) =>
-<Attributes extends Record<string, any>>(
-  /**
-   * The OpenTelemetry span to add attributes to.
-   */
-  span: Span,
-  /**
-   * The attributes to add to the span.
-   */
-  attributes: Attributes
-): void => {
-  for (const [key, value] of Object.entries(attributes)) {
-    if (Predicate.isNotNullish(value)) {
-      span.attribute(`${keyPrefix}.${transformKey(key)}`, value)
+export const addSpanAttributes =
+  (
+    /**
+     * The prefix to add to all attribute keys.
+     */
+    keyPrefix: string,
+    /**
+     * Function to transform attribute keys (e.g., camelCase to snake_case).
+     */
+    transformKey: (key: string) => string
+  ) =>
+  <Attributes extends Record<string, any>>(
+    /**
+     * The OpenTelemetry span to add attributes to.
+     */
+    span: Span,
+    /**
+     * The attributes to add to the span.
+     */
+    attributes: Attributes
+  ): void => {
+    for (const [key, value] of Object.entries(attributes)) {
+      if (Predicate.isNotNullish(value)) {
+        span.attribute(`${keyPrefix}.${transformKey(key)}`, value)
+      }
     }
   }
-}
 
 const addSpanBaseAttributes = addSpanAttributes("gen_ai", String.camelToSnake)<BaseAttributes>
 const addSpanOperationAttributes = addSpanAttributes("gen_ai.operation", String.camelToSnake)<OperationAttributes>

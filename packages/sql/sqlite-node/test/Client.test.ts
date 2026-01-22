@@ -4,7 +4,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { Effect, FileSystem } from "effect"
 import { Reactivity } from "effect/unstable/reactivity"
 
-const makeClient = Effect.gen(function*() {
+const makeClient = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const dir = yield* fs.makeTempDirectoryScoped()
   return yield* SqliteClient.make({
@@ -14,7 +14,7 @@ const makeClient = Effect.gen(function*() {
 
 describe("Client", () => {
   it.effect("should work", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const sql = yield* makeClient
       let response
       response = yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`
@@ -30,10 +30,11 @@ describe("Client", () => {
         { id: 1, name: "hello" },
         { id: 2, name: "world" }
       ])
-    }))
+    })
+  )
 
   it.effect("should work with raw", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const sql = yield* makeClient
       let response
       response = yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`.raw
@@ -49,19 +50,21 @@ describe("Client", () => {
         { id: 1, name: "hello" },
         { id: 2, name: "world" }
       ])
-    }))
+    })
+  )
 
   it.effect("withTransaction", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const sql = yield* makeClient
       yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`
       yield* sql.withTransaction(sql`INSERT INTO test (name) VALUES ('hello')`)
       const rows = yield* sql`SELECT * FROM test`
       assert.deepStrictEqual(rows, [{ id: 1, name: "hello" }])
-    }))
+    })
+  )
 
   it.effect("withTransaction rollback", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const sql = yield* makeClient
       yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`
       yield* sql`INSERT INTO test (name) VALUES ('hello')`.pipe(
@@ -71,5 +74,6 @@ describe("Client", () => {
       )
       const rows = yield* sql`SELECT * FROM test`
       assert.deepStrictEqual(rows, [])
-    }))
+    })
+  )
 })

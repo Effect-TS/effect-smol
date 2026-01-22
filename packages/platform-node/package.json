@@ -1,33 +1,31 @@
 {
   "name": "@effect/platform-node",
-  "type": "module",
   "version": "0.77.6",
-  "license": "MIT",
   "description": "Platform specific implementations for the Node.js runtime",
+  "keywords": [
+    "algebraic-data-types",
+    "functional-programming",
+    "node",
+    "typescript"
+  ],
   "homepage": "https://effect.website",
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/platform-node"
   },
-  "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
-  },
-  "tags": [
-    "node",
-    "typescript",
-    "algebraic-data-types",
-    "functional-programming"
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "src/**/*.ts"
   ],
-  "keywords": [
-    "node",
-    "typescript",
-    "algebraic-data-types",
-    "functional-programming"
-  ],
-  "engines": {
-    "node": ">=18.0.0"
-  },
+  "type": "module",
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
@@ -36,22 +34,15 @@
     "./internal/*": null,
     "./*/index": null
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
-    "provenance": true,
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
       "./*/index": null
-    }
+    },
+    "provenance": true
   },
   "scripts": {
     "codegen": "effect-utils codegen",
@@ -67,15 +58,24 @@
     "mime": "^4.1.0",
     "undici": "^7.16.0"
   },
-  "peerDependencies": {
-    "effect": "workspace:^",
-    "ioredis": "^5.7.0"
-  },
   "devDependencies": {
     "@testcontainers/mysql": "^11.11.0",
     "@testcontainers/postgresql": "^11.10.0",
     "@testcontainers/redis": "^11.10.0",
     "@types/node": "^25.0.6",
     "effect": "workspace:^"
-  }
+  },
+  "peerDependencies": {
+    "effect": "workspace:^",
+    "ioredis": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "tags": [
+    "node",
+    "typescript",
+    "algebraic-data-types",
+    "functional-programming"
+  ]
 }

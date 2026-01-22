@@ -278,36 +278,35 @@ describe("AiError", () => {
     describe("OutputParseError", () => {
       it("should be retryable", () => {
         const error = new AiError.OutputParseError({
-          rawOutput: "{\"invalid\": json}"
+          rawOutput: '{"invalid": json}'
         })
         assert.isTrue(error.isRetryable)
       })
 
       it("should store raw output", () => {
-        const rawOutput = "{\"invalid\": json}"
+        const rawOutput = '{"invalid": json}'
         const error = new AiError.OutputParseError({ rawOutput })
         assert.strictEqual(error.rawOutput, rawOutput)
       })
 
       it.effect("should create from SchemaError", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const TestSchema = Schema.Struct({ name: Schema.String })
-          const result = yield* Effect.exit(
-            Schema.decodeUnknownEffect(TestSchema)({ name: 123 })
-          )
+          const result = yield* Effect.exit(Schema.decodeUnknownEffect(TestSchema)({ name: 123 }))
 
           if (result._tag === "Failure") {
             const cause = result.cause
             if ("error" in cause && Schema.isSchemaError(cause.error)) {
               const parseError = AiError.OutputParseError.fromSchemaError({
-                rawOutput: "{\"name\": 123}",
+                rawOutput: '{"name": 123}',
                 error: cause.error
               })
               assert.strictEqual(parseError._tag, "OutputParseError")
-              assert.strictEqual(parseError.rawOutput, "{\"name\": 123}")
+              assert.strictEqual(parseError.rawOutput, '{"name": 123}')
             }
           }
-        }))
+        })
+      )
 
       it("should have _tag set correctly", () => {
         const error = new AiError.OutputParseError({})
@@ -443,18 +442,9 @@ describe("AiError", () => {
       })
 
       it("should map 5xx to ProviderInternalError", () => {
-        assert.strictEqual(
-          AiError.reasonFromHttpStatus({ status: 500 })._tag,
-          "ProviderInternalError"
-        )
-        assert.strictEqual(
-          AiError.reasonFromHttpStatus({ status: 502 })._tag,
-          "ProviderInternalError"
-        )
-        assert.strictEqual(
-          AiError.reasonFromHttpStatus({ status: 503 })._tag,
-          "ProviderInternalError"
-        )
+        assert.strictEqual(AiError.reasonFromHttpStatus({ status: 500 })._tag, "ProviderInternalError")
+        assert.strictEqual(AiError.reasonFromHttpStatus({ status: 502 })._tag, "ProviderInternalError")
+        assert.strictEqual(AiError.reasonFromHttpStatus({ status: 503 })._tag, "ProviderInternalError")
       })
 
       it("should map unknown status to AiUnknownError", () => {
@@ -515,7 +505,7 @@ describe("AiError", () => {
   describe("supporting schemas", () => {
     describe("ProviderMetadata", () => {
       it.effect("should encode and decode roundtrip", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const metadata = {
             name: "OpenAI",
             errorCode: "rate_limit_exceeded",
@@ -525,12 +515,13 @@ describe("AiError", () => {
           const encoded = yield* Schema.encodeEffect(AiError.ProviderMetadata)(metadata)
           const decoded = yield* Schema.decodeEffect(AiError.ProviderMetadata)(encoded)
           assert.deepStrictEqual(decoded, metadata)
-        }))
+        })
+      )
     })
 
     describe("UsageInfo", () => {
       it.effect("should encode and decode roundtrip", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const usage = {
             promptTokens: 100,
             completionTokens: 50,
@@ -539,12 +530,13 @@ describe("AiError", () => {
           const encoded = yield* Schema.encodeEffect(AiError.UsageInfo)(usage)
           const decoded = yield* Schema.decodeEffect(AiError.UsageInfo)(encoded)
           assert.deepStrictEqual(decoded, usage)
-        }))
+        })
+      )
     })
 
     describe("HttpContext", () => {
       it.effect("should encode and decode roundtrip", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const context = {
             request: {
               method: "POST" as const,
@@ -557,18 +549,19 @@ describe("AiError", () => {
               status: 200,
               headers: { "Content-Type": "application/json" }
             },
-            body: "{\"result\": \"success\"}"
+            body: '{"result": "success"}'
           }
           const encoded = yield* Schema.encodeEffect(AiError.HttpContext)(context)
           const decoded = yield* Schema.decodeEffect(AiError.HttpContext)(encoded)
           assert.deepStrictEqual(decoded, context)
-        }))
+        })
+      )
     })
   })
 
   describe("schema roundtrip", () => {
     it.effect("RateLimitError roundtrip", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const error = new AiError.RateLimitError({
           limit: "requests",
           remaining: 0,
@@ -579,10 +572,11 @@ describe("AiError", () => {
         assert.strictEqual(decoded._tag, "RateLimitError")
         assert.strictEqual(decoded.limit, "requests")
         assert.strictEqual(decoded.remaining, 0)
-      }))
+      })
+    )
 
     it.effect("AiErrorReason union roundtrip", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const rateLimitError: AiError.AiErrorReason = new AiError.RateLimitError({
           limit: "tokens"
         })
@@ -596,10 +590,11 @@ describe("AiError", () => {
         const authEncoded = yield* Schema.encodeEffect(AiError.AiErrorReason)(authError)
         const authDecoded = yield* Schema.decodeEffect(AiError.AiErrorReason)(authEncoded)
         assert.strictEqual(authDecoded._tag, "AuthenticationError")
-      }))
+      })
+    )
 
     it.effect("AiError roundtrip", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const error = new AiError.AiError({
           module: "OpenAI",
           method: "completion",
@@ -611,6 +606,7 @@ describe("AiError", () => {
         assert.strictEqual(decoded.module, "OpenAI")
         assert.strictEqual(decoded.method, "completion")
         assert.strictEqual(decoded.reason._tag, "RateLimitError")
-      }))
+      })
+    )
   })
 })

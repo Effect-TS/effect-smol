@@ -6,7 +6,7 @@ describe("PrometheusMetrics", () => {
   describe("format", () => {
     describe("Counter", () => {
       it.effect("formats a simple counter", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("test_counter", {
             description: "A test counter"
           })
@@ -18,10 +18,11 @@ describe("PrometheusMetrics", () => {
           assert.include(output, "# HELP test_counter A test counter")
           assert.include(output, "# TYPE test_counter counter")
           assert.include(output, "test_counter 42")
-        }))
+        })
+      )
 
       it.effect("formats a counter with bigint value", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("bigint_counter", {
             description: "A bigint counter",
             bigint: true
@@ -33,10 +34,11 @@ describe("PrometheusMetrics", () => {
 
           assert.include(output, "# TYPE bigint_counter counter")
           assert.include(output, "bigint_counter 9007199254740993")
-        }))
+        })
+      )
 
       it.effect("formats a counter with attributes", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("labeled_counter", {
             description: "Counter with labels",
             attributes: { method: "GET", endpoint: "/api/users" }
@@ -47,11 +49,12 @@ describe("PrometheusMetrics", () => {
           const output = yield* PrometheusMetrics.format()
 
           assert.include(output, "# TYPE labeled_counter counter")
-          assert.include(output, "labeled_counter{method=\"GET\",endpoint=\"/api/users\"} 10")
-        }))
+          assert.include(output, 'labeled_counter{method="GET",endpoint="/api/users"} 10')
+        })
+      )
 
       it.effect("formats a counter without description", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("no_desc_counter")
 
           yield* Metric.update(counter, 5)
@@ -61,12 +64,13 @@ describe("PrometheusMetrics", () => {
           assert.notInclude(output, "# HELP no_desc_counter")
           assert.include(output, "# TYPE no_desc_counter counter")
           assert.include(output, "no_desc_counter 5")
-        }))
+        })
+      )
     })
 
     describe("Gauge", () => {
       it.effect("formats a simple gauge", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const gauge = Metric.gauge("test_gauge", {
             description: "A test gauge"
           })
@@ -78,10 +82,11 @@ describe("PrometheusMetrics", () => {
           assert.include(output, "# HELP test_gauge A test gauge")
           assert.include(output, "# TYPE test_gauge gauge")
           assert.include(output, "test_gauge 123.45")
-        }))
+        })
+      )
 
       it.effect("formats a gauge with negative value", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const gauge = Metric.gauge("negative_gauge", {
             description: "A gauge with negative value"
           })
@@ -91,10 +96,11 @@ describe("PrometheusMetrics", () => {
           const output = yield* PrometheusMetrics.format()
 
           assert.include(output, "negative_gauge -50")
-        }))
+        })
+      )
 
       it.effect("formats a gauge with bigint value", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const gauge = Metric.gauge("bigint_gauge", {
             description: "A bigint gauge",
             bigint: true
@@ -105,12 +111,13 @@ describe("PrometheusMetrics", () => {
           const output = yield* PrometheusMetrics.format()
 
           assert.include(output, "bigint_gauge 1000000000000")
-        }))
+        })
+      )
     })
 
     describe("Histogram", () => {
       it.effect("formats a histogram with buckets", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const histogram = Metric.histogram("test_histogram", {
             description: "A test histogram",
             boundaries: [10, 50, 100, 500]
@@ -126,17 +133,18 @@ describe("PrometheusMetrics", () => {
 
           assert.include(output, "# HELP test_histogram A test histogram")
           assert.include(output, "# TYPE test_histogram histogram")
-          assert.include(output, "test_histogram_bucket{le=\"10\"} 1")
-          assert.include(output, "test_histogram_bucket{le=\"50\"} 2")
-          assert.include(output, "test_histogram_bucket{le=\"100\"} 3")
-          assert.include(output, "test_histogram_bucket{le=\"500\"} 4")
-          assert.include(output, "test_histogram_bucket{le=\"+Inf\"} 5")
+          assert.include(output, 'test_histogram_bucket{le="10"} 1')
+          assert.include(output, 'test_histogram_bucket{le="50"} 2')
+          assert.include(output, 'test_histogram_bucket{le="100"} 3')
+          assert.include(output, 'test_histogram_bucket{le="500"} 4')
+          assert.include(output, 'test_histogram_bucket{le="+Inf"} 5')
           assert.include(output, "test_histogram_sum 1305")
           assert.include(output, "test_histogram_count 5")
-        }))
+        })
+      )
 
       it.effect("formats a histogram with attributes", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const histogram = Metric.histogram("labeled_histogram", {
             description: "Histogram with labels",
             boundaries: [100, 500],
@@ -147,17 +155,18 @@ describe("PrometheusMetrics", () => {
 
           const output = yield* PrometheusMetrics.format()
 
-          assert.include(output, "labeled_histogram_bucket{service=\"api\",le=\"100\"} 0")
-          assert.include(output, "labeled_histogram_bucket{service=\"api\",le=\"500\"} 1")
-          assert.include(output, "labeled_histogram_bucket{service=\"api\",le=\"+Inf\"} 1")
-          assert.include(output, "labeled_histogram_sum{service=\"api\"} 250")
-          assert.include(output, "labeled_histogram_count{service=\"api\"} 1")
-        }))
+          assert.include(output, 'labeled_histogram_bucket{service="api",le="100"} 0')
+          assert.include(output, 'labeled_histogram_bucket{service="api",le="500"} 1')
+          assert.include(output, 'labeled_histogram_bucket{service="api",le="+Inf"} 1')
+          assert.include(output, 'labeled_histogram_sum{service="api"} 250')
+          assert.include(output, 'labeled_histogram_count{service="api"} 1')
+        })
+      )
     })
 
     describe("Summary", () => {
       it.effect("formats a summary with quantiles", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const summary = Metric.summary("test_summary", {
             description: "A test summary",
             maxAge: "1 minute",
@@ -174,17 +183,18 @@ describe("PrometheusMetrics", () => {
 
           assert.include(output, "# HELP test_summary A test summary")
           assert.include(output, "# TYPE test_summary summary")
-          assert.include(output, "test_summary{quantile=\"0.5\"}")
-          assert.include(output, "test_summary{quantile=\"0.9\"}")
-          assert.include(output, "test_summary{quantile=\"0.99\"}")
+          assert.include(output, 'test_summary{quantile="0.5"}')
+          assert.include(output, 'test_summary{quantile="0.9"}')
+          assert.include(output, 'test_summary{quantile="0.99"}')
           assert.include(output, "test_summary_sum 5050")
           assert.include(output, "test_summary_count 100")
-        }))
+        })
+      )
     })
 
     describe("Frequency", () => {
       it.effect("formats a frequency metric", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const frequency = Metric.frequency("test_frequency", {
             description: "A test frequency"
           })
@@ -198,12 +208,13 @@ describe("PrometheusMetrics", () => {
 
           assert.include(output, "# HELP test_frequency A test frequency")
           assert.include(output, "# TYPE test_frequency counter")
-          assert.include(output, "test_frequency{key=\"success\"} 3")
-          assert.include(output, "test_frequency{key=\"failure\"} 1")
-        }))
+          assert.include(output, 'test_frequency{key="success"} 3')
+          assert.include(output, 'test_frequency{key="failure"} 1')
+        })
+      )
 
       it.effect("formats a frequency metric with attributes", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const frequency = Metric.frequency("labeled_frequency", {
             description: "Frequency with labels",
             attributes: { service: "api" }
@@ -214,14 +225,15 @@ describe("PrometheusMetrics", () => {
 
           const output = yield* PrometheusMetrics.format()
 
-          assert.include(output, "labeled_frequency{service=\"api\",key=\"200\"} 1")
-          assert.include(output, "labeled_frequency{service=\"api\",key=\"404\"} 1")
-        }))
+          assert.include(output, 'labeled_frequency{service="api",key="200"} 1')
+          assert.include(output, 'labeled_frequency{service="api",key="404"} 1')
+        })
+      )
     })
 
     describe("options", () => {
       it.effect("applies prefix to metric names", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("requests_total", {
             description: "Total requests"
           })
@@ -233,10 +245,11 @@ describe("PrometheusMetrics", () => {
           assert.include(output, "# HELP myapp_requests_total Total requests")
           assert.include(output, "# TYPE myapp_requests_total counter")
           assert.include(output, "myapp_requests_total 100")
-        }))
+        })
+      )
 
       it.effect("applies custom metric name mapper", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("requestCount", {
             description: "Request count"
           })
@@ -251,10 +264,11 @@ describe("PrometheusMetrics", () => {
           assert.include(output, "# HELP request_count Request count")
           assert.include(output, "# TYPE request_count counter")
           assert.include(output, "request_count 50")
-        }))
+        })
+      )
 
       it.effect("combines prefix and mapper", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("httpRequests", {
             description: "HTTP requests"
           })
@@ -269,12 +283,13 @@ describe("PrometheusMetrics", () => {
           })
 
           assert.include(output, "app_http_requests 25")
-        }))
+        })
+      )
     })
 
     describe("sanitization", () => {
       it.effect("sanitizes invalid metric name characters", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("metric-with-dashes.and.dots", {
             description: "Metric with special chars"
           })
@@ -284,10 +299,11 @@ describe("PrometheusMetrics", () => {
           const output = yield* PrometheusMetrics.format()
 
           assert.include(output, "metric_with_dashes_and_dots 1")
-        }))
+        })
+      )
 
       it.effect("handles metric names starting with digits", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("123_metric", {
             description: "Metric starting with number"
           })
@@ -297,14 +313,15 @@ describe("PrometheusMetrics", () => {
           const output = yield* PrometheusMetrics.format()
 
           assert.include(output, "_123_metric 1")
-        }))
+        })
+      )
 
       it.effect("escapes special characters in label values", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("escape_test", {
             description: "Test escaping",
             attributes: {
-              path: "/api/users\"quoted\"",
+              path: '/api/users"quoted"',
               message: "line1\nline2"
             }
           })
@@ -313,12 +330,13 @@ describe("PrometheusMetrics", () => {
 
           const output = yield* PrometheusMetrics.format()
 
-          assert.include(output, "path=\"/api/users\\\"quoted\\\"\"")
-          assert.include(output, "message=\"line1\\nline2\"")
-        }))
+          assert.include(output, 'path="/api/users\\"quoted\\""')
+          assert.include(output, 'message="line1\\nline2"')
+        })
+      )
 
       it.effect("escapes backslashes in label values", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("backslash_test", {
             description: "Test backslash escaping",
             attributes: { path: "C:\\Users\\test" }
@@ -328,11 +346,12 @@ describe("PrometheusMetrics", () => {
 
           const output = yield* PrometheusMetrics.format()
 
-          assert.include(output, "path=\"C:\\\\Users\\\\test\"")
-        }))
+          assert.include(output, 'path="C:\\\\Users\\\\test"')
+        })
+      )
 
       it.effect("escapes special characters in HELP text", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("help_escape", {
             description: "Line 1\nLine 2 with\\backslash"
           })
@@ -342,12 +361,13 @@ describe("PrometheusMetrics", () => {
           const output = yield* PrometheusMetrics.format()
 
           assert.include(output, "# HELP help_escape Line 1\\nLine 2 with\\\\backslash")
-        }))
+        })
+      )
     })
 
     describe("special values", () => {
       it.effect("formats NaN values", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const gauge = Metric.gauge("nan_gauge", {
             description: "Gauge with NaN"
           })
@@ -357,10 +377,11 @@ describe("PrometheusMetrics", () => {
           const output = yield* PrometheusMetrics.format()
 
           assert.include(output, "nan_gauge NaN")
-        }))
+        })
+      )
 
       it.effect("formats Infinity values", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const gauge = Metric.gauge("inf_gauge", {
             description: "Gauge with Infinity"
           })
@@ -370,10 +391,11 @@ describe("PrometheusMetrics", () => {
           const output = yield* PrometheusMetrics.format()
 
           assert.include(output, "inf_gauge +Inf")
-        }))
+        })
+      )
 
       it.effect("formats negative Infinity values", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const gauge = Metric.gauge("neg_inf_gauge", {
             description: "Gauge with -Infinity"
           })
@@ -383,23 +405,25 @@ describe("PrometheusMetrics", () => {
           const output = yield* PrometheusMetrics.format()
 
           assert.include(output, "neg_inf_gauge -Inf")
-        }))
+        })
+      )
     })
 
     describe("empty output", () => {
       it.effect("returns empty string when no metrics are registered", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const output = yield* PrometheusMetrics.format()
 
           // Output may contain other metrics from the test environment,
           // but at minimum it should be a valid string
           assert.isString(output)
-        }))
+        })
+      )
     })
 
     describe("output format", () => {
       it.effect("ends with a newline when there are metrics", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const counter = Metric.counter("newline_test", {
             description: "Test newline"
           })
@@ -411,7 +435,8 @@ describe("PrometheusMetrics", () => {
           if (output.length > 0) {
             assert.isTrue(output.endsWith("\n"))
           }
-        }))
+        })
+      )
     })
   })
 })

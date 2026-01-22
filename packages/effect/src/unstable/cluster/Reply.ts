@@ -75,10 +75,7 @@ export class ReplyWithContext<R extends Rpc.Any> extends Data.TaggedClass("Reply
   /**
    * @since 4.0.0
    */
-  static interrupt(options: {
-    readonly id: Snowflake
-    readonly requestId: Snowflake
-  }): ReplyWithContext<any> {
+  static interrupt(options: { readonly id: Snowflake; readonly requestId: Snowflake }): ReplyWithContext<any> {
     return new ReplyWithContext({
       reply: new WithExit({
         requestId: options.requestId,
@@ -184,15 +181,16 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
     // TODO: extract to a helper function
     return Schema.declareConstructor<Chunk<Rpc.Any>>()(
       [success],
-      ([success]) => (input, ast, options) => {
-        if (!isReply(input) || input._tag !== "Chunk") {
-          return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
-        }
-        return Effect.mapBothEager(Parser.decodeEffect(Schema.NonEmptyArray(success))(input.values, options), {
-          onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["values"], issue)]),
-          onSuccess: (values) => new Chunk({ ...input, values } as any)
-        })
-      },
+      ([success]) =>
+        (input, ast, options) => {
+          if (!isReply(input) || input._tag !== "Chunk") {
+            return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+          }
+          return Effect.mapBothEager(Parser.decodeEffect(Schema.NonEmptyArray(success))(input.values, options), {
+            onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["values"], issue)]),
+            onSuccess: (values) => new Chunk({ ...input, values } as any)
+          })
+        },
       {
         expected: "Reply.Chunk",
         toCodecJson: ([success]) =>
@@ -263,23 +261,20 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
    */
   static schemaFrom<Success extends Schema.Top, Error extends Schema.Top, Defect extends Schema.Top>(
     exitSchema: Schema.Exit<Success, Error, Defect>
-  ): Schema.declareConstructor<
-    WithExit<Rpc.Any>,
-    WithExit<Rpc.Any>,
-    readonly [Schema.Exit<Success, Error, Defect>]
-  > {
+  ): Schema.declareConstructor<WithExit<Rpc.Any>, WithExit<Rpc.Any>, readonly [Schema.Exit<Success, Error, Defect>]> {
     // TODO: extract to a helper function
     return Schema.declareConstructor<WithExit<Rpc.Any>>()(
       [exitSchema],
-      ([exit]) => (input, ast, options) => {
-        if (!isReply(input) || input._tag !== "WithExit") {
-          return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
-        }
-        return Effect.mapBothEager(Parser.decodeEffect(exit)(input.exit, options), {
-          onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["exit"], issue)]),
-          onSuccess: (exit) => new WithExit({ ...input, exit: exit as any })
-        })
-      },
+      ([exit]) =>
+        (input, ast, options) => {
+          if (!isReply(input) || input._tag !== "WithExit") {
+            return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+          }
+          return Effect.mapBothEager(Parser.decodeEffect(exit)(input.exit, options), {
+            onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["exit"], issue)]),
+            onSuccess: (exit) => new WithExit({ ...input, exit: exit as any })
+          })
+        },
       {
         expected: "Reply.WithExit",
         toCodecJson: ([exit]) =>
@@ -316,12 +311,7 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
  */
 export const Reply = <R extends Rpc.Any>(
   rpc: R
-): Schema.Codec<
-  WithExit<R> | Chunk<R>,
-  Encoded,
-  Rpc.ServicesServer<R>,
-  Rpc.ServicesClient<R>
-> => {
+): Schema.Codec<WithExit<R> | Chunk<R>, Encoded, Rpc.ServicesServer<R>, Rpc.ServicesClient<R>> => {
   if (schemaCache.has(rpc)) {
     return schemaCache.get(rpc) as any
   }
@@ -334,16 +324,9 @@ export const Reply = <R extends Rpc.Any>(
  * @since 4.0.0
  * @category serialization / deserialization
  */
-export const serialize = <R extends Rpc.Any>(
-  self: ReplyWithContext<R>
-): Effect.Effect<Encoded, MalformedMessage> => {
+export const serialize = <R extends Rpc.Any>(self: ReplyWithContext<R>): Effect.Effect<Encoded, MalformedMessage> => {
   const schema = Reply(self.rpc)
-  return MalformedMessage.refail(
-    Effect.provideServices(
-      Schema.encodeEffect(schema)(self.reply),
-      self.services
-    )
-  )
+  return MalformedMessage.refail(Effect.provideServices(Schema.encodeEffect(schema)(self.reply), self.services))
 }
 
 /**

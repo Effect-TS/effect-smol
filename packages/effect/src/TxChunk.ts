@@ -73,12 +73,12 @@ const TxChunkProto = {
     return this.toJSON()
   },
   toString(this: TxChunk<unknown>) {
-    return `TxChunk(${format(toJson((this).ref))})`
+    return `TxChunk(${format(toJson(this.ref))})`
   },
   toJSON(this: TxChunk<unknown>) {
     return {
       _id: "TxChunk",
-      ref: toJson((this).ref)
+      ref: toJson(this.ref)
     }
   },
   pipe(this: TxChunk<unknown>) {
@@ -233,13 +233,10 @@ export const makeUnsafe = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
  * ```
  */
 export const modify: {
-  <A, R>(f: (current: Chunk.Chunk<NoInfer<A>>) => [returnValue: R, newValue: Chunk.Chunk<A>]): (
-    self: TxChunk<A>
-  ) => Effect.Effect<R>
   <A, R>(
-    self: TxChunk<A>,
-    f: (current: Chunk.Chunk<A>) => [returnValue: R, newValue: Chunk.Chunk<A>]
-  ): Effect.Effect<R>
+    f: (current: Chunk.Chunk<NoInfer<A>>) => [returnValue: R, newValue: Chunk.Chunk<A>]
+  ): (self: TxChunk<A>) => Effect.Effect<R>
+  <A, R>(self: TxChunk<A>, f: (current: Chunk.Chunk<A>) => [returnValue: R, newValue: Chunk.Chunk<A>]): Effect.Effect<R>
 } = dual(
   2,
   <A, R>(
@@ -742,10 +739,13 @@ export const prependAll: {
 export const concat: {
   <A>(other: TxChunk<A>): (self: TxChunk<A>) => Effect.Effect<void>
   <A>(self: TxChunk<A>, other: TxChunk<A>): Effect.Effect<void>
-} = dual(2, <A>(self: TxChunk<A>, other: TxChunk<A>): Effect.Effect<void> =>
-  Effect.atomic(
-    Effect.gen(function*() {
-      const otherChunk = yield* get(other)
-      yield* appendAll(self, otherChunk)
-    })
-  ))
+} = dual(
+  2,
+  <A>(self: TxChunk<A>, other: TxChunk<A>): Effect.Effect<void> =>
+    Effect.atomic(
+      Effect.gen(function* () {
+        const otherChunk = yield* get(other)
+        yield* appendAll(self, otherChunk)
+      })
+    )
+)

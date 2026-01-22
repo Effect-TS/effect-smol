@@ -37,10 +37,7 @@ const Proto = {
   }
 }
 
-const makeUnsafe = <A>(
-  scope: Scope.Closeable,
-  value: A
-): ScopedRef<A> => {
+const makeUnsafe = <A>(scope: Scope.Closeable, value: A): ScopedRef<A> => {
   const self = Object.create(Proto)
   self.backing = Synchronized.makeUnsafe([scope, value] as const)
   return self
@@ -55,7 +52,7 @@ const makeUnsafe = <A>(
  */
 export const fromAcquire: <A, E, R>(
   acquire: Effect.Effect<A, E, R>
-) => Effect.Effect<ScopedRef<A>, E, Scope.Scope | R> = Effect.fnUntraced(function*<A, E, R>(
+) => Effect.Effect<ScopedRef<A>, E, Scope.Scope | R> = Effect.fnUntraced(function* <A, E, R>(
   acquire: Effect.Effect<A, E, R>
 ) {
   const scope = Scope.makeUnsafe()
@@ -96,7 +93,10 @@ export const make = <A>(evaluate: LazyArg<A>): Effect.Effect<ScopedRef<A>, never
     const scope = Scope.makeUnsafe()
     const value = evaluate()
     const self = makeUnsafe(scope, value)
-    return Effect.as(Effect.addFinalizer((exit) => Scope.close(self.backing.backing.ref.current[0], exit)), self)
+    return Effect.as(
+      Effect.addFinalizer((exit) => Scope.close(self.backing.backing.ref.current[0], exit)),
+      self
+    )
   })
 
 /**
@@ -116,10 +116,7 @@ export const set: {
 } = dual(
   2,
   Effect.fnUntraced(
-    function*<A, R, E>(
-      self: ScopedRef<A>,
-      acquire: Effect.Effect<A, E, R>
-    ) {
+    function* <A, R, E>(self: ScopedRef<A>, acquire: Effect.Effect<A, E, R>) {
       yield* Scope.close(self.backing.backing.ref.current[0], Exit.void)
       const scope = Scope.makeUnsafe()
       const value = yield* acquire.pipe(

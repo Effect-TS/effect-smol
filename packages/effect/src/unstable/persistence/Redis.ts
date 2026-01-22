@@ -13,47 +13,52 @@ import * as ServiceMap from "../../ServiceMap.ts"
  * @since 4.0.0
  * @category Service
  */
-export class Redis extends ServiceMap.Service<Redis, {
-  readonly send: <A = unknown>(command: string, ...args: ReadonlyArray<string>) => Effect.Effect<A, RedisError>
+export class Redis extends ServiceMap.Service<
+  Redis,
+  {
+    readonly send: <A = unknown>(command: string, ...args: ReadonlyArray<string>) => Effect.Effect<A, RedisError>
 
-  readonly eval: <
-    Config extends {
-      readonly params: ReadonlyArray<unknown>
-      readonly result: unknown
-    }
-  >(script: Script<Config>) => (...params: Config["params"]) => Effect.Effect<Config["result"], RedisError>
-}>()("effect/persistence/Redis") {}
+    readonly eval: <
+      Config extends {
+        readonly params: ReadonlyArray<unknown>
+        readonly result: unknown
+      }
+    >(
+      script: Script<Config>
+    ) => (...params: Config["params"]) => Effect.Effect<Config["result"], RedisError>
+  }
+>()("effect/persistence/Redis") {}
 
 /**
  * @since 4.0.0
  * @category Constructors
  */
-export const make = Effect.fnUntraced(function*(
-  options: {
-    readonly send: <A = unknown>(command: string, ...args: ReadonlyArray<string>) => Effect.Effect<A, RedisError>
-  }
-) {
+export const make = Effect.fnUntraced(function* (options: {
+  readonly send: <A = unknown>(command: string, ...args: ReadonlyArray<string>) => Effect.Effect<A, RedisError>
+}) {
   const scriptCache = yield* Cache.make({
     lookup: (script: Script<any>) => options.send<string>("SCRIPT", "LOAD", script.lua),
     capacity: Number.POSITIVE_INFINITY
   })
 
-  const eval_ = <
-    Config extends {
-      readonly params: ReadonlyArray<unknown>
-      readonly result: unknown
-    }
-  >(
-    script: Script<Config>
-  ) =>
-  (...params: Config["params"]): Effect.Effect<Config["result"], RedisError> =>
-    Effect.flatMap(Cache.get(scriptCache, script), (sha) =>
-      options.send<Config["result"]>(
-        "EVALSHA",
-        sha,
-        script.numberOfKeys(...params).toString(),
-        ...script.params(...params).map((param) => String(param))
-      ))
+  const eval_ =
+    <
+      Config extends {
+        readonly params: ReadonlyArray<unknown>
+        readonly result: unknown
+      }
+    >(
+      script: Script<Config>
+    ) =>
+    (...params: Config["params"]): Effect.Effect<Config["result"], RedisError> =>
+      Effect.flatMap(Cache.get(scriptCache, script), (sha) =>
+        options.send<Config["result"]>(
+          "EVALSHA",
+          sha,
+          script.numberOfKeys(...params).toString(),
+          ...script.params(...params).map((param) => String(param))
+        )
+      )
 
   return identity<Redis["Service"]>({
     send: options.send,

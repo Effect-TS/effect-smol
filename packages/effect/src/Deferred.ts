@@ -261,7 +261,7 @@ export const complete: {
 } = dual(
   2,
   <A, E, R>(self: Deferred<A, E>, effect: Effect<A, E, R>): Effect<boolean, never, R> =>
-    internalEffect.suspend(() => self.effect ? internalEffect.succeed(false) : into(effect, self))
+    internalEffect.suspend(() => (self.effect ? internalEffect.succeed(false) : into(effect, self)))
 )
 
 /**
@@ -719,9 +719,6 @@ export const into: {
   2,
   <A, E, R>(self: Effect<A, E, R>, deferred: Deferred<A, E>): Effect<boolean, never, R> =>
     internalEffect.uninterruptibleMask((restore) =>
-      internalEffect.flatMap(
-        internalEffect.exit(restore(self)),
-        (exit) => done(deferred, exit)
-      )
+      internalEffect.flatMap(internalEffect.exit(restore(self)), (exit) => done(deferred, exit))
     )
 )

@@ -1,10 +1,9 @@
 {
-  "dprint.path": "node_modules/.bin/dprint",
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.preferences.importModuleSpecifier": "relative",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "dprint.dprint",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
   "editor.formatOnSaveMode": "file",
   "editor.codeActionsOnSave": {
     "source.fixAll.oxc": "explicit"

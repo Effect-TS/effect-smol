@@ -40,17 +40,25 @@ export const TestEntity = Entity.make("TestEntity", [
 ]).annotateRpcs(ClusterSchema.Persisted, true)
 
 export class TestEntityState extends ServiceMap.Service<TestEntityState>()("TestEntityState", {
-  make: Effect.gen(function*() {
+  make: Effect.gen(function* () {
     const messages = yield* Queue.make<void>()
     const streamMessages = yield* Queue.make<void, Cause.Done>()
-    const envelopes = yield* Queue.make<
-      RpcGroup.Rpcs<typeof TestEntity.protocol> extends infer R ? R extends Rpc.Any ? Envelope.Request<R> : never
-        : never
-    >()
-    const interrupts = yield* Queue.make<
-      RpcGroup.Rpcs<typeof TestEntity.protocol> extends infer R ? R extends Rpc.Any ? Envelope.Request<R> : never
-        : never
-    >()
+    const envelopes =
+      yield* Queue.make<
+        RpcGroup.Rpcs<typeof TestEntity.protocol> extends infer R
+          ? R extends Rpc.Any
+            ? Envelope.Request<R>
+            : never
+          : never
+      >()
+    const interrupts =
+      yield* Queue.make<
+        RpcGroup.Rpcs<typeof TestEntity.protocol> extends infer R
+          ? R extends Rpc.Any
+            ? Envelope.Request<R>
+            : never
+          : never
+      >()
     const defectTrigger = MutableRef.make(false)
     const layerBuilds = MutableRef.make(0)
 
@@ -68,7 +76,7 @@ export class TestEntityState extends ServiceMap.Service<TestEntityState>()("Test
 }
 
 export const TestEntityNoState = TestEntity.toLayer(
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const state = yield* TestEntityState
 
     MutableRef.update(state.layerBuilds, (count) => count + 1)
@@ -77,10 +85,12 @@ export const TestEntityNoState = TestEntity.toLayer(
       Effect.suspend(() => {
         Queue.offerUnsafe(state.envelopes, envelope)
         return Effect.never
-      }).pipe(Effect.onInterrupt(() => {
-        Queue.offerUnsafe(state.interrupts, envelope)
-        return Effect.void
-      }))
+      }).pipe(
+        Effect.onInterrupt(() => {
+          Queue.offerUnsafe(state.interrupts, envelope)
+          return Effect.void
+        })
+      )
     return TestEntity.of({
       GetUser: (envelope) =>
         Effect.sync(() => {
@@ -105,9 +115,7 @@ export const TestEntityNoState = TestEntity.toLayer(
       },
       StreamWithKey: (envelope) => {
         let sequence = envelope.lastSentChunkValue ? envelope.lastSentChunkValue + 1 : 0
-        return Stream.fromQueue(state.streamMessages).pipe(
-          Stream.map(() => sequence++)
-        )
+        return Stream.fromQueue(state.streamMessages).pipe(Stream.map(() => sequence++))
       },
       GetAllUsers: (envelope) => {
         Queue.offerUnsafe(state.envelopes, envelope)

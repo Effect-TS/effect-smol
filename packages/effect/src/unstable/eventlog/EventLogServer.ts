@@ -40,13 +40,13 @@ export const makeHandler: Effect.Effect<
   (socket: Socket.Socket) => Effect.Effect<void, Socket.SocketError>,
   never,
   Storage
-> = Effect.gen(function*() {
+> = Effect.gen(function* () {
   const storage = yield* Storage
   const remoteId = yield* storage.getId
   let chunkId = 0
 
   return Effect.fnUntraced(
-    function*(socket: Socket.Socket) {
+    function* (socket: Socket.Socket) {
       const subscriptions = yield* FiberMap.make<string>()
       const writeRaw = yield* socket.writer
       const chunks = new Map<
@@ -59,7 +59,7 @@ export const makeHandler: Effect.Effect<
       >()
       let latestSequence = -1
 
-      const write = Effect.fnUntraced(function*(response: Schema.Schema.Type<typeof ProtocolResponse>) {
+      const write = Effect.fnUntraced(function* (response: Schema.Schema.Type<typeof ProtocolResponse>) {
         const data = yield* encodeResponse(response)
         if (response._tag !== "Changes" || data.byteLength <= constChunkSize) {
           return yield* writeRaw(data)
@@ -88,13 +88,14 @@ export const makeHandler: Effect.Effect<
                 )
               )
             }
-            return Effect.gen(function*() {
-              const entries = request.encryptedEntries.map(({ encryptedEntry, entryId }) =>
-                new PersistedEntry({
-                  entryId,
-                  iv: request.iv,
-                  encryptedEntry
-                })
+            return Effect.gen(function* () {
+              const entries = request.encryptedEntries.map(
+                ({ encryptedEntry, entryId }) =>
+                  new PersistedEntry({
+                    entryId,
+                    iv: request.iv,
+                    encryptedEntry
+                  })
               )
               const encrypted = yield* storage.write(request.publicKey, entries)
               latestSequence = encrypted[encrypted.length - 1].sequence
@@ -109,7 +110,7 @@ export const makeHandler: Effect.Effect<
             })
           }
           case "RequestChanges": {
-            return Effect.gen(function*() {
+            return Effect.gen(function* () {
               const changes = yield* storage.changes(request.publicKey, request.startSequence)
               return yield* Queue.takeAll(changes).pipe(
                 Effect.flatMap((entries) => {
@@ -131,10 +132,7 @@ export const makeHandler: Effect.Effect<
                 }),
                 Effect.forever
               )
-            }).pipe(
-              Effect.scoped,
-              FiberMap.run(subscriptions, request.publicKey)
-            )
+            }).pipe(Effect.scoped, FiberMap.run(subscriptions, request.publicKey))
           }
           case "StopChanges": {
             return FiberMap.remove(subscriptions, request.publicKey)
@@ -147,9 +145,9 @@ export const makeHandler: Effect.Effect<
         }
       }
 
-      yield* socket.run((data) => Effect.flatMap(Effect.orDie(decodeRequest(data)), handleRequest)).pipe(
-        Effect.catchCause((cause) => Effect.logDebug(cause))
-      )
+      yield* socket
+        .run((data) => Effect.flatMap(Effect.orDie(decodeRequest(data)), handleRequest))
+        .pipe(Effect.catchCause((cause) => Effect.logDebug(cause)))
     },
     Effect.scoped,
     Effect.annotateLogs({
@@ -170,27 +168,27 @@ export const makeHandlerHttp: Effect.Effect<
   >,
   never,
   Storage
-> = Effect.gen(function*() {
+> = Effect.gen(function* () {
   const handler = yield* makeHandler
 
   // @effect-diagnostics-next-line returnEffectInGen:off
-  return Effect.gen(function*() {
+  return Effect.gen(function* () {
     const request = yield* HttpServerRequest.HttpServerRequest
     const socket = yield* request.upgrade
     yield* handler(socket)
     return HttpServerResponse.empty()
-  }).pipe(Effect.annotateLogs({
-    module: "EventLogServer"
-  }))
+  }).pipe(
+    Effect.annotateLogs({
+      module: "EventLogServer"
+    })
+  )
 })
 
 /**
  * @since 4.0.0
  * @category storage
  */
-export class PersistedEntry extends Schema.Class<PersistedEntry>(
-  "effect/eventlog/EventLogServer/PersistedEntry"
-)({
+export class PersistedEntry extends Schema.Class<PersistedEntry>("effect/eventlog/EventLogServer/PersistedEntry")({
   entryId: EntryId,
   iv: Schema.Uint8Array,
   encryptedEntry: Schema.Uint8Array
@@ -207,27 +205,27 @@ export class PersistedEntry extends Schema.Class<PersistedEntry>(
  * @since 4.0.0
  * @category storage
  */
-export class Storage extends ServiceMap.Service<Storage, {
-  readonly getId: Effect.Effect<RemoteId>
-  readonly write: (
-    publicKey: string,
-    entries: ReadonlyArray<PersistedEntry>
-  ) => Effect.Effect<ReadonlyArray<EncryptedRemoteEntry>>
-  readonly entries: (
-    publicKey: string,
-    startSequence: number
-  ) => Effect.Effect<ReadonlyArray<EncryptedRemoteEntry>>
-  readonly changes: (
-    publicKey: string,
-    startSequence: number
-  ) => Effect.Effect<Queue.Dequeue<EncryptedRemoteEntry, Cause.Done>, never, Scope.Scope>
-}>()("effect/eventlog/EventLogServer/Storage") {}
+export class Storage extends ServiceMap.Service<
+  Storage,
+  {
+    readonly getId: Effect.Effect<RemoteId>
+    readonly write: (
+      publicKey: string,
+      entries: ReadonlyArray<PersistedEntry>
+    ) => Effect.Effect<ReadonlyArray<EncryptedRemoteEntry>>
+    readonly entries: (publicKey: string, startSequence: number) => Effect.Effect<ReadonlyArray<EncryptedRemoteEntry>>
+    readonly changes: (
+      publicKey: string,
+      startSequence: number
+    ) => Effect.Effect<Queue.Dequeue<EncryptedRemoteEntry, Cause.Done>, never, Scope.Scope>
+  }
+>()("effect/eventlog/EventLogServer/Storage") {}
 
 /**
  * @since 4.0.0
  * @category storage
  */
-export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.Scope> = Effect.gen(function*() {
+export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.Scope> = Effect.gen(function* () {
   const knownIds = new Map<string, number>()
   const journals = new Map<string, Array<EncryptedRemoteEntry>>()
   const remoteId = makeRemoteIdUnsafe()
@@ -239,18 +237,14 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
     return journal
   }
   const pubsubs = yield* RcMap.make({
-    lookup: (_publicKey: string) =>
-      Effect.acquireRelease(
-        PubSub.unbounded<EncryptedRemoteEntry>(),
-        PubSub.shutdown
-      ),
+    lookup: (_publicKey: string) => Effect.acquireRelease(PubSub.unbounded<EncryptedRemoteEntry>(), PubSub.shutdown),
     idleTimeToLive: 60000
   })
 
   return Storage.of({
     getId: Effect.succeed(remoteId),
     write: (publicKey, entries) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const active = yield* RcMap.keys(pubsubs)
         let pubsub: PubSub.PubSub<EncryptedRemoteEntry> | undefined
         for (const key of active) {
@@ -281,7 +275,7 @@ export const makeStorageMemory: Effect.Effect<Storage["Service"], never, Scope.S
       }).pipe(Effect.scoped),
     entries: (publicKey, startSequence) => Effect.sync(() => ensureJournal(publicKey).slice(startSequence)),
     changes: (publicKey, startSequence) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const queue = yield* Queue.make<EncryptedRemoteEntry>()
         const pubsub = yield* RcMap.get(pubsubs, publicKey)
         const subscription = yield* PubSub.subscribe(pubsub)

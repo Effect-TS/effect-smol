@@ -3,13 +3,16 @@ import { describe, it } from "vitest"
 import { deepStrictEqual } from "../../utils/assert.ts"
 
 describe("fromASTs", () => {
-  function assertFromASTs(schemas: readonly [Schema.Top, ...Array<Schema.Top>], expected: {
-    readonly representations: readonly [
-      SchemaRepresentation.Representation,
-      ...Array<SchemaRepresentation.Representation>
-    ]
-    readonly references?: SchemaRepresentation.References
-  }) {
+  function assertFromASTs(
+    schemas: readonly [Schema.Top, ...Array<Schema.Top>],
+    expected: {
+      readonly representations: readonly [
+        SchemaRepresentation.Representation,
+        ...Array<SchemaRepresentation.Representation>
+      ]
+      readonly references?: SchemaRepresentation.References
+    }
+  ) {
     const document = SchemaRepresentation.fromASTs(Arr.map(schemas, (s) => s.ast))
     deepStrictEqual(document, {
       representations: expected.representations,
@@ -58,10 +61,13 @@ describe("fromASTs", () => {
 })
 
 describe("fromAST", () => {
-  function assertFromAST(schema: Schema.Top, expected: {
-    readonly representation: SchemaRepresentation.Representation
-    readonly references?: SchemaRepresentation.References
-  }) {
+  function assertFromAST(
+    schema: Schema.Top,
+    expected: {
+      readonly representation: SchemaRepresentation.Representation
+      readonly references?: SchemaRepresentation.References
+    }
+  ) {
     const document = SchemaRepresentation.fromAST(schema.ast)
     deepStrictEqual(document, {
       representation: expected.representation,
@@ -207,9 +213,7 @@ describe("fromAST", () => {
           }
         },
         checks: [],
-        typeParameters: [
-          { _tag: "Reference", $ref: "Number_" }
-        ],
+        typeParameters: [{ _tag: "Reference", $ref: "Number_" }],
         encodedSchema: {
           _tag: "Union",
           types: [
@@ -262,8 +266,9 @@ describe("fromAST", () => {
     describe("checks", () => {
       it("isPropertyNames", () => {
         assertFromAST(
-          Schema.Record(Schema.String, Schema.Number)
-            .check(Schema.isPropertyNames(Schema.String.check(Schema.isPattern(/^[A-Z]/)))),
+          Schema.Record(Schema.String, Schema.Number).check(
+            Schema.isPropertyNames(Schema.String.check(Schema.isPattern(/^[A-Z]/)))
+          ),
           {
             representation: {
               _tag: "Objects",
@@ -337,9 +342,7 @@ describe("fromAST", () => {
             identifier: "A"
           },
           checks: [],
-          typeParameters: [
-            { _tag: "Reference", $ref: "A" }
-          ],
+          typeParameters: [{ _tag: "Reference", $ref: "A" }],
           encodedSchema: { _tag: "Reference", $ref: "A" }
         },
         references: {
@@ -377,9 +380,7 @@ describe("fromAST", () => {
                 _tag: "Declaration",
                 annotations: { identifier: "A" },
                 checks: [],
-                typeParameters: [
-                  { _tag: "Reference", $ref: "A" }
-                ],
+                typeParameters: [{ _tag: "Reference", $ref: "A" }],
                 encodedSchema: { _tag: "Reference", $ref: "A" }
               }
             },
@@ -505,16 +506,19 @@ describe("fromAST", () => {
 
     describe("suspend", () => {
       it("non-recursive", () => {
-        assertFromAST(Schema.suspend(() => Schema.String), {
-          representation: {
-            _tag: "Suspend",
-            checks: [],
-            thunk: {
-              _tag: "String",
-              checks: []
+        assertFromAST(
+          Schema.suspend(() => Schema.String),
+          {
+            representation: {
+              _tag: "Suspend",
+              checks: [],
+              thunk: {
+                _tag: "String",
+                checks: []
+              }
             }
           }
-        })
+        )
       })
 
       it("no identifier annotation", () => {

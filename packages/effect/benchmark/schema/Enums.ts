@@ -28,10 +28,10 @@ const decodeUnknownExit = Schema.decodeUnknownExit(schema)
 // console.log(decodeUnknownExit(invalid))
 
 bench
-  .add("good", function() {
+  .add("good", function () {
     decodeUnknownExit(good)
   })
-  .add("bad", function() {
+  .add("bad", function () {
     decodeUnknownExit(bad)
   })
 

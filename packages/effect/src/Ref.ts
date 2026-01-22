@@ -254,7 +254,8 @@ export const getAndSet = dual<
     const current = self.ref.current
     self.ref.current = value
     return current
-  }))
+  })
+)
 
 /**
  * Atomically gets the current value of the Ref and updates it with the given function.
@@ -288,7 +289,8 @@ export const getAndUpdate = dual<
     const current = self.ref.current
     self.ref.current = f(current)
     return current
-  }))
+  })
+)
 
 /**
  * Atomically gets the current value of the Ref and updates it with the given partial function.
@@ -341,7 +343,8 @@ export const getAndUpdateSome = dual<
       self.ref.current = option.value
     }
     return current
-  }))
+  })
+)
 
 /**
  * Atomically sets the value of the Ref to the specified value and returns the new value.
@@ -379,7 +382,7 @@ export const getAndUpdateSome = dual<
 export const setAndGet = dual<
   <A>(value: A) => (self: Ref<A>) => Effect.Effect<A>,
   <A>(self: Ref<A>, value: A) => Effect.Effect<A>
->(2, <A>(self: Ref<A>, value: A) => Effect.sync(() => self.ref.current = value))
+>(2, <A>(self: Ref<A>, value: A) => Effect.sync(() => (self.ref.current = value)))
 
 /**
  * Atomically modifies the value of the Ref using the given function.
@@ -430,7 +433,8 @@ export const modify = dual<
     const [b, a] = f(self.ref.current)
     self.ref.current = a
     return b
-  }))
+  })
+)
 
 /**
  * Atomically modifies the value of the Ref using the given partial function.
@@ -484,18 +488,14 @@ export const modifySome: {
   <B, A>(pf: (a: A) => readonly [B, Option.Option<A>]): (self: Ref<A>) => Effect.Effect<B>
   <A, B>(self: Ref<A>, pf: (a: A) => readonly [B, Option.Option<A>]): Effect.Effect<B>
 } = dual<
-  <B, A>(
-    pf: (a: A) => readonly [B, Option.Option<A>]
-  ) => (self: Ref<A>) => Effect.Effect<B>,
-  <A, B>(
-    self: Ref<A>,
-    pf: (a: A) => readonly [B, Option.Option<A>]
-  ) => Effect.Effect<B>
+  <B, A>(pf: (a: A) => readonly [B, Option.Option<A>]) => (self: Ref<A>) => Effect.Effect<B>,
+  <A, B>(self: Ref<A>, pf: (a: A) => readonly [B, Option.Option<A>]) => Effect.Effect<B>
 >(2, (self, pf) =>
   modify(self, (value) => {
     const [b, option] = pf(value)
     return [b, option._tag === "None" ? value : option.value]
-  }))
+  })
+)
 
 /**
  * Atomically updates the value of the Ref using the given function.
@@ -532,7 +532,8 @@ export const update = dual<
 >(2, <A>(self: Ref<A>, f: (a: A) => A) =>
   Effect.sync(() => {
     self.ref.current = f(self.ref.current)
-  }))
+  })
+)
 
 /**
  * Atomically updates the value of the Ref using the given function and returns the new value.
@@ -560,7 +561,7 @@ export const update = dual<
 export const updateAndGet = dual<
   <A>(f: (a: A) => A) => (self: Ref<A>) => Effect.Effect<A>,
   <A>(self: Ref<A>, f: (a: A) => A) => Effect.Effect<A>
->(2, <A>(self: Ref<A>, f: (a: A) => A) => Effect.sync(() => self.ref.current = f(self.ref.current)))
+>(2, <A>(self: Ref<A>, f: (a: A) => A) => Effect.sync(() => (self.ref.current = f(self.ref.current))))
 
 /**
  * Atomically updates the value of the Ref using the given partial function.
@@ -609,7 +610,8 @@ export const updateSome = dual<
     if (option._tag === "Some") {
       self.ref.current = option.value
     }
-  }))
+  })
+)
 
 /**
  * Atomically updates the value of the Ref using the given partial function and returns the current value.
@@ -655,7 +657,8 @@ export const updateSomeAndGet = dual<
       self.ref.current = option.value
     }
     return self.ref.current
-  }))
+  })
+)
 
 /**
  * Gets the current value of the Ref synchronously (unsafe version).

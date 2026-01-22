@@ -313,12 +313,13 @@ describe("Equal - Structural Equality Behavior", () => {
 
   describe("custom Equal implementations", () => {
     class CustomPoint implements Equal.Equal {
-      constructor(readonly x: number, readonly y: number) {}
+      constructor(
+        readonly x: number,
+        readonly y: number
+      ) {}
 
       [Equal.symbol](that: Equal.Equal): boolean {
-        return that instanceof CustomPoint &&
-          this.x === that.x &&
-          this.y === that.y
+        return that instanceof CustomPoint && this.x === that.x && this.y === that.y
       }
 
       [Hash.symbol](): number {
@@ -341,8 +342,14 @@ describe("Equal - Structural Equality Behavior", () => {
     })
 
     it("should return true for nested arrays (deep structural equality)", () => {
-      const arr1 = [[1, 2], [3, 4]]
-      const arr2 = [[1, 2], [3, 4]]
+      const arr1 = [
+        [1, 2],
+        [3, 4]
+      ]
+      const arr2 = [
+        [1, 2],
+        [3, 4]
+      ]
       expect(Equal.equals(arr1, arr2)).toBe(true)
     })
 
@@ -353,8 +360,14 @@ describe("Equal - Structural Equality Behavior", () => {
     })
 
     it("should return false for nested arrays with different values", () => {
-      const arr1 = [[1, 2], [3, 4]]
-      const arr2 = [[1, 3], [3, 4]]
+      const arr1 = [
+        [1, 2],
+        [3, 4]
+      ]
+      const arr2 = [
+        [1, 3],
+        [3, 4]
+      ]
       expect(Equal.equals(arr1, arr2)).toBe(false)
     })
   })
@@ -481,14 +494,10 @@ describe("Equal - Structural Equality Behavior", () => {
       })
 
       it("should handle objects with multiple special values", () => {
-        expect(Equal.equals(
-          { nan: NaN, inf: Infinity, negInf: -Infinity },
-          { nan: NaN, inf: Infinity, negInf: -Infinity }
-        )).toBe(true)
-        expect(Equal.equals(
-          { nan: NaN, inf: Infinity },
-          { nan: NaN, inf: -Infinity }
-        )).toBe(false)
+        expect(
+          Equal.equals({ nan: NaN, inf: Infinity, negInf: -Infinity }, { nan: NaN, inf: Infinity, negInf: -Infinity })
+        ).toBe(true)
+        expect(Equal.equals({ nan: NaN, inf: Infinity }, { nan: NaN, inf: -Infinity })).toBe(false)
       })
 
       it("should handle complex nested structures with special values", () => {
@@ -541,9 +550,18 @@ describe("Equal - Structural Equality Behavior", () => {
 
   describe("JavaScript Map", () => {
     it("should return true for structurally identical maps", () => {
-      const map1 = new Map([["a", 1], ["b", 2]])
-      const map2 = new Map([["a", 1], ["b", 2]])
-      const map3 = new Map([["b", 2], ["a", 1]])
+      const map1 = new Map([
+        ["a", 1],
+        ["b", 2]
+      ])
+      const map2 = new Map([
+        ["a", 1],
+        ["b", 2]
+      ])
+      const map3 = new Map([
+        ["b", 2],
+        ["a", 1]
+      ])
       expect(Equal.equals(map1, map2)).toBe(true)
       expect(Equal.equals(map1, map3)).toBe(true)
     })
@@ -558,19 +576,34 @@ describe("Equal - Structural Equality Behavior", () => {
     })
 
     it("should return false for maps with different values", () => {
-      const map1 = new Map([["a", 1], ["b", 2]])
-      const map2 = new Map([["a", 1], ["b", 3]])
+      const map1 = new Map([
+        ["a", 1],
+        ["b", 2]
+      ])
+      const map2 = new Map([
+        ["a", 1],
+        ["b", 3]
+      ])
       expect(Equal.equals(map1, map2)).toBe(false)
     })
 
     it("should return false for maps with different keys", () => {
-      const map1 = new Map([["a", 1], ["b", 2]])
-      const map2 = new Map([["a", 1], ["c", 2]])
+      const map1 = new Map([
+        ["a", 1],
+        ["b", 2]
+      ])
+      const map2 = new Map([
+        ["a", 1],
+        ["c", 2]
+      ])
       expect(Equal.equals(map1, map2)).toBe(false)
     })
 
     it("should return false for maps with different sizes", () => {
-      const map1 = new Map([["a", 1], ["b", 2]])
+      const map1 = new Map([
+        ["a", 1],
+        ["b", 2]
+      ])
       const map2 = new Map([["a", 1]])
       expect(Equal.equals(map1, map2)).toBe(false)
     })
@@ -590,8 +623,14 @@ describe("Equal - Structural Equality Behavior", () => {
     })
 
     it("should handle maps with object values", () => {
-      const map1 = new Map([["a", { x: 1 }], ["b", { y: [1, 2] }]])
-      const map2 = new Map([["a", { x: 1 }], ["b", { y: [1, 2] }]])
+      const map1 = new Map([
+        ["a", { x: 1 }],
+        ["b", { y: [1, 2] }]
+      ])
+      const map2 = new Map([
+        ["a", { x: 1 }],
+        ["b", { y: [1, 2] }]
+      ])
       expect(Equal.equals(map1, map2)).toBe(true)
     })
 
@@ -604,8 +643,16 @@ describe("Equal - Structural Equality Behavior", () => {
     })
 
     it("should handle maps with special values", () => {
-      const map1 = new Map([[NaN, "nan"], [Infinity, "inf"], [-Infinity, "neginf"]])
-      const map2 = new Map([[NaN, "nan"], [Infinity, "inf"], [-Infinity, "neginf"]])
+      const map1 = new Map([
+        [NaN, "nan"],
+        [Infinity, "inf"],
+        [-Infinity, "neginf"]
+      ])
+      const map2 = new Map([
+        [NaN, "nan"],
+        [Infinity, "inf"],
+        [-Infinity, "neginf"]
+      ])
       expect(Equal.equals(map1, map2)).toBe(true)
     })
   })
@@ -665,8 +712,14 @@ describe("Equal - Structural Equality Behavior", () => {
     })
 
     it("should handle sets with array elements", () => {
-      const set1 = new Set([[1, 2], [3, 4]])
-      const set2 = new Set([[1, 2], [3, 4]])
+      const set1 = new Set([
+        [1, 2],
+        [3, 4]
+      ])
+      const set2 = new Set([
+        [1, 2],
+        [3, 4]
+      ])
       expect(Equal.equals(set1, set2)).toBe(true)
     })
   })
@@ -674,12 +727,18 @@ describe("Equal - Structural Equality Behavior", () => {
   describe("Map and Set mixed", () => {
     it("should handle objects containing maps and sets", () => {
       const obj1 = {
-        map: new Map([["a", 1], ["b", 2]]),
+        map: new Map([
+          ["a", 1],
+          ["b", 2]
+        ]),
         set: new Set([1, 2, 3]),
         array: [new Map([["x", 1]]), new Set([4, 5])]
       }
       const obj2 = {
-        map: new Map([["a", 1], ["b", 2]]),
+        map: new Map([
+          ["a", 1],
+          ["b", 2]
+        ]),
         set: new Set([1, 2, 3]),
         array: [new Map([["x", 1]]), new Set([4, 5])]
       }
@@ -688,11 +747,17 @@ describe("Equal - Structural Equality Behavior", () => {
 
     it("should return false when Map/Set differ in nested structures", () => {
       const obj1 = {
-        map: new Map([["a", 1], ["b", 2]]),
+        map: new Map([
+          ["a", 1],
+          ["b", 2]
+        ]),
         set: new Set([1, 2, 3])
       }
       const obj2 = {
-        map: new Map([["a", 1], ["b", 3]]), // different value
+        map: new Map([
+          ["a", 1],
+          ["b", 3]
+        ]), // different value
         set: new Set([1, 2, 3])
       }
       expect(Equal.equals(obj1, obj2)).toBe(false)
@@ -1063,7 +1128,10 @@ describe("Equal - Structural Equality Behavior", () => {
   describe("recursive objects", () => {
     it("should handle circular references in Equal implementations without infinite recursion", () => {
       class CircularEqualTest implements Equal.Equal {
-        constructor(readonly value: string, public child: CircularEqualTest | null = null) {}
+        constructor(
+          readonly value: string,
+          public child: CircularEqualTest | null = null
+        ) {}
 
         [Equal.symbol](that: Equal.Equal): boolean {
           if (!(that instanceof CircularEqualTest)) {
@@ -1099,7 +1167,10 @@ describe("Equal - Structural Equality Behavior", () => {
 
     it("should handle complex circular references in Equal implementations", () => {
       class ComplexEqualTest implements Equal.Equal {
-        constructor(readonly id: number, public ref: ComplexEqualTest | null = null) {}
+        constructor(
+          readonly id: number,
+          public ref: ComplexEqualTest | null = null
+        ) {}
 
         [Equal.symbol](that: Equal.Equal): boolean {
           if (!(that instanceof ComplexEqualTest)) {
@@ -1137,7 +1208,10 @@ describe("Equal - Structural Equality Behavior", () => {
       // for advanced scenarios where integration with the tracking system is needed
 
       class SimpleContainer implements Equal.Equal {
-        constructor(readonly name: string, readonly items: Array<SimpleContainer> = []) {}
+        constructor(
+          readonly name: string,
+          readonly items: Array<SimpleContainer> = []
+        ) {}
 
         [Equal.symbol](that: Equal.Equal): boolean {
           if (!(that instanceof SimpleContainer)) {
@@ -1146,9 +1220,11 @@ describe("Equal - Structural Equality Behavior", () => {
 
           // Simple implementation - no manual tracking needed
           // Circular references are handled automatically
-          return this.name === that.name &&
+          return (
+            this.name === that.name &&
             this.items.length === that.items.length &&
             this.items.every((item, i) => Equal.equals(item, that.items[i]))
+          )
         }
 
         [Hash.symbol](): number {

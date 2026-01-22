@@ -54,7 +54,7 @@ This directory provides reusable solutions and best practices for Effect TypeScr
 
 ### Mandatory Patterns (ALWAYS USE)
 
-- __return yield_ for errors_*: Makes termination explicit in generators
+- \__return yield_ for errors\_\*: Makes termination explicit in generators
 - **Immediate linting**: `pnpm lint --fix` after editing TypeScript files
 - **JSDoc compilation validation**: `pnpm docgen` must pass
 - **Effect testing patterns**: Use @effect/vitest with `it.effect`

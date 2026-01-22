@@ -112,7 +112,7 @@ const TemplateResource = McpServer.resource`file://path/to/file/${idParam}`({
   completion: {
     id: (_: string) => Effect.succeed([1, 2, 3, 4, 5])
   },
-  content: Effect.fn(function*(_uri, id) {
+  content: Effect.fn(function* (_uri, id) {
     return `# MCP Server Demo - ID: ${id}`
   }),
   mimeType: "text/x-markdown",
@@ -288,7 +288,7 @@ const UserResource = McpServer.resource`file://users/${idParam}.json`({
   completion: {
     id: (_: string) => Effect.succeed([1, 2, 3, 4, 5])
   },
-  content: Effect.fn(function*(_uri, id) {
+  content: Effect.fn(function* (_uri, id) {
     return JSON.stringify(
       {
         id,
@@ -329,9 +329,8 @@ const ServerLayer = Layer.mergeAll(
     Layer.provideMerge(
       MyToolkit.toLayer({
         GreetTool: ({ name, style }) => {
-          const greeting = style === "formal"
-            ? `Good day, ${name}. It is a pleasure to meet you.`
-            : `Hey ${name}! What's up?`
+          const greeting =
+            style === "formal" ? `Good day, ${name}. It is a pleasure to meet you.` : `Hey ${name}! What's up?`
           return Effect.succeed(greeting)
         },
         CalculatorTool: ({ operation, a, b }) => {

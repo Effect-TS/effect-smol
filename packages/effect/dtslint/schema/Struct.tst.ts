@@ -22,12 +22,8 @@ describe("Struct", () => {
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string }>
     >()
-    expect(schema).type.toBe<
-      Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>
-    >()
-    expect(schema.annotate({})).type.toBe<
-      Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>
-    >()
+    expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>>()
+    expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>>()
   })
 
   describe("field mutability and optionality", () => {
@@ -35,12 +31,8 @@ describe("Struct", () => {
       const schema = Schema.Struct({
         a: Schema.FiniteFromString
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<{ readonly a: number }, { readonly a: string }>
-      >()
-      expect(schema).type.toBe<
-        Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>
-      >()
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ readonly a: number }, { readonly a: string }>>()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>>()
       expect(schema.annotate({})).type.toBe<
         Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>
       >()
@@ -50,35 +42,25 @@ describe("Struct", () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.String)
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<{ readonly a?: string }>
-      >()
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ readonly a?: string }>>()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String> }>>()
-      expect(schema.annotate({})).type.toBe<
-        Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String> }>
-      >()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String> }>>()
     })
 
     it("mutableKey & required", () => {
       const schema = Schema.Struct({
         a: Schema.mutableKey(Schema.String)
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<{ a: string }>
-      >()
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ a: string }>>()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutableKey<Schema.String> }>>()
-      expect(schema.annotate({})).type.toBe<
-        Schema.Struct<{ readonly a: Schema.mutableKey<Schema.String> }>
-      >()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.mutableKey<Schema.String> }>>()
     })
 
     it("mutableKey & optionalKey", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.mutableKey, Schema.optionalKey)
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<{ a?: string }>
-      >()
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ a?: string }>>()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optionalKey<Schema.mutableKey<Schema.String>> }>>()
       expect(schema.annotate({})).type.toBe<
         Schema.Struct<{ readonly a: Schema.optionalKey<Schema.mutableKey<Schema.String>> }>
@@ -89,9 +71,7 @@ describe("Struct", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.optionalKey, Schema.mutableKey)
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<{ a?: string }>
-      >()
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ a?: string }>>()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutableKey<Schema.optionalKey<Schema.String>> }>>()
       expect(schema.annotate({})).type.toBe<
         Schema.Struct<{ readonly a: Schema.mutableKey<Schema.optionalKey<Schema.String>> }>
@@ -105,9 +85,11 @@ describe("Struct", () => {
         c: Schema.Boolean
       }).mapFields(Struct.mapOmit(["c"], Schema.requiredKey))
       expect(schema).type.toBe<
-        Schema.Struct<
-          { readonly a: Schema.String; readonly b: Schema.UndefinedOr<Schema.Number>; readonly c: Schema.Boolean }
-        >
+        Schema.Struct<{
+          readonly a: Schema.String
+          readonly b: Schema.UndefinedOr<Schema.Number>
+          readonly c: Schema.Boolean
+        }>
       >()
     })
 
@@ -118,9 +100,11 @@ describe("Struct", () => {
         c: Schema.Boolean
       }).mapFields(Struct.mapPick(["b"], Schema.required))
       expect(schema).type.toBe<
-        Schema.Struct<
-          { readonly a: Schema.optionalKey<Schema.String>; readonly b: Schema.Number; readonly c: Schema.Boolean }
-        >
+        Schema.Struct<{
+          readonly a: Schema.optionalKey<Schema.String>
+          readonly b: Schema.Number
+          readonly c: Schema.Boolean
+        }>
       >()
     })
   })
@@ -200,9 +184,7 @@ describe("Struct", () => {
           never
         >
       >()
-      expect(schema).type.toBe<
-        Schema.Struct<{ readonly A: Schema.String; readonly b: Schema.Number }>
-      >()
+      expect(schema).type.toBe<Schema.Struct<{ readonly A: Schema.String; readonly b: Schema.Number }>>()
     })
 
     it("renameKeys", () => {
@@ -259,9 +241,7 @@ describe("Struct", () => {
         >
       >()
       expect(schema).type.toBe<
-        Schema.Struct<
-          { readonly a: Schema.toType<Schema.FiniteFromString>; readonly b: Schema.toType<Schema.Number> }
-        >
+        Schema.Struct<{ readonly a: Schema.toType<Schema.FiniteFromString>; readonly b: Schema.toType<Schema.Number> }>
       >()
     })
 
@@ -280,9 +260,10 @@ describe("Struct", () => {
         >
       >()
       expect(schema).type.toBe<
-        Schema.Struct<
-          { readonly a: Schema.toEncoded<Schema.FiniteFromString>; readonly b: Schema.toEncoded<Schema.Number> }
-        >
+        Schema.Struct<{
+          readonly a: Schema.toEncoded<Schema.FiniteFromString>
+          readonly b: Schema.toEncoded<Schema.Number>
+        }>
       >()
     })
 
@@ -391,12 +372,10 @@ describe("Struct", () => {
         >
       >()
       expect(schema).type.toBe<
-        Schema.Struct<
-          {
-            readonly a: Schema.mutable<Schema.Array$<Schema.String>>
-            readonly b: Schema.mutable<Schema.Tuple<readonly [Schema.Number]>>
-          }
-        >
+        Schema.Struct<{
+          readonly a: Schema.mutable<Schema.Array$<Schema.String>>
+          readonly b: Schema.mutable<Schema.Tuple<readonly [Schema.Number]>>
+        }>
       >()
     })
 
@@ -477,10 +456,12 @@ describe("Struct", () => {
     })
 
     it("should work with opaque structs", () => {
-      class A extends Schema.Opaque<A>()(Schema.Struct({
-        a: Schema.String,
-        b: Schema.Number
-      })) {}
+      class A extends Schema.Opaque<A>()(
+        Schema.Struct({
+          a: Schema.String,
+          b: Schema.Number
+        })
+      ) {}
 
       const schema = A.mapFields(Struct.map(Schema.Array))
 
@@ -502,10 +483,7 @@ describe("Struct", () => {
         a: Schema.String,
         b: Schema.FiniteFromString,
         c: Schema.Boolean
-      }).mapFields(flow(
-        Struct.map(Schema.NullOr),
-        Struct.mapPick(["a", "c"], Schema.mutableKey)
-      ))
+      }).mapFields(flow(Struct.map(Schema.NullOr), Struct.mapPick(["a", "c"], Schema.mutableKey)))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -516,13 +494,11 @@ describe("Struct", () => {
         >
       >()
       expect(schema).type.toBe<
-        Schema.Struct<
-          {
-            readonly a: Schema.mutableKey<Schema.NullOr<Schema.String>>
-            readonly b: Schema.NullOr<Schema.FiniteFromString>
-            readonly c: Schema.mutableKey<Schema.NullOr<Schema.Boolean>>
-          }
-        >
+        Schema.Struct<{
+          readonly a: Schema.mutableKey<Schema.NullOr<Schema.String>>
+          readonly b: Schema.NullOr<Schema.FiniteFromString>
+          readonly c: Schema.mutableKey<Schema.NullOr<Schema.Boolean>>
+        }>
       >()
     })
   })
@@ -545,8 +521,8 @@ describe("Struct", () => {
       class A extends Schema.Opaque<A>()(Schema.Struct({ a: Schema.FiniteFromString })) {}
       const schema = A
 
-      expect<typeof A["Type"]>().type.toBe<A>()
-      expect<typeof A["Encoded"]>().type.toBe<{ readonly a: string }>()
+      expect<(typeof A)["Type"]>().type.toBe<A>()
+      expect<(typeof A)["Encoded"]>().type.toBe<{ readonly a: string }>()
 
       expect(A.makeUnsafe({ a: 1 })).type.toBe<A>()
 
@@ -576,24 +552,32 @@ describe("Struct", () => {
     })
 
     it("branded (unique symbol)", () => {
-      class A extends Schema.Opaque<A>()(Schema.Struct({
-        a: Schema.String
-      })) {}
-      class B extends Schema.Opaque<B>()(Schema.Struct({
-        a: Schema.String
-      })) {}
+      class A extends Schema.Opaque<A>()(
+        Schema.Struct({
+          a: Schema.String
+        })
+      ) {}
+      class B extends Schema.Opaque<B>()(
+        Schema.Struct({
+          a: Schema.String
+        })
+      ) {}
 
       const f = (a: A) => a
 
       f(A.makeUnsafe({ a: "a" }))
       f(B.makeUnsafe({ a: "a" }))
 
-      class ABranded extends Schema.Opaque<ABranded, { readonly brand: unique symbol }>()(Schema.Struct({
-        a: Schema.String
-      })) {}
-      class BBranded extends Schema.Opaque<BBranded, { readonly brand: unique symbol }>()(Schema.Struct({
-        a: Schema.String
-      })) {}
+      class ABranded extends Schema.Opaque<ABranded, { readonly brand: unique symbol }>()(
+        Schema.Struct({
+          a: Schema.String
+        })
+      ) {}
+      class BBranded extends Schema.Opaque<BBranded, { readonly brand: unique symbol }>()(
+        Schema.Struct({
+          a: Schema.String
+        })
+      ) {}
 
       const fABranded = (a: ABranded) => a
 
@@ -607,12 +591,16 @@ describe("Struct", () => {
     })
 
     it("branded (Brand module)", () => {
-      class ABranded extends Schema.Opaque<ABranded, Brand.Brand<"A">>()(Schema.Struct({
-        a: Schema.String
-      })) {}
-      class BBranded extends Schema.Opaque<BBranded, Brand.Brand<"B">>()(Schema.Struct({
-        a: Schema.String
-      })) {}
+      class ABranded extends Schema.Opaque<ABranded, Brand.Brand<"A">>()(
+        Schema.Struct({
+          a: Schema.String
+        })
+      ) {}
+      class BBranded extends Schema.Opaque<BBranded, Brand.Brand<"B">>()(
+        Schema.Struct({
+          a: Schema.String
+        })
+      ) {}
 
       const fABranded = (a: ABranded) => a
 
@@ -631,22 +619,17 @@ describe("Struct", () => {
       a: Schema.String
     })
 
-    expect(schema).type.toBe<
-      Schema.TaggedStruct<"A", { readonly a: Schema.String }>
-    >()
-    expect(schema).type.toBe<
-      Schema.Struct<{ readonly _tag: Schema.tag<"A">; readonly a: Schema.String }>
-    >()
+    expect(schema).type.toBe<Schema.TaggedStruct<"A", { readonly a: Schema.String }>>()
+    expect(schema).type.toBe<Schema.Struct<{ readonly _tag: Schema.tag<"A">; readonly a: Schema.String }>>()
     expect(schema.fields._tag.schema.literal).type.toBe<"A">()
   })
 })
 
 describe("StructWithRest", () => {
   it("Record(String, Number)", async () => {
-    const schema = Schema.StructWithRest(
-      Schema.Struct({ a: Schema.Number }),
-      [Schema.Record(Schema.String, Schema.Number)]
-    )
+    const schema = Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
+      Schema.Record(Schema.String, Schema.Number)
+    ])
 
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<
@@ -671,13 +654,10 @@ describe("StructWithRest", () => {
   })
 
   it("records mutability and optionality", () => {
-    const schema = Schema.StructWithRest(
-      Schema.Struct({ a: Schema.Number }),
-      [
-        Schema.Record(Schema.String, Schema.mutableKey(Schema.Number)),
-        Schema.Record(Schema.Symbol, Schema.optional(Schema.Number))
-      ]
-    )
+    const schema = Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
+      Schema.Record(Schema.String, Schema.mutableKey(Schema.Number)),
+      Schema.Record(Schema.Symbol, Schema.optional(Schema.Number))
+    ])
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<
         { readonly a: number; [x: string]: number; readonly [x: symbol]: number | undefined },

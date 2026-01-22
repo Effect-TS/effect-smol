@@ -16,56 +16,68 @@ export default function transformer(file: cs.FileInfo, api: cs.API) {
 
   const root = j(file.source)
 
-  root.find(j.ExportNamedDeclaration, {
-    declaration: {
-      type: "VariableDeclaration",
-      declarations: [{
-        type: "VariableDeclarator",
-        id: {
-          type: "Identifier",
-          typeAnnotation: {
-            type: "TSTypeAnnotation",
-            typeAnnotation: {
-              type: "TSTypeLiteral",
-              members: [{ type: "TSCallSignatureDeclaration" }]
+  root
+    .find(j.ExportNamedDeclaration, {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          {
+            type: "VariableDeclarator",
+            id: {
+              type: "Identifier",
+              typeAnnotation: {
+                type: "TSTypeAnnotation",
+                typeAnnotation: {
+                  type: "TSTypeLiteral",
+                  members: [{ type: "TSCallSignatureDeclaration" }]
+                }
+              }
             }
           }
-        }
-      }]
-    }
-  }).forEach((path) => {
-    const comments = path.node.comments ?? []
-    j(path).find(j.TSCallSignatureDeclaration).forEach((path) => {
-      // Don't override comments if they already exist
-      if (hasComments(path.node)) return
-      path.node.comments = comments
+        ]
+      }
     })
-  })
+    .forEach((path) => {
+      const comments = path.node.comments ?? []
+      j(path)
+        .find(j.TSCallSignatureDeclaration)
+        .forEach((path) => {
+          // Don't override comments if they already exist
+          if (hasComments(path.node)) return
+          path.node.comments = comments
+        })
+    })
 
-  root.find(j.ExportNamedDeclaration, {
-    declaration: {
-      type: "VariableDeclaration",
-      declarations: [{
-        type: "VariableDeclarator",
-        init: {
-          type: "CallExpression",
-          callee: {
-            type: "Identifier",
-            name: "dual"
+  root
+    .find(j.ExportNamedDeclaration, {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          {
+            type: "VariableDeclarator",
+            init: {
+              type: "CallExpression",
+              callee: {
+                type: "Identifier",
+                name: "dual"
+              }
+            }
           }
-        }
-      }]
-    }
-  }).forEach((path) => {
-    const comments = path.node.comments ?? []
-    j(path).find(j.CallExpression).forEach((path) => {
-      path.node.typeParameters?.params.forEach((param) => {
-        // Don't override comments if they already exist
-        if (hasLeadingCommentRanges(param) || hasComments(param)) return
-        param.comments = comments
-      })
+        ]
+      }
     })
-  })
+    .forEach((path) => {
+      const comments = path.node.comments ?? []
+      j(path)
+        .find(j.CallExpression)
+        .forEach((path) => {
+          path.node.typeParameters?.params.forEach((param) => {
+            // Don't override comments if they already exist
+            if (hasLeadingCommentRanges(param) || hasComments(param)) return
+            param.comments = comments
+          })
+        })
+    })
 
   return root.toSource()
 }

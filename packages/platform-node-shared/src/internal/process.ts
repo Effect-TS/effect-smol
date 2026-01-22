@@ -105,7 +105,10 @@ const ESCAPE_LENGTH: Record<string, number> = { x: 3, u: 5 }
  * 1. `template`     - The processed string (escape sequences are evaluated).
  * 2. `template.raw` - The raw string (escape sequences are literal).
  */
-const splitByWhitespaces = (template: string, rawTemplate: string): {
+const splitByWhitespaces = (
+  template: string,
+  rawTemplate: string
+): {
   readonly tokens: ReadonlyArray<string>
   readonly hasLeadingWhitespace: boolean
   readonly hasTrailingWhitespace: boolean
@@ -127,11 +130,7 @@ const splitByWhitespaces = (template: string, rawTemplate: string): {
   // - One for the index into the raw template string
   // We also maintain the current cursor position for where we are in the template
   let templateCursor = 0
-  for (
-    let templateIndex = 0, rawIndex = 0;
-    templateIndex < template.length;
-    templateIndex += 1, rawIndex += 1
-  ) {
+  for (let templateIndex = 0, rawIndex = 0; templateIndex < template.length; templateIndex += 1, rawIndex += 1) {
     // Use the raw template character to check for actual whitespace
     const rawCharacter = rawTemplate[rawIndex]
 
@@ -195,7 +194,7 @@ const concatTokens = (
   isSeparated: boolean
 ): ReadonlyArray<string> =>
   isSeparated || prevTokens.length === 0 || nextTokens.length === 0
-    // Keep the previous and next tokens separate from one another
-    ? [...prevTokens, ...nextTokens]
-    // Join the last token from the previous set and the first token from the next set
-    : [...prevTokens.slice(0, -1), `${prevTokens.at(-1)}${nextTokens.at(0)}`, ...nextTokens.slice(1)]
+    ? // Keep the previous and next tokens separate from one another
+      [...prevTokens, ...nextTokens]
+    : // Join the last token from the previous set and the first token from the next set
+      [...prevTokens.slice(0, -1), `${prevTokens.at(-1)}${nextTokens.at(0)}`, ...nextTokens.slice(1)]

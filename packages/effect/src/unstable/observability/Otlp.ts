@@ -20,11 +20,13 @@ import * as OtlpTracer from "./OtlpTracer.ts"
  */
 export const layer = (options: {
   readonly baseUrl: string
-  readonly resource?: {
-    readonly serviceName?: string | undefined
-    readonly serviceVersion?: string | undefined
-    readonly attributes?: Record<string, unknown>
-  } | undefined
+  readonly resource?:
+    | {
+        readonly serviceName?: string | undefined
+        readonly serviceVersion?: string | undefined
+        readonly attributes?: Record<string, unknown>
+      }
+    | undefined
   readonly headers?: Headers.Input | undefined
   readonly maxBatchSize?: number | undefined
   readonly tracerContext?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
@@ -75,11 +77,13 @@ export const layer = (options: {
  */
 export const layerJson: (options: {
   readonly baseUrl: string
-  readonly resource?: {
-    readonly serviceName?: string | undefined
-    readonly serviceVersion?: string | undefined
-    readonly attributes?: Record<string, unknown>
-  } | undefined
+  readonly resource?:
+    | {
+        readonly serviceName?: string | undefined
+        readonly serviceVersion?: string | undefined
+        readonly attributes?: Record<string, unknown>
+      }
+    | undefined
   readonly headers?: Headers.Input | undefined
   readonly maxBatchSize?: number | undefined
   readonly tracerContext?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
@@ -98,11 +102,13 @@ export const layerJson: (options: {
  */
 export const layerProtobuf: (options: {
   readonly baseUrl: string
-  readonly resource?: {
-    readonly serviceName?: string | undefined
-    readonly serviceVersion?: string | undefined
-    readonly attributes?: Record<string, unknown>
-  } | undefined
+  readonly resource?:
+    | {
+        readonly serviceName?: string | undefined
+        readonly serviceVersion?: string | undefined
+        readonly attributes?: Record<string, unknown>
+      }
+    | undefined
   readonly headers?: Headers.Input | undefined
   readonly maxBatchSize?: number | undefined
   readonly tracerContext?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined

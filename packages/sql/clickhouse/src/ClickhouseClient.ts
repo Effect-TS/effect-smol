@@ -87,7 +87,7 @@ export interface ClickhouseClientConfig extends Clickhouse.ClickHouseClientConfi
 export const make = (
   options: ClickhouseClientConfig
 ): Effect.Effect<ClickhouseClient, SqlError, Scope.Scope | Reactivity.Reactivity> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const compiler = makeCompiler(options.transformQueryNames)
     const transformRows = options.transformResultNames
       ? Statement.defaultTransforms(options.transformResultNames).array
@@ -132,28 +132,32 @@ export const make = (
             const settings = fiber.getRef(ClickhouseSettings)
             const controller = new AbortController()
             if (method === "command") {
-              this.conn.command({
-                query: sql,
-                query_params: paramsObj,
-                abort_signal: controller.signal,
-                query_id: queryId,
-                clickhouse_settings: settings
-              }).then(
-                (result) => resume(Effect.succeed(result)),
-                (cause) => resume(Effect.fail(new SqlError({ cause, message: "Failed to execute statement" })))
-              )
+              this.conn
+                .command({
+                  query: sql,
+                  query_params: paramsObj,
+                  abort_signal: controller.signal,
+                  query_id: queryId,
+                  clickhouse_settings: settings
+                })
+                .then(
+                  (result) => resume(Effect.succeed(result)),
+                  (cause) => resume(Effect.fail(new SqlError({ cause, message: "Failed to execute statement" })))
+                )
             } else {
-              this.conn.query({
-                query: sql,
-                query_params: paramsObj,
-                abort_signal: controller.signal,
-                query_id: queryId,
-                clickhouse_settings: settings,
-                format
-              }).then(
-                (result) => resume(Effect.succeed(result)),
-                (cause) => resume(Effect.fail(new SqlError({ cause, message: "Failed to execute statement" })))
-              )
+              this.conn
+                .query({
+                  query: sql,
+                  query_params: paramsObj,
+                  abort_signal: controller.signal,
+                  query_id: queryId,
+                  clickhouse_settings: settings,
+                  format
+                })
+                .then(
+                  (result) => resume(Effect.succeed(result)),
+                  (cause) => resume(Effect.fail(new SqlError({ cause, message: "Failed to execute statement" })))
+                )
             }
             return Effect.suspend(() => {
               controller.abort()
@@ -169,7 +173,7 @@ export const make = (
             if ("json" in result) {
               return Effect.promise(() =>
                 result.json().then(
-                  (result) => "data" in result ? result.data : result as any,
+                  (result) => ("data" in result ? result.data : (result as any)),
                   () => []
                 )
               )
@@ -184,9 +188,7 @@ export const make = (
         params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
       ) {
-        return transformRows
-          ? Effect.map(this.run(sql, params), transformRows)
-          : this.run(sql, params)
+        return transformRows ? Effect.map(this.run(sql, params), transformRows) : this.run(sql, params)
       }
       executeRaw(sql: string, params: ReadonlyArray<unknown>) {
         return this.runRaw(sql, params)
@@ -222,7 +224,7 @@ export const make = (
               }
             }
             return Effect.tryPromise({
-              try: () => Promise.all(promises).then((rows) => transformRows ? transformRows(rows) : rows),
+              try: () => Promise.all(promises).then((rows) => (transformRows ? transformRows(rows) : rows)),
               catch: (cause) => new SqlError({ cause, message: "Failed to parse row" })
             })
           }),
@@ -264,16 +266,18 @@ export const make = (
             const queryId = fiber.getRef(QueryId) ?? Crypto.randomUUID()
             const settings = fiber.getRef(ClickhouseSettings)
             const controller = new AbortController()
-            client.insert({
-              format: "JSONEachRow",
-              ...options,
-              abort_signal: controller.signal,
-              query_id: queryId,
-              clickhouse_settings: settings
-            }).then(
-              (result) => resume(Effect.succeed(result)),
-              (cause) => resume(Effect.fail(new SqlError({ cause, message: "Failed to insert data" })))
-            )
+            client
+              .insert({
+                format: "JSONEachRow",
+                ...options,
+                abort_signal: controller.signal,
+                query_id: queryId,
+                clickhouse_settings: settings
+              })
+              .then(
+                (result) => resume(Effect.succeed(result)),
+                (cause) => resume(Effect.fail(new SqlError({ cause, message: "Failed to insert data" })))
+              )
             return Effect.suspend(() => {
               controller.abort()
               return Effect.promise(() => client.command({ query: `KILL QUERY WHERE query_id = '${queryId}'` }))
@@ -281,14 +285,14 @@ export const make = (
           })
         },
         withQueryId: dual(2, <A, E, R>(effect: Effect.Effect<A, E, R>, queryId: string) =>
-          Effect.provideService(effect, QueryId, queryId)),
+          Effect.provideService(effect, QueryId, queryId)
+        ),
         withClickhouseSettings: dual(
           2,
           <A, E, R>(
             effect: Effect.Effect<A, E, R>,
             settings: NonNullable<Clickhouse.BaseQueryParams["clickhouse_settings"]>
-          ) =>
-            Effect.provideService(effect, ClickhouseSettings, settings)
+          ) => Effect.provideService(effect, ClickhouseSettings, settings)
         )
       }
     )
@@ -309,20 +313,18 @@ export const ClientMethod = ServiceMap.Reference<"query" | "command" | "insert">
  * @category References
  * @since 1.0.0
  */
-export const QueryId = ServiceMap.Reference<string | undefined>(
-  "@effect/sql-clickhouse/ClickhouseClient/QueryId",
-  { defaultValue: () => undefined }
-)
+export const QueryId = ServiceMap.Reference<string | undefined>("@effect/sql-clickhouse/ClickhouseClient/QueryId", {
+  defaultValue: () => undefined
+})
 
 /**
  * @category References
  * @since 1.0.0
  */
-export const ClickhouseSettings: ServiceMap.Reference<
-  NonNullable<Clickhouse.BaseQueryParams["clickhouse_settings"]>
-> = ServiceMap.Reference("@effect/sql-clickhouse/ClickhouseClient/ClickhouseSettings", {
-  defaultValue: () => ({})
-})
+export const ClickhouseSettings: ServiceMap.Reference<NonNullable<Clickhouse.BaseQueryParams["clickhouse_settings"]>> =
+  ServiceMap.Reference("@effect/sql-clickhouse/ClickhouseClient/ClickhouseSettings", {
+    defaultValue: () => ({})
+  })
 
 /**
  * @category layers
@@ -334,14 +336,12 @@ export const layerConfig: (
   config: Config.Wrap<ClickhouseClientConfig>
 ): Layer.Layer<ClickhouseClient | Client.SqlClient, Config.ConfigError | SqlError> =>
   Layer.effectServices(
-    Config.unwrap(config).asEffect().pipe(
-      Effect.flatMap(make),
-      Effect.map((client) =>
-        ServiceMap.make(ClickhouseClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
-        )
+    Config.unwrap(config)
+      .asEffect()
+      .pipe(
+        Effect.flatMap(make),
+        Effect.map((client) => ServiceMap.make(ClickhouseClient, client).pipe(ServiceMap.add(Client.SqlClient, client)))
       )
-    )
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
@@ -353,9 +353,8 @@ export const layer = (
 ): Layer.Layer<ClickhouseClient | Client.SqlClient, Config.ConfigError | SqlError> =>
   Layer.effectServices(
     Effect.map(make(config), (client) =>
-      ServiceMap.make(ClickhouseClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
-      ))
+      ServiceMap.make(ClickhouseClient, client).pipe(ServiceMap.add(Client.SqlClient, client))
+    )
   ).pipe(Layer.provide(Reactivity.layer))
 
 const typeFromUnknown = (value: unknown): string => {
@@ -393,11 +392,11 @@ export const makeCompiler = (transform?: (_: string) => string) =>
     placeholder(i, u) {
       return `{p${i}: ${typeFromUnknown(u)}}`
     },
-    onIdentifier: transform ?
-      function(value, withoutTransform) {
-        return withoutTransform ? escape(value) : escape(transform(value))
-      } :
-      escape,
+    onIdentifier: transform
+      ? function (value, withoutTransform) {
+          return withoutTransform ? escape(value) : escape(transform(value))
+        }
+      : escape,
     onRecordUpdate() {
       return ["", []]
     },
@@ -408,7 +407,7 @@ export const makeCompiler = (transform?: (_: string) => string) =>
 
 // compiler helpers
 
-const escape = Statement.defaultEscape("\"")
+const escape = Statement.defaultEscape('"')
 
 /**
  * @category custom types

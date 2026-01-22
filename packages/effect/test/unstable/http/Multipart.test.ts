@@ -5,7 +5,7 @@ import { deepStrictEqual } from "node:assert"
 
 describe("Multipart", () => {
   it.effect("it parses", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const data = new globalThis.FormData()
       data.append("foo", "bar")
       data.append("test", "ing")
@@ -19,12 +19,9 @@ describe("Multipart", () => {
         Stream.pipeThroughChannel(Multipart.makeChannel(Object.fromEntries(response.headers))),
         Stream.mapEffect((part) => {
           return Unify.unify(
-            part._tag === "File" ?
-              Effect.zip(
-                Effect.succeed(part.name),
-                Stream.mkString(Stream.decodeText(part.content))
-              ) :
-              Effect.succeed([part.key, part.value] as const)
+            part._tag === "File"
+              ? Effect.zip(Effect.succeed(part.name), Stream.mkString(Stream.decodeText(part.content)))
+              : Effect.succeed([part.key, part.value] as const)
           )
         }),
         Stream.runCollect
@@ -35,7 +32,8 @@ describe("Multipart", () => {
         ["test", "ing"],
         ["foo.txt", "A".repeat(1024 * 1024)]
       ])
-    }))
+    })
+  )
 
   describe("FileSchema", () => {
     it("toJsonSchema", () => {
@@ -43,27 +41,27 @@ describe("Multipart", () => {
       deepStrictEqual(document, {
         dialect: "draft-2020-12",
         schema: {
-          "type": "object",
-          "properties": {
-            "key": {
-              "$ref": "#/$defs/String_"
+          type: "object",
+          properties: {
+            key: {
+              $ref: "#/$defs/String_"
             },
-            "name": {
-              "$ref": "#/$defs/String_"
+            name: {
+              $ref: "#/$defs/String_"
             },
-            "contentType": {
-              "$ref": "#/$defs/String_"
+            contentType: {
+              $ref: "#/$defs/String_"
             },
-            "path": {
-              "$ref": "#/$defs/String_"
+            path: {
+              $ref: "#/$defs/String_"
             }
           },
-          "required": ["key", "name", "contentType", "path"],
-          "additionalProperties": false
+          required: ["key", "name", "contentType", "path"],
+          additionalProperties: false
         },
         definitions: {
           String_: {
-            "type": "string"
+            type: "string"
           }
         }
       })

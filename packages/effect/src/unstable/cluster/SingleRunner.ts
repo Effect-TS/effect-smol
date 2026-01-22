@@ -24,9 +24,7 @@ export const layer = (options?: {
   readonly shardingConfig?: Partial<ShardingConfig.ShardingConfig["Service"]> | undefined
   readonly runnerStorage?: "memory" | "sql" | undefined
 }): Layer.Layer<
-  | Sharding.Sharding
-  | Runners.Runners
-  | MessageStorage.MessageStorage,
+  Sharding.Sharding | Runners.Runners | MessageStorage.MessageStorage,
   ConfigError,
   SqlClient.SqlClient
 > =>

@@ -10,15 +10,7 @@ addEqualityTesters()
 describe.sequential("Atom", () => {
   beforeEach(async () => {
     vitest.useFakeTimers({
-      toFake: [
-        "Date",
-        "hrtime",
-        "setTimeout",
-        "clearTimeout",
-        "setInterval",
-        "clearInterval",
-        "performance"
-      ]
+      toFake: ["Date", "hrtime", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "performance"]
     })
     await Effect.runPromise(Effect.yieldNow)
   })
@@ -44,9 +36,7 @@ describe.sequential("Atom", () => {
   })
 
   it("keepAlive true", async () => {
-    const counter = Atom.make(0).pipe(
-      Atom.keepAlive
-    )
+    const counter = Atom.make(0).pipe(Atom.keepAlive)
     const r = AtomRegistry.make()
     r.set(counter, 1)
     expect(r.get(counter)).toEqual(1)
@@ -72,9 +62,7 @@ describe.sequential("Atom", () => {
   })
 
   it("runtime", async () => {
-    const count = counterRuntime.atom(Counter.use((_) => _.get)).pipe(
-      Atom.withLabel("count")
-    )
+    const count = counterRuntime.atom(Counter.use((_) => _.get)).pipe(Atom.withLabel("count"))
     const r = AtomRegistry.make()
     const result = r.get(count)
     assert(AsyncResult.isSuccess(result))
@@ -105,7 +93,7 @@ describe.sequential("Atom", () => {
     const buildCount = buildCounterRuntime.fn<void>()((_) => BuildCounter.use((_) => _.get))
     const count = counterRuntime.atom(Counter.use((_) => _.get))
     const timesTwo = multiplierRuntime.atom((get) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const counter = yield* Counter
         const multiplier = yield* Multiplier
         yield* counter.inc
@@ -149,10 +137,7 @@ describe.sequential("Atom", () => {
   })
 
   it("effect initial", async () => {
-    const count = Atom.make(
-      Effect.succeed(1).pipe(Effect.delay(100)),
-      { initialValue: 0 }
-    ).pipe(Atom.keepAlive)
+    const count = Atom.make(Effect.succeed(1).pipe(Effect.delay(100)), { initialValue: 0 }).pipe(Atom.keepAlive)
     const r = AtomRegistry.make()
     let result = r.get(count)
     assert(AsyncResult.isSuccess(result))
@@ -178,13 +163,14 @@ describe.sequential("Atom", () => {
   it("effectFn concurrent", async () => {
     const latches = Arr.empty<Effect.Latch>()
     let done = 0
-    const count = Atom.fn((_: number) => {
-      const latch = Effect.makeLatchUnsafe()
-      latches.push(latch)
-      return latch.await.pipe(
-        Effect.tap(() => done++)
-      )
-    }, { concurrent: true })
+    const count = Atom.fn(
+      (_: number) => {
+        const latch = Effect.makeLatchUnsafe()
+        latches.push(latch)
+        return latch.await.pipe(Effect.tap(() => done++))
+      },
+      { concurrent: true }
+    )
 
     const r = AtomRegistry.make()
     r.mount(count)
@@ -225,9 +211,7 @@ describe.sequential("Atom", () => {
   })
 
   it("effect mapResult", async () => {
-    const count = Atom.fn((n: number) => Effect.succeed(n + 1)).pipe(
-      Atom.mapResult((_) => _ + 1)
-    )
+    const count = Atom.fn((n: number) => Effect.succeed(n + 1)).pipe(Atom.mapResult((_) => _ + 1))
     const r = AtomRegistry.make()
     let result = r.get(count)
     assert(AsyncResult.isInitial(result))
@@ -275,13 +259,10 @@ describe.sequential("Atom", () => {
   })
 
   it("refresh derived before mount resolves base effect", async () => {
-    const baseAtom = Atom.make(
-      Effect.succeed("value").pipe(Effect.delay(100))
-    )
+    const baseAtom = Atom.make(Effect.succeed("value").pipe(Effect.delay(100)))
     const derivedAtom = Atom.writable(
       (get) => get(baseAtom),
-      () => {
-      },
+      () => {},
       (refresh) => refresh(baseAtom)
     )
     const registry = AtomRegistry.make()
@@ -332,7 +313,7 @@ describe.sequential("Atom", () => {
   })
 
   it.effect("stream", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       vitest.useRealTimers()
 
       const services = yield* Effect.services<never>()
@@ -372,15 +353,11 @@ describe.sequential("Atom", () => {
       result = r.get(count)
       assert(result.waiting)
       assert(AsyncResult.isInitial(result))
-    }))
+    })
+  )
 
   it("stream initial", async () => {
-    const count = Atom.make(
-      Stream.range(1, 2).pipe(
-        Stream.tap(() => Effect.sleep(50))
-      ),
-      { initialValue: 0 }
-    )
+    const count = Atom.make(Stream.range(1, 2).pipe(Stream.tap(() => Effect.sleep(50))), { initialValue: 0 })
     const r = AtomRegistry.make()
     const unmount = r.mount(count)
     let result = r.get(count)
@@ -402,11 +379,7 @@ describe.sequential("Atom", () => {
   })
 
   it("streamFn", async () => {
-    const count = Atom.fn((start: number) =>
-      Stream.range(start, start + 1).pipe(
-        Stream.tap(() => Effect.sleep(50))
-      )
-    )
+    const count = Atom.fn((start: number) => Stream.range(start, start + 1).pipe(Stream.tap(() => Effect.sleep(50))))
     const r = AtomRegistry.make()
     const unmount = r.mount(count)
     let result = r.get(count)
@@ -458,11 +431,7 @@ describe.sequential("Atom", () => {
   })
 
   it("pull", async () => {
-    const count = Atom.pull(
-      Stream.range(0, 1, 1).pipe(
-        Stream.tap(() => Effect.sleep(50))
-      )
-    )
+    const count = Atom.pull(Stream.range(0, 1, 1).pipe(Stream.tap(() => Effect.sleep(50))))
     const r = AtomRegistry.make()
     const unmount = r.mount(count)
 
@@ -568,11 +537,7 @@ describe.sequential("Atom", () => {
   })
 
   it("pull refreshable", async () => {
-    const count = Atom.pull(() =>
-      Stream.range(1, 2, 1).pipe(
-        Stream.tap(() => Effect.sleep(50))
-      )
-    )
+    const count = Atom.pull(() => Stream.range(1, 2, 1).pipe(Stream.tap(() => Effect.sleep(50))))
     const r = AtomRegistry.make()
     const unmount = r.mount(count)
 
@@ -616,9 +581,7 @@ describe.sequential("Atom", () => {
   })
 
   it("label", async () => {
-    expect(
-      Atom.make(0).pipe(Atom.withLabel("counter")).label![1]
-    ).toMatch(/Atom.test.ts:\d+:\d+/)
+    expect(Atom.make(0).pipe(Atom.withLabel("counter")).label![1]).toMatch(/Atom.test.ts:\d+:\d+/)
   })
 
   it("batching", async () => {
@@ -706,9 +669,7 @@ describe.sequential("Atom", () => {
   it("initialValues", async () => {
     const state = Atom.make(0)
     const r = AtomRegistry.make({
-      initialValues: [
-        Atom.initialValue(state, 10)
-      ]
+      initialValues: [Atom.initialValue(state, 10)]
     })
     expect(r.get(state)).toEqual(10)
     await Effect.runPromise(Effect.yieldNow)
@@ -717,12 +678,8 @@ describe.sequential("Atom", () => {
 
   it("idleTTL", async () => {
     const state = Atom.make(0)
-    const state2 = Atom.make(0).pipe(
-      Atom.setIdleTTL(10000)
-    )
-    const state3 = Atom.make(0).pipe(
-      Atom.setIdleTTL(3000)
-    )
+    const state2 = Atom.make(0).pipe(Atom.setIdleTTL(10000))
+    const state3 = Atom.make(0).pipe(Atom.setIdleTTL(3000))
     const r = AtomRegistry.make({ defaultIdleTTL: 2000 })
     r.set(state, 10)
     r.set(state2, 10)
@@ -749,9 +706,7 @@ describe.sequential("Atom", () => {
   })
 
   it("idleTTL fn", async () => {
-    const fn = Atom.fn((n: number) => Effect.succeed(n + 1)).pipe(
-      Atom.setIdleTTL(0)
-    )
+    const fn = Atom.fn((n: number) => Effect.succeed(n + 1)).pipe(Atom.setIdleTTL(0))
     const r = AtomRegistry.make({ defaultIdleTTL: 2000 })
 
     let result = r.get(fn)
@@ -769,9 +724,7 @@ describe.sequential("Atom", () => {
   })
 
   it("idleTTL fnSync", async () => {
-    const fn = Atom.fnSync((n: number) => n + 1).pipe(
-      Atom.setIdleTTL(0)
-    )
+    const fn = Atom.fnSync((n: number) => n + 1).pipe(Atom.setIdleTTL(0))
     const r = AtomRegistry.make({ defaultIdleTTL: 2000 })
 
     let result = r.get(fn)
@@ -807,11 +760,7 @@ describe.sequential("Atom", () => {
   })
 
   it("withFallback", async () => {
-    const count = Atom.make(() =>
-      Effect.succeed(1).pipe(
-        Effect.delay(100)
-      )
-    ).pipe(
+    const count = Atom.make(() => Effect.succeed(1).pipe(Effect.delay(100))).pipe(
       Atom.withFallback(Atom.make(() => Effect.succeed(0))),
       Atom.keepAlive
     )
@@ -823,7 +772,7 @@ describe.sequential("Atom", () => {
   })
 
   it("failure with previousSuccess", async () => {
-    const count = Atom.fn((i: number) => i === 1 ? Effect.fail("fail") : Effect.succeed(i))
+    const count = Atom.fn((i: number) => (i === 1 ? Effect.fail("fail") : Effect.succeed(i)))
     const r = AtomRegistry.make()
 
     let result = r.get(count)
@@ -963,7 +912,7 @@ describe.sequential("Atom", () => {
   it("SubscriptionRef/runtime/scoped", async () => {
     let finalized = false
     const atom = counterRuntime.subscriptionRef(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {
             finalized = true
@@ -1049,10 +998,7 @@ describe.sequential("Atom", () => {
   test(`toStreamResult`, async () => {
     const r = AtomRegistry.make()
     const atom = Atom.make(Effect.succeed(1))
-    const eff = Atom.toStreamResult(atom).pipe(
-      Stream.runHead,
-      Effect.provideService(AtomRegistry.AtomRegistry, r)
-    )
+    const eff = Atom.toStreamResult(atom).pipe(Stream.runHead, Effect.provideService(AtomRegistry.AtomRegistry, r))
     const result = await Effect.runPromise(eff)
     expect(Option.getOrThrow(result)).toEqual(1)
   })
@@ -1192,9 +1138,11 @@ describe.sequential("Atom", () => {
       const fn = optimisticAtom.pipe(
         Atom.optimisticFn({
           reducer: (_current, update: number) => update,
-          fn: Atom.fn(Effect.fnUntraced(function*() {
-            yield* latch.await
-          }))
+          fn: Atom.fn(
+            Effect.fnUntraced(function* () {
+              yield* latch.await
+            })
+          )
         }),
         Atom.keepAlive
       )
@@ -1221,18 +1169,20 @@ describe.sequential("Atom", () => {
       const latch = Effect.makeLatchUnsafe()
       const r = AtomRegistry.make()
       let i = 0
-      const atom = Atom.make(Effect.sync(() => {
-        return i
-      }))
-      const optimisticAtom = atom.pipe(
-        Atom.optimistic
+      const atom = Atom.make(
+        Effect.sync(() => {
+          return i
+        })
       )
+      const optimisticAtom = atom.pipe(Atom.optimistic)
       const fn = optimisticAtom.pipe(
         Atom.optimisticFn({
           reducer: (_current, update: number) => AsyncResult.success(update),
-          fn: runtime.fn(Effect.fnUntraced(function*() {
-            yield* latch.await
-          }))
+          fn: runtime.fn(
+            Effect.fnUntraced(function* () {
+              yield* latch.await
+            })
+          )
         })
       )
 
@@ -1265,16 +1215,16 @@ describe.sequential("Atom", () => {
         rebuilds++
         return i
       })
-      const optimisticAtom = atom.pipe(
-        Atom.optimistic
-      )
+      const optimisticAtom = atom.pipe(Atom.optimistic)
       const fn = optimisticAtom.pipe(
         Atom.optimisticFn({
           reducer: (_, value) => value,
-          fn: Atom.fn<number>()(Effect.fnUntraced(function*() {
-            yield* latch.await
-            return yield* Effect.fail("error")
-          }))
+          fn: Atom.fn<number>()(
+            Effect.fnUntraced(function* () {
+              yield* latch.await
+              return yield* Effect.fail("error")
+            })
+          )
         })
       )
 
@@ -1326,17 +1276,17 @@ describe.sequential("Atom", () => {
       const r = AtomRegistry.make()
       let i = 0
       const atom = Atom.make(Effect.sync(() => i))
-      const optimisticAtom = atom.pipe(
-        Atom.optimistic
-      )
+      const optimisticAtom = atom.pipe(Atom.optimistic)
       const fn = optimisticAtom.pipe(
         Atom.optimisticFn({
           reducer: (_current, update: number) => AsyncResult.success(update),
           fn: (set) =>
-            Atom.fn(Effect.fnUntraced(function*() {
-              set(AsyncResult.success(123))
-              yield* latch.await
-            }))
+            Atom.fn(
+              Effect.fnUntraced(function* () {
+                set(AsyncResult.success(123))
+                yield* latch.await
+              })
+            )
         }),
         Atom.keepAlive
       )
@@ -1364,13 +1314,9 @@ describe.sequential("Atom", () => {
     it("rebuilds on mutation", async () => {
       const r = AtomRegistry.make()
       let rebuilds = 0
-      const atom = Atom.make(() => rebuilds++).pipe(
-        Atom.withReactivity(["counter"]),
-        Atom.keepAlive
-      )
+      const atom = Atom.make(() => rebuilds++).pipe(Atom.withReactivity(["counter"]), Atom.keepAlive)
       const fn = counterRuntime.fn(
-        Effect.fn(function*() {
-        }),
+        Effect.fn(function* () {}),
         { reactivityKeys: ["counter"] }
       )
       assert.strictEqual(r.get(atom), 0)
@@ -1400,16 +1346,12 @@ describe.sequential("Atom", () => {
 
   it("writable derived clears waiting after refresh", async () => {
     let count = 0
-    const base = Atom.make(Effect.sync(() => ++count).pipe(Effect.delay(100))).pipe(
-      Atom.withLabel("base")
-    )
+    const base = Atom.make(Effect.sync(() => ++count).pipe(Effect.delay(100))).pipe(Atom.withLabel("base"))
     const derived = Atom.writable(
       (get) => get(base),
       () => {},
       (refresh) => refresh(base)
-    ).pipe(
-      Atom.withLabel("derived")
-    )
+    ).pipe(Atom.withLabel("derived"))
     const r = AtomRegistry.make()
 
     const unmount1 = r.mount(derived)
@@ -1460,7 +1402,7 @@ describe.sequential("Atom", () => {
     })
 
     const outer = Atom.fn(
-      Effect.fn(function*(_: void, get: Atom.FnContext) {
+      Effect.fn(function* (_: void, get: Atom.FnContext) {
         get.set(inner, 1)
         const a = yield* get.result(inner, { suspendOnWaiting: true })
 
@@ -1506,7 +1448,7 @@ interface Counter {
 const Counter = ServiceMap.Service<Counter>("Counter")
 const CounterLive = Layer.effect(
   Counter,
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const buildCounter = yield* BuildCounter
     yield* buildCounter.inc
     let count = 1
@@ -1517,13 +1459,11 @@ const CounterLive = Layer.effect(
       })
     })
   })
-).pipe(
-  Layer.provide(BuildCounterLive)
-)
+).pipe(Layer.provide(BuildCounterLive))
 
 const CounterTest = Layer.effect(
   Counter,
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const buildCounter = yield* BuildCounter
     yield* buildCounter.inc
     let count = 10
@@ -1534,9 +1474,7 @@ const CounterTest = Layer.effect(
       })
     })
   })
-).pipe(
-  Layer.provide(BuildCounterLive)
-)
+).pipe(Layer.provide(BuildCounterLive))
 
 interface Multiplier {
   readonly times: (n: number) => Effect.Effect<number>
@@ -1544,16 +1482,14 @@ interface Multiplier {
 const Multiplier = ServiceMap.Service<Multiplier>("Multiplier")
 const MultiplierLive = Layer.effect(
   Multiplier,
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const counter = yield* Counter
     yield* AtomRegistry.AtomRegistry // test that we can access the registry
     return Multiplier.of({
       times: (n) => Effect.map(counter.get, (_) => _ * n)
     })
   })
-).pipe(
-  Layer.provideMerge(CounterLive)
-)
+).pipe(Layer.provideMerge(CounterLive))
 
 const buildCounterRuntime = Atom.runtime(BuildCounterLive)
 const counterRuntime = Atom.runtime(CounterLive)

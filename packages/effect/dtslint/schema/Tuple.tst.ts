@@ -22,25 +22,17 @@ describe("Tuple", () => {
 
   it("readonly [String, Number?]", () => {
     const schema = Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])
-    expect(Schema.revealCodec(schema)).type.toBe<
-      Schema.Codec<readonly [string, number?], readonly [string, number?]>
-    >()
+    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<readonly [string, number?], readonly [string, number?]>>()
     expect(schema).type.toBe<Schema.Tuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>>()
-    expect(schema.annotate({})).type.toBe<
-      Schema.Tuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>
-    >()
+    expect(schema.annotate({})).type.toBe<Schema.Tuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>>()
 
     expect(schema.elements).type.toBe<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>()
   })
 
   it("mutable", () => {
     const schema = Schema.mutable(Schema.Tuple([Schema.String, Schema.FiniteFromString]))
-    expect(Schema.revealCodec(schema)).type.toBe<
-      Schema.Codec<[string, number], [string, string], never, never>
-    >()
-    expect(schema).type.toBe<
-      Schema.mutable<Schema.Tuple<readonly [Schema.String, Schema.FiniteFromString]>>
-    >()
+    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<[string, number], [string, string], never, never>>()
+    expect(schema).type.toBe<Schema.mutable<Schema.Tuple<readonly [Schema.String, Schema.FiniteFromString]>>>()
     expect(schema.annotate({})).type.toBe<
       Schema.mutable<Schema.Tuple<readonly [Schema.String, Schema.FiniteFromString]>>
     >()
@@ -98,9 +90,7 @@ describe("Tuple", () => {
         expect(Schema.revealCodec(schema)).type.toBe<
           Schema.Codec<readonly [string, number?], readonly [string, number?], never, never>
         >()
-        expect(schema).type.toBe<
-          Schema.Tuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>
-        >()
+        expect(schema).type.toBe<Schema.Tuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>>()
       })
     })
 
@@ -141,9 +131,7 @@ describe("Tuple", () => {
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string | null, number | null], readonly [string | null, number | null], never, never>
       >()
-      expect(schema).type.toBe<
-        Schema.Tuple<readonly [Schema.NullOr<Schema.String>, Schema.NullOr<Schema.Number>]>
-      >()
+      expect(schema).type.toBe<Schema.Tuple<readonly [Schema.NullOr<Schema.String>, Schema.NullOr<Schema.Number>]>>()
     })
 
     it("mapPick", () => {
@@ -167,10 +155,10 @@ describe("Tuple", () => {
 
 describe("TupleWithRest", () => {
   it("Tuple([FiniteFromString, String]) + [Boolean, String]", () => {
-    const schema = Schema.TupleWithRest(
-      Schema.Tuple([Schema.FiniteFromString, Schema.String]),
-      [Schema.Boolean, Schema.String]
-    )
+    const schema = Schema.TupleWithRest(Schema.Tuple([Schema.FiniteFromString, Schema.String]), [
+      Schema.Boolean,
+      Schema.String
+    ])
 
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<
@@ -183,10 +171,9 @@ describe("TupleWithRest", () => {
   })
 
   it("mutable", () => {
-    const schema = Schema.mutable(Schema.TupleWithRest(
-      Schema.Tuple([Schema.FiniteFromString, Schema.String]),
-      [Schema.Boolean, Schema.String]
-    ))
+    const schema = Schema.mutable(
+      Schema.TupleWithRest(Schema.Tuple([Schema.FiniteFromString, Schema.String]), [Schema.Boolean, Schema.String])
+    )
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<
         [number, string, ...Array<boolean>, string],

@@ -129,9 +129,8 @@ export class UnrecognizedOption extends Schema.ErrorClass(`${TypeId}/Unrecognize
    * @since 4.0.0
    */
   override get message() {
-    const suggestionText = this.suggestions.length > 0
-      ? `\n\n  Did you mean this?\n    ${this.suggestions.join("\n    ")}`
-      : ""
+    const suggestionText =
+      this.suggestions.length > 0 ? `\n\n  Did you mean this?\n    ${this.suggestions.join("\n    ")}` : ""
     const baseMessage = this.command
       ? `Unrecognized flag: ${this.option} in command ${this.command.join(" ")}`
       : `Unrecognized flag: ${this.option}`
@@ -175,8 +174,10 @@ export class DuplicateOption extends Schema.ErrorClass(`${TypeId}/DuplicateOptio
    * @since 4.0.0
    */
   override get message() {
-    return `Duplicate flag name "${this.option}" in parent command "${this.parentCommand}" and subcommand "${this.childCommand}". ` +
+    return (
+      `Duplicate flag name "${this.option}" in parent command "${this.parentCommand}" and subcommand "${this.childCommand}". ` +
       `Parent will always claim this flag (Mode A semantics). Consider renaming one of them to avoid confusion.`
+    )
   }
 }
 
@@ -377,9 +378,8 @@ export class UnknownSubcommand extends Schema.ErrorClass(`${TypeId}/UnknownSubco
    * @since 4.0.0
    */
   override get message() {
-    const suggestionText = this.suggestions.length > 0
-      ? `\n\n  Did you mean this?\n    ${this.suggestions.join("\n    ")}`
-      : ""
+    const suggestionText =
+      this.suggestions.length > 0 ? `\n\n  Did you mean this?\n    ${this.suggestions.join("\n    ")}` : ""
     return this.parent
       ? `Unknown subcommand "${this.subcommand}" for "${this.parent.join(" ")}"${suggestionText}`
       : `Unknown subcommand "${this.subcommand}"${suggestionText}`

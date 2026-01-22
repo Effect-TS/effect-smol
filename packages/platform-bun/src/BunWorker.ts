@@ -13,13 +13,8 @@ import { WorkerError } from "effect/unstable/workers/WorkerError"
  * @since 1.0.0
  * @category layers
  */
-export const layer = (
-  spawn: (id: number) => globalThis.Worker
-): Layer.Layer<Worker.WorkerPlatform | Worker.Spawner> =>
-  Layer.merge(
-    layerPlatform,
-    Layer.succeed(Worker.Spawner)(spawn)
-  )
+export const layer = (spawn: (id: number) => globalThis.Worker): Layer.Layer<Worker.WorkerPlatform | Worker.Spawner> =>
+  Layer.merge(layerPlatform, Layer.succeed(Worker.Spawner)(spawn))
 
 /**
  * @since 1.0.0

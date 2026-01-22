@@ -48,16 +48,25 @@ export const match: {
     readonly onUndefined: LazyArg<B>
     readonly onDefined: (a: A) => C
   }): (self: A | undefined) => B | C
-  <A, B, C = B>(self: A | undefined, options: {
-    readonly onUndefined: LazyArg<B>
-    readonly onDefined: (a: A) => C
-  }): B | C
+  <A, B, C = B>(
+    self: A | undefined,
+    options: {
+      readonly onUndefined: LazyArg<B>
+      readonly onDefined: (a: A) => C
+    }
+  ): B | C
 } = dual(
   2,
-  <A, B, C = B>(self: A | undefined, { onDefined, onUndefined }: {
-    readonly onUndefined: LazyArg<B>
-    readonly onDefined: (a: A) => C
-  }): B | C => self === undefined ? onUndefined() : onDefined(self)
+  <A, B, C = B>(
+    self: A | undefined,
+    {
+      onDefined,
+      onUndefined
+    }: {
+      readonly onUndefined: LazyArg<B>
+      readonly onDefined: (a: A) => C
+    }
+  ): B | C => (self === undefined ? onUndefined() : onDefined(self))
 )
 
 /**
@@ -76,23 +85,22 @@ export const getOrThrowWith: {
 /**
  * @since 4.0.0
  */
-export const getOrThrow: <A>(self: A | undefined) => A = getOrThrowWith(() =>
-  new Error("getOrThrow called on a undefined")
+export const getOrThrow: <A>(self: A | undefined) => A = getOrThrowWith(
+  () => new Error("getOrThrow called on a undefined")
 )
 
 /**
  * @since 4.0.0
  */
-export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
-  f: (...a: A) => B
-): (...a: A) => B | undefined =>
-(...a) => {
-  try {
-    return f(...a)
-  } catch {
-    return undefined
+export const liftThrowable =
+  <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): ((...a: A) => B | undefined) =>
+  (...a) => {
+    try {
+      return f(...a)
+    } catch {
+      return undefined
+    }
   }
-}
 
 /**
  * Creates a `Reducer` for `UndefinedOr<A>` that prioritizes the first non-`undefined`
@@ -114,11 +122,14 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  * @since 4.0.0
  */
 export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A | undefined> {
-  return Reducer.make((self, that) => {
-    if (self === undefined) return that
-    if (that === undefined) return self
-    return combiner.combine(self, that)
-  }, undefined as A | undefined)
+  return Reducer.make(
+    (self, that) => {
+      if (self === undefined) return that
+      if (that === undefined) return self
+      return combiner.combine(self, that)
+    },
+    undefined as A | undefined
+  )
 }
 
 /**

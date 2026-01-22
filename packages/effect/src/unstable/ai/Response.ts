@@ -406,8 +406,8 @@ export const StreamPart = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
  * @category utility types
  */
 export type ToolCallParts<Tools extends Record<string, Tool.Any>> = {
-  [Name in keyof Tools]: Name extends string ?
-    ToolCallPart<Name, Schema.Struct.Type<Tool.ParametersSchema<Tools[Name]>["fields"]>>
+  [Name in keyof Tools]: Name extends string
+    ? ToolCallPart<Name, Schema.Struct.Type<Tool.ParametersSchema<Tools[Name]>["fields"]>>
     : never
 }[keyof Tools]
 
@@ -439,11 +439,9 @@ export type JsonValue = Schema.MutableTree<string | number | boolean>
  * @since 4.0.0
  * @category schemas
  */
-export const JsonValue: Schema.Codec<JsonValue> = Schema.MutableTree(Schema.Union([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]))
+export const JsonValue: Schema.Codec<JsonValue> = Schema.MutableTree(
+  Schema.Union([Schema.String, Schema.Number, Schema.Boolean])
+)
 
 /**
  * Schema for provider-specific metadata which can be attached to response parts.
@@ -463,9 +461,7 @@ export const JsonValue: Schema.Codec<JsonValue> = Schema.MutableTree(Schema.Unio
  */
 export const ProviderMetadata: Schema.toType<
   Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Codec<JsonValue>>>
-> = Schema.toType(
-  Schema.Record(Schema.String, Schema.UndefinedOr(JsonValue))
-)
+> = Schema.toType(Schema.Record(Schema.String, Schema.UndefinedOr(JsonValue)))
 
 /**
  * @since 4.0.0
@@ -568,14 +564,15 @@ export const makePart = <const Type extends AnyPart["type"]>(
  * @since 4.0.0
  * @category utility types
  */
-export type ConstructorParams<Part extends AnyPart> =
-  & Omit<Part, typeof PartTypeId | "type" | "sourceType" | "metadata">
-  & {
-    /**
-     * Optional provider-specific metadata for this part.
-     */
-    readonly metadata?: Part["metadata"] | undefined
-  }
+export type ConstructorParams<Part extends AnyPart> = Omit<
+  Part,
+  typeof PartTypeId | "type" | "sourceType" | "metadata"
+> & {
+  /**
+   * Optional provider-specific metadata for this part.
+   */
+  readonly metadata?: Part["metadata"] | undefined
+}
 
 // =============================================================================
 // Text Part
@@ -1368,9 +1365,10 @@ export const ToolParamsEndPart: Schema.Struct<{
  * @since 4.0.0
  * @category models
  */
-export interface ToolCallPart<Name extends string, Params extends Record<string, unknown>>
-  extends BasePart<"tool-call", ToolCallPartMetadata>
-{
+export interface ToolCallPart<Name extends string, Params extends Record<string, unknown>> extends BasePart<
+  "tool-call",
+  ToolCallPartMetadata
+> {
   /**
    * Unique identifier for this tool call.
    */
@@ -1452,23 +1450,18 @@ export interface ToolCallPartMetadata extends ProviderMetadata {}
 export const ToolCallPart: <const Name extends string, Params extends Schema.Struct.Fields>(
   name: Name,
   params: Schema.Struct<Params>
-) => Schema.Struct<
-  {
-    readonly type: Schema.Literal<"tool-call">
-    readonly id: Schema.String
-    readonly name: Schema.Literal<Name>
-    readonly params: Schema.Struct<Params>
-    readonly providerName: Schema.optional<Schema.String>
-    readonly providerExecuted: Schema.withDecodingDefaultKey<Schema.Boolean>
-    readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
-    readonly metadata: Schema.withDecodingDefault<
-      Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Codec<JsonValue>>>>
-    >
-  }
-> = <const Name extends string, Params extends Schema.Struct.Fields>(
-  name: Name,
-  params: Schema.Struct<Params>
-) =>
+) => Schema.Struct<{
+  readonly type: Schema.Literal<"tool-call">
+  readonly id: Schema.String
+  readonly name: Schema.Literal<Name>
+  readonly params: Schema.Struct<Params>
+  readonly providerName: Schema.optional<Schema.String>
+  readonly providerExecuted: Schema.withDecodingDefaultKey<Schema.Boolean>
+  readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
+  readonly metadata: Schema.withDecodingDefault<
+    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Codec<JsonValue>>>>
+  >
+}> = <const Name extends string, Params extends Schema.Struct.Fields>(name: Name, params: Schema.Struct<Params>) =>
   Schema.Struct({
     ...BasePart.fields,
     type: Schema.Literal("tool-call"),
@@ -1668,41 +1661,33 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
   success: Success,
   failure: Failure
 ) => Schema.decodeTo<
-  Schema.Struct<
-    {
-      readonly "~effect/ai/Content/Part": Schema.Literal<"~effect/ai/Content/Part">
-      readonly result: Schema.Union<readonly [Success, Failure]>
-      readonly providerExecuted: Schema.Boolean
-      readonly metadata: Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Codec<JsonValue>>>>
-      readonly encodedResult: Schema.toEncoded<Schema.Union<readonly [Success, Failure]>>
-      readonly id: Schema.String
-      readonly type: Schema.Literal<"tool-result">
-      readonly providerName: Schema.optional<Schema.String>
-      readonly isFailure: Schema.Boolean
-      readonly name: Schema.Literal<Name>
-    }
-  >,
-  Schema.Struct<
-    {
-      readonly result: Schema.toEncoded<Schema.Union<readonly [Success, Failure]>>
-      readonly providerExecuted: Schema.optional<Schema.Boolean>
-      readonly metadata: Schema.optional<
-        Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Codec<JsonValue>>>>
-      >
-      readonly id: Schema.String
-      readonly type: Schema.Literal<"tool-result">
-      readonly providerName: Schema.optional<Schema.String>
-      readonly isFailure: Schema.Boolean
-      readonly name: Schema.Literal<Name>
-    }
-  >,
+  Schema.Struct<{
+    readonly "~effect/ai/Content/Part": Schema.Literal<"~effect/ai/Content/Part">
+    readonly result: Schema.Union<readonly [Success, Failure]>
+    readonly providerExecuted: Schema.Boolean
+    readonly metadata: Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Codec<JsonValue>>>>
+    readonly encodedResult: Schema.toEncoded<Schema.Union<readonly [Success, Failure]>>
+    readonly id: Schema.String
+    readonly type: Schema.Literal<"tool-result">
+    readonly providerName: Schema.optional<Schema.String>
+    readonly isFailure: Schema.Boolean
+    readonly name: Schema.Literal<Name>
+  }>,
+  Schema.Struct<{
+    readonly result: Schema.toEncoded<Schema.Union<readonly [Success, Failure]>>
+    readonly providerExecuted: Schema.optional<Schema.Boolean>
+    readonly metadata: Schema.optional<
+      Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Codec<JsonValue>>>>
+    >
+    readonly id: Schema.String
+    readonly type: Schema.Literal<"tool-result">
+    readonly providerName: Schema.optional<Schema.String>
+    readonly isFailure: Schema.Boolean
+    readonly name: Schema.Literal<Name>
+  }>,
   never,
   never
-> = <
-  const Name extends string,
-  Success extends Schema.Top,
-  Failure extends Schema.Top
->(
+> = <const Name extends string, Success extends Schema.Top, Failure extends Schema.Top>(
   name: Name,
   success: Success,
   failure: Failure
@@ -1729,19 +1714,21 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
     providerExecuted: Schema.optional(Schema.Boolean),
     metadata: Schema.optional(ProviderMetadata)
   })
-  return Decoded.pipe(Schema.encodeTo(
-    Encoded,
-    SchemaTransformation.transform({
-      decode: (encoded) => ({
-        ...encoded,
-        [PartTypeId]: PartTypeId,
-        providerExecuted: encoded.providerExecuted ?? false,
-        metadata: encoded.metadata ?? {},
-        encodedResult: encoded.result
-      }),
-      encode: identity
-    })
-  )).annotate({ identifier: `ToolResultPart(${name})` }) satisfies Schema.Codec<
+  return Decoded.pipe(
+    Schema.encodeTo(
+      Encoded,
+      SchemaTransformation.transform({
+        decode: (encoded) => ({
+          ...encoded,
+          [PartTypeId]: PartTypeId,
+          providerExecuted: encoded.providerExecuted ?? false,
+          metadata: encoded.metadata ?? {},
+          encodedResult: encoded.result
+        }),
+        encode: identity
+      })
+    )
+  ).annotate({ identifier: `ToolResultPart(${name})` }) satisfies Schema.Codec<
     ToolResultPart<Name, Success["Type"], Failure["Type"]>,
     ToolResultPartEncoded,
     Success["EncodingServices"] | Failure["EncodingServices"],
@@ -1761,13 +1748,15 @@ export const toolResultPart = <const Params extends ConstructorParams<ToolResult
   readonly name: infer Name extends string
   readonly isFailure: false
   readonly result: infer Success
-} ? ToolResultPart<Name, Success, never>
+}
+  ? ToolResultPart<Name, Success, never>
   : Params extends {
-    readonly name: infer Name extends string
-    readonly isFailure: true
-    readonly result: infer Failure
-  } ? ToolResultPart<Name, never, Failure>
-  : never => makePart("tool-result", params) as any
+        readonly name: infer Name extends string
+        readonly isFailure: true
+        readonly result: infer Failure
+      }
+    ? ToolResultPart<Name, never, Failure>
+    : never => makePart("tool-result", params) as any
 
 // =============================================================================
 // File Part
@@ -2085,9 +2074,10 @@ export interface ResponseMetadataPart extends BasePart<"response-metadata", Resp
  * @since 4.0.0
  * @category models
  */
-export interface ResponseMetadataPartEncoded
-  extends BasePartEncoded<"response-metadata", ResponseMetadataPartMetadata>
-{
+export interface ResponseMetadataPartEncoded extends BasePartEncoded<
+  "response-metadata",
+  ResponseMetadataPartMetadata
+> {
   /**
    * Optional unique identifier for this specific response.
    */
@@ -2157,25 +2147,9 @@ export const ResponseMetadataPart: Schema.Struct<{
  * @since 4.0.0
  * @category models
  */
-export const FinishReason: Schema.Literals<[
-  "stop",
-  "length",
-  "content-filter",
-  "tool-calls",
-  "error",
-  "pause",
-  "other",
-  "unknown"
-]> = Schema.Literals([
-  "stop",
-  "length",
-  "content-filter",
-  "tool-calls",
-  "error",
-  "pause",
-  "other",
-  "unknown"
-])
+export const FinishReason: Schema.Literals<
+  ["stop", "length", "content-filter", "tool-calls", "error", "pause", "other", "unknown"]
+> = Schema.Literals(["stop", "length", "content-filter", "tool-calls", "error", "pause", "other", "unknown"])
 
 /**
  * @since 4.0.0
@@ -2287,16 +2261,9 @@ export interface FinishPartMetadata extends ProviderMetadata {}
  */
 export const FinishPart: Schema.Struct<{
   readonly type: Schema.tag<"finish">
-  readonly reason: Schema.Literals<[
-    "stop",
-    "length",
-    "content-filter",
-    "tool-calls",
-    "error",
-    "pause",
-    "other",
-    "unknown"
-  ]>
+  readonly reason: Schema.Literals<
+    ["stop", "length", "content-filter", "tool-calls", "error", "pause", "other", "unknown"]
+  >
   readonly usage: typeof Usage
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<

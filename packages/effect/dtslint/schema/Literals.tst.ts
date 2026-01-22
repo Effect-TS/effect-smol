@@ -6,13 +6,9 @@ describe("Literals", () => {
     const schema = Schema.Literals(["a", "b", "c"])
 
     expect(schema.literals).type.toBe<readonly ["a", "b", "c"]>()
-    expect(schema.members).type.toBe<
-      readonly [Schema.Literal<"a">, Schema.Literal<"b">, Schema.Literal<"c">]
-    >()
+    expect(schema.members).type.toBe<readonly [Schema.Literal<"a">, Schema.Literal<"b">, Schema.Literal<"c">]>()
 
-    expect(Schema.revealCodec(schema)).type.toBe<
-      Schema.Codec<"a" | "b" | "c", "a" | "b" | "c", never, never>
-    >()
+    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"a" | "b" | "c", "a" | "b" | "c", never, never>>()
     expect(schema).type.toBe<Schema.Literals<readonly ["a", "b", "c"]>>()
     expect(schema.annotate({})).type.toBe<Schema.Literals<readonly ["a", "b", "c"]>>()
 
@@ -22,22 +18,28 @@ describe("Literals", () => {
   })
 
   it("mapMembers", () => {
-    const schema = Schema.Literals(["a", "b", "c"]).mapMembers(Tuple.evolve([
-      (a) => Schema.Struct({ _tag: a, a: Schema.String }),
-      (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
-      (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
-    ]))
+    const schema = Schema.Literals(["a", "b", "c"]).mapMembers(
+      Tuple.evolve([
+        (a) => Schema.Struct({ _tag: a, a: Schema.String }),
+        (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
+        (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
+      ])
+    )
 
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<
-        { readonly _tag: "a"; readonly a: string } | { readonly _tag: "b"; readonly b: number } | {
-          readonly _tag: "c"
-          readonly c: boolean
-        },
-        { readonly _tag: "a"; readonly a: string } | { readonly _tag: "b"; readonly b: number } | {
-          readonly _tag: "c"
-          readonly c: boolean
-        },
+        | { readonly _tag: "a"; readonly a: string }
+        | { readonly _tag: "b"; readonly b: number }
+        | {
+            readonly _tag: "c"
+            readonly c: boolean
+          },
+        | { readonly _tag: "a"; readonly a: string }
+        | { readonly _tag: "b"; readonly b: number }
+        | {
+            readonly _tag: "c"
+            readonly c: boolean
+          },
         never,
         never
       >

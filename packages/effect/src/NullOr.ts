@@ -44,20 +44,26 @@ export const map: {
  * @since 4.0.0
  */
 export const match: {
-  <B, A, C = B>(options: {
-    readonly onNull: LazyArg<B>
-    readonly onNotNull: (a: A) => C
-  }): (self: A | null) => B | C
-  <A, B, C = B>(self: A | null, options: {
-    readonly onNull: LazyArg<B>
-    readonly onNotNull: (a: A) => C
-  }): B | C
+  <B, A, C = B>(options: { readonly onNull: LazyArg<B>; readonly onNotNull: (a: A) => C }): (self: A | null) => B | C
+  <A, B, C = B>(
+    self: A | null,
+    options: {
+      readonly onNull: LazyArg<B>
+      readonly onNotNull: (a: A) => C
+    }
+  ): B | C
 } = dual(
   2,
-  <A, B, C = B>(self: A | null, { onNotNull, onNull }: {
-    readonly onNull: LazyArg<B>
-    readonly onNotNull: (a: A) => C
-  }): B | C => self === null ? onNull() : onNotNull(self)
+  <A, B, C = B>(
+    self: A | null,
+    {
+      onNotNull,
+      onNull
+    }: {
+      readonly onNull: LazyArg<B>
+      readonly onNotNull: (a: A) => C
+    }
+  ): B | C => (self === null ? onNull() : onNotNull(self))
 )
 
 /**
@@ -81,16 +87,15 @@ export const getOrThrow: <A>(self: A | null) => A = getOrThrowWith(() => new Err
 /**
  * @since 4.0.0
  */
-export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
-  f: (...a: A) => B
-): (...a: A) => B | null =>
-(...a) => {
-  try {
-    return f(...a)
-  } catch {
-    return null
+export const liftThrowable =
+  <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): ((...a: A) => B | null) =>
+  (...a) => {
+    try {
+      return f(...a)
+    } catch {
+      return null
+    }
   }
-}
 
 /**
  * Creates a `Reducer` for `NullOr<A>` that prioritizes the first non-`null`
@@ -112,11 +117,14 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  * @since 4.0.0
  */
 export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A | null> {
-  return Reducer.make((self, that) => {
-    if (self === null) return that
-    if (that === null) return self
-    return combiner.combine(self, that)
-  }, null as A | null)
+  return Reducer.make(
+    (self, that) => {
+      if (self === null) return that
+      if (that === null) return self
+      return combiner.combine(self, that)
+    },
+    null as A | null
+  )
 }
 
 /**

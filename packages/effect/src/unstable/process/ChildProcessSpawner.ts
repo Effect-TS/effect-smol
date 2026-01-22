@@ -132,9 +132,7 @@ export interface ChildProcessSpawner {
   /**
    * Spawn a command and return a handle for interaction.
    */
-  readonly spawn: (
-    command: Command
-  ) => Effect.Effect<ChildProcessHandle, PlatformError.PlatformError, Scope.Scope>
+  readonly spawn: (command: Command) => Effect.Effect<ChildProcessHandle, PlatformError.PlatformError, Scope.Scope>
 }
 
 /**
@@ -143,7 +141,6 @@ export interface ChildProcessSpawner {
  * @since 4.0.0
  * @category Service
  */
-export const ChildProcessSpawner: ServiceMap.Service<
-  ChildProcessSpawner,
-  ChildProcessSpawner
-> = ServiceMap.Service("effect/process/ChildProcessSpawner")
+export const ChildProcessSpawner: ServiceMap.Service<ChildProcessSpawner, ChildProcessSpawner> = ServiceMap.Service(
+  "effect/process/ChildProcessSpawner"
+)

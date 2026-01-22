@@ -59,23 +59,15 @@ export namespace Procedure {
   /**
    * @since 1.0.0
    */
-  export type ParametersRecord<
-    A extends Record<string, Parameter.Parameter<any>>
-  > =
-    & {
-      readonly [K in keyof A]: A[K] extends Parameter.Parameter<infer T> ? T
-        : never
-    }
-    & {}
+  export type ParametersRecord<A extends Record<string, Parameter.Parameter<any>>> = {
+    readonly [K in keyof A]: A[K] extends Parameter.Parameter<infer T> ? T : never
+  } & {}
 
   /**
    * @category model
    * @since 1.0.0
    */
-  export interface Result<
-    O extends Record<string, Parameter.Parameter<any>>,
-    A
-  > {
+  export interface Result<O extends Record<string, Parameter.Parameter<any>>, A> {
     readonly output: ParametersRecord<O>
     readonly rows: ReadonlyArray<A>
   }
@@ -109,72 +101,56 @@ export const make = (name: string): Procedure<{}, {}> => {
  * @category combinator
  * @since 1.0.0
  */
-export const param = <A>() =>
-<N extends string, T extends DataType>(
-  name: N,
-  type: T,
-  options?: ParameterOptions
-) =>
-<
-  I extends Record<string, Parameter.Parameter<any>>,
-  O extends Record<string, Parameter.Parameter<any>>
->(
-  self: Procedure<I, O>
-): Procedure<Simplify<I & { [K in N]: Parameter.Parameter<A> }>, O> => ({
-  ...self,
-  params: {
-    ...self.params,
-    [name]: Parameter.make(name, type, options)
-  }
-})
+export const param =
+  <A>() =>
+  <N extends string, T extends DataType>(name: N, type: T, options?: ParameterOptions) =>
+  <I extends Record<string, Parameter.Parameter<any>>, O extends Record<string, Parameter.Parameter<any>>>(
+    self: Procedure<I, O>
+  ): Procedure<Simplify<I & { [K in N]: Parameter.Parameter<A> }>, O> => ({
+    ...self,
+    params: {
+      ...self.params,
+      [name]: Parameter.make(name, type, options)
+    }
+  })
 
 /**
  * @category combinator
  * @since 1.0.0
  */
-export const outputParam = <A>() =>
-<N extends string, T extends DataType>(
-  name: N,
-  type: T,
-  options?: ParameterOptions
-) =>
-<
-  I extends Record<string, Parameter.Parameter<any>>,
-  O extends Record<string, Parameter.Parameter<any>>
->(
-  self: Procedure<I, O>
-): Procedure<I, Simplify<O & { [K in N]: Parameter.Parameter<A> }>> => ({
-  ...self,
-  outputParams: {
-    ...self.outputParams,
-    [name]: Parameter.make(name, type, options)
-  }
-})
+export const outputParam =
+  <A>() =>
+  <N extends string, T extends DataType>(name: N, type: T, options?: ParameterOptions) =>
+  <I extends Record<string, Parameter.Parameter<any>>, O extends Record<string, Parameter.Parameter<any>>>(
+    self: Procedure<I, O>
+  ): Procedure<I, Simplify<O & { [K in N]: Parameter.Parameter<A> }>> => ({
+    ...self,
+    outputParams: {
+      ...self.outputParams,
+      [name]: Parameter.make(name, type, options)
+    }
+  })
 
 /**
  * @category combinator
  * @since 1.0.0
  */
-export const withRows = <A extends object = Row>() =>
-<
-  I extends Record<string, Parameter.Parameter<any>>,
-  O extends Record<string, Parameter.Parameter<any>>
->(
-  self: Procedure<I, O>
-): Procedure<I, O, A> => self as any
+export const withRows =
+  <A extends object = Row>() =>
+  <I extends Record<string, Parameter.Parameter<any>>, O extends Record<string, Parameter.Parameter<any>>>(
+    self: Procedure<I, O>
+  ): Procedure<I, O, A> =>
+    self as any
 
 /**
  * @category combinator
  * @since 1.0.0
  */
-export const compile = <
-  I extends Record<string, Parameter.Parameter<any>>,
-  O extends Record<string, Parameter.Parameter<any>>,
-  A
->(
-  self: Procedure<I, O, A>
-) =>
-(input: Procedure.ParametersRecord<I>): ProcedureWithValues<I, O, A> => ({
-  ...self,
-  values: input
-})
+export const compile =
+  <I extends Record<string, Parameter.Parameter<any>>, O extends Record<string, Parameter.Parameter<any>>, A>(
+    self: Procedure<I, O, A>
+  ) =>
+  (input: Procedure.ParametersRecord<I>): ProcedureWithValues<I, O, A> => ({
+    ...self,
+    values: input
+  })

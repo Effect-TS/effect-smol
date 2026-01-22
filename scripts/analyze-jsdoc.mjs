@@ -229,7 +229,8 @@ class JSDocAnalyzer {
 
       // Hit another export/declaration - stop searching if we haven't found JSDoc yet
       if (
-        line && (line.startsWith("export ") ||
+        line &&
+        (line.startsWith("export ") ||
           line.startsWith("import ") ||
           line.startsWith("const ") ||
           line.startsWith("function ") ||
@@ -444,7 +445,7 @@ class JSDocAnalyzer {
     Process.stdout.write("-".repeat(40) + "\n")
     const sortedFiles = fileDetails
       .filter((f) => f.missingExamples > 0 || f.missingCategories > 0)
-      .sort((a, b) => (b.missingExamples + b.missingCategories) - (a.missingExamples + a.missingCategories))
+      .sort((a, b) => b.missingExamples + b.missingCategories - (a.missingExamples + a.missingCategories))
       .slice(0, 15)
 
     sortedFiles.forEach((file, index) => {
@@ -512,14 +513,14 @@ class JSDocAnalyzer {
     Process.stdout.write("📈 DOCUMENTATION PROGRESS\n")
     Process.stdout.write("-".repeat(30) + "\n")
     Process.stdout.write(
-      `Examples: ${documentedExamples}/${totalExports} (${
-        ((documentedExamples / totalExports) * 100).toFixed(1)
-      }% complete)\n`
+      `Examples: ${documentedExamples}/${totalExports} (${((documentedExamples / totalExports) * 100).toFixed(
+        1
+      )}% complete)\n`
     )
     Process.stdout.write(
-      `Categories: ${documentedCategories}/${totalExports} (${
-        ((documentedCategories / totalExports) * 100).toFixed(1)
-      }% complete)\n`
+      `Categories: ${documentedCategories}/${totalExports} (${((documentedCategories / totalExports) * 100).toFixed(
+        1
+      )}% complete)\n`
     )
     Process.stdout.write("\n")
 

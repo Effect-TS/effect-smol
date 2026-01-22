@@ -21,7 +21,7 @@ const TestLayer = Layer.mergeAll(
 describe("Param", () => {
   describe("withFallbackPrompt", () => {
     it.effect("prompts for missing flag values and preserves remaining args", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const prompt = Prompt.text({ message: "Name" })
         const flag = Flag.string("name").pipe(Flag.withFallbackPrompt(prompt))
 
@@ -35,10 +35,11 @@ describe("Param", () => {
 
         assert.strictEqual(value, "Chandra")
         assert.deepStrictEqual(remaining, ["tail"])
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
 
     it.effect("does not prompt when flag value is provided", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const prompt = Prompt.text({ message: "Name" })
         const flag = Flag.string("name").pipe(Flag.withFallbackPrompt(prompt))
 
@@ -48,10 +49,11 @@ describe("Param", () => {
         })
 
         assert.strictEqual(value, "Ava")
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
 
     it.effect("prompts for missing arguments", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const prompt = Prompt.text({ message: "File" })
         const argument = Argument.string("file").pipe(Argument.withFallbackPrompt(prompt))
 
@@ -65,15 +67,13 @@ describe("Param", () => {
 
         assert.strictEqual(value, "notes.txt")
         assert.deepStrictEqual(remaining, [])
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
 
     it.effect("prefers defaults over fallback prompts", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const prompt = Prompt.text({ message: "Name" })
-        const flag = Flag.string("name").pipe(
-          Flag.withDefault("guest"),
-          Flag.withFallbackPrompt(prompt)
-        )
+        const flag = Flag.string("name").pipe(Flag.withDefault("guest"), Flag.withFallbackPrompt(prompt))
 
         const [, value] = yield* flag.parse({
           flags: {},
@@ -81,10 +81,11 @@ describe("Param", () => {
         })
 
         assert.strictEqual(value, "guest")
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
 
     it.effect("does not prompt for invalid flag values", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const prompt = Prompt.text({ message: "Count" })
         const flag = Flag.integer("count").pipe(Flag.withFallbackPrompt(prompt))
 
@@ -96,10 +97,11 @@ describe("Param", () => {
         )
 
         assert.instanceOf(error, CliError.InvalidValue)
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
 
     it.effect("does not prompt for invalid argument values", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const prompt = Prompt.text({ message: "Count" })
         const argument = Argument.integer("count").pipe(Argument.withFallbackPrompt(prompt))
 
@@ -111,10 +113,11 @@ describe("Param", () => {
         )
 
         assert.instanceOf(error, CliError.InvalidValue)
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
 
     it.effect("does not prompt for missing boolean flags", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const prompt = Prompt.text({ message: "Verbose" })
         const flag = Flag.boolean("verbose").pipe(Flag.withFallbackPrompt(prompt))
 
@@ -124,10 +127,11 @@ describe("Param", () => {
         })
 
         assert.strictEqual(value, false)
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
 
     it.effect("returns MissingOption when prompt is cancelled", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const prompt = Prompt.text({ message: "Name" })
         const flag = Flag.string("name").pipe(Flag.withFallbackPrompt(prompt))
 
@@ -141,10 +145,11 @@ describe("Param", () => {
         )
 
         assert.instanceOf(error, CliError.MissingOption)
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
 
     it.effect("returns MissingArgument when argument prompt is cancelled", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const prompt = Prompt.text({ message: "File" })
         const argument = Argument.string("file").pipe(Argument.withFallbackPrompt(prompt))
 
@@ -158,7 +163,8 @@ describe("Param", () => {
         )
 
         assert.instanceOf(error, CliError.MissingArgument)
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
   })
 
   describe("withFallbackConfig", () => {
@@ -169,10 +175,8 @@ describe("Param", () => {
         }
       })
 
-      return Effect.gen(function*() {
-        const flag = Flag.string("name").pipe(
-          Flag.withFallbackConfig(Config.string("NAME"))
-        )
+      return Effect.gen(function* () {
+        const flag = Flag.string("name").pipe(Flag.withFallbackConfig(Config.string("NAME")))
 
         const [, value] = yield* flag.parse({
           flags: {},
@@ -180,10 +184,7 @@ describe("Param", () => {
         })
 
         assert.strictEqual(value, "Ava")
-      }).pipe(
-        Effect.provideService(ConfigProvider.ConfigProvider, provider),
-        Effect.provide(TestLayer)
-      )
+      }).pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider), Effect.provide(TestLayer))
     })
 
     it.effect("uses flag values over config", () => {
@@ -193,10 +194,8 @@ describe("Param", () => {
         }
       })
 
-      return Effect.gen(function*() {
-        const flag = Flag.string("name").pipe(
-          Flag.withFallbackConfig(Config.string("NAME"))
-        )
+      return Effect.gen(function* () {
+        const flag = Flag.string("name").pipe(Flag.withFallbackConfig(Config.string("NAME")))
 
         const [, value] = yield* flag.parse({
           flags: { name: ["Maya"] },
@@ -204,10 +203,7 @@ describe("Param", () => {
         })
 
         assert.strictEqual(value, "Maya")
-      }).pipe(
-        Effect.provideService(ConfigProvider.ConfigProvider, provider),
-        Effect.provide(TestLayer)
-      )
+      }).pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider), Effect.provide(TestLayer))
     })
 
     it.effect("uses config when an argument is missing", () => {
@@ -217,10 +213,8 @@ describe("Param", () => {
         }
       })
 
-      return Effect.gen(function*() {
-        const argument = Argument.string("repository").pipe(
-          Argument.withFallbackConfig(Config.string("REPOSITORY"))
-        )
+      return Effect.gen(function* () {
+        const argument = Argument.string("repository").pipe(Argument.withFallbackConfig(Config.string("REPOSITORY")))
 
         const [, value] = yield* argument.parse({
           flags: {},
@@ -228,19 +222,14 @@ describe("Param", () => {
         })
 
         assert.strictEqual(value, "repo")
-      }).pipe(
-        Effect.provideService(ConfigProvider.ConfigProvider, provider),
-        Effect.provide(TestLayer)
-      )
+      }).pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider), Effect.provide(TestLayer))
     })
 
     it.effect("returns MissingOption when config is missing", () => {
       const provider = ConfigProvider.fromEnv({ env: {} })
 
-      return Effect.gen(function*() {
-        const flag = Flag.string("name").pipe(
-          Flag.withFallbackConfig(Config.string("NAME"))
-        )
+      return Effect.gen(function* () {
+        const flag = Flag.string("name").pipe(Flag.withFallbackConfig(Config.string("NAME")))
 
         const error = yield* Effect.flip(
           flag.parse({
@@ -250,10 +239,7 @@ describe("Param", () => {
         )
 
         assert.instanceOf(error, CliError.MissingOption)
-      }).pipe(
-        Effect.provideService(ConfigProvider.ConfigProvider, provider),
-        Effect.provide(TestLayer)
-      )
+      }).pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider), Effect.provide(TestLayer))
     })
 
     it.effect("returns InvalidValue when config fails to parse", () => {
@@ -263,10 +249,8 @@ describe("Param", () => {
         }
       })
 
-      return Effect.gen(function*() {
-        const flag = Flag.integer("count").pipe(
-          Flag.withFallbackConfig(Config.int("COUNT"))
-        )
+      return Effect.gen(function* () {
+        const flag = Flag.integer("count").pipe(Flag.withFallbackConfig(Config.int("COUNT")))
 
         const error = yield* Effect.flip(
           flag.parse({
@@ -276,10 +260,7 @@ describe("Param", () => {
         )
 
         assert.instanceOf(error, CliError.InvalidValue)
-      }).pipe(
-        Effect.provideService(ConfigProvider.ConfigProvider, provider),
-        Effect.provide(TestLayer)
-      )
+      }).pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider), Effect.provide(TestLayer))
     })
   })
 })

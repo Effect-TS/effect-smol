@@ -25,10 +25,5 @@ export type NodeServices = ChildProcessSpawner | FileSystem | Path | Stdio | Ter
  */
 export const layer: Layer.Layer<NodeServices> = Layer.provideMerge(
   NodeChildProcessSpawner.layer,
-  Layer.mergeAll(
-    NodeFileSystem.layer,
-    NodePath.layer,
-    NodeStdio.layer,
-    NodeTerminal.layer
-  )
+  Layer.mergeAll(NodeFileSystem.layer, NodePath.layer, NodeStdio.layer, NodeTerminal.layer)
 )

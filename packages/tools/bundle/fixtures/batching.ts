@@ -4,9 +4,12 @@ import * as Exit from "effect/Exit"
 import * as Request from "effect/Request"
 import * as Resolver from "effect/RequestResolver"
 
-class GetNameById extends Request.TaggedClass("GetNameById")<{
-  readonly id: number
-}, string> {}
+class GetNameById extends Request.TaggedClass("GetNameById")<
+  {
+    readonly id: number
+  },
+  string
+> {}
 
 const UserResolver = Resolver.make<GetNameById>((entries) =>
   Effect.sync(() => {
@@ -16,10 +19,8 @@ const UserResolver = Resolver.make<GetNameById>((entries) =>
   })
 )
 
-const effect = Effect.forEach(
-  Array.range(1, 100_000),
-  (id) => Effect.request(new GetNameById({ id }), UserResolver),
-  { concurrency: "unbounded" }
-)
+const effect = Effect.forEach(Array.range(1, 100_000), (id) => Effect.request(new GetNameById({ id }), UserResolver), {
+  concurrency: "unbounded"
+})
 
 Effect.runFork(effect)

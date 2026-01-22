@@ -4,10 +4,7 @@ import { Config, ConfigProvider, Duration, Effect, Option, pipe, Redacted, Resul
 import * as assert from "node:assert"
 
 async function assertSuccess<T>(config: Config.Config<T>, provider: ConfigProvider.ConfigProvider, expected: T) {
-  const r = await config.parse(provider).pipe(
-    Effect.result,
-    Effect.runPromise
-  )
+  const r = await config.parse(provider).pipe(Effect.result, Effect.runPromise)
   assert.deepStrictEqual(r, Result.succeed(expected))
 }
 
@@ -23,10 +20,9 @@ async function assertFailure<T>(config: Config.Config<T>, provider: ConfigProvid
 describe("Config", () => {
   it("a config is an Effect and can be yielded", () => {
     const provider = ConfigProvider.fromEnv({ env: { STRING: "value" } })
-    const result = Effect.runSync(Effect.provide(
-      Config.schema(Schema.Struct({ STRING: Schema.String })).asEffect(),
-      ConfigProvider.layer(provider)
-    ))
+    const result = Effect.runSync(
+      Effect.provide(Config.schema(Schema.Struct({ STRING: Schema.String })).asEffect(), ConfigProvider.layer(provider))
+    )
     deepStrictEqual(result, { STRING: "value" })
   })
 
@@ -45,9 +41,7 @@ describe("Config", () => {
   describe("constructors", () => {
     it("fail", async () => {
       await assertFailure(
-        Config.fail(
-          new Schema.SchemaError(new SchemaIssue.Forbidden(Option.none(), { message: "failure message" }))
-        ),
+        Config.fail(new Schema.SchemaError(new SchemaIssue.Forbidden(Option.none(), { message: "failure message" }))),
         ConfigProvider.fromUnknown({}),
         `failure message`
       )
@@ -181,7 +175,10 @@ describe("Config", () => {
         "VALUE"
       )
       await assertSuccess(
-        pipe(config, Config.map((value) => value.toUpperCase())),
+        pipe(
+          config,
+          Config.map((value) => value.toUpperCase())
+        ),
         ConfigProvider.fromUnknown("value"),
         "VALUE"
       )
@@ -192,37 +189,21 @@ describe("Config", () => {
       const f = (s: string) =>
         s === ""
           ? Effect.fail(
-            new Config.ConfigError(
-              new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.some(s), { message: "empty" }))
+              new Config.ConfigError(
+                new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.some(s), { message: "empty" }))
+              )
             )
-          )
           : Effect.succeed(s.toUpperCase())
 
-      await assertSuccess(
-        Config.mapOrFail(config, f),
-        ConfigProvider.fromUnknown("value"),
-        "VALUE"
-      )
-      await assertFailure(
-        Config.mapOrFail(config, f),
-        ConfigProvider.fromUnknown(""),
-        `empty`
-      )
+      await assertSuccess(Config.mapOrFail(config, f), ConfigProvider.fromUnknown("value"), "VALUE")
+      await assertFailure(Config.mapOrFail(config, f), ConfigProvider.fromUnknown(""), `empty`)
     })
 
     it("orElse", async () => {
       const config = Config.orElse(Config.string("a"), () => Config.finite("b"))
 
-      await assertSuccess(
-        config,
-        ConfigProvider.fromUnknown({ a: "value" }),
-        "value"
-      )
-      await assertSuccess(
-        config,
-        ConfigProvider.fromUnknown({ b: "1" }),
-        1
-      )
+      await assertSuccess(config, ConfigProvider.fromUnknown({ a: "value" }), "value")
+      await assertSuccess(config, ConfigProvider.fromUnknown({ b: "1" }), 1)
     })
 
     describe("all", () => {
@@ -330,9 +311,7 @@ describe("Config", () => {
       })
 
       it("struct", async () => {
-        const config = Config.all({ a: Config.nonEmptyString("b"), c: Config.finite("d") }).pipe(
-          Config.option
-        )
+        const config = Config.all({ a: Config.nonEmptyString("b"), c: Config.finite("d") }).pipe(Config.option)
 
         await assertSuccess(config, ConfigProvider.fromUnknown({ b: "b", d: "1" }), Option.some({ a: "b", c: 1 }))
         await assertSuccess(config, ConfigProvider.fromUnknown({ b: "b" }), Option.none())
@@ -363,11 +342,7 @@ describe("Config", () => {
           }
         })
 
-        await assertSuccess(
-          config,
-          ConfigProvider.fromUnknown({ b2: "value" }),
-          { a: { b: "value" } }
-        )
+        await assertSuccess(config, ConfigProvider.fromUnknown({ b2: "value" }), { a: { b: "value" } })
       })
     })
   })
@@ -524,14 +499,10 @@ describe("Config", () => {
 
   describe("fromEnv", () => {
     it("path argument", async () => {
-      await assertSuccess(
-        Config.schema(Schema.String, "a"),
-        ConfigProvider.fromEnv({ env: { a: "value" } }),
-        "value"
-      )
+      await assertSuccess(Config.schema(Schema.String, "a"), ConfigProvider.fromEnv({ env: { a: "value" } }), "value")
       await assertSuccess(
         Config.schema(Schema.String, ["a", "b"]),
-        ConfigProvider.fromEnv({ env: { "a_b": "value" } }),
+        ConfigProvider.fromEnv({ env: { a_b: "value" } }),
         "value"
       )
       await assertSuccess(
@@ -551,21 +522,21 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.Number })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a_b": "2" } }), { a: 1 })
+        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", a_b: "2" } }), { a: 1 })
       })
 
       it("node can be both leaf and array", async () => {
         const schema = Schema.Struct({ a: Schema.Number })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a_0": "2" } }), { a: 1 })
+        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", a_0: "2" } }), { a: 1 })
       })
 
       it("if a node can be both object and array, it should be an object", async () => {
         const schema = Schema.Struct({ a: Schema.Struct({ b: Schema.Number }) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a_b": "2", "a_0": "3" } }), {
+        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", a_b: "2", a_0: "3" } }), {
           a: { b: 2 }
         })
       })
@@ -667,9 +638,7 @@ describe("Config", () => {
       })
 
       it("optional properties", async () => {
-        const config = Config.schema(
-          Schema.Struct({ a: Schema.optional(Schema.Number) })
-        )
+        const config = Config.schema(Schema.Struct({ a: Schema.optional(Schema.Number) }))
 
         await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
         await assertSuccess(config, ConfigProvider.fromEnv({ env: {} }), {})
@@ -783,10 +752,7 @@ describe("Config", () => {
       })
 
       it("inclusive", async () => {
-        const schema = Schema.Union([
-          Schema.Struct({ a: Schema.String }),
-          Schema.Struct({ b: Schema.Number })
-        ])
+        const schema = Schema.Union([Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })])
         const config = Config.schema(schema)
 
         await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a" } }), { a: "a" })
@@ -795,10 +761,9 @@ describe("Config", () => {
       })
 
       it("exclusive", async () => {
-        const schema = Schema.Union([
-          Schema.Struct({ a: Schema.String }),
-          Schema.Struct({ b: Schema.Number })
-        ], { mode: "oneOf" })
+        const schema = Schema.Union([Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })], {
+          mode: "oneOf"
+        })
         const config = Config.schema(schema)
 
         await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a" } }), { a: "a" })
@@ -839,14 +804,10 @@ describe("Config", () => {
       const config = Config.schema(schema)
 
       await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", as: "" } }), { a: "1", as: [] })
-      await assertSuccess(
-        config,
-        ConfigProvider.fromEnv({ env: { a: "1", as_0_a: "2", as_0_as: "" } }),
-        {
-          a: "1",
-          as: [{ a: "2", as: [] }]
-        }
-      )
+      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", as_0_a: "2", as_0_as: "" } }), {
+        a: "1",
+        as: [{ a: "2", as: [] }]
+      })
     })
 
     it("Redacted(Int)", async () => {
@@ -871,16 +832,8 @@ describe("Config", () => {
 
   describe("fromUnknown", () => {
     it("path argument", async () => {
-      await assertSuccess(
-        Config.schema(Schema.String, []),
-        ConfigProvider.fromUnknown("value"),
-        "value"
-      )
-      await assertSuccess(
-        Config.schema(Schema.String, "a"),
-        ConfigProvider.fromUnknown({ a: "value" }),
-        "value"
-      )
+      await assertSuccess(Config.schema(Schema.String, []), ConfigProvider.fromUnknown("value"), "value")
+      await assertSuccess(Config.schema(Schema.String, "a"), ConfigProvider.fromUnknown({ a: "value" }), "value")
       await assertSuccess(
         Config.schema(Schema.String, ["a", "b"]),
         ConfigProvider.fromUnknown({ a: { b: "value" } }),
@@ -987,9 +940,7 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
       })
 
       it("optional properties", async () => {
-        const config = Config.schema(
-          Schema.Struct({ a: Schema.optional(Schema.Number) })
-        )
+        const config = Config.schema(Schema.Struct({ a: Schema.optional(Schema.Number) }))
 
         await assertSuccess(config, ConfigProvider.fromUnknown({ a: "1" }), { a: 1 })
         await assertSuccess(config, ConfigProvider.fromUnknown({}), {})
@@ -1083,10 +1034,7 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
       })
 
       it("inclusive", async () => {
-        const schema = Schema.Union([
-          Schema.Struct({ a: Schema.String }),
-          Schema.Struct({ b: Schema.Number })
-        ])
+        const schema = Schema.Union([Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })])
         const config = Config.schema(schema)
 
         await assertSuccess(config, ConfigProvider.fromUnknown({ a: "a" }), { a: "a" })
@@ -1095,10 +1043,9 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
       })
 
       it("exclusive", async () => {
-        const schema = Schema.Union([
-          Schema.Struct({ a: Schema.String }),
-          Schema.Struct({ b: Schema.Number })
-        ], { mode: "oneOf" })
+        const schema = Schema.Union([Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })], {
+          mode: "oneOf"
+        })
         const config = Config.schema(schema)
 
         await assertSuccess(config, ConfigProvider.fromUnknown({ a: "a" }), { a: "a" })
@@ -1168,11 +1115,9 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
       const schema = Schema.Struct({ a: Schema.URL })
       const config = Config.schema(schema)
 
-      await assertSuccess(
-        config,
-        ConfigProvider.fromUnknown({ a: "https://example.com" }),
-        { a: new URL("https://example.com") }
-      )
+      await assertSuccess(config, ConfigProvider.fromUnknown({ a: "https://example.com" }), {
+        a: new URL("https://example.com")
+      })
     })
   })
 })

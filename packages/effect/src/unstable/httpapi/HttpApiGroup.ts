@@ -32,7 +32,7 @@ export interface HttpApiGroup<
   out Endpoints extends HttpApiEndpoint.Any = never,
   out TopLevel extends boolean = false
 > extends Pipeable {
-  new(_: never): {}
+  new (_: never): {}
   readonly [TypeId]: typeof TypeId
   readonly identifier: Id
   readonly key: string
@@ -61,11 +61,9 @@ export interface HttpApiGroup<
    * Endpoints added after this api is called **will not** have the middleware
    * applied.
    */
-  middleware<I extends HttpApiMiddleware.AnyId, S>(middleware: ServiceMap.Service<I, S>): HttpApiGroup<
-    Id,
-    HttpApiEndpoint.AddMiddleware<Endpoints, I>,
-    TopLevel
-  >
+  middleware<I extends HttpApiMiddleware.AnyId, S>(
+    middleware: ServiceMap.Service<I, S>
+  ): HttpApiGroup<Id, HttpApiEndpoint.AddMiddleware<Endpoints, I>, TopLevel>
 
   /**
    * Merge the annotations of an `HttpApiGroup` with the provided annotations.
@@ -124,9 +122,8 @@ export type AnyWithProps = HttpApiGroup<string, HttpApiEndpoint.AnyWithProps, bo
  * @since 4.0.0
  * @category models
  */
-export type ToService<ApiId extends string, A> = A extends HttpApiGroup<infer Name, infer _Endpoints, infer _TopLevel> ?
-  ApiGroup<ApiId, Name>
-  : never
+export type ToService<ApiId extends string, A> =
+  A extends HttpApiGroup<infer Name, infer _Endpoints, infer _TopLevel> ? ApiGroup<ApiId, Name> : never
 
 /**
  * @since 4.0.0
@@ -138,15 +135,14 @@ export type WithName<Group, Name extends string> = Extract<Group, { readonly ide
  * @since 4.0.0
  * @category models
  */
-export type Name<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Name
-  : never
+export type Name<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Name : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Endpoints<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Endpoints
-  : never
+export type Endpoints<Group> =
+  Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Endpoints : never
 
 /**
  * @since 4.0.0
@@ -188,27 +184,28 @@ export type EndpointsWithName<Group extends Any, Name extends string> = Endpoint
  * @since 4.0.0
  * @category models
  */
-export type ClientServices<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ?
-  HttpApiEndpoint.ClientServices<_Endpoints>
-  : never
+export type ClientServices<Group> =
+  Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel>
+    ? HttpApiEndpoint.ClientServices<_Endpoints>
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type AddPrefix<Group, Prefix extends PathInput> = Group extends
-  HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ?
-  HttpApiGroup<_Name, HttpApiEndpoint.AddPrefix<_Endpoints, Prefix>, _TopLevel>
-  : never
+export type AddPrefix<Group, Prefix extends PathInput> =
+  Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel>
+    ? HttpApiGroup<_Name, HttpApiEndpoint.AddPrefix<_Endpoints, Prefix>, _TopLevel>
+    : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type AddMiddleware<Group, Id extends HttpApiMiddleware.AnyId> = Group extends
-  HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ?
-  HttpApiGroup<_Name, HttpApiEndpoint.AddMiddleware<_Endpoints, Id>, _TopLevel>
-  : never
+export type AddMiddleware<Group, Id extends HttpApiMiddleware.AnyId> =
+  Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel>
+    ? HttpApiGroup<_Name, HttpApiEndpoint.AddMiddleware<_Endpoints, Id>, _TopLevel>
+    : never
 
 const Proto = {
   [TypeId]: TypeId,
@@ -277,11 +274,7 @@ const Proto = {
   }
 }
 
-const makeProto = <
-  Id extends string,
-  Endpoints extends HttpApiEndpoint.Any,
-  TopLevel extends (true | false)
->(options: {
+const makeProto = <Id extends string, Endpoints extends HttpApiEndpoint.Any, TopLevel extends true | false>(options: {
   readonly identifier: Id
   readonly topLevel: TopLevel
   readonly endpoints: Record.ReadonlyRecord<string, Endpoints>
@@ -302,12 +295,15 @@ const makeProto = <
  * @since 4.0.0
  * @category constructors
  */
-export const make = <const Id extends string, const TopLevel extends boolean = false>(identifier: Id, options?: {
-  readonly topLevel?: TopLevel | undefined
-}): HttpApiGroup<Id, never, TopLevel> =>
+export const make = <const Id extends string, const TopLevel extends boolean = false>(
+  identifier: Id,
+  options?: {
+    readonly topLevel?: TopLevel | undefined
+  }
+): HttpApiGroup<Id, never, TopLevel> =>
   makeProto({
     identifier,
-    topLevel: options?.topLevel ?? false as any,
+    topLevel: options?.topLevel ?? (false as any),
     endpoints: Record.empty(),
     annotations: ServiceMap.empty()
   }) as any

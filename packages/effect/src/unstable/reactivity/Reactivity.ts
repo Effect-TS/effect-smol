@@ -87,7 +87,7 @@ export const make = Effect.sync(() => {
   const registerUnsafe = (
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
     handler: () => void
-  ): () => void => {
+  ): (() => void) => {
     const resolvedKeys = Array.isArray(keys) ? keys.map(stringOrHash) : recordHashes(keys as any)
     for (let i = 0; i < resolvedKeys.length; i++) {
       let set = handlers.get(resolvedKeys[i])
@@ -112,7 +112,7 @@ export const make = Effect.sync(() => {
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
     effect: Effect.Effect<A, E, R>
   ): Effect.Effect<Queue.Dequeue<A, E>, never, R | Scope.Scope> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const scope = yield* Effect.scope
       const results = yield* Queue.make<A, E>()
       const runFork = yield* FiberHandle.makeRuntime<R>()
@@ -153,10 +153,7 @@ export const make = Effect.sync(() => {
     tables: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
     effect: Effect.Effect<A, E, R>
   ): Stream.Stream<A, E, Exclude<R, Scope.Scope>> =>
-    query(tables, effect).pipe(
-      Effect.map(Stream.fromQueue),
-      Stream.unwrap
-    )
+    query(tables, effect).pipe(Effect.map(Stream.fromQueue), Stream.unwrap)
 
   return Reactivity.of({
     mutation,
@@ -180,10 +177,13 @@ export const mutation: {
     effect: Effect.Effect<A, E, R>,
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
   ): Effect.Effect<A, E, R | Reactivity>
-} = dual(2, <A, E, R>(
-  effect: Effect.Effect<A, E, R>,
-  keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
-): Effect.Effect<A, E, R | Reactivity> => Reactivity.use((_) => _.mutation(keys, effect)))
+} = dual(
+  2,
+  <A, E, R>(
+    effect: Effect.Effect<A, E, R>,
+    keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
+  ): Effect.Effect<A, E, R | Reactivity> => Reactivity.use((_) => _.mutation(keys, effect))
+)
 
 /**
  * @since 4.0.0
@@ -199,11 +199,14 @@ export const query: {
     effect: Effect.Effect<A, E, R>,
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
   ): Effect.Effect<Queue.Dequeue<A, E>, never, R | Scope.Scope | Reactivity>
-} = dual(2, <A, E, R>(
-  effect: Effect.Effect<A, E, R>,
-  keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
-): Effect.Effect<Queue.Dequeue<A, E>, never, R | Scope.Scope | Reactivity> =>
-  Reactivity.use((r) => r.query(keys, effect)))
+} = dual(
+  2,
+  <A, E, R>(
+    effect: Effect.Effect<A, E, R>,
+    keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
+  ): Effect.Effect<Queue.Dequeue<A, E>, never, R | Scope.Scope | Reactivity> =>
+    Reactivity.use((r) => r.query(keys, effect))
+)
 
 /**
  * @since 4.0.0
@@ -217,14 +220,14 @@ export const stream: {
     effect: Effect.Effect<A, E, R>,
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
   ): Stream.Stream<A, E, Exclude<R, Scope.Scope> | Reactivity>
-} = dual(2, <A, E, R>(
-  effect: Effect.Effect<A, E, R>,
-  keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
-): Stream.Stream<A, E, Exclude<R, Scope.Scope> | Reactivity> =>
-  Reactivity.use((r) => r.query(keys, effect)).pipe(
-    Effect.map(Stream.fromQueue),
-    Stream.unwrap
-  ))
+} = dual(
+  2,
+  <A, E, R>(
+    effect: Effect.Effect<A, E, R>,
+    keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
+  ): Stream.Stream<A, E, Exclude<R, Scope.Scope> | Reactivity> =>
+    Reactivity.use((r) => r.query(keys, effect)).pipe(Effect.map(Stream.fromQueue), Stream.unwrap)
+)
 
 /**
  * @since 4.0.0

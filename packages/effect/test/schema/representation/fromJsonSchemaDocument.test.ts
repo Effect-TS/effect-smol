@@ -207,10 +207,7 @@ describe("fromJsonSchemaDocument", () => {
         {
           representation: {
             _tag: "Union",
-            types: [
-              { _tag: "Literal", literal: "a" },
-              { _tag: "Null" }
-            ],
+            types: [{ _tag: "Literal", literal: "a" }, { _tag: "Null" }],
             mode: "anyOf"
           }
         },
@@ -323,9 +320,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             representation: {
               _tag: "String",
-              checks: [
-                { _tag: "Filter", meta: { _tag: "isPattern", regExp: new RegExp("a*") } }
-              ]
+              checks: [{ _tag: "Filter", meta: { _tag: "isPattern", regExp: new RegExp("a*") } }]
             }
           },
           `Schema.String.check(Schema.isPattern(new RegExp("a*")))`
@@ -335,9 +330,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             representation: {
               _tag: "String",
-              checks: [
-                { _tag: "Filter", meta: { _tag: "isPattern", regExp: new RegExp("a*") } }
-              ]
+              checks: [{ _tag: "Filter", meta: { _tag: "isPattern", regExp: new RegExp("a*") } }]
             }
           },
           `Schema.String.check(Schema.isPattern(new RegExp("a*")))`
@@ -353,9 +346,7 @@ describe("fromJsonSchemaDocument", () => {
         {
           representation: {
             _tag: "Number",
-            checks: [
-              { _tag: "Filter", meta: { _tag: "isFinite" } }
-            ]
+            checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }]
           }
         },
         `Schema.Number.check(Schema.isFinite())`
@@ -452,9 +443,7 @@ describe("fromJsonSchemaDocument", () => {
         {
           representation: {
             _tag: "Number",
-            checks: [
-              { _tag: "Filter", meta: { _tag: "isInt" } }
-            ]
+            checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }]
           }
         },
         `Schema.Number.check(Schema.isInt())`
@@ -599,9 +588,7 @@ describe("fromJsonSchemaDocument", () => {
         {
           representation: {
             _tag: "Arrays",
-            elements: [
-              { isOptional: true, type: { _tag: "String", checks: [] } }
-            ],
+            elements: [{ isOptional: true, type: { _tag: "String", checks: [] } }],
             rest: [],
             checks: []
           }
@@ -621,9 +608,7 @@ describe("fromJsonSchemaDocument", () => {
         {
           representation: {
             _tag: "Arrays",
-            elements: [
-              { isOptional: false, type: { _tag: "String", checks: [] } }
-            ],
+            elements: [{ isOptional: false, type: { _tag: "String", checks: [] } }],
             rest: [],
             checks: []
           }
@@ -645,12 +630,8 @@ describe("fromJsonSchemaDocument", () => {
         {
           representation: {
             _tag: "Arrays",
-            elements: [
-              { isOptional: false, type: { _tag: "String", checks: [] } }
-            ],
-            rest: [
-              { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }] }
-            ],
+            elements: [{ isOptional: false, type: { _tag: "String", checks: [] } }],
+            rest: [{ _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }] }],
             checks: []
           }
         },
@@ -714,9 +695,7 @@ describe("fromJsonSchemaDocument", () => {
           representation: {
             _tag: "Objects",
             propertySignatures: [],
-            indexSignatures: [
-              { parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }
-            ],
+            indexSignatures: [{ parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }],
             checks: []
           }
         },
@@ -753,9 +732,7 @@ describe("fromJsonSchemaDocument", () => {
           representation: {
             _tag: "Objects",
             propertySignatures: [],
-            indexSignatures: [
-              { parameter: { _tag: "String", checks: [] }, type: { _tag: "Boolean" } }
-            ],
+            indexSignatures: [{ parameter: { _tag: "String", checks: [] }, type: { _tag: "Boolean" } }],
             checks: []
           }
         },
@@ -811,15 +788,15 @@ describe("fromJsonSchemaDocument", () => {
         {
           representation: {
             _tag: "Objects",
-            propertySignatures: [{
-              name: "a",
-              type: { _tag: "String", checks: [] },
-              isOptional: false,
-              isMutable: false
-            }],
-            indexSignatures: [
-              { parameter: { _tag: "String", checks: [] }, type: { _tag: "Boolean" } }
+            propertySignatures: [
+              {
+                name: "a",
+                type: { _tag: "String", checks: [] },
+                isOptional: false,
+                isMutable: false
+              }
             ],
+            indexSignatures: [{ parameter: { _tag: "String", checks: [] }, type: { _tag: "Boolean" } }],
             checks: []
           }
         },
@@ -902,9 +879,7 @@ describe("fromJsonSchemaDocument", () => {
             representation: {
               _tag: "Objects",
               propertySignatures: [],
-              indexSignatures: [
-                { parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }
-              ],
+              indexSignatures: [{ parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }],
               checks: [{ _tag: "Filter", meta: { _tag: "isMinProperties", minProperties: 1 } }]
             }
           },
@@ -919,9 +894,7 @@ describe("fromJsonSchemaDocument", () => {
             representation: {
               _tag: "Objects",
               propertySignatures: [],
-              indexSignatures: [
-                { parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }
-              ],
+              indexSignatures: [{ parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }],
               checks: [{ _tag: "Filter", meta: { _tag: "isMaxProperties", maxProperties: 1 } }]
             }
           },
@@ -949,16 +922,18 @@ describe("fromJsonSchemaDocument", () => {
                   type: { _tag: "Unknown" }
                 }
               ],
-              checks: [{
-                _tag: "Filter",
-                meta: {
-                  _tag: "isPropertyNames",
-                  propertyNames: {
-                    _tag: "String",
-                    checks: [{ _tag: "Filter", meta: { _tag: "isPattern", regExp: new RegExp("^[A-Z]") } }]
+              checks: [
+                {
+                  _tag: "Filter",
+                  meta: {
+                    _tag: "isPropertyNames",
+                    propertyNames: {
+                      _tag: "String",
+                      checks: [{ _tag: "Filter", meta: { _tag: "isPattern", regExp: new RegExp("^[A-Z]") } }]
+                    }
                   }
                 }
-              }]
+              ]
             }
           },
           `Schema.Record(Schema.String, Schema.Unknown).check(Schema.isPropertyNames(Schema.String.check(Schema.isPattern(new RegExp("^[A-Z]")))))`
@@ -977,12 +952,8 @@ describe("fromJsonSchemaDocument", () => {
             representation: {
               _tag: "Objects",
               propertySignatures: [],
-              indexSignatures: [
-                { parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }
-              ],
-              checks: [
-                { _tag: "Filter", meta: { _tag: "isPropertyNames", propertyNames: { _tag: "Never" } } }
-              ]
+              indexSignatures: [{ parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }],
+              checks: [{ _tag: "Filter", meta: { _tag: "isPropertyNames", propertyNames: { _tag: "Never" } } }]
             }
           },
           `Schema.Record(Schema.String, Schema.Unknown).check(Schema.isPropertyNames(Schema.Never))`
@@ -1003,9 +974,7 @@ describe("fromJsonSchemaDocument", () => {
             representation: {
               _tag: "Objects",
               propertySignatures: [],
-              indexSignatures: [
-                { parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }
-              ],
+              indexSignatures: [{ parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }],
               checks: [
                 {
                   _tag: "Filter",
@@ -1129,10 +1098,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         {
           schema: {
-            allOf: [
-              { $ref: "#/$defs/A" },
-              { description: "a" }
-            ],
+            allOf: [{ $ref: "#/$defs/A" }, { description: "a" }],
             $defs: {
               A: {
                 type: "string"
@@ -1164,23 +1130,20 @@ describe("fromJsonSchemaDocument", () => {
             $ref: "#/$defs/A",
             $defs: {
               A: {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
+                type: "object",
+                properties: {
+                  name: {
+                    type: "string"
                   },
-                  "children": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/$defs/A"
+                  children: {
+                    type: "array",
+                    items: {
+                      $ref: "#/$defs/A"
                     }
                   }
                 },
-                "required": [
-                  "name",
-                  "children"
-                ],
-                "additionalProperties": false
+                required: ["name", "children"],
+                additionalProperties: false
               }
             }
           }
@@ -1203,14 +1166,16 @@ describe("fromJsonSchemaDocument", () => {
                   type: {
                     _tag: "Arrays",
                     elements: [],
-                    rest: [{
-                      _tag: "Suspend",
-                      checks: [],
-                      thunk: {
-                        _tag: "Reference",
-                        $ref: "A"
+                    rest: [
+                      {
+                        _tag: "Suspend",
+                        checks: [],
+                        thunk: {
+                          _tag: "Reference",
+                          $ref: "A"
+                        }
                       }
-                    }],
+                    ],
                     checks: []
                   },
                   isOptional: false,
@@ -1231,9 +1196,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         {
           schema: {
-            allOf: [
-              { type: "string" }
-            ]
+            allOf: [{ type: "string" }]
           }
         },
         {
@@ -1252,17 +1215,13 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "string",
-              allOf: [
-                { minLength: 1 }
-              ]
+              allOf: [{ minLength: 1 }]
             }
           },
           {
             representation: {
               _tag: "String",
-              checks: [
-                { _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 } }
-              ]
+              checks: [{ _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 } }]
             }
           },
           `Schema.String.check(Schema.isMinLength(1))`
@@ -1274,9 +1233,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "string",
-              allOf: [
-                { minLength: 1, description: "b" }
-              ]
+              allOf: [{ minLength: 1, description: "b" }]
             }
           },
           {
@@ -1297,17 +1254,13 @@ describe("fromJsonSchemaDocument", () => {
             schema: {
               type: "string",
               description: "a",
-              allOf: [
-                { minLength: 1 }
-              ]
+              allOf: [{ minLength: 1 }]
             }
           },
           {
             representation: {
               _tag: "String",
-              checks: [
-                { _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 } }
-              ],
+              checks: [{ _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 } }],
               annotations: { description: "a" }
             }
           },
@@ -1321,9 +1274,7 @@ describe("fromJsonSchemaDocument", () => {
             schema: {
               type: "string",
               description: "a",
-              allOf: [
-                { minLength: 1, description: "b" }
-              ]
+              allOf: [{ minLength: 1, description: "b" }]
             }
           },
           {
@@ -1345,9 +1296,7 @@ describe("fromJsonSchemaDocument", () => {
             schema: {
               type: "string",
               maxLength: 2,
-              allOf: [
-                { minLength: 1 }
-              ]
+              allOf: [{ minLength: 1 }]
             }
           },
           {
@@ -1370,9 +1319,7 @@ describe("fromJsonSchemaDocument", () => {
               type: "string",
               description: "a",
               maxLength: 2,
-              allOf: [
-                { minLength: 1 }
-              ]
+              allOf: [{ minLength: 1 }]
             }
           },
           {
@@ -1396,9 +1343,7 @@ describe("fromJsonSchemaDocument", () => {
               type: "string",
               description: "a",
               maxLength: 2,
-              allOf: [
-                { minLength: 1, description: "b" }
-              ]
+              allOf: [{ minLength: 1, description: "b" }]
             }
           },
           {
@@ -1420,9 +1365,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "string",
-              allOf: [
-                { minLength: 1, maxLength: 2 }
-              ]
+              allOf: [{ minLength: 1, maxLength: 2 }]
             }
           },
           {
@@ -1443,9 +1386,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "string",
-              allOf: [
-                { minLength: 1, maxLength: 2, description: "b" }
-              ]
+              allOf: [{ minLength: 1, maxLength: 2, description: "b" }]
             }
           },
           {
@@ -1472,9 +1413,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "string",
-              allOf: [
-                { minLength: 1, allOf: [{ maxLength: 2, description: "c" }] }
-              ]
+              allOf: [{ minLength: 1, allOf: [{ maxLength: 2, description: "c" }] }]
             }
           },
           {
@@ -1495,9 +1434,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "string",
-              allOf: [
-                { minLength: 1, description: "b", allOf: [{ maxLength: 2, description: "c" }] }
-              ]
+              allOf: [{ minLength: 1, description: "b", allOf: [{ maxLength: 2, description: "c" }] }]
             }
           },
           {
@@ -1524,9 +1461,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "string",
-              allOf: [
-                { enum: ["a"] }
-              ]
+              allOf: [{ enum: ["a"] }]
             }
           },
           {
@@ -1542,9 +1477,7 @@ describe("fromJsonSchemaDocument", () => {
             schema: {
               type: "string",
               description: "a",
-              allOf: [
-                { enum: ["a"], description: "b" }
-              ]
+              allOf: [{ enum: ["a"], description: "b" }]
             }
           },
           {
@@ -1560,9 +1493,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "string",
-              allOf: [
-                { enum: ["a", "b"] }
-              ]
+              allOf: [{ enum: ["a", "b"] }]
             }
           },
           {
@@ -1584,17 +1515,13 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "string",
-              allOf: [
-                { enum: ["a", 1] }
-              ]
+              allOf: [{ enum: ["a", 1] }]
             }
           },
           {
             representation: {
               _tag: "Union",
-              types: [
-                { _tag: "Literal", literal: "a" }
-              ],
+              types: [{ _tag: "Literal", literal: "a" }],
               mode: "anyOf"
             }
           },
@@ -1609,9 +1536,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "number",
-              allOf: [
-                { type: "integer" }
-              ]
+              allOf: [{ type: "integer" }]
             }
           },
           {
@@ -1658,9 +1583,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "integer",
-              allOf: [
-                { type: "number" }
-              ]
+              allOf: [{ type: "number" }]
             }
           },
           {
@@ -1681,9 +1604,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "number",
-              allOf: [
-                { minimum: 1, description: "b", allOf: [{ maximum: 2, description: "c" }] }
-              ]
+              allOf: [{ minimum: 1, description: "b", allOf: [{ maximum: 2, description: "c" }] }]
             }
           },
           {
@@ -1715,9 +1636,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "number",
-              allOf: [
-                { enum: [1] }
-              ]
+              allOf: [{ enum: [1] }]
             }
           },
           {
@@ -1733,9 +1652,7 @@ describe("fromJsonSchemaDocument", () => {
             schema: {
               type: "number",
               description: "a",
-              allOf: [
-                { enum: [1], description: "b" }
-              ]
+              allOf: [{ enum: [1], description: "b" }]
             }
           },
           {
@@ -1751,9 +1668,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "number",
-              allOf: [
-                { enum: [1, 2] }
-              ]
+              allOf: [{ enum: [1, 2] }]
             }
           },
           {
@@ -1777,9 +1692,7 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "boolean",
-              allOf: [
-                { enum: [true] }
-              ]
+              allOf: [{ enum: [true] }]
             }
           },
           {
@@ -1795,9 +1708,7 @@ describe("fromJsonSchemaDocument", () => {
             schema: {
               type: "boolean",
               description: "a",
-              allOf: [
-                { enum: [true], description: "b" }
-              ]
+              allOf: [{ enum: [true], description: "b" }]
             }
           },
           {
@@ -1819,9 +1730,7 @@ describe("fromJsonSchemaDocument", () => {
             schema: {
               type: "array",
               uniqueItems: true,
-              allOf: [
-                { uniqueItems: true }
-              ]
+              allOf: [{ uniqueItems: true }]
             }
           },
           {
@@ -1844,9 +1753,7 @@ describe("fromJsonSchemaDocument", () => {
             schema: {
               type: "object",
               additionalProperties: false,
-              allOf: [
-                { properties: { a: { type: "string" } } }
-              ]
+              allOf: [{ properties: { a: { type: "string" } } }]
             }
           },
           {
@@ -1873,18 +1780,14 @@ describe("fromJsonSchemaDocument", () => {
           {
             schema: {
               type: "object",
-              allOf: [
-                { additionalProperties: { type: "boolean" } }
-              ]
+              allOf: [{ additionalProperties: { type: "boolean" } }]
             }
           },
           {
             representation: {
               _tag: "Objects",
               propertySignatures: [],
-              indexSignatures: [
-                { parameter: { _tag: "String", checks: [] }, type: { _tag: "Boolean" } }
-              ],
+              indexSignatures: [{ parameter: { _tag: "String", checks: [] }, type: { _tag: "Boolean" } }],
               checks: []
             }
           },

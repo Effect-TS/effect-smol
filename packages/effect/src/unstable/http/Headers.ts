@@ -82,30 +82,27 @@ export interface HeadersSchema extends Schema.declare<Headers, { readonly [x: st
  * @since 4.0.0
  * @category schemas
  */
-export const HeadersSchema: HeadersSchema = Schema.declare(
-  isHeaders,
-  {
-    typeConstructor: {
-      _tag: "effect/http/Headers"
-    },
-    generation: {
-      runtime: `Headers.HeadersSchema`,
-      Type: `Headers.Headers`,
-      Encoded: `typeof Headers.HeadersSchema["Encoded"]`,
-      importDeclaration: `import * as Headers from "effect/unstable/http/Headers"`
-    },
-    expected: "Headers",
-    toEquivalence: () => Equivalence,
-    toCodec: () =>
-      Schema.link<Headers>()(
-        Schema.Record(Schema.String, Schema.String),
-        Transformation.transform({
-          decode: (input) => fromInput(input),
-          encode: (headers) => ({ ...headers })
-        })
-      )
-  }
-)
+export const HeadersSchema: HeadersSchema = Schema.declare(isHeaders, {
+  typeConstructor: {
+    _tag: "effect/http/Headers"
+  },
+  generation: {
+    runtime: `Headers.HeadersSchema`,
+    Type: `Headers.Headers`,
+    Encoded: `typeof Headers.HeadersSchema["Encoded"]`,
+    importDeclaration: `import * as Headers from "effect/unstable/http/Headers"`
+  },
+  expected: "Headers",
+  toEquivalence: () => Equivalence,
+  toCodec: () =>
+    Schema.link<Headers>()(
+      Schema.Record(Schema.String, Schema.String),
+      Transformation.transform({
+        decode: (input) => fromInput(input),
+        encode: (headers) => ({ ...headers })
+      })
+    )
+})
 
 /**
  * @since 4.0.0
@@ -160,10 +157,10 @@ export const fromRecordUnsafe = (input: Record.ReadonlyRecord<string, string>): 
 export const has: {
   (key: string): (self: Headers) => boolean
   (self: Headers, key: string): boolean
-} = dual<
-  (key: string) => (self: Headers) => boolean,
-  (self: Headers, key: string) => boolean
->(2, (self, key) => key.toLowerCase() in self)
+} = dual<(key: string) => (self: Headers) => boolean, (self: Headers, key: string) => boolean>(
+  2,
+  (self, key) => key.toLowerCase() in self
+)
 
 /**
  * @since 4.0.0
@@ -172,10 +169,10 @@ export const has: {
 export const get: {
   (key: string): (self: Headers) => string | undefined
   (self: Headers, key: string): string | undefined
-} = dual<
-  (key: string) => (self: Headers) => string | undefined,
-  (self: Headers, key: string) => string | undefined
->(2, (self, key) => self[key.toLowerCase()])
+} = dual<(key: string) => (self: Headers) => string | undefined, (self: Headers, key: string) => string | undefined>(
+  2,
+  (self, key) => self[key.toLowerCase()]
+)
 
 /**
  * @since 4.0.0
@@ -200,14 +197,14 @@ export const set: {
 export const setAll: {
   (headers: Input): (self: Headers) => Headers
   (self: Headers, headers: Input): Headers
-} = dual<
-  (headers: Input) => (self: Headers) => Headers,
-  (self: Headers, headers: Input) => Headers
->(2, (self, headers) =>
-  make({
-    ...self,
-    ...fromInput(headers)
-  }))
+} = dual<(headers: Input) => (self: Headers) => Headers, (self: Headers, headers: Input) => Headers>(
+  2,
+  (self, headers) =>
+    make({
+      ...self,
+      ...fromInput(headers)
+    })
+)
 
 /**
  * @since 4.0.0
@@ -216,14 +213,14 @@ export const setAll: {
 export const merge: {
   (headers: Headers): (self: Headers) => Headers
   (self: Headers, headers: Headers): Headers
-} = dual<
-  (headers: Headers) => (self: Headers) => Headers,
-  (self: Headers, headers: Headers) => Headers
->(2, (self, headers) => {
-  const out = make(self)
-  Object.assign(out, headers)
-  return out
-})
+} = dual<(headers: Headers) => (self: Headers) => Headers, (self: Headers, headers: Headers) => Headers>(
+  2,
+  (self, headers) => {
+    const out = make(self)
+    Object.assign(out, headers)
+    return out
+  }
+)
 
 /**
  * @since 4.0.0
@@ -232,10 +229,7 @@ export const merge: {
 export const remove: {
   (key: string): (self: Headers) => Headers
   (self: Headers, key: string): Headers
-} = dual<
-  (key: string) => (self: Headers) => Headers,
-  (self: Headers, key: string) => Headers
->(2, (self, key) => {
+} = dual<(key: string) => (self: Headers) => Headers, (self: Headers, key: string) => Headers>(2, (self, key) => {
   const out = make(self)
   delete out[key.toLowerCase()]
   return out
@@ -246,13 +240,8 @@ export const remove: {
  * @category combinators
  */
 export const redact: {
-  (
-    key: string | RegExp | ReadonlyArray<string | RegExp>
-  ): (self: Headers) => Record<string, string | Redacted.Redacted>
-  (
-    self: Headers,
-    key: string | RegExp | ReadonlyArray<string | RegExp>
-  ): Record<string, string | Redacted.Redacted>
+  (key: string | RegExp | ReadonlyArray<string | RegExp>): (self: Headers) => Record<string, string | Redacted.Redacted>
+  (self: Headers, key: string | RegExp | ReadonlyArray<string | RegExp>): Record<string, string | Redacted.Redacted>
 } = dual(
   2,
   (
@@ -289,13 +278,9 @@ export const redact: {
  * @since 4.0.0
  * @category fiber refs
  */
-export const CurrentRedactedNames = ServiceMap.Reference<
-  ReadonlyArray<string | RegExp>
->("effect/Headers/CurrentRedactedNames", {
-  defaultValue: () => [
-    "authorization",
-    "cookie",
-    "set-cookie",
-    "x-api-key"
-  ]
-})
+export const CurrentRedactedNames = ServiceMap.Reference<ReadonlyArray<string | RegExp>>(
+  "effect/Headers/CurrentRedactedNames",
+  {
+    defaultValue: () => ["authorization", "cookie", "set-cookie", "x-api-key"]
+  }
+)

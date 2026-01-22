@@ -8,7 +8,7 @@ describe("PubSub", () => {
     return PubSub.bounded<number>(2).pipe(
       Effect.flatMap((pubsub) =>
         Effect.scoped(
-          Effect.gen(function*() {
+          Effect.gen(function* () {
             const sub1 = yield* PubSub.subscribe(pubsub)
             const sub2 = yield* PubSub.subscribe(pubsub)
             yield* PubSub.publishAll(pubsub, messages)
@@ -26,7 +26,7 @@ describe("PubSub", () => {
     return PubSub.bounded<number>(4).pipe(
       Effect.flatMap((pubsub) =>
         Effect.scoped(
-          Effect.gen(function*() {
+          Effect.gen(function* () {
             const sub1 = yield* PubSub.subscribe(pubsub)
             const sub2 = yield* PubSub.subscribe(pubsub)
             yield* PubSub.publishAll(pubsub, messages)
@@ -44,7 +44,7 @@ describe("PubSub", () => {
     return PubSub.bounded<number>(3).pipe(
       Effect.flatMap((pubsub) =>
         Effect.scoped(
-          Effect.gen(function*() {
+          Effect.gen(function* () {
             const sub1 = yield* PubSub.subscribe(pubsub)
             const sub2 = yield* PubSub.subscribe(pubsub)
             yield* PubSub.publishAll(pubsub, messages)
@@ -58,15 +58,13 @@ describe("PubSub", () => {
     )
   })
   it.effect("sequential publishers and subscribers with one publisher and one subscriber", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(0, 9)
       const latch = yield* Effect.makeLatch()
       const pubsub = yield* PubSub.bounded<number>(10)
       const subscriber = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) =>
-          latch.await.pipe(
-            Effect.andThen(Effect.forEach(values, () => PubSub.take(subscription)))
-          )
+          latch.await.pipe(Effect.andThen(Effect.forEach(values, () => PubSub.take(subscription))))
         ),
         Effect.scoped,
         Effect.forkChild({ startImmediately: true })
@@ -75,9 +73,10 @@ describe("PubSub", () => {
       yield* latch.open
       const result = yield* Fiber.join(subscriber)
       assert.deepStrictEqual(result, values)
-    }))
+    })
+  )
   it.effect("sequential publishers and subscribers with one publisher and two subscribers", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(0, 9)
       const latch = yield* Effect.makeLatch()
       const pubsub = yield* PubSub.bounded<number>(10)
@@ -86,7 +85,12 @@ describe("PubSub", () => {
         Effect.flatMap((subscription) =>
           pipe(
             latch.await,
-            Effect.andThen(pipe(values, Effect.forEach(() => PubSub.take(subscription))))
+            Effect.andThen(
+              pipe(
+                values,
+                Effect.forEach(() => PubSub.take(subscription))
+              )
+            )
           )
         ),
         Effect.scoped,
@@ -97,7 +101,12 @@ describe("PubSub", () => {
         Effect.flatMap((subscription) =>
           pipe(
             latch.await,
-            Effect.andThen(pipe(values, Effect.forEach(() => PubSub.take(subscription))))
+            Effect.andThen(
+              pipe(
+                values,
+                Effect.forEach(() => PubSub.take(subscription))
+              )
+            )
           )
         ),
         Effect.scoped,
@@ -109,9 +118,10 @@ describe("PubSub", () => {
       const result2 = yield* Fiber.join(subscriber2)
       assert.deepStrictEqual(result1, values)
       assert.deepStrictEqual(result2, values)
-    }))
+    })
+  )
   it.effect("backpressured concurrent publishers and subscribers - one to one", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(0, 64)
       const pubsub = yield* PubSub.bounded<number>(64)
       const subscriber = yield* PubSub.subscribe(pubsub).pipe(
@@ -122,9 +132,10 @@ describe("PubSub", () => {
       yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
       const result = yield* Fiber.join(subscriber)
       assert.deepStrictEqual(result, values)
-    }))
+    })
+  )
   it.effect("backpressured concurrent publishers and subscribers - one to many", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(0, 64)
       const pubsub = yield* PubSub.bounded<number>(64)
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
@@ -142,9 +153,10 @@ describe("PubSub", () => {
       const result2 = yield* Fiber.join(subscriber2)
       assert.deepStrictEqual(result1, values)
       assert.deepStrictEqual(result2, values)
-    }))
+    })
+  )
   it.effect("backpressured concurrent publishers and subscribers - many to many", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(1, 64)
       const pubsub = yield* PubSub.bounded<number>(64 * 2)
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
@@ -158,23 +170,35 @@ describe("PubSub", () => {
         Effect.forkChild({ startImmediately: true })
       )
       const fiber = yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
-      yield* Effect.forkChild(PubSub.publishAll(pubsub, Array.map(values, (n) => -n)))
+      yield* Effect.forkChild(
+        PubSub.publishAll(
+          pubsub,
+          Array.map(values, (n) => -n)
+        )
+      )
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       yield* Fiber.join(fiber)
-      assert.deepStrictEqual(Array.filter(result1, (n) => n > 0), values)
+      assert.deepStrictEqual(
+        Array.filter(result1, (n) => n > 0),
+        values
+      )
       assert.deepStrictEqual(
         Array.filter(result1, (n) => n < 0),
         Array.map(values, (n) => -n)
       )
-      assert.deepStrictEqual(Array.filter(result2, (n) => n > 0), values)
+      assert.deepStrictEqual(
+        Array.filter(result2, (n) => n > 0),
+        values
+      )
       assert.deepStrictEqual(
         Array.filter(result2, (n) => n < 0),
         Array.map(values, (n) => -n)
       )
-    }))
+    })
+  )
   it.effect("dropping concurrent publishers and subscribers - one to one", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(0, 64)
       const pubsub = yield* PubSub.dropping<number>(64)
       const subscriber = yield* PubSub.subscribe(pubsub).pipe(
@@ -185,9 +209,10 @@ describe("PubSub", () => {
       yield* Effect.forkChild(Effect.forEach(values, (n) => PubSub.publish(pubsub, n)))
       const result = yield* Fiber.join(subscriber)
       assert.deepStrictEqual(result, values)
-    }))
+    })
+  )
   it.effect("dropping concurrent publishers and subscribers - one to many", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(0, 64)
       const pubsub = yield* PubSub.dropping<number>(64)
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
@@ -205,9 +230,10 @@ describe("PubSub", () => {
       const result2 = yield* Fiber.join(subscriber2)
       assert.deepStrictEqual(result1, values)
       assert.deepStrictEqual(result2, values)
-    }))
+    })
+  )
   it.effect("dropping concurrent publishers and subscribers - many to many", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(1, 64)
       const pubsub = yield* PubSub.dropping<number>(64 * 2)
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
@@ -225,19 +251,44 @@ describe("PubSub", () => {
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       yield* Fiber.join(fiber)
-      assert.deepStrictEqual(pipe(result1, Array.filter((n) => n > 0)), values)
       assert.deepStrictEqual(
-        pipe(result1, Array.filter((n) => n < 0)),
-        pipe(values, Array.map((n) => -n))
+        pipe(
+          result1,
+          Array.filter((n) => n > 0)
+        ),
+        values
       )
-      assert.deepStrictEqual(pipe(result2, Array.filter((n) => n > 0)), values)
       assert.deepStrictEqual(
-        pipe(result2, Array.filter((n) => n < 0)),
-        pipe(values, Array.map((n) => -n))
+        pipe(
+          result1,
+          Array.filter((n) => n < 0)
+        ),
+        pipe(
+          values,
+          Array.map((n) => -n)
+        )
       )
-    }))
+      assert.deepStrictEqual(
+        pipe(
+          result2,
+          Array.filter((n) => n > 0)
+        ),
+        values
+      )
+      assert.deepStrictEqual(
+        pipe(
+          result2,
+          Array.filter((n) => n < 0)
+        ),
+        pipe(
+          values,
+          Array.map((n) => -n)
+        )
+      )
+    })
+  )
   it.effect("sliding concurrent publishers and subscribers - one to one", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(0, 64)
       const pubsub = yield* PubSub.sliding<number>(64)
       const subscriber = yield* PubSub.subscribe(pubsub).pipe(
@@ -248,9 +299,10 @@ describe("PubSub", () => {
       yield* Effect.forkChild(Effect.forEach(values, (n) => PubSub.publish(pubsub, n)))
       const result = yield* Fiber.join(subscriber)
       assert.deepStrictEqual(result, values)
-    }))
+    })
+  )
   it.effect("sliding concurrent publishers and subscribers - one to many", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(0, 64)
       const pubsub = yield* PubSub.sliding<number>(64)
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
@@ -268,9 +320,10 @@ describe("PubSub", () => {
       const result2 = yield* Fiber.join(subscriber2)
       assert.deepStrictEqual(result1, values)
       assert.deepStrictEqual(result2, values)
-    }))
+    })
+  )
   it.effect("sliding concurrent publishers and subscribers - many to many", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(1, 64)
       const pubsub = yield* PubSub.sliding<number>(64 * 2)
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
@@ -284,23 +337,53 @@ describe("PubSub", () => {
         Effect.forkChild({ startImmediately: true })
       )
       const fiber = yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
-      yield* Effect.forkChild(PubSub.publishAll(pubsub, Array.map(values, (n) => -n)))
+      yield* Effect.forkChild(
+        PubSub.publishAll(
+          pubsub,
+          Array.map(values, (n) => -n)
+        )
+      )
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       yield* Fiber.join(fiber)
-      assert.deepStrictEqual(pipe(result1, Array.filter((n) => n > 0)), values)
       assert.deepStrictEqual(
-        pipe(result1, Array.filter((n) => n < 0)),
-        pipe(values, Array.map((n) => -n))
+        pipe(
+          result1,
+          Array.filter((n) => n > 0)
+        ),
+        values
       )
-      assert.deepStrictEqual(pipe(result2, Array.filter((n) => n > 0)), values)
       assert.deepStrictEqual(
-        pipe(result2, Array.filter((n) => n < 0)),
-        pipe(values, Array.map((n) => -n))
+        pipe(
+          result1,
+          Array.filter((n) => n < 0)
+        ),
+        pipe(
+          values,
+          Array.map((n) => -n)
+        )
       )
-    }))
+      assert.deepStrictEqual(
+        pipe(
+          result2,
+          Array.filter((n) => n > 0)
+        ),
+        values
+      )
+      assert.deepStrictEqual(
+        pipe(
+          result2,
+          Array.filter((n) => n < 0)
+        ),
+        pipe(
+          values,
+          Array.map((n) => -n)
+        )
+      )
+    })
+  )
   it.effect("unbounded concurrent publishers and subscribers - one to one", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(0, 64)
       const pubsub = yield* PubSub.unbounded<number>()
       const subscriber = yield* PubSub.subscribe(pubsub).pipe(
@@ -312,9 +395,10 @@ describe("PubSub", () => {
 
       const result = yield* Fiber.join(subscriber)
       assert.deepStrictEqual(result, values)
-    }))
+    })
+  )
   it.effect("unbounded concurrent publishers and subscribers - one to many", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(0, 64)
       const pubsub = yield* PubSub.unbounded<number>()
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
@@ -332,9 +416,10 @@ describe("PubSub", () => {
       const result2 = yield* Fiber.join(subscriber2)
       assert.deepStrictEqual(result1, values)
       assert.deepStrictEqual(result2, values)
-    }))
+    })
+  )
   it.effect("unbounded concurrent publishers and subscribers - many to many", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const values = Array.range(1, 64)
       const pubsub = yield* PubSub.unbounded<number>()
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
@@ -349,27 +434,39 @@ describe("PubSub", () => {
         Effect.forkChild({ startImmediately: true })
       )
       const fiber = yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
-      yield* Effect.forkChild(PubSub.publishAll(pubsub, Array.map(values, (n) => -n)))
+      yield* Effect.forkChild(
+        PubSub.publishAll(
+          pubsub,
+          Array.map(values, (n) => -n)
+        )
+      )
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       yield* Fiber.join(fiber)
-      assert.deepStrictEqual(Array.filter(result1, (n) => n > 0), values)
+      assert.deepStrictEqual(
+        Array.filter(result1, (n) => n > 0),
+        values
+      )
       assert.deepStrictEqual(
         Array.filter(result1, (n) => n < 0),
         Array.map(values, (n) => -n)
       )
-      assert.deepStrictEqual(Array.filter(result2, (n) => n > 0), values)
+      assert.deepStrictEqual(
+        Array.filter(result2, (n) => n > 0),
+        values
+      )
       assert.deepStrictEqual(
         Array.filter(result2, (n) => n < 0),
         Array.map(values, (n) => -n)
       )
-    }))
+    })
+  )
   it.effect("null values", () => {
     const messages = [1, null]
     return PubSub.unbounded<number | null>().pipe(
       Effect.flatMap((pubsub) =>
         Effect.scoped(
-          Effect.gen(function*() {
+          Effect.gen(function* () {
             const sub1 = yield* PubSub.subscribe(pubsub)
             const sub2 = yield* PubSub.subscribe(pubsub)
             yield* PubSub.publishAll(pubsub, messages)
@@ -384,36 +481,39 @@ describe("PubSub", () => {
   })
 
   it.effect("publish does not increase size while no subscribers", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const pubsub = yield* PubSub.dropping<number>(2)
       yield* PubSub.publish(pubsub, 1)
       yield* PubSub.publish(pubsub, 2)
       assert.deepStrictEqual(PubSub.sizeUnsafe(pubsub), 0)
-    }))
+    })
+  )
 
   it.effect("publishAll does not increase size while no subscribers", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const pubsub = yield* PubSub.dropping<number>(2)
       yield* PubSub.publishAll(pubsub, [1, 2])
       assert.deepStrictEqual(PubSub.sizeUnsafe(pubsub), 0)
-    }))
+    })
+  )
 
   describe("replay", () => {
     it.effect("unbounded", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const messages = [1, 2, 3, 4, 5]
         const pubsub = yield* PubSub.unbounded<number>({ replay: 3 })
         yield* PubSub.publishAll(pubsub, messages)
         const sub = yield* PubSub.subscribe(pubsub)
         assert.deepStrictEqual(yield* PubSub.takeAll(sub), [3, 4, 5])
-      }))
+      })
+    )
 
     it.effect("unbounded takeUpTo", () => {
       const messages = [1, 2, 3, 4, 5]
       return PubSub.unbounded<number>({ replay: 3 }).pipe(
         Effect.flatMap((pubsub) =>
           Effect.scoped(
-            Effect.gen(function*() {
+            Effect.gen(function* () {
               yield* PubSub.publishAll(pubsub, messages)
 
               const sub1 = yield* PubSub.subscribe(pubsub)
@@ -432,7 +532,7 @@ describe("PubSub", () => {
     })
 
     it.effect("dropping", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const messages = [1, 2, 3, 4, 5]
         const pubsub = yield* PubSub.dropping<number>({ capacity: 2, replay: 3 })
 
@@ -451,10 +551,11 @@ describe("PubSub", () => {
 
         const sub3 = yield* PubSub.subscribe(pubsub)
         assert.deepStrictEqual(yield* PubSub.takeAll(sub3), [7, 8, 9])
-      }))
+      })
+    )
 
     it.effect("sliding", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const messages = [1, 2, 3, 4, 5]
         const pubsub = yield* PubSub.sliding<number>({ capacity: 4, replay: 3 })
 
@@ -473,6 +574,7 @@ describe("PubSub", () => {
 
         const sub3 = yield* PubSub.subscribe(pubsub)
         assert.deepStrictEqual(yield* PubSub.takeAll(sub3), [14, 15, 16])
-      }))
+      })
+    )
   })
 })

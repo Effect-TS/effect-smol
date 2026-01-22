@@ -74,10 +74,14 @@ export declare namespace AsyncResult {
 /**
  * @since 4.0.0
  */
-export type With<R extends AsyncResult<any, any>, A, E> = R extends Initial<infer _A, infer _E> ? Initial<A, E>
-  : R extends Success<infer _A, infer _E> ? Success<A, E>
-  : R extends Failure<infer _A, infer _E> ? Failure<A, E>
-  : never
+export type With<R extends AsyncResult<any, any>, A, E> =
+  R extends Initial<infer _A, infer _E>
+    ? Initial<A, E>
+    : R extends Success<infer _A, infer _E>
+      ? Success<A, E>
+      : R extends Failure<infer _A, infer _E>
+        ? Failure<A, E>
+        : never
 
 const ResultProto = {
   [TypeId]: {
@@ -195,10 +199,13 @@ export const isSuccess = <A, E>(result: AsyncResult<A, E>): result is Success<A,
  * @since 4.0.0
  * @category constructors
  */
-export const success = <A, E = never>(value: A, options?: {
-  readonly waiting?: boolean | undefined
-  readonly timestamp?: number | undefined
-}): Success<A, E> => {
+export const success = <A, E = never>(
+  value: A,
+  options?: {
+    readonly waiting?: boolean | undefined
+    readonly timestamp?: number | undefined
+  }
+): Success<A, E> => {
   const result = Object.create(ResultProto)
   result._tag = "Success"
   result.value = value
@@ -262,11 +269,8 @@ export const failureWithPrevious = <A, E>(
 ): Failure<A, E> =>
   failure(cause, {
     previousSuccess: Option.flatMap(options.previous, (result) =>
-      isSuccess(result)
-        ? Option.some(result)
-        : isFailure(result)
-        ? result.previousSuccess
-        : Option.none()),
+      isSuccess(result) ? Option.some(result) : isFailure(result) ? result.previousSuccess : Option.none()
+    ),
     waiting: options.waiting
   })
 
@@ -274,10 +278,13 @@ export const failureWithPrevious = <A, E>(
  * @since 4.0.0
  * @category constructors
  */
-export const fail = <E, A = never>(error: E, options?: {
-  readonly previousSuccess?: Option.Option<Success<A, E>> | undefined
-  readonly waiting?: boolean | undefined
-}): Failure<A, E> => failure(Cause.fail(error), options)
+export const fail = <E, A = never>(
+  error: E,
+  options?: {
+    readonly previousSuccess?: Option.Option<Success<A, E>> | undefined
+    readonly waiting?: boolean | undefined
+  }
+): Failure<A, E> => failure(Cause.fail(error), options)
 
 /**
  * @since 4.0.0
@@ -295,9 +302,12 @@ export const failWithPrevious = <A, E>(
  * @since 4.0.0
  * @category constructors
  */
-export const waiting = <R extends AsyncResult<any, any>>(self: R, options?: {
-  readonly touch?: boolean | undefined
-}): R => {
+export const waiting = <R extends AsyncResult<any, any>>(
+  self: R,
+  options?: {
+    readonly touch?: boolean | undefined
+  }
+): R => {
   if (self.waiting) {
     return options?.touch ? touch(self) : self
   }
@@ -381,9 +391,7 @@ export const error = <A, E>(self: AsyncResult<A, E>): Option.Option<E> =>
  * @since 4.0.0
  * @category combinators
  */
-export const toExit = <A, E>(
-  self: AsyncResult<A, E>
-): Exit.Exit<A, E | Cause.NoSuchElementError> => {
+export const toExit = <A, E>(self: AsyncResult<A, E>): Exit.Exit<A, E | Cause.NoSuchElementError> => {
   switch (self._tag) {
     case "Success": {
       return Exit.succeed(self.value)
@@ -460,25 +468,34 @@ export const match: {
     readonly onFailure: (_: Failure<A, E>) => Y
     readonly onSuccess: (_: Success<A, E>) => Z
   }): (self: AsyncResult<A, E>) => X | Y | Z
-  <A, E, X, Y, Z>(self: AsyncResult<A, E>, options: {
-    readonly onInitial: (_: Initial<A, E>) => X
-    readonly onFailure: (_: Failure<A, E>) => Y
-    readonly onSuccess: (_: Success<A, E>) => Z
-  }): X | Y | Z
-} = dual(2, <A, E, X, Y, Z>(self: AsyncResult<A, E>, options: {
-  readonly onInitial: (_: Initial<A, E>) => X
-  readonly onFailure: (_: Failure<A, E>) => Y
-  readonly onSuccess: (_: Success<A, E>) => Z
-}): X | Y | Z => {
-  switch (self._tag) {
-    case "Initial":
-      return options.onInitial(self)
-    case "Failure":
-      return options.onFailure(self)
-    case "Success":
-      return options.onSuccess(self)
+  <A, E, X, Y, Z>(
+    self: AsyncResult<A, E>,
+    options: {
+      readonly onInitial: (_: Initial<A, E>) => X
+      readonly onFailure: (_: Failure<A, E>) => Y
+      readonly onSuccess: (_: Success<A, E>) => Z
+    }
+  ): X | Y | Z
+} = dual(
+  2,
+  <A, E, X, Y, Z>(
+    self: AsyncResult<A, E>,
+    options: {
+      readonly onInitial: (_: Initial<A, E>) => X
+      readonly onFailure: (_: Failure<A, E>) => Y
+      readonly onSuccess: (_: Success<A, E>) => Z
+    }
+  ): X | Y | Z => {
+    switch (self._tag) {
+      case "Initial":
+        return options.onInitial(self)
+      case "Failure":
+        return options.onFailure(self)
+      case "Success":
+        return options.onSuccess(self)
+    }
   }
-})
+)
 
 /**
  * @since 4.0.0
@@ -491,32 +508,41 @@ export const matchWithError: {
     readonly onDefect: (defect: unknown, _: Failure<A, E>) => Y
     readonly onSuccess: (_: Success<A, E>) => Z
   }): (self: AsyncResult<A, E>) => W | X | Y | Z
-  <A, E, W, X, Y, Z>(self: AsyncResult<A, E>, options: {
-    readonly onInitial: (_: Initial<A, E>) => W
-    readonly onError: (error: E, _: Failure<A, E>) => X
-    readonly onDefect: (defect: unknown, _: Failure<A, E>) => Y
-    readonly onSuccess: (_: Success<A, E>) => Z
-  }): W | X | Y | Z
-} = dual(2, <A, E, W, X, Y, Z>(self: AsyncResult<A, E>, options: {
-  readonly onInitial: (_: Initial<A, E>) => W
-  readonly onError: (error: E, _: Failure<A, E>) => X
-  readonly onDefect: (defect: unknown, _: Failure<A, E>) => Y
-  readonly onSuccess: (_: Success<A, E>) => Z
-}): W | X | Y | Z => {
-  switch (self._tag) {
-    case "Initial":
-      return options.onInitial(self)
-    case "Failure": {
-      const result = Cause.filterError(self.cause)
-      if (Filter.isFail(result)) {
-        return options.onDefect(Cause.squash(result.fail), self)
-      }
-      return options.onError(result, self)
+  <A, E, W, X, Y, Z>(
+    self: AsyncResult<A, E>,
+    options: {
+      readonly onInitial: (_: Initial<A, E>) => W
+      readonly onError: (error: E, _: Failure<A, E>) => X
+      readonly onDefect: (defect: unknown, _: Failure<A, E>) => Y
+      readonly onSuccess: (_: Success<A, E>) => Z
     }
-    case "Success":
-      return options.onSuccess(self)
+  ): W | X | Y | Z
+} = dual(
+  2,
+  <A, E, W, X, Y, Z>(
+    self: AsyncResult<A, E>,
+    options: {
+      readonly onInitial: (_: Initial<A, E>) => W
+      readonly onError: (error: E, _: Failure<A, E>) => X
+      readonly onDefect: (defect: unknown, _: Failure<A, E>) => Y
+      readonly onSuccess: (_: Success<A, E>) => Z
+    }
+  ): W | X | Y | Z => {
+    switch (self._tag) {
+      case "Initial":
+        return options.onInitial(self)
+      case "Failure": {
+        const result = Cause.filterError(self.cause)
+        if (Filter.isFail(result)) {
+          return options.onDefect(Cause.squash(result.fail), self)
+        }
+        return options.onError(result, self)
+      }
+      case "Success":
+        return options.onSuccess(self)
+    }
   }
-})
+)
 
 /**
  * @since 4.0.0
@@ -529,35 +555,44 @@ export const matchWithWaiting: {
     readonly onDefect: (defect: unknown, _: Failure<A, E>) => Y
     readonly onSuccess: (_: Success<A, E>) => Z
   }): (self: AsyncResult<A, E>) => W | X | Y | Z
-  <A, E, W, X, Y, Z>(self: AsyncResult<A, E>, options: {
-    readonly onWaiting: (_: AsyncResult<A, E>) => W
-    readonly onError: (error: E, _: Failure<A, E>) => X
-    readonly onDefect: (defect: unknown, _: Failure<A, E>) => Y
-    readonly onSuccess: (_: Success<A, E>) => Z
-  }): W | X | Y | Z
-} = dual(2, <A, E, W, X, Y, Z>(self: AsyncResult<A, E>, options: {
-  readonly onWaiting: (_: AsyncResult<A, E>) => W
-  readonly onError: (error: E, _: Failure<A, E>) => X
-  readonly onDefect: (defect: unknown, _: Failure<A, E>) => Y
-  readonly onSuccess: (_: Success<A, E>) => Z
-}): W | X | Y | Z => {
-  if (self.waiting) {
-    return options.onWaiting(self)
-  }
-  switch (self._tag) {
-    case "Initial":
-      return options.onWaiting(self)
-    case "Failure": {
-      const e = Cause.filterError(self.cause)
-      if (Filter.isFail(e)) {
-        return options.onDefect(Cause.squash(e.fail), self)
-      }
-      return options.onError(e, self)
+  <A, E, W, X, Y, Z>(
+    self: AsyncResult<A, E>,
+    options: {
+      readonly onWaiting: (_: AsyncResult<A, E>) => W
+      readonly onError: (error: E, _: Failure<A, E>) => X
+      readonly onDefect: (defect: unknown, _: Failure<A, E>) => Y
+      readonly onSuccess: (_: Success<A, E>) => Z
     }
-    case "Success":
-      return options.onSuccess(self)
+  ): W | X | Y | Z
+} = dual(
+  2,
+  <A, E, W, X, Y, Z>(
+    self: AsyncResult<A, E>,
+    options: {
+      readonly onWaiting: (_: AsyncResult<A, E>) => W
+      readonly onError: (error: E, _: Failure<A, E>) => X
+      readonly onDefect: (defect: unknown, _: Failure<A, E>) => Y
+      readonly onSuccess: (_: Success<A, E>) => Z
+    }
+  ): W | X | Y | Z => {
+    if (self.waiting) {
+      return options.onWaiting(self)
+    }
+    switch (self._tag) {
+      case "Initial":
+        return options.onWaiting(self)
+      case "Failure": {
+        const e = Cause.filterError(self.cause)
+        if (Filter.isFail(e)) {
+          return options.onDefect(Cause.squash(e.fail), self)
+        }
+        return options.onError(e, self)
+      }
+      case "Success":
+        return options.onSuccess(self)
+    }
   }
-})
+)
 
 /**
  * Combines multiple results into a single result. Also works with non-result
@@ -569,23 +604,29 @@ export const matchWithWaiting: {
 export const all = <const Arg extends Iterable<any> | Record<string, any>>(
   results: Arg
 ): AsyncResult<
-  [Arg] extends [ReadonlyArray<any>] ? {
-      -readonly [K in keyof Arg]: [Arg[K]] extends [AsyncResult<infer _A, infer _E>] ? _A : Arg[K]
-    }
-    : [Arg] extends [Iterable<infer _A>] ? _A extends AsyncResult<infer _AA, infer _E> ? _AA : _A
-    : [Arg] extends [Record<string, any>] ? {
+  [Arg] extends [ReadonlyArray<any>]
+    ? {
         -readonly [K in keyof Arg]: [Arg[K]] extends [AsyncResult<infer _A, infer _E>] ? _A : Arg[K]
       }
-    : never,
-  [Arg] extends [ReadonlyArray<any>] ? AsyncResult.Failure<Arg[number]>
-    : [Arg] extends [Iterable<infer _A>] ? AsyncResult.Failure<_A>
-    : [Arg] extends [Record<string, any>] ? AsyncResult.Failure<Arg[keyof Arg]>
-    : never
+    : [Arg] extends [Iterable<infer _A>]
+      ? _A extends AsyncResult<infer _AA, infer _E>
+        ? _AA
+        : _A
+      : [Arg] extends [Record<string, any>]
+        ? {
+            -readonly [K in keyof Arg]: [Arg[K]] extends [AsyncResult<infer _A, infer _E>] ? _A : Arg[K]
+          }
+        : never,
+  [Arg] extends [ReadonlyArray<any>]
+    ? AsyncResult.Failure<Arg[number]>
+    : [Arg] extends [Iterable<infer _A>]
+      ? AsyncResult.Failure<_A>
+      : [Arg] extends [Record<string, any>]
+        ? AsyncResult.Failure<Arg[keyof Arg]>
+        : never
 > => {
   const isIter = isIterable(results)
-  const entries = isIter
-    ? Array.from(results, (result, i) => [i, result] as const)
-    : Object.entries(results)
+  const entries = isIter ? Array.from(results, (result, i) => [i, result] as const) : Object.entries(results)
   const successes: any = isIter ? [] : {}
   let waiting = false
   for (let i = 0; i < entries.length; i++) {
@@ -608,7 +649,9 @@ export const all = <const Arg extends Iterable<any> | Record<string, any>>(
  * @since 4.0.0
  * @category Builder
  */
-export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
+export const builder = <A extends AsyncResult<any, any>>(
+  self: A
+): Builder<
   never,
   A extends Success<infer _A, infer _E> ? _A : never,
   A extends Failure<infer _A, infer _E> ? _E : never,
@@ -619,47 +662,45 @@ export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
  * @since 4.0.0
  * @category Builder
  */
-export type Builder<Out, A, E, I> =
-  & Pipeable
-  & {
-    onWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, I>
-    onDefect<B>(f: (defect: unknown, result: Failure<A, E>) => B): Builder<Out | B, A, E, I>
-    orElse<B>(orElse: LazyArg<B>): Out | B
-    orNull(): Out | null
-    render(): [A | I] extends [never] ? Out : Out | null
-  }
-  & ([I] extends [never] ? {} :
-    {
-      onInitial<B>(f: (result: Initial<A, E>) => B): Builder<Out | B, A, E, never>
-      onInitialOrWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, never>
-    })
-  & ([A] extends [never] ? {} :
-    {
-      onSuccess<B>(f: (value: A, result: Success<A, E>) => B): Builder<Out | B, never, E, I>
-    })
-  & ([E] extends [never] ? {} : {
-    onFailure<B>(f: (cause: Cause.Cause<E>, result: Failure<A, E>) => B): Builder<Out | B, A, never, I>
+export type Builder<Out, A, E, I> = Pipeable & {
+  onWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, I>
+  onDefect<B>(f: (defect: unknown, result: Failure<A, E>) => B): Builder<Out | B, A, E, I>
+  orElse<B>(orElse: LazyArg<B>): Out | B
+  orNull(): Out | null
+  render(): [A | I] extends [never] ? Out : Out | null
+} & ([I] extends [never]
+    ? {}
+    : {
+        onInitial<B>(f: (result: Initial<A, E>) => B): Builder<Out | B, A, E, never>
+        onInitialOrWaiting<B>(f: (result: AsyncResult<A, E>) => B): Builder<Out | B, A, E, never>
+      }) &
+  ([A] extends [never]
+    ? {}
+    : {
+        onSuccess<B>(f: (value: A, result: Success<A, E>) => B): Builder<Out | B, never, E, I>
+      }) &
+  ([E] extends [never]
+    ? {}
+    : {
+        onFailure<B>(f: (cause: Cause.Cause<E>, result: Failure<A, E>) => B): Builder<Out | B, A, never, I>
 
-    onError<B>(f: (error: E, result: Failure<A, E>) => B): Builder<Out | B, A, never, I>
+        onError<B>(f: (error: E, result: Failure<A, E>) => B): Builder<Out | B, A, never, I>
 
-    onErrorIf<B extends E, C>(
-      refinement: Refinement<E, B>,
-      f: (error: B, result: Failure<A, E>) => C
-    ): Builder<Out | C, A, Types.EqualsWith<E, B, E, Exclude<E, B>>, I>
-    onErrorIf<C>(
-      predicate: Predicate<E>,
-      f: (error: E, result: Failure<A, E>) => C
-    ): Builder<Out | C, A, E, I>
+        onErrorIf<B extends E, C>(
+          refinement: Refinement<E, B>,
+          f: (error: B, result: Failure<A, E>) => C
+        ): Builder<Out | C, A, Types.EqualsWith<E, B, E, Exclude<E, B>>, I>
+        onErrorIf<C>(predicate: Predicate<E>, f: (error: E, result: Failure<A, E>) => C): Builder<Out | C, A, E, I>
 
-    onErrorTag<const Tags extends ReadonlyArray<Types.Tags<E>>, B>(
-      tags: Tags,
-      f: (error: Types.ExtractTag<E, Tags[number]>, result: Failure<A, E>) => B
-    ): Builder<Out | B, A, Types.ExcludeTag<E, Tags[number]>, I>
-    onErrorTag<const Tag extends Types.Tags<E>, B>(
-      tag: Tag,
-      f: (error: Types.ExtractTag<E, Tag>, result: Failure<A, E>) => B
-    ): Builder<Out | B, A, Types.ExcludeTag<E, Tag>, I>
-  })
+        onErrorTag<const Tags extends ReadonlyArray<Types.Tags<E>>, B>(
+          tags: Tags,
+          f: (error: Types.ExtractTag<E, Tags[number]>, result: Failure<A, E>) => B
+        ): Builder<Out | B, A, Types.ExcludeTag<E, Tags[number]>, I>
+        onErrorTag<const Tag extends Types.Tags<E>, B>(
+          tag: Tag,
+          f: (error: Types.ExtractTag<E, Tag>, result: Failure<A, E>) => B
+        ): Builder<Out | B, A, Types.ExcludeTag<E, Tag>, I>
+      })
 
 class BuilderImpl<Out, A, E> {
   constructor(result: AsyncResult<A, E>) {
@@ -672,14 +713,8 @@ class BuilderImpl<Out, A, E> {
     refinement: Refinement<AsyncResult<A, E>, B>,
     f: (result: B) => Option.Option<C>
   ): any
-  when<C>(
-    refinement: Predicate<AsyncResult<A, E>>,
-    f: (result: AsyncResult<A, E>) => Option.Option<C>
-  ): any
-  when<C>(
-    refinement: Predicate<AsyncResult<A, E>>,
-    f: (result: AsyncResult<A, E>) => Option.Option<C>
-  ): any {
+  when<C>(refinement: Predicate<AsyncResult<A, E>>, f: (result: AsyncResult<A, E>) => Option.Option<C>): any
+  when<C>(refinement: Predicate<AsyncResult<A, E>>, f: (result: AsyncResult<A, E>) => Option.Option<C>): any {
     if (Option.isNone(this.output) && refinement(this.result)) {
       const b = f(this.result)
       if (Option.isSome(b)) {
@@ -694,11 +729,17 @@ class BuilderImpl<Out, A, E> {
   }
 
   onWaiting<B>(f: (result: AsyncResult<A, E>) => B): BuilderImpl<Out | B, A, E> {
-    return this.when((r) => r.waiting, (r) => Option.some(f(r)))
+    return this.when(
+      (r) => r.waiting,
+      (r) => Option.some(f(r))
+    )
   }
 
   onInitialOrWaiting<B>(f: (result: AsyncResult<A, E>) => B): BuilderImpl<Out | B, A, E> {
-    return this.when((r) => isInitial(r) || r.waiting, (r) => Option.some(f(r)))
+    return this.when(
+      (r) => isInitial(r) || r.waiting,
+      (r) => Option.some(f(r))
+    )
   }
 
   onInitial<B>(f: (result: Initial<A, E>) => B): BuilderImpl<Out | B, A, E> {
@@ -725,7 +766,8 @@ class BuilderImpl<Out, A, E> {
       Cause.errorOption(result.cause).pipe(
         Option.filter(refinement),
         Option.map((error) => f(error as B, result))
-      ))
+      )
+    )
   }
 
   onErrorTag<B>(
@@ -767,16 +809,11 @@ class BuilderImpl<Out, A, E> {
  * @since 4.0.0
  * @category Schemas
  */
-export interface Schema<
-  Success extends Schema_.Top,
-  Error extends Schema_.Top
-> extends
-  Schema_.declareConstructor<
-    AsyncResult<Success["Type"], Error["Type"]>,
-    AsyncResult<Success["Encoded"], Error["Encoded"]>,
-    readonly [Success, Schema_.Cause<Error, Schema_.Defect>]
-  >
-{
+export interface Schema<Success extends Schema_.Top, Error extends Schema_.Top> extends Schema_.declareConstructor<
+  AsyncResult<Success["Type"], Error["Type"]>,
+  AsyncResult<Success["Encoded"], Error["Encoded"]>,
+  readonly [Success, Schema_.Cause<Error, Schema_.Defect>]
+> {
   readonly success: Success
   readonly error: Error
 }
@@ -785,70 +822,59 @@ export interface Schema<
  * @since 4.0.0
  * @category Schemas
  */
-export const Schema = <
-  A extends Schema_.Top = Schema_.Never,
-  E extends Schema_.Top = Schema_.Never
->(
-  options: {
-    readonly success?: A | undefined
-    readonly error?: E | undefined
-  }
-): Schema<A, E> => {
-  const success_: A = options.success ?? Schema_.Never as any
-  const error: E = options.error ?? Schema_.Never as any
+export const Schema = <A extends Schema_.Top = Schema_.Never, E extends Schema_.Top = Schema_.Never>(options: {
+  readonly success?: A | undefined
+  readonly error?: E | undefined
+}): Schema<A, E> => {
+  const success_: A = options.success ?? (Schema_.Never as any)
+  const error: E = options.error ?? (Schema_.Never as any)
   const schema = Schema_.declareConstructor<
     AsyncResult<A["Type"], E["Type"]>,
     AsyncResult<A["Encoded"], E["Encoded"]>
   >()(
     [success_, Schema_.Cause(error, Schema_.Defect)],
-    ([value, cause]) => (input, ast, options) => {
-      if (!isAsyncResult(input)) {
-        return Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input)))
-      }
-      switch (input._tag) {
-        case "Initial":
-          return Effect.succeed(input)
-        case "Success":
-          return Effect.mapBothEager(
-            SchemaParser.decodeUnknownEffect(value)(input.value, options),
-            {
+    ([value, cause]) =>
+      (input, ast, options) => {
+        if (!isAsyncResult(input)) {
+          return Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input)))
+        }
+        switch (input._tag) {
+          case "Initial":
+            return Effect.succeed(input)
+          case "Success":
+            return Effect.mapBothEager(SchemaParser.decodeUnknownEffect(value)(input.value, options), {
               onSuccess: (value) => success(value, input),
               onFailure: (issue) =>
                 new SchemaIssue.Composite(ast, Option.some(input), [new SchemaIssue.Pointer(["value"], issue)])
-            }
-          )
-        case "Failure": {
-          const prevSuccessEffect = input.previousSuccess.pipe(
-            Option.map((ps) =>
-              Effect.mapBothEager(
-                SchemaParser.decodeUnknownEffect(value)(ps.value, options),
-                {
+            })
+          case "Failure": {
+            const prevSuccessEffect = input.previousSuccess.pipe(
+              Option.map((ps) =>
+                Effect.mapBothEager(SchemaParser.decodeUnknownEffect(value)(ps.value, options), {
                   onSuccess: (value) => Option.some(success<A["Type"], E["Type"]>(value, ps)),
                   onFailure: (issue) =>
                     new SchemaIssue.Composite(ast, Option.some(input), [
                       new SchemaIssue.Pointer(["previousSuccess", "value"], issue)
                     ])
-                }
-              )
-            ),
-            Option.getOrElse(() => Effect.succeedNone)
-          )
-          const causeEffect = Effect.mapErrorEager(
-            SchemaParser.decodeUnknownEffect(cause)(input.cause, options),
-            (issue) => new SchemaIssue.Composite(ast, Option.some(input), [new SchemaIssue.Pointer(["cause"], issue)])
-          )
-          return Effect.flatMapEager(
-            prevSuccessEffect,
-            (previousSuccess) =>
+                })
+              ),
+              Option.getOrElse(() => Effect.succeedNone)
+            )
+            const causeEffect = Effect.mapErrorEager(
+              SchemaParser.decodeUnknownEffect(cause)(input.cause, options),
+              (issue) => new SchemaIssue.Composite(ast, Option.some(input), [new SchemaIssue.Pointer(["cause"], issue)])
+            )
+            return Effect.flatMapEager(prevSuccessEffect, (previousSuccess) =>
               Effect.mapEager(causeEffect, (cause) =>
                 failure(cause, {
                   previousSuccess,
                   waiting: input.waiting
-                }))
-          )
+                })
+              )
+            )
+          }
         }
-      }
-    },
+      },
     {
       expected: "AsyncResult",
       toCodec([value, cause]) {
@@ -905,16 +931,18 @@ export const Schema = <
         )
       },
       toEquivalence: Equal.asEquivalence,
-      toFormatter: ([value, cause]) => (t) => {
-        switch (t._tag) {
-          case "Success":
-            return `AsyncResult.Success(${value(t.value)}, ${t.waiting}, ${t.timestamp})`
-          case "Failure":
-            return `AsyncResult.Failure(${cause(t.cause)}, ${t.waiting})`
-          case "Initial":
-            return `AsyncResult.Initial(${t.waiting}, ${t.waiting})`
+      toFormatter:
+        ([value, cause]) =>
+        (t) => {
+          switch (t._tag) {
+            case "Success":
+              return `AsyncResult.Success(${value(t.value)}, ${t.waiting}, ${t.timestamp})`
+            case "Failure":
+              return `AsyncResult.Failure(${cause(t.cause)}, ${t.waiting})`
+            case "Initial":
+              return `AsyncResult.Initial(${t.waiting}, ${t.waiting})`
+          }
         }
-      }
     }
   )
   return Object.assign(schema, {

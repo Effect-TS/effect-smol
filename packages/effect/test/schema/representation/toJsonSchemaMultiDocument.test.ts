@@ -12,26 +12,23 @@ describe("toJsonSchemaMultiDocument", () => {
     deepStrictEqual(jsonMultiDocument, {
       dialect: "draft-2020-12",
       schemas: [
-        { "$ref": "#/$defs/id" },
-        { "$ref": "#/$defs/id1" },
+        { $ref: "#/$defs/id" },
+        { $ref: "#/$defs/id1" },
         {
-          "type": "array",
-          "prefixItems": [
-            { "$ref": "#/$defs/id" },
-            { "$ref": "#/$defs/id1" }
-          ],
-          "minItems": 2,
-          "maxItems": 2
+          type: "array",
+          prefixItems: [{ $ref: "#/$defs/id" }, { $ref: "#/$defs/id1" }],
+          minItems: 2,
+          maxItems: 2
         }
       ],
       definitions: {
         id: {
-          "type": "string",
-          "description": "a"
+          type: "string",
+          description: "a"
         },
         id1: {
-          "type": "string",
-          "description": "b"
+          type: "string",
+          description: "b"
         }
       }
     })

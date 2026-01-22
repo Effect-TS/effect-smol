@@ -18,7 +18,7 @@ describe("TestSchema", () => {
     const schema = Schema.String.pipe(
       Schema.decode({
         decode: SchemaGetter.checkEffect((s) =>
-          Effect.gen(function*() {
+          Effect.gen(function* () {
             yield* Service
             if (s.length === 0) {
               return new SchemaIssue.InvalidValue(Option.some(s), {
@@ -52,7 +52,7 @@ describe("TestSchema", () => {
       Schema.decode({
         decode: SchemaGetter.passthrough(),
         encode: SchemaGetter.checkEffect((s) =>
-          Effect.gen(function*() {
+          Effect.gen(function* () {
             yield* Service
             if (s.length === 0) {
               return new SchemaIssue.InvalidValue(Option.some(s), {

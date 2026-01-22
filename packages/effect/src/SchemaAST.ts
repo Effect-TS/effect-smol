@@ -370,9 +370,9 @@ export class Declaration extends Base {
   /** @internal */
   recur(recur: (ast: AST) => AST) {
     const tps = mapOrSame(this.typeParameters, recur)
-    return tps === this.typeParameters ?
-      this :
-      new Declaration(tps, this.run, this.annotations, this.checks, undefined, this.context)
+    return tps === this.typeParameters
+      ? this
+      : new Declaration(tps, this.run, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   getExpected(): string {
@@ -575,10 +575,7 @@ export class Enum extends Base {
   /** @internal */
   getParser() {
     const values = new Set<unknown>(this.enums.map(([, v]) => v))
-    return fromRefinement(
-      this,
-      (input): input is typeof this.enums[number][1] => values.has(input)
-    )
+    return fromRefinement(this, (input): input is (typeof this.enums)[number][1] => values.has(input))
   }
   /** @internal */
   toCodecStringTree(): AST {
@@ -586,7 +583,10 @@ export class Enum extends Base {
       const coercions = Object.fromEntries(this.enums.map(([_, v]) => [globalThis.String(v), v]))
       return replaceEncoding(this, [
         new Link(
-          new Union(Object.keys(coercions).map((k) => new Literal(k)), "anyOf"),
+          new Union(
+            Object.keys(coercions).map((k) => new Literal(k)),
+            "anyOf"
+          ),
           new Transformation.Transformation(
             Getter.transform((s) => coercions[s]),
             Getter.String()
@@ -602,13 +602,7 @@ export class Enum extends Base {
   }
 }
 
-type TemplateLiteralPart =
-  | String
-  | Number
-  | BigInt
-  | Literal
-  | TemplateLiteral
-  | Union<TemplateLiteralPart>
+type TemplateLiteralPart = String | Number | BigInt | Literal | TemplateLiteral | Union<TemplateLiteralPart>
 
 function isTemplateLiteralPart(ast: AST): ast is TemplateLiteralPart {
   switch (ast._tag) {
@@ -969,7 +963,7 @@ export class Arrays extends Base {
     const elements = ast.elements.map((ast) => ({ ast, parser: recur(ast) }))
     const rest = ast.rest.map((ast) => ({ ast, parser: recur(ast) }))
     const elementLen = elements.length
-    return Effect.fnUntracedEager(function*(oinput, options) {
+    return Effect.fnUntracedEager(function* (oinput, options) {
       if (oinput._tag === "None") {
         return oinput
       }
@@ -1111,9 +1105,9 @@ export class Arrays extends Base {
   recur(recur: (ast: AST) => AST) {
     const elements = mapOrSame(this.elements, recur)
     const rest = mapOrSame(this.rest, recur)
-    return elements === this.elements && rest === this.rest ?
-      this :
-      new Arrays(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
+    return elements === this.elements && rest === this.rest
+      ? this
+      : new Arrays(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   getExpected(): string {
@@ -1164,10 +1158,7 @@ export class PropertySignature {
   readonly name: PropertyKey
   readonly type: AST
 
-  constructor(
-    name: PropertyKey,
-    type: AST
-  ) {
+  constructor(name: PropertyKey, type: AST) {
     this.name = name
     this.type = type
   }
@@ -1203,11 +1194,7 @@ export class IndexSignature {
   readonly type: AST
   readonly merge: KeyValueCombiner | undefined
 
-  constructor(
-    parameter: AST,
-    type: AST,
-    merge: KeyValueCombiner | undefined
-  ) {
+  constructor(parameter: AST, type: AST, merge: KeyValueCombiner | undefined) {
     this.parameter = parameter
     this.type = type
     this.merge = merge
@@ -1276,7 +1263,7 @@ export class Objects extends Base {
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
       return fromRefinement(ast, Predicate.isNotNullish)
     }
-    return Effect.fnUntracedEager(function*(oinput, options) {
+    return Effect.fnUntracedEager(function* (oinput, options) {
       if (oinput._tag === "None") {
         return oinput
       }
@@ -1328,9 +1315,7 @@ export class Objects extends Base {
       // ---------------------------------------------
       for (let i = 0; i < propertyCount; i++) {
         const p = properties[i]
-        const value: Option.Option<unknown> = Object.hasOwn(input, p.name)
-          ? Option.some(input[p.name])
-          : Option.none()
+        const value: Option.Option<unknown> = Object.hasOwn(input, p.name) ? Option.some(input[p.name]) : Option.none()
         const eff = p.parser(value, options)
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
@@ -1355,9 +1340,7 @@ export class Objects extends Base {
             else issues = [issue]
             continue
           } else {
-            return yield* Effect.fail(
-              new Issue.Composite(ast, oinput, [issue])
-            )
+            return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
           }
         }
       }
@@ -1388,9 +1371,7 @@ export class Objects extends Base {
                 else issues = [issue]
                 continue
               }
-              return yield* Effect.fail(
-                new Issue.Composite(ast, oinput, [issue])
-              )
+              return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
             }
 
             const value: Option.Option<unknown> = Option.some(input[key])
@@ -1408,9 +1389,7 @@ export class Objects extends Base {
                 else issues = [issue]
                 continue
               } else {
-                return yield* Effect.fail(
-                  new Issue.Composite(ast, oinput, [issue])
-                )
+                return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
               }
             } else if (exitKey.value._tag === "Some" && exitValue.value._tag === "Some") {
               const k2 = exitKey.value.value
@@ -1443,10 +1422,7 @@ export class Objects extends Base {
       return Option.some(out)
     })
   }
-  private rebuild(
-    recur: (ast: AST) => AST,
-    flipMerge: boolean
-  ): Objects {
+  private rebuild(recur: (ast: AST) => AST, flipMerge: boolean): Objects {
     const props = mapOrSame(this.propertySignatures, (ps) => {
       const t = recur(ps.type)
       return t === ps.type ? ps : new PropertySignature(ps.name, t)
@@ -1456,9 +1432,7 @@ export class Objects extends Base {
       const p = recur(is.parameter)
       const t = recur(is.type)
       const merge = flipMerge ? is.merge?.flip() : is.merge
-      return p === is.parameter && t === is.type && merge === is.merge
-        ? is
-        : new IndexSignature(p, t, merge)
+      return p === is.parameter && t === is.type && merge === is.merge ? is : new IndexSignature(p, t, merge)
     })
 
     return props === this.propertySignatures && indexes === this.indexSignatures
@@ -1516,7 +1490,13 @@ export function tuple<Elements extends Schema.Tuple.Elements>(
   elements: Elements,
   checks: Checks | undefined = undefined
 ): Arrays {
-  return new Arrays(false, elements.map((e) => e.ast), [], undefined, checks)
+  return new Arrays(
+    false,
+    elements.map((e) => e.ast),
+    [],
+    undefined,
+    checks
+  )
 }
 
 /** @internal */
@@ -1594,9 +1574,7 @@ function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
     case "ObjectKeyword":
       return ["object", "array", "function"]
     case "Objects":
-      return ast.propertySignatures.length || ast.indexSignatures.length
-        ? ["object"]
-        : ["object", "array"]
+      return ast.propertySignatures.length || ast.indexSignatures.length ? ["object"] : ["object", "array"]
     case "Enum":
       return Array.from(new Set(ast.enums.map(([, v]) => typeof v)))
     case "Literal":
@@ -1604,18 +1582,7 @@ function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
     case "Union":
       return Array.from(new Set(ast.types.flatMap(getCandidateTypes)))
     default:
-      return [
-        "null",
-        "undefined",
-        "string",
-        "number",
-        "boolean",
-        "symbol",
-        "bigint",
-        "object",
-        "array",
-        "function"
-      ]
+      return ["null", "undefined", "string", "number", "boolean", "symbol", "bigint", "object", "array", "function"]
   }
 }
 
@@ -1628,18 +1595,12 @@ export function collectSentinels(ast: AST): Array<Sentinel> | undefined {
     }
     case "Objects": {
       const v = ast.propertySignatures.flatMap((ps) =>
-        isLiteral(ps.type) && !isOptional(ps.type)
-          ? [{ key: ps.name, literal: ps.type.literal }]
-          : []
+        isLiteral(ps.type) && !isOptional(ps.type) ? [{ key: ps.name, literal: ps.type.literal }] : []
       )
       return v.length ? v : undefined
     }
     case "Arrays": {
-      const v = ast.elements.flatMap((e, i) =>
-        isLiteral(e) && !isOptional(e)
-          ? [{ key: i, literal: e.literal }]
-          : []
-      )
+      const v = ast.elements.flatMap((e, i) => (isLiteral(e) && !isOptional(e) ? [{ key: i, literal: e.literal }] : []))
       return v.length ? v : undefined
     }
     case "Suspend":
@@ -1671,16 +1632,18 @@ function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
     idx.byType ??= {}
     for (const t of types) (idx.byType[t] ??= []).push(a)
 
-    if (sentinels?.length) { // discriminated variants
+    if (sentinels?.length) {
+      // discriminated variants
       idx.bySentinel ??= new Map()
       for (const { key, literal } of sentinels) {
         let m = idx.bySentinel.get(key)
-        if (!m) idx.bySentinel.set(key, m = new Map())
+        if (!m) idx.bySentinel.set(key, (m = new Map()))
         let arr = m.get(literal)
-        if (!arr) m.set(literal, arr = [])
+        if (!arr) m.set(literal, (arr = []))
         arr.push(a)
       }
-    } else { // non-discriminated
+    } else {
+      // non-discriminated
       idx.otherwise ??= {}
       for (const t of types) (idx.otherwise[t] ??= []).push(a)
     }
@@ -1693,11 +1656,11 @@ function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
 function filterLiterals(input: any) {
   return (ast: AST) => {
     const encoded = toEncoded(ast)
-    return encoded._tag === "Literal" ?
-      encoded.literal === input
-      : encoded._tag === "UniqueSymbol" ?
-      encoded.symbol === input
-      : true
+    return encoded._tag === "Literal"
+      ? encoded.literal === input
+      : encoded._tag === "UniqueSymbol"
+        ? encoded.symbol === input
+        : true
   }
 }
 
@@ -1754,7 +1717,7 @@ export class Union<A extends AST = AST> extends Base {
   getParser(recur: (ast: AST) => Parser.Parser): Parser.Parser {
     // oxlint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
-    return Effect.fnUntracedEager(function*(oinput, options) {
+    return Effect.fnUntracedEager(function* (oinput, options) {
       if (oinput._tag === "None") {
         return oinput
       }
@@ -1806,9 +1769,9 @@ export class Union<A extends AST = AST> extends Base {
   /** @internal */
   recur(recur: (ast: AST) => AST) {
     const types = mapOrSame(this.types, recur)
-    return types === this.types ?
-      this :
-      new Union(types, this.mode, this.annotations, this.checks, undefined, this.context)
+    return types === this.types
+      ? this
+      : new Union(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   getExpected(getExpected: (ast: AST) => string): string {
@@ -1823,22 +1786,23 @@ export class Union<A extends AST = AST> extends Base {
         case "Arrays": {
           const literals = encoded.elements.filter(isLiteral)
           if (literals.length > 0) {
-            return `${formatIsMutable(encoded.isMutable)}[ ${
-              literals.map((e) => getExpected(e) + formatIsOptional(e.context?.isOptional)).join(", ")
-            }, ... ]`
+            return `${formatIsMutable(encoded.isMutable)}[ ${literals
+              .map((e) => getExpected(e) + formatIsOptional(e.context?.isOptional))
+              .join(", ")}, ... ]`
           }
           break
         }
         case "Objects": {
           const literals = encoded.propertySignatures.filter((ps) => isLiteral(ps.type))
           if (literals.length > 0) {
-            return `{ ${
-              literals.map((ps) =>
-                `${formatIsMutable(ps.type.context?.isMutable)}${formatPropertyKey(ps.name)}${
-                  formatIsOptional(ps.type.context?.isOptional)
-                }: ${getExpected(ps.type)}`
-              ).join(", ")
-            }, ... }`
+            return `{ ${literals
+              .map(
+                (ps) =>
+                  `${formatIsMutable(ps.type.context?.isMutable)}${formatPropertyKey(ps.name)}${formatIsOptional(
+                    ps.type.context?.isOptional
+                  )}: ${getExpected(ps.type)}`
+              )
+              .join(", ")}, ... }`
           }
           break
         }
@@ -1849,17 +1813,13 @@ export class Union<A extends AST = AST> extends Base {
   }
 }
 
-const nonFiniteLiterals = new Union([
-  new Literal("Infinity"),
-  new Literal("-Infinity"),
-  new Literal("NaN")
-], "anyOf")
+const nonFiniteLiterals = new Union([new Literal("Infinity"), new Literal("-Infinity"), new Literal("NaN")], "anyOf")
 
 const numberToJson = new Link(
   new Union([number, nonFiniteLiterals], "anyOf"),
   new Transformation.Transformation(
     Getter.Number(),
-    Getter.transform((n) => globalThis.Number.isFinite(n) ? n : globalThis.String(n))
+    Getter.transform((n) => (globalThis.Number.isFinite(n) ? n : globalThis.String(n)))
   )
 )
 
@@ -1997,18 +1957,19 @@ export function makeFilter<T>(
     input: T,
     ast: AST,
     options: ParseOptions
-  ) => undefined | boolean | string | Issue.Issue | {
-    readonly path: ReadonlyArray<PropertyKey>
-    readonly message: string
-  },
+  ) =>
+    | undefined
+    | boolean
+    | string
+    | Issue.Issue
+    | {
+        readonly path: ReadonlyArray<PropertyKey>
+        readonly message: string
+      },
   annotations?: Schema.Annotations.Filter | undefined,
   aborted: boolean = false
 ): Filter<T> {
-  return new Filter(
-    (input, ast, options) => Issue.make(input, filter(input, ast, options)),
-    annotations,
-    aborted
-  )
+  return new Filter((input, ast, options) => Issue.make(input, filter(input, ast, options)), annotations, aborted)
 }
 
 /** @internal */
@@ -2017,7 +1978,7 @@ export function makeFilterByGuard<T extends E, E>(
   annotations?: Schema.Annotations.Filter
 ): Filter<any> {
   return new Filter(
-    (input: E) => is(input) ? undefined : new Issue.InvalidValue(Option.some(input)),
+    (input: E) => (is(input) ? undefined : new Issue.InvalidValue(Option.some(input))),
     annotations,
     true // after a guard, we always want to abort
   )
@@ -2026,29 +1987,24 @@ export function makeFilterByGuard<T extends E, E>(
 /** @internal */
 export function isPattern(regExp: globalThis.RegExp, annotations?: Schema.Annotations.Filter) {
   const source = regExp.source
-  return makeFilter(
-    (s: string) => regExp.test(s),
-    {
-      expected: `a string matching the RegExp ${source}`,
-      meta: {
-        _tag: "isPattern",
-        regExp
-      },
-      toArbitraryConstraint: {
-        string: {
-          patterns: [regExp.source]
-        }
-      },
-      ...annotations
-    }
-  )
+  return makeFilter((s: string) => regExp.test(s), {
+    expected: `a string matching the RegExp ${source}`,
+    meta: {
+      _tag: "isPattern",
+      regExp
+    },
+    toArbitraryConstraint: {
+      string: {
+        patterns: [regExp.source]
+      }
+    },
+    ...annotations
+  })
 }
 
 function modifyOwnPropertyDescriptors<A extends AST>(
   ast: A,
-  f: (
-    d: { [P in keyof A]: TypedPropertyDescriptor<A[P]> }
-  ) => void
+  f: (d: { [P in keyof A]: TypedPropertyDescriptor<A[P]> }) => void
 ): A {
   const d = Object.getOwnPropertyDescriptors(ast)
   f(d)
@@ -2113,22 +2069,16 @@ function updateLastLink(encoding: Encoding, f: (ast: AST) => AST): Encoding {
 
 /** @internal */
 export function applyToLastLink(f: (ast: AST) => AST) {
-  return <A extends AST>(ast: A): A => ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, f)) : ast
+  return <A extends AST>(ast: A): A => (ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, f)) : ast)
 }
 
 /** @internal */
-export function middlewareDecoding(
-  ast: AST,
-  middleware: Transformation.Middleware<any, any, any, any, any, any>
-): AST {
+export function middlewareDecoding(ast: AST, middleware: Transformation.Middleware<any, any, any, any, any, any>): AST {
   return appendTransformation(ast, middleware, toType(ast))
 }
 
 /** @internal */
-export function middlewareEncoding(
-  ast: AST,
-  middleware: Transformation.Middleware<any, any, any, any, any, any>
-): AST {
+export function middlewareEncoding(ast: AST, middleware: Transformation.Middleware<any, any, any, any, any, any>): AST {
   return appendTransformation(toEncoded(ast), middleware, ast)
 }
 
@@ -2171,14 +2121,12 @@ function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
 
 /** @internal */
 export function annotateKey<A extends AST>(ast: A, annotations: Schema.Annotations.Key<unknown>): A {
-  const context = ast.context ?
-    new Context(
-      ast.context.isOptional,
-      ast.context.isMutable,
-      ast.context.defaultValue,
-      { ...ast.context.annotations, ...annotations }
-    ) :
-    new Context(false, false, undefined, annotations)
+  const context = ast.context
+    ? new Context(ast.context.isOptional, ast.context.isMutable, ast.context.defaultValue, {
+        ...ast.context.annotations,
+        ...annotations
+      })
+    : new Context(false, false, undefined, annotations)
   return replaceContext(ast, context)
 }
 
@@ -2187,11 +2135,11 @@ export const optionalKeyLastLink = applyToLastLink(optionalKey)
 
 /** @internal */
 export function optionalKey<A extends AST>(ast: A): A {
-  const context = ast.context ?
-    ast.context.isOptional === false ?
-      new Context(true, ast.context.isMutable, ast.context.defaultValue, ast.context.annotations) :
-      ast.context :
-    new Context(true, false)
+  const context = ast.context
+    ? ast.context.isOptional === false
+      ? new Context(true, ast.context.isMutable, ast.context.defaultValue, ast.context.annotations)
+      : ast.context
+    : new Context(true, false)
   return optionalKeyLastLink(replaceContext(ast, context))
 }
 
@@ -2199,11 +2147,11 @@ const mutableKeyLastLink = applyToLastLink(mutableKey)
 
 /** @internal */
 export function mutableKey<A extends AST>(ast: A): A {
-  const context = ast.context ?
-    ast.context.isMutable === false ?
-      new Context(ast.context.isOptional, true, ast.context.defaultValue, ast.context.annotations) :
-      ast.context :
-    new Context(false, true)
+  const context = ast.context
+    ? ast.context.isMutable === false
+      ? new Context(ast.context.isOptional, true, ast.context.defaultValue, ast.context.annotations)
+      : ast.context
+    : new Context(false, true)
   return mutableKeyLastLink(replaceContext(ast, context))
 }
 
@@ -2228,9 +2176,9 @@ export function withConstructorDefault<A extends AST>(
     Getter.passthrough()
   )
   const encoding: Encoding = [new Link(unknown, transformation)]
-  const context = ast.context ?
-    new Context(ast.context.isOptional, ast.context.isMutable, encoding, ast.context.annotations) :
-    new Context(false, false, encoding)
+  const context = ast.context
+    ? new Context(ast.context.isOptional, ast.context.isMutable, encoding, ast.context.annotations)
+    : new Context(false, false, encoding)
   return replaceContext(ast, context)
 }
 
@@ -2329,9 +2277,7 @@ function flipEncoding(ast: AST, encoding: Encoding): AST {
   const links = encoding
   const len = links.length
   const last = links[len - 1]
-  const ls: Arr.NonEmptyArray<Link> = [
-    new Link(flip(replaceEncoding(ast, undefined)), links[0].transformation.flip())
-  ]
+  const ls: Arr.NonEmptyArray<Link> = [new Link(flip(replaceEncoding(ast, undefined)), links[0].transformation.flip())]
   for (let i = 1; i < len; i++) {
     ls.unshift(new Link(flip(links[i - 1].to), links[i].transformation.flip()))
   }
@@ -2367,9 +2313,9 @@ export function containsUndefined(ast: AST): boolean {
 }
 
 function getTemplateLiteralSource(ast: TemplateLiteral, top: boolean): string {
-  return ast.encodedParts.map((part) =>
-    handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part), top)
-  ).join("")
+  return ast.encodedParts
+    .map((part) => handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part), top))
+    .join("")
 }
 
 /** @internal */
@@ -2405,32 +2351,22 @@ function handleTemplateLiteralASTPartParens(part: TemplateLiteralPart, s: string
   return `(${s})`
 }
 
-function fromConst<const T>(
-  ast: AST,
-  value: T
-): Parser.Parser {
+function fromConst<const T>(ast: AST, value: T): Parser.Parser {
   const succeed = Effect.succeedSome(value)
   return (oinput) => {
     if (oinput._tag === "None") {
       return Effect.succeedNone
     }
-    return oinput.value === value
-      ? succeed
-      : Effect.fail(new Issue.InvalidType(ast, oinput))
+    return oinput.value === value ? succeed : Effect.fail(new Issue.InvalidType(ast, oinput))
   }
 }
 
-function fromRefinement<T>(
-  ast: AST,
-  refinement: (input: unknown) => input is T
-): Parser.Parser {
+function fromRefinement<T>(ast: AST, refinement: (input: unknown) => input is T): Parser.Parser {
   return (oinput) => {
     if (oinput._tag === "None") {
       return Effect.succeedNone
     }
-    return refinement(oinput.value)
-      ? Effect.succeed(oinput)
-      : Effect.fail(new Issue.InvalidType(ast, oinput))
+    return refinement(oinput.value) ? Effect.succeed(oinput) : Effect.fail(new Issue.InvalidType(ast, oinput))
   }
 }
 
@@ -2487,30 +2423,21 @@ const isStringFiniteRegExp = new globalThis.RegExp(`^${FINITE_PATTERN}$`)
 
 /** @internal */
 export function isStringFinite(annotations?: Schema.Annotations.Filter) {
-  return isPattern(
-    isStringFiniteRegExp,
-    {
-      expected: "a string representing a finite number",
-      meta: {
-        _tag: "isStringFinite",
-        regExp: isStringFiniteRegExp
-      },
-      ...annotations
-    }
-  )
+  return isPattern(isStringFiniteRegExp, {
+    expected: "a string representing a finite number",
+    meta: {
+      _tag: "isStringFinite",
+      regExp: isStringFiniteRegExp
+    },
+    ...annotations
+  })
 }
 
 const finiteString = appendChecks(string, [isStringFinite()])
 
-const finiteToString = new Link(
-  finiteString,
-  Transformation.numberFromString
-)
+const finiteToString = new Link(finiteString, Transformation.numberFromString)
 
-const numberToString = new Link(
-  new Union([finiteString, nonFiniteLiterals], "anyOf"),
-  Transformation.numberFromString
-)
+const numberToString = new Link(new Union([finiteString, nonFiniteLiterals], "anyOf"), Transformation.numberFromString)
 
 /**
  * signed integer only (no leading "+" because TypeScript doesn't support it)
@@ -2521,17 +2448,14 @@ const isStringBigIntRegExp = new globalThis.RegExp(`^${BIGINT_PATTERN}$`)
 
 /** @internal */
 export function isStringBigInt(annotations?: Schema.Annotations.Filter) {
-  return isPattern(
-    isStringBigIntRegExp,
-    {
-      expected: "a string representing a bigint",
-      meta: {
-        _tag: "isStringBigInt",
-        regExp: isStringBigIntRegExp
-      },
-      ...annotations
-    }
-  )
+  return isPattern(isStringBigIntRegExp, {
+    expected: "a string representing a bigint",
+    meta: {
+      _tag: "isStringBigInt",
+      regExp: isStringBigIntRegExp
+    },
+    ...annotations
+  })
 }
 
 /** @internal */
@@ -2539,10 +2463,7 @@ export const bigIntString = appendChecks(string, [isStringBigInt()])
 
 const bigIntToString = new Link(
   bigIntString,
-  new Transformation.Transformation(
-    Getter.transform(globalThis.BigInt),
-    Getter.String()
-  )
+  new Transformation.Transformation(Getter.transform(globalThis.BigInt), Getter.String())
 )
 
 const REGEXP_PATTERN = "Symbol\\((.*)\\)"
@@ -2573,17 +2494,14 @@ const symbolToString = new Link(
 
 /** @internal */
 export function isStringSymbol(annotations?: Schema.Annotations.Filter) {
-  return isPattern(
-    isStringSymbolRegExp,
-    {
-      expected: "a string representing a symbol",
-      meta: {
-        _tag: "isStringSymbol",
-        regExp: isStringSymbolRegExp
-      },
-      ...annotations
-    }
-  )
+  return isPattern(isStringSymbolRegExp, {
+    expected: "a string representing a symbol",
+    meta: {
+      _tag: "isStringSymbol",
+      regExp: isStringSymbolRegExp
+    },
+    ...annotations
+  })
 }
 
 /** @internal */
@@ -2611,10 +2529,7 @@ export function collectIssues<T>(
 }
 
 /** @internal */
-export function runChecks<T>(
-  checks: readonly [Check<T>, ...Array<Check<T>>],
-  s: T
-): Result.Result<T, Issue.Issue> {
+export function runChecks<T>(checks: readonly [Check<T>, ...Array<Check<T>>], s: T): Result.Result<T, Issue.Issue> {
   const issues: Array<Issue.Issue> = []
   collectIssues(checks, s, issues, unknown, { errors: "all" })
   if (Arr.isArrayNonEmpty(issues)) {

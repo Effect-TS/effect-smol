@@ -19,58 +19,58 @@ import { ShardId } from "./ShardId.ts"
  * @since 4.0.0
  * @category models
  */
-export class RunnerStorage extends ServiceMap.Service<RunnerStorage, {
-  /**
-   * Register a new runner with the cluster.
-   */
-  readonly register: (runner: Runner, healthy: boolean) => Effect.Effect<MachineId.MachineId, PersistenceError>
+export class RunnerStorage extends ServiceMap.Service<
+  RunnerStorage,
+  {
+    /**
+     * Register a new runner with the cluster.
+     */
+    readonly register: (runner: Runner, healthy: boolean) => Effect.Effect<MachineId.MachineId, PersistenceError>
 
-  /**
-   * Unregister the runner with the given address.
-   */
-  readonly unregister: (address: RunnerAddress) => Effect.Effect<void, PersistenceError>
+    /**
+     * Unregister the runner with the given address.
+     */
+    readonly unregister: (address: RunnerAddress) => Effect.Effect<void, PersistenceError>
 
-  /**
-   * Get all runners registered with the cluster.
-   */
-  readonly getRunners: Effect.Effect<Array<readonly [runner: Runner, healthy: boolean]>, PersistenceError>
+    /**
+     * Get all runners registered with the cluster.
+     */
+    readonly getRunners: Effect.Effect<Array<readonly [runner: Runner, healthy: boolean]>, PersistenceError>
 
-  /**
-   * Set the health status of the given runner.
-   */
-  readonly setRunnerHealth: (address: RunnerAddress, healthy: boolean) => Effect.Effect<void, PersistenceError>
+    /**
+     * Set the health status of the given runner.
+     */
+    readonly setRunnerHealth: (address: RunnerAddress, healthy: boolean) => Effect.Effect<void, PersistenceError>
 
-  /**
-   * Try to acquire the given shard ids for processing.
-   *
-   * It returns an array of shards it was able to acquire.
-   */
-  readonly acquire: (
-    address: RunnerAddress,
-    shardIds: Iterable<ShardId>
-  ) => Effect.Effect<Array<ShardId>, PersistenceError>
+    /**
+     * Try to acquire the given shard ids for processing.
+     *
+     * It returns an array of shards it was able to acquire.
+     */
+    readonly acquire: (
+      address: RunnerAddress,
+      shardIds: Iterable<ShardId>
+    ) => Effect.Effect<Array<ShardId>, PersistenceError>
 
-  /**
-   * Refresh the locks owned by the given runner.
-   */
-  readonly refresh: (
-    address: RunnerAddress,
-    shardIds: Iterable<ShardId>
-  ) => Effect.Effect<Array<ShardId>, PersistenceError>
+    /**
+     * Refresh the locks owned by the given runner.
+     */
+    readonly refresh: (
+      address: RunnerAddress,
+      shardIds: Iterable<ShardId>
+    ) => Effect.Effect<Array<ShardId>, PersistenceError>
 
-  /**
-   * Release the given shard ids.
-   */
-  readonly release: (
-    address: RunnerAddress,
-    shardId: ShardId
-  ) => Effect.Effect<void, PersistenceError>
+    /**
+     * Release the given shard ids.
+     */
+    readonly release: (address: RunnerAddress, shardId: ShardId) => Effect.Effect<void, PersistenceError>
 
-  /**
-   * Release all the shards assigned to the given runner.
-   */
-  readonly releaseAll: (address: RunnerAddress) => Effect.Effect<void, PersistenceError>
-}>()("effect/cluster/RunnerStorage") {}
+    /**
+     * Release all the shards assigned to the given runner.
+     */
+    readonly releaseAll: (address: RunnerAddress) => Effect.Effect<void, PersistenceError>
+  }
+>()("effect/cluster/RunnerStorage") {}
 
 /**
  * @since 4.0.0
@@ -101,27 +101,18 @@ export interface Encoded {
    * Acquire the lock on the given shards, returning the shards that were
    * successfully locked.
    */
-  readonly acquire: (
-    address: string,
-    shardIds: NonEmptyArray<string>
-  ) => Effect.Effect<Array<string>, PersistenceError>
+  readonly acquire: (address: string, shardIds: NonEmptyArray<string>) => Effect.Effect<Array<string>, PersistenceError>
 
   /**
    * Refresh the lock on the given shards, returning the shards that were
    * successfully locked.
    */
-  readonly refresh: (
-    address: string,
-    shardIds: Array<string>
-  ) => Effect.Effect<ReadonlyArray<string>, PersistenceError>
+  readonly refresh: (address: string, shardIds: Array<string>) => Effect.Effect<ReadonlyArray<string>, PersistenceError>
 
   /**
    * Release the lock on the given shard.
    */
-  readonly release: (
-    address: string,
-    shardId: string
-  ) => Effect.Effect<void, PersistenceError>
+  readonly release: (address: string, shardId: string) => Effect.Effect<void, PersistenceError>
 
   /**
    * Release the lock on all shards for the given runner.
@@ -135,7 +126,7 @@ export interface Encoded {
  */
 export const makeEncoded = (encoded: Encoded) =>
   RunnerStorage.of({
-    getRunners: Effect.gen(function*() {
+    getRunners: Effect.gen(function* () {
       const runners = yield* encoded.getRunners
       const results: Array<[Runner, boolean]> = []
       for (let i = 0; i < runners.length; i++) {
@@ -159,14 +150,17 @@ export const makeEncoded = (encoded: Encoded) =>
     acquire: (address, shardIds) => {
       const arr = Array.from(shardIds, (id) => id.toString())
       if (!isArrayNonEmpty(arr)) return Effect.succeed([])
-      return encoded.acquire(encodeRunnerAddress(address), arr).pipe(
-        Effect.map((shards) => shards.map(ShardId.fromString))
-      )
+      return encoded
+        .acquire(encodeRunnerAddress(address), arr)
+        .pipe(Effect.map((shards) => shards.map(ShardId.fromString)))
     },
     refresh: (address, shardIds) =>
-      encoded.refresh(encodeRunnerAddress(address), Array.from(shardIds, (id) => id.toString())).pipe(
-        Effect.map((shards) => shards.map(ShardId.fromString))
-      ),
+      encoded
+        .refresh(
+          encodeRunnerAddress(address),
+          Array.from(shardIds, (id) => id.toString())
+        )
+        .pipe(Effect.map((shards) => shards.map(ShardId.fromString))),
     release(address, shardId) {
       return encoded.release(encodeRunnerAddress(address), shardId.toString())
     },
@@ -179,7 +173,7 @@ export const makeEncoded = (encoded: Encoded) =>
  * @since 4.0.0
  * @category constructors
  */
-export const makeMemory = Effect.gen(function*() {
+export const makeMemory = Effect.gen(function* () {
   const runners = MutableHashMap.empty<RunnerAddress, Runner>()
   let acquired: Array<ShardId> = []
   let id = 0

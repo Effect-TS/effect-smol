@@ -153,10 +153,12 @@ describe("Duration", () => {
   })
 
   it("between", () => {
-    assertTrue(Duration.between(Duration.hours(1), {
-      minimum: Duration.minutes(59),
-      maximum: Duration.minutes(61)
-    }))
+    assertTrue(
+      Duration.between(Duration.hours(1), {
+        minimum: Duration.minutes(59),
+        maximum: Duration.minutes(61)
+      })
+    )
     assertTrue(
       Duration.between(Duration.minutes(1), {
         minimum: Duration.seconds(59),

@@ -155,10 +155,7 @@ describe("SchemaGetter", () => {
       formData.append("items[][id]", "x")
       formData.append("items[][id]", "y")
       const object = {
-        items: [
-          { id: "x" },
-          { id: "y" }
-        ]
+        items: [{ id: "x" }, { id: "y" }]
       }
       await decoding(formData, object)
     })
@@ -180,10 +177,7 @@ describe("SchemaGetter", () => {
       formData.append("users[][name]", "John")
       formData.append("users[][name]", "Alice")
       const object = {
-        users: [
-          { name: "John" },
-          { name: "Alice" }
-        ]
+        users: [{ name: "John" }, { name: "Alice" }]
       }
       await decoding(formData, object)
     })
@@ -343,10 +337,7 @@ describe("SchemaGetter", () => {
     it("decodes nested objects inside appended array elements", async () => {
       const urlSearchParams = new URLSearchParams("users[][name]=John&users[][name]=Alice")
       const object = {
-        users: [
-          { name: "John" },
-          { name: "Alice" }
-        ]
+        users: [{ name: "John" }, { name: "Alice" }]
       }
       await decoding(urlSearchParams, object)
     })

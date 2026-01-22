@@ -6,21 +6,18 @@ import { TestClock } from "effect/testing"
 import { Persistence } from "effect/unstable/persistence"
 import { Reactivity } from "effect/unstable/reactivity"
 
-const ClientLayer = Effect.gen(function*() {
+const ClientLayer = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const dir = yield* fs.makeTempDirectoryScoped()
   return SqliteClient.layer({
     filename: dir + "/test.db"
   })
-}).pipe(
-  Layer.unwrap,
-  Layer.provide([NodeFileSystem.layer, Reactivity.layer])
-)
+}).pipe(Layer.unwrap, Layer.provide([NodeFileSystem.layer, Reactivity.layer]))
 const PersistenceLayer = Persistence.layerBackingSql.pipe(Layer.provideMerge(ClientLayer))
 
 it.layer(PersistenceLayer)("Persistence", (it) => {
   it.effect("set + get", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const persistence = yield* Persistence.BackingPersistence
       const store = yield* persistence.make("test_store")
       yield* store.set("key1", { name: "Alice" }, undefined)
@@ -29,10 +26,11 @@ it.layer(PersistenceLayer)("Persistence", (it) => {
 
       // test upsert
       yield* store.set("key1", { name: "Alice" }, undefined)
-    }))
+    })
+  )
 
   it.effect("setMany + getMany", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const persistence = yield* Persistence.BackingPersistence
       const store = yield* persistence.make("test_store_2")
       yield* store.setMany([
@@ -41,16 +39,12 @@ it.layer(PersistenceLayer)("Persistence", (it) => {
         ["key3", { name: "Charlie" }, undefined]
       ])
       const values = yield* store.getMany(["key1", "key2", "key3", "key4"])
-      expect(values).toEqual([
-        { name: "Alice" },
-        { name: "Bob" },
-        { name: "Charlie" },
-        undefined
-      ])
-    }))
+      expect(values).toEqual([{ name: "Alice" }, { name: "Bob" }, { name: "Charlie" }, undefined])
+    })
+  )
 
   it.effect("remove", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const persistence = yield* Persistence.BackingPersistence
       const store = yield* persistence.make("test_store_2")
       yield* store.setMany([
@@ -61,10 +55,11 @@ it.layer(PersistenceLayer)("Persistence", (it) => {
       yield* store.remove("key2")
       const valuesAfter = yield* store.getMany(["key1", "key2", "key3"])
       expect(valuesAfter).toEqual([{ name: "Alice" }, undefined, { name: "Charlie" }])
-    }))
+    })
+  )
 
   it.effect("expires", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const persistence = yield* Persistence.BackingPersistence
       const store = yield* persistence.make("test_store_3")
       yield* store.setMany([
@@ -80,5 +75,6 @@ it.layer(PersistenceLayer)("Persistence", (it) => {
       yield* TestClock.adjust(Duration.seconds(5))
       values = yield* store.getMany(["key1", "key2", "key3"])
       expect(values).toEqual([{ name: "Alice" }, { name: "Bob" }, undefined])
-    }))
+    })
+  )
 })

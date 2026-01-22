@@ -20,9 +20,7 @@ describe("decoding / encoding API", () => {
       expect(s).type.toBe<{ readonly a: string; b: string }>()
     }
     const schema = Schema.Array(Schema.String).pipe(
-      Schema.refine(
-        (arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2
-      )
+      Schema.refine((arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2)
     )
     expect(schema).type.toBe<Schema.refine<readonly [string, string, ...Array<string>], Schema.Array$<Schema.String>>>()
   })

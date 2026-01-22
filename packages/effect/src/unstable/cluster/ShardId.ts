@@ -75,10 +75,7 @@ export class ShardId extends S.Class<ShardId>(TypeId)({
   /**
    * @since 4.0.0
    */
-  static override toString(shardId: {
-    readonly group: string
-    readonly id: number
-  }): string {
+  static override toString(shardId: { readonly group: string; readonly id: number }): string {
     return `${shardId.group}:${shardId.id}`
   }
 

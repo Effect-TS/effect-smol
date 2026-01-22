@@ -78,9 +78,12 @@ export const integer = (name: string): Argument<number> => Param.integer(Param.a
  * @since 4.0.0
  * @category constructors
  */
-export const file = (name: string, options?: {
-  readonly mustExist?: boolean | undefined
-}): Argument<string> => Param.file(Param.argumentKind, name, options)
+export const file = (
+  name: string,
+  options?: {
+    readonly mustExist?: boolean | undefined
+  }
+): Argument<string> => Param.file(Param.argumentKind, name, options)
 
 /**
  * Creates a positional directory path argument.
@@ -95,9 +98,12 @@ export const file = (name: string, options?: {
  * @since 4.0.0
  * @category constructors
  */
-export const directory = (name: string, options?: {
-  readonly mustExist?: boolean | undefined
-}): Argument<string> => Param.directory(Param.argumentKind, name, options)
+export const directory = (
+  name: string,
+  options?: {
+    readonly mustExist?: boolean | undefined
+  }
+): Argument<string> => Param.directory(Param.argumentKind, name, options)
 
 /**
  * Creates a positional float argument.
@@ -160,10 +166,13 @@ export const choice = <const Choices extends ReadonlyArray<string>>(
  * @since 4.0.0
  * @category constructors
  */
-export const path = (name: string, options?: {
-  pathType?: "file" | "directory" | "either"
-  mustExist?: boolean
-}): Argument<string> => Param.path(Param.argumentKind, name, options)
+export const path = (
+  name: string,
+  options?: {
+    pathType?: "file" | "directory" | "either"
+    mustExist?: boolean
+  }
+): Argument<string> => Param.path(Param.argumentKind, name, options)
 
 /**
  * Creates a positional redacted argument that obscures its value.
@@ -208,10 +217,8 @@ export const fileText = (name: string): Argument<string> => Param.fileText(Param
  * @since 4.0.0
  * @category constructors
  */
-export const fileParse = (
-  name: string,
-  options?: Primitive.FileParseOptions | undefined
-): Argument<unknown> => Param.fileParse(Param.argumentKind, name, options)
+export const fileParse = (name: string, options?: Primitive.FileParseOptions | undefined): Argument<unknown> =>
+  Param.fileParse(Param.argumentKind, name, options)
 
 /**
  * Creates a positional argument that reads and validates file content using a schema.
@@ -381,10 +388,11 @@ export const withFallbackPrompt: {
 export const variadic: {
   (options?: Param.VariadicParamOptions | undefined): <A>(self: Argument<A>) => Argument<ReadonlyArray<A>>
   <A>(self: Argument<A>, options?: Param.VariadicParamOptions | undefined): Argument<ReadonlyArray<A>>
-} = dual(2, <A>(
-  self: Argument<A>,
-  options?: Param.VariadicParamOptions | undefined
-): Argument<ReadonlyArray<A>> => Param.variadic(self, options))
+} = dual(
+  2,
+  <A>(self: Argument<A>, options?: Param.VariadicParamOptions | undefined): Argument<ReadonlyArray<A>> =>
+    Param.variadic(self, options)
+)
 
 /**
  * Transforms the parsed value of a positional argument.
@@ -431,17 +439,11 @@ export const map: {
  * @category combinators
  */
 export const mapEffect: {
-  <A, B>(
-    f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
-  ): (self: Argument<A>) => Argument<B>
-  <A, B>(
-    self: Argument<A>,
-    f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
-  ): Argument<B>
-} = dual(2, <A, B>(
-  self: Argument<A>,
-  f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>
-) => Param.mapEffect(self, f))
+  <A, B>(f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>): (self: Argument<A>) => Argument<B>
+  <A, B>(self: Argument<A>, f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>): Argument<B>
+} = dual(2, <A, B>(self: Argument<A>, f: (a: A) => Effect.Effect<B, CliError.CliError, Param.Environment>) =>
+  Param.mapEffect(self, f)
+)
 
 /**
  * Transforms the parsed value of a positional argument using a function that may throw.
@@ -463,16 +465,11 @@ export const mapEffect: {
  * @category combinators
  */
 export const mapTryCatch: {
-  <A, B>(
-    f: (a: A) => B,
-    onError: (error: unknown) => string
-  ): (self: Argument<A>) => Argument<B>
+  <A, B>(f: (a: A) => B, onError: (error: unknown) => string): (self: Argument<A>) => Argument<B>
   <A, B>(self: Argument<A>, f: (a: A) => B, onError: (error: unknown) => string): Argument<B>
-} = dual(3, <A, B>(
-  self: Argument<A>,
-  f: (a: A) => B,
-  onError: (error: unknown) => string
-) => Param.mapTryCatch(self, f, onError))
+} = dual(3, <A, B>(self: Argument<A>, f: (a: A) => B, onError: (error: unknown) => string) =>
+  Param.mapTryCatch(self, f, onError)
+)
 
 /**
  * Creates a variadic argument that requires at least n values.
@@ -620,11 +617,9 @@ export const withMetavar: {
 export const filter: {
   <A>(predicate: (a: A) => boolean, onFalse: (a: A) => string): (self: Argument<A>) => Argument<A>
   <A>(self: Argument<A>, predicate: (a: A) => boolean, onFalse: (a: A) => string): Argument<A>
-} = dual(3, <A>(
-  self: Argument<A>,
-  predicate: (a: A) => boolean,
-  onFalse: (a: A) => string
-) => Param.filter(self, predicate, onFalse))
+} = dual(3, <A>(self: Argument<A>, predicate: (a: A) => boolean, onFalse: (a: A) => string) =>
+  Param.filter(self, predicate, onFalse)
+)
 
 /**
  * Filters and transforms parsed values, failing with a custom error message
@@ -649,11 +644,9 @@ export const filter: {
 export const filterMap: {
   <A, B>(f: (a: A) => Option.Option<B>, onNone: (a: A) => string): (self: Argument<A>) => Argument<B>
   <A, B>(self: Argument<A>, f: (a: A) => Option.Option<B>, onNone: (a: A) => string): Argument<B>
-} = dual(3, <A, B>(
-  self: Argument<A>,
-  f: (a: A) => Option.Option<B>,
-  onNone: (a: A) => string
-) => Param.filterMap(self, f, onNone))
+} = dual(3, <A, B>(self: Argument<A>, f: (a: A) => Option.Option<B>, onNone: (a: A) => string) =>
+  Param.filterMap(self, f, onNone)
+)
 
 /**
  * Provides a fallback argument to use if this argument fails to parse.

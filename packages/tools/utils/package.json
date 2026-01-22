@@ -1,35 +1,34 @@
 {
   "name": "@effect/utils",
   "version": "0.0.0",
-  "type": "module",
   "private": true,
-  "license": "MIT",
   "description": "Build tools for the repositories following the Effect standard setup",
   "homepage": "https://effect.website",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/tools/utils"
   },
-  "sideEffects": [],
   "bin": {
     "effect-utils": "./src/bin.ts"
   },
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "src/**/*.ts"
+  ],
+  "type": "module",
+  "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
     "./*": "./src/*.ts",
     "./commands/*": null,
     "./bin": null
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
-    "provenance": true,
     "bin": {
       "effect-utils": "./dist/bin.js"
     },
@@ -38,7 +37,8 @@
       "./*": "./dist/*.js",
       "./commands/*": null,
       "./bin": null
-    }
+    },
+    "provenance": true
   },
   "scripts": {
     "build": "tsc -b tsconfig.json && pnpm babel",

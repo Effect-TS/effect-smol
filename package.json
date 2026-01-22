@@ -1,7 +1,6 @@
 {
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.17.1",
   "scripts": {
     "postinstall": "pnpm ai:rulesync",
     "clean": "node scripts/clean.mjs",
@@ -15,8 +14,8 @@
     "check": "tspc -b tsconfig.json",
     "check:tsgo": "tsgo -b tsconfig.json",
     "check-recursive": "pnpm --recursive --filter \"./packages/**/*\" exec tspc -b tsconfig.json",
-    "lint": "oxlint && dprint check",
-    "lint-fix": "oxlint --fix && dprint fmt",
+    "lint": "oxlint && oxfmt --check",
+    "lint-fix": "oxlint --fix && oxfmt --write",
     "ai:rulesync": "rulesync generate --targets=claudecode,codexcli,opencode --features=commands,rules,skills",
     "docgen": "pnpm --recursive --filter \"./packages/**/*\" exec docgen && node scripts/docs.mjs",
     "analyze-jsdoc": "node scripts/analyze-jsdoc.mjs",
@@ -48,11 +47,11 @@
     "@vitest/web-worker": "4.0.16",
     "ast-types": "^0.14.2",
     "babel-plugin-annotate-pure-calls": "^0.5.0",
-    "dprint": "^0.51.1",
     "glob": "^13.0.0",
     "happy-dom": "^20.1.0",
     "jscodeshift": "^17.3.0",
     "madge": "^8.0.0",
+    "oxfmt": "^0.26.0",
     "oxlint": "^1.36.0",
     "playwright": "^1.57.0",
     "rollup": "^4.55.1",
@@ -70,6 +69,7 @@
     "vitest-websocket-mock": "^0.5.0",
     "zod": "^4.3.5"
   },
+  "packageManager": "pnpm@10.17.1",
   "pnpm": {
     "patchedDependencies": {
       "@changesets/assemble-release-plan": "patches/@changesets__assemble-release-plan.patch",
@@ -78,7 +78,6 @@
     "ignoredBuiltDependencies": [
       "core-js",
       "cpu-features",
-      "dprint",
       "esbuild",
       "lmdb",
       "msgpackr-extract",

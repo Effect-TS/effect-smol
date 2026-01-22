@@ -25,10 +25,7 @@ export interface SqlRequest<In, A, E, R> extends Request.Request<A, E | Schema.S
 
 const SqlRequestProto = {
   ...Request.Class.prototype,
-  [Equal.symbol](
-    this: SqlRequest<any, any, any, any>,
-    that: SqlRequest<any, any, any, any>
-  ): boolean {
+  [Equal.symbol](this: SqlRequest<any, any, any, any>, that: SqlRequest<any, any, any, any>): boolean {
     return Equal.equals(this.payload, that.payload)
   },
   [Hash.symbol](this: SqlRequest<any, any, any, any>): number {
@@ -48,7 +45,7 @@ export const request: {
     payload: In,
     resolver: RequestResolver.RequestResolver<SqlRequest<In, A, E, R>>
   ): Effect.Effect<A, E | Schema.SchemaError, R>
-} = function() {
+} = function () {
   if (arguments.length === 1) {
     const resolver = arguments[0]
     return (payload: any) => Effect.request(SqlRequest(payload), resolver)
@@ -77,15 +74,11 @@ export const SqlRequest = <In, A, E, R>(payload: In): SqlRequest<In, A, E, R> =>
  * @since 4.0.0
  * @category resolvers
  */
-export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>(
-  options: {
-    readonly Request: Req
-    readonly Result: Res
-    readonly execute: (
-      requests: Arr.NonEmptyArray<Req["Encoded"]>
-    ) => Effect.Effect<ReadonlyArray<_>, E, R>
-  }
-): RequestResolver.RequestResolver<
+export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>(options: {
+  readonly Request: Req
+  readonly Result: Res
+  readonly execute: (requests: Arr.NonEmptyArray<Req["Encoded"]>) => Effect.Effect<ReadonlyArray<_>, E, R>
+}): RequestResolver.RequestResolver<
   SqlRequest<Req["Type"], Res["Type"], E | ResultLengthMismatch, Req["EncodingServices"] | Res["DecodingServices"] | R>
 > => {
   const decodeArray = Schema.decodeUnknownEffect(Schema.Array(options.Result))
@@ -99,17 +92,13 @@ export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>
     SqlClient.TransactionConnection["Service"] | undefined
   >({
     key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
-    resolver: Effect.fnUntraced(function*(entries) {
+    resolver: Effect.fnUntraced(function* (entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
-      const results = yield* options.execute(inputs as any).pipe(
-        Effect.provideServices(entries[0].services)
-      )
+      const results = yield* options.execute(inputs as any).pipe(Effect.provideServices(entries[0].services))
       if (results.length !== inputs.length) {
         return yield* Effect.fail(new ResultLengthMismatch({ expected: inputs.length, actual: results.length }))
       }
-      const decodedResults = yield* decodeArray(results).pipe(
-        Effect.provideServices(entries[0].services)
-      )
+      const decodedResults = yield* decodeArray(results).pipe(Effect.provideServices(entries[0].services))
       for (let i = 0; i < entries.length; i++) {
         entries[i].completeUnsafe(Exit.succeed(decodedResults[i]))
       }
@@ -125,17 +114,13 @@ export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>
  * @since 4.0.0
  * @category resolvers
  */
-export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, E, R>(
-  options: {
-    readonly Request: Req
-    readonly RequestGroupKey: (request: Req["Type"]) => K
-    readonly Result: Res
-    readonly ResultGroupKey: (result: Res["Type"], row: Types.NoInfer<Row>) => K
-    readonly execute: (
-      requests: Arr.NonEmptyArray<Req["Encoded"]>
-    ) => Effect.Effect<ReadonlyArray<Row>, E, R>
-  }
-): RequestResolver.RequestResolver<
+export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, E, R>(options: {
+  readonly Request: Req
+  readonly RequestGroupKey: (request: Req["Type"]) => K
+  readonly Result: Res
+  readonly ResultGroupKey: (result: Res["Type"], row: Types.NoInfer<Row>) => K
+  readonly execute: (requests: Arr.NonEmptyArray<Req["Encoded"]>) => Effect.Effect<ReadonlyArray<Row>, E, R>
+}): RequestResolver.RequestResolver<
   SqlRequest<
     Req["Type"],
     Arr.NonEmptyArray<Res["Type"]>,
@@ -155,15 +140,11 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
     SqlClient.TransactionConnection["Service"] | undefined
   >({
     key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
-    resolver: Effect.fnUntraced(function*(entries) {
+    resolver: Effect.fnUntraced(function* (entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
       const resultMap = MutableHashMap.empty<K, Arr.NonEmptyArray<Res["Type"]>>()
-      const results = yield* options.execute(inputs as any).pipe(
-        Effect.provideServices(entries[0].services)
-      )
-      const decodedResults = yield* decodeResults(results).pipe(
-        Effect.provideServices(entries[0].services)
-      )
+      const results = yield* options.execute(inputs as any).pipe(Effect.provideServices(entries[0].services))
+      const decodedResults = yield* decodeResults(results).pipe(Effect.provideServices(entries[0].services))
       for (let i = 0, len = decodedResults.length; i < len; i++) {
         const result = decodedResults[i]
         const key = options.ResultGroupKey(result, results[i])
@@ -178,9 +159,7 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
         const entry = entries[i]
         const key = options.RequestGroupKey(entry.request.payload)
         const result = MutableHashMap.get(resultMap, key)
-        entry.completeUnsafe(
-          result._tag === "None" ? constNoSuchElement : Exit.succeed(result.value)
-        )
+        entry.completeUnsafe(result._tag === "None" ? constNoSuchElement : Exit.succeed(result.value))
       }
     })
   })
@@ -192,16 +171,12 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
  * @since 4.0.0
  * @category resolvers
  */
-export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, R>(
-  options: {
-    readonly Id: Id
-    readonly Result: Res
-    readonly ResultId: (result: Res["Type"], row: Types.NoInfer<Row>) => Id["Type"]
-    readonly execute: (
-      requests: Arr.NonEmptyArray<Id["Encoded"]>
-    ) => Effect.Effect<ReadonlyArray<Row>, E, R>
-  }
-): RequestResolver.RequestResolver<
+export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, R>(options: {
+  readonly Id: Id
+  readonly Result: Res
+  readonly ResultId: (result: Res["Type"], row: Types.NoInfer<Row>) => Id["Type"]
+  readonly execute: (requests: Arr.NonEmptyArray<Id["Encoded"]>) => Effect.Effect<ReadonlyArray<Row>, E, R>
+}): RequestResolver.RequestResolver<
   SqlRequest<
     Id["Type"],
     Res["Type"],
@@ -221,14 +196,10 @@ export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, 
     SqlClient.TransactionConnection["Service"] | undefined
   >({
     key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
-    resolver: Effect.fnUntraced(function*(entries) {
+    resolver: Effect.fnUntraced(function* (entries) {
       const [inputs, idMap] = yield* partitionRequestsById(entries, options.Id)
-      const results = yield* options.execute(inputs as any).pipe(
-        Effect.provideServices(entries[0].services)
-      )
-      const decodedResults = yield* decodeResults(results).pipe(
-        Effect.provideServices(entries[0].services)
-      )
+      const results = yield* options.execute(inputs as any).pipe(Effect.provideServices(entries[0].services))
+      const decodedResults = yield* decodeResults(results).pipe(Effect.provideServices(entries[0].services))
       for (let i = 0; i < decodedResults.length; i++) {
         const result = decodedResults[i]
         const id = options.ResultId(result, results[i])
@@ -249,36 +220,20 @@ export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, 
   })
 }
 
-const void_ = <Req extends Schema.Top, _, E, R>(
-  options: {
-    readonly Request: Req
-    readonly execute: (
-      requests: Arr.NonEmptyArray<Req["Encoded"]>
-    ) => Effect.Effect<ReadonlyArray<_>, E, R>
-  }
-): RequestResolver.RequestResolver<
-  SqlRequest<
-    Req["Type"],
-    void,
-    E | Schema.SchemaError,
-    Req["EncodingServices"] | R
-  >
+const void_ = <Req extends Schema.Top, _, E, R>(options: {
+  readonly Request: Req
+  readonly execute: (requests: Arr.NonEmptyArray<Req["Encoded"]>) => Effect.Effect<ReadonlyArray<_>, E, R>
+}): RequestResolver.RequestResolver<
+  SqlRequest<Req["Type"], void, E | Schema.SchemaError, Req["EncodingServices"] | R>
 > =>
   RequestResolver.makeGrouped<
-    SqlRequest<
-      Req["Type"],
-      void,
-      E | Schema.SchemaError,
-      Req["EncodingServices"] | R
-    >,
+    SqlRequest<Req["Type"], void, E | Schema.SchemaError, Req["EncodingServices"] | R>,
     SqlClient.TransactionConnection["Service"] | undefined
   >({
     key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
-    resolver: Effect.fnUntraced(function*(entries) {
+    resolver: Effect.fnUntraced(function* (entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
-      yield* options.execute(inputs as any).pipe(
-        Effect.provideServices(entries[0].services)
-      )
+      yield* options.execute(inputs as any).pipe(Effect.provideServices(entries[0].services))
       for (let i = 0; i < entries.length; i++) {
         entries[i].completeUnsafe(Exit.void)
       }
@@ -297,7 +252,7 @@ export {
 
 const constNoSuchElement = Exit.fail(new Cause.NoSuchElementError())
 
-const partitionRequests = function*<In, A, E, R, InE>(
+const partitionRequests = function* <In, A, E, R, InE>(
   requests: Arr.NonEmptyArray<Request.Entry<SqlRequest<In, A, E, R>>>,
   schema: Schema.Codec<In, InE, R, R>
 ) {
@@ -316,13 +271,13 @@ const partitionRequests = function*<In, A, E, R, InE>(
 
   for (let i = 0; i < len; i++) {
     entry = requests[i]
-    yield (Effect.provideServices(handle(encode(entry.request.payload)), entry.services) as Effect.Effect<void>)
+    yield Effect.provideServices(handle(encode(entry.request.payload)), entry.services) as Effect.Effect<void>
   }
 
   return inputs
 }
 
-const partitionRequestsById = function*<In, A, E, R, InE>(
+const partitionRequestsById = function* <In, A, E, R, InE>(
   requests: ReadonlyArray<Request.Entry<SqlRequest<In, A, E, R>>>,
   schema: Schema.Codec<In, InE, R, R>
 ) {
@@ -342,7 +297,7 @@ const partitionRequestsById = function*<In, A, E, R, InE>(
 
   for (let i = 0; i < len; i++) {
     entry = requests[i]
-    yield (Effect.provideServices(handle(encode(entry.request.payload)), entry.services) as Effect.Effect<void>)
+    yield Effect.provideServices(handle(encode(entry.request.payload)), entry.services) as Effect.Effect<void>
     MutableHashMap.set(byIdMap, entry.request.payload, entry)
   }
 

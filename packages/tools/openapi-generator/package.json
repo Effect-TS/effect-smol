@@ -1,31 +1,33 @@
 {
   "name": "@effect/openapi-generator",
-  "type": "module",
   "version": "0.4.13",
-  "license": "MIT",
   "description": "Generate Effect Schema types and HTTP clients from OpenAPI specifications",
+  "keywords": [
+    "codegen",
+    "openapi",
+    "typescript"
+  ],
   "homepage": "https://effect.website",
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/tools/openapi-generator"
   },
-  "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
-  },
-  "tags": [
-    "typescript",
-    "openapi",
-    "codegen"
-  ],
-  "keywords": [
-    "typescript",
-    "openapi",
-    "codegen"
-  ],
   "bin": {
     "openapigen": "./src/bin.ts"
   },
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "src/**/*.ts"
+  ],
+  "type": "module",
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
@@ -33,15 +35,7 @@
     "./bin": null,
     "./main": null
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
-    "provenance": true,
     "bin": {
       "openapigen": "./dist/bin.js"
     },
@@ -50,7 +44,8 @@
       "./*": "./dist/*.js",
       "./bin": null,
       "./main": null
-    }
+    },
+    "provenance": true
   },
   "scripts": {
     "build": "tsc -b tsconfig.json && pnpm babel",
@@ -60,10 +55,6 @@
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
-  "peerDependencies": {
-    "@effect/platform-node": "workspace:^",
-    "effect": "workspace:^"
-  },
   "devDependencies": {
     "@types/swagger2openapi": "^7.0.4",
     "effect": "workspace:^",
@@ -71,5 +62,14 @@
     "openapi-typescript": "^7.10.1",
     "swagger2openapi": "^7.0.8",
     "yaml": "^2.8.2"
-  }
+  },
+  "peerDependencies": {
+    "@effect/platform-node": "workspace:^",
+    "effect": "workspace:^"
+  },
+  "tags": [
+    "typescript",
+    "openapi",
+    "codegen"
+  ]
 }

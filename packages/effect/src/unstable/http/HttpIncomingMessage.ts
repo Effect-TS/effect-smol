@@ -46,9 +46,8 @@ export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectabl
  */
 export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?: ParseOptions | undefined) => {
   const decode = Schema.decodeEffect(Schema.toCodecJson(schema).annotate({ options }))
-  return <E>(
-    self: HttpIncomingMessage<E>
-  ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingServices"]> => Effect.flatMap(self.json, decode)
+  return <E>(self: HttpIncomingMessage<E>): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingServices"]> =>
+    Effect.flatMap(self.json, decode)
 }
 
 /**
@@ -64,11 +63,7 @@ export const schemaBodyUrlParams = <
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = UrlParams.schemaRecord.pipe(
-    Schema.decodeTo(schema),
-    Schema.annotate({ options }),
-    Schema.decodeEffect
-  )
+  const decode = UrlParams.schemaRecord.pipe(Schema.decodeTo(schema), Schema.annotate({ options }), Schema.decodeEffect)
   return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, E | Schema.SchemaError, RD> =>
     Effect.flatMap(self.urlParamsBody, decode)
 }

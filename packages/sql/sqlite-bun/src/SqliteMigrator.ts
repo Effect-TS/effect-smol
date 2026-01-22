@@ -72,8 +72,4 @@ export const run: <R2 = never>(
  */
 export const layer = <R>(
   options: Migrator.MigratorOptions<R>
-): Layer.Layer<
-  never,
-  SqlError | Migrator.MigrationError,
-  Client.SqlClient | R
-> => Layer.effectDiscard(run(options))
+): Layer.Layer<never, SqlError | Migrator.MigrationError, Client.SqlClient | R> => Layer.effectDiscard(run(options))

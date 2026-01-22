@@ -153,12 +153,7 @@ export interface ChunkTypeLambda extends TypeLambda {
   readonly type: Chunk<this["Target"]>
 }
 
-type Backing<A> =
-  | IArray<A>
-  | IConcat<A>
-  | ISingleton<A>
-  | IEmpty
-  | ISlice<A>
+type Backing<A> = IArray<A> | IConcat<A> | ISingleton<A> | IEmpty | ISlice<A>
 
 interface IArray<A> {
   readonly _tag: "IArray"
@@ -187,13 +182,7 @@ interface ISlice<A> {
   readonly length: number
 }
 
-function copy<A>(
-  src: ReadonlyArray<A>,
-  srcPos: number,
-  dest: Array<A>,
-  destPos: number,
-  len: number
-) {
+function copy<A>(src: ReadonlyArray<A>, srcPos: number, dest: Array<A>, destPos: number, len: number) {
   for (let i = srcPos; i < Math.min(src.length, srcPos + len); i++) {
     dest[destPos + i - srcPos] = src[i]!
   }
@@ -223,8 +212,9 @@ const emptyArray: ReadonlyArray<never> = []
  * @since 2.0.0
  */
 export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Chunk<A>> =>
-  Equivalence.make((self, that) =>
-    self.length === that.length && toReadonlyArray(self).every((value, i) => isEquivalent(value, getUnsafe(that, i)))
+  Equivalence.make(
+    (self, that) =>
+      self.length === that.length && toReadonlyArray(self).every((value, i) => isEquivalent(value, getUnsafe(that, i)))
   )
 
 const _equivalence = makeEquivalence(Equal.equals)
@@ -670,9 +660,7 @@ export const getUnsafe: {
       return self.backing.array[i]!
     }
     case "IConcat": {
-      return i < self.left.length
-        ? getUnsafe(self.left, i)
-        : getUnsafe(self.right, i - self.left.length)
+      return i < self.left.length ? getUnsafe(self.left, i) : getUnsafe(self.right, i - self.left.length)
     }
     case "ISlice": {
       return getUnsafe(self.backing.chunk, i + self.backing.offset)
@@ -1051,10 +1039,7 @@ export const filter: {
   <A>(predicate: Predicate<NoInfer<A>>): (self: Chunk<A>) => Chunk<A>
   <A, B extends A>(self: Chunk<A>, refinement: Refinement<A, B>): Chunk<B>
   <A>(self: Chunk<A>, predicate: Predicate<A>): Chunk<A>
-} = dual(
-  2,
-  <A>(self: Chunk<A>, predicate: Predicate<A>): Chunk<A> => fromArrayUnsafe(RA.filter(self, predicate))
-)
+} = dual(2, <A>(self: Chunk<A>, predicate: Predicate<A>): Chunk<A> => fromArrayUnsafe(RA.filter(self, predicate)))
 
 /**
  * Transforms all elements of the chunk for as long as the specified function returns some value
@@ -1553,10 +1538,8 @@ export declare namespace Chunk {
    * @category types
    * @since 2.0.0
    */
-  export type OrNonEmpty<S extends Chunk<any>, T extends Chunk<any>, A> = S extends NonEmptyChunk<any> ?
-    NonEmptyChunk<A>
-    : T extends NonEmptyChunk<any> ? NonEmptyChunk<A>
-    : Chunk<A>
+  export type OrNonEmpty<S extends Chunk<any>, T extends Chunk<any>, A> =
+    S extends NonEmptyChunk<any> ? NonEmptyChunk<A> : T extends NonEmptyChunk<any> ? NonEmptyChunk<A> : Chunk<A>
 
   /**
    * Creates a non-empty Chunk only if both inputs are non-empty.
@@ -1588,10 +1571,8 @@ export declare namespace Chunk {
    * @category types
    * @since 2.0.0
    */
-  export type AndNonEmpty<S extends Chunk<any>, T extends Chunk<any>, A> = S extends NonEmptyChunk<any> ?
-    T extends NonEmptyChunk<any> ? NonEmptyChunk<A>
-    : Chunk<A> :
-    Chunk<A>
+  export type AndNonEmpty<S extends Chunk<any>, T extends Chunk<any>, A> =
+    S extends NonEmptyChunk<any> ? (T extends NonEmptyChunk<any> ? NonEmptyChunk<A> : Chunk<A>) : Chunk<A>
 
   /**
    * Flattens a nested Chunk type.
@@ -1610,9 +1591,12 @@ export declare namespace Chunk {
    * @category types
    * @since 2.0.0
    */
-  export type Flatten<T extends Chunk<Chunk<any>>> = T extends NonEmptyChunk<NonEmptyChunk<infer A>> ? NonEmptyChunk<A>
-    : T extends Chunk<Chunk<infer A>> ? Chunk<A>
-    : never
+  export type Flatten<T extends Chunk<Chunk<any>>> =
+    T extends NonEmptyChunk<NonEmptyChunk<infer A>>
+      ? NonEmptyChunk<A>
+      : T extends Chunk<Chunk<infer A>>
+        ? Chunk<A>
+        : never
 }
 
 /**
@@ -1637,10 +1621,18 @@ export const map: {
   <S extends Chunk<any>, B>(f: (a: Chunk.Infer<S>, i: number) => B): (self: S) => Chunk.With<S, B>
   <A, B>(self: NonEmptyChunk<A>, f: (a: A, i: number) => B): NonEmptyChunk<B>
   <A, B>(self: Chunk<A>, f: (a: A, i: number) => B): Chunk<B>
-} = dual(2, <A, B>(self: Chunk<A>, f: (a: A, i: number) => B): Chunk<B> =>
-  self.backing._tag === "ISingleton" ?
-    of(f(self.backing.a, 0)) :
-    fromArrayUnsafe(pipe(toReadonlyArray(self), RA.map((a, i) => f(a, i)))))
+} = dual(
+  2,
+  <A, B>(self: Chunk<A>, f: (a: A, i: number) => B): Chunk<B> =>
+    self.backing._tag === "ISingleton"
+      ? of(f(self.backing.a, 0))
+      : fromArrayUnsafe(
+          pipe(
+            toReadonlyArray(self),
+            RA.map((a, i) => f(a, i))
+          )
+        )
+)
 
 /**
  * Statefully maps over the chunk, producing new elements of type `B`.
@@ -1714,21 +1706,14 @@ export const partition: {
   <A, B extends A>(
     refinement: (a: NoInfer<A>, i: number) => a is B
   ): (self: Chunk<A>) => [excluded: Chunk<Exclude<A, B>>, satisfying: Chunk<B>]
-  <A>(
-    predicate: (a: NoInfer<A>, i: number) => boolean
-  ): (self: Chunk<A>) => [excluded: Chunk<A>, satisfying: Chunk<A>]
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Chunk<A>) => [excluded: Chunk<A>, satisfying: Chunk<A>]
   <A, B extends A>(
     self: Chunk<A>,
     refinement: (a: A, i: number) => a is B
   ): [excluded: Chunk<Exclude<A, B>>, satisfying: Chunk<B>]
   <A>(self: Chunk<A>, predicate: (a: A, i: number) => boolean): [excluded: Chunk<A>, satisfying: Chunk<A>]
-} = dual(
-  2,
-  <A>(self: Chunk<A>, predicate: (a: A, i: number) => boolean): [excluded: Chunk<A>, satisfying: Chunk<A>] =>
-    pipe(
-      RA.partition(toReadonlyArray(self), predicate),
-      ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)]
-    )
+} = dual(2, <A>(self: Chunk<A>, predicate: (a: A, i: number) => boolean): [excluded: Chunk<A>, satisfying: Chunk<A>] =>
+  pipe(RA.partition(toReadonlyArray(self), predicate), ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)])
 )
 
 /**
@@ -1767,10 +1752,8 @@ export const partitionMap: {
   <A, B, C>(f: (a: A) => Result<C, B>): (self: Chunk<A>) => [left: Chunk<B>, right: Chunk<C>]
   <A, B, C>(self: Chunk<A>, f: (a: A) => Result<C, B>): [left: Chunk<B>, right: Chunk<C>]
 } = dual(2, <A, B, C>(self: Chunk<A>, f: (a: A) => Result<C, B>): [left: Chunk<B>, right: Chunk<C>] =>
-  pipe(
-    RA.partitionMap(toReadonlyArray(self), f),
-    ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)]
-  ))
+  pipe(RA.partitionMap(toReadonlyArray(self), f), ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)])
+)
 
 /**
  * Partitions the elements of this chunk into two chunks.
@@ -1803,10 +1786,7 @@ export const partitionMap: {
  * @since 2.0.0
  */
 export const separate = <A, B>(self: Chunk<Result<B, A>>): [Chunk<A>, Chunk<B>] =>
-  pipe(
-    RA.separate(toReadonlyArray(self)),
-    ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)]
-  )
+  pipe(RA.separate(toReadonlyArray(self)), ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)])
 
 /**
  * Retrieves the size of the chunk.
@@ -1959,9 +1939,7 @@ export const splitNonEmptyAt: {
   <A>(self: NonEmptyChunk<A>, n: number): [beforeIndex: NonEmptyChunk<A>, fromIndex: Chunk<A>]
 } = dual(2, <A>(self: NonEmptyChunk<A>, n: number): [Chunk<A>, Chunk<A>] => {
   const _n = Math.max(1, Math.floor(n))
-  return _n >= self.length ?
-    [self, empty()] :
-    [take(self, _n), drop(self, _n)]
+  return _n >= self.length ? [self, empty()] : [take(self, _n), drop(self, _n)]
 })
 
 /**
@@ -2058,7 +2036,7 @@ export const splitWhere: {
  * @since 2.0.0
  * @category elements
  */
-export const tail = <A>(self: Chunk<A>): Chunk<A> | undefined => self.length > 0 ? drop(self, 1) : undefined
+export const tail = <A>(self: Chunk<A>): Chunk<A> | undefined => (self.length > 0 ? drop(self, 1) : undefined)
 
 /**
  * Returns every elements after the first.
@@ -2178,9 +2156,8 @@ export const takeWhile: {
 export const union: {
   <A>(that: Chunk<A>): <B>(self: Chunk<B>) => Chunk<A | B>
   <A, B>(self: Chunk<A>, that: Chunk<B>): Chunk<A | B>
-} = dual(
-  2,
-  <A, B>(self: Chunk<A>, that: Chunk<B>) => fromArrayUnsafe(RA.union(toReadonlyArray(self), toReadonlyArray(that)))
+} = dual(2, <A, B>(self: Chunk<A>, that: Chunk<B>) =>
+  fromArrayUnsafe(RA.union(toReadonlyArray(self), toReadonlyArray(that)))
 )
 
 /**
@@ -2321,10 +2298,7 @@ export const zipWith: {
 export const zip: {
   <B>(that: Chunk<B>): <A>(self: Chunk<A>) => Chunk<[A, B]>
   <A, B>(self: Chunk<A>, that: Chunk<B>): Chunk<[A, B]>
-} = dual(
-  2,
-  <A, B>(self: Chunk<A>, that: Chunk<B>): Chunk<[A, B]> => zipWith(self, that, (a, b) => [a, b])
-)
+} = dual(2, <A, B>(self: Chunk<A>, that: Chunk<B>): Chunk<[A, B]> => zipWith(self, that, (a, b) => [a, b]))
 
 /**
  * Delete the element at the specified index, creating a new `Chunk`.
@@ -2352,10 +2326,7 @@ export const zip: {
 export const remove: {
   (i: number): <A>(self: Chunk<A>) => Chunk<A>
   <A>(self: Chunk<A>, i: number): Chunk<A>
-} = dual(
-  2,
-  <A>(self: Chunk<A>, i: number): Chunk<A> => fromArrayUnsafe(RA.remove(toReadonlyArray(self), i))
-)
+} = dual(2, <A>(self: Chunk<A>, i: number): Chunk<A> => fromArrayUnsafe(RA.remove(toReadonlyArray(self), i)))
 
 /**
  * Applies a function to the element at the specified index, creating a new `Chunk`,
@@ -2384,10 +2355,8 @@ export const remove: {
 export const modify: {
   <A, B>(i: number, f: (a: A) => B): (self: Chunk<A>) => Chunk<A | B> | undefined
   <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Chunk<A | B> | undefined
-} = dual(
-  3,
-  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Chunk<A | B> | undefined =>
-    UndefinedOr.map(RA.modify(toReadonlyArray(self), i, f), fromArrayUnsafe)
+} = dual(3, <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Chunk<A | B> | undefined =>
+  UndefinedOr.map(RA.modify(toReadonlyArray(self), i, f), fromArrayUnsafe)
 )
 
 /**
@@ -2520,9 +2489,7 @@ export const contains: {
  * @category elements
  * @since 2.0.0
  */
-export const containsWith: <A>(
-  isEquivalent: (self: A, that: A) => boolean
-) => {
+export const containsWith: <A>(isEquivalent: (self: A, that: A) => boolean) => {
   (a: A): (self: Chunk<A>) => boolean
   (self: Chunk<A>, a: A): boolean
 } = RA.containsWith
@@ -2682,10 +2649,8 @@ export const every: {
   <A>(predicate: Predicate<A>): (self: Chunk<A>) => boolean
   <A, B extends A>(self: Chunk<A>, refinement: Refinement<A, B>): self is Chunk<B>
   <A>(self: Chunk<A>, predicate: Predicate<A>): boolean
-} = dual(
-  2,
-  <A, B extends A>(self: Chunk<A>, refinement: Refinement<A, B>): self is Chunk<B> =>
-    RA.fromIterable(self).every(refinement)
+} = dual(2, <A, B extends A>(self: Chunk<A>, refinement: Refinement<A, B>): self is Chunk<B> =>
+  RA.fromIterable(self).every(refinement)
 )
 
 /**
@@ -2714,9 +2679,8 @@ export const every: {
 export const some: {
   <A>(predicate: Predicate<NoInfer<A>>): (self: Chunk<A>) => self is NonEmptyChunk<A>
   <A>(self: Chunk<A>, predicate: Predicate<A>): self is NonEmptyChunk<A>
-} = dual(
-  2,
-  <A>(self: Chunk<A>, predicate: Predicate<A>): self is NonEmptyChunk<A> => RA.fromIterable(self).some(predicate)
+} = dual(2, <A>(self: Chunk<A>, predicate: Predicate<A>): self is NonEmptyChunk<A> =>
+  RA.fromIterable(self).some(predicate)
 )
 
 /**
@@ -2844,7 +2808,9 @@ export const reduceRight: {
  * @category filtering
  * @since 3.2.0
  */
-export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
+export const differenceWith = <A>(
+  isEquivalent: (self: A, that: A) => boolean
+): {
   (that: Chunk<A>): (self: Chunk<A>) => Chunk<A>
   (self: Chunk<A>, that: Chunk<A>): Chunk<A>
 } => {
@@ -2885,7 +2851,4 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
 export const difference: {
   <A>(that: Chunk<A>): (self: Chunk<A>) => Chunk<A>
   <A>(self: Chunk<A>, that: Chunk<A>): Chunk<A>
-} = dual(
-  2,
-  <A>(self: Chunk<A>, that: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.difference(that, self))
-)
+} = dual(2, <A>(self: Chunk<A>, that: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.difference(that, self)))

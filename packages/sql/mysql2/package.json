@@ -1,28 +1,30 @@
 {
   "name": "@effect/sql-mysql2",
   "version": "0.45.1",
-  "type": "module",
-  "license": "MIT",
   "description": "A MySQL toolkit for Effect",
+  "keywords": [
+    "database",
+    "sql",
+    "typescript"
+  ],
   "homepage": "https://effect.website",
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/sql/mysql2"
   },
-  "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
-  },
-  "tags": [
-    "typescript",
-    "sql",
-    "database"
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "src/**/*.ts"
   ],
-  "keywords": [
-    "typescript",
-    "sql",
-    "database"
-  ],
+  "type": "module",
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
@@ -31,22 +33,15 @@
     "./internal/*": null,
     "./*/index": null
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
-    "provenance": true,
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
       "./*/index": null
-    }
+    },
+    "provenance": true
   },
   "scripts": {
     "codegen": "effect-utils codegen",
@@ -57,6 +52,9 @@
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
+  "dependencies": {
+    "mysql2": "^3.16.0"
+  },
   "devDependencies": {
     "@testcontainers/mysql": "^11.11.0",
     "effect": "workspace:^"
@@ -64,7 +62,9 @@
   "peerDependencies": {
     "effect": "workspace:^"
   },
-  "dependencies": {
-    "mysql2": "^3.16.0"
-  }
+  "tags": [
+    "typescript",
+    "sql",
+    "database"
+  ]
 }

@@ -88,9 +88,7 @@ const constEmptyObject = () => ({})
  */
 export const ProviderOptions: Schema.toType<
   Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>
-> = Schema.toType(
-  Schema.Record(Schema.String, Schema.UndefinedOr(Response.JsonValue))
-)
+> = Schema.toType(Schema.Record(Schema.String, Schema.UndefinedOr(Response.JsonValue)))
 
 /**
  * @since 4.0.0
@@ -1077,10 +1075,7 @@ export const UserMessage: Schema.Struct<{
 }> = Schema.Struct({
   ...BaseMessage.fields,
   role: Schema.Literal("user"),
-  content: Schema.Union([
-    ContentFromString,
-    Schema.Array(Schema.Union([TextPart, FilePart]))
-  ])
+  content: Schema.Union([ContentFromString, Schema.Array(Schema.Union([TextPart, FilePart]))])
 }).annotate({ identifier: "UserMessage" })
 
 /**
@@ -1149,12 +1144,7 @@ export interface AssistantMessage extends BaseMessage<"assistant", AssistantMess
  * @since 4.0.0
  * @category models
  */
-export type AssistantMessagePart =
-  | TextPart
-  | FilePart
-  | ReasoningPart
-  | ToolCallPart
-  | ToolResultPart
+export type AssistantMessagePart = TextPart | FilePart | ReasoningPart | ToolCallPart | ToolResultPart
 
 /**
  * Encoded representation of assistant messages for serialization.
@@ -1280,13 +1270,7 @@ export const AssistantMessage: Schema.Struct<{
   role: Schema.Literal("assistant"),
   content: Schema.Union([
     ContentFromString,
-    Schema.Array(Schema.Union([
-      TextPart,
-      FilePart,
-      ReasoningPart,
-      ToolCallPart,
-      ToolResultPart
-    ]))
+    Schema.Array(Schema.Union([TextPart, FilePart, ReasoningPart, ToolCallPart, ToolResultPart]))
   ])
 }).annotate({ identifier: "AssistantMessage" })
 
@@ -1425,11 +1409,7 @@ export const toolMessage = (params: MessageConstructorParams<ToolMessage>): Tool
  * @since 4.0.0
  * @category models
  */
-export type Message =
-  | SystemMessage
-  | UserMessage
-  | AssistantMessage
-  | ToolMessage
+export type Message = SystemMessage | UserMessage | AssistantMessage | ToolMessage
 
 /**
  * A type representing all possible encoded message types for serialization.
@@ -1437,11 +1417,7 @@ export type Message =
  * @since 4.0.0
  * @category models
  */
-export type MessageEncoded =
-  | SystemMessageEncoded
-  | UserMessageEncoded
-  | AssistantMessageEncoded
-  | ToolMessageEncoded
+export type MessageEncoded = SystemMessageEncoded | UserMessageEncoded | AssistantMessageEncoded | ToolMessageEncoded
 
 /**
  * Schema for validation and encoding of messages.
@@ -1516,23 +1492,17 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
     Prompt$,
     SchemaTransformation.transformOrFail({
       decode: (input) =>
-        Effect.mapBothEager(
-          Parser.decodeEffect(Schema.Array(Message))(input.content),
-          {
-            onSuccess: makePrompt,
-            onFailure: () =>
-              new SchemaIssue.InvalidValue(Option.some(input.content), { message: "Invalid Prompt messages" })
-          }
-        ),
+        Effect.mapBothEager(Parser.decodeEffect(Schema.Array(Message))(input.content), {
+          onSuccess: makePrompt,
+          onFailure: () =>
+            new SchemaIssue.InvalidValue(Option.some(input.content), { message: "Invalid Prompt messages" })
+        }),
       encode: (prompt) =>
-        Effect.mapBothEager(
-          Parser.encodeEffect(Schema.Array(Message))(prompt.content),
-          {
-            onSuccess: (messages) => ({ content: messages }),
-            onFailure: () =>
-              new SchemaIssue.InvalidValue(Option.some(prompt.content), { message: "Invalid Prompt messages" })
-          }
-        )
+        Effect.mapBothEager(Parser.encodeEffect(Schema.Array(Message))(prompt.content), {
+          onSuccess: (messages) => ({ content: messages }),
+          onFailure: () =>
+            new SchemaIssue.InvalidValue(Option.some(prompt.content), { message: "Invalid Prompt messages" })
+        })
     })
   )
 )
@@ -1564,10 +1534,7 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
  * @since 4.0.0
  * @category models
  */
-export type RawInput =
-  | string
-  | Iterable<MessageEncoded>
-  | Prompt
+export type RawInput = string | Iterable<MessageEncoded> | Prompt
 
 const Proto = {
   [TypeId]: TypeId,
@@ -1634,9 +1601,11 @@ export const make = (input: RawInput): Prompt => {
   }
 
   if (Predicate.isIterable(input)) {
-    return makePrompt(decodeMessagesSync(Arr.fromIterable(input), {
-      errors: "all"
-    }))
+    return makePrompt(
+      decodeMessagesSync(Arr.fromIterable(input), {
+        errors: "all"
+      })
+    )
   }
 
   return input
@@ -1767,23 +1736,27 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
 
       // Tool Call Parts
       case "tool-call": {
-        assistantParts.push(makePart("tool-call", {
-          id: part.id,
-          name: part.providerName ?? part.name,
-          params: part.params,
-          providerExecuted: part.providerExecuted ?? false
-        }))
+        assistantParts.push(
+          makePart("tool-call", {
+            id: part.id,
+            name: part.providerName ?? part.name,
+            params: part.params,
+            providerExecuted: part.providerExecuted ?? false
+          })
+        )
         break
       }
 
       // Tool Result Parts
       case "tool-result": {
-        toolParts.push(makePart("tool-result", {
-          id: part.id,
-          name: part.providerName ?? part.name,
-          isFailure: part.isFailure,
-          result: part.encodedResult
-        }))
+        toolParts.push(
+          makePart("tool-result", {
+            id: part.id,
+            name: part.providerName ?? part.name,
+            isFailure: part.isFailure,
+            result: part.encodedResult
+          })
+        )
       }
     }
   }

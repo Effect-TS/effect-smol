@@ -6,12 +6,13 @@ import { TestEntity, TestEntityLayer, User } from "./TestEntity.ts"
 describe.concurrent("Entity", () => {
   describe("makeTestClient", () => {
     it.effect("round trip", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const makeClient = yield* Entity.makeTestClient(TestEntity, TestEntityLayer)
         const client = yield* makeClient("123")
         const user = yield* client.GetUser({ id: 1 })
         assert.deepEqual(user, new User({ id: 1, name: "User 1" }))
-      }).pipe(Effect.provide(TestShardingConfig)))
+      }).pipe(Effect.provide(TestShardingConfig))
+    )
   })
 })
 

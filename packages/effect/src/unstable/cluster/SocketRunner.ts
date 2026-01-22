@@ -15,16 +15,19 @@ import type * as Sharding from "./Sharding.ts"
 import type { ShardingConfig } from "./ShardingConfig.ts"
 
 const withLogAddress = <A, E, R>(layer: Layer.Layer<A, E, R>): Layer.Layer<A, E, R | SocketServer> =>
-  Layer.effectDiscard(Effect.gen(function*() {
-    const server = yield* SocketServer
-    const address = server.address._tag === "UnixAddress"
-      ? server.address.path
-      : `${server.address.hostname}:${server.address.port}`
-    yield* Effect.annotateLogs(Effect.logInfo(`Listening on: ${address}`), {
-      package: "@effect/cluster",
-      service: "Runner"
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      const server = yield* SocketServer
+      const address =
+        server.address._tag === "UnixAddress"
+          ? server.address.path
+          : `${server.address.hostname}:${server.address.port}`
+      yield* Effect.annotateLogs(Effect.logInfo(`Listening on: ${address}`), {
+        package: "@effect/cluster",
+        service: "Runner"
+      })
     })
-  })).pipe(Layer.provideMerge(layer))
+  ).pipe(Layer.provideMerge(layer))
 
 /**
  * @since 4.0.0
@@ -40,10 +43,7 @@ export const layer: Layer.Layer<
   | MessageStorage
   | RunnerStorage.RunnerStorage
   | RunnerHealth
-> = RunnerServer.layerWithClients.pipe(
-  withLogAddress,
-  Layer.provide(RpcServer.layerProtocolSocketServer)
-)
+> = RunnerServer.layerWithClients.pipe(withLogAddress, Layer.provide(RpcServer.layerProtocolSocketServer))
 
 /**
  * @since 4.0.0

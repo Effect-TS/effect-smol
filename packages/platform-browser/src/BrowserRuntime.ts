@@ -9,12 +9,10 @@ import { makeRunMain, type Teardown } from "effect/Runtime"
  * @category Runtime
  */
 export const runMain: {
-  (
-    options?: {
-      readonly disableErrorReporting?: boolean | undefined
-      readonly teardown?: Teardown | undefined
-    }
-  ): <E, A>(effect: Effect.Effect<A, E>) => void
+  (options?: {
+    readonly disableErrorReporting?: boolean | undefined
+    readonly teardown?: Teardown | undefined
+  }): <E, A>(effect: Effect.Effect<A, E>) => void
   <E, A>(
     effect: Effect.Effect<A, E>,
     options?: {

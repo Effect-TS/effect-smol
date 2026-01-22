@@ -13,16 +13,15 @@ const TestGroup = RpcGroup.make(
 
 describe("Rpc", () => {
   it.effect("can implement a single handler", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const TwoHandler = TestGroup.toLayerHandler("two", () => Effect.succeed("two"))
-      const handler = yield* TestGroup.accessHandler("two").pipe(
-        Effect.provide(TwoHandler)
-      )
+      const handler = yield* TestGroup.accessHandler("two").pipe(Effect.provide(TwoHandler))
       const result = yield* handler(void 0, {
         clientId: 1,
         requestId: RequestId(1n),
         headers: Headers.empty
       })
       assert.strictEqual(result, "two")
-    }))
+    })
+  )
 })

@@ -187,8 +187,10 @@ export interface EquivalenceTypeLambda extends TypeLambda {
  * @category constructors
  * @since 2.0.0
  */
-export const make = <A>(isEquivalent: (self: A, that: A) => boolean): Equivalence<A> => (self: A, that: A): boolean =>
-  self === that || isEquivalent(self, that)
+export const make =
+  <A>(isEquivalent: (self: A, that: A) => boolean): Equivalence<A> =>
+  (self: A, that: A): boolean =>
+    self === that || isEquivalent(self, that)
 
 const isStrictEquivalent = (x: unknown, y: unknown) => x === y
 
@@ -431,10 +433,7 @@ export const combineAll = <A>(collection: Iterable<Equivalence<A>>): Equivalence
 export const mapInput: {
   <B, A>(f: (b: B) => A): (self: Equivalence<A>) => Equivalence<B>
   <A, B>(self: Equivalence<A>, f: (b: B) => A): Equivalence<B>
-} = dual(
-  2,
-  <A, B>(self: Equivalence<A>, f: (b: B) => A): Equivalence<B> => make((x, y) => self(f(x), f(y)))
-)
+} = dual(2, <A, B>(self: Equivalence<A>, f: (b: B) => A): Equivalence<B> => make((x, y) => self(f(x), f(y))))
 
 /**
  * Creates an equivalence for tuples with heterogeneous element types.
@@ -767,9 +766,5 @@ export function Record<A>(value: Equivalence<A>): Equivalence<Record<PropertyKey
  * @since 4.0.0
  */
 export function makeReducer<A>() {
-  return Reducer.make<Equivalence<A>>(
-    combine,
-    () => true,
-    combineAll
-  )
+  return Reducer.make<Equivalence<A>>(combine, () => true, combineAll)
 }

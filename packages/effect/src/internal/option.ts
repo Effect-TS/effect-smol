@@ -23,9 +23,7 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
   _tag: "Some",
   _op: "Some",
   [Equal.symbol]<A>(this: Option.Some<A>, that: unknown): boolean {
-    return (
-      isOption(that) && isSome(that) && Equal.equals(this.value, that.value)
-    )
+    return isOption(that) && isSome(that) && Equal.equals(this.value, that.value)
   },
   [Hash.symbol]<A>(this: Option.Some<A>) {
     return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.value))

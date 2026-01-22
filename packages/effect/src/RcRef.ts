@@ -112,16 +112,14 @@ export declare namespace RcRef {
  * })
  * ```
  */
-export const make: <A, E, R>(
-  options: {
-    readonly acquire: Effect.Effect<A, E, R>
-    /**
-     * When the reference count reaches zero, the resource will be released
-     * after this duration.
-     */
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
-  }
-) => Effect.Effect<RcRef<A, E>, never, R | Scope> = internal.make
+export const make: <A, E, R>(options: {
+  readonly acquire: Effect.Effect<A, E, R>
+  /**
+   * When the reference count reaches zero, the resource will be released
+   * after this duration.
+   */
+  readonly idleTimeToLive?: Duration.DurationInput | undefined
+}) => Effect.Effect<RcRef<A, E>, never, R | Scope> = internal.make
 
 /**
  * Get the value from an RcRef.

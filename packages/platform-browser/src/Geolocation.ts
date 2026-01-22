@@ -23,9 +23,9 @@ export interface Geolocation {
   ) => Effect.Effect<GeolocationPosition, GeolocationError>
   readonly watchPosition: (
     options?:
-      | PositionOptions & {
-        readonly bufferSize?: number | undefined
-      }
+      | (PositionOptions & {
+          readonly bufferSize?: number | undefined
+        })
       | undefined
   ) => Stream.Stream<GeolocationPosition, GeolocationError>
 }
@@ -53,9 +53,9 @@ export class GeolocationError extends Data.TaggedError("GeolocationError")<{
 
 const makeQueue = (
   options:
-    | PositionOptions & {
-      readonly bufferSize?: number | undefined
-    }
+    | (PositionOptions & {
+        readonly bufferSize?: number | undefined
+      })
     | undefined
 ) =>
   Queue.sliding<GeolocationPosition, GeolocationError>(options?.bufferSize ?? 16).pipe(
@@ -89,16 +89,8 @@ export const layer: Layer.Layer<Geolocation> = Layer.succeed(
   Geolocation,
   Geolocation.of({
     [TypeId]: TypeId,
-    getCurrentPosition: (options) =>
-      makeQueue(options).pipe(
-        Effect.flatMap(Queue.take),
-        Effect.scoped
-      ),
-    watchPosition: (options) =>
-      makeQueue(options).pipe(
-        Effect.map(Stream.fromQueue),
-        Stream.unwrap
-      )
+    getCurrentPosition: (options) => makeQueue(options).pipe(Effect.flatMap(Queue.take), Effect.scoped),
+    watchPosition: (options) => makeQueue(options).pipe(Effect.map(Stream.fromQueue), Stream.unwrap)
   })
 )
 
@@ -108,12 +100,9 @@ export const layer: Layer.Layer<Geolocation> = Layer.succeed(
  */
 export const watchPosition = (
   options?:
-    | PositionOptions & {
-      readonly bufferSize?: number | undefined
-    }
+    | (PositionOptions & {
+        readonly bufferSize?: number | undefined
+      })
     | undefined
 ): Stream.Stream<GeolocationPosition, GeolocationError, Geolocation> =>
-  Stream.unwrap(Effect.map(
-    Effect.service(Geolocation),
-    (geolocation) => geolocation.watchPosition(options)
-  ))
+  Stream.unwrap(Effect.map(Effect.service(Geolocation), (geolocation) => geolocation.watchPosition(options)))

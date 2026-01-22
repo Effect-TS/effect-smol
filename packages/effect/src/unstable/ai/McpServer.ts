@@ -66,29 +66,30 @@ import type * as Toolkit from "./Toolkit.ts"
  * @since 4.0.0
  * @category server
  */
-export class McpServer extends ServiceMap.Service<McpServer, {
-  readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
-  readonly notificationsQueue: Queue.Dequeue<RpcMessage.Request<any>>
-  readonly initializedClients: Set<number>
+export class McpServer extends ServiceMap.Service<
+  McpServer,
+  {
+    readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
+    readonly notificationsQueue: Queue.Dequeue<RpcMessage.Request<any>>
+    readonly initializedClients: Set<number>
 
-  readonly tools: ReadonlyArray<McpTool>
-  readonly addTool: (options: {
-    readonly tool: McpTool
-    readonly handle: (payload: any) => Effect.Effect<CallToolResult, never, McpServerClient>
-  }) => Effect.Effect<void>
-  readonly callTool: (
-    requests: typeof CallTool.payloadSchema.Type
-  ) => Effect.Effect<CallToolResult, InternalError | InvalidParams, McpServerClient>
+    readonly tools: ReadonlyArray<McpTool>
+    readonly addTool: (options: {
+      readonly tool: McpTool
+      readonly handle: (payload: any) => Effect.Effect<CallToolResult, never, McpServerClient>
+    }) => Effect.Effect<void>
+    readonly callTool: (
+      requests: typeof CallTool.payloadSchema.Type
+    ) => Effect.Effect<CallToolResult, InternalError | InvalidParams, McpServerClient>
 
-  readonly resources: ReadonlyArray<Resource>
-  readonly addResource: (
-    resource: Resource,
-    handle: Effect.Effect<typeof ReadResourceResult.Type, InternalError, McpServerClient>
-  ) => Effect.Effect<void>
+    readonly resources: ReadonlyArray<Resource>
+    readonly addResource: (
+      resource: Resource,
+      handle: Effect.Effect<typeof ReadResourceResult.Type, InternalError, McpServerClient>
+    ) => Effect.Effect<void>
 
-  readonly resourceTemplates: ReadonlyArray<ResourceTemplate>
-  readonly addResourceTemplate: (
-    options: {
+    readonly resourceTemplates: ReadonlyArray<ResourceTemplate>
+    readonly addResourceTemplate: (options: {
       readonly template: ResourceTemplate
       readonly routerPath: string
       readonly completions: Record<string, (input: string) => Effect.Effect<CompleteResult, InternalError>>
@@ -96,47 +97,48 @@ export class McpServer extends ServiceMap.Service<McpServer, {
         uri: string,
         params: Array<string>
       ) => Effect.Effect<typeof ReadResourceResult.Type, InvalidParams | InternalError, McpServerClient>
-    }
-  ) => Effect.Effect<void>
+    }) => Effect.Effect<void>
 
-  readonly findResource: (
-    uri: string
-  ) => Effect.Effect<typeof ReadResourceResult.Type, InvalidParams | InternalError, McpServerClient>
+    readonly findResource: (
+      uri: string
+    ) => Effect.Effect<typeof ReadResourceResult.Type, InvalidParams | InternalError, McpServerClient>
 
-  readonly prompts: ReadonlyArray<Prompt>
-  readonly addPrompt: (options: {
-    readonly prompt: Prompt
-    readonly completions: Record<
-      string,
-      (input: string) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
-    >
-    readonly handle: (
-      params: Record<string, string>
+    readonly prompts: ReadonlyArray<Prompt>
+    readonly addPrompt: (options: {
+      readonly prompt: Prompt
+      readonly completions: Record<
+        string,
+        (input: string) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
+      >
+      readonly handle: (
+        params: Record<string, string>
+      ) => Effect.Effect<GetPromptResult, InternalError | InvalidParams, McpServerClient>
+    }) => Effect.Effect<void>
+    readonly getPromptResult: (
+      request: typeof GetPrompt.payloadSchema.Type
     ) => Effect.Effect<GetPromptResult, InternalError | InvalidParams, McpServerClient>
-  }) => Effect.Effect<void>
-  readonly getPromptResult: (
-    request: typeof GetPrompt.payloadSchema.Type
-  ) => Effect.Effect<GetPromptResult, InternalError | InvalidParams, McpServerClient>
 
-  readonly completion: (
-    complete: typeof Complete.payloadSchema.Type
-  ) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
-}>()("effect/ai/McpServer") {
+    readonly completion: (
+      complete: typeof Complete.payloadSchema.Type
+    ) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
+  }
+>()("effect/ai/McpServer") {
   /**
    * @since 4.0.0
    */
-  static readonly make = Effect.gen(function*() {
+  static readonly make = Effect.gen(function* () {
     const matcher = makeUriMatcher<
-      {
-        readonly _tag: "ResourceTemplate"
-        readonly handle: (
-          uri: string,
-          params: Array<string>
-        ) => Effect.Effect<typeof ReadResourceResult.Type, InternalError | InvalidParams, McpServerClient>
-      } | {
-        readonly _tag: "Resource"
-        readonly effect: Effect.Effect<typeof ReadResourceResult.Type, InternalError, McpServerClient>
-      }
+      | {
+          readonly _tag: "ResourceTemplate"
+          readonly handle: (
+            uri: string,
+            params: Array<string>
+          ) => Effect.Effect<typeof ReadResourceResult.Type, InternalError | InvalidParams, McpServerClient>
+        }
+      | {
+          readonly _tag: "Resource"
+          readonly effect: Effect.Effect<typeof ReadResourceResult.Type, InternalError, McpServerClient>
+        }
     >()
     const tools = Arr.empty<McpTool>()
     const toolMap = new Map<string, (payload: any) => Effect.Effect<CallToolResult, InternalError, McpServerClient>>()
@@ -251,18 +253,19 @@ export class McpServer extends ServiceMap.Service<McpServer, {
           }
           return notifications.client["notifications/prompts/list_changed"]({})
         }),
-      getPromptResult: Effect.fnUntraced(function*({ arguments: params, name }) {
+      getPromptResult: Effect.fnUntraced(function* ({ arguments: params, name }) {
         const handler = promptMap.get(name)
         if (!handler) {
           return yield* new InvalidParams({ message: `Prompt '${name}' not found` })
         }
         return yield* handler(params ?? {})
       }),
-      completion: Effect.fnUntraced(function*(complete) {
+      completion: Effect.fnUntraced(function* (complete) {
         const ref = complete.ref
-        const key = ref.type === "ref/resource"
-          ? `ref/resource/${ref.uri}/${complete.argument.name}`
-          : `ref/prompt/${ref.name}/${complete.argument.name}`
+        const key =
+          ref.type === "ref/resource"
+            ? `ref/resource/${ref.uri}/${complete.argument.name}`
+            : `ref/prompt/${ref.name}/${complete.argument.name}`
         const handler = completionsMap.get(key)
         return handler ? yield* handler(complete.argument.value) : CompleteResult.empty
       })
@@ -276,24 +279,16 @@ export class McpServer extends ServiceMap.Service<McpServer, {
 }
 
 const LATEST_PROTOCOL_VERSION = "2025-06-18"
-const SUPPORTED_PROTOCOL_VERSIONS = [
-  LATEST_PROTOCOL_VERSION,
-  "2025-03-26",
-  "2024-11-05",
-  "2024-10-07"
-]
+const SUPPORTED_PROTOCOL_VERSIONS = [LATEST_PROTOCOL_VERSION, "2025-03-26", "2024-11-05", "2024-10-07"]
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const run: (
-  options: { readonly name: string; readonly version: string }
-) => Effect.Effect<
-  never,
-  never,
-  McpServer | RpcServer.Protocol
-> = Effect.fnUntraced(function*(options: {
+export const run: (options: {
+  readonly name: string
+  readonly version: string
+}) => Effect.Effect<never, never, McpServer | RpcServer.Protocol> = Effect.fnUntraced(function* (options: {
   readonly name: string
   readonly version: string
 }) {
@@ -302,30 +297,32 @@ export const run: (
   const server = yield* McpServer
 
   const clients = yield* RcMap.make({
-    lookup: Effect.fnUntraced(function*(clientId: number) {
+    lookup: Effect.fnUntraced(function* (clientId: number) {
       let write!: (message: RpcMessage.FromServerEncoded) => Effect.Effect<void>
       const client = yield* RpcClient.make(ServerRequestRpcs, {
         spanPrefix: "McpServer/Client"
       }).pipe(
         Effect.provideServiceEffect(
           RpcClient.Protocol,
-          RpcClient.Protocol.make(Effect.fnUntraced(function*(writeResponse) {
-            write = writeResponse
-            return {
-              send(request, _transferables) {
-                return protocol.send(clientId, {
-                  ...request,
-                  headers: undefined,
-                  traceId: undefined,
-                  spanId: undefined,
-                  sampled: undefined
-                } as any)
-              },
-              supportsAck: true,
-              supportsTransferables: false,
-              supportsStructuredClone: false
-            }
-          }))
+          RpcClient.Protocol.make(
+            Effect.fnUntraced(function* (writeResponse) {
+              write = writeResponse
+              return {
+                send(request, _transferables) {
+                  return protocol.send(clientId, {
+                    ...request,
+                    headers: undefined,
+                    traceId: undefined,
+                    spanId: undefined,
+                    sampled: undefined
+                  } as any)
+                },
+                supportsAck: true,
+                supportsTransferables: false,
+                supportsStructuredClone: false
+              }
+            })
+          )
         )
       )
 
@@ -340,9 +337,7 @@ export const run: (
       McpServerClient,
       McpServerClient.of({
         clientId,
-        getClient: RcMap.get(clients, clientId).pipe(
-          Effect.map(({ client }) => client)
-        )
+        getClient: RcMap.get(clients, clientId).pipe(Effect.map(({ client }) => client))
       })
     )
   )
@@ -351,9 +346,7 @@ export const run: (
     ...protocol,
     run: (f) =>
       protocol.run((clientId, request_) => {
-        const request = request_ as any as
-          | RpcMessage.FromServerEncoded
-          | RpcMessage.FromClientEncoded
+        const request = request_ as any as RpcMessage.FromServerEncoded | RpcMessage.FromClientEncoded
         switch (request._tag) {
           case "Request": {
             const rpc = ClientNotificationRpcs.requests.get(request.tag)
@@ -366,12 +359,12 @@ export const run: (
               }
               const handler = handlers.mapUnsafe.get(request.tag) as Rpc.Handler<string>
               return handler
-                ? handler.handler(request.payload, {
-                  rpc,
-                  requestId: RpcMessage.RequestId(request.id),
-                  clientId,
-                  headers: Headers.fromInput(request.headers)
-                }) as Effect.Effect<void>
+                ? (handler.handler(request.payload, {
+                    rpc,
+                    requestId: RpcMessage.RequestId(request.id),
+                    clientId,
+                    headers: Headers.fromInput(request.headers)
+                  }) as Effect.Effect<void>)
                 : Effect.void
             }
             return f(clientId, request)
@@ -398,22 +391,24 @@ export const run: (
     Schema.Union(Array.from(ServerNotificationRpcs.requests.values(), (rpc) => rpc.payloadSchema))
   )
   yield* Queue.take(server.notificationsQueue).pipe(
-    Effect.flatMap(Effect.fnUntraced(function*(request) {
-      const encoded = yield* encodeNotification(request.payload)
-      const message: RpcMessage.RequestEncoded = {
-        _tag: "Request",
-        tag: request.tag,
-        payload: encoded
-      } as any
-      const clientIds = yield* patchedProtocol.clientIds
-      for (const clientId of server.initializedClients) {
-        if (!clientIds.has(clientId)) {
-          server.initializedClients.delete(clientId)
-          continue
+    Effect.flatMap(
+      Effect.fnUntraced(function* (request) {
+        const encoded = yield* encodeNotification(request.payload)
+        const message: RpcMessage.RequestEncoded = {
+          _tag: "Request",
+          tag: request.tag,
+          payload: encoded
+        } as any
+        const clientIds = yield* patchedProtocol.clientIds
+        for (const clientId of server.initializedClients) {
+          if (!clientIds.has(clientId)) {
+            server.initializedClients.delete(clientId)
+            continue
+          }
+          yield* patchedProtocol.send(clientId, message as any)
         }
-        yield* patchedProtocol.send(clientId, message as any)
-      }
-    })),
+      })
+    ),
     Effect.catchCause(() => Effect.void),
     Effect.forever,
     Effect.forkScoped
@@ -437,9 +432,7 @@ export const layer = (options: {
   readonly name: string
   readonly version: string
 }): Layer.Layer<McpServer | McpServerClient, never, RpcServer.Protocol> =>
-  Layer.effectDiscard(Effect.forkScoped(run(options))).pipe(
-    Layer.provideMerge(McpServer.layer)
-  )
+  Layer.effectDiscard(Effect.forkScoped(run(options))).pipe(Layer.provideMerge(McpServer.layer))
 
 /**
  * Run the McpServer, using stdio for input and output.
@@ -502,10 +495,7 @@ export const layerStdio = (options: {
   readonly name: string
   readonly version: string
 }): Layer.Layer<McpServer | McpServerClient, never, Stdio> =>
-  layer(options).pipe(
-    Layer.provide(RpcServer.layerProtocolStdio),
-    Layer.provide(RpcSerialization.layerNdJsonRpc())
-  )
+  layer(options).pipe(Layer.provide(RpcServer.layerProtocolStdio), Layer.provide(RpcSerialization.layerNdJsonRpc()))
 
 /**
  * Run the `McpServer`, registering a router with a `HttpRouter`
@@ -535,15 +525,13 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
   void,
   never,
   McpServer | Tool.HandlersFor<Tools> | Exclude<Tool.HandlerServices<Tools>, McpServerClient>
-> = Effect.fnUntraced(function*<Tools extends Record<string, Tool.Any>>(
-  toolkit: Toolkit.Toolkit<Tools>
-) {
+> = Effect.fnUntraced(function* <Tools extends Record<string, Tool.Any>>(toolkit: Toolkit.Toolkit<Tools>) {
   const registry = yield* McpServer
-  const built = yield* (toolkit as any as Effect.Effect<
+  const built = yield* toolkit as any as Effect.Effect<
     Toolkit.WithHandler<Tools>,
     never,
     Exclude<Tool.HandlersFor<Tools>, McpServerClient>
-  >)
+  >
   const services = yield* Effect.services<never>()
   for (const tool of Object.values(built.tools)) {
     const mcpTool = new McpTool({
@@ -551,10 +539,10 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
       description: Tool.getDescription(tool),
       inputSchema: Tool.getJsonSchema(tool),
       annotations: {
-        ...(ServiceMap.getOption(tool.annotations, Tool.Title).pipe(
+        ...ServiceMap.getOption(tool.annotations, Tool.Title).pipe(
           Option.map((title) => ({ title })),
           Option.getOrUndefined
-        )),
+        ),
         readOnlyHint: ServiceMap.get(tool.annotations, Tool.Readonly),
         destructiveHint: ServiceMap.get(tool.annotations, Tool.Destructive),
         idempotentHint: ServiceMap.get(tool.annotations, Tool.Idempotent),
@@ -570,19 +558,23 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
             onFailure: (cause) =>
               new CallToolResult({
                 isError: true,
-                content: [{
-                  type: "text",
-                  text: Cause.pretty(cause)
-                }]
+                content: [
+                  {
+                    type: "text",
+                    text: Cause.pretty(cause)
+                  }
+                ]
               }),
             onSuccess: (result: any) =>
               new CallToolResult({
                 isError: false,
                 structuredContent: typeof result.encodedResult === "object" ? result.encodedResult : undefined,
-                content: [{
-                  type: "text",
-                  text: JSON.stringify(result.encodedResult)
-                }]
+                content: [
+                  {
+                    type: "text",
+                    text: JSON.stringify(result.encodedResult)
+                  }
+                ]
               })
           }),
           Effect.tapCause(Effect.log)
@@ -600,32 +592,23 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
  */
 export const toolkit = <Tools extends Record<string, Tool.Any>>(
   toolkit: Toolkit.Toolkit<Tools>
-): Layer.Layer<
-  never,
-  never,
-  Tool.HandlersFor<Tools> | Exclude<Tool.HandlerServices<Tools>, McpServerClient>
-> =>
-  Layer.effectDiscard(registerToolkit(toolkit)).pipe(
-    Layer.provide(McpServer.layer)
-  )
+): Layer.Layer<never, never, Tool.HandlersFor<Tools> | Exclude<Tool.HandlerServices<Tools>, McpServerClient>> =>
+  Layer.effectDiscard(registerToolkit(toolkit)).pipe(Layer.provide(McpServer.layer))
 
 /**
  * @since 4.0.0
  */
-export type ValidateCompletions<Completions, Keys extends string> =
-  & Completions
-  & {
-    readonly [K in keyof Completions]: K extends Keys ? (input: string) => any : never
-  }
+export type ValidateCompletions<Completions, Keys extends string> = Completions & {
+  readonly [K in keyof Completions]: K extends Keys ? (input: string) => any : never
+}
 
 /**
  * @since 4.0.0
  */
 export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
-  readonly [
-    K in Extract<keyof Schemas, `${number}`> as Schemas[K] extends Param<infer Id, infer _S> ? Id
-      : `param${K}`
-  ]: (input: string) => Effect.Effect<Array<Schemas[K]["Type"]>, any, any>
+  readonly [K in Extract<keyof Schemas, `${number}`> as Schemas[K] extends Param<infer Id, infer _S>
+    ? Id
+    : `param${K}`]: (input: string) => Effect.Effect<Array<Schemas[K]["Type"]>, any, any>
 }
 
 /**
@@ -642,48 +625,45 @@ export const registerResource: {
     readonly mimeType?: string | undefined
     readonly audience?: ReadonlyArray<"user" | "assistant"> | undefined
     readonly priority?: number | undefined
-    readonly content: Effect.Effect<
-      typeof ReadResourceResult.Type | string | Uint8Array,
-      E,
-      R
-    >
+    readonly content: Effect.Effect<typeof ReadResourceResult.Type | string | Uint8Array, E, R>
   }): Effect.Effect<void, never, Exclude<R, McpServerClient> | McpServer>
-  <const Schemas extends ReadonlyArray<Schema.Top>>(segments: TemplateStringsArray, ...schemas: Schemas): <
-    E,
-    R,
-    const Completions extends Partial<ResourceCompletions<Schemas>> = {}
-  >(options: {
+  <const Schemas extends ReadonlyArray<Schema.Top>>(
+    segments: TemplateStringsArray,
+    ...schemas: Schemas
+  ): <E, R, const Completions extends Partial<ResourceCompletions<Schemas>> = {}>(options: {
     readonly name: string
     readonly description?: string | undefined
     readonly mimeType?: string | undefined
     readonly audience?: ReadonlyArray<"user" | "assistant"> | undefined
     readonly priority?: number | undefined
     readonly completion?: ValidateCompletions<Completions, keyof ResourceCompletions<Schemas>> | undefined
-    readonly content: (uri: string, ...params: { readonly [K in keyof Schemas]: Schemas[K]["Type"] }) => Effect.Effect<
-      typeof ReadResourceResult.Type | string | Uint8Array,
-      E,
-      R
-    >
+    readonly content: (
+      uri: string,
+      ...params: { readonly [K in keyof Schemas]: Schemas[K]["Type"] }
+    ) => Effect.Effect<typeof ReadResourceResult.Type | string | Uint8Array, E, R>
   }) => Effect.Effect<
     void,
     never,
     | Exclude<
-      | Schemas[number]["DecodingServices"]
-      | Schemas[number]["EncodingServices"]
-      | R
-      | (Completions[keyof Completions] extends (input: string) => infer Ret ?
-        Ret extends Effect.Effect<infer _A, infer _E, infer _R> ? _R : never
-        : never),
-      McpServerClient
-    >
+        | Schemas[number]["DecodingServices"]
+        | Schemas[number]["EncodingServices"]
+        | R
+        | (Completions[keyof Completions] extends (input: string) => infer Ret
+            ? Ret extends Effect.Effect<infer _A, infer _E, infer _R>
+              ? _R
+              : never
+            : never),
+        McpServerClient
+      >
     | McpServer
   >
-} = function() {
+} = function () {
   if (arguments.length === 1) {
-    const options = arguments[0] as Resource & typeof Annotations.Type & {
-      readonly content: Effect.Effect<typeof ReadResourceResult.Type | string | Uint8Array>
-    }
-    return Effect.gen(function*() {
+    const options = arguments[0] as Resource &
+      typeof Annotations.Type & {
+        readonly content: Effect.Effect<typeof ReadResourceResult.Type | string | Uint8Array>
+      }
+    return Effect.gen(function* () {
       const services = yield* Effect.services<any>()
       const registry = yield* McpServer
       yield* registry.addResource(
@@ -702,24 +682,18 @@ export const registerResource: {
       )
     })
   }
-  const {
-    params,
-    routerPath,
-    schema,
-    uriPath
-  } = compileUriTemplate(...(arguments as any as [any, any]))
-  return Effect.fnUntraced(function*<E, R>(options: {
+  const { params, routerPath, schema, uriPath } = compileUriTemplate(...(arguments as any as [any, any]))
+  return Effect.fnUntraced(function* <E, R>(options: {
     readonly name: string
     readonly description?: string | undefined
     readonly mimeType?: string | undefined
     readonly audience?: ReadonlyArray<"user" | "assistant"> | undefined
     readonly priority?: number | undefined
     readonly completion?: Record<string, (input: string) => Effect.Effect<any>> | undefined
-    readonly content: (uri: string, ...params: Array<any>) => Effect.Effect<
-      typeof ReadResourceResult.Type | string | Uint8Array,
-      E,
-      R
-    >
+    readonly content: (
+      uri: string,
+      ...params: Array<any>
+    ) => Effect.Effect<typeof ReadResourceResult.Type | string | Uint8Array, E, R>
   }) {
     const services = yield* Effect.services<any>()
     const registry = yield* McpServer
@@ -786,50 +760,41 @@ export const resource: {
     readonly mimeType?: string | undefined
     readonly audience?: ReadonlyArray<"user" | "assistant"> | undefined
     readonly priority?: number | undefined
-    readonly content: Effect.Effect<
-      typeof ReadResourceResult.Type | string | Uint8Array,
-      E,
-      R
-    >
+    readonly content: Effect.Effect<typeof ReadResourceResult.Type | string | Uint8Array, E, R>
   }): Layer.Layer<never, never, Exclude<R, McpServerClient>>
-  <const Schemas extends ReadonlyArray<Schema.Top>>(segments: TemplateStringsArray, ...schemas: Schemas): <
-    E,
-    R,
-    const Completions extends Partial<ResourceCompletions<Schemas>> = {}
-  >(options: {
+  <const Schemas extends ReadonlyArray<Schema.Top>>(
+    segments: TemplateStringsArray,
+    ...schemas: Schemas
+  ): <E, R, const Completions extends Partial<ResourceCompletions<Schemas>> = {}>(options: {
     readonly name: string
     readonly description?: string | undefined
     readonly mimeType?: string | undefined
     readonly audience?: ReadonlyArray<"user" | "assistant"> | undefined
     readonly priority?: number | undefined
     readonly completion?: ValidateCompletions<Completions, keyof ResourceCompletions<Schemas>> | undefined
-    readonly content: (uri: string, ...params: { readonly [K in keyof Schemas]: Schemas[K]["Type"] }) => Effect.Effect<
-      typeof ReadResourceResult.Type | string | Uint8Array,
-      E,
-      R
-    >
+    readonly content: (
+      uri: string,
+      ...params: { readonly [K in keyof Schemas]: Schemas[K]["Type"] }
+    ) => Effect.Effect<typeof ReadResourceResult.Type | string | Uint8Array, E, R>
   }) => Layer.Layer<
     never,
     never,
     Exclude<
       | R
-      | (Completions[keyof Completions] extends (input: string) => infer Ret ?
-        Ret extends Effect.Effect<infer _A, infer _E, infer _R> ? _R : never
-        : never),
+      | (Completions[keyof Completions] extends (input: string) => infer Ret
+          ? Ret extends Effect.Effect<infer _A, infer _E, infer _R>
+            ? _R
+            : never
+          : never),
       McpServerClient
     >
   >
-} = function() {
+} = function () {
   if (arguments.length === 1) {
-    return Layer.effectDiscard(registerResource(arguments[0])).pipe(
-      Layer.provide(McpServer.layer)
-    )
+    return Layer.effectDiscard(registerResource(arguments[0])).pipe(Layer.provide(McpServer.layer))
   }
   const register = registerResource(...(arguments as any as [any, any]))
-  return (options: any) =>
-    Layer.effectDiscard(register(options)).pipe(
-      Layer.provide(McpServer.layer)
-    )
+  return (options: any) => Layer.effectDiscard(register(options)).pipe(Layer.provide(McpServer.layer))
 } as any
 
 /**
@@ -845,15 +810,13 @@ export const registerPrompt = <
   const Completions extends {
     readonly [K in keyof Params]?: (input: string) => Effect.Effect<Array<Params[K]>, any, any>
   } = {}
->(
-  options: {
-    readonly name: string
-    readonly description?: string | undefined
-    readonly parameters?: Params | undefined
-    readonly completion?: ValidateCompletions<Completions, Extract<keyof Params, string>> | undefined
-    readonly content: (params: Params) => Effect.Effect<Array<typeof PromptMessage.Type> | string, E, R>
-  }
-): Effect.Effect<void, never, Exclude<Schema.Struct.DecodingServices<Params> | R, McpServerClient> | McpServer> => {
+>(options: {
+  readonly name: string
+  readonly description?: string | undefined
+  readonly parameters?: Params | undefined
+  readonly completion?: ValidateCompletions<Completions, Extract<keyof Params, string>> | undefined
+  readonly content: (params: Params) => Effect.Effect<Array<typeof PromptMessage.Type> | string, E, R>
+}): Effect.Effect<void, never, Exclude<Schema.Struct.DecodingServices<Params> | R, McpServerClient> | McpServer> => {
   const args = Arr.empty<typeof PromptArgument.Type>()
   const props: Record<string, Schema.Top> = options.parameters ?? {}
   for (const [name, prop] of Object.entries(props)) {
@@ -868,11 +831,9 @@ export const registerPrompt = <
     description: options.description,
     arguments: args
   })
-  const decode = options.parameters
-    ? Schema.decodeEffect(Schema.Struct(props))
-    : () => Effect.succeed({} as Params)
+  const decode = options.parameters ? Schema.decodeEffect(Schema.Struct(props)) : () => Effect.succeed({} as Params)
   const completion: Record<string, (input: string) => Effect.Effect<any>> = options.completion ?? {}
-  return Effect.gen(function*() {
+  return Effect.gen(function* () {
     const registry = yield* McpServer
     const services = yield* Effect.services<Exclude<R | Schema.Struct.DecodingServices<Params>, McpServerClient>>()
     const completions: Record<
@@ -907,12 +868,15 @@ export const registerPrompt = <
           Effect.mapError((error) => new InvalidParams({ message: error.message })),
           Effect.flatMap((params) => options.content(params as any)),
           Effect.map((messages) => {
-            messages = typeof messages === "string" ?
-              [{
-                role: "user",
-                content: TextContent.makeUnsafe({ text: messages })
-              }] :
-              messages
+            messages =
+              typeof messages === "string"
+                ? [
+                    {
+                      role: "user",
+                      content: TextContent.makeUnsafe({ text: messages })
+                    }
+                  ]
+                : messages
             return new GetPromptResult({ messages, description: prompt.description })
           }),
           Effect.catchCause((cause) => {
@@ -938,20 +902,16 @@ export const prompt = <
   const Completions extends {
     readonly [K in keyof Params]?: (input: string) => Effect.Effect<Array<Params[K]["Type"]>, any, any>
   } = {}
->(
-  options: {
-    readonly name: string
-    readonly description?: string | undefined
-    readonly parameters?: Params | undefined
-    readonly completion?: ValidateCompletions<Completions, Extract<keyof Params, string>> | undefined
-    readonly content: (
-      params: Schema.Struct.Type<Params>
-    ) => Effect.Effect<Array<typeof PromptMessage.Type> | string, E, R>
-  }
-): Layer.Layer<never, never, Exclude<Schema.Struct.DecodingServices<Params> | R, McpServerClient>> =>
-  Layer.effectDiscard(registerPrompt(options)).pipe(
-    Layer.provide(McpServer.layer)
-  )
+>(options: {
+  readonly name: string
+  readonly description?: string | undefined
+  readonly parameters?: Params | undefined
+  readonly completion?: ValidateCompletions<Completions, Extract<keyof Params, string>> | undefined
+  readonly content: (
+    params: Schema.Struct.Type<Params>
+  ) => Effect.Effect<Array<typeof PromptMessage.Type> | string, E, R>
+}): Layer.Layer<never, never, Exclude<Schema.Struct.DecodingServices<Params> | R, McpServerClient>> =>
+  Layer.effectDiscard(registerPrompt(options)).pipe(Layer.provide(McpServer.layer))
 
 /**
  * Create an elicitation request
@@ -962,33 +922,32 @@ export const prompt = <
 export const elicit: <S extends Schema.Codec<any, Record<string, unknown>, any, any>>(options: {
   readonly message: string
   readonly schema: S
-}) => Effect.Effect<
-  S["Type"],
-  ElicitationDeclined,
-  McpServerClient | S["DecodingServices"]
-> = Effect.fnUntraced(function*<S extends Schema.Codec<any, Record<string, unknown>, any, any>>(options: {
-  readonly message: string
-  readonly schema: S
-}) {
-  const { getClient } = yield* McpServerClient
-  const client = yield* getClient
-  const schema = options.schema
-  const request = Elicit.payloadSchema.makeUnsafe({
-    message: options.message,
-    requestedSchema: Tool.getJsonSchemaFromSchema(schema)
-  })
-  const res = yield* client["elicitation/create"](request).pipe(
-    Effect.catchCause((cause) => Effect.fail(new ElicitationDeclined({ cause: Cause.squash(cause), request })))
-  )
-  switch (res.action) {
-    case "accept":
-      return yield* Effect.orDie(Schema.decodeUnknownEffect(schema)(res.content))
-    case "cancel":
-      return yield* Effect.interrupt
-    case "decline":
-      return yield* new ElicitationDeclined({ request })
-  }
-}, Effect.scoped)
+}) => Effect.Effect<S["Type"], ElicitationDeclined, McpServerClient | S["DecodingServices"]> = Effect.fnUntraced(
+  function* <S extends Schema.Codec<any, Record<string, unknown>, any, any>>(options: {
+    readonly message: string
+    readonly schema: S
+  }) {
+    const { getClient } = yield* McpServerClient
+    const client = yield* getClient
+    const schema = options.schema
+    const request = Elicit.payloadSchema.makeUnsafe({
+      message: options.message,
+      requestedSchema: Tool.getJsonSchemaFromSchema(schema)
+    })
+    const res = yield* client["elicitation/create"](request).pipe(
+      Effect.catchCause((cause) => Effect.fail(new ElicitationDeclined({ cause: Cause.squash(cause), request })))
+    )
+    switch (res.action) {
+      case "accept":
+        return yield* Effect.orDie(Schema.decodeUnknownEffect(schema)(res.content))
+      case "cancel":
+        return yield* Effect.interrupt
+      case "decline":
+        return yield* new ElicitationDeclined({ request })
+    }
+  },
+  Effect.scoped
+)
 
 // -----------------------------------------------------------------------------
 // Internal
@@ -1035,12 +994,9 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
   } as const
 }
 
-const layerHandlers = (serverInfo: {
-  readonly name: string
-  readonly version: string
-}) =>
+const layerHandlers = (serverInfo: { readonly name: string; readonly version: string }) =>
   ClientRpcs.toLayer(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const server = yield* McpServer
 
       return ClientRpcs.of({
@@ -1100,17 +1056,21 @@ const resolveResourceContent = (
 ): typeof ReadResourceResult.Type => {
   if (typeof content === "string") {
     return {
-      contents: [{
-        uri,
-        text: content
-      }]
+      contents: [
+        {
+          uri,
+          text: content
+        }
+      ]
     }
   } else if (content instanceof Uint8Array) {
     return {
-      contents: [{
-        uri,
-        blob: content
-      }]
+      contents: [
+        {
+          uri,
+          blob: content
+        }
+      ]
     }
   }
   return content

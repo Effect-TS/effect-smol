@@ -56,8 +56,7 @@ const TypeId = "~effect/ai/Model" as const
 export interface Model<in out Provider, in out Provides, in out Requires>
   extends
     Layer.Layer<Provides | ProviderName, never, Requires>,
-    Effect.Yieldable<Model<Provider, Provides, Requires>, Layer.Layer<Provides | ProviderName>, never, Requires>
-{
+    Effect.Yieldable<Model<Provider, Provides, Requires>, Layer.Layer<Provides | ProviderName>, never, Requires> {
   readonly [TypeId]: typeof TypeId
   /**
    * The provider identifier (e.g., "openai", "anthropic", "amazon-bedrock").
@@ -75,9 +74,7 @@ export interface Model<in out Provider, in out Provides, in out Requires>
  * @since 4.0.0
  * @category services
  */
-export class ProviderName extends ServiceMap.Service<ProviderName, string>()(
-  "effect/unstable/ai/Model/ProviderName"
-) {}
+export class ProviderName extends ServiceMap.Service<ProviderName, string>()("effect/unstable/ai/Model/ProviderName") {}
 
 const Proto = {
   ...YieldableProto,
@@ -142,8 +139,4 @@ export const make = <const Provider extends string, Provides, Requires>(
    */
   layer: Layer.Layer<Provides, never, Requires>
 ): Model<Provider, Provides, Requires> =>
-  Object.assign(
-    Object.create(Proto),
-    { provider },
-    Layer.merge(Layer.succeed(ProviderName)(provider), layer)
-  )
+  Object.assign(Object.create(Proto), { provider }, Layer.merge(Layer.succeed(ProviderName)(provider), layer))

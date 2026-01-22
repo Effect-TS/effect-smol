@@ -93,17 +93,9 @@ const TypeId = "~effect/ai/Toolkit" as const
  * @since 1.0.0
  * @category models
  */
-export interface Toolkit<in out Tools extends Record<string, Tool.Any>> extends
-  Effect.Yieldable<
-    Toolkit<Tools>,
-    WithHandler<Tools>,
-    never,
-    Tool.HandlersFor<Tools>
-  >,
-  Inspectable,
-  Pipeable
-{
-  new(_: never): {}
+export interface Toolkit<in out Tools extends Record<string, Tool.Any>>
+  extends Effect.Yieldable<Toolkit<Tools>, WithHandler<Tools>, never, Tool.HandlersFor<Tools>>, Inspectable, Pipeable {
+  new (_: never): {}
 
   readonly [TypeId]: typeof TypeId
 
@@ -164,10 +156,12 @@ export type Tools<T> = T extends Toolkit<infer Tools> ? Tools : never
  * @since 1.0.0
  * @category utility types
  */
-export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
-  { readonly [Name in keyof Tools]: Tools[Name] }
-  : Tools extends ReadonlyArray<Tool.Any> ? { readonly [Tool in Tools[number] as Tool["name"]]: Tool }
-  : never
+export type ToolsByName<Tools> =
+  Tools extends Record<string, Tool.Any>
+    ? { readonly [Name in keyof Tools]: Tools[Name] }
+    : Tools extends ReadonlyArray<Tool.Any>
+      ? { readonly [Tool in Tools[number] as Tool["name"]]: Tool }
+      : never
 
 /**
  * A utility type that maps tool names to their required handler functions.
@@ -178,11 +172,7 @@ export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
 export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
   readonly [Name in keyof Tools as Tool.RequiresHandler<Tools[Name]> extends true ? Name : never]: (
     params: Tool.Parameters<Tools[Name]>
-  ) => Effect.Effect<
-    Tool.Success<Tools[Name]>,
-    Tool.Failure<Tools[Name]>,
-    Tool.HandlerServices<Tools[Name]>
-  >
+  ) => Effect.Effect<Tool.Success<Tools[Name]>, Tool.Failure<Tools[Name]>, Tool.HandlerServices<Tools[Name]>>
 }
 
 /**
@@ -212,11 +202,7 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
      * Parameters to pass to the tool handler.
      */
     params: Tool.Parameters<Tools[Name]>
-  ) => Effect.Effect<
-    Tool.HandlerResult<Tools[Name]>,
-    Tool.HandlerError<Tools[Name]>,
-    Tool.HandlerServices<Tools[Name]>
-  >
+  ) => Effect.Effect<Tool.HandlerResult<Tools[Name]>, Tool.HandlerError<Tools[Name]>, Tool.HandlerServices<Tools[Name]>>
 }
 
 /**
@@ -237,7 +223,7 @@ const Proto = {
     this: Toolkit<Record<string, Tool.Any>>,
     build: Record<string, (params: any) => any> | Effect.Effect<Record<string, (params: any) => any>>
   ) {
-    return Effect.gen(this, function*() {
+    return Effect.gen(this, function* () {
       const services = yield* Effect.services<never>()
       const handlers = Effect.isEffect(build) ? yield* build : build
       const serviceMap = new Map<string, unknown>()
@@ -255,16 +241,19 @@ const Proto = {
     return Layer.effectServices(this.toHandlers(build))
   },
   asEffect(this: Toolkit<Record<string, Tool.Any>>) {
-    return Effect.gen(this, function*() {
+    return Effect.gen(this, function* () {
       const tools = this.tools
       const services = yield* Effect.services<never>()
-      const schemasCache = new WeakMap<any, {
-        readonly services: ServiceMap.ServiceMap<never>
-        readonly handler: (params: any) => Effect.Effect<any, any>
-        readonly decodeParameters: (u: unknown) => Effect.Effect<Tool.Parameters<any>, Schema.SchemaError>
-        readonly decodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
-        readonly encodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
-      }>()
+      const schemasCache = new WeakMap<
+        any,
+        {
+          readonly services: ServiceMap.ServiceMap<never>
+          readonly handler: (params: any) => Effect.Effect<any, any>
+          readonly decodeParameters: (u: unknown) => Effect.Effect<Tool.Parameters<any>, Schema.SchemaError>
+          readonly decodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
+          readonly encodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
+        }
+      >()
       const getSchemas = (tool: Tool.Any) => {
         let schemas = schemasCache.get(tool)
         if (Predicate.isUndefined(schemas)) {
@@ -284,7 +273,7 @@ const Proto = {
         }
         return schemas
       }
-      const handle = Effect.fnUntraced(function*(name: string, params: unknown) {
+      const handle = Effect.fnUntraced(function* (name: string, params: unknown) {
         yield* Effect.annotateCurrentSpan({ tool: name, parameters: params })
         const tool = tools[name]
         if (Predicate.isUndefined(tool)) {
@@ -299,18 +288,16 @@ const Proto = {
           })
         }
         const schemas = getSchemas(tool)
-        const decodedParams = yield* Effect.mapError(
-          schemas.decodeParameters(params),
-          (cause) =>
-            AiError.make({
-              module: "Toolkit",
-              method: `${name}.handle`,
-              reason: new AiError.OutputParseError({
-                rawOutput: JSON.stringify(params, undefined, 2),
-                expectedSchema: name,
-                cause
-              })
+        const decodedParams = yield* Effect.mapError(schemas.decodeParameters(params), (cause) =>
+          AiError.make({
+            module: "Toolkit",
+            method: `${name}.handle`,
+            reason: new AiError.OutputParseError({
+              rawOutput: JSON.stringify(params, undefined, 2),
+              expectedSchema: name,
+              cause
             })
+          })
         )
         const { isFailure, result } = yield* schemas.handler(decodedParams).pipe(
           Effect.map((result) => ({ result, isFailure: false })),
@@ -329,29 +316,27 @@ const Proto = {
           Effect.mapError((cause) =>
             Schema.isSchemaError(cause)
               ? AiError.make({
-                module: "Toolkit",
-                method: `${name}.handle`,
-                reason: new AiError.InvalidRequestError({
-                  parameter: name,
-                  description: `Failed to validate tool call result for tool '${name}'`,
-                  cause
+                  module: "Toolkit",
+                  method: `${name}.handle`,
+                  reason: new AiError.InvalidRequestError({
+                    parameter: name,
+                    description: `Failed to validate tool call result for tool '${name}'`,
+                    cause
+                  })
                 })
-              })
               : cause
           )
         )
-        const encodedResult = yield* Effect.mapError(
-          schemas.encodeResult(result),
-          (cause) =>
-            AiError.make({
-              module: "Toolkit",
-              method: `${name}.handle`,
-              reason: new AiError.InvalidRequestError({
-                parameter: name,
-                description: `Failed to encode tool call result for tool '${name}'`,
-                cause
-              })
+        const encodedResult = yield* Effect.mapError(schemas.encodeResult(result), (cause) =>
+          AiError.make({
+            module: "Toolkit",
+            method: `${name}.handle`,
+            reason: new AiError.InvalidRequestError({
+              parameter: name,
+              description: `Failed to encode tool call result for tool '${name}'`,
+              cause
             })
+          })
         )
         return {
           isFailure,
@@ -374,11 +359,9 @@ const Proto = {
 }
 
 const makeProto = <Tools extends Record<string, Tool.Any>>(tools: Tools): Toolkit<Tools> =>
-  Object.assign(function() {}, Proto, { tools }) as any
+  Object.assign(function () {}, Proto, { tools }) as any
 
-const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(
-  ...tools: Tools
-): Record<string, Tools[number]> => {
+const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(...tools: Tools): Record<string, Tools[number]> => {
   const output = {} as Record<string, Tools[number]>
   for (const tool of tools) {
     output[tool.name] = tool
@@ -429,9 +412,8 @@ export const empty: Toolkit<{}> = makeProto({})
  * @since 1.0.0
  * @category constructors
  */
-export const make = <Tools extends ReadonlyArray<Tool.Any>>(
-  ...tools: Tools
-): Toolkit<ToolsByName<Tools>> => makeProto(resolveInput(...tools)) as any
+export const make = <Tools extends ReadonlyArray<Tool.Any>>(...tools: Tools): Toolkit<ToolsByName<Tools>> =>
+  makeProto(resolveInput(...tools)) as any
 
 /**
  * A utility type which simplifies a record type.
@@ -461,9 +443,7 @@ export type MergeRecords<U> = {
  * @since 1.0.0
  * @category utility types
  */
-export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
-  MergeRecords<Tools<Toolkits[number]>>
->
+export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<MergeRecords<Tools<Toolkits[number]>>>
 
 /**
  * Merges multiple toolkits into a single toolkit.

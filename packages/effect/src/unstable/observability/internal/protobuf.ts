@@ -14,7 +14,7 @@ const WireType = {
   LengthDelimited: 2,
   Fixed32: 5
 } as const
-type WireType = typeof WireType[keyof typeof WireType]
+type WireType = (typeof WireType)[keyof typeof WireType]
 
 /**
  * Encodes a field tag (field number + wire type)
@@ -128,10 +128,7 @@ export const concat = (...arrays: Array<Uint8Array>): Uint8Array => {
  * @internal
  */
 export const varintField = (fieldNumber: number, value: number | bigint): Uint8Array =>
-  concat(
-    encodeVarint(encodeTag(fieldNumber, WireType.Varint)),
-    encodeVarint(value)
-  )
+  concat(encodeVarint(encodeTag(fieldNumber, WireType.Varint)), encodeVarint(value))
 
 /**
  * Encodes a sint field (ZigZag encoded)
@@ -139,10 +136,7 @@ export const varintField = (fieldNumber: number, value: number | bigint): Uint8A
  * @internal
  */
 export const sintField = (fieldNumber: number, value: number | bigint): Uint8Array =>
-  concat(
-    encodeVarint(encodeTag(fieldNumber, WireType.Varint)),
-    encodeSint(value)
-  )
+  concat(encodeVarint(encodeTag(fieldNumber, WireType.Varint)), encodeSint(value))
 
 /**
  * Encodes a bool field
@@ -157,10 +151,7 @@ export const boolField = (fieldNumber: number, value: boolean): Uint8Array => va
  * @internal
  */
 export const fixed64Field = (fieldNumber: number, value: bigint): Uint8Array =>
-  concat(
-    encodeVarint(encodeTag(fieldNumber, WireType.Fixed64)),
-    encodeFixed64(value)
-  )
+  concat(encodeVarint(encodeTag(fieldNumber, WireType.Fixed64)), encodeFixed64(value))
 
 /**
  * Encodes a fixed32 field
@@ -168,10 +159,7 @@ export const fixed64Field = (fieldNumber: number, value: bigint): Uint8Array =>
  * @internal
  */
 export const fixed32Field = (fieldNumber: number, value: number): Uint8Array =>
-  concat(
-    encodeVarint(encodeTag(fieldNumber, WireType.Fixed32)),
-    encodeFixed32(value)
-  )
+  concat(encodeVarint(encodeTag(fieldNumber, WireType.Fixed32)), encodeFixed32(value))
 
 /**
  * Encodes a double field
@@ -179,10 +167,7 @@ export const fixed32Field = (fieldNumber: number, value: number): Uint8Array =>
  * @internal
  */
 export const doubleField = (fieldNumber: number, value: number): Uint8Array =>
-  concat(
-    encodeVarint(encodeTag(fieldNumber, WireType.Fixed64)),
-    encodeDouble(value)
-  )
+  concat(encodeVarint(encodeTag(fieldNumber, WireType.Fixed64)), encodeDouble(value))
 
 /**
  * Encodes a length-delimited field (bytes, string, embedded message)
@@ -190,11 +175,7 @@ export const doubleField = (fieldNumber: number, value: number): Uint8Array =>
  * @internal
  */
 export const lengthDelimitedField = (fieldNumber: number, value: Uint8Array): Uint8Array =>
-  concat(
-    encodeVarint(encodeTag(fieldNumber, WireType.LengthDelimited)),
-    encodeVarint(value.length),
-    value
-  )
+  concat(encodeVarint(encodeTag(fieldNumber, WireType.LengthDelimited)), encodeVarint(value.length), value)
 
 /**
  * Encodes a string field
@@ -236,27 +217,21 @@ export const repeatedField = <T>(
  *
  * @internal
  */
-export const repeatedVarintField = (
-  fieldNumber: number,
-  values: ReadonlyArray<number | bigint>
-): Uint8Array => concat(...values.map((v) => varintField(fieldNumber, v)))
+export const repeatedVarintField = (fieldNumber: number, values: ReadonlyArray<number | bigint>): Uint8Array =>
+  concat(...values.map((v) => varintField(fieldNumber, v)))
 
 /**
  * Helper to conditionally encode an optional field
  *
  * @internal
  */
-export const optionalField = <T>(
-  value: T | undefined,
-  encode: (v: T) => Uint8Array
-): Uint8Array => value !== undefined ? encode(value) : new Uint8Array(0)
+export const optionalField = <T>(value: T | undefined, encode: (v: T) => Uint8Array): Uint8Array =>
+  value !== undefined ? encode(value) : new Uint8Array(0)
 
 /**
  * Helper to conditionally encode a string field if non-empty
  *
  * @internal
  */
-export const optionalStringField = (
-  fieldNumber: number,
-  value: string | undefined
-): Uint8Array => value !== undefined && value !== "" ? stringField(fieldNumber, value) : new Uint8Array(0)
+export const optionalStringField = (fieldNumber: number, value: string | undefined): Uint8Array =>
+  value !== undefined && value !== "" ? stringField(fieldNumber, value) : new Uint8Array(0)

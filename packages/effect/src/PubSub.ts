@@ -129,10 +129,7 @@ export namespace PubSub {
    * @since 4.0.0
    * @category models
    */
-  export type Subscribers<A> = Map<
-    BackingSubscription<A>,
-    Set<MutableList.MutableList<Deferred.Deferred<A>>>
-  >
+  export type Subscribers<A> = Map<BackingSubscription<A>, Set<MutableList.MutableList<Deferred.Deferred<A>>>>
 
   /**
    * Interface for accessing replay buffer contents for late subscribers.
@@ -174,10 +171,7 @@ export namespace PubSub {
      * Describes how subscribers should signal to publishers waiting for space
      * to become available in the `PubSub` that space may be available.
      */
-    onPubSubEmptySpaceUnsafe(
-      pubsub: Atomic<A>,
-      subscribers: Subscribers<A>
-    ): void
+    onPubSubEmptySpaceUnsafe(pubsub: Atomic<A>, subscribers: Subscribers<A>): void
 
     /**
      * Describes how subscribers waiting for additional values from the `PubSub`
@@ -195,10 +189,7 @@ export namespace PubSub {
      * Describes how publishers should signal to subscribers waiting for
      * additional values from the `PubSub` that new values are available.
      */
-    completeSubscribersUnsafe(
-      pubsub: Atomic<A>,
-      subscribers: Subscribers<A>
-    ): void
+    completeSubscribersUnsafe(pubsub: Atomic<A>, subscribers: Subscribers<A>): void
   }
 }
 
@@ -271,12 +262,10 @@ export interface Subscription<out A> extends Pipeable {
  * @since 4.0.0
  * @category constructors
  */
-export const make = <A>(
-  options: {
-    readonly atomicPubSub: LazyArg<PubSub.Atomic<A>>
-    readonly strategy: LazyArg<PubSub.Strategy<A>>
-  }
-): Effect.Effect<PubSub<A>> =>
+export const make = <A>(options: {
+  readonly atomicPubSub: LazyArg<PubSub.Atomic<A>>
+  readonly strategy: LazyArg<PubSub.Strategy<A>>
+}): Effect.Effect<PubSub<A>> =>
   Effect.sync(() =>
     makePubSubUnsafe(
       options.atomicPubSub(),
@@ -320,10 +309,12 @@ export const make = <A>(
  * @category constructors
  */
 export const bounded = <A>(
-  capacity: number | {
-    readonly capacity: number
-    readonly replay?: number | undefined
-  }
+  capacity:
+    | number
+    | {
+        readonly capacity: number
+        readonly replay?: number | undefined
+      }
 ): Effect.Effect<PubSub<A>> =>
   make({
     atomicPubSub: () => makeAtomicBounded(capacity),
@@ -364,10 +355,12 @@ export const bounded = <A>(
  * @category constructors
  */
 export const dropping = <A>(
-  capacity: number | {
-    readonly capacity: number
-    readonly replay?: number | undefined
-  }
+  capacity:
+    | number
+    | {
+        readonly capacity: number
+        readonly replay?: number | undefined
+      }
 ): Effect.Effect<PubSub<A>> =>
   make({
     atomicPubSub: () => makeAtomicBounded(capacity),
@@ -413,10 +406,12 @@ export const dropping = <A>(
  * @category constructors
  */
 export const sliding = <A>(
-  capacity: number | {
-    readonly capacity: number
-    readonly replay?: number | undefined
-  }
+  capacity:
+    | number
+    | {
+        readonly capacity: number
+        readonly replay?: number | undefined
+      }
 ): Effect.Effect<PubSub<A>> =>
   make({
     atomicPubSub: () => makeAtomicBounded(capacity),
@@ -456,9 +451,7 @@ export const sliding = <A>(
  * @since 2.0.0
  * @category constructors
  */
-export const unbounded = <A>(options?: {
-  readonly replay?: number | undefined
-}): Effect.Effect<PubSub<A>> =>
+export const unbounded = <A>(options?: { readonly replay?: number | undefined }): Effect.Effect<PubSub<A>> =>
   make({
     atomicPubSub: () => makeAtomicUnbounded(options),
     strategy: () => new DroppingStrategy()
@@ -471,10 +464,12 @@ export const unbounded = <A>(options?: {
  * @category constructors
  */
 export const makeAtomicBounded = <A>(
-  capacity: number | {
-    readonly capacity: number
-    readonly replay?: number | undefined
-  }
+  capacity:
+    | number
+    | {
+        readonly capacity: number
+        readonly replay?: number | undefined
+      }
 ): PubSub.Atomic<A> => {
   const options = typeof capacity === "number" ? { capacity } : capacity
   ensureCapacity(options.capacity)
@@ -494,9 +489,8 @@ export const makeAtomicBounded = <A>(
  * @since 4.0.0
  * @category constructors
  */
-export const makeAtomicUnbounded = <A>(options?: {
-  readonly replay?: number | undefined
-}): PubSub.Atomic<A> => new UnboundedPubSub(options?.replay ? new ReplayBuffer(options.replay) : undefined)
+export const makeAtomicUnbounded = <A>(options?: { readonly replay?: number | undefined }): PubSub.Atomic<A> =>
+  new UnboundedPubSub(options?.replay ? new ReplayBuffer(options.replay) : undefined)
 
 /**
  *  Returns the number of elements the queue can hold.
@@ -669,14 +663,16 @@ export const isEmpty = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.ma
  * @category lifecycle
  */
 export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
-  Effect.uninterruptible(Effect.withFiber((fiber) => {
-    MutableRef.set(self.shutdownFlag, true)
-    return Scope.close(self.scope, Exit.interrupt(fiber.id)).pipe(
-      Effect.andThen(self.strategy.shutdown),
-      Effect.when(self.shutdownHook.open),
-      Effect.asVoid
-    )
-  }))
+  Effect.uninterruptible(
+    Effect.withFiber((fiber) => {
+      MutableRef.set(self.shutdownFlag, true)
+      return Scope.close(self.scope, Exit.interrupt(fiber.id)).pipe(
+        Effect.andThen(self.strategy.shutdown),
+        Effect.when(self.shutdownHook.open),
+        Effect.asVoid
+      )
+    })
+  )
 
 /**
  * Returns `true` if `shutdown` has been called, otherwise returns `false`.
@@ -804,24 +800,22 @@ export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.s
 export const publish: {
   <A>(value: A): (self: PubSub<A>) => Effect.Effect<boolean>
   <A>(self: PubSub<A>, value: A): Effect.Effect<boolean>
-} = dual(2, <A>(self: PubSub<A>, value: A): Effect.Effect<boolean> =>
-  Effect.suspend(() => {
-    if (self.shutdownFlag.current) {
-      return Effect.interrupt
-    }
+} = dual(
+  2,
+  <A>(self: PubSub<A>, value: A): Effect.Effect<boolean> =>
+    Effect.suspend(() => {
+      if (self.shutdownFlag.current) {
+        return Effect.interrupt
+      }
 
-    if (self.pubsub.publish(value)) {
-      self.strategy.completeSubscribersUnsafe(self.pubsub, self.subscribers)
-      return Effect.succeed(true)
-    }
+      if (self.pubsub.publish(value)) {
+        self.strategy.completeSubscribersUnsafe(self.pubsub, self.subscribers)
+        return Effect.succeed(true)
+      }
 
-    return self.strategy.handleSurplus(
-      self.pubsub,
-      self.subscribers,
-      [value],
-      self.shutdownFlag
-    )
-  }))
+      return self.strategy.handleSurplus(self.pubsub, self.subscribers, [value], self.shutdownFlag)
+    })
+)
 
 /**
  * Publishes a message to the `PubSub`, returning whether the message was published
@@ -903,23 +897,21 @@ export const publishUnsafe: {
 export const publishAll: {
   <A>(elements: Iterable<A>): (self: PubSub<A>) => Effect.Effect<boolean>
   <A>(self: PubSub<A>, elements: Iterable<A>): Effect.Effect<boolean>
-} = dual(2, <A>(self: PubSub<A>, elements: Iterable<A>): Effect.Effect<boolean> =>
-  Effect.suspend(() => {
-    if (self.shutdownFlag.current) {
-      return Effect.interrupt
-    }
-    const surplus = self.pubsub.publishAll(elements)
-    self.strategy.completeSubscribersUnsafe(self.pubsub, self.subscribers)
-    if (surplus.length === 0) {
-      return Effect.succeed(true)
-    }
-    return self.strategy.handleSurplus(
-      self.pubsub,
-      self.subscribers,
-      surplus,
-      self.shutdownFlag
-    )
-  }))
+} = dual(
+  2,
+  <A>(self: PubSub<A>, elements: Iterable<A>): Effect.Effect<boolean> =>
+    Effect.suspend(() => {
+      if (self.shutdownFlag.current) {
+        return Effect.interrupt
+      }
+      const surplus = self.pubsub.publishAll(elements)
+      self.strategy.completeSubscribersUnsafe(self.pubsub, self.subscribers)
+      if (surplus.length === 0) {
+        return Effect.succeed(true)
+      }
+      return self.strategy.handleSurplus(self.pubsub, self.subscribers, surplus, self.shutdownFlag)
+    })
+)
 
 /**
  * Subscribes to receive messages from the `PubSub`. The resulting subscription can
@@ -978,11 +970,10 @@ const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
   Effect.uninterruptible(
     Effect.withFiber<void>((state) => {
       MutableRef.set(self.shutdownFlag, true)
-      return Effect.forEach(
-        MutableList.takeAll(self.pollers),
-        (d) => Deferred.interruptWith(d, state.id),
-        { discard: true, concurrency: "unbounded" }
-      ).pipe(
+      return Effect.forEach(MutableList.takeAll(self.pollers), (d) => Deferred.interruptWith(d, state.id), {
+        discard: true,
+        concurrency: "unbounded"
+      }).pipe(
         Effect.tap(() => {
           self.subscribers.delete(self.subscription)
           self.subscription.unsubscribe()
@@ -1035,9 +1026,7 @@ export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
       const message = self.replayWindow.take()!
       return Effect.succeed(message)
     }
-    const message = self.pollers.length === 0
-      ? self.subscription.poll()
-      : MutableList.Empty
+    const message = self.pollers.length === 0 ? self.subscription.poll() : MutableList.Empty
     if (message === MutableList.Empty) {
       return pollForItem(self)
     } else {
@@ -1078,9 +1067,7 @@ export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArr
     if (self.shutdownFlag.current) {
       return Effect.interrupt
     }
-    let as = self.pollers.length === 0
-      ? self.subscription.pollUpTo(Number.POSITIVE_INFINITY)
-      : []
+    let as = self.pollers.length === 0 ? self.subscription.pollUpTo(Number.POSITIVE_INFINITY) : []
     if (value) {
       as = value.concat(as)
     }
@@ -1102,19 +1089,11 @@ const pollForItem = <A>(self: Subscription<A>) => {
   }
   set.add(self.pollers)
   MutableList.append(self.pollers, deferred)
-  self.strategy.completePollersUnsafe(
-    self.pubsub,
-    self.subscribers,
-    self.subscription,
-    self.pollers
-  )
-  return Effect.onInterrupt(
-    Deferred.await(deferred),
-    () => {
-      MutableList.remove(self.pollers, deferred)
-      return Effect.void
-    }
-  )
+  self.strategy.completePollersUnsafe(self.pubsub, self.subscribers, self.subscription, self.pollers)
+  return Effect.onInterrupt(Deferred.await(deferred), () => {
+    MutableList.remove(self.pollers, deferred)
+    return Effect.void
+  })
 }
 
 /**
@@ -1155,22 +1134,23 @@ const pollForItem = <A>(self: Subscription<A>) => {
 export const takeUpTo: {
   (max: number): <A>(self: Subscription<A>) => Effect.Effect<Array<A>>
   <A>(self: Subscription<A>, max: number): Effect.Effect<Array<A>>
-} = dual(2, <A>(self: Subscription<A>, max: number): Effect.Effect<Array<A>> =>
-  Effect.suspend(() => {
-    if (self.shutdownFlag.current) return Effect.interrupt
-    let replay: Array<A> | undefined = undefined
-    if (self.replayWindow.remaining >= max) {
-      return Effect.succeed(self.replayWindow.takeN(max))
-    } else if (self.replayWindow.remaining > 0) {
-      replay = self.replayWindow.takeAll()
-      max = max - replay.length
-    }
-    const as = self.pollers.length === 0
-      ? self.subscription.pollUpTo(max)
-      : []
-    self.strategy.onPubSubEmptySpaceUnsafe(self.pubsub, self.subscribers)
-    return replay ? Effect.succeed(replay.concat(as)) : Effect.succeed(as)
-  }))
+} = dual(
+  2,
+  <A>(self: Subscription<A>, max: number): Effect.Effect<Array<A>> =>
+    Effect.suspend(() => {
+      if (self.shutdownFlag.current) return Effect.interrupt
+      let replay: Array<A> | undefined = undefined
+      if (self.replayWindow.remaining >= max) {
+        return Effect.succeed(self.replayWindow.takeN(max))
+      } else if (self.replayWindow.remaining > 0) {
+        replay = self.replayWindow.takeAll()
+        max = max - replay.length
+      }
+      const as = self.pollers.length === 0 ? self.subscription.pollUpTo(max) : []
+      self.strategy.onPubSubEmptySpaceUnsafe(self.pubsub, self.subscribers)
+      return replay ? Effect.succeed(replay.concat(as)) : Effect.succeed(as)
+    })
+)
 
 /**
  * Takes between the specified minimum and maximum number of messages from the subscription.
@@ -1234,12 +1214,7 @@ const takeRemainderLoop = <A>(
     if (remaining > 1) {
       return Effect.flatMap(take(self), (b) => {
         acc.push(b)
-        return takeRemainderLoop(
-          self,
-          remaining - 1,
-          max - bs.length - 1,
-          acc
-        )
+        return takeRemainderLoop(self, remaining - 1, max - bs.length - 1, acc)
       })
     }
     return Effect.succeed(acc)
@@ -1471,11 +1446,7 @@ class BoundedPubSubArbSubscription<in out A> implements PubSub.BackingSubscripti
   private subscriberIndex: number
   private unsubscribed: boolean
 
-  constructor(
-    self: BoundedPubSubArb<A>,
-    subscriberIndex: number,
-    unsubscribed: boolean
-  ) {
+  constructor(self: BoundedPubSubArb<A>, subscriberIndex: number, unsubscribed: boolean) {
     this.self = self
     this.subscriberIndex = subscriberIndex
     this.unsubscribed = unsubscribed
@@ -1664,11 +1635,7 @@ class BoundedPubSubPow2Subscription<in out A> implements PubSub.BackingSubscript
   private subscriberIndex: number
   private unsubscribed: boolean
 
-  constructor(
-    self: BoundedPubSubPow2<A>,
-    subscriberIndex: number,
-    unsubscribed: boolean
-  ) {
+  constructor(self: BoundedPubSubPow2<A>, subscriberIndex: number, unsubscribed: boolean) {
     this.self = self
     this.subscriberIndex = subscriberIndex
     this.unsubscribed = unsubscribed
@@ -1839,22 +1806,14 @@ class BoundedPubSubSingleSubscription<in out A> implements PubSub.BackingSubscri
   private subscriberIndex: number
   private unsubscribed: boolean
 
-  constructor(
-    self: BoundedPubSubSingle<A>,
-    subscriberIndex: number,
-    unsubscribed: boolean
-  ) {
+  constructor(self: BoundedPubSubSingle<A>, subscriberIndex: number, unsubscribed: boolean) {
     this.self = self
     this.subscriberIndex = subscriberIndex
     this.unsubscribed = unsubscribed
   }
 
   isEmpty(): boolean {
-    return (
-      this.unsubscribed ||
-      this.self.subscribers === 0 ||
-      this.subscriberIndex === this.self.publisherIndex
-    )
+    return this.unsubscribed || this.self.subscribers === 0 || this.subscriberIndex === this.self.publisherIndex
   }
 
   size() {
@@ -1981,12 +1940,7 @@ class UnboundedPubSub<in out A> implements PubSub.Atomic<A> {
 
   subscribe(): PubSub.BackingSubscription<A> {
     this.publisherTail.subscribers += 1
-    return new UnboundedPubSubSubscription(
-      this,
-      this.publisherTail,
-      this.publisherIndex,
-      false
-    )
+    return new UnboundedPubSubSubscription(this, this.publisherTail, this.publisherIndex, false)
   }
 }
 
@@ -1996,12 +1950,7 @@ class UnboundedPubSubSubscription<in out A> implements PubSub.BackingSubscriptio
   private subscriberIndex: number
   private unsubscribed: boolean
 
-  constructor(
-    self: UnboundedPubSub<A>,
-    subscriberHead: Node<A>,
-    subscriberIndex: number,
-    unsubscribed: boolean
-  ) {
+  constructor(self: UnboundedPubSub<A>, subscriberHead: Node<A>, subscriberIndex: number, unsubscribed: boolean) {
     this.self = self
     this.subscriberHead = subscriberHead
     this.subscriberIndex = subscriberIndex
@@ -2201,15 +2150,13 @@ const ensureCapacity = (capacity: number): void => {
  * @category models
  */
 export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
-  publishers: MutableList.MutableList<
-    readonly [A, Deferred.Deferred<boolean>, boolean]
-  > = MutableList.make()
+  publishers: MutableList.MutableList<readonly [A, Deferred.Deferred<boolean>, boolean]> = MutableList.make()
 
   get shutdown(): Effect.Effect<void> {
     return Effect.withFiber((fiber) =>
       Effect.forEach(
         MutableList.takeAll(this.publishers),
-        ([_, deferred, last]) => last ? Deferred.interruptWith(deferred, fiber.id) : Effect.void,
+        ([_, deferred, last]) => (last ? Deferred.interruptWith(deferred, fiber.id) : Effect.void),
         { concurrency: "unbounded", discard: true }
       )
     )
@@ -2235,10 +2182,7 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
     })
   }
 
-  onPubSubEmptySpaceUnsafe(
-    pubsub: PubSub.Atomic<A>,
-    subscribers: PubSub.Subscribers<A>
-  ): void {
+  onPubSubEmptySpaceUnsafe(pubsub: PubSub.Atomic<A>, subscribers: PubSub.Subscribers<A>): void {
     let keepPolling = true
     while (keepPolling && !pubsub.isFull()) {
       const publisher = MutableList.take(this.publishers)
@@ -2348,10 +2292,7 @@ export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
     return Effect.succeed(false)
   }
 
-  onPubSubEmptySpaceUnsafe(
-    _pubsub: PubSub.Atomic<A>,
-    _subscribers: PubSub.Subscribers<A>
-  ): void {
+  onPubSubEmptySpaceUnsafe(_pubsub: PubSub.Atomic<A>, _subscribers: PubSub.Subscribers<A>): void {
     //
   }
 
@@ -2427,10 +2368,7 @@ export class SlidingStrategy<in out A> implements PubSub.Strategy<A> {
     })
   }
 
-  onPubSubEmptySpaceUnsafe(
-    _pubsub: PubSub.Atomic<A>,
-    _subscribers: PubSub.Subscribers<A>
-  ): void {
+  onPubSubEmptySpaceUnsafe(_pubsub: PubSub.Atomic<A>, _subscribers: PubSub.Subscribers<A>): void {
     //
   }
 
@@ -2500,9 +2438,7 @@ const strategyCompleteSubscribersUnsafe = <A>(
   pubsub: PubSub.Atomic<A>,
   subscribers: PubSub.Subscribers<A>
 ): void => {
-  for (
-    const [subscription, pollersSet] of subscribers
-  ) {
+  for (const [subscription, pollersSet] of subscribers) {
     for (const pollers of pollersSet) {
       strategy.completePollersUnsafe(pubsub, subscribers, subscription, pollers)
     }

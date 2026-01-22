@@ -338,13 +338,8 @@ export const LogToStderr: ServiceMap.Reference<boolean> = effect.LogToStderr
 export const map = dual<
   <Output, Output2>(
     f: (output: Output) => Output2
-  ) => <Message>(
-    self: Logger<Message, Output>
-  ) => Logger<Message, Output2>,
-  <Message, Output, Output2>(
-    self: Logger<Message, Output>,
-    f: (output: Output) => Output2
-  ) => Logger<Message, Output2>
+  ) => <Message>(self: Logger<Message, Output>) => Logger<Message, Output2>,
+  <Message, Output, Output2>(self: Logger<Message, Output>, f: (output: Output) => Output2) => Logger<Message, Output2>
 >(2, (self, f) => effect.loggerMake((options) => f(self.log(options))))
 
 /**
@@ -374,9 +369,7 @@ export const map = dual<
  * @since 2.0.0
  * @category utils
  */
-export const withConsoleLog = <Message, Output>(
-  self: Logger<Message, Output>
-): Logger<Message, void> =>
+export const withConsoleLog = <Message, Output>(self: Logger<Message, Output>): Logger<Message, void> =>
   effect.loggerMake((options) => {
     const console = options.fiber.getRef(effect.ConsoleRef)
     return console.log(self.log(options))
@@ -408,9 +401,7 @@ export const withConsoleLog = <Message, Output>(
  * @since 2.0.0
  * @category utils
  */
-export const withConsoleError = <Message, Output>(
-  self: Logger<Message, Output>
-): Logger<Message, void> =>
+export const withConsoleError = <Message, Output>(self: Logger<Message, Output>): Logger<Message, void> =>
   effect.loggerMake((options) => {
     const console = options.fiber.getRef(effect.ConsoleRef)
     return console.error(self.log(options))
@@ -452,9 +443,7 @@ export const withConsoleError = <Message, Output>(
  * @since 2.0.0
  * @category utils
  */
-export const withLeveledConsole = <Message, Output>(
-  self: Logger<Message, Output>
-): Logger<Message, void> =>
+export const withLeveledConsole = <Message, Output>(self: Logger<Message, Output>): Logger<Message, void> =>
   effect.loggerMake((options) => {
     const console = options.fiber.getRef(effect.ConsoleRef)
     const output = self.log(options)
@@ -497,41 +486,39 @@ const formatFiberId = (fiberId: number) => `#${fiberId}`
  *
  * @internal
  */
-const format = (
-  quoteValue: (s: string) => string,
-  space?: number | string | undefined
-) =>
-({ cause, date, fiber, logLevel, message }: Logger.Options<unknown>): string => {
-  const formatValue = (value: string): string => value.match(textOnly) ? value : quoteValue(value)
-  const format = (label: string, value: string): string => `${effect.formatLabel(label)}=${formatValue(value)}`
-  const append = (label: string, value: string): string => " " + format(label, value)
+const format =
+  (quoteValue: (s: string) => string, space?: number | string | undefined) =>
+  ({ cause, date, fiber, logLevel, message }: Logger.Options<unknown>): string => {
+    const formatValue = (value: string): string => (value.match(textOnly) ? value : quoteValue(value))
+    const format = (label: string, value: string): string => `${effect.formatLabel(label)}=${formatValue(value)}`
+    const append = (label: string, value: string): string => " " + format(label, value)
 
-  let out = format("timestamp", date.toISOString())
-  out += append("level", logLevel)
-  out += append("fiber", formatFiberId(fiber.id))
+    let out = format("timestamp", date.toISOString())
+    out += append("level", logLevel)
+    out += append("fiber", formatFiberId(fiber.id))
 
-  const messages = Array.ensure(message)
-  for (let i = 0; i < messages.length; i++) {
-    out += append("message", Formatter.format(messages[i], { space }))
+    const messages = Array.ensure(message)
+    for (let i = 0; i < messages.length; i++) {
+      out += append("message", Formatter.format(messages[i], { space }))
+    }
+
+    if (cause.failures.length > 0) {
+      out += append("cause", effect.causePretty(cause))
+    }
+
+    const now = date.getTime()
+    const spans = fiber.getRef(CurrentLogSpans)
+    for (const span of spans) {
+      out += " " + effect.formatLogSpan(span, now)
+    }
+
+    const annotations = fiber.getRef(CurrentLogAnnotations)
+    for (const [label, value] of Object.entries(annotations)) {
+      out += append(label, Formatter.format(value, { space }))
+    }
+
+    return out
   }
-
-  if (cause.failures.length > 0) {
-    out += append("cause", effect.causePretty(cause))
-  }
-
-  const now = date.getTime()
-  const spans = fiber.getRef(CurrentLogSpans)
-  for (const span of spans) {
-    out += " " + effect.formatLogSpan(span, now)
-  }
-
-  const annotations = fiber.getRef(CurrentLogAnnotations)
-  for (const [label, value] of Object.entries(annotations)) {
-    out += append(label, Formatter.format(value, { space }))
-  }
-
-  return out
-}
 
 /**
  * Creates a new `Logger` from a log function.
@@ -574,9 +561,8 @@ const format = (
  * @since 2.0.0
  * @category constructors
  */
-export const make: <Message, Output>(
-  log: (options: Logger.Options<Message>) => Output
-) => Logger<Message, Output> = effect.loggerMake
+export const make: <Message, Output>(log: (options: Logger.Options<Message>) => Output) => Logger<Message, Output> =
+  effect.loggerMake
 
 /**
  * The default logging implementation used by the Effect runtime.
@@ -725,15 +711,18 @@ export const formatLogFmt = effect.loggerMake(format(JSON.stringify, 0))
  * @since 4.0.0
  * @category constructors
  */
-export const formatStructured: Logger<unknown, {
-  readonly level: string
-  readonly fiberId: string
-  readonly timestamp: string
-  readonly message: unknown
-  readonly cause: string | undefined
-  readonly annotations: Record<string, unknown>
-  readonly spans: Record<string, number>
-}> = effect.loggerMake(({ cause, date, fiber, logLevel, message }) => {
+export const formatStructured: Logger<
+  unknown,
+  {
+    readonly level: string
+    readonly fiberId: string
+    readonly timestamp: string
+    readonly message: unknown
+    readonly cause: string | undefined
+    readonly annotations: Record<string, unknown>
+    readonly spans: Record<string, number>
+  }
+> = effect.loggerMake(({ cause, date, fiber, logLevel, message }) => {
   const annotationsObj: Record<string, unknown> = {}
   const spansObj: Record<string, number> = {}
 
@@ -750,9 +739,8 @@ export const formatStructured: Logger<unknown, {
 
   const messageArr = Array.ensure(message)
   return {
-    message: messageArr.length === 1
-      ? effect.structuredMessage(messageArr[0])
-      : messageArr.map(effect.structuredMessage),
+    message:
+      messageArr.length === 1 ? effect.structuredMessage(messageArr[0]) : messageArr.map(effect.structuredMessage),
     level: logLevel.toUpperCase(),
     timestamp: date.toISOString(),
     cause: cause.failures.length > 0 ? effect.causePretty(cause) : undefined,
@@ -863,9 +851,7 @@ export const batched = dual<
   <Output>(options: {
     readonly window: Duration.DurationInput
     readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
-  }) => <Message>(
-    self: Logger<Message, Output>
-  ) => Effect.Effect<Logger<Message, void>, never, Scope.Scope>,
+  }) => <Message>(self: Logger<Message, Output>) => Effect.Effect<Logger<Message, void>, never, Scope.Scope>,
   <Message, Output>(
     self: Logger<Message, Output>,
     options: {
@@ -873,42 +859,40 @@ export const batched = dual<
       readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
     }
   ) => Effect.Effect<Logger<Message, void>, never, Scope.Scope>
->(2, <Message, Output>(
-  self: Logger<Message, Output>,
-  options: {
-    readonly window: Duration.DurationInput
-    readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
-  }
-): Effect.Effect<Logger<Message, void>, never, Scope.Scope> =>
-  effect.flatMap(effect.scope, (scope) => {
-    let buffer: Array<Output> = []
-    const flush = effect.suspend(() => {
-      if (buffer.length === 0) {
-        return effect.void
-      }
-      const arr = buffer
-      buffer = []
-      return options.flush(arr)
-    })
+>(
+  2,
+  <Message, Output>(
+    self: Logger<Message, Output>,
+    options: {
+      readonly window: Duration.DurationInput
+      readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
+    }
+  ): Effect.Effect<Logger<Message, void>, never, Scope.Scope> =>
+    effect.flatMap(effect.scope, (scope) => {
+      let buffer: Array<Output> = []
+      const flush = effect.suspend(() => {
+        if (buffer.length === 0) {
+          return effect.void
+        }
+        const arr = buffer
+        buffer = []
+        return options.flush(arr)
+      })
 
-    return effect.uninterruptibleMask((restore) =>
-      restore(
-        effect.sleep(options.window).pipe(
-          effect.andThen(flush),
-          effect.forever
-        )
-      ).pipe(
-        effect.forkDetach,
-        effect.flatMap((fiber) => effect.scopeAddFinalizerExit(scope, () => effect.fiberInterrupt(fiber))),
-        effect.andThen(effect.addFinalizer(() => flush)),
-        effect.as(
-          effect.loggerMake((options) => {
-            buffer.push(self.log(options))
-          })
+      return effect.uninterruptibleMask((restore) =>
+        restore(effect.sleep(options.window).pipe(effect.andThen(flush), effect.forever)).pipe(
+          effect.forkDetach,
+          effect.flatMap((fiber) => effect.scopeAddFinalizerExit(scope, () => effect.fiberInterrupt(fiber))),
+          effect.andThen(effect.addFinalizer(() => flush)),
+          effect.as(
+            effect.loggerMake((options) => {
+              buffer.push(self.log(options))
+            })
+          )
         )
       )
-    )
-  }))
+    })
+)
 
 /**
  * A `Logger` which outputs logs in a "pretty" format and writes them to the
@@ -955,14 +939,12 @@ export const batched = dual<
  * @since 4.0.0
  * @category constructors
  */
-export const consolePretty: (
-  options?: {
-    readonly colors?: "auto" | boolean | undefined
-    readonly stderr?: boolean | undefined
-    readonly formatDate?: ((date: Date) => string) | undefined
-    readonly mode?: "browser" | "tty" | "auto" | undefined
-  }
-) => Logger<unknown, void> = effect.consolePretty
+export const consolePretty: (options?: {
+  readonly colors?: "auto" | boolean | undefined
+  readonly stderr?: boolean | undefined
+  readonly formatDate?: ((date: Date) => string) | undefined
+  readonly mode?: "browser" | "tty" | "auto" | undefined
+}) => Logger<unknown, void> = effect.consolePretty
 
 /**
  * A `Logger` which outputs logs using the [logfmt](https://brandur.org/logfmt)
@@ -1226,19 +1208,18 @@ export const layer = <
 ): Layer.Layer<
   never,
   Loggers extends readonly [] ? never : Effect.Error<Loggers[number]>,
-  Exclude<
-    Loggers extends readonly [] ? never : Effect.Services<Loggers[number]>,
-    Scope.Scope
-  >
+  Exclude<Loggers extends readonly [] ? never : Effect.Services<Loggers[number]>, Scope.Scope>
 > =>
   Layer.effectServices(
-    withFiber(effect.fnUntraced(function*(fiber) {
-      const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(effect.CurrentLoggers) : [])
-      for (const logger of loggers) {
-        currentLoggers.add(isEffect(logger) ? yield* logger : logger)
-      }
-      return ServiceMap.make(effect.CurrentLoggers, currentLoggers)
-    }))
+    withFiber(
+      effect.fnUntraced(function* (fiber) {
+        const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(effect.CurrentLoggers) : [])
+        for (const logger of loggers) {
+          currentLoggers.add(isEffect(logger) ? yield* logger : logger)
+        }
+        return ServiceMap.make(effect.CurrentLoggers, currentLoggers)
+      })
+    )
   )
 
 /**
@@ -1328,27 +1309,31 @@ export const layer = <
 export const toFile = dual<
   (
     path: string,
-    options?: {
-      readonly flag?: FileSystem.OpenFlag | undefined
-      readonly mode?: number | undefined
-      readonly batchWindow?: Duration.DurationInput | undefined
-    } | undefined
+    options?:
+      | {
+          readonly flag?: FileSystem.OpenFlag | undefined
+          readonly mode?: number | undefined
+          readonly batchWindow?: Duration.DurationInput | undefined
+        }
+      | undefined
   ) => <Message>(
     self: Logger<Message, string>
   ) => Effect.Effect<Logger<Message, void>, PlatformError, Scope.Scope | FileSystem.FileSystem>,
   <Message>(
     self: Logger<Message, string>,
     path: string,
-    options?: {
-      readonly flag?: FileSystem.OpenFlag | undefined
-      readonly mode?: number | undefined
-      readonly batchWindow?: Duration.DurationInput | undefined
-    } | undefined
+    options?:
+      | {
+          readonly flag?: FileSystem.OpenFlag | undefined
+          readonly mode?: number | undefined
+          readonly batchWindow?: Duration.DurationInput | undefined
+        }
+      | undefined
   ) => Effect.Effect<Logger<Message, void>, PlatformError, Scope.Scope | FileSystem.FileSystem>
 >(
   (args) => isLogger(args[0]),
   (self, path, options) =>
-    effect.gen(function*() {
+    effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const logFile = yield* fs.open(path, { flag: "a+", ...options })
       const encoder = new TextEncoder()

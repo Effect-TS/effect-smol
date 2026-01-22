@@ -10,9 +10,7 @@ import * as Html from "./internal/html.ts"
 import * as internal from "./internal/httpApiSwagger.ts"
 import * as OpenApi from "./OpenApi.ts"
 
-const makeHandler = (options: {
-  readonly api: HttpApi.AnyWithProps
-}) => {
+const makeHandler = (options: { readonly api: HttpApi.AnyWithProps }) => {
   const spec = OpenApi.fromApi(options.api)
   const response = HttpServerResponse.html(`<!DOCTYPE html>
 <html lang="en">
@@ -55,7 +53,9 @@ export const layer = (
     readonly path?: `/${string}` | undefined
   }
 ): Layer.Layer<never, never, HttpRouter.HttpRouter> =>
-  HttpRouter.use(Effect.fnUntraced(function*(router) {
-    const handler = makeHandler({ api })
-    yield* router.add("GET", options?.path ?? "/docs", handler)
-  }))
+  HttpRouter.use(
+    Effect.fnUntraced(function* (router) {
+      const handler = makeHandler({ api })
+      yield* router.add("GET", options?.path ?? "/docs", handler)
+    })
+  )

@@ -21,8 +21,7 @@
     <center>
       <h1>code 2 jsdoc @example</h1>
       <p>
-        Given an example pasted in the left textarea, will generate a result
-        ready to be pasted into a JSDoc comment.
+        Given an example pasted in the left textarea, will generate a result ready to be pasted into a JSDoc comment.
       </p>
       <div id="app">
         <textarea
@@ -31,8 +30,7 @@
           rows="40"
           onkeyup="document.getElementById('comment').value = t(this.value)"
         ></textarea>
-        <textarea id="comment" cols="80" rows="40" style="color: green">
-        </textarea>
+        <textarea id="comment" cols="80" rows="40" style="color: green"> </textarea>
       </div>
     </center>
     <script>
@@ -41,28 +39,19 @@
 
       function t(src) {
         // Replace multiline comments with lines prefixed by '// ' and preserve indentation
-        const withoutMultilineComments = src.replace(
-          /\/\*([\s\S]*?)\*\//g,
-          (_, content) => {
-            const commentLines = content
-              .split("\n")
-              .filter((line) => line.trim() !== "")
-            return commentLines
-              .map((line) => {
-                const trimmedLine = line.replace(/^\s*\*/, "").trim()
-                const indent = line.match(/^\s*/)[0]
-                return `// ${indent}${trimmedLine}`
-              })
-              .join("\n")
-          }
-        )
+        const withoutMultilineComments = src.replace(/\/\*([\s\S]*?)\*\//g, (_, content) => {
+          const commentLines = content.split("\n").filter((line) => line.trim() !== "")
+          return commentLines
+            .map((line) => {
+              const trimmedLine = line.replace(/^\s*\*/, "").trim()
+              const indent = line.match(/^\s*/)[0]
+              return `// ${indent}${trimmedLine}`
+            })
+            .join("\n")
+        })
 
-        const lines = withoutMultilineComments
-          .split("\n")
-          .map((line) => " * " + line)
-        return (
-          " *\n * @example\n * ```ts\n" + lines.join("\n") + "\n * ```\n *\n"
-        )
+        const lines = withoutMultilineComments.split("\n").map((line) => " * " + line)
+        return " *\n * @example\n * ```ts\n" + lines.join("\n") + "\n * ```\n *\n"
       }
     </script>
   </body>

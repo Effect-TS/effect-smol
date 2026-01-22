@@ -4,10 +4,7 @@ import madge from "madge"
 
 madge(
   glob.globSync(["packages/*/src/**/*.ts", "packages/ai/*/src/**/*.ts"], {
-    ignore: [
-      "packages/sql-sqlite-bun/**",
-      "packages/experimental/src/EventLogServer/Cloudflare.ts"
-    ]
+    ignore: ["packages/sql-sqlite-bun/**", "packages/experimental/src/EventLogServer/Cloudflare.ts"]
   }),
   {
     detectiveOptions: {

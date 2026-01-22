@@ -62,9 +62,7 @@ import * as Prompt from "./Prompt.ts"
  * @since 4.0.0
  * @category services
  */
-export class Tokenizer extends ServiceMap.Service<Tokenizer, Service>()(
-  "effect/ai/Tokenizer"
-) {}
+export class Tokenizer extends ServiceMap.Service<Tokenizer, Service>()("effect/ai/Tokenizer") {}
 
 /**
  * Tokenizer service interface providing text tokenization and truncation

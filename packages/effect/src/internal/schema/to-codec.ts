@@ -21,9 +21,7 @@ function toCodecJsonBase(ast: AST.AST): AST.AST {
     case "Declaration": {
       const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.toCodec
       if (Predicate.isFunction(getLink)) {
-        const tps = AST.isDeclaration(ast)
-          ? ast.typeParameters.map((tp) => InternalSchema.make(AST.toEncoded(tp)))
-          : []
+        const tps = AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => InternalSchema.make(AST.toEncoded(tp))) : []
         const link = getLink(tps)
         const to = toCodecJson(link.to)
         return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
@@ -49,14 +47,9 @@ function toCodecJsonBase(ast: AST.AST): AST.AST {
     case "Union": {
       const sortedTypes = jsonReorder(ast.types)
       if (sortedTypes !== ast.types) {
-        return new AST.Union(
-          sortedTypes,
-          ast.mode,
-          ast.annotations,
-          ast.checks,
-          ast.encoding,
-          ast.context
-        ).recur(toCodecJson)
+        return new AST.Union(sortedTypes, ast.mode, ast.annotations, ast.checks, ast.encoding, ast.context).recur(
+          toCodecJson
+        )
       }
       return ast.recur(toCodecJson)
     }

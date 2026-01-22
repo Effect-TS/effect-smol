@@ -5,9 +5,11 @@ import { Effect, Layer, ManagedRuntime, ServiceMap } from "effect"
 describe("ManagedRuntime", () => {
   test("memoizes the layer build", async () => {
     let count = 0
-    const layer = Layer.effectDiscard(Effect.sync(() => {
-      count++
-    }))
+    const layer = Layer.effectDiscard(
+      Effect.sync(() => {
+        count++
+      })
+    )
     const runtime = ManagedRuntime.make(layer)
     await runtime.runPromise(Effect.void)
     await runtime.runPromise(Effect.void)
@@ -26,9 +28,11 @@ describe("ManagedRuntime", () => {
 
   test("allows sharing a MemoMap", async () => {
     let count = 0
-    const layer = Layer.effectDiscard(Effect.sync(() => {
-      count++
-    }))
+    const layer = Layer.effectDiscard(
+      Effect.sync(() => {
+        count++
+      })
+    )
     const runtimeA = ManagedRuntime.make(layer)
     const runtimeB = ManagedRuntime.make(layer, { memoMap: runtimeA.memoMap })
     await runtimeA.runPromise(Effect.void)

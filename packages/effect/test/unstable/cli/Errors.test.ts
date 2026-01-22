@@ -12,17 +12,12 @@ const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
 const SpawnerLayer = Layer.mock(ChildProcessSpawner)({})
 
-const TestLayer = Layer.mergeAll(
-  FileSystemLayer,
-  PathLayer,
-  TerminalLayer,
-  SpawnerLayer
-)
+const TestLayer = Layer.mergeAll(FileSystemLayer, PathLayer, TerminalLayer, SpawnerLayer)
 
 describe("Command errors", () => {
   describe("parse", () => {
     it.effect("fails with MissingOption when a required flag is absent", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const command = Command.make("needs-value", {
           value: Flag.string("value")
         })
@@ -31,7 +26,8 @@ describe("Command errors", () => {
         const error = yield* Effect.flip(toImpl(command).parse(parsedInput))
         assert.instanceOf(error, CliError.MissingOption)
         assert.strictEqual(error.option, "value")
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
 
     it("throws DuplicateOption when parent and child reuse a flag name", () => {
       const parent = Command.make("parent", {
@@ -55,33 +51,26 @@ describe("Command errors", () => {
     })
 
     it.effect("accumulates multiple UnrecognizedOption errors", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const command = Command.make("test", {
           verbose: Flag.boolean("verbose")
         })
 
-        const parsedInput = yield* Parser.parseArgs(
-          Lexer.lex(["--unknown1", "--unknown2"]),
-          command
-        )
+        const parsedInput = yield* Parser.parseArgs(Lexer.lex(["--unknown1", "--unknown2"]), command)
 
         assert.isDefined(parsedInput.errors)
         assert.strictEqual(parsedInput.errors!.length, 2)
         assert.instanceOf(parsedInput.errors![0], CliError.UnrecognizedOption)
         assert.instanceOf(parsedInput.errors![1], CliError.UnrecognizedOption)
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
 
     it.effect("accumulates UnknownSubcommand error", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const sub = Command.make("deploy")
-        const command = Command.make("app").pipe(
-          Command.withSubcommands([sub])
-        )
+        const command = Command.make("app").pipe(Command.withSubcommands([sub]))
 
-        const parsedInput = yield* Parser.parseArgs(
-          Lexer.lex(["deplyo"]),
-          command
-        )
+        const parsedInput = yield* Parser.parseArgs(Lexer.lex(["deplyo"]), command)
 
         assert.isDefined(parsedInput.errors)
         assert.strictEqual(parsedInput.errors!.length, 1)
@@ -90,7 +79,8 @@ describe("Command errors", () => {
         const error = parsedInput.errors![0] as CliError.UnknownSubcommand
         assert.strictEqual(error.subcommand, "deplyo")
         assert.isTrue(error.suggestions.includes("deploy"))
-      }).pipe(Effect.provide(TestLayer)))
+      }).pipe(Effect.provide(TestLayer))
+    )
   })
 
   describe("formatErrors", () => {

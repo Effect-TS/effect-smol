@@ -123,7 +123,7 @@ export interface Success<out A, out E> extends Pipeable, Inspectable, Yieldable<
  * @since 4.0.0
  */
 export interface ResultUnify<T extends { [Unify.typeSymbol]?: any }> {
-  Result?: () => T[Unify.typeSymbol] extends Result<infer A, infer E> | infer _ ? Result<A, E> : never
+  Result?: () => T[Unify.typeSymbol] extends Result<infer A, infer E> | (infer _) ? Result<A, E> : never
 }
 
 /**
@@ -330,18 +330,15 @@ export const fromOption: {
 } = result.fromOption
 
 const try_: {
-  <A, E>(
-    options: {
-      readonly try: LazyArg<A>
-      readonly catch: (error: unknown) => E
-    }
-  ): Result<A, E>
+  <A, E>(options: { readonly try: LazyArg<A>; readonly catch: (error: unknown) => E }): Result<A, E>
   <A>(evaluate: LazyArg<A>): Result<A, unknown>
 } = <A, E>(
-  evaluate: LazyArg<A> | {
-    readonly try: LazyArg<A>
-    readonly catch: (error: unknown) => E
-  }
+  evaluate:
+    | LazyArg<A>
+    | {
+        readonly try: LazyArg<A>
+        readonly catch: (error: unknown) => E
+      }
 ) => {
   if (isFunction(evaluate)) {
     try {
@@ -505,9 +502,7 @@ export const makeEquivalence = <A, E>(
   failure: Equivalence.Equivalence<E>
 ): Equivalence.Equivalence<Result<A, E>> =>
   Equivalence.make((x, y) =>
-    isFailure(x) ?
-      isFailure(y) && failure(x.failure, y.failure) :
-      isSuccess(y) && success(x.success, y.success)
+    isFailure(x) ? isFailure(y) && failure(x.failure, y.failure) : isSuccess(y) && success(x.success, y.success)
   )
 
 /**
@@ -545,16 +540,25 @@ export const mapBoth: {
     readonly onFailure: (left: E) => E2
     readonly onSuccess: (right: A) => A2
   }): (self: Result<A, E>) => Result<A2, E2>
-  <E, A, E2, A2>(self: Result<A, E>, options: {
-    readonly onFailure: (left: E) => E2
-    readonly onSuccess: (right: A) => A2
-  }): Result<A2, E2>
+  <E, A, E2, A2>(
+    self: Result<A, E>,
+    options: {
+      readonly onFailure: (left: E) => E2
+      readonly onSuccess: (right: A) => A2
+    }
+  ): Result<A2, E2>
 } = dual(
   2,
-  <E, A, E2, A2>(self: Result<A, E>, { onFailure, onSuccess }: {
-    readonly onFailure: (left: E) => E2
-    readonly onSuccess: (right: A) => A2
-  }): Result<A2, E2> => isFailure(self) ? fail(onFailure(self.failure)) : succeed(onSuccess(self.success))
+  <E, A, E2, A2>(
+    self: Result<A, E>,
+    {
+      onFailure,
+      onSuccess
+    }: {
+      readonly onFailure: (left: E) => E2
+      readonly onSuccess: (right: A) => A2
+    }
+  ): Result<A2, E2> => (isFailure(self) ? fail(onFailure(self.failure)) : succeed(onSuccess(self.success)))
 )
 
 /**
@@ -659,16 +663,25 @@ export const match: {
     readonly onFailure: (error: E) => B
     readonly onSuccess: (ok: A) => C
   }): (self: Result<A, E>) => B | C
-  <A, E, B, C = B>(self: Result<A, E>, options: {
-    readonly onFailure: (error: E) => B
-    readonly onSuccess: (ok: A) => C
-  }): B | C
+  <A, E, B, C = B>(
+    self: Result<A, E>,
+    options: {
+      readonly onFailure: (error: E) => B
+      readonly onSuccess: (ok: A) => C
+    }
+  ): B | C
 } = dual(
   2,
-  <A, E, B, C = B>(self: Result<A, E>, { onFailure, onSuccess }: {
-    readonly onFailure: (error: E) => B
-    readonly onSuccess: (ok: A) => C
-  }): B | C => isFailure(self) ? onFailure(self.failure) : onSuccess(self.success)
+  <A, E, B, C = B>(
+    self: Result<A, E>,
+    {
+      onFailure,
+      onSuccess
+    }: {
+      readonly onFailure: (error: E) => B
+      readonly onSuccess: (ok: A) => C
+    }
+  ): B | C => (isFailure(self) ? onFailure(self.failure) : onSuccess(self.success))
 )
 
 /**
@@ -703,20 +716,9 @@ export const match: {
  */
 export const liftPredicate: {
   <A, B extends A, E>(refinement: Refinement<A, B>, orFailWith: (a: A) => E): (a: A) => Result<B, E>
-  <B extends A, E, A = B>(
-    predicate: Predicate<A>,
-    orFailWith: (a: A) => E
-  ): (a: B) => Result<B, E>
-  <A, E, B extends A>(
-    self: A,
-    refinement: Refinement<A, B>,
-    orFailWith: (a: A) => E
-  ): Result<B, E>
-  <B extends A, E, A = B>(
-    self: B,
-    predicate: Predicate<A>,
-    orFailWith: (a: A) => E
-  ): Result<B, E>
+  <B extends A, E, A = B>(predicate: Predicate<A>, orFailWith: (a: A) => E): (a: B) => Result<B, E>
+  <A, E, B extends A>(self: A, refinement: Refinement<A, B>, orFailWith: (a: A) => E): Result<B, E>
+  <B extends A, E, A = B>(self: B, predicate: Predicate<A>, orFailWith: (a: A) => E): Result<B, E>
 } = dual(
   3,
   <A, E>(a: A, predicate: Predicate<A>, orFailWith: (a: A) => E): Result<A, E> =>
@@ -768,11 +770,11 @@ export const filterOrFail: {
     orFailWith: (value: A) => E2
   ): Result<B, E | E2>
   <A, E, E2>(self: Result<A, E>, predicate: Predicate<A>, orFailWith: (value: A) => E2): Result<A, E | E2>
-} = dual(3, <A, E, E2>(
-  self: Result<A, E>,
-  predicate: Predicate<A>,
-  orFailWith: (value: A) => E2
-): Result<A, E | E2> => flatMap(self, (a) => predicate(a) ? succeed(a) : fail(orFailWith(a))))
+} = dual(
+  3,
+  <A, E, E2>(self: Result<A, E>, predicate: Predicate<A>, orFailWith: (value: A) => E2): Result<A, E | E2> =>
+    flatMap(self, (a) => (predicate(a) ? succeed(a) : fail(orFailWith(a))))
+)
 
 /**
  * Returns the value from a `Result`, merging the success and failure cases.
@@ -818,10 +820,8 @@ export const merge: <A, E>(self: Result<A, E>) => E | A = match({ onFailure: ide
 export const getOrElse: {
   <E, A2>(onFailure: (err: E) => A2): <A>(self: Result<A, E>) => A2 | A
   <A, E, A2>(self: Result<A, E>, onFailure: (err: E) => A2): A | A2
-} = dual(
-  2,
-  <A, E, A2>(self: Result<A, E>, onFailure: (err: E) => A2): A | A2 =>
-    isFailure(self) ? onFailure(self.failure) : self.success
+} = dual(2, <A, E, A2>(self: Result<A, E>, onFailure: (err: E) => A2): A | A2 =>
+  isFailure(self) ? onFailure(self.failure) : self.success
 )
 
 /**
@@ -1012,10 +1012,7 @@ export const andThen: {
   <A, E, A2>(self: Result<A, E>, f: NotFunction<A2>): Result<A2, E>
 } = dual(
   2,
-  <A, E, A2, E2>(
-    self: Result<A, E>,
-    f: ((a: A) => Result<A2, E2> | A2) | Result<A2, E2> | A2
-  ): Result<A2, E | E2> =>
+  <A, E, A2, E2>(self: Result<A, E>, f: ((a: A) => Result<A2, E2> | A2) | Result<A2, E2> | A2): Result<A2, E | E2> =>
     flatMap(self, (a) => {
       const out = isFunction(f) ? f(a) : f
       return isResult(out) ? out : succeed(out)
@@ -1054,38 +1051,38 @@ export const andThen: {
 // @ts-expect-error
 export const all: <const I extends Iterable<Result<any, any>> | Record<string, Result<any, any>>>(
   input: I
-) => [I] extends [ReadonlyArray<Result<any, any>>] ? Result<
-    { -readonly [K in keyof I]: [I[K]] extends [Result<infer R, any>] ? R : never },
-    I[number] extends never ? never : [I[number]] extends [Result<any, infer L>] ? L : never
-  >
-  : [I] extends [Iterable<Result<infer R, infer L>>] ? Result<Array<R>, L>
-  : Result<
-    { -readonly [K in keyof I]: [I[K]] extends [Result<infer R, any>] ? R : never },
-    I[keyof I] extends never ? never : [I[keyof I]] extends [Result<any, infer L>] ? L : never
-  > = (
-    input: Iterable<Result<any, any>> | Record<string, Result<any, any>>
-  ): Result<any, any> => {
-    if (Symbol.iterator in input) {
-      const out: Array<Result<any, any>> = []
-      for (const e of input) {
-        if (isFailure(e)) {
-          return e
-        }
-        out.push(e.success)
-      }
-      return succeed(out)
-    }
-
-    const out: Record<string, any> = {}
-    for (const key of Object.keys(input)) {
-      const e = input[key]
+) => [I] extends [ReadonlyArray<Result<any, any>>]
+  ? Result<
+      { -readonly [K in keyof I]: [I[K]] extends [Result<infer R, any>] ? R : never },
+      I[number] extends never ? never : [I[number]] extends [Result<any, infer L>] ? L : never
+    >
+  : [I] extends [Iterable<Result<infer R, infer L>>]
+    ? Result<Array<R>, L>
+    : Result<
+        { -readonly [K in keyof I]: [I[K]] extends [Result<infer R, any>] ? R : never },
+        I[keyof I] extends never ? never : [I[keyof I]] extends [Result<any, infer L>] ? L : never
+      > = (input: Iterable<Result<any, any>> | Record<string, Result<any, any>>): Result<any, any> => {
+  if (Symbol.iterator in input) {
+    const out: Array<Result<any, any>> = []
+    for (const e of input) {
       if (isFailure(e)) {
         return e
       }
-      out[key] = e.success
+      out.push(e.success)
     }
     return succeed(out)
   }
+
+  const out: Record<string, any> = {}
+  for (const key of Object.keys(input)) {
+    const e = input[key]
+    if (isFailure(e)) {
+      return e
+    }
+    out[key] = e.success
+  }
+  return succeed(out)
+}
 
 /**
  * Returns an `Result` that swaps the error/success cases. This allows you to
@@ -1134,9 +1131,7 @@ export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
   const iterator = f()
   let state: IteratorResult<any> = iterator.next()
   while (!state.done) {
-    const current = Gen.isGenKind(state.value)
-      ? state.value.value
-      : state.value
+    const current = Gen.isGenKind(state.value) ? state.value.value : state.value
     if (isFailure(current)) {
       return current
     }
@@ -1333,9 +1328,7 @@ export {
  * @since 3.14.0
  * @category Transposing
  */
-export const transposeOption = <A = never, E = never>(
-  self: Option<Result<A, E>>
-): Result<Option<A>, E> => {
+export const transposeOption = <A = never, E = never>(self: Option<Result<A, E>>): Result<Option<A>, E> => {
   return option_.isNone(self) ? succeedNone : map(self.value, option_.some)
 }
 
@@ -1366,14 +1359,9 @@ export const transposeOption = <A = never, E = never>(
  * @category Transposing
  */
 export const transposeMapOption = dual<
-  <A, B, E = never>(
-    f: (self: A) => Result<B, E>
-  ) => (self: Option<A>) => Result<Option<B>, E>,
-  <A, B, E = never>(
-    self: Option<A>,
-    f: (self: A) => Result<B, E>
-  ) => Result<Option<B>, E>
->(2, (self, f) => option_.isNone(self) ? succeedNone : map(f(self.value), option_.some))
+  <A, B, E = never>(f: (self: A) => Result<B, E>) => (self: Option<A>) => Result<Option<B>, E>,
+  <A, B, E = never>(self: Option<A>, f: (self: A) => Result<B, E>) => Result<Option<B>, E>
+>(2, (self, f) => (option_.isNone(self) ? succeedNone : map(f(self.value), option_.some)))
 
 /**
  * Creates a `Result` that succeeds with a `None` value.
@@ -1435,12 +1423,9 @@ export const succeedSome = <A, E = never>(a: A): Result<Option<A>, E> => succeed
 export const tap: {
   <A>(f: (a: A) => void): <E>(self: Result<A, E>) => Result<A, E>
   <A, E>(self: Result<A, E>, f: (a: A) => void): Result<A, E>
-} = dual(
-  2,
-  <A, E>(self: Result<A, E>, f: (a: A) => void): Result<A, E> => {
-    if (isSuccess(self)) {
-      f(self.success)
-    }
-    return self
+} = dual(2, <A, E>(self: Result<A, E>, f: (a: A) => void): Result<A, E> => {
+  if (isSuccess(self)) {
+    f(self.success)
   }
-)
+  return self
+})

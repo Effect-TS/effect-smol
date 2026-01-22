@@ -14,10 +14,7 @@ import * as ServiceMap from "effect/ServiceMap"
  * @since 1.0.0
  * @category Services
  */
-export class Resource extends ServiceMap.Service<
-  Resource,
-  Resources.Resource
->()("@effect/opentelemetry/Resource") {}
+export class Resource extends ServiceMap.Service<Resource, Resources.Resource>()("@effect/opentelemetry/Resource") {}
 
 /**
  * @since 1.0.0
@@ -27,11 +24,7 @@ export const layer = (config: {
   readonly serviceName: string
   readonly serviceVersion?: string
   readonly attributes?: OtelApi.Attributes
-}) =>
-  Layer.succeed(
-    Resource,
-    Resources.resourceFromAttributes(configToAttributes(config))
-  )
+}) => Layer.succeed(Resource, Resources.resourceFromAttributes(configToAttributes(config)))
 
 /**
  * @since 1.0.0
@@ -46,9 +39,10 @@ export const configToAttributes = (options: {
     ...(options.attributes ?? undefined),
     [OtelSemConv.ATTR_SERVICE_NAME]: options.serviceName,
     [OtelSemConv.ATTR_TELEMETRY_SDK_NAME]: "@effect/opentelemetry",
-    [OtelSemConv.ATTR_TELEMETRY_SDK_LANGUAGE]: typeof (globalThis as any).document === "undefined"
-      ? OtelSemConv.TELEMETRY_SDK_LANGUAGE_VALUE_NODEJS
-      : OtelSemConv.TELEMETRY_SDK_LANGUAGE_VALUE_WEBJS
+    [OtelSemConv.ATTR_TELEMETRY_SDK_LANGUAGE]:
+      typeof (globalThis as any).document === "undefined"
+        ? OtelSemConv.TELEMETRY_SDK_LANGUAGE_VALUE_NODEJS
+        : OtelSemConv.TELEMETRY_SDK_LANGUAGE_VALUE_WEBJS
   }
   if (options.serviceVersion) {
     attributes[OtelSemConv.ATTR_SERVICE_VERSION] = options.serviceVersion
@@ -60,14 +54,10 @@ export const configToAttributes = (options: {
  * @since 1.0.0
  * @category Layers
  */
-export const layerFromEnv = (
-  additionalAttributes?:
-    | OtelApi.Attributes
-    | undefined
-): Layer.Layer<Resource> =>
+export const layerFromEnv = (additionalAttributes?: OtelApi.Attributes | undefined): Layer.Layer<Resource> =>
   Layer.effect(
     Resource,
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const serviceName = yield* Config.option(Config.string("OTEL_SERVICE_NAME"))
       const attributes = yield* Config.string("OTEL_RESOURCE_ATTRIBUTES").pipe(
         Config.withDefault(() => ""),
@@ -97,7 +87,4 @@ export const layerFromEnv = (
  * @since 1.0.0
  * @category Layers
  */
-export const layerEmpty = Layer.succeed(
-  Resource,
-  Resources.emptyResource()
-)
+export const layerEmpty = Layer.succeed(Resource, Resources.emptyResource())

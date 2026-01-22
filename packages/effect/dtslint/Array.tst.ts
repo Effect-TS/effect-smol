@@ -54,21 +54,26 @@ describe("Array", () => {
     expect(Array.flatten(hole<Array<Array<number>>>())).type.toBe<Array<number>>()
     expect(Array.flatten(hole<Array<Array.NonEmptyArray<number>>>())).type.toBe<Array<number>>()
     expect(Array.flatten(hole<Array.NonEmptyArray<Array<number>>>())).type.toBe<Array<number>>()
-    expect(Array.flatten(hole<Array.NonEmptyReadonlyArray<Array.NonEmptyReadonlyArray<number>>>()))
-      .type.toBe<[number, ...Array<number>]>()
+    expect(Array.flatten(hole<Array.NonEmptyReadonlyArray<Array.NonEmptyReadonlyArray<number>>>())).type.toBe<
+      [number, ...Array<number>]
+    >()
 
     // Readonly arrays
     expect(
-      hole<Effect.Effect<ReadonlyArray<ReadonlyArray<number>>>>().pipe(Effect.map((x) => {
-        expect(x).type.toBe<ReadonlyArray<ReadonlyArray<number>>>()
-        return Array.flatten(x)
-      }))
+      hole<Effect.Effect<ReadonlyArray<ReadonlyArray<number>>>>().pipe(
+        Effect.map((x) => {
+          expect(x).type.toBe<ReadonlyArray<ReadonlyArray<number>>>()
+          return Array.flatten(x)
+        })
+      )
     ).type.toBe<Effect.Effect<Array<number>, never, never>>()
     expect(
-      hole<Effect.Effect<Array.NonEmptyReadonlyArray<Array.NonEmptyReadonlyArray<number>>>>().pipe(Effect.map((x) => {
-        expect(x).type.toBe<Array.NonEmptyReadonlyArray<Array.NonEmptyReadonlyArray<number>>>()
-        return Array.flatten(x)
-      }))
+      hole<Effect.Effect<Array.NonEmptyReadonlyArray<Array.NonEmptyReadonlyArray<number>>>>().pipe(
+        Effect.map((x) => {
+          expect(x).type.toBe<Array.NonEmptyReadonlyArray<Array.NonEmptyReadonlyArray<number>>>()
+          return Array.flatten(x)
+        })
+      )
     ).type.toBe<Effect.Effect<[number, ...Array<number>], never, never>>()
 
     // distributive indexed access

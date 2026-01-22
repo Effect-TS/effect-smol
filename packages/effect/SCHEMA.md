@@ -62,7 +62,6 @@ Ultimately, the intent is to eliminate the need for two separate paths like in v
 
 - **Middlewares** – intercept decoding/encoding, supply services, or provide fallbacks.
 - Generators:
-
   - **JSON Schema** exporter with override hooks and per‑check fragments.
   - **Fast‑Check Arbitrary** (`ToArbitrary`), **Equivalence** (`ToEquivalence`) derivation.
 
@@ -95,7 +94,8 @@ export interface Bottom<
   out TypeConstructorDefault extends ConstructorDefault = "no-default",
   out EncodedMutability extends Mutability = "readonly",
   out EncodedOptionality extends Optionality = "required"
-> extends Pipeable.Pipeable {
+>
+  extends Pipeable.Pipeable {
   readonly [TypeId]: typeof TypeId
 
   readonly ast: Ast
@@ -260,7 +260,10 @@ The next example shows why a custom class needs a codec when working with JSON.
 import { Schema } from "effect"
 
 class Point {
-  constructor(public readonly x: number, public readonly y: number) {}
+  constructor(
+    public readonly x: number,
+    public readonly y: number
+  ) {}
 
   // Plain method on a class instance
   distance(other: Point): number {
@@ -311,7 +314,10 @@ Then you call `Schema.toCodecJson(schema)` to produce a codec schema that can en
 import { Schema, SchemaTransformation } from "effect"
 
 class Point {
-  constructor(public readonly x: number, public readonly y: number) {}
+  constructor(
+    public readonly x: number,
+    public readonly y: number
+  ) {}
 
   distance(other: Point): number {
     const dx = this.x - other.x
@@ -404,7 +410,10 @@ A StringTree codec turns any value into a structure made only of:
 import { Schema, SchemaTransformation } from "effect"
 
 class Point {
-  constructor(public readonly x: number, public readonly y: number) {}
+  constructor(
+    public readonly x: number,
+    public readonly y: number
+  ) {}
 
   distance(other: Point): number {
     const dx = this.x - other.x
@@ -1253,7 +1262,7 @@ import { Effect, Option, Schema, SchemaParser } from "effect"
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
     Schema.withConstructorDefault(() =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.sleep(100)
         return Option.some(-1)
       })
@@ -1278,7 +1287,7 @@ class ConstructorService extends ServiceMap.Service<ConstructorService, { defaul
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
     Schema.withConstructorDefault(() =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.sleep(100)
         const oservice = yield* Effect.serviceOption(ConstructorService)
         if (Option.isNone(oservice)) {
@@ -1563,7 +1572,7 @@ import { Effect, Option, Result, Schema, SchemaGetter, SchemaIssue } from "effec
 
 // Simulated API call that fails when userId is 0
 const myapi = (userId: number) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     if (userId === 0) {
       return new Error("not found")
     }
@@ -1573,7 +1582,7 @@ const myapi = (userId: number) =>
 const schema = Schema.Finite.pipe(
   Schema.decode({
     decode: SchemaGetter.checkEffect((n) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         // Call the async API and wrap the result in a Result
         const user = yield* Effect.result(myapi(n))
 
@@ -3257,7 +3266,10 @@ const PersonConstructorArguments = Schema.Tuple([Schema.String, Schema.Finite])
 
 // Existing class
 class Person {
-  constructor(readonly name: string, readonly age: number) {
+  constructor(
+    readonly name: string,
+    readonly age: number
+  ) {
     PersonConstructorArguments.makeUnsafe([name, age])
   }
 }
@@ -3283,7 +3295,10 @@ import { Schema } from "effect"
 const PersonConstructorArguments = Schema.Tuple([Schema.String, Schema.Finite])
 
 class Person {
-  constructor(readonly name: string, readonly age: number) {
+  constructor(
+    readonly name: string,
+    readonly age: number
+  ) {
     PersonConstructorArguments.makeUnsafe([name, age])
   }
 }
@@ -3291,7 +3306,11 @@ class Person {
 const PersonWithEmailConstructorArguments = Schema.Tuple([Schema.String])
 
 class PersonWithEmail extends Person {
-  constructor(name: string, age: number, readonly email: string) {
+  constructor(
+    name: string,
+    age: number,
+    readonly email: string
+  ) {
     // Only validate the additional argument
     PersonWithEmailConstructorArguments.makeUnsafe([email])
     super(name, age)
@@ -3305,7 +3324,10 @@ class PersonWithEmail extends Person {
 import { Schema, SchemaTransformation } from "effect"
 
 class Person {
-  constructor(readonly name: string, readonly age: number) {}
+  constructor(
+    readonly name: string,
+    readonly age: number
+  ) {}
 }
 
 const PersonSchema = Schema.instanceOf(Person, {
@@ -3341,7 +3363,10 @@ const PersonSchema = Schema.instanceOf(Person, {
 import { Schema, SchemaTransformation } from "effect"
 
 class Person {
-  constructor(readonly name: string, readonly age: number) {}
+  constructor(
+    readonly name: string,
+    readonly age: number
+  ) {}
 }
 
 const PersonSchema = Schema.instanceOf(Person, {
@@ -3371,7 +3396,11 @@ const PersonSchema = Schema.instanceOf(Person, {
   )
 
 class PersonWithEmail extends Person {
-  constructor(name: string, age: number, readonly email: string) {
+  constructor(
+    name: string,
+    age: number,
+    readonly email: string
+  ) {
     super(name, age)
   }
 }
@@ -3396,7 +3425,7 @@ class Err extends Data.Error<typeof Props.Type> {
   }
 }
 
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   yield* new Err({ message: "Uh oh" })
 })
 
@@ -4467,7 +4496,7 @@ const schema = Schema.revealCodec(
   Schema.revealCodec(
     Schema.String.pipe(
       Schema.catchDecodingWithContext(() =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const service = yield* Service
           return Option.some(yield* service.fallback)
         })
@@ -5442,17 +5471,15 @@ const all: ReadonlyArray<FromJsonSchema.DefinitionGeneration> = [
 // Note: if you use a custom resolver, also include `generation.importDeclarations`.
 const code = `import { Schema } from "effect"
 
-${
-  all
-    .map((g) =>
-      [
-        `export type ${g.identifier} = ${g.generation.types.Type};`,
-        `export type ${g.identifier}Encoded = ${g.generation.types.Encoded};`,
-        `export const ${g.identifier} = ${g.generation.runtime};`
-      ].join("\n")
-    )
-    .join("\n\n")
-}`
+${all
+  .map((g) =>
+    [
+      `export type ${g.identifier} = ${g.generation.types.Type};`,
+      `export type ${g.identifier}Encoded = ${g.generation.types.Encoded};`,
+      `export const ${g.identifier} = ${g.generation.runtime};`
+    ].join("\n")
+  )
+  .join("\n\n")}`
 
 console.log(code)
 /*
@@ -5504,17 +5531,15 @@ const all: ReadonlyArray<SchemaFromJson.DefinitionGeneration> = [
 // build a code string containing all definitions
 const code = `import { Schema } from "effect"
 
-${
-  all
-    .map((g) =>
-      [
-        `export type ${g.identifier} = ${g.generation.types.Type};`,
-        `export type ${g.identifier}Encoded = ${g.generation.types.Encoded};`,
-        `export const ${g.identifier} = ${g.generation.runtime};`
-      ].join("\n")
-    )
-    .join("\n\n")
-}`
+${all
+  .map((g) =>
+    [
+      `export type ${g.identifier} = ${g.generation.types.Type};`,
+      `export type ${g.identifier}Encoded = ${g.generation.types.Encoded};`,
+      `export const ${g.identifier} = ${g.generation.runtime};`
+    ].join("\n")
+  )
+  .join("\n\n")}`
 
 console.log(code)
 /*
@@ -6087,7 +6112,6 @@ console.log(differ.patch(oldValue, patch))
 The idea is simple: if you have a `Schema` for a type `T`, you can serialize any `T` to JSON and back. That lets us compute and apply JSON Patch on the JSON view, while keeping the public API typed as `T`.
 
 - `diff(oldValue, newValue)`
-
   1. Encode `oldValue: T` and `newValue: T` to JSON with the schema serializer.
   2. Compute a JSON Patch document between the two JSON values.
   3. Return that patch (an array of `"add" | "remove" | "replace"` operations).
@@ -6420,7 +6444,7 @@ function optional<S extends Schema.Top>(schema: S) {
 // Decode helper that returns a `Promise<Result>` with either a typed value
 // or a human-friendly error message string.
 function decode<T, E>(schema: Schema.Codec<T, E>) {
-  return function(value: unknown) {
+  return function (value: unknown) {
     return Schema.decodeUnknownEffect(schema)(value).pipe(
       Effect.mapError((error) => error.message),
       Effect.result,
@@ -6462,9 +6486,9 @@ const schema = Schema.Struct({
 function FieldInfo({ field }: { field: AnyFieldApi }) {
   return (
     <>
-      {field.state.meta.isTouched && !field.state.meta.isValid ?
-        <em>{field.state.meta.errors.map((error) => error.message).join(", ")}</em> :
-        null}
+      {field.state.meta.isTouched && !field.state.meta.isValid ? (
+        <em>{field.state.meta.errors.map((error) => error.message).join(", ")}</em>
+      ) : null}
       {field.state.meta.isValidating ? "Validating..." : null}
     </>
   )
@@ -6556,13 +6580,12 @@ export default function App() {
 
         <form.Subscribe selector={(s) => [s.errorMap]}>
           {([errorMap]) =>
-            errorMap.onSubmit ?
-              (
-                <div role="alert" style={{ marginTop: 12 }}>
-                  <em>{String(errorMap.onSubmit)}</em>
-                </div>
-              ) :
-              null}
+            errorMap.onSubmit ? (
+              <div role="alert" style={{ marginTop: 12 }}>
+                <em>{String(errorMap.onSubmit)}</em>
+              </div>
+            ) : null
+          }
         </form.Subscribe>
 
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
@@ -7817,7 +7840,7 @@ function pluck<P extends PropertyKey>(key: P) {
     return schema.mapFields(Struct.pick([key])).pipe(
       Schema.decodeTo(Schema.toType(schema.fields[key]), {
         decode: SchemaGetter.transform((whole: any) => whole[key]),
-        encode: SchemaGetter.transform((value) => ({ [key]: value } as any))
+        encode: SchemaGetter.transform((value) => ({ [key]: value }) as any)
       })
     )
   }

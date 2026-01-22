@@ -53,17 +53,17 @@ export class License extends ServiceMap.Service<License, OpenAPISpecLicense>()("
  * @since 4.0.0
  * @category annotations
  */
-export class ExternalDocs
-  extends ServiceMap.Service<ExternalDocs, OpenAPISpecExternalDocs>()("effect/httpapi/OpenApi/ExternalDocs")
-{}
+export class ExternalDocs extends ServiceMap.Service<ExternalDocs, OpenAPISpecExternalDocs>()(
+  "effect/httpapi/OpenApi/ExternalDocs"
+) {}
 
 /**
  * @since 4.0.0
  * @category annotations
  */
-export class Servers
-  extends ServiceMap.Service<Servers, ReadonlyArray<OpenAPISpecServer>>()("effect/httpapi/OpenApi/Servers")
-{}
+export class Servers extends ServiceMap.Service<Servers, ReadonlyArray<OpenAPISpecServer>>()(
+  "effect/httpapi/OpenApi/Servers"
+) {}
 
 /**
  * @since 4.0.0
@@ -87,9 +87,9 @@ export class Deprecated extends ServiceMap.Service<Deprecated, boolean>()("effec
  * @since 4.0.0
  * @category annotations
  */
-export class Override
-  extends ServiceMap.Service<Override, Record<string, unknown>>()("effect/httpapi/OpenApi/Override")
-{}
+export class Override extends ServiceMap.Service<Override, Record<string, unknown>>()(
+  "effect/httpapi/OpenApi/Override"
+) {}
 
 /**
  * @since 4.0.0
@@ -112,11 +112,9 @@ export class Transform extends ServiceMap.Service<
 
 const servicesPartial = <Tags extends Record<string, ServiceMap.Service<any, any> | ServiceMap.Service<never, any>>>(
   tags: Tags
-): (
-  options: {
-    readonly [K in keyof Tags]?: ServiceMap.Service.Shape<Tags[K]> | undefined
-  }
-) => ServiceMap.ServiceMap<never> => {
+): ((options: {
+  readonly [K in keyof Tags]?: ServiceMap.Service.Shape<Tags[K]> | undefined
+}) => ServiceMap.ServiceMap<never>) => {
   const entries = Object.entries(tags)
   return (options) => {
     let context = ServiceMap.empty()
@@ -133,23 +131,21 @@ const servicesPartial = <Tags extends Record<string, ServiceMap.Service<any, any
  * @since 4.0.0
  * @category annotations
  */
-export const annotations: (
-  options: {
-    readonly identifier?: string | undefined
-    readonly title?: string | undefined
-    readonly version?: string | undefined
-    readonly description?: string | undefined
-    readonly license?: OpenAPISpecLicense | undefined
-    readonly summary?: string | undefined
-    readonly deprecated?: boolean | undefined
-    readonly externalDocs?: OpenAPISpecExternalDocs | undefined
-    readonly servers?: ReadonlyArray<OpenAPISpecServer> | undefined
-    readonly format?: string | undefined
-    readonly override?: Record<string, unknown> | undefined
-    readonly exclude?: boolean | undefined
-    readonly transform?: ((openApiSpec: Record<string, any>) => Record<string, any>) | undefined
-  }
-) => ServiceMap.ServiceMap<never> = servicesPartial({
+export const annotations: (options: {
+  readonly identifier?: string | undefined
+  readonly title?: string | undefined
+  readonly version?: string | undefined
+  readonly description?: string | undefined
+  readonly license?: OpenAPISpecLicense | undefined
+  readonly summary?: string | undefined
+  readonly deprecated?: boolean | undefined
+  readonly externalDocs?: OpenAPISpecExternalDocs | undefined
+  readonly servers?: ReadonlyArray<OpenAPISpecServer> | undefined
+  readonly format?: string | undefined
+  readonly override?: Record<string, unknown> | undefined
+  readonly exclude?: boolean | undefined
+  readonly transform?: ((openApiSpec: Record<string, any>) => Record<string, any>) | undefined
+}) => ServiceMap.ServiceMap<never> = servicesPartial({
   identifier: Identifier,
   title: Title,
   version: Version,
@@ -212,9 +208,11 @@ function processAnnotation<Services, S, I>(
  */
 export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
-  options?: {
-    readonly additionalProperties?: boolean | JsonSchema.JsonSchema | undefined
-  } | undefined
+  options?:
+    | {
+        readonly additionalProperties?: boolean | JsonSchema.JsonSchema | undefined
+      }
+    | undefined
 ): OpenAPISpec => {
   const cached = apiCache.get(api)
   if (cached !== undefined) {
@@ -236,21 +234,19 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   const irOps: Array<
-    {
-      readonly _tag: "schema"
-      readonly ast: AST.AST
-      readonly path: ReadonlyArray<string>
-    } | {
-      readonly _tag: "parameter"
-      readonly ast: AST.AST
-      readonly path: ReadonlyArray<string>
-    }
+    | {
+        readonly _tag: "schema"
+        readonly ast: AST.AST
+        readonly path: ReadonlyArray<string>
+      }
+    | {
+        readonly _tag: "parameter"
+        readonly ast: AST.AST
+        readonly path: ReadonlyArray<string>
+      }
   > = []
 
-  function processHttpApiSecurity(
-    name: string,
-    security: HttpApiSecurity
-  ) {
+  function processHttpApiSecurity(name: string, security: HttpApiSecurity) {
     if (spec.components.securitySchemes[name] !== undefined) {
       return
     }
@@ -299,10 +295,8 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
       }
       let op: OpenAPISpecOperation = {
         tags: [ServiceMap.getOrElse(group.annotations, Title, () => group.identifier)],
-        operationId: ServiceMap.getOrElse(
-          endpoint.annotations,
-          Identifier,
-          () => group.topLevel ? endpoint.name : `${group.identifier}.${endpoint.name}`
+        operationId: ServiceMap.getOrElse(endpoint.annotations, Identifier, () =>
+          group.topLevel ? endpoint.name : `${group.identifier}.${endpoint.name}`
         ),
         parameters: [],
         security: [],
@@ -313,10 +307,13 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
       const method = endpoint.method.toLowerCase() as OpenAPISpecMethodName
 
       function processResponseMap(
-        map: ReadonlyMap<number, {
-          readonly ast: AST.AST | undefined
-          readonly description: string | undefined
-        }>,
+        map: ReadonlyMap<
+          number,
+          {
+            readonly ast: AST.AST | undefined
+            readonly description: string | undefined
+          }
+        >,
         defaultDescription: () => string
       ) {
         for (const [status, { ast, description }] of map) {
@@ -616,15 +613,7 @@ export type OpenAPISpecPaths = Record<string, OpenAPISpecPathItem>
  * @category models
  * @since 4.0.0
  */
-export type OpenAPISpecMethodName =
-  | "get"
-  | "put"
-  | "post"
-  | "delete"
-  | "options"
-  | "head"
-  | "patch"
-  | "trace"
+export type OpenAPISpecMethodName = "get" | "put" | "post" | "delete" | "options" | "head" | "patch" | "trace"
 
 /**
  * @category models
@@ -733,9 +722,7 @@ export interface OpenAPIApiKeySecurityScheme {
  * @category models
  * @since 4.0.0
  */
-export type OpenAPISecurityScheme =
-  | OpenAPIHTTPSecurityScheme
-  | OpenAPIApiKeySecurityScheme
+export type OpenAPISecurityScheme = OpenAPIHTTPSecurityScheme | OpenAPIApiKeySecurityScheme
 
 /**
  * @category models

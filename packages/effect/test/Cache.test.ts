@@ -5,17 +5,18 @@ import { TestClock } from "effect/testing"
 describe("Cache", () => {
   describe("constructors", () => {
     it.effect("make - creates cache with fixed capacity", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length)
         })
 
         assert.strictEqual(cache.capacity, 10)
-      }))
+      })
+    )
 
     it.effect("make - creates cache with default infinite TTL", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length)
@@ -25,10 +26,11 @@ describe("Cache", () => {
         yield* Cache.get(cache, "test")
         yield* TestClock.adjust(Duration.hours(1000))
         assert.isTrue(yield* Cache.has(cache, "test"))
-      }))
+      })
+    )
 
     it.effect("make - creates cache with custom TTL", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
@@ -41,13 +43,14 @@ describe("Cache", () => {
 
         yield* TestClock.adjust("31 minutes")
         assert.isFalse(yield* Cache.has(cache, "test"))
-      }))
+      })
+    )
 
     it.effect("make - lookup function context is preserved", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         class TestService extends ServiceMap.Service<TestService, { value: number }>()("TestService") {}
 
-        const program = Effect.gen(function*() {
+        const program = Effect.gen(function* () {
           const cache = yield* Cache.make({
             capacity: 10,
             lookup: (_key: string) => Effect.map(TestService.asEffect(), (service) => service.value)
@@ -55,40 +58,35 @@ describe("Cache", () => {
           return yield* Cache.get(cache, "test")
         })
 
-        const result = yield* program.pipe(
-          Effect.provideService(TestService, TestService.of({ value: 42 }))
-        )
+        const result = yield* program.pipe(Effect.provideService(TestService, TestService.of({ value: 42 })))
 
         assert.strictEqual(result, 42)
-      }))
+      })
+    )
 
     it.effect("make - spans are connected", () =>
-      Effect.gen(function*() {
-        const program = Effect.gen(function*() {
+      Effect.gen(function* () {
+        const program = Effect.gen(function* () {
           const cache = yield* Cache.make({
             capacity: 10,
-            lookup: (_key: string) =>
-              Effect.currentSpan.pipe(
-                Effect.withSpan("lookup")
-              )
+            lookup: (_key: string) => Effect.currentSpan.pipe(Effect.withSpan("lookup"))
           })
           return yield* Cache.get(cache, "test")
         })
 
-        const result = yield* program.pipe(
-          Effect.withSpan("parent")
-        )
+        const result = yield* program.pipe(Effect.withSpan("parent"))
         assert.strictEqual(result.name, "lookup")
         assert(result.parent !== undefined)
         assert(result.parent._tag === "Span")
         assert.strictEqual(result.parent.name, "parent")
-      }))
+      })
+    )
 
     it.effect("makeWith - creates cache with function-based TTL", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.makeWith({
           capacity: 10,
-          lookup: (key: string) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
+          lookup: (key: string) => (key === "fail" ? Effect.fail("error") : Effect.succeed(key.length)),
           timeToLive: (exit, key) => {
             if (Exit.isFailure(exit)) return "1 second"
             return key === "short" ? "1 minute" : "1 hour"
@@ -112,15 +110,16 @@ describe("Cache", () => {
         assert.isTrue(yield* Cache.has(cache, "fail"))
         yield* TestClock.adjust("2 seconds")
         assert.isFalse(yield* Cache.has(cache, "fail"))
-      }))
+      })
+    )
 
     it.effect("makeWith - TTL function receives correct parameters", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const receivedParams: Array<{ exit: Exit.Exit<number, string>; key: string }> = []
 
         const cache = yield* Cache.makeWith<string, number, string>({
           capacity: 10,
-          lookup: (key) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
+          lookup: (key) => (key === "fail" ? Effect.fail("error") : Effect.succeed(key.length)),
           timeToLive: (exit, key) => {
             receivedParams.push({ exit, key })
             return Duration.infinity
@@ -139,13 +138,14 @@ describe("Cache", () => {
         assert.strictEqual(receivedParams[1].key, "fail")
         assert.isTrue(Exit.isFailure(receivedParams[1].exit))
         assert.deepStrictEqual(receivedParams[1].exit, Exit.fail("error"))
-      }))
+      })
+    )
   })
 
   describe("basic operations", () => {
     describe("get", () => {
       it.effect("cache hit - returns existing cached value", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const { cache, lookupCount, setLookupResult } = yield* makeTestCache(10)
           setLookupResult("test", Effect.succeed(4))
 
@@ -154,10 +154,11 @@ describe("Cache", () => {
 
           assert.strictEqual(result, 4)
           assert.strictEqual(lookupCount(), 1)
-        }))
+        })
+      )
 
       it.effect("cache hit - multiple different keys", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -170,10 +171,11 @@ describe("Cache", () => {
           assert.strictEqual(result1, 1)
           assert.strictEqual(result2, 2)
           assert.strictEqual(result3, 3)
-        }))
+        })
+      )
 
       it.effect("cache hit - same key multiple times doesn't invoke lookup again", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const { cache, lookupCount, setLookupResult } = yield* makeTestCache(10)
           setLookupResult("test", Effect.succeed(4))
 
@@ -185,10 +187,11 @@ describe("Cache", () => {
 
           assert.deepStrictEqual(results, [4, 4, 4])
           assert.strictEqual(lookupCount(), 1)
-        }))
+        })
+      )
 
       it.effect("cache miss - invokes lookup for non-existent key", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const { cache, lookupCount, setLookupResult } = yield* makeTestCache(10)
           setLookupResult("test", Effect.succeed(42))
 
@@ -196,10 +199,11 @@ describe("Cache", () => {
 
           assert.strictEqual(result, 42)
           assert.strictEqual(lookupCount(), 1)
-        }))
+        })
+      )
 
       it.effect("cache miss - invokes lookup again after TTL expiration", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           let counter = 0
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
@@ -217,10 +221,11 @@ describe("Cache", () => {
           yield* TestClock.adjust("31 minutes")
           const result3 = yield* Cache.get(cache, "test")
           assert.strictEqual(result3, 2)
-        }))
+        })
+      )
 
       it.effect("error handling - lookup function fails", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number, string>({
             capacity: 10,
             lookup: (_key) => Effect.fail("lookup error")
@@ -229,10 +234,11 @@ describe("Cache", () => {
           const result = yield* Effect.exit(Cache.get(cache, "test"))
 
           assert.deepStrictEqual(result, Exit.fail("lookup error"))
-        }))
+        })
+      )
 
       it.effect("concurrent access - multiple fibers getting same key only invoke lookup once", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           let lookupCount = 0
           const cache = yield* Cache.make({
             capacity: 10,
@@ -247,10 +253,11 @@ describe("Cache", () => {
 
           assert.strictEqual(lookupCount, 1)
           assert.deepStrictEqual(results, [1, 1, 1])
-        }))
+        })
+      )
 
       it.effect("concurrent access - race between get and invalidate", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           let lookupCount = 0
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
@@ -274,12 +281,13 @@ describe("Cache", () => {
           assert.strictEqual(result1, 1)
           assert.strictEqual(result2, 2)
           assert.strictEqual(lookupCount, 2)
-        }))
+        })
+      )
     })
 
     describe("getOption", () => {
       it.effect("returns Some for existing cached value", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -289,10 +297,11 @@ describe("Cache", () => {
           const result = yield* Cache.getOption(cache, "test")
 
           assert.deepStrictEqual(result, Option.some(4))
-        }))
+        })
+      )
 
       it.effect("returns None for non-existent key", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -301,10 +310,11 @@ describe("Cache", () => {
           const result = yield* Cache.getOption(cache, "test")
 
           assert.deepStrictEqual(result, Option.none())
-        }))
+        })
+      )
 
       it.effect("returns None for expired value", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -316,10 +326,11 @@ describe("Cache", () => {
           const result = yield* Cache.getOption(cache, "test")
 
           assert.deepStrictEqual(result, Option.none())
-        }))
+        })
+      )
 
       it.effect("waits for value being computed and returns result", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const deferred = yield* Deferred.make<void>()
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
@@ -336,12 +347,13 @@ describe("Cache", () => {
 
           assert.strictEqual(getResult, 42)
           assert.deepStrictEqual(optionResult, Option.some(42))
-        }))
+        })
+      )
     })
 
     describe("getSuccess", () => {
       it.effect("returns Some for successfully cached value", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -351,10 +363,11 @@ describe("Cache", () => {
           const result = yield* Cache.getSuccess(cache, "test")
 
           assert.deepStrictEqual(result, Option.some(4))
-        }))
+        })
+      )
 
       it.effect("returns None for failed cached value", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number, string>({
             capacity: 10,
             lookup: (_key) => Effect.fail("error")
@@ -364,10 +377,11 @@ describe("Cache", () => {
           const result = yield* Cache.getSuccess(cache, "test")
 
           assert.deepStrictEqual(result, Option.none())
-        }))
+        })
+      )
 
       it.effect("returns None for non-existent key", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -376,10 +390,11 @@ describe("Cache", () => {
           const result = yield* Cache.getSuccess(cache, "test")
 
           assert.deepStrictEqual(result, Option.none())
-        }))
+        })
+      )
 
       it.effect("returns None for expired value", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -391,14 +406,15 @@ describe("Cache", () => {
           const result = yield* Cache.getSuccess(cache, "test")
 
           assert.deepStrictEqual(result, Option.none())
-        }))
+        })
+      )
     })
   })
 
   describe("modification operations", () => {
     describe("set", () => {
       it.effect("sets new key-value pair", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const { cache, lookupCount } = yield* makeTestCache(10)
 
           yield* Cache.set(cache, "test", 42)
@@ -406,10 +422,11 @@ describe("Cache", () => {
 
           assert.strictEqual(result, 42)
           assert.strictEqual(lookupCount(), 0)
-        }))
+        })
+      )
 
       it.effect("overwrites existing key", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -420,10 +437,11 @@ describe("Cache", () => {
           const result = yield* Cache.get(cache, "test")
 
           assert.strictEqual(result, 100)
-        }))
+        })
+      )
 
       it.effect("set with TTL - value expires", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -435,10 +453,11 @@ describe("Cache", () => {
 
           yield* TestClock.adjust("2 hours")
           assert.isFalse(yield* Cache.has(cache, "test"))
-        }))
+        })
+      )
 
       it.effect("set doesn't invoke lookup function", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const { cache, lookupCount } = yield* makeTestCache(10)
 
           yield* Cache.set(cache, "test", 42)
@@ -446,10 +465,11 @@ describe("Cache", () => {
           yield* Cache.set(cache, "test3", 44)
 
           assert.strictEqual(lookupCount(), 0)
-        }))
+        })
+      )
 
       it.effect("set enfores capacity", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 2,
             lookup: (key) => Effect.succeed(key.length)
@@ -463,12 +483,13 @@ describe("Cache", () => {
           yield* Cache.set(cache, "c", 3)
           const sizeAfter = yield* Cache.size(cache)
           assert.strictEqual(sizeAfter, 2)
-        }))
+        })
+      )
     })
 
     describe("has", () => {
       it.effect("returns true for existing key", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -478,10 +499,11 @@ describe("Cache", () => {
           const result = yield* Cache.has(cache, "test")
 
           assert.isTrue(result)
-        }))
+        })
+      )
 
       it.effect("returns false for non-existent key", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -490,10 +512,11 @@ describe("Cache", () => {
           const result = yield* Cache.has(cache, "test")
 
           assert.isFalse(result)
-        }))
+        })
+      )
 
       it.effect("returns false for expired key", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -505,12 +528,13 @@ describe("Cache", () => {
           const result = yield* Cache.has(cache, "test")
 
           assert.isFalse(result)
-        }))
+        })
+      )
     })
 
     describe("invalidate", () => {
       it.effect("invalidates existing key", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -521,10 +545,11 @@ describe("Cache", () => {
           const result = yield* Cache.has(cache, "test")
 
           assert.isFalse(result)
-        }))
+        })
+      )
 
       it.effect("invalidating non-existent key doesn't error", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -534,10 +559,11 @@ describe("Cache", () => {
           const result = yield* Cache.has(cache, "test")
 
           assert.isFalse(result)
-        }))
+        })
+      )
 
       it.effect("get after invalidate invokes lookup again", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           let counter = 0
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
@@ -550,12 +576,13 @@ describe("Cache", () => {
 
           assert.strictEqual(result1, 1)
           assert.strictEqual(result2, 2)
-        }))
+        })
+      )
     })
 
     describe("invalidateWhen", () => {
       it.effect("invalidates when predicate matches", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -566,10 +593,11 @@ describe("Cache", () => {
 
           assert.isTrue(result)
           assert.isFalse(yield* Cache.has(cache, "test"))
-        }))
+        })
+      )
 
       it.effect("doesn't invalidate when predicate doesn't match", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -580,10 +608,11 @@ describe("Cache", () => {
 
           assert.isFalse(result)
           assert.isTrue(yield* Cache.has(cache, "test"))
-        }))
+        })
+      )
 
       it.effect("returns false for non-existent key", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -592,10 +621,11 @@ describe("Cache", () => {
           const result = yield* Cache.invalidateWhen(cache, "test", () => true)
 
           assert.isFalse(result)
-        }))
+        })
+      )
 
       it.effect("returns false for failed cached value", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number, string>({
             capacity: 10,
             lookup: (_key) => Effect.fail("error")
@@ -605,12 +635,13 @@ describe("Cache", () => {
           const result = yield* Cache.invalidateWhen(cache, "test", () => true)
 
           assert.isFalse(result)
-        }))
+        })
+      )
     })
 
     describe("refresh", () => {
       it.effect("refresh existing key invokes lookup again", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           let counter = 0
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
@@ -621,10 +652,11 @@ describe("Cache", () => {
           const result = yield* Cache.refresh(cache, "test")
 
           assert.strictEqual(result, 2)
-        }))
+        })
+      )
 
       it.effect("refresh non-existent key invokes lookup", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           let counter = 0
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
@@ -634,10 +666,11 @@ describe("Cache", () => {
           const result = yield* Cache.refresh(cache, "test")
 
           assert.strictEqual(result, 1)
-        }))
+        })
+      )
 
       it.effect("refresh updates TTL", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -650,10 +683,11 @@ describe("Cache", () => {
           yield* TestClock.adjust("40 minutes")
 
           assert.isTrue(yield* Cache.has(cache, "test"))
-        }))
+        })
+      )
 
       it.effect("concurrent refresh calls each invoke lookup independently", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           let lookupCount = 0
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
@@ -663,21 +697,21 @@ describe("Cache", () => {
           yield* Cache.get(cache, "test")
           lookupCount = 0
 
-          const results = yield* Effect.all([
-            Cache.refresh(cache, "test"),
-            Cache.refresh(cache, "test"),
-            Cache.refresh(cache, "test")
-          ], { concurrency: "unbounded" })
+          const results = yield* Effect.all(
+            [Cache.refresh(cache, "test"), Cache.refresh(cache, "test"), Cache.refresh(cache, "test")],
+            { concurrency: "unbounded" }
+          )
 
           // Each refresh calls lookup independently
           assert.strictEqual(lookupCount, 3)
           assert.deepStrictEqual(results, [1, 2, 3])
-        }))
+        })
+      )
     })
 
     describe("invalidateAll", () => {
       it.effect("clears all entries", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -692,10 +726,11 @@ describe("Cache", () => {
           assert.isFalse(yield* Cache.has(cache, "a"))
           assert.isFalse(yield* Cache.has(cache, "b"))
           assert.isFalse(yield* Cache.has(cache, "c"))
-        }))
+        })
+      )
 
       it.effect("size becomes 0 after invalidateAll", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -709,10 +744,11 @@ describe("Cache", () => {
           const size = yield* Cache.size(cache)
 
           assert.strictEqual(size, 0)
-        }))
+        })
+      )
 
       it.effect("all keys return None after invalidateAll", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -728,14 +764,15 @@ describe("Cache", () => {
 
           assert.deepStrictEqual(result1, Option.none())
           assert.deepStrictEqual(result2, Option.none())
-        }))
+        })
+      )
     })
   })
 
   describe("utility operations", () => {
     describe("size", () => {
       it.effect("empty cache returns 0", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -744,10 +781,11 @@ describe("Cache", () => {
           const size = yield* Cache.size(cache)
 
           assert.strictEqual(size, 0)
-        }))
+        })
+      )
 
       it.effect("returns correct count after adding entries", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -760,10 +798,11 @@ describe("Cache", () => {
           const size = yield* Cache.size(cache)
 
           assert.strictEqual(size, 3)
-        }))
+        })
+      )
 
       it.effect("decreases after invalidation", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -777,10 +816,11 @@ describe("Cache", () => {
           const size = yield* Cache.size(cache)
 
           assert.strictEqual(size, 2)
-        }))
+        })
+      )
 
       it.effect("expired entries are counted until accessed", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -800,12 +840,13 @@ describe("Cache", () => {
           yield* Cache.has(cache, "a")
           const sizeAfter = yield* Cache.size(cache)
           assert.strictEqual(sizeAfter, 1)
-        }))
+        })
+      )
     })
 
     describe("keys", () => {
       it.effect("returns all active keys", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -818,10 +859,11 @@ describe("Cache", () => {
           const keys = yield* Cache.keys(cache)
 
           assert.deepStrictEqual(Array.from(keys).sort(), ["a", "b", "c"])
-        }))
+        })
+      )
 
       it.effect("excludes keys for expired entries", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -836,10 +878,11 @@ describe("Cache", () => {
           const keys = yield* Cache.keys(cache)
 
           assert.deepStrictEqual(Array.from(keys).sort(), [])
-        }))
+        })
+      )
 
       it.effect("empty after invalidateAll", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length)
@@ -852,12 +895,13 @@ describe("Cache", () => {
           const keys = yield* Cache.keys(cache)
 
           assert.deepStrictEqual(Array.from(keys), [])
-        }))
+        })
+      )
     })
 
     describe("values", () => {
       it.effect("returns all successful cached values", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -872,13 +916,14 @@ describe("Cache", () => {
           const valuesArray = Array.from(values).sort()
 
           assert.deepStrictEqual(valuesArray, [1, 2, 3])
-        }))
+        })
+      )
 
       it.effect("doesn't include failed lookups", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number, string>({
             capacity: 10,
-            lookup: (key) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
+            lookup: (key) => (key === "fail" ? Effect.fail("error") : Effect.succeed(key.length)),
             timeToLive: "1 hour"
           })
 
@@ -890,10 +935,11 @@ describe("Cache", () => {
           const valuesArray = Array.from(values).sort()
 
           assert.deepStrictEqual(valuesArray, [1, 2])
-        }))
+        })
+      )
 
       it.effect("doesn't include expired values", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -909,12 +955,13 @@ describe("Cache", () => {
           const valuesArray = Array.from(values)
 
           assert.deepStrictEqual(valuesArray, [])
-        }))
+        })
+      )
     })
 
     describe("entries", () => {
       it.effect("returns all key-value pairs", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -928,14 +975,19 @@ describe("Cache", () => {
           const entries = yield* Cache.entries(cache)
           const entriesArray = Array.from(entries).sort(([a], [b]) => a.localeCompare(b))
 
-          assert.deepStrictEqual(entriesArray, [["a", 1], ["ab", 2], ["abc", 3]])
-        }))
+          assert.deepStrictEqual(entriesArray, [
+            ["a", 1],
+            ["ab", 2],
+            ["abc", 3]
+          ])
+        })
+      )
 
       it.effect("filters out failed lookups", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number, string>({
             capacity: 10,
-            lookup: (key) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
+            lookup: (key) => (key === "fail" ? Effect.fail("error") : Effect.succeed(key.length)),
             timeToLive: "1 hour"
           })
 
@@ -946,11 +998,15 @@ describe("Cache", () => {
           const entries = yield* Cache.entries(cache)
           const entriesArray = Array.from(entries).sort(([a], [b]) => a.localeCompare(b))
 
-          assert.deepStrictEqual(entriesArray, [["a", 1], ["ab", 2]])
-        }))
+          assert.deepStrictEqual(entriesArray, [
+            ["a", 1],
+            ["ab", 2]
+          ])
+        })
+      )
 
       it.effect("filters out expired entries", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -966,10 +1022,11 @@ describe("Cache", () => {
           const entriesArray = Array.from(entries)
 
           assert.deepStrictEqual(entriesArray, [])
-        }))
+        })
+      )
 
       it.effect("removes expired entries as side effect", () =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const cache = yield* Cache.make<string, number>({
             capacity: 10,
             lookup: (key) => Effect.succeed(key.length),
@@ -992,13 +1049,14 @@ describe("Cache", () => {
           // entries() should remove expired entries as side effect
           assert.strictEqual(sizeAfter, 0)
           assert.strictEqual(entriesArray.length, 0)
-        }))
+        })
+      )
     })
   })
 
   describe("capacity management", () => {
     it.effect("LRU eviction - oldest entries removed when capacity exceeded", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 3,
           lookup: (key) => Effect.succeed(key.length)
@@ -1013,10 +1071,11 @@ describe("Cache", () => {
         assert.isTrue(yield* Cache.has(cache, "b"))
         assert.isTrue(yield* Cache.has(cache, "c"))
         assert.isTrue(yield* Cache.has(cache, "d"))
-      }))
+      })
+    )
 
     it.effect("LRU eviction - access order determines eviction", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 3,
           lookup: (key) => Effect.succeed(key.length)
@@ -1034,10 +1093,11 @@ describe("Cache", () => {
         assert.isFalse(yield* Cache.has(cache, "b"))
         assert.isTrue(yield* Cache.has(cache, "c"))
         assert.isTrue(yield* Cache.has(cache, "d"))
-      }))
+      })
+    )
 
     it.effect("capacity of 1", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 1,
           lookup: (key) => Effect.succeed(key.length)
@@ -1049,10 +1109,11 @@ describe("Cache", () => {
         yield* Cache.get(cache, "b")
         assert.isFalse(yield* Cache.has(cache, "a"))
         assert.isTrue(yield* Cache.has(cache, "b"))
-      }))
+      })
+    )
 
     it.effect("very large capacity", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10000,
           lookup: (key) => Effect.succeed(key.length)
@@ -1067,12 +1128,13 @@ describe("Cache", () => {
         assert.strictEqual(size, 100)
         assert.isTrue(yield* Cache.has(cache, "key0"))
         assert.isTrue(yield* Cache.has(cache, "key99"))
-      }))
+      })
+    )
   })
 
   describe("TTL (Time To Live) testing", () => {
     it.effect("fixed TTL - entry expires after specified duration", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
@@ -1085,10 +1147,11 @@ describe("Cache", () => {
 
         yield* TestClock.adjust("2 minutes")
         assert.isFalse(yield* Cache.has(cache, "test"))
-      }))
+      })
+    )
 
     it.effect("fixed TTL - get after expiration invokes lookup", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         let counter = 0
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
@@ -1102,10 +1165,11 @@ describe("Cache", () => {
 
         assert.strictEqual(result1, 1)
         assert.strictEqual(result2, 2)
-      }))
+      })
+    )
 
     it.effect("fixed TTL - has returns false for expired entries", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
@@ -1117,14 +1181,15 @@ describe("Cache", () => {
 
         yield* TestClock.adjust("31 minutes")
         assert.isFalse(yield* Cache.has(cache, "test"))
-      }))
+      })
+    )
 
     it.effect("function-based TTL - different TTL for success vs failure", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.makeWith<string, number, string>({
           capacity: 10,
-          lookup: (key) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
-          timeToLive: (exit) => Exit.isSuccess(exit) ? "1 hour" : "1 minute"
+          lookup: (key) => (key === "fail" ? Effect.fail("error") : Effect.succeed(key.length)),
+          timeToLive: (exit) => (Exit.isSuccess(exit) ? "1 hour" : "1 minute")
         })
 
         yield* Cache.get(cache, "success")
@@ -1133,14 +1198,15 @@ describe("Cache", () => {
         yield* TestClock.adjust("30 minutes")
         assert.isTrue(yield* Cache.has(cache, "success"))
         assert.isFalse(yield* Cache.has(cache, "fail"))
-      }))
+      })
+    )
 
     it.effect("function-based TTL - TTL based on key", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.makeWith<string, number, never>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
-          timeToLive: (_exit, key) => key === "short" ? "1 minute" : "1 hour"
+          timeToLive: (_exit, key) => (key === "short" ? "1 minute" : "1 hour")
         })
 
         yield* Cache.get(cache, "short")
@@ -1149,10 +1215,11 @@ describe("Cache", () => {
         yield* TestClock.adjust("30 minutes")
         assert.isFalse(yield* Cache.has(cache, "short"))
         assert.isTrue(yield* Cache.has(cache, "long"))
-      }))
+      })
+    )
 
     it.effect("function-based TTL - TTL based on value", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.makeWith<string, number, never>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
@@ -1168,10 +1235,11 @@ describe("Cache", () => {
         yield* TestClock.adjust("30 minutes")
         assert.isFalse(yield* Cache.has(cache, "ab"))
         assert.isTrue(yield* Cache.has(cache, "abcd"))
-      }))
+      })
+    )
 
     it.effect("infinite TTL", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.makeWith<string, number, never>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
@@ -1181,10 +1249,11 @@ describe("Cache", () => {
         yield* Cache.get(cache, "test")
         yield* TestClock.adjust(Duration.hours(1000))
         assert.isTrue(yield* Cache.has(cache, "test"))
-      }))
+      })
+    )
 
     it.effect("zero duration TTL", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
@@ -1194,10 +1263,11 @@ describe("Cache", () => {
         yield* Cache.get(cache, "test")
         // Entry should expire immediately
         assert.isFalse(yield* Cache.has(cache, "test"))
-      }))
+      })
+    )
 
     it.effect("TTL updates on refresh", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
@@ -1217,12 +1287,13 @@ describe("Cache", () => {
         yield* TestClock.adjust("31 minutes")
         // Now it should be expired (30 + 31 = 61 minutes after refresh)
         assert.isFalse(yield* Cache.has(cache, "test"))
-      }))
+      })
+    )
   })
 
   describe("error scenarios", () => {
     it.effect("failed lookup caches the failure", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number, string>({
           capacity: 10,
           lookup: (_key) => Effect.fail("lookup error")
@@ -1234,10 +1305,11 @@ describe("Cache", () => {
         assert.isTrue(Exit.isFailure(result1))
         assert.isTrue(Exit.isFailure(result2))
         assert.deepStrictEqual(result1, result2)
-      }))
+      })
+    )
 
     it.effect("subsequent gets return same failure", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         let lookupCount = 0
         const cache = yield* Cache.make<string, number, string>({
           capacity: 10,
@@ -1249,14 +1321,15 @@ describe("Cache", () => {
         yield* Effect.exit(Cache.get(cache, "test"))
 
         assert.strictEqual(lookupCount, 1)
-      }))
+      })
+    )
 
     it.effect("can refresh after failure", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         let shouldFail = true
         const cache = yield* Cache.make<string, number, string>({
           capacity: 10,
-          lookup: (_key) => shouldFail ? Effect.fail("error") : Effect.succeed(42)
+          lookup: (_key) => (shouldFail ? Effect.fail("error") : Effect.succeed(42))
         })
 
         const result1 = yield* Effect.exit(Cache.get(cache, "test"))
@@ -1265,10 +1338,11 @@ describe("Cache", () => {
         shouldFail = false
         const result2 = yield* Cache.refresh(cache, "test")
         assert.strictEqual(result2, 42)
-      }))
+      })
+    )
 
     it.effect("multiple fibers encountering same error", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         let lookupCount = 0
         const cache = yield* Cache.make<string, number, string>({
           capacity: 10,
@@ -1294,12 +1368,13 @@ describe("Cache", () => {
         assert.isTrue(results.every(Exit.isFailure))
         assert.deepStrictEqual(results[0], results[1])
         assert.deepStrictEqual(results[1], results[2])
-      }))
+      })
+    )
   })
 
   describe("integration tests", () => {
     it.effect("with TestClock - multiple time advances", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
@@ -1318,10 +1393,11 @@ describe("Cache", () => {
         assert.isFalse(yield* Cache.has(cache, "a")) // Expired at 60 min, now at 90 min
         assert.isFalse(yield* Cache.has(cache, "b")) // Expired at 90 min, now at 90 min
         assert.isTrue(yield* Cache.has(cache, "c")) // Expires at 120 min, now at 90 min
-      }))
+      })
+    )
 
     it.effect("with TestClock - set specific time", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
@@ -1334,10 +1410,11 @@ describe("Cache", () => {
 
         yield* TestClock.setTime(1500)
         assert.isFalse(yield* Cache.has(cache, "test"))
-      }))
+      })
+    )
 
     it.effect("with different key types - string keys", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<string, number>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length)
@@ -1348,10 +1425,11 @@ describe("Cache", () => {
 
         assert.strictEqual(yield* Cache.get(cache, "hello"), 5)
         assert.strictEqual(yield* Cache.get(cache, "world"), 5)
-      }))
+      })
+    )
 
     it.effect("with different key types - number keys", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const cache = yield* Cache.make<number, string>({
           capacity: 10,
           lookup: (key) => Effect.succeed(`number: ${key}`)
@@ -1364,10 +1442,11 @@ describe("Cache", () => {
         assert.strictEqual(yield* Cache.get(cache, 1), "number: 1")
         assert.strictEqual(yield* Cache.get(cache, 2), "number: 2")
         assert.strictEqual(yield* Cache.get(cache, 3), "number: 3")
-      }))
+      })
+    )
 
     it.effect("with different key types - complex object keys", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         class CacheKey extends Data.Class<{ id: number; name: string }> {}
 
         const cache = yield* Cache.make<CacheKey, string>({
@@ -1385,12 +1464,13 @@ describe("Cache", () => {
         assert.strictEqual(yield* Cache.get(cache, key1), "test-1")
         assert.strictEqual(yield* Cache.get(cache, key2), "test-2")
         assert.strictEqual(yield* Cache.get(cache, key3), "test-1") // Uses cached value
-      }))
+      })
+    )
   })
 })
 
 const makeTestCache = (capacity: number, ttl?: Duration.DurationInput) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     let lookupCount = 0
     const lookupResults = new Map<string, Effect.Effect<number, string>>()
 

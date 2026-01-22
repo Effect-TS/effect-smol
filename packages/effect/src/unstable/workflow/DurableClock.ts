@@ -26,10 +26,7 @@ export interface DurableClock {
  * @since 4.0.0
  * @category Constructors
  */
-export const make = (options: {
-  readonly name: string
-  readonly duration: Duration.DurationInput
-}): DurableClock => ({
+export const make = (options: { readonly name: string; readonly duration: Duration.DurationInput }): DurableClock => ({
   [TypeId]: TypeId,
   name: options.name,
   duration: Duration.fromDurationInputUnsafe(options.duration),
@@ -40,10 +37,7 @@ const EngineTag = ServiceMap.Service<WorkflowEngine, WorkflowEngine["Service"]>(
   "effect/workflow/WorkflowEngine" satisfies typeof WorkflowEngine.key
 )
 
-const InstanceTag = ServiceMap.Service<
-  WorkflowInstance,
-  WorkflowInstance["Service"]
->(
+const InstanceTag = ServiceMap.Service<WorkflowInstance, WorkflowInstance["Service"]>(
   "effect/workflow/WorkflowEngine/WorkflowInstance" satisfies typeof WorkflowInstance.key
 )
 
@@ -51,23 +45,17 @@ const InstanceTag = ServiceMap.Service<
  * @since 1.0.0
  * @category Sleeping
  */
-export const sleep: (
-  options: {
-    readonly name: string
-    readonly duration: Duration.DurationInput
-    /**
-     * If the duration is less than or equal to this threshold, the clock will
-     * be executed in memory.
-     *
-     * Defaults to 60 seconds.
-     */
-    readonly inMemoryThreshold?: Duration.DurationInput | undefined
-  }
-) => Effect.Effect<
-  void,
-  never,
-  WorkflowEngine | WorkflowInstance
-> = Effect.fnUntraced(function*(options: {
+export const sleep: (options: {
+  readonly name: string
+  readonly duration: Duration.DurationInput
+  /**
+   * If the duration is less than or equal to this threshold, the clock will
+   * be executed in memory.
+   *
+   * Defaults to 60 seconds.
+   */
+  readonly inMemoryThreshold?: Duration.DurationInput | undefined
+}) => Effect.Effect<void, never, WorkflowEngine | WorkflowInstance> = Effect.fnUntraced(function* (options: {
   readonly name: string
   readonly duration: Duration.DurationInput
   readonly inMemoryThreshold?: Duration.DurationInput | undefined

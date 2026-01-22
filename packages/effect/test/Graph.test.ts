@@ -813,7 +813,7 @@ describe("Graph", () => {
         Graph.addNode(mutable, "pending")
 
         // Keep only "active" nodes and transform to uppercase
-        Graph.filterMapNodes(mutable, (data) => data === "active" ? Option.some(data.toUpperCase()) : Option.none())
+        Graph.filterMapNodes(mutable, (data) => (data === "active" ? Option.some(data.toUpperCase()) : Option.none()))
       })
 
       // Should only have 2 nodes remaining (the "active" ones)
@@ -847,7 +847,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, a, c, 3) // keep -> keep
 
         // Filter out "remove" nodes
-        Graph.filterMapNodes(mutable, (data) => data === "keep" ? Option.some(data) : Option.none())
+        Graph.filterMapNodes(mutable, (data) => (data === "keep" ? Option.some(data) : Option.none()))
       })
 
       // Should have 2 nodes and 1 edge remaining
@@ -892,7 +892,7 @@ describe("Graph", () => {
         Graph.addNode(mutable, 4)
 
         // Keep only even numbers
-        Graph.filterMapNodes(mutable, (data) => data % 2 === 0 ? Option.some(data) : Option.none())
+        Graph.filterMapNodes(mutable, (data) => (data % 2 === 0 ? Option.some(data) : Option.none()))
       })
 
       expect(Graph.nodeCount(graph)).toBe(2)
@@ -920,7 +920,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, c, a, 25) // Keep and double (50)
 
         // Keep only edges with weight >= 10 and double their weight
-        Graph.filterMapEdges(mutable, (data) => data >= 10 ? Option.some(data * 2) : Option.none())
+        Graph.filterMapEdges(mutable, (data) => (data >= 10 ? Option.some(data * 2) : Option.none()))
       })
 
       // Should have 2 edges remaining
@@ -952,7 +952,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, b, c, 3) // Keep
 
         // Keep only odd numbers
-        Graph.filterMapEdges(mutable, (data) => data % 2 === 1 ? Option.some(data) : Option.none())
+        Graph.filterMapEdges(mutable, (data) => (data % 2 === 1 ? Option.some(data) : Option.none()))
       })
 
       // Should have 2 edges remaining (1 and 3)
@@ -1009,7 +1009,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, c, a, { weight: 30, type: "primary" })
 
         // Keep only "primary" edges
-        Graph.filterMapEdges(mutable, (data) => data.type === "primary" ? Option.some(data) : Option.none())
+        Graph.filterMapEdges(mutable, (data) => (data.type === "primary" ? Option.some(data) : Option.none()))
       })
 
       expect(Graph.edgeCount(graph)).toBe(2)
@@ -1573,12 +1573,12 @@ describe("Graph", () => {
       const dot = Graph.toGraphViz(graph)
 
       expect(dot).toContain("digraph G {")
-      expect(dot).toContain("\"0\" [label=\"Node A\"];")
-      expect(dot).toContain("\"1\" [label=\"Node B\"];")
-      expect(dot).toContain("\"2\" [label=\"Node C\"];")
-      expect(dot).toContain("\"0\" -> \"1\" [label=\"1\"];")
-      expect(dot).toContain("\"1\" -> \"2\" [label=\"2\"];")
-      expect(dot).toContain("\"2\" -> \"0\" [label=\"3\"];")
+      expect(dot).toContain('"0" [label="Node A"];')
+      expect(dot).toContain('"1" [label="Node B"];')
+      expect(dot).toContain('"2" [label="Node C"];')
+      expect(dot).toContain('"0" -> "1" [label="1"];')
+      expect(dot).toContain('"1" -> "2" [label="2"];')
+      expect(dot).toContain('"2" -> "0" [label="3"];')
       expect(dot).toContain("}")
     })
 
@@ -1592,7 +1592,7 @@ describe("Graph", () => {
       const dot = Graph.toGraphViz(graph)
 
       expect(dot).toContain("graph G {")
-      expect(dot).toContain("\"0\" -- \"1\" [label=\"1\"];")
+      expect(dot).toContain('"0" -- "1" [label="1"];')
     })
 
     it("should support custom node and edge labels", () => {
@@ -1609,23 +1609,23 @@ describe("Graph", () => {
       })
 
       expect(dot).toContain("digraph MyGraph {")
-      expect(dot).toContain("\"0\" [label=\"Alice\"];")
-      expect(dot).toContain("\"1\" [label=\"Bob\"];")
-      expect(dot).toContain("\"0\" -> \"1\" [label=\"weight: 42\"];")
+      expect(dot).toContain('"0" [label="Alice"];')
+      expect(dot).toContain('"1" [label="Bob"];')
+      expect(dot).toContain('"0" -> "1" [label="weight: 42"];')
     })
 
     it("should escape quotes in labels", () => {
       const graph = Graph.directed<string, string>((mutable) => {
-        const nodeA = Graph.addNode(mutable, "Node \"A\"")
-        const nodeB = Graph.addNode(mutable, "Node \"B\"")
-        Graph.addEdge(mutable, nodeA, nodeB, "Edge \"1\"")
+        const nodeA = Graph.addNode(mutable, 'Node "A"')
+        const nodeB = Graph.addNode(mutable, 'Node "B"')
+        Graph.addEdge(mutable, nodeA, nodeB, 'Edge "1"')
       })
 
       const dot = Graph.toGraphViz(graph)
 
-      expect(dot).toContain("\"0\" [label=\"Node \\\"A\\\"\"];")
-      expect(dot).toContain("\"1\" [label=\"Node \\\"B\\\"\"];")
-      expect(dot).toContain("\"0\" -> \"1\" [label=\"Edge \\\"1\\\"\"];")
+      expect(dot).toContain('"0" [label="Node \\"A\\""];')
+      expect(dot).toContain('"1" [label="Node \\"B\\""];')
+      expect(dot).toContain('"0" -> "1" [label="Edge \\"1\\""];')
     })
 
     it("should demonstrate graph visualization", () => {
@@ -1650,11 +1650,11 @@ describe("Graph", () => {
       // console.log("\nDependency Graph DOT format:\n" + dot)
 
       expect(dot).toContain("digraph DependencyGraph {")
-      expect(dot).toContain("\"0\" [label=\"App\"];")
-      expect(dot).toContain("\"0\" -> \"1\" [label=\"uses\"];")
-      expect(dot).toContain("\"0\" -> \"2\" [label=\"stores\"];")
-      expect(dot).toContain("\"1\" -> \"2\" [label=\"validates\"];")
-      expect(dot).toContain("\"0\" -> \"3\" [label=\"caches\"];")
+      expect(dot).toContain('"0" [label="App"];')
+      expect(dot).toContain('"0" -> "1" [label="uses"];')
+      expect(dot).toContain('"0" -> "2" [label="stores"];')
+      expect(dot).toContain('"1" -> "2" [label="validates"];')
+      expect(dot).toContain('"0" -> "3" [label="caches"];')
     })
 
     it("should demonstrate undirected graph visualization", () => {
@@ -1679,11 +1679,11 @@ describe("Graph", () => {
       // console.log("\nSocial Network DOT format:\n" + dot)
 
       expect(dot).toContain("graph SocialNetwork {")
-      expect(dot).toContain("\"0\" [label=\"Alice\"];")
-      expect(dot).toContain("\"0\" -- \"1\" [label=\"friends\"];")
-      expect(dot).toContain("\"1\" -- \"2\" [label=\"friends\"];")
-      expect(dot).toContain("\"2\" -- \"3\" [label=\"friends\"];")
-      expect(dot).toContain("\"0\" -- \"3\" [label=\"friends\"];")
+      expect(dot).toContain('"0" [label="Alice"];')
+      expect(dot).toContain('"0" -- "1" [label="friends"];')
+      expect(dot).toContain('"1" -- "2" [label="friends"];')
+      expect(dot).toContain('"2" -- "3" [label="friends"];')
+      expect(dot).toContain('"0" -- "3" [label="friends"];')
     })
   })
 
@@ -1709,9 +1709,9 @@ describe("Graph", () => {
 
       const mermaid = Graph.toMermaid(graph)
       expect(mermaid).toContain("flowchart TD")
-      expect(mermaid).toContain("0[\"Node A\"]")
-      expect(mermaid).toContain("1[\"Node B\"]")
-      expect(mermaid).toContain("2[\"Node C\"]")
+      expect(mermaid).toContain('0["Node A"]')
+      expect(mermaid).toContain('1["Node B"]')
+      expect(mermaid).toContain('2["Node C"]')
     })
 
     it("should export undirected graph with nodes", () => {
@@ -1722,8 +1722,8 @@ describe("Graph", () => {
 
       const mermaid = Graph.toMermaid(graph)
       expect(mermaid).toContain("graph TD")
-      expect(mermaid).toContain("0[\"Alice\"]")
-      expect(mermaid).toContain("1[\"Bob\"]")
+      expect(mermaid).toContain('0["Alice"]')
+      expect(mermaid).toContain('1["Bob"]')
     })
 
     it("should support all node shapes", () => {
@@ -1752,28 +1752,28 @@ describe("Graph", () => {
         // Test expected shape format
         switch (shapeName) {
           case "rectangle":
-            expect(mermaid).toContain("0[\"Test\"]")
+            expect(mermaid).toContain('0["Test"]')
             break
           case "rounded":
-            expect(mermaid).toContain("0(\"Test\")")
+            expect(mermaid).toContain('0("Test")')
             break
           case "circle":
-            expect(mermaid).toContain("0((\"Test\"))")
+            expect(mermaid).toContain('0(("Test"))')
             break
           case "diamond":
-            expect(mermaid).toContain("0{\"Test\"}")
+            expect(mermaid).toContain('0{"Test"}')
             break
           case "hexagon":
-            expect(mermaid).toContain("0{{\"Test\"}}")
+            expect(mermaid).toContain('0{{"Test"}}')
             break
           case "stadium":
-            expect(mermaid).toContain("0([\"Test\"])")
+            expect(mermaid).toContain('0(["Test"])')
             break
           case "subroutine":
-            expect(mermaid).toContain("0[[\"Test\"]]")
+            expect(mermaid).toContain('0[["Test"]]')
             break
           case "cylindrical":
-            expect(mermaid).toContain("0[(\"Test\")]")
+            expect(mermaid).toContain('0[("Test")]')
             break
         }
       })
@@ -1781,7 +1781,7 @@ describe("Graph", () => {
 
     it("should escape special characters in labels", () => {
       const graph = Graph.directed<string, number>((mutable) => {
-        Graph.addNode(mutable, "Node with \"quotes\"")
+        Graph.addNode(mutable, 'Node with "quotes"')
         Graph.addNode(mutable, "Node with [brackets]")
         Graph.addNode(mutable, "Node with | pipe")
         Graph.addNode(mutable, "Node with \\ backslash")
@@ -1790,11 +1790,11 @@ describe("Graph", () => {
 
       const mermaid = Graph.toMermaid(graph)
 
-      expect(mermaid).toContain("0[\"Node with \\\"quotes\\\"\"]")
-      expect(mermaid).toContain("1[\"Node with \\[brackets\\]\"]")
-      expect(mermaid).toContain("2[\"Node with \\| pipe\"]")
-      expect(mermaid).toContain("3[\"Node with \\\\ backslash\"]")
-      expect(mermaid).toContain("4[\"Node with <br/> newline\"]")
+      expect(mermaid).toContain('0["Node with \\"quotes\\""]')
+      expect(mermaid).toContain('1["Node with \\[brackets\\]"]')
+      expect(mermaid).toContain('2["Node with \\| pipe"]')
+      expect(mermaid).toContain('3["Node with \\\\ backslash"]')
+      expect(mermaid).toContain('4["Node with <br/> newline"]')
     })
 
     it("should export directed graph with edges", () => {
@@ -1809,12 +1809,12 @@ describe("Graph", () => {
 
       const mermaid = Graph.toMermaid(graph)
       expect(mermaid).toContain("flowchart TD")
-      expect(mermaid).toContain("0[\"Node A\"]")
-      expect(mermaid).toContain("1[\"Node B\"]")
-      expect(mermaid).toContain("2[\"Node C\"]")
-      expect(mermaid).toContain("0 -->|\"1\"| 1")
-      expect(mermaid).toContain("1 -->|\"2\"| 2")
-      expect(mermaid).toContain("2 -->|\"3\"| 0")
+      expect(mermaid).toContain('0["Node A"]')
+      expect(mermaid).toContain('1["Node B"]')
+      expect(mermaid).toContain('2["Node C"]')
+      expect(mermaid).toContain('0 -->|"1"| 1')
+      expect(mermaid).toContain('1 -->|"2"| 2')
+      expect(mermaid).toContain('2 -->|"3"| 0')
     })
 
     it("should export undirected graph with edges", () => {
@@ -1828,11 +1828,11 @@ describe("Graph", () => {
 
       const mermaid = Graph.toMermaid(graph)
       expect(mermaid).toContain("graph TD")
-      expect(mermaid).toContain("0[\"Alice\"]")
-      expect(mermaid).toContain("1[\"Bob\"]")
-      expect(mermaid).toContain("2[\"Charlie\"]")
-      expect(mermaid).toContain("0 ---|\"friends\"| 1")
-      expect(mermaid).toContain("1 ---|\"colleagues\"| 2")
+      expect(mermaid).toContain('0["Alice"]')
+      expect(mermaid).toContain('1["Bob"]')
+      expect(mermaid).toContain('2["Charlie"]')
+      expect(mermaid).toContain('0 ---|"friends"| 1')
+      expect(mermaid).toContain('1 ---|"colleagues"| 2')
     })
 
     it("should handle empty edge labels", () => {
@@ -1857,8 +1857,8 @@ describe("Graph", () => {
 
         const mermaid = Graph.toMermaid(graph, { direction: dir })
         expect(mermaid).toContain(`flowchart ${dir}`)
-        expect(mermaid).toContain("0[\"A\"]")
-        expect(mermaid).toContain("1[\"B\"]")
+        expect(mermaid).toContain('0["A"]')
+        expect(mermaid).toContain('1["B"]')
       })
     })
 
@@ -1909,7 +1909,7 @@ describe("Graph", () => {
       })
 
       expect(mermaid).toContain("graph LR")
-      expect(mermaid).toContain("0[\"Test\"]")
+      expect(mermaid).toContain('0["Test"]')
     })
 
     it("should handle self-loops correctly", () => {
@@ -1920,8 +1920,8 @@ describe("Graph", () => {
 
       const mermaid = Graph.toMermaid(graph)
       expect(mermaid).toContain("flowchart TD")
-      expect(mermaid).toContain("0[\"A\"]")
-      expect(mermaid).toContain("0 -->|\"self\"| 0")
+      expect(mermaid).toContain('0["A"]')
+      expect(mermaid).toContain('0 -->|"self"| 0')
     })
 
     it("should handle multi-edges correctly", () => {
@@ -1935,12 +1935,12 @@ describe("Graph", () => {
 
       const mermaid = Graph.toMermaid(graph)
       expect(mermaid).toContain("flowchart TD")
-      expect(mermaid).toContain("0[\"A\"]")
-      expect(mermaid).toContain("1[\"B\"]")
+      expect(mermaid).toContain('0["A"]')
+      expect(mermaid).toContain('1["B"]')
       // Should contain all three edges
-      expect(mermaid).toContain("0 -->|\"1\"| 1")
-      expect(mermaid).toContain("0 -->|\"2\"| 1")
-      expect(mermaid).toContain("0 -->|\"3\"| 1")
+      expect(mermaid).toContain('0 -->|"1"| 1')
+      expect(mermaid).toContain('0 -->|"2"| 1')
+      expect(mermaid).toContain('0 -->|"3"| 1')
     })
 
     it("should handle disconnected components", () => {
@@ -1961,13 +1961,13 @@ describe("Graph", () => {
 
       const mermaid = Graph.toMermaid(graph)
       expect(mermaid).toContain("flowchart TD")
-      expect(mermaid).toContain("0[\"A\"]")
-      expect(mermaid).toContain("1[\"B\"]")
-      expect(mermaid).toContain("2[\"C\"]")
-      expect(mermaid).toContain("3[\"D\"]")
-      expect(mermaid).toContain("4[\"E\"]")
-      expect(mermaid).toContain("0 -->|\"A->B\"| 1")
-      expect(mermaid).toContain("2 -->|\"C->D\"| 3")
+      expect(mermaid).toContain('0["A"]')
+      expect(mermaid).toContain('1["B"]')
+      expect(mermaid).toContain('2["C"]')
+      expect(mermaid).toContain('3["D"]')
+      expect(mermaid).toContain('4["E"]')
+      expect(mermaid).toContain('0 -->|"A->B"| 1')
+      expect(mermaid).toContain('2 -->|"C->D"| 3')
     })
 
     it("should handle custom labels with complex data", () => {
@@ -2003,9 +2003,9 @@ describe("Graph", () => {
       })
 
       expect(mermaid).toContain("flowchart LR")
-      expect(mermaid).toContain("0[\"node1:42\"]")
-      expect(mermaid).toContain("1[\"node2:84\"]")
-      expect(mermaid).toContain("0 -->|\"data(1.5)\"| 1")
+      expect(mermaid).toContain('0["node1:42"]')
+      expect(mermaid).toContain('1["node2:84"]')
+      expect(mermaid).toContain('0 -->|"data(1.5)"| 1')
     })
   })
 
@@ -2347,9 +2347,7 @@ describe("Graph", () => {
           target: nodeB!,
           cost: (edge) => edge
         })
-      ).toThrow(
-        "Dijkstra's algorithm requires non-negative edge weights"
-      )
+      ).toThrow("Dijkstra's algorithm requires non-negative edge weights")
     })
 
     it("should throw for non-existent nodes", () => {
@@ -2632,7 +2630,11 @@ describe("Graph", () => {
       const dfsIterator = Graph.dfs(graph, { start: [0] })
       const entries = Array.from(Graph.entries(dfsIterator))
 
-      expect(entries).toEqual([[0, "A"], [1, "B"], [2, "C"]])
+      expect(entries).toEqual([
+        [0, "A"],
+        [1, "B"],
+        [2, "C"]
+      ])
     })
 
     it("should provide values() method for BFS iterator", () => {
@@ -2662,7 +2664,11 @@ describe("Graph", () => {
       const bfsIterator = Graph.bfs(graph, { start: [0] })
       const entries = Array.from(Graph.entries(bfsIterator))
 
-      expect(entries).toEqual([[0, "A"], [1, "B"], [2, "C"]])
+      expect(entries).toEqual([
+        [0, "A"],
+        [1, "B"],
+        [2, "C"]
+      ])
     })
 
     it("should provide values() method for Topo iterator", () => {
@@ -2692,7 +2698,11 @@ describe("Graph", () => {
       const topoIterator = Graph.topo(graph)
 
       const entries = Array.from(Graph.entries(topoIterator))
-      expect(entries).toEqual([[0, "A"], [1, "B"], [2, "C"]])
+      expect(entries).toEqual([
+        [0, "A"],
+        [1, "B"],
+        [2, "C"]
+      ])
     })
 
     it("should throw for cyclic graphs", () => {
@@ -2719,7 +2729,7 @@ describe("Graph", () => {
 
       let callCount = 0
       // Mock getNode to return undefined for certain calls to trigger the recursive edge case
-      mutableGraph.nodes.get = function(key: any) {
+      mutableGraph.nodes.get = function (key: any) {
         callCount++
         // On specific call, return undefined to trigger the Option.isNone path
         if (callCount === 2) {
@@ -2765,7 +2775,11 @@ describe("Graph", () => {
       const dfsPostIterator = Graph.dfsPostOrder(graph, { start: [0] })
       const entries = Array.from(Graph.entries(dfsPostIterator))
 
-      expect(entries).toEqual([[2, "C"], [1, "B"], [0, "A"]]) // Postorder: children before parents
+      expect(entries).toEqual([
+        [2, "C"],
+        [1, "B"],
+        [0, "A"]
+      ]) // Postorder: children before parents
     })
   })
 
@@ -2838,10 +2852,12 @@ describe("Graph", () => {
 
       // Starting from C, going backwards
       const postOrder = Array.from(
-        Graph.indices(Graph.dfsPostOrder(graph, {
-          start: [2],
-          direction: "incoming"
-        }))
+        Graph.indices(
+          Graph.dfsPostOrder(graph, {
+            start: [2],
+            direction: "incoming"
+          })
+        )
       )
       expect(postOrder).toEqual([0, 1, 2]) // A, B, C in reverse postorder
     })
@@ -2867,8 +2883,7 @@ describe("Graph", () => {
         Graph.addNode(mutable, "A")
       })
 
-      expect(() => Graph.dfsPostOrder(graph, { start: [99] }))
-        .toThrow("Node 99 does not exist")
+      expect(() => Graph.dfsPostOrder(graph, { start: [99] })).toThrow("Node 99 does not exist")
     })
 
     it("should be iterable multiple times with fresh state", () => {
@@ -2901,7 +2916,7 @@ describe("Graph", () => {
 
       let callCount = 0
       // Mock getNode to return undefined for certain calls to trigger the recursive edge case
-      mutableGraph.nodes.get = function(key: any) {
+      mutableGraph.nodes.get = function (key: any) {
         callCount++
         // On specific call, return undefined to trigger the Option.isNone path
         if (callCount === 3) {
@@ -3111,9 +3126,7 @@ describe("Graph", () => {
       })
 
       // Utility function that works with any NodeWalker
-      function collectNodes<N>(
-        nodeIterable: Graph.NodeWalker<N>
-      ): Array<number> {
+      function collectNodes<N>(nodeIterable: Graph.NodeWalker<N>): Array<number> {
         return Array.from(Graph.indices(nodeIterable)).sort()
       }
 
@@ -3181,12 +3194,18 @@ describe("Graph", () => {
       // Test with traversal iterator
       const dfsIterable = Graph.dfs(graph, { start: [0] })
       const dfsEntries = Array.from(Graph.entries(dfsIterable))
-      expect(dfsEntries).toEqual([[0, "A"], [1, "B"]])
+      expect(dfsEntries).toEqual([
+        [0, "A"],
+        [1, "B"]
+      ])
 
       // Test with element iterator
       const nodesIterable = Graph.nodes(graph)
       const nodeEntries = Array.from(Graph.entries(nodesIterable))
-      expect(nodeEntries.sort()).toEqual([[0, "A"], [1, "B"]])
+      expect(nodeEntries.sort()).toEqual([
+        [0, "A"],
+        [1, "B"]
+      ])
 
       // Test with externals iterator
       const externalsIterable = Graph.externals(graph, { direction: "outgoing" })
@@ -3208,7 +3227,10 @@ describe("Graph", () => {
       const instanceEntries = Array.from(Graph.entries(dfs))
 
       expect(instanceValues).toEqual(["A", "B"])
-      expect(instanceEntries).toEqual([[0, "A"], [1, "B"]])
+      expect(instanceEntries).toEqual([
+        [0, "A"],
+        [1, "B"]
+      ])
     })
 
     it("should work with mapEntry for NodeIterable", () => {
@@ -3222,7 +3244,10 @@ describe("Graph", () => {
 
       // Test mapEntry with custom mapping
       const custom = Array.from(dfs.visit((index, data) => ({ id: index, name: data })))
-      expect(custom).toEqual([{ id: 0, name: "A" }, { id: 1, name: "B" }])
+      expect(custom).toEqual([
+        { id: 0, name: "A" },
+        { id: 1, name: "B" }
+      ])
 
       // Test that values() is implemented using mapEntry
       const values = Array.from(Graph.values(dfs))
@@ -3230,7 +3255,10 @@ describe("Graph", () => {
 
       // Test that entries() is implemented using mapEntry
       const entries = Array.from(Graph.entries(dfs))
-      expect(entries).toEqual([[0, "A"], [1, "B"]])
+      expect(entries).toEqual([
+        [0, "A"],
+        [1, "B"]
+      ])
     })
 
     it("should work with mapEntry for EdgeIterable", () => {
@@ -3243,12 +3271,14 @@ describe("Graph", () => {
       const edgesIterable = Graph.edges(graph)
 
       // Test mapEntry with custom mapping
-      const connections = Array.from(edgesIterable.visit((index, edge) => ({
-        id: index,
-        from: edge.source,
-        to: edge.target,
-        weight: edge.data
-      })))
+      const connections = Array.from(
+        edgesIterable.visit((index, edge) => ({
+          id: index,
+          from: edge.source,
+          to: edge.target,
+          weight: edge.data
+        }))
+      )
       expect(connections).toEqual([{ id: 0, from: 0, to: 1, weight: 42 }])
 
       // Test that values() is implemented using mapEntry

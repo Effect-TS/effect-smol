@@ -42,89 +42,90 @@ import * as BunStream from "./BunStream.ts"
  * @since 1.0.0
  * @category Options
  */
-export type ServeOptions<R extends string> =
-  & (
-    | Bun.Serve.UnixServeOptions<WebSocketContext>
-    | Bun.Serve.HostnamePortServeOptions<WebSocketContext>
-  )
-  & { readonly routes?: Bun.Serve.Routes<WebSocketContext, R> }
+export type ServeOptions<R extends string> = (
+  | Bun.Serve.UnixServeOptions<WebSocketContext>
+  | Bun.Serve.HostnamePortServeOptions<WebSocketContext>
+) & { readonly routes?: Bun.Serve.Routes<WebSocketContext, R> }
 
 /**
  * @since 1.0.0
  * @category Constructors
  */
-export const make = Effect.fnUntraced(
-  function*<R extends string>(
-    options: ServeOptions<R>
-  ) {
-    const handlerStack: Array<(request: Request, server: BunServer<WebSocketContext>) => Response | Promise<Response>> =
-      [
-        function(_request, _server) {
-          return new Response("not found", { status: 404 })
-        }
-      ]
-    const server = Bun.serve<WebSocketContext, R>({
-      ...options as ServeOptions<R>,
-      fetch: handlerStack[0],
-      websocket: {
-        open(ws) {
-          Deferred.doneUnsafe(ws.data.deferred, Exit.succeed(ws))
-        },
-        message(ws, message) {
-          ws.data.run(message)
-        },
-        close(ws, code, closeReason) {
-          Deferred.doneUnsafe(
-            ws.data.closeDeferred,
-            Socket.defaultCloseCodeIsError(code)
-              ? Exit.fail(new Socket.SocketCloseError({ code, closeReason }))
-              : Exit.void
-          )
-        }
+export const make = Effect.fnUntraced(function* <R extends string>(options: ServeOptions<R>) {
+  const handlerStack: Array<(request: Request, server: BunServer<WebSocketContext>) => Response | Promise<Response>> = [
+    function (_request, _server) {
+      return new Response("not found", { status: 404 })
+    }
+  ]
+  const server = Bun.serve<WebSocketContext, R>({
+    ...(options as ServeOptions<R>),
+    fetch: handlerStack[0],
+    websocket: {
+      open(ws) {
+        Deferred.doneUnsafe(ws.data.deferred, Exit.succeed(ws))
+      },
+      message(ws, message) {
+        ws.data.run(message)
+      },
+      close(ws, code, closeReason) {
+        Deferred.doneUnsafe(
+          ws.data.closeDeferred,
+          Socket.defaultCloseCodeIsError(code)
+            ? Exit.fail(new Socket.SocketCloseError({ code, closeReason }))
+            : Exit.void
+        )
       }
-    })
+    }
+  })
 
-    yield* Effect.addFinalizer(() => Effect.promise(() => server.stop()))
+  yield* Effect.addFinalizer(() => Effect.promise(() => server.stop()))
 
-    return Server.make({
-      address: { _tag: "TcpAddress", port: server.port!, hostname: server.hostname! },
-      serve: Effect.fnUntraced(function*(httpApp, middleware) {
-        const scope = yield* Effect.scope
-        const services = yield* Effect.services<never>()
-        const httpEffect = HttpEffect.toHandled(httpApp, (request, response) =>
+  return Server.make({
+    address: { _tag: "TcpAddress", port: server.port!, hostname: server.hostname! },
+    serve: Effect.fnUntraced(function* (httpApp, middleware) {
+      const scope = yield* Effect.scope
+      const services = yield* Effect.services<never>()
+      const httpEffect = HttpEffect.toHandled(
+        httpApp,
+        (request, response) =>
           Effect.sync(() => {
             ;(request as BunServerRequest).resolve(makeResponse(request, response, services, scope))
-          }), middleware)
-
-        function handler(request: Request, server: BunServer<WebSocketContext>) {
-          return new Promise<Response>((resolve, _reject) => {
-            const map = new Map(services.mapUnsafe)
-            map.set(
-              ServerRequest.HttpServerRequest.key,
-              new BunServerRequest(request, resolve, removeHost(request.url), server)
-            )
-            const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(httpEffect), scope)
-            request.signal.addEventListener("abort", () => {
-              fiber.interruptUnsafe(Error.clientAbortFiberId)
-            }, { once: true })
-          })
-        }
-
-        yield* Effect.acquireRelease(
-          Effect.sync(() => {
-            handlerStack.push(handler)
-            server.reload({ fetch: handler })
           }),
-          () =>
-            Effect.sync(() => {
-              handlerStack.pop()
-              server.reload({ fetch: handlerStack[handlerStack.length - 1] })
-            })
-        )
-      })
+        middleware
+      )
+
+      function handler(request: Request, server: BunServer<WebSocketContext>) {
+        return new Promise<Response>((resolve, _reject) => {
+          const map = new Map(services.mapUnsafe)
+          map.set(
+            ServerRequest.HttpServerRequest.key,
+            new BunServerRequest(request, resolve, removeHost(request.url), server)
+          )
+          const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(httpEffect), scope)
+          request.signal.addEventListener(
+            "abort",
+            () => {
+              fiber.interruptUnsafe(Error.clientAbortFiberId)
+            },
+            { once: true }
+          )
+        })
+      }
+
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          handlerStack.push(handler)
+          server.reload({ fetch: handler })
+        }),
+        () =>
+          Effect.sync(() => {
+            handlerStack.pop()
+            server.reload({ fetch: handlerStack[handlerStack.length - 1] })
+          })
+      )
     })
-  }
-)
+  })
+})
 
 const makeResponse = (
   request: ServerRequest.HttpServerRequest,
@@ -176,10 +177,12 @@ const makeResponse = (
     case "Stream": {
       return new Response(
         Stream.toReadableStreamWith(
-          Stream.unwrap(Effect.withFiber((fiber) => {
-            Fiber.runIn(fiber, scope)
-            return Effect.succeed(body.stream)
-          })),
+          Stream.unwrap(
+            Effect.withFiber((fiber) => {
+              Fiber.runIn(fiber, scope)
+              return Effect.succeed(body.stream)
+            })
+          ),
           services
         ),
         fields
@@ -192,19 +195,16 @@ const makeResponse = (
  * @since 1.0.0
  * @category Layers
  */
-export const layerServer: <R extends string>(
-  options: ServeOptions<R>
-) => Layer.Layer<Server.HttpServer> = Layer.effect(Server.HttpServer, make) as any
+export const layerServer: <R extends string>(options: ServeOptions<R>) => Layer.Layer<Server.HttpServer> = Layer.effect(
+  Server.HttpServer,
+  make
+) as any
 
 /**
  * @since 1.0.0
  * @category Layers
  */
-export const layerHttpServices: Layer.Layer<
-  | HttpPlatform
-  | Etag.Generator
-  | BunServices.BunServices
-> = Layer.mergeAll(
+export const layerHttpServices: Layer.Layer<HttpPlatform | Etag.Generator | BunServices.BunServices> = Layer.mergeAll(
   Platform.layer,
   Etag.layerWeak,
   BunServices.layer
@@ -216,12 +216,8 @@ export const layerHttpServices: Layer.Layer<
  */
 export const layer = <R extends string>(
   options: ServeOptions<R>
-): Layer.Layer<
-  | Server.HttpServer
-  | HttpPlatform
-  | Etag.Generator
-  | BunServices.BunServices
-> => Layer.mergeAll(layerServer(options), layerHttpServices)
+): Layer.Layer<Server.HttpServer | HttpPlatform | Etag.Generator | BunServices.BunServices> =>
+  Layer.mergeAll(layerServer(options), layerHttpServices)
 
 /**
  * @since 1.0.0
@@ -230,9 +226,9 @@ export const layer = <R extends string>(
 export const layerTest: Layer.Layer<
   Server.HttpServer | HttpPlatform | FileSystem.FileSystem | Etag.Generator | Path.Path | HttpClient
 > = Server.layerTestClient.pipe(
-  Layer.provide(FetchHttpClient.layer.pipe(
-    Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ keepalive: false }))
-  )),
+  Layer.provide(
+    FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ keepalive: false })))
+  ),
   Layer.provideMerge(layer({ port: 0 }))
 )
 
@@ -242,10 +238,7 @@ export const layerTest: Layer.Layer<
  */
 export const layerConfig = <R extends string>(
   options: Config.Wrap<ServeOptions<R>>
-): Layer.Layer<
-  Server.HttpServer | HttpPlatform | FileSystem.FileSystem | Etag.Generator | Path.Path,
-  ConfigError
-> =>
+): Layer.Layer<Server.HttpServer | HttpPlatform | FileSystem.FileSystem | Etag.Generator | Path.Path, ConfigError> =>
   Layer.mergeAll(
     Layer.effect(Server.HttpServer)(Effect.flatMap(Config.unwrap(options).asEffect(), make)),
     layerHttpServices
@@ -301,13 +294,11 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
       url: this.originalUrl
     })
   }
-  modify(
-    options: {
-      readonly url?: string | undefined
-      readonly headers?: Headers.Headers | undefined
-      readonly remoteAddress?: string | undefined
-    }
-  ) {
+  modify(options: {
+    readonly url?: string | undefined
+    readonly headers?: Headers.Headers | undefined
+    readonly remoteAddress?: string | undefined
+  }) {
     return new BunServerRequest(
       this.source,
       this.resolve,
@@ -336,27 +327,27 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     if (this.cachedCookies) {
       return this.cachedCookies
     }
-    return this.cachedCookies = Cookies.parseHeader(this.headers.cookie ?? "")
+    return (this.cachedCookies = Cookies.parseHeader(this.headers.cookie ?? ""))
   }
 
   get stream(): Stream.Stream<Uint8Array, Error.RequestError> {
     return this.source.body
       ? BunStream.fromReadableStream({
-        evaluate: () => this.source.body as any,
-        onError: (cause) =>
+          evaluate: () => this.source.body as any,
+          onError: (cause) =>
+            new Error.RequestError({
+              request: this,
+              reason: "RequestParseError",
+              cause
+            })
+        })
+      : Stream.fail(
           new Error.RequestError({
             request: this,
             reason: "RequestParseError",
-            cause
+            description: "can not create stream from empty body"
           })
-      })
-      : Stream.fail(
-        new Error.RequestError({
-          request: this,
-          reason: "RequestParseError",
-          description: "can not create stream from empty body"
-        })
-      )
+        )
   }
 
   private textEffect: Effect.Effect<string, Error.RequestError> | undefined
@@ -364,17 +355,19 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     if (this.textEffect) {
       return this.textEffect
     }
-    this.textEffect = Effect.runSync(Effect.cached(
-      Effect.tryPromise({
-        try: () => this.source.text(),
-        catch: (cause) =>
-          new Error.RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
-          })
-      })
-    ))
+    this.textEffect = Effect.runSync(
+      Effect.cached(
+        Effect.tryPromise({
+          try: () => this.source.text(),
+          catch: (cause) =>
+            new Error.RequestError({
+              request: this,
+              reason: "RequestParseError",
+              cause
+            })
+        })
+      )
+    )
     return this.textEffect
   }
 
@@ -388,7 +381,8 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
             reason: "RequestParseError",
             cause
           })
-      }))
+      })
+    )
   }
 
   get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, Error.RequestError> {
@@ -401,15 +395,12 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
             reason: "RequestParseError",
             cause
           })
-      }))
+      })
+    )
   }
 
   private multipartEffect:
-    | Effect.Effect<
-      Multipart.Persisted,
-      Multipart.MultipartError,
-      Scope.Scope | FileSystem.FileSystem | Path.Path
-    >
+    | Effect.Effect<Multipart.Persisted, Multipart.MultipartError, Scope.Scope | FileSystem.FileSystem | Path.Path>
     | undefined
   get multipart(): Effect.Effect<
     Multipart.Persisted,
@@ -419,9 +410,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     if (this.multipartEffect) {
       return this.multipartEffect
     }
-    this.multipartEffect = Effect.runSync(Effect.cached(
-      BunMultipart.persisted(this.source)
-    ))
+    this.multipartEffect = Effect.runSync(Effect.cached(BunMultipart.persisted(this.source)))
     return this.multipartEffect
   }
 
@@ -434,17 +423,19 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     if (this.arrayBufferEffect) {
       return this.arrayBufferEffect
     }
-    this.arrayBufferEffect = Effect.runSync(Effect.cached(
-      Effect.tryPromise({
-        try: () => this.source.arrayBuffer(),
-        catch: (cause) =>
-          new Error.RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
-          })
-      })
-    ))
+    this.arrayBufferEffect = Effect.runSync(
+      Effect.cached(
+        Effect.tryPromise({
+          try: () => this.source.arrayBuffer(),
+          catch: (cause) =>
+            new Error.RequestError({
+              request: this,
+              reason: "RequestParseError",
+              cause
+            })
+        })
+      )
+    )
     return this.arrayBufferEffect
   }
 
@@ -463,66 +454,73 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
         }
       })
       if (!success) {
-        resume(Effect.fail(
-          new Error.RequestError({
-            request: this,
-            reason: "RequestParseError",
-            description: "Not an upgradeable ServerRequest"
-          })
-        ))
+        resume(
+          Effect.fail(
+            new Error.RequestError({
+              request: this,
+              reason: "RequestParseError",
+              description: "Not an upgradeable ServerRequest"
+            })
+          )
+        )
         return
       }
-      resume(Effect.map(Deferred.await(deferred), (ws) => {
-        const write = (chunk: Uint8Array | string | Socket.CloseEvent) =>
-          Effect.sync(() => {
-            if (typeof chunk === "string") {
-              ws.sendText(chunk)
-            } else if (Socket.isCloseEvent(chunk)) {
-              ws.close(chunk.code, chunk.reason)
-            } else {
-              ws.sendBinary(chunk)
-            }
-
-            return true
-          })
-        const writer = Effect.succeed(write)
-        const runRaw = Effect.fnUntraced(
-          function*<R, E, _>(
-            handler: (_: Uint8Array | string) => Effect.Effect<_, E, R> | void,
-            opts?: { readonly onOpen?: Effect.Effect<void> | undefined }
-          ) {
-            const set = yield* FiberSet.make<any, E>()
-            const run = yield* FiberSet.runtime(set)<R>()
-            function runRaw(data: Uint8Array | string) {
-              const result = handler(data)
-              if (Effect.isEffect(result)) {
-                run(result)
+      resume(
+        Effect.map(Deferred.await(deferred), (ws) => {
+          const write = (chunk: Uint8Array | string | Socket.CloseEvent) =>
+            Effect.sync(() => {
+              if (typeof chunk === "string") {
+                ws.sendText(chunk)
+              } else if (Socket.isCloseEvent(chunk)) {
+                ws.close(chunk.code, chunk.reason)
+              } else {
+                ws.sendBinary(chunk)
               }
+
+              return true
+            })
+          const writer = Effect.succeed(write)
+          const runRaw = Effect.fnUntraced(
+            function* <R, E, _>(
+              handler: (_: Uint8Array | string) => Effect.Effect<_, E, R> | void,
+              opts?: { readonly onOpen?: Effect.Effect<void> | undefined }
+            ) {
+              const set = yield* FiberSet.make<any, E>()
+              const run = yield* FiberSet.runtime(set)<R>()
+              function runRaw(data: Uint8Array | string) {
+                const result = handler(data)
+                if (Effect.isEffect(result)) {
+                  run(result)
+                }
+              }
+              ws.data.run = runRaw
+              ws.data.buffer.forEach(runRaw)
+              ws.data.buffer.length = 0
+              if (opts?.onOpen) yield* opts.onOpen
+              return yield* FiberSet.join(set)
+            },
+            Effect.scoped,
+            Effect.onExit((exit) => Effect.sync(() => ws.close(exit._tag === "Success" ? 1000 : 1011))),
+            Effect.raceFirst(Deferred.await(closeDeferred)),
+            semaphore.withPermits(1)
+          )
+
+          const encoder = new TextEncoder()
+          const run = <R, E, _>(
+            handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void,
+            opts?: {
+              readonly onOpen?: Effect.Effect<void> | undefined
             }
-            ws.data.run = runRaw
-            ws.data.buffer.forEach(runRaw)
-            ws.data.buffer.length = 0
-            if (opts?.onOpen) yield* opts.onOpen
-            return yield* FiberSet.join(set)
-          },
-          Effect.scoped,
-          Effect.onExit((exit) => Effect.sync(() => ws.close(exit._tag === "Success" ? 1000 : 1011))),
-          Effect.raceFirst(Deferred.await(closeDeferred)),
-          semaphore.withPermits(1)
-        )
+          ) => runRaw((data) => (typeof data === "string" ? handler(encoder.encode(data)) : handler(data)), opts)
 
-        const encoder = new TextEncoder()
-        const run = <R, E, _>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
-          readonly onOpen?: Effect.Effect<void> | undefined
-        }) => runRaw((data) => typeof data === "string" ? handler(encoder.encode(data)) : handler(data), opts)
-
-        return Socket.Socket.of({
-          [Socket.TypeId]: Socket.TypeId as typeof Socket.TypeId,
-          run,
-          runRaw,
-          writer
+          return Socket.Socket.of({
+            [Socket.TypeId]: Socket.TypeId as typeof Socket.TypeId,
+            run,
+            runRaw,
+            writer
+          })
         })
-      }))
+      )
     })
   }
 }

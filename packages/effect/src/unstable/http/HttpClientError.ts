@@ -46,9 +46,9 @@ export class RequestError extends Data.TaggedError("RequestError")<{
    * @since 4.0.0
    */
   override get message() {
-    return this.description ?
-      `${this.reason}: ${this.description} (${this.methodAndUrl})` :
-      `${this.reason} error (${this.methodAndUrl})`
+    return this.description
+      ? `${this.reason}: ${this.description} (${this.methodAndUrl})`
+      : `${this.reason} error (${this.methodAndUrl})`
   }
 }
 
@@ -80,8 +80,6 @@ export class ResponseError extends Data.TaggedError("ResponseError")<{
    */
   override get message() {
     const info = `${this.response.status} ${this.methodAndUrl}`
-    return this.description ?
-      `${this.reason}: ${this.description} (${info})` :
-      `${this.reason} error (${info})`
+    return this.description ? `${this.reason}: ${this.description} (${info})` : `${this.reason} error (${info})`
   }
 }

@@ -67,17 +67,28 @@ const Proto = {
  * @category Combinators
  */
 export const addMany: {
-  <A extends PrimaryKey.PrimaryKey>(nodes: Iterable<A>, options?: {
-    readonly weight?: number | undefined
-  }): (self: HashRing<A>) => HashRing<A>
-  <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, nodes: Iterable<A>, options?: {
-    readonly weight?: number | undefined
-  }): HashRing<A>
+  <A extends PrimaryKey.PrimaryKey>(
+    nodes: Iterable<A>,
+    options?: {
+      readonly weight?: number | undefined
+    }
+  ): (self: HashRing<A>) => HashRing<A>
+  <A extends PrimaryKey.PrimaryKey>(
+    self: HashRing<A>,
+    nodes: Iterable<A>,
+    options?: {
+      readonly weight?: number | undefined
+    }
+  ): HashRing<A>
 } = dual(
   (args) => isHashRing(args[0]),
-  <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, nodes: Iterable<A>, options?: {
-    readonly weight?: number | undefined
-  }): HashRing<A> => {
+  <A extends PrimaryKey.PrimaryKey>(
+    self: HashRing<A>,
+    nodes: Iterable<A>,
+    options?: {
+      readonly weight?: number | undefined
+    }
+  ): HashRing<A> => {
     const weight = Math.max(options?.weight ?? 1, 0.1)
     const keys: Array<string> = []
     let toRemove: Set<string> | undefined
@@ -109,10 +120,7 @@ function addNodesToRing<A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, keys
   for (let i = weight; i > 0; i--) {
     for (let j = 0; j < keys.length; j++) {
       const key = keys[j]
-      self.ring.push([
-        Hash.string(`${key}:${i}`),
-        key
-      ])
+      self.ring.push([Hash.string(`${key}:${i}`), key])
     }
   }
   self.ring.sort((a, b) => a[0] - b[0])
@@ -126,15 +134,29 @@ function addNodesToRing<A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, keys
  * @category Combinators
  */
 export const add: {
-  <A extends PrimaryKey.PrimaryKey>(node: A, options?: {
-    readonly weight?: number | undefined
-  }): (self: HashRing<A>) => HashRing<A>
-  <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A, options?: {
-    readonly weight?: number | undefined
-  }): HashRing<A>
-} = dual((args) => isHashRing(args[0]), <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A, options?: {
-  readonly weight?: number | undefined
-}): HashRing<A> => addMany(self, [node], options))
+  <A extends PrimaryKey.PrimaryKey>(
+    node: A,
+    options?: {
+      readonly weight?: number | undefined
+    }
+  ): (self: HashRing<A>) => HashRing<A>
+  <A extends PrimaryKey.PrimaryKey>(
+    self: HashRing<A>,
+    node: A,
+    options?: {
+      readonly weight?: number | undefined
+    }
+  ): HashRing<A>
+} = dual(
+  (args) => isHashRing(args[0]),
+  <A extends PrimaryKey.PrimaryKey>(
+    self: HashRing<A>,
+    node: A,
+    options?: {
+      readonly weight?: number | undefined
+    }
+  ): HashRing<A> => addMany(self, [node], options)
+)
 
 /**
  * Removes the node from the ring. No-op's if the node does not exist.
@@ -163,9 +185,8 @@ export const remove: {
 export const has: {
   <A extends PrimaryKey.PrimaryKey>(node: A): (self: HashRing<A>) => boolean
   <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A): boolean
-} = dual(
-  2,
-  <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A): boolean => self.nodes.has(PrimaryKey.value(node))
+} = dual(2, <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A): boolean =>
+  self.nodes.has(PrimaryKey.value(node))
 )
 
 /**

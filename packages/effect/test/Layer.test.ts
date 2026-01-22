@@ -7,47 +7,43 @@ import * as Scope from "effect/Scope"
 
 describe("Layer", () => {
   it.effect("layers can be acquired in parallel", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const BoolTag = ServiceMap.Service<boolean>("boolean")
       const latch = Effect.makeLatchUnsafe()
       const layer1 = Layer.effectServices<never, never, never>(Effect.never)
       const layer2 = Layer.effectServices(
-        Effect.acquireRelease(
-          latch.open.pipe(
-            Effect.map((bool) => ServiceMap.make(BoolTag, bool))
-          ),
-          () => Effect.void
-        )
+        Effect.acquireRelease(latch.open.pipe(Effect.map((bool) => ServiceMap.make(BoolTag, bool))), () => Effect.void)
       )
       const env = layer1.pipe(Layer.merge(layer2), Layer.build)
       const fiber = yield* Effect.forkDetach(Effect.scoped(env))
       yield* latch.await
       const result = yield* Fiber.interrupt(fiber)
       assert.isUndefined(result)
-    }))
+    })
+  )
 
   it.effect("sharing with merge", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const array: Array<string> = []
       const layer = makeLayer1(array)
       const env = layer.pipe(Layer.merge(layer), Layer.build)
       yield* Effect.scoped(env)
       assert.deepStrictEqual(array, [acquire1, release1])
-    }))
+    })
+  )
 
   it.effect("sharing itself with merge", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const service1 = new Service1()
       const layer = Layer.succeed(Service1Tag)(service1)
       const env = layer.pipe(Layer.merge(layer), Layer.merge(layer), Layer.build)
-      const result = yield* env.pipe(
-        Effect.map((context) => ServiceMap.get(context, Service1Tag))
-      )
+      const result = yield* env.pipe(Effect.map((context) => ServiceMap.get(context, Service1Tag)))
       assert.strictEqual(result, service1)
-    }))
+    })
+  )
 
   it.effect("finalizers", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
@@ -57,10 +53,11 @@ describe("Layer", () => {
       assert.isDefined(arr.slice(0, 2).find((s) => s === acquire2))
       assert.isDefined(arr.slice(2, 4).find((s) => s === release1))
       assert.isDefined(arr.slice(2, 4).find((s) => s === release2))
-    }))
+    })
+  )
 
   it.effect("catch - uses an alternative layer", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
@@ -71,71 +68,55 @@ describe("Layer", () => {
       )
       yield* Effect.scoped(env)
       assert.deepStrictEqual(arr, [acquire1, release1, acquire2, release2])
-    }))
+    })
+  )
 
   it.effect("fresh with merge", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer = makeLayer1(arr)
       const env = layer.pipe(Layer.merge(Layer.fresh(layer)), Layer.build)
       yield* Effect.scoped(env)
       assert.deepStrictEqual(arr, [acquire1, acquire1, release1, release1])
-    }))
+    })
+  )
 
   it.effect("fresh with provide", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer = makeLayer1(arr)
-      const env = Layer.fresh(layer).pipe(
-        Layer.provide(layer),
-        Layer.build
-      )
+      const env = Layer.fresh(layer).pipe(Layer.provide(layer), Layer.build)
       yield* Effect.scoped(env)
       assert.deepStrictEqual(arr, [acquire1, acquire1, release1, release1])
-    }))
+    })
+  )
 
   it.effect("with multiple layers", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer = makeLayer1(arr)
-      const env = layer.pipe(
-        Layer.merge(layer),
-        Layer.merge(layer.pipe(Layer.merge(layer), Layer.fresh)),
-        Layer.build
-      )
+      const env = layer.pipe(Layer.merge(layer), Layer.merge(layer.pipe(Layer.merge(layer), Layer.fresh)), Layer.build)
       yield* Effect.scoped(env)
       assert.deepStrictEqual(arr, [acquire1, acquire1, release1, release1])
-    }))
+    })
+  )
   it.effect("with identical fresh layers", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
       const layer3 = makeLayer3(arr)
       const env = layer2.pipe(
-        Layer.merge(
-          layer3.pipe(
-            Layer.provide(layer1),
-            Layer.fresh
-          )
-        ),
+        Layer.merge(layer3.pipe(Layer.provide(layer1), Layer.fresh)),
         Layer.provide(Layer.fresh(layer1)),
         Layer.build
       )
       yield* Effect.scoped(env)
-      assert.deepStrictEqual(arr, [
-        acquire1,
-        acquire2,
-        acquire1,
-        acquire3,
-        release3,
-        release1,
-        release2,
-        release1
-      ])
-    }))
+      assert.deepStrictEqual(arr, [acquire1, acquire2, acquire1, acquire3, release3, release1, release2, release1])
+    })
+  )
   it.effect("interruption with merge", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
@@ -148,9 +129,10 @@ describe("Layer", () => {
       if (arr.find((s) => s === acquire2) !== undefined) {
         assert.isTrue(arr.some((s) => s === release2))
       }
-    }))
+    })
+  )
   it.effect("interruption with provide", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
@@ -163,19 +145,15 @@ describe("Layer", () => {
       if (arr.find((s) => s === acquire2) !== undefined) {
         assert.isTrue(arr.some((s) => s === release2))
       }
-    }))
+    })
+  )
   it.effect("interruption with multiple layers", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
       const layer3 = makeLayer3(arr)
-      const env = layer3.pipe(
-        Layer.provide(layer1),
-        Layer.merge(layer2),
-        Layer.provide(layer1),
-        Layer.build
-      )
+      const env = layer3.pipe(Layer.provide(layer1), Layer.merge(layer2), Layer.provide(layer1), Layer.build)
       const fiber = yield* Effect.forkChild(Effect.scoped(env))
       yield* Fiber.interrupt(fiber)
       if (arr.find((s) => s === acquire1) !== undefined) {
@@ -187,20 +165,22 @@ describe("Layer", () => {
       if (arr.find((s) => s === acquire3) !== undefined) {
         assert.isTrue(arr.some((s) => s === release3))
       }
-    }))
+    })
+  )
 
   it.effect("finalizers with provide", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
       const env = layer2.pipe(Layer.provide(layer1), Layer.build)
       yield* Effect.scoped(env)
       assert.deepStrictEqual(arr, [acquire1, acquire2, release2, release1])
-    }))
+    })
+  )
 
   it.effect("finalizers with multiple layers with provideTo", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
@@ -208,10 +188,11 @@ describe("Layer", () => {
       const env = layer3.pipe(Layer.provide(layer2), Layer.provide(layer1), Layer.build)
       yield* Effect.scoped(env)
       assert.deepStrictEqual(arr, [acquire1, acquire2, acquire3, release3, release2, release1])
-    }))
+    })
+  )
 
   it.effect("orDie does not interfere with sharing", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const arr: Array<string> = []
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
@@ -229,22 +210,23 @@ describe("Layer", () => {
       assert.isTrue(arr.slice(3, 5).some((s) => s === release3))
       assert.isTrue(arr.slice(3, 5).some((s) => s === release2))
       assert.strictEqual(arr[5], release1)
-    }))
+    })
+  )
 
   describe("mock", () => {
     it.effect("allows passing partial service", () =>
-      Effect.gen(function*() {
-        class Service1 extends ServiceMap.Service<Service1, {
-          one: Effect.Effect<number>
-          two(): Effect.Effect<number>
-        }>()("Service1") {}
-        yield* Effect.gen(function*() {
+      Effect.gen(function* () {
+        class Service1 extends ServiceMap.Service<
+          Service1,
+          {
+            one: Effect.Effect<number>
+            two(): Effect.Effect<number>
+          }
+        >()("Service1") {}
+        yield* Effect.gen(function* () {
           const service = yield* Service1
           assert.strictEqual(yield* service.one, 123)
-          yield* service.two().pipe(
-            Effect.catchDefect(Effect.fail),
-            Effect.flip
-          )
+          yield* service.two().pipe(Effect.catchDefect(Effect.fail), Effect.flip)
         }).pipe(
           Effect.provide(
             Layer.mock(Service1)({
@@ -252,17 +234,16 @@ describe("Layer", () => {
             })
           )
         )
-      }))
+      })
+    )
   })
 
   describe("MemoMap", () => {
     it.effect("memoizes layer across builds", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const arr: Array<string> = []
         const layer1 = makeLayer1(arr)
-        const layer2 = makeLayer2(arr).pipe(
-          Layer.provide(layer1)
-        )
+        const layer2 = makeLayer2(arr).pipe(Layer.provide(layer1))
         const memoMap = Layer.makeMemoMapUnsafe()
         const scope1 = yield* Scope.make()
         const scope2 = yield* Scope.make()
@@ -274,15 +255,14 @@ describe("Layer", () => {
         yield* Scope.close(scope1, Exit.void)
 
         assert.deepStrictEqual(arr, [acquire1, acquire2, release2, acquire2, release2, release1])
-      }))
+      })
+    )
 
     it.effect("layers are not released early", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const arr: Array<string> = []
         const layer1 = makeLayer1(arr)
-        const layer2 = makeLayer2(arr).pipe(
-          Layer.provide(layer1)
-        )
+        const layer2 = makeLayer2(arr).pipe(Layer.provide(layer1))
         const memoMap = Layer.makeMemoMapUnsafe()
         const scope1 = yield* Scope.make()
         const scope2 = yield* Scope.make()
@@ -293,7 +273,8 @@ describe("Layer", () => {
         yield* Scope.close(scope2, Exit.void)
 
         assert.deepStrictEqual(arr, [acquire1, acquire2, release2, release1])
-      }))
+      })
+    )
   })
 })
 

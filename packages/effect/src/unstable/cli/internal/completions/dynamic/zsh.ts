@@ -5,10 +5,7 @@
  */
 
 /** @internal */
-export const generateDynamicZshCompletion = (
-  executableName: string,
-  executablePath?: string
-): string => {
+export const generateDynamicZshCompletion = (executableName: string, executablePath?: string): string => {
   const appPath = executablePath || executableName
 
   const template = `#compdef ${executableName}

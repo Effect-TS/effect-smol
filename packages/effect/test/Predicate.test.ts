@@ -380,7 +380,10 @@ describe("isObjectOrArray", () => {
     assert.equal(Predicate.isObjectOrArray({}), true)
     assert.equal(Predicate.isObjectOrArray([]), true)
     assert.equal(Predicate.isObjectOrArray(null), false)
-    assert.equal(Predicate.isObjectOrArray(() => {}), false)
+    assert.equal(
+      Predicate.isObjectOrArray(() => {}),
+      false
+    )
   })
 })
 
@@ -392,7 +395,10 @@ describe("isObject", () => {
     assert.equal(Predicate.isObject([1, 2, 3]), false)
     assert.equal(Predicate.isObject(null), false)
     assert.equal(Predicate.isObject(undefined), false)
-    assert.equal(Predicate.isObject(() => null), false)
+    assert.equal(
+      Predicate.isObject(() => null),
+      false
+    )
   })
 })
 
@@ -411,7 +417,10 @@ describe("isObjectKeyword", () => {
   it("accepts objects, arrays, and functions", () => {
     assert.equal(Predicate.isObjectKeyword({}), true)
     assert.equal(Predicate.isObjectKeyword([]), true)
-    assert.equal(Predicate.isObjectKeyword(() => 1), true)
+    assert.equal(
+      Predicate.isObjectKeyword(() => 1),
+      true
+    )
     assert.equal(Predicate.isObjectKeyword(null), false)
     assert.equal(Predicate.isObjectKeyword(undefined), false)
     assert.equal(Predicate.isObjectKeyword("a"), false)
@@ -438,12 +447,18 @@ describe("hasProperty", () => {
     assert.equal(Predicate.hasProperty({}, "a"), false)
     assert.equal(Predicate.hasProperty(null, "a"), false)
     assert.equal(Predicate.hasProperty(undefined, "a"), false)
-    assert.equal(Predicate.hasProperty(() => {}, "a"), false)
+    assert.equal(
+      Predicate.hasProperty(() => {}, "a"),
+      false
+    )
 
     assert.equal(Predicate.hasProperty({}, a), false)
     assert.equal(Predicate.hasProperty(null, a), false)
     assert.equal(Predicate.hasProperty(undefined, a), false)
-    assert.equal(Predicate.hasProperty(() => {}, a), false)
+    assert.equal(
+      Predicate.hasProperty(() => {}, a),
+      false
+    )
   })
 })
 

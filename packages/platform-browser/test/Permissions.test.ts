@@ -4,9 +4,10 @@ import * as Effect from "effect/Effect"
 
 describe("Permissions", () => {
   it.effect("should be able to query permissions", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const service = yield* Permissions.Permissions
       const permissions = yield* service.query("geolocation")
       assert.strictEqual(permissions.state, "granted")
-    }).pipe(Effect.provide(Permissions.layer)))
+    }).pipe(Effect.provide(Permissions.layer))
+  )
 })

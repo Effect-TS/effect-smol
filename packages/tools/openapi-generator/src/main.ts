@@ -35,31 +35,29 @@ const patch = Flag.string("patch").pipe(
 )
 
 const root = Command.make("openapigen", { spec, typeOnly, name, patch }).pipe(
-  Command.withHandler(Effect.fnUntraced(function*({ name, spec, typeOnly, patch }) {
-    let patchedSpec: Schema.Json = spec as Schema.Json
+  Command.withHandler(
+    Effect.fnUntraced(function* ({ name, spec, typeOnly, patch }) {
+      let patchedSpec: Schema.Json = spec as Schema.Json
 
-    if (patch.length > 0) {
-      const parsedPatches = yield* Effect.forEach(
-        patch,
-        (input) =>
+      if (patch.length > 0) {
+        const parsedPatches = yield* Effect.forEach(patch, (input) =>
           OpenApiPatch.parsePatchInput(input).pipe(
             Effect.map((p) => ({ source: input, patch: p })),
             Effect.mapError((error) => new CliError.UserError({ cause: error }))
           )
-      )
-      patchedSpec = yield* OpenApiPatch.applyPatches(parsedPatches, patchedSpec).pipe(
-        Effect.mapError((error) => new CliError.UserError({ cause: error }))
-      )
-    }
+        )
+        patchedSpec = yield* OpenApiPatch.applyPatches(parsedPatches, patchedSpec).pipe(
+          Effect.mapError((error) => new CliError.UserError({ cause: error }))
+        )
+      }
 
-    const generator = yield* OpenApiGenerator.OpenApiGenerator
-    const source = yield* generator.generate(patchedSpec as unknown as OpenAPISpec, { name, typeOnly })
-    return yield* Console.log(source)
-  })),
+      const generator = yield* OpenApiGenerator.OpenApiGenerator
+      const source = yield* generator.generate(patchedSpec as unknown as OpenAPISpec, { name, typeOnly })
+      return yield* Console.log(source)
+    })
+  ),
   Command.provide(({ typeOnly }) =>
-    typeOnly
-      ? OpenApiGenerator.layerTransformerTs
-      : OpenApiGenerator.layerTransformerSchema
+    typeOnly ? OpenApiGenerator.layerTransformerTs : OpenApiGenerator.layerTransformerSchema
   )
 )
 

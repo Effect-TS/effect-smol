@@ -15,25 +15,17 @@ import * as Flag from "../Flag.ts"
  * @since 4.0.0
  * @internal
  */
-export const logLevelFlag: Flag.Flag<Option.Option<LogLevel>> = Flag
-  .choiceWithValue(
-    "log-level",
-    [
-      ["all", "All"],
-      ["trace", "Trace"],
-      ["debug", "Debug"],
-      ["info", "Info"],
-      ["warn", "Warn"],
-      ["warning", "Warn"], // alias
-      ["error", "Error"],
-      ["fatal", "Fatal"],
-      ["none", "None"]
-    ] as const
-  )
-  .pipe(
-    Flag.optional,
-    Flag.withDescription("Sets the minimum log level for the command")
-  )
+export const logLevelFlag: Flag.Flag<Option.Option<LogLevel>> = Flag.choiceWithValue("log-level", [
+  ["all", "All"],
+  ["trace", "Trace"],
+  ["debug", "Debug"],
+  ["info", "Info"],
+  ["warn", "Warn"],
+  ["warning", "Warn"], // alias
+  ["error", "Error"],
+  ["fatal", "Fatal"],
+  ["none", "None"]
+] as const).pipe(Flag.optional, Flag.withDescription("Sets the minimum log level for the command"))
 
 /**
  * Built-in --help/-h option.
@@ -41,12 +33,10 @@ export const logLevelFlag: Flag.Flag<Option.Option<LogLevel>> = Flag
  * @since 4.0.0
  * @internal
  */
-export const helpFlag: Flag.Flag<boolean> = Flag
-  .boolean("help")
-  .pipe(
-    Flag.withAlias("h"),
-    Flag.withDescription("Show help information")
-  )
+export const helpFlag: Flag.Flag<boolean> = Flag.boolean("help").pipe(
+  Flag.withAlias("h"),
+  Flag.withDescription("Show help information")
+)
 
 /**
  * Built-in --version option.
@@ -54,11 +44,9 @@ export const helpFlag: Flag.Flag<boolean> = Flag
  * @since 4.0.0
  * @internal
  */
-export const versionFlag: Flag.Flag<boolean> = Flag
-  .boolean("version")
-  .pipe(
-    Flag.withDescription("Show version information")
-  )
+export const versionFlag: Flag.Flag<boolean> = Flag.boolean("version").pipe(
+  Flag.withDescription("Show version information")
+)
 
 /**
  * Built-in --completions option to print shell completion scripts.
@@ -68,11 +56,14 @@ export const versionFlag: Flag.Flag<boolean> = Flag
  * @since 4.0.0
  * @internal
  */
-export const completionsFlag: Flag.Flag<Option.Option<"bash" | "zsh" | "fish">> = Flag
-  .choice("completions", ["bash", "zsh", "fish", "sh"] as const)
-  .pipe(
-    Flag.optional,
-    // Map "sh" to "bash" while preserving Option-ness
-    Flag.map((v) => Option.map(v, (s) => (s === "sh" ? "bash" : s))),
-    Flag.withDescription("Print shell completion script for the given shell")
-  )
+export const completionsFlag: Flag.Flag<Option.Option<"bash" | "zsh" | "fish">> = Flag.choice("completions", [
+  "bash",
+  "zsh",
+  "fish",
+  "sh"
+] as const).pipe(
+  Flag.optional,
+  // Map "sh" to "bash" while preserving Option-ness
+  Flag.map((v) => Option.map(v, (s) => (s === "sh" ? "bash" : s))),
+  Flag.withDescription("Print shell completion script for the given shell")
+)

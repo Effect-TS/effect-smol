@@ -79,15 +79,13 @@ interface SqliteConnection extends Connection {
 export const make = (
   options: SqliteClientConfig
 ): Effect.Effect<SqliteClient, never, Scope.Scope | Reactivity.Reactivity> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const compiler = Statement.makeCompilerSqlite(options.transformQueryNames)
-    const transformRows = options.transformResultNames ?
-      Statement.defaultTransforms(
-        options.transformResultNames
-      ).array :
-      undefined
+    const transformRows = options.transformResultNames
+      ? Statement.defaultTransforms(options.transformResultNames).array
+      : undefined
 
-    const makeConnection = Effect.gen(function*() {
+    const makeConnection = Effect.gen(function* () {
       const db = new Database(options.filename, {
         readonly: options.readonly,
         readwrite: options.readwrite ?? true,
@@ -99,19 +97,13 @@ export const make = (
         db.run("PRAGMA journal_mode = WAL;")
       }
 
-      const run = (
-        sql: string,
-        params: ReadonlyArray<unknown> = []
-      ) =>
+      const run = (sql: string, params: ReadonlyArray<unknown> = []) =>
         Effect.try({
           try: () => (db.query(sql).all(...(params as any)) ?? []) as Array<any>,
           catch: (cause) => new SqlError({ cause, message: "Failed to execute statement" })
         })
 
-      const runValues = (
-        sql: string,
-        params: ReadonlyArray<unknown> = []
-      ) =>
+      const runValues = (sql: string, params: ReadonlyArray<unknown> = []) =>
         Effect.try({
           try: () => (db.query(sql).values(...(params as any)) ?? []) as Array<any>,
           catch: (cause) => new SqlError({ cause, message: "Failed to execute statement" })
@@ -119,9 +111,7 @@ export const make = (
 
       return identity<SqliteConnection>({
         execute(sql, params, transformRows) {
-          return transformRows
-            ? Effect.map(run(sql, params), transformRows)
-            : run(sql, params)
+          return transformRows ? Effect.map(run(sql, params), transformRows) : run(sql, params)
         },
         executeRaw(sql, params) {
           return run(sql, params)
@@ -155,10 +145,7 @@ export const make = (
       const fiber = Fiber.getCurrent()!
       const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
       return Effect.as(
-        Effect.tap(
-          restore(semaphore.take(1)),
-          () => Scope.addFinalizer(scope, semaphore.release(1))
-        ),
+        Effect.tap(restore(semaphore.take(1)), () => Scope.addFinalizer(scope, semaphore.release(1))),
         connection
       )
     })
@@ -191,26 +178,21 @@ export const layerConfig = (
   config: Config.Wrap<SqliteClientConfig>
 ): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError> =>
   Layer.effectServices(
-    Config.unwrap(config).asEffect().pipe(
-      Effect.flatMap(make),
-      Effect.map((client) =>
-        ServiceMap.make(SqliteClient, client).pipe(
-          ServiceMap.add(Client.SqlClient, client)
-        )
+    Config.unwrap(config)
+      .asEffect()
+      .pipe(
+        Effect.flatMap(make),
+        Effect.map((client) => ServiceMap.make(SqliteClient, client).pipe(ServiceMap.add(Client.SqlClient, client)))
       )
-    )
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
  * @category layers
  * @since 1.0.0
  */
-export const layer = (
-  config: SqliteClientConfig
-): Layer.Layer<SqliteClient | Client.SqlClient> =>
+export const layer = (config: SqliteClientConfig): Layer.Layer<SqliteClient | Client.SqlClient> =>
   Layer.effectServices(
     Effect.map(make(config), (client) =>
-      ServiceMap.make(SqliteClient, client).pipe(
-        ServiceMap.add(Client.SqlClient, client)
-      ))
+      ServiceMap.make(SqliteClient, client).pipe(ServiceMap.add(Client.SqlClient, client))
+    )
   ).pipe(Layer.provide(Reactivity.layer))

@@ -44,7 +44,7 @@ export const fromReadableChannel = <A = Uint8Array, E = Cause.UnknownError>(opti
     readableToPullUnsafe({
       scope,
       readable: options.evaluate(),
-      onError: options.onError ?? defaultOnError as any,
+      onError: options.onError ?? (defaultOnError as any),
       chunkSize: options.chunkSize,
       closeOnDone: options.closeOnDone
     })
@@ -54,16 +54,14 @@ export const fromReadableChannel = <A = Uint8Array, E = Cause.UnknownError>(opti
  * @category constructors
  * @since 1.0.0
  */
-export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.UnknownError>(
-  options: {
-    readonly evaluate: LazyArg<Duplex>
-    readonly onError?: (error: unknown) => E
-    readonly chunkSize?: number | undefined
-    readonly bufferSize?: number | undefined
-    readonly endOnDone?: boolean | undefined
-    readonly encoding?: BufferEncoding | undefined
-  }
-): Channel.Channel<Arr.NonEmptyReadonlyArray<O>, IE | E, void, Arr.NonEmptyReadonlyArray<I>, IE> =>
+export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.UnknownError>(options: {
+  readonly evaluate: LazyArg<Duplex>
+  readonly onError?: (error: unknown) => E
+  readonly chunkSize?: number | undefined
+  readonly bufferSize?: number | undefined
+  readonly endOnDone?: boolean | undefined
+  readonly encoding?: BufferEncoding | undefined
+}): Channel.Channel<Arr.NonEmptyReadonlyArray<O>, IE | E, void, Arr.NonEmptyReadonlyArray<I>, IE> =>
   Channel.fromTransform((upstream, scope) => {
     const duplex = options.evaluate()
     const exit = MutableRef.make<Exit.Exit<never, IE | E | Cause.Done> | undefined>(undefined)
@@ -71,7 +69,7 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
     return pullIntoWritable({
       pull: upstream,
       writable: duplex,
-      onError: options.onError ?? defaultOnError as any,
+      onError: options.onError ?? (defaultOnError as any),
       endOnDone: options.endOnDone,
       encoding: options.encoding
     }).pipe(
@@ -86,7 +84,7 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
           scope,
           exit,
           readable: duplex,
-          onError: options.onError ?? defaultOnError as any,
+          onError: options.onError ?? (defaultOnError as any),
           chunkSize: options.chunkSize
         })
       )
@@ -98,16 +96,14 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
  * @since 1.0.0
  */
 export const pipeThroughDuplex: {
-  <B = Uint8Array, E2 = Cause.UnknownError>(
-    options: {
-      readonly evaluate: LazyArg<Duplex>
-      readonly onError?: (error: unknown) => E2
-      readonly chunkSize?: number | undefined
-      readonly bufferSize?: number | undefined
-      readonly endOnDone?: boolean | undefined
-      readonly encoding?: BufferEncoding | undefined
-    }
-  ): <R, E, A>(self: Stream.Stream<A, E, R>) => Stream.Stream<B, E2 | E, R>
+  <B = Uint8Array, E2 = Cause.UnknownError>(options: {
+    readonly evaluate: LazyArg<Duplex>
+    readonly onError?: (error: unknown) => E2
+    readonly chunkSize?: number | undefined
+    readonly bufferSize?: number | undefined
+    readonly endOnDone?: boolean | undefined
+    readonly encoding?: BufferEncoding | undefined
+  }): <R, E, A>(self: Stream.Stream<A, E, R>) => Stream.Stream<B, E2 | E, R>
   <R, E, A, B = Uint8Array, E2 = Cause.UnknownError>(
     self: Stream.Stream<A, E, R>,
     options: {
@@ -119,21 +115,20 @@ export const pipeThroughDuplex: {
       readonly encoding?: BufferEncoding | undefined
     }
   ): Stream.Stream<B, E | E2, R>
-} = dual(2, <R, E, A, B = Uint8Array, E2 = Cause.UnknownError>(
-  self: Stream.Stream<A, E, R>,
-  options: {
-    readonly evaluate: LazyArg<Duplex>
-    readonly onError?: (error: unknown) => E2
-    readonly chunkSize?: number | undefined
-    readonly bufferSize?: number | undefined
-    readonly endOnDone?: boolean | undefined
-    readonly encoding?: BufferEncoding | undefined
-  }
-): Stream.Stream<B, E | E2, R> =>
-  Stream.pipeThroughChannelOrFail(
-    self,
-    fromDuplex(options)
-  ))
+} = dual(
+  2,
+  <R, E, A, B = Uint8Array, E2 = Cause.UnknownError>(
+    self: Stream.Stream<A, E, R>,
+    options: {
+      readonly evaluate: LazyArg<Duplex>
+      readonly onError?: (error: unknown) => E2
+      readonly chunkSize?: number | undefined
+      readonly bufferSize?: number | undefined
+      readonly endOnDone?: boolean | undefined
+      readonly encoding?: BufferEncoding | undefined
+    }
+  ): Stream.Stream<B, E | E2, R> => Stream.pipeThroughChannelOrFail(self, fromDuplex(options))
+)
 
 /**
  * @category combinators
@@ -147,30 +142,27 @@ export const pipeThroughSimple: {
     self: Stream.Stream<string | Uint8Array, E, R>,
     duplex: LazyArg<Duplex>
   ): Stream.Stream<Uint8Array, Cause.UnknownError | E, R>
-} = dual(2, <R, E>(
-  self: Stream.Stream<string | Uint8Array, E, R>,
-  duplex: LazyArg<Duplex>
-): Stream.Stream<Uint8Array, Cause.UnknownError | E, R> => pipeThroughDuplex(self, { evaluate: duplex }))
+} = dual(
+  2,
+  <R, E>(
+    self: Stream.Stream<string | Uint8Array, E, R>,
+    duplex: LazyArg<Duplex>
+  ): Stream.Stream<Uint8Array, Cause.UnknownError | E, R> => pipeThroughDuplex(self, { evaluate: duplex })
+)
 
 /**
  * @since 1.0.0
  * @category conversions
  */
 export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R>): Effect.Effect<Readable, never, R> =>
-  Effect.map(
-    Effect.services<R>(),
-    (context) => new StreamAdapter(context, stream)
-  )
+  Effect.map(Effect.services<R>(), (context) => new StreamAdapter(context, stream))
 
 /**
  * @since 1.0.0
  * @category conversions
  */
 export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E, never>): Readable =>
-  new StreamAdapter(
-    ServiceMap.empty(),
-    stream
-  )
+  new StreamAdapter(ServiceMap.empty(), stream)
 
 /**
  * @since 1.0.0
@@ -346,28 +338,24 @@ class StreamAdapter<E, R> extends Readable {
   private readonly readLatch: Effect.Latch
   private fiber: Fiber.Fiber<void, E> | undefined = undefined
 
-  constructor(
-    context: ServiceMap.ServiceMap<R>,
-    stream: Stream.Stream<Uint8Array | string, E, R>
-  ) {
+  constructor(context: ServiceMap.ServiceMap<R>, stream: Stream.Stream<Uint8Array | string, E, R>) {
     super({})
     this.readLatch = Effect.makeLatchUnsafe(false)
     this.fiber = Stream.runForEachArray(stream, (chunk) =>
-      this.readLatch.whenOpen(Effect.sync(() => {
-        this.readLatch.closeUnsafe()
-        for (let i = 0; i < chunk.length; i++) {
-          const item = chunk[i]
-          if (typeof item === "string") {
-            this.push(item, "utf8")
-          } else {
-            this.push(item)
+      this.readLatch.whenOpen(
+        Effect.sync(() => {
+          this.readLatch.closeUnsafe()
+          for (let i = 0; i < chunk.length; i++) {
+            const item = chunk[i]
+            if (typeof item === "string") {
+              this.push(item, "utf8")
+            } else {
+              this.push(item)
+            }
           }
-        }
-      }))).pipe(
-        this.readLatch.whenOpen,
-        Effect.provideServices(context),
-        Effect.runFork
+        })
       )
+    ).pipe(this.readLatch.whenOpen, Effect.provideServices(context), Effect.runFork)
     this.fiber.addObserver((exit) => {
       this.fiber = undefined
       if (Exit.isSuccess(exit)) {
@@ -387,7 +375,7 @@ class StreamAdapter<E, R> extends Readable {
       return callback(error)
     }
     Effect.runFork(Fiber.interrupt(this.fiber)).addObserver((exit) => {
-      callback(exit._tag === "Failure" ? Cause.squash(exit.cause) as any : error)
+      callback(exit._tag === "Failure" ? (Cause.squash(exit.cause) as any) : error)
     })
   }
 }

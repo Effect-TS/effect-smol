@@ -118,38 +118,23 @@ export interface FileSystem {
   /**
    * Copy a file from `fromPath` to `toPath`.
    */
-  readonly copyFile: (
-    fromPath: string,
-    toPath: string
-  ) => Effect.Effect<void, PlatformError>
+  readonly copyFile: (fromPath: string, toPath: string) => Effect.Effect<void, PlatformError>
   /**
    * Change the permissions of a file.
    */
-  readonly chmod: (
-    path: string,
-    mode: number
-  ) => Effect.Effect<void, PlatformError>
+  readonly chmod: (path: string, mode: number) => Effect.Effect<void, PlatformError>
   /**
    * Change the owner and group of a file.
    */
-  readonly chown: (
-    path: string,
-    uid: number,
-    gid: number
-  ) => Effect.Effect<void, PlatformError>
+  readonly chown: (path: string, uid: number, gid: number) => Effect.Effect<void, PlatformError>
   /**
    * Check if a path exists.
    */
-  readonly exists: (
-    path: string
-  ) => Effect.Effect<boolean, PlatformError>
+  readonly exists: (path: string) => Effect.Effect<boolean, PlatformError>
   /**
    * Create a hard link from `fromPath` to `toPath`.
    */
-  readonly link: (
-    fromPath: string,
-    toPath: string
-  ) => Effect.Effect<void, PlatformError>
+  readonly link: (fromPath: string, toPath: string) => Effect.Effect<void, PlatformError>
   /**
    * Create a directory at `path`. You can optionally specify the mode and
    * whether to recursively create nested directories.
@@ -233,28 +218,19 @@ export interface FileSystem {
   /**
    * Read the contents of a file.
    */
-  readonly readFile: (
-    path: string
-  ) => Effect.Effect<Uint8Array, PlatformError>
+  readonly readFile: (path: string) => Effect.Effect<Uint8Array, PlatformError>
   /**
    * Read the contents of a file.
    */
-  readonly readFileString: (
-    path: string,
-    encoding?: string
-  ) => Effect.Effect<string, PlatformError>
+  readonly readFileString: (path: string, encoding?: string) => Effect.Effect<string, PlatformError>
   /**
    * Read the destination of a symbolic link.
    */
-  readonly readLink: (
-    path: string
-  ) => Effect.Effect<string, PlatformError>
+  readonly readLink: (path: string) => Effect.Effect<string, PlatformError>
   /**
    * Resolve a path to its canonicalized absolute pathname.
    */
-  readonly realPath: (
-    path: string
-  ) => Effect.Effect<string, PlatformError>
+  readonly realPath: (path: string) => Effect.Effect<string, PlatformError>
   /**
    * Remove a file or directory.
    */
@@ -274,10 +250,7 @@ export interface FileSystem {
   /**
    * Rename a file or directory.
    */
-  readonly rename: (
-    oldPath: string,
-    newPath: string
-  ) => Effect.Effect<void, PlatformError>
+  readonly rename: (oldPath: string, newPath: string) => Effect.Effect<void, PlatformError>
   /**
    * Create a writable `Sink` for the specified `path`.
    */
@@ -291,9 +264,7 @@ export interface FileSystem {
   /**
    * Get information about a file at `path`.
    */
-  readonly stat: (
-    path: string
-  ) => Effect.Effect<File.Info, PlatformError>
+  readonly stat: (path: string) => Effect.Effect<File.Info, PlatformError>
   /**
    * Create a readable `Stream` for the specified `path`.
    *
@@ -317,26 +288,16 @@ export interface FileSystem {
   /**
    * Create a symbolic link from `fromPath` to `toPath`.
    */
-  readonly symlink: (
-    fromPath: string,
-    toPath: string
-  ) => Effect.Effect<void, PlatformError>
+  readonly symlink: (fromPath: string, toPath: string) => Effect.Effect<void, PlatformError>
   /**
    * Truncate a file to a specified length. If the `length` is not specified,
    * the file will be truncated to length `0`.
    */
-  readonly truncate: (
-    path: string,
-    length?: SizeInput
-  ) => Effect.Effect<void, PlatformError>
+  readonly truncate: (path: string, length?: SizeInput) => Effect.Effect<void, PlatformError>
   /**
    * Change the file system timestamps of the file at `path`.
    */
-  readonly utimes: (
-    path: string,
-    atime: Date | number,
-    mtime: Date | number
-  ) => Effect.Effect<void, PlatformError>
+  readonly utimes: (path: string, atime: Date | number, mtime: Date | number) => Effect.Effect<void, PlatformError>
   /**
    * Watch a directory or file for changes
    */
@@ -454,7 +415,7 @@ export type SizeInput = bigint | number | Size
  * @since 4.0.0
  * @category sizes
  */
-export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? bytes as Size : BigInt(bytes) as Size
+export const Size = (bytes: SizeInput): Size => (typeof bytes === "bigint" ? (bytes as Size) : (BigInt(bytes) as Size))
 
 /**
  * Creates a `Size` representing kilobytes (1024 bytes).
@@ -660,17 +621,7 @@ export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
  * @since 4.0.0
  * @category model
  */
-export type OpenFlag =
-  | "r"
-  | "r+"
-  | "w"
-  | "wx"
-  | "w+"
-  | "wx+"
-  | "a"
-  | "ax"
-  | "a+"
-  | "ax+"
+export type OpenFlag = "r" | "r+" | "w" | "wx" | "w+" | "wx+" | "a" | "ax" | "a+" | "ax+"
 
 /**
  * The service identifier for the FileSystem service.
@@ -732,7 +683,7 @@ export const make = (
       pipe(
         impl.access(path),
         Effect.as(true),
-        Effect.catchTag("PlatformError", (e) => e.reason === "NotFound" ? Effect.succeed(false) : Effect.fail(e))
+        Effect.catchTag("PlatformError", (e) => (e.reason === "NotFound" ? Effect.succeed(false) : Effect.fail(e)))
       ),
     readFileString: (path, encoding) =>
       Effect.flatMap(impl.readFile(path), (_) =>
@@ -745,8 +696,9 @@ export const make = (
               description: "invalid encoding",
               cause
             })
-        })),
-    stream: Effect.fnUntraced(function*(path, options) {
+        })
+      ),
+    stream: Effect.fnUntraced(function* (path, options) {
       const file = yield* impl.open(path, { flag: "r" })
       if (options?.offset) {
         yield* file.seek(options.offset, "start")
@@ -754,24 +706,27 @@ export const make = (
       const bytesToRead = options?.bytesToRead !== undefined ? Size(options.bytesToRead) : undefined
       let totalBytesRead = BigInt(0)
       const chunkSize = Size(options?.chunkSize ?? 64 * 1024)
-      return Stream.fromPull(Effect.succeed(
-        Effect.flatMap(
-          Effect.suspend((): Pull.Pull<Uint8Array | undefined, PlatformError> => {
-            if (bytesToRead !== undefined && bytesToRead <= totalBytesRead) {
-              return Cause.done()
+      return Stream.fromPull(
+        Effect.succeed(
+          Effect.flatMap(
+            Effect.suspend((): Pull.Pull<Uint8Array | undefined, PlatformError> => {
+              if (bytesToRead !== undefined && bytesToRead <= totalBytesRead) {
+                return Cause.done()
+              }
+              const toRead =
+                bytesToRead !== undefined && bytesToRead - totalBytesRead < chunkSize
+                  ? bytesToRead - totalBytesRead
+                  : chunkSize
+              return file.readAlloc(toRead)
+            }),
+            (buf) => {
+              if (!buf) return Cause.done()
+              totalBytesRead += BigInt(buf.length)
+              return Effect.succeed(Arr.of(buf))
             }
-            const toRead = bytesToRead !== undefined && (bytesToRead - totalBytesRead) < chunkSize
-              ? bytesToRead - totalBytesRead
-              : chunkSize
-            return file.readAlloc(toRead)
-          }),
-          (buf) => {
-            if (!buf) return Cause.done()
-            totalBytesRead += BigInt(buf.length)
-            return Effect.succeed(Arr.of(buf))
-          }
+          )
         )
-      ))
+      )
     }, Stream.unwrap),
     sink: (path, options) =>
       pipe(
@@ -1252,6 +1207,9 @@ export declare namespace WatchEvent {
  * @since 4.0.0
  * @category file watcher
  */
-export class WatchBackend extends ServiceMap.Service<WatchBackend, {
-  readonly register: (path: string, stat: File.Info) => Stream.Stream<WatchEvent, PlatformError> | undefined
-}>()("effect/platform/FileSystem/WatchBackend") {}
+export class WatchBackend extends ServiceMap.Service<
+  WatchBackend,
+  {
+    readonly register: (path: string, stat: File.Info) => Stream.Stream<WatchEvent, PlatformError> | undefined
+  }
+>()("effect/platform/FileSystem/WatchBackend") {}

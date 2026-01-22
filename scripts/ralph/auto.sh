@@ -287,7 +287,7 @@ run_ci_checks() {
 
     # Linting with pnpm lint-fix
     echo ""
-    echo "1. Linting (oxlint + dprint)..."
+    echo "1. Linting (oxlint + oxfmt)..."
     echo "-------------------------------"
     local lint_output
     if lint_output=$(pnpm lint-fix 2>&1); then

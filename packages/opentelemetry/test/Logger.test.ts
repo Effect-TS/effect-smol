@@ -7,35 +7,39 @@ describe("Logger", () => {
   describe("provided", () => {
     const exporter = new InMemoryLogRecordExporter()
 
-    const TracingLive = NodeSdk.layer(Effect.sync(() => ({
-      resource: {
-        serviceName: "test"
-      },
-      logRecordProcessor: [new SimpleLogRecordProcessor(exporter)]
-    })))
+    const TracingLive = NodeSdk.layer(
+      Effect.sync(() => ({
+        resource: {
+          serviceName: "test"
+        },
+        logRecordProcessor: [new SimpleLogRecordProcessor(exporter)]
+      }))
+    )
 
     it.effect("emits log records", () =>
-      Effect.gen(function*() {
-        yield* Effect.log("test").pipe(
-          Effect.repeat({ times: 9 })
-        )
+      Effect.gen(function* () {
+        yield* Effect.log("test").pipe(Effect.repeat({ times: 9 }))
         assert.lengthOf(exporter.getFinishedLogRecords(), 10)
-      }).pipe(Effect.provide(TracingLive)))
+      }).pipe(Effect.provide(TracingLive))
+    )
   })
 
   describe("not provided", () => {
     const exporter = new InMemoryLogRecordExporter()
 
-    const TracingLive = NodeSdk.layer(Effect.sync(() => ({
-      resource: {
-        serviceName: "test"
-      }
-    })))
+    const TracingLive = NodeSdk.layer(
+      Effect.sync(() => ({
+        resource: {
+          serviceName: "test"
+        }
+      }))
+    )
 
     it.effect("withSpan", () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.log("test")
         assert.lengthOf(exporter.getFinishedLogRecords(), 0)
-      }).pipe(Effect.provide(TracingLive)))
+      }).pipe(Effect.provide(TracingLive))
+    )
   })
 })

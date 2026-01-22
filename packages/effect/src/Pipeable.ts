@@ -554,7 +554,7 @@ export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
 /**
  * @since 4.0.0
  */
-export const Class: new() => Pipeable = class {
+export const Class: new () => Pipeable = class {
   pipe() {
     return pipeArguments(this, arguments)
   }

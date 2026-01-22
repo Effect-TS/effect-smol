@@ -43,10 +43,7 @@ export class SpecFetchError extends Data.TaggedError("SpecFetchError")<{
  * @category models
  */
 export interface SpecFetcher {
-  readonly fetch: (
-    source: SpecSource,
-    provider: string
-  ) => Effect.Effect<unknown, SpecFetchError>
+  readonly fetch: (source: SpecSource, provider: string) => Effect.Effect<unknown, SpecFetchError>
 }
 
 /**
@@ -63,51 +60,40 @@ export const SpecFetcher: ServiceMap.Service<SpecFetcher, SpecFetcher> = Service
  * @since 1.0.0
  * @category layers
  */
-export const layer: Layer.Layer<
-  SpecFetcher,
-  never,
-  FileSystem.FileSystem | HttpClient.HttpClient
-> = Effect.gen(function*() {
-  const fs = yield* FileSystem.FileSystem
-  const httpClient = yield* HttpClient.HttpClient
+export const layer: Layer.Layer<SpecFetcher, never, FileSystem.FileSystem | HttpClient.HttpClient> = Effect.gen(
+  function* () {
+    const fs = yield* FileSystem.FileSystem
+    const httpClient = yield* HttpClient.HttpClient
 
-  const fetchFromFile = Effect.fn("fetchFromFile")(function*(
-    path: string,
-    provider: string
-  ) {
-    return yield* fs.readFileString(path).pipe(
-      Effect.mapError((cause) => new SpecFetchError({ provider, source: path, cause }))
-    )
-  })
-
-  const fetchFromUrl = Effect.fn("fetchFromUrl")(function*(
-    url: string,
-    provider: string
-  ) {
-    return yield* httpClient.get(url).pipe(
-      Effect.flatMap((response) => response.text),
-      Effect.mapError((cause) => new SpecFetchError({ provider, source: url, cause }))
-    )
-  })
-
-  const fetch = Effect.fn("fetch")(function*(
-    source: SpecSource,
-    provider: string
-  ) {
-    const content = yield* Match.value(source).pipe(
-      Match.tag("File", ({ path }) => fetchFromFile(path, provider)),
-      Match.tag("Url", ({ url }) => fetchFromUrl(url, provider)),
-      Match.exhaustive
-    )
-
-    const sourceString = source._tag === "Url" ? source.url : source.path
-    const isYaml = sourceString.endsWith(".yaml") || sourceString.endsWith(".yml")
-
-    return yield* Effect.try({
-      try: () => isYaml ? Yaml.parse(content) : JSON.parse(content),
-      catch: (cause) => new SpecFetchError({ provider, source: sourceString, cause })
+    const fetchFromFile = Effect.fn("fetchFromFile")(function* (path: string, provider: string) {
+      return yield* fs
+        .readFileString(path)
+        .pipe(Effect.mapError((cause) => new SpecFetchError({ provider, source: path, cause })))
     })
-  })
 
-  return { fetch }
-}).pipe(Layer.effect(SpecFetcher))
+    const fetchFromUrl = Effect.fn("fetchFromUrl")(function* (url: string, provider: string) {
+      return yield* httpClient.get(url).pipe(
+        Effect.flatMap((response) => response.text),
+        Effect.mapError((cause) => new SpecFetchError({ provider, source: url, cause }))
+      )
+    })
+
+    const fetch = Effect.fn("fetch")(function* (source: SpecSource, provider: string) {
+      const content = yield* Match.value(source).pipe(
+        Match.tag("File", ({ path }) => fetchFromFile(path, provider)),
+        Match.tag("Url", ({ url }) => fetchFromUrl(url, provider)),
+        Match.exhaustive
+      )
+
+      const sourceString = source._tag === "Url" ? source.url : source.path
+      const isYaml = sourceString.endsWith(".yaml") || sourceString.endsWith(".yml")
+
+      return yield* Effect.try({
+        try: () => (isYaml ? Yaml.parse(content) : JSON.parse(content)),
+        catch: (cause) => new SpecFetchError({ provider, source: sourceString, cause })
+      })
+    })
+
+    return { fetch }
+  }
+).pipe(Layer.effect(SpecFetcher))

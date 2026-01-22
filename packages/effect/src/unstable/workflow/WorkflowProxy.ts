@@ -68,8 +68,7 @@ export const toRpcGroup = <
       Rpc.make(`${prefix}${workflow.name}Discard`, {
         payload: workflow.payloadSchema
       }).annotateMerge(workflow.annotations),
-      Rpc.make(`${prefix}${workflow.name}Resume`, { payload: ResumePayload })
-        .annotateMerge(workflow.annotations)
+      Rpc.make(`${prefix}${workflow.name}Resume`, { payload: ResumePayload }).annotateMerge(workflow.annotations)
     )
   }
   return RpcGroup.make(...rpcs) as any
@@ -78,16 +77,13 @@ export const toRpcGroup = <
 /**
  * @since 4.0.0
  */
-export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> = Workflows extends Workflow.Workflow<
-  infer _Name,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ?
-    | Rpc.Rpc<`${Prefix}${_Name}`, _Payload, _Success, _Error>
-    | Rpc.Rpc<`${Prefix}${_Name}Discard`, _Payload>
-    | Rpc.Rpc<`${Prefix}${_Name}Resume`, typeof ResumePayload>
-  : never
+export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
+  Workflows extends Workflow.Workflow<infer _Name, infer _Payload, infer _Success, infer _Error>
+    ?
+        | Rpc.Rpc<`${Prefix}${_Name}`, _Payload, _Success, _Error>
+        | Rpc.Rpc<`${Prefix}${_Name}Discard`, _Payload>
+        | Rpc.Rpc<`${Prefix}${_Name}Resume`, typeof ResumePayload>
+    : never
 
 /**
  * Derives an `HttpApiGroup` from a list of workflows.
@@ -138,21 +134,24 @@ export const toHttpApiGroup = <const Name extends string, const Workflows extend
   for (const workflow_ of workflows) {
     const workflow = workflow_ as Workflow.AnyWithProps
     const path = `/${tagToPath(workflow.name)}` as const
-    group = group.add(
-      HttpApiEndpoint.post(workflow.name, path)
-        .setPayload(workflow.payloadSchema)
-        .addSuccess(workflow.successSchema)
-        .addError(workflow.errorSchema as any)
-        .annotateMerge(workflow.annotations)
-    ).add(
-      HttpApiEndpoint.post(workflow.name + "Discard", `${path}/discard`)
-        .setPayload(workflow.payloadSchema)
-        .annotateMerge(workflow.annotations)
-    ).add(
-      HttpApiEndpoint.post(workflow.name + "Resume", `${path}/resume`)
-        .setPayload(ResumePayload)
-        .annotateMerge(workflow.annotations)
-    ) as any
+    group = group
+      .add(
+        HttpApiEndpoint.post(workflow.name, path)
+          .setPayload(workflow.payloadSchema)
+          .addSuccess(workflow.successSchema)
+          .addError(workflow.errorSchema as any)
+          .annotateMerge(workflow.annotations)
+      )
+      .add(
+        HttpApiEndpoint.post(workflow.name + "Discard", `${path}/discard`)
+          .setPayload(workflow.payloadSchema)
+          .annotateMerge(workflow.annotations)
+      )
+      .add(
+        HttpApiEndpoint.post(workflow.name + "Resume", `${path}/resume`)
+          .setPayload(ResumePayload)
+          .annotateMerge(workflow.annotations)
+      ) as any
   }
   return group as any
 }
@@ -166,39 +165,36 @@ const tagToPath = (tag: string): string =>
 /**
  * @since 4.0.0
  */
-export type ConvertHttpApi<Workflows extends Workflow.Any> = Workflows extends Workflow.Workflow<
-  infer _Name,
-  infer _Payload,
-  infer _Success,
-  infer _Error
-> ?
-    | HttpApiEndpoint.HttpApiEndpoint<
-      _Name,
-      "POST",
-      `/${Lowercase<_Name>}`,
-      never,
-      never,
-      _Payload,
-      never,
-      _Success,
-      _Error
-    >
-    | HttpApiEndpoint.HttpApiEndpoint<
-      `${_Name}Discard`,
-      "POST",
-      `/${Lowercase<_Name>}/discard`,
-      never,
-      never,
-      _Payload
-    >
-    | HttpApiEndpoint.HttpApiEndpoint<
-      `${_Name}Resume`,
-      "POST",
-      `/${Lowercase<_Name>}/resume`,
-      never,
-      never,
-      typeof ResumePayload
-    > :
-  never
+export type ConvertHttpApi<Workflows extends Workflow.Any> =
+  Workflows extends Workflow.Workflow<infer _Name, infer _Payload, infer _Success, infer _Error>
+    ?
+        | HttpApiEndpoint.HttpApiEndpoint<
+            _Name,
+            "POST",
+            `/${Lowercase<_Name>}`,
+            never,
+            never,
+            _Payload,
+            never,
+            _Success,
+            _Error
+          >
+        | HttpApiEndpoint.HttpApiEndpoint<
+            `${_Name}Discard`,
+            "POST",
+            `/${Lowercase<_Name>}/discard`,
+            never,
+            never,
+            _Payload
+          >
+        | HttpApiEndpoint.HttpApiEndpoint<
+            `${_Name}Resume`,
+            "POST",
+            `/${Lowercase<_Name>}/resume`,
+            never,
+            never,
+            typeof ResumePayload
+          >
+    : never
 
 const ResumePayload = Schema.Struct({ executionId: Schema.String })

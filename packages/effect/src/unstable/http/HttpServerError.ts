@@ -22,12 +22,15 @@ export type HttpServerError = RequestError | ResponseError
  * @since 4.0.0
  * @category error
  */
-export class RequestError extends Data.TaggedError("HttpServerError")<{
-  readonly reason: "RequestParseError" | "RouteNotFound" | "InternalError"
-  readonly request: Request.HttpServerRequest
-  readonly description?: string
-  readonly cause?: unknown
-}> implements Respondable.Respondable {
+export class RequestError
+  extends Data.TaggedError("HttpServerError")<{
+    readonly reason: "RequestParseError" | "RouteNotFound" | "InternalError"
+    readonly request: Request.HttpServerRequest
+    readonly description?: string
+    readonly cause?: unknown
+  }>
+  implements Respondable.Respondable
+{
   /**
    * @since 4.0.0
    */
@@ -44,11 +47,7 @@ export class RequestError extends Data.TaggedError("HttpServerError")<{
   [Respondable.TypeId]() {
     return Effect.succeed(
       Response.empty({
-        status: this.reason === "InternalError"
-          ? 500
-          : this.reason === "RouteNotFound"
-          ? 404
-          : 400
+        status: this.reason === "InternalError" ? 500 : this.reason === "RouteNotFound" ? 404 : 400
       })
     )
   }
@@ -73,12 +72,15 @@ export const isHttpServerError = (u: unknown): u is HttpServerError => hasProper
  * @since 4.0.0
  * @category error
  */
-export class ResponseError extends Data.TaggedError("HttpServerError")<{
-  readonly request: Request.HttpServerRequest
-  readonly response: Response.HttpServerResponse
-  readonly description?: string
-  readonly cause?: unknown
-}> implements Respondable.Respondable {
+export class ResponseError
+  extends Data.TaggedError("HttpServerError")<{
+    readonly request: Request.HttpServerRequest
+    readonly response: Response.HttpServerResponse
+    readonly description?: string
+    readonly cause?: unknown
+  }>
+  implements Respondable.Respondable
+{
   /**
    * @since 4.0.0
    */
@@ -190,10 +192,7 @@ export const causeResponseStripped = <E>(
     }
     return true
   })
-  return [
-    response ?? internalServerError,
-    failures.length > 0 ? Cause.fromFailures(failures) : undefined
-  ]
+  return [response ?? internalServerError, failures.length > 0 ? Cause.fromFailures(failures) : undefined]
 }
 
 const internalServerError = Response.empty({ status: 500 })
