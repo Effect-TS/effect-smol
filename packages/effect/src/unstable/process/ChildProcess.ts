@@ -918,7 +918,7 @@ const parseTemplates = (
     return tokens
   }
 
-  throw new Error("Template script must not be empty")
+  return [""]
 }
 
 const parseTemplate = (
