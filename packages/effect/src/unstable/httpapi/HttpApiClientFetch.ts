@@ -30,6 +30,7 @@ export const make = <
   }
 
   return async function(methodAndUrl: string, opts?: {
+    readonly signal?: AbortSignal | undefined
     readonly path?: Record<string, any> | undefined
     readonly urlParams?: Record<string, any> | undefined
     readonly headers?: Record<string, string> | undefined
@@ -61,7 +62,8 @@ export const make = <
 
     const fetchOptions: RequestInit = {
       method,
-      headers
+      headers,
+      signal: opts?.signal ?? null
     }
     if (opts?.payload !== undefined && opts?.payloadType !== "urlEncoded") {
       headers.set("Content-Type", "application/json")
@@ -81,7 +83,11 @@ export const make = <
       fetchOptions.body = urlSearchParams.toString()
     }
 
-    return await fetchImpl(url.toString(), fetchOptions)
+    const response = await fetchImpl(url.toString(), fetchOptions)
+    if (!response.ok) {
+      throw new Error(`HTTP error status: ${response.status}`)
+    }
+    return response
   } as any
 }
 
@@ -145,6 +151,7 @@ export type EndpointOptions<Endpoint extends HttpApiEndpoint.Any> = Endpoint ext
   infer _M,
   infer _MR
 > ? Simplify<
+    & { readonly signal?: AbortSignal | undefined }
     & (Endpoint["pathSchema"] extends undefined ? {} :
       NoRequiredKeysWith<_PathSchema["Encoded"], {
         readonly path?: _PathSchema["Encoded"] | undefined
