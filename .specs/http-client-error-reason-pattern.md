@@ -110,13 +110,15 @@ Effect.fail(
 After:
 
 ```ts
-Effect.fail(new HttpClientError({
-  reason: new HttpClientError.InvalidUrlError({
-    request,
-    description: "Invalid base URL",
-    cause
+Effect.fail(
+  new HttpClientError({
+    reason: new HttpClientError.InvalidUrlError({
+      request,
+      description: "Invalid base URL",
+      cause
+    })
   })
-}))
+)
 ```
 
 Handling:
