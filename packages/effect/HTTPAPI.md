@@ -1343,25 +1343,58 @@ Prefixes can be added to endpoints, groups, or an entire API to simplify the man
 
 **Example** (Using Prefixes for Common Path Management)
 
-```ts TODO
-import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "@effect/platform"
-import { Schema } from "effect"
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
 
-const api = HttpApi.make("api")
+const Api = HttpApi.make("MyApi")
   .add(
     HttpApiGroup.make("group")
       .add(
-        HttpApiEndpoint.get("getRoot", "/")
-          .addSuccess(Schema.String)
+        HttpApiEndpoint.get("endpointA", "/a", {
+          success: Schema.String
+        })
           // Prefix for this endpoint
           .prefix("/endpointPrefix")
       )
-      .add(HttpApiEndpoint.get("getA", "/a").addSuccess(Schema.String))
+      .add(
+        HttpApiEndpoint.get("endpointB", "/b", {
+          success: Schema.String
+        })
+      )
       // Prefix for all endpoints in the group
       .prefix("/groupPrefix")
   )
   // Prefix for the entire API
   .prefix("/apiPrefix")
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers
+      .handle("endpointA", () => Effect.succeed("Endpoint A"))
+      .handle("endpointB", () => Effect.succeed("Endpoint B"))
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(HttpApiScalar.layer(Api)),
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+```
+
+You can test this endpoint using a GET request. For example:
+
+```sh
+curl http://localhost:3000/apiPrefix/groupPrefix/endpointPrefix/a # Returns 200 OK
+curl http://localhost:3000/apiPrefix/groupPrefix/b # Returns 200 OK
 ```
 
 ## Implementing a Server
