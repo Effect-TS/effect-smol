@@ -7,7 +7,7 @@ import * as FiberSet from "../../FiberSet.ts"
 import * as Layer from "../../Layer.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import { WorkerError } from "./WorkerError.ts"
+import { WorkerError, WorkerSendError } from "./WorkerError.ts"
 
 /**
  * @since 4.0.0
@@ -191,9 +191,10 @@ export const makePlatform = <W>() =>
             } catch (cause) {
               return Effect.fail(
                 new WorkerError({
-                  reason: "Send",
-                  message: "Failed to send message to worker",
-                  cause
+                  reason: new WorkerSendError({
+                    message: "Failed to send message to worker",
+                    cause
+                  })
                 })
               )
             }

@@ -7,7 +7,7 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
-import { WorkerError } from "effect/unstable/workers/WorkerError"
+import { WorkerError, WorkerReceiveError, WorkerSpawnError } from "effect/unstable/workers/WorkerError"
 import * as WorkerRunner from "effect/unstable/workers/WorkerRunner"
 import * as WorkerThreads from "node:worker_threads"
 
@@ -20,8 +20,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
     return Effect.gen(function*() {
       if (!WorkerThreads.parentPort && !process.send) {
         return yield* new WorkerError({
-          reason: "Spawn",
-          message: "not in a worker"
+          reason: new WorkerSpawnError({ message: "not in a worker" })
         })
       }
 
@@ -67,9 +66,10 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
               Deferred.doneUnsafe(
                 closeLatch,
                 new WorkerError({
-                  reason: "Receive",
-                  message: "received messageerror event",
-                  cause
+                  reason: new WorkerReceiveError({
+                    message: "received messageerror event",
+                    cause
+                  })
                 }).asEffect()
               )
             })
@@ -77,9 +77,10 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
               Deferred.doneUnsafe(
                 closeLatch,
                 new WorkerError({
-                  reason: "Receive",
-                  message: "received messageerror event",
-                  cause
+                  reason: new WorkerReceiveError({
+                    message: "received messageerror event",
+                    cause
+                  })
                 }).asEffect()
               )
             })

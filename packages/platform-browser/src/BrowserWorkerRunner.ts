@@ -10,7 +10,7 @@ import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Queue from "effect/Queue"
 import * as Scope from "effect/Scope"
-import { WorkerError } from "effect/unstable/workers/WorkerError"
+import { WorkerError, WorkerReceiveError } from "effect/unstable/workers/WorkerError"
 import * as WorkerRunner from "effect/unstable/workers/WorkerRunner"
 
 const cachedPorts = new Set<MessagePort>()
@@ -79,9 +79,10 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
           Deferred.doneUnsafe(
             closeLatch,
             new WorkerError({
-              reason: "Receive",
-              message: "An messageerror event was emitted",
-              cause: error.data
+              reason: new WorkerReceiveError({
+                message: "An messageerror event was emitted",
+                cause: error.data
+              })
             }).asEffect()
           )
         }
@@ -89,9 +90,10 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
           Deferred.doneUnsafe(
             closeLatch,
             new WorkerError({
-              reason: "Receive",
-              message: "An error event was emitted",
-              cause: error.data
+              reason: new WorkerReceiveError({
+                message: "An error event was emitted",
+                cause: error.data
+              })
             }).asEffect()
           )
         }

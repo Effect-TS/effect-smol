@@ -9,7 +9,7 @@ import * as Fiber from "effect/Fiber"
 import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
-import { WorkerError } from "effect/unstable/workers/WorkerError"
+import { WorkerError, WorkerReceiveError, WorkerSpawnError } from "effect/unstable/workers/WorkerError"
 import * as WorkerRunner from "effect/unstable/workers/WorkerRunner"
 
 declare const self: MessagePort
@@ -21,7 +21,9 @@ declare const self: MessagePort
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succeed(WorkerRunner.WorkerRunnerPlatform)({
   start: Effect.fnUntraced(function*<O = unknown, I = unknown>() {
     if (!("postMessage" in self)) {
-      return yield* new WorkerError({ reason: "Spawn", message: "not in a Worker context" })
+      return yield* new WorkerError({
+        reason: new WorkerSpawnError({ message: "not in a Worker context" })
+      })
     }
     const port = self
     const run = <A, E, R>(
@@ -56,16 +58,22 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
           Deferred.doneUnsafe(
             closeLatch,
             new WorkerError({
-              reason: "Receive",
-              message: "received messageerror event",
-              cause: error.data
+              reason: new WorkerReceiveError({
+                message: "received messageerror event",
+                cause: error.data
+              })
             }).asEffect()
           )
         }
         function onError(error: MessageEvent) {
           Deferred.doneUnsafe(
             closeLatch,
-            new WorkerError({ reason: "Receive", message: "received error event", cause: error.data }).asEffect()
+            new WorkerError({
+              reason: new WorkerReceiveError({
+                message: "received error event",
+                cause: error.data
+              })
+            }).asEffect()
           )
         }
         yield* Scope.addFinalizer(

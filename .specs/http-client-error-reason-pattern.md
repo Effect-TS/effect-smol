@@ -85,12 +85,14 @@ Behavior:
 Before:
 
 ```ts
-Effect.fail(new HttpClientError.RequestError({
-  request,
-  reason: "InvalidUrl",
-  description: "Invalid base URL",
-  cause
-}))
+Effect.fail(
+  new HttpClientError.RequestError({
+    request,
+    reason: "InvalidUrl",
+    description: "Invalid base URL",
+    cause
+  })
+)
 ```
 
 After:
@@ -119,9 +121,7 @@ Effect.catchTag("HttpClientError", (error) => {
 With `Effect.catchReason`:
 
 ```ts
-Effect.catchReason("HttpClientError", "StatusCodeError", (reason) =>
-  Effect.logError(reason.message)
-)
+Effect.catchReason("HttpClientError", "StatusCodeError", (reason) => Effect.logError(reason.message))
 ```
 
 ## Impacted Areas

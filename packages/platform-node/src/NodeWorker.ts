@@ -7,7 +7,7 @@ import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as Worker from "effect/unstable/workers/Worker"
-import { WorkerError } from "effect/unstable/workers/WorkerError"
+import { WorkerError, WorkerReceiveError } from "effect/unstable/workers/WorkerError"
 import type * as ChildProcess from "node:child_process"
 import type * as WorkerThreads from "node:worker_threads"
 
@@ -59,9 +59,10 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
         Deferred.doneUnsafe(
           deferred,
           new WorkerError({
-            reason: "Receive",
-            message: "An messageerror event was emitted",
-            cause
+            reason: new WorkerReceiveError({
+              message: "An messageerror event was emitted",
+              cause
+            })
           }).asEffect()
         )
       })
@@ -69,9 +70,10 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
         Deferred.doneUnsafe(
           deferred,
           new WorkerError({
-            reason: "Receive",
-            message: "An error event was emitted",
-            cause
+            reason: new WorkerReceiveError({
+              message: "An error event was emitted",
+              cause
+            })
           }).asEffect()
         )
       })
@@ -79,8 +81,9 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
         Deferred.doneUnsafe(
           deferred,
           new WorkerError({
-            reason: "Receive",
-            message: "The worker has exited with code: " + code
+            reason: new WorkerReceiveError({
+              message: "The worker has exited with code: " + code
+            })
           }).asEffect()
         )
       })
