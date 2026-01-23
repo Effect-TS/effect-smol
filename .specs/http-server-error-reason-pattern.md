@@ -1,7 +1,5 @@
 # HttpServerError Reason Pattern
 
-**Status: DRAFT**
-
 ## Overview
 
 Refactor `HttpServerError` to use the reason pattern (see `HttpClientError` and
