@@ -8,6 +8,7 @@ import * as Fiber from "../../Fiber.ts"
 import type { FileSystem } from "../../FileSystem.ts"
 import * as Filter from "../../Filter.ts"
 import { identity } from "../../Function.ts"
+import { stringOrRedacted } from "../../internal/redacted.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import type { Path } from "../../Path.ts"
@@ -24,7 +25,9 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
+import type { Cookie } from "../http/Cookies.ts"
 import type * as Etag from "../http/Etag.ts"
+import * as HttpEffect from "../http/HttpEffect.ts"
 import * as HttpMethod from "../http/HttpMethod.ts"
 import type { HttpPlatform } from "../http/HttpPlatform.ts"
 import * as HttpRouter from "../http/HttpRouter.ts"
@@ -351,6 +354,25 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
     }
   }
 }
+
+/**
+ * @since 4.0.0
+ * @category security
+ */
+export const securitySetCookie = (
+  self: HttpApiSecurity.ApiKey,
+  value: string | Redacted.Redacted,
+  options?: Cookie["options"]
+): Effect.Effect<void> =>
+  HttpEffect.appendPreResponseHandler((_req, response) =>
+    Effect.orDie(
+      Response.setCookie(response, self.key, stringOrRedacted(value), {
+        secure: true,
+        httpOnly: true,
+        ...options
+      })
+    )
+  )
 
 // -----------------------------------------------------------------------------
 // Internal

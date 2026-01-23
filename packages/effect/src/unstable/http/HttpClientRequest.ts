@@ -5,11 +5,12 @@ import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
+import { stringOrRedacted } from "../../internal/redacted.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import type * as PlatformError from "../../PlatformError.ts"
 import { hasProperty } from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
-import * as Redacted from "../../Redacted.ts"
+import type * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import type * as Schema from "../../Schema.ts"
 import type { ParseOptions } from "../../SchemaAST.ts"
@@ -713,10 +714,3 @@ export function toUrl(self: HttpClientRequest): URL | undefined {
     return r.success
   }
 }
-
-// ----------------------------------------------------------------------------
-// internal
-// ----------------------------------------------------------------------------
-
-const stringOrRedacted = (value: string | Redacted.Redacted): string =>
-  typeof value === "string" ? value : Redacted.value(value)
