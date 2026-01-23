@@ -33,10 +33,47 @@ export type ErrorTypeId = "@effect/platform/SocketServer/SocketServerError"
  * @since 4.0.0
  * @category errors
  */
-export class SocketServerError extends Data.TaggedError("SocketServerError")<{
-  readonly reason: "Open" | "Unknown"
+export class SocketServerOpenError extends Data.TaggedError("SocketServerOpenError")<{
   readonly cause: unknown
 }> {
+  override get message(): string {
+    return "Open"
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export class SocketServerUnknownError extends Data.TaggedError("SocketServerUnknownError")<{
+  readonly cause: unknown
+}> {
+  override get message(): string {
+    return "Unknown"
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export type SocketServerErrorReason = SocketServerOpenError | SocketServerUnknownError
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export class SocketServerError extends Data.TaggedError("SocketServerError")<{
+  readonly reason: SocketServerErrorReason
+}> {
+  constructor(props: {
+    readonly reason: SocketServerErrorReason
+  }) {
+    super({
+      ...props,
+      cause: props.reason.cause
+    } as any)
+  }
   /**
    * @since 4.0.0
    */
@@ -46,7 +83,7 @@ export class SocketServerError extends Data.TaggedError("SocketServerError")<{
    * @since 4.0.0
    */
   override get message(): string {
-    return this.reason
+    return this.reason.message
   }
 }
 

@@ -60,8 +60,9 @@ export const make = Effect.fnUntraced(function*(
   }).pipe(
     Effect.raceFirst(Effect.mapError(Deferred.await(errorDeferred), (err) =>
       new SocketServer.SocketServerError({
-        reason: "Open",
-        cause: err
+        reason: new SocketServer.SocketServerOpenError({
+          cause: err
+        })
       })))
   )
 
@@ -187,8 +188,9 @@ export const makeWebSocket: (
     server.once("error", (error) => {
       resume(Effect.fail(
         new SocketServer.SocketServerError({
-          reason: "Open",
-          cause: error
+          reason: new SocketServer.SocketServerOpenError({
+            cause: error
+          })
         })
       ))
     })
