@@ -148,31 +148,6 @@ export const HttpResponseDetails = Schema.Struct({
  * such as network connectivity problems, request encoding issues, or invalid
  * URLs.
  *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { AiError } from "effect/unstable/ai"
- *
- * const handleNetworkError = Effect.gen(function*() {
- *   const error = new AiError.HttpError({
- *     module: "OpenAI",
- *     method: "createCompletion",
- *     reason: "Transport",
- *     request: {
- *       method: "POST",
- *       url: "https://api.openai.com/v1/completions",
- *       urlParams: [],
- *       hash: undefined,
- *       headers: { "Content-Type": "application/json" }
- *     },
- *     description: "Connection timeout after 30 seconds"
- *   })
- *
- *   console.log(error.message)
- *   // "Transport: Connection timeout after 30 seconds (POST https://api.openai.com/v1/completions)"
- * })
- * ```
- *
  * @since 4.0.0
  * @category schemas
  */
