@@ -971,7 +971,7 @@ describe("Serializers", () => {
         )
       })
 
-      it("File", async () => {
+      it.skipIf(isDeno)("File", async () => {
         const schema = Schema.File
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
@@ -988,7 +988,7 @@ describe("Serializers", () => {
         )
       })
 
-      it("FormData", async () => {
+      it.skipIf(isDeno)("FormData", async () => {
         const schema = Schema.FormData
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
