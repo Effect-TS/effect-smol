@@ -1,4 +1,4 @@
-import { assert, describe, expect, it } from "@effect/vitest"
+import { assert, describe, it } from "@effect/vitest"
 import { Duration, Effect } from "effect"
 import { TestClock } from "effect/testing"
 import { RateLimiter } from "effect/unstable/persistence"
@@ -18,25 +18,25 @@ describe(`RateLimiter`, () => {
         })
         yield* Effect.repeat(consume, { times: 3 }) // 1 + 3
         let result = yield* consume // 5
-        expect(result.delay).toEqual(Duration.zero)
+        assert.deepStrictEqual(result.delay, Duration.zero)
         result = yield* consume // 6
-        expect(result.delay).toEqual(Duration.minutes(1))
+        assert.deepStrictEqual(result.delay, Duration.minutes(1))
 
         yield* Effect.repeat(consume, { times: 2 }) // 7,8,9
         result = yield* consume // 10
-        expect(result.delay).toEqual(Duration.minutes(1))
+        assert.deepStrictEqual(result.delay, Duration.minutes(1))
         result = yield* consume // 11
-        expect(result.delay).toEqual(Duration.minutes(2))
+        assert.deepStrictEqual(result.delay, Duration.minutes(2))
 
         yield* TestClock.adjust(Duration.seconds(30))
 
         result = yield* consume // 12
-        expect(result.delay).toEqual(Duration.seconds(90))
+        assert.deepStrictEqual(result.delay, Duration.seconds(90))
 
         yield* TestClock.adjust(Duration.seconds(45))
 
         result = yield* consume // 13
-        expect(result.delay).toEqual(Duration.seconds(45))
+        assert.deepStrictEqual(result.delay, Duration.seconds(45))
       }).pipe(
         Effect.provide(RateLimiter.layerStoreMemory)
       ))
@@ -54,24 +54,28 @@ describe(`RateLimiter`, () => {
         })
         yield* Effect.repeat(consume, { times: 3 })
         let result = yield* consume
-        expect(result.delay).toEqual(Duration.zero)
+        assert.deepStrictEqual(result.delay, Duration.zero)
         let error = yield* Effect.flip(consume)
-        assert(error.reason === "Exceeded")
-        expect(error.retryAfter).toEqual(Duration.minutes(1))
-        expect(error.remaining).toEqual(0)
+        if (error.reason._tag !== "RateLimitExceeded") {
+          throw new Error("Expected RateLimitExceeded")
+        }
+        assert.deepStrictEqual(error.reason.retryAfter, Duration.minutes(1))
+        assert.strictEqual(error.reason.remaining, 0)
 
         yield* TestClock.adjust(Duration.seconds(30))
 
         error = yield* Effect.flip(consume)
-        assert(error.reason === "Exceeded")
-        expect(error.retryAfter).toEqual(Duration.seconds(30))
-        expect(error.remaining).toEqual(0)
+        if (error.reason._tag !== "RateLimitExceeded") {
+          throw new Error("Expected RateLimitExceeded")
+        }
+        assert.deepStrictEqual(error.reason.retryAfter, Duration.seconds(30))
+        assert.strictEqual(error.reason.remaining, 0)
 
         yield* TestClock.adjust(Duration.seconds(30))
 
         result = yield* consume
-        expect(result.delay).toEqual(Duration.zero)
-        expect(result.remaining).toEqual(4)
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.remaining, 4)
       }).pipe(
         Effect.provide(RateLimiter.layerStoreMemory)
       ))
@@ -92,17 +96,17 @@ describe(`RateLimiter`, () => {
         const refillRate = Duration.divideUnsafe(Duration.minutes(1), 5)
         yield* Effect.repeat(consume, { times: 3 }) // 1 + 3
         let result = yield* consume // 5
-        expect(result.delay).toEqual(Duration.zero)
+        assert.deepStrictEqual(result.delay, Duration.zero)
         result = yield* consume // 6
-        expect(result.delay).toEqual(refillRate)
+        assert.deepStrictEqual(result.delay, refillRate)
         result = yield* consume // 7
-        expect(result.delay).toEqual(Duration.times(refillRate, 2))
+        assert.deepStrictEqual(result.delay, Duration.times(refillRate, 2))
 
         yield* TestClock.adjust(Duration.minutes(1)) // 2
 
         result = yield* consume // 3
-        expect(result.delay).toEqual(Duration.zero)
-        expect(result.remaining).toEqual(2)
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.remaining, 2)
       }).pipe(
         Effect.provide(RateLimiter.layerStoreMemory)
       ))
@@ -121,17 +125,19 @@ describe(`RateLimiter`, () => {
         const refillRate = Duration.divideUnsafe(Duration.minutes(1), 5)
         yield* Effect.repeat(consume, { times: 3 }) // 1 + 3
         let result = yield* consume
-        expect(result.delay).toEqual(Duration.zero)
+        assert.deepStrictEqual(result.delay, Duration.zero)
         const error = yield* Effect.flip(consume)
-        assert(error.reason === "Exceeded")
-        expect(error.retryAfter).toEqual(Duration.seconds(12))
-        expect(error.remaining).toEqual(0)
+        if (error.reason._tag !== "RateLimitExceeded") {
+          throw new Error("Expected RateLimitExceeded")
+        }
+        assert.deepStrictEqual(error.reason.retryAfter, Duration.seconds(12))
+        assert.strictEqual(error.reason.remaining, 0)
 
         yield* TestClock.adjust(Duration.times(refillRate, 3))
 
         result = yield* consume
-        expect(result.delay).toEqual(Duration.zero)
-        expect(result.remaining).toEqual(2)
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.remaining, 2)
       }).pipe(
         Effect.provide(RateLimiter.layerStoreMemory)
       ))
