@@ -174,7 +174,9 @@ export const matchStatus: {
  * @category filters
  */
 export const filterStatus: {
-  (f: (status: number) => boolean): (self: HttpClientResponse) => Effect.Effect<HttpClientResponse, Error.HttpClientError>
+  (
+    f: (status: number) => boolean
+  ): (self: HttpClientResponse) => Effect.Effect<HttpClientResponse, Error.HttpClientError>
   (self: HttpClientResponse, f: (status: number) => boolean): Effect.Effect<HttpClientResponse, Error.HttpClientError>
 } = dual(
   2,
