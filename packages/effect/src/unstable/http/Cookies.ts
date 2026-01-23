@@ -133,10 +133,30 @@ const CookieErrorTypeId = "~effect/http/Cookies/CookieError"
  * @since 4.0.0
  * @category errors
  */
-export class CookiesError extends Data.TaggedError("CookieError")<{
-  readonly reason: "InvalidName" | "InvalidValue" | "InvalidDomain" | "InvalidPath" | "InfinityMaxAge"
+export class CookiesErrorReason extends Data.Error<{
+  readonly _tag:
+    | "InvalidCookieName"
+    | "InvalidCookieValue"
+    | "InvalidCookieDomain"
+    | "InvalidCookiePath"
+    | "CookieInfinityMaxAge"
   readonly cause?: unknown
+}> {}
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export class CookiesError extends Data.TaggedError("CookieError")<{
+  readonly reason: CookiesErrorReason
 }> {
+  /**
+   * @since 4.0.0
+   */
+  static fromReason(reason: CookiesError["reason"]["_tag"], cause?: unknown): CookiesError {
+    return new CookiesError({ reason: new CookiesErrorReason({ _tag: reason, cause }) })
+  }
+
   /**
    * @since 4.0.0
    */
@@ -146,7 +166,7 @@ export class CookiesError extends Data.TaggedError("CookieError")<{
    * @since 4.0.0
    */
   override get message() {
-    return this.reason
+    return this.reason._tag
   }
 }
 
@@ -382,24 +402,24 @@ export function makeCookie(
   options?: Cookie["options"] | undefined
 ): Result.Result<Cookie, CookiesError> {
   if (!fieldContentRegExp.test(name)) {
-    return Result.fail(new CookiesError({ reason: "InvalidName" }))
+    return Result.fail(CookiesError.fromReason("InvalidCookieName"))
   }
   const encodedValue = encodeURIComponent(value)
   if (encodedValue && !fieldContentRegExp.test(encodedValue)) {
-    return Result.fail(new CookiesError({ reason: "InvalidValue" }))
+    return Result.fail(CookiesError.fromReason("InvalidCookieValue"))
   }
 
   if (options !== undefined) {
     if (options.domain !== undefined && !fieldContentRegExp.test(options.domain)) {
-      return Result.fail(new CookiesError({ reason: "InvalidDomain" }))
+      return Result.fail(CookiesError.fromReason("InvalidCookieDomain"))
     }
 
     if (options.path !== undefined && !fieldContentRegExp.test(options.path)) {
-      return Result.fail(new CookiesError({ reason: "InvalidPath" }))
+      return Result.fail(CookiesError.fromReason("InvalidCookiePath"))
     }
 
     if (options.maxAge !== undefined && !Duration.isFinite(Duration.fromDurationInputUnsafe(options.maxAge))) {
-      return Result.fail(new CookiesError({ reason: "InfinityMaxAge" }))
+      return Result.fail(CookiesError.fromReason("CookieInfinityMaxAge"))
     }
   }
 
