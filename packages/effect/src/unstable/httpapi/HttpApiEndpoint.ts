@@ -9,7 +9,6 @@ import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Stream from "../../Stream.ts"
-import type { Simplify } from "../../Struct.ts"
 import type * as Types from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import type { HttpMethod } from "../http/HttpMethod.ts"
@@ -870,27 +869,6 @@ export type AddMiddleware<Endpoint extends Any, M extends HttpApiMiddleware.AnyI
     HttpApiMiddleware.ApplyServices<M, _MR>
   > :
   never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type ExtractPath<Schemas extends ReadonlyArray<Schema.Top>> = Simplify<
-  & {
-    readonly [
-      Entry in Extract<keyof Schemas, string> as Schemas[Entry] extends { readonly "~type.mutability": "optional" } ?
-        Entry :
-        never
-    ]?: Schemas[Entry]
-  }
-  & {
-    readonly [
-      Entry in Extract<keyof Schemas, string> as Schemas[Entry] extends { readonly "~type.mutability": "required" } ?
-        Entry :
-        never
-    ]: Schemas[Entry]
-  }
->
 
 const Proto = {
   [TypeId]: TypeId,
