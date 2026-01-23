@@ -14,8 +14,7 @@ import * as Stream from "../../Stream.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as HttpBody from "./HttpBody.ts"
 import { type HttpMiddleware, tracer } from "./HttpMiddleware.ts"
-import { causeResponse, clientAbortFiberId, RequestError } from "./HttpServerError.ts"
-import type { HttpServerError } from "./HttpServerError.ts"
+import { causeResponse, clientAbortFiberId, HttpServerError, InternalError } from "./HttpServerError.ts"
 import { HttpServerRequest } from "./HttpServerRequest.ts"
 import * as Request from "./HttpServerRequest.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
@@ -362,17 +361,18 @@ export const fromWebHandler = (
       services: fiber.services
     })
     if (requestResult._tag === "Failure") {
-      return resume(Effect.fail(requestResult.failure))
+      return resume(Effect.fail(new HttpServerError({ reason: requestResult.failure })))
     }
     handler(requestResult.success).then(
       (response) => resume(Effect.succeed(Response.fromWeb(response))),
       (cause) =>
         resume(Effect.fail(
-          new RequestError({
-            cause,
-            request,
-            reason: "InternalError",
-            description: "HttpApp.fromWebHandler: Error in handler"
+          new HttpServerError({
+            reason: new InternalError({
+              cause,
+              request,
+              description: "HttpApp.fromWebHandler: Error in handler"
+            })
           })
         ))
     )

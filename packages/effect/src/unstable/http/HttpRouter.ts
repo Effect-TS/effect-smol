@@ -170,7 +170,11 @@ export const make = Effect.gen(function*() {
           result = router.find("GET", request.url)
         }
         if (result === undefined) {
-          return Effect.fail(new HttpServerError.RequestError({ reason: "RouteNotFound", request }))
+          return Effect.fail(
+            new HttpServerError.HttpServerError({
+              reason: new HttpServerError.RouteNotFound({ request })
+            })
+          )
         }
         const route = result.handler
         if (route.prefix !== undefined) {
