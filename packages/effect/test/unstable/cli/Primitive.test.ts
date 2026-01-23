@@ -259,7 +259,7 @@ describe("Primitive", () => {
             FileSystem.layerNoop({
               stat: (path) =>
                 Effect.fail(
-                  new PlatformError.BadArgument({
+                  PlatformError.badArgument({
                     module: "",
                     method: "",
                     description: `The specified path ${path} does not exist`
@@ -284,7 +284,7 @@ describe("Primitive", () => {
             FileSystem.layerNoop({
               stat: (path) =>
                 Effect.fail(
-                  new PlatformError.BadArgument({
+                  PlatformError.badArgument({
                     module: "",
                     method: "",
                     description: `The specified path ${path} does not exist`

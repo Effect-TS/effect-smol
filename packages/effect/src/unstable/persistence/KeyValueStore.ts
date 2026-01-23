@@ -304,7 +304,7 @@ export const layerFileSystem = (
           fs.readFileString(keyPath(key)),
           "PlatformError",
           (cause) =>
-            cause.reason === "NotFound" ? Effect.undefined : Effect.fail(
+            cause.reason._tag === "SystemError" && cause.reason.kind === "NotFound" ? Effect.undefined : Effect.fail(
               new KeyValueStoreError({
                 method: "get",
                 key,
@@ -318,7 +318,7 @@ export const layerFileSystem = (
           fs.readFile(keyPath(key)),
           "PlatformError",
           (cause) =>
-            cause.reason === "NotFound" ? Effect.undefined : Effect.fail(
+            cause.reason._tag === "SystemError" && cause.reason.kind === "NotFound" ? Effect.undefined : Effect.fail(
               new KeyValueStoreError({
                 method: "getUint8Array",
                 key,

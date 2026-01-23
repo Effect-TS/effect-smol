@@ -13,7 +13,7 @@ const FileSystemLayer = FileSystem.layerNoop({
       : Effect.succeed(true),
   stat: (path) => {
     if (path.includes("/non/existent/file.txt")) {
-      return Effect.fail(new PlatformError.BadArgument({ module: "", method: "" }))
+      return Effect.fail(PlatformError.badArgument({ module: "", method: "" }))
     }
     if (path.includes("workspace")) {
       return Effect.succeed({ type: "Directory" } as any)
@@ -22,7 +22,7 @@ const FileSystemLayer = FileSystem.layerNoop({
   },
   access: (path) =>
     path.includes("/non/existent/file.txt")
-      ? Effect.fail(new PlatformError.BadArgument({ module: "", method: "" }))
+      ? Effect.fail(PlatformError.badArgument({ module: "", method: "" }))
       : Effect.void
 })
 const PathLayer = Path.layer

@@ -41,8 +41,7 @@ import * as Cause from "./Cause.ts"
 import * as Effect from "./Effect.ts"
 import { pipe } from "./Function.ts"
 import * as Layer from "./Layer.ts"
-import type { PlatformError } from "./PlatformError.ts"
-import { BadArgument, SystemError } from "./PlatformError.ts"
+import { badArgument, type PlatformError, systemError } from "./PlatformError.ts"
 import type * as Pull from "./Pull.ts"
 import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -732,14 +731,18 @@ export const make = (
       pipe(
         impl.access(path),
         Effect.as(true),
-        Effect.catchTag("PlatformError", (e) => e.reason === "NotFound" ? Effect.succeed(false) : Effect.fail(e))
+        Effect.catchTag(
+          "PlatformError",
+          (e) =>
+            e.reason._tag === "SystemError" && e.reason.kind === "NotFound" ? Effect.succeed(false) : Effect.fail(e)
+        )
       ),
     readFileString: (path, encoding) =>
       Effect.flatMap(impl.readFile(path), (_) =>
         Effect.try({
           try: () => new TextDecoder(encoding).decode(_),
           catch: (cause) =>
-            new BadArgument({
+            badArgument({
               module: "FileSystem",
               method: "readFileString",
               description: "invalid encoding",
@@ -784,7 +787,7 @@ export const make = (
         Effect.try({
           try: () => new TextEncoder().encode(data),
           catch: (cause) =>
-            new BadArgument({
+            badArgument({
               module: "FileSystem",
               method: "writeFileString",
               description: "could not encode string",
@@ -796,10 +799,10 @@ export const make = (
   })
 
 const notFound = (method: string, path: string) =>
-  new SystemError({
+  systemError({
     module: "FileSystem",
     method,
-    reason: "NotFound",
+    kind: "NotFound",
     description: "No such file or directory",
     pathOrDescriptor: path
   })
@@ -825,7 +828,7 @@ const notFound = (method: string, path: string) =>
  *       return Effect.succeed("{\"test\": true}")
  *     }
  *     return Effect.fail(
- *       new PlatformError.SystemError({
+ *       PlatformError.systemError({
  *         module: "FileSystem",
  *         method: "readFileString",
  *         reason: "NotFound",

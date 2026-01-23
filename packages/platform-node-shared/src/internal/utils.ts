@@ -1,5 +1,5 @@
-import type { PlatformError, SystemErrorReason } from "effect/PlatformError"
-import { SystemError } from "effect/PlatformError"
+import type { SystemError, SystemErrorKind } from "effect/PlatformError"
+import * as PlatformError from "effect/PlatformError"
 import type { PathLike } from "node:fs"
 
 /** @internal */
@@ -7,8 +7,8 @@ export const handleErrnoException = (module: SystemError["module"], method: stri
 (
   err: NodeJS.ErrnoException,
   [path]: [path: PathLike | number, ...args: Array<any>]
-): PlatformError => {
-  let reason: SystemErrorReason = "Unknown"
+): PlatformError.PlatformError => {
+  let reason: SystemErrorKind = "Unknown"
 
   switch (err.code) {
     case "ENOENT":
@@ -40,8 +40,8 @@ export const handleErrnoException = (module: SystemError["module"], method: stri
       break
   }
 
-  return new SystemError({
-    reason,
+  return PlatformError.systemError({
+    kind: reason,
     module,
     method,
     pathOrDescriptor: path as string | number,

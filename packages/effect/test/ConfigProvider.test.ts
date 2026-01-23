@@ -520,9 +520,9 @@ A=1`)
           return Effect.succeed(files[path])
         }
         return Effect.fail(
-          new PlatformError.SystemError({
+          PlatformError.systemError({
             module: "FileSystem",
-            reason: "NotFound",
+            kind: "NotFound",
             method: "readFileString"
           })
         )
@@ -530,9 +530,9 @@ A=1`)
       readDirectory(_path) {
         // For the test, we only have files, no directories
         return Effect.fail(
-          new PlatformError.SystemError({
+          PlatformError.systemError({
             module: "FileSystem",
-            reason: "NotFound",
+            kind: "NotFound",
             method: "readDirectory"
           })
         )

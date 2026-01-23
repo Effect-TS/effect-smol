@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import * as Layer from "effect/Layer"
-import { SystemError } from "effect/PlatformError"
+import { systemError } from "effect/PlatformError"
 import * as Stdio from "effect/Stdio"
 import { fromWritable } from "./NodeSink.ts"
 import { fromReadable } from "./NodeStream.ts"
@@ -17,30 +17,30 @@ export const layer: Layer.Layer<Stdio.Stdio> = Layer.succeed(
     stdout: fromWritable({
       evaluate: () => process.stdout,
       onError: (cause) =>
-        new SystemError({
+        systemError({
           module: "Stdio",
           method: "stdout",
-          reason: "Unknown",
+          kind: "Unknown",
           cause
         })
     }),
     stderr: fromWritable({
       evaluate: () => process.stderr,
       onError: (cause) =>
-        new SystemError({
+        systemError({
           module: "Stdio",
           method: "stderr",
-          reason: "Unknown",
+          kind: "Unknown",
           cause
         })
     }),
     stdin: fromReadable({
       evaluate: () => process.stdin,
       onError: (cause) =>
-        new SystemError({
+        systemError({
           module: "Stdio",
           method: "stdin",
-          reason: "Unknown",
+          kind: "Unknown",
           cause
         }),
       closeOnDone: false

@@ -18,7 +18,7 @@ import * as Path from "node:path"
 import { handleErrnoException } from "./internal/utils.ts"
 
 const handleBadArgument = (method: string) => (err: unknown) =>
-  new Error.BadArgument({
+  Error.badArgument({
     module: "FileSystem",
     method,
     description: (err as Error).message ?? String(err)
@@ -338,10 +338,10 @@ const makeFile = (() => {
           (bytesWritten) => {
             if (bytesWritten === 0) {
               return Effect.fail(
-                new Error.SystemError({
+                Error.systemError({
                   module: "FileSystem",
                   method: "writeAll",
-                  reason: "WriteZero",
+                  kind: "WriteZero",
                   pathOrDescriptor: this.fd,
                   description: "write returned 0 bytes written"
                 })
@@ -551,9 +551,9 @@ const watchNode = (path: string) =>
           Queue.failCauseUnsafe(
             queue,
             Cause.fail(
-              new Error.SystemError({
+              Error.systemError({
                 module: "FileSystem",
-                reason: "Unknown",
+                kind: "Unknown",
                 method: "watch",
                 pathOrDescriptor: path,
                 cause: error

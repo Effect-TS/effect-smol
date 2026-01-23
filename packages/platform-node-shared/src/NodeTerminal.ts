@@ -4,7 +4,7 @@
 import type * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import * as PlatformError from "effect/PlatformError"
+import { badArgument, type PlatformError } from "effect/PlatformError"
 import * as Predicate from "effect/Predicate"
 import * as Queue from "effect/Queue"
 import * as RcRef from "effect/RcRef"
@@ -76,12 +76,12 @@ export const make: (
 
     const display = (prompt: string) =>
       Effect.uninterruptible(
-        Effect.callback<void, PlatformError.PlatformError>((resume) => {
+        Effect.callback<void, PlatformError>((resume) => {
           stdout.write(prompt, (err) =>
             Predicate.isNullish(err)
               ? resume(Effect.void)
               : resume(Effect.fail(
-                new PlatformError.BadArgument({
+                badArgument({
                   module: "Terminal",
                   method: "display",
                   description: "Failed to write prompt to stdout",

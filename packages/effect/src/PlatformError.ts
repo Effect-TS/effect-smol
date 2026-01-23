@@ -9,22 +9,12 @@ const TypeId = "~effect/platform/PlatformError"
  * @since 4.0.0
  * @category Models
  */
-export class BadArgument extends Data.TaggedError("PlatformError")<{
+export class BadArgument extends Data.TaggedError("BadArgument")<{
   module: string
   method: string
   description?: string | undefined
   cause?: unknown
 }> {
-  /**
-   * @since 4.0.0
-   */
-  readonly [TypeId]: typeof TypeId = TypeId
-
-  /**
-   * @since 4.0.0
-   */
-  readonly reason = "BadArgument" as const
-
   /**
    * @since 4.0.0
    */
@@ -37,7 +27,7 @@ export class BadArgument extends Data.TaggedError("PlatformError")<{
  * @since 4.0.0
  * @category Model
  */
-export type SystemErrorReason =
+export type SystemErrorKind =
   | "AlreadyExists"
   | "BadResource"
   | "Busy"
@@ -54,8 +44,8 @@ export type SystemErrorReason =
  * @since 4.0.0
  * @category models
  */
-export class SystemError extends Data.TaggedError("PlatformError")<{
-  reason: SystemErrorReason
+export class SystemError extends Data.TaggedError("SystemError")<{
+  kind: SystemErrorKind
   module: string
   method: string
   description?: string | undefined
@@ -66,13 +56,8 @@ export class SystemError extends Data.TaggedError("PlatformError")<{
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: typeof TypeId = TypeId
-
-  /**
-   * @since 4.0.0
-   */
   override get message(): string {
-    return `${this.reason}: ${this.module}.${this.method}${
+    return `${this.kind}: ${this.module}.${this.method}${
       this.pathOrDescriptor !== undefined ? ` (${this.pathOrDescriptor})` : ""
     }${this.description ? `: ${this.description}` : ""}`
   }
@@ -82,4 +67,48 @@ export class SystemError extends Data.TaggedError("PlatformError")<{
  * @since 4.0.0
  * @category Models
  */
-export type PlatformError = BadArgument | SystemError
+export class PlatformError extends Data.TaggedError("PlatformError")<{
+  reason: BadArgument | SystemError
+}> {
+  constructor(reason: BadArgument | SystemError) {
+    if ("cause" in reason) {
+      super({ reason, cause: reason.cause } as any)
+    } else {
+      super({ reason })
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  readonly [TypeId]: typeof TypeId = TypeId
+
+  override get message(): string {
+    return this.reason.message
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const systemError = (options: {
+  readonly kind: SystemErrorKind
+  readonly module: string
+  readonly method: string
+  readonly description?: string | undefined
+  readonly syscall?: string | undefined
+  readonly pathOrDescriptor?: string | number | undefined
+  readonly cause?: unknown
+}): PlatformError => new PlatformError(new SystemError(options))
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const badArgument = (options: {
+  readonly module: string
+  readonly method: string
+  readonly description?: string | undefined
+  readonly cause?: unknown
+}): PlatformError => new PlatformError(new BadArgument(options))
