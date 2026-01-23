@@ -1,3 +1,4 @@
+/** @effect-diagnostics floatingEffect:skip-file */
 import { Data, Effect, pipe } from "effect"
 import type { Types } from "effect"
 import { describe, expect, it } from "tstyche"
@@ -160,5 +161,108 @@ describe("Effect.unwrapReason", () => {
     expect(result).type.toBe<
       Effect.Effect<string, RateLimitError | QuotaExceededError | OtherError>
     >()
+  })
+})
+
+describe("Effect.fn", () => {
+  it("with a span, generator", () => {
+    const fn = Effect.fn("span")(function*() {
+      return yield* Effect.fail("bye")
+    })
+    expect(fn).type.toBe<() => Effect.Effect<never, string, never>>()
+  })
+
+  it("with a span, generator with yieldable", () => {
+    const fn = Effect.fn("span")(function*() {
+      return yield* new RateLimitError({ retryAfter: 1 })
+    })
+    expect(fn).type.toBe<() => Effect.Effect<never, RateLimitError, never>>()
+  })
+
+  it("with a span, generator and pipe arguments", () => {
+    const fn = Effect.fn("span")(
+      function*() {
+        return yield* Effect.succeed("hello")
+      },
+      Effect.map((x) => {
+        expect(x).type.toBe<string>()
+        return x.length
+      })
+    )
+    expect(fn).type.toBe<() => Effect.Effect<number, never, never>>()
+  })
+
+  it("without a span, generator", () => {
+    const fn = Effect.fn(function*() {
+      return yield* Effect.fail("bye")
+    })
+    expect(fn).type.toBe<() => Effect.Effect<never, string, never>>()
+  })
+
+  it("without a span, generator with yieldable", () => {
+    const fn = Effect.fn(function*() {
+      return yield* new RateLimitError({ retryAfter: 1 })
+    })
+    expect(fn).type.toBe<() => Effect.Effect<never, RateLimitError, never>>()
+  })
+
+  it("without a span, generator and pipe arguments", () => {
+    const fn = Effect.fn(
+      function*() {
+        return yield* Effect.succeed("hello")
+      },
+      Effect.map((x) => {
+        expect(x).type.toBe<string>()
+        return x.length
+      })
+    )
+    expect(fn).type.toBe<() => Effect.Effect<number, never, never>>()
+  })
+
+  it("with a span, function", () => {
+    const fn = Effect.fn("span")(function() {
+      return Effect.fail("bye")
+    })
+    expect(fn).type.toBe<() => Effect.Effect<never, string, never>>()
+  })
+
+  it("with a span, function and pipe arguments", () => {
+    const fn = Effect.fn("span")(
+      function() {
+        return Effect.succeed("hello")
+      },
+      Effect.map((x) => {
+        expect(x).type.toBe<string>()
+        return x.length
+      })
+    )
+    expect(fn).type.toBe<() => Effect.Effect<number, never, never>>()
+  })
+
+  it("without a span, function", () => {
+    const fn = Effect.fn(function() {
+      return Effect.fail("bye")
+    })
+    expect(fn).type.toBe<() => Effect.Effect<never, string, never>>()
+  })
+
+  it("without a span, function and pipe arguments", () => {
+    const fn = Effect.fn(
+      function() {
+        return Effect.succeed("hello")
+      },
+      Effect.map((x) => {
+        expect(x).type.toBe<string>()
+        return x.length
+      })
+    )
+    expect(fn).type.toBe<() => Effect.Effect<number, never, never>>()
+  })
+
+  it("should not unwrap nested effects", () => {
+    const fn = Effect.fn(function() {
+      return Effect.succeed(Effect.succeed(1))
+    })
+    expect(fn).type.toBe<() => Effect.Effect<Effect.Effect<number, never, never>, never, never>>()
   })
 })
