@@ -16,7 +16,7 @@ import * as BunStream from "./BunStream.ts"
 export const stream = (source: Request): Stream.Stream<Multipart.Part, Multipart.MultipartError> =>
   BunStream.fromReadableStream({
     evaluate: () => source.body!,
-    onError: (cause) => new Multipart.MultipartError({ reason: "InternalError", cause })
+    onError: (cause) => Multipart.MultipartError.fromReason("InternalError", cause)
   }).pipe(
     Stream.pipeThroughChannel(Multipart.makeChannel(Object.fromEntries(source.headers)))
   )

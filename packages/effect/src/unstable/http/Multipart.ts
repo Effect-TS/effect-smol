@@ -4,6 +4,7 @@
 import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Channel from "../../Channel.ts"
+import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as FileSystem from "../../FileSystem.ts"
@@ -123,11 +124,25 @@ const MultipartErrorTypeId = "~effect/http/Multipart/MultipartError"
  * @since 4.0.0
  * @category Errors
  */
-export class MultipartError extends Schema.ErrorClass<MultipartError>(MultipartErrorTypeId)({
-  _tag: Schema.tag("MultipartError"),
-  reason: Schema.Literals(["FileTooLarge", "FieldTooLarge", "BodyTooLarge", "TooManyParts", "InternalError", "Parse"]),
-  cause: Schema.Defect
-}) {
+export class MultipartErrorReason extends Data.Error<{
+  readonly _tag: "FileTooLarge" | "FieldTooLarge" | "BodyTooLarge" | "TooManyParts" | "InternalError" | "Parse"
+  readonly cause?: unknown
+}> {}
+
+/**
+ * @since 4.0.0
+ * @category Errors
+ */
+export class MultipartError extends Data.TaggedError("MultipartError")<{
+  readonly reason: MultipartErrorReason
+}> {
+  /**
+   * @since 4.0.0
+   */
+  static fromReason(reason: MultipartErrorReason["_tag"], cause?: unknown): MultipartError {
+    return new MultipartError({ reason: new MultipartErrorReason({ _tag: reason, cause }) })
+  }
+
   /**
    * @since 4.0.0
    */
@@ -137,7 +152,7 @@ export class MultipartError extends Schema.ErrorClass<MultipartError>(MultipartE
    * @since 4.0.0
    */
   override get message(): string {
-    return this.reason
+    return this.reason._tag
   }
 }
 
@@ -349,21 +364,21 @@ function convertError(cause: MP.MultipartError): MultipartError {
     case "ReachedLimit": {
       switch (cause.limit) {
         case "MaxParts": {
-          return new MultipartError({ reason: "TooManyParts", cause })
+          return MultipartError.fromReason("TooManyParts", cause)
         }
         case "MaxFieldSize": {
-          return new MultipartError({ reason: "FieldTooLarge", cause })
+          return MultipartError.fromReason("FieldTooLarge", cause)
         }
         case "MaxPartSize": {
-          return new MultipartError({ reason: "FileTooLarge", cause })
+          return MultipartError.fromReason("FileTooLarge", cause)
         }
         case "MaxTotalSize": {
-          return new MultipartError({ reason: "BodyTooLarge", cause })
+          return MultipartError.fromReason("BodyTooLarge", cause)
         }
       }
     }
     default: {
-      return new MultipartError({ reason: "Parse", cause })
+      return MultipartError.fromReason("Parse", cause)
     }
   }
 }
@@ -423,7 +438,7 @@ class FileImpl extends PartBase implements File {
     this.content = Stream.fromChannel(channel)
     this.contentEffect = channel.pipe(
       collectUint8Array,
-      Effect.mapError((cause) => new MultipartError({ reason: "InternalError", cause }))
+      Effect.mapError((cause) => MultipartError.fromReason("InternalError", cause))
     )
   }
 
@@ -444,7 +459,7 @@ const defaultWriteFile = (path: string, file: File) =>
     (fs) =>
       Effect.mapError(
         Stream.run(file.content, fs.sink(path)),
-        (cause) => new MultipartError({ reason: "InternalError", cause })
+        (cause) => MultipartError.fromReason("InternalError", cause)
       )
   )
 
@@ -509,7 +524,7 @@ export const toPersisted = (
     })
     return persisted
   }).pipe(
-    Effect.catchTag("PlatformError", (cause) => Effect.fail(new MultipartError({ reason: "InternalError", cause })))
+    Effect.catchTag("PlatformError", (cause) => Effect.fail(MultipartError.fromReason("InternalError", cause)))
   )
 
 class PersistedFileImpl extends PartBase implements PersistedFile {
