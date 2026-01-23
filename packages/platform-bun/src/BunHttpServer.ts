@@ -77,7 +77,11 @@ export const make = Effect.fnUntraced(
           Deferred.doneUnsafe(
             ws.data.closeDeferred,
             Socket.defaultCloseCodeIsError(code)
-              ? Exit.fail(new Socket.SocketCloseError({ code, closeReason }))
+              ? Exit.fail(
+                new Socket.SocketError({
+                  reason: new Socket.SocketCloseError({ code, closeReason })
+                })
+              )
               : Exit.void
           )
         }

@@ -1003,20 +1003,24 @@ export const makeProtocolSocket = (options?: {
           pinger.timeout,
           () =>
             Effect.fail(
-              new Socket.SocketGenericError({
-                reason: "OpenTimeout",
-                cause: new Error("ping timeout")
+              new Socket.SocketError({
+                reason: new Socket.SocketOpenError({
+                  kind: "Timeout",
+                  cause: new Error("ping timeout")
+                })
               })
             )
         ))
       )
     }).pipe(
-      Effect.flatMap(() => Effect.fail(new Socket.SocketCloseError({ code: 1000 }))),
+      Effect.flatMap(() =>
+        Effect.fail(new Socket.SocketError({ reason: new Socket.SocketCloseError({ code: 1000 }) }))
+      ),
       Effect.tapCause((cause) => {
         const error = Cause.filterError(cause)
         if (
           options?.retryTransientErrors && Filter.isPass(error) &&
-          (error.reason === "Open" || error.reason === "OpenTimeout")
+          error.reason._tag === "SocketOpenError"
         ) {
           return Effect.void
         }

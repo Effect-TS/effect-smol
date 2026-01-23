@@ -81,15 +81,17 @@ export const make = Effect.fnUntraced(function*(
             Effect.suspend((): Effect.Effect<Net.Socket, Socket.SocketError> => {
               if (error) {
                 return Effect.fail(
-                  new Socket.SocketGenericError({
-                    reason: "Open",
-                    cause: error
+                  new Socket.SocketError({
+                    reason: new Socket.SocketOpenError({
+                      kind: "Unknown",
+                      cause: error
+                    })
                   })
                 )
               } else if (conn.closed) {
                 return Effect.fail(
-                  new Socket.SocketCloseError({
-                    code: 1000
+                  new Socket.SocketError({
+                    reason: new Socket.SocketCloseError({ code: 1000 })
                   })
                 )
               }
