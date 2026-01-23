@@ -167,14 +167,14 @@ export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>(
   readonly [LegacyTypeId] = LegacyTypeId
 
   /**
-   * Creates an HttpRequestError from a platform HttpClientError.RequestError.
+   * Creates an HttpRequestError from a platform HttpClientError.
    *
    * @example
    * ```ts
    * import { AiError } from "effect/unstable/ai"
    * import type { HttpClientError } from "effect/unstable/http"
    *
-   * declare const platformError: HttpClientError.RequestError
+   * declare const platformError: HttpClientError.HttpClientError
    *
    * const aiError = AiError.HttpRequestError.fromRequestError({
    *   module: "ChatGPT",
@@ -189,19 +189,25 @@ export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>(
   static fromRequestError({ error, ...params }: {
     readonly module: string
     readonly method: string
-    readonly error: HttpClientError.RequestError
+    readonly error: HttpClientError.HttpClientError
   }): HttpRequestError {
+    const reason = error.reason as HttpClientError.RequestError
+    const reasonLabel = reason._tag === "TransportError"
+      ? "Transport"
+      : reason._tag === "EncodeError"
+      ? "Encode"
+      : "InvalidUrl"
     return new HttpRequestError({
       ...params,
       cause: error,
-      description: error.description,
-      reason: error.reason,
+      description: reason.description,
+      reason: reasonLabel,
       request: {
-        hash: error.request.hash,
-        headers: redact(error.request.headers) as any,
-        method: error.request.method,
-        url: error.request.url,
-        urlParams: Array.from(error.request.urlParams)
+        hash: reason.request.hash,
+        headers: redact(reason.request.headers) as any,
+        method: reason.request.method,
+        url: reason.request.url,
+        urlParams: Array.from(reason.request.urlParams)
       }
     })
   }
@@ -1240,14 +1246,14 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
   readonly [LegacyTypeId] = LegacyTypeId
 
   /**
-   * Creates an HttpResponseError from a platform HttpClientError.ResponseError.
+   * Creates an HttpResponseError from a platform HttpClientError.
    *
    * @example
    * ```ts
    * import { AiError } from "effect/unstable/ai"
    * import type { HttpClientError } from "effect/unstable/http"
    *
-   * declare const platformError: HttpClientError.ResponseError
+   * declare const platformError: HttpClientError.HttpClientError
    *
    * const aiError = AiError.HttpResponseError.fromResponseError({
    *   module: "OpenAI",
@@ -1262,14 +1268,20 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
   static fromResponseError({ error, ...params }: {
     readonly module: string
     readonly method: string
-    readonly error: HttpClientError.ResponseError
+    readonly error: HttpClientError.HttpClientError
   }): Effect.Effect<never, HttpResponseError> {
-    let body: Effect.Effect<unknown, HttpClientError.ResponseError> = Effect.void
-    const contentType = error.response.headers["content-type"] ?? ""
+    const reason = error.reason as HttpClientError.ResponseError
+    const reasonLabel = reason._tag === "StatusCodeError"
+      ? "StatusCode"
+      : reason._tag === "DecodeError"
+      ? "Decode"
+      : "EmptyBody"
+    let body: Effect.Effect<unknown, HttpClientError.HttpClientError> = Effect.void
+    const contentType = reason.response.headers["content-type"] ?? ""
     if (contentType.includes("application/json")) {
-      body = error.response.json
+      body = reason.response.json
     } else if (contentType.includes("text/") || contentType.includes("urlencoded")) {
-      body = error.response.text
+      body = reason.response.text
     }
     return Effect.flatMap(
       Effect.matchEffect(body, {
@@ -1280,18 +1292,18 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
         Effect.fail(
           new HttpResponseError({
             ...params,
-            description: error.description,
-            reason: error.reason,
+            description: reason.description,
+            reason: reasonLabel,
             request: {
-              hash: error.request.hash,
-              headers: redact(error.request.headers) as any,
-              method: error.request.method,
-              url: error.request.url,
-              urlParams: Array.from(error.request.urlParams)
+              hash: reason.request.hash,
+              headers: redact(reason.request.headers) as any,
+              method: reason.request.method,
+              url: reason.request.url,
+              urlParams: Array.from(reason.request.urlParams)
             },
             response: {
-              headers: redact(error.response.headers) as any,
-              status: error.response.status
+              headers: redact(reason.response.headers) as any,
+              status: reason.response.status
             },
             body: format(redact(body))
           })

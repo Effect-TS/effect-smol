@@ -170,10 +170,11 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
               Effect.catchCause(decode(response), (cause) =>
                 Effect.failCause(Cause.merge(
                   Cause.fail(
-                    new HttpClientError.ResponseError({
-                      reason: "StatusCode",
-                      request: response.request,
-                      response
+                    new HttpClientError.HttpClientError({
+                      reason: new HttpClientError.StatusCodeError({
+                        request: response.request,
+                        response
+                      })
                     })
                   ),
                   cause
@@ -501,19 +502,21 @@ const schemaFromArrayBuffer = (
 
 const statusOrElse = (response: HttpClientResponse.HttpClientResponse) =>
   Effect.fail(
-    new HttpClientError.ResponseError({
-      reason: "Decode",
-      request: response.request,
-      response
+    new HttpClientError.HttpClientError({
+      reason: new HttpClientError.DecodeError({
+        request: response.request,
+        response
+      })
     })
   )
 
 const statusCodeError = (response: HttpClientResponse.HttpClientResponse) =>
   Effect.fail(
-    new HttpClientError.ResponseError({
-      reason: "StatusCode",
-      request: response.request,
-      response
+    new HttpClientError.HttpClientError({
+      reason: new HttpClientError.StatusCodeError({
+        request: response.request,
+        response
+      })
     })
   )
 

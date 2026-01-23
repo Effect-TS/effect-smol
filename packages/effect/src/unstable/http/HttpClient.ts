@@ -478,11 +478,11 @@ export const filterOrFail: {
  * @category filters
  */
 export const filterStatus: {
-  (f: (status: number) => boolean): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E | Error.ResponseError, R>
-  <E, R>(self: HttpClient.With<E, R>, f: (status: number) => boolean): HttpClient.With<E | Error.ResponseError, R>
+  (f: (status: number) => boolean): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E | Error.HttpClientError, R>
+  <E, R>(self: HttpClient.With<E, R>, f: (status: number) => boolean): HttpClient.With<E | Error.HttpClientError, R>
 } = dual(
   2,
-  <E, R>(self: HttpClient.With<E, R>, f: (status: number) => boolean): HttpClient.With<E | Error.ResponseError, R> =>
+  <E, R>(self: HttpClient.With<E, R>, f: (status: number) => boolean): HttpClient.With<E | Error.HttpClientError, R> =>
     transformResponse(self, Effect.flatMap(HttpClientResponse.filterStatus(f)))
 )
 
@@ -492,7 +492,7 @@ export const filterStatus: {
  * @since 4.0.0
  * @category filters
  */
-export const filterStatusOk: <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E | Error.ResponseError, R> =
+export const filterStatusOk: <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E | Error.HttpClientError, R> =
   transformResponse(Effect.flatMap(HttpClientResponse.filterStatusOk))
 
 /**
@@ -553,7 +553,14 @@ export const make = (
         const controller = scopedController ?? new AbortController()
         const urlResult = UrlParams.makeUrl(request.url, request.urlParams, request.hash)
         if (Result.isFailure(urlResult)) {
-          return Effect.fail(new Error.RequestError({ request, reason: "InvalidUrl", cause: urlResult.failure }))
+          return Effect.fail(
+            new Error.HttpClientError({
+              reason: new Error.InvalidUrlError({
+                request,
+                cause: urlResult.failure
+              })
+            })
+          )
         }
         const url = urlResult.success
         const tracerDisabled = fiber.getRef(Tracer.DisablePropagation) ||
@@ -1189,8 +1196,8 @@ const isTransientError = (error: unknown) => Cause.isTimeoutError(error) || isTr
 
 const isTransientHttpError = (error: unknown) =>
   Error.isHttpClientError(error) &&
-  ((error._tag === "RequestError" && error.reason === "Transport") ||
-    (error._tag === "ResponseError" && isTransientResponse(error.response)))
+  (error.reason._tag === "TransportError" ||
+    (error.reason._tag === "StatusCodeError" && isTransientResponse(error.reason.response)))
 
 const transientStatuses = new Set([
   408,
