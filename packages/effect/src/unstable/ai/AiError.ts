@@ -72,8 +72,6 @@
  * @since 4.0.0
  */
 import * as Duration from "../../Duration.ts"
-import * as Effect from "../../Effect.ts"
-import { format } from "../../Formatter.ts"
 import * as Predicate from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
 import * as Schema from "../../Schema.ts"
@@ -116,135 +114,6 @@ export const HttpRequestDetails = Schema.Struct({
 }).annotate({ identifier: "HttpRequestDetails" })
 
 /**
- * Error that occurs during HTTP request processing.
- *
- * This error is raised when issues arise before receiving an HTTP response,
- * such as network connectivity problems, request encoding issues, or invalid
- * URLs.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { AiError } from "effect/unstable/ai"
- *
- * const handleNetworkError = Effect.gen(function*() {
- *   const error = new AiError.HttpRequestError({
- *     module: "OpenAI",
- *     method: "createCompletion",
- *     reason: "Transport",
- *     request: {
- *       method: "POST",
- *       url: "https://api.openai.com/v1/completions",
- *       urlParams: [],
- *       hash: undefined,
- *       headers: { "Content-Type": "application/json" }
- *     },
- *     description: "Connection timeout after 30 seconds"
- *   })
- *
- *   console.log(error.message)
- *   // "Transport: Connection timeout after 30 seconds (POST https://api.openai.com/v1/completions)"
- * })
- * ```
- *
- * @since 4.0.0
- * @category schemas
- */
-export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>(
-  "effect/ai/AiError/HttpRequestError"
-)({
-  _tag: Schema.tag("HttpRequestError"),
-  module: Schema.String,
-  method: Schema.String,
-  reason: Schema.Literals(["Transport", "Encode", "InvalidUrl"]),
-  request: HttpRequestDetails,
-  description: Schema.optional(Schema.String),
-  cause: Schema.optional(Schema.Defect)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [LegacyTypeId] = LegacyTypeId
-
-  /**
-   * Creates an HttpRequestError from a platform HttpClientError.RequestError.
-   *
-   * @example
-   * ```ts
-   * import { AiError } from "effect/unstable/ai"
-   * import type { HttpClientError } from "effect/unstable/http"
-   *
-   * declare const platformError: HttpClientError.RequestError
-   *
-   * const aiError = AiError.HttpRequestError.fromRequestError({
-   *   module: "ChatGPT",
-   *   method: "sendMessage",
-   *   error: platformError
-   * })
-   * ```
-   *
-   * @since 4.0.0
-   * @category constructors
-   */
-  static fromRequestError({ error, ...params }: {
-    readonly module: string
-    readonly method: string
-    readonly error: HttpClientError.RequestError
-  }): HttpRequestError {
-    return new HttpRequestError({
-      ...params,
-      cause: error,
-      description: error.description,
-      reason: error.reason,
-      request: {
-        hash: error.request.hash,
-        headers: redact(error.request.headers) as any,
-        method: error.request.method,
-        url: error.request.url,
-        urlParams: Array.from(error.request.urlParams)
-      }
-    })
-  }
-
-  override get message(): string {
-    const methodAndUrl = `${this.request.method} ${this.request.url}`
-
-    let baseMessage = this.description
-      ? `${this.reason}: ${this.description}`
-      : `${this.reason}: An HTTP request error occurred.`
-
-    baseMessage += ` (${methodAndUrl})`
-
-    let suggestion = ""
-    switch (this.reason) {
-      case "Encode": {
-        suggestion += "Check that the request body data is properly formatted and matches the expected content type."
-        break
-      }
-
-      case "InvalidUrl": {
-        suggestion += "Verify that the URL format is correct and that all required parameters have been provided."
-        suggestion += " Check for any special characters that may need encoding."
-        break
-      }
-
-      case "Transport": {
-        suggestion += "Check your network connection and verify that the requested URL is accessible."
-        break
-      }
-    }
-
-    baseMessage += `\n\n${suggestion}`
-
-    return baseMessage
-  }
-}
-
-// =============================================================================
-// Http Response Error
-// =============================================================================
-
-/**
  * Schema for HTTP response details used in error reporting.
  *
  * Captures essential information about HTTP responses that caused errors,
@@ -271,6 +140,163 @@ export const HttpResponseDetails = Schema.Struct({
   status: Schema.Number,
   headers: Schema.Record(Schema.String, Schema.String)
 }).annotate({ identifier: "HttpResponseDetails" })
+
+/**
+ * Error that occurs during HTTP request processing.
+ *
+ * This error is raised when issues arise before receiving an HTTP response,
+ * such as network connectivity problems, request encoding issues, or invalid
+ * URLs.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const handleNetworkError = Effect.gen(function*() {
+ *   const error = new AiError.HttpError({
+ *     module: "OpenAI",
+ *     method: "createCompletion",
+ *     reason: "Transport",
+ *     request: {
+ *       method: "POST",
+ *       url: "https://api.openai.com/v1/completions",
+ *       urlParams: [],
+ *       hash: undefined,
+ *       headers: { "Content-Type": "application/json" }
+ *     },
+ *     description: "Connection timeout after 30 seconds"
+ *   })
+ *
+ *   console.log(error.message)
+ *   // "Transport: Connection timeout after 30 seconds (POST https://api.openai.com/v1/completions)"
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export class HttpError extends Schema.ErrorClass<HttpError>(
+  "effect/ai/AiError/HttpError"
+)({
+  _tag: Schema.tag("HttpError"),
+  module: Schema.String,
+  method: Schema.String,
+  reason: Schema.Literals([
+    "TransportError",
+    "EncodeError",
+    "InvalidUrlError",
+    "StatusCodeError",
+    "DecodeError",
+    "EmptyBodyError"
+  ]),
+  request: HttpRequestDetails,
+  response: Schema.optional(HttpResponseDetails),
+  description: Schema.optional(Schema.String),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [LegacyTypeId] = LegacyTypeId
+
+  /**
+   * Creates an HttpError from a platform HttpClientError.
+   *
+   * @example
+   * ```ts
+   * import { AiError } from "effect/unstable/ai"
+   * import type { HttpClientError } from "effect/unstable/http"
+   *
+   * declare const platformError: HttpClientError.RequestError
+   *
+   * const aiError = AiError.HttpError.fromHttpClientError({
+   *   module: "ChatGPT",
+   *   method: "sendMessage",
+   *   error: platformError
+   * })
+   * ```
+   *
+   * @since 4.0.0
+   * @category constructors
+   */
+  static fromHttpClientError({ error, ...params }: {
+    readonly module: string
+    readonly method: string
+    readonly error: HttpClientError.HttpClientError
+  }): HttpError {
+    return new HttpError({
+      ...params,
+      cause: error,
+      description: error.reason.description,
+      reason: error.reason._tag,
+      request: HttpRequestDetails.makeUnsafe({
+        hash: error.request.hash,
+        headers: redact(error.request.headers) as any,
+        method: error.request.method,
+        url: error.request.url,
+        urlParams: Array.from(error.request.urlParams)
+      }),
+      response: error.response ?
+        HttpResponseDetails.makeUnsafe({
+          headers: redact(error.response.headers) as any,
+          status: error.response.status
+        }) :
+        undefined
+    })
+  }
+
+  override get message(): string {
+    const methodAndUrl = `${this.request.method} ${this.request.url}`
+
+    let baseMessage = this.description
+      ? `${this.reason}: ${this.description}`
+      : `${this.reason}: An HTTP client error occurred.`
+
+    baseMessage += ` (${methodAndUrl})`
+
+    let suggestion = ""
+    switch (this.reason) {
+      case "EncodeError": {
+        suggestion += "Check that the request body data is properly formatted and matches the expected content type."
+        break
+      }
+
+      case "InvalidUrlError": {
+        suggestion += "Verify that the URL format is correct and that all required parameters have been provided."
+        suggestion += " Check for any special characters that may need encoding."
+        break
+      }
+
+      case "TransportError": {
+        suggestion += "Check your network connection and verify that the requested URL is accessible."
+        break
+      }
+
+      case "DecodeError": {
+        suggestion += "The response format does not match what is expected. " +
+          "Verify API version compatibility, check response content-type, " +
+          "and/or examine if the endpoint schema has changed."
+        break
+      }
+
+      case "EmptyBodyError": {
+        suggestion += "The response body was empty. This may indicate a server " +
+          "issue, API version mismatch, or the endpoint may have changed its response format."
+        break
+      }
+
+      case "StatusCodeError": {
+        suggestion += getStatusCodeSuggestion(this.response!.status)
+        break
+      }
+    }
+
+    baseMessage += `\n\n${suggestion}`
+
+    return baseMessage
+  }
+}
 
 // =============================================================================
 // Supporting Schemas
@@ -1179,161 +1205,6 @@ export const reasonFromHttpStatus = (params: {
         return new ProviderInternalError({ http, provider, cause: body })
       }
       return new AiUnknownError({ http, provider, cause: body })
-  }
-}
-
-// =============================================================================
-// Deprecated Error Types (To Be Removed in Phase 5)
-// =============================================================================
-
-/**
- * Error that occurs during HTTP response processing.
- *
- * This error is thrown when issues arise after receiving an HTTP response,
- * such as unexpected status codes, response decoding failures, or empty
- * response bodies.
- *
- * @example
- * ```ts
- * import { AiError } from "effect/unstable/ai"
- *
- * const responseError = new AiError.HttpResponseError({
- *   module: "OpenAI",
- *   method: "createCompletion",
- *   reason: "StatusCode",
- *   request: {
- *     method: "POST",
- *     url: "https://api.openai.com/v1/completions",
- *     urlParams: [],
- *     hash: undefined,
- *     headers: { "Content-Type": "application/json" }
- *   },
- *   response: {
- *     status: 429,
- *     headers: { "X-RateLimit-Remaining": "0" }
- *   },
- *   description: "Rate limit exceeded"
- * })
- *
- * console.log(responseError.message)
- * // "StatusCode: Rate limit exceeded (429 POST https://api.openai.com/v1/completions)"
- * ```
- *
- * @since 4.0.0
- * @category schemas
- */
-export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
-  "effect/ai/AiError/HttpResponseError"
-)({
-  _tag: Schema.tag("HttpResponseError"),
-  module: Schema.String,
-  method: Schema.String,
-  request: HttpRequestDetails,
-  response: HttpResponseDetails,
-  body: Schema.optional(Schema.String),
-  reason: Schema.Literals(["StatusCode", "Decode", "EmptyBody"]),
-  description: Schema.optional(Schema.String)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [LegacyTypeId] = LegacyTypeId
-
-  /**
-   * Creates an HttpResponseError from a platform HttpClientError.ResponseError.
-   *
-   * @example
-   * ```ts
-   * import { AiError } from "effect/unstable/ai"
-   * import type { HttpClientError } from "effect/unstable/http"
-   *
-   * declare const platformError: HttpClientError.ResponseError
-   *
-   * const aiError = AiError.HttpResponseError.fromResponseError({
-   *   module: "OpenAI",
-   *   method: "completion",
-   *   error: platformError
-   * })
-   * ```
-   *
-   * @since 4.0.0
-   * @category constructors
-   */
-  static fromResponseError({ error, ...params }: {
-    readonly module: string
-    readonly method: string
-    readonly error: HttpClientError.ResponseError
-  }): Effect.Effect<never, HttpResponseError> {
-    let body: Effect.Effect<unknown, HttpClientError.ResponseError> = Effect.void
-    const contentType = error.response.headers["content-type"] ?? ""
-    if (contentType.includes("application/json")) {
-      body = error.response.json
-    } else if (contentType.includes("text/") || contentType.includes("urlencoded")) {
-      body = error.response.text
-    }
-    return Effect.flatMap(
-      Effect.matchEffect(body, {
-        onFailure: Effect.succeed,
-        onSuccess: Effect.succeed
-      }),
-      (body) =>
-        Effect.fail(
-          new HttpResponseError({
-            ...params,
-            description: error.description,
-            reason: error.reason,
-            request: {
-              hash: error.request.hash,
-              headers: redact(error.request.headers) as any,
-              method: error.request.method,
-              url: error.request.url,
-              urlParams: Array.from(error.request.urlParams)
-            },
-            response: {
-              headers: redact(error.response.headers) as any,
-              status: error.response.status
-            },
-            body: format(redact(body))
-          })
-        )
-    )
-  }
-
-  override get message(): string {
-    const methodUrlStatus = `${this.response.status} ${this.request.method} ${this.request.url}`
-
-    let baseMessage = this.description
-      ? `${this.reason}: ${this.description}`
-      : `${this.reason}: An HTTP response error occurred.`
-
-    baseMessage += ` (${methodUrlStatus})`
-
-    let suggestion = ""
-    switch (this.reason) {
-      case "Decode": {
-        suggestion += "The response format does not match what is expected. " +
-          "Verify API version compatibility, check response content-type, " +
-          "and/or examine if the endpoint schema has changed."
-        break
-      }
-      case "EmptyBody": {
-        suggestion += "The response body was empty. This may indicate a server " +
-          "issue, API version mismatch, or the endpoint may have changed its response format."
-        break
-      }
-      case "StatusCode": {
-        suggestion += getStatusCodeSuggestion(this.response.status)
-        break
-      }
-    }
-
-    baseMessage += `\n\n${suggestion}`
-
-    if (Predicate.isNotUndefined(this.body)) {
-      baseMessage += `\n\nResponse Body: ${this.body}`
-    }
-
-    return baseMessage
   }
 }
 
