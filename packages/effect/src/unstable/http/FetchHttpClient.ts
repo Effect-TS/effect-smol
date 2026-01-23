@@ -7,7 +7,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as Headers from "./Headers.ts"
 import * as HttpClient from "./HttpClient.ts"
-import { RequestError } from "./HttpClientError.ts"
+import * as HttpClientError from "./HttpClientError.ts"
 import * as HttpClientResponse from "./HttpClientResponse.ts"
 
 /**
@@ -43,10 +43,11 @@ const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fibe
             signal
           } as any),
         catch: (cause) =>
-          new RequestError({
-            request,
-            reason: "Transport",
-            cause
+          HttpClientError.make({
+            reason: new HttpClientError.TransportError({
+              request,
+              cause
+            })
           })
       }),
       (response) => HttpClientResponse.fromWeb(request, response)

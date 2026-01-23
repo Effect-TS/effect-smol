@@ -311,7 +311,7 @@ export const make = (
 ): ${name} => {
   ${commonSource}
   const decodeSuccess = <A>(response: HttpClientResponse.HttpClientResponse) =>
-    response.json as Effect.Effect<A, HttpClientError.ResponseError>
+    response.json as Effect.Effect<A, HttpClientError.HttpClientError>
   const decodeVoid = (_response: HttpClientResponse.HttpClientResponse) =>
     Effect.void
   const decodeError =
@@ -320,10 +320,10 @@ export const make = (
       response: HttpClientResponse.HttpClientResponse,
     ): Effect.Effect<
       never,
-      ${name}Error<Tag, E> | HttpClientError.ResponseError
+      ${name}Error<Tag, E> | HttpClientError.HttpClientError
     > =>
       Effect.flatMap(
-        response.json as Effect.Effect<E, HttpClientError.ResponseError>,
+        response.json as Effect.Effect<E, HttpClientError.HttpClientError>,
         (cause) => Effect.fail(${name}Error(tag, cause, response)),
       )
   const onRequest = <Config extends OperationConfig>(config: Config | undefined) => (
@@ -426,11 +426,12 @@ const commonSource = `const unexpectedStatus = (response: HttpClientResponse.Htt
       Effect.orElseSucceed(response.json, () => "Unexpected status code"),
       (description) =>
         Effect.fail(
-          new HttpClientError.ResponseError({
-            request: response.request,
-            response,
-            reason: "StatusCode",
-            description: typeof description === "string" ? description : JSON.stringify(description),
+          HttpClientError.make({
+            reason: new HttpClientError.StatusCodeError({
+              request: response.request,
+              response,
+              description: typeof description === "string" ? description : JSON.stringify(description),
+            }),
           }),
         ),
     )

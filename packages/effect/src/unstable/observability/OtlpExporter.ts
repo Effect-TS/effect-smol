@@ -21,10 +21,10 @@ const policy = Schedule.forever.pipe(
   Schedule.addDelay((error) => {
     if (
       HttpClientError.isHttpClientError(error)
-      && error._tag === "ResponseError"
-      && error.response.status === 429
+      && error.reason._tag === "StatusCodeError"
+      && error.reason.response.status === 429
     ) {
-      const retryAfter = UndefinedOr.map(error.response.headers["retry-after"], Num.parse) ?? 5
+      const retryAfter = UndefinedOr.map(error.reason.response.headers["retry-after"], Num.parse) ?? 5
       return Duration.seconds(retryAfter)
     }
     return Duration.seconds(1)

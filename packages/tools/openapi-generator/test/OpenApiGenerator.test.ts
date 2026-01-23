@@ -139,11 +139,12 @@ export const make = (
       Effect.orElseSucceed(response.json, () => "Unexpected status code"),
       (description) =>
         Effect.fail(
-          new HttpClientError.ResponseError({
-            request: response.request,
-            response,
-            reason: "StatusCode",
-            description: typeof description === "string" ? description : JSON.stringify(description),
+          HttpClientError.make({
+            reason: new HttpClientError.StatusCodeError({
+              request: response.request,
+              response,
+              description: typeof description === "string" ? description : JSON.stringify(description),
+            }),
           }),
         ),
     )
@@ -317,11 +318,12 @@ export const make = (
       Effect.orElseSucceed(response.json, () => "Unexpected status code"),
       (description) =>
         Effect.fail(
-          new HttpClientError.ResponseError({
-            request: response.request,
-            response,
-            reason: "StatusCode",
-            description: typeof description === "string" ? description : JSON.stringify(description),
+          HttpClientError.make({
+            reason: new HttpClientError.StatusCodeError({
+              request: response.request,
+              response,
+              description: typeof description === "string" ? description : JSON.stringify(description),
+            }),
           }),
         ),
     )
@@ -342,7 +344,7 @@ export const make = (
       : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
   }
   const decodeSuccess = <A>(response: HttpClientResponse.HttpClientResponse) =>
-    response.json as Effect.Effect<A, HttpClientError.ResponseError>
+    response.json as Effect.Effect<A, HttpClientError.HttpClientError>
   const decodeVoid = (_response: HttpClientResponse.HttpClientResponse) =>
     Effect.void
   const decodeError =
@@ -351,10 +353,10 @@ export const make = (
       response: HttpClientResponse.HttpClientResponse,
     ): Effect.Effect<
       never,
-      TestClientError<Tag, E> | HttpClientError.ResponseError
+      TestClientError<Tag, E> | HttpClientError.HttpClientError
     > =>
       Effect.flatMap(
-        response.json as Effect.Effect<E, HttpClientError.ResponseError>,
+        response.json as Effect.Effect<E, HttpClientError.HttpClientError>,
         (cause) => Effect.fail(TestClientError(tag, cause, response)),
       )
   const onRequest = <Config extends OperationConfig>(config: Config | undefined) => (

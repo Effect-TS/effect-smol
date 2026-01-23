@@ -114,10 +114,11 @@ export const makeUndici = Effect.gen(function*() {
               bodyTimeout: 0
             }),
           catch: (cause) =>
-            new Error.RequestError({
-              request,
-              reason: "Transport",
-              cause
+            Error.make({
+              reason: new Error.TransportError({
+                request,
+                cause
+              })
             })
         })
       ),
@@ -191,85 +192,91 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
     return undefined
   }
 
-  get stream(): Stream.Stream<Uint8Array, Error.ResponseError> {
+  get stream(): Stream.Stream<Uint8Array, Error.HttpClientError> {
     return NodeStream.fromReadable({
       evaluate: () => this.source.body,
       onError: (cause) =>
-        new Error.ResponseError({
-          request: this.request,
-          response: this,
-          reason: "Decode",
-          cause
+        Error.make({
+          reason: new Error.DecodeError({
+            request: this.request,
+            response: this,
+            cause
+          })
         })
     })
   }
 
-  get json(): Effect.Effect<unknown, Error.ResponseError> {
+  get json(): Effect.Effect<unknown, Error.HttpClientError> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
         try: () => text === "" ? null : JSON.parse(text) as unknown,
         catch: (cause) =>
-          new Error.ResponseError({
-            request: this.request,
-            response: this,
-            reason: "Decode",
-            cause
+          Error.make({
+            reason: new Error.DecodeError({
+              request: this.request,
+              response: this,
+              cause
+            })
           })
       }))
   }
 
-  private textBody?: Effect.Effect<string, Error.ResponseError>
-  get text(): Effect.Effect<string, Error.ResponseError> {
+  private textBody?: Effect.Effect<string, Error.HttpClientError>
+  get text(): Effect.Effect<string, Error.HttpClientError> {
     return this.textBody ??= Effect.tryPromise({
       try: () => this.source.body.text(),
       catch: (cause) =>
-        new Error.ResponseError({
-          request: this.request,
-          response: this,
-          reason: "Decode",
-          cause
+        Error.make({
+          reason: new Error.DecodeError({
+            request: this.request,
+            response: this,
+            cause
+          })
         })
     }).pipe(Effect.cached, Effect.runSync)
   }
 
-  get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, Error.ResponseError> {
+  get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, Error.HttpClientError> {
     return Effect.flatMap(this.text, (_) =>
       Effect.try({
         try: () => UrlParams.fromInput(new URLSearchParams(_)),
         catch: (cause) =>
-          new Error.ResponseError({
-            request: this.request,
-            response: this,
-            reason: "Decode",
-            cause
+          Error.make({
+            reason: new Error.DecodeError({
+              request: this.request,
+              response: this,
+              cause
+            })
           })
       }))
   }
 
-  private formDataBody?: Effect.Effect<FormData, Error.ResponseError>
-  get formData(): Effect.Effect<FormData, Error.ResponseError> {
+  private formDataBody?: Effect.Effect<FormData, Error.HttpClientError>
+  get formData(): Effect.Effect<FormData, Error.HttpClientError> {
     return this.formDataBody ??= Effect.tryPromise({
       try: () => this.source.body.formData() as Promise<FormData>,
       catch: (cause) =>
-        new Error.ResponseError({
-          request: this.request,
-          response: this,
-          reason: "Decode",
-          cause
+        Error.make({
+          reason: new Error.DecodeError({
+            request: this.request,
+            response: this,
+            cause
+          })
         })
     }).pipe(Effect.cached, Effect.runSync)
   }
 
-  private arrayBufferBody?: Effect.Effect<ArrayBuffer, Error.ResponseError>
-  get arrayBuffer(): Effect.Effect<ArrayBuffer, Error.ResponseError> {
+  private arrayBufferBody?: Effect.Effect<ArrayBuffer, Error.HttpClientError>
+  get arrayBuffer(): Effect.Effect<ArrayBuffer, Error.HttpClientError> {
     return this.arrayBufferBody ??= Effect.tryPromise({
       try: () => this.source.body.arrayBuffer(),
       catch: (cause) =>
-        new Error.ResponseError({
-          request: this.request,
-          response: this,
-          reason: "Decode",
-          cause
+        Error.make({
+          reason: new Error.DecodeError({
+            request: this.request,
+            response: this,
+            cause
+          })
         })
     }).pipe(Effect.cached, Effect.runSync)
   }
@@ -374,8 +381,8 @@ const sendBody = (
   nodeRequest: Http.ClientRequest,
   request: HttpClientRequest,
   body: Body.HttpBody
-): Effect.Effect<void, Error.RequestError> =>
-  Effect.suspend((): Effect.Effect<void, Error.RequestError> => {
+): Effect.Effect<void, Error.HttpClientError> =>
+  Effect.suspend((): Effect.Effect<void, Error.HttpClientError> => {
     switch (body._tag) {
       case "Empty": {
         nodeRequest.end()
@@ -396,28 +403,31 @@ const sendBody = (
         return Effect.tryPromise({
           try: () => pipeline(Readable.fromWeb(response.body! as any), nodeRequest),
           catch: (cause) =>
-            new Error.RequestError({
-              request,
-              reason: "Transport",
-              cause
+            Error.make({
+              reason: new Error.TransportError({
+                request,
+                cause
+              })
             })
         })
       }
       case "Stream": {
         return Stream.run(
           Stream.mapError(body.stream, (cause) =>
-            new Error.RequestError({
-              request,
-              reason: "Encode",
-              cause
+            Error.make({
+              reason: new Error.EncodeError({
+                request,
+                cause
+              })
             })),
           NodeSink.fromWritable({
             evaluate: () => nodeRequest,
             onError: (cause) =>
-              new Error.RequestError({
-                request,
-                reason: "Transport",
-                cause
+              Error.make({
+                reason: new Error.TransportError({
+                  request,
+                  cause
+                })
               })
           })
         )
@@ -426,13 +436,14 @@ const sendBody = (
   })
 
 const waitForResponse = (nodeRequest: Http.ClientRequest, request: HttpClientRequest) =>
-  Effect.callback<Http.IncomingMessage, Error.RequestError>((resume) => {
+  Effect.callback<Http.IncomingMessage, Error.HttpClientError>((resume) => {
     function onError(cause: Error) {
       resume(Effect.fail(
-        new Error.RequestError({
-          request,
-          reason: "Transport",
-          cause
+        Error.make({
+          reason: new Error.TransportError({
+            request,
+            cause
+          })
         })
       ))
     }
@@ -453,13 +464,14 @@ const waitForResponse = (nodeRequest: Http.ClientRequest, request: HttpClientReq
   })
 
 const waitForFinish = (nodeRequest: Http.ClientRequest, request: HttpClientRequest) =>
-  Effect.callback<void, Error.RequestError>((resume) => {
+  Effect.callback<void, Error.HttpClientError>((resume) => {
     function onError(cause: Error) {
       resume(Effect.fail(
-        new Error.RequestError({
-          request,
-          reason: "Transport",
-          cause
+        Error.make({
+          reason: new Error.TransportError({
+            request,
+            cause
+          })
         })
       ))
     }
@@ -477,7 +489,7 @@ const waitForFinish = (nodeRequest: Http.ClientRequest, request: HttpClientReque
     })
   })
 
-class NodeHttpResponse extends NodeHttpIncomingMessage<Error.ResponseError> implements HttpClientResponse {
+class NodeHttpResponse extends NodeHttpIncomingMessage<Error.HttpClientError> implements HttpClientResponse {
   readonly [Response.TypeId]: typeof Response.TypeId
   readonly request: HttpClientRequest
 
@@ -486,11 +498,12 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.ResponseError> impl
     source: Http.IncomingMessage
   ) {
     super(source, (cause) =>
-      new Error.ResponseError({
-        request,
-        response: this,
-        reason: "Decode",
-        cause
+      Error.make({
+        reason: new Error.DecodeError({
+          request,
+          response: this,
+          cause
+        })
       }))
     this[Response.TypeId] = Response.TypeId
     this.request = request
@@ -509,7 +522,7 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.ResponseError> impl
     return this.cachedCookies = header ? Cookies.fromSetCookie(header) : Cookies.empty
   }
 
-  get formData(): Effect.Effect<FormData, Error.ResponseError> {
+  get formData(): Effect.Effect<FormData, Error.HttpClientError> {
     return Effect.tryPromise({
       try: () => {
         const init: {

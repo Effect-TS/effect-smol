@@ -12,7 +12,7 @@ import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as HttpClient from "../http/HttpClient.ts"
-import type * as HttpClientError from "../http/HttpClientError.ts"
+import * as HttpClientError from "../http/HttpClientError.ts"
 import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import * as HttpClientResponse from "../http/HttpClientResponse.ts"
 
@@ -122,7 +122,11 @@ export const makeCreatePod = Effect.gen(function*() {
         schedule: Schedule.spaced("1 seconds")
       }),
       Effect.catchFilter(
-        (err) => err._tag === "ResponseError" && err.response.status === 404 ? err : Filter.fail(err),
+        (err) =>
+          HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError"
+            && err.reason.response.status === 404
+            ? err
+            : Filter.fail(err),
         () => Effect.succeedNone
       ),
       Effect.orDie
@@ -130,7 +134,11 @@ export const makeCreatePod = Effect.gen(function*() {
     const isPodFound = readPodRaw.pipe(
       Effect.as(true),
       Effect.catchFilter(
-        (err) => err._tag === "ResponseError" && err.response.status === 404 ? err : Filter.fail(err),
+        (err) =>
+          HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError"
+            && err.reason.response.status === 404
+            ? err
+            : Filter.fail(err),
         () => Effect.succeed(false)
       )
     )
@@ -138,7 +146,11 @@ export const makeCreatePod = Effect.gen(function*() {
       HttpClientRequest.bodyJsonUnsafe(spec),
       client.execute,
       Effect.catchFilter(
-        (err) => err._tag === "ResponseError" && err.response.status === 409 ? err : Filter.fail(err),
+        (err) =>
+          HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError"
+            && err.reason.response.status === 409
+            ? err
+            : Filter.fail(err),
         () => readPod
       ),
       Effect.tapCause(Effect.logInfo),
@@ -148,7 +160,11 @@ export const makeCreatePod = Effect.gen(function*() {
       client.execute,
       Effect.flatMap((res) => res.json),
       Effect.catchFilter(
-        (err) => err._tag === "ResponseError" && err.response.status === 404 ? err : Filter.fail(err),
+        (err) =>
+          HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError"
+            && err.reason.response.status === 404
+            ? err
+            : Filter.fail(err),
         () => Effect.void
       ),
       Effect.tapCause(Effect.logInfo),

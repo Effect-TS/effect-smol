@@ -25214,11 +25214,12 @@ export const make = (
       Effect.orElseSucceed(response.json, () => "Unexpected status code"),
       (description) =>
         Effect.fail(
-          new HttpClientError.ResponseError({
-            request: response.request,
-            response,
-            reason: "StatusCode",
-            description: typeof description === "string" ? description : JSON.stringify(description)
+          HttpClientError.make({
+            reason: new HttpClientError.StatusCodeError({
+              request: response.request,
+              response,
+              description: typeof description === "string" ? description : JSON.stringify(description)
+            })
           })
         )
     )
