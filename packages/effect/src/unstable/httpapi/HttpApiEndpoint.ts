@@ -70,10 +70,7 @@ export interface HttpApiEndpoint<
    * will be inferred from the schema, otherwise it will default to 200.
    */
   addSuccess<S extends Schema.Top>(
-    schema: S,
-    annotations?: {
-      readonly status?: number | undefined
-    }
+    schema: S
   ): HttpApiEndpoint<
     Name,
     Method,
@@ -93,10 +90,7 @@ export interface HttpApiEndpoint<
    * will be inferred from the schema, otherwise it will default to 500.
    */
   addError<E extends Schema.Top>(
-    schema: E,
-    annotations?: {
-      readonly status?: number | undefined
-    }
+    schema: E
   ): HttpApiEndpoint<
     Name,
     Method,
