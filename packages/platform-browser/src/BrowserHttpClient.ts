@@ -103,7 +103,7 @@ const makeXmlHttpRequest = HttpClient.make(
       })
       return Effect.andThen(
         sendBody(xhr, request),
-        Effect.callback<ClientResponseImpl, HttpClientError.RequestError>((resume) => {
+        Effect.callback<ClientResponseImpl, HttpClientError.HttpClientError>((resume) => {
           let sent = false
           const onChange = () => {
             if (!sent && xhr.readyState >= 2) {
@@ -114,10 +114,11 @@ const makeXmlHttpRequest = HttpClient.make(
           xhr.onreadystatechange = onChange
           xhr.onerror = (_event) => {
             resume(Effect.fail(
-              new HttpClientError.RequestError({
-                request,
-                reason: "Transport",
-                cause: xhr.statusText
+              new HttpClientError.HttpClientError({
+                reason: new HttpClientError.TransportError({
+                  request,
+                  cause: xhr.statusText
+                })
               })
             ))
           }
@@ -131,7 +132,7 @@ const makeXmlHttpRequest = HttpClient.make(
 const sendBody = (
   xhr: globalThis.XMLHttpRequest,
   request: HttpClientRequest.HttpClientRequest
-): Effect.Effect<void, HttpClientError.RequestError> => {
+): Effect.Effect<void, HttpClientError.HttpClientError> => {
   const body = request.body
   switch (body._tag) {
     case "Empty":
@@ -153,10 +154,11 @@ const sendBody = (
         {
           onFailure: (cause) =>
             Effect.fail(
-              new HttpClientError.RequestError({
-                request,
-                reason: "Encode",
-                cause
+              new HttpClientError.HttpClientError({
+                reason: new HttpClientError.EncodeError({
+                  request,
+                  cause
+                })
               })
             ),
           onSuccess: (body) => Effect.sync(() => xhr.send(body))
@@ -331,7 +333,7 @@ abstract class IncomingMessageImpl<E> extends Inspectable.Class implements HttpI
   }
 }
 
-class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.ResponseError>
+class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.HttpClientError>
   implements HttpClientResponse.HttpClientResponse
 {
   readonly [HttpClientResponse.TypeId]: typeof HttpClientResponse.TypeId
@@ -342,11 +344,12 @@ class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.ResponseErr
     source: globalThis.XMLHttpRequest
   ) {
     super(source, (cause) =>
-      new HttpClientError.ResponseError({
-        request,
-        response: this,
-        reason: "Decode",
-        cause
+      new HttpClientError.HttpClientError({
+        reason: new HttpClientError.DecodeError({
+          request,
+          response: this,
+          cause
+        })
       }))
     this.request = request
     this[HttpClientResponse.TypeId] = HttpClientResponse.TypeId
@@ -356,7 +359,7 @@ class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.ResponseErr
     return this.source.status
   }
 
-  get formData(): Effect.Effect<FormData, HttpClientError.ResponseError> {
+  get formData(): Effect.Effect<FormData, HttpClientError.HttpClientError> {
     return Effect.die("Not implemented")
   }
 

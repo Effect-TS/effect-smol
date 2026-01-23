@@ -79,6 +79,16 @@ import { redact } from "../../Redactable.ts"
 import * as Schema from "../../Schema.ts"
 import type * as HttpClientError from "../http/HttpClientError.ts"
 
+const formatHttpClientRequestReason = (
+  tag: HttpClientError.RequestError["_tag"]
+): "Transport" | "Encode" | "InvalidUrl" =>
+  tag === "TransportError" ? "Transport" : tag === "EncodeError" ? "Encode" : "InvalidUrl"
+
+const formatHttpClientResponseReason = (
+  tag: HttpClientError.ResponseError["_tag"]
+): "StatusCode" | "Decode" | "EmptyBody" =>
+  tag === "StatusCodeError" ? "StatusCode" : tag === "DecodeError" ? "Decode" : "EmptyBody"
+
 const LegacyTypeId = "~effect/unstable/ai/AiError" as const
 
 // =============================================================================
@@ -195,7 +205,7 @@ export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>(
       ...params,
       cause: error,
       description: error.description,
-      reason: error.reason,
+      reason: formatHttpClientRequestReason(error._tag),
       request: {
         hash: error.request.hash,
         headers: redact(error.request.headers) as any,
@@ -1264,7 +1274,7 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
     readonly method: string
     readonly error: HttpClientError.ResponseError
   }): Effect.Effect<never, HttpResponseError> {
-    let body: Effect.Effect<unknown, HttpClientError.ResponseError> = Effect.void
+    let body: Effect.Effect<unknown, HttpClientError.HttpClientError> = Effect.void
     const contentType = error.response.headers["content-type"] ?? ""
     if (contentType.includes("application/json")) {
       body = error.response.json
@@ -1281,7 +1291,7 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
           new HttpResponseError({
             ...params,
             description: error.description,
-            reason: error.reason,
+            reason: formatHttpClientResponseReason(error._tag),
             request: {
               hash: error.request.hash,
               headers: redact(error.request.headers) as any,

@@ -43,12 +43,12 @@ export const TypeId = "~effect/http/HttpClientResponse"
  * @since 4.0.0
  * @category models
  */
-export interface HttpClientResponse extends HttpIncomingMessage.HttpIncomingMessage<Error.ResponseError> {
+export interface HttpClientResponse extends HttpIncomingMessage.HttpIncomingMessage<Error.HttpClientError> {
   readonly [TypeId]: typeof TypeId
   readonly request: HttpClientRequest.HttpClientRequest
   readonly status: number
   readonly cookies: Cookies.Cookies
-  readonly formData: Effect.Effect<FormData, Error.ResponseError>
+  readonly formData: Effect.Effect<FormData, Error.HttpClientError>
 }
 
 /**
@@ -78,7 +78,7 @@ export const schemaJson = <
   const decode = Schema.decodeEffect(Schema.toCodecJson(schema).annotate({ options }))
   return (
     self: HttpClientResponse
-  ): Effect.Effect<A, Schema.SchemaError | Error.ResponseError, RD> =>
+  ): Effect.Effect<A, Schema.SchemaError | Error.HttpClientError, RD> =>
     Effect.flatMap(self.json, (body) =>
       decode({
         status: self.status,
@@ -117,7 +117,7 @@ export const schemaNoBody = <
  */
 export const stream = <E, R>(
   effect: Effect.Effect<HttpClientResponse, E, R>
-): Stream.Stream<Uint8Array, Error.ResponseError | E, R> => Stream.unwrap(Effect.map(effect, (self) => self.stream))
+): Stream.Stream<Uint8Array, Error.HttpClientError | E, R> => Stream.unwrap(Effect.map(effect, (self) => self.stream))
 
 /**
  * @since 4.0.0
@@ -174,18 +174,19 @@ export const matchStatus: {
  * @category filters
  */
 export const filterStatus: {
-  (f: (status: number) => boolean): (self: HttpClientResponse) => Effect.Effect<HttpClientResponse, Error.ResponseError>
-  (self: HttpClientResponse, f: (status: number) => boolean): Effect.Effect<HttpClientResponse, Error.ResponseError>
+  (f: (status: number) => boolean): (self: HttpClientResponse) => Effect.Effect<HttpClientResponse, Error.HttpClientError>
+  (self: HttpClientResponse, f: (status: number) => boolean): Effect.Effect<HttpClientResponse, Error.HttpClientError>
 } = dual(
   2,
   (self: HttpClientResponse, f: (status: number) => boolean) =>
     Effect.suspend(() =>
       f(self.status) ? Effect.succeed(self) : Effect.fail(
-        new Error.ResponseError({
-          response: self,
-          request: self.request,
-          reason: "StatusCode",
-          description: "invalid status code"
+        new Error.HttpClientError({
+          reason: new Error.StatusCodeError({
+            response: self,
+            request: self.request,
+            description: "invalid status code"
+          })
         })
       )
     )
@@ -195,13 +196,14 @@ export const filterStatus: {
  * @since 4.0.0
  * @category filters
  */
-export const filterStatusOk = (self: HttpClientResponse): Effect.Effect<HttpClientResponse, Error.ResponseError> =>
+export const filterStatusOk = (self: HttpClientResponse): Effect.Effect<HttpClientResponse, Error.HttpClientError> =>
   self.status >= 200 && self.status < 300 ? Effect.succeed(self) : Effect.fail(
-    new Error.ResponseError({
-      response: self,
-      request: self.request,
-      reason: "StatusCode",
-      description: "non 2xx status code"
+    new Error.HttpClientError({
+      reason: new Error.StatusCodeError({
+        response: self,
+        request: self.request,
+        description: "non 2xx status code"
+      })
     })
   )
 
@@ -255,94 +257,101 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
     return undefined
   }
 
-  get stream(): Stream.Stream<Uint8Array, Error.ResponseError> {
+  get stream(): Stream.Stream<Uint8Array, Error.HttpClientError> {
     return this.source.body
       ? Stream.fromReadableStream({
         evaluate: () => this.source.body!,
         onError: (cause) =>
-          new Error.ResponseError({
-            request: this.request,
-            response: this,
-            reason: "Decode",
-            cause
+          new Error.HttpClientError({
+            reason: new Error.DecodeError({
+              request: this.request,
+              response: this,
+              cause
+            })
           })
       })
       : Stream.fail(
-        new Error.ResponseError({
-          request: this.request,
-          response: this,
-          reason: "EmptyBody",
-          description: "can not create stream from empty body"
+        new Error.HttpClientError({
+          reason: new Error.EmptyBodyError({
+            request: this.request,
+            response: this,
+            description: "can not create stream from empty body"
+          })
         })
       )
   }
 
-  get json(): Effect.Effect<unknown, Error.ResponseError> {
+  get json(): Effect.Effect<unknown, Error.HttpClientError> {
     return Effect.flatMap(this.text, (text) =>
       Effect.try({
         try: () => text === "" ? null : JSON.parse(text) as unknown,
         catch: (cause) =>
-          new Error.ResponseError({
-            request: this.request,
-            response: this,
-            reason: "Decode",
-            cause
+          new Error.HttpClientError({
+            reason: new Error.DecodeError({
+              request: this.request,
+              response: this,
+              cause
+            })
           })
       }))
   }
 
-  private textBody?: Effect.Effect<string, Error.ResponseError>
-  get text(): Effect.Effect<string, Error.ResponseError> {
+  private textBody?: Effect.Effect<string, Error.HttpClientError>
+  get text(): Effect.Effect<string, Error.HttpClientError> {
     return this.textBody ??= Effect.tryPromise({
       try: () => this.source.text(),
       catch: (cause) =>
-        new Error.ResponseError({
-          request: this.request,
-          response: this,
-          reason: "Decode",
-          cause
+        new Error.HttpClientError({
+          reason: new Error.DecodeError({
+            request: this.request,
+            response: this,
+            cause
+          })
         })
     }).pipe(Effect.cached, Effect.runSync)
   }
 
-  get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, Error.ResponseError> {
+  get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, Error.HttpClientError> {
     return Effect.flatMap(this.text, (_) =>
       Effect.try({
         try: () => UrlParams.fromInput(new URLSearchParams(_)),
         catch: (cause) =>
-          new Error.ResponseError({
-            request: this.request,
-            response: this,
-            reason: "Decode",
-            cause
+          new Error.HttpClientError({
+            reason: new Error.DecodeError({
+              request: this.request,
+              response: this,
+              cause
+            })
           })
       }))
   }
 
-  private formDataBody?: Effect.Effect<FormData, Error.ResponseError>
-  get formData(): Effect.Effect<FormData, Error.ResponseError> {
+  private formDataBody?: Effect.Effect<FormData, Error.HttpClientError>
+  get formData(): Effect.Effect<FormData, Error.HttpClientError> {
     return this.formDataBody ??= Effect.tryPromise({
       try: () => this.source.formData(),
       catch: (cause) =>
-        new Error.ResponseError({
-          request: this.request,
-          response: this,
-          reason: "Decode",
-          cause
+        new Error.HttpClientError({
+          reason: new Error.DecodeError({
+            request: this.request,
+            response: this,
+            cause
+          })
         })
     }).pipe(Effect.cached, Effect.runSync)
   }
 
-  private arrayBufferBody?: Effect.Effect<ArrayBuffer, Error.ResponseError>
-  get arrayBuffer(): Effect.Effect<ArrayBuffer, Error.ResponseError> {
+  private arrayBufferBody?: Effect.Effect<ArrayBuffer, Error.HttpClientError>
+  get arrayBuffer(): Effect.Effect<ArrayBuffer, Error.HttpClientError> {
     return this.arrayBufferBody ??= Effect.tryPromise({
       try: () => this.source.arrayBuffer(),
       catch: (cause) =>
-        new Error.ResponseError({
-          request: this.request,
-          response: this,
-          reason: "Decode",
-          cause
+        new Error.HttpClientError({
+          reason: new Error.DecodeError({
+            request: this.request,
+            response: this,
+            cause
+          })
         })
     }).pipe(Effect.cached, Effect.runSync)
   }
