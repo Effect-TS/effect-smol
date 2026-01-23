@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Fiber, ServiceMap } from "effect"
+import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
@@ -67,6 +68,21 @@ describe("Layer", () => {
       const env = Layer.effectDiscard(Effect.fail("failed!")).pipe(
         Layer.provideMerge(layer1),
         Layer.catch(() => layer2),
+        Layer.build
+      )
+      yield* Effect.scoped(env)
+      assert.deepStrictEqual(arr, [acquire1, release1, acquire2, release2])
+    }))
+
+  it.effect("catchTag - uses an alternative layer", () =>
+    Effect.gen(function*() {
+      class LayerError extends Data.TaggedError("LayerError") {}
+      const arr: Array<string> = []
+      const layer1 = makeLayer1(arr)
+      const layer2 = makeLayer2(arr)
+      const env = Layer.effectDiscard(Effect.fail(new LayerError())).pipe(
+        Layer.provideMerge(layer1),
+        Layer.catchTag("LayerError", () => layer2),
         Layer.build
       )
       yield* Effect.scoped(env)

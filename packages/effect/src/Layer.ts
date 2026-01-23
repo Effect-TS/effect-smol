@@ -17,7 +17,7 @@
  *
  * @since 2.0.0
  */
-import type { NonEmptyArray } from "./Array.ts"
+import type { NonEmptyArray, NonEmptyReadonlyArray } from "./Array.ts"
 import type * as Cause from "./Cause.ts"
 import * as Deferred from "./Deferred.ts"
 import type { Effect } from "./Effect.ts"
@@ -1386,6 +1386,82 @@ export {
    */
   catch_ as catch
 }
+
+/**
+ * Recovers from specific tagged errors.
+ *
+ * @example
+ * ```ts
+ * import { Data, Effect, Layer, ServiceMap } from "effect"
+ *
+ * class ConfigError extends Data.TaggedError("ConfigError") {}
+ *
+ * class Config extends ServiceMap.Service<Config, {
+ *   readonly apiUrl: string
+ * }>()("Config") {}
+ *
+ * const configLayer = Layer.effect(Config)(Effect.fail(new ConfigError()))
+ *
+ * const fallbackLayer = Layer.succeed(Config)({ apiUrl: "http://localhost" })
+ *
+ * const recovered = configLayer.pipe(
+ *   Layer.catchTag("ConfigError", () => fallbackLayer)
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category error handling
+ */
+export const catchTag: {
+  <const K extends Types.Tags<E> | NonEmptyReadonlyArray<Types.Tags<E>>, E, RIn2, E2, ROut2>(
+    k: K,
+    f: (
+      e: Types.ExtractTag<Types.NoInfer<E>, K extends NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Layer<ROut2, E2, RIn2>
+  ): <RIn, ROut>(
+    self: Layer<ROut, E, RIn>
+  ) => Layer<
+    ROut & ROut2,
+    E2 | Types.ExcludeTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>,
+    RIn2 | RIn
+  >
+  <
+    RIn,
+    E,
+    ROut,
+    const K extends Types.Tags<E> | NonEmptyReadonlyArray<Types.Tags<E>>,
+    RIn2,
+    E2,
+    ROut2
+  >(
+    self: Layer<ROut, E, RIn>,
+    k: K,
+    f: (e: Types.ExtractTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>) => Layer<ROut2, E2, RIn2>
+  ): Layer<
+    ROut & ROut2,
+    E2 | Types.ExcludeTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>,
+    RIn | RIn2
+  >
+} = dual(3, <
+  RIn,
+  E,
+  ROut,
+  const K extends Types.Tags<E> | NonEmptyReadonlyArray<Types.Tags<E>>,
+  RIn2,
+  E2,
+  ROut2
+>(
+  self: Layer<ROut, E, RIn>,
+  k: K,
+  f: (e: Types.ExtractTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>) => Layer<ROut2, E2, RIn2>
+): Layer<ROut & ROut2, E2 | Types.ExcludeTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>, RIn | RIn2> =>
+  fromBuildUnsafe((memoMap, scope) =>
+    internalEffect.catchTag(
+      self.build(memoMap, scope),
+      k,
+      (error) => f(error).build(memoMap, scope)
+    ) as any
+  ))
 
 /**
  * Recovers from all errors.
