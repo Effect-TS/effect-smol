@@ -143,52 +143,6 @@ export const UnionUnify = <
 
 /**
  * @since 4.0.0
- * @category path params
- */
-export interface Param<Name extends string, S extends Schema.Top> extends
-  Schema.Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    Param<Name, S>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
-  readonly "~rebuild.out": this
-  readonly name: Name
-  readonly schema: S
-}
-
-/**
- * @since 4.0.0
- * @category path params
- */
-export function param<Name extends string>(
-  name: Name
-): <S extends Schema.Top & { readonly "Encoded": string }>(schema: S) => Param<Name, S>
-export function param<Name extends string, S extends Schema.Top & { readonly "Encoded": string }>(
-  name: Name,
-  schema: S
-): Param<Name, S>
-export function param(name: string): any {
-  if (arguments.length === 1) {
-    return (schema: Schema.Top) => Schema.make(schema.ast, { name, schema })
-  }
-  return Schema.make(arguments[1].ast, { name, schema: arguments[1] })
-}
-
-/**
- * @since 4.0.0
  * @category empty response
  */
 export const Empty = (status: number): Schema.Void => Schema.Void.annotate({ httpApiStatus: status })

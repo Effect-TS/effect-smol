@@ -785,18 +785,7 @@ export type PayloadConstraintField<Method extends HttpMethod> = Method extends H
 export type ValidateParams<
   Schemas extends ReadonlyArray<Schema.Top>,
   Prev extends Schema.Top = never
-> = Schemas extends [
-  infer Head extends Schema.Top,
-  ...infer Tail extends ReadonlyArray<Schema.Top>
-] ? [
-    Head extends HttpApiSchema.Param<infer _Name, infer _S>
-      ? HttpApiSchema.Param<_Name, any> extends Prev ? `Duplicate param: ${_Name}`
-      : [Head["Encoded"] & {}] extends [string] ? Head
-      : `Must be encodeable to string: ${_Name}` :
-      Head,
-    ...ValidateParams<Tail, Prev | Head>
-  ]
-  : Schemas
+> = Schemas
 
 /**
  * @since 4.0.0
@@ -896,8 +885,7 @@ export type AddMiddleware<Endpoint extends Any, M extends HttpApiMiddleware.AnyI
  * @category models
  */
 export type PathEntries<Schemas extends ReadonlyArray<Schema.Top>> = Extract<keyof Schemas, string> extends infer K ?
-  K extends keyof Schemas ? Schemas[K] extends HttpApiSchema.Param<infer _Name, infer _S> ? [_Name, _S] :
-    Schemas[K] extends Schema.Top ? [K, Schemas[K]]
+  K extends keyof Schemas ? Schemas[K] extends Schema.Top ? [K, Schemas[K]]
     : never
   : never
   : never
