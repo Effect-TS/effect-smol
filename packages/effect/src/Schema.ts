@@ -407,7 +407,9 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
  *
  * @since 4.0.0
  */
-export interface Decoder<out T, out RD = never> extends Codec<T, unknown, RD, unknown> {}
+export interface Decoder<out T, out RD = never> extends Codec<T, unknown, RD, unknown> {
+  readonly "~rebuild.out": Decoder<T, RD>
+}
 
 /**
  * A `Codec` view intended for APIs that only *encode* values.
@@ -418,7 +420,9 @@ export interface Decoder<out T, out RD = never> extends Codec<T, unknown, RD, un
  *
  * @since 4.0.0
  */
-export interface Encoder<out E, out RE = never> extends Codec<unknown, E, unknown, RE> {}
+export interface Encoder<out E, out RE = never> extends Codec<unknown, E, unknown, RE> {
+  readonly "~rebuild.out": Encoder<E, RE>
+}
 
 /**
  * @since 4.0.0
