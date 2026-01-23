@@ -52,7 +52,7 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
     return Result.fail(
       new EncodingError({
         module: "Base64Url",
-        reason: "Decode",
+        kind: "Decode",
         input: stripped,
         message: `Length should be a multiple of 4, but is ${length}`
       })
@@ -63,7 +63,7 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
     return Result.fail(
       new EncodingError({
         module: "Base64Url",
-        reason: "Decode",
+        kind: "Decode",
         input: stripped,
         message: "Invalid input"
       })

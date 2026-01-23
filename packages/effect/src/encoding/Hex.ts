@@ -57,7 +57,7 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
     return Result.fail(
       new EncodingError({
         module: "Hex",
-        reason: "Decode",
+        kind: "Decode",
         input: str,
         message: `Length must be a multiple of 2, but is ${bytes.length}`
       })
@@ -78,7 +78,7 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
     return Result.fail(
       new EncodingError({
         module: "Hex",
-        reason: "Decode",
+        kind: "Decode",
         input: str,
         message: e instanceof Error ? e.message : "Invalid input"
       })

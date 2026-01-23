@@ -85,7 +85,7 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
   if (length % 4 !== 0) {
     return Result.fail(
       new EncodingError({
-        reason: "Decode",
+        kind: "Decode",
         module: "Base64",
         input: stripped,
         message: `Length must be a multiple of 4, but is ${length}`
@@ -97,7 +97,7 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
   if (index !== -1 && ((index < length - 2) || (index === length - 2 && stripped[length - 1] !== "="))) {
     return Result.fail(
       new EncodingError({
-        reason: "Decode",
+        kind: "Decode",
         module: "Base64",
         input: stripped,
         message: `Found a '=' character, but it is not at the end`
@@ -123,7 +123,7 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
   } catch (e) {
     return Result.fail(
       new EncodingError({
-        reason: "Decode",
+        kind: "Decode",
         module: "Base64",
         input: stripped,
         message: e instanceof Error ? e.message : "Invalid input"
