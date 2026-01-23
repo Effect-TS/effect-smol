@@ -16,18 +16,22 @@ const TypeId = "~effect/http/HttpServerError"
  * @since 4.0.0
  * @category error
  */
-export type HttpServerError = RequestError | ResponseError
-
-/**
- * @since 4.0.0
- * @category error
- */
-export class RequestError extends Data.TaggedError("HttpServerError")<{
-  readonly reason: "RequestParseError" | "RouteNotFound" | "InternalError"
-  readonly request: Request.HttpServerRequest
-  readonly description?: string
-  readonly cause?: unknown
+export class HttpServerError extends Data.TaggedError("HttpServerError")<{
+  readonly reason: HttpServerErrorReason
 }> implements Respondable.Respondable {
+  constructor(props: {
+    readonly reason: HttpServerErrorReason
+  }) {
+    if ("cause" in props.reason) {
+      super({
+        ...props,
+        cause: props.reason.cause
+      } as any)
+    } else {
+      super(props)
+    }
+  }
+
   /**
    * @since 4.0.0
    */
@@ -36,21 +40,48 @@ export class RequestError extends Data.TaggedError("HttpServerError")<{
   /**
    * @since 4.0.0
    */
-  override stack = `${this.name}: ${this.message}`;
+  override stack = `${this.name}: ${this.message}`
+
+  /**
+   * @since 4.0.0
+   */
+  get request(): Request.HttpServerRequest {
+    return this.reason.request
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  get response(): Response.HttpServerResponse | undefined {
+    return "response" in this.reason ? this.reason.response : undefined
+  }
 
   /**
    * @since 4.0.0
    */
   [Respondable.TypeId]() {
-    return Effect.succeed(
-      Response.empty({
-        status: this.reason === "InternalError"
-          ? 500
-          : this.reason === "RouteNotFound"
-          ? 404
-          : 400
-      })
-    )
+    return this.reason[Respondable.TypeId]()
+  }
+
+  override get message(): string {
+    return this.reason.message
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category error
+ */
+export class RequestParseError extends Data.TaggedError("RequestParseError")<{
+  readonly request: Request.HttpServerRequest
+  readonly description?: string
+  readonly cause?: unknown
+}> implements Respondable.Respondable {
+  /**
+   * @since 4.0.0
+   */
+  [Respondable.TypeId]() {
+    return Effect.succeed(Response.empty({ status: 400 }))
   }
 
   get methodAndUrl() {
@@ -58,8 +89,57 @@ export class RequestError extends Data.TaggedError("HttpServerError")<{
   }
 
   override get message() {
-    const prefix = `${this.reason} (${this.methodAndUrl})`
-    return this.description ? `${prefix}: ${this.description}` : prefix
+    return formatRequestMessage(this._tag, this.description, this.methodAndUrl)
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category error
+ */
+export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
+  readonly request: Request.HttpServerRequest
+  readonly description?: string
+  readonly cause?: unknown
+}> implements Respondable.Respondable {
+  /**
+   * @since 4.0.0
+   */
+  [Respondable.TypeId]() {
+    return Effect.succeed(Response.empty({ status: 404 }))
+  }
+
+  get methodAndUrl() {
+    return `${this.request.method} ${this.request.url}`
+  }
+
+  override get message() {
+    return formatRequestMessage(this._tag, this.description, this.methodAndUrl)
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category error
+ */
+export class InternalError extends Data.TaggedError("InternalError")<{
+  readonly request: Request.HttpServerRequest
+  readonly description?: string
+  readonly cause?: unknown
+}> implements Respondable.Respondable {
+  /**
+   * @since 4.0.0
+   */
+  [Respondable.TypeId]() {
+    return Effect.succeed(Response.empty({ status: 500 }))
+  }
+
+  get methodAndUrl() {
+    return `${this.request.method} ${this.request.url}`
+  }
+
+  override get message() {
+    return formatRequestMessage(this._tag, this.description, this.methodAndUrl)
   }
 }
 
@@ -73,26 +153,12 @@ export const isHttpServerError = (u: unknown): u is HttpServerError => hasProper
  * @since 4.0.0
  * @category error
  */
-export class ResponseError extends Data.TaggedError("HttpServerError")<{
+export class ResponseError extends Data.TaggedError("ResponseError")<{
   readonly request: Request.HttpServerRequest
   readonly response: Response.HttpServerResponse
   readonly description?: string
   readonly cause?: unknown
 }> implements Respondable.Respondable {
-  /**
-   * @since 4.0.0
-   */
-  readonly [TypeId] = TypeId
-  /**
-   * @since 4.0.0
-   */
-  readonly reason = "ResponseError" as const
-
-  /**
-   * @since 4.0.0
-   */
-  override stack = `${this.name}: ${this.message}`;
-
   /**
    * @since 4.0.0
    */
@@ -105,7 +171,7 @@ export class ResponseError extends Data.TaggedError("HttpServerError")<{
   }
 
   override get message() {
-    const info = `${this.reason} (${this.response.status} ${this.methodAndUrl})`
+    const info = `${this._tag} (${this.response.status} ${this.methodAndUrl})`
     return this.description ? `${info}: ${this.description}` : info
   }
 }
@@ -114,13 +180,25 @@ export class ResponseError extends Data.TaggedError("HttpServerError")<{
  * @since 4.0.0
  * @category error
  */
+export type RequestError = RequestParseError | RouteNotFound | InternalError
+
+/**
+ * @since 4.0.0
+ * @category error
+ */
+export type HttpServerErrorReason = RequestError | ResponseError
+
+/**
+ * @since 4.0.0
+ * @category error
+ */
 export class ServeError extends Data.TaggedError("ServeError")<{
   readonly cause: unknown
-}> {
-  /**
-   * @since 4.0.0
-   */
-  readonly [TypeId] = TypeId
+}> {}
+
+const formatRequestMessage = (reason: string, description: string | undefined, info: string) => {
+  const prefix = `${reason} (${info})`
+  return description ? `${prefix}: ${description}` : prefix
 }
 
 /**

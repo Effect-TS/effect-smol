@@ -19,7 +19,7 @@ import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"
 import * as HttpIncomingMessage from "./HttpIncomingMessage.ts"
 import { hasBody, type HttpMethod } from "./HttpMethod.ts"
-import { type HttpServerError, RequestError } from "./HttpServerError.ts"
+import { HttpServerError, type RequestError, RequestParseError } from "./HttpServerError.ts"
 import * as Multipart from "./Multipart.ts"
 import * as UrlParams from "./UrlParams.ts"
 
@@ -261,10 +261,11 @@ export const schemaBodyFormJson = <A, I, RD, RE>(
         if (isMultipart(request)) {
           return Effect.flatMap(
             Effect.mapError(request.multipart, (cause) =>
-              new RequestError({
-                request,
-                reason: "RequestParseError",
-                cause
+              new HttpServerError({
+                reason: new RequestParseError({
+                  request,
+                  cause
+                })
               })),
             parseMultipart(field)
           )
@@ -360,17 +361,19 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
       ? Stream.fromReadableStream({
         evaluate: () => this.source.body as any,
         onError: (cause) =>
-          new RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
+          new HttpServerError({
+            reason: new RequestParseError({
+              request: this,
+              cause
+            })
           })
       })
       : Stream.fail(
-        new RequestError({
-          request: this,
-          reason: "RequestParseError",
-          description: "can not create stream from empty body"
+        new HttpServerError({
+          reason: new RequestParseError({
+            request: this,
+            description: "can not create stream from empty body"
+          })
         })
       )
   }
@@ -384,10 +387,11 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
       Effect.tryPromise({
         try: () => this.source.text(),
         catch: (cause) =>
-          new RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
+          new HttpServerError({
+            reason: new RequestParseError({
+              request: this,
+              cause
+            })
           })
       })
     ))
@@ -399,10 +403,11 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
       Effect.try({
         try: () => JSON.parse(text) as unknown,
         catch: (cause) =>
-          new RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
+          new HttpServerError({
+            reason: new RequestParseError({
+              request: this,
+              cause
+            })
           })
       }))
   }
@@ -412,10 +417,11 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
       Effect.try({
         try: () => UrlParams.fromInput(new URLSearchParams(_)),
         catch: (cause) =>
-          new RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
+          new HttpServerError({
+            reason: new RequestParseError({
+              request: this,
+              cause
+            })
           })
       }))
   }
@@ -457,10 +463,11 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
       Effect.tryPromise({
         try: () => this.source.arrayBuffer(),
         catch: (cause) =>
-          new RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
+          new HttpServerError({
+            reason: new RequestParseError({
+              request: this,
+              cause
+            })
           })
       })
     ))
@@ -469,10 +476,11 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
 
   get upgrade(): Effect.Effect<Socket.Socket, HttpServerError> {
     return Effect.fail(
-      new RequestError({
-        request: this,
-        reason: "RequestParseError",
-        description: "Not an upgradeable ServerRequest"
+      new HttpServerError({
+        reason: new RequestParseError({
+          request: this,
+          description: "Not an upgradeable ServerRequest"
+        })
       })
     )
   }
@@ -506,9 +514,8 @@ export const toWebResult = (self: HttpServerRequest, options?: {
   const url = toURL(self)
   if (url === undefined) {
     return Result.fail(
-      new RequestError({
+      new RequestParseError({
         request: self,
-        reason: "RequestParseError",
         description: "Invalid URL"
       })
     )

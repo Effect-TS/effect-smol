@@ -343,28 +343,30 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     return this.cachedCookies = Cookies.parseHeader(this.headers.cookie ?? "")
   }
 
-  get stream(): Stream.Stream<Uint8Array, Error.RequestError> {
+  get stream(): Stream.Stream<Uint8Array, Error.HttpServerError> {
     return this.source.body
       ? BunStream.fromReadableStream({
         evaluate: () => this.source.body as any,
         onError: (cause) =>
-          new Error.RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
+          new Error.HttpServerError({
+            reason: new Error.RequestParseError({
+              request: this,
+              cause
+            })
           })
       })
       : Stream.fail(
-        new Error.RequestError({
-          request: this,
-          reason: "RequestParseError",
-          description: "can not create stream from empty body"
+        new Error.HttpServerError({
+          reason: new Error.RequestParseError({
+            request: this,
+            description: "can not create stream from empty body"
+          })
         })
       )
   }
 
-  private textEffect: Effect.Effect<string, Error.RequestError> | undefined
-  get text(): Effect.Effect<string, Error.RequestError> {
+  private textEffect: Effect.Effect<string, Error.HttpServerError> | undefined
+  get text(): Effect.Effect<string, Error.HttpServerError> {
     if (this.textEffect) {
       return this.textEffect
     }
@@ -372,38 +374,41 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
       Effect.tryPromise({
         try: () => this.source.text(),
         catch: (cause) =>
-          new Error.RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
+          new Error.HttpServerError({
+            reason: new Error.RequestParseError({
+              request: this,
+              cause
+            })
           })
       })
     ))
     return this.textEffect
   }
 
-  get json(): Effect.Effect<unknown, Error.RequestError> {
+  get json(): Effect.Effect<unknown, Error.HttpServerError> {
     return Effect.flatMap(this.text, (_) =>
       Effect.try({
         try: () => JSON.parse(_) as unknown,
         catch: (cause) =>
-          new Error.RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
+          new Error.HttpServerError({
+            reason: new Error.RequestParseError({
+              request: this,
+              cause
+            })
           })
       }))
   }
 
-  get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, Error.RequestError> {
+  get urlParamsBody(): Effect.Effect<UrlParams.UrlParams, Error.HttpServerError> {
     return Effect.flatMap(this.text, (_) =>
       Effect.try({
         try: () => UrlParams.fromInput(new URLSearchParams(_)),
         catch: (cause) =>
-          new Error.RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
+          new Error.HttpServerError({
+            reason: new Error.RequestParseError({
+              request: this,
+              cause
+            })
           })
       }))
   }
@@ -433,8 +438,8 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     return BunMultipart.stream(this.source)
   }
 
-  private arrayBufferEffect: Effect.Effect<ArrayBuffer, Error.RequestError> | undefined
-  get arrayBuffer(): Effect.Effect<ArrayBuffer, Error.RequestError> {
+  private arrayBufferEffect: Effect.Effect<ArrayBuffer, Error.HttpServerError> | undefined
+  get arrayBuffer(): Effect.Effect<ArrayBuffer, Error.HttpServerError> {
     if (this.arrayBufferEffect) {
       return this.arrayBufferEffect
     }
@@ -442,18 +447,19 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
       Effect.tryPromise({
         try: () => this.source.arrayBuffer(),
         catch: (cause) =>
-          new Error.RequestError({
-            request: this,
-            reason: "RequestParseError",
-            cause
+          new Error.HttpServerError({
+            reason: new Error.RequestParseError({
+              request: this,
+              cause
+            })
           })
       })
     ))
     return this.arrayBufferEffect
   }
 
-  get upgrade(): Effect.Effect<Socket.Socket, Error.RequestError> {
-    return Effect.callback<Socket.Socket, Error.RequestError>((resume) => {
+  get upgrade(): Effect.Effect<Socket.Socket, Error.HttpServerError> {
+    return Effect.callback<Socket.Socket, Error.HttpServerError>((resume) => {
       const deferred = Deferred.makeUnsafe<ServerWebSocket<WebSocketContext>>()
       const closeDeferred = Deferred.makeUnsafe<void, Socket.SocketError>()
       const semaphore = Effect.makeSemaphoreUnsafe(1)
@@ -468,10 +474,11 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
       })
       if (!success) {
         resume(Effect.fail(
-          new Error.RequestError({
-            request: this,
-            reason: "RequestParseError",
-            description: "Not an upgradeable ServerRequest"
+          new Error.HttpServerError({
+            reason: new Error.RequestParseError({
+              request: this,
+              description: "Not an upgradeable ServerRequest"
+            })
           })
         ))
         return

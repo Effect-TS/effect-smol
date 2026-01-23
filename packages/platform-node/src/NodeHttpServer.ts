@@ -24,11 +24,11 @@ import type { HttpMethod } from "effect/unstable/http/HttpMethod"
 import type * as Middleware from "effect/unstable/http/HttpMiddleware"
 import type * as HttpPlatform from "effect/unstable/http/HttpPlatform"
 import * as HttpServer from "effect/unstable/http/HttpServer"
-import type { HttpServerError } from "effect/unstable/http/HttpServerError"
 import {
   causeResponse,
   clientAbortFiberId,
-  RequestError,
+  HttpServerError,
+  RequestParseError,
   ResponseError,
   ServeError
 } from "effect/unstable/http/HttpServerError"
@@ -245,10 +245,11 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
     remoteAddressOverride?: string
   ) {
     super(source, (cause) =>
-      new RequestError({
-        request: this,
-        reason: "RequestParseError",
-        cause
+      new HttpServerError({
+        reason: new RequestParseError({
+          request: this,
+          cause
+        })
       }), remoteAddressOverride)
     this[Request.TypeId] = Request.TypeId
     this.response = response
@@ -326,10 +327,11 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
 
   get upgrade(): Effect.Effect<Socket.Socket, HttpServerError> {
     return this.upgradeEffect ?? Effect.fail(
-      new RequestError({
-        request: this,
-        reason: "RequestParseError",
-        description: "not an upgradeable ServerRequest"
+      new HttpServerError({
+        reason: new RequestParseError({
+          request: this,
+          description: "not an upgradeable ServerRequest"
+        })
       })
     )
   }
@@ -469,11 +471,13 @@ const handleResponse = (
         return Effect.tryPromise({
           try: (signal) => pipeline(body.body as any, nodeResponse, { signal, end: true }),
           catch: (cause) =>
-            new ResponseError({
-              request,
-              response,
-              description: "Error writing raw response",
-              cause
+            new HttpServerError({
+              reason: new ResponseError({
+                request,
+                response,
+                description: "Error writing raw response",
+                cause
+              })
             })
         }).pipe(
           Effect.interruptible,
@@ -507,11 +511,13 @@ const handleResponse = (
             .pipe(nodeResponse)
             .on("error", (cause) => {
               resume(Effect.fail(
-                new ResponseError({
-                  request,
-                  response,
-                  description: "Error writing FormData response",
-                  cause
+                new HttpServerError({
+                  reason: new ResponseError({
+                    request,
+                    response,
+                    description: "Error writing FormData response",
+                    cause
+                  })
                 })
               ))
             })
