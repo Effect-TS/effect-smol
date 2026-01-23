@@ -24,13 +24,14 @@ import type { Mutable } from "../../Types.ts"
 import * as Headers from "../http/Headers.ts"
 import * as HttpBody from "../http/HttpBody.ts"
 import * as HttpClient from "../http/HttpClient.ts"
+import { HttpClientErrorSchema } from "../http/HttpClientError.ts"
 import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import * as Socket from "../socket/Socket.ts"
 import * as Transferable from "../workers/Transferable.ts"
 import * as Worker from "../workers/Worker.ts"
 import type { WorkerError } from "../workers/WorkerError.ts"
 import * as Rpc from "./Rpc.ts"
-import { RpcClientError } from "./RpcClientError.ts"
+import { RpcClientDefect, RpcClientError } from "./RpcClientError.ts"
 import type * as RpcGroup from "./RpcGroup.ts"
 import type { FromClient, FromClientEncoded, FromServer, FromServerEncoded, Request } from "./RpcMessage.ts"
 import { constPing, RequestId } from "./RpcMessage.ts"
@@ -875,9 +876,7 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
           Effect.flatMap((r) => r.text),
           Effect.mapError((cause) =>
             new RpcClientError({
-              reason: "Protocol",
-              message: "Failed to send HTTP request",
-              cause
+              reason: HttpClientErrorSchema.fromHttpClientError(cause)
             })
           ),
           Effect.flatMap((text) => {
@@ -910,9 +909,7 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
         ),
         Effect.mapError((cause) =>
           new RpcClientError({
-            reason: "Protocol",
-            message: "Failed to send HTTP request",
-            cause
+            reason: HttpClientErrorSchema.fromHttpClientError(cause)
           })
         )
       )
@@ -992,9 +989,10 @@ export const makeProtocolSocket = (options?: {
           return writeResponse({
             _tag: "ClientProtocolError",
             error: new RpcClientError({
-              reason: "Protocol",
-              message: "Error decoding message",
-              cause: Cause.fail(defect)
+              reason: new RpcClientDefect({
+                message: "Error decoding message",
+                cause: defect
+              })
             })
           })
         }
@@ -1018,16 +1016,18 @@ export const makeProtocolSocket = (options?: {
       ),
       Effect.tapCause((cause) => {
         const error = Cause.filterError(cause)
+        const hasError = Filter.isPass(error)
         if (
-          options?.retryTransientErrors && Filter.isPass(error) &&
+          options?.retryTransientErrors && hasError &&
           error.reason._tag === "SocketOpenError"
         ) {
           return Effect.void
         }
         currentError = new RpcClientError({
-          reason: "Protocol",
-          message: "Error in socket",
-          cause: Cause.squash(cause)
+          reason: hasError ? error.reason : new RpcClientDefect({
+            message: "Unknown socket error",
+            cause: Cause.squash(cause)
+          })
         })
         return writeResponse({
           _tag: "ClientProtocolError",
@@ -1156,16 +1156,18 @@ export const makeProtocolWorker = (
           ) :
           undefined
       }).pipe(
-        Effect.tapCause((cause) =>
-          writeResponse({
+        Effect.tapCause((cause) => {
+          const error = Cause.filterError(cause)
+          return writeResponse({
             _tag: "ClientProtocolError",
             error: new RpcClientError({
-              reason: "Protocol",
-              message: "Error in worker",
-              cause: Cause.squash(cause)
+              reason: Filter.isPass(error) ? error.reason : new RpcClientDefect({
+                message: "Error in worker",
+                cause: Cause.squash(cause)
+              })
             })
           })
-        ),
+        }),
         Effect.retry(Schedule.spaced(1000)),
         Effect.annotateLogs({
           module: "RpcClient",

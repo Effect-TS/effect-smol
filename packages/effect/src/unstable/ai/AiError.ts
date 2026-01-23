@@ -203,20 +203,6 @@ export class HttpError extends Schema.ErrorClass<HttpError>(
   /**
    * Creates an HttpError from a platform HttpClientError.
    *
-   * @example
-   * ```ts
-   * import { AiError } from "effect/unstable/ai"
-   * import type { HttpClientError } from "effect/unstable/http"
-   *
-   * declare const platformError: HttpClientError.RequestError
-   *
-   * const aiError = AiError.HttpError.fromHttpClientError({
-   *   module: "ChatGPT",
-   *   method: "sendMessage",
-   *   error: platformError
-   * })
-   * ```
-   *
    * @since 4.0.0
    * @category constructors
    */

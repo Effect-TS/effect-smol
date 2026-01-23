@@ -192,14 +192,30 @@ export class SocketCloseError extends Schema.ErrorClass<SocketCloseError>("effec
  * @since 4.0.0
  * @category errors
  */
+export const SocketErrorReason = Schema.Union([
+  SocketReadError,
+  SocketWriteError,
+  SocketOpenError,
+  SocketCloseError
+])
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export type SocketErrorReason =
+  | SocketReadError
+  | SocketWriteError
+  | SocketOpenError
+  | SocketCloseError
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
 export class SocketError extends Schema.ErrorClass<SocketError>(SocketErrorTypeId)({
   _tag: Schema.tag("SocketError"),
-  reason: Schema.Union([
-    SocketReadError,
-    SocketWriteError,
-    SocketOpenError,
-    SocketCloseError
-  ])
+  reason: SocketErrorReason
 }) {
   constructor(props: {
     readonly reason: SocketReadError | SocketWriteError | SocketOpenError | SocketCloseError

@@ -3,6 +3,7 @@
  */
 import * as Data from "../../Data.ts"
 import { hasProperty } from "../../Predicate.ts"
+import * as Schema from "../../Schema.ts"
 import type * as HttpClientRequest from "./HttpClientRequest.ts"
 import type * as ClientResponse from "./HttpClientResponse.ts"
 
@@ -230,3 +231,33 @@ export type ResponseError = StatusCodeError | DecodeError | EmptyBodyError
  * @category error
  */
 export type HttpClientErrorReason = RequestError | ResponseError
+
+/**
+ * @since 4.0.0
+ * @category Schema
+ */
+export class HttpClientErrorSchema extends Schema.ErrorClass<HttpClientErrorSchema>(TypeId)({
+  _tag: Schema.tag("HttpError"),
+  kind: Schema.Literals(
+    [
+      "EncodeError",
+      "DecodeError",
+      "TransportError",
+      "InvalidUrlError",
+      "StatusCodeError",
+      "EmptyBodyError"
+    ] satisfies ReadonlyArray<HttpClientErrorReason["_tag"]>
+  ),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * @since 4.0.0
+   */
+  static fromHttpClientError(error: HttpClientError): HttpClientErrorSchema {
+    return new HttpClientErrorSchema({
+      _tag: "HttpError",
+      kind: error.reason._tag,
+      cause: error.reason
+    })
+  }
+}
