@@ -23,7 +23,7 @@ const MsgPackErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
  * @category errors
  */
 export class MsgPackError extends Data.TaggedError("MsgPackError")<{
-  readonly reason: "Pack" | "Unpack"
+  readonly kind: "Pack" | "Unpack"
   readonly cause: unknown
 }> {
   /**
@@ -35,7 +35,7 @@ export class MsgPackError extends Data.TaggedError("MsgPackError")<{
    * @since 4.0.0
    */
   override get message() {
-    return this.reason
+    return this.kind
   }
 }
 
@@ -58,7 +58,7 @@ export const encode = <IE = never, Done = unknown>(): Channel.Channel<
         try {
           return Effect.succeed(Arr.map(chunk, (item) => packr.pack(item) as Uint8Array<ArrayBuffer>))
         } catch (cause) {
-          return Effect.fail(new MsgPackError({ reason: "Pack", cause }))
+          return Effect.fail(new MsgPackError({ kind: "Pack", cause }))
         }
       })
     })
@@ -120,7 +120,7 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
                   out.push(...error.values)
                 }
               } else {
-                return Effect.fail(new MsgPackError({ reason: "Unpack", cause }))
+                return Effect.fail(new MsgPackError({ kind: "Unpack", cause }))
               }
             }
           }
