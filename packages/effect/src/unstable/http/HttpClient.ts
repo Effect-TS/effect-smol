@@ -553,12 +553,14 @@ export const make = (
         const controller = scopedController ?? new AbortController()
         const urlResult = UrlParams.makeUrl(request.url, request.urlParams, request.hash)
         if (Result.isFailure(urlResult)) {
-          return Effect.fail(new Error.HttpClientError({
-            reason: new Error.InvalidUrlError({
-              request,
-              cause: urlResult.failure
+          return Effect.fail(
+            new Error.HttpClientError({
+              reason: new Error.InvalidUrlError({
+                request,
+                cause: urlResult.failure
+              })
             })
-          }))
+          )
         }
         const url = urlResult.success
         const tracerDisabled = fiber.getRef(Tracer.DisablePropagation) ||

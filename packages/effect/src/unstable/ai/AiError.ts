@@ -157,7 +157,7 @@ export const HttpResponseDetails = Schema.Struct({
  *   const error = new AiError.HttpError({
  *     module: "OpenAI",
  *     method: "createCompletion",
- *     reason: "Transport",
+ *     reason: "TransportError",
  *     request: {
  *       method: "POST",
  *       url: "https://api.openai.com/v1/completions",
@@ -169,7 +169,7 @@ export const HttpResponseDetails = Schema.Struct({
  *   })
  *
  *   console.log(error.message)
- *   // "Transport: Connection timeout after 30 seconds (POST https://api.openai.com/v1/completions)"
+ *   // "TransportError: Connection timeout after 30 seconds (POST https://api.openai.com/v1/completions)"
  * })
  * ```
  *
@@ -208,7 +208,7 @@ export class HttpError extends Schema.ErrorClass<HttpError>(
    * import { AiError } from "effect/unstable/ai"
    * import type { HttpClientError } from "effect/unstable/http"
    *
-   * declare const platformError: HttpClientError.RequestError
+   * declare const platformError: HttpClientError.HttpClientError
    *
    * const aiError = AiError.HttpError.fromHttpClientError({
    *   module: "ChatGPT",
