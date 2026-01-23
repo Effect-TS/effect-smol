@@ -1179,190 +1179,80 @@ You can test this endpoint using a GET request. For example:
 curl http://localhost:3000/users/csv
 ```
 
-## Defining a HttpApiGroup
+## Adding Custom Error Responses
 
-You can group related endpoints under a single entity by using `HttpApiGroup.make`. This can help organize your code and provide a clearer structure for your API.
+Error responses allow your endpoint to handle different failure scenarios.
 
-**Example** (Creating a Group for User-Related Endpoints)
+**Example** (Defining Error Responses for an Endpoint)
 
-```ts TODO
-import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
-import { Schema } from "effect"
-
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
-})
-
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
-
-const getUsers = HttpApiEndpoint.get("getUsers", "/users").addSuccess(
-  Schema.Array(User)
-)
-
-const getUser = HttpApiEndpoint.get("getUser")`/user/${idParam}`.addSuccess(
-  User
-)
-
-const createUser = HttpApiEndpoint.post("createUser", "/users")
-  .setPayload(
-    Schema.Struct({
-      name: Schema.String
-    })
-  )
-  .addSuccess(User)
-
-const deleteUser = HttpApiEndpoint.del("deleteUser")`/users/${idParam}`
-
-const updateUser = HttpApiEndpoint.patch("updateUser")`/users/${idParam}`
-  .setPayload(
-    Schema.Struct({
-      name: Schema.String
-    })
-  )
-  .addSuccess(User)
-
-// Group all user-related endpoints
-const usersGroup = HttpApiGroup.make("users")
-  .add(getUsers)
-  .add(getUser)
-  .add(createUser)
-  .add(deleteUser)
-  .add(updateUser)
-```
-
-If you would like to create a more opaque type for the group, you can extend `HttpApiGroup` with a class.
-
-**Example** (Creating a Group with an Opaque Type)
-
-```ts TODO
-// Create an opaque class extending HttpApiGroup
-class UsersGroup extends HttpApiGroup.make("users").add(getUsers).add(getUser) {
-  // Additional endpoints or methods can be added here
-}
-```
-
-## Creating the Top-Level HttpApi
-
-After defining your groups, you can combine them into one `HttpApi` representing your entire set of endpoints.
-
-**Example** (Combining Groups into a Top-Level API)
-
-```ts TODO
-import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
-import { Schema } from "effect"
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
 
 const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
+  id: Schema.Int,
+  name: Schema.String
 })
-
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
-
-const getUsers = HttpApiEndpoint.get("getUsers", "/users").addSuccess(
-  Schema.Array(User)
-)
-
-const getUser = HttpApiEndpoint.get("getUser")`/user/${idParam}`.addSuccess(
-  User
-)
-
-const createUser = HttpApiEndpoint.post("createUser", "/users")
-  .setPayload(
-    Schema.Struct({
-      name: Schema.String
-    })
-  )
-  .addSuccess(User)
-
-const deleteUser = HttpApiEndpoint.del("deleteUser")`/users/${idParam}`
-
-const updateUser = HttpApiEndpoint.patch("updateUser")`/users/${idParam}`
-  .setPayload(
-    Schema.Struct({
-      name: Schema.String
-    })
-  )
-  .addSuccess(User)
-
-const usersGroup = HttpApiGroup.make("users")
-  .add(getUsers)
-  .add(getUser)
-  .add(createUser)
-  .add(deleteUser)
-  .add(updateUser)
-
-// Combine the groups into one API
-const api = HttpApi.make("myApi").add(usersGroup)
-
-// Alternatively, create an opaque class for your API
-class MyApi extends HttpApi.make("myApi").add(usersGroup) {}
-```
-
-## Adding errors
-
-Error responses allow your API to handle different failure scenarios. These responses can be defined at various levels:
-
-- **Endpoint-level errors**: Use `HttpApiEndpoint.addError` to add errors specific to an endpoint.
-- **Group-level errors**: Use `HttpApiGroup.addError` to add errors applicable to all endpoints in a group.
-- **API-level errors**: Use `HttpApi.addError` to define errors that apply to every endpoint in the API.
-
-Group-level and API-level errors are useful for handling shared issues like authentication failures, especially when managed through middleware.
-
-**Example** (Defining Error Responses for Endpoints and Groups)
-
-```ts TODO
-import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
-import { Schema } from "effect"
-
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
-})
-
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
 
 // Define error schemas
-class UserNotFound extends Schema.TaggedError<UserNotFound>()(
-  "UserNotFound",
-  {}
-) {}
+class UserNotFound extends Schema.ErrorClass<UserNotFound>("UserNotFound")({
+  _tag: Schema.tag("UserNotFound"),
+  message: Schema.String
+}) {}
 
-class Unauthorized extends Schema.TaggedError<Unauthorized>()(
-  "Unauthorized",
-  {}
-) {}
+class Unauthorized extends Schema.ErrorClass<Unauthorized>("Unauthorized")({
+  _tag: Schema.tag("Unauthorized")
+}) {}
 
-const getUsers = HttpApiEndpoint.get("getUsers", "/users").addSuccess(
-  Schema.Array(User)
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("Users")
+      .add(
+        HttpApiEndpoint.get("getUser", "/user/:id", {
+          path: {
+            id: Schema.FiniteFromString.check(Schema.isInt())
+          },
+          success: User
+        })
+          // Add a 404 error response for this endpoint
+          .addError(UserNotFound, { status: 404 })
+          // Add a 401 error response for unauthorized access
+          .addError(Unauthorized, { status: 401 })
+      )
+  )
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Users",
+  (handlers) =>
+    handlers
+      .handle("getUser", (ctx) => {
+        const id = ctx.path.id
+        if (id === 1) {
+          return Effect.fail(new UserNotFound({ message: "User not found" }))
+        }
+        return Effect.succeed({ id, name: `User ${id}` })
+      })
 )
 
-const getUser = HttpApiEndpoint.get("getUser")`/user/${idParam}`
-  .addSuccess(User)
-  // Add a 404 error response for this endpoint
-  .addError(UserNotFound, { status: 404 })
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(HttpApiScalar.layer(Api)),
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
 
-const usersGroup = HttpApiGroup.make("users")
-  .add(getUsers)
-  .add(getUser)
-  // ...etc...
-  // Add a 401 error response for the entire group
-  .addError(Unauthorized, { status: 401 })
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
-You can assign multiple error responses to a single endpoint by calling `HttpApiEndpoint.addError` multiple times. This is useful when different types of errors might occur for a single operation.
+You can test this endpoint using a GET request. For example:
 
-**Example** (Adding Multiple Errors to an Endpoint)
-
-```ts TODO
-const deleteUser = HttpApiEndpoint.del("deleteUser")`/users/${idParam}`
-  // Add a 404 error response for when the user is not found
-  .addError(UserNotFound, { status: 404 })
-  // Add a 401 error response for unauthorized access
-  .addError(Unauthorized, { status: 401 })
+```sh
+curl http://localhost:3000/user/1 # Returns 404 Not Found
+curl http://localhost:3000/user/2 # Returns 200 OK
 ```
 
 ### Predefined Empty Error Types
@@ -1371,21 +1261,64 @@ The `HttpApiError` module provides a set of predefined empty error types that yo
 
 **Example** (Adding a Predefined Error to an Endpoint)
 
-```ts TODO
-import { HttpApiEndpoint, HttpApiError, HttpApiSchema } from "@effect/platform"
-import { Schema } from "effect"
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import {
+  HttpApi,
+  HttpApiBuilder,
+  HttpApiEndpoint,
+  HttpApiError,
+  HttpApiGroup,
+  HttpApiScalar
+} from "effect/unstable/httpapi"
+import { createServer } from "node:http"
 
 const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
+  id: Schema.Int,
+  name: Schema.String
 })
 
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("Users")
+      .add(
+        HttpApiEndpoint.get("getUser", "/user/:id", {
+          path: {
+            id: Schema.FiniteFromString.check(Schema.isInt())
+          },
+          success: User
+        })
+          // Add a 404 error empty response for this endpoint
+          .addError(HttpApiError.NotFound)
+          // Add a 401 error empty response for unauthorized access
+          .addError(HttpApiError.Unauthorized)
+      )
+  )
 
-const getUser = HttpApiEndpoint.get("getUser")`/user/${idParam}`
-  .addSuccess(User)
-  .addError(HttpApiError.NotFound)
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Users",
+  (handlers) =>
+    handlers
+      .handle("getUser", (ctx) => {
+        const id = ctx.path.id
+        if (id === 1) {
+          return Effect.fail(new HttpApiError.NotFound())
+        }
+        return Effect.succeed({ id, name: `User ${id}` })
+      })
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(HttpApiScalar.layer(Api)),
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
 | Name                  | Status | Description                                                                                        |
