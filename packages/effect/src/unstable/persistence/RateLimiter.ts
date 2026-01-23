@@ -70,11 +70,13 @@ export const make: Effect.Effect<
       if (tokens > options.limit) {
         return onExceeded === "fail"
           ? Effect.fail(
-            new RateLimitExceeded({
-              key: options.key,
-              retryAfter: window,
-              limit: options.limit,
-              remaining: 0
+            new RateLimiterError({
+              reason: new RateLimitExceeded({
+                key: options.key,
+                retryAfter: window,
+                limit: options.limit,
+                remaining: 0
+              })
             })
           )
           : Effect.succeed<ConsumeResult>({
@@ -98,11 +100,13 @@ export const make: Effect.Effect<
               const remaining = options.limit - count
               if (remaining < 0) {
                 return Effect.fail(
-                  new RateLimitExceeded({
-                    key: options.key,
-                    retryAfter: Duration.millis(ttl),
-                    limit: options.limit,
-                    remaining: 0
+                  new RateLimiterError({
+                    reason: new RateLimitExceeded({
+                      key: options.key,
+                      retryAfter: Duration.millis(ttl),
+                      limit: options.limit,
+                      remaining: 0
+                    })
                   })
                 )
               }
@@ -140,11 +144,13 @@ export const make: Effect.Effect<
           if (onExceeded === "fail") {
             if (remaining < 0) {
               return Effect.fail(
-                new RateLimitExceeded({
-                  key: options.key,
-                  retryAfter: Duration.times(refillRate, -remaining),
-                  limit: options.limit,
-                  remaining: 0
+                new RateLimiterError({
+                  reason: new RateLimitExceeded({
+                    key: options.key,
+                    retryAfter: Duration.times(refillRate, -remaining),
+                    limit: options.limit,
+                    remaining: 0
+                  })
                 })
               )
             }
@@ -264,7 +270,7 @@ export const makeSleep: Effect.Effect<
     readonly limit: number
     readonly key: string
     readonly tokens?: number | undefined
-  }) => Effect.Effect<ConsumeResult, RateLimitStoreError>),
+  }) => Effect.Effect<ConsumeResult, RateLimiterError>),
   never,
   RateLimiter
 > = RateLimiter.use((limiter) =>
@@ -273,7 +279,7 @@ export const makeSleep: Effect.Effect<
       limiter.consume({
         ...options,
         onExceeded: "delay"
-      }) as Effect.Effect<ConsumeResult, RateLimitStoreError>,
+      }),
       (result) => {
         if (Duration.isZero(result.delay)) return Effect.succeed(result)
         return Effect.as(Effect.sleep(result.delay), result)
@@ -301,22 +307,12 @@ export type ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
 export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
   "effect/persistence/RateLimiter/RateLimitExceeded"
 )({
-  _tag: Schema.tag("RateLimitError"),
+  _tag: Schema.tag("RateLimitExceeded"),
   retryAfter: Schema.DurationFromMillis,
   key: Schema.String,
   limit: Schema.Number,
   remaining: Schema.Number
 }) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
-
-  /**
-   * @since 4.0.0
-   */
-  readonly reason = "Exceeded"
-
   /**
    * @since 4.0.0
    */
@@ -332,32 +328,56 @@ export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
 export class RateLimitStoreError extends Schema.ErrorClass<RateLimitStoreError>(
   "effect/persistence/RateLimiter/RateLimitStoreError"
 )({
-  _tag: Schema.tag("RateLimitError"),
+  _tag: Schema.tag("RateLimitStoreError"),
   message: Schema.String,
   cause: Schema.optional(Schema.Defect)
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category Errors
+ */
+export type RateLimiterErrorReason = RateLimitExceeded | RateLimitStoreError
+
+/**
+ * @since 4.0.0
+ * @category Errors
+ */
+export const RateLimiterErrorReason: Schema.Union<[
+  typeof RateLimitExceeded,
+  typeof RateLimitStoreError
+]> = Schema.Union([RateLimitExceeded, RateLimitStoreError])
+
+/**
+ * @since 4.0.0
+ * @category Errors
+ */
+export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorTypeId)({
+  _tag: Schema.tag("RateLimiterError"),
+  reason: RateLimiterErrorReason
 }) {
+  constructor(props: {
+    readonly reason: RateLimiterErrorReason
+  }) {
+    if ("cause" in props.reason) {
+      super({
+        ...props,
+        cause: props.reason.cause
+      } as any)
+    } else {
+      super(props)
+    }
+  }
+
   /**
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
 
-  /**
-   * @since 4.0.0
-   */
-  readonly reason = "StoreError"
+  override get message(): string {
+    return this.reason.message
+  }
 }
-
-/**
- * @since 4.0.0
- * @category Errors
- */
-export const RateLimiterError = Schema.Union([RateLimitExceeded, RateLimitStoreError])
-
-/**
- * @since 4.0.0
- * @category Errors
- */
-export type RateLimiterError = RateLimitExceeded | RateLimitStoreError
 
 /**
  * @since 4.0.0
@@ -511,9 +531,11 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
       return Effect.mapError(
         fixedWindow(key, options.tokens, refillMillis, options.limit),
         (cause) =>
-          new RateLimitStoreError({
-            message: `Failed to execute fixedWindow rate limiting command`,
-            cause: cause.cause
+          new RateLimiterError({
+            reason: new RateLimitStoreError({
+              message: `Failed to execute fixedWindow rate limiting command`,
+              cause: cause.cause
+            })
           })
       )
     },
@@ -531,9 +553,11 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
             options.allowOverflow ? 1 : 0
           ),
           (cause) =>
-            new RateLimitStoreError({
-              message: `Failed to execute tokenBucket rate limiting command`,
-              cause
+            new RateLimiterError({
+              reason: new RateLimitStoreError({
+                message: `Failed to execute tokenBucket rate limiting command`,
+                cause
+              })
             })
         )
       )
