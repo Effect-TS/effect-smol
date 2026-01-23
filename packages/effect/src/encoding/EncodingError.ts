@@ -17,7 +17,7 @@ export type EncodingErrorTypeId = typeof EncodingErrorTypeId
  * @since 4.0.0
  */
 export class EncodingError extends Data.TaggedError("EncodingError")<{
-  reason: "Decode" | "Encode"
+  kind: "Decode" | "Encode"
   module: string
   input: unknown
   message: string
