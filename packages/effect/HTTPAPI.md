@@ -1397,297 +1397,114 @@ curl http://localhost:3000/apiPrefix/groupPrefix/endpointPrefix/a # Returns 200 
 curl http://localhost:3000/apiPrefix/groupPrefix/b # Returns 200 OK
 ```
 
-## Implementing a Server
-
-After defining your API, you can implement a server to handle its endpoints. The `HttpApiBuilder` module provides tools to help you connect your API's structure to the logic that serves requests.
-
-Here, we will create a simple example with a `getUser` endpoint organized within a `users` group.
-
-**Example** (Defining the `users` Group and API)
-
-```ts TODO
-import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
-import { Schema } from "effect"
-
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
-})
-
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
-
-const usersGroup = HttpApiGroup.make("users").add(
-  HttpApiEndpoint.get("getUser")`/user/${idParam}`.addSuccess(User)
-)
-
-const api = HttpApi.make("myApi").add(usersGroup)
-```
-
-### Implementing a HttpApiGroup
-
-The `HttpApiBuilder.group` API is used to implement a specific group of endpoints within an `HttpApi` definition. It requires the following inputs:
-
-| Input                             | Description                                                             |
-| --------------------------------- | ----------------------------------------------------------------------- |
-| The complete `HttpApi` definition | The overall API structure that includes the group you are implementing. |
-| The name of the group             | The specific group you are focusing on within the API.                  |
-| A function to add handlers        | A function that defines how each endpoint in the group is handled.      |
-
-Each endpoint in the group is connected to its logic using the `HttpApiBuilder.handle` method, which maps the endpoint's definition to its corresponding implementation.
-
-The `HttpApiBuilder.group` API produces a `Layer` that can later be provided to the server implementation.
-
-**Example** (Implementing a Group with Endpoint Logic)
-
-```ts TODO
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
-import { DateTime, Effect, Schema } from "effect"
-
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
-})
-
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
-
-const usersGroup = HttpApiGroup.make("users").add(
-  HttpApiEndpoint.get("getUser")`/user/${idParam}`.addSuccess(User)
-)
-
-const api = HttpApi.make("myApi").add(usersGroup)
-
-// --------------------------------------------
-// Implementation
-// --------------------------------------------
-
-//      ┌─── Layer<HttpApiGroup.ApiGroup<"myApi", "users">>
-//      ▼
-const usersGroupLive =
-  //                    ┌─── The Whole API
-  //                    │      ┌─── The Group you are implementing
-  //                    ▼      ▼
-  HttpApiBuilder.group(api, "users", (handlers) =>
-    handlers.handle(
-      //  ┌─── The Endpoint you are implementing
-      //  ▼
-      "getUser",
-      // Provide the handler logic for the endpoint.
-      // The parameters & payload are passed to the handler function.
-      ({ path: { id } }) =>
-        Effect.succeed(
-          // Return a mock user object with the provided ID
-          {
-            id,
-            name: "John Doe",
-            createdAt: DateTime.unsafeNow()
-          }
-        )
-    ))
-```
-
-Using `HttpApiBuilder.group`, you connect the structure of your API to its logic, enabling you to focus on each endpoint's functionality in isolation. Each handler receives the parameters and payload for the request, making it easy to process input and generate a response.
-
-### Using Services Inside a HttpApiGroup
+## Using Services Inside a HttpApiGroup
 
 If your handlers need to use services, you can easily integrate them because the `HttpApiBuilder.group` API allows you to return an `Effect`. This ensures that external services can be accessed and utilized directly within your handlers.
 
 **Example** (Using Services in a Group Implementation)
 
-```ts TODO
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
-import { Context, Effect, Schema } from "effect"
-
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
-})
-
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
-
-const usersGroup = HttpApiGroup.make("users").add(
-  HttpApiEndpoint.get("getUser")`/user/${idParam}`.addSuccess(User)
-)
-
-const api = HttpApi.make("myApi").add(usersGroup)
-
-// --------------------------------------------
-// Implementation
-// --------------------------------------------
-
-type User = typeof User.Type
-
-// Define the UsersRepository service
-class UsersRepository extends Context.Tag("UsersRepository")<
-  UsersRepository,
-  {
-    readonly findById: (id: number) => Effect.Effect<User>
-  }
->() {}
-
-// Implement the `users` group with access to the UsersRepository service
-//
-//      ┌─── Layer<HttpApiGroup.ApiGroup<"myApi", "users">, never, UsersRepository>
-//      ▼
-const usersGroupLive = HttpApiBuilder.group(api, "users", (handlers) =>
-  Effect.gen(function*() {
-    // Access the UsersRepository service
-    const repository = yield* UsersRepository
-    return handlers.handle("getUser", ({ path: { id } }) => repository.findById(id))
-  }))
-```
-
-### Implementing a HttpApi
-
-Once all your groups are implemented, you can create a top-level implementation to combine them into a unified API. This is done using the `HttpApiBuilder.api` API, which generates a `Layer`. You then use `Layer.provide` to include the implementations of all the groups into the top-level `HttpApi`.
-
-**Example** (Combining Group Implementations into a Top-Level API)
-
-```ts TODO
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
-import { DateTime, Effect, Layer, Schema } from "effect"
-
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
-})
-
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
-
-const usersGroup = HttpApiGroup.make("users").add(
-  HttpApiEndpoint.get("getUser")`/user/${idParam}`.addSuccess(User)
-)
-
-const api = HttpApi.make("myApi").add(usersGroup)
-
-const usersGroupLive = HttpApiBuilder.group(
-  api,
-  "users",
-  (handlers) =>
-    handlers.handle("getUser", ({ path: { id } }) =>
-      Effect.succeed({
-        id,
-        name: "John Doe",
-        createdAt: DateTime.unsafeNow()
-      }))
-)
-
-// Combine all group implementations into the top-level API
-//
-//      ┌─── Layer<HttpApi.Api, never, never>
-//      ▼
-const MyApiLive = HttpApiBuilder.api(api).pipe(Layer.provide(usersGroupLive))
-```
-
-### Serving the API
-
-You can serve your API using the `HttpApiBuilder.serve` function. This utility builds an `HttpApp` from an `HttpApi` instance and uses an `HttpServer` to handle requests. Middleware can be added to customize or enhance the server's behavior.
-
-**Example** (Setting Up and Serving an API with Middleware)
-
-```ts TODO
-import {
-  HttpApi,
-  HttpApiBuilder,
-  HttpApiEndpoint,
-  HttpApiGroup,
-  HttpApiSchema,
-  HttpMiddleware,
-  HttpServer
-} from "@effect/platform"
+```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { DateTime, Effect, Layer, Schema } from "effect"
+import { Effect, Layer, Schema, ServiceMap } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
 import { createServer } from "node:http"
 
 const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
+  id: Schema.Int,
+  name: Schema.String
 })
 
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
+// Define the UsersRepository service
+class UsersRepository extends ServiceMap.Service<UsersRepository, {
+  readonly findById: (id: number) => Effect.Effect<typeof User.Type>
+}>()("UsersRepository") {}
 
-const usersGroup = HttpApiGroup.make("users").add(
-  HttpApiEndpoint.get("getUser")`/user/${idParam}`.addSuccess(User)
-)
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("Users")
+      .add(
+        HttpApiEndpoint.get("getUser", "/user/:id", {
+          path: {
+            id: Schema.FiniteFromString.check(Schema.isInt())
+          },
+          success: User
+        })
+      )
+  )
 
-const api = HttpApi.make("myApi").add(usersGroup)
-
-const usersGroupLive = HttpApiBuilder.group(
-  api,
-  "users",
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Users",
   (handlers) =>
-    handlers.handle("getUser", ({ path: { id } }) =>
-      Effect.succeed({
-        id,
-        name: "John Doe",
-        createdAt: DateTime.unsafeNow()
-      }))
+    handlers
+      .handle("getUser", (ctx) => {
+        const id = ctx.path.id
+        return Effect.gen(function*() {
+          // Access the UsersRepository service
+          const repository = yield* UsersRepository
+          return yield* repository.findById(id)
+        })
+      })
 )
 
-const MyApiLive = HttpApiBuilder.api(api).pipe(Layer.provide(usersGroupLive))
-
-// Configure and serve the API
-const HttpLive = HttpApiBuilder.serve(HttpMiddleware.logger).pipe(
-  // Add CORS middleware to handle cross-origin requests
-  Layer.provide(HttpApiBuilder.middlewareCors()),
-  // Provide the API implementation
-  Layer.provide(MyApiLive),
-  // Log the server's listening address
-  HttpServer.withLogAddress,
-  // Set up the Node.js HTTP server
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(HttpApiScalar.layer(Api)),
+  Layer.provide(GroupLive),
+  Layer.provide(
+    Layer.succeed(UsersRepository, {
+      findById: (id) => Effect.succeed({ id, name: `User ${id}` })
+    })
+  ),
+  HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
 
-// Launch the server
-Layer.launch(HttpLive).pipe(NodeRuntime.runMain)
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
-### Accessing the HttpServerRequest
+## Accessing the HttpServerRequest
 
 In some cases, you may need to access details about the incoming `HttpServerRequest` within an endpoint handler. The HttpServerRequest module provides access to the request object, allowing you to inspect properties such as the HTTP method or headers.
 
 **Example** (Accessing the Request Object in a GET Endpoint)
 
-```ts TODO
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpMiddleware, HttpServer } from "@effect/platform"
+```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
 import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 import { createServer } from "node:http"
 
-const api = HttpApi.make("myApi").add(
-  HttpApiGroup.make("group").add(
-    HttpApiEndpoint.get("get", "/").addSuccess(Schema.String)
+const Api = HttpApi.make("MyApi").add(
+  HttpApiGroup.make("Greetings").add(
+    HttpApiEndpoint.get("hello", "/", {
+      success: Schema.String
+    })
   )
 )
 
-const groupLive = HttpApiBuilder.group(
-  api,
-  "group",
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Greetings",
   (handlers) =>
-    handlers.handle("get", ({ request }) =>
-      Effect.gen(function*() {
-        // Log the HTTP method for demonstration purposes
-        console.log(request.method)
-
-        // Return a response
-        return "Hello, World!"
-      }))
+    handlers.handle(
+      "hello",
+      (ctx) => {
+        // Access the request method
+        console.log(ctx.request.method)
+        return Effect.succeed("Hello, World!")
+      }
+    )
 )
 
-const MyApiLive = HttpApiBuilder.api(api).pipe(Layer.provide(groupLive))
-
-const HttpLive = HttpApiBuilder.serve(HttpMiddleware.logger).pipe(
-  Layer.provide(HttpApiBuilder.middlewareCors()),
-  Layer.provide(MyApiLive),
-  HttpServer.withLogAddress,
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
 
-Layer.launch(HttpLive).pipe(NodeRuntime.runMain)
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
 ### Streaming Requests
