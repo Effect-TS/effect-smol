@@ -18,7 +18,7 @@ const encoder = new TextEncoder()
  * @category errors
  */
 export class NdjsonError extends Data.TaggedError("NdjsonError")<{
-  readonly reason: "Pack" | "Unpack"
+  readonly kind: "Pack" | "Unpack"
   readonly cause: unknown
 }> {
   /**
@@ -30,7 +30,7 @@ export class NdjsonError extends Data.TaggedError("NdjsonError")<{
    * @since 4.0.0
    */
   override get message() {
-    return this.reason
+    return this.kind
   }
 }
 
@@ -51,7 +51,7 @@ export const encodeString = <IE = never, Done = unknown>(): Channel.Channel<
       try {
         return Effect.succeed(Arr.of(input.map((item) => JSON.stringify(item)).join("\n") + "\n"))
       } catch (cause) {
-        return Effect.fail(new NdjsonError({ reason: "Pack", cause }))
+        return Effect.fail(new NdjsonError({ kind: "Pack", cause }))
       }
     }))
   )
@@ -126,7 +126,7 @@ export const decodeString = <IE = never, Done = unknown>(options?: {
     try {
       return Effect.succeed(Arr.map(chunk, (line) => JSON.parse(line)))
     } catch (cause) {
-      return Effect.fail(new NdjsonError({ reason: "Unpack", cause }))
+      return Effect.fail(new NdjsonError({ kind: "Unpack", cause }))
     }
   })
 }
