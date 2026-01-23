@@ -830,7 +830,7 @@ const notFound = (method: string, path: string) =>
  *     return Effect.fail(
  *       PlatformError.systemError({
  *         module: "FileSystem",
- *         method: "readFileString",
+ *         kind: "readFileString",
  *         reason: "NotFound",
  *         description: "File not found",
  *         pathOrDescriptor: path

@@ -660,7 +660,7 @@ const mapHandler = <Name extends string, Input, E, R, E2, R2>(
  *         : FileSystem.layerNoop({
  *           access: () =>
  *             Effect.fail(
- *               new PlatformError.BadArgument({
+ *               PlatformError.badArgument({
  *                 module: "FileSystem",
  *                 method: "access"
  *               })
