@@ -10,7 +10,7 @@ Refactor `HttpClientError` to follow the reason pattern used by `SocketError` an
 
 - Replace the string `reason` union with per-reason error classes.
 - Introduce a top-level `HttpClientError` wrapper that contains a `reason` field.
-- Use `Schema.ErrorClass` for all new error types.
+- Use `Data.TaggedError` for all new error types.
 - Preserve existing error messages and request/response metadata.
 - Update call sites to construct the new wrapper error consistently.
 
@@ -29,7 +29,14 @@ Refactor `HttpClientError` to follow the reason pattern used by `SocketError` an
 
 ### Reason Classes
 
-Introduce per-reason classes using `Schema.ErrorClass` and `Schema.tag`. All reason classes include the request, optional description, and optional cause. Response reason classes also include the response.
+Introduce per-reason classes using `Data.TaggedError`. All reason classes include the request, optional description, and optional cause. Response reason classes also include the response.
+
+Reason class fields:
+
+- `request: HttpClientRequest.HttpClientRequest`
+- `response?: HttpClientResponse.HttpClientResponse` (response reasons only)
+- `description?: string`
+- `cause?: unknown`
 
 Request reasons:
 
@@ -52,32 +59,37 @@ Each reason class keeps the current `message` formatting behavior:
 
 - `HttpClientErrorReason` union of all per-reason classes.
 - `RequestError` and `ResponseError` become type aliases that group request and response reasons respectively.
+- Export the reason classes from the `HttpClientError` module; keep `RequestError`/`ResponseError` as type aliases only.
 
 ### HttpClientError Wrapper
 
-Add a top-level `HttpClientError` class using `Schema.ErrorClass`:
+Add a top-level `HttpClientError` class using `Data.TaggedError`:
 
 ```ts
-export class HttpClientError extends Schema.ErrorClass<HttpClientError>(
-  "effect/http/HttpClientError"
-)({
-  _tag: Schema.tag("HttpClientError"),
-  reason: HttpClientErrorReason
-}) {}
+export class HttpClientError extends Data.TaggedError("HttpClientError")<{
+  readonly reason: HttpClientErrorReason
+}> {
+  readonly [TypeId] = TypeId
+
+  override get message(): string {
+    return this.reason.message
+  }
+}
 ```
 
 Behavior:
 
 - `message` delegates to `reason.message`.
 - `isHttpClientError` guard checks only the wrapper (AiError-style).
-- Provide `make({ reason })` constructor for ergonomic creation.
+- If the reason has a `cause`, the wrapper constructor copies it onto the wrapper (SocketError-style).
+- Preserve the existing `TypeId` string (`~effect/http/HttpClientError`) for guard compatibility.
 
 ### API Surface Changes
 
 - `HttpClientError` becomes a class instead of a union type.
 - `RequestError` and `ResponseError` are no longer constructible classes.
 - All APIs that previously exposed `RequestError` or `ResponseError` as error types now expose `HttpClientError`.
-- Call sites must wrap reasons in `HttpClientError.make` (or `new HttpClientError`).
+- Call sites must wrap reasons in `new HttpClientError({ reason })`.
 - `Effect.catchTag("RequestError")`/`"ResponseError"` flows must move to `catchTag("HttpClientError")` and inspect `error.reason._tag`.
 
 ### Usage Examples
@@ -98,7 +110,7 @@ Effect.fail(
 After:
 
 ```ts
-Effect.fail(HttpClientError.make({
+Effect.fail(new HttpClientError({
   reason: new HttpClientError.InvalidUrlError({
     request,
     description: "Invalid base URL",
