@@ -39,6 +39,20 @@ export class HttpClientError extends Data.TaggedError("HttpClientError")<{
    */
   readonly [TypeId] = TypeId
 
+  /**
+   * @since 4.0.0
+   */
+  get request(): HttpClientRequest.HttpClientRequest {
+    return this.reason.request
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  get response(): ClientResponse.HttpClientResponse | undefined {
+    return "response" in this.reason ? this.reason.response : undefined
+  }
+
   override get message(): string {
     return this.reason.message
   }

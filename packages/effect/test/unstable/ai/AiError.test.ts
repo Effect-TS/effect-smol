@@ -495,10 +495,10 @@ describe("AiError", () => {
         })
         assert.isFalse(AiError.isAiError(legacyError))
 
-        const httpRequestError = new AiError.HttpRequestError({
+        const httpRequestError = new AiError.HttpError({
           module: "Test",
           method: "test",
-          reason: "Transport",
+          reason: "TransportError",
           request: {
             method: "GET",
             url: "https://example.com",
