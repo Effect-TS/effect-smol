@@ -58,12 +58,12 @@ export interface Migration {
 export class MigrationError extends Data.TaggedError("MigrationError")<{
   readonly _tag: "MigrationError"
   readonly cause?: unknown
-  readonly reason:
-    | "bad-state"
-    | "import-error"
-    | "failed"
-    | "duplicates"
-    | "locked"
+  readonly kind:
+    | "BadState"
+    | "ImportError"
+    | "Failed"
+    | "Duplicates"
+    | "Locked"
   readonly message: string
 }> {}
 
@@ -152,7 +152,7 @@ export const make = <RD = never>({
       Effect.catchDefect(load, (_) =>
         Effect.fail(
           new MigrationError({
-            reason: "import-error",
+            kind: "ImportError",
             message: `Could not import migration "${id}_${name}"\n\n${_}`
           })
         )).pipe(
@@ -163,7 +163,7 @@ export const make = <RD = never>({
               ? Effect.succeed(_.default?.default ?? _.default)
               : Effect.fail(
                 new MigrationError({
-                  reason: "import-error",
+                  kind: "ImportError",
                   message: `Default export not found for migration "${id}_${name}"`
                 })
               )
@@ -172,7 +172,7 @@ export const make = <RD = never>({
             Effect.isEffect,
             () =>
               new MigrationError({
-                reason: "import-error",
+                kind: "ImportError",
                 message: `Default export was not an Effect for migration "${id}_${name}"`
               })
           )
@@ -187,7 +187,7 @@ export const make = <RD = never>({
         Effect.die(
           new MigrationError({
             cause: error,
-            reason: "failed",
+            kind: "Failed",
             message: `Migration "${id}_${name}" failed`
           })
         ))
@@ -213,7 +213,7 @@ export const make = <RD = never>({
 
       if (new Set(current.map(([id]) => id)).size !== current.length) {
         return yield* new MigrationError({
-          reason: "duplicates",
+          kind: "Duplicates",
           message: "Found duplicate migration id's"
         })
       }
@@ -238,7 +238,7 @@ export const make = <RD = never>({
           insertMigrations(required.map(([id, name]) => [id, name])),
           Effect.mapError((_) =>
             new MigrationError({
-              reason: "locked",
+              kind: "Locked",
               message: "Migrations already running"
             })
           )
@@ -279,7 +279,7 @@ export const make = <RD = never>({
     const completed = yield* pipe(
       sql.withTransaction(run),
       Effect.catchTag("MigrationError", (_) =>
-        _.reason === "locked"
+        _.kind === "Locked"
           ? Effect.as(Effect.logDebug(_.message), [])
           : Effect.fail(_))
     )
@@ -364,7 +364,7 @@ export const fromFileSystem: (directory: string) => Loader<FileSystem> = Effect.
     Fs.readDirectory(directory),
     (cause) =>
       new MigrationError({
-        reason: "failed",
+        kind: "Failed",
         cause,
         message: "Failed to read migrations directory"
       })

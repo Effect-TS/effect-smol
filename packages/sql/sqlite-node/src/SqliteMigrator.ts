@@ -35,7 +35,7 @@ export const run: <R2 = never>(
   //         .replace(/\n{2,}/gm, "\n\n")
   //         .trim()
   //     }).pipe(
-  //       Effect.mapError((error) => new Migrator.MigrationError({ reason: "failed", message: error.message }))
+  //       Effect.mapError((error) => new Migrator.MigrationError({ kind: "Failed", message: error.message }))
   //     )
   //
   //   const dumpSchema = dump([".schema"])
@@ -59,7 +59,7 @@ export const run: <R2 = never>(
   //       yield* fs.makeDirectory(path.dirname(file), { recursive: true })
   //       yield* fs.writeFileString(file, dump)
   //     }).pipe(
-  //       Effect.mapError((error) => new Migrator.MigrationError({ reason: "failed", message: error.message }))
+  //       Effect.mapError((error) => new Migrator.MigrationError({ kind: "Failed", message: error.message }))
   //     )
   //
   //   return dumpFile(path)
