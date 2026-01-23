@@ -119,7 +119,7 @@ describe("HttpServer", () => {
           return HttpServerResponse.empty()
         }).pipe(
           Effect.catchTag("MultipartError", (error) =>
-            error.reason === "FileTooLarge" ?
+            error.reason._tag === "FileTooLarge" ?
               Effect.succeed(HttpServerResponse.empty({ status: 413 })) :
               Effect.fail(error))
         )
@@ -147,7 +147,7 @@ describe("HttpServer", () => {
           return HttpServerResponse.empty()
         }).pipe(
           Effect.catchTag("MultipartError", (error) =>
-            error.reason === "FieldTooLarge" ?
+            error.reason._tag === "FieldTooLarge" ?
               Effect.succeed(HttpServerResponse.empty({ status: 413 })) :
               Effect.fail(error))
         )

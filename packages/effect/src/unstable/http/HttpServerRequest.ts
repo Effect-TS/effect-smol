@@ -449,7 +449,7 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
 
   get multipartStream(): Stream.Stream<Multipart.Part, Multipart.MultipartError> {
     return Stream.pipeThroughChannel(
-      Stream.mapError(this.stream, (cause) => new Multipart.MultipartError({ reason: "InternalError", cause })),
+      Stream.mapError(this.stream, (cause) => Multipart.MultipartError.fromReason("InternalError", cause)),
       Multipart.makeChannel(this.headers)
     )
   }
