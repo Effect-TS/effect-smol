@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as Worker from "effect/unstable/workers/Worker"
-import { WorkerError } from "effect/unstable/workers/WorkerError"
+import { WorkerError, WorkerReceiveError } from "effect/unstable/workers/WorkerError"
 
 /**
  * @since 1.0.0
@@ -46,9 +46,10 @@ export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(W
         Deferred.doneUnsafe(
           deferred,
           new WorkerError({
-            reason: "Receive",
-            message: "An error event was emitter",
-            cause: event.error ?? event.message
+            reason: new WorkerReceiveError({
+              message: "An error event was emitter",
+              cause: event.error ?? event.message
+            })
           }).asEffect()
         )
       }

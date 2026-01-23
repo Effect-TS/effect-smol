@@ -221,6 +221,19 @@ export class SocketError extends Schema.ErrorClass<SocketError>(SocketErrorTypeI
     SocketCloseError
   ])
 }) {
+  constructor(props: {
+    readonly reason: SocketReadError | SocketWriteError | SocketOpenError | SocketCloseError
+  }) {
+    if ("cause" in props.reason) {
+      super({
+        ...props,
+        cause: props.reason.cause
+      } as any)
+    } else {
+      super(props)
+    }
+  }
+
   /**
    * @since 4.0.0
    */

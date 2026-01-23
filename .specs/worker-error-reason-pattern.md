@@ -1,4 +1,3 @@
-
 **Status: DRAFT**
 
 ## Overview
@@ -92,12 +91,14 @@ The top-level `WorkerError` schema should no longer include `message` or `cause`
 All call sites should construct a reason class and wrap it in `WorkerError`:
 
 ```ts
-return Effect.fail(new WorkerError({
-  reason: new WorkerSendError({
-    message: "Failed to send message to worker",
-    cause
+return Effect.fail(
+  new WorkerError({
+    reason: new WorkerSendError({
+      message: "Failed to send message to worker",
+      cause
+    })
   })
-}))
+)
 ```
 
 No legacy literal support is required.
