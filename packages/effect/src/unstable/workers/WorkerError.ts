@@ -100,6 +100,14 @@ export class WorkerError extends Schema.ErrorClass<WorkerError>(TypeId)({
   _tag: Schema.tag("WorkerError"),
   reason: WorkerErrorReason
 }) {
+  constructor(props: {
+    readonly reason: WorkerErrorReason
+  }) {
+    super({
+      ...props,
+      cause: props.reason.cause
+    } as any)
+  }
   /**
    * @since 4.0.0
    */
