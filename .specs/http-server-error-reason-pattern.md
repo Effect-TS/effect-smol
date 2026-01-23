@@ -116,9 +116,7 @@ Effect.fail(
 Handling:
 
 ```ts
-Effect.catchReason("HttpServerError", "RouteNotFound", (reason) =>
-  Effect.logWarning(reason.message)
-)
+Effect.catchReason("HttpServerError", "RouteNotFound", (reason) => Effect.logWarning(reason.message))
 ```
 
 ## Impacted Areas

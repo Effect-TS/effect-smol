@@ -1,5 +1,3 @@
-**Status: DRAFT**
-
 ## Overview
 
 Port `withFallbackPrompt` from effect 3 into the new CLI API. The feature adds

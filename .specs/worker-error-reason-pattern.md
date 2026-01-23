@@ -1,5 +1,3 @@
-**Status: DRAFT**
-
 ## Overview
 
 Refactor `WorkerError` to follow the new `reason` pattern (see `SocketError` and

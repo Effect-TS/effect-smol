@@ -1,7 +1,5 @@
 # AI Error Domain Model
 
-**Status: DRAFT**
-
 ## Overview
 
 Replace the current `AiError` design with a comprehensive, provider-agnostic domain model for errors originating from large language model providers. The new design uses the `reason` pattern (see `Effect.catchReason`) where `AiError` is a top-level wrapper error containing `module`, `method`, and a `reason` field that holds the semantic error.

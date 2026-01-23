@@ -1,7 +1,5 @@
 # HttpClientError Reason Pattern
 
-**Status: DRAFT**
-
 ## Overview
 
 Refactor `HttpClientError` to follow the reason pattern used by `SocketError` and `AiError`. The new design introduces per-reason error classes and a top-level `HttpClientError` wrapper with a `reason` field. This provides ergonomic error handling with `Effect.catchReason`, while preserving rich request/response context.
