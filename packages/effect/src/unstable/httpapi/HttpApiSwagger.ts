@@ -6,12 +6,13 @@ import type * as Layer from "../../Layer.ts"
 import * as HttpRouter from "../http/HttpRouter.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import type * as HttpApi from "./HttpApi.ts"
+import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import * as Html from "./internal/html.ts"
 import * as internal from "./internal/httpApiSwagger.ts"
 import * as OpenApi from "./OpenApi.ts"
 
-const makeHandler = (options: {
-  readonly api: HttpApi.AnyWithProps
+const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options: {
+  readonly api: HttpApi.HttpApi<Id, Groups>
 }) => {
   const spec = OpenApi.fromApi(options.api)
   const response = HttpServerResponse.html(`<!DOCTYPE html>
@@ -49,8 +50,8 @@ const makeHandler = (options: {
  * @since 4.0.0
  * @category layers
  */
-export const layer = (
-  api: HttpApi.AnyWithProps,
+export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
+  api: HttpApi.HttpApi<Id, Groups>,
   options?: {
     readonly path?: `/${string}` | undefined
   }
