@@ -50,7 +50,7 @@ export const run: <R2 = never>(
   //         .replace(/\n{2,}/gm, "\n\n")
   //         .trim()
   //     }).pipe(
-  //       Effect.mapError((error) => new Migrator.MigrationError({ reason: "failed", message: error.message }))
+  //       Effect.mapError((error) => new Migrator.MigrationError({ kind: "Failed", message: error.message }))
   //     )
   //
   //   const pgDumpSchema = pgDump(["--schema-only"])
@@ -74,7 +74,7 @@ export const run: <R2 = never>(
   //       yield* fs.makeDirectory(path_.dirname(path), { recursive: true })
   //       yield* fs.writeFileString(path, dump)
   //     }).pipe(
-  //       Effect.mapError((error) => new Migrator.MigrationError({ reason: "failed", message: error.message }))
+  //       Effect.mapError((error) => new Migrator.MigrationError({ kind: "Failed", message: error.message }))
   //     )
   //
   //   return pgDumpFile(path)
