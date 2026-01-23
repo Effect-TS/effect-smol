@@ -822,6 +822,7 @@ const notFound = (method: string, path: string) =>
  * import { Effect, FileSystem, PlatformError } from "effect"
  *
  * // Create a test filesystem that only allows reading specific files
+ * const notFound: PlatformError.SystemErrorKind = "NotFound"
  * const testFs = FileSystem.makeNoop({
  *   readFileString: (path) => {
  *     if (path === "test-config.json") {
@@ -831,7 +832,7 @@ const notFound = (method: string, path: string) =>
  *       PlatformError.systemError({
  *         module: "FileSystem",
  *         method: "readFileString",
- *         kind: "NotFound",
+ *         kind: notFound,
  *         description: "File not found",
  *         pathOrDescriptor: path
  *       })
