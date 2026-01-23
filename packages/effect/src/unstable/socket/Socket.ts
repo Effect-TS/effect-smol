@@ -124,11 +124,6 @@ export class SocketReadError extends Schema.ErrorClass<SocketReadError>("effect/
   /**
    * @since 4.0.0
    */
-  readonly [SocketErrorTypeId]: SocketErrorTypeId = SocketErrorTypeId
-
-  /**
-   * @since 4.0.0
-   */
   override readonly message = `An error occurred during Read`
 }
 
@@ -140,11 +135,6 @@ export class SocketWriteError extends Schema.ErrorClass<SocketWriteError>("effec
   _tag: Schema.tag("SocketWriteError"),
   cause: Schema.Defect
 }) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [SocketErrorTypeId]: SocketErrorTypeId = SocketErrorTypeId
-
   /**
    * @since 4.0.0
    */
@@ -160,11 +150,6 @@ export class SocketOpenError extends Schema.ErrorClass<SocketOpenError>("effect/
   kind: Schema.Literals(["Unknown", "Timeout"]),
   cause: Schema.Defect
 }) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [SocketErrorTypeId]: SocketErrorTypeId = SocketErrorTypeId
-
   /**
    * @since 4.0.0
    */
@@ -184,11 +169,6 @@ export class SocketCloseError extends Schema.ErrorClass<SocketCloseError>("effec
   code: Schema.Number,
   closeReason: Schema.optional(Schema.String)
 }) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [SocketErrorTypeId]: SocketErrorTypeId = SocketErrorTypeId
-
   /**
    * @since 4.0.0
    */
@@ -498,9 +478,11 @@ export const fromWebSocket = <RO>(
           Deferred.doneUnsafe(
             fiberSet.deferred,
             Effect.fail(
-              new SocketCloseError({
-                code: event.code,
-                closeReason: event.reason
+              new SocketError({
+                reason: new SocketCloseError({
+                  code: event.code,
+                  closeReason: event.reason
+                })
               })
             )
           )
@@ -664,7 +646,7 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
             while (true) {
               const { done, value } = await reader.read()
               if (done) {
-                throw new SocketCloseError({ code: 1000 })
+                throw new SocketError({ reason: new SocketCloseError({ code: 1000 }) })
               }
               const result = handler(value)
               if (Effect.isEffect(result)) {
@@ -723,7 +705,9 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
         if (isCloseEvent(chunk)) {
           return Deferred.fail(
             fiberSet.deferred,
-            new SocketCloseError({ code: chunk.code, closeReason: chunk.reason })
+            new SocketError({
+              reason: new SocketCloseError({ code: chunk.code, closeReason: chunk.reason })
+            })
           )
         }
         return Effect.promise(() => getWriter(stream).write(typeof chunk === "string" ? encoder.encode(chunk) : chunk))

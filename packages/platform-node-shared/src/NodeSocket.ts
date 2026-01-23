@@ -156,7 +156,11 @@ export const fromDuplex = <RO>(
         function onClose(hadError: boolean) {
           Deferred.doneUnsafe(
             fiberSet.deferred,
-            Effect.fail(new Socket.SocketCloseError({ code: hadError ? 1006 : 1000 }))
+            Effect.fail(
+              new Socket.SocketError({
+                reason: new Socket.SocketCloseError({ code: hadError ? 1006 : 1000 })
+              })
+            )
           )
         }
       })).pipe(
