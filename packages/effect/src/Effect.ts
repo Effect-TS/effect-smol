@@ -1382,7 +1382,7 @@ export {
  *
  * **When to Use**
  *
- * Use `Effect.async` when dealing with APIs that use callback-style instead of
+ * Use `Effect.callback` when dealing with APIs that use callback-style instead of
  * `async/await` or `Promise`.
  *
  * @example
