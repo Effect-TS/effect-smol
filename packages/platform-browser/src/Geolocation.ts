@@ -41,15 +41,65 @@ export const Geolocation: ServiceMap.Service<Geolocation, Geolocation> = Service
  * @category Errors
  */
 export class GeolocationError extends Data.TaggedError("GeolocationError")<{
-  readonly reason: "PositionUnavailable" | "PermissionDenied" | "Timeout"
-  readonly cause: unknown
+  readonly reason: GeolocationErrorReason
 }> {
+  constructor(props: {
+    readonly reason: GeolocationErrorReason
+  }) {
+    super({
+      ...props,
+      cause: props.reason.cause
+    } as any)
+  }
+
   readonly [ErrorTypeId] = ErrorTypeId
 
   override get message(): string {
-    return this.reason
+    return this.reason.message
   }
 }
+
+/**
+ * @since 1.0.0
+ * @category Errors
+ */
+export class PositionUnavailable extends Data.TaggedError("PositionUnavailable")<{
+  readonly cause: unknown
+}> {
+  override get message(): string {
+    return this._tag
+  }
+}
+
+/**
+ * @since 1.0.0
+ * @category Errors
+ */
+export class PermissionDenied extends Data.TaggedError("PermissionDenied")<{
+  readonly cause: unknown
+}> {
+  override get message(): string {
+    return this._tag
+  }
+}
+
+/**
+ * @since 1.0.0
+ * @category Errors
+ */
+export class Timeout extends Data.TaggedError("Timeout")<{
+  readonly cause: unknown
+}> {
+  override get message(): string {
+    return this._tag
+  }
+}
+
+/**
+ * @since 1.0.0
+ * @category Errors
+ */
+export type GeolocationErrorReason = PositionUnavailable | PermissionDenied | Timeout
 
 const makeQueue = (
   options:
@@ -66,10 +116,19 @@ const makeQueue = (
             (position) => Queue.offerUnsafe(queue, position),
             (cause) => {
               if (cause.code === cause.PERMISSION_DENIED) {
-                const error = new GeolocationError({ reason: "PermissionDenied", cause })
+                const error = new GeolocationError({
+                  reason: new PermissionDenied({ cause })
+                })
                 Queue.failCauseUnsafe(queue, Cause.fail(error))
               } else if (cause.code === cause.TIMEOUT) {
-                const error = new GeolocationError({ reason: "Timeout", cause })
+                const error = new GeolocationError({
+                  reason: new Timeout({ cause })
+                })
+                Queue.failCauseUnsafe(queue, Cause.fail(error))
+              } else if (cause.code === cause.POSITION_UNAVAILABLE) {
+                const error = new GeolocationError({
+                  reason: new PositionUnavailable({ cause })
+                })
                 Queue.failCauseUnsafe(queue, Cause.fail(error))
               }
             },
