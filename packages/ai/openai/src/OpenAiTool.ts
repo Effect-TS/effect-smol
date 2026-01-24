@@ -20,7 +20,7 @@ export type OpenAiTool =
   | ReturnType<typeof ApplyPatch>
   | ReturnType<typeof CodeInterpreter>
   | ReturnType<typeof FileSearch>
-  | ReturnType<typeof FunctionShell>
+  | ReturnType<typeof Shell>
   | ReturnType<typeof ImageGeneration>
   | ReturnType<typeof LocalShell>
   | ReturnType<typeof Mcp>
@@ -67,7 +67,9 @@ export const CodeInterpreter = Tool.providerDefined({
     code: Generated.CodeInterpreterToolCall.fields.code,
     container_id: Generated.CodeInterpreterToolCall.fields.container_id
   },
-  success: Generated.CodeInterpreterToolCall.fields.outputs
+  success: Schema.Struct({
+    outputs: Generated.CodeInterpreterToolCall.fields.outputs
+  })
 })
 
 /**
@@ -133,7 +135,8 @@ export const ImageGeneration = Tool.providerDefined({
 export const LocalShell = Tool.providerDefined({
   customName: "OpenAiLocalShell",
   providerName: "local_shell",
-  args: {
+  args: {},
+  parameters: {
     action: Generated.LocalShellToolCall.fields.action
   },
   success: Schema.Struct({
@@ -181,13 +184,13 @@ export const Mcp = Tool.providerDefined({
  * @since 1.0.0
  * @category tools
  */
-export const FunctionShell = Tool.providerDefined({
-  customName: "OpenAiFunctionShell",
+export const Shell = Tool.providerDefined({
+  customName: "OpenAiShell",
   providerName: "shell",
-  args: {
+  args: {},
+  parameters: {
     action: Generated.FunctionShellCall.fields.action
   },
-  parameters: {},
   success: Schema.Struct({
     output: Generated.FunctionShellCallOutputItemParam.fields.output
   })
@@ -213,6 +216,7 @@ export const WebSearch = Tool.providerDefined({
     action: Generated.WebSearchToolCall.fields.action
   },
   success: Schema.Struct({
+    action: Generated.WebSearchToolCall.fields.action,
     status: Generated.WebSearchToolCall.fields.status
   })
 })
@@ -232,10 +236,9 @@ export const WebSearchPreview = Tool.providerDefined({
     user_location: Generated.WebSearchPreviewTool.fields.user_location,
     search_context_size: Generated.WebSearchPreviewTool.fields.search_context_size
   },
-  parameters: {
-    action: Generated.WebSearchToolCall.fields.action
-  },
+  parameters: {},
   success: Schema.Struct({
+    action: Generated.WebSearchToolCall.fields.action,
     status: Generated.WebSearchToolCall.fields.status
   })
 })
@@ -250,7 +253,7 @@ export const createToolNameMapper = Tool.NameMapper.forProvider({
   OpenAiApplyPatch: "apply_patch",
   OpenAiCodeInterpreter: "code_interpreter",
   OpenAiFileSearch: "file_search",
-  OpenAiFunctionShell: "shell",
+  OpenAiShell: "shell",
   OpenAiImageGeneration: "image_generation",
   OpenAiLocalShell: "local_shell",
   OpenAiMcp: "mcp",

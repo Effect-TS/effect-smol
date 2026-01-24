@@ -1117,15 +1117,6 @@ export interface ToolParamsStartPart extends BasePart<"tool-params-start", ToolP
    */
   readonly name: string
   /**
-   * Optional provider-specific name for the tool, which can be useful when the
-   * name of the tool in the `Toolkit` and the name of the tool used by the
-   * model are different.
-   *
-   * This is usually happens only with provider-defined tools which require a
-   * user-space handler.
-   */
-  readonly providerName?: string | undefined
-  /**
    * Whether the tool was executed by the provider (true) or framework (false).
    */
   readonly providerExecuted: boolean
@@ -1147,15 +1138,6 @@ export interface ToolParamsStartPartEncoded extends BasePartEncoded<"tool-params
    * in the `Toolkit` included with the request.
    */
   readonly name: string
-  /**
-   * Optional provider-specific name for the tool, which can be useful when the
-   * name of the tool in the `Toolkit` and the name of the tool used by the
-   * model are different.
-   *
-   * This is usually happens only with provider-defined tools which require a
-   * user-space handler.
-   */
-  readonly providerName?: string | undefined
   /**
    * Whether the tool was executed by the provider (true) or framework (false).
    */
@@ -1181,7 +1163,6 @@ export const ToolParamsStartPart: Schema.Struct<{
   readonly type: Schema.tag<"tool-params-start">
   readonly id: Schema.String
   readonly name: Schema.String
-  readonly providerName: Schema.optional<Schema.String>
   readonly providerExecuted: Schema.withDecodingDefaultKey<Schema.Boolean>
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
@@ -1192,7 +1173,6 @@ export const ToolParamsStartPart: Schema.Struct<{
   type: Schema.tag("tool-params-start"),
   id: Schema.String,
   name: Schema.String,
-  providerName: Schema.optional(Schema.String),
   providerExecuted: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(constFalse))
 }).annotate({ identifier: "ToolParamsStartPart" }) satisfies Schema.Codec<
   ToolParamsStartPart,
@@ -1385,15 +1365,6 @@ export interface ToolCallPart<Name extends string, Params extends Record<string,
    */
   readonly params: Params
   /**
-   * Optional provider-specific name for the tool, which can be useful when the
-   * name of the tool in the `Toolkit` and the name of the tool used by the
-   * model are different.
-   *
-   * This is usually happens only with provider-defined tools which require a
-   * user-space handler.
-   */
-  readonly providerName?: string | undefined
-  /**
    * Whether the tool was executed by the provider (true) or framework (false).
    */
   readonly providerExecuted: boolean
@@ -1419,15 +1390,6 @@ export interface ToolCallPartEncoded extends BasePartEncoded<"tool-call", ToolCa
    * Parameters to pass to the tool.
    */
   readonly params: unknown
-  /**
-   * Optional provider-specific name for the tool, which can be useful when the
-   * name of the tool in the `Toolkit` and the name of the tool used by the
-   * model are different.
-   *
-   * This is usually happens only with provider-defined tools which require a
-   * user-space handler.
-   */
-  readonly providerName?: string | undefined
   /**
    * Whether the tool was executed by the provider (true) or framework (false).
    */
@@ -1458,7 +1420,6 @@ export const ToolCallPart: <const Name extends string, Params extends Schema.Str
     readonly id: Schema.String
     readonly name: Schema.Literal<Name>
     readonly params: Schema.Struct<Params>
-    readonly providerName: Schema.optional<Schema.String>
     readonly providerExecuted: Schema.withDecodingDefaultKey<Schema.Boolean>
     readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
     readonly metadata: Schema.withDecodingDefault<
@@ -1475,7 +1436,6 @@ export const ToolCallPart: <const Name extends string, Params extends Schema.Str
     id: Schema.String,
     name: Schema.Literal(name),
     params,
-    providerName: Schema.optional(Schema.String),
     providerExecuted: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(constFalse))
   }).annotate({ identifier: "ToolCallPart" }) satisfies Schema.Codec<
     ToolCallPart<Name, Schema.Struct.Type<Params>>,
@@ -1518,15 +1478,6 @@ export interface BaseToolResult<Name extends string> extends BasePart<"tool-resu
    * The encoded result for serialization purposes.
    */
   readonly encodedResult: unknown
-  /**
-   * Optional provider-specific name for the tool, which can be useful when the
-   * name of the tool in the `Toolkit` and the name of the tool used by the
-   * model are different.
-   *
-   * This is usually happens only with provider-defined tools which require a
-   * user-space handler.
-   */
-  readonly providerName?: string | undefined
   /**
    * Whether the tool was executed by the provider (true) or framework (false).
    */
@@ -1634,15 +1585,6 @@ export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", To
    */
   readonly isFailure: boolean
   /**
-   * Optional provider-specific name for the tool, which can be useful when the
-   * name of the tool in the `Toolkit` and the name of the tool used by the
-   * model are different.
-   *
-   * This is usually happens only with provider-defined tools which require a
-   * user-space handler.
-   */
-  readonly providerName?: string | undefined
-  /**
    * Whether the tool was executed by the provider (true) or framework (false).
    */
   readonly providerExecuted?: boolean | undefined
@@ -1677,7 +1619,6 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
       readonly encodedResult: Schema.toEncoded<Schema.Union<readonly [Success, Failure]>>
       readonly id: Schema.String
       readonly type: Schema.Literal<"tool-result">
-      readonly providerName: Schema.optional<Schema.String>
       readonly isFailure: Schema.Boolean
       readonly name: Schema.Literal<Name>
     }
@@ -1691,7 +1632,6 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
       >
       readonly id: Schema.String
       readonly type: Schema.Literal<"tool-result">
-      readonly providerName: Schema.optional<Schema.String>
       readonly isFailure: Schema.Boolean
       readonly name: Schema.Literal<Name>
     }
@@ -1711,7 +1651,6 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
   const Common = {
     id: Schema.String,
     type: Schema.Literal("tool-result"),
-    providerName: Schema.optional(Schema.String),
     isFailure: Schema.Boolean,
     name: Schema.Literal(name)
   }

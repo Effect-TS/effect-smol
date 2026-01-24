@@ -235,7 +235,6 @@ describe("Tool", () => {
                 type: "tool-call",
                 id: toolCallId,
                 name: tool.name,
-                providerName: tool.providerName,
                 providerExecuted: true,
                 params: { testParam: "test-param" }
               },
@@ -245,7 +244,6 @@ describe("Tool", () => {
                 name: tool.name,
                 isFailure: false,
                 result: toolResult,
-                providerName: tool.providerName,
                 providerExecuted: true
               }
             ]
@@ -258,7 +256,6 @@ describe("Tool", () => {
           isFailure: false,
           result: toolResult,
           encodedResult: toolResult,
-          providerName: tool.providerName,
           providerExecuted: true
         })
 
@@ -285,7 +282,6 @@ describe("Tool", () => {
                 type: "tool-call",
                 id: toolCallId,
                 name: tool.name,
-                providerName: tool.providerName,
                 providerExecuted: true,
                 params: { testParam: "test-param" }
               },
@@ -295,7 +291,6 @@ describe("Tool", () => {
                 isFailure: true,
                 name: tool.name,
                 result: toolResult,
-                providerName: tool.providerName,
                 providerExecuted: true
               }
             ]
@@ -308,7 +303,6 @@ describe("Tool", () => {
           isFailure: true,
           result: toolResult,
           encodedResult: toolResult,
-          providerName: tool.providerName,
           providerExecuted: true
         })
 
@@ -339,7 +333,6 @@ describe("Tool", () => {
                 type: "tool-call",
                 id: toolCallId,
                 name: tool.name,
-                providerName: tool.providerName,
                 // Given this provider-defined tool requires a user-space
                 // handler, it is not considered `providerExecuted`
                 providerExecuted: false,
@@ -356,7 +349,6 @@ describe("Tool", () => {
           isFailure: false,
           result: toolResult,
           encodedResult: toolResult,
-          providerName: tool.providerName,
           providerExecuted: false
         })
 
@@ -388,7 +380,6 @@ describe("Tool", () => {
                 type: "tool-call",
                 id: toolCallId,
                 name: tool.name,
-                providerName: tool.providerName,
                 // Given this provider-defined tool requires a user-space
                 // handler, it is not considered `providerExecuted`
                 providerExecuted: false,
@@ -405,7 +396,6 @@ describe("Tool", () => {
           isFailure: true,
           result: toolResult,
           encodedResult: toolResult,
-          providerName: tool.providerName,
           providerExecuted: false
         })
 
@@ -436,7 +426,6 @@ describe("Tool", () => {
                 type: "tool-call",
                 id: toolCallId,
                 name: tool.name,
-                providerName: tool.providerName,
                 // Given this provider-defined tool requires a user-space
                 // handler, it is not considered `providerExecuted`
                 providerExecuted: false,
@@ -476,7 +465,6 @@ describe("Tool", () => {
                 type: "tool-call",
                 id: toolCallId,
                 name: tool.name,
-                providerName: tool.providerName,
                 // Given this provider-defined tool requires a user-space
                 // handler, it is not considered `providerExecuted`
                 providerExecuted: false,

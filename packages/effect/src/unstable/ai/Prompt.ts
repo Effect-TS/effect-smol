@@ -1769,7 +1769,7 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
       case "tool-call": {
         assistantParts.push(makePart("tool-call", {
           id: part.id,
-          name: part.providerName ?? part.name,
+          name: part.name,
           params: part.params,
           providerExecuted: part.providerExecuted ?? false
         }))
@@ -1780,7 +1780,7 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
       case "tool-result": {
         toolParts.push(makePart("tool-result", {
           id: part.id,
-          name: part.providerName ?? part.name,
+          name: part.name,
           isFailure: part.isFailure,
           result: part.encodedResult
         }))

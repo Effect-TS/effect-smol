@@ -1045,10 +1045,7 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
           result,
           encodedResult,
           isFailure,
-          providerExecuted: false,
-          ...(toolCall.providerName !== undefined
-            ? { providerName: toolCall.providerName }
-            : {})
+          providerExecuted: false
         }) as Response.ToolResultPart<
           Tool.Name<Tools[keyof Tools]>,
           Tool.Success<Tools[keyof Tools]>,

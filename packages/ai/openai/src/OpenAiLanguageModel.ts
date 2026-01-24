@@ -177,6 +177,10 @@ declare module "effect/unstable/ai/Response" {
        * The status of item.
        */
       readonly status?: typeof Generated.Message.Encoded["status"] | undefined
+      /**
+       * The text content part annotations.
+       */
+      readonly annotations?: ReadonlyArray<typeof Generated.Annotation.Encoded> | undefined
     }
   }
 
@@ -227,13 +231,40 @@ declare module "effect/unstable/ai/Response" {
   }
 
   export interface DocumentSourcePartMetadata extends ProviderMetadata {
-    readonly openai?: {
-      readonly type: "file_citation"
-      /**
-       * The index of the file in the list of files.
-       */
-      readonly index: number
-    }
+    readonly openai?:
+      | {
+        readonly type: "file_citation"
+        /**
+         * The index of the file in the list of files.
+         */
+        readonly index: number
+        /**
+         * The ID of the file.
+         */
+        readonly fileId: string
+      }
+      | {
+        readonly type: "file_path"
+        /**
+         * The index of the file in the list of files.
+         */
+        readonly index: number
+        /**
+         * The ID of the file.
+         */
+        readonly fileId: string
+      }
+      | {
+        readonly type: "container_file_citation"
+        /**
+         * The ID of the file.
+         */
+        readonly fileId: string
+        /**
+         * The ID of the container file.
+         */
+        readonly containerId: string
+      }
   }
 
   export interface UrlSourcePartMetadata extends ProviderMetadata {
@@ -273,13 +304,27 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 }) {
   const client = yield* OpenAiClient
 
+  const makeConfig = Effect.gen(function*() {
+    const services = yield* Effect.services<never>()
+    return Config.of({
+      model,
+      ...providerConfig,
+      ...services.mapUnsafe.get(Config.key)
+    })
+  })
+
   const makeRequest = Effect.fnUntraced(
-    function*(options): Effect.fn.Return<typeof Generated.CreateResponse.Encoded, AiError.AiError> {
-      const services = yield* Effect.services<never>()
-      const config = { model, ...providerConfig, ...services.mapUnsafe.get(Config.key) }
-      const include = new Set<string>()
-      const capabilities = getModelCapabilities(config.model)
-      const toolNameMapper = OpenAiTool.createToolNameMapper(options.tools)
+    function*<Tools extends ReadonlyArray<Tool.Any>>({
+      config,
+      options,
+      toolNameMapper
+    }: {
+      readonly config: typeof Config.Service
+      readonly options: LanguageModel.ProviderOptions
+      readonly toolNameMapper: Tool.NameMapper<Tools>
+    }): Effect.fn.Return<typeof Generated.CreateResponse.Encoded, AiError.AiError> {
+      const include = new Set<typeof Generated.IncludeEnum.Encoded>()
+      const capabilities = getModelCapabilities(config.model!)
       const messages = yield* prepareMessages({
         config,
         options,
@@ -298,10 +343,13 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
       const request: typeof Generated.CreateResponse.Encoded = {
         ...config,
         input: messages,
-        include: include.size > 0 ? include : null,
-        text: { ...config.text, format: responseFormat },
-        tools,
-        tool_choice: toolChoice
+        include: include.size > 0 ? Array.from(include) : null,
+        text: {
+          verbosity: config.text?.verbosity ?? null,
+          format: responseFormat
+        },
+        ...(Predicate.isNotUndefined(tools) ? { tools } : undefined),
+        ...(Predicate.isNotUndefined(toolChoice) ? { tool_choice: toolChoice } : undefined)
       }
       return request
     }
@@ -310,22 +358,35 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
   return yield* LanguageModel.make({
     generateText: Effect.fnUntraced(
       function*(options) {
-        const request = yield* makeRequest(options)
+        const config = yield* makeConfig
+        const toolNameMapper = OpenAiTool.createToolNameMapper(options.tools)
+        const request = yield* makeRequest({ config, options, toolNameMapper })
         annotateRequest(options.span, request)
         const rawResponse = yield* client.createResponse(request)
         annotateResponse(options.span, rawResponse)
-        return yield* makeResponse(rawResponse, options)
+        return yield* makeResponse({
+          options,
+          response: rawResponse,
+          toolNameMapper
+        })
       }
     ),
     streamText: Effect.fnUntraced(
       function*(options) {
-        const request = yield* makeRequest(options)
+        const config = yield* makeConfig
+        const toolNameMapper = OpenAiTool.createToolNameMapper(options.tools)
+        const request = yield* makeRequest({ config, options, toolNameMapper })
         annotateRequest(options.span, request)
-        return client.createResponseStream(request)
+        const stream = client.createResponseStream(request)
+        return yield* makeStreamResponse({
+          stream,
+          config,
+          options,
+          toolNameMapper
+        })
       },
       (effect, options) =>
         effect.pipe(
-          Effect.flatMap((stream) => makeStreamResponse(stream, options)),
           Stream.unwrap,
           Stream.map((response) => {
             annotateStreamResponse(options.span, response)
@@ -407,7 +468,7 @@ const prepareMessages = Effect.fnUntraced(
     const codeInterpreterTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.CodeInterpreter> =>
       Tool.isProviderDefined(tool) && tool.name === "OpenAiCodeInterpreter"
     )
-    const shellTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.FunctionShell> =>
+    const shellTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.Shell> =>
       Tool.isProviderDefined(tool) && tool.name === "OpenAiFunctionShell"
     )
     const localShellTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.LocalShell> =>
@@ -618,7 +679,7 @@ const prepareMessages = Effect.fnUntraced(
                 const toolName = toolNameMapper.getProviderName(part.name)
 
                 if (Predicate.isNotUndefined(localShellTool) && toolName === "local_shell") {
-                  const args = yield* Schema.decodeUnknownEffect(localShellTool.argsSchema)(part.params).pipe(
+                  const args = yield* Schema.decodeUnknownEffect(localShellTool.parametersSchema)(part.params).pipe(
                     // TODO: more detailed, tool-call specific error
                     Effect.mapError((error) =>
                       AiError.make({
@@ -641,7 +702,7 @@ const prepareMessages = Effect.fnUntraced(
                 }
 
                 if (Predicate.isNotUndefined(shellTool) && toolName === "shell") {
-                  const args = yield* Schema.decodeUnknownEffect(shellTool.argsSchema)(part.params).pipe(
+                  const args = yield* Schema.decodeUnknownEffect(shellTool.parametersSchema)(part.params).pipe(
                     // TODO: more detailed, tool-call specific error
                     Effect.mapError((error) =>
                       AiError.make({
@@ -751,21 +812,26 @@ const prepareMessages = Effect.fnUntraced(
 
 type ResponseStreamEvent = typeof Generated.ResponseStreamEvent.Type
 
-const makeResponse: (
-  response: Generated.Response,
-  options: LanguageModel.ProviderOptions
-) => Effect.Effect<
-  Array<Response.PartEncoded>,
-  AiError.AiError,
-  IdGenerator.IdGenerator
-> = Effect.fnUntraced(
-  function*(response, options) {
+const makeResponse = Effect.fnUntraced(
+  function*<Tools extends ReadonlyArray<Tool.Any>>({
+    options,
+    response,
+    toolNameMapper
+  }: {
+    readonly options: LanguageModel.ProviderOptions
+    readonly response: Generated.Response
+    readonly toolNameMapper: Tool.NameMapper<Tools>
+  }): Effect.fn.Return<
+    Array<Response.PartEncoded>,
+    AiError.AiError,
+    IdGenerator.IdGenerator
+  > {
     const idGenerator = yield* IdGenerator.IdGenerator
 
     const webSearchTool = options.tools.find((tool) =>
       Tool.isProviderDefined(tool) &&
-      (tool.id === "openai.web_search" ||
-        tool.id === "openai.web_search_preview")
+      (tool.name === "OpenAiWebSearch" ||
+        tool.name === "OpenAiWebSearchPreview")
     ) as Tool.AnyProviderDefined | undefined
 
     let hasToolCalls = false
@@ -781,69 +847,54 @@ const makeResponse: (
 
     for (const part of response.output) {
       switch (part.type) {
-        case "message": {
-          for (const contentPart of part.content) {
-            switch (contentPart.type) {
-              case "output_text": {
-                parts.push({
-                  type: "text",
-                  text: contentPart.text,
-                  metadata: { openai: { ...makeItemIdMetadata(part.id), status: part.status } }
-                })
+        case "code_interpreter_call": {
+          const toolName = toolNameMapper.getCustomName("code_interpreter")
+          parts.push({
+            type: "tool-call",
+            id: part.id,
+            name: toolName,
+            params: { code: part.code, container_id: part.container_id },
+            providerExecuted: true
+          })
+          parts.push({
+            type: "tool-result",
+            id: part.id,
+            name: toolName,
+            isFailure: false,
+            result: { outputs: part.outputs },
+            providerExecuted: true
+          })
+          break
+        }
 
-                for (const annotation of contentPart.annotations) {
-                  if (annotation.type === "file_citation") {
-                    parts.push({
-                      type: "source",
-                      sourceType: "document",
-                      id: yield* idGenerator.generateId(),
-                      mediaType: "text/plain",
-                      title: annotation.filename ?? "Untitled Document",
-                      metadata: { openai: { type: "file_citation", index: annotation.index } }
-                    })
-                  }
-
-                  if (annotation.type === "url_citation") {
-                    parts.push({
-                      type: "source",
-                      sourceType: "url",
-                      id: yield* idGenerator.generateId(),
-                      url: annotation.url,
-                      title: annotation.title,
-                      metadata: {
-                        openai: {
-                          type: "url_citation",
-                          startIndex: annotation.start_index,
-                          endIndex: annotation.end_index
-                        }
-                      }
-                    })
-                  }
-                }
-
-                break
-              }
-              case "refusal": {
-                parts.push({
-                  type: "text",
-                  text: "",
-                  metadata: { openai: { refusal: contentPart.refusal } }
-                })
-
-                break
-              }
-            }
-          }
-
+        case "file_search_call": {
+          const toolName = toolNameMapper.getCustomName("file_search")
+          parts.push({
+            type: "tool-call",
+            id: part.id,
+            name: toolName,
+            params: {},
+            providerExecuted: true
+          })
+          parts.push({
+            type: "tool-result",
+            id: part.id,
+            name: toolName,
+            isFailure: false,
+            result: {
+              status: part.status,
+              queries: part.queries,
+              results: part.results ?? null
+            },
+            providerExecuted: true
+          })
           break
         }
 
         case "function_call": {
           hasToolCalls = true
-
           const toolName = part.name
           const toolParams = part.arguments
-
           const params = yield* Effect.try({
             try: () => Tool.unsafeSecureJsonParse(toolParams),
             catch: (cause) =>
@@ -856,116 +907,199 @@ const makeResponse: (
                 })
               })
           })
-
           parts.push({
             type: "tool-call",
             id: part.call_id,
             name: toolName,
             params,
-            metadata: makeItemIdMetadata(part.id)
+            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
           })
-
           break
         }
 
-        case "code_interpreter_call": {
+        case "image_generation_call": {
+          const toolName = toolNameMapper.getCustomName("image_generation")
           parts.push({
             type: "tool-call",
             id: part.id,
-            name: "OpenAiCodeInterpreter",
-            params: { code: part.code, container_id: part.container_id },
-            providerName: "code_interpreter",
-            providerExecuted: true
-          })
-
-          parts.push({
-            type: "tool-result",
-            id: part.id,
-            name: "OpenAiCodeInterpreter",
-            isFailure: false,
-            result: part.outputs,
-            providerName: "code_interpreter",
-            providerExecuted: true
-          })
-
-          break
-        }
-
-        case "file_search_call": {
-          parts.push({
-            type: "tool-call",
-            id: part.id,
-            name: "OpenAiFileSearch",
+            name: toolName,
             params: {},
-            providerName: "file_search",
             providerExecuted: true
           })
-
           parts.push({
             type: "tool-result",
             id: part.id,
-            name: "OpenAiFileSearch",
+            name: toolName,
             isFailure: false,
-            result: {
-              status: part.status,
-              queries: part.queries,
-              ...(part.results && { results: part.results })
-            },
-            providerName: "file_search",
-            providerExecuted: true
+            result: { result: part.result }
           })
-
           break
         }
 
-        case "web_search_call": {
+        case "local_shell_call": {
+          const toolName = toolNameMapper.getCustomName("local_shell")
           parts.push({
             type: "tool-call",
-            id: part.id,
-            name: webSearchTool?.name ?? "OpenAiWebSearch",
+            id: part.call_id,
+            name: toolName,
             params: { action: part.action },
-            providerName: webSearchTool?.providerName ?? "web_search",
-            providerExecuted: true
+            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
           })
+          break
+        }
 
-          parts.push({
-            type: "tool-result",
-            id: part.id,
-            name: webSearchTool?.name ?? "OpenAiWebSearch",
-            isFailure: false,
-            result: { status: part.status },
-            providerName: webSearchTool?.providerName ?? "web_search",
-            providerExecuted: true
-          })
+        case "message": {
+          for (const contentPart of part.content) {
+            switch (contentPart.type) {
+              case "output_text": {
+                const annotations = contentPart.annotations.length > 0
+                  ? { annotations: contentPart.annotations as any }
+                  : undefined
 
+                parts.push({
+                  type: "text",
+                  text: contentPart.text,
+                  metadata: {
+                    openai: {
+                      ...makeItemIdMetadata(part.id),
+                      ...annotations
+                    }
+                  }
+                })
+                for (const annotation of contentPart.annotations) {
+                  if (annotation.type === "container_file_citation") {
+                    parts.push({
+                      type: "source",
+                      sourceType: "document",
+                      id: yield* idGenerator.generateId(),
+                      mediaType: "text/plain",
+                      title: annotation.filename,
+                      fileName: annotation.filename,
+                      metadata: {
+                        openai: {
+                          type: annotation.type,
+                          fileId: annotation.file_id,
+                          containerId: annotation.container_id
+                        }
+                      }
+                    })
+                  }
+                  if (annotation.type === "file_citation") {
+                    parts.push({
+                      type: "source",
+                      sourceType: "document",
+                      id: yield* idGenerator.generateId(),
+                      mediaType: "text/plain",
+                      title: annotation.filename,
+                      fileName: annotation.filename,
+                      metadata: {
+                        openai: {
+                          type: annotation.type,
+                          fileId: annotation.file_id,
+                          index: annotation.index
+                        }
+                      }
+                    })
+                  }
+                  if (annotation.type === "file_path") {
+                    parts.push({
+                      type: "source",
+                      sourceType: "document",
+                      id: yield* idGenerator.generateId(),
+                      mediaType: "application/octet-stream",
+                      title: annotation.file_id,
+                      fileName: annotation.file_id,
+                      metadata: {
+                        openai: {
+                          type: annotation.type,
+                          fileId: annotation.file_id,
+                          index: annotation.index
+                        }
+                      }
+                    })
+                  }
+                  if (annotation.type === "url_citation") {
+                    parts.push({
+                      type: "source",
+                      sourceType: "url",
+                      id: yield* idGenerator.generateId(),
+                      url: annotation.url,
+                      title: annotation.title,
+                      metadata: {
+                        openai: {
+                          type: annotation.type,
+                          startIndex: annotation.start_index,
+                          endIndex: annotation.end_index
+                        }
+                      }
+                    })
+                  }
+                }
+                break
+              }
+              case "refusal": {
+                parts.push({
+                  type: "text",
+                  text: "",
+                  metadata: { openai: { refusal: contentPart.refusal } }
+                })
+                break
+              }
+            }
+          }
           break
         }
 
         case "reasoning": {
-          // If there are no summary parts, we have to add an empty one to
-          // propagate the part identifier
-          if (part.summary.length === 0) {
-            parts.push({
-              type: "reasoning",
-              text: "",
-              metadata: makeItemIdMetadata(part.id)
-            })
-          } else {
-            for (const summary of part.summary) {
-              const encryptedContent = part.encrypted_content ?? undefined
-              parts.push({
-                type: "reasoning",
-                text: summary.text,
-                metadata: {
-                  openai: {
-                    itemId: part.id,
-                    ...(encryptedContent != null && { encryptedContent })
-                  }
-                }
-              })
+          const metadata = {
+            openai: {
+              ...makeItemIdMetadata(part.id),
+              ...makeEncryptedContentMetadata(part.encrypted_content)
             }
           }
+          // If there are no summary parts, we have to add an empty one to
+          // propagate the part identifier and encrypted content
+          if (part.summary.length === 0) {
+            parts.push({ type: "reasoning", text: "", metadata })
+          } else {
+            for (const summary of part.summary) {
+              parts.push({ type: "reasoning", text: summary.text, metadata })
+            }
+          }
+          break
+        }
 
+        case "shell_call": {
+          const toolName = toolNameMapper.getCustomName("shell")
+          parts.push({
+            type: "tool-call",
+            id: part.call_id,
+            name: toolName,
+            params: { action: part.action },
+            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
+          })
+          break
+        }
+
+        case "web_search_call": {
+          const toolName = toolNameMapper.getCustomName(
+            webSearchTool?.name ?? "web_search"
+          )
+          parts.push({
+            type: "tool-call",
+            id: part.id,
+            name: toolName,
+            params: {},
+            providerExecuted: true
+          })
+          parts.push({
+            type: "tool-result",
+            id: part.id,
+            name: toolName,
+            isFailure: false,
+            result: { action: part.action, status: part.status },
+            providerExecuted: true
+          })
           break
         }
       }
@@ -993,15 +1127,22 @@ const makeResponse: (
   }
 )
 
-const makeStreamResponse: (
-  stream: Stream.Stream<ResponseStreamEvent, AiError.AiError>,
-  options: LanguageModel.ProviderOptions
-) => Effect.Effect<
-  Stream.Stream<Response.StreamPartEncoded, AiError.AiError>,
-  never,
-  IdGenerator.IdGenerator
-> = Effect.fnUntraced(
-  function*(stream, options) {
+const makeStreamResponse = Effect.fnUntraced(
+  function*<Tools extends ReadonlyArray<Tool.Any>>({
+    stream,
+    config,
+    options,
+    toolNameMapper
+  }: {
+    readonly config: typeof Config.Service
+    readonly stream: Stream.Stream<ResponseStreamEvent, AiError.AiError>
+    readonly options: LanguageModel.ProviderOptions
+    readonly toolNameMapper: Tool.NameMapper<Tools>
+  }): Effect.fn.Return<
+    Stream.Stream<Response.StreamPartEncoded, AiError.AiError>,
+    AiError.AiError,
+    IdGenerator.IdGenerator
+  > {
     const idGenerator = yield* IdGenerator.IdGenerator
 
     let hasToolCalls = false
@@ -1026,9 +1167,9 @@ const makeStreamResponse: (
 
     const webSearchTool = options.tools.find((tool) =>
       Tool.isProviderDefined(tool) &&
-      (tool.id === "openai.web_search" ||
-        tool.id === "openai.web_search_preview")
-    ) as Tool.AnyProviderDefined | undefined
+      (tool.name === "OpenAiWebSearch" ||
+        tool.name === "OpenAiWebSearchPreview")
+    ) as ReturnType<typeof OpenAiTool.WebSearch> | ReturnType<typeof OpenAiTool.WebSearchPreview> | undefined
 
     return stream.pipe(
       Stream.mapEffect(Effect.fnUntraced(function*(event) {
@@ -1040,7 +1181,7 @@ const makeStreamResponse: (
             parts.push({
               type: "response-metadata",
               id: event.response.id,
-              modelId: event.response.model as string,
+              modelId: event.response.model,
               timestamp: DateTime.formatIso(DateTime.fromDateUnsafe(createdAt))
             })
             break
@@ -1074,17 +1215,22 @@ const makeStreamResponse: (
 
           case "response.output_item.added": {
             switch (event.item.type) {
+              case "apply_patch_call": {
+                // TODO(Max)
+                break
+              }
+
               case "code_interpreter_call": {
+                const toolName = toolNameMapper.getCustomName("code_interpreter")
                 activeToolCalls[event.output_index] = {
                   id: event.item.id,
-                  name: "OpenAiCodeInterpreter",
+                  name: toolName,
                   codeInterpreter: { containerId: event.item.container_id }
                 }
                 parts.push({
                   type: "tool-params-start",
                   id: event.item.id,
-                  name: "OpenAiCodeInterpreter",
-                  providerName: "code_interpreter",
+                  name: toolName,
                   providerExecuted: true
                 })
                 parts.push({
@@ -1096,55 +1242,29 @@ const makeStreamResponse: (
               }
 
               case "computer_call": {
-                // TODO(Max): support computer use
-                break
-              }
-
-              case "file_search_call": {
+                const toolName = toolNameMapper.getCustomName("computer_use")
                 activeToolCalls[event.output_index] = {
                   id: event.item.id,
-                  name: "OpenAiFileSearch"
+                  name: toolName
                 }
                 parts.push({
                   type: "tool-params-start",
                   id: event.item.id,
-                  name: "OpenAiFileSearch",
-                  providerName: "file_search",
+                  name: toolName,
                   providerExecuted: true
                 })
                 break
               }
 
-              case "image_generation_call": {
-                activeToolCalls[event.output_index] = {
-                  id: event.item.id,
-                  name: "OpenAiImageGeneration"
-                }
-                // Emit tool-call immediately for image generation
+              case "file_search_call": {
+                const toolName = toolNameMapper.getCustomName("file_search")
                 parts.push({
                   type: "tool-call",
                   id: event.item.id,
-                  name: "OpenAiImageGeneration",
+                  name: toolName,
                   params: {},
-                  providerName: "image_generation",
                   providerExecuted: true
                 })
-                break
-              }
-
-              case "local_shell_call": {
-                activeToolCalls[event.output_index] = {
-                  id: event.item.id,
-                  name: "OpenAiLocalShell"
-                }
-                break
-              }
-
-              case "shell_call": {
-                activeToolCalls[event.output_index] = {
-                  id: event.item.id,
-                  name: "OpenAiFunctionShell"
-                }
                 break
               }
 
@@ -1161,13 +1281,32 @@ const makeStreamResponse: (
                 break
               }
 
+              case "image_generation_call": {
+                const toolName = toolNameMapper.getCustomName("image_generation")
+                parts.push({
+                  type: "tool-call",
+                  id: event.item.id,
+                  name: toolName,
+                  params: {},
+                  providerExecuted: true
+                })
+                break
+              }
+
+              case "mcp_call":
+              case "mcp_list_tools":
+              case "mcp_approval_request": {
+                // TODO(Max)
+                break
+              }
+
               case "message": {
                 // Clear annotations for new message
                 ongoingAnnotations.length = 0
                 parts.push({
                   type: "text-start",
                   id: event.item.id,
-                  metadata: makeItemIdMetadata(event.item.id)
+                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
                 })
                 break
               }
@@ -1183,24 +1322,46 @@ const makeStreamResponse: (
                   id: `${event.item.id}:0`,
                   metadata: {
                     openai: {
-                      itemId: event.item.id,
-                      ...(encryptedContent && { encryptedContent })
+                      ...makeItemIdMetadata(event.item.id),
+                      ...makeEncryptedContentMetadata(event.item.encrypted_content)
                     }
                   }
                 })
                 break
               }
 
-              case "web_search_call": {
+              case "shell_call": {
+                const toolName = toolNameMapper.getCustomName("shell")
                 activeToolCalls[event.output_index] = {
                   id: event.item.id,
-                  name: webSearchTool?.name ?? "OpenAiWebSearch"
+                  name: toolName
+                }
+                break
+              }
+
+              case "web_search_call": {
+                const toolName = toolNameMapper.getCustomName(
+                  webSearchTool?.providerName ?? "web_search"
+                )
+                activeToolCalls[event.output_index] = {
+                  id: event.item.id,
+                  name: toolName
                 }
                 parts.push({
                   type: "tool-params-start",
                   id: event.item.id,
                   name: webSearchTool?.name ?? "OpenAiWebSearch",
-                  providerName: webSearchTool?.providerName ?? "web_search",
+                  providerExecuted: true
+                })
+                parts.push({
+                  type: "tool-params-end",
+                  id: event.item.id
+                })
+                parts.push({
+                  type: "tool-call",
+                  id: event.item.id,
+                  name: toolName,
+                  params: {},
                   providerExecuted: true
                 })
                 break
@@ -1212,28 +1373,28 @@ const makeStreamResponse: (
 
           case "response.output_item.done": {
             switch (event.item.type) {
+              case "apply_patch_call": {
+                // TODO(Max)
+                break
+              }
+
               case "code_interpreter_call": {
                 delete activeToolCalls[event.output_index]
-                // tool-call is emitted in code_interpreter_call_code.done
+                const toolName = toolNameMapper.getCustomName("code_interpreter")
                 parts.push({
                   type: "tool-result",
                   id: event.item.id,
-                  name: "OpenAiCodeInterpreter",
+                  name: toolName,
                   isFailure: false,
                   result: { outputs: event.item.outputs },
-                  providerName: "code_interpreter",
                   providerExecuted: true
                 })
                 break
               }
 
-              // TODO(Max): support computer use
               case "computer_call": {
-                break
-              }
-
-              case "file_search_call": {
                 delete activeToolCalls[event.output_index]
+                const toolName = toolNameMapper.getCustomName("computer_use")
                 parts.push({
                   type: "tool-params-end",
                   id: event.item.id
@@ -1241,120 +1402,42 @@ const makeStreamResponse: (
                 parts.push({
                   type: "tool-call",
                   id: event.item.id,
-                  name: "OpenAiFileSearch",
+                  name: toolName,
                   params: {},
-                  providerName: "file_search",
                   providerExecuted: true
                 })
                 parts.push({
                   type: "tool-result",
                   id: event.item.id,
-                  name: "OpenAiFileSearch",
+                  name: toolName,
                   isFailure: false,
-                  result: {
-                    status: event.item.status,
-                    queries: event.item.queries,
-                    ...(event.item.results && { results: event.item.results })
-                  },
-                  providerName: "file_search",
-                  providerExecuted: true
+                  result: { status: event.item.status ?? "completed" }
                 })
                 break
               }
 
-              case "image_generation_call": {
+              case "file_search_call": {
                 delete activeToolCalls[event.output_index]
-                // Emit final tool-result with complete image data
+                const toolName = toolNameMapper.getCustomName("file_search")
+                const results = Predicate.isNotNullish(event.item.results)
+                  ? { results: event.item.results }
+                  : undefined
                 parts.push({
                   type: "tool-result",
                   id: event.item.id,
-                  name: "OpenAiImageGeneration",
+                  name: toolName,
                   isFailure: false,
-                  result: event.item.result ?? { status: "completed" },
-                  providerName: "image_generation",
-                  providerExecuted: true
-                })
-                break
-              }
-
-              case "local_shell_call": {
-                delete activeToolCalls[event.output_index]
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.id,
-                  name: "OpenAiLocalShell",
-                  params: { action: event.item.action },
-                  providerName: "local_shell",
-                  providerExecuted: true
-                })
-                break
-              }
-
-              case "shell_call": {
-                delete activeToolCalls[event.output_index]
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.id,
-                  name: "OpenAiFunctionShell",
-                  params: { action: event.item.action },
-                  providerName: "shell",
-                  providerExecuted: true
-                })
-                break
-              }
-
-              case "mcp_call": {
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.id,
-                  name: "OpenAiMcp",
-                  params: {
-                    server_label: event.item.server_label,
-                    name: event.item.name,
-                    arguments: event.item.arguments
-                  },
-                  providerName: "mcp",
-                  providerExecuted: true
-                })
-                parts.push({
-                  type: "tool-result",
-                  id: event.item.id,
-                  name: "OpenAiMcp",
-                  isFailure: event.item.error != null,
-                  result: event.item.error ?? event.item.output,
-                  providerName: "mcp",
-                  providerExecuted: true
-                })
-                break
-              }
-
-              case "mcp_list_tools": {
-                // No UI representation, skip
-                break
-              }
-
-              case "mcp_approval_request": {
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.id,
-                  name: "OpenAiMcpApprovalRequest",
-                  params: {
-                    server_label: event.item.server_label,
-                    name: event.item.name,
-                    arguments: event.item.arguments
-                  },
-                  providerName: "mcp_approval_request",
+                  result: { ...results, status: event.item.status, queries: event.item.queries },
                   providerExecuted: true
                 })
                 break
               }
 
               case "function_call": {
+                delete activeToolCalls[event.output_index]
                 hasToolCalls = true
-
                 const toolName = event.item.name
                 const toolParams = event.item.arguments
-
                 const params = yield* Effect.try({
                   try: () => Tool.unsafeSecureJsonParse(toolParams),
                   catch: (cause) =>
@@ -1367,43 +1450,74 @@ const makeStreamResponse: (
                       })
                     })
                 })
-
                 parts.push({
                   type: "tool-params-end",
                   id: event.item.call_id
                 })
-
                 parts.push({
                   type: "tool-call",
                   id: event.item.call_id,
                   name: toolName,
                   params,
-                  metadata: makeItemIdMetadata(event.item.id)
+                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
                 })
+                break
+              }
 
-                delete activeToolCalls[event.output_index]
+              case "image_generation_call": {
+                const toolName = toolNameMapper.getCustomName("image_generation")
+                parts.push({
+                  type: "tool-result",
+                  id: event.item.id,
+                  name: toolName,
+                  isFailure: false,
+                  result: { result: event.item.result },
+                  providerExecuted: true
+                })
+                break
+              }
 
+              case "local_shell_call": {
+                const toolName = toolNameMapper.getCustomName("")
+                parts.push({
+                  type: "tool-call",
+                  id: event.item.call_id,
+                  name: toolName,
+                  params: { action: event.item.action },
+                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
+                })
+                break
+              }
+
+              case "mcp_call": {
+                // TODO(Max)
+                break
+              }
+
+              case "mcp_list_tools": {
+                // TODO(Max)
+                break
+              }
+
+              case "mcp_approval_request": {
+                // TODO(Max)
                 break
               }
 
               case "message": {
+                const annotations = ongoingAnnotations.length > 0
+                  ? { annotations: ongoingAnnotations.slice() }
+                  : undefined
                 parts.push({
                   type: "text-end",
                   id: event.item.id,
-                  metadata: {
-                    openai: {
-                      itemId: event.item.id,
-                      ...(ongoingAnnotations.length > 0 && { annotations: [...ongoingAnnotations] })
-                    }
-                  }
+                  metadata: { openai: { ...annotations, ...makeItemIdMetadata(event.item.id) } }
                 })
                 break
               }
 
               case "reasoning": {
                 const reasoningPart = activeReasoning[event.item.id]
-                const encryptedContent = event.item.encrypted_content ?? undefined
-                // Conclude all active or can-conclude parts
                 for (const [summaryIndex, status] of Object.entries(reasoningPart.summaryParts)) {
                   if (status === "active" || status === "can-conclude") {
                     parts.push({
@@ -1411,39 +1525,41 @@ const makeStreamResponse: (
                       id: `${event.item.id}:${summaryIndex}`,
                       metadata: {
                         openai: {
-                          itemId: event.item.id,
-                          ...(encryptedContent && { encryptedContent })
+                          ...makeItemIdMetadata(event.item.id),
+                          ...makeEncryptedContentMetadata(event.item.encrypted_content)
                         }
                       }
                     })
-                    reasoningPart.summaryParts[Number(summaryIndex)] = "concluded"
                   }
                 }
                 delete activeReasoning[event.item.id]
                 break
               }
 
-              case "web_search_call": {
+              case "shell_call": {
                 delete activeToolCalls[event.output_index]
-                parts.push({
-                  type: "tool-params-end",
-                  id: event.item.id
-                })
+                const toolName = toolNameMapper.getCustomName("shell")
                 parts.push({
                   type: "tool-call",
                   id: event.item.id,
-                  name: "OpenAiWebSearch",
+                  name: toolName,
                   params: { action: event.item.action },
-                  providerName: "web_search",
-                  providerExecuted: true
+                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
                 })
+                break
+              }
+
+              case "web_search_call": {
+                delete activeToolCalls[event.output_index]
+                const toolName = toolNameMapper.getCustomName(
+                  webSearchTool?.name ?? "web_search"
+                )
                 parts.push({
                   type: "tool-result",
                   id: event.item.id,
-                  name: "OpenAiWebSearch",
+                  name: toolName,
                   isFailure: false,
-                  result: { status: event.item.status },
-                  providerName: "web_search",
+                  result: { action: event.item.action, status: event.item.status },
                   providerExecuted: true
                 })
                 break
@@ -1466,14 +1582,53 @@ const makeStreamResponse: (
             const annotation = event.annotation as typeof Generated.Annotation.Encoded
             // Track annotation for text-end metadata
             ongoingAnnotations.push(annotation)
-            if (annotation.type === "file_citation") {
+            if (annotation.type === "container_file_citation") {
               parts.push({
                 type: "source",
                 sourceType: "document",
                 id: yield* idGenerator.generateId(),
                 mediaType: "text/plain",
-                title: annotation.filename ?? "Untitled Document",
-                fileName: annotation.filename ?? annotation.file_id
+                title: annotation.filename,
+                fileName: annotation.filename,
+                metadata: {
+                  openai: {
+                    type: annotation.type,
+                    fileId: annotation.file_id,
+                    containerId: annotation.container_id
+                  }
+                }
+              })
+            } else if (annotation.type === "file_citation") {
+              parts.push({
+                type: "source",
+                sourceType: "document",
+                id: yield* idGenerator.generateId(),
+                mediaType: "text/plain",
+                title: annotation.filename,
+                fileName: annotation.filename,
+                metadata: {
+                  openai: {
+                    type: annotation.type,
+                    fileId: annotation.file_id,
+                    index: annotation.index
+                  }
+                }
+              })
+            } else if (annotation.type === "file_path") {
+              parts.push({
+                type: "source",
+                sourceType: "document",
+                id: yield* idGenerator.generateId(),
+                mediaType: "application/octet-stream",
+                title: annotation.file_id,
+                fileName: annotation.file_id,
+                metadata: {
+                  openai: {
+                    type: annotation.type,
+                    fileId: annotation.file_id,
+                    index: annotation.index
+                  }
+                }
               })
             } else if (annotation.type === "url_citation") {
               parts.push({
@@ -1481,25 +1636,14 @@ const makeStreamResponse: (
                 sourceType: "url",
                 id: yield* idGenerator.generateId(),
                 url: annotation.url,
-                title: annotation.title
-              })
-            } else if (annotation.type === "container_file_citation") {
-              parts.push({
-                type: "source",
-                sourceType: "document",
-                id: yield* idGenerator.generateId(),
-                mediaType: "text/plain",
-                title: annotation.file_id,
-                fileName: annotation.file_id
-              })
-            } else if (annotation.type === "file_path") {
-              parts.push({
-                type: "source",
-                sourceType: "document",
-                id: yield* idGenerator.generateId(),
-                mediaType: "text/plain",
-                title: annotation.file_id,
-                fileName: annotation.file_id
+                title: annotation.title,
+                metadata: {
+                  openai: {
+                    type: annotation.type,
+                    startIndex: annotation.start_index,
+                    endIndex: annotation.end_index
+                  }
+                }
               })
             }
             break
@@ -1507,7 +1651,7 @@ const makeStreamResponse: (
 
           case "response.function_call_arguments.delta": {
             const toolCallPart = activeToolCalls[event.output_index]
-            if (toolCallPart != null) {
+            if (Predicate.isNotUndefined(toolCallPart)) {
               parts.push({
                 type: "tool-params-delta",
                 id: toolCallPart.id,
@@ -1519,7 +1663,7 @@ const makeStreamResponse: (
 
           case "response.code_interpreter_call_code.delta": {
             const toolCall = activeToolCalls[event.output_index]
-            if (toolCall != null) {
+            if (Predicate.isNotUndefined(toolCall)) {
               parts.push({
                 type: "tool-params-delta",
                 id: toolCall.id,
@@ -1531,7 +1675,8 @@ const makeStreamResponse: (
 
           case "response.code_interpreter_call_code.done": {
             const toolCall = activeToolCalls[event.output_index]
-            if (toolCall != null && toolCall.codeInterpreter != null) {
+            if (Predicate.isNotUndefined(toolCall) && Predicate.isNotUndefined(toolCall.codeInterpreter)) {
+              const toolName = toolNameMapper.getCustomName("code_interpreter")
               parts.push({
                 type: "tool-params-delta",
                 id: toolCall.id,
@@ -1541,9 +1686,11 @@ const makeStreamResponse: (
               parts.push({
                 type: "tool-call",
                 id: toolCall.id,
-                name: "OpenAiCodeInterpreter",
-                params: { code: event.code, container_id: toolCall.codeInterpreter.containerId },
-                providerName: "code_interpreter",
+                name: toolName,
+                params: {
+                  code: event.code,
+                  container_id: toolCall.codeInterpreter.containerId
+                },
                 providerExecuted: true
               })
             }
@@ -1551,23 +1698,8 @@ const makeStreamResponse: (
           }
 
           case "response.image_generation_call.partial_image": {
-            const toolCall = activeToolCalls[event.output_index]
-            if (toolCall != null) {
-              // Emit preliminary tool-result with partial image
-              // Note: partial results are identified by partial_image_index in the result
-              parts.push({
-                type: "tool-result",
-                id: toolCall.id,
-                name: "OpenAiImageGeneration",
-                isFailure: false,
-                result: {
-                  partial_image_b64: event.partial_image_b64,
-                  partial_image_index: event.partial_image_index
-                },
-                providerName: "image_generation",
-                providerExecuted: true
-              })
-            }
+            // TODO(Max): determine if there is a way for us to stream preliminary tool call
+            // results like the AI SDK does
             break
           }
 
@@ -1575,21 +1707,21 @@ const makeStreamResponse: (
             // The first reasoning start is pushed in the `response.output_item.added` block
             if (event.summary_index > 0) {
               const reasoningPart = activeReasoning[event.item_id]
-              if (reasoningPart != null) {
+              if (Predicate.isNotUndefined(reasoningPart)) {
                 // Conclude all can-conclude parts before starting new one
-                for (const [idx, status] of Object.entries(reasoningPart.summaryParts)) {
+                for (const [summaryIndex, status] of Object.entries(reasoningPart.summaryParts)) {
                   if (status === "can-conclude") {
                     parts.push({
                       type: "reasoning-end",
-                      id: `${event.item_id}:${idx}`,
+                      id: `${event.item_id}:${summaryIndex}`,
                       metadata: {
                         openai: {
-                          itemId: event.item_id,
-                          ...(reasoningPart.encryptedContent && { encryptedContent: reasoningPart.encryptedContent })
+                          ...makeItemIdMetadata(event.item_id),
+                          ...makeEncryptedContentMetadata(reasoningPart.encryptedContent)
                         }
                       }
                     })
-                    reasoningPart.summaryParts[Number(idx)] = "concluded"
+                    reasoningPart.summaryParts[Number(summaryIndex)] = "concluded"
                   }
                 }
                 reasoningPart.summaryParts[event.summary_index] = "active"
@@ -1599,22 +1731,11 @@ const makeStreamResponse: (
                 id: `${event.item_id}:${event.summary_index}`,
                 metadata: {
                   openai: {
-                    itemId: event.item_id,
-                    ...(reasoningPart?.encryptedContent && { encryptedContent: reasoningPart.encryptedContent })
+                    ...makeItemIdMetadata(event.item_id),
+                    ...makeEncryptedContentMetadata(reasoningPart.encryptedContent)
                   }
                 }
               })
-            }
-            break
-          }
-
-          case "response.reasoning_summary_part.done": {
-            const reasoningPart = activeReasoning[event.item_id]
-            if (reasoningPart != null) {
-              // Mark as can-conclude; will be concluded when new part starts or item done
-              // Note: The actual concluding based on `store` config would need the config
-              // passed to makeStreamResponse, but for now we just mark as can-conclude
-              reasoningPart.summaryParts[event.summary_index] = "can-conclude"
             }
             break
           }
@@ -1624,8 +1745,27 @@ const makeStreamResponse: (
               type: "reasoning-delta",
               id: `${event.item_id}:${event.summary_index}`,
               delta: event.delta,
-              metadata: makeItemIdMetadata(event.item_id)
+              metadata: { openai: { ...makeItemIdMetadata(event.item_id) } }
             })
+            break
+          }
+
+          case "response.reasoning_summary_part.done": {
+            // When OpenAI stores message data, we can immediately conclude the
+            // reasoning part given that we do not need the encrypted content
+            if (config.store === true) {
+              parts.push({
+                type: "reasoning-end",
+                id: `${event.item_id}:${event.summary_index}`,
+                metadata: { openai: { ...makeItemIdMetadata(event.item_id) } }
+              })
+              // Mark the summary part concluded
+              activeReasoning[event.item_id].summaryParts[event.summary_index] = "concluded"
+            } else {
+              // Mark the summary part as can-conclude given we still need a
+              // final summary part with the encrypted content
+              activeReasoning[event.item_id].summaryParts[event.summary_index] = "can-conclude"
+            }
             break
           }
         }
@@ -1795,7 +1935,7 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
           })
           break
         }
-        case "OpenAiFunctionShell": {
+        case "OpenAiShell": {
           tools.push({ type: "shell" })
           break
         }
@@ -1925,6 +2065,9 @@ const getImageDetail = (part: Prompt.FilePart): typeof Generated.ImageDetail.Enc
   part.options.openai?.imageDetail ?? "auto"
 
 const makeItemIdMetadata = (itemId: string | undefined) => Predicate.isNotUndefined(itemId) ? { itemId } : undefined
+
+const makeEncryptedContentMetadata = (encryptedContent: string | null | undefined) =>
+  Predicate.isNotNullish(encryptedContent) ? { encryptedContent } : undefined
 
 const prepareResponseFormat = ({ config, options }: {
   readonly config: typeof Config.Service
