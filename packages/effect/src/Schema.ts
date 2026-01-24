@@ -8534,6 +8534,7 @@ export declare namespace Annotations {
     readonly writeOnly?: boolean | undefined
     readonly format?: string | undefined
     readonly contentEncoding?: string | undefined
+    readonly contentMediaType?: string | undefined
   }
 
   /**
