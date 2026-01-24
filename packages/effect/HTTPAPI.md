@@ -922,7 +922,7 @@ curl -H "X-API-Key: 1234567890" -H "X-Request-ID: 1234567890" http://localhost:3
 
 The server validates these headers against the declared schema before handling the request.
 
-### Status Codes (TODO: does this work?)
+### Status Codes
 
 By default, the success status code is `200 OK`. You can change it by annotating the schema with a custom status.
 
@@ -945,7 +945,8 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.get("getUsers", "/users", {
-          success: Schema.Array(User) // how to set the status code?
+          success: Schema.Array(User)
+            .annotate({ httpApiStatus: 206 })
         })
       )
   )
