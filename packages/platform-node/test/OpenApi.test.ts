@@ -20,8 +20,7 @@ describe("OpenAPI spec", () => {
           "application/octet-stream": {
             schema: {
               "type": "string",
-              "format": "byte",
-              "contentEncoding": "base64"
+              "format": "binary"
             }
           }
         })

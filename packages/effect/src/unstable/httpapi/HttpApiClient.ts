@@ -475,7 +475,8 @@ const schemaFromArrayBuffer = (
 ): Schema.decodeTo<Schema.Any, Schema.instanceOf<ArrayBuffer>> => {
   if (AST.isUnion(ast)) {
     return Schema.Union(
-      ast.types.map((ast) => schemaFromArrayBuffer(ast, HttpApiSchema.getEncoding(ast, encoding)))
+      ast.types.map((ast) => schemaFromArrayBuffer(ast, HttpApiSchema.getEncoding(ast, encoding))),
+      { mode: ast.mode }
     ) as any
   }
   const schema = Schema.make(ast)

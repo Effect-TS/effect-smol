@@ -329,8 +329,8 @@ export declare namespace Encoding {
     : never
 }
 
-const defaultContentType = (encoding: Encoding["kind"]) => {
-  switch (encoding) {
+const defaultContentType = (kind: Encoding["kind"]) => {
+  switch (kind) {
     case "Json": {
       return "application/json"
     }

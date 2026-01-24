@@ -603,7 +603,8 @@ const makeSecurityMiddleware = (
 
 const HttpServerResponseSchema = Schema.declare(Response.isHttpServerResponse)
 
-const makeSuccessSchema = (
+/** @internal */
+export const makeSuccessSchema = (
   schema: Schema.Top
 ): Schema.Codec<unknown, HttpServerResponse> => {
   const schemas = new Set<Schema.Schema<any>>()
@@ -651,7 +652,7 @@ const responseTransformation = <A, I, RD, RE>(
               contentType: encoding.contentType
             }))
           } catch (error) {
-            return Effect.fail(new Issue.InvalidType(ast, Option.some(error)))
+            return Effect.fail(new Issue.InvalidValue(Option.some(data)))
           }
         }
         case "Text": {

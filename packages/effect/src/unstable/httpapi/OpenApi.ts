@@ -8,7 +8,7 @@ import * as JsonPatch from "../../JsonPatch.ts"
 import { escapeToken } from "../../JsonPointer.ts"
 import * as JsonSchema from "../../JsonSchema.ts"
 import * as Option from "../../Option.ts"
-import type * as Schema from "../../Schema.ts"
+import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as SchemaRepresentation from "../../SchemaRepresentation.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -183,6 +183,10 @@ function processAnnotation<Services, S, I>(
   }
 }
 
+const Uint8ArrayEncoding = Schema.String.annotate({
+  format: "binary"
+})
+
 /**
  * Converts an `HttpApi` instance into an OpenAPI Specification object.
  *
@@ -210,12 +214,12 @@ function processAnnotation<Services, S, I>(
  * @category constructors
  * @since 4.0.0
  */
-export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
+export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
     readonly additionalProperties?: boolean | JsonSchema.JsonSchema | undefined
   } | undefined
-): OpenAPISpec => {
+): OpenAPISpec {
   const cached = apiCache.get(api)
   if (cached !== undefined) {
     return cached
@@ -436,7 +440,11 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
           throw new globalThis.Error(`Duplicate component schema identifier: ${identifier}`)
         }
         spec.components.schemas[identifier] = {}
-        irOps.push({ _tag: "schema", ast: componentSchema.ast, path: ["components", "schemas", identifier] })
+        irOps.push({
+          _tag: "schema",
+          ast: componentSchema.ast,
+          path: ["components", "schemas", identifier]
+        })
       }
     })
   })
@@ -446,7 +454,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   if (Arr.isArrayNonEmpty(irOps)) {
-    const multiDocument = SchemaRepresentation.fromASTs(Arr.map(irOps, ({ ast }) => ast))
+    const multiDocument = SchemaRepresentation.fromASTs(Arr.map(irOps, (op) => getEncoding(op.ast)))
     const jsonSchemaMultiDocument = JsonSchema.toMultiDocumentOpenApi3_1(
       SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument, {
         additionalProperties: options?.additionalProperties
@@ -490,6 +498,25 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   apiCache.set(api, spec)
 
   return spec
+}
+
+function getEncoding(ast: AST.AST): AST.AST {
+  const encoding = HttpApiSchema.getEncoding(ast)
+  switch (encoding.kind) {
+    case "Uint8Array":
+      // For `application/octet-stream` (raw bytes) we must emit a binary schema,
+      // not the JSON representation used by `Schema.Uint8Array` (base64 string).
+      return Uint8ArrayEncoding.ast
+    case "Text":
+      // For `text/plain` the wire format is a plain string, independent of the
+      // endpoint schema structure used for JSON bodies / url-encoded params.
+      return Schema.String.ast
+    case "UrlParams":
+    case "Json":
+      // `UrlParams` and `Json` can reuse the original schema AST as-is: the schema
+      // already describes the structured data (object/record/etc) we want to expose.
+      return ast
+  }
 }
 
 const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme => {
