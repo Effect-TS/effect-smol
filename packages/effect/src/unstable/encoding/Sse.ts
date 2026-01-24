@@ -80,7 +80,7 @@ export const decodeSchema = <Type, DecodingServices, IE, Done>(
 > => {
   const eventSchema = Schema.Struct({
     ...EventEncoded.fields,
-    data: schema
+    data: Schema.fromJsonString(schema)
   })
   return Channel.pipeTo(
     decode<IE, Done>(),

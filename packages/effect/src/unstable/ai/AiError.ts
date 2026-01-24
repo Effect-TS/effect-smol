@@ -1189,8 +1189,6 @@ export const reasonFromHttpStatus = (params: {
  *     return data
  *   }
  *   return yield* new AiError.MalformedInput({
- *     module: "ChatBot",
- *     method: "processMessage",
  *     description: "Input must be a non-empty string"
  *   })
  * })
@@ -1210,8 +1208,6 @@ export class MalformedInput extends Schema.ErrorClass<MalformedInput>(
   "effect/ai/AiError/MalformedInput"
 )({
   _tag: Schema.tag("MalformedInput"),
-  module: Schema.String,
-  method: Schema.String,
   description: Schema.optional(Schema.String),
   cause: Schema.optional(Schema.Defect)
 }) {

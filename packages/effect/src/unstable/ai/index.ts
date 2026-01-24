@@ -455,7 +455,7 @@ export * as Tokenizer from "./Tokenizer.ts"
  * })
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export * as Tool from "./Tool.ts"
 

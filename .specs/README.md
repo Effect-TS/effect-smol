@@ -11,3 +11,6 @@ This directory contains specifications for all major features and enhancements i
 - [http-server-error-reason-pattern.md](http-server-error-reason-pattern.md) - Refactor HttpServerError to use the reason pattern with per-reason classes.
 - [Effect.ignore log option + remove ignoreLogged](./effect-ignore-log.md) - Add optional logging to `Effect.ignore` and remove `Effect.ignoreLogged`.
 - [effect-jsdoc-improvements.md](effect-jsdoc-improvements.md) - Improve JSDoc clarity and consistency for `Effect.ts`.
+- [OPENAI_ERROR_MAPPING.md](OPENAI_ERROR_MAPPING.md) - Granular error mapping for OpenAI-specific errors.
+- [OPENAI_LANGUAGE_MODEL_PORT.md](OPENAI_LANGUAGE_MODEL_PORT.md) - Port OpenAiLanguageModel implementation to Effect v4.
+- [OPENAI_STREAM_RESPONSE_ALIGNMENT.md](OPENAI_STREAM_RESPONSE_ALIGNMENT.md) - Align makeStreamResponse with Vercel AI SDK doStream implementation.

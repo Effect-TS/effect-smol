@@ -7,10 +7,6 @@
  * - Provider metadata construction
  * - HTTP context building for debugging
  *
- * **CRITICAL**: Yieldable errors must be directly `yield*`ed in generators,
- * never wrapped in `Effect.fail`. Use `return yield* AiError.make(...)` instead
- * of `return yield* Effect.fail(AiError.make(...))`.
- *
  * @since 1.0.0
  */
 import * as Duration from "effect/Duration"

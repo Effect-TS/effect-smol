@@ -67,8 +67,6 @@
       "./package.json": "./package.json",
       ".": "./dist/index.js",
       "./encoding": "./dist/encoding/index.js",
-      "./platform": "./dist/platform/index.js",
-      "./stm": "./dist/stm/index.js",
       "./testing": "./dist/testing/index.js",
       "./unstable/ai": "./dist/unstable/ai/index.js",
       "./unstable/cli": "./dist/unstable/cli/index.js",

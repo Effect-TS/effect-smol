@@ -83,7 +83,7 @@ export interface Service {
  * @category context
  */
 export class OpenAiClient extends ServiceMap.Service<OpenAiClient, Service>()(
-  "effect/ai/openai/OpenAiClient"
+  "@effect/ai-openai/OpenAiClient"
 ) {}
 
 // =============================================================================
@@ -223,7 +223,7 @@ export const make = Effect.fnUntraced(
         Stream.map((event) => event.data),
         Stream.catchTags({
           // TODO: handle SSE retries
-          Retry: (error) => Effect.die(error),
+          Retry: (error) => Stream.die(error),
           RequestError: (error) => Stream.fail(mapRequestError(error, "streamRequest")),
           ResponseError: (error) => Stream.unwrap(mapResponseError(error, "streamRequest")),
           SchemaError: (error) => Stream.fail(mapSchemaError(error, "streamRequest"))
@@ -295,7 +295,7 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
  * @since 1.0.0
  * @category layers
  */
-export const layerConfig = (options: {
+export const layerConfig = (options?: {
   /**
    * The config value to load for the API key.
    *
@@ -326,14 +326,14 @@ export const layerConfig = (options: {
   Layer.effect(
     OpenAiClient,
     Effect.gen(function*() {
-      const apiKey = yield* (options.apiKey ?? Config.redacted("OPENAI_API_KEY"))
-      const apiUrl = Predicate.isNotUndefined(options.apiUrl)
+      const apiKey = yield* (options?.apiKey ?? Config.redacted("OPENAI_API_KEY"))
+      const apiUrl = Predicate.isNotUndefined(options?.apiUrl)
         ? yield* options.apiUrl :
         undefined
-      const organizationId = Predicate.isNotUndefined(options.organizationId)
+      const organizationId = Predicate.isNotUndefined(options?.organizationId)
         ? yield* options.organizationId
         : undefined
-      const projectId = Predicate.isNotUndefined(options.projectId)
+      const projectId = Predicate.isNotUndefined(options?.projectId)
         ? yield* options.projectId :
         undefined
       return yield* make({
@@ -341,7 +341,7 @@ export const layerConfig = (options: {
         apiUrl,
         organizationId,
         projectId,
-        transformClient: options.transformClient
+        transformClient: options?.transformClient
       })
     })
   )

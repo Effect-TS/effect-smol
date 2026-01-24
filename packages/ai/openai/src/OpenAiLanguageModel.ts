@@ -11,11 +11,13 @@ import * as Effect from "effect/Effect"
 import * as Base64 from "effect/encoding/Base64"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
+import * as Predicate from "effect/Predicate"
+import * as Schema from "effect/Schema"
 import * as AST from "effect/SchemaAST"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import type { Span } from "effect/Tracer"
-import type { DeepMutable, Mutable, Simplify } from "effect/Types"
+import type { DeepMutable, Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
 import * as IdGenerator from "effect/unstable/ai/IdGenerator"
 import * as LanguageModel from "effect/unstable/ai/LanguageModel"
@@ -41,52 +43,52 @@ export type Model = typeof Generated.ModelIdsResponses.Encoded
 // =============================================================================
 
 /**
- * @since 1.0.0
- * @category models
- */
-export interface ConfigService extends
-  Simplify<
-    Partial<
-      Omit<
-        typeof Generated.CreateResponse.Encoded,
-        "input" | "tools" | "tool_choice" | "stream" | "text"
-      >
-    >
-  >
-{
-  /**
-   * File ID prefixes used to identify file IDs in Responses API.
-   * When undefined, all file data is treated as base64 content.
-   *
-   * Examples:
-   * - OpenAI: ['file-'] for IDs like 'file-abc123'
-   * - Azure OpenAI: ['assistant-'] for IDs like 'assistant-abc123'
-   */
-  readonly fileIdPrefixes?: ReadonlyArray<string> | undefined
-  /**
-   * Configuration options for a text response from the model.
-   */
-  readonly text?: {
-    /**
-     * Constrains the verbosity of the model's response. Lower values will
-     * result in more concise responses, while higher values will result in
-     * more verbose responses.
-     *
-     * Defaults to `"medium"`.
-     */
-    readonly verbosity?: "low" | "medium" | "high" | undefined
-  } | undefined
-}
-
-/**
  * Context tag for OpenAI language model configuration.
  *
  * @since 1.0.0
  * @category context
  */
-export class Config extends ServiceMap.Service<Config, ConfigService>()(
-  "@effect/ai-openai/OpenAiLanguageModel/Config"
-) {}
+export class Config extends ServiceMap.Service<
+  Config,
+  Simplify<
+    & Partial<
+      Omit<
+        typeof Generated.CreateResponse.Encoded,
+        "input" | "tools" | "tool_choice" | "stream" | "text"
+      >
+    >
+    & {
+      /**
+       * File ID prefixes used to identify file IDs in Responses API.
+       * When undefined, all file data is treated as base64 content.
+       *
+       * Examples:
+       * - OpenAI: ['file-'] for IDs like 'file-abc123'
+       * - Azure OpenAI: ['assistant-'] for IDs like 'assistant-abc123'
+       */
+      readonly fileIdPrefixes?: ReadonlyArray<string> | undefined
+      /**
+       * Configuration options for a text response from the model.
+       */
+      readonly text?: {
+        /**
+         * Constrains the verbosity of the model's response. Lower values will
+         * result in more concise responses, while higher values will result in
+         * more verbose responses.
+         *
+         * Defaults to `"medium"`.
+         */
+        readonly verbosity?: "low" | "medium" | "high" | undefined
+      } | undefined
+      /**
+       * Whether to use strict JSON schema validation.
+       *
+       * Defaults to `true`.
+       */
+      readonly strictJsonSchema?: boolean | undefined
+    }
+  >
+>()("@effect/ai-openai/OpenAiLanguageModel/Config") {}
 
 // =============================================================================
 // OpenAI Provider Options / Metadata
@@ -123,6 +125,23 @@ declare module "effect/unstable/ai/Prompt" {
        * The ID of the item to reference.
        */
       readonly itemId?: string | undefined
+      /**
+       * The status of item.
+       */
+      readonly status?: typeof Generated.Message.Encoded["status"] | undefined
+    } | undefined
+  }
+
+  export interface ToolResultPartOptions extends ProviderOptions {
+    readonly openai?: {
+      /**
+       * The ID of the item to reference.
+       */
+      readonly itemId?: string | undefined
+      /**
+       * The status of item.
+       */
+      readonly status?: typeof Generated.Message.Encoded["status"] | undefined
     } | undefined
   }
 
@@ -132,6 +151,14 @@ declare module "effect/unstable/ai/Prompt" {
        * The ID of the item to reference.
        */
       readonly itemId?: string | undefined
+      /**
+       * The status of item.
+       */
+      readonly status?: typeof Generated.Message.Encoded["status"] | undefined
+      /**
+       * A list of annotations that apply to the output text.
+       */
+      readonly annotations?: ReadonlyArray<typeof Generated.Annotation.Encoded> | undefined
     } | undefined
   }
 }
@@ -146,6 +173,10 @@ declare module "effect/unstable/ai/Response" {
        * part.
        */
       readonly refusal?: string
+      /**
+       * The status of item.
+       */
+      readonly status?: typeof Generated.Message.Encoded["status"] | undefined
     }
   }
 
@@ -219,19 +250,6 @@ declare module "effect/unstable/ai/Response" {
   }
 }
 
-/**
- * @since 1.0.0
- */
-export declare namespace ProviderMetadata {
-  /**
-   * @since 1.0.0
-   * @category models
-   */
-  export interface Service {
-    "source": {} | {}
-  }
-}
-
 // =============================================================================
 // OpenAI Language Model
 // =============================================================================
@@ -242,32 +260,39 @@ export declare namespace ProviderMetadata {
  * @since 1.0.0
  * @category constructors
  */
-export const make = Effect.fnUntraced(function*(options: {
+export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: (string & {}) | Model
-  readonly config?: Omit<ConfigService, "model"> | undefined
+  readonly config?: Omit<typeof Config.Service, "model"> | undefined
 }) {
   const client = yield* OpenAiClient
 
-  const baseConfig: ConfigService = {
-    model: options.model,
-    ...options.config
-  }
-
-  const makeRequest: (providerOptions: LanguageModel.ProviderOptions) => Effect.Effect<
-    typeof Generated.CreateResponse.Encoded,
-    AiError.AiError
-  > = Effect.fnUntraced(
-    function*(providerOptions) {
-      const messages = yield* prepareMessages(providerOptions, baseConfig)
-      const { toolChoice, tools } = yield* prepareTools(providerOptions)
-      const include = prepareInclude(providerOptions, baseConfig)
-      const responseFormat = prepareResponseFormat(providerOptions)
-      const verbosity = baseConfig.text?.verbosity
+  const makeRequest = Effect.fnUntraced(
+    function*(options): Effect.fn.Return<typeof Generated.CreateResponse.Encoded, AiError.AiError> {
+      const services = yield* Effect.services<never>()
+      const config = { model, ...providerConfig, ...services.mapUnsafe.get(Config.key) }
+      const include = new Set<string>()
+      const capabilities = getModelCapabilities(config.model)
+      const toolNameMapper = OpenAiTool.createToolNameMapper(options.tools)
+      const messages = yield* prepareMessages({
+        config,
+        options,
+        capabilities,
+        include,
+        toolNameMapper
+      })
+      const { toolChoice, tools } = yield* prepareTools({
+        options,
+        toolNameMapper
+      })
+      const responseFormat = prepareResponseFormat({
+        config,
+        options
+      })
       const request: typeof Generated.CreateResponse.Encoded = {
-        ...baseConfig,
+        ...config,
         input: messages,
-        include: include ?? null,
-        text: { format: responseFormat, verbosity },
+        include: include.size > 0 ? include : null,
+        text: { ...config.text, format: responseFormat },
         tools,
         tool_choice: toolChoice
       }
@@ -277,26 +302,26 @@ export const make = Effect.fnUntraced(function*(options: {
 
   return yield* LanguageModel.make({
     generateText: Effect.fnUntraced(
-      function*(providerOptions) {
-        const request = yield* makeRequest(providerOptions)
-        annotateRequest(providerOptions.span, request)
+      function*(options) {
+        const request = yield* makeRequest(options)
+        annotateRequest(options.span, request)
         const rawResponse = yield* client.createResponse(request)
-        annotateResponse(providerOptions.span, rawResponse)
-        return yield* makeResponse(rawResponse, providerOptions)
+        annotateResponse(options.span, rawResponse)
+        return yield* makeResponse(rawResponse, options)
       }
     ),
     streamText: Effect.fnUntraced(
-      function*(providerOptions) {
-        const request = yield* makeRequest(providerOptions)
-        annotateRequest(providerOptions.span, request)
+      function*(options) {
+        const request = yield* makeRequest(options)
+        annotateRequest(options.span, request)
         return client.createResponseStream(request)
       },
-      (effect, providerOptions) =>
+      (effect, options) =>
         effect.pipe(
-          Effect.flatMap((stream) => makeStreamResponse(stream, providerOptions)),
+          Effect.flatMap((stream) => makeStreamResponse(stream, options)),
           Stream.unwrap,
           Stream.map((response) => {
-            annotateStreamResponse(providerOptions.span, response)
+            annotateStreamResponse(options.span, response)
             return response
           })
         )
@@ -312,7 +337,7 @@ export const make = Effect.fnUntraced(function*(options: {
  */
 export const layer = (options: {
   readonly model: (string & {}) | Model
-  readonly config?: Omit<ConfigService, "model"> | undefined
+  readonly config?: Omit<typeof Config.Service, "model"> | undefined
 }): Layer.Layer<LanguageModel.LanguageModel, never, OpenAiClient> =>
   Layer.effect(LanguageModel.LanguageModel, make(options))
 
@@ -323,11 +348,13 @@ export const layer = (options: {
  * @category configuration
  */
 export const withConfigOverride: {
-  (overrides: ConfigService): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>
-  <A, E, R>(self: Effect.Effect<A, E, R>, overrides: ConfigService): Effect.Effect<A, E, Exclude<R, Config>>
+  (overrides: typeof Config.Service): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>
+  <A, E, R>(self: Effect.Effect<A, E, R>, overrides: typeof Config.Service): Effect.Effect<A, E, Exclude<R, Config>>
 } = dual<
-  (overrides: ConfigService) => <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>,
-  <A, E, R>(self: Effect.Effect<A, E, R>, overrides: ConfigService) => Effect.Effect<A, E, Exclude<R, Config>>
+  (
+    overrides: typeof Config.Service
+  ) => <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>,
+  <A, E, R>(self: Effect.Effect<A, E, R>, overrides: typeof Config.Service) => Effect.Effect<A, E, Exclude<R, Config>>
 >(2, (self, overrides) =>
   Effect.flatMap(
     Effect.serviceOption(Config),
@@ -350,166 +377,366 @@ const getSystemMessageMode = (model: string): "system" | "developer" =>
     ? "developer"
     : "system"
 
-const prepareMessages: (
-  options: LanguageModel.ProviderOptions,
-  config: ConfigService
-) => Effect.Effect<
-  ReadonlyArray<typeof Generated.InputItem.Encoded>,
-  AiError.AiError
-> = Effect.fnUntraced(function*(options, config) {
-  const messages: Array<typeof Generated.InputItem.Encoded> = []
+const prepareMessages = Effect.fnUntraced(
+  function*<Tools extends ReadonlyArray<Tool.Any>>({
+    config,
+    options,
+    capabilities,
+    include,
+    toolNameMapper
+  }: {
+    readonly config: typeof Config.Service
+    readonly options: LanguageModel.ProviderOptions
+    readonly include: Set<string>
+    readonly capabilities: ModelCapabilities
+    readonly toolNameMapper: Tool.NameMapper<Tools>
+  }): Effect.fn.Return<ReadonlyArray<typeof Generated.InputItem.Encoded>, AiError.AiError> {
+    const hasConversation = Predicate.isNotNullish(config.conversation)
 
-  for (const message of options.prompt.content) {
-    switch (message.role) {
-      case "system": {
-        messages.push({
-          role: getSystemMessageMode(config.model as string),
-          content: message.content
-        })
-        break
-      }
+    // Provider-Defined Tools
+    const applyPatchTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.ApplyPatch> =>
+      Tool.isProviderDefined(tool) && tool.name === "OpenAiApplyPatch"
+    )
+    const codeInterpreterTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.CodeInterpreter> =>
+      Tool.isProviderDefined(tool) && tool.name === "OpenAiCodeInterpreter"
+    )
+    const shellTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.FunctionShell> =>
+      Tool.isProviderDefined(tool) && tool.name === "OpenAiFunctionShell"
+    )
+    const localShellTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.LocalShell> =>
+      Tool.isProviderDefined(tool) && tool.name === "OpenAiLocalShell"
+    )
+    const webSearchTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.WebSearch> =>
+      Tool.isProviderDefined(tool) && tool.name === "OpenAiWebSearch"
+    )
+    const webSearchPreviewTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.WebSearchPreview> =>
+      Tool.isProviderDefined(tool) && tool.name === "OpenAiWebSearchPreview"
+    )
 
-      case "user": {
-        const content: Array<typeof Generated.InputContent.Encoded> = []
+    // Handle Included Features
+    if (Predicate.isNotUndefined(config.top_logprobs)) {
+      include.add("message.output_text.logprobs")
+    }
+    if (config.store === false && capabilities.isReasoningModel) {
+      include.add("reasoning.encrypted_content")
+    }
+    if (Predicate.isNotUndefined(codeInterpreterTool)) {
+      include.add("code_interpreter_call.outputs")
+    }
+    if (Predicate.isNotUndefined(webSearchTool) || Predicate.isNotUndefined(webSearchPreviewTool)) {
+      include.add("web_search_call.action.sources")
+    }
 
-        for (let index = 0; index < message.content.length; index++) {
-          const part = message.content[index]
+    const messages: Array<typeof Generated.InputItem.Encoded> = []
 
-          switch (part.type) {
-            case "text": {
-              content.push({ type: "input_text", text: part.text })
-              break
-            }
-
-            case "file": {
-              if (part.mediaType.startsWith("image/")) {
-                const detail = getImageDetail(part)
-                const mediaType = part.mediaType === "image/*" ? "image/jpeg" : part.mediaType
-
-                if (typeof part.data === "string" && isFileId(part.data, config)) {
-                  content.push({ type: "input_image", file_id: part.data, detail })
-                }
-
-                if (part.data instanceof URL) {
-                  content.push({ type: "input_image", image_url: part.data.toString(), detail })
-                }
-
-                if (part.data instanceof Uint8Array) {
-                  const base64 = Base64.encode(part.data)
-                  const imageUrl = `data:${mediaType};base64,${base64}`
-                  content.push({ type: "input_image", image_url: imageUrl, detail })
-                }
-              } else if (part.mediaType === "application/pdf") {
-                if (typeof part.data === "string" && isFileId(part.data, config)) {
-                  content.push({ type: "input_file", file_id: part.data })
-                }
-
-                if (part.data instanceof URL) {
-                  content.push({ type: "input_file", file_url: part.data.toString() })
-                }
-
-                if (part.data instanceof Uint8Array) {
-                  const base64 = Base64.encode(part.data)
-                  const fileName = part.fileName ?? `part-${index}.pdf`
-                  const fileData = `data:application/pdf;base64,${base64}`
-                  content.push({ type: "input_file", filename: fileName, file_data: fileData })
-                }
-              } else {
-                return yield* AiError.make({
-                  module: "OpenAiLanguageModel",
-                  method: "prepareMessages",
-                  reason: new AiError.InvalidRequestError({
-                    description: `Detected unsupported media type for file: '${part.mediaType}'`
-                  })
-                })
-              }
-            }
-          }
-        }
-
-        messages.push({ role: "user", content })
-
-        break
-      }
-
-      case "assistant": {
-        const reasoningMessages: Record<string, DeepMutable<typeof Generated.ReasoningItem.Encoded>> = {}
-
-        for (const part of message.content) {
-          switch (part.type) {
-            case "text": {
-              messages.push({
-                role: "assistant",
-                content: [{ type: "output_text", text: part.text }],
-                id: getItemId(part)
-              })
-              break
-            }
-
-            case "reasoning": {
-              const opts = part.options.openai
-
-              if (opts?.itemId != null) {
-                const reasoningMessage = reasoningMessages[opts.itemId]
-                const summaryParts: Mutable<Array<{ [x: string]: {}; type: "summary_text"; text: string }>> = []
-
-                if (part.text.length > 0) {
-                  summaryParts.push({ type: "summary_text", text: part.text })
-                }
-
-                if (reasoningMessage == null) {
-                  reasoningMessages[opts.itemId] = {
-                    id: opts.itemId,
-                    type: "reasoning" as const,
-                    summary: summaryParts,
-                    ...(opts.encryptedContent != null && { encrypted_content: opts.encryptedContent })
-                  }
-                  messages.push(reasoningMessages[opts.itemId])
-                } else {
-                  for (const summaryPart of summaryParts) {
-                    reasoningMessage.summary.push(summaryPart)
-                  }
-                }
-              }
-
-              break
-            }
-
-            case "tool-call": {
-              if (!part.providerExecuted) {
-                messages.push({
-                  id: getItemId(part),
-                  type: "function_call",
-                  call_id: part.id,
-                  name: part.name,
-                  arguments: JSON.stringify(part.params)
-                })
-              }
-
-              break
-            }
-          }
-        }
-
-        break
-      }
-
-      case "tool": {
-        for (const part of message.content) {
+    for (const message of options.prompt.content) {
+      switch (message.role) {
+        case "system": {
           messages.push({
-            type: "function_call_output",
-            call_id: part.id,
-            output: JSON.stringify(part.result)
+            role: getSystemMessageMode(config.model!),
+            content: message.content
           })
+          break
         }
 
-        break
+        case "user": {
+          const content: Array<typeof Generated.InputContent.Encoded> = []
+
+          for (let index = 0; index < message.content.length; index++) {
+            const part = message.content[index]
+
+            switch (part.type) {
+              case "text": {
+                content.push({ type: "input_text", text: part.text })
+                break
+              }
+
+              case "file": {
+                if (part.mediaType.startsWith("image/")) {
+                  const detail = getImageDetail(part)
+                  const mediaType = part.mediaType === "image/*" ? "image/jpeg" : part.mediaType
+
+                  if (typeof part.data === "string" && isFileId(part.data, config)) {
+                    content.push({ type: "input_image", file_id: part.data, detail })
+                  }
+
+                  if (part.data instanceof URL) {
+                    content.push({ type: "input_image", image_url: part.data.toString(), detail })
+                  }
+
+                  if (part.data instanceof Uint8Array) {
+                    const base64 = Base64.encode(part.data)
+                    const imageUrl = `data:${mediaType};base64,${base64}`
+                    content.push({ type: "input_image", image_url: imageUrl, detail })
+                  }
+                } else if (part.mediaType === "application/pdf") {
+                  if (typeof part.data === "string" && isFileId(part.data, config)) {
+                    content.push({ type: "input_file", file_id: part.data })
+                  }
+
+                  if (part.data instanceof URL) {
+                    content.push({ type: "input_file", file_url: part.data.toString() })
+                  }
+
+                  if (part.data instanceof Uint8Array) {
+                    const base64 = Base64.encode(part.data)
+                    const fileName = part.fileName ?? `part-${index}.pdf`
+                    const fileData = `data:application/pdf;base64,${base64}`
+                    content.push({ type: "input_file", filename: fileName, file_data: fileData })
+                  }
+                } else {
+                  return yield* AiError.make({
+                    module: "OpenAiLanguageModel",
+                    method: "prepareMessages",
+                    reason: new AiError.InvalidRequestError({
+                      description: `Detected unsupported media type for file: '${part.mediaType}'`
+                    })
+                  })
+                }
+              }
+            }
+          }
+
+          messages.push({ role: "user", content })
+
+          break
+        }
+
+        case "assistant": {
+          const reasoningMessages: Record<string, DeepMutable<typeof Generated.ReasoningItem.Encoded>> = {}
+
+          for (const part of message.content) {
+            switch (part.type) {
+              case "text": {
+                const id = getItemId(part)
+
+                // When in conversation mode, skip items that already exist in the
+                // conversation context to avoid "Duplicate item found" errors
+                if (hasConversation && Predicate.isNotUndefined(id)) {
+                  break
+                }
+
+                if (config.store === true && Predicate.isNotUndefined(id)) {
+                  messages.push({ type: "item_reference", id })
+                  break
+                }
+
+                messages.push({
+                  id: id!,
+                  type: "message",
+                  role: "assistant",
+                  status: part.options.openai?.status ?? "completed",
+                  content: [{
+                    type: "output_text",
+                    text: part.text,
+                    annotations: part.options.openai?.annotations ?? []
+                  }]
+                })
+
+                break
+              }
+
+              case "reasoning": {
+                const id = getItemId(part)
+                const encryptedContent = getEncryptedContent(part)
+
+                if (hasConversation && Predicate.isNotUndefined(id)) {
+                  break
+                }
+
+                if (Predicate.isNotUndefined(id)) {
+                  const message = reasoningMessages[id]
+
+                  if (config.store === true) {
+                    // Use item references to refer to reasoning (single reference)
+                    // when the first part is encountered
+                    if (Predicate.isUndefined(message)) {
+                      messages.push({ type: "item_reference", id })
+
+                      // Store unused reasoning message to mark its id as used
+                      reasoningMessages[id] = {
+                        type: "reasoning",
+                        id,
+                        summary: []
+                      }
+                    }
+                  } else {
+                    const summaryParts: Array<typeof Generated.SummaryTextContent.Encoded> = []
+
+                    if (part.text.length > 0) {
+                      summaryParts.push({ type: "summary_text", text: part.text })
+                    }
+
+                    if (Predicate.isUndefined(message)) {
+                      reasoningMessages[id] = {
+                        type: "reasoning",
+                        id,
+                        summary: summaryParts,
+                        encrypted_content: encryptedContent ?? null
+                      }
+
+                      messages.push(reasoningMessages[id])
+                    } else {
+                      message.summary.push(...summaryParts)
+
+                      // Update encrypted content to enable setting it in the
+                      // last summary part
+                      if (Predicate.isNotUndefined(encryptedContent)) {
+                        message.encrypted_content = encryptedContent
+                      }
+                    }
+                  }
+                }
+
+                break
+              }
+
+              case "tool-call": {
+                const id = getItemId(part)
+                const status = getStatus(part)
+
+                if (hasConversation && Predicate.isNotUndefined(id)) {
+                  break
+                }
+
+                if (config.store && Predicate.isNotUndefined(id)) {
+                  messages.push({ type: "item_reference", id })
+                  break
+                }
+
+                if (part.providerExecuted) {
+                  break
+                }
+
+                const toolName = toolNameMapper.getProviderName(part.name)
+
+                if (Predicate.isNotUndefined(localShellTool) && toolName === "local_shell") {
+                  const args = yield* Schema.decodeUnknownEffect(localShellTool.argsSchema)(part.params).pipe(
+                    // TODO: more detailed, tool-call specific error
+                    Effect.mapError((error) =>
+                      AiError.make({
+                        module: "OpenAiLanguageModel",
+                        method: "prepareMessages",
+                        reason: new AiError.InvalidRequestError({ description: error.message })
+                      })
+                    )
+                  )
+
+                  messages.push({
+                    id: id!,
+                    type: "local_shell_call",
+                    call_id: part.id,
+                    status: status ?? "completed",
+                    action: args.action
+                  })
+
+                  break
+                }
+
+                if (Predicate.isNotUndefined(shellTool) && toolName === "shell") {
+                  const args = yield* Schema.decodeUnknownEffect(shellTool.argsSchema)(part.params).pipe(
+                    // TODO: more detailed, tool-call specific error
+                    Effect.mapError((error) =>
+                      AiError.make({
+                        module: "OpenAiLanguageModel",
+                        method: "prepareMessages",
+                        reason: new AiError.InvalidRequestError({ description: error.message })
+                      })
+                    )
+                  )
+
+                  messages.push({
+                    id: id!,
+                    type: "shell_call",
+                    call_id: part.id,
+                    status: status ?? "completed",
+                    action: args.action
+                  })
+
+                  break
+                }
+
+                messages.push({
+                  type: "function_call",
+                  name: toolName,
+                  call_id: part.id,
+                  arguments: JSON.stringify(part.params),
+                  ...(Predicate.isNotUndefined(id) ? { id } : {}),
+                  ...(Predicate.isNotUndefined(status) ? { status } : {})
+                })
+
+                break
+              }
+
+              // Assistant tool-result parts are always provider executed
+              case "tool-result": {
+                if (hasConversation) {
+                  break
+                }
+
+                if (config.store === true) {
+                  const id = getItemId(part) ?? part.id
+                  messages.push({ type: "item_reference", id })
+                }
+              }
+            }
+          }
+
+          break
+        }
+
+        case "tool": {
+          for (const part of message.content) {
+            const id = getItemId(part) ?? part.id
+            const status = getStatus(part)
+            const toolName = toolNameMapper.getProviderName(part.name)
+
+            if (Predicate.isNotUndefined(applyPatchTool) && toolName === "apply_patch") {
+              messages.push({
+                id,
+                type: "apply_patch_call_output",
+                call_id: part.id,
+                ...(part.result as any)
+              })
+            }
+
+            if (Predicate.isNotUndefined(shellTool) && toolName === "shell") {
+              messages.push({
+                id,
+                type: "shell_call_output",
+                call_id: part.id,
+                output: part.result as any,
+                ...(Predicate.isNotUndefined(status) ? { status } : {})
+              })
+            }
+
+            if (Predicate.isNotUndefined(localShellTool) && toolName === "local_shell") {
+              messages.push({
+                id,
+                type: "local_shell_call_output",
+                call_id: part.id,
+                output: part.result as any,
+                ...(Predicate.isNotUndefined(status) ? { status } : {})
+              })
+            }
+
+            messages.push({
+              id,
+              type: "function_call_output",
+              call_id: part.id,
+              output: JSON.stringify(part.result),
+              ...(Predicate.isNotUndefined(status) ? { status } : {})
+            })
+          }
+
+          break
+        }
       }
     }
-  }
 
-  return messages
-})
+    return messages
+  }
+)
 
 // =============================================================================
 // Response Conversion
@@ -554,7 +781,7 @@ const makeResponse: (
                 parts.push({
                   type: "text",
                   text: contentPart.text,
-                  metadata: makeItemIdMetadata(part.id)
+                  metadata: { openai: { ...makeItemIdMetadata(part.id), status: part.status } }
                 })
 
                 for (const annotation of contentPart.annotations) {
@@ -1227,10 +1454,16 @@ const annotateStreamResponse = (span: Span, part: Response.StreamPartEncoded) =>
 
 type OpenAiToolChoice = typeof Generated.CreateResponse.Encoded["tool_choice"]
 
-const prepareTools: (options: LanguageModel.ProviderOptions) => Effect.Effect<{
+const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>({
+  options,
+  toolNameMapper
+}: {
+  readonly options: LanguageModel.ProviderOptions
+  readonly toolNameMapper: Tool.NameMapper<Tools>
+}): Effect.fn.Return<{
   readonly tools: ReadonlyArray<typeof Generated.Tool.Encoded> | undefined
   readonly toolChoice: OpenAiToolChoice | undefined
-}, AiError.AiError> = Effect.fnUntraced(function*(options) {
+}, AiError.AiError> {
   // Return immediately if no tools are in the toolkit
   if (options.tools.length === 0) {
     return { tools: undefined, toolChoice: undefined }
@@ -1256,38 +1489,119 @@ const prepareTools: (options: LanguageModel.ProviderOptions) => Effect.Effect<{
       tools.push({
         type: "function",
         name: tool.name,
-        description: Tool.getDescription(tool as any) ?? null,
-        parameters: Tool.getJsonSchema(tool as any) as any,
+        description: Tool.getDescription(tool) ?? null,
+        parameters: Tool.getJsonSchema(tool),
         strict: true
       })
     }
 
     if (Tool.isProviderDefined(tool)) {
-      switch (tool.id) {
-        case "openai.code_interpreter": {
+      const openAiTool = tool as OpenAiTool.OpenAiTool
+      switch (openAiTool.name) {
+        case "OpenAiApplyPatch": {
+          tools.push({ type: "apply_patch" })
+          break
+        }
+        case "OpenAiCodeInterpreter": {
+          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
+            Effect.mapError((error) =>
+              AiError.make({
+                module: "OpenAiLanguageModel",
+                method: "prepareTools",
+                reason: new AiError.InvalidRequestError({ cause: error })
+              })
+            )
+          )
           tools.push({
-            ...tool.args,
+            ...args,
             type: "code_interpreter"
           })
           break
         }
-        case "openai.file_search": {
+        case "OpenAiFileSearch": {
+          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
+            Effect.mapError((error) =>
+              AiError.make({
+                module: "OpenAiLanguageModel",
+                method: "prepareTools",
+                reason: new AiError.InvalidRequestError({ cause: error })
+              })
+            )
+          )
           tools.push({
-            ...tool.args,
+            ...args,
             type: "file_search"
           })
           break
         }
-        case "openai.web_search": {
+        case "OpenAiFunctionShell": {
+          tools.push({ type: "shell" })
+          break
+        }
+        case "OpenAiImageGeneration": {
+          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
+            Effect.mapError((error) =>
+              AiError.make({
+                module: "OpenAiLanguageModel",
+                method: "prepareTools",
+                reason: new AiError.InvalidRequestError({ cause: error })
+              })
+            )
+          )
           tools.push({
-            ...tool.args,
+            ...args,
+            type: "image_generation"
+          })
+          break
+        }
+        case "OpenAiLocalShell": {
+          tools.push({ type: "local_shell" })
+          break
+        }
+        case "OpenAiMcp": {
+          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
+            Effect.mapError((error) =>
+              AiError.make({
+                module: "OpenAiLanguageModel",
+                method: "prepareTools",
+                reason: new AiError.InvalidRequestError({ cause: error })
+              })
+            )
+          )
+          tools.push({
+            ...args,
+            type: "mcp"
+          })
+          break
+        }
+        case "OpenAiWebSearch": {
+          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
+            Effect.mapError((error) =>
+              AiError.make({
+                module: "OpenAiLanguageModel",
+                method: "prepareTools",
+                reason: new AiError.InvalidRequestError({ cause: error })
+              })
+            )
+          )
+          tools.push({
+            ...args,
             type: "web_search"
           })
           break
         }
-        case "openai.web_search_preview": {
+        case "OpenAiWebSearchPreview": {
+          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
+            Effect.mapError((error) =>
+              AiError.make({
+                module: "OpenAiLanguageModel",
+                method: "prepareTools",
+                reason: new AiError.InvalidRequestError({ cause: error })
+              })
+            )
+          )
           tools.push({
-            ...tool.args,
+            ...args,
             type: "web_search_preview"
           })
           break
@@ -1310,9 +1624,13 @@ const prepareTools: (options: LanguageModel.ProviderOptions) => Effect.Effect<{
   }
 
   if (typeof options.toolChoice === "object" && "tool" in options.toolChoice) {
-    toolChoice = OpenAiTool.getProviderDefinedToolName(options.toolChoice.tool) == null
-      ? { type: "function", name: options.toolChoice.tool }
-      : { type: options.toolChoice.tool }
+    const toolName = toolNameMapper.getProviderName(options.toolChoice.tool)
+    const providerNames = toolNameMapper.providerNames
+    if (providerNames.includes(toolName)) {
+      toolChoice = { type: toolName as any }
+    } else {
+      toolChoice = { type: "function", name: options.toolChoice.tool }
+    }
   }
 
   return { tools, toolChoice }
@@ -1322,54 +1640,35 @@ const prepareTools: (options: LanguageModel.ProviderOptions) => Effect.Effect<{
 // Utilities
 // =============================================================================
 
-const isFileId = (data: string, config: ConfigService): boolean =>
+const isFileId = (data: string, config: typeof Config.Service): boolean =>
   config.fileIdPrefixes != null && config.fileIdPrefixes.some((prefix) => data.startsWith(prefix))
 
 const getItemId = (
   part:
     | Prompt.TextPart
+    | Prompt.ReasoningPart
     | Prompt.ToolCallPart
+    | Prompt.ToolResultPart
 ): string | undefined => part.options.openai?.itemId
+const getStatus = (
+  part:
+    | Prompt.TextPart
+    | Prompt.ToolCallPart
+    | Prompt.ToolResultPart
+): typeof Generated.Message.Encoded["status"] | undefined => part.options.openai?.status
+const getEncryptedContent = (
+  part: Prompt.ReasoningPart
+): string | undefined => part.options.openai?.encryptedContent
 
 const getImageDetail = (part: Prompt.FilePart): typeof Generated.ImageDetail.Encoded =>
   part.options.openai?.imageDetail ?? "auto"
 
-const makeItemIdMetadata = (itemId: string | undefined) => itemId != null ? { openai: { itemId } } : undefined
+const makeItemIdMetadata = (itemId: string | undefined) => Predicate.isNotUndefined(itemId) ? { itemId } : undefined
 
-const prepareInclude = (
-  options: LanguageModel.ProviderOptions,
-  config: ConfigService
-): ReadonlyArray<typeof Generated.IncludeEnum.Encoded> | null => {
-  const configInclude = config.include
-  const include: Set<typeof Generated.IncludeEnum.Encoded> = new Set(
-    globalThis.Array.isArray(configInclude) ? configInclude : undefined
-  )
-
-  const codeInterpreterTool = options.tools.find((tool) =>
-    Tool.isProviderDefined(tool) &&
-    tool.id === "openai.code_interpreter"
-  ) as Tool.AnyProviderDefined | undefined
-
-  if (codeInterpreterTool != null) {
-    include.add("code_interpreter_call.outputs")
-  }
-
-  const webSearchTool = options.tools.find((tool) =>
-    Tool.isProviderDefined(tool) &&
-    (tool.id === "openai.web_search" ||
-      tool.id === "openai.web_search_preview")
-  ) as Tool.AnyProviderDefined | undefined
-
-  if (webSearchTool != null) {
-    include.add("web_search_call.action.sources")
-  }
-
-  return include.size > 0 ? Array.from(include) : null
-}
-
-const prepareResponseFormat = (
-  options: LanguageModel.ProviderOptions
-): typeof Generated.TextResponseFormatConfiguration.Encoded => {
+const prepareResponseFormat = ({ config, options }: {
+  readonly config: typeof Config.Service
+  readonly options: LanguageModel.ProviderOptions
+}): typeof Generated.TextResponseFormatConfiguration.Encoded => {
   if (options.responseFormat.type === "json") {
     const name = options.responseFormat.objectName
     const schema = options.responseFormat.schema
@@ -1378,8 +1677,56 @@ const prepareResponseFormat = (
       name,
       description: AST.resolveDescription(schema.ast) ?? "Response with a JSON object",
       schema: Tool.getJsonSchemaFromSchema(schema) as any,
-      strict: true
+      strict: config.strictJsonSchema ?? true
     }
   }
   return { type: "text" }
+}
+
+interface ModelCapabilities {
+  readonly isReasoningModel: boolean
+  readonly systemMessageMode: "remove" | "system" | "developer"
+  readonly supportsFlexProcessing: boolean
+  readonly supportsPriorityProcessing: boolean
+  /**
+   * Allow temperature, topP, logProbs when reasoningEffort is none.
+   */
+  readonly supportsNonReasoningParameters: boolean
+}
+
+const getModelCapabilities = (modelId: string): ModelCapabilities => {
+  const supportsFlexProcessing = modelId.startsWith("o3") ||
+    modelId.startsWith("o4-mini") ||
+    (modelId.startsWith("gpt-5") && !modelId.startsWith("gpt-5-chat"))
+
+  const supportsPriorityProcessing = modelId.startsWith("gpt-4") ||
+    modelId.startsWith("gpt-5-mini") ||
+    (modelId.startsWith("gpt-5") &&
+      !modelId.startsWith("gpt-5-nano") &&
+      !modelId.startsWith("gpt-5-chat")) ||
+    modelId.startsWith("o3") ||
+    modelId.startsWith("o4-mini")
+
+  // Use allowlist approach: only known reasoning models should use 'developer' role
+  // This prevents issues with fine-tuned models, third-party models, and custom models
+  const isReasoningModel = modelId.startsWith("o1") ||
+    modelId.startsWith("o3") ||
+    modelId.startsWith("o4-mini") ||
+    modelId.startsWith("codex-mini") ||
+    modelId.startsWith("computer-use-preview") ||
+    (modelId.startsWith("gpt-5") && !modelId.startsWith("gpt-5-chat"))
+
+  // https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
+  // GPT-5.1 and GPT-5.2 support temperature, topP, logProbs when reasoningEffort is none
+  const supportsNonReasoningParameters = modelId.startsWith("gpt-5.1") || modelId.startsWith("gpt-5.2")
+
+  const systemMessageMode = isReasoningModel ? "developer" : "system"
+
+  return {
+    supportsFlexProcessing,
+    supportsPriorityProcessing,
+    isReasoningModel,
+    systemMessageMode,
+    supportsNonReasoningParameters
+  }
 }

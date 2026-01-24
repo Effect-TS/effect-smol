@@ -13,7 +13,7 @@ import type { HttpClient } from "effect/unstable/http/HttpClient"
 export class OpenAiConfig extends ServiceMap.Service<
   OpenAiConfig,
   OpenAiConfig.Service
->()("effect/ai-openai/OpenAiConfig") {
+>()("@effect/ai-openai/OpenAiConfig") {
   /**
    * @since 1.0.0
    */
