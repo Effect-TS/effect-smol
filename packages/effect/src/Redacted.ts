@@ -10,7 +10,7 @@ import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
 import * as Hash from "./Hash.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
-import { redactedRegistry } from "./internal/redacted.ts"
+import * as redacted from "./internal/redacted.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty, isString } from "./Predicate.ts"
 import type { Covariant } from "./Types.ts"
@@ -127,7 +127,7 @@ export const make = <T>(value: T, options?: {
   if (options?.label) {
     redacted.label = options.label
   }
-  redactedRegistry.set(redacted, value)
+  redacted.redactedRegistry.set(redacted, value)
   return redacted
 }
 
@@ -144,12 +144,15 @@ const Proto = {
     return `<redacted${isString(this.label) ? ":" + this.label : ""}>`
   },
   [Hash.symbol]<T>(this: Redacted<T>): number {
-    return Hash.hash(redactedRegistry.get(this))
+    return Hash.hash(redacted.redactedRegistry.get(this))
   },
   [Equal.symbol]<T>(this: Redacted<T>, that: unknown): boolean {
     return (
       isRedacted(that) &&
-      Equal.equals(redactedRegistry.get(this), redactedRegistry.get(that))
+      Equal.equals(
+        redacted.redactedRegistry.get(this),
+        redacted.redactedRegistry.get(that)
+      )
     )
   }
 }
@@ -171,13 +174,7 @@ const Proto = {
  * @since 3.3.0
  * @category getters
  */
-export const value = <T>(self: Redacted<T>): T => {
-  if (redactedRegistry.has(self)) {
-    return redactedRegistry.get(self)
-  } else {
-    throw new Error("Unable to get redacted value" + (self.label ? ` with label: "${self.label}"` : ""))
-  }
-}
+export const value: <T>(self: Redacted<T>) => T = redacted.value
 
 /**
  * Erases the underlying value of a `Redacted` instance, rendering it unusable.
@@ -204,7 +201,7 @@ export const value = <T>(self: Redacted<T>): T => {
  * @since 3.3.0
  * @category unsafe
  */
-export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redactedRegistry.delete(self)
+export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRegistry.delete(self)
 
 /**
  * Generates an equivalence relation for `Redacted<A>` values based on an
