@@ -184,7 +184,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
           checks: fromASTChecks(last.checks),
           ...annotations,
           ...(typeof contentMediaType === "string" && AST.isAST(contentSchema)
-            ? { contentMediaType, contentSchema: recur(contentSchema) }
+            ? { contentSchema: recur(contentSchema) }
             : undefined)
         }
       }
@@ -593,6 +593,9 @@ export function toJsonSchemaMultiDocument(
       if (Array.isArray(annotations.examples)) out.examples = annotations.examples
       if (typeof annotations.readOnly === "boolean") out.readOnly = annotations.readOnly
       if (typeof annotations.writeOnly === "boolean") out.writeOnly = annotations.writeOnly
+      if (typeof annotations.format === "string") out.format = annotations.format
+      if (typeof annotations.contentEncoding === "string") out.contentEncoding = annotations.contentEncoding
+      if (typeof annotations.contentMediaType === "string") out.contentMediaType = annotations.contentMediaType
 
       if (Object.keys(out).length > 0) return out
     }

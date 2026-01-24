@@ -7078,6 +7078,12 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
  */
 export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {}
 
+const Base64String = String.annotate({
+  expected: "a base64 encoded string that will be decoded as Uint8Array",
+  format: "byte",
+  contentEncoding: "base64"
+})
+
 /**
  * A schema for JavaScript `Uint8Array` objects.
  *
@@ -7099,7 +7105,7 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
   expected: "Uint8Array",
   toCodecJson: () =>
     link<globalThis.Uint8Array<ArrayBufferLike>>()(
-      String.annotate({ expected: "a base64 encoded string that will be decoded as Uint8Array" }),
+      Base64String,
       Transformation.uint8ArrayFromBase64String
     ),
   toArbitrary: () => (fc) => fc.uint8Array()
@@ -7123,9 +7129,9 @@ export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {}
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = String.annotate({
-  expected: "a base64 encoded string that will be decoded as a Uint8Array"
-}).pipe(decodeTo(Uint8Array, Transformation.uint8ArrayFromBase64String))
+export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = Base64String.pipe(
+  decodeTo(Uint8Array, Transformation.uint8ArrayFromBase64String)
+)
 
 /**
  * @since 4.0.0
@@ -8526,6 +8532,8 @@ export declare namespace Annotations {
     readonly documentation?: string | undefined
     readonly readOnly?: boolean | undefined
     readonly writeOnly?: boolean | undefined
+    readonly format?: string | undefined
+    readonly contentEncoding?: string | undefined
   }
 
   /**

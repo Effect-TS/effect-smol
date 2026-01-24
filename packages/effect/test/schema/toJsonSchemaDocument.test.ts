@@ -294,7 +294,9 @@ describe("toJsonSchemaDocument", () => {
       const schema = Schema.Uint8Array
       assertJsonSchemaDocument(schema, {
         schema: {
-          "type": "string"
+          "type": "string",
+          "format": "byte",
+          "contentEncoding": "base64"
         }
       })
     })

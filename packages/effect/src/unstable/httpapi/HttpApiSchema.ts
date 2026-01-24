@@ -372,15 +372,7 @@ export const withEncoding: {
     httpApiEncoding: {
       kind: options.kind,
       contentType: options.contentType ?? defaultContentType(options.kind)
-    },
-    ...(options.kind === "Uint8Array" ?
-      {
-        toJsonSchema: () => ({
-          "type": "string",
-          "format": "binary"
-        })
-      } :
-      undefined)
+    }
   }))
 
 const encodingJson: Encoding = {

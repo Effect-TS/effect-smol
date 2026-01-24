@@ -657,11 +657,11 @@ export type OpenAPISpecResponses = Record<number, OpenApiSpecResponse>
  * @since 4.0.0
  */
 export type OpenApiSpecContentType =
-  | "application/json"
-  | "application/xml"
-  | "application/x-www-form-urlencoded"
-  | "multipart/form-data"
-  | "text/plain"
+  | "application/json" // Encoding["kind"] === "Json"
+  | "application/x-www-form-urlencoded" // Encoding["kind"] === "UrlParams"
+  | "text/plain" // Encoding["kind"] === "Text"
+  | "application/octet-stream" // Encoding["kind"] === "Uint8Array"
+  | "multipart/form-data" // HttpApiSchema.Multipart and HttpApiSchema.MultipartStream
 
 /**
  * @category models

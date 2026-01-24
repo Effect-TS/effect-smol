@@ -2809,9 +2809,11 @@ function collectAnnotations(schema: JsonSchema.JsonSchema): Schema.Annotations.A
   if (typeof schema.description === "string") as.description = schema.description
   if (schema.default !== undefined) as.default = schema.default
   if (Array.isArray(schema.examples)) as.examples = schema.examples
-  if (typeof schema.format === "string") as.format = schema.format
   if (typeof schema.readOnly === "boolean") as.readOnly = schema.readOnly
   if (typeof schema.writeOnly === "boolean") as.writeOnly = schema.writeOnly
+  if (typeof schema.format === "string") as.format = schema.format
+  if (typeof schema.contentEncoding === "string") as.contentEncoding = schema.contentEncoding
+  if (typeof schema.contentMediaType === "string") as.contentMediaType = schema.contentMediaType
 
   return Rec.isEmptyRecord(as) ? undefined : as
 }
