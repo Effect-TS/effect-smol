@@ -1,6 +1,6 @@
 import type * as Cause from "../Cause.ts"
 import type { Effect, Repeat, Retry } from "../Effect.ts"
-import { constant, constTrue, dual } from "../Function.ts"
+import { constant, constTrue, dual, identity } from "../Function.ts"
 import * as Option from "../Option.ts"
 import * as Pull from "../Pull.ts"
 import * as Schedule from "../Schedule.ts"
@@ -86,6 +86,11 @@ export const repeat = dual<{
   <Output, Input, Error, Env>(
     schedule: Schedule.Schedule<Output, NoInfer<Input>, Error, Env>
   ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, R | Env>
+  <Output, Input, Error, Env>(
+    builder: (
+      $: <O, E, R>(_: Schedule.Schedule<O, NoInfer<Input>, E, R>) => Schedule.Schedule<O, Input, E, R>
+    ) => Schedule.Schedule<Output, NoInfer<Input>, Error, Env>
+  ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, R | Env>
 }, {
   <A, E, R, O extends Repeat.Options<A>>(
     self: Effect<A, E, R>,
@@ -95,10 +100,30 @@ export const repeat = dual<{
     self: Effect<Input, E, R>,
     schedule: Schedule.Schedule<Output, NoInfer<Input>, Error, Env>
   ): Effect<Output, E | Error, R | Env>
+  <Input, E, R, Output, Error, Env>(
+    self: Effect<Input, E, R>,
+    builder: (
+      $: <O, E, R>(_: Schedule.Schedule<O, NoInfer<Input>, E, R>) => Schedule.Schedule<O, Input, E, R>
+    ) => Schedule.Schedule<Output, NoInfer<Input>, Error, Env>
+  ): Effect<Output, E | Error, R | Env>
 }>(
   2,
-  (self: Effect<any, any, any>, options: Repeat.Options<any> | Schedule.Schedule<any, any, any, any>) =>
-    repeatOrElse(self, Schedule.isSchedule(options) ? options : buildFromOptions(options), effect.fail)
+  (
+    self: Effect<any, any, any>,
+    options:
+      | Repeat.Options<any>
+      | Schedule.Schedule<any, any, any, any>
+      | ((
+        $: <O, E, R>(_: Schedule.Schedule<O, any, E, R>) => Schedule.Schedule<O, any, E, R>
+      ) => Schedule.Schedule<any, any, any, any>)
+  ) => {
+    const schedule = typeof options === "function"
+      ? options(identity)
+      : Schedule.isSchedule(options)
+      ? options
+      : buildFromOptions(options)
+    return repeatOrElse(self, schedule, effect.fail)
+  }
 )
 
 /** @internal */
@@ -111,6 +136,11 @@ export const retry = dual<{
   <B, E, Error, Env>(
     policy: Schedule.Schedule<B, NoInfer<E>, Error, Env>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | Error, R | Env>
+  <B, E, Error, Env>(
+    builder: (
+      $: <O, SE, R>(_: Schedule.Schedule<O, NoInfer<E>, SE, R>) => Schedule.Schedule<O, E, SE, R>
+    ) => Schedule.Schedule<B, NoInfer<E>, Error, Env>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | Error, R | Env>
 }, {
   <A, E, R, O extends Retry.Options<E>>(
     self: Effect<A, E, R>,
@@ -120,10 +150,30 @@ export const retry = dual<{
     self: Effect<A, E, R>,
     policy: Schedule.Schedule<B, NoInfer<E>, Error, Env>
   ): Effect<A, E | Error, R | Env>
+  <A, E, R, B, Error, Env>(
+    self: Effect<A, E, R>,
+    builder: (
+      $: <O, SE, R>(_: Schedule.Schedule<O, NoInfer<E>, SE, R>) => Schedule.Schedule<O, E, SE, R>
+    ) => Schedule.Schedule<B, NoInfer<E>, Error, Env>
+  ): Effect<A, E | Error, R | Env>
 }>(
   2,
-  (self: Effect<any, any, any>, options: Retry.Options<any> | Schedule.Schedule<any, any, any, any>) =>
-    retryOrElse(self, Schedule.isSchedule(options) ? options : buildFromOptions(options), effect.fail)
+  (
+    self: Effect<any, any, any>,
+    options:
+      | Retry.Options<any>
+      | Schedule.Schedule<any, any, any, any>
+      | ((
+        $: <O, SE, R>(_: Schedule.Schedule<O, any, SE, R>) => Schedule.Schedule<O, any, SE, R>
+      ) => Schedule.Schedule<any, any, any, any>)
+  ) => {
+    const schedule = typeof options === "function"
+      ? options(identity)
+      : Schedule.isSchedule(options)
+      ? options
+      : buildFromOptions(options)
+    return retryOrElse(self, schedule, effect.fail)
+  }
 )
 
 /** @internal */

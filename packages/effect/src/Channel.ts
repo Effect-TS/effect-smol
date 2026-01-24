@@ -2866,19 +2866,31 @@ export const drain = <
  */
 export const repeat: {
   <SO, OutDone, SE, SR>(
-    schedule: Schedule.Schedule<SO, Types.NoInfer<OutDone>, SE, SR>
+    schedule:
+      | Schedule.Schedule<SO, Types.NoInfer<OutDone>, SE, SR>
+      | ((
+        $: <SO, SE, SR>(_: Schedule.Schedule<SO, NoInfer<OutDone>, SE, SR>) => Schedule.Schedule<SO, OutDone, SE, SR>
+      ) => Schedule.Schedule<SO, Types.NoInfer<OutDone>, SE, SR>)
   ): <OutElem, OutErr, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
   ) => Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    schedule: Schedule.Schedule<SO, OutDone, SE, SR>
+    schedule:
+      | Schedule.Schedule<SO, OutDone, SE, SR>
+      | ((
+        $: <SO, SE, SR>(_: Schedule.Schedule<SO, NoInfer<OutDone>, SE, SR>) => Schedule.Schedule<SO, OutDone, SE, SR>
+      ) => Schedule.Schedule<SO, Types.NoInfer<OutDone>, SE, SR>)
   ): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  schedule: Schedule.Schedule<SO, OutDone, SE, SR>
+  schedule:
+    | Schedule.Schedule<SO, OutDone, SE, SR>
+    | ((
+      $: <SO, SE, SR>(_: Schedule.Schedule<SO, NoInfer<OutDone>, SE, SR>) => Schedule.Schedule<SO, OutDone, SE, SR>
+    ) => Schedule.Schedule<SO, Types.NoInfer<OutDone>, SE, SR>)
 ): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR> =>
-  Schedule.toStepWithMetadata(schedule).pipe(
+  Schedule.toStepWithMetadata(typeof schedule === "function" ? schedule(identity_) : schedule).pipe(
     Effect.map((step) => {
       let meta = Schedule.CurrentMetadata.defaultValue()
       const loop: Channel<
@@ -4262,17 +4274,33 @@ export const ignoreCause = <
  */
 export const retry: {
   <SO, OutErr, SE, SR>(
-    schedule: Schedule.Schedule<SO, Types.NoInfer<OutErr>, SE, SR>
+    schedule:
+      | Schedule.Schedule<SO, Types.NoInfer<OutErr>, SE, SR>
+      | ((
+        $: <SO, SE, SR>(
+          _: Schedule.Schedule<SO, Types.NoInfer<OutErr>, SE, SR>
+        ) => Schedule.Schedule<SO, OutErr, SE, SR>
+      ) => Schedule.Schedule<SO, Types.NoInfer<OutErr>, SE, SR>)
   ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
   ) => Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    schedule: Schedule.Schedule<SO, OutErr, SE, SR>
+    schedule:
+      | Schedule.Schedule<SO, OutErr, SE, SR>
+      | ((
+        $: <SO, SE, SR>(
+          _: Schedule.Schedule<SO, Types.NoInfer<OutErr>, SE, SR>
+        ) => Schedule.Schedule<SO, OutErr, SE, SR>
+      ) => Schedule.Schedule<SO, Types.NoInfer<OutErr>, SE, SR>)
   ): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  schedule: Schedule.Schedule<SO, OutErr, SE, SR>
+  schedule:
+    | Schedule.Schedule<SO, OutErr, SE, SR>
+    | ((
+      $: <O, SE, R>(_: Schedule.Schedule<O, Types.NoInfer<OutErr>, SE, R>) => Schedule.Schedule<O, OutErr, SE, R>
+    ) => Schedule.Schedule<SO, Types.NoInfer<OutErr>, SE, SR>)
 ): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR> =>
   suspend(() => {
     let step: ((input: OutErr) => Pull.Pull<Schedule.Metadata<SO, OutErr>, SE, SO, SR>) | undefined = undefined
@@ -4282,6 +4310,7 @@ export const retry: {
       step = undefined
       return Effect.void
     })
+    const resolvedSchedule = typeof schedule === "function" ? schedule(identity_) : schedule
     const loop: Channel<
       OutElem,
       OutErr | SE,
@@ -4295,7 +4324,7 @@ export const retry: {
       Effect.fnUntraced(
         function*(error) {
           if (!step) {
-            step = yield* Schedule.toStepWithMetadata(schedule)
+            step = yield* Schedule.toStepWithMetadata(resolvedSchedule)
           }
           meta = yield* step(error)
           return loop

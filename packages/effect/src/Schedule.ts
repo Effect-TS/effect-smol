@@ -1054,7 +1054,7 @@ export const bothWith: {
             effect.map((rightResult) =>
               [
                 combine(leftResult[0], rightResult[0]),
-                Duration.min(leftResult[1], rightResult[1])
+                Duration.max(leftResult[1], rightResult[1])
               ] as [Output3, Duration.Duration]
             ),
             Pull.catchDone((rightDone) => Cause.done(combine(leftResult[0], rightDone as Output2)))
@@ -3202,6 +3202,28 @@ export const windowed = (interval: Duration.DurationInput): Schedule<number> => 
  * @category constructors
  */
 export const forever: Schedule<number> = spaced(Duration.zero)
+
+const constIdentity = fromStep(
+  effect.succeed((_now, input: unknown) => effect.succeed([input, Duration.zero] as [unknown, Duration.Duration]))
+)
+
+const identity_ = <A>(): Schedule<A, A> => constIdentity as Schedule<A, A>
+
+export {
+  /**
+   * Creates a schedule that always recurs, passing inputs directly as outputs.
+   *
+   * **Details**
+   *
+   * This schedule runs indefinitely, returning each input value as its output
+   * without modification. It effectively acts as a pass-through that simply
+   * echoes its input values at each step.
+   *
+   * @since 2.0.0
+   * @category Constructors
+   */
+  identity_ as identity
+}
 
 /**
  * Ensures that the provided schedule respects a specified input type.

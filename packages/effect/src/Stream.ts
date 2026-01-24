@@ -1822,15 +1822,27 @@ export const drainFork: {
  */
 export const repeat: {
   <B, E2, R2>(
-    schedule: Schedule.Schedule<B, void, E2, R2>
+    schedule:
+      | Schedule.Schedule<B, void, E2, R2>
+      | ((
+        $: <SO, SE, SR>(_: Schedule.Schedule<SO, void, SE, SR>) => Schedule.Schedule<SO, void, SE, SR>
+      ) => Schedule.Schedule<B, void, E2, R2>)
   ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
   <A, E, R, B, E2, R2>(
     self: Stream<A, E, R>,
-    schedule: Schedule.Schedule<B, void, E2, R2>
+    schedule:
+      | Schedule.Schedule<B, void, E2, R2>
+      | ((
+        $: <SO, SE, SR>(_: Schedule.Schedule<SO, void, SE, SR>) => Schedule.Schedule<SO, void, SE, SR>
+      ) => Schedule.Schedule<B, void, E2, R2>)
   ): Stream<A, E | E2, R | R2>
 } = dual(2, <A, E, R, B, E2, R2>(
   self: Stream<A, E, R>,
-  schedule: Schedule.Schedule<B, void, E2, R2>
+  schedule:
+    | Schedule.Schedule<B, void, E2, R2>
+    | ((
+      $: <SO, SE, SR>(_: Schedule.Schedule<SO, void, SE, SR>) => Schedule.Schedule<SO, void, SE, SR>
+    ) => Schedule.Schedule<B, void, E2, R2>)
 ): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
 
 /**
@@ -3738,17 +3750,29 @@ export const ignoreCause = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R>
  */
 export const retry: {
   <E, X, E2, R2>(
-    policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
+    policy:
+      | Schedule.Schedule<X, NoInfer<E>, E2, R2>
+      | ((
+        $: <SO, SE, SR>(_: Schedule.Schedule<SO, NoInfer<E>, SE, SR>) => Schedule.Schedule<SO, E, SE, SR>
+      ) => Schedule.Schedule<X, NoInfer<E>, E2, R2>)
   ): <A, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
   <A, E, R, X, E2, R2>(
     self: Stream<A, E, R>,
-    policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
+    policy:
+      | Schedule.Schedule<X, NoInfer<E>, E2, R2>
+      | ((
+        $: <SO, SE, SR>(_: Schedule.Schedule<SO, NoInfer<E>, SE, SR>) => Schedule.Schedule<SO, E, SE, SR>
+      ) => Schedule.Schedule<X, NoInfer<E>, E2, R2>)
   ): Stream<A, E | E2, R2 | R>
 } = dual(
   2,
   <A, E, R, X, E2, R2>(
     self: Stream<A, E, R>,
-    policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
+    policy:
+      | Schedule.Schedule<X, NoInfer<E>, E2, R2>
+      | ((
+        $: <SO, SE, SR>(_: Schedule.Schedule<SO, NoInfer<E>, SE, SR>) => Schedule.Schedule<SO, E, SE, SR>
+      ) => Schedule.Schedule<X, NoInfer<E>, E2, R2>)
   ): Stream<A, E | E2, R2 | R> => fromChannel(Channel.retry(self.channel, policy))
 )
 

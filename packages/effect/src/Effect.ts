@@ -3603,10 +3603,21 @@ export const retry: {
   <B, E, Error, Env>(
     policy: Schedule<B, NoInfer<E>, Error, Env>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | Error, R | Env>
+  <B, E, Error, Env>(
+    builder: (
+      $: <O, SE, R>(_: Schedule<O, NoInfer<E>, SE, R>) => Schedule<O, E, SE, R>
+    ) => Schedule<B, NoInfer<E>, Error, Env>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | Error, R | Env>
   <A, E, R, O extends Retry.Options<E>>(self: Effect<A, E, R>, options: O): Retry.Return<R, E, A, O>
   <A, E, R, B, Error, Env>(
     self: Effect<A, E, R>,
     policy: Schedule<B, NoInfer<E>, Error, Env>
+  ): Effect<A, E | Error, R | Env>
+  <A, E, R, B, Error, Env>(
+    self: Effect<A, E, R>,
+    builder: (
+      $: <O, SE, R>(_: Schedule<O, NoInfer<E>, SE, R>) => Schedule<O, E, SE, R>
+    ) => Schedule<B, NoInfer<E>, Error, Env>
   ): Effect<A, E | Error, R | Env>
 } = internalSchedule.retry
 
@@ -6655,10 +6666,21 @@ export const repeat: {
   <Output, Input, Error, Env>(
     schedule: Schedule<Output, NoInfer<Input>, Error, Env>
   ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, R | Env>
+  <Output, Input, Error, Env>(
+    builder: (
+      $: <O, E, R>(_: Schedule<O, NoInfer<Input>, E, R>) => Schedule<O, Input, E, R>
+    ) => Schedule<Output, NoInfer<Input>, Error, Env>
+  ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, R | Env>
   <A, E, R, O extends Repeat.Options<A>>(self: Effect<A, E, R>, options: O): Repeat.Return<R, E, A, O>
   <Input, E, R, Output, Error, Env>(
     self: Effect<Input, E, R>,
     schedule: Schedule<Output, NoInfer<Input>, Error, Env>
+  ): Effect<Output, E | Error, R | Env>
+  <Input, E, R, Output, Error, Env>(
+    self: Effect<Input, E, R>,
+    builder: (
+      $: <O, E, R>(_: Schedule<O, NoInfer<Input>, E, R>) => Schedule<O, Input, E, R>
+    ) => Schedule<Output, NoInfer<Input>, Error, Env>
   ): Effect<Output, E | Error, R | Env>
 } = internalSchedule.repeat
 
