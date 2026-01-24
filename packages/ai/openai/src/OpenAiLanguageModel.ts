@@ -186,6 +186,13 @@ declare module "effect/unstable/ai/Response" {
     }
   }
 
+  export interface TextEndPartMetadata extends ProviderMetadata {
+    readonly openai?: {
+      readonly itemId?: string
+      readonly annotations?: ReadonlyArray<typeof Generated.Annotation.Encoded>
+    }
+  }
+
   export interface ReasoningPartMetadata extends ProviderMetadata {
     readonly openai?: {
       readonly itemId?: string
@@ -999,14 +1006,22 @@ const makeStreamResponse: (
 
     let hasToolCalls = false
 
+    // Track annotations for current message to include in text-end metadata
+    const ongoingAnnotations: Array<typeof Generated.Annotation.Encoded> = []
+
+    // Track active reasoning items with state machine for proper concluding logic
     const activeReasoning: Record<string, {
-      readonly summaryParts: Array<number>
       readonly encryptedContent: string | undefined
+      readonly summaryParts: Record<number, "active" | "can-conclude" | "concluded">
     }> = {}
 
+    // Track active tool calls with optional provider-specific state
     const activeToolCalls: Record<number, {
       readonly id: string
       readonly name: string
+      readonly codeInterpreter?: {
+        readonly containerId: string
+      }
     }> = {}
 
     const webSearchTool = options.tools.find((tool) =>
@@ -1059,6 +1074,27 @@ const makeStreamResponse: (
 
           case "response.output_item.added": {
             switch (event.item.type) {
+              case "code_interpreter_call": {
+                activeToolCalls[event.output_index] = {
+                  id: event.item.id,
+                  name: "OpenAiCodeInterpreter",
+                  codeInterpreter: { containerId: event.item.container_id }
+                }
+                parts.push({
+                  type: "tool-params-start",
+                  id: event.item.id,
+                  name: "OpenAiCodeInterpreter",
+                  providerName: "code_interpreter",
+                  providerExecuted: true
+                })
+                parts.push({
+                  type: "tool-params-delta",
+                  id: event.item.id,
+                  delta: `{"containerId":"${event.item.container_id}","code":"`
+                })
+                break
+              }
+
               case "computer_call": {
                 // TODO(Max): support computer use
                 break
@@ -1079,6 +1115,39 @@ const makeStreamResponse: (
                 break
               }
 
+              case "image_generation_call": {
+                activeToolCalls[event.output_index] = {
+                  id: event.item.id,
+                  name: "OpenAiImageGeneration"
+                }
+                // Emit tool-call immediately for image generation
+                parts.push({
+                  type: "tool-call",
+                  id: event.item.id,
+                  name: "OpenAiImageGeneration",
+                  params: {},
+                  providerName: "image_generation",
+                  providerExecuted: true
+                })
+                break
+              }
+
+              case "local_shell_call": {
+                activeToolCalls[event.output_index] = {
+                  id: event.item.id,
+                  name: "OpenAiLocalShell"
+                }
+                break
+              }
+
+              case "shell_call": {
+                activeToolCalls[event.output_index] = {
+                  id: event.item.id,
+                  name: "OpenAiFunctionShell"
+                }
+                break
+              }
+
               case "function_call": {
                 activeToolCalls[event.output_index] = {
                   id: event.item.call_id,
@@ -1093,6 +1162,8 @@ const makeStreamResponse: (
               }
 
               case "message": {
+                // Clear annotations for new message
+                ongoingAnnotations.length = 0
                 parts.push({
                   type: "text-start",
                   id: event.item.id,
@@ -1104,8 +1175,8 @@ const makeStreamResponse: (
               case "reasoning": {
                 const encryptedContent = event.item.encrypted_content ?? undefined
                 activeReasoning[event.item.id] = {
-                  summaryParts: [0],
-                  encryptedContent
+                  encryptedContent,
+                  summaryParts: { 0: "active" }
                 }
                 parts.push({
                   type: "reasoning-start",
@@ -1142,14 +1213,8 @@ const makeStreamResponse: (
           case "response.output_item.done": {
             switch (event.item.type) {
               case "code_interpreter_call": {
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.id,
-                  name: "OpenAiCodeInterpreter",
-                  params: { code: event.item.code, container_id: event.item.container_id },
-                  providerName: "code_interpreter",
-                  providerExecuted: true
-                })
+                delete activeToolCalls[event.output_index]
+                // tool-call is emitted in code_interpreter_call_code.done
                 parts.push({
                   type: "tool-result",
                   id: event.item.id,
@@ -1197,6 +1262,93 @@ const makeStreamResponse: (
                 break
               }
 
+              case "image_generation_call": {
+                delete activeToolCalls[event.output_index]
+                // Emit final tool-result with complete image data
+                parts.push({
+                  type: "tool-result",
+                  id: event.item.id,
+                  name: "OpenAiImageGeneration",
+                  isFailure: false,
+                  result: event.item.result ?? { status: "completed" },
+                  providerName: "image_generation",
+                  providerExecuted: true
+                })
+                break
+              }
+
+              case "local_shell_call": {
+                delete activeToolCalls[event.output_index]
+                parts.push({
+                  type: "tool-call",
+                  id: event.item.id,
+                  name: "OpenAiLocalShell",
+                  params: { action: event.item.action },
+                  providerName: "local_shell",
+                  providerExecuted: true
+                })
+                break
+              }
+
+              case "shell_call": {
+                delete activeToolCalls[event.output_index]
+                parts.push({
+                  type: "tool-call",
+                  id: event.item.id,
+                  name: "OpenAiFunctionShell",
+                  params: { action: event.item.action },
+                  providerName: "shell",
+                  providerExecuted: true
+                })
+                break
+              }
+
+              case "mcp_call": {
+                parts.push({
+                  type: "tool-call",
+                  id: event.item.id,
+                  name: "OpenAiMcp",
+                  params: {
+                    server_label: event.item.server_label,
+                    name: event.item.name,
+                    arguments: event.item.arguments
+                  },
+                  providerName: "mcp",
+                  providerExecuted: true
+                })
+                parts.push({
+                  type: "tool-result",
+                  id: event.item.id,
+                  name: "OpenAiMcp",
+                  isFailure: event.item.error != null,
+                  result: event.item.error ?? event.item.output,
+                  providerName: "mcp",
+                  providerExecuted: true
+                })
+                break
+              }
+
+              case "mcp_list_tools": {
+                // No UI representation, skip
+                break
+              }
+
+              case "mcp_approval_request": {
+                parts.push({
+                  type: "tool-call",
+                  id: event.item.id,
+                  name: "OpenAiMcpApprovalRequest",
+                  params: {
+                    server_label: event.item.server_label,
+                    name: event.item.name,
+                    arguments: event.item.arguments
+                  },
+                  providerName: "mcp_approval_request",
+                  providerExecuted: true
+                })
+                break
+              }
+
               case "function_call": {
                 hasToolCalls = true
 
@@ -1237,7 +1389,13 @@ const makeStreamResponse: (
               case "message": {
                 parts.push({
                   type: "text-end",
-                  id: event.item.id
+                  id: event.item.id,
+                  metadata: {
+                    openai: {
+                      itemId: event.item.id,
+                      ...(ongoingAnnotations.length > 0 && { annotations: [...ongoingAnnotations] })
+                    }
+                  }
                 })
                 break
               }
@@ -1245,17 +1403,21 @@ const makeStreamResponse: (
               case "reasoning": {
                 const reasoningPart = activeReasoning[event.item.id]
                 const encryptedContent = event.item.encrypted_content ?? undefined
-                for (const summaryIndex of reasoningPart.summaryParts) {
-                  parts.push({
-                    type: "reasoning-end",
-                    id: `${event.item.id}:${summaryIndex}`,
-                    metadata: {
-                      openai: {
-                        itemId: event.item.id,
-                        ...(encryptedContent && { encryptedContent })
+                // Conclude all active or can-conclude parts
+                for (const [summaryIndex, status] of Object.entries(reasoningPart.summaryParts)) {
+                  if (status === "active" || status === "can-conclude") {
+                    parts.push({
+                      type: "reasoning-end",
+                      id: `${event.item.id}:${summaryIndex}`,
+                      metadata: {
+                        openai: {
+                          itemId: event.item.id,
+                          ...(encryptedContent && { encryptedContent })
+                        }
                       }
-                    }
-                  })
+                    })
+                    reasoningPart.summaryParts[Number(summaryIndex)] = "concluded"
+                  }
                 }
                 delete activeReasoning[event.item.id]
                 break
@@ -1301,25 +1463,43 @@ const makeStreamResponse: (
           }
 
           case "response.output_text.annotation.added": {
-            if (event.annotation.type === "file_citation") {
-              const filename = event.annotation.filename as string | undefined
-              const fileId = event.annotation.file_id as string
+            const annotation = event.annotation as typeof Generated.Annotation.Encoded
+            // Track annotation for text-end metadata
+            ongoingAnnotations.push(annotation)
+            if (annotation.type === "file_citation") {
               parts.push({
                 type: "source",
                 sourceType: "document",
                 id: yield* idGenerator.generateId(),
                 mediaType: "text/plain",
-                title: filename ?? "Untitled Document",
-                fileName: filename ?? fileId
+                title: annotation.filename ?? "Untitled Document",
+                fileName: annotation.filename ?? annotation.file_id
               })
-            }
-            if (event.annotation.type === "url_citation") {
+            } else if (annotation.type === "url_citation") {
               parts.push({
                 type: "source",
                 sourceType: "url",
                 id: yield* idGenerator.generateId(),
-                url: event.annotation.url as string,
-                title: event.annotation.title as string
+                url: annotation.url,
+                title: annotation.title
+              })
+            } else if (annotation.type === "container_file_citation") {
+              parts.push({
+                type: "source",
+                sourceType: "document",
+                id: yield* idGenerator.generateId(),
+                mediaType: "text/plain",
+                title: annotation.file_id,
+                fileName: annotation.file_id
+              })
+            } else if (annotation.type === "file_path") {
+              parts.push({
+                type: "source",
+                sourceType: "document",
+                id: yield* idGenerator.generateId(),
+                mediaType: "text/plain",
+                title: annotation.file_id,
+                fileName: annotation.file_id
               })
             }
             break
@@ -1337,12 +1517,82 @@ const makeStreamResponse: (
             break
           }
 
+          case "response.code_interpreter_call_code.delta": {
+            const toolCall = activeToolCalls[event.output_index]
+            if (toolCall != null) {
+              parts.push({
+                type: "tool-params-delta",
+                id: toolCall.id,
+                delta: InternalUtilities.escapeJSONDelta(event.delta)
+              })
+            }
+            break
+          }
+
+          case "response.code_interpreter_call_code.done": {
+            const toolCall = activeToolCalls[event.output_index]
+            if (toolCall != null && toolCall.codeInterpreter != null) {
+              parts.push({
+                type: "tool-params-delta",
+                id: toolCall.id,
+                delta: "\"}"
+              })
+              parts.push({ type: "tool-params-end", id: toolCall.id })
+              parts.push({
+                type: "tool-call",
+                id: toolCall.id,
+                name: "OpenAiCodeInterpreter",
+                params: { code: event.code, container_id: toolCall.codeInterpreter.containerId },
+                providerName: "code_interpreter",
+                providerExecuted: true
+              })
+            }
+            break
+          }
+
+          case "response.image_generation_call.partial_image": {
+            const toolCall = activeToolCalls[event.output_index]
+            if (toolCall != null) {
+              // Emit preliminary tool-result with partial image
+              // Note: partial results are identified by partial_image_index in the result
+              parts.push({
+                type: "tool-result",
+                id: toolCall.id,
+                name: "OpenAiImageGeneration",
+                isFailure: false,
+                result: {
+                  partial_image_b64: event.partial_image_b64,
+                  partial_image_index: event.partial_image_index
+                },
+                providerName: "image_generation",
+                providerExecuted: true
+              })
+            }
+            break
+          }
+
           case "response.reasoning_summary_part.added": {
             // The first reasoning start is pushed in the `response.output_item.added` block
             if (event.summary_index > 0) {
               const reasoningPart = activeReasoning[event.item_id]
               if (reasoningPart != null) {
-                reasoningPart.summaryParts.push(event.summary_index)
+                // Conclude all can-conclude parts before starting new one
+                for (const [idx, status] of Object.entries(reasoningPart.summaryParts)) {
+                  if (status === "can-conclude") {
+                    parts.push({
+                      type: "reasoning-end",
+                      id: `${event.item_id}:${idx}`,
+                      metadata: {
+                        openai: {
+                          itemId: event.item_id,
+                          ...(reasoningPart.encryptedContent && { encryptedContent: reasoningPart.encryptedContent })
+                        }
+                      }
+                    })
+                    reasoningPart.summaryParts[Number(idx)] = "concluded"
+                  }
+                }
+                reasoningPart.summaryParts[event.summary_index] = "active"
               }
               parts.push({
                 type: "reasoning-start",
@@ -1354,6 +1604,17 @@ const makeStreamResponse: (
                   }
                 }
               })
+            }
+            break
+          }
+
+          case "response.reasoning_summary_part.done": {
+            const reasoningPart = activeReasoning[event.item_id]
+            if (reasoningPart != null) {
+              // Mark as can-conclude; will be concluded when new part starts or item done
+              // Note: The actual concluding based on `store` config would need the config
+              // passed to makeStreamResponse, but for now we just mark as can-conclude
+              reasoningPart.summaryParts[event.summary_index] = "can-conclude"
             }
             break
           }

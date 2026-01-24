@@ -15,6 +15,9 @@ const finishReasonMap: Record<string, Response.FinishReason> = {
 }
 
 /** @internal */
+export const escapeJSONDelta = (delta: string): string => JSON.stringify(delta).slice(1, -1)
+
+/** @internal */
 export const resolveFinishReason = (
   finishReason: string | null | undefined,
   hasToolCalls: boolean

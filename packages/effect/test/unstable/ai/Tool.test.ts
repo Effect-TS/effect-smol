@@ -31,8 +31,7 @@ const FailureModeReturn = Tool.make("FailureModeReturn", {
 })
 
 const NoHandlerRequired = Tool.providerDefined({
-  id: "provider.no-handler-required",
-  toolkitName: "NoHandlerRequired",
+  customName: "NoHandlerRequired",
   providerName: "no_handler_required",
   args: {
     testArg: Schema.String
@@ -49,8 +48,7 @@ const NoHandlerRequired = Tool.providerDefined({
 })
 
 const HandlerRequired = Tool.providerDefined({
-  id: "provider.handler-required",
-  toolkitName: "HandlerRequired",
+  customName: "HandlerRequired",
   providerName: "handler_required",
   requiresHandler: true,
   args: {
