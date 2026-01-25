@@ -1,18 +1,8 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Cause, Effect, Logger, type LogLevel, References } from "effect"
+import { makeTestLogger } from "./utils/logger.ts"
 
 type IgnoreOptions = { readonly log?: boolean | LogLevel.LogLevel }
-
-const makeTestLogger = () => {
-  const capturedLogs: Array<{
-    readonly logLevel: LogLevel.LogLevel
-    readonly cause: Cause.Cause<unknown>
-  }> = []
-  const testLogger = Logger.make<unknown, void>((options) => {
-    capturedLogs.push({ logLevel: options.logLevel, cause: options.cause })
-  })
-  return { capturedLogs, testLogger }
-}
 
 const runIgnore = (options?: IgnoreOptions, currentLogLevel: LogLevel.LogLevel = "Info") =>
   Effect.gen(function*() {
