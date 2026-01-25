@@ -1,5 +1,4 @@
-import type { Cause } from "effect"
-import { Equal, Option, Predicate, Result } from "effect"
+import { Cause, Equal, Option, Predicate, Result } from "effect"
 import * as Exit from "effect/Exit"
 import * as assert from "node:assert"
 import { assert as vassert } from "vitest"
@@ -170,4 +169,12 @@ export function assertExitSuccess<A, E>(
   ..._: Array<never>
 ): asserts exit is Exit.Success<A, never> {
   deepStrictEqual(exit, Exit.succeed(expected))
+}
+
+export function assertCauseFail<E>(
+  cause: Cause.Cause<E>,
+  expected: E,
+  ..._: Array<never>
+) {
+  deepStrictEqual(cause, Cause.fail(expected))
 }
