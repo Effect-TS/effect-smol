@@ -8,7 +8,10 @@ import {
   Exit,
   Fiber,
   Filter,
+  Logger,
+  type LogLevel,
   Option,
+  References,
   Result,
   Schedule,
   Scope,
@@ -17,6 +20,7 @@ import {
 } from "effect"
 import { constFalse, constTrue, pipe } from "effect/Function"
 import { TestClock } from "effect/testing"
+import { assertFailureCause } from "./utils/assert.ts"
 
 class ATag extends ServiceMap.Service<ATag, "A">()("ATag") {}
 
@@ -1264,6 +1268,63 @@ describe("Effect", () => {
           Effect.ignore
         )
         assert.isTrue(ref)
+      }))
+  })
+
+  describe("ignore logging", () => {
+    type IgnoreOptions = { readonly log?: boolean | LogLevel.LogLevel }
+
+    const makeTestLogger = () => {
+      const capturedLogs: Array<{
+        readonly logLevel: LogLevel.LogLevel
+        readonly cause: Cause.Cause<unknown>
+      }> = []
+      const testLogger = Logger.make<unknown, void>((options) => {
+        capturedLogs.push({ logLevel: options.logLevel, cause: options.cause })
+      })
+      return { capturedLogs, testLogger }
+    }
+
+    const runIgnore = (options?: IgnoreOptions, currentLogLevel: LogLevel.LogLevel = "Info") =>
+      Effect.gen(function*() {
+        const { capturedLogs, testLogger } = makeTestLogger()
+        const program = options === undefined
+          ? Effect.fail("boom").pipe(Effect.ignore)
+          : Effect.fail("boom").pipe(Effect.ignore(options))
+        yield* program.pipe(
+          Effect.provide(Logger.layer([testLogger])),
+          Effect.provideService(References.MinimumLogLevel, "Trace"),
+          Effect.provideService(References.CurrentLogLevel, currentLogLevel)
+        )
+        return capturedLogs
+      })
+
+    it.effect("does not log when log is omitted", () =>
+      Effect.gen(function*() {
+        const logs = yield* runIgnore()
+        assert.strictEqual(logs.length, 0)
+      }))
+
+    it.effect("does not log when log is false", () =>
+      Effect.gen(function*() {
+        const logs = yield* runIgnore({ log: false })
+        assert.strictEqual(logs.length, 0)
+      }))
+
+    it.effect("logs with the current level when log is true", () =>
+      Effect.gen(function*() {
+        const logs = yield* runIgnore({ log: true }, "Warn")
+        assert.strictEqual(logs.length, 1)
+        assert.strictEqual(logs[0].logLevel, "Warn")
+        assertFailureCause(logs[0].cause, "boom")
+      }))
+
+    it.effect("logs with the provided level when log is a LogLevel", () =>
+      Effect.gen(function*() {
+        const logs = yield* runIgnore({ log: "Error" }, "Warn")
+        assert.strictEqual(logs.length, 1)
+        assert.strictEqual(logs[0].logLevel, "Error")
+        assertFailureCause(logs[0].cause, "boom")
       }))
   })
 
