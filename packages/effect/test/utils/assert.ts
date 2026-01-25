@@ -171,15 +171,10 @@ export function assertExitSuccess<A, E>(
   deepStrictEqual(exit, Exit.succeed(expected))
 }
 
-export function assertFailureCause<E>(
+export function assertCauseFail<E>(
   cause: Cause.Cause<E>,
   expected: E,
   ..._: Array<never>
 ) {
-  strictEqual(cause.failures.length, 1)
-  const failure = cause.failures[0]
-  strictEqual(Cause.failureIsFail(failure), true)
-  if (Cause.failureIsFail(failure)) {
-    strictEqual(failure.error, expected)
-  }
+  deepStrictEqual(cause, Cause.fail(expected))
 }

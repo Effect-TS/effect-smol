@@ -20,7 +20,7 @@ import {
 } from "effect"
 import { constFalse, constTrue, pipe } from "effect/Function"
 import { TestClock } from "effect/testing"
-import { assertFailureCause } from "./utils/assert.ts"
+import { assertCauseFail } from "./utils/assert.ts"
 
 class ATag extends ServiceMap.Service<ATag, "A">()("ATag") {}
 
@@ -1316,7 +1316,7 @@ describe("Effect", () => {
         const logs = yield* runIgnore({ log: true }, "Warn")
         assert.strictEqual(logs.length, 1)
         assert.strictEqual(logs[0].logLevel, "Warn")
-        assertFailureCause(logs[0].cause, "boom")
+        assertCauseFail(logs[0].cause, "boom")
       }))
 
     it.effect("logs with the provided level when log is a LogLevel", () =>
@@ -1324,7 +1324,7 @@ describe("Effect", () => {
         const logs = yield* runIgnore({ log: "Error" }, "Warn")
         assert.strictEqual(logs.length, 1)
         assert.strictEqual(logs[0].logLevel, "Error")
-        assertFailureCause(logs[0].cause, "boom")
+        assertCauseFail(logs[0].cause, "boom")
       }))
   })
 
