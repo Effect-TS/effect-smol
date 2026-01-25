@@ -1099,38 +1099,35 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
 }
 
 /**
- * Error indicating the tool handler execution failed with an unexpected error.
+ * Error indicating the tool handler returned an invalid result that does not
+ * match the tool's schema.
  *
- * This error is not retryable because handler failures are typically due to
- * bugs or external service issues rather than model behavior.
+ * This error is not retryable because invalid results indicate a bug in the
+ * tool handler implementation.
  *
  * @example
  * ```ts
  * import { AiError } from "effect/unstable/ai"
  *
- * const error = new AiError.ToolExecutionError({
+ * const error = new AiError.InvalidToolResultError({
  *   toolName: "GetWeather",
- *   parameters: '{"location": "NYC"}',
- *   description: "Weather API connection failed"
+ *   description: "Tool handler returned invalid result: missing 'temperature' field"
  * })
  *
  * console.log(error.isRetryable) // false
  * console.log(error.message)
- * // "Tool 'GetWeather' execution failed: Weather API connection failed"
+ * // "Tool 'GetWeather' returned invalid result: missing 'temperature' field"
  * ```
  *
  * @since 4.0.0
  * @category reason
  */
-export class ToolExecutionError extends Schema.ErrorClass<ToolExecutionError>(
-  "effect/ai/AiError/ToolExecutionError"
+export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultError>(
+  "effect/ai/AiError/InvalidToolResultError"
 )({
-  _tag: Schema.tag("ToolExecutionError"),
+  _tag: Schema.tag("InvalidToolResultError"),
   toolName: Schema.String,
-  parameters: Schema.optional(Schema.String),
-  description: Schema.optional(Schema.String),
-  provider: Schema.optional(ProviderMetadata),
-  cause: Schema.optional(Schema.Defect)
+  description: Schema.String
 }) {
   /**
    * @since 4.0.0
@@ -1138,7 +1135,7 @@ export class ToolExecutionError extends Schema.ErrorClass<ToolExecutionError>(
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
-   * Tool execution errors are not retryable because handler failures are unlikely to self-resolve.
+   * Invalid tool result errors are not retryable because they indicate a bug in the handler.
    *
    * @since 4.0.0
    */
@@ -1147,11 +1144,7 @@ export class ToolExecutionError extends Schema.ErrorClass<ToolExecutionError>(
   }
 
   override get message(): string {
-    let msg = `Tool '${this.toolName}' execution failed`
-    if (this.description) {
-      msg += `: ${this.description}`
-    }
-    return msg
+    return `Tool '${this.toolName}' returned invalid result: ${this.description}`
   }
 }
 
@@ -1237,7 +1230,7 @@ export type AiErrorReason =
   | AiUnknownError
   | ToolNotFoundError
   | ToolParameterValidationError
-  | ToolExecutionError
+  | InvalidToolResultError
   | ToolResultEncodingError
 
 /**
@@ -1261,7 +1254,7 @@ export const AiErrorReason: Schema.Union<[
   typeof AiUnknownError,
   typeof ToolNotFoundError,
   typeof ToolParameterValidationError,
-  typeof ToolExecutionError,
+  typeof InvalidToolResultError,
   typeof ToolResultEncodingError
 ]> = Schema.Union([
   RateLimitError,
@@ -1278,7 +1271,7 @@ export const AiErrorReason: Schema.Union<[
   AiUnknownError,
   ToolNotFoundError,
   ToolParameterValidationError,
-  ToolExecutionError,
+  InvalidToolResultError,
   ToolResultEncodingError
 ])
 

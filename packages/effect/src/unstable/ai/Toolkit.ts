@@ -325,10 +325,9 @@ const Proto = {
               ? AiError.make({
                 module: "Toolkit",
                 method: `${name}.handle`,
-                reason: new AiError.ToolExecutionError({
+                reason: new AiError.InvalidToolResultError({
                   toolName: name,
-                  description: `Tool handler returned invalid result: ${error.message}`,
-                  cause: error
+                  description: `Tool handler returned invalid result: ${error.message}`
                 })
               })
               : AiError.isAiErrorReason(error)

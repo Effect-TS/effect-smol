@@ -422,43 +422,37 @@ describe("AiError", () => {
       })
     })
 
-    describe("ToolExecutionError", () => {
+    describe("InvalidToolResultError", () => {
       it("should not be retryable", () => {
-        const error = new AiError.ToolExecutionError({
-          toolName: "GetWeather"
+        const error = new AiError.InvalidToolResultError({
+          toolName: "GetWeather",
+          description: "missing required field"
         })
         assert.isFalse(error.isRetryable)
       })
 
       it("should format message with tool name", () => {
-        const error = new AiError.ToolExecutionError({
-          toolName: "GetWeather"
+        const error = new AiError.InvalidToolResultError({
+          toolName: "GetWeather",
+          description: "missing required field"
         })
-        assert.match(error.message, /Tool 'GetWeather' execution failed/)
+        assert.match(error.message, /Tool 'GetWeather' returned invalid result/)
       })
 
       it("should format message with description", () => {
-        const error = new AiError.ToolExecutionError({
+        const error = new AiError.InvalidToolResultError({
           toolName: "GetWeather",
-          description: "API connection timeout"
+          description: "missing 'temperature' field"
         })
-        assert.match(error.message, /API connection timeout/)
-      })
-
-      it("should store parameters", () => {
-        const params = "{\"location\": \"NYC\"}"
-        const error = new AiError.ToolExecutionError({
-          toolName: "GetWeather",
-          parameters: params
-        })
-        assert.strictEqual(error.parameters, params)
+        assert.match(error.message, /missing 'temperature' field/)
       })
 
       it("should have _tag set correctly", () => {
-        const error = new AiError.ToolExecutionError({
-          toolName: "Test"
+        const error = new AiError.InvalidToolResultError({
+          toolName: "Test",
+          description: "invalid result"
         })
-        assert.strictEqual(error._tag, "ToolExecutionError")
+        assert.strictEqual(error._tag, "InvalidToolResultError")
       })
     })
 
@@ -802,18 +796,17 @@ describe("AiError", () => {
         assert.strictEqual(decoded.validationMessage, "Expected string")
       }))
 
-    it.effect("ToolExecutionError roundtrip", () =>
+    it.effect("InvalidToolResultError roundtrip", () =>
       Effect.gen(function*() {
-        const error = new AiError.ToolExecutionError({
+        const error = new AiError.InvalidToolResultError({
           toolName: "GetWeather",
-          parameters: "{\"location\": \"NYC\"}",
-          description: "API timeout"
+          description: "missing required field"
         })
-        const encoded = yield* Schema.encodeEffect(AiError.ToolExecutionError)(error)
-        const decoded = yield* Schema.decodeEffect(AiError.ToolExecutionError)(encoded)
-        assert.strictEqual(decoded._tag, "ToolExecutionError")
+        const encoded = yield* Schema.encodeEffect(AiError.InvalidToolResultError)(error)
+        const decoded = yield* Schema.decodeEffect(AiError.InvalidToolResultError)(encoded)
+        assert.strictEqual(decoded._tag, "InvalidToolResultError")
         assert.strictEqual(decoded.toolName, "GetWeather")
-        assert.strictEqual(decoded.description, "API timeout")
+        assert.strictEqual(decoded.description, "missing required field")
       }))
 
     it.effect("ToolResultEncodingError roundtrip", () =>
