@@ -301,44 +301,60 @@ const extractMembers = (
   return members
 }
 
-const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
+function extractPayloads(ast: AST.AST): ReadonlyMap<string, {
   readonly encoding: HttpApiSchema.Encoding
   readonly ast: AST.AST
-}> => {
-  const members = new Map<string, {
+}> {
+  const map = new Map<string, {
     encoding: HttpApiSchema.Encoding
-    ast: AST.AST
+    asts: Array<AST.AST>
   }>()
-  function process(ast: AST.AST) {
+
+  recur(ast, undefined)
+
+  return new Map(
+    [...map.entries()].map(([contentType, { encoding, asts }]) => [
+      contentType,
+      { encoding, ast: asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf") }
+    ])
+  )
+
+  function recur(ast: AST.AST, parentEncoding: HttpApiSchema.Encoding | undefined) {
+    if (AST.isUnion(ast)) {
+      for (const type of ast.types) {
+        recur(type, HttpApiSchema.resolveHttpApiEncoding(ast) ?? parentEncoding)
+      }
+    } else {
+      on(ast, parentEncoding)
+    }
+  }
+
+  function on(ast: AST.AST, parentEncoding: HttpApiSchema.Encoding | undefined) {
     if (AST.isNever(ast)) {
       return
     }
-    ast = AST.annotate(ast, {
-      ...HttpApiSchema.getHttpApiAnnotations(topAst.annotations),
-      ...ast.annotations
-    })
-    const encoding = HttpApiSchema.getEncoding(ast)
-    const contentType = HttpApiSchema.resolveHttpApiMultipart(ast) ?? HttpApiSchema.resolveHttpApiMultipartStream(ast)
-      ? "multipart/form-data"
-      : encoding.contentType
-    const current = members.get(contentType)
+    const encoding = HttpApiSchema.resolveHttpApiEncoding(ast) ??
+      (HttpApiSchema.resolveHttpApiMultipart(ast) ?? HttpApiSchema.resolveHttpApiMultipartStream(ast)
+        ? HttpApiSchema.encodingMultipart
+        : parentEncoding ?? HttpApiSchema.encodingJson)
+
+    const contentType = encoding.contentType
+
+    const current = map.get(contentType)
+
     if (current === undefined) {
-      members.set(contentType, {
-        encoding,
-        ast
-      })
+      map.set(contentType, { encoding, asts: [ast] })
     } else {
-      current.ast = new AST.Union([current.ast, ast], "anyOf")
+      if (current.encoding.kind !== encoding.kind) {
+        throw new Error(
+          `Conflicting payload encodings for content type '${contentType}': ` +
+            `found kinds '${current.encoding.kind}' and '${encoding.kind}'. ` +
+            `A content type must map to a single encoding kind.`
+        )
+      }
+      current.asts.push(ast)
     }
   }
-  if (AST.isUnion(topAst)) {
-    for (const type of topAst.types) {
-      process(type)
-    }
-  } else {
-    process(topAst)
-  }
-  return members
 }
 
 /**

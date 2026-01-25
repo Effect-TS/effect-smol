@@ -38,7 +38,52 @@ import {
 import OpenApiFixture from "./fixtures/openapi.json" with { type: "json" }
 
 describe("HttpApi", () => {
-  describe("path", () => {
+  describe("payload option", () => {
+    describe("encoding", () => {
+      it.effect("nested unions with different encodings", () => {
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("group").add(
+            HttpApiEndpoint.post("a", "/a", {
+              payload: Schema.Union([
+                Schema.Struct({ a: Schema.String }), // application/json
+                Schema.Union([
+                  HttpApiSchema.Text(), // text/plain
+                  HttpApiSchema.Uint8Array() // application/octet-stream
+                ])
+              ]),
+              success: Schema.String
+            })
+          )
+        )
+        const GroupLive = HttpApiBuilder.group(
+          Api,
+          "group",
+          (handlers) => handlers.handle("a", (ctx) => Effect.succeed(JSON.stringify(ctx.payload)))
+        )
+
+        const ApiLive = HttpRouter.serve(
+          HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+          { disableListenLog: true, disableLogger: true }
+        ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+        return Effect.gen(function*() {
+          const client = yield* HttpApiClient.make(Api)
+          const resultJson = yield* client.group.a({ payload: { a: "text" } })
+          assert.strictEqual(resultJson, `{"a":"text"}`)
+          const resultText = yield* client.group.a({ payload: "text" })
+          assert.strictEqual(resultText, `"text"`)
+          // TODO: this is not supported yet, throws
+          // Error: Missing key
+          // at ["a"]
+          // Expected Uint8Array, got {"0":1,"1":2,"2":3}
+          // const resultUint8Array = yield* client.group.a({ payload: new Uint8Array([1, 2, 3]) })
+          // assert.strictEqual(resultUint8Array, "1,2,3")
+        }).pipe(Effect.provide(ApiLive))
+      })
+    })
+  })
+
+  describe("path option", () => {
     it.effect("setPath method should accept a record of schemas", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
