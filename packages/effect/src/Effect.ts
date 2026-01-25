@@ -3734,6 +3734,8 @@ export const sandbox: <A, E, R>(
  * it succeeds or fails. This is useful when you only care about the side
  * effects of the effect and do not need to handle or process its outcome.
  *
+ * Use the `log` option to emit the full {@link Cause} when the effect fails.
+ *
  * @example
  * ```ts
  * // Title: Using Effect.ignore to Discard Values
@@ -3748,18 +3750,34 @@ export const sandbox: <A, E, R>(
  * const program = Effect.ignore(task)
  * ```
  *
+ * @example
+ * ```ts
+ * // Title: Logging failures while ignoring results
+ * import { Effect } from "effect"
+ *
+ * const task = Effect.fail("Uh oh!")
+ *
+ * const program = Effect.ignore(task, { log: "Error" })
+ * ```
+ *
+ * **Migration**
+ *
+ * Replace `Effect.ignoreLogged(self)` with `Effect.ignore(self, { log: true })`.
+ *
  * @since 2.0.0
  * @category Error handling
  */
-export const ignore: <A, E, R>(
-  self: Effect<A, E, R>
-) => Effect<void, never, R> = internal.ignore
-
-/**
- * @since 2.0.0
- * @category Error handling
- */
-export const ignoreLogged: <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignoreLogged
+export const ignore: <
+  Arg extends Effect<any, any, any> | {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+>(
+  effectOrOptions: Arg,
+  options?: {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<void, never, _R>
+  : <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignore
 
 /**
  * Apply an `ExecutionPlan` to the effect, which allows you to fallback to
