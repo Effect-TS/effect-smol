@@ -3760,9 +3760,11 @@ export const sandbox: <A, E, R>(
  * const program = Effect.ignore(task, { log: "Error" })
  * ```
  *
- * **Migration**
+ * **Previously Known As**
  *
- * Replace `Effect.ignoreLogged(self)` with `Effect.ignore(self, { log: true })`.
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Effect.ignoreLogged`
  *
  * @since 2.0.0
  * @category Error handling
