@@ -1271,7 +1271,7 @@ describe("Effect", () => {
       }))
   })
 
-  describe("ignore logging", () => {
+  describe("Effect.ignore", () => {
     type IgnoreOptions = { readonly log?: boolean | LogLevel.LogLevel }
 
     const makeTestLogger = () => {
