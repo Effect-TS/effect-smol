@@ -79,6 +79,8 @@ import type * as HttpClientError from "../http/HttpClientError.ts"
 
 const LegacyTypeId = "~effect/unstable/ai/AiError" as const
 
+const ReasonTypeId = "~effect/unstable/ai/AiError/Reason" as const
+
 // =============================================================================
 // Http Request Error
 // =============================================================================
@@ -342,6 +344,11 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
   cause: Schema.optional(Schema.Defect)
 }) {
   /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
    * Rate limit errors are always retryable.
    *
    * @since 4.0.0
@@ -390,6 +397,11 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
   cause: Schema.optional(Schema.Defect)
 }) {
   /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
    * Quota exhausted errors require user action and are not retryable.
    *
    * @since 4.0.0
@@ -436,6 +448,11 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
   http: Schema.optional(HttpContext),
   cause: Schema.optional(Schema.Defect)
 }) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
   /**
    * Authentication errors require credential changes and are not retryable.
    *
@@ -493,6 +510,11 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
   cause: Schema.optional(Schema.Defect)
 }) {
   /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
    * Content policy errors require content changes and are not retryable.
    *
    * @since 4.0.0
@@ -546,6 +568,11 @@ export class ModelUnavailableError extends Schema.ErrorClass<ModelUnavailableErr
   cause: Schema.optional(Schema.Defect)
 }) {
   /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
    * Model unavailable errors are retryable only for temporary conditions.
    *
    * @since 4.0.0
@@ -595,6 +622,11 @@ export class ContextLengthError extends Schema.ErrorClass<ContextLengthError>(
   http: Schema.optional(HttpContext),
   cause: Schema.optional(Schema.Defect)
 }) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
   /**
    * Context length errors require reducing input and are not retryable.
    *
@@ -648,6 +680,11 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
   cause: Schema.optional(Schema.Defect)
 }) {
   /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
    * Invalid request errors require fixing the request and are not retryable.
    *
    * @since 4.0.0
@@ -696,6 +733,11 @@ export class ProviderInternalError extends Schema.ErrorClass<ProviderInternalErr
   http: Schema.optional(HttpContext),
   cause: Schema.optional(Schema.Defect)
 }) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
   /**
    * Provider internal errors are typically transient and are retryable.
    *
@@ -747,6 +789,11 @@ export class AiTimeoutError extends Schema.ErrorClass<AiTimeoutError>(
   cause: Schema.optional(Schema.Defect)
 }) {
   /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
    * Timeout errors are typically transient and are retryable.
    *
    * @since 4.0.0
@@ -791,6 +838,11 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
   http: Schema.optional(HttpContext),
   cause: Schema.optional(Schema.Defect)
 }) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
   /**
    * Network errors are typically transient and are retryable.
    *
@@ -843,6 +895,11 @@ export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
   usage: Schema.optional(UsageInfo),
   cause: Schema.optional(Schema.Defect)
 }) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
   /**
    * Output parse errors are retryable since LLM outputs are non-deterministic.
    *
@@ -917,6 +974,11 @@ export class AiUnknownError extends Schema.ErrorClass<AiUnknownError>(
   cause: Schema.optional(Schema.Defect)
 }) {
   /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
    * Unknown errors are not retryable by default.
    *
    * @since 4.0.0
@@ -966,6 +1028,11 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
   availableTools: Schema.Array(Schema.String)
 }) {
   /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
    * Tool not found errors are retryable because the model may self-correct.
    *
    * @since 4.0.0
@@ -1012,6 +1079,11 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
   toolParams: Schema.Json,
   validationMessage: Schema.String
 }) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
   /**
    * Parameter validation errors are retryable because the model may correct parameters.
    *
@@ -1060,6 +1132,11 @@ export class ToolExecutionError extends Schema.ErrorClass<ToolExecutionError>(
   provider: Schema.optional(ProviderMetadata),
   cause: Schema.optional(Schema.Defect)
 }) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
   /**
    * Tool execution errors are not retryable because handler failures are unlikely to self-resolve.
    *
@@ -1110,6 +1187,11 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
   toolResult: Schema.Unknown,
   validationMessage: Schema.String
 }) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
   /**
    * Encoding errors are not retryable because they indicate a code bug.
    *
@@ -1298,6 +1380,28 @@ export class AiError extends Schema.ErrorClass<AiError>(
  * @category guards
  */
 export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, TypeId)
+
+/**
+ * Type guard to check if a value is an `AiErrorReason`.
+ *
+ * @param u - The value to check
+ * @returns `true` if the value is an `AiErrorReason`, `false` otherwise
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const rateLimitError = new AiError.RateLimitError({})
+ * const genericError = new Error("generic error")
+ *
+ * console.log(AiError.isAiErrorReason(rateLimitError)) // true
+ * console.log(AiError.isAiErrorReason(genericError)) // false
+ * ```
+ *
+ * @since 4.0.0
+ * @category guards
+ */
+export const isAiErrorReason = (u: unknown): u is AiErrorReason => Predicate.hasProperty(u, ReasonTypeId)
 
 /**
  * Creates an `AiError` with the given reason.

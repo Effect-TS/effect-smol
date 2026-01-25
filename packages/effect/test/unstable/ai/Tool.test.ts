@@ -206,9 +206,9 @@ describe("Tool", () => {
 
         assert.strictEqual(response._tag, "AiError")
         if (response._tag === "AiError") {
-          assert.strictEqual(response.reason._tag, "OutputParseError")
-          if (response.reason._tag === "OutputParseError") {
-            assert.strictEqual(response.reason.expectedSchema, "FailureModeReturn")
+          assert.strictEqual(response.reason._tag, "ToolParameterValidationError")
+          if (response.reason._tag === "ToolParameterValidationError") {
+            assert.strictEqual(response.reason.toolName, "FailureModeReturn")
           }
         }
       }))
@@ -478,9 +478,9 @@ describe("Tool", () => {
 
         assert.strictEqual(response._tag, "AiError")
         if (response._tag === "AiError") {
-          assert.strictEqual(response.reason._tag, "OutputParseError")
-          if (response.reason._tag === "OutputParseError") {
-            assert.strictEqual(response.reason.expectedSchema, "HandlerRequired")
+          assert.strictEqual(response.reason._tag, "ToolParameterValidationError")
+          if (response.reason._tag === "ToolParameterValidationError") {
+            assert.strictEqual(response.reason.toolName, "HandlerRequired")
           }
         }
       }))
