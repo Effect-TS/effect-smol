@@ -821,7 +821,12 @@ export const run: {
       readonly version: string
     }
   ): Effect.Effect<void, E | CliError.CliError, R | Environment>
-} = <Name extends string, Input, E, R>(
+  (config: {
+    readonly version: string
+  }): <Name extends string, Input, E, R>(
+    command: Command<Name, Input, E, R>
+  ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
+} = dual(2, <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   config: {
     readonly version: string
@@ -831,7 +836,7 @@ export const run: {
   // consider accepting an optional args parameter or using a platform service.
   const input = process.argv.slice(2)
   return runWith(command, config)(input)
-}
+})
 
 /**
  * Runs a command with explicitly provided arguments instead of using process.argv.
