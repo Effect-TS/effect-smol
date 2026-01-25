@@ -3726,16 +3726,6 @@ export const sandbox: <A, E, R>(
 ) => Effect<A, Cause.Cause<E>, R> = internal.sandbox
 
 /**
- * Options for {@link ignore}.
- *
- * @since 4.0.0
- * @category Error handling
- */
-export interface IgnoreOptions {
-  readonly log?: boolean | LogLevel | undefined
-}
-
-/**
  * Discards both the success and failure values of an effect.
  *
  * **When to Use**
@@ -3777,9 +3767,15 @@ export interface IgnoreOptions {
  * @since 2.0.0
  * @category Error handling
  */
-export const ignore: <Arg extends Effect<any, any, any> | IgnoreOptions | undefined>(
+export const ignore: <
+  Arg extends Effect<any, any, any> | {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+>(
   effectOrOptions: Arg,
-  options?: IgnoreOptions | undefined
+  options?: {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<void, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignore
 

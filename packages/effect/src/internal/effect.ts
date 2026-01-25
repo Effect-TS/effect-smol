@@ -2990,22 +2990,35 @@ export const eventually = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect
   catch_(self, (_) => flatMap(yieldNow, () => eventually(self)))
 
 /** @internal */
-export const ignore: <Arg extends Effect.Effect<any, any, any> | Effect.IgnoreOptions | undefined>(
+export const ignore: <
+  Arg extends Effect.Effect<any, any, any> | {
+    readonly log?: boolean | LogLevel.LogLevel | undefined
+  } | undefined
+>(
   effectOrOptions: Arg,
-  options?: Effect.IgnoreOptions | undefined
+  options?: {
+    readonly log?: boolean | LogLevel.LogLevel | undefined
+  } | undefined
 ) => [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<void, never, _R>
   : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<void, never, R> = dual(
     (args) => isEffect(args[0]),
     <A, E, R>(
       self: Effect.Effect<A, E, R>,
-      options?: Effect.IgnoreOptions | undefined
+      options?: {
+        readonly log?: boolean | LogLevel.LogLevel | undefined
+      } | undefined
     ): Effect.Effect<void, never, R> => {
       const log = options?.log
       if (log === undefined || log === false) {
         return matchEffect(self, { onFailure: (_) => void_, onSuccess: (_) => void_ })
       }
       return matchCauseEffect(self, {
-        onFailure: logWithLevel(log === true ? undefined : log),
+        onFailure: (cause) => {
+          const logEffect = logWithLevel(log === true ? undefined : log)(cause)
+          return causeHasDie(cause)
+            ? andThen(logEffect, failCause(cause as Cause.Cause<never>))
+            : andThen(logEffect, void_)
+        },
         onSuccess: (_) => void_
       })
     }
