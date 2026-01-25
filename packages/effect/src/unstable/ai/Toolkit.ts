@@ -320,15 +320,24 @@ const Proto = {
           // If the tool handler failed, check the tool's failure mode to
           // determine how the result should be returned to the end user
           Effect.catch((error) => {
-            // Wrap AiErrorReason in AiError
-            const normalizedError = AiError.isAiErrorReason(error)
+            // Schema errors indicate handler returned invalid data
+            const normalizedError = Schema.isSchemaError(error)
+              ? AiError.make({
+                module: "Toolkit",
+                method: `${name}.handle`,
+                reason: new AiError.ToolExecutionError({
+                  toolName: name,
+                  description: `Tool handler returned invalid result: ${error.message}`,
+                  cause: error
+                })
+              })
+              : AiError.isAiErrorReason(error)
               ? AiError.make({
                 module: "Toolkit",
                 method: `${name}.handle`,
                 reason: error
               })
               : error
-            // Apply failureMode to all errors (including AiError)
             return tool.failureMode === "error"
               ? Effect.fail(normalizedError)
               : Effect.succeed({ result: normalizedError, isFailure: true })
