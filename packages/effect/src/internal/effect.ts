@@ -3012,12 +3012,13 @@ export const ignore: <
       if (log === undefined || log === false) {
         return matchEffect(self, { onFailure: (_) => void_, onSuccess: (_) => void_ })
       }
+      const logEffect = logWithLevel(log === true ? undefined : log)
       return matchCauseEffect(self, {
         onFailure: (cause) => {
-          const logEffect = logWithLevel(log === true ? undefined : log)(cause)
-          return causeHasDie(cause)
-            ? andThen(logEffect, failCause(cause as Cause.Cause<never>))
-            : andThen(logEffect, void_)
+          const failure = causeFilterFail(cause)
+          return Filter.isFail(failure)
+            ? andThen(logEffect(cause), failCause(failure.fail))
+            : logEffect(cause)
         },
         onSuccess: (_) => void_
       })
