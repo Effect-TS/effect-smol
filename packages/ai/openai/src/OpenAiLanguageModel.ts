@@ -455,7 +455,7 @@ const prepareMessages = Effect.fnUntraced(
   }: {
     readonly config: typeof Config.Service
     readonly options: LanguageModel.ProviderOptions
-    readonly include: Set<string>
+    readonly include: Set<typeof Generated.IncludeEnum.Encoded>
     readonly capabilities: ModelCapabilities
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<ReadonlyArray<typeof Generated.InputItem.Encoded>, AiError.AiError> {
