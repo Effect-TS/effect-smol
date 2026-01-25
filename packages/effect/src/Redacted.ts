@@ -123,12 +123,12 @@ export const isRedacted = (u: unknown): u is Redacted<unknown> => hasProperty(u,
 export const make = <T>(value: T, options?: {
   readonly label?: string | undefined
 }): Redacted<T> => {
-  const redacted = Object.create(Proto)
+  const self = Object.create(Proto)
   if (options?.label) {
-    redacted.label = options.label
+    self.label = options.label
   }
-  redacted.redactedRegistry.set(redacted, value)
-  return redacted
+  redacted.redactedRegistry.set(self, value)
+  return self
 }
 
 const Proto = {
