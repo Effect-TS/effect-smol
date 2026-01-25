@@ -36,6 +36,7 @@ import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Struct from "../../Struct.ts"
 import type * as Types from "../../Types.ts"
+import type * as AiError from "./AiError.ts"
 
 // =============================================================================
 // Type Ids
@@ -691,7 +692,7 @@ export type HandlerError<T> = T extends Tool<
   infer _Name,
   infer _Config,
   infer _Requirements
-> ? _Config["failureMode"] extends "error" ? _Config["failure"]["Type"]
+> ? _Config["failureMode"] extends "error" ? _Config["failure"]["Type"] | AiError.AiError
   : never
   : never
 
