@@ -288,13 +288,13 @@ const Proto = {
         yield* Effect.annotateCurrentSpan({ tool: name, parameters: params })
         const tool = tools[name]
         if (Predicate.isUndefined(tool)) {
-          const toolNames = Object.keys(tools).join(",")
           return yield* AiError.make({
             module: "Toolkit",
             method: `${name}.handle`,
-            reason: new AiError.OutputParseError({
-              rawOutput: JSON.stringify(params, undefined, 2),
-              expectedSchema: `Tool '${name}' not found in toolkit - available tools: ${toolNames}`
+            reason: new AiError.ToolNotFoundError({
+              toolName: name,
+              toolParams: params,
+              availableTools: Object.keys(tools)
             })
           })
         }
@@ -305,16 +305,17 @@ const Proto = {
             AiError.make({
               module: "Toolkit",
               method: `${name}.handle`,
-              reason: new AiError.OutputParseError({
-                rawOutput: JSON.stringify(params, undefined, 2),
-                expectedSchema: name,
-                cause
+              reason: new AiError.ToolParameterValidationError({
+                toolName: name,
+                toolParams: params,
+                validationMessage: cause.message
               })
             })
         )
         const { isFailure, result } = yield* schemas.handler(decodedParams).pipe(
-          Effect.map((result) => ({ result, isFailure: false })),
+          Effect.map((result) => ({ result, isFailure: false as const })),
           Effect.catch((error) => {
+            // TODO(Max): always include AiError in union of possible failures
             // AiErrors are always failures
             if (AiError.isAiError(error)) {
               return Effect.fail(error)
@@ -323,7 +324,7 @@ const Proto = {
             // determine how the result should be returned to the end user
             return tool.failureMode === "error"
               ? Effect.fail(error)
-              : Effect.succeed({ result: error, isFailure: true })
+              : Effect.succeed({ result: error, isFailure: true as const })
           }),
           Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
           Effect.mapError((cause) =>
@@ -331,9 +332,9 @@ const Proto = {
               ? AiError.make({
                 module: "Toolkit",
                 method: `${name}.handle`,
-                reason: new AiError.InvalidRequestError({
-                  parameter: name,
-                  description: `Failed to validate tool call result for tool '${name}'`,
+                reason: new AiError.ToolExecutionError({
+                  toolName: name,
+                  description: `Tool handler returned invalid result: ${cause.message}`,
                   cause
                 })
               })
@@ -346,10 +347,10 @@ const Proto = {
             AiError.make({
               module: "Toolkit",
               method: `${name}.handle`,
-              reason: new AiError.InvalidRequestError({
-                parameter: name,
-                description: `Failed to encode tool call result for tool '${name}'`,
-                cause
+              reason: new AiError.ToolResultEncodingError({
+                toolName: name,
+                toolResult: result,
+                validationMessage: cause.message
               })
             })
         )

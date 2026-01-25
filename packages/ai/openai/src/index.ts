@@ -12,6 +12,8 @@
  * where `A` is the success type of the operation.
  *
  * If set to `false`, only the success type of the operation will be returned.
+ *
+ * @since 1.0.0
  */
 export * as Generated from "./Generated.ts"
 

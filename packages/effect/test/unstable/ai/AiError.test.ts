@@ -338,6 +338,167 @@ describe("AiError", () => {
         assert.strictEqual(error._tag, "AiUnknownError")
       })
     })
+
+    describe("ToolNotFoundError", () => {
+      it("should be retryable", () => {
+        const error = new AiError.ToolNotFoundError({
+          toolName: "UnknownTool",
+          availableTools: ["GetWeather", "GetTime"]
+        })
+        assert.isTrue(error.isRetryable)
+      })
+
+      it("should format message with available tools", () => {
+        const error = new AiError.ToolNotFoundError({
+          toolName: "UnknownTool",
+          availableTools: ["GetWeather", "GetTime"]
+        })
+        assert.match(error.message, /Tool 'UnknownTool' not found/)
+        assert.match(error.message, /Available tools: GetWeather, GetTime/)
+      })
+
+      it("should format message with no available tools", () => {
+        const error = new AiError.ToolNotFoundError({
+          toolName: "UnknownTool",
+          availableTools: []
+        })
+        assert.match(error.message, /Available tools: none/)
+      })
+
+      it("should have _tag set correctly", () => {
+        const error = new AiError.ToolNotFoundError({
+          toolName: "Test",
+          availableTools: []
+        })
+        assert.strictEqual(error._tag, "ToolNotFoundError")
+      })
+    })
+
+    describe("ToolParameterValidationError", () => {
+      it("should be retryable", () => {
+        const error = new AiError.ToolParameterValidationError({
+          toolName: "GetWeather",
+          toolParams: { location: "NYC" },
+          validationMessage: "Expected string"
+        })
+        assert.isTrue(error.isRetryable)
+      })
+
+      it("should format message with tool name", () => {
+        const error = new AiError.ToolParameterValidationError({
+          toolName: "GetWeather",
+          toolParams: { location: "NYC" },
+          validationMessage: "Expected string"
+        })
+        assert.match(error.message, /Invalid parameters for tool 'GetWeather'/)
+      })
+
+      it("should format message with validation message", () => {
+        const error = new AiError.ToolParameterValidationError({
+          toolName: "GetWeather",
+          toolParams: { location: 123 },
+          validationMessage: "Expected string, got number"
+        })
+        assert.match(error.message, /Expected string, got number/)
+      })
+
+      it("should store tool params", () => {
+        const params = { location: 123 }
+        const error = new AiError.ToolParameterValidationError({
+          toolName: "GetWeather",
+          toolParams: params,
+          validationMessage: "Expected string"
+        })
+        assert.deepStrictEqual(error.toolParams, params)
+      })
+
+      it("should have _tag set correctly", () => {
+        const error = new AiError.ToolParameterValidationError({
+          toolName: "Test",
+          toolParams: {},
+          validationMessage: "Error"
+        })
+        assert.strictEqual(error._tag, "ToolParameterValidationError")
+      })
+    })
+
+    describe("ToolExecutionError", () => {
+      it("should not be retryable", () => {
+        const error = new AiError.ToolExecutionError({
+          toolName: "GetWeather"
+        })
+        assert.isFalse(error.isRetryable)
+      })
+
+      it("should format message with tool name", () => {
+        const error = new AiError.ToolExecutionError({
+          toolName: "GetWeather"
+        })
+        assert.match(error.message, /Tool 'GetWeather' execution failed/)
+      })
+
+      it("should format message with description", () => {
+        const error = new AiError.ToolExecutionError({
+          toolName: "GetWeather",
+          description: "API connection timeout"
+        })
+        assert.match(error.message, /API connection timeout/)
+      })
+
+      it("should store parameters", () => {
+        const params = "{\"location\": \"NYC\"}"
+        const error = new AiError.ToolExecutionError({
+          toolName: "GetWeather",
+          parameters: params
+        })
+        assert.strictEqual(error.parameters, params)
+      })
+
+      it("should have _tag set correctly", () => {
+        const error = new AiError.ToolExecutionError({
+          toolName: "Test"
+        })
+        assert.strictEqual(error._tag, "ToolExecutionError")
+      })
+    })
+
+    describe("ToolResultEncodingError", () => {
+      it("should not be retryable", () => {
+        const error = new AiError.ToolResultEncodingError({
+          toolName: "GetWeather",
+          toolResult: { temp: 72 },
+          validationMessage: "Cannot encode"
+        })
+        assert.isFalse(error.isRetryable)
+      })
+
+      it("should format message with tool name", () => {
+        const error = new AiError.ToolResultEncodingError({
+          toolName: "GetWeather",
+          toolResult: { temp: 72 },
+          validationMessage: "Cannot encode"
+        })
+        assert.match(error.message, /Failed to encode result for tool 'GetWeather'/)
+      })
+
+      it("should format message with validation message", () => {
+        const error = new AiError.ToolResultEncodingError({
+          toolName: "GetWeather",
+          toolResult: { circular: "ref" },
+          validationMessage: "Cannot encode circular reference"
+        })
+        assert.match(error.message, /Cannot encode circular reference/)
+      })
+
+      it("should have _tag set correctly", () => {
+        const error = new AiError.ToolResultEncodingError({
+          toolName: "Test",
+          toolResult: {},
+          validationMessage: "Error"
+        })
+        assert.strictEqual(error._tag, "ToolResultEncodingError")
+      })
+    })
   })
 
   describe("delegation", () => {
@@ -611,6 +772,82 @@ describe("AiError", () => {
         assert.strictEqual(decoded.module, "OpenAI")
         assert.strictEqual(decoded.method, "completion")
         assert.strictEqual(decoded.reason._tag, "RateLimitError")
+      }))
+
+    it.effect("ToolNotFoundError roundtrip", () =>
+      Effect.gen(function*() {
+        const error = new AiError.ToolNotFoundError({
+          toolName: "UnknownTool",
+          availableTools: ["GetWeather", "GetTime"],
+          toolParams: { query: "test" }
+        })
+        const encoded = yield* Schema.encodeEffect(AiError.ToolNotFoundError)(error)
+        const decoded = yield* Schema.decodeEffect(AiError.ToolNotFoundError)(encoded)
+        assert.strictEqual(decoded._tag, "ToolNotFoundError")
+        assert.strictEqual(decoded.toolName, "UnknownTool")
+        assert.deepStrictEqual(decoded.availableTools, ["GetWeather", "GetTime"])
+      }))
+
+    it.effect("ToolParameterValidationError roundtrip", () =>
+      Effect.gen(function*() {
+        const error = new AiError.ToolParameterValidationError({
+          toolName: "GetWeather",
+          toolParams: { location: 123 },
+          validationMessage: "Expected string"
+        })
+        const encoded = yield* Schema.encodeEffect(AiError.ToolParameterValidationError)(error)
+        const decoded = yield* Schema.decodeEffect(AiError.ToolParameterValidationError)(encoded)
+        assert.strictEqual(decoded._tag, "ToolParameterValidationError")
+        assert.strictEqual(decoded.toolName, "GetWeather")
+        assert.strictEqual(decoded.validationMessage, "Expected string")
+      }))
+
+    it.effect("ToolExecutionError roundtrip", () =>
+      Effect.gen(function*() {
+        const error = new AiError.ToolExecutionError({
+          toolName: "GetWeather",
+          parameters: "{\"location\": \"NYC\"}",
+          description: "API timeout"
+        })
+        const encoded = yield* Schema.encodeEffect(AiError.ToolExecutionError)(error)
+        const decoded = yield* Schema.decodeEffect(AiError.ToolExecutionError)(encoded)
+        assert.strictEqual(decoded._tag, "ToolExecutionError")
+        assert.strictEqual(decoded.toolName, "GetWeather")
+        assert.strictEqual(decoded.description, "API timeout")
+      }))
+
+    it.effect("ToolResultEncodingError roundtrip", () =>
+      Effect.gen(function*() {
+        const error = new AiError.ToolResultEncodingError({
+          toolName: "GetWeather",
+          toolResult: { temp: 72 },
+          validationMessage: "Circular reference"
+        })
+        const encoded = yield* Schema.encodeEffect(AiError.ToolResultEncodingError)(error)
+        const decoded = yield* Schema.decodeEffect(AiError.ToolResultEncodingError)(encoded)
+        assert.strictEqual(decoded._tag, "ToolResultEncodingError")
+        assert.strictEqual(decoded.toolName, "GetWeather")
+        assert.strictEqual(decoded.validationMessage, "Circular reference")
+      }))
+
+    it.effect("AiErrorReason union with tool errors roundtrip", () =>
+      Effect.gen(function*() {
+        const toolNotFound: AiError.AiErrorReason = new AiError.ToolNotFoundError({
+          toolName: "Unknown",
+          availableTools: ["A", "B"]
+        })
+        const encoded = yield* Schema.encodeEffect(AiError.AiErrorReason)(toolNotFound)
+        const decoded = yield* Schema.decodeEffect(AiError.AiErrorReason)(encoded)
+        assert.strictEqual(decoded._tag, "ToolNotFoundError")
+
+        const paramError: AiError.AiErrorReason = new AiError.ToolParameterValidationError({
+          toolName: "Test",
+          toolParams: {},
+          validationMessage: "Error"
+        })
+        const paramEncoded = yield* Schema.encodeEffect(AiError.AiErrorReason)(paramError)
+        const paramDecoded = yield* Schema.decodeEffect(AiError.AiErrorReason)(paramEncoded)
+        assert.strictEqual(paramDecoded._tag, "ToolParameterValidationError")
       }))
   })
 })

@@ -931,6 +931,200 @@ export class AiUnknownError extends Schema.ErrorClass<AiUnknownError>(
 }
 
 // =============================================================================
+// Tool Call Error Types
+// =============================================================================
+
+/**
+ * Error indicating the model requested a tool that doesn't exist in the toolkit.
+ *
+ * This error is retryable because the model may self-correct when provided
+ * with the list of available tools.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = new AiError.ToolNotFoundError({
+ *   toolName: "unknownTool",
+ *   availableTools: ["GetWeather", "GetTime"]
+ * })
+ *
+ * console.log(error.isRetryable) // true
+ * console.log(error.message)
+ * // "Tool 'unknownTool' not found. Available tools: GetWeather, GetTime"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
+  "effect/ai/AiError/ToolNotFoundError"
+)({
+  _tag: Schema.tag("ToolNotFoundError"),
+  toolName: Schema.String,
+  toolParams: Schema.optional(Schema.Json),
+  availableTools: Schema.Array(Schema.String)
+}) {
+  /**
+   * Tool not found errors are retryable because the model may self-correct.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return true
+  }
+
+  override get message(): string {
+    const availableTools = this.availableTools.length > 0 ? this.availableTools.join(", ") : "none"
+    return `Tool '${this.toolName}' not found. Available tools: ${availableTools}`
+  }
+}
+
+/**
+ * Error indicating the model's tool call parameters failed schema validation.
+ *
+ * This error is retryable because the model may correct its parameters
+ * on subsequent attempts.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = new AiError.ToolParameterValidationError({
+ *   toolName: "GetWeather",
+ *   toolParams: { location: 123 },
+ *   validationMessage: "Expected string, got number"
+ * })
+ *
+ * console.log(error.isRetryable) // true
+ * console.log(error.message)
+ * // "Invalid parameters for tool 'GetWeather': Expected string, got number"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class ToolParameterValidationError extends Schema.ErrorClass<ToolParameterValidationError>(
+  "effect/ai/AiError/ToolParameterValidationError"
+)({
+  _tag: Schema.tag("ToolParameterValidationError"),
+  toolName: Schema.String,
+  toolParams: Schema.Json,
+  validationMessage: Schema.String
+}) {
+  /**
+   * Parameter validation errors are retryable because the model may correct parameters.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return true
+  }
+
+  override get message(): string {
+    return `Invalid parameters for tool '${this.toolName}': ${this.validationMessage}`
+  }
+}
+
+/**
+ * Error indicating the tool handler execution failed with an unexpected error.
+ *
+ * This error is not retryable because handler failures are typically due to
+ * bugs or external service issues rather than model behavior.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = new AiError.ToolExecutionError({
+ *   toolName: "GetWeather",
+ *   parameters: '{"location": "NYC"}',
+ *   description: "Weather API connection failed"
+ * })
+ *
+ * console.log(error.isRetryable) // false
+ * console.log(error.message)
+ * // "Tool 'GetWeather' execution failed: Weather API connection failed"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class ToolExecutionError extends Schema.ErrorClass<ToolExecutionError>(
+  "effect/ai/AiError/ToolExecutionError"
+)({
+  _tag: Schema.tag("ToolExecutionError"),
+  toolName: Schema.String,
+  parameters: Schema.optional(Schema.String),
+  description: Schema.optional(Schema.String),
+  provider: Schema.optional(ProviderMetadata),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Tool execution errors are not retryable because handler failures are unlikely to self-resolve.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    let msg = `Tool '${this.toolName}' execution failed`
+    if (this.description) {
+      msg += `: ${this.description}`
+    }
+    return msg
+  }
+}
+
+/**
+ * Error indicating the tool result cannot be encoded for sending back to the model.
+ *
+ * This error is not retryable because encoding failures indicate a bug in the
+ * tool schema definitions.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = new AiError.ToolResultEncodingError({
+ *   toolName: "GetWeather",
+ *   toolResult: { circular: "ref" },
+ *   validationMessage: "Cannot encode circular reference"
+ * })
+ *
+ * console.log(error.isRetryable) // false
+ * console.log(error.message)
+ * // "Failed to encode result for tool 'GetWeather': Cannot encode circular reference"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodingError>(
+  "effect/ai/AiError/ToolResultEncodingError"
+)({
+  _tag: Schema.tag("ToolResultEncodingError"),
+  toolName: Schema.String,
+  toolResult: Schema.Unknown,
+  validationMessage: Schema.String
+}) {
+  /**
+   * Encoding errors are not retryable because they indicate a code bug.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    return `Failed to encode result for tool '${this.toolName}': ${this.validationMessage}`
+  }
+}
+
+// =============================================================================
 // AiErrorReason Union
 // =============================================================================
 
@@ -959,6 +1153,10 @@ export type AiErrorReason =
   | NetworkError
   | OutputParseError
   | AiUnknownError
+  | ToolNotFoundError
+  | ToolParameterValidationError
+  | ToolExecutionError
+  | ToolResultEncodingError
 
 /**
  * Schema for validating and parsing AI error reasons.
@@ -978,7 +1176,11 @@ export const AiErrorReason: Schema.Union<[
   typeof AiTimeoutError,
   typeof NetworkError,
   typeof OutputParseError,
-  typeof AiUnknownError
+  typeof AiUnknownError,
+  typeof ToolNotFoundError,
+  typeof ToolParameterValidationError,
+  typeof ToolExecutionError,
+  typeof ToolResultEncodingError
 ]> = Schema.Union([
   RateLimitError,
   QuotaExhaustedError,
@@ -991,7 +1193,11 @@ export const AiErrorReason: Schema.Union<[
   AiTimeoutError,
   NetworkError,
   OutputParseError,
-  AiUnknownError
+  AiUnknownError,
+  ToolNotFoundError,
+  ToolParameterValidationError,
+  ToolExecutionError,
+  ToolResultEncodingError
 ])
 
 // =============================================================================
