@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Schema } from "effect"
-import { LanguageModel, Response, Tool, Toolkit } from "effect/unstable/ai"
+import { AiError, LanguageModel, Response, Tool, Toolkit } from "effect/unstable/ai"
 import * as TestUtils from "./utils.ts"
 
 const FailureModeError = Tool.make("FailureModeError", {
@@ -210,6 +210,149 @@ describe("Tool", () => {
           if (response.reason._tag === "ToolParameterValidationError") {
             assert.strictEqual(response.reason.toolName, "FailureModeReturn")
           }
+        }
+      }))
+
+    it.effect("should return AiError as tool result when failureMode is 'return'", () =>
+      Effect.gen(function*() {
+        const toolkit = Toolkit.make(FailureModeReturn)
+
+        const aiError = AiError.make({
+          module: "Test",
+          method: "testHandler",
+          reason: new AiError.RateLimitError({})
+        })
+        const handlers = toolkit.toLayer({
+          FailureModeReturn: () => Effect.fail(aiError)
+        })
+
+        const toolCallId = "tool-123"
+        const toolName = "FailureModeReturn"
+
+        const response = yield* LanguageModel.generateText({
+          prompt: "Test",
+          toolkit
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: [{
+              type: "tool-call",
+              id: toolCallId,
+              name: toolName,
+              params: { testParam: "test-param" }
+            }]
+          }),
+          Effect.provide(handlers)
+        )
+
+        const toolResult = response.toolResults[0]
+        assert.strictEqual(toolResult?.isFailure, true)
+        assert.strictEqual(AiError.isAiError(toolResult?.result), true)
+      }))
+
+    it.effect("should return wrapped AiErrorReason as tool result when failureMode is 'return'", () =>
+      Effect.gen(function*() {
+        const toolkit = Toolkit.make(FailureModeReturn)
+
+        const reason = new AiError.RateLimitError({})
+        const handlers = toolkit.toLayer({
+          FailureModeReturn: () => Effect.fail(reason)
+        })
+
+        const toolCallId = "tool-123"
+        const toolName = "FailureModeReturn"
+
+        const response = yield* LanguageModel.generateText({
+          prompt: "Test",
+          toolkit
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: [{
+              type: "tool-call",
+              id: toolCallId,
+              name: toolName,
+              params: { testParam: "test-param" }
+            }]
+          }),
+          Effect.provide(handlers)
+        )
+
+        const toolResult = response.toolResults[0]
+        assert.strictEqual(toolResult?.isFailure, true)
+        assert.strictEqual(AiError.isAiError(toolResult?.result), true)
+        if (AiError.isAiError(toolResult?.result)) {
+          assert.strictEqual(toolResult.result.reason._tag, "RateLimitError")
+        }
+      }))
+
+    it.effect("should raise AiError when failureMode is 'error'", () =>
+      Effect.gen(function*() {
+        const toolkit = Toolkit.make(FailureModeError)
+
+        const aiError = AiError.make({
+          module: "Test",
+          method: "testHandler",
+          reason: new AiError.RateLimitError({})
+        })
+        const handlers = toolkit.toLayer({
+          FailureModeError: () => Effect.fail(aiError)
+        })
+
+        const toolCallId = "tool-123"
+        const toolName = "FailureModeError"
+
+        const response = yield* LanguageModel.generateText({
+          prompt: "Test",
+          toolkit
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: [{
+              type: "tool-call",
+              id: toolCallId,
+              name: toolName,
+              params: { testParam: "test-param" }
+            }]
+          }),
+          Effect.provide(handlers),
+          Effect.flip
+        )
+
+        assert.strictEqual(AiError.isAiError(response), true)
+        if (AiError.isAiError(response)) {
+          assert.strictEqual(response.reason._tag, "RateLimitError")
+        }
+      }))
+
+    it.effect("should wrap and raise AiErrorReason when failureMode is 'error'", () =>
+      Effect.gen(function*() {
+        const toolkit = Toolkit.make(FailureModeError)
+
+        const reason = new AiError.RateLimitError({})
+        const handlers = toolkit.toLayer({
+          FailureModeError: () => Effect.fail(reason)
+        })
+
+        const toolCallId = "tool-123"
+        const toolName = "FailureModeError"
+
+        const response = yield* LanguageModel.generateText({
+          prompt: "Test",
+          toolkit
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: [{
+              type: "tool-call",
+              id: toolCallId,
+              name: toolName,
+              params: { testParam: "test-param" }
+            }]
+          }),
+          Effect.provide(handlers),
+          Effect.flip
+        )
+
+        assert.strictEqual(AiError.isAiError(response), true)
+        if (AiError.isAiError(response)) {
+          assert.strictEqual(response.reason._tag, "RateLimitError")
         }
       }))
   })

@@ -172,8 +172,8 @@ export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
 /**
  * A utility type that maps tool names to their required handler functions.
  *
- * Handlers can return either the tool's custom failure type or an `AiErrorReason`
- * to signal semantic errors that will be wrapped in `AiError`.
+ * Handlers can return either the tool's custom failure type, an `AiErrorReason`
+ * (which will be wrapped in `AiError`), or a full `AiError`.
  *
  * @since 1.0.0
  * @category utility types
@@ -183,7 +183,7 @@ export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
     params: Tool.Parameters<Tools[Name]>
   ) => Effect.Effect<
     Tool.Success<Tools[Name]>,
-    Tool.Failure<Tools[Name]> | AiError.AiErrorReason,
+    Tool.Failure<Tools[Name]> | AiError.AiErrorReason | AiError.AiError,
     Tool.HandlerServices<Tools[Name]>
   >
 }
@@ -320,65 +320,37 @@ const Proto = {
           // If the tool handler failed, check the tool's failure mode to
           // determine how the result should be returned to the end user
           Effect.catch((error) => {
-            // AiErrors are always propagated
-            if (AiError.isAiError(error)) {
-              return Effect.fail(error)
-            }
-            // AiErrorReasons are wrapped in AiError and propagated
-            if (AiError.isAiErrorReason(error)) {
-              return Effect.fail(AiError.make({
+            // Wrap AiErrorReason in AiError
+            const normalizedError = AiError.isAiErrorReason(error)
+              ? AiError.make({
                 module: "Toolkit",
                 method: `${name}.handle`,
                 reason: error
-              }))
-            }
-            // Custom failures follow the failureMode
-            return tool.failureMode === "error"
-              ? Effect.fail(error)
-              : Effect.succeed({ result: error, isFailure: true })
-          }),
-          Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
-          Effect.mapError((cause) => {
-            // AiErrors pass through
-            if (AiError.isAiError(cause)) {
-              return cause
-            }
-            // AiErrorReasons are wrapped
-            if (AiError.isAiErrorReason(cause)) {
-              return AiError.make({
-                module: "Toolkit",
-                method: `${name}.handle`,
-                reason: cause
               })
-            }
-            // Schema errors indicate invalid result from handler
-            if (Schema.isSchemaError(cause)) {
-              return AiError.make({
+              : error
+            // Apply failureMode to all errors (including AiError)
+            return tool.failureMode === "error"
+              ? Effect.fail(normalizedError)
+              : Effect.succeed({ result: normalizedError, isFailure: true })
+          }),
+          Effect.updateServices((input) => ServiceMap.merge(schemas.services, input))
+        )
+        // AiErrors bypass encoding since they're not part of the tool's result schema
+        const encodedResult = AiError.isAiError(result)
+          ? result
+          : yield* Effect.mapError(
+            schemas.encodeResult(result),
+            (cause) =>
+              AiError.make({
                 module: "Toolkit",
                 method: `${name}.handle`,
-                reason: new AiError.ToolExecutionError({
+                reason: new AiError.ToolResultEncodingError({
                   toolName: name,
-                  description: `Tool handler returned invalid result: ${cause.message}`,
-                  cause
+                  toolResult: result,
+                  validationMessage: cause.message
                 })
               })
-            }
-            return cause
-          })
-        )
-        const encodedResult = yield* Effect.mapError(
-          schemas.encodeResult(result),
-          (cause) =>
-            AiError.make({
-              module: "Toolkit",
-              method: `${name}.handle`,
-              reason: new AiError.ToolResultEncodingError({
-                toolName: name,
-                toolResult: result,
-                validationMessage: cause.message
-              })
-            })
-        )
+          )
         return {
           isFailure,
           result,
