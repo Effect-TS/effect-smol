@@ -61,7 +61,16 @@ const generateProvider = Effect.fn("generateProvider")(function*(
 
   // Generate code
   yield* Console.log(`  Generating code...`)
-  const code = yield* generator.generate(provider, spec)
+  let code = yield* generator.generate(provider, spec)
+
+  // Apply replacements
+  const replacements = provider.config.replacementList
+  if (replacements.length > 0) {
+    yield* Console.log(`  Applying ${replacements.length} replacement(s)...`)
+    for (const replacement of replacements) {
+      code = code.replaceAll(replacement.from, replacement.to)
+    }
+  }
 
   // Write output
   yield* Console.log(`  Writing to ${provider.outputPath}`)

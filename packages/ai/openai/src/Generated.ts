@@ -115,10 +115,10 @@ export const AssignedRoleDetails = Schema.Struct({
   "created_by": Schema.Union([Schema.String, Schema.Null]).annotate({
     "description": "Identifier of the actor who created the role."
   }),
-  "created_by_user_obj": Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Null]).annotate({
+  "created_by_user_obj": Schema.Union([Schema.Record(Schema.String, Schema.Json), Schema.Null]).annotate({
     "description": "User details for the actor that created the role, when available."
   }),
-  "metadata": Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Null]).annotate({
+  "metadata": Schema.Union([Schema.Record(Schema.String, Schema.Json), Schema.Null]).annotate({
     "description": "Arbitrary metadata stored on the role."
   })
 }).annotate({ "description": "Detailed information about a role assignment entry returned when listing assignments." })
@@ -527,7 +527,7 @@ export const ChatCompletionAllowedTools = Schema.Struct({
       "Constrains the tools available to the model to a pre-defined set.\n\n`auto` allows the model to pick from among the allowed tools and generate a\nmessage.\n\n`required` requires the model to call one or more of the allowed tools.\n"
   }),
   "tools": Schema.Array(
-    Schema.Record(Schema.String, Schema.Unknown).annotate({
+    Schema.Record(Schema.String, Schema.Json).annotate({
       "description": "A tool definition that the model should be allowed to call.\n"
     })
   ).annotate({
@@ -1137,7 +1137,7 @@ export const CreateEvalCustomDataSourceConfig = Schema.Struct({
     "description": "The type of data source. Always `custom`.",
     "default": "custom"
   }),
-  "item_schema": Schema.Record(Schema.String, Schema.Unknown).annotate({
+  "item_schema": Schema.Record(Schema.String, Schema.Json).annotate({
     "description": "The json schema for each row in the data source."
   }),
   "include_sample_schema": Schema.optionalKey(
@@ -1162,7 +1162,7 @@ export const CreateEvalLogsDataSourceConfig = Schema.Struct({
     "default": "logs"
   }),
   "metadata": Schema.optionalKey(
-    Schema.Record(Schema.String, Schema.Unknown).annotate({
+    Schema.Record(Schema.String, Schema.Json).annotate({
       "description": "Metadata filters for the logs data source."
     })
   )
@@ -1181,7 +1181,7 @@ export const CreateEvalStoredCompletionsDataSourceConfig = Schema.Struct({
     "default": "stored_completions"
   }),
   "metadata": Schema.optionalKey(
-    Schema.Record(Schema.String, Schema.Unknown).annotate({
+    Schema.Record(Schema.String, Schema.Json).annotate({
       "description": "Metadata filters for the stored completions data source."
     })
   )
@@ -1861,7 +1861,7 @@ export const EvalCustomDataSourceConfig = Schema.Struct({
     "description": "The type of data source. Always `custom`.",
     "default": "custom"
   }),
-  "schema": Schema.Record(Schema.String, Schema.Unknown).annotate({
+  "schema": Schema.Record(Schema.String, Schema.Json).annotate({
     "description":
       "The json schema for the run data source items.\nLearn how to build JSON schemas [here](https://json-schema.org/).\n"
   })
@@ -2003,8 +2003,8 @@ export const EvalJsonlFileContentSource = Schema.Struct({
   }),
   "content": Schema.Array(
     Schema.Struct({
-      "item": Schema.Record(Schema.String, Schema.Unknown),
-      "sample": Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown))
+      "item": Schema.Record(Schema.String, Schema.Json),
+      "sample": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
     })
   ).annotate({ "description": "The content of the jsonl file." })
 }).annotate({ "title": "EvalJsonlFileContentSource" })
@@ -2145,12 +2145,12 @@ export const EvalRunOutputItemResult = Schema.StructWithRest(
     ),
     "passed": Schema.Boolean.annotate({ "description": "Whether the grader considered the output a pass." }),
     "sample": Schema.optionalKey(
-      Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Null]).annotate({
+      Schema.Union([Schema.Record(Schema.String, Schema.Json), Schema.Null]).annotate({
         "description": "Optional sample or intermediate data produced by the grader."
       })
     )
   }),
-  [Schema.Record(Schema.String, Schema.Unknown)]
+  [Schema.Record(Schema.String, Schema.Json)]
 ).annotate({
   "title": "EvalRunOutputItemResult",
   "description": "A single grader result for an evaluation run output item.\n"
@@ -2457,7 +2457,7 @@ export const FineTuningJobEvent = Schema.Struct({
   "data": Schema.optionalKey(Schema.Struct({}).annotate({ "description": "The data associated with the event." }))
 }).annotate({ "description": "Fine-tuning job event object" })
 export type FunctionParameters = { readonly [x: string]: unknown }
-export const FunctionParameters = Schema.Record(Schema.String, Schema.Unknown).annotate({
+export const FunctionParameters = Schema.Record(Schema.String, Schema.Json).annotate({
   "description":
     "The parameters the functions accepts, described as a JSON Schema object. See the [guide](https://platform.openai.com/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format. \n\nOmitting `parameters` defines a function with an empty parameter list."
 })
@@ -6508,7 +6508,7 @@ export const ResponseFormatJsonObject = Schema.Struct({
     "JSON object response format. An older method of generating JSON responses.\nUsing `json_schema` is recommended for models that support it. Note that the\nmodel will not generate JSON without a system or user message instructing it\nto do so.\n"
 })
 export type ResponseFormatJsonSchemaSchema = { readonly [x: string]: unknown }
-export const ResponseFormatJsonSchemaSchema = Schema.Record(Schema.String, Schema.Unknown).annotate({
+export const ResponseFormatJsonSchemaSchema = Schema.Record(Schema.String, Schema.Json).annotate({
   "title": "JSON schema",
   "description":
     "The schema for the response format, described as a JSON Schema object.\nLearn how to build JSON schemas [here](https://json-schema.org/).\n"
@@ -7331,12 +7331,12 @@ export const RunGraderResponse = Schema.Struct({
       "model_grader_server_error_details": Schema.Union([Schema.String, Schema.Null])
     }),
     "execution_time": Schema.Number.check(Schema.isFinite()),
-    "scores": Schema.Record(Schema.String, Schema.Unknown),
+    "scores": Schema.Record(Schema.String, Schema.Json),
     "token_usage": Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]),
     "sampled_model_name": Schema.Union([Schema.String, Schema.Null])
   }),
-  "sub_rewards": Schema.Record(Schema.String, Schema.Unknown),
-  "model_grader_token_usage_per_model": Schema.Record(Schema.String, Schema.Unknown)
+  "sub_rewards": Schema.Record(Schema.String, Schema.Json),
+  "model_grader_token_usage_per_model": Schema.Record(Schema.String, Schema.Json)
 })
 export type RunStepCompletionUsage = {
   readonly "completion_tokens": number
@@ -7691,7 +7691,7 @@ export const ToolChoiceAllowed = Schema.Struct({
       "Constrains the tools available to the model to a pre-defined set.\n\n`auto` allows the model to pick from among the allowed tools and generate a\nmessage.\n\n`required` requires the model to call one or more of the allowed tools.\n"
   }),
   "tools": Schema.Array(
-    Schema.Record(Schema.String, Schema.Unknown).annotate({
+    Schema.Record(Schema.String, Schema.Json).annotate({
       "description": "A tool definition that the model should be allowed to call.\n"
     })
   ).annotate({
@@ -10159,7 +10159,7 @@ export const FunctionTool = Schema.Struct({
     ])
   ),
   "parameters": Schema.Union([
-    Schema.Record(Schema.String, Schema.Unknown).annotate({
+    Schema.Record(Schema.String, Schema.Json).annotate({
       "description": "A JSON schema object describing the parameters of the function."
     }),
     Schema.Null
@@ -12202,7 +12202,7 @@ export const EvalRunOutputItem = Schema.Struct({
   "datasource_item_id": Schema.Number.annotate({ "description": "The identifier for the data source item." }).check(
     Schema.isInt()
   ),
-  "datasource_item": Schema.Record(Schema.String, Schema.Unknown).annotate({
+  "datasource_item": Schema.Record(Schema.String, Schema.Json).annotate({
     "description": "Details of the input data source item."
   }),
   "results": Schema.Array(EvalRunOutputItemResult).annotate({
@@ -12919,7 +12919,7 @@ export const EvalLogsDataSourceConfig = Schema.Struct({
     "default": "logs"
   }),
   "metadata": Schema.optionalKey(Metadata),
-  "schema": Schema.Record(Schema.String, Schema.Unknown).annotate({
+  "schema": Schema.Record(Schema.String, Schema.Json).annotate({
     "description":
       "The json schema for the run data source items.\nLearn how to build JSON schemas [here](https://json-schema.org/).\n"
   })
@@ -12939,7 +12939,7 @@ export const EvalStoredCompletionsDataSourceConfig = Schema.Struct({
     "default": "stored_completions"
   }),
   "metadata": Schema.optionalKey(Metadata),
-  "schema": Schema.Record(Schema.String, Schema.Unknown).annotate({
+  "schema": Schema.Record(Schema.String, Schema.Json).annotate({
     "description":
       "The json schema for the run data source items.\nLearn how to build JSON schemas [here](https://json-schema.org/).\n"
   })

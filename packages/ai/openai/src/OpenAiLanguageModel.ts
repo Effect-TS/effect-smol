@@ -1891,7 +1891,7 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
         type: "function",
         name: tool.name,
         description: Tool.getDescription(tool) ?? null,
-        parameters: Tool.getJsonSchema(tool),
+        parameters: Tool.getJsonSchema(tool) as { readonly [x: string]: Schema.Json },
         strict: true
       })
     }

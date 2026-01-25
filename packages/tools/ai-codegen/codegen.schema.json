@@ -29,6 +29,24 @@
       "items": {
         "type": "string"
       }
+    },
+    "replacements": {
+      "type": "array",
+      "description": "Text replacements to apply to generated code. Each replacement has 'from' and 'to' strings.",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "The string to search for"
+          },
+          "to": {
+            "type": "string",
+            "description": "The string to replace with"
+          }
+        }
+      }
     }
   },
   "additionalProperties": false
