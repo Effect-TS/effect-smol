@@ -261,7 +261,7 @@ export const flakyTest = <A, E, R>(
   pipe(
     self,
     Effect.scoped,
-    Effect.catchDefect(Effect.fail),
+    Effect.sandbox,
     Effect.retry(
       pipe(
         Schedule.recurs(10),

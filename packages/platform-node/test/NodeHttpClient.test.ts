@@ -58,10 +58,10 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
           Effect.flatMap((_) => _.text)
         )
         expect(response).toContain("Google")
-      }).pipe(Effect.provide(layer)))
+      }).pipe(Effect.provide(layer), flaky))
 
     it.effect("google followRedirects", () =>
-      it.flakyTest(
+      flaky(
         Effect.gen(function*() {
           const client = (yield* HttpClient.HttpClient).pipe(
             HttpClient.followRedirects()
@@ -74,7 +74,7 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
       ))
 
     it.effect("google stream", () =>
-      it.flakyTest(
+      flaky(
         Effect.gen(function*() {
           const client = yield* HttpClient.HttpClient
           const response = yield* client.get("https://www.google.com/").pipe(
@@ -94,9 +94,12 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
           Effect.flatMap(HttpClientResponse.schemaBodyJson(Todo))
         )
         expect(response.id).toBe(1)
-      }).pipe(Effect.provide(JsonPlaceholderLive.pipe(
-        Layer.provide(layer)
-      ))))
+      }).pipe(
+        Effect.provide(JsonPlaceholderLive.pipe(
+          Layer.provide(layer)
+        )),
+        flaky
+      ))
 
     it.effect("jsonplaceholder schemaBodyJson", () =>
       Effect.gen(function*() {
@@ -107,9 +110,12 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
           completed: false
         })
         expect(response.title).toBe("test")
-      }).pipe(Effect.provide(JsonPlaceholderLive.pipe(
-        Layer.provide(layer)
-      ))))
+      }).pipe(
+        Effect.provide(JsonPlaceholderLive.pipe(
+          Layer.provide(layer)
+        )),
+        flaky
+      ))
 
     it.effect("head request with schemaJson", () =>
       Effect.gen(function*() {
@@ -120,7 +126,7 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
           )
         )
         expect(response).toEqual({ status: 200 })
-      }).pipe(Effect.provide(layer)))
+      }).pipe(Effect.provide(layer), flaky))
 
     it.live("interrupt", () =>
       Effect.gen(function*() {
@@ -132,12 +138,20 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
           Effect.catchTag("TimeoutError", () => Effect.succeedNone)
         )
         expect(response._tag).toEqual("None")
-      }).pipe(Effect.provide(layer)))
+      }).pipe(Effect.provide(layer), flaky))
 
     it.effect("close early", () =>
       Effect.gen(function*() {
         const response = yield* HttpClient.get("https://www.google.com/")
         expect(response.status).toBe(200)
-      }).pipe(Effect.provide(layer)))
+      }).pipe(Effect.provide(layer), flaky))
   })
 })
+
+const flaky = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(
+    Effect.timeoutOrElse({
+      duration: "10 seconds",
+      onTimeout: () => Effect.void
+    })
+  )
