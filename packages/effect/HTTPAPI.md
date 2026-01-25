@@ -1199,14 +1199,14 @@ const User = Schema.Struct({
 })
 
 // Define error schemas
-class UserNotFound extends Schema.ErrorClass<UserNotFound>("UserNotFound")({
+const UserNotFound = Schema.Struct({
   _tag: Schema.tag("UserNotFound"),
   message: Schema.String
-}) {}
+})
 
-class Unauthorized extends Schema.ErrorClass<Unauthorized>("Unauthorized")({
+const Unauthorized = Schema.Struct({
   _tag: Schema.tag("Unauthorized")
-}) {}
+})
 
 const Api = HttpApi.make("MyApi")
   .add(
@@ -1219,9 +1219,9 @@ const Api = HttpApi.make("MyApi")
           success: User
         })
           // Add a 404 error response for this endpoint
-          .addError(UserNotFound, { status: 404 })
+          .addError(UserNotFound.annotate({ httpApiStatus: 404 }))
           // Add a 401 error response for unauthorized access
-          .addError(Unauthorized, { status: 401 })
+          .addError(Unauthorized.annotate({ httpApiStatus: 401 }))
       )
   )
 
@@ -1233,7 +1233,7 @@ const GroupLive = HttpApiBuilder.group(
       .handle("getUser", (ctx) => {
         const id = ctx.path.id
         if (id === 1) {
-          return Effect.fail(new UserNotFound({ message: "User not found" }))
+          return Effect.fail(UserNotFound.makeUnsafe({ message: "User not found" }))
         }
         return Effect.succeed({ id, name: `User ${id}` })
       })
