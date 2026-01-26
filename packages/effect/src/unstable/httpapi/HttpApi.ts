@@ -192,15 +192,7 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
     annotations: ServiceMap.empty()
   })
 
-/**
- * Extract metadata from an `HttpApi`, which can be used to generate documentation
- * or other tooling.
- *
- * See the `OpenApi` & `HttpApiClient` modules for examples of how to use this function.
- *
- * @since 4.0.0
- * @category reflection
- */
+/** @internal */
 export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
   self: HttpApi<Id, Groups>,
   options: {
