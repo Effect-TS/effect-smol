@@ -32,20 +32,11 @@ This is the Effect library repository, focusing on functional programming patter
 
 ## Code Style Guidelines
 
-### Effect Library Conventions
+**Always** look at existing code in the repository to learn and follow
+established patterns before writing new code.
 
-- Follow existing TypeScript patterns in the codebase
-- Use functional programming principles
-- Maintain consistency with Effect library conventions
-- Use proper Effect constructors (e.g., `Array.make()`, `Chunk.fromIterable()`)
-- Prefer `Effect.gen` for monadic composition
-- Use `Data.TaggedError` for custom error types
-
-### Code Organization
-
-- Follow existing file structure and naming conventions
-- Delete old code when replacing functionality
-- Choose clarity over cleverness in all implementations
+Do not worry about getting code formatting perfect while writing. Use `pnpm lint-fix`
+to automatically format code according to the project's style guidelines.
 
 ### Barrel files
 
