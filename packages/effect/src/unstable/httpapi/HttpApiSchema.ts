@@ -38,15 +38,7 @@ const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
 
 /** @internal */
 export function isVoidEncoded(ast: AST.AST): boolean {
-  ast = AST.toEncoded(ast)
-  switch (ast._tag) {
-    case "Void":
-      return true
-    case "Suspend":
-      return isVoidEncoded(ast.thunk())
-    default:
-      return false
-  }
+  return AST.isVoid(AST.toEncoded(ast))
 }
 
 /**

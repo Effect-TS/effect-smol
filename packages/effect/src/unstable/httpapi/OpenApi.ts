@@ -696,10 +696,11 @@ export type OpenAPISpecResponses = Record<number, OpenApiSpecResponse>
  * @since 4.0.0
  */
 export type OpenApiSpecContentType =
-  | "application/json" // Encoding["kind"] === "Json"
-  | "application/x-www-form-urlencoded" // Encoding["kind"] === "UrlParams"
-  | "text/plain" // Encoding["kind"] === "Text"
-  | "application/octet-stream" // Encoding["kind"] === "Uint8Array"
+  | "application/json" // Kind === "Json"
+  | "application/problem+json" // Kind === "Json"
+  | "application/x-www-form-urlencoded" // Kind === "UrlParams"
+  | "text/plain" // Kind === "Text"
+  | "application/octet-stream" // Kind === "Uint8Array"
   | "multipart/form-data" // HttpApiSchema.Multipart and HttpApiSchema.MultipartStream
 
 /**
