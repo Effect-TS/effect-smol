@@ -1349,6 +1349,14 @@ export class AiError extends Schema.ErrorClass<AiError>(
 }
 
 /**
+ * The encoded (serialized) form of an `AiError`.
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export type AiErrorEncoded = typeof AiError["Encoded"]
+
+/**
  * Type guard to check if a value is an `AiError`.
  *
  * @param u - The value to check

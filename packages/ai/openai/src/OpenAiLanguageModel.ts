@@ -21,14 +21,18 @@ import type { DeepMutable, Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
 import * as IdGenerator from "effect/unstable/ai/IdGenerator"
 import * as LanguageModel from "effect/unstable/ai/LanguageModel"
+import * as AiModel from "effect/unstable/ai/Model"
 import type * as Prompt from "effect/unstable/ai/Prompt"
 import type * as Response from "effect/unstable/ai/Response"
 import * as Tool from "effect/unstable/ai/Tool"
-import type * as Generated from "./Generated.ts"
+import * as Generated from "./Generated.ts"
 import * as InternalUtilities from "./internal/utilities.ts"
 import { OpenAiClient } from "./OpenAiClient.ts"
 import { addGenAIAnnotations } from "./OpenAiTelemetry.ts"
 import * as OpenAiTool from "./OpenAiTool.ts"
+
+const ResponseModelIds = Generated.ModelIdsResponses.members[1]
+const SharedModelIds = Generated.ModelIdsShared.members[1]
 
 /**
  * OpenAI model identifier type.
@@ -36,7 +40,7 @@ import * as OpenAiTool from "./OpenAiTool.ts"
  * @since 1.0.0
  * @category models
  */
-export type Model = typeof Generated.ModelIdsResponses.Encoded
+export type Model = typeof ResponseModelIds.Encoded | typeof SharedModelIds.Encoded
 
 // =============================================================================
 // Configuration
@@ -291,6 +295,27 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 // OpenAI Language Model
 // =============================================================================
+
+/**
+ * @since 1.0.0
+ * @category constructors
+ */
+export const model = (
+  model: (string & {}) | Model,
+  config?: Omit<typeof Config.Service, "model">
+): AiModel.Model<"openai", LanguageModel.LanguageModel, OpenAiClient> =>
+  AiModel.make("openai", layer({ model, config }))
+
+// TODO
+// /**
+//  * @since 1.0.0
+//  * @category constructors
+//  */
+// export const modelWithTokenizer = (
+//   model: (string & {}) | Model,
+//   config?: Omit<typeof Config.Service, "model">
+// ): AiModel.Model<"openai", LanguageModel.LanguageModel | Tokenizer.Tokenizer, OpenAiClient> =>
+//   AiModel.make("openai", layerWithTokenizer({ model, config }))
 
 /**
  * Creates an OpenAI language model service.

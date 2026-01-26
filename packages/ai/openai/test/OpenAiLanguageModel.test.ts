@@ -1,422 +1,933 @@
-import * as OpenAiClient from "@effect/ai-openai/OpenAiClient"
-import * as OpenAiLanguageModel from "@effect/ai-openai/OpenAiLanguageModel"
+import { Generated, OpenAiClient, OpenAiLanguageModel, OpenAiTool } from "@effect/ai-openai"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Redacted, Schema } from "effect"
-import { LanguageModel, Tool, Toolkit } from "effect/unstable/ai"
-import * as HttpClient from "effect/unstable/http/HttpClient"
-import type * as HttpClientError from "effect/unstable/http/HttpClientError"
-import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-
-// =============================================================================
-// Mock Helpers
-// =============================================================================
-
-const makeMockResponse = (options: {
-  readonly status: number
-  readonly body: unknown
-  readonly headers?: Record<string, string>
-  readonly request?: HttpClientRequest.HttpClientRequest
-}): HttpClientResponse.HttpClientResponse => {
-  const request = options.request ?? HttpClientRequest.get("/")
-  const json = JSON.stringify(options.body)
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-    ...options.headers
-  }
-  return HttpClientResponse.fromWeb(
-    request,
-    new globalThis.Response(json, {
-      status: options.status,
-      headers
-    })
-  )
-}
-
-const makeMockHttpClient = (
-  handler: (
-    request: HttpClientRequest.HttpClientRequest
-  ) => Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
-): HttpClient.HttpClient =>
-  HttpClient.makeWith<HttpClientError.HttpClientError, never, HttpClientError.HttpClientError, never>(
-    (effect) =>
-      Effect.flatMap(effect, handler) as Effect.Effect<
-        HttpClientResponse.HttpClientResponse,
-        HttpClientError.HttpClientError,
-        never
-      >,
-    Effect.succeed
-  )
-
-// =============================================================================
-// Test Layers
-// =============================================================================
-
-const makeTestLayer = (options: {
-  readonly handler: (
-    request: HttpClientRequest.HttpClientRequest
-  ) => Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
-}) => {
-  const mockClient = makeMockHttpClient(options.handler)
-  const HttpClientLayer = Layer.succeed(HttpClient.HttpClient, mockClient)
-  return OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
-    Layer.provide(HttpClientLayer)
-  )
-}
-
-// =============================================================================
-// Tests
-// =============================================================================
+import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { Array, Effect, Layer, Redacted, Ref, Schema, ServiceMap } from "effect"
+import { LanguageModel, Prompt, Tool, Toolkit } from "effect/unstable/ai"
+import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 describe("OpenAiLanguageModel", () => {
   describe("make", () => {
-    it.effect("creates a language model service", () =>
-      Effect.gen(function*() {
-        const testLayer = makeTestLayer({
-          handler: (request) =>
-            Effect.succeed(makeMockResponse({
-              status: 200,
-              body: {},
-              request
-            }))
-        })
-
-        const model = yield* OpenAiLanguageModel.make({
-          model: "gpt-4o"
-        }).pipe(Effect.provide(testLayer))
-
-        assert.isDefined(model)
-      }))
-
     it.effect("sends correct model in request", () =>
       Effect.gen(function*() {
-        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
-
-        const testLayer = makeTestLayer({
-          handler: (request) => {
-            capturedRequest = request
-            return Effect.succeed(makeMockResponse({
-              status: 200,
-              body: {},
-              request
-            }))
-          }
-        })
-
-        const lmLayer = OpenAiLanguageModel.layer({ model: "gpt-4o-mini" }).pipe(
-          Layer.provide(testLayer)
+        const result = yield* LanguageModel.generateText({ prompt: "test" }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini"))
         )
 
-        yield* LanguageModel.generateText({
-          prompt: "test"
-        }).pipe(Effect.ignore, Effect.provide(lmLayer))
+        const metadata = result.content.find((part) => part.type === "response-metadata")
 
-        assert.isDefined(capturedRequest)
-        assert.isTrue(capturedRequest!.url.includes("/responses"))
-      }))
+        strictEqual(metadata?.modelId, "gpt-4o-mini")
+      }).pipe(Effect.provide(makeTestLayer())))
+
+    it.effect("sends custom model string in request", () =>
+      Effect.gen(function*() {
+        const result = yield* LanguageModel.generateText({ prompt: "test" }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("ft:gpt-4o-mini:custom"))
+        )
+
+        const metadata = result.content.find((part) => part.type === "response-metadata")
+        strictEqual(metadata?.modelId, "ft:gpt-4o-mini:custom")
+      }).pipe(Effect.provide(makeTestLayer({ body: { model: "ft:gpt-4o-mini:custom" as any } }))))
   })
 
-  describe("layer", () => {
-    it.effect("creates a layer that provides LanguageModel", () =>
-      Effect.gen(function*() {
-        let requestSent = false
-        const testLayer = makeTestLayer({
-          handler: (request) => {
-            requestSent = true
-            return Effect.succeed(makeMockResponse({
-              status: 200,
-              body: {},
-              request
-            }))
+  describe("generateText", () => {
+    describe("message preparation", () => {
+      describe("system messages", () => {
+        it.effect("uses system role for standard models", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([
+                { role: "system", content: "You are a helpful assistant" },
+                { role: "user", content: "Hello" }
+              ])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const systemMessage = body.input.find((m: any) => m.role === "system")
+            assert.isDefined(systemMessage)
+            strictEqual(systemMessage.content, "You are a helpful assistant")
+          }).pipe(Effect.provide(makeTestLayer())))
+
+        it.effect("uses developer role for reasoning models", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([
+                { role: "system", content: "You are a helpful assistant" },
+                { role: "user", content: "Hello" }
+              ])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("o1")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const devMessage = body.input.find((m: any) => m.role === "developer")
+            assert.isDefined(devMessage)
+            strictEqual(devMessage.content, "You are a helpful assistant")
+          }).pipe(Effect.provide(makeTestLayer({ body: { model: "o1" } }))))
+
+        it.effect("uses developer role for gpt-5 models", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([
+                { role: "system", content: "You are a helpful assistant" },
+                { role: "user", content: "Hello" }
+              ])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-5")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const devMessage = body.input.find((m: any) => m.role === "developer")
+            assert.isDefined(devMessage)
+          }).pipe(Effect.provide(makeTestLayer({ body: { model: "gpt-5" } }))))
+
+        it.effect("uses developer role for o3 models", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([
+                { role: "system", content: "You are a helpful assistant" },
+                { role: "user", content: "Hello" }
+              ])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("o3-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const devMessage = body.input.find((m: any) => m.role === "developer")
+            assert.isDefined(devMessage)
+          }).pipe(Effect.provide(makeTestLayer({ body: { model: "o3-mini" } }))))
+      })
+
+      describe("user messages", () => {
+        it.effect("converts text parts to input_text", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: "Hello world"
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const userMessage = body.input.find((m: any) => m.role === "user")
+            assert.isDefined(userMessage)
+            deepStrictEqual(userMessage.content, [{ type: "input_text", text: "Hello world" }])
+          }).pipe(Effect.provide(makeTestLayer())))
+
+        it.effect("handles image URLs", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([{
+                role: "user",
+                content: [
+                  Prompt.filePart({
+                    mediaType: "image/png",
+                    data: new URL("https://example.com/image.png")
+                  })
+                ]
+              }])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const userMessage = body.input.find((m: any) => m.role === "user")
+            deepStrictEqual(userMessage.content, [{
+              type: "input_image",
+              image_url: "https://example.com/image.png",
+              detail: "auto"
+            }])
+          }).pipe(Effect.provide(makeTestLayer())))
+
+        it.effect("handles image with custom detail level", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([{
+                role: "user",
+                content: [
+                  Prompt.filePart({
+                    mediaType: "image/png",
+                    data: new URL("https://example.com/image.png"),
+                    options: { openai: { imageDetail: "high" } }
+                  })
+                ]
+              }])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const userMessage = body.input.find((m: any) => m.role === "user")
+            strictEqual(userMessage.content[0].detail, "high")
+          }).pipe(Effect.provide(makeTestLayer())))
+
+        it.effect("handles image file IDs with configured prefixes", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([{
+                role: "user",
+                content: [
+                  Prompt.filePart({
+                    mediaType: "image/png",
+                    data: "file-abc123"
+                  })
+                ]
+              }])
+            }).pipe(
+              Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini", {
+                fileIdPrefixes: ["file-"]
+              }))
+            )
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const userMessage = body.input.find((m: any) => m.role === "user")
+            deepStrictEqual(userMessage.content, [{
+              type: "input_image",
+              file_id: "file-abc123",
+              detail: "auto"
+            }])
+          }).pipe(Effect.provide(makeTestLayer())))
+
+        it.effect("handles image base64 data", () =>
+          Effect.gen(function*() {
+            const imageData = new Uint8Array([137, 80, 78, 71]) // PNG magic bytes
+
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([{
+                role: "user",
+                content: [
+                  Prompt.filePart({
+                    mediaType: "image/png",
+                    data: imageData
+                  })
+                ]
+              }])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const userMessage = body.input.find((m: any) => m.role === "user")
+            assert.isTrue(userMessage.content[0].image_url.startsWith("data:image/png;base64,"))
+          }).pipe(Effect.provide(makeTestLayer())))
+
+        it.effect("handles PDF URLs", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([{
+                role: "user",
+                content: [
+                  Prompt.filePart({
+                    mediaType: "application/pdf",
+                    data: new URL("https://example.com/document.pdf")
+                  })
+                ]
+              }])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const userMessage = body.input.find((m: any) => m.role === "user")
+            deepStrictEqual(userMessage.content, [{
+              type: "input_file",
+              file_url: "https://example.com/document.pdf"
+            }])
+          }).pipe(Effect.provide(makeTestLayer())))
+
+        it.effect("handles PDF base64 data with filename", () =>
+          Effect.gen(function*() {
+            const pdfData = new Uint8Array([0x25, 0x50, 0x44, 0x46]) // %PDF
+
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([{
+                role: "user",
+                content: [
+                  Prompt.filePart({
+                    mediaType: "application/pdf",
+                    data: pdfData,
+                    fileName: "document.pdf"
+                  })
+                ]
+              }])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const userMessage = body.input.find((m: any) => m.role === "user")
+            strictEqual(userMessage.content[0].type, "input_file")
+            strictEqual(userMessage.content[0].filename, "document.pdf")
+            assert.isTrue(userMessage.content[0].file_data.startsWith("data:application/pdf;base64,"))
+          }).pipe(Effect.provide(makeTestLayer())))
+      })
+
+      describe("assistant messages", () => {
+        it.effect("converts text parts to message output", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([
+                { role: "user", content: "Hello" },
+                {
+                  role: "assistant",
+                  content: [Prompt.textPart({ text: "Hi there!" })]
+                },
+                { role: "user", content: "How are you?" }
+              ])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const assistantMessage = body.input.find((m: any) => m.type === "message" && m.role === "assistant")
+            assert.isDefined(assistantMessage)
+            strictEqual(assistantMessage.content[0].type, "output_text")
+            strictEqual(assistantMessage.content[0].text, "Hi there!")
+          }).pipe(Effect.provide(makeTestLayer())))
+
+        it.effect("converts reasoning parts", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([
+                { role: "user", content: "Think step by step" },
+                {
+                  role: "assistant",
+                  content: [
+                    Prompt.reasoningPart({
+                      text: "Let me think...",
+                      options: { openai: { itemId: "reasoning_123" } }
+                    })
+                  ]
+                },
+                { role: "user", content: "Continue" }
+              ])
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("o1")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const reasoningItem = body.input.find((m: any) => m.type === "reasoning")
+            assert.isDefined(reasoningItem)
+            strictEqual(reasoningItem.id, "reasoning_123")
+          }).pipe(Effect.provide(makeTestLayer({ body: { model: "o1" } }))))
+
+        it.effect("converts tool call parts to function_call", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([
+                { role: "user", content: "Use the tool" },
+                {
+                  role: "assistant",
+                  content: [
+                    Prompt.toolCallPart({
+                      id: "call_abc",
+                      name: "TestTool",
+                      params: { input: "test" },
+                      providerExecuted: false
+                    })
+                  ]
+                },
+                {
+                  role: "tool",
+                  content: [
+                    Prompt.toolResultPart({
+                      id: "call_abc",
+                      name: "TestTool",
+                      isFailure: false,
+                      result: { output: "result" }
+                    })
+                  ]
+                }
+              ]),
+              toolkit: TestToolkit
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const functionCall = body.input.find((m: any) => m.type === "function_call")
+            assert.isDefined(functionCall)
+            strictEqual(functionCall.name, "TestTool")
+            strictEqual(functionCall.call_id, "call_abc")
+          }).pipe(Effect.provide(makeTestLayer()), Effect.provide(TestToolkitLayer)))
+      })
+
+      describe("tool messages", () => {
+        it.effect("converts tool results to function_call_output", () =>
+          Effect.gen(function*() {
+            yield* LanguageModel.generateText({
+              prompt: Prompt.make([
+                { role: "user", content: "Use the tool" },
+                {
+                  role: "assistant",
+                  content: [
+                    Prompt.toolCallPart({
+                      id: "call_abc",
+                      name: "TestTool",
+                      params: { input: "test" },
+                      providerExecuted: false
+                    })
+                  ]
+                },
+                {
+                  role: "tool",
+                  content: [
+                    Prompt.toolResultPart({
+                      id: "call_abc",
+                      name: "TestTool",
+                      isFailure: false,
+                      result: { output: "result" }
+                    })
+                  ]
+                }
+              ]),
+              toolkit: TestToolkit
+            }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+            const requests = yield* MockHttpClient.requests
+            const body = yield* getRequestBody(requests[0])
+
+            const toolOutput = body.input.find((m: any) => m.type === "function_call_output")
+            assert.isDefined(toolOutput)
+            strictEqual(toolOutput.call_id, "call_abc")
+            strictEqual(toolOutput.output, JSON.stringify({ output: "result" }))
+          }).pipe(Effect.provide(makeTestLayer()), Effect.provide(TestToolkitLayer)))
+      })
+    })
+
+    describe("tool preparation", () => {
+      it.effect("converts user-defined tools to function type", () =>
+        Effect.gen(function*() {
+          yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit: TestToolkit
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((t: any) => t.type === "function")
+          assert.isDefined(tool)
+          strictEqual(tool.name, "TestTool")
+          strictEqual(tool.description, "A test tool")
+          strictEqual(tool.strict, true)
+        }).pipe(Effect.provide(makeTestLayer()), Effect.provide(TestToolkitLayer)))
+
+      it.effect("handles tool choice auto", () =>
+        Effect.gen(function*() {
+          yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit: TestToolkit,
+            toolChoice: "auto"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          strictEqual(body.tool_choice, "auto")
+        }).pipe(Effect.provide(makeTestLayer()), Effect.provide(TestToolkitLayer)))
+
+      it.effect("handles tool choice none", () =>
+        Effect.gen(function*() {
+          yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit: TestToolkit,
+            toolChoice: "none"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          strictEqual(body.tool_choice, "none")
+        }).pipe(Effect.provide(makeTestLayer()), Effect.provide(TestToolkitLayer)))
+
+      it.effect("handles tool choice required", () =>
+        Effect.gen(function*() {
+          yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit: TestToolkit,
+            toolChoice: "required"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          strictEqual(body.tool_choice, "required")
+        }).pipe(Effect.provide(makeTestLayer()), Effect.provide(TestToolkitLayer)))
+
+      it.effect("handles specific tool choice", () =>
+        Effect.gen(function*() {
+          yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit: TestToolkit,
+            toolChoice: { tool: "TestTool" }
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          deepStrictEqual(body.tool_choice, { type: "function", name: "TestTool" })
+        }).pipe(Effect.provide(makeTestLayer()), Effect.provide(TestToolkitLayer)))
+
+      it.effect("adds code_interpreter tool", () =>
+        Effect.gen(function*() {
+          const toolkit = Toolkit.make(OpenAiTool.CodeInterpreter({ container: { type: "auto" } }))
+
+          yield* LanguageModel.generateText({
+            prompt: "Run some code",
+            toolkit
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((t: any) => t.type === "code_interpreter")
+          assert.isDefined(tool)
+        }).pipe(Effect.provide(makeTestLayer())))
+
+      it.effect("adds web_search tool", () =>
+        Effect.gen(function*() {
+          const toolkit = Toolkit.make(OpenAiTool.WebSearch({}))
+
+          yield* LanguageModel.generateText({
+            prompt: "Search the web",
+            toolkit
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((t: any) => t.type === "web_search")
+          assert.isDefined(tool)
+        }).pipe(Effect.provide(makeTestLayer())))
+
+      it.effect("adds file_search tool with vector store IDs", () =>
+        Effect.gen(function*() {
+          const toolkit = Toolkit.make(OpenAiTool.FileSearch({
+            vector_store_ids: ["vs_123"]
+          }))
+
+          yield* LanguageModel.generateText({
+            prompt: "Search files",
+            toolkit
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          const tool = body.tools?.find((t: any) => t.type === "file_search")
+          assert.isDefined(tool)
+          deepStrictEqual(tool.vector_store_ids, ["vs_123"])
+        }).pipe(Effect.provide(makeTestLayer())))
+    })
+
+    describe("response format", () => {
+      it.effect("uses text format by default", () =>
+        Effect.gen(function*() {
+          yield* LanguageModel.generateText({
+            prompt: "Hello"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          strictEqual(body.text?.format?.type, "text")
+        }).pipe(Effect.provide(makeTestLayer())))
+
+      it.effect("uses json_schema format for structured output", () =>
+        Effect.gen(function*() {
+          yield* LanguageModel.generateObject({
+            prompt: "Give me a person",
+            schema: Schema.Struct({
+              name: Schema.String,
+              age: Schema.Number
+            })
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const requests = yield* MockHttpClient.requests
+          const body = yield* getRequestBody(requests[0])
+
+          strictEqual(body.text?.format?.type, "json_schema")
+          strictEqual(body.text?.format?.strict, true)
+        }).pipe(Effect.provide(makeTestLayer({
+          body: {
+            output: [makeTextOutput(JSON.stringify({ name: "John", age: 30 }))]
           }
-        })
+        }))))
+    })
 
-        const lmLayer = OpenAiLanguageModel.layer({ model: "gpt-4o" }).pipe(
-          Layer.provide(testLayer)
-        )
+    describe("response handling", () => {
+      it.effect("extracts text from output_text", () =>
+        Effect.gen(function*() {
+          const result = yield* LanguageModel.generateText({
+            prompt: "Hello"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
 
-        yield* LanguageModel.generateText({ prompt: "test" }).pipe(
-          Effect.ignore,
-          Effect.provide(lmLayer)
-        )
+          strictEqual(result.text, "Hello, world!")
+        }).pipe(Effect.provide(makeTestLayer({
+          body: { output: [makeTextOutput("Hello, world!")] }
+        }))))
 
-        assert.isTrue(requestSent)
-      }))
+      it.effect("extracts multiple text parts", () =>
+        Effect.gen(function*() {
+          const result = yield* LanguageModel.generateText({
+            prompt: "Hello"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const textParts = result.content.filter((p) => p.type === "text")
+          strictEqual(textParts.length, 2)
+        }).pipe(Effect.provide(makeTestLayer({
+          body: {
+            output: [
+              makeTextOutput("First"),
+              makeTextOutput("Second", { id: "msg_456" })
+            ]
+          }
+        }))))
+
+      it.effect("handles refusal content", () =>
+        Effect.gen(function*() {
+          const result = yield* LanguageModel.generateText({
+            prompt: "Do something bad"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const textPart = result.content.find((p) => p.type === "text")
+          strictEqual(textPart?.text, "")
+          strictEqual(textPart?.metadata?.openai?.refusal, "I cannot do that")
+        }).pipe(Effect.provide(makeTestLayer({
+          body: {
+            output: [{
+              type: "message",
+              id: "msg_123",
+              role: "assistant",
+              status: "completed",
+              content: [{ type: "refusal", refusal: "I cannot do that" }]
+            }]
+          }
+        }))))
+
+      it.effect("parses function call arguments", () =>
+        Effect.gen(function*() {
+          const result = yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit: TestToolkit
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const toolCall = result.content.find((p) => p.type === "tool-call")
+          assert.isDefined(toolCall)
+          if (toolCall?.type === "tool-call") {
+            strictEqual(toolCall.name, "TestTool")
+            deepStrictEqual(toolCall.params, { input: "hello" })
+          }
+        }).pipe(
+          Effect.provide(makeTestLayer({
+            body: { output: [makeFunctionCall("TestTool", { input: "hello" })] }
+          })),
+          Effect.provide(TestToolkitLayer)
+        ))
+
+      it.effect("extracts reasoning parts", () =>
+        Effect.gen(function*() {
+          const result = yield* LanguageModel.generateText({
+            prompt: "Think about this"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("o1")))
+
+          const reasoningParts = result.content.filter((p) => p.type === "reasoning")
+          strictEqual(reasoningParts.length, 2)
+          if (reasoningParts[0]?.type === "reasoning") {
+            strictEqual(reasoningParts[0].text, "First thought")
+          }
+        }).pipe(Effect.provide(makeTestLayer({
+          body: {
+            model: "o1",
+            output: [makeReasoningOutput(["First thought", "Second thought"])]
+          }
+        }))))
+
+      it.effect("extracts usage information", () =>
+        Effect.gen(function*() {
+          const result = yield* LanguageModel.generateText({
+            prompt: "Hello"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const finishPart = result.content.find((p) => p.type === "finish")
+          assert.isDefined(finishPart)
+          if (finishPart?.type === "finish") {
+            strictEqual(finishPart.usage.inputTokens, 10)
+            strictEqual(finishPart.usage.outputTokens, 20)
+            strictEqual(finishPart.usage.totalTokens, 30)
+          }
+        }).pipe(Effect.provide(makeTestLayer({
+          body: {
+            output: [makeTextOutput("Hello")],
+            usage: makeUsage()
+          }
+        }))))
+
+      it.effect("determines finish reason from incomplete_details", () =>
+        Effect.gen(function*() {
+          const result = yield* LanguageModel.generateText({
+            prompt: "Hello"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const finishPart = result.content.find((p) => p.type === "finish")
+          if (finishPart?.type === "finish") {
+            strictEqual(finishPart.reason, "content-filter")
+          }
+        }).pipe(Effect.provide(makeTestLayer({
+          body: {
+            output: [makeTextOutput("Hello")],
+            incomplete_details: { reason: "content_filter" }
+          }
+        }))))
+
+      it.effect("defaults finish reason to stop", () =>
+        Effect.gen(function*() {
+          const result = yield* LanguageModel.generateText({
+            prompt: "Hello"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const finishPart = result.content.find((p) => p.type === "finish")
+          if (finishPart?.type === "finish") {
+            strictEqual(finishPart.reason, "stop")
+          }
+        }).pipe(Effect.provide(makeTestLayer({
+          body: { output: [makeTextOutput("Hello")] }
+        }))))
+
+      it.effect("sets finish reason to tool-calls when has tool calls", () =>
+        Effect.gen(function*() {
+          const result = yield* LanguageModel.generateText({
+            prompt: "Use the tool",
+            toolkit: TestToolkit
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const finishPart = result.content.find((p) => p.type === "finish")
+          if (finishPart?.type === "finish") {
+            strictEqual(finishPart.reason, "tool-calls")
+          }
+        }).pipe(
+          Effect.provide(makeTestLayer({
+            body: { output: [makeFunctionCall("TestTool", { input: "test" })] }
+          })),
+          Effect.provide(TestToolkitLayer)
+        ))
+
+      it.effect("extracts url citations as source parts", () =>
+        Effect.gen(function*() {
+          const result = yield* LanguageModel.generateText({
+            prompt: "Hello"
+          }).pipe(Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")))
+
+          const sourcePart = result.content.find((p) => p.type === "source")
+          assert.isDefined(sourcePart)
+          if (sourcePart?.type === "source" && sourcePart.sourceType === "url") {
+            strictEqual(sourcePart.url.href, "https://example.com/")
+            strictEqual(sourcePart.title, "Example")
+          }
+        }).pipe(Effect.provide(makeTestLayer({
+          body: {
+            output: [{
+              type: "message",
+              id: "msg_123",
+              role: "assistant",
+              status: "completed",
+              content: [{
+                type: "output_text",
+                text: "Check this out",
+                annotations: [{
+                  type: "url_citation",
+                  url: "https://example.com",
+                  title: "Example",
+                  start_index: 0,
+                  end_index: 14
+                }]
+              }]
+            }]
+          }
+        }))))
+    })
   })
 
   describe("withConfigOverride", () => {
-    it.effect("applies configuration overrides to request", () =>
+    it.effect("merges config overrides", () =>
       Effect.gen(function*() {
-        let requestCount = 0
+        yield* LanguageModel.generateText({ prompt: "test" }).pipe(
+          OpenAiLanguageModel.withConfigOverride({ temperature: 0.5 }),
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini"))
+        )
 
-        const testLayer = makeTestLayer({
-          handler: (request) => {
-            requestCount++
-            return Effect.succeed(makeMockResponse({
-              status: 200,
-              body: {},
-              request
-            }))
-          }
-        })
+        const requests = yield* MockHttpClient.requests
+        const body = yield* getRequestBody(requests[0])
 
-        const lmLayer = OpenAiLanguageModel.layer({
-          model: "gpt-4o",
-          config: { temperature: 0.5 }
-        }).pipe(Layer.provide(testLayer))
+        strictEqual(body.temperature, 0.5)
+      }).pipe(Effect.provide(makeTestLayer())))
 
-        yield* LanguageModel.generateText({
-          prompt: "test"
-        }).pipe(
+    it.effect("override takes precedence", () =>
+      Effect.gen(function*() {
+        yield* LanguageModel.generateText({ prompt: "test" }).pipe(
           OpenAiLanguageModel.withConfigOverride({ temperature: 0.9 }),
-          Effect.ignore,
-          Effect.provide(lmLayer)
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini", { temperature: 0.5 }))
         )
 
-        assert.strictEqual(requestCount, 1)
-      }))
+        const requests = yield* MockHttpClient.requests
+        const body = yield* getRequestBody(requests[0])
+
+        strictEqual(body.temperature, 0.9)
+      }).pipe(Effect.provide(makeTestLayer())))
+  })
+})
+
+// =============================================================================
+// Test Infrastructure
+// =============================================================================
+
+class MockOpenAiResponse extends ServiceMap.Service<MockOpenAiResponse, {
+  readonly status: number
+  readonly body: Generated.Response
+  readonly headers?: Record<string, string> | undefined
+}>()("MockOpenAiResponse") {}
+
+class MockHttpClient extends ServiceMap.Service<MockHttpClient, {
+  readonly requests: Effect.Effect<ReadonlyArray<HttpClientRequest.HttpClientRequest>>
+}>()("MockHttpClient") {
+  static requests = Effect.service(MockHttpClient).pipe(
+    Effect.flatMap((client) => client.requests)
+  )
+}
+
+const encodeResponse = Schema.encodeEffect(Generated.Response)
+
+const makeHttpClient = Effect.gen(function*() {
+  const capturedRequests = yield* Ref.make<ReadonlyArray<HttpClientRequest.HttpClientRequest>>([])
+  const response = yield* MockOpenAiResponse
+  const body = yield* Effect.orDie(encodeResponse(response.body))
+
+  const httpClient = HttpClient.makeWith(
+    Effect.fnUntraced(function*(requestEffect) {
+      const request = yield* requestEffect
+      yield* Ref.update(capturedRequests, Array.append(request))
+      return HttpClientResponse.fromWeb(
+        request,
+        new Response(JSON.stringify(body), {
+          headers: response.headers ?? {},
+          status: response.status
+        })
+      )
+    }),
+    Effect.succeed as HttpClient.HttpClient.Preprocess<HttpClientError.HttpClientError, never>
+  )
+
+  return ServiceMap.make(HttpClient.HttpClient, httpClient).pipe(
+    ServiceMap.add(MockHttpClient, MockHttpClient.of({ requests: Ref.get(capturedRequests) }))
+  )
+})
+
+const HttpClientLayer = Layer.effectServices(makeHttpClient)
+
+const makeDefaultResponse = (
+  overrides: Partial<Generated.Response> = {}
+): Generated.Response => ({
+  id: "resp_test123",
+  object: "response",
+  created_at: Math.floor(Date.now() / 1000),
+  model: "gpt-4o-mini",
+  status: "completed",
+  output: [],
+  metadata: null,
+  temperature: null,
+  top_p: null,
+  tools: [],
+  tool_choice: "auto",
+  error: null,
+  incomplete_details: null,
+  instructions: null,
+  parallel_tool_calls: false,
+  ...overrides
+})
+
+const makeTestLayer = (options: {
+  readonly body?: Partial<Generated.Response>
+  readonly status?: number
+  readonly headers?: Record<string, string>
+} = {}) =>
+  OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+    Layer.provideMerge(HttpClientLayer),
+    Layer.provide(Layer.succeed(MockOpenAiResponse, {
+      body: makeDefaultResponse(options.body),
+      status: options.status ?? 200,
+      headers: options.headers ?? {}
+    }))
+  )
+
+const getRequestBody = (request: HttpClientRequest.HttpClientRequest) =>
+  Effect.gen(function*() {
+    const body = request.body
+    if (body._tag === "Uint8Array") {
+      const text = new TextDecoder().decode(body.body)
+      return JSON.parse(text)
+    }
+    return yield* Effect.die(new Error("Expected Uint8Array body"))
   })
 
-  describe("error handling", () => {
-    it.effect("propagates API errors as AiError with RateLimitError", () =>
-      Effect.gen(function*() {
-        const testLayer = makeTestLayer({
-          handler: (request) =>
-            Effect.succeed(makeMockResponse({
-              status: 429,
-              body: {
-                error: {
-                  message: "Rate limit exceeded",
-                  type: "requests",
-                  code: "rate_limit_exceeded"
-                }
-              },
-              request
-            }))
-        })
+const makeTextOutput = (
+  text: string,
+  overrides: Partial<Generated.OutputMessage> = {}
+): Generated.OutputMessage => ({
+  type: "message",
+  id: "msg_123",
+  role: "assistant" as const,
+  status: "completed",
+  content: [{ type: "output_text", text, annotations: [] }],
+  ...overrides
+})
 
-        const lmLayer = OpenAiLanguageModel.layer({ model: "gpt-4o" }).pipe(
-          Layer.provide(testLayer)
-        )
+const makeFunctionCall = (
+  name: string,
+  args: Record<string, unknown>,
+  overrides: Partial<Generated.FunctionToolCall> = {}
+): Generated.FunctionToolCall => ({
+  type: "function_call",
+  id: "fc_123",
+  call_id: "call_123",
+  name,
+  arguments: JSON.stringify(args),
+  status: "completed",
+  ...overrides
+})
 
-        const result = yield* LanguageModel.generateText({
-          prompt: "test"
-        }).pipe(
-          Effect.flip,
-          Effect.provide(lmLayer)
-        )
+const makeReasoningOutput = (
+  summaries: Array<string>,
+  overrides: Partial<Generated.ReasoningItem> = {}
+): Generated.ReasoningItem => ({
+  type: "reasoning",
+  id: "rs_123",
+  summary: summaries.map((text) => ({ type: "summary_text", text })),
+  encrypted_content: null,
+  ...overrides
+})
 
-        assert.strictEqual(result._tag, "AiError")
-        assert.strictEqual(result.reason._tag, "RateLimitError")
-      }))
+const makeUsage = (
+  overrides: Partial<Generated.ResponseUsage> = {}
+): Generated.ResponseUsage => ({
+  input_tokens: 10,
+  output_tokens: 20,
+  total_tokens: 30,
+  input_tokens_details: { cached_tokens: 0 },
+  output_tokens_details: { reasoning_tokens: 0 },
+  ...overrides
+})
 
-    it.effect("propagates API errors as AiError with AuthenticationError", () =>
-      Effect.gen(function*() {
-        const testLayer = makeTestLayer({
-          handler: (request) =>
-            Effect.succeed(makeMockResponse({
-              status: 401,
-              body: {
-                error: {
-                  message: "Invalid API key",
-                  type: "authentication_error",
-                  code: "invalid_api_key"
-                }
-              },
-              request
-            }))
-        })
+const TestTool = Tool.make("TestTool", {
+  description: "A test tool",
+  parameters: { input: Schema.String },
+  success: Schema.Struct({ output: Schema.String })
+})
 
-        const lmLayer = OpenAiLanguageModel.layer({ model: "gpt-4o" }).pipe(
-          Layer.provide(testLayer)
-        )
+const TestToolkit = Toolkit.make(TestTool)
 
-        const result = yield* LanguageModel.generateText({
-          prompt: "test"
-        }).pipe(
-          Effect.flip,
-          Effect.provide(lmLayer)
-        )
-
-        assert.strictEqual(result._tag, "AiError")
-        assert.strictEqual(result.reason._tag, "AuthenticationError")
-      }))
-
-    it.effect("propagates API errors as AiError with ContextLengthError", () =>
-      Effect.gen(function*() {
-        const testLayer = makeTestLayer({
-          handler: (request) =>
-            Effect.succeed(makeMockResponse({
-              status: 400,
-              body: {
-                error: {
-                  message:
-                    "This model's maximum context length is 8192 tokens. However, your messages resulted in 12000 tokens.",
-                  type: "invalid_request_error",
-                  code: "context_length_exceeded"
-                }
-              },
-              request
-            }))
-        })
-
-        const lmLayer = OpenAiLanguageModel.layer({ model: "gpt-4o" }).pipe(
-          Layer.provide(testLayer)
-        )
-
-        const result = yield* LanguageModel.generateText({
-          prompt: "test"
-        }).pipe(
-          Effect.flip,
-          Effect.provide(lmLayer)
-        )
-
-        assert.strictEqual(result._tag, "AiError")
-        assert.strictEqual(result.reason._tag, "ContextLengthError")
-      }))
-
-    it.effect("propagates API errors as AiError with ModelUnavailableError", () =>
-      Effect.gen(function*() {
-        const testLayer = makeTestLayer({
-          handler: (request) =>
-            Effect.succeed(makeMockResponse({
-              status: 404,
-              body: {
-                error: {
-                  message: "Model not found",
-                  type: "invalid_request_error",
-                  code: "model_not_found"
-                }
-              },
-              request
-            }))
-        })
-
-        const lmLayer = OpenAiLanguageModel.layer({ model: "gpt-5" }).pipe(
-          Layer.provide(testLayer)
-        )
-
-        const result = yield* LanguageModel.generateText({
-          prompt: "test"
-        }).pipe(
-          Effect.flip,
-          Effect.provide(lmLayer)
-        )
-
-        assert.strictEqual(result._tag, "AiError")
-        assert.strictEqual(result.reason._tag, "ModelUnavailableError")
-      }))
-
-    it.effect("propagates API errors as AiError with ContentPolicyError", () =>
-      Effect.gen(function*() {
-        const testLayer = makeTestLayer({
-          handler: (request) =>
-            Effect.succeed(makeMockResponse({
-              status: 400,
-              body: {
-                error: {
-                  message: "Content policy violation",
-                  type: "invalid_request_error",
-                  code: "content_policy_violation"
-                }
-              },
-              request
-            }))
-        })
-
-        const lmLayer = OpenAiLanguageModel.layer({ model: "gpt-4o" }).pipe(
-          Layer.provide(testLayer)
-        )
-
-        const result = yield* LanguageModel.generateText({
-          prompt: "test"
-        }).pipe(
-          Effect.flip,
-          Effect.provide(lmLayer)
-        )
-
-        assert.strictEqual(result._tag, "AiError")
-        assert.strictEqual(result.reason._tag, "ContentPolicyError")
-      }))
-
-    it.effect("propagates API errors as AiError with QuotaExhaustedError", () =>
-      Effect.gen(function*() {
-        const testLayer = makeTestLayer({
-          handler: (request) =>
-            Effect.succeed(makeMockResponse({
-              status: 402,
-              body: {
-                error: {
-                  message: "Quota exceeded",
-                  type: "invalid_request_error",
-                  code: "insufficient_quota"
-                }
-              },
-              request
-            }))
-        })
-
-        const lmLayer = OpenAiLanguageModel.layer({ model: "gpt-4o" }).pipe(
-          Layer.provide(testLayer)
-        )
-
-        const result = yield* LanguageModel.generateText({
-          prompt: "test"
-        }).pipe(
-          Effect.flip,
-          Effect.provide(lmLayer)
-        )
-
-        assert.strictEqual(result._tag, "AiError")
-        assert.strictEqual(result.reason._tag, "QuotaExhaustedError")
-      }))
-  })
-
-  describe("tool calling", () => {
-    const WeatherTool = Tool.make("get_weather", {
-      description: "Get weather for a location",
-      parameters: { location: Schema.String },
-      success: Schema.Struct({ temperature: Schema.Number, condition: Schema.String })
-    })
-
-    const WeatherToolkit = Toolkit.make(WeatherTool)
-
-    it.effect("sends tools in request body", () =>
-      Effect.gen(function*() {
-        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
-
-        const mockClient = makeMockHttpClient((request) => {
-          capturedRequest = request
-          return Effect.succeed(makeMockResponse({
-            status: 200,
-            body: {},
-            request
-          }))
-        })
-
-        const HttpClientLayer = Layer.succeed(HttpClient.HttpClient, mockClient)
-        const clientLayer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test") }).pipe(
-          Layer.provide(HttpClientLayer)
-        )
-
-        const lmLayer = OpenAiLanguageModel.layer({ model: "gpt-4o" }).pipe(
-          Layer.provide(clientLayer)
-        )
-
-        const toolkitLayer = WeatherToolkit.toLayer({
-          get_weather: () => Effect.succeed({ temperature: 72, condition: "sunny" })
-        })
-
-        yield* LanguageModel.generateText({
-          prompt: "What's the weather in NYC?",
-          toolkit: WeatherToolkit
-        }).pipe(
-          Effect.ignore,
-          Effect.provide(lmLayer),
-          Effect.provide(toolkitLayer)
-        )
-
-        assert.isDefined(capturedRequest)
-      }))
-  })
+const TestToolkitLayer = TestToolkit.toLayer({
+  TestTool: ({ input }) => Effect.succeed({ output: `processed: ${input}` })
 })

@@ -419,7 +419,7 @@ export type ToolCallParts<Tools extends Record<string, Tool.Any>> = {
  */
 export type ToolResultParts<Tools extends Record<string, Tool.Any>> = {
   [Name in keyof Tools]: Name extends string
-    ? ToolResultPart<Name, Tool.Success<Tools[Name]>, Tool.Failure<Tools[Name]>>
+    ? ToolResultPart<Name, Tool.Success<Tools[Name]>, Tool.FailureResult<Tools[Name]>>
     : never
 }[keyof Tools]
 

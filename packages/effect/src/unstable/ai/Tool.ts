@@ -571,8 +571,40 @@ export type FailureEncoded<T> = T extends Tool<
   : never
 
 /**
+ * A utility type for the actual failure value that can appear in tool results.
+ * When `failureMode` is `"return"`, this includes both user-defined failures
+ * and `AiError`.
+ *
+ * @since 1.0.0
+ * @category utility types
+ */
+export type FailureResult<T> = T extends Tool<
+  infer _Name,
+  infer _Config,
+  infer _Requirements
+> ? _Config["failureMode"] extends "return" ? _Config["failure"]["Type"] | AiError.AiError
+  : _Config["failure"]["Type"]
+  : never
+
+/**
+ * The encoded version of `FailureResult`.
+ *
+ * @since 1.0.0
+ * @category utility types
+ */
+export type FailureResultEncoded<T> = T extends Tool<
+  infer _Name,
+  infer _Config,
+  infer _Requirements
+> ? _Config["failureMode"] extends "return" ? _Config["failure"]["Encoded"] | AiError.AiErrorEncoded
+  : _Config["failure"]["Encoded"]
+  : never
+
+/**
  * A utility type to extract the type of the tool call result whether it
  * succeeds or fails.
+ *
+ * When `failureMode` is `"return"`, the result may also be an `AiError`.
  *
  * @since 1.0.0
  * @category utility types
@@ -581,12 +613,15 @@ export type Result<T> = T extends Tool<
   infer _Name,
   infer _Config,
   infer _Requirements
-> ? Success<T> | Failure<T>
+> ? _Config["failureMode"] extends "return" ? Success<T> | Failure<T> | AiError.AiError
+  : Success<T> | Failure<T>
   : never
 
 /**
  * A utility type to extract the encoded type of the tool call result whether
  * it succeeds or fails.
+ *
+ * When `failureMode` is `"return"`, the result may also be an encoded `AiError`.
  *
  * @since 1.0.0
  * @category utility types
@@ -595,7 +630,8 @@ export type ResultEncoded<T> = T extends Tool<
   infer _Name,
   infer _Config,
   infer _Requirements
-> ? SuccessEncoded<T> | FailureEncoded<T>
+> ? _Config["failureMode"] extends "return" ? SuccessEncoded<T> | FailureEncoded<T> | AiError.AiErrorEncoded
+  : SuccessEncoded<T> | FailureEncoded<T>
   : never
 
 /**

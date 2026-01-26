@@ -273,7 +273,9 @@ const Proto = {
         if (Predicate.isUndefined(schemas)) {
           const handler = services.mapUnsafe.get(tool.id)! as Tool.Handler<any>
           const decodeParameters = Schema.decodeUnknownEffect(tool.parametersSchema) as any
-          const resultSchema = Schema.Union([tool.successSchema, tool.failureSchema])
+          const resultSchema = tool.failureMode === "return"
+            ? Schema.Union([tool.successSchema, tool.failureSchema, AiError.AiError])
+            : tool.successSchema
           const decodeResult = Schema.decodeUnknownEffect(Schema.toType(resultSchema)) as any
           const encodeResult = Schema.encodeUnknownEffect(resultSchema) as any
           schemas = {
@@ -287,6 +289,7 @@ const Proto = {
         }
         return schemas
       }
+      // const encodeAiError = Schema.encodeUnknownSync(AiError.AiError)
       const handle = Effect.fnUntraced(function*(name: string, params: unknown) {
         yield* Effect.annotateCurrentSpan({ tool: name, parameters: params })
         const tool = tools[name]
@@ -302,19 +305,16 @@ const Proto = {
           })
         }
         const schemas = getSchemas(tool)
-        const decodedParams = yield* Effect.mapError(
-          schemas.decodeParameters(params),
-          (cause) =>
-            AiError.make({
-              module: "Toolkit",
-              method: `${name}.handle`,
-              reason: new AiError.ToolParameterValidationError({
-                toolName: name,
-                toolParams: params,
-                validationMessage: cause.message
-              })
+        const decodedParams = yield* Effect.mapError(schemas.decodeParameters(params), (cause) =>
+          AiError.make({
+            module: "Toolkit",
+            method: `${name}.handle`,
+            reason: new AiError.ToolParameterValidationError({
+              toolName: name,
+              toolParams: params,
+              validationMessage: cause.message
             })
-        )
+          }))
         const { isFailure, result } = yield* schemas.handler(decodedParams).pipe(
           Effect.map((result) => ({ result, isFailure: false })),
           // If the tool handler failed, check the tool's failure mode to
@@ -343,22 +343,16 @@ const Proto = {
           }),
           Effect.updateServices((input) => ServiceMap.merge(schemas.services, input))
         )
-        // AiErrors bypass encoding since they're not part of the tool's result schema
-        const encodedResult = AiError.isAiError(result)
-          ? result
-          : yield* Effect.mapError(
-            schemas.encodeResult(result),
-            (cause) =>
-              AiError.make({
-                module: "Toolkit",
-                method: `${name}.handle`,
-                reason: new AiError.ToolResultEncodingError({
-                  toolName: name,
-                  toolResult: result,
-                  validationMessage: cause.message
-                })
-              })
-          )
+        const encodedResult = yield* Effect.mapError(schemas.encodeResult(result), (cause) =>
+          AiError.make({
+            module: "Toolkit",
+            method: `${name}.handle`,
+            reason: new AiError.ToolResultEncodingError({
+              toolName: name,
+              toolResult: result,
+              validationMessage: cause.message
+            })
+          }))
         return {
           isFailure,
           result,

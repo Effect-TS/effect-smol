@@ -15,3 +15,8 @@ replacements:
   # Replace with Schema.Json which properly handles arbitrary JSON values
   - from: "Schema.Record(Schema.String, Schema.Unknown)"
     to: "Schema.Record(Schema.String, Schema.Json)"
+  - from: "{ readonly [x: string]: unknown }"
+    to: "{ readonly [x: string]: Schema.Json }"
+  # Index signature in struct rest pattern
+  - from: "readonly [x: string]: unknown"
+    to: "readonly [x: string]: Schema.Json"

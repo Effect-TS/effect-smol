@@ -98,8 +98,8 @@ export type AssignedRoleDetails = {
   readonly "created_at": number | null
   readonly "updated_at": number | null
   readonly "created_by": string | null
-  readonly "created_by_user_obj": { readonly [x: string]: unknown } | null
-  readonly "metadata": { readonly [x: string]: unknown } | null
+  readonly "created_by_user_obj": { readonly [x: string]: Schema.Json } | null
+  readonly "metadata": { readonly [x: string]: Schema.Json } | null
 }
 export const AssignedRoleDetails = Schema.Struct({
   "id": Schema.String.annotate({ "description": "Identifier for the role." }),
@@ -519,7 +519,7 @@ export const Certificate = Schema.Struct({
 }).annotate({ "description": "Represents an individual `certificate` uploaded to the organization." })
 export type ChatCompletionAllowedTools = {
   readonly "mode": "auto" | "required"
-  readonly "tools": ReadonlyArray<{ readonly [x: string]: unknown }>
+  readonly "tools": ReadonlyArray<{ readonly [x: string]: Schema.Json }>
 }
 export const ChatCompletionAllowedTools = Schema.Struct({
   "mode": Schema.Literals(["auto", "required"]).annotate({
@@ -1129,7 +1129,7 @@ export const CreateEmbeddingRequest = Schema.Struct({
 })
 export type CreateEvalCustomDataSourceConfig = {
   readonly "type": "custom"
-  readonly "item_schema": { readonly [x: string]: unknown }
+  readonly "item_schema": { readonly [x: string]: Schema.Json }
   readonly "include_sample_schema"?: boolean
 }
 export const CreateEvalCustomDataSourceConfig = Schema.Struct({
@@ -1154,7 +1154,7 @@ export const CreateEvalCustomDataSourceConfig = Schema.Struct({
 })
 export type CreateEvalLogsDataSourceConfig = {
   readonly "type": "logs"
-  readonly "metadata"?: { readonly [x: string]: unknown }
+  readonly "metadata"?: { readonly [x: string]: Schema.Json }
 }
 export const CreateEvalLogsDataSourceConfig = Schema.Struct({
   "type": Schema.Literal("logs").annotate({
@@ -1162,9 +1162,7 @@ export const CreateEvalLogsDataSourceConfig = Schema.Struct({
     "default": "logs"
   }),
   "metadata": Schema.optionalKey(
-    Schema.Record(Schema.String, Schema.Json).annotate({
-      "description": "Metadata filters for the logs data source."
-    })
+    Schema.Record(Schema.String, Schema.Json).annotate({ "description": "Metadata filters for the logs data source." })
   )
 }).annotate({
   "title": "LogsDataSourceConfig",
@@ -1173,7 +1171,7 @@ export const CreateEvalLogsDataSourceConfig = Schema.Struct({
 })
 export type CreateEvalStoredCompletionsDataSourceConfig = {
   readonly "type": "stored_completions"
-  readonly "metadata"?: { readonly [x: string]: unknown }
+  readonly "metadata"?: { readonly [x: string]: Schema.Json }
 }
 export const CreateEvalStoredCompletionsDataSourceConfig = Schema.Struct({
   "type": Schema.Literal("stored_completions").annotate({
@@ -1854,7 +1852,7 @@ export const EvalApiError = Schema.Struct({
 }).annotate({ "title": "EvalApiError", "description": "An object representing an error response from the Eval API.\n" })
 export type EvalCustomDataSourceConfig = {
   readonly "type": "custom"
-  readonly "schema": { readonly [x: string]: unknown }
+  readonly "schema": { readonly [x: string]: Schema.Json }
 }
 export const EvalCustomDataSourceConfig = Schema.Struct({
   "type": Schema.Literal("custom").annotate({
@@ -1993,7 +1991,10 @@ export const EvalItemInputImage = Schema.Struct({
 export type EvalJsonlFileContentSource = {
   readonly "type": "file_content"
   readonly "content": ReadonlyArray<
-    { readonly "item": { readonly [x: string]: unknown }; readonly "sample"?: { readonly [x: string]: unknown } }
+    {
+      readonly "item": { readonly [x: string]: Schema.Json }
+      readonly "sample"?: { readonly [x: string]: Schema.Json }
+    }
   >
 }
 export const EvalJsonlFileContentSource = Schema.Struct({
@@ -2131,8 +2132,8 @@ export type EvalRunOutputItemResult = {
   readonly "type"?: string
   readonly "score": number
   readonly "passed": boolean
-  readonly "sample"?: { readonly [x: string]: unknown } | null
-  readonly [x: string]: unknown
+  readonly "sample"?: { readonly [x: string]: Schema.Json } | null
+  readonly [x: string]: Schema.Json
 }
 export const EvalRunOutputItemResult = Schema.StructWithRest(
   Schema.Struct({
@@ -2456,7 +2457,7 @@ export const FineTuningJobEvent = Schema.Struct({
   "type": Schema.optionalKey(Schema.Literals(["message", "metrics"]).annotate({ "description": "The type of event." })),
   "data": Schema.optionalKey(Schema.Struct({}).annotate({ "description": "The data associated with the event." }))
 }).annotate({ "description": "Fine-tuning job event object" })
-export type FunctionParameters = { readonly [x: string]: unknown }
+export type FunctionParameters = { readonly [x: string]: Schema.Json }
 export const FunctionParameters = Schema.Record(Schema.String, Schema.Json).annotate({
   "description":
     "The parameters the functions accepts, described as a JSON Schema object. See the [guide](https://platform.openai.com/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format. \n\nOmitting `parameters` defines a function with an empty parameter list."
@@ -6507,7 +6508,7 @@ export const ResponseFormatJsonObject = Schema.Struct({
   "description":
     "JSON object response format. An older method of generating JSON responses.\nUsing `json_schema` is recommended for models that support it. Note that the\nmodel will not generate JSON without a system or user message instructing it\nto do so.\n"
 })
-export type ResponseFormatJsonSchemaSchema = { readonly [x: string]: unknown }
+export type ResponseFormatJsonSchemaSchema = { readonly [x: string]: Schema.Json }
 export const ResponseFormatJsonSchemaSchema = Schema.Record(Schema.String, Schema.Json).annotate({
   "title": "JSON schema",
   "description":
@@ -7302,12 +7303,12 @@ export type RunGraderResponse = {
       readonly "model_grader_server_error_details": string | null
     }
     readonly "execution_time": number
-    readonly "scores": { readonly [x: string]: unknown }
+    readonly "scores": { readonly [x: string]: Schema.Json }
     readonly "token_usage": number | null
     readonly "sampled_model_name": string | null
   }
-  readonly "sub_rewards": { readonly [x: string]: unknown }
-  readonly "model_grader_token_usage_per_model": { readonly [x: string]: unknown }
+  readonly "sub_rewards": { readonly [x: string]: Schema.Json }
+  readonly "model_grader_token_usage_per_model": { readonly [x: string]: Schema.Json }
 }
 export const RunGraderResponse = Schema.Struct({
   "reward": Schema.Number.check(Schema.isFinite()),
@@ -7680,7 +7681,7 @@ export const ToggleCertificatesRequest = Schema.Struct({
 export type ToolChoiceAllowed = {
   readonly "type": "allowed_tools"
   readonly "mode": "auto" | "required"
-  readonly "tools": ReadonlyArray<{ readonly [x: string]: unknown }>
+  readonly "tools": ReadonlyArray<{ readonly [x: string]: Schema.Json }>
 }
 export const ToolChoiceAllowed = Schema.Struct({
   "type": Schema.Literal("allowed_tools").annotate({
@@ -10140,7 +10141,7 @@ export type FunctionTool = {
   readonly "type": "function"
   readonly "name": string
   readonly "description"?: string | null
-  readonly "parameters": { readonly [x: string]: unknown } | null
+  readonly "parameters": { readonly [x: string]: Schema.Json } | null
   readonly "strict": boolean | null
 }
 export const FunctionTool = Schema.Struct({
@@ -10621,6 +10622,7 @@ export type CreateVideoBody = {
   readonly "input_reference"?: string
   readonly "seconds"?: "4" | "8" | "12"
   readonly "size"?: "720x1280" | "1280x720" | "1024x1792" | "1792x1024"
+  readonly "character_ids"?: ReadonlyArray<string>
 }
 export const CreateVideoBody = Schema.Struct({
   "model": Schema.optionalKey(
@@ -10647,6 +10649,11 @@ export const CreateVideoBody = Schema.Struct({
       "description":
         "Output resolution formatted as width x height (allowed values: 720x1280, 1280x720, 1024x1792, 1792x1024). Defaults to 720x1280."
     })
+  ),
+  "character_ids": Schema.optionalKey(
+    Schema.Array(Schema.String.annotate({ "examples": ["char_123"] })).annotate({
+      "description": "Character IDs to include in the generation."
+    }).check(Schema.isMaxLength(64))
   )
 }).annotate({ "title": "Create video request", "description": "Parameters for creating a new video generation job." })
 export type DeletedVideoResource = {
@@ -12165,7 +12172,7 @@ export type EvalRunOutputItem = {
   readonly "created_at": number
   readonly "status": string
   readonly "datasource_item_id": number
-  readonly "datasource_item": { readonly [x: string]: unknown }
+  readonly "datasource_item": { readonly [x: string]: Schema.Json }
   readonly "results": ReadonlyArray<EvalRunOutputItemResult>
   readonly "sample": {
     readonly "input": ReadonlyArray<{ readonly "role": string; readonly "content": string }>
@@ -12911,7 +12918,7 @@ export const CreateMessageRequest = Schema.Struct({
 export type EvalLogsDataSourceConfig = {
   readonly "type": "logs"
   readonly "metadata"?: Metadata
-  readonly "schema": { readonly [x: string]: unknown }
+  readonly "schema": { readonly [x: string]: Schema.Json }
 }
 export const EvalLogsDataSourceConfig = Schema.Struct({
   "type": Schema.Literal("logs").annotate({
@@ -12931,7 +12938,7 @@ export const EvalLogsDataSourceConfig = Schema.Struct({
 export type EvalStoredCompletionsDataSourceConfig = {
   readonly "type": "stored_completions"
   readonly "metadata"?: Metadata
-  readonly "schema": { readonly [x: string]: unknown }
+  readonly "schema": { readonly [x: string]: Schema.Json }
 }
 export const EvalStoredCompletionsDataSourceConfig = Schema.Struct({
   "type": Schema.Literal("stored_completions").annotate({
@@ -31244,8 +31251,8 @@ export interface OpenAiClient {
   >
   /**
    * Upload a file that can be used across various endpoints. Individual files
-   * can be up to 512 MB, and the size of all files uploaded by one organization
-   * can be up to 1 TB.
+   * can be up to 512 MB, and each project can store up to 2.5 TB of files in
+   * total. There is no organization-wide storage limit.
    *
    * - The Assistants API supports files up to 2 million tokens and of specific
    *   file types. See the [Assistants Tools guide](https://platform.openai.com/docs/assistants/tools) for
