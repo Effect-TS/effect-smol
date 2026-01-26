@@ -60,26 +60,29 @@
  *   module: "OpenAI",
  *   method: "completion",
  *   reason: new AiError.RateLimitError({
- *     limit: "requests",
  *     retryAfter: Duration.seconds(60)
  *   })
  * })
  *
  * console.log(error.isRetryable) // true
- * console.log(error.message) // "OpenAI.completion: Rate limit exceeded (requests). Retry after 1 minute"
+ * console.log(error.message) // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
  * ```
  *
  * @since 4.0.0
  */
 import * as Duration from "../../Duration.ts"
+import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
+
 import * as Schema from "../../Schema.ts"
 import type * as HttpClientError from "../http/HttpClientError.ts"
 
 const LegacyTypeId = "~effect/unstable/ai/AiError" as const
 
 const ReasonTypeId = "~effect/unstable/ai/AiError/Reason" as const
+
+const constEmptyObject = () => Option.some({})
 
 // =============================================================================
 // Http Request Error
@@ -266,18 +269,31 @@ export class HttpError extends Schema.ErrorClass<HttpError>(
 // =============================================================================
 
 /**
- * Metadata about the AI provider that originated an error.
+ * Schema for provider-specific metadata which can be attached to error reasons.
+ *
+ * Provider-specific metadata is namespaced by provider and has the structure:
+ *
+ * ```
+ * {
+ *   "<provider-name>": {
+ *     // Provider-specific metadata (e.g. errorCode, requestId, etc.)
+ *   }
+ * }
+ * ```
  *
  * @since 4.0.0
  * @category schemas
  */
-export const ProviderMetadata = Schema.Struct({
-  name: Schema.String,
-  errorCode: Schema.optional(Schema.String),
-  errorType: Schema.optional(Schema.String),
-  requestId: Schema.optional(Schema.String),
-  raw: Schema.optional(Schema.Unknown)
-}).annotate({ identifier: "ProviderMetadata" })
+export const ProviderMetadata: Schema.Record$<
+  Schema.String,
+  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson, never, never>>
+> = Schema.Record(Schema.String, Schema.NullOr(Schema.MutableJson))
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ProviderMetadata = typeof ProviderMetadata.Type
 
 /**
  * Token usage information from AI operations.
@@ -319,13 +335,11 @@ export const HttpContext = Schema.Struct({
  * import { AiError } from "effect/unstable/ai"
  *
  * const rateLimitError = new AiError.RateLimitError({
- *   limit: "requests",
- *   remaining: 0,
  *   retryAfter: Duration.seconds(60)
  * })
  *
  * console.log(rateLimitError.isRetryable) // true
- * console.log(rateLimitError.message) // "Rate limit exceeded (requests). Retry after 1 minute"
+ * console.log(rateLimitError.message) // "Rate limit exceeded. Retry after 1 minute"
  * ```
  *
  * @since 4.0.0
@@ -336,12 +350,10 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
 )({
   _tag: Schema.tag("RateLimitError"),
   retryAfter: Schema.optional(Schema.Duration),
-  limit: Schema.optional(Schema.String),
-  remaining: Schema.optional(Schema.Number),
-  resetAt: Schema.optional(Schema.DateTimeUtc),
-  provider: Schema.optional(ProviderMetadata),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  http: Schema.optional(HttpContext)
 }) {
   /**
    * @since 4.0.0
@@ -359,7 +371,6 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
 
   override get message(): string {
     let msg = "Rate limit exceeded"
-    if (this.limit) msg += ` (${this.limit})`
     if (this.retryAfter) msg += `. Retry after ${Duration.format(this.retryAfter)}`
     return msg
   }
@@ -374,13 +385,11 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
  * ```ts
  * import { AiError } from "effect/unstable/ai"
  *
- * const quotaError = new AiError.QuotaExhaustedError({
- *   quotaType: "tokens"
- * })
+ * const quotaError = new AiError.QuotaExhaustedError({})
  *
  * console.log(quotaError.isRetryable) // false
  * console.log(quotaError.message)
- * // "Quota exhausted (tokens). Check your account billing and usage limits."
+ * // "Quota exhausted. Check your account billing and usage limits."
  * ```
  *
  * @since 4.0.0
@@ -390,11 +399,11 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
   "effect/ai/AiError/QuotaExhaustedError"
 )({
   _tag: Schema.tag("QuotaExhaustedError"),
-  quotaType: Schema.optional(Schema.String),
   resetAt: Schema.optional(Schema.DateTimeUtc),
-  provider: Schema.optional(ProviderMetadata),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  http: Schema.optional(HttpContext)
 }) {
   /**
    * @since 4.0.0
@@ -412,7 +421,6 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
 
   override get message(): string {
     let msg = "Quota exhausted"
-    if (this.quotaType) msg += ` (${this.quotaType})`
     if (this.resetAt) msg += `. Resets at ${this.resetAt}`
     return `${msg}. Check your account billing and usage limits.`
   }
@@ -444,9 +452,10 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
 )({
   _tag: Schema.tag("AuthenticationError"),
   kind: Schema.Literals(["InvalidKey", "ExpiredKey", "MissingKey", "InsufficientPermissions", "Unknown"]),
-  provider: Schema.optional(ProviderMetadata),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  http: Schema.optional(HttpContext)
 }) {
   /**
    * @since 4.0.0
@@ -505,9 +514,10 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
   flaggedOutput: Schema.optional(Schema.Boolean),
   flaggedContent: Schema.optional(Schema.String),
   categories: Schema.optional(Schema.Array(Schema.String)),
-  provider: Schema.optional(ProviderMetadata),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  http: Schema.optional(HttpContext)
 }) {
   /**
    * @since 4.0.0
@@ -563,9 +573,10 @@ export class ModelUnavailableError extends Schema.ErrorClass<ModelUnavailableErr
   model: Schema.String,
   kind: Schema.Literals(["NotFound", "Deprecated", "Overloaded", "Maintenance", "Unknown"]),
   alternativeModels: Schema.optional(Schema.Array(Schema.String)),
-  provider: Schema.optional(ProviderMetadata),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  http: Schema.optional(HttpContext)
 }) {
   /**
    * @since 4.0.0
@@ -618,9 +629,10 @@ export class ContextLengthError extends Schema.ErrorClass<ContextLengthError>(
   _tag: Schema.tag("ContextLengthError"),
   maxTokens: Schema.optional(Schema.Number),
   requestedTokens: Schema.optional(Schema.Number),
-  provider: Schema.optional(ProviderMetadata),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  http: Schema.optional(HttpContext)
 }) {
   /**
    * @since 4.0.0
@@ -675,9 +687,10 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
   parameter: Schema.optional(Schema.String),
   constraint: Schema.optional(Schema.String),
   description: Schema.optional(Schema.String),
-  provider: Schema.optional(ProviderMetadata),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  http: Schema.optional(HttpContext)
 }) {
   /**
    * @since 4.0.0
@@ -729,9 +742,10 @@ export class ProviderInternalError extends Schema.ErrorClass<ProviderInternalErr
 )({
   _tag: Schema.tag("ProviderInternalError"),
   retryAfter: Schema.optional(Schema.Duration),
-  provider: Schema.optional(ProviderMetadata),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  http: Schema.optional(HttpContext)
 }) {
   /**
    * @since 4.0.0
@@ -749,7 +763,7 @@ export class ProviderInternalError extends Schema.ErrorClass<ProviderInternalErr
 
   override get message(): string {
     let msg = "Provider internal error"
-    if (this.provider?.name) msg = `${this.provider.name} internal error`
+    if (this.metadata?.name) msg = `${this.metadata.name} internal error`
     if (this.retryAfter) msg += `. Retry after ${Duration.format(this.retryAfter)}`
     return `${msg}. This is likely temporary.`
   }
@@ -784,9 +798,10 @@ export class AiTimeoutError extends Schema.ErrorClass<AiTimeoutError>(
   _tag: Schema.tag("AiTimeoutError"),
   phase: Schema.Literals(["Connection", "Request", "Response"]),
   duration: Schema.optional(Schema.Duration),
-  provider: Schema.optional(ProviderMetadata),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  http: Schema.optional(HttpContext)
 }) {
   /**
    * @since 4.0.0
@@ -806,60 +821,6 @@ export class AiTimeoutError extends Schema.ErrorClass<AiTimeoutError>(
     let msg = `${this.phase} timeout`
     if (this.duration) msg += ` after ${Duration.format(this.duration)}`
     return msg
-  }
-}
-
-/**
- * Error indicating a network-level failure.
- *
- * Network errors are typically transient and are retryable.
- *
- * @example
- * ```ts
- * import { AiError } from "effect/unstable/ai"
- *
- * const networkError = new AiError.NetworkError({
- *   kind: "ConnectionRefused"
- * })
- *
- * console.log(networkError.isRetryable) // true
- * console.log(networkError.message)
- * // "ConnectionRefused: Check network connectivity and firewall settings"
- * ```
- *
- * @since 4.0.0
- * @category reason
- */
-export class NetworkError extends Schema.ErrorClass<NetworkError>(
-  "effect/ai/AiError/NetworkError"
-)({
-  _tag: Schema.tag("NetworkError"),
-  kind: Schema.Literals(["ConnectionRefused", "DnsLookupFailed", "TlsError", "Unknown"]),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [ReasonTypeId] = ReasonTypeId
-
-  /**
-   * Network errors are typically transient and are retryable.
-   *
-   * @since 4.0.0
-   */
-  get isRetryable(): boolean {
-    return true
-  }
-
-  override get message(): string {
-    const suggestions: Record<string, string> = {
-      ConnectionRefused: "Check network connectivity and firewall settings",
-      DnsLookupFailed: "Verify the API endpoint hostname is correct",
-      TlsError: "TLS/SSL handshake failed. Check certificate validity",
-      Unknown: "Network error occurred. Check your connection"
-    }
-    return `${this.kind}: ${suggestions[this.kind]}`
   }
 }
 
@@ -891,9 +852,10 @@ export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
   _tag: Schema.tag("OutputParseError"),
   rawOutput: Schema.optional(Schema.String),
   expectedSchema: Schema.optional(Schema.String),
-  provider: Schema.optional(ProviderMetadata),
-  usage: Schema.optional(UsageInfo),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  usage: Schema.optional(UsageInfo)
 }) {
   /**
    * @since 4.0.0
@@ -933,8 +895,7 @@ export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
     readonly error: Schema.SchemaError
   }): OutputParseError {
     return new OutputParseError({
-      rawOutput: params.rawOutput,
-      cause: params.error
+      rawOutput: params.rawOutput
     })
   }
 
@@ -969,9 +930,10 @@ export class AiUnknownError extends Schema.ErrorClass<AiUnknownError>(
 )({
   _tag: Schema.tag("AiUnknownError"),
   description: Schema.optional(Schema.String),
-  provider: Schema.optional(ProviderMetadata),
-  http: Schema.optional(HttpContext),
-  cause: Schema.optional(Schema.Defect)
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObject)
+  ),
+  http: Schema.optional(HttpContext)
 }) {
   /**
    * @since 4.0.0
@@ -1060,7 +1022,7 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
  * const error = new AiError.ToolParameterValidationError({
  *   toolName: "GetWeather",
  *   toolParams: { location: 123 },
- *   validationMessage: "Expected string, got number"
+ *   description: "Expected string, got number"
  * })
  *
  * console.log(error.isRetryable) // true
@@ -1077,7 +1039,7 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
   _tag: Schema.tag("ToolParameterValidationError"),
   toolName: Schema.String,
   toolParams: Schema.Json,
-  validationMessage: Schema.String
+  description: Schema.String
 }) {
   /**
    * @since 4.0.0
@@ -1094,7 +1056,7 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
   }
 
   override get message(): string {
-    return `Invalid parameters for tool '${this.toolName}': ${this.validationMessage}`
+    return `Invalid parameters for tool '${this.toolName}': ${this.description}`
   }
 }
 
@@ -1161,7 +1123,7 @@ export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultE
  * const error = new AiError.ToolResultEncodingError({
  *   toolName: "GetWeather",
  *   toolResult: { circular: "ref" },
- *   validationMessage: "Cannot encode circular reference"
+ *   description: "Cannot encode circular reference"
  * })
  *
  * console.log(error.isRetryable) // false
@@ -1178,7 +1140,7 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
   _tag: Schema.tag("ToolResultEncodingError"),
   toolName: Schema.String,
   toolResult: Schema.Unknown,
-  validationMessage: Schema.String
+  description: Schema.String
 }) {
   /**
    * @since 4.0.0
@@ -1195,7 +1157,56 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
   }
 
   override get message(): string {
-    return `Failed to encode result for tool '${this.toolName}': ${this.validationMessage}`
+    return `Failed to encode result for tool '${this.toolName}': ${this.description}`
+  }
+}
+
+/**
+ * Error indicating a provider-defined tool was configured with invalid arguments.
+ *
+ * This error is not retryable because it indicates a programming error in the
+ * tool configuration that must be fixed in code.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = new AiError.ToolConfigurationError({
+ *   toolName: "OpenAiCodeInterpreter",
+ *   description: "Invalid container ID format"
+ * })
+ *
+ * console.log(error.isRetryable) // false
+ * console.log(error.message)
+ * // "Invalid configuration for tool 'OpenAiCodeInterpreter': Invalid container ID format"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationError>(
+  "effect/ai/AiError/ToolConfigurationError"
+)({
+  _tag: Schema.tag("ToolConfigurationError"),
+  toolName: Schema.String,
+  description: Schema.String
+}) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
+   * Configuration errors are not retryable because they indicate a code bug.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    return `Invalid configuration for tool '${this.toolName}': ${this.description}`
   }
 }
 
@@ -1225,13 +1236,13 @@ export type AiErrorReason =
   | InvalidRequestError
   | ProviderInternalError
   | AiTimeoutError
-  | NetworkError
   | OutputParseError
   | AiUnknownError
   | ToolNotFoundError
   | ToolParameterValidationError
   | InvalidToolResultError
   | ToolResultEncodingError
+  | ToolConfigurationError
 
 /**
  * Schema for validating and parsing AI error reasons.
@@ -1249,13 +1260,13 @@ export const AiErrorReason: Schema.Union<[
   typeof InvalidRequestError,
   typeof ProviderInternalError,
   typeof AiTimeoutError,
-  typeof NetworkError,
   typeof OutputParseError,
   typeof AiUnknownError,
   typeof ToolNotFoundError,
   typeof ToolParameterValidationError,
   typeof InvalidToolResultError,
-  typeof ToolResultEncodingError
+  typeof ToolResultEncodingError,
+  typeof ToolConfigurationError
 ]> = Schema.Union([
   RateLimitError,
   QuotaExhaustedError,
@@ -1266,13 +1277,13 @@ export const AiErrorReason: Schema.Union<[
   InvalidRequestError,
   ProviderInternalError,
   AiTimeoutError,
-  NetworkError,
   OutputParseError,
   AiUnknownError,
   ToolNotFoundError,
   ToolParameterValidationError,
   InvalidToolResultError,
-  ToolResultEncodingError
+  ToolResultEncodingError,
+  ToolConfigurationError
 ])
 
 // =============================================================================
@@ -1416,13 +1427,12 @@ export const isAiErrorReason = (u: unknown): u is AiErrorReason => Predicate.has
  *   module: "OpenAI",
  *   method: "completion",
  *   reason: new AiError.RateLimitError({
- *     limit: "requests",
  *     retryAfter: Duration.seconds(60)
  *   })
  * })
  *
  * console.log(error.message)
- * // "OpenAI.completion: Rate limit exceeded (requests). Retry after 1 minute"
+ * // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
  * ```
  *
  * @since 4.0.0
@@ -1458,25 +1468,29 @@ export const reasonFromHttpStatus = (params: {
   readonly status: number
   readonly body?: unknown
   readonly http?: typeof HttpContext.Type
-  readonly provider?: typeof ProviderMetadata.Type
+  readonly metadata?: typeof ProviderMetadata.Type
 }): AiErrorReason => {
-  const { status, body, http, provider } = params
+  const { status, http, metadata } = params
+  const common = {
+    http,
+    ...(Predicate.isNotUndefined(metadata) ? { metadata } : {})
+  }
   switch (status) {
     case 400:
-      return new InvalidRequestError({ http, provider, cause: body })
+      return new InvalidRequestError(common)
     case 401:
-      return new AuthenticationError({ kind: "InvalidKey", http, provider, cause: body })
+      return new AuthenticationError({ kind: "InvalidKey", ...common })
     case 403:
-      return new AuthenticationError({ kind: "InsufficientPermissions", http, provider, cause: body })
+      return new AuthenticationError({ kind: "InsufficientPermissions", ...common })
     case 408:
-      return new AiTimeoutError({ phase: "Request", http, provider, cause: body })
+      return new AiTimeoutError({ phase: "Request", ...common })
     case 429:
-      return new RateLimitError({ http, provider, cause: body })
+      return new RateLimitError(common)
     default:
       if (status >= 500) {
-        return new ProviderInternalError({ http, provider, cause: body })
+        return new ProviderInternalError(common)
       }
-      return new AiUnknownError({ http, provider, cause: body })
+      return new AiUnknownError(common)
   }
 }
 
@@ -1519,8 +1533,7 @@ export class MalformedInput extends Schema.ErrorClass<MalformedInput>(
   "effect/ai/AiError/MalformedInput"
 )({
   _tag: Schema.tag("MalformedInput"),
-  description: Schema.optional(Schema.String),
-  cause: Schema.optional(Schema.Defect)
+  description: Schema.optional(Schema.String)
 }) {
   /**
    * @since 4.0.0
@@ -1550,12 +1563,11 @@ export class MalformedInput extends Schema.ErrorClass<MalformedInput>(
  *
  * const parseResponse = (data: unknown) =>
  *   Schema.decodeUnknownEffect(ResponseSchema)(data).pipe(
- *     Effect.mapError((schemaError) =>
+ *     Effect.mapError(() =>
  *       new AiError.MalformedOutput({
  *         module: "OpenAI",
  *         method: "completion",
- *         description: "Response doesn't match expected schema",
- *         cause: schemaError
+ *         description: "Response doesn't match expected schema"
  *       })
  *     )
  *   )
@@ -1577,8 +1589,7 @@ export class MalformedOutput extends Schema.ErrorClass<MalformedOutput>(
   _tag: Schema.tag("MalformedOutput"),
   module: Schema.String,
   method: Schema.String,
-  description: Schema.optional(Schema.String),
-  cause: Schema.optional(Schema.Defect)
+  description: Schema.optional(Schema.String)
 }) {
   /**
    * @since 4.0.0
@@ -1613,17 +1624,13 @@ export class MalformedOutput extends Schema.ErrorClass<MalformedOutput>(
    * @since 4.0.0
    * @category constructors
    */
-  static fromSchemaError({ error, ...params }: {
+  static fromSchemaError({ error: _, ...params }: {
     readonly module: string
     readonly method: string
     readonly description?: string
     readonly error: Schema.SchemaError
   }): MalformedOutput {
-    // TODO(Max): enhance
-    return new MalformedOutput({
-      ...params,
-      cause: error
-    })
+    return new MalformedOutput(params)
   }
 }
 
@@ -1647,13 +1654,12 @@ export class MalformedOutput extends Schema.ErrorClass<MalformedOutput>(
  *   try {
  *     // Some operation that might throw
  *     throw new Error("Unexpected network issue")
- *   } catch (cause) {
+ *   } catch (_cause) {
  *     return Effect.fail(
  *       new AiError.UnknownError({
  *         module: "ChatService",
  *         method: "sendMessage",
- *         description: "An unexpected error occurred during message processing",
- *         cause
+ *         description: "An unexpected error occurred during message processing"
  *       })
  *     )
  *   }
@@ -1677,8 +1683,7 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
   _tag: Schema.tag("UnknownError"),
   module: Schema.String,
   method: Schema.String,
-  description: Schema.optional(Schema.String),
-  cause: Schema.optional(Schema.Defect)
+  description: Schema.optional(Schema.String)
 }) {
   /**
    * @since 4.0.0

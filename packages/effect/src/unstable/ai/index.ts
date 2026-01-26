@@ -66,13 +66,12 @@
  *   module: "OpenAI",
  *   method: "completion",
  *   reason: new AiError.RateLimitError({
- *     limit: "requests",
  *     retryAfter: Duration.seconds(60)
  *   })
  * })
  *
  * console.log(error.isRetryable) // true
- * console.log(error.message) // "OpenAI.completion: Rate limit exceeded (requests). Retry after 1 minute"
+ * console.log(error.message) // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
  * ```
  *
  * @since 4.0.0

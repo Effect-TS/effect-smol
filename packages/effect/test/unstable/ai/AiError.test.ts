@@ -6,16 +6,8 @@ describe("AiError", () => {
   describe("reason types", () => {
     describe("RateLimitError", () => {
       it("should be retryable", () => {
-        const error = new AiError.RateLimitError({
-          limit: "requests",
-          remaining: 0
-        })
+        const error = new AiError.RateLimitError({})
         assert.isTrue(error.isRetryable)
-      })
-
-      it("should format message with limit", () => {
-        const error = new AiError.RateLimitError({ limit: "requests" })
-        assert.match(error.message, /Rate limit exceeded \(requests\)/)
       })
 
       it("should format message with retryAfter", () => {
@@ -33,13 +25,13 @@ describe("AiError", () => {
 
     describe("QuotaExhaustedError", () => {
       it("should not be retryable", () => {
-        const error = new AiError.QuotaExhaustedError({ quotaType: "tokens" })
+        const error = new AiError.QuotaExhaustedError({})
         assert.isFalse(error.isRetryable)
       })
 
-      it("should format message with quotaType", () => {
-        const error = new AiError.QuotaExhaustedError({ quotaType: "tokens" })
-        assert.match(error.message, /Quota exhausted \(tokens\)/)
+      it("should format message correctly", () => {
+        const error = new AiError.QuotaExhaustedError({})
+        assert.match(error.message, /Quota exhausted/)
       })
 
       it("should have _tag set correctly", () => {
@@ -213,7 +205,7 @@ describe("AiError", () => {
 
       it("should format message with provider name", () => {
         const error = new AiError.ProviderInternalError({
-          provider: { name: "OpenAI" }
+          metadata: { name: "OpenAI" }
         })
         assert.match(error.message, /OpenAI internal error/)
       })
@@ -249,29 +241,6 @@ describe("AiError", () => {
       it("should have _tag set correctly", () => {
         const error = new AiError.AiTimeoutError({ phase: "Connection" })
         assert.strictEqual(error._tag, "AiTimeoutError")
-      })
-    })
-
-    describe("NetworkError", () => {
-      it("should be retryable", () => {
-        const error = new AiError.NetworkError({ kind: "ConnectionRefused" })
-        assert.isTrue(error.isRetryable)
-      })
-
-      it("should format message based on kind", () => {
-        const connRefused = new AiError.NetworkError({ kind: "ConnectionRefused" })
-        assert.match(connRefused.message, /ConnectionRefused/)
-
-        const dnsError = new AiError.NetworkError({ kind: "DnsLookupFailed" })
-        assert.match(dnsError.message, /DnsLookupFailed/)
-
-        const tlsError = new AiError.NetworkError({ kind: "TlsError" })
-        assert.match(tlsError.message, /TlsError/)
-      })
-
-      it("should have _tag set correctly", () => {
-        const error = new AiError.NetworkError({ kind: "Unknown" })
-        assert.strictEqual(error._tag, "NetworkError")
       })
     })
 
@@ -379,7 +348,7 @@ describe("AiError", () => {
         const error = new AiError.ToolParameterValidationError({
           toolName: "GetWeather",
           toolParams: { location: "NYC" },
-          validationMessage: "Expected string"
+          description: "Expected string"
         })
         assert.isTrue(error.isRetryable)
       })
@@ -388,7 +357,7 @@ describe("AiError", () => {
         const error = new AiError.ToolParameterValidationError({
           toolName: "GetWeather",
           toolParams: { location: "NYC" },
-          validationMessage: "Expected string"
+          description: "Expected string"
         })
         assert.match(error.message, /Invalid parameters for tool 'GetWeather'/)
       })
@@ -397,7 +366,7 @@ describe("AiError", () => {
         const error = new AiError.ToolParameterValidationError({
           toolName: "GetWeather",
           toolParams: { location: 123 },
-          validationMessage: "Expected string, got number"
+          description: "Expected string, got number"
         })
         assert.match(error.message, /Expected string, got number/)
       })
@@ -407,7 +376,7 @@ describe("AiError", () => {
         const error = new AiError.ToolParameterValidationError({
           toolName: "GetWeather",
           toolParams: params,
-          validationMessage: "Expected string"
+          description: "Expected string"
         })
         assert.deepStrictEqual(error.toolParams, params)
       })
@@ -416,7 +385,7 @@ describe("AiError", () => {
         const error = new AiError.ToolParameterValidationError({
           toolName: "Test",
           toolParams: {},
-          validationMessage: "Error"
+          description: "Error"
         })
         assert.strictEqual(error._tag, "ToolParameterValidationError")
       })
@@ -461,7 +430,7 @@ describe("AiError", () => {
         const error = new AiError.ToolResultEncodingError({
           toolName: "GetWeather",
           toolResult: { temp: 72 },
-          validationMessage: "Cannot encode"
+          description: "Cannot encode"
         })
         assert.isFalse(error.isRetryable)
       })
@@ -470,7 +439,7 @@ describe("AiError", () => {
         const error = new AiError.ToolResultEncodingError({
           toolName: "GetWeather",
           toolResult: { temp: 72 },
-          validationMessage: "Cannot encode"
+          description: "Cannot encode"
         })
         assert.match(error.message, /Failed to encode result for tool 'GetWeather'/)
       })
@@ -479,7 +448,7 @@ describe("AiError", () => {
         const error = new AiError.ToolResultEncodingError({
           toolName: "GetWeather",
           toolResult: { circular: "ref" },
-          validationMessage: "Cannot encode circular reference"
+          description: "Cannot encode circular reference"
         })
         assert.match(error.message, /Cannot encode circular reference/)
       })
@@ -488,9 +457,43 @@ describe("AiError", () => {
         const error = new AiError.ToolResultEncodingError({
           toolName: "Test",
           toolResult: {},
-          validationMessage: "Error"
+          description: "Error"
         })
         assert.strictEqual(error._tag, "ToolResultEncodingError")
+      })
+    })
+
+    describe("ToolConfigurationError", () => {
+      it("should not be retryable", () => {
+        const error = new AiError.ToolConfigurationError({
+          toolName: "OpenAiCodeInterpreter",
+          description: "Invalid container ID format"
+        })
+        assert.isFalse(error.isRetryable)
+      })
+
+      it("should format message with tool name", () => {
+        const error = new AiError.ToolConfigurationError({
+          toolName: "OpenAiCodeInterpreter",
+          description: "Invalid container ID format"
+        })
+        assert.match(error.message, /Invalid configuration for tool 'OpenAiCodeInterpreter'/)
+      })
+
+      it("should format message with description", () => {
+        const error = new AiError.ToolConfigurationError({
+          toolName: "OpenAiWebSearch",
+          description: "search_context_size must be between 1 and 10"
+        })
+        assert.match(error.message, /search_context_size must be between 1 and 10/)
+      })
+
+      it("should have _tag set correctly", () => {
+        const error = new AiError.ToolConfigurationError({
+          toolName: "Test",
+          description: "Error"
+        })
+        assert.strictEqual(error._tag, "ToolConfigurationError")
       })
     })
   })
@@ -534,7 +537,7 @@ describe("AiError", () => {
       const error = new AiError.AiError({
         module: "OpenAI",
         method: "completion",
-        reason: new AiError.RateLimitError({ limit: "requests" })
+        reason: new AiError.RateLimitError({})
       })
       assert.match(error.message, /OpenAI\.completion:/)
       assert.match(error.message, /Rate limit exceeded/)
@@ -556,7 +559,7 @@ describe("AiError", () => {
         const error = AiError.make({
           module: "OpenAI",
           method: "completion",
-          reason: new AiError.RateLimitError({ limit: "tokens" })
+          reason: new AiError.RateLimitError({})
         })
         assert.strictEqual(error._tag, "AiError")
         assert.strictEqual(error.module, "OpenAI")
@@ -616,12 +619,6 @@ describe("AiError", () => {
         const reason = AiError.reasonFromHttpStatus({ status: 418 })
         assert.strictEqual(reason._tag, "AiUnknownError")
       })
-
-      it("should include body in cause", () => {
-        const body = { error: "rate limit" }
-        const reason = AiError.reasonFromHttpStatus({ status: 429, body })
-        assert.strictEqual(reason.cause, body)
-      })
     })
   })
 
@@ -650,7 +647,7 @@ describe("AiError", () => {
         })
         assert.isFalse(AiError.isAiError(legacyError))
 
-        const httpRequestError = new AiError.HttpError({
+const httpRequestError = new AiError.HttpError({
           module: "Test",
           method: "test",
           reason: "TransportError",
@@ -725,22 +722,17 @@ describe("AiError", () => {
     it.effect("RateLimitError roundtrip", () =>
       Effect.gen(function*() {
         const error = new AiError.RateLimitError({
-          limit: "requests",
-          remaining: 0,
           retryAfter: Duration.seconds(60)
         })
         const encoded = yield* Schema.encodeEffect(AiError.RateLimitError)(error)
         const decoded = yield* Schema.decodeEffect(AiError.RateLimitError)(encoded)
         assert.strictEqual(decoded._tag, "RateLimitError")
-        assert.strictEqual(decoded.limit, "requests")
-        assert.strictEqual(decoded.remaining, 0)
+        assert.isDefined(decoded.retryAfter)
       }))
 
     it.effect("AiErrorReason union roundtrip", () =>
       Effect.gen(function*() {
-        const rateLimitError: AiError.AiErrorReason = new AiError.RateLimitError({
-          limit: "tokens"
-        })
+        const rateLimitError: AiError.AiErrorReason = new AiError.RateLimitError({})
         const encoded = yield* Schema.encodeEffect(AiError.AiErrorReason)(rateLimitError)
         const decoded = yield* Schema.decodeEffect(AiError.AiErrorReason)(encoded)
         assert.strictEqual(decoded._tag, "RateLimitError")
@@ -758,7 +750,7 @@ describe("AiError", () => {
         const error = new AiError.AiError({
           module: "OpenAI",
           method: "completion",
-          reason: new AiError.RateLimitError({ limit: "requests" })
+          reason: new AiError.RateLimitError({})
         })
         const encoded = yield* Schema.encodeEffect(AiError.AiError)(error)
         const decoded = yield* Schema.decodeEffect(AiError.AiError)(encoded)
@@ -787,13 +779,13 @@ describe("AiError", () => {
         const error = new AiError.ToolParameterValidationError({
           toolName: "GetWeather",
           toolParams: { location: 123 },
-          validationMessage: "Expected string"
+          description: "Expected string"
         })
         const encoded = yield* Schema.encodeEffect(AiError.ToolParameterValidationError)(error)
         const decoded = yield* Schema.decodeEffect(AiError.ToolParameterValidationError)(encoded)
         assert.strictEqual(decoded._tag, "ToolParameterValidationError")
         assert.strictEqual(decoded.toolName, "GetWeather")
-        assert.strictEqual(decoded.validationMessage, "Expected string")
+        assert.strictEqual(decoded.description, "Expected string")
       }))
 
     it.effect("InvalidToolResultError roundtrip", () =>
@@ -814,13 +806,26 @@ describe("AiError", () => {
         const error = new AiError.ToolResultEncodingError({
           toolName: "GetWeather",
           toolResult: { temp: 72 },
-          validationMessage: "Circular reference"
+          description: "Circular reference"
         })
         const encoded = yield* Schema.encodeEffect(AiError.ToolResultEncodingError)(error)
         const decoded = yield* Schema.decodeEffect(AiError.ToolResultEncodingError)(encoded)
         assert.strictEqual(decoded._tag, "ToolResultEncodingError")
         assert.strictEqual(decoded.toolName, "GetWeather")
-        assert.strictEqual(decoded.validationMessage, "Circular reference")
+        assert.strictEqual(decoded.description, "Circular reference")
+      }))
+
+    it.effect("ToolConfigurationError roundtrip", () =>
+      Effect.gen(function*() {
+        const error = new AiError.ToolConfigurationError({
+          toolName: "OpenAiCodeInterpreter",
+          description: "Invalid container ID format"
+        })
+        const encoded = yield* Schema.encodeEffect(AiError.ToolConfigurationError)(error)
+        const decoded = yield* Schema.decodeEffect(AiError.ToolConfigurationError)(encoded)
+        assert.strictEqual(decoded._tag, "ToolConfigurationError")
+        assert.strictEqual(decoded.toolName, "OpenAiCodeInterpreter")
+        assert.strictEqual(decoded.description, "Invalid container ID format")
       }))
 
     it.effect("AiErrorReason union with tool errors roundtrip", () =>
@@ -836,7 +841,7 @@ describe("AiError", () => {
         const paramError: AiError.AiErrorReason = new AiError.ToolParameterValidationError({
           toolName: "Test",
           toolParams: {},
-          validationMessage: "Error"
+          description: "Error"
         })
         const paramEncoded = yield* Schema.encodeEffect(AiError.AiErrorReason)(paramError)
         const paramDecoded = yield* Schema.decodeEffect(AiError.AiErrorReason)(paramEncoded)

@@ -151,7 +151,7 @@ describe("Tool", () => {
             reason: new AiError.ToolParameterValidationError({
               toolName: "FailureModeReturn",
               toolParams: {},
-              validationMessage: `Missing key\n  at ["testParam"]`
+              description: `Missing key\n  at ["testParam"]`
             })
           })
         )
@@ -514,7 +514,7 @@ describe("Tool", () => {
             reason: new AiError.ToolParameterValidationError({
               toolName: "HandlerRequired",
               toolParams: {},
-              validationMessage: `Missing key\n  at ["testParam"]`
+              description: `Missing key\n  at ["testParam"]`
             })
           })
         )

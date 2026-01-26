@@ -1,3 +1,4 @@
+import * as Errors from "@effect/ai-openai/internal/errors"
 import * as OpenAiClient from "@effect/ai-openai/OpenAiClient"
 import { assert, describe, it } from "@effect/vitest"
 import { Config, ConfigProvider, Effect, Layer, Redacted, Schema, Stream } from "effect"
@@ -16,7 +17,8 @@ const makeMockResponse = (options: {
   readonly body: unknown
   readonly request?: HttpClientRequest.HttpClientRequest
 }): HttpClientResponse.HttpClientResponse => {
-  const request = options.request ?? HttpClientRequest.get("/")
+  // Always use a plain request for the response to avoid Redacted headers in error contexts
+  const request = HttpClientRequest.get(options.request?.url ?? "/")
   const json = JSON.stringify(options.body)
   return HttpClientResponse.fromWeb(
     request,
@@ -320,7 +322,7 @@ describe("OpenAiClient", () => {
         const mockClient = makeMockHttpClient((request) =>
           Effect.succeed(makeMockResponse({
             status: 429,
-            body: { error: { message: "Rate limit exceeded" } },
+            body: { error: { message: "Rate limit exceeded", type: "rate_limit_error", code: null } },
             request
           }))
         )
@@ -337,6 +339,73 @@ describe("OpenAiClient", () => {
         assert.strictEqual(result.reason._tag, "RateLimitError")
         assert.isTrue(result.isRetryable)
       }))
+
+    it.effect("maps 429 with insufficient_quota code to QuotaExhaustedError", () =>
+      Effect.gen(function*() {
+        const mockClient = makeMockHttpClient((request) =>
+          Effect.succeed(makeMockResponse({
+            status: 429,
+            body: {
+              error: {
+                message: "You exceeded your current quota",
+                type: "insufficient_quota",
+                code: "insufficient_quota"
+              }
+            },
+            request
+          }))
+        )
+
+        const client = yield* OpenAiClient.make({
+          apiKey: Redacted.make("test-key")
+        }).pipe(Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)))
+
+        const result = yield* client.createResponse({ model: "gpt-4o", input: "test" }).pipe(
+          Effect.flip
+        )
+
+        assert.strictEqual(result._tag, "AiError")
+        assert.strictEqual(result.reason._tag, "QuotaExhaustedError")
+        assert.isFalse(result.isRetryable)
+      }))
+
+    it("mapStatusCodeToReason detects insufficient_quota as QuotaExhaustedError", () => {
+      const http = {
+        request: {
+          method: "POST" as const,
+          url: "https://api.openai.com",
+          urlParams: [],
+          hash: undefined,
+          headers: {}
+        }
+      }
+      const reason = Errors.mapStatusCodeToReason({
+        status: 429,
+        headers: {},
+        message: "You exceeded your current quota",
+        metadata: {
+          errorCode: "insufficient_quota",
+          errorType: "insufficient_quota",
+          requestId: null
+        },
+        http
+      })
+      assert.strictEqual(reason._tag, "QuotaExhaustedError")
+    })
+
+    it("OpenAiErrorBody decodes error with type and code", () => {
+      const json = {
+        error: {
+          message: "You exceeded your current quota",
+          type: "insufficient_quota",
+          code: "insufficient_quota"
+        }
+      }
+      const decoded = Schema.decodeUnknownSync(Errors.OpenAiErrorBody)(json)
+      assert.strictEqual(decoded.error.message, "You exceeded your current quota")
+      assert.strictEqual(decoded.error.type, "insufficient_quota")
+      assert.strictEqual(decoded.error.code, "insufficient_quota")
+    })
 
     it.effect("maps 5xx status to ProviderInternalError reason", () =>
       Effect.gen(function*() {

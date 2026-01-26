@@ -704,13 +704,16 @@ const prepareMessages = Effect.fnUntraced(
                 const toolName = toolNameMapper.getProviderName(part.name)
 
                 if (Predicate.isNotUndefined(localShellTool) && toolName === "local_shell") {
-                  const args = yield* Schema.decodeUnknownEffect(localShellTool.parametersSchema)(part.params).pipe(
-                    // TODO: more detailed, tool-call specific error
+                  const params = yield* Schema.decodeUnknownEffect(localShellTool.parametersSchema)(part.params).pipe(
                     Effect.mapError((error) =>
                       AiError.make({
                         module: "OpenAiLanguageModel",
                         method: "prepareMessages",
-                        reason: new AiError.InvalidRequestError({ description: error.message })
+                        reason: new AiError.ToolParameterValidationError({
+                          toolName: "local_shell",
+                          toolParams: part.params as Schema.Json,
+                          description: error.message
+                        })
                       })
                     )
                   )
@@ -720,20 +723,23 @@ const prepareMessages = Effect.fnUntraced(
                     type: "local_shell_call",
                     call_id: part.id,
                     status: status ?? "completed",
-                    action: args.action
+                    action: params.action
                   })
 
                   break
                 }
 
                 if (Predicate.isNotUndefined(shellTool) && toolName === "shell") {
-                  const args = yield* Schema.decodeUnknownEffect(shellTool.parametersSchema)(part.params).pipe(
-                    // TODO: more detailed, tool-call specific error
+                  const params = yield* Schema.decodeUnknownEffect(shellTool.parametersSchema)(part.params).pipe(
                     Effect.mapError((error) =>
                       AiError.make({
                         module: "OpenAiLanguageModel",
                         method: "prepareMessages",
-                        reason: new AiError.InvalidRequestError({ description: error.message })
+                        reason: new AiError.ToolParameterValidationError({
+                          toolName: "shell",
+                          toolParams: part.params as Schema.Json,
+                          description: error.message
+                        })
                       })
                     )
                   )
@@ -743,7 +749,7 @@ const prepareMessages = Effect.fnUntraced(
                     type: "shell_call",
                     call_id: part.id,
                     status: status ?? "completed",
-                    action: args.action
+                    action: params.action
                   })
 
                   break
@@ -926,9 +932,10 @@ const makeResponse = Effect.fnUntraced(
               AiError.make({
                 module: "OpenAiLanguageModel",
                 method: "makeResponse",
-                reason: new AiError.OutputParseError({
-                  rawOutput: toolParams,
-                  cause
+                reason: new AiError.ToolParameterValidationError({
+                  toolName,
+                  toolParams: {},
+                  description: `Faled to securely JSON parse tool parameters: ${cause}`
                 })
               })
           })
@@ -1469,9 +1476,10 @@ const makeStreamResponse = Effect.fnUntraced(
                     AiError.make({
                       module: "OpenAiLanguageModel",
                       method: "makeStreamResponse",
-                      reason: new AiError.OutputParseError({
-                        rawOutput: toolParams,
-                        cause
+                      reason: new AiError.ToolParameterValidationError({
+                        toolName,
+                        toolParams: {},
+                        description: `Failed securely JSON parse tool parameters: ${cause}`
                       })
                     })
                 })
@@ -1934,7 +1942,10 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
               AiError.make({
                 module: "OpenAiLanguageModel",
                 method: "prepareTools",
-                reason: new AiError.InvalidRequestError({ cause: error })
+                reason: new AiError.ToolConfigurationError({
+                  toolName: openAiTool.name,
+                  description: error.message
+                })
               })
             )
           )
@@ -1950,7 +1961,10 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
               AiError.make({
                 module: "OpenAiLanguageModel",
                 method: "prepareTools",
-                reason: new AiError.InvalidRequestError({ cause: error })
+                reason: new AiError.ToolConfigurationError({
+                  toolName: openAiTool.name,
+                  description: error.message
+                })
               })
             )
           )
@@ -1970,7 +1984,10 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
               AiError.make({
                 module: "OpenAiLanguageModel",
                 method: "prepareTools",
-                reason: new AiError.InvalidRequestError({ cause: error })
+                reason: new AiError.ToolConfigurationError({
+                  toolName: openAiTool.name,
+                  description: error.message
+                })
               })
             )
           )
@@ -1990,7 +2007,10 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
               AiError.make({
                 module: "OpenAiLanguageModel",
                 method: "prepareTools",
-                reason: new AiError.InvalidRequestError({ cause: error })
+                reason: new AiError.ToolConfigurationError({
+                  toolName: openAiTool.name,
+                  description: error.message
+                })
               })
             )
           )
@@ -2006,7 +2026,10 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
               AiError.make({
                 module: "OpenAiLanguageModel",
                 method: "prepareTools",
-                reason: new AiError.InvalidRequestError({ cause: error })
+                reason: new AiError.ToolConfigurationError({
+                  toolName: openAiTool.name,
+                  description: error.message
+                })
               })
             )
           )
@@ -2022,7 +2045,10 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
               AiError.make({
                 module: "OpenAiLanguageModel",
                 method: "prepareTools",
-                reason: new AiError.InvalidRequestError({ cause: error })
+                reason: new AiError.ToolConfigurationError({
+                  toolName: openAiTool.name,
+                  description: error.message
+                })
               })
             )
           )
@@ -2037,7 +2063,7 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
             module: "OpenAiLanguageModel",
             method: "prepareTools",
             reason: new AiError.InvalidRequestError({
-              description: `Received request to call unknown provider-defined tool '${tool.name}'`
+              description: `Unknown provider-defined tool '${tool.name}'`
             })
           })
         }

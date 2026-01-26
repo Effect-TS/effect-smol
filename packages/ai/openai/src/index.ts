@@ -12,8 +12,6 @@
  * where `A` is the success type of the operation.
  *
  * If set to `false`, only the success type of the operation will be returned.
- *
- * @since 1.0.0
  */
 export * as Generated from "./Generated.ts"
 
@@ -31,6 +29,16 @@ export * as OpenAiClient from "./OpenAiClient.ts"
  * @since 1.0.0
  */
 export * as OpenAiConfig from "./OpenAiConfig.ts"
+
+/**
+ * OpenAI error metadata augmentation.
+ *
+ * Provides OpenAI-specific metadata fields for AI error types through module
+ * augmentation, enabling typed access to OpenAI error details.
+ *
+ * @since 1.0.0
+ */
+export * as OpenAiError from "./OpenAiError.ts"
 
 /**
  * OpenAI Language Model implementation.

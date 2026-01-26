@@ -1103,13 +1103,12 @@ const resolveStructuredOutput = Effect.fnUntraced(
     }
 
     const decode = Schema.decodeEffect(Schema.fromJsonString(schema))
-    return yield* Effect.mapError(decode(text.join("")), (cause) =>
+    return yield* Effect.mapError(decode(text.join("")), () =>
       AiError.make({
         module: "LanguageModel",
         method: "generateObject",
         reason: new AiError.OutputParseError({
-          rawOutput: text.join(""),
-          cause
+          rawOutput: text.join("")
         })
       }))
   }

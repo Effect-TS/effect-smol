@@ -312,7 +312,7 @@ const Proto = {
             reason: new AiError.ToolParameterValidationError({
               toolName: name,
               toolParams: params,
-              validationMessage: cause.message
+              description: cause.message
             })
           }))
         const { isFailure, result } = yield* schemas.handler(decodedParams).pipe(
@@ -350,7 +350,7 @@ const Proto = {
             reason: new AiError.ToolResultEncodingError({
               toolName: name,
               toolResult: result,
-              validationMessage: cause.message
+              description: cause.message
             })
           }))
         return {
