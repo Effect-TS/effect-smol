@@ -633,7 +633,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             Effect.fail(AiError.make({
               module: "LanguageModel",
               method: "generateText",
-              reason: AiError.OutputParseError.fromSchemaError({ error })
+              reason: AiError.InvalidOutputError.fromSchemaError(error)
             }))),
           (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
           Effect.provideService(IdGenerator, idGenerator)
@@ -684,7 +684,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             Effect.fail(AiError.make({
               module: "LanguageModel",
               method: "generateObject",
-              reason: AiError.OutputParseError.fromSchemaError({ error })
+              reason: AiError.InvalidOutputError.fromSchemaError(error)
             }))),
           (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
           Effect.provideService(IdGenerator, idGenerator)
@@ -744,7 +744,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
           ? AiError.make({
             module: "LanguageModel",
             method: "streamText",
-            reason: AiError.OutputParseError.fromSchemaError({ error })
+            reason: AiError.InvalidOutputError.fromSchemaError(error)
           })
           : error
       ),
@@ -1096,20 +1096,18 @@ const resolveStructuredOutput = Effect.fnUntraced(
       return yield* AiError.make({
         module: "LanguageModel",
         method: "generateObject",
-        reason: new AiError.OutputParseError({
-          expectedSchema: "generateObject"
+        reason: new AiError.InvalidOutputError({
+          description: "No text content in response"
         })
       })
     }
 
     const decode = Schema.decodeEffect(Schema.fromJsonString(schema))
-    return yield* Effect.mapError(decode(text.join("")), () =>
+    return yield* Effect.mapError(decode(text.join("")), (error) =>
       AiError.make({
         module: "LanguageModel",
         method: "generateObject",
-        reason: new AiError.OutputParseError({
-          rawOutput: text.join("")
-        })
+        reason: AiError.InvalidOutputError.fromSchemaError(error)
       }))
   }
 )

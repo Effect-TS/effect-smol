@@ -13,14 +13,19 @@
  * - **QuotaExhaustedError** - Account/billing limits reached
  * - **AuthenticationError** - Invalid/expired credentials
  * - **ContentPolicyError** - Input/output violated content policy
- * - **ModelUnavailableError** - Model not available/deprecated
- * - **ContextLengthError** - Token limit exceeded
  * - **InvalidRequestError** - Malformed request parameters
- * - **ProviderInternalError** - Provider-side failures (5xx)
- * - **AiTimeoutError** - Request timeout
+ * - **InternalProviderError** - Provider-side failures (5xx)
  * - **NetworkError** - Transport-level failures
- * - **OutputParseError** - LLM output parsing failures
- * - **AiUnknownError** - Catch-all for unknown errors
+ * - **InvalidOutputError** - LLM output parsing/validation failures
+ * - **UnknownError** - Catch-all for unknown errors
+ *
+ * ## Tool Call Errors
+ *
+ * - **ToolNotFoundError** - Model requested non-existent tool
+ * - **ToolParameterValidationError** - Tool call params failed validation
+ * - **InvalidToolResultError** - Tool handler returned invalid result
+ * - **ToolResultEncodingError** - Tool result encoding failed
+ * - **ToolConfigurationError** - Provider tool misconfigured
  *
  * ## Retryability
  *
@@ -74,15 +79,23 @@ import * as Duration from "../../Duration.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
-
+import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
 import type * as HttpClientError from "../http/HttpClientError.ts"
-
-const LegacyTypeId = "~effect/unstable/ai/AiError" as const
 
 const ReasonTypeId = "~effect/unstable/ai/AiError/Reason" as const
 
 const constEmptyObject = () => Option.some({})
+
+const redactHeaders = (headers: Record<string, string>): Record<string, string> => {
+  const redacted = redact(headers) as Record<string, string | Redacted.Redacted>
+  const result: Record<string, string> = {}
+  for (const key in redacted) {
+    const value = redacted[key]
+    result[key] = Redacted.isRedacted(value) ? value.toString() : value
+  }
+  return result
+}
 
 // =============================================================================
 // Http Request Error
@@ -119,6 +132,127 @@ export const HttpRequestDetails = Schema.Struct({
 }).annotate({ identifier: "HttpRequestDetails" })
 
 /**
+ * Error indicating a network-level failure before receiving a response.
+ *
+ * This error is raised when issues arise before receiving an HTTP response,
+ * such as network connectivity problems, request encoding issues, or invalid
+ * URLs.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = new AiError.NetworkError({
+ *   reason: "Transport",
+ *   request: {
+ *     method: "POST",
+ *     url: "https://api.openai.com/v1/completions",
+ *     urlParams: [],
+ *     hash: undefined,
+ *     headers: { "Content-Type": "application/json" }
+ *   },
+ *   description: "Connection timeout after 30 seconds"
+ * })
+ *
+ * console.log(error.isRetryable) // true
+ * console.log(error.message)
+ * // "Transport: Connection timeout after 30 seconds (POST https://api.openai.com/v1/completions)"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class NetworkError extends Schema.ErrorClass<NetworkError>(
+  "effect/ai/AiError/NetworkError"
+)({
+  _tag: Schema.tag("NetworkError"),
+  reason: Schema.Literals(["Transport", "Encode", "InvalidUrl"]),
+  request: HttpRequestDetails,
+  description: Schema.optional(Schema.String)
+}) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
+   * Transport errors are retryable; encoding and URL errors are not.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return this.reason === "Transport"
+  }
+
+  /**
+   * Creates a NetworkError from a platform HttpClientError.RequestError.
+   *
+   * @example
+   * ```ts
+   * import { AiError } from "effect/unstable/ai"
+   * import type { HttpClientError } from "effect/unstable/http"
+   *
+   * declare const platformError: HttpClientError.RequestError
+   *
+   * const aiError = AiError.NetworkError.fromRequestError(platformError)
+   * ```
+   *
+   * @since 4.0.0
+   * @category constructors
+   */
+  static fromRequestError(error: HttpClientError.RequestError): NetworkError {
+    return new NetworkError({
+      description: error.description,
+      reason: error.reason,
+      request: {
+        hash: error.request.hash,
+        headers: redactHeaders(error.request.headers),
+        method: error.request.method,
+        url: error.request.url,
+        urlParams: Array.from(error.request.urlParams)
+      }
+    })
+  }
+
+  override get message(): string {
+    const methodAndUrl = `${this.request.method} ${this.request.url}`
+
+    let baseMessage = this.description
+      ? `${this.reason}: ${this.description}`
+      : `${this.reason}: A network error occurred.`
+
+    baseMessage += ` (${methodAndUrl})`
+
+    let suggestion = ""
+    switch (this.reason) {
+      case "Encode": {
+        suggestion += "Check that the request body data is properly formatted and matches the expected content type."
+        break
+      }
+
+      case "InvalidUrl": {
+        suggestion += "Verify that the URL format is correct and that all required parameters have been provided."
+        suggestion += " Check for any special characters that may need encoding."
+        break
+      }
+
+      case "Transport": {
+        suggestion += "Check your network connection and verify that the requested URL is accessible."
+        break
+      }
+    }
+
+    baseMessage += `\n\n${suggestion}`
+
+    return baseMessage
+  }
+}
+
+// =============================================================================
+// Http Response Error
+// =============================================================================
+
+/**
  * Schema for HTTP response details used in error reporting.
  *
  * Captures essential information about HTTP responses that caused errors,
@@ -145,124 +279,6 @@ export const HttpResponseDetails = Schema.Struct({
   status: Schema.Number,
   headers: Schema.Record(Schema.String, Schema.String)
 }).annotate({ identifier: "HttpResponseDetails" })
-
-/**
- * Error that occurs during HTTP request processing.
- *
- * This error is raised when issues arise before receiving an HTTP response,
- * such as network connectivity problems, request encoding issues, or invalid
- * URLs.
- *
- * @since 4.0.0
- * @category schemas
- */
-export class HttpError extends Schema.ErrorClass<HttpError>(
-  "effect/ai/AiError/HttpError"
-)({
-  _tag: Schema.tag("HttpError"),
-  module: Schema.String,
-  method: Schema.String,
-  reason: Schema.Literals([
-    "TransportError",
-    "EncodeError",
-    "InvalidUrlError",
-    "StatusCodeError",
-    "DecodeError",
-    "EmptyBodyError"
-  ]),
-  request: HttpRequestDetails,
-  response: Schema.optional(HttpResponseDetails),
-  description: Schema.optional(Schema.String),
-  cause: Schema.optional(Schema.Defect)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [LegacyTypeId] = LegacyTypeId
-
-  /**
-   * Creates an HttpError from a platform HttpClientError.
-   *
-   * @since 4.0.0
-   * @category constructors
-   */
-  static fromHttpClientError({ error, ...params }: {
-    readonly module: string
-    readonly method: string
-    readonly error: HttpClientError.HttpClientError
-  }): HttpError {
-    return new HttpError({
-      ...params,
-      cause: error,
-      description: error.reason.description,
-      reason: error.reason._tag,
-      request: HttpRequestDetails.makeUnsafe({
-        hash: error.request.hash,
-        headers: redact(error.request.headers) as any,
-        method: error.request.method,
-        url: error.request.url,
-        urlParams: Array.from(error.request.urlParams)
-      }),
-      response: error.response ?
-        HttpResponseDetails.makeUnsafe({
-          headers: redact(error.response.headers) as any,
-          status: error.response.status
-        }) :
-        undefined
-    })
-  }
-
-  override get message(): string {
-    const methodAndUrl = `${this.request.method} ${this.request.url}`
-
-    let baseMessage = this.description
-      ? `${this.reason}: ${this.description}`
-      : `${this.reason}: An HTTP client error occurred.`
-
-    baseMessage += ` (${methodAndUrl})`
-
-    let suggestion = ""
-    switch (this.reason) {
-      case "EncodeError": {
-        suggestion += "Check that the request body data is properly formatted and matches the expected content type."
-        break
-      }
-
-      case "InvalidUrlError": {
-        suggestion += "Verify that the URL format is correct and that all required parameters have been provided."
-        suggestion += " Check for any special characters that may need encoding."
-        break
-      }
-
-      case "TransportError": {
-        suggestion += "Check your network connection and verify that the requested URL is accessible."
-        break
-      }
-
-      case "DecodeError": {
-        suggestion += "The response format does not match what is expected. " +
-          "Verify API version compatibility, check response content-type, " +
-          "and/or examine if the endpoint schema has changed."
-        break
-      }
-
-      case "EmptyBodyError": {
-        suggestion += "The response body was empty. This may indicate a server " +
-          "issue, API version mismatch, or the endpoint may have changed its response format."
-        break
-      }
-
-      case "StatusCodeError": {
-        suggestion += getStatusCodeSuggestion(this.response!.status)
-        break
-      }
-    }
-
-    baseMessage += `\n\n${suggestion}`
-
-    return baseMessage
-  }
-}
 
 // =============================================================================
 // Supporting Schemas
@@ -493,13 +509,12 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
  * import { AiError } from "effect/unstable/ai"
  *
  * const policyError = new AiError.ContentPolicyError({
- *   violationType: "hate",
- *   flaggedInput: true
+ *   description: "Input contains prohibited content"
  * })
  *
  * console.log(policyError.isRetryable) // false
  * console.log(policyError.message)
- * // "Content policy violation: hate in input"
+ * // "Content policy violation: Input contains prohibited content"
  * ```
  *
  * @since 4.0.0
@@ -509,11 +524,7 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
   "effect/ai/AiError/ContentPolicyError"
 )({
   _tag: Schema.tag("ContentPolicyError"),
-  violationType: Schema.optional(Schema.String),
-  flaggedInput: Schema.optional(Schema.Boolean),
-  flaggedOutput: Schema.optional(Schema.Boolean),
-  flaggedContent: Schema.optional(Schema.String),
-  categories: Schema.optional(Schema.Array(Schema.String)),
+  description: Schema.String,
   metadata: ProviderMetadata.pipe(
     Schema.withConstructorDefault(constEmptyObject)
   ),
@@ -534,126 +545,7 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
   }
 
   override get message(): string {
-    let msg = "Content policy violation"
-    if (this.violationType) msg += `: ${this.violationType}`
-    if (this.flaggedInput) msg += " in input"
-    if (this.flaggedOutput) msg += " in output"
-    return msg
-  }
-}
-
-/**
- * Error indicating the requested model is unavailable.
- *
- * Model unavailable errors are retryable only for temporary conditions
- * like `Overloaded` or `Maintenance`.
- *
- * @example
- * ```ts
- * import { AiError } from "effect/unstable/ai"
- *
- * const modelError = new AiError.ModelUnavailableError({
- *   model: "gpt-5",
- *   kind: "NotFound",
- *   alternativeModels: ["gpt-4", "gpt-4-turbo"]
- * })
- *
- * console.log(modelError.isRetryable) // false
- * console.log(modelError.message)
- * // "Model 'gpt-5' unavailable: NotFound. Try: gpt-4, gpt-4-turbo"
- * ```
- *
- * @since 4.0.0
- * @category reason
- */
-export class ModelUnavailableError extends Schema.ErrorClass<ModelUnavailableError>(
-  "effect/ai/AiError/ModelUnavailableError"
-)({
-  _tag: Schema.tag("ModelUnavailableError"),
-  model: Schema.String,
-  kind: Schema.Literals(["NotFound", "Deprecated", "Overloaded", "Maintenance", "Unknown"]),
-  alternativeModels: Schema.optional(Schema.Array(Schema.String)),
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
-  ),
-  http: Schema.optional(HttpContext)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [ReasonTypeId] = ReasonTypeId
-
-  /**
-   * Model unavailable errors are retryable only for temporary conditions.
-   *
-   * @since 4.0.0
-   */
-  get isRetryable(): boolean {
-    return this.kind === "Overloaded" || this.kind === "Maintenance"
-  }
-
-  override get message(): string {
-    let msg = `Model '${this.model}' unavailable: ${this.kind}`
-    if (this.alternativeModels && this.alternativeModels.length > 0) {
-      msg += `. Try: ${this.alternativeModels.join(", ")}`
-    }
-    return msg
-  }
-}
-
-/**
- * Error indicating the request exceeded the model's context length.
- *
- * Context length errors require reducing input size and are not retryable.
- *
- * @example
- * ```ts
- * import { AiError } from "effect/unstable/ai"
- *
- * const contextError = new AiError.ContextLengthError({
- *   maxTokens: 8192,
- *   requestedTokens: 12000
- * })
- *
- * console.log(contextError.isRetryable) // false
- * console.log(contextError.message)
- * // "Context length exceeded: requested 12000 tokens, max 8192. Reduce input size or use a model with larger context window."
- * ```
- *
- * @since 4.0.0
- * @category reason
- */
-export class ContextLengthError extends Schema.ErrorClass<ContextLengthError>(
-  "effect/ai/AiError/ContextLengthError"
-)({
-  _tag: Schema.tag("ContextLengthError"),
-  maxTokens: Schema.optional(Schema.Number),
-  requestedTokens: Schema.optional(Schema.Number),
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
-  ),
-  http: Schema.optional(HttpContext)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [ReasonTypeId] = ReasonTypeId
-
-  /**
-   * Context length errors require reducing input and are not retryable.
-   *
-   * @since 4.0.0
-   */
-  get isRetryable(): boolean {
-    return false
-  }
-
-  override get message(): string {
-    let msg = "Context length exceeded"
-    if (this.requestedTokens && this.maxTokens) {
-      msg += `: requested ${this.requestedTokens} tokens, max ${this.maxTokens}`
-    }
-    return `${msg}. Reduce input size or use a model with larger context window.`
+    return `Content policy violation: ${this.description}`
   }
 }
 
@@ -718,30 +610,29 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
 /**
  * Error indicating the AI provider experienced an internal error.
  *
- * Provider internal errors are typically transient and are retryable.
+ * Internal provider errors are typically transient and are retryable.
  *
  * @example
  * ```ts
- * import { Duration } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
- * const providerError = new AiError.ProviderInternalError({
- *   retryAfter: Duration.seconds(30)
+ * const providerError = new AiError.InternalProviderError({
+ *   description: "Server encountered an unexpected error"
  * })
  *
  * console.log(providerError.isRetryable) // true
  * console.log(providerError.message)
- * // "Provider internal error. Retry after 30 seconds. This is likely temporary."
+ * // "Internal provider error: Server encountered an unexpected error"
  * ```
  *
  * @since 4.0.0
  * @category reason
  */
-export class ProviderInternalError extends Schema.ErrorClass<ProviderInternalError>(
-  "effect/ai/AiError/ProviderInternalError"
+export class InternalProviderError extends Schema.ErrorClass<InternalProviderError>(
+  "effect/ai/AiError/InternalProviderError"
 )({
-  _tag: Schema.tag("ProviderInternalError"),
-  retryAfter: Schema.optional(Schema.Duration),
+  _tag: Schema.tag("InternalProviderError"),
+  description: Schema.String,
   metadata: ProviderMetadata.pipe(
     Schema.withConstructorDefault(constEmptyObject)
   ),
@@ -753,7 +644,7 @@ export class ProviderInternalError extends Schema.ErrorClass<ProviderInternalErr
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
-   * Provider internal errors are typically transient and are retryable.
+   * Internal provider errors are typically transient and are retryable.
    *
    * @since 4.0.0
    */
@@ -762,96 +653,36 @@ export class ProviderInternalError extends Schema.ErrorClass<ProviderInternalErr
   }
 
   override get message(): string {
-    let msg = "Provider internal error"
-    if (this.metadata?.name) msg = `${this.metadata.name} internal error`
-    if (this.retryAfter) msg += `. Retry after ${Duration.format(this.retryAfter)}`
-    return `${msg}. This is likely temporary.`
+    return `Internal provider error: ${this.description}`
   }
 }
 
 /**
- * Error indicating a request timeout.
+ * Error indicating failure to parse or validate LLM output.
  *
- * Timeout errors are typically transient and are retryable.
- *
- * @example
- * ```ts
- * import { Duration } from "effect"
- * import { AiError } from "effect/unstable/ai"
- *
- * const timeoutError = new AiError.AiTimeoutError({
- *   phase: "Response",
- *   duration: Duration.seconds(30)
- * })
- *
- * console.log(timeoutError.isRetryable) // true
- * console.log(timeoutError.message)
- * // "Response timeout after 30 seconds"
- * ```
- *
- * @since 4.0.0
- * @category reason
- */
-export class AiTimeoutError extends Schema.ErrorClass<AiTimeoutError>(
-  "effect/ai/AiError/AiTimeoutError"
-)({
-  _tag: Schema.tag("AiTimeoutError"),
-  phase: Schema.Literals(["Connection", "Request", "Response"]),
-  duration: Schema.optional(Schema.Duration),
-  metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
-  ),
-  http: Schema.optional(HttpContext)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [ReasonTypeId] = ReasonTypeId
-
-  /**
-   * Timeout errors are typically transient and are retryable.
-   *
-   * @since 4.0.0
-   */
-  get isRetryable(): boolean {
-    return true
-  }
-
-  override get message(): string {
-    let msg = `${this.phase} timeout`
-    if (this.duration) msg += ` after ${Duration.format(this.duration)}`
-    return msg
-  }
-}
-
-/**
- * Error indicating failure to parse LLM output.
- *
- * Output parse errors are retryable since LLM outputs are non-deterministic.
+ * Invalid output errors are retryable since LLM outputs are non-deterministic.
  *
  * @example
  * ```ts
  * import { AiError } from "effect/unstable/ai"
  *
- * const parseError = new AiError.OutputParseError({
- *   rawOutput: '{"invalid": json}',
- *   expectedSchema: "UserResponse"
+ * const parseError = new AiError.InvalidOutputError({
+ *   description: "Expected a string but received a number"
  * })
  *
  * console.log(parseError.isRetryable) // true
  * console.log(parseError.message)
- * // "Failed to parse LLM output into expected schema"
+ * // "Invalid output: Expected a string but received a number"
  * ```
  *
  * @since 4.0.0
  * @category reason
  */
-export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
-  "effect/ai/AiError/OutputParseError"
+export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
+  "effect/ai/AiError/InvalidOutputError"
 )({
-  _tag: Schema.tag("OutputParseError"),
-  rawOutput: Schema.optional(Schema.String),
-  expectedSchema: Schema.optional(Schema.String),
+  _tag: Schema.tag("InvalidOutputError"),
+  description: Schema.String,
   metadata: ProviderMetadata.pipe(
     Schema.withConstructorDefault(constEmptyObject)
   ),
@@ -863,7 +694,7 @@ export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
-   * Output parse errors are retryable since LLM outputs are non-deterministic.
+   * Invalid output errors are retryable since LLM outputs are non-deterministic.
    *
    * @since 4.0.0
    */
@@ -872,7 +703,7 @@ export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
   }
 
   /**
-   * Creates an OutputParseError from a Schema error.
+   * Creates an InvalidOutputError from a Schema error.
    *
    * @example
    * ```ts
@@ -881,26 +712,20 @@ export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
    *
    * declare const schemaError: Schema.SchemaError
    *
-   * const parseError = AiError.OutputParseError.fromSchemaError({
-   *   rawOutput: "invalid json",
-   *   error: schemaError
-   * })
+   * const parseError = AiError.InvalidOutputError.fromSchemaError(schemaError)
    * ```
    *
    * @since 4.0.0
    * @category constructors
    */
-  static fromSchemaError(params: {
-    readonly rawOutput?: string
-    readonly error: Schema.SchemaError
-  }): OutputParseError {
-    return new OutputParseError({
-      rawOutput: params.rawOutput
+  static fromSchemaError(error: Schema.SchemaError): InvalidOutputError {
+    return new InvalidOutputError({
+      description: error.message
     })
   }
 
   override get message(): string {
-    return "Failed to parse LLM output into expected schema"
+    return `Invalid output: ${this.description}`
   }
 }
 
@@ -913,7 +738,7 @@ export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
  * ```ts
  * import { AiError } from "effect/unstable/ai"
  *
- * const unknownError = new AiError.AiUnknownError({
+ * const unknownError = new AiError.UnknownError({
  *   description: "An unexpected error occurred"
  * })
  *
@@ -925,10 +750,10 @@ export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
  * @since 4.0.0
  * @category reason
  */
-export class AiUnknownError extends Schema.ErrorClass<AiUnknownError>(
-  "effect/ai/AiError/AiUnknownError"
+export class UnknownError extends Schema.ErrorClass<UnknownError>(
+  "effect/ai/AiError/UnknownError"
 )({
-  _tag: Schema.tag("AiUnknownError"),
+  _tag: Schema.tag("UnknownError"),
   description: Schema.optional(Schema.String),
   metadata: ProviderMetadata.pipe(
     Schema.withConstructorDefault(constEmptyObject)
@@ -1231,13 +1056,11 @@ export type AiErrorReason =
   | QuotaExhaustedError
   | AuthenticationError
   | ContentPolicyError
-  | ModelUnavailableError
-  | ContextLengthError
   | InvalidRequestError
-  | ProviderInternalError
-  | AiTimeoutError
-  | OutputParseError
-  | AiUnknownError
+  | InternalProviderError
+  | NetworkError
+  | InvalidOutputError
+  | UnknownError
   | ToolNotFoundError
   | ToolParameterValidationError
   | InvalidToolResultError
@@ -1255,13 +1078,11 @@ export const AiErrorReason: Schema.Union<[
   typeof QuotaExhaustedError,
   typeof AuthenticationError,
   typeof ContentPolicyError,
-  typeof ModelUnavailableError,
-  typeof ContextLengthError,
   typeof InvalidRequestError,
-  typeof ProviderInternalError,
-  typeof AiTimeoutError,
-  typeof OutputParseError,
-  typeof AiUnknownError,
+  typeof InternalProviderError,
+  typeof NetworkError,
+  typeof InvalidOutputError,
+  typeof UnknownError,
   typeof ToolNotFoundError,
   typeof ToolParameterValidationError,
   typeof InvalidToolResultError,
@@ -1272,13 +1093,11 @@ export const AiErrorReason: Schema.Union<[
   QuotaExhaustedError,
   AuthenticationError,
   ContentPolicyError,
-  ModelUnavailableError,
-  ContextLengthError,
   InvalidRequestError,
-  ProviderInternalError,
-  AiTimeoutError,
-  OutputParseError,
-  AiUnknownError,
+  InternalProviderError,
+  NetworkError,
+  InvalidOutputError,
+  UnknownError,
   ToolNotFoundError,
   ToolParameterValidationError,
   InvalidToolResultError,
@@ -1482,252 +1301,12 @@ export const reasonFromHttpStatus = (params: {
       return new AuthenticationError({ kind: "InvalidKey", ...common })
     case 403:
       return new AuthenticationError({ kind: "InsufficientPermissions", ...common })
-    case 408:
-      return new AiTimeoutError({ phase: "Request", ...common })
     case 429:
       return new RateLimitError(common)
     default:
       if (status >= 500) {
-        return new ProviderInternalError(common)
+        return new InternalProviderError({ description: "Server error", ...common })
       }
-      return new AiUnknownError(common)
-  }
-}
-
-// =============================================================================
-// Malformed Input Error
-// =============================================================================
-
-/**
- * Error thrown when input data doesn't match the expected format or schema.
- *
- * This error occurs when the data provided to an AI operation fails validation,
- * is missing required fields, or doesn't conform to the expected structure.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { AiError } from "effect/unstable/ai"
- *
- * const validateInput = Effect.fnUntraced(function*(data: unknown) {
- *   if (typeof data === "string" && data.length > 0) {
- *     return data
- *   }
- *   return yield* new AiError.MalformedInput({
- *     description: "Input must be a non-empty string"
- *   })
- * })
- *
- * const program = validateInput("").pipe(
- *   Effect.catchTag("MalformedInput", (error) => {
- *     console.log(`Input validation failed: ${error.description}`)
- *     return Effect.succeed("Please provide a valid message")
- *   })
- * )
- * ```
- *
- * @since 4.0.0
- * @category schemas
- */
-export class MalformedInput extends Schema.ErrorClass<MalformedInput>(
-  "effect/ai/AiError/MalformedInput"
-)({
-  _tag: Schema.tag("MalformedInput"),
-  description: Schema.optional(Schema.String)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [LegacyTypeId] = LegacyTypeId
-}
-
-// =============================================================================
-// Malformed Output Error
-// =============================================================================
-
-/**
- * Error thrown when output data can't be parsed or validated.
- *
- * This error occurs when AI service responses don't match the expected format,
- * contain invalid data structures, or fail schema validation during parsing.
- *
- * @example
- * ```ts
- * import { Effect, Schema } from "effect"
- * import { AiError } from "effect/unstable/ai"
- *
- * const ResponseSchema = Schema.Struct({
- *   message: Schema.String,
- *   tokens: Schema.Number
- * })
- *
- * const parseResponse = (data: unknown) =>
- *   Schema.decodeUnknownEffect(ResponseSchema)(data).pipe(
- *     Effect.mapError(() =>
- *       new AiError.MalformedOutput({
- *         module: "OpenAI",
- *         method: "completion",
- *         description: "Response doesn't match expected schema"
- *       })
- *     )
- *   )
- *
- * const program = parseResponse({ invalid: "data" }).pipe(
- *   Effect.catchTag("MalformedOutput", (error) => {
- *     console.log(`Parsing failed: ${error.description}`)
- *     return Effect.succeed({ message: "Error", tokens: 0 })
- *   })
- * )
- * ```
- *
- * @since 4.0.0
- * @category schemas
- */
-export class MalformedOutput extends Schema.ErrorClass<MalformedOutput>(
-  "effect/ai/AiError/MalformedOutput"
-)({
-  _tag: Schema.tag("MalformedOutput"),
-  module: Schema.String,
-  method: Schema.String,
-  description: Schema.optional(Schema.String)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [LegacyTypeId] = LegacyTypeId
-
-  /**
-   * Creates a MalformedOutput error from a Schema ParseError.
-   *
-   * @example
-   * ```ts
-   * import { Effect, Schema } from "effect"
-   * import { AiError } from "effect/unstable/ai"
-   *
-   * const UserSchema = Schema.Struct({
-   *   name: Schema.String,
-   *   age: Schema.Number
-   * })
-   *
-   * const parseUser = (data: unknown) =>
-   *   Schema.decodeUnknownEffect(UserSchema)(data).pipe(
-   *     Effect.mapError((parseError) =>
-   *       AiError.MalformedOutput.fromSchemaError({
-   *         module: "UserService",
-   *         method: "parseUserData",
-   *         error: parseError
-   *       })
-   *     )
-   *   )
-   * ```
-   *
-   * @since 4.0.0
-   * @category constructors
-   */
-  static fromSchemaError({ error: _, ...params }: {
-    readonly module: string
-    readonly method: string
-    readonly description?: string
-    readonly error: Schema.SchemaError
-  }): MalformedOutput {
-    return new MalformedOutput(params)
-  }
-}
-
-// =============================================================================
-// Unknown Error
-// =============================================================================
-
-/**
- * Catch-all error for unexpected runtime errors in AI operations.
- *
- * This error is used when an unexpected exception occurs that doesn't fit
- * into the other specific error categories. It provides context about where
- * the error occurred and preserves the original cause for debugging.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { AiError } from "effect/unstable/ai"
- *
- * const riskyOperation = () => {
- *   try {
- *     // Some operation that might throw
- *     throw new Error("Unexpected network issue")
- *   } catch (_cause) {
- *     return Effect.fail(
- *       new AiError.UnknownError({
- *         module: "ChatService",
- *         method: "sendMessage",
- *         description: "An unexpected error occurred during message processing"
- *       })
- *     )
- *   }
- * }
- *
- * const program = riskyOperation().pipe(
- *   Effect.catchTag("UnknownError", (error) => {
- *     console.log(error.message)
- *     // "ChatService.sendMessage: An unexpected error occurred during message processing"
- *     return Effect.succeed("Service temporarily unavailable")
- *   })
- * )
- * ```
- *
- * @since 4.0.0
- * @category schemas
- */
-export class UnknownError extends Schema.ErrorClass<UnknownError>(
-  "effect/ai/AiError/UnknownError"
-)({
-  _tag: Schema.tag("UnknownError"),
-  module: Schema.String,
-  method: Schema.String,
-  description: Schema.optional(Schema.String)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [LegacyTypeId] = LegacyTypeId
-
-  /**
-   * @since 4.0.0
-   */
-  override get message(): string {
-    const moduleMethod = `${this.module}.${this.method}`
-    return Predicate.isUndefined(this.description)
-      ? `${moduleMethod}: An error occurred`
-      : `${moduleMethod}: ${this.description}`
-  }
-}
-
-// =============================================================================
-// Utilities
-// =============================================================================
-
-const getStatusCodeSuggestion = (statusCode: number): string => {
-  if (statusCode >= 400 && statusCode < 500) {
-    switch (statusCode) {
-      case 400:
-        return "Bad Request - Check request parameters, headers, and body format against API documentation."
-      case 401:
-        return "Unauthorized - Verify API key, authentication credentials, or token expiration."
-      case 403:
-        return "Forbidden - Check API permissions, usage limits, or resource access rights."
-      case 404:
-        return "Not Found - Verify the endpoint URL, API version, and resource identifiers."
-      case 408:
-        return "Request Timeout - Consider increasing timeout duration or implementing retry logic."
-      case 422:
-        return "Unprocessable Entity - Check request data validation, required fields, and data formats."
-      case 429:
-        return "Rate Limited - Implement exponential backoff or reduce request frequency."
-      default:
-        return "Client error - Review request format, parameters, and API documentation."
-    }
-  } else if (statusCode >= 500) {
-    return "Server error - This is likely temporary. Implement retry logic with exponential backoff."
-  } else {
-    return "Check API documentation for this status code."
+      return new UnknownError(common)
   }
 }

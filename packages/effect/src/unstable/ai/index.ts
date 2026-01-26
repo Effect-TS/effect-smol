@@ -19,14 +19,19 @@
  * - **QuotaExhaustedError** - Account/billing limits reached
  * - **AuthenticationError** - Invalid/expired credentials
  * - **ContentPolicyError** - Input/output violated content policy
- * - **ModelUnavailableError** - Model not available/deprecated
- * - **ContextLengthError** - Token limit exceeded
  * - **InvalidRequestError** - Malformed request parameters
- * - **ProviderInternalError** - Provider-side failures (5xx)
- * - **AiTimeoutError** - Request timeout
+ * - **InternalProviderError** - Provider-side failures (5xx)
  * - **NetworkError** - Transport-level failures
- * - **OutputParseError** - LLM output parsing failures
- * - **AiUnknownError** - Catch-all for unknown errors
+ * - **InvalidOutputError** - LLM output parsing/validation failures
+ * - **UnknownError** - Catch-all for unknown errors
+ *
+ * ## Tool Call Errors
+ *
+ * - **ToolNotFoundError** - Model requested non-existent tool
+ * - **ToolParameterValidationError** - Tool call params failed validation
+ * - **InvalidToolResultError** - Tool handler returned invalid result
+ * - **ToolResultEncodingError** - Tool result encoding failed
+ * - **ToolConfigurationError** - Provider tool misconfigured
  *
  * ## Retryability
  *

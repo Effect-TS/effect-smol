@@ -81,43 +81,25 @@ declare module "effect/unstable/ai/AiError" {
     }
   }
 
-  export interface ModelUnavailableError {
-    readonly metadata: {
-      readonly openai: OpenAiErrorMetadata | null
-    }
-  }
-
-  export interface ContextLengthError {
-    readonly metadata: {
-      readonly openai: OpenAiErrorMetadata | null
-    }
-  }
-
   export interface InvalidRequestError {
     readonly metadata: {
       readonly openai: OpenAiErrorMetadata | null
     }
   }
 
-  export interface ProviderInternalError {
+  export interface InternalProviderError {
     readonly metadata: {
       readonly openai: OpenAiErrorMetadata | null
     }
   }
 
-  export interface AiTimeoutError {
+  export interface InvalidOutputError {
     readonly metadata: {
       readonly openai: OpenAiErrorMetadata | null
     }
   }
 
-  export interface OutputParseError {
-    readonly metadata: {
-      readonly openai: OpenAiErrorMetadata | null
-    }
-  }
-
-  export interface AiUnknownError {
+  export interface UnknownError {
     readonly metadata: {
       readonly openai: OpenAiErrorMetadata | null
     }

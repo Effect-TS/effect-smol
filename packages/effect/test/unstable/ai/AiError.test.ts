@@ -68,106 +68,21 @@ describe("AiError", () => {
 
     describe("ContentPolicyError", () => {
       it("should not be retryable", () => {
-        const error = new AiError.ContentPolicyError({ violationType: "hate" })
+        const error = new AiError.ContentPolicyError({ description: "hate speech detected" })
         assert.isFalse(error.isRetryable)
       })
 
-      it("should format message with violation details", () => {
+      it("should format message with description", () => {
         const error = new AiError.ContentPolicyError({
-          violationType: "hate",
-          flaggedInput: true
+          description: "Input contains prohibited content"
         })
         assert.match(error.message, /Content policy violation/)
-        assert.match(error.message, /hate/)
-        assert.match(error.message, /in input/)
-      })
-
-      it("should include flaggedContent when provided", () => {
-        const error = new AiError.ContentPolicyError({
-          flaggedContent: "offensive content"
-        })
-        assert.strictEqual(error.flaggedContent, "offensive content")
+        assert.match(error.message, /Input contains prohibited content/)
       })
 
       it("should have _tag set correctly", () => {
-        const error = new AiError.ContentPolicyError({})
+        const error = new AiError.ContentPolicyError({ description: "violation" })
         assert.strictEqual(error._tag, "ContentPolicyError")
-      })
-    })
-
-    describe("ModelUnavailableError", () => {
-      it("should be retryable for Overloaded", () => {
-        const error = new AiError.ModelUnavailableError({
-          model: "gpt-4",
-          kind: "Overloaded"
-        })
-        assert.isTrue(error.isRetryable)
-      })
-
-      it("should be retryable for Maintenance", () => {
-        const error = new AiError.ModelUnavailableError({
-          model: "gpt-4",
-          kind: "Maintenance"
-        })
-        assert.isTrue(error.isRetryable)
-      })
-
-      it("should not be retryable for NotFound", () => {
-        const error = new AiError.ModelUnavailableError({
-          model: "gpt-5",
-          kind: "NotFound"
-        })
-        assert.isFalse(error.isRetryable)
-      })
-
-      it("should not be retryable for Deprecated", () => {
-        const error = new AiError.ModelUnavailableError({
-          model: "text-davinci-003",
-          kind: "Deprecated"
-        })
-        assert.isFalse(error.isRetryable)
-      })
-
-      it("should format message with alternatives", () => {
-        const error = new AiError.ModelUnavailableError({
-          model: "gpt-5",
-          kind: "NotFound",
-          alternativeModels: ["gpt-4", "gpt-4-turbo"]
-        })
-        assert.match(error.message, /gpt-5/)
-        assert.match(error.message, /Try: gpt-4, gpt-4-turbo/)
-      })
-
-      it("should have _tag set correctly", () => {
-        const error = new AiError.ModelUnavailableError({
-          model: "test",
-          kind: "Unknown"
-        })
-        assert.strictEqual(error._tag, "ModelUnavailableError")
-      })
-    })
-
-    describe("ContextLengthError", () => {
-      it("should not be retryable", () => {
-        const error = new AiError.ContextLengthError({
-          maxTokens: 8192,
-          requestedTokens: 12000
-        })
-        assert.isFalse(error.isRetryable)
-      })
-
-      it("should format message with token counts", () => {
-        const error = new AiError.ContextLengthError({
-          maxTokens: 8192,
-          requestedTokens: 12000
-        })
-        assert.match(error.message, /requested 12000 tokens/)
-        assert.match(error.message, /max 8192/)
-      })
-
-      it("should have _tag set correctly", () => {
-        const error = new AiError.ContextLengthError({})
-        assert.strictEqual(error._tag, "ContextLengthError")
       })
     })
 
@@ -197,65 +112,44 @@ describe("AiError", () => {
       })
     })
 
-    describe("ProviderInternalError", () => {
+    describe("InternalProviderError", () => {
       it("should be retryable", () => {
-        const error = new AiError.ProviderInternalError({})
+        const error = new AiError.InternalProviderError({
+          description: "Server error"
+        })
         assert.isTrue(error.isRetryable)
       })
 
-      it("should format message with provider name", () => {
-        const error = new AiError.ProviderInternalError({
-          metadata: { name: "OpenAI" }
+      it("should format message with description", () => {
+        const error = new AiError.InternalProviderError({
+          description: "Unexpected server failure"
         })
-        assert.match(error.message, /OpenAI internal error/)
-      })
-
-      it("should format message with retryAfter", () => {
-        const error = new AiError.ProviderInternalError({
-          retryAfter: Duration.seconds(30)
-        })
-        assert.match(error.message, /Retry after/)
+        assert.match(error.message, /Internal provider error/)
+        assert.match(error.message, /Unexpected server failure/)
       })
 
       it("should have _tag set correctly", () => {
-        const error = new AiError.ProviderInternalError({})
-        assert.strictEqual(error._tag, "ProviderInternalError")
-      })
-    })
-
-    describe("AiTimeoutError", () => {
-      it("should be retryable", () => {
-        const error = new AiError.AiTimeoutError({ phase: "Response" })
-        assert.isTrue(error.isRetryable)
-      })
-
-      it("should format message with phase and duration", () => {
-        const error = new AiError.AiTimeoutError({
-          phase: "Response",
-          duration: Duration.seconds(30)
+        const error = new AiError.InternalProviderError({
+          description: "Server error"
         })
-        assert.match(error.message, /Response timeout/)
-        assert.match(error.message, /after/)
-      })
-
-      it("should have _tag set correctly", () => {
-        const error = new AiError.AiTimeoutError({ phase: "Connection" })
-        assert.strictEqual(error._tag, "AiTimeoutError")
+        assert.strictEqual(error._tag, "InternalProviderError")
       })
     })
 
-    describe("OutputParseError", () => {
+    describe("InvalidOutputError", () => {
       it("should be retryable", () => {
-        const error = new AiError.OutputParseError({
-          rawOutput: "{\"invalid\": json}"
+        const error = new AiError.InvalidOutputError({
+          description: "Invalid JSON structure"
         })
         assert.isTrue(error.isRetryable)
       })
 
-      it("should store raw output", () => {
-        const rawOutput = "{\"invalid\": json}"
-        const error = new AiError.OutputParseError({ rawOutput })
-        assert.strictEqual(error.rawOutput, rawOutput)
+      it("should format message with description", () => {
+        const error = new AiError.InvalidOutputError({
+          description: "Expected string but got number"
+        })
+        assert.match(error.message, /Invalid output/)
+        assert.match(error.message, /Expected string but got number/)
       })
 
       it.effect("should create from SchemaError", () =>
@@ -268,43 +162,42 @@ describe("AiError", () => {
           if (result._tag === "Failure") {
             const cause = result.cause
             if ("error" in cause && Schema.isSchemaError(cause.error)) {
-              const parseError = AiError.OutputParseError.fromSchemaError({
-                rawOutput: "{\"name\": 123}",
-                error: cause.error
-              })
-              assert.strictEqual(parseError._tag, "OutputParseError")
-              assert.strictEqual(parseError.rawOutput, "{\"name\": 123}")
+              const parseError = AiError.InvalidOutputError.fromSchemaError(cause.error)
+              assert.strictEqual(parseError._tag, "InvalidOutputError")
+              assert.isString(parseError.description)
             }
           }
         }))
 
       it("should have _tag set correctly", () => {
-        const error = new AiError.OutputParseError({})
-        assert.strictEqual(error._tag, "OutputParseError")
+        const error = new AiError.InvalidOutputError({
+          description: "Test error"
+        })
+        assert.strictEqual(error._tag, "InvalidOutputError")
       })
     })
 
-    describe("AiUnknownError", () => {
+    describe("UnknownError", () => {
       it("should not be retryable", () => {
-        const error = new AiError.AiUnknownError({})
+        const error = new AiError.UnknownError({})
         assert.isFalse(error.isRetryable)
       })
 
       it("should format message with description", () => {
-        const error = new AiError.AiUnknownError({
+        const error = new AiError.UnknownError({
           description: "Something unexpected happened"
         })
         assert.strictEqual(error.message, "Something unexpected happened")
       })
 
       it("should use default message without description", () => {
-        const error = new AiError.AiUnknownError({})
+        const error = new AiError.UnknownError({})
         assert.strictEqual(error.message, "Unknown error")
       })
 
       it("should have _tag set correctly", () => {
-        const error = new AiError.AiUnknownError({})
-        assert.strictEqual(error._tag, "AiUnknownError")
+        const error = new AiError.UnknownError({})
+        assert.strictEqual(error._tag, "UnknownError")
       })
     })
 
@@ -547,7 +440,7 @@ describe("AiError", () => {
       const error = new AiError.AiError({
         module: "Test",
         method: "test",
-        reason: new AiError.AiUnknownError({})
+        reason: new AiError.UnknownError({})
       })
       assert.strictEqual(error._tag, "AiError")
     })
@@ -590,34 +483,29 @@ describe("AiError", () => {
         }
       })
 
-      it("should map 408 to AiTimeoutError", () => {
-        const reason = AiError.reasonFromHttpStatus({ status: 408 })
-        assert.strictEqual(reason._tag, "AiTimeoutError")
-      })
-
       it("should map 429 to RateLimitError", () => {
         const reason = AiError.reasonFromHttpStatus({ status: 429 })
         assert.strictEqual(reason._tag, "RateLimitError")
       })
 
-      it("should map 5xx to ProviderInternalError", () => {
+      it("should map 5xx to InternalProviderError", () => {
         assert.strictEqual(
           AiError.reasonFromHttpStatus({ status: 500 })._tag,
-          "ProviderInternalError"
+          "InternalProviderError"
         )
         assert.strictEqual(
           AiError.reasonFromHttpStatus({ status: 502 })._tag,
-          "ProviderInternalError"
+          "InternalProviderError"
         )
         assert.strictEqual(
           AiError.reasonFromHttpStatus({ status: 503 })._tag,
-          "ProviderInternalError"
+          "InternalProviderError"
         )
       })
 
-      it("should map unknown status to AiUnknownError", () => {
+      it("should map unknown status to UnknownError", () => {
         const reason = AiError.reasonFromHttpStatus({ status: 418 })
-        assert.strictEqual(reason._tag, "AiUnknownError")
+        assert.strictEqual(reason._tag, "UnknownError")
       })
     })
   })
@@ -628,7 +516,7 @@ describe("AiError", () => {
         const error = new AiError.AiError({
           module: "Test",
           method: "test",
-          reason: new AiError.AiUnknownError({})
+          reason: new AiError.UnknownError({})
         })
         assert.isTrue(AiError.isAiError(error))
       })
@@ -640,17 +528,9 @@ describe("AiError", () => {
         assert.isFalse(AiError.isAiError({ _tag: "FakeError" }))
       })
 
-      it("should return false for legacy error types", () => {
-        const legacyError = new AiError.UnknownError({
-          module: "Test",
-          method: "test"
-        })
-        assert.isFalse(AiError.isAiError(legacyError))
-
-const httpRequestError = new AiError.HttpError({
-          module: "Test",
-          method: "test",
-          reason: "TransportError",
+      it("should return false for reason types", () => {
+        const networkError = new AiError.NetworkError({
+          reason: "Transport",
           request: {
             method: "GET",
             url: "https://example.com",
@@ -659,7 +539,7 @@ const httpRequestError = new AiError.HttpError({
             headers: {}
           }
         })
-        assert.isFalse(AiError.isAiError(httpRequestError))
+        assert.isFalse(AiError.isAiError(networkError))
       })
     })
   })

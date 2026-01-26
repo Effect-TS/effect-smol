@@ -88,7 +88,7 @@ export const mapSchemaError = dual<
   AiError.make({
     module: "OpenAiClient",
     method,
-    reason: AiError.OutputParseError.fromSchemaError({ error })
+    reason: AiError.InvalidOutputError.fromSchemaError(error)
   }))
 
 // =============================================================================
@@ -174,15 +174,8 @@ export const mapStatusCodeToReason = ({ status, headers, message, metadata, http
         http
       })
     case 404:
-      return new AiError.ModelUnavailableError({
-        model: "unknown",
-        kind: "NotFound",
-        metadata,
-        http
-      })
-    case 408:
-      return new AiError.AiTimeoutError({
-        phase: "Request",
+      return new AiError.InvalidRequestError({
+        description: message ?? "Resource not found",
         metadata,
         http
       })
@@ -216,20 +209,15 @@ export const mapStatusCodeToReason = ({ status, headers, message, metadata, http
         http
       })
     }
-    case 504:
-      return new AiError.AiTimeoutError({
-        phase: "Response",
-        metadata,
-        http
-      })
     default:
       if (status >= 500) {
-        return new AiError.ProviderInternalError({
+        return new AiError.InternalProviderError({
+          description: message ?? "Server error",
           metadata,
           http
         })
       }
-      return new AiError.AiUnknownError({
+      return new AiError.UnknownError({
         description: message,
         metadata,
         http

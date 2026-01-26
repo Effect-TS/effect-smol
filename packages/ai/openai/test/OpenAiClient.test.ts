@@ -407,7 +407,7 @@ describe("OpenAiClient", () => {
       assert.strictEqual(decoded.error.code, "insufficient_quota")
     })
 
-    it.effect("maps 5xx status to ProviderInternalError reason", () =>
+    it.effect("maps 5xx status to InternalProviderError reason", () =>
       Effect.gen(function*() {
         const mockClient = makeMockHttpClient((request) =>
           Effect.succeed(makeMockResponse({
@@ -426,11 +426,11 @@ describe("OpenAiClient", () => {
         )
 
         assert.strictEqual(result._tag, "AiError")
-        assert.strictEqual(result.reason._tag, "ProviderInternalError")
+        assert.strictEqual(result.reason._tag, "InternalProviderError")
         assert.isTrue(result.isRetryable)
       }))
 
-    it.effect("maps schema error to OutputParseError reason", () =>
+    it.effect("maps schema error to InvalidOutputError reason", () =>
       Effect.gen(function*() {
         const mockClient = makeMockHttpClient((request) =>
           Effect.succeed(makeMockResponse({
@@ -450,7 +450,7 @@ describe("OpenAiClient", () => {
 
         assert.strictEqual(result._tag, "AiError")
         assert.strictEqual(result.method, "createResponse")
-        assert.strictEqual(result.reason._tag, "OutputParseError")
+        assert.strictEqual(result.reason._tag, "InvalidOutputError")
       }))
   })
 
@@ -531,7 +531,7 @@ describe("OpenAiClient", () => {
         )
 
         assert.strictEqual(result._tag, "AiError")
-        assert.strictEqual(result.reason._tag, "ProviderInternalError")
+        assert.strictEqual(result.reason._tag, "InternalProviderError")
       }).pipe(Effect.provide(MainLayer))
     })
   })
