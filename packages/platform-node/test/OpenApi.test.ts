@@ -182,6 +182,50 @@ describe("OpenAPI spec", () => {
           }
         })
       })
+
+      it("encoded side as nested unions with different encodings", () => {
+        const Api = HttpApi.make("api")
+          .add(
+            HttpApiGroup.make("group")
+              .add(
+                HttpApiEndpoint.post("a", "/a", {
+                  payload: Schema.Unknown.pipe(Schema.encodeTo(Schema.Union([
+                    Schema.Struct({ a: Schema.String }), // application/json
+                    Schema.Union([
+                      HttpApiSchema.Text(), // text/plain
+                      HttpApiSchema.Uint8Array() // application/octet-stream
+                    ])
+                  ])))
+                })
+              )
+          )
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+          "application/json": {
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "$ref": "#/components/schemas/String_"
+                }
+              },
+              "required": ["a"],
+              "additionalProperties": false
+            }
+          },
+          "text/plain": {
+            schema: {
+              "$ref": "#/components/schemas/String_"
+            }
+          },
+          "application/octet-stream": {
+            schema: {
+              "type": "string",
+              "format": "binary"
+            }
+          }
+        })
+      })
     })
   })
 

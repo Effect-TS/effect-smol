@@ -298,11 +298,11 @@ function extractPayloads(ast: AST.AST): ReadonlyMap<string, {
   readonly ast: AST.AST
 }> {
   const map = new Map<string, {
-    encoding: HttpApiSchema.Encoding
-    asts: Array<AST.AST>
+    readonly encoding: HttpApiSchema.Encoding
+    readonly asts: Array<AST.AST>
   }>()
 
-  recur(ast, undefined)
+  recur(ast, undefined, undefined)
 
   return new Map(
     [...map.entries()].map(([contentType, { encoding, asts }]) => [
@@ -311,42 +311,32 @@ function extractPayloads(ast: AST.AST): ReadonlyMap<string, {
     ])
   )
 
-  function recur(ast: AST.AST, parentEncoding: HttpApiSchema.Encoding | undefined) {
+  function recur(ast: AST.AST, original: AST.AST | undefined, parentEncoding: HttpApiSchema.Encoding | undefined) {
+    if (ast.encoding !== undefined) {
+      const last = ast.encoding[ast.encoding.length - 1].to
+      return recur(last, original, parentEncoding)
+    }
     if (AST.isUnion(ast)) {
       for (const type of ast.types) {
-        recur(type, HttpApiSchema.resolveHttpApiEncoding(ast) ?? parentEncoding)
+        recur(type, original, getEncoding(ast) ?? parentEncoding)
       }
     } else {
-      on(ast, parentEncoding)
-    }
-  }
-
-  function on(ast: AST.AST, parentEncoding: HttpApiSchema.Encoding | undefined) {
-    if (AST.isNever(ast)) {
-      return
-    }
-    const encoding = HttpApiSchema.resolveHttpApiEncoding(ast) ??
-      (HttpApiSchema.resolveHttpApiMultipart(ast) ?? HttpApiSchema.resolveHttpApiMultipartStream(ast)
-        ? HttpApiSchema.encodingMultipart
-        : parentEncoding ?? HttpApiSchema.encodingJson)
-
-    const contentType = encoding.contentType
-
-    const current = map.get(contentType)
-
-    if (current === undefined) {
-      map.set(contentType, { encoding, asts: [ast] })
-    } else {
-      if (current.encoding.kind !== encoding.kind) {
-        throw new Error(
-          `Conflicting payload encodings for content type '${contentType}': ` +
-            `found kinds '${current.encoding.kind}' and '${encoding.kind}'. ` +
-            `A content type must map to a single encoding kind.`
-        )
+      const encoding = getEncoding(ast) ?? parentEncoding ??
+        (original ? getEncoding(original) : undefined) ?? HttpApiSchema.encodingJson
+      const current = map.get(encoding.contentType)
+      if (current === undefined) {
+        map.set(encoding.contentType, { encoding, asts: [original ?? ast] })
+      } else {
+        current.asts.push(original ?? ast)
       }
-      current.asts.push(ast)
     }
   }
+}
+
+function getEncoding(ast: AST.AST): HttpApiSchema.Encoding | undefined {
+  return HttpApiSchema.resolveHttpApiMultipart(ast) ?? HttpApiSchema.resolveHttpApiMultipartStream(ast)
+    ? HttpApiSchema.encodingMultipart :
+    HttpApiSchema.resolveHttpApiEncoding(ast)
 }
 
 /**
