@@ -1323,7 +1323,9 @@ export const gen: {
       : never
   >
   <Self, Eff extends Yieldable<any, any, any, any>, AEff>(
-    self: Self,
+    options: {
+      readonly this: Self
+    },
     f: (this: Self) => Generator<Eff, AEff, never>
   ): Effect<
     AEff,
@@ -8189,7 +8191,7 @@ export namespace fn {
    * @since 3.11.0
    * @category Models
    */
-  export type Gen = {
+  export type Untraced = {
     <Eff extends Yieldable<any, any, any, any>, AEff, Args extends Array<any>>(
       body: (this: unassigned, ...args: Args) => Generator<Eff, AEff, never>
     ): (...args: Args) => Effect<
@@ -8212,6 +8214,7 @@ export namespace fn {
         : [Eff] extends [Yieldable<infer _S, infer _A, infer _E, infer R>] ? R
         : never
     >
+
     <Eff extends Yieldable<any, any, any, any>, AEff, Args extends Array<any>, A>(
       body: (this: unassigned, ...args: Args) => Generator<Eff, AEff, never>,
       a: (
@@ -9774,7 +9777,7 @@ export namespace fn {
    * @since 3.11.0
    * @category Models
    */
-  export type WithNonGen = {
+  export type Traced = {
     <Eff extends Yieldable<any, any, any, any>, AEff, Args extends Array<any>>(
       body: (this: unassigned, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>)
     ): (...args: Args) => Effect<
@@ -9797,6 +9800,19 @@ export namespace fn {
         : [Eff] extends [Yieldable<infer _S, infer _A, infer _E, infer R>] ? R
         : never
     >
+    <Self, Eff extends Yieldable<any, any, any, any>, AEff, Args extends Array<any>>(
+      options: { readonly this: Self },
+      body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>)
+    ): (this: Self, ...args: Args) => Effect<
+      AEff,
+      [Eff] extends [never] ? never
+        : [Eff] extends [Yieldable<infer _S, infer _A, infer E, infer _R>] ? E
+        : never,
+      [Eff] extends [never] ? never
+        : [Eff] extends [Yieldable<infer _S, infer _A, infer _E, infer R>] ? R
+        : never
+    >
+
     <Eff extends Yieldable<any, any, any, any>, AEff, Args extends Array<any>, A>(
       body: (this: unassigned, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
@@ -11381,14 +11397,14 @@ export namespace fn {
  * @since 3.12.0
  * @category function
  */
-export const fnUntraced: fn.Gen = internal.fnUntraced
+export const fnUntraced: fn.Untraced = internal.fnUntraced
 
 /**
  * @since 3.12.0
  * @category function
  */
-export const fn: fn.WithNonGen & {
-  (name: string, options?: SpanOptionsNoTrace): fn.WithNonGen
+export const fn: fn.Traced & {
+  (name: string, options?: SpanOptionsNoTrace): fn.Traced
 } = internal.fn
 
 // ========================================================================
@@ -13195,4 +13211,4 @@ export const catchEager: {
  * @since 4.0.0
  * @category Eager
  */
-export const fnUntracedEager: fn.Gen = internal.fnUntracedEager
+export const fnUntracedEager: fn.Untraced = internal.fnUntracedEager
