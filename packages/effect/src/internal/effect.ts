@@ -1094,8 +1094,8 @@ export const fnUntraced: Effect.fn.Untraced = (
     }
     : function(this: any) {
       let effect = suspend(() => fromIteratorUnsafe(body.apply(this, arguments)))
-      for (const pipeable of pipeables) {
-        effect = pipeable(effect, ...arguments)
+      for (let i = 0; i < pipeables.length; i++) {
+        effect = pipeables[i](effect, ...arguments)
       }
       return effect
     }

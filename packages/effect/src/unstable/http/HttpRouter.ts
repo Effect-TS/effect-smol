@@ -834,7 +834,7 @@ class MiddlewareImpl<
     this.layerFn = layerFn
     this.dependencies = dependencies
     const contextKey = `effect/http/HttpRouter/Middleware-${++middlewareId}` as const
-    this.layer = Layer.effectServices(Effect.gen(this, function*() {
+    this.layer = Layer.effectServices(Effect.gen({ this: this }, function*() {
       const context = yield* Effect.services<Scope.Scope>()
       const stack = [context.mapUnsafe.get(fnContextKey)]
       if (this.dependencies) {

@@ -191,7 +191,7 @@ describe("Effect", () => {
       }).pipe(Effect.runPromise).then((_) => assert.deepStrictEqual(_, 1)))
 
     it("gen with context", () =>
-      Effect.gen({ a: 1, b: 2 }, function*() {
+      Effect.gen({ this: { a: 1, b: 2 } }, function*() {
         const result = yield* Effect.succeed(this.a)
         assert.strictEqual(result, 1)
         return result + this.b
