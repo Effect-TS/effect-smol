@@ -395,16 +395,18 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       const hasBody = HttpMethod.hasBody(endpoint.method)
       if (hasBody && payloads.size > 0) {
         const content: OpenApiSpecContent = {}
-        payloads.forEach(({ ast, encoding }, contentType) => {
-          irOps.push({
-            _tag: "schema",
-            ast,
-            path: ["paths", path, method, "requestBody", "content", contentType, "schema"],
-            encoding
+        payloads.forEach((map, kind) => {
+          map.forEach((ast, contentType) => {
+            irOps.push({
+              _tag: "schema",
+              ast,
+              path: ["paths", path, method, "requestBody", "content", contentType, "schema"],
+              encoding: { kind, contentType }
+            })
+            content[contentType as OpenApiSpecContentType] = {
+              schema: {}
+            }
           })
-          content[contentType as OpenApiSpecContentType] = {
-            schema: {}
-          }
         })
         op.requestBody = { content, required: true }
       }

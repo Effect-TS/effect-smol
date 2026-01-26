@@ -211,10 +211,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
-      readonly payloads: ReadonlyMap<string, {
-        readonly encoding: HttpApiSchema.Encoding
-        readonly ast: AST.AST
-      }>
+      readonly payloads: ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, AST.AST>>
       readonly successes: ReadonlyMap<number, {
         readonly ast: AST.AST | undefined
         readonly description: string | undefined
@@ -293,21 +290,21 @@ const extractMembers = (
   return members
 }
 
-function extractPayloads(ast: AST.AST): ReadonlyMap<string, {
-  readonly encoding: HttpApiSchema.Encoding
-  readonly ast: AST.AST
-}> {
-  const map = new Map<string, {
-    readonly encoding: HttpApiSchema.Encoding
-    readonly asts: Array<AST.AST>
-  }>()
+function extractPayloads(ast: AST.AST): ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, AST.AST>> {
+  const map = new Map<HttpApiSchema.Encoding["kind"], Map<string, Array<AST.AST>>>()
 
   recur(ast, undefined, undefined)
 
   return new Map(
-    [...map.entries()].map(([contentType, { encoding, asts }]) => [
-      contentType,
-      { encoding, ast: asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf") }
+    [...map.entries()].map((
+      [kind, map]
+    ) => [
+      kind,
+      new Map(
+        [...map.entries()].map((
+          [contentType, asts]
+        ) => [contentType, asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")])
+      )
     ])
   )
 
@@ -323,11 +320,16 @@ function extractPayloads(ast: AST.AST): ReadonlyMap<string, {
     } else {
       const encoding = getEncoding(ast) ?? parentEncoding ??
         (original ? getEncoding(original) : undefined) ?? HttpApiSchema.encodingJson
-      const current = map.get(encoding.contentType)
-      if (current === undefined) {
-        map.set(encoding.contentType, { encoding, asts: [original ?? ast] })
+      const kind = map.get(encoding.kind)
+      if (kind === undefined) {
+        map.set(encoding.kind, new Map([[encoding.contentType, [original ?? ast]]]))
       } else {
-        current.asts.push(original ?? ast)
+        const contentType = kind.get(encoding.contentType)
+        if (contentType === undefined) {
+          kind.set(encoding.contentType, [original ?? ast])
+        } else {
+          contentType.push(original ?? ast)
+        }
       }
     }
   }
