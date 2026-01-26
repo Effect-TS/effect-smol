@@ -313,7 +313,8 @@ function extractPayloads(ast: AST.AST): ReadonlyMap<HttpApiSchema.Encoding["kind
       const last = ast.encoding[ast.encoding.length - 1].to
       return recur(last, original, parentEncoding)
     }
-    if (AST.isUnion(ast)) {
+    // we only want to extract members of unions that contain http api annotations
+    if (AST.isUnion(ast) && HttpApiSchema.containsHttpApiAnnotations(ast)) {
       for (const type of ast.types) {
         recur(type, original, getEncoding(ast) ?? parentEncoding)
       }

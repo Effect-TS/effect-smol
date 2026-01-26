@@ -54,7 +54,8 @@ export const getStatusSuccess = (self: AST.AST): number =>
  */
 export const getStatusError = (self: AST.AST): number => resolveHttpApiStatus(self) ?? 500
 
-function isHttpApiAnnotationKey(key: string): boolean {
+/** @internal */
+export function isHttpApiAnnotationKey(key: string): boolean {
   return key.startsWith("httpApi")
 }
 
@@ -100,7 +101,7 @@ const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
   return out
 
   function process(ast: AST.AST): void {
-    if (AST.isUnion(ast) && shouldExtractUnion(ast)) {
+    if (AST.isUnion(ast) && containsHttpApiAnnotations(ast)) {
       for (const type of ast.types) {
         process(type)
       }
@@ -110,17 +111,16 @@ const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
   }
 }
 
-function shouldExtractUnion(ast: AST.Union): boolean {
-  if (ast.encoding) return false
-  if (
-    ast.types.some((ast) => {
+/** @internal */
+export function containsHttpApiAnnotations(ast: AST.AST): boolean {
+  switch (ast._tag) {
+    case "Union":
+      return ast.types.some(containsHttpApiAnnotations)
+    default: {
       const annotations = AST.resolve(ast)
-      return annotations && Object.keys(annotations).some(isHttpApiAnnotationKey)
-    })
-  ) {
-    return true
+      return annotations !== undefined && Object.keys(annotations).some(isHttpApiAnnotationKey)
+    }
   }
-  return AST.resolve(ast) === undefined
 }
 
 /**
