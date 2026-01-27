@@ -4214,19 +4214,29 @@ export const raceAllFirst: <Eff extends Effect<any, any, any>>(
 ) => Effect<Success<Eff>, Error<Eff>, Services<Eff>> = internal.raceAllFirst
 
 /**
- * Races two effects and returns the result of the first one to complete.
+ * Races two effects and returns the result of the first one to complete, whether
+ * it succeeds or fails.
  *
- * **Details**
+ * The losing effect is interrupted, and `onWinner` can observe the winning fiber.
  *
- * This function takes two effects and runs them concurrently, returning the
- * result of the first one that completes, regardless of whether it succeeds or
- * fails.
+ * @example
+ * ```ts
+ * import { Console, Duration, Effect } from "effect"
  *
- * **When to Use**
+ * const fastFail = Effect.delay(Effect.fail("fast-fail"), Duration.millis(10))
+ * const slowSuccess = Effect.delay(Effect.succeed("slow-success"), Duration.millis(50))
  *
- * This function is useful when you want to race two operations, and you want to
- * proceed with whichever one finishes first, regardless of whether it succeeds
- * or fails.
+ * const program = Effect.gen(function*() {
+ *   const message = yield* Effect.match(Effect.raceFirst(fastFail, slowSuccess), {
+ *     onFailure: (error) => `failed: ${error}`,
+ *     onSuccess: (value) => `succeeded: ${value}`
+ *   })
+ *   yield* Console.log(message)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: failed: fast-fail
+ * ```
  *
  * @since 2.0.0
  * @category Racing
