@@ -1,0 +1,6 @@
+[submodule ".repos/tanstack-router"]
+	path = .repos/tanstack-router
+	url = git@github.com:TanStack/router.git
+[submodule ".repos/react-router"]
+	path = .repos/react-router
+	url = git@github.com:remix-run/react-router.git
