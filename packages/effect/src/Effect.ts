@@ -4676,6 +4676,51 @@ export const matchCauseEager: {
 } = internal.matchCauseEager
 
 /**
+ * @example
+ * ```ts
+ * import { Cause, Console, Effect, pipe } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const success = yield* pipe(
+ *     Effect.succeed(42),
+ *     Effect.matchCauseEffectEager({
+ *       onFailure: (cause) =>
+ *         Effect.gen(function*() {
+ *           const error = Cause.squash(cause)
+ *           yield* Console.log(`unexpected failure: ${String(error)}`)
+ *           return "fallback"
+ *         }),
+ *       onSuccess: (value) =>
+ *         Effect.gen(function*() {
+ *           yield* Console.log(`success: ${value}`)
+ *           return `value ${value}`
+ *         })
+ *     })
+ *   )
+ *
+ *   const failure = yield* pipe(
+ *     Effect.fail(new Error("boom")),
+ *     Effect.matchCauseEffectEager({
+ *       onFailure: (cause) =>
+ *         Effect.gen(function*() {
+ *           const error = Cause.squash(cause)
+ *           yield* Console.log(`failure: ${String(error)}`)
+ *           return "recovered"
+ *         }),
+ *       onSuccess: (value) =>
+ *         Effect.gen(function*() {
+ *           yield* Console.log(`unexpected success: ${value}`)
+ *           return `value ${value}`
+ *         })
+ *     })
+ *   )
+ *
+ *   return { success, failure }
+ * })
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
  * @since 4.0.0
  * @category Pattern matching
  */
