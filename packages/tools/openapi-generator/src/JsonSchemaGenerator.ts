@@ -27,25 +27,9 @@ export function make() {
       (js) => fromSchemaOpenApi(js).schema
     )
 
-    // Add schemas from store (parameter schemas, inline schemas, etc.)
     for (const [name, js] of Object.entries(store)) {
       nameMap.push(name)
       schemas.push(fromSchemaOpenApi(js).schema)
-    }
-
-    // Add a meta schema that references all component schemas
-    // This ensures they all get extracted as non-recursive definitions
-    if (Object.keys(components).length > 0) {
-      const properties: Record<string, any> = {}
-      for (const name of Object.keys(components)) {
-        properties[name] = { $ref: `#/${name}` }
-      }
-      nameMap.push("__AllComponentSchemas__")
-      schemas.push({
-        type: "object" as JsonSchema.Type,
-        properties,
-        additionalProperties: false
-      })
     }
 
     if (Arr.isArrayNonEmpty(schemas)) {
@@ -59,29 +43,11 @@ export function make() {
 
       const codeDocument = SchemaRepresentation.toCodeDocument(multiDocument)
 
-      // Collect all names that need sanitization
-      const namesForSanitization = [...nameMap]
-      for (const { $ref } of codeDocument.references.nonRecursives) {
-        if (!namesForSanitization.includes($ref)) {
-          namesForSanitization.push($ref)
-        }
-      }
-      for (const $ref of Object.keys(codeDocument.references.recursives)) {
-        if (!namesForSanitization.includes($ref)) {
-          namesForSanitization.push($ref)
-        }
-      }
-
-      const nonRecursives = codeDocument.references.nonRecursives.map(({ $ref, code }) =>
-        renderSchema($ref, code, namesForSanitization)
-      )
+      const nonRecursives = codeDocument.references.nonRecursives.map(({ $ref, code }) => renderSchema($ref, code))
       const recursives = Object.entries(codeDocument.references.recursives).map(([$ref, code]) =>
-        renderSchema($ref, code, namesForSanitization)
+        renderSchema($ref, code)
       )
-      const codes = codeDocument.codes
-        .map((code, i) => ({ name: nameMap[i], code }))
-        .filter(({ name }) => name !== "__AllComponentSchemas__")
-        .map(({ name, code }) => renderSchema(name, code, namesForSanitization))
+      const codes = codeDocument.codes.map((code, i) => renderSchema(nameMap[i], code))
 
       const s = render("non-recursive definitions", nonRecursives) +
         render("recursive definitions", recursives) +
@@ -101,29 +67,10 @@ export function make() {
       }
     }
 
-    function sanitizeIdentifier(name: string): string {
-      return name.replace(/-/g, "_")
-    }
-
-    function sanitizeCode(codeStr: string, names: Array<string>): string {
-      let result = codeStr
-      for (const name of names) {
-        if (name.includes("-")) {
-          const sanitized = sanitizeIdentifier(name)
-          const regex = new RegExp(`\\b${name.replace(/-/g, "\\-")}\\b`, "g")
-          result = result.replace(regex, sanitized)
-        }
-      }
-      return result
-    }
-
-    function renderSchema($ref: string, code: SchemaRepresentation.Code, names: Array<string>) {
-      const sanitized = sanitizeIdentifier($ref)
-      const sanitizedType = sanitizeCode(code.Type, names)
-      const strings = [`export type ${sanitized} = ${sanitizedType}`]
+    function renderSchema($ref: string, code: SchemaRepresentation.Code) {
+      const strings = [`export type ${$ref} = ${code.Type}`]
       if (!typeOnly) {
-        const sanitizedRuntime = sanitizeCode(code.runtime, names)
-        strings.push(`export const ${sanitized} = ${sanitizedRuntime}`)
+        strings.push(`export const ${$ref} = ${code.runtime}`)
       }
       return strings.join("\n")
     }

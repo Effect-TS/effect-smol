@@ -59,15 +59,6 @@ export const make = Effect.gen(function*() {
         return current
       }
 
-      function getSchemaName(schema: any, fallbackName: string): string {
-        if ("$ref" in schema && typeof schema.$ref === "string") {
-          const ref = schema.$ref
-          const lastSlash = ref.lastIndexOf("/")
-          return lastSlash >= 0 ? ref.slice(lastSlash + 1) : ref
-        }
-        return generator.addSchema(fallbackName, schema)
-      }
-
       const operations: Array<ParsedOperation.ParsedOperation> = []
 
       function handlePath(path: string, methods: OpenAPISpecPathItem): void {
@@ -158,16 +149,16 @@ export const make = Effect.gen(function*() {
           }
 
           if (Predicate.isNotUndefined(operation.requestBody?.content?.["application/json"]?.schema)) {
-            op.payload = getSchemaName(
-              operation.requestBody.content["application/json"].schema,
-              `${schemaId}Request`
+            op.payload = generator.addSchema(
+              `${schemaId}RequestJson`,
+              operation.requestBody.content["application/json"].schema
             )
           }
 
           if (Predicate.isNotUndefined(operation.requestBody?.content?.["multipart/form-data"]?.schema)) {
-            op.payload = getSchemaName(
-              operation.requestBody.content["multipart/form-data"].schema,
-              `${schemaId}Request`
+            op.payload = generator.addSchema(
+              `${schemaId}RequestFormData`,
+              operation.requestBody.content["multipart/form-data"].schema
             )
             op.payloadFormData = true
           }
@@ -182,9 +173,9 @@ export const make = Effect.gen(function*() {
             }
 
             if (Predicate.isNotUndefined(response.content?.["application/json"]?.schema)) {
-              const schemaName = getSchemaName(
-                response.content["application/json"].schema,
-                `${schemaId}${status}`
+              const schemaName = generator.addSchema(
+                `${schemaId}${status}`,
+                response.content["application/json"].schema
               )
 
               if (status === "default") {
