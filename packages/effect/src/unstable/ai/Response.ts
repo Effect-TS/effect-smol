@@ -1542,7 +1542,8 @@ export interface ToolResultFailure<Name extends string, Failure> extends BaseToo
  *     condition: "sunny",
  *     humidity: 65
  *   },
- *   providerExecuted: false
+ *   providerExecuted: false,
+ *   preliminary: false
  * })
  * ```
  *

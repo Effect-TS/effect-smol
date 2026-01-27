@@ -1754,7 +1754,8 @@ export const fromMessages = (messages: ReadonlyArray<Message>): Prompt => makePr
  *     isFailure: false,
  *     result: "10:30 AM",
  *     encodedResult: "10:30 AM",
- *     providerExecuted: false
+ *     providerExecuted: false,
+ *     preliminary: false
  *   })
  * ]
  *

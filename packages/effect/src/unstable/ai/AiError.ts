@@ -144,7 +144,7 @@ export const HttpRequestDetails = Schema.Struct({
  * import { AiError } from "effect/unstable/ai"
  *
  * const error = new AiError.NetworkError({
- *   reason: "Transport",
+ *   reason: "TransportError",
  *   request: {
  *     method: "POST",
  *     url: "https://api.openai.com/v1/completions",
