@@ -6959,6 +6959,24 @@ export const replicate: {
  * These options provide flexibility in running the effects concurrently or
  * adjusting other execution details.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   let counter = 0
+ *   const next = Effect.sync(() => ++counter)
+ *
+ *   const results = yield* Effect.replicateEffect(next, 3)
+ *   yield* Effect.replicateEffect(next, 2, { discard: true })
+ *
+ *   return results
+ * })
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: [ 1, 2, 3 ]
+ * ```
+ *
  * @since 2.0.0
  * @category Collecting
  */
