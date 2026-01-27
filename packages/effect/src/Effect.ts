@@ -7016,9 +7016,9 @@ export const replicate: {
  *
  * **Options**
  *
- * Options let you control concurrency and whether results are discarded. If
- * `discard` is set to `true`, the results are not collected and the final
- * result is `void`.
+ * Options let you control concurrency (how many fibers run at once) and
+ * whether results are discarded. If `discard` is set to `true`, results are
+ * ignored and the final result is `void`.
  *
  * @example
  * ```ts
@@ -7028,7 +7028,7 @@ export const replicate: {
  *   let counter = 0
  *   const next = Effect.sync(() => ++counter)
  *
- *   const results = yield* Effect.replicateEffect(next, 3)
+ *   const results = yield* Effect.replicateEffect(next, 3, { concurrency: 2 })
  *   yield* Effect.replicateEffect(next, 2, { discard: true })
  *
  *   return results
