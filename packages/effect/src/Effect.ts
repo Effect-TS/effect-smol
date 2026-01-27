@@ -4267,6 +4267,21 @@ export const filter: {
 } = internal.filter
 
 /**
+ * @example
+ * ```ts
+ * import { Effect, Filter, pipe } from "effect"
+ *
+ * const toEvenLabel = Filter.makeEffect((n: number) =>
+ *   Effect.gen(function*() {
+ *     return n % 2 === 0 ? `even:${n}` : Filter.fail(n)
+ *   })
+ * )
+ *
+ * const program = pipe([1, 2, 3, 4], Effect.filterMap(toEvenLabel))
+ *
+ * Effect.runPromise(program).then(console.log)
+ * ```
+ *
  * @since 2.0.0
  * @category Filtering
  */
