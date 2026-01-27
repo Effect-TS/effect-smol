@@ -4829,31 +4829,22 @@ export const matchEffect: {
 // -----------------------------------------------------------------------------
 
 /**
- * Checks if an effect has failed.
+ * Determines whether an effect fails.
  *
- * **Details**
- *
- * This function evaluates whether an effect has resulted in a failure. It
- * returns a boolean value wrapped in an effect, with `true` indicating the
- * effect failed and `false` otherwise.
- *
- * The resulting effect cannot fail (`never` in the error channel) but retains
- * the context of the original effect.
+ * Defects are not converted; if the effect dies, the resulting effect dies too.
  *
  * **Example**
  *
  * ```ts
- * import { Effect } from "effect"
+ * import { Console, Effect } from "effect"
  *
- * const failure = Effect.fail("Uh oh!")
+ * const program = Effect.gen(function*() {
+ *   const failed = yield* Effect.isFailure(Effect.fail("Uh oh!"))
+ *   yield* Console.log(failed)
+ * })
  *
- * console.log(Effect.runSync(Effect.isFailure(failure)))
+ * Effect.runPromise(program)
  * // Output: true
- *
- * const defect = Effect.die("BOOM!")
- *
- * Effect.runSync(Effect.isFailure(defect))
- * // throws: BOOM!
  * ```
  *
  * @since 2.0.0
