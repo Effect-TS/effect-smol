@@ -787,6 +787,43 @@ export const setCwd: {
 )
 
 /**
+ * Set environment variables for a command.
+ *
+ * For pipelines, applies to each command in the pipeline.
+ *
+ * @example
+ * ```ts
+ * import { ChildProcess } from "effect/unstable/process"
+ *
+ * const cmd = ChildProcess.make`node script.js`.pipe(
+ *   ChildProcess.setEnv({ NODE_ENV: "test" })
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const setEnv: {
+  (env: Record<string, string>): (self: Command) => Command
+  (self: Command, env: Record<string, string>): Command
+} = dual(
+  2,
+  (self: Command, env: Record<string, string>): Command => {
+    switch (self._tag) {
+      case "StandardCommand": {
+        const nextEnv = self.options.env === undefined
+          ? env
+          : { ...self.options.env, ...env }
+        return makeStandardCommand(self.command, self.args, { ...self.options, env: nextEnv })
+      }
+      case "PipedCommand": {
+        return makePipedCommand(setEnv(self.left, env), setEnv(self.right, env), self.options)
+      }
+    }
+  }
+)
+
+/**
  * Spawn a command and return a handle for interaction.
  *
  * Unlike `exec`, this does not wait for the process to complete. Instead,
