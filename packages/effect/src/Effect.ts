@@ -6996,8 +6996,25 @@ export const repeatOrElse: {
  * This function takes an effect and replicates it a specified number of times
  * (`n`). The result is an array of `n` effects, each of which is identical to
  * the original effect.
+ * Use `Effect.all` to execute the returned effects.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const task = Effect.sync(() => "ping")
+ *
+ * const program = Effect.gen(function*() {
+ *   const effects = Effect.replicate(task, 3)
+ *   return yield* Effect.all(effects)
+ * })
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: [ 'ping', 'ping', 'ping' ]
+ * ```
  *
  * @since 2.0.0
+ * @category repetition / recursion
  */
 export const replicate: {
   (n: number): <A, E, R>(self: Effect<A, E, R>) => Array<Effect<A, E, R>>
