@@ -1343,10 +1343,9 @@ export const gen: {
 } = internal.gen
 
 /**
- * Type helpers for generator signatures used with `Effect.gen`.
+ * Type helpers for `Effect.gen` generator return signatures.
  *
  * @since 4.0.0
- * @category Yieldable
  */
 export namespace gen {
   /**
