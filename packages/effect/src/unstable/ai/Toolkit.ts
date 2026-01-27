@@ -39,8 +39,8 @@
  * @since 1.0.0
  */
 import * as Effect from "../../Effect.ts"
+import * as Fiber from "../../Fiber.ts"
 import { identity } from "../../Function.ts"
-import { Fiber } from "../../index.ts"
 import type { Inspectable } from "../../Inspectable.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import * as Layer from "../../Layer.ts"
@@ -362,7 +362,7 @@ const Proto = {
         const fiber = yield* schemas.handler(decodedParams, context).pipe(
           Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
           Effect.onExit(() => Queue.end(preliminaryResults)),
-          Effect.forkScoped
+          Effect.forkChild
         )
 
         const encodeResult = (result: any) =>
@@ -384,30 +384,46 @@ const Proto = {
           Effect.map((result) => ({ result, isFailure: false, preliminary: false }))
         )
 
+        const normalizeError = (error: unknown) => {
+          // Schema errors indicate handler returned invalid data
+          const normalizedError = Schema.isSchemaError(error)
+            ? AiError.make({
+              module: "Toolkit",
+              method: `${name}.handle`,
+              reason: new AiError.InvalidToolResultError({
+                toolName: name,
+                description: `Tool handler returned invalid result: ${error.message}`
+              })
+            })
+            : AiError.isAiErrorReason(error)
+            ? AiError.make({
+              module: "Toolkit",
+              method: `${name}.handle`,
+              reason: error
+            })
+            : error
+          return normalizedError
+        }
+
         return Stream.fromQueue(preliminaryResults).pipe(
           Stream.map((result) => ({ result, isFailure: false, preliminary: true })),
+          // If the queue is failed, interrupt the handler fiber and emit the error
+          Stream.catch((error) =>
+            Stream.fromEffect(Fiber.interrupt(fiber)).pipe(
+              Stream.flatMap(() => {
+                const normalizedError = normalizeError(error)
+                return tool.failureMode === "error"
+                  ? Stream.fail(normalizedError)
+                  : Stream.make({ result: normalizedError, isFailure: true, preliminary: false })
+              })
+            )
+          ),
           // Concatenate the terminal result onto the stream
           Stream.concat(Stream.fromEffect(terminalResult)),
           // If the tool handler failed, check the tool's failure mode to
           // determine how the result should be returned to the end user
           Stream.catch((error) => {
-            // Schema errors indicate handler returned invalid data
-            const normalizedError = Schema.isSchemaError(error)
-              ? AiError.make({
-                module: "Toolkit",
-                method: `${name}.handle`,
-                reason: new AiError.InvalidToolResultError({
-                  toolName: name,
-                  description: `Tool handler returned invalid result: ${error.message}`
-                })
-              })
-              : AiError.isAiErrorReason(error)
-              ? AiError.make({
-                module: "Toolkit",
-                method: `${name}.handle`,
-                reason: error
-              })
-              : error
+            const normalizedError = normalizeError(error)
             return tool.failureMode === "error"
               ? Stream.fail(normalizedError)
               : Stream.succeed({ result: normalizedError, isFailure: true, preliminary: false })

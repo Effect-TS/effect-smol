@@ -567,6 +567,7 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
       tool: mcpTool,
       handle(payload) {
         return built.handle(tool.name as any, payload).pipe(
+          Stream.unwrap,
           Stream.run(Sink.last()),
           Effect.flatMap(Effect.fromOption),
           Effect.provideServices(services as ServiceMap.ServiceMap<any>),

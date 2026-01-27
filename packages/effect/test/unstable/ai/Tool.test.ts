@@ -1,6 +1,7 @@
 import { describe, it } from "@effect/vitest"
-import { deepStrictEqual } from "@effect/vitest/utils"
-import { Effect, Schema } from "effect"
+import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { Effect, Fiber, identity, Queue, Schema, Stream } from "effect"
+import { TestClock } from "effect/testing"
 import { AiError, LanguageModel, Response, Tool, Toolkit } from "effect/unstable/ai"
 import * as TestUtils from "./utils.ts"
 
@@ -245,6 +246,343 @@ describe("Tool", () => {
           })
         )
       }))
+
+    describe("Preliminary Results", () => {
+      it.effect("should not have preliminary results when generateText is used", () =>
+        Effect.gen(function*() {
+          const toolkit = Toolkit.make(IncrementalTool)
+
+          const toolCallId = "tool-123"
+          const toolName = "IncrementalTool"
+          const preliminaryResult = { status: "loading", progress: 50 } as const
+          const terminalResult = { status: "complete" } as const
+
+          const handlers = toolkit.toLayer({
+            IncrementalTool: Effect.fnUntraced(function*(_, ctx) {
+              yield* Queue.offer(ctx.preliminaryResults, preliminaryResult)
+              return terminalResult
+            })
+          })
+
+          const response = yield* LanguageModel.generateText({
+            prompt: "Test",
+            toolkit
+          }).pipe(
+            TestUtils.withLanguageModel({
+              generateText: [{
+                type: "tool-call",
+                id: toolCallId,
+                name: toolName,
+                params: { input: "test" }
+              }]
+            }),
+            Effect.provide(handlers)
+          )
+
+          const hasPreliminaryResults = response.content.some((part) => {
+            return part.type === "tool-result" && part.preliminary === true
+          })
+
+          assertFalse(hasPreliminaryResults)
+          deepStrictEqual(
+            response.content[1],
+            Response.toolResultPart({
+              id: toolCallId,
+              name: toolName,
+              isFailure: false,
+              result: terminalResult,
+              encodedResult: terminalResult,
+              providerExecuted: false,
+              preliminary: false
+            })
+          )
+        }))
+
+      it.effect("should have preliminary results when streamText is used", () =>
+        Effect.gen(function*() {
+          const toolkit = Toolkit.make(IncrementalTool)
+
+          const toolCallId = "tool-123"
+          const toolName = "IncrementalTool"
+          const preliminaryResult = { status: "loading", progress: 50 } as const
+          const terminalResult = { status: "complete" } as const
+
+          const handlers = toolkit.toLayer({
+            IncrementalTool: Effect.fnUntraced(function*(_, ctx) {
+              yield* Queue.offer(ctx.preliminaryResults, preliminaryResult)
+              return terminalResult
+            })
+          })
+
+          const response = yield* LanguageModel.streamText({
+            prompt: "Test",
+            toolkit
+          }).pipe(
+            Stream.runCollect,
+            TestUtils.withLanguageModel({
+              streamText: [{
+                type: "tool-call",
+                id: toolCallId,
+                name: toolName,
+                params: { input: "test" }
+              }]
+            }),
+            Effect.provide(handlers)
+          )
+
+          deepStrictEqual(
+            response[1],
+            Response.toolResultPart({
+              id: toolCallId,
+              name: toolName,
+              isFailure: false,
+              result: preliminaryResult,
+              encodedResult: preliminaryResult,
+              providerExecuted: false,
+              preliminary: true
+            })
+          )
+
+          deepStrictEqual(
+            response[2],
+            Response.toolResultPart({
+              id: toolCallId,
+              name: toolName,
+              isFailure: false,
+              result: terminalResult,
+              encodedResult: terminalResult,
+              providerExecuted: false,
+              preliminary: false
+            })
+          )
+        }))
+
+      it.effect("should handle multiple preliminary results in sequence", () =>
+        Effect.gen(function*() {
+          const toolkit = Toolkit.make(IncrementalTool)
+
+          const toolCallId = "tool-123"
+          const toolName = "IncrementalTool"
+
+          const handlers = toolkit.toLayer({
+            IncrementalTool: Effect.fnUntraced(function*(_, ctx) {
+              yield* Queue.offer(ctx.preliminaryResults, { status: "loading", progress: 0 })
+              yield* Queue.offer(ctx.preliminaryResults, { status: "processing", progress: 50 })
+              yield* Queue.offer(ctx.preliminaryResults, { status: "finalizing", progress: 90 })
+              return { status: "complete" }
+            })
+          })
+
+          const response = yield* LanguageModel.streamText({
+            prompt: "Test",
+            toolkit
+          }).pipe(
+            Stream.runCollect,
+            TestUtils.withLanguageModel({
+              streamText: [{
+                type: "tool-call",
+                id: toolCallId,
+                name: toolName,
+                params: { input: "test" }
+              }]
+            }),
+            Effect.provide(handlers)
+          )
+
+          const toolResults = response.filter((part) => part.type === "tool-result")
+
+          // Should have 3 preliminary + 1 final = 4 results
+          strictEqual(toolResults.length, 4)
+
+          // Verify ordering and preliminary flags
+          strictEqual(toolResults[0].preliminary, true)
+          deepStrictEqual(toolResults[0].result, { status: "loading", progress: 0 })
+
+          strictEqual(toolResults[1].preliminary, true)
+          deepStrictEqual(toolResults[1].result, { status: "processing", progress: 50 })
+
+          strictEqual(toolResults[2].preliminary, true)
+          deepStrictEqual(toolResults[2].result, { status: "finalizing", progress: 90 })
+
+          strictEqual(toolResults[3].preliminary, false)
+          deepStrictEqual(toolResults[3].result, { status: "complete" })
+        }))
+
+      it.effect("should handle preliminary results for long-running tools", () =>
+        Effect.gen(function*() {
+          const toolkit = Toolkit.make(IncrementalTool)
+
+          const toolCallId = "tool-123"
+          const toolName = "IncrementalTool"
+
+          const handlers = toolkit.toLayer({
+            IncrementalTool: Effect.fnUntraced(function*(_, ctx) {
+              yield* Queue.offer(ctx.preliminaryResults, { status: "loading", progress: 0 })
+              yield* Effect.sleep("5 seconds")
+              return { status: "complete" }
+            })
+          })
+
+          const terminalLatch = yield* Effect.makeLatch()
+          const assertions = { preliminary: false, terminal: false }
+
+          const fiber = yield* LanguageModel.streamText({
+            prompt: "Test",
+            toolkit
+          }).pipe(
+            Stream.tap(Effect.fnUntraced(function*(part) {
+              if (part.type === "tool-result") {
+                if (!assertions.preliminary) {
+                  yield* terminalLatch.open
+                  strictEqual(part.preliminary, true)
+                  deepStrictEqual(part.result, { status: "loading", progress: 0 })
+                  assertions.preliminary = true
+                } else {
+                  strictEqual(part.preliminary, false)
+                  deepStrictEqual(part.result, { status: "complete" })
+                  assertions.terminal = true
+                }
+              }
+            })),
+            Stream.runCollect,
+            TestUtils.withLanguageModel({
+              streamText: [{
+                type: "tool-call",
+                id: toolCallId,
+                name: toolName,
+                params: { input: "test" }
+              }]
+            }),
+            Effect.provide(handlers),
+            Effect.forkScoped
+          )
+
+          yield* terminalLatch.await
+          yield* TestClock.adjust("5 seconds")
+          const response = yield* Fiber.join(fiber)
+
+          assertTrue(Object.values(assertions).every(identity))
+
+          // Should have 1 preliminary + 1 final = 2 results
+          const toolResults = response.filter((part) => part.type === "tool-result")
+          strictEqual(toolResults.length, 2)
+        }))
+
+      it.effect("should emit preliminary results before failure when handler fails", () =>
+        Effect.gen(function*() {
+          const toolkit = Toolkit.make(IncrementalToolWithFailure)
+
+          const toolCallId = "tool-123"
+          const toolName = "IncrementalToolWithFailure"
+
+          const handlers = toolkit.toLayer({
+            IncrementalToolWithFailure: Effect.fnUntraced(function*(_, ctx) {
+              yield* Queue.offer(ctx.preliminaryResults, { status: "loading" })
+              yield* Queue.offer(ctx.preliminaryResults, { status: "processing" })
+              return yield* Effect.fail({ error: "Something went wrong" })
+            })
+          })
+
+          const response = yield* LanguageModel.streamText({
+            prompt: "Test",
+            toolkit
+          }).pipe(
+            Stream.runCollect,
+            TestUtils.withLanguageModel({
+              streamText: [{
+                type: "tool-call",
+                id: toolCallId,
+                name: toolName,
+                params: { input: "test" }
+              }]
+            }),
+            Effect.provide(handlers)
+          )
+
+          const toolResults = response.filter((part) => part.type === "tool-result")
+
+          // Should have 2 preliminary + 1 final (failure) = 3 results
+          strictEqual(toolResults.length, 3)
+
+          // Preliminary results emitted before failure
+          strictEqual(toolResults[0].preliminary, true)
+          strictEqual(toolResults[0].isFailure, false)
+          deepStrictEqual(toolResults[0].result, { status: "loading" })
+
+          strictEqual(toolResults[1].preliminary, true)
+          strictEqual(toolResults[1].isFailure, false)
+          deepStrictEqual(toolResults[1].result, { status: "processing" })
+
+          // Final result is the failure
+          strictEqual(toolResults[2].preliminary, false)
+          strictEqual(toolResults[2].isFailure, true)
+          deepStrictEqual(toolResults[2].result, { error: "Something went wrong" })
+        }))
+
+      it.effect("should handle concurrent tools with preliminary results", () =>
+        Effect.gen(function*() {
+          const toolkit = Toolkit.make(IncrementalToolWithFailure)
+
+          const handlers = toolkit.toLayer({
+            IncrementalToolWithFailure: Effect.fnUntraced(function*({ input }, ctx) {
+              yield* Queue.offer(ctx.preliminaryResults, { status: `${input}-loading` })
+              return { status: `${input}-complete`, progress: 100 }
+            })
+          })
+
+          const response = yield* LanguageModel.streamText({
+            prompt: "Test",
+            toolkit
+          }).pipe(
+            Stream.runCollect,
+            TestUtils.withLanguageModel({
+              streamText: [
+                {
+                  type: "tool-call",
+                  id: "tool-fast",
+                  name: "IncrementalToolWithFailure",
+                  params: { input: "fast" }
+                },
+                {
+                  type: "tool-call",
+                  id: "tool-slow",
+                  name: "IncrementalToolWithFailure",
+                  params: { input: "slow" }
+                }
+              ]
+            }),
+            Effect.provide(handlers)
+          )
+
+          // Both tool calls emitted
+          const toolCalls = response.filter((part) => part.type === "tool-call")
+          strictEqual(toolCalls.length, 2)
+
+          // Both tools should have preliminary results
+          const toolResults = response.filter((part) => part.type === "tool-result")
+          const preliminaryResults = toolResults.filter((part) => part.preliminary === true)
+          strictEqual(preliminaryResults.length, 2)
+
+          // Verify both preliminary results have expected statuses
+          const preliminaryStatuses = preliminaryResults
+            .map((p) => (p.result as { status: string }).status)
+            .sort()
+          deepStrictEqual(preliminaryStatuses, ["fast-loading", "slow-loading"])
+
+          // Both tools should have final results
+          const finalResults = toolResults.filter((part) => part.preliminary === false)
+          strictEqual(finalResults.length, 2)
+
+          // Verify both final results have expected statuses
+          const finalStatuses = finalResults
+            .map((p) => (p.result as { status: string }).status)
+            .sort()
+          deepStrictEqual(finalStatuses, ["fast-complete", "slow-complete"])
+
+          // Verify total: 2 tool calls + 2 preliminary + 2 final = 6 parts
+          strictEqual(response.length, 6)
+        }))
+    })
   })
 
   describe("Provider Defined", () => {
@@ -553,6 +891,30 @@ const FailureModeReturn = Tool.make("FailureModeReturn", {
   }),
   failure: Schema.Struct({
     testFailure: Schema.String
+  })
+})
+
+const IncrementalTool = Tool.make("IncrementalTool", {
+  description: "A test tool",
+  parameters: { input: Schema.String },
+  success: Schema.Union([
+    Schema.Struct({ status: Schema.Literal("loading"), progress: Schema.Number }),
+    Schema.Struct({ status: Schema.Literal("processing"), progress: Schema.Number }),
+    Schema.Struct({ status: Schema.Literal("finalizing"), progress: Schema.Number }),
+    Schema.Struct({ status: Schema.Literal("complete") })
+  ])
+})
+
+const IncrementalToolWithFailure = Tool.make("IncrementalToolWithFailure", {
+  description: "A test tool",
+  failureMode: "return",
+  parameters: { input: Schema.String },
+  success: Schema.Struct({
+    status: Schema.String,
+    progress: Schema.optional(Schema.Number)
+  }),
+  failure: Schema.Struct({
+    error: Schema.String
   })
 })
 
