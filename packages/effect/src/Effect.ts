@@ -3472,7 +3472,7 @@ export const tapDefect: {
  * const flaky = Effect.gen(function*() {
  *   attempts += 1
  *   if (attempts < 3) {
- *     yield* Effect.fail("not yet")
+ *     return yield* Effect.fail("not yet")
  *   }
  *   return attempts
  * })
