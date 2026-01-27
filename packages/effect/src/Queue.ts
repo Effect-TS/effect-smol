@@ -1,35 +1,4 @@
 /**
- * This module provides utilities for working with asynchronous queues that support various backpressure strategies.
- *
- * A Queue is a data structure that allows producers to add elements and consumers to take elements
- * in a thread-safe manner. The queue supports different strategies for handling backpressure when
- * the queue reaches capacity.
- *
- * @example
- * ```ts
- * import { Cause, Effect, Queue } from "effect"
- *
- * // Creating a bounded queue with capacity 10
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
- *
- *   // Producer: add items to queue
- *   yield* Queue.offer(queue, 1)
- *   yield* Queue.offer(queue, 2)
- *   yield* Queue.offerAll(queue, [3, 4, 5])
- *
- *   // Consumer: take items from queue
- *   const item1 = yield* Queue.take(queue)
- *   const item2 = yield* Queue.take(queue)
- *   const remaining = yield* Queue.takeAll(queue)
- *
- *   console.log({ item1, item2, remaining }) // { item1: 1, item2: 2, remaining: [3, 4, 5] }
- *
- *   // Signal completion
- *   yield* Queue.end(queue)
- * })
- * ```
- *
  * @since 3.8.0
  */
 import * as Arr from "./Array.ts"
@@ -55,19 +24,6 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
 /**
  * Type guard to check if a value is a Queue.
  *
- * @example
- * ```ts
- * import { Cause, Effect, Queue } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
- *   const notQueue = { value: 42 }
- *
- *   console.log(Queue.isQueue(queue)) // true
- *   console.log(Queue.isQueue(notQueue)) // false
- * })
- * ```
- *
  * @since 3.8.0
  * @category guards
  */
@@ -78,18 +34,6 @@ export const isQueue = <A = unknown, E = unknown>(
 /**
  * Type guard to check if a value is an Enqueue.
  *
- * @example
- * ```ts
- * import { Cause, Effect, Queue } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
- *
- *   console.log(Queue.isEnqueue(queue)) // true
- *   console.log(Queue.isEnqueue({}))    // false
- * })
- * ```
- *
  * @since 4.0.0
  * @category guards
  */
@@ -99,18 +43,6 @@ export const isEnqueue = <A = unknown, E = unknown>(
 
 /**
  * Type guard to check if a value is a Dequeue.
- *
- * @example
- * ```ts
- * import { Cause, Effect, Queue } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
- *
- *   console.log(Queue.isDequeue(queue)) // true
- *   console.log(Queue.isDequeue({}))    // false
- * })
- * ```
  *
  * @since 4.0.0
  * @category guards
@@ -127,10 +59,9 @@ export const isDequeue = <A = unknown, E = unknown>(
  * import { Effect, Queue } from "effect"
  *
  * // Function that only needs to offer to a queue
- * const producer = (enqueue: Queue.Enqueue<number>) =>
- *   Effect.gen(function*() {
- *     yield* Queue.offer(enqueue as Queue.Queue<number>, 42)
- *   })
+ * const producer = Effect.fn(function*(enqueue: Queue.Enqueue<number>) {
+ *   yield* Queue.offer(enqueue, 42)
+ * })
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -598,7 +529,7 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  * @category offering
  * @since 4.0.0
  */
-export const offer = <A, E>(self: Queue<A, E>, message: Types.NoInfer<A>): Effect<boolean> =>
+export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Effect<boolean> =>
   internalEffect.suspend(() => {
     if (self.state._tag !== "Open") {
       return exitFalse
@@ -652,7 +583,7 @@ export const offer = <A, E>(self: Queue<A, E>, message: Types.NoInfer<A>): Effec
  * @category offering
  * @since 4.0.0
  */
-export const offerUnsafe = <A, E>(self: Queue<A, E>, message: Types.NoInfer<A>): boolean => {
+export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): boolean => {
   if (self.state._tag !== "Open") {
     return false
   } else if (self.messages.length >= self.capacity) {
@@ -704,7 +635,7 @@ export const offerUnsafe = <A, E>(self: Queue<A, E>, message: Types.NoInfer<A>):
  * @category offering
  * @since 4.0.0
  */
-export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect<Array<A>> =>
+export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effect<Array<A>> =>
   internalEffect.suspend(() => {
     if (self.state._tag !== "Open") {
       return internalEffect.succeed(Arr.fromIterable(messages))
@@ -745,7 +676,7 @@ export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect
  * @category offering
  * @since 4.0.0
  */
-export const offerAllUnsafe = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Array<A> => {
+export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Array<A> => {
   if (self.state._tag !== "Open") {
     return Arr.fromIterable(messages)
   } else if (
@@ -835,11 +766,12 @@ export const fail = <A, E>(self: Queue<A, E>, error: E) => failCause(self, core.
  * @since 4.0.0
  */
 export const failCause: {
-  <E>(cause: Cause<E>): <A>(self: Queue<A, E>) => Effect<boolean>
-  <A, E>(self: Queue<A, E>, cause: Cause<E>): Effect<boolean>
+  <E>(cause: Cause<E>): <A>(self: Enqueue<A, E>) => Effect<boolean>
+  <A, E>(self: Enqueue<A, E>, cause: Cause<E>): Effect<boolean>
 } = dual(
   2,
-  <A, E>(self: Queue<A, E>, cause: Cause<E>): Effect<boolean> => internalEffect.sync(() => failCauseUnsafe(self, cause))
+  <A, E>(self: Enqueue<A, E>, cause: Cause<E>): Effect<boolean> =>
+    internalEffect.sync(() => failCauseUnsafe(self, cause))
 )
 
 /**
@@ -872,7 +804,7 @@ export const failCause: {
  * @category completion
  * @since 4.0.0
  */
-export const failCauseUnsafe = <A, E>(self: Queue<A, E>, cause: Cause<E>): boolean => {
+export const failCauseUnsafe = <A, E>(self: Enqueue<A, E>, cause: Cause<E>): boolean => {
   if (self.state._tag !== "Open") {
     return false
   }
@@ -921,7 +853,7 @@ export const failCauseUnsafe = <A, E>(self: Queue<A, E>, cause: Cause<E>): boole
  * @category completion
  * @since 4.0.0
  */
-export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => failCause(self, core.causeFail(core.Done()))
+export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCause(self, core.causeFail(core.Done()))
 
 /**
  * Signal that the queue is complete synchronously. If the queue is already done, `false` is
@@ -953,7 +885,7 @@ export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => failCaus
  * @category completion
  * @since 4.0.0
  */
-export const endUnsafe = <A, E>(self: Queue<A, E | Done>) => failCauseUnsafe(self, core.causeFail(core.Done()))
+export const endUnsafe = <A, E>(self: Enqueue<A, E | Done>) => failCauseUnsafe(self, core.causeFail(core.Done()))
 
 /**
  * Interrupts the queue gracefully, transitioning it to a closing state.
@@ -996,7 +928,7 @@ export const endUnsafe = <A, E>(self: Queue<A, E | Done>) => failCauseUnsafe(sel
  * @category completion
  * @since 4.0.0
  */
-export const interrupt = <A, E>(self: Queue<A, E>): Effect<boolean> =>
+export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
   core.withFiber((fiber) => failCause(self, internalEffect.causeInterrupt(fiber.id)))
 
 /**
@@ -1030,7 +962,7 @@ export const interrupt = <A, E>(self: Queue<A, E>): Effect<boolean> =>
  * @category completion
  * @since 4.0.0
  */
-export const shutdown = <A, E>(self: Queue<A, E>): Effect<boolean> =>
+export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
   internalEffect.sync(() => {
     if (self.state._tag === "Done") {
       return true
@@ -1614,19 +1546,19 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  */
 export const into: {
   <A, E>(
-    self: Queue<A, E | Done>
+    self: Enqueue<A, E | Done>
   ): <AX, EX extends E, RX>(
     effect: Effect<AX, EX, RX>
   ) => Effect<boolean, never, RX>
   <AX, E, EX extends E, RX, A>(
     effect: Effect<AX, EX, RX>,
-    self: Queue<A, E | Done>
+    self: Enqueue<A, E | Done>
   ): Effect<boolean, never, RX>
 } = dual(
   2,
   <AX, E, EX extends E, RX, A>(
     effect: Effect<AX, EX, RX>,
-    self: Queue<A, E | Done>
+    self: Enqueue<A, E | Done>
   ): Effect<boolean, never, RX> =>
     internalEffect.uninterruptibleMask((restore) =>
       internalEffect.matchCauseEffect(restore(effect), {
@@ -1646,7 +1578,7 @@ const exitTrue = core.exitSucceed(true)
 const exitFailDone = core.exitFail(core.Done()) as Failure<never, Done>
 const exitInterrupt = internalEffect.exitInterrupt() as Failure<never, never>
 
-const releaseTakers = <A, E>(self: Queue<A, E>) => {
+const releaseTakers = <A, E>(self: Enqueue<A, E>) => {
   self.scheduleRunning = false
   if (self.state._tag === "Done" || self.state.takers.size === 0) {
     return
@@ -1660,7 +1592,7 @@ const releaseTakers = <A, E>(self: Queue<A, E>) => {
   }
 }
 
-const scheduleReleaseTaker = <A, E>(self: Queue<A, E>) => {
+const scheduleReleaseTaker = <A, E>(self: Enqueue<A, E>) => {
   if (self.scheduleRunning || self.state._tag === "Done" || self.state.takers.size === 0) {
     return
   }
@@ -1693,7 +1625,7 @@ const takeBetweenUnsafe = <A, E>(
   }
 }
 
-const offerRemainingSingle = <A, E>(self: Queue<A, E>, message: A) => {
+const offerRemainingSingle = <A, E>(self: Enqueue<A, E>, message: A) => {
   return internalEffect.callback<boolean>((resume) => {
     if (self.state._tag !== "Open") {
       return resume(exitFalse)
@@ -1708,7 +1640,7 @@ const offerRemainingSingle = <A, E>(self: Queue<A, E>, message: A) => {
   })
 }
 
-const offerRemainingArray = <A, E>(self: Queue<A, E>, remaining: Array<A>) => {
+const offerRemainingArray = <A, E>(self: Enqueue<A, E>, remaining: Array<A>) => {
   return internalEffect.callback<Array<A>>((resume) => {
     if (self.state._tag !== "Open") {
       return resume(core.exitSucceed(remaining))
@@ -1791,7 +1723,7 @@ const takeAllUnsafe = <A, E>(self: Dequeue<A, E>) => {
   return []
 }
 
-const finalize = <A, E>(self: Dequeue<A, E>, exit: Failure<never, E>) => {
+const finalize = <A, E>(self: Enqueue<A, E> | Dequeue<A, E>, exit: Failure<never, E>) => {
   if (self.state._tag === "Done") {
     return
   }
