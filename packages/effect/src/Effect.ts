@@ -3463,6 +3463,25 @@ export const tapDefect: {
  * (e.g., a network request), and you want to keep trying without handling or
  * worrying about the errors.
  *
+ * @example
+ * ```ts
+ * import { Effect, pipe } from "effect"
+ *
+ * let attempts = 0
+ *
+ * const flaky = Effect.gen(function*() {
+ *   attempts += 1
+ *   if (attempts < 3) {
+ *     yield* Effect.fail("not yet")
+ *   }
+ *   return attempts
+ * })
+ *
+ * const program = pipe(flaky, Effect.eventually)
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
  * @since 2.0.0
  * @category Error handling
  */
