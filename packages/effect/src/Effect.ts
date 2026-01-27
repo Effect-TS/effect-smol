@@ -7799,6 +7799,34 @@ export const runCallbackWith: <R>(
 ) => (interruptor?: number | undefined) => void = internal.runCallbackWith
 
 /**
+ * Runs an effect asynchronously, registering `onExit` as a fiber observer.
+ *
+ * Returns an interruptor that calls `fiber.interruptUnsafe` with the provided
+ * interruptor id.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Exit } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   yield* Console.log("working")
+ *   return "done"
+ * })
+ *
+ * const interrupt = Effect.runCallback(program, {
+ *   onExit: (exit) => {
+ *     Effect.runSync(
+ *       Exit.match(exit, {
+ *         onFailure: () => Console.log("failed"),
+ *         onSuccess: (value) => Console.log(`success: ${value}`)
+ *       })
+ *     )
+ *   }
+ * })
+ *
+ * // interrupt() to cancel the fiber if needed
+ * ```
+ *
  * @since 4.0.0
  * @category Running Effects
  */
