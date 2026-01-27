@@ -8241,6 +8241,10 @@ export const runSyncExitWith: <R>(
 // -----------------------------------------------------------------------------
 
 /**
+ * Type helpers for functions built with `Effect.fn` and `Effect.fnUntraced`.
+ *
+ * Use these to describe generator-based signatures and traced or untraced variants.
+ *
  * @since 3.12.0
  * @category Function
  */
