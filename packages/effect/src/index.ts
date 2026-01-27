@@ -2004,37 +2004,6 @@ export * as PubSub from "./PubSub.ts"
 export * as Pull from "./Pull.ts"
 
 /**
- * This module provides utilities for working with asynchronous queues that support various backpressure strategies.
- *
- * A Queue is a data structure that allows producers to add elements and consumers to take elements
- * in a thread-safe manner. The queue supports different strategies for handling backpressure when
- * the queue reaches capacity.
- *
- * @example
- * ```ts
- * import { Cause, Effect, Queue } from "effect"
- *
- * // Creating a bounded queue with capacity 10
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
- *
- *   // Producer: add items to queue
- *   yield* Queue.offer(queue, 1)
- *   yield* Queue.offer(queue, 2)
- *   yield* Queue.offerAll(queue, [3, 4, 5])
- *
- *   // Consumer: take items from queue
- *   const item1 = yield* Queue.take(queue)
- *   const item2 = yield* Queue.take(queue)
- *   const remaining = yield* Queue.takeAll(queue)
- *
- *   console.log({ item1, item2, remaining }) // { item1: 1, item2: 2, remaining: [3, 4, 5] }
- *
- *   // Signal completion
- *   yield* Queue.end(queue)
- * })
- * ```
- *
  * @since 3.8.0
  */
 export * as Queue from "./Queue.ts"

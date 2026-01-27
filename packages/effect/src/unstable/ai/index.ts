@@ -79,7 +79,7 @@
  * console.log(error.message) // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export * as AiError from "./AiError.ts"
 
@@ -355,7 +355,7 @@ export * as Prompt from "./Prompt.ts"
  * })
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export * as Response from "./Response.ts"
 
