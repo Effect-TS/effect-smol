@@ -4267,6 +4267,26 @@ export const filter: {
 } = internal.filter
 
 /**
+ * Effectfully filters and maps elements of an iterable using a `Filter.FilterEffect`.
+ *
+ * Elements that return `Filter.fail` are dropped; all other results are collected
+ * into an array. Use `options.concurrency` to control effect execution.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Filter } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Effect.filterMap([1, 2, 3, 4], (n) =>
+ *     Effect.succeed(n % 2 === 0 ? n * 2 : Filter.fail(n))
+ *   )
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [4, 8]
+ * ```
+ *
  * @since 2.0.0
  * @category Filtering
  */
