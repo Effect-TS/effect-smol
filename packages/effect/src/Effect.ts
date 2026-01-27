@@ -2968,29 +2968,25 @@ export const catchDefect: {
  * **Example** (Catching Specific Errors with a Refinement)
  *
  * ```ts
- * import { Console, Effect, Random } from "effect"
+ * import { Console, Data, Effect, Random } from "effect"
  *
- * class HttpError {
- *   readonly _tag = "HttpError"
- *   constructor(readonly status: number) {}
- * }
+ * class HttpError extends Data.TaggedError("HttpError")<{ status: number }> {}
  *
- * class ValidationError {
- *   readonly _tag = "ValidationError"
- *   constructor(readonly field: string) {}
- * }
+ * class ValidationError extends Data.TaggedError("ValidationError")<{ field: string }> {}
  *
- * const isHttpError = (error: HttpError | ValidationError): error is HttpError =>
+ * type ApiError = HttpError | ValidationError
+ *
+ * const isHttpError = (error: ApiError): error is HttpError =>
  *   error._tag === "HttpError"
  *
  * const program = Effect.gen(function*() {
  *   const n1 = yield* Random.next
  *   const n2 = yield* Random.next
  *   if (n1 < 0.5) {
- *     yield* Effect.fail(new HttpError(503))
+ *     yield* Effect.fail(new HttpError({ status: 503 }))
  *   }
  *   if (n2 < 0.5) {
- *     yield* Effect.fail(new ValidationError("email"))
+ *     yield* Effect.fail(new ValidationError({ field: "email" }))
  *   }
  *   return "some result"
  * })
