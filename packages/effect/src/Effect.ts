@@ -5781,11 +5781,28 @@ export const onError: {
 } = internal.onError
 
 /**
- * Runs the specified effect if this effect fails, providing the error to the
- * effect if it exists. The provided effect will not be interrupted.
+ * Runs the finalizer only when this effect fails and the `Cause` matches the
+ * filter, passing the filtered failure and the original cause.
+ *
+ * @example
+ * ```ts
+ * import { Cause, Console, Effect } from "effect"
+ *
+ * const task = Effect.fail("boom")
+ *
+ * const program = Effect.onErrorFilter(
+ *   task,
+ *   Cause.filterError,
+ *   (error, cause) =>
+ *     Effect.gen(function*() {
+ *       yield* Console.log(`Filtered error: ${error}`)
+ *       yield* Console.log(`Full cause: ${Cause.pretty(cause)}`)
+ *     })
+ * )
+ * ```
  *
  * @since 4.0.0
- * @category Resource management & finalization
+ * @category Resource Management & Finalization
  */
 export const onErrorFilter: {
   <A, E, EB, X, XE, XR>(
