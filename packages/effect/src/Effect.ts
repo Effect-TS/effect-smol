@@ -3770,11 +3770,14 @@ export const ignore: <
   : <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignore
 
 /**
- * Apply an `ExecutionPlan` to the effect, which allows you to fallback to
- * different resources in case of failure.
+ * Apply an `ExecutionPlan` to the effect, retrying with plan-provided resources
+ * until the effect succeeds or the plan is exhausted.
+ *
+ * Each step can provide a `Layer` or `ServiceMap` and optional retry schedule,
+ * with `ExecutionPlan.CurrentMetadata` updated per attempt.
  *
  * @since 3.16.0
- * @category Error handling
+ * @category Error Handling
  */
 export const withExecutionPlan: {
   <Input, Provides, PlanE, PlanR>(
