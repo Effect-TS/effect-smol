@@ -12266,8 +12266,31 @@ export namespace fn {
 export const fnUntraced: fn.Untraced = internal.fnUntraced
 
 /**
+ * Creates a traced function with an optional span name and `SpanOptionsNoTrace` that adds spans and stack frames, plus pipeable post-processing that receives the Effect and the original arguments.
+ *
+ * Pipeable functions run after the body and can transform the resulting Effect.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect } from "effect"
+ *
+ * // Create a named span and post-process the returned Effect.
+ * const greet = Effect.fn("greet")(
+ *   function*(name: string) {
+ *     yield* Console.log(`Hello, ${name}`)
+ *     return name.length
+ *   },
+ *   Effect.map((length) => length + 1)
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const result = yield* greet("Ada")
+ *   yield* Console.log(`Length: ${result}`)
+ * })
+ * ```
+ *
  * @since 3.12.0
- * @category function
+ * @category Function
  */
 export const fn: fn.Traced & {
   (name: string, options?: SpanOptionsNoTrace): fn.Traced
