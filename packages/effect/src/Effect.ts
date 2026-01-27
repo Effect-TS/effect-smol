@@ -12286,8 +12286,24 @@ export const clockWith: <A, E, R>(
 // ========================================================================
 
 /**
+ * Creates a logger function that logs at the specified level.
+ *
+ * If no level is provided, the logger uses the fiber's current log level and
+ * extracts any `Cause` values from the message list.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const logWarn = Effect.logWithLevel("Warn")
+ *
+ * const program = Effect.gen(function*() {
+ *   yield* logWarn("Cache miss", { key: "user:1" })
+ * })
+ * ```
+ *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const logWithLevel: (level?: LogLevel) => (...message: ReadonlyArray<any>) => Effect<void> =
   internal.logWithLevel
