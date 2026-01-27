@@ -445,8 +445,8 @@ export type ToolResultParts<Tools extends Record<string, Tool.Any>> = {
  */
 export const ProviderMetadata: Schema.Record$<
   Schema.String,
-  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
-> = Schema.Record(Schema.String, Schema.NullOr(Schema.MutableJson))
+  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+> = Schema.Record(Schema.String, Schema.NullOr(Schema.Json))
 
 /**
  * @since 1.0.0
@@ -619,7 +619,7 @@ export const TextPart: Schema.Struct<{
   readonly text: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -679,7 +679,7 @@ export const TextStartPart: Schema.Struct<{
   readonly id: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -747,7 +747,7 @@ export const TextDeltaPart: Schema.Struct<{
   readonly delta: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -808,7 +808,7 @@ export const TextEndPart: Schema.Struct<{
   readonly id: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -879,7 +879,7 @@ export const ReasoningPart: Schema.Struct<{
   readonly text: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -939,7 +939,7 @@ export const ReasoningStartPart: Schema.Struct<{
   readonly id: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -1007,7 +1007,7 @@ export const ReasoningDeltaPart: Schema.Struct<{
   readonly delta: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -1068,7 +1068,7 @@ export const ReasoningEndPart: Schema.Struct<{
   readonly id: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -1149,7 +1149,7 @@ export const ToolParamsStartPart: Schema.Struct<{
   readonly providerExecuted: Schema.withDecodingDefaultKey<Schema.Boolean>
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -1224,7 +1224,7 @@ export const ToolParamsDeltaPart: Schema.Struct<{
   readonly delta: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -1289,7 +1289,7 @@ export const ToolParamsEndPart: Schema.Struct<{
   readonly id: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -1406,7 +1406,7 @@ export const ToolCallPart: <const Name extends string, Params extends Schema.Str
     readonly providerExecuted: Schema.withDecodingDefaultKey<Schema.Boolean>
     readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
     readonly metadata: Schema.withDecodingDefault<
-      Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+      Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
     >
   }
 > = <const Name extends string, Params extends Schema.Struct.Fields>(
@@ -1617,7 +1617,7 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
       readonly providerExecuted: Schema.Boolean
       readonly metadata: Schema.Record$<
         Schema.String,
-        Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson, never, never>>
+        Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json, never, never>>
       >
       readonly encodedResult: Schema.toEncoded<Schema.Union<readonly [Success, Failure]>>
       readonly preliminary: Schema.Boolean
@@ -1632,7 +1632,7 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
       readonly result: Schema.toEncoded<Schema.Union<readonly [Success, Failure]>>
       readonly providerExecuted: Schema.optional<Schema.Boolean>
       readonly metadata: Schema.optional<
-        Schema.Record$<Schema.String, Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson, never, never>>>
+        Schema.Record$<Schema.String, Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json, never, never>>>
       >
       readonly preliminary: Schema.optional<Schema.Boolean>
       readonly id: Schema.String
@@ -1785,7 +1785,7 @@ export const FilePart: Schema.Struct<{
   readonly data: Schema.Uint8ArrayFromBase64
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -1882,7 +1882,7 @@ export const DocumentSourcePart: Schema.Struct<{
   readonly fileName: Schema.optionalKey<Schema.String>
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -1973,7 +1973,7 @@ export const UrlSourcePart: Schema.Struct<{
   readonly title: Schema.String
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -2069,7 +2069,7 @@ export const ResponseMetadataPart: Schema.Struct<{
   readonly timestamp: Schema.UndefinedOr<Schema.DateTimeUtcFromString>
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -2245,7 +2245,7 @@ export const FinishPart: Schema.Struct<{
   readonly usage: typeof Usage
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -2307,7 +2307,7 @@ export const ErrorPart: Schema.Struct<{
   readonly error: Schema.Unknown
   readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
   readonly metadata: Schema.withDecodingDefault<
-    Schema.Record$<Schema.String, Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,

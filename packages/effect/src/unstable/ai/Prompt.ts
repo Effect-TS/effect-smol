@@ -88,8 +88,8 @@ const constEmptyObject = () => ({})
  */
 export const ProviderOptions: Schema.Record$<
   Schema.String,
-  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
-> = Schema.Record(Schema.String, Schema.NullOr(Schema.MutableJson))
+  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+> = Schema.Record(Schema.String, Schema.NullOr(Schema.Json))
 
 /**
  * @since 4.0.0
@@ -302,7 +302,7 @@ export const TextPart: Schema.Struct<
     readonly options: Schema.withDecodingDefault<
       Schema.Record$<
         Schema.String,
-        Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+        Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
       >
     >
   }
@@ -382,7 +382,7 @@ export const ReasoningPart: Schema.Struct<{
   readonly options: Schema.withDecodingDefault<
     Schema.Record$<
       Schema.String,
-      Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
     >
   >
 }> = Schema.Struct({
@@ -490,7 +490,7 @@ export const FilePart: Schema.Struct<{
   readonly options: Schema.withDecodingDefault<
     Schema.Record$<
       Schema.String,
-      Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
     >
   >
 }> = Schema.Struct({
@@ -600,7 +600,7 @@ export const ToolCallPart: Schema.Struct<{
   readonly options: Schema.withDecodingDefault<
     Schema.Record$<
       Schema.String,
-      Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
     >
   >
 }> = Schema.Struct({
@@ -715,7 +715,7 @@ export const ToolResultPart: Schema.Struct<{
   readonly options: Schema.withDecodingDefault<
     Schema.Record$<
       Schema.String,
-      Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
     >
   >
 }> = Schema.Struct({
@@ -861,7 +861,7 @@ export const ContentFromString: Schema.decodeTo<
         readonly options: Schema.withDecodingDefault<
           Schema.Record$<
             Schema.String,
-            Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+            Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
           >
         >
       }>
@@ -940,7 +940,7 @@ export const SystemMessage: Schema.Struct<{
   readonly options: Schema.withDecodingDefault<
     Schema.Record$<
       Schema.String,
-      Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
     >
   >
 }> = Schema.Struct({
@@ -1059,7 +1059,7 @@ export const UserMessage: Schema.Struct<{
               readonly options: Schema.withDecodingDefault<
                 Schema.Record$<
                   Schema.String,
-                  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
                 >
               >
             }>
@@ -1079,7 +1079,7 @@ export const UserMessage: Schema.Struct<{
               readonly options: Schema.withDecodingDefault<
                 Schema.Record$<
                   Schema.String,
-                  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
                 >
               >
             }>,
@@ -1092,7 +1092,7 @@ export const UserMessage: Schema.Struct<{
               readonly options: Schema.withDecodingDefault<
                 Schema.Record$<
                   Schema.String,
-                  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
                 >
               >
             }>
@@ -1105,7 +1105,7 @@ export const UserMessage: Schema.Struct<{
   readonly options: Schema.withDecodingDefault<
     Schema.Record$<
       Schema.String,
-      Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
     >
   >
 }> = Schema.Struct({
@@ -1242,7 +1242,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly options: Schema.withDecodingDefault<
                 Schema.Record$<
                   Schema.String,
-                  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
                 >
               >
             }>
@@ -1262,7 +1262,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly options: Schema.withDecodingDefault<
                 Schema.Record$<
                   Schema.String,
-                  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
                 >
               >
             }>,
@@ -1275,7 +1275,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly options: Schema.withDecodingDefault<
                 Schema.Record$<
                   Schema.String,
-                  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
                 >
               >
             }>,
@@ -1286,7 +1286,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly options: Schema.withDecodingDefault<
                 Schema.Record$<
                   Schema.String,
-                  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
                 >
               >
             }>,
@@ -1300,7 +1300,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly options: Schema.withDecodingDefault<
                 Schema.Record$<
                   Schema.String,
-                  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
                 >
               >
             }>,
@@ -1314,7 +1314,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly options: Schema.withDecodingDefault<
                 Schema.Record$<
                   Schema.String,
-                  Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
                 >
               >
             }>
@@ -1327,7 +1327,7 @@ export const AssistantMessage: Schema.Struct<{
   readonly options: Schema.withDecodingDefault<
     Schema.Record$<
       Schema.String,
-      Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
     >
   >
 }> = Schema.Struct({
@@ -1450,7 +1450,7 @@ export const ToolMessage: Schema.Struct<{
       readonly options: Schema.withDecodingDefault<
         Schema.Record$<
           Schema.String,
-          Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+          Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
         >
       >
     }>
@@ -1459,7 +1459,7 @@ export const ToolMessage: Schema.Struct<{
   readonly options: Schema.withDecodingDefault<
     Schema.Record$<
       Schema.String,
-      Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson>>
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
     >
   >
 }> = Schema.Struct({
