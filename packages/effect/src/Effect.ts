@@ -12286,6 +12286,25 @@ export const clockWith: <A, E, R>(
 // ========================================================================
 
 /**
+ * Creates a logger that logs at a specific level.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const logAudit = Effect.logWithLevel("Info")
+ *
+ * const program = Effect.gen(function*() {
+ *   yield* logAudit("user signed in", { id: "u-1" })
+ *   yield* Effect.logWithLevel("Debug")("debug context", { flow: "login" })
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // timestamp=2023-... level=INFO message="user signed in { id: \"u-1\" }"
+ * // timestamp=2023-... level=DEBUG message="debug context { flow: \"login\" }"
+ * ```
+ *
  * @since 2.0.0
  * @category logging
  */
