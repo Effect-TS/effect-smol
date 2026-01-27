@@ -2943,50 +2943,54 @@ export const catchDefect: {
 } = internal.catchDefect
 
 /**
- * Recovers from specific errors based on a predicate.
+ * Recovers from errors that match a predicate or refinement.
  *
- * **When to Use**
+ * When you pass a refinement predicate, the recovery handler receives the
+ * narrowed error and the remaining error type excludes the refined branch.
  *
- * `catchIf` lets you recover from errors with a predicate. If the predicate
- * matches the error, the recovery effect is applied. This function doesn't
- * alter the error type, so the resulting effect still carries the original
- * error type unless a user-defined type guard is used to narrow the type.
- *
- * **Example** (Catching Specific Errors with a Predicate)
+ * **Example** (Catching Specific Errors with a Refinement)
  *
  * ```ts
- * import { Effect, Random } from "effect"
+ * import { Console, Effect, Random } from "effect"
  *
  * class HttpError {
  *   readonly _tag = "HttpError"
+ *   constructor(readonly status: number) {}
  * }
  *
  * class ValidationError {
  *   readonly _tag = "ValidationError"
+ *   constructor(readonly field: string) {}
  * }
+ *
+ * const isHttpError = (error: HttpError | ValidationError): error is HttpError =>
+ *   error._tag === "HttpError"
  *
  * const program = Effect.gen(function*() {
  *   const n1 = yield* Random.next
  *   const n2 = yield* Random.next
  *   if (n1 < 0.5) {
- *     yield* Effect.fail(new HttpError())
+ *     yield* Effect.fail(new HttpError(503))
  *   }
  *   if (n2 < 0.5) {
- *     yield* Effect.fail(new ValidationError())
+ *     yield* Effect.fail(new ValidationError("email"))
  *   }
  *   return "some result"
  * })
  *
  * const recovered = program.pipe(
  *   Effect.catchIf(
- *     (error) => error._tag === "HttpError",
- *     () => Effect.succeed("Recovering from HttpError")
+ *     isHttpError,
+ *     (error) =>
+ *       Console.log(`Recovering from ${error._tag} ${error.status}`).pipe(
+ *         Effect.as("fallback")
+ *       )
  *   )
  * )
  * ```
  *
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const catchIf: {
   <E, EB extends E, A2, E2, R2>(
