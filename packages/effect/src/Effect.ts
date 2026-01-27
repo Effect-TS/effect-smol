@@ -7437,7 +7437,7 @@ export const withParentSpan: {
 // -----------------------------------------------------------------------------
 
 /**
- * Executes a request using the provided resolver to produce the request's result.
+ * Executes a request using the provided resolver.
  *
  * @since 2.0.0
  * @category Requests & Batching
