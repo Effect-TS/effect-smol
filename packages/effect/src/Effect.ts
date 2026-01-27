@@ -7437,10 +7437,34 @@ export const withParentSpan: {
 // -----------------------------------------------------------------------------
 
 /**
- * Executes a request using the provided resolver.
+ * Executes a request using the provided resolver to produce the request's result.
  *
  * @since 2.0.0
- * @category requests & batching
+ * @category Requests & Batching
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Exit, Request, RequestResolver } from "effect"
+ *
+ * interface GetUser extends Request.Request<string> {
+ *   readonly _tag: "GetUser"
+ *   readonly id: number
+ * }
+ * const GetUser = Request.tagged<GetUser>("GetUser")
+ *
+ * const resolver = RequestResolver.make<GetUser>(
+ *   Effect.fnUntraced(function*(entries) {
+ *     for (const entry of entries) {
+ *       yield* Request.complete(entry, Exit.succeed(`user-${entry.request.id}`))
+ *     }
+ *   })
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const name = yield* Effect.request(GetUser({ id: 1 }), resolver)
+ *   yield* Console.log(name)
+ * })
+ * ```
  */
 export const request: {
   <A extends Request.Any, EX = never, RX = never>(
