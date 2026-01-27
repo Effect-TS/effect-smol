@@ -7780,6 +7780,19 @@ export const forkDetach: <
 /**
  * Access the current fiber executing the effect.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const current = yield* Effect.fiber
+ *   return current.id
+ * })
+ *
+ * const fiberId = Effect.runSync(program)
+ * console.log(fiberId)
+ * ```
+ *
  * @since 4.0.0
  * @category supervision & fibers
  */
