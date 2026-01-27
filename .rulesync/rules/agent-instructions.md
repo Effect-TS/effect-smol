@@ -19,7 +19,7 @@ This is the Effect library repository, focusing on functional programming patter
 - **Zero Tolerance for Errors**: All automated checks must pass
 - **Clarity over Cleverness**: Choose clear, maintainable solutions
 - **Conciseness**: Keep code and any wording concise and to the point. Sacrifice grammar for the sake of concision.
-- **Reduce comments**: Avoid comments unless absolutely required to explain unusual or complex logic
+- **Reduce comments**: Avoid comments unless absolutely required to explain unusual or complex logic. Comments in jsdocs are acceptable.
 
 ### Mandatory Validation Steps
 
