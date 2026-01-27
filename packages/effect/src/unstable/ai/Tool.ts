@@ -691,7 +691,7 @@ export interface Handler<Name extends string> {
   readonly _: unique symbol
   readonly name: Name
   readonly services: ServiceMap.ServiceMap<never>
-  readonly handler: (params: any) => Effect.Effect<any, any>
+  readonly handler: (params: any, ctx: any) => Effect.Effect<any, any>
 }
 
 /**
@@ -702,10 +702,6 @@ export interface Handler<Name extends string> {
  */
 export interface HandlerResult<Tool extends Any> {
   /**
-   * Whether the result of executing the tool call handler was an error or not.
-   */
-  readonly isFailure: boolean
-  /**
    * The result of executing the handler for a particular tool.
    */
   readonly result: Result<Tool>
@@ -715,7 +711,32 @@ export interface HandlerResult<Tool extends Any> {
    * into subsequent requests to the large language model.
    */
   readonly encodedResult: unknown
+  /**
+   * Whether the result of executing the tool call handler was an error or not.
+   */
+  readonly isFailure: boolean
+  /**
+   * Whether this is a preliminary (intermediate) result or the final result.
+   * Preliminary results represent progress updates; only the final result
+   * should be used as the authoritative output.
+   */
+  readonly preliminary: boolean
 }
+
+/**
+ * Tagged union for incremental handler output.
+ *
+ * When a tool handler returns a `Stream`, each emitted value is tagged as
+ * either:
+ * - `Preliminary`: An intermediate result representing progress
+ * - `Final`: The last result, which is the authoritative output
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export type HandlerOutput<Success> =
+  | { readonly _tag: "Preliminary"; readonly value: Success }
+  | { readonly _tag: "Final"; readonly value: Success }
 
 /**
  * A utility type which represents the possible errors that can be raised by
@@ -728,7 +749,7 @@ export type HandlerError<T> = T extends Tool<
   infer _Name,
   infer _Config,
   infer _Requirements
-> ? _Config["failureMode"] extends "error" ? _Config["failure"]["Type"] | AiError.AiError
+> ? _Config["failureMode"] extends "error" ? _Config["failure"]["Type"] | AiError.AiError | AiError.AiErrorReason
   : never
   : never
 

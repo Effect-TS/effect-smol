@@ -1482,6 +1482,16 @@ export interface BaseToolResult<Name extends string> extends BasePart<"tool-resu
    * Whether the tool was executed by the provider (true) or framework (false).
    */
   readonly providerExecuted: boolean
+  /**
+   * Whether this is a preliminary (intermediate) result.
+   *
+   * Preliminary results represent progress updates during streaming tool
+   * execution. Only the final result (where `preliminary` is `false` or
+   * `undefined`) should be used as the authoritative output.
+   *
+   * Only applicable for framework-executed tools during streaming.
+   */
+  readonly preliminary: boolean
 }
 
 /**
@@ -1588,6 +1598,12 @@ export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", To
    * Whether the tool was executed by the provider (true) or framework (false).
    */
   readonly providerExecuted?: boolean | undefined
+  /**
+   * Whether this is a preliminary (intermediate) result.
+   *
+   * Only applicable for framework-executed tools during streaming.
+   */
+  readonly preliminary?: boolean | undefined
 }
 
 /**
@@ -1621,6 +1637,7 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
       readonly type: Schema.Literal<"tool-result">
       readonly isFailure: Schema.Boolean
       readonly name: Schema.Literal<Name>
+      readonly preliminary: Schema.Boolean
     }
   >,
   Schema.Struct<
@@ -1634,6 +1651,7 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
       readonly type: Schema.Literal<"tool-result">
       readonly isFailure: Schema.Boolean
       readonly name: Schema.Literal<Name>
+      readonly preliminary: Schema.optional<Schema.Boolean>
     }
   >,
   never,
@@ -1660,13 +1678,15 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
     result: ResultSchema,
     providerExecuted: Schema.Boolean,
     metadata: ProviderMetadata,
-    encodedResult: Schema.toEncoded(ResultSchema)
+    encodedResult: Schema.toEncoded(ResultSchema),
+    preliminary: Schema.Boolean
   })
   const Encoded = Schema.Struct({
     ...Common,
     result: Schema.toEncoded(ResultSchema),
     providerExecuted: Schema.optional(Schema.Boolean),
-    metadata: Schema.optional(ProviderMetadata)
+    metadata: Schema.optional(ProviderMetadata),
+    preliminary: Schema.optional(Schema.Boolean)
   })
   return Decoded.pipe(Schema.encodeTo(
     Encoded,
@@ -1676,7 +1696,8 @@ export const ToolResultPart: <const Name extends string, Success extends Schema.
         [PartTypeId]: PartTypeId,
         providerExecuted: encoded.providerExecuted ?? false,
         metadata: encoded.metadata ?? {},
-        encodedResult: encoded.result
+        encodedResult: encoded.result,
+        preliminary: encoded.preliminary ?? false
       }),
       encode: identity
     })

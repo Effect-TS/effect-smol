@@ -40,7 +40,8 @@ describe("Tool", () => {
             name: toolName,
             result: toolResult,
             encodedResult: toolResult,
-            providerExecuted: false
+            providerExecuted: false,
+            preliminary: false
           })
         ])
       }))
@@ -79,7 +80,8 @@ describe("Tool", () => {
             isFailure: true,
             result: toolResult,
             encodedResult: toolResult,
-            providerExecuted: false
+            providerExecuted: false,
+            preliminary: false
           })
         ])
       }))
@@ -190,6 +192,7 @@ describe("Tool", () => {
             name: toolName,
             isFailure: true,
             providerExecuted: false,
+            preliminary: false,
             result: AiError.make({
               module: "Toolkit",
               method: "FailureModeReturn.handle",
@@ -199,7 +202,7 @@ describe("Tool", () => {
               _tag: "AiError",
               module: "Toolkit",
               method: "FailureModeReturn.handle",
-              reason: { _tag: "RateLimitError" }
+              reason: { _tag: "RateLimitError", metadata: {} }
             }
           })
         ])
@@ -287,7 +290,8 @@ describe("Tool", () => {
             isFailure: false,
             result: toolResult,
             encodedResult: toolResult,
-            providerExecuted: true
+            providerExecuted: true,
+            preliminary: false
           })
         ])
       }))
@@ -334,7 +338,8 @@ describe("Tool", () => {
             isFailure: true,
             result: toolResult,
             encodedResult: toolResult,
-            providerExecuted: true
+            providerExecuted: true,
+            preliminary: false
           })
         ])
       }))
@@ -380,7 +385,8 @@ describe("Tool", () => {
             isFailure: false,
             result: toolResult,
             encodedResult: toolResult,
-            providerExecuted: false
+            providerExecuted: false,
+            preliminary: false
           })
         ])
       }))
@@ -427,7 +433,8 @@ describe("Tool", () => {
             isFailure: true,
             result: toolResult,
             encodedResult: toolResult,
-            providerExecuted: false
+            providerExecuted: false,
+            preliminary: false
           })
         ])
       }))

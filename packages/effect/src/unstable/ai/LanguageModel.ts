@@ -53,6 +53,7 @@ import * as Effect from "../../Effect.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
+import { CurrentConcurrency } from "../../References.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -804,7 +805,10 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         const rawContent = yield* params.generateText(providerOptions)
 
         // Resolve the generated tool calls
-        const toolResults = yield* resolveToolCalls(rawContent, toolkit, options.concurrency)
+        const toolResults = yield* resolveToolCalls(rawContent, toolkit, options.concurrency).pipe(
+          Stream.filter((result) => result.preliminary === false),
+          Stream.runCollect
+        )
         const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
 
         // Return the content merged with the tool call results
@@ -867,14 +871,14 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         const decodeParts = Schema.decodeEffect(ResponseSchema)
         const queue = yield* Queue.make<
           Response.StreamPart<Tools>,
-          AiError.AiError | Cause.Done | Schema.SchemaError
+          AiError.AiError | AiError.AiErrorReason | Cause.Done | Schema.SchemaError
         >()
         yield* params.streamText(providerOptions).pipe(
           Stream.runForEachArray(Effect.fnUntraced(function*(chunk) {
             const parts = yield* decodeParts(chunk)
             yield* Queue.offerAll(queue, parts)
-            const toolResults = yield* resolveToolCalls(chunk, toolkit, options.concurrency)
-            yield* Queue.offerAll(queue, toolResults as any)
+            const resultStream = resolveToolCalls(chunk, toolkit, options.concurrency)
+            yield* Stream.runIntoQueue(resultStream as any, queue)
           })),
           Queue.into(queue),
           Effect.forkScoped
@@ -1012,15 +1016,13 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
   content: ReadonlyArray<Response.AllPartsEncoded>,
   toolkit: Toolkit.WithHandler<Tools>,
   concurrency: Concurrency | undefined
-): Effect.Effect<
-  ReadonlyArray<
-    Response.ToolResultPart<
-      Tool.Name<Tools[keyof Tools]>,
-      Tool.Success<Tools[keyof Tools]>,
-      Tool.Failure<Tools[keyof Tools]>
-    >
+): Stream.Stream<
+  Response.ToolResultPart<
+    Tool.Name<Tools[keyof Tools]>,
+    Tool.Success<Tools[keyof Tools]>,
+    Tool.Failure<Tools[keyof Tools]>
   >,
-  Tool.HandlerError<Tools[keyof Tools]>,
+  Tool.HandlerError<Tools[keyof Tools]> | AiError.AiError,
   Tool.HandlerServices<Tools[keyof Tools]>
 > => {
   const toolNames: Array<string> = []
@@ -1036,16 +1038,15 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
     }
   }
 
-  return Effect.forEach(toolCalls, (toolCall) => {
-    return toolkit.handle(toolCall.name, toolCall.params as any).pipe(
-      Effect.map(({ encodedResult, isFailure, result }) =>
+  const streams = toolCalls.map((tool) =>
+    toolkit.handle(tool.name, tool.params as any).pipe(
+      Stream.unwrap,
+      Stream.map((result) =>
         Response.makePart("tool-result", {
-          id: toolCall.id,
-          name: toolCall.name,
-          result,
-          encodedResult,
-          isFailure,
-          providerExecuted: false
+          id: tool.id,
+          name: tool.name,
+          providerExecuted: false,
+          ...result
         }) as Response.ToolResultPart<
           Tool.Name<Tools[keyof Tools]>,
           Tool.Success<Tools[keyof Tools]>,
@@ -1053,7 +1054,16 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
         >
       )
     )
-  }, { concurrency })
+  )
+
+  const resolveConcurrency = concurrency === "inherit"
+    ? Effect.service(CurrentConcurrency)
+    : Effect.succeed(concurrency ?? "unbounded")
+
+  return resolveConcurrency.pipe(
+    Effect.map((concurrency) => Stream.mergeAll(streams, { concurrency })),
+    Stream.unwrap
+  )
 }
 
 // =============================================================================

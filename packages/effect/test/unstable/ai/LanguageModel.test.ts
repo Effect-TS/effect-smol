@@ -68,7 +68,8 @@ describe("LanguageModel", () => {
           result: toolResult,
           encodedResult: toolResult,
           isFailure: false,
-          providerExecuted: false
+          providerExecuted: false,
+          preliminary: false
         })
 
         assert.deepStrictEqual(parts, [toolCallPart])
