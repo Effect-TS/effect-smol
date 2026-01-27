@@ -2065,6 +2065,20 @@ export const result: <A, E, R>(self: Effect<A, E, R>) => Effect<Result.Result<A,
  * directly. However, unrecoverable errors, also referred to as defects, are
  * not captured and will still result in failure.
  *
+ * @example
+ * ```ts
+ * import { Effect, Option } from "effect"
+ *
+ * const success = Effect.option(Effect.succeed(42))
+ * const failure = Effect.option(Effect.fail("Something went wrong"))
+ *
+ * Effect.runPromise(success).then(console.log)
+ * // { _id: 'Option', _tag: 'Some', value: 42 }
+ *
+ * Effect.runPromise(failure).then(console.log)
+ * // { _id: 'Option', _tag: 'None' }
+ * ```
+ *
  * @see {@link result} for a version that uses `Result` instead.
  * @see {@link exit} for a version that encapsulates both recoverable errors and defects in an `Exit`.
  *
