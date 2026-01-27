@@ -3445,26 +3445,12 @@ export const tapDefect: {
 } = internal.tapDefect
 
 /**
- * Runs an effect repeatedly until it succeeds, ignoring errors.
+ * Retries an effect until it succeeds, discarding failures.
  *
- * **Details**
- *
- * This function takes an effect and runs it repeatedly until the effect
- * successfully completes. If the effect fails, it will ignore the error and
- * retry the operation. This is useful when you need to perform a task that may
- * fail occasionally, but you want to keep trying until it eventually succeeds.
- * It works by repeatedly executing the effect until it no longer throws an
- * error.
- *
- * **When to Use**
- *
- * Use this function when you want to retry an operation multiple times until it
- * succeeds. It is helpful in cases where the operation may fail temporarily
- * (e.g., a network request), and you want to keep trying without handling or
- * worrying about the errors.
+ * Yields between attempts so other fibers can run.
  *
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const eventually: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R> = internal.eventually
 
