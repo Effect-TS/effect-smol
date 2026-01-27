@@ -7683,10 +7683,20 @@ export const forkDetach: <
   : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.forkDetach
 
 /**
- * Access the current fiber executing the effect.
+ * Access the fiber currently executing the effect.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const fiber = yield* Effect.fiber
+ *   yield* Console.log(`Fiber id: ${fiber.id}`)
+ * })
+ * ```
  *
  * @since 4.0.0
- * @category supervision & fibers
+ * @category Supervision & Fibers
  */
 export const fiber: Effect<Fiber<unknown, unknown>> = internal.fiber
 
