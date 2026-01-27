@@ -3438,8 +3438,33 @@ export const tapDefect: {
  *
  * Yields between attempts so other fibers can run.
  *
+ * @example
+ * ```ts
+ * import { Console, Effect } from "effect"
+ *
+ * let attempts = 0
+ *
+ * const flaky = Effect.gen(function*() {
+ *   attempts++
+ *   yield* Console.log(`Attempt ${attempts}`)
+ *   if (attempts < 3) {
+ *     yield* Effect.fail("Not ready")
+ *   }
+ *   return "Ready"
+ * })
+ *
+ * const program = Effect.eventually(flaky)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // Attempt 1
+ * // Attempt 2
+ * // Attempt 3
+ * // Ready
+ * ```
+ *
  * @since 2.0.0
- * @category Error Handling
+ * @category Repetition / Recursion
  */
 export const eventually: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R> = internal.eventually
 
