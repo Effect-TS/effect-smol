@@ -371,7 +371,10 @@ const Proto = {
         const fiber = yield* schemas.handler(decodedParams, context).pipe(
           Effect.flatMap((result) => Queue.offer(queue, { result, isFailure: false, preliminary: false })),
           Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
-          Effect.onExit(() => Queue.end(queue)),
+          Effect.matchCauseEffect({
+            onFailure: (cause) => Queue.failCause(queue, cause),
+            onSuccess: () => Queue.end(queue)
+          }),
           Effect.forkChild
         )
 

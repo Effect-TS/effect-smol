@@ -50,6 +50,7 @@
  */
 import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
+import * as FiberSet from "../../FiberSet.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
@@ -869,20 +870,55 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
 
         const ResponseSchema = Schema.NonEmptyArray(Response.StreamPart(toolkit))
         const decodeParts = Schema.decodeEffect(ResponseSchema)
+
+        // Queue for decoded parts and tool results
         const queue = yield* Queue.make<
           Response.StreamPart<Tools>,
           AiError.AiError | AiError.AiErrorReason | Cause.Done | Schema.SchemaError
         >()
+
+        // FiberSet to track concurrent tool call handlers
+        const toolCallFibers = yield* FiberSet.make<void, AiError.AiError>()
+
+        // Helper function to execute tool calls
+        const executeToolCall = (part: Response.ToolCallPartEncoded) =>
+          toolkit.handle(part.name, part.params as any).pipe(
+            Stream.unwrap,
+            Stream.runForEach((result) => {
+              const toolResultPart = Response.makePart("tool-result", {
+                id: part.id,
+                name: part.name,
+                providerExecuted: false,
+                ...result
+              }) as Response.StreamPart<Tools>
+              return Queue.offer(queue, toolResultPart)
+            })
+          )
+
         yield* params.streamText(providerOptions).pipe(
           Stream.runForEachArray(Effect.fnUntraced(function*(chunk) {
             const parts = yield* decodeParts(chunk)
+            // Add decoded response parts to the output queue
             yield* Queue.offerAll(queue, parts)
-            const resultStream = resolveToolCalls(chunk, toolkit, options.concurrency)
-            yield* Effect.forkScoped(Stream.runIntoQueue(resultStream as any, queue))
+            // Fork tool call handlers - use the raw chunk for encoded params
+            for (const part of chunk) {
+              if (part.type === "tool-call" && part.providerExecuted !== true) {
+                yield* FiberSet.run(toolCallFibers, executeToolCall(part))
+              }
+            }
           })),
-          Queue.into(queue),
+          // Wait for all tool calls to either:
+          // - complete (FiberSet.awaitEmpty)
+          // - fail (FiberSet.join)
+          Effect.andThen(Effect.raceFirst(
+            FiberSet.join(toolCallFibers),
+            FiberSet.awaitEmpty(toolCallFibers)
+          )),
+          // And then end the queue
+          Effect.andThen(Queue.end(queue)),
           Effect.forkScoped
         )
+
         return Stream.fromQueue(queue)
       }
     ) as any

@@ -519,13 +519,12 @@ describe("Tool", () => {
           deepStrictEqual(toolResults[2].result, { error: "Something went wrong" })
         }))
 
-      it.effect.only("should interleave results from concurrent tools with preliminary results", () =>
+      it.effect("should interleave results from concurrent tools with preliminary results", () =>
         Effect.gen(function*() {
           const toolkit = Toolkit.make(ConcurrentIncrementalTool)
 
           const handlers = toolkit.toLayer({
             ConcurrentIncrementalTool: Effect.fnUntraced(function*({ name, delay }, ctx) {
-              console.log({ name, delay })
               yield* ctx.preliminary({ status: `loading`, job: name, progress: 50 })
               yield* Effect.sleep(delay)
               return { status: `complete`, job: name }
@@ -535,29 +534,31 @@ describe("Tool", () => {
           const latch = yield* Effect.makeLatch()
           const toolResults: Array<Response.ToolResultParts<Toolkit.Tools<typeof toolkit>>> = []
 
-          yield* LanguageModel.streamText({
+          const fiber = yield* LanguageModel.streamText({
             prompt: "Test",
             toolkit
           }).pipe(
             Stream.tap(() => latch.open),
-            Stream.filter((part) => {
-              console.log(part)
-              return part.type === "tool-result"
+            Stream.tap((part) => {
+              if (part.type === "tool-result") {
+                return Effect.sync(() => toolResults.push(part))
+              }
+              return Effect.void
             }),
-            Stream.runForEach((part) => Effect.sync(() => toolResults.push(part))),
+            Stream.runCollect,
             TestUtils.withLanguageModel({
               streamText: [
                 {
                   type: "tool-call",
                   id: "tool-fast",
                   name: "ConcurrentIncrementalTool",
-                  params: { name: "fast", delay: "1 second" }
+                  params: { name: "fast", delay: 1000 }
                 },
                 {
                   type: "tool-call",
                   id: "tool-slow",
                   name: "ConcurrentIncrementalTool",
-                  params: { name: "slow", delay: "2 seconds" }
+                  params: { name: "slow", delay: 2000 }
                 }
               ]
             }),
@@ -565,17 +566,36 @@ describe("Tool", () => {
             Effect.forkScoped
           )
 
+          // Wait for stream to start (first item emitted)
           yield* latch.await
 
-          console.dir(toolResults, { depth: null, colors: true })
+          // Give forked tool handlers time to emit preliminary results
+          yield* Effect.yieldNow
+          yield* Effect.yieldNow
+          yield* Effect.yieldNow
 
+          // Initially both preliminary results should be emitted immediately
+          strictEqual(toolResults.length, 2)
+          strictEqual(toolResults[0].preliminary, true)
+          deepStrictEqual(toolResults[0].result, { status: "loading", job: "fast", progress: 50 })
+          strictEqual(toolResults[1].preliminary, true)
+          deepStrictEqual(toolResults[1].result, { status: "loading", job: "slow", progress: 50 })
+
+          // After 1 second, fast tool completes
           yield* TestClock.adjust("1 second")
+          yield* Effect.yieldNow
+          strictEqual(toolResults.length, 3)
+          strictEqual(toolResults[2].preliminary, false)
+          deepStrictEqual(toolResults[2].result, { status: "complete", job: "fast" })
 
-          console.dir(toolResults, { depth: null, colors: true })
-
+          // After 2 more seconds (3 total), slow tool completes
           yield* TestClock.adjust("2 seconds")
+          yield* Effect.yieldNow
+          yield* Fiber.join(fiber)
 
-          console.dir(toolResults, { depth: null, colors: true })
+          strictEqual(toolResults.length, 4)
+          strictEqual(toolResults[3].preliminary, false)
+          deepStrictEqual(toolResults[3].result, { status: "complete", job: "slow" })
         }))
     })
   })
@@ -902,7 +922,7 @@ const IncrementalTool = Tool.make("IncrementalTool", {
 
 const ConcurrentIncrementalTool = Tool.make("ConcurrentIncrementalTool", {
   description: "A test tool",
-  parameters: { name: Schema.String, delay: Schema.Duration },
+  parameters: { name: Schema.String, delay: Schema.DurationFromMillis },
   success: Schema.Union([
     Schema.Struct({ status: Schema.Literal("loading"), job: Schema.String, progress: Schema.Number }),
     Schema.Struct({ status: Schema.Literal("complete"), job: Schema.String })
