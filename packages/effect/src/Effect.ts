@@ -3253,19 +3253,24 @@ export const tapError: {
  * If the error doesn't match the specified tag, this function does nothing and
  * the effect proceeds as usual.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Console, Effect } from "effect"
  *
  * class NetworkError {
  *   readonly _tag = "NetworkError"
- *   constructor(readonly statusCode: number) {}
+ *   readonly statusCode: number
+ *   constructor(statusCode: number) {
+ *     this.statusCode = statusCode
+ *   }
  * }
  *
  * class ValidationError {
  *   readonly _tag = "ValidationError"
- *   constructor(readonly field: string) {}
+ *   readonly field: string
+ *   constructor(field: string) {
+ *     this.field = field
+ *   }
  * }
  *
  * const task: Effect.Effect<number, NetworkError | ValidationError> =
