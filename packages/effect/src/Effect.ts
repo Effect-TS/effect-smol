@@ -1815,6 +1815,7 @@ export const flatMap: {
  * const program = Effect.gen(function*() {
  *   const value = yield* Effect.flatten(nested)
  *   yield* Console.log(value)
+ *   // Output: hello
  * })
  * ```
  *
