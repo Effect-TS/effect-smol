@@ -2,10 +2,8 @@
 
 ## Summary
 
-Improve the JSDoc coverage in `packages/effect/src/Effect.ts` by adding missing
-`@example` blocks for value exports (and one missing `@category`) and refreshing
-descriptions where needed, following the style and clarity of
-`packages/effect/src/Queue.ts`.
+Improve the JSDoc coverage in `packages/effect/src/Effect.ts` by improving
+descriptions, adding missing `@example` blocks for value exports (and one missing `@category`).
 
 ## Background
 
@@ -124,7 +122,7 @@ Add or convert `@example` blocks for the following value exports (all in
 
 ## Acceptance Criteria
 
-- Every API listed above has a `@example` block, or its existing example has
+- Every API listed above has a concise and helpful description, `@example` block, or its existing example has
   been converted into a `@example` block.
 - Type-only exports do not gain new `@example` blocks.
 - `replicate` has an explicit `@category` tag consistent with the surrounding
@@ -132,6 +130,4 @@ Add or convert `@example` blocks for the following value exports (all in
 - Examples compile with `pnpm docgen` and match `Queue.ts` style.
 - Any example output comments match the output observed from running the
   `scratchpad/` example.
-- Descriptions are updated where clarity or accuracy is lacking, with minimal
-  wording changes.
 - No runtime or signature changes are introduced.
