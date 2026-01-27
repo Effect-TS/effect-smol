@@ -4209,6 +4209,20 @@ export const raceAllFirst: <Eff extends Effect<any, any, any>>(
  * proceed with whichever one finishes first, regardless of whether it succeeds
  * or fails.
  *
+ * @example
+ * ```ts
+ * import { Duration, Effect, pipe } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const fastFailure = Effect.delay(Effect.fail("Boom"), Duration.millis(50))
+ *   const slowSuccess = Effect.delay(Effect.succeed("Winner"), Duration.millis(200))
+ *
+ *   return yield* pipe(Effect.raceFirst(fastFailure, slowSuccess), Effect.exit)
+ * })
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
  * @since 2.0.0
  * @category Racing
  */
