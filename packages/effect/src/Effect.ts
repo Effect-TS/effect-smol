@@ -7016,13 +7016,9 @@ export const replicate: {
  *
  * **Options**
  *
- * If the `discard` option is set to `true`, the intermediate results are not
- * collected, and the final result of the operation is `void`.
- *
- * The function also allows you to customize how the effects are handled by
- * specifying options such as concurrency, batching, and how finalizers behave.
- * These options provide flexibility in running the effects concurrently or
- * adjusting other execution details.
+ * Options let you control concurrency and whether results are discarded. If
+ * `discard` is set to `true`, the results are not collected and the final
+ * result is `void`.
  *
  * @example
  * ```ts
@@ -7038,8 +7034,7 @@ export const replicate: {
  *   return results
  * })
  *
- * Effect.runPromise(program).then(console.log)
- * // Output: [ 1, 2, 3 ]
+ * Effect.runPromise(program)
  * ```
  *
  * @since 2.0.0
