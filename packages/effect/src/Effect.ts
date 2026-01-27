@@ -4998,6 +4998,26 @@ export const isFailure: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * The resulting effect cannot fail (`never` in the error channel) but retains
  * the context of the original effect.
  *
+ * @example
+ * ```ts
+ * import { Effect, pipe } from "effect"
+ *
+ * const success = Effect.succeed("ok")
+ * const failure = Effect.fail("boom")
+ *
+ * const program = Effect.gen(function*() {
+ *   const successResult = yield* pipe(success, Effect.isSuccess)
+ *   const failureResult = yield* pipe(failure, Effect.isSuccess)
+ *
+ *   console.log(successResult)
+ *   // Output: true
+ *   console.log(failureResult)
+ *   // Output: false
+ * })
+ *
+ * Effect.runSync(program)
+ * ```
+ *
  * @since 2.0.0
  * @category Condition Checking
  */
