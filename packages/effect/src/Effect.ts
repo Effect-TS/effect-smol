@@ -4881,6 +4881,24 @@ export const isFailure: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * Returns `false` for failures in the error channel, but defects still fail the
  * effect.
  *
+ * **Example**
+ *
+ * ```ts
+ * import { Console, Effect } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const ok = yield* Effect.isSuccess(Effect.succeed("done"))
+ *   const failed = yield* Effect.isSuccess(Effect.fail("Uh oh"))
+ *   yield* Console.log(`ok: ${ok}`)
+ *   yield* Console.log(`failed: ${failed}`)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // ok: true
+ * // failed: false
+ * ```
+ *
  * @since 2.0.0
  * @category Condition Checking
  */
