@@ -2964,44 +2964,23 @@ export const catchDefect: {
 } = internal.catchDefect
 
 /**
- * Recovers from errors that match a predicate or refinement.
+ * Recovers from failures that match a predicate or refinement.
  *
- * When you pass a refinement predicate, the recovery handler receives the
- * narrowed error and the remaining error type excludes the refined branch.
+ * Only failure causes are checked; defects and interrupts are not caught, and
+ * non-matching errors re-fail with the original cause.
  *
- * **Example** (Catching Specific Errors with a Refinement)
- *
+ * @example
  * ```ts
- * import { Console, Data, Effect, Random } from "effect"
+ * import { Data, Effect } from "effect"
  *
- * class HttpError extends Data.TaggedError("HttpError")<{ status: number }> {}
+ * class NotFound extends Data.TaggedError("NotFound")<{ id: string }> {}
  *
- * class ValidationError extends Data.TaggedError("ValidationError")<{ field: string }> {}
- *
- * type ApiError = HttpError | ValidationError
- *
- * const isHttpError = (error: ApiError): error is HttpError =>
- *   error._tag === "HttpError"
- *
- * const program = Effect.gen(function*() {
- *   const n1 = yield* Random.next
- *   const n2 = yield* Random.next
- *   if (n1 < 0.5) {
- *     yield* Effect.fail(new HttpError({ status: 503 }))
- *   }
- *   if (n2 < 0.5) {
- *     yield* Effect.fail(new ValidationError({ field: "email" }))
- *   }
- *   return "some result"
- * })
+ * const program = Effect.fail(new NotFound({ id: "user-1" }))
  *
  * const recovered = program.pipe(
  *   Effect.catchIf(
- *     isHttpError,
- *     (error) =>
- *       Console.log(`Recovering from ${error._tag} ${error.status}`).pipe(
- *         Effect.as("fallback")
- *       )
+ *     (error): error is NotFound => error._tag === "NotFound",
+ *     (error) => Effect.succeed(`missing:${error.id}`)
  *   )
  * )
  * ```
