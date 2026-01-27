@@ -4928,20 +4928,17 @@ export const matchEffect: {
  * The resulting effect cannot fail (`never` in the error channel) but retains
  * the context of the original effect.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Effect } from "effect"
  *
  * const failure = Effect.fail("Uh oh!")
  *
- * console.log(Effect.runSync(Effect.isFailure(failure)))
- * // Output: true
+ * console.log(Effect.runSync(Effect.isFailure(failure))) // true
  *
  * const defect = Effect.die("BOOM!")
  *
- * Effect.runSync(Effect.isFailure(defect))
- * // throws: BOOM!
+ * Effect.runSync(Effect.isFailure(defect)) // throws: BOOM!
  * ```
  *
  * @since 2.0.0
