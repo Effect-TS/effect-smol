@@ -12286,6 +12286,22 @@ export const clockWith: <A, E, R>(
 // ========================================================================
 
 /**
+ * Creates a logger that logs at a specific level.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const logAudit = Effect.logWithLevel("Info")
+ *
+ * const program = Effect.gen(function*() {
+ *   yield* logAudit("user signed in", { id: "u-1" })
+ *   yield* logAudit("account updated", { plan: "pro" })
+ * })
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
  * @since 2.0.0
  * @category logging
  */
