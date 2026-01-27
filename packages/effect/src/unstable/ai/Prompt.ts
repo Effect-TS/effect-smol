@@ -235,7 +235,7 @@ export type PartConstructorParams<P extends Part> = Omit<P, typeof PartTypeId | 
   /**
    * Optional provider-specific options for this part.
    */
-  readonly options?: Part["options"] | undefined
+  readonly options?: Extract<Part, { type: Part["type"] }>["options"] | undefined
 }
 
 // =============================================================================
