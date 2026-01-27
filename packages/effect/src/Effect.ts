@@ -4115,6 +4115,18 @@ export const sleep: (duration: Duration.DurationInput) => Effect<void> = interna
  * unchanged, and the timing information is provided alongside the result in a
  * tuple.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const [duration, result] = yield* Effect.timed(Effect.succeed(42))
+ *   return { duration, result }
+ * })
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
  * @since 2.0.0
  * @category Delays & Timeouts
  */
