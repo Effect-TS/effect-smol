@@ -4661,8 +4661,13 @@ export const matchCauseEager: {
 } = internal.matchCauseEager
 
 /**
+ * Eagerly handles success or failure with effectful handlers when the effect is already resolved.
+ *
+ * If the effect is an `Exit`, the matching handler runs immediately; otherwise it behaves like
+ * {@link matchCauseEffect}.
+ *
  * @since 4.0.0
- * @category Pattern matching
+ * @category Pattern Matching
  */
 export const matchCauseEffectEager: {
   <E, A2, E2, R2, A, A3, E3, R3>(
