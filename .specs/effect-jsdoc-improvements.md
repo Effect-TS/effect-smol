@@ -22,9 +22,9 @@ clarity, category taxonomy, and example correctness.
 
 - Do not edit barrel files (`index.ts`) or run `pnpm codegen`.
 - Keep existing section markers (`// =====`) unchanged.
-- **Not all exports require examples**. Some type-only exports may only need a
+- Not all exports require examples. Some type-only exports may only need a
   summary and tags. For reference, see the `Queue.ts` JSDoc for an example of a
-  well-documented module.
+  well-documented module. But most exports will need examples.
   **Focus on the exports that developers will use directly**.
 
 ## Current Issues (Observed)
