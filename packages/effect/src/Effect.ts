@@ -3245,20 +3245,16 @@ export const tapError: {
  * ```ts
  * import { Console, Data, Effect } from "effect"
  *
- * class NetworkError extends Data.TaggedError("NetworkError") {
- *   constructor(readonly statusCode: number) {
- *     super()
- *   }
- * }
+ * class NetworkError extends Data.TaggedError("NetworkError")<{
+ *   statusCode: number
+ * }> {}
  *
- * class ValidationError extends Data.TaggedError("ValidationError") {
- *   constructor(readonly field: string) {
- *     super()
- *   }
- * }
+ * class ValidationError extends Data.TaggedError("ValidationError")<{
+ *   field: string
+ * }> {}
  *
  * const task: Effect.Effect<number, NetworkError | ValidationError> =
- *   Effect.fail(new NetworkError(504))
+ *   Effect.fail(new NetworkError({ statusCode: 504 }))
  *
  * const program = Effect.tapErrorTag(task, "NetworkError", (error) =>
  *   Console.log(`expected error: ${error.statusCode}`)
