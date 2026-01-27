@@ -324,19 +324,21 @@ export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
   : never
 
 /**
+ * Namespace containing type utilities for Yieldable values.
+ *
  * @since 4.0.0
- * @category models
+ * @category Yieldable
  */
 export declare namespace Yieldable {
   /**
    * @since 4.0.0
-   * @category models
+   * @category Yieldable
    */
   export type Any = Yieldable<any, any, any, any>
 
   /**
    * @since 4.0.0
-   * @category models
+   * @category Yieldable
    * @example
    * ```ts
    * import type { Effect } from "effect"
