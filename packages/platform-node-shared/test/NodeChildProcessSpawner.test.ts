@@ -122,6 +122,20 @@ describe("NodeChildProcessSpawner", () => {
             assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
             assert.strictEqual(output, "one-two-three")
           }).pipe(Effect.scoped))
+
+        it.effect("should merge environment variables with setEnv", () =>
+          Effect.gen(function*() {
+            const command = ChildProcess.make("sh", ["-c", "echo $VAR1-$VAR2-$VAR3"], {
+              env: { VAR1: "one", VAR2: "two" },
+              extendEnv: true
+            }).pipe(ChildProcess.setEnv({ VAR2: "override", VAR3: "three" }))
+            const handle = yield* command
+            const output = yield* decodeByteStream(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "one-override-three")
+          }).pipe(Effect.scoped))
       })
 
       describe("shell option", () => {

@@ -9,7 +9,6 @@ import type * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable } from "../../Types.ts"
-import * as UndefinedOr from "../../UndefinedOr.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
 import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
@@ -268,32 +267,55 @@ const extractMembers = (
   readonly ast: AST.AST | undefined
   readonly description: string | undefined
 }> => {
-  const members = new Map<number, {
-    readonly ast: AST.AST | undefined
-    readonly description: string | undefined
+  const map = new Map<number, {
+    set: Set<AST.AST>
+    description: string | undefined
   }>()
-  function process(type: Schema.Top) {
-    const status = getStatus(type.ast)
-    const isEmpty = HttpApiSchema.resolveHttpApiIsEmpty(type.ast)
-    const current = members.get(status)
-    members.set(
-      status,
-      {
-        description: current?.description ?? resoveDescriptionOrIdentifier(type.ast),
-        ast: UndefinedOr.map(current?.ast, (ast) => HttpApiSchema.UnionUnifyAST(ast, type.ast)) ??
-          (!isEmpty && HttpApiSchema.isVoidEncoded(type.ast) ? undefined : type.ast)
-      }
-    )
-  }
 
   HttpApiSchema.forEachMember(schema, process)
-  return members
+  return new Map(
+    [...map.entries()].map((
+      [status, { set, description }]
+    ) => {
+      const asts = Array.from(set)
+      return [
+        status,
+        { description, ast: asts.length === 0 ? undefined : asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf") }
+      ]
+    })
+  )
+
+  function process(schema: Schema.Top) {
+    const ast = schema.ast
+    const status = getStatus(ast)
+    // only include a schema in the response-body union if it actually has a payload,
+    // or if it's explicitly an “empty response” schema (so the empty-ness is intentional)
+    const shouldAdd = HttpApiSchema.resolveHttpApiIsEmpty(ast) || !HttpApiSchema.isVoidEncoded(ast)
+    const description = resoveDescriptionOrIdentifier(ast)
+    const pair = map.get(status)
+    if (pair === undefined) {
+      map.set(status, {
+        description,
+        set: shouldAdd ? new Set([ast]) : new Set([])
+      })
+    } else {
+      if (pair.description === undefined) {
+        pair.description = description
+      }
+      if (shouldAdd) {
+        pair.set.add(ast)
+      }
+    }
+  }
 }
 
 function extractPayloads(ast: AST.AST): ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, AST.AST>> {
-  const map = new Map<HttpApiSchema.Encoding["kind"], Map<string, Array<AST.AST>>>()
+  const map = new Map<
+    HttpApiSchema.Encoding["kind"],
+    Map<string, Set<AST.AST>>
+  >()
 
-  recur(ast, undefined, undefined)
+  recur(ast)
 
   return new Map(
     [...map.entries()].map((
@@ -302,44 +324,38 @@ function extractPayloads(ast: AST.AST): ReadonlyMap<HttpApiSchema.Encoding["kind
       kind,
       new Map(
         [...map.entries()].map((
-          [contentType, asts]
-        ) => [contentType, asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")])
+          [contentType, set]
+        ) => {
+          const asts = Array.from(set)
+          return [contentType, asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")]
+        })
       )
     ])
   )
 
-  function recur(ast: AST.AST, original: AST.AST | undefined, parentEncoding: HttpApiSchema.Encoding | undefined) {
-    if (ast.encoding !== undefined) {
-      const last = ast.encoding[ast.encoding.length - 1].to
-      return recur(last, original, parentEncoding)
-    }
-    // we only want to extract members of unions that contain http api annotations
-    if (AST.isUnion(ast) && HttpApiSchema.containsHttpApiAnnotations(ast)) {
-      for (const type of ast.types) {
-        recur(type, original, getEncoding(ast) ?? parentEncoding)
-      }
+  function add(encoding: HttpApiSchema.Encoding, ast: AST.AST) {
+    const kind = map.get(encoding.kind)
+    if (kind === undefined) {
+      map.set(encoding.kind, new Map([[encoding.contentType, new Set([ast])]]))
     } else {
-      const encoding = getEncoding(ast) ?? parentEncoding ??
-        (original ? getEncoding(original) : undefined) ?? HttpApiSchema.encodingJson
-      const kind = map.get(encoding.kind)
-      if (kind === undefined) {
-        map.set(encoding.kind, new Map([[encoding.contentType, [original ?? ast]]]))
+      const contentType = kind.get(encoding.contentType)
+      if (contentType === undefined) {
+        kind.set(encoding.contentType, new Set([ast]))
       } else {
-        const contentType = kind.get(encoding.contentType)
-        if (contentType === undefined) {
-          kind.set(encoding.contentType, [original ?? ast])
-        } else {
-          contentType.push(original ?? ast)
-        }
+        contentType.add(ast)
       }
     }
   }
-}
 
-function getEncoding(ast: AST.AST): HttpApiSchema.Encoding | undefined {
-  return HttpApiSchema.resolveHttpApiMultipart(ast) ?? HttpApiSchema.resolveHttpApiMultipartStream(ast)
-    ? HttpApiSchema.encodingMultipart :
-    HttpApiSchema.resolveHttpApiEncoding(ast)
+  function recur(ast: AST.AST) {
+    if (AST.isUnion(ast)) {
+      for (const type of ast.types) {
+        add(HttpApiSchema.getEncoding(type), type)
+      }
+    } else {
+      add(HttpApiSchema.getEncoding(ast), ast)
+    }
+  }
 }
 
 /**

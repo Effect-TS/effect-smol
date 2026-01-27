@@ -9,7 +9,6 @@ import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
-import type { Mutable } from "../../Types.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
 
 declare module "../../Schema.ts" {
@@ -27,60 +26,31 @@ declare module "../../Schema.ts" {
 /** @internal */
 export const resolveHttpApiIsEmpty = AST.resolveAt<boolean>("httpApiIsEmpty")
 /** @internal */
-export const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
-/** @internal */
 export const resolveHttpApiMultipart = AST.resolveAt<Multipart_.withLimits.Options>("httpApiMultipart")
 /** @internal */
 export const resolveHttpApiMultipartStream = AST.resolveAt<Multipart_.withLimits.Options>(
   "httpApiMultipartStream"
 )
 const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
+const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
 
 /** @internal */
 export function isVoidEncoded(ast: AST.AST): boolean {
   return AST.isVoid(AST.toEncoded(ast))
 }
 
-/**
- * @since 4.0.0
- * @category reflection
- */
-export const getStatusSuccess = (self: AST.AST): number =>
-  resolveHttpApiStatus(self) ?? (isVoidEncoded(self) ? 204 : 200)
-
-/**
- * @since 4.0.0
- * @category reflection
- */
-export const getStatusError = (self: AST.AST): number => resolveHttpApiStatus(self) ?? 500
+/** @internal */
+export function getStatusSuccess(self: AST.AST): number {
+  return resolveHttpApiStatus(self) ?? (isVoidEncoded(self) ? 204 : 200)
+}
 
 /** @internal */
-export function isHttpApiAnnotationKey(key: string): boolean {
-  return key.startsWith("httpApi")
+export function getStatusError(self: AST.AST): number {
+  return resolveHttpApiStatus(self) ?? 500
 }
 
-/**
- * @since 4.0.0
- * @category reflection
- */
-export const getHttpApiAnnotations = (
-  self: Schema.Annotations.Annotations | undefined
-): Schema.Annotations.Annotations => {
-  const out: Mutable<Schema.Annotations.Annotations> = {}
-  if (!self) return out
-
-  for (const [key, value] of Object.entries(self)) {
-    if (isHttpApiAnnotationKey(key) && value !== undefined) {
-      out[key] = value
-    }
-  }
-  return out
-}
-
-/**
- * @since 4.0.0
- */
-export const UnionUnifyAST = (self: AST.AST, that: AST.AST): AST.AST => {
+/** @internal */
+export function UnionUnifyAST(self: AST.AST, that: AST.AST): AST.AST {
   const asts = new Set<AST.AST>([...extractUnionTypes(self), ...extractUnionTypes(that)])
   if (asts.size === 1) {
     return Iterable.headUnsafe(asts)
@@ -95,13 +65,13 @@ export const UnionUnifyAST = (self: AST.AST, that: AST.AST): AST.AST => {
   )
 }
 
-const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
+function extractUnionTypes(ast: AST.AST): ReadonlyArray<AST.AST> {
   const out: Array<AST.AST> = []
   process(ast)
   return out
 
   function process(ast: AST.AST): void {
-    if (AST.isUnion(ast) && containsHttpApiAnnotations(ast)) {
+    if (AST.isUnion(ast)) {
       for (const type of ast.types) {
         process(type)
       }
@@ -111,29 +81,16 @@ const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
   }
 }
 
-/** @internal */
-export function containsHttpApiAnnotations(ast: AST.AST): boolean {
-  switch (ast._tag) {
-    case "Union":
-      return ast.types.some(containsHttpApiAnnotations)
-    default: {
-      const annotations = AST.resolve(ast)
-      return annotations !== undefined && Object.keys(annotations).some(isHttpApiAnnotationKey)
-    }
-  }
-}
-
+// TODO: make this internal
 /**
  * @since 4.0.0
  */
-export const UnionUnify = <
-  A extends Schema.Top,
-  B extends Schema.Top
->(
+export const UnionUnify = <A extends Schema.Top, B extends Schema.Top>(
   self: A,
   that: B
 ): Schema.Top => Schema.make(UnionUnifyAST(self.ast, that.ast))
 
+// TODO: add description
 /**
  * @since 4.0.0
  * @category empty response
@@ -173,7 +130,7 @@ export const asEmpty: {
       readonly decode: LazyArg<S["Type"]>
     }
   ): asEmpty<S> =>
-    Schema.Void.annotate(self.ast.annotations ?? {}).pipe(
+    Schema.Void.pipe(
       Schema.decodeTo(
         Schema.toType(self),
         Transformation.transform({
@@ -368,24 +325,22 @@ export const withEncoding: {
     }
   }))
 
-/** @internal */
-export const encodingJson: Encoding = {
+const encodingJson: Encoding = {
   kind: "Json",
   contentType: "application/json"
 }
 
-/** @internal */
-export const encodingMultipart: Encoding = {
+const encodingMultipart: Encoding = {
   kind: "Json",
   contentType: "multipart/form-data"
 }
 
-/**
- * @since 4.0.0
- * @category annotations
- */
-export function getEncoding(ast: AST.AST, fallback = encodingJson): Encoding {
-  return resolveHttpApiEncoding(ast) ?? fallback
+/** @internal */
+export function getEncoding(ast: AST.AST): Encoding {
+  if (resolveHttpApiMultipart(ast) !== undefined || resolveHttpApiMultipartStream(ast) !== undefined) {
+    return encodingMultipart
+  }
+  return resolveHttpApiEncoding(ast) ?? encodingJson
 }
 
 /**
@@ -403,47 +358,6 @@ export const Text = (options?: {
 export const Uint8Array = (options?: {
   readonly contentType?: string
 }): Schema.Uint8Array => withEncoding(Schema.Uint8Array, { kind: "Uint8Array", ...options })
-
-/**
- * @since 4.0.0
- */
-export const forEachMember = (
-  schema: Schema.Top,
-  f: (member: Schema.Top) => void
-): void => {
-  if (astCache.has(schema.ast)) {
-    f(astCache.get(schema.ast)!)
-    return
-  }
-  const ast = schema.ast
-  if (AST.isUnion(ast)) {
-    let unionCache = unionCaches.get(ast)
-    if (!unionCache) {
-      unionCache = new WeakMap<AST.AST, Schema.Top>()
-      unionCaches.set(ast, unionCache)
-    }
-    for (const astType of ast.types) {
-      if (unionCache.has(astType)) {
-        f(unionCache.get(astType)!)
-        continue
-      } else if (astType._tag === "Never") {
-        continue
-      }
-      const memberSchema = Schema.make(astType).annotate({
-        ...getHttpApiAnnotations(ast.annotations),
-        ...astType.annotations
-      })
-      unionCache.set(astType, memberSchema)
-      f(memberSchema)
-    }
-  } else if (ast._tag !== "Never") {
-    astCache.set(ast, schema)
-    f(schema)
-  }
-}
-
-const astCache = new WeakMap<AST.AST, Schema.Top>()
-const unionCaches = new WeakMap<AST.AST, WeakMap<AST.AST, Schema.Top>>()
 
 /**
  * @since 4.0.0
@@ -508,4 +422,20 @@ export const EmptyError = <Self>() =>
     }
   })
   return EmptyError as any
+}
+
+/** @internal */
+export function forEachMember(schema: Schema.Top, f: (member: Schema.Top) => void): void {
+  const ast = schema.ast
+  if (AST.isUnion(ast)) {
+    for (const astType of ast.types) {
+      if (AST.isNever(astType)) {
+        continue
+      }
+      const memberSchema = Schema.make(astType)
+      f(memberSchema)
+    }
+  } else if (!AST.isNever(ast)) {
+    f(schema)
+  }
 }
