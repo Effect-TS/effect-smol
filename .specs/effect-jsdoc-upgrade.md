@@ -127,7 +127,8 @@ Add or convert `@example` blocks for the following value exports (all in
 - Type-only exports do not gain new `@example` blocks.
 - `replicate` has an explicit `@category` tag consistent with the surrounding
   section.
-- Examples compile with `pnpm docgen` and match `Queue.ts` style.
+- Examples compile with `pnpm docgen`.
+- Any examples that use console.log or Effect.log **must** have accurate output comments.
 - Any example output comments match the output observed from running the
   `scratchpad/` example.
 - No runtime or signature changes are introduced.
