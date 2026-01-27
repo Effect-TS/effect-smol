@@ -1805,6 +1805,20 @@ export const flatMap: {
 } = internal.flatMap
 
 /**
+ * Flattens a nested effect into a single effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const innerEffect = Effect.succeed("hello")
+ * const nestedEffect = Effect.succeed(innerEffect)
+ *
+ * const flattenedEffect = Effect.flatten(nestedEffect)
+ *
+ * Effect.runPromise(flattenedEffect).then(console.log)
+ * // Output: hello
+ * ```
  * @since 2.0.0
  * @category Sequencing
  */
