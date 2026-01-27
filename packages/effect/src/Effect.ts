@@ -3236,46 +3236,35 @@ export const tapError: {
 } = internal.tapError
 
 /**
- * Inspect errors matching a specific tag without altering the original effect.
+ * Runs an effectful handler when a failure's `_tag` matches.
  *
- * **When to Use**
+ * Use this with tagged-union errors to perform side effects for a tag (or tag
+ * list) while preserving the original failure.
  *
- * Use this function when your errors are modeled as tagged unions and you want
- * to run a side effect for a matching tag without changing the error channel.
- *
- * **Details**
- *
- * This function allows you to inspect and handle specific error types based on
- * their `_tag` property. It is useful when errors are modeled with tagged
- * unions, letting you log or perform actions on matched errors while leaving the
- * error channel unchanged.
- *
- * If the error doesn't match the specified tag, this function does nothing and
- * the effect proceeds as usual.
- *
- * **Example**
- *
+ * @example
  * ```ts
- * import { Console, Effect } from "effect"
+ * import { Console, Data, Effect } from "effect"
  *
- * class NetworkError {
- *   readonly _tag = "NetworkError"
- *   constructor(readonly statusCode: number) {}
+ * class NetworkError extends Data.TaggedError("NetworkError") {
+ *   constructor(readonly statusCode: number) {
+ *     super()
+ *   }
  * }
  *
- * class ValidationError {
- *   readonly _tag = "ValidationError"
- *   constructor(readonly field: string) {}
+ * class ValidationError extends Data.TaggedError("ValidationError") {
+ *   constructor(readonly field: string) {
+ *     super()
+ *   }
  * }
  *
  * const task: Effect.Effect<number, NetworkError | ValidationError> =
  *   Effect.fail(new NetworkError(504))
  *
- * const tapping = Effect.tapErrorTag(task, "NetworkError", (error) =>
+ * const program = Effect.tapErrorTag(task, "NetworkError", (error) =>
  *   Console.log(`expected error: ${error.statusCode}`)
  * )
  *
- * Effect.runFork(tapping)
+ * Effect.runPromiseExit(program)
  * // Output:
  * // expected error: 504
  * ```
