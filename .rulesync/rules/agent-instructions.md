@@ -38,6 +38,18 @@ established patterns before writing new code.
 Do not worry about getting code formatting perfect while writing. Use `pnpm lint-fix`
 to automatically format code according to the project's style guidelines.
 
+## Using `ServiceMap.Service`
+
+Prefer the class syntax when working with `ServiceMap.Service`. For example:
+
+```ts
+import { ServiceMap } from "effect"
+
+class MyService extends ServiceMap.Service<MyService, {
+  readonly doSomething: (input: string) => number
+}>()("MyService") {}
+```
+
 ### Barrel files
 
 The `index.ts` files are automatically generated. Do not manually edit them. Use
