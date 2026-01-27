@@ -5850,8 +5850,23 @@ export const onExitInterruptible: {
 } = internal.onExitInterruptible
 
 /**
+ * Runs the cleanup effect only when the `Exit` passes the provided filter.
+ *
+ * The cleanup is skipped when the filter returns `Filter.fail`.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Exit, Filter } from "effect"
+ *
+ * const program = Effect.onExitFilter(
+ *   Effect.succeed(42),
+ *   Filter.fromPredicate(Exit.isSuccess),
+ *   (success) => Console.log(`Succeeded with: ${success.value}`)
+ * )
+ * ```
+ *
  * @since 4.0.0
- * @category Resource management & finalization
+ * @category Resource Management & Finalization
  */
 export const onExitFilter: {
   <A, E, XE, XR, B, X>(
