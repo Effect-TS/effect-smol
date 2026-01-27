@@ -101,6 +101,7 @@ clarity, category taxonomy, and example correctness.
 - Use `Effect.gen` for sequencing, and only use `Effect.runPromise` when needed to
   demonstrate runtime behavior.
 - Prefer `Console.log` over `console.log` when demonstrating effectful logging.
+  Any log statements should have a comment indicating expected output.
 - Add examples only when missing for widely used or non-obvious combinators, or
   when the existing example is outdated or unclear.
 - Any output shown in comments should match actual runtime output (use the
