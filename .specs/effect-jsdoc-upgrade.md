@@ -45,6 +45,9 @@ examples.
   changes minimal.
 - Add `@example` blocks that use `Effect.gen`, `pipe`, and `Effect.run*` as
   appropriate, mirroring `Queue.ts` style.
+- If an example includes output comments (for example, `// Output: ...`), run it
+  from `scratchpad/` (for example, `node scratchpad/<file>.ts`) and use the
+  observed output. Skip output comments when results are nondeterministic.
 - Use ASCII only.
 - If an example exists but is not tagged, convert it to `@example` and keep the
   content.
@@ -127,6 +130,8 @@ Add or convert `@example` blocks for the following value exports (all in
 - `replicate` has an explicit `@category` tag consistent with the surrounding
   section.
 - Examples compile with `pnpm docgen` and match `Queue.ts` style.
+- Any example output comments match the output observed from running the
+  `scratchpad/` example.
 - Descriptions are updated where clarity or accuracy is lacking, with minimal
   wording changes.
 - No runtime or signature changes are introduced.
