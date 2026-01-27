@@ -829,4 +829,31 @@ describe("OpenAPI spec", () => {
       })
     })
   })
+
+  describe("path option", () => {
+    it("fields", () => {
+      const Api = HttpApi.make("api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.get("a", "/a", {
+                path: {
+                  id: Schema.FiniteFromString
+                }
+              })
+            )
+        )
+      const spec = OpenApi.fromApi(Api)
+      assert.deepStrictEqual(spec.paths["/a"].get?.parameters, [
+        {
+          name: "id",
+          in: "path",
+          schema: {
+            "type": "string"
+          },
+          required: true
+        }
+      ])
+    })
+  })
 })

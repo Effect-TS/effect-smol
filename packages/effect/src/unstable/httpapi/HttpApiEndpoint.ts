@@ -5,7 +5,6 @@ import type { Brand } from "../../Brand.ts"
 import type { Effect } from "../../Effect.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
-import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Stream from "../../Stream.ts"
@@ -114,7 +113,7 @@ export interface HttpApiEndpoint<
    * You can set a multipart schema to handle file uploads by using the
    * `HttpApiSchema.Multipart` combinator.
    */
-  setPayload<P extends Schema.Codec<any, PayloadConstraint<Method>, any, any>>(
+  setPayload<P extends PayloadSchemaContraint<Method>>(
     schema: P
   ): HttpApiEndpoint<
     Name,
@@ -122,7 +121,7 @@ export interface HttpApiEndpoint<
     Path,
     PathSchema,
     UrlParams,
-    P,
+    P extends Schema.Struct.Fields ? Schema.Struct<P> : P,
     Headers,
     Success,
     Error,
@@ -134,11 +133,7 @@ export interface HttpApiEndpoint<
    * Set the schema for the path parameters of the endpoint. The schema will be
    * used to validate the path parameters before the handler is called.
    */
-  setPath<
-    P extends
-      | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-      | Record<string, Schema.Codec<any, string | undefined, any, any>> = never
-  >(
+  setPath<P extends PathSchemaContraint>(
     schema: P
   ): HttpApiEndpoint<
     Name,
@@ -157,11 +152,9 @@ export interface HttpApiEndpoint<
   /**
    * Set the schema for the url search parameters of the endpoint.
    */
-  setUrlParams<
-    UP extends
-      | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
-      | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>>
-  >(schema: UP): HttpApiEndpoint<
+  setUrlParams<UP extends UrlParamsSchemaContraint>(
+    schema: UP
+  ): HttpApiEndpoint<
     Name,
     Method,
     Path,
@@ -179,11 +172,7 @@ export interface HttpApiEndpoint<
    * Set the schema for the headers of the endpoint. The schema will be
    * used to validate the headers before the handler is called.
    */
-  setHeaders<
-    H extends
-      | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
-      | Record<string, Schema.Codec<any, string | undefined, any, any>>
-  >(
+  setHeaders<H extends HeadersSchemaContraint>(
     schema: H
   ): HttpApiEndpoint<
     Name,
@@ -765,22 +754,6 @@ export type ExcludeProvided<Endpoints extends Any, Name extends string, R> = Exc
  * @since 4.0.0
  * @category models
  */
-export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ?
-  Readonly<Record<string, string | ReadonlyArray<string> | undefined>> :
-  any
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type PayloadConstraintField<Method extends HttpMethod> = Method extends HttpMethod.NoBody ?
-  string | ReadonlyArray<string> | undefined :
-  any
-
-/**
- * @since 4.0.0
- * @category models
- */
 export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
@@ -983,6 +956,62 @@ function makeProto<
 }
 
 /**
+ * Path params come from the router as `string` (optional params as `undefined`) and
+ * must be encodable back into the URL path.
+ *
+ * We accept "struct fields" (`Record<string, Codec<...>>`) so we can both enforce
+ * `Encoded` = `string | undefined` per field and reliably generate OpenAPI
+ * `in: path` parameters by iterating object properties.
+ *
+ * @since 4.0.0
+ * @category constraints
+ */
+export type PathSchemaContraint = Record<string, Schema.Codec<unknown, string | undefined, unknown, unknown>>
+
+/**
+ * URL search params can be repeated, so fields may encode to `string` or
+ * `ReadonlyArray<string>` (or be missing).
+ *
+ * Kept as "struct fields" so OpenAPI can safely expand properties into
+ * `in: query` parameters.
+ *
+ * @since 4.0.0
+ * @category constraints
+ */
+export type UrlParamsSchemaContraint = Record<
+  string,
+  Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>
+>
+
+/**
+ * HTTP headers are string-valued (or missing).
+ *
+ * Kept as "struct fields" so OpenAPI can safely expand properties into
+ * `in: header` parameters.
+ *
+ * @since 4.0.0
+ * @category constraints
+ */
+export type HeadersSchemaContraint = Record<string, Schema.Codec<unknown, string | undefined, unknown, unknown>>
+
+/**
+ * Payload schema depends on the HTTP method:
+ * - for no-body methods, payload is modeled as query params, so each field must
+ *   encode to `string | ReadonlyArray<string> | undefined` and OpenAPI can expand
+ *   it into `in: query` parameters
+ * - for body methods, payload may be any `Schema.Top` (or content-type keyed
+ *   schemas) and OpenAPI uses `requestBody` instead of `parameters`
+ *
+ * @since 4.0.0
+ * @category constraints
+ */
+export type PayloadSchemaContraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ? Record<
+    string,
+    Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>
+  > :
+  Schema.Top | Record<string, Schema.Top>
+
+/**
  * @since 4.0.0
  * @category constructors
  */
@@ -990,18 +1019,10 @@ export const make = <Method extends HttpMethod>(method: Method) =>
 <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
-  PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  UrlParams extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
-  Payload extends
-    | Schema.Codec<any, PayloadConstraint<Method>, any, any>
-    | Record<string, Schema.Codec<any, PayloadConstraintField<Method>, any, any>> = never,
-  Headers extends
-    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  PathSchema extends PathSchemaContraint = never,
+  UrlParams extends UrlParamsSchemaContraint = never,
+  Payload extends PayloadSchemaContraint<Method> = never,
+  Headers extends HeadersSchemaContraint = never,
   Success extends
     | Schema.Top
     | Record<string, Schema.Top> = HttpApiSchema.NoContent,
@@ -1059,18 +1080,10 @@ function fieldsToSchema<S>(schema: S): S extends Schema.Struct.Fields ? Schema.S
 export const get: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
-  PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  UrlParams extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
-  Payload extends
-    | Schema.Codec<any, Readonly<Record<string, string | ReadonlyArray<string> | undefined>>, any, any>
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
-  Headers extends
-    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  PathSchema extends PathSchemaContraint = never,
+  UrlParams extends UrlParamsSchemaContraint = never,
+  Payload extends PayloadSchemaContraint<"GET"> = never,
+  Headers extends HeadersSchemaContraint = never,
   Success extends
     | Schema.Top
     | Record<string, Schema.Top> = HttpApiSchema.NoContent,
@@ -1105,16 +1118,10 @@ export const get: <
 export const post: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
-  PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  UrlParams extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
-  Payload extends Schema.Codec<any, any, any, any> | Record<string, Schema.Codec<any, any, any, any>> = never,
-  Headers extends
-    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  PathSchema extends PathSchemaContraint = never,
+  UrlParams extends UrlParamsSchemaContraint = never,
+  Payload extends PayloadSchemaContraint<"POST"> = never,
+  Headers extends HeadersSchemaContraint = never,
   Success extends
     | Schema.Top
     | Record<string, Schema.Top> = HttpApiSchema.NoContent,
@@ -1149,16 +1156,10 @@ export const post: <
 export const put: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
-  PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  UrlParams extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
-  Payload extends Schema.Codec<any, any, any, any> | Record<string, Schema.Codec<any, any, any, any>> = never,
-  Headers extends
-    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  PathSchema extends PathSchemaContraint = never,
+  UrlParams extends UrlParamsSchemaContraint = never,
+  Payload extends PayloadSchemaContraint<"PUT"> = never,
+  Headers extends HeadersSchemaContraint = never,
   Success extends
     | Schema.Top
     | Record<string, Schema.Top> = HttpApiSchema.NoContent,
@@ -1193,16 +1194,10 @@ export const put: <
 export const patch: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
-  PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  UrlParams extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
-  Payload extends Schema.Codec<any, any, any, any> | Record<string, Schema.Codec<any, any, any, any>> = never,
-  Headers extends
-    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  PathSchema extends PathSchemaContraint = never,
+  UrlParams extends UrlParamsSchemaContraint = never,
+  Payload extends PayloadSchemaContraint<"PATCH"> = never,
+  Headers extends HeadersSchemaContraint = never,
   Success extends
     | Schema.Top
     | Record<string, Schema.Top> = HttpApiSchema.NoContent,
@@ -1237,16 +1232,10 @@ export const patch: <
 export const del: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
-  PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  UrlParams extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
-  Payload extends Schema.Codec<any, any, any, any> | Record<string, Schema.Codec<any, any, any, any>> = never,
-  Headers extends
-    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  PathSchema extends PathSchemaContraint = never,
+  UrlParams extends UrlParamsSchemaContraint = never,
+  Payload extends PayloadSchemaContraint<"DELETE"> = never,
+  Headers extends HeadersSchemaContraint = never,
   Success extends
     | Schema.Top
     | Record<string, Schema.Top> = HttpApiSchema.NoContent,
@@ -1281,18 +1270,10 @@ export const del: <
 export const head: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
-  PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  UrlParams extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
-  Payload extends
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>>
-    | Schema.Codec<any, Readonly<Record<string, string | ReadonlyArray<string> | undefined>>, any, any> = never,
-  Headers extends
-    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  PathSchema extends PathSchemaContraint = never,
+  UrlParams extends UrlParamsSchemaContraint = never,
+  Payload extends PayloadSchemaContraint<"HEAD"> = never,
+  Headers extends HeadersSchemaContraint = never,
   Success extends
     | Schema.Top
     | Record<string, Schema.Top> = HttpApiSchema.NoContent,
@@ -1327,18 +1308,10 @@ export const head: <
 export const options: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
-  PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
-  UrlParams extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
-  Payload extends
-    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>>
-    | Schema.Codec<any, Readonly<Record<string, string | ReadonlyArray<string> | undefined>>, any, any> = never,
-  Headers extends
-    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  PathSchema extends PathSchemaContraint = never,
+  UrlParams extends UrlParamsSchemaContraint = never,
+  Payload extends PayloadSchemaContraint<"OPTIONS"> = never,
+  Headers extends HeadersSchemaContraint = never,
   Success extends
     | Schema.Top
     | Record<string, Schema.Top> = HttpApiSchema.NoContent,

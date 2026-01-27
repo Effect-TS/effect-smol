@@ -124,9 +124,9 @@ export type ConvertRpcs<Rpcs extends Rpc.Any, Prefix extends string> = Rpcs exte
     >
   : never
 
-const entityIdPath = Schema.Struct({
+const entityIdPath = {
   entityId: Schema.String
-})
+}
 
 /**
  * Derives an `HttpApiGroup` from an `Entity`.
