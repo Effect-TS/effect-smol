@@ -8115,6 +8115,34 @@ export const runCallbackWith: <R>(
 ) => (interruptor?: number | undefined) => void = internal.runCallbackWith
 
 /**
+ * Runs an effect with a callback and returns a cancel function.
+ *
+ * @example
+ * ```ts
+ * // Title: Handling Exit and Cancellation
+ * import { Cause, Effect, Exit } from "effect"
+ *
+ * const program = Effect.never
+ *
+ * const cancel = Effect.runCallback(program, {
+ *   onExit: Exit.match({
+ *     onFailure: (cause) => {
+ *       if (Cause.isInterruptedOnly(cause)) {
+ *         console.log("Interrupted")
+ *         return
+ *       }
+ *       console.log(Cause.pretty(cause))
+ *     },
+ *     onSuccess: (value) => {
+ *       console.log("Done:", value)
+ *     }
+ *   })
+ * })
+ *
+ * // Cancel the running effect after a short delay.
+ * Effect.runPromise(Effect.sleep("10 millis")).then(() => cancel())
+ * ```
+ *
  * @since 4.0.0
  * @category Running Effects
  */
