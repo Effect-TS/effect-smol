@@ -5954,6 +5954,25 @@ export const onExit: {
 } = internal.onExit
 
 /**
+ * @example
+ * ```ts
+ * import { Console, Effect, Fiber } from "effect"
+ *
+ * const task = Effect.never.pipe(
+ *   Effect.onExitInterruptible(() =>
+ *     Effect.gen(function*() {
+ *       yield* Console.log("finalizer started")
+ *       // Finalizer is interruptible, so this sleep can be canceled.
+ *       yield* Effect.sleep("5 seconds")
+ *       yield* Console.log("finalizer done")
+ *     })
+ *   )
+ * )
+ *
+ * const fiber = Effect.runFork(task)
+ * Effect.runPromise(Fiber.interrupt(fiber))
+ * ```
+ *
  * @since 4.0.0
  * @category Resource management & finalization
  */
