@@ -38,6 +38,7 @@
  *
  * @since 1.0.0
  */
+import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Fiber from "../../Fiber.ts"
 import { identity } from "../../Function.ts"
@@ -148,13 +149,12 @@ export interface Toolkit<in out Tools extends Record<string, Tool.Any>> extends
  */
 export interface HandlerContext<Tool extends Tool.Any> {
   /**
-   * A queue for emitting intermediate results during long-running tool calls.
-   * Results pushed here are streamed to the caller before the handler completes.
+   * Emit a preliminary result during long-running tool calls.
+   *
+   * Preliminary results are streamed to the caller before the handler completes,
+   * enabling real-time progress updates for lengthy operations.
    */
-  readonly preliminaryResults: Queue.Enqueue<
-    Tool.Success<Tool>,
-    Tool.Failure<Tool> | AiError.AiErrorReason | AiError.AiError
-  >
+  readonly preliminary: (result: Tool.Success<Tool>) => Effect.Effect<void>
 }
 
 /**
@@ -354,14 +354,24 @@ const Proto = {
         )
 
         // Setup the handler context
-        const preliminaryResults = yield* Queue.make<any, any>()
+        const queue = yield* Queue.make<{
+          readonly result: any
+          readonly isFailure: boolean
+          readonly preliminary: boolean
+        }, Cause.Done>()
         const context: HandlerContext<any> = {
-          preliminaryResults
+          preliminary: (result) =>
+            Effect.asVoid(Queue.offer(queue, {
+              result,
+              isFailure: false,
+              preliminary: true
+            }))
         }
 
         const fiber = yield* schemas.handler(decodedParams, context).pipe(
+          Effect.flatMap((result) => Queue.offer(queue, { result, isFailure: false, preliminary: false })),
           Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
-          Effect.onExit(() => Queue.end(preliminaryResults)),
+          Effect.onExit(() => Queue.end(queue)),
           Effect.forkChild
         )
 
@@ -379,10 +389,6 @@ const Proto = {
               })
             )
           )
-
-        const terminalResult = Fiber.join(fiber).pipe(
-          Effect.map((result) => ({ result, isFailure: false, preliminary: false }))
-        )
 
         const normalizeError = (error: unknown) => {
           // Schema errors indicate handler returned invalid data
@@ -405,21 +411,7 @@ const Proto = {
           return normalizedError
         }
 
-        return Stream.fromQueue(preliminaryResults).pipe(
-          Stream.map((result) => ({ result, isFailure: false, preliminary: true })),
-          // If the queue is failed, interrupt the handler fiber and emit the error
-          Stream.catch((error) =>
-            Stream.fromEffect(Fiber.interrupt(fiber)).pipe(
-              Stream.flatMap(() => {
-                const normalizedError = normalizeError(error)
-                return tool.failureMode === "error"
-                  ? Stream.fail(normalizedError)
-                  : Stream.make({ result: normalizedError, isFailure: true, preliminary: false })
-              })
-            )
-          ),
-          // Concatenate the terminal result onto the stream
-          Stream.concat(Stream.fromEffect(terminalResult)),
+        return Stream.fromQueue(queue).pipe(
           // If the tool handler failed, check the tool's failure mode to
           // determine how the result should be returned to the end user
           Stream.catch((error) => {
@@ -431,7 +423,8 @@ const Proto = {
           Stream.mapEffect(Effect.fnUntraced(function*(output) {
             const encodedResult = yield* encodeResult(output.result)
             return { ...output, encodedResult }
-          }))
+          })),
+          Stream.onEnd(Fiber.interrupt(fiber))
         ) satisfies Stream.Stream<Tool.HandlerResult<any>, any>
       })
 

@@ -878,7 +878,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             const parts = yield* decodeParts(chunk)
             yield* Queue.offerAll(queue, parts)
             const resultStream = resolveToolCalls(chunk, toolkit, options.concurrency)
-            yield* Stream.runIntoQueue(resultStream as any, queue)
+            yield* Effect.forkScoped(Stream.runIntoQueue(resultStream as any, queue))
           })),
           Queue.into(queue),
           Effect.forkScoped

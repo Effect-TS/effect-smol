@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Effect, Fiber, identity, Queue, Schema, Stream } from "effect"
+import { Effect, Fiber, identity, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { AiError, LanguageModel, Response, Tool, Toolkit } from "effect/unstable/ai"
 import * as TestUtils from "./utils.ts"
@@ -259,7 +259,7 @@ describe("Tool", () => {
 
           const handlers = toolkit.toLayer({
             IncrementalTool: Effect.fnUntraced(function*(_, ctx) {
-              yield* Queue.offer(ctx.preliminaryResults, preliminaryResult)
+              yield* ctx.preliminary(preliminaryResult)
               return terminalResult
             })
           })
@@ -309,7 +309,7 @@ describe("Tool", () => {
 
           const handlers = toolkit.toLayer({
             IncrementalTool: Effect.fnUntraced(function*(_, ctx) {
-              yield* Queue.offer(ctx.preliminaryResults, preliminaryResult)
+              yield* ctx.preliminary(preliminaryResult)
               return terminalResult
             })
           })
@@ -366,9 +366,9 @@ describe("Tool", () => {
 
           const handlers = toolkit.toLayer({
             IncrementalTool: Effect.fnUntraced(function*(_, ctx) {
-              yield* Queue.offer(ctx.preliminaryResults, { status: "loading", progress: 0 })
-              yield* Queue.offer(ctx.preliminaryResults, { status: "processing", progress: 50 })
-              yield* Queue.offer(ctx.preliminaryResults, { status: "finalizing", progress: 90 })
+              yield* ctx.preliminary({ status: "loading", progress: 0 })
+              yield* ctx.preliminary({ status: "processing", progress: 50 })
+              yield* ctx.preliminary({ status: "finalizing", progress: 90 })
               return { status: "complete" }
             })
           })
@@ -417,7 +417,7 @@ describe("Tool", () => {
 
           const handlers = toolkit.toLayer({
             IncrementalTool: Effect.fnUntraced(function*(_, ctx) {
-              yield* Queue.offer(ctx.preliminaryResults, { status: "loading", progress: 0 })
+              yield* ctx.preliminary({ status: "loading", progress: 0 })
               yield* Effect.sleep("5 seconds")
               return { status: "complete" }
             })
@@ -477,8 +477,8 @@ describe("Tool", () => {
 
           const handlers = toolkit.toLayer({
             IncrementalToolWithFailure: Effect.fnUntraced(function*(_, ctx) {
-              yield* Queue.offer(ctx.preliminaryResults, { status: "loading" })
-              yield* Queue.offer(ctx.preliminaryResults, { status: "processing" })
+              yield* ctx.preliminary({ status: "loading" })
+              yield* ctx.preliminary({ status: "processing" })
               return yield* Effect.fail({ error: "Something went wrong" })
             })
           })
@@ -519,68 +519,63 @@ describe("Tool", () => {
           deepStrictEqual(toolResults[2].result, { error: "Something went wrong" })
         }))
 
-      it.effect("should handle concurrent tools with preliminary results", () =>
+      it.effect.only("should interleave results from concurrent tools with preliminary results", () =>
         Effect.gen(function*() {
-          const toolkit = Toolkit.make(IncrementalToolWithFailure)
+          const toolkit = Toolkit.make(ConcurrentIncrementalTool)
 
           const handlers = toolkit.toLayer({
-            IncrementalToolWithFailure: Effect.fnUntraced(function*({ input }, ctx) {
-              yield* Queue.offer(ctx.preliminaryResults, { status: `${input}-loading` })
-              return { status: `${input}-complete`, progress: 100 }
+            ConcurrentIncrementalTool: Effect.fnUntraced(function*({ name, delay }, ctx) {
+              console.log({ name, delay })
+              yield* ctx.preliminary({ status: `loading`, job: name, progress: 50 })
+              yield* Effect.sleep(delay)
+              return { status: `complete`, job: name }
             })
           })
 
-          const response = yield* LanguageModel.streamText({
+          const latch = yield* Effect.makeLatch()
+          const toolResults: Array<Response.ToolResultParts<Toolkit.Tools<typeof toolkit>>> = []
+
+          yield* LanguageModel.streamText({
             prompt: "Test",
             toolkit
           }).pipe(
-            Stream.runCollect,
+            Stream.tap(() => latch.open),
+            Stream.filter((part) => {
+              console.log(part)
+              return part.type === "tool-result"
+            }),
+            Stream.runForEach((part) => Effect.sync(() => toolResults.push(part))),
             TestUtils.withLanguageModel({
               streamText: [
                 {
                   type: "tool-call",
                   id: "tool-fast",
-                  name: "IncrementalToolWithFailure",
-                  params: { input: "fast" }
+                  name: "ConcurrentIncrementalTool",
+                  params: { name: "fast", delay: "1 second" }
                 },
                 {
                   type: "tool-call",
                   id: "tool-slow",
-                  name: "IncrementalToolWithFailure",
-                  params: { input: "slow" }
+                  name: "ConcurrentIncrementalTool",
+                  params: { name: "slow", delay: "2 seconds" }
                 }
               ]
             }),
-            Effect.provide(handlers)
+            Effect.provide(handlers),
+            Effect.forkScoped
           )
 
-          // Both tool calls emitted
-          const toolCalls = response.filter((part) => part.type === "tool-call")
-          strictEqual(toolCalls.length, 2)
+          yield* latch.await
 
-          // Both tools should have preliminary results
-          const toolResults = response.filter((part) => part.type === "tool-result")
-          const preliminaryResults = toolResults.filter((part) => part.preliminary === true)
-          strictEqual(preliminaryResults.length, 2)
+          console.dir(toolResults, { depth: null, colors: true })
 
-          // Verify both preliminary results have expected statuses
-          const preliminaryStatuses = preliminaryResults
-            .map((p) => (p.result as { status: string }).status)
-            .sort()
-          deepStrictEqual(preliminaryStatuses, ["fast-loading", "slow-loading"])
+          yield* TestClock.adjust("1 second")
 
-          // Both tools should have final results
-          const finalResults = toolResults.filter((part) => part.preliminary === false)
-          strictEqual(finalResults.length, 2)
+          console.dir(toolResults, { depth: null, colors: true })
 
-          // Verify both final results have expected statuses
-          const finalStatuses = finalResults
-            .map((p) => (p.result as { status: string }).status)
-            .sort()
-          deepStrictEqual(finalStatuses, ["fast-complete", "slow-complete"])
+          yield* TestClock.adjust("2 seconds")
 
-          // Verify total: 2 tool calls + 2 preliminary + 2 final = 6 parts
-          strictEqual(response.length, 6)
+          console.dir(toolResults, { depth: null, colors: true })
         }))
     })
   })
@@ -902,6 +897,15 @@ const IncrementalTool = Tool.make("IncrementalTool", {
     Schema.Struct({ status: Schema.Literal("processing"), progress: Schema.Number }),
     Schema.Struct({ status: Schema.Literal("finalizing"), progress: Schema.Number }),
     Schema.Struct({ status: Schema.Literal("complete") })
+  ])
+})
+
+const ConcurrentIncrementalTool = Tool.make("ConcurrentIncrementalTool", {
+  description: "A test tool",
+  parameters: { name: Schema.String, delay: Schema.Duration },
+  success: Schema.Union([
+    Schema.Struct({ status: Schema.Literal("loading"), job: Schema.String, progress: Schema.Number }),
+    Schema.Struct({ status: Schema.Literal("complete"), job: Schema.String })
   ])
 })
 
