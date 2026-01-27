@@ -1681,20 +1681,24 @@ export const fromOption: <A>(
 ) => Effect<A, Cause.NoSuchElementError> = internal.fromOption
 
 /**
- * Creates an `Effect` from a nullable value, failing with a `NoSuchElementError`
+ * Converts a nullable value to an `Effect`, failing with a `NoSuchElementError`
  * when the value is `null` or `undefined`.
  *
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
  *
- * const input: string | null = "hello"
+ * const input: string | null = null
  *
  * const program = Effect.gen(function*() {
  *   const value = yield* Effect.fromNullishOr(input)
  *   yield* Console.log(value)
- * })
- * // Output: hello
+ * }).pipe(
+ *   Effect.catch(() => Console.log("missing"))
+ * )
+ *
+ * Effect.runPromise(program)
+ * // Output: missing
  * ```
  *
  * @since 4.0.0
