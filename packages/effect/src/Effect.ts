@@ -4853,16 +4853,10 @@ export const matchEffect: {
 export const isFailure: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, never, R> = internal.isFailure
 
 /**
- * Checks if an effect has succeeded.
+ * Returns whether an effect completes successfully.
  *
- * **Details**
- *
- * This function evaluates whether an effect has resulted in a success. It
- * returns a boolean value wrapped in an effect, with `true` indicating the
- * effect succeeded and `false` otherwise.
- *
- * The resulting effect cannot fail (`never` in the error channel) but retains
- * the context of the original effect.
+ * Returns `false` for failures in the error channel, but defects still fail the
+ * effect.
  *
  * @since 2.0.0
  * @category Condition Checking
