@@ -1,6 +1,7 @@
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import { dual } from "effect/Function"
+import * as Match from "effect/Match"
 import * as Number from "effect/Number"
 import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
@@ -31,56 +32,6 @@ export const OpenAiErrorBody = Schema.Struct({
 // =============================================================================
 
 /** @internal */
-export const mapRequestError = dual<
-  (method: string) => (error: HttpClientError.RequestError) => AiError.AiError,
-  (error: HttpClientError.RequestError, method: string) => AiError.AiError
->(2, (error, method) =>
-  AiError.make({
-    module: "OpenAiClient",
-    method,
-    reason: AiError.NetworkError.fromRequestError(error)
-  }))
-
-/** @internal */
-export const mapResponseError = dual<
-  (method: string) => (error: HttpClientError.ResponseError) => Effect.Effect<never, AiError.AiError>,
-  (error: HttpClientError.ResponseError, method: string) => Effect.Effect<never, AiError.AiError>
->(
-  2,
-  Effect.fnUntraced(function*(error, method) {
-    const { request, response, description } = error
-    const status = response.status
-    const headers = response.headers as Record<string, string>
-    const requestId = headers["x-request-id"]
-
-    // The generated client already consumes response.json and stores it in description
-    // Try to parse the description as JSON to extract error details
-    let json: unknown
-    try {
-      json = Predicate.isNotUndefined(description) ? JSON.parse(description) : undefined
-    } catch {
-      json = undefined
-    }
-    const body = description
-    const decoded = Schema.decodeUnknownOption(OpenAiErrorBody)(json)
-
-    const reason = mapStatusCodeToReason({
-      status,
-      headers,
-      message: Option.isSome(decoded) ? decoded.value.error.message : undefined,
-      http: buildHttpContext({ request, response, body }),
-      metadata: {
-        errorCode: Option.isSome(decoded) ? decoded.value.error.code ?? null : null,
-        errorType: Option.isSome(decoded) ? decoded.value.error.type ?? null : null,
-        requestId: requestId ?? null
-      }
-    })
-
-    return yield* AiError.make({ module: "OpenAiClient", method, reason })
-  })
-)
-
-/** @internal */
 export const mapSchemaError = dual<
   (method: string) => (error: Schema.SchemaError) => AiError.AiError,
   (error: Schema.SchemaError, method: string) => AiError.AiError
@@ -90,6 +41,102 @@ export const mapSchemaError = dual<
     method,
     reason: AiError.InvalidOutputError.fromSchemaError(error)
   }))
+
+/** @internal */
+export const mapHttpClientError = dual<
+  (method: string) => (error: HttpClientError.HttpClientError) => Effect.Effect<never, AiError.AiError>,
+  (error: HttpClientError.HttpClientError, method: string) => Effect.Effect<never, AiError.AiError>
+>(
+  2,
+  (error, method) =>
+    Match.value(error.reason).pipe(
+      Match.tags({
+        TransportError: (err) =>
+          Effect.fail(AiError.make({
+            module: "OpenAiClient",
+            method,
+            reason: new AiError.NetworkError({
+              reason: "TransportError",
+              description: err.description,
+              request: buildHttpRequestDetails(err.request)
+            })
+          })),
+        EncodeError: (err) =>
+          Effect.fail(AiError.make({
+            module: "OpenAiClient",
+            method,
+            reason: new AiError.NetworkError({
+              reason: "EncodeError",
+              description: err.description,
+              request: buildHttpRequestDetails(err.request)
+            })
+          })),
+        InvalidUrlError: (err) =>
+          Effect.fail(AiError.make({
+            module: "OpenAiClient",
+            method,
+            reason: new AiError.NetworkError({
+              reason: "InvalidUrlError",
+              description: err.description,
+              request: buildHttpRequestDetails(err.request)
+            })
+          })),
+        StatusCodeError: (err) => mapStatusCodeError(err, method),
+        DecodeError: (err) =>
+          Effect.fail(AiError.make({
+            module: "OpenAiClient",
+            method,
+            reason: new AiError.InvalidOutputError({
+              description: err.description ?? "Failed to decode response"
+            })
+          })),
+        EmptyBodyError: (err) =>
+          Effect.fail(AiError.make({
+            module: "OpenAiClient",
+            method,
+            reason: new AiError.InvalidOutputError({
+              description: err.description ?? "Response body was empty"
+            })
+          }))
+      }),
+      Match.exhaustive
+    )
+)
+
+/** @internal */
+const mapStatusCodeError = Effect.fnUntraced(function*(
+  error: HttpClientError.StatusCodeError,
+  method: string
+) {
+  const { request, response, description } = error
+  const status = response.status
+  const headers = response.headers as Record<string, string>
+  const requestId = headers["x-request-id"]
+
+  // Try to parse the description as JSON to extract error details
+  let json: unknown
+  try {
+    json = Predicate.isNotUndefined(description) ? JSON.parse(description) : undefined
+  } catch {
+    json = undefined
+  }
+  const body = description
+  const decoded = Schema.decodeUnknownOption(OpenAiErrorBody)(json)
+
+  const reason = mapStatusCodeToReason({
+    status,
+    headers,
+    message: Option.isSome(decoded) ? decoded.value.error.message : undefined,
+    http: buildHttpContext({ request, response, body }),
+    metadata: {
+      errorCode: Option.isSome(decoded) ? decoded.value.error.code ?? null : null,
+      errorType: Option.isSome(decoded) ? decoded.value.error.type ?? null : null,
+      requestId: requestId ?? null
+    }
+  })
+
+  return yield* AiError.make({ module: "OpenAiClient", method, reason })
+})
 
 // =============================================================================
 // Rate Limits
@@ -121,18 +168,23 @@ export const parseRateLimitHeaders = (headers: Record<string, string>) => {
 // =============================================================================
 
 /** @internal */
+export const buildHttpRequestDetails = (
+  request: HttpClientRequest.HttpClientRequest
+): typeof AiError.HttpRequestDetails.Type => ({
+  method: request.method,
+  url: request.url,
+  urlParams: Array.from(request.urlParams),
+  hash: request.hash,
+  headers: Redactable.redact(request.headers) as Record<string, string>
+})
+
+/** @internal */
 export const buildHttpContext = (params: {
   readonly request: HttpClientRequest.HttpClientRequest
   readonly response?: HttpClientResponse.HttpClientResponse
   readonly body?: string | undefined
 }): typeof AiError.HttpContext.Type => ({
-  request: {
-    method: params.request.method,
-    url: params.request.url,
-    urlParams: Array.from(params.request.urlParams),
-    hash: params.request.hash,
-    headers: Redactable.redact(params.request.headers) as Record<string, string>
-  },
+  request: buildHttpRequestDetails(params.request),
   response: Predicate.isNotUndefined(params.response)
     ? {
       status: params.response.status,

@@ -166,7 +166,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
   "effect/ai/AiError/NetworkError"
 )({
   _tag: Schema.tag("NetworkError"),
-  reason: Schema.Literals(["Transport", "Encode", "InvalidUrl"]),
+  reason: Schema.Literals(["TransportError", "EncodeError", "InvalidUrlError"]),
   request: HttpRequestDetails,
   description: Schema.optional(Schema.String)
 }) {
@@ -181,7 +181,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
    * @since 4.0.0
    */
   get isRetryable(): boolean {
-    return this.reason === "Transport"
+    return this.reason === "TransportError"
   }
 
   /**
@@ -203,7 +203,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
   static fromRequestError(error: HttpClientError.RequestError): NetworkError {
     return new NetworkError({
       description: error.description,
-      reason: error.reason,
+      reason: error._tag,
       request: {
         hash: error.request.hash,
         headers: redactHeaders(error.request.headers),
@@ -225,18 +225,18 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
 
     let suggestion = ""
     switch (this.reason) {
-      case "Encode": {
+      case "EncodeError": {
         suggestion += "Check that the request body data is properly formatted and matches the expected content type."
         break
       }
 
-      case "InvalidUrl": {
+      case "InvalidUrlError": {
         suggestion += "Verify that the URL format is correct and that all required parameters have been provided."
         suggestion += " Check for any special characters that may need encoding."
         break
       }
 
-      case "Transport": {
+      case "TransportError": {
         suggestion += "Check your network connection and verify that the requested URL is accessible."
         break
       }

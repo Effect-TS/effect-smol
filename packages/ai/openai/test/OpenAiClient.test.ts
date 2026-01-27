@@ -221,14 +221,15 @@ describe("OpenAiClient", () => {
   })
 
   describe("error mapping", () => {
-    it.effect("maps RequestError to NetworkError reason", () =>
+    it.effect("maps TransportError to NetworkError reason", () =>
       Effect.gen(function*() {
         const mockClient = makeMockHttpClient(() =>
           Effect.fail(
-            new HttpClientError.RequestError({
-              reason: "Transport",
-              request: HttpClientRequest.get("/"),
-              cause: new Error("Connection refused")
+            new HttpClientError.HttpClientError({
+              reason: new HttpClientError.TransportError({
+                request: HttpClientRequest.get("/"),
+                cause: new Error("Connection refused")
+              })
             })
           )
         )

@@ -191,8 +191,7 @@ export const make = Effect.fnUntraced(
         Stream.catchTags({
           // TODO: handle SSE retries
           Retry: (error) => Stream.die(error),
-          RequestError: (error) => Stream.fail(Errors.mapRequestError(error, "streamRequest")),
-          ResponseError: (error) => Stream.unwrap(Errors.mapResponseError(error, "streamRequest")),
+          HttpClientError: (error) => Stream.unwrap(Errors.mapHttpClientError(error, "streamRequest")),
           SchemaError: (error) => Stream.fail(Errors.mapSchemaError(error, "streamRequest"))
         })
       )
@@ -202,8 +201,7 @@ export const make = Effect.fnUntraced(
     ): Effect.Effect<typeof Generated.Response.Type, AiError.AiError> =>
       client.createResponse({ payload: opts }).pipe(
         Effect.catchTags({
-          RequestError: (error) => Effect.fail(Errors.mapRequestError(error, "createResponse")),
-          ResponseError: (error) => Errors.mapResponseError(error, "createResponse"),
+          HttpClientError: (error) => Errors.mapHttpClientError(error, "createResponse"),
           SchemaError: (error) => Effect.fail(Errors.mapSchemaError(error, "createResponse"))
         })
       )
@@ -222,8 +220,7 @@ export const make = Effect.fnUntraced(
     ): Effect.Effect<typeof Generated.CreateEmbeddingResponse.Type, AiError.AiError> =>
       client.createEmbedding({ payload: opts }).pipe(
         Effect.catchTags({
-          RequestError: (error) => Effect.fail(Errors.mapRequestError(error, "createEmbedding")),
-          ResponseError: (error) => Errors.mapResponseError(error, "createEmbedding"),
+          HttpClientError: (error) => Errors.mapHttpClientError(error, "createEmbedding"),
           SchemaError: (error) => Effect.fail(Errors.mapSchemaError(error, "createEmbedding"))
         })
       )

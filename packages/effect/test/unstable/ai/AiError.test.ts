@@ -530,7 +530,7 @@ describe("AiError", () => {
 
       it("should return false for reason types", () => {
         const networkError = new AiError.NetworkError({
-          reason: "Transport",
+          reason: "TransportError",
           request: {
             method: "GET",
             url: "https://example.com",
