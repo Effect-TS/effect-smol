@@ -5,7 +5,6 @@ import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
-import * as HttpApiSchema from "../httpapi/HttpApiSchema.ts"
 
 /**
  * @since 4.0.0
@@ -336,7 +335,7 @@ export function addError(event: Any, error: Schema.Top): Any {
     primaryKey: event.primaryKey,
     payload: event.payload,
     success: event.success,
-    error: HttpApiSchema.UnionUnify(event.error, error)
+    error: Schema.Union([event.error, error])
   })
 }
 

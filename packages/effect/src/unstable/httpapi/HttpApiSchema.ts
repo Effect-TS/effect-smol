@@ -85,10 +85,12 @@ function extractUnionTypes(ast: AST.AST): ReadonlyArray<AST.AST> {
 /**
  * @since 4.0.0
  */
-export const UnionUnify = <A extends Schema.Top, B extends Schema.Top>(
+export function UnionUnify<A extends Schema.Top, B extends Schema.Top>(
   self: A,
   that: B
-): Schema.Top => Schema.make(UnionUnifyAST(self.ast, that.ast))
+): Schema.Top {
+  return Schema.make(UnionUnifyAST(self.ast, that.ast))
+}
 
 // TODO: add description
 /**
