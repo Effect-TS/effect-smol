@@ -2743,10 +2743,12 @@ export const catchReasons: {
 } = internal.catchReasons
 
 /**
- * A helper type to filter tags that have reason fields with tagged variants.
+ * Type helper that keeps only error tags whose tagged error contains a tagged `reason` field.
+ *
+ * Used by `catchReasons` and `unwrapReason` to constrain the parent error tag to reason-bearing errors.
  *
  * @since 4.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export type TagsWithReason<E> = {
   [T in Tags<E>]: ReasonTags<ExtractTag<E, T>> extends never ? never : T
