@@ -105,6 +105,8 @@ clarity, category taxonomy, and example correctness.
   when the existing example is outdated or unclear.
 - Any output shown in comments should match actual runtime output (use the
   `scratchpad/` for running examples as needed).
+- If you are not showing any output comments, **do not** use any Effect.run* calls
+  in the example.
 
 ### Tags
 
