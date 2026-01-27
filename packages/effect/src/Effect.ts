@@ -5984,6 +5984,28 @@ export const onExitInterruptible: {
 } = internal.onExitInterruptible
 
 /**
+ * Filters exit values and handles only matching exits.
+ *
+ * @example
+ * ```ts
+ * import { Cause, Console, Effect, Exit, Filter, pipe, Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(1)
+ *   yield* Queue.shutdown(queue)
+ *
+ *   yield* pipe(
+ *     Queue.take(queue),
+ *     Effect.onExitFilter(
+ *       Filter.fromPredicate(Exit.isFailure),
+ *       (failure) => Console.log(`Queue failure: ${Cause.pretty(failure.cause)}`)
+ *     )
+ *   )
+ * })
+ *
+ * Effect.runPromise(program).catch(() => {})
+ * ```
+ *
  * @since 4.0.0
  * @category Resource management & finalization
  */
