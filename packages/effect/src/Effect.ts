@@ -4067,20 +4067,20 @@ export const delay: {
 export const sleep: (duration: Duration.DurationInput) => Effect<void> = internal.sleep
 
 /**
- * Executes an effect and measures the time it takes to complete.
+ * Measures the runtime of an effect and returns the duration with its result.
  *
- * **Details**
+ * The original success, failure, or interruption is preserved; only the success
+ * value is paired with the duration.
  *
- * This function wraps the provided effect and returns a new effect that, when
- * executed, performs the original effect and calculates its execution duration.
+ * @example
+ * ```ts
+ * import { Console, Duration, Effect } from "effect"
  *
- * The result of the new effect includes both the execution time (as a
- * `Duration`) and the original effect's result. This is useful for monitoring
- * performance or gaining insights into the time taken by specific operations.
- *
- * The original effect's behavior (success, failure, or interruption) remains
- * unchanged, and the timing information is provided alongside the result in a
- * tuple.
+ * const program = Effect.gen(function*() {
+ *   const [duration, value] = yield* Effect.timed(Effect.succeed("ok"))
+ *   yield* Console.log(`took ${Duration.toMillis(duration)}ms: ${value}`)
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category Delays & Timeouts
