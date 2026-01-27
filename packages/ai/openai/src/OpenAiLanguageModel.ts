@@ -104,8 +104,8 @@ declare module "effect/unstable/ai/Prompt" {
       /**
        * The detail level of the image to be sent to the model. One of `high`, `low`, or `auto`. Defaults to `auto`.
        */
-      readonly imageDetail?: typeof Generated.ImageDetail.Encoded | undefined
-    } | undefined
+      readonly imageDetail?: typeof Generated.ImageDetail.Encoded | null
+    } | null
   }
 
   export interface ReasoningPartOptions extends ProviderOptions {
@@ -113,14 +113,14 @@ declare module "effect/unstable/ai/Prompt" {
       /**
        * The ID of the item to reference.
        */
-      readonly itemId?: string | undefined
+      readonly itemId?: string | null
       /**
        * The encrypted content of the reasoning item - populated when a response
        * is generated with `reasoning.encrypted_content` in the `include`
        * parameter.
        */
-      readonly encryptedContent?: string | undefined
-    } | undefined
+      readonly encryptedContent?: string | null
+    } | null
   }
 
   export interface ToolCallPartOptions extends ProviderOptions {
@@ -128,12 +128,12 @@ declare module "effect/unstable/ai/Prompt" {
       /**
        * The ID of the item to reference.
        */
-      readonly itemId?: string | undefined
+      readonly itemId?: string | null
       /**
        * The status of item.
        */
-      readonly status?: typeof Generated.Message.Encoded["status"] | undefined
-    } | undefined
+      readonly status?: typeof Generated.Message.Encoded["status"] | null
+    } | null
   }
 
   export interface ToolResultPartOptions extends ProviderOptions {
@@ -141,12 +141,12 @@ declare module "effect/unstable/ai/Prompt" {
       /**
        * The ID of the item to reference.
        */
-      readonly itemId?: string | undefined
+      readonly itemId?: string | null
       /**
        * The status of item.
        */
-      readonly status?: typeof Generated.Message.Encoded["status"] | undefined
-    } | undefined
+      readonly status?: typeof Generated.Message.Encoded["status"] | null
+    } | null
   }
 
   export interface TextPartOptions extends ProviderOptions {
@@ -154,84 +154,84 @@ declare module "effect/unstable/ai/Prompt" {
       /**
        * The ID of the item to reference.
        */
-      readonly itemId?: string | undefined
+      readonly itemId?: string | null
       /**
        * The status of item.
        */
-      readonly status?: typeof Generated.Message.Encoded["status"] | undefined
+      readonly status?: typeof Generated.Message.Encoded["status"] | null
       /**
        * A list of annotations that apply to the output text.
        */
-      readonly annotations?: ReadonlyArray<typeof Generated.Annotation.Encoded> | undefined
-    } | undefined
+      readonly annotations?: ReadonlyArray<typeof Generated.Annotation.Encoded> | null
+    } | null
   }
 }
 
 declare module "effect/unstable/ai/Response" {
   export interface TextPartMetadata extends ProviderMetadata {
     readonly openai?: {
-      readonly itemId?: string
+      readonly itemId?: string | null
       /**
        * If the model emits a refusal content part, the refusal explanation
        * from the model will be contained in the metadata of an empty text
        * part.
        */
-      readonly refusal?: string
+      readonly refusal?: string | null
       /**
        * The status of item.
        */
-      readonly status?: typeof Generated.Message.Encoded["status"] | undefined
+      readonly status?: typeof Generated.Message.Encoded["status"] | null
       /**
        * The text content part annotations.
        */
-      readonly annotations?: ReadonlyArray<typeof Generated.Annotation.Encoded> | undefined
+      readonly annotations?: ReadonlyArray<typeof Generated.Annotation.Encoded> | null
     }
   }
 
   export interface TextStartPartMetadata extends ProviderMetadata {
     readonly openai?: {
-      readonly itemId?: string
-    }
+      readonly itemId?: string | null
+    } | null
   }
 
   export interface TextEndPartMetadata extends ProviderMetadata {
     readonly openai?: {
-      readonly itemId?: string
-      readonly annotations?: ReadonlyArray<typeof Generated.Annotation.Encoded>
-    }
+      readonly itemId?: string | null
+      readonly annotations?: ReadonlyArray<typeof Generated.Annotation.Encoded> | null
+    } | null
   }
 
   export interface ReasoningPartMetadata extends ProviderMetadata {
     readonly openai?: {
-      readonly itemId?: string
-      readonly encryptedContent?: string
-    }
+      readonly itemId?: string | null
+      readonly encryptedContent?: string | null
+    } | null
   }
 
   export interface ReasoningStartPartMetadata extends ProviderMetadata {
     readonly openai?: {
-      readonly itemId?: string
-      readonly encryptedContent?: string
-    }
+      readonly itemId?: string | null
+      readonly encryptedContent?: string | null
+    } | null
   }
 
   export interface ReasoningDeltaPartMetadata extends ProviderMetadata {
     readonly openai?: {
-      readonly itemId?: string
-    }
+      readonly itemId?: string | null
+    } | null
   }
 
   export interface ReasoningEndPartMetadata extends ProviderMetadata {
     readonly openai?: {
-      readonly itemId?: string
+      readonly itemId?: string | null
       readonly encryptedContent?: string
-    }
+    } | null
   }
 
   export interface ToolCallPartMetadata extends ProviderMetadata {
     readonly openai?: {
-      readonly itemId?: string
-    }
+      readonly itemId?: string | null
+    } | null
   }
 
   export interface DocumentSourcePartMetadata extends ProviderMetadata {
@@ -269,6 +269,7 @@ declare module "effect/unstable/ai/Response" {
          */
         readonly containerId: string
       }
+      | null
   }
 
   export interface UrlSourcePartMetadata extends ProviderMetadata {
@@ -282,13 +283,13 @@ declare module "effect/unstable/ai/Response" {
        * The index of the last character of the URL citation in the message.
        */
       readonly endIndex: number
-    }
+    } | null
   }
 
   export interface FinishPartMetadata extends ProviderMetadata {
     readonly openai?: {
-      readonly serviceTier?: "default" | "auto" | "flex" | "scale" | "priority"
-    }
+      readonly serviceTier?: "default" | "auto" | "flex" | "scale" | "priority" | null
+    } | null
   }
 }
 
@@ -605,11 +606,11 @@ const prepareMessages = Effect.fnUntraced(
 
                 // When in conversation mode, skip items that already exist in the
                 // conversation context to avoid "Duplicate item found" errors
-                if (hasConversation && Predicate.isNotUndefined(id)) {
+                if (hasConversation && Predicate.isNotNull(id)) {
                   break
                 }
 
-                if (config.store === true && Predicate.isNotUndefined(id)) {
+                if (config.store === true && Predicate.isNotNull(id)) {
                   messages.push({ type: "item_reference", id })
                   break
                 }
@@ -633,11 +634,11 @@ const prepareMessages = Effect.fnUntraced(
                 const id = getItemId(part)
                 const encryptedContent = getEncryptedContent(part)
 
-                if (hasConversation && Predicate.isNotUndefined(id)) {
+                if (hasConversation && Predicate.isNotNull(id)) {
                   break
                 }
 
-                if (Predicate.isNotUndefined(id)) {
+                if (Predicate.isNotNull(id)) {
                   const message = reasoningMessages[id]
 
                   if (config.store === true) {
@@ -674,7 +675,7 @@ const prepareMessages = Effect.fnUntraced(
 
                       // Update encrypted content to enable setting it in the
                       // last summary part
-                      if (Predicate.isNotUndefined(encryptedContent)) {
+                      if (Predicate.isNotNull(encryptedContent)) {
                         message.encrypted_content = encryptedContent
                       }
                     }
@@ -688,11 +689,11 @@ const prepareMessages = Effect.fnUntraced(
                 const id = getItemId(part)
                 const status = getStatus(part)
 
-                if (hasConversation && Predicate.isNotUndefined(id)) {
+                if (hasConversation && Predicate.isNotNull(id)) {
                   break
                 }
 
-                if (config.store && Predicate.isNotUndefined(id)) {
+                if (config.store && Predicate.isNotNull(id)) {
                   messages.push({ type: "item_reference", id })
                   break
                 }
@@ -760,8 +761,8 @@ const prepareMessages = Effect.fnUntraced(
                   name: toolName,
                   call_id: part.id,
                   arguments: JSON.stringify(part.params),
-                  ...(Predicate.isNotUndefined(id) ? { id } : {}),
-                  ...(Predicate.isNotUndefined(status) ? { status } : {})
+                  ...(Predicate.isNotNull(id) ? { id } : {}),
+                  ...(Predicate.isNotNull(status) ? { status } : {})
                 })
 
                 break
@@ -805,7 +806,7 @@ const prepareMessages = Effect.fnUntraced(
                 type: "shell_call_output",
                 call_id: part.id,
                 output: part.result as any,
-                ...(Predicate.isNotUndefined(status) ? { status } : {})
+                ...(Predicate.isNotNull(status) ? { status } : {})
               })
             }
 
@@ -815,7 +816,7 @@ const prepareMessages = Effect.fnUntraced(
                 type: "local_shell_call_output",
                 call_id: part.id,
                 output: part.result as any,
-                ...(Predicate.isNotUndefined(status) ? { status } : {})
+                ...(Predicate.isNotNull(status) ? { status } : {})
               })
             }
 
@@ -824,7 +825,7 @@ const prepareMessages = Effect.fnUntraced(
               type: "function_call_output",
               call_id: part.id,
               output: JSON.stringify(part.result),
-              ...(Predicate.isNotUndefined(status) ? { status } : {})
+              ...(Predicate.isNotNull(status) ? { status } : {})
             })
           }
 
@@ -1842,7 +1843,7 @@ const annotateResponse = (span: Span, response: Generated.Response): void => {
     response: {
       id: response.id,
       model: response.model as string,
-      finishReasons: finishReason != null ? [finishReason] : undefined
+      finishReasons: Predicate.isNotUndefined(finishReason) ? [finishReason] : undefined
     },
     usage: {
       inputTokens: response.usage?.input_tokens as number | undefined,
@@ -2101,16 +2102,16 @@ const getItemId = (
     | Prompt.ReasoningPart
     | Prompt.ToolCallPart
     | Prompt.ToolResultPart
-): string | undefined => part.options.openai?.itemId
+): string | null => part.options.openai?.itemId ?? null
 const getStatus = (
   part:
     | Prompt.TextPart
     | Prompt.ToolCallPart
     | Prompt.ToolResultPart
-): typeof Generated.Message.Encoded["status"] | undefined => part.options.openai?.status
+): typeof Generated.Message.Encoded["status"] | null => part.options.openai?.status ?? null
 const getEncryptedContent = (
   part: Prompt.ReasoningPart
-): string | undefined => part.options.openai?.encryptedContent
+): string | null => part.options.openai?.encryptedContent ?? null
 
 const getImageDetail = (part: Prompt.FilePart): typeof Generated.ImageDetail.Encoded =>
   part.options.openai?.imageDetail ?? "auto"

@@ -73,7 +73,7 @@
  * console.log(error.message) // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 import * as Duration from "../../Duration.ts"
 import * as Option from "../../Option.ts"
@@ -85,7 +85,8 @@ import type * as HttpClientError from "../http/HttpClientError.ts"
 
 const ReasonTypeId = "~effect/unstable/ai/AiError/Reason" as const
 
-const constEmptyObject = () => Option.some({})
+const constEmptyObjectOption = () => Option.some({})
+const constEmptyObject = () => ({})
 
 const redactHeaders = (headers: Record<string, string>): Record<string, string> => {
   const redacted = redact(headers) as Record<string, string | Redacted.Redacted>
@@ -120,7 +121,7 @@ const redactHeaders = (headers: Record<string, string>): Record<string, string> 
  * }
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category schemas
  */
 export const HttpRequestDetails = Schema.Struct({
@@ -159,7 +160,7 @@ export const HttpRequestDetails = Schema.Struct({
  * // "Transport: Connection timeout after 30 seconds (POST https://api.openai.com/v1/completions)"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class NetworkError extends Schema.ErrorClass<NetworkError>(
@@ -171,14 +172,14 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
   description: Schema.optional(Schema.String)
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Transport errors are retryable; encoding and URL errors are not.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return this.reason === "TransportError"
@@ -197,7 +198,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
    * const aiError = AiError.NetworkError.fromRequestError(platformError)
    * ```
    *
-   * @since 4.0.0
+   * @since 1.0.0
    * @category constructors
    */
   static fromRequestError(error: HttpClientError.RequestError): NetworkError {
@@ -272,7 +273,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
  * }
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category schemas
  */
 export const HttpResponseDetails = Schema.Struct({
@@ -297,7 +298,7 @@ export const HttpResponseDetails = Schema.Struct({
  * }
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category schemas
  */
 export const ProviderMetadata: Schema.Record$<
@@ -306,7 +307,7 @@ export const ProviderMetadata: Schema.Record$<
 > = Schema.Record(Schema.String, Schema.NullOr(Schema.MutableJson))
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category models
  */
 export type ProviderMetadata = typeof ProviderMetadata.Type
@@ -314,7 +315,7 @@ export type ProviderMetadata = typeof ProviderMetadata.Type
 /**
  * Token usage information from AI operations.
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category schemas
  */
 export const UsageInfo = Schema.Struct({
@@ -326,7 +327,7 @@ export const UsageInfo = Schema.Struct({
 /**
  * Combined HTTP context for error reporting.
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category schemas
  */
 export const HttpContext = Schema.Struct({
@@ -358,7 +359,7 @@ export const HttpContext = Schema.Struct({
  * console.log(rateLimitError.message) // "Rate limit exceeded. Retry after 1 minute"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
@@ -367,19 +368,20 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
   _tag: Schema.tag("RateLimitError"),
   retryAfter: Schema.optional(Schema.Duration),
   metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
+    Schema.withConstructorDefault(constEmptyObjectOption),
+    Schema.withDecodingDefault(constEmptyObject)
   ),
   http: Schema.optional(HttpContext)
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Rate limit errors are always retryable.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -408,7 +410,7 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
  * // "Quota exhausted. Check your account billing and usage limits."
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
@@ -417,19 +419,20 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
   _tag: Schema.tag("QuotaExhaustedError"),
   resetAt: Schema.optional(Schema.DateTimeUtc),
   metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
+    Schema.withConstructorDefault(constEmptyObjectOption),
+    Schema.withDecodingDefault(constEmptyObject)
   ),
   http: Schema.optional(HttpContext)
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Quota exhausted errors require user action and are not retryable.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -460,7 +463,7 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
  * // "InvalidKey: Verify your API key is correct"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
@@ -469,19 +472,20 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
   _tag: Schema.tag("AuthenticationError"),
   kind: Schema.Literals(["InvalidKey", "ExpiredKey", "MissingKey", "InsufficientPermissions", "Unknown"]),
   metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
+    Schema.withConstructorDefault(constEmptyObjectOption),
+    Schema.withDecodingDefault(constEmptyObject)
   ),
   http: Schema.optional(HttpContext)
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Authentication errors require credential changes and are not retryable.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -517,7 +521,7 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
  * // "Content policy violation: Input contains prohibited content"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
@@ -526,19 +530,20 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
   _tag: Schema.tag("ContentPolicyError"),
   description: Schema.String,
   metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
+    Schema.withConstructorDefault(constEmptyObjectOption),
+    Schema.withDecodingDefault(constEmptyObject)
   ),
   http: Schema.optional(HttpContext)
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Content policy errors require content changes and are not retryable.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -569,7 +574,7 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
  * // "Invalid request: parameter 'temperature' must be between 0 and 2. Temperature value 5 is out of range"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
@@ -580,19 +585,20 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
   constraint: Schema.optional(Schema.String),
   description: Schema.optional(Schema.String),
   metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
+    Schema.withConstructorDefault(constEmptyObjectOption),
+    Schema.withDecodingDefault(constEmptyObject)
   ),
   http: Schema.optional(HttpContext)
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Invalid request errors require fixing the request and are not retryable.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -625,7 +631,7 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
  * // "Internal provider error: Server encountered an unexpected error"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class InternalProviderError extends Schema.ErrorClass<InternalProviderError>(
@@ -634,19 +640,20 @@ export class InternalProviderError extends Schema.ErrorClass<InternalProviderErr
   _tag: Schema.tag("InternalProviderError"),
   description: Schema.String,
   metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
+    Schema.withConstructorDefault(constEmptyObjectOption),
+    Schema.withDecodingDefault(constEmptyObject)
   ),
   http: Schema.optional(HttpContext)
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Internal provider errors are typically transient and are retryable.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -675,7 +682,7 @@ export class InternalProviderError extends Schema.ErrorClass<InternalProviderErr
  * // "Invalid output: Expected a string but received a number"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
@@ -684,19 +691,20 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
   _tag: Schema.tag("InvalidOutputError"),
   description: Schema.String,
   metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
+    Schema.withConstructorDefault(constEmptyObjectOption),
+    Schema.withDecodingDefault(constEmptyObject)
   ),
   usage: Schema.optional(UsageInfo)
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Invalid output errors are retryable since LLM outputs are non-deterministic.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -715,7 +723,7 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
    * const parseError = AiError.InvalidOutputError.fromSchemaError(schemaError)
    * ```
    *
-   * @since 4.0.0
+   * @since 1.0.0
    * @category constructors
    */
   static fromSchemaError(error: Schema.SchemaError): InvalidOutputError {
@@ -747,7 +755,7 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
  * // "An unexpected error occurred"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class UnknownError extends Schema.ErrorClass<UnknownError>(
@@ -756,19 +764,20 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
   _tag: Schema.tag("UnknownError"),
   description: Schema.optional(Schema.String),
   metadata: ProviderMetadata.pipe(
-    Schema.withConstructorDefault(constEmptyObject)
+    Schema.withConstructorDefault(constEmptyObjectOption),
+    Schema.withDecodingDefault(constEmptyObject)
   ),
   http: Schema.optional(HttpContext)
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Unknown errors are not retryable by default.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -803,7 +812,7 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
  * // "Tool 'unknownTool' not found. Available tools: GetWeather, GetTime"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
@@ -815,14 +824,14 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
   availableTools: Schema.Array(Schema.String)
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Tool not found errors are retryable because the model may self-correct.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -855,7 +864,7 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
  * // "Invalid parameters for tool 'GetWeather': Expected string, got number"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class ToolParameterValidationError extends Schema.ErrorClass<ToolParameterValidationError>(
@@ -867,14 +876,14 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
   description: Schema.String
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Parameter validation errors are retryable because the model may correct parameters.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return true
@@ -906,7 +915,7 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
  * // "Tool 'GetWeather' returned invalid result: missing 'temperature' field"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultError>(
@@ -917,14 +926,14 @@ export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultE
   description: Schema.String
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Invalid tool result errors are not retryable because they indicate a bug in the handler.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -956,7 +965,7 @@ export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultE
  * // "Failed to encode result for tool 'GetWeather': Cannot encode circular reference"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodingError>(
@@ -968,14 +977,14 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
   description: Schema.String
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Encoding errors are not retryable because they indicate a code bug.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -1006,7 +1015,7 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
  * // "Invalid configuration for tool 'OpenAiCodeInterpreter': Invalid container ID format"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category reason
  */
 export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationError>(
@@ -1017,14 +1026,14 @@ export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationE
   description: Schema.String
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [ReasonTypeId] = ReasonTypeId
 
   /**
    * Configuration errors are not retryable because they indicate a code bug.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return false
@@ -1048,7 +1057,7 @@ export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationE
  * - Optional `retryAfter` duration for rate limit/throttling errors
  * - Rich context including provider metadata and HTTP details
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category models
  */
 export type AiErrorReason =
@@ -1070,7 +1079,7 @@ export type AiErrorReason =
 /**
  * Schema for validating and parsing AI error reasons.
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category schemas
  */
 export const AiErrorReason: Schema.Union<[
@@ -1139,7 +1148,7 @@ const TypeId = "~effect/unstable/ai/AiError/AiError" as const
  * )
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category schemas
  */
 export class AiError extends Schema.ErrorClass<AiError>(
@@ -1151,14 +1160,14 @@ export class AiError extends Schema.ErrorClass<AiError>(
   reason: AiErrorReason
 }) {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    */
   readonly [TypeId] = TypeId
 
   /**
    * Delegates to the underlying reason's `isRetryable` getter.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get isRetryable(): boolean {
     return this.reason.isRetryable
@@ -1167,7 +1176,7 @@ export class AiError extends Schema.ErrorClass<AiError>(
   /**
    * Delegates to the underlying reason's `retryAfter` if present.
    *
-   * @since 4.0.0
+   * @since 1.0.0
    */
   get retryAfter(): Duration.Duration | undefined {
     return "retryAfter" in this.reason ? this.reason.retryAfter : undefined
@@ -1181,7 +1190,7 @@ export class AiError extends Schema.ErrorClass<AiError>(
 /**
  * The encoded (serialized) form of an `AiError`.
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category schemas
  */
 export type AiErrorEncoded = typeof AiError["Encoded"]
@@ -1207,7 +1216,7 @@ export type AiErrorEncoded = typeof AiError["Encoded"]
  * console.log(AiError.isAiError(aiError)) // true
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category guards
  */
 export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, TypeId)
@@ -1229,7 +1238,7 @@ export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, 
  * console.log(AiError.isAiErrorReason(genericError)) // false
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category guards
  */
 export const isAiErrorReason = (u: unknown): u is AiErrorReason => Predicate.hasProperty(u, ReasonTypeId)
@@ -1254,7 +1263,7 @@ export const isAiErrorReason = (u: unknown): u is AiErrorReason => Predicate.has
  * // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category constructors
  */
 export const make = (params: {
@@ -1280,7 +1289,7 @@ export const make = (params: {
  * console.log(reason._tag) // "RateLimitError"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category constructors
  */
 export const reasonFromHttpStatus = (params: {
