@@ -7477,14 +7477,13 @@ export const request: {
 } = internalRequest.request
 
 /**
- * A low-level function that executes a request using the provided resolver.
+ * Low-level entry point that registers a request with a resolver and delivers the exit value via `onExit`.
+ * Use this when you already have a `ServiceMap` and need to enqueue a request outside an `Effect`.
  *
- * The resolver will call the `onExit` function with the exit value of the request.
- *
- * It returns a function that, when called, will cancel the request.
+ * It returns a canceler that removes the pending request entry.
  *
  * @since 4.0.0
- * @category requests & batching
+ * @category Requests & Batching
  */
 export const requestUnsafe: <A extends Request.Any>(
   self: A,
