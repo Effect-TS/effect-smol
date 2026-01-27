@@ -6768,15 +6768,12 @@ export const repeatOrElse: {
 } = internalSchedule.repeatOrElse
 
 /**
- * Replicates the given effect `n` times.
+ * Returns an array of `n` identical effects.
  *
- * **Details**
- *
- * This function takes an effect and replicates it a specified number of times
- * (`n`). The result is an array of `n` effects, each of which is identical to
- * the original effect.
+ * Use with `Effect.all` to run the replicated effects and collect results.
  *
  * @since 2.0.0
+ * @category Collecting
  */
 export const replicate: {
   (n: number): <A, E, R>(self: Effect<A, E, R>) => Array<Effect<A, E, R>>
