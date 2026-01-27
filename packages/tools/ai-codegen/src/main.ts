@@ -72,6 +72,12 @@ const generateProvider = Effect.fn("generateProvider")(function*(
     }
   }
 
+  // Prepend header if configured
+  const header = provider.config.headerContent
+  if (header !== undefined) {
+    code = `${header}\n${code}`
+  }
+
   // Write output
   yield* Console.log(`  Writing to ${provider.outputPath}`)
   yield* fs.writeFileString(provider.outputPath, code)

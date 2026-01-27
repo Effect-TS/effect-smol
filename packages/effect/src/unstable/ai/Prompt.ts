@@ -235,7 +235,7 @@ export type PartConstructorParams<P extends Part> = Omit<P, typeof PartTypeId | 
   /**
    * Optional provider-specific options for this part.
    */
-  readonly options?: Extract<Part, { type: Part["type"] }>["options"] | undefined
+  readonly options?: Part["options"] | undefined
 }
 
 // =============================================================================
@@ -318,7 +318,7 @@ export const TextPart: Schema.Struct<
  * @since 4.0.0
  * @category constructors
  */
-export const textPart = (params: PartConstructorParams<TextPart>): TextPart => makePart("text", params)
+export const textPart = (params: PartConstructorParams<TextPart>): TextPart => makePart("text", params as any)
 
 // =============================================================================
 // Reasoning Part
@@ -398,7 +398,7 @@ export const ReasoningPart: Schema.Struct<{
  * @category constructors
  */
 export const reasoningPart = (params: PartConstructorParams<ReasoningPart>): ReasoningPart =>
-  makePart("reasoning", params)
+  makePart("reasoning", params as any)
 
 // =============================================================================
 // File Part
@@ -507,7 +507,7 @@ export const FilePart: Schema.Struct<{
  * @since 4.0.0
  * @category constructors
  */
-export const filePart = (params: PartConstructorParams<FilePart>): FilePart => makePart("file", params)
+export const filePart = (params: PartConstructorParams<FilePart>): FilePart => makePart("file", params as any)
 
 // =============================================================================
 // Tool Call Part
@@ -618,7 +618,8 @@ export const ToolCallPart: Schema.Struct<{
  * @since 4.0.0
  * @category constructors
  */
-export const toolCallPart = (params: PartConstructorParams<ToolCallPart>): ToolCallPart => makePart("tool-call", params)
+export const toolCallPart = (params: PartConstructorParams<ToolCallPart>): ToolCallPart =>
+  makePart("tool-call", params as any)
 
 // =============================================================================
 // Tool Result Part
@@ -734,7 +735,7 @@ export const ToolResultPart: Schema.Struct<{
  * @category constructors
  */
 export const toolResultPart = (params: PartConstructorParams<ToolResultPart>): ToolResultPart =>
-  makePart("tool-result", params)
+  makePart("tool-result", params as any)
 
 // =============================================================================
 // Base Message

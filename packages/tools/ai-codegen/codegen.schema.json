@@ -23,6 +23,10 @@
       "description": "Generate type-only output without runtime code",
       "default": false
     },
+    "header": {
+      "type": "string",
+      "description": "Content to prepend to the generated file (e.g. module-level JSDoc)"
+    },
     "patches": {
       "type": "array",
       "description": "JSON Patch documents to apply to the spec before generation. Each item can be a file path or inline JSON array.",

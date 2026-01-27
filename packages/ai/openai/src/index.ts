@@ -5,14 +5,8 @@
 // @barrel: Auto-generated exports. Do not edit manually.
 
 /**
-   * Whether or not the response should be included in the value returned from
-   * an operation.
-   *
-   * If set to `true`, a tuple of `[A, HttpClientResponse]` will be returned,
-   * where `A` is the success type of the operation.
-   *
-   * If set to `false`, only the success type of the operation will be returned.
-   */
+ * @since 1.0.0
+ */
 export * as Generated from "./Generated.ts"
 
 /**

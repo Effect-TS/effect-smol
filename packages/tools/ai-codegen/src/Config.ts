@@ -44,6 +44,7 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
   output: Schema.String,
   name: Schema.optional(Schema.String),
   typeOnly: Schema.optional(Schema.Boolean),
+  header: Schema.optional(Schema.String),
   patches: Schema.optional(Schema.Array(Schema.String)),
   replacements: Schema.optional(Schema.Array(Replacement))
 }) {
@@ -81,6 +82,15 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
    */
   get replacementList(): ReadonlyArray<Replacement> {
     return this.replacements ?? []
+  }
+
+  /**
+   * Get the header content to prepend to generated files.
+   *
+   * @since 1.0.0
+   */
+  get headerContent(): string | undefined {
+    return this.header
   }
 }
 
