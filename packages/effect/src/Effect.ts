@@ -12216,29 +12216,24 @@ export namespace fn {
 }
 
 /**
- * Creates a function that returns an Effect.
+ * Creates an Effect-returning function without tracing.
  *
- * The function can be created using a generator function that can yield
- * effects.
- *
- * `Effect.fnUntraced` also acts as a `pipe` function, allowing you to create a pipeline after the function definition.
+ * `Effect.fnUntraced` also acts as a `pipe` function, so you can append transforms after the body.
  *
  * @example
  * ```ts
- * // Title: Creating a traced function with a generator function
- * import { Effect } from "effect"
+ * import { Console, Effect } from "effect"
  *
- * const logExample = Effect.fnUntraced(function*<N extends number>(n: N) {
- *   yield* Effect.annotateCurrentSpan("n", n)
- *   yield* Effect.logInfo(`got: ${n}`)
- *   yield* Effect.fail(new Error())
+ * const greet = Effect.fnUntraced(function* (name: string) {
+ *   yield* Console.log(`Hello, ${name}`)
+ *   return name.length
  * })
  *
- * Effect.runFork(logExample(100))
+ * Effect.runFork(greet("Ada"))
  * ```
  *
  * @since 3.12.0
- * @category function
+ * @category Function
  */
 export const fnUntraced: fn.Untraced = internal.fnUntraced
 
