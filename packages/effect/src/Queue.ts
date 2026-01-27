@@ -25,7 +25,7 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
  * Type guard to check if a value is a Queue.
  *
  * @since 3.8.0
- * @category guards
+ * @category Guards
  */
 export const isQueue = <A = unknown, E = unknown>(
   u: unknown
@@ -35,7 +35,7 @@ export const isQueue = <A = unknown, E = unknown>(
  * Type guard to check if a value is an Enqueue.
  *
  * @since 4.0.0
- * @category guards
+ * @category Guards
  */
 export const isEnqueue = <A = unknown, E = unknown>(
   u: unknown
@@ -45,7 +45,7 @@ export const isEnqueue = <A = unknown, E = unknown>(
  * Type guard to check if a value is a Dequeue.
  *
  * @since 4.0.0
- * @category guards
+ * @category Guards
  */
 export const isDequeue = <A = unknown, E = unknown>(
   u: unknown
@@ -54,28 +54,18 @@ export const isDequeue = <A = unknown, E = unknown>(
 /**
  * Converts a Queue to an Enqueue (write-only interface).
  *
- * @example
- * ```ts
- * import { Effect, Queue } from "effect"
- *
- * // Function that only needs to offer to a queue
- * const producer = Effect.fn(function*(enqueue: Queue.Enqueue<number>) {
- *   yield* Queue.offer(enqueue, 42)
- * })
- *
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
- *
- *   // Convert to write-only interface for type safety
- *   const enqueue = Queue.asEnqueue(queue)
- *   yield* producer(enqueue)
- * })
- * ```
- *
  * @since 4.0.0
- * @category conversions
+ * @category Conversions
  */
 export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
+
+/**
+ * Convert a Queue to a Dequeue, allowing only read operations.
+ *
+ * @since 4.0.0
+ * @category Conversions
+ */
+export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
 
 /**
  * An `Enqueue` is a queue that can be offered to.
@@ -101,7 +91,7 @@ export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
  * ```
  *
  * @since 4.0.0
- * @category models
+ * @category Models
  */
 export interface Enqueue<in A, in E = never> extends Inspectable {
   readonly [EnqueueTypeId]: Enqueue.Variance<A, E>
@@ -115,14 +105,14 @@ export interface Enqueue<in A, in E = never> extends Inspectable {
 
 /**
  * @since 4.0.0
- * @category models
+ * @category Models
  */
 export declare namespace Enqueue {
   /**
    * Variance interface for Enqueue types, defining the type parameter constraints.
    *
    * @since 4.0.0
-   * @category models
+   * @category Models
    */
   export interface Variance<A, E> {
     _A: Types.Contravariant<A>
@@ -156,7 +146,7 @@ export declare namespace Enqueue {
  * ```
  *
  * @since 3.8.0
- * @category models
+ * @category Models
  */
 export interface Dequeue<out A, out E = never> extends Inspectable {
   readonly [DequeueTypeId]: Dequeue.Variance<A, E>
@@ -170,14 +160,14 @@ export interface Dequeue<out A, out E = never> extends Inspectable {
 
 /**
  * @since 4.0.0
- * @category models
+ * @category Models
  */
 export declare namespace Dequeue {
   /**
    * Variance interface for Dequeue types, defining the type parameter constraints.
    *
    * @since 3.8.0
-   * @category models
+   * @category Models
    */
   export interface Variance<A, E> {
     _A: Types.Covariant<A>
@@ -218,7 +208,7 @@ export declare namespace Dequeue {
  * ```
  *
  * @since 3.8.0
- * @category models
+ * @category Models
  */
 export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeue<A, E> {
   readonly [TypeId]: Queue.Variance<A, E>
@@ -226,14 +216,14 @@ export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeu
 
 /**
  * @since 3.8.0
- * @category models
+ * @category Models
  */
 export declare namespace Queue {
   /**
    * Variance interface for Queue types, defining the type parameter constraints.
    *
    * @since 3.8.0
-   * @category models
+   * @category Models
    */
   export interface Variance<A, E> {
     _A: Types.Invariant<A>
@@ -244,7 +234,7 @@ export declare namespace Queue {
    * Represents the internal state of a Queue.
    *
    * @since 4.0.0
-   * @category models
+   * @category Models
    */
   export type State<A, E> =
     | {
@@ -269,7 +259,7 @@ export declare namespace Queue {
    * Represents an entry in the queue's offer buffer.
    *
    * @since 4.0.0
-   * @category models
+   * @category Models
    */
   export type OfferEntry<A> =
     | {
@@ -315,7 +305,7 @@ const QueueProto = {
  * - `Mailbox.make`
  *
  * @since 3.8.0
- * @category constructors
+ * @category Constructors
  * @example
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
@@ -371,9 +361,6 @@ export const make = <A, E = never>(
  * When the queue reaches capacity, producers will be suspended until space becomes available.
  * This ensures all messages are processed but may slow down producers.
  *
- * @param capacity - The maximum number of elements the queue can hold
- * @returns An Effect that creates a bounded queue
- *
  * @example
  * ```ts
  * import { Cause, Effect, Queue } from "effect"
@@ -391,7 +378,7 @@ export const make = <A, E = never>(
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity })
 
@@ -401,9 +388,6 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  *
  * This strategy prevents producers from being blocked but may result in message loss.
  * Useful when you want to maintain a rolling window of the most recent messages.
- *
- * @param capacity - The maximum number of elements the queue can hold
- * @returns An Effect that creates a sliding queue
  *
  * @example
  * ```ts
@@ -426,7 +410,7 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity, strategy: "sliding" })
 
@@ -436,9 +420,6 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  *
  * This strategy prevents producers from being blocked and preserves existing messages,
  * but new messages may be lost when the queue is full.
- *
- * @param capacity - The maximum number of elements the queue can hold
- * @returns An Effect that creates a dropping queue
  *
  * @example
  * ```ts
@@ -462,7 +443,7 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
   make({ capacity, strategy: "dropping" })
@@ -497,7 +478,7 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
 
@@ -526,7 +507,7 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  * })
  * ```
  *
- * @category offering
+ * @category Offering
  * @since 4.0.0
  */
 export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Effect<boolean> =>
@@ -580,7 +561,7 @@ export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Eff
  * })
  * ```
  *
- * @category offering
+ * @category Offering
  * @since 4.0.0
  */
 export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): boolean => {
@@ -621,18 +602,10 @@ export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>
  *   // Try to add more messages than capacity
  *   const remaining1 = yield* Queue.offerAll(queue, [1, 2, 3, 4, 5])
  *   console.log(remaining1) // [4, 5] - couldn't fit the last 2
- *
- *   // Check what's in the queue
- *   const messages = yield* Queue.takeAll(queue)
- *   console.log(messages) // [1, 2, 3]
- *
- *   // Try adding to empty queue
- *   const remaining2 = yield* Queue.offerAll(queue, [10, 20])
- *   console.log(remaining2) // [] - all messages added successfully
  * })
  * ```
  *
- * @category offering
+ * @category Offering
  * @since 4.0.0
  */
 export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effect<Array<A>> =>
@@ -673,7 +646,7 @@ export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effe
  * })
  * ```
  *
- * @category offering
+ * @category Offering
  * @since 4.0.0
  */
 export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Array<A> => {
@@ -734,7 +707,7 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
  * })
  * ```
  *
- * @category completion
+ * @category Completion
  * @since 4.0.0
  */
 export const fail = <A, E>(self: Queue<A, E>, error: E) => failCause(self, core.causeFail(error))
@@ -762,7 +735,7 @@ export const fail = <A, E>(self: Queue<A, E>, error: E) => failCause(self, core.
  * })
  * ```
  *
- * @category completion
+ * @category Completion
  * @since 4.0.0
  */
 export const failCause: {
@@ -801,7 +774,7 @@ export const failCause: {
  * })
  * ```
  *
- * @category completion
+ * @category Completion
  * @since 4.0.0
  */
 export const failCauseUnsafe = <A, E>(self: Enqueue<A, E>, cause: Cause<E>): boolean => {
@@ -850,7 +823,7 @@ export const failCauseUnsafe = <A, E>(self: Enqueue<A, E>, cause: Cause<E>): boo
  * })
  * ```
  *
- * @category completion
+ * @category Completion
  * @since 4.0.0
  */
 export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCause(self, core.causeFail(core.Done()))
@@ -882,7 +855,7 @@ export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCa
  * })
  * ```
  *
- * @category completion
+ * @category Completion
  * @since 4.0.0
  */
 export const endUnsafe = <A, E>(self: Enqueue<A, E | Done>) => failCauseUnsafe(self, core.causeFail(core.Done()))
@@ -925,7 +898,7 @@ export const endUnsafe = <A, E>(self: Enqueue<A, E | Done>) => failCauseUnsafe(s
  * })
  * ```
  *
- * @category completion
+ * @category Completion
  * @since 4.0.0
  */
 export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
@@ -959,7 +932,7 @@ export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  * })
  * ```
  *
- * @category completion
+ * @category Completion
  * @since 4.0.0
  */
 export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
@@ -1011,7 +984,7 @@ export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  * })
  * ```
  *
- * @category taking
+ * @category Taking
  * @since 4.0.0
  */
 export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeDone<E>> =>
@@ -1046,21 +1019,10 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeD
  *   // Take all available messages
  *   const messages1 = yield* Queue.takeAll(queue)
  *   console.log(messages1) // [1, 2, 3, 4, 5]
- *
- *   // Add more messages and end the queue
- *   yield* Queue.offerAll(queue, [10, 20])
- *   yield* Queue.end(queue)
- *
- *   // Take remaining messages, done flag indicates completion
- *   const messages2 = yield* Queue.takeAll(queue)
- *   console.log(messages2) // [10, 20]
- *
- *   const done = yield* Effect.flip(Queue.takeAll(queue))
- *   console.log(done) // Cause.Done
  * })
  * ```
  *
- * @category taking
+ * @category Taking
  * @since 4.0.0
  */
 export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>, E> =>
@@ -1069,7 +1031,25 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>,
 /**
  * Take all messages from the queue, until the queue has errored or is done.
  *
- * @category taking
+ * @example
+ * ```ts
+ * import { Cause, Effect, Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(5)
+ *
+ *   // Add several messages
+ *   yield* Queue.offerAll(queue, [1, 2, 3, 4, 5])
+ *   // Some time later, end the queue
+ *   yield* Effect.forkChild(Queue.end(queue))
+ *
+ *   // Collect all available messages
+ *   const messages = yield* Queue.collect(queue)
+ *   console.log(messages) // [1, 2, 3, 4, 5]
+ * })
+ * ```
+ *
+ * @category Taking
  * @since 4.0.0
  */
 export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull.ExcludeDone<E>> =>
@@ -1081,13 +1061,10 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
           while: constTrue,
           body: constant(takeAll(self)),
           step(items: Arr.NonEmptyArray<A>) {
-            // HEAD
             out.push(...items)
-            //
             for (let i = 0; i < items.length; i++) {
               out.push(items[i])
             }
-            // 03ae2d63 (align Queue/TxQueue)
           }
         }),
         () => internalEffect.void
@@ -1127,7 +1104,7 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
  * })
  * ```
  *
- * @category taking
+ * @category Taking
  * @since 4.0.0
  */
 export const takeN = <A, E>(
@@ -1165,7 +1142,7 @@ export const takeN = <A, E>(
  * })
  * ```
  *
- * @category taking
+ * @category Taking
  * @since 4.0.0
  */
 export const takeBetween = <A, E>(
@@ -1212,7 +1189,7 @@ export const takeBetween = <A, E>(
  * })
  * ```
  *
- * @category taking
+ * @category Taking
  * @since 4.0.0
  */
 export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
@@ -1242,14 +1219,10 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  *   // Poll returns Option.some with the item
  *   const maybe2 = yield* Queue.poll(queue)
  *   console.log(Option.getOrNull(maybe2)) // 42
- *
- *   // Queue is now empty again
- *   const maybe3 = yield* Queue.poll(queue)
- *   console.log(Option.isNone(maybe3)) // true
  * })
  * ```
  *
- * @category taking
+ * @category Taking
  * @since 4.0.0
  */
 export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
@@ -1280,18 +1253,10 @@ export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
  *   // Peek at the next item without removing it
  *   const item = yield* Queue.peek(queue)
  *   console.log(item) // 42
- *
- *   // Item is still in the queue
- *   const size = yield* Queue.size(queue)
- *   console.log(size) // 1
- *
- *   // Take the item
- *   const taken = yield* Queue.take(queue)
- *   console.log(taken) // 42
  * })
  * ```
  *
- * @category taking
+ * @category Taking
  * @since 4.0.0
  */
 export const peek = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
@@ -1340,7 +1305,7 @@ export const peek = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  * })
  * ```
  *
- * @category taking
+ * @category Taking
  * @since 4.0.0
  */
 export const takeUnsafe = <A, E>(self: Dequeue<A, E>): Exit<A, E> | undefined => {
@@ -1382,7 +1347,7 @@ export {
   /**
    * Wait for the queue to be done.
    *
-   * @category completion
+   * @category Completion
    * @since 4.0.0
    */
   await_ as await
@@ -1420,13 +1385,31 @@ export {
  * })
  * ```
  *
- * @category size
+ * @category Size
  * @since 4.0.0
  */
 export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffect.sync(() => sizeUnsafe(self))
 
 /**
- * @category size
+ * Check if the queue is full.
+ *
+ * @example
+ * ```ts
+ * import { Cause, Effect, Option, Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(3)
+ *
+ *   console.log(yield* Queue.isFull(queue)) // false
+ *
+ *   // Add some messages
+ *   yield* Queue.offerAll(queue, [1, 2, 3])
+ *
+ *   console.log(yield* Queue.isFull(queue)) // true
+ * })
+ * ```
+ *
+ * @category Size
  * @since 4.0.0
  */
 export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEffect.sync(() => isFullUnsafe(self))
@@ -1441,7 +1424,6 @@ export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEf
  * ```ts
  * import { Cause, Effect, Option, Queue } from "effect"
  *
- * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
  *
@@ -1467,49 +1449,34 @@ export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEf
  * })
  * ```
  *
- * @category size
+ * @category Size
  * @since 4.0.0
  */
 export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => self.state._tag === "Done" ? 0 : self.messages.length
 
 /**
- * @category size
- * @since 4.0.0
- */
-export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(self) === self.capacity
-
-/**
- * Convert a Queue to a Dequeue, allowing only read operations.
+ * Check if the queue is full synchronously.
  *
  * @example
  * ```ts
- * import { Cause, Effect, Queue } from "effect"
+ * import { Cause, Effect, Option, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(3)
  *
- *   // Convert to dequeue (read-only interface)
- *   const dequeue = Queue.asDequeue(queue)
+ *   console.log(Queue.isFullUnsafe(queue)) // false
  *
- *   // Add messages using the full queue
- *   yield* Queue.offer(queue, 1)
- *   yield* Queue.offer(queue, 2)
+ *   // Add some messages
+ *   yield* Queue.offerAll(queue, [1, 2, 3])
  *
- *   // Take messages using the dequeue interface
- *   const message1 = yield* Queue.take(dequeue)
- *   const message2 = yield* Queue.take(dequeue)
- *
- *   console.log(message1, message2) // 1, 2
- *
- *   // Can't offer through dequeue - only take operations
- *   // Queue.offer(dequeue, 3) // TypeScript error
+ *   console.log(Queue.isFullUnsafe(queue)) // true
  * })
  * ```
  *
+ * @category Size
  * @since 4.0.0
- * @category conversions
  */
-export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
+export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(self) === self.capacity
 
 /**
  * Run an `Effect` into a `Queue`, where success ends the queue and failure
@@ -1542,7 +1509,7 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  * ```
  *
  * @since 3.8.0
- * @category combinators
+ * @category Completion
  */
 export const into: {
   <A, E>(
