@@ -12371,6 +12371,22 @@ export namespace fn {
 export const fnUntraced: fn.Untraced = internal.fnUntraced
 
 /**
+ * Creates a traced function that returns an Effect.
+ *
+ * @example
+ * ```ts
+ * // Title: Creating a traced function with Effect.fn
+ * import { Effect } from "effect"
+ *
+ * const greet = Effect.fn("Greeting")(function* (name: string) {
+ *   yield* Effect.annotateCurrentSpan("name", name)
+ *   yield* Effect.logInfo(`hello ${name}`)
+ *   return name.toUpperCase()
+ * })
+ *
+ * Effect.runFork(greet("Ada"))
+ * ```
+ *
  * @since 3.12.0
  * @category function
  */
