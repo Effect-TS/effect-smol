@@ -6784,24 +6784,19 @@ export const replicate: {
 } = internal.replicate
 
 /**
- * Performs this effect the specified number of times and collects the results.
+ * Performs this effect `n` times and collects results with `Effect.all` semantics.
  *
- * **Details**
+ * Use `concurrency` to control parallelism and `discard: true` to ignore results.
  *
- * This function repeats an effect multiple times and collects the results into
- * an array. You specify how many times to execute the effect, and it runs that
- * many times, either in sequence or concurrently depending on the provided
- * options.
+ * @example
+ * ```ts
+ * import { Console, Effect } from "effect"
  *
- * **Options**
- *
- * If the `discard` option is set to `true`, the intermediate results are not
- * collected, and the final result of the operation is `void`.
- *
- * The function also allows you to customize how the effects are handled by
- * specifying options such as concurrency, batching, and how finalizers behave.
- * These options provide flexibility in running the effects concurrently or
- * adjusting other execution details.
+ * const program = Effect.gen(function*() {
+ *   const results = yield* Effect.replicateEffect(3)(Effect.succeed(1))
+ *   yield* Console.log(results)
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category Collecting
