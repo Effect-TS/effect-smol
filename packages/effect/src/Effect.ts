@@ -5900,8 +5900,12 @@ export const onExit: {
 } = internal.onExit
 
 /**
+ * Runs an on-exit cleanup without forcing it to be uninterruptible.
+ *
+ * Use this when the cleanup should remain interruptible like the parent fiber.
+ *
  * @since 4.0.0
- * @category Resource management & finalization
+ * @category Resource Management & Finalization
  */
 export const onExitInterruptible: {
   <A, E, XE = never, XR = never>(
