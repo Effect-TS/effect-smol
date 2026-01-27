@@ -5943,9 +5943,26 @@ export const onExit: {
 } = internal.onExit
 
 /**
- * Runs an on-exit cleanup without forcing it to be uninterruptible.
+ * Runs cleanup on exit while keeping the cleanup interruptible, unlike `onExit`
+ * which wraps it in `uninterruptible`.
  *
- * Use this when the cleanup should remain interruptible like the parent fiber.
+ * @example
+ * ```ts
+ * import { Console, Effect, Fiber } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const fiber = yield* Effect.forkChild(
+ *     Effect.never.pipe(
+ *       Effect.onExitInterruptible(() =>
+ *         Effect.sleep("30 seconds").pipe(Effect.andThen(Console.log("cleanup finished")))
+ *       )
+ *     )
+ *   )
+ *
+ *   yield* Effect.sleep("10 millis")
+ *   yield* Fiber.interrupt(fiber)
+ * })
+ * ```
  *
  * @since 4.0.0
  * @category Resource Management & Finalization
