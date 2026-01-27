@@ -28,6 +28,154 @@ describe("Prompt", () => {
       ])
       assert.deepStrictEqual(prompt, expected)
     })
+
+    it("should separate tool-calls and tool-results into different messages", () => {
+      const parts = [
+        Response.makePart("tool-call", {
+          id: "call-1",
+          name: "get_weather",
+          params: { city: "London" },
+          providerExecuted: false
+        }),
+        Response.makePart("tool-result", {
+          id: "call-1",
+          name: "get_weather",
+          isFailure: false,
+          result: { temp: 20 },
+          encodedResult: { temp: 20 },
+          preliminary: false,
+          providerExecuted: false
+        })
+      ]
+      const prompt = Prompt.fromResponseParts(parts)
+
+      // Should have assistant message with tool-call, then tool message with tool-result
+      assert.strictEqual(prompt.content.length, 2)
+      assert.strictEqual(prompt.content[0].role, "assistant")
+      assert.strictEqual(prompt.content[1].role, "tool")
+
+      // Assistant message contains the tool-call
+      const assistantContent = prompt.content[0].content
+      assert.strictEqual(assistantContent.length, 1)
+      assert.strictEqual(typeof assistantContent[0] === "object" && assistantContent[0].type, "tool-call")
+
+      // Tool message contains the tool-result
+      const toolContent = prompt.content[1].content
+      assert.strictEqual(toolContent.length, 1)
+      assert.strictEqual(typeof toolContent[0] === "object" && toolContent[0].type, "tool-result")
+    })
+
+    it("should handle out-of-order tool results (result before call in stream)", () => {
+      // This simulates concurrent tool execution where results may arrive
+      // in different order than their corresponding calls
+      const parts = [
+        // Tool call A arrives first
+        Response.makePart("tool-call", {
+          id: "call-A",
+          name: "tool_a",
+          params: {},
+          providerExecuted: false
+        }),
+        // Tool call B arrives second
+        Response.makePart("tool-call", {
+          id: "call-B",
+          name: "tool_b",
+          params: {},
+          providerExecuted: false
+        }),
+        // But tool B's result arrives before tool A's result
+        Response.makePart("tool-result", {
+          id: "call-B",
+          name: "tool_b",
+          isFailure: false,
+          result: "result-B",
+          encodedResult: "result-B",
+          preliminary: false,
+          providerExecuted: false
+        }),
+        Response.makePart("tool-result", {
+          id: "call-A",
+          name: "tool_a",
+          isFailure: false,
+          result: "result-A",
+          encodedResult: "result-A",
+          preliminary: false,
+          providerExecuted: false
+        })
+      ]
+      const prompt = Prompt.fromResponseParts(parts)
+
+      // Should still produce valid message structure
+      assert.strictEqual(prompt.content.length, 2)
+      assert.strictEqual(prompt.content[0].role, "assistant")
+      assert.strictEqual(prompt.content[1].role, "tool")
+
+      // Assistant message has tool calls in order they arrived
+      const assistantContent = prompt.content[0].content
+      assert.strictEqual(assistantContent.length, 2)
+      assert.strictEqual(typeof assistantContent[0] === "object" && assistantContent[0].type, "tool-call")
+      assert.deepStrictEqual((assistantContent[0] as any).id, "call-A")
+      assert.strictEqual(typeof assistantContent[1] === "object" && assistantContent[1].type, "tool-call")
+      assert.deepStrictEqual((assistantContent[1] as any).id, "call-B")
+
+      // Tool message has results in order they arrived (B before A)
+      const toolContent = prompt.content[1].content
+      assert.strictEqual(toolContent.length, 2)
+      assert.strictEqual(typeof toolContent[0] === "object" && toolContent[0].type, "tool-result")
+      assert.deepStrictEqual((toolContent[0] as any).id, "call-B")
+      assert.strictEqual(typeof toolContent[1] === "object" && toolContent[1].type, "tool-result")
+      assert.deepStrictEqual((toolContent[1] as any).id, "call-A")
+    })
+
+    it("should skip preliminary tool results", () => {
+      const parts = [
+        Response.makePart("tool-call", {
+          id: "call-1",
+          name: "long_task",
+          params: {},
+          providerExecuted: false
+        }),
+        // Preliminary result (progress update)
+        Response.makePart("tool-result", {
+          id: "call-1",
+          name: "long_task",
+          isFailure: false,
+          result: { progress: 50 },
+          encodedResult: { progress: 50 },
+          preliminary: true,
+          providerExecuted: false
+        }),
+        // Another preliminary result
+        Response.makePart("tool-result", {
+          id: "call-1",
+          name: "long_task",
+          isFailure: false,
+          result: { progress: 100 },
+          encodedResult: { progress: 100 },
+          preliminary: true,
+          providerExecuted: false
+        }),
+        // Final result
+        Response.makePart("tool-result", {
+          id: "call-1",
+          name: "long_task",
+          isFailure: false,
+          result: { done: true },
+          encodedResult: { done: true },
+          preliminary: false,
+          providerExecuted: false
+        })
+      ]
+      const prompt = Prompt.fromResponseParts(parts)
+
+      // Should have assistant and tool messages
+      assert.strictEqual(prompt.content.length, 2)
+
+      // Tool message should only contain the final result, not preliminary ones
+      const toolContent = prompt.content[1].content
+      assert.strictEqual(toolContent.length, 1)
+      assert.deepStrictEqual((toolContent[0] as any).result, { done: true })
+    })
   })
 
   describe("merge", () => {

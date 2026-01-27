@@ -1776,14 +1776,17 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
         break
       }
 
-      // Tool Result Parts
+      // Tool Result Parts (skip preliminary results)
       case "tool-result": {
-        toolParts.push(makePart("tool-result", {
-          id: part.id,
-          name: part.name,
-          isFailure: part.isFailure,
-          result: part.encodedResult
-        }))
+        if (part.preliminary !== true) {
+          toolParts.push(makePart("tool-result", {
+            id: part.id,
+            name: part.name,
+            isFailure: part.isFailure,
+            result: part.encodedResult
+          }))
+        }
+        break
       }
     }
   }
