@@ -5858,6 +5858,31 @@ export const onError: {
  * Runs the specified effect if this effect fails, providing the error to the
  * effect if it exists. The provided effect will not be interrupted.
  *
+ * @example
+ * ```ts
+ * import { Cause, Console, Effect, Filter, pipe } from "effect"
+ *
+ * const failFilter = Filter.fromPredicate(Cause.hasFail)
+ * const logFailure = (failure: Cause.Cause<unknown>) =>
+ *   Console.log(`Logged: ${Cause.squash(failure)}`)
+ *
+ * const program = Effect.gen(function*() {
+ *   yield* pipe(
+ *     Effect.fail(new Error("Missing config")),
+ *     Effect.onErrorFilter(failFilter, logFailure),
+ *     Effect.exit
+ *   )
+ *
+ *   yield* pipe(
+ *     Effect.die("Unexpected crash"),
+ *     Effect.onErrorFilter(failFilter, logFailure),
+ *     Effect.exit
+ *   )
+ * })
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
  * @since 4.0.0
  * @category Resource management & finalization
  */
