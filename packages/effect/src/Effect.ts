@@ -3806,6 +3806,34 @@ export const ignore: <
  * Apply an `ExecutionPlan` to the effect, which allows you to fallback to
  * different resources in case of failure.
  *
+ * @example
+ * ```ts
+ * import { Effect, ExecutionPlan, ServiceMap } from "effect"
+ *
+ * interface Config {
+ *   endpoint: string
+ * }
+ *
+ * const Config = ServiceMap.Service<Config>("Config")
+ *
+ * const fetch = Effect.gen(function*() {
+ *   const config = yield* Config
+ *   if (config.endpoint === "bad") {
+ *     return yield* Effect.fail("BadEndpoint")
+ *   }
+ *   return `using ${config.endpoint}`
+ * })
+ *
+ * const plan = ExecutionPlan.make(
+ *   { provide: ServiceMap.make(Config, { endpoint: "bad" }) },
+ *   { provide: ServiceMap.make(Config, { endpoint: "good" }) }
+ * )
+ *
+ * const program = fetch.pipe(Effect.withExecutionPlan(plan))
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
  * @since 3.16.0
  * @category Error handling
  */
