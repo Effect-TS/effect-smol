@@ -7788,6 +7788,16 @@ export const fiber: Effect<Fiber<unknown, unknown>> = internal.fiber
 /**
  * Access the current fiber id executing the effect.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const fiberId = yield* Effect.fiberId
+ *   return fiberId
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category supervision & fibers
  */
