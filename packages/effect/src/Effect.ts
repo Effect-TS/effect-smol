@@ -7835,10 +7835,11 @@ export const runCallbackWith: <R>(
 ) => (interruptor?: number | undefined) => void = internal.runCallbackWith
 
 /**
- * Runs an effect asynchronously, registering `onExit` as a fiber observer.
+ * Runs an effect asynchronously, registering `onExit` as a fiber observer and
+ * returning an interruptor.
  *
- * Returns an interruptor that calls `fiber.interruptUnsafe` with the provided
- * interruptor id.
+ * The interruptor calls `fiber.interruptUnsafe` with the optional interruptor
+ * id.
  *
  * @example
  * ```ts
@@ -7859,6 +7860,10 @@ export const runCallbackWith: <R>(
  *     )
  *   }
  * })
+ *
+ * // Output:
+ * // working
+ * // success: done
  *
  * // interrupt() to cancel the fiber if needed
  * ```
