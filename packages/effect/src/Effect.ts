@@ -267,8 +267,10 @@ export interface EffectTypeLambda extends TypeLambda {
 }
 
 /**
+ * Variance interface for Effect, encoding the type parameters' variance.
+ *
  * @since 2.0.0
- * @category models
+ * @category Models
  */
 export interface Variance<A, E, R> {
   _A: Covariant<A>
