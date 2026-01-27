@@ -1678,6 +1678,27 @@ export const fromOption: <A>(
  * Converts a nullish value to an `Effect`, failing with a `NoSuchElementError`
  * if the value is `null` or `undefined`.
  *
+ * @example
+ * ```ts
+ * import { Effect, pipe } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const value = yield* Effect.fromNullishOr("ready")
+ *   const failureTag = yield* pipe(
+ *     Effect.fromNullishOr<string | null>(null),
+ *     Effect.match({
+ *       onFailure: (error) => error._tag,
+ *       onSuccess: () => "unexpected"
+ *     })
+ *   )
+ *
+ *   return { value, failureTag }
+ * })
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: { value: 'ready', failureTag: 'NoSuchElementError' }
+ * ```
+ *
  * @since 4.0.0
  * @category Conversions
  */
