@@ -3784,14 +3784,34 @@ export const ignore: <
   : <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignore
 
 /**
- * Apply an `ExecutionPlan` to the effect, retrying with plan-provided resources
- * until the effect succeeds or the plan is exhausted.
+ * Apply an `ExecutionPlan` to an effect, retrying with step-provided resources
+ * until it succeeds or the plan is exhausted.
  *
- * Each step can provide a `Layer` or `ServiceMap` and optional retry schedule,
- * with `ExecutionPlan.CurrentMetadata` updated per attempt.
+ * Each attempt updates `ExecutionPlan.CurrentMetadata` (attempt and step index),
+ * and retry timing is derived per step (the first attempt uses the remaining
+ * attempts schedule; later retries apply the step schedule at least once).
+ *
+ * @example
+ * ```ts
+ * import { Effect, ExecutionPlan, Layer, ServiceMap } from "effect"
+ *
+ * const Endpoint = ServiceMap.Service<{ url: string }>("Endpoint")
+ *
+ * const fetchUrl = Effect.gen(function*() {
+ *   const endpoint = yield* Effect.service(Endpoint)
+ *   return endpoint.url === "bad" ? yield* Effect.fail("Unavailable") : endpoint.url
+ * })
+ *
+ * const plan = ExecutionPlan.make(
+ *   { provide: Layer.succeed(Endpoint, { url: "bad" }), attempts: 2 },
+ *   { provide: Layer.succeed(Endpoint, { url: "good" }) }
+ * )
+ *
+ * const program = Effect.withExecutionPlan(fetchUrl, plan)
+ * ```
  *
  * @since 3.16.0
- * @category Error Handling
+ * @category Fallback
  */
 export const withExecutionPlan: {
   <Input, Provides, PlanE, PlanR>(
