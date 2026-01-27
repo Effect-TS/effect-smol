@@ -191,7 +191,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         const encodePayloadBody = endpoint.payloadSchema?.pipe(
           (schema) => {
             if (HttpMethod.hasBody(endpoint.method)) {
-              return Schema.encodeUnknownEffect(payloadSchemaBody(schema as any))
+              return Schema.encodeUnknownEffect(payloadSchemaBody(schema))
             }
             return Schema.encodeUnknownEffect(schema)
           }
@@ -395,12 +395,11 @@ const compilePath = (path: string) => {
   }
 }
 
-const schemaToResponse = (
-  ast: AST.AST
-): (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<any, any> => {
-  const encoding = HttpApiSchema.getEncoding(ast)
-  const decode = Schema.decodeEffect(schemaFromArrayBuffer(ast, encoding))
-  return (response) => Effect.flatMap(response.arrayBuffer, decode)
+function schemaToResponse(ast: AST.AST) {
+  const schema = schemaFromArrayBuffer(ast)
+  // TODO: what if schema has DecodingServices?
+  const decode = Schema.decodeEffect(schema as Schema.Codec<unknown, unknown>)
+  return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
 }
 
 // TODO: can this be more precise?
@@ -469,35 +468,25 @@ const parseJsonOrVoid = Schema.String.pipe(
 
 const parseJsonArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(parseJsonOrVoid))
 
-const schemaFromArrayBuffer = (
-  ast: AST.AST,
-  encoding: HttpApiSchema.Encoding
-): Schema.decodeTo<Schema.Any, Schema.instanceOf<ArrayBuffer>> => {
+function schemaFromArrayBuffer(ast: AST.AST): Schema.Top {
   if (AST.isUnion(ast)) {
-    return Schema.Union(
-      ast.types.map((ast) => schemaFromArrayBuffer(ast, HttpApiSchema.getEncoding(ast, encoding))),
-      { mode: ast.mode }
-    ) as any
+    return Schema.Union(ast.types.map((type) => schemaFromArrayBuffer(type)))
   }
   const schema = Schema.make(ast)
+  const encoding = HttpApiSchema.getEncoding(ast)
   switch (encoding.kind) {
-    case "Json": {
-      return Schema.decodeTo(schema)(parseJsonArrayBuffer) as any
-    }
-    case "UrlParams": {
-      return StringFromArrayBuffer.pipe(
-        Schema.decodeTo(UrlParams.schemaRecord),
-        Schema.decodeTo(schema)
-      ) as any
-    }
-    case "Uint8Array": {
-      return Uint8ArrayFromArrayBuffer.pipe(
-        Schema.decodeTo(schema)
-      ) as any
-    }
-    case "Text": {
-      return Schema.decodeTo(schema)(StringFromArrayBuffer) as any
-    }
+    case "Json":
+      return parseJsonArrayBuffer
+        .pipe(Schema.decodeTo(schema))
+    case "UrlParams":
+      return StringFromArrayBuffer
+        .pipe(Schema.decodeTo(UrlParams.schemaRecord), Schema.decodeTo(schema))
+    case "Uint8Array":
+      return Uint8ArrayFromArrayBuffer
+        .pipe(Schema.decodeTo(schema))
+    case "Text":
+      return StringFromArrayBuffer
+        .pipe(Schema.decodeTo(schema))
   }
 }
 
@@ -525,58 +514,59 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 
 const HttpBodySchema = Schema.declare(HttpBody.isHttpBody)
 
-const payloadSchemaBody = (schema: Schema.Top): Schema.decodeTo<typeof HttpBodySchema, Schema.Any> =>
-  AST.isUnion(schema.ast)
-    ? Schema.Union(schema.ast.types.map(bodyFromPayload)) as any
-    : bodyFromPayload(schema.ast) as any
+function payloadSchemaBody(schema: Schema.Top): Schema.Top {
+  return AST.isUnion(schema.ast)
+    ? Schema.Union(schema.ast.types.map(bodyFromPayload))
+    : bodyFromPayload(schema.ast)
+}
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()
 
-const bodyFromPayload = (ast: AST.AST) => {
+function bodyFromPayload(ast: AST.AST): Schema.Top {
   if (bodyFromPayloadCache.has(ast)) {
     return bodyFromPayloadCache.get(ast)!
   }
   const schema = Schema.make(ast)
   const encoding = HttpApiSchema.getEncoding(ast)
-  const transform = HttpBodySchema.pipe(Schema.decodeTo(
-    schema as Schema.Any,
+  const out = HttpBodySchema.pipe(Schema.decodeTo(
+    schema,
     Transformation.transformOrFail({
-      decode(fromA) {
-        return Effect.fail(new Issue.Forbidden(Option.some(fromA), { message: "encode only schema" }))
+      decode(httpBody: HttpBody.HttpBody) {
+        return Effect.fail(new Issue.Forbidden(Option.some(httpBody), { message: "encode only schema" }))
       },
-      encode(toI: any) {
+      encode(t: unknown) {
         switch (encoding.kind) {
           case "Json": {
             try {
-              const body = JSON.stringify(toI)
+              const body = JSON.stringify(t)
               return Effect.succeed(HttpBody.text(body, encoding.contentType))
             } catch {
-              return Effect.fail(new Issue.InvalidValue(Option.some(toI), { message: "Could not encode as JSON" }))
+              return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: "Could not encode as JSON" }))
             }
           }
           case "Text": {
-            if (typeof toI !== "string") {
+            if (typeof t !== "string") {
               return Effect.fail(
-                new Issue.InvalidValue(Option.some(toI), { message: "Expected a string" })
+                new Issue.InvalidValue(Option.some(t), { message: "Expected a string" })
               )
             }
-            return Effect.succeed(HttpBody.text(toI, encoding.contentType))
+            return Effect.succeed(HttpBody.text(t, encoding.contentType))
           }
           case "UrlParams": {
-            return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(toI as any)))
+            return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(t as any)))
           }
           case "Uint8Array": {
-            if (!(toI instanceof Uint8Array)) {
+            if (!(t instanceof Uint8Array)) {
               return Effect.fail(
-                new Issue.InvalidValue(Option.some(toI), { message: "Expected a Uint8Array" })
+                new Issue.InvalidValue(Option.some(t), { message: "Expected a Uint8Array" })
               )
             }
-            return Effect.succeed(HttpBody.uint8Array(toI, encoding.contentType))
+            return Effect.succeed(HttpBody.uint8Array(t, encoding.contentType))
           }
         }
       }
     })
   ))
-  bodyFromPayloadCache.set(ast, transform)
-  return transform
+  bodyFromPayloadCache.set(ast, out)
+  return out
 }

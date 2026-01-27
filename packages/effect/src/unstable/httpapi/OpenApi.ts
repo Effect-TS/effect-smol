@@ -244,7 +244,6 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       readonly _tag: "schema"
       readonly ast: AST.AST
       readonly path: ReadonlyArray<string>
-      readonly encoding: HttpApiSchema.Encoding
     } | {
       readonly _tag: "parameter"
       readonly ast: AST.AST
@@ -334,8 +333,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
             irOps.push({
               _tag: "schema",
               ast,
-              path: ["paths", path, method, "responses", String(status), "content", encoding.contentType, "schema"],
-              encoding
+              path: ["paths", path, method, "responses", String(status), "content", encoding.contentType, "schema"]
             })
             op.responses[status].content = {
               [encoding.contentType]: {
@@ -399,11 +397,10 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           map.forEach((ast, contentType) => {
             irOps.push({
               _tag: "schema",
-              ast,
-              path: ["paths", path, method, "requestBody", "content", contentType, "schema"],
-              encoding: { kind, contentType }
+              ast: getEncodingAST(ast, { kind, contentType }),
+              path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
             })
-            content[contentType as OpenApiSpecContentType] = {
+            content[contentType] = {
               schema: {}
             }
           })
@@ -448,8 +445,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         irOps.push({
           _tag: "schema",
           ast: componentSchema.ast,
-          path: ["components", "schemas", identifier],
-          encoding: HttpApiSchema.getEncoding(componentSchema.ast) // TODO
+          path: ["components", "schemas", identifier]
         })
       }
     })
@@ -461,14 +457,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
   if (Arr.isArrayNonEmpty(irOps)) {
     const multiDocument = SchemaRepresentation.fromASTs(
-      Arr.map(irOps, (op) => {
-        switch (op._tag) {
-          case "schema":
-            return getEncoding(op.ast, op.encoding)
-          case "parameter":
-            return op.ast
-        }
-      })
+      Arr.map(irOps, (op) => op.ast)
     )
     const jsonSchemaMultiDocument = JsonSchema.toMultiDocumentOpenApi3_1(
       SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument, {
@@ -515,7 +504,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   return spec
 }
 
-function getEncoding(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
+function getEncodingAST(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
   switch (encoding.kind) {
     case "Uint8Array":
       // For `application/octet-stream` (raw bytes) we must emit a binary schema,
@@ -697,20 +686,8 @@ export type OpenAPISpecResponses = Record<number, OpenApiSpecResponse>
  * @category models
  * @since 4.0.0
  */
-export type OpenApiSpecContentType =
-  | "application/json" // Kind === "Json"
-  | "application/problem+json" // Kind === "Json"
-  | "application/x-www-form-urlencoded" // Kind === "UrlParams"
-  | "text/plain" // Kind === "Text"
-  | "application/octet-stream" // Kind === "Uint8Array"
-  | "multipart/form-data" // HttpApiSchema.Multipart and HttpApiSchema.MultipartStream
-
-/**
- * @category models
- * @since 4.0.0
- */
 export type OpenApiSpecContent = {
-  [K in OpenApiSpecContentType]?: OpenApiSpecMediaType
+  [K in string]: OpenApiSpecMediaType
 }
 
 /**
