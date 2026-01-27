@@ -217,7 +217,7 @@ export abstract class YieldableClass<A, E = never, R = never> implements Yieldab
 }
 
 /**
- * @category models
+ * @category Models
  * @since 2.0.0
  * @example
  * ```ts
@@ -236,7 +236,7 @@ export interface EffectUnify<A extends { [Unify.typeSymbol]?: any }> {
 }
 
 /**
- * @category models
+ * @category Models
  * @since 2.0.0
  * @example
  * ```ts
@@ -251,7 +251,7 @@ export interface EffectUnifyIgnore {
   Effect?: true
 }
 /**
- * @category type lambdas
+ * @category Type Lambdas
  * @since 2.0.0
  * @example
  * ```ts
@@ -280,7 +280,7 @@ export interface Variance<A, E, R> {
 
 /**
  * @since 2.0.0
- * @category models
+ * @category Models
  * @example
  * ```ts
  * import type { Effect } from "effect"
@@ -295,7 +295,7 @@ export type Success<T> = T extends Effect<infer _A, infer _E, infer _R> ? _A
 
 /**
  * @since 2.0.0
- * @category models
+ * @category Models
  * @example
  * ```ts
  * import type { Effect } from "effect"
@@ -310,7 +310,7 @@ export type Error<T> = T extends Effect<infer _A, infer _E, infer _R> ? _E
 
 /**
  * @since 2.0.0
- * @category models
+ * @category Models
  * @example
  * ```ts
  * import type { Effect } from "effect"
@@ -363,7 +363,7 @@ export declare namespace Yieldable {
  * ```
  *
  * @since 2.0.0
- * @category guards
+ * @category Guards
  */
 export const isEffect = (u: unknown): u is Effect<any, any, any> => typeof u === "object" && u !== null && TypeId in u
 
@@ -387,7 +387,7 @@ export const isEffect = (u: unknown): u is Effect<any, any, any> => typeof u ===
  * ```
  *
  * @since 2.0.0
- * @category models
+ * @category Models
  */
 export interface EffectIterator<T extends Yieldable<any, any, any, any>> {
   next(
@@ -422,12 +422,12 @@ export interface EffectIterator<T extends Yieldable<any, any, any, any>> {
  * ```
  *
  * @since 2.0.0
- * @category models
+ * @category Models
  */
 export declare namespace All {
   /**
    * @since 2.0.0
-   * @category models
+   * @category Models
    * @example
    * ```ts
    * import { Effect } from "effect"
@@ -444,7 +444,7 @@ export declare namespace All {
 
   /**
    * @since 2.0.0
-   * @category models
+   * @category Models
    * @example
    * ```ts
    * import type { Effect } from "effect"
@@ -463,7 +463,7 @@ export declare namespace All {
 
   /**
    * @since 2.0.0
-   * @category models
+   * @category Models
    * @example
    * ```ts
    * import type { Effect } from "effect"
@@ -502,7 +502,7 @@ export declare namespace All {
 
   /**
    * @since 2.0.0
-   * @category models
+   * @category Models
    * @example
    * ```ts
    * import type { Effect } from "effect"
@@ -537,7 +537,7 @@ export declare namespace All {
 
   /**
    * @since 2.0.0
-   * @category models
+   * @category Models
    * @example
    * ```ts
    * import type { Effect } from "effect"
@@ -556,7 +556,7 @@ export declare namespace All {
 
   /**
    * @since 2.0.0
-   * @category models
+   * @category Models
    * @example
    * ```ts
    * import type { Effect } from "effect"
@@ -1989,7 +1989,7 @@ export const andThen: {
  * ```
  *
  * @since 2.0.0
- * @category sequencing
+ * @category Sequencing
  */
 export const tap: {
   <A, X>(
@@ -2485,7 +2485,7 @@ export {
    * - `Effect.catchAll`
    *
    * @since 4.0.0
-   * @category Error handling
+   * @category Error Handling
    */
   catch_ as catch
 }
@@ -2528,7 +2528,7 @@ export {
  * ```
  *
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const catchTag: {
   <const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
@@ -2583,7 +2583,7 @@ export const catchTag: {
  * ```
  *
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const catchTags: {
   <
@@ -2668,7 +2668,7 @@ export const catchTags: {
  * ```
  *
  * @since 4.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const catchReason: {
   <
@@ -2732,7 +2732,7 @@ export const catchReason: {
  * ```
  *
  * @since 4.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const catchReasons: {
   <
@@ -2830,7 +2830,7 @@ export type TagsWithReason<E> = {
  * ```
  *
  * @since 4.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const unwrapReason: {
   <
@@ -2892,7 +2892,7 @@ export const unwrapReason: {
  * ```
  *
  * @since 4.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const catchCause: {
   <E, A2, E2, R2>(
@@ -2951,7 +2951,7 @@ export const catchCause: {
  * ```
  *
  * @since 4.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const catchDefect: {
   <A2, E2, R2>(
@@ -3062,7 +3062,7 @@ export const catchIf: {
  * ```
  *
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const catchFilter: {
   <E, EB, A2, E2, R2, X>(
@@ -3112,7 +3112,7 @@ export const catchFilter: {
  * ```
  *
  * @since 4.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const catchCauseFilter: {
   <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
@@ -3156,7 +3156,7 @@ export const catchCauseFilter: {
  * ```
  *
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const mapError: {
   <E, E2>(f: (e: E) => E2): <A, R>(self: Effect<A, E, R>) => Effect<A, E2, R>
@@ -3273,7 +3273,7 @@ export const orDie: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R> = in
  * ```
  *
  * @since 2.0.0
- * @category sequencing
+ * @category Sequencing
  */
 export const tapError: {
   <E, X, E2, R2>(
@@ -3370,7 +3370,7 @@ export const tapErrorTag: {
  * ```
  *
  * @since 2.0.0
- * @category sequencing
+ * @category Sequencing
  */
 export const tapCause: {
   <E, X, E2, R2>(
@@ -3408,7 +3408,7 @@ export const tapCause: {
  * ```
  *
  * @since 4.0.0
- * @category sequencing
+ * @category Sequencing
  */
 export const tapCauseFilter: {
   <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
@@ -3520,7 +3520,7 @@ export const eventually: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R>
 
 /**
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  * @example
  * ```ts
  * import type { Effect } from "effect"
@@ -3534,7 +3534,7 @@ export const eventually: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R>
 export declare namespace Retry {
   /**
    * @since 2.0.0
-   * @category Error handling
+   * @category Error Handling
    * @example
    * ```ts
    * import type { Effect } from "effect"
@@ -3576,7 +3576,7 @@ export declare namespace Retry {
 
   /**
    * @since 2.0.0
-   * @category Error handling
+   * @category Error Handling
    * @example
    * ```ts
    * import { Schedule } from "effect"
@@ -3644,7 +3644,7 @@ export declare namespace Retry {
  * @see {@link repeat} if your retry condition is based on successful outcomes rather than errors.
  *
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const retry: {
   <E, O extends Retry.Options<E>>(options: O): <A, R>(self: Effect<A, E, R>) => Retry.Return<R, E, A, O>
@@ -3721,7 +3721,7 @@ export const retry: {
  * ```
  *
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const retryOrElse: {
   <A1, E, E1, R1, A2, E2, R2>(
@@ -3767,7 +3767,7 @@ export const retryOrElse: {
  * @see {@link unsandbox} to restore the original error handling.
  *
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const sandbox: <A, E, R>(
   self: Effect<A, E, R>
@@ -3815,7 +3815,7 @@ export const sandbox: <A, E, R>(
  * - `Effect.ignoreLogged`
  *
  * @since 2.0.0
- * @category Error handling
+ * @category Error Handling
  */
 export const ignore: <
   Arg extends Effect<any, any, any> | {
@@ -3974,7 +3974,7 @@ export const orElseSucceed: {
  * ```
  *
  * @since 2.0.0
- * @category delays & timeouts
+ * @category Delays & Timeouts
  */
 export const timeout: {
   (
@@ -4033,7 +4033,7 @@ export const timeout: {
  * ```
  *
  * @since 3.1.0
- * @category delays & timeouts
+ * @category Delays & Timeouts
  */
 export const timeoutOption: {
   (
@@ -4079,7 +4079,7 @@ export const timeoutOption: {
  * ```
  *
  * @since 3.1.0
- * @category delays & timeouts
+ * @category Delays & Timeouts
  */
 export const timeoutOrElse: {
   <A2, E2, R2>(options: {
@@ -4113,7 +4113,7 @@ export const timeoutOrElse: {
  * ```
  *
  * @since 2.0.0
- * @category delays & timeouts
+ * @category Delays & Timeouts
  */
 export const delay: {
   (
@@ -4145,7 +4145,7 @@ export const delay: {
  * ```
  *
  * @since 2.0.0
- * @category delays & timeouts
+ * @category Delays & Timeouts
  */
 export const sleep: (duration: Duration.DurationInput) => Effect<void> = internal.sleep
 
@@ -4601,7 +4601,7 @@ export const when: {
  * ```
  *
  * @since 2.0.0
- * @category Pattern matching
+ * @category Pattern Matching
  */
 export const match: {
   <E, A2, A, A3>(options: {
@@ -4651,7 +4651,7 @@ export const match: {
  * @see {@link matchEffect} if you need to perform side effects in the handlers.
  *
  * @since 2.0.0
- * @category Pattern matching
+ * @category Pattern Matching
  */
 export const matchEager: {
   <E, A2, A, A3>(options: {
@@ -4701,7 +4701,7 @@ export const matchEager: {
  * @see {@link match} if you don't need to handle the cause of the failure.
  *
  * @since 2.0.0
- * @category Pattern matching
+ * @category Pattern Matching
  */
 export const matchCause: {
   <E, A2, A, A3>(options: {
@@ -4743,7 +4743,7 @@ export const matchCause: {
  * ```
  *
  * @since 3.8.0
- * @category Pattern matching
+ * @category Pattern Matching
  */
 export const matchCauseEager: {
   <E, A2, A, A3>(options: {
@@ -4834,7 +4834,7 @@ export const matchCauseEffectEager: {
  * @see {@link matchEffect} if you don't need to handle the cause of the failure.
  *
  * @since 2.0.0
- * @category Pattern matching
+ * @category Pattern Matching
  */
 export const matchCauseEffect: {
   <E, A2, E2, R2, A, A3, E3, R3>(options: {
@@ -4907,7 +4907,7 @@ export const matchCauseEffect: {
  * ```
  *
  * @since 2.0.0
- * @category Pattern matching
+ * @category Pattern Matching
  */
 export const matchEffect: {
   <E, A2, E2, R2, A, A3, E3, R3>(options: {
@@ -5543,7 +5543,7 @@ export const withConcurrency: {
  * ```
  *
  * @since 2.0.0
- * @category Resource management & finalization
+ * @category Resource Management & Finalization
  */
 export const scope: Effect<Scope, never, Scope> = internal.scope
 
@@ -5576,7 +5576,7 @@ export const scope: Effect<Scope, never, Scope> = internal.scope
  * ```
  *
  * @since 2.0.0
- * @category scoping, resources & finalization
+ * @category Resource Management & Finalization
  */
 export const scoped: <A, E, R>(
   self: Effect<A, E, R>
@@ -5618,7 +5618,7 @@ export const scoped: <A, E, R>(
  * ```
  *
  * @since 2.0.0
- * @category scoping, resources & finalization
+ * @category Resource Management & Finalization
  */
 export const scopedWith: <A, E, R>(
   f: (scope: Scope) => Effect<A, E, R>
@@ -5675,7 +5675,7 @@ export const scopedWith: <A, E, R>(
  * ```
  *
  * @since 2.0.0
- * @category Resource management & finalization
+ * @category Resource Management & Finalization
  */
 export const acquireRelease: <A, E, R>(
   acquire: Effect<A, E, R>,
@@ -5751,7 +5751,7 @@ export const acquireRelease: <A, E, R>(
  * ```
  *
  * @since 2.0.0
- * @category Resource management & finalization
+ * @category Resource Management & Finalization
  */
 export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
   acquire: Effect<Resource, E, R>,
@@ -5798,7 +5798,7 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  * ```
  *
  * @since 2.0.0
- * @category Resource management & finalization
+ * @category Resource Management & Finalization
  */
 export const addFinalizer: <R>(
   finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void, never, R>
@@ -5841,7 +5841,7 @@ export const addFinalizer: <R>(
  * ```
  *
  * @since 2.0.0
- * @category Resource management & finalization
+ * @category Resource Management & Finalization
  */
 export const ensuring: {
   <X, R1>(
@@ -5875,7 +5875,7 @@ export const ensuring: {
  * ```
  *
  * @since 2.0.0
- * @category Resource management & finalization
+ * @category Resource Management & Finalization
  */
 export const onError: {
   <E, X, R2>(
@@ -5947,7 +5947,7 @@ export const onErrorFilter: {
  * ```
  *
  * @since 2.0.0
- * @category Resource management & finalization
+ * @category Resource Management & Finalization
  */
 export const onExit: {
   <A, E, XE = never, XR = never>(
@@ -6670,7 +6670,7 @@ export const makeLatch: (open?: boolean | undefined) => Effect<Latch> = internal
 
 /**
  * @since 2.0.0
- * @category repetition / recursion
+ * @category Repetition / Recursion
  * @example
  * ```ts
  * import type { Effect } from "effect"
@@ -6684,7 +6684,7 @@ export const makeLatch: (open?: boolean | undefined) => Effect<Latch> = internal
 export declare namespace Repeat {
   /**
    * @since 2.0.0
-   * @category repetition / recursion
+   * @category Repetition / Recursion
    * @example
    * ```ts
    * import type { Effect } from "effect"
@@ -6726,7 +6726,7 @@ export declare namespace Repeat {
 
   /**
    * @since 2.0.0
-   * @category repetition / recursion
+   * @category Repetition / Recursion
    * @example
    * ```ts
    * import { Schedule } from "effect"
@@ -6772,7 +6772,7 @@ export declare namespace Repeat {
  * ```
  *
  * @since 2.0.0
- * @category repetition / recursion
+ * @category Repetition / Recursion
  */
 export const forever: <Arg extends Effect<any, any, any> | { readonly autoYield?: boolean | undefined } | undefined>(
   effectOrOptions: Arg,
@@ -6841,7 +6841,7 @@ export const forever: <Arg extends Effect<any, any, any> | { readonly autoYield?
  * // Effect.runPromiseExit(program).then(console.log)
  *
  * @since 2.0.0
- * @category repetition / recursion
+ * @category Repetition / Recursion
  */
 export const repeat: {
   <O extends Repeat.Options<A>, A>(options: O): <E, R>(self: Effect<A, E, R>) => Repeat.Return<R, E, A, O>
@@ -6913,7 +6913,7 @@ export const repeat: {
  * ```
  *
  * @since 2.0.0
- * @category repetition / recursion
+ * @category Repetition / Recursion
  */
 export const repeatOrElse: {
   <R2, A, B, E, E2, E3, R3>(
@@ -7690,7 +7690,7 @@ export const requestUnsafe: <A extends Request.Any>(
  * ```
  *
  * @since 4.0.0
- * @category supervision & fibers
+ * @category Supervision & Fibers
  */
 export const forkChild: <
   Arg extends Effect<any, any, any> | {
@@ -7731,7 +7731,7 @@ export const forkChild: <
  * ```
  *
  * @since 2.0.0
- * @category supervision & fibers
+ * @category Supervision & Fibers
  */
 export const forkIn: {
   (
@@ -7776,7 +7776,7 @@ export const forkIn: {
  * ```
  *
  * @since 2.0.0
- * @category supervision & fibers
+ * @category Supervision & Fibers
  */
 export const forkScoped: <
   Arg extends Effect<any, any, any> | {
@@ -7818,7 +7818,7 @@ export const forkScoped: <
  * ```
  *
  * @since 2.0.0
- * @category supervision & fibers
+ * @category Supervision & Fibers
  */
 export const forkDetach: <
   Arg extends Effect<any, any, any> | {
@@ -12623,7 +12623,7 @@ export const logWithLevel: (level?: LogLevel) => (...message: ReadonlyArray<any>
  * ```
  *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const log: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel()
 
@@ -12652,7 +12652,7 @@ export const log: (...message: ReadonlyArray<any>) => Effect<void> = internal.lo
  * ```
  *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const logFatal: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Fatal")
 
@@ -12682,7 +12682,7 @@ export const logFatal: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * ```
  *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const logWarning: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Warn")
 
@@ -12715,7 +12715,7 @@ export const logWarning: (...message: ReadonlyArray<any>) => Effect<void> = inte
  * ```
  *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const logError: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Error")
 
@@ -12743,7 +12743,7 @@ export const logError: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * ```
  *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const logInfo: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Info")
 
@@ -12772,7 +12772,7 @@ export const logInfo: (...message: ReadonlyArray<any>) => Effect<void> = interna
  * ```
  *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const logDebug: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Debug")
 
@@ -12804,7 +12804,7 @@ export const logDebug: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * ```
  *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Trace")
 
@@ -12833,7 +12833,7 @@ export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * ```
  *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const withLogger = dual<
   <Output>(
@@ -12877,7 +12877,7 @@ export const withLogger = dual<
  * ```
  *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const annotateLogs = dual<
   {
@@ -12945,7 +12945,7 @@ export const annotateLogs = dual<
  * ```
  *
  * @since 2.0.0
- * @category logging
+ * @category Logging
  */
 export const withLogSpan = dual<
   (label: string) => <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>,
@@ -13877,7 +13877,7 @@ export declare namespace Effectify {
     : never
 
   /**
-   * @category util
+   * @category Util
    * @since 4.0.0
    * @example
    * ```ts
@@ -14062,7 +14062,7 @@ export const effectify: {
  * ```
  *
  * @since 4.0.0
- * @category Type constraints
+ * @category Type Constraints
  */
 export const satisfiesSuccessType = <A>() => <A2 extends A, E, R>(effect: Effect<A2, E, R>): Effect<A2, E, R> => effect
 
@@ -14089,7 +14089,7 @@ export const satisfiesSuccessType = <A>() => <A2 extends A, E, R>(effect: Effect
  * ```
  *
  * @since 4.0.0
- * @category Type constraints
+ * @category Type Constraints
  */
 export const satisfiesErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A, E2, R>): Effect<A, E2, R> => effect
 
@@ -14116,7 +14116,7 @@ export const satisfiesErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A
  * ```
  *
  * @since 4.0.0
- * @category Type constraints
+ * @category Type Constraints
  */
 export const satisfiesServicesType = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> => effect
 
