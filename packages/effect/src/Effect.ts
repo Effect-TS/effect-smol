@@ -7670,8 +7670,23 @@ export const fiber: Effect<Fiber<unknown, unknown>> = internal.fiber
 /**
  * Access the current fiber id executing the effect.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.log("event").pipe(
+ *   // Read the current span with the fiber id for tagging.
+ *   Effect.andThen(Effect.all([Effect.currentSpan, Effect.fiberId])),
+ *   Effect.withSpan("A"),
+ *   Effect.map(([span, fiberId]) => ({
+ *     spanName: span.name,
+ *     fiberId
+ *   }))
+ * )
+ * ```
+ *
  * @since 4.0.0
- * @category supervision & fibers
+ * @category Supervision & Fibers
  */
 export const fiberId: Effect<number> = internal.fiberId
 
