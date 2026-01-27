@@ -7916,6 +7916,40 @@ export const runForkWith: <R>(
 ) => <A, E>(effect: Effect<A, E, R>, options?: RunOptions | undefined) => Fiber<A, E> = internal.runForkWith
 
 /**
+ * Runs an effect with the provided services and invokes a callback on exit.
+ *
+ * @example
+ * ```ts
+ * // Title: Running with services and canceling
+ * import { Effect, Exit, ServiceMap } from "effect"
+ *
+ * interface Logger {
+ *   log: (message: string) => void
+ * }
+ *
+ * const Logger = ServiceMap.Service<Logger>("Logger")
+ *
+ * const services = ServiceMap.make(Logger, {
+ *   log: (message) => console.log(message)
+ * })
+ *
+ * const program = Effect.gen(function*() {
+ *   const logger = yield* Logger
+ *   yield* Effect.sleep("1 second")
+ *   logger.log("done")
+ * })
+ *
+ * const cancel = Effect.runCallbackWith(services)(program, {
+ *   onExit: (exit) =>
+ *     Exit.match(exit, {
+ *       onSuccess: () => console.log("success"),
+ *       onFailure: () => console.log("failure")
+ *     })
+ * })
+ *
+ * setTimeout(() => cancel(), 50)
+ * ```
+ *
  * @since 4.0.0
  * @category Running Effects
  */
