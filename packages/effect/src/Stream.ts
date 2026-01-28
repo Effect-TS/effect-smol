@@ -6492,6 +6492,23 @@ export const updateService: {
     )))
 
 /**
+ * Wraps the stream with a new span for tracing.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.fromArray([1, 2, 3]).pipe(Stream.withSpan("numbers"))
+ *
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // [1, 2, 3]
+ * ```
+ *
  * @since 4.0.0
  * @category Tracing
  */
