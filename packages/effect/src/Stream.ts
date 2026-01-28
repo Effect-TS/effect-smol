@@ -7094,7 +7094,7 @@ export const toReadableStreamWith = dual<
 )
 
 /**
- * Converts the stream to a `ReadableStream`.
+ * Converts a stream to a `ReadableStream`.
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
  *
@@ -7102,14 +7102,12 @@ export const toReadableStreamWith = dual<
  * ```ts
  * import { Stream } from "effect"
  *
- * const stream = Stream.make(1, 2, 3, 4, 5)
- * const readableStream = Stream.toReadableStream(stream)
- *
- * console.log(readableStream instanceof ReadableStream) // true
+ * const readableStream = Stream.toReadableStream(Stream.make(1, 2, 3))
+ * const reader = readableStream.getReader()
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const toReadableStream: {
   <A>(
