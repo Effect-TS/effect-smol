@@ -249,16 +249,21 @@ export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infe
 export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => hasProperty(u, TypeId)
 
 /**
- * The default chunk size used by streams for batching operations.
+ * The default chunk size used by Stream constructors and combinators.
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * console.log(Stream.DefaultChunkSize) // 4096
+ * const program = Effect.gen(function*() {
+ *   yield* Console.log(Stream.DefaultChunkSize)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: 4096
  * ```
  *
- * @category constants
+ * @category Constants
  * @since 2.0.0
  */
 export const DefaultChunkSize: number = Channel.DefaultChunkSize
