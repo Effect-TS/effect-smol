@@ -736,22 +736,25 @@ export const succeed = <A>(value: A): Stream<A> => fromChannel(Channel.succeed(A
 export const make = <const As extends ReadonlyArray<any>>(...values: As): Stream<As[number]> => fromArray(values)
 
 /**
- * Creates a single-valued pure stream.
+ * Creates a stream that synchronously evaluates a function and emits the result as a single value.
  *
- * This function creates a Stream that evaluates the provided function
- * synchronously and emits the result as a single value.
+ * The function is evaluated each time the stream is run.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.sync(() => Math.random())
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.sync(() => 2 + 1).pipe(Stream.runCollect)
+ *   yield* Console.log(values)
+ * })
  *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * Effect.runPromise(program)
+ * // Output: [ 3 ]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const sync = <A>(evaluate: LazyArg<A>): Stream<A> => fromChannel(Channel.sync(() => Arr.of(evaluate())))
 
