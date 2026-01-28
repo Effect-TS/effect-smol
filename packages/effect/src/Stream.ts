@@ -1190,11 +1190,13 @@ export const fromPubSubTake = <A, E>(pubsub: PubSub.PubSub<Take.Take<A, E>>): St
   fromChannel(Channel.fromPubSubTake(pubsub))
 
 /**
- * Creates a stream from a ReadableStream.
+ * Creates a stream from a `ReadableStream`.
+ *
+ * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const readableStream = new ReadableStream({
  *   start(controller) {
@@ -1205,14 +1207,21 @@ export const fromPubSubTake = <A, E>(pubsub: PubSub.PubSub<Take.Take<A, E>>): St
  *   }
  * })
  *
- * const stream = Stream.fromReadableStream({
- *   evaluate: () => readableStream,
- *   onError: (error) => new Error(String(error))
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromReadableStream({
+ *     evaluate: () => readableStream,
+ *     onError: (error) => new Error(String(error))
+ *   })
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
  * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromReadableStream = <A, E>(
   options: {
