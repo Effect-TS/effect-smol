@@ -829,24 +829,27 @@ export const fail = <E>(error: E): Stream<never, E> => fromChannel(Channel.fail(
 export const failSync = <E>(evaluate: LazyArg<E>): Stream<never, E> => fromChannel(Channel.failSync(evaluate))
 
 /**
- * The stream that always fails with the specified `Cause`.
- *
- * This function creates a Stream that fails with the provided Cause,
- * which provides detailed information about the failure.
+ * Creates a stream that fails with the specified `Cause`.
  *
  * @example
  * ```ts
- * import { Cause, Effect, Stream } from "effect"
+ * import { Cause, Console, Effect, Stream } from "effect"
  *
- * const cause = Cause.fail("Database connection failed")
- * const stream = Stream.failCause(cause)
+ * const stream = Stream.failCause(Cause.fail("Database connection failed")).pipe(
+ *   Stream.catchCause(() => Stream.succeed("recovered"))
+ * )
  *
- * Effect.runPromiseExit(Stream.runCollect(stream)).then(console.log)
- * // Exit.Failure with the specified cause
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ *   // Output: [ "recovered" ]
+ * })
+ *
+ * Effect.runPromise(program)
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const failCause = <E>(cause: Cause.Cause<E>): Stream<never, E> => fromChannel(Channel.failCause(cause))
 
