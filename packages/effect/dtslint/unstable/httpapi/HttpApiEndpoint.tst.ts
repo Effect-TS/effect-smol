@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { HttpApiEndpoint, HttpApiSchema } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, type HttpApiError, HttpApiSchema } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiEndpoint", () => {
@@ -294,10 +294,10 @@ describe("HttpApiEndpoint", () => {
   })
 
   describe("error option", () => {
-    it("should default to never", () => {
+    it("should default to HttpApiSchemaError", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
       type T = typeof endpoint["errorSchema"]
-      expect<T>().type.toBe<never>()
+      expect<T>().type.toBe<typeof HttpApiError.HttpApiSchemaError>()
     })
   })
 })

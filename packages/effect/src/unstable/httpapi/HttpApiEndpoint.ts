@@ -44,7 +44,7 @@ export interface HttpApiEndpoint<
   out Payload extends Schema.Top = never,
   out Headers extends Schema.Top = never,
   out Success extends Schema.Top = HttpApiSchema.NoContent,
-  out Error extends Schema.Top = Schema.Never,
+  out Error extends Schema.Top = typeof HttpApiSchemaError,
   in out Middleware = never,
   out MiddlewareR = never
 > extends Pipeable {
@@ -1038,7 +1038,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   Payload extends PayloadSchemaContraint<Method> = never,
   Headers extends HeadersSchemaContraint = never,
   const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaContraint = never
+  const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
   path: Path,
@@ -1109,7 +1109,7 @@ export const get: <
   Payload extends PayloadSchemaContraint<"GET"> = never,
   Headers extends HeadersSchemaContraint = never,
   const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaContraint = never
+  const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
   path: Path,
@@ -1147,7 +1147,7 @@ export const post: <
   Payload extends PayloadSchemaContraint<"POST"> = never,
   Headers extends HeadersSchemaContraint = never,
   const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaContraint = never
+  const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
   path: Path,
@@ -1185,7 +1185,7 @@ export const put: <
   Payload extends PayloadSchemaContraint<"PUT"> = never,
   Headers extends HeadersSchemaContraint = never,
   const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaContraint = never
+  const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
   path: Path,
@@ -1223,7 +1223,7 @@ export const patch: <
   Payload extends PayloadSchemaContraint<"PATCH"> = never,
   Headers extends HeadersSchemaContraint = never,
   const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaContraint = never
+  const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
   path: Path,
@@ -1261,7 +1261,7 @@ export const del: <
   Payload extends PayloadSchemaContraint<"DELETE"> = never,
   Headers extends HeadersSchemaContraint = never,
   const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaContraint = never
+  const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
   path: Path,
@@ -1299,7 +1299,7 @@ export const head: <
   Payload extends PayloadSchemaContraint<"HEAD"> = never,
   Headers extends HeadersSchemaContraint = never,
   const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaContraint = never
+  const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
   path: Path,
@@ -1337,7 +1337,7 @@ export const options: <
   Payload extends PayloadSchemaContraint<"OPTIONS"> = never,
   Headers extends HeadersSchemaContraint = never,
   const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaContraint = never
+  const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
   path: Path,
