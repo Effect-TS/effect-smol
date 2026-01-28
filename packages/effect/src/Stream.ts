@@ -6573,8 +6573,28 @@ export const bind: {
   flatMap(self, (a) => map(f(a), (b) => ({ ...a, [tag]: b } as any)), options))
 
 /**
- * @category Do notation
+ * Binds an Effect-produced value into the do-notation record for each stream element.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.Do.pipe(
+ *   Stream.bind("value", () => Stream.make(1, 2)),
+ *   Stream.bindEffect("double", ({ value }) => Effect.succeed(value * 2))
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.runCollect(stream)
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // [{ value: 1, double: 2 }, { value: 2, double: 4 }]
+ * ```
+ *
  * @since 4.0.0
+ * @category Do Notation
  */
 export const bindEffect: {
   <N extends string, A, B, E2, R2>(
