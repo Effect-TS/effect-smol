@@ -1247,23 +1247,25 @@ export const range = (
 export const never: Stream<never> = fromChannel(Channel.never)
 
 /**
- * Creates a stream produced from a scoped `Effect`.
+ * Creates a stream produced from an `Effect`.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const effectThatCreatesStream = Effect.succeed(
- *   Stream.make(1, 2, 3)
- * )
+ * const effect = Effect.succeed(Stream.make(1, 2, 3))
  *
- * const stream = Stream.unwrap(effectThatCreatesStream)
+ * const stream = Stream.unwrap(effect)
  *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * const program = Effect.gen(function*() {
+ *   const chunk = yield* Stream.runCollect(stream)
+ *   yield* Console.log(Array.from(chunk))
+ * })
+ * // [1, 2, 3]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const unwrap = <A, E2, R2, E, R>(
   effect: Effect.Effect<Stream<A, E2, R2>, E, R>
