@@ -355,14 +355,32 @@ export const fromEffectDrain = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream
   fromPull(Effect.succeed(Effect.flatMap(effect, () => Cause.done())))
 
 /**
+ * Creates a stream from an effect producing a value of type `A` which repeats forever.
+ *
  * **Previously Known As**
  *
  * This API replaces the following from Effect 3.x:
  *
  * - `Stream.repeatEffect`
  *
+ * @example
+ * ```ts
+ * import { Console, Effect, Random, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromEffectRepeat(Random.nextInt).pipe(
+ *     Stream.take(5)
+ *   )
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(Array.from(values))
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 3891571149, 4239494205, 2352981603, 2339111046, 1488052210 ]
+ * ```
+ *
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromEffectRepeat = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, Pull.ExcludeDone<E>, R> =>
   fromPull(Effect.succeed(Effect.map(effect, Arr.of)))
