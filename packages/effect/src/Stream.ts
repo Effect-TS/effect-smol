@@ -2321,11 +2321,12 @@ export const switchMap: {
   ))
 
 /**
- * Flattens a stream of streams into a single stream.
+ * Flattens a stream of streams into a single stream by concatenating the
+ * inner streams in strict order.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const streamOfStreams = Stream.make(
  *   Stream.make(1, 2),
@@ -2333,13 +2334,17 @@ export const switchMap: {
  *   Stream.make(5, 6)
  * )
  *
- * const flattened = Stream.flatten(streamOfStreams)
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.runCollect(Stream.flatten(streamOfStreams))
+ *   yield* Console.log(values)
+ * })
  *
- * Effect.runPromise(Stream.runCollect(flattened)).then(console.log)
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3, 4, 5, 6 ]
  * ```
  *
  * @since 2.0.0
- * @category sequencing
+ * @category Mapping
  */
 export const flatten: {
   (
