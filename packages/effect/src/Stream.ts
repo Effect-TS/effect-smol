@@ -1709,11 +1709,39 @@ export const map: {
   }))
 
 /**
- * Returns a stream whose failure and success channels have been mapped by the
- * specified `onFailure` and `onSuccess` functions.
+ * Maps both the failure and success channels of a stream.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const mapper = {
+ *   onFailure: (error: string) => `error: ${error}`,
+ *   onSuccess: (value: number) => value * 2
+ * }
+ *
+ * const program = Effect.gen(function*() {
+ *   const success = yield* Stream.make(1, 2).pipe(
+ *     Stream.mapBoth(mapper),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(success)
+ *
+ *   const failure = yield* Stream.fail("boom").pipe(
+ *     Stream.mapBoth(mapper),
+ *     Stream.catch((error: string) => Stream.succeed(error)),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(failure)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 2, 4 ]
+ * // Output: [ "error: boom" ]
+ * ```
  *
  * @since 2.0.0
- * @category utils
+ * @category Mapping
  */
 export const mapBoth: {
   <E, E2, A, A2>(
