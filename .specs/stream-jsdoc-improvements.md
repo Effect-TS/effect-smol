@@ -8,7 +8,7 @@ summary clarity, category taxonomy, and example correctness.
 
 - Standardize `@category` tags with a Stream-specific naming + casing scheme.
 - Tighten summaries to be clear and concise while preserving intent.
-- Update or add examples where they are missing, outdated, or unclear.
+- Ensure one example per runtime export. Use discretion for type only exports.
 - Ensure `@since` tags are present and correct for public exports.
 - Keep documentation consistent with current Stream idioms.
 
