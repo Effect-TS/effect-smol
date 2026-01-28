@@ -6557,9 +6557,9 @@ export const provideServices: {
  * ```ts
  * import { Console, Effect, ServiceMap, Stream } from "effect"
  *
- * const Greeter = ServiceMap.Service<{
+ * class Greeter extends ServiceMap.Service<Greeter, {
  *   greet: (name: string) => string
- * }>("Greeter")
+ * }>()("Greeter") {}
  *
  * const stream = Stream.fromEffect(
  *   Effect.service(Greeter).pipe(
