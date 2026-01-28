@@ -5838,12 +5838,27 @@ export const accumulate = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyA
   })
 
 /**
- * Returns a new stream that only emits elements that are not equal to the
- * previous element emitted, using natural equality to determine whether two
- * elements are equal.
+ * Emits only elements that differ from the previous one.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.fromIterable([1, 1, 2, 2, 3]).pipe(
+ *     Stream.changes,
+ *     Stream.runCollect
+ *   )
+ *
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // [1, 2, 3]
+ * ```
  *
  * @since 2.0.0
- * @category De-duplication
+ * @category Deduplication
  */
 export const changes = <A, E, R>(self: Stream<A, E, R>): Stream<A, E, R> => changesWith(self, Equal.equals)
 
