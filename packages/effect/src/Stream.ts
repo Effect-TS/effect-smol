@@ -199,7 +199,11 @@ export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer
 export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _E : never
 
 /**
- * Extract the context type from a Stream type.
+ * Extract the services type from a Stream type.
+ *
+ * **Previously Known As:**
+ *
+ * This type alias was named `Context` in Effect 3.x.
  *
  * @example
  * ```ts
@@ -209,12 +213,12 @@ export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _
  *   query: (sql: string) => unknown
  * }
  * type NumberStream = Stream.Stream<number, string, { db: Database }>
- * type Services = Stream.Services<NumberStream>
- * // Services is { db: Database }
+ * type RequiredServices = Stream.Services<NumberStream>
+ * // RequiredServices is { db: Database }
  * ```
  *
  * @since 3.4.0
- * @category type-level
+ * @category Type-Level
  */
 export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R
   : never
