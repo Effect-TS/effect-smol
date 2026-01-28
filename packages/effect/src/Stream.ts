@@ -1009,11 +1009,32 @@ export const fromIterableEffect = <A, E, R>(iterable: Effect.Effect<Iterable<A>,
   unwrap(Effect.map(iterable, fromIterable))
 
 /**
- * Creates a new `Stream` from an effect that produces an iterable collection of
- * values.
+ * Creates a stream by repeatedly running an effect that yields an iterable of values.
+ *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Stream.repeatEffectChunk`
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromIterableEffectRepeat(Effect.succeed([1, 2])).pipe(
+ *     Stream.take(5)
+ *   )
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 1, 2, 1 ]
+ * ```
  *
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromIterableEffectRepeat = <A, E, R>(
   iterable: Effect.Effect<Iterable<A>, E, R>
