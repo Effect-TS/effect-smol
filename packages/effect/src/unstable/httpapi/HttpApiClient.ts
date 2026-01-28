@@ -123,11 +123,11 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
       readonly successes: ReadonlyMap<number, {
-        readonly ast: AST.AST | undefined
+        readonly schema: Schema.Top | undefined
         readonly description: string | undefined
       }>
       readonly errors: ReadonlyMap<number, {
-        readonly ast: AST.AST | undefined
+        readonly schema: Schema.Top | undefined
         readonly description: string | undefined
       }>
       readonly endpointFn: Function
@@ -159,13 +159,13 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
           (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<any, any>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
-        errors.forEach(({ ast }, status) => {
+        errors.forEach(({ schema }, status) => {
           // Handle empty response
-          if (ast === undefined) {
+          if (schema === undefined) {
             decodeMap[status] = statusCodeError
             return
           }
-          const decode = schemaToResponse(ast)
+          const decode = schemaToResponse(schema)
           decodeMap[status] = (response) =>
             Effect.flatMap(
               Effect.catchCause(decode(response), (cause) =>
@@ -183,9 +183,9 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
               Effect.fail
             )
         })
-        successes.forEach(({ ast }, status) => {
+        successes.forEach(({ schema }, status) => {
           // Handle empty response
-          decodeMap[status] = ast === undefined ? responseAsVoid : schemaToResponse(ast)
+          decodeMap[status] = schema === undefined ? responseAsVoid : schemaToResponse(schema)
         })
         const encodePath = endpoint.pathSchema?.pipe(
           Schema.encodeUnknownEffect
@@ -397,10 +397,10 @@ const compilePath = (path: string) => {
   }
 }
 
-function schemaToResponse(ast: AST.AST) {
-  const schema = schemaFromArrayBuffer(ast)
+function schemaToResponse(schema: Schema.Top) {
+  const codec = schemaFromArrayBuffer(schema)
   // TODO: what if schema has DecodingServices?
-  const decode = Schema.decodeEffect(schema as Schema.Codec<unknown, unknown>)
+  const decode = Schema.decodeEffect(codec as Schema.Codec<unknown, unknown>)
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
 }
 
@@ -472,12 +472,11 @@ const parseJsonOrVoid = Schema.String.pipe(
 
 const parseJsonArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(parseJsonOrVoid))
 
-function schemaFromArrayBuffer(ast: AST.AST): Schema.Top {
-  if (HttpApiSchema.isHttpApiContainer(ast)) {
-    return Schema.Union(ast.types.map((type) => schemaFromArrayBuffer(type)))
+function schemaFromArrayBuffer(schema: Schema.Top): Schema.Top {
+  if (HttpApiSchema.isHttpApiContainer(schema)) {
+    return Schema.Union(schema.members.map(schemaFromArrayBuffer))
   }
-  const schema = Schema.make(ast)
-  const encoding = HttpApiSchema.getEncoding(ast)
+  const encoding = HttpApiSchema.getEncoding(schema.ast)
   switch (encoding.kind) {
     case "Json":
       return parseJsonArrayBuffer
@@ -518,20 +517,22 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 
 const HttpBodySchema = Schema.declare(HttpBody.isHttpBody)
 
+// TODO: forEach?
 function payloadSchemaBody(schema: Schema.Top): Schema.Top {
-  if (HttpApiSchema.isHttpApiContainer(schema.ast)) {
-    return Schema.Union(schema.ast.types.map(bodyFromPayload))
+  if (HttpApiSchema.isHttpApiContainer(schema)) {
+    return Schema.Union(schema.members.map(bodyFromPayload))
   }
-  return bodyFromPayload(schema.ast)
+  return bodyFromPayload(schema)
 }
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()
 
-function bodyFromPayload(ast: AST.AST): Schema.Top {
-  if (bodyFromPayloadCache.has(ast)) {
-    return bodyFromPayloadCache.get(ast)!
+function bodyFromPayload(schema: Schema.Top): Schema.Top {
+  const ast = schema.ast
+  const cached = bodyFromPayloadCache.get(ast)
+  if (cached !== undefined) {
+    return cached
   }
-  const schema = Schema.make(ast)
   const encoding = HttpApiSchema.getEncoding(ast)
   const out = HttpBodySchema.pipe(Schema.decodeTo(
     schema,
