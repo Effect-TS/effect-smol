@@ -6656,22 +6656,25 @@ export const run: {
   ))
 
 /**
- * Runs the stream and collects all of its elements to a chunk.
+ * Runs the stream and collects all elements into an array.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  *
- * const program = Stream.runCollect(stream)
+ * const program = Effect.gen(function*() {
+ *   const collected = yield* Stream.runCollect(stream)
+ *   yield* Console.log(collected)
+ * })
  *
- * Effect.runPromise(program).then(console.log)
+ * Effect.runPromise(program)
  * // [1, 2, 3, 4, 5]
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runCollect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Array<A>, E, R> =>
   Channel.runFold(
