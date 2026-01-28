@@ -972,11 +972,38 @@ export const fromIterable = <A>(iterable: Iterable<A>): Stream<A> =>
     : fromChannel(Channel.fromIterableArray(iterable))
 
 /**
- * Creates a new `Stream` from an effect that produces an iterable collection of
- * values.
+ * Creates a stream from an effect producing an iterable of values.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, ServiceMap, Stream } from "effect"
+ *
+ * class UserRepo extends ServiceMap.Service<UserRepo, {
+ *   readonly list: Effect.Effect<ReadonlyArray<string>>
+ * }>()("UserRepo") {}
+ *
+ * const listUsers = Effect.service(UserRepo).pipe(
+ *   Effect.andThen((repo) => repo.list)
+ * )
+ *
+ * const stream = Stream.fromIterableEffect(listUsers)
+ *
+ * const program = Effect.gen(function*() {
+ *   const users = yield* stream.pipe(
+ *     Stream.provideService(UserRepo, {
+ *       list: Effect.succeed(["user1", "user2"])
+ *     }),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(users)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ "user1", "user2" ]
+ * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromIterableEffect = <A, E, R>(iterable: Effect.Effect<Iterable<A>, E, R>): Stream<A, E, R> =>
   unwrap(Effect.map(iterable, fromIterable))
