@@ -404,11 +404,12 @@ function schemaToResponse(schema: Schema.Top) {
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
 }
 
-// TODO: can this be more precise?
-const SchemaArrayBuffer = Schema.Unknown as any as Schema.instanceOf<ArrayBuffer>
+const ArrayBuffer = Schema.instanceOf(globalThis.ArrayBuffer, {
+  expected: "ArrayBuffer"
+})
 
 // kind: Uint8Array
-const Uint8ArrayFromArrayBuffer = SchemaArrayBuffer.pipe(
+const Uint8ArrayFromArrayBuffer = ArrayBuffer.pipe(
   Schema.decodeTo(
     Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>,
     Transformation.transform({
@@ -425,7 +426,7 @@ const Uint8ArrayFromArrayBuffer = SchemaArrayBuffer.pipe(
 )
 
 // kind: Text
-const StringFromArrayBuffer = SchemaArrayBuffer.pipe(
+const StringFromArrayBuffer = ArrayBuffer.pipe(
   Schema.decodeTo(
     Schema.String,
     Transformation.transform({
