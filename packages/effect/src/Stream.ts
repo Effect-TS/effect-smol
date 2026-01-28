@@ -1974,29 +1974,36 @@ export const result = <A, E, R>(self: Stream<A, E, R>): Stream<Result.Result<A, 
   )
 
 /**
- * Adds an effect to consumption of every element of the stream.
+ * Runs the provided effect for each element while preserving the elements.
  *
  * @example
  * ```ts
- * import { Console, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.fromArray([1, 2, 3]).pipe(
- *   Stream.tap((n) => Console.log(`before mapping: ${n}`)),
- *   Stream.map((n) => n * 2),
- *   Stream.tap((n) => Console.log(`after mapping: ${n}`))
- * )
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.fromArray([1, 2, 3]).pipe(
+ *     Stream.tap((n) => Console.log(`before mapping: ${n}`)),
+ *     Stream.map((n) => n * 2),
+ *     Stream.tap((n) => Console.log(`after mapping: ${n}`)),
+ *     Stream.runCollect
+ *   )
  *
- * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
  * // before mapping: 1
  * // after mapping: 2
  * // before mapping: 2
  * // after mapping: 4
  * // before mapping: 3
  * // after mapping: 6
+ * // [ 2, 4, 6 ]
  * ```
  *
  * @since 2.0.0
- * @category sequencing
+ * @category Sequencing
  */
 export const tap: {
   <A, X, E2, R2>(
