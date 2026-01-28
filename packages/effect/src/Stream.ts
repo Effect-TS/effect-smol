@@ -5979,20 +5979,26 @@ export const decodeText: {
 )
 
 /**
- * Encode a stream of strings into a stream of Uint8Array chunks using the specified encoding.
+ * Encodes a stream of strings into UTF-8 `Uint8Array` chunks.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make("Hello", " ", "World")
- * const encoded = Stream.encodeText(stream)
+ * const program = Effect.gen(function*() {
+ *   const encoded = Stream.encodeText(stream)
+ *   const chunks = yield* Stream.runCollect(encoded)
+ *   const bytes = Array.from(chunks, (chunk) => Array.from(chunk))
+ *   yield* Console.log(bytes)
+ * })
  *
- * Effect.runPromise(Stream.runCollect(encoded)).then(console.log)
+ * Effect.runPromise(program)
+ * // [[72, 101, 108, 108, 111], [32], [87, 111, 114, 108, 100]]
  * ```
  *
  * @since 2.0.0
- * @category encoding
+ * @category Encoding
  */
 export const encodeText = <E, R>(self: Stream<string, E, R>): Stream<Uint8Array, E, R> =>
   suspend(() => {
