@@ -1913,14 +1913,39 @@ export const mapArrayEffect: {
 ): Stream<B, E | E2, R | R2> => fromChannel(Channel.mapEffect(self.channel, f)))
 
 /**
- * Returns a stream whose failures and successes have been lifted into an
- * `Result`. The resulting stream cannot fail, because the failures have been
- * exposed as part of the `Result` success case.
+ * Lifts failures and successes into a `Result`, yielding a stream that cannot fail.
  *
- * @note The stream will end as soon as the first error occurs.
+ * The stream ends after the first failure, emitting a `Result.fail` value.
+ *
+ * **Previously Known As:**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Stream.either`
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Result, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const results = yield* Stream.make(1, 2).pipe(
+ *     Stream.concat(Stream.fail("boom")),
+ *     Stream.result,
+ *     Stream.map(Result.match({
+ *       onFailure: (error) => `failure: ${error}`,
+ *       onSuccess: (value) => `success: ${value}`
+ *     })),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(results)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ "success: 1", "success: 2", "failure: boom" ]
+ * ```
  *
  * @since 4.0.0
- * @category utils
+ * @category Error Handling
  */
 export const result = <A, E, R>(self: Stream<A, E, R>): Stream<Result.Result<A, E>, never, R> =>
   self.pipe(
