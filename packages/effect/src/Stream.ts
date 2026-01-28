@@ -1479,26 +1479,37 @@ export const unfold = <S, A, E, R>(
   }))
 
 /**
- * Create a stream that allows you to wrap a paginated resource.
+ * Like `Stream.unfold`, but allows the emission of values to end one step further
+ * than the unfolding of the state. This is useful for embedding paginated APIs,
+ * hence the name.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  * import * as Option from "effect/Option"
  *
- * const stream = Stream.paginate(0, (n: number) =>
- *   Effect.succeed(
- *     [
- *       [n],
- *       n < 3 ? Option.some(n + 1) : Option.none<number>()
- *     ] as const
- *   ))
+ * const seed: readonly [ReadonlyArray<number>, Array<number>] = [[0], [1, 2, 3]]
+ * const pageSize = 2
+ * const stream = Stream.paginate(seed, ([page, remaining]) =>
+ *   remaining.length === 0 ?
+ *     Effect.succeed([page, Option.none<readonly [ReadonlyArray<number>, Array<number>]>()] as const) :
+ *     Effect.succeed([
+ *       page,
+ *       Option.some([
+ *         remaining.slice(0, pageSize),
+ *         remaining.slice(pageSize)
+ *       ] as const)
+ *     ] as const))
  *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * Effect.runPromise(Effect.gen(function*() {
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * }))
+ * // Output: [ 0, 1, 2, 3 ]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const paginate = <S, A, E = never, R = never>(
   s: S,
