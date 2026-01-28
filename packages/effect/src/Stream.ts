@@ -6843,8 +6843,32 @@ export const runForEach: {
   }))
 
 /**
+ * Runs the stream, applying the effectful predicate to each element and
+ * stopping when it returns `false`.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.make(1, 2, 3, 4, 5)
+ *
+ *   yield* Stream.runForEachWhile(stream, (n) =>
+ *     Effect.gen(function*() {
+ *       yield* Console.log(`Processing: ${n}`)
+ *       return n < 3
+ *     })
+ *   )
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Processing: 1
+ * // Processing: 2
+ * // Processing: 3
+ * ```
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runForEachWhile: {
   <A, E2, R2>(
