@@ -1321,11 +1321,14 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
 /**
  * Creates a stream from a PubSub subscription.
  *
+ * Use `PubSub.subscribe` to create the subscription and `Stream.take` or
+ * cancellation to control how many values are consumed.
+ *
  * @example
  * ```ts
- * import { Effect, PubSub, Stream } from "effect"
+ * import { Console, Effect, PubSub, Stream } from "effect"
  *
- * const program = Effect.gen(function*() {
+ * const program = Effect.scoped(Effect.gen(function*() {
  *   const pubsub = yield* PubSub.unbounded<number>()
  *   const subscription = yield* PubSub.subscribe(pubsub)
  *
@@ -1333,12 +1336,16 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
  *   yield* PubSub.publish(pubsub, 2)
  *
  *   const stream = Stream.fromSubscription(subscription)
- *   return yield* Stream.take(stream, 2).pipe(Stream.runCollect)
- * })
+ *   const values = yield* stream.pipe(Stream.take(2), Stream.runCollect)
+ *   yield* Console.log(values)
+ * }))
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2 ]
  * ```
  *
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromSubscription = <A>(pubsub: PubSub.Subscription<A>): Stream<A> =>
   fromChannel(Channel.fromSubscriptionArray(pubsub))
