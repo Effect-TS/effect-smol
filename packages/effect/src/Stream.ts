@@ -6408,8 +6408,28 @@ export const onEnd: {
 ): Stream<A, E | EX, R | RX> => fromChannel(Channel.onEnd(self.channel, onEnd)))
 
 /**
+ * Executes the provided finalizer after this stream's finalizers run.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.fromArray([1, 2]).pipe(
+ *   Stream.ensuring(Effect.orDie(Console.log("cleanup")))
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const collected = yield* Stream.runCollect(stream)
+ *   yield* Console.log(collected)
+ * })
+ *
+ * Effect.runPromise(program)
+ * //=> cleanup
+ * //=> { _id: 'Chunk', values: [ 1, 2 ] }
+ * ```
+ *
  * @since 4.0.0
- * @category utils
+ * @category Utils
  */
 export const ensuring: {
   <R2>(finalizer: Effect.Effect<unknown, never, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>
