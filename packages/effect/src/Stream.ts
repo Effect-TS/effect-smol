@@ -1776,14 +1776,21 @@ export const mapArray: {
  *   )
  * )
  *
- * Effect.runPromise(Stream.runCollect(mappedStream)).then(console.log)
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.runCollect(mappedStream)
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
  * // Processing: 1
  * // Processing: 2
  * // Processing: 3
+ * // [2, 4, 6]
  * ```
  *
  * @since 2.0.0
- * @category mapping
+ * @category Mapping
  */
 export const mapEffect: {
   <A, A2, E2, R2>(
