@@ -578,22 +578,22 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
     payload: Schema.Struct({
       name: Schema.String
     }),
-    success: {
+    success: Schema.Struct({
       id: Schema.Finite,
       name: Schema.String
-    }
+    })
   }),
   HttpApiEndpoint.post("handleRaw", "/handleraw/:id", {
     path: {
       id: Schema.FiniteFromString
     },
-    payload: {
+    payload: Schema.Struct({
       name: Schema.String
-    },
-    success: {
+    }),
+    success: Schema.Struct({
       id: Schema.Finite,
       name: Schema.String
-    }
+    })
   })
 ).prefix("/groups") {}
 
@@ -607,7 +607,7 @@ class UsersApi extends HttpApiGroup.make("users")
       error: UserError
     }),
     HttpApiEndpoint.post("create", "/", {
-      payload: Struct.omit(User.fields, ["id", "createdAt"]),
+      payload: Schema.Struct(Struct.omit(User.fields, ["id", "createdAt"])),
       urlParams: {
         id: Schema.FiniteFromString
       },
@@ -640,19 +640,19 @@ class UsersApi extends HttpApiGroup.make("users")
       payload: HttpApiSchema.Multipart(Schema.Struct({
         file: Multipart.SingleFileSchema
       })),
-      success: {
+      success: Schema.Struct({
         contentType: Schema.String,
         length: Schema.Int
-      }
+      })
     }),
     HttpApiEndpoint.post("uploadStream", `/uploadstream`, {
       payload: HttpApiSchema.MultipartStream(Schema.Struct({
         file: Multipart.SingleFileSchema
       })),
-      success: {
+      success: Schema.Struct({
         contentType: Schema.String,
         length: Schema.Int
-      }
+      })
     })
   )
   .middleware(Authorization)
