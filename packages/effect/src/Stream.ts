@@ -220,21 +220,27 @@ export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infe
   : never
 
 /**
- * Checks if a value is a Stream.
+ * Checks whether a value is a Stream.
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.make(1, 2, 3)
- * const notStream = { data: [1, 2, 3] }
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.make(1, 2, 3)
+ *   const notStream = { data: [1, 2, 3] }
  *
- * console.log(Stream.isStream(stream)) // true
- * console.log(Stream.isStream(notStream)) // false
+ *   yield* Console.log(Stream.isStream(stream))
+ *   // true
+ *   yield* Console.log(Stream.isStream(notStream))
+ *   // false
+ * })
+ *
+ * Effect.runPromise(program)
  * ```
  *
  * @since 2.0.0
- * @category guards
+ * @category Guards
  */
 export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => hasProperty(u, TypeId)
 
