@@ -1562,23 +1562,25 @@ export const iterate = <A>(value: A, next: (value: A) => A): Stream<A> =>
   unfold(value, (a) => Effect.succeed([a, next(a)]))
 
 /**
- * Creates a new `Stream` which will emit all numeric values from `min` to `max`
- * (inclusive).
+ * Constructs a stream from a range of integers, including both endpoints.
  *
  * If the provided `min` is greater than `max`, the stream will not emit any
  * values.
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.range(1, 5)
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.range(1, 5).pipe(Stream.runCollect)
+ *   yield* Console.log(values)
+ * })
  *
- * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // [ 1, 2, 3, 4, 5 ]
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3, 4, 5 ]
  * ```
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const range = (
   min: number,
