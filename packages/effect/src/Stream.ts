@@ -6710,8 +6710,23 @@ export const runCount = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<number, 
   Channel.runFold(self.channel, () => 0, (acc, chunk) => acc + chunk.length)
 
 /**
+ * Runs the stream and returns the numeric sum of its elements.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const total = yield* Stream.runSum(Stream.make(1, 2, 3))
+ *   yield* Console.log(total)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // 6
+ * ```
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runSum = <E, R>(self: Stream<number, E, R>): Effect.Effect<number, E, R> =>
   Channel.runFold(self.channel, () => 0, (acc, chunk) => {
