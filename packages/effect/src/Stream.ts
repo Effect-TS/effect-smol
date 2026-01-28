@@ -6652,12 +6652,12 @@ export const updateService: {
  *
  * const stream = Stream.fromArray([1, 2, 3]).pipe(Stream.withSpan("numbers"))
  *
- * const program = Effect.gen(function*() {
- *   const values = yield* Stream.runCollect(stream)
- *   yield* Console.log(values)
- * })
- *
- * Effect.runPromise(program)
+ * Effect.runPromise(
+ *   Effect.gen(function*() {
+ *     const values = yield* Stream.runCollect(stream)
+ *     yield* Console.log(values)
+ *   })
+ * )
  * // [1, 2, 3]
  * ```
  *
