@@ -6336,8 +6336,27 @@ export const onFirst: {
 ): Stream<A, E | EX, R | RX> => fromChannel(Channel.onFirst(self.channel, (arr) => onFirst(arr[0]))))
 
 /**
+ * Runs the provided effect when the stream ends successfully.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.make(1, 2, 3).pipe(
+ *     Stream.onEnd(Console.log("Stream ended")),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(Array.from(values))
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Stream ended
+ * // [1, 2, 3]
+ * ```
+ *
  * @since 4.0.0
- * @category utils
+ * @category Utils
  */
 export const onEnd: {
   <X, EX, RX>(
