@@ -1651,8 +1651,30 @@ export const unwrap = <A, E2, R2, E, R>(
 ): Stream<A, E | E2, R2 | Exclude<R, Scope.Scope>> => fromChannel(Channel.unwrap(Effect.map(effect, toChannel)))
 
 /**
+ * Runs a stream that requires `Scope` in a managed scope, ensuring its
+ * finalizers are run when the stream completes.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.scoped(
+ *   Stream.fromEffect(
+ *     Effect.acquireRelease(
+ *       Console.log("acquire").pipe(Effect.as("resource")),
+ *       () => Console.log("release")
+ *     )
+ *   )
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // acquire
+ * // release
+ * // [ "resource" ]
+ * ```
+ *
  * @since 2.0.0
- * @category utils
+ * @category constructors
  */
 export const scoped = <A, E, R>(
   self: Stream<A, E, R>
