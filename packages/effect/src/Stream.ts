@@ -1227,18 +1227,19 @@ export const range = (
   }))
 
 /**
- * Creates a `Stream` that runs forever but never emits an output.
+ * The stream that never produces any value or fails with any error.
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
- * // A stream that never emits values or completes
- * const neverStream = Stream.never
+ * const program = Stream.never.pipe(
+ *   Stream.take(0),
+ *   Stream.runCollect
+ * )
  *
- * // This will run indefinitely (be careful in practice!)
- * // const program = neverStream.pipe(Stream.runCollect)
- * // Effect.runPromise(program) // Never resolves
+ * Effect.runPromise(program).then(console.log)
+ * // []
  * ```
  *
  * @since 4.0.0
