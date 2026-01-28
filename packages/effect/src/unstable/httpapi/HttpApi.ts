@@ -299,9 +299,7 @@ const extractMembers = (
         set: shouldAdd ? new Set([ast]) : new Set([])
       })
     } else {
-      if (pair.description === undefined) {
-        pair.description = description
-      }
+      pair.description = [pair.description, description].filter(Boolean).join(" | ")
       if (shouldAdd) {
         pair.set.add(ast)
       }

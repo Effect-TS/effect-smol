@@ -680,6 +680,9 @@ describe("OpenAPI spec", () => {
                 schema: {
                   "anyOf": [
                     {
+                      "type": "string"
+                    },
+                    {
                       type: "object",
                       properties: {
                         _tag: { type: "string", enum: ["HttpApiSchemaError"] },
@@ -687,9 +690,6 @@ describe("OpenAPI spec", () => {
                       },
                       required: ["_tag", "message"],
                       additionalProperties: false
-                    },
-                    {
-                      "type": "string"
                     }
                   ]
                 }
@@ -938,10 +938,10 @@ describe("OpenAPI spec", () => {
                 schema: {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
+                      "$ref": "#/components/schemas/String_1"
                     },
                     {
-                      "$ref": "#/components/schemas/String_1"
+                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                     }
                   ]
                 }
@@ -967,10 +967,10 @@ describe("OpenAPI spec", () => {
                 schema: {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
+                      "$ref": "#/components/schemas/String_1"
                     },
                     {
-                      "$ref": "#/components/schemas/String_1"
+                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                     }
                   ]
                 }
@@ -1028,7 +1028,68 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      it.todo("BadRequest", () => {
+      it("Empty(400)", () => {
+        const Api = HttpApi.make("api")
+          .add(
+            HttpApiGroup.make("group")
+              .add(
+                HttpApiEndpoint.get("a", "/a", {
+                  error: HttpApiSchema.Empty(400)
+                })
+              )
+          )
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
+          description: "The request or response did not match the expected schema",
+          content: {
+            "application/json": {
+              schema: {
+                "type": "object",
+                "properties": {
+                  "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+                  "message": { "type": "string" }
+                },
+                "required": ["_tag", "message"],
+                "additionalProperties": false
+              }
+            }
+          }
+        })
+      })
+
+      it("Empty(401)", () => {
+        const Api = HttpApi.make("api")
+          .add(
+            HttpApiGroup.make("group")
+              .add(
+                HttpApiEndpoint.get("a", "/a", {
+                  error: HttpApiSchema.Empty(401)
+                })
+              )
+          )
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/a"].get?.responses["401"], {
+          description: "Error"
+        })
+      })
+
+      it("Unauthorized", () => {
+        const Api = HttpApi.make("api")
+          .add(
+            HttpApiGroup.make("group")
+              .add(
+                HttpApiEndpoint.get("a", "/a", {
+                  error: HttpApiError.Unauthorized
+                })
+              )
+          )
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/a"].get?.responses["401"], {
+          description: "Unauthorized"
+        })
+      })
+
+      it("BadRequest", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
@@ -1040,10 +1101,25 @@ describe("OpenAPI spec", () => {
           )
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
-          description: "The request or response did not match the expected schema",
+          description: "BadRequest | The request or response did not match the expected schema",
           content: {
             "application/json": {
-              schema: {}
+              schema: {
+                "anyOf": [
+                  {
+                    "type": "null" // TODO: this should not be here
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+                      "message": { "type": "string" }
+                    },
+                    "required": ["_tag", "message"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
             }
           }
         })

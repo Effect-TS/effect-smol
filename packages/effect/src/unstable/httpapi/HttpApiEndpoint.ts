@@ -901,8 +901,8 @@ export const make = <Method extends HttpMethod>(method: Method) =>
 
   const errorSchema: any = options?.error ?
     Array.isArray(options.error) ?
-      HttpApiSchema.makeHttpApiContainer([HttpApiSchemaError, ...options.error]) :
-      HttpApiSchema.makeHttpApiContainer([HttpApiSchemaError, options.error as Schema.Top]) :
+      HttpApiSchema.makeHttpApiContainer([...options.error, HttpApiSchemaError]) :
+      HttpApiSchema.makeHttpApiContainer([options.error as Schema.Top, HttpApiSchemaError]) :
     HttpApiSchemaError
 
   const payloadSchema: any = UndefinedOr.map(

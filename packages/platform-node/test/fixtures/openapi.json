@@ -282,16 +282,16 @@
             }
           },
           "400": {
-            "description": "The request or response did not match the expected schema",
+            "description": "UserError | The request or response did not match the expected schema",
             "content": {
               "application/json": {
                 "schema": {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
+                      "$ref": "#/components/schemas/UserError"
                     },
                     {
-                      "$ref": "#/components/schemas/UserError"
+                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                     }
                   ]
                 }
@@ -332,16 +332,16 @@
             }
           },
           "400": {
-            "description": "The request or response did not match the expected schema",
+            "description": "UserError | The request or response did not match the expected schema",
             "content": {
               "application/json": {
                 "schema": {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
+                      "$ref": "#/components/schemas/UserError"
                     },
                     {
-                      "$ref": "#/components/schemas/UserError"
+                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                     }
                   ]
                 }
