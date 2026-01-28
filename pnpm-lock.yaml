@@ -325,6 +325,22 @@ importers:
         specifier: workspace:^
         version: link:../effect
 
+  packages/platform-deno:
+    dependencies:
+      '@std/path':
+        specifier: jsr:^1.1.4
+        version: '@jsr/std__path@1.1.4'
+    devDependencies:
+      '@std/assert':
+        specifier: jsr:^1.0.16
+        version: '@jsr/std__assert@1.0.16'
+      '@types/deno':
+        specifier: ^2.5.0
+        version: 2.5.0
+      effect:
+        specifier: workspace:^
+        version: link:../effect
+
   packages/platform-node:
     dependencies:
       '@effect/platform-node-shared':
@@ -1804,6 +1820,15 @@ packages:
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
+  '@jsr/std__assert@1.0.16':
+    resolution: {integrity: sha512-bX9ih0nR1kQ12/cnQRCQU0ppTCV7MFkP0qjyWxJRoDI8RC5cpTAmLFH/KcFgxmdN4flKkRbub8VtLuyKq+4OxA==, tarball: https://npm.jsr.io/~/11/@jsr/std__assert/1.0.16.tgz}
+
+  '@jsr/std__internal@1.0.12':
+    resolution: {integrity: sha512-6xReMW9p+paJgqoFRpOE2nogJFvzPfaLHLIlyADYjKMUcwDyjKZxryIbgcU+gxiTygn8yCjld1HoI0ET4/iZeA==, tarball: https://npm.jsr.io/~/11/@jsr/std__internal/1.0.12.tgz}
+
+  '@jsr/std__path@1.1.4':
+    resolution: {integrity: sha512-SK4u9H6NVTfolhPdlvdYXfNFefy1W04AEHWJydryYbk+xqzNiVmr5o7TLJLJFqwHXuwMRhwrn+mcYeUfS0YFaA==, tarball: https://npm.jsr.io/~/11/@jsr/std__path/1.1.4.tgz}
+
   '@libsql/client@0.15.15':
     resolution: {integrity: sha512-twC0hQxPNHPKfeOv3sNT6u2pturQjLcI+CnpTM0SjRpocEGgfiZ7DWKXLNnsothjyJmDqEsBQJ5ztq9Wlu470w==}
 
@@ -2448,6 +2473,9 @@ packages:
 
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
+
+  '@types/deno@2.5.0':
+    resolution: {integrity: sha512-g8JS38vmc0S87jKsFzre+0ZyMOUDHPVokEJymSCRlL57h6f/FdKPWBXgdFh3Z8Ees9sz11qt9VWELU9Y9ZkiVw==}
 
   '@types/docker-modem@3.0.6':
     resolution: {integrity: sha512-yKpAGEuKRSS8wwx0joknWxsmLha78wNMe9R2S3UNsVOkZded8UqOrV8KoeDXoXsjndxwyF3eIhyClGbO1SEhEg==}
@@ -7657,6 +7685,16 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
+  '@jsr/std__assert@1.0.16':
+    dependencies:
+      '@jsr/std__internal': 1.0.12
+
+  '@jsr/std__internal@1.0.12': {}
+
+  '@jsr/std__path@1.1.4':
+    dependencies:
+      '@jsr/std__internal': 1.0.12
+
   '@libsql/client@0.15.15':
     dependencies:
       '@libsql/core': 0.15.15
@@ -8297,6 +8335,8 @@ snapshots:
       assertion-error: 2.0.1
 
   '@types/deep-eql@4.0.2': {}
+
+  '@types/deno@2.5.0': {}
 
   '@types/docker-modem@3.0.6':
     dependencies:
