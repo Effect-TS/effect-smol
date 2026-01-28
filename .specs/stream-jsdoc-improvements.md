@@ -14,6 +14,8 @@ summary clarity, category taxonomy, and example correctness.
 - Ensure `**Previously Known As:**` notes are present where applicable.
 - Ensure usage of `Chunk` in examples is replaced with `Array`, as the new
   version of effect Stream uses `Array` as the collection type.
+  APIs like Stream.runCollect already return Array, so you dont need
+  to convert them
 
 ## Non-goals
 
