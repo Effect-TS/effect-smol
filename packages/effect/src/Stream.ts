@@ -6798,14 +6798,7 @@ export const runLast = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Op
   Effect.map(Channel.runLast(self.channel), Option.map(Arr.lastNonEmpty))
 
 /**
- * Consumes all elements of the stream, passing them to the specified
- * callback.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.runForEachChunk`
+ * Runs the provided effectful callback for each element of the stream.
  *
  * @example
  * ```ts
@@ -6813,10 +6806,9 @@ export const runLast = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Op
  *
  * const stream = Stream.make(1, 2, 3)
  *
- * const program = Stream.runForEach(
- *   stream,
- *   (n) => Console.log(`Processing: ${n}`)
- * )
+ * const program = Effect.gen(function*() {
+ *   yield* Stream.runForEach(stream, (n) => Console.log(`Processing: ${n}`))
+ * })
  *
  * Effect.runPromise(program)
  * // Processing: 1
@@ -6825,7 +6817,7 @@ export const runLast = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Op
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runForEach: {
   <A, X, E2, R2>(
