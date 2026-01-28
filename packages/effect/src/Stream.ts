@@ -1685,16 +1685,19 @@ export const scoped = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.fromArray([1, 2, 3]).pipe(Stream.map((n) => n + 1))
+ * const stream = Stream.fromArray([1, 2, 3]).pipe(Stream.map((n, i) => n + i))
+ * const program = Stream.runCollect(stream).pipe(
+ *   Effect.tap((values) => Console.log(values))
+ * )
  *
- * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // [ 2, 3, 4 ]
+ * Effect.runPromise(program)
+ * // [ 1, 3, 5 ]
  * ```
  *
  * @since 2.0.0
- * @category mapping
+ * @category Mapping
  */
 export const map: {
   <A, B>(f: (a: A, i: number) => B): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
