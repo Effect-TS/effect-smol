@@ -5528,6 +5528,28 @@ export const transduce = dual<
 )
 
 /**
+ * Aggregates elements using the provided sink and emits each sink result as a stream element.
+ *
+ * The stream runs the upstream and downstream in separate fibers, so the sink can keep
+ * consuming input while downstream is busy processing the previous output.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Sink, Stream } from "effect"
+ *
+ * Effect.runPromise(Effect.gen(function* () {
+ *   const aggregated = yield* Stream.runCollect(
+ *     Stream.make(1, 2, 3, 4, 5, 6).pipe(
+ *       Stream.aggregate(
+ *         Sink.foldUntil(() => 0, 3, (sum, n) => sum + n)
+ *       )
+ *     )
+ *   )
+ *   yield* Console.log(aggregated)
+ * }))
+ * // [ 6, 15 ]
+ * ```
+ *
  * @since 2.0.0
  * @category Aggregation
  */
