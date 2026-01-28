@@ -2422,23 +2422,27 @@ export const drainFork: {
 )
 
 /**
- * Repeats the entire stream using the specified schedule. The stream will
- * execute normally, and then repeat again according to the provided schedule.
+ * Repeats the entire stream according to the provided schedule.
  *
  * @example
  * ```ts
- * import { Effect, Schedule, Stream } from "effect"
+ * import { Console, Effect, Schedule, Stream } from "effect"
  *
- * const stream = Stream.repeat(Stream.succeed(1), Schedule.forever)
+ * const stream = Stream.make(1)
  *
- * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(5)))).then(
- *   console.log
- * )
- * // { _id: 'Chunk', values: [ 1, 1, 1, 1, 1 ] }
+ * const program = Effect.gen(function* () {
+ *   const result = yield* Stream.runCollect(
+ *     Stream.repeat(stream, Schedule.recurs(4))
+ *   )
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 1, 1, 1, 1 ]
  * ```
  *
  * @since 2.0.0
- * @category utils
+ * @category Sequencing
  */
 export const repeat: {
   <B, E2, R2>(
