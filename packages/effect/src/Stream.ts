@@ -318,8 +318,24 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
   fromChannel(Channel.fromEffect(Effect.map(effect, Arr.of)))
 
 /**
+ * Creates a stream that runs the effect and emits no elements.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   yield* Stream.fromEffectDrain(Console.log("Draining side effect")).pipe(
+ *     Stream.runDrain
+ *   )
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: Draining side effect
+ * ```
+ *
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromEffectDrain = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<never, E, R> =>
   fromPull(Effect.succeed(Effect.flatMap(effect, () => Cause.done())))
