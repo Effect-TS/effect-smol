@@ -5641,69 +5641,32 @@ export const share: {
   ))
 
 /**
- * Pipes all the values from this stream through the provided channel.
+ * Pipes this stream through a channel that consumes and emits chunked elements.
  *
- * The channel processes chunks of values (NonEmptyReadonlyArray) and can transform both
- * the values and error types. Any errors from the original stream are handled by the channel.
- *
- * @example
- * ```ts
- * import type { Channel } from "effect"
- * import { Console, Effect, Stream } from "effect"
- *
- * // Create a channel that processes chunks - this is a conceptual example
- * // In practice, this function is primarily used with specialized channels
- * // that properly handle chunk-based input/output, such as compression,
- * // encoding/decoding, or platform-specific transformations.
- *
- * declare const transformChannel: Channel.Channel<
- *   readonly [string, ...Array<string>],
- *   never,
- *   unknown,
- *   readonly [number, ...Array<number>],
- *   never,
- *   unknown,
- *   never
- * >
- *
- * const program = Stream.make(1, 2, 3).pipe(
- *   Stream.pipeThroughChannel(transformChannel),
- *   Stream.runCollect,
- *   Effect.flatMap((result) => Console.log(result))
- * )
- * ```
+ * The channel receives `NonEmptyReadonlyArray` chunks and can transform both the
+ * output elements and error type.
  *
  * @example
  * ```ts
- * import { Channel, Console, Effect, Stream } from "effect"
+ * import { Array, Channel, Console, Effect, Stream } from "effect"
  *
- * // Practical example: combining two channels with pipeTo
- * declare const sourceChannel: Channel.Channel<
- *   readonly [number, ...Array<number>],
- *   never,
- *   void,
- *   unknown,
- *   unknown,
- *   unknown,
- *   never
- * >
- * declare const transformChannel: Channel.Channel<
- *   readonly [string, ...Array<string>],
- *   never,
- *   unknown,
- *   readonly [number, ...Array<number>],
- *   never,
- *   void,
- *   never
- * >
+ * type NumberChunk = readonly [number, ...Array<number>]
  *
- * const combinedChannel = Channel.pipeTo(sourceChannel, transformChannel)
- *
- * const program = Stream.empty.pipe(
- *   Stream.pipeThroughChannel(combinedChannel),
- *   Stream.runCollect,
- *   Effect.flatMap((result) => Console.log(result))
+ * const doubleChunks = Channel.identity<NumberChunk, never, unknown>().pipe(
+ *   Channel.map((chunk) => Array.map(chunk, (n) => n * 2))
  * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.fromArray([1, 2, 3]).pipe(
+ *     Stream.rechunk(2),
+ *     Stream.pipeThroughChannel(doubleChunks),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // => [2, 4, 6]
  * ```
  *
  * @since 2.0.0
