@@ -7420,9 +7420,26 @@ export const toPubSub: {
 )
 
 /**
- * Converts a stream to a PubSub of `Take` values for concurrent consumption.
+ * Converts a stream to a PubSub for concurrent consumption.
  *
  * `Take` values include the stream's end and failure signals.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, PubSub, Stream } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const pubsub = yield* Stream.fromArray([1, 2, 3]).pipe(
+ *     Stream.toPubSubTake({ capacity: 8 })
+ *   )
+ *   const subscription = yield* PubSub.subscribe(pubsub)
+ *   const take = yield* PubSub.take(subscription)
+ *
+ *   if (Array.isArray(take)) {
+ *     yield* Console.log(take)
+ *   }
+ * })
+ * ```
  *
  * @since 4.0.0
  * @category Destructors
