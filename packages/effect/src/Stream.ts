@@ -1258,8 +1258,28 @@ export const fromReadableStream = <A, E>(
 /**
  * Creates a stream from an AsyncIterable.
  *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const iterable = (async function*() {
+ *   yield 1
+ *   yield 2
+ *   yield 3
+ * })()
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromAsyncIterable(iterable, (error) => new Error(String(error)))
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
+ * ```
+ *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromAsyncIterable = <A, E>(
   iterable: AsyncIterable<A>,
