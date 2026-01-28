@@ -1538,24 +1538,25 @@ export const paginate = <S, A, E = never, R = never>(
   }))
 
 /**
- * The infinite stream of iterative function application: a, f(a), f(f(a)),
- * f(f(f(a))), ...
+ * Creates an infinite stream by repeatedly applying a function to a seed value.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * // An infinite Stream of numbers starting from 1 and incrementing
- * const stream = Stream.iterate(1, (n) => n + 1)
+ * const stream = Stream.iterate(1, (n) => n + 1).pipe(Stream.take(3))
  *
- * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(10)))).then(
- *   console.log
- * )
- * // [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
+ * const program = Effect.gen(function* () {
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const iterate = <A>(value: A, next: (value: A) => A): Stream<A> =>
   unfold(value, (a) => Effect.succeed([a, next(a)]))
