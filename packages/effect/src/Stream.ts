@@ -5939,24 +5939,32 @@ export const changesWithEffect: {
 )
 
 /**
- * Decode Uint8Array chunks into a stream of strings using the specified encoding.
+ * Decodes Uint8Array chunks into strings using TextDecoder with an optional encoding.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const encoder = new TextEncoder()
  * const stream = Stream.make(
  *   encoder.encode("Hello"),
  *   encoder.encode(" World")
  * )
- * const decoded = Stream.decodeText(stream)
  *
- * Effect.runPromise(Stream.runCollect(decoded)).then(console.log)
+ * const program = Effect.gen(function*() {
+ *   const decoded = yield* stream.pipe(
+ *     Stream.decodeText("utf-8"),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(decoded)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // ["Hello", " World"]
  * ```
  *
  * @since 2.0.0
- * @category encoding
+ * @category Encoding
  */
 export const decodeText: {
   (encoding?: string | undefined): <E, R>(self: Stream<Uint8Array, E, R>) => Stream<string, E, R>
