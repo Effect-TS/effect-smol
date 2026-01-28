@@ -1,21 +1,18 @@
 ## Overview
 
-Improve the JSDoc for `packages/effect/src/Stream.ts` so it is concise, consistent,
-and accurate for Effect 4.x. This is a documentation-only pass focused on
-summary clarity, category taxonomy, and example correctness.
+Improve the JSDoc for `packages/effect/src/Stream.ts` so it is concise,
+consistent, and accurate for Effect 4.x. This is a documentation-only pass
+focused on summary clarity, category taxonomy, and example correctness.
 
 ## Goals
 
 - Standardize `@category` tags with a Stream-specific naming + casing scheme.
 - Tighten summaries to be clear and concise while preserving intent.
-- Ensure one example per runtime export. Use discretion for type only exports.
-- Do not change `@since` tags
+- Ensure one example per runtime export. Use discretion for type-only exports.
+- Preserve `@since` tags and ensure they are present where required.
 - Keep documentation consistent with current Stream idioms.
 - Ensure `**Previously Known As:**` notes are present where applicable.
-- Ensure usage of `Chunk` in examples is replaced with `Array`, as the new
-  version of effect Stream uses `Array` as the collection type.
-  APIs like Stream.runCollect already return Array, so you **do not** need
-  to convert them with Array.from etc
+- Normalize example output to arrays, not Chunk representations.
 
 ## Non-goals
 
@@ -36,8 +33,9 @@ summary clarity, category taxonomy, and example correctness.
 
 ## Current Issues (Observed)
 
-- Inconsistent `@category` casing and naming (for example, `models` vs `Models`,
-  `type-level` vs `Type-Level`, `De-duplication` vs `Deduplication`).
+- Inconsistent `@category` casing and naming (for example, `constructors` vs
+  `Constructors`, `Error handling` vs `Error Handling`, `Rate-limiting` vs
+  `Rate Limiting`, `utils` vs `Utils`).
 - Some summaries are verbose or redundant for well-known combinators.
 - Examples vary in style (for example, `console.log` vs `Console.log`, or using
   `Effect.runPromise` when no output is shown).
@@ -71,9 +69,11 @@ summary clarity, category taxonomy, and example correctness.
   - Tracing
   - Type Lambdas
   - Type-Level
+  - Utils
   - Zipping
-- Normalize duplicates to the canonical name (for example, `type-level` to
-  `Type-Level`, `utils` to `Utils`, `Do notation` to `Do Notation`).
+- Normalize duplicates to the canonical name (for example, `constructors` to
+  `Constructors`, `Error handling` to `Error Handling`, `Rate-limiting` to
+  `Rate Limiting`, `utils` to `Utils`, `mapping` to `Mapping`).
 - If a new category is required, add it to this canonical list (Title Case)
   and normalize all usages to match.
 
@@ -85,17 +85,21 @@ summary clarity, category taxonomy, and example correctness.
 
 ### Examples
 
-- Before writing any examples, first understand the export's behavior and
-  intended usage by consulting existing tests, docs, and source code.
+- Before writing any examples, understand the export's behavior and intended
+  usage by consulting existing tests, docs, and source code.
 - Prefer short, runnable snippets that compile with docgen.
-- Include comments that clarify how the exported api is used / works.
+- Include comments that clarify how the exported API is used or behaves.
 - There should only be one example per export.
 - Use `Effect.gen` for sequencing, and only use `Effect.runPromise` when needed
   to demonstrate runtime behavior.
 - Prefer `Console.log` over `console.log` when demonstrating effectful logging.
-  **Important**: Any log statements should have a comment indicating expected output.
-- Any output shown in comments should match actual runtime output (use the `scratchpad/` for running examples as needed).
-- If you are not showing any output comments, **do not** use any Effect.run* calls in the example.
+  Any log statements should have a comment indicating expected output.
+- Any output shown in comments must match actual runtime output (use
+  `scratchpad/` for verification as needed).
+- If you are not showing any output comments, do not use any Effect.run* calls.
+- `Stream.runCollect` returns `Array<A>` in the current codebase. Avoid Chunk
+  output and avoid `Chunk.toArray` in new examples. Use `Array.from` only when
+  an API returns an iterable rather than an array.
 
 ### Tags
 
@@ -105,6 +109,32 @@ summary clarity, category taxonomy, and example correctness.
   version in that group unless the docs or tests indicate otherwise.
 - Ensure `@category` is present and normalized.
 - Avoid adding `@param` / `@returns` unless the behavior is non-obvious.
+
+## Confirmed Guidance (Sources)
+
+- Current `packages/effect/src/Stream.ts` uses Title Case categories in many
+  exports but still contains lowercase variants; normalize to the canonical list.
+- Current Stream examples use `Effect.gen`, `Console.log`, and explicit output
+  comments (often `// Output:`) with array-shaped output.
+- `Stream.runCollect` returns `Array<A>` (see `runCollect` signature in
+  `packages/effect/src/Stream.ts`).
+- Legacy `.repos/effect-old/packages/effect/src/Stream.ts` uses lowercase
+  categories and Chunk-shaped output comments such as
+  `Example Output: { _id: 'Chunk', values: [...] }`. Treat these as migration
+  references, not as the target style.
+
+## Scope
+
+Audit and update JSDoc for all public exports in `packages/effect/src/Stream.ts`,
+including:
+
+- Module header and core models
+- Constructors and constants
+- Mapping, sequencing, and zipping combinators
+- Merging, racing, and broadcasting operators
+- Filtering, grouping, and aggregation
+- Error handling and recovery operators
+- Resource management and destructors
 
 ## Acceptance Criteria
 
