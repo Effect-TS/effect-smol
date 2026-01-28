@@ -5552,6 +5552,27 @@ export const aggregateWithin: {
   }))))
 
 /**
+ * Creates a stream that multicasts the source to all subscribers via a PubSub.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const broadcasted = yield* Stream.broadcast(Stream.fromArray([1, 2, 3]), {
+ *     capacity: 8,
+ *     replay: 3
+ *   })
+ *
+ *   const [left, right] = yield* Effect.all([
+ *     Stream.runCollect(broadcasted),
+ *     Stream.runCollect(broadcasted)
+ *   ], { concurrency: "unbounded" })
+ *
+ *   yield* Console.log([left, right])
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Broadcast
  */
