@@ -318,12 +318,11 @@ export const fromChannel: <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
  * const program = Effect.gen(function*() {
  *   const stream = Stream.fromEffect(Effect.succeed(42))
  *   const values = yield* Stream.runCollect(stream)
- *   yield* Console.log(values)
+ *   yield* Console.log(Array.from(values))
  * })
  *
  * Effect.runPromise(program)
- * // Output:
- * // { _id: 'Chunk', values: [ 42 ] }
+ * // Output: [ 42 ]
  * ```
  *
  * @since 2.0.0
