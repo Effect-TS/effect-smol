@@ -6082,25 +6082,29 @@ export const intersperseAffixes: {
   ))
 
 /**
- * Interleaves this stream and the specified stream deterministically by
- * alternating pulling values from this stream and the specified stream. When
- * one stream is exhausted all remaining values in the other stream will be
- * pulled.
+ * Interleaves this stream with the specified stream by alternating pulls from
+ * each stream; when one ends, the remaining values from the other stream are
+ * emitted.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const s1 = Stream.make(1, 2, 3)
- * const s2 = Stream.make(4, 5, 6)
+ * const stream = Stream.interleave(
+ *   Stream.make(2, 3),
+ *   Stream.make(5, 6, 7)
+ * )
  *
- * const stream = Stream.interleave(s1, s2)
+ * const program = Effect.gen(function*() {
+ *   const collected = yield* Stream.runCollect(stream)
+ *   yield* Console.log(collected)
+ * })
  *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // { _id: 'Chunk', values: [ 1, 4, 2, 5, 3, 6 ] }
+ * Effect.runPromise(program)
+ * // [2, 5, 3, 6, 7]
  * ```
  * @since 2.0.0
- * @category utils
+ * @category Utils
  */
 export const interleave: {
   <A2, E2, R2>(that: Stream<A2, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A, E2 | E, R2 | R>
