@@ -6540,8 +6540,25 @@ export {
 }
 
 /**
+ * Binds the result of a stream to a field in the do-notation record.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Stream.Do.pipe(
+ *   Stream.bind("a", () => Stream.make(1, 2)),
+ *   Stream.bind("b", ({ a }) => Stream.succeed(a + 1))
+ * )
+ *
+ * const result = Stream.runCollect(program)
+ *
+ * Effect.runPromise(Effect.flatMap(result, Console.log))
+ * // [{ a: 1, b: 2 }, { a: 2, b: 3 }]
+ * ```
+ *
  * @since 4.0.0
- * @category Do notation
+ * @category Do Notation
  */
 export const bind: {
   <N extends string, A, B, E2, R2>(
