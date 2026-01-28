@@ -7222,8 +7222,12 @@ export const toAsyncIterableWith: {
 )
 
 /**
+ * Converts the stream to an `Effect` that produces an `AsyncIterable`.
+ *
+ * The iterable uses the current services from the Effect environment.
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<AsyncIterable<A>, never, R> =>
   Effect.map(
