@@ -6449,10 +6449,7 @@ export const ensuring: {
  * ```ts
  * import { Console, Effect, Layer, ServiceMap, Stream } from "effect"
  *
- * interface Env {
- *   readonly name: string
- * }
- * const Env = ServiceMap.Service<Env>("Env")
+ * class Env extends ServiceMap.Service<Env, { readonly name: string }>()("Env") {}
  *
  * const layer = Layer.succeed(Env)({ name: "Ada" })
  *
