@@ -368,24 +368,8 @@ export const fromEffectRepeat = <A, E, R>(effect: Effect.Effect<A, E, R>): Strea
   fromPull(Effect.succeed(Effect.map(effect, Arr.of)))
 
 /**
- * Creates a stream from an effect and repeats it using the specified schedule.
- *
- * @example
- * ```ts
- * import { Console, Effect, Schedule, Stream } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const stream = Stream.fromEffectSchedule(
- *     Effect.succeed(1),
- *     Schedule.recurs(2)
- *   )
- *   const result = yield* Stream.runCollect(stream)
- *   yield* Console.log(Array.from(result))
- * })
- *
- * Effect.runPromise(program)
- * // Output: [ 1, 1, 1 ]
- * ```
+ * Creates a stream from an effect producing a value of type `A`, which is
+ * repeated using the specified schedule.
  *
  * **Previously Known As**
  *
@@ -394,7 +378,7 @@ export const fromEffectRepeat = <A, E, R>(effect: Effect.Effect<A, E, R>): Strea
  * - `Stream.repeatEffectWithSchedule`
  *
  * @since 2.0.0
- * @category Constructors
+ * @category constructors
  */
 export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
   effect: Effect.Effect<A, E, R>,
