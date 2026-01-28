@@ -311,8 +311,23 @@ export const fromChannel: <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
  * Either emits the success value of this effect or terminates the stream
  * with the failure value of this effect.
  *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromEffect(Effect.succeed(42))
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // { _id: 'Chunk', values: [ 42 ] }
+ * ```
+ *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E, R> =>
   fromChannel(Channel.fromEffect(Effect.map(effect, Arr.of)))
