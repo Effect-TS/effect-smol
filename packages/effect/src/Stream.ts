@@ -6747,8 +6747,27 @@ export const runFold: {
   }))
 
 /**
+ * Runs the stream and folds elements using an effectful reducer.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const total = yield* Stream.runFoldEffect(
+ *     Stream.make(1, 2, 3),
+ *     () => 0,
+ *     (acc, n) => Effect.succeed(acc + n)
+ *   )
+ *   yield* Console.log(total)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // 6
+ * ```
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runFoldEffect: {
   <Z, A, EX, RX>(
