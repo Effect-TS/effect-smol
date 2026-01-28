@@ -6740,8 +6740,27 @@ export const runSum = <E, R>(self: Stream<number, E, R>): Effect.Effect<number, 
   })
 
 /**
+ * Runs the stream and folds elements using a pure reducer.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const total = yield* Stream.runFold(
+ *     Stream.make(1, 2, 3),
+ *     () => 0,
+ *     (acc, n) => acc + n
+ *   )
+ *   yield* Console.log(total)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // 6
+ * ```
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runFold: {
   <Z, A>(
