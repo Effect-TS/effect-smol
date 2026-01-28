@@ -787,20 +787,20 @@ export const suspend = <A, E, R>(stream: LazyArg<Stream<A, E, R>>): Stream<A, E,
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.fail("Uh oh!")
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fail("Uh oh!")
+ *   const exit = yield* Effect.exit(Stream.runCollect(stream))
+ *   yield* Console.log(exit)
+ *   // Output: { _id: 'Exit', _tag: 'Failure', cause: { _id: 'Cause', _tag: 'Fail', failure: 'Uh oh!' } }
+ * })
  *
- * Effect.runPromiseExit(Stream.runCollect(stream)).then(console.log)
- * // {
- * //   _id: 'Exit',
- * //   _tag: 'Failure',
- * //   cause: { _id: 'Cause', _tag: 'Fail', failure: 'Uh oh!' }
- * // }
+ * Effect.runPromise(program)
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fail = <E>(error: E): Stream<never, E> => fromChannel(Channel.fail(error))
 
