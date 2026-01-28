@@ -318,18 +318,18 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       function processResponseMap(
         map: ReadonlyMap<number, {
-          readonly ast: AST.AST | undefined
+          readonly schema: Schema.Top | undefined
           readonly description: string | undefined
         }>,
         defaultDescription: () => string
       ) {
-        for (const [status, { ast, description }] of map) {
-          if (op.responses[status]) continue
+        for (const [status, { schema, description }] of map) {
           op.responses[status] = {
             description: description ?? defaultDescription()
           }
-          // Handle empty response
-          if (ast !== undefined && !HttpApiSchema.isVoidEncoded(ast)) {
+          // Handle empty
+          if (schema !== undefined && !HttpApiSchema.isVoidEncoded(schema.ast)) {
+            const ast = schema.ast
             const encoding = HttpApiSchema.getEncoding(ast)
             irOps.push({
               _tag: "schema",
@@ -345,7 +345,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         }
       }
 
-      function processParameters(schema: Schema.Schema<any> | undefined, i: OpenAPISpecParameter["in"]) {
+      function processParameters(schema: Schema.Top | undefined, i: OpenAPISpecParameter["in"]) {
         if (schema) {
           const ast = AST.toEncoded(schema.ast)
           if (AST.isObjects(ast)) {
@@ -396,7 +396,9 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         const content: OpenApiSpecContent = {}
         payloads.forEach((map, kind) => {
           map.forEach((set, contentType) => {
-            const asts = Array.from(set).filter((ast) => !HttpApiSchema.isVoidEncoded(ast))
+            const asts = Array.from(set, AST.getAST)
+              // Handle empty
+              .filter((ast) => !HttpApiSchema.isVoidEncoded(ast))
             if (asts.length === 0) {
               return
             }
