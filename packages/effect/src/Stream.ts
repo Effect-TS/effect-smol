@@ -5822,8 +5822,25 @@ export const pipeThrough: {
 )
 
 /**
+ * Collects all elements into an array and emits it as a single element.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ *
+ * const program = Effect.gen(function*() {
+ *   const collected = yield* stream.pipe(Stream.collect, Stream.runCollect)
+ *   yield* Console.log(collected[0])
+ * })
+ *
+ * Effect.runPromise(program)
+ * // [1, 2, 3]
+ * ```
+ *
  * @since 2.0.0
- * @category accumulation
+ * @category Accumulation
  */
 export const collect = <A, E, R>(self: Stream<A, E, R>): Stream<Array<A>, E, R> => fromEffect(runCollect(self))
 
