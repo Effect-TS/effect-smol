@@ -7317,6 +7317,31 @@ export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
 /**
  * Runs the stream, publishing elements into the provided PubSub.
  *
+ * `shutdownOnEnd` controls whether the PubSub is shut down when the stream ends.
+ * It only shuts down when set to `true`.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, PubSub, Stream } from "effect"
+ *
+ * const program = Effect.scoped(Effect.gen(function* () {
+ *   const pubsub = yield* PubSub.unbounded<number>()
+ *   const subscription = yield* PubSub.subscribe(pubsub)
+ *
+ *   yield* Stream.runIntoPubSub(Stream.fromIterable([1, 2]), pubsub)
+ *
+ *   const first = yield* PubSub.take(subscription)
+ *   const second = yield* PubSub.take(subscription)
+ *
+ *   yield* Console.log(first)
+ *   yield* Console.log(second)
+ * }))
+ *
+ * Effect.runPromise(program)
+ * //=> 1
+ * //=> 2
+ * ```
+ *
  * @since 2.0.0
  * @category Destructors
  */
