@@ -7393,8 +7393,10 @@ export const toQueue: {
 )
 
 /**
+ * Runs the stream, offering each element to the provided queue.
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runIntoQueue: {
   <A, E>(queue: Queue.Queue<A, E | Cause.Done>): <R>(self: Stream<A, E, R>) => Effect.Effect<void, never, R>
