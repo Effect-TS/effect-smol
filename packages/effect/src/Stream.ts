@@ -7308,6 +7308,25 @@ export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Ef
 /**
  * Converts a stream to an `AsyncIterable` for `for await...of` consumption.
  *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ *
+ * const program = Effect.gen(function* () {
+ *   const iterable = Stream.toAsyncIterable(stream)
+ *   const results = yield* Effect.promise(async () => {
+ *     const values: Array<number> = []
+ *     for await (const value of iterable) {
+ *       values.push(value)
+ *     }
+ *     return values
+ *   })
+ *   return results
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Destructors
  */
