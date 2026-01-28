@@ -5578,25 +5578,32 @@ export const aggregateWithin: {
   }))))
 
 /**
- * Creates a stream that multicasts the source to all subscribers via a PubSub.
+ * Creates a PubSub-backed stream that multicasts the source to all subscribers.
+ *
+ * The returned stream is scoped and uses the provided PubSub capacity and replay settings.
  *
  * @example
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
- * const program = Effect.gen(function* () {
- *   const broadcasted = yield* Stream.broadcast(Stream.fromArray([1, 2, 3]), {
- *     capacity: 8,
- *     replay: 3
+ * const program = Effect.scoped(
+ *   Effect.gen(function* () {
+ *     const broadcasted = yield* Stream.broadcast(Stream.fromArray([1, 2, 3]), {
+ *       capacity: 8,
+ *       replay: 3
+ *     })
+ *
+ *     const [left, right] = yield* Effect.all([
+ *       Stream.runCollect(broadcasted),
+ *       Stream.runCollect(broadcasted)
+ *     ], { concurrency: "unbounded" })
+ *
+ *     yield* Console.log([Array.from(left), Array.from(right)])
  *   })
+ * )
  *
- *   const [left, right] = yield* Effect.all([
- *     Stream.runCollect(broadcasted),
- *     Stream.runCollect(broadcasted)
- *   ], { concurrency: "unbounded" })
- *
- *   yield* Console.log([left, right])
- * })
+ * Effect.runPromise(program)
+ * // Output: [[1, 2, 3], [1, 2, 3]]
  * ```
  *
  * @since 2.0.0
