@@ -2466,10 +2466,27 @@ export const repeat: {
 ): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
 
 /**
- * Schedules the output of the stream using the provided `schedule`.
+ * Spaces the stream's elements according to the provided `schedule`.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Schedule, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.make(1, 2, 3).pipe(
+ *     Stream.schedule(Schedule.spaced("10 millis")),
+ *     Stream.runCollect
+ *   )
+ *
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
+ * ```
  *
  * @since 2.0.0
- * @category utils
+ * @category Rate Limiting
  */
 export const schedule: {
   <X, E2, R2, A>(
