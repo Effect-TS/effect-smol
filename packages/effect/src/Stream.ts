@@ -620,7 +620,7 @@ export const toChannel = <A, E, R>(
 ): Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, R> => stream.channel
 
 /**
- * Creates a stream from an external resource.
+ * Creates a stream from a callback that can emit values into a queue.
  *
  * You can use the `Queue` with the apis from the `Queue` module to emit
  * values to the stream or to signal the stream ending.
@@ -640,22 +640,28 @@ export const toChannel = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, Queue, Stream } from "effect"
+ * import { Console, Effect, Queue, Stream } from "effect"
  *
  * const stream = Stream.callback<number>((queue) => {
  *   // Emit values to the stream
- *   Queue.offer(queue, 1)
- *   Queue.offer(queue, 2)
- *   Queue.offer(queue, 3)
+ *   Queue.offerUnsafe(queue, 1)
+ *   Queue.offerUnsafe(queue, 2)
+ *   Queue.offerUnsafe(queue, 3)
  *   // Signal completion
- *   Queue.shutdown(queue)
+ *   Queue.endUnsafe(queue)
  * })
  *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * const program = Effect.gen(function*() {
+ *   const values = yield* stream.pipe(Stream.runCollect)
+ *   yield* Console.log(values)
+ *   // [ 1, 2, 3 ]
+ * })
+ *
+ * Effect.runPromise(program)
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const callback = <A, E = never, R = never>(
   f: (queue: Queue.Queue<A, E | Cause.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
