@@ -210,7 +210,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
-      readonly payloads: ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, AST.AST>>
+      readonly payloads: ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, ReadonlySet<AST.AST>>>
       readonly successes: ReadonlyMap<number, {
         readonly ast: AST.AST | undefined
         readonly description: string | undefined
@@ -309,7 +309,9 @@ const extractMembers = (
   }
 }
 
-function extractPayloads(ast: AST.AST): ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, AST.AST>> {
+function extractPayloads(
+  ast: AST.AST
+): ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, ReadonlySet<AST.AST>>> {
   const map = new Map<
     HttpApiSchema.Encoding["kind"],
     Map<string, Set<AST.AST>>
@@ -317,21 +319,7 @@ function extractPayloads(ast: AST.AST): ReadonlyMap<HttpApiSchema.Encoding["kind
 
   recur(ast)
 
-  return new Map(
-    [...map.entries()].map((
-      [kind, map]
-    ) => [
-      kind,
-      new Map(
-        [...map.entries()].map((
-          [contentType, set]
-        ) => {
-          const asts = Array.from(set)
-          return [contentType, asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")]
-        })
-      )
-    ])
-  )
+  return map
 
   function add(ast: AST.AST) {
     const encoding = HttpApiSchema.getEncoding(ast)

@@ -85,6 +85,37 @@ describe("OpenAPI spec", () => {
     })
 
     describe("POST", () => {
+      it("empty payload", () => {
+        const Api = HttpApi.make("api")
+          .add(
+            HttpApiGroup.make("group")
+              .add(HttpApiEndpoint.post("a", "/a", { payload: Schema.Void }))
+          )
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/a"].post?.requestBody, undefined)
+      })
+
+      it("empty + non-empty payload", () => {
+        const Api = HttpApi.make("api")
+          .add(
+            HttpApiGroup.make("group")
+              .add(HttpApiEndpoint.post("a", "/a", { payload: [Schema.Void, Schema.String] }))
+          )
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+          "application/json": {
+            schema: {
+              "$ref": "#/components/schemas/String_"
+            }
+          }
+        })
+        assert.deepStrictEqual(spec.components.schemas, {
+          String_: {
+            "type": "string"
+          }
+        })
+      })
+
       it("Json (default)", () => {
         const Api = HttpApi.make("api")
           .add(

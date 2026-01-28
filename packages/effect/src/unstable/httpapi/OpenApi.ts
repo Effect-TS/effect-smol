@@ -395,7 +395,14 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       if (hasBody && payloads.size > 0) {
         const content: OpenApiSpecContent = {}
         payloads.forEach((map, kind) => {
-          map.forEach((ast, contentType) => {
+          map.forEach((set, contentType) => {
+            const asts = Array.from(set).filter((ast) => !HttpApiSchema.isVoidEncoded(ast))
+            if (asts.length === 0) {
+              return
+            }
+
+            const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
+
             irOps.push({
               _tag: "schema",
               ast: getEncodingAST(ast, { kind, contentType }),
@@ -406,7 +413,9 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
             }
           })
         })
-        op.requestBody = { content, required: true }
+        if (Object.keys(content).length > 0) {
+          op.requestBody = { content, required: true }
+        }
       }
 
       processParameters(endpoint.pathSchema, "path")
