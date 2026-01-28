@@ -6385,8 +6385,35 @@ export const provide: {
 ): Stream<A, E | EL, Exclude<R, AL> | RL> => fromChannel(Channel.provide(self.channel, layer)))
 
 /**
- * Provides the stream with some of its required services, which eliminates its
- * dependency on `R`.
+ * Provides multiple services to the stream using a service map.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, ServiceMap, Stream } from "effect"
+ *
+ * const Config = ServiceMap.Service<{ readonly prefix: string }>("Config")
+ * const Greeter = ServiceMap.Service<{ greet: (name: string) => string }>("Greeter")
+ *
+ * const services = ServiceMap.make(Config, { prefix: "Hello" }).pipe(
+ *   ServiceMap.add(Greeter, { greet: (name) => `${name}!` })
+ * )
+ *
+ * const stream = Stream.fromEffect(
+ *   Effect.gen(function*() {
+ *     const config = yield* Effect.service(Config)
+ *     const greeter = yield* Effect.service(Greeter)
+ *     return greeter.greet(config.prefix)
+ *   })
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.runCollect(Stream.provideServices(stream, services))
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // ["Hello!"]
+ * ```
  *
  * @since 4.0.0
  * @category Services
