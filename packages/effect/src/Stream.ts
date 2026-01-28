@@ -6791,8 +6791,10 @@ export const runHead = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Op
   Effect.map(Channel.runHead(self.channel), Option.map(Arr.getUnsafe(0)))
 
 /**
+ * Runs the stream and returns the last element as an `Option`.
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runLast = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Option<A>, E, R> =>
   Effect.map(Channel.runLast(self.channel), Option.map(Arr.lastNonEmpty))
