@@ -1736,14 +1736,33 @@ export const mapBoth: {
   ))
 
 /**
+ * Maps over non-empty arrays emitted by the stream.
+ *
  * **Previously Known As**
  *
  * This API replaces the following from Effect 3.x:
  *
  * - `Stream.mapChunks`
  *
+ * @example
+ * ```ts
+ * import { Array, Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.fromArray([1, 2, 3, 4]).pipe(
+ *     Stream.rechunk(2),
+ *     Stream.mapArray((chunk, index) => Array.map(chunk, (n) => n + index * 10)),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [1, 2, 13, 14]
+ * ```
+ *
  * @since 2.0.0
- * @category mapping
+ * @category Mapping
  */
 export const mapArray: {
   <A, B>(
