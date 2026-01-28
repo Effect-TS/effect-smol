@@ -6279,14 +6279,31 @@ export const onExit: {
 ): Stream<A, E, R | R2> => fromChannel(Channel.onExit(self.channel, finalizer)))
 
 /**
- * Runs the specified effect if this stream fails, providing the error to the
- * effect if it exists.
+ * Runs the provided effect when the stream fails, passing the failure cause.
  *
  * Note: Unlike `Effect.onError` there is no guarantee that the provided
  * effect will not be interrupted.
  *
+ * @example
+ * ```ts
+ * import { Cause, Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.make(1, 2, 3).pipe(
+ *     Stream.concat(Stream.fail("boom")),
+ *     Stream.onError((cause) => Console.log(`Stream failed: ${Cause.squash(cause)}`))
+ *   )
+ *
+ *   yield* Stream.runCollect(stream)
+ * })
+ *
+ * Effect.runPromiseExit(program)
+ * // Output:
+ * // Stream failed: boom
+ * ```
+ *
  * @since 2.0.0
- * @category utils
+ * @category Utils
  */
 export const onError: {
   <E, X, R2>(
