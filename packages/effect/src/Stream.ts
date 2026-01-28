@@ -7535,7 +7535,30 @@ export const toQueue: {
 )
 
 /**
- * Runs the stream, offering each element to the provided queue.
+ * Runs the stream, offering each element to the provided queue and ending it
+ * with `Cause.Done` when the stream completes.
+ *
+ * @example
+ * ```ts
+ * import { Cause, Effect, Queue, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(4)
+ *
+ *   yield* Effect.forkChild(
+ *     Stream.runIntoQueue(Stream.fromIterable([1, 2, 3]), queue)
+ *   )
+ *
+ *   const values = [
+ *     yield* Queue.take(queue),
+ *     yield* Queue.take(queue),
+ *     yield* Queue.take(queue)
+ *   ]
+ *   const done = yield* Effect.flip(Queue.take(queue))
+ *
+ *   return { values, done }
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category Destructors
