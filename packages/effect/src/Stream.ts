@@ -6689,22 +6689,25 @@ export const runCollect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Array<
   )
 
 /**
- * Runs the stream and emits the number of elements processed
+ * Runs the stream and returns the number of elements emitted.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  *
- * const program = Stream.runCount(stream)
+ * const program = Effect.gen(function* () {
+ *   const count = yield* Stream.runCount(stream)
+ *   yield* Console.log(count)
+ * })
  *
- * Effect.runPromise(program).then(console.log)
+ * Effect.runPromise(program)
  * // 5
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runCount = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<number, E, R> =>
   Channel.runFold(self.channel, () => 0, (acc, chunk) => acc + chunk.length)
