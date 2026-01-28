@@ -331,19 +331,19 @@ ${lint_output}
 "
     fi
 
-    # Type checking with pnpm check
+    # Type checking with pnpm check:tsgo
     echo ""
-    echo "2. Type checking (tsc)..."
-    echo "-------------------------"
+    echo "2. Type checking (tsgo)..."
+    echo "---------------------------"
     local check_output
-    if check_output=$(pnpm check 2>&1); then
+    if check_output=$(pnpm check:tsgo 2>&1); then
         echo -e "${GREEN}Type check passed${NC}"
     else
         echo -e "${RED}Type check failed${NC}"
         ci_failed=1
         error_output+="## Type Check Failed
 
-Command: \`pnpm check\`
+Command: \`pnpm check:tsgo\`
 
 \`\`\`
 ${check_output}
@@ -354,17 +354,17 @@ ${check_output}
 
     # Building
     echo ""
-    echo "3. Building..."
-    echo "--------------"
+    echo "3. Building (tsgo)..."
+    echo "---------------------"
     local build_output
-    if build_output=$(pnpm build 2>&1); then
+    if build_output=$(pnpm build:tsgo 2>&1); then
         echo -e "${GREEN}Build passed${NC}"
     else
         echo -e "${RED}Build failed${NC}"
         ci_failed=1
         error_output+="## Build Failed
 
-Command: \`pnpm build\`
+Command: \`pnpm build:tsgo\`
 
 \`\`\`
 ${build_output}

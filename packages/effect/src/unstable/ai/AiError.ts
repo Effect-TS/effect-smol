@@ -1056,6 +1056,55 @@ export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationE
   }
 }
 
+/**
+ * Error indicating an operation requires a toolkit but none was provided.
+ *
+ * This error occurs when tool approval responses are present in the prompt
+ * but no toolkit was provided to resolve them.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = new AiError.ToolkitRequiredError({
+ *   pendingApprovals: ["GetWeather", "SendEmail"]
+ * })
+ *
+ * console.log(error.isRetryable) // false
+ * console.log(error.message)
+ * // "Toolkit required to resolve pending tool approvals: GetWeather, SendEmail"
+ * ```
+ *
+ * @since 1.0.0
+ * @category reason
+ */
+export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError>(
+  "effect/ai/AiError/ToolkitRequiredError"
+)({
+  _tag: Schema.tag("ToolkitRequiredError"),
+  pendingApprovals: Schema.Array(Schema.String),
+  description: Schema.optional(Schema.String)
+}) {
+  /**
+   * @since 1.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
+   * Toolkit required errors are not retryable without providing a toolkit.
+   *
+   * @since 1.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    const tools = this.pendingApprovals.join(", ")
+    return `Toolkit required to resolve pending tool approvals: ${tools}`
+  }
+}
+
 // =============================================================================
 // AiErrorReason Union
 // =============================================================================
@@ -1087,6 +1136,7 @@ export type AiErrorReason =
   | InvalidToolResultError
   | ToolResultEncodingError
   | ToolConfigurationError
+  | ToolkitRequiredError
 
 /**
  * Schema for validating and parsing AI error reasons.
@@ -1108,7 +1158,8 @@ export const AiErrorReason: Schema.Union<[
   typeof ToolParameterValidationError,
   typeof InvalidToolResultError,
   typeof ToolResultEncodingError,
-  typeof ToolConfigurationError
+  typeof ToolConfigurationError,
+  typeof ToolkitRequiredError
 ]> = Schema.Union([
   RateLimitError,
   QuotaExhaustedError,
@@ -1123,7 +1174,8 @@ export const AiErrorReason: Schema.Union<[
   ToolParameterValidationError,
   InvalidToolResultError,
   ToolResultEncodingError,
-  ToolConfigurationError
+  ToolConfigurationError,
+  ToolkitRequiredError
 ])
 
 // =============================================================================

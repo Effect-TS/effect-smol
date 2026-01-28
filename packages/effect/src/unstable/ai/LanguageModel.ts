@@ -59,6 +59,7 @@ import { CurrentConcurrency } from "../../References.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import * as Sink from "../../Sink.ts"
 import * as Stream from "../../Stream.ts"
 import type { Span } from "../../Tracer.ts"
 import type { Concurrency, Mutable, NoExcessProperties } from "../../Types.ts"
@@ -768,10 +769,27 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       >(options: Options & GenerateTextOptions<Tools>, providerOptions: Mutable<ProviderOptions>) {
         const toolChoice = options.toolChoice ?? "auto"
 
-        // WE NEED TO RESOLVE TOOL APPROVALS HERE
+        // Check for pending approvals that need resolution
+        const { approved, denied } = collectToolApprovals(
+          providerOptions.prompt.content,
+          { excludeResolved: true }
+        )
+        const hasPendingApprovals = approved.length > 0 || denied.length > 0
 
         // If there is no toolkit, the generated content can be returned immediately
         if (Predicate.isUndefined(options.toolkit)) {
+          // But first check if we have pending approvals that require a toolkit
+          if (hasPendingApprovals) {
+            return yield* AiError.make({
+              module: "LanguageModel",
+              method: "generateText",
+              reason: new AiError.ToolkitRequiredError({
+                pendingApprovals: [...approved, ...denied]
+                  .map((a) => a.toolCall?.name)
+                  .filter(Predicate.isNotUndefined)
+              })
+            })
+          }
           const ResponseSchema = Schema.mutable(Schema.Array(Response.Part(Toolkit.empty)))
           const rawContent = yield* params.generateText(providerOptions)
           const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
@@ -783,10 +801,54 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
 
         // If the resolved toolkit is empty, return the generated content immediately
         if (Object.values(toolkit.tools).length === 0) {
+          // But first check if we have pending approvals that require a toolkit
+          if (hasPendingApprovals) {
+            return yield* AiError.make({
+              module: "LanguageModel",
+              method: "generateText",
+              reason: new AiError.ToolkitRequiredError({
+                pendingApprovals: [...approved, ...denied]
+                  .map((a) => a.toolCall?.name)
+                  .filter(Predicate.isNotUndefined)
+              })
+            })
+          }
           const ResponseSchema = Schema.mutable(Schema.Array(Response.Part(Toolkit.empty)))
           const rawContent = yield* params.generateText(providerOptions)
           const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
           return content as Array<Response.Part<Tools>>
+        }
+
+        // Pre-resolve tool approvals before calling the LLM
+        if (hasPendingApprovals) {
+          // Validate all approved tools exist in the toolkit
+          for (const approval of approved) {
+            if (approval.toolCall && !toolkit.tools[approval.toolCall.name]) {
+              return yield* AiError.make({
+                module: "LanguageModel",
+                method: "generateText",
+                reason: new AiError.ToolNotFoundError({
+                  toolName: approval.toolCall.name,
+                  toolParams: approval.toolCall.params as Schema.Json,
+                  availableTools: Object.keys(toolkit.tools)
+                })
+              })
+            }
+          }
+
+          // Execute approved tools and create denial results
+          const approvedResults = yield* executeApprovedToolCalls(approved, toolkit, options.concurrency)
+          const deniedResults = createDenialResults(denied)
+          const preResolvedResults = [...approvedResults, ...deniedResults]
+
+          // Add pre-resolved results to the prompt
+          if (preResolvedResults.length > 0) {
+            const toolMessage = Prompt.makeMessage("tool", { content: preResolvedResults })
+            providerOptions.prompt = Prompt.fromMessages([
+              ...providerOptions.prompt.content,
+              toolMessage
+            ])
+          }
         }
 
         const tools = typeof toolChoice === "object" && "oneOf" in toolChoice
@@ -839,8 +901,27 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       >(options: Options & GenerateTextOptions<Tools>, providerOptions: Mutable<ProviderOptions>) {
         const toolChoice = options.toolChoice ?? "auto"
 
+        // Check for pending approvals that need resolution
+        const { approved: pendingApproved, denied: pendingDenied } = collectToolApprovals(
+          providerOptions.prompt.content,
+          { excludeResolved: true }
+        )
+        const hasPendingApprovals = pendingApproved.length > 0 || pendingDenied.length > 0
+
         // If there is no toolkit, return immediately
         if (Predicate.isUndefined(options.toolkit)) {
+          // But first check if we have pending approvals that require a toolkit
+          if (hasPendingApprovals) {
+            return yield* AiError.make({
+              module: "LanguageModel",
+              method: "streamText",
+              reason: new AiError.ToolkitRequiredError({
+                pendingApprovals: [...pendingApproved, ...pendingDenied]
+                  .map((a) => a.toolCall?.name)
+                  .filter(Predicate.isNotUndefined)
+              })
+            })
+          }
           const schema = Schema.NonEmptyArray(Response.StreamPart(Toolkit.empty))
           const decodeParts = Schema.decodeEffect(schema)
           return params.streamText(providerOptions).pipe(
@@ -853,11 +934,55 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
 
         // If the toolkit is empty, return immediately
         if (Object.values(toolkit.tools).length === 0) {
+          // But first check if we have pending approvals that require a toolkit
+          if (hasPendingApprovals) {
+            return yield* AiError.make({
+              module: "LanguageModel",
+              method: "streamText",
+              reason: new AiError.ToolkitRequiredError({
+                pendingApprovals: [...pendingApproved, ...pendingDenied]
+                  .map((a) => a.toolCall?.name)
+                  .filter(Predicate.isNotUndefined)
+              })
+            })
+          }
           const schema = Schema.NonEmptyArray(Response.StreamPart(Toolkit.empty))
           const decodeParts = Schema.decodeEffect(schema)
           return params.streamText(providerOptions).pipe(
             Stream.mapArrayEffect((parts) => decodeParts(parts))
           ) as Stream.Stream<Response.StreamPart<Tools>, AiError.AiError | Schema.SchemaError, IdGenerator>
+        }
+
+        // Pre-resolve tool approvals before calling the LLM
+        if (hasPendingApprovals) {
+          // Validate all approved tools exist in the toolkit
+          for (const approval of pendingApproved) {
+            if (approval.toolCall && !toolkit.tools[approval.toolCall.name]) {
+              return yield* AiError.make({
+                module: "LanguageModel",
+                method: "streamText",
+                reason: new AiError.ToolNotFoundError({
+                  toolName: approval.toolCall.name,
+                  toolParams: approval.toolCall.params as Schema.Json,
+                  availableTools: Object.keys(toolkit.tools)
+                })
+              })
+            }
+          }
+
+          // Execute approved tools and create denial results
+          const approvedResults = yield* executeApprovedToolCalls(pendingApproved, toolkit, options.concurrency)
+          const deniedResults = createDenialResults(pendingDenied)
+          const preResolvedResults = [...approvedResults, ...deniedResults]
+
+          // Add pre-resolved results to the prompt
+          if (preResolvedResults.length > 0) {
+            const toolMessage = Prompt.makeMessage("tool", { content: preResolvedResults })
+            providerOptions.prompt = Prompt.fromMessages([
+              ...providerOptions.prompt.content,
+              toolMessage
+            ])
+          }
         }
 
         const tools = typeof toolChoice === "object" && "oneOf" in toolChoice
@@ -888,7 +1013,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         // FiberSet to track concurrent tool call handlers
         const toolCallFibers = yield* FiberSet.make<void, AiError.AiError>()
 
-        // Collect approval state from messages
+        // Collect approval state from messages (for newly generated tool calls)
         const { approved, denied } = collectToolApprovals(providerOptions.prompt.content)
         const approvedToolCallIds = new Set(approved.map((a) => a.toolCallId))
         const deniedByToolCallId = new Map(denied.map((d) => [d.toolCallId, d]))
@@ -1115,16 +1240,26 @@ interface ApprovalResult {
   readonly toolCallId: string
   readonly approved: boolean
   readonly reason?: string | undefined
+  readonly toolCall?: Prompt.ToolCallPart | undefined
 }
 
-const collectToolApprovals = (messages: ReadonlyArray<Prompt.Message>): {
+interface CollectToolApprovalsOptions {
+  readonly excludeResolved?: boolean
+}
+
+const collectToolApprovals = (
+  messages: ReadonlyArray<Prompt.Message>,
+  options?: CollectToolApprovalsOptions
+): {
   readonly approved: Array<ApprovalResult>
   readonly denied: Array<ApprovalResult>
 } => {
   const requests = new Map<string, Pick<ApprovalResult, "approvalId" | "toolCallId">>()
-  const responses: Array<Omit<ApprovalResult, "toolCallId">> = []
+  const responses: Array<Omit<ApprovalResult, "toolCallId" | "toolCall">> = []
+  const toolCallsById = new Map<string, Prompt.ToolCallPart>()
+  const toolResultIds = new Set<string>()
 
-  // Collect all tool approval requests and respones
+  // Collect all tool approval requests, responses, tool calls, and tool results
   for (const message of messages) {
     if (message.role === "assistant") {
       for (const part of message.content) {
@@ -1133,6 +1268,9 @@ const collectToolApprovals = (messages: ReadonlyArray<Prompt.Message>): {
             approvalId: part.approvalId,
             toolCallId: part.toolCallId
           })
+        }
+        if (part.type === "tool-call") {
+          toolCallsById.set(part.id, part)
         }
       }
     }
@@ -1145,6 +1283,9 @@ const collectToolApprovals = (messages: ReadonlyArray<Prompt.Message>): {
             reason: part.reason
           })
         }
+        if (part.type === "tool-result") {
+          toolResultIds.add(part.id)
+        }
       }
     }
   }
@@ -1155,7 +1296,17 @@ const collectToolApprovals = (messages: ReadonlyArray<Prompt.Message>): {
   for (const response of responses) {
     const request = requests.get(response.approvalId)
     if (Predicate.isNotUndefined(request)) {
-      const result = { ...response, toolCallId: request.toolCallId }
+      // Skip if already resolved
+      if (options?.excludeResolved && toolResultIds.has(request.toolCallId)) {
+        continue
+      }
+
+      const result: ApprovalResult = {
+        ...response,
+        toolCallId: request.toolCallId,
+        toolCall: toolCallsById.get(request.toolCallId)
+      }
+
       if (response.approved) {
         approved.push(result)
       } else {
@@ -1189,6 +1340,73 @@ const isApprovalNeeded = Effect.fnUntraced(function*<T extends Tool.Any>(
 
   return tool.needsApproval
 }, Effect.orElseSucceed(constFalse))
+
+const executeApprovedToolCalls = <Tools extends Record<string, Tool.Any>>(
+  approvals: ReadonlyArray<ApprovalResult>,
+  toolkit: Toolkit.WithHandler<Tools>,
+  concurrency: Concurrency | undefined
+): Effect.Effect<
+  Array<Prompt.ToolResultPart>,
+  Tool.HandlerError<Tools[keyof Tools]> | AiError.AiError,
+  Tool.HandlerServices<Tools[keyof Tools]>
+> => {
+  const executeOne = Effect.fnUntraced(function*(approval: ApprovalResult) {
+    const toolCall = approval.toolCall
+    if (!toolCall) {
+      return yield* Effect.die("Approval missing tool call reference")
+    }
+
+    const tool = toolkit.tools[toolCall.name]
+    if (!tool) {
+      return yield* AiError.make({
+        module: "LanguageModel",
+        method: "generateText",
+        reason: new AiError.ToolNotFoundError({
+          toolName: toolCall.name,
+          toolParams: toolCall.params as Schema.Json,
+          availableTools: Object.keys(toolkit.tools)
+        })
+      })
+    }
+
+    const resultStream = yield* toolkit.handle(toolCall.name, toolCall.params as any)
+
+    const finalResult = yield* resultStream.pipe(
+      Stream.filter((result) => result.preliminary === false),
+      Stream.run(Sink.last()),
+      Effect.flatMap(Option.match({
+        onNone: () => Effect.die("Tool handler did not produce a final result"),
+        onSome: Effect.succeed
+      }))
+    )
+
+    return Prompt.makePart("tool-result", {
+      id: approval.toolCallId,
+      name: toolCall.name,
+      isFailure: finalResult.isFailure,
+      result: finalResult.encodedResult
+    })
+  })
+
+  return Effect.gen(function*() {
+    const resolveConcurrency = concurrency === "inherit"
+      ? yield* Effect.service(CurrentConcurrency)
+      : concurrency ?? "unbounded"
+
+    return yield* Effect.forEach(approvals, executeOne, { concurrency: resolveConcurrency })
+  })
+}
+
+const createDenialResults = (denials: ReadonlyArray<ApprovalResult>): Array<Prompt.ToolResultPart> =>
+  denials.flatMap((denial) => {
+    if (!denial.toolCall) return []
+    return [Prompt.makePart("tool-result", {
+      id: denial.toolCallId,
+      name: denial.toolCall.name,
+      isFailure: true,
+      result: { type: "execution-denied", reason: denial.reason }
+    })]
+  })
 
 // =============================================================================
 // Tool Call Resolution
@@ -1226,8 +1444,6 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
   const { approved, denied } = collectToolApprovals(messages)
   const approvedToolCallIds = new Set(approved.map((approval) => approval.toolCallId))
   const deniedByToolCallId = new Map(denied.map((denial) => [denial.toolCallId, denial]))
-
-  console.log({ approvedToolCallIds })
 
   const streams = toolCalls.map((toolCall) =>
     Effect.gen(function*() {
