@@ -406,10 +406,26 @@ export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
   }))
 
 /**
- * A stream that emits void values spaced by the specified duration.
+ * Creates a stream that emits void values spaced by the specified duration.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const ticks = yield* Stream.tick("200 millis").pipe(
+ *     Stream.take(3),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(Array.from(ticks))
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ undefined, undefined, undefined ]
+ * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const tick = (interval: Duration.DurationInput): Stream<void> =>
   fromPull(Effect.sync(() => {
