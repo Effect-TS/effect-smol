@@ -787,6 +787,11 @@ const prepareMessages = Effect.fnUntraced(
 
         case "tool": {
           for (const part of message.content) {
+            // Skip tool-approval-response parts - they are not sent to the provider
+            if (part.type === "tool-approval-response") {
+              continue
+            }
+
             const id = getItemId(part) ?? part.id
             const status = getStatus(part)
             const toolName = toolNameMapper.getProviderName(part.name)

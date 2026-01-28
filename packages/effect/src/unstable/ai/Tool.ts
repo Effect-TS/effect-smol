@@ -37,6 +37,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Struct from "../../Struct.ts"
 import type * as Types from "../../Types.ts"
 import type * as AiError from "./AiError.ts"
+import type * as Prompt from "./Prompt.ts"
 
 // =============================================================================
 // Type Ids
@@ -64,6 +65,49 @@ const ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined" as const
  * @category models
  */
 export type FailureMode = "error" | "return"
+
+/**
+ * Context provided to the `needsApproval` function when dynamically
+ * determining if a tool requires user approval.
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export interface NeedsApprovalContext {
+  /**
+   * The unique identifier of the tool call.
+   */
+  readonly toolCallId: string
+  /**
+   * The conversation messages leading up to this tool call.
+   */
+  readonly messages: ReadonlyArray<Prompt.Message>
+}
+
+/**
+ * Function type for dynamically determining if a tool requires approval.
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export type NeedsApprovalFunction<Params extends Schema.Struct<Schema.Struct.Fields>> = (
+  params: Schema.Struct.Type<Params["fields"]>,
+  context: NeedsApprovalContext
+) => boolean | Effect.Effect<boolean, never, any>
+
+/**
+ * Specifies whether user approval is required before executing a tool.
+ *
+ * Can be:
+ * - `boolean`: Static approval requirement
+ * - `NeedsApprovalFunction`: Dynamic approval based on parameters/context
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export type NeedsApproval<Params extends Schema.Struct<Schema.Struct.Fields>> =
+  | boolean
+  | NeedsApprovalFunction<Params>
 
 /**
  * A user-defined tool that language models can call to perform actions.
@@ -159,6 +203,17 @@ export interface Tool<
    * the tool.
    */
   readonly annotations: ServiceMap.ServiceMap<never>
+
+  /**
+   * Specifies whether user approval is required before executing this tool.
+   *
+   * - If `undefined` or `false`, the tool executes immediately.
+   * - If `true`, the tool always requires approval.
+   * - If a function, it is called with the tool parameters and context to
+   *   dynamically determine if approval is needed. The function can return
+   *   a boolean or an Effect that resolves to a boolean.
+   */
+  readonly needsApproval?: boolean | NeedsApprovalFunction<any> | undefined
 
   /**
    * Adds a _request-level_ dependency which must be provided before the tool
@@ -838,6 +893,7 @@ const userDefinedProto = <
   readonly failureSchema: Failure
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly failureMode: Mode
+  readonly needsApproval?: NeedsApproval<Parameters> | undefined
 }): Tool<
   Name,
   {
@@ -949,6 +1005,15 @@ export const make = <
    * Service dependencies required by the tool handler.
    */
   readonly dependencies?: Dependencies | undefined
+  /**
+   * Specifies whether user approval is required before executing this tool.
+   *
+   * - If `undefined` or `false`, the tool executes immediately.
+   * - If `true`, the tool always requires approval.
+   * - If a function, it is called with the tool parameters and context to
+   *   dynamically determine if approval is needed.
+   */
+  readonly needsApproval?: NeedsApproval<Schema.Struct<Parameters>> | undefined
 }): Tool<
   Name,
   {
@@ -970,7 +1035,8 @@ export const make = <
     successSchema,
     failureSchema,
     failureMode: options?.failureMode ?? "error",
-    annotations: ServiceMap.empty()
+    annotations: ServiceMap.empty(),
+    needsApproval: options?.needsApproval as any
   }) as any
 }
 

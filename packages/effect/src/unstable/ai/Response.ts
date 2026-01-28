@@ -71,6 +71,7 @@ export type AnyPart =
   | ToolParamsEndPart
   | ToolCallPart<any, any>
   | ToolResultPart<any, any, any>
+  | ToolApprovalRequestPart
   | FilePart
   | DocumentSourcePart
   | UrlSourcePart
@@ -98,6 +99,7 @@ export type AnyPartEncoded =
   | ToolParamsEndPartEncoded
   | ToolCallPartEncoded
   | ToolResultPartEncoded
+  | ToolApprovalRequestPartEncoded
   | FilePartEncoded
   | DocumentSourcePartEncoded
   | UrlSourcePartEncoded
@@ -125,6 +127,7 @@ export type AllParts<Tools extends Record<string, Tool.Any>> =
   | ToolParamsEndPart
   | ToolCallParts<Tools>
   | ToolResultParts<Tools>
+  | ToolApprovalRequestPart
   | FilePart
   | DocumentSourcePart
   | UrlSourcePart
@@ -152,6 +155,7 @@ export type AllPartsEncoded =
   | ToolParamsEndPartEncoded
   | ToolCallPartEncoded
   | ToolResultPartEncoded
+  | ToolApprovalRequestPartEncoded
   | FilePartEncoded
   | DocumentSourcePartEncoded
   | UrlSourcePartEncoded
@@ -211,6 +215,7 @@ export const AllParts = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
     ToolParamsStartPart,
     ToolParamsDeltaPart,
     ToolParamsEndPart,
+    ToolApprovalRequestPart,
     FilePart,
     DocumentSourcePart,
     UrlSourcePart,
@@ -238,6 +243,7 @@ export type Part<Tools extends Record<string, Tool.Any>> =
   | ReasoningPart
   | ToolCallParts<Tools>
   | ToolResultParts<Tools>
+  | ToolApprovalRequestPart
   | FilePart
   | DocumentSourcePart
   | UrlSourcePart
@@ -257,6 +263,7 @@ export type PartEncoded =
   | ReasoningEndPartEncoded
   | ToolCallPartEncoded
   | ToolResultPartEncoded
+  | ToolApprovalRequestPartEncoded
   | FilePartEncoded
   | DocumentSourcePartEncoded
   | UrlSourcePartEncoded
@@ -288,6 +295,7 @@ export const Part = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
   return Schema.Union([
     TextPart,
     ReasoningPart,
+    ToolApprovalRequestPart,
     FilePart,
     DocumentSourcePart,
     UrlSourcePart,
@@ -320,6 +328,7 @@ export type StreamPart<Tools extends Record<string, Tool.Any>> =
   | ToolParamsEndPart
   | ToolCallParts<Tools>
   | ToolResultParts<Tools>
+  | ToolApprovalRequestPart
   | FilePart
   | DocumentSourcePart
   | UrlSourcePart
@@ -345,6 +354,7 @@ export type StreamPartEncoded =
   | ToolParamsEndPartEncoded
   | ToolCallPartEncoded
   | ToolResultPartEncoded
+  | ToolApprovalRequestPartEncoded
   | FilePartEncoded
   | DocumentSourcePartEncoded
   | UrlSourcePartEncoded
@@ -384,6 +394,7 @@ export const StreamPart = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
     ToolParamsStartPart,
     ToolParamsDeltaPart,
     ToolParamsEndPart,
+    ToolApprovalRequestPart,
     FilePart,
     DocumentSourcePart,
     UrlSourcePart,
@@ -1713,6 +1724,106 @@ export const toolResultPart = <const Params extends ConstructorParams<ToolResult
     readonly result: infer Failure
   } ? ToolResultPart<Name, never, Failure>
   : never => makePart("tool-result", params) as any
+
+// =============================================================================
+// Tool Approval Request Part
+// =============================================================================
+
+/**
+ * Response part representing a tool approval request.
+ *
+ * Emitted when a tool requires user approval before execution. The framework
+ * checks the tool's `needsApproval` property and emits this part instead of
+ * executing the tool when approval is required.
+ *
+ * @example
+ * ```ts
+ * import { Response } from "effect/unstable/ai"
+ *
+ * const approvalRequest: Response.ToolApprovalRequestPart = Response.makePart(
+ *   "tool-approval-request",
+ *   {
+ *     approvalId: "approval_123",
+ *     toolCallId: "call_456"
+ *   }
+ * )
+ * ```
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export interface ToolApprovalRequestPart extends BasePart<"tool-approval-request", ToolApprovalRequestPartMetadata> {
+  /**
+   * Unique identifier for this approval flow.
+   */
+  readonly approvalId: string
+  /**
+   * The tool call ID requiring approval.
+   */
+  readonly toolCallId: string
+}
+
+/**
+ * Encoded representation of tool approval request parts for serialization.
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export interface ToolApprovalRequestPartEncoded
+  extends BasePartEncoded<"tool-approval-request", ToolApprovalRequestPartMetadata>
+{
+  /**
+   * Unique identifier for this approval flow.
+   */
+  readonly approvalId: string
+  /**
+   * The tool call ID requiring approval.
+   */
+  readonly toolCallId: string
+}
+
+/**
+ * Represents provider-specific metadata that can be associated with a
+ * `ToolApprovalRequestPart` through module augmentation.
+ *
+ * @since 1.0.0
+ * @category provider options
+ */
+export interface ToolApprovalRequestPartMetadata extends ProviderMetadata {}
+
+/**
+ * Schema for validation and encoding of tool approval request parts.
+ *
+ * @since 1.0.0
+ * @category schemas
+ */
+export const ToolApprovalRequestPart: Schema.Struct<{
+  readonly type: Schema.tag<"tool-approval-request">
+  readonly approvalId: Schema.String
+  readonly toolCallId: Schema.String
+  readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
+  readonly metadata: Schema.withDecodingDefault<
+    Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
+  >
+}> = Schema.Struct({
+  ...BasePart.fields,
+  type: Schema.tag("tool-approval-request"),
+  approvalId: Schema.String,
+  toolCallId: Schema.String
+}).annotate({ identifier: "ToolApprovalRequestPart" }) satisfies Schema.Codec<
+  ToolApprovalRequestPart,
+  ToolApprovalRequestPartEncoded
+>
+
+/**
+ * Constructs a new tool approval request part.
+ *
+ * @since 1.0.0
+ * @category constructors
+ */
+export const toolApprovalRequestPart = (
+  params: ConstructorParams<ToolApprovalRequestPart>
+): ToolApprovalRequestPart => makePart("tool-approval-request", params as any)
 
 // =============================================================================
 // File Part

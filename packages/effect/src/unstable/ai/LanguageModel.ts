@@ -806,8 +806,13 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         const rawContent = yield* params.generateText(providerOptions)
 
         // Resolve the generated tool calls
-        const toolResults = yield* resolveToolCalls(rawContent, toolkit, options.concurrency).pipe(
-          Stream.filter((result) => result.preliminary === false),
+        const toolResults = yield* resolveToolCalls(
+          rawContent,
+          toolkit,
+          providerOptions.prompt.content,
+          options.concurrency
+        ).pipe(
+          Stream.filter((result) => result.type === "tool-approval-request" || result.preliminary === false),
           Stream.runCollect
         )
         const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
@@ -880,20 +885,73 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         // FiberSet to track concurrent tool call handlers
         const toolCallFibers = yield* FiberSet.make<void, AiError.AiError>()
 
-        // Helper function to execute tool calls
-        const executeToolCall = (part: Response.ToolCallPartEncoded) =>
-          toolkit.handle(part.name, part.params as any).pipe(
-            Stream.unwrap,
-            Stream.runForEach((result) => {
-              const toolResultPart = Response.makePart("tool-result", {
+        // Collect approval state from messages
+        const { approved, denied } = collectToolApprovals(providerOptions.prompt.content)
+        const approvedToolCallIds = new Set(approved.map((a) => a.toolCallId))
+        const deniedByToolCallId = new Map(denied.map((d) => [d.toolCallId, d]))
+
+        // Helper function to handle tool calls with approval logic
+        const handleToolCall = (part: Response.ToolCallPartEncoded) =>
+          Effect.gen(function*() {
+            const tool = toolkit.tools[part.name]
+            if (!tool) return
+
+            if (deniedByToolCallId.has(part.id)) {
+              const denial = deniedByToolCallId.get(part.id)!
+              const deniedPart = Response.makePart("tool-result", {
                 id: part.id,
                 name: part.name,
                 providerExecuted: false,
-                ...result
+                isFailure: true,
+                result: { type: "execution-denied", reason: denial.reason },
+                encodedResult: { type: "execution-denied", reason: denial.reason },
+                preliminary: false
               }) as Response.StreamPart<Tools>
-              return Queue.offer(queue, toolResultPart)
-            })
-          )
+              yield* Queue.offer(queue, deniedPart)
+              return
+            }
+
+            if (approvedToolCallIds.has(part.id)) {
+              yield* toolkit.handle(part.name, part.params as any).pipe(
+                Stream.unwrap,
+                Stream.runForEach((result) => {
+                  const toolResultPart = Response.makePart("tool-result", {
+                    id: part.id,
+                    name: part.name,
+                    providerExecuted: false,
+                    ...result
+                  }) as Response.StreamPart<Tools>
+                  return Queue.offer(queue, toolResultPart)
+                })
+              )
+              return
+            }
+
+            const needsApproval = yield* isApprovalNeeded(tool, part, providerOptions.prompt.content)
+            if (needsApproval) {
+              const idGen = yield* IdGenerator
+              const approvalId = yield* idGen.generateId()
+              const approvalPart = Response.makePart("tool-approval-request", {
+                approvalId,
+                toolCallId: part.id
+              }) as Response.StreamPart<Tools>
+              yield* Queue.offer(queue, approvalPart)
+              return
+            }
+
+            yield* toolkit.handle(part.name, part.params as any).pipe(
+              Stream.unwrap,
+              Stream.runForEach((result) => {
+                const toolResultPart = Response.makePart("tool-result", {
+                  id: part.id,
+                  name: part.name,
+                  providerExecuted: false,
+                  ...result
+                }) as Response.StreamPart<Tools>
+                return Queue.offer(queue, toolResultPart)
+              })
+            )
+          })
 
         yield* params.streamText(providerOptions).pipe(
           Stream.runForEachArray(Effect.fnUntraced(function*(chunk) {
@@ -903,7 +961,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             // Fork tool call handlers - use the raw chunk for encoded params
             for (const part of chunk) {
               if (part.type === "tool-call" && part.providerExecuted !== true) {
-                yield* FiberSet.run(toolCallFibers, executeToolCall(part))
+                yield* FiberSet.run(toolCallFibers, handleToolCall(part))
               }
             }
           })),
@@ -1045,28 +1103,108 @@ export const streamText = <
 > => Stream.unwrap(Effect.map(LanguageModel.asEffect(), (model) => model.streamText(options)))
 
 // =============================================================================
+// Tool Approval Helpers
+// =============================================================================
+
+interface CollectedApproval {
+  readonly approvalId: string
+  readonly toolCallId: string
+  readonly approved: boolean
+  readonly reason?: string | undefined
+}
+
+const collectToolApprovals = (
+  messages: ReadonlyArray<Prompt.Message>
+): { readonly approved: Array<CollectedApproval>; readonly denied: Array<CollectedApproval> } => {
+  const lastMessage = messages.at(-1)
+  if (lastMessage?.role !== "tool") {
+    return { approved: [], denied: [] }
+  }
+
+  const approvalRequests = new Map<string, { approvalId: string; toolCallId: string }>()
+  for (const msg of messages) {
+    if (msg.role === "assistant") {
+      for (const part of msg.content) {
+        if (part.type === "tool-approval-request") {
+          approvalRequests.set(part.approvalId, {
+            approvalId: part.approvalId,
+            toolCallId: part.toolCallId
+          })
+        }
+      }
+    }
+  }
+
+  const approved: Array<CollectedApproval> = []
+  const denied: Array<CollectedApproval> = []
+
+  for (const part of lastMessage.content) {
+    if (part.type === "tool-approval-response") {
+      const request = approvalRequests.get(part.approvalId)
+      if (request) {
+        const collected: CollectedApproval = {
+          approvalId: part.approvalId,
+          toolCallId: request.toolCallId,
+          approved: part.approved,
+          reason: part.reason
+        }
+        if (part.approved) {
+          approved.push(collected)
+        } else {
+          denied.push(collected)
+        }
+      }
+    }
+  }
+
+  return { approved, denied }
+}
+
+const isApprovalNeeded = <T extends Tool.Any>(
+  tool: T,
+  toolCall: Response.ToolCallPartEncoded,
+  messages: ReadonlyArray<Prompt.Message>
+): Effect.Effect<boolean, never, Tool.HandlerServices<T>> =>
+  Effect.gen(function*() {
+    if (tool.needsApproval == null) return false
+    if (typeof tool.needsApproval === "boolean") return tool.needsApproval
+
+    const params = yield* Schema.decodeEffect(tool.parametersSchema)(toolCall.params as any)
+    const context: Tool.NeedsApprovalContext = {
+      toolCallId: toolCall.id,
+      messages
+    }
+    const result = (tool.needsApproval as Tool.NeedsApprovalFunction<any>)(params, context)
+
+    return Effect.isEffect(result) ? yield* result : result
+  }).pipe(Effect.catch(() => Effect.succeed(false)))
+
+// =============================================================================
 // Tool Call Resolution
 // =============================================================================
+
+type ToolResolutionResult<Tools extends Record<string, Tool.Any>> =
+  | Response.ToolResultPart<
+    Tool.Name<Tools[keyof Tools]>,
+    Tool.Success<Tools[keyof Tools]>,
+    Tool.Failure<Tools[keyof Tools]>
+  >
+  | Response.ToolApprovalRequestPart
 
 const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
   content: ReadonlyArray<Response.AllPartsEncoded>,
   toolkit: Toolkit.WithHandler<Tools>,
+  messages: ReadonlyArray<Prompt.Message>,
   concurrency: Concurrency | undefined
 ): Stream.Stream<
-  Response.ToolResultPart<
-    Tool.Name<Tools[keyof Tools]>,
-    Tool.Success<Tools[keyof Tools]>,
-    Tool.Failure<Tools[keyof Tools]>
-  >,
+  ToolResolutionResult<Tools>,
   Tool.HandlerError<Tools[keyof Tools]> | AiError.AiError,
-  Tool.HandlerServices<Tools[keyof Tools]>
+  Tool.HandlerServices<Tools[keyof Tools]> | IdGenerator
 > => {
-  const toolNames: Array<string> = []
   const toolCalls: Array<Response.ToolCallPartEncoded> = []
 
   for (const part of content) {
     if (part.type === "tool-call") {
-      toolNames.push(part.name)
       if (part.providerExecuted === true) {
         continue
       }
@@ -1074,22 +1212,70 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
     }
   }
 
-  const streams = toolCalls.map((tool) =>
-    toolkit.handle(tool.name, tool.params as any).pipe(
-      Stream.unwrap,
-      Stream.map((result) =>
-        Response.makePart("tool-result", {
-          id: tool.id,
-          name: tool.name,
-          providerExecuted: false,
-          ...result
-        }) as Response.ToolResultPart<
-          Tool.Name<Tools[keyof Tools]>,
-          Tool.Success<Tools[keyof Tools]>,
-          Tool.Failure<Tools[keyof Tools]>
-        >
+  const { approved, denied } = collectToolApprovals(messages)
+  const approvedToolCallIds = new Set(approved.map((a) => a.toolCallId))
+  const deniedByToolCallId = new Map(denied.map((d) => [d.toolCallId, d]))
+
+  const streams = toolCalls.map((toolCall) =>
+    Effect.gen(function*() {
+      const tool = toolkit.tools[toolCall.name]
+      if (!tool) {
+        return Stream.empty
+      }
+
+      if (deniedByToolCallId.has(toolCall.id)) {
+        const denial = deniedByToolCallId.get(toolCall.id)!
+        return Stream.succeed(
+          Response.makePart("tool-result", {
+            id: toolCall.id,
+            name: toolCall.name,
+            providerExecuted: false,
+            isFailure: true,
+            result: { type: "execution-denied", reason: denial.reason },
+            encodedResult: { type: "execution-denied", reason: denial.reason },
+            preliminary: false
+          }) as ToolResolutionResult<Tools>
+        )
+      }
+
+      if (approvedToolCallIds.has(toolCall.id)) {
+        return toolkit.handle(toolCall.name, toolCall.params as any).pipe(
+          Stream.unwrap,
+          Stream.map((result) =>
+            Response.makePart("tool-result", {
+              id: toolCall.id,
+              name: toolCall.name,
+              providerExecuted: false,
+              ...result
+            }) as ToolResolutionResult<Tools>
+          )
+        )
+      }
+
+      const needsApproval = yield* isApprovalNeeded(tool, toolCall, messages)
+      if (needsApproval) {
+        const idGen = yield* IdGenerator
+        const approvalId = yield* idGen.generateId()
+        return Stream.succeed(
+          Response.makePart("tool-approval-request", {
+            approvalId,
+            toolCallId: toolCall.id
+          }) as ToolResolutionResult<Tools>
+        )
+      }
+
+      return toolkit.handle(toolCall.name, toolCall.params as any).pipe(
+        Stream.unwrap,
+        Stream.map((result) =>
+          Response.makePart("tool-result", {
+            id: toolCall.id,
+            name: toolCall.name,
+            providerExecuted: false,
+            ...result
+          }) as ToolResolutionResult<Tools>
+        )
       )
-    )
+    }).pipe(Stream.unwrap)
   )
 
   const resolveConcurrency = concurrency === "inherit"
