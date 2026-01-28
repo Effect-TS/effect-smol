@@ -82,8 +82,7 @@ export interface Stream<out A, out E = never, out R = never> extends Variance<A,
 }
 
 /**
- * Interface for Stream unification, used internally by the Effect type system
- * to provide proper type inference when using Stream with other Effect types.
+ * Type-level unification hook for Stream within the Effect type system.
  *
  * @example
  * ```ts
@@ -98,15 +97,14 @@ export interface Stream<out A, out E = never, out R = never> extends Variance<A,
  * ```
  *
  * @since 2.0.0
- * @category models
+ * @category Models
  */
 export interface StreamUnify<A extends { [Unify.typeSymbol]?: any }> extends Effect.EffectUnify<A> {
   Stream?: () => A[Unify.typeSymbol] extends Stream<infer A0, infer E0, infer R0> | infer _ ? Stream<A0, E0, R0> : never
 }
 
 /**
- * Interface used to ignore certain types during Stream unification.
- * Part of the internal type system machinery.
+ * Type-level marker that excludes Stream from unification.
  *
  * @example
  * ```ts
@@ -117,7 +115,7 @@ export interface StreamUnify<A extends { [Unify.typeSymbol]?: any }> extends Eff
  * type StreamIgnore = Stream.StreamUnifyIgnore
  * ```
  *
- * @category models
+ * @category Models
  * @since 2.0.0
  */
 export interface StreamUnifyIgnore extends Effect.EffectUnifyIgnore {
@@ -125,7 +123,7 @@ export interface StreamUnifyIgnore extends Effect.EffectUnifyIgnore {
 }
 
 /**
- * Type lambda for Stream, used for higher-kinded type operations.
+ * Type lambda for Stream used in higher-kinded type operations.
  *
  * @example
  * ```ts
@@ -137,7 +135,7 @@ export interface StreamUnifyIgnore extends Effect.EffectUnifyIgnore {
  * // Equivalent to: Stream<number, string, never>
  * ```
  *
- * @category type lambdas
+ * @category Type Lambdas
  * @since 2.0.0
  */
 export interface StreamTypeLambda extends TypeLambda {
@@ -145,20 +143,20 @@ export interface StreamTypeLambda extends TypeLambda {
 }
 
 /**
- * Variance interface for Stream, encoding the type parameters' variance.
+ * Variance markers for Stream type parameters.
  *
  * @since 2.0.0
- * @category models
+ * @category Models
  */
 export interface Variance<out A, out E, out R> {
   readonly [TypeId]: VarianceStruct<A, E, R>
 }
 
 /**
- * Structure encoding the variance of Stream type parameters.
+ * Structural encoding of Stream type parameter variance.
  *
- * @since 3.4.0
- * @category models
+ * @since 2.0.0
+ * @category Models
  */
 export interface VarianceStruct<out A, out E, out R> {
   readonly _A: Covariant<A>
