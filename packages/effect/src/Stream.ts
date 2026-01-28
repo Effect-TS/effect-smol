@@ -5848,12 +5848,29 @@ export const pipeThroughChannelOrFail: {
 ): Stream<A2, E | E2, R | R2> => fromChannel(Channel.pipeToOrFail(self.channel, channel)))
 
 /**
- * Pipes all of the values from this stream through the provided sink.
+ * Pipes the stream through `Sink.toChannel`, emitting only the sink leftovers.
  *
- * See also `Stream.transduce`.
+ * If the sink completes mid-chunk, the remaining elements become the output stream.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Sink, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const leftovers = yield* Stream.make(1, 2, 3, 4).pipe(
+ *     Stream.pipeThrough(Sink.take(2)),
+ *     Stream.runCollect
+ *   )
+ *
+ *   yield* Console.log(leftovers)
+ * })
+ *
+ * Effect.runPromise(program)
+ * //=> [ 3, 4 ]
+ * ```
  *
  * @since 2.0.0
- * @category utils
+ * @category Pipe
  */
 export const pipeThrough: {
   <A2, A, L, E2, R2>(sink: Sink.Sink<A2, A, L, E2, R2>): <E, R>(self: Stream<A, E, R>) => Stream<L, E2 | E, R2 | R>
