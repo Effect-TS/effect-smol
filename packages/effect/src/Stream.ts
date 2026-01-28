@@ -5723,49 +5723,18 @@ export const pipeThroughChannel: {
 ): Stream<A2, E2, R | R2> => fromChannel(Channel.pipeTo(self.channel, channel)))
 
 /**
- * Pipes all values from this stream through the provided channel, passing
- * through any error emitted by this stream unchanged.
+ * Pipes values through the provided channel while preserving this stream's
+ * failures alongside any channel failures.
  *
- * This function is similar to `pipeThroughChannel` but preserves the original stream's
- * error type in addition to any errors the channel might produce. The result stream
- * can fail with either E (original stream errors) or E2 (channel errors).
+ * Upstream failures are not passed to the channel, so the resulting stream can
+ * fail with either the original stream error or the channel error.
  *
  * @example
  * ```ts
  * import type { Channel } from "effect"
  * import { Console, Effect, Stream } from "effect"
  *
- * // Channel that might fail during processing
  * declare const transformChannel: Channel.Channel<
- *   readonly [string, ...Array<string>],
- *   "ChannelError",
- *   unknown,
- *   readonly [number, ...Array<number>],
- *   never,
- *   unknown,
- *   never
- * >
- *
- * const program = Stream.make(1, 2, 3).pipe(
- *   Stream.pipeThroughChannelOrFail(transformChannel),
- *   Stream.runCollect,
- *   Effect.flatMap((result) => Console.log(result))
- * )
- * ```
- *
- * @example
- * ```ts
- * import type { Channel } from "effect"
- * import { Console, Effect, Stream } from "effect"
- *
- * // Demonstrate error preservation: both stream and channel can fail
- * const failingStream = Stream.make(1, 2, 3).pipe(
- *   Stream.flatMap((n) =>
- *     n === 2 ? Stream.fail("StreamError" as const) : Stream.succeed(n)
- *   )
- * )
- *
- * declare const numericTransformChannel: Channel.Channel<
  *   readonly [string, ...Array<string>],
  *   "ChannelError",
  *   unknown,
@@ -5775,13 +5744,16 @@ export const pipeThroughChannel: {
  *   never
  * >
  *
- * const program = failingStream.pipe(
- *   Stream.pipeThroughChannelOrFail(numericTransformChannel),
- *   Stream.runCollect,
- *   Effect.catch((error: "StreamError" | "ChannelError") =>
- *     Console.log(`Caught error: ${error}`) // Could be "StreamError" or "ChannelError"
+ * Effect.runPromise(Effect.gen(function*() {
+ *   const result = yield* Stream.make(1, 2, 3).pipe(
+ *     Stream.pipeThroughChannelOrFail(transformChannel),
+ *     Stream.runCollect
  *   )
- * )
+ *
+ *   yield* Console.log(result)
+ * }))
+ * // Output:
+ * // ["1", "2", "3"]
  * ```
  *
  * @since 2.0.0
