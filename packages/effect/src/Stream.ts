@@ -6510,8 +6510,29 @@ export const withSpan: {
 } as any
 
 /**
+ * Provides the entry point for do-notation style stream composition.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream, pipe } from "effect"
+ *
+ * const program = pipe(
+ *   Stream.Do,
+ *   Stream.bind("value", () => Stream.fromArray([1, 2])),
+ *   Stream.let("next", ({ value }) => value + 1)
+ * )
+ *
+ * const effect = Effect.gen(function*() {
+ *   const collected = yield* Stream.runCollect(program)
+ *   yield* Console.log(collected)
+ * })
+ *
+ * Effect.runPromise(effect)
+ * //=> [{ value: 1, next: 2 }, { value: 2, next: 3 }]
+ * ```
+ *
  * @since 4.0.0
- * @category Do notation
+ * @category Do Notation
  */
 export const Do: Stream<{}> = succeed({})
 
