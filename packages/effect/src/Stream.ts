@@ -6319,8 +6319,23 @@ export const onStart: {
 ): Stream<A, E | EX, R | RX> => fromChannel(Channel.onStart(self.channel, onStart)))
 
 /**
+ * Runs the provided effect with the first element emitted by the stream.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * Effect.runPromise(Effect.gen(function* () {
+ *   yield* Stream.fromArray([1, 2, 3]).pipe(
+ *     Stream.onFirst((value) => Console.log(`first=${value}`)),
+ *     Stream.runDrain
+ *   )
+ * }))
+ * // Output: first=1
+ * ```
+ *
  * @since 4.0.0
- * @category utils
+ * @category Utils
  */
 export const onFirst: {
   <A, X, EX, RX>(
