@@ -7239,8 +7239,10 @@ export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
   toAsyncIterableWith(self, ServiceMap.empty())
 
 /**
+ * Runs the stream, publishing elements into the provided PubSub.
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runIntoPubSub: {
   <A>(
