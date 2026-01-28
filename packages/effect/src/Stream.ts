@@ -5886,12 +5886,28 @@ export const changesWith: {
 )
 
 /**
- * Returns a new stream that only emits elements that are not equal to the
- * previous element emitted, using the specified function to determine whether
- * two elements are equal.
+ * Emits only elements that differ from the previous element, using an effectful equality check.
+ *
+ * The predicate runs for each element after the first; returning `true` treats it as equal and skips it.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.make(1, 1, 2, 2, 3, 3).pipe(
+ *     Stream.changesWithEffect((a, b) => Effect.succeed(a === b))
+ *   )
+ *   const result = yield* Stream.runCollect(stream)
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // { _id: "Chunk", values: [ 1, 2, 3 ] }
+ * ```
  *
  * @since 2.0.0
- * @category De-duplication
+ * @category Deduplication
  */
 export const changesWithEffect: {
   <A, E2, R2>(
