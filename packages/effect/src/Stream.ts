@@ -890,18 +890,24 @@ export const die = (defect: unknown): Stream<never> => fromChannel(Channel.die(d
  *
  * @example
  * ```ts
- * import { Cause, Effect, Stream } from "effect"
+ * import { Cause, Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.failCauseSync(() =>
  *   Cause.fail("Connection timeout after retries")
  * )
  *
- * Effect.runPromiseExit(Stream.runCollect(stream)).then(console.log)
- * // Exit.Failure with the lazily evaluated cause
+ * const program = Effect.gen(function*() {
+ *   const exit = yield* Stream.runCollect(stream).pipe(Effect.exit)
+ *   yield* Console.log(exit)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // { _id: 'Exit', _tag: 'Failure', cause: { _id: 'Cause', _tag: 'Fail', failure: 'Connection timeout after retries' } }
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Stream<never, E> =>
   fromChannel(Channel.failCauseSync(evaluate))
