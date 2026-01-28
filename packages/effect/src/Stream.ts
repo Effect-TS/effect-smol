@@ -2005,8 +2005,36 @@ export const tap: {
   ))
 
 /**
+ * Returns a stream that effectfully "peeks" at elements and failures.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2).pipe(
+ *   Stream.mapEffect((n) =>
+ *     n === 2 ? Effect.fail("boom") : Effect.succeed(n)
+ *   ),
+ *   Stream.tapBoth({
+ *     onElement: (value) => Console.log(`value: ${value}`),
+ *     onError: (error) => Console.log(`error: ${error}`)
+ *   }),
+ *   Stream.catch((error) => Stream.succeed(`recovered: ${error}`))
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.runCollect(stream)
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: value: 1
+ * // Output: error: boom
+ * // Output: [ 1, "recovered: boom" ]
+ * ```
+ *
  * @since 2.0.0
- * @category sequencing
+ * @category Sequencing
  */
 export const tapBoth: {
   <A, E, X, E2, R2, Y, E3, R3>(
