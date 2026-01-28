@@ -854,8 +854,34 @@ export const failSync = <E>(evaluate: LazyArg<E>): Stream<never, E> => fromChann
 export const failCause = <E>(cause: Cause.Cause<E>): Stream<never, E> => fromChannel(Channel.failCause(cause))
 
 /**
+ * The stream that dies with the specified defect.
+ *
+ * @example
+ * ```ts
+ * import { Cause, Console, Effect, Exit, Stream } from "effect"
+ *
+ * const defect = new Error("Boom")
+ * const stream = Stream.die(defect)
+ *
+ * const program = Effect.gen(function*() {
+ *   const exit = yield* Effect.exit(Stream.runCollect(stream))
+ *   const message = Exit.match(exit, {
+ *     onSuccess: () => "Exit.Success",
+ *     onFailure: (cause) => {
+ *       const failure = cause.failures[0]
+ *       const defect = Cause.failureIsDie(failure) ? String(failure.defect) : "Unexpected failure"
+ *       return `Exit.Failure(${defect})`
+ *     }
+ *   })
+ *   yield* Console.log(message)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: Exit.Failure(Error: Boom)
+ * ```
+ *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const die = (defect: unknown): Stream<never> => fromChannel(Channel.die(defect))
 
