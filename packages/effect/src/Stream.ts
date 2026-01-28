@@ -1158,27 +1158,35 @@ export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E
   fromChannel(Channel.fromQueueArray(queue))
 
 /**
- * Creates a stream from a PubSub.
+ * Creates a stream from a subscription to a `PubSub`.
  *
  * @example
  * ```ts
- * import { Effect, PubSub, Stream } from "effect"
+ * import { Console, Effect, Fiber, PubSub, Stream } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.unbounded<number>()
  *
- *   // Publish some values
+ *   const fiber = yield* Stream.fromPubSub(pubsub).pipe(
+ *     Stream.take(3),
+ *     Stream.runCollect,
+ *     Effect.forkChild
+ *   )
+ *
  *   yield* PubSub.publish(pubsub, 1)
  *   yield* PubSub.publish(pubsub, 2)
  *   yield* PubSub.publish(pubsub, 3)
  *
- *   const stream = Stream.fromPubSub(pubsub)
- *   return yield* Stream.take(stream, 3).pipe(Stream.runCollect)
+ *   const values = yield* Fiber.join(fiber)
+ *   yield* Console.log(values)
  * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromPubSub = <A>(pubsub: PubSub.PubSub<A>): Stream<A> => fromChannel(Channel.fromPubSubArray(pubsub))
 
