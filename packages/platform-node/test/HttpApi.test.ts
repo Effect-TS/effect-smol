@@ -82,9 +82,10 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("get", "/:id", {
+            path: {
+              id: Schema.FiniteFromString
+            },
             success: Schema.String
-          }).setPath({
-            id: Schema.FiniteFromString
           })
         )
       )
@@ -112,9 +113,10 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("get", "/", {
+            urlParams: {
+              id: Schema.FiniteFromString
+            },
             success: Schema.String
-          }).setUrlParams({
-            id: Schema.FiniteFromString
           })
         )
       )
@@ -212,9 +214,10 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("get", "/:id", {
+            headers: {
+              id: Schema.FiniteFromString
+            },
             success: Schema.String
-          }).setHeaders({
-            id: Schema.FiniteFromString
           })
         )
       )
@@ -477,7 +480,9 @@ describe("HttpApi", () => {
 
     const Api = HttpApi.make("api").add(
       HttpApiGroup.make("group").add(
-        HttpApiEndpoint.get("error", "/error").addError(RateLimitErrorSchema)
+        HttpApiEndpoint.get("error", "/error", {
+          error: RateLimitErrorSchema
+        })
       )
     )
     const ApiLive = HttpApiBuilder.layer(Api).pipe(
@@ -661,8 +666,9 @@ class UsersApi extends HttpApiGroup.make("users")
 
 class TopLevelApi extends HttpApiGroup.make("root", { topLevel: true })
   .add(
-    HttpApiEndpoint.get("healthz", `/healthz`)
-      .addSuccess(HttpApiSchema.NoContent.annotate({ description: "Empty" }))
+    HttpApiEndpoint.get("healthz", `/healthz`, {
+      success: HttpApiSchema.NoContent.annotate({ description: "Empty" })
+    })
   )
 {}
 

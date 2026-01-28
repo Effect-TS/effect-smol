@@ -176,20 +176,21 @@ export const toHttpApiGroup = <const Name extends string, Type extends string, R
   let group = HttpApiGroup.make(name)
   for (const parentRpc_ of entity.protocol.requests.values()) {
     const parentRpc = parentRpc_ as any as Rpc.AnyWithProps
-    const endpoint = HttpApiEndpoint.post(parentRpc._tag, `/${tagToPath(parentRpc._tag)}/:entityId`)
-      .setPath(entityIdPath)
-      .setPayload(parentRpc.payloadSchema)
-      .addSuccess(parentRpc.successSchema)
-      .addError(Schema.Union([parentRpc.errorSchema, ...clientErrors]))
-      .annotateMerge(parentRpc.annotations)
+    const endpoint = HttpApiEndpoint.post(parentRpc._tag, `/${tagToPath(parentRpc._tag)}/:entityId`, {
+      path: entityIdPath,
+      payload: parentRpc.payloadSchema,
+      success: parentRpc.successSchema,
+      error: [parentRpc.errorSchema, ...clientErrors]
+    }).annotateMerge(parentRpc.annotations)
     const endpointDiscard = HttpApiEndpoint.post(
       `${parentRpc._tag}Discard`,
-      `/${tagToPath(parentRpc._tag)}/:entityId/discard`
-    )
-      .setPath(entityIdPath)
-      .setPayload(parentRpc.payloadSchema)
-      .addError(Schema.Union(clientErrors))
-      .annotateMerge(parentRpc.annotations)
+      `/${tagToPath(parentRpc._tag)}/:entityId/discard`,
+      {
+        path: entityIdPath,
+        payload: parentRpc.payloadSchema,
+        error: clientErrors
+      }
+    ).annotateMerge(parentRpc.annotations)
 
     group = group.add(endpoint).add(endpointDiscard) as any
   }
