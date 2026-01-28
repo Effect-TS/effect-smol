@@ -6302,8 +6302,29 @@ export const onError: {
 ): Stream<A, E, R | R2> => fromChannel(Channel.onError(self.channel, cleanup)))
 
 /**
+ * Runs the provided effect before this stream starts.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromArray([1, 2, 3]).pipe(
+ *     Stream.onStart(Console.log("Stream started"))
+ *   )
+ *
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // Stream started
+ * // [1, 2, 3]
+ * ```
+ *
  * @since 4.0.0
- * @category utils
+ * @category Utils
  */
 export const onStart: {
   <X, EX, RX>(
