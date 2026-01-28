@@ -6244,7 +6244,7 @@ export const haltWhen: {
 )
 
 /**
- * Executes the provided finalizer after this stream's finalizers run.
+ * Runs the provided finalizer when the stream exits, passing the exit value.
  *
  * @example
  * ```ts
@@ -6258,12 +6258,15 @@ export const haltWhen: {
  *   )
  * )
  *
- * Effect.runPromise(Stream.runCollect(stream))
+ * Effect.runPromise(Effect.gen(function*() {
+ *   yield* Stream.runCollect(stream)
+ * }))
+ * // Output:
  * // Stream completed successfully
  * ```
  *
  * @since 4.0.0
- * @category utils
+ * @category Utils
  */
 export const onExit: {
   <E, R2>(
