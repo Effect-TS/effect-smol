@@ -6513,11 +6513,11 @@ export const provide: {
  * ```ts
  * import { Console, Effect, ServiceMap, Stream } from "effect"
  *
- * const Config = ServiceMap.Service<{ readonly prefix: string }>("Config")
- * const Greeter = ServiceMap.Service<{ greet: (name: string) => string }>("Greeter")
+ * class Config extends ServiceMap.Service<Config, { readonly prefix: string }>()("Config") {}
+ * class Greeter extends ServiceMap.Service<Greeter, { greet: (name: string) => string }>()("Greeter") {}
  *
  * const services = ServiceMap.make(Config, { prefix: "Hello" }).pipe(
- *   ServiceMap.add(Greeter, { greet: (name) => `${name}!` })
+ *   ServiceMap.add(Greeter, { greet: (name: string) => `${name}!` })
  * )
  *
  * const stream = Stream.fromEffect(
