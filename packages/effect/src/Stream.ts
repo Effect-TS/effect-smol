@@ -1098,14 +1098,16 @@ export const fromArrays = <Arr extends ReadonlyArray<ReadonlyArray<any>>>(
 ): Stream<Arr[number][number]> => fromChannel(Channel.fromArray(Arr.filter(arrays, Arr.isReadonlyArrayNonEmpty)))
 
 /**
- * Creates a stream from a queue.
+ * Creates a stream from a queue of values.
  *
- * This function creates a Stream that consumes values from the provided Queue.
- * The stream will emit values as they become available from the queue.
+ * **Options**
+ *
+ * - `maxChunkSize`: The maximum number of queued elements to put in one chunk in the stream
+ * - `shutdown`: If `true`, the queue will be shutdown after the stream is evaluated (defaults to `false`)
  *
  * @example
  * ```ts
- * import { Effect, Queue, Stream } from "effect"
+ * import { Console, Effect, Queue, Stream } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.unbounded<number>()
@@ -1115,12 +1117,16 @@ export const fromArrays = <Arr extends ReadonlyArray<ReadonlyArray<any>>>(
  *   yield* Queue.shutdown(queue)
  *
  *   const stream = Stream.fromQueue(queue)
- *   return yield* Stream.runCollect(stream)
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
  * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E, Cause.Done>> =>
   fromChannel(Channel.fromQueueArray(queue))
