@@ -1041,10 +1041,7 @@ export const fromIterableEffectRepeat = <A, E, R>(
 ): Stream<A, Pull.ExcludeDone<E>, R> => flatMap(fromEffectRepeat(iterable), fromIterable)
 
 /**
- * Creates a stream from an array.
- *
- * This function creates a Stream that emits all values from the provided array.
- * If the array is empty, it returns an empty Stream.
+ * Creates a stream from an array of values.
  *
  * **Previously Known As**
  *
@@ -1054,16 +1051,20 @@ export const fromIterableEffectRepeat = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const stream = Stream.fromArray(numbers)
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromArray([1, 2, 3])
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
  *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
   Arr.isReadonlyArrayNonEmpty(array) ? fromChannel(Channel.succeed(array)) : empty
