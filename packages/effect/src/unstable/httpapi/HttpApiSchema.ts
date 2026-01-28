@@ -51,19 +51,15 @@ export function getStatusError(self: AST.AST): number {
 const resolveHttpApiIsContainer = AST.resolveAt<boolean>("httpApiIsContainer")
 
 /** @internal */
-export function isHttpApiContainer(ast: AST.AST): ast is AST.Union {
+export function isHttpApiContainer(schema: Schema.Top): schema is Schema.Union<ReadonlyArray<Schema.Top>> {
+  const ast = schema.ast
   return AST.isUnion(ast) && resolveHttpApiIsContainer(ast) === true
 }
 
 /** @internal */
 export function makeHttpApiContainer(schemas: ReadonlyArray<Schema.Top>): Schema.Top {
-  return Schema.make(makeHttpApiContainerAST(schemas.map((schema) => schema.ast)))
-}
-
-/** @internal */
-export function makeHttpApiContainerAST(asts: ReadonlyArray<AST.AST>): AST.AST {
-  asts = [...new Set(asts)] // unique
-  return asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf", { httpApiIsContainer: true })
+  schemas = [...new Set(schemas)] // unique
+  return schemas.length === 1 ? schemas[0] : Schema.Union(schemas).annotate({ httpApiIsContainer: true })
 }
 
 // TODO: add description
@@ -377,17 +373,12 @@ export const EmptyError = <Self>() =>
 }
 
 /** @internal */
-export function forEachMember(schema: Schema.Top, f: (member: Schema.Top) => void): void {
-  const ast = schema.ast
-  if (isHttpApiContainer(ast)) {
-    for (const type of ast.types) {
-      if (AST.isNever(type)) {
-        continue
-      }
-      const memberSchema = Schema.make(type)
-      f(memberSchema)
+export function forEach(schema: Schema.Top, f: (schema: Schema.Top) => void): void {
+  if (isHttpApiContainer(schema)) {
+    for (const member of schema.members) {
+      f(member)
     }
-  } else if (!AST.isNever(ast)) {
+  } else {
     f(schema)
   }
 }
