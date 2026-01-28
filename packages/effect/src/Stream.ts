@@ -6554,8 +6554,28 @@ const let_: {
   map(self, (a) => ({ ...a, [name]: f(a) } as any)))
 export {
   /**
+   * Adds a computed field to the current Do-notation record.
+   *
+   * @example
+   * ```ts
+   * import { Console, Effect, Stream } from "effect"
+   *
+   * const stream = Stream.Do.pipe(
+   *   Stream.let("x", () => 2),
+   *   Stream.let("y", ({ x }) => x * 3)
+   * )
+   *
+   * const program = Effect.gen(function*() {
+   *   const records = yield* Stream.runCollect(stream)
+   *   yield* Console.log(records)
+   * })
+   *
+   * Effect.runPromise(program)
+   * // [{ x: 2, y: 6 }]
+   * ```
+   *
    * @since 4.0.0
-   * @category Do notation
+   * @category Do Notation
    */
   let_ as let
 }
