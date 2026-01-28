@@ -21,6 +21,7 @@ import * as internal from "./internal/stream.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
 import type * as Layer from "./Layer.ts"
+import type * as LogLevel from "./LogLevel.ts"
 import * as MutableHashMap from "./MutableHashMap.ts"
 import * as MutableList from "./MutableList.ts"
 import * as Option from "./Option.ts"
@@ -5203,28 +5204,50 @@ export const ignore = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => f
 /**
  * Ignores the stream's failure cause, including defects, and ends the stream.
  *
+ * Use the `log` option to emit the full {@link Cause} when the stream fails.
+ *
  * @example
  * ```ts
- * import { Console, Effect, Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
- * const program = Effect.gen(function*() {
- *   const stream = Stream.make(1, 2).pipe(
- *     Stream.concat(Stream.die(new Error("Boom"))),
- *     Stream.ignoreCause
- *   )
- *   const values = yield* Stream.runCollect(stream)
- *   yield* Console.log(values)
- *   // Output: [ 1, 2 ]
- * })
+ * const stream = Stream.make(1, 2).pipe(
+ *   Stream.concat(Stream.fail("boom")),
+ *   Stream.ignoreCause({ log: "Error" })
+ * )
  *
- * Effect.runPromise(program)
+ * const program = Stream.runCollect(stream)
  * ```
  *
  * @since 4.0.0
  * @category Error Handling
  */
-export const ignoreCause = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> =>
-  fromChannel(Channel.ignoreCause(self.channel))
+export const ignoreCause: <
+  Arg extends Stream<any, any, any> | {
+    readonly log?: boolean | LogLevel.LogLevel | undefined
+  } | undefined
+>(
+  streamOrOptions: Arg,
+  options?: {
+    readonly log?: boolean | LogLevel.LogLevel | undefined
+  } | undefined
+) => [Arg] extends [Stream<infer A, infer _E, infer R>] ? Stream<A, never, R>
+  : <A, E, R>(self: Stream<A, E, R>) => Stream<A, never, R> = dual(
+    (args) => isStream(args[0]),
+    <A, E, R>(
+      self: Stream<A, E, R>,
+      options?: { readonly log?: boolean | LogLevel.LogLevel | undefined } | undefined
+    ): Stream<A, never, R> => {
+      if (!options?.log) {
+        return fromChannel(Channel.ignoreCause(self.channel))
+      }
+      const logEffect = Effect.logWithLevel(options.log === true ? undefined : options.log)
+      return self.channel.pipe(
+        Channel.tapCause((cause) => logEffect(cause)),
+        Channel.ignoreCause,
+        fromChannel
+      )
+    }
+  )
 
 /**
  * When the stream fails, retry it according to the given schedule.
