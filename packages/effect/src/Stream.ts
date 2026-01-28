@@ -2345,7 +2345,7 @@ export const flatten: {
 ): Stream<A, E | E2, R | R2> => flatMap(self, identity, options))
 
 /**
- * Flattens a stream of non-empty arrays into a single stream.
+ * Flattens a stream of non-empty arrays into a stream of elements.
  *
  * **Previously Known As**
  *
@@ -2353,8 +2353,23 @@ export const flatten: {
  *
  * - `Stream.flattenChunks`
  *
+ * @example
+ * ```ts
+ * import { Array, Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(Array.make(1, 2), Array.make(3))
+ *
+ * const program = Effect.gen(function* () {
+ *   const result = yield* Stream.runCollect(Stream.flattenArray(stream))
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
+ * ```
+ *
  * @since 4.0.0
- * @category sequencing
+ * @category Sequencing
  */
 export const flattenArray = <A, E, R>(self: Stream<Arr.NonEmptyReadonlyArray<A>, E, R>): Stream<A, E, R> =>
   fromChannel(Channel.flattenArray(self.channel))
