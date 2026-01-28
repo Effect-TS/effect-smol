@@ -5993,8 +5993,23 @@ export const encodeText = <E, R>(self: Stream<string, E, R>): Stream<Uint8Array,
   })
 
 /**
+ * Splits a stream of strings into lines, handling `\n`, `\r`, and `\r\n` delimiters across chunks.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * Effect.runPromise(Effect.gen(function* () {
+ *   const lines = yield* Stream.runCollect(
+ *     Stream.make("a\nb\r\n", "c\n").pipe(Stream.splitLines)
+ *   )
+ *   yield* Console.log(lines)
+ * }))
+ * // { _id: 'Chunk', values: [ 'a', 'b', 'c' ] }
+ * ```
+ *
  * @since 2.0.0
- * @category encoding
+ * @category Encoding
  */
 export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, R> =>
   self.channel.pipe(
