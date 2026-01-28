@@ -293,11 +293,11 @@ export type HaltStrategy = Channel.HaltStrategy
  *   const channel = Channel.succeed([1, 2, 3] as const)
  *   const stream = Stream.fromChannel(channel)
  *   const result = yield* Stream.runCollect(stream)
- *   yield* Console.log(result)
+ *   yield* Console.log(Array.from(result))
  * })
  *
  * Effect.runPromise(program)
- * // Output: { _id: 'Chunk', values: [ 1, 2, 3 ] }
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 2.0.0
