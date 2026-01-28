@@ -617,22 +617,23 @@ export const callback = <A, E = never, R = never>(
 ): Stream<A, E, Exclude<R, Scope.Scope>> => fromChannel(Channel.callbackArray(f, options))
 
 /**
- * Creates a `Stream` that emits no elements.
+ * Creates an empty stream.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const emptyStream = Stream.empty
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.empty.pipe(Stream.runCollect)
+ *   yield* Console.log(values)
+ * })
  *
- * // Running the empty stream produces an empty chunk
- * const program = emptyStream.pipe(Stream.runCollect)
- *
- * Effect.runPromise(program).then(console.log)
+ * Effect.runPromise(program)
+ * // []
  * ```
  *
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const empty: Stream<never> = fromChannel(Channel.empty)
 
