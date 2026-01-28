@@ -2379,8 +2379,23 @@ export const flattenArray = <A, E, R>(self: Stream<Arr.NonEmptyReadonlyArray<A>,
   fromChannel(Channel.flattenArray(self.channel))
 
 /**
+ * Converts this stream to one that runs its effects but emits no elements.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.range(1, 6).pipe(Stream.drain, Stream.runCollect)
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: []
+ * ```
+ *
  * @since 2.0.0
- * @category sequencing
+ * @category Sequencing
  */
 export const drain = <A, E, R>(self: Stream<A, E, R>): Stream<never, E, R> => fromChannel(Channel.drain(self.channel))
 
