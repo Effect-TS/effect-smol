@@ -1378,19 +1378,8 @@ export const fromSubscription = <A>(pubsub: PubSub.Subscription<A>): Stream<A> =
 /**
  * Interface representing an event listener target.
  *
- * @example
- * ```ts
- * import { Stream } from "effect"
- *
- * // DOM element implementing EventListener
- * declare const button: HTMLButtonElement
- *
- * // Can be used with Stream.fromEventListener
- * const clickStream = Stream.fromEventListener(button, "click")
- * ```
- *
  * @since 3.4.0
- * @category models
+ * @category Models
  */
 export interface EventListener<A> {
   addEventListener(
