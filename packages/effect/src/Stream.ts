@@ -1446,22 +1446,24 @@ export const fromEventListener = <A = unknown>(
   }, { bufferSize: typeof options === "object" ? options.bufferSize : undefined })
 
 /**
- * Creates a stream by peeling off the "layers" of a value of type `S`.
+ * Creates a stream by peeling off successive layers of a state value.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.unfold(1, (n) => Effect.succeed([n, n + 1]))
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.unfold(1, (n) => Effect.succeed([n, n + 1] as const))
+ *   const values = yield* Stream.runCollect(stream.pipe(Stream.take(5)))
+ *   yield* Console.log(values)
+ * })
  *
- * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(5)))).then(
- *   console.log
- * )
- * // [ 1, 2, 3, 4, 5 ]
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3, 4, 5 ]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const unfold = <S, A, E, R>(
   s: S,
