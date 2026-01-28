@@ -6222,17 +6222,29 @@ export const interruptWhen: {
 )
 
 /**
- * Halts the evaluation of this stream when the provided effect completes. The
- * given effect will be forked as part of the returned stream, and its success
- * will be discarded.
+ * Halts evaluation after the current element once the provided effect completes; the effect is forked, its success is discarded, failures fail the stream, and it does not interrupt an in-progress pull (use `interruptWhen` for that).
  *
- * An element in the process of being pulled will not be interrupted when the
- * effect completes. See `interruptWhen` for this behavior.
+ * @example
+ * ```ts
+ * import { Console, Deferred, Effect, Stream } from "effect"
  *
- * If the effect completes with a failure, the stream will emit that failure.
+ * const program = Effect.gen(function*() {
+ *   const halt = yield* Deferred.make<void>()
+ *   const values = yield* Stream.fromArray([1, 2, 3]).pipe(
+ *     Stream.tap((value) => value === 2 ? Deferred.succeed(halt, void 0) : Effect.void),
+ *     Stream.haltWhen(Deferred.await(halt)),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // [1, 2]
+ * ```
  *
  * @since 2.0.0
- * @category utils
+ * @category Utils
  */
 export const haltWhen: {
   <X, E2, R2>(effect: Effect.Effect<X, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
