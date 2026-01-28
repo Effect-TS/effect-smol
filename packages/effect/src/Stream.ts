@@ -7172,8 +7172,26 @@ export const toReadableStreamEffect: {
 )
 
 /**
+ * Converts the stream to an `AsyncIterable` using the provided services.
+ *
+ * @example
+ * ```ts
+ * import { ServiceMap, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ * const iterable = Stream.toAsyncIterableWith(stream, ServiceMap.empty())
+ *
+ * const collect = async () => {
+ *   const results: Array<number> = []
+ *   for await (const value of iterable) {
+ *     results.push(value)
+ *   }
+ *   return results
+ * }
+ * ```
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const toAsyncIterableWith: {
   <XR>(services: ServiceMap.ServiceMap<XR>): <A, E, R extends XR>(self: Stream<A, E, R>) => AsyncIterable<A>
