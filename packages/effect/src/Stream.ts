@@ -6623,22 +6623,20 @@ export const bindTo: {
 ): Stream<{ [K in N]: A }, E, R> => map(self, (a) => ({ [name]: a } as any)))
 
 /**
- * Runs the sink on the stream to produce either the sink's result or an error.
+ * Runs a stream with a sink and returns the sink result.
  *
  * @example
  * ```ts
- * import { Effect, Sink, Stream } from "effect"
+ * import { Console, Effect, Sink, Stream } from "effect"
  *
- * const stream = Stream.make(1, 2, 3, 4, 5)
- * const collectSink = Sink.succeed(42)
- * const result = Stream.run(stream, collectSink)
+ * const program = Stream.run(Stream.make(1, 2, 3), Sink.sum)
  *
- * Effect.runPromise(result).then(console.log)
- * // 42
+ * Effect.runPromise(Effect.flatMap(program, Console.log))
+ * // 6
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const run: {
   <A2, A, L, E2, R2>(
