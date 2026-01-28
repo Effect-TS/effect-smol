@@ -2140,26 +2140,26 @@ export const tapSink: {
 )
 
 /**
- * Returns a stream made of the concatenation in strict order of all the
- * streams produced by passing each element of this stream to `f0`
+ * Maps each element to a stream and concatenates the results in order.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.make(1, 2, 3)
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.make(1, 2, 3).pipe(
+ *     Stream.flatMap((n) => Stream.make(n, n * 2)),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(values)
+ * })
  *
- * const flatMapped = stream.pipe(
- *   Stream.flatMap((n) => Stream.make(n, n * 2))
- * )
- *
- * const program = flatMapped.pipe(Stream.runCollect)
- *
- * Effect.runPromise(program).then(console.log)
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 2, 4, 3, 6 ]
  * ```
  *
  * @since 2.0.0
- * @category sequencing
+ * @category Mapping
  */
 export const flatMap: {
   <A, A2, E2, R2>(
