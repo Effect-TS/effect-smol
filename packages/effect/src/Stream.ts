@@ -6501,6 +6501,27 @@ export const updateServices: {
 ): Stream<A, E, R2> => fromChannel(Channel.updateServices(self.channel, f)))
 
 /**
+ * Updates a single service in the stream environment by applying a function.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, ServiceMap, Stream } from "effect"
+ *
+ * const Counter = ServiceMap.Service<{ count: number }>("Counter")
+ *
+ * const stream = Stream.fromEffect(Effect.service(Counter)).pipe(
+ *   Stream.updateService(Counter, (counter) => ({ count: counter.count + 1 }))
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const counters = yield* Stream.runCollect(stream)
+ *   yield* Console.log(`Updated count: ${counters[0].count}`)
+ * })
+ *
+ * Effect.runPromise(Effect.provideService(program, Counter, { count: 0 }))
+ * // Output: Updated count: 1
+ * ```
+ *
  * @since 2.0.0
  * @category Services
  */
