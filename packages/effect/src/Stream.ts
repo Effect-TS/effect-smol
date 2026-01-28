@@ -6769,10 +6769,7 @@ export const provideService: {
  * ```ts
  * import { Console, Effect, ServiceMap, Stream } from "effect"
  *
- * interface ApiConfig {
- *   readonly baseUrl: string
- * }
- * const ApiConfig = ServiceMap.Service<ApiConfig>("ApiConfig")
+ * class ApiConfig extends ServiceMap.Service<ApiConfig, { readonly baseUrl: string }>()("ApiConfig") {}
  *
  * const stream = Stream.fromEffect(
  *   Effect.gen(function*() {
@@ -6781,13 +6778,13 @@ export const provideService: {
  *   })
  * )
  *
- * const withConfig = Stream.provideServiceEffect(
- *   stream,
- *   ApiConfig,
- *   Effect.gen(function*() {
- *     yield* Console.log("Loading config...")
- *     return { baseUrl: "https://example.com" }
- *   })
+ * const withConfig = stream.pipe(
+ *   Stream.provideServiceEffect(
+ *     ApiConfig,
+ *     Effect.succeed({ baseUrl: "https://example.com" }).pipe(
+ *       Effect.tap(() => Console.log("Loading config..."))
+ *     )
+ *   )
  * )
  *
  * const program = Stream.runCollect(withConfig).pipe(
