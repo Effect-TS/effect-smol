@@ -998,7 +998,7 @@ export type PayloadSchemaContraint<Method extends HttpMethod> = Method extends H
     string,
     Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>
   > :
-  Schema.Top
+  SuccessSchemaContraint
 
 /**
  * HTTP headers are string-valued (or missing).

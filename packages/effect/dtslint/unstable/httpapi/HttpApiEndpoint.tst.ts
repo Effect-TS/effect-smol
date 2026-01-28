@@ -229,7 +229,7 @@ describe("HttpApiEndpoint", () => {
         success: Schema.Struct({ a: Schema.String })
       })
       type T = typeof endpoint["successSchema"]
-      expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }> | undefined>()
+      expect<T>().type.toBe<Schema.Struct<{ readonly a: Schema.String }>>()
     })
   })
 })
