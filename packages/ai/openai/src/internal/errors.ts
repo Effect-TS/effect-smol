@@ -1,7 +1,6 @@
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import { dual } from "effect/Function"
-import * as Match from "effect/Match"
 import * as Number from "effect/Number"
 import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
@@ -46,62 +45,65 @@ export const mapSchemaError = dual<
 export const mapHttpClientError = dual<
   (method: string) => (error: HttpClientError.HttpClientError) => Effect.Effect<never, AiError.AiError>,
   (error: HttpClientError.HttpClientError, method: string) => Effect.Effect<never, AiError.AiError>
->(
-  2,
-  (error, method) =>
-    Match.value(error.reason).pipe(
-      Match.tags({
-        TransportError: (err) =>
-          Effect.fail(AiError.make({
-            module: "OpenAiClient",
-            method,
-            reason: new AiError.NetworkError({
-              reason: "TransportError",
-              description: err.description,
-              request: buildHttpRequestDetails(err.request)
-            })
-          })),
-        EncodeError: (err) =>
-          Effect.fail(AiError.make({
-            module: "OpenAiClient",
-            method,
-            reason: new AiError.NetworkError({
-              reason: "EncodeError",
-              description: err.description,
-              request: buildHttpRequestDetails(err.request)
-            })
-          })),
-        InvalidUrlError: (err) =>
-          Effect.fail(AiError.make({
-            module: "OpenAiClient",
-            method,
-            reason: new AiError.NetworkError({
-              reason: "InvalidUrlError",
-              description: err.description,
-              request: buildHttpRequestDetails(err.request)
-            })
-          })),
-        StatusCodeError: (err) => mapStatusCodeError(err, method),
-        DecodeError: (err) =>
-          Effect.fail(AiError.make({
-            module: "OpenAiClient",
-            method,
-            reason: new AiError.InvalidOutputError({
-              description: err.description ?? "Failed to decode response"
-            })
-          })),
-        EmptyBodyError: (err) =>
-          Effect.fail(AiError.make({
-            module: "OpenAiClient",
-            method,
-            reason: new AiError.InvalidOutputError({
-              description: err.description ?? "Response body was empty"
-            })
-          }))
-      }),
-      Match.exhaustive
-    )
-)
+>(2, (error, method) => {
+  const reason = error.reason
+  switch (reason._tag) {
+    case "TransportError": {
+      return Effect.fail(AiError.make({
+        module: "OpenAiClient",
+        method,
+        reason: new AiError.NetworkError({
+          reason: "TransportError",
+          description: reason.description,
+          request: buildHttpRequestDetails(reason.request)
+        })
+      }))
+    }
+    case "EncodeError": {
+      return Effect.fail(AiError.make({
+        module: "OpenAiClient",
+        method,
+        reason: new AiError.NetworkError({
+          reason: "EncodeError",
+          description: reason.description,
+          request: buildHttpRequestDetails(reason.request)
+        })
+      }))
+    }
+    case "InvalidUrlError": {
+      return Effect.fail(AiError.make({
+        module: "OpenAiClient",
+        method,
+        reason: new AiError.NetworkError({
+          reason: "InvalidUrlError",
+          description: reason.description,
+          request: buildHttpRequestDetails(reason.request)
+        })
+      }))
+    }
+    case "StatusCodeError": {
+      return mapStatusCodeError(reason, method)
+    }
+    case "DecodeError": {
+      return Effect.fail(AiError.make({
+        module: "OpenAiClient",
+        method,
+        reason: new AiError.InvalidOutputError({
+          description: reason.description ?? "Failed to decode response"
+        })
+      }))
+    }
+    case "EmptyBodyError": {
+      return Effect.fail(AiError.make({
+        module: "OpenAiClient",
+        method,
+        reason: new AiError.InvalidOutputError({
+          description: reason.description ?? "Response body was empty"
+        })
+      }))
+    }
+  }
+})
 
 /** @internal */
 const mapStatusCodeError = Effect.fnUntraced(function*(
@@ -114,7 +116,8 @@ const mapStatusCodeError = Effect.fnUntraced(function*(
   const requestId = headers["x-request-id"]
 
   // Try to parse the description as JSON to extract error details
-  let json: unknown
+  let json: unknown = undefined
+  // @effect-diagnostics effect/tryCatchInEffectGen:off
   try {
     json = Predicate.isNotUndefined(description) ? JSON.parse(description) : undefined
   } catch {

@@ -9700,6 +9700,58 @@ export const CodeInterpreterContainerAuto = Schema.Struct({
   "description":
     "Configuration for a code interpreter container. Optionally specify the IDs of the files to run the code on."
 })
+export type ResponseApplyPatchCallOperationDiffDeltaEvent = {
+  readonly "type": "response.apply_patch_call_operation_diff.delta"
+  readonly "sequence_number": number
+  readonly "output_index": number
+  readonly "item_id": string
+  readonly "delta": string
+}
+export const ResponseApplyPatchCallOperationDiffDeltaEvent = Schema.Struct({
+  "type": Schema.Literal("response.apply_patch_call_operation_diff.delta").annotate({
+    "description": "The event type identifier."
+  }),
+  "sequence_number": Schema.Number.annotate({ "description": "The sequence number of this event." }).check(
+    Schema.isInt()
+  ),
+  "output_index": Schema.Number.annotate({ "description": "The index of the output this delta applies to." }).check(
+    Schema.isInt()
+  ),
+  "item_id": Schema.String.annotate({
+    "description": "Unique identifier for the API item associated with this event."
+  }),
+  "delta": Schema.String.annotate({ "description": "The incremental diff data for the apply_patch tool call." })
+}).annotate({
+  "title": "ResponseApplyPatchCallOperationDiffDelta",
+  "description": "Event representing a delta for an apply_patch tool call operation diff."
+})
+export type ResponseApplyPatchCallOperationDiffDoneEvent = {
+  readonly "type": "response.apply_patch_call_operation_diff.done"
+  readonly "sequence_number": number
+  readonly "output_index": number
+  readonly "item_id": string
+  readonly "delta"?: string
+}
+export const ResponseApplyPatchCallOperationDiffDoneEvent = Schema.Struct({
+  "type": Schema.Literal("response.apply_patch_call_operation_diff.done").annotate({
+    "description": "The event type identifier."
+  }),
+  "sequence_number": Schema.Number.annotate({ "description": "The sequence number of this event." }).check(
+    Schema.isInt()
+  ),
+  "output_index": Schema.Number.annotate({ "description": "The index of the output this event applies to." }).check(
+    Schema.isInt()
+  ),
+  "item_id": Schema.String.annotate({
+    "description": "Unique identifier for the API item associated with this event."
+  }),
+  "delta": Schema.optionalKey(
+    Schema.String.annotate({ "description": "The final diff data for the apply_patch tool call." })
+  )
+}).annotate({
+  "title": "ResponseApplyPatchCallOperationDiffDone",
+  "description": "Event indicating that the operation diff for an apply_patch tool call is complete."
+})
 export type ApiKeyList = {
   readonly "object"?: string
   readonly "data"?: ReadonlyArray<AdminApiKey>
@@ -23832,6 +23884,8 @@ export type ResponseStreamEvent =
   | ResponseQueuedEvent
   | ResponseCustomToolCallInputDeltaEvent
   | ResponseCustomToolCallInputDoneEvent
+  | ResponseApplyPatchCallOperationDiffDeltaEvent
+  | ResponseApplyPatchCallOperationDiffDoneEvent
 export const ResponseStreamEvent = Schema.Union([
   ResponseAudioDeltaEvent,
   ResponseAudioDoneEvent,
@@ -23885,7 +23939,9 @@ export const ResponseStreamEvent = Schema.Union([
   ResponseOutputTextAnnotationAddedEvent,
   ResponseQueuedEvent,
   ResponseCustomToolCallInputDeltaEvent,
-  ResponseCustomToolCallInputDoneEvent
+  ResponseCustomToolCallInputDoneEvent,
+  ResponseApplyPatchCallOperationDiffDeltaEvent,
+  ResponseApplyPatchCallOperationDiffDoneEvent
 ])
 export type EvalRunList = {
   readonly "object": "list"
@@ -25770,15 +25826,29 @@ export const make = (
         )
       : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
   }
-  const sseRequest = <S extends Sse.EventSchema>(schema: S) =>
+  const sseRequest = <
+    Type extends {
+      readonly id?: string | undefined
+      readonly event: string
+      readonly data: unknown
+    },
+    DecodingServices
+  >(
+    schema: Schema.Decoder<Type, DecodingServices>
+  ) =>
   (
     request: HttpClientRequest.HttpClientRequest
-  ): Stream.Stream<S["Type"], HttpClientError.HttpClientError | SchemaError | Sse.Retry, S["DecodingServices"]> =>
+  ): Stream.Stream<Type, HttpClientError.HttpClientError | SchemaError | Sse.Retry, DecodingServices> =>
     HttpClient.filterStatusOk(httpClient).execute(request).pipe(
       Effect.map((response) => response.stream),
       Stream.unwrap,
       Stream.decodeText(),
-      Stream.pipeThroughChannel(Sse.decodeSchema(schema))
+      Stream.pipeThroughChannel(Sse.decodeSchema<
+        Type,
+        DecodingServices,
+        HttpClientError.HttpClientError,
+        unknown
+      >(schema))
     )
   const binaryRequest = (
     request: HttpClientRequest.HttpClientRequest
@@ -25853,8 +25923,7 @@ export const make = (
       HttpClientRequest.post(`/audio/speech`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         sseRequest(Schema.Struct({
-          event: Schema.String,
-          id: Schema.UndefinedOr(Schema.String),
+          ...Sse.EventEncoded.fields,
           data: CreateSpeech200Sse
         }))
       ),
@@ -25875,8 +25944,7 @@ export const make = (
       HttpClientRequest.post(`/audio/transcriptions`).pipe(
         HttpClientRequest.bodyFormData(options.payload as any),
         sseRequest(Schema.Struct({
-          event: Schema.String,
-          id: Schema.UndefinedOr(Schema.String),
+          ...Sse.EventEncoded.fields,
           data: CreateTranscription200Sse
         }))
       ),
@@ -25996,8 +26064,7 @@ export const make = (
       HttpClientRequest.post(`/chat/completions`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         sseRequest(Schema.Struct({
-          event: Schema.String,
-          id: Schema.UndefinedOr(Schema.String),
+          ...Sse.EventEncoded.fields,
           data: CreateChatCompletion200Sse
         }))
       ),
@@ -26439,8 +26506,7 @@ export const make = (
       HttpClientRequest.post(`/images/edits`).pipe(
         HttpClientRequest.bodyFormData(options.payload as any),
         sseRequest(Schema.Struct({
-          event: Schema.String,
-          id: Schema.UndefinedOr(Schema.String),
+          ...Sse.EventEncoded.fields,
           data: CreateImageEdit200Sse
         }))
       ),
@@ -26456,8 +26522,7 @@ export const make = (
       HttpClientRequest.post(`/images/generations`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         sseRequest(Schema.Struct({
-          event: Schema.String,
-          id: Schema.UndefinedOr(Schema.String),
+          ...Sse.EventEncoded.fields,
           data: CreateImage200Sse
         }))
       ),
@@ -27383,8 +27448,7 @@ export const make = (
       HttpClientRequest.post(`/responses`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         sseRequest(Schema.Struct({
-          event: Schema.String,
-          id: Schema.UndefinedOr(Schema.String),
+          ...Sse.EventEncoded.fields,
           data: CreateResponse200Sse
         }))
       ),

@@ -129,7 +129,13 @@ export const HttpRequestDetails = Schema.Struct({
   url: Schema.String,
   urlParams: Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
   hash: Schema.UndefinedOr(Schema.String),
-  headers: Schema.Record(Schema.String, Schema.String)
+  headers: Schema.Record(
+    Schema.String,
+    Schema.Union([
+      Schema.String,
+      Schema.Redacted(Schema.String)
+    ])
+  )
 }).annotate({ identifier: "HttpRequestDetails" })
 
 /**
@@ -278,7 +284,13 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
  */
 export const HttpResponseDetails = Schema.Struct({
   status: Schema.Number,
-  headers: Schema.Record(Schema.String, Schema.String)
+  headers: Schema.Record(
+    Schema.String,
+    Schema.Union([
+      Schema.String,
+      Schema.Redacted(Schema.String)
+    ])
+  )
 }).annotate({ identifier: "HttpResponseDetails" })
 
 // =============================================================================

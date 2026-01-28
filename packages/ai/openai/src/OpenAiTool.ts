@@ -31,6 +31,8 @@ export type OpenAiTool =
  * OpenAI Apply Patch tool.
  *
  * Allows the model to apply diffs by creating, deleting, or updating files.
+ * This is a local tool that runs in your environment and requires a handler
+ * to execute file operations.
  *
  * @since 1.0.0
  * @category tools
@@ -38,6 +40,7 @@ export type OpenAiTool =
 export const ApplyPatch = Tool.providerDefined({
   customName: "OpenAiApplyPatch",
   providerName: "apply_patch",
+  requiresHandler: true,
   args: {},
   parameters: {
     call_id: Generated.ApplyPatchToolCall.fields.call_id,
@@ -127,7 +130,8 @@ export const ImageGeneration = Tool.providerDefined({
 /**
  * OpenAI Local Shell tool.
  *
- * Enables the model to run a command with a local shell.
+ * Enables the model to run a command with a local shell. This is a local tool
+ * that runs in your environment and requires a handler to execute commands.
  *
  * @since 1.0.0
  * @category tools
@@ -135,6 +139,7 @@ export const ImageGeneration = Tool.providerDefined({
 export const LocalShell = Tool.providerDefined({
   customName: "OpenAiLocalShell",
   providerName: "local_shell",
+  requiresHandler: true,
   args: {},
   parameters: {
     action: Generated.LocalShellToolCall.fields.action
@@ -179,7 +184,8 @@ export const Mcp = Tool.providerDefined({
  * OpenAI Function Shell tool.
  *
  * Enables the model to execute one or more shell commands in a managed
- * environment.
+ * environment. This is a local tool that runs in your environment and requires
+ * a handler to execute commands.
  *
  * @since 1.0.0
  * @category tools
@@ -187,6 +193,7 @@ export const Mcp = Tool.providerDefined({
 export const Shell = Tool.providerDefined({
   customName: "OpenAiShell",
   providerName: "shell",
+  requiresHandler: true,
   args: {},
   parameters: {
     action: Generated.FunctionShellCall.fields.action

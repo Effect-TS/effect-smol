@@ -936,11 +936,11 @@ const providerDefinedProto = <
     readonly failureMode: Mode
   },
   RequiresHandler
-> => {
-  const self = Object.assign(Object.create(ProviderDefinedProto), options)
-  self.id = `effect/ai/Tool/${options.name}`
-  return self
-}
+> =>
+  Object.assign(Object.create(ProviderDefinedProto), {
+    ...options,
+    id: `effect/ai/ProviderDefinedTool/${options.name}`
+  })
 
 const constEmptyStruct = Schema.Struct({})
 
@@ -1190,8 +1190,8 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
 
   constructor(tools: Tools, mappings: Record<string, string>) {
     for (const tool of tools) {
-      if (isProviderDefined(tool) && tool.id in mappings) {
-        const providerName = mappings[tool.id]
+      if (isProviderDefined(tool) && tool.name in mappings) {
+        const providerName = mappings[tool.name]
         this.#customToProvider.set(tool.name, providerName)
         this.#providerToCustom.set(providerName, tool.name)
       }

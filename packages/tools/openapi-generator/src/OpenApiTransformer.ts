@@ -342,8 +342,7 @@ export const make = (
     }
 
     const eventSchema = `${importName}.Struct({
-        event: ${importName}.String,
-        id: ${importName}.UndefinedOr(${importName}.String),
+        ...Sse.EventEncoded.fields,
         data: ${operation.sseSchema}
       })`
     pipeline.push(`sseRequest(${eventSchema})`)
@@ -848,13 +847,29 @@ const commonSource = `const unexpectedStatus = (response: HttpClientResponse.Htt
   }`
 
 const sseRequestSource = (_importName: string) =>
-  `const sseRequest = <S extends Sse.EventSchema>(schema: S) =>
-    (request: HttpClientRequest.HttpClientRequest): Stream.Stream<S["Type"], HttpClientError.HttpClientError | SchemaError | Sse.Retry, S["DecodingServices"]> =>
+  `const sseRequest = <
+     Type extends {
+       readonly id?: string | undefined
+       readonly event: string
+       readonly data: unknown
+     },
+     DecodingServices
+    >(
+      schema: Schema.Decoder<Type, DecodingServices>
+    ) =>
+    (
+      request: HttpClientRequest.HttpClientRequest
+    ): Stream.Stream<Type, HttpClientError.HttpClientError | SchemaError | Sse.Retry, DecodingServices> =>
       HttpClient.filterStatusOk(httpClient).execute(request).pipe(
         Effect.map((response) => response.stream),
         Stream.unwrap,
         Stream.decodeText(),
-        Stream.pipeThroughChannel(Sse.decodeSchema(schema))
+        Stream.pipeThroughChannel(Sse.decodeSchema<
+          Type,
+          DecodingServices,
+          HttpClientError.HttpClientError,
+          unknown
+        >(schema))
       )`
 
 const binaryRequestSource =
