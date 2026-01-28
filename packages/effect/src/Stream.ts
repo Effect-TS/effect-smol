@@ -1402,23 +1402,28 @@ export interface EventListener<A> {
 }
 
 /**
- * Creates a `Stream` using addEventListener.
+ * Creates a stream from an event listener.
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * // In a browser environment
- * const clickStream = Stream.fromEventListener(document, "click")
+ * declare const target: Stream.EventListener<number>
  *
- * const program = clickStream.pipe(
- *   Stream.take(3),
- *   Stream.runCollect
- * )
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromEventListener(target, "data").pipe(
+ *     Stream.take(3)
+ *   )
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 3.1.0
- * @category constructors
+ * @category Constructors
  */
 export const fromEventListener = <A = unknown>(
   target: EventListener<A>,
