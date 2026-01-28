@@ -283,7 +283,7 @@ export const DefaultChunkSize: number = Channel.DefaultChunkSize
 export type HaltStrategy = Channel.HaltStrategy
 
 /**
- * Creates a stream from a chunk-emitting `Channel`.
+ * Creates a stream from a array-emitting `Channel`.
  *
  * @example
  * ```ts
@@ -293,7 +293,7 @@ export type HaltStrategy = Channel.HaltStrategy
  *   const channel = Channel.succeed([1, 2, 3] as const)
  *   const stream = Stream.fromChannel(channel)
  *   const result = yield* Stream.runCollect(stream)
- *   yield* Console.log(Array.from(result))
+ *   yield* Console.log(result)
  * })
  *
  * // Output: [ 1, 2, 3 ]
@@ -1487,23 +1487,15 @@ export const unfold = <S, A, E, R>(
  * import { Console, Effect, Stream } from "effect"
  * import * as Option from "effect/Option"
  *
- * const seed: readonly [ReadonlyArray<number>, Array<number>] = [[0], [1, 2, 3]]
- * const pageSize = 2
- * const stream = Stream.paginate(seed, ([page, remaining]) =>
- *   remaining.length === 0 ?
- *     Effect.succeed([page, Option.none<readonly [ReadonlyArray<number>, Array<number>]>()] as const) :
- *     Effect.succeed([
- *       page,
- *       Option.some([
- *         remaining.slice(0, pageSize),
- *         remaining.slice(pageSize)
- *       ] as const)
- *     ] as const))
+ * const stream = Stream.paginate(0, (n: number) =>
+ *   Effect.succeed(
+ *     [
+ *       [n],
+ *       n < 3 ? Option.some(n + 1) : Option.none<number>()
+ *     ] as const
+ *   ))
  *
- * Effect.runPromise(Effect.gen(function*() {
- *   const values = yield* Stream.runCollect(stream)
- *   yield* Console.log(values)
- * }))
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
  * // Output: [ 0, 1, 2, 3 ]
  * ```
  *
