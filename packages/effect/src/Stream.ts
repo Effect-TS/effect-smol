@@ -2217,8 +2217,27 @@ export const flatMap: {
   ))
 
 /**
+ * Switches to the latest stream produced by the mapping function, interrupting
+ * the previous stream when a new element arrives.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Stream.make(1, 2, 3).pipe(
+ *   Stream.switchMap((n) => (n === 3 ? Stream.make(n) : Stream.never)),
+ *   Stream.runCollect
+ * )
+ *
+ * Effect.gen(function*() {
+ *   const result = yield* program
+ *   yield* Console.log(result)
+ *   // Output: [ 3 ]
+ * })
+ * ```
+ *
  * @since 4.0.0
- * @category sequencing
+ * @category Sequencing
  */
 export const switchMap: {
   <A, A2, E2, R2>(
