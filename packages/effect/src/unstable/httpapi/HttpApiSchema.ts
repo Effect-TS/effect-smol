@@ -56,17 +56,31 @@ export function isHttpApiContainer(ast: AST.AST): ast is AST.Union {
 }
 
 /** @internal */
+export function makeHttpApiContainer(schemas: ReadonlyArray<Schema.Top>): Schema.Top {
+  return Schema.make(makeHttpApiContainerAST(schemas.map((schema) => schema.ast)))
+}
+
+function makeHttpApiContainerAST(asts: ReadonlyArray<AST.AST>): AST.AST {
+  asts = unique(asts)
+  return asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf", { httpApiIsContainer: true })
+}
+
+function unique<T>(as: ReadonlyArray<T>): ReadonlyArray<T> {
+  return [...new Set(as)]
+}
+
+/** @internal */
 export function mergeSchemas<A extends Schema.Top, B extends Schema.Top>(self: A, that: B): Schema.Top {
   return Schema.make(mergeASTs(self.ast, that.ast))
 }
 
 function mergeASTs(self: AST.AST, that: AST.AST): AST.AST {
-  const types = isHttpApiContainer(self)
-    ? isHttpApiContainer(that) ? [...new Set([...self.types, ...that.types])] : [...new Set([...self.types, that])]
+  const asts = isHttpApiContainer(self)
+    ? isHttpApiContainer(that) ? [...self.types, ...that.types] : [...self.types, that]
     : isHttpApiContainer(that)
-    ? [...new Set([self, ...that.types])]
-    : [...new Set([self, that])]
-  return types.length === 1 ? types[0] : new AST.Union(types, "anyOf", { httpApiIsContainer: true })
+    ? [self, ...that.types]
+    : [self, that]
+  return makeHttpApiContainerAST(asts)
 }
 
 // TODO: add description

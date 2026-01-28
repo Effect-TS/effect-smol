@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { HttpApiEndpoint } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, type HttpApiSchema } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiEndpoint", () => {
@@ -214,6 +214,22 @@ describe("HttpApiEndpoint", () => {
           // @ts-expect-error Argument of type 'Struct<{ readonly id: String; }>' is not assignable to parameter of type 'Record<string, Codec<unknown, string | readonly string[] | undefined, unknown, unknown>>'.
           .setPayload(Schema.Struct({ id: Schema.String }))
       })
+    })
+  })
+
+  describe("success option", () => {
+    it("should default to HttpApiSchema.NoContent", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a")
+      type T = typeof endpoint["successSchema"]
+      expect<T>().type.toBe<HttpApiSchema.NoContent>()
+    })
+
+    it("should accept a schema", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: Schema.Struct({ a: Schema.String })
+      })
+      type T = typeof endpoint["successSchema"]
+      expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }> | undefined>()
     })
   })
 })

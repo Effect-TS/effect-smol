@@ -1059,14 +1059,14 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   Success,
   Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
 > => {
-  const successSchema: any = options?.success ? fieldsToSchema(options.success) : HttpApiSchema.NoContent
+  const successSchema: any = options?.success ?
+    fieldsToSchema(options.success) :
+    HttpApiSchema.NoContent
 
   const errorSchema: any = options?.error ?
     Array.isArray(options.error) ?
-      Schema.Union([...new Set([HttpApiSchemaError, ...options.error])]).annotate({ httpApiIsContainer: true }) :
-      Schema.Union([...new Set([HttpApiSchemaError, options.error as Schema.Top])]).annotate({
-        httpApiIsContainer: true
-      }) :
+      HttpApiSchema.makeHttpApiContainer([HttpApiSchemaError, ...options.error]) :
+      HttpApiSchema.makeHttpApiContainer([HttpApiSchemaError, options.error as Schema.Top]) :
     HttpApiSchemaError
 
   return makeProto({
