@@ -507,24 +507,27 @@ export const fromPull = <A, E, R, EX, RX>(
 ): Stream<A, Pull.ExcludeDone<E> | EX, R | RX> => fromChannel(Channel.fromPull(pull))
 
 /**
- * Derive a Stream from a pull effect.
+ * Derive a stream by transforming its pull effect.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const originalStream = Stream.make(1, 2, 3)
+ * const stream = Stream.make(1, 2, 3)
  *
- * const transformedStream = Stream.transformPull(
- *   originalStream,
- *   (pull) => Effect.succeed(pull)
- * )
+ * const transformed = Stream.transformPull(stream, (pull) => Effect.succeed(pull))
  *
- * Effect.runPromise(Stream.runCollect(transformedStream)).then(console.log)
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.runCollect(transformed)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 4.0.0
- * @category utils
+ * @category Utils
  */
 export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
   self: Stream<A, E, R>,
