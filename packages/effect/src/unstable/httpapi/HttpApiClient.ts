@@ -160,6 +160,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
         errors.forEach(({ ast }, status) => {
+          // Handle empty response
           if (ast === undefined) {
             decodeMap[status] = statusCodeError
             return
@@ -183,6 +184,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             )
         })
         successes.forEach(({ ast }, status) => {
+          // Handle empty response
           decodeMap[status] = ast === undefined ? responseAsVoid : schemaToResponse(ast)
         })
         const encodePath = endpoint.pathSchema?.pipe(
@@ -438,11 +440,13 @@ const StringFromArrayBuffer = SchemaArrayBuffer.pipe(
   )
 )
 
+// TODO: replace with the built-in transformation from JSON?
 const parseJsonOrVoid = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Unknown,
     Transformation.transformOrFail({
       decode(i) {
+        // Handle empty response
         if (i === "") return Effect.succeed(void 0)
         try {
           return Effect.succeed(JSON.parse(i))

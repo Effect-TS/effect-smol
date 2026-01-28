@@ -43,7 +43,7 @@ export interface HttpApiEndpoint<
   out UrlParams extends Schema.Top = never,
   out Payload extends Schema.Top = never,
   out Headers extends Schema.Top = never,
-  out Success extends Schema.Top = HttpApiSchema.NoContent,
+  out Success extends Schema.Top = typeof HttpApiSchema.NoContent,
   out Error extends Schema.Top = typeof HttpApiSchemaError,
   in out Middleware = never,
   out MiddlewareR = never
@@ -869,7 +869,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<Method> = never,
   Headers extends HeadersSchemaContraint = never,
-  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = typeof HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
@@ -940,7 +940,7 @@ export const get: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"GET"> = never,
   Headers extends HeadersSchemaContraint = never,
-  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = typeof HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
@@ -978,7 +978,7 @@ export const post: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"POST"> = never,
   Headers extends HeadersSchemaContraint = never,
-  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = typeof HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
@@ -1016,7 +1016,7 @@ export const put: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"PUT"> = never,
   Headers extends HeadersSchemaContraint = never,
-  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = typeof HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
@@ -1054,7 +1054,7 @@ export const patch: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"PATCH"> = never,
   Headers extends HeadersSchemaContraint = never,
-  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = typeof HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
@@ -1092,7 +1092,7 @@ export const del: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"DELETE"> = never,
   Headers extends HeadersSchemaContraint = never,
-  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = typeof HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
@@ -1130,7 +1130,7 @@ export const head: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"HEAD"> = never,
   Headers extends HeadersSchemaContraint = never,
-  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = typeof HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,
@@ -1168,7 +1168,7 @@ export const options: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"OPTIONS"> = never,
   Headers extends HeadersSchemaContraint = never,
-  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = typeof HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
 >(
   name: Name,

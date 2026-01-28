@@ -60,27 +60,10 @@ export function makeHttpApiContainer(schemas: ReadonlyArray<Schema.Top>): Schema
   return Schema.make(makeHttpApiContainerAST(schemas.map((schema) => schema.ast)))
 }
 
-function makeHttpApiContainerAST(asts: ReadonlyArray<AST.AST>): AST.AST {
-  asts = unique(asts)
-  return asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf", { httpApiIsContainer: true })
-}
-
-function unique<T>(as: ReadonlyArray<T>): ReadonlyArray<T> {
-  return [...new Set(as)]
-}
-
 /** @internal */
-export function mergeSchemas<A extends Schema.Top, B extends Schema.Top>(self: A, that: B): Schema.Top {
-  return Schema.make(mergeASTs(self.ast, that.ast))
-}
-
-function mergeASTs(self: AST.AST, that: AST.AST): AST.AST {
-  const asts = isHttpApiContainer(self)
-    ? isHttpApiContainer(that) ? [...self.types, ...that.types] : [...self.types, that]
-    : isHttpApiContainer(that)
-    ? [self, ...that.types]
-    : [self, that]
-  return makeHttpApiContainerAST(asts)
+export function makeHttpApiContainerAST(asts: ReadonlyArray<AST.AST>): AST.AST {
+  asts = [...new Set(asts)] // unique
+  return asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf", { httpApiIsContainer: true })
 }
 
 // TODO: add description
@@ -141,43 +124,19 @@ export const asEmpty: {
  * @since 4.0.0
  * @category empty response
  */
-export interface Created extends Schema.Void {
-  readonly _: unique symbol
-}
+export const NoContent = Empty(204)
 
 /**
  * @since 4.0.0
  * @category empty response
  */
-export const Created: Created = Empty(201) as any
+export const Created = Empty(201)
 
 /**
  * @since 4.0.0
  * @category empty response
  */
-export interface Accepted extends Schema.Void {
-  readonly _: unique symbol
-}
-
-/**
- * @since 4.0.0
- * @category empty response
- */
-export const Accepted: Accepted = Empty(202) as any
-
-/**
- * @since 4.0.0
- * @category empty response
- */
-export interface NoContent extends Schema.Void {
-  readonly _: unique symbol
-}
-
-/**
- * @since 4.0.0
- * @category empty response
- */
-export const NoContent: NoContent = Empty(204) as any
+export const Accepted = Empty(202)
 
 /**
  * @since 4.0.0

@@ -328,7 +328,8 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           op.responses[status] = {
             description: description ?? defaultDescription()
           }
-          if (ast !== undefined && !HttpApiSchema.resolveHttpApiIsEmpty(ast)) {
+          // Handle empty response
+          if (ast !== undefined && !HttpApiSchema.isVoidEncoded(ast)) {
             const encoding = HttpApiSchema.getEncoding(ast)
             irOps.push({
               _tag: "schema",

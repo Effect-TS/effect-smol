@@ -661,6 +661,7 @@ const responseTransformation = <A, I, RD, RE>(
       const ast = schema.ast
       const isEmpty = HttpApiSchema.isVoidEncoded(ast)
       const status = getStatus(ast)
+      // Handle empty response
       if (isEmpty) {
         return Effect.succeed(Response.empty({ status }))
       }

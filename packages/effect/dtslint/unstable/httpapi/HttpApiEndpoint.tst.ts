@@ -171,7 +171,7 @@ describe("HttpApiEndpoint", () => {
     it("should default to HttpApiSchema.NoContent", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
       type T = typeof endpoint["successSchema"]
-      expect<T>().type.toBe<HttpApiSchema.NoContent>()
+      expect<T>().type.toBe<typeof HttpApiSchema.NoContent>()
     })
 
     it("should accept a schema", () => {
