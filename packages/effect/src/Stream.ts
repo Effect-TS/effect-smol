@@ -6970,22 +6970,24 @@ export const toPull = <A, E, R>(
 ): Effect.Effect<Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E>, never, R | Scope.Scope> => Channel.toPull(self.channel)
 
 /**
- * Returns a combined string resulting from concatenating each of the values
- * from the stream.
+ * Concatenates all emitted strings into a single string.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make("Hello", " ", "World", "!")
- * const result = Stream.mkString(stream)
+ * const program = Effect.gen(function*() {
+ *   const text = yield* Stream.mkString(stream)
+ *   yield* Console.log(text)
+ * })
  *
- * Effect.runPromise(result).then(console.log)
- * // "Hello World!"
+ * Effect.runPromise(program)
+ * // Hello World!
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string, E, R> =>
   Channel.runFold(
