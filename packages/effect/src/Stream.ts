@@ -194,7 +194,7 @@ export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer
  * ```
  *
  * @since 3.4.0
- * @category type-level
+ * @category Type-Level
  */
 export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _E : never
 
