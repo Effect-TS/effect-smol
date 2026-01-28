@@ -714,19 +714,24 @@ export const empty: Stream<never> = fromChannel(Channel.empty)
 export const succeed = <A>(value: A): Stream<A> => fromChannel(Channel.succeed(Arr.of(value)))
 
 /**
- * Creates a stream from an sequence of values.
+ * Creates a stream from a sequence of values.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values) // [ 1, 2, 3 ]
+ * })
+ *
+ * Effect.runPromise(program)
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const make = <const As extends ReadonlyArray<any>>(...values: As): Stream<As[number]> => fromArray(values)
 
