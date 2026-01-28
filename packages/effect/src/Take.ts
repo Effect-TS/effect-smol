@@ -9,13 +9,13 @@ import type * as Pull from "./Pull.ts"
 
 /**
  * @since 2.0.0
- * @categor Models
+ * @category Models
  */
 export type Take<A, E = never, Done = void> = NonEmptyReadonlyArray<A> | Exit.Exit<Done, E>
 
 /**
  * @since 4.0.0
- * @categor Conversions
+ * @category Conversions
  */
 export const toPull = <A, E, Done>(take: Take<A, E, Done>): Pull.Pull<NonEmptyReadonlyArray<A>, E, Done> =>
   Exit.isExit(take)
