@@ -6003,23 +6003,24 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
   )
 
 /**
- * Intersperse stream with provided `element`.
+ * Inserts the provided element between emitted elements.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.make(1, 2, 3, 4, 5).pipe(Stream.intersperse(0))
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.make(1, 2, 3, 4).pipe(Stream.intersperse(0))
+ *   const result = yield* Stream.runCollect(stream)
+ *   yield* Console.log(result)
+ * })
  *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // [
- * //   1, 0, 2, 0, 3,
- * //   0, 4, 0, 5
- * // ]
+ * Effect.runPromise(program)
+ * // { _id: "Chunk", values: [ 1, 0, 2, 0, 3, 0, 4 ] }
  * ```
  *
  * @since 2.0.0
- * @category utils
+ * @category Utils
  */
 export const intersperse: {
   <A2>(element: A2): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A, E, R>
