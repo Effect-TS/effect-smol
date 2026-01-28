@@ -269,7 +269,15 @@ export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => 
 export const DefaultChunkSize: number = Channel.DefaultChunkSize
 
 /**
- * @category models
+ * Describes how merged streams decide when to halt.
+ *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `StreamHaltStrategy.HaltStrategy`
+ *
+ * @category Models
  * @since 2.0.0
  */
 export type HaltStrategy = Channel.HaltStrategy
