@@ -4243,6 +4243,30 @@ export const raceAllFirst: <Eff extends Effect<any, any, any>>(
 ) => Effect<Success<Eff>, Error<Eff>, Services<Eff>> = internal.raceAllFirst
 
 /**
+ * @since 2.0.0
+ * @category Racing
+ */
+export const race: {
+  <A2, E2, R2>(
+    that: Effect<A2, E2, R2>,
+    options?: {
+      readonly onWinner?: (
+        options: { readonly fiber: Fiber<any, any>; readonly index: number; readonly parentFiber: Fiber<any, any> }
+      ) => void
+    }
+  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A | A2, E | E2, R | R2>
+  <A, E, R, A2, E2, R2>(
+    self: Effect<A, E, R>,
+    that: Effect<A2, E2, R2>,
+    options?: {
+      readonly onWinner?: (
+        options: { readonly fiber: Fiber<any, any>; readonly index: number; readonly parentFiber: Fiber<any, any> }
+      ) => void
+    }
+  ): Effect<A | A2, E | E2, R | R2>
+} = internal.race
+
+/**
  * Races two effects and returns the result of the first one to complete, whether
  * it succeeds or fails.
  *
