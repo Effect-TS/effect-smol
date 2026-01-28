@@ -184,8 +184,8 @@ export const make = Effect.fnUntraced(
         Stream.catchTags({
           // TODO: handle SSE retries
           Retry: (error) => Stream.die(error),
-          HttpClientError: (error) => Stream.fromEffect(Errors.mapHttpClientError(error, "createResponse")),
-          SchemaError: (error) => Stream.fail(Errors.mapSchemaError(error, "createResponse"))
+          HttpClientError: (error) => Stream.fromEffect(Errors.mapHttpClientError(error, "createResponseStream")),
+          SchemaError: (error) => Stream.fail(Errors.mapSchemaError(error, "createResponseStream"))
         })
       )
 

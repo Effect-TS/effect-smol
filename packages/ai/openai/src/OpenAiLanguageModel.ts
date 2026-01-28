@@ -811,7 +811,6 @@ const prepareMessages = Effect.fnUntraced(
 
         case "tool": {
           for (const part of message.content) {
-            // Skip tool-approval-response parts - they are not sent to the provider
             if (part.type === "tool-approval-response") {
               if (processedApprovalIds.has(part.approvalId)) {
                 continue
@@ -877,7 +876,6 @@ const prepareMessages = Effect.fnUntraced(
             }
 
             messages.push({
-              id,
               type: "function_call_output",
               call_id: part.id,
               output: JSON.stringify(part.result),

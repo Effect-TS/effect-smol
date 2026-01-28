@@ -51,6 +51,7 @@
 import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberSet from "../../FiberSet.ts"
+import { constFalse } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
@@ -767,6 +768,8 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       >(options: Options & GenerateTextOptions<Tools>, providerOptions: Mutable<ProviderOptions>) {
         const toolChoice = options.toolChoice ?? "auto"
 
+        // WE NEED TO RESOLVE TOOL APPROVALS HERE
+
         // If there is no toolkit, the generated content can be returned immediately
         if (Predicate.isUndefined(options.toolkit)) {
           const ResponseSchema = Schema.mutable(Schema.Array(Response.Part(Toolkit.empty)))
@@ -974,6 +977,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
           )),
           // And then end the queue
           Effect.andThen(Queue.end(queue)),
+          Effect.tapCause((cause) => Queue.failCause(queue, cause)),
           Effect.forkScoped
         )
 
@@ -1106,53 +1110,56 @@ export const streamText = <
 // Tool Approval Helpers
 // =============================================================================
 
-interface CollectedApproval {
+interface ApprovalResult {
   readonly approvalId: string
   readonly toolCallId: string
   readonly approved: boolean
   readonly reason?: string | undefined
 }
 
-const collectToolApprovals = (
-  messages: ReadonlyArray<Prompt.Message>
-): { readonly approved: Array<CollectedApproval>; readonly denied: Array<CollectedApproval> } => {
-  const lastMessage = messages.at(-1)
-  if (lastMessage?.role !== "tool") {
-    return { approved: [], denied: [] }
-  }
+const collectToolApprovals = (messages: ReadonlyArray<Prompt.Message>): {
+  readonly approved: Array<ApprovalResult>
+  readonly denied: Array<ApprovalResult>
+} => {
+  const requests = new Map<string, Pick<ApprovalResult, "approvalId" | "toolCallId">>()
+  const responses: Array<Omit<ApprovalResult, "toolCallId">> = []
 
-  const approvalRequests = new Map<string, { approvalId: string; toolCallId: string }>()
-  for (const msg of messages) {
-    if (msg.role === "assistant") {
-      for (const part of msg.content) {
+  // Collect all tool approval requests and respones
+  for (const message of messages) {
+    if (message.role === "assistant") {
+      for (const part of message.content) {
         if (part.type === "tool-approval-request") {
-          approvalRequests.set(part.approvalId, {
+          requests.set(part.approvalId, {
             approvalId: part.approvalId,
             toolCallId: part.toolCallId
           })
         }
       }
     }
+    if (message.role === "tool") {
+      for (const part of message.content) {
+        if (part.type === "tool-approval-response") {
+          responses.push({
+            approvalId: part.approvalId,
+            approved: part.approved,
+            reason: part.reason
+          })
+        }
+      }
+    }
   }
 
-  const approved: Array<CollectedApproval> = []
-  const denied: Array<CollectedApproval> = []
+  const approved: Array<ApprovalResult> = []
+  const denied: Array<ApprovalResult> = []
 
-  for (const part of lastMessage.content) {
-    if (part.type === "tool-approval-response") {
-      const request = approvalRequests.get(part.approvalId)
-      if (request) {
-        const collected: CollectedApproval = {
-          approvalId: part.approvalId,
-          toolCallId: request.toolCallId,
-          approved: part.approved,
-          reason: part.reason
-        }
-        if (part.approved) {
-          approved.push(collected)
-        } else {
-          denied.push(collected)
-        }
+  for (const response of responses) {
+    const request = requests.get(response.approvalId)
+    if (Predicate.isNotUndefined(request)) {
+      const result = { ...response, toolCallId: request.toolCallId }
+      if (response.approved) {
+        approved.push(result)
+      } else {
+        denied.push(result)
       }
     }
   }
@@ -1160,24 +1167,28 @@ const collectToolApprovals = (
   return { approved, denied }
 }
 
-const isApprovalNeeded = <T extends Tool.Any>(
+const isApprovalNeeded = Effect.fnUntraced(function*<T extends Tool.Any>(
   tool: T,
   toolCall: Response.ToolCallPartEncoded,
   messages: ReadonlyArray<Prompt.Message>
-): Effect.Effect<boolean, never, Tool.HandlerServices<T>> =>
-  Effect.gen(function*() {
-    if (tool.needsApproval == null) return false
-    if (typeof tool.needsApproval === "boolean") return tool.needsApproval
+): Effect.fn.Return<boolean, Schema.SchemaError, Tool.HandlerServices<T>> {
+  if (Predicate.isUndefined(tool.needsApproval)) {
+    return false
+  }
 
-    const params = yield* Schema.decodeEffect(tool.parametersSchema)(toolCall.params as any)
-    const context: Tool.NeedsApprovalContext = {
+  if (typeof tool.needsApproval === "function") {
+    const params = yield* Schema.decodeUnknownEffect(tool.parametersSchema)(toolCall.params) as any
+
+    const result = tool.needsApproval(params, {
       toolCallId: toolCall.id,
       messages
-    }
-    const result = (tool.needsApproval as Tool.NeedsApprovalFunction<any>)(params, context)
+    })
 
     return Effect.isEffect(result) ? yield* result : result
-  }).pipe(Effect.catch(() => Effect.succeed(false)))
+  }
+
+  return tool.needsApproval
+}, Effect.orElseSucceed(constFalse))
 
 // =============================================================================
 // Tool Call Resolution
@@ -1213,8 +1224,10 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
   }
 
   const { approved, denied } = collectToolApprovals(messages)
-  const approvedToolCallIds = new Set(approved.map((a) => a.toolCallId))
-  const deniedByToolCallId = new Map(denied.map((d) => [d.toolCallId, d]))
+  const approvedToolCallIds = new Set(approved.map((approval) => approval.toolCallId))
+  const deniedByToolCallId = new Map(denied.map((denial) => [denial.toolCallId, denial]))
+
+  console.log({ approvedToolCallIds })
 
   const streams = toolCalls.map((toolCall) =>
     Effect.gen(function*() {
@@ -1254,8 +1267,8 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
 
       const needsApproval = yield* isApprovalNeeded(tool, toolCall, messages)
       if (needsApproval) {
-        const idGen = yield* IdGenerator
-        const approvalId = yield* idGen.generateId()
+        const generator = yield* IdGenerator
+        const approvalId = yield* generator.generateId()
         return Stream.succeed(
           Response.makePart("tool-approval-request", {
             approvalId,
