@@ -7358,8 +7358,21 @@ export const toPubSubTake: {
 )
 
 /**
+ * Converts a stream to a PubSub for concurrent consumption.
+ *
+ * @example
+ * ```ts
+ * import { Effect, PubSub, Stream } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const pubSub = yield* Stream.toQueue(Stream.fromIterable([1, 2, 3]), { capacity: 8 })
+ *   const subscription = yield* PubSub.subscribe(pubSub)
+ *   return subscription
+ * })
+ * ```
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const toQueue: {
   (
