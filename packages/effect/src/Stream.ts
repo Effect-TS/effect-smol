@@ -6423,6 +6423,43 @@ export const provideService: {
 ): Stream<A, E, Exclude<R, I>> => fromChannel(Channel.provideService(self.channel, key, service)))
 
 /**
+ * Provides a service to the stream using an effect, removing the requirement and adding the effect's error and environment.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, ServiceMap, Stream } from "effect"
+ *
+ * interface ApiConfig {
+ *   readonly baseUrl: string
+ * }
+ * const ApiConfig = ServiceMap.Service<ApiConfig>("ApiConfig")
+ *
+ * const stream = Stream.fromEffect(
+ *   Effect.gen(function*() {
+ *     const config = yield* Effect.service(ApiConfig)
+ *     return config.baseUrl
+ *   })
+ * )
+ *
+ * const withConfig = Stream.provideServiceEffect(
+ *   stream,
+ *   ApiConfig,
+ *   Effect.gen(function*() {
+ *     yield* Console.log("Loading config...")
+ *     return { baseUrl: "https://example.com" }
+ *   })
+ * )
+ *
+ * const program = Stream.runCollect(withConfig).pipe(
+ *   Effect.flatMap((values) => Console.log(values))
+ * )
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // Loading config...
+ * // ["https://example.com"]
+ * ```
+ *
  * @since 4.0.0
  * @category Services
  */
