@@ -6366,6 +6366,39 @@ export const ensuring: {
 )
 
 /**
+ * Provides a layer or service map to the stream, removing the corresponding service requirements.
+ *
+ * **Previously Known As:** `provideSomeLayer`, `provideSomeContext`.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Layer, ServiceMap, Stream } from "effect"
+ *
+ * interface Env {
+ *   readonly name: string
+ * }
+ * const Env = ServiceMap.Service<Env>("Env")
+ *
+ * const layer = Layer.succeed(Env)({ name: "Ada" })
+ *
+ * const stream = Stream.fromEffect(
+ *   Effect.gen(function*() {
+ *     const env = yield* Effect.service(Env)
+ *     return `Hello, ${env.name}`
+ *   })
+ * )
+ *
+ * const withEnv = stream.pipe(Stream.provide(layer))
+ *
+ * const program = Stream.runCollect(withEnv).pipe(
+ *   Effect.flatMap((values) => Console.log(values))
+ * )
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // ["Hello, Ada"]
+ * ```
+ *
  * @since 4.0.0
  * @category Services
  */
