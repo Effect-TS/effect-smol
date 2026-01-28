@@ -95,17 +95,17 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      it("union members with different encodings", () => {
+      it("array of schemas with different encodings", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.post("a", "/a", {
-                  payload: Schema.Union([
+                  payload: [
                     Schema.Struct({ a: Schema.String }), // application/json
                     HttpApiSchema.Text(), // text/plain
                     HttpApiSchema.Uint8Array() // application/octet-stream
-                  ]).annotate({ httpApiIsContainer: true })
+                  ]
                 })
               )
           )

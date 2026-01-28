@@ -121,7 +121,9 @@ export interface HttpApiEndpoint<
     Path,
     PathSchema,
     UrlParams,
-    P extends Schema.Struct.Fields ? Schema.Struct<P> : P,
+    P extends Schema.Struct.Fields ? Schema.Struct<P>
+      : P extends ReadonlyArray<Schema.Top> ? P[number]
+      : P,
     Headers,
     Success,
     Error,
@@ -1015,7 +1017,7 @@ export type HeadersSchemaContraint = Record<string, Schema.Codec<unknown, string
  * @since 4.0.0
  * @category constraints
  */
-export type SuccessSchemaContraint = Schema.Top
+export type SuccessSchemaContraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
  * @since 4.0.0
@@ -1035,7 +1037,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<Method> = never,
   Headers extends HeadersSchemaContraint = never,
-  Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
@@ -1054,9 +1056,11 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   Path,
   PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
   UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
-  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+    : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+    : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-  Success,
+  Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
   Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
 > => {
   const successSchema: any = options?.success ?
@@ -1069,13 +1073,18 @@ export const make = <Method extends HttpMethod>(method: Method) =>
       HttpApiSchema.makeHttpApiContainer([HttpApiSchemaError, options.error as Schema.Top]) :
     HttpApiSchemaError
 
+  const payloadSchema: any = UndefinedOr.map(
+    options?.payload,
+    (schema) => Array.isArray(schema) ? HttpApiSchema.makeHttpApiContainer(schema) : fieldsToSchema(schema)
+  )
+
   return makeProto({
     name,
     path,
     method,
     pathSchema: UndefinedOr.map(options?.path, fieldsToSchema),
     urlParamsSchema: UndefinedOr.map(options?.urlParams, fieldsToSchema),
-    payloadSchema: UndefinedOr.map(options?.payload, fieldsToSchema),
+    payloadSchema,
     headersSchema: UndefinedOr.map(options?.headers, fieldsToSchema),
     successSchema,
     errorSchema,
@@ -1099,7 +1108,7 @@ export const get: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"GET"> = never,
   Headers extends HeadersSchemaContraint = never,
-  Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
@@ -1118,9 +1127,11 @@ export const get: <
   Path,
   PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
   UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
-  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+    : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+    : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-  Success,
+  Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
   Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
 > = make("GET")
 
@@ -1135,7 +1146,7 @@ export const post: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"POST"> = never,
   Headers extends HeadersSchemaContraint = never,
-  Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
@@ -1154,9 +1165,11 @@ export const post: <
   Path,
   PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
   UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
-  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+    : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+    : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-  Success,
+  Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
   Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
 > = make("POST")
 
@@ -1171,7 +1184,7 @@ export const put: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"PUT"> = never,
   Headers extends HeadersSchemaContraint = never,
-  Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
@@ -1190,9 +1203,11 @@ export const put: <
   Path,
   PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
   UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
-  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+    : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+    : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-  Success,
+  Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
   Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
 > = make("PUT")
 
@@ -1207,7 +1222,7 @@ export const patch: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"PATCH"> = never,
   Headers extends HeadersSchemaContraint = never,
-  Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
@@ -1226,9 +1241,11 @@ export const patch: <
   Path,
   PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
   UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
-  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+    : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+    : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-  Success,
+  Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
   Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
 > = make("PATCH")
 
@@ -1243,7 +1260,7 @@ export const del: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"DELETE"> = never,
   Headers extends HeadersSchemaContraint = never,
-  Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
@@ -1262,9 +1279,11 @@ export const del: <
   Path,
   PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
   UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
-  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+    : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+    : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-  Success,
+  Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
   Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
 > = make("DELETE")
 
@@ -1279,7 +1298,7 @@ export const head: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"HEAD"> = never,
   Headers extends HeadersSchemaContraint = never,
-  Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
@@ -1298,9 +1317,11 @@ export const head: <
   Path,
   PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
   UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
-  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+    : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+    : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-  Success,
+  Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
   Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
 > = make("HEAD")
 
@@ -1315,7 +1336,7 @@ export const options: <
   UrlParams extends UrlParamsSchemaContraint = never,
   Payload extends PayloadSchemaContraint<"OPTIONS"> = never,
   Headers extends HeadersSchemaContraint = never,
-  Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
   const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
@@ -1334,8 +1355,10 @@ export const options: <
   Path,
   PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
   UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
-  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+    : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
+    : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-  Success,
+  Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
   Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
 > = make("OPTIONS")

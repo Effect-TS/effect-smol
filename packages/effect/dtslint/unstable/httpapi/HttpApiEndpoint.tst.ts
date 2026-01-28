@@ -1,9 +1,15 @@
 import { Schema } from "effect"
-import { HttpApiEndpoint, type HttpApiSchema } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, HttpApiSchema } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiEndpoint", () => {
   describe("path option", () => {
+    it("should default to undefined", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a")
+      type T = typeof endpoint["pathSchema"]
+      expect<T>().type.toBe<undefined>()
+    })
+
     it("should accept a record of fields", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         path: {
@@ -39,6 +45,12 @@ describe("HttpApiEndpoint", () => {
   })
 
   describe("urlParams option", () => {
+    it("should default to undefined", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a")
+      type T = typeof endpoint["urlParamsSchema"]
+      expect<T>().type.toBe<undefined>()
+    })
+
     it("should accept a record of fields", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         urlParams: {
@@ -74,6 +86,12 @@ describe("HttpApiEndpoint", () => {
   })
 
   describe("headers option", () => {
+    it("should default to undefined", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a")
+      type T = typeof endpoint["headersSchema"]
+      expect<T>().type.toBe<undefined>()
+    })
+
     it("should accept a record of fields", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         headers: {
@@ -109,6 +127,12 @@ describe("HttpApiEndpoint", () => {
   })
 
   describe("payload option", () => {
+    it("should default to undefined", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a")
+      type T = typeof endpoint["payloadSchema"]
+      expect<T>().type.toBe<undefined>()
+    })
+
     describe("GET", () => {
       it("should accept a record of fields", () => {
         const endpoint = HttpApiEndpoint.get("a", "/a", {
@@ -125,6 +149,30 @@ describe("HttpApiEndpoint", () => {
           // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'Record<string, Codec<unknown, string | readonly string[] | undefined, unknown, unknown>>'.
           payload: Schema.Struct({ id: Schema.String })
         })
+      })
+    })
+
+    describe("POST", () => {
+      it("should accept a schema", () => {
+        const endpoint = HttpApiEndpoint.post("a", "/a", {
+          payload: Schema.Struct({ a: Schema.String })
+        })
+        type T = typeof endpoint["payloadSchema"]
+        expect<T>().type.toBe<Schema.Struct<{ readonly a: Schema.String }> | undefined>()
+      })
+
+      it("should accept an array of schemas", () => {
+        const endpoint = HttpApiEndpoint.post("a", "/a", {
+          payload: [
+            Schema.Struct({ a: Schema.String }), // application/json
+            HttpApiSchema.Text(), // text/plain
+            HttpApiSchema.Uint8Array() // application/octet-stream
+          ]
+        })
+        type T = typeof endpoint["payloadSchema"]
+        expect<T>().type.toBe<
+          Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array | undefined
+        >()
       })
     })
 
@@ -230,6 +278,26 @@ describe("HttpApiEndpoint", () => {
       })
       type T = typeof endpoint["successSchema"]
       expect<T>().type.toBe<Schema.Struct<{ readonly a: Schema.String }>>()
+    })
+
+    it("should accept an array of schemas", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: [
+          Schema.Struct({ a: Schema.String }), // application/json
+          HttpApiSchema.Text(), // text/plain
+          HttpApiSchema.Uint8Array() // application/octet-stream
+        ]
+      })
+      type T = typeof endpoint["successSchema"]
+      expect<T>().type.toBe<Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array>()
+    })
+  })
+
+  describe("error option", () => {
+    it("should default to never", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a")
+      type T = typeof endpoint["errorSchema"]
+      expect<T>().type.toBe<never>()
     })
   })
 })

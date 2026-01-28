@@ -40,15 +40,15 @@ import OpenApiFixture from "./fixtures/openapi.json" with { type: "json" }
 describe("HttpApi", () => {
   describe("payload option", () => {
     describe("encoding", () => {
-      it.effect("union members with different encodings", () => {
+      it.effect("array of schemas with different encodings", () => {
         const Api = HttpApi.make("api").add(
           HttpApiGroup.make("group").add(
             HttpApiEndpoint.post("a", "/a", {
-              payload: Schema.Union([
+              payload: [
                 Schema.Struct({ a: Schema.String }), // application/json
                 HttpApiSchema.Text(), // text/plain
                 HttpApiSchema.Uint8Array() // application/octet-stream
-              ]).annotate({ httpApiIsContainer: true }),
+              ],
               success: Schema.String
             })
           )
