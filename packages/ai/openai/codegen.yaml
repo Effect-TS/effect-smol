@@ -2,26 +2,32 @@
 spec: https://app.stainless.com/api/spec/documented/openai/openapi.documented.yml
 output: src/Generated.ts
 name: OpenAiClient
+header: |
+  /** 
+   * @since 1.0.0
+   */
 patches:
   - '[{"op":"replace","path":"/openapi","value":"3.0.0"}]'
-  - '[{"op":"add","path":"/components/schemas/AssistantTool","value":{"oneOf":[{"$ref":"#/components/schemas/AssistantToolsCode"},{"$ref":"#/components/schemas/AssistantToolsFileSearch"},{"$ref":"#/components/schemas/AssistantToolsFunction"}],"description":"A tool enabled on the assistant."}}]'
-  - '[{"op":"add","path":"/components/schemas/BatchError","value":{"type":"object","properties":{"code":{"type":"string","description":"Error code"},"message":{"type":"string","description":"Error message"},"param":{"type":"string","nullable":true},"line":{"type":"integer","nullable":true}}}}]'
-  - '[{"op":"add","path":"/components/schemas/BatchRequestCounts","value":{"type":"object","properties":{"total":{"type":"integer","description":"Total number of requests"},"completed":{"type":"integer","description":"Completed requests"},"failed":{"type":"integer","description":"Failed requests"}}}}]'
-  - '[{"op":"add","path":"/components/schemas/ChatModel","value":{"type":"string","description":"A chat model identifier"}}]'
-  - '[{"op":"add","path":"/components/schemas/ChunkingStrategyResponse","value":{"oneOf":[{"$ref":"#/components/schemas/StaticChunkingStrategyResponseParam"},{"$ref":"#/components/schemas/OtherChunkingStrategyResponseParam"}],"description":"The chunking strategy used for the vector store."}}]'
-  - '[{"op":"add","path":"/components/schemas/ComparisonFilterValueItems","value":{"oneOf":[{"type":"string"},{"type":"number"},{"type":"boolean"}],"description":"Items in a comparison filter value array"}}]'
-  - '[{"op":"add","path":"/components/schemas/Conversation-2","value":{"type":"object","description":"Inline conversation object","properties":{"id":{"type":"string"},"metadata":{"type":"object","additionalProperties":{"type":"string"}}}}}]'
-  - '[{"op":"add","path":"/components/schemas/ConversationParam-2","value":{"type":"object","description":"Inline conversation parameter object","properties":{"id":{"type":"string"},"metadata":{"type":"object","additionalProperties":{"type":"string"}}}}}]'
-  - '[{"op":"add","path":"/components/schemas/Error-2","value":{"type":"object","description":"Error object variant","properties":{"code":{"type":"string"},"message":{"type":"string"},"param":{"type":"string","nullable":true},"type":{"type":"string"}}}}]'
-  - '[{"op":"add","path":"/components/schemas/FilePurpose","value":{"type":"string","enum":["assistants","batch","fine-tune","vision"],"description":"The intended purpose of the file."}}]'
-  - '[{"op":"add","path":"/components/schemas/MessageContent","value":{"oneOf":[{"$ref":"#/components/schemas/MessageContentImageFileObject"},{"$ref":"#/components/schemas/MessageContentImageUrlObject"},{"$ref":"#/components/schemas/MessageContentTextObject"},{"$ref":"#/components/schemas/MessageContentRefusalObject"}],"description":"Content of a message."}}]'
-  - '[{"op":"add","path":"/components/schemas/MessageContentDelta","value":{"oneOf":[{"$ref":"#/components/schemas/MessageDeltaContentImageFileObject"},{"$ref":"#/components/schemas/MessageDeltaContentTextObject"}],"description":"Delta content of a message."}}]'
-  - '[{"op":"add","path":"/components/schemas/ModerationImageURLInput","value":{"type":"object","properties":{"type":{"type":"string","enum":["image_url"]},"image_url":{"type":"object","properties":{"url":{"type":"string","format":"uri"}}}},"required":["type","image_url"]}}]'
-  - '[{"op":"add","path":"/components/schemas/ModerationTextInput","value":{"type":"object","properties":{"type":{"type":"string","enum":["text"]},"text":{"type":"string"}},"required":["type","text"]}}]'
-  - '[{"op":"add","path":"/components/schemas/RunStatus","value":{"type":"string","enum":["queued","in_progress","requires_action","cancelling","cancelled","failed","completed","incomplete","expired"],"description":"The status of the run."}}]'
-  - '[{"op":"add","path":"/components/schemas/RunStepDeltaObjectDelta","value":{"type":"object","properties":{"step_details":{"oneOf":[{"$ref":"#/components/schemas/RunStepDeltaStepDetailsMessageCreationObject"},{"$ref":"#/components/schemas/RunStepDeltaStepDetailsToolCallsObject"}]}}}}]'
-  - '[{"op":"add","path":"/components/schemas/RunStepDeltaStepDetailsToolCall","value":{"oneOf":[{"$ref":"#/components/schemas/RunStepDeltaStepDetailsToolCallsCodeObject"},{"$ref":"#/components/schemas/RunStepDeltaStepDetailsToolCallsFileSearchObject"},{"$ref":"#/components/schemas/RunStepDeltaStepDetailsToolCallsFunctionObject"}],"description":"A tool call delta in a run step."}}]'
-  - '[{"op":"add","path":"/components/schemas/RunStepDetailsToolCall","value":{"oneOf":[{"$ref":"#/components/schemas/RunStepDetailsToolCallsCodeObject"},{"$ref":"#/components/schemas/RunStepDetailsToolCallsFileSearchObject"},{"$ref":"#/components/schemas/RunStepDetailsToolCallsFunctionObject"}],"description":"A tool call in a run step."}}]'
-  - '[{"op":"add","path":"/components/schemas/Summary","value":{"$ref":"#/components/schemas/SummaryTextContent"}}]'
-  - '[{"op":"add","path":"/components/schemas/TextAnnotation","value":{"oneOf":[{"$ref":"#/components/schemas/MessageContentTextAnnotationsFileCitationObject"},{"$ref":"#/components/schemas/MessageContentTextAnnotationsFilePathObject"}],"description":"An annotation in text content."}}]'
-  - '[{"op":"add","path":"/components/schemas/TextAnnotationDelta","value":{"oneOf":[{"$ref":"#/components/schemas/MessageDeltaContentTextAnnotationsFileCitationObject"},{"$ref":"#/components/schemas/MessageDeltaContentTextAnnotationsFilePathObject"}],"description":"An annotation delta in text content."}}]'
+  - '[{"op":"add","path":"/components/schemas/ModelResponseProperties/properties/user/nullable","value":true}]'
+  - '[{"op":"add","path":"/components/schemas/ModelResponseProperties/properties/safety_identifier/nullable","value":true}]'
+  - '[{"op":"add","path":"/components/schemas/ModelResponseProperties/properties/prompt_cache_key/nullable","value":true}]'
+  - '[{"op":"add","path":"/components/schemas/Response/allOf/2/properties/usage/nullable","value":true}]'
+  - '[{"op":"remove","path":"/components/schemas/ResponseFunctionCallArgumentsDoneEvent/required/2"}]'
+  - '[{"op":"remove","path":"/components/schemas/WebSearchActionSearch/required/1"}]'
+  # Add missing ResponseApplyPatchCallOperationDiffDeltaEvent schema
+  - '[{"op":"add","path":"/components/schemas/ResponseApplyPatchCallOperationDiffDeltaEvent","value":{"title":"ResponseApplyPatchCallOperationDiffDelta","type":"object","description":"Event representing a delta for an apply_patch tool call operation diff.","properties":{"type":{"type":"string","enum":["response.apply_patch_call_operation_diff.delta"],"description":"The event type identifier.","x-stainless-const":true},"sequence_number":{"type":"integer","description":"The sequence number of this event."},"output_index":{"type":"integer","description":"The index of the output this delta applies to."},"item_id":{"type":"string","description":"Unique identifier for the API item associated with this event."},"delta":{"type":"string","description":"The incremental diff data for the apply_patch tool call."}},"required":["type","output_index","item_id","delta","sequence_number"]}}]'
+  # Add missing ResponseApplyPatchCallOperationDiffDoneEvent schema (delta is optional - not always sent by OpenAI)
+  - '[{"op":"add","path":"/components/schemas/ResponseApplyPatchCallOperationDiffDoneEvent","value":{"title":"ResponseApplyPatchCallOperationDiffDone","type":"object","description":"Event indicating that the operation diff for an apply_patch tool call is complete.","properties":{"type":{"type":"string","enum":["response.apply_patch_call_operation_diff.done"],"description":"The event type identifier.","x-stainless-const":true},"sequence_number":{"type":"integer","description":"The sequence number of this event."},"output_index":{"type":"integer","description":"The index of the output this event applies to."},"item_id":{"type":"string","description":"Unique identifier for the API item associated with this event."},"delta":{"type":"string","description":"The final diff data for the apply_patch tool call."}},"required":["type","output_index","item_id","sequence_number"]}}]'
+  # Add both events to ResponseStreamEvent anyOf array
+  - '[{"op":"add","path":"/components/schemas/ResponseStreamEvent/anyOf/-","value":{"$ref":"#/components/schemas/ResponseApplyPatchCallOperationDiffDeltaEvent"}}]'
+  - '[{"op":"add","path":"/components/schemas/ResponseStreamEvent/anyOf/-","value":{"$ref":"#/components/schemas/ResponseApplyPatchCallOperationDiffDoneEvent"}}]'
+replacements:
+  # Schema.Unknown doesn't work with Schema.toCodecJson (used by HttpClientResponse.schemaBodyJson)
+  # Replace with Schema.Json which properly handles arbitrary JSON values
+  - from: "Schema.Record(Schema.String, Schema.Unknown)"
+    to: "Schema.Record(Schema.String, Schema.Json)"
+  - from: "{ readonly [x: string]: unknown }"
+    to: "{ readonly [x: string]: Schema.Json }"
+  # Index signature in struct rest pattern
+  - from: "readonly [x: string]: unknown"
+    to: "readonly [x: string]: Schema.Json"

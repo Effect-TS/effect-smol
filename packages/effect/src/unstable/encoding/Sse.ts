@@ -63,7 +63,38 @@ export const decode = <IE, Done>(): Channel.Channel<
  * @since 4.0.0
  * @category Decoding
  */
-export const decodeSchema = <Type, DecodingServices, IE, Done>(
+export const decodeSchema = <
+  Type extends {
+    readonly id?: string | undefined
+    readonly event: string
+    readonly data: unknown
+  },
+  DecodingServices,
+  IE,
+  Done
+>(
+  schema: Schema.Decoder<Type, DecodingServices>
+): Channel.Channel<
+  NonEmptyReadonlyArray<Type>,
+  IE | Retry | Schema.SchemaError,
+  Done,
+  NonEmptyReadonlyArray<string>,
+  IE,
+  Done,
+  DecodingServices
+> =>
+  Channel.pipeTo(
+    decode<IE, Done>(),
+    ChannelSchema.decode(EventEncoded.pipe(
+      Schema.decodeTo(schema)
+    ))()
+  )
+
+/**
+ * @since 4.0.0
+ * @category Decoding
+ */
+export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
   schema: Schema.Decoder<Type, DecodingServices>
 ): Channel.Channel<
   NonEmptyReadonlyArray<{
@@ -80,7 +111,7 @@ export const decodeSchema = <Type, DecodingServices, IE, Done>(
 > => {
   const eventSchema = Schema.Struct({
     ...EventEncoded.fields,
-    data: schema
+    data: Schema.fromJsonString(schema)
   })
   return Channel.pipeTo(
     decode<IE, Done>(),

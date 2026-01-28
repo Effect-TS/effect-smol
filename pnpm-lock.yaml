@@ -643,6 +643,9 @@ importers:
 
   scratchpad:
     dependencies:
+      '@effect/ai-openai':
+        specifier: workspace:*
+        version: link:../packages/ai/openai
       '@effect/opentelemetry':
         specifier: workspace:*
         version: link:../packages/opentelemetry

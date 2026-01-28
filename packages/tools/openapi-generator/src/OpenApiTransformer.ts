@@ -8,11 +8,31 @@ import * as Utils from "./Utils.ts"
 export class OpenApiTransformer extends ServiceMap.Service<
   OpenApiTransformer,
   {
-    readonly imports: (importName: string) => string
+    readonly imports: (importName: string, operations: ReadonlyArray<ParsedOperation>) => string
     readonly toTypes: (importName: string, name: string, operations: ReadonlyArray<ParsedOperation>) => string
     readonly toImplementation: (importName: string, name: string, operations: ReadonlyArray<ParsedOperation>) => string
   }
 >()("OpenApiTransformer") {}
+
+interface ImportRequirements {
+  readonly stream: boolean
+  readonly sse: boolean
+}
+
+const computeImportRequirements = (operations: ReadonlyArray<ParsedOperation>): ImportRequirements => {
+  let stream = false
+  let sse = false
+  for (const op of operations) {
+    if (op.sseSchema) {
+      stream = true
+      sse = true
+    }
+    if (op.binaryResponse) {
+      stream = true
+    }
+  }
+  return { stream, sse }
+}
 
 const httpClientMethodNames: Record<OpenAPISpecMethodName, string> = {
   get: "get",
@@ -30,13 +50,24 @@ export const makeTransformerSchema = () => {
     _importName: string,
     name: string,
     operations: ReadonlyArray<ParsedOperation>
-  ) =>
-    `export interface ${name} {
+  ) => {
+    const methods: Array<string> = []
+    for (const op of operations) {
+      methods.push(operationToMethod(name, op))
+      if (op.sseSchema) {
+        methods.push(operationToSseMethod(name, op))
+      }
+      if (op.binaryResponse) {
+        methods.push(operationToBinaryMethod(name, op))
+      }
+    }
+    return `export interface ${name} {
   readonly httpClient: HttpClient.HttpClient
-  ${operations.map((op) => operationToMethod(name, op)).join("\n  ")}
+  ${methods.join("\n  ")}
 }
 
 ${clientErrorSource(name)}`
+  }
 
   const operationToMethod = (name: string, operation: ParsedOperation) => {
     const args: Array<string> = []
@@ -89,12 +120,93 @@ ${clientErrorSource(name)}`
     return `${jsdoc}${methodKey}: ${generic}(${parameters}) => ${returnType}`
   }
 
+  const operationToSseMethod = (_name: string, operation: ParsedOperation) => {
+    const args: Array<string> = []
+    if (operation.pathIds.length > 0) {
+      Utils.spreadElementsInto(operation.pathIds.map((id) => `${id}: string`), args)
+    }
+
+    const options: Array<string> = []
+    if (operation.params) {
+      const key = `readonly params${operation.paramsOptional ? "?" : ""}`
+      const type = `typeof ${operation.params}.Encoded${operation.paramsOptional ? " | undefined" : ""}`
+      options.push(`${key}: ${type}`)
+    }
+    if (operation.payload) {
+      options.push(`readonly payload: typeof ${operation.payload}.Encoded`)
+    }
+
+    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    if (hasOptions) {
+      args.push(`options: { ${options.join("; ")} }`)
+    } else if (options.length > 0) {
+      args.push(`options: { ${options.join("; ")} } | undefined`)
+    }
+
+    const jsdoc = Utils.toComment(operation.description)
+    const methodKey = `readonly "${operation.id}Sse"`
+    const parameters = args.join(", ")
+    const returnType =
+      `Stream.Stream<{ readonly event: string; readonly id: string | undefined; readonly data: typeof ${operation.sseSchema}.Type }, HttpClientError.HttpClientError | SchemaError | Sse.Retry, typeof ${operation.sseSchema}.DecodingServices>`
+    return `${jsdoc}${methodKey}: (${parameters}) => ${returnType}`
+  }
+
+  const operationToBinaryMethod = (_name: string, operation: ParsedOperation) => {
+    const args: Array<string> = []
+    if (operation.pathIds.length > 0) {
+      Utils.spreadElementsInto(operation.pathIds.map((id) => `${id}: string`), args)
+    }
+
+    const options: Array<string> = []
+    if (operation.params) {
+      const key = `readonly params${operation.paramsOptional ? "?" : ""}`
+      const type = `typeof ${operation.params}.Encoded${operation.paramsOptional ? " | undefined" : ""}`
+      options.push(`${key}: ${type}`)
+    }
+    if (operation.payload) {
+      options.push(`readonly payload: typeof ${operation.payload}.Encoded`)
+    }
+
+    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    if (hasOptions) {
+      args.push(`options: { ${options.join("; ")} }`)
+    } else if (options.length > 0) {
+      args.push(`options: { ${options.join("; ")} } | undefined`)
+    }
+
+    const jsdoc = Utils.toComment(operation.description)
+    const methodKey = `readonly "${operation.id}Stream"`
+    const parameters = args.join(", ")
+    const returnType = `Stream.Stream<Uint8Array, HttpClientError.HttpClientError>`
+    return `${jsdoc}${methodKey}: (${parameters}) => ${returnType}`
+  }
+
   const operationsToImpl = (
     importName: string,
     name: string,
     operations: ReadonlyArray<ParsedOperation>
-  ) =>
-    `export interface OperationConfig {
+  ) => {
+    const requirements = computeImportRequirements(operations)
+    const implMethods: Array<string> = []
+    for (const op of operations) {
+      implMethods.push(operationToImpl(op))
+      if (op.sseSchema) {
+        implMethods.push(operationToSseImpl(importName, op))
+      }
+      if (op.binaryResponse) {
+        implMethods.push(operationToBinaryImpl(op))
+      }
+    }
+
+    const helpers: Array<string> = [commonSource]
+    if (requirements.sse) {
+      helpers.push(sseRequestSource(importName))
+    }
+    if (requirements.stream) {
+      helpers.push(binaryRequestSource)
+    }
+
+    return `export interface OperationConfig {
   /**
    * Whether or not the response should be included in the value returned from
    * an operation.
@@ -122,7 +234,7 @@ export const make = (
     readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
   } = {}
 ): ${name} => {
-  ${commonSource}
+  ${helpers.join("\n  ")}
   const decodeSuccess =
     <Schema extends ${importName}.Top>(schema: Schema) =>
     (response: HttpClientResponse.HttpClientResponse) =>
@@ -136,9 +248,10 @@ export const make = (
       )
   return {
     httpClient,
-    ${operations.map(operationToImpl).join(",\n  ")}
+    ${implMethods.join(",\n    ")}
   }
 }`
+  }
 
   const operationToImpl = (operation: ParsedOperation) => {
     const args: Array<string> = [...operation.pathIds, "options"]
@@ -196,18 +309,120 @@ export const make = (
     )
   }
 
+  const operationToSseImpl = (importName: string, operation: ParsedOperation) => {
+    const args: Array<string> = [...operation.pathIds]
+    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    if (hasOptions || operation.params || operation.payload) {
+      args.push("options")
+    }
+    const params = args.join(", ")
+
+    const pipeline: Array<string> = []
+
+    if (operation.params) {
+      const paramsAccessor = resolveParamsAccessor(operation, "options", "params")
+      if (operation.urlParams.length > 0) {
+        const props = operation.urlParams.map(
+          (param) => `"${param}": ${paramsAccessor}["${param}"] as any`
+        )
+        pipeline.push(`HttpClientRequest.setUrlParams({ ${props.join(", ")} })`)
+      }
+      if (operation.headers.length > 0) {
+        const props = operation.headers.map(
+          (param) => `"${param}": ${paramsAccessor}["${param}"] ?? undefined`
+        )
+        pipeline.push(`HttpClientRequest.setHeaders({ ${props.join(", ")} })`)
+      }
+    }
+
+    if (operation.payloadFormData) {
+      pipeline.push(`HttpClientRequest.bodyFormData(options.payload as any)`)
+    } else if (operation.payload) {
+      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+    }
+
+    const eventSchema = `${importName}.Struct({
+        ...Sse.EventEncoded.fields,
+        data: ${operation.sseSchema}
+      })`
+    pipeline.push(`sseRequest(${eventSchema})`)
+
+    return (
+      `"${operation.id}Sse": (${params}) => ` +
+      `HttpClientRequest.${httpClientMethodNames[operation.method]}(${operation.pathTemplate})` +
+      `.pipe(\n      ${pipeline.join(",\n      ")}\n    )`
+    )
+  }
+
+  const operationToBinaryImpl = (operation: ParsedOperation) => {
+    const args: Array<string> = [...operation.pathIds]
+    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    if (hasOptions || operation.params || operation.payload) {
+      args.push("options")
+    }
+    const params = args.join(", ")
+
+    const pipeline: Array<string> = []
+
+    if (operation.params) {
+      const paramsAccessor = resolveParamsAccessor(operation, "options", "params")
+      if (operation.urlParams.length > 0) {
+        const props = operation.urlParams.map(
+          (param) => `"${param}": ${paramsAccessor}["${param}"] as any`
+        )
+        pipeline.push(`HttpClientRequest.setUrlParams({ ${props.join(", ")} })`)
+      }
+      if (operation.headers.length > 0) {
+        const props = operation.headers.map(
+          (param) => `"${param}": ${paramsAccessor}["${param}"] ?? undefined`
+        )
+        pipeline.push(`HttpClientRequest.setHeaders({ ${props.join(", ")} })`)
+      }
+    }
+
+    if (operation.payloadFormData) {
+      pipeline.push(`HttpClientRequest.bodyFormData(options.payload as any)`)
+    } else if (operation.payload) {
+      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+    }
+
+    pipeline.push(`binaryRequest`)
+
+    return (
+      `"${operation.id}Stream": (${params}) => ` +
+      `HttpClientRequest.${httpClientMethodNames[operation.method]}(${operation.pathTemplate})` +
+      `.pipe(\n      ${pipeline.join(",\n      ")}\n    )`
+    )
+  }
+
   return OpenApiTransformer.of({
-    imports: (importName) =>
-      [
+    imports: (importName, operations) => {
+      const requirements = computeImportRequirements(operations)
+      const imports = [
         `import * as Data from "effect/Data"`,
         `import * as Effect from "effect/Effect"`,
         `import type { SchemaError } from "effect/Schema"`,
-        `import * as ${importName} from "effect/Schema"`,
-        `import type * as HttpClient from "effect/unstable/http/HttpClient"`,
+        `import * as ${importName} from "effect/Schema"`
+      ]
+      if (requirements.stream) {
+        imports.push(`import * as Stream from "effect/Stream"`)
+      }
+      if (requirements.sse) {
+        imports.push(`import * as Sse from "effect/unstable/encoding/Sse"`)
+      }
+      // HttpClient needs to be a value import when streaming is used (for filterStatusOk)
+      if (requirements.stream) {
+        imports.push(`import * as HttpClient from "effect/unstable/http/HttpClient"`)
+      } else {
+        imports.push(`import type * as HttpClient from "effect/unstable/http/HttpClient"`)
+      }
+      imports.push(
         `import * as HttpClientError from "effect/unstable/http/HttpClientError"`,
         `import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"`,
         `import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"`
-      ].join("\n"),
+      )
+      return imports.join("\n")
+    },
     toTypes: operationsToInterface,
     toImplementation: operationsToImpl
   })
@@ -223,13 +438,24 @@ export const makeTransformerTs = () => {
     _importName: string,
     name: string,
     operations: ReadonlyArray<ParsedOperation>
-  ) =>
-    `export interface ${name} {
+  ) => {
+    const methods: Array<string> = []
+    for (const op of operations) {
+      methods.push(operationToMethod(name, op))
+      if (op.sseSchema) {
+        methods.push(operationToSseMethod(op))
+      }
+      if (op.binaryResponse) {
+        methods.push(operationToBinaryMethod(op))
+      }
+    }
+    return `export interface ${name} {
   readonly httpClient: HttpClient.HttpClient
-  ${operations.map((s) => operationToMethod(name, s)).join("\n  ")}
+  ${methods.join("\n  ")}
 }
 
 ${clientErrorSource(name)}`
+  }
 
   const operationToMethod = (name: string, operation: ParsedOperation) => {
     const args: Array<string> = []
@@ -276,12 +502,89 @@ ${clientErrorSource(name)}`
     return `${jsdoc}${methodKey}: ${generic}(${parameters}) => ${returnType}`
   }
 
+  const operationToSseMethod = (operation: ParsedOperation) => {
+    const args: Array<string> = []
+    if (operation.pathIds.length > 0) {
+      Utils.spreadElementsInto(operation.pathIds.map((id) => `${id}: string`), args)
+    }
+
+    const options: Array<string> = []
+    if (operation.params) {
+      const key = `readonly params${operation.paramsOptional ? "?" : ""}`
+      const type = `${operation.params}${operation.paramsOptional ? " | undefined" : ""}`
+      options.push(`${key}: ${type}`)
+    }
+    if (operation.payload) {
+      options.push(`readonly payload: ${operation.payload}`)
+    }
+
+    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    if (hasOptions) {
+      args.push(`options: { ${options.join("; ")} }`)
+    } else if (options.length > 0) {
+      args.push(`options: { ${options.join("; ")} } | undefined`)
+    }
+
+    const jsdoc = Utils.toComment(operation.description)
+    const methodKey = `readonly "${operation.id}Sse"`
+    const parameters = args.join(", ")
+    const returnType = `Stream.Stream<${operation.sseSchema}, HttpClientError.HttpClientError>`
+    return `${jsdoc}${methodKey}: (${parameters}) => ${returnType}`
+  }
+
+  const operationToBinaryMethod = (operation: ParsedOperation) => {
+    const args: Array<string> = []
+    if (operation.pathIds.length > 0) {
+      Utils.spreadElementsInto(operation.pathIds.map((id) => `${id}: string`), args)
+    }
+
+    const options: Array<string> = []
+    if (operation.params) {
+      const key = `readonly params${operation.paramsOptional ? "?" : ""}`
+      const type = `${operation.params}${operation.paramsOptional ? " | undefined" : ""}`
+      options.push(`${key}: ${type}`)
+    }
+    if (operation.payload) {
+      options.push(`readonly payload: ${operation.payload}`)
+    }
+
+    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    if (hasOptions) {
+      args.push(`options: { ${options.join("; ")} }`)
+    } else if (options.length > 0) {
+      args.push(`options: { ${options.join("; ")} } | undefined`)
+    }
+
+    const jsdoc = Utils.toComment(operation.description)
+    const methodKey = `readonly "${operation.id}Stream"`
+    const parameters = args.join(", ")
+    const returnType = `Stream.Stream<Uint8Array, HttpClientError.HttpClientError>`
+    return `${jsdoc}${methodKey}: (${parameters}) => ${returnType}`
+  }
+
   const operationsToImpl = (
     _importName: string,
     name: string,
     operations: ReadonlyArray<ParsedOperation>
-  ) =>
-    `export interface OperationConfig {
+  ) => {
+    const requirements = computeImportRequirements(operations)
+    const implMethods: Array<string> = []
+    for (const op of operations) {
+      implMethods.push(operationToImpl(op))
+      if (op.sseSchema) {
+        implMethods.push(operationToSseImpl(op))
+      }
+      if (op.binaryResponse) {
+        implMethods.push(operationToBinaryImpl(op))
+      }
+    }
+
+    const helpers: Array<string> = [commonSource]
+    if (requirements.stream) {
+      helpers.push(binaryRequestSourceTs)
+    }
+
+    return `export interface OperationConfig {
   /**
    * Whether or not the response should be included in the value returned from
    * an operation.
@@ -309,7 +612,7 @@ export const make = (
     readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
   } = {}
 ): ${name} => {
-  ${commonSource}
+  ${helpers.join("\n  ")}
   const decodeSuccess = <A>(response: HttpClientResponse.HttpClientResponse) =>
     response.json as Effect.Effect<A, HttpClientError.HttpClientError>
   const decodeVoid = (_response: HttpClientResponse.HttpClientResponse) =>
@@ -346,9 +649,10 @@ export const make = (
   }
   return {
     httpClient,
-    ${operations.map(operationToImpl).join(",\n  ")}
+    ${implMethods.join(",\n    ")}
   }
 }`
+  }
 
   const operationToImpl = (operation: ParsedOperation) => {
     const args: Array<string> = [...operation.pathIds, "options"]
@@ -401,16 +705,106 @@ export const make = (
     )
   }
 
+  const operationToSseImpl = (operation: ParsedOperation) => {
+    const args: Array<string> = [...operation.pathIds]
+    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    if (hasOptions || operation.params || operation.payload) {
+      args.push("options")
+    }
+    const params = args.join(", ")
+
+    const pipeline: Array<string> = []
+
+    if (operation.params) {
+      const paramsAccessor = resolveParamsAccessor(operation, "options", "params")
+      if (operation.urlParams.length > 0) {
+        const props = operation.urlParams.map(
+          (param) => `"${param}": ${paramsAccessor}["${param}"] as any`
+        )
+        pipeline.push(`HttpClientRequest.setUrlParams({ ${props.join(", ")} })`)
+      }
+      if (operation.headers.length > 0) {
+        const props = operation.headers.map(
+          (param) => `"${param}": ${paramsAccessor}["${param}"] ?? undefined`
+        )
+        pipeline.push(`HttpClientRequest.setHeaders({ ${props.join(", ")} })`)
+      }
+    }
+
+    if (operation.payloadFormData) {
+      pipeline.push(`HttpClientRequest.bodyFormDataRecord(options.payload as any)`)
+    } else if (operation.payload) {
+      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+    }
+
+    pipeline.push(`sseRequest`)
+
+    return (
+      `"${operation.id}Sse": (${params}) => ` +
+      `HttpClientRequest.${httpClientMethodNames[operation.method]}(${operation.pathTemplate})` +
+      `.pipe(\n      ${pipeline.join(",\n      ")}\n    )`
+    )
+  }
+
+  const operationToBinaryImpl = (operation: ParsedOperation) => {
+    const args: Array<string> = [...operation.pathIds]
+    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    if (hasOptions || operation.params || operation.payload) {
+      args.push("options")
+    }
+    const params = args.join(", ")
+
+    const pipeline: Array<string> = []
+
+    if (operation.params) {
+      const paramsAccessor = resolveParamsAccessor(operation, "options", "params")
+      if (operation.urlParams.length > 0) {
+        const props = operation.urlParams.map(
+          (param) => `"${param}": ${paramsAccessor}["${param}"] as any`
+        )
+        pipeline.push(`HttpClientRequest.setUrlParams({ ${props.join(", ")} })`)
+      }
+      if (operation.headers.length > 0) {
+        const props = operation.headers.map(
+          (param) => `"${param}": ${paramsAccessor}["${param}"] ?? undefined`
+        )
+        pipeline.push(`HttpClientRequest.setHeaders({ ${props.join(", ")} })`)
+      }
+    }
+
+    if (operation.payloadFormData) {
+      pipeline.push(`HttpClientRequest.bodyFormDataRecord(options.payload as any)`)
+    } else if (operation.payload) {
+      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
+    }
+
+    pipeline.push(`binaryRequest`)
+
+    return (
+      `"${operation.id}Stream": (${params}) => ` +
+      `HttpClientRequest.${httpClientMethodNames[operation.method]}(${operation.pathTemplate})` +
+      `.pipe(\n      ${pipeline.join(",\n      ")}\n    )`
+    )
+  }
+
   return OpenApiTransformer.of({
-    imports: (_importName) =>
-      [
+    imports: (_importName, operations) => {
+      const requirements = computeImportRequirements(operations)
+      const imports = [
         `import * as Data from "effect/Data"`,
-        `import * as Effect from "effect/Effect"`,
+        `import * as Effect from "effect/Effect"`
+      ]
+      if (requirements.stream) {
+        imports.push(`import * as Stream from "effect/Stream"`)
+      }
+      imports.push(
         `import type * as HttpClient from "effect/unstable/http/HttpClient"`,
         `import * as HttpClientError from "effect/unstable/http/HttpClientError"`,
         `import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"`,
         `import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"`
-      ].join("\n"),
+      )
+      return imports.join("\n")
+    },
     toTypes: operationsToInterface,
     toImplementation: operationsToImpl
   })
@@ -451,6 +845,56 @@ const commonSource = `const unexpectedStatus = (response: HttpClientResponse.Htt
           )
       : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
   }`
+
+const sseRequestSource = (_importName: string) =>
+  `const sseRequest = <
+     Type extends {
+       readonly id?: string | undefined
+       readonly event: string
+       readonly data: unknown
+     },
+     DecodingServices
+    >(
+      schema: Schema.Decoder<Type, DecodingServices>
+    ) =>
+    (
+      request: HttpClientRequest.HttpClientRequest
+    ): Stream.Stream<Type, HttpClientError.HttpClientError | SchemaError | Sse.Retry, DecodingServices> =>
+      HttpClient.filterStatusOk(httpClient).execute(request).pipe(
+        Effect.map((response) => response.stream),
+        Stream.unwrap,
+        Stream.decodeText(),
+        Stream.pipeThroughChannel(Sse.decodeSchema<
+          Type,
+          DecodingServices,
+          HttpClientError.HttpClientError,
+          unknown
+        >(schema))
+      )`
+
+const binaryRequestSource =
+  `const binaryRequest = (request: HttpClientRequest.HttpClientRequest): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> =>
+    HttpClient.filterStatusOk(httpClient).execute(request).pipe(
+      Effect.map((response) => response.stream),
+      Stream.unwrap
+    )`
+
+// Type-only mode helpers (no schema decoding)
+const binaryRequestSourceTs =
+  `const sseRequest = (request: HttpClientRequest.HttpClientRequest): Stream.Stream<unknown, HttpClientError.HttpClientError> =>
+    HttpClient.filterStatusOk(httpClient).execute(request).pipe(
+      Effect.map((response) => response.stream),
+      Stream.unwrap,
+      Stream.decodeText(),
+      Stream.splitLines,
+      Stream.filter((line) => line.startsWith("data: ")),
+      Stream.map((line) => JSON.parse(line.slice(6)))
+    )
+  const binaryRequest = (request: HttpClientRequest.HttpClientRequest): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> =>
+    HttpClient.filterStatusOk(httpClient).execute(request).pipe(
+      Effect.map((response) => response.stream),
+      Stream.unwrap
+    )`
 
 const clientErrorSource = (
   name: string

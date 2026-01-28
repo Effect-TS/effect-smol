@@ -521,10 +521,10 @@ export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Eff
         case "suspend":
           if (self.capacity <= 0 && self.state.takers.size > 0) {
             MutableList.append(self.messages, message)
-            releaseTakers(self)
+            releaseTakers(self as Queue<A, E>)
             return exitTrue
           }
-          return offerRemainingSingle(self, message)
+          return offerRemainingSingle(self as Queue<A, E>, message)
         case "sliding":
           MutableList.take(self.messages)
           MutableList.append(self.messages, message)
@@ -532,7 +532,7 @@ export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Eff
       }
     }
     MutableList.append(self.messages, message)
-    scheduleReleaseTaker(self)
+    scheduleReleaseTaker(self as Queue<A, E>)
     return exitTrue
   })
 
@@ -574,13 +574,13 @@ export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>
       return true
     } else if (self.capacity <= 0 && self.state.takers.size > 0) {
       MutableList.append(self.messages, message)
-      releaseTakers(self)
+      releaseTakers(self as Queue<A, E>)
       return true
     }
     return false
   }
   MutableList.append(self.messages, message)
-  scheduleReleaseTaker(self)
+  scheduleReleaseTaker(self as Queue<A, E>)
   return true
 }
 
@@ -613,13 +613,13 @@ export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effe
     if (self.state._tag !== "Open") {
       return internalEffect.succeed(Arr.fromIterable(messages))
     }
-    const remaining = offerAllUnsafe(self, messages)
+    const remaining = offerAllUnsafe(self as Queue<A, E>, messages)
     if (remaining.length === 0) {
       return core.exitSucceed([])
     } else if (self.strategy === "dropping") {
       return internalEffect.succeed(remaining)
     }
-    return offerRemainingArray(self, remaining)
+    return offerRemainingArray(self as Queue<A, E>, remaining)
   })
 
 /**
@@ -660,7 +660,7 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
     if (self.strategy === "sliding") {
       MutableList.takeN(self.messages, self.messages.length - self.capacity)
     }
-    scheduleReleaseTaker(self)
+    scheduleReleaseTaker(self as Queue<A, E>)
     return []
   }
   const free = self.capacity <= 0
@@ -679,7 +679,7 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
     }
     i++
   }
-  scheduleReleaseTaker(self)
+  scheduleReleaseTaker(self as Queue<A, E>)
   return remaining
 }
 

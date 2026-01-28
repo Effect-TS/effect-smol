@@ -38,16 +38,20 @@
  *
  * @since 1.0.0
  */
+import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
+import * as Fiber from "../../Fiber.ts"
 import { identity } from "../../Function.ts"
 import type { Inspectable } from "../../Inspectable.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import * as Layer from "../../Layer.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
+import * as Queue from "../../Queue.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import * as Stream from "../../Stream.ts"
 import * as AiError from "./AiError.ts"
 import type * as Tool from "./Tool.ts"
 
@@ -138,7 +142,23 @@ export interface Toolkit<in out Tools extends Record<string, Tool.Any>> extends
 }
 
 /**
- * A utility type which structurally represents any toolkit instance.
+ * Context provided to tool handlers during execution.
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export interface HandlerContext<Tool extends Tool.Any> {
+  /**
+   * Emit a preliminary result during long-running tool calls.
+   *
+   * Preliminary results are streamed to the caller before the handler completes,
+   * enabling real-time progress updates for lengthy operations.
+   */
+  readonly preliminary: (result: Tool.Success<Tool>) => Effect.Effect<void>
+}
+
+/**
+ * Represents any `Toolkit` instance, used for generic constraints.
  *
  * @since 1.0.0
  * @category utility types
@@ -158,7 +178,7 @@ export interface Any {
 export type Tools<T> = T extends Toolkit<infer Tools> ? Tools : never
 
 /**
- * A utility type which can transforms either a record or an array of tools into
+ * A utility type which transforms either a record or an array of tools into
  * a record where keys are tool names and values are the tool instances.
  *
  * @since 1.0.0
@@ -172,15 +192,19 @@ export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
 /**
  * A utility type that maps tool names to their required handler functions.
  *
+ * Handlers can return either the tool's custom failure type, an `AiErrorReason`
+ * (which will be wrapped in `AiError`), or a full `AiError`.
+ *
  * @since 1.0.0
  * @category utility types
  */
 export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
   readonly [Name in keyof Tools as Tool.RequiresHandler<Tools[Name]> extends true ? Name : never]: (
-    params: Tool.Parameters<Tools[Name]>
+    params: Tool.Parameters<Tools[Name]>,
+    context: HandlerContext<Tools[Name]>
   ) => Effect.Effect<
     Tool.Success<Tools[Name]>,
-    Tool.Failure<Tools[Name]>,
+    Tool.Failure<Tools[Name]> | AiError.AiError | AiError.AiErrorReason,
     Tool.HandlerServices<Tools[Name]>
   >
 }
@@ -198,10 +222,11 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
   readonly tools: Tools
 
   /**
-   * Handler function for executing tool calls.
+   * Executes a tool call by name.
    *
-   * Receives a tool name and parameters, validates the input, executes the
-   * corresponding handler, and returns both the typed result and encoded result.
+   * Validates the input parameters, executes the corresponding handler, and
+   * streams back both the typed result and encoded result. Streaming allows
+   * handlers to emit preliminary results before completion.
    */
   readonly handle: <Name extends keyof Tools>(
     /**
@@ -213,9 +238,12 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
      */
     params: Tool.Parameters<Tools[Name]>
   ) => Effect.Effect<
-    Tool.HandlerResult<Tools[Name]>,
-    Tool.HandlerError<Tools[Name]>,
-    Tool.HandlerServices<Tools[Name]>
+    Stream.Stream<
+      Tool.HandlerResult<Tools[Name]>,
+      Tool.HandlerError<Tools[Name]>,
+      Tool.HandlerServices<Tools[Name]>
+    >,
+    AiError.AiError
   >
 }
 
@@ -224,7 +252,7 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
  * handlers.
  *
  * @since 1.0.0
- * @category Utility Types
+ * @category utility types
  */
 export type WithHandlerTools<T> = T extends WithHandler<infer Tools> ? Tools : never
 
@@ -260,7 +288,7 @@ const Proto = {
       const services = yield* Effect.services<never>()
       const schemasCache = new WeakMap<any, {
         readonly services: ServiceMap.ServiceMap<never>
-        readonly handler: (params: any) => Effect.Effect<any, any>
+        readonly handler: Tool.Handler<any>["handler"]
         readonly decodeParameters: (u: unknown) => Effect.Effect<Tool.Parameters<any>, Schema.SchemaError>
         readonly decodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
         readonly encodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
@@ -270,7 +298,9 @@ const Proto = {
         if (Predicate.isUndefined(schemas)) {
           const handler = services.mapUnsafe.get(tool.id)! as Tool.Handler<any>
           const decodeParameters = Schema.decodeUnknownEffect(tool.parametersSchema) as any
-          const resultSchema = Schema.Union([tool.successSchema, tool.failureSchema])
+          const resultSchema = tool.failureMode === "return"
+            ? Schema.Union([tool.successSchema, tool.failureSchema, AiError.AiError])
+            : tool.successSchema
           const decodeResult = Schema.decodeUnknownEffect(Schema.toType(resultSchema)) as any
           const encodeResult = Schema.encodeUnknownEffect(resultSchema) as any
           schemas = {
@@ -285,80 +315,122 @@ const Proto = {
         return schemas
       }
       const handle = Effect.fnUntraced(function*(name: string, params: unknown) {
-        yield* Effect.annotateCurrentSpan({ tool: name, parameters: params })
         const tool = tools[name]
+
+        yield* Effect.annotateCurrentSpan({
+          tool: name,
+          parameters: params
+        })
+
+        // If the tool is not found, return an error
         if (Predicate.isUndefined(tool)) {
-          const toolNames = Object.keys(tools).join(",")
           return yield* AiError.make({
             module: "Toolkit",
             method: `${name}.handle`,
-            reason: new AiError.OutputParseError({
-              rawOutput: JSON.stringify(params, undefined, 2),
-              expectedSchema: `Tool '${name}' not found in toolkit - available tools: ${toolNames}`
+            reason: new AiError.ToolNotFoundError({
+              toolName: name,
+              toolParams: params,
+              availableTools: Object.keys(tools)
             })
           })
         }
+
+        // Fetch cached schemas / handlers for the tool
         const schemas = getSchemas(tool)
-        const decodedParams = yield* Effect.mapError(
-          schemas.decodeParameters(params),
-          (cause) =>
+
+        // Decode the tool call parameters which will be passed to the handler
+        const decodedParams = yield* schemas.decodeParameters(params).pipe(
+          Effect.mapError((cause) =>
             AiError.make({
               module: "Toolkit",
               method: `${name}.handle`,
-              reason: new AiError.OutputParseError({
-                rawOutput: JSON.stringify(params, undefined, 2),
-                expectedSchema: name,
-                cause
+              reason: new AiError.ToolParameterValidationError({
+                toolName: name,
+                toolParams: params,
+                description: cause.message
               })
             })
-        )
-        const { isFailure, result } = yield* schemas.handler(decodedParams).pipe(
-          Effect.map((result) => ({ result, isFailure: false })),
-          Effect.catch((error) => {
-            // AiErrors are always failures
-            if (AiError.isAiError(error)) {
-              return Effect.fail(error)
-            }
-            // If the tool handler failed, check the tool's failure mode to
-            // determine how the result should be returned to the end user
-            return tool.failureMode === "error"
-              ? Effect.fail(error)
-              : Effect.succeed({ result: error, isFailure: true })
-          }),
-          Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
-          Effect.mapError((cause) =>
-            Schema.isSchemaError(cause)
-              ? AiError.make({
-                module: "Toolkit",
-                method: `${name}.handle`,
-                reason: new AiError.InvalidRequestError({
-                  parameter: name,
-                  description: `Failed to validate tool call result for tool '${name}'`,
-                  cause
-                })
-              })
-              : cause
           )
         )
-        const encodedResult = yield* Effect.mapError(
-          schemas.encodeResult(result),
-          (cause) =>
-            AiError.make({
+
+        // Setup the handler context
+        const queue = yield* Queue.make<{
+          readonly result: any
+          readonly isFailure: boolean
+          readonly preliminary: boolean
+        }, Cause.Done>()
+        const context: HandlerContext<any> = {
+          preliminary: (result) =>
+            Effect.asVoid(Queue.offer(queue, {
+              result,
+              isFailure: false,
+              preliminary: true
+            }))
+        }
+
+        const fiber = yield* schemas.handler(decodedParams, context).pipe(
+          Effect.flatMap((result) => Queue.offer(queue, { result, isFailure: false, preliminary: false })),
+          Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
+          Effect.matchCauseEffect({
+            onFailure: (cause) => Queue.failCause(queue, cause),
+            onSuccess: () => Queue.end(queue)
+          }),
+          Effect.forkChild
+        )
+
+        const encodeResult = (result: any) =>
+          schemas.encodeResult(result).pipe(
+            Effect.mapError((cause) =>
+              AiError.make({
+                module: "Toolkit",
+                method: `${name}.handle`,
+                reason: new AiError.ToolResultEncodingError({
+                  toolName: name,
+                  toolResult: result,
+                  description: cause.message
+                })
+              })
+            )
+          )
+
+        const normalizeError = (error: unknown) => {
+          // Schema errors indicate handler returned invalid data
+          const normalizedError = Schema.isSchemaError(error)
+            ? AiError.make({
               module: "Toolkit",
               method: `${name}.handle`,
-              reason: new AiError.InvalidRequestError({
-                parameter: name,
-                description: `Failed to encode tool call result for tool '${name}'`,
-                cause
+              reason: new AiError.InvalidToolResultError({
+                toolName: name,
+                description: `Tool handler returned invalid result: ${error.message}`
               })
             })
-        )
-        return {
-          isFailure,
-          result,
-          encodedResult
-        } satisfies Tool.HandlerResult<any>
+            : AiError.isAiErrorReason(error)
+            ? AiError.make({
+              module: "Toolkit",
+              method: `${name}.handle`,
+              reason: error
+            })
+            : error
+          return normalizedError
+        }
+
+        return Stream.fromQueue(queue).pipe(
+          // If the tool handler failed, check the tool's failure mode to
+          // determine how the result should be returned to the end user
+          Stream.catch((error) => {
+            const normalizedError = normalizeError(error)
+            return tool.failureMode === "error"
+              ? Stream.fail(normalizedError)
+              : Stream.succeed({ result: normalizedError, isFailure: true, preliminary: false })
+          }),
+          Stream.mapEffect(Effect.fnUntraced(function*(output) {
+            const encodedResult = yield* encodeResult(output.result)
+            return { ...output, encodedResult }
+          })),
+          Stream.onEnd(Fiber.interrupt(fiber))
+        ) satisfies Stream.Stream<Tool.HandlerResult<any>, any>
       })
+
       return {
         tools,
         handle: handle as any
@@ -393,16 +465,16 @@ const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(
  * be extended using the merge function to add tools.
  *
  * @since 1.0.0
- * @category Constructors
+ * @category constructors
  */
 export const empty: Toolkit<{}> = makeProto({})
 
 /**
  * Creates a new toolkit from the specified tools.
  *
- * This is the primary constructor for creating toolkits. It accepts multiple tools
- * and organizes them into a toolkit that can be provided to AI language models.
- * Tools can be either Tool instances or TaggedRequest schemas.
+ * This is the primary constructor for creating toolkits. It accepts multiple
+ * tools and organizes them into a toolkit that can be provided to AI language
+ * models.
  *
  * @example
  * ```ts
@@ -434,7 +506,7 @@ export const make = <Tools extends ReadonlyArray<Tool.Any>>(
 ): Toolkit<ToolsByName<Tools>> => makeProto(resolveInput(...tools)) as any
 
 /**
- * A utility type which simplifies a record type.
+ * A utility type which flattens a record type for improved IDE display.
  *
  * @since 1.0.0
  * @category utility types
@@ -442,7 +514,7 @@ export const make = <Tools extends ReadonlyArray<Tool.Any>>(
 export type SimplifyRecord<T> = { [K in keyof T]: T[K] } & {}
 
 /**
- * A utility type which merges two records of tools together.
+ * A utility type which merges a union of tool records into a single record.
  *
  * @since 1.0.0
  * @category utility types
@@ -455,8 +527,8 @@ export type MergeRecords<U> = {
 }
 
 /**
- * A utility type which merges the tool calls of two toolkits into a single
- * toolkit.
+ * A utility type which merges the tools from multiple toolkits into a single
+ * record.
  *
  * @since 1.0.0
  * @category utility types
@@ -474,33 +546,20 @@ export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
  *
  * @example
  * ```ts
+ * import { Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * const mathToolkit = Toolkit.make(
- *   Tool.make("add"),
- *   Tool.make("subtract")
+ *   Tool.make("add", { success: Schema.Number }),
+ *   Tool.make("subtract", { success: Schema.Number })
  * )
  *
  * const utilityToolkit = Toolkit.make(
- *   Tool.make("get_time"),
- *   Tool.make("get_weather")
+ *   Tool.make("get_time", { success: Schema.Number }),
+ *   Tool.make("get_weather", { success: Schema.String })
  * )
  *
  * const combined = Toolkit.merge(mathToolkit, utilityToolkit)
- * // combined now has: add, subtract, get_time, get_weather
- * ```
- *
- * @example
- * ```ts
- * import { Tool, Toolkit } from "effect/unstable/ai"
- *
- * // Incremental toolkit building
- * const baseToolkit = Toolkit.make(Tool.make("base_tool"))
- * const extendedToolkit = Toolkit.merge(
- *   baseToolkit,
- *   Toolkit.make(Tool.make("additional_tool")),
- *   Toolkit.make(Tool.make("another_tool"))
- * )
  * ```
  *
  * @since 1.0.0

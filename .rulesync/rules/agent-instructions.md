@@ -38,6 +38,21 @@ established patterns before writing new code.
 Do not worry about getting code formatting perfect while writing. Use `pnpm lint-fix`
 to automatically format code according to the project's style guidelines.
 
+### Effect Library Conventions
+
+- Follow existing TypeScript patterns in the codebase
+- Use functional programming principles
+- Maintain consistency with Effect library conventions
+- Use proper Effect constructors (e.g., `Array.make()`, `Chunk.fromIterable()`)
+- Prefer `Effect.gen` for monadic composition
+- Use `Data.TaggedError` or `Schema.TaggedError` for custom error types
+
+### Code Organization
+
+- Follow existing file structure and naming conventions
+- Delete old code when replacing functionality
+- Choose clarity over cleverness in all implementations
+
 ### Barrel files
 
 The `index.ts` files are automatically generated. Do not manually edit them. Use

@@ -12,7 +12,9 @@ import * as RcMap from "../../RcMap.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import * as Sink from "../../Sink.ts"
 import type { Stdio } from "../../Stdio.ts"
+import * as Stream from "../../Stream.ts"
 import type * as Types from "../../Types.ts"
 import * as FindMyWay from "../http/FindMyWay.ts"
 import * as Headers from "../http/Headers.ts"
@@ -565,6 +567,9 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
       tool: mcpTool,
       handle(payload) {
         return built.handle(tool.name as any, payload).pipe(
+          Stream.unwrap,
+          Stream.run(Sink.last()),
+          Effect.flatMap(Effect.fromOption),
           Effect.provideServices(services as ServiceMap.ServiceMap<any>),
           Effect.matchCause({
             onFailure: (cause) =>
