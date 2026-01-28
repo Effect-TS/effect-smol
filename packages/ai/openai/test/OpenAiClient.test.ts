@@ -536,42 +536,4 @@ describe("OpenAiClient", () => {
       }).pipe(Effect.provide(MainLayer))
     })
   })
-
-  describe("streamRequest", () => {
-    const TestEvent = Schema.Struct({
-      type: Schema.String,
-      value: Schema.Number
-    })
-
-    it.effect("maps ResponseError correctly", () => {
-      const mockClient = makeMockHttpClient((request) =>
-        Effect.succeed(makeMockResponse({
-          status: 429,
-          body: { error: { message: "Rate limited" } },
-          request
-        }))
-      )
-
-      const HttpClientLayer = Layer.succeed(HttpClient.HttpClient, mockClient)
-
-      const MainLayer = OpenAiClient.layer({
-        apiKey: Redacted.make("test-key")
-      }).pipe(Layer.provide(HttpClientLayer))
-
-      return Effect.gen(function*() {
-        const client = yield* OpenAiClient.OpenAiClient
-
-        const request = HttpClientRequest.post("/test")
-
-        const result = yield* client.streamRequest(request, TestEvent).pipe(
-          Stream.runDrain,
-          Effect.flip
-        )
-
-        assert.strictEqual(result._tag, "AiError")
-        assert.strictEqual(result.method, "streamRequest")
-        assert.strictEqual(result.reason._tag, "RateLimitError")
-      }).pipe(Effect.provide(MainLayer))
-    })
-  })
 })

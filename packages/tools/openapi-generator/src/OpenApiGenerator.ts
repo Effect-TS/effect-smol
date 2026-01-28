@@ -195,6 +195,28 @@ export const make = Effect.gen(function*() {
               }
             }
 
+            // Handle SSE streaming responses (text/event-stream)
+            if (
+              Predicate.isUndefined(op.sseSchema) &&
+              Predicate.isNotUndefined(response.content?.["text/event-stream"]?.schema)
+            ) {
+              const statusMajorNumber = Number(status[0])
+              if (!Number.isNaN(statusMajorNumber) && statusMajorNumber < 4) {
+                op.sseSchema = generator.addSchema(
+                  `${schemaId}${status}Sse`,
+                  response.content["text/event-stream"].schema
+                )
+              }
+            }
+
+            // Handle binary streaming responses (application/octet-stream)
+            if (Predicate.isNotUndefined(response.content?.["application/octet-stream"])) {
+              const statusMajorNumber = Number(status[0])
+              if (!Number.isNaN(statusMajorNumber) && statusMajorNumber < 4) {
+                op.binaryResponse = true
+              }
+            }
+
             if (Predicate.isUndefined(response.content)) {
               if (status !== "default") {
                 op.voidSchemas.add(status.toLowerCase())
@@ -220,7 +242,7 @@ export const make = Effect.gen(function*() {
       const generation = generator.generate(source, spec.components?.schemas ?? {}, options.typeOnly)
 
       return String.stripMargin(
-        `|${openApiTransformer.imports(importName)}
+        `|${openApiTransformer.imports(importName, operations)}
          |${generation}
          |${openApiTransformer.toImplementation(importName, options.name, operations)}
          |

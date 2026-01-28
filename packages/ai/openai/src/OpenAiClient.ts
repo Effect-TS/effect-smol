@@ -13,11 +13,9 @@ import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as Redacted from "effect/Redacted"
-import type * as Schema from "effect/Schema"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import type * as AiError from "effect/unstable/ai/AiError"
-import * as Sse from "effect/unstable/encoding/Sse"
 import * as Headers from "effect/unstable/http/Headers"
 import * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
@@ -40,14 +38,6 @@ export interface Service {
    * The underlying generated OpenAI client.
    */
   readonly client: Generated.OpenAiClient
-
-  /**
-   * Stream requests with SSE parsing.
-   */
-  readonly streamRequest: <S extends Schema.Top>(
-    request: HttpClientRequest.HttpClientRequest,
-    schema: S
-  ) => Stream.Stream<S["Type"], AiError.AiError, S["DecodingServices"]>
 
   /**
    * Create a response using the OpenAI responses endpoint.
@@ -166,8 +156,6 @@ export const make = Effect.fnUntraced(
         : identity
     )
 
-    const httpClientOk = HttpClient.filterStatusOk(httpClient)
-
     const client = Generated.make(httpClient, {
       transformClient: Effect.fnUntraced(function*(client) {
         const config = yield* OpenAiConfig.getOrUndefined
@@ -177,24 +165,6 @@ export const make = Effect.fnUntraced(
         return client
       })
     })
-
-    const streamRequest = <S extends Schema.Top>(
-      request: HttpClientRequest.HttpClientRequest,
-      schema: S
-    ): Stream.Stream<S["Type"], AiError.AiError, S["DecodingServices"]> =>
-      httpClientOk.execute(request).pipe(
-        Effect.map((response) => response.stream),
-        Stream.unwrap,
-        Stream.decodeText(),
-        Stream.pipeThroughChannel(Sse.decodeSchema(schema)),
-        Stream.map((event) => event.data),
-        Stream.catchTags({
-          // TODO: handle SSE retries
-          Retry: (error) => Stream.die(error),
-          HttpClientError: (error) => Stream.unwrap(Errors.mapHttpClientError(error, "streamRequest")),
-          SchemaError: (error) => Stream.fail(Errors.mapSchemaError(error, "streamRequest"))
-        })
-      )
 
     const createResponse = (
       opts: typeof Generated.CreateResponse.Encoded
@@ -208,12 +178,16 @@ export const make = Effect.fnUntraced(
 
     const createResponseStream = (
       opts: Omit<typeof Generated.CreateResponse.Encoded, "stream">
-    ): Stream.Stream<typeof Generated.ResponseStreamEvent.Type, AiError.AiError> => {
-      const request = HttpClientRequest.post("/responses").pipe(
-        HttpClientRequest.bodyJsonUnsafe({ ...opts, stream: true })
+    ): Stream.Stream<typeof Generated.ResponseStreamEvent.Type, AiError.AiError> =>
+      client.createResponseSse({ payload: { ...opts, stream: true } }).pipe(
+        Stream.map((event) => event.data),
+        Stream.catchTags({
+          // TODO: handle SSE retries
+          Retry: (error) => Stream.die(error),
+          HttpClientError: (error) => Stream.fromEffect(Errors.mapHttpClientError(error, "createResponse")),
+          SchemaError: (error) => Stream.fail(Errors.mapSchemaError(error, "createResponse"))
+        })
       )
-      return streamRequest(request, Generated.ResponseStreamEvent)
-    }
 
     const createEmbedding = (
       opts: typeof Generated.CreateEmbeddingRequest.Encoded
@@ -227,7 +201,6 @@ export const make = Effect.fnUntraced(
 
     return OpenAiClient.of({
       client,
-      streamRequest,
       createResponse,
       createResponseStream,
       createEmbedding

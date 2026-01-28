@@ -42,6 +42,11 @@ const SharedModelIds = Generated.ModelIdsShared.members[1]
  */
 export type Model = typeof ResponseModelIds.Encoded | typeof SharedModelIds.Encoded
 
+/**
+ * Image detail level for vision requests.
+ */
+type ImageDetail = "auto" | "low" | "high"
+
 // =============================================================================
 // Configuration
 // =============================================================================
@@ -104,7 +109,7 @@ declare module "effect/unstable/ai/Prompt" {
       /**
        * The detail level of the image to be sent to the model. One of `high`, `low`, or `auto`. Defaults to `auto`.
        */
-      readonly imageDetail?: typeof Generated.ImageDetail.Encoded | null
+      readonly imageDetail?: ImageDetail | null
     } | null
   }
 
@@ -2118,8 +2123,7 @@ const getEncryptedContent = (
   part: Prompt.ReasoningPart
 ): string | null => part.options.openai?.encryptedContent ?? null
 
-const getImageDetail = (part: Prompt.FilePart): typeof Generated.ImageDetail.Encoded =>
-  part.options.openai?.imageDetail ?? "auto"
+const getImageDetail = (part: Prompt.FilePart): ImageDetail => part.options.openai?.imageDetail ?? "auto"
 
 const makeItemIdMetadata = (itemId: string | undefined) => Predicate.isNotUndefined(itemId) ? { itemId } : undefined
 

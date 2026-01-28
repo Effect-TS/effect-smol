@@ -17,6 +17,12 @@ import * as Transformation from "../../SchemaTransformation.ts"
 
 /**
  * @since 4.0.0
+ * @category Models
+ */
+export type EventSchema = Schema.Top
+
+/**
+ * @since 4.0.0
  * @category Decoding
  */
 export const decode = <IE, Done>(): Channel.Channel<
@@ -63,7 +69,7 @@ export const decode = <IE, Done>(): Channel.Channel<
  * @since 4.0.0
  * @category Decoding
  */
-export const decodeSchema = <Type, DecodingServices, IE, Done>(
+export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
   schema: Schema.Decoder<Type, DecodingServices>
 ): Channel.Channel<
   NonEmptyReadonlyArray<{
@@ -87,6 +93,26 @@ export const decodeSchema = <Type, DecodingServices, IE, Done>(
     ChannelSchema.decode(eventSchema)()
   )
 }
+
+/**
+ * @since 4.0.0
+ * @category Decoding
+ */
+export const decodeSchema = <S extends EventSchema, IE, Done>(
+  schema: S
+): Channel.Channel<
+  NonEmptyReadonlyArray<S["Type"]>,
+  IE | Retry | Schema.SchemaError,
+  Done,
+  NonEmptyReadonlyArray<string>,
+  IE,
+  Done,
+  S["DecodingServices"]
+> =>
+  Channel.pipeTo(
+    decode<IE, Done>(),
+    ChannelSchema.decode(schema)()
+  )
 
 /**
  * Create a SSE parser.
