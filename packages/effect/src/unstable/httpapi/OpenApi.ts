@@ -333,7 +333,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
             const encoding = HttpApiSchema.getEncoding(ast)
             irOps.push({
               _tag: "schema",
-              ast,
+              ast: toEncoding(ast, encoding),
               path: ["paths", path, method, "responses", String(status), "content", encoding.contentType, "schema"]
             })
             op.responses[status].content = {
@@ -405,7 +405,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
             irOps.push({
               _tag: "schema",
-              ast: getEncodingAST(ast, { kind, contentType }),
+              ast: toEncoding(ast, { kind, contentType }),
               path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
             })
             content[contentType] = {
@@ -514,7 +514,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   return spec
 }
 
-function getEncodingAST(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
+function toEncoding(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
   switch (encoding.kind) {
     case "Uint8Array":
       // For `application/octet-stream` (raw bytes) we must emit a binary schema,

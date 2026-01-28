@@ -108,6 +108,43 @@ describe("HttpApi", () => {
     })
   })
 
+  describe("error option", () => {
+    it.effect("void encoded error", () => {
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("a", "/a", {
+            error: Schema.Void
+          }),
+          HttpApiEndpoint.get("b", "/b", {
+            error: HttpApiSchema.Empty(400)
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) =>
+          handlers
+            .handle("a", () => Effect.fail(void 0))
+            .handle("b", () => Effect.fail(void 0))
+      )
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        const a = yield* HttpClient.get("/a")
+        assert.strictEqual(a.status, 500)
+        assert.strictEqual(yield* a.text, "")
+
+        const b = yield* HttpClient.get("/b")
+        assert.strictEqual(b.status, 500) // TODO: should be 400
+        assert.strictEqual(yield* b.text, "")
+      }).pipe(Effect.provide(ApiLive))
+    })
+  })
+
   describe("urlParams", () => {
     it.effect("setUrlParams method should accept a record of schemas", () => {
       const Api = HttpApi.make("api").add(
