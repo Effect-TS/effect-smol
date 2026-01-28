@@ -7130,24 +7130,26 @@ export const toReadableStream: {
 )
 
 /**
- * Converts the stream to a `Effect<ReadableStream>`.
+ * Creates an Effect that builds a ReadableStream from the stream.
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
- * const readableStreamEffect = Stream.toReadableStreamEffect(stream)
  *
- * Effect.runPromise(readableStreamEffect).then((rs) =>
- *   console.log(rs instanceof ReadableStream) // true
- * )
+ * const effect = Effect.gen(function*() {
+ *   const readableStream = yield* Stream.toReadableStreamEffect(stream)
+ *   yield* Console.log(readableStream instanceof ReadableStream) // true
+ * })
+ *
+ * Effect.runPromise(effect)
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const toReadableStreamEffect: {
   <A>(
