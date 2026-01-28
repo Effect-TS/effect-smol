@@ -1019,6 +1019,12 @@ export type SuccessSchemaContraint = Schema.Top
 
 /**
  * @since 4.0.0
+ * @category constraints
+ */
+export type ErrorSchemaContraint = Schema.Top | ReadonlyArray<Schema.Top>
+
+/**
+ * @since 4.0.0
  * @category constructors
  */
 export const make = <Method extends HttpMethod>(method: Method) =>
@@ -1030,7 +1036,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   Payload extends PayloadSchemaContraint<Method> = never,
   Headers extends HeadersSchemaContraint = never,
   Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+  const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
   path: Path,
@@ -1094,7 +1100,7 @@ export const get: <
   Payload extends PayloadSchemaContraint<"GET"> = never,
   Headers extends HeadersSchemaContraint = never,
   Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+  const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
   path: Path,
@@ -1130,7 +1136,7 @@ export const post: <
   Payload extends PayloadSchemaContraint<"POST"> = never,
   Headers extends HeadersSchemaContraint = never,
   Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+  const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
   path: Path,
@@ -1166,7 +1172,7 @@ export const put: <
   Payload extends PayloadSchemaContraint<"PUT"> = never,
   Headers extends HeadersSchemaContraint = never,
   Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+  const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
   path: Path,
@@ -1202,7 +1208,7 @@ export const patch: <
   Payload extends PayloadSchemaContraint<"PATCH"> = never,
   Headers extends HeadersSchemaContraint = never,
   Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+  const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
   path: Path,
@@ -1238,7 +1244,7 @@ export const del: <
   Payload extends PayloadSchemaContraint<"DELETE"> = never,
   Headers extends HeadersSchemaContraint = never,
   Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+  const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
   path: Path,
@@ -1274,7 +1280,7 @@ export const head: <
   Payload extends PayloadSchemaContraint<"HEAD"> = never,
   Headers extends HeadersSchemaContraint = never,
   Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+  const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
   path: Path,
@@ -1310,7 +1316,7 @@ export const options: <
   Payload extends PayloadSchemaContraint<"OPTIONS"> = never,
   Headers extends HeadersSchemaContraint = never,
   Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+  const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
   path: Path,
