@@ -768,13 +768,12 @@ export const sync = <A>(evaluate: LazyArg<A>): Stream<A> => fromChannel(Channel.
  * import { Console, Effect, Stream } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const stream = Stream.suspend(() => Stream.make(1, 2, 3))
- *   const values = yield* Stream.runCollect(stream)
+ *   const values = yield* Stream.suspend(() => Stream.make(1, 2, 3)).pipe(Stream.runCollect)
  *   yield* Console.log(values)
- *   // Output: [1, 2, 3]
  * })
  *
  * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 2.0.0
