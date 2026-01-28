@@ -6873,25 +6873,26 @@ export const runForEachWhile: {
   }))
 
 /**
- * Consumes all elements of the stream, passing them to the specified
- * callback.
+ * Consumes the stream in chunks, passing each non-empty array to the callback.
  *
  * @example
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
- * const result = Stream.runForEachArray(
- *   stream,
- *   (chunk) => Console.log(`Processing chunk: ${chunk.join(", ")}`)
- * )
+ * const program = Effect.gen(function*() {
+ *   yield* Stream.runForEachArray(
+ *     stream,
+ *     (chunk) => Console.log(`Processing chunk: ${chunk.join(", ")}`)
+ *   )
+ * })
  *
- * Effect.runPromise(result)
+ * Effect.runPromise(program)
  * // Processing chunk: 1, 2, 3, 4, 5
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runForEachArray: {
   <A, X, E2, R2>(
