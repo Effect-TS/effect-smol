@@ -949,18 +949,22 @@ export const fromIteratorSucceed = <A>(iterator: IterableIterator<A>, maxChunkSi
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const numbers = [1, 2, 3]
  *
- * const stream = Stream.fromIterable(numbers)
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromIterable(numbers)
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
  *
- * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // [ 1, 2, 3 ]
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromIterable = <A>(iterable: Iterable<A>): Stream<A> =>
   Array.isArray(iterable)
