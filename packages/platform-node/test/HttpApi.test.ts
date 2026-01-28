@@ -48,7 +48,7 @@ describe("HttpApi", () => {
                 Schema.Struct({ a: Schema.String }), // application/json
                 HttpApiSchema.Text(), // text/plain
                 HttpApiSchema.Uint8Array() // application/octet-stream
-              ]),
+              ]).annotate({ httpApiIsContainer: true }),
               success: Schema.String
             })
           )
@@ -568,7 +568,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
       HttpApiSchema.Multipart(
         Schema.Struct(Struct.pick(Group.fields, ["name"]))
       )
-    ]),
+    ]).annotate({ httpApiIsContainer: true }),
     success: Group
   }),
   HttpApiEndpoint.post("handle", "/handle/:id", {

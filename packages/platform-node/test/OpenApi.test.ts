@@ -105,7 +105,7 @@ describe("OpenAPI spec", () => {
                     Schema.Struct({ a: Schema.String }), // application/json
                     HttpApiSchema.Text(), // text/plain
                     HttpApiSchema.Uint8Array() // application/octet-stream
-                  ])
+                  ]).annotate({ httpApiIsContainer: true })
                 })
               )
           )

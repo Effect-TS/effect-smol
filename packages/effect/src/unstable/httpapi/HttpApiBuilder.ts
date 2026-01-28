@@ -625,8 +625,7 @@ const makeSecurityMiddleware = (
 
 const HttpServerResponseSchema = Schema.declare(Response.isHttpServerResponse)
 
-/** @internal */
-export const makeSuccessSchema = (
+const makeSuccessSchema = (
   schema: Schema.Top
 ): Schema.Codec<unknown, HttpServerResponse> => {
   const schemas = new Set<Schema.Schema<any>>()

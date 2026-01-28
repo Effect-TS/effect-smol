@@ -38,13 +38,13 @@ export const isHttpApiEndpoint = (u: unknown): u is HttpApiEndpoint<any, any, an
 export interface HttpApiEndpoint<
   out Name extends string,
   out Method extends HttpMethod,
-  in out Path extends string,
-  in out PathSchema extends Schema.Top = never,
-  in out UrlParams extends Schema.Top = never,
-  in out Payload extends Schema.Top = never,
-  in out Headers extends Schema.Top = never,
-  in out Success extends Schema.Top = HttpApiSchema.NoContent,
-  in out Error extends Schema.Top = Schema.Never,
+  out Path extends string,
+  out PathSchema extends Schema.Top = never,
+  out UrlParams extends Schema.Top = never,
+  out Payload extends Schema.Top = never,
+  out Headers extends Schema.Top = never,
+  out Success extends Schema.Top = HttpApiSchema.NoContent,
+  out Error extends Schema.Top = Schema.Never,
   in out Middleware = never,
   out MiddlewareR = never
 > extends Pipeable {
@@ -856,13 +856,13 @@ const Proto = {
       ...this,
       successSchema: this.successSchema === HttpApiSchema.NoContent ?
         schema :
-        HttpApiSchema.UnionUnify(this.successSchema, schema)
+        HttpApiSchema.mergeSchemas(this.successSchema, schema)
     })
   },
   addError(this: AnyWithProps, schema: Schema.Top) {
     return makeProto({
       ...this,
-      errorSchema: HttpApiSchema.UnionUnify(this.errorSchema, schema)
+      errorSchema: HttpApiSchema.mergeSchemas(this.errorSchema, schema)
     })
   },
   setPayload(this: AnyWithProps, schema: Schema.Top) {
@@ -1049,6 +1049,16 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
   Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
 > => {
+  const successSchema: any = options?.success ? fieldsToSchema(options.success) : HttpApiSchema.NoContent
+
+  const errorSchema: any = options?.error ?
+    Array.isArray(options.error) ?
+      Schema.Union([...new Set([HttpApiSchemaError, ...options.error])]).annotate({ httpApiIsContainer: true }) :
+      Schema.Union([...new Set([HttpApiSchemaError, options.error as Schema.Top])]).annotate({
+        httpApiIsContainer: true
+      }) :
+    HttpApiSchemaError
+
   return makeProto({
     name,
     path,
@@ -1057,13 +1067,8 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     urlParamsSchema: UndefinedOr.map(options?.urlParams, fieldsToSchema),
     payloadSchema: UndefinedOr.map(options?.payload, fieldsToSchema),
     headersSchema: UndefinedOr.map(options?.headers, fieldsToSchema),
-    successSchema: options?.success ? fieldsToSchema(options.success) : HttpApiSchema.NoContent as any,
-    errorSchema: options?.error ?
-      HttpApiSchema.UnionUnify(
-        HttpApiSchemaError,
-        Array.isArray(options.error) ? Schema.Union(options.error) : options.error as Schema.Top
-      ) as any :
-      HttpApiSchemaError as any,
+    successSchema,
+    errorSchema,
     annotations: ServiceMap.empty(),
     middlewares: new Set()
   })

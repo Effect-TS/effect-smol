@@ -4,7 +4,6 @@
 import type { YieldableError } from "../../Cause.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
-import * as Iterable from "../../Iterable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
@@ -49,47 +48,25 @@ export function getStatusError(self: AST.AST): number {
   return resolveHttpApiStatus(self) ?? 500
 }
 
+const resolveHttpApiIsContainer = AST.resolveAt<boolean>("httpApiIsContainer")
+
 /** @internal */
-export function UnionUnifyAST(self: AST.AST, that: AST.AST): AST.AST {
-  const asts = new Set<AST.AST>([...extractUnionTypes(self), ...extractUnionTypes(that)])
-  if (asts.size === 1) {
-    return Iterable.headUnsafe(asts)
-  }
-  return new AST.Union(
-    Array.from(asts),
-    "anyOf",
-    {
-      ...(AST.isUnion(self) ? self.annotations : {}),
-      ...(AST.isUnion(that) ? that.annotations : {})
-    }
-  )
+export function isHttpApiContainer(ast: AST.AST): ast is AST.Union {
+  return AST.isUnion(ast) && resolveHttpApiIsContainer(ast) === true
 }
 
-function extractUnionTypes(ast: AST.AST): ReadonlyArray<AST.AST> {
-  const out: Array<AST.AST> = []
-  process(ast)
-  return out
-
-  function process(ast: AST.AST): void {
-    if (AST.isUnion(ast)) {
-      for (const type of ast.types) {
-        process(type)
-      }
-    } else {
-      out.push(ast)
-    }
-  }
+/** @internal */
+export function mergeSchemas<A extends Schema.Top, B extends Schema.Top>(self: A, that: B): Schema.Top {
+  return Schema.make(mergeASTs(self.ast, that.ast))
 }
 
-// TODO: make this internal
-/**
- * @since 4.0.0
- */
-export function UnionUnify<A extends Schema.Top, B extends Schema.Top>(
-  self: A,
-  that: B
-): Schema.Top {
-  return Schema.make(UnionUnifyAST(self.ast, that.ast))
+function mergeASTs(self: AST.AST, that: AST.AST): AST.AST {
+  const types = isHttpApiContainer(self)
+    ? isHttpApiContainer(that) ? [...new Set([...self.types, ...that.types])] : [...new Set([...self.types, that])]
+    : isHttpApiContainer(that)
+    ? [...new Set([self, ...that.types])]
+    : [...new Set([self, that])]
+  return types.length === 1 ? types[0] : new AST.Union(types, "anyOf", { httpApiIsContainer: true })
 }
 
 // TODO: add description
@@ -429,12 +406,12 @@ export const EmptyError = <Self>() =>
 /** @internal */
 export function forEachMember(schema: Schema.Top, f: (member: Schema.Top) => void): void {
   const ast = schema.ast
-  if (AST.isUnion(ast)) {
-    for (const astType of ast.types) {
-      if (AST.isNever(astType)) {
+  if (isHttpApiContainer(ast)) {
+    for (const type of ast.types) {
+      if (AST.isNever(type)) {
         continue
       }
-      const memberSchema = Schema.make(astType)
+      const memberSchema = Schema.make(type)
       f(memberSchema)
     }
   } else if (!AST.isNever(ast)) {

@@ -7,7 +7,7 @@ import { identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import type * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import type * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
@@ -469,7 +469,7 @@ const parseJsonOrVoid = Schema.String.pipe(
 const parseJsonArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(parseJsonOrVoid))
 
 function schemaFromArrayBuffer(ast: AST.AST): Schema.Top {
-  if (AST.isUnion(ast)) {
+  if (HttpApiSchema.isHttpApiContainer(ast)) {
     return Schema.Union(ast.types.map((type) => schemaFromArrayBuffer(type)))
   }
   const schema = Schema.make(ast)
@@ -515,9 +515,10 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 const HttpBodySchema = Schema.declare(HttpBody.isHttpBody)
 
 function payloadSchemaBody(schema: Schema.Top): Schema.Top {
-  return AST.isUnion(schema.ast)
-    ? Schema.Union(schema.ast.types.map(bodyFromPayload))
-    : bodyFromPayload(schema.ast)
+  if (HttpApiSchema.isHttpApiContainer(schema.ast)) {
+    return Schema.Union(schema.ast.types.map(bodyFromPayload))
+  }
+  return bodyFromPayload(schema.ast)
 }
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()

@@ -349,7 +349,7 @@ function extractPayloads(ast: AST.AST): ReadonlyMap<HttpApiSchema.Encoding["kind
   }
 
   function recur(ast: AST.AST) {
-    if (AST.isUnion(ast)) {
+    if (HttpApiSchema.isHttpApiContainer(ast)) {
       for (const type of ast.types) {
         add(type)
       }
