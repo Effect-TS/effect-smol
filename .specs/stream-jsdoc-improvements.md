@@ -11,6 +11,7 @@ summary clarity, category taxonomy, and example correctness.
 - Ensure one example per runtime export. Use discretion for type only exports.
 - Do not change `@since` tags
 - Keep documentation consistent with current Stream idioms.
+- Ensure `**Previously Known As:**` notes are present where applicable.
 
 ## Non-goals
 
