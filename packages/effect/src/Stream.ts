@@ -6039,30 +6039,29 @@ export const intersperse: {
   }))
 
 /**
- * Intersperse the specified element, also adding a prefix and a suffix.
+ * Intersperse stream elements with a middle value, adding a start and end value.
+ *
+ * The start and end values are always emitted, even when the stream is empty.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.make(1, 2, 3, 4, 5).pipe(
- *   Stream.intersperseAffixes({
- *     start: "[",
- *     middle: "-",
- *     end: "]"
- *   })
+ * const stream = Stream.make("a", "b", "c").pipe(
+ *   Stream.intersperseAffixes({ start: "[", middle: ",", end: "]" })
  * )
  *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // [
- * //   '[', 1,   '-', 2,   '-',
- * //   3,   '-', 4,   '-', 5,
- * //   ']'
- * // ]
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.runCollect(stream)
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // [ "[", "a", ",", "b", ",", "c", "]" ]
  * ```
  *
  * @since 2.0.0
- * @category utils
+ * @category Utils
  */
 export const intersperseAffixes: {
   <A2, A3, A4>(
