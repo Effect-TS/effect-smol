@@ -87,17 +87,12 @@ summary clarity, category taxonomy, and example correctness.
 - Prefer short, runnable snippets that compile with docgen.
 - Include comments that clarify how the exported api is used / works.
 - There should only be one example per export.
-- Comments are optional and should be minimal when the behavior is obvious.
 - Use `Effect.gen` for sequencing, and only use `Effect.runPromise` when needed
   to demonstrate runtime behavior.
 - Prefer `Console.log` over `console.log` when demonstrating effectful logging.
-  Any log statements should have a comment indicating expected output.
-- Add examples only when missing for widely used or non-obvious combinators, or
-  when the existing example is outdated or unclear.
-- Any output shown in comments should match actual runtime output (use the
-  `scratchpad/` for running examples as needed).
-- If you are not showing any output comments, **do not** use any Effect.run*
-  calls in the example.
+  **Important**: Any log statements should have a comment indicating expected output.
+- Any output shown in comments should match actual runtime output (use the `scratchpad/` for running examples as needed).
+- If you are not showing any output comments, **do not** use any Effect.run* calls in the example.
 
 ### Tags
 
