@@ -1871,8 +1871,25 @@ export const mapEffect: {
   ))
 
 /**
+ * Flattens a stream of `Effect` values into a stream of their results.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(Effect.succeed(1), Effect.succeed(2), Effect.succeed(3))
+ *
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Stream.runCollect(stream.pipe(Stream.flattenEffect()))
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [1, 2, 3]
+ * ```
+ *
  * @since 2.0.0
- * @category mapping
+ * @category Mapping
  */
 export const flattenEffect: {
   (
