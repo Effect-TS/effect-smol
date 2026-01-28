@@ -1082,7 +1082,7 @@ export const fromArrayEffect = <A, E, R>(
 ): Stream<A, Pull.ExcludeDone<E>, R> => unwrap(Effect.map(effect, fromArray)) as any
 
 /**
- * Creates a stream from some ararys.
+ * Creates a stream from an arbitrary number of arrays.
  *
  * **Previously Known As**
  *
@@ -1090,8 +1090,22 @@ export const fromArrayEffect = <A, E, R>(
  *
  * - `Stream.fromChunks`
  *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromArrays([1, 2], [3, 4])
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3, 4 ]
+ * ```
+ *
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromArrays = <Arr extends ReadonlyArray<ReadonlyArray<any>>>(
   ...arrays: Arr
