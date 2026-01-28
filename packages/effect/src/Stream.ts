@@ -546,8 +546,32 @@ export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
  * A forked scope is also provided to the transformation function, which is
  * closed once the resulting stream has finished processing.
  *
+ * @example
+ * ```ts
+ * import { Console, Effect, Scope, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ *
+ * const transformed = Stream.transformPullBracket(
+ *   stream,
+ *   (pull, _scope, forkedScope) =>
+ *     Effect.gen(function*() {
+ *       yield* Scope.addFinalizer(forkedScope, Effect.void)
+ *       return pull
+ *     })
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.runCollect(transformed)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [1, 2, 3]
+ * ```
+ *
  * @since 4.0.0
- * @category utils
+ * @category Utils
  */
 export const transformPullBracket = <A, E, R, B, E2, R2, EX, RX>(
   self: Stream<A, E, R>,
