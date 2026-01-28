@@ -6514,6 +6514,41 @@ export const provideServiceEffect: {
 ): Stream<A, E | ES, Exclude<R, I> | RS> => fromChannel(Channel.provideServiceEffect(self.channel, key, service)))
 
 /**
+ * Transforms the stream's required services by mapping the current service map
+ * to a new one.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, ServiceMap, Stream } from "effect"
+ *
+ * class Logger extends ServiceMap.Service<Logger, { prefix: string }>()("Logger") {}
+ * class Config extends ServiceMap.Service<Config, { name: string }>()("Config") {}
+ *
+ * const stream = Stream.fromEffect(
+ *   Effect.gen(function*() {
+ *     const logger = yield* Effect.service(Logger)
+ *     const config = yield* Effect.service(Config)
+ *     return `${logger.prefix}${config.name}`
+ *   })
+ * )
+ *
+ * const updated = stream.pipe(
+ *   Stream.updateServices((services: ServiceMap.ServiceMap<Logger>) =>
+ *     ServiceMap.add(services, Config, { name: "World" })
+ *   )
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.runCollect(updated)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(
+ *   Effect.provideService(program, Logger, { prefix: "Hello " })
+ * )
+ * //=> [ "Hello World" ]
+ * ```
+ *
  * @since 2.0.0
  * @category Services
  */
