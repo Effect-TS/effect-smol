@@ -7431,6 +7431,21 @@ export const runIntoPubSub: {
  * `shutdownOnEnd` indicates whether the PubSub should be shut down when the
  * stream ends. By default this is `true`.
  *
+ * @example
+ * ```ts
+ * import { Console, Effect, PubSub, Stream } from "effect"
+ *
+ * const program = Effect.scoped(Effect.gen(function* () {
+ *   const pubsub = yield* Stream.fromArray([1, 2]).pipe(
+ *     Stream.toPubSub({ capacity: 8 })
+ *   )
+ *   const subscription = yield* PubSub.subscribe(pubsub)
+ *   const first = yield* PubSub.take(subscription)
+ *
+ *   yield* Console.log(first)
+ * }))
+ * ```
+ *
  * @since 2.0.0
  * @category Destructors
  */
