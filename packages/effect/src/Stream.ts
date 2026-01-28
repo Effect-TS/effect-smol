@@ -7232,8 +7232,10 @@ export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Ef
   )
 
 /**
+ * Converts a stream to an `AsyncIterable` for `for await...of` consumption.
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
   toAsyncIterableWith(self, ServiceMap.empty())
