@@ -12,6 +12,8 @@ summary clarity, category taxonomy, and example correctness.
 - Do not change `@since` tags
 - Keep documentation consistent with current Stream idioms.
 - Ensure `**Previously Known As:**` notes are present where applicable.
+- Ensure usage of `Chunk` in examples is replaced with `Array`, as the new
+  version of effect Stream uses `Array` as the collection type.
 
 ## Non-goals
 
