@@ -6939,29 +6939,31 @@ export const runForEachArray: {
 export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E, R> => Channel.runDrain(self.channel)
 
 /**
- * Returns in a scope an effect that can be used to repeatedly pull chunks
- * from the stream. The pull effect fails with None when the stream is
- * finished, or with Some error if it fails, otherwise it returns a chunk of
- * the stream's output.
+ * Returns a scoped pull for manually consuming the stream's output chunks.
+ *
+ * The pull fails with `Cause.Done` when the stream ends and with the stream
+ * error on failure.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
+ *
  * const program = Effect.scoped(
  *   Effect.gen(function*() {
  *     const pull = yield* Stream.toPull(stream)
- *     const chunk1 = yield* pull
- *     console.log(chunk1) // [1, 2, 3]
+ *     const chunk = yield* pull
+ *     yield* Console.log(chunk)
  *   })
  * )
  *
  * Effect.runPromise(program)
+ * // [1, 2, 3]
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const toPull = <A, E, R>(
   self: Stream<A, E, R>
