@@ -691,17 +691,19 @@ export const empty: Stream<never> = fromChannel(Channel.empty)
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * // A Stream with a single number
- * const stream = Stream.succeed(3)
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Stream.succeed(3).pipe(Stream.runCollect)
+ *   yield* Console.log(values)
+ * })
  *
- * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * Effect.runPromise(program)
  * // [ 3 ]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const succeed = <A>(value: A): Stream<A> => fromChannel(Channel.succeed(Arr.of(value)))
 
