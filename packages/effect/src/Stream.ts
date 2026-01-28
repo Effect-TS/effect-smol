@@ -7292,9 +7292,29 @@ export const toAsyncIterableWith: {
 )
 
 /**
- * Converts the stream to an `Effect` that produces an `AsyncIterable`.
+ * Creates an effect that yields an `AsyncIterable` using the current services.
  *
- * The iterable uses the current services from the Effect environment.
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ *
+ * const program = Effect.gen(function*() {
+ *   const iterable = yield* Stream.toAsyncIterableEffect(stream)
+ *   const values = yield* Effect.promise(async () => {
+ *     const collected: Array<number> = []
+ *     for await (const value of iterable) {
+ *       collected.push(value)
+ *     }
+ *     return collected
+ *   })
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * //=> [ 1, 2, 3 ]
+ * ```
  *
  * @since 2.0.0
  * @category Destructors
