@@ -6609,7 +6609,21 @@ export const bindEffect: {
   mapEffect(self, (a) => Effect.map(f(a), (b) => ({ ...a, [tag]: b } as any)), options))
 
 /**
- * @category Do notation
+ * Maps each element into a record keyed by the provided name.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3).pipe(Stream.bindTo("value"))
+ *
+ * const program = Stream.runCollect(stream).pipe(Effect.flatMap(Console.log))
+ *
+ * Effect.runPromise(program)
+ * // [{ value: 1 }, { value: 2 }, { value: 3 }]
+ * ```
+ *
+ * @category Do Notation
  * @since 4.0.0
  */
 export const bindTo: {
