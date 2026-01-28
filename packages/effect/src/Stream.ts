@@ -6995,8 +6995,24 @@ export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string
   )
 
 /**
+ * Concatenates the stream's `Uint8Array` chunks into a single `Uint8Array`.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(new Uint8Array([1, 2]), new Uint8Array([3, 4]))
+ * const program = Effect.gen(function*() {
+ *   const bytes = yield* Stream.mkUint8Array(stream)
+ *   yield* Console.log(Array.from(bytes))
+ * })
+ *
+ * Effect.runPromise(program)
+ * // [1, 2, 3, 4]
+ * ```
+ *
  * @since 4.0.0
- * @category destructors
+ * @category Destructors
  */
 export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effect<Uint8Array, E, R> =>
   Channel.runFold(
