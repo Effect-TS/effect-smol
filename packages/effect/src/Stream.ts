@@ -7312,8 +7312,12 @@ export const toPubSub: {
 )
 
 /**
+ * Converts a stream to a PubSub of `Take` values for concurrent consumption.
+ *
+ * `Take` values include the stream's end and failure signals.
+ *
  * @since 4.0.0
- * @category destructors
+ * @category Destructors
  */
 export const toPubSubTake: {
   (
