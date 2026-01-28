@@ -40,7 +40,7 @@ import * as Sink from "./Sink.ts"
 import { isString } from "./String.ts"
 import type * as Take from "./Take.ts"
 import type { ParentSpan, SpanOptions } from "./Tracer.ts"
-import type { Covariant, ExcludeTag, ExtractTag, NoInfer, Tags } from "./Types.ts"
+import type { Covariant, ExcludeTag, ExtractReason, ExtractTag, NoInfer, ReasonTags, Tags } from "./Types.ts"
 import type * as Unify from "./Unify.ts"
 
 const TypeId = "~effect/Stream"
@@ -4990,6 +4990,106 @@ export const catchTags: {
     (e) => cases[e["_tag"] as string](e)
   )
 })
+
+/**
+ * Catches a specific reason within a tagged error.
+ *
+ * Use this to handle nested error causes without removing the parent error
+ * from the error channel. The handler receives the unwrapped reason.
+ *
+ * @example
+ * ```ts
+ * import { Console, Data, Effect, Stream } from "effect"
+ *
+ * class RateLimitError extends Data.TaggedError("RateLimitError")<{
+ *   retryAfter: number
+ * }> {}
+ *
+ * class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+ *   limit: number
+ * }> {}
+ *
+ * class AiError extends Data.TaggedError("AiError")<{
+ *   reason: RateLimitError | QuotaExceededError
+ * }> {}
+ *
+ * const stream = Stream.fail(
+ *   new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const values = yield* stream.pipe(
+ *     Stream.catchReason("AiError", "RateLimitError", (reason) =>
+ *       Stream.succeed(`retry: ${reason.retryAfter}`)
+ *     ),
+ *     Stream.runCollect
+ *   )
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ "retry: 60" ]
+ * ```
+ *
+ * @since 4.0.0
+ * @category Error Handling
+ */
+export const catchReason: {
+  <
+    K extends Tags<E>,
+    E,
+    RK extends ReasonTags<ExtractTag<NoInfer<E>, K>>,
+    A2,
+    E2,
+    R2
+  >(
+    errorTag: K,
+    reasonTag: RK,
+    f: (reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>) => Stream<A2, E2, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E | E2, R | R2>
+  <
+    A,
+    E,
+    R,
+    K extends Tags<E>,
+    RK extends ReasonTags<ExtractTag<E, K>>,
+    A2,
+    E2,
+    R2
+  >(
+    self: Stream<A, E, R>,
+    errorTag: K,
+    reasonTag: RK,
+    f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Stream<A2, E2, R2>
+  ): Stream<A | A2, E | E2, R | R2>
+} = dual(
+  4,
+  <
+    A,
+    E,
+    R,
+    K extends Tags<E>,
+    RK extends ReasonTags<ExtractTag<E, K>>,
+    A2,
+    E2,
+    R2
+  >(
+    self: Stream<A, E, R>,
+    errorTag: K,
+    reasonTag: RK,
+    f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Stream<A2, E2, R2>
+  ): Stream<A | A2, E | E2, R | R2> =>
+    catchFilter(
+      self,
+      (e) => {
+        if (isTagged(e, errorTag) && hasProperty(e, "reason") && isTagged(e.reason, reasonTag)) {
+          return e.reason
+        }
+        return Filter.fail(e)
+      },
+      f as any
+    )
+)
 
 /**
  * Transforms the errors emitted by this stream using `f`.

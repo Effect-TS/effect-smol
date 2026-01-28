@@ -5,6 +5,7 @@ import {
   Array,
   Cause,
   Clock,
+  Data,
   Deferred,
   Duration,
   Effect,
@@ -276,6 +277,70 @@ describe("Stream", () => {
         )
         assert.deepStrictEqual(result, Exit.fail({ _tag: "ErrorB" as const }))
       }))
+
+    describe("catchReason", () => {
+      class RateLimitError extends Data.TaggedError("RateLimitError")<{
+        readonly retryAfter: number
+      }> {}
+
+      class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+        readonly limit: number
+      }> {}
+
+      class AiError extends Data.TaggedError("AiError")<{
+        readonly reason: RateLimitError | QuotaExceededError
+      }> {}
+
+      class OtherError extends Data.TaggedError("OtherError")<{
+        readonly message: string
+      }> {}
+
+      it.effect("catches matching reason - handler succeeds", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.fail(
+            new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+          ).pipe(
+            Stream.catchReason("AiError", "RateLimitError", (r) => Stream.succeed(`retry: ${r.retryAfter}`)),
+            Stream.runCollect
+          )
+          assert.deepStrictEqual(result, ["retry: 60"])
+        }))
+
+      it.effect("catches matching reason - handler fails", () =>
+        Effect.gen(function*() {
+          const reason = new RateLimitError({ retryAfter: 60 })
+          const error = new OtherError({ message: "handled" })
+          const exit = yield* Stream.fail(new AiError({ reason })).pipe(
+            Stream.catchReason("AiError", "RateLimitError", () => Stream.fail(error)),
+            Stream.runCollect,
+            Effect.exit
+          )
+          assertExitFailure(exit, Cause.fail(error))
+        }))
+
+      it.effect("ignores non-matching reason", () =>
+        Effect.gen(function*() {
+          const reason = new QuotaExceededError({ limit: 100 })
+          const error = new AiError({ reason })
+          const exit = yield* Stream.fail(error).pipe(
+            Stream.catchReason("AiError", "RateLimitError", () => Stream.succeed("no")),
+            Stream.runCollect,
+            Effect.exit
+          )
+          assertExitFailure(exit, Cause.fail(error))
+        }))
+
+      it.effect("ignores non-matching parent tag", () =>
+        Effect.gen(function*() {
+          const error = new OtherError({ message: "test" })
+          const exit = yield* (Stream.fail(error) as Stream.Stream<never, AiError | OtherError>).pipe(
+            Stream.catchReason("AiError", "RateLimitError", () => Stream.succeed("no")),
+            Stream.runCollect,
+            Effect.exit
+          )
+          assertExitFailure(exit, Cause.fail(error))
+        }))
+    })
   })
 
   describe("scanning", () => {
