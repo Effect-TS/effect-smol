@@ -6401,6 +6401,38 @@ export const provideServices: {
 )
 
 /**
+ * Provides the stream with a single required service, eliminating that
+ * requirement from its environment.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, ServiceMap, Stream } from "effect"
+ *
+ * const Greeter = ServiceMap.Service<{
+ *   greet: (name: string) => string
+ * }>("Greeter")
+ *
+ * const stream = Stream.fromEffect(
+ *   Effect.service(Greeter).pipe(
+ *     Effect.map((greeter) => greeter.greet("Ada"))
+ *   )
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const collected = yield* Stream.runCollect(
+ *     stream.pipe(
+ *       Stream.provideService(Greeter, {
+ *         greet: (name) => `Hello, ${name}`
+ *       })
+ *     )
+ *   )
+ *   yield* Console.log(collected)
+ * })
+ *
+ * Effect.runPromise(program)
+ * //=> { _id: 'Chunk', values: [ 'Hello, Ada' ] }
+ * ```
+ *
  * @since 4.0.0
  * @category Services
  */
