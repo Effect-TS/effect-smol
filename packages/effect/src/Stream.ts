@@ -7019,7 +7019,7 @@ export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effec
   )
 
 /**
- * Converts the stream to a `ReadableStream`.
+ * Converts the stream to a `ReadableStream` using the provided services.
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
  *
@@ -7029,12 +7029,10 @@ export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effec
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  * const readableStream = Stream.toReadableStreamWith(stream, ServiceMap.empty())
- *
- * console.log(readableStream instanceof ReadableStream) // true
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const toReadableStreamWith = dual<
   <A, XR>(
