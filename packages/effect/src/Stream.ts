@@ -283,22 +283,25 @@ export const DefaultChunkSize: number = Channel.DefaultChunkSize
 export type HaltStrategy = Channel.HaltStrategy
 
 /**
- * Creates a stream from a `Channel`.
- *
- * This function allows you to create a Stream by providing a Channel that
- * produces arrays of values. It's useful when you have low-level channel
- * operations that you want to expose as a higher-level Stream.
+ * Creates a stream from a chunk-emitting `Channel`.
  *
  * @example
  * ```ts
- * import { Channel, Stream } from "effect"
+ * import { Channel, Console, Effect, Stream } from "effect"
  *
- * const myChannel = Channel.succeed([1, 2, 3] as const)
- * const stream = Stream.fromChannel(myChannel)
+ * const program = Effect.gen(function*() {
+ *   const channel = Channel.succeed([1, 2, 3] as const)
+ *   const stream = Stream.fromChannel(channel)
+ *   const result = yield* Stream.runCollect(stream)
+ *   yield* Console.log(result)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: { _id: 'Chunk', values: [ 1, 2, 3 ] }
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromChannel: <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
   channel: Channel.Channel<Arr, E, void, unknown, unknown, unknown, R>
