@@ -71,7 +71,6 @@ summary clarity, category taxonomy, and example correctness.
   - Tracing
   - Type Lambdas
   - Type-Level
-  - Utils
   - Zipping
 - Normalize duplicates to the canonical name (for example, `type-level` to
   `Type-Level`, `utils` to `Utils`, `Do notation` to `Do Notation`).
