@@ -595,21 +595,25 @@ export const transformPullBracket = <A, E, R, B, E2, R2, EX, RX>(
   )
 
 /**
- * Creates a channel from a `Stream`.
- *
- * This function extracts the underlying Channel from a Stream, allowing you
- * to work with the lower-level Channel API when needed.
+ * Creates a channel from a stream.
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import { Channel, Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.make(1, 2, 3)
- * const channel = Stream.toChannel(stream)
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.make(1, 2, 3)
+ *   const channel = Stream.toChannel(stream)
+ *   const values = yield* Channel.runCollect(channel)
+ *   yield* Console.log(values.flat())
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const toChannel = <A, E, R>(
   stream: Stream<A, E, R>
