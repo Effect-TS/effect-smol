@@ -377,8 +377,25 @@ export const fromEffectRepeat = <A, E, R>(effect: Effect.Effect<A, E, R>): Strea
  *
  * - `Stream.repeatEffectWithSchedule`
  *
+ * @example
+ * ```ts
+ * import { Console, Effect, Schedule, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.fromEffectSchedule(
+ *     Effect.succeed("ping"),
+ *     Schedule.recurs(2)
+ *   )
+ *   const result = yield* Stream.runCollect(stream)
+ *   yield* Console.log(Array.from(result))
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ "ping", "ping", "ping" ]
+ * ```
+ *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
   effect: Effect.Effect<A, E, R>,
