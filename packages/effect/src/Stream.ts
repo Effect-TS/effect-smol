@@ -808,21 +808,24 @@ export const fail = <E>(error: E): Stream<never, E> => fromChannel(Channel.fail(
 /**
  * Terminates with the specified lazily evaluated error.
  *
- * This function creates a Stream that fails with an error computed by the
- * provided function. The error is evaluated lazily when the stream is run.
- *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.failSync(() => new Error("Something went wrong"))
+ * const stream = Stream.failSync(() => "Uh oh!")
  *
- * Effect.runPromiseExit(Stream.runCollect(stream)).then(console.log)
- * // Exit.Failure with the error
+ * const program = Effect.gen(function*() {
+ *   const exit = yield* Stream.runCollect(stream).pipe(Effect.exit)
+ *   yield* Console.log(exit)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // { _id: 'Exit', _tag: 'Failure', cause: { _id: 'Cause', _tag: 'Fail', failure: 'Uh oh!' } }
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const failSync = <E>(evaluate: LazyArg<E>): Stream<never, E> => fromChannel(Channel.failSync(evaluate))
 
