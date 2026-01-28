@@ -1267,10 +1267,28 @@ export const fromAsyncIterable = <A, E>(
 ): Stream<A, E> => fromChannel(Channel.fromAsyncIterableArray(iterable, onError))
 
 /**
- * Creates a stream from a Schedule.
+ * Creates a stream that emits each output of a schedule that does not require input,
+ * for as long as the schedule continues.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Schedule, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const schedule = Schedule.spaced("50 millis").pipe(
+ *     Schedule.compose(Schedule.recurs(2))
+ *   )
+ *   const stream = Stream.fromSchedule(schedule)
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 0, 1, 2 ]
+ * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E, R>): Stream<O, E, R> =>
   fromPull(
