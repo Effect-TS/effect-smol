@@ -327,20 +327,18 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           op.responses[status] = {
             description: description ?? defaultDescription()
           }
-          // Handle empty response
-          if (schema !== undefined) {
+          // Handle empty
+          if (schema !== undefined && !HttpApiSchema.isVoidEncoded(schema.ast)) {
             const ast = schema.ast
-            if (!HttpApiSchema.isVoidEncoded(ast)) {
-              const encoding = HttpApiSchema.getEncoding(ast)
-              irOps.push({
-                _tag: "schema",
-                ast: toEncoding(ast, encoding),
-                path: ["paths", path, method, "responses", String(status), "content", encoding.contentType, "schema"]
-              })
-              op.responses[status].content = {
-                [encoding.contentType]: {
-                  schema: {}
-                }
+            const encoding = HttpApiSchema.getEncoding(ast)
+            irOps.push({
+              _tag: "schema",
+              ast: toEncoding(ast, encoding),
+              path: ["paths", path, method, "responses", String(status), "content", encoding.contentType, "schema"]
+            })
+            op.responses[status].content = {
+              [encoding.contentType]: {
+                schema: {}
               }
             }
           }
@@ -398,7 +396,9 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         const content: OpenApiSpecContent = {}
         payloads.forEach((map, kind) => {
           map.forEach((set, contentType) => {
-            const asts = Array.from(set, AST.getAST).filter((ast) => !HttpApiSchema.isVoidEncoded(ast))
+            const asts = Array.from(set, AST.getAST)
+              // Handle empty
+              .filter((ast) => !HttpApiSchema.isVoidEncoded(ast))
             if (asts.length === 0) {
               return
             }

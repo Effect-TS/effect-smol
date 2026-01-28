@@ -160,7 +160,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
         errors.forEach(({ schema }, status) => {
-          // Handle empty response
+          // Handle empty
           if (schema === undefined) {
             decodeMap[status] = statusCodeError
             return
@@ -184,7 +184,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             )
         })
         successes.forEach(({ schema }, status) => {
-          // Handle empty response
+          // Handle empty
           decodeMap[status] = schema === undefined ? responseAsVoid : schemaToResponse(schema)
         })
         const encodePath = endpoint.pathSchema?.pipe(
@@ -398,7 +398,7 @@ const compilePath = (path: string) => {
 }
 
 function schemaToResponse(schema: Schema.Top) {
-  const codec = schemaFromArrayBuffer(schema)
+  const codec = toCodecArrayBuffer(schema)
   // TODO: what if schema has DecodingServices?
   const decode = Schema.decodeEffect(codec as Schema.Codec<unknown, unknown>)
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
@@ -407,6 +407,7 @@ function schemaToResponse(schema: Schema.Top) {
 // TODO: can this be more precise?
 const SchemaArrayBuffer = Schema.Unknown as any as Schema.instanceOf<ArrayBuffer>
 
+// kind: Uint8Array
 const Uint8ArrayFromArrayBuffer = SchemaArrayBuffer.pipe(
   Schema.decodeTo(
     Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>,
@@ -423,6 +424,7 @@ const Uint8ArrayFromArrayBuffer = SchemaArrayBuffer.pipe(
   )
 )
 
+// kind: Text
 const StringFromArrayBuffer = SchemaArrayBuffer.pipe(
   Schema.decodeTo(
     Schema.String,
@@ -440,56 +442,38 @@ const StringFromArrayBuffer = SchemaArrayBuffer.pipe(
   )
 )
 
-// TODO: replace with the built-in transformation from JSON?
-const parseJsonOrVoid = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Unknown,
-    Transformation.transformOrFail({
-      decode(i) {
-        // Handle empty response
-        if (i === "") return Effect.undefined
-        try {
-          return Effect.succeed(JSON.parse(i))
-        } catch {
-          return Effect.fail(
-            new Issue.InvalidValue(Option.some(i), { message: "Could not parse JSON" })
-          )
-        }
-      },
-      encode(a) {
-        if (a === undefined) return Effect.succeed("")
-        try {
-          return Effect.succeed(JSON.stringify(a))
-        } catch {
-          return Effect.fail(
-            new Issue.InvalidValue(Option.some(a), { message: "Could not encode as JSON" })
-          )
-        }
-      }
-    })
-  )
-)
+// kind: Json
+const UnknownFromArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(
+  Schema.Union([
+    // Handle empty
+    Schema.Literal("").pipe(Schema.decodeTo(
+      Schema.Undefined,
+      Transformation.transform({
+        decode: () => undefined,
+        encode: () => ""
+      })
+    )),
+    Schema.UnknownFromJsonString
+  ])
+))
 
-const parseJsonArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(parseJsonOrVoid))
-
-function schemaFromArrayBuffer(schema: Schema.Top): Schema.Top {
+function toCodecArrayBuffer(schema: Schema.Top): Schema.Top {
   if (HttpApiSchema.isHttpApiContainer(schema)) {
-    return Schema.Union(schema.members.map(schemaFromArrayBuffer))
+    return Schema.Union(schema.members.map(toCodecArrayBuffer))
   }
   const encoding = HttpApiSchema.getEncoding(schema.ast)
   switch (encoding.kind) {
     case "Json":
-      return parseJsonArrayBuffer
-        .pipe(Schema.decodeTo(schema))
+      return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
     case "UrlParams":
-      return StringFromArrayBuffer
-        .pipe(Schema.decodeTo(UrlParams.schemaRecord), Schema.decodeTo(schema))
+      return StringFromArrayBuffer.pipe(
+        Schema.decodeTo(UrlParams.schemaRecord),
+        Schema.decodeTo(schema)
+      )
     case "Uint8Array":
-      return Uint8ArrayFromArrayBuffer
-        .pipe(Schema.decodeTo(schema))
+      return Uint8ArrayFromArrayBuffer.pipe(Schema.decodeTo(schema))
     case "Text":
-      return StringFromArrayBuffer
-        .pipe(Schema.decodeTo(schema))
+      return StringFromArrayBuffer.pipe(Schema.decodeTo(schema))
   }
 }
 

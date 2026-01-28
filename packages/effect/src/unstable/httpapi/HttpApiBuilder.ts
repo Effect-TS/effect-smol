@@ -674,7 +674,7 @@ function getResponseTransformation<T, E, RD, RE>(
   return Transformation.transformOrFail({
     decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
     encode(e: E) {
-      // Handle empty response
+      // Handle empty
       if (isEmpty) {
         return Effect.succeed(Response.empty({ status }))
       }
