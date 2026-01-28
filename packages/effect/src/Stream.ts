@@ -6209,8 +6209,31 @@ export const interleaveWith: {
  * If the effect completes with a failure before the stream completes, the
  * returned stream will emit that failure.
  *
+ * @example
+ * ```ts
+ * import { Console, Deferred, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const interrupt = yield* Deferred.make<void>()
+ *   const stream = Stream.make(1, 2, 3).pipe(
+ *     Stream.tap((value) =>
+ *       value === 2
+ *         ? Deferred.succeed(interrupt, void 0)
+ *         : Effect.void
+ *     ),
+ *     Stream.interruptWhen(Deferred.await(interrupt))
+ *   )
+ *
+ *   const result = yield* Stream.runCollect(stream)
+ *   yield* Console.log(Array.from(result))
+ * })
+ *
+ * Effect.runPromise(program)
+ * // => [1, 2]
+ * ```
+ *
  * @since 2.0.0
- * @category utils
+ * @category Utils
  */
 export const interruptWhen: {
   <X, E2, R2>(effect: Effect.Effect<X, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
