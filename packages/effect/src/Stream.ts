@@ -759,26 +759,26 @@ export const make = <const As extends ReadonlyArray<any>>(...values: As): Stream
 export const sync = <A>(evaluate: LazyArg<A>): Stream<A> => fromChannel(Channel.sync(() => Arr.of(evaluate())))
 
 /**
- * Returns a lazily constructed stream.
+ * Creates a lazily constructed stream.
  *
- * This function defers the creation of a Stream until it is actually consumed.
- * The provided function will be called each time the stream is run.
+ * The stream factory is evaluated each time the stream is run.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const lazyStream = Stream.suspend(() => {
- *   console.log("Creating stream...")
- *   return Stream.make(1, 2, 3)
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.suspend(() => Stream.make(1, 2, 3))
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ *   // Output: [1, 2, 3]
  * })
  *
- * // "Creating stream..." will be printed when the stream is run
- * Effect.runPromise(Stream.runCollect(lazyStream))
+ * Effect.runPromise(program)
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const suspend = <A, E, R>(stream: LazyArg<Stream<A, E, R>>): Stream<A, E, R> =>
   fromChannel(Channel.suspend(() => stream().channel))
