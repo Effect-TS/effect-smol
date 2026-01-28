@@ -441,21 +441,31 @@ export const tick = (interval: Duration.DurationInput): Stream<void> =>
   }))
 
 /**
- * Creates a stream from a pull effect.
+ * Creates a stream from a pull effect, such as one produced by `Stream.toPull`.
  *
- * A pull effect is a low-level representation of a stream that can be used
- * to produce values on demand. This function lifts a pull effect into a Stream.
+ * A pull effect yields chunks on demand and completes when the upstream stream ends.
+ * See `Stream.toPull` for a matching producer.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
- * const pullEffect = Effect.succeed(Effect.succeed([1, 2, 3] as const))
- * const stream = Stream.fromPull(pullEffect)
+ * const program = Effect.scoped(
+ *   Effect.gen(function*() {
+ *     const source = Stream.make(1, 2, 3)
+ *     const pull = yield* Stream.toPull(source)
+ *     const stream = Stream.fromPull(Effect.succeed(pull))
+ *     const values = yield* Stream.runCollect(stream)
+ *     yield* Console.log(Array.from(values))
+ *   })
+ * )
+ *
+ * Effect.runPromise(program)
+ * // Output: [1, 2, 3]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromPull = <A, E, R, EX, RX>(
   pull: Effect.Effect<Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R>, EX, RX>
