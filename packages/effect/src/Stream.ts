@@ -913,15 +913,13 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Stream<neve
   fromChannel(Channel.failCauseSync(evaluate))
 
 /**
- * Creates a stream from an iterator.
+ * Creates a stream that consumes values from an iterator.
  *
- * This function creates a Stream from an IterableIterator, consuming values
- * from the iterator. The maxChunkSize parameter controls how many values
- * are pulled from the iterator at once.
+ * The `maxChunkSize` parameter controls how many values are pulled per chunk.
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * function* numbers() {
  *   yield 1
@@ -931,11 +929,17 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Stream<neve
  *
  * const stream = Stream.fromIteratorSucceed(numbers())
  *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * const program = Effect.gen(function* () {
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 1, 2, 3 ]
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const fromIteratorSucceed = <A>(iterator: IterableIterator<A>, maxChunkSize?: number): Stream<A> =>
   fromChannel(Channel.fromIteratorArray(() => iterator, maxChunkSize))
