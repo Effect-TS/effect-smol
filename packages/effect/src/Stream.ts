@@ -3462,6 +3462,24 @@ export const race: {
 ): Stream<AL | AR, EL | ER, RL | RR> => raceAll(left, right))
 
 /**
+ * Filters a stream to the elements that satisfy a predicate.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.make(1, 2, 3, 4).pipe(
+ *     Stream.filter((n) => n % 2 === 0)
+ *   )
+ *   const values = yield* Stream.runCollect(stream)
+ *   yield* Console.log(values)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: [ 2, 4 ]
+ * ```
+ *
  * @since 2.0.0
  * @category Filtering
  */
