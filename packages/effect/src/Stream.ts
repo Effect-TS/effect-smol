@@ -6917,24 +6917,28 @@ export const runForEachArray: {
 ): Effect.Effect<void, E | E2, R | R2> => Channel.runForEach(self.channel, f))
 
 /**
- * Runs the stream only for its effects. The emitted elements are discarded.
+ * Runs the stream for its effects, discarding emitted elements.
  *
  * @example
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.make(1, 2, 3).pipe(
- *   Stream.mapEffect((n) => Console.log(`Processing: ${n}`))
- * )
+ * const program = Effect.gen(function*() {
+ *   const stream = Stream.make(1, 2, 3).pipe(
+ *     Stream.mapEffect((n) => Console.log(`Processing: ${n}`))
+ *   )
  *
- * Effect.runPromise(Stream.runDrain(stream))
+ *   yield* Stream.runDrain(stream)
+ * })
+ *
+ * Effect.runPromise(program)
  * // Processing: 1
  * // Processing: 2
  * // Processing: 3
  * ```
  *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E, R> => Channel.runDrain(self.channel)
 
