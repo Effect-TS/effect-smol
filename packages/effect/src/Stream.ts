@@ -7265,8 +7265,13 @@ export const runIntoPubSub: {
 ): Effect.Effect<void, E, R> => Channel.runIntoPubSubArray(self.channel, pubsub, options))
 
 /**
+ * Converts a stream to a PubSub for concurrent consumption.
+ *
+ * `shutdownOnEnd` indicates whether the PubSub should be shut down when the
+ * stream ends. By default this is `true`.
+ *
  * @since 2.0.0
- * @category destructors
+ * @category Destructors
  */
 export const toPubSub: {
   (
