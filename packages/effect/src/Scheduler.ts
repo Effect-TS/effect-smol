@@ -115,7 +115,7 @@ class PriorityBuckets {
 }
 
 /**
- * The default scheduler implementation that provides efficient task scheduling
+ * A scheduler implementation that provides efficient task scheduling
  * with support for both synchronous and asynchronous execution modes.
  *
  * Features:
@@ -127,13 +127,13 @@ class PriorityBuckets {
  *
  * @example
  * ```ts
- * import { MixedScheduler } from "effect/Scheduler"
+ * import { PriorityScheduler } from "effect/Scheduler"
  *
  * // Create a mixed scheduler with async execution (default)
- * const asyncScheduler = new MixedScheduler("async")
+ * const asyncScheduler = new PriorityScheduler("async")
  *
  * // Create a mixed scheduler with sync execution
- * const syncScheduler = new MixedScheduler("sync")
+ * const syncScheduler = new PriorityScheduler("sync")
  *
  * // Schedule tasks with different priorities
  * asyncScheduler.scheduleTask(() => console.log("High priority task"), 10)

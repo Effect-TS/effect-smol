@@ -550,7 +550,7 @@ export function toStandardSchemaV1<
   const parseOptions: AST.ParseOptions = { errors: "all", ...options?.parseOptions }
   const formatter = Issue.makeFormatterStandardSchemaV1(options)
   const validate: StandardSchemaV1<S["Encoded"], S["Type"]>["~standard"]["validate"] = (value: unknown) => {
-    const scheduler = new Scheduler.MixedScheduler()
+    const scheduler = new Scheduler.PriorityScheduler()
     const fiber = Effect.runFork(
       Effect.match(decodeUnknownEffect(value, parseOptions), {
         onFailure: formatter,

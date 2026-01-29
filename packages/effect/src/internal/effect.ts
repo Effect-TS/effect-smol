@@ -4441,7 +4441,7 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
   options?: Effect.RunOptions | undefined
 ): Fiber.Fiber<A, E> => {
   const scheduler = options?.scheduler ||
-    (!services.mapUnsafe.has(Scheduler.Scheduler.key) && new Scheduler.MixedScheduler())
+    (!services.mapUnsafe.has(Scheduler.Scheduler.key) && new Scheduler.PriorityScheduler())
   const fiber = new FiberImpl<A, E>(
     scheduler ? ServiceMap.add(services, Scheduler.Scheduler, scheduler) : services,
     options?.uninterruptible !== true
@@ -4561,7 +4561,7 @@ export const runSyncExitWith = <R>(services: ServiceMap.ServiceMap<R>) => {
   const runFork = runForkWith(services)
   return <A, E>(effect: Effect.Effect<A, E, R>): Exit.Exit<A, E> => {
     if (effectIsExit(effect)) return effect
-    const scheduler = new Scheduler.MixedScheduler("sync")
+    const scheduler = new Scheduler.PriorityScheduler("sync")
     const fiber = runFork(effect, { scheduler })
     scheduler.flush()
     return (fiber as FiberImpl<A, E>)._exit ?? exitDie(fiber)

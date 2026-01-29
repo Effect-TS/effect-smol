@@ -10,7 +10,7 @@ import * as Option from "../../Option.ts"
 import { hasProperty } from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
 import type { Scheduler } from "../../Scheduler.ts"
-import { MixedScheduler } from "../../Scheduler.ts"
+import { PriorityScheduler } from "../../Scheduler.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
@@ -239,8 +239,8 @@ class RegistryImpl implements AtomRegistry {
     defaultIdleTTL?: number
   ) {
     this[TypeId] = TypeId
-    this.scheduler = new MixedScheduler("sync", scheduleTask)
-    this.schedulerAsync = new MixedScheduler("async", scheduleTask)
+    this.scheduler = new PriorityScheduler("sync", scheduleTask)
+    this.schedulerAsync = new PriorityScheduler("async", scheduleTask)
     this.defaultIdleTTL = defaultIdleTTL
 
     if (timeoutResolution === undefined && defaultIdleTTL !== undefined) {

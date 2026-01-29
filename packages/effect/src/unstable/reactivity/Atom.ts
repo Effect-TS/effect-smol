@@ -515,7 +515,7 @@ function runCallbackSync<R, A, E, ER = never>(
   const scheduler = ServiceMap.get(services, Scheduler.Scheduler)
   const fiber = runFork(effect)
   if ("flush" in scheduler) {
-    ;(scheduler as Scheduler.MixedScheduler).flush()
+    ;(scheduler as Scheduler.PriorityScheduler).flush()
   }
   const result = fiber.pollUnsafe()
   if (result) {
