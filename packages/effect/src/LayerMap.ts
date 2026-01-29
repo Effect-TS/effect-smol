@@ -6,7 +6,7 @@ import * as Effect from "./Effect.ts"
 import { identity } from "./Function.ts"
 import * as Layer from "./Layer.ts"
 import * as RcMap from "./RcMap.ts"
-import * as Scope from "./Scope.ts"
+import type * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import type { Mutable, NoExcessProperties } from "./Types.ts"
 
@@ -132,14 +132,8 @@ export const make: <
     readonly idleTimeToLive?: Duration.DurationInput | undefined
   } | undefined
 ) {
-  const services = yield* Effect.services<never>()
-  const memoMap = Layer.CurrentMemoMap.getOrCreate(services)
-
   const rcMap = yield* RcMap.make({
-    lookup: (key: K) =>
-      Effect.servicesWith((_: ServiceMap.ServiceMap<Scope.Scope>) =>
-        Layer.buildWithMemoMap(lookup(key), memoMap, ServiceMap.get(_, Scope.Scope))
-      ),
+    lookup: (key: K) => Layer.build(lookup(key)),
     idleTimeToLive: options?.idleTimeToLive
   })
 

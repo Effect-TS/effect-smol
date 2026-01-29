@@ -9,12 +9,14 @@ const provideLayer = <A, E, R, ROut, E2, RIn>(
   self: Effect<A, E, R>,
   layer: Layer.Layer<ROut, E2, RIn>,
   options?: {
-    readonly memoMap?: Layer.MemoMap | undefined
+    readonly local?: boolean | undefined
   } | undefined
 ): Effect<A, E | E2, RIn | Exclude<R, ROut>> =>
   effect.scopedWith((scope) =>
     effect.flatMap(
-      options?.memoMap ? Layer.buildWithMemoMap(layer, options.memoMap, scope) : Layer.buildWithScope(layer, scope),
+      options?.local
+        ? Layer.buildWithMemoMap(layer, Layer.makeMemoMapUnsafe(), scope)
+        : Layer.buildWithScope(layer, scope),
       (context) => effect.provideServices(self, context)
     )
   )
@@ -25,7 +27,7 @@ export const provide = dual<
     <const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
       layers: Layers,
       options?: {
-        readonly memoMap?: Layer.MemoMap | undefined
+        readonly local?: boolean | undefined
       } | undefined
     ): <A, E, R>(
       self: Effect<A, E, R>
@@ -38,7 +40,7 @@ export const provide = dual<
     <ROut, E2, RIn>(
       layer: Layer.Layer<ROut, E2, RIn>,
       options?: {
-        readonly memoMap?: Layer.MemoMap | undefined
+        readonly local?: boolean | undefined
       } | undefined
     ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | E2, RIn | Exclude<R, ROut>>
     <R2>(services: ServiceMap.ServiceMap<R2>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
@@ -48,7 +50,7 @@ export const provide = dual<
       self: Effect<A, E, R>,
       layers: Layers,
       options?: {
-        readonly memoMap?: Layer.MemoMap | undefined
+        readonly local?: boolean | undefined
       } | undefined
     ): Effect<
       A,
@@ -60,7 +62,7 @@ export const provide = dual<
       self: Effect<A, E, R>,
       layer: Layer.Layer<ROut, E2, RIn>,
       options?: {
-        readonly memoMap?: Layer.MemoMap | undefined
+        readonly local?: boolean | undefined
       } | undefined
     ): Effect<A, E | E2, RIn | Exclude<R, ROut>>
     <A, E, R, R2>(
@@ -77,7 +79,7 @@ export const provide = dual<
       | ServiceMap.ServiceMap<ROut>
       | Array<Layer.Any>,
     options?: {
-      readonly memoMap?: Layer.MemoMap | undefined
+      readonly local?: boolean | undefined
     } | undefined
   ): Effect<any, any, Exclude<R, ROut>> =>
     ServiceMap.isServiceMap(source)

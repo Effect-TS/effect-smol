@@ -392,15 +392,9 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsaf
  * @since 3.13.0
  * @category models
  */
-export class CurrentMemoMap extends ServiceMap.Service<CurrentMemoMap, MemoMap>()("effect/Layer/CurrentMemoMap") {
-  /**
-   * @since 4.0.0
-   */
-  static getOrCreate: <Services>(self: ServiceMap.ServiceMap<Services>) => MemoMap = ServiceMap.getOrElse(
-    CurrentMemoMap,
-    makeMemoMapUnsafe
-  )
-}
+export const CurrentMemoMap = ServiceMap.Reference<MemoMap>("effect/Layer/CurrentMemoMap", {
+  defaultValue: makeMemoMapUnsafe
+})
 
 /**
  * Builds a layer into an `Effect` value, using the specified `MemoMap` to memoize
@@ -503,11 +497,13 @@ export const buildWithMemoMap: {
 export const build = <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>
 ): Effect<ServiceMap.ServiceMap<ROut>, E, RIn | Scope.Scope> =>
-  core.withFiber((fiber) => {
-    const memoMap = CurrentMemoMap.getOrCreate(fiber.services)
-    const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
-    return buildWithMemoMap(self, memoMap, scope)
-  })
+  core.withFiber((fiber) =>
+    buildWithMemoMap(
+      self,
+      fiber.getRef(CurrentMemoMap),
+      ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+    )
+  )
 
 /**
  * Builds a layer into an `Effect` value. Any resources associated with this
@@ -556,7 +552,13 @@ export const buildWithScope: {
   self: Layer<ROut, E, RIn>,
   scope: Scope.Scope
 ): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> =>
-  core.withFiber((fiber) => buildWithMemoMap(self, CurrentMemoMap.getOrCreate(fiber.services), scope)))
+  core.withFiber((fiber) =>
+    buildWithMemoMap(
+      self,
+      fiber.getRef(CurrentMemoMap),
+      scope
+    )
+  ))
 
 /**
  * Constructs a layer from the specified value.

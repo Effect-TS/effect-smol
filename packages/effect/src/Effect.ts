@@ -5160,7 +5160,7 @@ export const provide: {
   <const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
     layers: Layers,
     options?: {
-      readonly memoMap?: Layer.MemoMap | undefined
+      readonly local?: boolean | undefined
     } | undefined
   ): <A, E, R>(
     self: Effect<A, E, R>
@@ -5172,7 +5172,7 @@ export const provide: {
   <ROut, E2, RIn>(
     layer: Layer.Layer<ROut, E2, RIn>,
     options?: {
-      readonly memoMap?: Layer.MemoMap | undefined
+      readonly local?: boolean | undefined
     } | undefined
   ): <A, E, R>(
     self: Effect<A, E, R>
@@ -5184,7 +5184,7 @@ export const provide: {
     self: Effect<A, E, R>,
     layers: Layers,
     options?: {
-      readonly memoMap?: Layer.MemoMap | undefined
+      readonly local?: boolean | undefined
     } | undefined
   ): Effect<
     A,
@@ -5195,7 +5195,7 @@ export const provide: {
     self: Effect<A, E, R>,
     layer: Layer.Layer<ROut, E2, RIn>,
     options?: {
-      readonly memoMap?: Layer.MemoMap | undefined
+      readonly local?: boolean | undefined
     } | undefined
   ): Effect<A, E | E2, RIn | Exclude<R, ROut>>
   <A, E, R, R2>(

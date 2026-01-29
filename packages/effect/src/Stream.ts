@@ -8970,7 +8970,7 @@ export const provide: {
   <AL, EL = never, RL = never>(
     layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>,
     options?: {
-      readonly memoMap?: Layer.MemoMap | undefined
+      readonly local?: boolean | undefined
     } | undefined
   ): <A, E, R>(
     self: Stream<A, E, R>
@@ -8979,14 +8979,14 @@ export const provide: {
     self: Stream<A, E, R>,
     layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>,
     options?: {
-      readonly memoMap?: Layer.MemoMap | undefined
+      readonly local?: boolean | undefined
     } | undefined
   ): Stream<A, E | EL, Exclude<R, AL> | RL>
 } = dual((args) => isStream(args[0]), <A, E, R, AL, EL = never, RL = never>(
   self: Stream<A, E, R>,
   layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>,
   options?: {
-    readonly memoMap?: Layer.MemoMap | undefined
+    readonly local?: boolean | undefined
   } | undefined
 ): Stream<A, E | EL, Exclude<R, AL> | RL> => fromChannel(Channel.provide(self.channel, layer, options)))
 
