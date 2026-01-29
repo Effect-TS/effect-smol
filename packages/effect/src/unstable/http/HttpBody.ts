@@ -231,7 +231,7 @@ export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Ar
  * @since 4.0.0
  * @category constructors
  */
-export const jsonSchema = <S extends Schema.Schema<any>>(
+export const jsonSchema = <S extends Schema.Top>(
   schema: S,
   options?: ParseOptions | undefined
 ) => {
@@ -279,7 +279,7 @@ export class FormData extends Proto {
  * @since 4.0.0
  * @category constructors
  */
-export const formData = (body: globalThis.FormData): FormData => new FormData(body)
+export const makeFormData = (body: globalThis.FormData): FormData => new FormData(body)
 
 /**
  * @since 4.0.0

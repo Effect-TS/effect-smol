@@ -462,7 +462,7 @@ const handlerToRoute = (
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
   const multipart = endpoint.payloadSchema?.pipe(({ ast }) => HttpApiSchema.resolveHttpApiMultipart(ast))
-  const isMultipartStream = multipart?.isStream
+  const isMultipartStream = multipart?.mode === "stream"
   const multipartLimits = multipart?.limits
   const decodePath = UndefinedOr.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
@@ -625,13 +625,13 @@ const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
 const toResponseErrorSchema = toResponseSchema(HttpApiSchema.getStatusError)
 
 function makeSuccessSchema(schema: Schema.Top): Schema.Codec<unknown, HttpServerResponse> {
-  const schemas = new Set<Schema.Schema<any>>()
+  const schemas = new Set<Schema.Top>()
   HttpApiSchema.forEach(schema, (schema) => schemas.add(schema))
   return Schema.Union(Array.from(schemas, toResponseSuccessSchema)) as any
 }
 
 function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Codec<unknown, HttpServerResponse> {
-  const schemas = new Set<Schema.Schema<any>>([HttpApiSchemaError])
+  const schemas = new Set<Schema.Top>([HttpApiSchemaError])
   for (const group of Object.values(api.groups)) {
     for (const endpoint of Object.values(group.endpoints)) {
       HttpApiSchema.forEach(endpoint.errorSchema, (schema) => schemas.add(schema))
@@ -676,7 +676,7 @@ function getResponseTransformation<T, E, RD, RE>(
         return Effect.succeed(Response.empty({ status }))
       }
       const encoding = HttpApiSchema.getEncoding(ast)
-      switch (encoding.kind) {
+      switch (encoding._tag) {
         case "Json": {
           try {
             return Effect.succeed(Response.text(JSON.stringify(e), {
@@ -693,13 +693,13 @@ function getResponseTransformation<T, E, RD, RE>(
             contentType: encoding.contentType
           }))
         }
-        case "Uint8Array": {
+        case "Binary": {
           return Effect.succeed(Response.uint8Array(e as Uint8Array, {
             status,
             contentType: encoding.contentType
           }))
         }
-        case "UrlParams": {
+        case "FormUrlEncoded": {
           return Effect.succeed(
             Response.urlParams(e as any, { status }).pipe(
               Response.setHeader("content-type", encoding.contentType)

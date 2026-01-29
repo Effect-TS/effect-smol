@@ -408,7 +408,7 @@ const ArrayBuffer = Schema.instanceOf(globalThis.ArrayBuffer, {
   expected: "ArrayBuffer"
 })
 
-// kind: Uint8Array
+// _tag: Uint8Array
 const Uint8ArrayFromArrayBuffer = ArrayBuffer.pipe(
   Schema.decodeTo(
     Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>,
@@ -425,7 +425,7 @@ const Uint8ArrayFromArrayBuffer = ArrayBuffer.pipe(
   )
 )
 
-// kind: Text
+// _tag: Text
 const StringFromArrayBuffer = ArrayBuffer.pipe(
   Schema.decodeTo(
     Schema.String,
@@ -443,7 +443,7 @@ const StringFromArrayBuffer = ArrayBuffer.pipe(
   )
 )
 
-// kind: Json
+// _tag: Json
 const UnknownFromArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(
   Schema.Union([
     // Handle empty
@@ -463,15 +463,15 @@ function toCodecArrayBuffer(schema: Schema.Top): Schema.Top {
     return Schema.Union(schema.members.map(toCodecArrayBuffer))
   }
   const encoding = HttpApiSchema.getEncoding(schema.ast)
-  switch (encoding.kind) {
+  switch (encoding._tag) {
     case "Json":
       return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
-    case "UrlParams":
+    case "FormUrlEncoded":
       return StringFromArrayBuffer.pipe(
         Schema.decodeTo(UrlParams.schemaRecord),
         Schema.decodeTo(schema)
       )
-    case "Uint8Array":
+    case "Binary":
       return Uint8ArrayFromArrayBuffer.pipe(Schema.decodeTo(schema))
     case "Text":
       return StringFromArrayBuffer.pipe(Schema.decodeTo(schema))
@@ -526,7 +526,7 @@ function bodyFromPayload(schema: Schema.Top): Schema.Top {
         return Effect.fail(new Issue.Forbidden(Option.some(httpBody), { message: "encode only schema" }))
       },
       encode(t: unknown) {
-        switch (encoding.kind) {
+        switch (encoding._tag) {
           case "Json": {
             try {
               const body = JSON.stringify(t)
@@ -543,10 +543,10 @@ function bodyFromPayload(schema: Schema.Top): Schema.Top {
             }
             return Effect.succeed(HttpBody.text(t, encoding.contentType))
           }
-          case "UrlParams": {
+          case "FormUrlEncoded": {
             return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(t as any)))
           }
-          case "Uint8Array": {
+          case "Binary": {
             if (!(t instanceof Uint8Array)) {
               return Effect.fail(
                 new Issue.InvalidValue(Option.some(t), { message: "Expected a Uint8Array" })

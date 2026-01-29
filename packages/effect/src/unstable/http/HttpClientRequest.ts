@@ -600,7 +600,7 @@ export const bodyJsonUnsafe: {
  * @since 4.0.0
  * @category combinators
  */
-export const schemaBodyJson = <S extends Schema.Schema<any>>(
+export const schemaBodyJson = <S extends Schema.Top>(
   schema: S,
   options?: ParseOptions | undefined
 ): {
@@ -645,7 +645,7 @@ export const bodyUrlParams: {
 export const bodyFormData: {
   (body: FormData): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, body: FormData): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, body: FormData): HttpClientRequest => setBody(self, HttpBody.formData(body)))
+} = dual(2, (self: HttpClientRequest, body: FormData): HttpClientRequest => setBody(self, HttpBody.makeFormData(body)))
 
 /**
  * @since 4.0.0

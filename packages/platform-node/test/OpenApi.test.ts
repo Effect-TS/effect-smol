@@ -149,7 +149,7 @@ describe("OpenAPI spec", () => {
                 .add(
                   HttpApiEndpoint.post("a", "/a", {
                     payload: Schema.String.pipe(
-                      HttpApiSchema.withEncoding({ kind: "Json", contentType: "application/problem+json" })
+                      HttpApiSchema.withEncoding({ _tag: "Json", contentType: "application/problem+json" })
                     )
                   })
                 )
@@ -195,7 +195,9 @@ describe("OpenAPI spec", () => {
               HttpApiGroup.make("group")
                 .add(
                   HttpApiEndpoint.post("a", "/a", {
-                    payload: Schema.Struct({ a: Schema.String }).pipe(HttpApiSchema.withEncoding({ kind: "UrlParams" }))
+                    payload: Schema.Struct({ a: Schema.String }).pipe(
+                      HttpApiSchema.withEncoding({ _tag: "FormUrlEncoded" })
+                    )
                   })
                 )
             )
@@ -227,7 +229,7 @@ describe("OpenAPI spec", () => {
               HttpApiGroup.make("group")
                 .add(
                   HttpApiEndpoint.post("a", "/a", {
-                    payload: HttpApiSchema.Uint8Array()
+                    payload: HttpApiSchema.Binary()
                   })
                 )
             )
@@ -251,7 +253,7 @@ describe("OpenAPI spec", () => {
                     payload: [
                       Schema.Struct({ a: Schema.String }), // application/json
                       HttpApiSchema.Text(), // text/plain
-                      HttpApiSchema.Uint8Array() // application/octet-stream
+                      HttpApiSchema.Binary() // application/octet-stream
                     ]
                   })
                 )
@@ -408,7 +410,7 @@ describe("OpenAPI spec", () => {
               .add(
                 HttpApiEndpoint.get("a", "/a", {
                   success: Schema.String.pipe(
-                    HttpApiSchema.withEncoding({ kind: "Json", contentType: "application/problem+json" })
+                    HttpApiSchema.withEncoding({ _tag: "Json", contentType: "application/problem+json" })
                   )
                 })
               )
@@ -443,13 +445,15 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      it("UrlParams", () => {
+      it("FormUrlEncoded", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  success: Schema.Struct({ a: Schema.String }).pipe(HttpApiSchema.withEncoding({ kind: "UrlParams" }))
+                  success: Schema.Struct({ a: Schema.String }).pipe(
+                    HttpApiSchema.withEncoding({ _tag: "FormUrlEncoded" })
+                  )
                 })
               )
           )
@@ -470,13 +474,13 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      it("Uint8Array", () => {
+      it("Binary", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  success: HttpApiSchema.Uint8Array()
+                  success: HttpApiSchema.Binary()
                 })
               )
           )
@@ -500,7 +504,7 @@ describe("OpenAPI spec", () => {
                   success: Schema.Union([
                     Schema.Struct({ a: Schema.String }),
                     Schema.Struct({ b: Schema.String })
-                  ]).pipe(HttpApiSchema.withEncoding({ kind: "UrlParams" }))
+                  ]).pipe(HttpApiSchema.withEncoding({ _tag: "FormUrlEncoded" }))
                 })
               )
           )
