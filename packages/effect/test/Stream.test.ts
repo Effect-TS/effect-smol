@@ -401,6 +401,47 @@ describe("Stream", () => {
           assertExitFailure(exit, Cause.fail(error))
         }))
     })
+
+    describe("catchReasons", () => {
+      class RateLimitError extends Data.TaggedError("RateLimitError")<{
+        readonly retryAfter: number
+      }> {}
+
+      class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+        readonly limit: number
+      }> {}
+
+      class AiError extends Data.TaggedError("AiError")<{
+        readonly reason: RateLimitError | QuotaExceededError
+      }> {}
+
+      it.effect("catches matching reason", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.fail(
+            new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+          ).pipe(
+            Stream.catchReasons("AiError", {
+              RateLimitError: (r) => Stream.succeed(`retry: ${r.retryAfter}`)
+            }),
+            Stream.runCollect
+          )
+          assert.deepStrictEqual(result, ["retry: 60"])
+        }))
+
+      it.effect("ignores non-matching reason", () =>
+        Effect.gen(function*() {
+          const reason = new QuotaExceededError({ limit: 100 })
+          const error = new AiError({ reason })
+          const exit = yield* Stream.fail(error).pipe(
+            Stream.catchReasons("AiError", {
+              RateLimitError: () => Stream.succeed("no")
+            }),
+            Stream.runCollect,
+            Effect.exit
+          )
+          assertExitFailure(exit, Cause.fail(error))
+        }))
+    })
   })
 
   describe("scanning", () => {
