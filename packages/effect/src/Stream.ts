@@ -318,7 +318,7 @@ export const fromChannel: <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
  * const program = Effect.gen(function*() {
  *   const stream = Stream.fromEffect(Effect.succeed(42))
  *   const values = yield* Stream.runCollect(stream)
- *   yield* Console.log(Array.from(values))
+ *   yield* Console.log(values)
  * })
  *
  * Effect.runPromise(program)
@@ -372,7 +372,7 @@ export const fromEffectDrain = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream
  *     Stream.take(5)
  *   )
  *   const values = yield* Stream.runCollect(stream)
- *   yield* Console.log(Array.from(values))
+ *   yield* Console.log(values)
  * })
  *
  * Effect.runPromise(program)
@@ -405,7 +405,7 @@ export const fromEffectRepeat = <A, E, R>(effect: Effect.Effect<A, E, R>): Strea
  *     Schedule.recurs(2)
  *   )
  *   const result = yield* Stream.runCollect(stream)
- *   yield* Console.log(Array.from(result))
+ *   yield* Console.log(result)
  * })
  *
  * Effect.runPromise(program)
@@ -451,7 +451,7 @@ export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
  *     Stream.take(3),
  *     Stream.runCollect
  *   )
- *   yield* Console.log(Array.from(ticks))
+ *   yield* Console.log(ticks)
  * })
  *
  * Effect.runPromise(program)
@@ -491,7 +491,7 @@ export const tick = (interval: Duration.DurationInput): Stream<void> =>
  *     const pull = yield* Stream.toPull(source)
  *     const stream = Stream.fromPull(Effect.succeed(pull))
  *     const values = yield* Stream.runCollect(stream)
- *     yield* Console.log(Array.from(values))
+ *     yield* Console.log(values)
  *   })
  * )
  *
@@ -1630,7 +1630,7 @@ export const never: Stream<never> = fromChannel(Channel.never)
  *
  * const program = Effect.gen(function*() {
  *   const chunk = yield* Stream.runCollect(stream)
- *   yield* Console.log(Array.from(chunk))
+ *   yield* Console.log(chunk)
  * })
  * // [1, 2, 3]
  * ```
@@ -7886,7 +7886,7 @@ export const aggregateWithin: {
  *       Stream.runCollect(broadcasted)
  *     ], { concurrency: "unbounded" })
  *
- *     yield* Console.log([Array.from(left), Array.from(right)])
+ *     yield* Console.log([left, right])
  *   })
  * )
  *
@@ -8393,7 +8393,7 @@ export const decodeText: {
  * const program = Effect.gen(function*() {
  *   const encoded = Stream.encodeText(stream)
  *   const chunks = yield* Stream.runCollect(encoded)
- *   const bytes = Array.from(chunks, (chunk) => Array.from(chunk))
+ *   const bytes = chunks.map((chunk) => [...chunk])
  *   yield* Console.log(bytes)
  * })
  *
@@ -8661,7 +8661,7 @@ export const interleaveWith: {
  *   )
  *
  *   const result = yield* Stream.runCollect(stream)
- *   yield* Console.log(Array.from(result))
+ *   yield* Console.log(result)
  * })
  *
  * Effect.runPromise(program)
@@ -8874,7 +8874,7 @@ export const onFirst: {
  *     Stream.onEnd(Console.log("Stream ended")),
  *     Stream.runCollect
  *   )
- *   yield* Console.log(Array.from(values))
+ *   yield* Console.log(values)
  * })
  *
  * Effect.runPromise(program)
@@ -9955,7 +9955,7 @@ export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string
  * const stream = Stream.make(new Uint8Array([1, 2]), new Uint8Array([3, 4]))
  * const program = Effect.gen(function*() {
  *   const bytes = yield* Stream.mkUint8Array(stream)
- *   yield* Console.log(Array.from(bytes))
+ *   yield* Console.log([...bytes])
  * })
  *
  * Effect.runPromise(program)
