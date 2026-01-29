@@ -1,11 +1,11 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
-import { PriorityScheduler } from "effect/Scheduler"
+import { MixedScheduler } from "effect/Scheduler"
 
 describe("Scheduler", () => {
-  it.effect("PriorityScheduler orders by priority (sync)", () =>
+  it.effect("MixedScheduler orders by priority (sync)", () =>
     Effect.sync(() => {
-      const scheduler = new PriorityScheduler("sync")
+      const scheduler = new MixedScheduler("sync")
       const order: Array<string> = []
 
       scheduler.scheduleTask(() => order.push("p0-1"), 0)
@@ -21,9 +21,9 @@ describe("Scheduler", () => {
       assert.deepStrictEqual(order, ["p10-1", "p10-2", "p0-1", "p0-2", "p-1-1"])
     }))
 
-  it.effect("PriorityScheduler is FIFO within a priority", () =>
+  it.effect("MixedScheduler is FIFO within a priority", () =>
     Effect.sync(() => {
-      const scheduler = new PriorityScheduler("sync")
+      const scheduler = new MixedScheduler("sync")
       const order: Array<number> = []
 
       scheduler.scheduleTask(() => order.push(1), 5)
