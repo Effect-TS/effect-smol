@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import { assertFailure, assertTrue } from "@effect/vitest/utils"
-import { type Cause, Deferred, pipe, Ref } from "effect"
+import { assertExitFailure, assertFailure, assertTrue } from "@effect/vitest/utils"
+import { Cause, Data, Deferred, pipe, Ref } from "effect"
 import * as Channel from "effect/Channel"
 import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
@@ -339,6 +339,57 @@ describe("Channel", () => {
         yield* Deferred.fail(deferred, "fail")
         const result = yield* Effect.result(Channel.runDrain(channel))
         assertFailure(result, "fail")
+      }))
+  })
+
+  describe("unwrapReason", () => {
+    class RateLimitError extends Data.TaggedError("RateLimitError")<{
+      readonly retryAfter: number
+    }> {}
+
+    class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+      readonly limit: number
+    }> {}
+
+    class AiError extends Data.TaggedError("AiError")<{
+      readonly reason: RateLimitError | QuotaExceededError
+    }> {}
+
+    class OtherError extends Data.TaggedError("OtherError")<{
+      readonly message: string
+    }> {}
+
+    it.effect("extracts reason into error channel", () =>
+      Effect.gen(function*() {
+        const reason = new RateLimitError({ retryAfter: 60 })
+        const exit = yield* Channel.fail(new AiError({ reason })).pipe(
+          Channel.unwrapReason("AiError"),
+          Channel.runDrain,
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(reason))
+      }))
+
+    it.effect("extracts second reason type", () =>
+      Effect.gen(function*() {
+        const reason = new QuotaExceededError({ limit: 100 })
+        const exit = yield* Channel.fail(new AiError({ reason })).pipe(
+          Channel.unwrapReason("AiError"),
+          Channel.runDrain,
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(reason))
+      }))
+
+    it.effect("preserves other errors", () =>
+      Effect.gen(function*() {
+        const error = new OtherError({ message: "test" })
+        const exit = yield* (Channel.fail(error) as Channel.Channel<never, AiError | OtherError, never>).pipe(
+          Channel.unwrapReason("AiError"),
+          Channel.runDrain,
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(error))
       }))
   })
 })

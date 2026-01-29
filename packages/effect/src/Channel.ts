@@ -190,6 +190,10 @@ export interface ChannelUnifyIgnore extends Effect.EffectUnifyIgnore {
   Channel?: true
 }
 
+type TagsWithReason<E> = {
+  [T in Types.Tags<E>]: Types.ReasonTags<Types.ExtractTag<E, T>> extends never ? never : T
+}[Types.Tags<E>]
+
 /**
  * @since 2.0.0
  * @category models
@@ -4170,6 +4174,100 @@ export const catchTag: {
     : isTagged(k as string)
   return catchFilter(self, Filter.fromPredicate(pred), f) as any
 })
+
+/**
+ * Promotes nested reason errors into the channel error, replacing the parent error.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Data } from "effect"
+ *
+ * class RateLimitError extends Data.TaggedError("RateLimitError")<{
+ *   retryAfter: number
+ * }> {}
+ *
+ * class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+ *   limit: number
+ * }> {}
+ *
+ * class AiError extends Data.TaggedError("AiError")<{
+ *   reason: RateLimitError | QuotaExceededError
+ * }> {}
+ *
+ * const channel = Channel.fail(
+ *   new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+ * )
+ *
+ * const unwrapped = channel.pipe(Channel.unwrapReason("AiError"))
+ * ```
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const unwrapReason: {
+  <
+    K extends TagsWithReason<OutErr>,
+    OutErr
+  >(
+    errorTag: K
+  ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<
+    OutElem,
+    Types.ExcludeTag<OutErr, K> | Types.ReasonOf<Types.ExtractTag<OutErr, K>>,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    K extends TagsWithReason<OutErr>
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    errorTag: K
+  ): Channel<
+    OutElem,
+    Types.ExcludeTag<OutErr, K> | Types.ReasonOf<Types.ExtractTag<OutErr, K>>,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >
+} = dual(2, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  K extends TagsWithReason<OutErr>
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  errorTag: K
+): Channel<
+  OutElem,
+  Types.ExcludeTag<OutErr, K> | Types.ReasonOf<Types.ExtractTag<OutErr, K>>,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env
+> =>
+  catchFilter(
+    self,
+    (error: any) => isTagged(error, errorTag) && hasProperty(error, "reason") ? error.reason : Filter.fail(error),
+    fail as any
+  ) as any)
 
 /**
  * Returns a new channel, which is the same as this one, except the failure
