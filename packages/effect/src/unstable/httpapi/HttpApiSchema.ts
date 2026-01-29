@@ -17,7 +17,7 @@ declare module "../../Schema.ts" {
       readonly httpApiStatus?: number | undefined
       /** @internal */
       readonly httpApiMultipart?: {
-        readonly isStream: boolean
+        readonly mode: "buffered" | "stream"
         readonly limits?: Multipart_.withLimits.Options | undefined
       }
     }
@@ -26,7 +26,7 @@ declare module "../../Schema.ts" {
 
 /** @internal */
 export const resolveHttpApiMultipart = AST.resolveAt<{
-  readonly isStream: boolean
+  readonly mode: "buffered" | "stream"
   readonly limits?: Multipart_.withLimits.Options | undefined
 }>("httpApiMultipart")
 const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
@@ -118,21 +118,36 @@ export const asEmpty: {
 
 /**
  * @since 4.0.0
- * @category empty response
  */
-export const NoContent = Empty(204)
+export interface NoContent extends Schema.Void {}
 
 /**
  * @since 4.0.0
  * @category empty response
  */
-export const Created = Empty(201)
+export const NoContent: NoContent = Empty(204)
+
+/**
+ * @since 4.0.0
+ */
+export interface Created extends Schema.Void {}
 
 /**
  * @since 4.0.0
  * @category empty response
  */
-export const Accepted = Empty(202)
+export const Created: Created = Empty(201)
+
+/**
+ * @since 4.0.0
+ */
+export interface Accepted extends Schema.Void {}
+
+/**
+ * @since 4.0.0
+ * @category empty response
+ */
+export const Accepted: Accepted = Empty(202)
 
 /**
  * @since 4.0.0
@@ -165,7 +180,7 @@ export const Multipart = <S extends Schema.Top>(self: S, options?: {
 }): Multipart<S> =>
   self.pipe(Schema.brand(MultipartTypeId)).annotate({
     httpApiMultipart: {
-      isStream: false,
+      mode: "buffered",
       limits: options
     }
   })
@@ -201,7 +216,7 @@ export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
 }): MultipartStream<S> =>
   self.pipe(Schema.brand(MultipartStreamTypeId)).annotate({
     httpApiMultipart: {
-      isStream: true,
+      mode: "stream",
       limits: options
     }
   })
@@ -211,7 +226,7 @@ export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
  * @category encoding
  */
 export interface Encoding {
-  readonly kind: "Json" | "UrlParams" | "Uint8Array" | "Text"
+  readonly _tag: "Json" | "FormUrlEncoded" | "Binary" | "Text"
   readonly contentType: string
 }
 
@@ -224,29 +239,25 @@ export declare namespace Encoding {
    * @since 4.0.0
    * @category encoding
    */
-  export type Validate<A extends Schema.Top, Kind extends Encoding["kind"]> = Kind extends "Json" ? {}
-    : Kind extends "UrlParams" ? [A["Encoded"]] extends [Readonly<Record<string, string | undefined>>] ? {}
-      : `'UrlParams' kind can only be encoded to 'Record<string, string | undefined>'`
-    : Kind extends "Uint8Array" ?
-      [A["Encoded"]] extends [Uint8Array] ? {} : `'Uint8Array' kind can only be encoded to 'Uint8Array'`
-    : Kind extends "Text" ? [A["Encoded"]] extends [string] ? {} : `'Text' kind can only be encoded to 'string'`
+  export type Validate<A extends Schema.Top, Tag extends Encoding["_tag"]> = Tag extends "Json" ? {}
+    : Tag extends "FormUrlEncoded" ? [A["Encoded"]] extends [Readonly<Record<string, string | undefined>>] ? {}
+      : `'FormUrlEncoded' _tag can only be encoded to 'Record<string, string | undefined>'`
+    : Tag extends "Binary" ?
+      [A["Encoded"]] extends [Uint8Array] ? {} : `'Binary' _tag can only be encoded to 'Uint8Array'`
+    : Tag extends "Text" ? [A["Encoded"]] extends [string] ? {} : `'Text' _tag can only be encoded to 'string'`
     : never
 }
 
-const defaultContentType = (kind: Encoding["kind"]) => {
-  switch (kind) {
-    case "Json": {
+const defaultContentType = (_tag: Encoding["_tag"]) => {
+  switch (_tag) {
+    case "Json":
       return "application/json"
-    }
-    case "UrlParams": {
+    case "FormUrlEncoded":
       return "application/x-www-form-urlencoded"
-    }
-    case "Uint8Array": {
+    case "Binary":
       return "application/octet-stream"
-    }
-    case "Text": {
+    case "Text":
       return "text/plain"
-    }
   }
 }
 
@@ -255,37 +266,37 @@ const defaultContentType = (kind: Encoding["kind"]) => {
  * @category encoding
  */
 export const withEncoding: {
-  <S extends Schema.Top, Kind extends Encoding["kind"]>(
+  <S extends Schema.Top, Tag extends Encoding["_tag"]>(
     options: {
-      readonly kind: Kind
+      readonly _tag: Tag
       readonly contentType?: string | undefined
-    } & Encoding.Validate<S, Kind>
+    } & Encoding.Validate<S, Tag>
   ): (self: S) => S["~rebuild.out"]
-  <S extends Schema.Top, Kind extends Encoding["kind"]>(
+  <S extends Schema.Top, Tag extends Encoding["_tag"]>(
     self: S,
     options: {
-      readonly kind: Kind
+      readonly _tag: Tag
       readonly contentType?: string | undefined
-    } & Encoding.Validate<S, Kind>
+    } & Encoding.Validate<S, Tag>
   ): S["~rebuild.out"]
 } = dual(2, <S extends Schema.Top>(self: S, options: {
-  readonly kind: Encoding["kind"]
+  readonly _tag: Encoding["_tag"]
   readonly contentType?: string | undefined
 }): S["~rebuild.out"] =>
   self.annotate({
     httpApiEncoding: {
-      kind: options.kind,
-      contentType: options.contentType ?? defaultContentType(options.kind)
+      _tag: options._tag,
+      contentType: options.contentType ?? defaultContentType(options._tag)
     }
   }))
 
 const encodingJson: Encoding = {
-  kind: "Json",
+  _tag: "Json",
   contentType: "application/json"
 }
 
 const encodingMultipart: Encoding = {
-  kind: "Json",
+  _tag: "Json",
   contentType: "multipart/form-data"
 }
 
@@ -303,15 +314,15 @@ export function getEncoding(ast: AST.AST): Encoding {
  */
 export const Text = (options?: {
   readonly contentType?: string
-}): Schema.String => withEncoding(Schema.String, { kind: "Text", ...options })
+}): Schema.String => withEncoding(Schema.String, { _tag: "Text", ...options })
 
 /**
  * @since 4.0.0
  * @category encoding
  */
-export const Uint8Array = (options?: {
+export const Binary = (options?: {
   readonly contentType?: string
-}): Schema.Uint8Array => withEncoding(Schema.Uint8Array, { kind: "Uint8Array", ...options })
+}): Schema.Uint8Array => withEncoding(Schema.Uint8Array, { _tag: "Binary", ...options })
 
 /**
  * @since 4.0.0

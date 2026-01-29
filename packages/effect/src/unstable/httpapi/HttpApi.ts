@@ -210,7 +210,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
-      readonly payloads: ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, ReadonlySet<Schema.Top>>>
+      readonly payloads: ReadonlyMap<HttpApiSchema.Encoding["_tag"], ReadonlyMap<string, ReadonlySet<Schema.Top>>>
       readonly successes: ReadonlyMap<number, {
         readonly schema: Schema.Top | undefined
         readonly description: string | undefined
@@ -313,9 +313,9 @@ const extractMembers = (
 
 function extractPayloads(
   schema: Schema.Top
-): ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, ReadonlySet<Schema.Top>>> {
+): ReadonlyMap<HttpApiSchema.Encoding["_tag"], ReadonlyMap<string, ReadonlySet<Schema.Top>>> {
   const map = new Map<
-    HttpApiSchema.Encoding["kind"],
+    HttpApiSchema.Encoding["_tag"],
     Map<string, Set<Schema.Top>>
   >()
 
@@ -326,13 +326,13 @@ function extractPayloads(
   function add(schema: Schema.Top) {
     const ast = schema.ast
     const encoding = HttpApiSchema.getEncoding(ast)
-    const kind = map.get(encoding.kind)
-    if (kind === undefined) {
-      map.set(encoding.kind, new Map([[encoding.contentType, new Set([schema])]]))
+    const _tag = map.get(encoding._tag)
+    if (_tag === undefined) {
+      map.set(encoding._tag, new Map([[encoding.contentType, new Set([schema])]]))
     } else {
-      const contentType = kind.get(encoding.contentType)
+      const contentType = _tag.get(encoding.contentType)
       if (contentType === undefined) {
-        kind.set(encoding.contentType, new Set([schema]))
+        _tag.set(encoding.contentType, new Set([schema]))
       } else {
         contentType.add(schema)
       }

@@ -183,10 +183,6 @@ function processAnnotation<Services, S, I>(
   }
 }
 
-const Uint8ArrayEncoding = Schema.String.annotate({
-  format: "binary"
-})
-
 /**
  * Converts an `HttpApi` instance into an OpenAPI Specification object.
  *
@@ -394,7 +390,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       const hasBody = HttpMethod.hasBody(endpoint.method)
       if (hasBody && payloads.size > 0) {
         const content: OpenApiSpecContent = {}
-        payloads.forEach((map, kind) => {
+        payloads.forEach((map, _tag) => {
           map.forEach((set, contentType) => {
             const asts = Array.from(set, AST.getAST)
               // Handle empty
@@ -407,7 +403,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
             irOps.push({
               _tag: "schema",
-              ast: toEncoding(ast, { kind, contentType }),
+              ast: toEncoding(ast, { _tag: _tag, contentType }),
               path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
             })
             content[contentType] = {
@@ -517,22 +513,26 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 }
 
 function toEncoding(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
-  switch (encoding.kind) {
-    case "Uint8Array":
+  switch (encoding._tag) {
+    case "Binary":
       // For `application/octet-stream` (raw bytes) we must emit a binary schema,
       // not the JSON representation used by `Schema.Uint8Array` (base64 string).
-      return Uint8ArrayEncoding.ast
+      return Binary.ast
     case "Text":
       // For `text/plain` the wire format is a plain string, independent of the
       // endpoint schema structure used for JSON bodies / url-encoded params.
       return Schema.String.ast
-    case "UrlParams":
+    case "FormUrlEncoded":
     case "Json":
       // `UrlParams` and `Json` can reuse the original schema AST as-is: the schema
       // already describes the structured data (object/record/etc) we want to expose.
       return ast
   }
 }
+
+const Binary = Schema.String.annotate({
+  format: "binary"
+})
 
 const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme => {
   const meta: Partial<OpenAPISecurityScheme> = {}

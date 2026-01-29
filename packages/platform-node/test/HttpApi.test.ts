@@ -48,7 +48,7 @@ describe("HttpApi", () => {
               payload: [
                 Schema.Struct({ a: Schema.String }), // application/json
                 HttpApiSchema.Text(), // text/plain
-                HttpApiSchema.Uint8Array() // application/octet-stream
+                HttpApiSchema.Binary() // application/octet-stream
               ],
               success: Schema.String
             })
@@ -613,7 +613,7 @@ describe("HttpApi", () => {
           })
         )
       ),
-      { kind: "Text" }
+      { _tag: "Text" }
     ).annotate({ httpApiStatus: 429 })
 
     const Api = HttpApi.make("api").add(
@@ -706,7 +706,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
     payload: Schema.Union([
       Schema.Struct(Struct.pick(Group.fields, ["name"])),
       Schema.Struct({ foo: Schema.String }).pipe(
-        HttpApiSchema.withEncoding({ kind: "UrlParams" })
+        HttpApiSchema.withEncoding({ _tag: "FormUrlEncoded" })
       ),
       HttpApiSchema.Multipart(
         Schema.Struct(Struct.pick(Group.fields, ["name"]))
