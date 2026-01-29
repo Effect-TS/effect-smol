@@ -392,9 +392,12 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsaf
  * @since 3.13.0
  * @category models
  */
-export const CurrentMemoMap = ServiceMap.Reference<MemoMap>("effect/Layer/CurrentMemoMap", {
-  defaultValue: makeMemoMapUnsafe
-})
+export class CurrentMemoMap extends ServiceMap.Service<CurrentMemoMap, MemoMap>()("effect/Layer/CurrentMemoMap") {
+  static getOrCreate: <Services>(self: ServiceMap.ServiceMap<Services>) => MemoMap = ServiceMap.getOrElse(
+    this,
+    makeMemoMapUnsafe
+  )
+}
 
 /**
  * Builds a layer into an `Effect` value, using the specified `MemoMap` to memoize
@@ -459,7 +462,7 @@ export const buildWithMemoMap: {
   scope: Scope.Scope
 ): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> =>
   internalEffect.provideService(
-    self.build(memoMap, scope),
+    internalEffect.map(self.build(memoMap, scope), ServiceMap.add(CurrentMemoMap, memoMap)),
     CurrentMemoMap,
     memoMap
   ))
@@ -500,7 +503,7 @@ export const build = <RIn, E, ROut>(
   core.withFiber((fiber) =>
     buildWithMemoMap(
       self,
-      fiber.getRef(CurrentMemoMap),
+      CurrentMemoMap.getOrCreate(fiber.services),
       ServiceMap.getUnsafe(fiber.services, Scope.Scope)
     )
   )
@@ -555,7 +558,7 @@ export const buildWithScope: {
   core.withFiber((fiber) =>
     buildWithMemoMap(
       self,
-      fiber.getRef(CurrentMemoMap),
+      CurrentMemoMap.getOrCreate(fiber.services),
       scope
     )
   ))
