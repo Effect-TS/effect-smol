@@ -141,7 +141,7 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiSchema.Empty(400)
+            error: HttpApiSchema.makeNoContent(400)
           })
         )
       )
@@ -168,7 +168,7 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiSchema.Empty(401)
+            error: HttpApiSchema.makeNoContent(401)
           })
         )
       )

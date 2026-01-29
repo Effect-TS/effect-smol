@@ -461,9 +461,9 @@ const handlerToRoute = (
   services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
-  const multipart = endpoint.payloadSchema?.pipe(({ ast }) => HttpApiSchema.resolveHttpApiMultipart(ast))
-  const isMultipartStream = multipart?.mode === "stream"
-  const multipartLimits = multipart?.limits
+  const body = endpoint.payloadSchema?.pipe(({ ast }) => HttpApiSchema.getBody(ast))
+  const isMultipartStream = body?._tag === "Multipart" && body.mode === "stream"
+  const multipartLimits = body?._tag === "Multipart" ? body.limits : undefined
   const decodePath = UndefinedOr.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
     ? undefined
@@ -665,14 +665,14 @@ function getResponseTransformation<T, E, RD, RE>(
   schema: Schema.Codec<T, E, RD, RE>
 ): Transformation.Transformation<E, Response.HttpServerResponse> {
   const ast = schema.ast
-  const isEmptyEncoded = HttpApiSchema.isEmptyEncoded(ast)
+  const isUndecodableNoContent = HttpApiSchema.isUndecodableNoContent(ast)
   const status = getStatus(ast)
 
   return Transformation.transformOrFail({
     decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
     encode(e: E) {
-      // Handle empty
-      if (isEmptyEncoded) {
+      // Handle No Content
+      if (isUndecodableNoContent) {
         return Effect.succeed(Response.empty({ status }))
       }
       const encoding = HttpApiSchema.getEncoding(ast)

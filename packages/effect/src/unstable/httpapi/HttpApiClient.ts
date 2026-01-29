@@ -160,7 +160,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
         errors.forEach(({ schema }, status) => {
-          // Handle empty
+          // Handle No Content
           if (schema === undefined) {
             decodeMap[status] = statusCodeError
             return
@@ -184,7 +184,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             )
         })
         successes.forEach(({ schema }, status) => {
-          // Handle empty
+          // Handle No Content
           decodeMap[status] = schema === undefined ? responseAsVoid : schemaToResponse(schema)
         })
         const encodePath = endpoint.pathSchema?.pipe(
@@ -446,7 +446,7 @@ const StringFromArrayBuffer = ArrayBuffer.pipe(
 // _tag: Json
 const UnknownFromArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(
   Schema.Union([
-    // Handle empty
+    // Handle No Content
     Schema.Literal("").pipe(Schema.decodeTo(
       Schema.Undefined,
       Transformation.transform({

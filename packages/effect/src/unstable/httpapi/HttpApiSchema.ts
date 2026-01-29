@@ -15,36 +15,64 @@ declare module "../../Schema.ts" {
     interface Annotations {
       readonly httpApiEncoding?: Encoding | undefined
       readonly httpApiStatus?: number | undefined
-      /** @internal */
-      readonly httpApiMultipart?: {
-        readonly mode: "buffered" | "stream"
-        readonly limits?: Multipart_.withLimits.Options | undefined
-      }
+      readonly httpApiBody?: Body | undefined
     }
   }
 }
 
 /** @internal */
-export const resolveHttpApiMultipart = AST.resolveAt<{
-  readonly mode: "buffered" | "stream"
-  readonly limits?: Multipart_.withLimits.Options | undefined
-}>("httpApiMultipart")
-const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
-const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
-
-/** @internal */
-export function isEmptyEncoded(ast: AST.AST): boolean {
+export function isNoContent(ast: AST.AST): boolean {
   return AST.isVoid(AST.toEncoded(ast))
 }
 
 /** @internal */
-export function isEmpty(ast: AST.AST): boolean {
-  return AST.isVoid(ast) && AST.toEncoded(ast) === ast
+export function isUndecodableNoContent(ast: AST.AST): boolean {
+  return isNoContent(ast) && getBody(ast)._tag !== "NoContent"
+}
+
+/**
+ * @since 4.0.0
+ */
+export type Body =
+  | {
+    readonly _tag: "NoContent"
+    readonly transformation: Transformation.Transformation<any, void, never, never>
+  }
+  | {
+    readonly _tag: "Multipart"
+    readonly mode: "buffered" | "stream"
+    readonly contentType: "multipart/form-data"
+    readonly limits?: Multipart_.withLimits.Options | undefined
+  }
+  | {
+    readonly _tag: "HasBody"
+    readonly encoding: Encoding
+  }
+
+const resolveHttpApiBody = AST.resolveAt<Body>("httpApiBody")
+
+const jsonEncoding: Encoding = {
+  _tag: "Json",
+  contentType: "application/json"
+}
+
+const JsonBody: Body = {
+  _tag: "HasBody",
+  encoding: jsonEncoding
 }
 
 /** @internal */
+export function getBody(ast: AST.AST): Body {
+  return resolveHttpApiBody(ast) ?? JsonBody
+}
+
+/** @internal */
+const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
+const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
+
+/** @internal */
 export function getStatusSuccess(self: AST.AST): number {
-  return resolveHttpApiStatus(self) ?? (isEmptyEncoded(self) ? 204 : 200)
+  return resolveHttpApiStatus(self) ?? (isNoContent(self) ? 204 : 200)
 }
 
 /** @internal */
@@ -69,31 +97,34 @@ export function makeHttpApiContainer(schemas: ReadonlyArray<Schema.Top>): Schema
 // TODO: add description
 /**
  * @since 4.0.0
- * @category empty response
+ * @category No Content
  */
-export const Empty = (status: number): Schema.Void => Schema.Void.annotate({ httpApiStatus: status })
+export const makeNoContent = (status: number): Schema.Void =>
+  Schema.Void.annotate({
+    httpApiStatus: status
+  })
 
 /**
  * @since 4.0.0
  */
-export interface asEmpty<S extends Schema.Top> extends Schema.decodeTo<S, Schema.Void> {}
+export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<S, Schema.Void> {}
 
 /**
  * @since 4.0.0
- * @category empty response
+ * @category No Content
  */
-export const asEmpty: {
+export const asNoContent: {
   <S extends Schema.Top>(options: {
     readonly status: number
     readonly decode: LazyArg<S["Encoded"]>
-  }): (self: S) => asEmpty<S>
+  }): (self: S) => asNoContent<S>
   <S extends Schema.Top>(
     self: S,
     options: {
       readonly status: number
       readonly decode: LazyArg<S["Encoded"]>
     }
-  ): asEmpty<S>
+  ): asNoContent<S>
 } = dual(
   2,
   <S extends Schema.Top>(
@@ -102,18 +133,24 @@ export const asEmpty: {
       readonly status: number
       readonly decode: LazyArg<S["Encoded"]>
     }
-  ): asEmpty<S> =>
-    Schema.Void.pipe(
+  ): asNoContent<S> => {
+    const transformation = Transformation.transform({
+      decode: options.decode,
+      encode: constVoid
+    })
+    return Schema.Void.pipe(
       Schema.decodeTo(
         self,
-        Transformation.transform({
-          decode: options.decode,
-          encode: constVoid
-        })
+        transformation
       )
     ).annotate({
+      httpApiBody: {
+        _tag: "NoContent",
+        transformation
+      },
       httpApiStatus: options.status
     })
+  }
 )
 
 /**
@@ -123,9 +160,9 @@ export interface NoContent extends Schema.Void {}
 
 /**
  * @since 4.0.0
- * @category empty response
+ * @category No Content
  */
-export const NoContent: NoContent = Empty(204)
+export const NoContent: NoContent = makeNoContent(204)
 
 /**
  * @since 4.0.0
@@ -134,9 +171,9 @@ export interface Created extends Schema.Void {}
 
 /**
  * @since 4.0.0
- * @category empty response
+ * @category No Content
  */
-export const Created: Created = Empty(201)
+export const Created: Created = makeNoContent(201)
 
 /**
  * @since 4.0.0
@@ -145,9 +182,9 @@ export interface Accepted extends Schema.Void {}
 
 /**
  * @since 4.0.0
- * @category empty response
+ * @category No Content
  */
-export const Accepted: Accepted = Empty(202)
+export const Accepted: Accepted = makeNoContent(202)
 
 /**
  * @since 4.0.0
@@ -179,6 +216,12 @@ export const Multipart = <S extends Schema.Top>(self: S, options?: {
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): Multipart<S> =>
   self.pipe(Schema.brand(MultipartTypeId)).annotate({
+    httpApiBody: {
+      _tag: "Multipart",
+      mode: "buffered",
+      contentType: "multipart/form-data",
+      limits: options
+    },
     httpApiMultipart: {
       mode: "buffered",
       limits: options
@@ -215,6 +258,12 @@ export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): MultipartStream<S> =>
   self.pipe(Schema.brand(MultipartStreamTypeId)).annotate({
+    httpApiBody: {
+      _tag: "Multipart",
+      mode: "stream",
+      contentType: "multipart/form-data",
+      limits: options
+    },
     httpApiMultipart: {
       mode: "stream",
       limits: options
@@ -284,16 +333,18 @@ export const withEncoding: {
   readonly contentType?: string | undefined
 }): S["~rebuild.out"] =>
   self.annotate({
+    httpApiBody: {
+      _tag: "HasBody",
+      encoding: {
+        _tag: options._tag,
+        contentType: options.contentType ?? defaultContentType(options._tag)
+      }
+    },
     httpApiEncoding: {
       _tag: options._tag,
       contentType: options.contentType ?? defaultContentType(options._tag)
     }
   }))
-
-const encodingJson: Encoding = {
-  _tag: "Json",
-  contentType: "application/json"
-}
 
 const encodingMultipart: Encoding = {
   _tag: "Json",
@@ -302,10 +353,10 @@ const encodingMultipart: Encoding = {
 
 /** @internal */
 export function getEncoding(ast: AST.AST): Encoding {
-  if (resolveHttpApiMultipart(ast) !== undefined) {
+  if (getBody(ast)?._tag === "Multipart") {
     return encodingMultipart
   }
-  return resolveHttpApiEncoding(ast) ?? encodingJson
+  return resolveHttpApiEncoding(ast) ?? jsonEncoding
 }
 
 /**
@@ -374,7 +425,7 @@ export const EmptyError = <Self>() =>
       const self = this as any
       const decoded = new self()
       decoded.stack = options.tag
-      transform = asEmpty(
+      transform = asNoContent(
         Schema.declare((u: unknown) => Predicate.hasProperty(u, EmptyErrorTypeId), {
           identifier: options.tag
         }),

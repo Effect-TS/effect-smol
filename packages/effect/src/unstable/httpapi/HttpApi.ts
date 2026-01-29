@@ -210,7 +210,6 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
-      readonly payloads: ReadonlyMap<HttpApiSchema.Encoding["_tag"], ReadonlyMap<string, ReadonlySet<Schema.Top>>>
       readonly successes: ReadonlyMap<number, {
         readonly schema: Schema.Top | undefined
         readonly description: string | undefined
@@ -244,7 +243,6 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
         endpoint,
         middleware: endpoint.middlewares as any,
         mergedAnnotations: ServiceMap.merge(groupAnnotations, endpoint.annotations),
-        payloads: endpoint.payloadSchema ? extractPayloads(endpoint.payloadSchema) : emptyMap,
         successes: extractMembers(endpoint.successSchema, HttpApiSchema.getStatusSuccess),
         errors
       })
@@ -253,8 +251,6 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 }
 
 // -------------------------------------------------------------------------------------
-
-const emptyMap = new Map<never, never>()
 
 function resoveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
   return AST.resolveDescription(ast) ?? AST.resolveIdentifier(ast)
@@ -293,48 +289,19 @@ const extractMembers = (
     const ast = schema.ast
     const status = getStatus(ast)
     // only include a schema in the response-body union if it actually has a payload,
-    // or if it's explicitly an “empty response” schema (so the empty-ness is intentional)
-    const isEmpty = HttpApiSchema.isEmpty(ast)
+    // or if it's explicitly a "no content" schema (so the empty-ness is intentional)
+    const isUndecodableNoContent = HttpApiSchema.isUndecodableNoContent(ast)
     const description = resoveDescriptionOrIdentifier(ast)
     const pair = map.get(status)
     if (pair === undefined) {
       map.set(status, {
         description,
-        set: isEmpty ? new Set([]) : new Set([schema])
+        set: isUndecodableNoContent ? new Set([]) : new Set([schema])
       })
     } else {
       pair.description = [pair.description, description].filter(Boolean).join(" | ")
-      if (!isEmpty) {
+      if (!isUndecodableNoContent) {
         pair.set.add(schema)
-      }
-    }
-  }
-}
-
-function extractPayloads(
-  schema: Schema.Top
-): ReadonlyMap<HttpApiSchema.Encoding["_tag"], ReadonlyMap<string, ReadonlySet<Schema.Top>>> {
-  const map = new Map<
-    HttpApiSchema.Encoding["_tag"],
-    Map<string, Set<Schema.Top>>
-  >()
-
-  HttpApiSchema.forEach(schema, add)
-
-  return map
-
-  function add(schema: Schema.Top) {
-    const ast = schema.ast
-    const encoding = HttpApiSchema.getEncoding(ast)
-    const _tag = map.get(encoding._tag)
-    if (_tag === undefined) {
-      map.set(encoding._tag, new Map([[encoding.contentType, new Set([schema])]]))
-    } else {
-      const contentType = _tag.get(encoding.contentType)
-      if (contentType === undefined) {
-        _tag.set(encoding.contentType, new Set([schema]))
-      } else {
-        contentType.add(schema)
       }
     }
   }
