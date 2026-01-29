@@ -3799,14 +3799,43 @@ export const sandbox: <A, E, R>(
 export const ignore: <
   Arg extends Effect<any, any, any> | {
     readonly log?: boolean | LogLevel | undefined
-  } | undefined
+  } | undefined = undefined
 >(
-  effectOrOptions: Arg,
+  effectOrOptions?: Arg,
   options?: {
     readonly log?: boolean | LogLevel | undefined
   } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<void, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignore
+
+/**
+ * Ignores the effect's failure cause, including defects and interruptions.
+ *
+ * Use the `log` option to emit the full {@link Cause} when the effect fails.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const task = Effect.fail("boom")
+ *
+ * const program = Effect.ignoreCause(task, { log: true })
+ * ```
+ *
+ * @since 4.0.0
+ * @category Error Handling
+ */
+export const ignoreCause: <
+  Arg extends Effect<any, any, any> | {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined = undefined
+>(
+  effectOrOptions?: Arg,
+  options?: {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<void, never, _R>
+  : <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignoreCause
 
 /**
  * Apply an `ExecutionPlan` to an effect, retrying with step-provided resources
@@ -4241,6 +4270,51 @@ export const raceAllFirst: <Eff extends Effect<any, any, any>>(
     }) => void
   }
 ) => Effect<Success<Eff>, Error<Eff>, Services<Eff>> = internal.raceAllFirst
+
+/**
+ * Races two effects and returns the first successful result.
+ *
+ * If one effect succeeds, the other is interrupted and `onWinner` can observe the
+ * winning fiber. If both fail, the race fails.
+ *
+ * @example
+ * ```ts
+ * import { Console, Duration, Effect } from "effect"
+ *
+ * const fastFail = Effect.delay(Effect.fail("fast-fail"), Duration.millis(10))
+ * const slowSuccess = Effect.delay(Effect.succeed("slow-success"), Duration.millis(50))
+ *
+ * const program = Effect.gen(function*() {
+ *   const result = yield* Effect.race(fastFail, slowSuccess)
+ *   yield* Console.log(`winner: ${result}`)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output: winner: slow-success
+ * ```
+ *
+ * @since 2.0.0
+ * @category Racing
+ */
+export const race: {
+  <A2, E2, R2>(
+    that: Effect<A2, E2, R2>,
+    options?: {
+      readonly onWinner?: (
+        options: { readonly fiber: Fiber<any, any>; readonly index: number; readonly parentFiber: Fiber<any, any> }
+      ) => void
+    }
+  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A | A2, E | E2, R | R2>
+  <A, E, R, A2, E2, R2>(
+    self: Effect<A, E, R>,
+    that: Effect<A2, E2, R2>,
+    options?: {
+      readonly onWinner?: (
+        options: { readonly fiber: Fiber<any, any>; readonly index: number; readonly parentFiber: Fiber<any, any> }
+      ) => void
+    }
+  ): Effect<A | A2, E | E2, R | R2>
+} = internal.race
 
 /**
  * Races two effects and returns the result of the first one to complete, whether
@@ -6753,8 +6827,10 @@ export declare namespace Repeat {
  * @since 2.0.0
  * @category Repetition / Recursion
  */
-export const forever: <Arg extends Effect<any, any, any> | { readonly autoYield?: boolean | undefined } | undefined>(
-  effectOrOptions: Arg,
+export const forever: <
+  Arg extends Effect<any, any, any> | { readonly autoYield?: boolean | undefined } | undefined = undefined
+>(
+  effectOrOptions?: Arg,
   options?: { readonly autoYield?: boolean | undefined } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<never, _E, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<never, E, R> = internal.forever
@@ -7675,9 +7751,9 @@ export const forkChild: <
   Arg extends Effect<any, any, any> | {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
-  } | undefined
+  } | undefined = undefined
 >(
-  effectOrOptions: Arg,
+  effectOrOptions?: Arg,
   options?: {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
@@ -7761,9 +7837,9 @@ export const forkScoped: <
   Arg extends Effect<any, any, any> | {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
-  } | undefined
+  } | undefined = undefined
 >(
-  effectOrOptions: Arg,
+  effectOrOptions?: Arg,
   options?: {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
@@ -7803,9 +7879,9 @@ export const forkDetach: <
   Arg extends Effect<any, any, any> | {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
-  } | undefined
+  } | undefined = undefined
 >(
-  effectOrOptions: Arg,
+  effectOrOptions?: Arg,
   options?: {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined

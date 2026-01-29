@@ -210,7 +210,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
-      readonly payloads: ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, AST.AST>>
+      readonly payloads: ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, ReadonlySet<AST.AST>>>
       readonly successes: ReadonlyMap<number, {
         readonly ast: AST.AST | undefined
         readonly description: string | undefined
@@ -299,9 +299,7 @@ const extractMembers = (
         set: shouldAdd ? new Set([ast]) : new Set([])
       })
     } else {
-      if (pair.description === undefined) {
-        pair.description = description
-      }
+      pair.description = [pair.description, description].filter(Boolean).join(" | ")
       if (shouldAdd) {
         pair.set.add(ast)
       }
@@ -309,7 +307,9 @@ const extractMembers = (
   }
 }
 
-function extractPayloads(ast: AST.AST): ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, AST.AST>> {
+function extractPayloads(
+  ast: AST.AST
+): ReadonlyMap<HttpApiSchema.Encoding["kind"], ReadonlyMap<string, ReadonlySet<AST.AST>>> {
   const map = new Map<
     HttpApiSchema.Encoding["kind"],
     Map<string, Set<AST.AST>>
@@ -317,23 +317,10 @@ function extractPayloads(ast: AST.AST): ReadonlyMap<HttpApiSchema.Encoding["kind
 
   recur(ast)
 
-  return new Map(
-    [...map.entries()].map((
-      [kind, map]
-    ) => [
-      kind,
-      new Map(
-        [...map.entries()].map((
-          [contentType, set]
-        ) => {
-          const asts = Array.from(set)
-          return [contentType, asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")]
-        })
-      )
-    ])
-  )
+  return map
 
-  function add(encoding: HttpApiSchema.Encoding, ast: AST.AST) {
+  function add(ast: AST.AST) {
+    const encoding = HttpApiSchema.getEncoding(ast)
     const kind = map.get(encoding.kind)
     if (kind === undefined) {
       map.set(encoding.kind, new Map([[encoding.contentType, new Set([ast])]]))
@@ -348,12 +335,12 @@ function extractPayloads(ast: AST.AST): ReadonlyMap<HttpApiSchema.Encoding["kind
   }
 
   function recur(ast: AST.AST) {
-    if (AST.isUnion(ast)) {
+    if (HttpApiSchema.isHttpApiContainer(ast)) {
       for (const type of ast.types) {
-        add(HttpApiSchema.getEncoding(type), type)
+        add(type)
       }
     } else {
-      add(HttpApiSchema.getEncoding(ast), ast)
+      add(ast)
     }
   }
 }

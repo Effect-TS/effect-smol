@@ -177,7 +177,7 @@ export const Service = <
   } = { requires: never; provides: never }
 >(): <
   const Id extends string,
-  Error extends Schema.Top = Schema.Never,
+  Error extends Schema.Top = never,
   const Security extends Record<string, HttpApiSecurity.HttpApiSecurity> = {}
 >(
   id: Id,

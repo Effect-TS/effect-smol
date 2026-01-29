@@ -70,6 +70,7 @@ import { ClockRef, endSpan } from "./internal/effect.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
 import * as Layer from "./Layer.ts"
+import type { LogLevel } from "./LogLevel.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
@@ -82,6 +83,7 @@ import { TracerTimingEnabled } from "./References.ts"
 import * as Schedule from "./Schedule.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
+import * as String from "./String.ts"
 import * as Take from "./Take.ts"
 import { ParentSpan, type SpanOptions } from "./Tracer.ts"
 import type * as Types from "./Types.ts"
@@ -188,6 +190,10 @@ export interface ChannelUnify<A extends { [Unify.typeSymbol]?: any }> extends Ef
 export interface ChannelUnifyIgnore extends Effect.EffectUnifyIgnore {
   Channel?: true
 }
+
+type TagsWithReason<E> = {
+  [T in Types.Tags<E>]: Types.ReasonTags<Types.ExtractTag<E, T>> extends never ? never : T
+}[Types.Tags<E>]
 
 /**
  * @since 2.0.0
@@ -4171,6 +4177,379 @@ export const catchTag: {
 })
 
 /**
+ * Catches a specific reason within a tagged error.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Data } from "effect"
+ *
+ * class RateLimitError extends Data.TaggedError("RateLimitError")<{
+ *   retryAfter: number
+ * }> {}
+ *
+ * class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+ *   limit: number
+ * }> {}
+ *
+ * class AiError extends Data.TaggedError("AiError")<{
+ *   reason: RateLimitError | QuotaExceededError
+ * }> {}
+ *
+ * const channel = Channel.fail(
+ *   new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+ * )
+ *
+ * const recovered = channel.pipe(
+ *   Channel.catchReason("AiError", "RateLimitError", (reason) =>
+ *     Channel.succeed(`retry: ${reason.retryAfter}`)
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchReason: {
+  <
+    OutErr,
+    K extends Types.Tags<OutErr>,
+    RK extends Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    errorTag: K,
+    reasonTag: RK,
+    f: (
+      reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<
+    OutElem | OutElem1,
+    OutErr | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    K extends Types.Tags<OutErr>,
+    RK extends Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    errorTag: K,
+    reasonTag: RK,
+    f: (
+      reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): Channel<
+    OutElem | OutElem1,
+    OutErr | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+} = dual(4, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  K extends Types.Tags<OutErr>,
+  RK extends Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>,
+  OutElem1,
+  OutErr1,
+  OutDone1,
+  InElem1,
+  InErr1,
+  InDone1,
+  Env1
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  errorTag: K,
+  reasonTag: RK,
+  f: (
+    reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+  ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+): Channel<
+  OutElem | OutElem1,
+  OutErr | OutErr1,
+  OutDone | OutDone1,
+  InElem & InElem1,
+  InErr & InErr1,
+  InDone & InDone1,
+  Env | Env1
+> =>
+  catchFilter(
+    self,
+    (e) => {
+      if (isTagged(e, errorTag) && hasProperty(e, "reason") && isTagged(e.reason, reasonTag)) {
+        return e.reason
+      }
+      return Filter.fail(e)
+    },
+    f as any
+  ))
+
+/**
+ * Catches multiple reasons within a tagged error using an object of handlers.
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchReasons: {
+  <
+    K extends Types.Tags<OutErr>,
+    OutErr,
+    Cases extends {
+      [RK in Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>]+?: (
+        reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+      ) => Channel<any, any, any, any, any, any, any>
+    }
+  >(
+    errorTag: K,
+    cases: Cases
+  ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<
+    | OutElem
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<infer OutElem1, any, any, any, any, any, any> ? OutElem1 : never
+    }[keyof Cases],
+    | OutErr
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, infer OutErr1, any, any, any, any, any> ? OutErr1 : never
+    }[keyof Cases],
+    | OutDone
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, infer OutDone1, any, any, any, any> ? OutDone1 : never
+    }[keyof Cases],
+    & InElem
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, infer InElem1, any, any, any> ? InElem1 : never
+    }[keyof Cases],
+    & InErr
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, infer InErr1, any, any> ? InErr1 : never
+    }[keyof Cases],
+    & InDone
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, any, infer InDone1, any> ? InDone1 : never
+    }[keyof Cases],
+    | Env
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, any, any, infer Env1> ? Env1 : never
+    }[keyof Cases]
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    K extends Types.Tags<OutErr>,
+    Cases extends {
+      [RK in Types.ReasonTags<Types.ExtractTag<OutErr, K>>]+?: (
+        reason: Types.ExtractReason<Types.ExtractTag<OutErr, K>, RK>
+      ) => Channel<any, any, any, any, any, any, any>
+    }
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    errorTag: K,
+    cases: Cases
+  ): Channel<
+    | OutElem
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<infer OutElem1, any, any, any, any, any, any> ? OutElem1 : never
+    }[keyof Cases],
+    | OutErr
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, infer OutErr1, any, any, any, any, any> ? OutErr1 : never
+    }[keyof Cases],
+    | OutDone
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, infer OutDone1, any, any, any, any> ? OutDone1 : never
+    }[keyof Cases],
+    & InElem
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, infer InElem1, any, any, any> ? InElem1 : never
+    }[keyof Cases],
+    & InErr
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, infer InErr1, any, any> ? InErr1 : never
+    }[keyof Cases],
+    & InDone
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, any, infer InDone1, any> ? InDone1 : never
+    }[keyof Cases],
+    | Env
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, any, any, infer Env1> ? Env1 : never
+    }[keyof Cases]
+  >
+} = dual(3, (self, errorTag, cases) => {
+  let keys: Set<string>
+  return catchFilter(
+    self,
+    (e: any) => {
+      keys ??= new Set(Object.keys(cases))
+      if (
+        isTagged(e, errorTag) &&
+        hasProperty(e, "reason") &&
+        hasProperty(e.reason, "_tag") &&
+        String.isString(e.reason._tag) &&
+        keys.has(e.reason._tag)
+      ) {
+        return e.reason
+      }
+      return Filter.fail(e)
+    },
+    (reason: any) => (cases as any)[reason._tag](reason)
+  )
+})
+
+/**
+ * Promotes nested reason errors into the channel error, replacing the parent error.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Data } from "effect"
+ *
+ * class RateLimitError extends Data.TaggedError("RateLimitError")<{
+ *   retryAfter: number
+ * }> {}
+ *
+ * class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+ *   limit: number
+ * }> {}
+ *
+ * class AiError extends Data.TaggedError("AiError")<{
+ *   reason: RateLimitError | QuotaExceededError
+ * }> {}
+ *
+ * const channel = Channel.fail(
+ *   new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+ * )
+ *
+ * const unwrapped = channel.pipe(Channel.unwrapReason("AiError"))
+ * ```
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const unwrapReason: {
+  <
+    K extends TagsWithReason<OutErr>,
+    OutErr
+  >(
+    errorTag: K
+  ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<
+    OutElem,
+    Types.ExcludeTag<OutErr, K> | Types.ReasonOf<Types.ExtractTag<OutErr, K>>,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    K extends TagsWithReason<OutErr>
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    errorTag: K
+  ): Channel<
+    OutElem,
+    Types.ExcludeTag<OutErr, K> | Types.ReasonOf<Types.ExtractTag<OutErr, K>>,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >
+} = dual(2, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  K extends TagsWithReason<OutErr>
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  errorTag: K
+): Channel<
+  OutElem,
+  Types.ExcludeTag<OutErr, K> | Types.ReasonOf<Types.ExtractTag<OutErr, K>>,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env
+> =>
+  catchFilter(
+    self,
+    (error: any) => isTagged(error, errorTag) && hasProperty(error, "reason") ? error.reason : Filter.fail(error),
+    fail as any
+  ) as any)
+
+/**
  * Returns a new channel, which is the same as this one, except the failure
  * value of the returned channel is created by applying the specified function
  * to the failure value of this channel.
@@ -4232,28 +4611,42 @@ export const orDie = <
 /**
  * Ignores all errors in the channel, converting them to an empty channel.
  *
- * @since 4.0.0
- * @category Error handling
- */
-export const ignore = <
-  OutElem,
-  OutErr,
-  OutDone,
-  InElem,
-  InErr,
-  InDone,
-  Env
->(
-  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
-): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => catch_(self, () => empty)
-
-/**
- * Ignores all errors in the channel including defects, converting them to an empty channel.
+ * Use the `log` option to emit the full {@link Cause} when the channel fails.
  *
  * @since 4.0.0
  * @category Error handling
  */
-export const ignoreCause = <
+export const ignore: <
+  Arg extends Channel<any, any, any, any, any, any, any> | {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+>(
+  selfOrOptions: Arg,
+  options?: {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+) => [Arg] extends
+  [Channel<infer OutElem, infer _OutErr, infer OutDone, infer InElem, infer InErr, infer InDone, infer Env>]
+  ? Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env>
+  : <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> = dual(
+    (args) => isChannel(args[0]),
+    <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+      self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+      options?: {
+        readonly log?: boolean | LogLevel | undefined
+      } | undefined
+    ): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => {
+      if (!options?.log) {
+        return catch_(self, () => empty)
+      }
+      const logEffect = Effect.logWithLevel(options.log === true ? undefined : options.log)
+      return catch_(tapCause(self, (cause) => Cause.hasFail(cause) ? logEffect(cause) : Effect.void), () => empty)
+    }
+  )
+
+const ignoreCause_ = <
   OutElem,
   OutErr,
   OutDone,
@@ -4264,6 +4657,40 @@ export const ignoreCause = <
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
 ): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => catchCause(self, () => empty)
+
+/**
+ * Ignores all errors in the channel including defects, converting them to an empty channel.
+ *
+ * Use the `log` option to emit the full {@link Cause} when the channel fails.
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const ignoreCause: <
+  Arg extends Channel<any, any, any, any, any, any, any> | {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+>(
+  selfOrOptions: Arg,
+  options?: {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+) => [Arg] extends
+  [Channel<infer OutElem, infer _OutErr, infer OutDone, infer InElem, infer InErr, infer InDone, infer Env>]
+  ? Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env>
+  : <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> = dual(
+    (args) => isChannel(args[0]),
+    <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+      self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+      options?: { readonly log?: boolean | LogLevel | undefined } | undefined
+    ): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => {
+      if (!options?.log) return ignoreCause_(self)
+      const logEffect = Effect.logWithLevel(options.log === true ? undefined : options.log)
+      return ignoreCause_(tapCause(self, (cause) => logEffect(cause)))
+    }
+  )
 
 /**
  * Returns a new channel that retries this channel according to the specified

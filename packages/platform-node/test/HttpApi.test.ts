@@ -29,6 +29,7 @@ import {
   HttpApiBuilder,
   HttpApiClient,
   HttpApiEndpoint,
+  HttpApiError,
   HttpApiGroup,
   HttpApiMiddleware,
   HttpApiSchema,
@@ -40,15 +41,15 @@ import OpenApiFixture from "./fixtures/openapi.json" with { type: "json" }
 describe("HttpApi", () => {
   describe("payload option", () => {
     describe("encoding", () => {
-      it.effect("union members with different encodings", () => {
+      it.effect("array of schemas with different encodings", () => {
         const Api = HttpApi.make("api").add(
           HttpApiGroup.make("group").add(
             HttpApiEndpoint.post("a", "/a", {
-              payload: Schema.Union([
+              payload: [
                 Schema.Struct({ a: Schema.String }), // application/json
                 HttpApiSchema.Text(), // text/plain
                 HttpApiSchema.Uint8Array() // application/octet-stream
-              ]),
+              ],
               success: Schema.String
             })
           )
@@ -82,9 +83,10 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("get", "/:id", {
+            path: {
+              id: Schema.FiniteFromString
+            },
             success: Schema.String
-          }).setPath({
-            id: Schema.FiniteFromString
           })
         )
       )
@@ -107,14 +109,152 @@ describe("HttpApi", () => {
     })
   })
 
+  describe("error option", () => {
+    it.effect("Void", () => {
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("a", "/a", {
+            error: Schema.Void
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) =>
+          handlers
+            .handle("a", () => Effect.fail(void 0))
+      )
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        const a = yield* HttpClient.get("/a")
+        assert.strictEqual(a.status, 500)
+        assert.strictEqual(yield* a.text, "")
+      }).pipe(Effect.provide(ApiLive))
+    })
+
+    it.effect("Empty(400)", () => {
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("a", "/a", {
+            error: HttpApiSchema.Empty(400)
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) =>
+          handlers
+            .handle("a", () => Effect.fail(void 0))
+      )
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        const a = yield* HttpClient.get("/a")
+        assert.strictEqual(a.status, 400)
+        assert.strictEqual(yield* a.text, "")
+      }).pipe(Effect.provide(ApiLive))
+    })
+
+    it.effect("Empty(401)", () => {
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("a", "/a", {
+            error: HttpApiSchema.Empty(401)
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) =>
+          handlers
+            .handle("a", () => Effect.fail(void 0))
+      )
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        const a = yield* HttpClient.get("/a")
+        assert.strictEqual(a.status, 401)
+        assert.strictEqual(yield* a.text, "")
+      }).pipe(Effect.provide(ApiLive))
+    })
+
+    it.effect("Unauthorized", () => {
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("a", "/a", {
+            error: HttpApiError.Unauthorized
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) =>
+          handlers
+            .handle("a", () => Effect.fail(new HttpApiError.Unauthorized()))
+      )
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        const a = yield* HttpClient.get("/a")
+        assert.strictEqual(a.status, 401)
+        assert.strictEqual(yield* a.text, "")
+      }).pipe(Effect.provide(ApiLive))
+    })
+
+    it.effect("BadRequest", () => {
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("a", "/a", {
+            error: HttpApiError.BadRequest
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) =>
+          handlers
+            .handle("a", () => Effect.fail(new HttpApiError.BadRequest()))
+      )
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        const a = yield* HttpClient.get("/a")
+        assert.strictEqual(a.status, 400)
+        assert.strictEqual(yield* a.text, "")
+      }).pipe(Effect.provide(ApiLive))
+    })
+  })
+
   describe("urlParams", () => {
     it.effect("setUrlParams method should accept a record of schemas", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("get", "/", {
+            urlParams: {
+              id: Schema.FiniteFromString
+            },
             success: Schema.String
-          }).setUrlParams({
-            id: Schema.FiniteFromString
           })
         )
       )
@@ -212,9 +352,10 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("get", "/:id", {
+            headers: {
+              id: Schema.FiniteFromString
+            },
             success: Schema.String
-          }).setHeaders({
-            id: Schema.FiniteFromString
           })
         )
       )
@@ -477,7 +618,9 @@ describe("HttpApi", () => {
 
     const Api = HttpApi.make("api").add(
       HttpApiGroup.make("group").add(
-        HttpApiEndpoint.get("error", "/error").addError(RateLimitErrorSchema)
+        HttpApiEndpoint.get("error", "/error", {
+          error: RateLimitErrorSchema
+        })
       )
     )
     const ApiLive = HttpApiBuilder.layer(Api).pipe(
@@ -568,7 +711,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
       HttpApiSchema.Multipart(
         Schema.Struct(Struct.pick(Group.fields, ["name"]))
       )
-    ]),
+    ]).annotate({ httpApiIsContainer: true }),
     success: Group
   }),
   HttpApiEndpoint.post("handle", "/handle/:id", {
@@ -578,22 +721,22 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
     payload: Schema.Struct({
       name: Schema.String
     }),
-    success: {
+    success: Schema.Struct({
       id: Schema.Finite,
       name: Schema.String
-    }
+    })
   }),
   HttpApiEndpoint.post("handleRaw", "/handleraw/:id", {
     path: {
       id: Schema.FiniteFromString
     },
-    payload: {
+    payload: Schema.Struct({
       name: Schema.String
-    },
-    success: {
+    }),
+    success: Schema.Struct({
       id: Schema.Finite,
       name: Schema.String
-    }
+    })
   })
 ).prefix("/groups") {}
 
@@ -607,7 +750,7 @@ class UsersApi extends HttpApiGroup.make("users")
       error: UserError
     }),
     HttpApiEndpoint.post("create", "/", {
-      payload: Struct.omit(User.fields, ["id", "createdAt"]),
+      payload: Schema.Struct(Struct.omit(User.fields, ["id", "createdAt"])),
       urlParams: {
         id: Schema.FiniteFromString
       },
@@ -640,19 +783,19 @@ class UsersApi extends HttpApiGroup.make("users")
       payload: HttpApiSchema.Multipart(Schema.Struct({
         file: Multipart.SingleFileSchema
       })),
-      success: {
+      success: Schema.Struct({
         contentType: Schema.String,
         length: Schema.Int
-      }
+      })
     }),
     HttpApiEndpoint.post("uploadStream", `/uploadstream`, {
       payload: HttpApiSchema.MultipartStream(Schema.Struct({
         file: Multipart.SingleFileSchema
       })),
-      success: {
+      success: Schema.Struct({
         contentType: Schema.String,
         length: Schema.Int
-      }
+      })
     })
   )
   .middleware(Authorization)
@@ -661,8 +804,9 @@ class UsersApi extends HttpApiGroup.make("users")
 
 class TopLevelApi extends HttpApiGroup.make("root", { topLevel: true })
   .add(
-    HttpApiEndpoint.get("healthz", `/healthz`)
-      .addSuccess(HttpApiSchema.NoContent.annotate({ description: "Empty" }))
+    HttpApiEndpoint.get("healthz", `/healthz`, {
+      success: HttpApiSchema.NoContent.annotate({ description: "Empty" })
+    })
   )
 {}
 

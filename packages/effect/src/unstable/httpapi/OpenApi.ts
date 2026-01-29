@@ -328,11 +328,12 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           op.responses[status] = {
             description: description ?? defaultDescription()
           }
-          if (ast !== undefined && !HttpApiSchema.resolveHttpApiIsEmpty(ast)) {
+          // Handle empty response
+          if (ast !== undefined && !HttpApiSchema.isVoidEncoded(ast)) {
             const encoding = HttpApiSchema.getEncoding(ast)
             irOps.push({
               _tag: "schema",
-              ast,
+              ast: toEncoding(ast, encoding),
               path: ["paths", path, method, "responses", String(status), "content", encoding.contentType, "schema"]
             })
             op.responses[status].content = {
@@ -394,10 +395,17 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       if (hasBody && payloads.size > 0) {
         const content: OpenApiSpecContent = {}
         payloads.forEach((map, kind) => {
-          map.forEach((ast, contentType) => {
+          map.forEach((set, contentType) => {
+            const asts = Array.from(set).filter((ast) => !HttpApiSchema.isVoidEncoded(ast))
+            if (asts.length === 0) {
+              return
+            }
+
+            const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
+
             irOps.push({
               _tag: "schema",
-              ast: getEncodingAST(ast, { kind, contentType }),
+              ast: toEncoding(ast, { kind, contentType }),
               path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
             })
             content[contentType] = {
@@ -405,7 +413,9 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
             }
           })
         })
-        op.requestBody = { content, required: true }
+        if (Object.keys(content).length > 0) {
+          op.requestBody = { content, required: true }
+        }
       }
 
       processParameters(endpoint.pathSchema, "path")
@@ -504,7 +514,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   return spec
 }
 
-function getEncodingAST(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
+function toEncoding(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
   switch (encoding.kind) {
     case "Uint8Array":
       // For `application/octet-stream` (raw bytes) we must emit a binary schema,

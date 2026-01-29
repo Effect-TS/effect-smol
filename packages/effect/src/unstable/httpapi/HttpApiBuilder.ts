@@ -523,8 +523,7 @@ const handlerToRoute = (
   )
 }
 
-// TODO: Add type id to Schema.SchemaError
-const filterIsSchemaError = Filter.instanceOf(Schema.SchemaError)
+const filterIsSchemaError = Filter.fromPredicate(Schema.isSchemaError)
 
 const requestPayload = (
   request: HttpServerRequest,
@@ -625,10 +624,7 @@ const makeSecurityMiddleware = (
 
 const HttpServerResponseSchema = Schema.declare(Response.isHttpServerResponse)
 
-/** @internal */
-export const makeSuccessSchema = (
-  schema: Schema.Top
-): Schema.Codec<unknown, HttpServerResponse> => {
+function makeSuccessSchema(schema: Schema.Top): Schema.Codec<unknown, HttpServerResponse> {
   const schemas = new Set<Schema.Schema<any>>()
   HttpApiSchema.forEachMember(schema, (_) => schemas.add(_))
   return Schema.Union(Array.from(schemas, toResponseSuccess)) as any
@@ -662,6 +658,7 @@ const responseTransformation = <A, I, RD, RE>(
       const ast = schema.ast
       const isEmpty = HttpApiSchema.isVoidEncoded(ast)
       const status = getStatus(ast)
+      // Handle empty response
       if (isEmpty) {
         return Effect.succeed(Response.empty({ status }))
       }
@@ -701,20 +698,12 @@ const responseTransformation = <A, I, RD, RE>(
   })
 
 const toResponseSchema = (getStatus: (ast: AST.AST) => number) => {
-  const cache = new WeakMap<AST.AST, Schema.Schema<any>>()
-  return <A, I, RD, RE>(
-    schema: Schema.Codec<A, I, RD, RE>
-  ): Schema.Codec<A, HttpServerResponse, RD, RE> => {
-    if (cache.has(schema.ast)) {
-      return cache.get(schema.ast)! as any
+  const cache = new WeakMap<AST.AST, Schema.Top>()
+  return <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>): Schema.Codec<A, HttpServerResponse, RD, RE> => {
+    const out = cache.get(schema.ast)
+    if (out !== undefined) {
+      return out as any
     }
-    // TODO: See if we can use the Serializer module here
-    // const encoding = HttpApiSchema.getEncoding(schema.ast)
-    // const serialized = encoding.kind === "Json"
-    //   ? Schema.toCodecJson(schema)
-    //   : encoding.kind === "UrlParams"
-    //   ? Schema.toCodecStringTree(schema)
-    //   : schema
     const transform = HttpServerResponseSchema.pipe(
       Schema.decodeTo(schema, responseTransformation(getStatus, schema))
     )

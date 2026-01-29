@@ -139,19 +139,17 @@ export const toHttpApiGroup = <const Name extends string, const Workflows extend
     const workflow = workflow_ as Workflow.AnyWithProps
     const path = `/${tagToPath(workflow.name)}` as const
     group = group.add(
-      HttpApiEndpoint.post(workflow.name, path)
-        .setPayload(workflow.payloadSchema)
-        .addSuccess(workflow.successSchema)
-        .addError(workflow.errorSchema as any)
-        .annotateMerge(workflow.annotations)
-    ).add(
-      HttpApiEndpoint.post(workflow.name + "Discard", `${path}/discard`)
-        .setPayload(workflow.payloadSchema)
-        .annotateMerge(workflow.annotations)
-    ).add(
-      HttpApiEndpoint.post(workflow.name + "Resume", `${path}/resume`)
-        .setPayload(ResumePayload)
-        .annotateMerge(workflow.annotations)
+      HttpApiEndpoint.post(workflow.name, path, {
+        payload: workflow.payloadSchema,
+        success: workflow.successSchema,
+        error: workflow.errorSchema
+      }).annotateMerge(workflow.annotations),
+      HttpApiEndpoint.post(workflow.name + "Discard", `${path}/discard`, {
+        payload: workflow.payloadSchema
+      }).annotateMerge(workflow.annotations),
+      HttpApiEndpoint.post(workflow.name + "Resume", `${path}/resume`, {
+        payload: ResumePayload
+      }).annotateMerge(workflow.annotations)
     ) as any
   }
   return group as any
