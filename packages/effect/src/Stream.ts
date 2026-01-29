@@ -8968,18 +8968,27 @@ export const ensuring: {
  */
 export const provide: {
   <AL, EL = never, RL = never>(
-    layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>
+    layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>,
+    options?: {
+      readonly memoMap?: Layer.MemoMap | undefined
+    } | undefined
   ): <A, E, R>(
     self: Stream<A, E, R>
   ) => Stream<A, E | EL, Exclude<R, AL> | RL>
   <A, E, R, AL, EL = never, RL = never>(
     self: Stream<A, E, R>,
-    layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>
+    layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>,
+    options?: {
+      readonly memoMap?: Layer.MemoMap | undefined
+    } | undefined
   ): Stream<A, E | EL, Exclude<R, AL> | RL>
-} = dual(2, <A, E, R, AL, EL = never, RL = never>(
+} = dual((args) => isStream(args[0]), <A, E, R, AL, EL = never, RL = never>(
   self: Stream<A, E, R>,
-  layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>
-): Stream<A, E | EL, Exclude<R, AL> | RL> => fromChannel(Channel.provide(self.channel, layer)))
+  layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>,
+  options?: {
+    readonly memoMap?: Layer.MemoMap | undefined
+  } | undefined
+): Stream<A, E | EL, Exclude<R, AL> | RL> => fromChannel(Channel.provide(self.channel, layer, options)))
 
 /**
  * Provides multiple services to the stream using a service map.

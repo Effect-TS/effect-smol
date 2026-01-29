@@ -5158,7 +5158,10 @@ export const servicesWith: <R, A, E, R2>(
  */
 export const provide: {
   <const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
-    layers: Layers
+    layers: Layers,
+    options?: {
+      readonly memoMap?: Layer.MemoMap | undefined
+    } | undefined
   ): <A, E, R>(
     self: Effect<A, E, R>
   ) => Effect<
@@ -5167,7 +5170,10 @@ export const provide: {
     Layer.Services<Layers[number]> | Exclude<R, Layer.Success<Layers[number]>>
   >
   <ROut, E2, RIn>(
-    layer: Layer.Layer<ROut, E2, RIn>
+    layer: Layer.Layer<ROut, E2, RIn>,
+    options?: {
+      readonly memoMap?: Layer.MemoMap | undefined
+    } | undefined
   ): <A, E, R>(
     self: Effect<A, E, R>
   ) => Effect<A, E | E2, RIn | Exclude<R, ROut>>
@@ -5176,7 +5182,10 @@ export const provide: {
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
   <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
     self: Effect<A, E, R>,
-    layers: Layers
+    layers: Layers,
+    options?: {
+      readonly memoMap?: Layer.MemoMap | undefined
+    } | undefined
   ): Effect<
     A,
     E | Layer.Error<Layers[number]>,
@@ -5184,7 +5193,10 @@ export const provide: {
   >
   <A, E, R, ROut, E2, RIn>(
     self: Effect<A, E, R>,
-    layer: Layer.Layer<ROut, E2, RIn>
+    layer: Layer.Layer<ROut, E2, RIn>,
+    options?: {
+      readonly memoMap?: Layer.MemoMap | undefined
+    } | undefined
   ): Effect<A, E | E2, RIn | Exclude<R, ROut>>
   <A, E, R, R2>(
     self: Effect<A, E, R>,

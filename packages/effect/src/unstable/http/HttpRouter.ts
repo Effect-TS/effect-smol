@@ -483,13 +483,7 @@ export const toHttpEffect = <A, E, R>(
   Exclude<Request.Without<R>, HttpRouter> | Scope.Scope
 > =>
   Effect.gen(function*() {
-    const scope = yield* Effect.scope
-    const memoMap = yield* Layer.CurrentMemoMap
-    const context = yield* Layer.buildWithMemoMap(
-      Layer.provideMerge(appLayer, layer),
-      memoMap,
-      scope
-    )
+    const context = yield* Layer.build(Layer.provideMerge(appLayer, layer))
     const router = ServiceMap.get(context, HttpRouter)
     // @effect-diagnostics effect/returnEffectInGen:off
     return router.asHttpEffect()
@@ -1050,9 +1044,7 @@ export const provideRequest =
     Layer.provide(
       self,
       middleware<{ provides: A2 }>()(Effect.gen(function*() {
-        const scope = yield* Effect.scope
-        const memoMap = yield* Layer.CurrentMemoMap
-        const services = yield* Layer.buildWithMemoMap(layer as Layer.Layer<A2>, memoMap, scope)
+        const services = yield* Layer.build(layer as Layer.Layer<A2>)
         return (effect) =>
           Effect.provideServices(effect, services) as Effect.Effect<
             HttpServerResponse.HttpServerResponse,

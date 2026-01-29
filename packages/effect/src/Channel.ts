@@ -6060,21 +6060,30 @@ export const provideServiceEffect: {
  */
 export const provide: {
   <A, E = never, R = never>(
-    layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>
+    layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>,
+    options?: {
+      readonly memoMap?: Layer.MemoMap | undefined
+    } | undefined
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Exclude<Env, A> | R>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, A, E = never, R = never>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>
+    layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>,
+    options?: {
+      readonly memoMap?: Layer.MemoMap | undefined
+    } | undefined
   ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Exclude<Env, A> | R>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, A, E = never, R = never>(
+} = dual((args) => isChannel(args[0]), <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, A, E = never, R = never>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>
+  layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>,
+  options?: {
+    readonly memoMap?: Layer.MemoMap | undefined
+  } | undefined
 ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Exclude<Env, A> | R> =>
   ServiceMap.isServiceMap(layer) ? provideServices(self, layer) : fromTransform((upstream, scope) =>
     Effect.flatMap(
-      Layer.buildWithScope(layer, scope),
+      options?.memoMap ? Layer.buildWithMemoMap(layer, options.memoMap, scope) : Layer.buildWithScope(layer, scope),
       (services) =>
         Effect.map(
           Effect.provideServices(toTransform(self)(upstream, scope), services),
