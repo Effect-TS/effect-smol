@@ -461,12 +461,9 @@ const handlerToRoute = (
   services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
-  const isMultipartStream = endpoint.payloadSchema?.pipe(
-    ({ ast }) => HttpApiSchema.resolveHttpApiMultipartStream(ast) !== undefined
-  ) ?? false
-  const multipartLimits = endpoint.payloadSchema?.pipe(
-    ({ ast }) => HttpApiSchema.resolveHttpApiMultipartStream(ast) ?? HttpApiSchema.resolveHttpApiMultipart(ast)
-  )
+  const multipart = endpoint.payloadSchema?.pipe(({ ast }) => HttpApiSchema.resolveHttpApiMultipart(ast))
+  const isMultipartStream = multipart?.isStream
+  const multipartLimits = multipart?.limits
   const decodePath = UndefinedOr.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
     ? undefined
