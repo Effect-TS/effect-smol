@@ -73,7 +73,7 @@ summary clarity, category taxonomy, and example correctness.
   - Type-Level
   - Zipping
 - Normalize duplicates to the canonical name (for example, `type-level` to
-  `Type-Level`, `utils` to `Utils`, `Do notation` to `Do Notation`).
+  `Type-Level`, `Do notation` to `Do Notation`).
 - If a new category is required, add it to this canonical list (Title Case)
   and normalize all usages to match.
 
