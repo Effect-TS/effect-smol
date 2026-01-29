@@ -5975,9 +5975,8 @@ export const servicesWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDon
 
 /**
  * Provides a layer or service map to the channel, removing the corresponding
- * service requirements. Use `options.local` to build layers with a fresh memo
- * map (no sharing with outer scopes); default uses the current scope for
- * sharing.
+ * service requirements. Use `options.local` to build the layer every time; by
+ * default, layers are shared between provide calls.
  *
  * @since 4.0.0
  * @category Services
