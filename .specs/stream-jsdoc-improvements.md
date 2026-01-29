@@ -57,9 +57,11 @@ summary clarity, category taxonomy, and example correctness.
   - Do Notation
   - Encoding
   - Error Handling
+  - Finalization
   - Filtering
   - Grouping
   - Guards
+  - Interruption
   - Mapping
   - Merging
   - Models

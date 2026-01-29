@@ -527,7 +527,7 @@ export const fromPull = <A, E, R, EX, RX>(
  * ```
  *
  * @since 4.0.0
- * @category Utils
+ * @category Constructors
  */
 export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
   self: Stream<A, E, R>,
@@ -574,7 +574,7 @@ export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
  * ```
  *
  * @since 4.0.0
- * @category Utils
+ * @category Constructors
  */
 export const transformPullBracket = <A, E, R, B, E2, R2, EX, RX>(
   self: Stream<A, E, R>,
@@ -8453,7 +8453,7 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
  * ```
  *
  * @since 2.0.0
- * @category Utils
+ * @category Sequencing
  */
 export const intersperse: {
   <A2>(element: A2): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A, E, R>
@@ -8495,7 +8495,7 @@ export const intersperse: {
  * ```
  *
  * @since 2.0.0
- * @category Utils
+ * @category Sequencing
  */
 export const intersperseAffixes: {
   <A2, A3, A4>(
@@ -8537,7 +8537,7 @@ export const intersperseAffixes: {
  * // [2, 5, 3, 6, 7]
  * ```
  * @since 2.0.0
- * @category Utils
+ * @category Merging
  */
 export const interleave: {
   <A2, E2, R2>(that: Stream<A2, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A, E2 | E, R2 | R>
@@ -8579,7 +8579,7 @@ export const interleave: {
  * ```
  *
  * @since 2.0.0
- * @category Utils
+ * @category Merging
  */
 export const interleaveWith: {
   <A2, E2, R2, E3, R3>(
@@ -8669,7 +8669,7 @@ export const interleaveWith: {
  * ```
  *
  * @since 2.0.0
- * @category Utils
+ * @category Interruption
  */
 export const interruptWhen: {
   <X, E2, R2>(effect: Effect.Effect<X, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
@@ -8703,7 +8703,7 @@ export const interruptWhen: {
  * ```
  *
  * @since 2.0.0
- * @category Utils
+ * @category Interruption
  */
 export const haltWhen: {
   <X, E2, R2>(effect: Effect.Effect<X, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
@@ -8737,7 +8737,7 @@ export const haltWhen: {
  * ```
  *
  * @since 4.0.0
- * @category Utils
+ * @category Finalization
  */
 export const onExit: {
   <E, R2>(
@@ -8777,7 +8777,7 @@ export const onExit: {
  * ```
  *
  * @since 2.0.0
- * @category Utils
+ * @category Error Handling
  */
 export const onError: {
   <E, X, R2>(
@@ -8815,7 +8815,7 @@ export const onError: {
  * ```
  *
  * @since 4.0.0
- * @category Utils
+ * @category Sequencing
  */
 export const onStart: {
   <X, EX, RX>(
@@ -8847,7 +8847,7 @@ export const onStart: {
  * ```
  *
  * @since 4.0.0
- * @category Utils
+ * @category Sequencing
  */
 export const onFirst: {
   <A, X, EX, RX>(
@@ -8883,7 +8883,7 @@ export const onFirst: {
  * ```
  *
  * @since 4.0.0
- * @category Utils
+ * @category Sequencing
  */
 export const onEnd: {
   <X, EX, RX>(
@@ -8920,7 +8920,7 @@ export const onEnd: {
  * ```
  *
  * @since 4.0.0
- * @category Utils
+ * @category Finalization
  */
 export const ensuring: {
   <R2>(finalizer: Effect.Effect<unknown, never, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>
