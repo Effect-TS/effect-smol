@@ -3110,15 +3110,6 @@ export type ModifyCertificateRequest = { readonly "name": string }
 export const ModifyCertificateRequest = Schema.Struct({
   "name": Schema.String.annotate({ "description": "The updated name for the certificate" })
 })
-export type Move = { readonly "type": "move"; readonly "x": number; readonly "y": number }
-export const Move = Schema.Struct({
-  "type": Schema.Literal("move").annotate({
-    "description": "Specifies the event type. For a move action, this property is \nalways set to `move`.\n",
-    "default": "move"
-  }),
-  "x": Schema.Number.annotate({ "description": "The x-coordinate to move to.\n" }).check(Schema.isInt()),
-  "y": Schema.Number.annotate({ "description": "The y-coordinate to move to.\n" }).check(Schema.isInt())
-}).annotate({ "title": "Move", "description": "A mouse move action.\n" })
 export type NoiseReductionType = "near_field" | "far_field"
 export const NoiseReductionType = Schema.Literals(["near_field", "far_field"]).annotate({
   "description":
@@ -6388,31 +6379,6 @@ export const RunStepDetailsToolCallsFunctionObject = Schema.Struct({
     ])
   }).annotate({ "description": "The definition of the function that was called." })
 }).annotate({ "title": "Function tool call" })
-export type Screenshot = { readonly "type": "screenshot" }
-export const Screenshot = Schema.Struct({
-  "type": Schema.Literal("screenshot").annotate({
-    "description":
-      "Specifies the event type. For a screenshot action, this property is \nalways set to `screenshot`.\n",
-    "default": "screenshot"
-  })
-}).annotate({ "title": "Screenshot", "description": "A screenshot action.\n" })
-export type Scroll = {
-  readonly "type": "scroll"
-  readonly "x": number
-  readonly "y": number
-  readonly "scroll_x": number
-  readonly "scroll_y": number
-}
-export const Scroll = Schema.Struct({
-  "type": Schema.Literal("scroll").annotate({
-    "description": "Specifies the event type. For a scroll action, this property is \nalways set to `scroll`.\n",
-    "default": "scroll"
-  }),
-  "x": Schema.Number.annotate({ "description": "The x-coordinate where the scroll occurred.\n" }).check(Schema.isInt()),
-  "y": Schema.Number.annotate({ "description": "The y-coordinate where the scroll occurred.\n" }).check(Schema.isInt()),
-  "scroll_x": Schema.Number.annotate({ "description": "The horizontal scroll distance.\n" }).check(Schema.isInt()),
-  "scroll_y": Schema.Number.annotate({ "description": "The vertical scroll distance.\n" }).check(Schema.isInt())
-}).annotate({ "title": "Scroll", "description": "A scroll action.\n" })
 export type ServiceTier = "auto" | "default" | "flex" | "scale" | "priority" | null
 export const ServiceTier = Schema.Union([
   Schema.Literals(["auto", "default", "flex", "scale", "priority"]).annotate({
@@ -6795,14 +6761,6 @@ export const TranscriptionWord = Schema.Struct({
     Schema.isFinite()
   )
 })
-export type Type = { readonly "type": "type"; readonly "text": string }
-export const Type = Schema.Struct({
-  "type": Schema.Literal("type").annotate({
-    "description": "Specifies the event type. For a type action, this property is \nalways set to `type`.\n",
-    "default": "type"
-  }),
-  "text": Schema.String.annotate({ "description": "The text to type.\n" })
-}).annotate({ "title": "Type", "description": "An action to type in text.\n" })
 export type UpdateGroupBody = { readonly "name": string }
 export const UpdateGroupBody = Schema.Struct({
   "name": Schema.String.annotate({ "description": "New display name for the group." }).check(Schema.isMinLength(1))
@@ -7557,13 +7515,6 @@ export const VoiceResource = Schema.Struct({
     "description": "The Unix timestamp (in seconds) for when the voice was created."
   }).check(Schema.isInt())
 }).annotate({ "title": "Voice", "description": "A custom voice that can be used for audio output." })
-export type Wait = { readonly "type": "wait" }
-export const Wait = Schema.Struct({
-  "type": Schema.Literal("wait").annotate({
-    "description": "Specifies the event type. For a wait action, this property is \nalways set to `wait`.\n",
-    "default": "wait"
-  })
-}).annotate({ "title": "Wait", "description": "A wait action.\n" })
 export type WebSearchActionFind = { readonly "type": "find"; readonly "url": string; readonly "pattern": string }
 export const WebSearchActionFind = Schema.Struct({
   "type": Schema.Literal("find").annotate({ "description": "The action type.\n" }),
@@ -7910,8 +7861,8 @@ export const DoubleClickAction = Schema.Struct({
     Schema.isInt()
   )
 }).annotate({ "title": "DoubleClick", "description": "A double click action." })
-export type DragPoint = { readonly "x": number; readonly "y": number }
-export const DragPoint = Schema.Struct({
+export type CoordParam = { readonly "x": number; readonly "y": number }
+export const CoordParam = Schema.Struct({
   "x": Schema.Number.annotate({ "description": "The x-coordinate." }).check(Schema.isInt()),
   "y": Schema.Number.annotate({ "description": "The y-coordinate." }).check(Schema.isInt())
 }).annotate({ "title": "Coordinate", "description": "An x/y coordinate pair, e.g. `{ x: 100, y: 200 }`." })
@@ -7928,6 +7879,54 @@ export const KeyPressAction = Schema.Struct({
       "The combination of keys the model is requesting to be pressed. This is an array of strings, each representing a key."
   })
 }).annotate({ "title": "KeyPress", "description": "A collection of keypresses the model would like to perform." })
+export type MoveParam = { readonly "type": "move"; readonly "x": number; readonly "y": number }
+export const MoveParam = Schema.Struct({
+  "type": Schema.Literal("move").annotate({
+    "description": "Specifies the event type. For a move action, this property is always set to `move`.",
+    "default": "move"
+  }),
+  "x": Schema.Number.annotate({ "description": "The x-coordinate to move to." }).check(Schema.isInt()),
+  "y": Schema.Number.annotate({ "description": "The y-coordinate to move to." }).check(Schema.isInt())
+}).annotate({ "title": "Move", "description": "A mouse move action." })
+export type ScreenshotParam = { readonly "type": "screenshot" }
+export const ScreenshotParam = Schema.Struct({
+  "type": Schema.Literal("screenshot").annotate({
+    "description": "Specifies the event type. For a screenshot action, this property is always set to `screenshot`.",
+    "default": "screenshot"
+  })
+}).annotate({ "title": "Screenshot", "description": "A screenshot action." })
+export type ScrollParam = {
+  readonly "type": "scroll"
+  readonly "x": number
+  readonly "y": number
+  readonly "scroll_x": number
+  readonly "scroll_y": number
+}
+export const ScrollParam = Schema.Struct({
+  "type": Schema.Literal("scroll").annotate({
+    "description": "Specifies the event type. For a scroll action, this property is always set to `scroll`.",
+    "default": "scroll"
+  }),
+  "x": Schema.Number.annotate({ "description": "The x-coordinate where the scroll occurred." }).check(Schema.isInt()),
+  "y": Schema.Number.annotate({ "description": "The y-coordinate where the scroll occurred." }).check(Schema.isInt()),
+  "scroll_x": Schema.Number.annotate({ "description": "The horizontal scroll distance." }).check(Schema.isInt()),
+  "scroll_y": Schema.Number.annotate({ "description": "The vertical scroll distance." }).check(Schema.isInt())
+}).annotate({ "title": "Scroll", "description": "A scroll action." })
+export type TypeParam = { readonly "type": "type"; readonly "text": string }
+export const TypeParam = Schema.Struct({
+  "type": Schema.Literal("type").annotate({
+    "description": "Specifies the event type. For a type action, this property is always set to `type`.",
+    "default": "type"
+  }),
+  "text": Schema.String.annotate({ "description": "The text to type." })
+}).annotate({ "title": "Type", "description": "An action to type in text." })
+export type WaitParam = { readonly "type": "wait" }
+export const WaitParam = Schema.Struct({
+  "type": Schema.Literal("wait").annotate({
+    "description": "Specifies the event type. For a wait action, this property is always set to `wait`.",
+    "default": "wait"
+  })
+}).annotate({ "title": "Wait", "description": "A wait action." })
 export type ComputerCallSafetyCheckParam = {
   readonly "id": string
   readonly "code"?: string | null
@@ -12441,17 +12440,17 @@ export const ResponsePromptVariables = Schema.Union([
     }),
   Schema.Null
 ])
-export type Drag = { readonly "type": "drag"; readonly "path": ReadonlyArray<DragPoint> }
-export const Drag = Schema.Struct({
+export type DragParam = { readonly "type": "drag"; readonly "path": ReadonlyArray<CoordParam> }
+export const DragParam = Schema.Struct({
   "type": Schema.Literal("drag").annotate({
-    "description": "Specifies the event type. For a drag action, this property is \nalways set to `drag`.\n",
+    "description": "Specifies the event type. For a drag action, this property is always set to `drag`.",
     "default": "drag"
   }),
-  "path": Schema.Array(DragPoint).annotate({
+  "path": Schema.Array(CoordParam).annotate({
     "description":
-      "An array of coordinates representing the path of the drag action. Coordinates will appear as an array\nof objects, eg\n```\n[\n  { x: 100, y: 200 },\n  { x: 200, y: 300 }\n]\n```\n"
+      "An array of coordinates representing the path of the drag action. Coordinates will appear as an array of objects, eg\n```\n[\n  { x: 100, y: 200 },\n  { x: 200, y: 300 }\n]\n```"
   })
-}).annotate({ "title": "Drag", "description": "A drag action.\n" })
+}).annotate({ "title": "Drag", "description": "A drag action." })
 export type ComputerToolCallOutputResource = {
   readonly "type": "computer_call_output"
   readonly "id": string
@@ -14468,28 +14467,29 @@ export const Prompt = Schema.Union([
 export type ComputerAction =
   | ClickParam
   | DoubleClickAction
-  | Drag
+  | DragParam
   | KeyPressAction
-  | Move
-  | Screenshot
-  | Scroll
-  | Type
-  | Wait
+  | MoveParam
+  | ScreenshotParam
+  | ScrollParam
+  | TypeParam
+  | WaitParam
 export const ComputerAction = Schema.Union([
   ClickParam,
   DoubleClickAction,
-  Drag,
+  DragParam,
   KeyPressAction,
-  Move,
-  Screenshot,
-  Scroll,
-  Type,
-  Wait
+  MoveParam,
+  ScreenshotParam,
+  ScrollParam,
+  TypeParam,
+  WaitParam
 ])
 export type FunctionShellCallOutput = {
   readonly "type": "shell_call_output"
   readonly "id": string
   readonly "call_id": string
+  readonly "status": "in_progress" | "completed" | "incomplete"
   readonly "output": ReadonlyArray<FunctionShellCallOutputContent>
   readonly "max_output_length": number | null
   readonly "created_by"?: string
@@ -14503,6 +14503,9 @@ export const FunctionShellCallOutput = Schema.Struct({
     "description": "The unique ID of the shell call output. Populated when this item is returned via API."
   }),
   "call_id": Schema.String.annotate({ "description": "The unique ID of the shell tool call generated by the model." }),
+  "status": Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+    "description": "The status of the shell call output. One of `in_progress`, `completed`, or `incomplete`."
+  }),
   "output": Schema.Array(FunctionShellCallOutputContent).annotate({
     "description": "An array of shell call output contents"
   }),
@@ -14522,6 +14525,7 @@ export type FunctionShellCallOutputItemParam = {
   readonly "call_id": string
   readonly "type": "shell_call_output"
   readonly "output": ReadonlyArray<FunctionShellCallOutputContentParam>
+  readonly "status"?: "in_progress" | "completed" | "incomplete" | null
   readonly "max_output_length"?: number | null
 }
 export const FunctionShellCallOutputItemParam = Schema.Struct({
@@ -14543,6 +14547,15 @@ export const FunctionShellCallOutputItemParam = Schema.Struct({
   "output": Schema.Array(FunctionShellCallOutputContentParam).annotate({
     "description": "Captured chunks of stdout and stderr output, along with their associated outcomes."
   }),
+  "status": Schema.optionalKey(
+    Schema.Union([
+      Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+        "title": "Shell call status",
+        "description": "The status of the shell call output."
+      }),
+      Schema.Null
+    ])
+  ),
   "max_output_length": Schema.optionalKey(
     Schema.Union([
       Schema.Number.annotate({
@@ -27879,8 +27892,8 @@ export interface OpenAiClient {
   >
   /**
    * Upload a file that can be used across various endpoints. Individual files
-   * can be up to 512 MB, and the size of all files uploaded by one organization
-   * can be up to 1 TB.
+   * can be up to 512 MB, and each project can store up to 2.5 TB of files in
+   * total. There is no organization-wide storage limit.
    *
    * - The Assistants API supports files up to 2 million tokens and of specific
    *   file types. See the [Assistants Tools guide](https://platform.openai.com/docs/assistants/tools) for
