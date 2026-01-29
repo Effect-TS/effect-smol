@@ -4264,17 +4264,11 @@ export const ignore: <
         return catch_(self, () => empty)
       }
       const logEffect = Effect.logWithLevel(options.log === true ? undefined : options.log)
-      return catch_(tapError(self, (error) => logEffect(Cause.fail(error))), () => empty)
+      return catch_(tapCause(self, (cause) => Cause.hasFail(cause) ? logEffect(cause) : Effect.void), () => empty)
     }
   )
 
-/**
- * Ignores all errors in the channel including defects, converting them to an empty channel.
- *
- * @since 4.0.0
- * @category Error handling
- */
-export const ignoreCause = <
+const ignoreCause_ = <
   OutElem,
   OutErr,
   OutDone,
@@ -4285,6 +4279,40 @@ export const ignoreCause = <
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
 ): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => catchCause(self, () => empty)
+
+/**
+ * Ignores all errors in the channel including defects, converting them to an empty channel.
+ *
+ * Use the `log` option to emit the full {@link Cause} when the channel fails.
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const ignoreCause: <
+  Arg extends Channel<any, any, any, any, any, any, any> | {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+>(
+  selfOrOptions: Arg,
+  options?: {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+) => [Arg] extends
+  [Channel<infer OutElem, infer _OutErr, infer OutDone, infer InElem, infer InErr, infer InDone, infer Env>]
+  ? Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env>
+  : <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> = dual(
+    (args) => isChannel(args[0]),
+    <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+      self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+      options?: { readonly log?: boolean | LogLevel | undefined } | undefined
+    ): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => {
+      if (!options?.log) return ignoreCause_(self)
+      const logEffect = Effect.logWithLevel(options.log === true ? undefined : options.log)
+      return ignoreCause_(tapCause(self, (cause) => logEffect(cause)))
+    }
+  )
 
 /**
  * Returns a new channel that retries this channel according to the specified
