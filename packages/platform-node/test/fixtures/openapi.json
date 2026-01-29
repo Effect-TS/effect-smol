@@ -653,7 +653,8 @@
           "additionalProperties": false,
           "properties": {
             "contentType": {
-              "$ref": "#/components/schemas/String_1"
+              "type": "string",
+              "contentEncoding": "binary"
             },
             "key": {
               "$ref": "#/components/schemas/String_1"

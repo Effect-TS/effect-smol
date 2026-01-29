@@ -183,7 +183,7 @@ export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
         Schema.Struct({
           key: Schema.String,
           name: Schema.String,
-          contentType: Schema.String,
+          contentType: Schema.String.annotate({ contentEncoding: "binary" }),
           path: Schema.String
         }),
         Transformation.transform({
