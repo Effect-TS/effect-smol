@@ -559,7 +559,7 @@ export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
  *   stream,
  *   (pull, _scope, forkedScope) =>
  *     Effect.gen(function*() {
- *       yield* Scope.addFinalizer(forkedScope, Effect.void)
+ *       yield* Scope.addFinalizer(forkedScope, Console.log("Releasing scope"))
  *       return pull
  *     })
  * )
@@ -571,6 +571,7 @@ export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
  *
  * Effect.runPromise(program)
  * // Output: [1, 2, 3]
+ * // Releasing scope
  * ```
  *
  * @since 4.0.0
@@ -8423,7 +8424,7 @@ export const encodeText = <E, R>(self: Stream<string, E, R>): Stream<Uint8Array,
  *   )
  *   yield* Console.log(lines)
  * }))
- * // { _id: 'Chunk', values: [ 'a', 'b', 'c' ] }
+ * // ["a", "b", "c"]
  * ```
  *
  * @since 2.0.0
@@ -8449,7 +8450,7 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
  * })
  *
  * Effect.runPromise(program)
- * // { _id: "Chunk", values: [ 1, 0, 2, 0, 3, 0, 4 ] }
+ * // [1, 0, 2, 0, 3, 0, 4]
  * ```
  *
  * @since 2.0.0
@@ -8916,7 +8917,7 @@ export const onEnd: {
  *
  * Effect.runPromise(program)
  * //=> cleanup
- * //=> { _id: 'Chunk', values: [ 1, 2 ] }
+ * //=> [1, 2]
  * ```
  *
  * @since 4.0.0
@@ -9053,7 +9054,7 @@ export const provideServices: {
  * })
  *
  * Effect.runPromise(program)
- * //=> { _id: 'Chunk', values: [ 'Hello, Ada' ] }
+ * //=> ["Hello, Ada"]
  * ```
  *
  * @since 4.0.0
@@ -9194,7 +9195,7 @@ export const updateServices: {
  * ```ts
  * import { Console, Effect, ServiceMap, Stream } from "effect"
  *
- * const Counter = ServiceMap.Service<{ count: number }>("Counter")
+ * class Counter extends ServiceMap.Service<Counter, { count: number }>()("Counter") {}
  *
  * const stream = Stream.fromEffect(Effect.service(Counter)).pipe(
  *   Stream.updateService(Counter, (counter) => ({ count: counter.count + 1 }))
