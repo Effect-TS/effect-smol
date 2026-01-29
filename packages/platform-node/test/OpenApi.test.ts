@@ -350,7 +350,7 @@ describe("OpenAPI spec", () => {
           .add(
             HttpApiGroup.make("group")
               .add(HttpApiEndpoint.get("a", "/a", {
-                success: HttpApiSchema.Empty(204)
+                success: HttpApiSchema.makeNoContent(204)
               }))
           )
         const spec = OpenApi.fromApi(Api)
@@ -1038,7 +1038,7 @@ describe("OpenAPI spec", () => {
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  error: HttpApiSchema.Empty(400)
+                  error: HttpApiSchema.makeNoContent(400)
                 })
               )
           )
@@ -1067,7 +1067,7 @@ describe("OpenAPI spec", () => {
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  error: HttpApiSchema.Empty(401)
+                  error: HttpApiSchema.makeNoContent(401)
                 })
               )
           )

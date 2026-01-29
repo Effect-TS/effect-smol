@@ -293,7 +293,8 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       spec.tags.push(tag)
     },
-    onEndpoint({ endpoint, errors, group, mergedAnnotations, middleware, payloads, successes }) {
+    onEndpoint({ endpoint, errors, group, mergedAnnotations, middleware, successes }) {
+      const payloads = extractRequestBodies(endpoint.payloadSchema)
       if (ServiceMap.get(mergedAnnotations, Exclude)) {
         return
       }
@@ -323,13 +324,13 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           op.responses[status] = {
             description: description ?? defaultDescription()
           }
-          // Handle empty
-          if (schema !== undefined && !HttpApiSchema.isEmptyEncoded(schema.ast)) {
+          // Handle No Content
+          if (schema !== undefined && !HttpApiSchema.isNoContent(schema.ast)) {
             const ast = schema.ast
             const encoding = HttpApiSchema.getEncoding(ast)
             irOps.push({
               _tag: "schema",
-              ast: toEncoding(ast, encoding),
+              ast: toEncodingAST(ast, encoding._tag),
               path: ["paths", path, method, "responses", String(status), "content", encoding.contentType, "schema"]
             })
             op.responses[status].content = {
@@ -393,17 +394,11 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         payloads.forEach((map, _tag) => {
           map.forEach((set, contentType) => {
             const asts = Array.from(set, AST.getAST)
-              // Handle empty
-              .filter((ast) => !HttpApiSchema.isEmptyEncoded(ast))
-            if (asts.length === 0) {
-              return
-            }
-
             const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
 
             irOps.push({
               _tag: "schema",
-              ast: toEncoding(ast, { _tag: _tag, contentType }),
+              ast: toEncodingAST(ast, _tag),
               path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
             })
             content[contentType] = {
@@ -512,8 +507,60 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   return spec
 }
 
-function toEncoding(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
-  switch (encoding._tag) {
+const emptyMap = new Map()
+
+// TODO: `extractResponseBodies`
+
+function extractRequestBodies(
+  schema: Schema.Top | undefined
+): ReadonlyMap<HttpApiSchema.Encoding["_tag"] | "Multipart", ReadonlyMap<string, ReadonlySet<Schema.Top>>> {
+  if (schema === undefined) {
+    return emptyMap
+  }
+
+  const map = new Map<HttpApiSchema.Encoding["_tag"] | "Multipart", Map<string, Set<Schema.Top>>>()
+
+  HttpApiSchema.forEach(schema, process)
+
+  return map
+
+  function process(schema: Schema.Top) {
+    const ast = schema.ast
+    // Handle No Content
+    if (!HttpApiSchema.isNoContent(schema.ast)) {
+      const body = HttpApiSchema.getBody(ast)
+      switch (body._tag) {
+        case "NoContent":
+          break
+        case "Multipart": {
+          add(schema, "Multipart", body.contentType)
+          break
+        }
+        case "HasBody": {
+          add(schema, body.encoding._tag, body.encoding.contentType)
+          break
+        }
+      }
+    }
+  }
+
+  function add(schema: Schema.Top, _tag: HttpApiSchema.Encoding["_tag"] | "Multipart", contentType: string) {
+    const contentTypeMap = map.get(_tag)
+    if (contentTypeMap === undefined) {
+      map.set(_tag, new Map([[contentType, new Set([schema])]]))
+    } else {
+      const set = contentTypeMap.get(contentType)
+      if (set === undefined) {
+        contentTypeMap.set(contentType, new Set([schema]))
+      } else {
+        set.add(schema)
+      }
+    }
+  }
+}
+
+function toEncodingAST(ast: AST.AST, _tag: HttpApiSchema.Encoding["_tag"] | "Multipart"): AST.AST {
+  switch (_tag) {
     case "Binary":
       // For `application/octet-stream` (raw bytes) we must emit a binary schema,
       // not the JSON representation used by `Schema.Uint8Array` (base64 string).
@@ -524,6 +571,7 @@ function toEncoding(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
       return Schema.String.ast
     case "FormUrlEncoded":
     case "Json":
+    case "Multipart":
       // `UrlParams` and `Json` can reuse the original schema AST as-is: the schema
       // already describes the structured data (object/record/etc) we want to expose.
       return ast
