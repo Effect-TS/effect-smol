@@ -328,7 +328,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
             description: description ?? defaultDescription()
           }
           // Handle empty
-          if (schema !== undefined && !HttpApiSchema.isVoidEncoded(schema.ast)) {
+          if (schema !== undefined && !HttpApiSchema.isEmptyEncoded(schema.ast)) {
             const ast = schema.ast
             const encoding = HttpApiSchema.getEncoding(ast)
             irOps.push({
@@ -398,7 +398,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           map.forEach((set, contentType) => {
             const asts = Array.from(set, AST.getAST)
               // Handle empty
-              .filter((ast) => !HttpApiSchema.isVoidEncoded(ast))
+              .filter((ast) => !HttpApiSchema.isEmptyEncoded(ast))
             if (asts.length === 0) {
               return
             }
