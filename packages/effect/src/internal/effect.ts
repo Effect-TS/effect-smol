@@ -3028,6 +3028,33 @@ export const ignore: <
   )
 
 /** @internal */
+export const ignoreCause: <
+  Arg extends Effect.Effect<any, any, any> | {
+    readonly log?: boolean | LogLevel.LogLevel | undefined
+  } | undefined
+>(
+  effectOrOptions: Arg,
+  options?: {
+    readonly log?: boolean | LogLevel.LogLevel | undefined
+  } | undefined
+) => [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<void, never, _R>
+  : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<void, never, R> = dual(
+    (args) => isEffect(args[0]),
+    <A, E, R>(
+      self: Effect.Effect<A, E, R>,
+      options?: {
+        readonly log?: boolean | LogLevel.LogLevel | undefined
+      } | undefined
+    ): Effect.Effect<void, never, R> => {
+      if (!options?.log) {
+        return matchCauseEffect(self, { onFailure: (_) => void_, onSuccess: (_) => void_ })
+      }
+      const logEffect = logWithLevel(options.log === true ? undefined : options.log)
+      return matchCauseEffect(self, { onFailure: logEffect, onSuccess: (_) => void_ })
+    }
+  )
+
+/** @internal */
 export const option = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<Option.Option<A>, never, R> => match(self, { onFailure: Option.none, onSuccess: Option.some })

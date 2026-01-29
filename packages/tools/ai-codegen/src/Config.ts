@@ -28,12 +28,25 @@ import * as Schema from "effect/Schema"
  * @since 1.0.0
  * @category models
  */
+/**
+ * A text replacement to apply to generated code.
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export class Replacement extends Schema.Class<Replacement>("Replacement")({
+  from: Schema.String,
+  to: Schema.String
+}) {}
+
 export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")({
   spec: Schema.String,
   output: Schema.String,
   name: Schema.optional(Schema.String),
   typeOnly: Schema.optional(Schema.Boolean),
-  patches: Schema.optional(Schema.Array(Schema.String))
+  header: Schema.optional(Schema.String),
+  patches: Schema.optional(Schema.Array(Schema.String)),
+  replacements: Schema.optional(Schema.Array(Replacement))
 }) {
   /**
    * Get the client name, defaulting to "Client" if not specified.
@@ -60,6 +73,24 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
    */
   get patchList(): ReadonlyArray<string> {
     return this.patches ?? []
+  }
+
+  /**
+   * Get the list of text replacements to apply.
+   *
+   * @since 1.0.0
+   */
+  get replacementList(): ReadonlyArray<Replacement> {
+    return this.replacements ?? []
+  }
+
+  /**
+   * Get the header content to prepend to generated files.
+   *
+   * @since 1.0.0
+   */
+  get headerContent(): string | undefined {
+    return this.header
   }
 }
 

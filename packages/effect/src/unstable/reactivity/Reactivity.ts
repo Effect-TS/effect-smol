@@ -3,8 +3,8 @@
  */
 import * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
-import * as FiberHandle from "../../FiberHandle.ts"
-import { dual } from "../../Function.ts"
+import * as Fiber from "../../Fiber.ts"
+import { dual, flow } from "../../Function.ts"
 import * as Hash from "../../Hash.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
@@ -40,8 +40,9 @@ export class Reactivity extends ServiceMap.Service<
       keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
       effect: Effect.Effect<A, E, R>
     ) => Stream.Stream<A, E, Exclude<R, Scope.Scope>>
+    readonly withBatch: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   }
->()("effect/experimental/Reactivity") {}
+>()("effect/reactivity/Reactivity") {}
 
 /**
  * @since 4.0.0
@@ -51,33 +52,27 @@ export const make = Effect.sync(() => {
   const handlers = new Map<number | string, Set<() => void>>()
 
   const invalidateUnsafe = (keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>): void => {
-    if (Array.isArray(keys)) {
-      for (let i = 0; i < keys.length; i++) {
-        const set = handlers.get(stringOrHash(keys[i]))
-        if (set === undefined) continue
-        for (const run of set) run()
-      }
-    } else {
-      const record = keys as ReadonlyRecord<string, Array<unknown>>
-      for (const key in record) {
-        const hashes = idHashes(key, record[key])
-        for (let i = 0; i < hashes.length; i++) {
-          const set = handlers.get(hashes[i])
-          if (set === undefined) continue
-          for (const run of set) run()
-        }
-
-        const set = handlers.get(key)
-        if (set !== undefined) {
-          for (const run of set) run()
-        }
-      }
-    }
+    keysToHashes(keys, (hash) => {
+      const set = handlers.get(hash)
+      if (set === undefined) return
+      set.forEach((run) => run())
+    })
   }
 
   const invalidate = (
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
-  ): Effect.Effect<void> => Effect.sync(() => invalidateUnsafe(keys))
+  ): Effect.Effect<void> =>
+    Effect.servicesWith((services) => {
+      const pending = services.mapUnsafe.get(PendingInvalidation.key) as Set<string | number> | undefined
+      if (pending) {
+        keysToHashes(keys, (hash) => {
+          pending.add(hash)
+        })
+      } else {
+        invalidateUnsafe(keys)
+      }
+      return Effect.void
+    })
 
   const mutation = <A, E, R>(
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
@@ -88,15 +83,16 @@ export const make = Effect.sync(() => {
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
     handler: () => void
   ): () => void => {
-    const resolvedKeys = Array.isArray(keys) ? keys.map(stringOrHash) : recordHashes(keys as any)
-    for (let i = 0; i < resolvedKeys.length; i++) {
-      let set = handlers.get(resolvedKeys[i])
+    const resolvedKeys: Array<string | number> = []
+    keysToHashes(keys, (hash) => {
+      resolvedKeys.push(hash)
+      let set = handlers.get(hash)
       if (set === undefined) {
         set = new Set()
-        handlers.set(resolvedKeys[i], set)
+        handlers.set(hash, set)
       }
       set.add(handler)
-    }
+    })
     return () => {
       for (let i = 0; i < resolvedKeys.length; i++) {
         const set = handlers.get(resolvedKeys[i])!
@@ -113,9 +109,10 @@ export const make = Effect.sync(() => {
     effect: Effect.Effect<A, E, R>
   ): Effect.Effect<Queue.Dequeue<A, E>, never, R | Scope.Scope> =>
     Effect.gen(function*() {
-      const scope = yield* Effect.scope
+      const services = yield* Effect.services<Scope.Scope | R>()
+      const scope = ServiceMap.get(services, Scope.Scope)
       const results = yield* Queue.make<A, E>()
-      const runFork = yield* FiberHandle.makeRuntime<R>()
+      const runFork = flow(Effect.runForkWith(services), Fiber.runIn(scope))
 
       let running = false
       let pending = false
@@ -158,15 +155,35 @@ export const make = Effect.sync(() => {
       Stream.unwrap
     )
 
+  const withBatch = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+    Effect.suspend(() => {
+      const pending = new Set<string | number>()
+      return effect.pipe(
+        Effect.provideService(PendingInvalidation, pending),
+        Effect.onExit((_) => {
+          pending.forEach((hash) => {
+            const set = handlers.get(hash)
+            if (set === undefined) return
+            set.forEach((run) => run())
+          })
+        })
+      )
+    })
+
   return Reactivity.of({
     mutation,
     query,
     stream,
     invalidateUnsafe,
     invalidate,
-    registerUnsafe
+    registerUnsafe,
+    withBatch
   })
 })
+
+class PendingInvalidation extends ServiceMap.Service<PendingInvalidation, Set<string | number>>()(
+  "effect/reactivity/Reactivity/PendingInvalidation"
+) {}
 
 /**
  * @since 4.0.0
@@ -244,21 +261,21 @@ function stringOrHash(u: unknown): string | number {
   return typeof u === "string" ? u : Hash.hash(u)
 }
 
-const idHashes = (keyHash: number | string, ids: ReadonlyArray<unknown>): ReadonlyArray<string> => {
-  const hashes: Array<string> = new Array(ids.length)
-  for (let i = 0; i < ids.length; i++) {
-    hashes[i] = `${keyHash}:${stringOrHash(ids[i])}`
+const keysToHashes = (
+  keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
+  f: (hash: string | number) => void
+): void => {
+  if (Array.isArray(keys)) {
+    for (let i = 0; i < keys.length; i++) {
+      f(stringOrHash(keys[i]))
+    }
+    return
   }
-  return hashes
-}
-
-const recordHashes = (record: ReadonlyRecord<string, ReadonlyArray<unknown>>): ReadonlyArray<string> => {
-  const hashes: Array<string> = []
-  for (const key in record) {
-    hashes.push(key)
-    for (const idHash of idHashes(key, record[key])) {
-      hashes.push(idHash)
+  for (const key in keys) {
+    f(key)
+    const ids = (keys as ReadonlyRecord<string, ReadonlyArray<unknown>>)[key]
+    for (let i = 0; i < ids.length; i++) {
+      f(`${key}:${stringOrHash(ids[i])}`)
     }
   }
-  return hashes
 }

@@ -340,9 +340,7 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
         Effect.fail(AiError.make({
           module: "Chat",
           method: "export",
-          reason: AiError.OutputParseError.fromSchemaError({
-            error
-          })
+          reason: AiError.InvalidOutputError.fromSchemaError(error)
         }))),
       Effect.withSpan("Chat.export")
     ),
@@ -352,9 +350,7 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
         Effect.fail(AiError.make({
           module: "Chat",
           method: "exportJson",
-          reason: AiError.OutputParseError.fromSchemaError({
-            error
-          })
+          reason: AiError.InvalidOutputError.fromSchemaError(error)
         }))),
       Effect.withSpan("Chat.exportJson")
     ),

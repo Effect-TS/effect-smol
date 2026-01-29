@@ -24,6 +24,7 @@ import type { Effect } from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
 import type { LazyArg } from "./Function.ts"
 import { constant, constTrue, constUndefined, dual, identity } from "./Function.ts"
+import * as core from "./internal/core.ts"
 import * as internalEffect from "./internal/effect.ts"
 import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
 import * as internalTracer from "./internal/tracer.ts"
@@ -388,19 +389,15 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsaf
  * This service provides access to the current memoization map during layer building,
  * allowing layers to share memoized results.
  *
- * @example
- * ```ts
- * import { Layer, ServiceMap } from "effect"
- *
- * const getMemoMap = ServiceMap.get(Layer.CurrentMemoMap)
- * ```
- *
  * @since 3.13.0
  * @category models
  */
-export const CurrentMemoMap = ServiceMap.Reference<MemoMap>("effect/Layer/CurrentMemoMap", {
-  defaultValue: makeMemoMapUnsafe
-})
+export class CurrentMemoMap extends ServiceMap.Service<CurrentMemoMap, MemoMap>()("effect/Layer/CurrentMemoMap") {
+  static getOrCreate: <Services>(self: ServiceMap.ServiceMap<Services>) => MemoMap = ServiceMap.getOrElse(
+    this,
+    makeMemoMapUnsafe
+  )
+}
 
 /**
  * Builds a layer into an `Effect` value, using the specified `MemoMap` to memoize
@@ -465,7 +462,7 @@ export const buildWithMemoMap: {
   scope: Scope.Scope
 ): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> =>
   internalEffect.provideService(
-    self.build(memoMap, scope),
+    internalEffect.map(self.build(memoMap, scope), ServiceMap.add(CurrentMemoMap, memoMap)),
     CurrentMemoMap,
     memoMap
   ))
@@ -503,7 +500,13 @@ export const buildWithMemoMap: {
 export const build = <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>
 ): Effect<ServiceMap.ServiceMap<ROut>, E, RIn | Scope.Scope> =>
-  internalEffect.flatMap(internalEffect.scope, (scope) => self.build(makeMemoMapUnsafe(), scope))
+  core.withFiber((fiber) =>
+    buildWithMemoMap(
+      self,
+      CurrentMemoMap.getOrCreate(fiber.services),
+      ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+    )
+  )
 
 /**
  * Builds a layer into an `Effect` value. Any resources associated with this
@@ -551,7 +554,14 @@ export const buildWithScope: {
 } = dual(2, <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>,
   scope: Scope.Scope
-): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> => internalEffect.suspend(() => self.build(makeMemoMapUnsafe(), scope)))
+): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> =>
+  core.withFiber((fiber) =>
+    buildWithMemoMap(
+      self,
+      CurrentMemoMap.getOrCreate(fiber.services),
+      scope
+    )
+  ))
 
 /**
  * Constructs a layer from the specified value.

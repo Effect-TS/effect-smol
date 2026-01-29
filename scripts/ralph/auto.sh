@@ -8,11 +8,13 @@
 # Usage: ./scripts/ralph/auto.sh <focus prompt> [options]
 #
 # Options:
+#   --skip-checks            Skip all CI checks (typecheck, lint, build, tests)
 #   --max-iterations <n>     Stop after n iterations (default: unlimited)
 #
 # Examples:
 #   ./scripts/ralph/auto.sh "Fix the authentication bug in login flow"
 #   ./scripts/ralph/auto.sh "Implement the Stream.mapAccum function" --max-iterations 5
+#   ./scripts/ralph/auto.sh "Quick experiment" --skip-checks
 #
 # The loop continues until the task is complete (TASK_COMPLETE signal)
 # COMMITS ARE HANDLED BY THIS SCRIPT, NOT THE AGENT.
@@ -21,11 +23,16 @@ set -e
 set -o pipefail  # Propagate exit status through pipelines (important for tee)
 
 # Parse arguments
+SKIP_CHECKS=false
 FOCUS_PROMPT=""
 MAX_ITERATIONS=0  # 0 means unlimited
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --skip-checks)
+            SKIP_CHECKS=true
+            shift
+            ;;
         --max-iterations)
             if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
                 MAX_ITERATIONS="$2"
@@ -41,12 +48,14 @@ while [[ $# -gt 0 ]]; do
             echo "A focus prompt is REQUIRED. The agent will only do what you ask."
             echo ""
             echo "Options:"
+            echo "  --skip-checks            Skip all CI checks (typecheck, lint, build, tests)"
             echo "  --max-iterations <n>     Stop after n iterations (default: unlimited)"
             echo "  --help, -h               Show this help message"
             echo ""
             echo "Examples:"
             echo "  ./scripts/ralph/auto.sh \"Fix the type inference bug\""
             echo "  ./scripts/ralph/auto.sh \"Implement Stream.mapAccum\" --max-iterations 5"
+            echo "  ./scripts/ralph/auto.sh \"Quick fix\" --skip-checks"
             exit 0
             ;;
         -*)
@@ -88,7 +97,7 @@ PROGRESS_FILE="${SCRIPT_DIR}/progress.txt"
 PROMPT_TEMPLATE="${SCRIPT_DIR}/prompt.md"
 COMPLETE_MARKER="NOTHING_LEFT_TO_DO"
 OUTPUT_DIR="${PROJECT_ROOT}/.ralph-auto"
-AGENT_CMD="opencode run --model anthropic/claude-opus-4-5 --format json"
+AGENT_CMD="claude --dangerously-skip-permissions --verbose --model opus"
 
 # Colors for output
 RED='\033[0;31m'
@@ -175,8 +184,8 @@ init_submodules() {
 check_prerequisites() {
     log "INFO" "Checking prerequisites..."
 
-    if ! command -v opencode &> /dev/null; then
-        log "ERROR" "opencode is not installed or not in PATH"
+    if ! command -v claude &> /dev/null; then
+        log "ERROR" "Claude Code is not installed or not in PATH"
         exit 1
     fi
 
@@ -239,38 +248,54 @@ has_changes() {
     ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]
 }
 
-# Filter opencode JSON output to show only relevant content
+# Filter stream-json output to show only relevant content
 stream_filter() {
     while IFS= read -r line; do
-        local event_type
-        event_type=$(echo "${line}" | jq -r '.type // empty' 2>/dev/null)
+        # Extract assistant text messages
+        if echo "$line" | jq -e '.type == "assistant"' > /dev/null 2>&1; then
+            local text
+            text=$(echo "$line" | jq -r '.message.content[]? | select(.type == "text") | .text // empty' 2>/dev/null)
+            if [ -n "$text" ]; then
+                echo "$text"
+            fi
 
-        case "${event_type}" in
-            "text")
-                # Show text output from the assistant
-                local text
-                text=$(echo "${line}" | jq -r '.part.text // empty' 2>/dev/null)
-                if [ -n "${text}" ]; then
-                    echo "${text}"
-                fi
-                ;;
-            "tool_start")
-                # Show tool invocations
-                local tool_name
-                tool_name=$(echo "${line}" | jq -r '.part.tool // empty' 2>/dev/null)
-                if [ -n "${tool_name}" ]; then
-                    echo -e "${BLUE}> ${tool_name}${NC}"
-                fi
-                ;;
-            "step_finish")
-                # Show completion reason
-                local reason
-                reason=$(echo "${line}" | jq -r '.part.reason // empty' 2>/dev/null)
-                if [ "${reason}" = "stop" ]; then
-                    echo ""
-                fi
-                ;;
-        esac
+            # Show tool calls with details
+            local tool_info
+            tool_info=$(echo "$line" | jq -r '
+                .message.content[]? | select(.type == "tool_use") |
+                .name as $name |
+                if $name == "Read" then
+                    "> Read: \(.input.file_path // "?")"
+                elif $name == "Write" then
+                    "> Write: \(.input.file_path // "?")"
+                elif $name == "Edit" then
+                    "> Edit: \(.input.file_path // "?")"
+                elif $name == "Glob" then
+                    "> Glob: \(.input.pattern // "?")"
+                elif $name == "Grep" then
+                    "> Grep: \(.input.pattern // "?") in \(.input.path // ".")"
+                elif $name == "Bash" then
+                    "> Bash: \(.input.command // "?" | .[0:80])"
+                elif $name == "Task" then
+                    "> Task: \(.input.description // "?")"
+                else
+                    "> \($name): \(.input | tostring | .[0:60])"
+                end
+            ' 2>/dev/null)
+            if [ -n "$tool_info" ]; then
+                echo -e "${BLUE}$tool_info${NC}"
+            fi
+        fi
+
+        # Show final result
+        if echo "$line" | jq -e '.type == "result"' > /dev/null 2>&1; then
+            local result
+            result=$(echo "$line" | jq -r '.result // empty' 2>/dev/null)
+            if [ -n "$result" ]; then
+                echo ""
+                echo "$result"
+            fi
+        fi
     done
 }
 
@@ -306,22 +331,64 @@ ${lint_output}
 "
     fi
 
-    # Type checking with pnpm check
+    # Type checking with pnpm check:tsgo
     echo ""
-    echo "2. Type checking (tsc)..."
-    echo "-------------------------"
+    echo "2. Type checking (tsgo)..."
+    echo "---------------------------"
     local check_output
-    if check_output=$(pnpm check 2>&1); then
+    if check_output=$(pnpm check:tsgo 2>&1); then
         echo -e "${GREEN}Type check passed${NC}"
     else
         echo -e "${RED}Type check failed${NC}"
         ci_failed=1
         error_output+="## Type Check Failed
 
-Command: \`pnpm check\`
+Command: \`pnpm check:tsgo\`
 
 \`\`\`
 ${check_output}
+\`\`\`
+
+"
+    fi
+
+    # Building
+    echo ""
+    echo "3. Building (tsgo)..."
+    echo "---------------------"
+    local build_output
+    if build_output=$(pnpm build:tsgo 2>&1); then
+        echo -e "${GREEN}Build passed${NC}"
+    else
+        echo -e "${RED}Build failed${NC}"
+        ci_failed=1
+        error_output+="## Build Failed
+
+Command: \`pnpm build:tsgo\`
+
+\`\`\`
+${build_output}
+\`\`\`
+
+"
+    fi
+
+    # Testing
+    echo ""
+    echo "4. Running Tests..."
+    echo "-------------------"
+    local test_output
+    if test_output=$(CI=true pnpm test 2>&1); then
+        echo -e "${GREEN}Tests passed${NC}"
+    else
+        echo -e "${RED}Tests failed${NC}"
+        ci_failed=1
+        error_output+="## Unit Tests Failed
+
+Command: \`pnpm test\`
+
+\`\`\`
+${test_output}
 \`\`\`
 
 "
@@ -463,14 +530,15 @@ ${patterns_list}
     echo "${prompt}"
 }
 
-# Extract task description from output (handles opencode JSON format)
+# Extract task description from output (handles stream-json format)
 extract_task_description() {
     local output_file="${1}"
     local desc=""
 
-    # Extract text content from opencode JSON and find TASK_COMPLETE:
+    # The output file is in stream-json format (one JSON object per line)
+    # Extract text content from assistant messages and find TASK_COMPLETE:
     desc=$(cat "${output_file}" | \
-        jq -r 'select(.type == "text") | .part.text // empty' 2>/dev/null | \
+        jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text // empty' 2>/dev/null | \
         grep "TASK_COMPLETE:" | \
         head -1 | \
         sed 's/.*TASK_COMPLETE:[[:space:]]*//')
@@ -509,13 +577,13 @@ run_iteration() {
     log "INFO" "Prompt file: ${prompt_file}"
 
     # Run the agent
-    log "INFO" "Running OpenCode agent..."
+    log "INFO" "Running Claude Code agent..."
     echo ""  # Blank line before agent output
 
-    # Run agent with JSON output, filter for readability
+    # Use stream-json for real-time output, filter for readability
     # Run synchronously - signal handler will kill child processes on Ctrl+C
     local agent_exit_code=0
-    if cat "${prompt_file}" | ${AGENT_CMD} 2>/dev/null | tee "${output_file}" | stream_filter; then
+    if cat "${prompt_file}" | ${AGENT_CMD} --print --output-format stream-json 2>&1 | tee "${output_file}" | stream_filter; then
         echo ""  # Blank line after agent output
         log "SUCCESS" "Agent completed iteration ${iteration}"
     else
@@ -528,26 +596,38 @@ run_iteration() {
         log "WARN" "Agent exited with non-zero status (${agent_exit_code})"
     fi
 
-    # Extract only text content from opencode JSON output
+    # Extract only assistant text content from stream-json (excludes prompt)
     local assistant_text
     assistant_text=$(cat "${output_file}" | \
-        jq -r 'select(.type == "text") | .part.text // empty' 2>/dev/null)
+        jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text // empty' 2>/dev/null)
 
-    # Check if agent signaled nothing left to do (only in assistant output, not prompt)
+    # Check for signals
+    local has_task_complete=false
+    local has_nothing_left=false
+
+    if echo "${assistant_text}" | grep -q "TASK_COMPLETE"; then
+        has_task_complete=true
+    fi
     if echo "${assistant_text}" | grep -q "${COMPLETE_MARKER}"; then
-        log "SUCCESS" "Agent signaled NOTHING_LEFT_TO_DO"
-        return 0
+        has_nothing_left=true
     fi
 
-    # Check if agent signaled task completion (only in assistant output, not prompt)
-    if echo "${assistant_text}" | grep -q "TASK_COMPLETE"; then
+    # Handle TASK_COMPLETE first (commit the work)
+    if [ "${has_task_complete}" = true ]; then
         log "INFO" "Agent signaled task completion"
 
         local task_desc
         task_desc=$(extract_task_description "${output_file}")
 
-        # Run CI checks before committing
-        if run_ci_checks; then
+        # Run CI checks before committing (unless skipped)
+        local ci_passed=true
+        if [ "${SKIP_CHECKS}" = true ]; then
+            log "INFO" "Skipping CI checks (--skip-checks)"
+        elif ! run_ci_checks; then
+            ci_passed=false
+        fi
+
+        if [ "${ci_passed}" = true ]; then
             # Update progress log BEFORE committing so it's included
             echo "" >> "${PROGRESS_FILE}"
             echo "## Iteration ${iteration} - $(date '+%Y-%m-%d %H:%M')" >> "${PROGRESS_FILE}"
@@ -569,25 +649,41 @@ run_iteration() {
         else
             log "WARN" "CI checks failed - keeping changes for next iteration to fix"
             # Don't rollback - keep changes so next iteration can fix CI errors
+            return 1
         fi
-    else
-        log "WARN" "Agent did not complete a task"
-        # Check if there are changes anyway
-        if has_changes; then
+    elif has_changes; then
+        # No TASK_COMPLETE but there are changes - commit as partial work
+        log "WARN" "Agent did not signal TASK_COMPLETE but has uncommitted changes"
+
+        # Run CI checks (unless skipped)
+        local ci_passed=true
+        if [ "${SKIP_CHECKS}" = true ]; then
+            log "INFO" "Skipping CI checks (--skip-checks)"
+        else
             log "INFO" "Found uncommitted changes, running CI checks..."
-            if run_ci_checks; then
-                echo "" >> "${PROGRESS_FILE}"
-                echo "## Iteration ${iteration} - $(date '+%Y-%m-%d %H:%M')" >> "${PROGRESS_FILE}"
-                echo "**Task**: Partial work (no explicit completion signal)" >> "${PROGRESS_FILE}"
-                echo "---" >> "${PROGRESS_FILE}"
-
-                rm -f "${OUTPUT_DIR}/ci_errors.txt"
-
-                if commit_changes "${iteration}" "Partial work from iteration ${iteration}"; then
-                    log "SUCCESS" "Partial work committed"
-                fi
+            if ! run_ci_checks; then
+                ci_passed=false
             fi
         fi
+
+        if [ "${ci_passed}" = true ]; then
+            echo "" >> "${PROGRESS_FILE}"
+            echo "## Iteration ${iteration} - $(date '+%Y-%m-%d %H:%M')" >> "${PROGRESS_FILE}"
+            echo "**Task**: Partial work (no explicit completion signal)" >> "${PROGRESS_FILE}"
+            echo "---" >> "${PROGRESS_FILE}"
+
+            rm -f "${OUTPUT_DIR}/ci_errors.txt"
+
+            if commit_changes "${iteration}" "Partial work from iteration ${iteration}"; then
+                log "SUCCESS" "Partial work committed"
+            fi
+        fi
+    fi
+
+    # Now check if we should exit the loop
+    if [ "${has_nothing_left}" = true ]; then
+        log "SUCCESS" "Agent signaled NOTHING_LEFT_TO_DO"
+        return 0
     fi
 
     return 1
@@ -603,6 +699,9 @@ main() {
     if [ "${MAX_ITERATIONS}" -gt 0 ]; then
         log "INFO" "Max iterations: ${MAX_ITERATIONS}"
     fi
+    if [ "${SKIP_CHECKS}" = true ]; then
+        log "WARN" "Skip checks: enabled (no CI validation)"
+    fi
 
     check_prerequisites
 
@@ -611,15 +710,20 @@ main() {
     local iteration=1
     local completed=false
 
-    # Run initial CI checks before first iteration
+    # Run initial CI checks before first iteration (unless skipped)
     # This ensures the agent knows about any pre-existing errors
-    log "INFO" "Running initial CI checks..."
-    if ! run_ci_checks; then
-        log "WARN" "Initial CI checks failed - errors will be included in prompt for agent to fix"
-    else
-        log "SUCCESS" "Initial CI checks passed - starting with clean slate"
-        # Clear any stale error file
+    if [ "${SKIP_CHECKS}" = true ]; then
+        log "INFO" "Skipping initial CI checks (--skip-checks)"
         rm -f "${OUTPUT_DIR}/ci_errors.txt"
+    else
+        log "INFO" "Running initial CI checks..."
+        if ! run_ci_checks; then
+            log "WARN" "Initial CI checks failed - errors will be included in prompt for agent to fix"
+        else
+            log "SUCCESS" "Initial CI checks passed - starting with clean slate"
+            # Clear any stale error file
+            rm -f "${OUTPUT_DIR}/ci_errors.txt"
+        fi
     fi
 
     while true; do

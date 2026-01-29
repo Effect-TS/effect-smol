@@ -19,14 +19,19 @@
  * - **QuotaExhaustedError** - Account/billing limits reached
  * - **AuthenticationError** - Invalid/expired credentials
  * - **ContentPolicyError** - Input/output violated content policy
- * - **ModelUnavailableError** - Model not available/deprecated
- * - **ContextLengthError** - Token limit exceeded
  * - **InvalidRequestError** - Malformed request parameters
- * - **ProviderInternalError** - Provider-side failures (5xx)
- * - **AiTimeoutError** - Request timeout
+ * - **InternalProviderError** - Provider-side failures (5xx)
  * - **NetworkError** - Transport-level failures
- * - **OutputParseError** - LLM output parsing failures
- * - **AiUnknownError** - Catch-all for unknown errors
+ * - **InvalidOutputError** - LLM output parsing/validation failures
+ * - **UnknownError** - Catch-all for unknown errors
+ *
+ * ## Tool Call Errors
+ *
+ * - **ToolNotFoundError** - Model requested non-existent tool
+ * - **ToolParameterValidationError** - Tool call params failed validation
+ * - **InvalidToolResultError** - Tool handler returned invalid result
+ * - **ToolResultEncodingError** - Tool result encoding failed
+ * - **ToolConfigurationError** - Provider tool misconfigured
  *
  * ## Retryability
  *
@@ -66,16 +71,15 @@
  *   module: "OpenAI",
  *   method: "completion",
  *   reason: new AiError.RateLimitError({
- *     limit: "requests",
  *     retryAfter: Duration.seconds(60)
  *   })
  * })
  *
  * console.log(error.isRetryable) // true
- * console.log(error.message) // "OpenAI.completion: Rate limit exceeded (requests). Retry after 1 minute"
+ * console.log(error.message) // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export * as AiError from "./AiError.ts"
 
@@ -351,7 +355,7 @@ export * as Prompt from "./Prompt.ts"
  * })
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export * as Response from "./Response.ts"
 
@@ -455,7 +459,7 @@ export * as Tokenizer from "./Tokenizer.ts"
  * })
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export * as Tool from "./Tool.ts"
 

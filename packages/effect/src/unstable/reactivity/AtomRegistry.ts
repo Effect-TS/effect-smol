@@ -161,7 +161,8 @@ export const toStreamResult: {
       Stream.filter(Result.isNotInitial),
       Stream.mapEffect((result) =>
         result._tag === "Success" ? Effect.succeed(result.value) : Effect.failCause(result.cause)
-      )
+      ),
+      Stream.changes
     )
 )
 
@@ -196,6 +197,22 @@ export const getResult: {
       return Effect.sync(cancel)
     })
   }
+)
+
+/**
+ * @since 4.0.0
+ * @category Conversions
+ */
+export const mount: {
+  <A>(atom: Atom.Atom<A>): (self: AtomRegistry) => Effect.Effect<void, never, Scope.Scope>
+  <A>(self: AtomRegistry, atom: Atom.Atom<A>): Effect.Effect<void, never, Scope.Scope>
+} = dual(
+  2,
+  <A>(self: AtomRegistry, atom: Atom.Atom<A>) =>
+    Effect.acquireRelease(
+      Effect.sync(() => self.mount(atom)),
+      (release) => Effect.sync(release)
+    )
 )
 
 // -----------------------------------------------------------------------------

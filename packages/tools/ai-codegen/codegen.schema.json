@@ -23,11 +23,33 @@
       "description": "Generate type-only output without runtime code",
       "default": false
     },
+    "header": {
+      "type": "string",
+      "description": "Content to prepend to the generated file (e.g. module-level JSDoc)"
+    },
     "patches": {
       "type": "array",
       "description": "JSON Patch documents to apply to the spec before generation. Each item can be a file path or inline JSON array.",
       "items": {
         "type": "string"
+      }
+    },
+    "replacements": {
+      "type": "array",
+      "description": "Text replacements to apply to generated code. Each replacement has 'from' and 'to' strings.",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "The string to search for"
+          },
+          "to": {
+            "type": "string",
+            "description": "The string to replace with"
+          }
+        }
       }
     }
   },

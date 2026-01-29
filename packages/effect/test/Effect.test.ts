@@ -8,6 +8,7 @@ import {
   Exit,
   Fiber,
   Filter,
+  Layer,
   Logger,
   type LogLevel,
   Option,
@@ -1328,6 +1329,75 @@ describe("Effect", () => {
       }))
   })
 
+  describe("Effect.ignoreCause", () => {
+    type IgnoreCauseOptions = { readonly log?: boolean | LogLevel.LogLevel }
+
+    const makeTestLogger = () => {
+      const capturedLogs: Array<{
+        readonly logLevel: LogLevel.LogLevel
+        readonly cause: Cause.Cause<unknown>
+      }> = []
+      const testLogger = Logger.make<unknown, void>((options) => {
+        capturedLogs.push({ logLevel: options.logLevel, cause: options.cause })
+      })
+      return { capturedLogs, testLogger }
+    }
+
+    const runIgnoreCause = (options?: IgnoreCauseOptions, currentLogLevel: LogLevel.LogLevel = "Info") =>
+      Effect.gen(function*() {
+        const { capturedLogs, testLogger } = makeTestLogger()
+        const program = options === undefined
+          ? Effect.fail("boom").pipe(Effect.ignoreCause)
+          : Effect.fail("boom").pipe(Effect.ignoreCause(options))
+        yield* program.pipe(
+          Effect.provide(Logger.layer([testLogger])),
+          Effect.provideService(References.MinimumLogLevel, "Trace"),
+          Effect.provideService(References.CurrentLogLevel, currentLogLevel)
+        )
+        return capturedLogs
+      })
+
+    it.effect("ignores defects", () =>
+      Effect.gen(function*() {
+        const exit = yield* Effect.die("boom").pipe(Effect.ignoreCause, Effect.exit)
+        assert.deepStrictEqual(exit, Exit.void)
+      }))
+
+    it.effect("ignores interrupts", () =>
+      Effect.gen(function*() {
+        const ignored = yield* Effect.interrupt.pipe(Effect.ignoreCause, Effect.exit)
+        assert.deepStrictEqual(ignored, Exit.void)
+      }))
+
+    it.effect("does not log when log is omitted", () =>
+      Effect.gen(function*() {
+        const logs = yield* runIgnoreCause()
+        assert.strictEqual(logs.length, 0)
+      }))
+
+    it.effect("does not log when log is false", () =>
+      Effect.gen(function*() {
+        const logs = yield* runIgnoreCause({ log: false })
+        assert.strictEqual(logs.length, 0)
+      }))
+
+    it.effect("logs with the current level when log is true", () =>
+      Effect.gen(function*() {
+        const logs = yield* runIgnoreCause({ log: true }, "Warn")
+        assert.strictEqual(logs.length, 1)
+        assert.strictEqual(logs[0].logLevel, "Warn")
+        assertCauseFail(logs[0].cause, "boom")
+      }))
+
+    it.effect("logs with the provided level when log is a LogLevel", () =>
+      Effect.gen(function*() {
+        const logs = yield* runIgnoreCause({ log: "Error" }, "Warn")
+        assert.strictEqual(logs.length, 1)
+        assert.strictEqual(logs[0].logLevel, "Error")
+        assertCauseFail(logs[0].cause, "boom")
+      }))
+  })
+
   describe("error handling", () => {
     class ErrorA extends Data.TaggedError("A") {}
     class ErrorB extends Data.TaggedError("B") {}
@@ -1884,6 +1954,28 @@ describe("Effect", () => {
           Effect.exit
         )
         assertExitFailure(exit, Cause.fail(error))
+      }))
+  })
+
+  describe("provide", () => {
+    class MyNumber extends ServiceMap.Service<MyNumber, number>()("MyNumber") {}
+
+    it.effect("subsequent calls share MemoMap", () =>
+      Effect.gen(function*() {
+        let buildCount = 0
+        const layer = Layer.sync(MyNumber, () => {
+          buildCount += 1
+          return 42
+        })
+
+        // @effect-diagnostics-next-line multipleEffectProvide:off
+        yield* Effect.void.pipe(
+          Effect.provide(layer, { local: true }), // local always builds the layer
+          Effect.provide(layer),
+          Effect.provide(layer)
+        )
+
+        assert.strictEqual(buildCount, 2)
       }))
   })
 })

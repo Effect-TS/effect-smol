@@ -1911,6 +1911,44 @@ export * as PlatformError from "./PlatformError.ts"
 export * as Pool from "./Pool.ts"
 
 /**
+ * Predicate and Refinement helpers for runtime checks, filtering, and type narrowing.
+ * This module provides small, pure functions you can combine to decide whether a
+ * value matches a condition and, when using refinements, narrow TypeScript types.
+ *
+ * Mental model:
+ * - A `Predicate<A>` is just `(a: A) => boolean`.
+ * - A `Refinement<A, B>` is a predicate that narrows `A` to `B` when true.
+ * - Guards like `isString` are predicates/refinements for common runtime types.
+ * - Combinators like `and`/`or` build new predicates from existing ones.
+ * - `Tuple` and `Struct` lift element/property predicates to compound values.
+ *
+ * Common tasks:
+ * - Reuse an existing predicate on a different input shape -> {@link mapInput}
+ * - Combine checks -> {@link and}, {@link or}, {@link not}, {@link xor}
+ * - Build tuple/object checks -> {@link Tuple}, {@link Struct}
+ * - Narrow `unknown` to a concrete type -> {@link Refinement}, {@link compose}
+ * - Check runtime types -> {@link isString}, {@link isNumber}, {@link isObject}
+ *
+ * Gotchas:
+ * - `isTruthy` uses JavaScript truthiness; `0`, "", and `false` are false.
+ * - `isObject` excludes arrays; use {@link isObjectOrArray} for both.
+ * - `isIterable` treats strings as iterable.
+ * - `isPromise`/`isPromiseLike` are structural checks (then/catch), not `instanceof`.
+ * - `isTupleOf` and `isTupleOfAtLeast` only check length, not element types.
+ *
+ * **Example** (Filter by a predicate)
+ *
+ * ```ts
+ * import * as Predicate from "effect/Predicate"
+ *
+ * const isPositive = (n: number) => n > 0
+ * const data = [2, -1, 3]
+ *
+ * console.log(data.filter(isPositive))
+ * ```
+ *
+ * See also: {@link Predicate}, {@link Refinement}, {@link and}, {@link or}, {@link mapInput}
+ *
  * @since 2.0.0
  */
 export * as Predicate from "./Predicate.ts"
@@ -1966,37 +2004,6 @@ export * as PubSub from "./PubSub.ts"
 export * as Pull from "./Pull.ts"
 
 /**
- * This module provides utilities for working with asynchronous queues that support various backpressure strategies.
- *
- * A Queue is a data structure that allows producers to add elements and consumers to take elements
- * in a thread-safe manner. The queue supports different strategies for handling backpressure when
- * the queue reaches capacity.
- *
- * @example
- * ```ts
- * import { Cause, Effect, Queue } from "effect"
- *
- * // Creating a bounded queue with capacity 10
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
- *
- *   // Producer: add items to queue
- *   yield* Queue.offer(queue, 1)
- *   yield* Queue.offer(queue, 2)
- *   yield* Queue.offerAll(queue, [3, 4, 5])
- *
- *   // Consumer: take items from queue
- *   const item1 = yield* Queue.take(queue)
- *   const item2 = yield* Queue.take(queue)
- *   const remaining = yield* Queue.takeAll(queue)
- *
- *   console.log({ item1, item2, remaining }) // { item1: 1, item2: 2, remaining: [3, 4, 5] }
- *
- *   // Signal completion
- *   yield* Queue.end(queue)
- * })
- * ```
- *
  * @since 3.8.0
  */
 export * as Queue from "./Queue.ts"

@@ -1908,7 +1908,7 @@ export const update: {
 export const getResult = <A, E>(
   self: Atom<AsyncResult.AsyncResult<A, E>>,
   options?: { readonly suspendOnWaiting?: boolean | undefined }
-): Effect.Effect<A, E, AtomRegistry> => Effect.flatMap(AtomRegistry.asEffect(), Registry.getResult(self, options))
+): Effect.Effect<A, E, AtomRegistry> => AtomRegistry.use(Registry.getResult(self, options))
 
 /**
  * @since 4.0.0
@@ -1916,6 +1916,13 @@ export const getResult = <A, E>(
  */
 export const refresh = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry> =>
   Effect.map(AtomRegistry.asEffect(), (_) => _.refresh(self))
+
+/**
+ * @since 4.0.0
+ * @category Conversions
+ */
+export const mount = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry | Scope.Scope> =>
+  AtomRegistry.use((r) => Registry.mount(r, self))
 
 // -----------------------------------------------------------------------------
 // Serializable

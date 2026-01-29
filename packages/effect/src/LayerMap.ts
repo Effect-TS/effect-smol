@@ -133,7 +133,7 @@ export const make: <
   } | undefined
 ) {
   const services = yield* Effect.services<never>()
-  const memoMap = ServiceMap.get(services, Layer.CurrentMemoMap)
+  const memoMap = Layer.CurrentMemoMap.getOrCreate(services)
 
   const rcMap = yield* RcMap.make({
     lookup: (key: K) =>

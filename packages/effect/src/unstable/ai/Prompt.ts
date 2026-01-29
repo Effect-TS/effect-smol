@@ -61,7 +61,7 @@ import * as Schema from "../../Schema.ts"
 import * as SchemaIssue from "../../SchemaIssue.ts"
 import * as Parser from "../../SchemaParser.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
-import * as Response from "./Response.ts"
+import type * as Response from "./Response.ts"
 
 const constEmptyObject = () => ({})
 
@@ -86,11 +86,10 @@ const constEmptyObject = () => ({})
  * @since 4.0.0
  * @category models
  */
-export const ProviderOptions: Schema.toType<
-  Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>
-> = Schema.toType(
-  Schema.Record(Schema.String, Schema.UndefinedOr(Response.JsonValue))
-)
+export const ProviderOptions: Schema.Record$<
+  Schema.String,
+  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+> = Schema.Record(Schema.String, Schema.NullOr(Schema.Json))
 
 /**
  * @since 4.0.0
@@ -123,7 +122,14 @@ export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, PartTy
  * @since 4.0.0
  * @category models
  */
-export type Part = TextPart | ReasoningPart | FilePart | ToolCallPart | ToolResultPart
+export type Part =
+  | TextPart
+  | ReasoningPart
+  | FilePart
+  | ToolCallPart
+  | ToolResultPart
+  | ToolApprovalResponsePart
+  | ToolApprovalRequestPart
 
 /**
  * Encoded representation of a Part.
@@ -137,6 +143,8 @@ export type PartEncoded =
   | FilePartEncoded
   | ToolCallPartEncoded
   | ToolResultPartEncoded
+  | ToolApprovalResponsePartEncoded
+  | ToolApprovalRequestPartEncoded
 
 /**
  * Base interface for all content parts.
@@ -295,14 +303,19 @@ export interface TextPartOptions extends ProviderOptions {}
  * @since 4.0.0
  * @category schemas
  */
-export const TextPart: Schema.Struct<{
-  readonly type: Schema.Literal<"text">
-  readonly text: Schema.String
-  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
-  readonly options: Schema.withDecodingDefault<
-    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
-  >
-}> = Schema.Struct({
+export const TextPart: Schema.Struct<
+  {
+    readonly type: Schema.Literal<"text">
+    readonly text: Schema.String
+    readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+    readonly options: Schema.withDecodingDefault<
+      Schema.Record$<
+        Schema.String,
+        Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+      >
+    >
+  }
+> = Schema.Struct({
   ...BasePart.fields,
   type: Schema.Literal("text"),
   text: Schema.String
@@ -314,7 +327,7 @@ export const TextPart: Schema.Struct<{
  * @since 4.0.0
  * @category constructors
  */
-export const textPart = (params: PartConstructorParams<TextPart>): TextPart => makePart("text", params)
+export const textPart = (params: PartConstructorParams<TextPart>): TextPart => makePart("text", params as any)
 
 // =============================================================================
 // Reasoning Part
@@ -376,7 +389,10 @@ export const ReasoningPart: Schema.Struct<{
   readonly text: Schema.String
   readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
   readonly options: Schema.withDecodingDefault<
-    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.Record$<
+      Schema.String,
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+    >
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -391,7 +407,7 @@ export const ReasoningPart: Schema.Struct<{
  * @category constructors
  */
 export const reasoningPart = (params: PartConstructorParams<ReasoningPart>): ReasoningPart =>
-  makePart("reasoning", params)
+  makePart("reasoning", params as any)
 
 // =============================================================================
 // File Part
@@ -481,7 +497,10 @@ export const FilePart: Schema.Struct<{
   readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
   readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
   readonly options: Schema.withDecodingDefault<
-    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.Record$<
+      Schema.String,
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+    >
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -497,7 +516,7 @@ export const FilePart: Schema.Struct<{
  * @since 4.0.0
  * @category constructors
  */
-export const filePart = (params: PartConstructorParams<FilePart>): FilePart => makePart("file", params)
+export const filePart = (params: PartConstructorParams<FilePart>): FilePart => makePart("file", params as any)
 
 // =============================================================================
 // Tool Call Part
@@ -588,7 +607,10 @@ export const ToolCallPart: Schema.Struct<{
   readonly providerExecuted: Schema.withDecodingDefault<Schema.Boolean>
   readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
   readonly options: Schema.withDecodingDefault<
-    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.Record$<
+      Schema.String,
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+    >
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -605,7 +627,8 @@ export const ToolCallPart: Schema.Struct<{
  * @since 4.0.0
  * @category constructors
  */
-export const toolCallPart = (params: PartConstructorParams<ToolCallPart>): ToolCallPart => makePart("tool-call", params)
+export const toolCallPart = (params: PartConstructorParams<ToolCallPart>): ToolCallPart =>
+  makePart("tool-call", params as any)
 
 // =============================================================================
 // Tool Result Part
@@ -700,7 +723,10 @@ export const ToolResultPart: Schema.Struct<{
   readonly result: Schema.Unknown
   readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
   readonly options: Schema.withDecodingDefault<
-    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.Record$<
+      Schema.String,
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+    >
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -718,7 +744,225 @@ export const ToolResultPart: Schema.Struct<{
  * @category constructors
  */
 export const toolResultPart = (params: PartConstructorParams<ToolResultPart>): ToolResultPart =>
-  makePart("tool-result", params)
+  makePart("tool-result", params as any)
+
+// =============================================================================
+// Tool Approval Response Part
+// =============================================================================
+
+/**
+ * Content part representing a user's response to a tool approval request.
+ *
+ * Used in tool messages to approve or deny tool execution when tools have
+ * the `needsApproval` property set.
+ *
+ * @example
+ * ```ts
+ * import { Prompt } from "effect/unstable/ai"
+ *
+ * const approvalResponse: Prompt.ToolApprovalResponsePart = Prompt.makePart(
+ *   "tool-approval-response",
+ *   {
+ *     approvalId: "approval_123",
+ *     approved: true
+ *   }
+ * )
+ *
+ * const denialResponse: Prompt.ToolApprovalResponsePart = Prompt.makePart(
+ *   "tool-approval-response",
+ *   {
+ *     approvalId: "approval_456",
+ *     approved: false,
+ *     reason: "Operation not allowed"
+ *   }
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface ToolApprovalResponsePart extends BasePart<"tool-approval-response", ToolApprovalResponsePartOptions> {
+  /**
+   * References the original approval request.
+   */
+  readonly approvalId: string
+  /**
+   * User's decision to approve or deny the tool execution.
+   */
+  readonly approved: boolean
+  /**
+   * Optional justification for the decision.
+   */
+  readonly reason?: string | undefined
+}
+
+/**
+ * Encoded representation of tool approval response parts for serialization.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface ToolApprovalResponsePartEncoded
+  extends BasePartEncoded<"tool-approval-response", ToolApprovalResponsePartOptions>
+{
+  /**
+   * References the original approval request.
+   */
+  readonly approvalId: string
+  /**
+   * User's decision to approve or deny the tool execution.
+   */
+  readonly approved: boolean
+  /**
+   * Optional justification for the decision.
+   */
+  readonly reason?: string | undefined
+}
+
+/**
+ * Represents provider-specific options that can be associated with a
+ * `ToolApprovalResponsePart` through module augmentation.
+ *
+ * @since 4.0.0
+ * @category ProviderOptions
+ */
+export interface ToolApprovalResponsePartOptions extends ProviderOptions {}
+
+/**
+ * Schema for validation and encoding of tool approval response parts.
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export const ToolApprovalResponsePart: Schema.Struct<{
+  readonly type: Schema.Literal<"tool-approval-response">
+  readonly approvalId: Schema.String
+  readonly approved: Schema.Boolean
+  readonly reason: Schema.optional<Schema.String>
+  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+  readonly options: Schema.withDecodingDefault<
+    Schema.Record$<
+      Schema.String,
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+    >
+  >
+}> = Schema.Struct({
+  ...BasePart.fields,
+  type: Schema.Literal("tool-approval-response"),
+  approvalId: Schema.String,
+  approved: Schema.Boolean,
+  reason: Schema.optional(Schema.String)
+}).annotate({ identifier: "ToolApprovalResponsePart" })
+
+/**
+ * Constructs a new tool approval response part.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const toolApprovalResponsePart = (
+  params: PartConstructorParams<ToolApprovalResponsePart>
+): ToolApprovalResponsePart => makePart("tool-approval-response", params as any)
+
+// =============================================================================
+// Tool Approval Request Part
+// =============================================================================
+
+/**
+ * Content part representing a tool approval request from the framework.
+ *
+ * Stored in assistant messages when a tool requires user approval before
+ * execution. The user responds with a `ToolApprovalResponsePart` in a tool
+ * message.
+ *
+ * @example
+ * ```ts
+ * import { Prompt } from "effect/unstable/ai"
+ *
+ * const approvalRequest: Prompt.ToolApprovalRequestPart = Prompt.makePart(
+ *   "tool-approval-request",
+ *   {
+ *     approvalId: "approval_123",
+ *     toolCallId: "call_456"
+ *   }
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface ToolApprovalRequestPart extends BasePart<"tool-approval-request", ToolApprovalRequestPartOptions> {
+  /**
+   * Unique identifier for this approval flow.
+   */
+  readonly approvalId: string
+  /**
+   * The tool call ID requiring approval.
+   */
+  readonly toolCallId: string
+}
+
+/**
+ * Encoded representation of tool approval request parts for serialization.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface ToolApprovalRequestPartEncoded
+  extends BasePartEncoded<"tool-approval-request", ToolApprovalRequestPartOptions>
+{
+  /**
+   * Unique identifier for this approval flow.
+   */
+  readonly approvalId: string
+  /**
+   * The tool call ID requiring approval.
+   */
+  readonly toolCallId: string
+}
+
+/**
+ * Represents provider-specific options that can be associated with a
+ * `ToolApprovalRequestPart` through module augmentation.
+ *
+ * @since 4.0.0
+ * @category ProviderOptions
+ */
+export interface ToolApprovalRequestPartOptions extends ProviderOptions {}
+
+/**
+ * Schema for validation and encoding of tool approval request parts.
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export const ToolApprovalRequestPart: Schema.Struct<{
+  readonly type: Schema.Literal<"tool-approval-request">
+  readonly approvalId: Schema.String
+  readonly toolCallId: Schema.String
+  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+  readonly options: Schema.withDecodingDefault<
+    Schema.Record$<
+      Schema.String,
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+    >
+  >
+}> = Schema.Struct({
+  ...BasePart.fields,
+  type: Schema.Literal("tool-approval-request"),
+  approvalId: Schema.String,
+  toolCallId: Schema.String
+}).annotate({ identifier: "ToolApprovalRequestPart" })
+
+/**
+ * Constructs a new tool approval request part.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const toolApprovalRequestPart = (
+  params: PartConstructorParams<ToolApprovalRequestPart>
+): ToolApprovalRequestPart => makePart("tool-approval-request", params as any)
 
 // =============================================================================
 // Base Message
@@ -843,7 +1087,10 @@ export const ContentFromString: Schema.decodeTo<
         readonly text: Schema.String
         readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
         readonly options: Schema.withDecodingDefault<
-          Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+          Schema.Record$<
+            Schema.String,
+            Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+          >
         >
       }>
     >
@@ -919,7 +1166,10 @@ export const SystemMessage: Schema.Struct<{
   readonly content: Schema.String
   readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
   readonly options: Schema.withDecodingDefault<
-    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.Record$<
+      Schema.String,
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+    >
   >
 }> = Schema.Struct({
   ...BaseMessage.fields,
@@ -1035,7 +1285,10 @@ export const UserMessage: Schema.Struct<{
               readonly text: Schema.String
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.Record$<
+                  Schema.String,
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+                >
               >
             }>
           >
@@ -1052,7 +1305,10 @@ export const UserMessage: Schema.Struct<{
               readonly text: Schema.String
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.Record$<
+                  Schema.String,
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+                >
               >
             }>,
             Schema.Struct<{
@@ -1062,7 +1318,10 @@ export const UserMessage: Schema.Struct<{
               readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.Record$<
+                  Schema.String,
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+                >
               >
             }>
           ]
@@ -1072,7 +1331,10 @@ export const UserMessage: Schema.Struct<{
   >
   readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
   readonly options: Schema.withDecodingDefault<
-    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.Record$<
+      Schema.String,
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+    >
   >
 }> = Schema.Struct({
   ...BaseMessage.fields,
@@ -1155,6 +1417,7 @@ export type AssistantMessagePart =
   | ReasoningPart
   | ToolCallPart
   | ToolResultPart
+  | ToolApprovalRequestPart
 
 /**
  * Encoded representation of assistant messages for serialization.
@@ -1178,6 +1441,7 @@ export type AssistantMessagePartEncoded =
   | ReasoningPartEncoded
   | ToolCallPartEncoded
   | ToolResultPartEncoded
+  | ToolApprovalRequestPartEncoded
 
 /**
  * Represents provider-specific options that can be associated with a
@@ -1206,7 +1470,10 @@ export const AssistantMessage: Schema.Struct<{
               readonly text: Schema.String
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.Record$<
+                  Schema.String,
+                  Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+                >
               >
             }>
           >
@@ -1218,54 +1485,12 @@ export const AssistantMessage: Schema.Struct<{
       Schema.Array$<
         Schema.Union<
           readonly [
-            Schema.Struct<{
-              readonly type: Schema.Literal<"text">
-              readonly text: Schema.String
-              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
-              readonly options: Schema.withDecodingDefault<
-                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
-              >
-            }>,
-            Schema.Struct<{
-              readonly type: Schema.Literal<"file">
-              readonly mediaType: Schema.String
-              readonly fileName: Schema.optional<Schema.String>
-              readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
-              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
-              readonly options: Schema.withDecodingDefault<
-                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
-              >
-            }>,
-            Schema.Struct<{
-              readonly type: Schema.Literal<"reasoning">
-              readonly text: Schema.String
-              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
-              readonly options: Schema.withDecodingDefault<
-                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
-              >
-            }>,
-            Schema.Struct<{
-              readonly type: Schema.Literal<"tool-call">
-              readonly id: Schema.String
-              readonly name: Schema.String
-              readonly params: Schema.Unknown
-              readonly providerExecuted: Schema.withDecodingDefault<Schema.Boolean>
-              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
-              readonly options: Schema.withDecodingDefault<
-                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
-              >
-            }>,
-            Schema.Struct<{
-              readonly type: Schema.Literal<"tool-result">
-              readonly id: Schema.String
-              readonly name: Schema.String
-              readonly isFailure: Schema.Boolean
-              readonly result: Schema.Unknown
-              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
-              readonly options: Schema.withDecodingDefault<
-                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
-              >
-            }>
+            typeof TextPart,
+            typeof FilePart,
+            typeof ReasoningPart,
+            typeof ToolCallPart,
+            typeof ToolResultPart,
+            typeof ToolApprovalRequestPart
           ]
         >
       >
@@ -1273,7 +1498,10 @@ export const AssistantMessage: Schema.Struct<{
   >
   readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
   readonly options: Schema.withDecodingDefault<
-    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.Record$<
+      Schema.String,
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+    >
   >
 }> = Schema.Struct({
   ...BaseMessage.fields,
@@ -1285,7 +1513,8 @@ export const AssistantMessage: Schema.Struct<{
       FilePart,
       ReasoningPart,
       ToolCallPart,
-      ToolResultPart
+      ToolResultPart,
+      ToolApprovalRequestPart
     ]))
   ])
 }).annotate({ identifier: "AssistantMessage" })
@@ -1344,7 +1573,7 @@ export interface ToolMessage extends BaseMessage<"tool", ToolMessageOptions> {
  * @since 4.0.0
  * @category models
  */
-export type ToolMessagePart = ToolResultPart
+export type ToolMessagePart = ToolResultPart | ToolApprovalResponsePart
 
 /**
  * Encoded representation of tool messages for serialization.
@@ -1365,7 +1594,7 @@ export interface ToolMessageEncoded extends BaseMessageEncoded<"tool", ToolMessa
  * @since 4.0.0
  * @category models
  */
-export type ToolMessagePartEncoded = ToolResultPartEncoded
+export type ToolMessagePartEncoded = ToolResultPartEncoded | ToolApprovalResponsePartEncoded
 
 /**
  * Represents provider-specific options that can be associated with a
@@ -1385,26 +1614,19 @@ export interface ToolMessageOptions extends ProviderOptions {}
 export const ToolMessage: Schema.Struct<{
   readonly role: Schema.Literal<"tool">
   readonly content: Schema.Array$<
-    Schema.Struct<{
-      readonly type: Schema.Literal<"tool-result">
-      readonly id: Schema.String
-      readonly name: Schema.String
-      readonly isFailure: Schema.Boolean
-      readonly result: Schema.Unknown
-      readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
-      readonly options: Schema.withDecodingDefault<
-        Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
-      >
-    }>
+    Schema.Union<readonly [typeof ToolResultPart, typeof ToolApprovalResponsePart]>
   >
   readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
   readonly options: Schema.withDecodingDefault<
-    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.Record$<
+      Schema.String,
+      Schema.NullOr<Schema.Codec<Schema.Json, Schema.Json>>
+    >
   >
 }> = Schema.Struct({
   ...BaseMessage.fields,
   role: Schema.Literal("tool"),
-  content: Schema.Array(ToolResultPart)
+  content: Schema.Array(Schema.Union([ToolResultPart, ToolApprovalResponsePart]))
 }).annotate({ identifier: "ToolMessage" })
 
 /**
@@ -1693,7 +1915,8 @@ export const fromMessages = (messages: ReadonlyArray<Message>): Prompt => makePr
  *     isFailure: false,
  *     result: "10:30 AM",
  *     encodedResult: "10:30 AM",
- *     providerExecuted: false
+ *     providerExecuted: false,
+ *     preliminary: false
  *   })
  * ]
  *
@@ -1769,21 +1992,33 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
       case "tool-call": {
         assistantParts.push(makePart("tool-call", {
           id: part.id,
-          name: part.providerName ?? part.name,
+          name: part.name,
           params: part.params,
           providerExecuted: part.providerExecuted ?? false
         }))
         break
       }
 
-      // Tool Result Parts
+      // Tool Result Parts (skip preliminary results)
       case "tool-result": {
-        toolParts.push(makePart("tool-result", {
-          id: part.id,
-          name: part.providerName ?? part.name,
-          isFailure: part.isFailure,
-          result: part.encodedResult
+        if (part.preliminary !== true) {
+          toolParts.push(makePart("tool-result", {
+            id: part.id,
+            name: part.name,
+            isFailure: part.isFailure,
+            result: part.encodedResult
+          }))
+        }
+        break
+      }
+
+      // Tool Approval Request Parts
+      case "tool-approval-request": {
+        assistantParts.push(makePart("tool-approval-request", {
+          approvalId: part.approvalId,
+          toolCallId: part.toolCallId
         }))
+        break
       }
     }
   }

@@ -4,10 +4,9 @@ This directory contains specifications for all major features and enhancements i
 
 ## Contents
 
-- [cli-with-fallback-prompt.md](cli-with-fallback-prompt.md) - Add fallback prompt combinators for flags and positional arguments.
-- [cli-prompt-autocomplete.md](cli-prompt-autocomplete.md) - Add a typed filter auto-complete prompt for CLI selects.
 - [worker-error-reason-pattern.md](worker-error-reason-pattern.md) - Refactor WorkerError to use the reason pattern with structured reasons.
 - [http-client-error-reason-pattern.md](http-client-error-reason-pattern.md) - Refactor HttpClientError to a reason-based wrapper with per-reason classes.
 - [http-server-error-reason-pattern.md](http-server-error-reason-pattern.md) - Refactor HttpServerError to use the reason pattern with per-reason classes.
-- [Effect.ignore log option + remove ignoreLogged](./effect-ignore-log.md) - Add optional logging to `Effect.ignore` and remove `Effect.ignoreLogged`.
+- [effect-ignore-log.md](effect-ignore-log.md) - Add optional logging to `Effect.ignore` and remove `Effect.ignoreLogged`.
 - [effect-jsdoc-improvements.md](effect-jsdoc-improvements.md) - Improve JSDoc clarity and consistency for `Effect.ts`.
+- [stream-jsdoc-improvements.md](stream-jsdoc-improvements.md) - Improve JSDoc clarity and consistency for `Stream.ts`.

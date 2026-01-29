@@ -16,7 +16,7 @@ import type { Simplify } from "../../Types.ts"
 import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
 import * as CliOutput from "./CliOutput.ts"
-import { checkForDuplicateFlags, getHelpForCommandPath, makeCommand, toImpl, type TypeId } from "./internal/command.ts"
+import { checkForDuplicateFlags, getHelpForCommandPath, makeCommand, toImpl, TypeId } from "./internal/command.ts"
 import { generateDynamicCompletion, isCompletionRequest } from "./internal/completions/dynamic/core.ts"
 import { handleCompletionRequest } from "./internal/completions/dynamic/handler.ts"
 import { parseConfig } from "./internal/config.ts"
@@ -289,6 +289,12 @@ export interface ParsedTokens {
     readonly parsedInput: ParsedTokens
   }
 }
+
+/**
+ * @since 4.0.0
+ * @category Guards
+ */
+export const isCommand = (u: unknown): u is Command.Any => Predicate.hasProperty(u, TypeId)
 
 /* ========================================================================== */
 /* Constructors                                                               */
@@ -675,18 +681,29 @@ const mapHandler = <Name extends string, Input, E, R, E2, R2>(
  */
 export const provide: {
   <Input, LR, LE, LA>(
-    layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>)
+    layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>),
+    options?: {
+      readonly local?: boolean | undefined
+    } | undefined
   ): <const Name extends string, E, R>(
     self: Command<Name, Input, E, R>
   ) => Command<Name, Input, E | LE, Exclude<R, LA> | LR>
   <const Name extends string, Input, E, R, LA, LE, LR>(
     self: Command<Name, Input, E, R>,
-    layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>)
+    layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>),
+    options?: {
+      readonly local?: boolean | undefined
+    } | undefined
   ): Command<Name, Input, E | LE, Exclude<R, LA> | LR>
-} = dual(2, <const Name extends string, Input, E, R, LA, LE, LR>(
+} = dual((args) => isCommand(args[0]), <const Name extends string, Input, E, R, LA, LE, LR>(
   self: Command<Name, Input, E, R>,
-  layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>)
-) => mapHandler(self, (handler, input) => Effect.provide(handler, typeof layer === "function" ? layer(input) : layer)))
+  layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>),
+  options?: { readonly local?: boolean | undefined } | undefined
+) =>
+  mapHandler(
+    self,
+    (handler, input) => Effect.provide(handler, typeof layer === "function" ? layer(input) : layer, options)
+  ))
 
 /**
  * Provides the handler of a command with the implementation of a service that
