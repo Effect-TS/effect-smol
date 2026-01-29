@@ -73,11 +73,8 @@ export const Empty = (status: number): Schema.Void => Schema.Void.annotate({ htt
 
 /**
  * @since 4.0.0
- * @category empty response
  */
-export interface asEmpty<
-  S extends Schema.Top
-> extends Schema.decodeTo<Schema.toType<S>, Schema.Void> {}
+export interface asEmpty<S extends Schema.Top> extends Schema.decodeTo<S, Schema.Void> {}
 
 /**
  * @since 4.0.0
@@ -86,13 +83,13 @@ export interface asEmpty<
 export const asEmpty: {
   <S extends Schema.Top>(options: {
     readonly status: number
-    readonly decode: LazyArg<S["Type"]>
+    readonly decode: LazyArg<S["Encoded"]>
   }): (self: S) => asEmpty<S>
   <S extends Schema.Top>(
     self: S,
     options: {
       readonly status: number
-      readonly decode: LazyArg<S["Type"]>
+      readonly decode: LazyArg<S["Encoded"]>
     }
   ): asEmpty<S>
 } = dual(
@@ -101,12 +98,12 @@ export const asEmpty: {
     self: S,
     options: {
       readonly status: number
-      readonly decode: LazyArg<S["Type"]>
+      readonly decode: LazyArg<S["Encoded"]>
     }
   ): asEmpty<S> =>
     Schema.Void.pipe(
       Schema.decodeTo(
-        Schema.toType(self),
+        self,
         Transformation.transform({
           decode: options.decode,
           encode: constVoid
