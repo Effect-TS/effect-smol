@@ -285,7 +285,7 @@ export class PriorityScheduler implements Scheduler {
 
   private starve(depth = 0) {
     if (depth >= this.maxNextTickBeforeTimer) {
-      setTimeout(() => this.starveInternal(0), 0)
+      this.setImmediate(() => this.starveInternal(0))
     } else {
       Promise.resolve().then(() => this.starveInternal(depth + 1))
     }
