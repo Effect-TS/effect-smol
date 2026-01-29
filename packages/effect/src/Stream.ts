@@ -4689,6 +4689,7 @@ export {
  *   yield* Console.log(values)
  * })
  *
+ * Effect.runPromise(program)
  * // Output: [ "recovered:404" ]
  * ```
  *
