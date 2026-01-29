@@ -14,19 +14,21 @@ declare module "../../Schema.ts" {
   namespace Annotations {
     interface Annotations {
       readonly httpApiEncoding?: Encoding | undefined
-      readonly httpApiMultipart?: Multipart_.withLimits.Options | undefined
-      readonly httpApiMultipartStream?: Multipart_.withLimits.Options | undefined
       readonly httpApiStatus?: number | undefined
+      /** @internal */
+      readonly httpApiMultipart?: {
+        readonly isStream: boolean
+        readonly limits?: Multipart_.withLimits.Options | undefined
+      }
     }
   }
 }
 
 /** @internal */
-export const resolveHttpApiMultipart = AST.resolveAt<Multipart_.withLimits.Options>("httpApiMultipart")
-/** @internal */
-export const resolveHttpApiMultipartStream = AST.resolveAt<Multipart_.withLimits.Options>(
-  "httpApiMultipartStream"
-)
+export const resolveHttpApiMultipart = AST.resolveAt<{
+  readonly isStream: boolean
+  readonly limits?: Multipart_.withLimits.Options | undefined
+}>("httpApiMultipart")
 const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
 const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
 
@@ -162,7 +164,10 @@ export const Multipart = <S extends Schema.Top>(self: S, options?: {
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): Multipart<S> =>
   self.pipe(Schema.brand(MultipartTypeId)).annotate({
-    httpApiMultipart: options ?? {}
+    httpApiMultipart: {
+      isStream: false,
+      limits: options
+    }
   })
 
 /**
@@ -195,7 +200,10 @@ export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): MultipartStream<S> =>
   self.pipe(Schema.brand(MultipartStreamTypeId)).annotate({
-    httpApiMultipartStream: options ?? {}
+    httpApiMultipart: {
+      isStream: true,
+      limits: options
+    }
   })
 
 /**
@@ -283,7 +291,7 @@ const encodingMultipart: Encoding = {
 
 /** @internal */
 export function getEncoding(ast: AST.AST): Encoding {
-  if (resolveHttpApiMultipart(ast) !== undefined || resolveHttpApiMultipartStream(ast) !== undefined) {
+  if (resolveHttpApiMultipart(ast) !== undefined) {
     return encodingMultipart
   }
   return resolveHttpApiEncoding(ast) ?? encodingJson
