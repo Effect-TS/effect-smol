@@ -83,6 +83,7 @@ import { TracerTimingEnabled } from "./References.ts"
 import * as Schedule from "./Schedule.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
+import * as String from "./String.ts"
 import * as Take from "./Take.ts"
 import { ParentSpan, type SpanOptions } from "./Tracer.ts"
 import type * as Types from "./Types.ts"
@@ -4320,6 +4321,139 @@ export const catchReason: {
     },
     f as any
   ))
+
+/**
+ * Catches multiple reasons within a tagged error using an object of handlers.
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchReasons: {
+  <
+    K extends Types.Tags<OutErr>,
+    OutErr,
+    Cases extends {
+      [RK in Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>]+?: (
+        reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+      ) => Channel<any, any, any, any, any, any, any>
+    }
+  >(
+    errorTag: K,
+    cases: Cases
+  ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<
+    | OutElem
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<infer OutElem1, any, any, any, any, any, any> ? OutElem1 : never
+    }[keyof Cases],
+    | OutErr
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, infer OutErr1, any, any, any, any, any> ? OutErr1 : never
+    }[keyof Cases],
+    | OutDone
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, infer OutDone1, any, any, any, any> ? OutDone1 : never
+    }[keyof Cases],
+    & InElem
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, infer InElem1, any, any, any> ? InElem1 : never
+    }[keyof Cases],
+    & InErr
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, infer InErr1, any, any> ? InErr1 : never
+    }[keyof Cases],
+    & InDone
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, any, infer InDone1, any> ? InDone1 : never
+    }[keyof Cases],
+    | Env
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, any, any, infer Env1> ? Env1 : never
+    }[keyof Cases]
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    K extends Types.Tags<OutErr>,
+    Cases extends {
+      [RK in Types.ReasonTags<Types.ExtractTag<OutErr, K>>]+?: (
+        reason: Types.ExtractReason<Types.ExtractTag<OutErr, K>, RK>
+      ) => Channel<any, any, any, any, any, any, any>
+    }
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    errorTag: K,
+    cases: Cases
+  ): Channel<
+    | OutElem
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<infer OutElem1, any, any, any, any, any, any> ? OutElem1 : never
+    }[keyof Cases],
+    | OutErr
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, infer OutErr1, any, any, any, any, any> ? OutErr1 : never
+    }[keyof Cases],
+    | OutDone
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, infer OutDone1, any, any, any, any> ? OutDone1 : never
+    }[keyof Cases],
+    & InElem
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, infer InElem1, any, any, any> ? InElem1 : never
+    }[keyof Cases],
+    & InErr
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, infer InErr1, any, any> ? InErr1 : never
+    }[keyof Cases],
+    & InDone
+    & {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, any, infer InDone1, any> ? InDone1 : never
+    }[keyof Cases],
+    | Env
+    | {
+      [RK in keyof Cases]: Cases[RK] extends
+        (...args: Array<any>) => Channel<any, any, any, any, any, any, infer Env1> ? Env1 : never
+    }[keyof Cases]
+  >
+} = dual(3, (self, errorTag, cases) => {
+  let keys: Set<string>
+  return catchFilter(
+    self,
+    (e: any) => {
+      keys ??= new Set(Object.keys(cases))
+      if (
+        isTagged(e, errorTag) &&
+        hasProperty(e, "reason") &&
+        hasProperty(e.reason, "_tag") &&
+        String.isString(e.reason._tag) &&
+        keys.has(e.reason._tag)
+      ) {
+        return e.reason
+      }
+      return Filter.fail(e)
+    },
+    (reason: any) => (cases as any)[reason._tag](reason)
+  )
+})
 
 /**
  * Promotes nested reason errors into the channel error, replacing the parent error.

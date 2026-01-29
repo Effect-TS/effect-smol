@@ -5187,23 +5187,21 @@ export const catchReasons: {
     }[keyof Cases]
   >
 } = dual(3, (self, errorTag, cases) => {
-  let keys: Set<string>
-  return catchFilter(
-    self,
-    (e: any) => {
-      keys ??= new Set(Object.keys(cases))
-      if (
-        isTagged(e, errorTag) &&
-        hasProperty(e, "reason") &&
-        hasProperty(e.reason, "_tag") &&
-        isString(e.reason._tag) &&
-        keys.has(e.reason._tag)
-      ) {
-        return e.reason
-      }
-      return Filter.fail(e)
-    },
-    (reason: any) => (cases as any)[reason._tag](reason)
+  const handlers: Record<string, (reason: any) => Channel.Channel<any, any, any, any, any, any, any>> = {}
+  for (const key of Object.keys(cases)) {
+    const handler = (cases as any)[key]
+    handlers[key] = (reason) => handler(reason).channel
+  }
+  return fromChannel(
+    Channel.catchReasons(self.channel, errorTag as any, handlers as any) as Channel.Channel<
+      Arr.NonEmptyReadonlyArray<any>,
+      any,
+      void,
+      unknown,
+      unknown,
+      unknown,
+      any
+    >
   )
 })
 
