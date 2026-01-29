@@ -226,12 +226,6 @@ export class MixedScheduler implements Scheduler {
 }
 
 /**
- * A scheduler implementation that executes tasks based on numeric priority.
- * Larger numbers represent higher priority. Tasks are executed FIFO within the
- * same priority.
- *
-
-/**
  * A service reference that controls the maximum number of operations a fiber
  * can perform before yielding control back to the scheduler. This helps
  * prevent long-running fibers from monopolizing the execution thread.
