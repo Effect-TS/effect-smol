@@ -153,7 +153,7 @@ class PriorityBuckets {
  * console.log(syncScheduler.executionMode) // "sync"
  * ```
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category schedulers
  */
 export class MixedScheduler implements Scheduler {
@@ -175,7 +175,7 @@ export class MixedScheduler implements Scheduler {
    */
   scheduleTask(task: () => void, priority: number) {
     this.tasks.scheduleTask(task, priority)
-    if (this.executionMode === "async" && this.running === undefined) {
+    if (this.running === undefined) {
       this.running = this.setImmediate(this.afterScheduled)
     }
   }
@@ -186,9 +186,6 @@ export class MixedScheduler implements Scheduler {
   afterScheduled = () => {
     this.running = undefined
     this.runTasks()
-    if (this.executionMode === "async" && this.tasks.buckets.length > 0 && this.running === undefined) {
-      this.running = this.setImmediate(this.afterScheduled)
-    }
   }
 
   /**
