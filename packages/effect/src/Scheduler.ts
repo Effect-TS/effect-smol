@@ -87,6 +87,33 @@ const setImmediate = "setImmediate" in globalThis
     return (): void => clearTimeout(timer)
   }
 
+class PriorityBuckets {
+  buckets: Array<[priority: number, tasks: Array<() => void>]> = []
+
+  scheduleTask(task: () => void, priority: number) {
+    const buckets = this.buckets
+    for (let i = 0; i < buckets.length; i++) {
+      const bucket = buckets[i]
+      const p = bucket[0]
+      if (p === priority) {
+        bucket[1].push(task)
+        return
+      }
+      if (p < priority) {
+        buckets.splice(i, 0, [priority, [task]])
+        return
+      }
+    }
+    buckets.push([priority, [task]])
+  }
+
+  drain() {
+    const buckets = this.buckets
+    this.buckets = []
+    return buckets
+  }
+}
+
 /**
  * The default scheduler implementation that provides efficient task scheduling
  * with support for both synchronous and asynchronous execution modes.
@@ -188,6 +215,89 @@ export class MixedScheduler implements Scheduler {
         this.running()
         this.running = undefined
       }
+      this.runTasks()
+    }
+  }
+}
+
+/**
+ * A scheduler implementation that executes tasks based on numeric priority.
+ * Larger numbers represent higher priority. Tasks are executed FIFO within the
+ * same priority.
+ *
+ * @since 4.0.0
+ * @category schedulers
+ */
+export class PriorityScheduler implements Scheduler {
+  private tasks = new PriorityBuckets()
+  private running = false
+
+  readonly executionMode: "sync" | "async"
+  readonly setImmediate: (f: () => void) => () => void
+  readonly maxNextTickBeforeTimer: number
+
+  constructor(
+    executionMode: "sync" | "async" = "async",
+    setImmediateFn: (f: () => void) => () => void = setImmediate,
+    maxNextTickBeforeTimer = 2048
+  ) {
+    this.executionMode = executionMode
+    this.setImmediate = setImmediateFn
+    this.maxNextTickBeforeTimer = maxNextTickBeforeTimer
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  scheduleTask(task: () => void, priority: number) {
+    this.tasks.scheduleTask(task, priority)
+    if (this.executionMode === "async" && !this.running) {
+      this.running = true
+      this.starve()
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  shouldYield(fiber: Fiber.Fiber<unknown, unknown>) {
+    return fiber.currentOpCount >= fiber.maxOpsBeforeYield
+  }
+
+  private runTasks() {
+    const buckets = this.tasks.drain()
+    for (let i = 0; i < buckets.length; i++) {
+      const toRun = buckets[i][1]
+      for (let j = 0; j < toRun.length; j++) {
+        toRun[j]()
+      }
+    }
+  }
+
+  private starveInternal = (depth: number) => {
+    this.runTasks()
+    if (this.tasks.buckets.length === 0) {
+      this.running = false
+      return
+    }
+    this.starve(depth)
+  }
+
+  private starve(depth = 0) {
+    if (depth >= this.maxNextTickBeforeTimer) {
+      setTimeout(() => this.starveInternal(0), 0)
+    } else {
+      Promise.resolve().then(() => this.starveInternal(depth + 1))
+    }
+  }
+
+  /**
+   * Drain all queued tasks (sync mode) or force-drain (async mode).
+   *
+   * @since 4.0.0
+   */
+  flush() {
+    while (this.tasks.buckets.length > 0) {
       this.runTasks()
     }
   }
