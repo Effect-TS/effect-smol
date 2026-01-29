@@ -1613,7 +1613,7 @@ export const range = (
  * ```
  *
  * @since 4.0.0
- * @category constructors
+ * @category Constructors
  */
 export const never: Stream<never> = fromChannel(Channel.never)
 
@@ -1666,7 +1666,7 @@ export const unwrap = <A, E2, R2, E, R>(
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Constructors
  */
 export const scoped = <A, E, R>(
   self: Stream<A, E, R>
