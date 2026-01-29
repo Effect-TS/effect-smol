@@ -12,9 +12,12 @@ import {
   Exit,
   Fiber,
   Filter,
+  Logger,
+  type LogLevel,
   Option,
   Queue,
   Ref,
+  References,
   Schedule,
   Sink,
   Stream
@@ -23,7 +26,7 @@ import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/Array"
 import { constFalse, constTrue, constVoid, pipe } from "effect/Function"
 import { TestClock } from "effect/testing"
 import * as fc from "effect/testing/FastCheck"
-import { assertFailure } from "./utils/assert.ts"
+import { assertCauseFail, assertFailure } from "./utils/assert.ts"
 import { chunkCoordination } from "./utils/chunkCoordination.ts"
 
 describe("Stream", () => {
@@ -277,6 +280,63 @@ describe("Stream", () => {
         )
         assert.deepStrictEqual(result, Exit.fail({ _tag: "ErrorB" as const }))
       }))
+
+    describe("ignore", () => {
+      type IgnoreOptions = { readonly log?: boolean | LogLevel.LogLevel }
+
+      const makeTestLogger = () => {
+        const capturedLogs: Array<{
+          readonly logLevel: LogLevel.LogLevel
+          readonly cause: Cause.Cause<unknown>
+        }> = []
+        const testLogger = Logger.make<unknown, void>((options) => {
+          capturedLogs.push({ logLevel: options.logLevel, cause: options.cause })
+        })
+        return { capturedLogs, testLogger }
+      }
+
+      const runIgnore = (options?: IgnoreOptions, currentLogLevel: LogLevel.LogLevel = "Info") =>
+        Effect.gen(function*() {
+          const { capturedLogs, testLogger } = makeTestLogger()
+          const program = options === undefined
+            ? Stream.fail("boom").pipe(Stream.ignore, Stream.runDrain)
+            : Stream.fail("boom").pipe(Stream.ignore(options), Stream.runDrain)
+          yield* program.pipe(
+            Effect.provide(Logger.layer([testLogger])),
+            Effect.provideService(References.MinimumLogLevel, "Trace"),
+            Effect.provideService(References.CurrentLogLevel, currentLogLevel)
+          )
+          return capturedLogs
+        })
+
+      it.effect("does not log when log is omitted", () =>
+        Effect.gen(function*() {
+          const logs = yield* runIgnore()
+          assert.strictEqual(logs.length, 0)
+        }))
+
+      it.effect("does not log when log is false", () =>
+        Effect.gen(function*() {
+          const logs = yield* runIgnore({ log: false })
+          assert.strictEqual(logs.length, 0)
+        }))
+
+      it.effect("logs with the current level when log is true", () =>
+        Effect.gen(function*() {
+          const logs = yield* runIgnore({ log: true }, "Warn")
+          assert.strictEqual(logs.length, 1)
+          assert.strictEqual(logs[0].logLevel, "Warn")
+          assertCauseFail(logs[0].cause, "boom")
+        }))
+
+      it.effect("logs with the provided level when log is a LogLevel", () =>
+        Effect.gen(function*() {
+          const logs = yield* runIgnore({ log: "Error" }, "Warn")
+          assert.strictEqual(logs.length, 1)
+          assert.strictEqual(logs[0].logLevel, "Error")
+          assertCauseFail(logs[0].cause, "boom")
+        }))
+    })
 
     describe("catchReason", () => {
       class RateLimitError extends Data.TaggedError("RateLimitError")<{

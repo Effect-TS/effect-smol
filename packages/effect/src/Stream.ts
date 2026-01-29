@@ -21,6 +21,7 @@ import * as internal from "./internal/stream.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
 import type * as Layer from "./Layer.ts"
+import type { LogLevel } from "./LogLevel.ts"
 import * as MutableHashMap from "./MutableHashMap.ts"
 import * as MutableList from "./MutableList.ts"
 import * as Option from "./Option.ts"
@@ -5279,6 +5280,8 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
 /**
  * Ignores failures and ends the stream on error.
  *
+ * Use the `log` option to emit the full {@link Cause} when the stream fails.
+ *
  * @example
  * ```ts
  * import { Console, Effect, Stream } from "effect"
@@ -5296,10 +5299,37 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
  * // Output: [ 1, 2, 3 ]
  * ```
  *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * const stream = Stream.fail("boom")
+ *
+ * const program = stream.pipe(Stream.ignore({ log: "Error" }))
+ * ```
+ *
  * @since 4.0.0
  * @category Error Handling
  */
-export const ignore = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fromChannel(Channel.ignore(self.channel))
+export const ignore: <
+  Arg extends Stream<any, any, any> | {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+>(
+  selfOrOptions: Arg,
+  options?: {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+) => [Arg] extends [Stream<infer A, infer _E, infer R>] ? Stream<A, never, R>
+  : <A, E, R>(self: Stream<A, E, R>) => Stream<A, never, R> = dual(
+    (args) => isStream(args[0]),
+    <A, E, R>(
+      self: Stream<A, E, R>,
+      options?: {
+        readonly log?: boolean | LogLevel | undefined
+      } | undefined
+    ): Stream<A, never, R> => fromChannel(Channel.ignore(self.channel, options))
+  )
 
 /**
  * Ignores the stream's failure cause, including defects, and ends the stream.

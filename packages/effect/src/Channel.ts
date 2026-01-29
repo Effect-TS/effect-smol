@@ -70,6 +70,7 @@ import { ClockRef, endSpan } from "./internal/effect.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
 import * as Layer from "./Layer.ts"
+import type { LogLevel } from "./LogLevel.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
@@ -4232,20 +4233,40 @@ export const orDie = <
 /**
  * Ignores all errors in the channel, converting them to an empty channel.
  *
+ * Use the `log` option to emit the full {@link Cause} when the channel fails.
+ *
  * @since 4.0.0
  * @category Error handling
  */
-export const ignore = <
-  OutElem,
-  OutErr,
-  OutDone,
-  InElem,
-  InErr,
-  InDone,
-  Env
+export const ignore: <
+  Arg extends Channel<any, any, any, any, any, any, any> | {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
 >(
-  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
-): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => catch_(self, () => empty)
+  selfOrOptions: Arg,
+  options?: {
+    readonly log?: boolean | LogLevel | undefined
+  } | undefined
+) => [Arg] extends
+  [Channel<infer OutElem, infer _OutErr, infer OutDone, infer InElem, infer InErr, infer InDone, infer Env>]
+  ? Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env>
+  : <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> = dual(
+    (args) => isChannel(args[0]),
+    <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+      self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+      options?: {
+        readonly log?: boolean | LogLevel | undefined
+      } | undefined
+    ): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => {
+      if (!options?.log) {
+        return catch_(self, () => empty)
+      }
+      const logEffect = Effect.logWithLevel(options.log === true ? undefined : options.log)
+      return catch_(tapError(self, (error) => logEffect(Cause.fail(error))), () => empty)
+    }
+  )
 
 /**
  * Ignores all errors in the channel including defects, converting them to an empty channel.
