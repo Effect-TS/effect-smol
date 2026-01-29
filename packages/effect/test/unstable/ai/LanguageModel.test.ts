@@ -1,4 +1,5 @@
-import { assert, describe, it } from "@effect/vitest"
+import { describe, it } from "@effect/vitest"
+import { assertDefined, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { LanguageModel, Prompt, Response, Tool, Toolkit } from "effect/unstable/ai"
@@ -91,11 +92,11 @@ describe("LanguageModel", () => {
           preliminary: false
         })
 
-        assert.deepStrictEqual(parts, [toolCallPart])
+        deepStrictEqual(parts, [toolCallPart])
 
         yield* TestClock.adjust("10 seconds")
 
-        assert.deepStrictEqual(parts, [toolCallPart, toolResultPart])
+        deepStrictEqual(parts, [toolCallPart, toolResultPart])
       }))
   })
 
@@ -130,8 +131,8 @@ describe("LanguageModel", () => {
           Effect.provide(ApprovalToolkitLayer)
         )
 
-        assert.strictEqual(parts.length, 2)
-        assert.deepStrictEqual(
+        strictEqual(parts.length, 2)
+        deepStrictEqual(
           parts[0],
           Response.makePart("tool-call", {
             id: toolCallId,
@@ -142,19 +143,18 @@ describe("LanguageModel", () => {
         )
 
         const approvalPart = parts[1]
-        assert.strictEqual(approvalPart.type, "tool-approval-request")
+        strictEqual(approvalPart.type, "tool-approval-request")
         if (approvalPart.type === "tool-approval-request") {
-          assert.strictEqual(approvalPart.toolCallId, toolCallId)
-          assert.ok(approvalPart.approvalId)
+          strictEqual(approvalPart.toolCallId, toolCallId)
+          assertDefined(approvalPart.approvalId)
         }
       }))
 
-    it("executes tool when approval response is approved", () =>
+    it("pre-resolves approved tool calls before calling LLM", () =>
       Effect.gen(function*() {
-        const parts: Array<Response.StreamPart<Toolkit.Tools<typeof ApprovalToolkit>>> = []
-
         const toolCallId = "call-456"
         const approvalId = "approval-456"
+        let capturedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
 
         const prompt: Array<Prompt.Message> = [
           Prompt.assistantMessage({
@@ -185,39 +185,40 @@ describe("LanguageModel", () => {
           prompt,
           toolkit: ApprovalToolkit
         }).pipe(
-          Stream.runForEach((part) =>
-            Effect.sync(() => {
-              parts.push(part)
-            })
-          ),
+          Stream.runDrain,
           TestUtils.withLanguageModel({
-            streamText: [
-              {
-                type: "tool-call",
-                id: toolCallId,
-                name: "ApprovalTool",
-                params: { action: "delete" }
-              }
-            ]
+            streamText: (opts) => {
+              capturedPrompt = opts.prompt
+              return [{
+                type: "finish",
+                reason: "stop",
+                usage: { totalTokens: 10, inputTokens: 5, outputTokens: 5 }
+              }]
+            }
           }),
           Effect.provide(ApprovalToolkitLayer)
         )
 
-        assert.strictEqual(parts.length, 2)
-        assert.strictEqual(parts[0].type, "tool-call")
-        assert.strictEqual(parts[1].type, "tool-result")
-        if (parts[1].type === "tool-result") {
-          assert.deepStrictEqual(parts[1].result, { result: "approved-result" })
-          assert.strictEqual(parts[1].isFailure, false)
-        }
+        // Verify the prompt sent to LLM contains pre-resolved tool result
+        assertDefined(capturedPrompt)
+        const messages = capturedPrompt.content
+        const lastMessage = messages[messages.length - 1]
+        strictEqual(lastMessage.role, "tool")
+        assertTrue(Array.isArray(lastMessage.content))
+        const toolResults = (lastMessage.content as Array<Prompt.ToolMessagePart>).filter(
+          (p): p is Prompt.ToolResultPart => p.type === "tool-result"
+        )
+        strictEqual(toolResults.length, 1)
+        strictEqual(toolResults[0].id, toolCallId)
+        deepStrictEqual(toolResults[0].result, { result: "approved-result" })
+        strictEqual(toolResults[0].isFailure, false)
       }))
 
-    it("returns execution-denied when approval response is denied", () =>
+    it("pre-resolves denied tool calls with execution-denied before calling LLM", () =>
       Effect.gen(function*() {
-        const parts: Array<Response.StreamPart<Toolkit.Tools<typeof ApprovalToolkit>>> = []
-
         const toolCallId = "call-789"
         const approvalId = "approval-789"
+        let capturedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
 
         const prompt: Array<Prompt.Message> = [
           Prompt.assistantMessage({
@@ -249,32 +250,35 @@ describe("LanguageModel", () => {
           prompt,
           toolkit: ApprovalToolkit
         }).pipe(
-          Stream.runForEach((part) =>
-            Effect.sync(() => {
-              parts.push(part)
-            })
-          ),
+          Stream.runDrain,
           TestUtils.withLanguageModel({
-            streamText: [
-              {
-                type: "tool-call",
-                id: toolCallId,
-                name: "ApprovalTool",
-                params: { action: "delete" }
-              }
-            ]
+            streamText: (opts) => {
+              capturedPrompt = opts.prompt
+              return [{
+                type: "finish",
+                reason: "stop",
+                usage: { totalTokens: 10, inputTokens: 5, outputTokens: 5 }
+              }]
+            }
           }),
           Effect.provide(ApprovalToolkitLayer)
         )
 
-        assert.strictEqual(parts.length, 2)
-        assert.strictEqual(parts[0].type, "tool-call")
-        assert.strictEqual(parts[1].type, "tool-result")
-        if (parts[1].type === "tool-result") {
-          assert.ok("type" in parts[1].result && parts[1].result.type === "execution-denied")
-          assert.ok("reason" in parts[1].result && parts[1].result.reason === "User declined")
-          assert.strictEqual(parts[1].isFailure, true)
-        }
+        // Verify the prompt sent to LLM contains pre-resolved denial result
+        assertDefined(capturedPrompt)
+        const messages = capturedPrompt.content
+        const lastMessage = messages[messages.length - 1]
+        strictEqual(lastMessage.role, "tool")
+        assertTrue(Array.isArray(lastMessage.content))
+        const toolResults = (lastMessage.content as Array<Prompt.ToolMessagePart>).filter(
+          (p): p is Prompt.ToolResultPart => p.type === "tool-result"
+        )
+        strictEqual(toolResults.length, 1)
+        strictEqual(toolResults[0].id, toolCallId)
+        const result = toolResults[0].result as { type: string; reason: string }
+        strictEqual(result.type, "execution-denied")
+        strictEqual(result.reason, "User declined")
+        strictEqual(toolResults[0].isFailure, true)
       }))
 
     it("dynamic needsApproval returns true when condition met", () =>
@@ -305,11 +309,11 @@ describe("LanguageModel", () => {
           Effect.provide(ApprovalToolkitLayer)
         )
 
-        assert.strictEqual(parts.length, 2)
-        assert.strictEqual(parts[0].type, "tool-call")
-        assert.strictEqual(parts[1].type, "tool-approval-request")
+        strictEqual(parts.length, 2)
+        strictEqual(parts[0].type, "tool-call")
+        strictEqual(parts[1].type, "tool-approval-request")
         if (parts[1].type === "tool-approval-request") {
-          assert.strictEqual(parts[1].toolCallId, toolCallId)
+          strictEqual(parts[1].toolCallId, toolCallId)
         }
       }))
 
@@ -341,11 +345,11 @@ describe("LanguageModel", () => {
           Effect.provide(ApprovalToolkitLayer)
         )
 
-        assert.strictEqual(parts.length, 2)
-        assert.strictEqual(parts[0].type, "tool-call")
-        assert.strictEqual(parts[1].type, "tool-result")
+        strictEqual(parts.length, 2)
+        strictEqual(parts[0].type, "tool-call")
+        strictEqual(parts[1].type, "tool-result")
         if (parts[1].type === "tool-result") {
-          assert.deepStrictEqual(parts[1].result, { result: "dynamic-result" })
+          deepStrictEqual(parts[1].result, { result: "dynamic-result" })
         }
       }))
 
@@ -382,11 +386,11 @@ describe("LanguageModel", () => {
         yield* latch.await
         yield* TestClock.adjust("10 seconds")
 
-        assert.strictEqual(parts.length, 2)
-        assert.strictEqual(parts[0].type, "tool-call")
-        assert.strictEqual(parts[1].type, "tool-result")
+        strictEqual(parts.length, 2)
+        strictEqual(parts[0].type, "tool-call")
+        strictEqual(parts[1].type, "tool-result")
         if (parts[1].type === "tool-result") {
-          assert.deepStrictEqual(parts[1].result, { testSuccess: "test-success" })
+          deepStrictEqual(parts[1].result, { testSuccess: "test-success" })
         }
       }))
   })

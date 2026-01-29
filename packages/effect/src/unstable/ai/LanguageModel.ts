@@ -121,7 +121,9 @@ export interface Service {
   readonly generateText: <
     Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
     Tools extends Record<string, Tool.Any> = {}
-  >(options: Options & GenerateTextOptions<Tools>) => Effect.Effect<
+  >(
+    options: Options & GenerateTextOptions<Tools>
+  ) => Effect.Effect<
     GenerateTextResponse<Tools>,
     ExtractError<Options>,
     ExtractServices<Options>
@@ -133,9 +135,14 @@ export interface Service {
   readonly generateObject: <
     ObjectEncoded extends Record<string, any>,
     ObjectSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
-    Options extends NoExcessProperties<GenerateObjectOptions<any, ObjectSchema>, Options>,
+    Options extends NoExcessProperties<
+      GenerateObjectOptions<any, ObjectSchema>,
+      Options
+    >,
     Tools extends Record<string, Tool.Any> = {}
-  >(options: Options & GenerateObjectOptions<Tools, ObjectSchema>) => Effect.Effect<
+  >(
+    options: Options & GenerateObjectOptions<Tools, ObjectSchema>
+  ) => Effect.Effect<
     GenerateObjectResponse<Tools, ObjectSchema["Type"]>,
     ExtractError<Options>,
     ExtractServices<Options> | ObjectSchema["DecodingServices"]
@@ -147,7 +154,9 @@ export interface Service {
   readonly streamText: <
     Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
     Tools extends Record<string, Tool.Any> = {}
-  >(options: Options & GenerateTextOptions<Tools>) => Stream.Stream<
+  >(
+    options: Options & GenerateTextOptions<Tools>
+  ) => Stream.Stream<
     Response.StreamPart<Tools>,
     ExtractError<Options>,
     ExtractServices<Options>
@@ -172,7 +181,12 @@ export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
    */
   readonly toolkit?:
     | Toolkit.WithHandler<Tools>
-    | Effect.Yieldable<Toolkit.Toolkit<Tools>, Toolkit.WithHandler<Tools>, never, any>
+    | Effect.Yieldable<
+      Toolkit.Toolkit<Tools>,
+      Toolkit.WithHandler<Tools>,
+      never,
+      any
+    >
     | undefined
 
   /**
@@ -253,12 +267,17 @@ export interface GenerateObjectOptions<
  * @since 4.0.0
  * @category models
  */
-export type ToolChoice<Tools extends string> = "auto" | "none" | "required" | {
-  readonly tool: Tools
-} | {
-  readonly mode?: "auto" | "required"
-  readonly oneOf: ReadonlyArray<Tools>
-}
+export type ToolChoice<Tools extends string> =
+  | "auto"
+  | "none"
+  | "required"
+  | {
+    readonly tool: Tools
+  }
+  | {
+    readonly mode?: "auto" | "required"
+    readonly oneOf: ReadonlyArray<Tools>
+  }
 
 /**
  * Response class for text generation operations.
@@ -397,7 +416,10 @@ export class GenerateTextResponse<Tools extends Record<string, Tool.Any>> {
  * @since 4.0.0
  * @category models
  */
-export class GenerateObjectResponse<Tools extends Record<string, Tool.Any>, A> extends GenerateTextResponse<Tools> {
+export class GenerateObjectResponse<
+  Tools extends Record<string, Tool.Any>,
+  A
+> extends GenerateTextResponse<Tools> {
   /**
    * The parsed structured object that conforms to the provided schema.
    */
@@ -445,8 +467,8 @@ export type ExtractError<Options> = Options extends {
       infer _E,
       infer _R
     >
-  } ? AiError.AiError | Tool.HandlerError<_Tools[keyof _Tools]> | _E :
-  AiError.AiError
+  } ? AiError.AiError | Tool.HandlerError<_Tools[keyof _Tools]> | _E
+  : AiError.AiError
 
 /**
  * Utility type that extracts the context requirements from LanguageModel options.
@@ -458,7 +480,9 @@ export type ExtractError<Options> = Options extends {
  */
 export type ExtractServices<Options> = Options extends {
   readonly toolkit: Toolkit.WithHandler<infer _Tools>
-} ? // Required for tool call execution
+}
+  // Required for tool call execution
+  ?
     | Tool.ResultEncodingServices<_Tools[keyof _Tools]>
     // Required for decoding large language model responses
     | Tool.ResultDecodingServices<_Tools[keyof _Tools]>
@@ -469,7 +493,9 @@ export type ExtractServices<Options> = Options extends {
       infer _E,
       infer _R
     >
-  } ? // Required for tool call execution
+  }
+  // Required for tool call execution
+    ?
       | Tool.ResultEncodingServices<_Tools[keyof _Tools]>
       // Required for decoding large language model responses
       | Tool.ResultDecodingServices<_Tools[keyof _Tools]>
@@ -561,11 +587,9 @@ export interface ConstructorParams {
    * The final result is returned when the large language model provider
    * finishes text generation.
    */
-  readonly generateText: (options: ProviderOptions) => Effect.Effect<
-    Array<Response.PartEncoded>,
-    AiError.AiError,
-    IdGenerator
-  >
+  readonly generateText: (
+    options: ProviderOptions
+  ) => Effect.Effect<Array<Response.PartEncoded>, AiError.AiError, IdGenerator>
 
   /**
    * A method which requests text generation from the large language model
@@ -573,11 +597,9 @@ export interface ConstructorParams {
    *
    * Intermediate results are streamed from the large language model provider.
    */
-  readonly streamText: (options: ProviderOptions) => Stream.Stream<
-    Response.StreamPartEncoded,
-    AiError.AiError,
-    IdGenerator
-  >
+  readonly streamText: (
+    options: ProviderOptions
+  ) => Stream.Stream<Response.StreamPartEncoded, AiError.AiError, IdGenerator>
 }
 
 /**
@@ -589,534 +611,615 @@ export interface ConstructorParams {
  * @since 4.0.0
  * @category constructors
  */
-export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effect.fnUntraced(
-  function*(params) {
-    const parentSpanTransformer = yield* Effect.serviceOption(CurrentSpanTransformer)
-    const getSpanTransformer = Effect.serviceOption(CurrentSpanTransformer).pipe(
-      Effect.map(Option.orElse(() => parentSpanTransformer))
-    )
+export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effect.fnUntraced(function*(params) {
+  const parentSpanTransformer = yield* Effect.serviceOption(
+    CurrentSpanTransformer
+  )
+  const getSpanTransformer = Effect.serviceOption(
+    CurrentSpanTransformer
+  ).pipe(Effect.map(Option.orElse(() => parentSpanTransformer)))
 
-    const idGenerator = yield* Effect.serviceOption(IdGenerator).pipe(
-      Effect.map(Option.getOrElse(() => defaultIdGenerator))
-    )
+  const idGenerator = yield* Effect.serviceOption(IdGenerator).pipe(
+    Effect.map(Option.getOrElse(() => defaultIdGenerator))
+  )
 
-    const generateText = <
-      Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
-      Tools extends Record<string, Tool.Any> = {}
-    >(options: Options & GenerateTextOptions<Tools>): Effect.Effect<
-      GenerateTextResponse<Tools>,
-      ExtractError<Options>,
-      ExtractServices<Options>
-    > =>
-      Effect.useSpan(
-        "LanguageModel.generateText",
-        {
-          attributes: {
-            concurrency: options.concurrency,
-            toolChoice: options.toolChoice
+  const generateText = <
+    Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
+    Tools extends Record<string, Tool.Any> = {}
+  >(
+    options: Options & GenerateTextOptions<Tools>
+  ): Effect.Effect<
+    GenerateTextResponse<Tools>,
+    ExtractError<Options>,
+    ExtractServices<Options>
+  > =>
+    Effect.useSpan(
+      "LanguageModel.generateText",
+      {
+        attributes: {
+          concurrency: options.concurrency,
+          toolChoice: options.toolChoice
+        }
+      },
+      Effect.fnUntraced(
+        function*(span) {
+          const spanTransformer = yield* getSpanTransformer
+
+          const providerOptions: Mutable<ProviderOptions> = {
+            prompt: Prompt.make(options.prompt),
+            tools: [],
+            toolChoice: "none",
+            responseFormat: { type: "text" },
+            span
           }
+          const content = yield* generateContent(options, providerOptions)
+
+          applySpanTransformer(
+            spanTransformer,
+            content as any,
+            providerOptions
+          )
+
+          return new GenerateTextResponse(content)
         },
-        Effect.fnUntraced(
-          function*(span) {
-            const spanTransformer = yield* getSpanTransformer
-
-            const providerOptions: Mutable<ProviderOptions> = {
-              prompt: Prompt.make(options.prompt),
-              tools: [],
-              toolChoice: "none",
-              responseFormat: { type: "text" },
-              span
-            }
-            const content = yield* generateContent(options, providerOptions)
-
-            applySpanTransformer(spanTransformer, content as any, providerOptions)
-
-            return new GenerateTextResponse(content)
-          },
-          Effect.catchTag("SchemaError", (error) =>
-            Effect.fail(AiError.make({
+        Effect.catchTag("SchemaError", (error) =>
+          Effect.fail(
+            AiError.make({
               module: "LanguageModel",
               method: "generateText",
               reason: AiError.InvalidOutputError.fromSchemaError(error)
-            }))),
-          (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
-          Effect.provideService(IdGenerator, idGenerator)
-        )
-      ) as any
+            })
+          )),
+        (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
+        Effect.provideService(IdGenerator, idGenerator)
+      )
+    ) as any
 
-    const generateObject = <
-      ObjectEncoded extends Record<string, any>,
-      ObjectSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
-      Options extends NoExcessProperties<GenerateObjectOptions<any, ObjectSchema>, Options>,
-      Tools extends Record<string, Tool.Any> = {}
-    >(options: Options & GenerateObjectOptions<Tools, ObjectSchema>): Effect.Effect<
-      GenerateObjectResponse<Tools, ObjectSchema["Type"]>,
-      ExtractError<Options>,
-      ExtractServices<Options> | ObjectSchema["DecodingServices"]
-    > => {
-      const objectName = getObjectName(options.objectName, options.schema)
-      return Effect.useSpan(
-        "LanguageModel.generateObject",
-        {
-          attributes: {
-            objectName,
-            concurrency: options.concurrency,
-            toolChoice: options.toolChoice
+  const generateObject = <
+    ObjectEncoded extends Record<string, any>,
+    ObjectSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
+    Options extends NoExcessProperties<
+      GenerateObjectOptions<any, ObjectSchema>,
+      Options
+    >,
+    Tools extends Record<string, Tool.Any> = {}
+  >(
+    options: Options & GenerateObjectOptions<Tools, ObjectSchema>
+  ): Effect.Effect<
+    GenerateObjectResponse<Tools, ObjectSchema["Type"]>,
+    ExtractError<Options>,
+    ExtractServices<Options> | ObjectSchema["DecodingServices"]
+  > => {
+    const objectName = getObjectName(options.objectName, options.schema)
+    return Effect.useSpan(
+      "LanguageModel.generateObject",
+      {
+        attributes: {
+          objectName,
+          concurrency: options.concurrency,
+          toolChoice: options.toolChoice
+        }
+      },
+      Effect.fnUntraced(
+        function*(span) {
+          const spanTransformer = yield* getSpanTransformer
+
+          const providerOptions: Mutable<ProviderOptions> = {
+            prompt: Prompt.make(options.prompt),
+            tools: [],
+            toolChoice: "none",
+            responseFormat: {
+              type: "json",
+              objectName,
+              schema: options.schema
+            },
+            span
           }
+
+          const content = yield* generateContent(options, providerOptions)
+
+          applySpanTransformer(
+            spanTransformer,
+            content as any,
+            providerOptions
+          )
+
+          const value = yield* resolveStructuredOutput(
+            content as any,
+            options.schema
+          )
+
+          return new GenerateObjectResponse(value, content)
         },
-        Effect.fnUntraced(
-          function*(span) {
-            const spanTransformer = yield* getSpanTransformer
-
-            const providerOptions: Mutable<ProviderOptions> = {
-              prompt: Prompt.make(options.prompt),
-              tools: [],
-              toolChoice: "none",
-              responseFormat: { type: "json", objectName, schema: options.schema },
-              span
-            }
-
-            const content = yield* generateContent(options, providerOptions)
-
-            applySpanTransformer(spanTransformer, content as any, providerOptions)
-
-            const value = yield* resolveStructuredOutput(content as any, options.schema)
-
-            return new GenerateObjectResponse(value, content)
-          },
-          Effect.catchTag("SchemaError", (error) =>
-            Effect.fail(AiError.make({
+        Effect.catchTag("SchemaError", (error) =>
+          Effect.fail(
+            AiError.make({
               module: "LanguageModel",
               method: "generateObject",
               reason: AiError.InvalidOutputError.fromSchemaError(error)
-            }))),
-          (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
-          Effect.provideService(IdGenerator, idGenerator)
+            })
+          )),
+        (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
+        Effect.provideService(IdGenerator, idGenerator)
+      )
+    ) as any
+  }
+
+  const streamText: <
+    Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
+    Tools extends Record<string, Tool.Any> = {}
+  >(
+    options: Options & GenerateTextOptions<Tools>
+  ) => Stream.Stream<
+    Response.StreamPart<Tools>,
+    ExtractError<Options>,
+    ExtractServices<Options>
+  > = Effect.fnUntraced(
+    function*<
+      Tools extends Record<string, Tool.Any>,
+      Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
+    >(options: Options & GenerateTextOptions<Tools>) {
+      const span = yield* Effect.makeSpanScoped("LanguageModel.streamText", {
+        attributes: {
+          concurrency: options.concurrency,
+          toolChoice: options.toolChoice
+        }
+      })
+
+      const providerOptions: Mutable<ProviderOptions> = {
+        prompt: Prompt.make(options.prompt),
+        tools: [],
+        toolChoice: "none",
+        responseFormat: { type: "text" },
+        span
+      }
+
+      // Resolve the content stream for the request
+      const stream = yield* streamContent(options, providerOptions)
+
+      // Return the stream immediately if there is no span transformer
+      const spanTransformer = yield* getSpanTransformer
+      if (Option.isNone(spanTransformer)) {
+        return stream
+      }
+
+      // Otherwise aggregate generated content and apply the span transformer
+      // when the stream is finished
+      const content: Array<Response.StreamPart<Tools>> = []
+      return stream.pipe(
+        Stream.mapArray((parts) => {
+          content.push(...parts)
+          return parts
+        }),
+        Stream.ensuring(
+          Effect.sync(() => {
+            spanTransformer.value({
+              ...providerOptions,
+              response: content as any
+            })
+          })
         )
-      ) as any
+      )
+    },
+    Stream.unwrap,
+    Stream.mapError((error) =>
+      Schema.isSchemaError(error)
+        ? AiError.make({
+          module: "LanguageModel",
+          method: "streamText",
+          reason: AiError.InvalidOutputError.fromSchemaError(error)
+        })
+        : error
+    ),
+    Stream.provideService(IdGenerator, idGenerator)
+  ) as any
+
+  const generateContent: <
+    Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
+    Tools extends Record<string, Tool.Any> = {}
+  >(
+    options: Options & GenerateTextOptions<Tools>,
+    providerOptions: Mutable<ProviderOptions>
+  ) => Effect.Effect<
+    Array<Response.Part<Tools>>,
+    AiError.AiError | Schema.SchemaError,
+    IdGenerator
+  > = Effect.fnUntraced(function*<
+    Tools extends Record<string, Tool.Any>,
+    Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
+  >(
+    options: Options & GenerateTextOptions<Tools>,
+    providerOptions: Mutable<ProviderOptions>
+  ) {
+    const toolChoice = options.toolChoice ?? "auto"
+
+    // Check for pending approvals that need resolution
+    const { approved, denied } = collectToolApprovals(
+      providerOptions.prompt.content,
+      { excludeResolved: true }
+    )
+    const hasPendingApprovals = approved.length > 0 || denied.length > 0
+
+    // If there is no toolkit, the generated content can be returned immediately
+    if (Predicate.isUndefined(options.toolkit)) {
+      // But first check if we have pending approvals that require a toolkit
+      if (hasPendingApprovals) {
+        return yield* AiError.make({
+          module: "LanguageModel",
+          method: "generateText",
+          reason: new AiError.ToolkitRequiredError({
+            pendingApprovals: [...approved, ...denied]
+              .map((result) => result.toolCall?.name)
+              .filter(Predicate.isNotUndefined)
+          })
+        })
+      }
+      const ResponseSchema = Schema.mutable(
+        Schema.Array(Response.Part(Toolkit.empty))
+      )
+      const rawContent = yield* params.generateText(providerOptions)
+      const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
+      return content as Array<Response.Part<Tools>>
     }
 
-    const streamText: <
-      Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
-      Tools extends Record<string, Tool.Any> = {}
-    >(options: Options & GenerateTextOptions<Tools>) => Stream.Stream<
-      Response.StreamPart<Tools>,
-      ExtractError<Options>,
-      ExtractServices<Options>
-    > = Effect.fnUntraced(
-      function*<
-        Tools extends Record<string, Tool.Any>,
-        Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
-      >(options: Options & GenerateTextOptions<Tools>) {
-        const span = yield* Effect.makeSpanScoped("LanguageModel.streamText", {
-          attributes: { concurrency: options.concurrency, toolChoice: options.toolChoice }
-        })
+    // If there is a toolkit resolve and apply it to the provider options
+    const toolkit = yield* resolveToolkit<Tools, any, any>(options.toolkit)
 
-        const providerOptions: Mutable<ProviderOptions> = {
-          prompt: Prompt.make(options.prompt),
-          tools: [],
-          toolChoice: "none",
-          responseFormat: { type: "text" },
-          span
-        }
-
-        // Resolve the content stream for the request
-        const stream = yield* streamContent(options, providerOptions)
-
-        // Return the stream immediately if there is no span transformer
-        const spanTransformer = yield* getSpanTransformer
-        if (Option.isNone(spanTransformer)) {
-          return stream
-        }
-
-        // Otherwise aggregate generated content and apply the span transformer
-        // when the stream is finished
-        const content: Array<Response.StreamPart<Tools>> = []
-        return stream.pipe(
-          Stream.mapArray((parts) => {
-            content.push(...parts)
-            return parts
-          }),
-          Stream.ensuring(Effect.sync(() => {
-            spanTransformer.value({ ...providerOptions, response: content as any })
-          }))
-        )
-      },
-      Stream.unwrap,
-      Stream.mapError((error) =>
-        Schema.isSchemaError(error)
-          ? AiError.make({
-            module: "LanguageModel",
-            method: "streamText",
-            reason: AiError.InvalidOutputError.fromSchemaError(error)
+    // If the resolved toolkit is empty, return the generated content immediately
+    if (Object.values(toolkit.tools).length === 0) {
+      // But first check if we have pending approvals that require a toolkit
+      if (hasPendingApprovals) {
+        return yield* AiError.make({
+          module: "LanguageModel",
+          method: "generateText",
+          reason: new AiError.ToolkitRequiredError({
+            pendingApprovals: [...approved, ...denied]
+              .map((result) => result.toolCall?.name)
+              .filter(Predicate.isNotUndefined)
           })
-          : error
-      ),
-      Stream.provideService(IdGenerator, idGenerator)
-    ) as any
-
-    const generateContent: <
-      Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
-      Tools extends Record<string, Tool.Any> = {}
-    >(options: Options & GenerateTextOptions<Tools>, providerOptions: Mutable<ProviderOptions>) => Effect.Effect<
-      Array<Response.Part<Tools>>,
-      AiError.AiError | Schema.SchemaError,
-      IdGenerator
-    > = Effect.fnUntraced(
-      function*<
-        Tools extends Record<string, Tool.Any>,
-        Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
-      >(options: Options & GenerateTextOptions<Tools>, providerOptions: Mutable<ProviderOptions>) {
-        const toolChoice = options.toolChoice ?? "auto"
-
-        // Check for pending approvals that need resolution
-        const { approved, denied } = collectToolApprovals(
-          providerOptions.prompt.content,
-          { excludeResolved: true }
-        )
-        const hasPendingApprovals = approved.length > 0 || denied.length > 0
-
-        // If there is no toolkit, the generated content can be returned immediately
-        if (Predicate.isUndefined(options.toolkit)) {
-          // But first check if we have pending approvals that require a toolkit
-          if (hasPendingApprovals) {
-            return yield* AiError.make({
-              module: "LanguageModel",
-              method: "generateText",
-              reason: new AiError.ToolkitRequiredError({
-                pendingApprovals: [...approved, ...denied]
-                  .map((a) => a.toolCall?.name)
-                  .filter(Predicate.isNotUndefined)
-              })
-            })
-          }
-          const ResponseSchema = Schema.mutable(Schema.Array(Response.Part(Toolkit.empty)))
-          const rawContent = yield* params.generateText(providerOptions)
-          const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
-          return content as Array<Response.Part<Tools>>
-        }
-
-        // If there is a toolkit resolve and apply it to the provider options
-        const toolkit = yield* resolveToolkit<Tools, any, any>(options.toolkit)
-
-        // If the resolved toolkit is empty, return the generated content immediately
-        if (Object.values(toolkit.tools).length === 0) {
-          // But first check if we have pending approvals that require a toolkit
-          if (hasPendingApprovals) {
-            return yield* AiError.make({
-              module: "LanguageModel",
-              method: "generateText",
-              reason: new AiError.ToolkitRequiredError({
-                pendingApprovals: [...approved, ...denied]
-                  .map((a) => a.toolCall?.name)
-                  .filter(Predicate.isNotUndefined)
-              })
-            })
-          }
-          const ResponseSchema = Schema.mutable(Schema.Array(Response.Part(Toolkit.empty)))
-          const rawContent = yield* params.generateText(providerOptions)
-          const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
-          return content as Array<Response.Part<Tools>>
-        }
-
-        // Pre-resolve tool approvals before calling the LLM
-        if (hasPendingApprovals) {
-          // Validate all approved tools exist in the toolkit
-          for (const approval of approved) {
-            if (approval.toolCall && !toolkit.tools[approval.toolCall.name]) {
-              return yield* AiError.make({
-                module: "LanguageModel",
-                method: "generateText",
-                reason: new AiError.ToolNotFoundError({
-                  toolName: approval.toolCall.name,
-                  toolParams: approval.toolCall.params as Schema.Json,
-                  availableTools: Object.keys(toolkit.tools)
-                })
-              })
-            }
-          }
-
-          // Execute approved tools and create denial results
-          const approvedResults = yield* executeApprovedToolCalls(approved, toolkit, options.concurrency)
-          const deniedResults = createDenialResults(denied)
-          const preResolvedResults = [...approvedResults, ...deniedResults]
-
-          // Add pre-resolved results to the prompt
-          if (preResolvedResults.length > 0) {
-            const toolMessage = Prompt.makeMessage("tool", { content: preResolvedResults })
-            providerOptions.prompt = Prompt.fromMessages([
-              ...providerOptions.prompt.content,
-              toolMessage
-            ])
-          }
-        }
-
-        const tools = typeof toolChoice === "object" && "oneOf" in toolChoice
-          ? Object.values(toolkit.tools).filter((tool) => toolChoice.oneOf.includes(tool.name))
-          : Object.values(toolkit.tools)
-        providerOptions.tools = tools
-        providerOptions.toolChoice = toolChoice
-
-        // Construct the response schema with the tools from the toolkit
-        const ResponseSchema = Schema.mutable(Schema.Array(Response.Part(toolkit)))
-
-        // If tool call resolution is disabled, return the response without
-        // resolving the tool calls that were generated
-        if (options.disableToolCallResolution === true) {
-          const rawContent = yield* params.generateText(providerOptions)
-          const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
-          return content as Array<Response.Part<Tools>>
-        }
-
-        const rawContent = yield* params.generateText(providerOptions)
-
-        // Resolve the generated tool calls
-        const toolResults = yield* resolveToolCalls(
-          rawContent,
-          toolkit,
-          providerOptions.prompt.content,
-          options.concurrency
-        ).pipe(
-          Stream.filter((result) => result.type === "tool-approval-request" || result.preliminary === false),
-          Stream.runCollect
-        )
-        const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
-
-        // Return the content merged with the tool call results
-        return [...content, ...toolResults] as Array<Response.Part<Tools>>
+        })
       }
+      const ResponseSchema = Schema.mutable(
+        Schema.Array(Response.Part(Toolkit.empty))
+      )
+      const rawContent = yield* params.generateText(providerOptions)
+      const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
+      return content as Array<Response.Part<Tools>>
+    }
+
+    // Pre-resolve tool approvals before calling the LLM
+    if (hasPendingApprovals) {
+      // Validate all approved tools exist in the toolkit
+      for (const approval of approved) {
+        if (approval.toolCall && !toolkit.tools[approval.toolCall.name]) {
+          return yield* AiError.make({
+            module: "LanguageModel",
+            method: "generateText",
+            reason: new AiError.ToolNotFoundError({
+              toolName: approval.toolCall.name,
+              toolParams: approval.toolCall.params as Schema.Json,
+              availableTools: Object.keys(toolkit.tools)
+            })
+          })
+        }
+      }
+
+      // Execute approved tools and create denial results
+      const approvedResults = yield* executeApprovedToolCalls(
+        approved,
+        toolkit,
+        options.concurrency
+      )
+      const deniedResults = createDenialResults(denied)
+      const preResolvedResults = [...approvedResults, ...deniedResults]
+
+      // Add pre-resolved results to the prompt
+      if (preResolvedResults.length > 0) {
+        const toolMessage = Prompt.makeMessage("tool", {
+          content: preResolvedResults
+        })
+        providerOptions.prompt = Prompt.fromMessages([
+          ...providerOptions.prompt.content,
+          toolMessage
+        ])
+      }
+    }
+
+    const tools = typeof toolChoice === "object" && "oneOf" in toolChoice
+      ? Object.values(toolkit.tools).filter((tool) => toolChoice.oneOf.includes(tool.name))
+      : Object.values(toolkit.tools)
+    providerOptions.tools = tools
+    providerOptions.toolChoice = toolChoice
+
+    // Construct the response schema with the tools from the toolkit
+    const ResponseSchema = Schema.mutable(
+      Schema.Array(Response.Part(toolkit))
     )
 
-    const streamContent: <
-      Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
-      Tools extends Record<string, Tool.Any> = {}
-    >(options: Options & GenerateTextOptions<Tools>, providerOptions: Mutable<ProviderOptions>) => Effect.Effect<
-      Stream.Stream<Response.StreamPart<Tools>, AiError.AiError | Schema.SchemaError, IdGenerator>,
-      Options extends { readonly toolkit: Effect.Effect<Toolkit.WithHandler<Tools>, infer _E, infer _R> } ? _E : never,
-      Options extends { readonly toolkit: Effect.Effect<Toolkit.WithHandler<Tools>, infer _E, infer _R> } ? _R : never
-    > = Effect.fnUntraced(
-      function*<
-        Tools extends Record<string, Tool.Any>,
-        Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
-      >(options: Options & GenerateTextOptions<Tools>, providerOptions: Mutable<ProviderOptions>) {
-        const toolChoice = options.toolChoice ?? "auto"
+    // If tool call resolution is disabled, return the response without
+    // resolving the tool calls that were generated
+    if (options.disableToolCallResolution === true) {
+      const rawContent = yield* params.generateText(providerOptions)
+      const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
+      return content as Array<Response.Part<Tools>>
+    }
 
-        // Check for pending approvals that need resolution
-        const { approved: pendingApproved, denied: pendingDenied } = collectToolApprovals(
-          providerOptions.prompt.content,
-          { excludeResolved: true }
-        )
-        const hasPendingApprovals = pendingApproved.length > 0 || pendingDenied.length > 0
+    const rawContent = yield* params.generateText(providerOptions)
 
-        // If there is no toolkit, return immediately
-        if (Predicate.isUndefined(options.toolkit)) {
-          // But first check if we have pending approvals that require a toolkit
-          if (hasPendingApprovals) {
-            return yield* AiError.make({
-              module: "LanguageModel",
-              method: "streamText",
-              reason: new AiError.ToolkitRequiredError({
-                pendingApprovals: [...pendingApproved, ...pendingDenied]
-                  .map((a) => a.toolCall?.name)
-                  .filter(Predicate.isNotUndefined)
-              })
-            })
-          }
-          const schema = Schema.NonEmptyArray(Response.StreamPart(Toolkit.empty))
-          const decodeParts = Schema.decodeEffect(schema)
-          return params.streamText(providerOptions).pipe(
-            Stream.mapArrayEffect((parts) => decodeParts(parts))
-          ) as Stream.Stream<Response.StreamPart<Tools>, AiError.AiError | Schema.SchemaError, IdGenerator>
-        }
+    // Resolve the generated tool calls
+    const toolResults = yield* resolveToolCalls(
+      rawContent,
+      toolkit,
+      providerOptions.prompt.content,
+      options.concurrency
+    ).pipe(
+      Stream.filter(
+        (result) =>
+          result.type === "tool-approval-request" ||
+          result.preliminary === false
+      ),
+      Stream.runCollect
+    )
+    const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
 
-        // If there is a toolkit resolve and apply it to the provider options
-        const toolkit = "asEffect" in options.toolkit ? yield* options.toolkit : options.toolkit
+    // Return the content merged with the tool call results
+    return [...content, ...toolResults] as Array<Response.Part<Tools>>
+  })
 
-        // If the toolkit is empty, return immediately
-        if (Object.values(toolkit.tools).length === 0) {
-          // But first check if we have pending approvals that require a toolkit
-          if (hasPendingApprovals) {
-            return yield* AiError.make({
-              module: "LanguageModel",
-              method: "streamText",
-              reason: new AiError.ToolkitRequiredError({
-                pendingApprovals: [...pendingApproved, ...pendingDenied]
-                  .map((a) => a.toolCall?.name)
-                  .filter(Predicate.isNotUndefined)
-              })
-            })
-          }
-          const schema = Schema.NonEmptyArray(Response.StreamPart(Toolkit.empty))
-          const decodeParts = Schema.decodeEffect(schema)
-          return params.streamText(providerOptions).pipe(
-            Stream.mapArrayEffect((parts) => decodeParts(parts))
-          ) as Stream.Stream<Response.StreamPart<Tools>, AiError.AiError | Schema.SchemaError, IdGenerator>
-        }
+  const streamContent: <
+    Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
+    Tools extends Record<string, Tool.Any> = {}
+  >(
+    options: Options & GenerateTextOptions<Tools>,
+    providerOptions: Mutable<ProviderOptions>
+  ) => Effect.Effect<
+    Stream.Stream<
+      Response.StreamPart<Tools>,
+      AiError.AiError | Schema.SchemaError,
+      IdGenerator
+    >,
+    Options extends {
+      readonly toolkit: Effect.Effect<
+        Toolkit.WithHandler<Tools>,
+        infer _E,
+        infer _R
+      >
+    } ? _E
+      : never,
+    Options extends {
+      readonly toolkit: Effect.Effect<
+        Toolkit.WithHandler<Tools>,
+        infer _E,
+        infer _R
+      >
+    } ? _R
+      : never
+  > = Effect.fnUntraced(function*<
+    Tools extends Record<string, Tool.Any>,
+    Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
+  >(
+    options: Options & GenerateTextOptions<Tools>,
+    providerOptions: Mutable<ProviderOptions>
+  ) {
+    const toolChoice = options.toolChoice ?? "auto"
 
-        // Pre-resolve tool approvals before calling the LLM
-        if (hasPendingApprovals) {
-          // Validate all approved tools exist in the toolkit
-          for (const approval of pendingApproved) {
-            if (approval.toolCall && !toolkit.tools[approval.toolCall.name]) {
-              return yield* AiError.make({
-                module: "LanguageModel",
-                method: "streamText",
-                reason: new AiError.ToolNotFoundError({
-                  toolName: approval.toolCall.name,
-                  toolParams: approval.toolCall.params as Schema.Json,
-                  availableTools: Object.keys(toolkit.tools)
-                })
-              })
-            }
-          }
+    // Check for pending approvals that need resolution
+    const { approved: pendingApproved, denied: pendingDenied } = collectToolApprovals(providerOptions.prompt.content, {
+      excludeResolved: true
+    })
+    const hasPendingApprovals = pendingApproved.length > 0 || pendingDenied.length > 0
 
-          // Execute approved tools and create denial results
-          const approvedResults = yield* executeApprovedToolCalls(pendingApproved, toolkit, options.concurrency)
-          const deniedResults = createDenialResults(pendingDenied)
-          const preResolvedResults = [...approvedResults, ...deniedResults]
-
-          // Add pre-resolved results to the prompt
-          if (preResolvedResults.length > 0) {
-            const toolMessage = Prompt.makeMessage("tool", { content: preResolvedResults })
-            providerOptions.prompt = Prompt.fromMessages([
-              ...providerOptions.prompt.content,
-              toolMessage
-            ])
-          }
-        }
-
-        const tools = typeof toolChoice === "object" && "oneOf" in toolChoice
-          ? Object.values(toolkit.tools).filter((tool) => toolChoice.oneOf.includes(tool.name))
-          : Object.values(toolkit.tools)
-        providerOptions.tools = tools
-        providerOptions.toolChoice = toolChoice
-
-        // If tool call resolution is disabled, return the response without
-        // resolving the tool calls that were generated
-        if (options.disableToolCallResolution === true) {
-          const schema = Schema.NonEmptyArray(Response.StreamPart(toolkit))
-          const decodeParts = Schema.decodeEffect(schema)
-          return params.streamText(providerOptions).pipe(
-            Stream.mapArrayEffect((parts) => decodeParts(parts))
-          ) as Stream.Stream<Response.StreamPart<Tools>, AiError.AiError | Schema.SchemaError, IdGenerator>
-        }
-
-        const ResponseSchema = Schema.NonEmptyArray(Response.StreamPart(toolkit))
-        const decodeParts = Schema.decodeEffect(ResponseSchema)
-
-        // Queue for decoded parts and tool results
-        const queue = yield* Queue.make<
-          Response.StreamPart<Tools>,
-          AiError.AiError | AiError.AiErrorReason | Cause.Done | Schema.SchemaError
-        >()
-
-        // FiberSet to track concurrent tool call handlers
-        const toolCallFibers = yield* FiberSet.make<void, AiError.AiError>()
-
-        // Collect approval state from messages (for newly generated tool calls)
-        const { approved, denied } = collectToolApprovals(providerOptions.prompt.content)
-        const approvedToolCallIds = new Set(approved.map((a) => a.toolCallId))
-        const deniedByToolCallId = new Map(denied.map((d) => [d.toolCallId, d]))
-
-        // Helper function to handle tool calls with approval logic
-        const handleToolCall = (part: Response.ToolCallPartEncoded) =>
-          Effect.gen(function*() {
-            const tool = toolkit.tools[part.name]
-            if (!tool) return
-
-            if (deniedByToolCallId.has(part.id)) {
-              const denial = deniedByToolCallId.get(part.id)!
-              const deniedPart = Response.makePart("tool-result", {
-                id: part.id,
-                name: part.name,
-                providerExecuted: false,
-                isFailure: true,
-                result: { type: "execution-denied", reason: denial.reason },
-                encodedResult: { type: "execution-denied", reason: denial.reason },
-                preliminary: false
-              }) as Response.StreamPart<Tools>
-              yield* Queue.offer(queue, deniedPart)
-              return
-            }
-
-            if (approvedToolCallIds.has(part.id)) {
-              yield* toolkit.handle(part.name, part.params as any).pipe(
-                Stream.unwrap,
-                Stream.runForEach((result) => {
-                  const toolResultPart = Response.makePart("tool-result", {
-                    id: part.id,
-                    name: part.name,
-                    providerExecuted: false,
-                    ...result
-                  }) as Response.StreamPart<Tools>
-                  return Queue.offer(queue, toolResultPart)
-                })
-              )
-              return
-            }
-
-            const needsApproval = yield* isApprovalNeeded(tool, part, providerOptions.prompt.content)
-            if (needsApproval) {
-              const idGen = yield* IdGenerator
-              const approvalId = yield* idGen.generateId()
-              const approvalPart = Response.makePart("tool-approval-request", {
-                approvalId,
-                toolCallId: part.id
-              }) as Response.StreamPart<Tools>
-              yield* Queue.offer(queue, approvalPart)
-              return
-            }
-
-            yield* toolkit.handle(part.name, part.params as any).pipe(
-              Stream.unwrap,
-              Stream.runForEach((result) => {
-                const toolResultPart = Response.makePart("tool-result", {
-                  id: part.id,
-                  name: part.name,
-                  providerExecuted: false,
-                  ...result
-                }) as Response.StreamPart<Tools>
-                return Queue.offer(queue, toolResultPart)
-              })
-            )
+    // If there is no toolkit, return immediately
+    if (Predicate.isUndefined(options.toolkit)) {
+      // But first check if we have pending approvals that require a toolkit
+      if (hasPendingApprovals) {
+        return yield* AiError.make({
+          module: "LanguageModel",
+          method: "streamText",
+          reason: new AiError.ToolkitRequiredError({
+            pendingApprovals: [...pendingApproved, ...pendingDenied]
+              .map((a) => a.toolCall?.name)
+              .filter(Predicate.isNotUndefined)
           })
+        })
+      }
+      const schema = Schema.NonEmptyArray(Response.StreamPart(Toolkit.empty))
+      const decodeParts = Schema.decodeEffect(schema)
+      return params
+        .streamText(providerOptions)
+        .pipe(
+          Stream.mapArrayEffect((parts) => decodeParts(parts))
+        ) as Stream.Stream<
+          Response.StreamPart<Tools>,
+          AiError.AiError | Schema.SchemaError,
+          IdGenerator
+        >
+    }
 
-        yield* params.streamText(providerOptions).pipe(
-          Stream.runForEachArray(Effect.fnUntraced(function*(chunk) {
-            const parts = yield* decodeParts(chunk)
-            // Add decoded response parts to the output queue
-            yield* Queue.offerAll(queue, parts)
-            // Fork tool call handlers - use the raw chunk for encoded params
-            for (const part of chunk) {
-              if (part.type === "tool-call" && part.providerExecuted !== true) {
-                yield* FiberSet.run(toolCallFibers, handleToolCall(part))
-              }
-            }
-          })),
-          // Wait for all tool calls to either:
-          // - complete (FiberSet.awaitEmpty)
-          // - fail (FiberSet.join)
-          Effect.andThen(Effect.raceFirst(
-            FiberSet.join(toolCallFibers),
-            FiberSet.awaitEmpty(toolCallFibers)
-          )),
-          // And then end the queue
-          Effect.andThen(Queue.end(queue)),
-          Effect.tapCause((cause) => Queue.failCause(queue, cause)),
-          Effect.forkScoped
+    // If there is a toolkit resolve and apply it to the provider options
+    const toolkit = "asEffect" in options.toolkit
+      ? yield* options.toolkit
+      : options.toolkit
+
+    // If the toolkit is empty, return immediately
+    if (Object.values(toolkit.tools).length === 0) {
+      // But first check if we have pending approvals that require a toolkit
+      if (hasPendingApprovals) {
+        return yield* AiError.make({
+          module: "LanguageModel",
+          method: "streamText",
+          reason: new AiError.ToolkitRequiredError({
+            pendingApprovals: [...pendingApproved, ...pendingDenied]
+              .map((a) => a.toolCall?.name)
+              .filter(Predicate.isNotUndefined)
+          })
+        })
+      }
+      const schema = Schema.NonEmptyArray(Response.StreamPart(Toolkit.empty))
+      const decodeParts = Schema.decodeEffect(schema)
+      return params
+        .streamText(providerOptions)
+        .pipe(
+          Stream.mapArrayEffect((parts) => decodeParts(parts))
+        ) as Stream.Stream<
+          Response.StreamPart<Tools>,
+          AiError.AiError | Schema.SchemaError,
+          IdGenerator
+        >
+    }
+
+    // Pre-resolve tool approvals before calling the LLM
+    if (hasPendingApprovals) {
+      // Validate all approved tools exist in the toolkit
+      for (const approval of pendingApproved) {
+        if (approval.toolCall && !toolkit.tools[approval.toolCall.name]) {
+          return yield* AiError.make({
+            module: "LanguageModel",
+            method: "streamText",
+            reason: new AiError.ToolNotFoundError({
+              toolName: approval.toolCall.name,
+              toolParams: approval.toolCall.params as Schema.Json,
+              availableTools: Object.keys(toolkit.tools)
+            })
+          })
+        }
+      }
+
+      // Execute approved tools and create denial results
+      const approvedResults = yield* executeApprovedToolCalls(
+        pendingApproved,
+        toolkit,
+        options.concurrency
+      )
+      const deniedResults = createDenialResults(pendingDenied)
+      const preResolvedResults = [...approvedResults, ...deniedResults]
+
+      // Add pre-resolved results to the prompt
+      if (preResolvedResults.length > 0) {
+        const toolMessage = Prompt.makeMessage("tool", {
+          content: preResolvedResults
+        })
+        providerOptions.prompt = Prompt.fromMessages([
+          ...providerOptions.prompt.content,
+          toolMessage
+        ])
+      }
+    }
+
+    const tools = typeof toolChoice === "object" && "oneOf" in toolChoice
+      ? Object.values(toolkit.tools).filter((tool) => toolChoice.oneOf.includes(tool.name))
+      : Object.values(toolkit.tools)
+    providerOptions.tools = tools
+    providerOptions.toolChoice = toolChoice
+
+    // If tool call resolution is disabled, return the response without
+    // resolving the tool calls that were generated
+    if (options.disableToolCallResolution === true) {
+      const schema = Schema.NonEmptyArray(Response.StreamPart(toolkit))
+      const decodeParts = Schema.decodeEffect(schema)
+      return params
+        .streamText(providerOptions)
+        .pipe(
+          Stream.mapArrayEffect((parts) => decodeParts(parts))
+        ) as Stream.Stream<
+          Response.StreamPart<Tools>,
+          AiError.AiError | Schema.SchemaError,
+          IdGenerator
+        >
+    }
+
+    const ResponseSchema = Schema.NonEmptyArray(Response.StreamPart(toolkit))
+    const decodeParts = Schema.decodeEffect(ResponseSchema)
+
+    // Queue for decoded parts and tool results
+    const queue = yield* Queue.make<
+      Response.StreamPart<Tools>,
+      | AiError.AiError
+      | AiError.AiErrorReason
+      | Cause.Done
+      | Schema.SchemaError
+    >()
+
+    // FiberSet to track concurrent tool call handlers
+    const toolCallFibers = yield* FiberSet.make<void, AiError.AiError>()
+
+    // Helper function to handle tool calls with approval logic
+    const handleToolCall = (part: Response.ToolCallPartEncoded) =>
+      Effect.gen(function*() {
+        const tool = toolkit.tools[part.name]
+        if (!tool) {
+          return
+        }
+
+        const needsApproval = yield* isApprovalNeeded(
+          tool,
+          part,
+          providerOptions.prompt.content
         )
 
-        return Stream.fromQueue(queue)
-      }
-    ) as any
+        if (needsApproval) {
+          const idGen = yield* IdGenerator
+          const approvalId = yield* idGen.generateId()
+          const approvalPart = Response.makePart("tool-approval-request", {
+            approvalId,
+            toolCallId: part.id
+          }) as Response.StreamPart<Tools>
+          yield* Queue.offer(queue, approvalPart)
+          return
+        }
 
-    return {
-      generateText,
-      generateObject,
-      streamText
-    } as const
-  }
-)
+        yield* toolkit.handle(part.name, part.params as any).pipe(
+          Stream.unwrap,
+          Stream.runForEach((result) => {
+            const toolResultPart = Response.makePart("tool-result", {
+              id: part.id,
+              name: part.name,
+              providerExecuted: false,
+              ...result
+            }) as Response.StreamPart<Tools>
+            return Queue.offer(queue, toolResultPart)
+          })
+        )
+      })
+
+    yield* params.streamText(providerOptions).pipe(
+      Stream.runForEachArray(
+        Effect.fnUntraced(function*(chunk) {
+          const parts = yield* decodeParts(chunk)
+          // Add decoded response parts to the output queue
+          yield* Queue.offerAll(queue, parts)
+          // Fork tool call handlers - use the raw chunk for encoded params
+          for (const part of chunk) {
+            if (part.type === "tool-call" && part.providerExecuted !== true) {
+              yield* FiberSet.run(toolCallFibers, handleToolCall(part))
+            }
+          }
+        })
+      ),
+      // Wait for all tool calls to either:
+      // - complete (FiberSet.awaitEmpty)
+      // - fail (FiberSet.join)
+      Effect.andThen(
+        Effect.raceFirst(
+          FiberSet.join(toolCallFibers),
+          FiberSet.awaitEmpty(toolCallFibers)
+        )
+      ),
+      // And then end the queue
+      Effect.andThen(Queue.end(queue)),
+      Effect.tapCause((cause) => Queue.failCause(queue, cause)),
+      Effect.forkScoped
+    )
+
+    return Stream.fromQueue(queue)
+  }) as any
+
+  return {
+    generateText,
+    generateObject,
+    streamText
+  } as const
+})
 
 // =============================================================================
 // Accessors
@@ -1149,7 +1252,9 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
 export const generateText = <
   Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
   Tools extends Record<string, Tool.Any> = {}
->(options: Options & GenerateTextOptions<Tools>): Effect.Effect<
+>(
+  options: Options & GenerateTextOptions<Tools>
+): Effect.Effect<
   GenerateTextResponse<Tools>,
   ExtractError<Options>,
   LanguageModel | ExtractServices<Options>
@@ -1190,9 +1295,14 @@ export const generateText = <
 export const generateObject = <
   ObjectEncoded extends Record<string, any>,
   ObjectSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
-  Options extends NoExcessProperties<GenerateObjectOptions<any, ObjectSchema>, Options>,
+  Options extends NoExcessProperties<
+    GenerateObjectOptions<any, ObjectSchema>,
+    Options
+  >,
   Tools extends Record<string, Tool.Any> = {}
->(options: Options & GenerateObjectOptions<Tools, ObjectSchema>): Effect.Effect<
+>(
+  options: Options & GenerateObjectOptions<Tools, ObjectSchema>
+): Effect.Effect<
   GenerateObjectResponse<Tools, ObjectSchema["Type"]>,
   ExtractError<Options>,
   ExtractServices<Options> | ObjectSchema["DecodingServices"] | LanguageModel
@@ -1225,11 +1335,16 @@ export const generateObject = <
 export const streamText = <
   Options extends NoExcessProperties<GenerateTextOptions<any>, Options>,
   Tools extends Record<string, Tool.Any> = {}
->(options: Options & GenerateTextOptions<Tools>): Stream.Stream<
+>(
+  options: Options & GenerateTextOptions<Tools>
+): Stream.Stream<
   Response.StreamPart<Tools>,
   ExtractError<Options>,
   ExtractServices<Options> | LanguageModel
-> => Stream.unwrap(Effect.map(LanguageModel.asEffect(), (model) => model.streamText(options)))
+> =>
+  Stream.unwrap(
+    Effect.map(LanguageModel.asEffect(), (model) => model.streamText(options))
+  )
 
 // =============================================================================
 // Tool Approval Helpers
@@ -1254,7 +1369,10 @@ const collectToolApprovals = (
   readonly approved: Array<ApprovalResult>
   readonly denied: Array<ApprovalResult>
 } => {
-  const requests = new Map<string, Pick<ApprovalResult, "approvalId" | "toolCallId">>()
+  const requests = new Map<
+    string,
+    Pick<ApprovalResult, "approvalId" | "toolCallId">
+  >()
   const responses: Array<Omit<ApprovalResult, "toolCallId" | "toolCall">> = []
   const toolCallsById = new Map<string, Prompt.ToolCallPart>()
   const toolResultIds = new Set<string>()
@@ -1328,7 +1446,9 @@ const isApprovalNeeded = Effect.fnUntraced(function*<T extends Tool.Any>(
   }
 
   if (typeof tool.needsApproval === "function") {
-    const params = yield* Schema.decodeUnknownEffect(tool.parametersSchema)(toolCall.params) as any
+    const params = yield* Schema.decodeUnknownEffect(tool.parametersSchema)(
+      toolCall.params
+    ) as any
 
     const result = tool.needsApproval(params, {
       toolCallId: toolCall.id,
@@ -1350,14 +1470,16 @@ const executeApprovedToolCalls = <Tools extends Record<string, Tool.Any>>(
   Tool.HandlerError<Tools[keyof Tools]> | AiError.AiError,
   Tool.HandlerServices<Tools[keyof Tools]>
 > => {
-  const executeOne = Effect.fnUntraced(function*(approval: ApprovalResult) {
+  const executeTool = Effect.fnUntraced(function*(approval: ApprovalResult) {
     const toolCall = approval.toolCall
-    if (!toolCall) {
+
+    if (Predicate.isUndefined(toolCall)) {
       return yield* Effect.die("Approval missing tool call reference")
     }
 
     const tool = toolkit.tools[toolCall.name]
-    if (!tool) {
+
+    if (Predicate.isUndefined(tool)) {
       return yield* AiError.make({
         module: "LanguageModel",
         method: "generateText",
@@ -1369,44 +1491,59 @@ const executeApprovedToolCalls = <Tools extends Record<string, Tool.Any>>(
       })
     }
 
-    const resultStream = yield* toolkit.handle(toolCall.name, toolCall.params as any)
+    const resultStream = yield* toolkit.handle(
+      toolCall.name,
+      toolCall.params as any
+    )
 
-    const finalResult = yield* resultStream.pipe(
+    const terminalResult = yield* resultStream.pipe(
       Stream.filter((result) => result.preliminary === false),
       Stream.run(Sink.last()),
-      Effect.flatMap(Option.match({
-        onNone: () => Effect.die("Tool handler did not produce a final result"),
-        onSome: Effect.succeed
-      }))
+      Effect.flatMap(
+        Option.match({
+          onNone: () => Effect.die("Tool handler did not produce a final result"),
+          onSome: Effect.succeed
+        })
+      )
     )
 
     return Prompt.makePart("tool-result", {
       id: approval.toolCallId,
       name: toolCall.name,
-      isFailure: finalResult.isFailure,
-      result: finalResult.encodedResult
+      isFailure: terminalResult.isFailure,
+      result: terminalResult.encodedResult
     })
   })
 
   return Effect.gen(function*() {
     const resolveConcurrency = concurrency === "inherit"
       ? yield* Effect.service(CurrentConcurrency)
-      : concurrency ?? "unbounded"
+      : (concurrency ?? "unbounded")
 
-    return yield* Effect.forEach(approvals, executeOne, { concurrency: resolveConcurrency })
+    return yield* Effect.forEach(approvals, executeTool, {
+      concurrency: resolveConcurrency
+    })
   })
 }
 
-const createDenialResults = (denials: ReadonlyArray<ApprovalResult>): Array<Prompt.ToolResultPart> =>
-  denials.flatMap((denial) => {
-    if (!denial.toolCall) return []
-    return [Prompt.makePart("tool-result", {
-      id: denial.toolCallId,
-      name: denial.toolCall.name,
-      isFailure: true,
-      result: { type: "execution-denied", reason: denial.reason }
-    })]
-  })
+const createDenialResults = (
+  denials: ReadonlyArray<ApprovalResult>
+): ReadonlyArray<Prompt.ToolResultPart> => {
+  const results: Array<Prompt.ToolResultPart> = []
+  for (const denial of denials) {
+    if (Predicate.isNotUndefined(denial.toolCall)) {
+      results.push(
+        Prompt.makePart("tool-result", {
+          id: denial.toolCallId,
+          name: denial.toolCall.name,
+          isFailure: true,
+          result: { type: "execution-denied", reason: denial.reason }
+        })
+      )
+    }
+  }
+  return results
+}
 
 // =============================================================================
 // Tool Call Resolution
@@ -1442,8 +1579,12 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
   }
 
   const { approved, denied } = collectToolApprovals(messages)
-  const approvedToolCallIds = new Set(approved.map((approval) => approval.toolCallId))
-  const deniedByToolCallId = new Map(denied.map((denial) => [denial.toolCallId, denial]))
+  const approvedToolCallIds = new Set(
+    approved.map((approval) => approval.toolCallId)
+  )
+  const deniedByToolCallId = new Map(
+    denied.map((denial) => [denial.toolCallId, denial])
+  )
 
   const streams = toolCalls.map((toolCall) =>
     Effect.gen(function*() {
@@ -1470,13 +1611,14 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
       if (approvedToolCallIds.has(toolCall.id)) {
         return toolkit.handle(toolCall.name, toolCall.params as any).pipe(
           Stream.unwrap,
-          Stream.map((result) =>
-            Response.makePart("tool-result", {
-              id: toolCall.id,
-              name: toolCall.name,
-              providerExecuted: false,
-              ...result
-            }) as ToolResolutionResult<Tools>
+          Stream.map(
+            (result) =>
+              Response.makePart("tool-result", {
+                id: toolCall.id,
+                name: toolCall.name,
+                providerExecuted: false,
+                ...result
+              }) as ToolResolutionResult<Tools>
           )
         )
       }
@@ -1495,13 +1637,14 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
 
       return toolkit.handle(toolCall.name, toolCall.params as any).pipe(
         Stream.unwrap,
-        Stream.map((result) =>
-          Response.makePart("tool-result", {
-            id: toolCall.id,
-            name: toolCall.name,
-            providerExecuted: false,
-            ...result
-          }) as ToolResolutionResult<Tools>
+        Stream.map(
+          (result) =>
+            Response.makePart("tool-result", {
+              id: toolCall.id,
+              name: toolCall.name,
+              providerExecuted: false,
+              ...result
+            }) as ToolResolutionResult<Tools>
         )
       )
     }).pipe(Stream.unwrap)
@@ -1522,7 +1665,9 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
 // =============================================================================
 
 const resolveToolkit = <Tools extends Record<string, Tool.Any>, E, R>(
-  toolkit: Toolkit.WithHandler<Tools> | Effect.Yieldable<Toolkit.Toolkit<any>, Toolkit.WithHandler<Tools>, E, R>
+  toolkit:
+    | Toolkit.WithHandler<Tools>
+    | Effect.Yieldable<Toolkit.Toolkit<any>, Toolkit.WithHandler<Tools>, E, R>
 ): Effect.Effect<Toolkit.WithHandler<Tools>, E, R> =>
   "asEffect" in toolkit ? toolkit.asEffect() : Effect.succeed(toolkit)
 
@@ -1544,34 +1689,34 @@ export const getObjectName = <ObjectSchema extends Schema.Top>(
   return "generateObject"
 }
 
-const resolveStructuredOutput = Effect.fnUntraced(
-  function*<ObjectSchema extends Schema.Top>(response: ReadonlyArray<Response.AllParts<any>>, schema: ObjectSchema) {
-    const text: Array<string> = []
-    for (const part of response) {
-      if (part.type === "text") {
-        text.push(part.text)
-      }
+const resolveStructuredOutput = Effect.fnUntraced(function*<
+  ObjectSchema extends Schema.Top
+>(response: ReadonlyArray<Response.AllParts<any>>, schema: ObjectSchema) {
+  const text: Array<string> = []
+  for (const part of response) {
+    if (part.type === "text") {
+      text.push(part.text)
     }
-
-    if (text.length === 0) {
-      return yield* AiError.make({
-        module: "LanguageModel",
-        method: "generateObject",
-        reason: new AiError.InvalidOutputError({
-          description: "No text content in response"
-        })
-      })
-    }
-
-    const decode = Schema.decodeEffect(Schema.fromJsonString(schema))
-    return yield* Effect.mapError(decode(text.join("")), (error) =>
-      AiError.make({
-        module: "LanguageModel",
-        method: "generateObject",
-        reason: AiError.InvalidOutputError.fromSchemaError(error)
-      }))
   }
-)
+
+  if (text.length === 0) {
+    return yield* AiError.make({
+      module: "LanguageModel",
+      method: "generateObject",
+      reason: new AiError.InvalidOutputError({
+        description: "No text content in response"
+      })
+    })
+  }
+
+  const decode = Schema.decodeEffect(Schema.fromJsonString(schema))
+  return yield* Effect.mapError(decode(text.join("")), (error) =>
+    AiError.make({
+      module: "LanguageModel",
+      method: "generateObject",
+      reason: AiError.InvalidOutputError.fromSchemaError(error)
+    }))
+})
 
 const applySpanTransformer = (
   transformer: Option.Option<SpanTransformer>,
