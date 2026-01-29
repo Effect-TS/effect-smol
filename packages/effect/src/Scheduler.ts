@@ -72,7 +72,7 @@ export interface Scheduler {
  * @category references
  */
 export const Scheduler: ServiceMap.Reference<Scheduler> = ServiceMap.Reference<Scheduler>("effect/Scheduler", {
-  defaultValue: () => new MixedScheduler()
+  defaultValue: () => new PriorityScheduler()
 })
 
 const setImmediate = "setImmediate" in globalThis
@@ -234,16 +234,13 @@ export class PriorityScheduler implements Scheduler {
 
   readonly executionMode: "sync" | "async"
   readonly setImmediate: (f: () => void) => () => void
-  readonly maxNextTickBeforeTimer: number
 
   constructor(
     executionMode: "sync" | "async" = "async",
-    setImmediateFn: (f: () => void) => () => void = setImmediate,
-    maxNextTickBeforeTimer = 2048
+    setImmediateFn: (f: () => void) => () => void = setImmediate
   ) {
     this.executionMode = executionMode
     this.setImmediate = setImmediateFn
-    this.maxNextTickBeforeTimer = maxNextTickBeforeTimer
   }
 
   /**
@@ -253,7 +250,7 @@ export class PriorityScheduler implements Scheduler {
     this.tasks.scheduleTask(task, priority)
     if (this.executionMode === "async" && !this.running) {
       this.running = true
-      this.starve()
+      this.setImmediate(this.afterScheduled)
     }
   }
 
@@ -274,20 +271,12 @@ export class PriorityScheduler implements Scheduler {
     }
   }
 
-  private starveInternal = (depth: number) => {
+  private afterScheduled = () => {
+    this.running = false
     this.runTasks()
-    if (this.tasks.buckets.length === 0) {
-      this.running = false
-      return
-    }
-    this.starve(depth)
-  }
-
-  private starve(depth = 0) {
-    if (depth >= this.maxNextTickBeforeTimer) {
-      this.setImmediate(() => this.starveInternal(0))
-    } else {
-      Promise.resolve().then(() => this.starveInternal(depth + 1))
+    if (this.executionMode === "async" && this.tasks.buckets.length > 0 && !this.running) {
+      this.running = true
+      this.setImmediate(this.afterScheduled)
     }
   }
 
