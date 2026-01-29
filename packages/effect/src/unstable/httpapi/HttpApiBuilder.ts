@@ -668,14 +668,14 @@ function getResponseTransformation<T, E, RD, RE>(
   schema: Schema.Codec<T, E, RD, RE>
 ): Transformation.Transformation<E, Response.HttpServerResponse> {
   const ast = schema.ast
-  const isEmpty = HttpApiSchema.isVoidEncoded(ast)
+  const isEmptyEncoded = HttpApiSchema.isEmptyEncoded(ast)
   const status = getStatus(ast)
 
   return Transformation.transformOrFail({
     decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
     encode(e: E) {
       // Handle empty
-      if (isEmpty) {
+      if (isEmptyEncoded) {
         return Effect.succeed(Response.empty({ status }))
       }
       const encoding = HttpApiSchema.getEncoding(ast)

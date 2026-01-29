@@ -294,17 +294,17 @@ const extractMembers = (
     const status = getStatus(ast)
     // only include a schema in the response-body union if it actually has a payload,
     // or if it's explicitly an “empty response” schema (so the empty-ness is intentional)
-    const shouldAdd = HttpApiSchema.resolveHttpApiIsEmpty(ast) || !HttpApiSchema.isVoidEncoded(ast)
+    const isEmpty = HttpApiSchema.isEmpty(ast)
     const description = resoveDescriptionOrIdentifier(ast)
     const pair = map.get(status)
     if (pair === undefined) {
       map.set(status, {
         description,
-        set: shouldAdd ? new Set([schema]) : new Set([])
+        set: isEmpty ? new Set([]) : new Set([schema])
       })
     } else {
       pair.description = [pair.description, description].filter(Boolean).join(" | ")
-      if (shouldAdd) {
+      if (!isEmpty) {
         pair.set.add(schema)
       }
     }

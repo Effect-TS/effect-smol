@@ -14,7 +14,6 @@ declare module "../../Schema.ts" {
   namespace Annotations {
     interface Annotations {
       readonly httpApiEncoding?: Encoding | undefined
-      readonly httpApiIsEmpty?: true | undefined
       readonly httpApiMultipart?: Multipart_.withLimits.Options | undefined
       readonly httpApiMultipartStream?: Multipart_.withLimits.Options | undefined
       readonly httpApiStatus?: number | undefined
@@ -22,8 +21,6 @@ declare module "../../Schema.ts" {
   }
 }
 
-/** @internal */
-export const resolveHttpApiIsEmpty = AST.resolveAt<boolean>("httpApiIsEmpty")
 /** @internal */
 export const resolveHttpApiMultipart = AST.resolveAt<Multipart_.withLimits.Options>("httpApiMultipart")
 /** @internal */
@@ -34,13 +31,18 @@ const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
 const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
 
 /** @internal */
-export function isVoidEncoded(ast: AST.AST): boolean {
+export function isEmptyEncoded(ast: AST.AST): boolean {
   return AST.isVoid(AST.toEncoded(ast))
 }
 
 /** @internal */
+export function isEmpty(ast: AST.AST): boolean {
+  return AST.isVoid(ast) && AST.toEncoded(ast) === ast
+}
+
+/** @internal */
 export function getStatusSuccess(self: AST.AST): number {
-  return resolveHttpApiStatus(self) ?? (isVoidEncoded(self) ? 204 : 200)
+  return resolveHttpApiStatus(self) ?? (isEmptyEncoded(self) ? 204 : 200)
 }
 
 /** @internal */
@@ -111,7 +113,6 @@ export const asEmpty: {
         })
       )
     ).annotate({
-      httpApiIsEmpty: true,
       httpApiStatus: options.status
     })
 )
