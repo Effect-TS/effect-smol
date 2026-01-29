@@ -4176,6 +4176,152 @@ export const catchTag: {
 })
 
 /**
+ * Catches a specific reason within a tagged error.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Data } from "effect"
+ *
+ * class RateLimitError extends Data.TaggedError("RateLimitError")<{
+ *   retryAfter: number
+ * }> {}
+ *
+ * class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+ *   limit: number
+ * }> {}
+ *
+ * class AiError extends Data.TaggedError("AiError")<{
+ *   reason: RateLimitError | QuotaExceededError
+ * }> {}
+ *
+ * const channel = Channel.fail(
+ *   new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+ * )
+ *
+ * const recovered = channel.pipe(
+ *   Channel.catchReason("AiError", "RateLimitError", (reason) =>
+ *     Channel.succeed(`retry: ${reason.retryAfter}`)
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchReason: {
+  <
+    OutErr,
+    K extends Types.Tags<OutErr>,
+    RK extends Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    errorTag: K,
+    reasonTag: RK,
+    f: (
+      reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<
+    OutElem | OutElem1,
+    OutErr | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    K extends Types.Tags<OutErr>,
+    RK extends Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    errorTag: K,
+    reasonTag: RK,
+    f: (
+      reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): Channel<
+    OutElem | OutElem1,
+    OutErr | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+} = dual(4, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  K extends Types.Tags<OutErr>,
+  RK extends Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>,
+  OutElem1,
+  OutErr1,
+  OutDone1,
+  InElem1,
+  InErr1,
+  InDone1,
+  Env1
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  errorTag: K,
+  reasonTag: RK,
+  f: (
+    reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+  ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+): Channel<
+  OutElem | OutElem1,
+  OutErr | OutErr1,
+  OutDone | OutDone1,
+  InElem & InElem1,
+  InErr & InErr1,
+  InDone & InDone1,
+  Env | Env1
+> =>
+  catchFilter(
+    self,
+    (e) => {
+      if (isTagged(e, errorTag) && hasProperty(e, "reason") && isTagged(e.reason, reasonTag)) {
+        return e.reason
+      }
+      return Filter.fail(e)
+    },
+    f as any
+  ))
+
+/**
  * Promotes nested reason errors into the channel error, replacing the parent error.
  *
  * @example

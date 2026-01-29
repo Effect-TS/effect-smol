@@ -5081,15 +5081,13 @@ export const catchReason: {
     reasonTag: RK,
     f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Stream<A2, E2, R2>
   ): Stream<A | A2, E | E2, R | R2> =>
-    catchFilter(
-      self,
-      (e) => {
-        if (isTagged(e, errorTag) && hasProperty(e, "reason") && isTagged(e.reason, reasonTag)) {
-          return e.reason
-        }
-        return Filter.fail(e)
-      },
-      f as any
+    fromChannel(
+      Channel.catchReason(
+        toChannel(self),
+        errorTag,
+        reasonTag,
+        (reason) => f(reason).channel
+      )
     )
 )
 
