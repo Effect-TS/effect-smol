@@ -72,7 +72,7 @@ export interface Scheduler {
  * @category references
  */
 export const Scheduler: ServiceMap.Reference<Scheduler> = ServiceMap.Reference<Scheduler>("effect/Scheduler", {
-  defaultValue: () => new PriorityScheduler()
+  defaultValue: () => new MixedScheduler()
 })
 
 const setImmediate = "setImmediate" in globalThis
@@ -127,13 +127,13 @@ class PriorityBuckets {
  *
  * @example
  * ```ts
- * import { PriorityScheduler } from "effect/Scheduler"
+ * import { MixedScheduler } from "effect/Scheduler"
  *
  * // Create a mixed scheduler with async execution (default)
- * const asyncScheduler = new PriorityScheduler("async")
+ * const asyncScheduler = new MixedScheduler("async")
  *
  * // Create a mixed scheduler with sync execution
- * const syncScheduler = new PriorityScheduler("sync")
+ * const syncScheduler = new MixedScheduler("sync")
  *
  * // Schedule tasks with different priorities
  * asyncScheduler.scheduleTask(() => console.log("High priority task"), 10)
@@ -157,8 +157,8 @@ class PriorityBuckets {
  * @category schedulers
  */
 export class MixedScheduler implements Scheduler {
-  private tasks: Array<() => void> = []
-  private running: ReturnType<typeof setImmediate> | undefined = undefined
+  private tasks = new PriorityBuckets()
+  private running = false
   readonly executionMode: "sync" | "async"
   readonly setImmediate: (f: () => void) => () => void
 
@@ -174,80 +174,7 @@ export class MixedScheduler implements Scheduler {
    * @since 2.0.0
    */
   scheduleTask(task: () => void, _priority: number) {
-    this.tasks.push(task)
-    if (this.running === undefined) {
-      this.running = this.setImmediate(this.afterScheduled)
-    }
-  }
-
-  /**
-   * @since 2.0.0
-   */
-  afterScheduled = () => {
-    this.running = undefined
-    this.runTasks()
-  }
-
-  /**
-   * @since 2.0.0
-   */
-  runTasks() {
-    const tasks = this.tasks
-    this.tasks = []
-    for (let i = 0, len = tasks.length; i < len; i++) {
-      tasks[i]()
-    }
-  }
-
-  /**
-   * @since 2.0.0
-   */
-  shouldYield(fiber: Fiber.Fiber<unknown, unknown>) {
-    return fiber.currentOpCount >= fiber.maxOpsBeforeYield
-  }
-
-  /**
-   * @since 2.0.0
-   */
-  flush() {
-    while (this.tasks.length > 0) {
-      if (this.running !== undefined) {
-        this.running()
-        this.running = undefined
-      }
-      this.runTasks()
-    }
-  }
-}
-
-/**
- * A scheduler implementation that executes tasks based on numeric priority.
- * Larger numbers represent higher priority. Tasks are executed FIFO within the
- * same priority.
- *
- * @since 4.0.0
- * @category schedulers
- */
-export class PriorityScheduler implements Scheduler {
-  private tasks = new PriorityBuckets()
-  private running = false
-
-  readonly executionMode: "sync" | "async"
-  readonly setImmediate: (f: () => void) => () => void
-
-  constructor(
-    executionMode: "sync" | "async" = "async",
-    setImmediateFn: (f: () => void) => () => void = setImmediate
-  ) {
-    this.executionMode = executionMode
-    this.setImmediate = setImmediateFn
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  scheduleTask(task: () => void, priority: number) {
-    this.tasks.scheduleTask(task, priority)
+    this.tasks.scheduleTask(task, _priority)
     if (this.executionMode === "async" && !this.running) {
       this.running = true
       this.setImmediate(this.afterScheduled)
@@ -255,13 +182,21 @@ export class PriorityScheduler implements Scheduler {
   }
 
   /**
-   * @since 4.0.0
+   * @since 2.0.0
    */
-  shouldYield(fiber: Fiber.Fiber<unknown, unknown>) {
-    return fiber.currentOpCount >= fiber.maxOpsBeforeYield
+  afterScheduled = () => {
+    this.runTasks()
+    if (this.executionMode === "async" && this.tasks.buckets.length > 0) {
+      this.setImmediate(this.afterScheduled)
+      return
+    }
+    this.running = false
   }
 
-  private runTasks() {
+  /**
+   * @since 2.0.0
+   */
+  runTasks() {
     const buckets = this.tasks.drain()
     for (let i = 0; i < buckets.length; i++) {
       const toRun = buckets[i][1]
@@ -271,19 +206,15 @@ export class PriorityScheduler implements Scheduler {
     }
   }
 
-  private afterScheduled = () => {
-    this.running = false
-    this.runTasks()
-    if (this.executionMode === "async" && this.tasks.buckets.length > 0 && !this.running) {
-      this.running = true
-      this.setImmediate(this.afterScheduled)
-    }
+  /**
+   * @since 2.0.0
+   */
+  shouldYield(fiber: Fiber.Fiber<unknown, unknown>) {
+    return fiber.currentOpCount >= fiber.maxOpsBeforeYield
   }
 
   /**
-   * Drain all queued tasks (sync mode) or force-drain (async mode).
-   *
-   * @since 4.0.0
+   * @since 2.0.0
    */
   flush() {
     while (this.tasks.buckets.length > 0) {
