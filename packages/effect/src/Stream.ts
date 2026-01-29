@@ -8933,7 +8933,10 @@ export const ensuring: {
 )
 
 /**
- * Provides a layer or service map to the stream, removing the corresponding service requirements.
+ * Provides a layer or service map to the stream, removing the corresponding
+ * service requirements. Use `options.local` to build layers with a fresh memo
+ * map (no sharing with outer scopes); default uses the current scope for
+ * sharing.
  *
  * **Previously Known As:** `provideSomeLayer`, `provideSomeContext`.
  *

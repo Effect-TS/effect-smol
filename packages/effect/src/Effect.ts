@@ -5126,7 +5126,9 @@ export const servicesWith: <R, A, E, R2>(
 ) => Effect<A, E, R | R2> = internal.servicesWith
 
 /**
- * Provides dependencies to an effect using layers or a context.
+ * Provides dependencies to an effect using layers or a context. Use `options.local`
+ * to build layers with a fresh memo map (no sharing with outer scopes); default
+ * uses the current scope for sharing.
  *
  * @example
  * ```ts
