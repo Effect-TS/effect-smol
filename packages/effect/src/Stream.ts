@@ -8933,7 +8933,9 @@ export const ensuring: {
 )
 
 /**
- * Provides a layer or service map to the stream, removing the corresponding service requirements.
+ * Provides a layer or service map to the stream, removing the corresponding
+ * service requirements. Use `options.local` to build the layer every time; by
+ * default, layers are shared between provide calls.
  *
  * **Previously Known As:** `provideSomeLayer`, `provideSomeContext`.
  *

@@ -5126,7 +5126,9 @@ export const servicesWith: <R, A, E, R2>(
 ) => Effect<A, E, R | R2> = internal.servicesWith
 
 /**
- * Provides dependencies to an effect using layers or a context.
+ * Provides dependencies to an effect using layers or a context. Use `options.local`
+ * to build the layer every time; by default, layers are shared between provide
+ * calls.
  *
  * @example
  * ```ts
