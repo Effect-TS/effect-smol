@@ -47,6 +47,8 @@ export * as AtomHttpApi from "effect/unstable/reactivity/AtomHttpApi"
  */
 export * as AtomRpc from "effect/unstable/reactivity/AtomRpc"
 
+type WatchEffectCleanup = Parameters<Parameters<typeof watchEffect>[0]>[0]
+
 /**
  * @since 1.0.0
  * @category registry
@@ -57,28 +59,7 @@ export const registryKey = Symbol.for("@effect/atom-vue/registryKey") as Injecti
  * @since 1.0.0
  * @category registry
  */
-/**
- * @since 1.0.0
- * @category registry
- */
-let globalRegistry: AtomRegistry.AtomRegistry | undefined
-
-/**
- * @since 1.0.0
- * @category registry
- */
-const getGlobalRegistry = (): AtomRegistry.AtomRegistry => {
-  if (globalRegistry === undefined) {
-    globalRegistry = AtomRegistry.make()
-  }
-  return globalRegistry
-}
-
-/**
- * @since 1.0.0
- * @category registry
- */
-export const defaultRegistry: AtomRegistry.AtomRegistry = getGlobalRegistry()
+export const defaultRegistry: AtomRegistry.AtomRegistry = AtomRegistry.make()
 
 /**
  * @since 1.0.0
@@ -92,7 +73,7 @@ const useAtomValueRef = <A extends Atom.Atom<any>>(atom: () => A) => {
   const registry = injectRegistry()
   const atomRef = computed(atom)
   const value = shallowRef(undefined as any as A)
-  watchEffect((onCleanup) => {
+  watchEffect((onCleanup: WatchEffectCleanup) => {
     onCleanup(registry.subscribe(atomRef.value, (nextValue: Atom.Type<A>) => {
       value.value = nextValue
     }, { immediate: true }))
@@ -210,7 +191,7 @@ export const useAtomSet = <
 {
   const registry = injectRegistry()
   const atomRef = computed(atom)
-  watchEffect((onCleanup) => {
+  watchEffect((onCleanup: WatchEffectCleanup) => {
     onCleanup(registry.mount(atomRef.value))
   })
   return setAtom(registry, atomRef, options)
@@ -223,7 +204,7 @@ export const useAtomSet = <
 export const useAtomRef = <A>(atomRef: () => AtomRef.ReadonlyRef<A>): Readonly<Ref<A>> => {
   const atomRefRef = computed(atomRef)
   const value = shallowRef<A>(atomRefRef.value.value)
-  watchEffect((onCleanup) => {
+  watchEffect((onCleanup: WatchEffectCleanup) => {
     const ref = atomRefRef.value
     onCleanup(ref.subscribe((next: A) => {
       value.value = next

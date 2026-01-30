@@ -68,6 +68,7 @@
     "vite-tsconfig-paths": "^6.0.4",
     "vitest": "4.0.16",
     "vitest-websocket-mock": "^0.5.0",
+    "vue": "^3.5.27",
     "zod": "^4.3.5"
   },
   "pnpm": {
