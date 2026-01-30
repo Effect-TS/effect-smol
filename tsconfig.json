@@ -41,6 +41,8 @@
       "@effect/ai-openai/*": ["./packages/ai/openai/src/*.ts"],
       "@effect/atom-react": ["./packages/atom/react/src/index.ts"],
       "@effect/atom-react/*": ["./packages/atom/react/src/*.ts"],
+      "@effect/atom-vue": ["./packages/atom/vue/src/index.ts"],
+      "@effect/atom-vue/*": ["./packages/atom/vue/src/*.ts"],
       "@effect/opentelemetry": ["./packages/opentelemetry/src/index.ts"],
       "@effect/opentelemetry/*": ["./packages/opentelemetry/src/*.ts"],
       "@effect/platform-browser": ["./packages/platform-browser/src/index.ts"],
