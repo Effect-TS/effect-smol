@@ -223,8 +223,8 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   let spec: OpenAPISpec = {
     openapi: "3.1.0",
     info: {
-      title: ServiceMap.getOrElse(api.annotations, Title, () => "Api"),
-      version: ServiceMap.getOrElse(api.annotations, Version, () => "0.0.1")
+      title: "Api",
+      version: "0.0.1"
     },
     paths: {},
     components: {
@@ -235,7 +235,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
     tags: []
   }
 
-  const irOps: Array<
+  const pathOps: Array<
     {
       readonly _tag: "schema"
       readonly ast: AST.AST
@@ -247,16 +247,12 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
     }
   > = []
 
-  function processHttpApiSecurity(
-    name: string,
-    security: HttpApiSecurity
-  ) {
-    if (spec.components.securitySchemes[name] !== undefined) {
-      return
-    }
-    spec.components.securitySchemes[name] = makeSecurityScheme(security)
-  }
-
+  processAnnotation(api.annotations, Title, (title) => {
+    spec.info.title = title
+  })
+  processAnnotation(api.annotations, Version, (version) => {
+    spec.info.version = version
+  })
   processAnnotation(api.annotations, Description, (description) => {
     spec.info.description = description
   })
@@ -320,7 +316,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
               const asts = Array.from(schemas, AST.getAST)
               const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
 
-              irOps.push({
+              pathOps.push({
                 _tag: "schema",
                 ast: toEncodingAST(ast, encoding),
                 path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
@@ -346,7 +342,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
                 const asts = Array.from(schemas, AST.getAST)
                 const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
 
-                irOps.push({
+                pathOps.push({
                   _tag: "schema",
                   ast: toEncodingAST(ast, encoding),
                   path: ["paths", path, method, "responses", String(status), "content", contentType, "schema"]
@@ -374,7 +370,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
                 required: i === "path" || !AST.isOptional(ps.type)
               })
 
-              irOps.push({
+              pathOps.push({
                 _tag: "parameter",
                 ast: ps.type,
                 path: ["paths", path, method, "parameters", String(op.parameters.length - 1), "schema"]
@@ -408,6 +404,16 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           op.security.push({ [name]: [] })
         }
       })
+
+      function processHttpApiSecurity(
+        name: string,
+        security: HttpApiSecurity
+      ) {
+        if (spec.components.securitySchemes[name] !== undefined) {
+          return
+        }
+        spec.components.securitySchemes[name] = makeSecurityScheme(security)
+      }
 
       const hasBody = HttpMethod.hasBody(endpoint.method)
       if (hasBody) {
@@ -443,8 +449,6 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         ),
         () => "Error"
       )
-      // processResponseBodiesOld(successes, () => "Success")
-      // processResponseBodiesOld(errors, () => "Error")
 
       if (!spec.paths[path]) {
         spec.paths[path] = {}
@@ -470,7 +474,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           throw new globalThis.Error(`Duplicate component schema identifier: ${identifier}`)
         }
         spec.components.schemas[identifier] = {}
-        irOps.push({
+        pathOps.push({
           _tag: "schema",
           ast: componentSchema.ast,
           path: ["components", "schemas", identifier]
@@ -483,16 +487,16 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
     return "/" + path.map(escapeToken).join("/")
   }
 
-  if (Arr.isArrayNonEmpty(irOps)) {
+  if (Arr.isArrayNonEmpty(pathOps)) {
     const multiDocument = SchemaRepresentation.fromASTs(
-      Arr.map(irOps, (op) => op.ast)
+      Arr.map(pathOps, (op) => op.ast)
     )
     const jsonSchemaMultiDocument = JsonSchema.toMultiDocumentOpenApi3_1(
       SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument, {
         additionalProperties: options?.additionalProperties
       })
     )
-    const patchOps: Array<JsonPatch.JsonPatchOperation> = irOps.map((op, i) => {
+    const patchOps: Array<JsonPatch.JsonPatchOperation> = pathOps.map((op, i) => {
       const oppath = escapePath(op.path)
       const value = jsonSchemaMultiDocument.schemas[i]
       return {

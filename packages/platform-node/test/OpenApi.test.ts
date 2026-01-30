@@ -3,6 +3,43 @@ import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 
 describe("OpenAPI spec", () => {
+  describe("api", () => {
+    it("annotate", () => {
+      const Api = HttpApi.make("api")
+        .annotate(OpenApi.Title, "title")
+        .annotate(OpenApi.Version, "version")
+        .annotate(OpenApi.Description, "description")
+        .annotate(OpenApi.License, { name: "license" })
+        .annotate(OpenApi.Summary, "summary")
+        .annotate(OpenApi.Servers, [{ url: "https://example.com" }])
+      const spec = OpenApi.fromApi(Api)
+      assert.deepStrictEqual(spec.info.title, "title")
+      assert.deepStrictEqual(spec.info.version, "version")
+      assert.deepStrictEqual(spec.info.description, "description")
+      assert.deepStrictEqual(spec.info.license, { name: "license" })
+      assert.deepStrictEqual(spec.info.summary, "summary")
+      assert.deepStrictEqual(spec.servers, [{ url: "https://example.com" }])
+    })
+
+    it("annotateMerge", () => {
+      const Api = HttpApi.make("api").annotateMerge(OpenApi.annotations({
+        title: "title",
+        version: "version",
+        description: "description",
+        license: { name: "license" },
+        summary: "summary",
+        servers: [{ url: "https://example.com" }]
+      }))
+      const spec = OpenApi.fromApi(Api)
+      assert.deepStrictEqual(spec.info.title, "title")
+      assert.deepStrictEqual(spec.info.version, "version")
+      assert.deepStrictEqual(spec.info.description, "description")
+      assert.deepStrictEqual(spec.info.license, { name: "license" })
+      assert.deepStrictEqual(spec.info.summary, "summary")
+      assert.deepStrictEqual(spec.servers, [{ url: "https://example.com" }])
+    })
+  })
+
   it("catch all path", () => {
     const Api = HttpApi.make("api")
       .add(
