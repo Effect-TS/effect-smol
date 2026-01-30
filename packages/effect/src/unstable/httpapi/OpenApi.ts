@@ -293,7 +293,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       spec.tags.push(tag)
     },
-    onEndpoint({ endpoint, errors, group, mergedAnnotations, middleware, successes }) {
+    onEndpoint({ endpoint, group, mergedAnnotations, middleware }) {
       if (ServiceMap.get(mergedAnnotations, Exclude)) {
         return
       }
