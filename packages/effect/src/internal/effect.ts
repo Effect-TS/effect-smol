@@ -90,7 +90,7 @@ import {
 } from "./core.ts"
 import * as doNotation from "./doNotation.ts"
 import * as InternalMetric from "./metric.ts"
-import { addSpanStackTrace, type ErrorWithStackTraceLimit, makeStackCleaner } from "./tracer.ts"
+import { addSpanStackTrace, makeStackCleaner } from "./tracer.ts"
 import { version } from "./version.ts"
 
 // ----------------------------------------------------------------------------
@@ -310,9 +310,8 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
   const interrupts: Array<Cause.Interrupt> = []
   if (self.failures.length === 0) return errors
 
-  const prevStackLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
-  ;(Error as ErrorWithStackTraceLimit)
-    .stackTraceLimit = 1
+  const prevStackLimit = Error.stackTraceLimit
+  Error.stackTraceLimit = 1
 
   for (const failure of self.failures) {
     if (failure._tag === "Interrupt") {
@@ -336,7 +335,7 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
     errors.push(causePrettyError(error, interrupts[0].annotations))
   }
 
-  ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevStackLimit
+  Error.stackTraceLimit = prevStackLimit
   return errors
 }
 

@@ -1,9 +1,5 @@
 import type * as Tracer from "../Tracer.ts"
 
-export interface ErrorWithStackTraceLimit {
-  stackTraceLimit?: number | undefined
-}
-
 /** @internal */
 export const addSpanStackTrace = <A extends Tracer.TraceOptions>(
   options: A | undefined
@@ -13,10 +9,10 @@ export const addSpanStackTrace = <A extends Tracer.TraceOptions>(
   } else if (options?.captureStackTrace !== undefined && typeof options.captureStackTrace !== "boolean") {
     return options
   }
-  const limit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
-  ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 3
+  const limit = Error.stackTraceLimit
+  Error.stackTraceLimit = 3
   const traceError = new Error()
-  ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = limit
+  Error.stackTraceLimit = limit
   return {
     ...options,
     captureStackTrace: spanCleaner(() => traceError.stack)
