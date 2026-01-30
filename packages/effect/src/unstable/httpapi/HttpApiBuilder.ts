@@ -671,7 +671,6 @@ function getResponseTransformation<T, E, RD, RE>(
     encode(e: E) {
       const body = HttpApiSchema.getBody(ast)
       switch (body._tag) {
-        case "NoContent":
         case "Multipart":
           return Effect.succeed(Response.empty({ status }))
         case "HasBody": {
