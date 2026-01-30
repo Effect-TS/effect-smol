@@ -252,7 +252,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 
 // -------------------------------------------------------------------------------------
 
-function resoveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
+function resolveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
   return AST.resolveDescription(ast) ?? AST.resolveIdentifier(ast)
 }
 
@@ -291,7 +291,7 @@ const extractMembers = (
     // only include a schema in the response-body union if it actually has a payload,
     // or if it's explicitly a "no content" schema (so the empty-ness is intentional)
     const isUndecodableNoContent = HttpApiSchema.isUndecodableNoContent(ast)
-    const description = resoveDescriptionOrIdentifier(ast)
+    const description = resolveDescriptionOrIdentifier(ast)
     const pair = map.get(status)
     if (pair === undefined) {
       map.set(status, {

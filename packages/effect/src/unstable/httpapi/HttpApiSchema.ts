@@ -72,7 +72,7 @@ const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
 
 /** @internal */
 export function getStatusSuccess(self: AST.AST): number {
-  return resolveHttpApiStatus(self) ?? (isNoContent(self) ? 204 : 200)
+  return resolveHttpApiStatus(self) ?? 200
 }
 
 /** @internal */
@@ -449,4 +449,11 @@ export function forEach(schema: Schema.Top, f: (schema: Schema.Top) => void): vo
   } else {
     f(schema)
   }
+}
+
+/** @internal */
+export function getSchemas(schema: Schema.Top): Set<Schema.Top> {
+  const schemas = new Set<Schema.Top>()
+  forEach(schema, (schema) => schemas.add(schema))
+  return schemas
 }
