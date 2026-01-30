@@ -194,6 +194,181 @@ export class MixedScheduler implements Scheduler {
 }
 
 /**
+ * A priority bucket queue that maintains tasks sorted by priority.
+ * Higher priority tasks (higher numbers) are scheduled before lower priority tasks.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export class PriorityBuckets<in out T = () => void> {
+  /**
+   * The buckets array containing [priority, tasks] tuples, sorted by priority in descending order.
+   * @since 2.0.0
+   */
+  public buckets: Array<[number, Array<T>]> = []
+
+  /**
+   * Schedule a task with a given priority. Tasks with the same priority are grouped
+   * together and executed in FIFO order within their priority group.
+   *
+   * @since 2.0.0
+   */
+  scheduleTask(task: T, priority: number): void {
+    const length = this.buckets.length
+    let index = 0
+    // Find the correct position to insert (maintaining descending order)
+    for (; index < length; index++) {
+      if (this.buckets[index][0] <= priority) {
+        break
+      }
+    }
+    // Check if we found an exact priority match
+    if (index < length && this.buckets[index][0] === priority) {
+      this.buckets[index][1].push(task)
+    } else {
+      // Insert new bucket at the correct position
+      this.buckets.splice(index, 0, [priority, [task]])
+    }
+  }
+}
+
+/**
+ * A priority-based scheduler implementation that provides efficient task scheduling
+ * with support for priority-based execution. Higher priority tasks are executed first.
+ *
+ * This scheduler uses a microtask-based approach with a setTimeout fallback to prevent
+ * starvation. After a configurable number of microtask iterations, it falls back to
+ * setTimeout to allow the browser/event loop to process other events.
+ *
+ * Features:
+ * - Priority-based task scheduling (higher numbers = higher priority)
+ * - Microtask-based execution for low latency
+ * - Automatic fallback to setTimeout to prevent event loop starvation
+ * - Configurable max microtask iterations before fallback
+ *
+ * @example
+ * ```ts
+ * import { PriorityScheduler } from "effect/Scheduler"
+ *
+ * // Create a priority scheduler (default: 2048 max microtasks before setTimeout)
+ * const scheduler = new PriorityScheduler()
+ *
+ * // Schedule tasks with different priorities
+ * scheduler.scheduleTask(() => console.log("Low priority"), -1)
+ * scheduler.scheduleTask(() => console.log("Normal priority"), 0)
+ * scheduler.scheduleTask(() => console.log("High priority"), 10)
+ *
+ * // Output order: "High priority", "Normal priority", "Low priority"
+ *
+ * // Create with custom max microtask count
+ * const customScheduler = new PriorityScheduler(100)
+ * ```
+ *
+ * @since 2.0.0
+ * @category schedulers
+ */
+export class PriorityScheduler implements Scheduler {
+  /**
+   * Flag indicating whether the scheduler is currently running tasks.
+   * @since 2.0.0
+   */
+  running = false
+
+  /**
+   * The priority bucket queue storing tasks by priority.
+   * @since 2.0.0
+   */
+  tasks = new PriorityBuckets()
+
+  /**
+   * The maximum number of microtask iterations before falling back to setTimeout.
+   * This prevents the scheduler from monopolizing the event loop.
+   *
+   * @since 2.0.0
+   */
+  readonly maxNextTickBeforeTimer: number
+
+  readonly executionMode: "sync" | "async" = "async"
+
+  /**
+   * Creates a new PriorityScheduler.
+   *
+   * @param maxNextTickBeforeTimer - The maximum number of microtask iterations
+   *   before falling back to setTimeout (default: 2048)
+   *
+   * @since 2.0.0
+   */
+  constructor(maxNextTickBeforeTimer: number = 2048) {
+    this.maxNextTickBeforeTimer = maxNextTickBeforeTimer
+  }
+
+  /**
+   * Internal method to process all pending tasks in the queue.
+   * This runs all tasks from the current buckets and either stops
+   * or continues scheduling based on whether new tasks were added.
+   *
+   * @since 2.0.0
+   */
+  private starveInternal(depth: number): void {
+    const tasks = this.tasks.buckets
+    this.tasks.buckets = []
+    for (const [_, toRun] of tasks) {
+      for (let i = 0; i < toRun.length; i++) {
+        toRun[i]()
+      }
+    }
+    if (this.tasks.buckets.length === 0) {
+      this.running = false
+    } else {
+      this.starve(depth)
+    }
+  }
+
+  /**
+   * Schedule the internal task processing using either microtasks or setTimeout.
+   * Uses microtasks (Promise.resolve) up to maxNextTickBeforeTimer iterations,
+   * then falls back to setTimeout to prevent event loop starvation.
+   *
+   * @since 2.0.0
+   */
+  private starve(depth = 0): void {
+    if (depth >= this.maxNextTickBeforeTimer) {
+      setTimeout(() => this.starveInternal(0), 0)
+    } else {
+      Promise.resolve(void 0).then(() => this.starveInternal(depth + 1))
+    }
+  }
+
+  /**
+   * Determine if a fiber should yield control based on its operation count.
+   *
+   * @param fiber - The fiber to check
+   * @returns `true` if the fiber should yield, `false` otherwise
+   *
+   * @since 2.0.0
+   */
+  shouldYield(fiber: Fiber.Fiber<unknown, unknown>): boolean {
+    return fiber.currentOpCount >= fiber.maxOpsBeforeYield
+  }
+
+  /**
+   * Schedule a task with a given priority. Higher priority tasks are executed first.
+   *
+   * @param task - The task function to execute
+   * @param priority - The priority of the task (higher numbers = higher priority)
+   *
+   * @since 2.0.0
+   */
+  scheduleTask(task: () => void, priority: number): void {
+    this.tasks.scheduleTask(task, priority)
+    if (!this.running) {
+      this.running = true
+      this.starve()
+    }
+  }
+}
+
+/**
  * A service reference that controls the maximum number of operations a fiber
  * can perform before yielding control back to the scheduler. This helps
  * prevent long-running fibers from monopolizing the execution thread.
