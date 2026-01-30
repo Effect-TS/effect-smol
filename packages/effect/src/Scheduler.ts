@@ -175,7 +175,7 @@ export class MixedScheduler implements Scheduler {
    */
   scheduleTask(task: () => void, priority: number) {
     this.tasks.scheduleTask(task, priority)
-    if (this.running === undefined) {
+    if (this.executionMode === "async" && this.running === undefined) {
       this.running = this.setImmediate(this.afterScheduled)
     }
   }
@@ -186,6 +186,9 @@ export class MixedScheduler implements Scheduler {
   afterScheduled = () => {
     this.running = undefined
     this.runTasks()
+    if (this.executionMode === "async" && this.tasks.buckets.length > 0 && this.running === undefined) {
+      this.running = this.setImmediate(this.afterScheduled)
+    }
   }
 
   /**
