@@ -137,11 +137,11 @@ describe("HttpApi", () => {
       }).pipe(Effect.provide(ApiLive))
     })
 
-    it.effect("Unauthorized", () => {
+    it.effect("UnauthorizedNoContent", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiError.Unauthorized
+            error: HttpApiError.UnauthorizedNoContent
           })
         )
       )
@@ -150,7 +150,7 @@ describe("HttpApi", () => {
         "group",
         (handlers) =>
           handlers
-            .handle("a", () => Effect.fail(new HttpApiError.Unauthorized()))
+            .handle("a", () => Effect.fail(new HttpApiError.Unauthorized({})))
       )
       const ApiLive = HttpRouter.serve(
         HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
@@ -168,7 +168,7 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiError.BadRequest
+            error: HttpApiError.BadRequestNoContent
           })
         )
       )
@@ -177,7 +177,7 @@ describe("HttpApi", () => {
         "group",
         (handlers) =>
           handlers
-            .handle("a", () => Effect.fail(new HttpApiError.BadRequest()))
+            .handle("a", () => Effect.fail(new HttpApiError.BadRequest({})))
       )
       const ApiLive = HttpRouter.serve(
         HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
@@ -357,7 +357,7 @@ describe("HttpApi", () => {
         const error = yield* client.groups.findById({ path: { id: 0 } }).pipe(
           Effect.flip
         )
-        assert.deepStrictEqual(error, new GroupError())
+        assert.deepStrictEqual(error, new GroupError({}))
       }).pipe(Effect.provide(HttpLive)))
 
     it.effect("default to 500 status code", () =>
@@ -594,9 +594,10 @@ class UserError extends Schema.ErrorClass<UserError>("UserError")({
 }, {
   httpApiStatus: 400
 }) {}
-class GroupError extends HttpApiSchema.EmptyError<GroupError>()({
-  tag: "GroupError",
-  status: 418
+class GroupError extends Schema.ErrorClass<GroupError>("GroupError")({
+  _tag: Schema.tag("GroupError")
+}, {
+  httpApiStatus: 418
 }) {}
 class NoStatusError extends Schema.ErrorClass<NoStatusError>("NoStatusError")({
   _tag: Schema.tag("NoStatusError")
@@ -646,7 +647,9 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
       id: Schema.FiniteFromString
     },
     success: Group,
-    error: GroupError
+    error: HttpApiSchema.asNoContent(GroupError, {
+      decode: () => new GroupError({})
+    })
   }),
   HttpApiEndpoint.post("create", "/", {
     payload: Schema.Union([
@@ -880,7 +883,7 @@ const HttpGroupsLive = HttpApiBuilder.group(
     handlers
       .handle("findById", ({ path }) =>
         path.id === 0
-          ? Effect.fail(new GroupError())
+          ? Effect.fail(new GroupError({}))
           : Effect.succeed(new Group({ id: 1, name: "foo" })))
       .handle("create", ({ payload }) =>
         Effect.succeed(
