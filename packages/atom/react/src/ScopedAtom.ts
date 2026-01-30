@@ -21,6 +21,26 @@ export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"
 /**
  * @since 1.0.0
  * @category models
+ *
+ * @example
+ * ```ts
+ * import * as Atom from "effect/unstable/reactivity/Atom"
+ * import * as React from "react"
+ * import * as ScopedAtom from "@effect/atom-react/ScopedAtom"
+ * import { useAtomValue } from "@effect/atom-react"
+ *
+ * const Counter = ScopedAtom.make(() => Atom.make(0))
+ *
+ * function View() {
+ *   const atom = Counter.use()
+ *   const value = useAtomValue(atom)
+ *   return React.createElement("div", null, value)
+ * }
+ *
+ * export function App() {
+ *   return React.createElement(Counter.Provider, null, React.createElement(View))
+ * }
+ * ```
  */
 export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
   readonly [TypeId]: TypeId
@@ -33,6 +53,30 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
 /**
  * @since 1.0.0
  * @category constructors
+ *
+ * @example
+ * ```ts
+ * import * as Atom from "effect/unstable/reactivity/Atom"
+ * import * as React from "react"
+ * import * as ScopedAtom from "@effect/atom-react/ScopedAtom"
+ * import { useAtomValue } from "@effect/atom-react"
+ *
+ * const User = ScopedAtom.make((name: string) => Atom.make(name))
+ *
+ * function UserName() {
+ *   const atom = User.use()
+ *   const value = useAtomValue(atom)
+ *   return React.createElement("span", null, value)
+ * }
+ *
+ * export function App() {
+ *   return React.createElement(
+ *     User.Provider,
+ *     { value: "Ada" },
+ *     React.createElement(UserName)
+ *   )
+ * }
+ * ```
  */
 export const make = <A extends Atom.Atom<any>, Input = never>(
   f: (() => A) | ((input: Input) => A)
