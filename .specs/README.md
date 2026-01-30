@@ -10,3 +10,4 @@ This directory contains specifications for all major features and enhancements i
 - [effect-ignore-log.md](effect-ignore-log.md) - Add optional logging to `Effect.ignore` and remove `Effect.ignoreLogged`.
 - [effect-jsdoc-improvements.md](effect-jsdoc-improvements.md) - Improve JSDoc clarity and consistency for `Effect.ts`.
 - [stream-jsdoc-improvements.md](stream-jsdoc-improvements.md) - Improve JSDoc clarity and consistency for `Stream.ts`.
+- [scoped-atom-port.md](scoped-atom-port.md) - Port the legacy ScopedAtom module into `@effect/atom-react`.
