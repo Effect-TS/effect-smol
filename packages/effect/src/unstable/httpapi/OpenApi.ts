@@ -561,19 +561,19 @@ function extractResponseBodies(
   function process(schema: Schema.Top) {
     const ast = schema.ast
     const status = getStatus(ast)
-    const body = HttpApiSchema.getBody(ast)
-    switch (body._tag) {
-      case "NoContent": {
-        setDescription(schema, status, getDescription(schema.ast) ?? "<No Content>")
-        break
-      }
-      case "Multipart": {
-        addContent(schema, status, "Multipart", body.contentType)
-        break
-      }
-      case "HasBody": {
-        addContent(schema, status, body.encoding._tag, body.encoding.contentType)
-        break
+    if (HttpApiSchema.isNoContent(ast)) {
+      setDescription(schema, status, getDescription(schema.ast) ?? "<No Content>")
+    } else {
+      const body = HttpApiSchema.getBody(ast)
+      switch (body._tag) {
+        case "Multipart": {
+          addContent(schema, status, "Multipart", body.contentType)
+          break
+        }
+        case "HasBody": {
+          addContent(schema, status, body.encoding._tag, body.encoding.contentType)
+          break
+        }
       }
     }
   }
@@ -648,17 +648,17 @@ function extractRequestBodies(schemas: ReadonlySet<Schema.Top> | undefined): Con
 
   function process(schema: Schema.Top) {
     const ast = schema.ast
-    const body = HttpApiSchema.getBody(ast)
-    switch (body._tag) {
-      case "NoContent":
-        break
-      case "Multipart": {
-        addContent(schema, "Multipart", body.contentType)
-        break
-      }
-      case "HasBody": {
-        addContent(schema, body.encoding._tag, body.encoding.contentType)
-        break
+    if (!HttpApiSchema.isNoContent(ast)) {
+      const body = HttpApiSchema.getBody(ast)
+      switch (body._tag) {
+        case "Multipart": {
+          addContent(schema, "Multipart", body.contentType)
+          break
+        }
+        case "HasBody": {
+          addContent(schema, body.encoding._tag, body.encoding.contentType)
+          break
+        }
       }
     }
   }

@@ -21,22 +21,18 @@ declare module "../../Schema.ts" {
 
 /** @internal */
 export function isNoContent(ast: AST.AST): boolean {
-  return AST.isVoid(AST.toEncoded(ast)) || getBody(ast)._tag === "NoContent"
+  return AST.isVoid(AST.toEncoded(ast))
 }
 
 /** @internal */
 export function isUndecodableNoContent(ast: AST.AST): boolean {
-  return AST.isVoid(AST.toEncoded(ast)) && getBody(ast)._tag !== "NoContent"
+  return AST.isVoid(AST.toEncoded(ast)) && ast.encoding === undefined
 }
 
 /**
  * @since 4.0.0
  */
 export type Body =
-  | {
-    readonly _tag: "NoContent"
-    readonly transformation?: Transformation.Transformation<any, void, never, never> | undefined
-  }
   | {
     readonly _tag: "Multipart"
     readonly mode: "buffered" | "stream"
@@ -132,10 +128,6 @@ export const asNoContent: {
         transformation
       )
     ).annotate({
-      httpApiBody: {
-        _tag: "NoContent",
-        transformation
-      },
       httpApiStatus: options.status
     })
   }
@@ -147,8 +139,7 @@ export const asNoContent: {
  */
 export const makeNoContent = (status: number): Schema.Void =>
   Schema.Void.annotate({
-    httpApiStatus: status,
-    httpApiBody: { _tag: "NoContent" }
+    httpApiStatus: status
   })
 
 /**

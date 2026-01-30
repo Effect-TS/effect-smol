@@ -464,9 +464,6 @@ function toCodecArrayBuffer(schema: Schema.Top): Schema.Top {
   }
   const body = HttpApiSchema.getBody(schema.ast)
   switch (body._tag) {
-    case "NoContent":
-      // TODO: refactor this
-      return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
     case "Multipart":
       // TODO: this should not happen
       throw new Error("Multipart body is not supported")
@@ -538,9 +535,6 @@ function bodyFromPayload(schema: Schema.Top): Schema.Top {
       },
       encode(t: unknown) {
         switch (body._tag) {
-          case "NoContent":
-            // TODO: this should not happen
-            throw new Error("No Content body is not supported")
           case "Multipart":
             // TODO: this should not happen
             throw new Error("Multipart body is not supported")
