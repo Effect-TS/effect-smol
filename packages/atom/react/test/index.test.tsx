@@ -147,7 +147,7 @@ describe("atom-react", () => {
       expect(() => render(<TestComponent />)).toThrow("ScopedAtom used outside of its Provider")
     })
 
-    test("scopes atom instances per Provider", () => {
+    test("scopes atom instances per Provider", async () => {
       const counter = ScopedAtom.make(() => Atom.make(0))
 
       function Count() {
@@ -178,9 +178,11 @@ describe("atom-react", () => {
         </div>
       )
 
-      const values = screen.getAllByTestId("value")
-      expect(values[0]).toHaveTextContent("1")
-      expect(values[1]).toHaveTextContent("2")
+      await waitFor(() => {
+        const values = screen.getAllByTestId("value")
+        expect(values[0]).toHaveTextContent("1")
+        expect(values[1]).toHaveTextContent("2")
+      })
     })
 
     test("input factory uses provider value once", () => {
@@ -213,7 +215,7 @@ describe("atom-react", () => {
       expect(makeAtom).toHaveBeenCalledTimes(1)
     })
 
-    test("integrates with useAtomValue", () => {
+    test("integrates with useAtomValue", async () => {
       const scoped = ScopedAtom.make(() => Atom.make(0))
 
       function Counter() {
@@ -238,7 +240,9 @@ describe("atom-react", () => {
         </scoped.Provider>
       )
 
-      expect(screen.getByTestId("value")).toHaveTextContent("1")
+      await waitFor(() => {
+        expect(screen.getByTestId("value")).toHaveTextContent("1")
+      })
     })
   })
 
