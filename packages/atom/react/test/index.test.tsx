@@ -4,11 +4,13 @@ import { Effect, Layer, ServiceMap } from "effect"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
+import * as React from "react"
 import { Suspense } from "react"
 import { renderToString } from "react-dom/server"
 import { ErrorBoundary } from "react-error-boundary"
 import { beforeEach, describe, expect, it, test, vi } from "vitest"
 import { RegistryContext, RegistryProvider, useAtomSuspense, useAtomValue } from "../src/index.ts"
+import * as ScopedAtom from "../src/ScopedAtom.ts"
 
 describe("atom-react", () => {
   let registry: AtomRegistry.AtomRegistry
@@ -130,6 +132,113 @@ describe("atom-react", () => {
       )
 
       expect(screen.getByTestId("loading")).toBeInTheDocument()
+    })
+  })
+
+  describe("ScopedAtom", () => {
+    test("throws when used outside Provider", () => {
+      const counter = ScopedAtom.make(() => Atom.make(0))
+
+      function TestComponent() {
+        counter.use()
+        return <div>ok</div>
+      }
+
+      expect(() => render(<TestComponent />)).toThrow("ScopedAtom used outside of its Provider")
+    })
+
+    test("scopes atom instances per Provider", () => {
+      const counter = ScopedAtom.make(() => Atom.make(0))
+
+      function Count() {
+        const atom = counter.use()
+        const value = useAtomValue(atom)
+        return <div data-testid="value">{value}</div>
+      }
+
+      function SetTo({ value }: { readonly value: number }) {
+        const atom = counter.use()
+        const registry = React.useContext(RegistryContext)
+        React.useEffect(() => {
+          registry.set(atom, value)
+        }, [registry, atom, value])
+        return null
+      }
+
+      render(
+        <div>
+          <counter.Provider>
+            <SetTo value={1} />
+            <Count />
+          </counter.Provider>
+          <counter.Provider>
+            <SetTo value={2} />
+            <Count />
+          </counter.Provider>
+        </div>
+      )
+
+      const values = screen.getAllByTestId("value")
+      expect(values[0]).toHaveTextContent("1")
+      expect(values[1]).toHaveTextContent("2")
+    })
+
+    test("input factory uses provider value once", () => {
+      const makeAtom = vi.fn((value: number) => Atom.make(value))
+      const scoped = ScopedAtom.make(makeAtom)
+
+      function Count() {
+        const atom = scoped.use()
+        const value = useAtomValue(atom)
+        return <div data-testid="value">{value}</div>
+      }
+
+      const { rerender } = render(
+        <scoped.Provider value={10}>
+          <Count />
+        </scoped.Provider>
+      )
+
+      expect(screen.getByTestId("value")).toHaveTextContent("10")
+      expect(makeAtom).toHaveBeenCalledTimes(1)
+      expect(makeAtom).toHaveBeenCalledWith(10)
+
+      rerender(
+        <scoped.Provider value={99}>
+          <Count />
+        </scoped.Provider>
+      )
+
+      expect(screen.getByTestId("value")).toHaveTextContent("10")
+      expect(makeAtom).toHaveBeenCalledTimes(1)
+    })
+
+    test("integrates with useAtomValue", () => {
+      const scoped = ScopedAtom.make(() => Atom.make(0))
+
+      function Counter() {
+        const atom = scoped.use()
+        const value = useAtomValue(atom)
+        return <div data-testid="value">{value}</div>
+      }
+
+      function IncrementOnce() {
+        const atom = scoped.use()
+        const registry = React.useContext(RegistryContext)
+        React.useEffect(() => {
+          registry.set(atom, 1)
+        }, [registry, atom])
+        return null
+      }
+
+      render(
+        <scoped.Provider>
+          <IncrementOnce />
+          <Counter />
+        </scoped.Provider>
+      )
+
+      expect(screen.getByTestId("value")).toHaveTextContent("1")
     })
   })
 
