@@ -303,7 +303,7 @@ describe("OpenAPI spec", () => {
         )
       const spec = OpenApi.fromApi(Api)
       assert.deepStrictEqual(spec.paths["/a"].get?.responses["204"], {
-        description: "Success"
+        description: "<No Content>"
       })
     })
 
@@ -341,7 +341,7 @@ describe("OpenAPI spec", () => {
           )
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].get?.responses["204"], {
-          description: "Success"
+          description: "<No Content>"
         })
       })
 
@@ -355,7 +355,7 @@ describe("OpenAPI spec", () => {
           )
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].get?.responses["204"], {
-          description: "Success"
+          description: "<No Content>"
         })
       })
 
@@ -369,7 +369,7 @@ describe("OpenAPI spec", () => {
           )
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].get?.responses["201"], {
-          description: "Success"
+          description: "<No Content>"
         })
       })
 
@@ -383,7 +383,7 @@ describe("OpenAPI spec", () => {
           )
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].get?.responses["202"], {
-          description: "Success"
+          description: "<No Content>"
         })
       })
     })
@@ -1001,27 +1001,7 @@ describe("OpenAPI spec", () => {
           )
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
-          description: "The request or response did not match the expected schema",
-          content: {
-            "application/json": {
-              schema: {
-                "anyOf": [
-                  {
-                    "type": "null" // TODO: this should not be here
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                      "message": { "type": "string" }
-                    },
-                    "required": ["_tag", "message"],
-                    "additionalProperties": false
-                  }
-                ]
-              }
-            }
-          }
+          description: "<No Content>"
         })
       })
 
@@ -1037,7 +1017,7 @@ describe("OpenAPI spec", () => {
           )
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].get?.responses["401"], {
-          description: "Error"
+          description: "<No Content>"
         })
       })
 
@@ -1069,27 +1049,7 @@ describe("OpenAPI spec", () => {
           )
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
-          description: "BadRequest | The request or response did not match the expected schema",
-          content: {
-            "application/json": {
-              schema: {
-                "anyOf": [
-                  {
-                    "type": "null" // TODO: this should not be here
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                      "message": { "type": "string" }
-                    },
-                    "required": ["_tag", "message"],
-                    "additionalProperties": false
-                  }
-                ]
-              }
-            }
-          }
+          description: "BadRequest"
         })
       })
     })

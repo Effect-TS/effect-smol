@@ -625,8 +625,7 @@ const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
 const toResponseErrorSchema = toResponseSchema(HttpApiSchema.getStatusError)
 
 function makeSuccessSchema(schema: Schema.Top): Schema.Codec<unknown, HttpServerResponse> {
-  const schemas = new Set<Schema.Top>()
-  HttpApiSchema.forEach(schema, (schema) => schemas.add(schema))
+  const schemas = HttpApiSchema.getSchemas(schema)
   return Schema.Union(Array.from(schemas, toResponseSuccessSchema)) as any
 }
 
