@@ -70,7 +70,7 @@ const useAtomValueRef = <A extends Atom.Atom<any>>(atom: () => A) => {
   const registry = injectRegistry()
   const atomRef = computed(atom)
   const value = shallowRef(undefined as any as A)
-  watchEffect((onCleanup: (cleanup: () => void) => void) => {
+  watchEffect((onCleanup) => {
     onCleanup(registry.subscribe(atomRef.value, (nextValue: Atom.Type<A>) => {
       value.value = nextValue
     }, { immediate: true }))
@@ -188,7 +188,7 @@ export const useAtomSet = <
 {
   const registry = injectRegistry()
   const atomRef = computed(atom)
-  watchEffect((onCleanup: (cleanup: () => void) => void) => {
+  watchEffect((onCleanup) => {
     onCleanup(registry.mount(atomRef.value))
   })
   return setAtom(registry, atomRef, options)
@@ -201,7 +201,7 @@ export const useAtomSet = <
 export const useAtomRef = <A>(atomRef: () => AtomRef.ReadonlyRef<A>): Readonly<Ref<A>> => {
   const atomRefRef = computed(atomRef)
   const value = shallowRef<A>(atomRefRef.value.value)
-  watchEffect((onCleanup: (cleanup: () => void) => void) => {
+  watchEffect((onCleanup) => {
     const ref = atomRefRef.value
     onCleanup(ref.subscribe((next: A) => {
       value.value = next
