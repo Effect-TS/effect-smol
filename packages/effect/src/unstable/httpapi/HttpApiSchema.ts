@@ -13,7 +13,6 @@ import type * as Multipart_ from "../http/Multipart.ts"
 declare module "../../Schema.ts" {
   namespace Annotations {
     interface Annotations {
-      readonly httpApiEncoding?: Encoding | undefined
       readonly httpApiStatus?: number | undefined
       readonly httpApiBody?: Body | undefined
     }
@@ -68,7 +67,6 @@ export function getBody(ast: AST.AST): Body {
 
 /** @internal */
 const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
-const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
 
 /** @internal */
 export function getStatusSuccess(self: AST.AST): number {
@@ -339,25 +337,8 @@ export const withEncoding: {
         _tag: options._tag,
         contentType: options.contentType ?? defaultContentType(options._tag)
       }
-    },
-    httpApiEncoding: {
-      _tag: options._tag,
-      contentType: options.contentType ?? defaultContentType(options._tag)
     }
   }))
-
-const encodingMultipart: Encoding = {
-  _tag: "Json",
-  contentType: "multipart/form-data"
-}
-
-/** @internal */
-export function getEncoding(ast: AST.AST): Encoding {
-  if (getBody(ast)?._tag === "Multipart") {
-    return encodingMultipart
-  }
-  return resolveHttpApiEncoding(ast) ?? jsonEncoding
-}
 
 /**
  * @since 4.0.0
