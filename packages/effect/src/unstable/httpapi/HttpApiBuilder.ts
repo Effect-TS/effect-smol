@@ -664,46 +664,49 @@ function getResponseTransformation<T, E, RD, RE>(
   schema: Schema.Codec<T, E, RD, RE>
 ): Transformation.Transformation<E, Response.HttpServerResponse> {
   const ast = schema.ast
-  const isUndecodableNoContent = HttpApiSchema.isUndecodableNoContent(ast)
   const status = getStatus(ast)
 
   return Transformation.transformOrFail({
     decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
     encode(e: E) {
-      // Handle No Content
-      if (isUndecodableNoContent) {
-        return Effect.succeed(Response.empty({ status }))
-      }
-      const encoding = HttpApiSchema.getEncoding(ast)
-      switch (encoding._tag) {
-        case "Json": {
-          try {
-            return Effect.succeed(Response.text(JSON.stringify(e), {
-              status,
-              contentType: encoding.contentType
-            }))
-          } catch (error) {
-            return Effect.fail(new Issue.InvalidValue(Option.some(e)))
+      const body = HttpApiSchema.getBody(ast)
+      switch (body._tag) {
+        case "NoContent":
+        case "Multipart":
+          return Effect.succeed(Response.empty({ status }))
+        case "HasBody": {
+          const encoding = body.encoding
+          switch (encoding._tag) {
+            case "Json": {
+              try {
+                return Effect.succeed(Response.text(JSON.stringify(e), {
+                  status,
+                  contentType: encoding.contentType
+                }))
+              } catch (error) {
+                return Effect.fail(new Issue.InvalidValue(Option.some(e)))
+              }
+            }
+            case "Text": {
+              return Effect.succeed(Response.text(e as string, {
+                status,
+                contentType: encoding.contentType
+              }))
+            }
+            case "Binary": {
+              return Effect.succeed(Response.uint8Array(e as Uint8Array, {
+                status,
+                contentType: encoding.contentType
+              }))
+            }
+            case "FormUrlEncoded": {
+              return Effect.succeed(
+                Response.urlParams(e as any, { status }).pipe(
+                  Response.setHeader("content-type", encoding.contentType)
+                )
+              )
+            }
           }
-        }
-        case "Text": {
-          return Effect.succeed(Response.text(e as string, {
-            status,
-            contentType: encoding.contentType
-          }))
-        }
-        case "Binary": {
-          return Effect.succeed(Response.uint8Array(e as Uint8Array, {
-            status,
-            contentType: encoding.contentType
-          }))
-        }
-        case "FormUrlEncoded": {
-          return Effect.succeed(
-            Response.urlParams(e as any, { status }).pipe(
-              Response.setHeader("content-type", encoding.contentType)
-            )
-          )
         }
       }
     }
