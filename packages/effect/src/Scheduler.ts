@@ -195,14 +195,15 @@ export class MixedScheduler implements Scheduler {
 
 /**
  * A priority bucket queue that maintains tasks sorted by priority.
- * Higher priority tasks (higher numbers) are scheduled before lower priority tasks.
+ * Lower numbers mean higher priority.
  *
  * @since 2.0.0
  * @category utils
  */
 export class PriorityBuckets<in out T = () => void> {
   /**
-   * The buckets array containing [priority, tasks] tuples, sorted by priority in descending order.
+   * The buckets array containing [priority, tasks] tuples, sorted by priority in ascending order.
+   * Lower priority numbers are executed first.
    * @since 2.0.0
    */
   public buckets: Array<[number, Array<T>]> = []
@@ -215,18 +216,20 @@ export class PriorityBuckets<in out T = () => void> {
    */
   scheduleTask(task: T, priority: number): void {
     const length = this.buckets.length
+    let bucket: [number, Array<T>] | undefined = undefined
     let index = 0
-    // Find the correct position to insert (maintaining descending order)
     for (; index < length; index++) {
       if (this.buckets[index][0] <= priority) {
+        bucket = this.buckets[index]
+      } else {
         break
       }
     }
-    // Check if we found an exact priority match
-    if (index < length && this.buckets[index][0] === priority) {
-      this.buckets[index][1].push(task)
+    if (bucket && bucket[0] === priority) {
+      bucket[1].push(task)
+    } else if (index === length) {
+      this.buckets.push([priority, [task]])
     } else {
-      // Insert new bucket at the correct position
       this.buckets.splice(index, 0, [priority, [task]])
     }
   }
@@ -234,14 +237,14 @@ export class PriorityBuckets<in out T = () => void> {
 
 /**
  * A priority-based scheduler implementation that provides efficient task scheduling
- * with support for priority-based execution. Higher priority tasks are executed first.
+ * with support for priority-based execution. Lower numbers mean higher priority.
  *
  * This scheduler uses a microtask-based approach with a setTimeout fallback to prevent
  * starvation. After a configurable number of microtask iterations, it falls back to
  * setTimeout to allow the browser/event loop to process other events.
  *
  * Features:
- * - Priority-based task scheduling (higher numbers = higher priority)
+ * - Priority-based task scheduling (lower numbers = higher priority)
  * - Microtask-based execution for low latency
  * - Automatic fallback to setTimeout to prevent event loop starvation
  * - Configurable max microtask iterations before fallback
@@ -254,9 +257,9 @@ export class PriorityBuckets<in out T = () => void> {
  * const scheduler = new PriorityScheduler()
  *
  * // Schedule tasks with different priorities
- * scheduler.scheduleTask(() => console.log("Low priority"), -1)
+ * scheduler.scheduleTask(() => console.log("Low priority"), 10)
  * scheduler.scheduleTask(() => console.log("Normal priority"), 0)
- * scheduler.scheduleTask(() => console.log("High priority"), 10)
+ * scheduler.scheduleTask(() => console.log("High priority"), -1)
  *
  * // Output order: "High priority", "Normal priority", "Low priority"
  *
@@ -352,10 +355,10 @@ export class PriorityScheduler implements Scheduler {
   }
 
   /**
-   * Schedule a task with a given priority. Higher priority tasks are executed first.
+   * Schedule a task with a given priority. Lower numbers mean higher priority.
    *
    * @param task - The task function to execute
-   * @param priority - The priority of the task (higher numbers = higher priority)
+   * @param priority - The priority of the task (lower numbers = higher priority)
    *
    * @since 2.0.0
    */

@@ -3,21 +3,21 @@ import { Effect, Scheduler } from "effect"
 
 describe("PriorityScheduler", () => {
   describe("PriorityBuckets", () => {
-    it("should schedule tasks by priority in descending order", () => {
+    it("should schedule tasks by priority in ascending order", () => {
       const buckets = new Scheduler.PriorityBuckets<string>()
 
-      buckets.scheduleTask("low", -1)
-      buckets.scheduleTask("high", 10)
+      buckets.scheduleTask("high", -1)
+      buckets.scheduleTask("low", 10)
       buckets.scheduleTask("normal", 0)
       buckets.scheduleTask("medium", 5)
 
-      // Check that buckets are ordered by priority (highest first)
-      assert.deepStrictEqual(buckets.buckets.map(([priority]) => priority), [10, 5, 0, -1])
+      // Check that buckets are ordered by priority (lower numbers = higher priority)
+      assert.deepStrictEqual(buckets.buckets.map(([priority]) => priority), [-1, 0, 5, 10])
 
       // Check tasks are in correct buckets
       assert.deepStrictEqual(buckets.buckets[0][1], ["high"])
-      assert.deepStrictEqual(buckets.buckets[1][1], ["medium"])
-      assert.deepStrictEqual(buckets.buckets[2][1], ["normal"])
+      assert.deepStrictEqual(buckets.buckets[1][1], ["normal"])
+      assert.deepStrictEqual(buckets.buckets[2][1], ["medium"])
       assert.deepStrictEqual(buckets.buckets[3][1], ["low"])
     })
 
@@ -49,18 +49,18 @@ describe("PriorityScheduler", () => {
         const scheduler = new Scheduler.PriorityScheduler()
         const executed: Array<string> = []
 
-        // Schedule tasks with different priorities
-        scheduler.scheduleTask(() => executed.push("low"), -1)
+        // Schedule tasks with different priorities (lower = higher priority)
+        scheduler.scheduleTask(() => executed.push("high"), -1)
         scheduler.scheduleTask(() => executed.push("normal"), 0)
-        scheduler.scheduleTask(() => executed.push("high"), 10)
+        scheduler.scheduleTask(() => executed.push("low"), 10)
         scheduler.scheduleTask(() => executed.push("medium"), 5)
 
         // Wait for microtasks to complete (need to yield control to let microtasks run)
         yield* Effect.promise(() => Promise.resolve())
         yield* Effect.sleep(0)
 
-        // Verify execution order (high priority first)
-        assert.deepStrictEqual(executed, ["high", "medium", "normal", "low"])
+        // Verify execution order (lower priority numbers first)
+        assert.deepStrictEqual(executed, ["high", "normal", "medium", "low"])
       }))
 
     it.effect("should handle same-priority tasks in FIFO order", () =>
