@@ -1,10 +1,8 @@
 /**
  * @since 4.0.0
  */
-import type { YieldableError } from "../../Cause.ts"
 import type * as FileSystem from "../../FileSystem.ts"
-import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
-import * as Predicate from "../../Predicate.ts"
+import { constVoid, dual, type LazyArg } from "../../Function.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
@@ -91,7 +89,7 @@ export function makeHttpApiContainer(schemas: ReadonlyArray<Schema.Top>): Schema
 /**
  * @since 4.0.0
  */
-export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<S, Schema.Void> {}
+export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<Schema.toType<S>, Schema.Void> {}
 
 /**
  * @since 4.0.0
@@ -99,14 +97,14 @@ export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<S, Sc
  */
 export const asNoContent: {
   <S extends Schema.Top>(options: {
-    readonly status: number
-    readonly decode: LazyArg<S["Encoded"]>
+    readonly decode: LazyArg<S["Type"]>
+    readonly status?: number | undefined
   }): (self: S) => asNoContent<S>
   <S extends Schema.Top>(
     self: S,
     options: {
-      readonly status: number
-      readonly decode: LazyArg<S["Encoded"]>
+      readonly decode: LazyArg<S["Type"]>
+      readonly status?: number | undefined
     }
   ): asNoContent<S>
 } = dual(
@@ -115,21 +113,25 @@ export const asNoContent: {
     self: S,
     options: {
       readonly status: number
-      readonly decode: LazyArg<S["Encoded"]>
+      readonly decode: LazyArg<S["Type"]>
     }
   ): asNoContent<S> => {
     const transformation = Transformation.transform({
       decode: options.decode,
       encode: constVoid
     })
-    return Schema.Void.pipe(
+    let out = Schema.Void.pipe(
       Schema.decodeTo(
-        self,
+        Schema.toType(self),
         transformation
       )
-    ).annotate({
-      httpApiStatus: options.status
-    })
+    )
+    if (options.status !== undefined) {
+      out = out.annotate({
+        httpApiStatus: options.status
+      })
+    }
+    return out
   }
 )
 
@@ -346,71 +348,6 @@ export const Text = (options?: {
 export const Binary = (options?: {
   readonly contentType?: string
 }): Schema.Uint8Array => withEncoding(Schema.Uint8Array, { _tag: "Binary", ...options })
-
-/**
- * @since 4.0.0
- * @category empty errors
- */
-export interface EmptyErrorClass<Self, Tag> extends
-  Schema.Bottom<
-    Self,
-    void,
-    never,
-    never,
-    AST.Declaration,
-    EmptyErrorClass<Self, Tag>, // TODO: Fix this
-    readonly [] // TODO: Fix this
-  >
-{
-  new(): { readonly _tag: Tag } & YieldableError
-}
-
-const EmptyErrorTypeId = "~effect/httpapi/HttpApiSchema/EmptyError"
-
-/**
- * @since 4.0.0
- * @category empty errors
- */
-export const EmptyError = <Self>() =>
-<const Tag extends string>(options: {
-  readonly tag: Tag
-  readonly status: number
-}): EmptyErrorClass<Self, Tag> => {
-  class EmptyError extends Schema.ErrorClass<EmptyError>(`effect/httpapi/HttpApiSchema/EmptyError/${options.tag}`)({
-    _tag: Schema.tag(options.tag)
-  }, {
-    id: options.tag
-  }) {
-    readonly [EmptyErrorTypeId]: typeof EmptyErrorTypeId
-    constructor() {
-      super({}, { disableValidation: true })
-      this[EmptyErrorTypeId] = EmptyErrorTypeId
-      this.name = options.tag
-    }
-  }
-  let transform: Schema.Top | undefined
-  Object.defineProperty(EmptyError, "ast", {
-    get() {
-      if (transform) {
-        return transform.ast
-      }
-      const self = this as any
-      const decoded = new self()
-      decoded.stack = options.tag
-      transform = asNoContent(
-        Schema.declare((u: unknown) => Predicate.hasProperty(u, EmptyErrorTypeId), {
-          identifier: options.tag
-        }),
-        {
-          status: options.status,
-          decode: constant(decoded)
-        }
-      )
-      return transform.ast
-    }
-  })
-  return EmptyError as any
-}
 
 /** @internal */
 export function forEach(schema: Schema.Top, f: (schema: Schema.Top) => void): void {

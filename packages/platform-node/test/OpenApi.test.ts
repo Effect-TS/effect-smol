@@ -1021,13 +1021,13 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      it("Unauthorized", () => {
+      it("UnauthorizedNoContent", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  error: HttpApiError.Unauthorized
+                  error: HttpApiError.UnauthorizedNoContent
                 })
               )
           )
@@ -1037,13 +1037,13 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      it("BadRequest", () => {
+      it("BadRequestNoContent", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  error: HttpApiError.BadRequest
+                  error: HttpApiError.BadRequestNoContent
                 })
               )
           )
