@@ -22,12 +22,12 @@ declare module "../../Schema.ts" {
 
 /** @internal */
 export function isNoContent(ast: AST.AST): boolean {
-  return AST.isVoid(AST.toEncoded(ast))
+  return AST.isVoid(AST.toEncoded(ast)) || getBody(ast)._tag === "NoContent"
 }
 
 /** @internal */
 export function isUndecodableNoContent(ast: AST.AST): boolean {
-  return isNoContent(ast) && getBody(ast)._tag !== "NoContent"
+  return AST.isVoid(AST.toEncoded(ast)) && getBody(ast)._tag !== "NoContent"
 }
 
 /**
@@ -36,7 +36,7 @@ export function isUndecodableNoContent(ast: AST.AST): boolean {
 export type Body =
   | {
     readonly _tag: "NoContent"
-    readonly transformation: Transformation.Transformation<any, void, never, never>
+    readonly transformation?: Transformation.Transformation<any, void, never, never> | undefined
   }
   | {
     readonly _tag: "Multipart"
@@ -94,16 +94,6 @@ export function makeHttpApiContainer(schemas: ReadonlyArray<Schema.Top>): Schema
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas).annotate({ httpApiIsContainer: true })
 }
 
-// TODO: add description
-/**
- * @since 4.0.0
- * @category No Content
- */
-export const makeNoContent = (status: number): Schema.Void =>
-  Schema.Void.annotate({
-    httpApiStatus: status
-  })
-
 /**
  * @since 4.0.0
  */
@@ -152,6 +142,16 @@ export const asNoContent: {
     })
   }
 )
+
+/**
+ * @since 4.0.0
+ * @category No Content
+ */
+export const makeNoContent = (status: number): Schema.Void =>
+  Schema.Void.annotate({
+    httpApiStatus: status,
+    httpApiBody: { _tag: "NoContent" }
+  })
 
 /**
  * @since 4.0.0
