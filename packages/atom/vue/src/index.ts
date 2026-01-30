@@ -8,8 +8,7 @@ import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import type * as Atom from "effect/unstable/reactivity/Atom"
 import type * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
-import type { ComputedRef, InjectionKey, Ref } from "vue"
-import { computed, inject, shallowRef, watchEffect } from "vue"
+import { computed, type ComputedRef, inject, type InjectionKey, type Ref, shallowRef, watchEffect } from "vue"
 
 /**
  * @since 1.0.0
@@ -47,8 +46,6 @@ export * as AtomHttpApi from "effect/unstable/reactivity/AtomHttpApi"
  */
 export * as AtomRpc from "effect/unstable/reactivity/AtomRpc"
 
-type WatchEffectCleanup = Parameters<Parameters<typeof watchEffect>[0]>[0]
-
 /**
  * @since 1.0.0
  * @category registry
@@ -73,11 +70,12 @@ const useAtomValueRef = <A extends Atom.Atom<any>>(atom: () => A) => {
   const registry = injectRegistry()
   const atomRef = computed(atom)
   const value = shallowRef(undefined as any as A)
-  watchEffect((onCleanup: WatchEffectCleanup) => {
+  const effect = (onCleanup: (cleanup: () => void) => void) => {
     onCleanup(registry.subscribe(atomRef.value, (nextValue: Atom.Type<A>) => {
       value.value = nextValue
     }, { immediate: true }))
-  })
+  }
+  watchEffect(effect)
   return [value as Readonly<Ref<Atom.Type<A>>>, atomRef, registry] as const
 }
 
@@ -191,9 +189,10 @@ export const useAtomSet = <
 {
   const registry = injectRegistry()
   const atomRef = computed(atom)
-  watchEffect((onCleanup: WatchEffectCleanup) => {
+  const effect = (onCleanup: (cleanup: () => void) => void) => {
     onCleanup(registry.mount(atomRef.value))
-  })
+  }
+  watchEffect(effect)
   return setAtom(registry, atomRef, options)
 }
 
@@ -204,11 +203,12 @@ export const useAtomSet = <
 export const useAtomRef = <A>(atomRef: () => AtomRef.ReadonlyRef<A>): Readonly<Ref<A>> => {
   const atomRefRef = computed(atomRef)
   const value = shallowRef<A>(atomRefRef.value.value)
-  watchEffect((onCleanup: WatchEffectCleanup) => {
+  const effect = (onCleanup: (cleanup: () => void) => void) => {
     const ref = atomRefRef.value
     onCleanup(ref.subscribe((next: A) => {
       value.value = next
     }))
-  })
+  }
+  watchEffect(effect)
   return value as Readonly<Ref<A>>
 }
