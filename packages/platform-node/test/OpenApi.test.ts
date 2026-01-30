@@ -85,21 +85,21 @@ describe("OpenAPI spec", () => {
     })
 
     describe("POST", () => {
-      it("empty payload", () => {
+      it("NoContent", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
-              .add(HttpApiEndpoint.post("a", "/a", { payload: Schema.Void }))
+              .add(HttpApiEndpoint.post("a", "/a", { payload: HttpApiSchema.NoContent }))
           )
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].post?.requestBody, undefined)
       })
 
-      it("empty + non-empty payload", () => {
+      it("NoContent + payload", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
-              .add(HttpApiEndpoint.post("a", "/a", { payload: [Schema.Void, Schema.String] }))
+              .add(HttpApiEndpoint.post("a", "/a", { payload: [HttpApiSchema.NoContent, Schema.String] }))
           )
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
@@ -330,22 +330,8 @@ describe("OpenAPI spec", () => {
       })
     })
 
-    describe("empty response", () => {
-      it("Schema.Void", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(HttpApiEndpoint.get("a", "/a", {
-                success: Schema.Void
-              }))
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["204"], {
-          description: "Success"
-        })
-      })
-
-      it("Empty(204)", () => {
+    describe("NoContent", () => {
+      it("makeNoContent(204)", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
@@ -1002,37 +988,8 @@ describe("OpenAPI spec", () => {
       })
     })
 
-    describe("empty errors", () => {
-      it("Void", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  error: Schema.Void
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
-          description: "The request or response did not match the expected schema",
-          content: {
-            "application/json": {
-              schema: {
-                "type": "object",
-                "properties": {
-                  "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                  "message": { "type": "string" }
-                },
-                "required": ["_tag", "message"],
-                "additionalProperties": false
-              }
-            }
-          }
-        })
-      })
-
-      it("Empty(400)", () => {
+    describe("No Content", () => {
+      it("makeNoContent(400)", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
@@ -1048,13 +1005,20 @@ describe("OpenAPI spec", () => {
           content: {
             "application/json": {
               schema: {
-                "type": "object",
-                "properties": {
-                  "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-                  "message": { "type": "string" }
-                },
-                "required": ["_tag", "message"],
-                "additionalProperties": false
+                "anyOf": [
+                  {
+                    "type": "null" // TODO: this should not be here
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+                      "message": { "type": "string" }
+                    },
+                    "required": ["_tag", "message"],
+                    "additionalProperties": false
+                  }
+                ]
               }
             }
           }

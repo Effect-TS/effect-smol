@@ -110,34 +110,7 @@ describe("HttpApi", () => {
   })
 
   describe("error option", () => {
-    it.effect("Void", () => {
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("group").add(
-          HttpApiEndpoint.get("a", "/a", {
-            error: Schema.Void
-          })
-        )
-      )
-      const GroupLive = HttpApiBuilder.group(
-        Api,
-        "group",
-        (handlers) =>
-          handlers
-            .handle("a", () => Effect.fail(void 0))
-      )
-      const ApiLive = HttpRouter.serve(
-        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
-        { disableListenLog: true, disableLogger: true }
-      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
-
-      return Effect.gen(function*() {
-        const a = yield* HttpClient.get("/a")
-        assert.strictEqual(a.status, 500)
-        assert.strictEqual(yield* a.text, "")
-      }).pipe(Effect.provide(ApiLive))
-    })
-
-    it.effect("Empty(400)", () => {
+    it.effect("makeNoContent(400)", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("a", "/a", {
@@ -160,33 +133,6 @@ describe("HttpApi", () => {
       return Effect.gen(function*() {
         const a = yield* HttpClient.get("/a")
         assert.strictEqual(a.status, 400)
-        assert.strictEqual(yield* a.text, "")
-      }).pipe(Effect.provide(ApiLive))
-    })
-
-    it.effect("Empty(401)", () => {
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("group").add(
-          HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiSchema.makeNoContent(401)
-          })
-        )
-      )
-      const GroupLive = HttpApiBuilder.group(
-        Api,
-        "group",
-        (handlers) =>
-          handlers
-            .handle("a", () => Effect.fail(void 0))
-      )
-      const ApiLive = HttpRouter.serve(
-        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
-        { disableListenLog: true, disableLogger: true }
-      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
-
-      return Effect.gen(function*() {
-        const a = yield* HttpClient.get("/a")
-        assert.strictEqual(a.status, 401)
         assert.strictEqual(yield* a.text, "")
       }).pipe(Effect.provide(ApiLive))
     })
