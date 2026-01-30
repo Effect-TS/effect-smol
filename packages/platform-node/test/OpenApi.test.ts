@@ -3,6 +3,47 @@ import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 
 describe("OpenAPI spec", () => {
+  it("catch all path", () => {
+    const Api = HttpApi.make("api")
+      .add(
+        HttpApiGroup.make("group")
+          .add(
+            HttpApiEndpoint.get("a", "*", {
+              success: Schema.String
+            })
+          )
+      )
+    const spec = OpenApi.fromApi(Api)
+    assert.deepStrictEqual(spec.paths["*"].get?.responses, {
+      "200": {
+        description: "Success",
+        content: {
+          "application/json": {
+            schema: {
+              "$ref": "#/components/schemas/String_"
+            }
+          }
+        }
+      },
+      "400": {
+        description: "The request or response did not match the expected schema",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                _tag: { type: "string", enum: ["HttpApiSchemaError"] },
+                message: { "$ref": "#/components/schemas/String_" }
+              },
+              required: ["_tag", "message"],
+              additionalProperties: false
+            }
+          }
+        }
+      }
+    })
+  })
+
   describe("path option", () => {
     it("GET", () => {
       const Api = HttpApi.make("api")

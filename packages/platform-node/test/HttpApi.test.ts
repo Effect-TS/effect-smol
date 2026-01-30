@@ -39,6 +39,42 @@ import {
 import OpenApiFixture from "./fixtures/openapi.json" with { type: "json" }
 
 describe("HttpApi", () => {
+  it.effect("catch all path", () => {
+    const Api = HttpApi.make("api")
+      .add(
+        HttpApiGroup.make("group")
+          .add(
+            HttpApiEndpoint.get("catch-all", "*", {
+              success: Schema.String
+            })
+          )
+      )
+    const GroupLive = HttpApiBuilder.group(
+      Api,
+      "group",
+      (handlers) => handlers.handle("catch-all", (ctx) => Effect.succeed(ctx.request.url))
+    )
+
+    const ApiLive = HttpRouter.serve(
+      HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+      { disableListenLog: true, disableLogger: true }
+    ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+    return Effect.gen(function*() {
+      const response1 = yield* HttpClient.get("")
+      assert.strictEqual(response1.status, 200)
+      assert.strictEqual(yield* response1.text, `"/"`)
+
+      const response2 = yield* HttpClient.get("/")
+      assert.strictEqual(response2.status, 200)
+      assert.strictEqual(yield* response2.text, `"/"`)
+
+      const response3 = yield* HttpClient.get("/a/b/c")
+      assert.strictEqual(response3.status, 200)
+      assert.strictEqual(yield* response3.text, `"/a/b/c"`)
+    }).pipe(Effect.provide(ApiLive))
+  })
+
   describe("payload option", () => {
     describe("encoding", () => {
       it.effect("array of schemas with different encodings", () => {

@@ -562,7 +562,7 @@ function extractResponseBodies(
     const ast = schema.ast
     const status = getStatus(ast)
     if (HttpApiSchema.isNoContent(ast)) {
-      setDescription(schema, status, getDescription(schema.ast) ?? "<No Content>")
+      addNoContent(schema, status, getDescription(schema.ast) ?? "<No Content>")
     } else {
       const body = HttpApiSchema.getBody(ast)
       switch (body._tag) {
@@ -578,7 +578,7 @@ function extractResponseBodies(
     }
   }
 
-  function setDescription(schema: Schema.Top, status: number, description: string) {
+  function addNoContent(schema: Schema.Top, status: number, description: string) {
     const statusMap = map.get(status)
     if (statusMap === undefined) {
       map.set(status, {
