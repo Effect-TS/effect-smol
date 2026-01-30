@@ -47,15 +47,16 @@ export const make = <A extends Atom.Atom<any>, Input = never>(
     return atom
   }
 
-  const Provider: React.FC<{ readonly children?: React.ReactNode | undefined; readonly value: Input }> = ({
-    children,
-    value
-  }) => {
+  const Provider: React.FC<{ readonly children?: React.ReactNode | undefined; readonly value?: Input }> = (props) => {
     const atom = React.useRef<A | null>(null)
     if (atom.current === null) {
-      atom.current = (f as (input: Input) => A)(value)
+      if ("value" in props) {
+        atom.current = (f as (input: Input) => A)(props.value as Input)
+      } else {
+        atom.current = (f as () => A)()
+      }
     }
-    return React.createElement(Context.Provider, { value: atom.current }, children)
+    return React.createElement(Context.Provider, { value: atom.current }, props.children)
   }
 
   return {
