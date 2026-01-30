@@ -462,19 +462,30 @@ function toCodecArrayBuffer(schema: Schema.Top): Schema.Top {
   if (HttpApiSchema.isHttpApiContainer(schema)) {
     return Schema.Union(schema.members.map(toCodecArrayBuffer))
   }
-  const encoding = HttpApiSchema.getEncoding(schema.ast)
-  switch (encoding._tag) {
-    case "Json":
+  const body = HttpApiSchema.getBody(schema.ast)
+  switch (body._tag) {
+    case "NoContent":
+      // TODO: refactor this
       return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
-    case "FormUrlEncoded":
-      return StringFromArrayBuffer.pipe(
-        Schema.decodeTo(UrlParams.schemaRecord),
-        Schema.decodeTo(schema)
-      )
-    case "Binary":
-      return Uint8ArrayFromArrayBuffer.pipe(Schema.decodeTo(schema))
-    case "Text":
-      return StringFromArrayBuffer.pipe(Schema.decodeTo(schema))
+    case "Multipart":
+      // TODO: this should not happen
+      throw new Error("Multipart body is not supported")
+    case "HasBody": {
+      const encoding = body.encoding
+      switch (encoding._tag) {
+        case "Json":
+          return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
+        case "FormUrlEncoded":
+          return StringFromArrayBuffer.pipe(
+            Schema.decodeTo(UrlParams.schemaRecord),
+            Schema.decodeTo(schema)
+          )
+        case "Binary":
+          return Uint8ArrayFromArrayBuffer.pipe(Schema.decodeTo(schema))
+        case "Text":
+          return StringFromArrayBuffer.pipe(Schema.decodeTo(schema))
+      }
+    }
   }
 }
 
@@ -518,7 +529,7 @@ function bodyFromPayload(schema: Schema.Top): Schema.Top {
   if (cached !== undefined) {
     return cached
   }
-  const encoding = HttpApiSchema.getEncoding(ast)
+  const body = HttpApiSchema.getBody(ast)
   const out = HttpBodySchema.pipe(Schema.decodeTo(
     schema,
     Transformation.transformOrFail({
@@ -526,33 +537,44 @@ function bodyFromPayload(schema: Schema.Top): Schema.Top {
         return Effect.fail(new Issue.Forbidden(Option.some(httpBody), { message: "encode only schema" }))
       },
       encode(t: unknown) {
-        switch (encoding._tag) {
-          case "Json": {
-            try {
-              const body = JSON.stringify(t)
-              return Effect.succeed(HttpBody.text(body, encoding.contentType))
-            } catch {
-              return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: "Could not encode as JSON" }))
+        switch (body._tag) {
+          case "NoContent":
+            // TODO: this should not happen
+            throw new Error("No Content body is not supported")
+          case "Multipart":
+            // TODO: this should not happen
+            throw new Error("Multipart body is not supported")
+          case "HasBody": {
+            const encoding = body.encoding
+            switch (encoding._tag) {
+              case "Json": {
+                try {
+                  const body = JSON.stringify(t)
+                  return Effect.succeed(HttpBody.text(body, encoding.contentType))
+                } catch {
+                  return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: "Could not encode as JSON" }))
+                }
+              }
+              case "Text": {
+                if (typeof t !== "string") {
+                  return Effect.fail(
+                    new Issue.InvalidValue(Option.some(t), { message: "Expected a string" })
+                  )
+                }
+                return Effect.succeed(HttpBody.text(t, encoding.contentType))
+              }
+              case "FormUrlEncoded": {
+                return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(t as any)))
+              }
+              case "Binary": {
+                if (!(t instanceof Uint8Array)) {
+                  return Effect.fail(
+                    new Issue.InvalidValue(Option.some(t), { message: "Expected a Uint8Array" })
+                  )
+                }
+                return Effect.succeed(HttpBody.uint8Array(t, encoding.contentType))
+              }
             }
-          }
-          case "Text": {
-            if (typeof t !== "string") {
-              return Effect.fail(
-                new Issue.InvalidValue(Option.some(t), { message: "Expected a string" })
-              )
-            }
-            return Effect.succeed(HttpBody.text(t, encoding.contentType))
-          }
-          case "FormUrlEncoded": {
-            return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(t as any)))
-          }
-          case "Binary": {
-            if (!(t instanceof Uint8Array)) {
-              return Effect.fail(
-                new Issue.InvalidValue(Option.some(t), { message: "Expected a Uint8Array" })
-              )
-            }
-            return Effect.succeed(HttpBody.uint8Array(t, encoding.contentType))
           }
         }
       }
