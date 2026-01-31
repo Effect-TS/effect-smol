@@ -538,8 +538,6 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
 const emptyMap = new Map()
 
-type Encoding = HttpApiSchema.Encoding["_tag"] | "Multipart"
-
 type ResponseBodies = Map<
   number, // status
   {
@@ -568,17 +566,7 @@ function extractResponseBodies(
     if (HttpApiSchema.isNoContent(ast)) {
       addNoContent(status, getDescription(schema.ast) ?? "<No Content>")
     } else {
-      const body = HttpApiSchema.getBody(ast)
-      switch (body._tag) {
-        case "Multipart": {
-          addContent(schema, status, "Multipart", body.contentType)
-          break
-        }
-        case "HasBody": {
-          addContent(schema, status, body.encoding._tag, body.encoding.contentType)
-          break
-        }
-      }
+      addContent(schema, status, HttpApiSchema.getEncoding(ast))
     }
   }
 
@@ -596,13 +584,14 @@ function extractResponseBodies(
     }
   }
 
-  function addContent(schema: Schema.Top, status: number, encoding: Encoding, contentType: string) {
+  function addContent(schema: Schema.Top, status: number, encoding: HttpApiSchema.Encoding) {
     const description = getDescription(schema.ast)
     const statusMap = map.get(status)
+    const { _tag, contentType } = encoding
     if (statusMap === undefined) {
       map.set(status, {
         descriptions: description !== undefined ? [description] : [],
-        content: new Map([[encoding, new Map([[contentType, new Set([schema])]])]])
+        content: new Map([[_tag, new Map([[contentType, new Set([schema])]])]])
       })
     } else {
       if (statusMap.content !== undefined) {
@@ -611,9 +600,9 @@ function extractResponseBodies(
           statusMap.descriptions.push(description)
         }
 
-        const contentTypeMap = statusMap.content.get(encoding)
+        const contentTypeMap = statusMap.content.get(_tag)
         if (contentTypeMap === undefined) {
-          statusMap.content.set(encoding, new Map([[contentType, new Set([schema])]]))
+          statusMap.content.set(_tag, new Map([[contentType, new Set([schema])]]))
         } else {
           const set = contentTypeMap.get(contentType)
           if (set === undefined) {
@@ -632,7 +621,7 @@ function resolveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
 }
 
 type Content = Map<
-  Encoding,
+  HttpApiSchema.Encoding["_tag"],
   Map<
     string, // contentType
     Set<Schema.Top>
@@ -644,7 +633,7 @@ function extractRequestBodies(schemas: ReadonlySet<Schema.Top> | undefined): Con
     return emptyMap
   }
 
-  const map = new Map<Encoding, Map<string, Set<Schema.Top>>>()
+  const map = new Map<HttpApiSchema.Encoding["_tag"], Map<string, Set<Schema.Top>>>()
 
   schemas.forEach(process)
 
@@ -653,24 +642,15 @@ function extractRequestBodies(schemas: ReadonlySet<Schema.Top> | undefined): Con
   function process(schema: Schema.Top) {
     const ast = schema.ast
     if (!HttpApiSchema.isNoContent(ast)) {
-      const body = HttpApiSchema.getBody(ast)
-      switch (body._tag) {
-        case "Multipart": {
-          addContent(schema, "Multipart", body.contentType)
-          break
-        }
-        case "HasBody": {
-          addContent(schema, body.encoding._tag, body.encoding.contentType)
-          break
-        }
-      }
+      addContent(schema, HttpApiSchema.getEncoding(ast))
     }
   }
 
-  function addContent(schema: Schema.Top, encoding: Encoding, contentType: string) {
-    const contentTypeMap = map.get(encoding)
+  function addContent(schema: Schema.Top, encoding: HttpApiSchema.Encoding) {
+    const { _tag, contentType } = encoding
+    const contentTypeMap = map.get(_tag)
     if (contentTypeMap === undefined) {
-      map.set(encoding, new Map([[contentType, new Set([schema])]]))
+      map.set(_tag, new Map([[contentType, new Set([schema])]]))
     } else {
       const set = contentTypeMap.get(contentType)
       if (set === undefined) {
@@ -687,8 +667,8 @@ const Uint8ArrayEncoding = Schema.String.annotate({
 })
 const TextEncoding = Schema.String
 
-function toEncodingAST(ast: AST.AST, encoding: Encoding): AST.AST {
-  switch (encoding) {
+function toEncodingAST(ast: AST.AST, _tag: HttpApiSchema.Encoding["_tag"]): AST.AST {
+  switch (_tag) {
     case "Uint8Array":
       // For `application/octet-stream` (raw bytes) we must emit a binary schema,
       // not the JSON representation used by `Schema.Uint8Array` (base64 string).

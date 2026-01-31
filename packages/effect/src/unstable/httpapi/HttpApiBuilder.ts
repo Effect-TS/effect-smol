@@ -461,9 +461,9 @@ const handlerToRoute = (
   services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
-  const body = endpoint.payloadSchema?.pipe(({ ast }) => HttpApiSchema.getBody(ast))
-  const isMultipartStream = body?._tag === "Multipart" && body.mode === "stream"
-  const multipartLimits = body?._tag === "Multipart" ? body.limits : undefined
+  const encoding = endpoint.payloadSchema?.pipe(({ ast }) => HttpApiSchema.getEncoding(ast))
+  const isMultipartStream = encoding?._tag === "Multipart" && encoding.mode === "stream"
+  const multipartLimits = encoding?._tag === "Multipart" ? encoding.limits : undefined
   const decodePath = UndefinedOr.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
     ? undefined
@@ -669,43 +669,38 @@ function getResponseTransformation<T, E, RD, RE>(
   return Transformation.transformOrFail({
     decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
     encode(e: E) {
-      const body = HttpApiSchema.getBody(ast)
-      switch (body._tag) {
+      const encoding = HttpApiSchema.getEncoding(ast)
+      switch (encoding._tag) {
         case "Multipart":
           return Effect.succeed(Response.empty({ status }))
-        case "HasBody": {
-          const encoding = body.encoding
-          switch (encoding._tag) {
-            case "Json": {
-              try {
-                return Effect.succeed(Response.text(JSON.stringify(e), {
-                  status,
-                  contentType: encoding.contentType
-                }))
-              } catch (error) {
-                return Effect.fail(new Issue.InvalidValue(Option.some(e)))
-              }
-            }
-            case "Text": {
-              return Effect.succeed(Response.text(e as string, {
-                status,
-                contentType: encoding.contentType
-              }))
-            }
-            case "Uint8Array": {
-              return Effect.succeed(Response.uint8Array(e as Uint8Array, {
-                status,
-                contentType: encoding.contentType
-              }))
-            }
-            case "UrlParams": {
-              return Effect.succeed(
-                Response.urlParams(e as any, { status }).pipe(
-                  Response.setHeader("content-type", encoding.contentType)
-                )
-              )
-            }
+        case "Json": {
+          try {
+            return Effect.succeed(Response.text(JSON.stringify(e), {
+              status,
+              contentType: encoding.contentType
+            }))
+          } catch (error) {
+            return Effect.fail(new Issue.InvalidValue(Option.some(e)))
           }
+        }
+        case "Text": {
+          return Effect.succeed(Response.text(e as string, {
+            status,
+            contentType: encoding.contentType
+          }))
+        }
+        case "Uint8Array": {
+          return Effect.succeed(Response.uint8Array(e as Uint8Array, {
+            status,
+            contentType: encoding.contentType
+          }))
+        }
+        case "UrlParams": {
+          return Effect.succeed(
+            Response.urlParams(e as any, { status }).pipe(
+              Response.setHeader("content-type", encoding.contentType)
+            )
+          )
         }
       }
     }

@@ -12,7 +12,7 @@ declare module "../../Schema.ts" {
     interface Augment {
       readonly httpApiStatus?: number | undefined
       /** @internal */
-      readonly httpApiBody?: Body | undefined
+      readonly httpApiEncoding?: Encoding | undefined
     }
   }
 }
@@ -20,16 +20,16 @@ declare module "../../Schema.ts" {
 /**
  * @since 4.0.0
  */
-export type Body =
+export type Encoding =
   | {
     readonly _tag: "Multipart"
     readonly mode: "buffered" | "stream"
-    readonly contentType: "multipart/form-data"
+    readonly contentType: string
     readonly limits?: Multipart_.withLimits.Options | undefined
   }
   | {
-    readonly _tag: "HasBody"
-    readonly encoding: Encoding
+    readonly _tag: "Json" | "UrlParams" | "Uint8Array" | "Text"
+    readonly contentType: string
   }
 
 /**
@@ -130,10 +130,10 @@ export interface asMultipart<S extends Schema.Top> extends Schema.brand<S["~rebu
 export function asMultipart(options?: Multipart_.withLimits.Options) {
   return <S extends Schema.Top>(self: S): asMultipart<S> =>
     self.pipe(Schema.brand(MultipartTypeId)).annotate({
-      httpApiBody: {
+      httpApiEncoding: {
         _tag: "Multipart",
         mode: "buffered",
-        contentType: "multipart/form-data",
+        contentType: defaultContentType("Multipart"),
         limits: options
       }
     })
@@ -166,41 +166,31 @@ export interface asMultipartStream<S extends Schema.Top>
 export function asMultipartStream(options?: Multipart_.withLimits.Options) {
   return <S extends Schema.Top>(self: S): asMultipartStream<S> =>
     self.pipe(Schema.brand(MultipartStreamTypeId)).annotate({
-      httpApiBody: {
+      httpApiEncoding: {
         _tag: "Multipart",
         mode: "stream",
-        contentType: "multipart/form-data",
+        contentType: defaultContentType("Multipart"),
         limits: options
       }
     })
 }
 
-/**
- * @category encoding
- * @since 4.0.0
- */
-export interface Encoding {
-  readonly _tag: "Json" | "UrlParams" | "Uint8Array" | "Text"
-  readonly contentType: string
-}
-
 function withEncoding<S extends Schema.Top>(self: S, options: {
-  readonly _tag: Encoding["_tag"]
+  readonly _tag: "Json" | "UrlParams" | "Uint8Array" | "Text"
   readonly contentType?: string | undefined
 }): S["~rebuild.out"] {
   return self.annotate({
-    httpApiBody: {
-      _tag: "HasBody",
-      encoding: {
-        _tag: options._tag,
-        contentType: options.contentType ?? defaultContentType(options._tag)
-      }
+    httpApiEncoding: {
+      _tag: options._tag,
+      contentType: options.contentType ?? defaultContentType(options._tag)
     }
   })
 }
 
-function defaultContentType(_tag: Encoding["_tag"]) {
+function defaultContentType(_tag: Encoding["_tag"]): string {
   switch (_tag) {
+    case "Multipart":
+      return "multipart/form-data"
     case "Json":
       return "application/json"
     case "UrlParams":
@@ -273,7 +263,7 @@ export function getSchemas(schema: Schema.Top): Set<Schema.Top> {
   return schemas
 }
 
-const resolveHttpApiBody = AST.resolveAt<Body>("httpApiBody")
+const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
 
 const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
 
@@ -294,14 +284,9 @@ const defaultJsonEncoding: Encoding = {
   contentType: "application/json"
 }
 
-const defaultJsonBody: Body = {
-  _tag: "HasBody",
-  encoding: defaultJsonEncoding
-}
-
 /** @internal */
-export function getBody(ast: AST.AST): Body {
-  return resolveHttpApiBody(ast) ?? defaultJsonBody
+export function getEncoding(ast: AST.AST): Encoding {
+  return resolveHttpApiEncoding(ast) ?? defaultJsonEncoding
 }
 
 /** @internal */
