@@ -219,15 +219,55 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      describe("withEncoding", () => {
-        it("Json (with overridden contentType)", () => {
+      describe("encodings", () => {
+        it("asMultipart", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.post("a", "/a", {
+                    payload: Schema.String.pipe(HttpApiSchema.asMultipart())
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+            "multipart/form-data": {
+              schema: {
+                "type": "string"
+              }
+            }
+          })
+        })
+
+        it("asMultipartStream", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.post("a", "/a", {
+                    payload: Schema.String.pipe(HttpApiSchema.asMultipartStream())
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+            "multipart/form-data": {
+              schema: {
+                "type": "string"
+              }
+            }
+          })
+        })
+
+        it("asJson + contentType", () => {
           const Api = HttpApi.make("api")
             .add(
               HttpApiGroup.make("group")
                 .add(
                   HttpApiEndpoint.post("a", "/a", {
                     payload: Schema.String.pipe(
-                      HttpApiSchema.withEncoding({ _tag: "Json", contentType: "application/problem+json" })
+                      HttpApiSchema.asJson({ contentType: "application/problem+json" })
                     )
                   })
                 )
@@ -242,13 +282,13 @@ describe("OpenAPI spec", () => {
           })
         })
 
-        it("Text", () => {
+        it("asText", () => {
           const Api = HttpApi.make("api")
             .add(
               HttpApiGroup.make("group")
                 .add(
                   HttpApiEndpoint.post("a", "/a", {
-                    payload: HttpApiSchema.Text()
+                    payload: Schema.String.pipe(HttpApiSchema.asText())
                   })
                 )
             )
@@ -267,14 +307,14 @@ describe("OpenAPI spec", () => {
           })
         })
 
-        it("UrlParams", () => {
+        it("asUrlParams", () => {
           const Api = HttpApi.make("api")
             .add(
               HttpApiGroup.make("group")
                 .add(
                   HttpApiEndpoint.post("a", "/a", {
                     payload: Schema.Struct({ a: Schema.String }).pipe(
-                      HttpApiSchema.withEncoding({ _tag: "UrlParams" })
+                      HttpApiSchema.asUrlParams()
                     )
                   })
                 )
@@ -301,13 +341,13 @@ describe("OpenAPI spec", () => {
           })
         })
 
-        it("Uint8Array", () => {
+        it("asUint8Array", () => {
           const Api = HttpApi.make("api")
             .add(
               HttpApiGroup.make("group")
                 .add(
                   HttpApiEndpoint.post("a", "/a", {
-                    payload: HttpApiSchema.Uint8Array()
+                    payload: Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array())
                   })
                 )
             )
@@ -330,8 +370,8 @@ describe("OpenAPI spec", () => {
                   HttpApiEndpoint.post("a", "/a", {
                     payload: [
                       Schema.Struct({ a: Schema.String }), // application/json
-                      HttpApiSchema.Text(), // text/plain
-                      HttpApiSchema.Uint8Array() // application/octet-stream
+                      Schema.String.pipe(HttpApiSchema.asText()), // text/plain
+                      Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
                     ]
                   })
                 )
@@ -414,7 +454,7 @@ describe("OpenAPI spec", () => {
           .add(
             HttpApiGroup.make("group")
               .add(HttpApiEndpoint.get("a", "/a", {
-                success: HttpApiSchema.makeNoContent(204)
+                success: HttpApiSchema.Empty(204)
               }))
           )
         const spec = OpenApi.fromApi(Api)
@@ -466,15 +506,55 @@ describe("OpenAPI spec", () => {
       })
     })
 
-    describe("withEncoding", () => {
-      it("Json (with overridden contentType)", () => {
+    describe("encodings", () => {
+      it("asMultipart", () => {
+        const Api = HttpApi.make("api")
+          .add(
+            HttpApiGroup.make("group")
+              .add(
+                HttpApiEndpoint.get("a", "/a", {
+                  success: Schema.String.pipe(HttpApiSchema.asMultipart())
+                })
+              )
+          )
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
+          "multipart/form-data": {
+            schema: {
+              "type": "string"
+            }
+          }
+        })
+      })
+
+      it("asMultipartStream", () => {
+        const Api = HttpApi.make("api")
+          .add(
+            HttpApiGroup.make("group")
+              .add(
+                HttpApiEndpoint.get("a", "/a", {
+                  success: Schema.String.pipe(HttpApiSchema.asMultipartStream())
+                })
+              )
+          )
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
+          "multipart/form-data": {
+            schema: {
+              "type": "string"
+            }
+          }
+        })
+      })
+
+      it("asJson + contentType", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
                   success: Schema.String.pipe(
-                    HttpApiSchema.withEncoding({ _tag: "Json", contentType: "application/problem+json" })
+                    HttpApiSchema.asJson({ contentType: "application/problem+json" })
                   )
                 })
               )
@@ -489,13 +569,13 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      it("Text", () => {
+      it("asText", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  success: HttpApiSchema.Text()
+                  success: Schema.String.pipe(HttpApiSchema.asText())
                 })
               )
           )
@@ -509,14 +589,14 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      it("FormUrlEncoded", () => {
+      it("asUrlParams", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
                   success: Schema.Struct({ a: Schema.String }).pipe(
-                    HttpApiSchema.withEncoding({ _tag: "UrlParams" })
+                    HttpApiSchema.asUrlParams()
                   )
                 })
               )
@@ -538,13 +618,13 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      it("Binary", () => {
+      it("asUint8Array", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  success: HttpApiSchema.Uint8Array()
+                  success: Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array())
                 })
               )
           )
@@ -568,7 +648,7 @@ describe("OpenAPI spec", () => {
                   success: Schema.Union([
                     Schema.Struct({ a: Schema.String }),
                     Schema.Struct({ b: Schema.String })
-                  ]).pipe(HttpApiSchema.withEncoding({ _tag: "UrlParams" }))
+                  ]).pipe(HttpApiSchema.asUrlParams())
                 })
               )
           )
@@ -1073,7 +1153,7 @@ describe("OpenAPI spec", () => {
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  error: HttpApiSchema.makeNoContent(400)
+                  error: HttpApiSchema.Empty(400)
                 })
               )
           )
@@ -1089,7 +1169,7 @@ describe("OpenAPI spec", () => {
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  error: HttpApiSchema.makeNoContent(401)
+                  error: HttpApiSchema.Empty(401)
                 })
               )
           )
