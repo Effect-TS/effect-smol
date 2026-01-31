@@ -594,8 +594,7 @@ describe("HttpApi", () => {
         })
       )
     )
-      .annotate({ httpApiStatus: 429 })
-      .pipe(HttpApiSchema.asText())
+      .pipe(HttpApiSchema.status(429), HttpApiSchema.asText())
 
     const Api = HttpApi.make("api").add(
       HttpApiGroup.make("group").add(
