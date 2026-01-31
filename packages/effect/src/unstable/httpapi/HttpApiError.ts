@@ -45,9 +45,9 @@ export class BadRequest extends Schema.ErrorClass<BadRequest>("effect/HttpApiErr
  * @category NoContent errors
  * @since 4.0.0
  */
-export const BadRequestNoContent = HttpApiSchema.asNoContent(BadRequest, {
+export const BadRequestNoContent = BadRequest.pipe(HttpApiSchema.asNoContent({
   decode: () => new BadRequest({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -64,9 +64,9 @@ export class Unauthorized extends Schema.ErrorClass<Unauthorized>("effect/HttpAp
  * @category NoContent errors
  * @since 4.0.0
  */
-export const UnauthorizedNoContent = HttpApiSchema.asNoContent(Unauthorized, {
+export const UnauthorizedNoContent = Unauthorized.pipe(HttpApiSchema.asNoContent({
   decode: () => new Unauthorized({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -83,9 +83,9 @@ export class Forbidden extends Schema.ErrorClass<Forbidden>("effect/HttpApiError
  * @category NoContent errors
  * @since 4.0.0
  */
-export const ForbiddenNoContent = HttpApiSchema.asNoContent(Forbidden, {
+export const ForbiddenNoContent = Forbidden.pipe(HttpApiSchema.asNoContent({
   decode: () => new Forbidden({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -102,9 +102,9 @@ export class NotFound extends Schema.ErrorClass<NotFound>("effect/HttpApiError/N
  * @category NoContent errors
  * @since 4.0.0
  */
-export const NotFoundNoContent = HttpApiSchema.asNoContent(NotFound, {
+export const NotFoundNoContent = NotFound.pipe(HttpApiSchema.asNoContent({
   decode: () => new NotFound({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -121,9 +121,9 @@ export class MethodNotAllowed extends Schema.ErrorClass<MethodNotAllowed>("effec
  * @category NoContent errors
  * @since 4.0.0
  */
-export const MethodNotAllowedNoContent = HttpApiSchema.asNoContent(MethodNotAllowed, {
+export const MethodNotAllowedNoContent = MethodNotAllowed.pipe(HttpApiSchema.asNoContent({
   decode: () => new MethodNotAllowed({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -140,9 +140,9 @@ export class NotAcceptable extends Schema.ErrorClass<NotAcceptable>("effect/Http
  * @category NoContent errors
  * @since 4.0.0
  */
-export const NotAcceptableNoContent = HttpApiSchema.asNoContent(NotAcceptable, {
+export const NotAcceptableNoContent = NotAcceptable.pipe(HttpApiSchema.asNoContent({
   decode: () => new NotAcceptable({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -159,9 +159,9 @@ export class RequestTimeout extends Schema.ErrorClass<RequestTimeout>("effect/Ht
  * @category NoContent errors
  * @since 4.0.0
  */
-export const RequestTimeoutNoContent = HttpApiSchema.asNoContent(RequestTimeout, {
+export const RequestTimeoutNoContent = RequestTimeout.pipe(HttpApiSchema.asNoContent({
   decode: () => new RequestTimeout({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -178,9 +178,9 @@ export class Conflict extends Schema.ErrorClass<Conflict>("effect/HttpApiError/C
  * @since 4.0.0
  * @category NoContent errors
  */
-export const ConflictNoContent = HttpApiSchema.asNoContent(Conflict, {
+export const ConflictNoContent = Conflict.pipe(HttpApiSchema.asNoContent({
   decode: () => new Conflict({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -197,9 +197,9 @@ export class Gone extends Schema.ErrorClass<Gone>("effect/HttpApiError/Gone")({
  * @category NoContent errors
  * @since 4.0.0
  */
-export const GoneNoContent = HttpApiSchema.asNoContent(Gone, {
+export const GoneNoContent = Gone.pipe(HttpApiSchema.asNoContent({
   decode: () => new Gone({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -218,9 +218,9 @@ export class InternalServerError
  * @category NoContent errors
  * @since 4.0.0
  */
-export const InternalServerErrorNoContent = HttpApiSchema.asNoContent(InternalServerError, {
+export const InternalServerErrorNoContent = InternalServerError.pipe(HttpApiSchema.asNoContent({
   decode: () => new InternalServerError({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -237,9 +237,9 @@ export class NotImplemented extends Schema.ErrorClass<NotImplemented>("effect/Ht
  * @category NoContent errors
  * @since 4.0.0
  */
-export const NotImplementedNoContent = HttpApiSchema.asNoContent(NotImplemented, {
+export const NotImplementedNoContent = NotImplemented.pipe(HttpApiSchema.asNoContent({
   decode: () => new NotImplemented({})
-})
+}))
 
 /**
  * @category Built-in errors
@@ -258,6 +258,6 @@ export class ServiceUnavailable
  * @category NoContent errors
  * @since 4.0.0
  */
-export const ServiceUnavailableNoContent = HttpApiSchema.asNoContent(ServiceUnavailable, {
+export const ServiceUnavailableNoContent = ServiceUnavailable.pipe(HttpApiSchema.asNoContent({
   decode: () => new ServiceUnavailable({})
-})
+}))
