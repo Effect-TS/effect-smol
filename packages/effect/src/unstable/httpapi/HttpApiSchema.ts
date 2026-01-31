@@ -1,8 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type * as FileSystem from "../../FileSystem.ts"
-import { constVoid, dual, type LazyArg } from "../../Function.ts"
+import { constVoid, type LazyArg } from "../../Function.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
@@ -41,27 +40,11 @@ export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<Schem
  * @since 4.0.0
  * @category No Content
  */
-export const asNoContent: {
-  <S extends Schema.Top>(options: {
-    readonly decode: LazyArg<S["Type"]>
-    readonly status?: number | undefined
-  }): (self: S) => asNoContent<S>
-  <S extends Schema.Top>(
-    self: S,
-    options: {
-      readonly decode: LazyArg<S["Type"]>
-      readonly status?: number | undefined
-    }
-  ): asNoContent<S>
-} = dual(
-  2,
-  <S extends Schema.Top>(
-    self: S,
-    options: {
-      readonly status: number
-      readonly decode: LazyArg<S["Type"]>
-    }
-  ): asNoContent<S> => {
+export function asNoContent<S extends Schema.Top>(options: {
+  readonly decode: LazyArg<S["Type"]>
+  readonly status?: number | undefined
+}) {
+  return (self: S): asNoContent<S> => {
     const transformation = Transformation.transform({
       decode: options.decode,
       encode: constVoid
@@ -79,7 +62,7 @@ export const asNoContent: {
     }
     return out
   }
-)
+}
 
 /**
  * @since 4.0.0
@@ -144,13 +127,7 @@ export interface asMultipart<S extends Schema.Top> extends Schema.brand<S["~rebu
  * @since 4.0.0
  * @category multipart
  */
-export function asMultipart(options?: {
-  readonly maxParts?: number | undefined
-  readonly maxFieldSize?: FileSystem.SizeInput | undefined
-  readonly maxFileSize?: FileSystem.SizeInput | undefined
-  readonly maxTotalSize?: FileSystem.SizeInput | undefined
-  readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
-}) {
+export function asMultipart(options?: Multipart_.withLimits.Options) {
   return <S extends Schema.Top>(self: S): asMultipart<S> =>
     self.pipe(Schema.brand(MultipartTypeId)).annotate({
       httpApiBody: {
@@ -186,13 +163,7 @@ export interface asMultipartStream<S extends Schema.Top>
  * @since 4.0.0
  * @category multipart
  */
-export function asMultipartStream<S extends Schema.Top>(options?: {
-  readonly maxParts?: number | undefined
-  readonly maxFieldSize?: FileSystem.SizeInput | undefined
-  readonly maxFileSize?: FileSystem.SizeInput | undefined
-  readonly maxTotalSize?: FileSystem.SizeInput | undefined
-  readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
-}) {
+export function asMultipartStream(options?: Multipart_.withLimits.Options) {
   return <S extends Schema.Top>(self: S): asMultipartStream<S> =>
     self.pipe(Schema.brand(MultipartStreamTypeId)).annotate({
       httpApiBody: {

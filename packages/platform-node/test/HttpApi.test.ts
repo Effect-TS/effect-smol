@@ -682,9 +682,9 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
       id: Schema.FiniteFromString
     },
     success: Group,
-    error: HttpApiSchema.asNoContent(GroupError, {
+    error: GroupError.pipe(HttpApiSchema.asNoContent({
       decode: () => new GroupError({})
-    })
+    }))
   }),
   HttpApiEndpoint.post("create", "/", {
     payload: Schema.Union([
