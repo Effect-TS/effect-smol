@@ -461,11 +461,8 @@ function toCodecArrayBuffer(schema: Schema.Top): Schema.Top {
   if (HttpApiSchema.isHttpApiContainer(schema)) {
     return Schema.Union(schema.members.map(toCodecArrayBuffer))
   }
-  const encoding = HttpApiSchema.getEncoding(schema.ast)
+  const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
   switch (encoding._tag) {
-    case "Multipart":
-      // TODO: this should not happen
-      throw new Error("Multipart body is not supported")
     case "Json":
       return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
     case "UrlParams":
@@ -504,12 +501,9 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 
 const HttpBodySchema = Schema.declare(HttpBody.isHttpBody)
 
-// TODO: forEach?
 function payloadSchemaBody(schema: Schema.Top): Schema.Top {
-  if (HttpApiSchema.isHttpApiContainer(schema)) {
-    return Schema.Union(schema.members.map(bodyFromPayload))
-  }
-  return bodyFromPayload(schema)
+  const schemas = Array.from(HttpApiSchema.getSchemas(schema), bodyFromPayload)
+  return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()
@@ -520,7 +514,7 @@ function bodyFromPayload(schema: Schema.Top): Schema.Top {
   if (cached !== undefined) {
     return cached
   }
-  const encoding = HttpApiSchema.getEncoding(ast)
+  const encoding = HttpApiSchema.getRequestEncoding(ast)
   const out = HttpBodySchema.pipe(Schema.decodeTo(
     schema,
     Transformation.transformOrFail({
@@ -529,9 +523,10 @@ function bodyFromPayload(schema: Schema.Top): Schema.Top {
       },
       encode(t: unknown) {
         switch (encoding._tag) {
-          case "Multipart":
+          case "Multipart": {
             // TODO: this should not happen
-            throw new Error("Multipart body is not supported")
+            throw new Error("Multipart encoding is not supported")
+          }
           case "Json": {
             try {
               const body = JSON.stringify(t)

@@ -76,7 +76,7 @@ describe("HttpApi", () => {
   })
 
   describe("payload option", () => {
-    describe("encoding", () => {
+    describe("encodings", () => {
       it.effect("array of schemas with different encodings", () => {
         const Api = HttpApi.make("api").add(
           HttpApiGroup.make("group").add(

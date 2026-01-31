@@ -507,46 +507,6 @@ describe("OpenAPI spec", () => {
     })
 
     describe("encodings", () => {
-      it("asMultipart", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  success: Schema.String.pipe(HttpApiSchema.asMultipart())
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
-          "multipart/form-data": {
-            schema: {
-              "type": "string"
-            }
-          }
-        })
-      })
-
-      it("asMultipartStream", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  success: Schema.String.pipe(HttpApiSchema.asMultipartStream())
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
-          "multipart/form-data": {
-            schema: {
-              "type": "string"
-            }
-          }
-        })
-      })
-
       it("asJson + contentType", () => {
         const Api = HttpApi.make("api")
           .add(

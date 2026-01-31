@@ -461,7 +461,7 @@ const handlerToRoute = (
   services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
-  const encoding = endpoint.payloadSchema?.pipe(({ ast }) => HttpApiSchema.getEncoding(ast))
+  const encoding = endpoint.payloadSchema?.pipe(({ ast }) => HttpApiSchema.getRequestEncoding(ast))
   const isMultipartStream = encoding?._tag === "Multipart" && encoding.mode === "stream"
   const multipartLimits = encoding?._tag === "Multipart" ? encoding.limits : undefined
   const decodePath = UndefinedOr.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
@@ -664,7 +664,7 @@ function getResponseTransformation<T, E, RD, RE>(
   schema: Schema.Codec<T, E, RD, RE>
 ): Transformation.Transformation<E, Response.HttpServerResponse> {
   const ast = schema.ast
-  const encode = getResponseEncode<E>(getStatus(ast), HttpApiSchema.getEncoding(ast))
+  const encode = getResponseEncode<E>(getStatus(ast), HttpApiSchema.getResponseEncoding(ast))
 
   return Transformation.transformOrFail({
     decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
@@ -674,12 +674,9 @@ function getResponseTransformation<T, E, RD, RE>(
 
 function getResponseEncode<E>(
   status: number,
-  encoding: HttpApiSchema.Encoding
+  encoding: HttpApiSchema.ResponseEncoding
 ): (e: E) => Effect.Effect<Response.HttpServerResponse, Issue.InvalidValue, never> {
   switch (encoding._tag) {
-    case "Multipart":
-      // TODO: this should not happen
-      throw new Error("Multipart body is not supported")
     case "Json": {
       return ((e) => {
         try {

@@ -20,7 +20,14 @@ declare module "../../Schema.ts" {
 /**
  * @since 4.0.0
  */
-export type Encoding =
+export type Encoding = RequestEncoding | ResponseEncoding
+
+/**
+ * Encodings for request bodies
+ *
+ * @since 4.0.0
+ */
+export type RequestEncoding =
   | {
     readonly _tag: "Multipart"
     readonly mode: "buffered" | "stream"
@@ -31,6 +38,16 @@ export type Encoding =
     readonly _tag: "Json" | "UrlParams" | "Uint8Array" | "Text"
     readonly contentType: string
   }
+
+/**
+ * Encodings for response bodies
+ *
+ * @since 4.0.0
+ */
+export type ResponseEncoding = {
+  readonly _tag: "Json" | "UrlParams" | "Uint8Array" | "Text"
+  readonly contentType: string
+}
 
 /**
  * @category status
@@ -284,9 +301,22 @@ const defaultJsonEncoding: Encoding = {
   contentType: "application/json"
 }
 
-/** @internal */
-export function getEncoding(ast: AST.AST): Encoding {
+function getEncoding(ast: AST.AST): Encoding {
   return resolveHttpApiEncoding(ast) ?? defaultJsonEncoding
+}
+
+/** @internal */
+export function getRequestEncoding(ast: AST.AST): RequestEncoding {
+  return getEncoding(ast)
+}
+
+/** @internal */
+export function getResponseEncoding(ast: AST.AST): ResponseEncoding {
+  const out = getEncoding(ast)
+  if (out._tag === "Multipart") {
+    throw new Error("Multipart is not supported in response")
+  }
+  return out
 }
 
 /** @internal */
