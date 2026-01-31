@@ -11,6 +11,7 @@ declare module "../../Schema.ts" {
   namespace Annotations {
     interface Annotations {
       readonly httpApiStatus?: number | undefined
+      /** @internal */
       readonly httpApiBody?: Body | undefined
     }
   }
@@ -32,13 +33,23 @@ export type Body =
   }
 
 /**
+ * @category status
+ * @since 4.0.0
+ */
+export function status(code: number) {
+  return <S extends Schema.Top>(self: S): S["~rebuild.out"] => {
+    return self.annotate({ httpApiStatus: code })
+  }
+}
+
+/**
  * @since 4.0.0
  */
 export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<Schema.toType<S>, Schema.Void> {}
 
 /**
- * @since 4.0.0
  * @category No Content
+ * @since 4.0.0
  */
 export function asNoContent<S extends Schema.Top>(options: {
   readonly decode: LazyArg<S["Type"]>
@@ -57,13 +68,10 @@ export function asNoContent<S extends Schema.Top>(options: {
 }
 
 /**
- * @since 4.0.0
  * @category No Content
+ * @since 4.0.0
  */
-export const Empty = (status: number): Schema.Void =>
-  Schema.Void.annotate({
-    httpApiStatus: status
-  })
+export const Empty = (code: number): Schema.Void => Schema.Void.pipe(status(code))
 
 /**
  * @since 4.0.0
@@ -82,8 +90,8 @@ export const NoContent: NoContent = Empty(204)
 export interface Created extends Schema.Void {}
 
 /**
- * @since 4.0.0
  * @category No Content
+ * @since 4.0.0
  */
 export const Created: Created = Empty(201)
 
@@ -93,20 +101,20 @@ export const Created: Created = Empty(201)
 export interface Accepted extends Schema.Void {}
 
 /**
- * @since 4.0.0
  * @category No Content
+ * @since 4.0.0
  */
 export const Accepted: Accepted = Empty(202)
 
 /**
- * @since 4.0.0
  * @category multipart
+ * @since 4.0.0
  */
 export const MultipartTypeId = "~effect/httpapi/HttpApiSchema/Multipart"
 
 /**
- * @since 4.0.0
  * @category multipart
+ * @since 4.0.0
  */
 export type MultipartTypeId = typeof MultipartTypeId
 
@@ -116,8 +124,8 @@ export type MultipartTypeId = typeof MultipartTypeId
 export interface asMultipart<S extends Schema.Top> extends Schema.brand<S["~rebuild.out"], MultipartTypeId> {}
 
 /**
- * @since 4.0.0
  * @category multipart
+ * @since 4.0.0
  */
 export function asMultipart(options?: Multipart_.withLimits.Options) {
   return <S extends Schema.Top>(self: S): asMultipart<S> =>
@@ -132,28 +140,28 @@ export function asMultipart(options?: Multipart_.withLimits.Options) {
 }
 
 /**
- * @since 4.0.0
  * @category multipart
+ * @since 4.0.0
  */
 export const MultipartStreamTypeId = "~effect/httpapi/HttpApiSchema/MultipartStream"
 
 /**
- * @since 4.0.0
  * @category multipart
+ * @since 4.0.0
  */
 export type MultipartStreamTypeId = typeof MultipartStreamTypeId
 
 /**
- * @since 4.0.0
  * @category multipart
+ * @since 4.0.0
  */
 export interface asMultipartStream<S extends Schema.Top>
   extends Schema.brand<S["~rebuild.out"], MultipartStreamTypeId>
 {}
 
 /**
- * @since 4.0.0
  * @category multipart
+ * @since 4.0.0
  */
 export function asMultipartStream(options?: Multipart_.withLimits.Options) {
   return <S extends Schema.Top>(self: S): asMultipartStream<S> =>
@@ -168,8 +176,8 @@ export function asMultipartStream(options?: Multipart_.withLimits.Options) {
 }
 
 /**
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export interface Encoding {
   readonly _tag: "Json" | "UrlParams" | "Uint8Array" | "Text"
@@ -205,8 +213,8 @@ function defaultContentType(_tag: Encoding["_tag"]) {
 }
 
 /**
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export function asJson(options?: {
   readonly contentType?: string
@@ -215,8 +223,8 @@ export function asJson(options?: {
 }
 
 /**
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export function asUrlParams(options?: {
   readonly contentType?: string
@@ -226,8 +234,8 @@ export function asUrlParams(options?: {
 }
 
 /**
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export function asText(options?: {
   readonly contentType?: string
@@ -237,8 +245,8 @@ export function asText(options?: {
 }
 
 /**
- * @since 4.0.0
  * @category encoding
+ * @since 4.0.0
  */
 export function asUint8Array(options?: {
   readonly contentType?: string
