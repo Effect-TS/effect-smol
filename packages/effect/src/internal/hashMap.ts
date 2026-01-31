@@ -722,7 +722,7 @@ class ArrayNode<K, V> extends Node<K, V> {
     const newCount = this.count - (newChild ? 0 : 1)
 
     if (newCount < MIN_ARRAY_NODE) {
-      return this.pack(edit, newCount, idx, newChild)
+      return this.pack(edit, idx, newChild)
     }
 
     if (child === newChild) {
@@ -745,7 +745,6 @@ class ArrayNode<K, V> extends Node<K, V> {
 
   private pack(
     edit: number,
-    newCount: number,
     excludeIdx: number,
     newChild: Node<K, V> | undefined
   ): IndexedNode<K, V> {

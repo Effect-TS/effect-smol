@@ -2,7 +2,6 @@
  * Core dynamic completion functions.
  */
 
-import type { Command } from "../../../Command.ts"
 import type { Shell } from "../types.ts"
 import { generateDynamicBashCompletion } from "./bash.ts"
 import { generateDynamicFishCompletion } from "./fish.ts"
@@ -14,8 +13,7 @@ import { generateDynamicZshCompletion } from "./zsh.ts"
  *
  * @internal
  */
-export const generateDynamicCompletion = <Name extends string, I, E, R>(
-  rootCmd: Command<Name, I, E, R>,
+export const generateDynamicCompletion = (
   executableName: string,
   shell: Shell,
   executablePath?: string

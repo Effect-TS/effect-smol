@@ -922,7 +922,7 @@ export const runWith = <const Name extends string, Input, E, R>(
         return
       }
       if (completions !== undefined) {
-        yield* Console.log(generateDynamicCompletion(command, command.name, completions))
+        yield* Console.log(generateDynamicCompletion(command.name, completions))
         return
       }
       if (version) {

@@ -564,7 +564,7 @@ describe("TxHashMap", () => {
 
         // Test data-last: count entries with key info
         const info = yield* txMap.pipe(
-          TxHashMap.reduce({ count: 0, keys: [] as Array<string> }, (acc, value, key) => ({
+          TxHashMap.reduce({ count: 0, keys: [] as Array<string> }, (acc, _, key) => ({
             count: acc.count + 1,
             keys: [...acc.keys, key]
           }))
