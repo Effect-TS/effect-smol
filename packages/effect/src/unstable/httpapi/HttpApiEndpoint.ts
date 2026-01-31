@@ -145,9 +145,15 @@ export interface HttpApiEndpoint<
  */
 export interface Any extends Pipeable {
   readonly [TypeId]: any
+  readonly method: HttpMethod
   readonly name: string
+  readonly path: string
   readonly successSchema: Schema.Top
   readonly errorSchema: Schema.Top
+  readonly pathSchema: Schema.Top | undefined
+  readonly urlParamsSchema: Schema.Top | undefined
+  readonly payloadSchema: Schema.Top | undefined
+  readonly headersSchema: Schema.Top | undefined
 }
 
 /**
