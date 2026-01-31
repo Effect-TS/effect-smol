@@ -274,7 +274,7 @@ describe("OpenAPI spec", () => {
                 .add(
                   HttpApiEndpoint.post("a", "/a", {
                     payload: Schema.Struct({ a: Schema.String }).pipe(
-                      HttpApiSchema.withEncoding({ _tag: "FormUrlEncoded" })
+                      HttpApiSchema.withEncoding({ _tag: "UrlParams" })
                     )
                   })
                 )
@@ -307,7 +307,7 @@ describe("OpenAPI spec", () => {
               HttpApiGroup.make("group")
                 .add(
                   HttpApiEndpoint.post("a", "/a", {
-                    payload: HttpApiSchema.Binary()
+                    payload: HttpApiSchema.Uint8Array()
                   })
                 )
             )
@@ -331,7 +331,7 @@ describe("OpenAPI spec", () => {
                     payload: [
                       Schema.Struct({ a: Schema.String }), // application/json
                       HttpApiSchema.Text(), // text/plain
-                      HttpApiSchema.Binary() // application/octet-stream
+                      HttpApiSchema.Uint8Array() // application/octet-stream
                     ]
                   })
                 )
@@ -516,7 +516,7 @@ describe("OpenAPI spec", () => {
               .add(
                 HttpApiEndpoint.get("a", "/a", {
                   success: Schema.Struct({ a: Schema.String }).pipe(
-                    HttpApiSchema.withEncoding({ _tag: "FormUrlEncoded" })
+                    HttpApiSchema.withEncoding({ _tag: "UrlParams" })
                   )
                 })
               )
@@ -544,7 +544,7 @@ describe("OpenAPI spec", () => {
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a", {
-                  success: HttpApiSchema.Binary()
+                  success: HttpApiSchema.Uint8Array()
                 })
               )
           )
@@ -568,7 +568,7 @@ describe("OpenAPI spec", () => {
                   success: Schema.Union([
                     Schema.Struct({ a: Schema.String }),
                     Schema.Struct({ b: Schema.String })
-                  ]).pipe(HttpApiSchema.withEncoding({ _tag: "FormUrlEncoded" }))
+                  ]).pipe(HttpApiSchema.withEncoding({ _tag: "UrlParams" }))
                 })
               )
           )

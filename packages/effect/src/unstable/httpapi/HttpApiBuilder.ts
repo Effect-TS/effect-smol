@@ -692,13 +692,13 @@ function getResponseTransformation<T, E, RD, RE>(
                 contentType: encoding.contentType
               }))
             }
-            case "Binary": {
+            case "Uint8Array": {
               return Effect.succeed(Response.uint8Array(e as Uint8Array, {
                 status,
                 contentType: encoding.contentType
               }))
             }
-            case "FormUrlEncoded": {
+            case "UrlParams": {
               return Effect.succeed(
                 Response.urlParams(e as any, { status }).pipe(
                   Response.setHeader("content-type", encoding.contentType)

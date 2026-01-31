@@ -682,17 +682,22 @@ function extractRequestBodies(schemas: ReadonlySet<Schema.Top> | undefined): Con
   }
 }
 
+const Uint8ArrayEncoding = Schema.String.annotate({
+  format: "binary"
+})
+const TextEncoding = Schema.String
+
 function toEncodingAST(ast: AST.AST, encoding: Encoding): AST.AST {
   switch (encoding) {
-    case "Binary":
+    case "Uint8Array":
       // For `application/octet-stream` (raw bytes) we must emit a binary schema,
       // not the JSON representation used by `Schema.Uint8Array` (base64 string).
-      return Binary.ast
+      return Uint8ArrayEncoding.ast
     case "Text":
       // For `text/plain` the wire format is a plain string, independent of the
       // endpoint schema structure used for JSON bodies / url-encoded params.
-      return Schema.String.ast
-    case "FormUrlEncoded":
+      return TextEncoding.ast
+    case "UrlParams":
     case "Json":
     case "Multipart":
       // `UrlParams` and `Json` can reuse the original schema AST as-is: the schema
@@ -700,10 +705,6 @@ function toEncodingAST(ast: AST.AST, encoding: Encoding): AST.AST {
       return ast
   }
 }
-
-const Binary = Schema.String.annotate({
-  format: "binary"
-})
 
 const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme => {
   const meta: Partial<OpenAPISecurityScheme> = {}

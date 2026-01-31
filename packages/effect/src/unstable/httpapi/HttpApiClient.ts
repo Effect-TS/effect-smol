@@ -472,12 +472,12 @@ function toCodecArrayBuffer(schema: Schema.Top): Schema.Top {
       switch (encoding._tag) {
         case "Json":
           return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
-        case "FormUrlEncoded":
+        case "UrlParams":
           return StringFromArrayBuffer.pipe(
             Schema.decodeTo(UrlParams.schemaRecord),
             Schema.decodeTo(schema)
           )
-        case "Binary":
+        case "Uint8Array":
           return Uint8ArrayFromArrayBuffer.pipe(Schema.decodeTo(schema))
         case "Text":
           return StringFromArrayBuffer.pipe(Schema.decodeTo(schema))
@@ -557,10 +557,10 @@ function bodyFromPayload(schema: Schema.Top): Schema.Top {
                 }
                 return Effect.succeed(HttpBody.text(t, encoding.contentType))
               }
-              case "FormUrlEncoded": {
+              case "UrlParams": {
                 return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(t as any)))
               }
-              case "Binary": {
+              case "Uint8Array": {
                 if (!(t instanceof Uint8Array)) {
                   return Effect.fail(
                     new Issue.InvalidValue(Option.some(t), { message: "Expected a Uint8Array" })
