@@ -52,7 +52,8 @@ describe("Multipart", () => {
               "$ref": "#/$defs/String_"
             },
             "contentType": {
-              "$ref": "#/$defs/String_"
+              "type": "string",
+              "contentEncoding": "binary"
             },
             "path": {
               "$ref": "#/$defs/String_"

@@ -183,10 +183,6 @@ function processAnnotation<Services, S, I>(
   }
 }
 
-const Uint8ArrayEncoding = Schema.String.annotate({
-  format: "binary"
-})
-
 /**
  * Converts an `HttpApi` instance into an OpenAPI Specification object.
  *
@@ -227,8 +223,8 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   let spec: OpenAPISpec = {
     openapi: "3.1.0",
     info: {
-      title: ServiceMap.getOrElse(api.annotations, Title, () => "Api"),
-      version: ServiceMap.getOrElse(api.annotations, Version, () => "0.0.1")
+      title: "Api",
+      version: "0.0.1"
     },
     paths: {},
     components: {
@@ -239,7 +235,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
     tags: []
   }
 
-  const irOps: Array<
+  const pathOps: Array<
     {
       readonly _tag: "schema"
       readonly ast: AST.AST
@@ -251,16 +247,12 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
     }
   > = []
 
-  function processHttpApiSecurity(
-    name: string,
-    security: HttpApiSecurity
-  ) {
-    if (spec.components.securitySchemes[name] !== undefined) {
-      return
-    }
-    spec.components.securitySchemes[name] = makeSecurityScheme(security)
-  }
-
+  processAnnotation(api.annotations, Title, (title) => {
+    spec.info.title = title
+  })
+  processAnnotation(api.annotations, Version, (version) => {
+    spec.info.version = version
+  })
   processAnnotation(api.annotations, Description, (description) => {
     spec.info.description = description
   })
@@ -297,7 +289,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       spec.tags.push(tag)
     },
-    onEndpoint({ endpoint, errors, group, mergedAnnotations, middleware, payloads, successes }) {
+    onEndpoint({ endpoint, group, mergedAnnotations, middleware }) {
       if (ServiceMap.get(mergedAnnotations, Exclude)) {
         return
       }
@@ -316,36 +308,57 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       const path = endpoint.path.replace(/:(\w+)\??/g, "{$1}")
       const method = endpoint.method.toLowerCase() as OpenAPISpecMethodName
 
-      function processResponseMap(
-        map: ReadonlyMap<number, {
-          readonly ast: AST.AST | undefined
-          readonly description: string | undefined
-        }>,
-        defaultDescription: () => string
-      ) {
-        for (const [status, { ast, description }] of map) {
-          if (op.responses[status]) continue
-          op.responses[status] = {
-            description: description ?? defaultDescription()
-          }
-          // Handle empty response
-          if (ast !== undefined && !HttpApiSchema.isVoidEncoded(ast)) {
-            const encoding = HttpApiSchema.getEncoding(ast)
-            irOps.push({
-              _tag: "schema",
-              ast: toEncoding(ast, encoding),
-              path: ["paths", path, method, "responses", String(status), "content", encoding.contentType, "schema"]
-            })
-            op.responses[status].content = {
-              [encoding.contentType]: {
+      function processRequestBodies(content: Content) {
+        if (content.size > 0) {
+          const c: OpenApiSpecContent = {}
+          content.forEach((map, encoding) => {
+            map.forEach((schemas, contentType) => {
+              const asts = Array.from(schemas, AST.getAST)
+              const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
+
+              pathOps.push({
+                _tag: "schema",
+                ast: toEncodingAST(ast, encoding),
+                path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
+              })
+              c[contentType] = {
                 schema: {}
               }
-            }
+            })
+          })
+          op.requestBody = { content: c, required: true }
+        }
+      }
+
+      function processResponseBodies(bodies: ResponseBodies, defaultDescription: () => string) {
+        for (const [status, { content, descriptions }] of bodies) {
+          const description = descriptions.length > 0 ? descriptions.join(" | ") : defaultDescription()
+          op.responses[status] = {
+            description
+          }
+          if (content !== undefined) {
+            content.forEach((map, encoding) => {
+              map.forEach((schemas, contentType) => {
+                const asts = Array.from(schemas, AST.getAST)
+                const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
+
+                pathOps.push({
+                  _tag: "schema",
+                  ast: toEncodingAST(ast, encoding),
+                  path: ["paths", path, method, "responses", String(status), "content", contentType, "schema"]
+                })
+                op.responses[status].content = {
+                  [contentType]: {
+                    schema: {}
+                  }
+                }
+              })
+            })
           }
         }
       }
 
-      function processParameters(schema: Schema.Schema<any> | undefined, i: OpenAPISpecParameter["in"]) {
+      function processParameters(schema: Schema.Top | undefined, i: OpenAPISpecParameter["in"]) {
         if (schema) {
           const ast = AST.toEncoded(schema.ast)
           if (AST.isObjects(ast)) {
@@ -357,7 +370,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
                 required: i === "path" || !AST.isOptional(ps.type)
               })
 
-              irOps.push({
+              pathOps.push({
                 _tag: "parameter",
                 ast: ps.type,
                 path: ["paths", path, method, "parameters", String(op.parameters.length - 1), "schema"]
@@ -391,31 +404,26 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           op.security.push({ [name]: [] })
         }
       })
-      const hasBody = HttpMethod.hasBody(endpoint.method)
-      if (hasBody && payloads.size > 0) {
-        const content: OpenApiSpecContent = {}
-        payloads.forEach((map, kind) => {
-          map.forEach((set, contentType) => {
-            const asts = Array.from(set).filter((ast) => !HttpApiSchema.isVoidEncoded(ast))
-            if (asts.length === 0) {
-              return
-            }
 
-            const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
-
-            irOps.push({
-              _tag: "schema",
-              ast: toEncoding(ast, { kind, contentType }),
-              path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
-            })
-            content[contentType] = {
-              schema: {}
-            }
-          })
-        })
-        if (Object.keys(content).length > 0) {
-          op.requestBody = { content, required: true }
+      function processHttpApiSecurity(
+        name: string,
+        security: HttpApiSecurity
+      ) {
+        if (spec.components.securitySchemes[name] !== undefined) {
+          return
         }
+        spec.components.securitySchemes[name] = makeSecurityScheme(security)
+      }
+
+      const hasBody = HttpMethod.hasBody(endpoint.method)
+      if (hasBody) {
+        processRequestBodies(
+          extractRequestBodies(
+            endpoint.payloadSchema !== undefined ?
+              HttpApiSchema.getSchemas(endpoint.payloadSchema) :
+              undefined
+          )
+        )
       }
 
       processParameters(endpoint.pathSchema, "path")
@@ -425,8 +433,22 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       processParameters(endpoint.headersSchema, "header")
       processParameters(endpoint.urlParamsSchema, "query")
 
-      processResponseMap(successes, () => "Success")
-      processResponseMap(errors, () => "Error")
+      processResponseBodies(
+        extractResponseBodies(
+          HttpApiSchema.getSchemas(endpoint.successSchema),
+          HttpApiSchema.getStatusSuccess,
+          resolveDescriptionOrIdentifier
+        ),
+        () => "Success"
+      )
+      processResponseBodies(
+        extractResponseBodies(
+          HttpApiSchema.getSchemas(endpoint.errorSchema),
+          HttpApiSchema.getStatusError,
+          resolveDescriptionOrIdentifier
+        ),
+        () => "Error"
+      )
 
       if (!spec.paths[path]) {
         spec.paths[path] = {}
@@ -452,7 +474,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           throw new globalThis.Error(`Duplicate component schema identifier: ${identifier}`)
         }
         spec.components.schemas[identifier] = {}
-        irOps.push({
+        pathOps.push({
           _tag: "schema",
           ast: componentSchema.ast,
           path: ["components", "schemas", identifier]
@@ -465,16 +487,16 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
     return "/" + path.map(escapeToken).join("/")
   }
 
-  if (Arr.isArrayNonEmpty(irOps)) {
+  if (Arr.isArrayNonEmpty(pathOps)) {
     const multiDocument = SchemaRepresentation.fromASTs(
-      Arr.map(irOps, (op) => op.ast)
+      Arr.map(pathOps, (op) => op.ast)
     )
     const jsonSchemaMultiDocument = JsonSchema.toMultiDocumentOpenApi3_1(
       SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument, {
         additionalProperties: options?.additionalProperties
       })
     )
-    const patchOps: Array<JsonPatch.JsonPatchOperation> = irOps.map((op, i) => {
+    const patchOps: Array<JsonPatch.JsonPatchOperation> = pathOps.map((op, i) => {
       const oppath = escapePath(op.path)
       const value = jsonSchemaMultiDocument.schemas[i]
       return {
@@ -514,8 +536,139 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   return spec
 }
 
-function toEncoding(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
-  switch (encoding.kind) {
+const emptyMap = new Map()
+
+type ResponseBodies = Map<
+  number, // status
+  {
+    descriptions: Array<string>
+    content: Content | undefined // undefined means no content
+  }
+>
+
+function extractResponseBodies(
+  schemas: ReadonlySet<Schema.Top>,
+  getStatus: (ast: AST.AST) => number,
+  getDescription: (ast: AST.AST) => string | undefined
+): ResponseBodies {
+  const map = new Map<number, {
+    descriptions: Array<string>
+    content: Content | undefined
+  }>()
+
+  schemas.forEach(process)
+
+  return map
+
+  function process(schema: Schema.Top) {
+    const ast = schema.ast
+    const status = getStatus(ast)
+    if (HttpApiSchema.isNoContent(ast)) {
+      addNoContent(status, getDescription(schema.ast) ?? "<No Content>")
+    } else {
+      addContent(schema, status, HttpApiSchema.getResponseEncoding(ast))
+    }
+  }
+
+  function addNoContent(status: number, description: string) {
+    const statusMap = map.get(status)
+    if (statusMap === undefined) {
+      map.set(status, {
+        descriptions: [description],
+        content: undefined
+      })
+    } else {
+      if (description !== undefined) {
+        statusMap.descriptions.push(description)
+      }
+    }
+  }
+
+  function addContent(schema: Schema.Top, status: number, encoding: HttpApiSchema.Encoding) {
+    const description = getDescription(schema.ast)
+    const statusMap = map.get(status)
+    const { _tag, contentType } = encoding
+    if (statusMap === undefined) {
+      map.set(status, {
+        descriptions: description !== undefined ? [description] : [],
+        content: new Map([[_tag, new Map([[contentType, new Set([schema])]])]])
+      })
+    } else {
+      if (statusMap.content !== undefined) {
+        // concat descriptions
+        if (description !== undefined) {
+          statusMap.descriptions.push(description)
+        }
+
+        const contentTypeMap = statusMap.content.get(_tag)
+        if (contentTypeMap === undefined) {
+          statusMap.content.set(_tag, new Map([[contentType, new Set([schema])]]))
+        } else {
+          const set = contentTypeMap.get(contentType)
+          if (set === undefined) {
+            contentTypeMap.set(contentType, new Set([schema]))
+          } else {
+            set.add(schema)
+          }
+        }
+      }
+    }
+  }
+}
+
+function resolveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
+  return AST.resolveDescription(ast) ?? AST.resolveIdentifier(ast)
+}
+
+type Content = Map<
+  HttpApiSchema.Encoding["_tag"],
+  Map<
+    string, // contentType
+    Set<Schema.Top>
+  >
+>
+
+function extractRequestBodies(schemas: ReadonlySet<Schema.Top> | undefined): Content {
+  if (schemas === undefined) {
+    return emptyMap
+  }
+
+  const map = new Map<HttpApiSchema.Encoding["_tag"], Map<string, Set<Schema.Top>>>()
+
+  schemas.forEach(process)
+
+  return map
+
+  function process(schema: Schema.Top) {
+    const ast = schema.ast
+    if (!HttpApiSchema.isNoContent(ast)) {
+      addContent(schema, HttpApiSchema.getRequestEncoding(ast))
+    }
+  }
+
+  function addContent(schema: Schema.Top, encoding: HttpApiSchema.Encoding) {
+    const { _tag, contentType } = encoding
+    const contentTypeMap = map.get(_tag)
+    if (contentTypeMap === undefined) {
+      map.set(_tag, new Map([[contentType, new Set([schema])]]))
+    } else {
+      const set = contentTypeMap.get(contentType)
+      if (set === undefined) {
+        contentTypeMap.set(contentType, new Set([schema]))
+      } else {
+        set.add(schema)
+      }
+    }
+  }
+}
+
+const Uint8ArrayEncoding = Schema.String.annotate({
+  format: "binary"
+})
+const TextEncoding = Schema.String
+
+function toEncodingAST(ast: AST.AST, _tag: HttpApiSchema.Encoding["_tag"]): AST.AST {
+  switch (_tag) {
     case "Uint8Array":
       // For `application/octet-stream` (raw bytes) we must emit a binary schema,
       // not the JSON representation used by `Schema.Uint8Array` (base64 string).
@@ -523,9 +676,10 @@ function toEncoding(ast: AST.AST, encoding: HttpApiSchema.Encoding): AST.AST {
     case "Text":
       // For `text/plain` the wire format is a plain string, independent of the
       // endpoint schema structure used for JSON bodies / url-encoded params.
-      return Schema.String.ast
+      return TextEncoding.ast
     case "UrlParams":
     case "Json":
+    case "Multipart":
       // `UrlParams` and `Json` can reuse the original schema AST as-is: the schema
       // already describes the structured data (object/record/etc) we want to expose.
       return ast

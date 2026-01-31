@@ -322,7 +322,7 @@ export const formData = (
     statusText: options?.statusText,
     headers: options?.headers && Headers.fromInput(options.headers),
     cookies: options?.cookies,
-    body: Body.formData(body)
+    body: Body.makeFormData(body)
   })
 
 /**

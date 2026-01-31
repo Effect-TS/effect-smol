@@ -461,12 +461,9 @@ const handlerToRoute = (
   services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
-  const isMultipartStream = endpoint.payloadSchema?.pipe(
-    ({ ast }) => HttpApiSchema.resolveHttpApiMultipartStream(ast) !== undefined
-  ) ?? false
-  const multipartLimits = endpoint.payloadSchema?.pipe(
-    ({ ast }) => HttpApiSchema.resolveHttpApiMultipartStream(ast) ?? HttpApiSchema.resolveHttpApiMultipart(ast)
-  )
+  const encoding = endpoint.payloadSchema?.pipe(({ ast }) => HttpApiSchema.getRequestEncoding(ast))
+  const isMultipartStream = encoding?._tag === "Multipart" && encoding.mode === "stream"
+  const multipartLimits = encoding?._tag === "Multipart" ? encoding.limits : undefined
   const decodePath = UndefinedOr.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
     ? undefined
@@ -624,96 +621,93 @@ const makeSecurityMiddleware = (
 
 const HttpServerResponseSchema = Schema.declare(Response.isHttpServerResponse)
 
+const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
+const toResponseErrorSchema = toResponseSchema(HttpApiSchema.getStatusError)
+
 function makeSuccessSchema(schema: Schema.Top): Schema.Codec<unknown, HttpServerResponse> {
-  const schemas = new Set<Schema.Schema<any>>()
-  HttpApiSchema.forEachMember(schema, (_) => schemas.add(_))
-  return Schema.Union(Array.from(schemas, toResponseSuccess)) as any
+  const schemas = HttpApiSchema.getSchemas(schema)
+  return Schema.Union(Array.from(schemas, toResponseSuccessSchema)) as any
 }
 
-const makeErrorSchema = (
-  api: HttpApi.AnyWithProps
-): Schema.Codec<unknown, HttpServerResponse> => {
-  const schemas = new Set<Schema.Schema<any>>([HttpApiSchemaError])
+function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Codec<unknown, HttpServerResponse> {
+  const schemas = new Set<Schema.Top>([HttpApiSchemaError])
   for (const group of Object.values(api.groups)) {
     for (const endpoint of Object.values(group.endpoints)) {
-      HttpApiSchema.forEachMember(endpoint.errorSchema, (_) => schemas.add(_))
+      HttpApiSchema.forEach(endpoint.errorSchema, (schema) => schemas.add(schema))
       for (const middleware of endpoint.middlewares) {
         const key = middleware as any as HttpApiMiddleware.AnyKey
-        HttpApiSchema.forEachMember(key.error, (_) => schemas.add(_))
+        HttpApiSchema.forEach(key.error, (schema) => schemas.add(schema))
       }
     }
   }
-  return Schema.Union(Array.from(schemas, toResponseError)) as any
+  return Schema.Union(Array.from(schemas, toResponseErrorSchema)) as any
 }
 
-const decodeForbidden = <A>(_: A) => Effect.fail(new Issue.Forbidden(Option.some(_), { message: "Encode only schema" }))
-
-const responseTransformation = <A, I, RD, RE>(
-  getStatus: (ast: AST.AST) => number,
-  schema: Schema.Codec<A, I, RD, RE>
-) =>
-  Transformation.transformOrFail({
-    decode: decodeForbidden<HttpServerResponse>,
-    encode(data: I) {
-      const ast = schema.ast
-      const isEmpty = HttpApiSchema.isVoidEncoded(ast)
-      const status = getStatus(ast)
-      // Handle empty response
-      if (isEmpty) {
-        return Effect.succeed(Response.empty({ status }))
-      }
-      const encoding = HttpApiSchema.getEncoding(ast)
-      switch (encoding.kind) {
-        case "Json": {
-          try {
-            return Effect.succeed(Response.text(JSON.stringify(data), {
-              status,
-              contentType: encoding.contentType
-            }))
-          } catch (error) {
-            return Effect.fail(new Issue.InvalidValue(Option.some(data)))
-          }
-        }
-        case "Text": {
-          return Effect.succeed(Response.text(data as string, {
-            status,
-            contentType: encoding.contentType
-          }))
-        }
-        case "Uint8Array": {
-          return Effect.succeed(Response.uint8Array(data as Uint8Array, {
-            status,
-            contentType: encoding.contentType
-          }))
-        }
-        case "UrlParams": {
-          return Effect.succeed(
-            Response.urlParams(data as any, { status }).pipe(
-              Response.setHeader("content-type", encoding.contentType)
-            )
-          )
-        }
-      }
-    }
-  })
-
-const toResponseSchema = (getStatus: (ast: AST.AST) => number) => {
+function toResponseSchema(getStatus: (ast: AST.AST) => number) {
   const cache = new WeakMap<AST.AST, Schema.Top>()
-  return <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>): Schema.Codec<A, HttpServerResponse, RD, RE> => {
-    const out = cache.get(schema.ast)
-    if (out !== undefined) {
-      return out as any
+
+  return <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>): Schema.Codec<T, HttpServerResponse, RD, RE> => {
+    const cached = cache.get(schema.ast)
+    if (cached !== undefined) {
+      return cached as any
     }
-    const transform = HttpServerResponseSchema.pipe(
-      Schema.decodeTo(schema, responseTransformation(getStatus, schema))
+    const responseSchema = HttpServerResponseSchema.pipe(
+      Schema.decodeTo(schema, getResponseTransformation(getStatus, schema))
     )
-    cache.set(transform.ast, transform)
-    return transform
+    cache.set(responseSchema.ast, responseSchema)
+    return responseSchema
   }
 }
 
-const toResponseSuccess = toResponseSchema(HttpApiSchema.getStatusSuccess)
-const toResponseError = toResponseSchema(HttpApiSchema.getStatusError)
+function getResponseTransformation<T, E, RD, RE>(
+  getStatus: (ast: AST.AST) => number,
+  schema: Schema.Codec<T, E, RD, RE>
+): Transformation.Transformation<E, Response.HttpServerResponse> {
+  const ast = schema.ast
+  const encode = getResponseEncode<E>(getStatus(ast), HttpApiSchema.getResponseEncoding(ast))
+
+  return Transformation.transformOrFail({
+    decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
+    encode
+  })
+}
+
+function getResponseEncode<E>(
+  status: number,
+  encoding: HttpApiSchema.ResponseEncoding
+): (e: E) => Effect.Effect<Response.HttpServerResponse, Issue.InvalidValue, never> {
+  switch (encoding._tag) {
+    case "Json": {
+      return ((e) => {
+        try {
+          const s = JSON.stringify(e)
+          return Effect.succeed(Response.text(s, { status, contentType: encoding.contentType }))
+        } catch (error) {
+          return Effect.fail(new Issue.InvalidValue(Option.some(e), { message: globalThis.String(error) }))
+        }
+      })
+    }
+    case "Text":
+      return (e) =>
+        Effect.succeed(Response.text(e as string, {
+          status,
+          contentType: encoding.contentType
+        }))
+    case "Uint8Array":
+      return (e) =>
+        Effect.succeed(Response.uint8Array(e as Uint8Array, {
+          status,
+          contentType: encoding.contentType
+        }))
+    case "UrlParams":
+      return (e) =>
+        Effect.succeed(
+          Response.urlParams(e as URLSearchParams, { status }).pipe(
+            Response.setHeader("content-type", encoding.contentType)
+          )
+        )
+  }
+}
 
 function isSingleStringType(ast: AST.AST, key?: PropertyKey): boolean {
   switch (ast._tag) {

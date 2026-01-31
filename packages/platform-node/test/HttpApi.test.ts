@@ -39,16 +39,52 @@ import {
 import OpenApiFixture from "./fixtures/openapi.json" with { type: "json" }
 
 describe("HttpApi", () => {
+  it.effect("catch all path", () => {
+    const Api = HttpApi.make("api")
+      .add(
+        HttpApiGroup.make("group")
+          .add(
+            HttpApiEndpoint.get("catch-all", "*", {
+              success: Schema.String
+            })
+          )
+      )
+    const GroupLive = HttpApiBuilder.group(
+      Api,
+      "group",
+      (handlers) => handlers.handle("catch-all", (ctx) => Effect.succeed(ctx.request.url))
+    )
+
+    const ApiLive = HttpRouter.serve(
+      HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+      { disableListenLog: true, disableLogger: true }
+    ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+    return Effect.gen(function*() {
+      const response1 = yield* HttpClient.get("")
+      assert.strictEqual(response1.status, 200)
+      assert.strictEqual(yield* response1.text, `"/"`)
+
+      const response2 = yield* HttpClient.get("/")
+      assert.strictEqual(response2.status, 200)
+      assert.strictEqual(yield* response2.text, `"/"`)
+
+      const response3 = yield* HttpClient.get("/a/b/c")
+      assert.strictEqual(response3.status, 200)
+      assert.strictEqual(yield* response3.text, `"/a/b/c"`)
+    }).pipe(Effect.provide(ApiLive))
+  })
+
   describe("payload option", () => {
-    describe("encoding", () => {
+    describe("encodings", () => {
       it.effect("array of schemas with different encodings", () => {
         const Api = HttpApi.make("api").add(
           HttpApiGroup.make("group").add(
             HttpApiEndpoint.post("a", "/a", {
               payload: [
                 Schema.Struct({ a: Schema.String }), // application/json
-                HttpApiSchema.Text(), // text/plain
-                HttpApiSchema.Uint8Array() // application/octet-stream
+                Schema.String.pipe(HttpApiSchema.asText()), // text/plain
+                Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
               ],
               success: Schema.String
             })
@@ -110,34 +146,7 @@ describe("HttpApi", () => {
   })
 
   describe("error option", () => {
-    it.effect("Void", () => {
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("group").add(
-          HttpApiEndpoint.get("a", "/a", {
-            error: Schema.Void
-          })
-        )
-      )
-      const GroupLive = HttpApiBuilder.group(
-        Api,
-        "group",
-        (handlers) =>
-          handlers
-            .handle("a", () => Effect.fail(void 0))
-      )
-      const ApiLive = HttpRouter.serve(
-        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
-        { disableListenLog: true, disableLogger: true }
-      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
-
-      return Effect.gen(function*() {
-        const a = yield* HttpClient.get("/a")
-        assert.strictEqual(a.status, 500)
-        assert.strictEqual(yield* a.text, "")
-      }).pipe(Effect.provide(ApiLive))
-    })
-
-    it.effect("Empty(400)", () => {
+    it.effect("makeNoContent(400)", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("a", "/a", {
@@ -164,11 +173,11 @@ describe("HttpApi", () => {
       }).pipe(Effect.provide(ApiLive))
     })
 
-    it.effect("Empty(401)", () => {
+    it.effect("UnauthorizedNoContent", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiSchema.Empty(401)
+            error: HttpApiError.UnauthorizedNoContent
           })
         )
       )
@@ -177,34 +186,7 @@ describe("HttpApi", () => {
         "group",
         (handlers) =>
           handlers
-            .handle("a", () => Effect.fail(void 0))
-      )
-      const ApiLive = HttpRouter.serve(
-        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
-        { disableListenLog: true, disableLogger: true }
-      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
-
-      return Effect.gen(function*() {
-        const a = yield* HttpClient.get("/a")
-        assert.strictEqual(a.status, 401)
-        assert.strictEqual(yield* a.text, "")
-      }).pipe(Effect.provide(ApiLive))
-    })
-
-    it.effect("Unauthorized", () => {
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("group").add(
-          HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiError.Unauthorized
-          })
-        )
-      )
-      const GroupLive = HttpApiBuilder.group(
-        Api,
-        "group",
-        (handlers) =>
-          handlers
-            .handle("a", () => Effect.fail(new HttpApiError.Unauthorized()))
+            .handle("a", () => Effect.fail(new HttpApiError.Unauthorized({})))
       )
       const ApiLive = HttpRouter.serve(
         HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
@@ -222,7 +204,7 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiError.BadRequest
+            error: HttpApiError.BadRequestNoContent
           })
         )
       )
@@ -231,7 +213,7 @@ describe("HttpApi", () => {
         "group",
         (handlers) =>
           handlers
-            .handle("a", () => Effect.fail(new HttpApiError.BadRequest()))
+            .handle("a", () => Effect.fail(new HttpApiError.BadRequest({})))
       )
       const ApiLive = HttpRouter.serve(
         HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
@@ -411,7 +393,7 @@ describe("HttpApi", () => {
         const error = yield* client.groups.findById({ path: { id: 0 } }).pipe(
           Effect.flip
         )
-        assert.deepStrictEqual(error, new GroupError())
+        assert.deepStrictEqual(error, new GroupError({}))
       }).pipe(Effect.provide(HttpLive)))
 
     it.effect("default to 500 status code", () =>
@@ -603,18 +585,16 @@ describe("HttpApi", () => {
       message: Schema.String
     }) {}
 
-    const RateLimitErrorSchema = HttpApiSchema.withEncoding(
-      Schema.String.pipe(
-        Schema.decodeTo(
-          RateLimitError,
-          SchemaTransformation.transform({
-            encode: ({ message }) => message,
-            decode: (message) => new RateLimitError({ message })
-          })
-        )
-      ),
-      { kind: "Text" }
-    ).annotate({ httpApiStatus: 429 })
+    const RateLimitErrorSchema = Schema.String.pipe(
+      Schema.decodeTo(
+        RateLimitError,
+        SchemaTransformation.transform({
+          encode: ({ message }) => message,
+          decode: (message) => new RateLimitError({ message })
+        })
+      )
+    )
+      .pipe(HttpApiSchema.status(429), HttpApiSchema.asText())
 
     const Api = HttpApi.make("api").add(
       HttpApiGroup.make("group").add(
@@ -648,9 +628,10 @@ class UserError extends Schema.ErrorClass<UserError>("UserError")({
 }, {
   httpApiStatus: 400
 }) {}
-class GroupError extends HttpApiSchema.EmptyError<GroupError>()({
-  tag: "GroupError",
-  status: 418
+class GroupError extends Schema.ErrorClass<GroupError>("GroupError")({
+  _tag: Schema.tag("GroupError")
+}, {
+  httpApiStatus: 418
 }) {}
 class NoStatusError extends Schema.ErrorClass<NoStatusError>("NoStatusError")({
   _tag: Schema.tag("NoStatusError")
@@ -700,16 +681,18 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
       id: Schema.FiniteFromString
     },
     success: Group,
-    error: GroupError
+    error: GroupError.pipe(HttpApiSchema.asNoContent({
+      decode: () => new GroupError({})
+    }))
   }),
   HttpApiEndpoint.post("create", "/", {
     payload: Schema.Union([
       Schema.Struct(Struct.pick(Group.fields, ["name"])),
       Schema.Struct({ foo: Schema.String }).pipe(
-        HttpApiSchema.withEncoding({ kind: "UrlParams" })
+        HttpApiSchema.asUrlParams()
       ),
-      HttpApiSchema.Multipart(
-        Schema.Struct(Struct.pick(Group.fields, ["name"]))
+      Schema.Struct(Struct.pick(Group.fields, ["name"])).pipe(
+        HttpApiSchema.asMultipart()
       )
     ]).annotate({ httpApiIsContainer: true }),
     success: Group
@@ -780,18 +763,18 @@ class UsersApi extends HttpApiGroup.make("users")
       path: {
         0: Schema.optional(Schema.String)
       },
-      payload: HttpApiSchema.Multipart(Schema.Struct({
+      payload: Schema.Struct({
         file: Multipart.SingleFileSchema
-      })),
+      }).pipe(HttpApiSchema.asMultipart()),
       success: Schema.Struct({
         contentType: Schema.String,
         length: Schema.Int
       })
     }),
     HttpApiEndpoint.post("uploadStream", `/uploadstream`, {
-      payload: HttpApiSchema.MultipartStream(Schema.Struct({
+      payload: Schema.Struct({
         file: Multipart.SingleFileSchema
-      })),
+      }).pipe(HttpApiSchema.asMultipartStream()),
       success: Schema.Struct({
         contentType: Schema.String,
         length: Schema.Int
@@ -934,7 +917,7 @@ const HttpGroupsLive = HttpApiBuilder.group(
     handlers
       .handle("findById", ({ path }) =>
         path.id === 0
-          ? Effect.fail(new GroupError())
+          ? Effect.fail(new GroupError({}))
           : Effect.succeed(new Group({ id: 1, name: "foo" })))
       .handle("create", ({ payload }) =>
         Effect.succeed(

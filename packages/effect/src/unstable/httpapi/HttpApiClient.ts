@@ -5,7 +5,7 @@ import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
-import type * as Predicate from "../../Predicate.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import type * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
@@ -123,21 +123,21 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
       readonly successes: ReadonlyMap<number, {
-        readonly ast: AST.AST | undefined
+        readonly schema: Schema.Top | undefined
         readonly description: string | undefined
       }>
       readonly errors: ReadonlyMap<number, {
-        readonly ast: AST.AST | undefined
+        readonly schema: Schema.Top | undefined
         readonly description: string | undefined
       }>
       readonly endpointFn: Function
     }) => void
     readonly transformResponse?:
-      | ((effect: Effect.Effect<unknown, unknown>) => Effect.Effect<unknown, unknown>)
+      | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<void> =>
+): Effect.Effect<void, unknown, unknown> =>
   Effect.gen(function*() {
     const httpClient = options.httpClient.pipe(
       options?.baseUrl === undefined
@@ -146,7 +146,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
           HttpClientRequest.prependUrl(options.baseUrl.toString())
         )
     )
-    HttpApi.reflect(api as any, {
+    HttpApi.reflect(api, {
       predicate: options?.predicate,
       onGroup(onGroupOptions) {
         options.onGroup?.(onGroupOptions)
@@ -156,16 +156,17 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         const makeUrl = compilePath(endpoint.path)
         const decodeMap: Record<
           number | "orElse",
-          (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<any, any>
+          (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<unknown, unknown, unknown>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
-        errors.forEach(({ ast }, status) => {
-          // Handle empty response
-          if (ast === undefined) {
+        errors.forEach(({ schema }, status) => {
+          // decoders
+          if (schema === undefined) {
+            // Handle No Content
             decodeMap[status] = statusCodeError
             return
           }
-          const decode = schemaToResponse(ast)
+          const decode = schemaToResponse(schema)
           decodeMap[status] = (response) =>
             Effect.flatMap(
               Effect.catchCause(decode(response), (cause) =>
@@ -183,68 +184,73 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
               Effect.fail
             )
         })
-        successes.forEach(({ ast }, status) => {
-          // Handle empty response
-          decodeMap[status] = ast === undefined ? responseAsVoid : schemaToResponse(ast)
+        successes.forEach(({ schema }, status) => {
+          // Handle No Content
+          decodeMap[status] = schema === undefined ? responseAsVoid : schemaToResponse(schema)
         })
-        const encodePath = endpoint.pathSchema?.pipe(
-          Schema.encodeUnknownEffect
-        )
+
+        // encoders
+        const encodePath = getEncodePathSchema(endpoint.pathSchema).pipe(Schema.encodeUnknownEffect)
         const encodePayloadBody = endpoint.payloadSchema?.pipe(
-          (schema) => {
-            if (HttpMethod.hasBody(endpoint.method)) {
-              return Schema.encodeUnknownEffect(payloadSchemaBody(schema))
-            }
-            return Schema.encodeUnknownEffect(schema)
-          }
+          (schema) => Schema.encodeUnknownEffect(getEncodePayloadSchema(schema))
         )
-        const encodeHeaders = endpoint.headersSchema?.pipe(
-          Schema.encodeUnknownEffect
-        )
-        const encodeUrlParams = endpoint.urlParamsSchema?.pipe(
-          Schema.encodeUnknownEffect
-        )
-        const endpointFn = Effect.fnUntraced(function*(request: {
-          readonly path: any
-          readonly urlParams: any
-          readonly payload: any
-          readonly headers: any
-          readonly withResponse?: boolean
-        }) {
+        const encodeHeaders = getEncodeHeadersSchema(endpoint.headersSchema).pipe(Schema.encodeUnknownEffect)
+        const encodeUrlParams = getEncodeUrlParamsSchema(endpoint.urlParamsSchema).pipe(Schema.encodeUnknownEffect)
+
+        const endpointFn = Effect.fnUntraced(function*(
+          request: {
+            readonly path: Record<string, string> | undefined
+            readonly urlParams: unknown
+            readonly payload: unknown
+            readonly headers: Record<string, string> | undefined
+            readonly withResponse?: boolean
+          } | undefined
+        ) {
           let httpRequest = HttpClientRequest.make(endpoint.method)(endpoint.path)
-          if (request && request.path) {
-            const encodedPathParams = encodePath
-              ? yield* encodePath(request.path)
-              : request.path
-            httpRequest = HttpClientRequest.setUrl(httpRequest, makeUrl(encodedPathParams))
-          }
-          if (request && request.payload instanceof FormData) {
-            httpRequest = HttpClientRequest.bodyFormData(httpRequest, request.payload)
-          } else if (encodePayloadBody) {
-            if (HttpMethod.hasBody(endpoint.method)) {
-              const body = (yield* encodePayloadBody(request.payload)) as HttpBody.HttpBody
-              httpRequest = HttpClientRequest.setBody(httpRequest, body)
-            } else {
-              const urlParams = (yield* encodePayloadBody(request.payload)) as Record<string, string>
-              httpRequest = HttpClientRequest.setUrlParams(httpRequest, urlParams)
+
+          if (request !== undefined) {
+            // path
+            if (request.path !== undefined) {
+              const encodedPathParams = yield* encodePath(request.path)
+              httpRequest = HttpClientRequest.setUrl(httpRequest, makeUrl(encodedPathParams))
+            }
+
+            // payload
+            if (request.payload instanceof FormData) {
+              httpRequest = HttpClientRequest.bodyFormData(httpRequest, request.payload)
+            } else if (encodePayloadBody) {
+              if (HttpMethod.hasBody(endpoint.method)) {
+                const body = (yield* encodePayloadBody(request.payload)) as HttpBody.HttpBody
+                httpRequest = HttpClientRequest.setBody(httpRequest, body)
+              } else {
+                const urlParams = (yield* encodePayloadBody(request.payload)) as Record<string, string>
+                httpRequest = HttpClientRequest.appendUrlParams(httpRequest, urlParams)
+              }
+            }
+
+            // headers
+            if (request.headers !== undefined) {
+              httpRequest = HttpClientRequest.setHeaders(
+                httpRequest,
+                yield* encodeHeaders(request.headers)
+              )
+            }
+
+            // url params
+            if (request.urlParams !== undefined) {
+              httpRequest = HttpClientRequest.appendUrlParams(
+                httpRequest,
+                yield* encodeUrlParams(request.urlParams)
+              )
             }
           }
-          if (encodeHeaders) {
-            httpRequest = HttpClientRequest.setHeaders(
-              httpRequest,
-              (yield* encodeHeaders(request.headers)) as any
-            )
-          }
-          if (encodeUrlParams) {
-            httpRequest = HttpClientRequest.appendUrlParams(
-              httpRequest,
-              (yield* encodeUrlParams(request.urlParams)) as any
-            )
-          }
+
           const response = yield* httpClient.execute(httpRequest)
+
           const value = yield* (options.transformResponse === undefined
             ? decodeResponse(response)
             : options.transformResponse(decodeResponse(response)))
+
           return request?.withResponse === true ? [value, response] : value
         })
 
@@ -256,6 +262,21 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
     })
   })
 
+function getEncodePathSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
+  return (schema as any) ?? defaultEncodePathSchema
+}
+const defaultEncodePathSchema = Schema.Record(Schema.String, Schema.String)
+
+function getEncodeHeadersSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
+  return (schema as any) ?? defaultEncodeHeadersSchema
+}
+const defaultEncodeHeadersSchema = Schema.Record(Schema.String, Schema.String)
+
+function getEncodeUrlParamsSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
+  return (schema as any) ?? defaultEncodeUrlParamsSchema
+}
+const defaultEncodeUrlParamsSchema = Schema.Record(Schema.String, Schema.String)
+
 /**
  * @since 4.0.0
  * @category constructors
@@ -265,7 +286,7 @@ export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
   options?: {
     readonly transformClient?: ((client: HttpClient.HttpClient) => HttpClient.HttpClient) | undefined
     readonly transformResponse?:
-      | ((effect: Effect.Effect<unknown, unknown>) => Effect.Effect<unknown, unknown>)
+      | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
@@ -285,7 +306,7 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
   options: {
     readonly httpClient: HttpClient.HttpClient.With<E, R>
     readonly transformResponse?:
-      | ((effect: Effect.Effect<unknown, unknown>) => Effect.Effect<unknown, unknown>)
+      | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
@@ -319,7 +340,7 @@ export const group = <
     readonly group: GroupName
     readonly httpClient: HttpClient.HttpClient.With<E, R>
     readonly transformResponse?:
-      | ((effect: Effect.Effect<unknown, unknown>) => Effect.Effect<unknown, unknown>)
+      | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
@@ -353,7 +374,7 @@ export const endpoint = <
     readonly httpClient: HttpClient.HttpClient.With<E, R>
     readonly transformClient?: ((client: HttpClient.HttpClient) => HttpClient.HttpClient) | undefined
     readonly transformResponse?:
-      | ((effect: Effect.Effect<unknown, unknown>) => Effect.Effect<unknown, unknown>)
+      | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
@@ -397,17 +418,18 @@ const compilePath = (path: string) => {
   }
 }
 
-function schemaToResponse(ast: AST.AST) {
-  const schema = schemaFromArrayBuffer(ast)
-  // TODO: what if schema has DecodingServices?
-  const decode = Schema.decodeEffect(schema as Schema.Codec<unknown, unknown>)
+function schemaToResponse(schema: Schema.Top) {
+  const codec = toCodecArrayBuffer(schema)
+  const decode = Schema.decodeEffect(codec)
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
 }
 
-// TODO: can this be more precise?
-const SchemaArrayBuffer = Schema.Unknown as any as Schema.instanceOf<ArrayBuffer>
+const ArrayBuffer = Schema.instanceOf(globalThis.ArrayBuffer, {
+  expected: "ArrayBuffer"
+})
 
-const Uint8ArrayFromArrayBuffer = SchemaArrayBuffer.pipe(
+// _tag: Uint8Array
+const Uint8ArrayFromArrayBuffer = ArrayBuffer.pipe(
   Schema.decodeTo(
     Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>,
     Transformation.transform({
@@ -423,7 +445,8 @@ const Uint8ArrayFromArrayBuffer = SchemaArrayBuffer.pipe(
   )
 )
 
-const StringFromArrayBuffer = SchemaArrayBuffer.pipe(
+// _tag: Text
+const StringFromArrayBuffer = ArrayBuffer.pipe(
   Schema.decodeTo(
     Schema.String,
     Transformation.transform({
@@ -440,57 +463,38 @@ const StringFromArrayBuffer = SchemaArrayBuffer.pipe(
   )
 )
 
-// TODO: replace with the built-in transformation from JSON?
-const parseJsonOrVoid = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Unknown,
-    Transformation.transformOrFail({
-      decode(i) {
-        // Handle empty response
-        if (i === "") return Effect.succeed(void 0)
-        try {
-          return Effect.succeed(JSON.parse(i))
-        } catch {
-          return Effect.fail(
-            new Issue.InvalidValue(Option.some(i), { message: "Could not parse JSON" })
-          )
-        }
-      },
-      encode(a) {
-        if (a === undefined) return Effect.succeed("")
-        try {
-          return Effect.succeed(JSON.stringify(a))
-        } catch {
-          return Effect.fail(
-            new Issue.InvalidValue(Option.some(a), { message: "Could not encode as JSON" })
-          )
-        }
-      }
-    })
-  )
-)
+// _tag: Json
+const UnknownFromArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(
+  Schema.Union([
+    // Handle No Content
+    Schema.Literal("").pipe(Schema.decodeTo(
+      Schema.Undefined,
+      Transformation.transform({
+        decode: () => undefined,
+        encode: () => ""
+      })
+    )),
+    Schema.UnknownFromJsonString
+  ])
+))
 
-const parseJsonArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(parseJsonOrVoid))
-
-function schemaFromArrayBuffer(ast: AST.AST): Schema.Top {
-  if (HttpApiSchema.isHttpApiContainer(ast)) {
-    return Schema.Union(ast.types.map((type) => schemaFromArrayBuffer(type)))
+function toCodecArrayBuffer(schema: Schema.Top): Schema.Top {
+  if (HttpApiSchema.isHttpApiContainer(schema)) {
+    return Schema.Union(schema.members.map(toCodecArrayBuffer))
   }
-  const schema = Schema.make(ast)
-  const encoding = HttpApiSchema.getEncoding(ast)
-  switch (encoding.kind) {
+  const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
+  switch (encoding._tag) {
     case "Json":
-      return parseJsonArrayBuffer
-        .pipe(Schema.decodeTo(schema))
+      return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
     case "UrlParams":
-      return StringFromArrayBuffer
-        .pipe(Schema.decodeTo(UrlParams.schemaRecord), Schema.decodeTo(schema))
+      return StringFromArrayBuffer.pipe(
+        Schema.decodeTo(UrlParams.schemaRecord),
+        Schema.decodeTo(schema)
+      )
     case "Uint8Array":
-      return Uint8ArrayFromArrayBuffer
-        .pipe(Schema.decodeTo(schema))
+      return Uint8ArrayFromArrayBuffer.pipe(Schema.decodeTo(schema))
     case "Text":
-      return StringFromArrayBuffer
-        .pipe(Schema.decodeTo(schema))
+      return StringFromArrayBuffer.pipe(Schema.decodeTo(schema))
   }
 }
 
@@ -518,35 +522,38 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 
 const HttpBodySchema = Schema.declare(HttpBody.isHttpBody)
 
-function payloadSchemaBody(schema: Schema.Top): Schema.Top {
-  if (HttpApiSchema.isHttpApiContainer(schema.ast)) {
-    return Schema.Union(schema.ast.types.map(bodyFromPayload))
-  }
-  return bodyFromPayload(schema.ast)
+function getEncodePayloadSchema(schema: Schema.Top): Schema.Top {
+  const schemas = Array.from(HttpApiSchema.getSchemas(schema), getEncodePayloadSchemaFromBody)
+  return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()
 
-function bodyFromPayload(ast: AST.AST): Schema.Top {
-  if (bodyFromPayloadCache.has(ast)) {
-    return bodyFromPayloadCache.get(ast)!
+function getEncodePayloadSchemaFromBody(
+  schema: Schema.Top
+): Schema.Top {
+  const ast = schema.ast
+  const cached = bodyFromPayloadCache.get(ast)
+  if (cached !== undefined) {
+    return cached
   }
-  const schema = Schema.make(ast)
-  const encoding = HttpApiSchema.getEncoding(ast)
+  const encoding = HttpApiSchema.getRequestEncoding(ast)
   const out = HttpBodySchema.pipe(Schema.decodeTo(
     schema,
     Transformation.transformOrFail({
-      decode(httpBody: HttpBody.HttpBody) {
-        return Effect.fail(new Issue.Forbidden(Option.some(httpBody), { message: "encode only schema" }))
+      decode(httpBody) {
+        return Effect.fail(new Issue.Forbidden(Option.some(httpBody), { message: "Encode only schema" }))
       },
       encode(t: unknown) {
-        switch (encoding.kind) {
+        switch (encoding._tag) {
+          case "Multipart":
+            return Effect.fail(new Issue.Forbidden(Option.some(t), { message: "Payload must be a FormData" }))
           case "Json": {
             try {
               const body = JSON.stringify(t)
               return Effect.succeed(HttpBody.text(body, encoding.contentType))
-            } catch {
-              return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: "Could not encode as JSON" }))
+            } catch (error) {
+              return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: globalThis.String(error) }))
             }
           }
           case "Text": {
@@ -558,6 +565,9 @@ function bodyFromPayload(ast: AST.AST): Schema.Top {
             return Effect.succeed(HttpBody.text(t, encoding.contentType))
           }
           case "UrlParams": {
+            if (!Predicate.isObject(t)) {
+              return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: "Expected a record" }))
+            }
             return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(t as any)))
           }
           case "Uint8Array": {
