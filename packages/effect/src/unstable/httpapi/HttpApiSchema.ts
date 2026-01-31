@@ -42,25 +42,17 @@ export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<Schem
  */
 export function asNoContent<S extends Schema.Top>(options: {
   readonly decode: LazyArg<S["Type"]>
-  readonly status?: number | undefined
 }) {
   return (self: S): asNoContent<S> => {
-    const transformation = Transformation.transform({
-      decode: options.decode,
-      encode: constVoid
-    })
-    let out = Schema.Void.pipe(
+    return Schema.Void.pipe(
       Schema.decodeTo(
         Schema.toType(self),
-        transformation
+        Transformation.transform({
+          decode: options.decode,
+          encode: constVoid
+        })
       )
     )
-    if (options.status !== undefined) {
-      out = out.annotate({
-        httpApiStatus: options.status
-      })
-    }
-    return out
   }
 }
 
