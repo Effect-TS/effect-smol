@@ -83,8 +83,8 @@ describe("HttpApi", () => {
             HttpApiEndpoint.post("a", "/a", {
               payload: [
                 Schema.Struct({ a: Schema.String }), // application/json
-                HttpApiSchema.Text(), // text/plain
-                HttpApiSchema.Uint8Array() // application/octet-stream
+                Schema.String.pipe(HttpApiSchema.asText()), // text/plain
+                Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
               ],
               success: Schema.String
             })
@@ -150,7 +150,7 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiSchema.makeNoContent(400)
+            error: HttpApiSchema.Empty(400)
           })
         )
       )
@@ -585,18 +585,17 @@ describe("HttpApi", () => {
       message: Schema.String
     }) {}
 
-    const RateLimitErrorSchema = HttpApiSchema.withEncoding(
-      Schema.String.pipe(
-        Schema.decodeTo(
-          RateLimitError,
-          SchemaTransformation.transform({
-            encode: ({ message }) => message,
-            decode: (message) => new RateLimitError({ message })
-          })
-        )
-      ),
-      { _tag: "Text" }
-    ).annotate({ httpApiStatus: 429 })
+    const RateLimitErrorSchema = Schema.String.pipe(
+      Schema.decodeTo(
+        RateLimitError,
+        SchemaTransformation.transform({
+          encode: ({ message }) => message,
+          decode: (message) => new RateLimitError({ message })
+        })
+      )
+    )
+      .annotate({ httpApiStatus: 429 })
+      .pipe(HttpApiSchema.asText())
 
     const Api = HttpApi.make("api").add(
       HttpApiGroup.make("group").add(
@@ -691,10 +690,10 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
     payload: Schema.Union([
       Schema.Struct(Struct.pick(Group.fields, ["name"])),
       Schema.Struct({ foo: Schema.String }).pipe(
-        HttpApiSchema.withEncoding({ _tag: "UrlParams" })
+        HttpApiSchema.asUrlParams()
       ),
-      HttpApiSchema.Multipart(
-        Schema.Struct(Struct.pick(Group.fields, ["name"]))
+      Schema.Struct(Struct.pick(Group.fields, ["name"])).pipe(
+        HttpApiSchema.asMultipart()
       )
     ]).annotate({ httpApiIsContainer: true }),
     success: Group
@@ -765,18 +764,18 @@ class UsersApi extends HttpApiGroup.make("users")
       path: {
         0: Schema.optional(Schema.String)
       },
-      payload: HttpApiSchema.Multipart(Schema.Struct({
+      payload: Schema.Struct({
         file: Multipart.SingleFileSchema
-      })),
+      }).pipe(HttpApiSchema.asMultipart()),
       success: Schema.Struct({
         contentType: Schema.String,
         length: Schema.Int
       })
     }),
     HttpApiEndpoint.post("uploadStream", `/uploadstream`, {
-      payload: HttpApiSchema.MultipartStream(Schema.Struct({
+      payload: Schema.Struct({
         file: Multipart.SingleFileSchema
-      })),
+      }).pipe(HttpApiSchema.asMultipartStream()),
       success: Schema.Struct({
         contentType: Schema.String,
         length: Schema.Int

@@ -117,8 +117,8 @@ describe("HttpApiEndpoint", () => {
         const endpoint = HttpApiEndpoint.post("a", "/a", {
           payload: [
             Schema.Struct({ a: Schema.String }), // application/json
-            HttpApiSchema.Text(), // text/plain
-            HttpApiSchema.Uint8Array() // application/octet-stream
+            Schema.String.pipe(HttpApiSchema.asText()), // text/plain
+            Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
           ]
         })
         type T = typeof endpoint["payloadSchema"]
@@ -186,8 +186,8 @@ describe("HttpApiEndpoint", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: [
           Schema.Struct({ a: Schema.String }), // application/json
-          HttpApiSchema.Text(), // text/plain
-          HttpApiSchema.Uint8Array() // application/octet-stream
+          Schema.String.pipe(HttpApiSchema.asText()), // text/plain
+          Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
         ]
       })
       type T = typeof endpoint["successSchema"]

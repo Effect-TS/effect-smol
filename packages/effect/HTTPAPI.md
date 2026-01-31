@@ -936,11 +936,11 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ### Handling Multipart Requests
 
-To support file uploads, you can use the `HttpApiSchema.Multipart` API. This allows you to define an endpoint's payload schema as a multipart request, specifying the structure of the data, including file uploads, with the `Multipart` module.
+To support file uploads, you can use the `HttpApiSchema.asMultipart` API. This allows you to define an endpoint's payload schema as a multipart request, specifying the structure of the data, including file uploads, with the `Multipart` module.
 
 **Example** (Defining an Endpoint for File Uploads)
 
-In this example, the `HttpApiSchema.Multipart` function marks the payload as a multipart request. The `files` field uses `Multipart.FilesSchema` to handle uploaded file data automatically.
+In this example, the `HttpApiSchema.asMultipart` function marks the payload as a multipart request. The `files` field uses `Multipart.FilesSchema` to handle uploaded file data automatically.
 
 ```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
@@ -962,7 +962,7 @@ const Api = HttpApi.make("MyApi")
       .add(
         HttpApiEndpoint.post("upload", "/users/upload", {
           // Specify that the payload is a multipart request
-          payload: HttpApiSchema.Multipart(
+          payload: HttpApiSchema.asMultipart(
             Schema.Struct({
               // Define a "files" field to handle file uploads
               files: Multipart.FilesSchema
@@ -1005,7 +1005,7 @@ echo "Sample file content" | curl -X POST -F "files=@-" http://localhost:3000/us
 
 ### Changing the Request Encoding
 
-By default, API requests are encoded as JSON. If your application requires a different format, you can customize the request encoding using the `HttpApiSchema.withEncoding` method. This allows you to define the encoding type and content type of the request.
+By default, API requests are encoded as JSON. If your application requires a different format, you can customize the request encoding using the `HttpApiSchema.as*` functions. This allows you to define the encoding type and content type of the request.
 
 **Example** (Customizing Request Encoding)
 
@@ -1039,7 +1039,7 @@ const Api = HttpApi.make("MyApi")
             name: Schema.String
           })
             // Specify the encoding as form url encoded
-            .pipe(HttpApiSchema.withEncoding({ _tag: "UrlParams" })),
+            .pipe(HttpApiSchema.asUrlParams()),
           success: User
         })
       )
@@ -1079,7 +1079,7 @@ curl http://localhost:3000/user \
 
 ### Changing the Response Encoding
 
-By default, API responses are encoded as JSON. If your application requires a different format, you can customize the encoding using the `HttpApiSchema.withEncoding` API. This method lets you define the type and content type of the response.
+By default, API responses are encoded as JSON. If your application requires a different format, you can customize the encoding using the `HttpApiSchema.as*` functions. This method lets you define the type and content type of the response.
 
 **Example** (Returning Data as `text/csv`)
 
@@ -1104,9 +1104,7 @@ const Api = HttpApi.make("MyApi")
         HttpApiEndpoint.get("csv", "/users/csv", {
           success: Schema.String.pipe(
             // Set the success response as a string with CSV encoding
-            HttpApiSchema.withEncoding({
-              // Specify the type of the response
-              _tag: "Text",
+            HttpApiSchema.asText({
               // Define the content type as text/csv
               contentType: "text/csv"
             })
@@ -1566,9 +1564,7 @@ const Api = HttpApi.make("myApi").add(
     HttpApiEndpoint.post("acceptStream", "/stream", {
       // Define the payload as a Uint8Array with a specific encoding
       payload: Schema.Uint8Array.pipe(
-        HttpApiSchema.withEncoding({
-          _tag: "Uint8Array" // default content type: application/octet-stream
-        })
+        HttpApiSchema.asUint8Array() // default content type: application/octet-stream
       ),
       success: Schema.String
     })
@@ -1621,8 +1617,7 @@ const Api = HttpApi.make("myApi").add(
   HttpApiGroup.make("group").add(
     HttpApiEndpoint.get("getStream", "/stream", {
       success: Schema.String.pipe(
-        HttpApiSchema.withEncoding({
-          _tag: "Text",
+        HttpApiSchema.asText({
           contentType: "application/octet-stream"
         })
       )
