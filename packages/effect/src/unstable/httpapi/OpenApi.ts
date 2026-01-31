@@ -566,7 +566,7 @@ function extractResponseBodies(
     if (HttpApiSchema.isNoContent(ast)) {
       addNoContent(status, getDescription(schema.ast) ?? "<No Content>")
     } else {
-      addContent(schema, status, HttpApiSchema.getEncoding(ast))
+      addContent(schema, status, HttpApiSchema.getResponseEncoding(ast))
     }
   }
 
@@ -642,7 +642,7 @@ function extractRequestBodies(schemas: ReadonlySet<Schema.Top> | undefined): Con
   function process(schema: Schema.Top) {
     const ast = schema.ast
     if (!HttpApiSchema.isNoContent(ast)) {
-      addContent(schema, HttpApiSchema.getEncoding(ast))
+      addContent(schema, HttpApiSchema.getRequestEncoding(ast))
     }
   }
 
