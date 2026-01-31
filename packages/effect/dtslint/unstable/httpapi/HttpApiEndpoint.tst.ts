@@ -118,7 +118,7 @@ describe("HttpApiEndpoint", () => {
           payload: [
             Schema.Struct({ a: Schema.String }), // application/json
             HttpApiSchema.Text(), // text/plain
-            HttpApiSchema.Binary() // application/octet-stream
+            HttpApiSchema.Uint8Array() // application/octet-stream
           ]
         })
         type T = typeof endpoint["payloadSchema"]
@@ -187,7 +187,7 @@ describe("HttpApiEndpoint", () => {
         success: [
           Schema.Struct({ a: Schema.String }), // application/json
           HttpApiSchema.Text(), // text/plain
-          HttpApiSchema.Binary() // application/octet-stream
+          HttpApiSchema.Uint8Array() // application/octet-stream
         ]
       })
       type T = typeof endpoint["successSchema"]

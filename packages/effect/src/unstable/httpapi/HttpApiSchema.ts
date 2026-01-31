@@ -266,7 +266,7 @@ export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
  * @category encoding
  */
 export interface Encoding {
-  readonly _tag: "Json" | "FormUrlEncoded" | "Binary" | "Text"
+  readonly _tag: "Json" | "UrlParams" | "Uint8Array" | "Text"
   readonly contentType: string
 }
 
@@ -280,9 +280,9 @@ export declare namespace Encoding {
    * @category encoding
    */
   export type Validate<A extends Schema.Top, Tag extends Encoding["_tag"]> = Tag extends "Json" ? {}
-    : Tag extends "FormUrlEncoded" ? [A["Encoded"]] extends [Readonly<Record<string, string | undefined>>] ? {}
-      : `'FormUrlEncoded' _tag can only be encoded to 'Record<string, string | undefined>'`
-    : Tag extends "Binary" ?
+    : Tag extends "UrlParams" ? [A["Encoded"]] extends [Readonly<Record<string, string | undefined>>] ? {}
+      : `'UrlParams' _tag can only be encoded to 'Record<string, string | undefined>'`
+    : Tag extends "Uint8Array" ?
       [A["Encoded"]] extends [Uint8Array] ? {} : `'Binary' _tag can only be encoded to 'Uint8Array'`
     : Tag extends "Text" ? [A["Encoded"]] extends [string] ? {} : `'Text' _tag can only be encoded to 'string'`
     : never
@@ -292,9 +292,9 @@ const defaultContentType = (_tag: Encoding["_tag"]) => {
   switch (_tag) {
     case "Json":
       return "application/json"
-    case "FormUrlEncoded":
+    case "UrlParams":
       return "application/x-www-form-urlencoded"
-    case "Binary":
+    case "Uint8Array":
       return "application/octet-stream"
     case "Text":
       return "text/plain"
@@ -345,9 +345,9 @@ export const Text = (options?: {
  * @since 4.0.0
  * @category encoding
  */
-export const Binary = (options?: {
+export const Uint8Array = (options?: {
   readonly contentType?: string
-}): Schema.Uint8Array => withEncoding(Schema.Uint8Array, { _tag: "Binary", ...options })
+}): Schema.Uint8Array => withEncoding(Schema.Uint8Array, { _tag: "Uint8Array", ...options })
 
 /** @internal */
 export function forEach(schema: Schema.Top, f: (schema: Schema.Top) => void): void {

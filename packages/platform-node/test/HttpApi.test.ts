@@ -84,7 +84,7 @@ describe("HttpApi", () => {
               payload: [
                 Schema.Struct({ a: Schema.String }), // application/json
                 HttpApiSchema.Text(), // text/plain
-                HttpApiSchema.Binary() // application/octet-stream
+                HttpApiSchema.Uint8Array() // application/octet-stream
               ],
               success: Schema.String
             })
@@ -691,7 +691,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
     payload: Schema.Union([
       Schema.Struct(Struct.pick(Group.fields, ["name"])),
       Schema.Struct({ foo: Schema.String }).pipe(
-        HttpApiSchema.withEncoding({ _tag: "FormUrlEncoded" })
+        HttpApiSchema.withEncoding({ _tag: "UrlParams" })
       ),
       HttpApiSchema.Multipart(
         Schema.Struct(Struct.pick(Group.fields, ["name"]))
