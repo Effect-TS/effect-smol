@@ -133,11 +133,11 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       readonly endpointFn: Function
     }) => void
     readonly transformResponse?:
-      | ((effect: Effect.Effect<unknown, unknown>) => Effect.Effect<unknown, unknown>)
+      | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<void> =>
+): Effect.Effect<void, unknown, unknown> =>
   Effect.gen(function*() {
     const httpClient = options.httpClient.pipe(
       options?.baseUrl === undefined
@@ -146,7 +146,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
           HttpClientRequest.prependUrl(options.baseUrl.toString())
         )
     )
-    HttpApi.reflect(api as any, {
+    HttpApi.reflect(api, {
       predicate: options?.predicate,
       onGroup(onGroupOptions) {
         options.onGroup?.(onGroupOptions)
@@ -156,7 +156,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         const makeUrl = compilePath(endpoint.path)
         const decodeMap: Record<
           number | "orElse",
-          (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<any, any>
+          (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<unknown, unknown, unknown>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
         errors.forEach(({ schema }, status) => {
@@ -265,7 +265,7 @@ export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
   options?: {
     readonly transformClient?: ((client: HttpClient.HttpClient) => HttpClient.HttpClient) | undefined
     readonly transformResponse?:
-      | ((effect: Effect.Effect<unknown, unknown>) => Effect.Effect<unknown, unknown>)
+      | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
@@ -285,7 +285,7 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
   options: {
     readonly httpClient: HttpClient.HttpClient.With<E, R>
     readonly transformResponse?:
-      | ((effect: Effect.Effect<unknown, unknown>) => Effect.Effect<unknown, unknown>)
+      | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
@@ -319,7 +319,7 @@ export const group = <
     readonly group: GroupName
     readonly httpClient: HttpClient.HttpClient.With<E, R>
     readonly transformResponse?:
-      | ((effect: Effect.Effect<unknown, unknown>) => Effect.Effect<unknown, unknown>)
+      | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
@@ -353,7 +353,7 @@ export const endpoint = <
     readonly httpClient: HttpClient.HttpClient.With<E, R>
     readonly transformClient?: ((client: HttpClient.HttpClient) => HttpClient.HttpClient) | undefined
     readonly transformResponse?:
-      | ((effect: Effect.Effect<unknown, unknown>) => Effect.Effect<unknown, unknown>)
+      | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
@@ -399,8 +399,7 @@ const compilePath = (path: string) => {
 
 function schemaToResponse(schema: Schema.Top) {
   const codec = toCodecArrayBuffer(schema)
-  // TODO: what if schema has DecodingServices?
-  const decode = Schema.decodeEffect(codec as Schema.Codec<unknown, unknown>)
+  const decode = Schema.decodeEffect(codec)
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
 }
 
