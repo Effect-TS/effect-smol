@@ -646,7 +646,7 @@ function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Codec<unknown, HttpS
 function toResponseSchema(getStatus: (ast: AST.AST) => number) {
   const cache = new WeakMap<AST.AST, Schema.Top>()
 
-  return <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>): Schema.Codec<A, HttpServerResponse, RD, RE> => {
+  return <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>): Schema.Codec<T, HttpServerResponse, RD, RE> => {
     const cached = cache.get(schema.ast)
     if (cached !== undefined) {
       return cached as any
@@ -664,47 +664,52 @@ function getResponseTransformation<T, E, RD, RE>(
   schema: Schema.Codec<T, E, RD, RE>
 ): Transformation.Transformation<E, Response.HttpServerResponse> {
   const ast = schema.ast
-  const status = getStatus(ast)
+  const encode = getResponseEncode<E>(getStatus(ast), HttpApiSchema.getEncoding(ast))
 
   return Transformation.transformOrFail({
     decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
-    encode(e: E) {
-      const encoding = HttpApiSchema.getEncoding(ast)
-      switch (encoding._tag) {
-        case "Multipart":
-          return Effect.succeed(Response.empty({ status }))
-        case "Json": {
-          try {
-            return Effect.succeed(Response.text(JSON.stringify(e), {
-              status,
-              contentType: encoding.contentType
-            }))
-          } catch (error) {
-            return Effect.fail(new Issue.InvalidValue(Option.some(e)))
-          }
-        }
-        case "Text": {
-          return Effect.succeed(Response.text(e as string, {
-            status,
-            contentType: encoding.contentType
-          }))
-        }
-        case "Uint8Array": {
-          return Effect.succeed(Response.uint8Array(e as Uint8Array, {
-            status,
-            contentType: encoding.contentType
-          }))
-        }
-        case "UrlParams": {
-          return Effect.succeed(
-            Response.urlParams(e as any, { status }).pipe(
-              Response.setHeader("content-type", encoding.contentType)
-            )
-          )
-        }
-      }
-    }
+    encode
   })
+}
+
+function getResponseEncode<E>(
+  status: number,
+  encoding: HttpApiSchema.Encoding
+): (e: E) => Effect.Effect<Response.HttpServerResponse, Issue.InvalidValue, never> {
+  switch (encoding._tag) {
+    case "Multipart":
+      // TODO: this should not happen
+      throw new Error("Multipart body is not supported")
+    case "Json": {
+      return ((e) => {
+        try {
+          const s = JSON.stringify(e)
+          return Effect.succeed(Response.text(s, { status, contentType: encoding.contentType }))
+        } catch (error) {
+          return Effect.fail(new Issue.InvalidValue(Option.some(e), { message: globalThis.String(error) }))
+        }
+      })
+    }
+    case "Text":
+      return (e) =>
+        Effect.succeed(Response.text(e as string, {
+          status,
+          contentType: encoding.contentType
+        }))
+    case "Uint8Array":
+      return (e) =>
+        Effect.succeed(Response.uint8Array(e as Uint8Array, {
+          status,
+          contentType: encoding.contentType
+        }))
+    case "UrlParams":
+      return (e) =>
+        Effect.succeed(
+          Response.urlParams(e as URLSearchParams, { status }).pipe(
+            Response.setHeader("content-type", encoding.contentType)
+          )
+        )
+  }
 }
 
 function isSingleStringType(ast: AST.AST, key?: PropertyKey): boolean {
