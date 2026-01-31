@@ -5,7 +5,7 @@ import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
-import type * as Predicate from "../../Predicate.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import type * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
@@ -160,8 +160,9 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
         errors.forEach(({ schema }, status) => {
-          // Handle No Content
+          // decoders
           if (schema === undefined) {
+            // Handle No Content
             decodeMap[status] = statusCodeError
             return
           }
@@ -187,64 +188,69 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
           // Handle No Content
           decodeMap[status] = schema === undefined ? responseAsVoid : schemaToResponse(schema)
         })
-        const encodePath = endpoint.pathSchema?.pipe(
-          Schema.encodeUnknownEffect
-        )
+
+        // encoders
+        const encodePath = getEncodePathSchema(endpoint.pathSchema).pipe(Schema.encodeUnknownEffect)
         const encodePayloadBody = endpoint.payloadSchema?.pipe(
-          (schema) => {
-            if (HttpMethod.hasBody(endpoint.method)) {
-              return Schema.encodeUnknownEffect(payloadSchemaBody(schema))
-            }
-            return Schema.encodeUnknownEffect(schema)
-          }
+          (schema) => Schema.encodeUnknownEffect(getEncodePayloadSchema(schema))
         )
-        const encodeHeaders = endpoint.headersSchema?.pipe(
-          Schema.encodeUnknownEffect
-        )
-        const encodeUrlParams = endpoint.urlParamsSchema?.pipe(
-          Schema.encodeUnknownEffect
-        )
-        const endpointFn = Effect.fnUntraced(function*(request: {
-          readonly path: any
-          readonly urlParams: any
-          readonly payload: any
-          readonly headers: any
-          readonly withResponse?: boolean
-        }) {
+        const encodeHeaders = getEncodeHeadersSchema(endpoint.headersSchema).pipe(Schema.encodeUnknownEffect)
+        const encodeUrlParams = getEncodeUrlParamsSchema(endpoint.urlParamsSchema).pipe(Schema.encodeUnknownEffect)
+
+        const endpointFn = Effect.fnUntraced(function*(
+          request: {
+            readonly path: Record<string, string> | undefined
+            readonly urlParams: unknown
+            readonly payload: unknown
+            readonly headers: Record<string, string> | undefined
+            readonly withResponse?: boolean
+          } | undefined
+        ) {
           let httpRequest = HttpClientRequest.make(endpoint.method)(endpoint.path)
-          if (request && request.path) {
-            const encodedPathParams = encodePath
-              ? yield* encodePath(request.path)
-              : request.path
-            httpRequest = HttpClientRequest.setUrl(httpRequest, makeUrl(encodedPathParams))
-          }
-          if (request && request.payload instanceof FormData) {
-            httpRequest = HttpClientRequest.bodyFormData(httpRequest, request.payload)
-          } else if (encodePayloadBody) {
-            if (HttpMethod.hasBody(endpoint.method)) {
-              const body = (yield* encodePayloadBody(request.payload)) as HttpBody.HttpBody
-              httpRequest = HttpClientRequest.setBody(httpRequest, body)
-            } else {
-              const urlParams = (yield* encodePayloadBody(request.payload)) as Record<string, string>
-              httpRequest = HttpClientRequest.setUrlParams(httpRequest, urlParams)
+
+          if (request !== undefined) {
+            // path
+            if (request.path !== undefined) {
+              const encodedPathParams = yield* encodePath(request.path)
+              httpRequest = HttpClientRequest.setUrl(httpRequest, makeUrl(encodedPathParams))
+            }
+
+            // payload
+            if (request.payload instanceof FormData) {
+              httpRequest = HttpClientRequest.bodyFormData(httpRequest, request.payload)
+            } else if (encodePayloadBody) {
+              if (HttpMethod.hasBody(endpoint.method)) {
+                const body = (yield* encodePayloadBody(request.payload)) as HttpBody.HttpBody
+                httpRequest = HttpClientRequest.setBody(httpRequest, body)
+              } else {
+                const urlParams = (yield* encodePayloadBody(request.payload)) as Record<string, string>
+                httpRequest = HttpClientRequest.appendUrlParams(httpRequest, urlParams)
+              }
+            }
+
+            // headers
+            if (request.headers !== undefined) {
+              httpRequest = HttpClientRequest.setHeaders(
+                httpRequest,
+                yield* encodeHeaders(request.headers)
+              )
+            }
+
+            // url params
+            if (request.urlParams !== undefined) {
+              httpRequest = HttpClientRequest.appendUrlParams(
+                httpRequest,
+                yield* encodeUrlParams(request.urlParams)
+              )
             }
           }
-          if (encodeHeaders) {
-            httpRequest = HttpClientRequest.setHeaders(
-              httpRequest,
-              (yield* encodeHeaders(request.headers)) as any
-            )
-          }
-          if (encodeUrlParams) {
-            httpRequest = HttpClientRequest.appendUrlParams(
-              httpRequest,
-              (yield* encodeUrlParams(request.urlParams)) as any
-            )
-          }
+
           const response = yield* httpClient.execute(httpRequest)
+
           const value = yield* (options.transformResponse === undefined
             ? decodeResponse(response)
             : options.transformResponse(decodeResponse(response)))
+
           return request?.withResponse === true ? [value, response] : value
         })
 
@@ -255,6 +261,21 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       }
     })
   })
+
+function getEncodePathSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
+  return (schema as any) ?? defaultEncodePathSchema
+}
+const defaultEncodePathSchema = Schema.Record(Schema.String, Schema.String)
+
+function getEncodeHeadersSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
+  return (schema as any) ?? defaultEncodeHeadersSchema
+}
+const defaultEncodeHeadersSchema = Schema.Record(Schema.String, Schema.String)
+
+function getEncodeUrlParamsSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
+  return (schema as any) ?? defaultEncodeUrlParamsSchema
+}
+const defaultEncodeUrlParamsSchema = Schema.Record(Schema.String, Schema.String)
 
 /**
  * @since 4.0.0
@@ -501,14 +522,16 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 
 const HttpBodySchema = Schema.declare(HttpBody.isHttpBody)
 
-function payloadSchemaBody(schema: Schema.Top): Schema.Top {
-  const schemas = Array.from(HttpApiSchema.getSchemas(schema), bodyFromPayload)
+function getEncodePayloadSchema(schema: Schema.Top): Schema.Top {
+  const schemas = Array.from(HttpApiSchema.getSchemas(schema), getEncodePayloadSchemaFromBody)
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()
 
-function bodyFromPayload(schema: Schema.Top): Schema.Top {
+function getEncodePayloadSchemaFromBody(
+  schema: Schema.Top
+): Schema.Top {
   const ast = schema.ast
   const cached = bodyFromPayloadCache.get(ast)
   if (cached !== undefined) {
@@ -518,21 +541,19 @@ function bodyFromPayload(schema: Schema.Top): Schema.Top {
   const out = HttpBodySchema.pipe(Schema.decodeTo(
     schema,
     Transformation.transformOrFail({
-      decode(httpBody: HttpBody.HttpBody) {
-        return Effect.fail(new Issue.Forbidden(Option.some(httpBody), { message: "encode only schema" }))
+      decode(httpBody) {
+        return Effect.fail(new Issue.Forbidden(Option.some(httpBody), { message: "Encode only schema" }))
       },
       encode(t: unknown) {
         switch (encoding._tag) {
-          case "Multipart": {
-            // TODO: this should not happen
-            throw new Error("Multipart encoding is not supported")
-          }
+          case "Multipart":
+            return Effect.fail(new Issue.Forbidden(Option.some(t), { message: "Payload must be a FormData" }))
           case "Json": {
             try {
               const body = JSON.stringify(t)
               return Effect.succeed(HttpBody.text(body, encoding.contentType))
-            } catch {
-              return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: "Could not encode as JSON" }))
+            } catch (error) {
+              return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: globalThis.String(error) }))
             }
           }
           case "Text": {
@@ -544,6 +565,9 @@ function bodyFromPayload(schema: Schema.Top): Schema.Top {
             return Effect.succeed(HttpBody.text(t, encoding.contentType))
           }
           case "UrlParams": {
+            if (!Predicate.isObject(t)) {
+              return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: "Expected a record" }))
+            }
             return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(t as any)))
           }
           case "Uint8Array": {
