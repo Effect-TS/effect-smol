@@ -9,7 +9,7 @@ import type * as Multipart_ from "../http/Multipart.ts"
 
 declare module "../../Schema.ts" {
   namespace Annotations {
-    interface Annotations {
+    interface Augment {
       readonly httpApiStatus?: number | undefined
       /** @internal */
       readonly httpApiBody?: Body | undefined

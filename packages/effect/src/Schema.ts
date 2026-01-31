@@ -8525,7 +8525,7 @@ export declare namespace Annotations {
   /**
    * @since 4.0.0
    */
-  export interface Documentation extends Annotations {
+  export interface Augment extends Annotations {
     readonly expected?: string | undefined
     readonly title?: string | undefined
     readonly description?: string | undefined
@@ -8540,7 +8540,7 @@ export declare namespace Annotations {
   /**
    * @since 4.0.0
    */
-  export interface TypedDocumentation<T> extends Documentation {
+  export interface Documentation<T> extends Augment {
     readonly default?: T | undefined
     readonly examples?: ReadonlyArray<T> | undefined
   }
@@ -8549,7 +8549,7 @@ export declare namespace Annotations {
    * @category Model
    * @since 4.0.0
    */
-  export interface Key<T> extends TypedDocumentation<T> {
+  export interface Key<T> extends Documentation<T> {
     /**
      * The message to use when a key is missing.
      */
@@ -8560,7 +8560,7 @@ export declare namespace Annotations {
    * @category Model
    * @since 4.0.0
    */
-  export interface Bottom<T, TypeParameters extends ReadonlyArray<Top>> extends TypedDocumentation<T> {
+  export interface Bottom<T, TypeParameters extends ReadonlyArray<Top>> extends Documentation<T> {
     /**
      * The message to use when the value is invalid.
      */
@@ -8647,7 +8647,7 @@ export declare namespace Annotations {
    * @category Model
    * @since 4.0.0
    */
-  export interface Filter extends Documentation {
+  export interface Filter extends Augment {
     readonly message?: string | undefined
     readonly identifier?: string | undefined
     /**
