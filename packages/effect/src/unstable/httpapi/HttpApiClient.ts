@@ -69,7 +69,7 @@ export declare namespace Client {
       infer _Name,
       infer _Method,
       infer _Path,
-      infer _PathSchema,
+      infer _PathParams,
       infer _UrlParams,
       infer _Payload,
       infer _Headers,
@@ -79,12 +79,12 @@ export declare namespace Client {
       infer _MR
     >
   ] ? <WithResponse extends boolean = false>(
-      request: Simplify<HttpApiEndpoint.ClientRequest<_PathSchema, _UrlParams, _Payload, _Headers, WithResponse>>
+      request: Simplify<HttpApiEndpoint.ClientRequest<_PathParams, _UrlParams, _Payload, _Headers, WithResponse>>
     ) => Effect.Effect<
       WithResponse extends true ? [_Success["Type"], HttpClientResponse.HttpClientResponse] : _Success["Type"],
       _Error["Type"] | HttpApiMiddleware.Error<_Middleware> | E | HttpClientError.HttpClientError | Schema.SchemaError,
       | R
-      | _PathSchema["EncodingServices"]
+      | _PathParams["EncodingServices"]
       | _UrlParams["EncodingServices"]
       | _Payload["EncodingServices"]
       | _Headers["EncodingServices"]
@@ -190,7 +190,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         })
 
         // encoders
-        const encodePath = Schema.encodeUnknownEffect(getEncodePathSchema(endpoint.pathSchema))
+        const encodePath = Schema.encodeUnknownEffect(getEncodePathParamsSchema(endpoint.pathSchema))
         const encodePayloadBody = endpoint.payloadSchema?.pipe(
           (schema) => {
             if (HttpMethod.hasBody(endpoint.method)) {
@@ -271,10 +271,10 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
     })
   })
 
-function getEncodePathSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
-  return (schema as any) ?? defaultEncodePathSchema
+function getEncodePathParamsSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
+  return (schema as any) ?? defaultEncodePathParamsSchema
 }
-const defaultEncodePathSchema = Schema.Record(Schema.String, Schema.String)
+const defaultEncodePathParamsSchema = Schema.Record(Schema.String, Schema.String)
 
 function getEncodeHeadersSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
   return (schema as any) ?? defaultEncodeHeadersSchema
