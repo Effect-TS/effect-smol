@@ -169,7 +169,7 @@ export interface Handlers<
    */
   handle<Name extends HttpApiEndpoint.Name<Endpoints>, R1>(
     name: Name,
-    handler: HttpApiEndpoint.HandlerWithName<Endpoints, Name, HttpApiEndpoint.ErrorWithName<Endpoints, Name>, R1>,
+    handler: HttpApiEndpoint.HandlerWithName<Endpoints, Name, HttpApiEndpoint.ErrorsWithName<Endpoints, Name>, R1>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ): Handlers<
     | R
@@ -189,7 +189,7 @@ export interface Handlers<
    */
   handleRaw<Name extends HttpApiEndpoint.Name<Endpoints>, R1>(
     name: Name,
-    handler: HttpApiEndpoint.HandlerRawWithName<Endpoints, Name, HttpApiEndpoint.ErrorWithName<Endpoints, Name>, R1>,
+    handler: HttpApiEndpoint.HandlerRawWithName<Endpoints, Name, HttpApiEndpoint.ErrorsWithName<Endpoints, Name>, R1>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ): Handlers<
     | R
@@ -461,15 +461,15 @@ const handlerToRoute = (
   services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
-  const encoding = endpoint.payloadSchema?.pipe(({ ast }) => HttpApiSchema.getRequestEncoding(ast))
+  const encoding = endpoint.payload?.pipe(({ ast }) => HttpApiSchema.getRequestEncoding(ast))
   const isMultipartStream = encoding?._tag === "Multipart" && encoding.mode === "stream"
   const multipartLimits = encoding?._tag === "Multipart" ? encoding.limits : undefined
-  const decodePath = UndefinedOr.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
+  const decodePath = UndefinedOr.map(endpoint.pathParams, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
     ? undefined
-    : UndefinedOr.map(endpoint.payloadSchema, Schema.decodeUnknownEffect)
-  const decodeHeaders = UndefinedOr.map(endpoint.headersSchema, Schema.decodeUnknownEffect)
-  const encodeSuccess = Schema.encodeEffect(makeSuccessSchema(endpoint.successSchema))
+    : UndefinedOr.map(endpoint.payload, Schema.decodeUnknownEffect)
+  const decodeHeaders = UndefinedOr.map(endpoint.headers, Schema.decodeUnknownEffect)
+  const encodeSuccess = Schema.encodeEffect(makeSuccessSchema(endpoint.success))
   return HttpRouter.route(
     endpoint.method,
     endpoint.path as HttpRouter.PathInput,
@@ -505,8 +505,8 @@ const handlerToRoute = (
         if (decodeHeaders) {
           request.headers = yield* decodeHeaders(httpRequest.headers)
         }
-        if (endpoint.urlParamsSchema) {
-          const schema = endpoint.urlParamsSchema
+        if (endpoint.urlParams) {
+          const schema = endpoint.urlParams
           request.urlParams = yield* Schema.decodeUnknownEffect(schema)(normalizeUrlParams(urlParams, schema.ast))
         }
         const response = yield* handler.handler(request)
@@ -633,7 +633,7 @@ function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Codec<unknown, HttpS
   const schemas = new Set<Schema.Top>([HttpApiSchemaError])
   for (const group of Object.values(api.groups)) {
     for (const endpoint of Object.values(group.endpoints)) {
-      HttpApiSchema.forEach(endpoint.errorSchema, (schema) => schemas.add(schema))
+      HttpApiSchema.forEach(endpoint.error, (schema) => schemas.add(schema))
       for (const middleware of endpoint.middlewares) {
         const key = middleware as any as HttpApiMiddleware.AnyKey
         HttpApiSchema.forEach(key.error, (schema) => schemas.add(schema))

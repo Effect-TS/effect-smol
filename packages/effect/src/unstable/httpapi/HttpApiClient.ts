@@ -190,8 +190,8 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         })
 
         // encoders
-        const encodePath = Schema.encodeUnknownEffect(getEncodePathParamsSchema(endpoint.pathSchema))
-        const encodePayloadBody = endpoint.payloadSchema?.pipe(
+        const encodePath = Schema.encodeUnknownEffect(getEncodePathParamsSchema(endpoint.pathParams))
+        const encodePayloadBody = endpoint.payload?.pipe(
           (schema) => {
             if (HttpMethod.hasBody(endpoint.method)) {
               return Schema.encodeUnknownEffect(getEncodePayloadSchema(schema))
@@ -201,8 +201,8 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             }
           }
         )
-        const encodeHeaders = getEncodeHeadersSchema(endpoint.headersSchema).pipe(Schema.encodeUnknownEffect)
-        const encodeUrlParams = getEncodeUrlParamsSchema(endpoint.urlParamsSchema).pipe(Schema.encodeUnknownEffect)
+        const encodeHeaders = getEncodeHeadersSchema(endpoint.headers).pipe(Schema.encodeUnknownEffect)
+        const encodeUrlParams = getEncodeUrlParamsSchema(endpoint.urlParams).pipe(Schema.encodeUnknownEffect)
 
         const endpointFn = Effect.fnUntraced(function*(
           request: {

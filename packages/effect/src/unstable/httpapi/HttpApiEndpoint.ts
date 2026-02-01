@@ -51,17 +51,22 @@ export interface HttpApiEndpoint<
   readonly [TypeId]: {
     readonly _MiddlewareR: Types.Covariant<MiddlewareR>
   }
+  readonly "~PathParams": PathParams
+  readonly "~UrlParams": UrlParams
   readonly "~Payload": Payload
+  readonly "~Headers": Headers
+  readonly "~Success": Success
+  readonly "~Error": Error
 
   readonly name: Name
   readonly path: Path
   readonly method: Method
-  readonly pathSchema: PathParams | undefined
-  readonly urlParamsSchema: UrlParams | undefined
-  readonly payloadSchema: Schema.Top | undefined
-  readonly headersSchema: Headers | undefined
-  readonly successSchema: Success
-  readonly errorSchema: Error
+  readonly pathParams: PathParams | undefined
+  readonly urlParams: UrlParams | undefined
+  readonly payload: Schema.Top | undefined
+  readonly headers: Headers | undefined
+  readonly success: Success
+  readonly error: Error
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly middlewares: ReadonlySet<ServiceMap.Service<Middleware, any>>
 
@@ -148,8 +153,8 @@ export interface HttpApiEndpoint<
 export interface Any extends Pipeable {
   readonly [TypeId]: any
   readonly name: string
-  readonly successSchema: Schema.Top
-  readonly errorSchema: Schema.Top
+  readonly ["~Success"]: Schema.Top
+  readonly ["~Error"]: Schema.Top
 }
 
 /**
@@ -183,7 +188,7 @@ export type Name<Endpoint> = Endpoint extends HttpApiEndpoint<
  * @since 4.0.0
  * @category models
  */
-export type SuccessSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
@@ -202,7 +207,7 @@ export type SuccessSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoi
  * @since 4.0.0
  * @category models
  */
-export type ErrorSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
@@ -240,7 +245,7 @@ export type PathParams<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @since 4.0.0
  * @category models
  */
-export type UrlParamsSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+export type UrlParams<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
@@ -259,7 +264,7 @@ export type UrlParamsSchema<Endpoint extends Any> = Endpoint extends HttpApiEndp
  * @since 4.0.0
  * @category models
  */
-export type PayloadSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+export type Payload<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
@@ -278,7 +283,7 @@ export type PayloadSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoi
  * @since 4.0.0
  * @category models
  */
-export type HeadersSchema<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+export type Headers<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
@@ -328,7 +333,7 @@ export type MiddlewareError<Endpoint extends Any> = HttpApiMiddleware.Error<Midd
  * @since 4.0.0
  * @category models
  */
-export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+export type Errors<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
@@ -539,7 +544,7 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
  */
 export type Handler<Endpoint extends Any, E, R> = (
   request: Types.Simplify<Request<Endpoint>>
-) => Effect<Endpoint["successSchema"]["Type"] | HttpServerResponse, Endpoint["errorSchema"]["Type"] | E, R>
+) => Effect<Endpoint["~Success"]["Type"] | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
  * @since 4.0.0
@@ -547,7 +552,7 @@ export type Handler<Endpoint extends Any, E, R> = (
  */
 export type HandlerRaw<Endpoint extends Any, E, R> = (
   request: Types.Simplify<RequestRaw<Endpoint>>
-) => Effect<Endpoint["successSchema"]["Type"] | HttpServerResponse, Endpoint["errorSchema"]["Type"] | E, R>
+) => Effect<Endpoint["~Success"]["Type"] | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
  * @since 4.0.0
@@ -585,7 +590,7 @@ export type HandlerRawWithName<Endpoints extends Any, Name extends string, E, R>
  * @since 4.0.0
  * @category models
  */
-export type SuccessWithName<Endpoints extends Any, Name extends string> = SuccessSchema<
+export type SuccessWithName<Endpoints extends Any, Name extends string> = Success<
   WithName<Endpoints, Name>
 >["Type"]
 
@@ -593,7 +598,7 @@ export type SuccessWithName<Endpoints extends Any, Name extends string> = Succes
  * @since 4.0.0
  * @category models
  */
-export type ErrorWithName<Endpoints extends Any, Name extends string> = Error<WithName<Endpoints, Name>>
+export type ErrorsWithName<Endpoints extends Any, Name extends string> = Errors<WithName<Endpoints, Name>>
 
 /**
  * @since 4.0.0
@@ -767,12 +772,12 @@ function makeProto<
   readonly name: Name
   readonly path: Path
   readonly method: Method
-  readonly pathSchema: PathParams | undefined
-  readonly urlParamsSchema: UrlParams | undefined
-  readonly payloadSchema: Payload | undefined
-  readonly headersSchema: Headers | undefined
-  readonly successSchema: Success
-  readonly errorSchema: Error
+  readonly pathParams: PathParams | undefined
+  readonly urlParams: UrlParams | undefined
+  readonly payload: Payload | undefined
+  readonly headers: Headers | undefined
+  readonly success: Success
+  readonly error: Error
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly middlewares: ReadonlySet<ServiceMap.Service<Middleware, any>>
 }): HttpApiEndpoint<
@@ -916,12 +921,12 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     name,
     path,
     method,
-    pathSchema: UndefinedOr.map(options?.path, fieldsToSchema),
-    urlParamsSchema: UndefinedOr.map(options?.urlParams, fieldsToSchema),
-    payloadSchema,
-    headersSchema: UndefinedOr.map(options?.headers, fieldsToSchema),
-    successSchema,
-    errorSchema,
+    pathParams: UndefinedOr.map(options?.path, fieldsToSchema),
+    urlParams: UndefinedOr.map(options?.urlParams, fieldsToSchema),
+    payload: payloadSchema,
+    headers: UndefinedOr.map(options?.headers, fieldsToSchema),
+    success: successSchema,
+    error: errorSchema,
     annotations: ServiceMap.empty(),
     middlewares: new Set()
   })

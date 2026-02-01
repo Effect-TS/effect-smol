@@ -237,13 +237,13 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
         } as any)
       ) continue
 
-      const errors = extractMembers(endpoint.errorSchema, HttpApiSchema.getStatusError)
+      const errors = extractMembers(endpoint.error, HttpApiSchema.getStatusError)
       options.onEndpoint({
         group,
         endpoint,
         middleware: endpoint.middlewares as any,
         mergedAnnotations: ServiceMap.merge(groupAnnotations, endpoint.annotations),
-        successes: extractMembers(endpoint.successSchema, HttpApiSchema.getStatusSuccess),
+        successes: extractMembers(endpoint.success, HttpApiSchema.getStatusSuccess),
         errors
       })
     }

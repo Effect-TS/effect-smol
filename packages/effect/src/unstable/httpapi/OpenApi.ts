@@ -419,23 +419,23 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       if (hasBody) {
         processRequestBodies(
           extractRequestBodies(
-            endpoint.payloadSchema !== undefined ?
-              HttpApiSchema.getSchemas(endpoint.payloadSchema) :
+            endpoint.payload !== undefined ?
+              HttpApiSchema.getSchemas(endpoint.payload) :
               undefined
           )
         )
       }
 
-      processParameters(endpoint.pathSchema, "path")
+      processParameters(endpoint.pathParams, "path")
       if (!hasBody) {
-        processParameters(endpoint.payloadSchema, "query")
+        processParameters(endpoint.payload, "query")
       }
-      processParameters(endpoint.headersSchema, "header")
-      processParameters(endpoint.urlParamsSchema, "query")
+      processParameters(endpoint.headers, "header")
+      processParameters(endpoint.urlParams, "query")
 
       processResponseBodies(
         extractResponseBodies(
-          HttpApiSchema.getSchemas(endpoint.successSchema),
+          HttpApiSchema.getSchemas(endpoint.success),
           HttpApiSchema.getStatusSuccess,
           resolveDescriptionOrIdentifier
         ),
@@ -443,7 +443,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       )
       processResponseBodies(
         extractResponseBodies(
-          HttpApiSchema.getSchemas(endpoint.errorSchema),
+          HttpApiSchema.getSchemas(endpoint.error),
           HttpApiSchema.getStatusError,
           resolveDescriptionOrIdentifier
         ),
