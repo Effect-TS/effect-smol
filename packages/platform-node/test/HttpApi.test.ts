@@ -76,6 +76,41 @@ describe("HttpApi", () => {
   })
 
   describe("payload option", () => {
+    describe("GET", () => {
+      it.effect("query parameters", () => {
+        const Api = HttpApi.make("api")
+          .add(
+            HttpApiGroup.make("group")
+              .add(
+                HttpApiEndpoint.get("a", "/a", {
+                  payload: {
+                    required: Schema.FiniteFromString,
+                    optionalKey: Schema.optionalKey(Schema.FiniteFromString),
+                    optional: Schema.optional(Schema.FiniteFromString)
+                  },
+                  success: Schema.String
+                })
+              )
+          )
+        const GroupLive = HttpApiBuilder.group(
+          Api,
+          "group",
+          (handlers) => handlers.handle("a", (ctx) => Effect.succeed(JSON.stringify(ctx.payload)))
+        )
+
+        const ApiLive = HttpRouter.serve(
+          HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+          { disableListenLog: true, disableLogger: true }
+        ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+        return Effect.gen(function*() {
+          const client = yield* HttpApiClient.make(Api)
+          const result = yield* client.group.a({ payload: { required: 1 } })
+          assert.strictEqual(result, `{"required":1}`)
+        }).pipe(Effect.provide(ApiLive))
+      })
+    })
+
     describe("encodings", () => {
       it.effect("array of schemas with different encodings", () => {
         const Api = HttpApi.make("api").add(

@@ -190,9 +190,16 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         })
 
         // encoders
-        const encodePath = getEncodePathSchema(endpoint.pathSchema).pipe(Schema.encodeUnknownEffect)
+        const encodePath = Schema.encodeUnknownEffect(getEncodePathSchema(endpoint.pathSchema))
         const encodePayloadBody = endpoint.payloadSchema?.pipe(
-          (schema) => Schema.encodeUnknownEffect(getEncodePayloadSchema(schema))
+          (schema) => {
+            if (HttpMethod.hasBody(endpoint.method)) {
+              return Schema.encodeUnknownEffect(getEncodePayloadSchema(schema))
+            } else {
+              // urlParams
+              return Schema.encodeUnknownEffect(schema)
+            }
+          }
         )
         const encodeHeaders = getEncodeHeadersSchema(endpoint.headersSchema).pipe(Schema.encodeUnknownEffect)
         const encodeUrlParams = getEncodeUrlParamsSchema(endpoint.urlParamsSchema).pipe(Schema.encodeUnknownEffect)
@@ -216,12 +223,14 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             }
 
             // payload
-            if (request.payload instanceof FormData) {
-              httpRequest = HttpClientRequest.bodyFormData(httpRequest, request.payload)
-            } else if (encodePayloadBody) {
+            if (encodePayloadBody) {
               if (HttpMethod.hasBody(endpoint.method)) {
-                const body = (yield* encodePayloadBody(request.payload)) as HttpBody.HttpBody
-                httpRequest = HttpClientRequest.setBody(httpRequest, body)
+                if (request.payload instanceof FormData) {
+                  httpRequest = HttpClientRequest.bodyFormData(httpRequest, request.payload)
+                } else {
+                  const body = (yield* encodePayloadBody(request.payload)) as HttpBody.HttpBody
+                  httpRequest = HttpClientRequest.setBody(httpRequest, body)
+                }
               } else {
                 const urlParams = (yield* encodePayloadBody(request.payload)) as Record<string, string>
                 httpRequest = HttpClientRequest.appendUrlParams(httpRequest, urlParams)
