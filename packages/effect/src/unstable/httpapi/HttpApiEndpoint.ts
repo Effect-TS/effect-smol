@@ -807,7 +807,7 @@ function makeProto<
  * @since 4.0.0
  * @category constraints
  */
-export type PathParamsContraint = Record<string, Schema.Codec<unknown, string | undefined, unknown, unknown>>
+export type PathParamsContraint = Record<string, Schema.Encoder<string | undefined, unknown>>
 
 /**
  * URL search params can be repeated, so fields may encode to `string` or
@@ -821,7 +821,7 @@ export type PathParamsContraint = Record<string, Schema.Codec<unknown, string | 
  */
 export type UrlParamsSchemaContraint = Record<
   string,
-  Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>
+  Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>
 >
 
 /**
@@ -837,7 +837,7 @@ export type UrlParamsSchemaContraint = Record<
  */
 export type PayloadSchemaContraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ? Record<
     string,
-    Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>
+    Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>
   > :
   SuccessSchemaContraint
 
@@ -850,7 +850,7 @@ export type PayloadSchemaContraint<Method extends HttpMethod> = Method extends H
  * @since 4.0.0
  * @category constraints
  */
-export type HeadersSchemaContraint = Record<string, Schema.Codec<unknown, string | undefined, unknown, unknown>>
+export type HeadersSchemaContraint = Record<string, Schema.Encoder<string | undefined, unknown>>
 
 /**
  * @since 4.0.0

@@ -98,7 +98,7 @@ describe("HttpApiEndpoint", () => {
 
       it("should not accept any other schema", () => {
         HttpApiEndpoint.get("a", "/a", {
-          // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'Record<string, Codec<unknown, string | readonly string[] | undefined, unknown, unknown>>'.
+          // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'Record<string, Encoder<string | readonly string[] | undefined, unknown>>'.
           payload: Schema.Struct({ id: Schema.String })
         })
       })
@@ -141,7 +141,7 @@ describe("HttpApiEndpoint", () => {
 
       it("should not accept any other schema", () => {
         HttpApiEndpoint.head("a", "/a", {
-          // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'Record<string, Codec<unknown, string | readonly string[] | undefined, unknown, unknown>>'.
+          // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'Record<string, Encoder<string | readonly string[] | undefined, unknown>>'.
           payload: Schema.Struct({ id: Schema.String })
         })
       })
@@ -160,7 +160,7 @@ describe("HttpApiEndpoint", () => {
 
       it("should not accept any other schema", () => {
         HttpApiEndpoint.options("a", "/a", {
-          // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'Record<string, Codec<unknown, string | readonly string[] | undefined, unknown, unknown>>'.
+          // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'Record<string, Encoder<string | readonly string[] | undefined, unknown>>'.
           payload: Schema.Struct({ id: Schema.String })
         })
       })
