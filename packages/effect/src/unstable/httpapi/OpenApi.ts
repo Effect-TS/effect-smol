@@ -14,6 +14,7 @@ import * as SchemaRepresentation from "../../SchemaRepresentation.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as HttpMethod from "../http/HttpMethod.ts"
 import * as HttpApi from "./HttpApi.ts"
+import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
@@ -358,26 +359,20 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         }
       }
 
-      function processParameters(schema: Schema.Top | undefined, i: OpenAPISpecParameter["in"]) {
-        if (schema) {
-          const ast = AST.toEncoded(schema.ast)
-          if (AST.isObjects(ast)) {
-            ast.propertySignatures.forEach((ps) => {
-              op.parameters.push({
-                name: String(ps.name),
-                in: i,
-                schema: {},
-                required: i === "path" || !AST.isOptional(ps.type)
-              })
-
-              pathOps.push({
-                _tag: "parameter",
-                ast: ps.type,
-                path: ["paths", path, method, "parameters", String(op.parameters.length - 1), "schema"]
-              })
+      function processParameters(fields: Schema.Struct.Fields | undefined, i: OpenAPISpecParameter["in"]) {
+        if (fields) {
+          for (const [name, field] of Object.entries(fields)) {
+            op.parameters.push({
+              name: String(name),
+              in: i,
+              schema: {},
+              required: i === "path" || !AST.isOptional(field.ast)
             })
-          } else {
-            throw new globalThis.Error(`Unsupported parameter schema ${ast._tag} at ${path}/${method}`)
+            pathOps.push({
+              _tag: "parameter",
+              ast: AST.toEncoded(field.ast),
+              path: ["paths", path, method, "parameters", String(op.parameters.length - 1), "schema"]
+            })
           }
         }
       }
@@ -417,25 +412,28 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       const hasBody = HttpMethod.hasBody(endpoint.method)
       if (hasBody) {
+        const payloadSchema = HttpApiEndpoint.getPayloadSchema(endpoint)
         processRequestBodies(
           extractRequestBodies(
-            endpoint.payload !== undefined ?
-              HttpApiSchema.getSchemas(endpoint.payload) :
+            payloadSchema !== undefined ?
+              HttpApiSchema.getSchemas(payloadSchema) :
               undefined
           )
         )
       }
 
       processParameters(endpoint.pathParams, "path")
-      if (!hasBody) {
-        processParameters(endpoint.payload, "query")
+      if (!hasBody && endpoint.payload.size === 1) {
+        const schemas = [...endpoint.payload]
+        const schema = schemas[0] as Schema.Struct<Schema.Struct.Fields>
+        processParameters(schema.fields, "query")
       }
       processParameters(endpoint.headers, "header")
       processParameters(endpoint.urlParams, "query")
 
       processResponseBodies(
         extractResponseBodies(
-          HttpApiSchema.getSchemas(endpoint.success),
+          HttpApiSchema.getSchemas(HttpApiEndpoint.getSuccessSchema(endpoint)),
           HttpApiSchema.getStatusSuccess,
           resolveDescriptionOrIdentifier
         ),
@@ -443,7 +441,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       )
       processResponseBodies(
         extractResponseBodies(
-          HttpApiSchema.getSchemas(endpoint.error),
+          HttpApiSchema.getSchemas(HttpApiEndpoint.getErrorSchema(endpoint)),
           HttpApiSchema.getStatusError,
           resolveDescriptionOrIdentifier
         ),

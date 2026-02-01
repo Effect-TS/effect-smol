@@ -721,7 +721,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
     }))
   }),
   HttpApiEndpoint.post("create", "/", {
-    payload: Schema.Union([
+    payload: [
       Schema.Struct(Struct.pick(Group.fields, ["name"])),
       Schema.Struct({ foo: Schema.String }).pipe(
         HttpApiSchema.asUrlParams()
@@ -729,7 +729,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
       Schema.Struct(Struct.pick(Group.fields, ["name"])).pipe(
         HttpApiSchema.asMultipart()
       )
-    ]).annotate({ "~httpApiIsContainer": true }), // TODO: remove this annotation
+    ],
     success: Group
   }),
   HttpApiEndpoint.post("handle", "/handle/:id", {

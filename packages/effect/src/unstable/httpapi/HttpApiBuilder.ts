@@ -38,7 +38,7 @@ import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
 import * as Multipart from "../http/Multipart.ts"
 import * as UrlParams from "../http/UrlParams.ts"
 import type * as HttpApi from "./HttpApi.ts"
-import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
+import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import { HttpApiSchemaError } from "./HttpApiError.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
@@ -461,15 +461,16 @@ const handlerToRoute = (
   services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
-  const encoding = endpoint.payload?.pipe(({ ast }) => HttpApiSchema.getRequestEncoding(ast))
+  const payload = HttpApiEndpoint.getPayloadSchema(endpoint)
+  const encoding = payload?.pipe(({ ast }) => HttpApiSchema.getRequestEncoding(ast))
   const isMultipartStream = encoding?._tag === "Multipart" && encoding.mode === "stream"
   const multipartLimits = encoding?._tag === "Multipart" ? encoding.limits : undefined
-  const decodePath = UndefinedOr.map(endpoint.pathParams, Schema.decodeUnknownEffect)
+  const decodePath = UndefinedOr.map(HttpApiEndpoint.getPathParamsSchema(endpoint), Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
     ? undefined
-    : UndefinedOr.map(endpoint.payload, Schema.decodeUnknownEffect)
-  const decodeHeaders = UndefinedOr.map(endpoint.headers, Schema.decodeUnknownEffect)
-  const encodeSuccess = Schema.encodeEffect(makeSuccessSchema(endpoint.success))
+    : UndefinedOr.map(payload, Schema.decodeUnknownEffect)
+  const decodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.decodeUnknownEffect)
+  const encodeSuccess = Schema.encodeEffect(makeSuccessSchema(HttpApiEndpoint.getSuccessSchema(endpoint)))
   return HttpRouter.route(
     endpoint.method,
     endpoint.path as HttpRouter.PathInput,
@@ -505,9 +506,11 @@ const handlerToRoute = (
         if (decodeHeaders) {
           request.headers = yield* decodeHeaders(httpRequest.headers)
         }
-        if (endpoint.urlParams) {
-          const schema = endpoint.urlParams
-          request.urlParams = yield* Schema.decodeUnknownEffect(schema)(normalizeUrlParams(urlParams, schema.ast))
+        const urlParamsSchema = HttpApiEndpoint.getUrlParamsSchema(endpoint)
+        if (urlParamsSchema) {
+          request.urlParams = yield* Schema.decodeUnknownEffect(urlParamsSchema)(
+            normalizeUrlParams(urlParams, urlParamsSchema.ast)
+          )
         }
         const response = yield* handler.handler(request)
         return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
@@ -633,7 +636,7 @@ function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Codec<unknown, HttpS
   const schemas = new Set<Schema.Top>([HttpApiSchemaError])
   for (const group of Object.values(api.groups)) {
     for (const endpoint of Object.values(group.endpoints)) {
-      HttpApiSchema.forEach(endpoint.error, (schema) => schemas.add(schema))
+      HttpApiSchema.forEach(HttpApiEndpoint.getErrorSchema(endpoint), (schema) => schemas.add(schema))
       for (const middleware of endpoint.middlewares) {
         const key = middleware as any as HttpApiMiddleware.AnyKey
         HttpApiSchema.forEach(key.error, (schema) => schemas.add(schema))

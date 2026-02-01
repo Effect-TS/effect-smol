@@ -20,7 +20,7 @@ import * as HttpClientResponse from "../http/HttpClientResponse.ts"
 import * as HttpMethod from "../http/HttpMethod.ts"
 import * as UrlParams from "../http/UrlParams.ts"
 import * as HttpApi from "./HttpApi.ts"
-import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
+import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type { HttpApiSchemaError } from "./HttpApiError.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
@@ -190,8 +190,10 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         })
 
         // encoders
-        const encodePath = Schema.encodeUnknownEffect(getEncodePathParamsSchema(endpoint.pathParams))
-        const encodePayloadBody = endpoint.payload?.pipe(
+        const encodePath = Schema.encodeUnknownEffect(
+          getEncodePathParamsSchema(HttpApiEndpoint.getPathParamsSchema(endpoint))
+        )
+        const encodePayloadBody = HttpApiEndpoint.getPayloadSchema(endpoint)?.pipe(
           (schema) => {
             if (HttpMethod.hasBody(endpoint.method)) {
               return Schema.encodeUnknownEffect(getEncodePayloadSchema(schema))
@@ -201,8 +203,12 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             }
           }
         )
-        const encodeHeaders = getEncodeHeadersSchema(endpoint.headers).pipe(Schema.encodeUnknownEffect)
-        const encodeUrlParams = getEncodeUrlParamsSchema(endpoint.urlParams).pipe(Schema.encodeUnknownEffect)
+        const encodeHeaders = getEncodeHeadersSchema(HttpApiEndpoint.getHeadersSchema(endpoint)).pipe(
+          Schema.encodeUnknownEffect
+        )
+        const encodeUrlParams = getEncodeUrlParamsSchema(HttpApiEndpoint.getUrlParamsSchema(endpoint)).pipe(
+          Schema.encodeUnknownEffect
+        )
 
         const endpointFn = Effect.fnUntraced(function*(
           request: {

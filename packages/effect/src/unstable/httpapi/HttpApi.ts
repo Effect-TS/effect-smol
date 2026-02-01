@@ -10,7 +10,7 @@ import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable } from "../../Types.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
-import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
+import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
@@ -237,13 +237,13 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
         } as any)
       ) continue
 
-      const errors = extractMembers(endpoint.error, HttpApiSchema.getStatusError)
+      const errors = extractMembers(HttpApiEndpoint.getErrorSchema(endpoint), HttpApiSchema.getStatusError)
       options.onEndpoint({
         group,
         endpoint,
         middleware: endpoint.middlewares as any,
         mergedAnnotations: ServiceMap.merge(groupAnnotations, endpoint.annotations),
-        successes: extractMembers(endpoint.success, HttpApiSchema.getStatusSuccess),
+        successes: extractMembers(HttpApiEndpoint.getSuccessSchema(endpoint), HttpApiSchema.getStatusSuccess),
         errors
       })
     }
