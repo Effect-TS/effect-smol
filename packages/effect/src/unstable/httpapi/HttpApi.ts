@@ -5,7 +5,7 @@ import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
-import * as Schema from "../../Schema.ts"
+import type * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable } from "../../Types.ts"
@@ -211,11 +211,11 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
       readonly successes: ReadonlyMap<number, {
-        readonly schema: Schema.Top | undefined
+        readonly content: ReadonlySet<Schema.Top>
         readonly description: string | undefined
       }>
       readonly errors: ReadonlyMap<number, {
-        readonly schema: Schema.Top | undefined
+        readonly content: ReadonlySet<Schema.Top>
         readonly description: string | undefined
       }>
     }) => void
@@ -237,14 +237,13 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
         } as any)
       ) continue
 
-      const errors = extractMembers(HttpApiEndpoint.getErrorSchema(endpoint), HttpApiSchema.getStatusError)
       options.onEndpoint({
         group,
         endpoint,
         middleware: endpoint.middlewares as any,
         mergedAnnotations: ServiceMap.merge(groupAnnotations, endpoint.annotations),
-        successes: extractMembers(HttpApiEndpoint.getSuccessSchema(endpoint), HttpApiSchema.getStatusSuccess),
-        errors
+        successes: extractResponseContent(HttpApiEndpoint.getSuccessSchema(endpoint), HttpApiSchema.getStatusSuccess),
+        errors: extractResponseContent(HttpApiEndpoint.getErrorSchema(endpoint), HttpApiSchema.getStatusError)
       })
     }
   }
@@ -256,34 +255,21 @@ function resolveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
   return AST.resolveDescription(ast) ?? AST.resolveIdentifier(ast)
 }
 
-const extractMembers = (
+const extractResponseContent = (
   schema: Schema.Top,
   getStatus: (ast: AST.AST) => number
 ): ReadonlyMap<number, {
-  readonly schema: Schema.Top | undefined
+  readonly content: ReadonlySet<Schema.Top>
   readonly description: string | undefined
 }> => {
   const map = new Map<number, {
-    set: Set<Schema.Top>
+    content: Set<Schema.Top>
     description: string | undefined
   }>()
 
   HttpApiSchema.forEach(schema, add)
 
-  return new Map(
-    [...map.entries()].map((
-      [status, { set, description }]
-    ) => {
-      const schemas = Array.from(set)
-      return [
-        status,
-        {
-          description,
-          schema: schemas.length === 0 ? undefined : schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
-        }
-      ]
-    })
-  )
+  return map
 
   function add(schema: Schema.Top) {
     const ast = schema.ast
@@ -296,12 +282,12 @@ const extractMembers = (
     if (pair === undefined) {
       map.set(status, {
         description,
-        set: isUndecodableNoContent ? new Set([]) : new Set([schema])
+        content: isUndecodableNoContent ? new Set([]) : new Set([schema])
       })
     } else {
       pair.description = [pair.description, description].filter(Boolean).join(" | ")
       if (!isUndecodableNoContent) {
-        pair.set.add(schema)
+        pair.content.add(schema)
       }
     }
   }

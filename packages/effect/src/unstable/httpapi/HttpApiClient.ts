@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
@@ -123,11 +124,11 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
       readonly successes: ReadonlyMap<number, {
-        readonly schema: Schema.Top | undefined
+        readonly content: ReadonlySet<Schema.Top>
         readonly description: string | undefined
       }>
       readonly errors: ReadonlyMap<number, {
-        readonly schema: Schema.Top | undefined
+        readonly content: ReadonlySet<Schema.Top>
         readonly description: string | undefined
       }>
       readonly endpointFn: Function
@@ -159,34 +160,40 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
           (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<unknown, unknown, unknown>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
-        errors.forEach(({ schema }, status) => {
+        errors.forEach(({ content }, status) => {
+          const schemas = Array.from(content)
           // decoders
-          if (schema === undefined) {
+          if (Arr.isArrayNonEmpty(schemas)) {
+            const decode = schemaToResponse(schemas)
+            decodeMap[status] = (response) =>
+              Effect.flatMap(
+                Effect.catchCause(decode(response), (cause) =>
+                  Effect.failCause(Cause.merge(
+                    Cause.fail(
+                      new HttpClientError.HttpClientError({
+                        reason: new HttpClientError.StatusCodeError({
+                          request: response.request,
+                          response
+                        })
+                      })
+                    ),
+                    cause
+                  ))),
+                Effect.fail
+              )
+          } else {
             // Handle No Content
             decodeMap[status] = statusCodeError
-            return
           }
-          const decode = schemaToResponse(schema)
-          decodeMap[status] = (response) =>
-            Effect.flatMap(
-              Effect.catchCause(decode(response), (cause) =>
-                Effect.failCause(Cause.merge(
-                  Cause.fail(
-                    new HttpClientError.HttpClientError({
-                      reason: new HttpClientError.StatusCodeError({
-                        request: response.request,
-                        response
-                      })
-                    })
-                  ),
-                  cause
-                ))),
-              Effect.fail
-            )
         })
-        successes.forEach(({ schema }, status) => {
-          // Handle No Content
-          decodeMap[status] = schema === undefined ? responseAsVoid : schemaToResponse(schema)
+        successes.forEach(({ content }, status) => {
+          const schemas = Array.from(content)
+          if (Arr.isArrayNonEmpty(schemas)) {
+            decodeMap[status] = schemaToResponse(schemas)
+          } else {
+            // Handle No Content
+            decodeMap[status] = responseAsVoid
+          }
         })
 
         // encoders
@@ -433,8 +440,8 @@ const compilePath = (path: string) => {
   }
 }
 
-function schemaToResponse(schema: Schema.Top) {
-  const codec = toCodecArrayBuffer(schema)
+function schemaToResponse(schemas: readonly [Schema.Top, ...Array<Schema.Top>]) {
+  const codec = toCodecArrayBuffer(schemas)
   const decode = Schema.decodeEffect(codec)
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
 }
@@ -493,23 +500,29 @@ const UnknownFromArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(
   ])
 ))
 
-function toCodecArrayBuffer(schema: Schema.Top): Schema.Top {
-  if (HttpApiSchema.isHttpApiContainer(schema)) {
-    return Schema.Union(schema.members.map(toCodecArrayBuffer))
+function toCodecArrayBuffer(schemas: readonly [Schema.Top, ...Array<Schema.Top>]): Schema.Top {
+  switch (schemas.length) {
+    case 1:
+      return onSchema(schemas[0])
+    default:
+      return Schema.Union(schemas.map(onSchema))
   }
-  const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
-  switch (encoding._tag) {
-    case "Json":
-      return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
-    case "UrlParams":
-      return StringFromArrayBuffer.pipe(
-        Schema.decodeTo(UrlParams.schemaRecord),
-        Schema.decodeTo(schema)
-      )
-    case "Uint8Array":
-      return Uint8ArrayFromArrayBuffer.pipe(Schema.decodeTo(schema))
-    case "Text":
-      return StringFromArrayBuffer.pipe(Schema.decodeTo(schema))
+
+  function onSchema(schema: Schema.Top) {
+    const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
+    switch (encoding._tag) {
+      case "Json":
+        return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
+      case "UrlParams":
+        return StringFromArrayBuffer.pipe(
+          Schema.decodeTo(UrlParams.schemaRecord),
+          Schema.decodeTo(schema)
+        )
+      case "Uint8Array":
+        return Uint8ArrayFromArrayBuffer.pipe(Schema.decodeTo(schema))
+      case "Text":
+        return StringFromArrayBuffer.pipe(Schema.decodeTo(schema))
+    }
   }
 }
 
