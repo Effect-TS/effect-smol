@@ -14,6 +14,7 @@
  * - **AuthenticationError** - Invalid/expired credentials
  * - **ContentPolicyError** - Input/output violated content policy
  * - **InvalidRequestError** - Malformed request parameters
+ * - **InvalidUserInputError** - Prompt contains unsupported content
  * - **InternalProviderError** - Provider-side failures (5xx)
  * - **NetworkError** - Transport-level failures
  * - **InvalidOutputError** - LLM output parsing/validation failures
@@ -1105,6 +1106,54 @@ export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError
   }
 }
 
+/**
+ * Error indicating the user provided invalid input in their prompt.
+ *
+ * This error is raised when the prompt contains content that is structurally
+ * valid but not supported by the provider (e.g., unsupported media types,
+ * unsupported file formats, etc.).
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = new AiError.InvalidUserInputError({
+ *   description: "Unsupported media type 'video/mp4'. Supported types: image/*, application/pdf, text/plain"
+ * })
+ *
+ * console.log(error.isRetryable) // false
+ * console.log(error.message)
+ * // "Invalid user input: Unsupported media type 'video/mp4'. Supported types: image/*, application/pdf, text/plain"
+ * ```
+ *
+ * @since 1.0.0
+ * @category reason
+ */
+export class InvalidUserInputError extends Schema.ErrorClass<InvalidUserInputError>(
+  "effect/ai/AiError/InvalidUserInputError"
+)({
+  _tag: Schema.tag("InvalidUserInputError"),
+  description: Schema.String
+}) {
+  /**
+   * @since 1.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
+   * Invalid user input errors require fixing the input and are not retryable.
+   *
+   * @since 1.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    return `Invalid user input: ${this.description}`
+  }
+}
+
 // =============================================================================
 // AiErrorReason Union
 // =============================================================================
@@ -1137,6 +1186,7 @@ export type AiErrorReason =
   | ToolResultEncodingError
   | ToolConfigurationError
   | ToolkitRequiredError
+  | InvalidUserInputError
 
 /**
  * Schema for validating and parsing AI error reasons.
@@ -1159,7 +1209,8 @@ export const AiErrorReason: Schema.Union<[
   typeof InvalidToolResultError,
   typeof ToolResultEncodingError,
   typeof ToolConfigurationError,
-  typeof ToolkitRequiredError
+  typeof ToolkitRequiredError,
+  typeof InvalidUserInputError
 ]> = Schema.Union([
   RateLimitError,
   QuotaExhaustedError,
@@ -1175,7 +1226,8 @@ export const AiErrorReason: Schema.Union<[
   InvalidToolResultError,
   ToolResultEncodingError,
   ToolConfigurationError,
-  ToolkitRequiredError
+  ToolkitRequiredError,
+  InvalidUserInputError
 ])
 
 // =============================================================================

@@ -90,10 +90,53 @@ export const layer: Layer.Layer<
     )
   })
 
+  const parseSpec = (content: string, sourceUrl: string, provider: string) => {
+    const isYaml = sourceUrl.endsWith(".yaml") || sourceUrl.endsWith(".yml")
+    return Effect.try({
+      try: () => isYaml ? Yaml.parse(content) : JSON.parse(content),
+      catch: (cause) => new SpecFetchError({ provider, source: sourceUrl, cause })
+    })
+  }
+
+  const fetchViaStainlessStats = Effect.fn("fetchViaStainlessStats")(function*(
+    statsUrl: string,
+    provider: string
+  ) {
+    // Fetch stats.yml
+    const statsContent = yield* httpClient.get(statsUrl).pipe(
+      Effect.flatMap((response) => response.text),
+      Effect.mapError((cause) => new SpecFetchError({ provider, source: `stats:${statsUrl}`, cause }))
+    )
+
+    // Parse YAML and extract openapi_spec_url
+    const stats = yield* Effect.try({
+      try: () => Yaml.parse(statsContent),
+      catch: (cause) => new SpecFetchError({ provider, source: `stats:${statsUrl}`, cause })
+    })
+
+    const specUrl = stats?.openapi_spec_url
+    if (typeof specUrl !== "string") {
+      return yield* new SpecFetchError({
+        provider,
+        source: `stats:${statsUrl}`,
+        cause: new Error("Missing or invalid openapi_spec_url in stats file")
+      })
+    }
+
+    // Fetch and parse the actual spec
+    const content = yield* fetchFromUrl(specUrl, provider)
+    return yield* parseSpec(content, specUrl, provider)
+  })
+
   const fetch = Effect.fn("fetch")(function*(
     source: SpecSource,
     provider: string
   ) {
+    // StainlessStats handles its own parsing since the URL is resolved dynamically
+    if (source._tag === "StainlessStats") {
+      return yield* fetchViaStainlessStats(source.statsUrl, provider)
+    }
+
     const content = yield* Match.value(source).pipe(
       Match.tag("File", ({ path }) => fetchFromFile(path, provider)),
       Match.tag("Url", ({ url }) => fetchFromUrl(url, provider)),
@@ -101,12 +144,7 @@ export const layer: Layer.Layer<
     )
 
     const sourceString = source._tag === "Url" ? source.url : source.path
-    const isYaml = sourceString.endsWith(".yaml") || sourceString.endsWith(".yml")
-
-    return yield* Effect.try({
-      try: () => isYaml ? Yaml.parse(content) : JSON.parse(content),
-      catch: (cause) => new SpecFetchError({ provider, source: sourceString, cause })
-    })
+    return yield* parseSpec(content, sourceString, provider)
   })
 
   return { fetch }

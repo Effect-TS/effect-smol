@@ -149,6 +149,12 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
 
+  packages/ai/anthropic:
+    devDependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+
   packages/ai/openai:
     devDependencies:
       effect:
@@ -672,6 +678,9 @@ importers:
 
   scratchpad:
     dependencies:
+      '@effect/ai-anthropic':
+        specifier: workspace:*
+        version: link:../packages/ai/anthropic
       '@effect/ai-openai':
         specifier: workspace:*
         version: link:../packages/ai/openai

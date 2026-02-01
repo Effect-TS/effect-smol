@@ -7,7 +7,7 @@
  * @since 1.0.0
  */
 import * as Array from "effect/Array"
-import * as Config from "effect/Config"
+import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
@@ -15,6 +15,7 @@ import * as Predicate from "effect/Predicate"
 import * as Redacted from "effect/Redacted"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
+import * as Struct from "effect/Struct"
 import type * as AiError from "effect/unstable/ai/AiError"
 import * as Headers from "effect/unstable/http/Headers"
 import * as HttpClient from "effect/unstable/http/HttpClient"
@@ -28,7 +29,7 @@ import { OpenAiConfig } from "./OpenAiConfig.ts"
 // =============================================================================
 
 /**
- * The OpenAI client service interface.
+ * The OpenAI client interface.
  *
  * @since 1.0.0
  * @category models
@@ -62,14 +63,14 @@ export interface Service {
 }
 
 // =============================================================================
-// Context Tag
+// Service Identifier
 // =============================================================================
 
 /**
- * Context tag for the OpenAI client service.
+ * Service identifier for the OpenAI client.
  *
  * @since 1.0.0
- * @category context
+ * @category service
  */
 export class OpenAiClient extends ServiceMap.Service<OpenAiClient, Service>()(
   "@effect/ai-openai/OpenAiClient"
@@ -89,10 +90,11 @@ export type Options = {
   /**
    * The OpenAI API key.
    */
-  readonly apiKey: Redacted.Redacted<string>
+  readonly apiKey?: Redacted.Redacted<string> | undefined
 
   /**
    * The base URL for the OpenAI API.
+   *
    * @default "https://api.openai.com/v1"
    */
   readonly apiUrl?: string | undefined
@@ -136,7 +138,9 @@ export const make = Effect.fnUntraced(
       HttpClient.mapRequest((request) =>
         request.pipe(
           HttpClientRequest.prependUrl(options.apiUrl ?? "https://api.openai.com/v1"),
-          HttpClientRequest.bearerToken(Redacted.value(options.apiKey)),
+          Predicate.isNotUndefined(options.apiKey)
+            ? HttpClientRequest.bearerToken(Redacted.value(options.apiKey))
+            : identity,
           Predicate.isNotUndefined(options.organizationId)
             ? HttpClientRequest.setHeader(
               RedactedOpenAiHeaders.OpenAiOrganization,
@@ -148,7 +152,8 @@ export const make = Effect.fnUntraced(
               RedactedOpenAiHeaders.OpenAiProject,
               Redacted.value(options.projectId)
             )
-            : identity
+            : identity,
+          HttpClientRequest.acceptJson
         )
       ),
       Predicate.isNotUndefined(options.transformClient)
@@ -167,9 +172,9 @@ export const make = Effect.fnUntraced(
     })
 
     const createResponse = (
-      opts: typeof Generated.CreateResponse.Encoded
+      payload: typeof Generated.CreateResponse.Encoded
     ): Effect.Effect<typeof Generated.Response.Type, AiError.AiError> =>
-      client.createResponse({ payload: opts }).pipe(
+      client.createResponse({ payload }).pipe(
         Effect.catchTags({
           HttpClientError: (error) => Errors.mapHttpClientError(error, "createResponse"),
           SchemaError: (error) => Effect.fail(Errors.mapSchemaError(error, "createResponse"))
@@ -177,9 +182,13 @@ export const make = Effect.fnUntraced(
       )
 
     const createResponseStream = (
-      opts: Omit<typeof Generated.CreateResponse.Encoded, "stream">
+      payload: Omit<typeof Generated.CreateResponse.Encoded, "stream">
     ): Stream.Stream<typeof Generated.ResponseStreamEvent.Type, AiError.AiError> =>
-      client.createResponseSse({ payload: { ...opts, stream: true } }).pipe(
+      client.createResponseSse({ payload: { ...payload, stream: true } }).pipe(
+        Stream.takeUntil((event) =>
+          event.data.type === "response.completed" ||
+          event.data.type === "response.incomplete"
+        ),
         Stream.map((event) => event.data),
         Stream.catchTags({
           // TODO: handle SSE retries
@@ -190,9 +199,9 @@ export const make = Effect.fnUntraced(
       )
 
     const createEmbedding = (
-      opts: typeof Generated.CreateEmbeddingRequest.Encoded
+      payload: typeof Generated.CreateEmbeddingRequest.Encoded
     ): Effect.Effect<typeof Generated.CreateEmbeddingResponse.Type, AiError.AiError> =>
-      client.createEmbedding({ payload: opts }).pipe(
+      client.createEmbedding({ payload }).pipe(
         Effect.catchTags({
           HttpClientError: (error) => Errors.mapHttpClientError(error, "createEmbedding"),
           SchemaError: (error) => Effect.fail(Errors.mapSchemaError(error, "createEmbedding"))
@@ -235,8 +244,6 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
 export const layerConfig = (options?: {
   /**
    * The config value to load for the API key.
-   *
-   * @default Config.redacted("OPENAI_API_KEY")
    */
   readonly apiKey?: Config.Config<Redacted.Redacted<string>> | undefined
 
@@ -263,7 +270,9 @@ export const layerConfig = (options?: {
   Layer.effect(
     OpenAiClient,
     Effect.gen(function*() {
-      const apiKey = yield* (options?.apiKey ?? Config.redacted("OPENAI_API_KEY"))
+      const apiKey = Predicate.isNotUndefined(options?.apiKey)
+        ? yield* options.apiKey :
+        undefined
       const apiUrl = Predicate.isNotUndefined(options?.apiUrl)
         ? yield* options.apiUrl :
         undefined

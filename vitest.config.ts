@@ -7,8 +7,8 @@ export default defineConfig({
   test: {
     projects: [
       "packages/*/vitest.config.ts",
-      "packages/atom/*/vitest.config.ts",
       "packages/ai/*/vitest.config.ts",
+      "packages/atom/*/vitest.config.ts",
       "packages/tools/*/vitest.config.ts",
       "packages/sql/*/vitest.config.ts",
       ...(isDeno ?

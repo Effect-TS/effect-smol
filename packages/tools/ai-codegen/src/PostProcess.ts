@@ -73,8 +73,8 @@ export const layer: Layer.Layer<
     filePath: string
   ) {
     const cmd = ChildProcess.make(command, args, {
-      stdout: "inherit",
-      stderr: "inherit"
+      stdout: "pipe",
+      stderr: "pipe"
     })
 
     yield* Effect.scoped(Effect.gen(function*() {
@@ -101,7 +101,7 @@ export const layer: Layer.Layer<
   })
 
   const lint = Effect.fn("lint")(function*(filePath: string) {
-    yield* runCommand("pnpm", ["exec", "oxlint", "--silent", "--fix", filePath], "lint", filePath)
+    yield* runCommand("pnpm", ["exec", "oxlint", "--silent", "--quiet", "--fix", filePath], "lint", filePath)
   })
 
   const format = Effect.fn("format")(function*(filePath: string) {

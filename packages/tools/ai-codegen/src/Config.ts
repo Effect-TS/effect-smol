@@ -39,8 +39,19 @@ export class Replacement extends Schema.Class<Replacement>("Replacement")({
   to: Schema.String
 }) {}
 
+/**
+ * Structured spec source configuration for Stainless stats indirection.
+ *
+ * @since 1.0.0
+ * @category schemas
+ */
+export const SpecSourceConfig = Schema.Struct({
+  type: Schema.Literal("stainless-stats"),
+  statsUrl: Schema.String
+})
+
 export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")({
-  spec: Schema.String,
+  spec: Schema.Union([Schema.String, SpecSourceConfig]),
   output: Schema.String,
   name: Schema.optional(Schema.String),
   typeOnly: Schema.optional(Schema.Boolean),
@@ -100,7 +111,7 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
  * @since 1.0.0
  * @category models
  */
-export type SpecSource = SpecSource.Url | SpecSource.File
+export type SpecSource = SpecSource.Url | SpecSource.File | SpecSource.StainlessStats
 
 /**
  * @since 1.0.0
@@ -127,6 +138,17 @@ export declare namespace SpecSource {
   export interface File {
     readonly _tag: "File"
     readonly path: string
+  }
+
+  /**
+   * Stainless SDK stats.yml indirection - fetches stats file and extracts openapi_spec_url.
+   *
+   * @since 1.0.0
+   * @category models
+   */
+  export interface StainlessStats {
+    readonly _tag: "StainlessStats"
+    readonly statsUrl: string
   }
 }
 
@@ -163,6 +185,13 @@ export const SpecSource = {
   File: (path: string): SpecSource => ({ _tag: "File", path }),
 
   /**
+   * Create a Stainless stats-based spec source.
+   *
+   * @since 1.0.0
+   */
+  StainlessStats: (statsUrl: string): SpecSource => ({ _tag: "StainlessStats", statsUrl }),
+
+  /**
    * Parse a spec string into a `SpecSource`.
    * URLs (http:// or https://) become `Url`, otherwise `File`.
    *
@@ -173,6 +202,25 @@ export const SpecSource = {
       return SpecSource.Url(spec)
     }
     return SpecSource.File(pathService.join(packagePath, spec))
+  },
+
+  /**
+   * Parse a spec config (string or object) into a `SpecSource`.
+   *
+   * @since 1.0.0
+   */
+  fromConfig: (
+    spec: string | { readonly type: string; readonly statsUrl?: string },
+    packagePath: string,
+    pathService: Path.Path
+  ): SpecSource => {
+    if (typeof spec === "string") {
+      return SpecSource.fromString(spec, packagePath, pathService)
+    }
+    if (spec.type === "stainless-stats" && spec.statsUrl) {
+      return SpecSource.StainlessStats(spec.statsUrl)
+    }
+    throw new Error(`Unknown spec type: ${spec.type}`)
   }
 }
 

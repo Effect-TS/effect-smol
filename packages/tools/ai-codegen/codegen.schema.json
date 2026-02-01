@@ -7,8 +7,30 @@
   "required": ["spec", "output"],
   "properties": {
     "spec": {
-      "type": "string",
-      "description": "URL or file path to the OpenAPI specification"
+      "description": "OpenAPI specification source - URL, file path, or structured resolver config",
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "URL or file path to the OpenAPI specification"
+        },
+        {
+          "type": "object",
+          "description": "Stainless stats resolver - fetches stats.yml and extracts openapi_spec_url",
+          "required": ["type", "statsUrl"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "stainless-stats",
+              "description": "Resolver type"
+            },
+            "statsUrl": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL to Stainless .stats.yml file containing openapi_spec_url"
+            }
+          }
+        }
+      ]
     },
     "output": {
       "type": "string",
@@ -36,10 +58,11 @@
     },
     "replacements": {
       "type": "array",
-      "description": "Text replacements to apply to generated code. Each replacement has 'from' and 'to' strings.",
+      "description": "Text replacements to apply to generated code.",
       "items": {
         "type": "object",
         "required": ["from", "to"],
+        "additionalProperties": false,
         "properties": {
           "from": {
             "type": "string",

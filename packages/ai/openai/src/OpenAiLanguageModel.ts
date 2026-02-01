@@ -35,8 +35,6 @@ const ResponseModelIds = Generated.ModelIdsResponses.members[1]
 const SharedModelIds = Generated.ModelIdsShared.members[1]
 
 /**
- * OpenAI model identifier type.
- *
  * @since 1.0.0
  * @category models
  */
@@ -52,7 +50,7 @@ type ImageDetail = "auto" | "low" | "high"
 // =============================================================================
 
 /**
- * Context tag for OpenAI language model configuration.
+ * Service definition for OpenAI language model configuration.
  *
  * @since 1.0.0
  * @category context
@@ -100,7 +98,7 @@ export class Config extends ServiceMap.Service<
 >()("@effect/ai-openai/OpenAiLanguageModel/Config") {}
 
 // =============================================================================
-// OpenAI Provider Options / Metadata
+// Provider Options / Metadata
 // =============================================================================
 
 declare module "effect/unstable/ai/Prompt" {
@@ -307,7 +305,7 @@ declare module "effect/unstable/ai/Response" {
 }
 
 // =============================================================================
-// OpenAI Language Model
+// Language Model
 // =============================================================================
 
 /**
@@ -340,7 +338,7 @@ export const model = (
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: (string & {}) | Model
   readonly config?: Omit<typeof Config.Service, "model"> | undefined
-}) {
+}): Effect.fn.Return<LanguageModel.Service, never, OpenAiClient> {
   const client = yield* OpenAiClient
 
   const makeConfig = Effect.gen(function*() {
@@ -353,11 +351,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
   })
 
   const makeRequest = Effect.fnUntraced(
-    function*<Tools extends ReadonlyArray<Tool.Any>>({
-      config,
-      options,
-      toolNameMapper
-    }: {
+    function*<Tools extends ReadonlyArray<Tool.Any>>({ config, options, toolNameMapper }: {
       readonly config: typeof Config.Service
       readonly options: LanguageModel.ProviderOptions
       readonly toolNameMapper: Tool.NameMapper<Tools>
@@ -638,7 +632,8 @@ const prepareMessages = Effect.fnUntraced(
                   content: [{
                     type: "output_text",
                     text: part.text,
-                    annotations: part.options.openai?.annotations ?? []
+                    annotations: part.options.openai?.annotations ?? [],
+                    logprobs: []
                   }]
                 })
 

@@ -36,12 +36,38 @@ const skipFormatFlag = Flag.boolean("skip-format").pipe(
 )
 
 // =============================================================================
+// ANSI Colors
+// =============================================================================
+
+const colors = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  dim: "\x1b[2m",
+  cyan: "\x1b[36m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  gray: "\x1b[90m",
+  white: "\x1b[37m"
+} as const
+
+// =============================================================================
 // Generate Command
 // =============================================================================
 
 interface GenerateOptions {
   readonly skipLint: boolean
   readonly skipFormat: boolean
+}
+
+const formatSpecSource = (source: ProviderDiscovery.DiscoveredProvider["specSource"]): string => {
+  switch (source._tag) {
+    case "Url":
+      return source.url
+    case "File":
+      return source.path
+    case "StainlessStats":
+      return `stainless-stats(${source.statsUrl})`
+  }
 }
 
 const generateProvider = Effect.fn("generateProvider")(function*(
@@ -53,20 +79,20 @@ const generateProvider = Effect.fn("generateProvider")(function*(
   const postProcessor = yield* PostProcessor.PostProcessor
   const fs = yield* FileSystem.FileSystem
 
-  yield* Console.log(`Generating ${provider.name}...`)
+  yield* Console.log(`\n${colors.bold}${colors.cyan}${provider.name}${colors.reset}`)
 
   // Fetch spec
-  yield* Console.log(`  Fetching spec from ${provider.config.spec}`)
+  yield* Console.log(`  ${colors.dim}Fetching spec...${colors.reset}`)
   const spec = yield* specFetcher.fetch(provider.specSource, provider.name)
 
   // Generate code
-  yield* Console.log(`  Generating code...`)
+  yield* Console.log(`  ${colors.dim}Generating code...${colors.reset}`)
   let code = yield* generator.generate(provider, spec)
 
   // Apply replacements
   const replacements = provider.config.replacementList
   if (replacements.length > 0) {
-    yield* Console.log(`  Applying ${replacements.length} replacement(s)...`)
+    yield* Console.log(`  ${colors.dim}Applying ${replacements.length} replacement(s)...${colors.reset}`)
     for (const replacement of replacements) {
       code = code.replaceAll(replacement.from, replacement.to)
     }
@@ -79,21 +105,23 @@ const generateProvider = Effect.fn("generateProvider")(function*(
   }
 
   // Write output
-  yield* Console.log(`  Writing to ${provider.outputPath}`)
+  yield* Console.log(`  ${colors.dim}Writing output...${colors.reset}`)
   yield* fs.writeFileString(provider.outputPath, code)
 
   // Post-process
   if (!options.skipLint) {
-    yield* Console.log(`  Running oxlint --fix...`)
+    yield* Console.log(`  ${colors.dim}Linting...${colors.reset}`)
     yield* postProcessor.lint(provider.outputPath)
   }
 
   if (!options.skipFormat) {
-    yield* Console.log(`  Running dprint fmt...`)
+    yield* Console.log(`  ${colors.dim}Formatting...${colors.reset}`)
     yield* postProcessor.format(provider.outputPath)
   }
 
-  yield* Console.log(`  Done!`)
+  yield* Console.log(
+    `  ${colors.green}✓${colors.reset} ${colors.gray}${provider.config.output}${colors.reset}`
+  )
   return provider.outputPath
 })
 
@@ -111,35 +139,25 @@ const generate = Command.make("generate", {
     })
 
     if (providers.length === 0) {
-      yield* Console.log("No providers found.")
+      yield* Console.log(`${colors.yellow}No providers found.${colors.reset}`)
       return
     }
 
-    yield* Console.log(`Found ${providers.length} provider(s)`)
+    yield* Console.log(
+      `${colors.dim}Generating ${providers.length} provider(s)...${colors.reset}`
+    )
 
     for (const p of providers) {
       yield* generateProvider(p, { skipLint, skipFormat })
     }
 
-    yield* Console.log("\nAll providers generated successfully!")
+    yield* Console.log(`\n${colors.green}✓ All providers generated successfully!${colors.reset}`)
   }))
 )
 
 // =============================================================================
 // List Command
 // =============================================================================
-
-// ANSI color codes
-const colors = {
-  reset: "\x1b[0m",
-  bold: "\x1b[1m",
-  dim: "\x1b[2m",
-  cyan: "\x1b[36m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  gray: "\x1b[90m",
-  white: "\x1b[37m"
-} as const
 
 const list = Command.make("list").pipe(
   Command.withHandler(Effect.fnUntraced(function*() {
@@ -155,7 +173,7 @@ const list = Command.make("list").pipe(
 
     for (const p of providers) {
       yield* Console.log(`${colors.bold}${colors.cyan}${p.name}${colors.reset}`)
-      yield* Console.log(`  ${colors.gray}spec:${colors.reset}     ${p.config.spec}`)
+      yield* Console.log(`  ${colors.gray}spec:${colors.reset}     ${formatSpecSource(p.specSource)}`)
       yield* Console.log(`  ${colors.gray}output:${colors.reset}   ${p.config.output}`)
       yield* Console.log(
         `  ${colors.gray}client:${colors.reset}   ${colors.white}${p.config.clientName}${colors.reset}`
