@@ -116,6 +116,44 @@ describe("HttpApiClient", () => {
         { readonly payload: { readonly id: number }; readonly withResponse?: boolean }
       >()
     })
+
+    it("should accept a multipart", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.post("a", "/a", {
+                payload: Schema.String.pipe(HttpApiSchema.asMultipart())
+              })
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+      const f = client.group.a
+      expect<Parameters<typeof f>[0]>().type.toBe<
+        { readonly payload: FormData; readonly withResponse?: boolean }
+      >()
+    })
+
+    it("should accept a multipart stream", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.post("a", "/a", {
+                payload: Schema.String.pipe(HttpApiSchema.asMultipartStream())
+              })
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+      const f = client.group.a
+      expect<Parameters<typeof f>[0]>().type.toBe<
+        { readonly payload: FormData; readonly withResponse?: boolean }
+      >()
+    })
   })
 
   describe("success option", () => {

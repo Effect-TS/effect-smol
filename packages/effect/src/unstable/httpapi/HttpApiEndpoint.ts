@@ -436,15 +436,15 @@ export type ClientRequest<
   Headers extends Schema.Top,
   WithResponse extends boolean
 > = (
-  & ([PathParams["Type"]] extends [void] ? {} : { readonly pathParams: PathParams["Type"] })
+  & ([PathParams["Type"]] extends [never] ? {} : { readonly pathParams: PathParams["Type"] })
   & ([UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: UrlParams["Type"] })
   & ([Headers["Type"]] extends [never] ? {} : { readonly headers: Headers["Type"] })
   & ([Payload["Type"]] extends [never] ? {}
     : Payload["Type"] extends infer P ?
       P extends Brand<HttpApiSchema.MultipartTypeId> | Brand<HttpApiSchema.MultipartStreamTypeId>
         ? { readonly payload: FormData }
-      : { readonly payload: Schema.Schema.Type<Payload> }
-    : { readonly payload: Payload })
+      : { readonly payload: Payload["Type"] }
+    : { readonly payload: Payload["Type"] })
 ) extends infer Req ? keyof Req extends never ? (void | { readonly withResponse?: WithResponse }) :
   Req & { readonly withResponse?: WithResponse } :
   void
