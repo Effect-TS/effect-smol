@@ -694,7 +694,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
       Schema.Struct(Struct.pick(Group.fields, ["name"])).pipe(
         HttpApiSchema.asMultipart()
       )
-    ]).annotate({ httpApiIsContainer: true }),
+    ]).annotate({ "~httpApiIsContainer": true }), // TODO: remove this annotation
     success: Group
   }),
   HttpApiEndpoint.post("handle", "/handle/:id", {
