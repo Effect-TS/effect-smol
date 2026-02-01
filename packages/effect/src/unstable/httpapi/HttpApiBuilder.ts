@@ -489,7 +489,7 @@ const handlerToRoute = (
           group
         }
         if (decodePath) {
-          request.path = yield* decodePath(routeContext.params)
+          request.pathParams = yield* decodePath(routeContext.params)
         }
         if (decodePayload) {
           request.payload = yield* Effect.flatMap(

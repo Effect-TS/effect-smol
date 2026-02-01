@@ -384,7 +384,7 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    & ([_PathParams["Type"]] extends [never] ? {} : { readonly path: _PathParams["Type"] })
+    & ([_PathParams["Type"]] extends [never] ? {} : { readonly pathParams: _PathParams["Type"] })
     & ([_UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] })
     & ([_Payload["Type"]] extends [never] ? {}
       : _Payload["Type"] extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
@@ -415,7 +415,7 @@ export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    & ([_PathParams["Type"]] extends [never] ? {} : { readonly path: _PathParams["Type"] })
+    & ([_PathParams["Type"]] extends [never] ? {} : { readonly pathParams: _PathParams["Type"] })
     & ([_UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] })
     & ([_Headers["Type"]] extends [never] ? {} : { readonly headers: _Headers["Type"] })
     & {
@@ -436,7 +436,7 @@ export type ClientRequest<
   Headers extends Schema.Top,
   WithResponse extends boolean
 > = (
-  & ([PathParams["Type"]] extends [void] ? {} : { readonly path: PathParams["Type"] })
+  & ([PathParams["Type"]] extends [void] ? {} : { readonly pathParams: PathParams["Type"] })
   & ([UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: UrlParams["Type"] })
   & ([Headers["Type"]] extends [never] ? {} : { readonly headers: Headers["Type"] })
   & ([Payload["Type"]] extends [never] ? {}
@@ -882,7 +882,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   name: Name,
   path: Path,
   options?: {
-    readonly path?: PathParams | undefined
+    readonly pathParams?: PathParams | undefined
     readonly urlParams?: UrlParams | undefined
     readonly payload?: Payload | undefined
     readonly headers?: Headers | undefined
@@ -921,7 +921,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     name,
     path,
     method,
-    pathParams: UndefinedOr.map(options?.path, fieldsToSchema),
+    pathParams: UndefinedOr.map(options?.pathParams, fieldsToSchema),
     urlParams: UndefinedOr.map(options?.urlParams, fieldsToSchema),
     payload: payloadSchema,
     headers: UndefinedOr.map(options?.headers, fieldsToSchema),
@@ -953,7 +953,7 @@ export const get: <
   name: Name,
   path: Path,
   options?: {
-    readonly path?: PathParams | undefined
+    readonly pathParams?: PathParams | undefined
     readonly urlParams?: UrlParams | undefined
     readonly payload?: Payload | undefined
     readonly headers?: Headers | undefined
@@ -991,7 +991,7 @@ export const post: <
   name: Name,
   path: Path,
   options?: {
-    readonly path?: PathParams | undefined
+    readonly pathParams?: PathParams | undefined
     readonly urlParams?: UrlParams | undefined
     readonly payload?: Payload | undefined
     readonly headers?: Headers | undefined
@@ -1029,7 +1029,7 @@ export const put: <
   name: Name,
   path: Path,
   options?: {
-    readonly path?: PathParams | undefined
+    readonly pathParams?: PathParams | undefined
     readonly urlParams?: UrlParams | undefined
     readonly payload?: Payload | undefined
     readonly headers?: Headers | undefined
@@ -1067,7 +1067,7 @@ export const patch: <
   name: Name,
   path: Path,
   options?: {
-    readonly path?: PathParams | undefined
+    readonly pathParams?: PathParams | undefined
     readonly urlParams?: UrlParams | undefined
     readonly payload?: Payload | undefined
     readonly headers?: Headers | undefined
@@ -1105,7 +1105,7 @@ export const del: <
   name: Name,
   path: Path,
   options?: {
-    readonly path?: PathParams | undefined
+    readonly pathParams?: PathParams | undefined
     readonly urlParams?: UrlParams | undefined
     readonly payload?: Payload | undefined
     readonly headers?: Headers | undefined
@@ -1143,7 +1143,7 @@ export const head: <
   name: Name,
   path: Path,
   options?: {
-    readonly path?: PathParams | undefined
+    readonly pathParams?: PathParams | undefined
     readonly urlParams?: UrlParams | undefined
     readonly payload?: Payload | undefined
     readonly headers?: Headers | undefined
@@ -1181,7 +1181,7 @@ export const options: <
   name: Name,
   path: Path,
   options?: {
-    readonly path?: PathParams | undefined
+    readonly pathParams?: PathParams | undefined
     readonly urlParams?: UrlParams | undefined
     readonly payload?: Payload | undefined
     readonly headers?: Headers | undefined

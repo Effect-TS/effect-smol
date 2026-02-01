@@ -81,14 +81,14 @@ describe("OpenAPI spec", () => {
     })
   })
 
-  describe("path option", () => {
+  describe("pathParams option", () => {
     it("GET", () => {
       const Api = HttpApi.make("api")
         .add(
           HttpApiGroup.make("group")
             .add(
               HttpApiEndpoint.get("a", "/a/:id", {
-                path: {
+                pathParams: {
                   id: Schema.FiniteFromString
                 }
               })

@@ -177,7 +177,7 @@ export const toHttpApiGroup = <const Name extends string, Type extends string, R
   for (const parentRpc_ of entity.protocol.requests.values()) {
     const parentRpc = parentRpc_ as any as Rpc.AnyWithProps
     const endpoint = HttpApiEndpoint.post(parentRpc._tag, `/${tagToPath(parentRpc._tag)}/:entityId`, {
-      path: entityIdPath,
+      pathParams: entityIdPath,
       payload: parentRpc.payloadSchema,
       success: parentRpc.successSchema,
       error: [parentRpc.errorSchema, ...clientErrors]
@@ -186,7 +186,7 @@ export const toHttpApiGroup = <const Name extends string, Type extends string, R
       `${parentRpc._tag}Discard`,
       `/${tagToPath(parentRpc._tag)}/:entityId/discard`,
       {
-        path: entityIdPath,
+        pathParams: entityIdPath,
         payload: parentRpc.payloadSchema,
         error: clientErrors
       }

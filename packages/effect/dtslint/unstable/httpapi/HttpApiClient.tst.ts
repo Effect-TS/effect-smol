@@ -18,7 +18,7 @@ describe("HttpApiClient", () => {
           HttpApiGroup.make("group")
             .add(
               HttpApiEndpoint.get("a", "/a", {
-                path: {
+                pathParams: {
                   id: Schema.FiniteFromString
                 }
               })
@@ -29,7 +29,7 @@ describe("HttpApiClient", () => {
       )
       const f = client.group.a
       expect<Parameters<typeof f>[0]>().type.toBe<
-        { readonly path: { readonly id: number }; readonly withResponse?: boolean }
+        { readonly pathParams: { readonly id: number }; readonly withResponse?: boolean }
       >()
     })
   })

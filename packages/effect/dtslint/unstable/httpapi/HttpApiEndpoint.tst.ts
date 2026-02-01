@@ -12,7 +12,7 @@ describe("HttpApiEndpoint", () => {
 
     it("should accept a record of fields", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
-        path: {
+        pathParams: {
           id: Schema.FiniteFromString
         }
       })
@@ -23,7 +23,7 @@ describe("HttpApiEndpoint", () => {
     it("should not accept any other schema", () => {
       HttpApiEndpoint.get("a", "/a", {
         // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'PathParamsContraint'.
-        path: Schema.Struct({ id: Schema.String })
+        pathParams: Schema.Struct({ id: Schema.String })
       })
     })
   })

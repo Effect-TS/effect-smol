@@ -304,7 +304,7 @@ const Api = HttpApi.make("MyApi")
         }),
         // a GET endpoint with a path parameter ":id"
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          path: {
+          pathParams: {
             //                   ┌─── schema for the "id" path parameter
             //                   │
             //                   ▼
@@ -327,7 +327,7 @@ const GroupLive = HttpApiBuilder.group(
       .handle("getUser", (ctx) => {
         //    ┌─── number
         //    ▼
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
 )
@@ -368,7 +368,7 @@ const Api = HttpApi.make("MyApi")
           success: Schema.Array(User)
         }),
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User
@@ -393,7 +393,7 @@ const GroupLive = HttpApiBuilder.group(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         ))
       .handle("getUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("createUser", (ctx) => {
@@ -442,7 +442,7 @@ const Api = HttpApi.make("MyApi")
           success: Schema.Array(User)
         }),
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: IdParam
           },
           success: User
@@ -452,7 +452,7 @@ const Api = HttpApi.make("MyApi")
           success: User
         }),
         HttpApiEndpoint.del("deleteUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: IdParam
           }
         })
@@ -469,7 +469,7 @@ const GroupLive = HttpApiBuilder.group(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         ))
       .handle("getUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("createUser", (ctx) => {
@@ -477,7 +477,7 @@ const GroupLive = HttpApiBuilder.group(
         return Effect.succeed(user)
       })
       .handle("deleteUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.log(`Deleting user ${id}`)
       })
 )
@@ -520,7 +520,7 @@ const Api = HttpApi.make("MyApi")
           success: Schema.Array(User)
         }),
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: IdParam
           },
           success: User
@@ -530,12 +530,12 @@ const Api = HttpApi.make("MyApi")
           success: User
         }),
         HttpApiEndpoint.del("deleteUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: IdParam
           }
         }),
         HttpApiEndpoint.patch("updateUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: IdParam
           },
           // Specify the schema for the request payload
@@ -558,7 +558,7 @@ const GroupLive = HttpApiBuilder.group(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         ))
       .handle("getUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("createUser", (ctx) => {
@@ -566,11 +566,11 @@ const GroupLive = HttpApiBuilder.group(
         return Effect.succeed(user)
       })
       .handle("deleteUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.log(`Deleting user ${id}`)
       })
       .handle("updateUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
 )
@@ -613,7 +613,7 @@ const Api = HttpApi.make("MyApi")
           success: Schema.Array(User)
         }),
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: IdParam
           },
           success: User
@@ -623,7 +623,7 @@ const Api = HttpApi.make("MyApi")
           success: User
         }),
         HttpApiEndpoint.del("deleteUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: IdParam
           }
         }),
@@ -653,7 +653,7 @@ const GroupLive = HttpApiBuilder.group(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         ))
       .handle("getUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("createUser", (ctx) => {
@@ -661,11 +661,11 @@ const GroupLive = HttpApiBuilder.group(
         return Effect.succeed(user)
       })
       .handle("deleteUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.log(`Deleting user ${id}`)
       })
       .handle("updateUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("catchAll", () => {
@@ -1198,7 +1198,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         if (id === 1) {
           return Effect.fail(UserNotFound.makeUnsafe({ message: "User not found" }))
         }
@@ -1273,7 +1273,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         if (id === 1) {
           return Effect.fail(new HttpApiError.NotFound({}))
         }
@@ -1357,7 +1357,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         if (id === 1) {
           return Effect.fail(new HttpApiError.NotFound({}))
         }
@@ -1475,7 +1475,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUser", (ctx) => {
-        const id = ctx.path.id
+        const id = ctx.pathParams.id
         return Effect.gen(function*() {
           // Access the UsersRepository service
           const repository = yield* UsersRepository

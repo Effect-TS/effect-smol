@@ -206,7 +206,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
 
         const endpointFn = Effect.fnUntraced(function*(
           request: {
-            readonly path: Record<string, string> | undefined
+            readonly pathParams: Record<string, string> | undefined
             readonly urlParams: unknown
             readonly payload: unknown
             readonly headers: Record<string, string> | undefined
@@ -217,8 +217,8 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
 
           if (request !== undefined) {
             // path
-            if (request.path !== undefined) {
-              const encodedPathParams = yield* encodePath(request.path)
+            if (request.pathParams !== undefined) {
+              const encodedPathParams = yield* encodePath(request.pathParams)
               httpRequest = HttpClientRequest.setUrl(httpRequest, makeUrl(encodedPathParams))
             }
 
