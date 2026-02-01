@@ -51,12 +51,14 @@ export interface HttpApiEndpoint<
   readonly [TypeId]: {
     readonly _MiddlewareR: Types.Covariant<MiddlewareR>
   }
+  readonly "~Payload": Payload
+
   readonly name: Name
   readonly path: Path
   readonly method: Method
   readonly pathSchema: PathSchema | undefined
   readonly urlParamsSchema: UrlParams | undefined
-  readonly payloadSchema: Payload | undefined
+  readonly payloadSchema: Schema.Top | undefined
   readonly headersSchema: Headers | undefined
   readonly successSchema: Success
   readonly errorSchema: Error

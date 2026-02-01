@@ -79,10 +79,10 @@ describe("HttpApiEndpoint", () => {
   })
 
   describe("payload option", () => {
-    it("should default to undefined", () => {
+    it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      type T = typeof endpoint["payloadSchema"]
-      expect<T>().type.toBe<undefined>()
+      type T = typeof endpoint["~Payload"]
+      expect<T>().type.toBe<never>()
     })
 
     describe("GET", () => {
@@ -92,8 +92,8 @@ describe("HttpApiEndpoint", () => {
             id: Schema.FiniteFromString
           }
         })
-        type T = typeof endpoint["payloadSchema"]
-        expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }> | undefined>()
+        type T = typeof endpoint["~Payload"]
+        expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }>>()
       })
 
       it("should not accept any other schema", () => {
@@ -109,8 +109,8 @@ describe("HttpApiEndpoint", () => {
         const endpoint = HttpApiEndpoint.post("a", "/a", {
           payload: Schema.Struct({ a: Schema.String })
         })
-        type T = typeof endpoint["payloadSchema"]
-        expect<T>().type.toBe<Schema.Struct<{ readonly a: Schema.String }> | undefined>()
+        type T = typeof endpoint["~Payload"]
+        expect<T>().type.toBe<Schema.Struct<{ readonly a: Schema.String }>>()
       })
 
       it("should accept an array of schemas", () => {
@@ -121,9 +121,9 @@ describe("HttpApiEndpoint", () => {
             Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
           ]
         })
-        type T = typeof endpoint["payloadSchema"]
+        type T = typeof endpoint["~Payload"]
         expect<T>().type.toBe<
-          Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array | undefined
+          Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array
         >()
       })
     })
@@ -135,8 +135,8 @@ describe("HttpApiEndpoint", () => {
             id: Schema.FiniteFromString
           }
         })
-        type T = typeof endpoint["payloadSchema"]
-        expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }> | undefined>()
+        type T = typeof endpoint["~Payload"]
+        expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }>>()
       })
 
       it("should not accept any other schema", () => {
@@ -154,8 +154,8 @@ describe("HttpApiEndpoint", () => {
             id: Schema.FiniteFromString
           }
         })
-        type T = typeof endpoint["payloadSchema"]
-        expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }> | undefined>()
+        type T = typeof endpoint["~Payload"]
+        expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }>>()
       })
 
       it("should not accept any other schema", () => {
