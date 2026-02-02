@@ -64,6 +64,6 @@
     "effect": "workspace:^"
   },
   "dependencies": {
-    "tedious": "^18.6.2"
+    "tedious": "^19.2.0"
   }
 }

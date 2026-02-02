@@ -63,12 +63,12 @@
     "effect": "workspace:^"
   },
   "devDependencies": {
-    "@types/node": "^25.0.6",
+    "@types/node": "^25.2.0",
     "effect": "workspace:^",
-    "tar": "^7.5.2"
+    "tar": "^7.5.7"
   },
   "dependencies": {
     "@types/ws": "^8.18.1",
-    "ws": "^8.18.3"
+    "ws": "^8.19.0"
   }
 }
