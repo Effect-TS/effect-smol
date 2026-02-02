@@ -117,7 +117,7 @@ export const defaultTeardown: Teardown = <E, A>(
   exit: Exit.Exit<E, A>,
   onExit: (code: number) => void
 ) => {
-  onExit(Exit.isFailure(exit) && !Cause.isInterruptedOnly(exit.cause) ? 1 : 0)
+  onExit(Exit.isFailure(exit) ? Cause.isInterruptedOnly(exit.cause) ? 2 : 1 : 0)
 }
 
 /**

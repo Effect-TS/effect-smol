@@ -4,6 +4,7 @@
 import * as Console from "../../Console.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
+import * as Filter from "../../Filter.ts"
 import { dual } from "../../Function.ts"
 import type * as Layer from "../../Layer.ts"
 import type * as Path from "../../Path.ts"
@@ -11,7 +12,7 @@ import type { Pipeable } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as References from "../../References.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
-import type * as Terminal from "../../Terminal.ts"
+import * as Terminal from "../../Terminal.ts"
 import type { Simplify } from "../../Types.ts"
 import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
@@ -23,7 +24,6 @@ import { parseConfig } from "./internal/config.ts"
 import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"
 import type * as Param from "./Param.ts"
-import * as Prompt from "./Prompt.ts"
 
 /* ========================================================================== */
 /* Public Types                                                               */
@@ -378,44 +378,6 @@ export const make: {
     ...(Predicate.isNotUndefined(handler) ? { handle: handler } : {})
   })
 }) as any
-
-/**
- * Creates a command that prompts the user for input using an interactive prompt.
- *
- * This is useful for commands that need to gather information interactively,
- * such as wizards or setup flows. The prompt runs before the handler and its
- * result is passed to the handler function.
- *
- * @example
- * ```ts
- * import { Console } from "effect"
- * import { Command, Prompt } from "effect/unstable/cli"
- *
- * const setup = Command.prompt(
- *   "setup",
- *   Prompt.text({ message: "Enter your name:" }),
- *   (name) => Console.log(`Hello, ${name}!`)
- * )
- * ```
- *
- * @since 4.0.0
- * @category constructors
- */
-// TODO: Input type is `A` but parse returns `{}`. The actual `A` comes from
-// running the prompt inside the handler. This is a semantic mismatch that
-// would break if subcommands tried to access parent config.
-export const prompt = <Name extends string, A, E, R>(
-  name: Name,
-  promptDef: Prompt.Prompt<A>,
-  handler: (value: A) => Effect.Effect<void, E, R>
-): Command<Name, A, E | Terminal.QuitError, R> => {
-  const parsedConfig = parseConfig({})
-  return makeCommand({
-    name,
-    config: parsedConfig,
-    handle: () => Effect.flatMap(Prompt.run(promptDef), (value) => handler(value))
-  })
-}
 
 /* ========================================================================== */
 /* Combinators                                                                */
@@ -899,7 +861,9 @@ export const runWith = <const Name extends string, Input, E, R>(
   config: {
     readonly version: string
   }
-): (input: ReadonlyArray<string>) => Effect.Effect<void, E | CliError.CliError, R | Environment> => {
+): (
+  input: ReadonlyArray<string>
+) => Effect.Effect<void, Exclude<E, Terminal.QuitError> | CliError.CliError, R | Environment> => {
   const commandImpl = toImpl(command)
   return Effect.fnUntraced(
     function*(args: ReadonlyArray<string>) {
@@ -948,10 +912,16 @@ export const runWith = <const Name extends string, Input, E, R>(
 
       yield* withLogLevel
     },
-    Effect.catch((error) =>
-      CliError.isCliError(error) && error._tag === "ShowHelp"
-        ? showHelp(command, error.commandPath)
-        : Effect.fail(error)
+    Effect.catchFilter(
+      (error) =>
+        CliError.isCliError(error) && error._tag === "ShowHelp"
+          ? error
+          : Filter.fail(error),
+      (error) => showHelp(command, error.commandPath)
+    ),
+    Effect.catchFilter(
+      (e) => Terminal.isQuitError(e) ? e : Filter.fail(e as CliError.CliError | Exclude<E, Terminal.QuitError>),
+      (_) => Effect.interrupt
     )
   )
 }
