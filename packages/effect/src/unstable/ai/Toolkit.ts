@@ -265,7 +265,7 @@ const Proto = {
     this: Toolkit<Record<string, Tool.Any>>,
     build: Record<string, (params: any) => any> | Effect.Effect<Record<string, (params: any) => any>>
   ) {
-    return Effect.gen({ this: this }, function*() {
+    return Effect.gen({ self: this }, function*() {
       const services = yield* Effect.services<never>()
       const handlers = Effect.isEffect(build) ? yield* build : build
       const serviceMap = new Map<string, unknown>()
@@ -283,7 +283,7 @@ const Proto = {
     return Layer.effectServices(this.toHandlers(build))
   },
   asEffect(this: Toolkit<Record<string, Tool.Any>>) {
-    return Effect.gen({ this: this }, function*() {
+    return Effect.gen({ self: this }, function*() {
       const tools = this.tools
       const services = yield* Effect.services<never>()
       const schemasCache = new WeakMap<any, {

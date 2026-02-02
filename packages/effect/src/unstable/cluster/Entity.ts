@@ -290,7 +290,7 @@ const Proto = {
       readonly spanAttributes?: Record<string, string> | undefined
     }
   ) {
-    const buildHandlers = Effect.gen({ this: this }, function*() {
+    const buildHandlers = Effect.gen({ self: this }, function*() {
       const behaviour = Effect.isEffect(build) ? yield* build : build
       const queue = yield* Queue.make<Envelope.Request<Rpcs>>()
 

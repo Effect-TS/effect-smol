@@ -1328,7 +1328,7 @@ export const gen: {
   >
   <Self, Eff extends Yieldable<any, any, any, any>, AEff>(
     options: {
-      readonly this: Self
+      readonly self: Self
     },
     f: (this: Self) => Generator<Eff, AEff, never>
   ): Effect<
@@ -10143,7 +10143,7 @@ export namespace fn {
         : never
     >
     <Self, Eff extends Yieldable<any, any, any, any>, AEff, Args extends Array<any>>(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>)
     ): (...args: Args) => Effect<
       AEff,
@@ -10186,7 +10186,7 @@ export namespace fn {
       ) => A
     ): (this: Self, ...args: Args) => A
     <Self, Eff extends Yieldable<any, any, any, any>, AEff, Args extends Array<any>, A>(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -10235,7 +10235,7 @@ export namespace fn {
       b: (_: A, ...args: Args) => B
     ): (this: Self, ...args: Args) => B
     <Self, Eff extends Yieldable<any, any, any, any>, AEff, Args extends Array<any>, A, B>(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -10310,7 +10310,7 @@ export namespace fn {
       B,
       C
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -10392,7 +10392,7 @@ export namespace fn {
       C,
       D
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -10480,7 +10480,7 @@ export namespace fn {
       D,
       E
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -10574,7 +10574,7 @@ export namespace fn {
       E,
       F
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -10674,7 +10674,7 @@ export namespace fn {
       F,
       G
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -10780,7 +10780,7 @@ export namespace fn {
       G,
       H
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -10892,7 +10892,7 @@ export namespace fn {
       H,
       I
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -11010,7 +11010,7 @@ export namespace fn {
       I,
       J
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -11134,7 +11134,7 @@ export namespace fn {
       J,
       K
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -11264,7 +11264,7 @@ export namespace fn {
       K,
       L
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -11400,7 +11400,7 @@ export namespace fn {
       L,
       M
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -11542,7 +11542,7 @@ export namespace fn {
       M,
       N
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -11690,7 +11690,7 @@ export namespace fn {
       N,
       O
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -11844,7 +11844,7 @@ export namespace fn {
       O,
       P
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -12004,7 +12004,7 @@ export namespace fn {
       P,
       Q
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -12170,7 +12170,7 @@ export namespace fn {
       Q,
       R
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -12342,7 +12342,7 @@ export namespace fn {
       R,
       S
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<
@@ -12520,7 +12520,7 @@ export namespace fn {
       S,
       T
     >(
-      options: { readonly this: Self },
+      options: { readonly self: Self },
       body: (this: Self, ...args: Args) => Generator<Eff, AEff, never> | (Eff & Effect<AEff, any, any>),
       a: (
         _: Effect<

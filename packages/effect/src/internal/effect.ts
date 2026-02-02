@@ -1066,7 +1066,7 @@ export const gen = <
   AEff
 >(
   ...args:
-    | [options: { readonly this: Self }, body: (this: Self) => Generator<Eff, AEff, never>]
+    | [options: { readonly self: Self }, body: (this: Self) => Generator<Eff, AEff, never>]
     | [body: () => Generator<Eff, AEff, never>]
 ): Effect.Effect<
   AEff,
@@ -1079,7 +1079,7 @@ export const gen = <
 > =>
   suspend(() =>
     fromIteratorUnsafe(
-      args.length === 1 ? args[0]() : (args[1].call(args[0].this) as any)
+      args.length === 1 ? args[0]() : (args[1].call(args[0].self) as any)
     )
   )
 
@@ -1115,7 +1115,7 @@ export const fn: typeof Effect.fn = function() {
   globalThis.Error.stackTraceLimit = prevLimit
 
   if (nameFirst) {
-    return (body: Function | { readonly this: any }, ...pipeables: Array<Function>) =>
+    return (body: Function | { readonly self: any }, ...pipeables: Array<Function>) =>
       makeFn(name, body, defError, pipeables, nameFirst, spanOptions)
   }
 
@@ -1131,7 +1131,7 @@ export const fn: typeof Effect.fn = function() {
 
 const makeFn = (
   name: string,
-  bodyOrOptions: Function | { readonly this: any },
+  bodyOrOptions: Function | { readonly self: any },
   defError: Error,
   pipeables: Array<Function>,
   addSpan: boolean,
@@ -1139,7 +1139,7 @@ const makeFn = (
 ) => {
   const body = typeof bodyOrOptions === "function"
     ? bodyOrOptions
-    : (pipeables.pop()!).bind(bodyOrOptions.this)
+    : (pipeables.pop()!).bind(bodyOrOptions.self)
 
   return function(this: any, ...args: Array<any>) {
     let result = suspend(() => {
