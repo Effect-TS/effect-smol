@@ -10,19 +10,7 @@ import { createComponent, createContext, onCleanup } from "solid-js"
  * @since 1.0.0
  * @category context
  */
-export function scheduleTask(f: () => void): () => void {
-  const timeout = setTimeout(f, 0)
-  return () => clearTimeout(timeout)
-}
-
-/**
- * @since 1.0.0
- * @category context
- */
-export const RegistryContext = createContext<AtomRegistry.AtomRegistry>(AtomRegistry.make({
-  scheduleTask,
-  defaultIdleTTL: 400
-}))
+export const RegistryContext = createContext<AtomRegistry.AtomRegistry>(AtomRegistry.make())
 
 /**
  * @since 1.0.0
@@ -36,7 +24,7 @@ export const RegistryProvider = (options: {
   readonly defaultIdleTTL?: number | undefined
 }) => {
   const registry = AtomRegistry.make({
-    scheduleTask: options.scheduleTask ?? scheduleTask,
+    scheduleTask: options.scheduleTask,
     initialValues: options.initialValues,
     timeoutResolution: options.timeoutResolution,
     defaultIdleTTL: options.defaultIdleTTL
