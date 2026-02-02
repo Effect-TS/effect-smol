@@ -70,8 +70,8 @@
     "@types/scheduler": "^0.26.0",
     "effect": "workspace:^",
     "jsdom": "^27.1.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-error-boundary": "^6.0.0",
     "scheduler": "^0.27.0"
   }
