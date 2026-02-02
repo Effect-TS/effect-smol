@@ -1,69 +1,17 @@
-/** @jsxImportSource solid-js */
-import { assert, describe, it } from "@effect/vitest"
-import * as Effect from "effect/Effect"
-import * as Atom from "effect/unstable/reactivity/Atom"
-import * as AtomRef from "effect/unstable/reactivity/AtomRef"
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
-import { type Accessor, createComponent, createEffect, createRoot, ErrorBoundary } from "solid-js"
 import {
   createAtom,
   createAtomInitialValues,
   createAtomRef,
   createAtomRefProp,
   createAtomRefPropValue,
-  createAtomSuspense,
   createAtomValue,
   RegistryContext
-} from "../src/index.ts"
-
-const renderAtomRef = function<A>(ref: AtomRef.ReadonlyRef<A>, onValue: (_: A) => void) {
-  return createRoot((dispose) => {
-    const accessor = createAtomRef(ref)
-    createEffect(() => {
-      onValue(accessor())
-    })
-    return dispose
-  })
-}
-
-const renderAccessor = function<A>(makeAccessor: () => Accessor<A>, onValue: (_: A) => void) {
-  return createRoot((dispose) => {
-    const accessor = makeAccessor()
-    createEffect(() => {
-      onValue(accessor())
-    })
-    return dispose
-  })
-}
-
-const renderAtomValue = function<A, B = A>(
-  atom: Atom.Atom<A>,
-  onValue: (_: B) => void,
-  options?: { readonly registry?: AtomRegistry.AtomRegistry; readonly map?: (_: A) => B }
-) {
-  return createRoot((dispose) => {
-    const run = () => {
-      const accessor = options?.map ? createAtomValue(atom, options.map) : createAtomValue(atom)
-      createEffect(() => {
-        onValue(accessor() as B)
-      })
-      return null
-    }
-
-    if (options?.registry) {
-      createComponent(RegistryContext.Provider, {
-        value: options.registry,
-        get children() {
-          return run()
-        }
-      })
-    } else {
-      run()
-    }
-
-    return dispose
-  })
-}
+} from "@effect/atom-solid"
+import { assert, describe, it } from "@effect/vitest"
+import * as Atom from "effect/unstable/reactivity/Atom"
+import * as AtomRef from "effect/unstable/reactivity/AtomRef"
+import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
+import { type Accessor, createComponent, createEffect, createRoot } from "solid-js"
 
 describe("atom-solid", () => {
   describe("createAtomValue", () => {
@@ -193,62 +141,56 @@ describe("atom-solid", () => {
     })
   })
 
-  describe("createAtomSuspense", () => {
-    it("suspends until AsyncResult succeeds", () => {
-      const registry = AtomRegistry.make()
-      const atom = Atom.make(Effect.never)
-      let observed: string | undefined
-      const dispose = createRoot((dispose) => {
-        createComponent(RegistryContext.Provider, {
-          value: registry,
-          get children() {
-            try {
-              createAtomSuspense(atom)
-            } catch (error) {
-              if (error instanceof Promise) {
-                observed = "Loading..."
-                return null
-              }
-              throw error
-            }
-            observed = "Ready"
-            return null
-          }
-        })
-        return dispose
-      })
-      assert.strictEqual(observed, "Loading...")
-      dispose()
-    })
-
-    it("throws failures to ErrorBoundary", () => {
-      const registry = AtomRegistry.make()
-      const atom = Atom.make(Effect.fail(new Error("test")))
-      let observed: unknown
-      const TestComponent = () => {
-        createAtomSuspense(atom)
-        return null
-      }
-      const dispose = createRoot((dispose) => {
-        createComponent(RegistryContext.Provider, {
-          value: registry,
-          get children() {
-            return createComponent(ErrorBoundary, {
-              fallback: (error) => {
-                observed = error
-                return null
-              },
-              get children() {
-                return createComponent(TestComponent, {})
-              }
-            })
-          }
-        })
-        return dispose
-      })
-      assert.instanceOf(observed, Error)
-      assert.strictEqual((observed as Error).message, "test")
-      dispose()
-    })
+  describe("createAtomResource", () => {
+    // TODO
   })
 })
+
+const renderAtomRef = function<A>(ref: AtomRef.ReadonlyRef<A>, onValue: (_: A) => void) {
+  return createRoot((dispose) => {
+    const accessor = createAtomRef(ref)
+    createEffect(() => {
+      onValue(accessor())
+    })
+    return dispose
+  })
+}
+
+const renderAccessor = function<A>(makeAccessor: () => Accessor<A>, onValue: (_: A) => void) {
+  return createRoot((dispose) => {
+    const accessor = makeAccessor()
+    createEffect(() => {
+      onValue(accessor())
+    })
+    return dispose
+  })
+}
+
+const renderAtomValue = function<A, B = A>(
+  atom: Atom.Atom<A>,
+  onValue: (_: B) => void,
+  options?: { readonly registry?: AtomRegistry.AtomRegistry; readonly map?: (_: A) => B }
+) {
+  return createRoot((dispose) => {
+    const run = () => {
+      const accessor = options?.map ? createAtomValue(atom, options.map) : createAtomValue(atom)
+      createEffect(() => {
+        onValue(accessor() as B)
+      })
+      return null
+    }
+
+    if (options?.registry) {
+      createComponent(RegistryContext.Provider, {
+        value: options.registry,
+        get children() {
+          return run()
+        }
+      })
+    } else {
+      run()
+    }
+
+    return dispose
+  })
+}

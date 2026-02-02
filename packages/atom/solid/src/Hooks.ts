@@ -8,8 +8,8 @@ import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import type * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
-import type { Accessor } from "solid-js"
-import { createEffect, createMemo, createSignal, onCleanup, useContext } from "solid-js"
+import type { Accessor, ResourceReturn } from "solid-js"
+import { createEffect, createResource, createSignal, onCleanup, useContext } from "solid-js"
 import { RegistryContext } from "./RegistryContext.ts"
 
 const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<Atom.Atom<any>>>()
@@ -33,7 +33,7 @@ export const createAtomInitialValues = (initialValues: Iterable<readonly [Atom.A
   }
 }
 
-function createStore<A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): Accessor<A> {
+function createAtomAccessor<A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): Accessor<A> {
   const [value, setValue] = createSignal<A>(registry.get(atom))
   createEffect(() => {
     const dispose = registry.subscribe(atom, (next) => setValue(() => next))
@@ -51,11 +51,7 @@ export const createAtomValue: {
   <A, B>(atom: Atom.Atom<A>, f: (_: A) => B): Accessor<B>
 } = <A>(atom: Atom.Atom<A>, f?: (_: A) => A): Accessor<A> => {
   const registry = useContext(RegistryContext)
-  if (f) {
-    const store = createMemo(() => createStore(registry, Atom.map(atom, f)))
-    return () => store()()
-  }
-  return createStore(registry, atom)
+  return createAtomAccessor(registry, f ? Atom.map(atom, f) : atom)
 }
 
 function mountAtom<A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): void {
@@ -166,14 +162,9 @@ export const createAtom = <R, W, const Mode extends "value" | "promise" | "promi
 ] => {
   const registry = useContext(RegistryContext)
   return [
-    createStore(registry, atom),
+    createAtomAccessor(registry, atom),
     setAtom(registry, atom, options)
   ] as const
-}
-
-const atomPromiseMap = {
-  suspendOnWaiting: new Map<Atom.Atom<any>, Promise<void>>(),
-  default: new Map<Atom.Atom<any>, Promise<void>>()
 }
 
 function atomToPromise<A, E>(
@@ -200,36 +191,32 @@ function atomToPromise<A, E>(
   return promise
 }
 
-function atomResultOrSuspend<A, E>(
-  registry: AtomRegistry.AtomRegistry,
-  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
-  suspendOnWaiting: boolean
-) {
-  const value = createStore(registry, atom)()
-  if (value._tag === "Initial" || (suspendOnWaiting && value.waiting)) {
-    throw atomToPromise(registry, atom, suspendOnWaiting)
-  }
-  return value
-}
-
 /**
  * @since 1.0.0
  * @category hooks
  */
-export const createAtomSuspense = <A, E, const IncludeFailure extends boolean = false>(
+export const createAtomResource = <A, E, const Preserve extends boolean = false>(
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
   options?: {
     readonly suspendOnWaiting?: boolean | undefined
-    readonly includeFailure?: IncludeFailure | undefined
+    readonly preserveResult?: Preserve | undefined
   }
-): AsyncResult.Success<A, E> | (IncludeFailure extends true ? AsyncResult.Failure<A, E> : never) => {
+): ResourceReturn<Preserve extends true ? (AsyncResult.Success<A, E> | AsyncResult.Failure<A, E>) : A> => {
   const registry = useContext(RegistryContext)
-  const result = atomResultOrSuspend(registry, atom, options?.suspendOnWaiting ?? false)
-  if (result._tag === "Failure" && !options?.includeFailure) {
-    throw Cause.squash(result.cause)
-  }
-  return result as any
+  const value = createAtomAccessor(registry, atom)
+  const resource = createResource(function(): Promise<AsyncResult.Success<A, E> | AsyncResult.Failure<A, E> | A> {
+    const result = value()
+    if (result._tag === "Initial" || (options?.suspendOnWaiting && result.waiting)) {
+      return unresolvedPromise
+    } else if (options?.preserveResult) {
+      return Promise.resolve(result)
+    }
+    return result._tag === "Success" ? Promise.resolve(result.value) : Promise.reject(Cause.squash(result.cause))
+  })
+  return resource as any
 }
+
+const unresolvedPromise = new Promise<never>(() => {})
 
 /**
  * @since 1.0.0
@@ -253,21 +240,11 @@ export const createAtomSubscribe = <A>(
  */
 export const createAtomRef = <A>(ref: AtomRef.ReadonlyRef<A>): Accessor<A> => {
   const [value, setValue] = createSignal(ref.value)
-  const [tracked, setTracked] = createSignal(false)
-  const accessor = () => {
-    if (!tracked()) {
-      setTracked(true)
-    }
-    return value()
-  }
   createEffect(() => {
-    if (!tracked()) {
-      return
-    }
-    const dispose = ref.subscribe((next) => setValue(() => next))
+    const dispose = ref.subscribe(setValue)
     onCleanup(dispose)
   })
-  return accessor
+  return value
 }
 
 /**
