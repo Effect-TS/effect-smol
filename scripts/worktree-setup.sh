@@ -8,7 +8,6 @@ pnpm install
 # setup repositories
 git clone --depth 1 https://github.com/effect-ts/effect.git .repos/effect-old
 git clone --depth 1 https://github.com/tim-smart/effect-atom.git .repos/effect-atom-old
-git clone --depth 1 https://github.com/solidjs/solid.git .repos/solid
 
 cat << EOF >> AGENTS.md
 
