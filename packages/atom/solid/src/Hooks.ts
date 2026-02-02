@@ -4,6 +4,7 @@
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
+import * as Function from "effect/Function"
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import type * as AtomRef from "effect/unstable/reactivity/AtomRef"
@@ -167,35 +168,6 @@ export const createAtom = <R, W, const Mode extends "value" | "promise" | "promi
   ] as const
 }
 
-const atomPromiseMap = {
-  suspendOnWaiting: new Map<Atom.Atom<any>, Promise<void>>(),
-  default: new Map<Atom.Atom<any>, Promise<void>>()
-}
-
-function atomToPromise<A, E>(
-  registry: AtomRegistry.AtomRegistry,
-  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
-  suspendOnWaiting: boolean
-) {
-  const map = suspendOnWaiting ? atomPromiseMap.suspendOnWaiting : atomPromiseMap.default
-  let promise = map.get(atom)
-  if (promise !== undefined) {
-    return promise
-  }
-  promise = new Promise<void>((resolve) => {
-    const dispose = registry.subscribe(atom, (result) => {
-      if (result._tag === "Initial" || (suspendOnWaiting && result.waiting)) {
-        return
-      }
-      setTimeout(dispose, 1000)
-      resolve()
-      map.delete(atom)
-    })
-  })
-  map.set(atom, promise)
-  return promise
-}
-
 /**
  * @since 1.0.0
  * @category hooks
@@ -212,16 +184,7 @@ export const createAtomResource = <A, E, const Preserve extends boolean = false>
   const resource = createResource(function(): Promise<AsyncResult.Success<A, E> | AsyncResult.Failure<A, E> | A> {
     const result = value()
     if (result._tag === "Initial" || (options?.suspendOnWaiting && result.waiting)) {
-      return atomToPromise(registry, atom, options?.suspendOnWaiting ?? false).then(() => {
-        const next = value()
-        if (next._tag === "Initial") {
-          return Promise.reject(new Error("createAtomResource: unexpected initial state"))
-        }
-        if (options?.preserveResult) {
-          return next
-        }
-        return next._tag === "Success" ? next.value : Promise.reject(Cause.squash(next.cause))
-      })
+      return unresolvedPromise
     } else if (options?.preserveResult) {
       return Promise.resolve(result)
     }
@@ -229,6 +192,8 @@ export const createAtomResource = <A, E, const Preserve extends boolean = false>
   })
   return resource as any
 }
+
+const unresolvedPromise = new Promise<never>(Function.constVoid)
 
 /**
  * @since 1.0.0

@@ -9,12 +9,9 @@ import {
   RegistryContext
 } from "@effect/atom-solid"
 import { assert, describe, it } from "@effect/vitest"
-import * as Cause from "effect/Cause"
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
-import * as Atom from "effect/unstable/reactivity/Atom"
-import * as AtomRef from "effect/unstable/reactivity/AtomRef"
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
-import { type Accessor, catchError, createComponent, createEffect, createRoot } from "solid-js"
+import { Cause, Effect } from "effect"
+import { AsyncResult, Atom, AtomRef, AtomRegistry } from "effect/unstable/reactivity"
+import { type Accessor, catchError, createComponent, createEffect, createRoot, type Resource } from "solid-js"
 
 describe("atom-solid", () => {
   describe("createAtomValue", () => {
@@ -197,11 +194,11 @@ describe("atom-solid", () => {
     })
 
     it("preserves success result when preserveResult is true", async () => {
-      const atom = Atom.make(AsyncResult.success(7))
+      const atom = Atom.make(Effect.succeed(7))
       const { resource, dispose } = renderAtomResource(atom, { preserveResult: true })
       await Promise.resolve()
       await Promise.resolve()
-      const result = resource()
+      const result = resource()!
       assert.strictEqual(AsyncResult.isSuccess(result), true)
       if (AsyncResult.isSuccess(result)) {
         assert.strictEqual(result.value, 7)
@@ -212,11 +209,11 @@ describe("atom-solid", () => {
 
     it("preserves failure result when preserveResult is true", async () => {
       const error = new Error("failure")
-      const atom = Atom.make(AsyncResult.fail(error))
+      const atom = Atom.make(Effect.fail(error))
       const { resource, dispose } = renderAtomResource(atom, { preserveResult: true })
       await Promise.resolve()
       await Promise.resolve()
-      const result = resource()
+      const result = resource()!
       assert.strictEqual(AsyncResult.isFailure(result), true)
       if (AsyncResult.isFailure(result)) {
         const squashed = Cause.squash(result.cause)
@@ -285,7 +282,9 @@ const renderAtomResource = function<A, E, const Preserve extends boolean = false
     readonly preserveResult?: Preserve | undefined
   }
 ) {
-  let resource: ReturnType<typeof createAtomResource>[0] | undefined
+  let resource:
+    | Resource<Preserve extends true ? (AsyncResult.Success<A, E> | AsyncResult.Failure<A, E>) : A>
+    | undefined
   const dispose = createRoot((dispose) => {
     ;[resource] = createAtomResource(atom, options)
     createEffect(() => {
