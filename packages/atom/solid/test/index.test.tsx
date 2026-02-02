@@ -4,12 +4,14 @@ import * as Effect from "effect/Effect"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
+import type { Accessor } from "solid-js"
 import { createComponent, createEffect, createRoot } from "solid-js"
 import {
   createAtom,
   createAtomInitialValues,
   createAtomRef,
   createAtomRefProp,
+  createAtomRefPropValue,
   createAtomValue,
   RegistryContext
 } from "../src/index.ts"
@@ -17,6 +19,16 @@ import {
 const renderAtomRef = function<A>(ref: AtomRef.ReadonlyRef<A>, onValue: (_: A) => void) {
   return createRoot((dispose) => {
     const accessor = createAtomRef(ref)
+    createEffect(() => {
+      onValue(accessor())
+    })
+    return dispose
+  })
+}
+
+const renderAccessor = function<A>(makeAccessor: () => Accessor<A>, onValue: (_: A) => void) {
+  return createRoot((dispose) => {
+    const accessor = makeAccessor()
     createEffect(() => {
       onValue(accessor())
     })
@@ -180,7 +192,7 @@ describe("atom-solid", () => {
       Effect.sync(() => {
         const ref = AtomRef.make({ count: 0, label: "a" })
         let observed: number | undefined
-        const dispose = renderAtomRef(createAtomRefProp(ref, "count"), (value) => {
+        const dispose = renderAccessor(() => createAtomRefPropValue(ref, "count"), (value) => {
           observed = value
         })
         assert.strictEqual(observed, 0)
