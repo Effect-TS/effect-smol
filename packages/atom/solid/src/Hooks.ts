@@ -33,24 +33,12 @@ export const createAtomInitialValues = (initialValues: Iterable<readonly [Atom.A
   }
 }
 
-const storeRegistry = new WeakMap<AtomRegistry.AtomRegistry, WeakMap<Atom.Atom<any>, Accessor<any>>>()
-
 function createStore<A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): Accessor<A> {
-  let stores = storeRegistry.get(registry)
-  if (stores === undefined) {
-    stores = new WeakMap()
-    storeRegistry.set(registry, stores)
-  }
-  const store = stores.get(atom)
-  if (store !== undefined) {
-    return store
-  }
   const [value, setValue] = createSignal<A>(registry.get(atom))
   createEffect(() => {
     const dispose = registry.subscribe(atom, (next) => setValue(() => next))
     onCleanup(dispose)
   })
-  stores.set(atom, value)
   return value
 }
 
@@ -64,8 +52,8 @@ export const createAtomValue: {
 } = <A>(atom: Atom.Atom<A>, f?: (_: A) => A): Accessor<A> => {
   const registry = useContext(RegistryContext)
   if (f) {
-    const atomB = createMemo(() => Atom.map(atom, f))
-    return createMemo(() => createStore(registry, atomB())())
+    const store = createMemo(() => createStore(registry, Atom.map(atom, f)))
+    return () => store()()
   }
   return createStore(registry, atom)
 }
