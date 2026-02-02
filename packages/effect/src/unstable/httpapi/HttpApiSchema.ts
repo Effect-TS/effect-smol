@@ -43,12 +43,6 @@ declare module "../../Schema.ts" {
        * @internal
        */
       readonly "~httpApiEncoding"?: Encoding | undefined
-      /**
-       * Whether the schema is a container.
-       * This is used to represent a union of schemas with different encodings.
-       * @internal
-       */
-      readonly "~httpApiIsContainer"?: boolean | undefined
     }
   }
 }
@@ -338,29 +332,9 @@ export function asUint8Array(options?: {
     asNonMultipartEncoding(self, { _tag: "Uint8Array", ...options })
 }
 
-/** @internal */
-export function forEach(schema: Schema.Top, f: (schema: Schema.Top) => void): void {
-  if (isHttpApiContainer(schema)) {
-    for (const member of schema.members) {
-      f(member)
-    }
-  } else {
-    f(schema)
-  }
-}
-
-/** @internal */
-export function getSchemas(schema: Schema.Top): Set<Schema.Top> {
-  const schemas = new Set<Schema.Top>()
-  forEach(schema, (schema) => schemas.add(schema))
-  return schemas
-}
-
 const resolveHttpApiEncoding = AST.resolveAt<Encoding>("~httpApiEncoding")
 
 const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
-
-const resolveHttpApiIsContainer = AST.resolveAt<boolean>("~httpApiIsContainer")
 
 /** @internal */
 export function isNoContent(ast: AST.AST): boolean {
@@ -406,13 +380,6 @@ export function getStatusError(self: AST.AST): number {
 }
 
 /** @internal */
-export function isHttpApiContainer(schema: Schema.Top): schema is Schema.Union<ReadonlyArray<Schema.Top>> {
-  const ast = schema.ast
-  return AST.isUnion(ast) && resolveHttpApiIsContainer(ast) === true
-}
-
-/** @internal */
-export function makeHttpApiContainer(schemas: ReadonlyArray<Schema.Top>): Schema.Top {
-  schemas = [...new Set(schemas)] // unique
-  return schemas.length === 1 ? schemas[0] : Schema.Union(schemas).annotate({ "~httpApiIsContainer": true })
+export function Union(schemas: readonly [Schema.Top, ...Array<Schema.Top>]): Schema.Top {
+  return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }

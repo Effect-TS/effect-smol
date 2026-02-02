@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../../Array.ts"
 import type { Brand } from "../../Brand.ts"
 import type { Effect } from "../../Effect.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
@@ -161,40 +162,20 @@ export function getHeadersSchema(endpoint: AnyWithProps): Schema.Top | undefined
 }
 
 /** @internal */
-export function getPayloadSchema(endpoint: AnyWithProps): Schema.Top | undefined {
-  const schemas = Array.from(endpoint.payload)
-  switch (schemas.length) {
-    case 0:
-      return undefined
-    case 1:
-      return schemas[0]
-    default:
-      return HttpApiSchema.makeHttpApiContainer(schemas)
-  }
+export function getPayloadSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
+  return Array.from(endpoint.payload)
 }
 
 /** @internal */
-export function getSuccessSchema(endpoint: AnyWithProps): Schema.Top {
+export function getSuccessSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<Schema.Top>] {
   const schemas = Array.from(endpoint.success)
-  switch (schemas.length) {
-    case 0:
-      return HttpApiSchema.NoContent
-    case 1:
-      return schemas[0]
-    default:
-      return HttpApiSchema.makeHttpApiContainer(schemas)
-  }
+  return Arr.isArrayNonEmpty(schemas) ? schemas : [HttpApiSchema.NoContent]
 }
 
 /** @internal */
-export function getErrorSchema(endpoint: AnyWithProps): Schema.Top {
+export function getErrorSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<Schema.Top>] {
   const schemas = Array.from(endpoint.error)
-  switch (schemas.length) {
-    case 0:
-      return HttpApiSchemaError
-    default:
-      return HttpApiSchema.makeHttpApiContainer([...schemas, HttpApiSchemaError])
-  }
+  return Arr.append(schemas, HttpApiSchemaError)
 }
 
 /**

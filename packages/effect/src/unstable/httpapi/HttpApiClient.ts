@@ -200,16 +200,15 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         const encodePath = Schema.encodeUnknownEffect(
           getEncodePathParamsSchema(HttpApiEndpoint.getPathParamsSchema(endpoint))
         )
-        const encodePayloadBody = HttpApiEndpoint.getPayloadSchema(endpoint)?.pipe(
-          (schema) => {
-            if (HttpMethod.hasBody(endpoint.method)) {
-              return Schema.encodeUnknownEffect(getEncodePayloadSchema(schema))
-            } else {
-              // urlParams
-              return Schema.encodeUnknownEffect(schema)
-            }
-          }
-        )
+        const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
+        const encodePayloadBody = Arr.isArrayNonEmpty(payloadSchemas) ?
+          HttpMethod.hasBody(endpoint.method)
+            ? Schema.encodeUnknownEffect(getEncodePayloadSchema(payloadSchemas))
+            : Schema.encodeUnknownEffect(
+              HttpApiSchema.Union(payloadSchemas)
+            ) :
+          undefined
+
         const encodeHeaders = getEncodeHeadersSchema(HttpApiEndpoint.getHeadersSchema(endpoint)).pipe(
           Schema.encodeUnknownEffect
         )
@@ -550,9 +549,8 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 
 const HttpBodySchema = Schema.declare(HttpBody.isHttpBody)
 
-function getEncodePayloadSchema(schema: Schema.Top): Schema.Top {
-  const schemas = Array.from(HttpApiSchema.getSchemas(schema), getEncodePayloadSchemaFromBody)
-  return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
+function getEncodePayloadSchema(schemas: readonly [Schema.Top, ...Array<Schema.Top>]): Schema.Top {
+  return HttpApiSchema.Union(Arr.map(schemas, getEncodePayloadSchemaFromBody))
 }
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()

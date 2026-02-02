@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Base64 from "../../encoding/Base64.ts"
@@ -68,7 +69,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   | HttpApiGroup.ToService<Id, Groups>
   | HttpApiGroup.ErrorServicesEncode<Groups>
 > => {
-  const ApiErrorHandler = HttpRouter.middleware(makeErrorHandler(api)).layer as Layer.Layer<never>
+  const ApiErrorHandler = HttpRouter.middleware(makeErrorHandler(api)).layer as any as Layer.Layer<never>
   return HttpRouter.use(Effect.fnUntraced(function*(router) {
     const services = yield* Effect.services<
       | Etag.Generator
@@ -383,7 +384,7 @@ const makeErrorHandler: <Id extends string, Groups extends HttpApiGroup.Any>(
 ) => Effect.Effect<
   (
     effect: Effect.Effect<HttpServerResponse, unknown>
-  ) => Effect.Effect<HttpServerResponse, unknown, never>
+  ) => Effect.Effect<HttpServerResponse, unknown, unknown>
 > = Effect.fnUntraced(function*<
   Id extends string,
   Groups extends HttpApiGroup.Any
@@ -461,7 +462,8 @@ const handlerToRoute = (
   services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
-  const payload = HttpApiEndpoint.getPayloadSchema(endpoint)
+  const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
+  const payload = Arr.isArrayNonEmpty(payloadSchemas) ? HttpApiSchema.Union(payloadSchemas) : undefined
   const encoding = payload?.pipe(({ ast }) => HttpApiSchema.getRequestEncoding(ast))
   const isMultipartStream = encoding?._tag === "Multipart" && encoding.mode === "stream"
   const multipartLimits = encoding?._tag === "Multipart" ? encoding.limits : undefined
@@ -470,7 +472,7 @@ const handlerToRoute = (
     ? undefined
     : UndefinedOr.map(payload, Schema.decodeUnknownEffect)
   const decodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.decodeUnknownEffect)
-  const encodeSuccess = Schema.encodeEffect(makeSuccessSchema(HttpApiEndpoint.getSuccessSchema(endpoint)))
+  const encodeSuccess = Schema.encodeEffect(makeSuccessSchema(endpoint))
   return HttpRouter.route(
     endpoint.method,
     endpoint.path as HttpRouter.PathInput,
@@ -627,23 +629,22 @@ const HttpServerResponseSchema = Schema.declare(Response.isHttpServerResponse)
 const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
 const toResponseErrorSchema = toResponseSchema(HttpApiSchema.getStatusError)
 
-function makeSuccessSchema(schema: Schema.Top): Schema.Codec<unknown, HttpServerResponse> {
-  const schemas = HttpApiSchema.getSchemas(schema)
-  return Schema.Union(Array.from(schemas, toResponseSuccessSchema)) as any
+function makeSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
+  return Schema.Union(HttpApiEndpoint.getSuccessSchemas(endpoint).map(toResponseSuccessSchema))
 }
 
-function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Codec<unknown, HttpServerResponse> {
+function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
   const schemas = new Set<Schema.Top>([HttpApiSchemaError])
   for (const group of Object.values(api.groups)) {
     for (const endpoint of Object.values(group.endpoints)) {
-      HttpApiSchema.forEach(HttpApiEndpoint.getErrorSchema(endpoint), (schema) => schemas.add(schema))
+      HttpApiEndpoint.getErrorSchemas(endpoint).forEach((schema) => schemas.add(schema))
       for (const middleware of endpoint.middlewares) {
         const key = middleware as any as HttpApiMiddleware.AnyKey
-        HttpApiSchema.forEach(key.error, (schema) => schemas.add(schema))
+        schemas.add(key.error)
       }
     }
   }
-  return Schema.Union(Array.from(schemas, toResponseErrorSchema)) as any
+  return Schema.Union(Array.from(schemas, toResponseErrorSchema))
 }
 
 function toResponseSchema(getStatus: (ast: AST.AST) => number) {

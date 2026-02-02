@@ -412,13 +412,8 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       const hasBody = HttpMethod.hasBody(endpoint.method)
       if (hasBody) {
-        const payloadSchema = HttpApiEndpoint.getPayloadSchema(endpoint)
         processRequestBodies(
-          extractRequestBodies(
-            payloadSchema !== undefined ?
-              HttpApiSchema.getSchemas(payloadSchema) :
-              undefined
-          )
+          extractRequestBodies(HttpApiEndpoint.getPayloadSchemas(endpoint))
         )
       }
 
@@ -433,7 +428,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       processResponseBodies(
         extractResponseBodies(
-          HttpApiSchema.getSchemas(HttpApiEndpoint.getSuccessSchema(endpoint)),
+          HttpApiEndpoint.getSuccessSchemas(endpoint),
           HttpApiSchema.getStatusSuccess,
           resolveDescriptionOrIdentifier
         ),
@@ -441,7 +436,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       )
       processResponseBodies(
         extractResponseBodies(
-          HttpApiSchema.getSchemas(HttpApiEndpoint.getErrorSchema(endpoint)),
+          HttpApiEndpoint.getErrorSchemas(endpoint),
           HttpApiSchema.getStatusError,
           resolveDescriptionOrIdentifier
         ),
@@ -534,8 +529,6 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   return spec
 }
 
-const emptyMap = new Map()
-
 type ResponseBodies = Map<
   number, // status
   {
@@ -545,7 +538,7 @@ type ResponseBodies = Map<
 >
 
 function extractResponseBodies(
-  schemas: ReadonlySet<Schema.Top>,
+  schemas: readonly [Schema.Top, ...Array<Schema.Top>],
   getStatus: (ast: AST.AST) => number,
   getDescription: (ast: AST.AST) => string | undefined
 ): ResponseBodies {
@@ -626,11 +619,7 @@ type Content = Map<
   >
 >
 
-function extractRequestBodies(schemas: ReadonlySet<Schema.Top> | undefined): Content {
-  if (schemas === undefined) {
-    return emptyMap
-  }
-
+function extractRequestBodies(schemas: ReadonlyArray<Schema.Top>): Content {
   const map = new Map<HttpApiSchema.Encoding["_tag"], Map<string, Set<Schema.Top>>>()
 
   schemas.forEach(process)

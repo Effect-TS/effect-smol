@@ -242,8 +242,14 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
         endpoint,
         middleware: endpoint.middlewares as any,
         mergedAnnotations: ServiceMap.merge(groupAnnotations, endpoint.annotations),
-        successes: extractResponseContent(HttpApiEndpoint.getSuccessSchema(endpoint), HttpApiSchema.getStatusSuccess),
-        errors: extractResponseContent(HttpApiEndpoint.getErrorSchema(endpoint), HttpApiSchema.getStatusError)
+        successes: extractResponseContent(
+          HttpApiEndpoint.getSuccessSchemas(endpoint),
+          HttpApiSchema.getStatusSuccess
+        ),
+        errors: extractResponseContent(
+          HttpApiEndpoint.getErrorSchemas(endpoint),
+          HttpApiSchema.getStatusError
+        )
       })
     }
   }
@@ -256,7 +262,7 @@ function resolveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
 }
 
 const extractResponseContent = (
-  schema: Schema.Top,
+  schemas: readonly [Schema.Top, ...Array<Schema.Top>],
   getStatus: (ast: AST.AST) => number
 ): ReadonlyMap<number, {
   readonly content: ReadonlySet<Schema.Top>
@@ -267,7 +273,7 @@ const extractResponseContent = (
     description: string | undefined
   }>()
 
-  HttpApiSchema.forEach(schema, add)
+  schemas.forEach(add)
 
   return map
 
@@ -285,7 +291,7 @@ const extractResponseContent = (
         content: isUndecodableNoContent ? new Set([]) : new Set([schema])
       })
     } else {
-      pair.description = [pair.description, description].filter(Boolean).join(" | ")
+      pair.description = [pair.description, description].filter(Predicate.isNotUndefined).join(" | ")
       if (!isUndecodableNoContent) {
         pair.content.add(schema)
       }
