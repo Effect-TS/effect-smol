@@ -2,6 +2,7 @@
   "$schema": "../../../node_modules/@effect/docgen/schema.json",
   "projectHomepage": "https://effect-ts.github.io/effect/docs/atom-solid",
   "srcLink": "https://github.com/Effect-TS/effect/tree/main/packages/atom/solid/src/",
+  "enforceVersion": true,
   "exclude": ["src/internal/**/*.ts"],
   "examplesCompilerOptions": {
     "noEmit": true,
