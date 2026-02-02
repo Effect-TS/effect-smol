@@ -6,6 +6,7 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
+import type * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 import type { Accessor } from "solid-js"
 import { createEffect, createMemo, createSignal, onCleanup, useContext } from "solid-js"
@@ -197,3 +198,38 @@ export const createAtomSubscribe = <A>(
     onCleanup(dispose)
   })
 }
+
+/**
+ * @since 1.0.0
+ * @category hooks
+ */
+export const createAtomRef = <A>(ref: AtomRef.ReadonlyRef<A>): Accessor<A> => {
+  const [value, setValue] = createSignal(ref.value)
+  let tracked = false
+  const accessor = () => {
+    tracked = true
+    return value()
+  }
+  createEffect(() => {
+    if (!tracked) {
+      return
+    }
+    const dispose = ref.subscribe((next) => setValue(() => next))
+    onCleanup(dispose)
+  })
+  return accessor
+}
+
+/**
+ * @since 1.0.0
+ * @category hooks
+ */
+export const createAtomRefProp = <A, K extends keyof A>(ref: AtomRef.AtomRef<A>, prop: K): AtomRef.AtomRef<A[K]> =>
+  ref.prop(prop)
+
+/**
+ * @since 1.0.0
+ * @category hooks
+ */
+export const createAtomRefPropValue = <A, K extends keyof A>(ref: AtomRef.AtomRef<A>, prop: K): Accessor<A[K]> =>
+  createAtomRef(createAtomRefProp(ref, prop))
