@@ -26,8 +26,9 @@ access the archived repository here:
 
 \`.repos/effect-atom-old\`
 
-To learn more about SolidJS, you can access the source code here:
+To learn more about "solid-js", you can access the source code here:
 
 \`.repos/solid\`
-Do not use node_modules to lear about the above projects.
+	
+Do not use node_modules to learn about the above projects.
 EOF
