@@ -35,19 +35,13 @@ export const RegistryProvider = (options: {
   readonly timeoutResolution?: number | undefined
   readonly defaultIdleTTL?: number | undefined
 }) => {
-  let timeout: ReturnType<typeof setTimeout> | undefined
   const registry = AtomRegistry.make({
     scheduleTask: options.scheduleTask ?? scheduleTask,
     initialValues: options.initialValues,
     timeoutResolution: options.timeoutResolution,
     defaultIdleTTL: options.defaultIdleTTL
   })
-  onCleanup(() => {
-    if (timeout !== undefined) {
-      clearTimeout(timeout)
-    }
-    timeout = setTimeout(() => registry.dispose(), 500)
-  })
+  onCleanup(() => registry.dispose())
   return createComponent(RegistryContext.Provider, {
     value: registry,
     get children() {
