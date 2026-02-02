@@ -1,16 +1,17 @@
 /** @jsxImportSource solid-js */
 import { assert, describe, it } from "@effect/vitest"
+import * as Effect from "effect/Effect"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
-import type { Accessor } from "solid-js"
-import { createComponent, createEffect, createRoot } from "solid-js"
+import { type Accessor, createComponent, createEffect, createRoot, ErrorBoundary } from "solid-js"
 import {
   createAtom,
   createAtomInitialValues,
   createAtomRef,
   createAtomRefProp,
   createAtomRefPropValue,
+  createAtomSuspense,
   createAtomValue,
   RegistryContext
 } from "../src/index.ts"
@@ -188,6 +189,61 @@ describe("atom-solid", () => {
       assert.strictEqual(observed, 0)
       ref.set({ count: 2, label: "a" })
       assert.strictEqual(observed, 2)
+      dispose()
+    })
+  })
+
+  describe("createAtomSuspense", () => {
+    it("suspends until AsyncResult succeeds", () => {
+      const registry = AtomRegistry.make()
+      const atom = Atom.make(Effect.never)
+      let observed: string | undefined
+      const dispose = createRoot((dispose) => {
+        createComponent(RegistryContext.Provider, {
+          value: registry,
+          get children() {
+            try {
+              createAtomSuspense(atom)
+            } catch (error) {
+              if (error instanceof Promise) {
+                observed = "Loading..."
+                return null
+              }
+              throw error
+            }
+            observed = "Ready"
+            return null
+          }
+        })
+        return dispose
+      })
+      assert.strictEqual(observed, "Loading...")
+      dispose()
+    })
+
+    it("throws failures to ErrorBoundary", () => {
+      const registry = AtomRegistry.make()
+      const atom = Atom.make(Effect.fail(new Error("test")))
+      let observed: string | undefined
+      const dispose = createRoot((dispose) => {
+        createComponent(RegistryContext.Provider, {
+          value: registry,
+          get children() {
+            return createComponent(ErrorBoundary, {
+              fallback: () => {
+                observed = "Error"
+                return null
+              },
+              get children() {
+                createAtomSuspense(atom)
+                return null
+              }
+            })
+          }
+        })
+        return dispose
+      })
+      assert.strictEqual(observed, "Error")
       dispose()
     })
   })
