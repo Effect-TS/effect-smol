@@ -10,7 +10,7 @@ import * as Atom from "effect/unstable/reactivity/Atom"
 import type * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 import type { Accessor, ResourceReturn } from "solid-js"
-import { createEffect, createResource, createSignal, onCleanup, useContext } from "solid-js"
+import { createResource, createSignal, onCleanup, useContext } from "solid-js"
 import { RegistryContext } from "./RegistryContext.ts"
 
 const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<Atom.Atom<any>>>()
@@ -34,15 +34,6 @@ export const createAtomInitialValues = (initialValues: Iterable<readonly [Atom.A
   }
 }
 
-function createAtomAccessor<A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): Accessor<A> {
-  const [value, setValue] = createSignal<A>(registry.get(atom))
-  createEffect(() => {
-    const dispose = registry.subscribe(atom, (next) => setValue(() => next))
-    onCleanup(dispose)
-  })
-  return value
-}
-
 /**
  * @since 1.0.0
  * @category hooks
@@ -55,9 +46,14 @@ export const createAtomValue: {
   return createAtomAccessor(registry, f ? Atom.map(atom, f) : atom)
 }
 
+function createAtomAccessor<A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): Accessor<A> {
+  const [value, setValue] = createSignal<A>(registry.get(atom))
+  onCleanup(registry.subscribe(atom, setValue as any))
+  return value
+}
+
 function mountAtom<A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): void {
-  const dispose = registry.mount(atom)
-  onCleanup(dispose)
+  onCleanup(registry.mount(atom))
 }
 
 function setAtom<R, W, Mode extends "value" | "promise" | "promiseExit" = never>(
@@ -137,9 +133,7 @@ export const createAtomSet = <
 export const createAtomRefresh = <A>(atom: Atom.Atom<A>): () => void => {
   const registry = useContext(RegistryContext)
   mountAtom(registry, atom)
-  return () => {
-    registry.refresh(atom)
-  }
+  return () => registry.refresh(atom)
 }
 
 /**
@@ -205,10 +199,7 @@ export const createAtomSubscribe = <A>(
   options?: { readonly immediate?: boolean }
 ): void => {
   const registry = useContext(RegistryContext)
-  createEffect(() => {
-    const dispose = registry.subscribe(atom, f, options)
-    onCleanup(dispose)
-  })
+  onCleanup(registry.subscribe(atom, f, options))
 }
 
 /**
@@ -217,10 +208,7 @@ export const createAtomSubscribe = <A>(
  */
 export const createAtomRef = <A>(ref: AtomRef.ReadonlyRef<A>): Accessor<A> => {
   const [value, setValue] = createSignal(ref.value)
-  createEffect(() => {
-    const dispose = ref.subscribe(setValue)
-    onCleanup(dispose)
-  })
+  onCleanup(ref.subscribe(setValue))
   return value
 }
 
