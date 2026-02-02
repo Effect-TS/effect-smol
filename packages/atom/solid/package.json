@@ -1,6 +1,6 @@
 {
   "name": "@effect/atom-solid",
-  "version": "0.38.1",
+  "version": "0.0.0",
   "type": "module",
   "license": "MIT",
   "description": "SolidJS bindings for the Effect Atom modules",
@@ -49,7 +49,6 @@
     }
   },
   "scripts": {
-    "codegen": "effect-utils codegen",
     "build": "tsc -b tsconfig.json && pnpm babel",
     "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
@@ -57,11 +56,11 @@
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
-  "devDependencies": {
+  "peerDependencies": {
     "effect": "workspace:^",
     "solid-js": ">=1 <2"
   },
-  "peerDependencies": {
+  "devDependencies": {
     "@solidjs/testing-library": "^0.8.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",

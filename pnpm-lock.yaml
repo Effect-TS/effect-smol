@@ -58,9 +58,6 @@ importers:
       '@rollup/plugin-terser':
         specifier: ^0.4.4
         version: 0.4.4(rollup@4.57.1)
-      '@solidjs/testing-library':
-        specifier: ^0.8.0
-        version: 0.8.10(solid-js@1.9.11)
       '@types/jscodeshift':
         specifier: ^17.3.0
         version: 17.3.0
@@ -198,7 +195,7 @@ importers:
         version: 0.27.0
 
   packages/atom/solid:
-    dependencies:
+    devDependencies:
       '@solidjs/testing-library':
         specifier: ^0.8.0
         version: 0.8.10(solid-js@1.9.11)
@@ -208,15 +205,14 @@ importers:
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
-      jsdom:
-        specifier: ^27.1.0
-        version: 27.4.0
-    devDependencies:
       effect:
         specifier: workspace:^
         version: link:../../effect
+      jsdom:
+        specifier: ^27.1.0
+        version: 27.4.0
       solid-js:
-        specifier: '>=1 <2'
+        specifier: ^1.9.0
         version: 1.9.11
 
   packages/atom/vue:
