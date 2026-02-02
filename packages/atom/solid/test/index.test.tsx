@@ -162,7 +162,7 @@ describe("atom-solid", () => {
     })
 
     it("returns success value by default", async () => {
-      const atom = Atom.make(AsyncResult.success(5))
+      const atom = Atom.make(AsyncResult.success(5, { waiting: true }))
       const { resource, dispose } = renderAtomResource(atom)
       await Promise.resolve()
       await Promise.resolve()
