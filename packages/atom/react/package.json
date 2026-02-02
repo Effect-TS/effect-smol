@@ -56,12 +56,12 @@
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
-  "devDependencies": {
+  "peerDependencies": {
     "effect": "workspace:^",
     "react": "^19.2.4",
     "scheduler": "*"
   },
-  "peerDependencies": {
+  "devDependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
