@@ -1199,12 +1199,10 @@ const isTransientHttpError = (error: unknown) =>
   (error.reason._tag === "TransportError" ||
     (error.reason._tag === "StatusCodeError" && isTransientResponse(error.reason.response)))
 
-const transientStatuses = new Set([
-  408,
-  429,
-  500,
-  502,
-  503,
-  504
-])
-const isTransientResponse = (response: HttpClientResponse.HttpClientResponse) => transientStatuses.has(response.status)
+const isTransientResponse = (response: HttpClientResponse.HttpClientResponse) =>
+  response.status === 408 ||
+  response.status === 429 ||
+  response.status === 500 ||
+  response.status === 502 ||
+  response.status === 503 ||
+  response.status === 504
