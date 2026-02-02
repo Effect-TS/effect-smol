@@ -224,26 +224,30 @@ describe("atom-solid", () => {
     it("throws failures to ErrorBoundary", () => {
       const registry = AtomRegistry.make()
       const atom = Atom.make(Effect.fail(new Error("test")))
-      let observed: string | undefined
+      let observed: unknown
+      const TestComponent = () => {
+        createAtomSuspense(atom)
+        return null
+      }
       const dispose = createRoot((dispose) => {
         createComponent(RegistryContext.Provider, {
           value: registry,
           get children() {
             return createComponent(ErrorBoundary, {
-              fallback: () => {
-                observed = "Error"
+              fallback: (error) => {
+                observed = error
                 return null
               },
               get children() {
-                createAtomSuspense(atom)
-                return null
+                return createComponent(TestComponent, {})
               }
             })
           }
         })
         return dispose
       })
-      assert.strictEqual(observed, "Error")
+      assert.instanceOf(observed, Error)
+      assert.strictEqual((observed as Error).message, "test")
       dispose()
     })
   })
