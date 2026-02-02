@@ -8,7 +8,7 @@ import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 import type { Accessor } from "solid-js"
-import { createMemo, createSignal, onCleanup, useContext } from "solid-js"
+import { createEffect, createMemo, createSignal, onCleanup, useContext } from "solid-js"
 import { RegistryContext } from "./RegistryContext.ts"
 
 const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<Atom.Atom<any>>>()
@@ -32,10 +32,24 @@ export const createAtomInitialValues = (initialValues: Iterable<readonly [Atom.A
   }
 }
 
+const storeRegistry = new WeakMap<AtomRegistry.AtomRegistry, WeakMap<Atom.Atom<any>, Accessor<any>>>()
+
 function createStore<A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): Accessor<A> {
+  let stores = storeRegistry.get(registry)
+  if (stores === undefined) {
+    stores = new WeakMap()
+    storeRegistry.set(registry, stores)
+  }
+  const store = stores.get(atom)
+  if (store !== undefined) {
+    return store
+  }
   const [value, setValue] = createSignal<A>(registry.get(atom))
-  const dispose = registry.subscribe(atom, (next) => setValue(() => next))
-  onCleanup(dispose)
+  createEffect(() => {
+    const dispose = registry.subscribe(atom, (next) => setValue(() => next))
+    onCleanup(dispose)
+  })
+  stores.set(atom, value)
   return value
 }
 
@@ -50,7 +64,7 @@ export const createAtomValue: {
   const registry = useContext(RegistryContext)
   if (f) {
     const atomB = createMemo(() => Atom.map(atom, f))
-    return createStore(registry, atomB())
+    return createMemo(() => createStore(registry, atomB())())
   }
   return createStore(registry, atom)
 }
@@ -178,6 +192,8 @@ export const createAtomSubscribe = <A>(
   options?: { readonly immediate?: boolean }
 ): void => {
   const registry = useContext(RegistryContext)
-  const dispose = registry.subscribe(atom, f, options)
-  onCleanup(dispose)
+  createEffect(() => {
+    const dispose = registry.subscribe(atom, f, options)
+    onCleanup(dispose)
+  })
 }
