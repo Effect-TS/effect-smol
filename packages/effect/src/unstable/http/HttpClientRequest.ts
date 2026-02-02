@@ -360,17 +360,17 @@ export const setUrl: {
 export const prependUrl: {
   (path: string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, path: string): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, path: string): HttpClientRequest =>
-  makeProto(
+} = dual(2, (self: HttpClientRequest, path: string): HttpClientRequest => {
+  if (path === "") return self
+  return makeProto(
     self.method,
-    path.endsWith("/") && self.url.startsWith("/") ?
-      path + self.url.slice(1) :
-      path + self.url,
+    joinSegments(path, self.url),
     self.urlParams,
     self.hash,
     self.headers,
     self.body
-  ))
+  )
+})
 
 /**
  * @since 4.0.0
@@ -380,27 +380,28 @@ export const appendUrl: {
   (path: string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, path: string): HttpClientRequest
 } = dual(2, (self: HttpClientRequest, path: string): HttpClientRequest => {
-  if (path === "") {
-    return self
-  }
-  const endsWithSlash = self.url.endsWith("/")
-  const startsWithSlash = path.startsWith("/")
-  const needsTrim = endsWithSlash && startsWithSlash
-  const needsSlash = !endsWithSlash && !startsWithSlash
-  const url = needsTrim ?
-    self.url + path.slice(1) :
-    needsSlash ?
-    self.url + "/" + path :
-    self.url + path
+  if (path === "") return self
   return makeProto(
     self.method,
-    url,
+    joinSegments(self.url, path),
     self.urlParams,
     self.hash,
     self.headers,
     self.body
   )
 })
+
+const joinSegments = (first: string, second: string): string => {
+  const endsWithSlash = first.endsWith("/")
+  const startsWithSlash = second.startsWith("/")
+  const needsTrim = endsWithSlash && startsWithSlash
+  const needsSlash = !endsWithSlash && !startsWithSlash
+  return needsTrim ?
+    first + second.slice(1) :
+    needsSlash ?
+    first + "/" + second :
+    first + second
+}
 
 /**
  * @since 4.0.0
