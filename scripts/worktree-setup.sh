@@ -25,12 +25,4 @@ If you need to learn more about the old version of effect atom, you can
 access the archived repository here:
 
 \`.repos/effect-atom-old\`
-
-## Learning more about "solid-js"
-
-To learn more about "solid-js", you can access the source code here:
-
-\`.repos/solid\`
-	
-**Do not use node_modules to learn more about solid.**
 EOF
