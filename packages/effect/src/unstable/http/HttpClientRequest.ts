@@ -380,8 +380,13 @@ export const appendUrl: {
   (path: string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, path: string): HttpClientRequest
 } = dual(2, (self: HttpClientRequest, path: string): HttpClientRequest => {
-  const needsTrim = self.url.endsWith("/") && path.startsWith("/")
-  const needsSlash = !self.url.endsWith("/") && !path.startsWith("/")
+  if (path === "") {
+    return self
+  }
+  const endsWithSlash = self.url.endsWith("/")
+  const startsWithSlash = path.startsWith("/")
+  const needsTrim = endsWithSlash && startsWithSlash
+  const needsSlash = !endsWithSlash && !startsWithSlash
   const url = needsTrim ?
     self.url + path.slice(1) :
     needsSlash ?

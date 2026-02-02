@@ -35,5 +35,13 @@ describe("HttpClientRequest", () => {
 
       strictEqual(request.url, "base/users")
     })
+
+    it("no-ops on empty path", () => {
+      const request = HttpClientRequest.get("base").pipe(
+        HttpClientRequest.appendUrl("")
+      )
+
+      strictEqual(request.url, "base")
+    })
   })
 })
