@@ -31,6 +31,95 @@ Benefits of a Single API Definition:
 - **Reduced Maintenance**: Changes to the API are reflected across all related components.
 - **Simplified Workflow**: Avoids duplication by consolidating API details in one place.
 
+## Design Principles
+
+- **Schemas first**: Everything about an endpoint (inputs and outputs) is described using `Schema`.
+- **Metadata lives on schemas**: Things like HTTP status codes, encodings, and content types are configured by annotating schemas.
+
+In particular:
+
+- **Request**
+  - **Payload encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
+    - `asJson` (default)
+    - `asUrlParams`
+    - `asText`
+    - `asUint8Array`
+    - `asMultipart`
+    - `asMultipartStream`
+- **Response**
+  - **Status code** is set via the `httpApiStatus` annotation
+  - **Encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
+    - `asJson` (default)
+    - `asUrlParams`
+    - `asText`
+    - `asUint8Array`
+
+### Anatomy of an Endpoint
+
+An endpoint definition can include (all optional) path parameters, query string parameters, headers, a payload, and the possible success / error responses.
+
+```ts
+const User = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String
+})
+
+//                     ┌─── Endpoint name (used in the client as the method name)
+//                     │            ┌─── Endpoint path
+//                     ▼            ▼
+HttpApiEndpoint.patch("updateUser", "/user/:id", {
+  // an optional record of path parameters and their schemas
+  pathParams: {
+    //  ┌─── schema for the "id" path parameter
+    //  ▼
+    id: Schema.String
+  },
+
+  // an optional record of query string parameters (?key=value) and their schemas
+  urlParams: {
+    //    ┌─── schema for the "mode" url parameter
+    //    ▼
+    mode: Schema.Literal("merge", "replace")
+  },
+
+  // an optional record of request headers and their schemas
+  headers: {
+    "x-api-key": Schema.String,
+    "x-request-id": Schema.String
+  },
+
+  // an optional schema for the request payload
+  // default is no payload, and the default encoding is JSON
+  payload: Schema.Struct({
+    name: Schema.String
+  }),
+
+  // possible success responses (status codes / encodings come from schema annotations)
+  // default is 200 OK with JSON encoding
+  success: [User],
+
+  // possible error responses
+  // default is 500 Internal Server Error with JSON encoding
+  error: [Schema.String]
+})
+```
+
+### Issues
+
+- `payload` currently only supports a single schema
+- `urlParams` is not a standard name (many libraries call these `queryParams`)
+- no first-class way to describe cookies on endpoints (request/response)
+- can't replace the default `HttpApiSchemaError` with a custom error schema
+
+#### Maybe Issues
+
+- no way to set response headers without returning `HttpServerResponse`?
+- no way to describe redirects without returning `HttpServerResponse.redirect`?
+
+#### Client
+
+- when `payload` is encoded as url params (`asUrlParams`), it shares the same query string as `urlParams` (overlapping keys may produce repeated query parameters and can be ambiguous)
+
 ## Hello World
 
 ### Defining and Implementing an API
@@ -305,9 +394,8 @@ const Api = HttpApi.make("MyApi")
         // a GET endpoint with a path parameter ":id"
         HttpApiEndpoint.get("getUser", "/user/:id", {
           pathParams: {
-            //                   ┌─── schema for the "id" path parameter
-            //                   │
-            //                   ▼
+            //  ┌─── schema for the "id" path parameter
+            //  ▼
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User
@@ -2649,4 +2737,48 @@ http
   .on("close", () => {
     dispose()
   })
+```
+
+## Redirects
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpServerResponse } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("MyApi").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.get("newPage", "/new", {
+      success: Schema.String
+    }),
+    // Schema-wise this is just "no content" (redirect headers aren't modeled here)
+    HttpApiEndpoint.get("oldPage", "/old")
+  )
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers
+      .handle("newPage", () => Effect.succeed("You are on /new"))
+      .handle("oldPage", () =>
+        Effect.succeed(
+          HttpServerResponse.redirect("/new", { status: 302 })
+        ))
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(HttpApiScalar.layer(Api)),
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// curl "http://localhost:3000/old" -L
 ```
