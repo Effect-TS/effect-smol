@@ -176,7 +176,7 @@ export type AllPartsEncoded =
  *
  * const myToolkit = Toolkit.make(
  *   Tool.make("GetWeather", {
- *     parameters: { city: Schema.String },
+ *     parameters: Schema.Struct({ city: Schema.String }),
  *     success: Schema.Struct({ temperature: Schema.Number })
  *   })
  * )
@@ -417,8 +417,7 @@ export const StreamPart = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
  * @category utility types
  */
 export type ToolCallParts<Tools extends Record<string, Tool.Any>> = {
-  [Name in keyof Tools]: Name extends string ?
-    ToolCallPart<Name, Schema.Struct.Type<Tool.ParametersSchema<Tools[Name]>["fields"]>>
+  [Name in keyof Tools]: Name extends string ? ToolCallPart<Name, Tool.Parameters<Tools[Name]>>
     : never
 }[keyof Tools]
 
@@ -1342,9 +1341,7 @@ export const ToolParamsEndPart: Schema.Struct<{
  * @since 1.0.0
  * @category models
  */
-export interface ToolCallPart<Name extends string, Params extends Record<string, unknown>>
-  extends BasePart<"tool-call", ToolCallPartMetadata>
-{
+export interface ToolCallPart<Name extends string, Params> extends BasePart<"tool-call", ToolCallPartMetadata> {
   /**
    * Unique identifier for this tool call.
    */
@@ -1405,24 +1402,24 @@ export interface ToolCallPartMetadata extends ProviderMetadata {}
  * @since 1.0.0
  * @category schemas
  */
-export const ToolCallPart: <const Name extends string, Params extends Schema.Struct.Fields>(
+export const ToolCallPart: <const Name extends string, Params extends Schema.Top>(
   name: Name,
-  params: Schema.Struct<Params>
+  params: Params
 ) => Schema.Struct<
   {
     readonly type: Schema.Literal<"tool-call">
     readonly id: Schema.String
     readonly name: Schema.Literal<Name>
-    readonly params: Schema.Struct<Params>
+    readonly params: Params
     readonly providerExecuted: Schema.withDecodingDefaultKey<Schema.Boolean>
     readonly "~effect/ai/Content/Part": Schema.withDecodingDefaultKey<Schema.tag<"~effect/ai/Content/Part">>
     readonly metadata: Schema.withDecodingDefault<
       Schema.Record$<Schema.String, Schema.Codec<Schema.Json, Schema.Json>>
     >
   }
-> = <const Name extends string, Params extends Schema.Struct.Fields>(
+> = <const Name extends string, Params extends Schema.Top>(
   name: Name,
-  params: Schema.Struct<Params>
+  params: Params
 ) =>
   Schema.Struct({
     ...BasePart.fields,
@@ -1431,12 +1428,7 @@ export const ToolCallPart: <const Name extends string, Params extends Schema.Str
     name: Schema.Literal(name),
     params,
     providerExecuted: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(constFalse))
-  }).annotate({ identifier: "ToolCallPart" }) satisfies Schema.Codec<
-    ToolCallPart<Name, Schema.Struct.Type<Params>>,
-    ToolCallPartEncoded,
-    Schema.Struct.DecodingServices<Params>,
-    Schema.Struct.EncodingServices<Params>
-  >
+  }).annotate({ identifier: "ToolCallPart" }) as any
 
 /**
  * Constructs a new tool call part.
@@ -1444,7 +1436,7 @@ export const ToolCallPart: <const Name extends string, Params extends Schema.Str
  * @since 1.0.0
  * @category constructors
  */
-export const toolCallPart = <const Name extends string, Params extends Record<string, unknown>>(
+export const toolCallPart = <const Name extends string, Params>(
   params: ConstructorParams<ToolCallPart<Name, Params>>
 ): ToolCallPart<Name, Params> => makePart("tool-call", params)
 
@@ -2251,31 +2243,43 @@ export type FinishReason = typeof FinishReason.Type
  */
 export class Usage extends Schema.Class<Usage>("effect/ai/AiResponse/Usage")({
   /**
-   * The number of tokens sent in the request to the model.
+   * Information about input (i.e. prompt) token utilization.
    */
-  inputTokens: Schema.UndefinedOr(Schema.Number),
+  inputTokens: Schema.Struct({
+    /**
+     * The number of non-cached input (i.e. prompt) tokens used.
+     */
+    uncached: Schema.UndefinedOr(Schema.Number),
+    /**
+     * The total of number of input (i.e. prompt) tokens used.
+     */
+    total: Schema.UndefinedOr(Schema.Number),
+    /**
+     * The number of cached input (i.e. prompt) tokens read.
+     */
+    cacheRead: Schema.UndefinedOr(Schema.Number),
+    /**
+     * The number of cached input (i.e. prompt) tokens written.
+     */
+    cacheWrite: Schema.UndefinedOr(Schema.Number)
+  }),
   /**
-   * The number of tokens that the model generated for the request.
+   * Information about the output (i.e. response) tokens used.
    */
-  outputTokens: Schema.UndefinedOr(Schema.Number),
-  /**
-   * The total of number of input tokens and output tokens as reported by the
-   * large language model provider.
-   *
-   * **NOTE**: This value may differ from the sum of `inputTokens` and
-   * `outputTokens` due to inclusion of reasoning tokens or other
-   * provider-specific overhead.
-   */
-  totalTokens: Schema.UndefinedOr(Schema.Number),
-  /**
-   * The number of reasoning tokens that the model used to generate the output
-   * for the request.
-   */
-  reasoningTokens: Schema.optional(Schema.Number),
-  /**
-   * The number of input tokens read from the prompt cache for the request.
-   */
-  cachedInputTokens: Schema.optional(Schema.Number)
+  outputTokens: Schema.Struct({
+    /**
+     * The total of number of output (i.e. response) tokens used.
+     */
+    total: Schema.UndefinedOr(Schema.Number),
+    /**
+     * The number of text tokens used.
+     */
+    text: Schema.UndefinedOr(Schema.Number),
+    /**
+     * The number of reasoning tokens used.
+     */
+    reasoning: Schema.UndefinedOr(Schema.Number)
+  })
 }) {}
 
 /**

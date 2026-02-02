@@ -29,7 +29,7 @@ import * as Generated from "./Generated.ts"
 import * as InternalUtilities from "./internal/utilities.ts"
 import { OpenAiClient } from "./OpenAiClient.ts"
 import { addGenAIAnnotations } from "./OpenAiTelemetry.ts"
-import * as OpenAiTool from "./OpenAiTool.ts"
+import type * as OpenAiTool from "./OpenAiTool.ts"
 
 const ResponseModelIds = Generated.ModelIdsResponses.members[1]
 const SharedModelIds = Generated.ModelIdsShared.members[1]
@@ -343,11 +343,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 
   const makeConfig = Effect.gen(function*() {
     const services = yield* Effect.services<never>()
-    return Config.of({
-      model,
-      ...providerConfig,
-      ...services.mapUnsafe.get(Config.key)
-    })
+    return { model, ...providerConfig, ...services.mapUnsafe.get(Config.key) }
   })
 
   const makeRequest = Effect.fnUntraced(
@@ -392,7 +388,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
     generateText: Effect.fnUntraced(
       function*(options) {
         const config = yield* makeConfig
-        const toolNameMapper = OpenAiTool.createToolNameMapper(options.tools)
+        const toolNameMapper = new Tool.NameMapper(options.tools)
         const request = yield* makeRequest({ config, options, toolNameMapper })
         annotateRequest(options.span, request)
         const rawResponse = yield* client.createResponse(request)
@@ -407,7 +403,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
     streamText: Effect.fnUntraced(
       function*(options) {
         const config = yield* makeConfig
-        const toolNameMapper = OpenAiTool.createToolNameMapper(options.tools)
+        const toolNameMapper = new Tool.NameMapper(options.tools)
         const request = yield* makeRequest({ config, options, toolNameMapper })
         annotateRequest(options.span, request)
         const stream = client.createResponseStream(request)
@@ -1285,13 +1281,7 @@ const makeResponse = Effect.fnUntraced(
     parts.push({
       type: "finish",
       reason: finishReason,
-      usage: {
-        inputTokens: response.usage?.input_tokens,
-        outputTokens: response.usage?.output_tokens,
-        totalTokens: (response.usage?.input_tokens ?? 0) + (response.usage?.output_tokens ?? 0),
-        reasoningTokens: response.usage?.output_tokens_details?.reasoning_tokens,
-        cachedInputTokens: response.usage?.input_tokens_details?.cached_tokens
-      },
+      usage: getUsage(response.usage),
       ...(response.service_tier && { metadata: { openai: { serviceTier: response.service_tier } } })
     })
 
@@ -1380,13 +1370,7 @@ const makeStreamResponse = Effect.fnUntraced(
                 event.response.incomplete_details?.reason,
                 hasToolCalls
               ),
-              usage: {
-                inputTokens: event.response.usage?.input_tokens,
-                outputTokens: event.response.usage?.output_tokens,
-                totalTokens: (event.response.usage?.input_tokens ?? 0) + (event.response.usage?.output_tokens ?? 0),
-                reasoningTokens: event.response.usage?.output_tokens_details?.reasoning_tokens,
-                cachedInputTokens: event.response.usage?.input_tokens_details?.cached_tokens
-              },
+              usage: getUsage(event.response.usage),
               ...(event.response.service_tier && { metadata: { openai: { serviceTier: event.response.service_tier } } })
             })
             break
@@ -2189,8 +2173,8 @@ const annotateStreamResponse = (span: Span, part: Response.StreamPartEncoded) =>
         finishReasons: [part.reason]
       },
       usage: {
-        inputTokens: part.usage.inputTokens,
-        outputTokens: part.usage.outputTokens
+        inputTokens: part.usage.inputTokens.total,
+        outputTokens: part.usage.outputTokens.total
       },
       openai: {
         response: { serviceTier }
@@ -2524,4 +2508,41 @@ const getApprovalRequestIdMapping = (prompt: Prompt.Prompt): ReadonlyMap<string,
   }
 
   return mapping
+}
+
+const getUsage = (usage: Generated.ResponseUsage | null | undefined): Response.Usage => {
+  if (Predicate.isNullish(usage)) {
+    return {
+      inputTokens: {
+        uncached: undefined,
+        total: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined
+      }
+    }
+  }
+
+  const inputTokens = usage.input_tokens
+  const outputTokens = usage.output_tokens
+  const cachedTokens = usage.input_tokens_details.cached_tokens
+  const reasoningTokens = usage.input_tokens_details.cached_tokens
+
+  return {
+    inputTokens: {
+      uncached: inputTokens - cachedTokens,
+      total: inputTokens,
+      cacheRead: cachedTokens,
+      cacheWrite: undefined
+    },
+    outputTokens: {
+      total: outputTokens,
+      text: outputTokens - reasoningTokens,
+      reasoning: reasoningTokens
+    }
+  }
 }

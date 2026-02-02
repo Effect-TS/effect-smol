@@ -30,6 +30,11 @@ export * as AnthropicConfig from "./AnthropicConfig.ts"
 export * as AnthropicError from "./AnthropicError.ts"
 
 /**
+ * @since 1.0.0
+ */
+export * as AnthropicLanguageModel from "./AnthropicLanguageModel.ts"
+
+/**
  * Anthropic telemetry attributes for OpenTelemetry integration.
  *
  * Provides Anthropic-specific GenAI telemetry attributes following OpenTelemetry
@@ -39,6 +44,16 @@ export * as AnthropicError from "./AnthropicError.ts"
  * @since 1.0.0
  */
 export * as AnthropicTelemetry from "./AnthropicTelemetry.ts"
+
+/**
+ * Anthropic provider-defined tools for use with the LanguageModel.
+ *
+ * Provides tools that are natively supported by Anthropic's API, including
+ * Bash, Code Execution, Computer Use, Memory, and Text Editor functionality.
+ *
+ * @since 1.0.0
+ */
+export * as AnthropicTool from "./AnthropicTool.ts"
 
 /**
  * @since 1.0.0

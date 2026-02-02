@@ -15,11 +15,11 @@
  * // Define a simple calculator tool
  * const Calculator = Tool.make("Calculator", {
  *   description: "Performs basic arithmetic operations",
- *   parameters: {
+ *   parameters: Schema.Struct({
  *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
  *     a: Schema.Number,
  *     b: Schema.Number
- *   },
+ *   }),
  *   success: Schema.Number
  * })
  * ```
@@ -90,8 +90,8 @@ export interface NeedsApprovalContext {
  * @since 1.0.0
  * @category models
  */
-export type NeedsApprovalFunction<Params extends Schema.Struct<Schema.Struct.Fields>> = (
-  params: Schema.Struct.Type<Params["fields"]>,
+export type NeedsApprovalFunction<Params extends Schema.Top> = (
+  params: Params["Type"],
   context: NeedsApprovalContext
 ) => boolean | Effect.Effect<boolean, never, any>
 
@@ -105,7 +105,7 @@ export type NeedsApprovalFunction<Params extends Schema.Struct<Schema.Struct.Fie
  * @since 1.0.0
  * @category models
  */
-export type NeedsApproval<Params extends Schema.Struct<Schema.Struct.Fields>> =
+export type NeedsApproval<Params extends Schema.Top> =
   | boolean
   | NeedsApprovalFunction<Params>
 
@@ -124,10 +124,10 @@ export type NeedsApproval<Params extends Schema.Struct<Schema.Struct.Fields>> =
  * // Create a weather lookup tool
  * const GetWeather = Tool.make("GetWeather", {
  *   description: "Get current weather for a location",
- *   parameters: {
+ *   parameters: Schema.Struct({
  *     location: Schema.String,
  *     units: Schema.Literals(["celsius", "fahrenheit"])
- *   },
+ *   }),
  *   success: Schema.Struct({
  *     temperature: Schema.Number,
  *     condition: Schema.String,
@@ -142,7 +142,7 @@ export type NeedsApproval<Params extends Schema.Struct<Schema.Struct.Fields>> =
 export interface Tool<
   out Name extends string,
   out Config extends {
-    readonly parameters: Schema.Struct<Schema.Struct.Fields>
+    readonly parameters: Schema.Top
     readonly success: Schema.Top
     readonly failure: Schema.Top
     readonly failureMode: FailureMode
@@ -260,18 +260,14 @@ export interface Tool<
   >
 
   /**
-   * Set the schema to use to validate the result of a tool call when successful.
+   * Set the schema to use to validate the parameters of a tool call.
    */
-  setParameters<
-    ParametersSchema extends Schema.Struct<any> | Schema.Struct.Fields
-  >(
+  setParameters<ParametersSchema extends Schema.Top>(
     schema: ParametersSchema
   ): Tool<
     Name,
     {
-      readonly parameters: ParametersSchema extends Schema.Struct<infer _> ? ParametersSchema
-        : ParametersSchema extends Schema.Struct.Fields ? Schema.Struct<ParametersSchema>
-        : never
+      readonly parameters: ParametersSchema
       readonly success: Config["success"]
       readonly failure: Config["failure"]
       readonly failureMode: Config["failureMode"]
@@ -307,9 +303,9 @@ export interface Tool<
  * const WebSearch = Tool.providerDefined({
  *   customName: "OpenAiWebSearch",
  *   providerName: "web_search",
- *   args: {
+ *   args: Schema.Struct({
  *     query: Schema.String
- *   },
+ *   }),
  *   success: Schema.Struct({
  *     results: Schema.Array(Schema.Struct({
  *       title: Schema.String,
@@ -326,8 +322,8 @@ export interface Tool<
 export interface ProviderDefined<
   Name extends string,
   Config extends {
-    readonly args: Schema.Struct<Schema.Struct.Fields>
-    readonly parameters: Schema.Struct<Schema.Struct.Fields>
+    readonly args: Schema.Top
+    readonly parameters: Schema.Top
     readonly success: Schema.Top
     readonly failure: Schema.Top
     readonly failureMode: FailureMode
@@ -384,20 +380,20 @@ export interface ProviderDefined<
  *
  * const UserDefinedTool = Tool.make("Calculator", {
  *   description: "Performs basic arithmetic operations",
- *   parameters: {
+ *   parameters: Schema.Struct({
  *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
  *     a: Schema.Number,
  *     b: Schema.Number
- *   },
+ *   }),
  *   success: Schema.Number
  * })
  *
  * const ProviderDefinedTool = Tool.providerDefined({
  *   customName: "OpenAiWebSearch",
  *   providerName: "web_search",
- *   args: {
+ *   args: Schema.Struct({
  *     query: Schema.String
- *   },
+ *   }),
  *   success: Schema.Struct({
  *     results: Schema.Array(Schema.Struct({
  *       title: Schema.String,
@@ -427,20 +423,20 @@ export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
  *
  * const UserDefinedTool = Tool.make("Calculator", {
  *   description: "Performs basic arithmetic operations",
- *   parameters: {
+ *   parameters: Schema.Struct({
  *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
  *     a: Schema.Number,
  *     b: Schema.Number
- *   },
+ *   }),
  *   success: Schema.Number
  * })
  *
  * const ProviderDefinedTool = Tool.providerDefined({
  *   customName: "OpenAiWebSearch",
  *   providerName: "web_search",
- *   args: {
+ *   args: Schema.Struct({
  *     query: Schema.String
- *   },
+ *   }),
  *   success: Schema.Struct({
  *     results: Schema.Array(Schema.Struct({
  *       title: Schema.String,
@@ -473,7 +469,7 @@ export const isProviderDefined = (
  */
 export interface Any extends
   Tool<any, {
-    readonly parameters: Schema.Struct<Schema.Struct.Fields>
+    readonly parameters: Schema.Top
     readonly success: Schema.Top
     readonly failure: Schema.Top
     readonly failureMode: FailureMode
@@ -488,8 +484,8 @@ export interface Any extends
  */
 export interface AnyProviderDefined extends
   ProviderDefined<any, {
-    readonly args: Schema.Struct<Schema.Struct.Fields>
-    readonly parameters: Schema.Struct<Schema.Struct.Fields>
+    readonly args: Schema.Top
+    readonly parameters: Schema.Top
     readonly success: Schema.Top
     readonly failure: Schema.Top
     readonly failureMode: FailureMode
@@ -527,7 +523,7 @@ export type Parameters<T> = T extends Tool<
   infer _Name,
   infer _Config,
   infer _Requirements
-> ? Schema.Struct.Type<_Config["parameters"]["fields"]>
+> ? _Config["parameters"]["Type"]
   : never
 
 /**
@@ -846,12 +842,10 @@ const Proto = {
   addDependency(this: Any) {
     return userDefinedProto({ ...this })
   },
-  setParameters(this: Any, parametersSchema: Schema.Struct<any> | Schema.Struct.Fields) {
+  setParameters(this: Any, parametersSchema: Schema.Top) {
     return userDefinedProto({
       ...this,
-      parametersSchema: Schema.isSchema(parametersSchema)
-        ? (parametersSchema as any)
-        : Schema.Struct(parametersSchema as any)
+      parametersSchema
     })
   },
   setSuccess(this: Any, successSchema: Schema.Top) {
@@ -881,7 +875,7 @@ const ProviderDefinedProto = {
 
 const userDefinedProto = <
   const Name extends string,
-  Parameters extends Schema.Struct<Schema.Struct.Fields>,
+  Parameters extends Schema.Top,
   Success extends Schema.Top,
   Failure extends Schema.Top,
   Mode extends FailureMode
@@ -910,8 +904,8 @@ const userDefinedProto = <
 
 const providerDefinedProto = <
   const Name extends string,
-  Args extends Schema.Struct<Schema.Struct.Fields>,
-  Parameters extends Schema.Struct<Schema.Struct.Fields>,
+  Args extends Schema.Top,
+  Parameters extends Schema.Top,
   Success extends Schema.Top,
   Failure extends Schema.Top,
   RequiresHandler extends boolean,
@@ -942,8 +936,6 @@ const providerDefinedProto = <
     id: `effect/ai/ProviderDefinedTool/${options.name}`
   })
 
-const constEmptyStruct = Schema.Struct({})
-
 /**
  * Creates a user-defined tool with the specified name and configuration.
  *
@@ -968,7 +960,7 @@ const constEmptyStruct = Schema.Struct({})
  */
 export const make = <
   const Name extends string,
-  Parameters extends Schema.Struct.Fields = {},
+  Parameters extends Schema.Top = typeof Schema.Void,
   Success extends Schema.Top = typeof Schema.Void,
   Failure extends Schema.Top = typeof Schema.Never,
   Mode extends FailureMode | undefined = undefined,
@@ -1013,11 +1005,11 @@ export const make = <
    * - If a function, it is called with the tool parameters and context to
    *   dynamically determine if approval is needed.
    */
-  readonly needsApproval?: NeedsApproval<Schema.Struct<Parameters>> | undefined
+  readonly needsApproval?: NeedsApproval<Parameters> | undefined
 }): Tool<
   Name,
   {
-    readonly parameters: Schema.Struct<Parameters>
+    readonly parameters: Parameters
     readonly success: Success
     readonly failure: Failure
     readonly failureMode: Mode extends undefined ? "error" : Mode
@@ -1029,9 +1021,7 @@ export const make = <
   return userDefinedProto({
     name,
     description: options?.description,
-    parametersSchema: options?.parameters
-      ? Schema.Struct(options?.parameters as any)
-      : constEmptyStruct,
+    parametersSchema: options?.parameters ?? Schema.Void,
     successSchema,
     failureSchema,
     failureMode: options?.failureMode ?? "error",
@@ -1057,9 +1047,9 @@ export const make = <
  * const WebSearch = Tool.providerDefined({
  *   customName: "OpenAiWebSearch",
  *   providerName: "web_search",
- *   args: {
+ *   args: Schema.Struct({
  *     query: Schema.String
- *   },
+ *   }),
  *   success: Schema.Struct({
  *     results: Schema.Array(Schema.Struct({
  *       title: Schema.String,
@@ -1075,8 +1065,8 @@ export const make = <
  */
 export const providerDefined = <
   const Name extends string,
-  Args extends Schema.Struct.Fields = {},
-  Parameters extends Schema.Struct.Fields = {},
+  Args extends Schema.Top = typeof Schema.Void,
+  Parameters extends Schema.Top = typeof Schema.Void,
   Success extends Schema.Top = typeof Schema.Void,
   Failure extends Schema.Top = typeof Schema.Never,
   RequiresHandler extends boolean = false
@@ -1092,7 +1082,7 @@ export const providerDefined = <
   /**
    * Schema for user-provided configuration arguments.
    */
-  readonly args: Args
+  readonly args?: Args | undefined
   /**
    * Whether this tool requires a custom handler implementation.
    */
@@ -1112,7 +1102,7 @@ export const providerDefined = <
 }) =>
 <Mode extends FailureMode | undefined = undefined>(
   args: RequiresHandler extends true ? Struct.Simplify<
-      Schema.Struct.Encoded<Args> & {
+      Args["Encoded"] & {
         /**
          * The strategy used for handling errors returned from tool call handler
          * execution.
@@ -1126,30 +1116,28 @@ export const providerDefined = <
         readonly failureMode?: Mode
       }
     >
-    : Struct.Simplify<Schema.Struct.Encoded<Args>>
+    : Struct.Simplify<Args["Encoded"]>
 ): ProviderDefined<
   Name,
   {
-    readonly args: Schema.Struct<Args>
-    readonly parameters: Schema.Struct<Parameters>
+    readonly args: Args
+    readonly parameters: Parameters
     readonly success: Success
     readonly failure: Failure
     readonly failureMode: Mode extends undefined ? "error" : Mode
   },
   RequiresHandler
 > => {
-  const failureMode = "failureMode" in args ? args.failureMode : undefined
+  const failureMode = "failureMode" in args ? (args as any).failureMode : undefined
   const successSchema = options?.success ?? Schema.Void
   const failureSchema = options?.failure ?? Schema.Never
   return providerDefinedProto({
     name: options.customName,
     providerName: options.providerName,
-    args,
-    argsSchema: Schema.Struct(options.args as any),
+    args: args as any,
+    argsSchema: (options?.args ?? Schema.Void) as any,
     requiresHandler: options.requiresHandler ?? false,
-    parametersSchema: options?.parameters
-      ? Schema.Struct(options?.parameters as any)
-      : constEmptyStruct,
+    parametersSchema: (options?.parameters ?? Schema.Void) as any,
     successSchema,
     failureSchema,
     failureMode: failureMode ?? "error"
@@ -1176,24 +1164,11 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
   readonly #customToProvider: Map<string, string> = new Map()
   readonly #providerToCustom: Map<string, string> = new Map()
 
-  /**
-   * Creates a provider-specific constructor for a `NameMapper` from a set
-   * of set of mappings.
-   *
-   * @since 1.0.0
-   */
-  static forProvider(mappings: Record<string, string>) {
-    return <Tools extends ReadonlyArray<Any>>(tools: Tools) => {
-      return new NameMapper(tools, mappings)
-    }
-  }
-
-  constructor(tools: Tools, mappings: Record<string, string>) {
+  constructor(tools: Tools) {
     for (const tool of tools) {
-      if (isProviderDefined(tool) && tool.name in mappings) {
-        const providerName = mappings[tool.name]
-        this.#customToProvider.set(tool.name, providerName)
-        this.#providerToCustom.set(providerName, tool.name)
+      if (isProviderDefined(tool)) {
+        this.#customToProvider.set(tool.name, tool.providerName)
+        this.#providerToCustom.set(tool.providerName, tool.name)
       }
     }
   }
@@ -1272,10 +1247,10 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * import { Tool } from "effect/unstable/ai"
  *
  * const weatherTool = Tool.make("get_weather", {
- *   parameters: {
+ *   parameters: Schema.Struct({
  *     location: Schema.String,
  *     units: Schema.optional(Schema.Literals(["celsius", "fahrenheit"]))
- *   }
+ *   })
  * })
  *
  * const jsonSchema = Tool.getJsonSchema(weatherTool)

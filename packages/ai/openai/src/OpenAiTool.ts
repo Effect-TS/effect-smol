@@ -41,11 +41,10 @@ export const ApplyPatch = Tool.providerDefined({
   customName: "OpenAiApplyPatch",
   providerName: "apply_patch",
   requiresHandler: true,
-  args: {},
-  parameters: {
+  parameters: Schema.Struct({
     call_id: Generated.ApplyPatchToolCall.fields.call_id,
     operation: Generated.ApplyPatchToolCall.fields.operation
-  },
+  }),
   success: Schema.Struct({
     status: Generated.ApplyPatchToolCallOutput.fields.status,
     output: Generated.ApplyPatchToolCallOutput.fields.output
@@ -63,13 +62,13 @@ export const ApplyPatch = Tool.providerDefined({
 export const CodeInterpreter = Tool.providerDefined({
   customName: "OpenAiCodeInterpreter",
   providerName: "code_interpreter",
-  args: {
+  args: Schema.Struct({
     container: Generated.CodeInterpreterTool.fields.container
-  },
-  parameters: {
+  }),
+  parameters: Schema.Struct({
     code: Generated.CodeInterpreterToolCall.fields.code,
     container_id: Generated.CodeInterpreterToolCall.fields.container_id
-  },
+  }),
   success: Schema.Struct({
     outputs: Generated.CodeInterpreterToolCall.fields.outputs
   })
@@ -86,12 +85,12 @@ export const CodeInterpreter = Tool.providerDefined({
 export const FileSearch = Tool.providerDefined({
   customName: "OpenAiFileSearch",
   providerName: "file_search",
-  args: {
+  args: Schema.Struct({
     filters: Generated.FileSearchTool.fields.filters,
     max_num_results: Generated.FileSearchTool.fields.max_num_results,
     ranking_options: Generated.FileSearchTool.fields.ranking_options,
     vector_store_ids: Generated.FileSearchTool.fields.vector_store_ids
-  },
+  }),
   success: Schema.Struct({
     status: Generated.FileSearchToolCall.fields.status,
     queries: Generated.FileSearchToolCall.fields.queries,
@@ -110,7 +109,7 @@ export const FileSearch = Tool.providerDefined({
 export const ImageGeneration = Tool.providerDefined({
   customName: "OpenAiImageGeneration",
   providerName: "image_generation",
-  args: {
+  args: Schema.Struct({
     background: Generated.ImageGenTool.fields.background,
     input_fidelity: Generated.ImageGenTool.fields.input_fidelity,
     input_image_mask: Generated.ImageGenTool.fields.input_image_mask,
@@ -121,7 +120,7 @@ export const ImageGeneration = Tool.providerDefined({
     partial_images: Generated.ImageGenTool.fields.partial_images,
     quality: Generated.ImageGenTool.fields.quality,
     size: Generated.ImageGenTool.fields.size
-  },
+  }),
   success: Schema.Struct({
     result: Generated.ImageGenToolCall.fields.result
   })
@@ -140,10 +139,9 @@ export const LocalShell = Tool.providerDefined({
   customName: "OpenAiLocalShell",
   providerName: "local_shell",
   requiresHandler: true,
-  args: {},
-  parameters: {
+  parameters: Schema.Struct({
     action: Generated.LocalShellToolCall.fields.action
-  },
+  }),
   success: Schema.Struct({
     output: Generated.LocalShellToolCallOutput.fields.output
   })
@@ -161,7 +159,7 @@ export const LocalShell = Tool.providerDefined({
 export const Mcp = Tool.providerDefined({
   customName: "OpenAiMcp",
   providerName: "mcp",
-  args: {
+  args: Schema.Struct({
     allowed_tools: Generated.MCPTool.fields.allowed_tools,
     authorization: Generated.MCPTool.fields.authorization,
     connector_id: Generated.MCPTool.fields.connector_id,
@@ -169,7 +167,7 @@ export const Mcp = Tool.providerDefined({
     server_description: Generated.MCPTool.fields.server_description,
     server_label: Generated.MCPTool.fields.server_label,
     server_url: Generated.MCPTool.fields.server_url
-  },
+  }),
   success: Schema.Struct({
     type: Generated.MCPToolCall.fields.type,
     name: Generated.MCPToolCall.fields.name,
@@ -194,10 +192,9 @@ export const Shell = Tool.providerDefined({
   customName: "OpenAiShell",
   providerName: "shell",
   requiresHandler: true,
-  args: {},
-  parameters: {
+  parameters: Schema.Struct({
     action: Generated.FunctionShellCall.fields.action
-  },
+  }),
   success: Schema.Struct({
     output: Generated.FunctionShellCallOutputItemParam.fields.output
   })
@@ -214,14 +211,14 @@ export const Shell = Tool.providerDefined({
 export const WebSearch = Tool.providerDefined({
   customName: "OpenAiWebSearch",
   providerName: "web_search",
-  args: {
+  args: Schema.Struct({
     filters: Generated.WebSearchTool.fields.filters,
     user_location: Generated.WebSearchTool.fields.user_location,
     search_context_size: Generated.WebSearchTool.fields.search_context_size
-  },
-  parameters: {
+  }),
+  parameters: Schema.Struct({
     action: Generated.WebSearchToolCall.fields.action
-  },
+  }),
   success: Schema.Struct({
     action: Generated.WebSearchToolCall.fields.action,
     status: Generated.WebSearchToolCall.fields.status
@@ -239,31 +236,12 @@ export const WebSearch = Tool.providerDefined({
 export const WebSearchPreview = Tool.providerDefined({
   customName: "OpenAiWebSearchPreview",
   providerName: "web_search_preview",
-  args: {
+  args: Schema.Struct({
     user_location: Generated.WebSearchPreviewTool.fields.user_location,
     search_context_size: Generated.WebSearchPreviewTool.fields.search_context_size
-  },
-  parameters: {},
+  }),
   success: Schema.Struct({
     action: Generated.WebSearchToolCall.fields.action,
     status: Generated.WebSearchToolCall.fields.status
   })
-})
-
-/**
- * Creates an OpenAI-specific tool name mapper.
- *
- * @since 1.0.0
- * @category utilities
- */
-export const createToolNameMapper = Tool.NameMapper.forProvider({
-  OpenAiApplyPatch: "apply_patch",
-  OpenAiCodeInterpreter: "code_interpreter",
-  OpenAiFileSearch: "file_search",
-  OpenAiShell: "shell",
-  OpenAiImageGeneration: "image_generation",
-  OpenAiLocalShell: "local_shell",
-  OpenAiMcp: "mcp",
-  OpenAiWebSearch: "web_search",
-  OpenAiWebSearchPreview: "web_search_preview"
 })

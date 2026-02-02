@@ -20,6 +20,7 @@
  * - **AuthenticationError** - Invalid/expired credentials
  * - **ContentPolicyError** - Input/output violated content policy
  * - **InvalidRequestError** - Malformed request parameters
+ * - **InvalidUserInputError** - Prompt contains unsupported content
  * - **InternalProviderError** - Provider-side failures (5xx)
  * - **NetworkError** - Transport-level failures
  * - **InvalidOutputError** - LLM output parsing/validation failures
@@ -450,11 +451,11 @@ export * as Tokenizer from "./Tokenizer.ts"
  * // Define a simple calculator tool
  * const Calculator = Tool.make("Calculator", {
  *   description: "Performs basic arithmetic operations",
- *   parameters: {
+ *   parameters: Schema.Struct({
  *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
  *     a: Schema.Number,
  *     b: Schema.Number
- *   },
+ *   }),
  *   success: Schema.Number
  * })
  * ```
@@ -481,7 +482,7 @@ export * as Tool from "./Tool.ts"
  *
  * const GetWeather = Tool.make("GetWeather", {
  *   description: "Get weather for a location",
- *   parameters: { location: Schema.String },
+ *   parameters: Schema.Struct({ location: Schema.String }),
  *   success: Schema.Struct({
  *     temperature: Schema.Number,
  *     condition: Schema.String

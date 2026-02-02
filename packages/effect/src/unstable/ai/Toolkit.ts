@@ -16,7 +16,7 @@
  *
  * const GetWeather = Tool.make("GetWeather", {
  *   description: "Get weather for a location",
- *   parameters: { location: Schema.String },
+ *   parameters: Schema.Struct({ location: Schema.String }),
  *   success: Schema.Struct({
  *     temperature: Schema.Number,
  *     condition: Schema.String
@@ -74,7 +74,7 @@ const TypeId = "~effect/ai/Toolkit" as const
  *
  * const GetWeather = Tool.make("GetWeather", {
  *   description: "Get weather for a location",
- *   parameters: { location: Schema.String },
+ *   parameters: Schema.Struct({ location: Schema.String }),
  *   success: Schema.Struct({
  *     temperature: Schema.Number,
  *     condition: Schema.String
@@ -488,7 +488,7 @@ export const empty: Toolkit<{}> = makeProto({})
  *
  * const GetWeather = Tool.make("get_weather", {
  *   description: "Get weather information",
- *   parameters: { location: Schema.String },
+ *   parameters: Schema.Struct({ location: Schema.String }),
  *   success: Schema.Struct({
  *     temperature: Schema.Number,
  *     condition: Schema.String

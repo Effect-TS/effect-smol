@@ -1,6 +1,7 @@
 /**
  * @since 1.0.0
  */
+// @ts-nocheck - Generated file with example values that may not type-check
 
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
