@@ -36,6 +36,7 @@
     "@effect/oxc": "workspace:^",
     "@effect/utils": "workspace:^",
     "@effect/vitest": "workspace:^",
+    "@solidjs/testing-library": "^0.8.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
     "@rollup/plugin-terser": "^0.4.4",
