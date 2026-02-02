@@ -19,16 +19,18 @@ access the archived repository here:
 
 \`.repos/effect-old\`
 
-## Learning about "effect-atom" old version
+## Learning more about "effect-atom"
 
 If you need to learn more about the old version of effect atom, you can
 access the archived repository here:
 
 \`.repos/effect-atom-old\`
 
+## Learning more about "solid-js"
+
 To learn more about "solid-js", you can access the source code here:
 
 \`.repos/solid\`
 	
-Do not use node_modules to learn about the above projects.
+**Do not use node_modules to learn more about solid.**
 EOF
