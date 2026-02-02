@@ -183,6 +183,66 @@ export const createAtom = <R, W, const Mode extends "value" | "promise" | "promi
   ] as const
 }
 
+const atomPromiseMap = {
+  suspendOnWaiting: new Map<Atom.Atom<any>, Promise<void>>(),
+  default: new Map<Atom.Atom<any>, Promise<void>>()
+}
+
+function atomToPromise<A, E>(
+  registry: AtomRegistry.AtomRegistry,
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+  suspendOnWaiting: boolean
+) {
+  const map = suspendOnWaiting ? atomPromiseMap.suspendOnWaiting : atomPromiseMap.default
+  let promise = map.get(atom)
+  if (promise !== undefined) {
+    return promise
+  }
+  promise = new Promise<void>((resolve) => {
+    const dispose = registry.subscribe(atom, (result) => {
+      if (result._tag === "Initial" || (suspendOnWaiting && result.waiting)) {
+        return
+      }
+      setTimeout(dispose, 1000)
+      resolve()
+      map.delete(atom)
+    })
+  })
+  map.set(atom, promise)
+  return promise
+}
+
+function atomResultOrSuspend<A, E>(
+  registry: AtomRegistry.AtomRegistry,
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+  suspendOnWaiting: boolean
+) {
+  const value = createStore(registry, atom)()
+  if (value._tag === "Initial" || (suspendOnWaiting && value.waiting)) {
+    throw atomToPromise(registry, atom, suspendOnWaiting)
+  }
+  return value
+}
+
+/**
+ * @since 1.0.0
+ * @category hooks
+ */
+export const createAtomSuspense = <A, E, const IncludeFailure extends boolean = false>(
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+  options?: {
+    readonly suspendOnWaiting?: boolean | undefined
+    readonly includeFailure?: IncludeFailure | undefined
+  }
+): AsyncResult.Success<A, E> | (IncludeFailure extends true ? AsyncResult.Failure<A, E> : never) => {
+  const registry = useContext(RegistryContext)
+  const result = atomResultOrSuspend(registry, atom, options?.suspendOnWaiting ?? false)
+  if (result._tag === "Failure" && !options?.includeFailure) {
+    throw Cause.squash(result.cause)
+  }
+  return result as any
+}
+
 /**
  * @since 1.0.0
  * @category hooks
