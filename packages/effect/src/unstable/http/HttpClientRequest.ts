@@ -379,17 +379,23 @@ export const prependUrl: {
 export const appendUrl: {
   (path: string): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, path: string): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, path: string): HttpClientRequest =>
-  makeProto(
+} = dual(2, (self: HttpClientRequest, path: string): HttpClientRequest => {
+  const needsTrim = self.url.endsWith("/") && path.startsWith("/")
+  const needsSlash = !self.url.endsWith("/") && !path.startsWith("/")
+  const url = needsTrim ?
+    self.url + path.slice(1) :
+    needsSlash ?
+    self.url + "/" + path :
+    self.url + path
+  return makeProto(
     self.method,
-    self.url.endsWith("/") && path.startsWith("/") ?
-      self.url + path.slice(1) :
-      self.url + path,
+    url,
     self.urlParams,
     self.hash,
     self.headers,
     self.body
-  ))
+  )
+})
 
 /**
  * @since 4.0.0
