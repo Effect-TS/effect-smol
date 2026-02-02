@@ -4,14 +4,17 @@ import {
   createAtomRef,
   createAtomRefProp,
   createAtomRefPropValue,
+  createAtomResource,
   createAtomValue,
   RegistryContext
 } from "@effect/atom-solid"
 import { assert, describe, it } from "@effect/vitest"
+import * as Cause from "effect/Cause"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
-import { type Accessor, createComponent, createEffect, createRoot } from "solid-js"
+import { type Accessor, catchError, createComponent, createEffect, createRoot } from "solid-js"
 
 describe("atom-solid", () => {
   describe("createAtomValue", () => {
@@ -142,7 +145,87 @@ describe("atom-solid", () => {
   })
 
   describe("createAtomResource", () => {
-    // TODO
+    it("suspends on Initial result", () => {
+      const atom = Atom.make(AsyncResult.initial<number, Error>())
+      const { resource, dispose } = renderAtomResource(atom)
+      assert.strictEqual(resource.loading, true)
+      assert.strictEqual(resource(), undefined)
+      dispose()
+    })
+
+    it("suspends on waiting when suspendOnWaiting is true", () => {
+      const atom = Atom.make(AsyncResult.success(1, { waiting: true }))
+      const { resource, dispose } = renderAtomResource(atom, { suspendOnWaiting: true })
+      assert.strictEqual(resource.loading, true)
+      assert.strictEqual(resource(), undefined)
+      dispose()
+    })
+
+    it("returns success value by default", async () => {
+      const atom = Atom.make(AsyncResult.success(5))
+      const { resource, dispose } = renderAtomResource(atom)
+      await Promise.resolve()
+      await Promise.resolve()
+      assert.strictEqual(resource.loading, false)
+      assert.strictEqual(resource(), 5)
+      dispose()
+    })
+
+    it("surfaces failure via Cause.squash", async () => {
+      const error = new Error("boom")
+      const atom = Atom.make(AsyncResult.fail(error))
+      let resource: ReturnType<typeof createAtomResource>[0] | undefined
+      let caught: unknown
+      const dispose = createRoot((dispose) => {
+        catchError(() => {
+          ;[resource] = createAtomResource(atom)
+          createEffect(() => {
+            resource?.()
+          })
+        }, (err) => {
+          caught = err
+        })
+        return dispose
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+      assert.ok(caught instanceof Error)
+      assert.strictEqual(caught.message, "boom")
+      assert.strictEqual(resource?.error, caught)
+      assert.strictEqual(resource?.loading, false)
+      dispose()
+    })
+
+    it("preserves success result when preserveResult is true", async () => {
+      const atom = Atom.make(AsyncResult.success(7))
+      const { resource, dispose } = renderAtomResource(atom, { preserveResult: true })
+      await Promise.resolve()
+      await Promise.resolve()
+      const result = resource()
+      assert.strictEqual(AsyncResult.isSuccess(result), true)
+      if (AsyncResult.isSuccess(result)) {
+        assert.strictEqual(result.value, 7)
+      }
+      assert.strictEqual(resource.error, undefined)
+      dispose()
+    })
+
+    it("preserves failure result when preserveResult is true", async () => {
+      const error = new Error("failure")
+      const atom = Atom.make(AsyncResult.fail(error))
+      const { resource, dispose } = renderAtomResource(atom, { preserveResult: true })
+      await Promise.resolve()
+      await Promise.resolve()
+      const result = resource()
+      assert.strictEqual(AsyncResult.isFailure(result), true)
+      if (AsyncResult.isFailure(result)) {
+        const squashed = Cause.squash(result.cause)
+        assert.ok(squashed instanceof Error)
+        assert.strictEqual(squashed.message, "failure")
+      }
+      assert.strictEqual(resource.error, undefined)
+      dispose()
+    })
   })
 })
 
@@ -193,4 +276,22 @@ const renderAtomValue = function<A, B = A>(
 
     return dispose
   })
+}
+
+const renderAtomResource = function<A, E, const Preserve extends boolean = false>(
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+  options?: {
+    readonly suspendOnWaiting?: boolean | undefined
+    readonly preserveResult?: Preserve | undefined
+  }
+) {
+  let resource: ReturnType<typeof createAtomResource>[0] | undefined
+  const dispose = createRoot((dispose) => {
+    ;[resource] = createAtomResource(atom, options)
+    createEffect(() => {
+      resource?.()
+    })
+    return dispose
+  })
+  return { resource: resource!, dispose }
 }

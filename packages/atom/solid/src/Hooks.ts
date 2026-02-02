@@ -167,6 +167,11 @@ export const createAtom = <R, W, const Mode extends "value" | "promise" | "promi
   ] as const
 }
 
+const atomPromiseMap = {
+  suspendOnWaiting: new Map<Atom.Atom<any>, Promise<void>>(),
+  default: new Map<Atom.Atom<any>, Promise<void>>()
+}
+
 function atomToPromise<A, E>(
   registry: AtomRegistry.AtomRegistry,
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
@@ -207,7 +212,16 @@ export const createAtomResource = <A, E, const Preserve extends boolean = false>
   const resource = createResource(function(): Promise<AsyncResult.Success<A, E> | AsyncResult.Failure<A, E> | A> {
     const result = value()
     if (result._tag === "Initial" || (options?.suspendOnWaiting && result.waiting)) {
-      return unresolvedPromise
+      return atomToPromise(registry, atom, options?.suspendOnWaiting ?? false).then(() => {
+        const next = value()
+        if (next._tag === "Initial") {
+          return Promise.reject(new Error("createAtomResource: unexpected initial state"))
+        }
+        if (options?.preserveResult) {
+          return next
+        }
+        return next._tag === "Success" ? next.value : Promise.reject(Cause.squash(next.cause))
+      })
     } else if (options?.preserveResult) {
       return Promise.resolve(result)
     }
@@ -215,8 +229,6 @@ export const createAtomResource = <A, E, const Preserve extends boolean = false>
   })
   return resource as any
 }
-
-const unresolvedPromise = new Promise<never>(() => {})
 
 /**
  * @since 1.0.0
