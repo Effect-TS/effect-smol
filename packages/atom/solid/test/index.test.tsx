@@ -1,8 +1,18 @@
+/** @jsxImportSource solid-js */
 import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
+import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRef from "effect/unstable/reactivity/AtomRef"
-import { createEffect, createRoot } from "solid-js"
-import { createAtomRef, createAtomRefProp } from "../src/index.ts"
+import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
+import { createComponent, createEffect, createRoot } from "solid-js"
+import {
+  createAtom,
+  createAtomInitialValues,
+  createAtomRef,
+  createAtomRefProp,
+  createAtomValue,
+  RegistryContext
+} from "../src/index.ts"
 
 const renderAtomRef = function<A>(ref: AtomRef.ReadonlyRef<A>, onValue: (_: A) => void) {
   return createRoot((dispose) => {
@@ -14,7 +24,130 @@ const renderAtomRef = function<A>(ref: AtomRef.ReadonlyRef<A>, onValue: (_: A) =
   })
 }
 
+const renderAtomValue = function<A, B = A>(
+  atom: Atom.Atom<A>,
+  onValue: (_: B) => void,
+  options?: { readonly registry?: AtomRegistry.AtomRegistry; readonly map?: (_: A) => B }
+) {
+  return createRoot((dispose) => {
+    const run = () => {
+      const accessor = options?.map ? createAtomValue(atom, options.map) : createAtomValue(atom)
+      createEffect(() => {
+        onValue(accessor() as B)
+      })
+      return null
+    }
+
+    if (options?.registry) {
+      createComponent(RegistryContext.Provider, {
+        value: options.registry,
+        get children() {
+          return run()
+        }
+      })
+    } else {
+      run()
+    }
+
+    return dispose
+  })
+}
+
 describe("atom-solid", () => {
+  describe("createAtomValue", () => {
+    it.effect("reads value from simple Atom", () =>
+      Effect.sync(() => {
+        const atom = Atom.make(42)
+        let observed: number | undefined
+        const dispose = renderAtomValue(atom, (value) => {
+          observed = value
+        })
+        assert.strictEqual(observed, 42)
+        dispose()
+      }))
+
+    it.effect("reads value with transform function", () =>
+      Effect.sync(() => {
+        const atom = Atom.make(42)
+        let observed: number | undefined
+        const dispose = renderAtomValue(atom, (value) => {
+          observed = value
+        }, { map: (value) => value * 2 })
+        assert.strictEqual(observed, 84)
+        dispose()
+      }))
+
+    it.effect("updates when Atom value changes", () =>
+      Effect.sync(() => {
+        const registry = AtomRegistry.make()
+        const atom = Atom.make("initial")
+        let observed: string | undefined
+        const dispose = renderAtomValue(atom, (value) => {
+          observed = value
+        }, { registry })
+        assert.strictEqual(observed, "initial")
+        registry.set(atom, "updated")
+        assert.strictEqual(observed, "updated")
+        dispose()
+      }))
+
+    it.effect("works with computed Atom", () =>
+      Effect.sync(() => {
+        const baseAtom = Atom.make(10)
+        const computedAtom = Atom.make((get) => get(baseAtom) * 2)
+        let observed: number | undefined
+        const dispose = renderAtomValue(computedAtom, (value) => {
+          observed = value
+        })
+        assert.strictEqual(observed, 20)
+        dispose()
+      }))
+  })
+
+  describe("createAtom", () => {
+    it.effect("updates value with setter", () =>
+      Effect.sync(() => {
+        const atom = Atom.make(0)
+        let observed: number | undefined
+        const dispose = createRoot((dispose) => {
+          const [value, setValue] = createAtom(atom)
+          createEffect(() => {
+            observed = value()
+          })
+          createEffect(() => {
+            if (value() !== 0) {
+              return
+            }
+            setValue(1)
+            setValue((current) => current + 1)
+          })
+          return dispose
+        })
+        assert.strictEqual(observed, 2)
+        dispose()
+      }))
+  })
+
+  describe("createAtomInitialValues", () => {
+    it.effect("applies initial values once per registry", () =>
+      Effect.sync(() => {
+        const registry = AtomRegistry.make()
+        const atom = Atom.make(0)
+        createRoot((dispose) => {
+          createComponent(RegistryContext.Provider, {
+            value: registry,
+            get children() {
+              createAtomInitialValues([[atom, 1]])
+              createAtomInitialValues([[atom, 2]])
+              assert.strictEqual(registry.get(atom), 1)
+              return null
+            }
+          })
+          return dispose
+        })
+      }))
+  })
+
   describe("AtomRef", () => {
     it.effect("updates when AtomRef changes", () =>
       Effect.sync(() => {

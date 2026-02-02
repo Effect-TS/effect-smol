@@ -5,7 +5,10 @@ export default mergeConfig(shared, {
   resolve: {
     conditions: ["browser"],
     alias: {
-      "solid-js/web": "solid-js/web/dist/web.cjs"
+      "solid-js/web": "solid-js/web/dist/web.cjs",
+      "solid-js/web/dist/server": "solid-js/web/dist/web.cjs",
+      "solid-js/web/dist/server.js": "solid-js/web/dist/web.cjs",
+      "solid-js/web/dist/server.cjs": "solid-js/web/dist/web.cjs"
     }
   },
   esbuild: {

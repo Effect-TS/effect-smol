@@ -6,9 +6,6 @@ import { afterEach } from "vitest"
   userAgent: "solid-js"
 }
 
-const solidWeb = await import("solid-js/web")
-;(solidWeb as { isServer: boolean }).isServer = false
-
 afterEach(() => {
   cleanup()
 })
