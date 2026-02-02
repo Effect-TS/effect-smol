@@ -376,11 +376,17 @@ export class GenerateTextResponse<Tools extends Record<string, Tool.Any>> {
     const finishPart = this.content.find((part) => part.type === "finish")
     if (Predicate.isUndefined(finishPart)) {
       return new Response.Usage({
-        inputTokens: undefined,
-        outputTokens: undefined,
-        totalTokens: undefined,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined
+        inputTokens: {
+          uncached: undefined,
+          total: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined
+        }
       })
     }
     return finishPart.usage

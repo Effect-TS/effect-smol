@@ -418,12 +418,13 @@ export const make = Effect.fnUntraced(function*({ model: _model, config: provide
       if (betas.size > 0) {
         params["anthropic-beta"] = Array.from(betas).join(",")
       }
-      const payload: typeof Generated.BetaCreateMessageParams.Encoded = {
+      const { disableParallelToolCalls: _, ...restConfig } = config
+      const payload = {
         max_tokens: capabilities.maxOutputTokens,
-        ...config,
+        ...restConfig,
         system,
         messages
-      }
+      } as typeof Generated.BetaCreateMessageParams.Encoded
       return { params, payload }
     }
   )

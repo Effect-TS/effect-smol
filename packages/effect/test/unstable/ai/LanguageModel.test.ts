@@ -192,7 +192,10 @@ describe("LanguageModel", () => {
               return [{
                 type: "finish",
                 reason: "stop",
-                usage: { totalTokens: 10, inputTokens: 5, outputTokens: 5 }
+                usage: {
+                  inputTokens: { uncached: 5, total: 5, cacheRead: undefined, cacheWrite: undefined },
+                  outputTokens: { total: 5, text: undefined, reasoning: undefined }
+                }
               }]
             }
           }),
@@ -257,7 +260,10 @@ describe("LanguageModel", () => {
               return [{
                 type: "finish",
                 reason: "stop",
-                usage: { totalTokens: 10, inputTokens: 5, outputTokens: 5 }
+                usage: {
+                  inputTokens: { uncached: 5, total: 5, cacheRead: undefined, cacheWrite: undefined },
+                  outputTokens: { total: 5, text: undefined, reasoning: undefined }
+                }
               }]
             }
           }),

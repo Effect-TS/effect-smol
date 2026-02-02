@@ -657,9 +657,13 @@ describe("OpenAiLanguageModel", () => {
           const finishPart = result.content.find((p) => p.type === "finish")
           assert.isDefined(finishPart)
           if (finishPart?.type === "finish") {
-            strictEqual(finishPart.usage.inputTokens, 10)
-            strictEqual(finishPart.usage.outputTokens, 20)
-            strictEqual(finishPart.usage.totalTokens, 30)
+            deepStrictEqual(finishPart.usage.inputTokens, {
+              uncached: 10,
+              total: 10,
+              cacheRead: 0,
+              cacheWrite: undefined
+            })
+            deepStrictEqual(finishPart.usage.outputTokens, { total: 20, text: 20, reasoning: 0 })
           }
         }).pipe(Effect.provide(makeTestLayer({
           body: {
