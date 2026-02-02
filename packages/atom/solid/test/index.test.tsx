@@ -1,6 +1,5 @@
 /** @jsxImportSource solid-js */
 import { assert, describe, it } from "@effect/vitest"
-import * as Effect from "effect/Effect"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
@@ -67,138 +66,129 @@ const renderAtomValue = function<A, B = A>(
 
 describe("atom-solid", () => {
   describe("createAtomValue", () => {
-    it.effect("reads value from simple Atom", () =>
-      Effect.sync(() => {
-        const atom = Atom.make(42)
-        let observed: number | undefined
-        const dispose = renderAtomValue(atom, (value) => {
-          observed = value
-        })
-        assert.strictEqual(observed, 42)
-        dispose()
-      }))
+    it("reads value from simple Atom", () => {
+      const atom = Atom.make(42)
+      let observed: number | undefined
+      const dispose = renderAtomValue(atom, (value) => {
+        observed = value
+      })
+      assert.strictEqual(observed, 42)
+      dispose()
+    })
 
-    it.effect("reads value with transform function", () =>
-      Effect.sync(() => {
-        const atom = Atom.make(42)
-        let observed: number | undefined
-        const dispose = renderAtomValue(atom, (value) => {
-          observed = value
-        }, { map: (value) => value * 2 })
-        assert.strictEqual(observed, 84)
-        dispose()
-      }))
+    it("reads value with transform function", () => {
+      const atom = Atom.make(42)
+      let observed: number | undefined
+      const dispose = renderAtomValue(atom, (value) => {
+        observed = value
+      }, { map: (value) => value * 2 })
+      assert.strictEqual(observed, 84)
+      dispose()
+    })
 
-    it.effect("updates when Atom value changes", () =>
-      Effect.sync(() => {
-        const registry = AtomRegistry.make()
-        const atom = Atom.make("initial")
-        let observed: string | undefined
-        const dispose = renderAtomValue(atom, (value) => {
-          observed = value
-        }, { registry })
-        assert.strictEqual(observed, "initial")
-        registry.set(atom, "updated")
-        assert.strictEqual(observed, "updated")
-        dispose()
-      }))
+    it("updates when Atom value changes", () => {
+      const registry = AtomRegistry.make()
+      const atom = Atom.make("initial")
+      let observed: string | undefined
+      const dispose = renderAtomValue(atom, (value) => {
+        observed = value
+      }, { registry })
+      assert.strictEqual(observed, "initial")
+      registry.set(atom, "updated")
+      assert.strictEqual(observed, "updated")
+      dispose()
+    })
 
-    it.effect("works with computed Atom", () =>
-      Effect.sync(() => {
-        const baseAtom = Atom.make(10)
-        const computedAtom = Atom.make((get) => get(baseAtom) * 2)
-        let observed: number | undefined
-        const dispose = renderAtomValue(computedAtom, (value) => {
-          observed = value
-        })
-        assert.strictEqual(observed, 20)
-        dispose()
-      }))
+    it("works with computed Atom", () => {
+      const baseAtom = Atom.make(10)
+      const computedAtom = Atom.make((get) => get(baseAtom) * 2)
+      let observed: number | undefined
+      const dispose = renderAtomValue(computedAtom, (value) => {
+        observed = value
+      })
+      assert.strictEqual(observed, 20)
+      dispose()
+    })
   })
 
   describe("createAtom", () => {
-    it.effect("updates value with setter", () =>
-      Effect.sync(() => {
-        const atom = Atom.make(0)
-        let observed: number | undefined
-        const dispose = createRoot((dispose) => {
-          const [value, setValue] = createAtom(atom)
-          createEffect(() => {
-            observed = value()
-          })
-          createEffect(() => {
-            if (value() !== 0) {
-              return
-            }
-            setValue(1)
-            setValue((current) => current + 1)
-          })
-          return dispose
+    it("updates value with setter", () => {
+      const atom = Atom.make(0)
+      let observed: number | undefined
+      const dispose = createRoot((dispose) => {
+        const [value, setValue] = createAtom(atom)
+        createEffect(() => {
+          observed = value()
         })
-        assert.strictEqual(observed, 2)
-        dispose()
-      }))
+        createEffect(() => {
+          if (value() !== 0) {
+            return
+          }
+          setValue(1)
+          setValue((current) => current + 1)
+        })
+        return dispose
+      })
+      assert.strictEqual(observed, 2)
+      dispose()
+    })
   })
 
   describe("createAtomInitialValues", () => {
-    it.effect("applies initial values once per registry", () =>
-      Effect.sync(() => {
-        const registry = AtomRegistry.make()
-        const atom = Atom.make(0)
-        createRoot((dispose) => {
-          createComponent(RegistryContext.Provider, {
-            value: registry,
-            get children() {
-              createAtomInitialValues([[atom, 1]])
-              createAtomInitialValues([[atom, 2]])
-              assert.strictEqual(registry.get(atom), 1)
-              return null
-            }
-          })
-          return dispose
+    it("applies initial values once per registry", () => {
+      const registry = AtomRegistry.make()
+      const atom = Atom.make(0)
+      createRoot((dispose) => {
+        createComponent(RegistryContext.Provider, {
+          value: registry,
+          get children() {
+            createAtomInitialValues([[atom, 1]])
+            createAtomInitialValues([[atom, 2]])
+            assert.strictEqual(registry.get(atom), 1)
+            return null
+          }
         })
-      }))
+        return dispose
+      })
+    })
   })
 
   describe("AtomRef", () => {
-    it.effect("updates when AtomRef changes", () =>
-      Effect.sync(() => {
-        const ref = AtomRef.make(0)
-        let observed: number | undefined
-        const dispose = renderAtomRef(ref, (value) => {
-          observed = value
-        })
-        assert.strictEqual(observed, 0)
-        ref.set(1)
-        assert.strictEqual(observed, 1)
-        dispose()
-      }))
+    it("updates when AtomRef changes", () => {
+      const ref = AtomRef.make(0)
+      let observed: number | undefined
+      const dispose = renderAtomRef(ref, (value) => {
+        observed = value
+      })
+      assert.strictEqual(observed, 0)
+      ref.set(1)
+      assert.strictEqual(observed, 1)
+      dispose()
+    })
 
-    it.effect("updates when AtomRef prop changes", () =>
-      Effect.sync(() => {
-        const ref = AtomRef.make({ count: 0, label: "a" })
-        const propRef = createAtomRefProp(ref, "count")
-        let observed: number | undefined
-        const dispose = renderAtomRef(propRef, (value) => {
-          observed = value
-        })
-        assert.strictEqual(observed, 0)
-        ref.set({ count: 1, label: "a" })
-        assert.strictEqual(observed, 1)
-        dispose()
-      }))
+    it("updates when AtomRef prop changes", () => {
+      const ref = AtomRef.make({ count: 0, label: "a" })
+      const propRef = createAtomRefProp(ref, "count")
+      let observed: number | undefined
+      const dispose = renderAtomRef(propRef, (value) => {
+        observed = value
+      })
+      assert.strictEqual(observed, 0)
+      ref.set({ count: 1, label: "a" })
+      assert.strictEqual(observed, 1)
+      dispose()
+    })
 
-    it.effect("updates when AtomRef prop value changes", () =>
-      Effect.sync(() => {
-        const ref = AtomRef.make({ count: 0, label: "a" })
-        let observed: number | undefined
-        const dispose = renderAccessor(() => createAtomRefPropValue(ref, "count"), (value) => {
-          observed = value
-        })
-        assert.strictEqual(observed, 0)
-        ref.set({ count: 2, label: "a" })
-        assert.strictEqual(observed, 2)
-        dispose()
-      }))
+    it("updates when AtomRef prop value changes", () => {
+      const ref = AtomRef.make({ count: 0, label: "a" })
+      let observed: number | undefined
+      const dispose = renderAccessor(() => createAtomRefPropValue(ref, "count"), (value) => {
+        observed = value
+      })
+      assert.strictEqual(observed, 0)
+      ref.set({ count: 2, label: "a" })
+      assert.strictEqual(observed, 2)
+      dispose()
+    })
   })
 })
