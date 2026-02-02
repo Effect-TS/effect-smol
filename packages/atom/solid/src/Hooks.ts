@@ -205,13 +205,15 @@ export const createAtomSubscribe = <A>(
  */
 export const createAtomRef = <A>(ref: AtomRef.ReadonlyRef<A>): Accessor<A> => {
   const [value, setValue] = createSignal(ref.value)
-  let tracked = false
+  const [tracked, setTracked] = createSignal(false)
   const accessor = () => {
-    tracked = true
+    if (!tracked()) {
+      setTracked(true)
+    }
     return value()
   }
   createEffect(() => {
-    if (!tracked) {
+    if (!tracked()) {
       return
     }
     const dispose = ref.subscribe((next) => setValue(() => next))
