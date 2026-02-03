@@ -465,6 +465,7 @@ const handlerToRoute = (
   const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
   const payload = Arr.isArrayNonEmpty(payloadSchemas) ? HttpApiSchema.Union(payloadSchemas) : undefined
   const encoding = payload?.pipe(({ ast }) => HttpApiSchema.getRequestEncoding(ast))
+  // TODO: this looks incorrect: when there are multiple payload types, the way isMultipartStream and multipartLimits are derived cannot work
   const isMultipartStream = encoding?._tag === "Multipart" && encoding.mode === "stream"
   const multipartLimits = encoding?._tag === "Multipart" ? encoding.limits : undefined
   const decodePath = UndefinedOr.map(HttpApiEndpoint.getPathParamsSchema(endpoint), Schema.decodeUnknownEffect)

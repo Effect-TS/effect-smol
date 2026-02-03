@@ -33,7 +33,7 @@ Benefits of a Single API Definition:
 
 ## Design Principles
 
-- **Schemas first**: Everything about an endpoint (inputs and outputs) is described using `Schema`.
+- **Schemas first**: Everything about an endpoint (inputs and outputs) is described using schemas.
 - **Metadata lives on schemas**: Things like HTTP status codes, encodings, and content types are configured by annotating schemas.
 
 In particular:
@@ -47,7 +47,7 @@ In particular:
     - `asMultipart`
     - `asMultipartStream`
 - **Response**
-  - **Status code** is set via the `httpApiStatus` annotation
+  - **Status code** is set via the `HttpApiSchema.status` API (or `httpApiStatus` annotation)
   - **Encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
     - `asJson` (default)
     - `asUrlParams`
@@ -79,7 +79,7 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
   urlParams: {
     //    ┌─── schema for the "mode" url parameter
     //    ▼
-    mode: Schema.Literal("merge", "replace")
+    mode: Schema.Literals(["merge", "replace"])
   },
 
   // an optional record of request headers and their schemas
@@ -94,19 +94,32 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
     name: Schema.String
   }),
 
-  // possible success responses (status codes / encodings come from schema annotations)
-  // default is 200 OK with JSON encoding
-  success: [User],
+  // possible success responses
+  success: [
+    User, // default is 200 OK with JSON encoding
+    Schema.String
+      .pipe(
+        HttpApiSchema.status(206), // override default status code
+        HttpApiSchema.asText() // override default encoding
+      )
+  ],
 
   // possible error responses
-  // default is 500 Internal Server Error with JSON encoding
-  error: [Schema.String]
+  error: [
+    Schema.Number, // default is 500 Internal Server Error with JSON encoding
+    Schema.String
+      .pipe(
+        HttpApiSchema.status(404), // override default status code
+        HttpApiSchema.asText()
+      ),
+    Schema.Void // any schema that encodes to `Schema.Void` will be treated as no content
+      .pipe(HttpApiSchema.status(401))
+  ]
 })
 ```
 
 ### Issues
 
-- `payload` currently only supports a single schema
 - `urlParams` is not a standard name (many libraries call these `queryParams`)
 - no first-class way to describe cookies on endpoints (request/response)
 - can't replace the default `HttpApiSchemaError` with a custom error schema
@@ -114,7 +127,6 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
 #### Maybe Issues
 
 - no way to set response headers without returning `HttpServerResponse`?
-- no way to describe redirects without returning `HttpServerResponse.redirect`?
 
 #### Client
 
@@ -716,7 +728,7 @@ const Api = HttpApi.make("MyApi")
           }
         }),
         HttpApiEndpoint.patch("updateUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: IdParam
           },
           payload: Schema.Struct({
@@ -982,7 +994,14 @@ By default, the success status code is `200 OK`. You can change it by annotating
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
 import { Effect, Layer, Schema } from "effect"
 import { HttpRouter } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
+import {
+  HttpApi,
+  HttpApiBuilder,
+  HttpApiEndpoint,
+  HttpApiGroup,
+  HttpApiScalar,
+  HttpApiSchema
+} from "effect/unstable/httpapi"
 import { createServer } from "node:http"
 
 const User = Schema.Struct({
@@ -995,7 +1014,8 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.get("getUsers", "/users", {
-          success: Schema.Array(User).annotate({ httpApiStatus: 206 })
+          success: Schema.Array(User)
+            .pipe(HttpApiSchema.status(206))
         })
       )
   )
@@ -1243,7 +1263,14 @@ Error responses allow your endpoint to handle different failure scenarios.
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
 import { Effect, Layer, Schema } from "effect"
 import { HttpRouter } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
+import {
+  HttpApi,
+  HttpApiBuilder,
+  HttpApiEndpoint,
+  HttpApiGroup,
+  HttpApiScalar,
+  HttpApiSchema
+} from "effect/unstable/httpapi"
 import { createServer } from "node:http"
 
 const User = Schema.Struct({
@@ -1266,15 +1293,15 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User,
           error: [
             // Add a 404 error response for this endpoint
-            UserNotFound.annotate({ httpApiStatus: 404 }),
+            UserNotFound.pipe(HttpApiSchema.status(404)),
             // Add a 401 error response for unauthorized access
-            Unauthorized.annotate({ httpApiStatus: 401 })
+            Unauthorized.pipe(HttpApiSchema.status(401))
           ]
         })
       )
@@ -1341,7 +1368,7 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User,
@@ -1425,7 +1452,7 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User,
@@ -1549,7 +1576,7 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          path: {
+          pathParams: {
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User
@@ -2128,7 +2155,7 @@ const usersGroupLive = HttpApiBuilder.group(
   api,
   "users",
   (handlers) =>
-    handlers.handle("getUser", ({ path: { id } }) =>
+    handlers.handle("getUser", ({ pathParams: { id } }) =>
       Effect.succeed({
         id,
         name: "John Doe",
@@ -2611,7 +2638,7 @@ const usersGroupLive = HttpApiBuilder.group(
   api,
   "users",
   (handlers) =>
-    handlers.handle("getUser", ({ path: { id } }) =>
+    handlers.handle("getUser", ({ pathParams: { id } }) =>
       Effect.succeed({
         id,
         name: "John Doe",
@@ -2638,7 +2665,7 @@ const program = Effect.gen(function*() {
     baseUrl: "http://localhost:3000"
   })
   // Call the `getUser` endpoint
-  const user = yield* client.users.getUser({ path: { id: 1 } })
+  const user = yield* client.users.getUser({ pathParams: { id: 1 } })
   console.log(user)
 })
 
