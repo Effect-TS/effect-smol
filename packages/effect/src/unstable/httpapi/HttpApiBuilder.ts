@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Base64 from "../../encoding/Base64.ts"
@@ -14,11 +13,10 @@ import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import type { Path } from "../../Path.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
-import type { ReadonlyRecord } from "../../Record.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import type * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 import type * as Scope from "../../Scope.ts"
@@ -186,7 +184,7 @@ export interface Handlers<
 
   /**
    * Add the implementation for an `HttpApiEndpoint` to a `Handlers` group.
-   * This version of the api allows you to return the full response object.
+   * This version opts out of automatic payload decoding and provides the raw request.
    */
   handleRaw<Name extends HttpApiEndpoint.Name<Endpoints>, R1>(
     name: Name,
@@ -456,24 +454,88 @@ const makeHandlers = <R, Endpoints extends HttpApiEndpoint.Any>(
   return self
 }
 
-const handlerToRoute = (
+function handlerToRoute(
   group: HttpApiGroup.AnyWithProps,
   handler: Handlers.Item<any>,
   services: ServiceMap.ServiceMap<any>
-): HttpRouter.Route<any, any> => {
+): HttpRouter.Route<any, any> {
   const endpoint = handler.endpoint
-  const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
-  const payload = Arr.isArrayNonEmpty(payloadSchemas) ? HttpApiSchema.Union(payloadSchemas) : undefined
-  const encoding = payload?.pipe(({ ast }) => HttpApiSchema.getRequestEncoding(ast))
-  // TODO: this looks incorrect: when there are multiple payload types, the way isMultipartStream and multipartLimits are derived cannot work
-  const isMultipartStream = encoding?._tag === "Multipart" && encoding.mode === "stream"
-  const multipartLimits = encoding?._tag === "Multipart" ? encoding.limits : undefined
+
+  // success
+  const encodeSuccess = Schema.encodeUnknownEffect(makeSuccessSchema(endpoint))
+
+  // path
   const decodePath = UndefinedOr.map(HttpApiEndpoint.getPathParamsSchema(endpoint), Schema.decodeUnknownEffect)
-  const decodePayload = handler.withFullRequest || isMultipartStream
-    ? undefined
-    : UndefinedOr.map(payload, Schema.decodeUnknownEffect)
+
+  // headers
   const decodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.decodeUnknownEffect)
-  const encodeSuccess = Schema.encodeEffect(makeSuccessSchema(endpoint))
+
+  // url params
+  const decodeUrlParams = UndefinedOr.map(HttpApiEndpoint.getUrlParamsSchema(endpoint), Schema.decodeUnknownEffect)
+
+  // payload
+  const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
+  const shouldParsePayload = payloadSchemas.length > 0 && !handler.withFullRequest
+  let payloadBy: Map<string, {
+    readonly _tag: HttpApiSchema.PayloadEncoding["_tag"]
+    readonly schema: Schema.Top
+    readonly decode: (input: unknown) => Effect.Effect<unknown, Schema.SchemaError, unknown>
+  }>
+
+  if (shouldParsePayload) {
+    const payloadsBy = new Map<
+      string,
+      Map<
+        HttpApiSchema.PayloadEncoding["_tag"],
+        [Schema.Top, ...Array<Schema.Top>]
+      >
+    >()
+
+    function addSchema(encoding: HttpApiSchema.PayloadEncoding, schema: Schema.Top) {
+      const tags = payloadsBy.get(encoding.contentType)
+      if (tags) {
+        const schemas = tags.get(encoding._tag)
+        if (schemas) {
+          schemas.push(schema)
+        } else {
+          tags.set(encoding._tag, [schema])
+        }
+      } else {
+        payloadsBy.set(encoding.contentType, new Map([[encoding._tag, [schema]]]))
+      }
+    }
+
+    payloadSchemas.forEach((schema) => {
+      addSchema(HttpApiSchema.getRequestEncoding(schema.ast), schema)
+    })
+
+    payloadBy = new Map<
+      string,
+      {
+        readonly _tag: HttpApiSchema.PayloadEncoding["_tag"]
+        readonly schema: Schema.Top
+        readonly decode: (input: unknown) => Effect.Effect<unknown, Schema.SchemaError, unknown>
+      }
+    >()
+
+    payloadsBy.forEach((tags, contentType) => {
+      const entries = Array.from(tags.entries())
+      if (entries.length > 1) {
+        throw new Error(`Multiple payloads for content-type: ${contentType}`)
+      }
+      const [_tag, schemas] = entries[0]
+      if (_tag === "Multipart" && schemas.length > 1) {
+        throw new Error(`Multiple multipart payloads for content-type: ${contentType}`)
+      }
+      const schema = HttpApiSchema.Union(schemas)
+      payloadBy.set(contentType, {
+        _tag,
+        schema,
+        decode: Schema.decodeUnknownEffect(schema)
+      })
+    })
+  }
+
   return HttpRouter.route(
     endpoint.method,
     endpoint.path as HttpRouter.PathInput,
@@ -495,25 +557,68 @@ const handlerToRoute = (
         if (decodePath) {
           request.pathParams = yield* decodePath(routeContext.params)
         }
-        if (decodePayload) {
-          request.payload = yield* Effect.flatMap(
-            requestPayload(httpRequest, urlParams, multipartLimits),
-            decodePayload
-          )
-        } else if (isMultipartStream) {
-          request.payload = UndefinedOr.match(multipartLimits, {
-            onUndefined: () => httpRequest.multipartStream,
-            onDefined: (limits) => Stream.provideServices(httpRequest.multipartStream, Multipart.limitsServices(limits))
-          })
-        }
         if (decodeHeaders) {
           request.headers = yield* decodeHeaders(httpRequest.headers)
         }
-        const urlParamsSchema = HttpApiEndpoint.getUrlParamsSchema(endpoint)
-        if (urlParamsSchema) {
-          request.urlParams = yield* Schema.decodeUnknownEffect(urlParamsSchema)(
-            normalizeUrlParams(urlParams, urlParamsSchema.ast)
-          )
+        if (decodeUrlParams) {
+          request.urlParams = yield* decodeUrlParams(urlParams)
+        }
+        if (shouldParsePayload) {
+          const hasBody = HttpMethod.hasBody(httpRequest.method)
+          const contentType = hasBody ?
+            getRequestMediaType(httpRequest) :
+            "application/x-www-form-urlencoded"
+          const existing = payloadBy.get(contentType)
+          if (existing) {
+            const { _tag, decode, schema } = existing
+            switch (_tag) {
+              case "Multipart": {
+                const encoding = HttpApiSchema.getRequestEncoding(schema.ast) as Extract<
+                  HttpApiSchema.PayloadEncoding,
+                  { readonly _tag: "Multipart" }
+                >
+                if (encoding.mode === "buffered") {
+                  const source = Effect.orDie(UndefinedOr.match(encoding.limits, {
+                    onUndefined: () => httpRequest.multipart,
+                    onDefined: (limits) =>
+                      Effect.provideServices(httpRequest.multipart, Multipart.limitsServices(limits))
+                  }))
+                  request.payload = yield* Effect.flatMap(source, decode)
+                } else {
+                  request.payload = UndefinedOr.match(encoding.limits, {
+                    onUndefined: () => httpRequest.multipartStream,
+                    onDefined: (limits) =>
+                      Stream.provideServices(httpRequest.multipartStream, Multipart.limitsServices(limits))
+                  })
+                }
+                break
+              }
+              case "Json": {
+                const source = Effect.orDie(httpRequest.json)
+                request.payload = yield* Effect.flatMap(source, decode)
+                break
+              }
+              case "Text": {
+                const source = Effect.orDie(httpRequest.text)
+                request.payload = yield* Effect.flatMap(source, decode)
+                break
+              }
+              case "UrlParams": {
+                const source = hasBody
+                  ? Effect.map(Effect.orDie(httpRequest.urlParamsBody), UrlParams.toRecord)
+                  : Effect.succeed(urlParams)
+                request.payload = yield* Effect.flatMap(source, decode)
+                break
+              }
+              case "Uint8Array": {
+                const source = Effect.map(Effect.orDie(httpRequest.arrayBuffer), (buffer) => new Uint8Array(buffer))
+                request.payload = yield* Effect.flatMap(source, decode)
+                break
+              }
+            }
+          } else {
+            return Response.text(`Unsupported content-type: ${contentType}`, { status: 415 })
+          }
         }
         const response = yield* handler.handler(request)
         return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
@@ -528,36 +633,15 @@ const handlerToRoute = (
 
 const filterIsSchemaError = Filter.fromPredicate(Schema.isSchemaError)
 
-const requestPayload = (
-  request: HttpServerRequest,
-  urlParams: ReadonlyRecord<string, string | Array<string>>,
-  multipartLimits: Multipart.withLimits.Options | undefined
-): Effect.Effect<
-  unknown,
-  never,
-  | FileSystem
-  | Path
-  | Scope.Scope
-> => {
-  if (!HttpMethod.hasBody(request.method)) {
-    return Effect.succeed(urlParams)
-  }
-  const contentType = request.headers["content-type"]
+const getRequestContentType = (request: HttpServerRequest): string =>
+  request.headers["content-type"]
     ? request.headers["content-type"].toLowerCase().trim()
     : "application/json"
-  if (contentType.includes("application/json")) {
-    return Effect.orDie(request.json)
-  } else if (contentType.includes("multipart/form-data")) {
-    return Effect.orDie(UndefinedOr.match(multipartLimits, {
-      onUndefined: () => request.multipart,
-      onDefined: (limits) => Effect.provideServices(request.multipart, Multipart.limitsServices(limits))
-    }))
-  } else if (contentType.includes("x-www-form-urlencoded")) {
-    return Effect.map(Effect.orDie(request.urlParamsBody), UrlParams.toRecord)
-  } else if (contentType.startsWith("text/")) {
-    return Effect.orDie(request.text)
-  }
-  return Effect.map(Effect.orDie(request.arrayBuffer), (buffer) => new Uint8Array(buffer))
+
+const getRequestMediaType = (request: HttpServerRequest): string => {
+  const contentType = getRequestContentType(request)
+  const index = contentType.indexOf(";")
+  return index === -1 ? contentType : contentType.slice(0, index).trim()
 }
 
 const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
@@ -710,49 +794,4 @@ function getResponseEncode<E>(
           )
         )
   }
-}
-
-function isSingleStringType(ast: AST.AST, key?: PropertyKey): boolean {
-  switch (ast._tag) {
-    case "String":
-    case "Literal":
-    case "TemplateLiteral":
-    case "Enum":
-      return true
-    case "Objects": {
-      if (key !== undefined) {
-        const ps = ast.propertySignatures.find((ps) => ps.name === key)
-        return ps !== undefined
-          ? isSingleStringType(ps.type, key)
-          : ast.indexSignatures.some((is) =>
-            Schema.is(Schema.make(is.parameter) as any)(key) && isSingleStringType(is.type)
-          )
-      }
-      return false
-    }
-    case "Union":
-      return ast.types.some((type) => isSingleStringType(type, key))
-    case "Suspend":
-      return isSingleStringType(ast.thunk(), key)
-  }
-  return false
-}
-
-/**
- * Normalizes the url parameters so that if a key is expected to be an array,
- * a single string value is wrapped in an array.
- *
- * @internal
- */
-export function normalizeUrlParams(
-  params: ReadonlyRecord<string, string | Array<string>>,
-  ast: AST.AST
-): ReadonlyRecord<string, string | Array<string>> {
-  const encodedAST = AST.toEncoded(ast)
-  const out: Record<string, string | Array<string>> = {}
-  for (const key in params) {
-    const value = params[key]
-    out[key] = Array.isArray(value) || isSingleStringType(encodedAST, key) ? value : [value]
-  }
-  return out
 }

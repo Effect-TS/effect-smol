@@ -500,7 +500,7 @@ describe("HttpApi", () => {
         const error = yield* client.users.upload({ pathParams: {}, payload: new FormData() }).pipe(
           Effect.flip
         )
-        assert(error._tag === "HttpApiSchemaError")
+        assert.strictEqual(error._tag, "HttpApiSchemaError")
         // TODO: add back issues
         // assert.deepStrictEqual(error.issues[0].path, ["file"])
       }).pipe(Effect.provide(HttpLive)))
