@@ -63,49 +63,49 @@ export type AnthropicRateLimitMetadata = AnthropicErrorMetadata & {
 declare module "effect/unstable/ai/AiError" {
   export interface RateLimitError {
     readonly metadata: {
-      readonly anthropic: AnthropicRateLimitMetadata | null
+      readonly anthropic?: AnthropicRateLimitMetadata | null
     }
   }
 
   export interface QuotaExhaustedError {
     readonly metadata: {
-      readonly anthropic: AnthropicErrorMetadata | null
+      readonly anthropic?: AnthropicErrorMetadata | null
     }
   }
 
   export interface AuthenticationError {
     readonly metadata: {
-      readonly anthropic: AnthropicErrorMetadata | null
+      readonly anthropic?: AnthropicErrorMetadata | null
     }
   }
 
   export interface ContentPolicyError {
     readonly metadata: {
-      readonly anthropic: AnthropicErrorMetadata | null
+      readonly anthropic?: AnthropicErrorMetadata | null
     }
   }
 
   export interface InvalidRequestError {
     readonly metadata: {
-      readonly anthropic: AnthropicErrorMetadata | null
+      readonly anthropic?: AnthropicErrorMetadata | null
     }
   }
 
   export interface InternalProviderError {
     readonly metadata: {
-      readonly anthropic: AnthropicErrorMetadata | null
+      readonly anthropic?: AnthropicErrorMetadata | null
     }
   }
 
   export interface InvalidOutputError {
     readonly metadata: {
-      readonly anthropic: AnthropicErrorMetadata | null
+      readonly anthropic?: AnthropicErrorMetadata | null
     }
   }
 
   export interface UnknownError {
     readonly metadata: {
-      readonly anthropic: AnthropicErrorMetadata | null
+      readonly anthropic?: AnthropicErrorMetadata | null
     }
   }
 }

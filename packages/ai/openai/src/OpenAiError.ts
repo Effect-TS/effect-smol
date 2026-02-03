@@ -59,49 +59,49 @@ export type OpenAiRateLimitMetadata = OpenAiErrorMetadata & {
 declare module "effect/unstable/ai/AiError" {
   export interface RateLimitError {
     readonly metadata: {
-      readonly openai: OpenAiRateLimitMetadata | null
+      readonly openai?: OpenAiRateLimitMetadata | null
     }
   }
 
   export interface QuotaExhaustedError {
     readonly metadata: {
-      readonly openai: OpenAiErrorMetadata | null
+      readonly openai?: OpenAiErrorMetadata | null
     }
   }
 
   export interface AuthenticationError {
     readonly metadata: {
-      readonly openai: OpenAiErrorMetadata | null
+      readonly openai?: OpenAiErrorMetadata | null
     }
   }
 
   export interface ContentPolicyError {
     readonly metadata: {
-      readonly openai: OpenAiErrorMetadata | null
+      readonly openai?: OpenAiErrorMetadata | null
     }
   }
 
   export interface InvalidRequestError {
     readonly metadata: {
-      readonly openai: OpenAiErrorMetadata | null
+      readonly openai?: OpenAiErrorMetadata | null
     }
   }
 
   export interface InternalProviderError {
     readonly metadata: {
-      readonly openai: OpenAiErrorMetadata | null
+      readonly openai?: OpenAiErrorMetadata | null
     }
   }
 
   export interface InvalidOutputError {
     readonly metadata: {
-      readonly openai: OpenAiErrorMetadata | null
+      readonly openai?: OpenAiErrorMetadata | null
     }
   }
 
   export interface UnknownError {
     readonly metadata: {
-      readonly openai: OpenAiErrorMetadata | null
+      readonly openai?: OpenAiErrorMetadata | null
     }
   }
 }
