@@ -2025,8 +2025,8 @@ const renderFileNextFrame = Effect.fnUntraced(function*(state: FileState, option
     const promptMsg = renderPrompt(confirm, CONFIRM_MESSAGE, leadingSymbol, trailingSymbol)
     return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg
   }
-  const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
-  const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
+  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
+  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
   const promptMsg = renderPrompt("", options.message, leadingSymbol, trailingSymbol)
   const files = renderFiles(state, state.files, figures, options)
   return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg + "\n" + files
