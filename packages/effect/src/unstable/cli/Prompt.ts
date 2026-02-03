@@ -1922,11 +1922,11 @@ const handleFileClear = (options: FileOptionsReq) => {
     const resolvedPathText = `${figures.pointerSmall} ${resolvedPath}`
     const isConfirming = showConfirmation(state.confirm)
     const promptText = isConfirming
-      ? renderPrompt("(Y/n)", CONFIRM_MESSAGE, "?", figures.pointerSmall, { plain: true })
-      : renderPrompt("", options.message, "?", figures.pointerSmall, { plain: true })
+      ? renderPrompt("(Y/n)", CONFIRM_MESSAGE, "?", figures.pointerSmall)
+      : renderPrompt("", options.message, "?", figures.pointerSmall)
     const filesText = isConfirming
       ? ""
-      : renderFiles(state, state.files, figures, options, { plain: true })
+      : renderFiles(state, state.files, figures, options)
     const outputText = isConfirming
       ? `${promptText}\n${resolvedPathText}`
       : `${promptText}\n${resolvedPathText}\n${filesText}`
