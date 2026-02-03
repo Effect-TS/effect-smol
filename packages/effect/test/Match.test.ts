@@ -1,5 +1,5 @@
+import { describe, it } from "@effect/vitest"
 import { Match, pipe } from "effect"
-import { describe, it } from "vitest"
 import { strictEqual } from "./utils/assert.ts"
 
 describe("Match", () => {
