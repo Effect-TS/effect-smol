@@ -1197,6 +1197,15 @@ const lines = (prompt: string, columns: number): number => {
     )
 }
 
+const clearOutputWithError = (outputText: string, columns: number, errorText?: string): string => {
+  if (errorText !== undefined && errorText.length > 0) {
+    return Ansi.cursorDown(lines(errorText, columns))
+      + eraseText(`\n${errorText}`, columns)
+      + eraseText(outputText, columns)
+  }
+  return eraseText(outputText, columns)
+}
+
 interface ConfirmOptionsReq extends Required<ConfirmOptions> {}
 
 interface ConfirmState {
@@ -1313,11 +1322,8 @@ const handleDateClear = (options: DateOptionsReq) => {
         onNonEmpty: (errorLines) => `${figures.pointerSmall} ${errorLines.join("\n")}`
       })
       : ""
-    const clearError = state.error !== undefined
-      ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(`\n${errorText}`, columns)
-      : ""
-    const clearOutput = eraseText(promptText, columns)
-    return clearError + clearOutput + resetCurrentLine
+    const clearOutput = clearOutputWithError(promptText, columns, errorText)
+    return clearOutput + resetCurrentLine
   })
 }
 
@@ -2423,11 +2429,8 @@ const handleMultiSelectClear = <A>(options: SelectOptionsReq<A>) =>
     const errorText = state.error !== undefined
       ? renderMultiSelectErrorPlain(state.error, figures.pointer)
       : ""
-    const clearError = state.error !== undefined
-      ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(`\n${errorText}`, columns)
-      : ""
-    const clearOutput = eraseText(`${promptText}\n${choicesText}`, columns)
-    return clearError + clearOutput + clearPrompt
+    const clearOutput = clearOutputWithError(`${promptText}\n${choicesText}`, columns, errorText)
+    return clearOutput + clearPrompt
   })
 
 const handleMultiSelectProcess = <A>(options: SelectOptionsReq<A> & MultiSelectOptionsReq) => {
@@ -2502,13 +2505,10 @@ const handleNumberClear = (options: IntegerOptionsReq) => {
         onNonEmpty: (errorLines) => `${figures.pointerSmall} ${errorLines.join("\n")}`
       })
       : ""
-    const clearError = state.error !== undefined
-      ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(`\n${errorText}`, columns)
-      : ""
     const value = state.value === "" ? "" : `${state.value}`
     const promptText = renderPromptPlain(value, options.message, "?", figures.pointerSmall)
-    const clearOutput = eraseText(promptText, columns)
-    return clearError + clearOutput + resetCurrentLine
+    const clearOutput = clearOutputWithError(promptText, columns, errorText)
+    return clearOutput + resetCurrentLine
   })
 }
 
@@ -3290,23 +3290,16 @@ const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options:
   const terminal = yield* Terminal.Terminal
   const columns = yield* terminal.columns
   const figures = yield* platformFigures
-  // Erase the current line and place the cursor in column one
   const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
   const errorText = state.error !== undefined
     ? renderTextErrorPlain(state.error, figures.pointerSmall)
     : ""
-  // Check for any error output
-  const clearError = state.error !== undefined
-    // If there was an error, move the cursor down to the final error line and
-    // then clear all lines of error output
-    // Add a leading newline to the error message to ensure that the corrrect
-    // number of error lines are erased
-    ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(`\n${errorText}`, columns)
-    : ""
-  // Ensure that the prior prompt output is cleaned up
-  const clearOutput = eraseText(renderTextOutputPlain(state, "?", figures.pointerSmall, options), columns)
-  // Concatenate and render all documents
-  return clearError + clearOutput + resetCurrentLine
+  const clearOutput = clearOutputWithError(
+    renderTextOutputPlain(state, "?", figures.pointerSmall, options),
+    columns,
+    errorText
+  )
+  return clearOutput + resetCurrentLine
 })
 
 const renderTextInputPlain = (nextState: TextState, options: TextOptionsReq): string => {
