@@ -1215,11 +1215,7 @@ const handleConfirmClear = (options: ConfirmOptionsReq) => {
     const confirmMessage = state.value
       ? options.placeholder.defaultConfirm!
       : options.placeholder.defaultDeny!
-    const promptLines = options.message.split(NEWLINE_REGEXP)
-    const prefix = "? "
-    const promptText = Arr.isReadonlyArrayNonEmpty(promptLines)
-      ? prefix + promptLines.join("\n") + " " + figures.pointerSmall + " " + confirmMessage
-      : prefix + " " + figures.pointerSmall + " " + confirmMessage
+    const promptText = renderPromptPlain(confirmMessage, options.message, "?", figures.pointerSmall)
     const clearOutput = eraseText(promptText, columns)
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
     return clearOutput + resetCurrentLine
@@ -1310,11 +1306,7 @@ const handleDateClear = (options: DateOptionsReq) => {
     const figures = yield* platformFigures
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
     const parts = Arr.reduce(state.dateParts, "", (doc, part) => doc + part.toString())
-    const promptLines = options.message.split(NEWLINE_REGEXP)
-    const prefix = "? "
-    const promptText = Arr.isReadonlyArrayNonEmpty(promptLines)
-      ? prefix + promptLines.join("\n") + " " + figures.pointerSmall + " " + parts
-      : prefix + " " + figures.pointerSmall + " " + parts
+    const promptText = renderPromptPlain(parts, options.message, "?", figures.pointerSmall)
     const errorText = state.error !== undefined
       ? Arr.match(state.error.split(NEWLINE_REGEXP), {
         onEmpty: () => "",
@@ -1935,7 +1927,7 @@ const handleFileClear = (options: FileOptionsReq) => {
     const isConfirming = showConfirmation(state.confirm)
     const promptText = isConfirming
       ? renderPromptPlain("(Y/n)", CONFIRM_MESSAGE, "?", figures.pointerSmall)
-      : renderPromptPlain("", options.message, figures.tick, figures.ellipsis)
+      : renderPromptPlain("", options.message, "?", figures.pointerSmall)
     const filesText = isConfirming
       ? ""
       : renderFilesPlain(state, state.files, figures, options)
@@ -1965,15 +1957,15 @@ const renderPrompt = (
 }
 
 const renderPromptPlain = (
-  confirm: string,
+  value: string,
   message: string,
   leadingSymbol: string,
   trailingSymbol: string
 ) => {
   const prefix = leadingSymbol + " "
   return Arr.match(message.split(NEWLINE_REGEXP), {
-    onEmpty: () => prefix + " " + trailingSymbol + " " + confirm,
-    onNonEmpty: (promptLines) => prefix + promptLines.join("\n") + " " + trailingSymbol + " " + confirm
+    onEmpty: () => prefix + " " + trailingSymbol + " " + value,
+    onNonEmpty: (promptLines) => prefix + promptLines.join("\n") + " " + trailingSymbol + " " + value
   })
 }
 
@@ -2071,8 +2063,8 @@ const renderFileNextFrame = Effect.fnUntraced(function*(state: FileState, option
     const promptMsg = renderPrompt(confirm, CONFIRM_MESSAGE, leadingSymbol, trailingSymbol)
     return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg
   }
-  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
-  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
+  const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
+  const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
   const promptMsg = renderPrompt("", options.message, leadingSymbol, trailingSymbol)
   const files = renderFiles(state, state.files, figures, options)
   return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg + "\n" + files
@@ -2514,11 +2506,7 @@ const handleNumberClear = (options: IntegerOptionsReq) => {
       ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(`\n${errorText}`, columns)
       : ""
     const value = state.value === "" ? "" : `${state.value}`
-    const promptLines = options.message.split(NEWLINE_REGEXP)
-    const prefix = "? "
-    const promptText = Arr.isReadonlyArrayNonEmpty(promptLines)
-      ? prefix + promptLines.join("\n") + " " + figures.pointerSmall + " " + value
-      : prefix + " " + figures.pointerSmall + " " + value
+    const promptText = renderPromptPlain(value, options.message, "?", figures.pointerSmall)
     const clearOutput = eraseText(promptText, columns)
     return clearError + clearOutput + resetCurrentLine
   })
@@ -3386,14 +3374,7 @@ const renderTextOutputPlain = (
   leadingSymbol: string,
   trailingSymbol: string,
   options: TextOptionsReq
-) => {
-  const promptLines = options.message.split(NEWLINE_REGEXP)
-  const prefix = leadingSymbol + " "
-  if (Arr.isReadonlyArrayNonEmpty(promptLines)) {
-    return prefix + promptLines.join("\n") + " " + trailingSymbol + " " + renderTextInputPlain(nextState, options)
-  }
-  return prefix + " " + trailingSymbol + " " + renderTextInputPlain(nextState, options)
-}
+) => renderPromptPlain(renderTextInputPlain(nextState, options), options.message, leadingSymbol, trailingSymbol)
 
 const renderTextOutput = (
   nextState: TextState,
@@ -3576,11 +3557,7 @@ const handleToggleClear = Effect.fnUntraced(function*(options: ToggleOptionsReq)
   const figures = yield* platformFigures
   const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
   const toggleText = `${options.active} / ${options.inactive}`
-  const promptLines = options.message.split(NEWLINE_REGEXP)
-  const prefix = "? "
-  const promptText = Arr.isReadonlyArrayNonEmpty(promptLines)
-    ? prefix + promptLines.join("\n") + " " + figures.pointerSmall + " " + toggleText
-    : prefix + " " + figures.pointerSmall + " " + toggleText
+  const promptText = renderPromptPlain(toggleText, options.message, "?", figures.pointerSmall)
   const clearOutput = eraseText(promptText, columns)
   return clearOutput + clearPrompt
 })
