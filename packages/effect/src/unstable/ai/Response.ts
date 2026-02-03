@@ -2291,11 +2291,19 @@ export class Usage extends Schema.Class<Usage>("effect/ai/AiResponse/Usage")({
  *
  * const finishPart: Response.FinishPart = Response.makePart("finish", {
  *   reason: "stop",
- *   usage: {
- *     inputTokens: 50,
- *     outputTokens: 25,
- *     totalTokens: 75
- *   }
+ *   usage: new Response.Usage({
+ *     inputTokens: {
+ *       uncached: undefined,
+ *       total: 50,
+ *       cacheRead: undefined,
+ *       cacheWrite: undefined
+ *     },
+ *     outputTokens: {
+ *       total: 25,
+ *       text: undefined,
+ *       reasoning: undefined
+ *     }
+ *   })
  * })
  * ```
  *

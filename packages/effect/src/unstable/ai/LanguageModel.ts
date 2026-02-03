@@ -1246,7 +1246,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
  *   })
  *
  *   console.log(response.text)
- *   console.log(response.usage.totalTokens)
+ *   console.log(response.usage.inputTokens.total)
  *
  *   return response
  * })
