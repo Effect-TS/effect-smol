@@ -75,6 +75,46 @@ describe("HttpApi", () => {
     }).pipe(Effect.provide(ApiLive))
   })
 
+  it.effect("middleware error", () => {
+    class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
+      error: Schema.String
+        .pipe(
+          HttpApiSchema.status(405),
+          HttpApiSchema.asText()
+        )
+    }) {}
+
+    const Api = HttpApi.make("api")
+      .add(
+        HttpApiGroup.make("group")
+          .add(
+            HttpApiEndpoint.get("a", "/a", {
+              success: Schema.Finite
+            })
+          ).middleware(M)
+      )
+    const GroupLive = HttpApiBuilder.group(
+      Api,
+      "group",
+      (handlers) => handlers.handle("a", () => Effect.succeed(1))
+    )
+    const MLive = Layer.succeed(
+      M,
+      () => Effect.fail("error")
+    )
+
+    const ApiLive = HttpRouter.serve(
+      HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive), Layer.provide(MLive)),
+      { disableListenLog: true, disableLogger: true }
+    ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+    return Effect.gen(function*() {
+      const client = yield* HttpApiClient.make(Api)
+      const result = yield* Effect.flip(client.group.a())
+      assert.strictEqual(result, "error" as any) // TODO: the client doesn't account for middleware errors
+    }).pipe(Effect.provide(ApiLive))
+  })
+
   describe("payload option", () => {
     describe("GET", () => {
       it.effect("query parameters", () => {

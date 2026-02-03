@@ -1,6 +1,14 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Schema } from "effect"
-import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
+import {
+  HttpApi,
+  HttpApiEndpoint,
+  HttpApiError,
+  HttpApiGroup,
+  HttpApiMiddleware,
+  HttpApiSchema,
+  OpenApi
+} from "effect/unstable/httpapi"
 
 describe("OpenAPI spec", () => {
   describe("api", () => {
@@ -74,6 +82,65 @@ describe("OpenAPI spec", () => {
               },
               required: ["_tag", "message"],
               additionalProperties: false
+            }
+          }
+        }
+      }
+    })
+  })
+
+  it("middleware error", () => {
+    class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
+      error: Schema.String
+        .pipe(
+          HttpApiSchema.status(405),
+          HttpApiSchema.asText()
+        )
+    }) {}
+
+    const Api = HttpApi.make("api")
+      .add(
+        HttpApiGroup.make("group")
+          .add(
+            HttpApiEndpoint.get("a", "/a", {
+              success: Schema.Finite
+            })
+          ).middleware(M)
+      )
+    const spec = OpenApi.fromApi(Api)
+    assert.deepStrictEqual(spec.paths["/a"].get?.responses, {
+      "200": {
+        description: "Success",
+        content: {
+          "application/json": {
+            schema: {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "400": {
+        description: "The request or response did not match the expected schema",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                _tag: { type: "string", enum: ["HttpApiSchemaError"] },
+                message: { "$ref": "#/components/schemas/String_" }
+              },
+              required: ["_tag", "message"],
+              additionalProperties: false
+            }
+          }
+        }
+      },
+      "405": {
+        description: "Error",
+        content: {
+          "text/plain": {
+            schema: {
+              "$ref": "#/components/schemas/String_"
             }
           }
         }

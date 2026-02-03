@@ -215,7 +215,7 @@ export const Service = <
   self.error = options?.error === undefined ? Schema.Never : options.error
   if (options?.security) {
     if (Object.keys(options.security).length === 0) {
-      throw new Error("HttpApiMiddleware.Tag: security object must not be empty")
+      throw new Error("HttpApiMiddleware.Service: security object must not be empty")
     }
     self[SecurityTypeId] = SecurityTypeId
     self.security = options.security

@@ -120,9 +120,13 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
 
 ### Issues
 
-- `urlParams` is not a standard name (many libraries call these `queryParams`)
+- `urlParams` is not a standard name (many libraries call these `queryParams`). Proposal:
+  - rename `path` to `params`
+  - rename `urlParams` to `query`
 - no first-class way to describe cookies on endpoints (request/response)
 - can't replace the default `HttpApiSchemaError` with a custom error schema
+- Open Api
+  - what's the purpose of additional schemas?
 
 #### Maybe Issues
 

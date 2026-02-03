@@ -631,21 +631,19 @@ const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
 const toResponseErrorSchema = toResponseSchema(HttpApiSchema.getStatusError)
 
 function makeSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
-  return Schema.Union(HttpApiEndpoint.getSuccessSchemas(endpoint).map(toResponseSuccessSchema))
+  const schemas = HttpApiEndpoint.getSuccessSchemas(endpoint).map(toResponseSuccessSchema)
+  return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
 function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
-  const schemas = new Set<Schema.Top>([HttpApiSchemaError])
+  const errors = new Set<Schema.Top>([HttpApiSchemaError])
   for (const group of Object.values(api.groups)) {
     for (const endpoint of Object.values(group.endpoints)) {
-      HttpApiEndpoint.getErrorSchemas(endpoint).forEach((schema) => schemas.add(schema))
-      for (const middleware of endpoint.middlewares) {
-        const key = middleware as any as HttpApiMiddleware.AnyKey
-        schemas.add(key.error)
-      }
+      HttpApiEndpoint.getErrorSchemas(endpoint).forEach((schema) => errors.add(schema))
     }
   }
-  return Schema.Union(Array.from(schemas, toResponseErrorSchema))
+  const schemas = Array.from(errors, toResponseErrorSchema)
+  return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
 function toResponseSchema(getStatus: (ast: AST.AST) => number) {

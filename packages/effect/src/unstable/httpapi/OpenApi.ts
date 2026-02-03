@@ -458,7 +458,6 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
     }
   })
 
-  // TODO: what's the purpose of additional schemas?
   processAnnotation(api.annotations, HttpApi.AdditionalSchemas, (componentSchemas) => {
     componentSchemas.forEach((componentSchema) => {
       const identifier = AST.resolveIdentifier(componentSchema.ast)
@@ -510,7 +509,6 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
     spec = JsonPatch.apply(patchOps, spec as any) as any
   }
 
-  // TODO
   Object.keys(spec.components.schemas).forEach((key) => {
     if (!JsonSchema.VALID_OPEN_API_COMPONENTS_SCHEMAS_KEY_REGEXP.test(key)) {
       throw new globalThis.Error(`Invalid component schema key: ${key}`)
