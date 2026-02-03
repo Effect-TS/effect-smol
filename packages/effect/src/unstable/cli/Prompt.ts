@@ -3011,6 +3011,7 @@ const getValue = (state: TextState, options: TextOptionsReq): string => {
 const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
   const terminal = yield* Terminal.Terminal
   const columns = yield* terminal.columns
+  const figures = yield* platformFigures
   // Erase the current line and place the cursor in column one
   const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
   // Check for any error output
@@ -3022,10 +3023,25 @@ const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options:
     ? Ansi.cursorDown(lines(state.error, columns)) + eraseText(`\n${state.error}`, columns)
     : ""
   // Ensure that the prior prompt output is cleaned up
-  const clearOutput = eraseText(options.message, columns)
+  const clearOutput = eraseText(renderTextOutputPlain(state, "?", figures.pointerSmall, options), columns)
   // Concatenate and render all documents
   return clearError + clearOutput + resetCurrentLine
 })
+
+const renderTextInputPlain = (nextState: TextState, options: TextOptionsReq): string => {
+  const text = getValue(nextState, options)
+  switch (options.type) {
+    case "hidden": {
+      return ""
+    }
+    case "password": {
+      return "*".repeat(text.length)
+    }
+    case "text": {
+      return text
+    }
+  }
+}
 
 const renderTextInput = (nextState: TextState, options: TextOptionsReq, submitted: boolean) => {
   const text = getValue(nextState, options)
@@ -3063,6 +3079,20 @@ const renderTextError = (nextState: TextState, pointer: string): string => {
     })
   }
   return ""
+}
+
+const renderTextOutputPlain = (
+  nextState: TextState,
+  leadingSymbol: string,
+  trailingSymbol: string,
+  options: TextOptionsReq
+) => {
+  const promptLines = options.message.split(NEWLINE_REGEXP)
+  const prefix = leadingSymbol + " "
+  if (Arr.isReadonlyArrayNonEmpty(promptLines)) {
+    return prefix + promptLines.join("\n") + " " + trailingSymbol + " " + renderTextInputPlain(nextState, options)
+  }
+  return prefix + " " + trailingSymbol + " " + renderTextInputPlain(nextState, options)
 }
 
 const renderTextOutput = (
