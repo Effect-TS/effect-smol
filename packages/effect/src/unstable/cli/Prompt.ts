@@ -2452,7 +2452,7 @@ const defaultFloatProcessor = (input: string, state: NumberState) => {
     return Effect.succeed(Action.NextFrame({
       state: {
         ...state,
-        value: input === "." ? `${parsed}.` : `parsed`,
+        value: input === "." ? `${parsed}.` : `${parsed}`,
         error: undefined
       }
     }))
