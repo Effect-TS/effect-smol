@@ -943,6 +943,7 @@ const IncrementalToolWithFailure = Tool.make("IncrementalToolWithFailure", {
 })
 
 const NoHandlerRequired = Tool.providerDefined({
+  id: "test.no_handler_required",
   customName: "NoHandlerRequired",
   providerName: "no_handler_required",
   args: Schema.Struct({
@@ -960,6 +961,7 @@ const NoHandlerRequired = Tool.providerDefined({
 })
 
 const HandlerRequired = Tool.providerDefined({
+  id: "test.handler_required",
   customName: "HandlerRequired",
   providerName: "handler_required",
   requiresHandler: true,

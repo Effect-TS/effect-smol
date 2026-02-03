@@ -301,6 +301,7 @@ export interface Tool<
  *
  * // Define a web search tool provided by OpenAI
  * const WebSearch = Tool.providerDefined({
+ *   id: "openai.web_search",
  *   customName: "OpenAiWebSearch",
  *   providerName: "web_search",
  *   args: Schema.Struct({
@@ -320,6 +321,7 @@ export interface Tool<
  * @category models
  */
 export interface ProviderDefined<
+  Identifier extends `${string}.${string}`,
   Name extends string,
   Config extends {
     readonly args: Schema.Top
@@ -341,6 +343,11 @@ export interface ProviderDefined<
   >
 {
   readonly [ProviderDefinedTypeId]: typeof ProviderDefinedTypeId
+
+  /**
+   * the identifier which is used to uniquely identify the provider-defined tool.
+   */
+  readonly id: Identifier
 
   /**
    * The arguments passed to the provider-defined tool.
@@ -389,6 +396,7 @@ export interface ProviderDefined<
  * })
  *
  * const ProviderDefinedTool = Tool.providerDefined({
+ *   id: "openai.web_search",
  *   customName: "OpenAiWebSearch",
  *   providerName: "web_search",
  *   args: Schema.Struct({
@@ -432,6 +440,7 @@ export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
  * })
  *
  * const ProviderDefinedTool = Tool.providerDefined({
+ *   id: "openai.web_search",
  *   customName: "OpenAiWebSearch",
  *   providerName: "web_search",
  *   args: Schema.Struct({
@@ -455,7 +464,7 @@ export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
  */
 export const isProviderDefined = (
   u: unknown
-): u is ProviderDefined<string, any> => Predicate.hasProperty(u, ProviderDefinedTypeId)
+): u is ProviderDefined<`${string}.${string}`, string, any> => Predicate.hasProperty(u, ProviderDefinedTypeId)
 
 // =============================================================================
 // utility types
@@ -483,7 +492,7 @@ export interface Any extends
  * @category utility types
  */
 export interface AnyProviderDefined extends
-  ProviderDefined<any, {
+  ProviderDefined<any, any, {
     readonly args: Schema.Top
     readonly parameters: Schema.Top
     readonly success: Schema.Top
@@ -903,6 +912,7 @@ const userDefinedProto = <
 }
 
 const providerDefinedProto = <
+  const Identifier extends `${string}.${string}`,
   const Name extends string,
   Args extends Schema.Top,
   Parameters extends Schema.Top,
@@ -911,6 +921,7 @@ const providerDefinedProto = <
   RequiresHandler extends boolean,
   Mode extends FailureMode
 >(options: {
+  readonly id: Identifier
   readonly name: Name
   readonly providerName: string
   readonly args: Args["Encoded"]
@@ -921,6 +932,7 @@ const providerDefinedProto = <
   readonly failureSchema: Failure
   readonly failureMode: FailureMode
 }): ProviderDefined<
+  Identifier,
   Name,
   {
     readonly args: Args
@@ -930,11 +942,7 @@ const providerDefinedProto = <
     readonly failureMode: Mode
   },
   RequiresHandler
-> =>
-  Object.assign(Object.create(ProviderDefinedProto), {
-    ...options,
-    id: `effect/ai/ProviderDefinedTool/${options.name}`
-  })
+> => Object.assign(Object.create(ProviderDefinedProto), { ...options })
 
 /**
  * Creates a user-defined tool with the specified name and configuration.
@@ -1045,6 +1053,7 @@ export const make = <
  *
  * // Web search tool provided by OpenAI
  * const WebSearch = Tool.providerDefined({
+ *   id: "openai.web_search",
  *   customName: "OpenAiWebSearch",
  *   providerName: "web_search",
  *   args: Schema.Struct({
@@ -1064,6 +1073,7 @@ export const make = <
  * @category constructors
  */
 export const providerDefined = <
+  const Identifier extends `${string}.${string}`,
   const Name extends string,
   Args extends Schema.Top = typeof Schema.Void,
   Parameters extends Schema.Top = typeof Schema.Void,
@@ -1071,6 +1081,10 @@ export const providerDefined = <
   Failure extends Schema.Top = typeof Schema.Never,
   RequiresHandler extends boolean = false
 >(options: {
+  /**
+   * the identifier which is used to uniquely identify the provider-defined tool.
+   */
+  readonly id: Identifier
   /**
    * Custom name used by the Toolkit to identify this tool.
    */
@@ -1118,6 +1132,7 @@ export const providerDefined = <
     >
     : Struct.Simplify<Args["Encoded"]>
 ): ProviderDefined<
+  Identifier,
   Name,
   {
     readonly args: Args
@@ -1132,6 +1147,7 @@ export const providerDefined = <
   const successSchema = options?.success ?? Schema.Void
   const failureSchema = options?.failure ?? Schema.Never
   return providerDefinedProto({
+    id: options.id,
     name: options.customName,
     providerName: options.providerName,
     args: args as any,

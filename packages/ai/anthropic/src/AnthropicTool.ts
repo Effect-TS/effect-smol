@@ -27,11 +27,12 @@ export type AnthropicTool =
   | ReturnType<typeof Memory_20250818>
   | ReturnType<typeof TextEditor_20241022>
   | ReturnType<typeof TextEditor_20250124>
+  | ReturnType<typeof TextEditor_20250429>
   | ReturnType<typeof TextEditor_20250728>
-  | ReturnType<typeof WebSearch_20250305>
-  | ReturnType<typeof WebFetch_20250910>
   | ReturnType<typeof ToolSearchRegex_20251119>
   | ReturnType<typeof ToolSearchBM25_20251119>
+  | ReturnType<typeof WebFetch_20250910>
+  | ReturnType<typeof WebSearch_20250305>
 
 // =============================================================================
 // Bash
@@ -47,6 +48,7 @@ export type AnthropicTool =
  * @category Bash
  */
 export const Bash_20241022 = Tool.providerDefined({
+  id: "anthropic.bash_20241022",
   customName: "AnthropicBash",
   providerName: "bash",
   requiresHandler: true,
@@ -67,6 +69,7 @@ export const Bash_20241022 = Tool.providerDefined({
  * @category Bash
  */
 export const Bash_20250124 = Tool.providerDefined({
+  id: "anthropic.bash_20250124",
   customName: "AnthropicBash",
   providerName: "bash",
   requiresHandler: true,
@@ -240,6 +243,7 @@ export type CodeExecution_20250825_Parameters = typeof CodeExecution_20250825_Pa
  * @category Code Execution
  */
 export const CodeExecution_20250522 = Tool.providerDefined({
+  id: "anthropic.code_execution_20250522",
   customName: "AnthropicCodeExecution",
   providerName: "code_execution",
   parameters: CodeExecution_20250522_Parameters,
@@ -256,6 +260,7 @@ export const CodeExecution_20250522 = Tool.providerDefined({
  * @category Code Execution
  */
 export const CodeExecution_20250825 = Tool.providerDefined({
+  id: "anthropic.code_execution_20250825",
   customName: "AnthropicCodeExecution",
   providerName: "code_execution",
   parameters: CodeExecution_20250825_Parameters,
@@ -746,6 +751,7 @@ const ComputerUse_20251124_Actions = Schema.Union([
  * @category Computer Use
  */
 export const ComputerUse_20241022 = Tool.providerDefined({
+  id: "anthropic.computer_use_20241022",
   customName: "AnthropicComputerUse",
   providerName: "computer_use",
   requiresHandler: true,
@@ -767,6 +773,7 @@ export const ComputerUse_20241022 = Tool.providerDefined({
  * @category Computer Use
  */
 export const ComputerUse_20250124 = Tool.providerDefined({
+  id: "anthropic.computer_20250124",
   customName: "AnthropicComputerUse",
   providerName: "computer",
   requiresHandler: true,
@@ -787,6 +794,7 @@ export const ComputerUse_20250124 = Tool.providerDefined({
  * @category Computer Use
  */
 export const ComputerUse_20251124 = Tool.providerDefined({
+  id: "anthropic.computer_20251124",
   customName: "AnthropicComputerUse",
   providerName: "computer",
   requiresHandler: true,
@@ -986,6 +994,7 @@ const Memory_20250818_Commands = Schema.Union([
  * @category Memory
  */
 export const Memory_20250818 = Tool.providerDefined({
+  id: "anthropic.memory_20250818",
   customName: "AnthropicMemory",
   providerName: "memory",
   parameters: Memory_20250818_Commands,
@@ -1135,7 +1144,7 @@ export const TextEditorUndoEditCommand = Schema.Struct({
  */
 export type TextEditorUndoEditCommand = typeof TextEditorUndoEditCommand.Type
 
-const TextEditor_WithUndo_Commands = Schema.Union([
+const TextEditor_StrReplaceEditor_Commands = Schema.Union([
   TextEditorViewCommand,
   TextEditorCreateCommand,
   TextEditorStrReplaceCommand,
@@ -1143,7 +1152,7 @@ const TextEditor_WithUndo_Commands = Schema.Union([
   TextEditorUndoEditCommand
 ])
 
-const TextEditor_20250728_Commands = Schema.Union([
+const TextEditor_StrReplaceBasedEdit_Commands = Schema.Union([
   TextEditorViewCommand,
   TextEditorCreateCommand,
   TextEditorStrReplaceCommand,
@@ -1154,7 +1163,7 @@ const TextEditor_20250728_Commands = Schema.Union([
 // Text Editor Args
 // -----------------------------------------------------------------------------
 
-const TextEditor_20250728_Args = Schema.Struct({
+const TextEditor_StrReplaceBasedEdit_Args = Schema.Struct({
   /**
    * Maximum number of characters to return when viewing large files.
    * When a file exceeds this limit, it will be truncated.
@@ -1175,10 +1184,11 @@ const TextEditor_20250728_Args = Schema.Struct({
  * @category Text Editor
  */
 export const TextEditor_20241022 = Tool.providerDefined({
+  id: "anthropic.text_editor_20241022",
   customName: "AnthropicTextEditor",
   providerName: "str_replace_editor",
   requiresHandler: true,
-  parameters: TextEditor_WithUndo_Commands,
+  parameters: TextEditor_StrReplaceEditor_Commands,
   success: Schema.String
 })
 
@@ -1189,10 +1199,29 @@ export const TextEditor_20241022 = Tool.providerDefined({
  * @category Text Editor
  */
 export const TextEditor_20250124 = Tool.providerDefined({
+  id: "anthropic.text_editor_20250124",
   customName: "AnthropicTextEditor",
   providerName: "str_replace_editor",
   requiresHandler: true,
-  parameters: TextEditor_WithUndo_Commands,
+  parameters: TextEditor_StrReplaceEditor_Commands,
+  success: Schema.String
+})
+
+/**
+ * Text editor tool for Claude 4 models.
+ *
+ * NOTE: This version does NOT support the `undo_edit` command.
+ *
+ * @since 1.0.0
+ * @category Text Editor
+ */
+export const TextEditor_20250429 = Tool.providerDefined({
+  id: "anthropic.text_editor_20250429",
+  customName: "AnthropicTextEditor",
+  providerName: "str_replace_based_edit_tool",
+  requiresHandler: true,
+  args: TextEditor_StrReplaceBasedEdit_Args,
+  parameters: TextEditor_StrReplaceBasedEdit_Commands,
   success: Schema.String
 })
 
@@ -1205,11 +1234,12 @@ export const TextEditor_20250124 = Tool.providerDefined({
  * @category Text Editor
  */
 export const TextEditor_20250728 = Tool.providerDefined({
+  id: "anthropic.text_editor_20250728",
   customName: "AnthropicTextEditor",
   providerName: "str_replace_based_edit_tool",
   requiresHandler: true,
-  args: TextEditor_20250728_Args,
-  parameters: TextEditor_20250728_Commands,
+  args: TextEditor_StrReplaceBasedEdit_Args,
+  parameters: TextEditor_StrReplaceBasedEdit_Commands,
   success: Schema.String
 })
 
@@ -1329,6 +1359,7 @@ export type WebSearchParameters = typeof WebSearchParameters.Type
  * @category Web Search
  */
 export const WebSearch_20250305 = Tool.providerDefined({
+  id: "anthropic.web_search_20250305",
   customName: "AnthropicWebSearch",
   providerName: "web_search",
   args: WebSearch_20250305_Args,
@@ -1444,6 +1475,7 @@ export type WebFetchParameters = typeof WebFetchParameters.Type
  * @category Web Fetch
  */
 export const WebFetch_20250910 = Tool.providerDefined({
+  id: "anthropic.web_fetch_20250910",
   customName: "AnthropicWebFetch",
   providerName: "web_fetch",
   args: WebFetch_20250910_Args,
@@ -1516,6 +1548,7 @@ export type ToolSearchBM25Parameters = typeof ToolSearchBM25Parameters.Type
  * @category Tool Search
  */
 export const ToolSearchRegex_20251119 = Tool.providerDefined({
+  id: "anthropic.tool_search_tool_regex_20251119",
   customName: "AnthropicToolSearchRegex",
   providerName: "tool_search_tool_regex",
   parameters: ToolSearchRegexParameters,
@@ -1536,6 +1569,7 @@ export const ToolSearchRegex_20251119 = Tool.providerDefined({
  * @category Tool Search
  */
 export const ToolSearchBM25_20251119 = Tool.providerDefined({
+  id: "anthropic.tool_search_tool_bm25_20251119",
   customName: "AnthropicToolSearchBM25",
   providerName: "tool_search_tool_bm25",
   parameters: ToolSearchBM25Parameters,

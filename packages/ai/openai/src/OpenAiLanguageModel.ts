@@ -2184,7 +2184,7 @@ const annotateStreamResponse = (span: Span, part: Response.StreamPartEncoded) =>
 }
 
 // =============================================================================
-// Tool Calling
+// Tool Conversion
 // =============================================================================
 
 type OpenAiToolChoice = typeof Generated.CreateResponse.Encoded["tool_choice"]

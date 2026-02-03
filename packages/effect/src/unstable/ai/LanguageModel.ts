@@ -267,16 +267,16 @@ export interface GenerateObjectOptions<
  * @since 4.0.0
  * @category models
  */
-export type ToolChoice<Tools extends string> =
+export type ToolChoice<ToolName extends string> =
   | "auto"
   | "none"
   | "required"
   | {
-    readonly tool: Tools
+    readonly tool: ToolName
   }
   | {
     readonly mode?: "auto" | "required"
-    readonly oneOf: ReadonlyArray<Tools>
+    readonly oneOf: ReadonlyArray<ToolName>
   }
 
 /**

@@ -38,6 +38,7 @@ export type OpenAiTool =
  * @category tools
  */
 export const ApplyPatch = Tool.providerDefined({
+  id: "openai.apply_patch",
   customName: "OpenAiApplyPatch",
   providerName: "apply_patch",
   requiresHandler: true,
@@ -60,6 +61,7 @@ export const ApplyPatch = Tool.providerDefined({
  * @category tools
  */
 export const CodeInterpreter = Tool.providerDefined({
+  id: "openai.code_interpreter",
   customName: "OpenAiCodeInterpreter",
   providerName: "code_interpreter",
   args: Schema.Struct({
@@ -83,6 +85,7 @@ export const CodeInterpreter = Tool.providerDefined({
  * @category tools
  */
 export const FileSearch = Tool.providerDefined({
+  id: "openai.file_search",
   customName: "OpenAiFileSearch",
   providerName: "file_search",
   args: Schema.Struct({
@@ -107,6 +110,7 @@ export const FileSearch = Tool.providerDefined({
  * @category tools
  */
 export const ImageGeneration = Tool.providerDefined({
+  id: "openai.image_generation",
   customName: "OpenAiImageGeneration",
   providerName: "image_generation",
   args: Schema.Struct({
@@ -136,6 +140,7 @@ export const ImageGeneration = Tool.providerDefined({
  * @category tools
  */
 export const LocalShell = Tool.providerDefined({
+  id: "openai.local_shell",
   customName: "OpenAiLocalShell",
   providerName: "local_shell",
   requiresHandler: true,
@@ -157,6 +162,7 @@ export const LocalShell = Tool.providerDefined({
  * @category tools
  */
 export const Mcp = Tool.providerDefined({
+  id: "openai.mcp",
   customName: "OpenAiMcp",
   providerName: "mcp",
   args: Schema.Struct({
@@ -189,6 +195,7 @@ export const Mcp = Tool.providerDefined({
  * @category tools
  */
 export const Shell = Tool.providerDefined({
+  id: "openai.shell",
   customName: "OpenAiShell",
   providerName: "shell",
   requiresHandler: true,
@@ -209,6 +216,7 @@ export const Shell = Tool.providerDefined({
  * @category tools
  */
 export const WebSearch = Tool.providerDefined({
+  id: "openai.web_search",
   customName: "OpenAiWebSearch",
   providerName: "web_search",
   args: Schema.Struct({
@@ -234,6 +242,7 @@ export const WebSearch = Tool.providerDefined({
  * @category tools
  */
 export const WebSearchPreview = Tool.providerDefined({
+  id: "openai.web_search_preview",
   customName: "OpenAiWebSearchPreview",
   providerName: "web_search_preview",
   args: Schema.Struct({

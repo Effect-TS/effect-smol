@@ -47,11 +47,14 @@ export class Config extends ServiceMap.Service<
   Simplify<
     & Partial<
       Omit<
-        typeof Generated.CreateMessageParams.Encoded,
-        "messages" | "tools" | "tool_choice" | "stream"
+        typeof Generated.BetaCreateMessageParams.Encoded,
+        "messages" | "output_config" | "tools" | "tool_choice" | "stream"
       >
     >
     & {
+      readonly output_config?: {
+        readonly effort?: "low" | "medium" | "high" | null
+      }
       /**
        * Disables Claude's ability to use multiple tools to respond to a query.
        */
@@ -399,14 +402,14 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 }): Effect.fn.Return<LanguageModel.Service, never, AnthropicClient> {
   const client = yield* AnthropicClient
 
-  const makeConfig = Effect.gen(function*() {
+  const makeConfig: Effect.Effect<typeof Config.Service & { readonly model: string }> = Effect.gen(function*() {
     const services = yield* Effect.services<never>()
     return { model, ...providerConfig, ...services.mapUnsafe.get(Config.key) }
   })
 
   const makeRequest = Effect.fnUntraced(
     function*<Tools extends ReadonlyArray<Tool.Any>>({ config, options, toolNameMapper }: {
-      readonly config: typeof Config.Service
+      readonly config: typeof Config.Service & { readonly model: string }
       readonly options: LanguageModel.ProviderOptions
       readonly toolNameMapper: Tool.NameMapper<Tools>
     }): Effect.fn.Return<{
@@ -422,16 +425,25 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
       if (betas.size > 0) {
         params["anthropic-beta"] = Array.from(betas).join(",")
       }
-      const { disableParallelToolCalls: _, ...requestConfig } = config
-      const payload = {
-        max_tokens: capabilities.maxOutputTokens,
+      const { disableParallelToolCalls: _, output_config, ...requestConfig } = config
+      const payload: Mutable<typeof Generated.BetaCreateMessageParams.Encoded> = {
         ...requestConfig,
-        ...(Predicate.isNotUndefined(outputFormat) ? { output_config: { format: outputFormat } } : undefined),
-        system,
+        max_tokens: requestConfig.max_tokens ?? capabilities.maxOutputTokens,
         messages,
-        tools,
-        tool_choice: toolChoice
-      } as typeof Generated.BetaCreateMessageParams.Encoded
+        ...(Predicate.isNotUndefined(system) ? { system } : undefined),
+        ...(Predicate.isNotUndefined(tools) ? { tools } : undefined),
+        ...(Predicate.isNotUndefined(toolChoice) ? { tool_choice: toolChoice } : undefined)
+      }
+      const outputConfig: Mutable<typeof Generated.BetaCreateMessageParams.Encoded["output_config"]> = {}
+      if (Predicate.isNotUndefined(outputFormat)) {
+        outputConfig.format = outputFormat
+      }
+      if (Predicate.isNotUndefined(output_config?.effort)) {
+        outputConfig.effort = output_config.effort
+      }
+      if (Object.keys(outputConfig).length > 0) {
+        payload.output_config = outputConfig
+      }
       return { params, payload }
     }
   )
@@ -509,7 +521,10 @@ const prepareMessages = Effect.fnUntraced(
     readonly betas: Set<string>
     readonly options: LanguageModel.ProviderOptions
     readonly toolNameMapper: Tool.NameMapper<Tools>
-  }) {
+  }): Effect.fn.Return<{
+    readonly system: ReadonlyArray<typeof Generated.BetaRequestTextBlock.Encoded> | undefined
+    readonly messages: ReadonlyArray<typeof Generated.BetaInputMessage.Encoded>
+  }, AiError.AiError> {
     const groups = groupMessages(options.prompt)
 
     let system: Array<typeof Generated.BetaRequestTextBlock.Encoded> | undefined = undefined
