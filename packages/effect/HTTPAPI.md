@@ -1773,162 +1773,96 @@ curl 'http://localhost:3000/stream' --no-buffer
 
 The response will stream data (`a`, `b`, `c`) with a 500ms interval between each item.
 
-## Middlewares (TODO)
-
-### Defining Middleware
+## Middlewares
 
 The `HttpApiMiddleware` module allows you to add middleware to your API. Middleware can enhance your API by introducing features like logging, authentication, or additional error handling.
 
-You can define middleware using the `HttpApiMiddleware.Tag` class, which lets you specify:
-
-| Option     | Description                                                                                                                                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `failure`  | A schema that describes any errors the middleware might return.                                                                                                                                                                 |
-| `provides` | A `Context.Tag` representing the resource or data the middleware will provide to subsequent handlers.                                                                                                                           |
-| `security` | Definitions from `HttpApiSecurity` that the middleware will implement, such as authentication mechanisms.                                                                                                                       |
-| `optional` | A boolean indicating whether the request should continue if the middleware fails with an expected error. When `optional` is set to `true`, the `provides` and `failure` options do not affect the final error type or handlers. |
+Once you have defined your `HttpApiMiddleware`, you can implement it as a `Layer`. This allows the middleware to be applied to specific API groups or endpoints, enabling modular and reusable behavior.
 
 **Example** (Defining a Logger Middleware)
 
-```ts TODO
-import { HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, HttpApiSchema } from "@effect/platform"
-import { Schema } from "effect"
-
-// Define a schema for errors returned by the logger middleware
-class LoggerError extends Schema.TaggedError<LoggerError>()(
-  "LoggerError",
-  {}
-) {}
-
-// Extend the HttpApiMiddleware.Tag class to define the logger middleware tag
-class Logger extends HttpApiMiddleware.Tag<Logger>()("Http/Logger", {
-  // Optionally define the error schema for the middleware
-  failure: LoggerError
-}) {}
-
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
-})
-
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
-
-const usersGroup = HttpApiGroup.make("users")
-  .add(
-    HttpApiEndpoint.get("getUser")`/user/${idParam}`
-      .addSuccess(User)
-      // Apply the middleware to a single endpoint
-      .middleware(Logger)
-  )
-  // Or apply the middleware to the entire group
-  .middleware(Logger)
-```
-
-### Implementing HttpApiMiddleware
-
-Once you have defined your `HttpApiMiddleware`, you can implement it as a `Layer`. This allows the middleware to be applied to specific API groups or endpoints, enabling modular and reusable behavior.
-
-**Example** (Implementing and Using Logger Middleware)
-
-```ts TODO
-import { HttpApiMiddleware, HttpServerRequest } from "@effect/platform"
-import { Effect, Layer } from "effect"
-
-class Logger extends HttpApiMiddleware.Tag<Logger>()("Http/Logger") {}
-
-const LoggerLive = Layer.effect(
-  Logger,
-  Effect.gen(function*() {
-    yield* Effect.log("creating Logger middleware")
-
-    // Middleware implementation as an Effect
-    // that can access the `HttpServerRequest` context.
-    return Effect.gen(function*() {
-      const request = yield* HttpServerRequest.HttpServerRequest
-      yield* Effect.log(`Request: ${request.method} ${request.url}`)
-    })
-  })
-)
-```
-
-After implementing the middleware, you can attach it to your API groups or specific endpoints using the `Layer` APIs.
-
-```ts TODO
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter, HttpServerRequest } from "effect/unstable/http"
 import {
   HttpApi,
   HttpApiBuilder,
   HttpApiEndpoint,
   HttpApiGroup,
   HttpApiMiddleware,
-  HttpApiSchema,
-  HttpServerRequest
-} from "@effect/platform"
-import { DateTime, Effect, Layer, Schema } from "effect"
+  HttpApiScalar,
+  HttpApiSchema
+} from "effect/unstable/httpapi"
+import { createServer } from "node:http"
 
-// Define a schema for errors returned by the logger middleware
-class LoggerError extends Schema.TaggedError<LoggerError>()(
-  "LoggerError",
-  {}
-) {}
-
-// Extend the HttpApiMiddleware.Tag class to define the logger middleware tag
-class Logger extends HttpApiMiddleware.Tag<Logger>()("Http/Logger", {
-  // Optionally define the error schema for the middleware
-  failure: LoggerError
+class Logger extends HttpApiMiddleware.Service<Logger>()("Http/Logger", {
+  // default is 500 Internal Server Error with JSON encoding
+  error: Schema.String
+    .pipe(
+      HttpApiSchema.status(405), // override default status code
+      HttpApiSchema.asText() // override default encoding
+    )
 }) {}
+
+const User = Schema.Struct({
+  id: Schema.Number,
+  name: Schema.String
+})
+
+const Api = HttpApi.make("api").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.get("getUser", "/user/:id", {
+      pathParams: {
+        id: Schema.FiniteFromString.check(Schema.isInt())
+      },
+      success: User
+    })
+      // Apply the middleware to a single endpoint
+      .middleware(Logger)
+  )
+    // Or apply the middleware to the entire group
+    .middleware(Logger)
+)
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle("getUser", (ctx) => {
+      const id = ctx.pathParams.id
+      return Effect.succeed({ id, name: `User ${id}` })
+    })
+)
 
 const LoggerLive = Layer.effect(
   Logger,
   Effect.gen(function*() {
     yield* Effect.log("creating Logger middleware")
 
-    // Middleware implementation as an Effect
-    // that can access the `HttpServerRequest` context.
-    return Effect.gen(function*() {
-      const request = yield* HttpServerRequest.HttpServerRequest
-      yield* Effect.log(`Request: ${request.method} ${request.url}`)
-    })
+    return (res) =>
+      Effect.gen(function*() {
+        const request = yield* HttpServerRequest.HttpServerRequest
+        yield* Effect.log(`Request: ${request.method} ${request.url}`)
+        return yield* res
+      })
   })
 )
 
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
-})
-
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
-
-const usersGroup = HttpApiGroup.make("users")
-  .add(
-    HttpApiEndpoint.get("getUser")`/user/${idParam}`
-      .addSuccess(User)
-      // Apply the middleware to a single endpoint
-      .middleware(Logger)
-  )
-  // Or apply the middleware to the entire group
-  .middleware(Logger)
-
-const api = HttpApi.make("myApi").add(usersGroup)
-
-const usersGroupLive = HttpApiBuilder.group(
-  api,
-  "users",
-  (handlers) =>
-    handlers.handle("getUser", (req) =>
-      Effect.succeed({
-        id: req.path.id,
-        name: "John Doe",
-        createdAt: DateTime.unsafeNow()
-      }))
-).pipe(
-  // Provide the Logger middleware to the group
-  Layer.provide(LoggerLive)
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(HttpApiScalar.layer(Api)),
+  Layer.provide(GroupLive),
+  Layer.provide(LoggerLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// Test this with this curl command:
+// curl "http://localhost:3000/user/1"
 ```
 
-### Defining security middleware
+## Defining security middleware
 
 The `HttpApiSecurity` module enables you to add security annotations to your API. These annotations specify the type of authorization required to access specific endpoints.
 
