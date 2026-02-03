@@ -27,6 +27,8 @@ import type * as Generated from "./Generated.ts"
 import * as InternalUtilities from "./internal/utilities.ts"
 
 /**
+ * The available Anthropic Claude model identifiers.
+ *
  * @since 1.0.0
  * @category models
  */
@@ -37,10 +39,13 @@ export type Model = typeof Generated.Model.Type
 // =============================================================================
 
 /**
- * Service definition for Anthropic language model configuration.
+ * Configuration options for the Anthropic language model.
+ *
+ * This service can be used to provide default configuration values or to
+ * override configuration on a per-request basis.
  *
  * @since 1.0.0
- * @category service
+ * @category configuration
  */
 export class Config extends ServiceMap.Service<
   Config,
@@ -381,6 +386,8 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
+ * Creates an Anthropic language model that can be used with `AiModel.provide`.
+ *
  * @since 1.0.0
  * @category constructors
  */
@@ -477,7 +484,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 })
 
 /**
- * Creates a layer for the OpenAI language model.
+ * Creates a layer for the Anthropic language model.
  *
  * @since 1.0.0
  * @category layers
@@ -489,7 +496,7 @@ export const layer = (options: {
   Layer.effect(LanguageModel.LanguageModel, make(options))
 
 /**
- * Provides config overrides for OpenAI language model operations.
+ * Provides config overrides for Anthropic language model operations.
  *
  * @since 1.0.0
  * @category configuration
@@ -916,8 +923,23 @@ const prepareMessages = Effect.fnUntraced(
 // Tool Conversion
 // =============================================================================
 
+/**
+ * Represents a user-defined tool that can be passed to the Anthropic API.
+ *
+ * @since 1.0.0
+ * @category tools
+ */
 export type AnthropicUserDefinedTool = typeof Generated.BetaTool.Encoded
 
+/**
+ * Represents a provider-defined tool that can be passed to the Anthropic API.
+ *
+ * These include Anthropic's built-in tools like computer use, code execution,
+ * web search, and text editing.
+ *
+ * @since 1.0.0
+ * @category tools
+ */
 export type AnthropicProviderDefinedTool =
   | typeof Generated.BetaBashTool_20241022.Encoded
   | typeof Generated.BetaBashTool_20250124.Encoded
