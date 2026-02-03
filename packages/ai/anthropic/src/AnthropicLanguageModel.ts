@@ -8,6 +8,7 @@ import * as Base64 from "effect/encoding/Base64"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
+import * as SchemaAST from "effect/SchemaAST"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import type { Span } from "effect/Tracer"
@@ -21,6 +22,7 @@ import type * as Response from "effect/unstable/ai/Response"
 import * as Tool from "effect/unstable/ai/Tool"
 import { AnthropicClient, type MessageStreamEvent } from "./AnthropicClient.ts"
 import { addGenAIAnnotations } from "./AnthropicTelemetry.ts"
+import type { AnthropicTool } from "./AnthropicTool.ts"
 import type * as Generated from "./Generated.ts"
 import * as InternalUtilities from "./internal/utilities.ts"
 
@@ -391,7 +393,7 @@ export const model = (
  * @since 1.0.0
  * @category constructors
  */
-export const make = Effect.fnUntraced(function*({ model: _model, config: providerConfig }: {
+export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: (string & {}) | Model
   readonly config?: Omit<typeof Config.Service, "model"> | undefined
 }): Effect.fn.Return<LanguageModel.Service, never, AnthropicClient> {
@@ -414,16 +416,21 @@ export const make = Effect.fnUntraced(function*({ model: _model, config: provide
       const betas = new Set<string>()
       const capabilities = getModelCapabilities(config.model!)
       const { messages, system } = yield* prepareMessages({ betas, options, toolNameMapper })
+      const outputFormat = getOutputFormat({ capabilities, options })
+      const { tools, toolChoice } = yield* prepareTools({ betas, capabilities, config, options })
       const params: Mutable<typeof Generated.BetaMessagesPostParams.Encoded> = {}
       if (betas.size > 0) {
         params["anthropic-beta"] = Array.from(betas).join(",")
       }
-      const { disableParallelToolCalls: _, ...restConfig } = config
+      const { disableParallelToolCalls: _, ...requestConfig } = config
       const payload = {
         max_tokens: capabilities.maxOutputTokens,
-        ...restConfig,
+        ...requestConfig,
+        ...(Predicate.isNotUndefined(outputFormat) ? { output_config: { format: outputFormat } } : undefined),
         system,
-        messages
+        messages,
+        tools,
+        tool_choice: toolChoice
       } as typeof Generated.BetaCreateMessageParams.Encoded
       return { params, payload }
     }
@@ -891,6 +898,265 @@ const prepareMessages = Effect.fnUntraced(
 )
 
 // =============================================================================
+// Tool Conversion
+// =============================================================================
+
+export type AnthropicUserDefinedTool = typeof Generated.BetaTool.Encoded
+
+export type AnthropicProviderDefinedTool =
+  | typeof Generated.BetaBashTool_20241022.Encoded
+  | typeof Generated.BetaBashTool_20250124.Encoded
+  | typeof Generated.BetaCodeExecutionTool_20250522.Encoded
+  | typeof Generated.BetaCodeExecutionTool_20250825.Encoded
+  | typeof Generated.BetaComputerUseTool_20241022.Encoded
+  | typeof Generated.BetaComputerUseTool_20250124.Encoded
+  | typeof Generated.BetaComputerUseTool_20251124.Encoded
+  | typeof Generated.BetaMemoryTool_20250818.Encoded
+  | typeof Generated.BetaTextEditor_20241022.Encoded
+  | typeof Generated.BetaTextEditor_20250124.Encoded
+  | typeof Generated.BetaTextEditor_20250429.Encoded
+  | typeof Generated.BetaTextEditor_20250728.Encoded
+  | typeof Generated.BetaToolSearchToolBM25_20251119.Encoded
+  | typeof Generated.BetaToolSearchToolRegex_20251119.Encoded
+  | typeof Generated.BetaWebFetchTool_20250910.Encoded
+  | typeof Generated.BetaWebSearchTool_20250305.Encoded
+
+const prepareTools = Effect.fnUntraced(
+  function*({ betas, capabilities, config, options }: {
+    readonly betas: Set<string>
+    readonly capabilities: ModelCapabilities
+    readonly config: typeof Config.Service
+    readonly options: LanguageModel.ProviderOptions
+  }): Effect.fn.Return<{
+    readonly tools: ReadonlyArray<AnthropicUserDefinedTool | AnthropicProviderDefinedTool> | undefined
+    readonly toolChoice: typeof Generated.BetaToolChoice.Encoded | undefined
+  }, AiError.AiError> {
+    if (options.tools.length === 0 || options.toolChoice === "none") {
+      return { tools: undefined, toolChoice: undefined }
+    }
+
+    // Return a JSON response tool when using non-native structured outputs
+    if (options.responseFormat.type === "json" && !capabilities.supportsStructuredOutput) {
+      return {
+        tools: [{
+          name: options.responseFormat.objectName,
+          description: SchemaAST.resolveDescription(options.responseFormat.schema.ast) ??
+            "Response with a JSON object.",
+          input_schema: Tool.getJsonSchemaFromSchema(options.responseFormat.schema) as any
+        }],
+        toolChoice: {
+          type: "tool",
+          name: options.responseFormat.objectName,
+          disable_parallel_tool_use: true
+        }
+      }
+    }
+
+    const userTools: Array<AnthropicUserDefinedTool> = []
+    const providerTools: Array<AnthropicProviderDefinedTool> = []
+
+    for (const tool of options.tools) {
+      if (Tool.isUserDefined(tool)) {
+        const description = Tool.getDescription(tool)
+        const input_schema = Tool.getJsonSchema(tool)
+
+        userTools.push({
+          name: tool.name,
+          input_schema: input_schema as any,
+          ...(Predicate.isNotUndefined(description) ? { description } : undefined)
+        })
+
+        if (capabilities.supportsStructuredOutput === true) {
+          betas.add("structured-outputs-2025-11-13")
+        }
+      }
+
+      if (Tool.isProviderDefined(tool)) {
+        const providerTool = tool as AnthropicTool
+        switch (providerTool.id) {
+          case "anthropic.bash_20241022": {
+            betas.add("computer-use-2024-10-22")
+            providerTools.push({ name: "bash", type: "bash_20241022" })
+            break
+          }
+
+          case "anthropic.bash_20250124": {
+            betas.add("computer-use-2025-01-24")
+            providerTools.push({ name: "bash", type: "bash_20250124" })
+            break
+          }
+
+          case "anthropic.code_execution_20250522": {
+            betas.add("code-execution-2025-05-22")
+            providerTools.push({ name: "code_execution", type: "code_execution_20250522" })
+            break
+          }
+
+          case "anthropic.code_execution_20250825": {
+            betas.add("code-execution-2025-08-25")
+            providerTools.push({ name: "code_execution", type: "code_execution_20250825" })
+            break
+          }
+
+          case "anthropic.computer_use_20241022": {
+            betas.add("computer-use-2024-10-22")
+            providerTools.push({
+              name: "computer",
+              type: "computer_20241022",
+              display_height_px: providerTool.args.displayHeightPx,
+              display_width_px: providerTool.args.displayWidthPx,
+              display_number: providerTool.args.displayNumber ?? null
+            })
+            break
+          }
+
+          case "anthropic.computer_20250124": {
+            betas.add("computer-use-2025-01-24")
+            providerTools.push({
+              name: "computer",
+              type: "computer_20250124",
+              display_height_px: providerTool.args.displayHeightPx,
+              display_width_px: providerTool.args.displayWidthPx,
+              display_number: providerTool.args.displayNumber ?? null
+            })
+            break
+          }
+
+          case "anthropic.computer_20251124": {
+            betas.add("computer-use-2025-11-24")
+            providerTools.push({
+              name: "computer",
+              type: "computer_20251124",
+              display_height_px: providerTool.args.displayHeightPx,
+              display_width_px: providerTool.args.displayWidthPx,
+              display_number: providerTool.args.displayNumber ?? null,
+              enable_zoom: providerTool.args.enableZoom ?? false
+            })
+            break
+          }
+
+          case "anthropic.memory_20250818": {
+            betas.add("context-management-2025-06-27")
+            providerTools.push({ name: "memory", type: "memory_20250818" })
+            break
+          }
+
+          case "anthropic.text_editor_20241022": {
+            betas.add("computer-use-2024-10-22")
+            providerTools.push({ name: "str_replace_editor", type: "text_editor_20241022" })
+            break
+          }
+
+          case "anthropic.text_editor_20250124": {
+            betas.add("computer-use-2025-01-24")
+            providerTools.push({ name: "str_replace_editor", type: "text_editor_20250124" })
+            break
+          }
+
+          case "anthropic.text_editor_20250429": {
+            betas.add("computer-use-2025-01-24")
+            providerTools.push({ name: "str_replace_based_edit_tool", type: "text_editor_20250429" })
+            break
+          }
+
+          case "anthropic.text_editor_20250728": {
+            providerTools.push({
+              name: "str_replace_based_edit_tool",
+              type: "text_editor_20250728",
+              max_characters: providerTool.args.max_characters ?? null
+            })
+            break
+          }
+
+          case "anthropic.tool_search_tool_bm25_20251119": {
+            betas.add("advanced-tool-use-2025-11-20")
+            providerTools.push({ name: "tool_search_tool_bm25", type: "tool_search_tool_bm25_20251119" })
+            break
+          }
+
+          case "anthropic.tool_search_tool_regex_20251119": {
+            providerTools.push({ name: "tool_search_tool_regex", type: "tool_search_tool_regex_20251119" })
+            break
+          }
+
+          case "anthropic.web_search_20250305": {
+            providerTools.push({
+              name: "web_search",
+              type: "web_search_20250305",
+              max_uses: providerTool.args.maxUses ?? null,
+              allowed_domains: providerTool.args.allowedDomains ?? null,
+              blocked_domains: providerTool.args.blockedDomains ?? null,
+              user_location: Predicate.isNotUndefined(providerTool.args.userLocation)
+                ? {
+                  type: providerTool.args.userLocation.type,
+                  region: providerTool.args.userLocation.region ?? null,
+                  city: providerTool.args.userLocation.city ?? null,
+                  country: providerTool.args.userLocation.country ?? null,
+                  timezone: providerTool.args.userLocation.timezone ?? null
+                }
+                : null
+            })
+            break
+          }
+
+          case "anthropic.web_fetch_20250910": {
+            betas.add("web-fetch-2025-09-10")
+            providerTools.push({
+              name: "web_fetch",
+              type: "web_fetch_20250910",
+              max_uses: providerTool.args.maxUses ?? null,
+              allowed_domains: providerTool.args.allowedDomains ?? null,
+              blocked_domains: providerTool.args.blockedDomains ?? null,
+              citations: providerTool.args.citations ?? null,
+              max_content_tokens: providerTool.args.maxContentTokens ?? null
+            })
+            break
+          }
+
+          default: {
+            return yield* AiError.make({
+              module: "AnthropicLanguageModel",
+              method: "prepareTools",
+              reason: new AiError.InvalidUserInputError({
+                description: `Received request to call unknown provider-defined tool '${tool.name}'`
+              })
+            })
+          }
+        }
+      }
+    }
+
+    let tools = [...userTools, ...providerTools]
+    let toolChoice: Mutable<typeof Generated.BetaToolChoice.Encoded> | undefined = undefined
+
+    if (options.toolChoice === "auto") {
+      toolChoice = { type: "auto" }
+    } else if (options.toolChoice === "required") {
+      toolChoice = { type: "any" }
+    } else if ("tool" in options.toolChoice) {
+      toolChoice = { type: "tool", name: options.toolChoice.tool }
+    } else {
+      const allowedTools = new Set(options.toolChoice.oneOf)
+      tools = tools.filter((tool) => allowedTools.has(tool.name))
+      toolChoice = { type: options.toolChoice.mode === "required" ? "any" : "auto" }
+    }
+
+    if (
+      Predicate.isNotUndefined(config.disableParallelToolCalls) &&
+      Predicate.isNotUndefined(toolChoice) &&
+      toolChoice.type !== "none"
+    ) {
+      toolChoice.disable_parallel_tool_use = config.disableParallelToolCalls
+    }
+
+    return {
+      tools,
+      toolChoice
+    }
+  }
+)
+
+// =============================================================================
 // Response Conversion
 // =============================================================================
 
@@ -923,22 +1189,20 @@ const makeResponse = Effect.fnUntraced(
     for (const part of response.content) {
       switch (part.type) {
         case "text": {
-          // Text parts should only be added to the response if the response
-          // format is `"text"`. If the response format is `"json"`, then a
-          // structured output is being generated, and text parts must be added
-          // in the tool use block
-          if (options.responseFormat.type === "text") {
-            parts.push({
-              type: "text",
-              text: part.text
-            })
+          // Text parts are added for both text and json response formats.
+          // For native structured output (json_schema), the JSON comes directly
+          // in a text content block. For tool-based structured output, text may
+          // also be present alongside the tool_use.
+          parts.push({
+            type: "text",
+            text: part.text
+          })
 
-            if (Predicate.isNotNullish(part.citations)) {
-              for (const citation of part.citations) {
-                const source = yield* processCitation(citation, citableDocuments)
-                if (Predicate.isNotUndefined(source)) {
-                  parts.push(source)
-                }
+          if (Predicate.isNotNullish(part.citations)) {
+            for (const citation of part.citations) {
+              const source = yield* processCitation(citation, citableDocuments)
+              if (Predicate.isNotUndefined(source)) {
+                parts.push(source)
               }
             }
           }
@@ -2360,4 +2624,17 @@ const getModelCapabilities = (modelId: string): ModelCapabilities => {
       isKnownModel: false
     }
   }
+}
+
+const getOutputFormat = ({ capabilities, options }: {
+  readonly capabilities: ModelCapabilities
+  readonly options: LanguageModel.ProviderOptions
+}): typeof Generated.JsonOutputFormat.Encoded | undefined => {
+  if (options.responseFormat.type === "json" && capabilities.supportsStructuredOutput) {
+    return {
+      type: "json_schema",
+      schema: Tool.getJsonSchemaFromSchema(options.responseFormat.schema) as any
+    }
+  }
+  return undefined
 }
