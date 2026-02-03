@@ -1242,7 +1242,7 @@ const renderConfirmOutput = (
   leadingSymbol: string,
   trailingSymbol: string,
   options: ConfirmOptionsReq,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => renderPrompt(confirm, options.message, leadingSymbol, trailingSymbol, renderOptions)
 
 const renderConfirmNextFrame = Effect.fnUntraced(function*(state: ConfirmState, options: ConfirmOptionsReq) {
@@ -1357,7 +1357,7 @@ const renderDateOutput = (
   trailingSymbol: string,
   parts: string,
   options: DateOptionsReq,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => renderPrompt(parts, options.message, leadingSymbol, trailingSymbol, renderOptions)
 
 const renderDateNextFrame = Effect.fnUntraced(function*(state: DateState, options: DateOptionsReq) {
@@ -1922,11 +1922,11 @@ const handleFileClear = (options: FileOptionsReq) => {
     const resolvedPathText = `${figures.pointerSmall} ${resolvedPath}`
     const isConfirming = showConfirmation(state.confirm)
     const promptText = isConfirming
-      ? renderPrompt("(Y/n)", CONFIRM_MESSAGE, "?", figures.pointerSmall)
-      : renderPrompt("", options.message, "?", figures.pointerSmall)
+      ? renderPrompt("(Y/n)", CONFIRM_MESSAGE, "?", figures.pointerSmall, { plain: true })
+      : renderPrompt("", options.message, figures.tick, figures.ellipsis, { plain: true })
     const filesText = isConfirming
       ? ""
-      : renderFiles(state, state.files, figures, options)
+      : renderFiles(state, state.files, figures, options, { plain: true })
     const outputText = isConfirming
       ? `${promptText}\n${resolvedPathText}`
       : `${promptText}\n${resolvedPathText}\n${filesText}`
@@ -1945,7 +1945,7 @@ const renderPrompt = (
   message: string,
   leadingSymbol: string,
   trailingSymbol: string,
-  options: RenderOptions | undefined = undefined
+  options?: RenderOptions | undefined
 ) => {
   const prefix = leadingSymbol + " "
   const annotate = options?.plain === true
@@ -1966,7 +1966,7 @@ const renderPrefix = (
   currentIndex: number,
   length: number,
   figures: Effect.Success<typeof platformFigures>,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   let prefix = " "
   if (currentIndex === toDisplay.startIndex && toDisplay.startIndex > 0) {
@@ -1982,7 +1982,7 @@ const renderPrefix = (
   return prefix + " "
 }
 
-const renderFileName = (file: string, isSelected: boolean, renderOptions: RenderOptions | undefined = undefined) => {
+const renderFileName = (file: string, isSelected: boolean, renderOptions?: RenderOptions | undefined) => {
   if (renderOptions?.plain === true) {
     return file
   }
@@ -1996,7 +1996,7 @@ const renderFiles = (
   files: ReadonlyArray<string>,
   figures: Effect.Success<typeof platformFigures>,
   options: FileOptionsReq,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   const length = files.length
   const toDisplay = entriesToDisplay(state.cursor, length, options.maxPerPage)
@@ -2166,7 +2166,7 @@ type MultiSelectState = {
 const renderMultiSelectError = (
   state: MultiSelectState,
   pointer: string,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ): string => {
   if (state.error !== undefined) {
     return Arr.match(state.error.split(NEWLINE_REGEXP), {
@@ -2187,7 +2187,7 @@ const renderMultiSelectError = (
 const renderChoiceDescription = <A>(
   choice: SelectChoice<A>,
   isActive: boolean,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   if (!choice.disabled && choice.description && isActive) {
     return renderOptions?.plain === true
@@ -2203,7 +2203,7 @@ const renderMultiSelectChoices = <A>(
   state: MultiSelectState,
   options: SelectOptionsReq<A> & MultiSelectOptionsReq,
   figures: Effect.Success<typeof platformFigures>,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   const choices = options.choices
   const totalChoices = choices.length
@@ -2411,7 +2411,7 @@ const handleNumberClear = (options: IntegerOptionsReq) => {
 const renderNumberInput = (
   state: NumberState,
   submitted: boolean,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ): string => {
   const value = state.value === "" ? "" : `${state.value}`
   if (submitted || renderOptions?.plain === true) {
@@ -2426,7 +2426,7 @@ const renderNumberInput = (
 const renderNumberError = (
   state: NumberState,
   pointer: string,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   if (state.error !== undefined) {
     return Arr.match(state.error.split(NEWLINE_REGEXP), {
@@ -2449,7 +2449,7 @@ const renderNumberOutput = (
   leadingSymbol: string,
   trailingSymbol: string,
   options: IntegerOptionsReq,
-  renderOptions: RenderOptions | undefined = undefined,
+  renderOptions?: RenderOptions | undefined,
   submitted: boolean = false
 ) => {
   const value = renderNumberInput(state, submitted, renderOptions)
@@ -2712,13 +2712,13 @@ const renderSelectOutput = <A>(
   leadingSymbol: string,
   trailingSymbol: string,
   options: SelectOptionsReq<A>,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => renderPrompt("", options.message, leadingSymbol, trailingSymbol, renderOptions)
 
 const renderAutoCompleteFilter = <A>(
   state: AutoCompleteState,
   options: AutoCompleteOptionsReq<A>,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   const filterValue = state.query.length === 0
     ? renderOptions?.plain === true
@@ -2735,7 +2735,7 @@ const renderAutoCompleteOutput = <A>(
   leadingSymbol: string,
   trailingSymbol: string,
   options: AutoCompleteOptionsReq<A>,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   const filter = renderAutoCompleteFilter(state, options, renderOptions)
   return renderPrompt(filter, options.message, leadingSymbol, trailingSymbol, renderOptions)
@@ -2747,7 +2747,7 @@ const renderChoicePrefix = <A>(
   toDisplay: { readonly startIndex: number; readonly endIndex: number },
   currentIndex: number,
   figures: Effect.Success<typeof platformFigures>,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   let prefix = " "
   if (currentIndex === toDisplay.startIndex && toDisplay.startIndex > 0) {
@@ -2777,7 +2777,7 @@ const renderAutoCompleteChoicePrefix = <A>(
   toDisplay: { readonly startIndex: number; readonly endIndex: number },
   currentIndex: number,
   figures: Effect.Success<typeof platformFigures>,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   let prefix = " "
   if (currentIndex === toDisplay.startIndex && toDisplay.startIndex > 0) {
@@ -2806,7 +2806,7 @@ const renderAutoCompleteChoicePrefix = <A>(
 const renderChoiceTitle = <A>(
   choice: SelectChoice<A>,
   isSelected: boolean,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   if (renderOptions?.plain === true) {
     return choice.title
@@ -2826,7 +2826,7 @@ const renderSelectChoices = <A>(
   state: SelectState,
   options: SelectOptionsReq<A>,
   figures: Effect.Success<typeof platformFigures>,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   const choices = options.choices
   const toDisplay = entriesToDisplay(state, choices.length, options.maxPerPage)
@@ -2846,7 +2846,7 @@ const renderAutoCompleteChoices = <A>(
   state: AutoCompleteState,
   options: AutoCompleteOptionsReq<A>,
   figures: Effect.Success<typeof platformFigures>,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   if (state.filtered.length === 0) {
     return renderOptions?.plain === true
@@ -3107,7 +3107,7 @@ const renderTextInput = (
   nextState: TextState,
   options: TextOptionsReq,
   submitted: boolean,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ) => {
   const text = getValue(nextState, options)
   if (renderOptions?.plain === true) {
@@ -3148,7 +3148,7 @@ const renderTextInput = (
 const renderTextError = (
   nextState: TextState,
   pointer: string,
-  renderOptions: RenderOptions | undefined = undefined
+  renderOptions?: RenderOptions | undefined
 ): string => {
   if (nextState.error !== undefined) {
     return Arr.match(nextState.error.split(NEWLINE_REGEXP), {
@@ -3171,7 +3171,7 @@ const renderTextOutput = (
   leadingSymbol: string,
   trailingSymbol: string,
   options: TextOptionsReq,
-  renderOptions: RenderOptions | undefined = undefined,
+  renderOptions?: RenderOptions | undefined,
   submitted: boolean = false
 ) => {
   const value = renderTextInput(nextState, options, submitted, renderOptions)
