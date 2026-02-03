@@ -644,7 +644,7 @@ export const confirm = (options: ConfirmOptions): Prompt<boolean> => {
   return custom(initialState, {
     render: handleConfirmRender(opts),
     process: (input) => handleConfirmProcess(input, opts.initial),
-    clear: () => handleConfirmClear(opts)
+    clear: handleConfirmClear(opts)
   })
 }
 
@@ -1204,15 +1204,26 @@ interface ConfirmState {
 
 const renderBeep = Ansi.beep
 
-const handleConfirmClear = Effect.fnUntraced(function*(options: ConfirmOptionsReq) {
-  const terminal = yield* Terminal.Terminal
-  const columns = yield* terminal.columns
-  const clearOutput = eraseText(options.message, columns)
-  const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
-  return clearOutput + resetCurrentLine
-})
-
 const NEWLINE_REGEXP = /\r?\n/
+
+const handleConfirmClear = (options: ConfirmOptionsReq) => {
+  return Effect.fnUntraced(function*(state: ConfirmState, _: Action<ConfirmState, boolean>) {
+    const terminal = yield* Terminal.Terminal
+    const columns = yield* terminal.columns
+    const figures = yield* platformFigures
+    const confirmMessage = state.value
+      ? options.placeholder.defaultConfirm!
+      : options.placeholder.defaultDeny!
+    const promptLines = options.message.split(NEWLINE_REGEXP)
+    const prefix = "? "
+    const promptText = Arr.isReadonlyArrayNonEmpty(promptLines)
+      ? prefix + promptLines.join("\n") + " " + figures.pointerSmall + " " + confirmMessage
+      : prefix + " " + figures.pointerSmall + " " + confirmMessage
+    const clearOutput = eraseText(promptText, columns)
+    const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
+    return clearOutput + resetCurrentLine
+  })
+}
 
 const renderConfirmOutput = (
   confirm: string,
@@ -1295,11 +1306,24 @@ const handleDateClear = (options: DateOptionsReq) => {
   return Effect.fnUntraced(function*(state: DateState, _: Action<DateState, globalThis.Date>) {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
+    const figures = yield* platformFigures
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
-    const clearError = state.error !== undefined
-      ? Ansi.cursorDown(lines(state.error, columns)) + eraseText(`\n${state.error}`, columns)
+    const parts = Arr.reduce(state.dateParts, "", (doc, part) => doc + part.toString())
+    const promptLines = options.message.split(NEWLINE_REGEXP)
+    const prefix = "? "
+    const promptText = Arr.isReadonlyArrayNonEmpty(promptLines)
+      ? prefix + promptLines.join("\n") + " " + figures.pointerSmall + " " + parts
+      : prefix + " " + figures.pointerSmall + " " + parts
+    const errorText = state.error !== undefined
+      ? Arr.match(state.error.split(NEWLINE_REGEXP), {
+        onEmpty: () => "",
+        onNonEmpty: (errorLines) => `${figures.pointerSmall} ${errorLines.join("\n")}`
+      })
       : ""
-    const clearOutput = eraseText(options.message, columns)
+    const clearError = state.error !== undefined
+      ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(`\n${errorText}`, columns)
+      : ""
+    const clearOutput = eraseText(promptText, columns)
     return clearError + clearOutput + resetCurrentLine
   })
 }
@@ -2343,11 +2367,24 @@ const handleNumberClear = (options: IntegerOptionsReq) => {
   return Effect.fnUntraced(function*(state: NumberState, _: Action<NumberState, number>) {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
+    const figures = yield* platformFigures
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
-    const clearError = state.error !== undefined
-      ? Ansi.cursorDown(lines(state.error, columns)) + eraseText(`\n${state.error}`, columns)
+    const errorText = state.error !== undefined
+      ? Arr.match(state.error.split(NEWLINE_REGEXP), {
+        onEmpty: () => "",
+        onNonEmpty: (errorLines) => `${figures.pointerSmall} ${errorLines.join("\n")}`
+      })
       : ""
-    const clearOutput = eraseText(options.message, columns)
+    const clearError = state.error !== undefined
+      ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(`\n${errorText}`, columns)
+      : ""
+    const value = state.value === "" ? "" : `${state.value}`
+    const promptLines = options.message.split(NEWLINE_REGEXP)
+    const prefix = "? "
+    const promptText = Arr.isReadonlyArrayNonEmpty(promptLines)
+      ? prefix + promptLines.join("\n") + " " + figures.pointerSmall + " " + value
+      : prefix + " " + figures.pointerSmall + " " + value
+    const clearOutput = eraseText(promptText, columns)
     return clearError + clearOutput + resetCurrentLine
   })
 }
@@ -3283,8 +3320,15 @@ type ToggleState = boolean
 const handleToggleClear = Effect.fnUntraced(function*(options: ToggleOptionsReq) {
   const terminal = yield* Terminal.Terminal
   const columns = yield* terminal.columns
+  const figures = yield* platformFigures
   const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
-  const clearOutput = eraseText(options.message, columns)
+  const toggleText = `${options.active} / ${options.inactive}`
+  const promptLines = options.message.split(NEWLINE_REGEXP)
+  const prefix = "? "
+  const promptText = Arr.isReadonlyArrayNonEmpty(promptLines)
+    ? prefix + promptLines.join("\n") + " " + figures.pointerSmall + " " + toggleText
+    : prefix + " " + figures.pointerSmall + " " + toggleText
+  const clearOutput = eraseText(promptText, columns)
   return clearOutput + clearPrompt
 })
 
