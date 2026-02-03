@@ -2343,12 +2343,40 @@ const handleNumberClear = (options: IntegerOptionsReq) => {
   return Effect.fnUntraced(function*(state: NumberState, _: Action<NumberState, number>) {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
+    const figures = yield* platformFigures
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
+    const errorText = renderNumberErrorPlain(state, figures.pointerSmall)
     const clearError = state.error !== undefined
-      ? Ansi.cursorDown(lines(state.error, columns)) + eraseText(`\n${state.error}`, columns)
+      ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(`\n${errorText}`, columns)
       : ""
-    const clearOutput = eraseText(options.message, columns)
+    const clearOutput = eraseText(renderNumberOutputPlain(state, "?", figures.pointerSmall, options), columns)
     return clearError + clearOutput + resetCurrentLine
+  })
+}
+
+const renderNumberInputPlain = (state: NumberState): string => state.value === "" ? "" : `${state.value}`
+
+const renderNumberErrorPlain = (state: NumberState, pointer: string) => {
+  if (state.error !== undefined) {
+    return Arr.match(state.error.split(NEWLINE_REGEXP), {
+      onEmpty: () => "",
+      onNonEmpty: (errorLines) => `${pointer} ${errorLines.join("\n")}`
+    })
+  }
+  return ""
+}
+
+const renderNumberOutputPlain = (
+  state: NumberState,
+  leadingSymbol: string,
+  trailingSymbol: string,
+  options: IntegerOptionsReq
+) => {
+  const prefix = leadingSymbol + " "
+  return Arr.match(options.message.split(NEWLINE_REGEXP), {
+    onEmpty: () => prefix + " " + trailingSymbol + " " + renderNumberInputPlain(state),
+    onNonEmpty: (promptLines) =>
+      prefix + promptLines.join("\n") + " " + trailingSymbol + " " + renderNumberInputPlain(state)
   })
 }
 
