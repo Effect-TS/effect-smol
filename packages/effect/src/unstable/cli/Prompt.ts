@@ -2163,11 +2163,18 @@ type MultiSelectState = {
   error: string | undefined
 }
 
-const renderMultiSelectError = (state: MultiSelectState, pointer: string): string => {
+const renderMultiSelectError = (
+  state: MultiSelectState,
+  pointer: string,
+  renderOptions: RenderOptions | undefined = undefined
+): string => {
   if (state.error !== undefined) {
     return Arr.match(state.error.split(NEWLINE_REGEXP), {
       onEmpty: () => "",
       onNonEmpty: (errorLines) => {
+        if (renderOptions?.plain === true) {
+          return `${pointer} ${errorLines.join("\n")}`
+        }
         const prefix = Ansi.annotate(pointer, Ansi.red) + " "
         const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
         return Ansi.cursorSavePosition + "\n" + prefix + lines.join("\n") + Ansi.cursorRestorePosition
@@ -2195,7 +2202,8 @@ const metaOptionsCount = 2
 const renderMultiSelectChoices = <A>(
   state: MultiSelectState,
   options: SelectOptionsReq<A> & MultiSelectOptionsReq,
-  figures: Effect.Success<typeof platformFigures>
+  figures: Effect.Success<typeof platformFigures>,
+  renderOptions: RenderOptions | undefined = undefined
 ) => {
   const choices = options.choices
   const totalChoices = choices.length
@@ -2226,7 +2234,7 @@ const renderMultiSelectChoices = <A>(
     }
     if (index < metaOptions.length) {
       // Meta options
-      const title = isHighlighted
+      const title = isHighlighted && renderOptions?.plain !== true
         ? Ansi.annotate(choice.title, Ansi.cyanBright)
         : choice.title
       documents.push(prefix + " " + title)
@@ -2235,11 +2243,11 @@ const renderMultiSelectChoices = <A>(
       const choiceIndex = index - metaOptions.length
       const isSelected = state.selectedIndices.has(choiceIndex)
       const checkbox = isSelected ? figures.checkboxOn : figures.checkboxOff
-      const annotatedCheckbox = isHighlighted
+      const annotatedCheckbox = isHighlighted && renderOptions?.plain !== true
         ? Ansi.annotate(checkbox, Ansi.cyanBright)
         : checkbox
       const title = choice.title
-      const description = renderChoiceDescription(choice as SelectChoice<A>, isHighlighted)
+      const description = renderChoiceDescription(choice as SelectChoice<A>, isHighlighted, renderOptions)
       documents.push(prefix + " " + annotatedCheckbox + " " + title + " " + description)
     }
   }
@@ -2320,9 +2328,9 @@ const handleMultiSelectClear = <A>(options: SelectOptionsReq<A>) =>
     const columns = yield* terminal.columns
     const figures = yield* platformFigures
     const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
-    const promptText = renderSelectOutput("?", figures.pointerSmall, options)
-    const choicesText = renderMultiSelectChoices(state, options, figures)
-    const errorText = renderMultiSelectError(state, figures.pointer)
+    const promptText = renderSelectOutput("?", figures.pointerSmall, options, { plain: true })
+    const choicesText = renderMultiSelectChoices(state, options, figures, { plain: true })
+    const errorText = renderMultiSelectError(state, figures.pointer, { plain: true })
     const clearOutput = clearOutputWithError(`${promptText}\n${choicesText}`, columns, errorText)
     return clearOutput + clearPrompt
   })
@@ -2703,8 +2711,9 @@ const autoCompleteCursor = (state: AutoCompleteState) =>
 const renderSelectOutput = <A>(
   leadingSymbol: string,
   trailingSymbol: string,
-  options: SelectOptionsReq<A>
-) => renderPrompt("", options.message, leadingSymbol, trailingSymbol)
+  options: SelectOptionsReq<A>,
+  renderOptions: RenderOptions | undefined = undefined
+) => renderPrompt("", options.message, leadingSymbol, trailingSymbol, renderOptions)
 
 const renderAutoCompleteFilter = <A>(
   state: AutoCompleteState,
@@ -2981,8 +2990,8 @@ const handleSelectClear = <A>(options: SelectOptionsReq<A>) =>
     const columns = yield* terminal.columns
     const figures = yield* platformFigures
     const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
-    const promptText = renderSelectOutput("?", figures.pointerSmall, options)
-    const choicesText = renderSelectChoices(state, options, figures)
+    const promptText = renderSelectOutput("?", figures.pointerSmall, options, { plain: true })
+    const choicesText = renderSelectChoices(state, options, figures, { plain: true })
     const clearOutput = eraseText(`${promptText}\n${choicesText}`, columns)
     return clearOutput + clearPrompt
   })
@@ -3333,7 +3342,7 @@ const handleToggleClear = Effect.fnUntraced(function*(options: ToggleOptionsReq)
   const figures = yield* platformFigures
   const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
   const toggleText = `${options.active} / ${options.inactive}`
-  const promptText = renderPrompt(toggleText, options.message, "?", figures.pointerSmall)
+  const promptText = renderPrompt(toggleText, options.message, "?", figures.pointerSmall, { plain: true })
   const clearOutput = eraseText(promptText, columns)
   return clearOutput + clearPrompt
 })
