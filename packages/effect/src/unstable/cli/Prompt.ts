@@ -2429,10 +2429,10 @@ const handleMultiSelectClear = <A>(options: SelectOptionsReq<A>) =>
     const promptText = renderSelectOutputPlain("?", figures.pointerSmall, options)
     const choicesText = renderMultiSelectChoicesPlain(state, options, figures)
     const errorText = state.error !== undefined
-      ? `\n${renderMultiSelectErrorPlain(state.error, figures.pointer)}`
+      ? renderMultiSelectErrorPlain(state.error, figures.pointer)
       : ""
     const clearError = state.error !== undefined
-      ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(errorText, columns)
+      ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(`\n${errorText}`, columns)
       : ""
     const clearOutput = eraseText(`${promptText}\n${choicesText}`, columns)
     return clearError + clearOutput + clearPrompt
