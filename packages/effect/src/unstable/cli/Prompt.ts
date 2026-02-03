@@ -3014,13 +3014,16 @@ const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options:
   const figures = yield* platformFigures
   // Erase the current line and place the cursor in column one
   const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
+  const errorText = state.error !== undefined
+    ? renderTextErrorPlain(state.error, figures.pointerSmall)
+    : ""
   // Check for any error output
   const clearError = state.error !== undefined
     // If there was an error, move the cursor down to the final error line and
     // then clear all lines of error output
     // Add a leading newline to the error message to ensure that the corrrect
     // number of error lines are erased
-    ? Ansi.cursorDown(lines(state.error, columns)) + eraseText(`\n${state.error}`, columns)
+    ? Ansi.cursorDown(lines(errorText, columns)) + eraseText(`\n${errorText}`, columns)
     : ""
   // Ensure that the prior prompt output is cleaned up
   const clearOutput = eraseText(renderTextOutputPlain(state, "?", figures.pointerSmall, options), columns)
@@ -3079,6 +3082,13 @@ const renderTextError = (nextState: TextState, pointer: string): string => {
     })
   }
   return ""
+}
+
+const renderTextErrorPlain = (error: string, pointer: string): string => {
+  return Arr.match(error.split(NEWLINE_REGEXP), {
+    onEmpty: () => "",
+    onNonEmpty: (errorLines) => `${pointer} ${errorLines.join("\n")}`
+  })
 }
 
 const renderTextOutputPlain = (
