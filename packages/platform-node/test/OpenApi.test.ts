@@ -46,208 +46,802 @@ describe("OpenAPI spec", () => {
       assert.deepStrictEqual(spec.info.summary, "summary")
       assert.deepStrictEqual(spec.servers, [{ url: "https://example.com" }])
     })
+
+    it("AdditionalSchemas", () => {
+      const Api = HttpApi.make("api")
+        .annotate(HttpApi.AdditionalSchemas, [Schema.String.annotate({ identifier: "A" })])
+      const spec = OpenApi.fromApi(Api)
+      assert.deepStrictEqual(spec.components.schemas, {
+        A: {
+          "type": "string"
+        }
+      })
+    })
+
+    it("Override", () => {
+      const Api = HttpApi.make("api")
+        .annotate(OpenApi.Override, {
+          tags: [{ name: "A" }]
+        })
+      const spec = OpenApi.fromApi(Api)
+      assert.deepStrictEqual(spec.tags, [{ name: "A" }])
+    })
+
+    it("Transform", () => {
+      const Api = HttpApi.make("api")
+        .annotate(OpenApi.Transform, (spec) => ({
+          ...spec,
+          tags: [{ name: "A" }]
+        }))
+      const spec = OpenApi.fromApi(Api)
+      assert.deepStrictEqual(spec.tags, [{ name: "A" }])
+    })
   })
 
-  it("catch all path", () => {
-    const Api = HttpApi.make("api")
-      .add(
-        HttpApiGroup.make("group")
-          .add(
-            HttpApiEndpoint.get("a", "*", {
-              success: Schema.String
+  describe("group", () => {
+    it("annotations", () => {
+      const Api = HttpApi.make("api")
+        .add(
+          HttpApiGroup.make("group")
+            // Add a description for the group
+            .annotate(OpenApi.Description, "my description")
+            // Provide external documentation links
+            .annotate(OpenApi.ExternalDocs, {
+              url: "http://example.com",
+              description: "example"
+            })
+            // Override parts of the final output
+            .annotate(OpenApi.Override, { name: "my name" })
+            // Transform the final specification for this group
+            .annotate(OpenApi.Transform, (spec) => ({
+              ...spec,
+              name: spec.name + "-transformed"
+            }))
+        )
+        .add(
+          HttpApiGroup.make("excluded")
+            // Exclude the group from the final specification
+            .annotate(OpenApi.Exclude, true)
+        )
+      const spec = OpenApi.fromApi(Api)
+      assert.deepStrictEqual(spec, {
+        "openapi": "3.1.0",
+        "info": {
+          "title": "Api",
+          "version": "0.0.1"
+        },
+        "paths": {},
+        "components": {
+          "schemas": {},
+          "securitySchemes": {}
+        },
+        "security": [],
+        "tags": [
+          {
+            "name": "my name-transformed",
+            "description": "my description",
+            "externalDocs": {
+              "url": "http://example.com",
+              "description": "example"
+            }
+          }
+        ]
+      })
+    })
+
+    it("top level group", () => {
+      const Api = HttpApi.make("api").add(
+        // Mark the group as top-level
+        HttpApiGroup.make("group", { topLevel: true }).add(
+          HttpApiEndpoint.get("get", "/", {
+            success: Schema.String
+          })
+        )
+      )
+      const spec = OpenApi.fromApi(Api)
+      assert.deepStrictEqual(spec.paths, {
+        "/": {
+          "get": {
+            "tags": [
+              "group"
+            ],
+            "operationId": "get",
+            "parameters": [],
+            "security": [],
+            "responses": {
+              "200": {
+                "description": "Success",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/String_"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request or response did not match the expected schema",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "_tag": {
+                          "type": "string",
+                          "enum": [
+                            "HttpApiSchemaError"
+                          ]
+                        },
+                        "message": {
+                          "$ref": "#/components/schemas/String_"
+                        }
+                      },
+                      "required": [
+                        "_tag",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      })
+    })
+  })
+
+  describe("endpoint", () => {
+    describe("annotations", () => {
+      it("endpoint annotations", () => {
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.get("get", "/", {
+                success: Schema.String
+              })
+                // Add a description
+                .annotate(OpenApi.Description, "my description")
+                // Provide a summary
+                .annotate(OpenApi.Summary, "my summary")
+                // Mark the endpoint as deprecated
+                .annotate(OpenApi.Deprecated, true)
+                // Provide external documentation
+                .annotate(OpenApi.ExternalDocs, {
+                  url: "http://example.com",
+                  description: "example"
+                })
+            )
+            .add(
+              HttpApiEndpoint.get("excluded", "/excluded", {
+                success: Schema.String
+              })
+                // Exclude this endpoint from the final specification
+                .annotate(OpenApi.Exclude, true)
+            )
+        )
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec, {
+          "openapi": "3.1.0",
+          "info": {
+            "title": "Api",
+            "version": "0.0.1"
+          },
+          "paths": {
+            "/": {
+              "get": {
+                "tags": [
+                  "group"
+                ],
+                "operationId": "group.get",
+                "parameters": [],
+                "security": [],
+                "responses": {
+                  "200": {
+                    "description": "Success",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/String_"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "description": "The request or response did not match the expected schema",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "_tag": {
+                              "type": "string",
+                              "enum": [
+                                "HttpApiSchemaError"
+                              ]
+                            },
+                            "message": {
+                              "$ref": "#/components/schemas/String_"
+                            }
+                          },
+                          "required": [
+                            "_tag",
+                            "message"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  }
+                },
+                "description": "my description",
+                "summary": "my summary",
+                "deprecated": true,
+                "externalDocs": {
+                  "url": "http://example.com",
+                  "description": "example"
+                }
+              }
+            }
+          },
+          "components": {
+            "schemas": {
+              "String_": {
+                "type": "string"
+              }
+            },
+            "securitySchemes": {}
+          },
+          "security": [],
+          "tags": [
+            {
+              "name": "group"
+            }
+          ]
+        })
+      })
+
+      it("success description", () => {
+        const User = Schema.Struct({
+          id: Schema.Finite,
+          name: Schema.String
+        }).annotate({ identifier: "User" })
+
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("group").add(
+            HttpApiEndpoint.get("getUsers", "/users", {
+              success: Schema.Array(User).annotate({
+                description: "Returns an array of users"
+              })
             })
           )
-      )
-    const spec = OpenApi.fromApi(Api)
-    assert.deepStrictEqual(spec.paths["*"].get?.responses, {
-      "200": {
-        description: "Success",
-        content: {
-          "application/json": {
-            schema: {
-              "$ref": "#/components/schemas/String_"
-            }
-          }
-        }
-      },
-      "400": {
-        description: "The request or response did not match the expected schema",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                message: { "$ref": "#/components/schemas/String_" }
-              },
-              required: ["_tag", "message"],
-              additionalProperties: false
-            }
-          }
-        }
-      }
-    })
-  })
-
-  it("middleware error", () => {
-    class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
-      error: Schema.String
-        .pipe(
-          HttpApiSchema.status(405),
-          HttpApiSchema.asText()
         )
-    }) {}
-
-    const Api = HttpApi.make("api")
-      .add(
-        HttpApiGroup.make("group")
-          .add(
-            HttpApiEndpoint.get("a", "/a", {
-              success: Schema.Finite
-            })
-          ).middleware(M)
-      )
-    const spec = OpenApi.fromApi(Api)
-    assert.deepStrictEqual(spec.paths["/a"].get?.responses, {
-      "200": {
-        description: "Success",
-        content: {
-          "application/json": {
-            schema: {
-              "type": "number"
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths, {
+          "/users": {
+            "get": {
+              "tags": [
+                "group"
+              ],
+              "operationId": "group.getUsers",
+              "parameters": [],
+              "security": [],
+              "responses": {
+                "200": {
+                  "description": "Returns an array of users",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "number"
+                            },
+                            "name": {
+                              "$ref": "#/components/schemas/String_"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "description": "Returns an array of users"
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "The request or response did not match the expected schema",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "_tag": {
+                            "type": "string",
+                            "enum": [
+                              "HttpApiSchemaError"
+                            ]
+                          },
+                          "message": {
+                            "$ref": "#/components/schemas/String_"
+                          }
+                        },
+                        "required": [
+                          "_tag",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
-        }
-      },
-      "400": {
-        description: "The request or response did not match the expected schema",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                message: { "$ref": "#/components/schemas/String_" }
-              },
-              required: ["_tag", "message"],
-              additionalProperties: false
-            }
-          }
-        }
-      },
-      "405": {
-        description: "Error",
-        content: {
-          "text/plain": {
-            schema: {
-              "$ref": "#/components/schemas/String_"
-            }
-          }
-        }
-      }
+        })
+      })
     })
-  })
 
-  describe("pathParams option", () => {
-    it("GET", () => {
+    it("catch all path", () => {
       const Api = HttpApi.make("api")
         .add(
           HttpApiGroup.make("group")
             .add(
-              HttpApiEndpoint.get("a", "/a/:id", {
-                pathParams: {
-                  id: Schema.FiniteFromString
-                }
+              HttpApiEndpoint.get("a", "*", {
+                success: Schema.String
               })
             )
         )
       const spec = OpenApi.fromApi(Api)
-      assert.deepStrictEqual(spec.paths["/a/{id}"].get?.parameters, [
-        {
-          name: "id",
-          in: "path",
-          schema: {
-            "type": "string"
-          },
-          required: true
+      assert.deepStrictEqual(spec.paths["*"].get?.responses, {
+        "200": {
+          description: "Success",
+          content: {
+            "application/json": {
+              schema: {
+                "$ref": "#/components/schemas/String_"
+              }
+            }
+          }
+        },
+        "400": {
+          description: "The request or response did not match the expected schema",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  _tag: { type: "string", enum: ["HttpApiSchemaError"] },
+                  message: { "$ref": "#/components/schemas/String_" }
+                },
+                required: ["_tag", "message"],
+                additionalProperties: false
+              }
+            }
+          }
         }
-      ])
+      })
     })
-  })
 
-  describe("payload option", () => {
-    describe("GET", () => {
-      it("query parameters", () => {
+    it("middleware error", () => {
+      class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
+        error: Schema.String
+          .pipe(
+            HttpApiSchema.status(405),
+            HttpApiSchema.asText()
+          )
+      }) {}
+
+      const Api = HttpApi.make("api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.get("a", "/a", {
+                success: Schema.Finite
+              })
+            ).middleware(M)
+        )
+      const spec = OpenApi.fromApi(Api)
+      assert.deepStrictEqual(spec.paths["/a"].get?.responses, {
+        "200": {
+          description: "Success",
+          content: {
+            "application/json": {
+              schema: {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "400": {
+          description: "The request or response did not match the expected schema",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  _tag: { type: "string", enum: ["HttpApiSchemaError"] },
+                  message: { "$ref": "#/components/schemas/String_" }
+                },
+                required: ["_tag", "message"],
+                additionalProperties: false
+              }
+            }
+          }
+        },
+        "405": {
+          description: "Error",
+          content: {
+            "text/plain": {
+              schema: {
+                "$ref": "#/components/schemas/String_"
+              }
+            }
+          }
+        }
+      })
+    })
+
+    describe("pathParams option", () => {
+      it("GET", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  payload: {
-                    required: Schema.FiniteFromString,
-                    optionalKey: Schema.optionalKey(Schema.FiniteFromString),
-                    optional: Schema.optional(Schema.FiniteFromString)
+                HttpApiEndpoint.get("a", "/a/:id", {
+                  pathParams: {
+                    id: Schema.FiniteFromString
                   }
                 })
               )
           )
         const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.parameters, [
+        assert.deepStrictEqual(spec.paths["/a/{id}"].get?.parameters, [
           {
-            name: "required",
-            in: "query",
-            schema: {
-              "$ref": "#/components/schemas/String_"
-            },
-            required: true
-          },
-          {
-            name: "optionalKey",
-            in: "query",
+            name: "id",
+            in: "path",
             schema: {
               "type": "string"
             },
-            required: false
-          },
-          {
-            name: "optional",
-            in: "query",
-            schema: {
-              "anyOf": [
-                { "$ref": "#/components/schemas/String_" },
-                { "type": "null" }
-              ]
-            },
-            required: false
+            required: true
           }
         ])
-        assert.deepStrictEqual(spec.components.schemas, {
-          String_: {
-            "type": "string"
-          }
+      })
+    })
+
+    describe("payload option", () => {
+      describe("GET", () => {
+        it("query parameters", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.get("a", "/a", {
+                    payload: {
+                      required: Schema.FiniteFromString,
+                      optionalKey: Schema.optionalKey(Schema.FiniteFromString),
+                      optional: Schema.optional(Schema.FiniteFromString)
+                    }
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.parameters, [
+            {
+              name: "required",
+              in: "query",
+              schema: {
+                "$ref": "#/components/schemas/String_"
+              },
+              required: true
+            },
+            {
+              name: "optionalKey",
+              in: "query",
+              schema: {
+                "type": "string"
+              },
+              required: false
+            },
+            {
+              name: "optional",
+              in: "query",
+              schema: {
+                "anyOf": [
+                  { "$ref": "#/components/schemas/String_" },
+                  { "type": "null" }
+                ]
+              },
+              required: false
+            }
+          ])
+          assert.deepStrictEqual(spec.components.schemas, {
+            String_: {
+              "type": "string"
+            }
+          })
+        })
+      })
+
+      describe("POST", () => {
+        it("NoContent", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(HttpApiEndpoint.post("a", "/a", { payload: HttpApiSchema.NoContent }))
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody, undefined)
+        })
+
+        it("NoContent + payload", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(HttpApiEndpoint.post("a", "/a", { payload: [HttpApiSchema.NoContent, Schema.String] }))
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+            "application/json": {
+              schema: {
+                "$ref": "#/components/schemas/String_"
+              }
+            }
+          })
+          assert.deepStrictEqual(spec.components.schemas, {
+            String_: {
+              "type": "string"
+            }
+          })
+        })
+
+        it("Json (default)", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.post("a", "/a", {
+                    payload: Schema.String
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+            "application/json": {
+              schema: {
+                "$ref": "#/components/schemas/String_"
+              }
+            }
+          })
+          assert.deepStrictEqual(spec.components.schemas, {
+            String_: {
+              "type": "string"
+            }
+          })
+        })
+
+        describe("encodings", () => {
+          it("asMultipart", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: Schema.String.pipe(HttpApiSchema.asMultipart())
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "multipart/form-data": {
+                schema: {
+                  "type": "string"
+                }
+              }
+            })
+          })
+
+          it("asMultipartStream", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: Schema.String.pipe(HttpApiSchema.asMultipartStream())
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "multipart/form-data": {
+                schema: {
+                  "type": "string"
+                }
+              }
+            })
+          })
+
+          it("asJson + contentType", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: Schema.String.pipe(
+                        HttpApiSchema.asJson({ contentType: "application/problem+json" })
+                      )
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "application/problem+json": {
+                schema: {
+                  "type": "string"
+                }
+              }
+            })
+          })
+
+          it("asText", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: Schema.String.pipe(HttpApiSchema.asText())
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "text/plain": {
+                schema: {
+                  "$ref": "#/components/schemas/String_"
+                }
+              }
+            })
+            assert.deepStrictEqual(spec.components.schemas, {
+              String_: {
+                "type": "string"
+              }
+            })
+          })
+
+          it("asUrlParams", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: Schema.Struct({ a: Schema.String }).pipe(
+                        HttpApiSchema.asUrlParams()
+                      )
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "application/x-www-form-urlencoded": {
+                schema: {
+                  "type": "object",
+                  "properties": {
+                    "a": {
+                      "$ref": "#/components/schemas/String_"
+                    }
+                  },
+                  "required": ["a"],
+                  "additionalProperties": false
+                }
+              }
+            })
+            assert.deepStrictEqual(spec.components.schemas, {
+              String_: {
+                "type": "string"
+              }
+            })
+          })
+
+          it("asUint8Array", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array())
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "application/octet-stream": {
+                schema: {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            })
+          })
+
+          it("array of schemas with different encodings", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: [
+                        Schema.Struct({ a: Schema.String }), // application/json
+                        Schema.String.pipe(HttpApiSchema.asText()), // text/plain
+                        Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
+                      ]
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "application/json": {
+                schema: {
+                  "type": "object",
+                  "properties": {
+                    "a": {
+                      "$ref": "#/components/schemas/String_"
+                    }
+                  },
+                  "required": ["a"],
+                  "additionalProperties": false
+                }
+              },
+              "text/plain": {
+                schema: {
+                  "$ref": "#/components/schemas/String_"
+                }
+              },
+              "application/octet-stream": {
+                schema: {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            })
+            assert.deepStrictEqual(spec.components.schemas, {
+              String_: {
+                "type": "string"
+              }
+            })
+          })
         })
       })
     })
 
-    describe("POST", () => {
-      it("NoContent", () => {
+    describe("success option", () => {
+      it("no content (default)", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
-              .add(HttpApiEndpoint.post("a", "/a", { payload: HttpApiSchema.NoContent }))
+              .add(HttpApiEndpoint.get("a", "/a"))
           )
         const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].post?.requestBody, undefined)
+        assert.deepStrictEqual(spec.paths["/a"].get?.responses["204"], {
+          description: "<No Content>"
+        })
       })
 
-      it("NoContent + payload", () => {
+      it("schema", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
-              .add(HttpApiEndpoint.post("a", "/a", { payload: [HttpApiSchema.NoContent, Schema.String] }))
+              .add(HttpApiEndpoint.get("a", "/a", {
+                success: Schema.String
+              }))
           )
         const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+        assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
           "application/json": {
             schema: {
               "$ref": "#/components/schemas/String_"
@@ -261,86 +855,79 @@ describe("OpenAPI spec", () => {
         })
       })
 
-      it("Json (default)", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.post("a", "/a", {
-                  payload: Schema.String
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
-          "application/json": {
-            schema: {
-              "$ref": "#/components/schemas/String_"
-            }
-          }
+      describe("NoContent", () => {
+        it("makeNoContent(204)", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(HttpApiEndpoint.get("a", "/a", {
+                  success: HttpApiSchema.Empty(204)
+                }))
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["204"], {
+            description: "<No Content>"
+          })
         })
-        assert.deepStrictEqual(spec.components.schemas, {
-          String_: {
-            "type": "string"
-          }
+
+        it("NoContent", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(HttpApiEndpoint.get("a", "/a", {
+                  success: HttpApiSchema.NoContent
+                }))
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["204"], {
+            description: "<No Content>"
+          })
+        })
+
+        it("Created", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(HttpApiEndpoint.get("a", "/a", {
+                  success: HttpApiSchema.Created
+                }))
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["201"], {
+            description: "<No Content>"
+          })
+        })
+
+        it("Accepted", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(HttpApiEndpoint.get("a", "/a", {
+                  success: HttpApiSchema.Accepted
+                }))
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["202"], {
+            description: "<No Content>"
+          })
         })
       })
 
       describe("encodings", () => {
-        it("asMultipart", () => {
-          const Api = HttpApi.make("api")
-            .add(
-              HttpApiGroup.make("group")
-                .add(
-                  HttpApiEndpoint.post("a", "/a", {
-                    payload: Schema.String.pipe(HttpApiSchema.asMultipart())
-                  })
-                )
-            )
-          const spec = OpenApi.fromApi(Api)
-          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
-            "multipart/form-data": {
-              schema: {
-                "type": "string"
-              }
-            }
-          })
-        })
-
-        it("asMultipartStream", () => {
-          const Api = HttpApi.make("api")
-            .add(
-              HttpApiGroup.make("group")
-                .add(
-                  HttpApiEndpoint.post("a", "/a", {
-                    payload: Schema.String.pipe(HttpApiSchema.asMultipartStream())
-                  })
-                )
-            )
-          const spec = OpenApi.fromApi(Api)
-          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
-            "multipart/form-data": {
-              schema: {
-                "type": "string"
-              }
-            }
-          })
-        })
-
         it("asJson + contentType", () => {
           const Api = HttpApi.make("api")
             .add(
               HttpApiGroup.make("group")
                 .add(
-                  HttpApiEndpoint.post("a", "/a", {
-                    payload: Schema.String.pipe(
+                  HttpApiEndpoint.get("a", "/a", {
+                    success: Schema.String.pipe(
                       HttpApiSchema.asJson({ contentType: "application/problem+json" })
                     )
                   })
                 )
             )
           const spec = OpenApi.fromApi(Api)
-          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
             "application/problem+json": {
               schema: {
                 "type": "string"
@@ -354,22 +941,17 @@ describe("OpenAPI spec", () => {
             .add(
               HttpApiGroup.make("group")
                 .add(
-                  HttpApiEndpoint.post("a", "/a", {
-                    payload: Schema.String.pipe(HttpApiSchema.asText())
+                  HttpApiEndpoint.get("a", "/a", {
+                    success: Schema.String.pipe(HttpApiSchema.asText())
                   })
                 )
             )
           const spec = OpenApi.fromApi(Api)
-          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
             "text/plain": {
               schema: {
                 "$ref": "#/components/schemas/String_"
               }
-            }
-          })
-          assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
-              "type": "string"
             }
           })
         })
@@ -379,15 +961,15 @@ describe("OpenAPI spec", () => {
             .add(
               HttpApiGroup.make("group")
                 .add(
-                  HttpApiEndpoint.post("a", "/a", {
-                    payload: Schema.Struct({ a: Schema.String }).pipe(
+                  HttpApiEndpoint.get("a", "/a", {
+                    success: Schema.Struct({ a: Schema.String }).pipe(
                       HttpApiSchema.asUrlParams()
                     )
                   })
                 )
             )
           const spec = OpenApi.fromApi(Api)
-          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
             "application/x-www-form-urlencoded": {
               schema: {
                 "type": "object",
@@ -401,11 +983,6 @@ describe("OpenAPI spec", () => {
               }
             }
           })
-          assert.deepStrictEqual(spec.components.schemas, {
-            String_: {
-              "type": "string"
-            }
-          })
         })
 
         it("asUint8Array", () => {
@@ -413,13 +990,13 @@ describe("OpenAPI spec", () => {
             .add(
               HttpApiGroup.make("group")
                 .add(
-                  HttpApiEndpoint.post("a", "/a", {
-                    payload: Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array())
+                  HttpApiEndpoint.get("a", "/a", {
+                    success: Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array())
                   })
                 )
             )
           const spec = OpenApi.fromApi(Api)
-          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
             "application/octet-stream": {
               schema: {
                 "type": "string",
@@ -429,43 +1006,209 @@ describe("OpenAPI spec", () => {
           })
         })
 
-        it("array of schemas with different encodings", () => {
+        it("union with top level encoding", () => {
           const Api = HttpApi.make("api")
             .add(
               HttpApiGroup.make("group")
                 .add(
-                  HttpApiEndpoint.post("a", "/a", {
-                    payload: [
-                      Schema.Struct({ a: Schema.String }), // application/json
-                      Schema.String.pipe(HttpApiSchema.asText()), // text/plain
-                      Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
-                    ]
+                  HttpApiEndpoint.get("a", "/a", {
+                    success: Schema.Union([
+                      Schema.Struct({ a: Schema.String }),
+                      Schema.Struct({ b: Schema.String })
+                    ]).pipe(HttpApiSchema.asUrlParams())
                   })
                 )
             )
           const spec = OpenApi.fromApi(Api)
-          assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
-            "application/json": {
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
+            "application/x-www-form-urlencoded": {
               schema: {
-                "type": "object",
-                "properties": {
-                  "a": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "a": {
+                        "$ref": "#/components/schemas/String_"
+                      }
+                    },
+                    "required": ["a"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "b": {
+                        "$ref": "#/components/schemas/String_"
+                      }
+                    },
+                    "required": ["b"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          })
+        })
+      })
+    })
+
+    describe("error option", () => {
+      describe("1 endopoint", () => {
+        it("no identifier annotation", () => {
+          class Group extends HttpApiGroup.make("users")
+            .add(HttpApiEndpoint.post("a", "/a", {
+              payload: Schema.String,
+              success: Schema.String,
+              error: Schema.String
+            }))
+          {}
+
+          class Api extends HttpApi.make("api").add(Group) {}
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
+            "200": {
+              description: "Success",
+              content: {
+                "application/json": {
+                  schema: {
                     "$ref": "#/components/schemas/String_"
                   }
-                },
-                "required": ["a"],
-                "additionalProperties": false
+                }
               }
             },
-            "text/plain": {
-              schema: {
-                "$ref": "#/components/schemas/String_"
+            "400": {
+              description: "The request or response did not match the expected schema",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      _tag: { type: "string", enum: ["HttpApiSchemaError"] },
+                      message: { "$ref": "#/components/schemas/String_" }
+                    },
+                    required: ["_tag", "message"],
+                    additionalProperties: false
+                  }
+                }
               }
             },
-            "application/octet-stream": {
-              schema: {
-                "type": "string",
-                "format": "binary"
+            "500": {
+              description: "Error",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
+                }
+              }
+            }
+          })
+          assert.deepStrictEqual(spec.components.schemas, {
+            String_: {
+              "type": "string"
+            }
+          })
+        })
+
+        it("identifier annotation", () => {
+          class Group extends HttpApiGroup.make("users")
+            .add(HttpApiEndpoint.post("a", "/a", {
+              payload: Schema.String,
+              success: Schema.String,
+              error: Schema.String.annotate({ identifier: "id" })
+            }))
+          {}
+
+          class Api extends HttpApi.make("api").add(Group) {}
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
+            "200": {
+              description: "Success",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
+                }
+              }
+            },
+            "400": {
+              description: "The request or response did not match the expected schema",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      _tag: { type: "string", enum: ["HttpApiSchemaError"] },
+                      message: { "$ref": "#/components/schemas/String_" }
+                    },
+                    required: ["_tag", "message"],
+                    additionalProperties: false
+                  }
+                }
+              }
+            },
+            "500": {
+              description: "id",
+              content: {
+                "application/json": {
+                  schema: {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          })
+          assert.deepStrictEqual(spec.components.schemas, {
+            String_: {
+              "type": "string"
+            }
+          })
+        })
+
+        it("httpApiStatus annotation", () => {
+          class Group extends HttpApiGroup.make("users")
+            .add(HttpApiEndpoint.post("a", "/a", {
+              payload: Schema.String,
+              success: Schema.String,
+              error: Schema.String.annotate({ httpApiStatus: 400 })
+            }))
+          {}
+
+          class Api extends HttpApi.make("api").add(Group) {}
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
+            "200": {
+              description: "Success",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
+                }
+              }
+            },
+            "400": {
+              description: "The request or response did not match the expected schema",
+              content: {
+                "application/json": {
+                  schema: {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        type: "object",
+                        properties: {
+                          _tag: { type: "string", enum: ["HttpApiSchemaError"] },
+                          message: { "$ref": "#/components/schemas/String_" }
+                        },
+                        required: ["_tag", "message"],
+                        additionalProperties: false
+                      }
+                    ]
+                  }
+                }
               }
             }
           })
@@ -476,765 +1219,363 @@ describe("OpenAPI spec", () => {
           })
         })
       })
-    })
-  })
 
-  describe("success option", () => {
-    it("no content (default)", () => {
-      const Api = HttpApi.make("api")
-        .add(
-          HttpApiGroup.make("group")
-            .add(HttpApiEndpoint.get("a", "/a"))
-        )
-      const spec = OpenApi.fromApi(Api)
-      assert.deepStrictEqual(spec.paths["/a"].get?.responses["204"], {
-        description: "<No Content>"
-      })
-    })
-
-    it("schema", () => {
-      const Api = HttpApi.make("api")
-        .add(
-          HttpApiGroup.make("group")
-            .add(HttpApiEndpoint.get("a", "/a", {
-              success: Schema.String
+      describe("2 endopoints", () => {
+        it("no identifier annotation", () => {
+          const E = Schema.String
+          class Group extends HttpApiGroup.make("users")
+            .add(HttpApiEndpoint.post("a", "/a", {
+              payload: Schema.String,
+              success: Schema.String,
+              error: E
             }))
-        )
-      const spec = OpenApi.fromApi(Api)
-      assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
-        "application/json": {
-          schema: {
-            "$ref": "#/components/schemas/String_"
-          }
-        }
-      })
-      assert.deepStrictEqual(spec.components.schemas, {
-        String_: {
-          "type": "string"
-        }
-      })
-    })
+            .add(HttpApiEndpoint.post("b", "/b", {
+              payload: Schema.String,
+              success: Schema.String,
+              error: E
+            }))
+          {}
 
-    describe("NoContent", () => {
-      it("makeNoContent(204)", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(HttpApiEndpoint.get("a", "/a", {
-                success: HttpApiSchema.Empty(204)
-              }))
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["204"], {
-          description: "<No Content>"
-        })
-      })
-
-      it("NoContent", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(HttpApiEndpoint.get("a", "/a", {
-                success: HttpApiSchema.NoContent
-              }))
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["204"], {
-          description: "<No Content>"
-        })
-      })
-
-      it("Created", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(HttpApiEndpoint.get("a", "/a", {
-                success: HttpApiSchema.Created
-              }))
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["201"], {
-          description: "<No Content>"
-        })
-      })
-
-      it("Accepted", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(HttpApiEndpoint.get("a", "/a", {
-                success: HttpApiSchema.Accepted
-              }))
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["202"], {
-          description: "<No Content>"
-        })
-      })
-    })
-
-    describe("encodings", () => {
-      it("asJson + contentType", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  success: Schema.String.pipe(
-                    HttpApiSchema.asJson({ contentType: "application/problem+json" })
-                  )
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
-          "application/problem+json": {
-            schema: {
+          class Api extends HttpApi.make("api").add(Group) {}
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
+            "200": {
+              description: "Success",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
+                }
+              }
+            },
+            "400": {
+              description: "The request or response did not match the expected schema",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
+                  }
+                }
+              }
+            },
+            "500": {
+              description: "Error",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
+                }
+              }
+            }
+          })
+          assert.deepStrictEqual(spec.paths["/b"].post?.responses, {
+            "200": {
+              description: "Success",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
+                }
+              }
+            },
+            "400": {
+              description: "The request or response did not match the expected schema",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
+                  }
+                }
+              }
+            },
+            "500": {
+              description: "Error",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
+                }
+              }
+            }
+          })
+          assert.deepStrictEqual(spec.components.schemas, {
+            String_: {
               "type": "string"
-            }
-          }
-        })
-      })
-
-      it("asText", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  success: Schema.String.pipe(HttpApiSchema.asText())
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
-          "text/plain": {
-            schema: {
-              "$ref": "#/components/schemas/String_"
-            }
-          }
-        })
-      })
-
-      it("asUrlParams", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  success: Schema.Struct({ a: Schema.String }).pipe(
-                    HttpApiSchema.asUrlParams()
-                  )
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
-          "application/x-www-form-urlencoded": {
-            schema: {
+            },
+            "effect_HttpApiSchemaError": {
               "type": "object",
               "properties": {
-                "a": {
-                  "$ref": "#/components/schemas/String_"
-                }
+                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+                "message": { "$ref": "#/components/schemas/String_" }
               },
-              "required": ["a"],
+              "required": ["_tag", "message"],
               "additionalProperties": false
             }
-          }
+          })
         })
-      })
 
-      it("asUint8Array", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  success: Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array())
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
-          "application/octet-stream": {
-            schema: {
-              "type": "string",
-              "format": "binary"
-            }
-          }
-        })
-      })
+        it("identifier annotation", () => {
+          const E = Schema.String.annotate({ identifier: "id" })
+          class Group extends HttpApiGroup.make("users")
+            .add(HttpApiEndpoint.post("a", "/a", {
+              payload: Schema.String,
+              success: Schema.String,
+              error: E
+            }))
+            .add(HttpApiEndpoint.post("b", "/b", {
+              payload: Schema.String,
+              success: Schema.String,
+              error: E
+            }))
+          {}
 
-      it("union with top level encoding", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  success: Schema.Union([
-                    Schema.Struct({ a: Schema.String }),
-                    Schema.Struct({ b: Schema.String })
-                  ]).pipe(HttpApiSchema.asUrlParams())
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
-          "application/x-www-form-urlencoded": {
-            schema: {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "a": {
-                      "$ref": "#/components/schemas/String_"
-                    }
-                  },
-                  "required": ["a"],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "b": {
-                      "$ref": "#/components/schemas/String_"
-                    }
-                  },
-                  "required": ["b"],
-                  "additionalProperties": false
+          class Api extends HttpApi.make("api").add(Group) {}
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
+            "200": {
+              description: "Success",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
                 }
-              ]
-            }
-          }
-        })
-      })
-    })
-  })
-
-  describe("error option", () => {
-    describe("1 endopoint", () => {
-      it("no identifier annotation", () => {
-        class Group extends HttpApiGroup.make("users")
-          .add(HttpApiEndpoint.post("a", "/a", {
-            payload: Schema.String,
-            success: Schema.String,
-            error: Schema.String
-          }))
-        {}
-
-        class Api extends HttpApi.make("api").add(Group) {}
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
-          "200": {
-            description: "Success",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
+              }
+            },
+            "400": {
+              description: "The request or response did not match the expected schema",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
+                  }
+                }
+              }
+            },
+            "500": {
+              description: "id",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/id"
+                  }
                 }
               }
             }
-          },
-          "400": {
-            description: "The request or response did not match the expected schema",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                    message: { "$ref": "#/components/schemas/String_" }
-                  },
-                  required: ["_tag", "message"],
-                  additionalProperties: false
+          })
+          assert.deepStrictEqual(spec.paths["/b"].post?.responses, {
+            "200": {
+              description: "Success",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
+                }
+              }
+            },
+            "400": {
+              description: "The request or response did not match the expected schema",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
+                  }
+                }
+              }
+            },
+            "500": {
+              description: "id",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/id"
+                  }
                 }
               }
             }
-          },
-          "500": {
-            description: "Error",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
-                }
-              }
+          })
+          assert.deepStrictEqual(spec.components.schemas, {
+            String_: {
+              "type": "string"
+            },
+            id: {
+              "type": "string"
+            },
+            "effect_HttpApiSchemaError": {
+              "type": "object",
+              "properties": {
+                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+                "message": { "$ref": "#/components/schemas/String_" }
+              },
+              "required": ["_tag", "message"],
+              "additionalProperties": false
             }
-          }
+          })
         })
-        assert.deepStrictEqual(spec.components.schemas, {
-          String_: {
-            "type": "string"
-          }
-        })
-      })
 
-      it("identifier annotation", () => {
-        class Group extends HttpApiGroup.make("users")
-          .add(HttpApiEndpoint.post("a", "/a", {
-            payload: Schema.String,
-            success: Schema.String,
-            error: Schema.String.annotate({ identifier: "id" })
-          }))
-        {}
+        it("httpApiStatus annotation", () => {
+          const E = Schema.String.annotate({ httpApiStatus: 400 })
+          class Group extends HttpApiGroup.make("users")
+            .add(HttpApiEndpoint.post("a", "/a", {
+              payload: Schema.String,
+              success: Schema.String,
+              error: E
+            }))
+            .add(HttpApiEndpoint.post("b", "/b", {
+              payload: Schema.String,
+              success: Schema.String,
+              error: E
+            }))
+          {}
 
-        class Api extends HttpApi.make("api").add(Group) {}
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
-          "200": {
-            description: "Success",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
+          class Api extends HttpApi.make("api").add(Group) {}
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
+            "200": {
+              description: "Success",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
                 }
               }
-            }
-          },
-          "400": {
-            description: "The request or response did not match the expected schema",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                    message: { "$ref": "#/components/schemas/String_" }
-                  },
-                  required: ["_tag", "message"],
-                  additionalProperties: false
-                }
-              }
-            }
-          },
-          "500": {
-            description: "id",
-            content: {
-              "application/json": {
-                schema: {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        })
-        assert.deepStrictEqual(spec.components.schemas, {
-          String_: {
-            "type": "string"
-          }
-        })
-      })
-
-      it("httpApiStatus annotation", () => {
-        class Group extends HttpApiGroup.make("users")
-          .add(HttpApiEndpoint.post("a", "/a", {
-            payload: Schema.String,
-            success: Schema.String,
-            error: Schema.String.annotate({ httpApiStatus: 400 })
-          }))
-        {}
-
-        class Api extends HttpApi.make("api").add(Group) {}
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
-          "200": {
-            description: "Success",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
-                }
-              }
-            }
-          },
-          "400": {
-            description: "The request or response did not match the expected schema",
-            content: {
-              "application/json": {
-                schema: {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      type: "object",
-                      properties: {
-                        _tag: { type: "string", enum: ["HttpApiSchemaError"] },
-                        message: { "$ref": "#/components/schemas/String_" }
+            },
+            "400": {
+              description: "The request or response did not match the expected schema",
+              content: {
+                "application/json": {
+                  schema: {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/String_1"
                       },
-                      required: ["_tag", "message"],
-                      additionalProperties: false
-                    }
-                  ]
+                      {
+                        "$ref": "#/components/schemas/effect_HttpApiSchemaError"
+                      }
+                    ]
+                  }
                 }
               }
             }
-          }
-        })
-        assert.deepStrictEqual(spec.components.schemas, {
-          String_: {
-            "type": "string"
-          }
-        })
-      })
-    })
-
-    describe("2 endopoints", () => {
-      it("no identifier annotation", () => {
-        const E = Schema.String
-        class Group extends HttpApiGroup.make("users")
-          .add(HttpApiEndpoint.post("a", "/a", {
-            payload: Schema.String,
-            success: Schema.String,
-            error: E
-          }))
-          .add(HttpApiEndpoint.post("b", "/b", {
-            payload: Schema.String,
-            success: Schema.String,
-            error: E
-          }))
-        {}
-
-        class Api extends HttpApi.make("api").add(Group) {}
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
-          "200": {
-            description: "Success",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
+          })
+          assert.deepStrictEqual(spec.paths["/b"].post?.responses, {
+            "200": {
+              description: "Success",
+              content: {
+                "application/json": {
+                  schema: {
+                    "$ref": "#/components/schemas/String_"
+                  }
                 }
               }
-            }
-          },
-          "400": {
-            description: "The request or response did not match the expected schema",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
-          },
-          "500": {
-            description: "Error",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
-                }
-              }
-            }
-          }
-        })
-        assert.deepStrictEqual(spec.paths["/b"].post?.responses, {
-          "200": {
-            description: "Success",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
-                }
-              }
-            }
-          },
-          "400": {
-            description: "The request or response did not match the expected schema",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
-          },
-          "500": {
-            description: "Error",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
-                }
-              }
-            }
-          }
-        })
-        assert.deepStrictEqual(spec.components.schemas, {
-          String_: {
-            "type": "string"
-          },
-          "effect_HttpApiSchemaError": {
-            "type": "object",
-            "properties": {
-              "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-              "message": { "$ref": "#/components/schemas/String_" }
             },
-            "required": ["_tag", "message"],
-            "additionalProperties": false
-          }
-        })
-      })
-
-      it("identifier annotation", () => {
-        const E = Schema.String.annotate({ identifier: "id" })
-        class Group extends HttpApiGroup.make("users")
-          .add(HttpApiEndpoint.post("a", "/a", {
-            payload: Schema.String,
-            success: Schema.String,
-            error: E
-          }))
-          .add(HttpApiEndpoint.post("b", "/b", {
-            payload: Schema.String,
-            success: Schema.String,
-            error: E
-          }))
-        {}
-
-        class Api extends HttpApi.make("api").add(Group) {}
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
-          "200": {
-            description: "Success",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
+            "400": {
+              description: "The request or response did not match the expected schema",
+              content: {
+                "application/json": {
+                  schema: {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/String_1"
+                      },
+                      {
+                        "$ref": "#/components/schemas/effect_HttpApiSchemaError"
+                      }
+                    ]
+                  }
                 }
               }
             }
-          },
-          "400": {
-            description: "The request or response did not match the expected schema",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
-          },
-          "500": {
-            description: "id",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/id"
-                }
-              }
-            }
-          }
-        })
-        assert.deepStrictEqual(spec.paths["/b"].post?.responses, {
-          "200": {
-            description: "Success",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
-                }
-              }
-            }
-          },
-          "400": {
-            description: "The request or response did not match the expected schema",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                }
-              }
-            }
-          },
-          "500": {
-            description: "id",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/id"
-                }
-              }
-            }
-          }
-        })
-        assert.deepStrictEqual(spec.components.schemas, {
-          String_: {
-            "type": "string"
-          },
-          id: {
-            "type": "string"
-          },
-          "effect_HttpApiSchemaError": {
-            "type": "object",
-            "properties": {
-              "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-              "message": { "$ref": "#/components/schemas/String_" }
+          })
+          assert.deepStrictEqual(spec.components.schemas, {
+            String_: {
+              "type": "string"
             },
-            "required": ["_tag", "message"],
-            "additionalProperties": false
-          }
-        })
-      })
-
-      it("httpApiStatus annotation", () => {
-        const E = Schema.String.annotate({ httpApiStatus: 400 })
-        class Group extends HttpApiGroup.make("users")
-          .add(HttpApiEndpoint.post("a", "/a", {
-            payload: Schema.String,
-            success: Schema.String,
-            error: E
-          }))
-          .add(HttpApiEndpoint.post("b", "/b", {
-            payload: Schema.String,
-            success: Schema.String,
-            error: E
-          }))
-        {}
-
-        class Api extends HttpApi.make("api").add(Group) {}
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].post?.responses, {
-          "200": {
-            description: "Success",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
-                }
-              }
-            }
-          },
-          "400": {
-            description: "The request or response did not match the expected schema",
-            content: {
-              "application/json": {
-                schema: {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/String_1"
-                    },
-                    {
-                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        })
-        assert.deepStrictEqual(spec.paths["/b"].post?.responses, {
-          "200": {
-            description: "Success",
-            content: {
-              "application/json": {
-                schema: {
-                  "$ref": "#/components/schemas/String_"
-                }
-              }
-            }
-          },
-          "400": {
-            description: "The request or response did not match the expected schema",
-            content: {
-              "application/json": {
-                schema: {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/String_1"
-                    },
-                    {
-                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        })
-        assert.deepStrictEqual(spec.components.schemas, {
-          String_: {
-            "type": "string"
-          },
-          String_1: {
-            "type": "string"
-          },
-          "effect_HttpApiSchemaError": {
-            "type": "object",
-            "properties": {
-              "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
-              "message": { "$ref": "#/components/schemas/String_" }
+            String_1: {
+              "type": "string"
             },
-            "required": ["_tag", "message"],
-            "additionalProperties": false
-          }
-        })
-      })
-    })
-
-    describe("No Content", () => {
-      it("makeNoContent(400)", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  error: HttpApiSchema.Empty(400)
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
-          description: "<No Content>"
+            "effect_HttpApiSchemaError": {
+              "type": "object",
+              "properties": {
+                "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
+                "message": { "$ref": "#/components/schemas/String_" }
+              },
+              "required": ["_tag", "message"],
+              "additionalProperties": false
+            }
+          })
         })
       })
 
-      it("Empty(401)", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  error: HttpApiSchema.Empty(401)
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["401"], {
-          description: "<No Content>"
+      describe("No Content", () => {
+        it("makeNoContent(400)", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.get("a", "/a", {
+                    error: HttpApiSchema.Empty(400)
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
+            description: "<No Content>"
+          })
         })
-      })
 
-      it("UnauthorizedNoContent", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  error: HttpApiError.UnauthorizedNoContent
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["401"], {
-          description: "Unauthorized"
+        it("Empty(401)", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.get("a", "/a", {
+                    error: HttpApiSchema.Empty(401)
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["401"], {
+            description: "<No Content>"
+          })
         })
-      })
 
-      it("BadRequestNoContent", () => {
-        const Api = HttpApi.make("api")
-          .add(
-            HttpApiGroup.make("group")
-              .add(
-                HttpApiEndpoint.get("a", "/a", {
-                  error: HttpApiError.BadRequestNoContent
-                })
-              )
-          )
-        const spec = OpenApi.fromApi(Api)
-        assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
-          description: "BadRequest"
+        it("UnauthorizedNoContent", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.get("a", "/a", {
+                    error: HttpApiError.UnauthorizedNoContent
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["401"], {
+            description: "Unauthorized"
+          })
+        })
+
+        it("BadRequestNoContent", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.get("a", "/a", {
+                    error: HttpApiError.BadRequestNoContent
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["400"], {
+            description: "BadRequest"
+          })
         })
       })
     })

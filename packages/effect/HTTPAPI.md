@@ -68,51 +68,70 @@ const User = Schema.Struct({
 //                     │            ┌─── Endpoint path
 //                     ▼            ▼
 HttpApiEndpoint.patch("updateUser", "/user/:id", {
-  // an optional record of path parameters and their schemas
+  // Path parameters from the route pattern (e.g. /user/:id).
+  // This is a record where each key is the parameter name.
   pathParams: {
-    //  ┌─── schema for the "id" path parameter
+    //  ┌─── Schema for the "id" path parameter.
     //  ▼
     id: Schema.String
   },
 
-  // an optional record of query string parameters (?key=value) and their schemas
+  // (optional) Query string parameters (e.g. ?mode=merge).
+  // This is a record where each key is the query parameter name.
   urlParams: {
-    //    ┌─── schema for the "mode" url parameter
+    //    ┌─── Schema for the "mode" query parameter
     //    ▼
     mode: Schema.Literals(["merge", "replace"])
   },
 
-  // an optional record of request headers and their schemas
+  // (optional) Request headers.
+  // Use the exact header name as the key.
   headers: {
     "x-api-key": Schema.String,
     "x-request-id": Schema.String
   },
 
-  // an optional schema for the request payload
-  // default is no payload, and the default encoding is JSON
-  payload: Schema.Struct({
-    name: Schema.String
-  }),
+  // The request payload can be a single schema or an array of schemas.
+  // - Default encoding is JSON.
+  // - Default status for success is 200.
+  // For GET requests, the payload must be a record of schemas.
+  payload: [
+    // JSON payload (default encoding).
+    Schema.Struct({
+      name: Schema.String
+    }),
+    // text/plain payload.
+    Schema.String.pipe(HttpApiSchema.asText())
+  ],
 
-  // possible success responses
+  // Possible success responses.
+  // Default is 200 OK with no content if omitted.
   success: [
-    User, // default is 200 OK with JSON encoding
+    // JSON response (default encoding).
+    User,
+    // text/plain response with a custom status code.
     Schema.String
       .pipe(
-        HttpApiSchema.status(206), // override default status code
-        HttpApiSchema.asText() // override default encoding
+        HttpApiSchema.status(206),
+        HttpApiSchema.asText()
       )
   ],
 
-  // possible error responses
+  // Possible error responses.
   error: [
-    Schema.Number, // default is 500 Internal Server Error with JSON encoding
+    // Default is 500 Internal Server Error with JSON encoding.
+    Schema.Number,
+
+    // text/plain error with a custom status code.
     Schema.String
       .pipe(
-        HttpApiSchema.status(404), // override default status code
+        HttpApiSchema.status(404),
         HttpApiSchema.asText()
       ),
-    Schema.Void // any schema that encodes to `Schema.Void` will be treated as no content
+
+    // Any schema that encodes to `Schema.Void` is treated as "no content".
+    // Here it uses a custom status code.
+    Schema.Void
       .pipe(HttpApiSchema.status(401))
   ]
 })
@@ -120,21 +139,11 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
 
 ### Issues
 
-- `urlParams` is not a standard name (many libraries call these `queryParams`). Proposal:
-  - rename `path` to `params`
-  - rename `urlParams` to `query`
 - no first-class way to describe cookies on endpoints (request/response)
 - can't replace the default `HttpApiSchemaError` with a custom error schema
+- no way to set response headers without returning `HttpServerResponse`?
 - Open Api
   - what's the purpose of additional schemas?
-
-#### Maybe Issues
-
-- no way to set response headers without returning `HttpServerResponse`?
-
-#### Client
-
-- when `payload` is encoded as url params (`asUrlParams`), it shares the same query string as `urlParams` (overlapping keys may produce repeated query parameters and can be ambiguous)
 
 ## Hello World
 
@@ -226,7 +235,8 @@ To include Swagger in your server setup, provide the `HttpApiSwagger.layer` when
 ```ts
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
   // Provide the Swagger layer so clients can access auto-generated docs
-  Layer.provide(HttpApiSwagger.layer(Api)),
+  Layer.provide(HttpApiSwagger.layer(Api)), // "/docs" is the default path.
+  // or Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
@@ -2054,74 +2064,102 @@ const UsersApiLive = HttpApiBuilder.group(MyApi, "users", (handlers) =>
 )
 ```
 
-## Serving Swagger documentation (TODO)
+## OpenAPI Documentation
 
-You can add Swagger documentation to your API using the `HttpApiSwagger` module. This integration provides an interactive interface for developers to explore and test your API. To enable Swagger, you simply provide the `HttpApiSwagger.layer` to your server implementation.
+You can add Swagger or Scalar documentation to your API using the `HttpApiSwagger` or `HttpApiScalar` modules.
 
-**Example** (Adding Swagger Documentation to an API)
+**Example** (Adding Scalar Documentation to an API)
 
-```ts TODO
-import {
-  HttpApi,
-  HttpApiBuilder,
-  HttpApiEndpoint,
-  HttpApiGroup,
-  HttpApiSchema,
-  HttpApiSwagger,
-  HttpMiddleware,
-  HttpServer
-} from "@effect/platform"
+```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { DateTime, Effect, Layer, Schema } from "effect"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
 import { createServer } from "node:http"
 
 const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
+  id: Schema.Int,
+  name: Schema.String
 })
 
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
+const IdParam = Schema.FiniteFromString.check(Schema.isInt())
 
-const usersGroup = HttpApiGroup.make("users").add(
-  HttpApiEndpoint.get("getUser")`/user/${idParam}`.addSuccess(User)
-)
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("Users")
+      .add(
+        HttpApiEndpoint.get("getUsers", "/users", {
+          success: Schema.Array(User)
+        }),
+        HttpApiEndpoint.get("getUser", "/user/:id", {
+          pathParams: {
+            id: IdParam
+          },
+          success: User
+        }),
+        HttpApiEndpoint.post("createUser", "/user", {
+          payload: User,
+          success: User
+        }),
+        HttpApiEndpoint.del("deleteUser", "/user/:id", {
+          pathParams: {
+            id: IdParam
+          }
+        }),
+        HttpApiEndpoint.patch("updateUser", "/user/:id", {
+          pathParams: {
+            id: IdParam
+          },
+          // Specify the schema for the request payload
+          payload: Schema.Struct({
+            name: Schema.String // Only the name can be updated
+          }),
+          // Specify the schema for a successful response
+          success: User
+        })
+      )
+  )
 
-const api = HttpApi.make("myApi").add(usersGroup)
-
-const usersGroupLive = HttpApiBuilder.group(
-  api,
-  "users",
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Users",
   (handlers) =>
-    handlers.handle("getUser", ({ pathParams: { id } }) =>
-      Effect.succeed({
-        id,
-        name: "John Doe",
-        createdAt: DateTime.unsafeNow()
-      }))
+    handlers
+      .handle("getUsers", () =>
+        Effect.succeed(
+          [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
+        ))
+      .handle("getUser", (ctx) => {
+        const id = ctx.pathParams.id
+        return Effect.succeed({ id, name: `User ${id}` })
+      })
+      .handle("createUser", (ctx) => {
+        const user = ctx.payload
+        return Effect.succeed(user)
+      })
+      .handle("deleteUser", (ctx) => {
+        const id = ctx.pathParams.id
+        return Effect.log(`Deleting user ${id}`)
+      })
+      .handle("updateUser", (ctx) => {
+        const id = ctx.pathParams.id
+        return Effect.succeed({ id, name: `User ${id}` })
+      })
 )
 
-const MyApiLive = HttpApiBuilder.api(api).pipe(Layer.provide(usersGroupLive))
-
-const HttpLive = HttpApiBuilder.serve(HttpMiddleware.logger).pipe(
-  // Add the Swagger documentation layer
-  Layer.provide(
-    HttpApiSwagger.layer({
-      // Specify the Swagger documentation path.
-      // "/docs" is the default path.
-      path: "/docs"
-    })
-  ),
-  Layer.provide(HttpApiBuilder.middlewareCors()),
-  Layer.provide(MyApiLive),
-  HttpServer.withLogAddress,
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(HttpApiScalar.layer(Api)), // "/docs" is the default path.
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
 
-Layer.launch(HttpLive).pipe(NodeRuntime.runMain)
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
-![Swagger Documentation](./images/swagger-myapi.png)
+After running the server, open your browser and navigate to http://localhost:3000/docs.
+
+This URL will display the Scalar documentation, allowing you to explore the API's endpoints, request parameters, and response structures interactively.
 
 ### Adding OpenAPI Annotations
 
@@ -2135,6 +2173,8 @@ Below is a list of available annotations for a top-level `HttpApi`. They can be 
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `HttpApi.AdditionalSchemas` | Adds custom schemas to the final OpenAPI specification. Only schemas with an `identifier` annotation are included. |
 | `OpenApi.Description`       | Sets a general description for the API.                                                                            |
+| `OpenApi.Title`             | Sets the title of the API.                                                                                         |
+| `OpenApi.Version`           | Sets the version of the API.                                                                                       |
 | `OpenApi.License`           | Defines the license used by the API.                                                                               |
 | `OpenApi.Summary`           | Provides a brief summary of the API.                                                                               |
 | `OpenApi.Servers`           | Lists server URLs and optional metadata such as variables.                                                         |
@@ -2143,14 +2183,14 @@ Below is a list of available annotations for a top-level `HttpApi`. They can be 
 
 **Example** (Annotating the Top-Level API)
 
-```ts TODO
-import { HttpApi, OpenApi } from "@effect/platform"
+```ts
 import { Schema } from "effect"
+import { HttpApi, OpenApi } from "effect/unstable/httpapi"
 
 const api = HttpApi.make("api")
   // Provide additional schemas
   .annotate(HttpApi.AdditionalSchemas, [
-    Schema.String.annotations({ identifier: "MyString" })
+    Schema.String.annotate({ identifier: "MyString" })
   ])
   // Add a description
   .annotate(OpenApi.Description, "my description")
@@ -2195,10 +2235,6 @@ Output:
     "summary": "my summary"
   },
   "paths": {},
-  "tags": [
-    { "name": "a", "description": "a-description" },
-    { "name": "b", "description": "b-description" }
-  ],
   "components": {
     "schemas": {
       "MyString": {
@@ -2208,6 +2244,16 @@ Output:
     "securitySchemes": {}
   },
   "security": [],
+  "tags": [
+    {
+      "name": "a",
+      "description": "a-description"
+    },
+    {
+      "name": "b",
+      "description": "b-description"
+    }
+  ],
   "servers": [
     {
       "url": "http://example.com",
@@ -2241,8 +2287,8 @@ The following annotations can be added to an `HttpApiGroup`:
 
 **Example** (Annotating a Group)
 
-```ts TODO
-import { HttpApi, HttpApiGroup, OpenApi } from "@effect/platform"
+```ts
+import { HttpApi, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 
 const api = HttpApi.make("api")
   .add(
@@ -2281,6 +2327,11 @@ Output:
     "version": "0.0.1"
   },
   "paths": {},
+  "components": {
+    "schemas": {},
+    "securitySchemes": {}
+  },
+  "security": [],
   "tags": [
     {
       "name": "my name-transformed",
@@ -2290,12 +2341,7 @@ Output:
         "description": "example"
       }
     }
-  ],
-  "components": {
-    "schemas": {},
-    "securitySchemes": {}
-  },
-  "security": []
+  ]
 }
 */
 ```
@@ -2316,15 +2362,16 @@ For an `HttpApiEndpoint`, you can use the following annotations:
 
 **Example** (Annotating an Endpoint)
 
-```ts TODO
-import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
+```ts
 import { Schema } from "effect"
+import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 
 const api = HttpApi.make("api").add(
   HttpApiGroup.make("group")
     .add(
-      HttpApiEndpoint.get("get", "/")
-        .addSuccess(Schema.String)
+      HttpApiEndpoint.get("get", "/", {
+        success: Schema.String
+      })
         // Add a description
         .annotate(OpenApi.Description, "my description")
         // Provide a summary
@@ -2338,8 +2385,9 @@ const api = HttpApi.make("api").add(
         })
     )
     .add(
-      HttpApiEndpoint.get("excluded", "/excluded")
-        .addSuccess(Schema.String)
+      HttpApiEndpoint.get("excluded", "/excluded", {
+        success: Schema.String
+      })
         // Exclude this endpoint from the final specification
         .annotate(OpenApi.Exclude, true)
     )
@@ -2363,26 +2411,42 @@ Output:
         "tags": [
           "group"
         ],
-        "operationId": "my operationId-transformed",
+        "operationId": "group.get",
         "parameters": [],
         "security": [],
         "responses": {
           "200": {
-            "description": "a string",
+            "description": "Success",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/String_"
                 }
               }
             }
           },
           "400": {
-            "description": "The request did not match the expected schema",
+            "description": "The request or response did not match the expected schema",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HttpApiDecodeError"
+                  "type": "object",
+                  "properties": {
+                    "_tag": {
+                      "type": "string",
+                      "enum": [
+                        "HttpApiSchemaError"
+                      ]
+                    },
+                    "message": {
+                      "$ref": "#/components/schemas/String_"
+                    }
+                  },
+                  "required": [
+                    "_tag",
+                    "message"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2398,7 +2462,20 @@ Output:
       }
     }
   },
-  ...
+  "components": {
+    "schemas": {
+      "String_": {
+        "type": "string"
+      }
+    },
+    "securitySchemes": {}
+  },
+  "security": [],
+  "tags": [
+    {
+      "name": "group"
+    }
+  ]
 }
 */
 ```
@@ -2407,23 +2484,22 @@ The default response description is "Success". You can override this by annotati
 
 **Example** (Defining a custom response description)
 
-```ts TODO
-import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
+```ts
 import { Schema } from "effect"
+import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 
 const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
-}).annotations({ identifier: "User" })
+  id: Schema.Finite,
+  name: Schema.String
+}).annotate({ identifier: "User" })
 
 const api = HttpApi.make("api").add(
   HttpApiGroup.make("group").add(
-    HttpApiEndpoint.get("getUsers", "/users").addSuccess(
-      Schema.Array(User).annotations({
+    HttpApiEndpoint.get("getUsers", "/users", {
+      success: Schema.Array(User).annotate({
         description: "Returns an array of users"
       })
-    )
+    })
   )
 )
 
@@ -2449,7 +2525,20 @@ Output:
               "schema": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/User"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "name": {
+                      "$ref": "#/components/schemas/String_"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
                 },
                 "description": "Returns an array of users"
               }
@@ -2457,11 +2546,27 @@ Output:
           }
         },
         "400": {
-          "description": "The request did not match the expected schema",
+          "description": "The request or response did not match the expected schema",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HttpApiDecodeError"
+                "type": "object",
+                "properties": {
+                  "_tag": {
+                    "type": "string",
+                    "enum": [
+                      "HttpApiSchemaError"
+                    ]
+                  },
+                  "message": {
+                    "$ref": "#/components/schemas/String_"
+                  }
+                },
+                "required": [
+                  "_tag",
+                  "message"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -2479,14 +2584,16 @@ When a group is marked as `topLevel`, the operation IDs of its endpoints do not 
 
 **Example** (Using a Top-Level Group)
 
-```ts TODO
-import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
+```ts
 import { Schema } from "effect"
+import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 
 const api = HttpApi.make("api").add(
   // Mark the group as top-level
   HttpApiGroup.make("group", { topLevel: true }).add(
-    HttpApiEndpoint.get("get", "/").addSuccess(Schema.String)
+    HttpApiEndpoint.get("get", "/", {
+      success: Schema.String
+    })
   )
 )
 
@@ -2498,30 +2605,46 @@ console.log(JSON.stringify(spec.paths, null, 2))
 Output:
 {
   "/": {
-    "get": {
+    "get": { // The operation ID is not prefixed with "group"
       "tags": [
         "group"
       ],
-      "operationId": "get", // The operation ID is not prefixed with "group"
+      "operationId": "get",
       "parameters": [],
       "security": [],
       "responses": {
         "200": {
-          "description": "a string",
+          "description": "Success",
           "content": {
             "application/json": {
               "schema": {
-                "type": "string"
+                "$ref": "#/components/schemas/String_"
               }
             }
           }
         },
         "400": {
-          "description": "The request did not match the expected schema",
+          "description": "The request or response did not match the expected schema",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HttpApiDecodeError"
+                "type": "object",
+                "properties": {
+                  "_tag": {
+                    "type": "string",
+                    "enum": [
+                      "HttpApiSchemaError"
+                    ]
+                  },
+                  "message": {
+                    "$ref": "#/components/schemas/String_"
+                  }
+                },
+                "required": [
+                  "_tag",
+                  "message"
+                ],
+                "additionalProperties": false
               }
             }
           }
