@@ -5,6 +5,7 @@ import * as DevToolsSchema from "effect/unstable/devtools/DevToolsSchema"
 describe("DevToolsSchema", () => {
   it.effect("Span roundtrip", () =>
     Effect.gen(function*() {
+      const SpanJson = Schema.toCodecJson(DevToolsSchema.Span)
       const span: DevToolsSchema.Span = {
         _tag: "Span",
         spanId: "span-1",
@@ -22,15 +23,34 @@ describe("DevToolsSchema", () => {
         parent: Option.none()
       }
 
-      const encoded = yield* Schema.encodeEffect(DevToolsSchema.Span)(span)
-      const decoded = yield* Schema.decodeEffect(DevToolsSchema.Span)(encoded)
+      const encoded = yield* Schema.encodeEffect(SpanJson)(span)
+      assert.deepStrictEqual(encoded, {
+        _tag: "Span",
+        spanId: "span-1",
+        traceId: "trace-1",
+        name: "test-span",
+        sampled: true,
+        attributes: [
+          ["service", null],
+          ["attempt", null]
+        ],
+        status: {
+          _tag: "Started",
+          startTime: "10"
+        },
+        parent: { _tag: "None" }
+      })
 
+      const decoded = yield* Schema.decodeEffect(SpanJson)(encoded)
       assert.strictEqual(decoded._tag, "Span")
       assert.strictEqual(decoded.spanId, span.spanId)
       assert.strictEqual(decoded.traceId, span.traceId)
       assert.strictEqual(decoded.name, span.name)
       assert.strictEqual(decoded.sampled, span.sampled)
-      assert.deepStrictEqual([...decoded.attributes.entries()], [...span.attributes.entries()])
+      assert.deepStrictEqual([...decoded.attributes.entries()], [
+        ["service", null],
+        ["attempt", null]
+      ])
       assert.strictEqual(decoded.status._tag, "Started")
       assert.strictEqual(decoded.status.startTime, 10n)
       assert.strictEqual(decoded.parent._tag, "None")
@@ -38,6 +58,7 @@ describe("DevToolsSchema", () => {
 
   it.effect("SpanEvent roundtrip", () =>
     Effect.gen(function*() {
+      const SpanEventJson = Schema.toCodecJson(DevToolsSchema.SpanEvent)
       const event: DevToolsSchema.SpanEvent = {
         _tag: "SpanEvent",
         traceId: "trace-1",
@@ -50,14 +71,32 @@ describe("DevToolsSchema", () => {
         }
       }
 
-      const encoded = yield* Schema.encodeEffect(DevToolsSchema.SpanEvent)(event)
-      const decoded = yield* Schema.decodeEffect(DevToolsSchema.SpanEvent)(encoded)
+      const encoded = yield* Schema.encodeEffect(SpanEventJson)(event)
+      assert.deepStrictEqual(encoded, {
+        _tag: "SpanEvent",
+        traceId: "trace-1",
+        spanId: "span-1",
+        name: "event",
+        startTime: "20",
+        attributes: {
+          ok: null,
+          count: null
+        }
+      })
 
-      assert.deepStrictEqual(decoded, event)
+      const decoded = yield* Schema.decodeEffect(SpanEventJson)(encoded)
+      assert.deepStrictEqual(decoded, {
+        ...event,
+        attributes: {
+          ok: null,
+          count: null
+        }
+      })
     }))
 
   it.effect("MetricsSnapshot roundtrip", () =>
     Effect.gen(function*() {
+      const MetricsSnapshotJson = Schema.toCodecJson(DevToolsSchema.MetricsSnapshot)
       const snapshot: DevToolsSchema.MetricsSnapshot = {
         _tag: "MetricsSnapshot",
         metrics: [
@@ -92,15 +131,18 @@ describe("DevToolsSchema", () => {
         ]
       }
 
-      const encoded = yield* Schema.encodeEffect(DevToolsSchema.MetricsSnapshot)(snapshot)
-      const histogram = encoded.metrics[1]
+      const encoded = yield* Schema.encodeEffect(MetricsSnapshotJson)(snapshot)
+      const encodedSnapshot = encoded as {
+        metrics: Array<{ type: string; state: { buckets?: Array<[number | null, number]> } }>
+      }
+      const histogram = encodedSnapshot.metrics[1]
 
-      if (histogram.type !== "Histogram") {
+      if (histogram.type !== "Histogram" || !histogram.state.buckets) {
         assert.fail(`Expected Histogram, got ${histogram.type}`)
       }
       assert.deepStrictEqual(histogram.state.buckets[1], [null, 2])
 
-      const decoded = yield* Schema.decodeEffect(DevToolsSchema.MetricsSnapshot)(encoded)
+      const decoded = yield* Schema.decodeEffect(MetricsSnapshotJson)(encoded)
       const decodedHistogram = decoded.metrics[1]
 
       if (decodedHistogram.type !== "Histogram") {
