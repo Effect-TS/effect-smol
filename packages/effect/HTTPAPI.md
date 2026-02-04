@@ -217,8 +217,8 @@ To include Scalar in your server setup, provide the `HttpApiScalar.layer` when c
 ```ts
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
   // Provide the Scalar layer so clients can access auto-generated docs
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -234,10 +234,10 @@ To include Swagger in your server setup, provide the `HttpApiSwagger.layer` when
 
 ```ts
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
   // Provide the Swagger layer so clients can access auto-generated docs
   Layer.provide(HttpApiSwagger.layer(Api)), // "/docs" is the default path.
   // or Layer.provide(HttpApiScalar.layer(Api)),
-  Layer.provide(GroupLive),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -381,8 +381,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -447,8 +447,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -519,8 +519,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -597,8 +597,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -690,8 +690,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -788,8 +788,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -855,8 +855,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -901,7 +901,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUsers", (ctx) => {
-        console.log(ctx.urlParams.params)
+        console.log(ctx.urlParams)
         return Effect.succeed(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         )
@@ -909,8 +909,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -981,8 +981,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -1047,8 +1047,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -1110,8 +1110,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -1179,8 +1179,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -1246,8 +1246,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -1336,8 +1336,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -1411,8 +1411,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -1495,8 +1495,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -1546,8 +1546,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -1614,8 +1614,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(
     Layer.succeed(UsersRepository, {
       findById: (id) => Effect.succeed({ id, name: `User ${id}` })
@@ -1863,8 +1863,8 @@ const LoggerLive = Layer.effect(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(LoggerLive),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
@@ -2148,8 +2148,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)), // "/docs" is the default path.
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)), // "/docs" is the default path.
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
@@ -2863,8 +2863,8 @@ const GroupLive = HttpApiBuilder.group(
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(HttpApiScalar.layer(Api)),
   Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
   HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
