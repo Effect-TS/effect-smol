@@ -2656,7 +2656,7 @@ Output:
 */
 ```
 
-## Deriving a Client (TODO)
+## Deriving a Client
 
 After defining your API, you can derive a client that interacts with the server. The `HttpApiClient` module simplifies the process by providing tools to generate a client based on your API definition.
 
@@ -2664,81 +2664,56 @@ After defining your API, you can derive a client that interacts with the server.
 
 This example demonstrates how to create a client for an API and use it to call an endpoint.
 
-```ts TODO
-import {
-  FetchHttpClient,
-  HttpApi,
-  HttpApiBuilder,
-  HttpApiClient,
-  HttpApiEndpoint,
-  HttpApiGroup,
-  HttpApiSchema,
-  HttpApiSwagger,
-  HttpMiddleware,
-  HttpServer
-} from "@effect/platform"
+```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { DateTime, Effect, Layer, Schema } from "effect"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { FetchHttpClient } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 import { createServer } from "node:http"
 
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.String,
-  createdAt: Schema.DateTimeUtc
-})
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("Greetings")
+      .add(
+        HttpApiEndpoint.get("hello", "/", {
+          success: Schema.String
+        })
+      )
+  )
 
-const idParam = HttpApiSchema.param("id", Schema.FiniteFromString)
-
-const usersGroup = HttpApiGroup.make("users").add(
-  HttpApiEndpoint.get("getUser")`/user/${idParam}`.addSuccess(User)
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Greetings",
+  (handlers) => handlers.handle("hello", () => Effect.succeed("Hello, World!"))
 )
 
-const api = HttpApi.make("myApi").add(usersGroup)
-
-const usersGroupLive = HttpApiBuilder.group(
-  api,
-  "users",
-  (handlers) =>
-    handlers.handle("getUser", ({ pathParams: { id } }) =>
-      Effect.succeed({
-        id,
-        name: "John Doe",
-        createdAt: DateTime.unsafeNow()
-      }))
-)
-
-const MyApiLive = HttpApiBuilder.api(api).pipe(Layer.provide(usersGroupLive))
-
-const HttpLive = HttpApiBuilder.serve(HttpMiddleware.logger).pipe(
-  Layer.provide(HttpApiSwagger.layer()),
-  Layer.provide(HttpApiBuilder.middlewareCors()),
-  Layer.provide(MyApiLive),
-  HttpServer.withLogAddress,
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
 
-Layer.launch(HttpLive).pipe(NodeRuntime.runMain)
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 // Create a program that derives and uses the client
 const program = Effect.gen(function*() {
   // Derive the client
-  const client = yield* HttpApiClient.make(api, {
+  const client = yield* HttpApiClient.make(Api, {
     baseUrl: "http://localhost:3000"
   })
-  // Call the `getUser` endpoint
-  const user = yield* client.users.getUser({ pathParams: { id: 1 } })
-  console.log(user)
+  // Call the "hello-world" endpoint
+  const hello = yield* client.Greetings.hello()
+  console.log(hello)
 })
 
 // Provide a Fetch-based HTTP client and run the program
 Effect.runFork(program.pipe(Effect.provide(FetchHttpClient.layer)))
 /*
-Example Output:
-User {
-  id: 1,
-  name: 'John Doe',
-  createdAt: DateTime.Utc(2025-01-04T15:14:49.562Z)
-}
+Output:
+[18:55:26.051] INFO (#2): Listening on http://0.0.0.0:3000
+[18:55:26.057] INFO (#12) http.span.1=2ms: Sent HTTP response { 'http.method': 'GET', 'http.url': '/', 'http.status': 200 }
+Hello, World!
 */
 ```
 
@@ -2748,25 +2723,48 @@ When a group is marked as `topLevel`, the methods on the client are not nested u
 
 **Example** (Using a Top-Level Group in the Client)
 
-```ts TODO
-import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "@effect/platform"
-import { Effect, Schema } from "effect"
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { FetchHttpClient } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
 
-const api = HttpApi.make("api").add(
-  // Mark the group as top-level
-  HttpApiGroup.make("group", { topLevel: true }).add(
-    HttpApiEndpoint.get("get", "/").addSuccess(Schema.String)
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("Greetings", { topLevel: true })
+      .add(
+        HttpApiEndpoint.get("hello", "/", {
+          success: Schema.String
+        })
+      )
   )
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Greetings",
+  (handlers) => handlers.handle("hello", () => Effect.succeed("Hello, World!"))
 )
 
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
 const program = Effect.gen(function*() {
-  const client = yield* HttpApiClient.make(api, {
+  const client = yield* HttpApiClient.make(Api, {
     baseUrl: "http://localhost:3000"
   })
-  // The `get` method is not nested under the "group" name
-  const user = yield* client.get()
-  console.log(user)
+  // The `hello` method is not nested under the "group" name
+  const hello = yield* client.hello()
+  console.log(hello)
 })
+
+Effect.runFork(program.pipe(Effect.provide(FetchHttpClient.layer)))
 ```
 
 ## Converting to a Web Handler (TODO)
