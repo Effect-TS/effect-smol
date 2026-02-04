@@ -12,3 +12,4 @@ This directory contains specifications for all major features and enhancements i
 - [stream-jsdoc-improvements.md](stream-jsdoc-improvements.md) - Improve JSDoc clarity and consistency for `Stream.ts`.
 - [scoped-atom-port.md](scoped-atom-port.md) - Port the legacy ScopedAtom module into `@effect/atom-react`.
 - [atom-solid-bindings.md](atom-solid-bindings.md) - Add `@effect/atom-solid` bindings for Effect Atom modules in SolidJS.
+- [devtools-v3-port.md](devtools-v3-port.md) - Port Effect v3 DevTools modules into `effect/unstable/devtools`.
