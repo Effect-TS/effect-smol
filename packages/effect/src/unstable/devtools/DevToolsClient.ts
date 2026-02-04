@@ -77,98 +77,10 @@ const toSpan = (span: Tracer.Span): DevToolsSchema.Span => ({
   parent: toParentSpan(span.parent)
 })
 
-const toAttributes = (attributes: Metric.Metric.AttributeSet | undefined): Record<string, string> =>
-  attributes ? { ...attributes } : {}
-
 const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSchema.MetricsSnapshot => {
-  const snapshot = Metric.snapshotUnsafe(services)
-  const metrics: Array<DevToolsSchema.Metric> = []
-
-  for (let i = 0; i < snapshot.length; i++) {
-    const metric = snapshot[i]
-    const attributes = toAttributes(metric.attributes)
-    const description = Option.fromNullishOr(metric.description)
-
-    switch (metric.type) {
-      case "Counter": {
-        metrics.push({
-          _tag: "Counter",
-          name: metric.id,
-          description,
-          attributes,
-          state: {
-            count: metric.state.count
-          }
-        })
-        break
-      }
-      case "Gauge": {
-        metrics.push({
-          _tag: "Gauge",
-          name: metric.id,
-          description,
-          attributes,
-          state: {
-            value: metric.state.value
-          }
-        })
-        break
-      }
-      case "Frequency": {
-        metrics.push({
-          _tag: "Frequency",
-          name: metric.id,
-          description,
-          attributes,
-          state: {
-            occurrences: Object.fromEntries(metric.state.occurrences)
-          }
-        })
-        break
-      }
-      case "Histogram": {
-        metrics.push({
-          _tag: "Histogram",
-          name: metric.id,
-          description,
-          attributes,
-          state: {
-            buckets: metric.state.buckets.map(([boundary, count]) => [boundary, count] as const),
-            count: metric.state.count,
-            min: metric.state.min,
-            max: metric.state.max,
-            sum: metric.state.sum
-          }
-        })
-        break
-      }
-      case "Summary": {
-        metrics.push({
-          _tag: "Summary",
-          name: metric.id,
-          description,
-          attributes,
-          state: {
-            quantiles: metric.state.quantiles.map(([quantile, value]) =>
-              [
-                quantile,
-                Option.fromNullishOr(value)
-              ] as const
-            ),
-            count: metric.state.count,
-            min: metric.state.min,
-            max: metric.state.max,
-            sum: metric.state.sum
-          }
-        })
-        break
-      }
-    }
-  }
-
   return {
     _tag: "MetricsSnapshot",
-    metrics
+    metrics: Metric.snapshotUnsafe(services)
   }
 }
 
@@ -270,7 +182,7 @@ const makeTracerEffect = Effect.fnUntraced(function*() {
           spanId: span.spanId,
           name,
           startTime,
-          attributes: attributes ?? {}
+          attributes
         })
         return oldEvent.call(this, name, startTime, attributes)
       }

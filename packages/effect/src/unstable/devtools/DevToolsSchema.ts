@@ -125,7 +125,7 @@ export const SpanEvent = Schema.Struct({
   spanId: Schema.String,
   name: Schema.String,
   startTime: Schema.BigInt,
-  attributes: Schema.Record(Schema.String, Schema.Unknown)
+  attributes: Schema.UndefinedOr(Schema.Record(Schema.String, Schema.Unknown))
 })
 
 /**
@@ -203,12 +203,12 @@ export const MetricLabel = Schema.Struct({
  */
 export type MetricLabel = Schema.Schema.Type<typeof MetricLabel>
 
-const metric = <Tag extends string, State extends Schema.Top>(tag: Tag, state: State) =>
+const metric = <Type extends string, State extends Schema.Top>(type: Type, state: State) =>
   Schema.Struct({
-    _tag: Schema.tag(tag),
-    name: Schema.String,
-    description: Schema.OptionFromOptional(Schema.String),
-    attributes: Schema.Record(Schema.String, Schema.String),
+    id: Schema.String,
+    type: Schema.tag(type),
+    description: Schema.UndefinedOr(Schema.String),
+    attributes: Schema.UndefinedOr(Schema.Record(Schema.String, Schema.String)),
     state
   })
 
@@ -219,7 +219,8 @@ const metric = <Tag extends string, State extends Schema.Top>(tag: Tag, state: S
 export const Counter = metric(
   "Counter",
   Schema.Struct({
-    count: Schema.Union([Schema.Number, Schema.BigInt])
+    count: Schema.Union([Schema.Number, Schema.BigInt]),
+    incremental: Schema.Boolean
   })
 )
 
@@ -236,7 +237,7 @@ export type Counter = Schema.Schema.Type<typeof Counter>
 export const Frequency = metric(
   "Frequency",
   Schema.Struct({
-    occurrences: Schema.Record(Schema.String, Schema.Number)
+    occurrences: Schema.ReadonlyMap(Schema.String, Schema.Number)
   })
 )
 
@@ -291,7 +292,7 @@ export type Histogram = Schema.Schema.Type<typeof Histogram>
 export const Summary = metric(
   "Summary",
   Schema.Struct({
-    quantiles: Schema.Array(Schema.Tuple([Schema.Number, Schema.Option(Schema.Number)])),
+    quantiles: Schema.Array(Schema.Tuple([Schema.Number, Schema.UndefinedOr(Schema.Number)])),
     count: Schema.Number,
     min: Schema.Number,
     max: Schema.Number,
