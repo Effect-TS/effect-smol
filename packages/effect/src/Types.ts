@@ -609,3 +609,21 @@ export type ReasonTags<E> = E extends { readonly reason: { readonly _tag: string
 export type ExtractReason<E, K extends string> = E extends { readonly reason: infer R }
   ? Extract<R, { readonly _tag: K }>
   : never
+
+/**
+ * Extracts only the required properties from an object type.
+ *
+ * @since 4.0.0
+ * @category types
+ */
+export type RequiredKeys<T> = keyof T extends infer K ? K extends keyof T ? {} extends Pick<T, K> ? never : K : never
+  : never
+
+/**
+ * Checks if a type has no required keys and returns `Yes` if true, otherwise
+ * `No`.
+ *
+ * @since 4.0.0
+ * @category types
+ */
+export type NoRequiredKeysWith<T, Yes, No> = RequiredKeys<T> extends never ? Yes : No
