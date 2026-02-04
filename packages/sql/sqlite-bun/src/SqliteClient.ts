@@ -103,33 +103,35 @@ export const make = (
         sql: string,
         params: ReadonlyArray<unknown> = []
       ) =>
-        Effect.withFiber<Array<any>, SqlError>((fiber) => {
-          const statement = db.query(sql)
-          const useSafeIntegers = ServiceMap.get(fiber.services, Client.SafeIntegers)
-          // @ts-ignore bun-types missing safeIntegers method, fixed in https://github.com/oven-sh/bun/pull/26627
-          statement.safeIntegers(useSafeIntegers)
-          try {
-            return Effect.succeed((statement.all(...(params as any)) ?? []) as Array<any>)
-          } catch (cause) {
-            return Effect.fail(new SqlError({ cause, message: "Failed to execute statement" }))
-          }
-        })
+        Effect.withFiber<Array<any>, SqlError>((fiber) =>
+          Effect.try({
+            try: () => {
+              const statement = db.query(sql)
+              const useSafeIntegers = ServiceMap.get(fiber.services, Client.SafeIntegers)
+              // @ts-ignore bun-types missing safeIntegers method, fixed in https://github.com/oven-sh/bun/pull/26627
+              statement.safeIntegers(useSafeIntegers)
+              return (statement.all(...(params as any)) ?? []) as Array<any>
+            },
+            catch: (cause) => new SqlError({ cause, message: "Failed to execute statement" })
+          })
+        )
 
       const runValues = (
         sql: string,
         params: ReadonlyArray<unknown> = []
       ) =>
-        Effect.withFiber<Array<any>, SqlError>((fiber) => {
-          const statement = db.query(sql)
-          const useSafeIntegers = ServiceMap.get(fiber.services, Client.SafeIntegers)
-          // @ts-ignore bun-types missing safeIntegers method, fixed in https://github.com/oven-sh/bun/pull/26627
-          statement.safeIntegers(useSafeIntegers)
-          try {
-            return Effect.succeed((statement.values(...(params as any)) ?? []) as Array<any>)
-          } catch (cause) {
-            return Effect.fail(new SqlError({ cause, message: "Failed to execute statement" }))
-          }
-        })
+        Effect.withFiber<Array<any>, SqlError>((fiber) =>
+          Effect.try({
+            try: () => {
+              const statement = db.query(sql)
+              const useSafeIntegers = ServiceMap.get(fiber.services, Client.SafeIntegers)
+              // @ts-ignore bun-types missing safeIntegers method, fixed in https://github.com/oven-sh/bun/pull/26627
+              statement.safeIntegers(useSafeIntegers)
+              return (statement.values(...(params as any)) ?? []) as Array<any>
+            },
+            catch: (cause) => new SqlError({ cause, message: "Failed to execute statement" })
+          })
+        )
 
       return identity<SqliteConnection>({
         execute(sql, params, transformRows) {
