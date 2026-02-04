@@ -208,7 +208,7 @@ const metric = <Tag extends string, State extends Schema.Top>(tag: Tag, state: S
     _tag: Schema.tag(tag),
     name: Schema.String,
     description: Schema.OptionFromOptional(Schema.String),
-    tags: Schema.Array(MetricLabel),
+    attributes: Schema.Record(Schema.String, Schema.String),
     state
   })
 

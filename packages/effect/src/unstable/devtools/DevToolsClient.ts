@@ -77,10 +77,8 @@ const toSpan = (span: Tracer.Span): DevToolsSchema.Span => ({
   parent: toParentSpan(span.parent)
 })
 
-const toLabels = (attributes: Metric.Metric.AttributeSet | undefined): Array<DevToolsSchema.MetricLabel> =>
-  attributes
-    ? Object.entries(attributes).map(([key, value]) => ({ key, value }))
-    : []
+const toAttributes = (attributes: Metric.Metric.AttributeSet | undefined): Record<string, string> =>
+  attributes ? { ...attributes } : {}
 
 const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSchema.MetricsSnapshot => {
   const snapshot = Metric.snapshotUnsafe(services)
@@ -88,7 +86,7 @@ const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSche
 
   for (let i = 0; i < snapshot.length; i++) {
     const metric = snapshot[i]
-    const tags = toLabels(metric.attributes)
+    const attributes = toAttributes(metric.attributes)
     const description = Option.fromNullishOr(metric.description)
 
     switch (metric.type) {
@@ -97,7 +95,7 @@ const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSche
           _tag: "Counter",
           name: metric.id,
           description,
-          tags,
+          attributes,
           state: {
             count: metric.state.count
           }
@@ -109,7 +107,7 @@ const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSche
           _tag: "Gauge",
           name: metric.id,
           description,
-          tags,
+          attributes,
           state: {
             value: metric.state.value
           }
@@ -121,7 +119,7 @@ const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSche
           _tag: "Frequency",
           name: metric.id,
           description,
-          tags,
+          attributes,
           state: {
             occurrences: Object.fromEntries(metric.state.occurrences)
           }
@@ -133,7 +131,7 @@ const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSche
           _tag: "Histogram",
           name: metric.id,
           description,
-          tags,
+          attributes,
           state: {
             buckets: metric.state.buckets.map(([boundary, count]) => [boundary, count] as const),
             count: metric.state.count,
@@ -149,7 +147,7 @@ const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSche
           _tag: "Summary",
           name: metric.id,
           description,
-          tags,
+          attributes,
           state: {
             quantiles: metric.state.quantiles.map(([quantile, value]) =>
               [
