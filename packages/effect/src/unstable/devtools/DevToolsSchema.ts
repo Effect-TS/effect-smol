@@ -5,6 +5,7 @@ import type * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 
+// Encode +Infinity histogram bounds as null (v3 wire compatibility).
 const numberOrInfinity = Schema.Union([Schema.Number, Schema.Null]).pipe(
   Schema.decodeTo(
     Schema.Number,
