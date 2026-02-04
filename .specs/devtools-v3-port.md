@@ -1,11 +1,13 @@
 # DevTools v3 Port (unstable)
 
 ## Overview
+
 Port the Effect v3 DevTools modules from `.repos/effect-old/packages/experimental/src/DevTools` into the v4 codebase under `packages/effect/src/unstable/devtools`. The port updates the implementation to v4 patterns (string type IDs, `ServiceMap.Service`, v4 `Schema`/`Metric`/`Tracer` APIs), and the wire protocol may diverge from v3 as needed. The resulting API must be importable from `effect/unstable/devtools` with an auto-generated barrel.
 
 Reference: use the opentelemetry package in this repo as guidance for working with the new metrics snapshots.
 
 ## Scope and Naming
+
 - Source modules: `DevTools.ts`, `DevTools/Client.ts`, `DevTools/Server.ts`, `DevTools/Domain.ts` in v3.
 - Target modules (prefixed with `DevTools`):
   - `DevTools.ts` (layer helpers)
@@ -14,13 +16,16 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
   - `DevToolsSchema.ts` (schemas, renamed from `Domain`)
 
 ## Requirements
+
 ### Exports and Layout
+
 - Create `packages/effect/src/unstable/devtools/` and add the modules listed above.
 - Generate `packages/effect/src/unstable/devtools/index.ts` via `pnpm codegen` (do not hand edit).
 - Add `./unstable/devtools` to `packages/effect/package.json` `exports` and `publishConfig.exports`.
 - Support subpath imports through the existing `./*` export pattern (e.g. `effect/unstable/devtools/DevToolsClient`).
 
 ### v4 Patterns
+
 - Use `ServiceMap.Service` class syntax for the client service (`DevToolsClient`).
 - Use string type IDs for any new tagged error or guard types (only if needed).
 - Prefer `Effect.fnUntraced`, `Layer.effect`, and v4 `Schema` / `Metric` / `Tracer` APIs.
@@ -29,13 +34,30 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
 - Only add schema transforms required by the chosen wire protocol.
 
 ### Wire Protocol
+
 - The NDJSON wire protocol may diverge from v3; do not force v3 tag names or shapes.
 - Keep the protocol JSON-friendly via `Schema.toCodecJson` rather than reshaping all schemas to be JSON-serializable.
 - Document any non-obvious encoding decisions in the module docs or tests.
 - Keep the default WebSocket URL `ws://localhost:34437`.
 
+Schema.toCodecJson can be used to adapt existing schemas to be
+JSON-serializable:
+
+```ts
+import * as Schema from "effect/Schema"
+
+const Payload = Schema.Struct({
+  bigint: Schema.BigInt
+})
+
+// the JSON codec will encode bigint as string
+const PayloadJson = Schema.toCodecJson(Payload)
+```
+
 ## Module Details
+
 ### DevToolsSchema
+
 - Port v3 `Domain.ts` to `DevToolsSchema.ts` using v4 `Schema` imports.
 - Export schema values and their types (`Schema.Type` and `Schema.Encoded`) for:
   - `SpanStatusStarted`, `SpanStatusEnded`, `SpanStatus`
@@ -47,6 +69,7 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
   - Avoid JSON-serialization-only transforms; prefer protocol-driven transforms with explicit documentation.
 
 ### DevToolsClient
+
 - Provide:
   - `DevToolsClientImpl` interface with `unsafeAddSpan`.
   - `DevToolsClient` service via `ServiceMap.Service`.
@@ -71,6 +94,7 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
 - Logging: use `Effect.annotateLogs` with `module: "DevTools"` and `service: "Client" | "Tracer"`.
 
 ### DevToolsServer
+
 - Provide a `Client` interface with:
   - `queue: Queue.ReadonlyQueue<DevToolsSchema.Request.WithoutPing>`
   - `request: (_: DevToolsSchema.Response.WithoutPong) => Effect.Effect<void>`
@@ -82,11 +106,13 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
   - Ensure queues are shut down on completion.
 
 ### DevTools (helpers)
+
 - `layerSocket`: alias to `DevToolsClient.layerTracer`.
 - `layerWebSocket(url = "ws://localhost:34437")`: provide `Socket.layerWebSocket(url)`.
 - `layer(url = "ws://localhost:34437")`: additionally provide `Socket.layerWebSocketConstructorGlobal`.
 
 ## Testing
+
 - Add tests under `packages/effect/test/unstable/devtools/` using `@effect/vitest` and `it.effect`.
 - Use `assert` from `@effect/vitest` (no `expect` in Effect tests).
 - Coverage targets:
@@ -95,6 +121,7 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
   - `DevToolsServer.run` ping/pong and request queue using an in-memory socket stub to avoid platform dependencies.
 
 ## Implementation Plan
+
 1. Port v3 `Domain.ts` into `DevToolsSchema.ts` with v4 `Schema` imports, adjusting schema shapes as needed for the chosen wire protocol and documenting non-obvious transforms.
 2. Implement `DevToolsClient.ts` using v4 `ServiceMap.Service`, `Metric.snapshotUnsafe`, `Tracer`, `Queue`, and NDJSON duplex with `Schema.toCodecJson` wrapping request/response schemas.
 3. Implement `DevToolsServer.ts` with `SocketServer` and NDJSON duplex using `Schema.toCodecJson` for request/response schemas, preserving ping/pong behavior.
