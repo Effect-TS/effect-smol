@@ -82,7 +82,7 @@ export declare namespace Client {
       request: Simplify<HttpApiEndpoint.ClientRequest<_PathSchema, _UrlParams, _Payload, _Headers, WithResponse>>
     ) => Effect.Effect<
       WithResponse extends true ? [_Success["Type"], HttpClientResponse.HttpClientResponse] : _Success["Type"],
-      _Error["Type"] | E | HttpClientError.HttpClientError | Schema.SchemaError,
+      _Error["Type"] | HttpApiMiddleware.Error<_Middleware> | E | HttpClientError.HttpClientError | Schema.SchemaError,
       | R
       | _PathSchema["EncodingServices"]
       | _UrlParams["EncodingServices"]
@@ -447,7 +447,7 @@ const parseJsonOrVoid = Schema.String.pipe(
     Transformation.transformOrFail({
       decode(i) {
         // Handle empty response
-        if (i === "") return Effect.succeed(void 0)
+        if (i === "") return Effect.undefined
         try {
           return Effect.succeed(JSON.parse(i))
         } catch {
