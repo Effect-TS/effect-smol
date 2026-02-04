@@ -31,8 +31,8 @@ describe("DevToolsSchema", () => {
         name: "test-span",
         sampled: true,
         attributes: [
-          ["service", null],
-          ["attempt", null]
+          ["service", "devtools"],
+          ["attempt", 1]
         ],
         status: {
           _tag: "Started",
@@ -48,8 +48,8 @@ describe("DevToolsSchema", () => {
       assert.strictEqual(decoded.name, span.name)
       assert.strictEqual(decoded.sampled, span.sampled)
       assert.deepStrictEqual([...decoded.attributes.entries()], [
-        ["service", null],
-        ["attempt", null]
+        ["service", "devtools"],
+        ["attempt", 1]
       ])
       assert.strictEqual(decoded.status._tag, "Started")
       assert.strictEqual(decoded.status.startTime, 10n)
@@ -79,19 +79,13 @@ describe("DevToolsSchema", () => {
         name: "event",
         startTime: "20",
         attributes: {
-          ok: null,
-          count: null
+          ok: true,
+          count: 2
         }
       })
 
       const decoded = yield* Schema.decodeEffect(SpanEventJson)(encoded)
-      assert.deepStrictEqual(decoded, {
-        ...event,
-        attributes: {
-          ok: null,
-          count: null
-        }
-      })
+      assert.deepStrictEqual(decoded, event)
     }))
 
   it.effect("MetricsSnapshot roundtrip", () =>

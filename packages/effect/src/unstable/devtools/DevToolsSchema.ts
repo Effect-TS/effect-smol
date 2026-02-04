@@ -102,7 +102,7 @@ export const Span: Schema.Codec<SpanType> = Schema.Struct({
   traceId: Schema.String,
   name: Schema.String,
   sampled: Schema.Boolean,
-  attributes: Schema.ReadonlyMap(Schema.String, Schema.Unknown),
+  attributes: Schema.ReadonlyMap(Schema.String, Schema.Any),
   status: SpanStatus,
   parent: Schema.Option(
     Schema.suspend(() => ParentSpan).annotate({ title: "ParentSpan" })
@@ -125,7 +125,7 @@ export const SpanEvent = Schema.Struct({
   spanId: Schema.String,
   name: Schema.String,
   startTime: Schema.BigInt,
-  attributes: Schema.UndefinedOr(Schema.Record(Schema.String, Schema.Unknown))
+  attributes: Schema.UndefinedOr(Schema.Record(Schema.String, Schema.Any))
 })
 
 /**
