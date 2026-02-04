@@ -1,7 +1,7 @@
 # DevTools v3 Port (unstable)
 
 ## Overview
-Port the Effect v3 DevTools modules from `.repos/effect-old/packages/experimental/src/DevTools` into the v4 codebase under `packages/effect/src/unstable/devtools`. The port keeps the v3 wire protocol while updating the implementation to v4 patterns (string type IDs, `ServiceMap.Service`, v4 `Schema`/`Metric`/`Tracer` APIs). The resulting API must be importable from `effect/unstable/devtools` with an auto-generated barrel.
+Port the Effect v3 DevTools modules from `.repos/effect-old/packages/experimental/src/DevTools` into the v4 codebase under `packages/effect/src/unstable/devtools`. The port updates the implementation to v4 patterns (string type IDs, `ServiceMap.Service`, v4 `Schema`/`Metric`/`Tracer` APIs), and the wire protocol may diverge from v3 as needed. The resulting API must be importable from `effect/unstable/devtools` with an auto-generated barrel.
 
 Reference: use the opentelemetry package in this repo as guidance for working with the new metrics snapshots.
 
@@ -25,16 +25,13 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
 - Use string type IDs for any new tagged error or guard types (only if needed).
 - Prefer `Effect.fnUntraced`, `Layer.effect`, and v4 `Schema` / `Metric` / `Tracer` APIs.
 - Use `effect/unstable/encoding/Ndjson` and `effect/unstable/socket` modules (not `@effect/platform`).
+- Use `Schema.toCodecJson` when wiring NDJSON codecs; do not reshape schemas solely to make them JSON-serializable.
+- Only add schema transforms required by the chosen wire protocol.
 
-### Protocol Compatibility (v3)
-- Preserve the v3 NDJSON wire format for all messages.
-- Keep tag names and schema shapes identical to v3 for:
-  - `Ping`, `Pong`, `MetricsRequest`, `MetricsSnapshot`
-  - `Span`, `ExternalSpan`, `SpanEvent`
-  - Metrics (`Counter`, `Gauge`, `Histogram`, `Summary`, `Frequency`)
-- Keep encoding semantics:
-  - `Schema.BigInt` encoded as string
-  - Histogram bucket Infinity encoded as `null` (and decoded back to `Infinity`)
+### Wire Protocol
+- The NDJSON wire protocol may diverge from v3; do not force v3 tag names or shapes.
+- Keep the protocol JSON-friendly via `Schema.toCodecJson` rather than reshaping all schemas to be JSON-serializable.
+- Document any non-obvious encoding decisions in the module docs or tests.
 - Keep the default WebSocket URL `ws://localhost:34437`.
 
 ## Module Details
@@ -46,7 +43,8 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
   - `Ping`, `Pong`, `MetricsRequest`
   - `MetricLabel`, `Counter`, `Gauge`, `Histogram`, `Summary`, `Frequency`, `Metric`
   - `MetricsSnapshot`, `Request`, `Response`
-- Keep `Request.WithoutPing` and `Response.WithoutPong` helper types.
+  - Keep `Request.WithoutPing` and `Response.WithoutPong` helper types.
+  - Avoid JSON-serialization-only transforms; prefer protocol-driven transforms with explicit documentation.
 
 ### DevToolsClient
 - Provide:
@@ -55,14 +53,14 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
   - `make`, `layer`, `makeTracer`, `layerTracer`.
 - `make` behavior:
   - Requires `Socket.Socket` and `Scope.Scope`.
-  - Use `Ndjson.duplexSchemaString(Socket.toChannelString(socket), { inputSchema: DevToolsSchema.Request, outputSchema: DevToolsSchema.Response })`.
+  - Use `Ndjson.duplexSchemaString(Socket.toChannelString(socket), { inputSchema: Schema.toCodecJson(DevToolsSchema.Request), outputSchema: Schema.toCodecJson(DevToolsSchema.Response) })`.
   - Use `Queue` to buffer outgoing requests.
   - Respond to `MetricsRequest` with `MetricsSnapshot`.
   - Send periodic `Ping` and flush a final metrics snapshot on finalization.
   - Keep the 1s connection wait behavior from v3.
 - Metrics snapshot:
   - Use `Metric.snapshotUnsafe` with `Effect.services` to obtain the current service map.
-  - Map snapshot state to v3 metric schema shapes.
+  - Map snapshot state to `DevToolsSchema` metric schema shapes.
 - Tracer integration:
   - Wrap the current `Tracer` and forward span lifecycle to `DevToolsClientImpl`.
   - Convert v4 `Tracer.Span` to `DevToolsSchema.Span`:
@@ -78,7 +76,7 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
   - `request: (_: DevToolsSchema.Response.WithoutPong) => Effect.Effect<void>`
 - `run`:
   - Use `SocketServer.SocketServer.run` to accept sockets.
-  - Duplex NDJSON with `DevToolsSchema` request/response schemas.
+  - Duplex NDJSON with `Schema.toCodecJson(DevToolsSchema.Request)` / `Schema.toCodecJson(DevToolsSchema.Response)`.
   - Reply to `Ping` with `Pong`.
   - Enqueue other requests into `queue`.
   - Ensure queues are shut down on completion.
@@ -97,9 +95,9 @@ Reference: use the opentelemetry package in this repo as guidance for working wi
   - `DevToolsServer.run` ping/pong and request queue using an in-memory socket stub to avoid platform dependencies.
 
 ## Implementation Plan
-1. Port v3 `Domain.ts` into `DevToolsSchema.ts` with v4 `Schema` imports and preserved encoding semantics.
-2. Implement `DevToolsClient.ts` using v4 `ServiceMap.Service`, `Metric.snapshotUnsafe`, `Tracer`, `Queue`, and NDJSON duplex.
-3. Implement `DevToolsServer.ts` with `SocketServer` and NDJSON duplex, preserving ping/pong behavior.
+1. Port v3 `Domain.ts` into `DevToolsSchema.ts` with v4 `Schema` imports, adjusting schema shapes as needed for the chosen wire protocol and documenting non-obvious transforms.
+2. Implement `DevToolsClient.ts` using v4 `ServiceMap.Service`, `Metric.snapshotUnsafe`, `Tracer`, `Queue`, and NDJSON duplex with `Schema.toCodecJson` wrapping request/response schemas.
+3. Implement `DevToolsServer.ts` with `SocketServer` and NDJSON duplex using `Schema.toCodecJson` for request/response schemas, preserving ping/pong behavior.
 4. Add `DevTools.ts` helpers (`layerSocket`, `layerWebSocket`, `layer`) with the default URL.
 5. Wire exports: update `packages/effect/package.json` exports + publishConfig, then run `pnpm codegen` to generate the devtools barrel.
 6. Add tests under `packages/effect/test/unstable/devtools/` for schema, tracer hooks, and server ping/pong.
