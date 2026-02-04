@@ -21,7 +21,7 @@ const numberOrInfinity = Schema.Union([Schema.Number, Schema.Null]).pipe(
  * @category schemas
  */
 export const SpanStatusStarted = Schema.Struct({
-  _tag: Schema.Literal("Started"),
+  _tag: Schema.tag("Started"),
   startTime: Schema.BigInt
 })
 
@@ -35,14 +35,8 @@ export type SpanStatusStarted = Schema.Schema.Type<typeof SpanStatusStarted>
  * @since 4.0.0
  * @category schemas
  */
-export type SpanStatusStartedEncoded = Schema.Codec.Encoded<typeof SpanStatusStarted>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const SpanStatusEnded = Schema.Struct({
-  _tag: Schema.Literal("Ended"),
+  _tag: Schema.tag("Ended"),
   startTime: Schema.BigInt,
   endTime: Schema.BigInt
 })
@@ -52,12 +46,6 @@ export const SpanStatusEnded = Schema.Struct({
  * @category schemas
  */
 export type SpanStatusEnded = Schema.Schema.Type<typeof SpanStatusEnded>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
-export type SpanStatusEndedEncoded = Schema.Codec.Encoded<typeof SpanStatusEnded>
 
 /**
  * @since 4.0.0
@@ -75,14 +63,8 @@ export type SpanStatus = Schema.Schema.Type<typeof SpanStatus>
  * @since 4.0.0
  * @category schemas
  */
-export type SpanStatusEncoded = Schema.Codec.Encoded<typeof SpanStatus>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const ExternalSpan = Schema.Struct({
-  _tag: Schema.Literal("ExternalSpan"),
+  _tag: Schema.tag("ExternalSpan"),
   spanId: Schema.String,
   traceId: Schema.String,
   sampled: Schema.Boolean
@@ -93,12 +75,6 @@ export const ExternalSpan = Schema.Struct({
  * @category schemas
  */
 export type ExternalSpan = Schema.Schema.Type<typeof ExternalSpan>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
-export type ExternalSpanEncoded = Schema.Codec.Encoded<typeof ExternalSpan>
 
 type SpanStatusType = Schema.Schema.Type<typeof SpanStatus>
 type ExternalSpanType = Schema.Schema.Type<typeof ExternalSpan>
@@ -121,7 +97,7 @@ type ParentSpanType = SpanType | ExternalSpanType
  * @category schemas
  */
 export const Span: Schema.Codec<SpanType> = Schema.Struct({
-  _tag: Schema.Literal("Span"),
+  _tag: Schema.tag("Span"),
   spanId: Schema.String,
   traceId: Schema.String,
   name: Schema.String,
@@ -143,14 +119,8 @@ export type Span = Schema.Schema.Type<typeof Span>
  * @since 4.0.0
  * @category schemas
  */
-export type SpanEncoded = Schema.Codec.Encoded<typeof Span>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const SpanEvent = Schema.Struct({
-  _tag: Schema.Literal("SpanEvent"),
+  _tag: Schema.tag("SpanEvent"),
   traceId: Schema.String,
   spanId: Schema.String,
   name: Schema.String,
@@ -168,12 +138,6 @@ export type SpanEvent = Schema.Schema.Type<typeof SpanEvent>
  * @since 4.0.0
  * @category schemas
  */
-export type SpanEventEncoded = Schema.Codec.Encoded<typeof SpanEvent>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const ParentSpan: Schema.Codec<ParentSpanType> = Schema.Union([Span, ExternalSpan])
 
 /**
@@ -186,14 +150,8 @@ export type ParentSpan = Schema.Schema.Type<typeof ParentSpan>
  * @since 4.0.0
  * @category schemas
  */
-export type ParentSpanEncoded = Schema.Codec.Encoded<typeof ParentSpan>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const Ping = Schema.Struct({
-  _tag: Schema.Literal("Ping")
+  _tag: Schema.tag("Ping")
 })
 
 /**
@@ -206,14 +164,8 @@ export type Ping = Schema.Schema.Type<typeof Ping>
  * @since 4.0.0
  * @category schemas
  */
-export type PingEncoded = Schema.Codec.Encoded<typeof Ping>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const Pong = Schema.Struct({
-  _tag: Schema.Literal("Pong")
+  _tag: Schema.tag("Pong")
 })
 
 /**
@@ -226,14 +178,8 @@ export type Pong = Schema.Schema.Type<typeof Pong>
  * @since 4.0.0
  * @category schemas
  */
-export type PongEncoded = Schema.Codec.Encoded<typeof Pong>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const MetricsRequest = Schema.Struct({
-  _tag: Schema.Literal("MetricsRequest")
+  _tag: Schema.tag("MetricsRequest")
 })
 
 /**
@@ -241,12 +187,6 @@ export const MetricsRequest = Schema.Struct({
  * @category schemas
  */
 export type MetricsRequest = Schema.Schema.Type<typeof MetricsRequest>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
-export type MetricsRequestEncoded = Schema.Codec.Encoded<typeof MetricsRequest>
 
 /**
  * @since 4.0.0
@@ -263,15 +203,9 @@ export const MetricLabel = Schema.Struct({
  */
 export type MetricLabel = Schema.Schema.Type<typeof MetricLabel>
 
-/**
- * @since 4.0.0
- * @category schemas
- */
-export type MetricLabelEncoded = Schema.Codec.Encoded<typeof MetricLabel>
-
 const metric = <Tag extends string, State extends Schema.Top>(tag: Tag, state: State) =>
   Schema.Struct({
-    _tag: Schema.Literal(tag),
+    _tag: Schema.tag(tag),
     name: Schema.String,
     description: Schema.OptionFromOptional(Schema.String),
     tags: Schema.Array(MetricLabel),
@@ -299,12 +233,6 @@ export type Counter = Schema.Schema.Type<typeof Counter>
  * @since 4.0.0
  * @category schemas
  */
-export type CounterEncoded = Schema.Codec.Encoded<typeof Counter>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const Frequency = metric(
   "Frequency",
   Schema.Struct({
@@ -317,12 +245,6 @@ export const Frequency = metric(
  * @category schemas
  */
 export type Frequency = Schema.Schema.Type<typeof Frequency>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
-export type FrequencyEncoded = Schema.Codec.Encoded<typeof Frequency>
 
 /**
  * @since 4.0.0
@@ -345,12 +267,6 @@ export type Gauge = Schema.Schema.Type<typeof Gauge>
  * @since 4.0.0
  * @category schemas
  */
-export type GaugeEncoded = Schema.Codec.Encoded<typeof Gauge>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const Histogram = metric(
   "Histogram",
   Schema.Struct({
@@ -367,12 +283,6 @@ export const Histogram = metric(
  * @category schemas
  */
 export type Histogram = Schema.Schema.Type<typeof Histogram>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
-export type HistogramEncoded = Schema.Codec.Encoded<typeof Histogram>
 
 /**
  * @since 4.0.0
@@ -400,12 +310,6 @@ export type Summary = Schema.Schema.Type<typeof Summary>
  * @since 4.0.0
  * @category schemas
  */
-export type SummaryEncoded = Schema.Codec.Encoded<typeof Summary>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const Metric = Schema.Union([Counter, Frequency, Gauge, Histogram, Summary])
 
 /**
@@ -418,14 +322,8 @@ export type Metric = Schema.Schema.Type<typeof Metric>
  * @since 4.0.0
  * @category schemas
  */
-export type MetricEncoded = Schema.Codec.Encoded<typeof Metric>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const MetricsSnapshot = Schema.Struct({
-  _tag: Schema.Literal("MetricsSnapshot"),
+  _tag: Schema.tag("MetricsSnapshot"),
   metrics: Schema.Array(Metric)
 })
 
@@ -439,12 +337,6 @@ export type MetricsSnapshot = Schema.Schema.Type<typeof MetricsSnapshot>
  * @since 4.0.0
  * @category schemas
  */
-export type MetricsSnapshotEncoded = Schema.Codec.Encoded<typeof MetricsSnapshot>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
 export const Request = Schema.Union([Ping, Span, SpanEvent, MetricsSnapshot])
 
 /**
@@ -452,12 +344,6 @@ export const Request = Schema.Union([Ping, Span, SpanEvent, MetricsSnapshot])
  * @category schemas
  */
 export type Request = Schema.Schema.Type<typeof Request>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
-export type RequestEncoded = Schema.Codec.Encoded<typeof Request>
 
 /**
  * @since 4.0.0
@@ -482,12 +368,6 @@ export const Response = Schema.Union([Pong, MetricsRequest])
  * @category schemas
  */
 export type Response = Schema.Schema.Type<typeof Response>
-
-/**
- * @since 4.0.0
- * @category schemas
- */
-export type ResponseEncoded = Schema.Codec.Encoded<typeof Response>
 
 /**
  * @since 4.0.0
