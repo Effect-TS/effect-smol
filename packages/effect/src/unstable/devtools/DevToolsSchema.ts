@@ -1,20 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
-
-// Encode +Infinity histogram bounds as null (v3 wire compatibility).
-const numberOrInfinity = Schema.Union([Schema.Number, Schema.Null]).pipe(
-  Schema.decodeTo(
-    Schema.Number,
-    Transformation.transform({
-      decode: (value) => value === null ? Number.POSITIVE_INFINITY : value,
-      encode: (value) => Number.isFinite(value) ? value : null
-    })
-  )
-)
 
 /**
  * @since 4.0.0
@@ -63,7 +50,18 @@ export type SpanStatus = Schema.Schema.Type<typeof SpanStatus>
  * @since 4.0.0
  * @category schemas
  */
-export const ExternalSpan = Schema.Struct({
+export interface ExternalSpan {
+  readonly _tag: "ExternalSpan"
+  readonly spanId: string
+  readonly traceId: string
+  readonly sampled: boolean
+}
+
+/**
+ * @since 4.0.0
+ * @category schemas
+ */
+export const ExternalSpan: Schema.Codec<ExternalSpan> = Schema.Struct({
   _tag: Schema.tag("ExternalSpan"),
   spanId: Schema.String,
   traceId: Schema.String,
@@ -74,29 +72,22 @@ export const ExternalSpan = Schema.Struct({
  * @since 4.0.0
  * @category schemas
  */
-export type ExternalSpan = Schema.Schema.Type<typeof ExternalSpan>
-
-type SpanStatusType = Schema.Schema.Type<typeof SpanStatus>
-type ExternalSpanType = Schema.Schema.Type<typeof ExternalSpan>
-
-interface SpanType {
+export interface Span {
   readonly _tag: "Span"
   readonly spanId: string
   readonly traceId: string
   readonly name: string
   readonly sampled: boolean
   readonly attributes: ReadonlyMap<string, unknown>
-  readonly status: SpanStatusType
-  readonly parent: Option.Option<ParentSpanType>
+  readonly status: SpanStatus
+  readonly parent: ParentSpan | undefined
 }
-
-type ParentSpanType = SpanType | ExternalSpanType
 
 /**
  * @since 4.0.0
  * @category schemas
  */
-export const Span: Schema.Codec<SpanType> = Schema.Struct({
+export const Span: Schema.Codec<Span> = Schema.Struct({
   _tag: Schema.tag("Span"),
   spanId: Schema.String,
   traceId: Schema.String,
@@ -104,16 +95,8 @@ export const Span: Schema.Codec<SpanType> = Schema.Struct({
   sampled: Schema.Boolean,
   attributes: Schema.ReadonlyMap(Schema.String, Schema.Any),
   status: SpanStatus,
-  parent: Schema.Option(
-    Schema.suspend(() => ParentSpan).annotate({ title: "ParentSpan" })
-  )
+  parent: Schema.UndefinedOr(Schema.suspend(() => ParentSpan))
 })
-
-/**
- * @since 4.0.0
- * @category schemas
- */
-export type Span = Schema.Schema.Type<typeof Span>
 
 /**
  * @since 4.0.0
@@ -138,13 +121,13 @@ export type SpanEvent = Schema.Schema.Type<typeof SpanEvent>
  * @since 4.0.0
  * @category schemas
  */
-export const ParentSpan: Schema.Codec<ParentSpanType> = Schema.Union([Span, ExternalSpan])
+export type ParentSpan = Span | ExternalSpan
 
 /**
  * @since 4.0.0
  * @category schemas
  */
-export type ParentSpan = Schema.Schema.Type<typeof ParentSpan>
+export const ParentSpan = Schema.Union([Span, ExternalSpan])
 
 /**
  * @since 4.0.0
@@ -271,7 +254,7 @@ export type Gauge = Schema.Schema.Type<typeof Gauge>
 export const Histogram = metric(
   "Histogram",
   Schema.Struct({
-    buckets: Schema.Array(Schema.Tuple([numberOrInfinity, Schema.Number])),
+    buckets: Schema.Array(Schema.Tuple([Schema.Number, Schema.Number])),
     count: Schema.Number,
     min: Schema.Number,
     max: Schema.Number,

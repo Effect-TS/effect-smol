@@ -19,45 +19,53 @@ const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
  */
 export interface Client {
   readonly queue: Queue.Dequeue<DevToolsSchema.Request.WithoutPing>
-  readonly request: (_: DevToolsSchema.Response.WithoutPong) => Effect.Effect<void>
+  readonly send: (_: DevToolsSchema.Response.WithoutPong) => Effect.Effect<void>
 }
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const run = Effect.fnUntraced(function*<R, E, _>(
+export const run: <_, E, R>(
+  handle: (client: Client) => Effect.Effect<_, E, R>
+) => Effect.Effect<
+  never,
+  SocketServer.SocketServerError,
+  R | SocketServer.SocketServer
+> = Effect.fnUntraced(function*<R, E, _>(
   handle: (client: Client) => Effect.Effect<_, E, R>
 ) {
   const server = yield* SocketServer.SocketServer
 
-  return yield* server.run((socket) =>
-    Effect.gen(function*() {
-      const responses = yield* Queue.unbounded<DevToolsSchema.Response>()
-      const requests = yield* Queue.unbounded<DevToolsSchema.Request.WithoutPing>()
+  return yield* server.run(Effect.fnUntraced(function*(socket) {
+    const responses = yield* Queue.unbounded<DevToolsSchema.Response>()
+    const requests = yield* Queue.unbounded<DevToolsSchema.Request.WithoutPing>()
 
-      const client: Client = {
-        queue: requests,
-        request: (response) => Queue.offer(responses, response).pipe(Effect.asVoid)
-      }
+    const client: Client = {
+      queue: requests,
+      send: (response) => Queue.offer(responses, response).pipe(Effect.asVoid)
+    }
 
-      yield* Stream.fromQueue(responses).pipe(
-        Stream.pipeThroughChannel(
-          Ndjson.duplexSchemaString(Socket.toChannelString(socket), {
-            inputSchema: ResponseSchema,
-            outputSchema: RequestSchema
-          })
-        ),
-        Stream.runForEach((request) =>
-          request._tag === "Ping"
-            ? Queue.offer(responses, { _tag: "Pong" }).pipe(Effect.asVoid)
-            : Queue.offer(requests, request).pipe(Effect.asVoid)
-        ),
-        Effect.ensuring(Queue.shutdown(responses).pipe(Effect.andThen(Queue.shutdown(requests)))),
-        Effect.forkChild
-      )
+    yield* Stream.fromQueue(responses).pipe(
+      Stream.pipeThroughChannel(
+        Ndjson.duplexSchemaString(Socket.toChannelString(socket), {
+          inputSchema: ResponseSchema,
+          outputSchema: RequestSchema
+        })
+      ),
+      Stream.runForEach((request) =>
+        request._tag === "Ping"
+          ? Queue.offer(responses, { _tag: "Pong" })
+          : Queue.offer(requests, request)
+      ),
+      Effect.ensuring(
+        Queue.shutdown(responses).pipe(
+          Effect.andThen(Queue.shutdown(requests))
+        )
+      ),
+      Effect.forkChild
+    )
 
-      yield* handle(client)
-    })
-  )
+    return yield* handle(client)
+  }))
 })

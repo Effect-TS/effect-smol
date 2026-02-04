@@ -6,9 +6,7 @@ import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Metric from "../../Metric.ts"
-import * as Option from "../../Option.ts"
 import * as Queue from "../../Queue.ts"
-import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -23,80 +21,26 @@ const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
 
 /**
  * @since 4.0.0
- * @category models
- */
-export interface DevToolsClientImpl {
-  readonly unsafeAddSpan: (_: DevToolsSchema.Span | DevToolsSchema.SpanEvent) => void
-}
-
-/**
- * @since 4.0.0
  * @category tags
  */
-export class DevToolsClient extends ServiceMap.Service<DevToolsClient, DevToolsClientImpl>()(
-  "effect/devtools/DevToolsClient"
-) {}
+export class DevToolsClient extends ServiceMap.Service<DevToolsClient, {
+  readonly sendUnsafe: (_: DevToolsSchema.Span | DevToolsSchema.SpanEvent) => void
+}>()("effect/devtools/DevToolsClient") {}
 
-const toSpanStatus = (status: Tracer.SpanStatus): DevToolsSchema.SpanStatus =>
-  status._tag === "Started"
-    ? {
-      _tag: "Started",
-      startTime: status.startTime
-    }
-    : {
-      _tag: "Ended",
-      startTime: status.startTime,
-      endTime: status.endTime
-    }
-
-const toExternalSpan = (span: Tracer.ExternalSpan): DevToolsSchema.ExternalSpan => ({
-  _tag: "ExternalSpan",
-  spanId: span.spanId,
-  traceId: span.traceId,
-  sampled: span.sampled
-})
-
-const toParentSpan = (span: Tracer.AnySpan | undefined): Option.Option<DevToolsSchema.ParentSpan> => {
-  if (!span) {
-    return Option.none()
-  }
-  if (span._tag === "ExternalSpan") {
-    return Option.some(toExternalSpan(span))
-  }
-  return Option.some(toSpan(span))
-}
-
-const toSpan = (span: Tracer.Span): DevToolsSchema.Span => ({
-  _tag: "Span",
-  spanId: span.spanId,
-  traceId: span.traceId,
-  name: span.name,
-  sampled: span.sampled,
-  attributes: span.attributes,
-  status: toSpanStatus(span.status),
-  parent: toParentSpan(span.parent)
-})
-
-const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSchema.MetricsSnapshot => {
-  return {
-    _tag: "MetricsSnapshot",
-    metrics: Metric.snapshotUnsafe(services)
-  }
-}
-
-const makeEffect = Effect.fnUntraced(function*() {
+const makeEffect = Effect.gen(function*() {
   const socket = yield* Socket.Socket
   const services = yield* Effect.services<never>()
   const requests = yield* Queue.unbounded<DevToolsSchema.Request>()
   const connected = yield* Deferred.make<void>()
 
-  const metricsSnapshot = () => toMetricsSnapshot(services)
-  const offerMetricsSnapshot = () => Queue.offer(requests, metricsSnapshot()).pipe(Effect.asVoid)
+  const offerMetricsSnapshot = Effect.sync(() => {
+    Queue.offerUnsafe(requests, toMetricsSnapshot(services))
+  })
 
   const handleResponse = (response: DevToolsSchema.Response): Effect.Effect<void> => {
     switch (response._tag) {
       case "MetricsRequest": {
-        return offerMetricsSnapshot()
+        return offerMetricsSnapshot
       }
       case "Pong": {
         return Effect.void
@@ -111,20 +55,13 @@ const makeEffect = Effect.fnUntraced(function*() {
         outputSchema: ResponseSchema
       })
     ),
-    Stream.runForEach((response) =>
-      Deferred.succeed(connected, undefined).pipe(
-        Effect.asVoid,
-        Effect.andThen(handleResponse(response))
-      )
-    ),
-    Effect.tapCause(Effect.logDebug),
-    Effect.retry({ schedule: Schedule.spaced("1 seconds") }),
-    Effect.forkScoped,
-    Effect.uninterruptible
+    Stream.onFirst(() => Deferred.completeWith(connected, Effect.void)),
+    Stream.runForEach(handleResponse),
+    Effect.forkScoped
   )
 
   yield* Effect.addFinalizer(() =>
-    offerMetricsSnapshot().pipe(
+    offerMetricsSnapshot.pipe(
       Effect.andThen(Effect.flatMap(Effect.fiberId, (id) => Queue.failCause(requests, Cause.interrupt(id))))
     )
   )
@@ -132,8 +69,7 @@ const makeEffect = Effect.fnUntraced(function*() {
   yield* Effect.suspend(() => Queue.offer(requests, { _tag: "Ping" })).pipe(
     Effect.delay("3 seconds"),
     Effect.forever,
-    Effect.forkScoped,
-    Effect.interruptible
+    Effect.forkScoped
   )
 
   yield* Deferred.await(connected).pipe(
@@ -141,18 +77,27 @@ const makeEffect = Effect.fnUntraced(function*() {
     Effect.asVoid
   )
 
-  return {
-    unsafeAddSpan: (request: DevToolsSchema.Span | DevToolsSchema.SpanEvent) => {
+  return DevToolsClient.of({
+    sendUnsafe(request: DevToolsSchema.Span | DevToolsSchema.SpanEvent) {
       Queue.offerUnsafe(requests, request)
     }
-  }
+  })
+})
+
+const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSchema.MetricsSnapshot => ({
+  _tag: "MetricsSnapshot",
+  metrics: Metric.snapshotUnsafe(services)
 })
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const make: Effect.Effect<DevToolsClient["Service"], never, Scope.Scope | Socket.Socket> = makeEffect().pipe(
+export const make: Effect.Effect<
+  DevToolsClient["Service"],
+  never,
+  Scope.Scope | Socket.Socket
+> = makeEffect.pipe(
   Effect.annotateLogs({
     module: "DevTools",
     service: "Client"
@@ -163,20 +108,23 @@ export const make: Effect.Effect<DevToolsClient["Service"], never, Scope.Scope |
  * @since 4.0.0
  * @category layers
  */
-export const layer: Layer.Layer<DevToolsClient, never, Socket.Socket> = Layer.effect(DevToolsClient)(make)
+export const layer: Layer.Layer<
+  DevToolsClient,
+  never,
+  Socket.Socket
+> = Layer.effect(DevToolsClient, make)
 
-const makeTracerEffect = Effect.fnUntraced(function*() {
+const makeTracerEffect = Effect.gen(function*() {
   const client = yield* DevToolsClient
   const currentTracer = yield* Effect.tracer
 
   return Tracer.make({
     span(name, parent, annotations, links, startTime, kind, options) {
       const span = currentTracer.span(name, parent, annotations, links, startTime, kind, options)
-      client.unsafeAddSpan(toSpan(span))
-
+      client.sendUnsafe(span)
       const oldEvent = span.event
       span.event = function(this: Tracer.Span, name, startTime, attributes) {
-        client.unsafeAddSpan({
+        client.sendUnsafe({
           _tag: "SpanEvent",
           traceId: span.traceId,
           spanId: span.spanId,
@@ -190,7 +138,7 @@ const makeTracerEffect = Effect.fnUntraced(function*() {
       const oldEnd = span.end
       span.end = function(this: Tracer.Span, endTime, exit) {
         oldEnd.call(this, endTime, exit)
-        client.unsafeAddSpan(toSpan(span))
+        client.sendUnsafe(span)
       }
 
       return span
@@ -203,7 +151,7 @@ const makeTracerEffect = Effect.fnUntraced(function*() {
  * @since 4.0.0
  * @category constructors
  */
-export const makeTracer: Effect.Effect<Tracer.Tracer, never, DevToolsClient> = makeTracerEffect().pipe(
+export const makeTracer: Effect.Effect<Tracer.Tracer, never, DevToolsClient> = makeTracerEffect.pipe(
   Effect.annotateLogs({
     module: "DevTools",
     service: "Tracer"
@@ -214,6 +162,10 @@ export const makeTracer: Effect.Effect<Tracer.Tracer, never, DevToolsClient> = m
  * @since 4.0.0
  * @category layers
  */
-export const layerTracer: Layer.Layer<never, never, Socket.Socket> = Layer.effect(Tracer.Tracer)(makeTracer).pipe(
+export const layerTracer: Layer.Layer<
+  never,
+  never,
+  Socket.Socket
+> = Layer.effect(Tracer.Tracer, makeTracer).pipe(
   Layer.provide(layer)
 )
