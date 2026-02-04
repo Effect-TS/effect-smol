@@ -2767,36 +2767,41 @@ const program = Effect.gen(function*() {
 Effect.runFork(program.pipe(Effect.provide(FetchHttpClient.layer)))
 ```
 
-## Converting to a Web Handler (TODO)
+## Converting to a Web Handler
 
 You can convert your `HttpApi` implementation into a web handler using the `HttpApiBuilder.toWebHandler` API. This approach enables you to serve your API through a custom server setup.
 
 **Example** (Creating and Serving a Web Handler)
 
-```ts TODO
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiSwagger, HttpServer } from "@effect/platform"
+```ts
 import { Effect, Layer, Schema } from "effect"
+import { HttpRouter, HttpServer } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
 import * as http from "node:http"
 
-const api = HttpApi.make("myApi").add(
+const Api = HttpApi.make("myApi").add(
   HttpApiGroup.make("group").add(
-    HttpApiEndpoint.get("get", "/").addSuccess(Schema.String)
+    HttpApiEndpoint.get("get", "/", {
+      success: Schema.String
+    })
   )
 )
 
-const groupLive = HttpApiBuilder.group(
-  api,
+const GroupLive = HttpApiBuilder.group(
+  Api,
   "group",
   (handlers) => handlers.handle("get", () => Effect.succeed("Hello, world!"))
 )
 
-const MyApiLive = HttpApiBuilder.api(api).pipe(Layer.provide(groupLive))
-
-const SwaggerLayer = HttpApiSwagger.layer().pipe(Layer.provide(MyApiLive))
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
+  Layer.provide(HttpServer.layerServices)
+)
 
 // Convert the API to a web handler
-const { dispose, handler } = HttpApiBuilder.toWebHandler(
-  Layer.mergeAll(MyApiLive, SwaggerLayer, HttpServer.layerContext)
+const { dispose, handler } = HttpRouter.toWebHandler(
+  Layer.mergeAll(ApiLive)
 )
 
 // Serving the handler using a custom HTTP server
