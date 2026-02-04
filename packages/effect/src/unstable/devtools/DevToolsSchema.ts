@@ -291,7 +291,6 @@ export type Histogram = Schema.Schema.Type<typeof Histogram>
 export const Summary = metric(
   "Summary",
   Schema.Struct({
-    error: Schema.Number,
     quantiles: Schema.Array(Schema.Tuple([Schema.Number, Schema.Option(Schema.Number)])),
     count: Schema.Number,
     min: Schema.Number,
