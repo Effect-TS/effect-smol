@@ -369,6 +369,7 @@ export const fromPool = Effect.fnUntraced(function*(
   })
 
   let config: PgClientConfig = {
+    url: pool.options.connectionString ? Redacted.make(pool.options.connectionString) : undefined,
     host: pool.options.host,
     port: pool.options.port,
     database: pool.options.database,
