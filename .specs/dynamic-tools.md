@@ -47,7 +47,7 @@ Key insight from Vercel's implementation:
 ```typescript
 // When validate is undefined, validation is skipped entirely
 if (actualSchema.validate == null) {
-  return { success: true, value: value as OBJECT, rawValue: value };
+  return { success: true, value: value as OBJECT, rawValue: value }
 }
 ```
 
@@ -112,17 +112,13 @@ export function dynamic<
 ): Dynamic<
   Name,
   {
-    readonly parameters: Options extends { readonly parameters: infer P extends Schema.Top }
-      ? P
+    readonly parameters: Options extends { readonly parameters: infer P extends Schema.Top } ? P
       : typeof Schema.Unknown
-    readonly success: Options extends { readonly success: infer S extends Schema.Top }
-      ? S
+    readonly success: Options extends { readonly success: infer S extends Schema.Top } ? S
       : typeof Schema.Unknown
-    readonly failure: Options extends { readonly failure: infer F extends Schema.Top }
-      ? F
+    readonly failure: Options extends { readonly failure: infer F extends Schema.Top } ? F
       : typeof Schema.Never
-    readonly failureMode: Options extends { readonly failureMode: infer M extends FailureMode }
-      ? M
+    readonly failureMode: Options extends { readonly failureMode: infer M extends FailureMode } ? M
       : "error"
   }
 >
@@ -151,23 +147,24 @@ if (Schema.isSchema(options.parameters)) {
 ### 3.3 Type Guard
 
 ```typescript
-export const isDynamic = (u: unknown): u is Dynamic<string, any> =>
-  Predicate.hasProperty(u, DynamicTypeId)
+export const isDynamic = (u: unknown): u is Dynamic<string, any> => Predicate.hasProperty(u, DynamicTypeId)
 ```
 
 ### 3.4 Utility Types
 
 ```typescript
-export interface AnyDynamic extends Dynamic<
-  any,
-  {
-    readonly parameters: Schema.Top | JsonSchema.JsonSchema
-    readonly success: Schema.Top
-    readonly failure: Schema.Top
-    readonly failureMode: FailureMode
-  },
-  any
-> {}
+export interface AnyDynamic extends
+  Dynamic<
+    any,
+    {
+      readonly parameters: Schema.Top | JsonSchema.JsonSchema
+      readonly success: Schema.Top
+      readonly failure: Schema.Top
+      readonly failureMode: FailureMode
+    },
+    any
+  >
+{}
 ```
 
 ---
@@ -223,11 +220,11 @@ const McpTool = Tool.dynamic("McpTool", {
 
 ### 5.1 Defaults
 
-| Schema | Default | Rationale |
-|--------|---------|-----------|
-| `success` | `Schema.Unknown` | Handler can return anything; encoded as JSON |
-| `failure` | `Schema.Never` | No typed failures by default |
-| `failureMode` | `"error"` | Failures go to error channel |
+| Schema        | Default          | Rationale                                    |
+| ------------- | ---------------- | -------------------------------------------- |
+| `success`     | `Schema.Unknown` | Handler can return anything; encoded as JSON |
+| `failure`     | `Schema.Never`   | No typed failures by default                 |
+| `failureMode` | `"error"`        | Failures go to error channel                 |
 
 ### 5.2 When to Specify Success Schema
 
@@ -421,14 +418,14 @@ const Calculator = Tool.dynamic("Calculator", {
 
 ## 9. Comparison: `Tool.make` vs `Tool.dynamic`
 
-| Aspect | `Tool.make` | `Tool.dynamic` |
-|--------|-------------|----------------|
-| `parameters` accepts | Effect Schema only | Effect Schema OR JSON Schema |
-| Parameters type | Inferred from schema | Inferred (Effect) or `unknown` (JSON) |
-| JSON Schema | Derived from Effect Schema | Derived (Effect) or used directly (JSON) |
-| Validation | Always | Always (Effect) or none (JSON) |
-| `success` default | `Schema.Void` | `Schema.Unknown` |
-| `failure` default | `Schema.Never` | `Schema.Never` |
+| Aspect               | `Tool.make`                | `Tool.dynamic`                           |
+| -------------------- | -------------------------- | ---------------------------------------- |
+| `parameters` accepts | Effect Schema only         | Effect Schema OR JSON Schema             |
+| Parameters type      | Inferred from schema       | Inferred (Effect) or `unknown` (JSON)    |
+| JSON Schema          | Derived from Effect Schema | Derived (Effect) or used directly (JSON) |
+| Validation           | Always                     | Always (Effect) or none (JSON)           |
+| `success` default    | `Schema.Void`              | `Schema.Unknown`                         |
+| `failure` default    | `Schema.Never`             | `Schema.Never`                           |
 
 ### When to Use Which
 
@@ -482,8 +479,7 @@ describe("Tool.isDynamic", () => {
         parameters: Schema.Struct({ query: Schema.String })
       })
       assert.isTrue(Tool.isDynamic(tool))
-    })
-  )
+    }))
 
   it.effect("returns true for dynamic tools with JSON Schema", () =>
     Effect.gen(function*() {
@@ -491,8 +487,7 @@ describe("Tool.isDynamic", () => {
         parameters: { type: "object", properties: {} }
       })
       assert.isTrue(Tool.isDynamic(tool))
-    })
-  )
+    }))
 
   it.effect("returns false for user-defined tools", () =>
     Effect.gen(function*() {
@@ -500,8 +495,7 @@ describe("Tool.isDynamic", () => {
         parameters: Schema.Struct({ query: Schema.String })
       })
       assert.isFalse(Tool.isDynamic(tool))
-    })
-  )
+    }))
 
   it.effect("returns false for provider-defined tools", () =>
     Effect.gen(function*() {
@@ -511,8 +505,7 @@ describe("Tool.isDynamic", () => {
         providerName: "provider_tool"
       })({})
       assert.isFalse(Tool.isDynamic(tool))
-    })
-  )
+    }))
 
   it.effect("returns false for non-tool values", () =>
     Effect.gen(function*() {
@@ -520,8 +513,7 @@ describe("Tool.isDynamic", () => {
       assert.isFalse(Tool.isDynamic(undefined))
       assert.isFalse(Tool.isDynamic({}))
       assert.isFalse(Tool.isDynamic({ name: "fake" }))
-    })
-  )
+    }))
 })
 ```
 
@@ -544,8 +536,7 @@ describe("Tool.getJsonSchema with dynamic tools", () => {
       assert.deepStrictEqual(jsonSchema.required, ["query"])
       assert.hasProperty(jsonSchema.properties, "query")
       assert.hasProperty(jsonSchema.properties, "limit")
-    })
-  )
+    }))
 
   it.effect("returns JSON Schema directly when provided as parameters", () =>
     Effect.gen(function*() {
@@ -563,8 +554,7 @@ describe("Tool.getJsonSchema with dynamic tools", () => {
       const jsonSchema = Tool.getJsonSchema(tool)
 
       assert.deepStrictEqual(jsonSchema, inputSchema)
-    })
-  )
+    }))
 
   it.effect("preserves complex JSON Schema features like $ref and oneOf", () =>
     Effect.gen(function*() {
@@ -583,8 +573,7 @@ describe("Tool.getJsonSchema with dynamic tools", () => {
       const jsonSchema = Tool.getJsonSchema(tool)
 
       assert.deepStrictEqual(jsonSchema, inputSchema)
-    })
-  )
+    }))
 })
 ```
 
@@ -605,8 +594,7 @@ describe("Handler execution with dynamic tools", () => {
       const toolkit = Toolkit.make(SearchTool)
 
       const layer = toolkit.toLayer({
-        SearchTool: ({ query, limit }) =>
-          Effect.succeed(Array.from({ length: limit }, (_, i) => `${query}-${i}`))
+        SearchTool: ({ query, limit }) => Effect.succeed(Array.from({ length: limit }, (_, i) => `${query}-${i}`))
       })
 
       const result = yield* toolkit.tools.SearchTool
@@ -614,8 +602,7 @@ describe("Handler execution with dynamic tools", () => {
         .pipe(Effect.provide(layer))
 
       assert.deepStrictEqual(result.result, ["test-0", "test-1", "test-2"])
-    })
-  )
+    }))
 
   it.effect("passes parameters through as unknown with JSON Schema", () =>
     Effect.gen(function*() {
@@ -642,8 +629,7 @@ describe("Handler execution with dynamic tools", () => {
         .pipe(Effect.provide(layer))
 
       assert.deepStrictEqual(result.result, ["test-0", "test-1", "test-2"])
-    })
-  )
+    }))
 
   it.effect("encodes success result using success schema", () =>
     Effect.gen(function*() {
@@ -664,8 +650,7 @@ describe("Handler execution with dynamic tools", () => {
 
       assert.instanceOf(result.result.timestamp, Date)
       assert.strictEqual(result.encodedResult.timestamp, 1000)
-    })
-  )
+    }))
 })
 ```
 
@@ -673,11 +658,11 @@ describe("Handler execution with dynamic tools", () => {
 
 ## 12. Files to Modify
 
-| File | Changes |
-|------|---------|
-| `packages/effect/src/unstable/ai/Tool.ts` | Add Dynamic type, constructor, type guard, update `getJsonSchema()` |
-| `packages/effect/src/unstable/ai/Toolkit.ts` | Verify handler types work (may need no changes) |
-| `packages/effect/test/unstable/ai/Tool.test.ts` | Add dynamic tool tests |
+| File                                            | Changes                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------- |
+| `packages/effect/src/unstable/ai/Tool.ts`       | Add Dynamic type, constructor, type guard, update `getJsonSchema()` |
+| `packages/effect/src/unstable/ai/Toolkit.ts`    | Verify handler types work (may need no changes)                     |
+| `packages/effect/test/unstable/ai/Tool.test.ts` | Add dynamic tool tests                                              |
 
 ---
 

@@ -424,7 +424,7 @@ export interface ProviderDefined<
  * // Dynamic tool with Effect Schema (typed)
  * const Calculator = Tool.dynamic("Calculator", {
  *   parameters: Schema.Struct({
- *     operation: Schema.Literal("add", "subtract"),
+ *     operation: Schema.Literals(["add", "subtract"]),
  *     a: Schema.Number,
  *     b: Schema.Number
  *   }),
@@ -1234,7 +1234,7 @@ export const make = <
  * // With Effect Schema (typed parameters)
  * const Calculator = Tool.dynamic("Calculator", {
  *   parameters: Schema.Struct({
- *     operation: Schema.Literal("add", "subtract"),
+ *     operation: Schema.Literals(["add", "subtract"]),
  *     a: Schema.Number,
  *     b: Schema.Number
  *   }),
