@@ -1001,11 +1001,15 @@ export const put = make("PUT")
  */
 export const patch = make("PATCH")
 
-/**
- * @since 4.0.0
- * @category constructors
- */
-export const del = make("DELETE")
+const del = make("DELETE")
+
+export {
+  /**
+   * @since 4.0.0
+   * @category constructors
+   */
+  del as delete
+}
 
 /**
  * @since 4.0.0

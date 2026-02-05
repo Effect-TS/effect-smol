@@ -522,7 +522,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ### DELETE
 
-The `HttpApiEndpoint.del` method is used to define an endpoint for deleting a resource.
+The `HttpApiEndpoint.delete` method is used to define an endpoint for deleting a resource.
 
 **Example** (Defining a DELETE Endpoint with Parameters)
 
@@ -557,7 +557,7 @@ const Api = HttpApi.make("MyApi")
           payload: User,
           success: User
         }),
-        HttpApiEndpoint.del("deleteUser", "/user/:id", {
+        HttpApiEndpoint.delete("deleteUser", "/user/:id", {
           params: {
             id: IdParam
           }
@@ -635,7 +635,7 @@ const Api = HttpApi.make("MyApi")
           payload: User,
           success: User
         }),
-        HttpApiEndpoint.del("deleteUser", "/user/:id", {
+        HttpApiEndpoint.delete("deleteUser", "/user/:id", {
           params: {
             id: IdParam
           }
@@ -728,7 +728,7 @@ const Api = HttpApi.make("MyApi")
           payload: User,
           success: User
         }),
-        HttpApiEndpoint.del("deleteUser", "/user/:id", {
+        HttpApiEndpoint.delete("deleteUser", "/user/:id", {
           params: {
             id: IdParam
           }
@@ -2093,7 +2093,7 @@ const Api = HttpApi.make("MyApi")
           payload: User,
           success: User
         }),
-        HttpApiEndpoint.del("deleteUser", "/user/:id", {
+        HttpApiEndpoint.delete("deleteUser", "/user/:id", {
           params: {
             id: IdParam
           }
