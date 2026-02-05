@@ -492,11 +492,11 @@ class NodeImpl<A> {
   parents: Array<NodeImpl<any>> = []
   previousParents: Array<NodeImpl<any>> | undefined
   children: Array<NodeImpl<any>> = []
-  listeners: Array<() => void> = []
+  listeners: Set<() => void> = new Set()
   skipInvalidation = false
 
   get canBeRemoved(): boolean {
-    return !this.atom.keepAlive && this.listeners.length === 0 && this.children.length === 0 && this.state !== 0
+    return !this.atom.keepAlive && this.listeners.size === 0 && this.children.length === 0 && this.state !== 0
   }
 
   _value: A = undefined as any
@@ -556,7 +556,7 @@ class NodeImpl<A> {
       this.invalidateChildren()
     }
 
-    if (this.listeners.length > 0) {
+    if (this.listeners.size > 0) {
       if (batchState.phase === BatchPhase.collect) {
         batchState.notify.add(this)
       } else {
@@ -601,7 +601,7 @@ class NodeImpl<A> {
 
     if (batchState.phase === BatchPhase.collect) {
       batchState.stale.push(this)
-    } else if (this.atom.lazy && this.listeners.length === 0 && !childrenAreActive(this.children)) {
+    } else if (this.atom.lazy && this.listeners.size === 0 && !childrenAreActive(this.children)) {
       this.invalidateChildren()
       this.skipInvalidation = true
     } else {
@@ -622,9 +622,8 @@ class NodeImpl<A> {
   }
 
   notify(): void {
-    const listeners = this.listeners.slice()
-    for (let i = 0; i < listeners.length; i++) {
-      listeners[i]()
+    for (const listener of this.listeners) {
+      listener()
     }
 
     if (batchState.phase === BatchPhase.commit) {
@@ -646,7 +645,7 @@ class NodeImpl<A> {
 
   remove() {
     this.state = NodeState.removed
-    this.listeners = []
+    this.listeners.clear()
 
     if (this.lifetime === undefined) {
       return
@@ -669,14 +668,8 @@ class NodeImpl<A> {
   }
 
   subscribe(listener: () => void): () => void {
-    this.listeners.push(listener)
-    return () => {
-      const index = this.listeners.indexOf(listener)
-      if (index !== -1) {
-        this.listeners[index] = this.listeners[this.listeners.length - 1]
-        this.listeners.pop()
-      }
-    }
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
   }
 }
 
@@ -690,7 +683,7 @@ function childrenAreActive(children: Array<NodeImpl<any>>): boolean {
   while (current !== undefined) {
     for (let i = 0, len = current.length; i < len; i++) {
       const child = current[i]
-      if (!child.atom.lazy || child.listeners.length > 0) {
+      if (!child.atom.lazy || child.listeners.size > 0) {
         return true
       } else if (child.children.length > 0) {
         if (stack === undefined) {
