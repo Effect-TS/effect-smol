@@ -302,7 +302,6 @@ const Proto = {
         let schemas = schemasCache.get(tool)
         if (Predicate.isUndefined(schemas)) {
           const handler = services.mapUnsafe.get(tool.id)! as Tool.Handler<any>
-          const parametersSchema = tool.parametersSchema
           const resultSchema = tool.failureMode === "return"
             ? Schema.Union([tool.successSchema, tool.failureSchema, AiError.AiError])
             : tool.successSchema
@@ -310,7 +309,9 @@ const Proto = {
           // as these are defined internal to the Effect AI SDK and should
           // already have valid schemas
           const transformedResultSchema = Tool.isProviderDefined(tool) ? resultSchema : transformer(resultSchema)
-          const decodeParameters = Schema.decodeUnknownEffect(parametersSchema) as any
+          const decodeParameters = Schema.isSchema(tool.parametersSchema)
+            ? Schema.decodeUnknownEffect(tool.parametersSchema) as any
+            : (u: unknown) => Effect.succeed(u)
           const decodeResult = Schema.decodeUnknownEffect(transformedResultSchema) as any
           const encodeResult = Schema.encodeUnknownEffect(transformedResultSchema) as any
           schemas = {

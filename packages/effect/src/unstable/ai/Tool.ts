@@ -68,6 +68,18 @@ export const ProviderDefinedTypeId: ProviderDefinedTypeId = "~effect/ai/Tool/Pro
  */
 export type ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
 
+/**
+ * @since 1.0.0
+ * @category type ids
+ */
+export const DynamicTypeId: DynamicTypeId = "~effect/ai/Tool/Dynamic"
+
+/**
+ * @since 1.0.0
+ * @category type ids
+ */
+export type DynamicTypeId = "~effect/ai/Tool/Dynamic"
+
 // =============================================================================
 // Models
 // =============================================================================
@@ -394,6 +406,75 @@ export interface ProviderDefined<
   readonly requiresHandler: RequiresHandler
 }
 
+/**
+ * A dynamic tool is a tool where the schema may not be known at compile time.
+ *
+ * Dynamic tools support two modes:
+ * - **Effect Schema mode**: Full type safety with validation (like `Tool.make`)
+ * - **JSON Schema mode**: Raw JSON Schema for the model, handler receives `unknown`
+ *
+ * This enables scenarios such as MCP tools discovered at runtime, user-defined
+ * functions loaded from external sources, or plugin systems.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect"
+ * import { Tool } from "effect/unstable/ai"
+ *
+ * // Dynamic tool with Effect Schema (typed)
+ * const Calculator = Tool.dynamic("Calculator", {
+ *   parameters: Schema.Struct({
+ *     operation: Schema.Literal("add", "subtract"),
+ *     a: Schema.Number,
+ *     b: Schema.Number
+ *   }),
+ *   success: Schema.Number
+ * })
+ *
+ * // Dynamic tool with JSON Schema (untyped parameters)
+ * const McpTool = Tool.dynamic("McpTool", {
+ *   description: "Tool from MCP server",
+ *   parameters: {
+ *     type: "object",
+ *     properties: { query: { type: "string" } },
+ *     required: ["query"]
+ *   }
+ * })
+ * ```
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export interface Dynamic<
+  out Name extends string,
+  out Config extends {
+    readonly parameters: Schema.Top | JsonSchema.JsonSchema
+    readonly success: Schema.Top
+    readonly failure: Schema.Top
+    readonly failureMode: FailureMode
+  },
+  out Requirements = never
+> extends
+  Tool<
+    Name,
+    {
+      readonly parameters: Config["parameters"] extends Schema.Top ? Config["parameters"] : typeof Schema.Unknown
+      readonly success: Config["success"]
+      readonly failure: Config["failure"]
+      readonly failureMode: Config["failureMode"]
+    },
+    Requirements
+  >
+{
+  readonly [DynamicTypeId]: typeof DynamicTypeId
+
+  /**
+   * The raw JSON Schema for parameters. Present when `parameters` was provided
+   * as a JSON Schema, `undefined` when an Effect Schema was used.
+   */
+  readonly jsonSchema: Config["parameters"] extends Schema.Top ? undefined : JsonSchema.JsonSchema
+}
+
 // =============================================================================
 // Type Guards
 // =============================================================================
@@ -440,7 +521,7 @@ export interface ProviderDefined<
  * @category guards
  */
 export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
-  Predicate.hasProperty(u, TypeId) && !isProviderDefined(u)
+  Predicate.hasProperty(u, TypeId) && !isProviderDefined(u) && !isDynamic(u)
 
 /**
  * Type guard to check if a value is a provider-defined tool.
@@ -487,6 +568,32 @@ export const isProviderDefined = (
   u: unknown
 ): u is ProviderDefined<`${string}.${string}`, string, any> => Predicate.hasProperty(u, ProviderDefinedTypeId)
 
+/**
+ * Type guard to check if a value is a dynamic tool.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect"
+ * import { Tool } from "effect/unstable/ai"
+ *
+ * const DynamicTool = Tool.dynamic("DynamicTool", {
+ *   parameters: { type: "object", properties: {} }
+ * })
+ *
+ * const UserDefinedTool = Tool.make("Calculator", {
+ *   parameters: Schema.Struct({ a: Schema.Number, b: Schema.Number }),
+ *   success: Schema.Number
+ * })
+ *
+ * console.log(Tool.isDynamic(DynamicTool)) // true
+ * console.log(Tool.isDynamic(UserDefinedTool)) // false
+ * ```
+ *
+ * @since 1.0.0
+ * @category guards
+ */
+export const isDynamic = (u: unknown): u is Dynamic<string, any> => Predicate.hasProperty(u, DynamicTypeId)
+
 // =============================================================================
 // utility types
 // =============================================================================
@@ -516,6 +623,21 @@ export interface AnyProviderDefined extends
   ProviderDefined<any, any, {
     readonly args: Schema.Top
     readonly parameters: Schema.Top
+    readonly success: Schema.Top
+    readonly failure: Schema.Top
+    readonly failureMode: FailureMode
+  }, any>
+{}
+
+/**
+ * A type which represents any dynamic `Tool`.
+ *
+ * @since 1.0.0
+ * @category utility types
+ */
+export interface AnyDynamic extends
+  Dynamic<any, {
+    readonly parameters: Schema.Top | JsonSchema.JsonSchema
     readonly success: Schema.Top
     readonly failure: Schema.Top
     readonly failureMode: FailureMode
@@ -903,6 +1025,11 @@ const ProviderDefinedProto = {
   [ProviderDefinedTypeId]: ProviderDefinedTypeId
 }
 
+const DynamicProto = {
+  ...Proto,
+  [DynamicTypeId]: DynamicTypeId
+}
+
 const userDefinedProto = <
   const Name extends string,
   Parameters extends Schema.Top,
@@ -964,6 +1091,36 @@ const providerDefinedProto = <
   },
   RequiresHandler
 > => Object.assign(Object.create(ProviderDefinedProto), { ...options })
+
+const dynamicProto = <
+  const Name extends string,
+  Parameters extends Schema.Top | JsonSchema.JsonSchema,
+  Success extends Schema.Top,
+  Failure extends Schema.Top,
+  Mode extends FailureMode
+>(options: {
+  readonly name: Name
+  readonly description?: string | undefined
+  readonly parametersSchema: Parameters
+  readonly successSchema: Success
+  readonly failureSchema: Failure
+  readonly annotations: ServiceMap.ServiceMap<never>
+  readonly failureMode: Mode
+  readonly needsApproval?: NeedsApproval<any> | undefined
+  readonly jsonSchema: JsonSchema.JsonSchema | undefined
+}): Dynamic<
+  Name,
+  {
+    readonly parameters: Parameters
+    readonly success: Success
+    readonly failure: Failure
+    readonly failureMode: Mode
+  }
+> => {
+  const self = Object.assign(Object.create(DynamicProto), options)
+  self.id = `effect/ai/Tool/${options.name}`
+  return self
+}
 
 /**
  * Creates a user-defined tool with the specified name and configuration.
@@ -1059,14 +1216,100 @@ export const make = <
   }) as any
 }
 
-export const dynamic = <
+/**
+ * Creates a dynamic tool that can accept either an Effect Schema or a raw
+ * JSON Schema for its parameters.
+ *
+ * This is useful for tools where the schema isn't known at compile time,
+ * such as MCP tools discovered at runtime or tools from external configurations.
+ *
+ * - When `parameters` is an Effect Schema: full type safety with validation
+ * - When `parameters` is a JSON Schema: handler receives `unknown`, no validation
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect"
+ * import { Tool } from "effect/unstable/ai"
+ *
+ * // With Effect Schema (typed parameters)
+ * const Calculator = Tool.dynamic("Calculator", {
+ *   parameters: Schema.Struct({
+ *     operation: Schema.Literal("add", "subtract"),
+ *     a: Schema.Number,
+ *     b: Schema.Number
+ *   }),
+ *   success: Schema.Number
+ * })
+ *
+ * // With JSON Schema (untyped parameters)
+ * const McpTool = Tool.dynamic("McpTool", {
+ *   description: "Tool from MCP server",
+ *   parameters: {
+ *     type: "object",
+ *     properties: { query: { type: "string" } },
+ *     required: ["query"]
+ *   }
+ * })
+ * ```
+ *
+ * @since 1.0.0
+ * @category constructors
+ */
+export const dynamic: {
+  <
+    const Name extends string,
+    const Options extends {
+      readonly description?: string | undefined
+      readonly parameters?: Schema.Top | JsonSchema.JsonSchema | undefined
+      readonly success?: Schema.Top | undefined
+      readonly failure?: Schema.Top | undefined
+      readonly failureMode?: FailureMode | undefined
+      readonly needsApproval?: NeedsApproval<any> | undefined
+    }
+  >(
+    name: Name,
+    options?: Options
+  ): Dynamic<
+    Name,
+    {
+      readonly parameters: Options extends { readonly parameters: infer P } ? P extends Schema.Top ? P
+        : P extends JsonSchema.JsonSchema ? P
+        : typeof Schema.Unknown
+        : typeof Schema.Unknown
+      readonly success: Options extends { readonly success: infer S extends Schema.Top } ? S : typeof Schema.Unknown
+      readonly failure: Options extends { readonly failure: infer F extends Schema.Top } ? F : typeof Schema.Never
+      readonly failureMode: Options extends { readonly failureMode: infer M extends FailureMode } ? M : "error"
+    }
+  >
+} = <
   const Name extends string,
-  Parameters extends Schema.Top = typeof Schema.Void,
-  Success extends Schema.Top = typeof Schema.Void,
-  Failure extends Schema.Top = typeof Schema.Never,
-  Mode extends FailureMode | undefined = undefined,
-  Dependencies extends Array<ServiceMap.Service<any, any>> = []
->(params: {}) => {}
+  const Options extends {
+    readonly description?: string | undefined
+    readonly parameters?: Schema.Top | JsonSchema.JsonSchema | undefined
+    readonly success?: Schema.Top | undefined
+    readonly failure?: Schema.Top | undefined
+    readonly failureMode?: FailureMode | undefined
+    readonly needsApproval?: NeedsApproval<any> | undefined
+  }
+>(name: Name, options?: Options): any => {
+  const successSchema = options?.success ?? Schema.Unknown
+  const failureSchema = options?.failure ?? Schema.Never
+  const rawParameters = options?.parameters ?? Schema.Unknown
+  const isEffectSchema = Schema.isSchema(rawParameters)
+  const parametersSchema = isEffectSchema ? rawParameters : Schema.Unknown
+  const jsonSchema = isEffectSchema ? undefined : rawParameters as JsonSchema.JsonSchema
+  return dynamicProto({
+    name,
+    description: options?.description,
+    parametersSchema,
+    successSchema,
+    failureSchema,
+    failureMode: options?.failureMode ?? "error",
+    annotations: ServiceMap.empty(),
+    needsApproval: options?.needsApproval,
+    jsonSchema
+  })
+}
 
 /**
  * Creates a provider-defined tool which leverages functionality built into a
@@ -1157,7 +1400,7 @@ export const providerDefined = <
          * If set to `"return"`, errors that occur during tool call handler execution
          * will be captured and returned as part of the tool call result.
          */
-        readonly failureMode?: Mode
+        readonly failureMode?: Mode | undefined
       }
     >
     : Struct.Simplify<Args["Encoded"]>
@@ -1173,7 +1416,9 @@ export const providerDefined = <
   },
   RequiresHandler
 > => {
-  const failureMode = "failureMode" in args ? (args as any).failureMode : undefined
+  const failureMode = Predicate.isNotUndefined(args) && "failureMode" in args
+    ? (args as any).failureMode
+    : undefined
   const successSchema = options?.success ?? Schema.Void
   const failureSchema = options?.failure ?? Schema.Never
   return providerDefinedProto({
@@ -1277,8 +1522,15 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
  * @since 1.0.0
  * @category utilities
  */
-export const getDescription = <Tool extends Any>(tool: Tool): string | undefined =>
-  tool.description ?? AST.resolveDescription(tool.parametersSchema.ast)
+export const getDescription = <Tool extends Any>(tool: Tool): string | undefined => {
+  if (tool.description !== undefined) {
+    return tool.description
+  }
+  if (Schema.isSchema(tool.parametersSchema)) {
+    return AST.resolveDescription(tool.parametersSchema.ast)
+  }
+  return undefined
+}
 
 /**
  * Generates a JSON Schema for a tool.
@@ -1320,7 +1572,12 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  */
 export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
   readonly transformer?: CodecTransformer
-}): JsonSchema.JsonSchema => getJsonSchemaFromSchema(tool.parametersSchema, options)
+}): JsonSchema.JsonSchema => {
+  if (isDynamic(tool) && tool.jsonSchema !== undefined) {
+    return tool.jsonSchema
+  }
+  return getJsonSchemaFromSchema(tool.parametersSchema, options)
+}
 
 /**
  * @since 1.0.0

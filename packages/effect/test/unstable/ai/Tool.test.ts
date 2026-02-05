@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Effect, Fiber, identity, Schema, Stream } from "effect"
+import { DateTime, Effect, Fiber, identity, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { AiError, LanguageModel, Response, Tool, Toolkit } from "effect/unstable/ai"
 import * as TestUtils from "./utils.ts"
@@ -976,5 +976,213 @@ const HandlerRequired = Tool.providerDefined({
   }),
   failure: Schema.Struct({
     testFailure: Schema.String
+  })
+})
+
+describe("Dynamic", () => {
+  describe("isDynamic", () => {
+    it.effect("returns true for dynamic tools with Effect Schema", () =>
+      Effect.gen(function*() {
+        const tool = Tool.dynamic("TestTool", {
+          parameters: Schema.Struct({ query: Schema.String })
+        })
+        assertTrue(Tool.isDynamic(tool))
+      }))
+
+    it.effect("returns true for dynamic tools with JSON Schema", () =>
+      Effect.gen(function*() {
+        const tool = Tool.dynamic("TestTool", {
+          parameters: { type: "object", properties: {} }
+        })
+        assertTrue(Tool.isDynamic(tool))
+      }))
+
+    it.effect("returns false for user-defined tools", () =>
+      Effect.gen(function*() {
+        const tool = Tool.make("TestTool", {
+          parameters: Schema.Struct({ query: Schema.String })
+        })
+        assertFalse(Tool.isDynamic(tool))
+      }))
+
+    it.effect("returns false for provider-defined tools", () =>
+      Effect.gen(function*() {
+        const tool = Tool.providerDefined({
+          id: "test.provider_tool",
+          customName: "ProviderTool",
+          providerName: "provider_tool"
+        })()
+        assertFalse(Tool.isDynamic(tool))
+      }))
+
+    it.effect("returns false for non-tool values", () =>
+      Effect.gen(function*() {
+        assertFalse(Tool.isDynamic(null))
+        assertFalse(Tool.isDynamic(undefined))
+        assertFalse(Tool.isDynamic({}))
+        assertFalse(Tool.isDynamic({ name: "fake" }))
+      }))
+  })
+
+  describe("getJsonSchema", () => {
+    it.effect("derives JSON Schema from Effect Schema parameters", () =>
+      Effect.gen(function*() {
+        const tool = Tool.dynamic("TestTool", {
+          parameters: Schema.Struct({
+            query: Schema.String,
+            limit: Schema.optional(Schema.Number)
+          })
+        })
+
+        const jsonSchema = Tool.getJsonSchema(tool)
+
+        strictEqual(jsonSchema.type, "object")
+        deepStrictEqual(jsonSchema.required, ["query"])
+        assertTrue("properties" in jsonSchema && "query" in (jsonSchema.properties as object))
+        assertTrue("properties" in jsonSchema && "limit" in (jsonSchema.properties as object))
+      }))
+
+    it.effect("returns JSON Schema directly when provided as parameters", () =>
+      Effect.gen(function*() {
+        const inputSchema = {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Search query" },
+            limit: { type: "number", minimum: 1, maximum: 100 }
+          },
+          required: ["query"],
+          additionalProperties: false
+        } as const
+
+        const tool = Tool.dynamic("TestTool", { parameters: inputSchema })
+        const jsonSchema = Tool.getJsonSchema(tool)
+
+        deepStrictEqual(jsonSchema, inputSchema)
+      }))
+
+    it.effect("preserves complex JSON Schema features like $ref and oneOf", () =>
+      Effect.gen(function*() {
+        const inputSchema = {
+          type: "object",
+          properties: {
+            value: { oneOf: [{ type: "string" }, { type: "number" }] },
+            item: { $ref: "#/$defs/Item" }
+          },
+          $defs: {
+            Item: { type: "object", properties: { name: { type: "string" } } }
+          }
+        } as const
+
+        const tool = Tool.dynamic("TestTool", { parameters: inputSchema })
+        const jsonSchema = Tool.getJsonSchema(tool)
+
+        deepStrictEqual(jsonSchema, inputSchema)
+      }))
+  })
+
+  describe("handler execution", () => {
+    it.effect("decodes parameters with Effect Schema before calling handler", () =>
+      Effect.gen(function*() {
+        const SearchTool = Tool.dynamic("SearchTool", {
+          parameters: Schema.Struct({
+            query: Schema.String,
+            limit: Schema.Number
+          }),
+          success: Schema.Array(Schema.String)
+        })
+
+        const toolkit = Toolkit.make(SearchTool)
+
+        const layer = toolkit.toLayer({
+          SearchTool: ({ query, limit }) => Effect.succeed(Array.from({ length: limit }, (_, i) => `${query}-${i}`))
+        })
+
+        const response = yield* LanguageModel.generateText({
+          prompt: "Test",
+          toolkit
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: [{
+              type: "tool-call",
+              id: "tool-123",
+              name: "SearchTool",
+              params: { query: "test", limit: 3 }
+            }]
+          }),
+          Effect.provide(layer)
+        )
+
+        deepStrictEqual(response.toolResults[0].result, ["test-0", "test-1", "test-2"])
+      }))
+
+    it.effect("passes parameters through as unknown with JSON Schema", () =>
+      Effect.gen(function*() {
+        const SearchTool = Tool.dynamic("SearchTool", {
+          parameters: {
+            type: "object",
+            properties: { query: { type: "string" }, limit: { type: "number" } }
+          },
+          success: Schema.Array(Schema.String)
+        })
+
+        const toolkit = Toolkit.make(SearchTool)
+
+        const layer = toolkit.toLayer({
+          SearchTool: (params: unknown) =>
+            Effect.gen(function*() {
+              const { query, limit } = params as { query: string; limit: number }
+              return Array.from({ length: limit }, (_, i) => `${query}-${i}`)
+            })
+        })
+
+        const response = yield* LanguageModel.generateText({
+          prompt: "Test",
+          toolkit
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: [{
+              type: "tool-call",
+              id: "tool-123",
+              name: "SearchTool",
+              params: { query: "test", limit: 3 }
+            }]
+          }),
+          Effect.provide(layer)
+        )
+
+        deepStrictEqual(response.toolResults[0].result, ["test-0", "test-1", "test-2"])
+      }))
+
+    it.effect("encodes success result using success schema", () =>
+      Effect.gen(function*() {
+        const tool = Tool.dynamic("TestTool", {
+          parameters: { type: "object", properties: {} },
+          success: Schema.Struct({ timestamp: Schema.DateTimeUtcFromMillis })
+        })
+
+        const toolkit = Toolkit.make(tool)
+
+        const layer = toolkit.toLayer({
+          TestTool: () => Effect.succeed({ timestamp: DateTime.fromDateUnsafe(new Date(1000)) })
+        })
+
+        const response = yield* LanguageModel.generateText({
+          prompt: "Test",
+          toolkit
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: [{
+              type: "tool-call",
+              id: "tool-123",
+              name: "TestTool",
+              params: {}
+            }]
+          }),
+          Effect.provide(layer)
+        )
+
+        const toolResult = response.toolResults[0]
+        deepStrictEqual(toolResult.result.timestamp, DateTime.makeUnsafe(new Date(1000)))
+      }))
   })
 })
