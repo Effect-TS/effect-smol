@@ -44,9 +44,29 @@ import type * as Prompt from "./Prompt.ts"
 // Type Ids
 // =============================================================================
 
-const TypeId = "~effect/ai/Tool" as const
+/**
+ * @since 1.0.0
+ * @category type ids
+ */
+export const TypeId: TypeId = "~effect/ai/Tool"
 
-const ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined" as const
+/**
+ * @since 1.0.0
+ * @category type ids
+ */
+export type TypeId = "~effect/ai/Tool"
+
+/**
+ * @since 1.0.0
+ * @category type ids
+ */
+export const ProviderDefinedTypeId: ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
+
+/**
+ * @since 1.0.0
+ * @category type ids
+ */
+export type ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
 
 // =============================================================================
 // Models
@@ -94,7 +114,7 @@ export interface NeedsApprovalContext {
 export type NeedsApprovalFunction<Params extends Schema.Top> = (
   params: Params["Type"],
   context: NeedsApprovalContext
-) => boolean | Effect.Effect<boolean, never, any>
+) => boolean | Effect.Effect<boolean>
 
 /**
  * Specifies whether user approval is required before executing a tool.
@@ -322,16 +342,16 @@ export interface Tool<
  * @category models
  */
 export interface ProviderDefined<
-  Identifier extends `${string}.${string}`,
-  Name extends string,
-  Config extends {
+  out Identifier extends `${string}.${string}`,
+  out Name extends string,
+  out Config extends {
     readonly args: Schema.Top
     readonly parameters: Schema.Top
     readonly success: Schema.Top
     readonly failure: Schema.Top
     readonly failureMode: FailureMode
   },
-  RequiresHandler extends boolean = false
+  out RequiresHandler extends boolean = false
 > extends
   Tool<
     Name,
@@ -1038,6 +1058,15 @@ export const make = <
     needsApproval: options?.needsApproval as any
   }) as any
 }
+
+export const dynamic = <
+  const Name extends string,
+  Parameters extends Schema.Top = typeof Schema.Void,
+  Success extends Schema.Top = typeof Schema.Void,
+  Failure extends Schema.Top = typeof Schema.Never,
+  Mode extends FailureMode | undefined = undefined,
+  Dependencies extends Array<ServiceMap.Service<any, any>> = []
+>(params: {}) => {}
 
 /**
  * Creates a provider-defined tool which leverages functionality built into a
