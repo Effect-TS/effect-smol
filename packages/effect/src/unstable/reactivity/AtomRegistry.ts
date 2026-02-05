@@ -221,6 +221,10 @@ export const mount: {
 
 const constImmediate = { immediate: true }
 
+const notifyListener = (listener: () => void): void => {
+  listener()
+}
+
 const SerializableTypeId: Atom.SerializableTypeId = "~effect-atom/atom/Atom/Serializable"
 const atomKey = <A>(atom: Atom.Atom<A>): Atom.Atom<A> | string =>
   SerializableTypeId in atom ? (atom as Atom.Serializable<any>)[SerializableTypeId].key : atom
@@ -622,9 +626,7 @@ class NodeImpl<A> {
   }
 
   notify(): void {
-    for (const listener of this.listeners) {
-      listener()
-    }
+    this.listeners.forEach(notifyListener)
 
     if (batchState.phase === BatchPhase.commit) {
       batchState.notify.delete(this)
