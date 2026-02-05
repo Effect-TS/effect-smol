@@ -70,7 +70,7 @@ export declare namespace Client {
       infer _Name,
       infer _Method,
       infer _Path,
-      infer _PathParams,
+      infer _Params,
       infer _Query,
       infer _Payload,
       infer _Headers,
@@ -80,12 +80,12 @@ export declare namespace Client {
       infer _MR
     >
   ] ? <WithResponse extends boolean = false>(
-      request: Simplify<HttpApiEndpoint.ClientRequest<_PathParams, _Query, _Payload, _Headers, WithResponse>>
+      request: Simplify<HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, WithResponse>>
     ) => Effect.Effect<
       WithResponse extends true ? [_Success["Type"], HttpClientResponse.HttpClientResponse] : _Success["Type"],
       _Error["Type"] | HttpApiMiddleware.Error<_Middleware> | E | HttpClientError.HttpClientError | Schema.SchemaError,
       | R
-      | _PathParams["EncodingServices"]
+      | _Params["EncodingServices"]
       | _Query["EncodingServices"]
       | _Payload["EncodingServices"]
       | _Headers["EncodingServices"]
@@ -198,7 +198,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
 
         // encoders
         const encodePath = Schema.encodeUnknownEffect(
-          getEncodePathParamsSchema(HttpApiEndpoint.getPathParamsSchema(endpoint))
+          getEncodeParamsSchema(HttpApiEndpoint.getParamsSchema(endpoint))
         )
         const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
         const encodePayloadBody = Arr.isArrayNonEmpty(payloadSchemas) ?
@@ -218,7 +218,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
 
         const endpointFn = Effect.fnUntraced(function*(
           request: {
-            readonly pathParams: Record<string, string> | undefined
+            readonly params: Record<string, string> | undefined
             readonly query: unknown
             readonly payload: unknown
             readonly headers: Record<string, string> | undefined
@@ -229,9 +229,9 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
 
           if (request !== undefined) {
             // path
-            if (request.pathParams !== undefined) {
-              const encodedPathParams = yield* encodePath(request.pathParams)
-              httpRequest = HttpClientRequest.setUrl(httpRequest, makeUrl(encodedPathParams))
+            if (request.params !== undefined) {
+              const encodedParams = yield* encodePath(request.params)
+              httpRequest = HttpClientRequest.setUrl(httpRequest, makeUrl(encodedParams))
             }
 
             // payload
@@ -283,10 +283,10 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
     })
   })
 
-function getEncodePathParamsSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
-  return (schema as any) ?? defaultEncodePathParamsSchema
+function getEncodeParamsSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
+  return (schema as any) ?? defaultEncodeParamsSchema
 }
-const defaultEncodePathParamsSchema = Schema.Record(Schema.String, Schema.String)
+const defaultEncodeParamsSchema = Schema.Record(Schema.String, Schema.String)
 
 function getEncodeHeadersSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
   return (schema as any) ?? defaultEncodeHeadersSchema

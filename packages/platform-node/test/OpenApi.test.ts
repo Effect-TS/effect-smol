@@ -488,14 +488,14 @@ describe("OpenAPI spec", () => {
       })
     })
 
-    describe("pathParams option", () => {
+    describe("params option", () => {
       it("GET", () => {
         const Api = HttpApi.make("api")
           .add(
             HttpApiGroup.make("group")
               .add(
                 HttpApiEndpoint.get("a", "/a/:id", {
-                  pathParams: {
+                  params: {
                     id: Schema.FiniteFromString
                   }
                 })
@@ -714,7 +714,7 @@ describe("OpenAPI spec", () => {
             })
           })
 
-          it("asUrlParams", () => {
+          it("asFormUrlEncoded", () => {
             const Api = HttpApi.make("api")
               .add(
                 HttpApiGroup.make("group")
@@ -956,7 +956,7 @@ describe("OpenAPI spec", () => {
           })
         })
 
-        it("asUrlParams", () => {
+        it("asFormUrlEncoded", () => {
           const Api = HttpApi.make("api")
             .add(
               HttpApiGroup.make("group")

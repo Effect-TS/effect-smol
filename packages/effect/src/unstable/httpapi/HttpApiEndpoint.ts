@@ -40,7 +40,7 @@ export interface HttpApiEndpoint<
   out Name extends string,
   out Method extends HttpMethod,
   out Path extends string,
-  out PathParams extends Schema.Top = never,
+  out Params extends Schema.Top = never,
   out Query extends Schema.Top = never,
   out Payload extends Schema.Top = never,
   out Headers extends Schema.Top = never,
@@ -52,7 +52,7 @@ export interface HttpApiEndpoint<
   readonly [TypeId]: {
     readonly _MiddlewareR: Types.Covariant<MiddlewareR>
   }
-  readonly "~PathParams": PathParams
+  readonly "~Params": Params
   readonly "~Query": Query
   readonly "~Headers": Headers
   readonly "~Payload": Payload
@@ -62,7 +62,7 @@ export interface HttpApiEndpoint<
   readonly name: Name
   readonly path: Path
   readonly method: Method
-  readonly pathParams: Schema.Struct.Fields | undefined
+  readonly params: Schema.Struct.Fields | undefined
   readonly query: Schema.Struct.Fields | undefined
   readonly headers: Schema.Struct.Fields | undefined
   readonly payload: ReadonlySet<Schema.Top>
@@ -80,7 +80,7 @@ export interface HttpApiEndpoint<
     Name,
     Method,
     `${Prefix}${Path}`,
-    PathParams,
+    Params,
     Query,
     Payload,
     Headers,
@@ -97,7 +97,7 @@ export interface HttpApiEndpoint<
     Name,
     Method,
     Path,
-    PathParams,
+    Params,
     Query,
     Payload,
     Headers,
@@ -117,7 +117,7 @@ export interface HttpApiEndpoint<
     Name,
     Method,
     Path,
-    PathParams,
+    Params,
     Query,
     Payload,
     Headers,
@@ -136,7 +136,7 @@ export interface HttpApiEndpoint<
     Name,
     Method,
     Path,
-    PathParams,
+    Params,
     Query,
     Payload,
     Headers,
@@ -148,8 +148,8 @@ export interface HttpApiEndpoint<
 }
 
 /** @internal */
-export function getPathParamsSchema(endpoint: AnyWithProps): Schema.Top | undefined {
-  return endpoint.pathParams ? Schema.Struct(endpoint.pathParams) : undefined
+export function getParamsSchema(endpoint: AnyWithProps): Schema.Top | undefined {
+  return endpoint.params ? Schema.Struct(endpoint.params) : undefined
 }
 
 /** @internal */
@@ -212,7 +212,7 @@ export type Name<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -231,7 +231,7 @@ export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -250,7 +250,7 @@ export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -265,11 +265,11 @@ export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @since 4.0.0
  * @category models
  */
-export type PathParams<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+export type Params<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -277,7 +277,7 @@ export type PathParams<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Error,
   infer _M,
   infer _MR
-> ? _PathParams
+> ? _Params
   : never
 
 /**
@@ -288,7 +288,7 @@ export type Query<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -307,7 +307,7 @@ export type Payload<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -326,7 +326,7 @@ export type Headers<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -345,7 +345,7 @@ export type Middleware<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -376,7 +376,7 @@ export type Errors<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -395,7 +395,7 @@ export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApi
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -414,7 +414,7 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -423,7 +423,7 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    & ([_PathParams["Type"]] extends [never] ? {} : { readonly pathParams: _PathParams["Type"] })
+    & ([_Params["Type"]] extends [never] ? {} : { readonly params: _Params["Type"] })
     & ([_Query["Type"]] extends [never] ? {} : { readonly query: _Query["Type"] })
     & ([_Payload["Type"]] extends [never] ? {}
       : _Payload["Type"] extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
@@ -445,7 +445,7 @@ export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -454,7 +454,7 @@ export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    & ([_PathParams["Type"]] extends [never] ? {} : { readonly pathParams: _PathParams["Type"] })
+    & ([_Params["Type"]] extends [never] ? {} : { readonly params: _Params["Type"] })
     & ([_Query["Type"]] extends [never] ? {} : { readonly query: _Query["Type"] })
     & ([_Headers["Type"]] extends [never] ? {} : { readonly headers: _Headers["Type"] })
     & {
@@ -469,13 +469,13 @@ export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  */
 export type ClientRequest<
-  PathParams extends Schema.Top,
+  Params extends Schema.Top,
   Query extends Schema.Top,
   Payload extends Schema.Top,
   Headers extends Schema.Top,
   WithResponse extends boolean
 > = (
-  & ([PathParams["Type"]] extends [never] ? {} : { readonly pathParams: PathParams["Type"] })
+  & ([Params["Type"]] extends [never] ? {} : { readonly params: Params["Type"] })
   & ([Query["Type"]] extends [never] ? {} : { readonly query: Query["Type"] })
   & ([Headers["Type"]] extends [never] ? {} : { readonly headers: Headers["Type"] })
   & ([Payload["Type"]] extends [never] ? {}
@@ -496,7 +496,7 @@ export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -505,7 +505,7 @@ export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    | _PathParams["DecodingServices"]
+    | _Params["DecodingServices"]
     | _Query["DecodingServices"]
     | _Payload["DecodingServices"]
     | _Headers["DecodingServices"]
@@ -522,7 +522,7 @@ export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -531,7 +531,7 @@ export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    | _PathParams["EncodingServices"]
+    | _Params["EncodingServices"]
     | _Query["EncodingServices"]
     | _Payload["EncodingServices"]
     | _Headers["EncodingServices"]
@@ -547,7 +547,7 @@ export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -566,7 +566,7 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -679,7 +679,7 @@ export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput>
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -691,7 +691,7 @@ export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput>
     _Name,
     _Method,
     `${Prefix}${_Path}`,
-    _PathParams,
+    _Params,
     _Query,
     _Payload,
     _Headers,
@@ -710,7 +710,7 @@ export type AddError<Endpoint extends Any, E extends Schema.Top> = Endpoint exte
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -722,7 +722,7 @@ export type AddError<Endpoint extends Any, E extends Schema.Top> = Endpoint exte
     _Name,
     _Method,
     _Path,
-    _PathParams,
+    _Params,
     _Query,
     _Payload,
     _Headers,
@@ -741,7 +741,7 @@ export type AddMiddleware<Endpoint extends Any, M extends HttpApiMiddleware.AnyI
   infer _Name,
   infer _Method,
   infer _Path,
-  infer _PathParams,
+  infer _Params,
   infer _Query,
   infer _Payload,
   infer _Headers,
@@ -753,7 +753,7 @@ export type AddMiddleware<Endpoint extends Any, M extends HttpApiMiddleware.AnyI
     _Name,
     _Method,
     _Path,
-    _PathParams,
+    _Params,
     _Query,
     _Payload,
     _Headers,
@@ -799,7 +799,7 @@ function makeProto<
   Name extends string,
   Method extends HttpMethod,
   const Path extends string,
-  PathParams extends Schema.Top,
+  Params extends Schema.Top,
   Query extends Schema.Top,
   Payload extends Schema.Top,
   Headers extends Schema.Top,
@@ -811,7 +811,7 @@ function makeProto<
   readonly name: Name
   readonly path: Path
   readonly method: Method
-  readonly pathParams: Schema.Struct.Fields | undefined
+  readonly params: Schema.Struct.Fields | undefined
   readonly query: Schema.Struct.Fields | undefined
   readonly headers: Schema.Struct.Fields | undefined
   readonly payload: ReadonlySet<Schema.Top>
@@ -823,7 +823,7 @@ function makeProto<
   Name,
   Method,
   Path,
-  PathParams,
+  Params,
   Query,
   Payload,
   Headers,
@@ -836,7 +836,7 @@ function makeProto<
 }
 
 /**
- * Path params come from the router as `string` (optional params as `undefined`) and
+ * Params come from the router as `string` (optional params as `undefined`) and
  * must be encodable back into the URL path.
  *
  * We accept "struct fields" (`Record<string, Codec<...>>`) so we can both enforce
@@ -846,7 +846,7 @@ function makeProto<
  * @since 4.0.0
  * @category constraints
  */
-export type PathParamsContraint = Record<string, Schema.Encoder<string | undefined, unknown>>
+export type ParamsContraint = Record<string, Schema.Encoder<string | undefined, unknown>>
 
 /**
  * URL search params can be repeated, so fields may encode to `string` or
@@ -911,7 +911,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
 <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
-  PathParams extends PathParamsContraint = never,
+  Params extends ParamsContraint = never,
   Query extends QuerySchemaContraint = never,
   Payload extends PayloadSchemaContraint<Method> = never,
   Headers extends HeadersSchemaContraint = never,
@@ -921,7 +921,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   name: Name,
   path: Path,
   options?: {
-    readonly pathParams?: PathParams | undefined
+    readonly params?: Params | undefined
     readonly query?: Query | undefined
     readonly headers?: Headers | undefined
     readonly payload?: Payload | undefined
@@ -932,7 +932,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   Name,
   Method,
   Path,
-  PathParams extends Schema.Struct.Fields ? Schema.Struct<PathParams> : PathParams,
+  Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params,
   Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query,
   Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
     : Payload extends ReadonlyArray<Schema.Top> ? Payload[number]
@@ -945,7 +945,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     name,
     path,
     method,
-    pathParams: options?.pathParams,
+    params: options?.params,
     query: options?.query,
     headers: options?.headers,
     payload: getPayload(options?.payload),

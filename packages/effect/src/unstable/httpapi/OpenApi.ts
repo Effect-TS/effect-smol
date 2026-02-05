@@ -417,7 +417,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         )
       }
 
-      processParameters(endpoint.pathParams, "path")
+      processParameters(endpoint.params, "path")
       if (!hasBody && endpoint.payload.size === 1) {
         const schemas = [...endpoint.payload]
         const schema = schemas[0] as Schema.Struct<Schema.Struct.Fields>

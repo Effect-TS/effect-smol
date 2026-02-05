@@ -6,24 +6,24 @@ describe("HttpApiEndpoint", () => {
   describe("path option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      type T = typeof endpoint["~PathParams"]
+      type T = typeof endpoint["~Params"]
       expect<T>().type.toBe<never>()
     })
 
     it("should accept a record of fields", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
-        pathParams: {
+        params: {
           id: Schema.FiniteFromString
         }
       })
-      type T = typeof endpoint["~PathParams"]
+      type T = typeof endpoint["~Params"]
       expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }>>()
     })
 
     it("should not accept any other schema", () => {
       HttpApiEndpoint.get("a", "/a", {
-        // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'PathParamsContraint'.
-        pathParams: Schema.Struct({ id: Schema.String })
+        // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'ParamsContraint'.
+        params: Schema.Struct({ id: Schema.String })
       })
     })
   })

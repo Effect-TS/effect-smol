@@ -189,12 +189,12 @@ describe("HttpApi", () => {
     })
   })
 
-  describe("pathParams option", () => {
+  describe("params option", () => {
     it.effect("should accept a record of schemas", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("get", "/:id", {
-            pathParams: {
+            params: {
               id: Schema.FiniteFromString
             },
             success: Schema.String
@@ -204,7 +204,7 @@ describe("HttpApi", () => {
       const GroupLive = HttpApiBuilder.group(
         Api,
         "group",
-        (handlers) => handlers.handle("get", (ctx) => Effect.succeed(`User ${ctx.pathParams.id}`))
+        (handlers) => handlers.handle("get", (ctx) => Effect.succeed(`User ${ctx.params.id}`))
       )
 
       const ApiLive = HttpRouter.serve(
@@ -214,7 +214,7 @@ describe("HttpApi", () => {
 
       return Effect.gen(function*() {
         const client = yield* HttpApiClient.make(Api)
-        const result = yield* client.group.get({ pathParams: { id: 1 } })
+        const result = yield* client.group.get({ params: { id: 1 } })
         assert.strictEqual(result, "User 1")
       }).pipe(Effect.provide(ApiLive))
     })
@@ -303,7 +303,7 @@ describe("HttpApi", () => {
     })
   })
 
-  describe("urlParams", () => {
+  describe("query", () => {
     it.effect("should accept a record of schemas", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
@@ -384,7 +384,7 @@ describe("HttpApi", () => {
         const client = yield* HttpApiClient.make(Api)
         const data = new FormData()
         data.append("file", new Blob(["hello"], { type: "text/plain" }), "hello.txt")
-        const result = yield* client.users.upload({ payload: data, pathParams: {} })
+        const result = yield* client.users.upload({ payload: data, params: {} })
         assert.deepStrictEqual(result, {
           contentType: "text/plain",
           length: 5
@@ -465,7 +465,7 @@ describe("HttpApi", () => {
     it.effect("empty errors decode", () =>
       Effect.gen(function*() {
         const client = yield* HttpApiClient.make(Api)
-        const error = yield* client.groups.findById({ pathParams: { id: 0 } }).pipe(
+        const error = yield* client.groups.findById({ params: { id: 0 } }).pipe(
           Effect.flip
         )
         assert.deepStrictEqual(error, new GroupError({}))
@@ -497,7 +497,7 @@ describe("HttpApi", () => {
     it.effect("HttpApiSchemaError", () =>
       Effect.gen(function*() {
         const client = yield* HttpApiClient.make(Api)
-        const error = yield* client.users.upload({ pathParams: {}, payload: new FormData() }).pipe(
+        const error = yield* client.users.upload({ params: {}, payload: new FormData() }).pipe(
           Effect.flip
         )
         assert.strictEqual(error._tag, "HttpApiSchemaError")
@@ -550,7 +550,7 @@ describe("HttpApi", () => {
         const client = yield* HttpApiClient.makeWith(Api, {
           httpClient: HttpClient.withCookiesRef(yield* HttpClient.HttpClient, ref)
         })
-        const user = yield* client.users.findById({ pathParams: { id: -1 } })
+        const user = yield* client.users.findById({ params: { id: -1 } })
         assert.strictEqual(user.name, "foo")
       }).pipe(Effect.provide(HttpLive)))
 
@@ -625,7 +625,7 @@ describe("HttpApi", () => {
     Effect.gen(function*() {
       const client = yield* HttpApiClient.make(Api)
       const response = yield* client.groups.handle({
-        pathParams: { id: 1 },
+        params: { id: 1 },
         payload: { name: "Some group" }
       })
       assert.deepStrictEqual(response, {
@@ -638,7 +638,7 @@ describe("HttpApi", () => {
     Effect.gen(function*() {
       const client = yield* HttpApiClient.make(Api)
       const response = yield* client.groups.handleRaw({
-        pathParams: { id: 1 },
+        params: { id: 1 },
         payload: { name: "Some group" }
       })
       assert.deepStrictEqual(response, {
@@ -752,7 +752,7 @@ class Authorization extends HttpApiMiddleware.Service<Authorization, {
 
 class GroupsApi extends HttpApiGroup.make("groups").add(
   HttpApiEndpoint.get("findById", "/:id", {
-    pathParams: {
+    params: {
       id: Schema.FiniteFromString
     },
     success: Group,
@@ -773,7 +773,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
     success: Group
   }),
   HttpApiEndpoint.post("handle", "/handle/:id", {
-    pathParams: {
+    params: {
       id: Schema.FiniteFromString
     },
     payload: Schema.Struct({
@@ -785,7 +785,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
     })
   }),
   HttpApiEndpoint.post("handleRaw", "/handleraw/:id", {
-    pathParams: {
+    params: {
       id: Schema.FiniteFromString
     },
     payload: Schema.Struct({
@@ -801,7 +801,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
 class UsersApi extends HttpApiGroup.make("users")
   .add(
     HttpApiEndpoint.get("findById", "/:id", {
-      pathParams: {
+      params: {
         id: Schema.FiniteFromString
       },
       success: User,
@@ -835,7 +835,7 @@ class UsersApi extends HttpApiGroup.make("users")
       .annotate(OpenApi.Summary, "test summary")
       .annotateMerge(OpenApi.annotations({ identifier: "listUsers" })),
     HttpApiEndpoint.post("upload", "/upload/:0?", {
-      pathParams: {
+      params: {
         0: Schema.optional(Schema.String)
       },
       payload: Schema.Struct({
@@ -929,7 +929,7 @@ const HttpUsersLive = HttpApiBuilder.group(
     const fs = yield* FileSystem.FileSystem
     const repo = yield* UserRepo
     return handlers
-      .handle("findById", (_) => _.pathParams.id === -1 ? CurrentUser.asEffect() : repo.findById(_.pathParams.id))
+      .handle("findById", (_) => _.params.id === -1 ? CurrentUser.asEffect() : repo.findById(_.params.id))
       .handle("create", (_) =>
         _.payload.name === "boom"
           ? Effect.fail(new UserError({}))
@@ -990,8 +990,8 @@ const HttpGroupsLive = HttpApiBuilder.group(
   "groups",
   (handlers) =>
     handlers
-      .handle("findById", ({ pathParams }) =>
-        pathParams.id === 0
+      .handle("findById", ({ params }) =>
+        params.id === 0
           ? Effect.fail(new GroupError({}))
           : Effect.succeed(new Group({ id: 1, name: "foo" })))
       .handle("create", ({ payload }) =>
@@ -1003,19 +1003,19 @@ const HttpGroupsLive = HttpApiBuilder.group(
         ))
       .handle(
         "handle",
-        Effect.fnUntraced(function*({ pathParams, payload }) {
+        Effect.fnUntraced(function*({ params, payload }) {
           return HttpServerResponse.jsonUnsafe({
-            id: pathParams.id,
+            id: params.id,
             name: payload.name
           })
         })
       )
       .handleRaw(
         "handleRaw",
-        Effect.fnUntraced(function*({ pathParams, request }) {
+        Effect.fnUntraced(function*({ params, request }) {
           const body = (yield* Effect.orDie(request.json)) as { name: string }
           return HttpServerResponse.jsonUnsafe({
-            id: pathParams.id,
+            id: params.id,
             name: body.name
           })
         })

@@ -465,7 +465,7 @@ function handlerToRoute(
   const encodeSuccess = Schema.encodeUnknownEffect(makeSuccessSchema(endpoint))
 
   // path
-  const decodePath = UndefinedOr.map(HttpApiEndpoint.getPathParamsSchema(endpoint), Schema.decodeUnknownEffect)
+  const decodePath = UndefinedOr.map(HttpApiEndpoint.getParamsSchema(endpoint), Schema.decodeUnknownEffect)
 
   // headers
   const decodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.decodeUnknownEffect)
@@ -555,7 +555,7 @@ function handlerToRoute(
           group
         }
         if (decodePath) {
-          request.pathParams = yield* decodePath(routeContext.params)
+          request.params = yield* decodePath(routeContext.params)
         }
         if (decodeHeaders) {
           request.headers = yield* decodeHeaders(httpRequest.headers)

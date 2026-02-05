@@ -56,7 +56,7 @@ In particular:
 
 ### Anatomy of an Endpoint
 
-An endpoint definition can include (all optional) path parameters, query string parameters, headers, a payload, and the possible success / error responses.
+An endpoint definition can include (all optional) parameters, query string parameters, headers, a payload, and the possible success / error responses.
 
 ```ts
 const User = Schema.Struct({
@@ -68,10 +68,10 @@ const User = Schema.Struct({
 //                     │            ┌─── Endpoint path
 //                     ▼            ▼
 HttpApiEndpoint.patch("updateUser", "/user/:id", {
-  // Path parameters from the route pattern (e.g. /user/:id).
+  // Parameters from the route pattern (e.g. /user/:id).
   // This is a record where each key is the parameter name.
-  pathParams: {
-    //  ┌─── Schema for the "id" path parameter.
+  params: {
+    //  ┌─── Schema for the "id" parameter.
     //  ▼
     id: Schema.String
   },
@@ -382,11 +382,11 @@ const ApiLive = HttpApiBuilder.layer(Api).pipe(
 Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
-### Path Parameters
+### Parameters
 
-Path parameters allow you to include dynamic segments in your endpoint's path
+Parameters allow you to include dynamic segments in your endpoint's path
 
-The `path` option allows you to explicitly define path parameters by associating them with a schema.
+The `params` option allows you to explicitly define parameters by associating them with a schema.
 
 **Example** (Defining a GET Endpoint to Retrieve a User by ID)
 
@@ -409,10 +409,10 @@ const Api = HttpApi.make("MyApi")
         HttpApiEndpoint.get("getUsers", "/users", {
           success: Schema.Array(User)
         }),
-        // a GET endpoint with a path parameter ":id"
+        // a GET endpoint with a parameter ":id"
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          pathParams: {
-            //  ┌─── schema for the "id" path parameter
+          params: {
+            //  ┌─── schema for the "id" parameter
             //  ▼
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
@@ -433,7 +433,7 @@ const GroupLive = HttpApiBuilder.group(
       .handle("getUser", (ctx) => {
         //    ┌─── number
         //    ▼
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
 )
@@ -474,7 +474,7 @@ const Api = HttpApi.make("MyApi")
           success: Schema.Array(User)
         }),
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User
@@ -499,7 +499,7 @@ const GroupLive = HttpApiBuilder.group(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         ))
       .handle("getUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("createUser", (ctx) => {
@@ -524,7 +524,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 The `HttpApiEndpoint.del` method is used to define an endpoint for deleting a resource.
 
-**Example** (Defining a DELETE Endpoint with Path Parameters)
+**Example** (Defining a DELETE Endpoint with Parameters)
 
 ```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
@@ -548,7 +548,7 @@ const Api = HttpApi.make("MyApi")
           success: Schema.Array(User)
         }),
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           },
           success: User
@@ -558,7 +558,7 @@ const Api = HttpApi.make("MyApi")
           success: User
         }),
         HttpApiEndpoint.del("deleteUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           }
         })
@@ -575,7 +575,7 @@ const GroupLive = HttpApiBuilder.group(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         ))
       .handle("getUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("createUser", (ctx) => {
@@ -583,7 +583,7 @@ const GroupLive = HttpApiBuilder.group(
         return Effect.succeed(user)
       })
       .handle("deleteUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.log(`Deleting user ${id}`)
       })
 )
@@ -626,7 +626,7 @@ const Api = HttpApi.make("MyApi")
           success: Schema.Array(User)
         }),
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           },
           success: User
@@ -636,12 +636,12 @@ const Api = HttpApi.make("MyApi")
           success: User
         }),
         HttpApiEndpoint.del("deleteUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           }
         }),
         HttpApiEndpoint.patch("updateUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           },
           // Specify the schema for the request payload
@@ -664,7 +664,7 @@ const GroupLive = HttpApiBuilder.group(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         ))
       .handle("getUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("createUser", (ctx) => {
@@ -672,11 +672,11 @@ const GroupLive = HttpApiBuilder.group(
         return Effect.succeed(user)
       })
       .handle("deleteUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.log(`Deleting user ${id}`)
       })
       .handle("updateUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
 )
@@ -719,7 +719,7 @@ const Api = HttpApi.make("MyApi")
           success: Schema.Array(User)
         }),
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           },
           success: User
@@ -729,12 +729,12 @@ const Api = HttpApi.make("MyApi")
           success: User
         }),
         HttpApiEndpoint.del("deleteUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           }
         }),
         HttpApiEndpoint.patch("updateUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           },
           payload: Schema.Struct({
@@ -759,7 +759,7 @@ const GroupLive = HttpApiBuilder.group(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         ))
       .handle("getUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("createUser", (ctx) => {
@@ -767,11 +767,11 @@ const GroupLive = HttpApiBuilder.group(
         return Effect.succeed(user)
       })
       .handle("deleteUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.log(`Deleting user ${id}`)
       })
       .handle("updateUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("catchAll", () => {
@@ -795,11 +795,11 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 > [!IMPORTANT]
 > (OpenAPI). A catch-all endpoint is not included in the OpenAPI specification because can't be represented as a path.
 
-### URL Parameters
+### Query Parameters
 
 The `query` option allows you to define the structure of query parameters for an endpoint.
 
-**Example** (Defining URL Parameters with Metadata)
+**Example** (Defining Query Parameters with Metadata)
 
 ```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
@@ -821,7 +821,7 @@ const Api = HttpApi.make("MyApi")
       .add(
         HttpApiEndpoint.get("getUsers", "/users", {
           success: Schema.Array(User),
-          // Specify a schema for each URL parameter
+          // Specify a schema for each query parameter
           query: {
             // Parameter "page" for pagination
             page: Schema.optionalKey(Page),
@@ -856,11 +856,11 @@ const ApiLive = HttpApiBuilder.layer(Api).pipe(
 Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
-#### Defining an Array of Values for a URL Parameter
+#### Defining an Array of Values for a Query Parameter
 
-When defining a URL parameter that accepts multiple values, you can use the `Schema.Array` combinator. This allows the parameter to handle an array of items, with each item adhering to a specified schema.
+When defining a query parameter that accepts multiple values, you can use the `Schema.Array` combinator. This allows the parameter to handle an array of items, with each item adhering to a specified schema.
 
-**Example** (Defining an Array of String Values for a URL Parameter)
+**Example** (Defining an Array of String Values for a Query Parameter)
 
 ```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
@@ -1147,7 +1147,7 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.post("createUser", "/user", {
-          // Set the request payload as a string encoded with URL parameters
+          // Set the request payload as a string encoded with query parameters
           payload: Schema.Struct({
             id: Schema.FiniteFromString.check(Schema.isInt()), // must decode from a string
             name: Schema.String
@@ -1299,7 +1299,7 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User,
@@ -1319,7 +1319,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         if (id === 1) {
           return Effect.fail(UserNotFound.makeUnsafe({ message: "User not found" }))
         }
@@ -1374,7 +1374,7 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User,
@@ -1394,7 +1394,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         if (id === 1) {
           return Effect.fail(new HttpApiError.NotFound({}))
         }
@@ -1458,7 +1458,7 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User,
@@ -1478,7 +1478,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         if (id === 1) {
           return Effect.fail(new HttpApiError.NotFound({}))
         }
@@ -1582,7 +1582,7 @@ const Api = HttpApi.make("MyApi")
     HttpApiGroup.make("Users")
       .add(
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User
@@ -1596,7 +1596,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.gen(function*() {
           // Access the UsersRepository service
           const repository = yield* UsersRepository
@@ -1819,7 +1819,7 @@ const User = Schema.Struct({
 const Api = HttpApi.make("api").add(
   HttpApiGroup.make("group").add(
     HttpApiEndpoint.get("getUser", "/user/:id", {
-      pathParams: {
+      params: {
         id: Schema.FiniteFromString.check(Schema.isInt())
       },
       success: User
@@ -1835,7 +1835,7 @@ const GroupLive = HttpApiBuilder.group(
   "group",
   (handlers) =>
     handlers.handle("getUser", (ctx) => {
-      const id = ctx.pathParams.id
+      const id = ctx.params.id
       return Effect.succeed({ id, name: `User ${id}` })
     })
 )
@@ -2084,7 +2084,7 @@ const Api = HttpApi.make("MyApi")
           success: Schema.Array(User)
         }),
         HttpApiEndpoint.get("getUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           },
           success: User
@@ -2094,12 +2094,12 @@ const Api = HttpApi.make("MyApi")
           success: User
         }),
         HttpApiEndpoint.del("deleteUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           }
         }),
         HttpApiEndpoint.patch("updateUser", "/user/:id", {
-          pathParams: {
+          params: {
             id: IdParam
           },
           // Specify the schema for the request payload
@@ -2122,7 +2122,7 @@ const GroupLive = HttpApiBuilder.group(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         ))
       .handle("getUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
       .handle("createUser", (ctx) => {
@@ -2130,11 +2130,11 @@ const GroupLive = HttpApiBuilder.group(
         return Effect.succeed(user)
       })
       .handle("deleteUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.log(`Deleting user ${id}`)
       })
       .handle("updateUser", (ctx) => {
-        const id = ctx.pathParams.id
+        const id = ctx.params.id
         return Effect.succeed({ id, name: `User ${id}` })
       })
 )
