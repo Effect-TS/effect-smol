@@ -97,6 +97,37 @@ describe("toCodecAnthropic", () => {
         "description": "a value with a length of at least 1 and a value with a length of at most 2"
       })
     })
+
+    it("String + startsWith", () => {
+      assertJsonSchema(Schema.String.check(Schema.isStartsWith("a")), {
+        "type": "string",
+        "description": `a string starting with "a"`,
+        "allOf": [
+          { "pattern": "^a" }
+        ]
+      })
+    })
+
+    it("String + startsWith + endsWith", () => {
+      assertJsonSchema(Schema.String.check(Schema.isStartsWith("a"), Schema.isEndsWith("b")), {
+        "type": "string",
+        "description": `a string starting with "a" and a string ending with "b"`,
+        "allOf": [
+          { "pattern": "^a" },
+          { "pattern": "b$" }
+        ]
+      })
+    })
+
+    it("String + pattern", () => {
+      assertJsonSchema(Schema.String.check(Schema.isPattern(/^a/)), {
+        "type": "string",
+        "description": `a string matching the RegExp ^a`,
+        "allOf": [
+          { "pattern": "^a" }
+        ]
+      })
+    })
   })
 
   it("Number", () => {

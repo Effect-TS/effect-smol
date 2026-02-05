@@ -227,19 +227,26 @@ function getFilter(filter: AST.Filter<any>): Array<Filter> {
   let out: Array<Filter> = getAnnotations(filter.annotations)
   const meta = filter.annotations?.meta
   if (meta !== undefined) {
-    switch (meta._tag) {
-      case "isInt":
-      case "isFinite":
-        out.push({
-          _tag: "filter",
-          filter: filter.annotate({
-            description: undefined,
-            expected: undefined,
-            title: undefined,
-            format: undefined
-          })
+    if (meta._tag === "isInt" || meta._tag === "isFinite") {
+      out.push({
+        _tag: "filter",
+        filter: filter.annotate({
+          description: undefined,
+          expected: undefined,
+          title: undefined,
+          format: undefined
         })
-        break
+      })
+    } else if ("regExp" in meta && meta.regExp instanceof RegExp) {
+      out.push({
+        _tag: "filter",
+        filter: filter.annotate({
+          description: undefined,
+          expected: undefined,
+          title: undefined,
+          format: undefined
+        })
+      })
     }
   }
   return out
