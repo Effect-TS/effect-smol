@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 import { dual } from "./Function.ts"
-import * as Hash from "./Hash.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
+import { xxh3_64bitsString } from "./internal/xxHash3.ts"
 import * as Iterable from "./Iterable.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
@@ -20,7 +20,7 @@ export interface HashRing<A extends PrimaryKey.PrimaryKey> extends Pipeable, Ite
   readonly baseWeight: number
   totalWeightCache: number
   readonly nodes: Map<string, [node: A, weight: number]>
-  ring: Array<[hash: number, node: string]>
+  ring: Array<[hash: bigint, node: string]>
 }
 
 /**
@@ -110,12 +110,12 @@ function addNodesToRing<A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, keys
     for (let j = 0; j < keys.length; j++) {
       const key = keys[j]
       self.ring.push([
-        Hash.string(`${key}:${i}`),
+        xxh3_64bitsString(`${key}:${i}`),
         key
       ])
     }
   }
-  self.ring.sort((a, b) => a[0] - b[0])
+  self.ring.sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0)
 }
 
 /**
@@ -179,7 +179,7 @@ export const get = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, input: s
   if (self.ring.length === 0) {
     return undefined
   }
-  const index = getIndexForInput(self, Hash.string(input))[0]
+  const index = getIndexForInput(self, xxh3_64bitsString(input))[0]
   const node = self.ring[index][1]!
   return self.nodes.get(node)![0]
 }
@@ -208,15 +208,15 @@ export const getShards = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, co
 
   // First pass - allocate the closest nodes, skipping nodes that have reached
   // max
-  const distances = new Array<[shard: number, node: string, distance: number]>(count)
+  const distances = new Array<[shard: number, node: string, distance: bigint]>(count)
   for (let shard = 0; shard < count; shard++) {
-    const hash = (shardHashes[shard] ??= Hash.string(`shard-${shard}`))
+    const hash = (shardHashes[shard] ??= xxh3_64bitsString(`shard-${shard}`))
     const [index, distance] = getIndexForInput(self, hash)
     const node = self.ring[index][1]!
     distances[shard] = [shard, node, distance]
     remaining.add(shard)
   }
-  distances.sort((a, b) => a[2] - b[2])
+  distances.sort((a, b) => a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0)
   for (let i = 0; i < count; i++) {
     const [shard, node] = distances[i]
     if (exclude.has(node)) continue
@@ -255,13 +255,15 @@ export const getShards = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, co
   return shards
 }
 
-const shardHashes: Array<number> = []
+const shardHashes: Array<bigint> = []
+
+const abs64 = (n: bigint): bigint => n < 0n ? -n : n
 
 function getIndexForInput<A extends PrimaryKey.PrimaryKey>(
   self: HashRing<A>,
-  hash: number,
+  hash: bigint,
   exclude?: ReadonlySet<string> | undefined
-): readonly [index: number, distance: number] {
+): readonly [index: number, distance: bigint] {
   const ring = self.ring
   const len = ring.length
 
@@ -278,13 +280,13 @@ function getIndexForInput<A extends PrimaryKey.PrimaryKey>(
     }
   }
   const a = lo === len ? lo - 1 : lo
-  const distA = Math.abs(ring[a][0] - hash)
+  const distA = abs64(ring[a][0] - hash)
   if (exclude === undefined) {
     const b = lo - 1
     if (b < 0) {
       return [a, distA]
     }
-    const distB = Math.abs(ring[b][0] - hash)
+    const distB = abs64(ring[b][0] - hash)
     return distA <= distB ? [a, distA] : [b, distB]
   } else if (!exclude.has(ring[a][1])) {
     return [a, distA]
@@ -293,11 +295,11 @@ function getIndexForInput<A extends PrimaryKey.PrimaryKey>(
   for (let i = 1; i < range; i++) {
     let index = lo - i
     if (index >= 0 && index < len && !exclude.has(ring[index][1])) {
-      return [index, Math.abs(ring[index][0] - hash)]
+      return [index, abs64(ring[index][0] - hash)]
     }
     index = lo + i
     if (index >= 0 && index < len && !exclude.has(ring[index][1])) {
-      return [index, Math.abs(ring[index][0] - hash)]
+      return [index, abs64(ring[index][0] - hash)]
     }
   }
   return [a, distA]
