@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import { dual } from "./Function.ts"
-import * as Hash from "./Hash.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as Iterable from "./Iterable.ts"
 import type { Pipeable } from "./Pipeable.ts"
@@ -20,7 +19,7 @@ export interface HashRing<A extends PrimaryKey.PrimaryKey> extends Pipeable, Ite
   readonly baseWeight: number
   totalWeightCache: number
   readonly nodes: Map<string, [node: A, weight: number]>
-  ring: Array<[hash: number, node: string]>
+  ring: Array<[hash: bigint, node: string]>
 }
 
 /**
@@ -110,12 +109,12 @@ function addNodesToRing<A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, keys
     for (let j = 0; j < keys.length; j++) {
       const key = keys[j]
       self.ring.push([
-        Hash.string(`${key}:${i}`),
+        hashRingHash(`${key}:${i}`),
         key
       ])
     }
   }
-  self.ring.sort((a, b) => a[0] - b[0])
+  self.ring.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
 }
 
 /**
@@ -179,7 +178,7 @@ export const get = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, input: s
   if (self.ring.length === 0) {
     return undefined
   }
-  const index = getIndexForInput(self, Hash.string(input))[0]
+  const index = getIndexForInput(self, hashRingHash(input))[0]
   const node = self.ring[index][1]!
   return self.nodes.get(node)![0]
 }
@@ -208,15 +207,15 @@ export const getShards = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, co
 
   // First pass - allocate the closest nodes, skipping nodes that have reached
   // max
-  const distances = new Array<[shard: number, node: string, distance: number]>(count)
+  const distances = new Array<[shard: number, node: string, distance: bigint]>(count)
   for (let shard = 0; shard < count; shard++) {
-    const hash = (shardHashes[shard] ??= Hash.string(`shard-${shard}`))
+    const hash = (shardHashes[shard] ??= hashRingHash(`shard-${shard}`))
     const [index, distance] = getIndexForInput(self, hash)
     const node = self.ring[index][1]!
     distances[shard] = [shard, node, distance]
     remaining.add(shard)
   }
-  distances.sort((a, b) => a[2] - b[2])
+  distances.sort((a, b) => (a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0))
   for (let i = 0; i < count; i++) {
     const [shard, node] = distances[i]
     if (exclude.has(node)) continue
@@ -255,13 +254,13 @@ export const getShards = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, co
   return shards
 }
 
-const shardHashes: Array<number> = []
+const shardHashes: Array<bigint> = []
 
 function getIndexForInput<A extends PrimaryKey.PrimaryKey>(
   self: HashRing<A>,
-  hash: number,
+  hash: bigint,
   exclude?: ReadonlySet<string> | undefined
-): readonly [index: number, distance: number] {
+): readonly [index: number, distance: bigint] {
   const ring = self.ring
   const len = ring.length
 
@@ -278,13 +277,13 @@ function getIndexForInput<A extends PrimaryKey.PrimaryKey>(
     }
   }
   const a = lo === len ? lo - 1 : lo
-  const distA = Math.abs(ring[a][0] - hash)
+  const distA = abs64(ring[a][0] - hash)
   if (exclude === undefined) {
     const b = lo - 1
     if (b < 0) {
       return [a, distA]
     }
-    const distB = Math.abs(ring[b][0] - hash)
+    const distB = abs64(ring[b][0] - hash)
     return distA <= distB ? [a, distA] : [b, distB]
   } else if (!exclude.has(ring[a][1])) {
     return [a, distA]
@@ -293,12 +292,124 @@ function getIndexForInput<A extends PrimaryKey.PrimaryKey>(
   for (let i = 1; i < range; i++) {
     let index = lo - i
     if (index >= 0 && index < len && !exclude.has(ring[index][1])) {
-      return [index, Math.abs(ring[index][0] - hash)]
+      return [index, abs64(ring[index][0] - hash)]
     }
     index = lo + i
     if (index >= 0 && index < len && !exclude.has(ring[index][1])) {
-      return [index, Math.abs(ring[index][0] - hash)]
+      return [index, abs64(ring[index][0] - hash)]
     }
   }
   return [a, distA]
 }
+
+const hashRingEncoder = new TextEncoder()
+const hashRingMask = 0xffffffffffffffffn
+const hashRingC1 = 0x87c37b91114253d5n
+const hashRingC2 = 0x4cf5ad432745937fn
+const hashRingBlockSize = 16
+
+const hashRingHash = (input: string): bigint => murmurHash3x64(hashRingEncoder.encode(input), 0n)
+
+const hashRingRotl = (value: bigint, shift: bigint): bigint =>
+  ((value << shift) & hashRingMask) | (value >> (64n - shift))
+
+const hashRingFmix = (value: bigint): bigint => {
+  let h = value
+  h ^= h >> 33n
+  h = (h * 0xff51afd7ed558ccdn) & hashRingMask
+  h ^= h >> 33n
+  h = (h * 0xc4ceb9fe1a85ec53n) & hashRingMask
+  h ^= h >> 33n
+  return h & hashRingMask
+}
+
+const hashRingGetBlock = (data: Uint8Array, index: number): bigint =>
+  BigInt(data[index]) |
+  (BigInt(data[index + 1]) << 8n) |
+  (BigInt(data[index + 2]) << 16n) |
+  (BigInt(data[index + 3]) << 24n) |
+  (BigInt(data[index + 4]) << 32n) |
+  (BigInt(data[index + 5]) << 40n) |
+  (BigInt(data[index + 6]) << 48n) |
+  (BigInt(data[index + 7]) << 56n)
+
+const murmurHash3x64 = (data: Uint8Array, seed: bigint): bigint => {
+  const len = data.length
+  const blocks = Math.floor(len / hashRingBlockSize)
+  let h1 = seed & hashRingMask
+  let h2 = seed & hashRingMask
+
+  for (let i = 0; i < blocks; i++) {
+    const offset = i * hashRingBlockSize
+    let k1 = hashRingGetBlock(data, offset)
+    let k2 = hashRingGetBlock(data, offset + 8)
+
+    k1 = (k1 * hashRingC1) & hashRingMask
+    k1 = hashRingRotl(k1, 31n)
+    k1 = (k1 * hashRingC2) & hashRingMask
+    h1 ^= k1
+
+    h1 = hashRingRotl(h1, 27n)
+    h1 = (h1 + h2) & hashRingMask
+    h1 = (h1 * 5n + 0x52dce729n) & hashRingMask
+
+    k2 = (k2 * hashRingC2) & hashRingMask
+    k2 = hashRingRotl(k2, 33n)
+    k2 = (k2 * hashRingC1) & hashRingMask
+    h2 ^= k2
+
+    h2 = hashRingRotl(h2, 31n)
+    h2 = (h2 + h1) & hashRingMask
+    h2 = (h2 * 5n + 0x38495ab5n) & hashRingMask
+  }
+
+  let k1 = 0n
+  let k2 = 0n
+  const tail = blocks * hashRingBlockSize
+  const tailLength = len & 15
+
+  if (tailLength >= 15) k2 ^= BigInt(data[tail + 14]) << 48n
+  if (tailLength >= 14) k2 ^= BigInt(data[tail + 13]) << 40n
+  if (tailLength >= 13) k2 ^= BigInt(data[tail + 12]) << 32n
+  if (tailLength >= 12) k2 ^= BigInt(data[tail + 11]) << 24n
+  if (tailLength >= 11) k2 ^= BigInt(data[tail + 10]) << 16n
+  if (tailLength >= 10) k2 ^= BigInt(data[tail + 9]) << 8n
+  if (tailLength >= 9) {
+    k2 ^= BigInt(data[tail + 8])
+    k2 = (k2 * hashRingC2) & hashRingMask
+    k2 = hashRingRotl(k2, 33n)
+    k2 = (k2 * hashRingC1) & hashRingMask
+    h2 ^= k2
+  }
+
+  if (tailLength >= 8) k1 ^= BigInt(data[tail + 7]) << 56n
+  if (tailLength >= 7) k1 ^= BigInt(data[tail + 6]) << 48n
+  if (tailLength >= 6) k1 ^= BigInt(data[tail + 5]) << 40n
+  if (tailLength >= 5) k1 ^= BigInt(data[tail + 4]) << 32n
+  if (tailLength >= 4) k1 ^= BigInt(data[tail + 3]) << 24n
+  if (tailLength >= 3) k1 ^= BigInt(data[tail + 2]) << 16n
+  if (tailLength >= 2) k1 ^= BigInt(data[tail + 1]) << 8n
+  if (tailLength >= 1) {
+    k1 ^= BigInt(data[tail])
+    k1 = (k1 * hashRingC1) & hashRingMask
+    k1 = hashRingRotl(k1, 31n)
+    k1 = (k1 * hashRingC2) & hashRingMask
+    h1 ^= k1
+  }
+
+  const total = BigInt(len)
+  h1 ^= total
+  h2 ^= total
+
+  h1 = (h1 + h2) & hashRingMask
+  h2 = (h2 + h1) & hashRingMask
+
+  h1 = hashRingFmix(h1)
+  h2 = hashRingFmix(h2)
+
+  h1 = (h1 + h2) & hashRingMask
+
+  return h1
+}
+
+const abs64 = (value: bigint): bigint => (value < 0n ? -value : value)
