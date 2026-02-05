@@ -412,7 +412,7 @@ export const fromPool = Effect.fnUntraced(function*(
     }),
     {
       [TypeId]: TypeId as TypeId,
-      config: {},
+      config,
       json: (_: unknown) => Statement.fragment([PgJson(_)]),
       listen: (channel: string) =>
         Stream.callback<string, SqlError>(Effect.fnUntraced(function*(queue) {
