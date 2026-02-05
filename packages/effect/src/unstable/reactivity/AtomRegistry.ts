@@ -622,8 +622,9 @@ class NodeImpl<A> {
   }
 
   notify(): void {
-    for (let i = 0; i < this.listeners.length; i++) {
-      this.listeners[i]()
+    const listeners = this.listeners.slice()
+    for (let i = 0; i < listeners.length; i++) {
+      listeners[i]()
     }
 
     if (batchState.phase === BatchPhase.commit) {
