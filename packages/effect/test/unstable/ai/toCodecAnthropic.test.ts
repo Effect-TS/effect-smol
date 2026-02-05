@@ -24,10 +24,6 @@ describe("toCodecAnthropic", () => {
       assertError(Schema.Undefined, "Unsupported AST Undefined")
     })
 
-    it("Record", () => {
-      assertError(Schema.Record(Schema.String, Schema.String), "Index signatures are not supported for objects")
-    })
-
     it("suspend", () => {
       interface A {
         readonly a: string
@@ -45,6 +41,13 @@ describe("toCodecAnthropic", () => {
       assertError(
         Schema.TupleWithRest(Schema.Tuple([]), [Schema.String, Schema.String]),
         "Post-rest elements are not supported for arrays"
+      )
+    })
+
+    it("Unsupported property signature name", () => {
+      assertError(
+        Schema.Struct({ [Symbol.for("effect/Schema/test/a")]: Schema.String }),
+        "Property names must be strings"
       )
     })
   })
@@ -349,23 +352,23 @@ describe("toCodecAnthropic", () => {
           "properties": {
             "0": { "type": "string" },
             "1": { "type": "number" },
-            "rest": { "type": "array", "items": { "type": "boolean" } }
+            "__rest__": { "type": "array", "items": { "type": "boolean" } }
           },
-          "required": ["0", "1", "rest"],
+          "required": ["0", "1", "__rest__"],
           "additionalProperties": false
         })
         const codec = toCodecAnthropic(schema)
         const asserts = new TestSchema.Asserts(codec)
 
         const encoding = asserts.encoding()
-        await encoding.succeed(["a", 1], { "0": "a", "1": 1, "rest": [] })
-        await encoding.succeed(["a", 1, true], { "0": "a", "1": 1, "rest": [true] })
-        await encoding.succeed(["a", 1, true, false], { "0": "a", "1": 1, "rest": [true, false] })
+        await encoding.succeed(["a", 1], { "0": "a", "1": 1, "__rest__": [] })
+        await encoding.succeed(["a", 1, true], { "0": "a", "1": 1, "__rest__": [true] })
+        await encoding.succeed(["a", 1, true, false], { "0": "a", "1": 1, "__rest__": [true, false] })
 
         const decoding = asserts.decoding()
-        await decoding.succeed({ "0": "a", "1": 1, "rest": [] }, ["a", 1])
-        await decoding.succeed({ "0": "a", "1": 1, "rest": [true] }, ["a", 1, true])
-        await decoding.succeed({ "0": "a", "1": 1, "rest": [true, false] }, ["a", 1, true, false])
+        await decoding.succeed({ "0": "a", "1": 1, "__rest__": [] }, ["a", 1])
+        await decoding.succeed({ "0": "a", "1": 1, "__rest__": [true] }, ["a", 1, true])
+        await decoding.succeed({ "0": "a", "1": 1, "__rest__": [true, false] }, ["a", 1, true, false])
       })
     })
   })
@@ -414,6 +417,30 @@ describe("toCodecAnthropic", () => {
       const decoding = asserts.decoding()
       await decoding.succeed({ "a": "a", "b": 1 })
       await decoding.succeed({ "a": "a", "b": null }, { a: "a" })
+    })
+
+    it("Record(String, Finite)", async () => {
+      const schema = Schema.Record(Schema.String, Schema.Finite)
+      assertJsonSchema(schema, {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "0": { "type": "string" },
+            "1": { "type": "number" }
+          },
+          "required": ["0", "1"],
+          "additionalProperties": false
+        }
+      })
+      const codec = toCodecAnthropic(schema)
+      const asserts = new TestSchema.Asserts(codec)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ "a": 1, "b": 2 }, [{ 0: "a", 1: 1 }, { 0: "b", 1: 2 }])
+
+      const decoding = asserts.decoding()
+      await decoding.succeed([{ 0: "a", 1: 1 }, { 0: "b", 1: 2 }], { "a": 1, "b": 2 })
     })
   })
 })

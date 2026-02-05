@@ -79,34 +79,34 @@ function recur(ast: AST.AST): AST.AST {
           return new AST.PropertySignature(String(i), e)
         })
         if (ast.rest.length === 1) {
-          propertySignatures.push(new AST.PropertySignature("rest", new AST.Arrays(false, [], ast.rest)))
+          propertySignatures.push(new AST.PropertySignature(REST_PROPERTY_NAME, new AST.Arrays(false, [], ast.rest)))
         }
         return AST.decodeTo(
           recur(new AST.Objects(propertySignatures, [], annotations, filters)),
           ast,
           Transformation.transform({
             decode: (o) => {
-              let t: any = []
+              let t: Array<unknown> = []
               for (let i = 0; i < ast.elements.length; i++) {
                 const k = String(i)
                 if (o[k] !== undefined) {
                   t.push(o[k])
                 }
               }
-              if ("rest" in o) {
-                t = [...t, ...o.rest]
+              if (REST_PROPERTY_NAME in o) {
+                t = [...t, ...o[REST_PROPERTY_NAME]]
               }
               return t
             },
             encode: (t) => {
-              const o: any = {}
+              const o: Record<string, unknown> = {}
               for (let i = 0; i < ast.elements.length; i++) {
                 if (t.length >= i) {
                   o[String(i)] = t[i]
                 }
               }
               if (ast.rest.length === 1) {
-                o.rest = t.length >= ast.elements.length ? t.slice(ast.elements.length) : []
+                o[REST_PROPERTY_NAME] = t.length >= ast.elements.length ? t.slice(ast.elements.length) : []
               }
               return o
             }
@@ -121,34 +121,52 @@ function recur(ast: AST.AST): AST.AST {
       }
     }
     case "Objects": {
-      if (ast.indexSignatures.length > 0) {
-        throw new Error(`Index signatures are not supported for objects`)
-      }
-      const propertySignatures = AST.mapOrSame(ast.propertySignatures, (ps) => {
-        let type = recur(ps.type)
-        if (AST.isOptional(ps.type)) {
-          type = AST.decodeTo(
-            new AST.Union([type, AST.null], "anyOf"),
-            AST.optionalKey(type),
-            Transformation.transformOptional({
-              decode: Option.filter(Predicate.isNotNull),
-              encode: Option.orElseSome(() => null)
-            })
-          )
-        }
-        if (type === ps.type) {
-          return ps
-        }
-        return new AST.PropertySignature(ps.name, type)
-      })
       const { annotations, filters } = get(ast)
-      if (propertySignatures !== ast.propertySignatures || annotations !== undefined || filters !== undefined) {
-        return new AST.Objects(propertySignatures, [], annotations, filters)
+      if (ast.indexSignatures.length === 0) {
+        const propertySignatures = AST.mapOrSame(ast.propertySignatures, (ps) => {
+          if (typeof ps.name !== "string") {
+            throw new Error(`Property names must be strings`)
+          }
+          let type = recur(ps.type)
+          if (AST.isOptional(ps.type)) {
+            type = AST.decodeTo(
+              new AST.Union([type, AST.null], "anyOf"),
+              AST.optionalKey(type),
+              Transformation.transformOptional({
+                decode: Option.filter(Predicate.isNotNull),
+                encode: Option.orElseSome(() => null)
+              })
+            )
+          }
+          if (type === ps.type) {
+            return ps
+          }
+          return new AST.PropertySignature(ps.name, type)
+        })
+        if (
+          propertySignatures !== ast.propertySignatures || annotations !== undefined || filters !== undefined
+        ) {
+          return new AST.Objects(propertySignatures, [], annotations, filters)
+        }
+      } else if (ast.indexSignatures.length === 1 && ast.propertySignatures.length === 0) {
+        const is = ast.indexSignatures[0]
+        return AST.decodeTo(
+          recur(new AST.Arrays(false, [], [new AST.Arrays(false, [is.parameter, is.type], [])])),
+          ast,
+          Transformation.transform({
+            decode: Object.fromEntries,
+            encode: Object.entries
+          })
+        )
+      } else {
+        throw new Error(`Unsupported AST ${ast._tag}`)
       }
       return ast
     }
   }
 }
+
+const REST_PROPERTY_NAME = "__rest__"
 
 type Annotation =
   | { readonly _tag: "description"; readonly description: string }
