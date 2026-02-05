@@ -187,7 +187,6 @@ export const fromPool = Effect.fnUntraced(function*(
     undefined
 
   const pool = yield* options.acquire
-  pool.on("error", (_err) => {})
 
   class ConnectionImpl implements Connection {
     readonly pg: Pg.PoolClient | undefined
