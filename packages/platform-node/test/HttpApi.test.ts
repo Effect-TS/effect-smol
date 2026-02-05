@@ -764,7 +764,7 @@ class GroupsApi extends HttpApiGroup.make("groups").add(
     payload: [
       Schema.Struct(Struct.pick(Group.fields, ["name"])),
       Schema.Struct({ foo: Schema.String }).pipe(
-        HttpApiSchema.asUrlParams()
+        HttpApiSchema.asFormUrlEncoded()
       ),
       Schema.Struct(Struct.pick(Group.fields, ["name"])).pipe(
         HttpApiSchema.asMultipart()

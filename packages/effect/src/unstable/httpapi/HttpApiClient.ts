@@ -512,7 +512,7 @@ function toCodecArrayBuffer(schemas: readonly [Schema.Top, ...Array<Schema.Top>]
     switch (encoding._tag) {
       case "Json":
         return UnknownFromArrayBuffer.pipe(Schema.decodeTo(schema))
-      case "UrlParams":
+      case "FormUrlEncoded":
         return StringFromArrayBuffer.pipe(
           Schema.decodeTo(UrlParams.schemaRecord),
           Schema.decodeTo(schema)
@@ -590,7 +590,7 @@ function getEncodePayloadSchemaFromBody(
             }
             return Effect.succeed(HttpBody.text(t, encoding.contentType))
           }
-          case "UrlParams": {
+          case "FormUrlEncoded": {
             if (!Predicate.isObject(t)) {
               return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: "Expected a record" }))
             }

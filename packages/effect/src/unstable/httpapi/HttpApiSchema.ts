@@ -15,12 +15,12 @@
  * - Set a response status on a schema -> {@link status}
  * - Declare an empty response -> {@link Empty}, {@link NoContent}, {@link Created}, {@link Accepted}
  * - Decode an empty response into a value -> {@link asNoContent}
- * - Force a specific encoding -> {@link asJson}, {@link asUrlParams}, {@link asText}, {@link asUint8Array}
+ * - Force a specific encoding -> {@link asJson}, {@link asFormUrlEncoded}, {@link asText}, {@link asUint8Array}
  * - Mark multipart payloads -> {@link asMultipart}, {@link asMultipartStream}
  *
  * Gotchas:
  * - If you don't set an encoding, HttpApi assumes JSON by default.
- * - {@link asUrlParams} expects the schema's encoded type to be a record of strings.
+ * - {@link asFormUrlEncoded} expects the schema's encoded type to be a record of strings.
  * - {@link asText} expects the encoded type to be `string`, and {@link asUint8Array} expects `Uint8Array`.
  * - Multipart encodings are intended for request payloads; response multipart is not supported.
  * - These helpers annotate schemas; they don't perform validation or IO by themselves.
@@ -64,7 +64,7 @@ export type PayloadEncoding =
     readonly limits?: Multipart_.withLimits.Options | undefined
   }
   | {
-    readonly _tag: "Json" | "UrlParams" | "Uint8Array" | "Text"
+    readonly _tag: "Json" | "FormUrlEncoded" | "Uint8Array" | "Text"
     readonly contentType: string
   }
 
@@ -73,7 +73,7 @@ export type PayloadEncoding =
  * @internal
  */
 export type ResponseEncoding = {
-  readonly _tag: "Json" | "UrlParams" | "Uint8Array" | "Text"
+  readonly _tag: "Json" | "FormUrlEncoded" | "Uint8Array" | "Text"
   readonly contentType: string
 }
 
@@ -249,7 +249,7 @@ export function asMultipartStream(options?: Multipart_.withLimits.Options) {
 }
 
 function asNonMultipartEncoding<S extends Schema.Top>(self: S, options: {
-  readonly _tag: "Json" | "UrlParams" | "Uint8Array" | "Text"
+  readonly _tag: "Json" | "FormUrlEncoded" | "Uint8Array" | "Text"
   readonly contentType?: string | undefined
 }): S["~rebuild.out"] {
   return self.annotate({
@@ -266,7 +266,7 @@ function defaultContentType(_tag: Encoding["_tag"]): string {
       return "multipart/form-data"
     case "Json":
       return "application/json"
-    case "UrlParams":
+    case "FormUrlEncoded":
       return "application/x-www-form-urlencoded"
     case "Uint8Array":
       return "application/octet-stream"
@@ -295,11 +295,12 @@ export function asJson(options?: {
  * @category Encoding
  * @since 4.0.0
  */
-export function asUrlParams(options?: {
+export function asFormUrlEncoded(options?: {
   readonly contentType?: string
 }) {
-  return <S extends Schema.Top & { readonly Encoded: Record<string, string | undefined> }>(self: S) =>
-    asNonMultipartEncoding(self, { _tag: "UrlParams", ...options })
+  return <S extends Schema.Top & { readonly Encoded: Record<string, string | ReadonlyArray<string> | undefined> }>(
+    self: S
+  ) => asNonMultipartEncoding(self, { _tag: "FormUrlEncoded", ...options })
 }
 
 /**

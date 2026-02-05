@@ -603,7 +603,7 @@ function handlerToRoute(
                 request.payload = yield* Effect.flatMap(source, decode)
                 break
               }
-              case "UrlParams": {
+              case "FormUrlEncoded": {
                 const source = hasBody
                   ? Effect.map(Effect.orDie(httpRequest.urlParamsBody), UrlParams.toRecord)
                   : Effect.succeed(urlParams)
@@ -786,7 +786,7 @@ function getResponseEncode<E>(
           status,
           contentType: encoding.contentType
         }))
-    case "UrlParams":
+    case "FormUrlEncoded":
       return (e) =>
         Effect.succeed(
           Response.urlParams(e as URLSearchParams, { status }).pipe(

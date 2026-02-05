@@ -650,23 +650,16 @@ function extractRequestBodies(schemas: ReadonlyArray<Schema.Top>): Content {
 const Uint8ArrayEncoding = Schema.String.annotate({
   format: "binary"
 })
-const TextEncoding = Schema.String
 
 function toEncodingAST(ast: AST.AST, _tag: HttpApiSchema.Encoding["_tag"]): AST.AST {
   switch (_tag) {
     case "Uint8Array":
-      // For `application/octet-stream` (raw bytes) we must emit a binary schema,
-      // not the JSON representation used by `Schema.Uint8Array` (base64 string).
       return Uint8ArrayEncoding.ast
     case "Text":
-      // For `text/plain` the wire format is a plain string, independent of the
-      // endpoint schema structure used for JSON bodies / url-encoded params.
-      return TextEncoding.ast
-    case "UrlParams":
+      return Schema.String.ast
+    case "FormUrlEncoded":
     case "Json":
     case "Multipart":
-      // `UrlParams` and `Json` can reuse the original schema AST as-is: the schema
-      // already describes the structured data (object/record/etc) we want to expose.
       return ast
   }
 }

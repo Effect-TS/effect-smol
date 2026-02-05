@@ -721,7 +721,7 @@ describe("OpenAPI spec", () => {
                   .add(
                     HttpApiEndpoint.post("a", "/a", {
                       payload: Schema.Struct({ a: Schema.String }).pipe(
-                        HttpApiSchema.asUrlParams()
+                        HttpApiSchema.asFormUrlEncoded()
                       )
                     })
                   )
@@ -963,7 +963,7 @@ describe("OpenAPI spec", () => {
                 .add(
                   HttpApiEndpoint.get("a", "/a", {
                     success: Schema.Struct({ a: Schema.String }).pipe(
-                      HttpApiSchema.asUrlParams()
+                      HttpApiSchema.asFormUrlEncoded()
                     )
                   })
                 )
@@ -1015,7 +1015,7 @@ describe("OpenAPI spec", () => {
                     success: Schema.Union([
                       Schema.Struct({ a: Schema.String }),
                       Schema.Struct({ b: Schema.String })
-                    ]).pipe(HttpApiSchema.asUrlParams())
+                    ]).pipe(HttpApiSchema.asFormUrlEncoded())
                   })
                 )
             )

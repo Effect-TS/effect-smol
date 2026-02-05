@@ -962,7 +962,7 @@ function getPayload(
   if (payload === undefined) return new Set()
   if (Array.isArray(payload)) return new Set(payload)
   if (Schema.isSchema(payload)) return new Set([payload])
-  return new Set([Schema.Struct(payload as any).pipe(HttpApiSchema.asUrlParams())])
+  return new Set([Schema.Struct(payload as any).pipe(HttpApiSchema.asFormUrlEncoded())])
 }
 
 function getSuccess(

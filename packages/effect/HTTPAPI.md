@@ -137,14 +137,6 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
 })
 ```
 
-### Issues
-
-- no first-class way to describe cookies on endpoints (request/response)
-- can't replace the default `HttpApiSchemaError` with a custom error schema
-- no way to set response headers without returning `HttpServerResponse`?
-- Open Api
-  - what's the purpose of additional schemas?
-
 ## Hello World
 
 ### Defining and Implementing an API
@@ -1161,7 +1153,7 @@ const Api = HttpApi.make("MyApi")
             name: Schema.String
           })
             // Specify the encoding as form url encoded
-            .pipe(HttpApiSchema.asUrlParams()),
+            .pipe(HttpApiSchema.asFormUrlEncoded()),
           success: User
         })
       )
