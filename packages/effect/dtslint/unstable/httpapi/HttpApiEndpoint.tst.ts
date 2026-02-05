@@ -28,27 +28,27 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
-  describe("urlParams option", () => {
+  describe("query option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      type T = typeof endpoint["~UrlParams"]
+      type T = typeof endpoint["~Query"]
       expect<T>().type.toBe<never>()
     })
 
     it("should accept a record of fields", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
-        urlParams: {
+        query: {
           id: Schema.FiniteFromString
         }
       })
-      type T = typeof endpoint["~UrlParams"]
+      type T = typeof endpoint["~Query"]
       expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }>>()
     })
 
     it("should not accept any other schema", () => {
       HttpApiEndpoint.get("a", "/a", {
-        // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'UrlParamsSchemaContraint'.
-        urlParams: Schema.Struct({ id: Schema.String })
+        // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'QuerySchemaContraint'.
+        query: Schema.Struct({ id: Schema.String })
       })
     })
   })

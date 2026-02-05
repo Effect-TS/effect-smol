@@ -41,7 +41,7 @@ In particular:
 - **Request**
   - **Payload encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
     - `asJson` (default)
-    - `asUrlParams`
+    - `asFormUrlEncoded`
     - `asText`
     - `asUint8Array`
     - `asMultipart`
@@ -50,7 +50,7 @@ In particular:
   - **Status code** is set via the `HttpApiSchema.status` API (or `httpApiStatus` annotation)
   - **Encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
     - `asJson` (default)
-    - `asUrlParams`
+    - `asFormUrlEncoded`
     - `asText`
     - `asUint8Array`
 
@@ -78,7 +78,7 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
 
   // (optional) Query string parameters (e.g. ?mode=merge).
   // This is a record where each key is the query parameter name.
-  urlParams: {
+  query: {
     //    ┌─── Schema for the "mode" query parameter
     //    ▼
     mode: Schema.Literals(["merge", "replace"])
@@ -797,7 +797,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ### URL Parameters
 
-The `urlParams` option allows you to define the structure of URL parameters for an endpoint.
+The `query` option allows you to define the structure of query parameters for an endpoint.
 
 **Example** (Defining URL Parameters with Metadata)
 
@@ -822,7 +822,7 @@ const Api = HttpApi.make("MyApi")
         HttpApiEndpoint.get("getUsers", "/users", {
           success: Schema.Array(User),
           // Specify a schema for each URL parameter
-          urlParams: {
+          query: {
             // Parameter "page" for pagination
             page: Schema.optionalKey(Page),
             // Parameter "sort" for sorting options
@@ -838,7 +838,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUsers", (ctx) => {
-        const { page, sort } = ctx.urlParams
+        const { page, sort } = ctx.query
         console.log(`Getting users with page ${page} and sort ${sort}`)
         return Effect.succeed(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
@@ -880,7 +880,7 @@ const Api = HttpApi.make("MyApi")
       .add(
         HttpApiEndpoint.get("getUsers", "/users", {
           success: Schema.Array(User),
-          urlParams: {
+          query: {
             a: Schema.optionalKey(Schema.Array(Schema.String))
           }
         })
@@ -893,7 +893,7 @@ const GroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle("getUsers", (ctx) => {
-        console.log(ctx.urlParams)
+        console.log(ctx.query)
         return Effect.succeed(
           [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
         )

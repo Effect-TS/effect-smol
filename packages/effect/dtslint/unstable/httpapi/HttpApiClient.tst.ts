@@ -34,14 +34,14 @@ describe("HttpApiClient", () => {
     })
   })
 
-  describe("urlParams option", () => {
+  describe("query option", () => {
     it("should accept a record of fields", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
             .add(
               HttpApiEndpoint.get("a", "/a", {
-                urlParams: {
+                query: {
                   id: Schema.FiniteFromString
                 }
               })
@@ -52,7 +52,7 @@ describe("HttpApiClient", () => {
       )
       const f = client.group.a
       expect<Parameters<typeof f>[0]>().type.toBe<
-        { readonly urlParams: { readonly id: number }; readonly withResponse?: boolean }
+        { readonly query: { readonly id: number }; readonly withResponse?: boolean }
       >()
     })
   })

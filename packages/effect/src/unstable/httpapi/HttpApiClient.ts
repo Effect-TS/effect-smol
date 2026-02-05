@@ -71,7 +71,7 @@ export declare namespace Client {
       infer _Method,
       infer _Path,
       infer _PathParams,
-      infer _UrlParams,
+      infer _Query,
       infer _Payload,
       infer _Headers,
       infer _Success,
@@ -80,13 +80,13 @@ export declare namespace Client {
       infer _MR
     >
   ] ? <WithResponse extends boolean = false>(
-      request: Simplify<HttpApiEndpoint.ClientRequest<_PathParams, _UrlParams, _Payload, _Headers, WithResponse>>
+      request: Simplify<HttpApiEndpoint.ClientRequest<_PathParams, _Query, _Payload, _Headers, WithResponse>>
     ) => Effect.Effect<
       WithResponse extends true ? [_Success["Type"], HttpClientResponse.HttpClientResponse] : _Success["Type"],
       _Error["Type"] | HttpApiMiddleware.Error<_Middleware> | E | HttpClientError.HttpClientError | Schema.SchemaError,
       | R
       | _PathParams["EncodingServices"]
-      | _UrlParams["EncodingServices"]
+      | _Query["EncodingServices"]
       | _Payload["EncodingServices"]
       | _Headers["EncodingServices"]
       | _Success["DecodingServices"]
@@ -212,14 +212,14 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         const encodeHeaders = getEncodeHeadersSchema(HttpApiEndpoint.getHeadersSchema(endpoint)).pipe(
           Schema.encodeUnknownEffect
         )
-        const encodeUrlParams = getEncodeUrlParamsSchema(HttpApiEndpoint.getUrlParamsSchema(endpoint)).pipe(
+        const encodeQuery = getEncodeQuerySchema(HttpApiEndpoint.getQuerySchema(endpoint)).pipe(
           Schema.encodeUnknownEffect
         )
 
         const endpointFn = Effect.fnUntraced(function*(
           request: {
             readonly pathParams: Record<string, string> | undefined
-            readonly urlParams: unknown
+            readonly query: unknown
             readonly payload: unknown
             readonly headers: Record<string, string> | undefined
             readonly withResponse?: boolean
@@ -257,11 +257,11 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
               )
             }
 
-            // url params
-            if (request.urlParams !== undefined) {
+            // query
+            if (request.query !== undefined) {
               httpRequest = HttpClientRequest.appendUrlParams(
                 httpRequest,
-                yield* encodeUrlParams(request.urlParams)
+                yield* encodeQuery(request.query)
               )
             }
           }
@@ -293,10 +293,10 @@ function getEncodeHeadersSchema(schema: Schema.Top | undefined): Schema.Encoder<
 }
 const defaultEncodeHeadersSchema = Schema.Record(Schema.String, Schema.String)
 
-function getEncodeUrlParamsSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
-  return (schema as any) ?? defaultEncodeUrlParamsSchema
+function getEncodeQuerySchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
+  return (schema as any) ?? defaultEncodeQuerySchema
 }
-const defaultEncodeUrlParamsSchema = Schema.Record(Schema.String, Schema.String)
+const defaultEncodeQuerySchema = Schema.Record(Schema.String, Schema.String)
 
 /**
  * @since 4.0.0

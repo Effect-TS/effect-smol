@@ -424,7 +424,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         processParameters(schema.fields, "query")
       }
       processParameters(endpoint.headers, "header")
-      processParameters(endpoint.urlParams, "query")
+      processParameters(endpoint.query, "query")
 
       processResponseBodies(
         extractResponseBodies(

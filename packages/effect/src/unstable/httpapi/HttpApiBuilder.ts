@@ -470,8 +470,8 @@ function handlerToRoute(
   // headers
   const decodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.decodeUnknownEffect)
 
-  // url params
-  const decodeUrlParams = UndefinedOr.map(HttpApiEndpoint.getUrlParamsSchema(endpoint), Schema.decodeUnknownEffect)
+  // query
+  const decodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.decodeUnknownEffect)
 
   // payload
   const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
@@ -548,7 +548,7 @@ function handlerToRoute(
         const services = fiber.services
         const httpRequest = ServiceMap.getUnsafe(services, HttpServerRequest)
         const routeContext = ServiceMap.getUnsafe(services, HttpRouter.RouteContext)
-        const urlParams = ServiceMap.getUnsafe(services, Request.ParsedSearchParams)
+        const query = ServiceMap.getUnsafe(services, Request.ParsedSearchParams)
         const request: any = {
           request: httpRequest,
           endpoint,
@@ -560,8 +560,8 @@ function handlerToRoute(
         if (decodeHeaders) {
           request.headers = yield* decodeHeaders(httpRequest.headers)
         }
-        if (decodeUrlParams) {
-          request.urlParams = yield* decodeUrlParams(urlParams)
+        if (decodeQuery) {
+          request.query = yield* decodeQuery(query)
         }
         if (shouldParsePayload) {
           const hasBody = HttpMethod.hasBody(httpRequest.method)
@@ -606,7 +606,7 @@ function handlerToRoute(
               case "FormUrlEncoded": {
                 const source = hasBody
                   ? Effect.map(Effect.orDie(httpRequest.urlParamsBody), UrlParams.toRecord)
-                  : Effect.succeed(urlParams)
+                  : Effect.succeed(query)
                 request.payload = yield* Effect.flatMap(source, decode)
                 break
               }

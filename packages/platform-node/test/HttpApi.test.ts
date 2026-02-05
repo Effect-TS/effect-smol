@@ -308,7 +308,7 @@ describe("HttpApi", () => {
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("get", "/", {
-            urlParams: {
+            query: {
               id: Schema.FiniteFromString
             },
             success: Schema.String
@@ -318,7 +318,7 @@ describe("HttpApi", () => {
       const GroupLive = HttpApiBuilder.group(
         Api,
         "group",
-        (handlers) => handlers.handle("get", (ctx) => Effect.succeed(`User ${ctx.urlParams.id}`))
+        (handlers) => handlers.handle("get", (ctx) => Effect.succeed(`User ${ctx.query.id}`))
       )
 
       const ApiLive = HttpRouter.serve(
@@ -328,7 +328,7 @@ describe("HttpApi", () => {
 
       return Effect.gen(function*() {
         const client = yield* HttpApiClient.make(Api)
-        const result = yield* client.group.get({ urlParams: { id: 1 } })
+        const result = yield* client.group.get({ query: { id: 1 } })
         assert.strictEqual(result, "User 1")
       }).pipe(Effect.provide(ApiLive))
     })
@@ -354,7 +354,7 @@ describe("HttpApi", () => {
         })
 
         const apiClientUser = yield* client.users.create({
-          urlParams: { id: 123 },
+          query: { id: 123 },
           payload: { name: "Joe" }
         })
         assert.deepStrictEqual(
@@ -362,7 +362,7 @@ describe("HttpApi", () => {
           expected
         )
         const groupClientUser = yield* clientUsersGroup.create({
-          urlParams: { id: 123 },
+          query: { id: 123 },
           payload: { name: "Joe" }
         })
         assert.deepStrictEqual(
@@ -370,7 +370,7 @@ describe("HttpApi", () => {
           expected
         )
         const endpointClientUser = yield* clientUsersEndpointCreate({
-          urlParams: { id: 123 },
+          query: { id: 123 },
           payload: { name: "Joe" }
         })
         assert.deepStrictEqual(
@@ -439,7 +439,7 @@ describe("HttpApi", () => {
         const client = yield* HttpApiClient.make(Api)
         const users = yield* client.users.list({
           headers: { page: 1 },
-          urlParams: {}
+          query: {}
         })
         const user = users[0]
         assert.deepStrictEqual(
@@ -509,7 +509,7 @@ describe("HttpApi", () => {
   it.effect("handler level context", () =>
     Effect.gen(function*() {
       const client = yield* HttpApiClient.make(Api)
-      const users = yield* client.users.list({ headers: { page: 1 }, urlParams: {} })
+      const users = yield* client.users.list({ headers: { page: 1 }, query: {} })
       const user = users[0]
       assert.strictEqual(user.name, "page 1")
       assert.deepStrictEqual(user.createdAt, DateTime.makeUnsafe(0))
@@ -526,7 +526,7 @@ describe("HttpApi", () => {
           }))
         )
       })
-      const users = yield* client.users.list({ headers: { page: 1 }, urlParams: {} }).pipe(
+      const users = yield* client.users.list({ headers: { page: 1 }, query: {} }).pipe(
         Effect.provideService(
           CurrentUser,
           new User({
@@ -591,7 +591,7 @@ describe("HttpApi", () => {
   it.effect("client withResponse", () =>
     Effect.gen(function*() {
       const client = yield* HttpApiClient.make(Api)
-      const [users, response] = yield* client.users.list({ headers: { page: 1 }, urlParams: {}, withResponse: true })
+      const [users, response] = yield* client.users.list({ headers: { page: 1 }, query: {}, withResponse: true })
       assert.strictEqual(users[0].name, "page 1")
       assert.strictEqual(response.status, 200)
     }).pipe(Effect.provide(HttpLive)))
@@ -809,7 +809,7 @@ class UsersApi extends HttpApiGroup.make("users")
     }),
     HttpApiEndpoint.post("create", "/", {
       payload: Schema.Struct(Struct.omit(User.fields, ["id", "createdAt"])),
-      urlParams: {
+      query: {
         id: Schema.FiniteFromString
       },
       success: User,
@@ -825,7 +825,7 @@ class UsersApi extends HttpApiGroup.make("users")
           })
         )
       },
-      urlParams: {
+      query: {
         query: Schema.optional(Schema.String).annotate({ description: "search query" })
       },
       success: Schema.Array(User),
@@ -935,7 +935,7 @@ const HttpUsersLive = HttpApiBuilder.group(
           ? Effect.fail(new UserError({}))
           : Effect.map(DateTime.now, (now) =>
             new User({
-              id: _.urlParams.id,
+              id: _.query.id,
               name: _.payload.name,
               createdAt: now
             })))
