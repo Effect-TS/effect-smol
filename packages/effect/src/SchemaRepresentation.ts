@@ -19,6 +19,7 @@ import * as Getter from "./SchemaGetter.ts"
 // -----------------------------------------------------------------------------
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Declaration {
@@ -30,6 +31,7 @@ export interface Declaration {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Suspend {
@@ -40,6 +42,7 @@ export interface Suspend {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Reference {
@@ -48,6 +51,7 @@ export interface Reference {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Null {
@@ -56,6 +60,7 @@ export interface Null {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Undefined {
@@ -64,6 +69,7 @@ export interface Undefined {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Void {
@@ -72,6 +78,7 @@ export interface Void {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Never {
@@ -80,6 +87,7 @@ export interface Never {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Unknown {
@@ -88,6 +96,7 @@ export interface Unknown {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Any {
@@ -96,6 +105,7 @@ export interface Any {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface String {
@@ -107,6 +117,7 @@ export interface String {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Number {
@@ -116,6 +127,7 @@ export interface Number {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Boolean {
@@ -124,6 +136,7 @@ export interface Boolean {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface BigInt {
@@ -133,6 +146,7 @@ export interface BigInt {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Symbol {
@@ -141,6 +155,7 @@ export interface Symbol {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Literal {
@@ -150,6 +165,7 @@ export interface Literal {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface UniqueSymbol {
@@ -159,6 +175,7 @@ export interface UniqueSymbol {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface ObjectKeyword {
@@ -167,6 +184,7 @@ export interface ObjectKeyword {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Enum {
@@ -176,6 +194,7 @@ export interface Enum {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface TemplateLiteral {
@@ -185,6 +204,7 @@ export interface TemplateLiteral {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Arrays {
@@ -196,6 +216,7 @@ export interface Arrays {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Element {
@@ -205,6 +226,7 @@ export interface Element {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Objects {
@@ -216,6 +238,7 @@ export interface Objects {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface PropertySignature {
@@ -227,6 +250,7 @@ export interface PropertySignature {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface IndexSignature {
@@ -235,6 +259,7 @@ export interface IndexSignature {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Union {
@@ -245,6 +270,7 @@ export interface Union {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type Representation =
@@ -272,11 +298,13 @@ export type Representation =
   | Union
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type Check<M> = Filter<M> | FilterGroup<M>
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface Filter<M> {
@@ -286,6 +314,7 @@ export interface Filter<M> {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface FilterGroup<M> {
@@ -295,6 +324,7 @@ export interface FilterGroup<M> {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -320,6 +350,7 @@ export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
 ]
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type NumberMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -334,6 +365,7 @@ export type NumberMeta = Schema.Annotations.BuiltInMetaDefinitions[
 ]
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type BigIntMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -345,6 +377,7 @@ export type BigIntMeta = Schema.Annotations.BuiltInMetaDefinitions[
 ]
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type ArraysMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -355,6 +388,7 @@ export type ArraysMeta = Schema.Annotations.BuiltInMetaDefinitions[
 ]
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type ObjectsMeta =
@@ -366,6 +400,7 @@ export type ObjectsMeta =
   | { readonly _tag: "isPropertyNames"; readonly propertyNames: Representation }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -378,6 +413,7 @@ export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
 ]
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type SizeMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -387,16 +423,16 @@ export type SizeMeta = Schema.Annotations.BuiltInMetaDefinitions[
 ]
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type DeclarationMeta = DateMeta | SizeMeta
 
-/**
- * @since 4.0.0
- */
+/** @internal */
 export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMeta | DeclarationMeta
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export interface References {
@@ -404,6 +440,7 @@ export interface References {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type Document = {
@@ -412,6 +449,7 @@ export type Document = {
 }
 
 /**
+ * @category Model
  * @since 4.0.0
  */
 export type MultiDocument = {
@@ -423,7 +461,7 @@ export type MultiDocument = {
 // schemas
 // -----------------------------------------------------------------------------
 
-const Representation$ref = Schema.suspend(() => Representation$)
+const Representation$ref = Schema.suspend(() => $Representation)
 
 const toJsonAnnotationsBlacklist: Set<string> = new Set([
   ...InternalRepresentation.fromASTBlacklist,
@@ -438,7 +476,11 @@ const toJsonAnnotationsBlacklist: Set<string> = new Set([
  */
 export type PrimitiveTree = Schema.Tree<null | number | boolean | bigint | symbol | string>
 
-const PrimitiveTree$: Schema.Codec<PrimitiveTree> = Schema.Tree(
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const $PrimitiveTree: Schema.Codec<PrimitiveTree> = Schema.Tree(
   Schema.Union([
     Schema.Null,
     Schema.Number, // allows NaN, Infinity, -Infinity
@@ -449,16 +491,17 @@ const PrimitiveTree$: Schema.Codec<PrimitiveTree> = Schema.Tree(
   ])
 )
 
-const isPrimitiveTree = Schema.is(PrimitiveTree$)
+const isPrimitiveTree = Schema.is($PrimitiveTree)
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Annotations$ = Schema.Record(Schema.String, Schema.Unknown).pipe(
-  Schema.encodeTo(Schema.Record(Schema.String, PrimitiveTree$), {
+export const $Annotations = Schema.Record(Schema.String, Schema.Unknown).pipe(
+  Schema.encodeTo(Schema.Record(Schema.String, $PrimitiveTree), {
     decode: Getter.passthrough(),
     encode: Getter.transformOptional(Option.flatMap((r) => {
-      const out: Record<string, typeof PrimitiveTree$["Type"]> = {}
+      const out: Record<string, typeof $PrimitiveTree["Type"]> = {}
       for (const [k, v] of Object.entries(r)) {
         if (!toJsonAnnotationsBlacklist.has(k) && isPrimitiveTree(v)) {
           out[k] = v
@@ -470,174 +513,184 @@ export const Annotations$ = Schema.Record(Schema.String, Schema.Unknown).pipe(
 ).annotate({ identifier: "Annotations" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Null$ = Schema.Struct({
+export const $Null = Schema.Struct({
   _tag: Schema.tag("Null"),
-  annotations: Schema.optional(Annotations$)
+  annotations: Schema.optional($Annotations)
 }).annotate({ identifier: "Null" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Undefined$ = Schema.Struct({
+export const $Undefined = Schema.Struct({
   _tag: Schema.tag("Undefined"),
-  annotations: Schema.optional(Annotations$)
+  annotations: Schema.optional($Annotations)
 }).annotate({ identifier: "Undefined" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Void$ = Schema.Struct({
+export const $Void = Schema.Struct({
   _tag: Schema.tag("Void"),
-  annotations: Schema.optional(Annotations$)
+  annotations: Schema.optional($Annotations)
 }).annotate({ identifier: "Void" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Never$ = Schema.Struct({
+export const $Never = Schema.Struct({
   _tag: Schema.tag("Never"),
-  annotations: Schema.optional(Annotations$)
+  annotations: Schema.optional($Annotations)
 }).annotate({ identifier: "Never" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Unknown$ = Schema.Struct({
+export const $Unknown = Schema.Struct({
   _tag: Schema.tag("Unknown"),
-  annotations: Schema.optional(Annotations$)
+  annotations: Schema.optional($Annotations)
 }).annotate({ identifier: "Unknown" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Any$ = Schema.Struct({
+export const $Any = Schema.Struct({
   _tag: Schema.tag("Any"),
-  annotations: Schema.optional(Annotations$)
+  annotations: Schema.optional($Annotations)
 }).annotate({ identifier: "Any" })
 
-const IsStringFinite$ = Schema.Struct({
+const $IsStringFinite = Schema.Struct({
   _tag: Schema.tag("isStringFinite"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsStringFinite" })
 
-const IsStringBigInt$ = Schema.Struct({
+const $IsStringBigInt = Schema.Struct({
   _tag: Schema.tag("isStringBigInt"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsStringBigInt" })
 
-const IsStringSymbol$ = Schema.Struct({
+const $IsStringSymbol = Schema.Struct({
   _tag: Schema.tag("isStringSymbol"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsStringSymbol" })
 
-const IsTrimmed$ = Schema.Struct({
+const $IsTrimmed = Schema.Struct({
   _tag: Schema.tag("isTrimmed"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsTrimmed" })
 
-const IsUUID$ = Schema.Struct({
+const $IsUUID = Schema.Struct({
   _tag: Schema.tag("isUUID"),
   regExp: Schema.RegExp,
   version: Schema.UndefinedOr(Schema.Literals([1, 2, 3, 4, 5, 6, 7, 8]))
 }).annotate({ identifier: "IsUUID" })
 
-const IsULID$ = Schema.Struct({
+const $IsULID = Schema.Struct({
   _tag: Schema.tag("isULID"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsULID" })
 
-const IsBase64$ = Schema.Struct({
+const $IsBase64 = Schema.Struct({
   _tag: Schema.tag("isBase64"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsBase64" })
 
-const IsBase64Url$ = Schema.Struct({
+const $IsBase64Url = Schema.Struct({
   _tag: Schema.tag("isBase64Url"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsBase64Url" })
 
-const IsStartsWith$ = Schema.Struct({
+const $IsStartsWith = Schema.Struct({
   _tag: Schema.tag("isStartsWith"),
   startsWith: Schema.String,
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsStartsWith" })
 
-const IsEndsWith$ = Schema.Struct({
+const $IsEndsWith = Schema.Struct({
   _tag: Schema.tag("isEndsWith"),
   endsWith: Schema.String,
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsEndsWith" })
 
-const IsIncludes$ = Schema.Struct({
+const $IsIncludes = Schema.Struct({
   _tag: Schema.tag("isIncludes"),
   includes: Schema.String,
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsIncludes" })
 
-const IsUppercased$ = Schema.Struct({
+const $IsUppercased = Schema.Struct({
   _tag: Schema.tag("isUppercased"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsUppercased" })
 
-const IsLowercased$ = Schema.Struct({
+const $IsLowercased = Schema.Struct({
   _tag: Schema.tag("isLowercased"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsLowercased" })
 
-const IsCapitalized$ = Schema.Struct({
+const $IsCapitalized = Schema.Struct({
   _tag: Schema.tag("isCapitalized"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsCapitalized" })
 
-const IsUncapitalized$ = Schema.Struct({
+const $IsUncapitalized = Schema.Struct({
   _tag: Schema.tag("isUncapitalized"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsUncapitalized" })
 
 const NonNegativeInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
 
-const IsMinLength$ = Schema.Struct({
+const $IsMinLength = Schema.Struct({
   _tag: Schema.tag("isMinLength"),
   minLength: NonNegativeInt
 }).annotate({ identifier: "IsMinLength" })
 
-const IsMaxLength$ = Schema.Struct({
+const $IsMaxLength = Schema.Struct({
   _tag: Schema.tag("isMaxLength"),
   maxLength: NonNegativeInt
 }).annotate({ identifier: "IsMaxLength" })
 
-const IsLength$ = Schema.Struct({
+const $IsLength = Schema.Struct({
   _tag: Schema.tag("isLength"),
   length: NonNegativeInt
 }).annotate({ identifier: "IsLength" })
 
-const IsPattern$ = Schema.Struct({
+const $IsPattern = Schema.Struct({
   _tag: Schema.tag("isPattern"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsPattern" })
 
-const StringMeta$ = Schema.Union([
-  IsStringFinite$,
-  IsStringBigInt$,
-  IsStringSymbol$,
-  IsTrimmed$,
-  IsUUID$,
-  IsULID$,
-  IsBase64$,
-  IsBase64Url$,
-  IsStartsWith$,
-  IsEndsWith$,
-  IsIncludes$,
-  IsUppercased$,
-  IsLowercased$,
-  IsCapitalized$,
-  IsUncapitalized$,
-  IsMinLength$,
-  IsMaxLength$,
-  IsPattern$,
-  IsLength$
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const $StringMeta = Schema.Union([
+  $IsStringFinite,
+  $IsStringBigInt,
+  $IsStringSymbol,
+  $IsTrimmed,
+  $IsUUID,
+  $IsULID,
+  $IsBase64,
+  $IsBase64Url,
+  $IsStartsWith,
+  $IsEndsWith,
+  $IsIncludes,
+  $IsUppercased,
+  $IsLowercased,
+  $IsCapitalized,
+  $IsUncapitalized,
+  $IsMinLength,
+  $IsMaxLength,
+  $IsPattern,
+  $IsLength
 ]).annotate({ identifier: "StringMeta" })
 
 function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
@@ -645,12 +698,12 @@ function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
   const Check: Schema.Codec<Check<T>> = Schema.Union([
     Schema.Struct({
       _tag: Schema.tag("Filter"),
-      annotations: Schema.optional(Annotations$),
+      annotations: Schema.optional($Annotations),
       meta
     }).annotate({ identifier: `${identifier}Filter` }),
     Schema.Struct({
       _tag: Schema.tag("FilterGroup"),
-      annotations: Schema.optional(Annotations$),
+      annotations: Schema.optional($Annotations),
       checks: Schema.NonEmptyArray(Check$ref)
     }).annotate({ identifier: `${identifier}FilterGroup` })
   ]).annotate({ identifier: `${identifier}Check` })
@@ -658,50 +711,51 @@ function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
 }
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const String$ = Schema.Struct({
+export const $String = Schema.Struct({
   _tag: Schema.tag("String"),
-  annotations: Schema.optional(Annotations$),
-  checks: Schema.Array(makeCheck(StringMeta$, "String")),
+  annotations: Schema.optional($Annotations),
+  checks: Schema.Array(makeCheck($StringMeta, "String")),
   contentMediaType: Schema.optional(Schema.String),
   contentSchema: Schema.optional(Representation$ref)
 }).annotate({ identifier: "String" })
 
-const IsInt$ = Schema.Struct({
+const $IsInt = Schema.Struct({
   _tag: Schema.tag("isInt")
 }).annotate({ identifier: "IsInt" })
 
-const IsMultipleOf$ = Schema.Struct({
+const $IsMultipleOf = Schema.Struct({
   _tag: Schema.tag("isMultipleOf"),
   divisor: Schema.Finite
 }).annotate({ identifier: "IsMultipleOf" })
 
-const IsFinite$ = Schema.Struct({
+const $IsFinite = Schema.Struct({
   _tag: Schema.tag("isFinite")
 }).annotate({ identifier: "IsFinite" })
 
-const IsGreaterThan$ = Schema.Struct({
+const $IsGreaterThan = Schema.Struct({
   _tag: Schema.tag("isGreaterThan"),
   exclusiveMinimum: Schema.Finite
 }).annotate({ identifier: "IsGreaterThan" })
 
-const IsGreaterThanOrEqualTo$ = Schema.Struct({
+const $IsGreaterThanOrEqualTo = Schema.Struct({
   _tag: Schema.tag("isGreaterThanOrEqualTo"),
   minimum: Schema.Finite
 }).annotate({ identifier: "IsGreaterThanOrEqualTo" })
 
-const IsLessThan$ = Schema.Struct({
+const $IsLessThan = Schema.Struct({
   _tag: Schema.tag("isLessThan"),
   exclusiveMaximum: Schema.Finite
 }).annotate({ identifier: "IsLessThan" })
 
-const IsLessThanOrEqualTo$ = Schema.Struct({
+const $IsLessThanOrEqualTo = Schema.Struct({
   _tag: Schema.tag("isLessThanOrEqualTo"),
   maximum: Schema.Finite
 }).annotate({ identifier: "IsLessThanOrEqualTo" })
 
-const IsBetween$ = Schema.Struct({
+const $IsBetween = Schema.Struct({
   _tag: Schema.tag("isBetween"),
   minimum: Schema.Finite,
   maximum: Schema.Finite,
@@ -709,55 +763,61 @@ const IsBetween$ = Schema.Struct({
   exclusiveMaximum: Schema.optional(Schema.Boolean)
 }).annotate({ identifier: "IsBetween" })
 
-const NumberMeta$ = Schema.Union([
-  IsInt$,
-  IsMultipleOf$,
-  IsFinite$,
-  IsGreaterThan$,
-  IsGreaterThanOrEqualTo$,
-  IsLessThan$,
-  IsLessThanOrEqualTo$,
-  IsBetween$
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const $NumberMeta = Schema.Union([
+  $IsInt,
+  $IsMultipleOf,
+  $IsFinite,
+  $IsGreaterThan,
+  $IsGreaterThanOrEqualTo,
+  $IsLessThan,
+  $IsLessThanOrEqualTo,
+  $IsBetween
 ]).annotate({ identifier: "NumberMeta" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Number$ = Schema.Struct({
+export const $Number = Schema.Struct({
   _tag: Schema.tag("Number"),
-  annotations: Schema.optional(Annotations$),
-  checks: Schema.Array(makeCheck(NumberMeta$, "Number"))
+  annotations: Schema.optional($Annotations),
+  checks: Schema.Array(makeCheck($NumberMeta, "Number"))
 }).annotate({ identifier: "Number" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Boolean$ = Schema.Struct({
+export const $Boolean = Schema.Struct({
   _tag: Schema.tag("Boolean"),
-  annotations: Schema.optional(Annotations$)
+  annotations: Schema.optional($Annotations)
 }).annotate({ identifier: "Boolean" })
 
-const IsGreaterThanBigInt$ = Schema.Struct({
+const $IsGreaterThanBigInt = Schema.Struct({
   _tag: Schema.tag("isGreaterThanBigInt"),
   exclusiveMinimum: Schema.BigInt
 }).annotate({ identifier: "IsGreaterThanBigInt" })
 
-const IsGreaterThanOrEqualToBigInt$ = Schema.Struct({
+const $IsGreaterThanOrEqualToBigInt = Schema.Struct({
   _tag: Schema.tag("isGreaterThanOrEqualToBigInt"),
   minimum: Schema.BigInt
 }).annotate({ identifier: "IsGreaterThanOrEqualToBigInt" })
 
-const IsLessThanBigInt$ = Schema.Struct({
+const $IsLessThanBigInt = Schema.Struct({
   _tag: Schema.tag("isLessThanBigInt"),
   exclusiveMaximum: Schema.BigInt
 }).annotate({ identifier: "IsLessThanBigInt" })
 
-const IsLessThanOrEqualToBigInt$ = Schema.Struct({
+const $IsLessThanOrEqualToBigInt = Schema.Struct({
   _tag: Schema.tag("isLessThanOrEqualToBigInt"),
   maximum: Schema.BigInt
 }).annotate({ identifier: "IsLessThanOrEqualToBigInt" })
 
-const IsBetweenBigInt$ = Schema.Struct({
+const $IsBetweenBigInt = Schema.Struct({
   _tag: Schema.tag("isBetweenBigInt"),
   minimum: Schema.BigInt,
   maximum: Schema.BigInt,
@@ -765,35 +825,38 @@ const IsBetweenBigInt$ = Schema.Struct({
   exclusiveMaximum: Schema.optional(Schema.Boolean)
 }).annotate({ identifier: "IsBetweenBigInt" })
 
-const BigIntMeta$ = Schema.Union([
-  IsGreaterThanBigInt$,
-  IsGreaterThanOrEqualToBigInt$,
-  IsLessThanBigInt$,
-  IsLessThanOrEqualToBigInt$,
-  IsBetweenBigInt$
+const $BigIntMeta = Schema.Union([
+  $IsGreaterThanBigInt,
+  $IsGreaterThanOrEqualToBigInt,
+  $IsLessThanBigInt,
+  $IsLessThanOrEqualToBigInt,
+  $IsBetweenBigInt
 ]).annotate({ identifier: "BigIntMeta" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const BigInt$ = Schema.Struct({
+export const $BigInt = Schema.Struct({
   _tag: Schema.tag("BigInt"),
-  annotations: Schema.optional(Annotations$),
-  checks: Schema.Array(makeCheck(BigIntMeta$, "BigInt"))
+  annotations: Schema.optional($Annotations),
+  checks: Schema.Array(makeCheck($BigIntMeta, "BigInt"))
 }).annotate({ identifier: "BigInt" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Symbol$ = Schema.Struct({
+export const $Symbol = Schema.Struct({
   _tag: Schema.tag("Symbol"),
-  annotations: Schema.optional(Annotations$)
+  annotations: Schema.optional($Annotations)
 }).annotate({ identifier: "Symbol" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const LiteralValue$ = Schema.Union([
+export const $LiteralValue = Schema.Union([
   Schema.String,
   Schema.Finite,
   Schema.Boolean,
@@ -801,37 +864,41 @@ export const LiteralValue$ = Schema.Union([
 ]).annotate({ identifier: "LiteralValue" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Literal$ = Schema.Struct({
+export const $Literal = Schema.Struct({
   _tag: Schema.tag("Literal"),
-  annotations: Schema.optional(Annotations$),
-  literal: LiteralValue$
+  annotations: Schema.optional($Annotations),
+  literal: $LiteralValue
 }).annotate({ identifier: "Literal" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const UniqueSymbol$ = Schema.Struct({
+export const $UniqueSymbol = Schema.Struct({
   _tag: Schema.tag("UniqueSymbol"),
-  annotations: Schema.optional(Annotations$),
+  annotations: Schema.optional($Annotations),
   symbol: Schema.Symbol
 }).annotate({ identifier: "UniqueSymbol" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const ObjectKeyword$ = Schema.Struct({
+export const $ObjectKeyword = Schema.Struct({
   _tag: Schema.tag("ObjectKeyword"),
-  annotations: Schema.optional(Annotations$)
+  annotations: Schema.optional($Annotations)
 }).annotate({ identifier: "ObjectKeyword" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Enum$ = Schema.Struct({
+export const $Enum = Schema.Struct({
   _tag: Schema.tag("Enum"),
-  annotations: Schema.optional(Annotations$),
+  annotations: Schema.optional($Annotations),
   enums: Schema.Array(
     Schema.Tuple([
       Schema.String,
@@ -844,50 +911,54 @@ export const Enum$ = Schema.Struct({
 }).annotate({ identifier: "Enum" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const TemplateLiteral$ = Schema.Struct({
+export const $TemplateLiteral = Schema.Struct({
   _tag: Schema.tag("TemplateLiteral"),
-  annotations: Schema.optional(Annotations$),
+  annotations: Schema.optional($Annotations),
   parts: Schema.Array(Representation$ref)
 }).annotate({ identifier: "TemplateLiteral" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Element$ = Schema.Struct({
+export const $Element = Schema.Struct({
   isOptional: Schema.Boolean,
   type: Representation$ref,
-  annotations: Schema.optional(Annotations$)
+  annotations: Schema.optional($Annotations)
 }).annotate({ identifier: "Element" })
 
-const IsUnique$ = Schema.Struct({
+const $IsUnique = Schema.Struct({
   _tag: Schema.tag("isUnique")
 }).annotate({ identifier: "IsUnique" })
 
-const ArraysMeta$ = Schema.Union([
-  IsMinLength$,
-  IsMaxLength$,
-  IsLength$,
-  IsUnique$
+const $ArraysMeta = Schema.Union([
+  $IsMinLength,
+  $IsMaxLength,
+  $IsLength,
+  $IsUnique
 ]).annotate({ identifier: "ArraysMeta" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Arrays$ = Schema.Struct({
+export const $Arrays = Schema.Struct({
   _tag: Schema.tag("Arrays"),
-  annotations: Schema.optional(Annotations$),
-  elements: Schema.Array(Element$),
+  annotations: Schema.optional($Annotations),
+  elements: Schema.Array($Element),
   rest: Schema.Array(Representation$ref),
-  checks: Schema.Array(makeCheck(ArraysMeta$, "Arrays"))
+  checks: Schema.Array(makeCheck($ArraysMeta, "Arrays"))
 }).annotate({ identifier: "Arrays" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const PropertySignature$ = Schema.Struct({
-  annotations: Schema.optional(Annotations$),
+export const $PropertySignature = Schema.Struct({
+  annotations: Schema.optional($Annotations),
   name: Schema.PropertyKey,
   type: Representation$ref,
   isOptional: Schema.Boolean,
@@ -895,94 +966,102 @@ export const PropertySignature$ = Schema.Struct({
 }).annotate({ identifier: "PropertySignature" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const IndexSignature$ = Schema.Struct({
+export const $IndexSignature = Schema.Struct({
   parameter: Representation$ref,
   type: Representation$ref
 }).annotate({ identifier: "IndexSignature" })
 
-const IsMinProperties$ = Schema.Struct({
+const $IsMinProperties = Schema.Struct({
   _tag: Schema.tag("isMinProperties"),
   minProperties: NonNegativeInt
 }).annotate({ identifier: "IsMinProperties" })
 
-const IsMaxProperties$ = Schema.Struct({
+const $IsMaxProperties = Schema.Struct({
   _tag: Schema.tag("isMaxProperties"),
   maxProperties: NonNegativeInt
 }).annotate({ identifier: "IsMaxProperties" })
 
-const IsPropertiesLength$ = Schema.Struct({
+const $IsPropertiesLength = Schema.Struct({
   _tag: Schema.tag("isPropertiesLength"),
   length: NonNegativeInt
 }).annotate({ identifier: "IsPropertiesLength" })
 
-const IsPropertyNames$ = Schema.Struct({
+const $IsPropertyNames = Schema.Struct({
   _tag: Schema.tag("isPropertyNames"),
   propertyNames: Representation$ref
 }).annotate({ identifier: "IsPropertyNames" })
 
-const ObjectsMeta$ = Schema.Union([
-  IsMinProperties$,
-  IsMaxProperties$,
-  IsPropertiesLength$,
-  IsPropertyNames$
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const $ObjectsMeta = Schema.Union([
+  $IsMinProperties,
+  $IsMaxProperties,
+  $IsPropertiesLength,
+  $IsPropertyNames
 ]).annotate({ identifier: "ObjectsMeta" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Objects$ = Schema.Struct({
+export const $Objects = Schema.Struct({
   _tag: Schema.tag("Objects"),
-  annotations: Schema.optional(Annotations$),
-  propertySignatures: Schema.Array(PropertySignature$),
-  indexSignatures: Schema.Array(IndexSignature$),
-  checks: Schema.Array(makeCheck(ObjectsMeta$, "Objects"))
+  annotations: Schema.optional($Annotations),
+  propertySignatures: Schema.Array($PropertySignature),
+  indexSignatures: Schema.Array($IndexSignature),
+  checks: Schema.Array(makeCheck($ObjectsMeta, "Objects"))
 }).annotate({ identifier: "Objects" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Union$ = Schema.Struct({
+export const $Union = Schema.Struct({
   _tag: Schema.tag("Union"),
-  annotations: Schema.optional(Annotations$),
+  annotations: Schema.optional($Annotations),
   types: Schema.Array(Representation$ref),
   mode: Schema.Literals(["anyOf", "oneOf"])
 }).annotate({ identifier: "Union" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Reference$ = Schema.Struct({
+export const $Reference = Schema.Struct({
   _tag: Schema.tag("Reference"),
   $ref: Schema.String
 }).annotate({ identifier: "Reference" })
 
-const IsDateValid$ = Schema.Struct({
+const $IsDateValid = Schema.Struct({
   _tag: Schema.tag("isDateValid")
 }).annotate({ identifier: "IsDateValid" })
 
-const IsGreaterThanDate$ = Schema.Struct({
+const $IsGreaterThanDate = Schema.Struct({
   _tag: Schema.tag("isGreaterThanDate"),
   exclusiveMinimum: Schema.Date
 }).annotate({ identifier: "IsGreaterThanDate" })
 
-const IsGreaterThanOrEqualToDate$ = Schema.Struct({
+const $IsGreaterThanOrEqualToDate = Schema.Struct({
   _tag: Schema.tag("isGreaterThanOrEqualToDate"),
   minimum: Schema.Date
 }).annotate({ identifier: "IsGreaterThanOrEqualToDate" })
 
-const IsLessThanDate$ = Schema.Struct({
+const $IsLessThanDate = Schema.Struct({
   _tag: Schema.tag("isLessThanDate"),
   exclusiveMaximum: Schema.Date
 }).annotate({ identifier: "IsLessThanDate" })
 
-const IsLessThanOrEqualToDate$ = Schema.Struct({
+const $IsLessThanOrEqualToDate = Schema.Struct({
   _tag: Schema.tag("isLessThanOrEqualToDate"),
   maximum: Schema.Date
 }).annotate({ identifier: "IsLessThanOrEqualToDate" })
 
-const IsBetweenDate$ = Schema.Struct({
+const $IsBetweenDate = Schema.Struct({
   _tag: Schema.tag("isBetweenDate"),
   minimum: Schema.Date,
   maximum: Schema.Date,
@@ -990,58 +1069,72 @@ const IsBetweenDate$ = Schema.Struct({
   exclusiveMaximum: Schema.optional(Schema.Boolean)
 }).annotate({ identifier: "IsBetweenDate" })
 
-const DateMeta$ = Schema.Union([
-  IsDateValid$,
-  IsGreaterThanDate$,
-  IsGreaterThanOrEqualToDate$,
-  IsLessThanDate$,
-  IsLessThanOrEqualToDate$,
-  IsBetweenDate$
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const $DateMeta = Schema.Union([
+  $IsDateValid,
+  $IsGreaterThanDate,
+  $IsGreaterThanOrEqualToDate,
+  $IsLessThanDate,
+  $IsLessThanOrEqualToDate,
+  $IsBetweenDate
 ]).annotate({ identifier: "DateMeta" })
 
-const IsMinSize$ = Schema.Struct({
+const $IsMinSize = Schema.Struct({
   _tag: Schema.tag("isMinSize"),
   minSize: NonNegativeInt
 }).annotate({ identifier: "IsMinSize" })
 
-const IsMaxSize$ = Schema.Struct({
+const $IsMaxSize = Schema.Struct({
   _tag: Schema.tag("isMaxSize"),
   maxSize: NonNegativeInt
 }).annotate({ identifier: "IsMaxSize" })
 
-const IsSize$ = Schema.Struct({
+const $IsSize = Schema.Struct({
   _tag: Schema.tag("isSize"),
   size: NonNegativeInt
 }).annotate({ identifier: "IsSize" })
 
-const SizeMeta$ = Schema.Union([
-  IsMinSize$,
-  IsMaxSize$,
-  IsSize$
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const $SizeMeta = Schema.Union([
+  $IsMinSize,
+  $IsMaxSize,
+  $IsSize
 ]).annotate({ identifier: "SizeMeta" })
 
-const DeclarationMeta$ = Schema.Union([
-  DateMeta$,
-  SizeMeta$
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const $DeclarationMeta = Schema.Union([
+  $DateMeta,
+  $SizeMeta
 ]).annotate({ identifier: "DeclarationMeta" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Declaration$ = Schema.Struct({
+export const $Declaration = Schema.Struct({
   _tag: Schema.tag("Declaration"),
-  annotations: Schema.optional(Annotations$),
+  annotations: Schema.optional($Annotations),
   typeParameters: Schema.Array(Representation$ref),
-  checks: Schema.Array(makeCheck(DeclarationMeta$, "Declaration")),
+  checks: Schema.Array(makeCheck($DeclarationMeta, "Declaration")),
   encodedSchema: Representation$ref
 }).annotate({ identifier: "Declaration" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Suspend$ = Schema.Struct({
+export const $Suspend = Schema.Struct({
   _tag: Schema.tag("Suspend"),
-  annotations: Schema.optional(Annotations$),
+  annotations: Schema.optional($Annotations),
   checks: Schema.Tuple([]),
   thunk: Representation$ref
 }).annotate({ identifier: "Suspend" })
@@ -1049,50 +1142,56 @@ export const Suspend$ = Schema.Struct({
 /**
  * @since 4.0.0
  */
-export interface Representation$ extends Schema.Codec<Representation> {}
+export interface $Representation extends Schema.Codec<Representation> {}
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Representation$: Representation$ = Schema.Union([
-  Null$,
-  Undefined$,
-  Void$,
-  Never$,
-  Unknown$,
-  Any$,
-  String$,
-  Number$,
-  Boolean$,
-  BigInt$,
-  Symbol$,
-  Literal$,
-  UniqueSymbol$,
-  ObjectKeyword$,
-  Enum$,
-  TemplateLiteral$,
-  Arrays$,
-  Objects$,
-  Union$,
-  Reference$,
-  Declaration$,
-  Suspend$
+export const $Representation: $Representation = Schema.Union([
+  $Null,
+  $Undefined,
+  $Void,
+  $Never,
+  $Unknown,
+  $Any,
+  $String,
+  $Number,
+  $Boolean,
+  $BigInt,
+  $Symbol,
+  $Literal,
+  $UniqueSymbol,
+  $ObjectKeyword,
+  $Enum,
+  $TemplateLiteral,
+  $Arrays,
+  $Objects,
+  $Union,
+  $Reference,
+  $Declaration,
+  $Suspend
 ]).annotate({ identifier: "Schema" })
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
-export const Document$ = Schema.Struct({
-  representation: Representation$,
-  references: Schema.Record(Schema.String, Representation$)
-}).annotate({ identifier: "Document" })
-
 /**
  * @since 4.0.0
  */
-export const MultiDocument$ = Schema.Struct({
-  representations: Schema.NonEmptyArray(Representation$),
-  references: Schema.Record(Schema.String, Representation$)
+export const $Document = Schema.Struct({
+  representation: $Representation,
+  references: Schema.Record(Schema.String, $Representation)
+}).annotate({ identifier: "Document" })
+
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const $MultiDocument = Schema.Struct({
+  representations: Schema.NonEmptyArray($Representation),
+  references: Schema.Record(Schema.String, $Representation)
 }).annotate({ identifier: "MultiDocument" })
 
 // -----------------------------------------------------------------------------
@@ -1112,12 +1211,12 @@ export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDoc
 /**
  * @since 4.0.0
  */
-export const DocumentFromJson: Schema.Codec<Document, unknown> = Schema.toCodecJson(Document$)
+export const DocumentFromJson: Schema.Codec<Document, unknown> = Schema.toCodecJson($Document)
 
 /**
  * @since 4.0.0
  */
-export const MultiDocumentFromJson: Schema.Codec<MultiDocument, unknown> = Schema.toCodecJson(MultiDocument$)
+export const MultiDocumentFromJson: Schema.Codec<MultiDocument, unknown> = Schema.toCodecJson($MultiDocument)
 
 /**
  * @since 4.0.0
@@ -1183,6 +1282,7 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
 }
 
 /**
+ * @category Runtime Generation
  * @since 4.0.0
  */
 export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, options?: {
@@ -1511,6 +1611,7 @@ export const toJsonSchemaMultiDocument: (
 ) => JsonSchema.MultiDocument<"draft-2020-12"> = InternalRepresentation.toJsonSchemaMultiDocument
 
 /**
+ * @category Code Generation
  * @since 4.0.0
  */
 export type Code = {
@@ -1519,6 +1620,7 @@ export type Code = {
 }
 
 /**
+ * @category Code Generation
  * @since 4.0.0
  */
 export function makeCode(runtime: string, Type: string): Code {
@@ -1526,6 +1628,7 @@ export function makeCode(runtime: string, Type: string): Code {
 }
 
 /**
+ * @category Code Generation
  * @since 4.0.0
  */
 export type Artifact =
@@ -1545,6 +1648,7 @@ export type Artifact =
   }
 
 /**
+ * @category Code Generation
  * @since 4.0.0
  */
 export type CodeDocument = {
@@ -1562,6 +1666,7 @@ export type CodeDocument = {
 }
 
 /**
+ * @category Code Generation
  * @since 4.0.0
  */
 export function toCodeDocument(multiDocument: MultiDocument, options?: {
@@ -2856,9 +2961,7 @@ function isType(type: unknown): type is JsonSchema.Type {
   return typeof type === "string" && types.includes(type)
 }
 
-/**
- * @since 4.0.0
- */
+/** @internal */
 export type TopologicalSort = {
   /**
    * The definitions that are not recursive.
@@ -2876,9 +2979,7 @@ export type TopologicalSort = {
   }
 }
 
-/**
- * @since 4.0.0
- */
+/** @internal */
 export function topologicalSort(references: References): TopologicalSort {
   const identifiers = Object.keys(references)
   const identifierSet = new Set(identifiers)
