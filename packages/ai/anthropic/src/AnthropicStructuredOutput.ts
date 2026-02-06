@@ -157,7 +157,7 @@ const recur = (ast: AST.AST): AST.AST => {
       }
     }
     case "Objects": {
-      const { annotations, filters } = get(ast)
+      let { annotations, filters } = get(ast)
       if (ast.indexSignatures.length === 0) {
         const propertySignatures = AST.mapOrSame(ast.propertySignatures, (ps) => {
           if (typeof ps.name !== "string") {
@@ -186,8 +186,15 @@ const recur = (ast: AST.AST): AST.AST => {
         }
       } else if (ast.indexSignatures.length === 1 && ast.propertySignatures.length === 0) {
         const is = ast.indexSignatures[0]
+        // records are not supported by Anthropic, so we translate them to arrays of key-value pairs
+        if (annotations !== undefined && typeof annotations.description === "string") {
+          annotations.description = `${RECORD_DESCRIPTION}; ${annotations.description}`
+        } else {
+          annotations ??= {}
+          annotations.description = RECORD_DESCRIPTION
+        }
         return AST.decodeTo(
-          recur(new AST.Arrays(false, [], [new AST.Arrays(false, [is.parameter, is.type], [])])),
+          recur(new AST.Arrays(false, [], [new AST.Arrays(false, [is.parameter, is.type], [])], annotations)),
           ast,
           Transformation.transform({
             decode: Object.fromEntries,
@@ -203,6 +210,9 @@ const recur = (ast: AST.AST): AST.AST => {
 }
 
 const REST_PROPERTY_NAME = "__rest__"
+
+const RECORD_DESCRIPTION =
+  "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object"
 
 type Annotation =
   | { readonly _tag: "description"; readonly description: string }
@@ -259,7 +269,6 @@ const getAnnotations = (annotations: Schema.Annotations.Filter | undefined): Arr
       ?? (annotations.meta?._tag === "isInt" || annotations.meta?._tag === "isFinite"
         ? undefined
         : annotations?.expected)
-      ?? annotations?.title
     if (typeof description === "string") {
       out.push({ _tag: "description", description })
     }
@@ -275,36 +284,40 @@ const getAnnotations = (annotations: Schema.Annotations.Filter | undefined): Arr
   return out
 }
 
-const getFilter = (filter: AST.Filter<any>): Array<Filter> => {
-  let out: Array<Filter> = getAnnotations(filter.annotations)
+function getFilter(filter: AST.Filter<any>): Array<Filter> {
+  let out: Array<Filter> = []
+  const annotations = getAnnotations(filter.annotations)
   const meta = filter.annotations?.meta
   if (meta !== undefined) {
-    if (meta._tag === "isInt" || meta._tag === "isFinite") {
-      out.push({
-        _tag: "filter",
-        filter: filter.annotate({
-          description: undefined,
-          expected: undefined,
-          title: undefined,
-          format: undefined
-        })
-      })
-    } else if ("regExp" in meta && meta.regExp instanceof RegExp) {
-      out.push({
-        _tag: "filter",
-        filter: filter.annotate({
-          description: undefined,
-          expected: undefined,
-          title: undefined,
-          format: undefined
-        })
-      })
+    switch (meta._tag) {
+      case "isInt":
+      case "isFinite": {
+        out = out.concat(annotations)
+        out.push({ _tag: "filter", filter: resetFilter(filter) })
+        break
+      }
+      default: {
+        out = out.concat(annotations)
+        break
+      }
+    }
+    if ("regExp" in meta && meta.regExp instanceof RegExp) {
+      out.push({ _tag: "filter", filter: resetFilter(filter) })
     }
   }
   return out
 }
 
-const getFilters = (checks: readonly [AST.Check<any>, ...AST.Check<any>[]]): Array<Filter> => {
+function resetFilter(filter: AST.Filter<any>): AST.Filter<any> {
+  return filter.annotate({
+    description: undefined,
+    expected: undefined,
+    title: undefined,
+    format: undefined
+  })
+}
+
+function getFilters(checks: readonly [AST.Check<any>, ...AST.Check<any>[]]): Array<Filter> {
   return checks.flatMap((check) => {
     switch (check._tag) {
       case "Filter":

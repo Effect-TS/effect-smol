@@ -67,10 +67,6 @@ describe("toCodecAnthropic", () => {
         "type": "string",
         "description": "description"
       })
-      assertJsonSchema(Schema.String.annotate({ title: "title" }), {
-        "type": "string",
-        "description": "title"
-      })
     })
 
     it("String + supported format", () => {
@@ -153,10 +149,6 @@ describe("toCodecAnthropic", () => {
         "type": "number",
         "description": "description"
       })
-      assertJsonSchema(Schema.Finite.annotate({ title: "title" }), {
-        "type": "number",
-        "description": "title"
-      })
     })
 
     it("Finite + supported format", () => {
@@ -196,10 +188,6 @@ describe("toCodecAnthropic", () => {
       assertJsonSchema(Schema.Int.annotate({ description: "description" }), {
         "type": "integer",
         "description": "description"
-      })
-      assertJsonSchema(Schema.Int.annotate({ title: "title" }), {
-        "type": "integer",
-        "description": "title"
       })
     })
 
@@ -252,129 +240,141 @@ describe("toCodecAnthropic", () => {
     })
   })
 
-  describe("Arrays", () => {
-    describe("Array", () => {
-      it("Array(String)", () => {
-        assertJsonSchema(Schema.Array(Schema.String), {
-          "type": "array",
-          "items": { "type": "string" }
-        })
-        assertJsonSchema(Schema.Array(Schema.String).annotate({ description: "description" }), {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "description"
-        })
+  describe("Array", () => {
+    it("Array(String)", () => {
+      assertJsonSchema(Schema.Array(Schema.String), {
+        "type": "array",
+        "items": { "type": "string" }
       })
-
-      it("Array(String) + isMinLength", () => {
-        assertJsonSchema(Schema.Array(Schema.String).check(Schema.isMinLength(1)), {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "a value with a length of at least 1"
-        })
-      })
-
-      it("Array(String) + isMinLength + isMaxLength", () => {
-        assertJsonSchema(Schema.Array(Schema.String).check(Schema.isMinLength(1), Schema.isMaxLength(2)), {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "a value with a length of at least 1 and a value with a length of at most 2"
-        })
+      assertJsonSchema(Schema.Array(Schema.String).annotate({ description: "description" }), {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "description"
       })
     })
 
-    describe("Tuple", () => {
-      it("Tuple([])", () => {
-        assertJsonSchema(Schema.Tuple([]), {
-          "type": "array",
-          "items": false
-        })
-      })
-
-      it("Tuple([String, Finite])", async () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Finite])
-        assertJsonSchema(schema, {
-          "type": "object",
-          "properties": {
-            "0": { "type": "string" },
-            "1": { "type": "number" }
-          },
-          "required": ["0", "1"],
-          "additionalProperties": false
-        })
-
-        const codec = toCodecAnthropic(schema)
-        const asserts = new TestSchema.Asserts(codec)
-
-        const encoding = asserts.encoding()
-        await encoding.succeed(["a", 1], { "0": "a", "1": 1 })
-
-        const decoding = asserts.decoding()
-        await decoding.succeed({ "0": "a", "1": 1 }, ["a", 1])
-      })
-
-      it("Tuple([String, Finite?])", async () => {
-        const schema = Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Finite)])
-        assertJsonSchema(schema, {
-          "type": "object",
-          "properties": {
-            "0": { "type": "string" },
-            "1": {
-              "anyOf": [
-                { "type": "number" },
-                { "type": "null" }
-              ]
-            }
-          },
-          "required": ["0", "1"],
-          "additionalProperties": false
-        })
-
-        const codec = toCodecAnthropic(schema)
-        const asserts = new TestSchema.Asserts(codec)
-
-        const encoding = asserts.encoding()
-        await encoding.succeed(["a", 1], { "0": "a", "1": 1 })
-
-        const decoding = asserts.decoding()
-        await decoding.succeed({ "0": "a", "1": 1 }, ["a", 1])
+    it("Array(String) + isMinLength", () => {
+      assertJsonSchema(Schema.Array(Schema.String).check(Schema.isMinLength(1)), {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "a value with a length of at least 1"
       })
     })
 
-    describe("TupleWithRest", () => {
-      it("TupleWithRest([String, Finite], Boolean)", async () => {
-        const schema = Schema.TupleWithRest(
-          Schema.Tuple([Schema.String, Schema.Finite]),
-          [Schema.Boolean]
-        )
-        assertJsonSchema(schema, {
-          "type": "object",
-          "properties": {
-            "0": { "type": "string" },
-            "1": { "type": "number" },
-            "__rest__": { "type": "array", "items": { "type": "boolean" } }
-          },
-          "required": ["0", "1", "__rest__"],
-          "additionalProperties": false
-        })
-        const codec = toCodecAnthropic(schema)
-        const asserts = new TestSchema.Asserts(codec)
-
-        const encoding = asserts.encoding()
-        await encoding.succeed(["a", 1], { "0": "a", "1": 1, "__rest__": [] })
-        await encoding.succeed(["a", 1, true], { "0": "a", "1": 1, "__rest__": [true] })
-        await encoding.succeed(["a", 1, true, false], { "0": "a", "1": 1, "__rest__": [true, false] })
-
-        const decoding = asserts.decoding()
-        await decoding.succeed({ "0": "a", "1": 1, "__rest__": [] }, ["a", 1])
-        await decoding.succeed({ "0": "a", "1": 1, "__rest__": [true] }, ["a", 1, true])
-        await decoding.succeed({ "0": "a", "1": 1, "__rest__": [true, false] }, ["a", 1, true, false])
+    it("Array(String) + isMinLength + isMaxLength", () => {
+      assertJsonSchema(Schema.Array(Schema.String).check(Schema.isMinLength(1), Schema.isMaxLength(2)), {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "a value with a length of at least 1 and a value with a length of at most 2"
       })
     })
   })
 
-  describe("Objects", () => {
-    it("Struct({ a: String })", () => {
+  describe("Tuple", () => {
+    it("Tuple([])", () => {
+      assertJsonSchema(Schema.Tuple([]), {
+        "type": "array",
+        "items": false
+      })
+    })
+
+    it("Tuple([String, Finite])", async () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Finite])
+      assertJsonSchema(schema, {
+        "type": "object",
+        "properties": {
+          "0": { "type": "string" },
+          "1": { "type": "number" }
+        },
+        "required": ["0", "1"],
+        "additionalProperties": false
+      })
+
+      const codec = toCodecAnthropic(schema)
+      const asserts = new TestSchema.Asserts(codec)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(["a", 1], { "0": "a", "1": 1 })
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ "0": "a", "1": 1 }, ["a", 1])
+    })
+
+    it("Tuple([String, Finite]) + description", async () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Finite]).annotate({ description: "description" })
+      assertJsonSchema(schema, {
+        "type": "object",
+        "description": "description",
+        "properties": {
+          "0": { "type": "string" },
+          "1": { "type": "number" }
+        },
+        "required": ["0", "1"],
+        "additionalProperties": false
+      })
+    })
+
+    it("Tuple([String, Finite?])", async () => {
+      const schema = Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Finite)])
+      assertJsonSchema(schema, {
+        "type": "object",
+        "properties": {
+          "0": { "type": "string" },
+          "1": {
+            "anyOf": [
+              { "type": "number" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": ["0", "1"],
+        "additionalProperties": false
+      })
+
+      const codec = toCodecAnthropic(schema)
+      const asserts = new TestSchema.Asserts(codec)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(["a", 1], { "0": "a", "1": 1 })
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ "0": "a", "1": 1 }, ["a", 1])
+    })
+  })
+
+  describe("TupleWithRest", () => {
+    it("TupleWithRest([String, Finite], Boolean)", async () => {
+      const schema = Schema.TupleWithRest(
+        Schema.Tuple([Schema.String, Schema.Finite]),
+        [Schema.Boolean]
+      )
+      assertJsonSchema(schema, {
+        "type": "object",
+        "properties": {
+          "0": { "type": "string" },
+          "1": { "type": "number" },
+          "__rest__": { "type": "array", "items": { "type": "boolean" } }
+        },
+        "required": ["0", "1", "__rest__"],
+        "additionalProperties": false
+      })
+      const codec = toCodecAnthropic(schema)
+      const asserts = new TestSchema.Asserts(codec)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(["a", 1], { "0": "a", "1": 1, "__rest__": [] })
+      await encoding.succeed(["a", 1, true], { "0": "a", "1": 1, "__rest__": [true] })
+      await encoding.succeed(["a", 1, true, false], { "0": "a", "1": 1, "__rest__": [true, false] })
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ "0": "a", "1": 1, "__rest__": [] }, ["a", 1])
+      await decoding.succeed({ "0": "a", "1": 1, "__rest__": [true] }, ["a", 1, true])
+      await decoding.succeed({ "0": "a", "1": 1, "__rest__": [true, false] }, ["a", 1, true, false])
+    })
+  })
+
+  describe("Struct", () => {
+    it("required properties", () => {
       assertJsonSchema(Schema.Struct({ a: Schema.String }), {
         "type": "object",
         "properties": {
@@ -385,7 +385,7 @@ describe("toCodecAnthropic", () => {
       })
     })
 
-    it("Struct({ a: String, b: Finite? })", async () => {
+    it("optional properties", async () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.optionalKey(Schema.Finite)
@@ -418,11 +418,14 @@ describe("toCodecAnthropic", () => {
       await decoding.succeed({ "a": "a", "b": 1 })
       await decoding.succeed({ "a": "a", "b": null }, { a: "a" })
     })
+  })
 
+  describe("Record", () => {
     it("Record(String, Finite)", async () => {
       const schema = Schema.Record(Schema.String, Schema.Finite)
       assertJsonSchema(schema, {
         "type": "array",
+        "description": "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object",
         "items": {
           "type": "object",
           "properties": {
@@ -441,6 +444,62 @@ describe("toCodecAnthropic", () => {
 
       const decoding = asserts.decoding()
       await decoding.succeed([{ 0: "a", 1: 1 }, { 0: "b", 1: 2 }], { "a": 1, "b": 2 })
+    })
+
+    it("Record(String, Finite) + description", () => {
+      const schema = Schema.Record(Schema.String, Schema.Finite).annotate({ description: "description" })
+      assertJsonSchema(schema, {
+        "type": "array",
+        "description":
+          "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object; description",
+        "items": {
+          "type": "object",
+          "properties": {
+            "0": { "type": "string" },
+            "1": { "type": "number" }
+          },
+          "required": ["0", "1"],
+          "additionalProperties": false
+        }
+      })
+    })
+
+    it("Record(String, Finite) + isMinProperties", () => {
+      const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isMinProperties(2))
+      assertJsonSchema(schema, {
+        "type": "array",
+        "description":
+          "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object; an object with at least 2 properties",
+        "items": {
+          "type": "object",
+          "properties": {
+            "0": { "type": "string" },
+            "1": { "type": "number" }
+          },
+          "required": ["0", "1"],
+          "additionalProperties": false
+        }
+      })
+    })
+
+    it("Record(String, Finite) + isMinProperties + description", () => {
+      const schema = Schema.Record(Schema.String, Schema.Finite).check(
+        Schema.isMinProperties(2, { description: "description" })
+      )
+      assertJsonSchema(schema, {
+        "type": "array",
+        "description":
+          "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object; description",
+        "items": {
+          "type": "object",
+          "properties": {
+            "0": { "type": "string" },
+            "1": { "type": "number" }
+          },
+          "required": ["0", "1"],
+          "additionalProperties": false
+        }
+      })
     })
   })
 })
