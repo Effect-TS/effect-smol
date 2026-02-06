@@ -137,7 +137,7 @@ const recur = (ast: AST.AST): AST.AST => {
       }
       const { annotations, filters } = get(ast)
       if (ast.elements.length > 0) {
-        // since tuples are not supported, we translate them to objects with string keys
+        // tuples are not supported by Anthropic, we translate them to objects with string keys
         const propertySignatures = ast.elements.map((e, i) => {
           return new AST.PropertySignature(String(i), e)
         })
@@ -193,6 +193,7 @@ const recur = (ast: AST.AST): AST.AST => {
             )
           }
           let type = recur(ps.type)
+          // opttional properties are not supported by Anthropic, so we translate them to nullable unions
           if (AST.isOptional(ps.type)) {
             type = AST.decodeTo(
               new AST.Union([type, AST.null], "anyOf"),
