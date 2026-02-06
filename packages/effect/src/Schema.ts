@@ -5048,7 +5048,7 @@ export function isMinProperties(minProperties: number, annotations?: Annotations
   return makeFilter<object>(
     (input) => Reflect.ownKeys(input).length >= minProperties,
     {
-      expected: `an object with at least ${minProperties} properties`,
+      expected: `a value with at least ${minProperties === 1 ? "1 entry" : `${minProperties} entries`}`,
       meta: {
         _tag: "isMinProperties",
         minProperties
@@ -5087,7 +5087,7 @@ export function isMaxProperties(maxProperties: number, annotations?: Annotations
   return makeFilter<object>(
     (input) => Reflect.ownKeys(input).length <= maxProperties,
     {
-      expected: `an object with at most ${maxProperties} properties`,
+      expected: `a value with at most ${maxProperties === 1 ? "1 entry" : `${maxProperties} entries`}`,
       meta: {
         _tag: "isMaxProperties",
         maxProperties
@@ -5127,7 +5127,7 @@ export function isPropertiesLength(length: number, annotations?: Annotations.Fil
   return makeFilter<object>(
     (input) => Reflect.ownKeys(input).length === length,
     {
-      expected: `an object with exactly ${length} properties`,
+      expected: `a value with exactly ${length === 1 ? "1 entry" : `${length} entries`}`,
       meta: {
         _tag: "isPropertiesLength",
         length

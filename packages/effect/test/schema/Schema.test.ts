@@ -1569,7 +1569,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         await decoding.succeed({ a: 1, b: 2 })
         await decoding.fail(
           {},
-          `Expected an object with at least 1 properties, got {}`
+          `Expected a value with at least 1 entry, got {}`
         )
       })
 
@@ -1581,11 +1581,11 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         await decoding.succeed({ a: 1, b: 2 })
         await decoding.fail(
           { a: 1, b: 2, c: 3 },
-          `Expected an object with at most 2 properties, got {"a":1,"b":2,"c":3}`
+          `Expected a value with at most 2 entries, got {"a":1,"b":2,"c":3}`
         )
         await decoding.fail(
           { a: 1, b: 2, c: 3 },
-          `Expected an object with at most 2 properties, got {"a":1,"b":2,"c":3}`
+          `Expected a value with at most 2 entries, got {"a":1,"b":2,"c":3}`
         )
       })
 
@@ -1600,7 +1600,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         await decoding.succeed({ a: 1, [sym]: 2 })
         await decoding.fail(
           { [sym]: 1 },
-          `Expected an object with at least 2 properties, got {Symbol(test):1}`
+          `Expected a value with at least 2 entries, got {Symbol(test):1}`
         )
       })
 
@@ -1617,7 +1617,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         await decoding.succeed({ [sym1]: 1, [sym2]: 2 })
         await decoding.fail(
           { [sym1]: 1, [sym2]: 2, [sym3]: 3 },
-          `Expected an object with at most 2 properties, got {Symbol(test1):1,Symbol(test2):2,Symbol(test3):3}`
+          `Expected a value with at most 2 entries, got {Symbol(test1):1,Symbol(test2):2,Symbol(test3):3}`
         )
       })
 
@@ -1630,11 +1630,11 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         await decoding.succeed({ ["__proto__"]: 0, "": 0 })
         await decoding.fail(
           { a: 1 },
-          `Expected an object with exactly 2 properties, got {"a":1}`
+          `Expected a value with exactly 2 entries, got {"a":1}`
         )
         await decoding.fail(
           { a: 1, b: 2, c: 3 },
-          `Expected an object with exactly 2 properties, got {"a":1,"b":2,"c":3}`
+          `Expected a value with exactly 2 entries, got {"a":1,"b":2,"c":3}`
         )
       })
 
@@ -1651,11 +1651,11 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         await decoding.succeed({ a: 1, [sym1]: 2 })
         await decoding.fail(
           { [sym1]: 1 },
-          `Expected an object with exactly 2 properties, got {Symbol(test1):1}`
+          `Expected a value with exactly 2 entries, got {Symbol(test1):1}`
         )
         await decoding.fail(
           { [sym1]: 1, [sym2]: 2, a: 3 },
-          `Expected an object with exactly 2 properties, got {"a":3,Symbol(test1):1,Symbol(test2):2}`
+          `Expected a value with exactly 2 entries, got {"a":3,Symbol(test1):1,Symbol(test2):2}`
         )
       })
 
@@ -1725,7 +1725,7 @@ Expected a value with a length of at least 3, got ["a",""]
           { a: 1, b: NaN, c: 3 },
           `Expected a finite number, got NaN
   at ["b"]
-Expected an object with at most 2 properties, got {"a":1,"b":NaN,"c":3}`
+Expected a value with at most 2 entries, got {"a":1,"b":NaN,"c":3}`
         )
       })
 
