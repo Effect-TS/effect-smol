@@ -647,7 +647,7 @@ export interface ConstructorParams {
  * @category constructors
  */
 export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effect.fnUntraced(function*(params) {
-  const codecTransformer = yield* CodecTransformer
+  const codecTransformer = yield* InternalCodecTransformer.CurrentCodecTransformer
 
   const parentSpanTransformer = yield* Effect.serviceOption(
     CurrentSpanTransformer
@@ -709,7 +709,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
           )),
         (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
         Effect.provideService(IdGenerator, idGenerator),
-        Effect.provideService(CodecTransformer, codecTransformer)
+        Effect.provideService(InternalCodecTransformer.CurrentCodecTransformer, codecTransformer)
       )
     ) as any
 
@@ -790,7 +790,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
           )),
         (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
         Effect.provideService(IdGenerator, idGenerator),
-        Effect.provideService(CodecTransformer, codecTransformer)
+        Effect.provideService(InternalCodecTransformer.CurrentCodecTransformer, codecTransformer)
       )
     ) as any
   }
@@ -862,7 +862,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         : error
     ),
     Stream.provideService(IdGenerator, idGenerator),
-    Stream.provideService(CodecTransformer, codecTransformer)
+    Stream.provideService(InternalCodecTransformer.CurrentCodecTransformer, codecTransformer)
   ) as any
 
   const generateContent: <
