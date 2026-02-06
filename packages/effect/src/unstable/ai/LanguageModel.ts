@@ -51,7 +51,7 @@
 import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberSet from "../../FiberSet.ts"
-import { constFalse } from "../../Function.ts"
+import { constFalse, identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
@@ -100,7 +100,6 @@ import * as Toolkit from "./Toolkit.ts"
  * @since 4.0.0
  * @category Context
  */
-// @effect-diagnostics effect/leakingRequirements:off
 export class LanguageModel extends ServiceMap.Service<LanguageModel, Service>()(
   "effect/unstable/ai/LanguageModel"
 ) {}
@@ -134,18 +133,18 @@ export interface Service {
    */
   readonly generateObject: <
     ObjectEncoded extends Record<string, any>,
-    ObjectSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
+    StructuredOutputSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
     Options extends NoExcessProperties<
-      GenerateObjectOptions<any, ObjectSchema>,
+      GenerateObjectOptions<any, StructuredOutputSchema>,
       Options
     >,
     Tools extends Record<string, Tool.Any> = {}
   >(
-    options: Options & GenerateObjectOptions<Tools, ObjectSchema>
+    options: Options & GenerateObjectOptions<Tools, StructuredOutputSchema>
   ) => Effect.Effect<
-    GenerateObjectResponse<Tools, ObjectSchema["Type"]>,
+    GenerateObjectResponse<Tools, StructuredOutputSchema["Type"]>,
     ExtractError<Options>,
-    ExtractServices<Options> | ObjectSchema["DecodingServices"]
+    ExtractServices<Options> | StructuredOutputSchema["DecodingServices"]
   >
 
   /**
@@ -162,6 +161,39 @@ export interface Service {
     ExtractServices<Options>
   >
 }
+
+/**
+ * A function that transforms a `Schema.Codec` into a provider-compatible form
+ * for structured output generation.
+ *
+ * Different language model providers have varying constraints on the JSON
+ * schemas they accept. A `CodecTransformer` rewrites a codec's encoded side to
+ * satisfy those constraints while preserving the decoded type.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>) => Schema.Codec<T, unknown, RD, RE>
+
+/**
+ * A `ServiceMap.Reference` that holds the current `CodecTransformer` used by
+ * `LanguageModel.generateObject` to adapt structured output schemas for the
+ * active provider.
+ *
+ * By default, this is the identity function (no transformation). Provider
+ * packages (e.g. `@effect/ai-anthropic`) override this reference with a
+ * provider-specific transformer so that schemas are automatically rewritten
+ * before being sent to the model as well as before decoding the generated value.
+ *
+ * @since 4.0.0
+ * @category context
+ */
+export const StructuredOutputCodecTransformer = ServiceMap.Reference(
+  "effect/unstable/ai/StructuredOutputCodecTransformer",
+  {
+    defaultValue: () => identity as CodecTransformer
+  }
+)
 
 /**
  * Configuration options for text generation.
@@ -235,7 +267,7 @@ export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
  */
 export interface GenerateObjectOptions<
   Tools extends Record<string, Tool.Any>,
-  ObjectSchema extends Schema.Top
+  StructuredOutputSchema extends Schema.Top
 > extends GenerateTextOptions<Tools> {
   /**
    * The name of the structured output that should be generated. Used by some
@@ -246,7 +278,7 @@ export interface GenerateObjectOptions<
   /**
    * The schema to be used to specify the structure of the object to generate.
    */
-  readonly schema: ObjectSchema
+  readonly schema: StructuredOutputSchema
 }
 
 /**
@@ -618,6 +650,8 @@ export interface ConstructorParams {
  * @category constructors
  */
 export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effect.fnUntraced(function*(params) {
+  const structuredOutputCodecTransformer = yield* StructuredOutputCodecTransformer
+
   const parentSpanTransformer = yield* Effect.serviceOption(
     CurrentSpanTransformer
   )
@@ -683,18 +717,18 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
 
   const generateObject = <
     ObjectEncoded extends Record<string, any>,
-    ObjectSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
+    StructuredOutputSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
     Options extends NoExcessProperties<
-      GenerateObjectOptions<any, ObjectSchema>,
+      GenerateObjectOptions<any, StructuredOutputSchema>,
       Options
     >,
     Tools extends Record<string, Tool.Any> = {}
   >(
-    options: Options & GenerateObjectOptions<Tools, ObjectSchema>
+    options: Options & GenerateObjectOptions<Tools, StructuredOutputSchema>
   ): Effect.Effect<
-    GenerateObjectResponse<Tools, ObjectSchema["Type"]>,
+    GenerateObjectResponse<Tools, StructuredOutputSchema["Type"]>,
     ExtractError<Options>,
-    ExtractServices<Options> | ObjectSchema["DecodingServices"]
+    ExtractServices<Options> | StructuredOutputSchema["DecodingServices"]
   > => {
     const objectName = getObjectName(options.objectName, options.schema)
     return Effect.useSpan(
@@ -732,7 +766,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
 
           const value = yield* resolveStructuredOutput(
             content as any,
-            options.schema
+            structuredOutputCodecTransformer(options.schema)
           )
 
           return new GenerateObjectResponse(value, content)
@@ -1264,7 +1298,11 @@ export const generateText = <
   GenerateTextResponse<Tools>,
   ExtractError<Options>,
   LanguageModel | ExtractServices<Options>
-> => Effect.flatMap(LanguageModel.asEffect(), (model) => model.generateText(options))
+> =>
+  Effect.flatMap(
+    Effect.service(LanguageModel),
+    (model) => model.generateText(options)
+  )
 
 /**
  * Generate a structured object from a schema using a language model.
@@ -1300,19 +1338,23 @@ export const generateText = <
  */
 export const generateObject = <
   ObjectEncoded extends Record<string, any>,
-  ObjectSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
+  StructuredOutputSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
   Options extends NoExcessProperties<
-    GenerateObjectOptions<any, ObjectSchema>,
+    GenerateObjectOptions<any, StructuredOutputSchema>,
     Options
   >,
   Tools extends Record<string, Tool.Any> = {}
 >(
-  options: Options & GenerateObjectOptions<Tools, ObjectSchema>
+  options: Options & GenerateObjectOptions<Tools, StructuredOutputSchema>
 ): Effect.Effect<
-  GenerateObjectResponse<Tools, ObjectSchema["Type"]>,
+  GenerateObjectResponse<Tools, StructuredOutputSchema["Type"]>,
   ExtractError<Options>,
-  ExtractServices<Options> | ObjectSchema["DecodingServices"] | LanguageModel
-> => Effect.flatMap(LanguageModel.asEffect(), (model) => model.generateObject(options))
+  ExtractServices<Options> | StructuredOutputSchema["DecodingServices"] | LanguageModel
+> =>
+  Effect.flatMap(
+    Effect.service(LanguageModel),
+    (model) => model.generateObject(options)
+  )
 
 /**
  * Generate text using a language model with streaming output.
@@ -1348,9 +1390,10 @@ export const streamText = <
   ExtractError<Options>,
   ExtractServices<Options> | LanguageModel
 > =>
-  Stream.unwrap(
-    Effect.map(LanguageModel.asEffect(), (model) => model.streamText(options))
-  )
+  Stream.unwrap(Effect.map(
+    Effect.service(LanguageModel),
+    (model) => model.streamText(options)
+  ))
 
 // =============================================================================
 // Tool Approval Helpers
@@ -1678,9 +1721,9 @@ const resolveToolkit = <Tools extends Record<string, Tool.Any>, E, R>(
   "asEffect" in toolkit ? toolkit.asEffect() : Effect.succeed(toolkit)
 
 /** @internal */
-export const getObjectName = <ObjectSchema extends Schema.Top>(
+export const getObjectName = <StructuredOutputSchema extends Schema.Top>(
   objectName: string | undefined,
-  schema: ObjectSchema
+  schema: StructuredOutputSchema
 ): string => {
   if (Predicate.isNotUndefined(objectName)) {
     return objectName
@@ -1696,8 +1739,8 @@ export const getObjectName = <ObjectSchema extends Schema.Top>(
 }
 
 const resolveStructuredOutput = Effect.fnUntraced(function*<
-  ObjectSchema extends Schema.Top
->(response: ReadonlyArray<Response.AllParts<any>>, schema: ObjectSchema) {
+  StructuredOutputSchema extends Schema.Top
+>(response: ReadonlyArray<Response.AllParts<any>>, schema: StructuredOutputSchema) {
   const text: Array<string> = []
   for (const part of response) {
     if (part.type === "text") {

@@ -1,7 +1,7 @@
+import { toCodecAnthropic } from "@effect/ai-anthropic/AnthropicStructuredOutput"
 import { assert, describe, it } from "@effect/vitest"
 import { type JsonSchema, Schema } from "effect"
 import { TestSchema } from "effect/testing"
-import { toCodecAnthropic } from "effect/unstable/ai/toCodecAnthropic"
 
 function assertJsonSchema(schema: Schema.Top, expected: JsonSchema.JsonSchema) {
   const document = Schema.toJsonSchemaDocument(toCodecAnthropic(schema))

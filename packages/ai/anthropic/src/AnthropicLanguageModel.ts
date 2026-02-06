@@ -8,6 +8,7 @@ import * as Base64 from "effect/encoding/Base64"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
+import * as Schema from "effect/Schema"
 import * as SchemaAST from "effect/SchemaAST"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
@@ -21,6 +22,7 @@ import type * as Prompt from "effect/unstable/ai/Prompt"
 import type * as Response from "effect/unstable/ai/Response"
 import * as Tool from "effect/unstable/ai/Tool"
 import { AnthropicClient, type MessageStreamEvent } from "./AnthropicClient.ts"
+import { toCodecAnthropic } from "./AnthropicStructuredOutput.ts"
 import { addGenAIAnnotations } from "./AnthropicTelemetry.ts"
 import type { AnthropicTool } from "./AnthropicTool.ts"
 import type * as Generated from "./Generated.ts"
@@ -480,7 +482,10 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
           return response
         })
       ))
-  })
+  }).pipe(Effect.provideService(
+    LanguageModel.StructuredOutputCodecTransformer,
+    toCodecAnthropic
+  ))
 })
 
 /**
@@ -974,12 +979,20 @@ const prepareTools = Effect.fnUntraced(
 
     // Return a JSON response tool when using non-native structured outputs
     if (options.responseFormat.type === "json" && !capabilities.supportsStructuredOutput) {
+      const document = Schema.toJsonSchemaDocument(toCodecAnthropic(options.responseFormat.schema))
+      const jsonSchema = Object.keys(document.definitions).length > 0
+        ? {
+          ...document.schema,
+          $defs: document.definitions
+        }
+        : document.schema as any
       return {
         tools: [{
           name: options.responseFormat.objectName,
           description: SchemaAST.resolveDescription(options.responseFormat.schema.ast) ??
             "Response with a JSON object.",
-          input_schema: Tool.getJsonSchemaFromSchema(options.responseFormat.schema) as any
+          // input_schema: Tool.getJsonSchemaFromSchema(options.responseFormat.schema) as any
+          input_schema: jsonSchema as any
         }],
         toolChoice: {
           type: "tool",
@@ -2668,9 +2681,16 @@ const getOutputFormat = ({ capabilities, options }: {
   readonly options: LanguageModel.ProviderOptions
 }): typeof Generated.JsonOutputFormat.Encoded | undefined => {
   if (options.responseFormat.type === "json" && capabilities.supportsStructuredOutput) {
+    const document = Schema.toJsonSchemaDocument(toCodecAnthropic(options.responseFormat.schema))
+    const jsonSchema = Object.keys(document.definitions).length > 0
+      ? {
+        ...document.schema,
+        $defs: document.definitions
+      }
+      : document.schema
     return {
       type: "json_schema",
-      schema: Tool.getJsonSchemaFromSchema(options.responseFormat.schema) as any
+      schema: jsonSchema as any
     }
   }
   return undefined

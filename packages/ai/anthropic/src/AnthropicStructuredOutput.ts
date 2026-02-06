@@ -1,19 +1,55 @@
 /**
- * @since 4.0.0
+ * Provides a codec transformation for Anthropic structured output.
+ *
+ * Anthropic's API has specific constraints on JSON schema support that differ
+ * from the full JSON Schema specification. This module transforms Effect
+ * `Schema.Codec` types into a form compatible with Anthropic's structured
+ * output requirements by:
+ *
+ * - Converting tuples to objects with string keys (tuples are unsupported)
+ * - Converting optional properties to nullable unions (`T | null`)
+ * - Converting index signatures (records) to arrays of key-value pairs
+ * - Converting `oneOf` unions to `anyOf` unions
+ * - Stripping unsupported annotations and preserving only Anthropic-compatible
+ *   formats and descriptions
+ *
+ * @since 1.0.0
  */
-
-import * as Arr from "../../Array.ts"
-import * as Option from "../../Option.ts"
-import * as Predicate from "../../Predicate.ts"
-import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as Arr from "effect/Array"
+import * as Option from "effect/Option"
+import * as Predicate from "effect/Predicate"
+import * as Schema from "effect/Schema"
+import * as AST from "effect/SchemaAST"
+import * as Transformation from "effect/SchemaTransformation"
 
 /**
- * @category Serializer
- * @since 4.0.0
+ * Transforms a `Schema.Codec` into a form compatible with Anthropic's
+ * structured output constraints.
+ *
+ * The transformation walks the schema AST and rewrites constructs that
+ * Anthropic does not support natively:
+ *
+ * - **Tuples** are converted to objects with numeric string keys (e.g.
+ *   `"0"`, `"1"`) since Anthropic does not support tuple schemas. Rest
+ *   elements are placed under a `"__rest__"` key.
+ * - **Optional properties** are replaced with `T | null` unions, because
+ *   Anthropic requires all properties to be present.
+ * - **Records** (index signatures) are converted to arrays of `[key, value]`
+ *   pairs.
+ * - **`oneOf` unions** are rewritten as `anyOf` unions.
+ * - **Filters and annotations** are preserved where compatible (e.g.
+ *   `description`, supported `format` values like `"date-time"`, `"email"`,
+ *   `"uuid"`, etc.), and stripped otherwise.
+ *
+ * If the schema is already compatible, the original codec is returned
+ * unchanged.
+ *
+ * @since 1.0.0
+ * @category Codec Transformation
  */
-export function toCodecAnthropic<T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>): Schema.Codec<T, unknown, RD, RE> {
+export const toCodecAnthropic = <T, E, RD, RE>(
+  schema: Schema.Codec<T, E, RD, RE>
+): Schema.Codec<T, unknown, RD, RE> => {
   const to = schema.ast
   const from = recur(AST.toEncoded(to))
   if (from === to) {
@@ -22,7 +58,7 @@ export function toCodecAnthropic<T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE
   return Schema.make(AST.decodeTo(from, to, Transformation.passthrough()))
 }
 
-function recur(ast: AST.AST): AST.AST {
+const recur = (ast: AST.AST): AST.AST => {
   switch (ast._tag) {
     case "Declaration":
     case "Undefined":
@@ -176,10 +212,10 @@ type Filter =
   | Annotation
   | { readonly _tag: "filter"; readonly filter: AST.Filter<any> }
 
-function get(ast: AST.AST): {
+const get = (ast: AST.AST): {
   annotations: Record<string, string> | undefined
   filters: [AST.Check<any>, ...AST.Check<any>[]] | undefined
-} {
+} => {
   const annotations: Record<string, string> = {}
   const filters: Array<AST.Filter<any>> = []
   const checks = getChecks(ast)
@@ -211,14 +247,12 @@ function get(ast: AST.AST): {
   }
 }
 
-function getChecks(ast: AST.AST): Array<Filter> {
-  return [
-    ...(ast.checks !== undefined ? getFilters(ast.checks) : []),
-    ...getAnnotations(ast.annotations)
-  ]
-}
+const getChecks = (ast: AST.AST): Array<Filter> => [
+  ...(ast.checks !== undefined ? getFilters(ast.checks) : []),
+  ...getAnnotations(ast.annotations)
+]
 
-function getAnnotations(annotations: Schema.Annotations.Filter | undefined): Array<Annotation> {
+const getAnnotations = (annotations: Schema.Annotations.Filter | undefined): Array<Annotation> => {
   const out: Array<Annotation> = []
   if (annotations !== undefined) {
     const description = annotations?.description
@@ -241,7 +275,7 @@ function getAnnotations(annotations: Schema.Annotations.Filter | undefined): Arr
   return out
 }
 
-function getFilter(filter: AST.Filter<any>): Array<Filter> {
+const getFilter = (filter: AST.Filter<any>): Array<Filter> => {
   let out: Array<Filter> = getAnnotations(filter.annotations)
   const meta = filter.annotations?.meta
   if (meta !== undefined) {
@@ -270,7 +304,7 @@ function getFilter(filter: AST.Filter<any>): Array<Filter> {
   return out
 }
 
-function getFilters(checks: readonly [AST.Check<any>, ...AST.Check<any>[]]): Array<Filter> {
+const getFilters = (checks: readonly [AST.Check<any>, ...AST.Check<any>[]]): Array<Filter> => {
   return checks.flatMap((check) => {
     switch (check._tag) {
       case "Filter":

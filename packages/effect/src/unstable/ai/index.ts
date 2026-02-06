@@ -396,11 +396,6 @@ export * as Response from "./Response.ts"
 export * as Telemetry from "./Telemetry.ts"
 
 /**
- * @since 4.0.0
- */
-export * as toCodecAnthropic from "./toCodecAnthropic.ts"
-
-/**
  * The `Tokenizer` module provides tokenization and text truncation capabilities
  * for large language model text processing workflows.
  *
