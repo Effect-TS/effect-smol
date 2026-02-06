@@ -389,6 +389,71 @@ describe("AiError", () => {
         assert.strictEqual(error._tag, "ToolConfigurationError")
       })
     })
+
+    describe("StructuredOutputError", () => {
+      it("should be retryable", () => {
+        const error = new AiError.StructuredOutputError({
+          description: "Invalid JSON structure"
+        })
+        assert.isTrue(error.isRetryable)
+      })
+
+      it("should format message with description", () => {
+        const error = new AiError.StructuredOutputError({
+          description: "Expected a valid JSON object"
+        })
+        assert.match(error.message, /Structured output validation failed/)
+        assert.match(error.message, /Expected a valid JSON object/)
+      })
+
+      it("should have _tag set correctly", () => {
+        const error = new AiError.StructuredOutputError({
+          description: "Test error"
+        })
+        assert.strictEqual(error._tag, "StructuredOutputError")
+      })
+
+      it.effect("should create from SchemaError", () =>
+        Effect.gen(function*() {
+          const TestSchema = Schema.Struct({ name: Schema.String })
+          const result = yield* Effect.exit(
+            Schema.decodeUnknownEffect(TestSchema)({ name: 123 })
+          )
+
+          if (result._tag === "Failure") {
+            const cause = result.cause
+            if ("error" in cause && Schema.isSchemaError(cause.error)) {
+              const parseError = AiError.StructuredOutputError.fromSchemaError(cause.error)
+              assert.strictEqual(parseError._tag, "StructuredOutputError")
+              assert.isString(parseError.description)
+            }
+          }
+        }))
+    })
+
+    describe("UnsupportedSchemaError", () => {
+      it("should not be retryable", () => {
+        const error = new AiError.UnsupportedSchemaError({
+          description: "Unions are not supported"
+        })
+        assert.isFalse(error.isRetryable)
+      })
+
+      it("should format message with description", () => {
+        const error = new AiError.UnsupportedSchemaError({
+          description: "Unions are not supported in Anthropic structured output"
+        })
+        assert.match(error.message, /Unsupported schema/)
+        assert.match(error.message, /Unions are not supported in Anthropic structured output/)
+      })
+
+      it("should have _tag set correctly", () => {
+        const error = new AiError.UnsupportedSchemaError({
+          description: "Test error"
+        })
+        assert.strictEqual(error._tag, "UnsupportedSchemaError")
+      })
+    })
   })
 
   describe("delegation", () => {
@@ -644,8 +709,7 @@ describe("AiError", () => {
       Effect.gen(function*() {
         const error = new AiError.ToolNotFoundError({
           toolName: "UnknownTool",
-          availableTools: ["GetWeather", "GetTime"],
-          toolParams: { query: "test" }
+          availableTools: ["GetWeather", "GetTime"]
         })
         const encoded = yield* Schema.encodeEffect(AiError.ToolNotFoundError)(error)
         const decoded = yield* Schema.decodeEffect(AiError.ToolNotFoundError)(encoded)
@@ -706,6 +770,28 @@ describe("AiError", () => {
         assert.strictEqual(decoded._tag, "ToolConfigurationError")
         assert.strictEqual(decoded.toolName, "OpenAiCodeInterpreter")
         assert.strictEqual(decoded.description, "Invalid container ID format")
+      }))
+
+    it.effect("StructuredOutputError roundtrip", () =>
+      Effect.gen(function*() {
+        const error = new AiError.StructuredOutputError({
+          description: "Invalid JSON structure"
+        })
+        const encoded = yield* Schema.encodeEffect(AiError.StructuredOutputError)(error)
+        const decoded = yield* Schema.decodeEffect(AiError.StructuredOutputError)(encoded)
+        assert.strictEqual(decoded._tag, "StructuredOutputError")
+        assert.strictEqual(decoded.description, "Invalid JSON structure")
+      }))
+
+    it.effect("UnsupportedSchemaError roundtrip", () =>
+      Effect.gen(function*() {
+        const error = new AiError.UnsupportedSchemaError({
+          description: "Unions are not supported"
+        })
+        const encoded = yield* Schema.encodeEffect(AiError.UnsupportedSchemaError)(error)
+        const decoded = yield* Schema.decodeEffect(AiError.UnsupportedSchemaError)(encoded)
+        assert.strictEqual(decoded._tag, "UnsupportedSchemaError")
+        assert.strictEqual(decoded.description, "Unions are not supported")
       }))
 
     it.effect("AiErrorReason union with tool errors roundtrip", () =>

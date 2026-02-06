@@ -18,6 +18,8 @@
  * - **InternalProviderError** - Provider-side failures (5xx)
  * - **NetworkError** - Transport-level failures
  * - **InvalidOutputError** - LLM output parsing/validation failures
+ * - **StructuredOutputError** - LLM generated text that doesn't conform to structured output schema
+ * - **UnsupportedSchemaError** - Codec transformer rejected a schema with unsupported constructs
  * - **UnknownError** - Catch-all for unknown errors
  *
  * ## Tool Call Errors
@@ -751,6 +753,132 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
 }
 
 /**
+ * Error indicating the LLM generated text that does not conform to the
+ * requested structured output schema.
+ *
+ * Structured output errors are retryable since LLM outputs are non-deterministic.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = new AiError.StructuredOutputError({
+ *   description: "Expected a valid JSON object"
+ * })
+ *
+ * console.log(error.isRetryable) // true
+ * console.log(error.message)
+ * // "Structured output validation failed: Expected a valid JSON object"
+ * ```
+ *
+ * @since 1.0.0
+ * @category reason
+ */
+export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputError>(
+  "effect/ai/AiError/StructuredOutputError"
+)({
+  _tag: Schema.tag("StructuredOutputError"),
+  description: Schema.String,
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObjectOption),
+    Schema.withDecodingDefault(constEmptyObject)
+  ),
+  usage: Schema.optional(UsageInfo)
+}) {
+  /**
+   * @since 1.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
+   * Structured output errors are retryable since LLM outputs are non-deterministic.
+   *
+   * @since 1.0.0
+   */
+  get isRetryable(): boolean {
+    return true
+  }
+
+  /**
+   * Creates a StructuredOutputError from a Schema error.
+   *
+   * @example
+   * ```ts
+   * import { Schema } from "effect"
+   * import { AiError } from "effect/unstable/ai"
+   *
+   * declare const schemaError: Schema.SchemaError
+   *
+   * const parseError = AiError.StructuredOutputError.fromSchemaError(schemaError)
+   * ```
+   *
+   * @since 1.0.0
+   * @category constructors
+   */
+  static fromSchemaError(error: Schema.SchemaError): StructuredOutputError {
+    return new StructuredOutputError({
+      description: error.message
+    })
+  }
+
+  override get message(): string {
+    return `Structured output validation failed: ${this.description}`
+  }
+}
+
+/**
+ * Error indicating a codec transformer rejected a schema because it contains
+ * unsupported constructs.
+ *
+ * Unsupported schema errors are not retryable because they indicate a
+ * programmer error where the schema is incompatible with the provider.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = new AiError.UnsupportedSchemaError({
+ *   description: "Unions are not supported in Anthropic structured output"
+ * })
+ *
+ * console.log(error.isRetryable) // false
+ * console.log(error.message)
+ * // "Unsupported schema: Unions are not supported in Anthropic structured output"
+ * ```
+ *
+ * @since 1.0.0
+ * @category reason
+ */
+export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaError>(
+  "effect/ai/AiError/UnsupportedSchemaError"
+)({
+  _tag: Schema.tag("UnsupportedSchemaError"),
+  description: Schema.String,
+  metadata: ProviderMetadata.pipe(
+    Schema.withConstructorDefault(constEmptyObjectOption),
+    Schema.withDecodingDefault(constEmptyObject)
+  )
+}) {
+  /**
+   * @since 1.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
+   * Unsupported schema errors are not retryable because they indicate a programmer error.
+   *
+   * @since 1.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    return `Unsupported schema: ${this.description}`
+  }
+}
+
+/**
  * Catch-all error for unknown or unexpected errors.
  *
  * Unknown errors are not retryable by default since the cause is unknown.
@@ -1178,6 +1306,8 @@ export type AiErrorReason =
   | InternalProviderError
   | NetworkError
   | InvalidOutputError
+  | StructuredOutputError
+  | UnsupportedSchemaError
   | UnknownError
   | ToolNotFoundError
   | ToolParameterValidationError
@@ -1202,6 +1332,8 @@ export const AiErrorReason: Schema.Union<[
   typeof InternalProviderError,
   typeof NetworkError,
   typeof InvalidOutputError,
+  typeof StructuredOutputError,
+  typeof UnsupportedSchemaError,
   typeof UnknownError,
   typeof ToolNotFoundError,
   typeof ToolParameterValidationError,
@@ -1219,6 +1351,8 @@ export const AiErrorReason: Schema.Union<[
   InternalProviderError,
   NetworkError,
   InvalidOutputError,
+  StructuredOutputError,
+  UnsupportedSchemaError,
   UnknownError,
   ToolNotFoundError,
   ToolParameterValidationError,

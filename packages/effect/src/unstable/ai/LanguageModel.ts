@@ -763,9 +763,20 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             providerOptions
           )
 
+          const transformedSchema = yield* Effect.try({
+            try: () => codecTransformer(options.schema),
+            catch: (error) =>
+              AiError.make({
+                module: "LanguageModel",
+                method: "generateObject",
+                reason: new AiError.UnsupportedSchemaError({
+                  description: error instanceof Error ? error.message : String(error)
+                })
+              })
+          })
           const value = yield* resolveStructuredOutput(
             content as any,
-            codecTransformer(options.schema)
+            transformedSchema
           )
 
           return new GenerateObjectResponse(value, content)
@@ -1751,7 +1762,7 @@ const resolveStructuredOutput = Effect.fnUntraced(function*<
     return yield* AiError.make({
       module: "LanguageModel",
       method: "generateObject",
-      reason: new AiError.InvalidOutputError({
+      reason: new AiError.StructuredOutputError({
         description: "No text content in response"
       })
     })
@@ -1762,7 +1773,7 @@ const resolveStructuredOutput = Effect.fnUntraced(function*<
     AiError.make({
       module: "LanguageModel",
       method: "generateObject",
-      reason: AiError.InvalidOutputError.fromSchemaError(error)
+      reason: AiError.StructuredOutputError.fromSchemaError(error)
     }))
 })
 

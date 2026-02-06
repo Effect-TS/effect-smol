@@ -428,7 +428,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
       const betas = new Set<string>()
       const capabilities = getModelCapabilities(config.model!)
       const { messages, system } = yield* prepareMessages({ betas, options, toolNameMapper })
-      const outputFormat = getOutputFormat({ capabilities, options })
+      const outputFormat = yield* getOutputFormat({ capabilities, options })
       const { tools, toolChoice } = yield* prepareTools({ betas, capabilities, config, options })
       const params: Mutable<typeof Generated.BetaMessagesPostParams.Encoded> = {}
       if (betas.size > 0) {
@@ -979,14 +979,14 @@ const prepareTools = Effect.fnUntraced(
 
     // Return a JSON response tool when using non-native structured outputs
     if (options.responseFormat.type === "json" && !capabilities.supportsStructuredOutput) {
-      const schema = toCodecAnthropic(options.responseFormat.schema)
+      const input_schema = yield* tryJsonSchema(options.responseFormat.schema, "prepareTools")
       const userDescription = SchemaAST.resolveDescription(options.responseFormat.schema.ast)
       const description = Predicate.isNotUndefined(userDescription) ? `${userDescription} - ` : ""
       return {
         tools: [{
           name: options.responseFormat.objectName,
           description: `${description}You MUST respond with a JSON object.`,
-          input_schema: Tool.getJsonSchemaFromSchema(schema) as any
+          input_schema: input_schema as any
         }],
         toolChoice: {
           type: "tool",
@@ -1002,7 +1002,7 @@ const prepareTools = Effect.fnUntraced(
     for (const tool of options.tools) {
       if (Tool.isUserDefined(tool)) {
         const description = Tool.getDescription(tool)
-        const input_schema = Tool.getJsonSchema(tool, { transformer: toCodecAnthropic })
+        const input_schema = yield* tryJsonSchema(tool.parametersSchema, "prepareTools")
 
         userTools.push({
           name: tool.name,
@@ -2678,20 +2678,40 @@ const getModelCapabilities = (modelId: string): ModelCapabilities => {
   }
 }
 
-const getOutputFormat = ({ capabilities, options }: {
+const unsupportedSchemaError = (error: unknown, method: string): AiError.AiError =>
+  AiError.make({
+    module: "AnthropicLanguageModel",
+    method,
+    reason: new AiError.UnsupportedSchemaError({
+      description: error instanceof Error ? error.message : String(error)
+    })
+  })
+
+const tryCodecTransform = <S extends Schema.Top>(schema: S, method: string) =>
+  Effect.try({
+    try: () => toCodecAnthropic(schema),
+    catch: (error) => unsupportedSchemaError(error, method)
+  })
+
+const tryJsonSchema = <S extends Schema.Top>(schema: S, method: string) =>
+  Effect.try({
+    try: () => Tool.getJsonSchemaFromSchema(schema, { transformer: toCodecAnthropic }),
+    catch: (error) => unsupportedSchemaError(error, method)
+  })
+
+const getOutputFormat = Effect.fnUntraced(function*({ capabilities, options }: {
   readonly capabilities: ModelCapabilities
   readonly options: LanguageModel.ProviderOptions
-}): typeof Generated.JsonOutputFormat.Encoded | undefined => {
+}): Effect.fn.Return<typeof Generated.JsonOutputFormat.Encoded | undefined, AiError.AiError> {
   if (options.responseFormat.type === "json" && capabilities.supportsStructuredOutput) {
-    const schema = toCodecAnthropic(options.responseFormat.schema)
-    const jsonSchema = Tool.getJsonSchemaFromSchema(schema) as any
+    const jsonSchema = yield* tryJsonSchema(options.responseFormat.schema, "getOutputFormat")
     return {
       type: "json_schema",
-      schema: jsonSchema
+      schema: jsonSchema as any
     }
   }
   return undefined
-}
+})
 
 const encodeToolParameters = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>(
   tools: Tools,
@@ -2711,7 +2731,8 @@ const encodeToolParameters = Effect.fnUntraced(function*<Tools extends ReadonlyA
     })
   }
 
-  const encodeParams = Schema.decodeEffect(toCodecAnthropic(tool.parametersSchema))
+  const transformedSchema = yield* tryCodecTransform(tool.parametersSchema, "makeResponse")
+  const encodeParams = Schema.decodeEffect(transformedSchema)
 
   return yield* (
     encodeParams(toolParams) as Effect.Effect<unknown, Schema.SchemaError>
