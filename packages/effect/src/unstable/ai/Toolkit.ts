@@ -53,7 +53,8 @@ import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as AiError from "./AiError.ts"
-import type * as Tool from "./Tool.ts"
+import { CodecTransformer } from "./LanguageModel.ts"
+import * as Tool from "./Tool.ts"
 
 const TypeId = "~effect/ai/Toolkit" as const
 
@@ -285,24 +286,32 @@ const Proto = {
   asEffect(this: Toolkit<Record<string, Tool.Any>>) {
     return Effect.gen({ self: this }, function*() {
       const tools = this.tools
+
       const services = yield* Effect.services<never>()
+
       const schemasCache = new WeakMap<any, {
         readonly services: ServiceMap.ServiceMap<never>
         readonly handler: Tool.Handler<any>["handler"]
-        readonly decodeParameters: (u: unknown) => Effect.Effect<Tool.Parameters<any>, Schema.SchemaError>
+        readonly decodeParameters: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
         readonly decodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
         readonly encodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
       }>()
-      const getSchemas = (tool: Tool.Any) => {
+
+      const getSchemas = (tool: Tool.Any, transformer: CodecTransformer) => {
         let schemas = schemasCache.get(tool)
         if (Predicate.isUndefined(schemas)) {
           const handler = services.mapUnsafe.get(tool.id)! as Tool.Handler<any>
-          const decodeParameters = Schema.decodeUnknownEffect(tool.parametersSchema) as any
+          const parametersSchema = tool.parametersSchema
           const resultSchema = tool.failureMode === "return"
             ? Schema.Union([tool.successSchema, tool.failureSchema, AiError.AiError])
             : tool.successSchema
-          const decodeResult = Schema.decodeUnknownEffect(Schema.toType(resultSchema)) as any
-          const encodeResult = Schema.encodeUnknownEffect(resultSchema) as any
+          // Do not apply the codec transformation to provider defined tools,
+          // as these are defined internal to the Effect AI SDK and should
+          // already have valid schemas
+          const transformedResultSchema = Tool.isProviderDefined(tool) ? resultSchema : transformer(resultSchema)
+          const decodeParameters = Schema.decodeUnknownEffect(parametersSchema) as any
+          const decodeResult = Schema.decodeUnknownEffect(transformedResultSchema) as any
+          const encodeResult = Schema.encodeUnknownEffect(transformedResultSchema) as any
           schemas = {
             services: handler.services,
             handler: handler.handler,
@@ -314,6 +323,7 @@ const Proto = {
         }
         return schemas
       }
+
       const handle = Effect.fnUntraced(function*(name: string, params: unknown) {
         const tool = tools[name]
 
@@ -329,14 +339,14 @@ const Proto = {
             method: `${name}.handle`,
             reason: new AiError.ToolNotFoundError({
               toolName: name,
-              toolParams: params,
               availableTools: Object.keys(tools)
             })
           })
         }
 
         // Fetch cached schemas / handlers for the tool
-        const schemas = getSchemas(tool)
+        const codecTransformer = yield* CodecTransformer
+        const schemas = getSchemas(tool, codecTransformer)
 
         // Decode the tool call parameters which will be passed to the handler
         const decodedParams = yield* schemas.decodeParameters(params).pipe(

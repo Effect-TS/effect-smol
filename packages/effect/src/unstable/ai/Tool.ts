@@ -37,6 +37,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Struct from "../../Struct.ts"
 import type * as Types from "../../Types.ts"
 import type * as AiError from "./AiError.ts"
+import type { CodecTransformer } from "./LanguageModel.ts"
 import type * as Prompt from "./Prompt.ts"
 
 // =============================================================================
@@ -1257,6 +1258,10 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * large language models to indicate the structure and type of the parameters
  * that a given tool call should receive.
  *
+ * May accept an optional `CodecTransformer` which can be used to transform the
+ * tool parameter schema so that the resultant JSON schema for the tool call
+ * parameters are in a format that conforms to any provider-specific constraints.
+ *
  * @example
  * ```ts
  * import { Schema } from "effect"
@@ -1265,7 +1270,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * const weatherTool = Tool.make("get_weather", {
  *   parameters: Schema.Struct({
  *     location: Schema.String,
- *     units: Schema.optional(Schema.Literals(["celsius", "fahrenheit"]))
+ *     units: Schema.Literals(["celsius", "fahrenheit"])
  *   })
  * })
  *
@@ -1277,32 +1282,32 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * //     location: { type: "string" },
  * //     units: { type: "string", enum: ["celsius", "fahrenheit"] }
  * //   },
- * //   required: ["location"]
+ * //   required: ["location", "units"]
  * // }
  * ```
  *
  * @since 1.0.0
  * @category utilities
  */
-export const getJsonSchema = <Tool extends Any>(tool: Tool): JsonSchema.JsonSchema =>
-  getJsonSchemaFromSchema(tool.parametersSchema)
+export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
+  readonly transformer?: CodecTransformer
+}): JsonSchema.JsonSchema => getJsonSchemaFromSchema(tool.parametersSchema, options)
 
 /**
  * @since 1.0.0
  * @category utilities
  */
-export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): JsonSchema.JsonSchema => {
-  // TODO: replace this with a rewriter
+export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options?: {
+  readonly transformer?: CodecTransformer
+}): JsonSchema.JsonSchema => {
   const props = AST.isObjects(schema.ast) ? schema.ast.propertySignatures : []
   if (props.length === 0) {
-    return {
-      type: "object",
-      properties: {},
-      required: [],
-      additionalProperties: false
-    }
+    return { type: "object", properties: {}, required: [], additionalProperties: false }
   }
-  const document = Schema.toJsonSchemaDocument(schema)
+  const transformed = Predicate.isNotUndefined(options?.transformer)
+    ? options.transformer(schema)
+    : schema
+  const document = Schema.toJsonSchemaDocument(transformed)
   if (Object.keys(document.definitions).length > 0) {
     document.schema.$defs = document.definitions
   }

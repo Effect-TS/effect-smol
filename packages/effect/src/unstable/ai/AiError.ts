@@ -833,7 +833,6 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
 )({
   _tag: Schema.tag("ToolNotFoundError"),
   toolName: Schema.String,
-  toolParams: Schema.optional(Schema.Json),
   availableTools: Schema.Array(Schema.String)
 }) {
   /**

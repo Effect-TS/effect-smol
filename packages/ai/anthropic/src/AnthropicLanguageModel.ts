@@ -483,7 +483,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         })
       ))
   }).pipe(Effect.provideService(
-    LanguageModel.StructuredOutputCodecTransformer,
+    LanguageModel.CodecTransformer,
     toCodecAnthropic
   ))
 })
@@ -979,20 +979,14 @@ const prepareTools = Effect.fnUntraced(
 
     // Return a JSON response tool when using non-native structured outputs
     if (options.responseFormat.type === "json" && !capabilities.supportsStructuredOutput) {
-      const document = Schema.toJsonSchemaDocument(toCodecAnthropic(options.responseFormat.schema))
-      const jsonSchema = Object.keys(document.definitions).length > 0
-        ? {
-          ...document.schema,
-          $defs: document.definitions
-        }
-        : document.schema as any
+      const schema = toCodecAnthropic(options.responseFormat.schema)
+      const userDescription = SchemaAST.resolveDescription(options.responseFormat.schema.ast)
+      const description = Predicate.isNotUndefined(userDescription) ? `${userDescription} - ` : ""
       return {
         tools: [{
           name: options.responseFormat.objectName,
-          description: SchemaAST.resolveDescription(options.responseFormat.schema.ast) ??
-            "Response with a JSON object.",
-          // input_schema: Tool.getJsonSchemaFromSchema(options.responseFormat.schema) as any
-          input_schema: jsonSchema as any
+          description: `${description}You MUST respond with a JSON object.`,
+          input_schema: Tool.getJsonSchemaFromSchema(schema) as any
         }],
         toolChoice: {
           type: "tool",
@@ -1008,7 +1002,7 @@ const prepareTools = Effect.fnUntraced(
     for (const tool of options.tools) {
       if (Tool.isUserDefined(tool)) {
         const description = Tool.getDescription(tool)
-        const input_schema = Tool.getJsonSchema(tool)
+        const input_schema = Tool.getJsonSchema(tool, { transformer: toCodecAnthropic })
 
         userTools.push({
           name: tool.name,
@@ -1304,11 +1298,13 @@ const makeResponse = Effect.fnUntraced(
               }
               : undefined
 
+            const params = yield* encodeToolParameters(options.tools, part.name, part.input)
+
             parts.push({
               type: "tool-call",
               id: part.id,
               name: part.name,
-              params: part.input,
+              params,
               ...(Predicate.isNotUndefined(callerInfo)
                 ? { metadata: { anthropic: { caller: callerInfo } } }
                 : undefined)
@@ -1733,11 +1729,13 @@ const makeStreamResponse = Effect.fnUntraced(
                     id: part.id
                   })
 
+                  const params = yield* encodeToolParameters(options.tools, part.name, part.input)
+
                   parts.push({
                     type: "tool-call",
                     id: part.id,
                     name: part.name,
-                    params: part.input,
+                    params,
                     ...(Predicate.isNotUndefined(callerInfo)
                       ? { metadata: { anthropic: { caller: callerInfo } } }
                       : undefined)
@@ -2313,11 +2311,15 @@ const makeStreamResponse = Effect.fnUntraced(
                     }
                   }
 
+                  const params = contentBlock.providerExecuted === true
+                    ? finalParams
+                    : encodeToolParameters(options.tools, contentBlock.name, finalParams)
+
                   parts.push({
                     type: "tool-call",
                     id: contentBlock.id,
                     name: contentBlock.name,
-                    params: finalParams,
+                    params,
                     providerExecuted: contentBlock.providerExecuted,
                     ...(Predicate.isNotUndefined(contentBlock.caller)
                       ? { metadata: { anthropic: { caller: contentBlock.caller } } }
@@ -2681,17 +2683,47 @@ const getOutputFormat = ({ capabilities, options }: {
   readonly options: LanguageModel.ProviderOptions
 }): typeof Generated.JsonOutputFormat.Encoded | undefined => {
   if (options.responseFormat.type === "json" && capabilities.supportsStructuredOutput) {
-    const document = Schema.toJsonSchemaDocument(toCodecAnthropic(options.responseFormat.schema))
-    const jsonSchema = Object.keys(document.definitions).length > 0
-      ? {
-        ...document.schema,
-        $defs: document.definitions
-      }
-      : document.schema
+    const schema = toCodecAnthropic(options.responseFormat.schema)
+    const jsonSchema = Tool.getJsonSchemaFromSchema(schema) as any
     return {
       type: "json_schema",
-      schema: jsonSchema as any
+      schema: jsonSchema
     }
   }
   return undefined
 }
+
+const encodeToolParameters = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>(
+  tools: Tools,
+  toolName: string,
+  toolParams: unknown
+): Effect.fn.Return<unknown, AiError.AiError> {
+  const tool = tools.find((tool) => tool.name === toolName)
+
+  if (Predicate.isUndefined(tool)) {
+    return yield* AiError.make({
+      module: "AnthropicLanguageModel",
+      method: "makeResponse",
+      reason: new AiError.ToolNotFoundError({
+        toolName,
+        availableTools: tools.map((tool) => tool.name)
+      })
+    })
+  }
+
+  const encodeParams = Schema.decodeEffect(toCodecAnthropic(tool.parametersSchema))
+
+  return yield* (
+    encodeParams(toolParams) as Effect.Effect<unknown, Schema.SchemaError>
+  ).pipe(Effect.mapError((error) =>
+    AiError.make({
+      module: "AnthropicLanguageModel",
+      method: "makeResponse",
+      reason: new AiError.ToolParameterValidationError({
+        toolName,
+        toolParams,
+        description: error.issue.toString()
+      })
+    })
+  ))
+})

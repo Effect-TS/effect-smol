@@ -188,11 +188,9 @@ export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>
  * @since 4.0.0
  * @category context
  */
-export const StructuredOutputCodecTransformer = ServiceMap.Reference(
-  "effect/unstable/ai/StructuredOutputCodecTransformer",
-  {
-    defaultValue: () => identity as CodecTransformer
-  }
+export const CodecTransformer = ServiceMap.Reference(
+  "effect/unstable/ai/CodecTransformer",
+  { defaultValue: () => identity as CodecTransformer }
 )
 
 /**
@@ -650,7 +648,7 @@ export interface ConstructorParams {
  * @category constructors
  */
 export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effect.fnUntraced(function*(params) {
-  const structuredOutputCodecTransformer = yield* StructuredOutputCodecTransformer
+  const codecTransformer = yield* CodecTransformer
 
   const parentSpanTransformer = yield* Effect.serviceOption(
     CurrentSpanTransformer
@@ -711,7 +709,8 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             })
           )),
         (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
-        Effect.provideService(IdGenerator, idGenerator)
+        Effect.provideService(IdGenerator, idGenerator),
+        Effect.provideService(CodecTransformer, codecTransformer)
       )
     ) as any
 
@@ -766,7 +765,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
 
           const value = yield* resolveStructuredOutput(
             content as any,
-            structuredOutputCodecTransformer(options.schema)
+            codecTransformer(options.schema)
           )
 
           return new GenerateObjectResponse(value, content)
@@ -780,7 +779,8 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             })
           )),
         (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
-        Effect.provideService(IdGenerator, idGenerator)
+        Effect.provideService(IdGenerator, idGenerator),
+        Effect.provideService(CodecTransformer, codecTransformer)
       )
     ) as any
   }
@@ -851,7 +851,8 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         })
         : error
     ),
-    Stream.provideService(IdGenerator, idGenerator)
+    Stream.provideService(IdGenerator, idGenerator),
+    Stream.provideService(CodecTransformer, codecTransformer)
   ) as any
 
   const generateContent: <
@@ -937,7 +938,6 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             method: "generateText",
             reason: new AiError.ToolNotFoundError({
               toolName: approval.toolCall.name,
-              toolParams: approval.toolCall.params as Schema.Json,
               availableTools: Object.keys(toolkit.tools)
             })
           })
@@ -1000,6 +1000,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       ),
       Stream.runCollect
     )
+
     const content = yield* Schema.decodeEffect(ResponseSchema)(rawContent)
 
     // Return the content merged with the tool call results
@@ -1118,7 +1119,6 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             method: "streamText",
             reason: new AiError.ToolNotFoundError({
               toolName: approval.toolCall.name,
-              toolParams: approval.toolCall.params as Schema.Json,
               availableTools: Object.keys(toolkit.tools)
             })
           })
@@ -1534,7 +1534,6 @@ const executeApprovedToolCalls = <Tools extends Record<string, Tool.Any>>(
         method: "generateText",
         reason: new AiError.ToolNotFoundError({
           toolName: toolCall.name,
-          toolParams: toolCall.params as Schema.Json,
           availableTools: Object.keys(toolkit.tools)
         })
       })
