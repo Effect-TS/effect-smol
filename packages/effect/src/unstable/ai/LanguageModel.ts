@@ -51,7 +51,7 @@
 import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberSet from "../../FiberSet.ts"
-import { constFalse, identity } from "../../Function.ts"
+import { constFalse } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
@@ -65,6 +65,7 @@ import type { Span } from "../../Tracer.ts"
 import type { Concurrency, Mutable, NoExcessProperties } from "../../Types.ts"
 import * as AiError from "./AiError.ts"
 import { defaultIdGenerator, IdGenerator } from "./IdGenerator.ts"
+import * as InternalCodecTransformer from "./internal/codec-transformer.ts"
 import * as Prompt from "./Prompt.ts"
 import * as Response from "./Response.ts"
 import type { SpanTransformer } from "./Telemetry.ts"
@@ -98,7 +99,7 @@ import * as Toolkit from "./Toolkit.ts"
  * ```
  *
  * @since 4.0.0
- * @category Context
+ * @category services
  */
 export class LanguageModel extends ServiceMap.Service<LanguageModel, Service>()(
   "effect/unstable/ai/LanguageModel"
@@ -186,12 +187,10 @@ export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>
  * before being sent to the model as well as before decoding the generated value.
  *
  * @since 4.0.0
- * @category context
+ * @category services
  */
-export const CodecTransformer = ServiceMap.Reference(
-  "effect/unstable/ai/CodecTransformer",
-  { defaultValue: () => identity as CodecTransformer }
-)
+export const CurrentCodecTransformer: ServiceMap.Reference<CodecTransformer> =
+  InternalCodecTransformer.CurrentCodecTransformer
 
 /**
  * Configuration options for text generation.

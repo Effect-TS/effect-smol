@@ -53,7 +53,8 @@ import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as AiError from "./AiError.ts"
-import { CodecTransformer } from "./LanguageModel.ts"
+import { CurrentCodecTransformer } from "./internal/codec-transformer.ts"
+import type { CodecTransformer } from "./LanguageModel.ts"
 import * as Tool from "./Tool.ts"
 
 const TypeId = "~effect/ai/Toolkit" as const
@@ -345,7 +346,7 @@ const Proto = {
         }
 
         // Fetch cached schemas / handlers for the tool
-        const codecTransformer = yield* CodecTransformer
+        const codecTransformer = yield* CurrentCodecTransformer
         const schemas = getSchemas(tool, codecTransformer)
 
         // Decode the tool call parameters which will be passed to the handler
