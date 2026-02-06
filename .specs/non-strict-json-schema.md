@@ -2,7 +2,9 @@
 
 ## Overview
 
-Add per-tool and per-provider control over the `strict` flag for tool calling and structured outputs. The `strict` flag is forwarded directly to the provider API (e.g. OpenAI's `strict` field on function tools, Anthropic's `strict` field on beta tools).
+Add per-tool and per-provider control over the `strict` flag for tool calling. The `strict` flag is forwarded directly to the provider API (e.g. OpenAI's `strict` field on function tools, Anthropic's `strict` field on beta tools).
+
+Note: Anthropic's `output_config.format` does not support `strict` at the API level, so this change only applies to tools for Anthropic. OpenAI already supports `strict` on both tools and response format.
 
 This design is informed by Vercel AI SDK's implementation, which supports an optional `strict?: boolean` property on tools that gets passed through to providers.
 
@@ -13,7 +15,7 @@ This design is informed by Vercel AI SDK's implementation, which supports an opt
 ### Current State
 
 - **OpenAI provider**: Hardcodes `strict: true` for all user-defined tools (line 2229 of `OpenAiLanguageModel.ts`)
-- **OpenAI structured outputs**: Uses `Config.strictJsonSchema ?? true` for response format (line 2435)
+- **OpenAI structured outputs**: Uses existing `Config.strictJsonSchema ?? true` for response format (line 2435)
 - **Anthropic provider**: Does not set `strict` on tools, despite the `BetaTool` type supporting it (Generated.ts:3607)
 - **No per-tool control**: Strict mode cannot be configured on individual tools
 
@@ -42,6 +44,7 @@ Vercel AI SDK's approach:
 - When `strict` is `undefined`, it's omitted from the API request (provider defaults apply)
 
 Key files in Vercel AI SDK:
+
 - `packages/provider-utils/src/types/tool.ts` (lines 154-160) - Tool strict property
 - `packages/openai/src/chat/openai-chat-prepare-tools.ts` (line 42) - OpenAI passthrough
 - `packages/anthropic/src/anthropic-prepare-tools.ts` (lines 73-75) - Anthropic conditional inclusion
@@ -75,8 +78,7 @@ Follows the existing annotation pattern established by `Tool.Title`, `Tool.Reado
 ### 3.2 New Helper: `Tool.getStrictMode`
 
 ```typescript
-export const getStrictMode = <T extends Any>(tool: T): boolean | undefined =>
-  ServiceMap.get(tool.annotations, Strict)
+export const getStrictMode = <T extends Any>(tool: T): boolean | undefined => ServiceMap.get(tool.annotations, Strict)
 ```
 
 ### 3.3 Usage
@@ -114,20 +116,19 @@ const DefaultTool = Tool.make("DefaultTool", {
 
 #### `prepareTools` (line 2192)
 
-Current behavior hardcodes `strict: true`. Update to:
+Current behavior hardcodes `strict: true`. `Config.strictJsonSchema` already exists on the OpenAI Config (line 95) but is only used for `prepareResponseFormat`. Update to:
 
 1. Add `config` to function parameters
 2. Resolve strict mode per-tool: `Tool.getStrictMode(tool) ?? config.strictJsonSchema ?? true`
-3. Also handle dynamic tools (`Tool.isDynamic`)
 
 ```typescript
-if (Tool.isUserDefined(tool) || Tool.isDynamic(tool)) {
+if (Tool.isUserDefined(tool)) {
   const strict = Tool.getStrictMode(tool) ?? config.strictJsonSchema ?? true
   tools.push({
     type: "function",
     name: tool.name,
     description: Tool.getDescription(tool) ?? null,
-    parameters: Tool.getJsonSchema(tool),
+    parameters: Tool.getJsonSchema(tool) as { readonly [x: string]: Schema.Json },
     strict
   })
 }
@@ -159,12 +160,13 @@ Update to:
 
 1. Resolve strict mode per-tool (only when model supports structured outputs)
 2. Include `strict` in tool definition when defined
-3. Also handle dynamic tools
 
 ```typescript
-if (Tool.isUserDefined(tool) || Tool.isDynamic(tool)) {
+if (Tool.isUserDefined(tool)) {
   const description = Tool.getDescription(tool)
-  const input_schema = Tool.getJsonSchema(tool)
+  // Note: cast needed because Tool.getJsonSchema returns JsonSchema.JsonSchema
+  // but Anthropic's BetaTool expects { readonly [x: string]: BetaJsonValue }
+  const input_schema = Tool.getJsonSchema(tool) as any
   const toolStrict = Tool.getStrictMode(tool)
   const strict = capabilities.supportsStructuredOutput
     ? (toolStrict ?? config.strictJsonSchema ?? true)
@@ -181,49 +183,34 @@ if (Tool.isUserDefined(tool) || Tool.isDynamic(tool)) {
 }
 ```
 
-#### `getOutputFormat` (line 2666)
+#### `output_config.format`
 
-Add `config` parameter and include `strict` when applicable:
-
-```typescript
-const getOutputFormat = ({ capabilities, config, options }) => {
-  if (options.responseFormat.type === "json" && capabilities.supportsStructuredOutput) {
-    const strict = config.strictJsonSchema ?? true
-    return {
-      type: "json_schema",
-      schema: Tool.getJsonSchemaFromSchema(options.responseFormat.schema),
-      ...(strict !== undefined ? { strict } : undefined)
-    }
-  }
-  return undefined
-}
-```
-
-Update call site (line 429) to pass `config`.
+No changes needed. The Anthropic API does not support `strict` on `output_config.format` (`JsonOutputFormat` only has `{ schema, type }`).
 
 ---
 
 ## 5. Strict Mode Resolution
 
-| Scenario | Tool Annotation | Provider Config | Resolved Value |
-|----------|----------------|-----------------|----------------|
-| Default (OpenAI) | `undefined` | `undefined` | `true` |
-| Default (Anthropic, structured output supported) | `undefined` | `undefined` | `true` |
-| Default (Anthropic, no structured output) | `undefined` | `undefined` | `undefined` (omitted) |
-| Global non-strict (OpenAI) | `undefined` | `false` | `false` |
-| Per-tool override | `false` | `true` | `false` |
-| Per-tool strict on non-strict global | `true` | `false` | `true` |
+| Scenario                                         | Tool Annotation | Provider Config | Resolved Value        |
+| ------------------------------------------------ | --------------- | --------------- | --------------------- |
+| Default (OpenAI)                                 | `undefined`     | `undefined`     | `true`                |
+| Default (Anthropic, structured output supported) | `undefined`     | `undefined`     | `true`                |
+| Default (Anthropic, no structured output)        | `undefined`     | `undefined`     | `undefined` (omitted) |
+| Anthropic `output_config.format`                 | N/A             | N/A             | N/A (not supported)   |
+| Global non-strict (OpenAI)                       | `undefined`     | `false`         | `false`               |
+| Per-tool override                                | `false`         | `true`          | `false`               |
+| Per-tool strict on non-strict global             | `true`          | `false`         | `true`                |
 
 ---
 
 ## 6. Files to Modify
 
-| File | Changes |
-|------|---------|
-| `packages/effect/src/unstable/ai/Tool.ts` | Add `Strict` annotation (~line 1687), `getStrictMode` helper |
-| `packages/ai/openai/src/OpenAiLanguageModel.ts` | Update `prepareTools` to resolve per-tool strict mode; add `config` param; handle dynamic tools |
-| `packages/ai/anthropic/src/AnthropicLanguageModel.ts` | Add `strictJsonSchema` to Config; update `prepareTools` to include `strict`; update `getOutputFormat` to include `strict`; handle dynamic tools |
-| `packages/effect/test/unstable/ai/Tool.test.ts` | Tests for `Tool.Strict` annotation and `getStrictMode` |
+| File                                                  | Changes                                                                     |
+| ----------------------------------------------------- | --------------------------------------------------------------------------- |
+| `packages/effect/src/unstable/ai/Tool.ts`             | Add `Strict` annotation (~line 1687), `getStrictMode` helper                |
+| `packages/ai/openai/src/OpenAiLanguageModel.ts`       | Update `prepareTools` to resolve per-tool strict mode; add `config` param   |
+| `packages/ai/anthropic/src/AnthropicLanguageModel.ts` | Add `strictJsonSchema` to Config; update `prepareTools` to include `strict` |
+| `packages/effect/test/unstable/ai/Tool.test.ts`       | Tests for `Tool.Strict` annotation and `getStrictMode`                      |
 
 ---
 

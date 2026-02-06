@@ -362,6 +362,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         toolNameMapper
       })
       const { toolChoice, tools } = yield* prepareTools({
+        config,
         options,
         toolNameMapper
       })
@@ -2190,9 +2191,11 @@ const annotateStreamResponse = (span: Span, part: Response.StreamPartEncoded) =>
 type OpenAiToolChoice = typeof Generated.CreateResponse.Encoded["tool_choice"]
 
 const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>({
+  config,
   options,
   toolNameMapper
 }: {
+  readonly config: typeof Config.Service
   readonly options: LanguageModel.ProviderOptions
   readonly toolNameMapper: Tool.NameMapper<Tools>
 }): Effect.fn.Return<{
@@ -2221,12 +2224,13 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
   // Convert the tools in the toolkit to the provider-defined format
   for (const tool of allowedTools) {
     if (Tool.isUserDefined(tool)) {
+      const strict = Tool.getStrictMode(tool) ?? config.strictJsonSchema ?? true
       tools.push({
         type: "function",
         name: tool.name,
         description: Tool.getDescription(tool) ?? null,
         parameters: Tool.getJsonSchema(tool) as { readonly [x: string]: Schema.Json },
-        strict: true
+        strict
       })
     }
 

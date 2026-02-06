@@ -1692,6 +1692,40 @@ export const OpenWorld = ServiceMap.Reference<boolean>("effect/ai/Tool/OpenWorld
   defaultValue: constTrue
 })
 
+/**
+ * Annotation controlling whether strict JSON schema mode is enabled for a tool.
+ *
+ * When `true`, providers that support strict mode will send `strict: true` to
+ * the model API (e.g. OpenAI's Structured Outputs).
+ *
+ * When `false`, strict mode is disabled and `strict: false` is sent.
+ *
+ * When `undefined` (default), the provider's global configuration determines
+ * the behavior (e.g. `Config.strictJsonSchema` for OpenAI).
+ *
+ * @example
+ * ```ts
+ * import { Tool } from "effect/unstable/ai"
+ *
+ * const flexibleTool = Tool.make("search")
+ *   .annotate(Tool.Strict, false)
+ * ```
+ *
+ * @since 1.0.0
+ * @category annotations
+ */
+export const Strict = ServiceMap.Reference<boolean | undefined>("effect/ai/Tool/Strict", {
+  defaultValue: () => undefined
+})
+
+/**
+ * Returns the strict mode setting for a tool, or `undefined` if not set.
+ *
+ * @since 1.0.0
+ * @category utilities
+ */
+export const getStrictMode = <T extends Any>(tool: T): boolean | undefined => ServiceMap.get(tool.annotations, Strict)
+
 // Licensed under BSD-3-Clause (below code only)
 // Code adapted from https://github.com/fastify/secure-json-parse/blob/783fcb1b5434709466759847cec974381939673a/index.js
 //

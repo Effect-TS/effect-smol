@@ -66,6 +66,13 @@ export class Config extends ServiceMap.Service<
        * Disables Claude's ability to use multiple tools to respond to a query.
        */
       readonly disableParallelToolCalls?: boolean | undefined
+      /**
+       * Whether to use strict JSON schema validation for tool calls.
+       *
+       * Only applies to models that support structured outputs. Defaults to
+       * `true` when structured outputs are supported.
+       */
+      readonly strictJsonSchema?: boolean | undefined
     }
   >
 >()("@effect/ai-anthropic/AnthropicLanguageModel/Config") {}
@@ -1003,11 +1010,16 @@ const prepareTools = Effect.fnUntraced(
       if (Tool.isUserDefined(tool)) {
         const description = Tool.getDescription(tool)
         const input_schema = yield* tryJsonSchema(tool.parametersSchema, "prepareTools")
+        const toolStrict = Tool.getStrictMode(tool)
+        const strict = capabilities.supportsStructuredOutput
+          ? (toolStrict ?? config.strictJsonSchema ?? true)
+          : undefined
 
         userTools.push({
           name: tool.name,
           input_schema: input_schema as any,
-          ...(Predicate.isNotUndefined(description) ? { description } : undefined)
+          ...(Predicate.isNotUndefined(description) ? { description } : undefined),
+          ...(strict !== undefined ? { strict } : undefined)
         })
 
         if (capabilities.supportsStructuredOutput === true) {

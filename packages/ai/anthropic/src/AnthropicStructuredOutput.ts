@@ -69,7 +69,6 @@ export const toCodecAnthropic = <T, E, RD, RE>(
 const recur = (ast: AST.AST): AST.AST => {
   switch (ast._tag) {
     case "Declaration":
-    case "Undefined":
     case "Void":
     case "Never":
     case "Unknown":
@@ -84,6 +83,11 @@ const recur = (ast: AST.AST): AST.AST => {
       return unsupportedAst(
         ast,
         "Anthropic structured output does not support this schema kind; consider transforming the schema or using a different provider"
+      )
+    case "Undefined":
+      return unsupportedAst(
+        ast,
+        "Anthropic structured output does not support undefined; consider transforming the schema or using a different provider; if using `Schema.optional`, consider using `Schema.optionalKey` instead"
       )
     case "Null":
       return ast

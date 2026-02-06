@@ -1185,4 +1185,28 @@ describe("Dynamic", () => {
         deepStrictEqual(toolResult.result.timestamp, DateTime.makeUnsafe(new Date(1000)))
       }))
   })
+
+  describe("Strict", () => {
+    it("defaults to undefined", () => {
+      const tool = Tool.make("TestTool")
+      strictEqual(Tool.getStrictMode(tool), undefined)
+    })
+
+    it("can be set to true", () => {
+      const tool = Tool.make("TestTool").annotate(Tool.Strict, true)
+      strictEqual(Tool.getStrictMode(tool), true)
+    })
+
+    it("can be set to false", () => {
+      const tool = Tool.make("TestTool").annotate(Tool.Strict, false)
+      strictEqual(Tool.getStrictMode(tool), false)
+    })
+
+    it("works with dynamic tools", () => {
+      const tool = Tool.dynamic("TestTool", {
+        parameters: { type: "object", properties: {} }
+      }).annotate(Tool.Strict, false)
+      strictEqual(Tool.getStrictMode(tool), false)
+    })
+  })
 })
