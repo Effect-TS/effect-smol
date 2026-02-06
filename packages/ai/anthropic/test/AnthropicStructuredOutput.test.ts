@@ -513,7 +513,7 @@ describe("toCodecAnthropic", () => {
       assertJsonSchema(schema, {
         "type": "array",
         "description":
-          "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object; an object with at least 2 properties",
+          "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object; a value with at least 2 entries",
         "items": {
           "type": "object",
           "description":
