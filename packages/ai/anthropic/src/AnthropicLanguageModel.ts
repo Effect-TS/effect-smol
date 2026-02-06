@@ -483,7 +483,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         })
       ))
   }).pipe(Effect.provideService(
-    LanguageModel.CodecTransformer,
+    LanguageModel.CurrentCodecTransformer,
     toCodecAnthropic
   ))
 })
