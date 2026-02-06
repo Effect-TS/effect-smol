@@ -22,6 +22,14 @@ import * as Schema from "effect/Schema"
 import * as AST from "effect/SchemaAST"
 import * as Transformation from "effect/SchemaTransformation"
 
+const errorPrefix = "AnthropicStructuredOutput"
+
+function unsupportedAst(ast: AST.AST, details?: string): never {
+  const base = `Unsupported AST ${ast._tag}`
+  const full = `${errorPrefix}: ${base}`
+  throw new Error(details !== undefined ? `${full} (${details})` : full)
+}
+
 /**
  * Transforms a `Schema.Codec` into a form compatible with Anthropic's
  * structured output constraints.
@@ -73,7 +81,10 @@ const recur = (ast: AST.AST): AST.AST => {
     case "Enum":
     case "TemplateLiteral":
     case "Suspend":
-      throw new Error(`Unsupported AST ${ast._tag}`)
+      return unsupportedAst(
+        ast,
+        "Anthropic structured output does not support this schema kind; consider transforming the schema or using a different provider"
+      )
     case "Null":
       return ast
     case "String": {
@@ -101,7 +112,11 @@ const recur = (ast: AST.AST): AST.AST => {
         }
         return ast
       }
-      throw new Error(`Unsupported literal type ${typeof literal}`)
+      throw new Error(
+        `${errorPrefix}: Unsupported literal type ${typeof literal} (value: ${
+          String(literal)
+        }) (supported: string | number | boolean)`
+      )
     }
     case "Union": {
       if (ast.mode === "oneOf") {
@@ -116,7 +131,9 @@ const recur = (ast: AST.AST): AST.AST => {
     }
     case "Arrays": {
       if (ast.rest.length > 1) {
-        throw new Error(`Post-rest elements are not supported for arrays`)
+        throw new Error(
+          `${errorPrefix}: Post-rest elements are not supported for arrays (rest length: ${ast.rest.length})`
+        )
       }
       const { annotations, filters } = get(ast)
       if (ast.elements.length > 0) {
@@ -171,7 +188,9 @@ const recur = (ast: AST.AST): AST.AST => {
       if (ast.indexSignatures.length === 0) {
         const propertySignatures = AST.mapOrSame(ast.propertySignatures, (ps) => {
           if (typeof ps.name !== "string") {
-            throw new Error(`Property names must be strings`)
+            throw new Error(
+              `${errorPrefix}: Property names must be strings (got ${typeof ps.name})`
+            )
           }
           let type = recur(ps.type)
           if (AST.isOptional(ps.type)) {
@@ -212,7 +231,9 @@ const recur = (ast: AST.AST): AST.AST => {
           })
         )
       } else {
-        throw new Error(`Unsupported AST ${ast._tag}`)
+        throw new Error(
+          `${errorPrefix}: unsupported object schema shape (properties: ${ast.propertySignatures.length}, indexSignatures: ${ast.indexSignatures.length}). Supported: plain objects (properties only) or records (single index signature, no properties)`
+        )
       }
       return ast
     }
