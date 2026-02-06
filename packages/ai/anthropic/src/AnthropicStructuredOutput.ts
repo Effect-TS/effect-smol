@@ -135,9 +135,15 @@ const recur = (ast: AST.AST): AST.AST => {
           `${errorPrefix}: Post-rest elements are not supported for arrays (rest length: ${ast.rest.length})`
         )
       }
-      const { annotations, filters } = get(ast)
+      let { annotations, filters } = get(ast)
       if (ast.elements.length > 0) {
         // tuples are not supported by Anthropic, we translate them to objects with string keys
+        if (annotations !== undefined && typeof annotations.description === "string") {
+          annotations.description = `${TUPLE_DESCRIPTION}; ${annotations.description}`
+        } else {
+          annotations ??= {}
+          annotations.description = TUPLE_DESCRIPTION
+        }
         const propertySignatures = ast.elements.map((e, i) => {
           return new AST.PropertySignature(String(i), e)
         })
@@ -245,6 +251,9 @@ const REST_PROPERTY_NAME = "__rest__"
 
 const RECORD_DESCRIPTION =
   "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object"
+
+const TUPLE_DESCRIPTION =
+  "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements"
 
 type Annotation =
   | { readonly _tag: "description"; readonly description: string }

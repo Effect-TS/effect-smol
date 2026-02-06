@@ -315,6 +315,8 @@ describe("toCodecAnthropic", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Finite])
       assertJsonSchema(schema, {
         "type": "object",
+        "description":
+          "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements",
         "properties": {
           "0": { "type": "string" },
           "1": { "type": "number" }
@@ -337,7 +339,8 @@ describe("toCodecAnthropic", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Finite]).annotate({ description: "description" })
       assertJsonSchema(schema, {
         "type": "object",
-        "description": "description",
+        "description":
+          "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements; description",
         "properties": {
           "0": { "type": "string" },
           "1": { "type": "number" }
@@ -351,6 +354,8 @@ describe("toCodecAnthropic", () => {
       const schema = Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Finite)])
       assertJsonSchema(schema, {
         "type": "object",
+        "description":
+          "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements",
         "properties": {
           "0": { "type": "string" },
           "1": {
@@ -383,6 +388,8 @@ describe("toCodecAnthropic", () => {
       )
       assertJsonSchema(schema, {
         "type": "object",
+        "description":
+          "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements",
         "properties": {
           "0": { "type": "string" },
           "1": { "type": "number" },
@@ -461,6 +468,8 @@ describe("toCodecAnthropic", () => {
         "description": "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object",
         "items": {
           "type": "object",
+          "description":
+            "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements",
           "properties": {
             "0": { "type": "string" },
             "1": { "type": "number" }
@@ -487,6 +496,8 @@ describe("toCodecAnthropic", () => {
           "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object; description",
         "items": {
           "type": "object",
+          "description":
+            "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements",
           "properties": {
             "0": { "type": "string" },
             "1": { "type": "number" }
@@ -505,6 +516,8 @@ describe("toCodecAnthropic", () => {
           "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object; an object with at least 2 properties",
         "items": {
           "type": "object",
+          "description":
+            "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements",
           "properties": {
             "0": { "type": "string" },
             "1": { "type": "number" }
@@ -525,6 +538,8 @@ describe("toCodecAnthropic", () => {
           "Object encoded as array of [key, value] pairs. Apply object constraints to the decoded object; description",
         "items": {
           "type": "object",
+          "description":
+            "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements",
           "properties": {
             "0": { "type": "string" },
             "1": { "type": "number" }
