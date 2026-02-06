@@ -2186,7 +2186,9 @@ export function annotateKey<A extends AST>(ast: A, annotations: Schema.Annotatio
 /** @internal */
 export const optionalKeyLastLink = applyToLastLink(optionalKey)
 
-/** @internal */
+/**
+ * @since 4.0.0
+ */
 export function optionalKey<A extends AST>(ast: A): A {
   const context = ast.context ?
     ast.context.isOptional === false ?
@@ -2235,7 +2237,9 @@ export function withConstructorDefault<A extends AST>(
   return replaceContext(ast, context)
 }
 
-/** @internal */
+/**
+ * @since 4.0.0
+ */
 export function decodeTo<A extends AST>(
   from: AST,
   to: A,
