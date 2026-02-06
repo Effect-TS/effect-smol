@@ -19,12 +19,34 @@ function assertError(schema: Schema.Top, message: string) {
 }
 
 describe("toCodecAnthropic", () => {
-  describe("Unsupported AST", () => {
+  describe("Unsupported", () => {
     it("Undefined", () => {
       assertError(Schema.Undefined, "Unsupported AST Undefined")
     })
 
-    it("suspend", () => {
+    it("Literal with unsupported type", () => {
+      assertError(Schema.Literal(1n), "Unsupported literal type bigint")
+    })
+
+    describe("Arrays", () => {
+      it("post-rest elements", () => {
+        assertError(
+          Schema.TupleWithRest(Schema.Tuple([]), [Schema.String, Schema.String]),
+          "Post-rest elements are not supported for arrays"
+        )
+      })
+    })
+
+    describe("Objects", () => {
+      it("non-string property signature name", () => {
+        assertError(
+          Schema.Struct({ [Symbol.for("effect/Schema/test/a")]: Schema.String }),
+          "Property names must be strings"
+        )
+      })
+    })
+
+    it("Suspend", () => {
       interface A {
         readonly a: string
         readonly as: ReadonlyArray<A>
@@ -35,20 +57,6 @@ describe("toCodecAnthropic", () => {
       })
       assertError(Schema.suspend(() => Schema.String), "Unsupported AST Suspend")
       assertError(schema, "Unsupported AST Suspend")
-    })
-
-    it("Arrays + post-rest elements", () => {
-      assertError(
-        Schema.TupleWithRest(Schema.Tuple([]), [Schema.String, Schema.String]),
-        "Post-rest elements are not supported for arrays"
-      )
-    })
-
-    it("Unsupported property signature name", () => {
-      assertError(
-        Schema.Struct({ [Symbol.for("effect/Schema/test/a")]: Schema.String }),
-        "Property names must be strings"
-      )
     })
   })
 
@@ -129,93 +137,118 @@ describe("toCodecAnthropic", () => {
     })
   })
 
-  it("Number", () => {
-    assertJsonSchema(Schema.Number, {
-      "anyOf": [
-        { "type": "number" },
-        { "type": "string", "enum": ["NaN"] },
-        { "type": "string", "enum": ["Infinity"] },
-        { "type": "string", "enum": ["-Infinity"] }
-      ]
+  describe("Number", () => {
+    it("Number", () => {
+      assertJsonSchema(Schema.Number, {
+        "anyOf": [
+          { "type": "number" },
+          { "type": "string", "enum": ["NaN"] },
+          { "type": "string", "enum": ["Infinity"] },
+          { "type": "string", "enum": ["-Infinity"] }
+        ]
+      })
+    })
+
+    describe("Finite", () => {
+      it("Finite", () => {
+        assertJsonSchema(Schema.Finite, {
+          "type": "number"
+        })
+        assertJsonSchema(Schema.Finite.annotate({ description: "description" }), {
+          "type": "number",
+          "description": "description"
+        })
+      })
+
+      it("Finite + supported format", () => {
+        assertJsonSchema(Schema.Finite.annotate({ format: "duration" }), {
+          "type": "number",
+          "format": "duration"
+        })
+      })
+
+      it("Finite + unsupported format", () => {
+        assertJsonSchema(Schema.Finite.annotate({ format: "int32" }), {
+          "type": "number",
+          "description": "a value with a format of int32"
+        })
+      })
+
+      it("Finite + minimum", () => {
+        assertJsonSchema(Schema.Finite.check(Schema.isGreaterThan(1)), {
+          "type": "number",
+          "description": "a value greater than 1"
+        })
+      })
+
+      it("Finite + minimum + maximum", () => {
+        assertJsonSchema(Schema.Finite.check(Schema.isGreaterThan(1), Schema.isLessThan(2)), {
+          "type": "number",
+          "description": "a value greater than 1 and a value less than 2"
+        })
+      })
+    })
+
+    describe("Int", () => {
+      it("Int", () => {
+        assertJsonSchema(Schema.Int, {
+          "type": "integer"
+        })
+        assertJsonSchema(Schema.Int.annotate({ description: "description" }), {
+          "type": "integer",
+          "description": "description"
+        })
+      })
+
+      it("Int + supported format", () => {
+        assertJsonSchema(Schema.Int.annotate({ format: "duration" }), {
+          "type": "integer",
+          "format": "duration"
+        })
+      })
+
+      it("Int + unsupported format", () => {
+        assertJsonSchema(Schema.Int.annotate({ format: "int32" }), {
+          "type": "integer",
+          "description": "a value with a format of int32"
+        })
+      })
+
+      it("Int + minimum", () => {
+        assertJsonSchema(Schema.Int.check(Schema.isGreaterThan(1)), {
+          "type": "integer",
+          "description": "a value greater than 1"
+        })
+      })
+
+      it("Int + minimum + maximum", () => {
+        assertJsonSchema(Schema.Int.check(Schema.isGreaterThan(1), Schema.isLessThan(2)), {
+          "type": "integer",
+          "description": "a value greater than 1 and a value less than 2"
+        })
+      })
     })
   })
 
-  describe("Finite", () => {
-    it("Finite", () => {
-      assertJsonSchema(Schema.Finite, {
-        "type": "number"
+  describe("Literal", () => {
+    it("Literal(string)", () => {
+      assertJsonSchema(Schema.Literal("a"), {
+        "type": "string",
+        "enum": ["a"]
       })
-      assertJsonSchema(Schema.Finite.annotate({ description: "description" }), {
+    })
+
+    it("Literal(number)", () => {
+      assertJsonSchema(Schema.Literal(1), {
         "type": "number",
-        "description": "description"
+        "enum": [1]
       })
     })
 
-    it("Finite + supported format", () => {
-      assertJsonSchema(Schema.Finite.annotate({ format: "duration" }), {
-        "type": "number",
-        "format": "duration"
-      })
-    })
-
-    it("Finite + unsupported format", () => {
-      assertJsonSchema(Schema.Finite.annotate({ format: "int32" }), {
-        "type": "number",
-        "description": "a value with a format of int32"
-      })
-    })
-
-    it("Finite + minimum", () => {
-      assertJsonSchema(Schema.Finite.check(Schema.isGreaterThan(1)), {
-        "type": "number",
-        "description": "a value greater than 1"
-      })
-    })
-
-    it("Finite + minimum + maximum", () => {
-      assertJsonSchema(Schema.Finite.check(Schema.isGreaterThan(1), Schema.isLessThan(2)), {
-        "type": "number",
-        "description": "a value greater than 1 and a value less than 2"
-      })
-    })
-  })
-
-  describe("Int", () => {
-    it("Int", () => {
-      assertJsonSchema(Schema.Int, {
-        "type": "integer"
-      })
-      assertJsonSchema(Schema.Int.annotate({ description: "description" }), {
-        "type": "integer",
-        "description": "description"
-      })
-    })
-
-    it("Int + supported format", () => {
-      assertJsonSchema(Schema.Int.annotate({ format: "duration" }), {
-        "type": "integer",
-        "format": "duration"
-      })
-    })
-
-    it("Int + unsupported format", () => {
-      assertJsonSchema(Schema.Int.annotate({ format: "int32" }), {
-        "type": "integer",
-        "description": "a value with a format of int32"
-      })
-    })
-
-    it("Int + minimum", () => {
-      assertJsonSchema(Schema.Int.check(Schema.isGreaterThan(1)), {
-        "type": "integer",
-        "description": "a value greater than 1"
-      })
-    })
-
-    it("Int + minimum + maximum", () => {
-      assertJsonSchema(Schema.Int.check(Schema.isGreaterThan(1), Schema.isLessThan(2)), {
-        "type": "integer",
-        "description": "a value greater than 1 and a value less than 2"
+    it("Literal(boolean)", () => {
+      assertJsonSchema(Schema.Literal(true), {
+        "type": "boolean",
+        "enum": [true]
       })
     })
   })

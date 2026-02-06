@@ -68,7 +68,6 @@ const recur = (ast: AST.AST): AST.AST => {
     case "Any":
     case "BigInt":
     case "Symbol":
-    case "Literal":
     case "UniqueSymbol":
     case "ObjectKeyword":
     case "Enum":
@@ -93,6 +92,17 @@ const recur = (ast: AST.AST): AST.AST => {
     }
     case "Boolean":
       return ast
+    case "Literal": {
+      const literal = ast.literal
+      if (typeof literal === "string" || typeof literal === "number" || typeof literal === "boolean") {
+        const { annotations, filters } = get(ast)
+        if (annotations !== undefined || filters !== undefined) {
+          return new AST.Literal(ast.literal, annotations, filters)
+        }
+        return ast
+      }
+      throw new Error(`Unsupported literal type ${typeof literal}`)
+    }
     case "Union": {
       if (ast.mode === "oneOf") {
         return new AST.Union(ast.types, "anyOf", ast.annotations, ast.checks)
