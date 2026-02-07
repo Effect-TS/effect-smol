@@ -84,7 +84,9 @@ function rewrite(schema: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
       }
     } else if (Array.isArray(v)) {
       out[k] = v.map((item) =>
-        typeof item === "object" && item !== null && !Array.isArray(item) ? rewrite(item as JsonSchema.JsonSchema) : item
+        typeof item === "object" && item !== null && !Array.isArray(item)
+          ? rewrite(item as JsonSchema.JsonSchema)
+          : item
       )
     } else if (typeof v === "object" && v !== null) {
       out[k] = rewrite(v as JsonSchema.JsonSchema)
