@@ -10,6 +10,7 @@ This directory contains specifications for all major features and enhancements i
 - [effect-ignore-log.md](effect-ignore-log.md) - Add optional logging to `Effect.ignore` and remove `Effect.ignoreLogged`.
 - [effect-jsdoc-improvements.md](effect-jsdoc-improvements.md) - Improve JSDoc clarity and consistency for `Effect.ts`.
 - [stream-jsdoc-improvements.md](stream-jsdoc-improvements.md) - Improve JSDoc clarity and consistency for `Stream.ts`.
+- [atom-finalizers-reliability.md](atom-finalizers-reliability.md) - Investigate finalizer reliability in Atom lifetime disposal and scheduler cleanup.
 - [scoped-atom-port.md](scoped-atom-port.md) - Port the legacy ScopedAtom module into `@effect/atom-react`.
 - [atom-solid-bindings.md](atom-solid-bindings.md) - Add `@effect/atom-solid` bindings for Effect Atom modules in SolidJS.
 - [devtools-v3-port.md](devtools-v3-port.md) - Port Effect v3 DevTools modules into `effect/unstable/devtools`.
