@@ -309,25 +309,28 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       const path = endpoint.path.replace(/:(\w+)\??/g, "{$1}")
       const method = endpoint.method.toLowerCase() as OpenAPISpecMethodName
 
-      function processRequestBodies(content: Content) {
-        if (content.size > 0) {
+      function processRequestBodies(payloadMap: HttpApiEndpoint.PayloadMap) {
+        if (payloadMap.size > 0) {
           const c: OpenApiSpecContent = {}
-          content.forEach((map, encoding) => {
-            map.forEach((schemas, contentType) => {
-              const asts = Array.from(schemas, AST.getAST)
-              const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
-
-              pathOps.push({
-                _tag: "schema",
-                ast: toEncodingAST(ast, encoding),
-                path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
-              })
-              c[contentType] = {
-                schema: {}
-              }
+          let hasContent = false
+          payloadMap.forEach(({ encoding, schemas }, contentType) => {
+            const filtered = schemas.filter((s) => !HttpApiSchema.isNoContent(s.ast))
+            if (filtered.length === 0) return
+            hasContent = true
+            const asts = filtered.map(AST.getAST)
+            const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
+            pathOps.push({
+              _tag: "schema",
+              ast: toEncodingAST(ast, encoding._tag),
+              path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
             })
+            c[contentType] = {
+              schema: {}
+            }
           })
-          op.requestBody = { content: c, required: true }
+          if (hasContent) {
+            op.requestBody = { content: c, required: true }
+          }
         }
       }
 
@@ -412,15 +415,13 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       const hasBody = HttpMethod.hasBody(endpoint.method)
       if (hasBody) {
-        processRequestBodies(
-          extractRequestBodies(HttpApiEndpoint.getPayloadSchemas(endpoint))
-        )
+        processRequestBodies(endpoint.payload)
       }
 
       processParameters(endpoint.params, "path")
       if (!hasBody && endpoint.payload.size === 1) {
-        const schemas = [...endpoint.payload]
-        const schema = schemas[0] as Schema.Struct<Schema.Struct.Fields>
+        const entry = endpoint.payload.values().next().value!
+        const schema = entry.schemas[0] as Schema.Struct<Schema.Struct.Fields>
         processParameters(schema.fields, "query")
       }
       processParameters(endpoint.headers, "header")
@@ -616,36 +617,6 @@ type Content = Map<
     Set<Schema.Top>
   >
 >
-
-function extractRequestBodies(schemas: ReadonlyArray<Schema.Top>): Content {
-  const map = new Map<HttpApiSchema.Encoding["_tag"], Map<string, Set<Schema.Top>>>()
-
-  schemas.forEach(process)
-
-  return map
-
-  function process(schema: Schema.Top) {
-    const ast = schema.ast
-    if (!HttpApiSchema.isNoContent(ast)) {
-      addContent(schema, HttpApiSchema.getRequestEncoding(ast))
-    }
-  }
-
-  function addContent(schema: Schema.Top, encoding: HttpApiSchema.Encoding) {
-    const { _tag, contentType } = encoding
-    const contentTypeMap = map.get(_tag)
-    if (contentTypeMap === undefined) {
-      map.set(_tag, new Map([[contentType, new Set([schema])]]))
-    } else {
-      const set = contentTypeMap.get(contentType)
-      if (set === undefined) {
-        contentTypeMap.set(contentType, new Set([schema]))
-      } else {
-        set.add(schema)
-      }
-    }
-  }
-}
 
 const Uint8ArrayEncoding = Schema.String.annotate({
   format: "binary"

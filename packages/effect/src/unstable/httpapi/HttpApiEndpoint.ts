@@ -30,6 +30,15 @@ const TypeId = "~effect/httpapi/HttpApiEndpoint"
 export const isHttpApiEndpoint = (u: unknown): u is HttpApiEndpoint<any, any, any> => Predicate.hasProperty(u, TypeId)
 
 /**
+ * @since 4.0.0
+ * @category models
+ */
+export type PayloadMap = ReadonlyMap<string, {
+  readonly encoding: HttpApiSchema.PayloadEncoding
+  readonly schemas: [Schema.Top, ...Array<Schema.Top>]
+}>
+
+/**
  * Represents an API endpoint. An API endpoint is mapped to a single route on
  * the underlying `HttpRouter`.
  *
@@ -65,7 +74,7 @@ export interface HttpApiEndpoint<
   readonly params: Schema.Struct.Fields | undefined
   readonly query: Schema.Struct.Fields | undefined
   readonly headers: Schema.Struct.Fields | undefined
-  readonly payload: ReadonlySet<Schema.Top>
+  readonly payload: PayloadMap
   readonly success: ReadonlySet<Schema.Top>
   readonly error: ReadonlySet<Schema.Top>
   readonly annotations: ServiceMap.ServiceMap<never>
@@ -164,7 +173,11 @@ export function getHeadersSchema(endpoint: AnyWithProps): Schema.Top | undefined
 
 /** @internal */
 export function getPayloadSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
-  return Array.from(endpoint.payload)
+  const result: Array<Schema.Top> = []
+  for (const { schemas } of endpoint.payload.values()) {
+    result.push(...schemas)
+  }
+  return result
 }
 
 /** @internal */
@@ -814,7 +827,7 @@ function makeProto<
   readonly params: Schema.Struct.Fields | undefined
   readonly query: Schema.Struct.Fields | undefined
   readonly headers: Schema.Struct.Fields | undefined
-  readonly payload: ReadonlySet<Schema.Top>
+  readonly payload: PayloadMap
   readonly success: ReadonlySet<Schema.Top>
   readonly error: ReadonlySet<Schema.Top>
   readonly annotations: ServiceMap.ServiceMap<never>
@@ -958,11 +971,31 @@ export const make = <Method extends HttpMethod>(method: Method) =>
 
 function getPayload(
   payload: Schema.Top | ReadonlyArray<Schema.Top> | Schema.Struct.Fields | undefined
-): Set<Schema.Top> {
-  if (payload === undefined) return new Set()
-  if (Array.isArray(payload)) return new Set(payload)
-  if (Schema.isSchema(payload)) return new Set([payload])
-  return new Set([Schema.Struct(payload as any).pipe(HttpApiSchema.asFormUrlEncoded())])
+): PayloadMap {
+  const result: Map<string, { encoding: HttpApiSchema.PayloadEncoding; schemas: [Schema.Top, ...Array<Schema.Top>] }> =
+    new Map()
+  if (payload === undefined) return result
+  const schemas: Array<Schema.Top> = Array.isArray(payload)
+    ? payload
+    : Schema.isSchema(payload)
+    ? [payload]
+    : [Schema.Struct(payload as any).pipe(HttpApiSchema.asFormUrlEncoded())]
+  for (const schema of schemas) {
+    const encoding = HttpApiSchema.getRequestEncoding(schema.ast)
+    const existing = result.get(encoding.contentType)
+    if (existing) {
+      if (existing.encoding._tag !== encoding._tag) {
+        throw new Error(`Multiple payload encodings for content-type: ${encoding.contentType}`)
+      }
+      if (existing.encoding._tag === "Multipart") {
+        throw new Error(`Multiple multipart payloads for content-type: ${encoding.contentType}`)
+      }
+      existing.schemas.push(schema)
+    } else {
+      result.set(encoding.contentType, { encoding, schemas: [schema] })
+    }
+  }
+  return result
 }
 
 function getSuccess(
