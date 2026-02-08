@@ -1738,12 +1738,31 @@ export const refreshOnWindowFocus: <A extends Atom<any>>(self: A) => WithoutSeri
  * @since 4.0.0
  * @category KeyValueStore
  */
-export const kvs = <S extends Schema.Codec<any, any>>(options: {
-  readonly runtime: AtomRuntime<KeyValueStore.KeyValueStore, any>
+export const kvs: {
+  <S extends Schema.Codec<any, any>, ER>(options: {
+    readonly runtime: AtomRuntime<KeyValueStore.KeyValueStore, ER>
+    readonly key: string
+    readonly schema: S
+    readonly defaultValue: LazyArg<S["Type"]>
+    readonly mode?: "sync" | undefined
+  }): Writable<S["Type"]>
+  <S extends Schema.Codec<any, any>, ER>(options: {
+    readonly runtime: AtomRuntime<KeyValueStore.KeyValueStore, ER>
+    readonly key: string
+    readonly schema: S
+    readonly defaultValue: LazyArg<S["Type"]>
+    readonly mode: "async"
+  }): Writable<
+    AsyncResult.AsyncResult<S["Type"], KeyValueStore.KeyValueStoreError | Schema.SchemaError | ER>,
+    S["Type"]
+  >
+} = <S extends Schema.Codec<any, any>, ER>(options: {
+  readonly runtime: AtomRuntime<KeyValueStore.KeyValueStore, ER>
   readonly key: string
   readonly schema: S
   readonly defaultValue: LazyArg<S["Type"]>
-}): Writable<S["Type"]> => {
+  readonly mode?: "sync" | "async" | undefined
+}) => {
   const setAtom = options.runtime.fn(
     Effect.fnUntraced(function*(value: S["Type"]) {
       const store = KeyValueStore.toSchemaStore(yield* KeyValueStore.KeyValueStore, options.schema)
@@ -1753,6 +1772,58 @@ export const kvs = <S extends Schema.Codec<any, any>>(options: {
   const resultAtom = options.runtime.atom(
     KeyValueStore.KeyValueStore.use((store) => KeyValueStore.toSchemaStore(store, options.schema).get(options.key))
   )
+  if (options.mode === "async") {
+    return writable(
+      (get): AsyncResult.AsyncResult<S["Type"], KeyValueStore.KeyValueStoreError | Schema.SchemaError | ER> => {
+        get.mount(setAtom)
+        const result = get(resultAtom)
+        if (AsyncResult.isInitial(result)) {
+          const previous = Option.flatMap(
+            get.self<AsyncResult.AsyncResult<S["Type"], KeyValueStore.KeyValueStoreError | Schema.SchemaError | ER>>(),
+            AsyncResult.value
+          )
+          return Option.isSome(previous)
+            ? AsyncResult.success(previous.value, { waiting: result.waiting })
+            : AsyncResult.initial(result.waiting)
+        }
+        if (AsyncResult.isFailure(result)) {
+          let previous = Option.flatMap(
+            result.previousSuccess,
+            (success) => Option.map(success.value, (value) => AsyncResult.success(value, success))
+          )
+          if (Option.isNone(previous)) {
+            const previousValue = Option.flatMap(
+              get.self<
+                AsyncResult.AsyncResult<S["Type"], KeyValueStore.KeyValueStoreError | Schema.SchemaError | ER>
+              >(),
+              AsyncResult.value
+            )
+            if (Option.isSome(previousValue)) {
+              previous = Option.some(AsyncResult.success(previousValue.value))
+            }
+          }
+          return AsyncResult.failureWithPrevious(result.cause, { previous, waiting: result.waiting })
+        }
+        if (Option.isSome(result.value)) {
+          return AsyncResult.success(result.value.value, { waiting: result.waiting })
+        }
+        const previous = Option.flatMap(
+          get.self<AsyncResult.AsyncResult<S["Type"], KeyValueStore.KeyValueStoreError | Schema.SchemaError | ER>>(),
+          AsyncResult.value
+        )
+        if (Option.isSome(previous)) {
+          return AsyncResult.success(previous.value, { waiting: result.waiting })
+        }
+        const defaultValue = options.defaultValue()
+        get.set(setAtom, defaultValue)
+        return AsyncResult.success(defaultValue, { waiting: result.waiting })
+      },
+      (ctx, value: S["Type"]) => {
+        ctx.set(setAtom, value as any)
+        ctx.setSelf(AsyncResult.success(value))
+      }
+    )
+  }
   return writable(
     (get) => {
       get.mount(setAtom)

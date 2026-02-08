@@ -1,6 +1,19 @@
 import { addEqualityTesters, afterEach, assert, beforeEach, describe, expect, it, test, vitest } from "@effect/vitest"
-import { Array as Arr, Cause, Effect, Hash, Layer, Option, Result, ServiceMap, Stream, SubscriptionRef } from "effect"
+import {
+  Array as Arr,
+  Cause,
+  Effect,
+  Hash,
+  Layer,
+  Option,
+  Result,
+  Schema,
+  ServiceMap,
+  Stream,
+  SubscriptionRef
+} from "effect"
 import { TestClock } from "effect/testing"
+import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
 import { AsyncResult, Atom, AtomRegistry } from "effect/unstable/reactivity"
 
 declare const global: any
@@ -843,6 +856,88 @@ describe.sequential("Atom", () => {
 
     await vitest.advanceTimersByTimeAsync(100)
     assert.deepEqual(r.get(count), AsyncResult.success(1))
+  })
+
+  it("kvs async mode does not overwrite persisted value while read is pending", async () => {
+    const writes = new Array<readonly [string, string]>()
+    const layer = Layer.sync(KeyValueStore.KeyValueStore, () => {
+      const store = new Map<string, string>([["count", "123"]])
+      return KeyValueStore.makeStringOnly({
+        get: (key) => Effect.succeed(store.get(key)).pipe(Effect.delay(50)),
+        set: (key, value) =>
+          Effect.sync(() => {
+            writes.push([key, value])
+            store.set(key, value)
+          }).pipe(Effect.delay(50)),
+        remove: (key) => Effect.sync(() => store.delete(key)),
+        clear: Effect.sync(() => store.clear()),
+        size: Effect.sync(() => store.size)
+      })
+    })
+    const runtime = Atom.runtime(layer)
+    const atom = Atom.kvs({
+      runtime,
+      key: "count",
+      schema: Schema.Number,
+      defaultValue: () => 0,
+      mode: "async"
+    })
+    const r = AtomRegistry.make()
+    const cancel = r.mount(atom)
+
+    const first = r.get(atom)
+    assert(AsyncResult.isInitial(first))
+    assert.strictEqual(writes.length, 0)
+
+    await vitest.advanceTimersByTimeAsync(50)
+
+    const second = r.get(atom)
+    assert(AsyncResult.isSuccess(second))
+    assert.strictEqual(second.value, 123)
+    assert.strictEqual(writes.length, 0)
+    cancel()
+  })
+
+  it("kvs async mode initializes missing keys with default after read resolves", async () => {
+    let writes = 0
+    const layer = Layer.sync(KeyValueStore.KeyValueStore, () => {
+      const store = new Map<string, string>()
+      return KeyValueStore.makeStringOnly({
+        get: (key) => Effect.succeed(store.get(key)).pipe(Effect.delay(50)),
+        set: (key, value) =>
+          Effect.sync(() => {
+            writes++
+            store.set(key, value)
+          }).pipe(Effect.delay(50)),
+        remove: (key) => Effect.sync(() => store.delete(key)),
+        clear: Effect.sync(() => store.clear()),
+        size: Effect.sync(() => store.size)
+      })
+    })
+    const runtime = Atom.runtime(layer)
+    const atom = Atom.kvs({
+      runtime,
+      key: "count",
+      schema: Schema.Number,
+      defaultValue: () => 10,
+      mode: "async"
+    })
+    const r = AtomRegistry.make()
+    const cancel = r.mount(atom)
+
+    const first = r.get(atom)
+    assert(AsyncResult.isInitial(first))
+
+    await vitest.advanceTimersByTimeAsync(50)
+
+    const second = r.get(atom)
+    assert(AsyncResult.isSuccess(second))
+    assert.strictEqual(second.value, 10)
+    assert.strictEqual(writes, 0)
+
+    await vitest.advanceTimersByTimeAsync(50)
+    assert.strictEqual(writes, 1)
+    cancel()
   })
 
   it("failure with previousSuccess", async () => {
