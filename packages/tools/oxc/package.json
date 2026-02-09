@@ -1,6 +1,6 @@
 {
   "name": "@effect/oxc",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "type": "module",
   "private": true,
   "license": "MIT",
@@ -8,12 +8,12 @@
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/tools/oxc"
   },
   "sideEffects": [],
   "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
+    "url": "https://github.com/Effect-TS/effect-smol/issues"
   },
   "tags": [
     "typescript",

@@ -1,17 +1,17 @@
 {
   "name": "@effect/ai-anthropic",
-  "version": "0.1.0",
+  "version": "3.0.0",
   "type": "module",
   "license": "MIT",
   "description": "An Anthropic integration for Effect",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/ai/anthropic"
   },
   "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
+    "url": "https://github.com/Effect-TS/effect-smol/issues"
   },
   "tags": [
     "typescript",

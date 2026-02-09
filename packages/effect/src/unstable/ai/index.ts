@@ -24,6 +24,8 @@
  * - **InternalProviderError** - Provider-side failures (5xx)
  * - **NetworkError** - Transport-level failures
  * - **InvalidOutputError** - LLM output parsing/validation failures
+ * - **StructuredOutputError** - LLM generated text that doesn't conform to structured output schema
+ * - **UnsupportedSchemaError** - Codec transformer rejected a schema with unsupported constructs
  * - **UnknownError** - Catch-all for unknown errors
  *
  * ## Tool Call Errors

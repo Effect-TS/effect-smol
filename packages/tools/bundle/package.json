@@ -8,7 +8,7 @@
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/tools/bundle"
   },
   "sideEffects": [],

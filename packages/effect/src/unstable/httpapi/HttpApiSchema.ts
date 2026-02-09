@@ -337,16 +337,6 @@ const resolveHttpApiEncoding = AST.resolveAt<Encoding>("~httpApiEncoding")
 
 const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
 
-/** @internal */
-export function isNoContent(ast: AST.AST): boolean {
-  return AST.isVoid(AST.toEncoded(ast))
-}
-
-/** @internal */
-export function isUndecodableNoContent(ast: AST.AST): boolean {
-  return AST.isVoid(AST.toEncoded(ast)) && ast.encoding === undefined
-}
-
 const defaultJsonEncoding: Encoding = {
   _tag: "Json",
   contentType: "application/json"
@@ -357,7 +347,7 @@ function getEncoding(ast: AST.AST): Encoding {
 }
 
 /** @internal */
-export function getRequestEncoding(ast: AST.AST): PayloadEncoding {
+export function getPayloadEncoding(ast: AST.AST): PayloadEncoding {
   return getEncoding(ast)
 }
 
@@ -378,9 +368,4 @@ export function getStatusSuccess(self: AST.AST): number {
 /** @internal */
 export function getStatusError(self: AST.AST): number {
   return resolveHttpApiStatus(self) ?? 500
-}
-
-/** @internal */
-export function Union(schemas: readonly [Schema.Top, ...Array<Schema.Top>]): Schema.Top {
-  return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }

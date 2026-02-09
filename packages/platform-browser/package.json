@@ -1,17 +1,17 @@
 {
   "name": "@effect/platform-browser",
   "type": "module",
-  "version": "0.72.0",
+  "version": "3.0.0",
   "license": "MIT",
   "description": "Platform specific implementations for the browser",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/platform-browser"
   },
   "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
+    "url": "https://github.com/Effect-TS/effect-smol/issues"
   },
   "tags": [
     "browser",

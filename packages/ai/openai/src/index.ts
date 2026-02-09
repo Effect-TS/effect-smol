@@ -45,6 +45,26 @@ export * as OpenAiError from "./OpenAiError.ts"
 export * as OpenAiLanguageModel from "./OpenAiLanguageModel.ts"
 
 /**
+ * Provides a codec transformation for OpenAI structured output.
+ *
+ * OpenAI's API has specific constraints on JSON schema support that differ
+ * from the full JSON Schema specification. This module transforms Effect
+ * `Schema.Codec` types into a form compatible with OpenAI's structured
+ * output requirements by:
+ *
+ * - Converting tuples to objects with string keys (tuples are unsupported)
+ * - Converting optional properties to nullable unions (`T | null`)
+ * - Converting index signatures (records) to arrays of key-value pairs
+ * - Converting `oneOf` unions to `anyOf` unions
+ * - Merging multiple regex patterns into a single `pattern` (since OpenAI
+ *   does not support `allOf`)
+ * - Preserving only OpenAI-compatible formats and descriptions
+ *
+ * @since 1.0.0
+ */
+export * as OpenAiStructuredOutput from "./OpenAiStructuredOutput.ts"
+
+/**
  * OpenAI telemetry attributes for OpenTelemetry integration.
  *
  * Provides OpenAI-specific GenAI telemetry attributes following OpenTelemetry

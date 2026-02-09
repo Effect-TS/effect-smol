@@ -2023,7 +2023,9 @@ export function makeFilterByGuard<T extends E, E>(
   )
 }
 
-/** @internal */
+/**
+ * @since 4.0.0
+ */
 export function isPattern(regExp: globalThis.RegExp, annotations?: Schema.Annotations.Filter) {
   const source = regExp.source
   return makeFilter(

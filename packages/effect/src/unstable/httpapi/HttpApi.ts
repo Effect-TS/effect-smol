@@ -211,11 +211,11 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
       readonly successes: ReadonlyMap<number, {
-        readonly content: ReadonlySet<Schema.Top>
+        readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
         readonly description: string | undefined
       }>
       readonly errors: ReadonlyMap<number, {
-        readonly content: ReadonlySet<Schema.Top>
+        readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
         readonly description: string | undefined
       }>
     }) => void
@@ -265,11 +265,11 @@ const extractResponseContent = (
   schemas: readonly [Schema.Top, ...Array<Schema.Top>],
   getStatus: (ast: AST.AST) => number
 ): ReadonlyMap<number, {
-  readonly content: ReadonlySet<Schema.Top>
+  readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
   readonly description: string | undefined
 }> => {
   const map = new Map<number, {
-    content: Set<Schema.Top>
+    schemas: [Schema.Top, ...Array<Schema.Top>]
     description: string | undefined
   }>()
 
@@ -280,21 +280,16 @@ const extractResponseContent = (
   function add(schema: Schema.Top) {
     const ast = schema.ast
     const status = getStatus(ast)
-    // only include a schema in the response-body union if it actually has a payload,
-    // or if it's explicitly a "no content" schema (so the empty-ness is intentional)
-    const isUndecodableNoContent = HttpApiSchema.isUndecodableNoContent(ast)
     const description = resolveDescriptionOrIdentifier(ast)
     const pair = map.get(status)
     if (pair === undefined) {
       map.set(status, {
         description,
-        content: isUndecodableNoContent ? new Set([]) : new Set([schema])
+        schemas: [schema]
       })
     } else {
       pair.description = [pair.description, description].filter(Predicate.isNotUndefined).join(" | ")
-      if (!isUndecodableNoContent) {
-        pair.content.add(schema)
-      }
+      pair.schemas.push(schema)
     }
   }
 }

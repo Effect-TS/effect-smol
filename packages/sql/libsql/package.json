@@ -1,17 +1,17 @@
 {
   "name": "@effect/sql-libsql",
-  "version": "0.34.1",
+  "version": "3.0.0",
   "type": "module",
   "license": "MIT",
   "description": "A libSQL toolkit for Effect",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/sql/libsql"
   },
   "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
+    "url": "https://github.com/Effect-TS/effect-smol/issues"
   },
   "tags": [
     "typescript",

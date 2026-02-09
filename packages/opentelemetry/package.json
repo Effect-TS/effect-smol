@@ -1,17 +1,17 @@
 {
   "name": "@effect/opentelemetry",
   "type": "module",
-  "version": "0.60.0",
+  "version": "3.0.0",
   "license": "MIT",
   "description": "OpenTelemetry integration for Effect",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/opentelemetry"
   },
   "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
+    "url": "https://github.com/Effect-TS/effect-smol/issues"
   },
   "tags": [
     "opentelemetry",

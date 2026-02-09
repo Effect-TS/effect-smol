@@ -1756,13 +1756,17 @@ export const kvs = <S extends Schema.Codec<any, any>>(options: {
   return writable(
     (get) => {
       get.mount(setAtom)
-      const value = AsyncResult.value(get(resultAtom))
-      if (Option.isSome(value)) {
-        return value.value
-      }
-      const defaultValue = options.defaultValue()
-      get.set(setAtom, defaultValue)
-      return defaultValue
+      get.subscribe(resultAtom, (result) => {
+        if (!AsyncResult.isSuccess(result)) return
+        if (Option.isSome(result.value)) {
+          get.setSelf(result.value.value)
+        } else {
+          const value = Option.getOrElse(get.self<S["Type"]>(), options.defaultValue)
+          get.setSelf(value)
+          get.set(setAtom, value)
+        }
+      }, { immediate: true })
+      return Option.getOrElse(get.self<S["Type"]>(), options.defaultValue)
     },
     (ctx, value: S["Type"]) => {
       ctx.set(setAtom, value as any)

@@ -1,17 +1,17 @@
 {
   "name": "@effect/vitest",
-  "version": "0.21.1",
+  "version": "3.0.0",
   "type": "module",
   "license": "MIT",
   "description": "A set of helpers for testing Effects with vitest",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/vitest"
   },
   "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
+    "url": "https://github.com/Effect-TS/effect-smol/issues"
   },
   "sideEffects": [],
   "exports": {

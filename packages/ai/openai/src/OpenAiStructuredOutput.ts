@@ -1,42 +1,47 @@
 /**
- * Provides a codec transformation for Anthropic structured output.
+ * Provides a codec transformation for OpenAI structured output.
  *
- * Anthropic's API has specific constraints on JSON schema support that differ
+ * OpenAI's API has specific constraints on JSON schema support that differ
  * from the full JSON Schema specification. This module transforms Effect
- * `Schema.Codec` types into a form compatible with Anthropic's structured
+ * `Schema.Codec` types into a form compatible with OpenAI's structured
  * output requirements by:
  *
  * - Converting tuples to objects with string keys (tuples are unsupported)
  * - Converting optional properties to nullable unions (`T | null`)
  * - Converting index signatures (records) to arrays of key-value pairs
  * - Converting `oneOf` unions to `anyOf` unions
- * - Stripping unsupported annotations and preserving only Anthropic-compatible
- *   formats and descriptions
+ * - Merging multiple regex patterns into a single `pattern` (since OpenAI
+ *   does not support `allOf`)
+ * - Preserving only OpenAI-compatible formats and descriptions
  *
  * @since 1.0.0
  */
 import * as Arr from "effect/Array"
+import type * as JsonSchema from "effect/JsonSchema"
 import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
+import * as Rec from "effect/Record"
 import * as Schema from "effect/Schema"
 import * as AST from "effect/SchemaAST"
 import * as Transformation from "effect/SchemaTransformation"
 
 /**
- * Transforms a `Schema.Codec` into a form compatible with Anthropic's
+ * Transforms a `Schema.Codec` into a form compatible with OpenAI's
  * structured output constraints.
  *
  * The transformation walks the schema AST and rewrites constructs that
- * Anthropic does not support natively:
+ * OpenAI does not support natively:
  *
  * - **Tuples** are converted to objects with numeric string keys (e.g.
- *   `"0"`, `"1"`) since Anthropic does not support tuple schemas. Rest
+ *   `"0"`, `"1"`) since OpenAI does not support tuple schemas. Rest
  *   elements are placed under a `"__rest__"` key.
  * - **Optional properties** are replaced with `T | null` unions, because
- *   Anthropic requires all properties to be present.
+ *   OpenAI requires all properties to be present.
  * - **Records** (index signatures) are converted to arrays of `[key, value]`
  *   pairs.
  * - **`oneOf` unions** are rewritten as `anyOf` unions.
+ * - **Regex patterns** from multiple filters are merged into a single
+ *   `pattern` using lookaheads, since OpenAI does not support `allOf`.
  * - **Filters and annotations** are preserved where compatible (e.g.
  *   `description`, supported `format` values like `"date-time"`, `"email"`,
  *   `"uuid"`, etc.), and stripped otherwise.
@@ -47,15 +52,49 @@ import * as Transformation from "effect/SchemaTransformation"
  * @since 1.0.0
  * @category Codec Transformation
  */
-export function toCodecAnthropic<T, E, RD, RE>(
+export function toCodecOpenAI<T, E, RD, RE>(
   schema: Schema.Codec<T, E, RD, RE>
-): Schema.Codec<T, unknown, RD, RE> {
+): {
+  codec: Schema.Codec<T, unknown, RD, RE>
+  jsonSchema: JsonSchema.JsonSchema
+} {
   const to = schema.ast
   const from = recur(AST.toEncoded(to))
-  if (from === to) {
-    return schema
+  const codec = from === to ? schema : Schema.make<typeof schema>(AST.decodeTo(from, to, Transformation.passthrough()))
+  const document = Schema.toJsonSchemaDocument(codec)
+  const jsonSchema = rewrite(document.schema)
+  if (Object.keys(document.definitions).length > 0) {
+    jsonSchema.$defs = Rec.map(document.definitions, rewrite)
   }
-  return Schema.make(AST.decodeTo(from, to, Transformation.passthrough()))
+  return { codec, jsonSchema }
+}
+
+/**
+ * Post-processes the JSON schema produced by `Schema.toJsonSchemaDocument`,
+ * recursively flattening `allOf` arrays by merging each member's keys into
+ * the parent object. This is necessary because OpenAI structured output does
+ * not support `allOf`.
+ */
+function rewrite(schema: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
+  const out: JsonSchema.JsonSchema = {}
+  for (const [k, v] of Object.entries(schema)) {
+    if (k === "allOf" && Array.isArray(v)) {
+      for (const member of v) {
+        Object.assign(out, rewrite(member as JsonSchema.JsonSchema))
+      }
+    } else if (Array.isArray(v)) {
+      out[k] = v.map((item) =>
+        typeof item === "object" && item !== null && !Array.isArray(item)
+          ? rewrite(item as JsonSchema.JsonSchema)
+          : item
+      )
+    } else if (typeof v === "object" && v !== null) {
+      out[k] = rewrite(v as JsonSchema.JsonSchema)
+    } else {
+      out[k] = v
+    }
+  }
+  return out
 }
 
 function recur(ast: AST.AST): AST.AST {
@@ -71,15 +110,14 @@ function recur(ast: AST.AST): AST.AST {
     case "ObjectKeyword":
     case "Enum":
     case "TemplateLiteral":
-    case "Suspend":
       return unsupportedAst(
         ast,
-        "Anthropic structured output does not support this schema kind; consider transforming the schema or using a different provider"
+        "OpenAI structured output does not support this schema kind; consider transforming the schema or using a different provider"
       )
     case "Undefined":
       return unsupportedAst(
         ast,
-        "Anthropic structured output does not support undefined; consider transforming the schema or using a different provider; if using `Schema.optional`, consider using `Schema.optionalKey` instead"
+        "OpenAI structured output does not support undefined; consider transforming the schema or using a different provider; if using `Schema.optional`, consider using `Schema.optionalKey` instead"
       )
     case "Null":
       return ast
@@ -133,7 +171,7 @@ function recur(ast: AST.AST): AST.AST {
       }
       let { annotations, filters } = get(ast)
       if (ast.elements.length > 0) {
-        // tuples are not supported by Anthropic, we translate them to objects with string keys
+        // tuples are not supported by OpenAI, we translate them to objects with string keys
         if (annotations !== undefined && typeof annotations.description === "string") {
           annotations.description = `${TUPLE_DESCRIPTION}; ${annotations.description}`
         } else {
@@ -195,7 +233,7 @@ function recur(ast: AST.AST): AST.AST {
             )
           }
           let type = recur(ps.type)
-          // opttional properties are not supported by Anthropic, so we translate them to nullable unions
+          // optional properties are not supported by OpenAI, so we translate them to nullable unions
           if (AST.isOptional(ps.type)) {
             type = AST.decodeTo(
               new AST.Union([type, AST.null], "anyOf"),
@@ -218,7 +256,7 @@ function recur(ast: AST.AST): AST.AST {
         }
       } else if (ast.indexSignatures.length === 1 && ast.propertySignatures.length === 0) {
         const is = ast.indexSignatures[0]
-        // records are not supported by Anthropic, so we translate them to arrays of key-value pairs
+        // records are not supported by OpenAI, so we translate them to arrays of key-value pairs
         if (annotations !== undefined && typeof annotations.description === "string") {
           annotations.description = `${RECORD_DESCRIPTION}; ${annotations.description}`
         } else {
@@ -240,10 +278,20 @@ function recur(ast: AST.AST): AST.AST {
       }
       return ast
     }
+    case "Suspend": {
+      const cached = cache.get(ast)
+      if (cached) return cached
+      const { annotations, filters } = get(ast)
+      const out = new AST.Suspend(() => recur(ast.thunk()), annotations, filters)
+      cache.set(ast, out)
+      return out
+    }
   }
 }
 
-const errorPrefix = "AnthropicStructuredOutput"
+const cache = new Map<AST.AST, AST.AST>()
+
+const errorPrefix = "OpenAiStructuredOutput"
 
 function unsupportedAst(ast: AST.AST, details?: string): never {
   const base = `Unsupported AST ${ast._tag}`
@@ -266,6 +314,7 @@ type Annotation =
 type Filter =
   | Annotation
   | { readonly _tag: "filter"; readonly filter: AST.Filter<any> }
+  | { readonly _tag: "regex"; readonly source: string }
 
 const get = (ast: AST.AST): {
   annotations: Record<string, string> | undefined
@@ -273,7 +322,8 @@ const get = (ast: AST.AST): {
 } => {
   const annotations: Record<string, string> = {}
   const filters: Array<AST.Filter<any>> = []
-  const checks = getChecks(ast)
+  const regexSources: Array<string> = []
+  const checks = getChecks(ast, AST.isArrays(ast))
   if (checks.length > 0) {
     for (const check of checks) {
       switch (check._tag) {
@@ -293,8 +343,19 @@ const get = (ast: AST.AST): {
           filters.push(check.filter)
           break
         }
+        case "regex": {
+          regexSources.push(check.source)
+          break
+        }
       }
     }
+  }
+  // OpenAI does not support allOf, so we merge multiple regex patterns into a single isPattern filter
+  if (regexSources.length === 1) {
+    filters.push(AST.isPattern(new RegExp(regexSources[0])))
+  } else if (regexSources.length > 1) {
+    const combined = regexSources.map((s) => `(?=[\\s\\S]*?(?:${s}))`).join("")
+    filters.push(AST.isPattern(new RegExp(`^${combined}`)))
   }
   return {
     annotations: Object.keys(annotations).length > 0 ? annotations : undefined,
@@ -302,8 +363,8 @@ const get = (ast: AST.AST): {
   }
 }
 
-const getChecks = (ast: AST.AST): Array<Filter> => [
-  ...(ast.checks !== undefined ? getFilters(ast.checks) : []),
+const getChecks = (ast: AST.AST, isArray: boolean): Array<Filter> => [
+  ...(ast.checks !== undefined ? getFilters(ast.checks, isArray) : []),
   ...getAnnotations(ast.annotations)
 ]
 
@@ -329,14 +390,29 @@ const getAnnotations = (annotations: Schema.Annotations.Filter | undefined): Arr
   return out
 }
 
-function getFilter(filter: AST.Filter<any>): Array<Filter> {
+function getFilter(filter: AST.Filter<any>, isArray: boolean): Array<Filter> {
   let out: Array<Filter> = []
   const annotations = getAnnotations(filter.annotations)
   const meta = filter.annotations?.meta
   if (meta !== undefined) {
     switch (meta._tag) {
+      case "isMinLength":
+      case "isMaxLength":
+      case "isLength": {
+        out = out.concat(annotations)
+        if (isArray) {
+          out.push({ _tag: "filter", filter: resetFilter(filter) })
+        }
+        break
+      }
       case "isInt":
-      case "isFinite": {
+      case "isFinite":
+      case "isGreaterThan":
+      case "isGreaterThanOrEqualTo":
+      case "isLessThan":
+      case "isLessThanOrEqualTo":
+      case "isBetween":
+      case "isMultipleOf": {
         out = out.concat(annotations)
         out.push({ _tag: "filter", filter: resetFilter(filter) })
         break
@@ -347,7 +423,7 @@ function getFilter(filter: AST.Filter<any>): Array<Filter> {
       }
     }
     if ("regExp" in meta && meta.regExp instanceof RegExp) {
-      out.push({ _tag: "filter", filter: resetFilter(filter) })
+      out.push({ _tag: "regex", source: meta.regExp.source })
     }
   }
   return out
@@ -362,13 +438,13 @@ function resetFilter(filter: AST.Filter<any>): AST.Filter<any> {
   })
 }
 
-function getFilters(checks: readonly [AST.Check<any>, ...AST.Check<any>[]]): Array<Filter> {
+function getFilters(checks: readonly [AST.Check<any>, ...AST.Check<any>[]], isArray: boolean): Array<Filter> {
   return checks.flatMap((check) => {
     switch (check._tag) {
       case "Filter":
-        return getFilter(check)
+        return getFilter(check, isArray)
       case "FilterGroup":
-        return getFilters(check.checks)
+        return getFilters(check.checks, isArray)
     }
   })
 }
@@ -380,6 +456,7 @@ const formats = [
   "duration",
   "email",
   "hostname",
+  "uri",
   "ipv4",
   "ipv6",
   "uuid"

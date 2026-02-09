@@ -1,17 +1,17 @@
 {
   "name": "@effect/platform-node-shared",
   "type": "module",
-  "version": "0.31.6",
+  "version": "3.0.0",
   "license": "MIT",
   "description": "Unified interfaces for common platform-specific services",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/platform-node-shared"
   },
   "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
+    "url": "https://github.com/Effect-TS/effect-smol/issues"
   },
   "tags": [
     "typescript",

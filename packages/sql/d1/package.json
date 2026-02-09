@@ -1,17 +1,17 @@
 {
   "name": "@effect/sql-d1",
-  "version": "0.42.1",
+  "version": "3.0.0",
   "type": "module",
   "license": "MIT",
   "description": "A Cloudflare D1 integration for Effect",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/sql/d1"
   },
   "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
+    "url": "https://github.com/Effect-TS/effect-smol/issues"
   },
   "tags": [
     "typescript",

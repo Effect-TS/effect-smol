@@ -1,17 +1,17 @@
 {
   "name": "@effect/sql-sqlite-react-native",
-  "version": "0.47.1",
+  "version": "3.0.0",
   "type": "module",
   "license": "MIT",
   "description": "A SQLite toolkit for Effect",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/sql/sqlite-react-native"
   },
   "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
+    "url": "https://github.com/Effect-TS/effect-smol/issues"
   },
   "tags": [
     "typescript",
