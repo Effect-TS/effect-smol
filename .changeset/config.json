@@ -6,7 +6,12 @@
   "access": "restricted",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["scratchpad"],
+  "ignore": [
+    "packages/tools/ai-codegen",
+    "packages/tools/bundle",
+    "scratchpad",
+    "scripts"
+  ],
   "snapshot": {
     "useCalculatedVersion": false,
     "prereleaseTemplate": "{tag}-{commit}"
