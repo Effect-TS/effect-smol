@@ -146,6 +146,9 @@ and dependencies inline. In v4, use `ServiceMap.Service` with a `make` option.
 
 **v3**
 
+In v3, `Effect.Service` automatically generated a `.Default` layer from the
+provided constructor, and wired `dependencies` into it:
+
 ```ts
 import { Effect, Layer } from "effect"
 
@@ -156,23 +159,44 @@ class Logger extends Effect.Service<Logger>()("Logger", {
   }),
   dependencies: [Config.Default]
 }) {}
+
+// Logger.Default is auto-generated: Layer<Logger, never, never>
+// (dependencies are already wired in)
+const program = Effect.gen(function*() {
+  const logger = yield* Logger
+  yield* logger.log("hello")
+}).pipe(Effect.provide(Logger.Default))
 ```
 
 **v4**
 
+In v4, `ServiceMap.Service` with `make` stores the constructor effect on the
+class but does **not** auto-generate a layer. Define layers explicitly using
+`Layer.effect`:
+
 ```ts
-import { Effect, ServiceMap } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
 
 class Logger extends ServiceMap.Service<Logger>()("Logger", {
   make: Effect.gen(function*() {
     const config = yield* Config
     return { log: (msg: string) => Effect.log(`[${config.prefix}] ${msg}`) }
   })
-}) {}
+}) {
+  // Build the layer yourself from the make effect
+  static layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Config.layer)
+  )
+}
 ```
 
-Note: the `dependencies` option is no longer part of the service definition.
-Provide dependencies via `Layer` composition instead.
+The `dependencies` option no longer exists. Wire dependencies via
+`Layer.provide` as shown above.
+
+Note: v4 adopts the convention of naming layers with `layer` (e.g.
+`Logger.layer`) instead of v3's `Default` or `Live`. Use `layer`
+for the primary layer and descriptive suffixes for variants (e.g.
+`layerTest`, `layerConfig`).
 
 ## References (Services with Defaults)
 
