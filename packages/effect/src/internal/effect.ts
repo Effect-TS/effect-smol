@@ -13,6 +13,7 @@ import type { LazyArg } from "../Function.ts"
 import { constant, constFalse, constTrue, constUndefined, constVoid, dual, identity } from "../Function.ts"
 import * as Hash from "../Hash.ts"
 import { toJson, toStringUnknown } from "../Inspectable.ts"
+import * as Iterable from "../Iterable.ts"
 import type * as Logger from "../Logger.ts"
 import type * as LogLevel from "../LogLevel.ts"
 import type * as Metric from "../Metric.ts"
@@ -4366,23 +4367,22 @@ export const forkDetach: {
 export const awaitAllChildren = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, R> =>
-  suspend(() => {
-    const initialFiberId = fiberIdStore.id
-    return ensuring(
+  withFiber((fiber) => {
+    const initialChildren = fiber._children && Arr.fromIterable(fiber._children)
+    return onExit(
       self,
-      withFiber((fiber) => {
-        const children = fiber._children
+      (_) => {
+        let children = fiber._children
         if (children === undefined || children.size === 0) {
-          return void_
+          return
+        } else if (initialChildren) {
+          children = Iterable.filter(
+            children,
+            (child: FiberImpl<any, any>) => !initialChildren.includes(child)
+          ) as Set<FiberImpl<any, any>>
         }
-        const fibers: Array<FiberImpl<any, any>> = []
-        for (const child of children) {
-          if (child.id > initialFiberId) {
-            fibers.push(child)
-          }
-        }
-        return fibers.length === 0 ? void_ : asVoid(fiberAwaitAll(fibers))
-      })
+        return fiberAwaitAll(children)
+      }
     )
   })
 
