@@ -1,6 +1,6 @@
 {
   "name": "@effect/atom-vue",
-  "version": "0.38.1",
+  "version": "3.0.0",
   "type": "module",
   "license": "MIT",
   "description": "Vue bindings for the Effect Atom modules",

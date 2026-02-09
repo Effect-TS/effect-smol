@@ -20,3 +20,4 @@
     "@effect/sql-sqlite-wasm": "workspace:*"
   }
 }
+

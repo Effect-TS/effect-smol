@@ -1,6 +1,6 @@
 {
   "name": "@effect/oxc",
-  "version": "0.0.1",
+  "version": "3.0.0",
   "type": "module",
   "private": true,
   "license": "MIT",

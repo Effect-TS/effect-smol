@@ -1,7 +1,7 @@
 {
   "name": "@effect/openapi-generator",
   "type": "module",
-  "version": "0.4.13",
+  "version": "3.0.0",
   "license": "MIT",
   "description": "Generate Effect Schema types and HTTP clients from OpenAPI specifications",
   "homepage": "https://effect.website",
