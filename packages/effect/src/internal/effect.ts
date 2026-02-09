@@ -4367,7 +4367,7 @@ export const awaitAllChildren = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, R> =>
   withFiber((fiber) => {
-    const initialChildren = fiber._children === undefined ? undefined : new Set(fiber._children)
+    const initialFiberId = fiberIdStore.id
     return ensuring(
       self,
       suspend(() => {
@@ -4375,12 +4375,9 @@ export const awaitAllChildren = <A, E, R>(
         if (children === undefined || children.size === 0) {
           return void_
         }
-        if (initialChildren === undefined || initialChildren.size === 0) {
-          return asVoid(fiberAwaitAll(Array.from(children)))
-        }
         const fibers: Array<FiberImpl<any, any>> = []
         for (const child of children) {
-          if (!initialChildren.has(child)) {
+          if (child.id > initialFiberId) {
             fibers.push(child)
           }
         }

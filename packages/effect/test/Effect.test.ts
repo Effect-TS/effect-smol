@@ -1019,6 +1019,26 @@ describe("Effect", () => {
         assert.deepStrictEqual(fiber.pollUnsafe(), Exit.succeed(1))
         yield* Fiber.interrupt(preexisting)
       }))
+
+    it.effect("does not await preexisting children in the same fiber", () =>
+      Effect.gen(function*() {
+        const preexistingLatch = yield* Deferred.make<void>()
+        const scopedLatch = yield* Deferred.make<void>()
+        const fiber = yield* Effect.gen(function*() {
+          yield* Deferred.await(preexistingLatch).pipe(Effect.forkChild)
+          return yield* Effect.gen(function*() {
+            yield* Deferred.await(scopedLatch).pipe(Effect.forkChild)
+            return 1
+          }).pipe(Effect.awaitAllChildren)
+        }).pipe(
+          Effect.forkChild({ startImmediately: true })
+        )
+        yield* Effect.yieldNow
+        assert.strictEqual(fiber.pollUnsafe(), undefined)
+        yield* Deferred.succeed(scopedLatch, void 0)
+        yield* Effect.yieldNow
+        assert.deepStrictEqual(fiber.pollUnsafe(), Exit.succeed(1))
+      }))
   })
 
   describe("fork", () => {
