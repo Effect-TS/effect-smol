@@ -314,7 +314,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           const c: OpenApiSpecContent = {}
           let hasContent = false
           payloadMap.forEach(({ encoding, schemas }, contentType) => {
-            const filtered = schemas.filter((s) => !HttpApiSchema.isNoContent(s.ast))
+            const filtered = schemas.filter((s) => !isNoContent(s.ast))
             if (filtered.length === 0) return
             hasContent = true
             const asts = filtered.map(AST.getAST)
@@ -528,6 +528,10 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   return spec
 }
 
+function isNoContent(ast: AST.AST): boolean {
+  return AST.isVoid(AST.toEncoded(ast))
+}
+
 type ResponseBodies = Map<
   number, // status
   {
@@ -553,7 +557,7 @@ function extractResponseBodies(
   function process(schema: Schema.Top) {
     const ast = schema.ast
     const status = getStatus(ast)
-    if (HttpApiSchema.isNoContent(ast)) {
+    if (isNoContent(ast)) {
       addNoContent(status, getDescription(schema.ast) ?? "<No Content>")
     } else {
       addContent(schema, status, HttpApiSchema.getResponseEncoding(ast))

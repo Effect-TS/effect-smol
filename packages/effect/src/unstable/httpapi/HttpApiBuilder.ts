@@ -471,7 +471,7 @@ function buildPayloadDecoders(
 ): Map<string, PayloadDecoder> {
   const result = new Map<string, PayloadDecoder>()
   payloadMap.forEach(({ encoding, schemas }, contentType) => {
-    const decode = Schema.decodeUnknownEffect(HttpApiSchema.Union(schemas))
+    const decode = Schema.decodeUnknownEffect(Schema.Union(schemas))
     if (encoding._tag === "Multipart") {
       result.set(contentType, { _tag: "Multipart", mode: encoding.mode, limits: encoding.limits, decode })
     } else {
@@ -536,7 +536,7 @@ function handlerToRoute(
 ): HttpRouter.Route<any, any> {
   const endpoint = handler.endpoint
   const encodeSuccess = Schema.encodeUnknownEffect(makeSuccessSchema(endpoint))
-  const decodePath = UndefinedOr.map(HttpApiEndpoint.getParamsSchema(endpoint), Schema.decodeUnknownEffect)
+  const decodeParams = UndefinedOr.map(HttpApiEndpoint.getParamsSchema(endpoint), Schema.decodeUnknownEffect)
   const decodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.decodeUnknownEffect)
   const decodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.decodeUnknownEffect)
 
@@ -561,8 +561,8 @@ function handlerToRoute(
           endpoint,
           group
         }
-        if (decodePath) {
-          request.params = yield* decodePath(routeContext.params)
+        if (decodeParams) {
+          request.params = yield* decodeParams(routeContext.params)
         }
         if (decodeHeaders) {
           request.headers = yield* decodeHeaders(httpRequest.headers)
@@ -668,7 +668,7 @@ const makeSecurityMiddleware = (
   return middleware
 }
 
-const HttpServerResponseSchema = Schema.declare(Response.isHttpServerResponse)
+const $HttpServerResponse = Schema.declare(Response.isHttpServerResponse)
 
 const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
 const toResponseErrorSchema = toResponseSchema(HttpApiSchema.getStatusError)
@@ -679,7 +679,7 @@ function makeSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encod
 }
 
 function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
-  const errors = new Set<Schema.Top>([HttpApiSchemaError])
+  const errors = new Set<Schema.Top>([])
   for (const group of Object.values(api.groups)) {
     for (const endpoint of Object.values(group.endpoints)) {
       HttpApiEndpoint.getErrorSchemas(endpoint).forEach((schema) => errors.add(schema))
@@ -692,12 +692,12 @@ function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Encoder<HttpServerRe
 function toResponseSchema(getStatus: (ast: AST.AST) => number) {
   const cache = new WeakMap<AST.AST, Schema.Top>()
 
-  return <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>): Schema.Codec<T, HttpServerResponse, RD, RE> => {
+  return (schema: Schema.Top): Schema.Encoder<HttpServerResponse, unknown> => {
     const cached = cache.get(schema.ast)
     if (cached !== undefined) {
       return cached as any
     }
-    const responseSchema = HttpServerResponseSchema.pipe(
+    const responseSchema = $HttpServerResponse.pipe(
       Schema.decodeTo(schema, getResponseTransformation(getStatus, schema))
     )
     cache.set(responseSchema.ast, responseSchema)
@@ -705,12 +705,12 @@ function toResponseSchema(getStatus: (ast: AST.AST) => number) {
   }
 }
 
-function getResponseTransformation<T, E, RD, RE>(
+function getResponseTransformation(
   getStatus: (ast: AST.AST) => number,
-  schema: Schema.Codec<T, E, RD, RE>
-): Transformation.Transformation<E, Response.HttpServerResponse> {
+  schema: Schema.Top
+): Transformation.Transformation<unknown, Response.HttpServerResponse> {
   const ast = schema.ast
-  const encode = getResponseEncode<E>(getStatus(ast), HttpApiSchema.getResponseEncoding(ast))
+  const encode = getResponseEncode(getStatus(ast), HttpApiSchema.getResponseEncoding(ast))
 
   return Transformation.transformOrFail({
     decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),

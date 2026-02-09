@@ -981,7 +981,7 @@ function getPayload(
     ? [payload]
     : [Schema.Struct(payload as any).pipe(HttpApiSchema.asFormUrlEncoded())]
   for (const schema of schemas) {
-    const encoding = HttpApiSchema.getRequestEncoding(schema.ast)
+    const encoding = HttpApiSchema.getPayloadEncoding(schema.ast)
     const existing = result.get(encoding.contentType)
     if (existing) {
       if (existing.encoding._tag !== encoding._tag) {

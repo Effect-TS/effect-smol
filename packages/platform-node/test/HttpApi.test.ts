@@ -111,7 +111,7 @@ describe("HttpApi", () => {
     return Effect.gen(function*() {
       const client = yield* HttpApiClient.make(Api)
       const result = yield* Effect.flip(client.group.a())
-      assert.strictEqual(result, "error" as any) // TODO: the client doesn't account for middleware errors
+      assert.strictEqual(result, "error")
     }).pipe(Effect.provide(ApiLive))
   })
 

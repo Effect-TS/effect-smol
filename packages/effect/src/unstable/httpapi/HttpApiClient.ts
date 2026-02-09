@@ -13,6 +13,7 @@ import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
 import type { Simplify } from "../../Types.ts"
+import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as HttpBody from "../http/HttpBody.ts"
 import * as HttpClient from "../http/HttpClient.ts"
 import * as HttpClientError from "../http/HttpClientError.ts"
@@ -124,11 +125,11 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
       readonly successes: ReadonlyMap<number, {
-        readonly content: ReadonlySet<Schema.Top>
+        readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
         readonly description: string | undefined
       }>
       readonly errors: ReadonlyMap<number, {
-        readonly content: ReadonlySet<Schema.Top>
+        readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
         readonly description: string | undefined
       }>
       readonly endpointFn: Function
@@ -160,61 +161,42 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
           (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<unknown, unknown, unknown>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
-        errors.forEach(({ content }, status) => {
-          const schemas = Array.from(content)
+        errors.forEach(({ schemas }, status) => {
           // decoders
-          if (Arr.isArrayNonEmpty(schemas)) {
-            const decode = schemaToResponse(schemas)
-            decodeMap[status] = (response) =>
-              Effect.flatMap(
-                Effect.catchCause(decode(response), (cause) =>
-                  Effect.failCause(Cause.merge(
-                    Cause.fail(
-                      new HttpClientError.HttpClientError({
-                        reason: new HttpClientError.StatusCodeError({
-                          request: response.request,
-                          response
-                        })
+          const decode = schemasToResponse(schemas)
+          decodeMap[status] = (response) =>
+            Effect.flatMap(
+              Effect.catchCause(decode(response), (cause) =>
+                Effect.failCause(Cause.merge(
+                  Cause.fail(
+                    new HttpClientError.HttpClientError({
+                      reason: new HttpClientError.StatusCodeError({
+                        request: response.request,
+                        response
                       })
-                    ),
-                    cause
-                  ))),
-                Effect.fail
-              )
-          } else {
-            // Handle No Content
-            decodeMap[status] = statusCodeError
-          }
+                    })
+                  ),
+                  cause
+                ))),
+              Effect.fail
+            )
         })
-        successes.forEach(({ content }, status) => {
-          const schemas = Array.from(content)
-          if (Arr.isArrayNonEmpty(schemas)) {
-            decodeMap[status] = schemaToResponse(schemas)
-          } else {
-            // Handle No Content
-            decodeMap[status] = responseAsVoid
-          }
+        successes.forEach(({ schemas }, status) => {
+          decodeMap[status] = schemasToResponse(schemas)
         })
 
         // encoders
-        const encodePath = Schema.encodeUnknownEffect(
-          getEncodeParamsSchema(HttpApiEndpoint.getParamsSchema(endpoint))
-        )
+        const encodeParams = UndefinedOr.map(HttpApiEndpoint.getParamsSchema(endpoint), Schema.encodeUnknownEffect)
+
         const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
-        const encodePayloadBody = Arr.isArrayNonEmpty(payloadSchemas) ?
+        const encodePayload = Arr.isArrayNonEmpty(payloadSchemas) ?
           HttpMethod.hasBody(endpoint.method)
             ? Schema.encodeUnknownEffect(getEncodePayloadSchema(payloadSchemas))
-            : Schema.encodeUnknownEffect(
-              HttpApiSchema.Union(payloadSchemas)
-            ) :
+            : Schema.encodeUnknownEffect(Schema.Union(payloadSchemas)) :
           undefined
 
-        const encodeHeaders = getEncodeHeadersSchema(HttpApiEndpoint.getHeadersSchema(endpoint)).pipe(
-          Schema.encodeUnknownEffect
-        )
-        const encodeQuery = getEncodeQuerySchema(HttpApiEndpoint.getQuerySchema(endpoint)).pipe(
-          Schema.encodeUnknownEffect
-        )
+        const encodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.encodeUnknownEffect)
+        const encodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.encodeUnknownEffect)
 
         const endpointFn = Effect.fnUntraced(function*(
           request: {
@@ -228,41 +210,37 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
           let httpRequest = HttpClientRequest.make(endpoint.method)(endpoint.path)
 
           if (request !== undefined) {
-            // path
-            if (request.params !== undefined) {
-              const encodedParams = yield* encodePath(request.params)
-              httpRequest = HttpClientRequest.setUrl(httpRequest, makeUrl(encodedParams))
+            // params
+            if (encodeParams !== undefined) {
+              const params = (yield* encodeParams(request.params)) as Record<string, string>
+              httpRequest = HttpClientRequest.setUrl(httpRequest, makeUrl(params))
             }
 
             // payload
-            if (encodePayloadBody) {
+            if (encodePayload !== undefined) {
               if (HttpMethod.hasBody(endpoint.method)) {
                 if (request.payload instanceof FormData) {
                   httpRequest = HttpClientRequest.bodyFormData(httpRequest, request.payload)
                 } else {
-                  const body = (yield* encodePayloadBody(request.payload)) as HttpBody.HttpBody
+                  const body = (yield* encodePayload(request.payload)) as HttpBody.HttpBody
                   httpRequest = HttpClientRequest.setBody(httpRequest, body)
                 }
               } else {
-                const urlParams = (yield* encodePayloadBody(request.payload)) as Record<string, string>
+                const urlParams = (yield* encodePayload(request.payload)) as Record<string, string>
                 httpRequest = HttpClientRequest.appendUrlParams(httpRequest, urlParams)
               }
             }
 
             // headers
-            if (request.headers !== undefined) {
-              httpRequest = HttpClientRequest.setHeaders(
-                httpRequest,
-                yield* encodeHeaders(request.headers)
-              )
+            if (encodeHeaders !== undefined) {
+              const headers = (yield* encodeHeaders(request.headers)) as Record<string, string>
+              httpRequest = HttpClientRequest.setHeaders(httpRequest, headers)
             }
 
             // query
-            if (request.query !== undefined) {
-              httpRequest = HttpClientRequest.appendUrlParams(
-                httpRequest,
-                yield* encodeQuery(request.query)
-              )
+            if (encodeQuery !== undefined) {
+              const query = (yield* encodeQuery(request.query)) as Record<string, string>
+              httpRequest = HttpClientRequest.appendUrlParams(httpRequest, query)
             }
           }
 
@@ -282,21 +260,6 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       }
     })
   })
-
-function getEncodeParamsSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
-  return (schema as any) ?? defaultEncodeParamsSchema
-}
-const defaultEncodeParamsSchema = Schema.Record(Schema.String, Schema.String)
-
-function getEncodeHeadersSchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
-  return (schema as any) ?? defaultEncodeHeadersSchema
-}
-const defaultEncodeHeadersSchema = Schema.Record(Schema.String, Schema.String)
-
-function getEncodeQuerySchema(schema: Schema.Top | undefined): Schema.Encoder<Record<string, string>, unknown> {
-  return (schema as any) ?? defaultEncodeQuerySchema
-}
-const defaultEncodeQuerySchema = Schema.Record(Schema.String, Schema.String)
 
 /**
  * @since 4.0.0
@@ -439,7 +402,7 @@ const compilePath = (path: string) => {
   }
 }
 
-function schemaToResponse(schemas: readonly [Schema.Top, ...Array<Schema.Top>]) {
+function schemasToResponse(schemas: readonly [Schema.Top, ...Array<Schema.Top>]) {
   const codec = toCodecArrayBuffer(schemas)
   const decode = Schema.decodeEffect(codec)
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
@@ -500,12 +463,7 @@ const UnknownFromArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(
 ))
 
 function toCodecArrayBuffer(schemas: readonly [Schema.Top, ...Array<Schema.Top>]): Schema.Top {
-  switch (schemas.length) {
-    case 1:
-      return onSchema(schemas[0])
-    default:
-      return Schema.Union(schemas.map(onSchema))
-  }
+  return Schema.Union(schemas.map(onSchema))
 
   function onSchema(schema: Schema.Top) {
     const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
@@ -535,22 +493,10 @@ const statusOrElse = (response: HttpClientResponse.HttpClientResponse) =>
     })
   )
 
-const statusCodeError = (response: HttpClientResponse.HttpClientResponse) =>
-  Effect.fail(
-    new HttpClientError.HttpClientError({
-      reason: new HttpClientError.StatusCodeError({
-        request: response.request,
-        response
-      })
-    })
-  )
-
-const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Effect.void
-
-const HttpBodySchema = Schema.declare(HttpBody.isHttpBody)
+const $HttpBody = Schema.declare(HttpBody.isHttpBody)
 
 function getEncodePayloadSchema(schemas: readonly [Schema.Top, ...Array<Schema.Top>]): Schema.Top {
-  return HttpApiSchema.Union(Arr.map(schemas, getEncodePayloadSchemaFromBody))
+  return Schema.Union(schemas.map(getEncodePayloadSchemaFromBody))
 }
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()
@@ -563,8 +509,8 @@ function getEncodePayloadSchemaFromBody(
   if (cached !== undefined) {
     return cached
   }
-  const encoding = HttpApiSchema.getRequestEncoding(ast)
-  const out = HttpBodySchema.pipe(Schema.decodeTo(
+  const encoding = HttpApiSchema.getPayloadEncoding(ast)
+  const out = $HttpBody.pipe(Schema.decodeTo(
     schema,
     Transformation.transformOrFail({
       decode(httpBody) {
