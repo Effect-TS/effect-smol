@@ -91,32 +91,32 @@ Before entering pre-release mode, set every public package's `version` field to
 
 Packages to update (24 total):
 
-| Package | Current version |
-|---|---|
-| `effect` | `4.0.0` |
-| `@effect/ai-anthropic` | `0.1.0` |
-| `@effect/ai-openai` | `0.1.0` |
-| `@effect/atom-react` | `0.0.0` |
-| `@effect/atom-solid` | `0.0.0` |
-| `@effect/atom-vue` | `0.38.1` |
-| `@effect/opentelemetry` | `0.60.0` |
-| `@effect/platform-browser` | `0.72.0` |
-| `@effect/platform-bun` | `0.61.6` |
-| `@effect/platform-node` | `0.77.6` |
-| `@effect/platform-node-shared` | `0.31.6` |
-| `@effect/sql-clickhouse` | `0.38.1` |
-| `@effect/sql-d1` | `0.42.1` |
-| `@effect/sql-libsql` | `0.34.1` |
-| `@effect/sql-mssql` | `0.45.1` |
-| `@effect/sql-mysql2` | `0.45.1` |
-| `@effect/sql-pg` | `0.45.1` |
-| `@effect/sql-sqlite-bun` | `0.45.1` |
-| `@effect/sql-sqlite-do` | `0.22.1` |
-| `@effect/sql-sqlite-node` | `0.45.1` |
-| `@effect/sql-sqlite-react-native` | `0.47.1` |
-| `@effect/sql-sqlite-wasm` | `0.45.1` |
-| `@effect/openapi-generator` | `0.4.13` |
-| `@effect/vitest` | `0.21.1` |
+| Package                           | Current version |
+| --------------------------------- | --------------- |
+| `effect`                          | `4.0.0`         |
+| `@effect/ai-anthropic`            | `0.1.0`         |
+| `@effect/ai-openai`               | `0.1.0`         |
+| `@effect/atom-react`              | `0.0.0`         |
+| `@effect/atom-solid`              | `0.0.0`         |
+| `@effect/atom-vue`                | `0.38.1`        |
+| `@effect/opentelemetry`           | `0.60.0`        |
+| `@effect/platform-browser`        | `0.72.0`        |
+| `@effect/platform-bun`            | `0.61.6`        |
+| `@effect/platform-node`           | `0.77.6`        |
+| `@effect/platform-node-shared`    | `0.31.6`        |
+| `@effect/sql-clickhouse`          | `0.38.1`        |
+| `@effect/sql-d1`                  | `0.42.1`        |
+| `@effect/sql-libsql`              | `0.34.1`        |
+| `@effect/sql-mssql`               | `0.45.1`        |
+| `@effect/sql-mysql2`              | `0.45.1`        |
+| `@effect/sql-pg`                  | `0.45.1`        |
+| `@effect/sql-sqlite-bun`          | `0.45.1`        |
+| `@effect/sql-sqlite-do`           | `0.22.1`        |
+| `@effect/sql-sqlite-node`         | `0.45.1`        |
+| `@effect/sql-sqlite-react-native` | `0.47.1`        |
+| `@effect/sql-sqlite-wasm`         | `0.45.1`        |
+| `@effect/openapi-generator`       | `0.4.13`        |
+| `@effect/vitest`                  | `0.21.1`        |
 
 ### 2. Update `.changeset/config.json`
 
@@ -153,8 +153,8 @@ Add the `fixed` group and change `access` to `"public"`:
       "@effect/sql-sqlite-node",
       "@effect/sql-sqlite-react-native",
       "@effect/sql-sqlite-wasm",
-      "@effect/vitest"
-    ]
+      "@effect/vitest",
+    ],
   ],
   "access": "public",
   "baseBranch": "main",
@@ -162,8 +162,8 @@ Add the `fixed` group and change `access` to `"public"`:
   "ignore": ["scratchpad"],
   "snapshot": {
     "useCalculatedVersion": false,
-    "prereleaseTemplate": "{tag}-{commit}"
-  }
+    "prereleaseTemplate": "{tag}-{commit}",
+  },
 }
 ```
 
@@ -271,31 +271,31 @@ alignment is mandatory.
 
 ## Files to modify
 
-| File | Change |
-|---|---|
-| `.changeset/config.json` | Add `fixed` array, set `access` to `"public"` |
-| `.changeset/pre.json` | Created/updated by `changeset pre enter beta` |
-| `packages/effect/package.json` | Set `version` to `3.0.0` |
-| `packages/ai/anthropic/package.json` | Set `version` to `3.0.0` |
-| `packages/ai/openai/package.json` | Set `version` to `3.0.0` |
-| `packages/atom/react/package.json` | Set `version` to `3.0.0` |
-| `packages/atom/solid/package.json` | Set `version` to `3.0.0` |
-| `packages/atom/vue/package.json` | Set `version` to `3.0.0` |
-| `packages/opentelemetry/package.json` | Set `version` to `3.0.0` |
-| `packages/platform-browser/package.json` | Set `version` to `3.0.0` |
-| `packages/platform-bun/package.json` | Set `version` to `3.0.0` |
-| `packages/platform-node/package.json` | Set `version` to `3.0.0` |
-| `packages/platform-node-shared/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/clickhouse/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/d1/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/libsql/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/mssql/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/mysql2/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/pg/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/sqlite-bun/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/sqlite-do/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/sqlite-node/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/sqlite-react-native/package.json` | Set `version` to `3.0.0` |
-| `packages/sql/sqlite-wasm/package.json` | Set `version` to `3.0.0` |
-| `packages/tools/openapi-generator/package.json` | Set `version` to `3.0.0` |
-| `packages/vitest/package.json` | Set `version` to `3.0.0` |
+| File                                            | Change                                        |
+| ----------------------------------------------- | --------------------------------------------- |
+| `.changeset/config.json`                        | Add `fixed` array, set `access` to `"public"` |
+| `.changeset/pre.json`                           | Created/updated by `changeset pre enter beta` |
+| `packages/effect/package.json`                  | Set `version` to `3.0.0`                      |
+| `packages/ai/anthropic/package.json`            | Set `version` to `3.0.0`                      |
+| `packages/ai/openai/package.json`               | Set `version` to `3.0.0`                      |
+| `packages/atom/react/package.json`              | Set `version` to `3.0.0`                      |
+| `packages/atom/solid/package.json`              | Set `version` to `3.0.0`                      |
+| `packages/atom/vue/package.json`                | Set `version` to `3.0.0`                      |
+| `packages/opentelemetry/package.json`           | Set `version` to `3.0.0`                      |
+| `packages/platform-browser/package.json`        | Set `version` to `3.0.0`                      |
+| `packages/platform-bun/package.json`            | Set `version` to `3.0.0`                      |
+| `packages/platform-node/package.json`           | Set `version` to `3.0.0`                      |
+| `packages/platform-node-shared/package.json`    | Set `version` to `3.0.0`                      |
+| `packages/sql/clickhouse/package.json`          | Set `version` to `3.0.0`                      |
+| `packages/sql/d1/package.json`                  | Set `version` to `3.0.0`                      |
+| `packages/sql/libsql/package.json`              | Set `version` to `3.0.0`                      |
+| `packages/sql/mssql/package.json`               | Set `version` to `3.0.0`                      |
+| `packages/sql/mysql2/package.json`              | Set `version` to `3.0.0`                      |
+| `packages/sql/pg/package.json`                  | Set `version` to `3.0.0`                      |
+| `packages/sql/sqlite-bun/package.json`          | Set `version` to `3.0.0`                      |
+| `packages/sql/sqlite-do/package.json`           | Set `version` to `3.0.0`                      |
+| `packages/sql/sqlite-node/package.json`         | Set `version` to `3.0.0`                      |
+| `packages/sql/sqlite-react-native/package.json` | Set `version` to `3.0.0`                      |
+| `packages/sql/sqlite-wasm/package.json`         | Set `version` to `3.0.0`                      |
+| `packages/tools/openapi-generator/package.json` | Set `version` to `3.0.0`                      |
+| `packages/vitest/package.json`                  | Set `version` to `3.0.0`                      |
