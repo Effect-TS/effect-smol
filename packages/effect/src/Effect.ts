@@ -7904,6 +7904,15 @@ export const forkDetach: <
   : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.forkDetach
 
 /**
+ * Waits for all child fibers forked by this effect to complete before this
+ * effect completes.
+ *
+ * @since 2.0.0
+ * @category Supervision & Fibers
+ */
+export const awaitAllChildren: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R> = internal.awaitAllChildren
+
+/**
  * Access the fiber currently executing the effect.
  *
  * @example

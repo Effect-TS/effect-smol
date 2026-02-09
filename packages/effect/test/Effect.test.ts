@@ -3,6 +3,7 @@ import { assertExitFailure } from "@effect/vitest/utils"
 import {
   Cause,
   Data,
+  Deferred,
   Duration,
   Effect,
   Exit,
@@ -986,6 +987,37 @@ describe("Effect", () => {
         }).pipe(Effect.forkChild({ startImmediately: true }))
         yield* Fiber.interrupt(fiber)
         assert.strictEqual(signal!.aborted, true)
+      }))
+  })
+
+  describe("awaitAllChildren", () => {
+    it.effect("awaits children forked by the wrapped effect", () =>
+      Effect.gen(function*() {
+        const latch = yield* Deferred.make<void>()
+        const fiber = yield* Effect.gen(function*() {
+          yield* Deferred.await(latch).pipe(Effect.forkChild)
+          return 1
+        }).pipe(
+          Effect.awaitAllChildren,
+          Effect.forkChild({ startImmediately: true })
+        )
+        yield* Effect.yieldNow
+        assert.strictEqual(fiber.pollUnsafe(), undefined)
+        yield* Deferred.succeed(latch, void 0)
+        const result = yield* Fiber.join(fiber)
+        assert.strictEqual(result, 1)
+      }))
+
+    it.effect("does not await children forked outside the wrapped effect", () =>
+      Effect.gen(function*() {
+        const preexisting = yield* Effect.never.pipe(Effect.forkChild({ startImmediately: true }))
+        const fiber = yield* Effect.succeed(1).pipe(
+          Effect.awaitAllChildren,
+          Effect.forkChild({ startImmediately: true })
+        )
+        yield* Effect.yieldNow
+        assert.deepStrictEqual(fiber.pollUnsafe(), Exit.succeed(1))
+        yield* Fiber.interrupt(preexisting)
       }))
   })
 

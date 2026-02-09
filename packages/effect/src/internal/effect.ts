@@ -4363,6 +4363,33 @@ export const forkDetach: {
   withFiber((fiber) => succeed(forkUnsafe(fiber, self, options?.startImmediately, true, options?.uninterruptible))))
 
 /** @internal */
+export const awaitAllChildren = <A, E, R>(
+  self: Effect.Effect<A, E, R>
+): Effect.Effect<A, E, R> =>
+  withFiber((fiber) => {
+    const initialChildren = fiber._children === undefined ? undefined : new Set(fiber._children)
+    return ensuring(
+      self,
+      suspend(() => {
+        const children = fiber._children
+        if (children === undefined || children.size === 0) {
+          return void_
+        }
+        if (initialChildren === undefined || initialChildren.size === 0) {
+          return asVoid(fiberAwaitAll(Array.from(children)))
+        }
+        const fibers: Array<FiberImpl<any, any>> = []
+        for (const child of children) {
+          if (!initialChildren.has(child)) {
+            fibers.push(child)
+          }
+        }
+        return fibers.length === 0 ? void_ : asVoid(fiberAwaitAll(fibers))
+      })
+    )
+  })
+
+/** @internal */
 export const forkIn: {
   (
     scope: Scope.Scope,
