@@ -60,11 +60,26 @@ Note the difference in argument order: in v3, the identifier string is passed to
 first via `ServiceMap.Service<Self, Shape>()` and the identifier string is
 passed to the returned constructor `(id)`.
 
-## `Effect.Tag` → `ServiceMap.Service`
+## `Effect.Tag` Accessors → `ServiceMap.Service` with `use`
 
 v3's `Effect.Tag` provided proxy access to service methods as static properties
-on the tag class. This pattern no longer exists in v4. Use `ServiceMap.Service`
-and access service methods via `yield*`.
+on the tag class (accessors). This allowed calling service methods directly
+without first yielding the service:
+
+```ts
+// v3 — static accessor proxy
+const program = Notifications.notify("hello")
+```
+
+This pattern had significant limitations. The proxy was implemented via mapped
+types over the service shape, which meant **generic methods lost their type
+parameters**. A service method like `get<T>(key: string): Effect<T>` would
+have its generic erased when accessed through the proxy, collapsing to
+`get(key: string): Effect<unknown>`. For the same reason, overloaded signatures
+were not preserved.
+
+In v4, accessors are removed. The most direct replacement is `Service.use`,
+which receives the service instance and runs a callback:
 
 **v3**
 
@@ -79,7 +94,7 @@ class Notifications extends Effect.Tag("Notifications")<Notifications, {
 const program = Notifications.notify("hello")
 ```
 
-**v4**
+**v4 — `use`**
 
 ```ts
 import { Effect, ServiceMap } from "effect"
@@ -88,9 +103,39 @@ class Notifications extends ServiceMap.Service<Notifications, {
   readonly notify: (message: string) => Effect.Effect<void>
 }>()("Notifications") {}
 
+// use: access the service and call a method in one step
+const program = Notifications.use((n) => n.notify("hello"))
+```
+
+`use` takes an effectful callback `(service: Shape) => Effect<A, E, R>` and
+returns an `Effect<A, E, R | Identifier>`. `useSync` takes a pure callback
+`(service: Shape) => A` and returns an `Effect<A, never, Identifier>`. Both
+return Effects — `useSync` just allows the accessor function itself to be
+synchronous:
+
+```ts
+//      ┌─── Effect<void, never, Notifications>
+//      ▼
+const program = Notifications.use((n) => n.notify("hello"))
+
+//      ┌─── Effect<number, never, Config>
+//      ▼
+const port = Config.useSync((c) => c.port)
+```
+
+**Prefer `yield*` over `use` in most cases.** While `use` is a convenient
+one-liner, it makes it easy to accidentally leak service dependencies into
+return values. When you call `use`, the service is available inside the
+callback but the dependency is not visible at the call site — making it harder
+to track which services your code depends on. Using `yield*` in a generator
+makes dependencies explicit and keeps service access co-located with the rest
+of your effect logic:
+
+```ts
 const program = Effect.gen(function*() {
   const notifications = yield* Notifications
   yield* notifications.notify("hello")
+  yield* notifications.notify("world")
 })
 ```
 
