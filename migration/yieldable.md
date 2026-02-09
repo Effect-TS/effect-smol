@@ -3,7 +3,7 @@
 In v3, many types were structural subtypes of `Effect` — they carried the
 Effect type ID at runtime and could be used anywhere an `Effect` was expected.
 This included `Ref`, `Deferred`, `Fiber`, `FiberRef`, `Config`, `Option`,
-`Either`, `Exit`, `Context.Tag`, and others.
+`Either`, `Context.Tag`, and others.
 
 While convenient, this created a class of subtle bugs. Because these types
 _were_ Effects, they could be silently passed to Effect combinators when you
@@ -38,7 +38,6 @@ implement `Yieldable`:
 - `Ref` — use `Ref.get(ref)` to read
 - `Deferred` — use `Deferred.await(deferred)` to wait
 - `Fiber` — use `Fiber.join(fiber)` to await
-- `Exit` — match directly or convert explicitly
 
 ## `yield*` Still Works
 
@@ -172,18 +171,3 @@ to bugs that were difficult to diagnose:
 
 The `Yieldable` trait preserves the ergonomic `yield*` syntax in generators
 while making the conversion to `Effect` explicit everywhere else.
-
-## Quick Reference
-
-| v3 (subtype of Effect)        | v4                                     |
-| ----------------------------- | -------------------------------------- |
-| `yield* ref`                  | `yield* Ref.get(ref)`                  |
-| `yield* deferred`             | `yield* Deferred.await(deferred)`      |
-| `yield* fiber`                | `yield* Fiber.join(fiber)`             |
-| `yield* option`               | `yield* option` (unchanged)            |
-| `yield* result`               | `yield* result` (unchanged)            |
-| `yield* config`               | `yield* config` (unchanged)            |
-| `yield* tag`                  | `yield* service` (unchanged)           |
-| `Effect.map(option, f)`       | `Effect.map(option.asEffect(), f)`     |
-| `Effect.flatMap(ref, f)`      | `Effect.flatMap(Ref.get(ref), f)`      |
-| `Effect.flatMap(deferred, f)` | `Effect.flatMap(Deferred.await(d), f)` |
