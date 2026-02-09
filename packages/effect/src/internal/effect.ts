@@ -4366,11 +4366,11 @@ export const forkDetach: {
 export const awaitAllChildren = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, R> =>
-  withFiber((fiber) => {
+  suspend(() => {
     const initialFiberId = fiberIdStore.id
     return ensuring(
       self,
-      suspend(() => {
+      withFiber((fiber) => {
         const children = fiber._children
         if (children === undefined || children.size === 0) {
           return void_
