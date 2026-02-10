@@ -311,16 +311,33 @@ for file arguments, `-n` conditions based on `__fish_use_subcommand` and
    (Shell type inlined in `Completions.ts`).
 7. Deleted old `packages/effect/test/unstable/cli/completions/dynamic.test.ts`.
 
-### Phase 5: Tests
+### Phase 5: Tests ✅
 
 **Files:**
 
-- Rewrite `packages/effect/test/unstable/cli/completions/dynamic.test.ts` →
-  rename to `packages/effect/test/unstable/cli/completions/completions.test.ts`
-- Add `packages/effect/test/unstable/cli/completions/CommandDescriptor.test.ts`
+- `packages/effect/test/unstable/cli/completions/CommandDescriptor.test.ts` (created)
+- `packages/effect/test/unstable/cli/completions/completions.test.ts` (created)
 
-**Work:**
-See Testing section below.
+**Work:** (all done)
+
+1. Created `CommandDescriptor.test.ts` with 17 tests covering:
+   - Command name/description extraction
+   - String, boolean, integer, float, file, directory, path, choice flag extraction
+   - Flag aliases, descriptions, optional flags
+   - Positional arguments with types, variadic, optional
+   - Nested subcommands (recursive), deeply nested trees
+   - Choice and file/directory arguments
+   - Empty commands, multiple subcommands
+2. Created `completions.test.ts` with 41 tests covering:
+   - Bash: function generation, subcommands, flags (long/short/negation), compgen
+     for files/directories, choice values, nested functions, markers
+   - Zsh: _arguments specs, flag descriptions, _describe for subcommands,
+     negation, _files/_directories, choice syntax, handlers, argument specs,
+     #compdef directive, markers
+   - Fish: complete commands, -l/-s flags, negation, -r -F for files,
+     -r -f -a for choices, -n conditions, descriptions, nested paths, markers
+   - Completions dispatcher: bash/zsh/fish routing
+   - Integration: full ComprehensiveCli fixture through all 3 generators
 
 ---
 
