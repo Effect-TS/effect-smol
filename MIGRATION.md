@@ -66,6 +66,7 @@ minimal Effect program bundles to ~6.3 KB (minified + gzipped). With Schema,
 - [Forking: Renamed Combinators and New Options](./migration/forking.md)
 - [Effect Subtyping → Yieldable](./migration/yieldable.md)
 - [Fiber Keep-Alive: Automatic Process Lifetime Management](./migration/fiber-keep-alive.md)
+- [Layer Memoization Across `Effect.provide` Calls](./migration/layer-memoization.md)
 
 ### Modules
 
