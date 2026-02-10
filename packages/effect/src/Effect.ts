@@ -2636,6 +2636,159 @@ export const catchTags: {
 } = internal.catchTags
 
 /**
+ * Catches specific errors by their `_tag` field and handles them, while
+ * converting all other (unmatched) errors into defects (die).
+ *
+ * **When to Use**
+ *
+ * Use `catchTagOrDie` when you want to handle one or more specific tagged
+ * errors and treat any remaining errors as unexpected defects. Unlike
+ * {@link catchTag}, unmatched errors are removed from the error channel and
+ * become fatal defects instead.
+ *
+ * The error type must have a readonly `_tag` field to use `catchTagOrDie`.
+ *
+ * @example
+ * ```ts
+ * import { Data, Effect } from "effect"
+ *
+ * class HttpError extends Data.TaggedError("HttpError") {}
+ *
+ * class ValidationError extends Data.TaggedError("ValidationError") {}
+ *
+ * declare const program: Effect.Effect<
+ *   string,
+ *   HttpError | ValidationError
+ * >
+ *
+ * //      ┌─── Effect<string, never, never>
+ * //      ▼
+ * const recovered = program.pipe(
+ *   Effect.catchTagOrDie("HttpError", (_HttpError) =>
+ *     Effect.succeed("Recovering from HttpError")
+ *   )
+ * )
+ * ```
+ *
+ * @see {@link catchTag} for a version that keeps unmatched errors in the
+ * error channel.
+ * @see {@link catchTagsOrDie} for handling multiple tagged errors with an
+ * object of handlers.
+ *
+ * @since 4.0.0
+ * @category Error Handling
+ */
+export const catchTagOrDie: {
+  <const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
+    k: K,
+    f: (e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect<A1, E1, R1>
+  ): <A, R>(
+    self: Effect<A, E, R>
+  ) => Effect<A1 | A, E1, R1 | R>
+  <A, E, R, const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, R1, E1, A1>(
+    self: Effect<A, E, R>,
+    k: K,
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect<A1, E1, R1>
+  ): Effect<A1 | A, E1, R1 | R>
+} = internal.catchTagOrDie
+
+/**
+ * Handles multiple tagged errors using an object of handlers, while
+ * converting all unhandled errors into defects (die).
+ *
+ * **When to Use**
+ *
+ * Use `catchTagsOrDie` when you want to handle several specific tagged
+ * errors at once and treat any remaining errors as unexpected defects. Unlike
+ * {@link catchTags}, unmatched errors are removed from the error channel and
+ * become fatal defects instead.
+ *
+ * The error type must have a readonly `_tag` field to use `catchTagsOrDie`.
+ *
+ * @example
+ * ```ts
+ * import { Data, Effect } from "effect"
+ *
+ * class HttpError extends Data.TaggedError("HttpError") {}
+ *
+ * class ValidationError extends Data.TaggedError("ValidationError") {}
+ *
+ * class DatabaseError extends Data.TaggedError("DatabaseError") {}
+ *
+ * declare const program: Effect.Effect<
+ *   string,
+ *   HttpError | ValidationError | DatabaseError
+ * >
+ *
+ * //      ┌─── Effect<string, never, never>
+ * //      ▼
+ * const recovered = program.pipe(
+ *   Effect.catchTagsOrDie({
+ *     HttpError: (_HttpError) =>
+ *       Effect.succeed("Recovering from HttpError"),
+ *     ValidationError: (_ValidationError) =>
+ *       Effect.succeed("Recovering from ValidationError")
+ *   })
+ * )
+ * ```
+ *
+ * @see {@link catchTags} for a version that keeps unmatched errors in the
+ * error channel.
+ * @see {@link catchTagOrDie} for handling a single tagged error with die
+ * semantics.
+ *
+ * @since 4.0.0
+ * @category Error Handling
+ */
+export const catchTagsOrDie: {
+  <
+    E,
+    Cases extends
+      & { [K in Extract<E, { _tag: string }>["_tag"]]+?: ((error: Extract<E, { _tag: K }>) => Effect<any, any, any>) }
+      & (unknown extends E ? {} : { [K in Exclude<keyof Cases, Extract<E, { _tag: string }>["_tag"]>]: never })
+  >(
+    cases: Cases
+  ): <A, R>(
+    self: Effect<A, E, R>
+  ) => Effect<
+    | A
+    | {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<infer A, any, any> ? A : never
+    }[keyof Cases],
+    {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<any, infer E, any> ? E : never
+    }[keyof Cases],
+    | R
+    | {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<any, any, infer R> ? R : never
+    }[keyof Cases]
+  >
+  <
+    R,
+    E,
+    A,
+    Cases extends
+      & { [K in Extract<E, { _tag: string }>["_tag"]]+?: ((error: Extract<E, { _tag: K }>) => Effect<any, any, any>) }
+      & (unknown extends E ? {} : { [K in Exclude<keyof Cases, Extract<E, { _tag: string }>["_tag"]>]: never })
+  >(
+    self: Effect<A, E, R>,
+    cases: Cases
+  ): Effect<
+    | A
+    | {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<infer A, any, any> ? A : never
+    }[keyof Cases],
+    {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<any, infer E, any> ? E : never
+    }[keyof Cases],
+    | R
+    | {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<any, any, infer R> ? R : never
+    }[keyof Cases]
+  >
+} = internal.catchTagsOrDie
+
+/**
  * Catches a specific reason within a tagged error.
  *
  * Use this to handle nested error causes without removing the parent error

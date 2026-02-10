@@ -1418,6 +1418,44 @@ describe("Effect", () => {
         assert.strictEqual(yield* effect, 3)
       }))
 
+    it.effect("catchTagOrDie", () =>
+      Effect.gen(function*() {
+        let error: ErrorA | ErrorB = new ErrorA()
+        const effect = Effect.failSync(() => error).pipe(
+          Effect.catchTagOrDie("A", (_) => Effect.succeed(1))
+        )
+        assert.strictEqual(yield* effect, 1)
+        error = new ErrorB()
+        assert.deepStrictEqual(yield* Effect.exit(effect), Exit.die(new ErrorB()))
+      }))
+
+    it.effect("catchTagOrDie - array of tags", () =>
+      Effect.gen(function*() {
+        class ErrorD extends Data.TaggedError("D") {}
+        let error: ErrorA | ErrorB | ErrorD = new ErrorA()
+        const effect = Effect.failSync(() => error).pipe(
+          Effect.catchTagOrDie(["A", "B"], (_) => Effect.succeed(1))
+        )
+        assert.strictEqual(yield* effect, 1)
+        error = new ErrorB()
+        assert.strictEqual(yield* effect, 1)
+        error = new ErrorD()
+        assert.deepStrictEqual(yield* Effect.exit(effect), Exit.die(new ErrorD()))
+      }))
+
+    it.effect("catchTagsOrDie", () =>
+      Effect.gen(function*() {
+        let error: ErrorA | ErrorB = new ErrorA()
+        const effect = Effect.failSync(() => error).pipe(
+          Effect.catchTagsOrDie({
+            A: (_) => Effect.succeed(1)
+          })
+        )
+        assert.strictEqual(yield* effect, 1)
+        error = new ErrorB()
+        assert.deepStrictEqual(yield* Effect.exit(effect), Exit.die(new ErrorB()))
+      }))
+
     it.effect("tapErrorTag", () =>
       Effect.gen(function*() {
         let error: ErrorA | ErrorB | ErrorC = new ErrorA()
