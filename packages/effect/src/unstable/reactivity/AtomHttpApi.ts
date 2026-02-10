@@ -24,9 +24,9 @@ import * as Reactivity from "./Reactivity.ts"
  * @category Models
  */
 export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpApiGroup.Any>
-  extends ServiceMap.Service<Self, Simplify<HttpApiClient.Client<Groups, never, never>>>
+  extends ServiceMap.Service<Self, HttpApiClient.Client<Groups, never, never>>
 {
-  new(_: never): ServiceMap.ServiceClass.Shape<Id, Simplify<HttpApiClient.Client<Groups, never, never>>>
+  new(_: never): ServiceMap.ServiceClass.Shape<Id, HttpApiClient.Client<Groups, never, never>>
 
   readonly layer: Layer.Layer<Self>
   readonly runtime: Atom.AtomRuntime<Self>

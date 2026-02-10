@@ -274,7 +274,7 @@ export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<Simplify<Client<Groups, HttpApiSchemaError, never>>, never, HttpClient.HttpClient> =>
+): Effect.Effect<Client<Groups, HttpApiSchemaError, never>, never, HttpClient.HttpClient> =>
   Effect.flatMap(HttpClient.HttpClient.asEffect(), (httpClient) =>
     makeWith(api, {
       ...options,
@@ -294,7 +294,7 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<Simplify<Client<Groups, HttpApiSchemaError | E, R>>> => {
+): Effect.Effect<Client<Groups, HttpApiSchemaError | E, R>> => {
   const client: Record<string, Record<string, any>> = {}
   return makeClient(api, {
     ...options,

@@ -210,6 +210,28 @@ describe("HttpApiClient", () => {
   })
 
   describe("error option", () => {
+    it("should default to HttpApiSchemaError", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.get("a", "/a")
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+      const f = client.group.a
+      expect<ReturnType<typeof f>>().type.toBe<
+        Effect.Effect<
+          void | [void, HttpClientResponse.HttpClientResponse],
+          | HttpApiError.HttpApiSchemaError
+          | HttpClientError.HttpClientError
+          | Schema.SchemaError
+        >
+      >()
+    })
+
     it("should accept a schema", () => {
       const Api = HttpApi.make("Api")
         .add(
