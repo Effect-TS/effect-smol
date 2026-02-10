@@ -927,8 +927,8 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   Query extends QuerySchemaContraint = never,
   Payload extends PayloadSchemaContraint<Method> = never,
   Headers extends HeadersSchemaContraint = never,
-  const Success extends SuccessSchemaContraint = typeof HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaContraint = typeof HttpApiSchemaError
+  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
+  const Error extends ErrorSchemaContraint = never
 >(
   name: Name,
   path: Path,
@@ -951,7 +951,7 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
   Success extends ReadonlyArray<Schema.Top> ? Success[number] : Success,
-  Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
+  (Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error) | typeof HttpApiSchemaError
 > => {
   return makeProto({
     name,

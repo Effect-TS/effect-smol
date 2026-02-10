@@ -207,7 +207,10 @@ describe("HttpApiEndpoint", () => {
         error: Schema.Struct({ a: Schema.String })
       })
       type T = typeof endpoint["~Error"]
-      expect<T>().type.toBe<Schema.Struct<{ readonly a: Schema.String }>>()
+      expect<T>().type.toBe<
+        | Schema.Struct<{ readonly a: Schema.String }>
+        | typeof HttpApiError.HttpApiSchemaError
+      >()
     })
 
     it("should accept an array of schemas", () => {
@@ -219,7 +222,12 @@ describe("HttpApiEndpoint", () => {
         ]
       })
       type T = typeof endpoint["~Error"]
-      expect<T>().type.toBe<Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array>()
+      expect<T>().type.toBe<
+        | Schema.String
+        | Schema.Struct<{ readonly a: Schema.String }>
+        | Schema.Uint8Array
+        | typeof HttpApiError.HttpApiSchemaError
+      >()
     })
   })
 })
