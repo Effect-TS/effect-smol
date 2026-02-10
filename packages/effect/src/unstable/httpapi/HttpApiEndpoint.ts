@@ -858,7 +858,7 @@ function makeProto<
  * @since 4.0.0
  * @category constraints
  */
-export type ParamsContraint = Record<string, Schema.Encoder<string | undefined, unknown>>
+export type ParamsConstraint = Record<string, Schema.Encoder<string | undefined, unknown>>
 
 /**
  * URL search params can be repeated, so fields may encode to `string` or
@@ -870,7 +870,7 @@ export type ParamsContraint = Record<string, Schema.Encoder<string | undefined, 
  * @since 4.0.0
  * @category constraints
  */
-export type QuerySchemaContraint = Record<
+export type QuerySchemaConstraint = Record<
   string,
   Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>
 >
@@ -886,11 +886,11 @@ export type QuerySchemaContraint = Record<
  * @since 4.0.0
  * @category constraints
  */
-export type PayloadSchemaContraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ? Record<
+export type PayloadSchemaConstraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ? Record<
     string,
     Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>
   > :
-  SuccessSchemaContraint
+  SuccessSchemaConstraint
 
 /**
  * HTTP headers are string-valued (or missing).
@@ -901,19 +901,19 @@ export type PayloadSchemaContraint<Method extends HttpMethod> = Method extends H
  * @since 4.0.0
  * @category constraints
  */
-export type HeadersSchemaContraint = Record<string, Schema.Encoder<string | undefined, unknown>>
+export type HeadersSchemaConstraint = Record<string, Schema.Encoder<string | undefined, unknown>>
 
 /**
  * @since 4.0.0
  * @category constraints
  */
-export type SuccessSchemaContraint = Schema.Top | ReadonlyArray<Schema.Top>
+export type SuccessSchemaConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
  * @since 4.0.0
  * @category constraints
  */
-export type ErrorSchemaContraint = Schema.Top | ReadonlyArray<Schema.Top>
+export type ErrorSchemaConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
  * @since 4.0.0
@@ -923,12 +923,12 @@ export const make = <Method extends HttpMethod>(method: Method) =>
 <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
-  Params extends ParamsContraint = never,
-  Query extends QuerySchemaContraint = never,
-  Payload extends PayloadSchemaContraint<Method> = never,
-  Headers extends HeadersSchemaContraint = never,
-  const Success extends SuccessSchemaContraint = HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaContraint = never
+  Params extends ParamsConstraint = never,
+  Query extends QuerySchemaConstraint = never,
+  Payload extends PayloadSchemaConstraint<Method> = never,
+  Headers extends HeadersSchemaConstraint = never,
+  const Success extends SuccessSchemaConstraint = HttpApiSchema.NoContent,
+  const Error extends ErrorSchemaConstraint = never
 >(
   name: Name,
   path: Path,
