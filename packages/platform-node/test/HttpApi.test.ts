@@ -484,6 +484,52 @@ describe("HttpApi", () => {
         })
       }).pipe(Effect.provide(HttpLive)))
 
+    it.effect("does not encode errors from other endpoints", () => {
+      class FirstError extends Schema.ErrorClass<FirstError>("FirstError")({
+        _tag: Schema.tag("FirstError")
+      }, {
+        httpApiStatus: 400
+      }) {}
+
+      class SecondError extends Schema.ErrorClass<SecondError>("SecondError")({
+        _tag: Schema.tag("SecondError")
+      }, {
+        httpApiStatus: 409
+      }) {}
+
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("a", "/a", {
+            error: FirstError
+          }),
+          HttpApiEndpoint.get("b", "/b", {
+            error: SecondError
+          })
+        )
+      )
+      const ApiLive = HttpApiBuilder.layer(Api).pipe(
+        Layer.provide(
+          HttpApiBuilder.group(
+            Api,
+            "group",
+            (handlers) =>
+              handlers
+                .handle("a", () => Effect.fail(new SecondError({}) as unknown as FirstError))
+                .handle("b", () => Effect.fail(new SecondError({})))
+          )
+        ),
+        HttpRouter.serve,
+        Layer.provideMerge(NodeHttpServer.layerTest)
+      )
+      return Effect.gen(function*() {
+        const responseA = yield* HttpClient.get("/a")
+        assert.strictEqual(responseA.status, 500)
+
+        const responseB = yield* HttpClient.get("/b")
+        assert.strictEqual(responseB.status, 409)
+      }).pipe(Effect.provide(ApiLive))
+    })
+
     it.effect("class level annotations", () =>
       Effect.gen(function*() {
         const response = yield* HttpClientRequest.post("/users").pipe(

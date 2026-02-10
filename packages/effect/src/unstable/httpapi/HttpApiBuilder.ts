@@ -121,14 +121,13 @@ export const group = <
   Layer.effectServices(Effect.gen(function*() {
     const services = yield* Effect.services<any>()
     const group = api.groups[groupName]!
-    const encodeError = Schema.encodeUnknownEffect(makeErrorSchema(api as any))
     const result = build(makeHandlers(group))
     const handlers: Handlers<any, any> = Effect.isEffect(result)
       ? (yield* result as Effect.Effect<any, any, any>)
       : result
     const routes: Array<HttpRouter.Route<any, any>> = []
     for (const item of handlers.handlers) {
-      routes.push(handlerToRoute(group as any, item, services, encodeError))
+      routes.push(handlerToRoute(group as any, item, services))
     }
     return ServiceMap.makeUnsafe(new Map([[group.key, routes]]))
   })) as any
@@ -504,17 +503,11 @@ function decodePayload(
 function handlerToRoute(
   group: HttpApiGroup.AnyWithProps,
   handler: Handlers.Item<any>,
-  services: ServiceMap.ServiceMap<any>,
-  encodeError: (
-    input: unknown
-  ) => Effect.Effect<
-    HttpServerResponse,
-    unknown,
-    HttpApiGroup.ErrorServicesEncode<HttpApiGroup.AnyWithProps>
-  >
+  services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> {
   const endpoint = handler.endpoint
   const encodeSuccess = Schema.encodeUnknownEffect(makeSuccessSchema(endpoint))
+  const encodeError = Schema.encodeUnknownEffect(makeErrorSchema(endpoint))
   const decodeParams = UndefinedOr.map(HttpApiEndpoint.getParamsSchema(endpoint), Schema.decodeUnknownEffect)
   const decodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.decodeUnknownEffect)
   const decodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.decodeUnknownEffect)
@@ -666,14 +659,8 @@ function makeSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encod
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
-function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
-  const errors = new Set<Schema.Top>([])
-  for (const group of Object.values(api.groups)) {
-    for (const endpoint of Object.values(group.endpoints)) {
-      HttpApiEndpoint.getErrorSchemas(endpoint).forEach((schema) => errors.add(schema))
-    }
-  }
-  const schemas = Array.from(errors, toResponseErrorSchema)
+function makeErrorSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
+  const schemas = HttpApiEndpoint.getErrorSchemas(endpoint).map(toResponseErrorSchema)
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
