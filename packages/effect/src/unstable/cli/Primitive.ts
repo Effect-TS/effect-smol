@@ -289,12 +289,13 @@ export const choice = <A>(
 ): Primitive<A> => {
   const choiceMap = new Map(choices)
   const validChoices = choices.map(([key]) => format(key)).join(" | ")
-  return makePrimitive("Choice", (value) => {
+  const primitive = makePrimitive("Choice", (value) => {
     if (choiceMap.has(value)) {
       return Effect.succeed(choiceMap.get(value)!)
     }
     return Effect.fail(`Expected ${validChoices}, got ${format(value)}`)
   })
+  return Object.assign(primitive, { choiceKeys: choices.map(([key]) => key) })
 }
 
 /**
@@ -712,3 +713,7 @@ export const getTypeName = <A>(primitive: Primitive<A>): string => {
       return "value"
   }
 }
+
+/** @internal */
+export const getChoiceKeys = (primitive: Primitive<unknown>): ReadonlyArray<string> | undefined =>
+  primitive._tag === "Choice" ? (primitive as any).choiceKeys : undefined

@@ -18,8 +18,8 @@ import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
 import * as CliOutput from "./CliOutput.ts"
 import { checkForDuplicateFlags, getHelpForCommandPath, makeCommand, toImpl, TypeId } from "./internal/command.ts"
-import { generateDynamicCompletion, isCompletionRequest } from "./internal/completions/dynamic/core.ts"
-import { handleCompletionRequest } from "./internal/completions/dynamic/handler.ts"
+import * as CommandDescriptor from "./internal/completions/CommandDescriptor.ts"
+import * as Completions from "./internal/completions/Completions.ts"
 import { parseConfig } from "./internal/config.ts"
 import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"
@@ -867,12 +867,6 @@ export const runWith = <const Name extends string, Input, E, R>(
   const commandImpl = toImpl(command)
   return Effect.fnUntraced(
     function*(args: ReadonlyArray<string>) {
-      // Check for dynamic completion request early (before normal parsing)
-      if (isCompletionRequest(args)) {
-        handleCompletionRequest(command)
-        return
-      }
-
       // Lex and extract built-in flags
       const { tokens, trailingOperands } = Lexer.lex(args)
       const { completions, help, logLevel, remainder, version } = yield* Parser.extractBuiltInOptions(tokens)
@@ -886,7 +880,8 @@ export const runWith = <const Name extends string, Input, E, R>(
         return
       }
       if (completions !== undefined) {
-        yield* Console.log(generateDynamicCompletion(command.name, completions))
+        const descriptor = CommandDescriptor.fromCommand(command)
+        yield* Console.log(Completions.generate(command.name, completions, descriptor))
         return
       }
       if (version) {
