@@ -29,12 +29,16 @@ export const A = B
 `)
   })
 
-  it("annotationFilter strips specified keys", () => {
+  it("onEnter strips specified keys", () => {
     const generator = JsonSchemaGenerator.make()
     generator.addSchema("A", { type: "string", description: "desc", examples: ["ex"] })
     const definitions = {}
     const result = generator.generate("openapi-3.1", definitions, false, {
-      annotationFilter: ["examples"]
+      onEnter: (js) => {
+        const out = { ...js }
+        delete out.examples
+        return out
+      }
     })
     expect(result).toBe(`// schemas
 export type A = string
@@ -42,7 +46,7 @@ export const A = Schema.String.annotate({ "description": "desc" })
 `)
   })
 
-  it("annotationFilter default preserves all", () => {
+  it("default preserves all annotations", () => {
     const generator = JsonSchemaGenerator.make()
     generator.addSchema("A", { type: "string", description: "desc", examples: ["ex"] })
     const definitions = {}

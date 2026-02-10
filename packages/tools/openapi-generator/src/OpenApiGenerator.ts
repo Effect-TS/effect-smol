@@ -27,10 +27,9 @@ export interface OpenApiGenerateOptions {
    */
   readonly typeOnly: boolean
   /**
-   * Filter which annotation keys to include in generated code.
-   * Pass an array of keys to exclude (blacklist) or a predicate function.
+   * Hook to transform each JSON Schema node before processing.
    */
-  readonly annotationFilter?: ReadonlyArray<string> | ((key: string) => boolean) | undefined
+  readonly onEnter?: ((js: JsonSchema.JsonSchema) => JsonSchema.JsonSchema) | undefined
 }
 
 const methodNames: ReadonlyArray<OpenAPISpecMethodName> = [
@@ -245,7 +244,7 @@ export const make = Effect.gen(function*() {
       const importName = "Schema"
       const source = getDialect(spec)
       const generation = generator.generate(source, spec.components?.schemas ?? {}, options.typeOnly, {
-        annotationFilter: options.annotationFilter
+        onEnter: options.onEnter
       })
 
       return String.stripMargin(

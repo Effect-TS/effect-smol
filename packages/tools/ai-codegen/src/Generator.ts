@@ -8,6 +8,7 @@ import * as OpenApiPatch from "@effect/openapi-generator/OpenApiPatch"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import type * as FileSystem from "effect/FileSystem"
+import type * as JsonSchema from "effect/JsonSchema"
 import * as Layer from "effect/Layer"
 import * as Path_ from "effect/Path"
 import type * as Schema from "effect/Schema"
@@ -126,11 +127,20 @@ export const layer: Layer.Layer<
     // Apply patches if any are configured
     const patchedSpec = yield* applyPatches(provider, spec as Schema.Json)
 
+    const excludeAnnotations = provider.config.excludeAnnotationsList
+    const onEnter = excludeAnnotations
+      ? ((exclude = new Set(excludeAnnotations)) => (js: JsonSchema.JsonSchema): JsonSchema.JsonSchema => {
+        const out = { ...js }
+        for (const key of exclude) delete out[key]
+        return out
+      })()
+      : undefined
+
     return yield* openApiGen
       .generate(patchedSpec as unknown as Parameters<typeof openApiGen.generate>[0], {
         name: provider.config.clientName,
         typeOnly: provider.config.isTypeOnly,
-        annotationFilter: provider.config.excludeAnnotationsList
+        onEnter
       })
       .pipe(
         Effect.mapError((cause) => new GenerationError({ provider: provider.name, cause }))

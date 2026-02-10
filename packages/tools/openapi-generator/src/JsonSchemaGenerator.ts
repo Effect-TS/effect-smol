@@ -19,7 +19,7 @@ export function make() {
     components: JsonSchema.Definitions,
     typeOnly: boolean,
     options?: {
-      readonly annotationFilter?: ReadonlyArray<string> | ((key: string) => boolean) | undefined
+      readonly onEnter?: ((js: JsonSchema.JsonSchema) => JsonSchema.JsonSchema) | undefined
     }
   ) {
     const nameMap: Array<string> = []
@@ -41,8 +41,13 @@ export function make() {
         schemas,
         definitions
       }, {
-        additionalProperties: false,
-        annotationFilter: options?.annotationFilter
+        onEnter(js) {
+          const out = { ...js }
+          if (out.type === "object" && out.additionalProperties === undefined) {
+            out.additionalProperties = false
+          }
+          return options?.onEnter?.(out) ?? out
+        }
       })
 
       const codeDocument = SchemaRepresentation.toCodeDocument(multiDocument)

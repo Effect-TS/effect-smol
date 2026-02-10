@@ -48,7 +48,12 @@ describe("toCodeDocument", () => {
   }, expected: Expected) {
     const multiDocument = SchemaRepresentation.toMultiDocument(
       SchemaRepresentation.fromJsonSchemaDocument(JsonSchema.fromSchemaDraft2020_12(input.schema), {
-        additionalProperties: false
+        onEnter: (js) => {
+          if (js.type === "object" && js.additionalProperties === undefined) {
+            return { ...js, additionalProperties: false }
+          }
+          return js
+        }
       })
     )
     assertMultiDocument({ multiDocument }, expected)

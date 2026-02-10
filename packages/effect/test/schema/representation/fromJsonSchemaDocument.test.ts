@@ -7,8 +7,7 @@ describe("fromJsonSchemaDocument", () => {
     input: {
       readonly schema: JsonSchema.JsonSchema
       readonly options?: {
-        readonly additionalProperties?: false | undefined
-        readonly annotationFilter?: ReadonlyArray<string> | ((key: string) => boolean) | undefined
+        readonly onEnter?: ((js: JsonSchema.JsonSchema) => JsonSchema.JsonSchema) | undefined
       }
     },
     expected: {
@@ -1892,8 +1891,8 @@ describe("fromJsonSchemaDocument", () => {
   })
 
   describe("options", () => {
-    describe("additionalProperties", () => {
-      it("false", () => {
+    describe("onEnter", () => {
+      it("additionalProperties false via onEnter", () => {
         assertFromJsonSchema(
           {
             schema: {
@@ -1903,7 +1902,14 @@ describe("fromJsonSchemaDocument", () => {
               },
               required: ["a"]
             },
-            options: { additionalProperties: false }
+            options: {
+              onEnter: (js) => {
+                if (js.type === "object" && js.additionalProperties === undefined) {
+                  return { ...js, additionalProperties: false }
+                }
+                return js
+              }
+            }
           },
           {
             representation: {
@@ -1923,10 +1929,8 @@ describe("fromJsonSchemaDocument", () => {
           `Schema.Struct({ "a": Schema.String })`
         )
       })
-    })
 
-    describe("annotationFilter", () => {
-      it("array form removes specified keys", () => {
+      it("strips annotation keys via onEnter", () => {
         assertFromJsonSchema(
           {
             schema: {
@@ -1934,7 +1938,13 @@ describe("fromJsonSchemaDocument", () => {
               description: "b",
               examples: ["d"]
             },
-            options: { annotationFilter: ["examples"] }
+            options: {
+              onEnter: (js) => {
+                const out = { ...js }
+                delete out.examples
+                return out
+              }
+            }
           },
           {
             representation: {
@@ -1949,7 +1959,7 @@ describe("fromJsonSchemaDocument", () => {
         )
       })
 
-      it("function form filters by predicate", () => {
+      it("filters annotations by predicate via onEnter", () => {
         assertFromJsonSchema(
           {
             schema: {
@@ -1958,7 +1968,15 @@ describe("fromJsonSchemaDocument", () => {
               examples: ["d"],
               default: "c"
             },
-            options: { annotationFilter: (key) => key === "title" || key === "default" }
+            options: {
+              onEnter: (js) => {
+                const out: any = {}
+                for (const [k, v] of Object.entries(js)) {
+                  if (k === "title" || k === "default" || k === "type") out[k] = v
+                }
+                return out
+              }
+            }
           },
           {
             representation: {
