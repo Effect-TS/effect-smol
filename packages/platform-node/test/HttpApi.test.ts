@@ -410,96 +410,6 @@ describe("HttpApi", () => {
   })
 
   describe("error option", () => {
-    it.effect("Empty(400)", () => {
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("group").add(
-          HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiSchema.Empty(400)
-          })
-        )
-      )
-      const GroupLive = HttpApiBuilder.group(
-        Api,
-        "group",
-        (handlers) =>
-          handlers
-            .handle("a", () => Effect.fail(void 0))
-      )
-      const ApiLive = HttpRouter.serve(
-        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
-        { disableListenLog: true, disableLogger: true }
-      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
-
-      return Effect.gen(function*() {
-        // server side
-        yield* assertServerText(yield* HttpClient.get("/a"), 400, "")
-
-        // client side
-        const client = yield* HttpApiClient.make(Api)
-        yield* assertClientError(client.group.a(), undefined)
-      }).pipe(Effect.provide(ApiLive))
-    })
-
-    it.effect("UnauthorizedNoContent", () => {
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("group").add(
-          HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiError.UnauthorizedNoContent
-          })
-        )
-      )
-      const GroupLive = HttpApiBuilder.group(
-        Api,
-        "group",
-        (handlers) =>
-          handlers
-            .handle("a", () => Effect.fail(new HttpApiError.Unauthorized({})))
-      )
-      const ApiLive = HttpRouter.serve(
-        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
-        { disableListenLog: true, disableLogger: true }
-      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
-
-      return Effect.gen(function*() {
-        // server side
-        yield* assertServerText(yield* HttpClient.get("/a"), 401, "")
-
-        // client side
-        const client = yield* HttpApiClient.make(Api)
-        yield* assertClientError(client.group.a(), new HttpApiError.Unauthorized({}))
-      }).pipe(Effect.provide(ApiLive))
-    })
-
-    it.effect("BadRequest", () => {
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("group").add(
-          HttpApiEndpoint.get("a", "/a", {
-            error: HttpApiError.BadRequestNoContent
-          })
-        )
-      )
-      const GroupLive = HttpApiBuilder.group(
-        Api,
-        "group",
-        (handlers) =>
-          handlers
-            .handle("a", () => Effect.fail(new HttpApiError.BadRequest({})))
-      )
-      const ApiLive = HttpRouter.serve(
-        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
-        { disableListenLog: true, disableLogger: true }
-      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
-
-      return Effect.gen(function*() {
-        // server side
-        yield* assertServerText(yield* HttpClient.get("/a"), 400, "")
-
-        // client side
-        const client = yield* HttpApiClient.make(Api)
-        yield* assertClientError(client.group.a(), new HttpApiError.BadRequest({}))
-      }).pipe(Effect.provide(ApiLive))
-    })
-
     it.effect("no content", () => {
       const Api = HttpApi.make("api")
         .add(
@@ -517,6 +427,15 @@ describe("HttpApi", () => {
                   HttpApiSchema.asNoContent({ decode: () => "c" }),
                   HttpApiSchema.status(403)
                 )
+              }),
+              HttpApiEndpoint.get("d", "/d", {
+                error: HttpApiSchema.Empty(400)
+              }),
+              HttpApiEndpoint.get("e", "/e", {
+                error: HttpApiError.UnauthorizedNoContent
+              }),
+              HttpApiEndpoint.get("f", "/f", {
+                error: HttpApiError.BadRequestNoContent
               })
             )
         )
@@ -528,6 +447,9 @@ describe("HttpApi", () => {
             .handle("a", () => Effect.fail(undefined))
             .handle("b", () => Effect.fail(HttpApiSchema.NoContent.makeUnsafe()))
             .handle("c", () => Effect.fail(""))
+            .handle("d", () => Effect.fail(void 0))
+            .handle("e", () => Effect.fail(new HttpApiError.Unauthorized({})))
+            .handle("f", () => Effect.fail(new HttpApiError.BadRequest({})))
       )
 
       const ApiLive = HttpRouter.serve(
@@ -540,12 +462,18 @@ describe("HttpApi", () => {
         yield* assertServerText(yield* HttpClient.get("/a"), 403, "")
         yield* assertServerText(yield* HttpClient.get("/b"), 204, "")
         yield* assertServerText(yield* HttpClient.get("/c"), 403, "")
+        yield* assertServerText(yield* HttpClient.get("/d"), 400, "")
+        yield* assertServerText(yield* HttpClient.get("/e"), 401, "")
+        yield* assertServerText(yield* HttpClient.get("/f"), 400, "")
 
         // client side
         const client = yield* HttpApiClient.make(Api)
         yield* assertClientError(client.group.a(), undefined)
         yield* assertClientError(client.group.b(), undefined)
         yield* assertClientError(client.group.c(), "c")
+        yield* assertClientError(client.group.d(), undefined)
+        yield* assertClientError(client.group.e(), new HttpApiError.Unauthorized({}))
+        yield* assertClientError(client.group.f(), new HttpApiError.BadRequest({}))
       }).pipe(Effect.provide(ApiLive))
     })
   })
