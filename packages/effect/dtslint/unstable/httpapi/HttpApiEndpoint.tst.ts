@@ -22,7 +22,7 @@ describe("HttpApiEndpoint", () => {
 
     it("should not accept any other schema", () => {
       HttpApiEndpoint.get("a", "/a", {
-        // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'ParamsContraint'.
+        // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'ParamsConstraint'.
         params: Schema.Struct({ id: Schema.String })
       })
     })
@@ -47,7 +47,7 @@ describe("HttpApiEndpoint", () => {
 
     it("should not accept any other schema", () => {
       HttpApiEndpoint.get("a", "/a", {
-        // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'QuerySchemaContraint'.
+        // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'QuerySchemaConstraint'.
         query: Schema.Struct({ id: Schema.String })
       })
     })
@@ -72,7 +72,7 @@ describe("HttpApiEndpoint", () => {
 
     it("should not accept any other schema", () => {
       HttpApiEndpoint.get("a", "/a", {
-        // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'HeadersSchemaContraint'.
+        // @ts-expect-error Type 'Struct<{ readonly id: String; }>' is not assignable to type 'HeadersSchemaConstraint'.
         headers: Schema.Struct({ id: Schema.String })
       })
     })
