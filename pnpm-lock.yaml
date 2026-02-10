@@ -161,6 +161,12 @@ importers:
         specifier: workspace:^
         version: link:../../effect
 
+  packages/ai/openai-compat:
+    devDependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+
   packages/atom/react:
     devDependencies:
       '@testing-library/dom':
