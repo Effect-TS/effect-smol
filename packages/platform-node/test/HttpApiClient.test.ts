@@ -62,9 +62,9 @@ describe("HttpApiClient", () => {
         .add(
           HttpApiGroup.make("group")
             .add(
-              // HttpApiEndpoint.get("a", "/a", {
-              //   error: Schema.Void.pipe(HttpApiSchema.status(403))
-              // }),
+              HttpApiEndpoint.get("a", "/a", {
+                error: Schema.Void.pipe(HttpApiSchema.status(403))
+              }),
               HttpApiEndpoint.get("b", "/b", {
                 error: HttpApiSchema.NoContent,
                 success: Schema.String
@@ -82,7 +82,7 @@ describe("HttpApiClient", () => {
         "group",
         (handlers) =>
           handlers
-            // .handle("a", () => Effect.fail(undefined))
+            .handle("a", () => Effect.fail(undefined))
             .handle("b", () => Effect.fail(HttpApiSchema.NoContent.makeUnsafe()))
             .handle("c", () => Effect.fail(""))
       )
@@ -94,8 +94,8 @@ describe("HttpApiClient", () => {
 
       return Effect.gen(function*() {
         const client = yield* HttpApiClient.make(Api)
-        // const a = yield* Effect.flip(client.group.a())
-        // assert.strictEqual(a, undefined)
+        const a = yield* Effect.flip(client.group.a())
+        assert.strictEqual(a, undefined)
         const b = yield* Effect.flip(client.group.b())
         assert.strictEqual(b, undefined)
         const c = yield* Effect.flip(client.group.c())

@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../../Effect.ts"
 import * as Schema from "../../Schema.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
@@ -21,12 +20,6 @@ export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>("e
    */
   static fromSchemaError(error: Schema.SchemaError): HttpApiSchemaError {
     return new HttpApiSchemaError({ message: error.message })
-  }
-  /**
-   * @since 4.0.0
-   */
-  static refailSchemaError(error: Schema.SchemaError): Effect.Effect<never, HttpApiSchemaError> {
-    return Effect.fail(HttpApiSchemaError.fromSchemaError(error))
   }
 }
 

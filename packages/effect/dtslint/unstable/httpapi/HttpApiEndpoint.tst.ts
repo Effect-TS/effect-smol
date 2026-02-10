@@ -3,7 +3,7 @@ import { HttpApiEndpoint, type HttpApiError, HttpApiSchema } from "effect/unstab
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiEndpoint", () => {
-  describe("path option", () => {
+  describe("params option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
       type T = typeof endpoint["~Params"]
@@ -200,6 +200,26 @@ describe("HttpApiEndpoint", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
       type T = typeof endpoint["~Error"]
       expect<T>().type.toBe<typeof HttpApiError.HttpApiSchemaError>()
+    })
+
+    it("should accept a schema", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        error: Schema.Struct({ a: Schema.String })
+      })
+      type T = typeof endpoint["~Error"]
+      expect<T>().type.toBe<Schema.Struct<{ readonly a: Schema.String }>>()
+    })
+
+    it("should accept an array of schemas", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        error: [
+          Schema.Struct({ a: Schema.String }), // application/json
+          Schema.String.pipe(HttpApiSchema.asText()), // text/plain
+          Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array()) // application/octet-stream
+        ]
+      })
+      type T = typeof endpoint["~Error"]
+      expect<T>().type.toBe<Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array>()
     })
   })
 })
