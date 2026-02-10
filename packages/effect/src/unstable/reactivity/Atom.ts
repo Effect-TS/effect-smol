@@ -1738,41 +1738,55 @@ export const refreshOnWindowFocus: <A extends Atom<any>>(self: A) => WithoutSeri
  * @since 4.0.0
  * @category KeyValueStore
  */
-export const kvs = <S extends Schema.Codec<any, any>>(options: {
+export const kvs = <S extends Schema.Codec<any, any>, const Mode extends "sync" | "async" = never>(options: {
   readonly runtime: AtomRuntime<KeyValueStore.KeyValueStore, any>
   readonly key: string
   readonly schema: S
   readonly defaultValue: LazyArg<S["Type"]>
-}): Writable<S["Type"]> => {
+  readonly mode?: Mode | undefined
+}): Writable<"async" extends Mode ? AsyncResult.AsyncResult<S["Type"]> : S["Type"], S["Type"]> => {
   const setAtom = options.runtime.fn(
-    Effect.fnUntraced(function*(value: S["Type"]) {
-      const store = KeyValueStore.toSchemaStore(yield* KeyValueStore.KeyValueStore, options.schema)
-      yield* store.set(options.key, value)
-    })
+    (value: S["Type"]) =>
+      KeyValueStore.KeyValueStore.use((store) =>
+        KeyValueStore.toSchemaStore(store, options.schema).set(options.key, value)
+      )
   )
   const resultAtom = options.runtime.atom(
     KeyValueStore.KeyValueStore.use((store) => KeyValueStore.toSchemaStore(store, options.schema).get(options.key))
   )
   return writable(
-    (get) => {
-      get.mount(setAtom)
-      get.subscribe(resultAtom, (result) => {
-        if (!AsyncResult.isSuccess(result)) return
-        if (Option.isSome(result.value)) {
-          get.setSelf(result.value.value)
-        } else {
-          const value = Option.getOrElse(get.self<S["Type"]>(), options.defaultValue)
-          get.setSelf(value)
-          get.set(setAtom, value)
-        }
-      }, { immediate: true })
-      return Option.getOrElse(get.self<S["Type"]>(), options.defaultValue)
-    },
+    options.mode === "async" ?
+      (get) => {
+        get.mount(setAtom)
+        const mapper = AsyncResult.map<Option.Option<S["Type"]>, S["Type"]>(
+          Option.getOrElse(() => {
+            const value = options.defaultValue()
+            get.set(setAtom, value)
+            return value
+          })
+        )
+        get.subscribe(resultAtom, (result) => get.setSelf(mapper(result)))
+        return mapper(get.once(resultAtom))
+      } :
+      (get) => {
+        get.mount(setAtom)
+        get.subscribe(resultAtom, (result) => {
+          if (!AsyncResult.isSuccess(result)) return
+          if (Option.isSome(result.value)) {
+            get.setSelf(result.value.value)
+          } else {
+            const value = Option.getOrElse(get.self<S["Type"]>(), options.defaultValue)
+            get.setSelf(value)
+            get.set(setAtom, value)
+          }
+        }, { immediate: true })
+        return Option.getOrElse(get.self<S["Type"]>(), options.defaultValue)
+      },
     (ctx, value: S["Type"]) => {
       ctx.set(setAtom, value as any)
       ctx.setSelf(value)
     }
-  )
+  ) as any
 }
 
 // -----------------------------------------------------------------------------

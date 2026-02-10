@@ -1,6 +1,19 @@
 import { addEqualityTesters, afterEach, assert, beforeEach, describe, expect, it, test, vitest } from "@effect/vitest"
-import { Array as Arr, Cause, Effect, Hash, Layer, Option, Result, ServiceMap, Stream, SubscriptionRef } from "effect"
+import {
+  Array as Arr,
+  Cause,
+  Effect,
+  Hash,
+  Layer,
+  Option,
+  Result,
+  Schema,
+  ServiceMap,
+  Stream,
+  SubscriptionRef
+} from "effect"
 import { TestClock } from "effect/testing"
+import { KeyValueStore } from "effect/unstable/persistence"
 import { AsyncResult, Atom, AtomRegistry } from "effect/unstable/reactivity"
 
 declare const global: any
@@ -1504,6 +1517,161 @@ describe.sequential("Atom", () => {
     assert.strictEqual(result.value.a, 2)
     assert.strictEqual(result.value.b, 4)
     assert.strictEqual(runs, 2)
+  })
+
+  describe("kvs", () => {
+    it("memoizes defaultValue while loading empty storage", async () => {
+      let calls = 0
+      const storage = new Map<string, string>()
+
+      const DelayedKVS = Layer.succeed(
+        KeyValueStore.KeyValueStore,
+        KeyValueStore.makeStringOnly({
+          get: (key) =>
+            Effect.gen(function*() {
+              yield* Effect.sleep(20)
+              return storage.get(key)
+            }),
+          set: (key, value) =>
+            Effect.sync(() => {
+              storage.set(key, value)
+            }),
+          remove: (key) =>
+            Effect.sync(() => {
+              storage.delete(key)
+            }),
+          clear: Effect.sync(() => storage.clear()),
+          size: Effect.sync(() => storage.size)
+        })
+      )
+
+      const kvsRuntime = Atom.runtime(DelayedKVS)
+      const atom = Atom.kvs({
+        runtime: kvsRuntime,
+        key: "default-value-key",
+        schema: Schema.Number,
+        defaultValue: () => {
+          calls++
+          return 0
+        }
+      })
+
+      const r = AtomRegistry.make()
+      r.mount(atom)
+
+      expect(r.get(atom)).toEqual(0)
+      expect(calls).toEqual(1)
+
+      await vitest.advanceTimersByTimeAsync(50)
+
+      expect(r.get(atom)).toEqual(0)
+      expect(calls).toEqual(1)
+    })
+
+    it("preserves existing value after async load completes", async () => {
+      vitest.useRealTimers()
+      // Create an in-memory store with a pre-existing value
+      const storage = new Map<string, string>()
+      storage.set("test-key", JSON.stringify(42))
+
+      // Create a delayed KeyValueStore to simulate async loading
+      // Use KeyValueStore.make to get proper forSchema support
+      const DelayedKVS = Layer.succeed(
+        KeyValueStore.KeyValueStore,
+        KeyValueStore.makeStringOnly({
+          get: (key) =>
+            Effect.gen(function*() {
+              yield* Effect.sleep(20) // Short delay to create Initial state window
+              return storage.get(key)
+            }),
+          set: (key, value) =>
+            Effect.sync(() => {
+              storage.set(key, value)
+            }),
+          remove: (key) =>
+            Effect.sync(() => {
+              storage.delete(key)
+            }),
+          clear: Effect.sync(() => storage.clear()),
+          size: Effect.sync(() => storage.size)
+        })
+      )
+
+      const kvsRuntime = Atom.runtime(DelayedKVS)
+      const atom = Atom.kvs({
+        runtime: kvsRuntime,
+        key: "test-key",
+        schema: Schema.Number,
+        defaultValue: () => 0
+      })
+
+      const r = AtomRegistry.make()
+      r.mount(atom)
+
+      // First read during Initial state returns default
+      const value = r.get(atom)
+      expect(value).toEqual(0)
+
+      // Wait for async load AND any set effects to complete
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // THE KEY ASSERTION: After load completes, storage should still have original value.
+      // The bug was that the default (0) would be written during Initial state,
+      // corrupting the storage before the async load could read it.
+      expect(storage.get("test-key")).toEqual(JSON.stringify(42))
+    })
+
+    it("async mode", async () => {
+      vitest.useRealTimers()
+      // Create an in-memory store with a pre-existing value
+      const storage = new Map<string, string>()
+      storage.set("test-key", JSON.stringify(42))
+
+      // Create a delayed KeyValueStore to simulate async loading
+      // Use KeyValueStore.make to get proper forSchema support
+      const DelayedKVS = Layer.succeed(
+        KeyValueStore.KeyValueStore,
+        KeyValueStore.makeStringOnly({
+          get: (key) =>
+            Effect.gen(function*() {
+              yield* Effect.sleep(20) // Short delay to create Initial state window
+              return storage.get(key)
+            }),
+          set: (key, value) =>
+            Effect.sync(() => {
+              storage.set(key, value)
+            }),
+          remove: (key) =>
+            Effect.sync(() => {
+              storage.delete(key)
+            }),
+          clear: Effect.sync(() => storage.clear()),
+          size: Effect.sync(() => storage.size)
+        })
+      )
+
+      const kvsRuntime = Atom.runtime(DelayedKVS)
+      const atom = Atom.kvs({
+        mode: "async",
+        runtime: kvsRuntime,
+        key: "test-key",
+        schema: Schema.Number,
+        defaultValue: () => 0
+      })
+
+      const r = AtomRegistry.make()
+      r.mount(atom)
+
+      expect(r.get(atom)).toEqual(AsyncResult.initial(true))
+
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      const result = r.get(atom)
+      assert(AsyncResult.isSuccess(result))
+      expect(result.value).toEqual(42)
+      expect(result.waiting).toEqual(false)
+      expect(storage.get("test-key")).toEqual(JSON.stringify(42))
+    })
   })
 })
 
