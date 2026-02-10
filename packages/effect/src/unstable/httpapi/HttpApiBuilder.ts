@@ -1,12 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Base64 from "../../encoding/Base64.ts"
 import * as Fiber from "../../Fiber.ts"
 import type { FileSystem } from "../../FileSystem.ts"
-import * as Filter from "../../Filter.ts"
 import { identity } from "../../Function.ts"
 import { stringOrRedacted } from "../../internal/redacted.ts"
 import * as Layer from "../../Layer.ts"
@@ -66,9 +64,8 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   | Path
   | HttpApiGroup.ToService<Id, Groups>
   | HttpApiGroup.ErrorServicesEncode<Groups>
-> => {
-  const ApiErrorHandler = HttpRouter.middleware(makeErrorHandler(api)).layer as any as Layer.Layer<never>
-  return HttpRouter.use(Effect.fnUntraced(function*(router) {
+> =>
+  HttpRouter.use(Effect.fnUntraced(function*(router) {
     const services = yield* Effect.services<
       | Etag.Generator
       | HttpRouter.HttpRouter
@@ -89,10 +86,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
       const spec = OpenApi.fromApi(api)
       yield* router.add("GET", options.openapiPath, Effect.succeed(Response.jsonUnsafe(spec)))
     }
-  })).pipe(
-    Layer.provide(ApiErrorHandler)
-  )
-}
+  }))
 
 /**
  * Create a `Layer` that will implement all the endpoints in an `HttpApi`.
@@ -377,32 +371,6 @@ export const securitySetCookie = (
 // Internal
 // -----------------------------------------------------------------------------
 
-const makeErrorHandler: <Id extends string, Groups extends HttpApiGroup.Any>(
-  api: HttpApi.HttpApi<Id, Groups>
-) => Effect.Effect<
-  (
-    effect: Effect.Effect<HttpServerResponse, unknown>
-  ) => Effect.Effect<HttpServerResponse, unknown, unknown>
-> = Effect.fnUntraced(function*<
-  Id extends string,
-  Groups extends HttpApiGroup.Any
->(
-  api: HttpApi.HttpApi<Id, Groups>
-) {
-  const services = yield* Effect.services<never>()
-  const errorSchema = makeErrorSchema(api as any)
-  const encodeError = Schema.encodeUnknownEffect(errorSchema)
-  return (effect: Effect.Effect<HttpServerResponse, unknown>) =>
-    Effect.catchCause(
-      effect,
-      (cause) =>
-        Effect.matchEffect(Effect.provide(encodeError(Cause.squash(cause)), services), {
-          onFailure: () => Effect.failCause(cause),
-          onSuccess: Effect.succeed
-        })
-    )
-})
-
 const bearerLen = `Bearer `.length
 const basicLen = `Basic `.length
 
@@ -536,6 +504,7 @@ function handlerToRoute(
 ): HttpRouter.Route<any, any> {
   const endpoint = handler.endpoint
   const encodeSuccess = Schema.encodeUnknownEffect(makeSuccessSchema(endpoint))
+  const encodeError = Schema.encodeUnknownEffect(makeErrorSchema(endpoint))
   const decodeParams = UndefinedOr.map(HttpApiEndpoint.getParamsSchema(endpoint), Schema.decodeUnknownEffect)
   const decodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.decodeUnknownEffect)
   const decodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.decodeUnknownEffect)
@@ -543,54 +512,59 @@ function handlerToRoute(
   const shouldParsePayload = endpoint.payload.size > 0 && !handler.isRaw
   const payloadBy = shouldParsePayload ? buildPayloadDecoders(endpoint.payload) : undefined
 
+  const effect = applyMiddleware(
+    group,
+    endpoint,
+    services,
+    Effect.gen(function*() {
+      const fiber = Fiber.getCurrent()!
+      const services = fiber.services
+      const httpRequest = ServiceMap.getUnsafe(services, HttpServerRequest)
+      const routeContext = ServiceMap.getUnsafe(services, HttpRouter.RouteContext)
+      const query = ServiceMap.getUnsafe(services, Request.ParsedSearchParams)
+      const request: any = {
+        request: httpRequest,
+        endpoint,
+        group
+      }
+      if (decodeParams) {
+        request.params = yield* decodeParams(routeContext.params)
+      }
+      if (decodeHeaders) {
+        request.headers = yield* decodeHeaders(httpRequest.headers)
+      }
+      if (decodeQuery) {
+        request.query = yield* decodeQuery(query)
+      }
+      if (payloadBy) {
+        const result = decodePayload(payloadBy, httpRequest, query)
+        if (Response.isHttpServerResponse(result)) {
+          return result
+        }
+        if (result !== undefined) {
+          request.payload = yield* result
+        }
+      }
+      const response = yield* handler.handler(request)
+      return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
+    })
+  ).pipe(
+    Effect.catch((error) => {
+      if (Schema.isSchemaError(error)) {
+        error = HttpApiSchemaError.fromSchemaError(error)
+      }
+      return Effect.orDie(encodeError(error))
+    }),
+    Effect.provideServices(services)
+  )
+
   return HttpRouter.route(
     endpoint.method,
     endpoint.path as HttpRouter.PathInput,
-    applyMiddleware(
-      group,
-      endpoint,
-      services,
-      Effect.gen(function*() {
-        const fiber = Fiber.getCurrent()!
-        const services = fiber.services
-        const httpRequest = ServiceMap.getUnsafe(services, HttpServerRequest)
-        const routeContext = ServiceMap.getUnsafe(services, HttpRouter.RouteContext)
-        const query = ServiceMap.getUnsafe(services, Request.ParsedSearchParams)
-        const request: any = {
-          request: httpRequest,
-          endpoint,
-          group
-        }
-        if (decodeParams) {
-          request.params = yield* decodeParams(routeContext.params)
-        }
-        if (decodeHeaders) {
-          request.headers = yield* decodeHeaders(httpRequest.headers)
-        }
-        if (decodeQuery) {
-          request.query = yield* decodeQuery(query)
-        }
-        if (payloadBy) {
-          const result = decodePayload(payloadBy, httpRequest, query)
-          if (Response.isHttpServerResponse(result)) {
-            return result
-          }
-          if (result !== undefined) {
-            request.payload = yield* result
-          }
-        }
-        const response = yield* handler.handler(request)
-        return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
-      }).pipe(
-        Effect.provide(services),
-        Effect.catchFilter(filterIsSchemaError, HttpApiSchemaError.refailSchemaError)
-      )
-    ),
+    effect,
     { uninterruptible: handler.uninterruptible }
   )
 }
-
-const filterIsSchemaError = Filter.fromPredicate(Schema.isSchemaError)
 
 const getRequestContentType = (request: HttpServerRequest): string =>
   request.headers["content-type"]
@@ -678,14 +652,8 @@ function makeSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encod
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
-function makeErrorSchema(api: HttpApi.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
-  const errors = new Set<Schema.Top>([])
-  for (const group of Object.values(api.groups)) {
-    for (const endpoint of Object.values(group.endpoints)) {
-      HttpApiEndpoint.getErrorSchemas(endpoint).forEach((schema) => errors.add(schema))
-    }
-  }
-  const schemas = Array.from(errors, toResponseErrorSchema)
+function makeErrorSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
+  const schemas = HttpApiEndpoint.getErrorSchemas(endpoint).map(toResponseErrorSchema)
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 

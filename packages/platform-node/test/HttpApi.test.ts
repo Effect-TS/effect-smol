@@ -667,9 +667,10 @@ describe("HttpApi", () => {
           encode: ({ message }) => message,
           decode: (message) => new RateLimitError({ message })
         })
-      )
+      ),
+      HttpApiSchema.status(429),
+      HttpApiSchema.asText()
     )
-      .pipe(HttpApiSchema.status(429), HttpApiSchema.asText())
 
     const Api = HttpApi.make("api").add(
       HttpApiGroup.make("group").add(

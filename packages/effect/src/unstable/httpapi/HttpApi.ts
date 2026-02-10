@@ -191,7 +191,10 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
     annotations: ServiceMap.empty()
   })
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Reflection
+ */
 export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
   self: HttpApi<Id, Groups>,
   options: {
