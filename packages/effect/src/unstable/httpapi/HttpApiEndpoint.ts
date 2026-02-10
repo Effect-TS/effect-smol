@@ -7,7 +7,6 @@ import type { Effect } from "../../Effect.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Stream from "../../Stream.ts"
 import type * as Types from "../../Types.ts"
@@ -191,7 +190,7 @@ export function getErrorSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<S
   const schemas = new Set<Schema.Top>(endpoint.error)
   for (const middleware of endpoint.middlewares) {
     const key = middleware as any as HttpApiMiddleware.AnyKey
-    if (key.error !== HttpApiSchemaError && !AST.isNever(key.error.ast)) {
+    if (key.error !== undefined) {
       schemas.add(key.error)
     }
   }

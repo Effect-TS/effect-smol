@@ -3,9 +3,8 @@
  */
 import type * as Effect from "../../Effect.ts"
 import { hasProperty } from "../../Predicate.ts"
-import * as Schema from "../../Schema.ts"
+import type * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type { Simplify } from "../../Struct.ts"
 import type { unhandled } from "../../Types.ts"
 import type * as HttpRouter from "../http/HttpRouter.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
@@ -142,11 +141,8 @@ export type ServiceClass<
     security: Record<string, HttpApiSecurity.HttpApiSecurity>
   },
   Service =
-    ([keyof Config["security"]] extends [never] ?
-      HttpApiMiddleware<Config["provides"], Config["error"], Config["requires"]>
-      : Simplify<
-        HttpApiMiddlewareSecurity<Config["security"], Config["provides"], Config["error"], Config["requires"]>
-      >)
+    ([Config["security"]] extends [never] ? HttpApiMiddleware<Config["provides"], Config["error"], Config["requires"]>
+      : HttpApiMiddlewareSecurity<Config["security"], Config["provides"], Config["error"], Config["requires"]>)
 > =
   & ServiceMap.Service<Self, Service>
   & {
@@ -178,7 +174,7 @@ export const Service = <
 >(): <
   const Id extends string,
   Error extends Schema.Top = never,
-  const Security extends Record<string, HttpApiSecurity.HttpApiSecurity> = {}
+  const Security extends Record<string, HttpApiSecurity.HttpApiSecurity> = never
 >(
   id: Id,
   options?: {
@@ -212,8 +208,10 @@ export const Service = <
     }
   })
   self[TypeId] = TypeId
-  self.error = options?.error === undefined ? Schema.Never : options.error
-  if (options?.security) {
+  if (options?.error !== undefined) {
+    self.error = options.error
+  }
+  if (options?.security !== undefined) {
     if (Object.keys(options.security).length === 0) {
       throw new Error("HttpApiMiddleware.Service: security object must not be empty")
     }
