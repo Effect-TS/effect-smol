@@ -741,7 +741,7 @@ class BuilderImpl<Out, A, E> {
   onDefect<B>(f: (defect: unknown, result: Failure<A, E>) => B): BuilderImpl<Out | B, A, E> {
     return this.when(isFailure, (result) => {
       const defect = Cause.filterDefect(result.cause)
-      return Filter.isFail(defect) ? Option.some(f(defect, result)) : Option.none()
+      return Filter.isFail(defect) ? Option.none() : Option.some(f(defect, result))
     })
   }
 
