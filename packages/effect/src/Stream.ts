@@ -8379,7 +8379,7 @@ export const decodeText: {
   <E, R>(self: Stream<Uint8Array, E, R>, encoding?: string | undefined): Stream<string, E, R> =>
     suspend(() => {
       const decoder = new TextDecoder(encoding)
-      return map(self, (chunk) => decoder.decode(chunk))
+      return map(self, (chunk) => decoder.decode(chunk, { stream: true }))
     })
 )
 

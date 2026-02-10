@@ -147,6 +147,29 @@ describe("Stream", () => {
       }))
   })
 
+  describe("encoding", () => {
+    it.effect("decodeText handles multi-byte characters split across chunks", () =>
+      Effect.gen(function*() {
+        const bytes = new TextEncoder().encode("🌍")
+        const result = yield* Stream.make(bytes.slice(0, 2), bytes.slice(2)).pipe(
+          Stream.decodeText(),
+          Stream.mkString
+        )
+        assert.strictEqual(result, "🌍")
+      }))
+
+    it.effect("decodeText handles mixed ASCII and multi-byte characters across chunks", () =>
+      Effect.gen(function*() {
+        const bytes = new TextEncoder().encode("Hello 🌍!")
+        const split = 8
+        const result = yield* Stream.make(bytes.slice(0, split), bytes.slice(split)).pipe(
+          Stream.decodeText(),
+          Stream.mkString
+        )
+        assert.strictEqual(result, "Hello 🌍!")
+      }))
+  })
+
   describe("taking", () => {
     it.effect("take - pulls the first `n` values from a stream", () =>
       Effect.gen(function*() {
