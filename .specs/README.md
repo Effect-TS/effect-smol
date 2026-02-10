@@ -14,3 +14,4 @@ This directory contains specifications for all major features and enhancements i
 - [atom-solid-bindings.md](atom-solid-bindings.md) - Add `@effect/atom-solid` bindings for Effect Atom modules in SolidJS.
 - [devtools-v3-port.md](devtools-v3-port.md) - Port Effect v3 DevTools modules into `effect/unstable/devtools`.
 - [cli-completions-refactor.md](cli-completions-refactor.md) - Replace dynamic CLI completions with static shell script generation for Bash, Zsh, and Fish.
+- [ai-openai-compat.md](ai-openai-compat.md) - Add a minimal-schema OpenAI compat package for LanguageModel + embeddings.
