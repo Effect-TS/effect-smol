@@ -18,8 +18,7 @@ import type {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const escapeZsh = (s: string): string =>
-  s.replace(/\\/g, "\\\\").replace(/'/g, "'\\''").replace(/:/g, "\\:")
+const escapeZsh = (s: string): string => s.replace(/\\/g, "\\\\").replace(/'/g, "'\\''").replace(/:/g, "\\:")
 
 const sanitize = (s: string): string => s.replace(/[^a-zA-Z0-9_]/g, "_")
 

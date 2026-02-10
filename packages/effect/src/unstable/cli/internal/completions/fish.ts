@@ -34,7 +34,9 @@ const subcommandCondition = (
   const parent = parentPath[parentPath.length - 1]
   if (childSubcommandNames.length > 0) {
     // Show only when parent is active but no child subcommand has been entered
-    return `__fish_seen_subcommand_from ${parent}; and not __fish_seen_subcommand_from ${childSubcommandNames.join(" ")}`
+    return `__fish_seen_subcommand_from ${parent}; and not __fish_seen_subcommand_from ${
+      childSubcommandNames.join(" ")
+    }`
   }
   return `__fish_seen_subcommand_from ${parent}`
 }
@@ -126,9 +128,7 @@ const generateCompletions = (
   // Suppress default file completion unless the command has path-type
   // positional arguments. Without this, fish falls back to listing files
   // even when only flags are valid.
-  const hasPathArgs = descriptor.arguments.some((a) =>
-    a.type._tag === "Path"
-  )
+  const hasPathArgs = descriptor.arguments.some((a) => a.type._tag === "Path")
   if (!hasPathArgs) {
     const parts = [`complete -c ${executableName}`]
     if (conditionArg) parts.push(conditionArg)

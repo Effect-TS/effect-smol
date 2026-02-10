@@ -197,7 +197,7 @@ describe("Bash completions", () => {
       // --times has a different group index
       assert.include(script, "_flag_groups[--times]=1")
       // Uses _filtered_flags instead of a static word list
-      assert.include(script, 'compgen -W "$_filtered_flags"')
+      assert.include(script, "compgen -W \"$_filtered_flags\"")
     }))
 
   it.effect("does not generate flag groups for commands with no flags", () =>
@@ -214,7 +214,7 @@ describe("Bash completions", () => {
       const script = Bash.generate("greet", desc)
       assert.include(script, "if ! type _init_completion &>/dev/null; then")
       assert.include(script, "COMPREPLY=()")
-      assert.include(script, 'cur="${COMP_WORDS[COMP_CWORD]}"')
+      assert.include(script, "cur=\"${COMP_WORDS[COMP_CWORD]}\"")
       assert.include(script, "cword=$COMP_CWORD")
       assert.include(script, "fi")
     }))
@@ -338,8 +338,8 @@ describe("Zsh completions", () => {
       const desc = CommandDescriptor.fromCommand(simpleCmd)
       const script = Zsh.generate("greet", desc)
       assert.include(script, "local -a specs")
-      assert.include(script, 'specs=(')
-      assert.include(script, '_arguments "${specs[@]}"')
+      assert.include(script, "specs=(")
+      assert.include(script, "_arguments \"${specs[@]}\"")
     }))
 
   it.effect("generates exclusion groups for flag aliases", () =>
@@ -537,12 +537,12 @@ describe("Fish completions", () => {
       // --loud appears as an -a entry guarded by "not string match" and dedup
       const loudArg = lines.find((l) => l.includes("-a '--loud'"))
       assert.isDefined(loudArg)
-      assert.include(loudArg!, 'not string match -q -- "-*" (commandline -ct)')
+      assert.include(loudArg!, "not string match -q -- \"-*\" (commandline -ct)")
       assert.include(loudArg!, "not __fish_contains_opt")
       // --times also appears as an -a entry
       const timesArg = lines.find((l) => l.includes("-a '--times'"))
       assert.isDefined(timesArg)
-      assert.include(timesArg!, 'not string match -q -- "-*" (commandline -ct)')
+      assert.include(timesArg!, "not string match -q -- \"-*\" (commandline -ct)")
       // Boolean negation also gets an -a entry
       const noLoudArg = lines.find((l) => l.includes("-a '--no-loud'"))
       assert.isDefined(noLoudArg)
@@ -558,7 +558,7 @@ describe("Fish completions", () => {
       for (const line of argEntries) {
         // The -n condition must use double quotes around -* so it doesn't
         // break the outer single-quoted string (Fish glob parse error).
-        assert.include(line, '"-*"', `bare-TAB entry should use double-quoted glob pattern: ${line}`)
+        assert.include(line, "\"-*\"", `bare-TAB entry should use double-quoted glob pattern: ${line}`)
         assert.notInclude(line, "'-*'", `bare-TAB entry must NOT use single-quoted glob pattern: ${line}`)
       }
     }))
