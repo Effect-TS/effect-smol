@@ -173,6 +173,9 @@ Produces a Bash completion script using the `complete` builtin and
 - Inlines choice values as word lists
 - Handles `--flag=value` style completions
 - Supports `--no-<flag>` for boolean flags
+- **Used-flag filtering**: builds an associative array mapping each flag form
+  to a group index. At completion time, scans `COMP_WORDS` and removes the
+  entire alias group (`--flag`, `-f`, `--no-flag`) once any form is used.
 
 #### 2.2 Zsh generator
 
@@ -185,6 +188,10 @@ features:
 - Inlines choice values with `(value1 value2 ...)` syntax
 - Groups completions by type (options, commands, arguments)
 - Supports `--no-<flag>` for boolean flags
+- **Exclusion groups**: every flag spec includes a parenthesized exclusion
+  list of all its forms (`--flag`, `-f`, `--no-flag`). Uses zsh brace
+  expansion `'{-f,--flag}'` for short/long alias pairs. Once any form is
+  used, `_arguments` suppresses all other forms in the group.
 
 #### 2.3 Fish generator
 
@@ -196,6 +203,9 @@ Produces Fish completion commands using `complete -c`. Key features:
 - Uses `-r -F` for file arguments
 - Uses `-n` conditions based on the current subcommand path
 - Supports `--no-<flag>` for boolean flags
+- **Dedup via `__fish_contains_opt`**: every flag completion entry includes a
+  `-n` condition that checks `not __fish_contains_opt` for all forms in its
+  alias group. Combined with the subcommand condition using `; and`.
 
 ### 3. Integration with Command.run
 

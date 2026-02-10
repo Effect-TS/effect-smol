@@ -27,6 +27,39 @@ const flagNamesForWordlist = (flag: FlagDescriptor): Array<string> => {
   return names
 }
 
+/**
+ * Build an associative array mapping each flag form to a group index.
+ * At completion time, if any form in a group appears in COMP_WORDS,
+ * all forms in that group are removed from the candidate list.
+ */
+const buildFlagGroupDeclarations = (
+  flags: ReadonlyArray<FlagDescriptor>,
+  lines: Array<string>
+): void => {
+  if (flags.length === 0) return
+  lines.push(`  # Build used-flag filter`)
+  lines.push(`  local -A _flag_groups`)
+  let groupIdx = 0
+  for (const flag of flags) {
+    const forms = flagNamesForWordlist(flag)
+    for (const form of forms) {
+      lines.push(`  _flag_groups[${form}]=${groupIdx}`)
+    }
+    groupIdx++
+  }
+  lines.push(`  local -A _used_groups`)
+  lines.push(`  for ((i = 1; i < cword; i++)); do`)
+  lines.push(`    local _g="\${_flag_groups[\${words[i]}]:-}"`)
+  lines.push(`    [[ -n "$_g" ]] && _used_groups[$_g]=1`)
+  lines.push(`  done`)
+  lines.push(`  local _filtered_flags=""`)
+  lines.push(`  for _f in ${flags.flatMap(flagNamesForWordlist).join(" ")}; do`)
+  lines.push(`    local _g="\${_flag_groups[$_f]:-}"`)
+  lines.push(`    [[ -z "$_g" || -z "\${_used_groups[$_g]:-}" ]] && _filtered_flags+=" $_f"`)
+  lines.push(`  done`)
+  lines.push(``)
+}
+
 const flagValueCompletion = (type: FlagType): string | undefined => {
   switch (type._tag) {
     case "Boolean":
@@ -111,20 +144,15 @@ const generateFunction = (
     lines.push(``)
   }
 
-  // Build word list (subcommands + flags)
-  const wordListItems: Array<string> = []
-  for (const sub of descriptor.subcommands) {
-    wordListItems.push(sub.name)
-  }
-  for (const flag of descriptor.flags) {
-    wordListItems.push(...flagNamesForWordlist(flag))
-  }
+  // Filter already-used flags (entire alias group removed when any form is used)
+  buildFlagGroupDeclarations(descriptor.flags, lines)
 
-  if (wordListItems.length > 0) {
-    lines.push(`  # Complete subcommands and flags`)
+  if (descriptor.flags.length > 0 || descriptor.subcommands.length > 0) {
+    lines.push(`  # Complete flags (filtered) and subcommands`)
     lines.push(`  if [[ "$cur" == -* ]]; then`)
-    const flagWords = descriptor.flags.flatMap(flagNamesForWordlist)
-    lines.push(`    COMPREPLY=( $(compgen -W '${flagWords.join(" ")}' -- "$cur") )`)
+    if (descriptor.flags.length > 0) {
+      lines.push(`    COMPREPLY=( $(compgen -W "$_filtered_flags" -- "$cur") )`)
+    }
     lines.push(`    return`)
     lines.push(`  fi`)
     lines.push(``)
@@ -168,6 +196,21 @@ export const generate = (
   lines.push(`# Installation:`)
   lines.push(`#   ${escapeForBash(executableName)} --completions bash >> ~/.bashrc`)
   lines.push(`#`)
+  lines.push(``)
+
+  // Inline minimal _init_completion fallback for environments without
+  // bash-completion installed. The real _init_completion handles edge cases
+  // (= in options, redirections, etc.) but this covers the common path.
+  lines.push(`if ! type _init_completion &>/dev/null; then`)
+  lines.push(`  _init_completion()`)
+  lines.push(`  {`)
+  lines.push(`    COMPREPLY=()`)
+  lines.push(`    cur="\${COMP_WORDS[COMP_CWORD]}"`)
+  lines.push(`    prev="\${COMP_WORDS[COMP_CWORD-1]}"`)
+  lines.push(`    words=("\${COMP_WORDS[@]}")`)
+  lines.push(`    cword=$COMP_CWORD`)
+  lines.push(`  }`)
+  lines.push(`fi`)
   lines.push(``)
 
   generateFunction(descriptor, [], lines)

@@ -659,13 +659,28 @@ run_judge() {
         log "WARN" "Judge exited with status $judge_exit_code"
     fi
 
-    local judge_text=$(cat "$judge_output_file" | \
+    local judge_text
+    judge_text=$(cat "$judge_output_file" | \
         jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text // empty' 2>/dev/null)
 
-    if echo "$judge_text" | grep -qE "(MORE_WORK_TO_DO|MORE WORK TO DO)"; then
+    # If stream-json parsing yielded nothing, try treating the output as plain text
+    if [ -z "$judge_text" ]; then
+        judge_text=$(cat "$judge_output_file" 2>/dev/null)
+    fi
+
+    if [ -z "$judge_text" ]; then
+        log "ERROR" "Judge produced no output"
+        log "WARN" "Assuming MORE_WORK_TO_DO to be safe"
+        return 1
+    fi
+
+    log "INFO" "Judge output (last 5 lines):"
+    echo "$judge_text" | tail -5 | while IFS= read -r line; do log "INFO" "  $line"; done
+
+    if echo "$judge_text" | grep -q "MORE_WORK_TO_DO"; then
         log "WARN" "Judge says: MORE_WORK_TO_DO"
         return 1
-    elif echo "$judge_text" | grep -qE "(ALL_WORK_DONE|ALL WORK DONE)"; then
+    elif echo "$judge_text" | grep -q "ALL_WORK_DONE"; then
         log "SUCCESS" "Judge says: ALL_WORK_DONE"
         return 0
     else

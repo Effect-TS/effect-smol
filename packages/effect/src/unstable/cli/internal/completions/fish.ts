@@ -15,23 +15,53 @@ import type { ArgumentType, CommandDescriptor, FlagDescriptor, FlagType } from "
 const escapeFishString = (s: string): string => s.replace(/'/g, "\\'")
 
 /**
- * Build a Fish condition that checks the current subcommand path.
- * For root-level completions: no subcommand entered yet
- * For nested: check that the command line contains the parent subcommand
+ * Build a Fish condition that checks the current subcommand context.
+ *
+ * For root-level completions with subcommands: `__fish_use_subcommand`
+ * For nested commands: verify the parent subcommand is active AND none of its
+ * child subcommands have been entered yet.
  */
 const subcommandCondition = (
   parentPath: ReadonlyArray<string>,
-  allSubcommandNames: ReadonlyArray<string>
+  childSubcommandNames: ReadonlyArray<string>
 ): string => {
   if (parentPath.length === 0) {
-    // Root level — only show when no subcommand is active
-    if (allSubcommandNames.length > 0) {
+    if (childSubcommandNames.length > 0) {
       return `__fish_use_subcommand`
     }
     return ``
   }
-  // Nested — check that we've already entered the parent subcommand
-  return `__fish_seen_subcommand_from ${parentPath[parentPath.length - 1]}`
+  const parent = parentPath[parentPath.length - 1]
+  if (childSubcommandNames.length > 0) {
+    // Show only when parent is active but no child subcommand has been entered
+    return `__fish_seen_subcommand_from ${parent}; and not __fish_seen_subcommand_from ${childSubcommandNames.join(" ")}`
+  }
+  return `__fish_seen_subcommand_from ${parent}`
+}
+
+/**
+ * Build a __fish_contains_opt condition that checks whether any form of this
+ * flag has already been typed. Returns the condition string without wrapping
+ * quotes (the caller adds those).
+ */
+const flagContainsOptCondition = (flag: FlagDescriptor): string => {
+  const optArgs: Array<string> = []
+  for (const alias of flag.aliases) {
+    if (alias.length === 1) {
+      optArgs.push(`-s ${alias}`)
+    }
+  }
+  // Long names (fish __fish_contains_opt uses bare words for long opts)
+  optArgs.push(flag.name)
+  for (const alias of flag.aliases) {
+    if (alias.length > 1) {
+      optArgs.push(alias)
+    }
+  }
+  if (flag.type._tag === "Boolean") {
+    optArgs.push(`no-${flag.name}`)
+  }
+  return `not __fish_contains_opt ${optArgs.join(" ")}`
 }
 
 const flagCompletionArgs = (flag: FlagDescriptor): Array<string> => {
@@ -63,7 +93,8 @@ const flagValueArgs = (type: FlagType): string | undefined => {
       if (type.pathType === "directory") return `-r -F`
       return `-r -F`
     default:
-      return `-r`
+      // -r: requires a value, -f: don't fall back to file completion
+      return `-r -f`
   }
 }
 
@@ -92,6 +123,19 @@ const generateCompletions = (
   const condition = subcommandCondition(parentPath, allSubNames)
   const conditionArg = condition ? `-n '${condition}'` : ``
 
+  // Suppress default file completion unless the command has path-type
+  // positional arguments. Without this, fish falls back to listing files
+  // even when only flags are valid.
+  const hasPathArgs = descriptor.arguments.some((a) =>
+    a.type._tag === "Path"
+  )
+  if (!hasPathArgs) {
+    const parts = [`complete -c ${executableName}`]
+    if (conditionArg) parts.push(conditionArg)
+    parts.push(`-f`)
+    lines.push(parts.join(" "))
+  }
+
   // Subcommand completions
   for (const sub of descriptor.subcommands) {
     const parts = [`complete -c ${executableName}`]
@@ -105,20 +149,62 @@ const generateCompletions = (
 
   // Flag completions
   for (const flag of descriptor.flags) {
+    // Only apply __fish_contains_opt dedup for boolean flags. For value-taking
+    // flags, the dedup condition would suppress the entry while fish is waiting
+    // for a value (e.g. typing `--env <TAB>` wouldn't show choices).
+    const isBoolean = flag.type._tag === "Boolean"
+    const flagCondition = isBoolean
+      ? (condition ? `${condition}; and ${flagContainsOptCondition(flag)}` : flagContainsOptCondition(flag))
+      : condition
+    const flagCondArg = flagCondition ? `-n '${flagCondition}'` : ``
+
     const parts = [`complete -c ${executableName}`]
-    if (conditionArg) parts.push(conditionArg)
+    if (flagCondArg) parts.push(flagCondArg)
     parts.push(...flagCompletionArgs(flag))
     lines.push(parts.join(" "))
 
     // Boolean negation
-    if (flag.type._tag === "Boolean") {
+    if (isBoolean) {
       const negParts = [`complete -c ${executableName}`]
-      if (conditionArg) negParts.push(conditionArg)
+      if (flagCondArg) negParts.push(flagCondArg)
       negParts.push(`-l no-${flag.name}`)
       if (flag.description) {
         negParts.push(`-d '${escapeFishString(`Disable ${flag.name}`)}'`)
       }
       lines.push(negParts.join(" "))
+    }
+  }
+
+  // Flags as -a entries for bare <TAB> visibility.
+  // Fish only shows -l/-s entries when the current word starts with -, so
+  // without this, flags are invisible on bare <TAB>. Guarded to only show
+  // when NOT already typing an option (avoids duplication with -l/-s above)
+  // and hidden once a flag has been used (__fish_contains_opt).
+  if (descriptor.flags.length > 0) {
+    const notDash = `not string match -q -- "-*" (commandline -ct)`
+    const bareBase = condition ? `${condition}; and ${notDash}` : notDash
+
+    for (const flag of descriptor.flags) {
+      const bareCondition = `${bareBase}; and ${flagContainsOptCondition(flag)}`
+      const isBoolean = flag.type._tag === "Boolean"
+
+      const parts = [`complete -c ${executableName}`]
+      parts.push(`-n '${bareCondition}'`)
+      parts.push(`-f -a '--${flag.name}'`)
+      if (flag.description) {
+        parts.push(`-d '${escapeFishString(flag.description)}'`)
+      }
+      lines.push(parts.join(" "))
+
+      if (isBoolean) {
+        const negParts = [`complete -c ${executableName}`]
+        negParts.push(`-n '${bareCondition}'`)
+        negParts.push(`-f -a '--no-${flag.name}'`)
+        if (flag.description) {
+          negParts.push(`-d '${escapeFishString(`Disable ${flag.name}`)}'`)
+        }
+        lines.push(negParts.join(" "))
+      }
     }
   }
 
