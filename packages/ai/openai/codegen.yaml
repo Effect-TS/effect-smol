@@ -21,6 +21,9 @@ patches:
   # Add both events to ResponseStreamEvent anyOf array
   - '[{"op":"add","path":"/components/schemas/ResponseStreamEvent/anyOf/-","value":{"$ref":"#/components/schemas/ResponseApplyPatchCallOperationDiffDeltaEvent"}}]'
   - '[{"op":"add","path":"/components/schemas/ResponseStreamEvent/anyOf/-","value":{"$ref":"#/components/schemas/ResponseApplyPatchCallOperationDiffDoneEvent"}}]'
+excludeAnnotations:
+  - examples
+  - default
 replacements:
   # Schema.Unknown doesn't work with Schema.toCodecJson (used by HttpClientResponse.schemaBodyJson)
   # Replace with Schema.Json which properly handles arbitrary JSON values

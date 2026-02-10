@@ -29,6 +29,30 @@ export const A = B
 `)
   })
 
+  it("annotationFilter strips specified keys", () => {
+    const generator = JsonSchemaGenerator.make()
+    generator.addSchema("A", { type: "string", description: "desc", examples: ["ex"] })
+    const definitions = {}
+    const result = generator.generate("openapi-3.1", definitions, false, {
+      annotationFilter: ["examples"]
+    })
+    expect(result).toBe(`// schemas
+export type A = string
+export const A = Schema.String.annotate({ "description": "desc" })
+`)
+  })
+
+  it("annotationFilter default preserves all", () => {
+    const generator = JsonSchemaGenerator.make()
+    generator.addSchema("A", { type: "string", description: "desc", examples: ["ex"] })
+    const definitions = {}
+    const result = generator.generate("openapi-3.1", definitions, false)
+    expect(result).toBe(`// schemas
+export type A = string
+export const A = Schema.String.annotate({ "description": "desc", "examples": ["ex"] })
+`)
+  })
+
   it("recursive schema", () => {
     const generator = JsonSchemaGenerator.make()
     generator.addSchema("A", { $ref: "#/components/schemas/B" })

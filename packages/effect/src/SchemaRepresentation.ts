@@ -2269,6 +2269,7 @@ function toRuntimeRegExp(regExp: RegExp): string {
  */
 export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">, options?: {
   readonly additionalProperties?: false | undefined
+  readonly annotationFilter?: ReadonlyArray<string> | ((key: string) => boolean) | undefined
 }): Document {
   const { references, representations: schemas } = fromJsonSchemaMultiDocument({
     dialect: document.dialect,
@@ -2286,7 +2287,14 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
  */
 export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"draft-2020-12">, options?: {
   readonly additionalProperties?: false | undefined
+  readonly annotationFilter?: ReadonlyArray<string> | ((key: string) => boolean) | undefined
 }): MultiDocument {
+  const annotationFilter = typeof options?.annotationFilter === "function"
+    ? options.annotationFilter
+    : options?.annotationFilter !== undefined
+    ? ((exclude = new Set(options.annotationFilter)) => (key: string) => !exclude.has(key))()
+    : undefined
+
   let visited: Set<string>
   const references: Record<string, Representation> = {}
 
@@ -2369,7 +2377,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
 
     let out = on(js)
 
-    const annotations = collectAnnotations(js)
+    const annotations = collectAnnotations(js, annotationFilter)
     if (annotations !== undefined) {
       out = combine(out, { _tag: "Unknown", annotations })
     }
@@ -2907,7 +2915,10 @@ const null_: Null = { _tag: "Null" }
 const string: String = { _tag: "String", checks: [] }
 const boolean: Boolean = { _tag: "Boolean" }
 
-function collectAnnotations(schema: JsonSchema.JsonSchema): Schema.Annotations.Annotations | undefined {
+function collectAnnotations(
+  schema: JsonSchema.JsonSchema,
+  filter?: (key: string) => boolean
+): Schema.Annotations.Annotations | undefined {
   const as: Record<string, unknown> = {}
 
   if (typeof schema.title === "string") as.title = schema.title
@@ -2919,6 +2930,12 @@ function collectAnnotations(schema: JsonSchema.JsonSchema): Schema.Annotations.A
   if (typeof schema.format === "string") as.format = schema.format
   if (typeof schema.contentEncoding === "string") as.contentEncoding = schema.contentEncoding
   if (typeof schema.contentMediaType === "string") as.contentMediaType = schema.contentMediaType
+
+  if (filter) {
+    for (const key of Object.keys(as)) {
+      if (!filter(key)) delete as[key]
+    }
+  }
 
   return Rec.isEmptyRecord(as) ? undefined : as
 }

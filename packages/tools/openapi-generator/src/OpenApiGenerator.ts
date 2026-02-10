@@ -26,6 +26,11 @@ export interface OpenApiGenerateOptions {
    * specification (without corresponding schemas).
    */
   readonly typeOnly: boolean
+  /**
+   * Filter which annotation keys to include in generated code.
+   * Pass an array of keys to exclude (blacklist) or a predicate function.
+   */
+  readonly annotationFilter?: ReadonlyArray<string> | ((key: string) => boolean) | undefined
 }
 
 const methodNames: ReadonlyArray<OpenAPISpecMethodName> = [
@@ -239,7 +244,9 @@ export const make = Effect.gen(function*() {
       // TODO: make a CLI option ?
       const importName = "Schema"
       const source = getDialect(spec)
-      const generation = generator.generate(source, spec.components?.schemas ?? {}, options.typeOnly)
+      const generation = generator.generate(source, spec.components?.schemas ?? {}, options.typeOnly, {
+        annotationFilter: options.annotationFilter
+      })
 
       return String.stripMargin(
         `|${openApiTransformer.imports(importName, operations)}

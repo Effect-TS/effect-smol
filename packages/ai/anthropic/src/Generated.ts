@@ -1,7 +1,6 @@
 /**
  * @since 1.0.0
  */
-// @ts-nocheck - Generated file with example values that may not type-check
 
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
@@ -172,6 +171,11 @@ export const BetaCodeExecutionToolResultErrorCode = Schema.Literals([
   "too_many_requests",
   "execution_time_exceeded"
 ]).annotate({ "title": "CodeExecutionToolResultErrorCode" })
+export type BetaCompactionContentBlockDelta = { readonly "content": string | null; readonly "type": "compaction_delta" }
+export const BetaCompactionContentBlockDelta = Schema.Struct({
+  "content": Schema.Union([Schema.String, Schema.Null]).annotate({ "title": "Content" }),
+  "type": Schema.Literal("compaction_delta").annotate({ "title": "Type", "default": "compaction_delta" })
+}).annotate({ "title": "CompactionContentBlockDelta" })
 export type BetaContentBlockStopEvent = { readonly "index": number; readonly "type": "content_block_stop" }
 export const BetaContentBlockStopEvent = Schema.Struct({
   "index": Schema.Number.annotate({ "title": "Index" }).check(Schema.isInt()),
@@ -196,31 +200,26 @@ export type BetaCreateSkillResponse = {
 export const BetaCreateSkillResponse = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was created."
   }),
   "display_title": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Display Title",
     "description":
-      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model.",
-    "examples": ["My Custom Skill"]
+      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time."
   }),
   "latest_version": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Latest Version",
     "description":
-      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created.",
-    "examples": ["1759178010641129"]
+      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created."
   }),
   "source": Schema.String.annotate({
     "title": "Source",
     "description":
-      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic",
-    "examples": ["custom"]
+      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic"
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -229,8 +228,7 @@ export const BetaCreateSkillResponse = Schema.Struct({
   }),
   "updated_at": Schema.String.annotate({
     "title": "Updated At",
-    "description": "ISO 8601 timestamp of when the skill was last updated.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was last updated."
   })
 }).annotate({ "title": "CreateSkillResponse" })
 export type BetaCreateSkillVersionResponse = {
@@ -246,35 +244,29 @@ export type BetaCreateSkillVersionResponse = {
 export const BetaCreateSkillVersionResponse = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill version was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill version was created."
   }),
   "description": Schema.String.annotate({
     "title": "Description",
-    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["A custom skill for doing something useful"]
+    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "directory": Schema.String.annotate({
     "title": "Directory",
     "description":
-      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files.",
-    "examples": ["my-skill"]
+      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skillver_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time."
   }),
   "name": Schema.String.annotate({
     "title": "Name",
     "description":
-      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["my-skill"]
+      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "skill_id": Schema.String.annotate({
     "title": "Skill Id",
-    "description": "Identifier for the skill that this version belongs to.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Identifier for the skill that this version belongs to."
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -284,17 +276,12 @@ export const BetaCreateSkillVersionResponse = Schema.Struct({
   "version": Schema.String.annotate({
     "title": "Version",
     "description":
-      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\").",
-    "examples": ["1759178010641129"]
+      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\")."
   })
 }).annotate({ "title": "CreateSkillVersionResponse" })
 export type BetaDeleteMessageBatchResponse = { readonly "id": string; readonly "type": "message_batch_deleted" }
 export const BetaDeleteMessageBatchResponse = Schema.Struct({
-  "id": Schema.String.annotate({
-    "title": "Id",
-    "description": "ID of the Message Batch.",
-    "examples": ["msgbatch_013Zva2CMHLNnXjNJJKqJ2EF"]
-  }),
+  "id": Schema.String.annotate({ "title": "Id", "description": "ID of the Message Batch." }),
   "type": Schema.Literal("message_batch_deleted").annotate({
     "title": "Type",
     "description": "Deleted object type.\n\nFor Message Batches, this is always `\"message_batch_deleted\"`.",
@@ -305,8 +292,7 @@ export type BetaDeleteSkillResponse = { readonly "id": string; readonly "type": 
 export const BetaDeleteSkillResponse = Schema.Struct({
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time."
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -319,8 +305,7 @@ export const BetaDeleteSkillVersionResponse = Schema.Struct({
   "id": Schema.String.annotate({
     "title": "Id",
     "description":
-      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\").",
-    "examples": ["1759178010641129"]
+      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\")."
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -331,6 +316,11 @@ export const BetaDeleteSkillVersionResponse = Schema.Struct({
 export type BetaDirectCaller = { readonly "type": "direct" }
 export const BetaDirectCaller = Schema.Struct({ "type": Schema.Literal("direct").annotate({ "title": "Type" }) })
   .annotate({ "title": "DirectCaller", "description": "Tool invocation directly from the model." })
+export type BetaEffortLevel = "low" | "medium" | "high" | "max"
+export const BetaEffortLevel = Schema.Literals(["low", "medium", "high", "max"]).annotate({
+  "title": "EffortLevel",
+  "description": "All possible effort levels."
+})
 export type BetaExpiredResult = { readonly "type": "expired" }
 export const BetaExpiredResult = Schema.Struct({
   "type": Schema.Literal("expired").annotate({ "title": "Type", "default": "expired" })
@@ -412,31 +402,26 @@ export type BetaGetSkillResponse = {
 export const BetaGetSkillResponse = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was created."
   }),
   "display_title": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Display Title",
     "description":
-      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model.",
-    "examples": ["My Custom Skill"]
+      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time."
   }),
   "latest_version": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Latest Version",
     "description":
-      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created.",
-    "examples": ["1759178010641129"]
+      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created."
   }),
   "source": Schema.String.annotate({
     "title": "Source",
     "description":
-      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic",
-    "examples": ["custom"]
+      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic"
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -445,8 +430,7 @@ export const BetaGetSkillResponse = Schema.Struct({
   }),
   "updated_at": Schema.String.annotate({
     "title": "Updated At",
-    "description": "ISO 8601 timestamp of when the skill was last updated.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was last updated."
   })
 }).annotate({ "title": "GetSkillResponse" })
 export type BetaGetSkillVersionResponse = {
@@ -462,35 +446,29 @@ export type BetaGetSkillVersionResponse = {
 export const BetaGetSkillVersionResponse = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill version was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill version was created."
   }),
   "description": Schema.String.annotate({
     "title": "Description",
-    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["A custom skill for doing something useful"]
+    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "directory": Schema.String.annotate({
     "title": "Directory",
     "description":
-      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files.",
-    "examples": ["my-skill"]
+      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skillver_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time."
   }),
   "name": Schema.String.annotate({
     "title": "Name",
     "description":
-      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["my-skill"]
+      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "skill_id": Schema.String.annotate({
     "title": "Skill Id",
-    "description": "Identifier for the skill that this version belongs to.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Identifier for the skill that this version belongs to."
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -500,8 +478,7 @@ export const BetaGetSkillVersionResponse = Schema.Struct({
   "version": Schema.String.annotate({
     "title": "Version",
     "description":
-      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\").",
-    "examples": ["1759178010641129"]
+      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\")."
   })
 }).annotate({ "title": "GetSkillVersionResponse" })
 export type BetaInputJsonContentBlockDelta = { readonly "partial_json": string; readonly "type": "input_json_delta" }
@@ -564,38 +541,32 @@ export const BetaMessageBatch = Schema.Struct({
   "archived_at": Schema.Union([Schema.String.annotate({ "format": "date-time" }), Schema.Null]).annotate({
     "title": "Archived At",
     "description":
-      "RFC 3339 datetime string representing the time at which the Message Batch was archived and its results became unavailable.",
-    "examples": ["2024-08-20T18:37:24.100435Z"]
+      "RFC 3339 datetime string representing the time at which the Message Batch was archived and its results became unavailable."
   }),
   "cancel_initiated_at": Schema.Union([Schema.String.annotate({ "format": "date-time" }), Schema.Null]).annotate({
     "title": "Cancel Initiated At",
     "description":
-      "RFC 3339 datetime string representing the time at which cancellation was initiated for the Message Batch. Specified only if cancellation was initiated.",
-    "examples": ["2024-08-20T18:37:24.100435Z"]
+      "RFC 3339 datetime string representing the time at which cancellation was initiated for the Message Batch. Specified only if cancellation was initiated."
   }),
   "created_at": Schema.String.annotate({
     "title": "Created At",
     "description": "RFC 3339 datetime string representing the time at which the Message Batch was created.",
-    "examples": ["2024-08-20T18:37:24.100435Z"],
     "format": "date-time"
   }),
   "ended_at": Schema.Union([Schema.String.annotate({ "format": "date-time" }), Schema.Null]).annotate({
     "title": "Ended At",
     "description":
-      "RFC 3339 datetime string representing the time at which processing for the Message Batch ended. Specified only once processing ends.\n\nProcessing ends when every request in a Message Batch has either succeeded, errored, canceled, or expired.",
-    "examples": ["2024-08-20T18:37:24.100435Z"]
+      "RFC 3339 datetime string representing the time at which processing for the Message Batch ended. Specified only once processing ends.\n\nProcessing ends when every request in a Message Batch has either succeeded, errored, canceled, or expired."
   }),
   "expires_at": Schema.String.annotate({
     "title": "Expires At",
     "description":
       "RFC 3339 datetime string representing the time at which the Message Batch will expire and end processing, which is 24 hours after creation.",
-    "examples": ["2024-08-20T18:37:24.100435Z"],
     "format": "date-time"
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique object identifier.\n\nThe format and length of IDs may change over time.",
-    "examples": ["msgbatch_013Zva2CMHLNnXjNJJKqJ2EF"]
+    "description": "Unique object identifier.\n\nThe format and length of IDs may change over time."
   }),
   "processing_status": Schema.Literals(["in_progress", "canceling", "ended"]).annotate({
     "title": "Processing Status",
@@ -606,35 +577,30 @@ export const BetaMessageBatch = Schema.Struct({
       "title": "Canceled",
       "description":
         "Number of requests in the Message Batch that have been canceled.\n\nThis is zero until processing of the entire Message Batch has ended.",
-      "default": 0,
-      "examples": [10]
+      "default": 0
     }).check(Schema.isInt()),
     "errored": Schema.Number.annotate({
       "title": "Errored",
       "description":
         "Number of requests in the Message Batch that encountered an error.\n\nThis is zero until processing of the entire Message Batch has ended.",
-      "default": 0,
-      "examples": [30]
+      "default": 0
     }).check(Schema.isInt()),
     "expired": Schema.Number.annotate({
       "title": "Expired",
       "description":
         "Number of requests in the Message Batch that have expired.\n\nThis is zero until processing of the entire Message Batch has ended.",
-      "default": 0,
-      "examples": [10]
+      "default": 0
     }).check(Schema.isInt()),
     "processing": Schema.Number.annotate({
       "title": "Processing",
       "description": "Number of requests in the Message Batch that are processing.",
-      "default": 0,
-      "examples": [100]
+      "default": 0
     }).check(Schema.isInt()),
     "succeeded": Schema.Number.annotate({
       "title": "Succeeded",
       "description":
         "Number of requests in the Message Batch that have completed successfully.\n\nThis is zero until processing of the entire Message Batch has ended.",
-      "default": 0,
-      "examples": [50]
+      "default": 0
     }).check(Schema.isInt())
   }).annotate({
     "title": "RequestCounts",
@@ -644,8 +610,7 @@ export const BetaMessageBatch = Schema.Struct({
   "results_url": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Results Url",
     "description":
-      "URL to a `.jsonl` file containing the results of the Message Batch requests. Specified only once processing ends.\n\nResults in the file are not guaranteed to be in the same order as requests. Use the `custom_id` field to match results to requests.",
-    "examples": ["https://api.anthropic.com/v1/messages/batches/msgbatch_013Zva2CMHLNnXjNJJKqJ2EF/results"]
+      "URL to a `.jsonl` file containing the results of the Message Batch requests. Specified only once processing ends.\n\nResults in the file are not guaranteed to be in the same order as requests. Use the `custom_id` field to match results to requests."
   }),
   "type": Schema.Literal("message_batch").annotate({
     "title": "Type",
@@ -668,19 +633,13 @@ export const BetaModelInfo = Schema.Struct({
     "title": "Created At",
     "description":
       "RFC 3339 datetime string representing the time at which the model was released. May be set to an epoch value if the release date is unknown.",
-    "examples": ["2025-02-19T00:00:00Z"],
     "format": "date-time"
   }),
   "display_name": Schema.String.annotate({
     "title": "Display Name",
-    "description": "A human-readable name for the model.",
-    "examples": ["Claude Sonnet 4"]
+    "description": "A human-readable name for the model."
   }),
-  "id": Schema.String.annotate({
-    "title": "Id",
-    "description": "Unique model identifier.",
-    "examples": ["claude-sonnet-4-20250514"]
-  }),
+  "id": Schema.String.annotate({ "title": "Id", "description": "Unique model identifier." }),
   "type": Schema.Literal("model").annotate({
     "title": "Type",
     "description": "Object type.\n\nFor Models, this is always `\"model\"`.",
@@ -1006,6 +965,18 @@ export const BetaResponseCodeExecutionOutputBlock = Schema.Struct({
   "file_id": Schema.String.annotate({ "title": "File Id" }),
   "type": Schema.Literal("code_execution_output").annotate({ "title": "Type", "default": "code_execution_output" })
 }).annotate({ "title": "ResponseCodeExecutionOutputBlock" })
+export type BetaResponseCompactionBlock = { readonly "content": string | null; readonly "type": "compaction" }
+export const BetaResponseCompactionBlock = Schema.Struct({
+  "content": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "title": "Content",
+    "description": "Summary of compacted content, or null if compaction failed"
+  }),
+  "type": Schema.Literal("compaction").annotate({ "title": "Type", "default": "compaction" })
+}).annotate({
+  "title": "ResponseCompactionBlock",
+  "description":
+    "A compaction block returned when autocompact is triggered.\n\nWhen content is None, it indicates the compaction failed to produce a valid\nsummary (e.g., malformed output from the model). Clients may round-trip\ncompaction blocks with null content; the server treats them as no-ops."
+})
 export type BetaResponseContainerUploadBlock = { readonly "file_id": string; readonly "type": "container_upload" }
 export const BetaResponseContainerUploadBlock = Schema.Struct({
   "file_id": Schema.String.annotate({ "title": "File Id" }),
@@ -1182,8 +1153,8 @@ export const BetaResponseThinkingBlock = Schema.Struct({
 export type BetaResponseToolReferenceBlock = { readonly "tool_name": string; readonly "type": "tool_reference" }
 export const BetaResponseToolReferenceBlock = Schema.Struct({
   "tool_name": Schema.String.annotate({ "title": "Tool Name" }).check(Schema.isMinLength(1)).check(
-    Schema.isMaxLength(64)
-  ).check(Schema.isPattern(new RegExp("^[a-zA-Z0-9_-]{1,64}$"))),
+    Schema.isMaxLength(256)
+  ).check(Schema.isPattern(new RegExp("^[a-zA-Z0-9_-]{1,256}$"))),
   "type": Schema.Literal("tool_reference").annotate({ "title": "Type", "default": "tool_reference" })
 }).annotate({ "title": "ResponseToolReferenceBlock" })
 export type BetaResponseWebSearchResultBlock = {
@@ -1229,14 +1200,12 @@ export const BetaServerToolUsage = Schema.Struct({
   "web_fetch_requests": Schema.Number.annotate({
     "title": "Web Fetch Requests",
     "description": "The number of web fetch tool requests.",
-    "default": 0,
-    "examples": [2]
+    "default": 0
   }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   "web_search_requests": Schema.Number.annotate({
     "title": "Web Search Requests",
     "description": "The number of web search tool requests.",
-    "default": 0,
-    "examples": [0]
+    "default": 0
   }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0))
 }).annotate({ "title": "ServerToolUsage" })
 export type BetaSignatureContentBlockDelta = { readonly "signature": string; readonly "type": "signature_delta" }
@@ -1294,35 +1263,29 @@ export type BetaSkillVersion = {
 export const BetaSkillVersion = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill version was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill version was created."
   }),
   "description": Schema.String.annotate({
     "title": "Description",
-    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["A custom skill for doing something useful"]
+    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "directory": Schema.String.annotate({
     "title": "Directory",
     "description":
-      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files.",
-    "examples": ["my-skill"]
+      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skillver_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time."
   }),
   "name": Schema.String.annotate({
     "title": "Name",
     "description":
-      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["my-skill"]
+      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "skill_id": Schema.String.annotate({
     "title": "Skill Id",
-    "description": "Identifier for the skill that this version belongs to.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Identifier for the skill that this version belongs to."
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -1332,10 +1295,11 @@ export const BetaSkillVersion = Schema.Struct({
   "version": Schema.String.annotate({
     "title": "Version",
     "description":
-      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\").",
-    "examples": ["1759178010641129"]
+      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\")."
   })
 }).annotate({ "title": "SkillVersion" })
+export type BetaSpeed = "standard" | "fast"
+export const BetaSpeed = Schema.Literals(["standard", "fast"]).annotate({ "title": "Speed" })
 export type BetaTextContentBlockDelta = { readonly "text": string; readonly "type": "text_delta" }
 export const BetaTextContentBlockDelta = Schema.Struct({
   "text": Schema.String.annotate({ "title": "Text" }),
@@ -1354,6 +1318,10 @@ export const BetaTextEditorCodeExecutionToolResultErrorCode = Schema.Literals([
   "execution_time_exceeded",
   "file_not_found"
 ]).annotate({ "title": "TextEditorCodeExecutionToolResultErrorCode" })
+export type BetaThinkingConfigAdaptive = { readonly "type": "adaptive" }
+export const BetaThinkingConfigAdaptive = Schema.Struct({
+  "type": Schema.Literal("adaptive").annotate({ "title": "Type" })
+}).annotate({ "title": "ThinkingConfigAdaptive" })
 export type BetaThinkingConfigDisabled = { readonly "type": "disabled" }
 export const BetaThinkingConfigDisabled = Schema.Struct({
   "type": Schema.Literal("disabled").annotate({ "title": "Type" })
@@ -1463,29 +1431,25 @@ export const BetaUserLocation = Schema.Struct({
   "city": Schema.optionalKey(
     Schema.Union([Schema.String.check(Schema.isMinLength(1)).check(Schema.isMaxLength(255)), Schema.Null]).annotate({
       "title": "City",
-      "description": "The city of the user.",
-      "examples": ["New York", "Tokyo", "Los Angeles"]
+      "description": "The city of the user."
     })
   ),
   "country": Schema.optionalKey(
     Schema.Union([Schema.String.check(Schema.isMinLength(2)).check(Schema.isMaxLength(2)), Schema.Null]).annotate({
       "title": "Country",
-      "description": "The two letter [ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) of the user.",
-      "examples": ["US", "JP", "GB"]
+      "description": "The two letter [ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) of the user."
     })
   ),
   "region": Schema.optionalKey(
     Schema.Union([Schema.String.check(Schema.isMinLength(1)).check(Schema.isMaxLength(255)), Schema.Null]).annotate({
       "title": "Region",
-      "description": "The region of the user.",
-      "examples": ["California", "Ontario", "Wales"]
+      "description": "The region of the user."
     })
   ),
   "timezone": Schema.optionalKey(
     Schema.Union([Schema.String.check(Schema.isMinLength(1)).check(Schema.isMaxLength(255)), Schema.Null]).annotate({
       "title": "Timezone",
-      "description": "The [IANA timezone](https://nodatime.org/TimeZones) of the user.",
-      "examples": ["America/New_York", "Asia/Tokyo", "Europe/London"]
+      "description": "The [IANA timezone](https://nodatime.org/TimeZones) of the user."
     })
   ),
   "type": Schema.Literal("approximate").annotate({ "title": "Type" })
@@ -1536,31 +1500,26 @@ export type Betaapi__schemas__skills__Skill = {
 export const Betaapi__schemas__skills__Skill = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was created."
   }),
   "display_title": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Display Title",
     "description":
-      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model.",
-    "examples": ["My Custom Skill"]
+      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time."
   }),
   "latest_version": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Latest Version",
     "description":
-      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created.",
-    "examples": ["1759178010641129"]
+      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created."
   }),
   "source": Schema.String.annotate({
     "title": "Source",
     "description":
-      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic",
-    "examples": ["custom"]
+      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic"
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -1569,8 +1528,7 @@ export const Betaapi__schemas__skills__Skill = Schema.Struct({
   }),
   "updated_at": Schema.String.annotate({
     "title": "Updated At",
-    "description": "ISO 8601 timestamp of when the skill was last updated.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was last updated."
   })
 }).annotate({ "title": "Skill" })
 export type BillingError = { readonly "message": string; readonly "type": "billing_error" }
@@ -1650,8 +1608,7 @@ export type CountMessageTokensResponse = { readonly "input_tokens": number }
 export const CountMessageTokensResponse = Schema.Struct({
   "input_tokens": Schema.Number.annotate({
     "title": "Input Tokens",
-    "description": "The total number of tokens across the provided list of messages, system prompt, and tools.",
-    "examples": [2095]
+    "description": "The total number of tokens across the provided list of messages, system prompt, and tools."
   }).check(Schema.isInt())
 }).annotate({ "title": "CountMessageTokensResponse" })
 export type CreateSkillResponse = {
@@ -1666,31 +1623,26 @@ export type CreateSkillResponse = {
 export const CreateSkillResponse = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was created."
   }),
   "display_title": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Display Title",
     "description":
-      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model.",
-    "examples": ["My Custom Skill"]
+      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time."
   }),
   "latest_version": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Latest Version",
     "description":
-      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created.",
-    "examples": ["1759178010641129"]
+      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created."
   }),
   "source": Schema.String.annotate({
     "title": "Source",
     "description":
-      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic",
-    "examples": ["custom"]
+      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic"
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -1699,8 +1651,7 @@ export const CreateSkillResponse = Schema.Struct({
   }),
   "updated_at": Schema.String.annotate({
     "title": "Updated At",
-    "description": "ISO 8601 timestamp of when the skill was last updated.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was last updated."
   })
 }).annotate({ "title": "CreateSkillResponse" })
 export type CreateSkillVersionResponse = {
@@ -1716,35 +1667,29 @@ export type CreateSkillVersionResponse = {
 export const CreateSkillVersionResponse = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill version was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill version was created."
   }),
   "description": Schema.String.annotate({
     "title": "Description",
-    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["A custom skill for doing something useful"]
+    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "directory": Schema.String.annotate({
     "title": "Directory",
     "description":
-      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files.",
-    "examples": ["my-skill"]
+      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skillver_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time."
   }),
   "name": Schema.String.annotate({
     "title": "Name",
     "description":
-      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["my-skill"]
+      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "skill_id": Schema.String.annotate({
     "title": "Skill Id",
-    "description": "Identifier for the skill that this version belongs to.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Identifier for the skill that this version belongs to."
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -1754,17 +1699,12 @@ export const CreateSkillVersionResponse = Schema.Struct({
   "version": Schema.String.annotate({
     "title": "Version",
     "description":
-      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\").",
-    "examples": ["1759178010641129"]
+      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\")."
   })
 }).annotate({ "title": "CreateSkillVersionResponse" })
 export type DeleteMessageBatchResponse = { readonly "id": string; readonly "type": "message_batch_deleted" }
 export const DeleteMessageBatchResponse = Schema.Struct({
-  "id": Schema.String.annotate({
-    "title": "Id",
-    "description": "ID of the Message Batch.",
-    "examples": ["msgbatch_013Zva2CMHLNnXjNJJKqJ2EF"]
-  }),
+  "id": Schema.String.annotate({ "title": "Id", "description": "ID of the Message Batch." }),
   "type": Schema.Literal("message_batch_deleted").annotate({
     "title": "Type",
     "description": "Deleted object type.\n\nFor Message Batches, this is always `\"message_batch_deleted\"`.",
@@ -1775,8 +1715,7 @@ export type DeleteSkillResponse = { readonly "id": string; readonly "type": stri
 export const DeleteSkillResponse = Schema.Struct({
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time."
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -1789,8 +1728,7 @@ export const DeleteSkillVersionResponse = Schema.Struct({
   "id": Schema.String.annotate({
     "title": "Id",
     "description":
-      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\").",
-    "examples": ["1759178010641129"]
+      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\")."
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -1798,6 +1736,11 @@ export const DeleteSkillVersionResponse = Schema.Struct({
     "default": "skill_version_deleted"
   })
 }).annotate({ "title": "DeleteSkillVersionResponse" })
+export type EffortLevel = "low" | "medium" | "high" | "max"
+export const EffortLevel = Schema.Literals(["low", "medium", "high", "max"]).annotate({
+  "title": "EffortLevel",
+  "description": "All possible effort levels."
+})
 export type ExpiredResult = { readonly "type": "expired" }
 export const ExpiredResult = Schema.Struct({
   "type": Schema.Literal("expired").annotate({ "title": "Type", "default": "expired" })
@@ -1869,31 +1812,26 @@ export type GetSkillResponse = {
 export const GetSkillResponse = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was created."
   }),
   "display_title": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Display Title",
     "description":
-      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model.",
-    "examples": ["My Custom Skill"]
+      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time."
   }),
   "latest_version": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Latest Version",
     "description":
-      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created.",
-    "examples": ["1759178010641129"]
+      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created."
   }),
   "source": Schema.String.annotate({
     "title": "Source",
     "description":
-      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic",
-    "examples": ["custom"]
+      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic"
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -1902,8 +1840,7 @@ export const GetSkillResponse = Schema.Struct({
   }),
   "updated_at": Schema.String.annotate({
     "title": "Updated At",
-    "description": "ISO 8601 timestamp of when the skill was last updated.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was last updated."
   })
 }).annotate({ "title": "GetSkillResponse" })
 export type GetSkillVersionResponse = {
@@ -1919,35 +1856,29 @@ export type GetSkillVersionResponse = {
 export const GetSkillVersionResponse = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill version was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill version was created."
   }),
   "description": Schema.String.annotate({
     "title": "Description",
-    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["A custom skill for doing something useful"]
+    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "directory": Schema.String.annotate({
     "title": "Directory",
     "description":
-      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files.",
-    "examples": ["my-skill"]
+      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skillver_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time."
   }),
   "name": Schema.String.annotate({
     "title": "Name",
     "description":
-      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["my-skill"]
+      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "skill_id": Schema.String.annotate({
     "title": "Skill Id",
-    "description": "Identifier for the skill that this version belongs to.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Identifier for the skill that this version belongs to."
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -1957,8 +1888,7 @@ export const GetSkillVersionResponse = Schema.Struct({
   "version": Schema.String.annotate({
     "title": "Version",
     "description":
-      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\").",
-    "examples": ["1759178010641129"]
+      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\")."
   })
 }).annotate({ "title": "GetSkillVersionResponse" })
 export type InputJsonContentBlockDelta = { readonly "partial_json": string; readonly "type": "input_json_delta" }
@@ -2004,38 +1934,32 @@ export const MessageBatch = Schema.Struct({
   "archived_at": Schema.Union([Schema.String.annotate({ "format": "date-time" }), Schema.Null]).annotate({
     "title": "Archived At",
     "description":
-      "RFC 3339 datetime string representing the time at which the Message Batch was archived and its results became unavailable.",
-    "examples": ["2024-08-20T18:37:24.100435Z"]
+      "RFC 3339 datetime string representing the time at which the Message Batch was archived and its results became unavailable."
   }),
   "cancel_initiated_at": Schema.Union([Schema.String.annotate({ "format": "date-time" }), Schema.Null]).annotate({
     "title": "Cancel Initiated At",
     "description":
-      "RFC 3339 datetime string representing the time at which cancellation was initiated for the Message Batch. Specified only if cancellation was initiated.",
-    "examples": ["2024-08-20T18:37:24.100435Z"]
+      "RFC 3339 datetime string representing the time at which cancellation was initiated for the Message Batch. Specified only if cancellation was initiated."
   }),
   "created_at": Schema.String.annotate({
     "title": "Created At",
     "description": "RFC 3339 datetime string representing the time at which the Message Batch was created.",
-    "examples": ["2024-08-20T18:37:24.100435Z"],
     "format": "date-time"
   }),
   "ended_at": Schema.Union([Schema.String.annotate({ "format": "date-time" }), Schema.Null]).annotate({
     "title": "Ended At",
     "description":
-      "RFC 3339 datetime string representing the time at which processing for the Message Batch ended. Specified only once processing ends.\n\nProcessing ends when every request in a Message Batch has either succeeded, errored, canceled, or expired.",
-    "examples": ["2024-08-20T18:37:24.100435Z"]
+      "RFC 3339 datetime string representing the time at which processing for the Message Batch ended. Specified only once processing ends.\n\nProcessing ends when every request in a Message Batch has either succeeded, errored, canceled, or expired."
   }),
   "expires_at": Schema.String.annotate({
     "title": "Expires At",
     "description":
       "RFC 3339 datetime string representing the time at which the Message Batch will expire and end processing, which is 24 hours after creation.",
-    "examples": ["2024-08-20T18:37:24.100435Z"],
     "format": "date-time"
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique object identifier.\n\nThe format and length of IDs may change over time.",
-    "examples": ["msgbatch_013Zva2CMHLNnXjNJJKqJ2EF"]
+    "description": "Unique object identifier.\n\nThe format and length of IDs may change over time."
   }),
   "processing_status": Schema.Literals(["in_progress", "canceling", "ended"]).annotate({
     "title": "Processing Status",
@@ -2046,35 +1970,30 @@ export const MessageBatch = Schema.Struct({
       "title": "Canceled",
       "description":
         "Number of requests in the Message Batch that have been canceled.\n\nThis is zero until processing of the entire Message Batch has ended.",
-      "default": 0,
-      "examples": [10]
+      "default": 0
     }).check(Schema.isInt()),
     "errored": Schema.Number.annotate({
       "title": "Errored",
       "description":
         "Number of requests in the Message Batch that encountered an error.\n\nThis is zero until processing of the entire Message Batch has ended.",
-      "default": 0,
-      "examples": [30]
+      "default": 0
     }).check(Schema.isInt()),
     "expired": Schema.Number.annotate({
       "title": "Expired",
       "description":
         "Number of requests in the Message Batch that have expired.\n\nThis is zero until processing of the entire Message Batch has ended.",
-      "default": 0,
-      "examples": [10]
+      "default": 0
     }).check(Schema.isInt()),
     "processing": Schema.Number.annotate({
       "title": "Processing",
       "description": "Number of requests in the Message Batch that are processing.",
-      "default": 0,
-      "examples": [100]
+      "default": 0
     }).check(Schema.isInt()),
     "succeeded": Schema.Number.annotate({
       "title": "Succeeded",
       "description":
         "Number of requests in the Message Batch that have completed successfully.\n\nThis is zero until processing of the entire Message Batch has ended.",
-      "default": 0,
-      "examples": [50]
+      "default": 0
     }).check(Schema.isInt())
   }).annotate({
     "title": "RequestCounts",
@@ -2084,8 +2003,7 @@ export const MessageBatch = Schema.Struct({
   "results_url": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Results Url",
     "description":
-      "URL to a `.jsonl` file containing the results of the Message Batch requests. Specified only once processing ends.\n\nResults in the file are not guaranteed to be in the same order as requests. Use the `custom_id` field to match results to requests.",
-    "examples": ["https://api.anthropic.com/v1/messages/batches/msgbatch_013Zva2CMHLNnXjNJJKqJ2EF/results"]
+      "URL to a `.jsonl` file containing the results of the Message Batch requests. Specified only once processing ends.\n\nResults in the file are not guaranteed to be in the same order as requests. Use the `custom_id` field to match results to requests."
   }),
   "type": Schema.Literal("message_batch").annotate({
     "title": "Type",
@@ -2108,19 +2026,13 @@ export const ModelInfo = Schema.Struct({
     "title": "Created At",
     "description":
       "RFC 3339 datetime string representing the time at which the model was released. May be set to an epoch value if the release date is unknown.",
-    "examples": ["2025-02-19T00:00:00Z"],
     "format": "date-time"
   }),
   "display_name": Schema.String.annotate({
     "title": "Display Name",
-    "description": "A human-readable name for the model.",
-    "examples": ["Claude Sonnet 4"]
+    "description": "A human-readable name for the model."
   }),
-  "id": Schema.String.annotate({
-    "title": "Id",
-    "description": "Unique model identifier.",
-    "examples": ["claude-sonnet-4-20250514"]
-  }),
+  "id": Schema.String.annotate({ "title": "Id", "description": "Unique model identifier." }),
   "type": Schema.Literal("model").annotate({
     "title": "Type",
     "description": "Object type.\n\nFor Models, this is always `\"model\"`.",
@@ -2440,8 +2352,7 @@ export const ServerToolUsage = Schema.Struct({
   "web_search_requests": Schema.Number.annotate({
     "title": "Web Search Requests",
     "description": "The number of web search tool requests.",
-    "default": 0,
-    "examples": [0]
+    "default": 0
   }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0))
 }).annotate({ "title": "ServerToolUsage" })
 export type SignatureContentBlockDelta = { readonly "signature": string; readonly "type": "signature_delta" }
@@ -2461,31 +2372,26 @@ export type Skill = {
 export const Skill = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was created."
   }),
   "display_title": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Display Title",
     "description":
-      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model.",
-    "examples": ["My Custom Skill"]
+      "Display title for the skill.\n\nThis is a human-readable label that is not included in the prompt sent to the model."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill.\n\nThe format and length of IDs may change over time."
   }),
   "latest_version": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Latest Version",
     "description":
-      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created.",
-    "examples": ["1759178010641129"]
+      "The latest version identifier for the skill.\n\nThis represents the most recent version of the skill that has been created."
   }),
   "source": Schema.String.annotate({
     "title": "Source",
     "description":
-      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic",
-    "examples": ["custom"]
+      "Source of the skill.\n\nThis may be one of the following values:\n* `\"custom\"`: the skill was created by a user\n* `\"anthropic\"`: the skill was created by Anthropic"
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -2494,8 +2400,7 @@ export const Skill = Schema.Struct({
   }),
   "updated_at": Schema.String.annotate({
     "title": "Updated At",
-    "description": "ISO 8601 timestamp of when the skill was last updated.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill was last updated."
   })
 }).annotate({ "title": "Skill" })
 export type SkillVersion = {
@@ -2511,35 +2416,29 @@ export type SkillVersion = {
 export const SkillVersion = Schema.Struct({
   "created_at": Schema.String.annotate({
     "title": "Created At",
-    "description": "ISO 8601 timestamp of when the skill version was created.",
-    "examples": ["2024-10-30T23:58:27.427722Z"]
+    "description": "ISO 8601 timestamp of when the skill version was created."
   }),
   "description": Schema.String.annotate({
     "title": "Description",
-    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["A custom skill for doing something useful"]
+    "description": "Description of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "directory": Schema.String.annotate({
     "title": "Directory",
     "description":
-      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files.",
-    "examples": ["my-skill"]
+      "Directory name of the skill version.\n\nThis is the top-level directory name that was extracted from the uploaded files."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time.",
-    "examples": ["skillver_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Unique identifier for the skill version.\n\nThe format and length of IDs may change over time."
   }),
   "name": Schema.String.annotate({
     "title": "Name",
     "description":
-      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload.",
-    "examples": ["my-skill"]
+      "Human-readable name of the skill version.\n\nThis is extracted from the SKILL.md file in the skill upload."
   }),
   "skill_id": Schema.String.annotate({
     "title": "Skill Id",
-    "description": "Identifier for the skill that this version belongs to.",
-    "examples": ["skill_01JAbcdefghijklmnopqrstuvw"]
+    "description": "Identifier for the skill that this version belongs to."
   }),
   "type": Schema.String.annotate({
     "title": "Type",
@@ -2549,15 +2448,20 @@ export const SkillVersion = Schema.Struct({
   "version": Schema.String.annotate({
     "title": "Version",
     "description":
-      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\").",
-    "examples": ["1759178010641129"]
+      "Version identifier for the skill.\n\nEach version is identified by a Unix epoch timestamp (e.g., \"1759178010641129\")."
   })
 }).annotate({ "title": "SkillVersion" })
+export type Speed = "standard" | "fast"
+export const Speed = Schema.Literals(["standard", "fast"]).annotate({ "title": "Speed" })
 export type TextContentBlockDelta = { readonly "text": string; readonly "type": "text_delta" }
 export const TextContentBlockDelta = Schema.Struct({
   "text": Schema.String.annotate({ "title": "Text" }),
   "type": Schema.Literal("text_delta").annotate({ "title": "Type", "default": "text_delta" })
 }).annotate({ "title": "TextContentBlockDelta" })
+export type ThinkingConfigAdaptive = { readonly "type": "adaptive" }
+export const ThinkingConfigAdaptive = Schema.Struct({
+  "type": Schema.Literal("adaptive").annotate({ "title": "Type" })
+}).annotate({ "title": "ThinkingConfigAdaptive" })
 export type ThinkingConfigDisabled = { readonly "type": "disabled" }
 export const ThinkingConfigDisabled = Schema.Struct({
   "type": Schema.Literal("disabled").annotate({ "title": "Type" })
@@ -2643,29 +2547,25 @@ export const UserLocation = Schema.Struct({
   "city": Schema.optionalKey(
     Schema.Union([Schema.String.check(Schema.isMinLength(1)).check(Schema.isMaxLength(255)), Schema.Null]).annotate({
       "title": "City",
-      "description": "The city of the user.",
-      "examples": ["New York", "Tokyo", "Los Angeles"]
+      "description": "The city of the user."
     })
   ),
   "country": Schema.optionalKey(
     Schema.Union([Schema.String.check(Schema.isMinLength(2)).check(Schema.isMaxLength(2)), Schema.Null]).annotate({
       "title": "Country",
-      "description": "The two letter [ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) of the user.",
-      "examples": ["US", "JP", "GB"]
+      "description": "The two letter [ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) of the user."
     })
   ),
   "region": Schema.optionalKey(
     Schema.Union([Schema.String.check(Schema.isMinLength(1)).check(Schema.isMaxLength(255)), Schema.Null]).annotate({
       "title": "Region",
-      "description": "The region of the user.",
-      "examples": ["California", "Ontario", "Wales"]
+      "description": "The region of the user."
     })
   ),
   "timezone": Schema.optionalKey(
     Schema.Union([Schema.String.check(Schema.isMinLength(1)).check(Schema.isMaxLength(255)), Schema.Null]).annotate({
       "title": "Timezone",
-      "description": "The [IANA timezone](https://nodatime.org/TimeZones) of the user.",
-      "examples": ["America/New_York", "Asia/Tokyo", "Europe/London"]
+      "description": "The [IANA timezone](https://nodatime.org/TimeZones) of the user."
     })
   ),
   "type": Schema.Literal("approximate").annotate({ "title": "Type" })
@@ -2700,6 +2600,7 @@ export type BetaStopReason =
   | "stop_sequence"
   | "tool_use"
   | "pause_turn"
+  | "compaction"
   | "refusal"
   | "model_context_window_exceeded"
 export const BetaStopReason = Schema.Literals([
@@ -2708,10 +2609,12 @@ export const BetaStopReason = Schema.Literals([
   "stop_sequence",
   "tool_use",
   "pause_turn",
+  "compaction",
   "refusal",
   "model_context_window_exceeded"
 ])
 export type Model =
+  | "claude-opus-4-6"
   | "claude-opus-4-5-20251101"
   | "claude-opus-4-5"
   | "claude-3-7-sonnet-latest"
@@ -2733,6 +2636,7 @@ export type Model =
   | "claude-3-opus-20240229"
   | "claude-3-haiku-20240307"
 export const Model = Schema.Literals([
+  "claude-opus-4-6",
   "claude-opus-4-5-20251101",
   "claude-opus-4-5",
   "claude-3-7-sonnet-latest",
@@ -2919,6 +2823,28 @@ export const BetaCodeExecutionTool_20250825 = Schema.Struct({
   ),
   "type": Schema.Literal("code_execution_20250825").annotate({ "title": "Type" })
 }).annotate({ "title": "CodeExecutionTool_20250825" })
+export type BetaRequestCompactionBlock = {
+  readonly "cache_control"?: BetaCacheControlEphemeral | null
+  readonly "content": string | null
+  readonly "type": "compaction"
+}
+export const BetaRequestCompactionBlock = Schema.Struct({
+  "cache_control": Schema.optionalKey(
+    Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
+      "title": "Cache Control",
+      "description": "Create a cache control breakpoint at this content block."
+    })
+  ),
+  "content": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "title": "Content",
+    "description": "Summary of previously compacted content, or null if compaction failed"
+  }),
+  "type": Schema.Literal("compaction").annotate({ "title": "Type" })
+}).annotate({
+  "title": "RequestCompactionBlock",
+  "description":
+    "A compaction block containing summary of previous context.\n\nUsers should round-trip these blocks from responses to subsequent requests\nto maintain context across compaction boundaries.\n\nWhen content is None, the block represents a failed compaction. The server\ntreats these as no-ops. Empty string content is not allowed."
+})
 export type BetaRequestContainerUploadBlock = {
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "file_id": string
@@ -2972,8 +2898,8 @@ export const BetaRequestToolReferenceBlock = Schema.Struct({
     })
   ),
   "tool_name": Schema.String.annotate({ "title": "Tool Name" }).check(Schema.isMinLength(1)).check(
-    Schema.isMaxLength(64)
-  ).check(Schema.isPattern(new RegExp("^[a-zA-Z0-9_-]{1,64}$"))),
+    Schema.isMaxLength(256)
+  ).check(Schema.isPattern(new RegExp("^[a-zA-Z0-9_-]{1,256}$"))),
   "type": Schema.Literal("tool_reference").annotate({ "title": "Type" })
 }).annotate({
   "title": "RequestToolReferenceBlock",
@@ -3053,6 +2979,80 @@ export const BetaToolSearchToolRegex_20251119 = Schema.Struct({
   ),
   "type": Schema.Literals(["tool_search_tool_regex_20251119", "tool_search_tool_regex"]).annotate({ "title": "Type" })
 }).annotate({ "title": "ToolSearchToolRegex_20251119" })
+export type BetaCompactionIterationUsage = {
+  readonly "cache_creation": BetaCacheCreation | null
+  readonly "cache_creation_input_tokens": number
+  readonly "cache_read_input_tokens": number
+  readonly "input_tokens": number
+  readonly "output_tokens": number
+  readonly "type": "compaction"
+}
+export const BetaCompactionIterationUsage = Schema.Struct({
+  "cache_creation": Schema.Union([BetaCacheCreation, Schema.Null]).annotate({
+    "description": "Breakdown of cached tokens by TTL",
+    "default": null
+  }),
+  "cache_creation_input_tokens": Schema.Number.annotate({
+    "title": "Cache Creation Input Tokens",
+    "description": "The number of input tokens used to create the cache entry.",
+    "default": 0
+  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  "cache_read_input_tokens": Schema.Number.annotate({
+    "title": "Cache Read Input Tokens",
+    "description": "The number of input tokens read from the cache.",
+    "default": 0
+  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  "input_tokens": Schema.Number.annotate({
+    "title": "Input Tokens",
+    "description": "The number of input tokens which were used."
+  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  "output_tokens": Schema.Number.annotate({
+    "title": "Output Tokens",
+    "description": "The number of output tokens which were used."
+  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  "type": Schema.Literal("compaction").annotate({
+    "title": "Type",
+    "description": "Usage for a compaction iteration",
+    "default": "compaction"
+  })
+}).annotate({ "title": "CompactionIterationUsage", "description": "Token usage for a compaction iteration." })
+export type BetaMessageIterationUsage = {
+  readonly "cache_creation": BetaCacheCreation | null
+  readonly "cache_creation_input_tokens": number
+  readonly "cache_read_input_tokens": number
+  readonly "input_tokens": number
+  readonly "output_tokens": number
+  readonly "type": "message"
+}
+export const BetaMessageIterationUsage = Schema.Struct({
+  "cache_creation": Schema.Union([BetaCacheCreation, Schema.Null]).annotate({
+    "description": "Breakdown of cached tokens by TTL",
+    "default": null
+  }),
+  "cache_creation_input_tokens": Schema.Number.annotate({
+    "title": "Cache Creation Input Tokens",
+    "description": "The number of input tokens used to create the cache entry.",
+    "default": 0
+  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  "cache_read_input_tokens": Schema.Number.annotate({
+    "title": "Cache Read Input Tokens",
+    "description": "The number of input tokens read from the cache.",
+    "default": 0
+  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  "input_tokens": Schema.Number.annotate({
+    "title": "Input Tokens",
+    "description": "The number of input tokens which were used."
+  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  "output_tokens": Schema.Number.annotate({
+    "title": "Output Tokens",
+    "description": "The number of output tokens which were used."
+  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  "type": Schema.Literal("message").annotate({
+    "title": "Type",
+    "description": "Usage for a sampling iteration",
+    "default": "message"
+  })
+}).annotate({ "title": "MessageIterationUsage", "description": "Token usage for a sampling iteration." })
 export type BetaRequestCodeExecutionToolResultError = {
   readonly "error_code": BetaCodeExecutionToolResultErrorCode
   readonly "type": "code_execution_tool_result_error"
@@ -3082,8 +3082,7 @@ export const BetaCountMessageTokensResponse = Schema.Struct({
   }),
   "input_tokens": Schema.Number.annotate({
     "title": "Input Tokens",
-    "description": "The total number of tokens across the provided list of messages, system prompt, and tools.",
-    "examples": [2095]
+    "description": "The total number of tokens across the provided list of messages, system prompt, and tools."
   }).check(Schema.isInt())
 }).annotate({ "title": "CountMessageTokensResponse" })
 export type BetaFileListResponse = {
@@ -3117,6 +3116,35 @@ export const BetaFileListResponse = Schema.Struct({
     })
   )
 }).annotate({ "title": "FileListResponse" })
+export type BetaCompact20260112 = {
+  readonly "instructions"?: string | null
+  readonly "pause_after_compaction"?: boolean
+  readonly "trigger"?: BetaInputTokensTrigger | null
+  readonly "type": "compact_20260112"
+}
+export const BetaCompact20260112 = Schema.Struct({
+  "instructions": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "title": "Instructions",
+      "description": "Additional instructions for summarization."
+    })
+  ),
+  "pause_after_compaction": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "title": "Pause After Compaction",
+      "description": "Whether to pause after compaction and return the compaction block to the user."
+    })
+  ),
+  "trigger": Schema.optionalKey(
+    Schema.Union([BetaInputTokensTrigger, Schema.Null]).annotate({
+      "description": "When to trigger compaction. Defaults to 150000 input tokens."
+    })
+  ),
+  "type": Schema.Literal("compact_20260112").annotate({ "title": "Type" })
+}).annotate({
+  "title": "Compact20260112",
+  "description": "Automatically compact older context when reaching the configured trigger threshold."
+})
 export type BetaBashTool_20241022 = {
   readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825">
   readonly "cache_control"?: BetaCacheControlEphemeral | null
@@ -3605,6 +3633,7 @@ export type BetaTool = {
   }
   readonly "cache_control"?: BetaCacheControlEphemeral | null
   readonly "strict"?: boolean
+  readonly "eager_input_streaming"?: boolean | null
   readonly "allowed_callers"?: ReadonlyArray<"direct" | "code_execution_20250825">
   readonly "defer_loading"?: boolean
   readonly "input_examples"?: ReadonlyArray<{ readonly [x: string]: BetaJsonValue }>
@@ -3614,8 +3643,7 @@ export const BetaTool = Schema.Struct({
   "description": Schema.optionalKey(Schema.String.annotate({
     "title": "Description",
     "description":
-      "Description of what this tool does.\n\nTool descriptions should be as detailed as possible. The more information that the model has about what the tool is and how to use it, the better it will perform. You can use natural language descriptions to reinforce important aspects of the tool input JSON schema.",
-    "examples": ["Get the current weather in a given location"]
+      "Description of what this tool does.\n\nTool descriptions should be as detailed as possible. The more information that the model has about what the tool is and how to use it, the better it will perform. You can use natural language descriptions to reinforce important aspects of the tool input JSON schema."
   })),
   "name": Schema.String.annotate({
     "title": "Name",
@@ -3637,15 +3665,7 @@ export const BetaTool = Schema.Struct({
   ).annotate({
     "title": "InputSchema",
     "description":
-      "[JSON schema](https://json-schema.org/draft/2020-12) for this tool's input.\n\nThis defines the shape of the `input` that your tool accepts and that the model will produce.",
-    "examples": [{
-      "properties": {
-        "location": { "description": "The city and state, e.g. San Francisco, CA", "type": "string" },
-        "unit": { "description": "Unit for the output - one of (celsius, fahrenheit)", "type": "string" }
-      },
-      "required": ["location"],
-      "type": "object"
-    }]
+      "[JSON schema](https://json-schema.org/draft/2020-12) for this tool's input.\n\nThis defines the shape of the `input` that your tool accepts and that the model will produce."
   }),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([BetaCacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
@@ -3657,6 +3677,13 @@ export const BetaTool = Schema.Struct({
     Schema.Boolean.annotate({
       "title": "Strict",
       "description": "When true, guarantees schema validation on tool names and inputs"
+    })
+  ),
+  "eager_input_streaming": Schema.optionalKey(
+    Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+      "title": "Eager Input Streaming",
+      "description":
+        "Enable eager input streaming for this tool. When true, tool input parameters will be streamed incrementally as they are generated, and types will be inferred on-the-fly rather than buffering the full JSON output. When false, streaming is disabled for this tool even if the fine-grained-tool-streaming beta is active. When null (default), uses the default behavior based on beta headers."
     })
   ),
   "allowed_callers": Schema.optionalKey(
@@ -4320,8 +4347,7 @@ export const BetaListSkillVersionsResponse = Schema.Struct({
   }),
   "next_page": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Next Page",
-    "description": "Token to provide in as `page` in the subsequent request to retrieve the next page of data.",
-    "examples": ["page_MjAyNS0wNS0xNFQwMDowMDowMFo=", null]
+    "description": "Token to provide in as `page` in the subsequent request to retrieve the next page of data."
   })
 }).annotate({ "title": "ListSkillVersionsResponse" })
 export type BetaRequestTextEditorCodeExecutionToolResultError = {
@@ -4349,10 +4375,15 @@ export const BetaResponseTextEditorCodeExecutionToolResultError = Schema.Struct(
     "default": "text_editor_code_execution_tool_result_error"
   })
 }).annotate({ "title": "ResponseTextEditorCodeExecutionToolResultError" })
-export type BetaThinkingConfigParam = BetaThinkingConfigEnabled | BetaThinkingConfigDisabled
-export const BetaThinkingConfigParam = Schema.Union([BetaThinkingConfigEnabled, BetaThinkingConfigDisabled], {
-  mode: "oneOf"
-}).annotate({
+export type BetaThinkingConfigParam =
+  | BetaThinkingConfigEnabled
+  | BetaThinkingConfigDisabled
+  | BetaThinkingConfigAdaptive
+export const BetaThinkingConfigParam = Schema.Union([
+  BetaThinkingConfigEnabled,
+  BetaThinkingConfigDisabled,
+  BetaThinkingConfigAdaptive
+], { mode: "oneOf" }).annotate({
   "title": "Thinking",
   "description":
     "Configuration for enabling Claude's extended thinking.\n\nWhen enabled, responses include `thinking` content blocks showing Claude's thinking process before the final answer. Requires a minimum budget of 1,024 tokens and counts towards your `max_tokens` limit.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
@@ -4581,8 +4612,7 @@ export const BetaListSkillsResponse = Schema.Struct({
   "next_page": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Next Page",
     "description":
-      "Token for fetching the next page of results.\n\nIf `null`, there are no more results available. Pass this value to the `page_token` parameter in the next request to get the next page.",
-    "examples": ["page_MjAyNS0wNS0xNFQwMDowMDowMFo=", null]
+      "Token for fetching the next page of results.\n\nIf `null`, there are no more results available. Pass this value to the `page_token` parameter in the next request to get the next page."
   })
 }).annotate({ "title": "ListSkillsResponse" })
 export type BashTool_20250124 = {
@@ -4724,14 +4754,14 @@ export type Tool = {
   }
   readonly "cache_control"?: CacheControlEphemeral | null
   readonly "strict"?: boolean
+  readonly "eager_input_streaming"?: boolean | null
 }
 export const Tool = Schema.Struct({
   "type": Schema.optionalKey(Schema.Union([Schema.Null, Schema.Literal("custom")]).annotate({ "title": "Type" })),
   "description": Schema.optionalKey(Schema.String.annotate({
     "title": "Description",
     "description":
-      "Description of what this tool does.\n\nTool descriptions should be as detailed as possible. The more information that the model has about what the tool is and how to use it, the better it will perform. You can use natural language descriptions to reinforce important aspects of the tool input JSON schema.",
-    "examples": ["Get the current weather in a given location"]
+      "Description of what this tool does.\n\nTool descriptions should be as detailed as possible. The more information that the model has about what the tool is and how to use it, the better it will perform. You can use natural language descriptions to reinforce important aspects of the tool input JSON schema."
   })),
   "name": Schema.String.annotate({
     "title": "Name",
@@ -4753,15 +4783,7 @@ export const Tool = Schema.Struct({
   ).annotate({
     "title": "InputSchema",
     "description":
-      "[JSON schema](https://json-schema.org/draft/2020-12) for this tool's input.\n\nThis defines the shape of the `input` that your tool accepts and that the model will produce.",
-    "examples": [{
-      "properties": {
-        "location": { "description": "The city and state, e.g. San Francisco, CA", "type": "string" },
-        "unit": { "description": "Unit for the output - one of (celsius, fahrenheit)", "type": "string" }
-      },
-      "required": ["location"],
-      "type": "object"
-    }]
+      "[JSON schema](https://json-schema.org/draft/2020-12) for this tool's input.\n\nThis defines the shape of the `input` that your tool accepts and that the model will produce."
   }),
   "cache_control": Schema.optionalKey(
     Schema.Union([Schema.Union([CacheControlEphemeral], { mode: "oneOf" }), Schema.Null]).annotate({
@@ -4773,6 +4795,13 @@ export const Tool = Schema.Struct({
     Schema.Boolean.annotate({
       "title": "Strict",
       "description": "When true, guarantees schema validation on tool names and inputs"
+    })
+  ),
+  "eager_input_streaming": Schema.optionalKey(
+    Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+      "title": "Eager Input Streaming",
+      "description":
+        "Enable eager input streaming for this tool. When true, tool input parameters will be streamed incrementally as they are generated, and types will be inferred on-the-fly rather than buffering the full JSON output. When false, streaming is disabled for this tool even if the fine-grained-tool-streaming beta is active. When null (default), uses the default behavior based on beta headers."
     })
   )
 }).annotate({ "title": "Tool" })
@@ -4986,8 +5015,7 @@ export const ListSkillsResponse = Schema.Struct({
   "next_page": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Next Page",
     "description":
-      "Token for fetching the next page of results.\n\nIf `null`, there are no more results available. Pass this value to the `page_token` parameter in the next request to get the next page.",
-    "examples": ["page_MjAyNS0wNS0xNFQwMDowMDowMFo=", null]
+      "Token for fetching the next page of results.\n\nIf `null`, there are no more results available. Pass this value to the `page_token` parameter in the next request to get the next page."
   })
 }).annotate({ "title": "ListSkillsResponse" })
 export type ListSkillVersionsResponse = {
@@ -5003,17 +5031,18 @@ export const ListSkillVersionsResponse = Schema.Struct({
   }),
   "next_page": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Next Page",
-    "description": "Token to provide in as `page` in the subsequent request to retrieve the next page of data.",
-    "examples": ["page_MjAyNS0wNS0xNFQwMDowMDowMFo=", null]
+    "description": "Token to provide in as `page` in the subsequent request to retrieve the next page of data."
   })
 }).annotate({ "title": "ListSkillVersionsResponse" })
-export type ThinkingConfigParam = ThinkingConfigEnabled | ThinkingConfigDisabled
-export const ThinkingConfigParam = Schema.Union([ThinkingConfigEnabled, ThinkingConfigDisabled], { mode: "oneOf" })
-  .annotate({
-    "title": "Thinking",
-    "description":
-      "Configuration for enabling Claude's extended thinking.\n\nWhen enabled, responses include `thinking` content blocks showing Claude's thinking process before the final answer. Requires a minimum budget of 1,024 tokens and counts towards your `max_tokens` limit.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
-  })
+export type ThinkingConfigParam = ThinkingConfigEnabled | ThinkingConfigDisabled | ThinkingConfigAdaptive
+export const ThinkingConfigParam = Schema.Union(
+  [ThinkingConfigEnabled, ThinkingConfigDisabled, ThinkingConfigAdaptive],
+  { mode: "oneOf" }
+).annotate({
+  "title": "Thinking",
+  "description":
+    "Configuration for enabling Claude's extended thinking.\n\nWhen enabled, responses include `thinking` content blocks showing Claude's thinking process before the final answer. Requires a minimum budget of 1,024 tokens and counts towards your `max_tokens` limit.\n\nSee [extended thinking](https://docs.claude.com/en/docs/build-with-claude/extended-thinking) for details."
+})
 export type ToolChoice = ToolChoiceAuto | ToolChoiceAny | ToolChoiceTool | ToolChoiceNone
 export const ToolChoice = Schema.Union([ToolChoiceAuto, ToolChoiceAny, ToolChoiceTool, ToolChoiceNone], {
   mode: "oneOf"
@@ -5131,14 +5160,12 @@ export const CompletionRequest = Schema.Struct({
   "prompt": Schema.String.annotate({
     "title": "Prompt",
     "description":
-      "The prompt that you want Claude to complete.\n\nFor proper response generation you will need to format your prompt using alternating `\\n\\nHuman:` and `\\n\\nAssistant:` conversational turns. For example:\n\n```\n\"\\n\\nHuman: {userQuestion}\\n\\nAssistant:\"\n```\n\nSee [prompt validation](https://docs.claude.com/en/api/prompt-validation) and our guide to [prompt design](https://docs.claude.com/en/docs/intro-to-prompting) for more details.",
-    "examples": ["\n\nHuman: Hello, world!\n\nAssistant:"]
+      "The prompt that you want Claude to complete.\n\nFor proper response generation you will need to format your prompt using alternating `\\n\\nHuman:` and `\\n\\nAssistant:` conversational turns. For example:\n\n```\n\"\\n\\nHuman: {userQuestion}\\n\\nAssistant:\"\n```\n\nSee [prompt validation](https://docs.claude.com/en/api/prompt-validation) and our guide to [prompt design](https://docs.claude.com/en/docs/intro-to-prompting) for more details."
   }).check(Schema.isMinLength(1)),
   "max_tokens_to_sample": Schema.Number.annotate({
     "title": "Max Tokens To Sample",
     "description":
-      "The maximum number of tokens to generate before stopping.\n\nNote that our models may stop _before_ reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.",
-    "examples": [256]
+      "The maximum number of tokens to generate before stopping.\n\nNote that our models may stop _before_ reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate."
   }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)),
   "stop_sequences": Schema.optionalKey(
     Schema.Array(Schema.String).annotate({
@@ -5151,24 +5178,21 @@ export const CompletionRequest = Schema.Struct({
     Schema.Number.annotate({
       "title": "Temperature",
       "description":
-        "Amount of randomness injected into the response.\n\nDefaults to `1.0`. Ranges from `0.0` to `1.0`. Use `temperature` closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks.\n\nNote that even with `temperature` of `0.0`, the results will not be fully deterministic.",
-      "examples": [1]
+        "Amount of randomness injected into the response.\n\nDefaults to `1.0`. Ranges from `0.0` to `1.0`. Use `temperature` closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks.\n\nNote that even with `temperature` of `0.0`, the results will not be fully deterministic."
     }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1))
   ),
   "top_p": Schema.optionalKey(
     Schema.Number.annotate({
       "title": "Top P",
       "description":
-        "Use nucleus sampling.\n\nIn nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by `top_p`. You should either alter `temperature` or `top_p`, but not both.\n\nRecommended for advanced use cases only. You usually only need to use `temperature`.",
-      "examples": [0.7]
+        "Use nucleus sampling.\n\nIn nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by `top_p`. You should either alter `temperature` or `top_p`, but not both.\n\nRecommended for advanced use cases only. You usually only need to use `temperature`."
     }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1))
   ),
   "top_k": Schema.optionalKey(
     Schema.Number.annotate({
       "title": "Top K",
       "description":
-        "Only sample from the top K options for each subsequent token.\n\nUsed to remove \"long tail\" low probability responses. [Learn more technical details here](https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277).\n\nRecommended for advanced use cases only. You usually only need to use `temperature`.",
-      "examples": [5]
+        "Only sample from the top K options for each subsequent token.\n\nUsed to remove \"long tail\" low probability responses. [Learn more technical details here](https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277).\n\nRecommended for advanced use cases only. You usually only need to use `temperature`."
     }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0))
   ),
   "metadata": Schema.optionalKey(
@@ -5177,8 +5201,7 @@ export const CompletionRequest = Schema.Struct({
         Schema.Union([Schema.String.check(Schema.isMaxLength(256)), Schema.Null]).annotate({
           "title": "User Id",
           "description":
-            "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number.",
-          "examples": ["13803d75-b4b5-4c3e-b2a2-6f21399b021b"]
+            "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number."
         })
       )
     }).annotate({ "title": "Metadata", "description": "An object describing metadata about the request." })
@@ -5190,14 +5213,7 @@ export const CompletionRequest = Schema.Struct({
         "Whether to incrementally stream the response using server-sent events.\n\nSee [streaming](https://docs.claude.com/en/api/streaming) for details."
     })
   )
-}).annotate({
-  "title": "CompletionRequest",
-  "examples": [{
-    "max_tokens_to_sample": 256,
-    "model": "claude-2.1",
-    "prompt": "\n\nHuman: Hello, world!\n\nAssistant:"
-  }]
-})
+}).annotate({ "title": "CompletionRequest" })
 export type CompletionResponse = {
   readonly "completion": string
   readonly "id": string
@@ -5208,8 +5224,7 @@ export type CompletionResponse = {
 export const CompletionResponse = Schema.Struct({
   "completion": Schema.String.annotate({
     "title": "Completion",
-    "description": "The resulting completion up to and excluding the stop sequences.",
-    "examples": [" Hello! My name is Claude."]
+    "description": "The resulting completion up to and excluding the stop sequences."
   }),
   "id": Schema.String.annotate({
     "title": "Id",
@@ -5219,8 +5234,7 @@ export const CompletionResponse = Schema.Struct({
   "stop_reason": Schema.Union([Schema.String, Schema.Null]).annotate({
     "title": "Stop Reason",
     "description":
-      "The reason that we stopped.\n\nThis may be one the following values:\n* `\"stop_sequence\"`: we reached a stop sequence — either provided by you via the `stop_sequences` parameter, or a stop sequence built into the model\n* `\"max_tokens\"`: we exceeded `max_tokens_to_sample` or the model's maximum",
-    "examples": ["stop_sequence"]
+      "The reason that we stopped.\n\nThis may be one the following values:\n* `\"stop_sequence\"`: we reached a stop sequence — either provided by you via the `stop_sequences` parameter, or a stop sequence built into the model\n* `\"max_tokens\"`: we exceeded `max_tokens_to_sample` or the model's maximum"
   }),
   "type": Schema.Literal("completion").annotate({
     "title": "Type",
@@ -5236,6 +5250,16 @@ export const BetaRequestToolSearchToolSearchResultBlock = Schema.Struct({
   "tool_references": Schema.Array(BetaRequestToolReferenceBlock).annotate({ "title": "Tool References" }),
   "type": Schema.Literal("tool_search_tool_search_result").annotate({ "title": "Type" })
 }).annotate({ "title": "RequestToolSearchToolSearchResultBlock" })
+export type BetaIterationsUsage = ReadonlyArray<BetaMessageIterationUsage | BetaCompactionIterationUsage> | null
+export const BetaIterationsUsage = Schema.Union([
+  Schema.Array(Schema.Union([BetaMessageIterationUsage, BetaCompactionIterationUsage])),
+  Schema.Null
+]).annotate({
+  "title": "Iterations",
+  "description":
+    "Per-iteration token usage breakdown.\n\nEach entry represents one sampling iteration, with its own input/output token counts and cache statistics. This allows you to:\n- Determine which iterations exceeded long context thresholds (>=200k tokens)\n- Calculate the true context window size from the last iteration\n- Understand token accumulation across server-side tool use loops",
+  "default": null
+})
 export type BetaErroredResult = { readonly "error": BetaErrorResponse; readonly "type": "errored" }
 export const BetaErroredResult = Schema.Struct({
   "error": BetaErrorResponse,
@@ -5359,6 +5383,7 @@ export type BetaContentBlockDeltaEvent = {
     | BetaCitationsDelta
     | BetaThinkingContentBlockDelta
     | BetaSignatureContentBlockDelta
+    | BetaCompactionContentBlockDelta
   readonly "index": number
   readonly "type": "content_block_delta"
 }
@@ -5368,7 +5393,8 @@ export const BetaContentBlockDeltaEvent = Schema.Struct({
     BetaInputJsonContentBlockDelta,
     BetaCitationsDelta,
     BetaThinkingContentBlockDelta,
-    BetaSignatureContentBlockDelta
+    BetaSignatureContentBlockDelta,
+    BetaCompactionContentBlockDelta
   ], { mode: "oneOf" }).annotate({ "title": "Delta" }),
   "index": Schema.Number.annotate({ "title": "Index" }).check(Schema.isInt()),
   "type": Schema.Literal("content_block_delta").annotate({ "title": "Type", "default": "content_block_delta" })
@@ -5455,14 +5481,15 @@ export const BetaResponseToolSearchToolResultBlock = Schema.Struct({
   "type": Schema.Literal("tool_search_tool_result").annotate({ "title": "Type", "default": "tool_search_tool_result" })
 }).annotate({ "title": "ResponseToolSearchToolResultBlock" })
 export type BetaContextManagementConfig = {
-  readonly "edits"?: ReadonlyArray<BetaClearToolUses20250919 | BetaClearThinking20251015>
+  readonly "edits"?: ReadonlyArray<BetaClearToolUses20250919 | BetaClearThinking20251015 | BetaCompact20260112>
 }
 export const BetaContextManagementConfig = Schema.Struct({
   "edits": Schema.optionalKey(
-    Schema.Array(Schema.Union([BetaClearToolUses20250919, BetaClearThinking20251015], { mode: "oneOf" })).annotate({
-      "title": "Edits",
-      "description": "List of context management edits to apply"
-    }).check(Schema.isMinLength(0))
+    Schema.Array(
+      Schema.Union([BetaClearToolUses20250919, BetaClearThinking20251015, BetaCompact20260112], { mode: "oneOf" })
+    ).annotate({ "title": "Edits", "description": "List of context management edits to apply" }).check(
+      Schema.isMinLength(0)
+    )
   )
 }).annotate({ "title": "ContextManagementConfig" })
 export type BetaContentBlockSource = {
@@ -5634,8 +5661,7 @@ export const MessageDeltaEvent = Schema.Struct({
     ]).annotate({
       "title": "Cache Creation Input Tokens",
       "description": "The cumulative number of input tokens used to create the cache entry.",
-      "default": null,
-      "examples": [2051]
+      "default": null
     }),
     "cache_read_input_tokens": Schema.Union([
       Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
@@ -5643,8 +5669,7 @@ export const MessageDeltaEvent = Schema.Struct({
     ]).annotate({
       "title": "Cache Read Input Tokens",
       "description": "The cumulative number of input tokens read from the cache.",
-      "default": null,
-      "examples": [2051]
+      "default": null
     }),
     "input_tokens": Schema.Union([
       Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
@@ -5652,13 +5677,11 @@ export const MessageDeltaEvent = Schema.Struct({
     ]).annotate({
       "title": "Input Tokens",
       "description": "The cumulative number of input tokens which were used.",
-      "default": null,
-      "examples": [2095]
+      "default": null
     }),
     "output_tokens": Schema.Number.annotate({
       "title": "Output Tokens",
-      "description": "The cumulative number of output tokens which were used.",
-      "examples": [503]
+      "description": "The cumulative number of output tokens which were used."
     }).check(Schema.isInt()),
     "server_tool_use": Schema.optionalKey(
       Schema.Union([ServerToolUsage, Schema.Null]).annotate({
@@ -5715,6 +5738,7 @@ export type BetaMessageDeltaEvent = {
     readonly "cache_creation_input_tokens": number | null
     readonly "cache_read_input_tokens": number | null
     readonly "input_tokens": number | null
+    readonly "iterations": BetaIterationsUsage
     readonly "output_tokens": number
     readonly "server_tool_use"?: BetaServerToolUsage | null
   }
@@ -5735,8 +5759,7 @@ export const BetaMessageDeltaEvent = Schema.Struct({
     ]).annotate({
       "title": "Cache Creation Input Tokens",
       "description": "The cumulative number of input tokens used to create the cache entry.",
-      "default": null,
-      "examples": [2051]
+      "default": null
     }),
     "cache_read_input_tokens": Schema.Union([
       Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
@@ -5744,8 +5767,7 @@ export const BetaMessageDeltaEvent = Schema.Struct({
     ]).annotate({
       "title": "Cache Read Input Tokens",
       "description": "The cumulative number of input tokens read from the cache.",
-      "default": null,
-      "examples": [2051]
+      "default": null
     }),
     "input_tokens": Schema.Union([
       Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
@@ -5753,13 +5775,12 @@ export const BetaMessageDeltaEvent = Schema.Struct({
     ]).annotate({
       "title": "Input Tokens",
       "description": "The cumulative number of input tokens which were used.",
-      "default": null,
-      "examples": [2095]
+      "default": null
     }),
+    "iterations": BetaIterationsUsage,
     "output_tokens": Schema.Number.annotate({
       "title": "Output Tokens",
-      "description": "The cumulative number of output tokens which were used.",
-      "examples": [503]
+      "description": "The cumulative number of output tokens which were used."
     }).check(Schema.isInt()),
     "server_tool_use": Schema.optionalKey(
       Schema.Union([BetaServerToolUsage, Schema.Null]).annotate({
@@ -5893,6 +5914,7 @@ export type BetaContentBlockStartEvent = {
     | BetaResponseMCPToolUseBlock
     | BetaResponseMCPToolResultBlock
     | BetaResponseContainerUploadBlock
+    | BetaResponseCompactionBlock
   readonly "index": number
   readonly "type": "content_block_start"
 }
@@ -5911,7 +5933,8 @@ export const BetaContentBlockStartEvent = Schema.Struct({
     BetaResponseToolSearchToolResultBlock,
     BetaResponseMCPToolUseBlock,
     BetaResponseMCPToolResultBlock,
-    BetaResponseContainerUploadBlock
+    BetaResponseContainerUploadBlock,
+    BetaResponseCompactionBlock
   ], { mode: "oneOf" }).annotate({ "title": "Content Block" }),
   "index": Schema.Number.annotate({ "title": "Index" }).check(Schema.isInt()),
   "type": Schema.Literal("content_block_start").annotate({ "title": "Type", "default": "content_block_start" })
@@ -5931,6 +5954,7 @@ export type BetaContentBlock =
   | BetaResponseMCPToolUseBlock
   | BetaResponseMCPToolResultBlock
   | BetaResponseContainerUploadBlock
+  | BetaResponseCompactionBlock
 export const BetaContentBlock = Schema.Union([
   BetaResponseTextBlock,
   BetaResponseThinkingBlock,
@@ -5945,7 +5969,8 @@ export const BetaContentBlock = Schema.Union([
   BetaResponseToolSearchToolResultBlock,
   BetaResponseMCPToolUseBlock,
   BetaResponseMCPToolResultBlock,
-  BetaResponseContainerUploadBlock
+  BetaResponseContainerUploadBlock,
+  BetaResponseCompactionBlock
 ], { mode: "oneOf" })
 export type BetaRequestWebFetchResultBlock = {
   readonly "content": BetaRequestDocumentBlock
@@ -6162,17 +6187,18 @@ export type Message = {
     readonly "cache_creation": CacheCreation | null
     readonly "cache_creation_input_tokens": number | null
     readonly "cache_read_input_tokens": number | null
+    readonly "inference_geo": string | null
     readonly "input_tokens": number
     readonly "output_tokens": number
     readonly "server_tool_use"?: ServerToolUsage | null
     readonly "service_tier": "standard" | "priority" | "batch" | null
+    readonly "speed": unknown
   }
 }
 export const Message = Schema.Struct({
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique object identifier.\n\nThe format and length of IDs may change over time.",
-    "examples": ["msg_013Zva2CMHLNnXjNJJKqJ2EF"]
+    "description": "Unique object identifier.\n\nThe format and length of IDs may change over time."
   }),
   "type": Schema.Literal("message").annotate({
     "title": "Type",
@@ -6187,8 +6213,7 @@ export const Message = Schema.Struct({
   "content": Schema.Array(ContentBlock).annotate({
     "title": "Content",
     "description":
-      "Content generated by the model.\n\nThis is an array of content blocks, each of which has a `type` that determines its shape.\n\nExample:\n\n```json\n[{\"type\": \"text\", \"text\": \"Hi, I'm Claude.\"}]\n```\n\nIf the request input `messages` ended with an `assistant` turn, then the response `content` will continue directly from that last turn. You can use this to constrain the model's output.\n\nFor example, if the input `messages` were:\n```json\n[\n  {\"role\": \"user\", \"content\": \"What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun\"},\n  {\"role\": \"assistant\", \"content\": \"The best answer is (\"}\n]\n```\n\nThen the response `content` might be:\n\n```json\n[{\"type\": \"text\", \"text\": \"B)\"}]\n```",
-    "examples": [[{ "citations": null, "text": "Hi! My name is Claude.", "type": "text" }]]
+      "Content generated by the model.\n\nThis is an array of content blocks, each of which has a `type` that determines its shape.\n\nExample:\n\n```json\n[{\"type\": \"text\", \"text\": \"Hi, I'm Claude.\"}]\n```\n\nIf the request input `messages` ended with an `assistant` turn, then the response `content` will continue directly from that last turn. You can use this to constrain the model's output.\n\nFor example, if the input `messages` were:\n```json\n[\n  {\"role\": \"user\", \"content\": \"What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun\"},\n  {\"role\": \"assistant\", \"content\": \"The best answer is (\"}\n]\n```\n\nThen the response `content` might be:\n\n```json\n[{\"type\": \"text\", \"text\": \"B)\"}]\n```"
   }),
   "model": Model,
   "stop_reason": Schema.Union([StopReason, Schema.Null]).annotate({
@@ -6213,8 +6238,7 @@ export const Message = Schema.Struct({
     ]).annotate({
       "title": "Cache Creation Input Tokens",
       "description": "The number of input tokens used to create the cache entry.",
-      "default": null,
-      "examples": [2051]
+      "default": null
     }),
     "cache_read_input_tokens": Schema.Union([
       Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
@@ -6222,18 +6246,20 @@ export const Message = Schema.Struct({
     ]).annotate({
       "title": "Cache Read Input Tokens",
       "description": "The number of input tokens read from the cache.",
-      "default": null,
-      "examples": [2051]
+      "default": null
+    }),
+    "inference_geo": Schema.Union([Schema.String, Schema.Null]).annotate({
+      "title": "Inference Geo",
+      "description": "The geographic region where inference was performed for this request.",
+      "default": null
     }),
     "input_tokens": Schema.Number.annotate({
       "title": "Input Tokens",
-      "description": "The number of input tokens which were used.",
-      "examples": [2095]
+      "description": "The number of input tokens which were used."
     }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
     "output_tokens": Schema.Number.annotate({
       "title": "Output Tokens",
-      "description": "The number of output tokens which were used.",
-      "examples": [503]
+      "description": "The number of output tokens which were used."
     }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
     "server_tool_use": Schema.optionalKey(
       Schema.Union([ServerToolUsage, Schema.Null]).annotate({
@@ -6245,7 +6271,8 @@ export const Message = Schema.Struct({
       "title": "Service Tier",
       "description": "If the request used the priority, standard, or batch tier.",
       "default": null
-    })
+    }),
+    "speed": Schema.Unknown
   }).annotate({
     "title": "Usage",
     "description":
@@ -6264,10 +6291,13 @@ export type BetaMessage = {
     readonly "cache_creation": BetaCacheCreation | null
     readonly "cache_creation_input_tokens": number | null
     readonly "cache_read_input_tokens": number | null
+    readonly "inference_geo": string | null
     readonly "input_tokens": number
+    readonly "iterations": BetaIterationsUsage
     readonly "output_tokens": number
     readonly "server_tool_use"?: BetaServerToolUsage | null
     readonly "service_tier": "standard" | "priority" | "batch" | null
+    readonly "speed": BetaSpeed | null
   }
   readonly "context_management"?: BetaResponseContextManagement | null
   readonly "container"?: BetaContainer | null
@@ -6275,8 +6305,7 @@ export type BetaMessage = {
 export const BetaMessage = Schema.Struct({
   "id": Schema.String.annotate({
     "title": "Id",
-    "description": "Unique object identifier.\n\nThe format and length of IDs may change over time.",
-    "examples": ["msg_013Zva2CMHLNnXjNJJKqJ2EF"]
+    "description": "Unique object identifier.\n\nThe format and length of IDs may change over time."
   }),
   "type": Schema.Literal("message").annotate({
     "title": "Type",
@@ -6291,8 +6320,7 @@ export const BetaMessage = Schema.Struct({
   "content": Schema.Array(BetaContentBlock).annotate({
     "title": "Content",
     "description":
-      "Content generated by the model.\n\nThis is an array of content blocks, each of which has a `type` that determines its shape.\n\nExample:\n\n```json\n[{\"type\": \"text\", \"text\": \"Hi, I'm Claude.\"}]\n```\n\nIf the request input `messages` ended with an `assistant` turn, then the response `content` will continue directly from that last turn. You can use this to constrain the model's output.\n\nFor example, if the input `messages` were:\n```json\n[\n  {\"role\": \"user\", \"content\": \"What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun\"},\n  {\"role\": \"assistant\", \"content\": \"The best answer is (\"}\n]\n```\n\nThen the response `content` might be:\n\n```json\n[{\"type\": \"text\", \"text\": \"B)\"}]\n```",
-    "examples": [[{ "citations": null, "text": "Hi! My name is Claude.", "type": "text" }]]
+      "Content generated by the model.\n\nThis is an array of content blocks, each of which has a `type` that determines its shape.\n\nExample:\n\n```json\n[{\"type\": \"text\", \"text\": \"Hi, I'm Claude.\"}]\n```\n\nIf the request input `messages` ended with an `assistant` turn, then the response `content` will continue directly from that last turn. You can use this to constrain the model's output.\n\nFor example, if the input `messages` were:\n```json\n[\n  {\"role\": \"user\", \"content\": \"What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun\"},\n  {\"role\": \"assistant\", \"content\": \"The best answer is (\"}\n]\n```\n\nThen the response `content` might be:\n\n```json\n[{\"type\": \"text\", \"text\": \"B)\"}]\n```"
   }),
   "model": Model,
   "stop_reason": Schema.Union([BetaStopReason, Schema.Null]).annotate({
@@ -6317,8 +6345,7 @@ export const BetaMessage = Schema.Struct({
     ]).annotate({
       "title": "Cache Creation Input Tokens",
       "description": "The number of input tokens used to create the cache entry.",
-      "default": null,
-      "examples": [2051]
+      "default": null
     }),
     "cache_read_input_tokens": Schema.Union([
       Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
@@ -6326,18 +6353,21 @@ export const BetaMessage = Schema.Struct({
     ]).annotate({
       "title": "Cache Read Input Tokens",
       "description": "The number of input tokens read from the cache.",
-      "default": null,
-      "examples": [2051]
+      "default": null
+    }),
+    "inference_geo": Schema.Union([Schema.String, Schema.Null]).annotate({
+      "title": "Inference Geo",
+      "description": "The geographic region where inference was performed for this request.",
+      "default": null
     }),
     "input_tokens": Schema.Number.annotate({
       "title": "Input Tokens",
-      "description": "The number of input tokens which were used.",
-      "examples": [2095]
+      "description": "The number of input tokens which were used."
     }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    "iterations": BetaIterationsUsage,
     "output_tokens": Schema.Number.annotate({
       "title": "Output Tokens",
-      "description": "The number of output tokens which were used.",
-      "examples": [503]
+      "description": "The number of output tokens which were used."
     }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
     "server_tool_use": Schema.optionalKey(
       Schema.Union([BetaServerToolUsage, Schema.Null]).annotate({
@@ -6348,6 +6378,10 @@ export const BetaMessage = Schema.Struct({
     "service_tier": Schema.Union([Schema.Literals(["standard", "priority", "batch"]), Schema.Null]).annotate({
       "title": "Service Tier",
       "description": "If the request used the priority, standard, or batch tier.",
+      "default": null
+    }),
+    "speed": Schema.Union([BetaSpeed, Schema.Null]).annotate({
+      "description": "The inference speed mode used for this request.",
       "default": null
     })
   }).annotate({
@@ -6495,6 +6529,7 @@ export type BetaInputContentBlock =
   | BetaRequestMCPToolUseBlock
   | BetaRequestMCPToolResultBlock
   | BetaRequestContainerUploadBlock
+  | BetaRequestCompactionBlock
 export const BetaInputContentBlock = Schema.Union([
   Schema.Struct({
     "cache_control": Schema.optionalKey(
@@ -6644,12 +6679,13 @@ export const BetaInputContentBlock = Schema.Union([
   BetaRequestToolSearchToolResultBlock,
   BetaRequestMCPToolUseBlock,
   BetaRequestMCPToolResultBlock,
-  BetaRequestContainerUploadBlock
+  BetaRequestContainerUploadBlock,
+  BetaRequestCompactionBlock
 ], { mode: "oneOf" })
 export type CountMessageTokensParams = {
   readonly "messages": ReadonlyArray<InputMessage>
   readonly "model": Model
-  readonly "output_config"?: { readonly "format"?: JsonOutputFormat | null }
+  readonly "output_config"?: { readonly "effort"?: EffortLevel | null; readonly "format"?: JsonOutputFormat | null }
   readonly "system"?: string | ReadonlyArray<RequestTextBlock>
   readonly "thinking"?: ThinkingConfigParam
   readonly "tool_choice"?: ToolChoice
@@ -6666,6 +6702,12 @@ export const CountMessageTokensParams = Schema.Struct({
   "model": Model,
   "output_config": Schema.optionalKey(
     Schema.Struct({
+      "effort": Schema.optionalKey(
+        Schema.Union([EffortLevel, Schema.Null]).annotate({
+          "description":
+            "How much effort the model should put into its response. Higher effort levels may result in more thorough analysis but take longer.\n\nValid values are `low`, `medium`, `high`, or `max`."
+        })
+      ),
       "format": Schema.optionalKey(
         Schema.Union([JsonOutputFormat, Schema.Null]).annotate({
           "description":
@@ -6681,8 +6723,7 @@ export const CountMessageTokensParams = Schema.Struct({
     Schema.Union([Schema.String, Schema.Array(RequestTextBlock)]).annotate({
       "title": "System",
       "description":
-        "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts).",
-      "examples": [[{ "text": "Today's date is 2024-06-01.", "type": "text" }], "Today's date is 2023-01-01."]
+        "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts)."
     })
   ),
   "thinking": Schema.optionalKey(ThinkingConfigParam),
@@ -6703,16 +6744,14 @@ export const CountMessageTokensParams = Schema.Struct({
         "Definitions of tools that the model may use.\n\nIf you include `tools` in your API request, the model may return `tool_use` content blocks that represent the model's use of those tools. You can then run those tools using the tool input generated by the model and then optionally return results back to the model using `tool_result` content blocks.\n\nThere are two types of tools: **client tools** and **server tools**. The behavior described below applies to client tools. For [server tools](https://docs.claude.com/en/docs/agents-and-tools/tool-use/overview\\#server-tools), see their individual documentation as each has its own behavior (e.g., the [web search tool](https://docs.claude.com/en/docs/agents-and-tools/tool-use/web-search-tool)).\n\nEach tool definition includes:\n\n* `name`: Name of the tool.\n* `description`: Optional, but strongly-recommended description of the tool.\n* `input_schema`: [JSON schema](https://json-schema.org/draft/2020-12) for the tool `input` shape that the model will produce in `tool_use` output content blocks.\n\nFor example, if you defined `tools` as:\n\n```json\n[\n  {\n    \"name\": \"get_stock_price\",\n    \"description\": \"Get the current stock price for a given ticker symbol.\",\n    \"input_schema\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"ticker\": {\n          \"type\": \"string\",\n          \"description\": \"The stock ticker symbol, e.g. AAPL for Apple Inc.\"\n        }\n      },\n      \"required\": [\"ticker\"]\n    }\n  }\n]\n```\n\nAnd then asked the model \"What's the S&P 500 at today?\", the model might produce `tool_use` content blocks in the response like this:\n\n```json\n[\n  {\n    \"type\": \"tool_use\",\n    \"id\": \"toolu_01D7FLrfh4GYq7yT1ULFeyMV\",\n    \"name\": \"get_stock_price\",\n    \"input\": { \"ticker\": \"^GSPC\" }\n  }\n]\n```\n\nYou might then run your `get_stock_price` tool with `{\"ticker\": \"^GSPC\"}` as an input, and return the following back to the model in a subsequent `user` message:\n\n```json\n[\n  {\n    \"type\": \"tool_result\",\n    \"tool_use_id\": \"toolu_01D7FLrfh4GYq7yT1ULFeyMV\",\n    \"content\": \"259.75 USD\"\n  }\n]\n```\n\nTools can be used for workflows that include running client-side tools and functions, or more generally whenever you want the model to produce a particular JSON structure of output.\n\nSee our [guide](https://docs.claude.com/en/docs/tool-use) for more details."
     })
   )
-}).annotate({
-  "title": "CountMessageTokensParams",
-  "examples": [{ "messages": [{ "content": "Hello, world", "role": "user" }], "model": "claude-sonnet-4-5-20250929" }]
-})
+}).annotate({ "title": "CountMessageTokensParams" })
 export type CreateMessageParams = {
   readonly "model": Model
   readonly "messages": ReadonlyArray<InputMessage>
+  readonly "inference_geo"?: string | null
   readonly "max_tokens": number
   readonly "metadata"?: { readonly "user_id"?: string | null }
-  readonly "output_config"?: { readonly "format"?: JsonOutputFormat | null }
+  readonly "output_config"?: { readonly "effort"?: EffortLevel | null; readonly "format"?: JsonOutputFormat | null }
   readonly "service_tier"?: "auto" | "standard_only"
   readonly "stop_sequences"?: ReadonlyArray<string>
   readonly "stream"?: boolean
@@ -6733,11 +6772,17 @@ export const CreateMessageParams = Schema.Struct({
     "description":
       "Input messages.\n\nOur models are trained to operate on alternating `user` and `assistant` conversational turns. When creating a new `Message`, you specify the prior conversational turns with the `messages` parameter, and the model then generates the next `Message` in the conversation. Consecutive `user` or `assistant` turns in your request will be combined into a single turn.\n\nEach input message must be an object with a `role` and `content`. You can specify a single `user`-role message, or you can include multiple `user` and `assistant` messages.\n\nIf the final message uses the `assistant` role, the response content will continue immediately from the content in that message. This can be used to constrain part of the model's response.\n\nExample with a single `user` message:\n\n```json\n[{\"role\": \"user\", \"content\": \"Hello, Claude\"}]\n```\n\nExample with multiple conversational turns:\n\n```json\n[\n  {\"role\": \"user\", \"content\": \"Hello there.\"},\n  {\"role\": \"assistant\", \"content\": \"Hi, I'm Claude. How can I help you?\"},\n  {\"role\": \"user\", \"content\": \"Can you explain LLMs in plain English?\"},\n]\n```\n\nExample with a partially-filled response from Claude:\n\n```json\n[\n  {\"role\": \"user\", \"content\": \"What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun\"},\n  {\"role\": \"assistant\", \"content\": \"The best answer is (\"},\n]\n```\n\nEach input message `content` may be either a single `string` or an array of content blocks, where each block has a specific `type`. Using a `string` for `content` is shorthand for an array of one content block of type `\"text\"`. The following input messages are equivalent:\n\n```json\n{\"role\": \"user\", \"content\": \"Hello, Claude\"}\n```\n\n```json\n{\"role\": \"user\", \"content\": [{\"type\": \"text\", \"text\": \"Hello, Claude\"}]}\n```\n\nSee [input examples](https://docs.claude.com/en/api/messages-examples).\n\nNote that if you want to include a [system prompt](https://docs.claude.com/en/docs/system-prompts), you can use the top-level `system` parameter — there is no `\"system\"` role for input messages in the Messages API.\n\nThere is a limit of 100,000 messages in a single request."
   }),
+  "inference_geo": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "title": "Inference Geo",
+      "description":
+        "Specifies the geographic region for inference processing. If not specified, the workspace's `default_inference_geo` is used."
+    })
+  ),
   "max_tokens": Schema.Number.annotate({
     "title": "Max Tokens",
     "description":
-      "The maximum number of tokens to generate before stopping.\n\nNote that our models may stop _before_ reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.\n\nDifferent models have different maximum values for this parameter.  See [models](https://docs.claude.com/en/docs/models-overview) for details.",
-    "examples": [1024]
+      "The maximum number of tokens to generate before stopping.\n\nNote that our models may stop _before_ reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.\n\nDifferent models have different maximum values for this parameter.  See [models](https://docs.claude.com/en/docs/models-overview) for details."
   }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)),
   "metadata": Schema.optionalKey(
     Schema.Struct({
@@ -6745,14 +6790,19 @@ export const CreateMessageParams = Schema.Struct({
         Schema.Union([Schema.String.check(Schema.isMaxLength(256)), Schema.Null]).annotate({
           "title": "User Id",
           "description":
-            "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number.",
-          "examples": ["13803d75-b4b5-4c3e-b2a2-6f21399b021b"]
+            "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number."
         })
       )
     }).annotate({ "title": "Metadata", "description": "An object describing metadata about the request." })
   ),
   "output_config": Schema.optionalKey(
     Schema.Struct({
+      "effort": Schema.optionalKey(
+        Schema.Union([EffortLevel, Schema.Null]).annotate({
+          "description":
+            "How much effort the model should put into its response. Higher effort levels may result in more thorough analysis but take longer.\n\nValid values are `low`, `medium`, `high`, or `max`."
+        })
+      ),
       "format": Schema.optionalKey(
         Schema.Union([JsonOutputFormat, Schema.Null]).annotate({
           "description":
@@ -6789,16 +6839,14 @@ export const CreateMessageParams = Schema.Struct({
     Schema.Union([Schema.String, Schema.Array(RequestTextBlock)]).annotate({
       "title": "System",
       "description":
-        "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts).",
-      "examples": [[{ "text": "Today's date is 2024-06-01.", "type": "text" }], "Today's date is 2023-01-01."]
+        "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts)."
     })
   ),
   "temperature": Schema.optionalKey(
     Schema.Number.annotate({
       "title": "Temperature",
       "description":
-        "Amount of randomness injected into the response.\n\nDefaults to `1.0`. Ranges from `0.0` to `1.0`. Use `temperature` closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks.\n\nNote that even with `temperature` of `0.0`, the results will not be fully deterministic.",
-      "examples": [1]
+        "Amount of randomness injected into the response.\n\nDefaults to `1.0`. Ranges from `0.0` to `1.0`. Use `temperature` closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks.\n\nNote that even with `temperature` of `0.0`, the results will not be fully deterministic."
     }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1))
   ),
   "thinking": Schema.optionalKey(ThinkingConfigParam),
@@ -6823,16 +6871,14 @@ export const CreateMessageParams = Schema.Struct({
     Schema.Number.annotate({
       "title": "Top K",
       "description":
-        "Only sample from the top K options for each subsequent token.\n\nUsed to remove \"long tail\" low probability responses. [Learn more technical details here](https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277).\n\nRecommended for advanced use cases only. You usually only need to use `temperature`.",
-      "examples": [5]
+        "Only sample from the top K options for each subsequent token.\n\nUsed to remove \"long tail\" low probability responses. [Learn more technical details here](https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277).\n\nRecommended for advanced use cases only. You usually only need to use `temperature`."
     }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0))
   ),
   "top_p": Schema.optionalKey(
     Schema.Number.annotate({
       "title": "Top P",
       "description":
-        "Use nucleus sampling.\n\nIn nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by `top_p`. You should either alter `temperature` or `top_p`, but not both.\n\nRecommended for advanced use cases only. You usually only need to use `temperature`.",
-      "examples": [0.7]
+        "Use nucleus sampling.\n\nIn nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by `top_p`. You should either alter `temperature` or `top_p`, but not both.\n\nRecommended for advanced use cases only. You usually only need to use `temperature`."
     }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1))
   )
 }).annotate({ "title": "CreateMessageParams" })
@@ -6841,9 +6887,10 @@ export type MessageBatchIndividualRequestParams = {
   readonly "params": {
     readonly "model": Model
     readonly "messages": ReadonlyArray<InputMessage>
+    readonly "inference_geo"?: string | null
     readonly "max_tokens": number
     readonly "metadata"?: { readonly "user_id"?: string | null }
-    readonly "output_config"?: { readonly "format"?: JsonOutputFormat | null }
+    readonly "output_config"?: { readonly "effort"?: EffortLevel | null; readonly "format"?: JsonOutputFormat | null }
     readonly "service_tier"?: "auto" | "standard_only"
     readonly "stop_sequences"?: ReadonlyArray<string>
     readonly "stream"?: boolean
@@ -6867,8 +6914,7 @@ export const MessageBatchIndividualRequestParams = Schema.Struct({
   "custom_id": Schema.String.annotate({
     "title": "Custom Id",
     "description":
-      "Developer-provided ID created for each request in a Message Batch. Useful for matching results to requests, as results may be given out of request order.\n\nMust be unique for each request within the Message Batch.",
-    "examples": ["my-custom-id-1"]
+      "Developer-provided ID created for each request in a Message Batch. Useful for matching results to requests, as results may be given out of request order.\n\nMust be unique for each request within the Message Batch."
   }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(64)).check(
     Schema.isPattern(new RegExp("^[a-zA-Z0-9_-]{1,64}$"))
   ),
@@ -6879,11 +6925,17 @@ export const MessageBatchIndividualRequestParams = Schema.Struct({
       "description":
         "Input messages.\n\nOur models are trained to operate on alternating `user` and `assistant` conversational turns. When creating a new `Message`, you specify the prior conversational turns with the `messages` parameter, and the model then generates the next `Message` in the conversation. Consecutive `user` or `assistant` turns in your request will be combined into a single turn.\n\nEach input message must be an object with a `role` and `content`. You can specify a single `user`-role message, or you can include multiple `user` and `assistant` messages.\n\nIf the final message uses the `assistant` role, the response content will continue immediately from the content in that message. This can be used to constrain part of the model's response.\n\nExample with a single `user` message:\n\n```json\n[{\"role\": \"user\", \"content\": \"Hello, Claude\"}]\n```\n\nExample with multiple conversational turns:\n\n```json\n[\n  {\"role\": \"user\", \"content\": \"Hello there.\"},\n  {\"role\": \"assistant\", \"content\": \"Hi, I'm Claude. How can I help you?\"},\n  {\"role\": \"user\", \"content\": \"Can you explain LLMs in plain English?\"},\n]\n```\n\nExample with a partially-filled response from Claude:\n\n```json\n[\n  {\"role\": \"user\", \"content\": \"What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun\"},\n  {\"role\": \"assistant\", \"content\": \"The best answer is (\"},\n]\n```\n\nEach input message `content` may be either a single `string` or an array of content blocks, where each block has a specific `type`. Using a `string` for `content` is shorthand for an array of one content block of type `\"text\"`. The following input messages are equivalent:\n\n```json\n{\"role\": \"user\", \"content\": \"Hello, Claude\"}\n```\n\n```json\n{\"role\": \"user\", \"content\": [{\"type\": \"text\", \"text\": \"Hello, Claude\"}]}\n```\n\nSee [input examples](https://docs.claude.com/en/api/messages-examples).\n\nNote that if you want to include a [system prompt](https://docs.claude.com/en/docs/system-prompts), you can use the top-level `system` parameter — there is no `\"system\"` role for input messages in the Messages API.\n\nThere is a limit of 100,000 messages in a single request."
     }),
+    "inference_geo": Schema.optionalKey(
+      Schema.Union([Schema.String, Schema.Null]).annotate({
+        "title": "Inference Geo",
+        "description":
+          "Specifies the geographic region for inference processing. If not specified, the workspace's `default_inference_geo` is used."
+      })
+    ),
     "max_tokens": Schema.Number.annotate({
       "title": "Max Tokens",
       "description":
-        "The maximum number of tokens to generate before stopping.\n\nNote that our models may stop _before_ reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.\n\nDifferent models have different maximum values for this parameter.  See [models](https://docs.claude.com/en/docs/models-overview) for details.",
-      "examples": [1024]
+        "The maximum number of tokens to generate before stopping.\n\nNote that our models may stop _before_ reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.\n\nDifferent models have different maximum values for this parameter.  See [models](https://docs.claude.com/en/docs/models-overview) for details."
     }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)),
     "metadata": Schema.optionalKey(
       Schema.Struct({
@@ -6891,14 +6943,19 @@ export const MessageBatchIndividualRequestParams = Schema.Struct({
           Schema.Union([Schema.String.check(Schema.isMaxLength(256)), Schema.Null]).annotate({
             "title": "User Id",
             "description":
-              "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number.",
-            "examples": ["13803d75-b4b5-4c3e-b2a2-6f21399b021b"]
+              "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number."
           })
         )
       }).annotate({ "title": "Metadata", "description": "An object describing metadata about the request." })
     ),
     "output_config": Schema.optionalKey(
       Schema.Struct({
+        "effort": Schema.optionalKey(
+          Schema.Union([EffortLevel, Schema.Null]).annotate({
+            "description":
+              "How much effort the model should put into its response. Higher effort levels may result in more thorough analysis but take longer.\n\nValid values are `low`, `medium`, `high`, or `max`."
+          })
+        ),
         "format": Schema.optionalKey(
           Schema.Union([JsonOutputFormat, Schema.Null]).annotate({
             "description":
@@ -6935,16 +6992,14 @@ export const MessageBatchIndividualRequestParams = Schema.Struct({
       Schema.Union([Schema.String, Schema.Array(RequestTextBlock)]).annotate({
         "title": "System",
         "description":
-          "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts).",
-        "examples": [[{ "text": "Today's date is 2024-06-01.", "type": "text" }], "Today's date is 2023-01-01."]
+          "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts)."
       })
     ),
     "temperature": Schema.optionalKey(
       Schema.Number.annotate({
         "title": "Temperature",
         "description":
-          "Amount of randomness injected into the response.\n\nDefaults to `1.0`. Ranges from `0.0` to `1.0`. Use `temperature` closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks.\n\nNote that even with `temperature` of `0.0`, the results will not be fully deterministic.",
-        "examples": [1]
+          "Amount of randomness injected into the response.\n\nDefaults to `1.0`. Ranges from `0.0` to `1.0`. Use `temperature` closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks.\n\nNote that even with `temperature` of `0.0`, the results will not be fully deterministic."
       }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1))
     ),
     "thinking": Schema.optionalKey(ThinkingConfigParam),
@@ -6969,16 +7024,14 @@ export const MessageBatchIndividualRequestParams = Schema.Struct({
       Schema.Number.annotate({
         "title": "Top K",
         "description":
-          "Only sample from the top K options for each subsequent token.\n\nUsed to remove \"long tail\" low probability responses. [Learn more technical details here](https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277).\n\nRecommended for advanced use cases only. You usually only need to use `temperature`.",
-        "examples": [5]
+          "Only sample from the top K options for each subsequent token.\n\nUsed to remove \"long tail\" low probability responses. [Learn more technical details here](https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277).\n\nRecommended for advanced use cases only. You usually only need to use `temperature`."
       }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0))
     ),
     "top_p": Schema.optionalKey(
       Schema.Number.annotate({
         "title": "Top P",
         "description":
-          "Use nucleus sampling.\n\nIn nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by `top_p`. You should either alter `temperature` or `top_p`, but not both.\n\nRecommended for advanced use cases only. You usually only need to use `temperature`.",
-        "examples": [0.7]
+          "Use nucleus sampling.\n\nIn nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by `top_p`. You should either alter `temperature` or `top_p`, but not both.\n\nRecommended for advanced use cases only. You usually only need to use `temperature`."
       }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1))
     )
   }).annotate({
@@ -7008,10 +7061,11 @@ export type BetaCountMessageTokensParams = {
   readonly "messages": ReadonlyArray<BetaInputMessage>
   readonly "model": Model
   readonly "output_config"?: {
-    readonly "effort"?: "low" | "medium" | "high" | null
+    readonly "effort"?: BetaEffortLevel | null
     readonly "format"?: BetaJsonOutputFormat | null
   }
   readonly "output_format"?: BetaJsonOutputFormat | null
+  readonly "speed"?: BetaSpeed | null
   readonly "system"?: string | ReadonlyArray<BetaRequestTextBlock>
   readonly "thinking"?: BetaThinkingConfigParam
   readonly "tool_choice"?: BetaToolChoice
@@ -7058,9 +7112,9 @@ export const BetaCountMessageTokensParams = Schema.Struct({
   "output_config": Schema.optionalKey(
     Schema.Struct({
       "effort": Schema.optionalKey(
-        Schema.Union([Schema.Literals(["low", "medium", "high"]), Schema.Null]).annotate({
+        Schema.Union([BetaEffortLevel, Schema.Null]).annotate({
           "description":
-            "How much effort the model should put into its response. Higher effort levels may result in more thorough analysis but take longer.\n\nValid values are `low`, `medium`, or `high`."
+            "How much effort the model should put into its response. Higher effort levels may result in more thorough analysis but take longer.\n\nValid values are `low`, `medium`, `high`, or `max`."
         })
       ),
       "format": Schema.optionalKey(
@@ -7080,12 +7134,17 @@ export const BetaCountMessageTokensParams = Schema.Struct({
         "Deprecated: Use `output_config.format` instead. See [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)\n\nA schema to specify Claude's output format in responses. This parameter will be removed in a future release."
     })
   ),
+  "speed": Schema.optionalKey(
+    Schema.Union([BetaSpeed, Schema.Null]).annotate({
+      "description":
+        "The inference speed mode for this request. `\"fast\"` enables high output-tokens-per-second inference."
+    })
+  ),
   "system": Schema.optionalKey(
     Schema.Union([Schema.String, Schema.Array(BetaRequestTextBlock)]).annotate({
       "title": "System",
       "description":
-        "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts).",
-      "examples": [[{ "text": "Today's date is 2024-06-01.", "type": "text" }], "Today's date is 2023-01-01."]
+        "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts)."
     })
   ),
   "thinking": Schema.optionalKey(BetaThinkingConfigParam),
@@ -7118,24 +7177,23 @@ export const BetaCountMessageTokensParams = Schema.Struct({
         "Definitions of tools that the model may use.\n\nIf you include `tools` in your API request, the model may return `tool_use` content blocks that represent the model's use of those tools. You can then run those tools using the tool input generated by the model and then optionally return results back to the model using `tool_result` content blocks.\n\nThere are two types of tools: **client tools** and **server tools**. The behavior described below applies to client tools. For [server tools](https://docs.claude.com/en/docs/agents-and-tools/tool-use/overview\\#server-tools), see their individual documentation as each has its own behavior (e.g., the [web search tool](https://docs.claude.com/en/docs/agents-and-tools/tool-use/web-search-tool)).\n\nEach tool definition includes:\n\n* `name`: Name of the tool.\n* `description`: Optional, but strongly-recommended description of the tool.\n* `input_schema`: [JSON schema](https://json-schema.org/draft/2020-12) for the tool `input` shape that the model will produce in `tool_use` output content blocks.\n\nFor example, if you defined `tools` as:\n\n```json\n[\n  {\n    \"name\": \"get_stock_price\",\n    \"description\": \"Get the current stock price for a given ticker symbol.\",\n    \"input_schema\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"ticker\": {\n          \"type\": \"string\",\n          \"description\": \"The stock ticker symbol, e.g. AAPL for Apple Inc.\"\n        }\n      },\n      \"required\": [\"ticker\"]\n    }\n  }\n]\n```\n\nAnd then asked the model \"What's the S&P 500 at today?\", the model might produce `tool_use` content blocks in the response like this:\n\n```json\n[\n  {\n    \"type\": \"tool_use\",\n    \"id\": \"toolu_01D7FLrfh4GYq7yT1ULFeyMV\",\n    \"name\": \"get_stock_price\",\n    \"input\": { \"ticker\": \"^GSPC\" }\n  }\n]\n```\n\nYou might then run your `get_stock_price` tool with `{\"ticker\": \"^GSPC\"}` as an input, and return the following back to the model in a subsequent `user` message:\n\n```json\n[\n  {\n    \"type\": \"tool_result\",\n    \"tool_use_id\": \"toolu_01D7FLrfh4GYq7yT1ULFeyMV\",\n    \"content\": \"259.75 USD\"\n  }\n]\n```\n\nTools can be used for workflows that include running client-side tools and functions, or more generally whenever you want the model to produce a particular JSON structure of output.\n\nSee our [guide](https://docs.claude.com/en/docs/tool-use) for more details."
     })
   )
-}).annotate({
-  "title": "CountMessageTokensParams",
-  "examples": [{ "messages": [{ "content": "Hello, world", "role": "user" }], "model": "claude-sonnet-4-5-20250929" }]
-})
+}).annotate({ "title": "CountMessageTokensParams" })
 export type BetaCreateMessageParams = {
   readonly "model": Model
   readonly "messages": ReadonlyArray<BetaInputMessage>
   readonly "container"?: BetaContainerParams | string | null
   readonly "context_management"?: BetaContextManagementConfig | null
+  readonly "inference_geo"?: string | null
   readonly "max_tokens": number
   readonly "mcp_servers"?: ReadonlyArray<BetaRequestMCPServerURLDefinition>
   readonly "metadata"?: { readonly "user_id"?: string | null }
   readonly "output_config"?: {
-    readonly "effort"?: "low" | "medium" | "high" | null
+    readonly "effort"?: BetaEffortLevel | null
     readonly "format"?: BetaJsonOutputFormat | null
   }
   readonly "output_format"?: BetaJsonOutputFormat | null
   readonly "service_tier"?: "auto" | "standard_only"
+  readonly "speed"?: BetaSpeed | null
   readonly "stop_sequences"?: ReadonlyArray<string>
   readonly "stream"?: boolean
   readonly "system"?: string | ReadonlyArray<BetaRequestTextBlock>
@@ -7184,11 +7242,17 @@ export const BetaCreateMessageParams = Schema.Struct({
         "Context management configuration.\n\nThis allows you to control how Claude manages context across multiple requests, such as whether to clear function results or not."
     })
   ),
+  "inference_geo": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "title": "Inference Geo",
+      "description":
+        "Specifies the geographic region for inference processing. If not specified, the workspace's `default_inference_geo` is used."
+    })
+  ),
   "max_tokens": Schema.Number.annotate({
     "title": "Max Tokens",
     "description":
-      "The maximum number of tokens to generate before stopping.\n\nNote that our models may stop _before_ reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.\n\nDifferent models have different maximum values for this parameter.  See [models](https://docs.claude.com/en/docs/models-overview) for details.",
-    "examples": [1024]
+      "The maximum number of tokens to generate before stopping.\n\nNote that our models may stop _before_ reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.\n\nDifferent models have different maximum values for this parameter.  See [models](https://docs.claude.com/en/docs/models-overview) for details."
   }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)),
   "mcp_servers": Schema.optionalKey(
     Schema.Array(BetaRequestMCPServerURLDefinition).annotate({
@@ -7202,8 +7266,7 @@ export const BetaCreateMessageParams = Schema.Struct({
         Schema.Union([Schema.String.check(Schema.isMaxLength(256)), Schema.Null]).annotate({
           "title": "User Id",
           "description":
-            "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number.",
-          "examples": ["13803d75-b4b5-4c3e-b2a2-6f21399b021b"]
+            "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number."
         })
       )
     }).annotate({ "title": "Metadata", "description": "An object describing metadata about the request." })
@@ -7211,9 +7274,9 @@ export const BetaCreateMessageParams = Schema.Struct({
   "output_config": Schema.optionalKey(
     Schema.Struct({
       "effort": Schema.optionalKey(
-        Schema.Union([Schema.Literals(["low", "medium", "high"]), Schema.Null]).annotate({
+        Schema.Union([BetaEffortLevel, Schema.Null]).annotate({
           "description":
-            "How much effort the model should put into its response. Higher effort levels may result in more thorough analysis but take longer.\n\nValid values are `low`, `medium`, or `high`."
+            "How much effort the model should put into its response. Higher effort levels may result in more thorough analysis but take longer.\n\nValid values are `low`, `medium`, `high`, or `max`."
         })
       ),
       "format": Schema.optionalKey(
@@ -7240,6 +7303,12 @@ export const BetaCreateMessageParams = Schema.Struct({
         "Determines whether to use priority capacity (if available) or standard capacity for this request.\n\nAnthropic offers different levels of service for your API requests. See [service-tiers](https://docs.claude.com/en/api/service-tiers) for details."
     })
   ),
+  "speed": Schema.optionalKey(
+    Schema.Union([BetaSpeed, Schema.Null]).annotate({
+      "description":
+        "The inference speed mode for this request. `\"fast\"` enables high output-tokens-per-second inference."
+    })
+  ),
   "stop_sequences": Schema.optionalKey(
     Schema.Array(Schema.String).annotate({
       "title": "Stop Sequences",
@@ -7258,16 +7327,14 @@ export const BetaCreateMessageParams = Schema.Struct({
     Schema.Union([Schema.String, Schema.Array(BetaRequestTextBlock)]).annotate({
       "title": "System",
       "description":
-        "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts).",
-      "examples": [[{ "text": "Today's date is 2024-06-01.", "type": "text" }], "Today's date is 2023-01-01."]
+        "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts)."
     })
   ),
   "temperature": Schema.optionalKey(
     Schema.Number.annotate({
       "title": "Temperature",
       "description":
-        "Amount of randomness injected into the response.\n\nDefaults to `1.0`. Ranges from `0.0` to `1.0`. Use `temperature` closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks.\n\nNote that even with `temperature` of `0.0`, the results will not be fully deterministic.",
-      "examples": [1]
+        "Amount of randomness injected into the response.\n\nDefaults to `1.0`. Ranges from `0.0` to `1.0`. Use `temperature` closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks.\n\nNote that even with `temperature` of `0.0`, the results will not be fully deterministic."
     }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1))
   ),
   "thinking": Schema.optionalKey(BetaThinkingConfigParam),
@@ -7304,16 +7371,14 @@ export const BetaCreateMessageParams = Schema.Struct({
     Schema.Number.annotate({
       "title": "Top K",
       "description":
-        "Only sample from the top K options for each subsequent token.\n\nUsed to remove \"long tail\" low probability responses. [Learn more technical details here](https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277).\n\nRecommended for advanced use cases only. You usually only need to use `temperature`.",
-      "examples": [5]
+        "Only sample from the top K options for each subsequent token.\n\nUsed to remove \"long tail\" low probability responses. [Learn more technical details here](https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277).\n\nRecommended for advanced use cases only. You usually only need to use `temperature`."
     }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0))
   ),
   "top_p": Schema.optionalKey(
     Schema.Number.annotate({
       "title": "Top P",
       "description":
-        "Use nucleus sampling.\n\nIn nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by `top_p`. You should either alter `temperature` or `top_p`, but not both.\n\nRecommended for advanced use cases only. You usually only need to use `temperature`.",
-      "examples": [0.7]
+        "Use nucleus sampling.\n\nIn nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by `top_p`. You should either alter `temperature` or `top_p`, but not both.\n\nRecommended for advanced use cases only. You usually only need to use `temperature`."
     }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1))
   )
 }).annotate({ "title": "CreateMessageParams" })
@@ -7324,15 +7389,17 @@ export type BetaMessageBatchIndividualRequestParams = {
     readonly "messages": ReadonlyArray<BetaInputMessage>
     readonly "container"?: BetaContainerParams | string | null
     readonly "context_management"?: BetaContextManagementConfig | null
+    readonly "inference_geo"?: string | null
     readonly "max_tokens": number
     readonly "mcp_servers"?: ReadonlyArray<BetaRequestMCPServerURLDefinition>
     readonly "metadata"?: { readonly "user_id"?: string | null }
     readonly "output_config"?: {
-      readonly "effort"?: "low" | "medium" | "high" | null
+      readonly "effort"?: BetaEffortLevel | null
       readonly "format"?: BetaJsonOutputFormat | null
     }
     readonly "output_format"?: BetaJsonOutputFormat | null
     readonly "service_tier"?: "auto" | "standard_only"
+    readonly "speed"?: BetaSpeed | null
     readonly "stop_sequences"?: ReadonlyArray<string>
     readonly "stream"?: boolean
     readonly "system"?: string | ReadonlyArray<BetaRequestTextBlock>
@@ -7367,8 +7434,7 @@ export const BetaMessageBatchIndividualRequestParams = Schema.Struct({
   "custom_id": Schema.String.annotate({
     "title": "Custom Id",
     "description":
-      "Developer-provided ID created for each request in a Message Batch. Useful for matching results to requests, as results may be given out of request order.\n\nMust be unique for each request within the Message Batch.",
-    "examples": ["my-custom-id-1"]
+      "Developer-provided ID created for each request in a Message Batch. Useful for matching results to requests, as results may be given out of request order.\n\nMust be unique for each request within the Message Batch."
   }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(64)).check(
     Schema.isPattern(new RegExp("^[a-zA-Z0-9_-]{1,64}$"))
   ),
@@ -7391,11 +7457,17 @@ export const BetaMessageBatchIndividualRequestParams = Schema.Struct({
           "Context management configuration.\n\nThis allows you to control how Claude manages context across multiple requests, such as whether to clear function results or not."
       })
     ),
+    "inference_geo": Schema.optionalKey(
+      Schema.Union([Schema.String, Schema.Null]).annotate({
+        "title": "Inference Geo",
+        "description":
+          "Specifies the geographic region for inference processing. If not specified, the workspace's `default_inference_geo` is used."
+      })
+    ),
     "max_tokens": Schema.Number.annotate({
       "title": "Max Tokens",
       "description":
-        "The maximum number of tokens to generate before stopping.\n\nNote that our models may stop _before_ reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.\n\nDifferent models have different maximum values for this parameter.  See [models](https://docs.claude.com/en/docs/models-overview) for details.",
-      "examples": [1024]
+        "The maximum number of tokens to generate before stopping.\n\nNote that our models may stop _before_ reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.\n\nDifferent models have different maximum values for this parameter.  See [models](https://docs.claude.com/en/docs/models-overview) for details."
     }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)),
     "mcp_servers": Schema.optionalKey(
       Schema.Array(BetaRequestMCPServerURLDefinition).annotate({
@@ -7409,8 +7481,7 @@ export const BetaMessageBatchIndividualRequestParams = Schema.Struct({
           Schema.Union([Schema.String.check(Schema.isMaxLength(256)), Schema.Null]).annotate({
             "title": "User Id",
             "description":
-              "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number.",
-            "examples": ["13803d75-b4b5-4c3e-b2a2-6f21399b021b"]
+              "An external identifier for the user who is associated with the request.\n\nThis should be a uuid, hash value, or other opaque identifier. Anthropic may use this id to help detect abuse. Do not include any identifying information such as name, email address, or phone number."
           })
         )
       }).annotate({ "title": "Metadata", "description": "An object describing metadata about the request." })
@@ -7418,9 +7489,9 @@ export const BetaMessageBatchIndividualRequestParams = Schema.Struct({
     "output_config": Schema.optionalKey(
       Schema.Struct({
         "effort": Schema.optionalKey(
-          Schema.Union([Schema.Literals(["low", "medium", "high"]), Schema.Null]).annotate({
+          Schema.Union([BetaEffortLevel, Schema.Null]).annotate({
             "description":
-              "How much effort the model should put into its response. Higher effort levels may result in more thorough analysis but take longer.\n\nValid values are `low`, `medium`, or `high`."
+              "How much effort the model should put into its response. Higher effort levels may result in more thorough analysis but take longer.\n\nValid values are `low`, `medium`, `high`, or `max`."
           })
         ),
         "format": Schema.optionalKey(
@@ -7447,6 +7518,12 @@ export const BetaMessageBatchIndividualRequestParams = Schema.Struct({
           "Determines whether to use priority capacity (if available) or standard capacity for this request.\n\nAnthropic offers different levels of service for your API requests. See [service-tiers](https://docs.claude.com/en/api/service-tiers) for details."
       })
     ),
+    "speed": Schema.optionalKey(
+      Schema.Union([BetaSpeed, Schema.Null]).annotate({
+        "description":
+          "The inference speed mode for this request. `\"fast\"` enables high output-tokens-per-second inference."
+      })
+    ),
     "stop_sequences": Schema.optionalKey(
       Schema.Array(Schema.String).annotate({
         "title": "Stop Sequences",
@@ -7465,16 +7542,14 @@ export const BetaMessageBatchIndividualRequestParams = Schema.Struct({
       Schema.Union([Schema.String, Schema.Array(BetaRequestTextBlock)]).annotate({
         "title": "System",
         "description":
-          "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts).",
-        "examples": [[{ "text": "Today's date is 2024-06-01.", "type": "text" }], "Today's date is 2023-01-01."]
+          "System prompt.\n\nA system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role. See our [guide to system prompts](https://docs.claude.com/en/docs/system-prompts)."
       })
     ),
     "temperature": Schema.optionalKey(
       Schema.Number.annotate({
         "title": "Temperature",
         "description":
-          "Amount of randomness injected into the response.\n\nDefaults to `1.0`. Ranges from `0.0` to `1.0`. Use `temperature` closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks.\n\nNote that even with `temperature` of `0.0`, the results will not be fully deterministic.",
-        "examples": [1]
+          "Amount of randomness injected into the response.\n\nDefaults to `1.0`. Ranges from `0.0` to `1.0`. Use `temperature` closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks.\n\nNote that even with `temperature` of `0.0`, the results will not be fully deterministic."
       }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1))
     ),
     "thinking": Schema.optionalKey(BetaThinkingConfigParam),
@@ -7511,16 +7586,14 @@ export const BetaMessageBatchIndividualRequestParams = Schema.Struct({
       Schema.Number.annotate({
         "title": "Top K",
         "description":
-          "Only sample from the top K options for each subsequent token.\n\nUsed to remove \"long tail\" low probability responses. [Learn more technical details here](https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277).\n\nRecommended for advanced use cases only. You usually only need to use `temperature`.",
-        "examples": [5]
+          "Only sample from the top K options for each subsequent token.\n\nUsed to remove \"long tail\" low probability responses. [Learn more technical details here](https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277).\n\nRecommended for advanced use cases only. You usually only need to use `temperature`."
       }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0))
     ),
     "top_p": Schema.optionalKey(
       Schema.Number.annotate({
         "title": "Top P",
         "description":
-          "Use nucleus sampling.\n\nIn nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by `top_p`. You should either alter `temperature` or `top_p`, but not both.\n\nRecommended for advanced use cases only. You usually only need to use `temperature`.",
-        "examples": [0.7]
+          "Use nucleus sampling.\n\nIn nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by `top_p`. You should either alter `temperature` or `top_p`, but not both.\n\nRecommended for advanced use cases only. You usually only need to use `temperature`."
       }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1))
     )
   }).annotate({

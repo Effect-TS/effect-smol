@@ -11,6 +11,8 @@ header: |
   /**
    * @since 1.0.0
    */
+excludeAnnotations:
+  - examples
 replacements:
   # Schema.Unknown doesn't work with Schema.toCodecJson (used by HttpClientResponse.schemaBodyJson)
   # Replace with Schema.Json which properly handles arbitrary JSON values
@@ -21,22 +23,6 @@ replacements:
   # Index signature in struct rest pattern
   - from: "readonly [x: string]: unknown"
     to: "readonly [x: string]: Schema.Json"
-  # Remove problematic examples from schema annotations
-  # CountMessageTokensResponse examples don't match required type structure
-  - from: ', "examples": [{"input_tokens":2095}]'
-    to: ""
-  # MessageDeltaUsage examples don't match required type structure
-  - from: ', "examples": [{"output_tokens":503}]'
-    to: ""
-  # Usage examples in Message don't match required type structure
-  - from: ', "examples": [{"input_tokens":2095,"output_tokens":503}]'
-    to: ""
-  # Message-level examples have incomplete usage and missing fields
-  - from: ', "examples": [{"content":[{"citations":null,"text":"Hi! My name is Claude.","type":"text"}],"id":"msg_013Zva2CMHLNnXjNJJKqJ2EF","model":"claude-sonnet-4-5-20250929","role":"assistant","stop_reason":"end_turn","stop_sequence":null,"type":"message","usage":{"input_tokens":2095,"output_tokens":503}}]'
-    to: ""
-  # Tool examples don't match union discriminant - remove them
-  - from: ', "examples": [{"description":"Get the current weather in a given location","input_schema":{"properties":{"location":{"description":"The city and state, e.g. San Francisco, CA","type":"string"},"unit":{"description":"Unit for the output - one of (celsius, fahrenheit)","type":"string"}},"required":["location"],"type":"object"},"name":"get_weather"}]'
-    to: ""
   # Make citations optional in ResponseTextBlock (API may omit this field)
   - from: "export type ResponseTextBlock = { readonly \"citations\":"
     to: "export type ResponseTextBlock = { readonly \"citations\"?:"

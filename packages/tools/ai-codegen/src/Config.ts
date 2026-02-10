@@ -57,7 +57,8 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
   typeOnly: Schema.optional(Schema.Boolean),
   header: Schema.optional(Schema.String),
   patches: Schema.optional(Schema.Array(Schema.String)),
-  replacements: Schema.optional(Schema.Array(Replacement))
+  replacements: Schema.optional(Schema.Array(Replacement)),
+  excludeAnnotations: Schema.optional(Schema.Array(Schema.String))
 }) {
   /**
    * Get the client name, defaulting to "Client" if not specified.
@@ -102,6 +103,15 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
    */
   get headerContent(): string | undefined {
     return this.header
+  }
+
+  /**
+   * Get the list of annotation keys to exclude from generated code.
+   *
+   * @since 1.0.0
+   */
+  get excludeAnnotationsList(): ReadonlyArray<string> | undefined {
+    return this.excludeAnnotations
   }
 }
 

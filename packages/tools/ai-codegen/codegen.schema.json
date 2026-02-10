@@ -74,6 +74,13 @@
           }
         }
       }
+    },
+    "excludeAnnotations": {
+      "type": "array",
+      "description": "Annotation keys to exclude from generated schema code (e.g. [\"examples\"]).",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "additionalProperties": false

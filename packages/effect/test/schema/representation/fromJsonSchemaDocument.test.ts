@@ -8,6 +8,7 @@ describe("fromJsonSchemaDocument", () => {
       readonly schema: JsonSchema.JsonSchema
       readonly options?: {
         readonly additionalProperties?: false | undefined
+        readonly annotationFilter?: ReadonlyArray<string> | ((key: string) => boolean) | undefined
       }
     },
     expected: {
@@ -1920,6 +1921,80 @@ describe("fromJsonSchemaDocument", () => {
             }
           },
           `Schema.Struct({ "a": Schema.String })`
+        )
+      })
+    })
+
+    describe("annotationFilter", () => {
+      it("array form removes specified keys", () => {
+        assertFromJsonSchema(
+          {
+            schema: {
+              title: "a",
+              description: "b",
+              examples: ["d"]
+            },
+            options: { annotationFilter: ["examples"] }
+          },
+          {
+            representation: {
+              _tag: "Unknown",
+              annotations: {
+                title: "a",
+                description: "b"
+              }
+            }
+          },
+          `Schema.Unknown.annotate({ "title": "a", "description": "b" })`
+        )
+      })
+
+      it("function form filters by predicate", () => {
+        assertFromJsonSchema(
+          {
+            schema: {
+              title: "a",
+              description: "b",
+              examples: ["d"],
+              default: "c"
+            },
+            options: { annotationFilter: (key) => key === "title" || key === "default" }
+          },
+          {
+            representation: {
+              _tag: "Unknown",
+              annotations: {
+                title: "a",
+                default: "c"
+              }
+            }
+          },
+          `Schema.Unknown.annotate({ "title": "a", "default": "c" })`
+        )
+      })
+
+      it("default preserves all annotations", () => {
+        assertFromJsonSchema(
+          {
+            schema: {
+              title: "a",
+              description: "b",
+              default: "c",
+              examples: ["d"]
+            }
+          },
+          {
+            representation: {
+              _tag: "Unknown",
+              annotations: {
+                title: "a",
+                description: "b",
+                default: "c",
+                examples: ["d"]
+              }
+            }
+          },
+          `Schema.Unknown.annotate({ "title": "a", "description": "b", "default": "c", "examples": ["d"] })`
         )
       })
     })

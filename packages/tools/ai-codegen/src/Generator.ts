@@ -129,7 +129,8 @@ export const layer: Layer.Layer<
     return yield* openApiGen
       .generate(patchedSpec as unknown as Parameters<typeof openApiGen.generate>[0], {
         name: provider.config.clientName,
-        typeOnly: provider.config.isTypeOnly
+        typeOnly: provider.config.isTypeOnly,
+        annotationFilter: provider.config.excludeAnnotationsList
       })
       .pipe(
         Effect.mapError((cause) => new GenerationError({ provider: provider.name, cause }))
