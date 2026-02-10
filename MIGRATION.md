@@ -65,6 +65,7 @@ minimal Effect program bundles to ~6.3 KB (minified + gzipped). With Schema,
 - [Error Handling: `catch*` Renamings](./migration/error-handling.md)
 - [Forking: Renamed Combinators and New Options](./migration/forking.md)
 - [Effect Subtyping → Yieldable](./migration/yieldable.md)
+- [Fiber Keep-Alive: Automatic Process Lifetime Management](./migration/fiber-keep-alive.md)
 
 ### Modules
 
