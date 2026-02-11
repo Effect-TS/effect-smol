@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
+import { Effect, Stream } from "effect"
 import * as Schema from "effect/Schema"
 import * as Sse from "effect/unstable/encoding/Sse"
 
@@ -40,4 +41,22 @@ describe("Sse", () => {
 
     assert.deepStrictEqual(event.data, { type: "ok" })
   })
+
+  it.effect("decodeDataSchema decodes json payload from SSE stream", () =>
+    Effect.gen(function*() {
+      const events = yield* Stream.make(
+        "event: message\ndata: {\"type\":\"ok\"}\n\n"
+      ).pipe(
+        Stream.pipeThroughChannel(Sse.decodeDataSchema(Schema.Struct({ type: Schema.String }))),
+        Stream.runCollect
+      )
+
+      assert.deepStrictEqual([...events], [{
+        event: "message",
+        id: undefined,
+        data: {
+          type: "ok"
+        }
+      }])
+    }))
 })
