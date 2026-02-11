@@ -124,14 +124,8 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
-      readonly successes: ReadonlyMap<number, {
-        readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
-        readonly description: string | undefined
-      }>
-      readonly errors: ReadonlyMap<number, {
-        readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
-        readonly description: string | undefined
-      }>
+      readonly successes: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
+      readonly errors: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
       readonly endpointFn: Function
     }) => void
     readonly transformResponse?:
@@ -161,7 +155,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
           (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<unknown, unknown, unknown>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
-        errors.forEach(({ schemas }, status) => {
+        errors.forEach((schemas, status) => {
           // decoders
           const decode = schemasToResponse(schemas)
           decodeMap[status] = (response) =>
@@ -181,7 +175,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
               Effect.fail
             )
         })
-        successes.forEach(({ schemas }, status) => {
+        successes.forEach((schemas, status) => {
           decodeMap[status] = schemasToResponse(schemas)
         })
 

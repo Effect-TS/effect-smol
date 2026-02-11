@@ -6,7 +6,7 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import type * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable } from "../../Types.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
@@ -213,14 +213,8 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
-      readonly successes: ReadonlyMap<number, {
-        readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
-        readonly description: string | undefined
-      }>
-      readonly errors: ReadonlyMap<number, {
-        readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
-        readonly description: string | undefined
-      }>
+      readonly successes: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
+      readonly errors: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
     }) => void
   }
 ) => {
@@ -260,21 +254,11 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 
 // -------------------------------------------------------------------------------------
 
-function resolveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
-  return AST.resolveDescription(ast) ?? AST.resolveIdentifier(ast)
-}
-
 const extractResponseContent = (
   schemas: readonly [Schema.Top, ...Array<Schema.Top>],
   getStatus: (ast: AST.AST) => number
-): ReadonlyMap<number, {
-  readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
-  readonly description: string | undefined
-}> => {
-  const map = new Map<number, {
-    schemas: [Schema.Top, ...Array<Schema.Top>]
-    description: string | undefined
-  }>()
+): ReadonlyMap<number, [Schema.Top, ...Array<Schema.Top>]> => {
+  const map = new Map<number, [Schema.Top, ...Array<Schema.Top>]>()
 
   schemas.forEach(add)
 
@@ -283,16 +267,11 @@ const extractResponseContent = (
   function add(schema: Schema.Top) {
     const ast = schema.ast
     const status = getStatus(ast)
-    const description = resolveDescriptionOrIdentifier(ast)
-    const pair = map.get(status)
-    if (pair === undefined) {
-      map.set(status, {
-        description,
-        schemas: [schema]
-      })
+    const schemas = map.get(status)
+    if (schemas === undefined) {
+      map.set(status, [schema])
     } else {
-      pair.description = [pair.description, description].filter(Predicate.isNotUndefined).join(" | ")
-      pair.schemas.push(schema)
+      schemas.push(schema)
     }
   }
 }
