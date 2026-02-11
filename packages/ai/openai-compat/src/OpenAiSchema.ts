@@ -96,7 +96,25 @@ export type ModelIdsShared = typeof ModelIdsShared.Type
 /**
  * @since 1.0.0
  */
-export const ModelIdsResponses = Schema.String
+export const ModelIdsResponses = Schema.Union([
+  ModelIdsShared,
+  Schema.Literals([
+    "o1-pro",
+    "o1-pro-2025-03-19",
+    "o3-pro",
+    "o3-pro-2025-06-10",
+    "o3-deep-research",
+    "o3-deep-research-2025-06-26",
+    "o4-mini-deep-research",
+    "o4-mini-deep-research-2025-06-26",
+    "computer-use-preview",
+    "computer-use-preview-2025-03-11",
+    "gpt-5-codex",
+    "gpt-5-pro",
+    "gpt-5-pro-2025-10-06",
+    "gpt-5.1-codex-max"
+  ])
+])
 
 /**
  * @since 1.0.0
