@@ -3,7 +3,6 @@ import {
   OpenAiConfig,
   OpenAiError,
   OpenAiLanguageModel,
-  OpenAiSchema,
   OpenAiStructuredOutput,
   OpenAiTelemetry,
   OpenAiTool
@@ -17,13 +16,12 @@ describe("OpenAi compat scaffold", () => {
       OpenAiConfig,
       OpenAiError,
       OpenAiLanguageModel,
-      OpenAiSchema,
       OpenAiStructuredOutput,
       OpenAiTelemetry,
       OpenAiTool
     ]
 
-    assert.strictEqual(modules.length, 8)
+    assert.strictEqual(modules.length, 7)
     for (const mod of modules) {
       assert.isDefined(mod)
     }

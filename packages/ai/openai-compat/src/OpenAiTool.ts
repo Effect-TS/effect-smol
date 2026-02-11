@@ -8,7 +8,6 @@
  */
 import * as Schema from "effect/Schema"
 import * as Tool from "effect/unstable/ai/Tool"
-import * as OpenAiSchema from "./OpenAiSchema.ts"
 
 /**
  * Union of all OpenAI provider-defined tools.
@@ -27,6 +26,37 @@ export type OpenAiTool =
   | ReturnType<typeof WebSearch>
   | ReturnType<typeof WebSearchPreview>
 
+const NullableString = Schema.NullOr(Schema.String)
+
+const ApplyPatchOperation = Schema.Union([
+  Schema.Struct({
+    type: Schema.Literal("create_file"),
+    path: Schema.String,
+    diff: Schema.String
+  }),
+  Schema.Struct({
+    type: Schema.Literal("delete_file"),
+    path: Schema.String
+  }),
+  Schema.Struct({
+    type: Schema.Literal("update_file"),
+    path: Schema.String,
+    diff: Schema.String
+  })
+], { mode: "oneOf" })
+
+const WebSearchApproximateLocation = Schema.NullOr(
+  Schema.Struct({
+    type: Schema.optionalKey(Schema.Literal("approximate")),
+    country: Schema.optionalKey(NullableString),
+    region: Schema.optionalKey(NullableString),
+    city: Schema.optionalKey(NullableString),
+    timezone: Schema.optionalKey(NullableString)
+  })
+)
+
+const WebSearchCallStatus = Schema.Literals(["in_progress", "searching", "completed", "failed"])
+
 /**
  * OpenAI Apply Patch tool.
  *
@@ -43,12 +73,12 @@ export const ApplyPatch = Tool.providerDefined({
   providerName: "apply_patch",
   requiresHandler: true,
   parameters: Schema.Struct({
-    call_id: OpenAiSchema.ApplyPatchToolCall.fields.call_id,
-    operation: OpenAiSchema.ApplyPatchToolCall.fields.operation
+    call_id: Schema.String,
+    operation: ApplyPatchOperation
   }),
   success: Schema.Struct({
-    status: OpenAiSchema.ApplyPatchToolCallOutput.fields.status,
-    output: OpenAiSchema.ApplyPatchToolCallOutput.fields.output
+    status: Schema.Literals(["completed", "failed"]),
+    output: Schema.optionalKey(NullableString)
   })
 })
 
@@ -65,14 +95,14 @@ export const CodeInterpreter = Tool.providerDefined({
   customName: "OpenAiCodeInterpreter",
   providerName: "code_interpreter",
   args: Schema.Struct({
-    container: OpenAiSchema.CodeInterpreterTool.fields.container
+    container: Schema.optionalKey(Schema.Any)
   }),
   parameters: Schema.Struct({
-    code: OpenAiSchema.CodeInterpreterToolCall.fields.code,
-    container_id: OpenAiSchema.CodeInterpreterToolCall.fields.container_id
+    code: NullableString,
+    container_id: Schema.String
   }),
   success: Schema.Struct({
-    outputs: OpenAiSchema.CodeInterpreterToolCall.fields.outputs
+    outputs: Schema.NullOr(Schema.Array(Schema.Any))
   })
 })
 
@@ -89,15 +119,15 @@ export const FileSearch = Tool.providerDefined({
   customName: "OpenAiFileSearch",
   providerName: "file_search",
   args: Schema.Struct({
-    filters: OpenAiSchema.FileSearchTool.fields.filters,
-    max_num_results: OpenAiSchema.FileSearchTool.fields.max_num_results,
-    ranking_options: OpenAiSchema.FileSearchTool.fields.ranking_options,
-    vector_store_ids: OpenAiSchema.FileSearchTool.fields.vector_store_ids
+    filters: Schema.optionalKey(Schema.NullOr(Schema.Any)),
+    max_num_results: Schema.optionalKey(Schema.Number),
+    ranking_options: Schema.optionalKey(Schema.Any),
+    vector_store_ids: Schema.optionalKey(Schema.Array(Schema.String))
   }),
   success: Schema.Struct({
-    status: OpenAiSchema.FileSearchToolCall.fields.status,
-    queries: OpenAiSchema.FileSearchToolCall.fields.queries,
-    results: OpenAiSchema.FileSearchToolCall.fields.results
+    status: Schema.Literals(["in_progress", "searching", "completed", "incomplete", "failed"]),
+    queries: Schema.Array(Schema.String),
+    results: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.Any)))
   })
 })
 
@@ -114,19 +144,22 @@ export const ImageGeneration = Tool.providerDefined({
   customName: "OpenAiImageGeneration",
   providerName: "image_generation",
   args: Schema.Struct({
-    background: OpenAiSchema.ImageGenTool.fields.background,
-    input_fidelity: OpenAiSchema.ImageGenTool.fields.input_fidelity,
-    input_image_mask: OpenAiSchema.ImageGenTool.fields.input_image_mask,
-    model: OpenAiSchema.ImageGenTool.fields.model,
-    moderation: OpenAiSchema.ImageGenTool.fields.moderation,
-    output_compression: OpenAiSchema.ImageGenTool.fields.output_compression,
-    output_format: OpenAiSchema.ImageGenTool.fields.output_format,
-    partial_images: OpenAiSchema.ImageGenTool.fields.partial_images,
-    quality: OpenAiSchema.ImageGenTool.fields.quality,
-    size: OpenAiSchema.ImageGenTool.fields.size
+    background: Schema.optionalKey(Schema.String),
+    input_fidelity: Schema.optionalKey(NullableString),
+    input_image_mask: Schema.optionalKey(Schema.Struct({
+      image_url: Schema.optionalKey(Schema.String),
+      file_id: Schema.optionalKey(Schema.String)
+    })),
+    model: Schema.optionalKey(Schema.String),
+    moderation: Schema.optionalKey(Schema.String),
+    output_compression: Schema.optionalKey(Schema.Number),
+    output_format: Schema.optionalKey(Schema.String),
+    partial_images: Schema.optionalKey(Schema.Number),
+    quality: Schema.optionalKey(Schema.String),
+    size: Schema.optionalKey(Schema.String)
   }),
   success: Schema.Struct({
-    result: OpenAiSchema.ImageGenToolCall.fields.result
+    result: NullableString
   })
 })
 
@@ -145,10 +178,10 @@ export const LocalShell = Tool.providerDefined({
   providerName: "local_shell",
   requiresHandler: true,
   parameters: Schema.Struct({
-    action: OpenAiSchema.LocalShellToolCall.fields.action
+    action: Schema.Any
   }),
   success: Schema.Struct({
-    output: OpenAiSchema.LocalShellToolCallOutput.fields.output
+    output: Schema.String
   })
 })
 
@@ -166,21 +199,21 @@ export const Mcp = Tool.providerDefined({
   customName: "OpenAiMcp",
   providerName: "mcp",
   args: Schema.Struct({
-    allowed_tools: OpenAiSchema.MCPTool.fields.allowed_tools,
-    authorization: OpenAiSchema.MCPTool.fields.authorization,
-    connector_id: OpenAiSchema.MCPTool.fields.connector_id,
-    require_approval: OpenAiSchema.MCPTool.fields.require_approval,
-    server_description: OpenAiSchema.MCPTool.fields.server_description,
-    server_label: OpenAiSchema.MCPTool.fields.server_label,
-    server_url: OpenAiSchema.MCPTool.fields.server_url
+    allowed_tools: Schema.optionalKey(Schema.Any),
+    authorization: Schema.optionalKey(Schema.String),
+    connector_id: Schema.optionalKey(Schema.String),
+    require_approval: Schema.optionalKey(Schema.Any),
+    server_description: Schema.optionalKey(Schema.String),
+    server_label: Schema.String,
+    server_url: Schema.optionalKey(Schema.String)
   }),
   success: Schema.Struct({
-    type: OpenAiSchema.MCPToolCall.fields.type,
-    name: OpenAiSchema.MCPToolCall.fields.name,
-    arguments: OpenAiSchema.MCPToolCall.fields.arguments,
-    output: OpenAiSchema.MCPToolCall.fields.output,
-    error: OpenAiSchema.MCPToolCall.fields.error,
-    server_label: OpenAiSchema.MCPToolCall.fields.server_label
+    type: Schema.Literal("mcp_call"),
+    name: Schema.String,
+    arguments: Schema.String,
+    output: Schema.optionalKey(NullableString),
+    error: Schema.optionalKey(NullableString),
+    server_label: Schema.String
   })
 })
 
@@ -200,10 +233,10 @@ export const Shell = Tool.providerDefined({
   providerName: "shell",
   requiresHandler: true,
   parameters: Schema.Struct({
-    action: OpenAiSchema.FunctionShellCall.fields.action
+    action: Schema.Any
   }),
   success: Schema.Struct({
-    output: OpenAiSchema.FunctionShellCallOutputItemParam.fields.output
+    output: Schema.Array(Schema.Any)
   })
 })
 
@@ -220,16 +253,16 @@ export const WebSearch = Tool.providerDefined({
   customName: "OpenAiWebSearch",
   providerName: "web_search",
   args: Schema.Struct({
-    filters: OpenAiSchema.WebSearchTool.fields.filters,
-    user_location: OpenAiSchema.WebSearchTool.fields.user_location,
-    search_context_size: OpenAiSchema.WebSearchTool.fields.search_context_size
+    filters: Schema.optionalKey(Schema.NullOr(Schema.Any)),
+    user_location: Schema.optionalKey(WebSearchApproximateLocation),
+    search_context_size: Schema.optionalKey(Schema.Literals(["low", "medium", "high"]))
   }),
   parameters: Schema.Struct({
-    action: OpenAiSchema.WebSearchToolCall.fields.action
+    action: Schema.Any
   }),
   success: Schema.Struct({
-    action: OpenAiSchema.WebSearchToolCall.fields.action,
-    status: OpenAiSchema.WebSearchToolCall.fields.status
+    action: Schema.Any,
+    status: WebSearchCallStatus
   })
 })
 
@@ -246,11 +279,11 @@ export const WebSearchPreview = Tool.providerDefined({
   customName: "OpenAiWebSearchPreview",
   providerName: "web_search_preview",
   args: Schema.Struct({
-    user_location: OpenAiSchema.WebSearchPreviewTool.fields.user_location,
-    search_context_size: OpenAiSchema.WebSearchPreviewTool.fields.search_context_size
+    user_location: Schema.optionalKey(WebSearchApproximateLocation),
+    search_context_size: Schema.optionalKey(Schema.Literals(["low", "medium", "high"]))
   }),
   success: Schema.Struct({
-    action: OpenAiSchema.WebSearchToolCall.fields.action,
-    status: OpenAiSchema.WebSearchToolCall.fields.status
+    action: Schema.Any,
+    status: WebSearchCallStatus
   })
 })

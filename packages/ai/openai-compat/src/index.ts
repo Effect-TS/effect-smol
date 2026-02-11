@@ -30,11 +30,6 @@ export * as OpenAiError from "./OpenAiError.ts"
 export * as OpenAiLanguageModel from "./OpenAiLanguageModel.ts"
 
 /**
- * @since 1.0.0
- */
-export * as OpenAiSchema from "./OpenAiSchema.ts"
-
-/**
  * Provides a codec transformation for OpenAI structured output.
  *
  * OpenAI's API has specific constraints on JSON schema support that differ

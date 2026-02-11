@@ -19,7 +19,6 @@ import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import * as Errors from "./internal/errors.ts"
 import { OpenAiConfig } from "./OpenAiConfig.ts"
-import * as OpenAiSchema from "./OpenAiSchema.ts"
 
 /**
  * @since 1.0.0
@@ -28,23 +27,23 @@ import * as OpenAiSchema from "./OpenAiSchema.ts"
 export interface Service {
   readonly client: HttpClient.HttpClient
   readonly createResponse: (
-    options: typeof OpenAiSchema.CreateResponseRequestJson.Encoded
+    options: CreateResponseRequestJson
   ) => Effect.Effect<
-    [body: typeof OpenAiSchema.CreateResponse200.Type, response: HttpClientResponse.HttpClientResponse],
+    [body: CreateResponse200, response: HttpClientResponse.HttpClientResponse],
     AiError.AiError
   >
   readonly createResponseStream: (
-    options: Omit<typeof OpenAiSchema.CreateResponseRequestJson.Encoded, "stream">
+    options: Omit<CreateResponseRequestJson, "stream">
   ) => Effect.Effect<
     [
       response: HttpClientResponse.HttpClientResponse,
-      stream: Stream.Stream<typeof OpenAiSchema.CreateResponse200Sse.Type, AiError.AiError>
+      stream: Stream.Stream<CreateResponse200Sse, AiError.AiError>
     ],
     AiError.AiError
   >
   readonly createEmbedding: (
-    options: typeof OpenAiSchema.CreateEmbeddingRequestJson.Encoded
-  ) => Effect.Effect<typeof OpenAiSchema.CreateEmbedding200.Type, AiError.AiError>
+    options: CreateEmbeddingRequestJson
+  ) => Effect.Effect<CreateEmbedding200, AiError.AiError>
 }
 
 /**
@@ -118,9 +117,9 @@ export const make = Effect.fnUntraced(
     const decodeResponse = HttpClientResponse.schemaBodyJson(ChatCompletionResponse)
 
     const createResponse = (
-      payload: typeof OpenAiSchema.CreateResponseRequestJson.Encoded
+      payload: CreateResponseRequestJson
     ): Effect.Effect<
-      [body: typeof OpenAiSchema.CreateResponse200.Type, response: HttpClientResponse.HttpClientResponse],
+      [body: CreateResponse200, response: HttpClientResponse.HttpClientResponse],
       AiError.AiError
     > =>
       Effect.flatMap(resolveHttpClient, (client) =>
@@ -131,7 +130,7 @@ export const make = Effect.fnUntraced(
           Effect.flatMap((response) =>
             Effect.map(decodeResponse(response), (
               body
-            ): [typeof OpenAiSchema.CreateResponse200.Type, HttpClientResponse.HttpClientResponse] => [
+            ): [CreateResponse200, HttpClientResponse.HttpClientResponse] => [
               fromChatCompletion(body),
               response
             ])
@@ -146,7 +145,7 @@ export const make = Effect.fnUntraced(
       response: HttpClientResponse.HttpClientResponse
     ): [
       HttpClientResponse.HttpClientResponse,
-      Stream.Stream<typeof OpenAiSchema.CreateResponse200Sse.Type, AiError.AiError>
+      Stream.Stream<CreateResponse200Sse, AiError.AiError>
     ] => {
       const toEvents = makeChatStreamEventAdapter()
       const stream = response.stream.pipe(
@@ -182,11 +181,11 @@ export const make = Effect.fnUntraced(
           )
         ))
 
-    const decodeEmbedding = HttpClientResponse.schemaBodyJson(OpenAiSchema.CreateEmbedding200)
+    const decodeEmbedding = HttpClientResponse.schemaBodyJson(CreateEmbeddingResponseSchema)
 
     const createEmbedding = (
-      payload: typeof OpenAiSchema.CreateEmbeddingRequestJson.Encoded
-    ): Effect.Effect<typeof OpenAiSchema.CreateEmbedding200.Type, AiError.AiError> =>
+      payload: CreateEmbeddingRequestJson
+    ): Effect.Effect<CreateEmbedding200, AiError.AiError> =>
       Effect.flatMap(resolveHttpClient, (client) =>
         pipe(
           HttpClientRequest.post("/embeddings"),
@@ -255,6 +254,908 @@ export const layerConfig = (options?: {
     })
   )
 
+type JsonObject = { readonly [x: string]: Schema.Json }
+
+/**
+ * @since 1.0.0
+ */
+export type ModelIdsShared = string
+/**
+ * @since 1.0.0
+ */
+export type ModelIdsResponses = string
+
+/**
+ * @since 1.0.0
+ */
+export type IncludeEnum =
+  | "file_search_call.results"
+  | "web_search_call.results"
+  | "web_search_call.action.sources"
+  | "message.input_image.image_url"
+  | "computer_call_output.output.image_url"
+  | "code_interpreter_call.outputs"
+  | "reasoning.encrypted_content"
+  | "message.output_text.logprobs"
+
+/**
+ * @since 1.0.0
+ */
+export type MessageStatus = "in_progress" | "completed" | "incomplete"
+
+type InputTextContent = {
+  readonly type: "input_text"
+  readonly text: string
+}
+
+type InputImageContent = {
+  readonly type: "input_image"
+  readonly image_url?: string | null | undefined
+  readonly file_id?: string | null | undefined
+  readonly detail?: "low" | "high" | "auto" | null | undefined
+}
+
+type InputFileContent = {
+  readonly type: "input_file"
+  readonly file_id?: string | null | undefined
+  readonly filename?: string | undefined
+  readonly file_url?: string | undefined
+  readonly file_data?: string | undefined
+}
+
+/**
+ * @since 1.0.0
+ */
+export type InputContent = InputTextContent | InputImageContent | InputFileContent
+
+/**
+ * @since 1.0.0
+ */
+export type SummaryTextContent = {
+  readonly type: "summary_text"
+  readonly text: string
+}
+
+type ReasoningTextContent = {
+  readonly type: "reasoning_text"
+  readonly text: string
+}
+
+type RefusalContent = {
+  readonly type: "refusal"
+  readonly refusal: string
+}
+
+type TextContent = {
+  readonly type: "text"
+  readonly text: string
+}
+
+type ComputerScreenshotContent = {
+  readonly type: "computer_screenshot"
+  readonly image_url: string | null
+  readonly file_id: string | null
+}
+
+type FileCitationAnnotation = {
+  readonly type: "file_citation"
+  readonly file_id: string
+  readonly index: number
+  readonly filename: string
+}
+
+type UrlCitationAnnotation = {
+  readonly type: "url_citation"
+  readonly url: string
+  readonly start_index: number
+  readonly end_index: number
+  readonly title: string
+}
+
+type ContainerFileCitationAnnotation = {
+  readonly type: "container_file_citation"
+  readonly container_id: string
+  readonly file_id: string
+  readonly start_index: number
+  readonly end_index: number
+  readonly filename: string
+}
+
+type FilePathAnnotation = {
+  readonly type: "file_path"
+  readonly file_id: string
+  readonly index: number
+}
+
+/**
+ * @since 1.0.0
+ */
+export type Annotation =
+  | FileCitationAnnotation
+  | UrlCitationAnnotation
+  | ContainerFileCitationAnnotation
+  | FilePathAnnotation
+
+type OutputTextContent = {
+  readonly type: "output_text"
+  readonly text: string
+  readonly annotations?: ReadonlyArray<Annotation> | undefined
+  readonly logprobs?: ReadonlyArray<unknown> | undefined
+}
+
+type OutputMessageContent =
+  | InputTextContent
+  | OutputTextContent
+  | TextContent
+  | SummaryTextContent
+  | ReasoningTextContent
+  | RefusalContent
+  | InputImageContent
+  | ComputerScreenshotContent
+  | InputFileContent
+
+type OutputMessage = {
+  readonly id: string
+  readonly type: "message"
+  readonly role: "assistant"
+  readonly content: ReadonlyArray<OutputMessageContent>
+  readonly status: MessageStatus
+}
+
+/**
+ * @since 1.0.0
+ */
+export type ReasoningItem = {
+  readonly type: "reasoning"
+  readonly id: string
+  readonly encrypted_content?: string | null | undefined
+  readonly summary: ReadonlyArray<SummaryTextContent>
+  readonly content?: ReadonlyArray<ReasoningTextContent> | undefined
+  readonly status?: MessageStatus | undefined
+}
+
+type FunctionCall = {
+  readonly id?: string | undefined
+  readonly type: "function_call"
+  readonly call_id: string
+  readonly name: string
+  readonly arguments: string
+  readonly status?: MessageStatus | undefined
+}
+
+type FunctionCallOutput = {
+  readonly id?: string | null | undefined
+  readonly call_id: string
+  readonly type: "function_call_output"
+  readonly output: string | ReadonlyArray<InputTextContent | InputImageContent | InputFileContent>
+  readonly status?: MessageStatus | null | undefined
+}
+
+type FileSearchCall = {
+  readonly id: string
+  readonly type: "file_search_call"
+  readonly status: "in_progress" | "searching" | "completed" | "incomplete" | "failed"
+  readonly queries: ReadonlyArray<string>
+  readonly results?: ReadonlyArray<unknown> | null | undefined
+}
+
+type WebSearchCall = {
+  readonly id: string
+  readonly type: "web_search_call"
+  readonly status: "in_progress" | "searching" | "completed" | "failed"
+  readonly action: unknown
+}
+
+type ImageGenerationCall = {
+  readonly type: "image_generation_call"
+  readonly id: string
+  readonly status: "in_progress" | "completed" | "generating" | "failed"
+  readonly result: string | null
+}
+
+type ComputerCall = {
+  readonly type: "computer_call"
+  readonly id: string
+  readonly call_id: string
+  readonly action: unknown
+  readonly pending_safety_checks?: ReadonlyArray<unknown> | undefined
+  readonly status: MessageStatus
+}
+
+type CodeInterpreterCall = {
+  readonly type: "code_interpreter_call"
+  readonly id: string
+  readonly status: "in_progress" | "completed" | "incomplete" | "interpreting" | "failed"
+  readonly container_id: string
+  readonly code: string | null
+  readonly outputs: ReadonlyArray<unknown> | null
+}
+
+type LocalShellCall = {
+  readonly type: "local_shell_call"
+  readonly id: string
+  readonly call_id: string
+  readonly action: unknown
+  readonly status: MessageStatus
+}
+
+type LocalShellCallOutput = {
+  readonly type: "local_shell_call_output"
+  readonly id: string
+  readonly output: string
+  readonly status?: MessageStatus | null | undefined
+  readonly call_id: unknown
+}
+
+type ShellCall = {
+  readonly type: "shell_call"
+  readonly id: string
+  readonly call_id: string
+  readonly action: unknown
+  readonly status: MessageStatus
+  readonly created_by?: string | undefined
+}
+
+type ShellCallOutputContent = {
+  readonly stdout: string
+  readonly stderr: string
+  readonly outcome: unknown
+  readonly created_by?: string | undefined
+}
+
+type ShellCallOutput = {
+  readonly type: "shell_call_output"
+  readonly id: string
+  readonly call_id: string
+  readonly status: MessageStatus
+  readonly output: ReadonlyArray<ShellCallOutputContent>
+  readonly max_output_length: number | null
+  readonly created_by?: string | undefined
+}
+
+type ShellCallOutputItem = {
+  readonly id?: string | null | undefined
+  readonly call_id: string
+  readonly type: "shell_call_output"
+  readonly output: ReadonlyArray<unknown>
+  readonly status?: MessageStatus | null | undefined
+  readonly max_output_length?: number | null | undefined
+}
+
+type ApplyPatchCreateFileOperation = {
+  readonly type: "create_file"
+  readonly path: string
+  readonly diff: string
+}
+
+type ApplyPatchDeleteFileOperation = {
+  readonly type: "delete_file"
+  readonly path: string
+}
+
+type ApplyPatchUpdateFileOperation = {
+  readonly type: "update_file"
+  readonly path: string
+  readonly diff: string
+}
+
+type ApplyPatchOperation =
+  | ApplyPatchCreateFileOperation
+  | ApplyPatchDeleteFileOperation
+  | ApplyPatchUpdateFileOperation
+
+type ApplyPatchCall = {
+  readonly type: "apply_patch_call"
+  readonly id: string
+  readonly call_id: string
+  readonly status: "in_progress" | "completed"
+  readonly operation: ApplyPatchOperation
+  readonly created_by?: string | undefined
+}
+
+type ApplyPatchCallOutput = {
+  readonly type: "apply_patch_call_output"
+  readonly id: string
+  readonly call_id: string
+  readonly status: "completed" | "failed"
+  readonly output?: string | null | undefined
+  readonly created_by?: string | undefined
+}
+
+type MCPApprovalRequest = {
+  readonly type: "mcp_approval_request"
+  readonly id: string
+  readonly server_label: string
+  readonly name: string
+  readonly arguments: string
+}
+
+type MCPApprovalResponse = {
+  readonly type: "mcp_approval_response"
+  readonly id?: string | null | undefined
+  readonly approval_request_id: string
+  readonly approve: boolean
+  readonly reason?: string | null | undefined
+  readonly request_id?: unknown
+}
+
+type MCPListTools = {
+  readonly type: "mcp_list_tools"
+  readonly id: string
+  readonly server_label: string
+  readonly tools: ReadonlyArray<unknown>
+  readonly error?: string | null | undefined
+  readonly status?: string | undefined
+}
+
+type MCPToolCall = {
+  readonly type: "mcp_call"
+  readonly id: string
+  readonly server_label: string
+  readonly name: string
+  readonly arguments: string
+  readonly output?: string | null | undefined
+  readonly error?: string | null | undefined
+  readonly status?: "in_progress" | "completed" | "incomplete" | "calling" | "failed" | undefined
+  readonly approval_request_id?: string | null | undefined
+}
+
+type CustomToolCall = {
+  readonly type: "custom_tool_call"
+  readonly id?: string | undefined
+  readonly call_id: string
+  readonly name: string
+  readonly input: string
+}
+
+type CustomToolCallOutput = {
+  readonly type: "custom_tool_call_output"
+  readonly id?: string | undefined
+  readonly call_id: string
+  readonly output: string | ReadonlyArray<InputTextContent | InputImageContent | InputFileContent>
+}
+
+type ItemReference = {
+  readonly type?: "item_reference" | null | undefined
+  readonly id: string
+}
+
+/**
+ * @since 1.0.0
+ */
+export type InputItem =
+  | {
+    readonly role: "user" | "assistant" | "system" | "developer"
+    readonly content: string | ReadonlyArray<InputContent>
+    readonly type?: "message" | undefined
+  }
+  | {
+    readonly type?: "message" | undefined
+    readonly role: "user" | "system" | "developer"
+    readonly status?: MessageStatus | undefined
+    readonly content: ReadonlyArray<InputContent>
+  }
+  | OutputMessage
+  | FileSearchCall
+  | ComputerCall
+  | WebSearchCall
+  | FunctionCall
+  | FunctionCallOutput
+  | ReasoningItem
+  | ImageGenerationCall
+  | CodeInterpreterCall
+  | LocalShellCall
+  | LocalShellCallOutput
+  | ShellCall
+  | ShellCallOutputItem
+  | ApplyPatchCall
+  | ApplyPatchCallOutput
+  | MCPListTools
+  | MCPApprovalRequest
+  | MCPApprovalResponse
+  | MCPToolCall
+  | CustomToolCallOutput
+  | CustomToolCall
+  | ItemReference
+
+type WebSearchApproximateLocation = {
+  readonly type?: "approximate" | undefined
+  readonly country?: string | null | undefined
+  readonly region?: string | null | undefined
+  readonly city?: string | null | undefined
+  readonly timezone?: string | null | undefined
+} | null
+
+type FunctionTool = {
+  readonly type: "function"
+  readonly name: string
+  readonly description?: string | null | undefined
+  readonly parameters?: JsonObject | null | undefined
+  readonly strict?: boolean | null | undefined
+}
+
+type FileSearchTool = {
+  readonly type: "file_search"
+  readonly vector_store_ids?: ReadonlyArray<string> | undefined
+  readonly max_num_results?: number | undefined
+  readonly ranking_options?: unknown
+  readonly filters?: unknown | null | undefined
+}
+
+type CodeInterpreterTool = {
+  readonly type: "code_interpreter"
+  readonly container?: unknown
+}
+
+type ImageGenTool = {
+  readonly type: "image_generation"
+  readonly model?: string | undefined
+  readonly quality?: string | undefined
+  readonly size?: string | undefined
+  readonly output_format?: string | undefined
+  readonly output_compression?: number | undefined
+  readonly moderation?: string | undefined
+  readonly background?: string | undefined
+  readonly input_fidelity?: string | null | undefined
+  readonly input_image_mask?: {
+    readonly image_url?: string | undefined
+    readonly file_id?: string | undefined
+  } | undefined
+  readonly partial_images?: number | undefined
+  readonly action?: string | undefined
+}
+
+type LocalShellToolParam = {
+  readonly type: "local_shell"
+}
+
+type FunctionShellToolParam = {
+  readonly type: "shell"
+}
+
+type WebSearchTool = {
+  readonly type: "web_search" | "web_search_2025_08_26"
+  readonly filters?: unknown | null | undefined
+  readonly user_location?: WebSearchApproximateLocation | undefined
+  readonly search_context_size?: "low" | "medium" | "high" | undefined
+}
+
+type WebSearchPreviewTool = {
+  readonly type: "web_search_preview" | "web_search_preview_2025_03_11"
+  readonly user_location?: WebSearchApproximateLocation | undefined
+  readonly search_context_size?: "low" | "medium" | "high" | undefined
+}
+
+type MCPTool = {
+  readonly type: "mcp"
+  readonly server_label: string
+  readonly server_url?: string | undefined
+  readonly connector_id?: string | undefined
+  readonly authorization?: string | undefined
+  readonly server_description?: string | undefined
+  readonly allowed_tools?: unknown
+  readonly require_approval?: unknown
+}
+
+type ApplyPatchToolParam = {
+  readonly type: "apply_patch"
+}
+
+type ComputerUseTool = {
+  readonly type: "computer_use" | "computer_use_preview"
+  readonly environment?: string | undefined
+  readonly display_width?: number | undefined
+  readonly display_height?: number | undefined
+}
+
+type CustomToolParam = {
+  readonly type: "custom"
+  readonly name: string
+  readonly description?: string | undefined
+  readonly format?: unknown
+}
+
+/**
+ * @since 1.0.0
+ */
+export type Tool =
+  | FunctionTool
+  | FileSearchTool
+  | ComputerUseTool
+  | WebSearchTool
+  | MCPTool
+  | CodeInterpreterTool
+  | ImageGenTool
+  | LocalShellToolParam
+  | FunctionShellToolParam
+  | CustomToolParam
+  | WebSearchPreviewTool
+  | ApplyPatchToolParam
+
+type ToolChoice =
+  | "none"
+  | "auto"
+  | "required"
+  | {
+    readonly type: "allowed_tools"
+    readonly mode: "auto" | "required"
+    readonly tools: ReadonlyArray<JsonObject>
+  }
+  | {
+    readonly type:
+      | "file_search"
+      | "web_search_preview"
+      | "computer_use_preview"
+      | "web_search_preview_2025_03_11"
+      | "image_generation"
+      | "code_interpreter"
+  }
+  | {
+    readonly type: "function"
+    readonly name: string
+  }
+  | {
+    readonly type: "mcp"
+    readonly server_label: string
+    readonly name?: string | null | undefined
+  }
+  | {
+    readonly type: "custom"
+    readonly name: string
+  }
+  | {
+    readonly type: "apply_patch"
+  }
+  | {
+    readonly type: "shell"
+  }
+
+/**
+ * @since 1.0.0
+ */
+export type TextResponseFormatConfiguration =
+  | {
+    readonly type: "text"
+  }
+  | {
+    readonly type: "json_schema"
+    readonly description?: string | undefined
+    readonly name: string
+    readonly schema: JsonObject
+    readonly strict?: boolean | null | undefined
+  }
+  | {
+    readonly type: "json_object"
+  }
+
+/**
+ * @since 1.0.0
+ */
+export type CreateResponse = {
+  readonly metadata?: Readonly<Record<string, string>> | null | undefined
+  readonly top_logprobs?: number | undefined
+  readonly temperature?: number | null | undefined
+  readonly top_p?: number | null | undefined
+  readonly user?: string | null | undefined
+  readonly safety_identifier?: string | null | undefined
+  readonly prompt_cache_key?: string | null | undefined
+  readonly service_tier?: string | undefined
+  readonly prompt_cache_retention?: "in-memory" | "24h" | null | undefined
+  readonly previous_response_id?: string | null | undefined
+  readonly model?: ModelIdsResponses | undefined
+  readonly reasoning?: unknown
+  readonly background?: boolean | null | undefined
+  readonly max_output_tokens?: number | null | undefined
+  readonly max_tool_calls?: number | null | undefined
+  readonly text?: {
+    readonly format?: TextResponseFormatConfiguration | undefined
+    readonly verbosity?: "low" | "medium" | "high" | null | undefined
+  } | undefined
+  readonly tools?: ReadonlyArray<Tool> | undefined
+  readonly tool_choice?: ToolChoice | undefined
+  readonly truncation?: "auto" | "disabled" | null | undefined
+  readonly input?: string | ReadonlyArray<InputItem> | undefined
+  readonly include?: ReadonlyArray<IncludeEnum> | null | undefined
+  readonly parallel_tool_calls?: boolean | null | undefined
+  readonly store?: boolean | null | undefined
+  readonly instructions?: string | null | undefined
+  readonly stream?: boolean | null | undefined
+  readonly conversation?: string | null | undefined
+  readonly modalities?: ReadonlyArray<"text" | "audio"> | undefined
+  readonly seed?: number | undefined
+}
+
+/**
+ * @since 1.0.0
+ */
+export type ResponseUsage = {
+  readonly input_tokens: number
+  readonly output_tokens: number
+  readonly total_tokens: number
+  readonly input_tokens_details?: unknown
+  readonly output_tokens_details?: unknown
+}
+
+type OutputItem =
+  | OutputMessage
+  | FileSearchCall
+  | FunctionCall
+  | WebSearchCall
+  | ComputerCall
+  | ReasoningItem
+  | ImageGenerationCall
+  | CodeInterpreterCall
+  | LocalShellCall
+  | ShellCall
+  | ShellCallOutput
+  | ApplyPatchCall
+  | ApplyPatchCallOutput
+  | MCPToolCall
+  | MCPListTools
+  | MCPApprovalRequest
+  | CustomToolCall
+
+/**
+ * @since 1.0.0
+ */
+export type Response = {
+  readonly id: string
+  readonly object?: "response" | undefined
+  readonly model: ModelIdsResponses
+  readonly status?: "completed" | "failed" | "in_progress" | "cancelled" | "queued" | "incomplete" | undefined
+  readonly created_at: number
+  readonly output: ReadonlyArray<OutputItem>
+  readonly usage?: ResponseUsage | null | undefined
+  readonly incomplete_details?:
+    | {
+      readonly reason?: "max_output_tokens" | "content_filter" | undefined
+    }
+    | null
+    | undefined
+  readonly service_tier?: string | undefined
+}
+
+type ResponseCreatedEvent = {
+  readonly type: "response.created"
+  readonly response: Response
+  readonly sequence_number: number
+}
+
+type ResponseCompletedEvent = {
+  readonly type: "response.completed"
+  readonly response: Response
+  readonly sequence_number: number
+}
+
+type ResponseIncompleteEvent = {
+  readonly type: "response.incomplete"
+  readonly response: Response
+  readonly sequence_number: number
+}
+
+type ResponseFailedEvent = {
+  readonly type: "response.failed"
+  readonly response: Response
+  readonly sequence_number: number
+}
+
+type ResponseOutputItemAddedEvent = {
+  readonly type: "response.output_item.added"
+  readonly output_index: number
+  readonly sequence_number: number
+  readonly item: OutputItem
+}
+
+type ResponseOutputItemDoneEvent = {
+  readonly type: "response.output_item.done"
+  readonly output_index: number
+  readonly sequence_number: number
+  readonly item: OutputItem
+}
+
+type ResponseTextDeltaEvent = {
+  readonly type: "response.output_text.delta"
+  readonly item_id: string
+  readonly output_index: number
+  readonly content_index: number
+  readonly delta: string
+  readonly sequence_number: number
+  readonly logprobs?: ReadonlyArray<unknown> | undefined
+}
+
+type ResponseOutputTextAnnotationAddedEvent = {
+  readonly type: "response.output_text.annotation.added"
+  readonly item_id: string
+  readonly output_index: number
+  readonly content_index: number
+  readonly annotation_index: number
+  readonly sequence_number: number
+  readonly annotation: Annotation
+}
+
+type ResponseFunctionCallArgumentsDeltaEvent = {
+  readonly type: "response.function_call_arguments.delta"
+  readonly item_id: string
+  readonly output_index: number
+  readonly sequence_number: number
+  readonly delta: string
+}
+
+type ResponseApplyPatchCallOperationDiffDeltaEvent = {
+  readonly type: "response.apply_patch_call_operation_diff.delta"
+  readonly sequence_number: number
+  readonly output_index: number
+  readonly item_id: string
+  readonly delta: string
+}
+
+type ResponseApplyPatchCallOperationDiffDoneEvent = {
+  readonly type: "response.apply_patch_call_operation_diff.done"
+  readonly sequence_number: number
+  readonly output_index: number
+  readonly item_id: string
+  readonly delta?: string | undefined
+}
+
+type ResponseCodeInterpreterCallCodeDeltaEvent = {
+  readonly type: "response.code_interpreter_call_code.delta"
+  readonly output_index: number
+  readonly item_id: string
+  readonly delta: string
+  readonly sequence_number: number
+}
+
+type ResponseCodeInterpreterCallCodeDoneEvent = {
+  readonly type: "response.code_interpreter_call_code.done"
+  readonly output_index: number
+  readonly item_id: string
+  readonly code: string
+  readonly sequence_number: number
+}
+
+type ResponseImageGenCallPartialImageEvent = {
+  readonly type: "response.image_generation_call.partial_image"
+  readonly output_index: number
+  readonly item_id: string
+  readonly sequence_number: number
+  readonly partial_image_index: number
+  readonly partial_image_b64: string
+}
+
+type ResponseReasoningSummaryPartAddedEvent = {
+  readonly type: "response.reasoning_summary_part.added"
+  readonly item_id: string
+  readonly output_index: number
+  readonly summary_index: number
+  readonly sequence_number: number
+  readonly part: SummaryTextContent
+}
+
+type ResponseReasoningSummaryPartDoneEvent = {
+  readonly type: "response.reasoning_summary_part.done"
+  readonly item_id: string
+  readonly output_index: number
+  readonly summary_index: number
+  readonly sequence_number: number
+  readonly part: SummaryTextContent
+}
+
+type ResponseReasoningSummaryTextDeltaEvent = {
+  readonly type: "response.reasoning_summary_text.delta"
+  readonly item_id: string
+  readonly output_index: number
+  readonly summary_index: number
+  readonly delta: string
+  readonly sequence_number: number
+}
+
+type ResponseErrorEvent = {
+  readonly type: "error"
+  readonly code: string | null
+  readonly message: string
+  readonly param: string | null
+  readonly sequence_number: number
+}
+
+type UnknownResponseStreamEvent = {
+  readonly type: string
+  readonly [key: string]: unknown
+}
+
+/**
+ * @since 1.0.0
+ */
+export type ResponseStreamEvent =
+  | ResponseCreatedEvent
+  | ResponseCompletedEvent
+  | ResponseIncompleteEvent
+  | ResponseFailedEvent
+  | ResponseOutputItemAddedEvent
+  | ResponseOutputItemDoneEvent
+  | ResponseTextDeltaEvent
+  | ResponseOutputTextAnnotationAddedEvent
+  | ResponseFunctionCallArgumentsDeltaEvent
+  | ResponseApplyPatchCallOperationDiffDeltaEvent
+  | ResponseApplyPatchCallOperationDiffDoneEvent
+  | ResponseCodeInterpreterCallCodeDeltaEvent
+  | ResponseCodeInterpreterCallCodeDoneEvent
+  | ResponseImageGenCallPartialImageEvent
+  | ResponseReasoningSummaryPartAddedEvent
+  | ResponseReasoningSummaryPartDoneEvent
+  | ResponseReasoningSummaryTextDeltaEvent
+  | ResponseErrorEvent
+  | UnknownResponseStreamEvent
+
+/**
+ * @since 1.0.0
+ */
+export type Embedding = {
+  readonly embedding: ReadonlyArray<number> | string
+  readonly index: number
+  readonly object?: string | undefined
+}
+
+/**
+ * @since 1.0.0
+ */
+export type CreateEmbeddingRequest = {
+  readonly input: string | ReadonlyArray<string> | ReadonlyArray<number> | ReadonlyArray<ReadonlyArray<number>>
+  readonly model: string
+  readonly encoding_format?: "float" | "base64" | undefined
+  readonly dimensions?: number | undefined
+  readonly user?: string | undefined
+}
+
+/**
+ * @since 1.0.0
+ */
+export type CreateEmbeddingResponse = {
+  readonly data: ReadonlyArray<Embedding>
+  readonly model: string
+  readonly object?: "list" | undefined
+  readonly usage?: {
+    readonly prompt_tokens: number
+    readonly total_tokens: number
+  } | undefined
+}
+
+/**
+ * @since 1.0.0
+ */
+export type CreateEmbeddingRequestJson = CreateEmbeddingRequest
+/**
+ * @since 1.0.0
+ */
+export type CreateEmbedding200 = CreateEmbeddingResponse
+/**
+ * @since 1.0.0
+ */
+export type CreateResponseRequestJson = CreateResponse
+/**
+ * @since 1.0.0
+ */
+export type CreateResponse200 = Response
+/**
+ * @since 1.0.0
+ */
+export type CreateResponse200Sse = ResponseStreamEvent
+
+const EmbeddingSchema = Schema.Struct({
+  embedding: Schema.Union([Schema.Array(Schema.Number), Schema.String]),
+  index: Schema.Number,
+  object: Schema.optionalKey(Schema.String)
+})
+
+const CreateEmbeddingResponseSchema = Schema.Struct({
+  data: Schema.Array(EmbeddingSchema),
+  model: Schema.String,
+  object: Schema.optionalKey(Schema.Literal("list")),
+  usage: Schema.optionalKey(Schema.Struct({
+    prompt_tokens: Schema.Number,
+    total_tokens: Schema.Number
+  }))
+})
+
 const ChatCompletionToolFunction = Schema.Struct({
   name: Schema.String,
   arguments: Schema.optionalKey(Schema.String)
@@ -312,12 +1213,12 @@ const ChatCompletionChunk = Schema.Struct({
   service_tier: Schema.optionalKey(Schema.String)
 })
 
-type CompatCreateResponse = typeof OpenAiSchema.CreateResponseRequestJson.Encoded
-type CompatResponse = typeof OpenAiSchema.CreateResponse200.Type
-type CompatResponseEvent = typeof OpenAiSchema.CreateResponse200Sse.Type
+type CompatCreateResponse = CreateResponseRequestJson
+type CompatResponse = CreateResponse200
+type CompatResponseEvent = CreateResponse200Sse
 type CompatOutputItem = CompatResponse["output"][number]
 type CompatToolChoice = CompatCreateResponse["tool_choice"]
-type CompatTool = typeof OpenAiSchema.Tool.Encoded
+type CompatTool = Tool
 type CompatInput = CompatCreateResponse["input"]
 type CompatTextFormat = NonNullable<NonNullable<CompatCreateResponse["text"]>["format"]>
 type ChatCompletionResponse = typeof ChatCompletionResponse.Type
@@ -525,7 +1426,7 @@ const toChatMessages = (input: CompatInput): Array<Record<string, unknown>> => {
 }
 
 const toChatMessagesFromItem = (
-  item: typeof OpenAiSchema.InputItem.Encoded
+  item: InputItem
 ): Array<Record<string, unknown>> => {
   if (Predicate.hasProperty(item, "type") && item.type === "message") {
     return [{
@@ -641,7 +1542,7 @@ const toChatMessagesFromItem = (
 }
 
 const toAssistantChatMessageContent = (
-  content: typeof OpenAiSchema.OutputMessage.Encoded["content"]
+  content: OutputMessage["content"]
 ): string | null => {
   const text = content.map((part) => {
     if (part.type === "output_text") {
@@ -656,7 +1557,7 @@ const toAssistantChatMessageContent = (
 }
 
 const toChatMessageContent = (
-  content: string | ReadonlyArray<typeof OpenAiSchema.InputContent.Encoded>
+  content: string | ReadonlyArray<InputContent>
 ): string | ReadonlyArray<Record<string, unknown>> => {
   if (typeof content === "string") {
     return content
@@ -715,7 +1616,7 @@ const toChatMessageContent = (
   return richParts
 }
 
-const toCompatUsage = (usage: ChatCompletionUsage): typeof OpenAiSchema.ResponseUsage.Type => ({
+const toCompatUsage = (usage: ChatCompletionUsage): ResponseUsage => ({
   input_tokens: usage.prompt_tokens,
   output_tokens: usage.completion_tokens,
   total_tokens: usage.total_tokens,
@@ -731,7 +1632,7 @@ const toCompatStatus = (
   finishReason: string | null | undefined
 ): {
   readonly status: "completed" | "incomplete"
-  readonly incompleteDetails: typeof OpenAiSchema.Response.Type["incomplete_details"] | undefined
+  readonly incompleteDetails: Response["incomplete_details"] | undefined
 } => {
   switch (finishReason) {
     case "length": {

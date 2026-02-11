@@ -29,8 +29,24 @@ import * as Tool from "effect/unstable/ai/Tool"
 import type * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import * as InternalUtilities from "./internal/utilities.ts"
-import { OpenAiClient } from "./OpenAiClient.ts"
-import type * as OpenAiSchema from "./OpenAiSchema.ts"
+import {
+  type Annotation,
+  type CreateResponse,
+  type IncludeEnum,
+  type InputContent,
+  type InputItem,
+  type MessageStatus,
+  type ModelIdsResponses,
+  type ModelIdsShared,
+  OpenAiClient,
+  type ReasoningItem,
+  type Response as OpenAiResponse,
+  type ResponseStreamEvent as OpenAiResponseStreamEvent,
+  type ResponseUsage,
+  type SummaryTextContent,
+  type TextResponseFormatConfiguration,
+  type Tool as OpenAiClientTool
+} from "./OpenAiClient.ts"
 import { addGenAIAnnotations } from "./OpenAiTelemetry.ts"
 import type * as OpenAiTool from "./OpenAiTool.ts"
 
@@ -38,7 +54,7 @@ import type * as OpenAiTool from "./OpenAiTool.ts"
  * @since 1.0.0
  * @category models
  */
-export type Model = (OpenAiSchema.ModelIdsResponses | OpenAiSchema.ModelIdsShared) | (string & {})
+export type Model = (ModelIdsResponses | ModelIdsShared) | (string & {})
 
 /**
  * Image detail level for vision requests.
@@ -60,7 +76,7 @@ export class Config extends ServiceMap.Service<
   Simplify<
     & Partial<
       Omit<
-        typeof OpenAiSchema.CreateResponse.Encoded,
+        CreateResponse,
         "input" | "tools" | "tool_choice" | "stream" | "text"
       >
     >
@@ -135,7 +151,7 @@ declare module "effect/unstable/ai/Prompt" {
       /**
        * The status of item.
        */
-      readonly status?: typeof OpenAiSchema.Message.Encoded["status"] | null
+      readonly status?: MessageStatus | null
       /**
        * The ID of the approval request.
        */
@@ -152,7 +168,7 @@ declare module "effect/unstable/ai/Prompt" {
       /**
        * The status of item.
        */
-      readonly status?: typeof OpenAiSchema.Message.Encoded["status"] | null
+      readonly status?: MessageStatus | null
       /**
        * The ID of the approval request.
        */
@@ -169,11 +185,11 @@ declare module "effect/unstable/ai/Prompt" {
       /**
        * The status of item.
        */
-      readonly status?: typeof OpenAiSchema.Message.Encoded["status"] | null
+      readonly status?: MessageStatus | null
       /**
        * A list of annotations that apply to the output text.
        */
-      readonly annotations?: ReadonlyArray<typeof OpenAiSchema.Annotation.Encoded> | null
+      readonly annotations?: ReadonlyArray<Annotation> | null
     } | null
   }
 }
@@ -191,11 +207,11 @@ declare module "effect/unstable/ai/Response" {
       /**
        * The status of item.
        */
-      readonly status?: typeof OpenAiSchema.Message.Encoded["status"] | null
+      readonly status?: MessageStatus | null
       /**
        * The text content part annotations.
        */
-      readonly annotations?: ReadonlyArray<typeof OpenAiSchema.Annotation.Encoded> | null
+      readonly annotations?: ReadonlyArray<Annotation> | null
     }
   }
 
@@ -208,7 +224,7 @@ declare module "effect/unstable/ai/Response" {
   export interface TextEndPartMetadata extends ProviderMetadata {
     readonly openai?: {
       readonly itemId?: string | null
-      readonly annotations?: ReadonlyArray<typeof OpenAiSchema.Annotation.Encoded> | null
+      readonly annotations?: ReadonlyArray<Annotation> | null
     } | null
   }
 
@@ -351,8 +367,8 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
       readonly config: typeof Config.Service
       readonly options: LanguageModel.ProviderOptions
       readonly toolNameMapper: Tool.NameMapper<Tools>
-    }): Effect.fn.Return<typeof OpenAiSchema.CreateResponse.Encoded, AiError.AiError> {
-      const include = new Set<typeof OpenAiSchema.IncludeEnum.Encoded>()
+    }): Effect.fn.Return<CreateResponse, AiError.AiError> {
+      const include = new Set<IncludeEnum>()
       const capabilities = getModelCapabilities(config.model!)
       const messages = yield* prepareMessages({
         config,
@@ -370,7 +386,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         config,
         options
       })
-      const request: typeof OpenAiSchema.CreateResponse.Encoded = {
+      const request: CreateResponse = {
         ...config,
         input: messages,
         include: include.size > 0 ? Array.from(include) : null,
@@ -487,10 +503,10 @@ const prepareMessages = Effect.fnUntraced(
   }: {
     readonly config: typeof Config.Service
     readonly options: LanguageModel.ProviderOptions
-    readonly include: Set<typeof OpenAiSchema.IncludeEnum.Encoded>
+    readonly include: Set<IncludeEnum>
     readonly capabilities: ModelCapabilities
     readonly toolNameMapper: Tool.NameMapper<Tools>
-  }): Effect.fn.Return<ReadonlyArray<typeof OpenAiSchema.InputItem.Encoded>, AiError.AiError> {
+  }): Effect.fn.Return<ReadonlyArray<InputItem>, AiError.AiError> {
     const processedApprovalIds = new Set<string>()
 
     const hasConversation = Predicate.isNotNullish(config.conversation)
@@ -529,7 +545,7 @@ const prepareMessages = Effect.fnUntraced(
       include.add("web_search_call.action.sources")
     }
 
-    const messages: Array<typeof OpenAiSchema.InputItem.Encoded> = []
+    const messages: Array<InputItem> = []
 
     for (const message of options.prompt.content) {
       switch (message.role) {
@@ -542,7 +558,7 @@ const prepareMessages = Effect.fnUntraced(
         }
 
         case "user": {
-          const content: Array<typeof OpenAiSchema.InputContent.Encoded> = []
+          const content: Array<InputContent> = []
 
           for (let index = 0; index < message.content.length; index++) {
             const part = message.content[index]
@@ -605,7 +621,7 @@ const prepareMessages = Effect.fnUntraced(
         }
 
         case "assistant": {
-          const reasoningMessages: Record<string, DeepMutable<typeof OpenAiSchema.ReasoningItem.Encoded>> = {}
+          const reasoningMessages: Record<string, DeepMutable<ReasoningItem>> = {}
 
           for (const part of message.content) {
             switch (part.type) {
@@ -664,7 +680,7 @@ const prepareMessages = Effect.fnUntraced(
                       }
                     }
                   } else {
-                    const summaryParts: Array<typeof OpenAiSchema.SummaryTextContent.Encoded> = []
+                    const summaryParts: Array<SummaryTextContent> = []
 
                     if (part.text.length > 0) {
                       summaryParts.push({ type: "summary_text", text: part.text })
@@ -913,7 +929,7 @@ const buildHttpResponseDetails = (
 // Response Conversion
 // =============================================================================
 
-type ResponseStreamEvent = typeof OpenAiSchema.ResponseStreamEvent.Type
+type ResponseStreamEvent = OpenAiResponseStreamEvent
 
 type NarrowKnownResponseStreamEvent<A> = A extends { readonly type: infer T extends string }
   ? string extends T ? never : A
@@ -1003,7 +1019,7 @@ const makeResponse = Effect.fnUntraced(
     toolNameMapper
   }: {
     readonly options: LanguageModel.ProviderOptions
-    readonly rawResponse: OpenAiSchema.Response
+    readonly rawResponse: OpenAiResponse
     readonly response: HttpClientResponse.HttpClientResponse
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<
@@ -1427,7 +1443,7 @@ const makeStreamResponse = Effect.fnUntraced(
     let hasToolCalls = false
 
     // Track annotations for current message to include in text-end metadata
-    const activeAnnotations: Array<typeof OpenAiSchema.Annotation.Encoded> = []
+    const activeAnnotations: Array<Annotation> = []
 
     // Track active reasoning items with state machine for proper concluding logic
     const activeReasoning: Record<string, {
@@ -1990,7 +2006,7 @@ const makeStreamResponse = Effect.fnUntraced(
           }
 
           case "response.output_text.annotation.added": {
-            const annotation = event.annotation as typeof OpenAiSchema.Annotation.Encoded
+            const annotation = event.annotation as Annotation
             // Track annotation for text-end metadata
             activeAnnotations.push(annotation)
             if (annotation.type === "container_file_citation") {
@@ -2240,7 +2256,7 @@ const makeStreamResponse = Effect.fnUntraced(
 
 const annotateRequest = (
   span: Span,
-  request: typeof OpenAiSchema.CreateResponse.Encoded
+  request: CreateResponse
 ): void => {
   addGenAIAnnotations(span, {
     system: "openai",
@@ -2260,7 +2276,7 @@ const annotateRequest = (
   })
 }
 
-const annotateResponse = (span: Span, response: OpenAiSchema.Response): void => {
+const annotateResponse = (span: Span, response: OpenAiResponse): void => {
   const finishReason = response.incomplete_details?.reason as string | undefined
   addGenAIAnnotations(span, {
     response: {
@@ -2310,7 +2326,7 @@ const annotateStreamResponse = (span: Span, part: Response.StreamPartEncoded) =>
 // Tool Conversion
 // =============================================================================
 
-type OpenAiToolChoice = typeof OpenAiSchema.CreateResponse.Encoded["tool_choice"]
+type OpenAiToolChoice = CreateResponse["tool_choice"]
 
 const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>({
   config,
@@ -2321,7 +2337,7 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
   readonly options: LanguageModel.ProviderOptions
   readonly toolNameMapper: Tool.NameMapper<Tools>
 }): Effect.fn.Return<{
-  readonly tools: ReadonlyArray<typeof OpenAiSchema.Tool.Encoded> | undefined
+  readonly tools: ReadonlyArray<OpenAiClientTool> | undefined
   readonly toolChoice: OpenAiToolChoice | undefined
 }, AiError.AiError> {
   // Return immediately if no tools are in the toolkit
@@ -2329,7 +2345,7 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
     return { tools: undefined, toolChoice: undefined }
   }
 
-  const tools: Array<typeof OpenAiSchema.Tool.Encoded> = []
+  const tools: Array<OpenAiClientTool> = []
   let toolChoice: OpenAiToolChoice | undefined = undefined
 
   // Filter the incoming tools down to the set of allowed tools as indicated by
@@ -2534,7 +2550,7 @@ const getStatus = (
     | Prompt.TextPart
     | Prompt.ToolCallPart
     | Prompt.ToolResultPart
-): typeof OpenAiSchema.Message.Encoded["status"] | null => part.options.openai?.status ?? null
+): MessageStatus | null => part.options.openai?.status ?? null
 const getEncryptedContent = (
   part: Prompt.ReasoningPart
 ): string | null => part.options.openai?.encryptedContent ?? null
@@ -2566,7 +2582,7 @@ const normalizeServiceTier = (
 const prepareResponseFormat = ({ config, options }: {
   readonly config: typeof Config.Service
   readonly options: LanguageModel.ProviderOptions
-}): typeof OpenAiSchema.TextResponseFormatConfiguration.Encoded => {
+}): TextResponseFormatConfiguration => {
   if (options.responseFormat.type === "json") {
     const name = options.responseFormat.objectName
     const schema = options.responseFormat.schema
@@ -2653,7 +2669,7 @@ const getApprovalRequestIdMapping = (prompt: Prompt.Prompt): ReadonlyMap<string,
   return mapping
 }
 
-const getUsage = (usage: OpenAiSchema.ResponseUsage | null | undefined): Response.Usage => {
+const getUsage = (usage: ResponseUsage | null | undefined): Response.Usage => {
   if (Predicate.isNullish(usage)) {
     return {
       inputTokens: {
