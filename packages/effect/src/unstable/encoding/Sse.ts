@@ -328,7 +328,7 @@ export const encode = <IE, Done>(): Channel.Channel<
 export const encodeSchema = <
   S extends Schema.Codec<
     any,
-    { readonly id?: string | undefined; readonly event: string; readonly data: unknown },
+    { readonly id?: string | undefined; readonly event: string; readonly data: string },
     any,
     any
   >,
@@ -390,12 +390,12 @@ export const Event: Schema.Struct<{
   readonly _tag: Schema.tag<"Event">
   readonly id: Schema.UndefinedOr<Schema.String>
   readonly event: Schema.String
-  readonly data: Schema.UnknownFromJsonString
+  readonly data: Schema.String
 }> = Schema.Struct({
   _tag: Schema.tag("Event"),
   id: Schema.UndefinedOr(Schema.String),
   event: Schema.String,
-  data: Schema.UnknownFromJsonString
+  data: Schema.String
 })
 
 /**
@@ -405,12 +405,12 @@ export const Event: Schema.Struct<{
 export const transformEvent = Transformation.transform<{
   readonly id?: string | undefined
   readonly event: string
-  readonly data: unknown
+  readonly data: string
 }, {
   readonly _tag: "Event"
   readonly id: string | undefined
   readonly event: string
-  readonly data: unknown
+  readonly data: string
 }>({
   decode: (event) => event,
   encode: (event) => ({
