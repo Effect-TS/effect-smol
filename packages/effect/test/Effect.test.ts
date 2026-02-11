@@ -1470,6 +1470,21 @@ describe("Effect", () => {
         assert.strictEqual(yield* effect, 3)
       }))
 
+    it.effect("catchTag orElse", () =>
+      Effect.gen(function*() {
+        let error: ErrorA | ErrorB | ErrorC = new ErrorA()
+        const effect = Effect.failSync(() => error).pipe(
+          Effect.catchTag(["A", "B"], (_) => Effect.succeed(1), (_) => {
+            return Effect.succeed(2)
+          })
+        )
+        assert.strictEqual(yield* effect, 1)
+        error = new ErrorB()
+        assert.strictEqual(yield* effect, 1)
+        error = new ErrorC()
+        assert.strictEqual(yield* effect, 2)
+      }))
+
     it.effect("tapErrorTag", () =>
       Effect.gen(function*() {
         let error: ErrorA | ErrorB | ErrorC = new ErrorA()
@@ -1514,6 +1529,24 @@ describe("Effect", () => {
           Effect.exit
         )
         assert.deepStrictEqual(result, Exit.fail({ _tag: "ErrorB" as const }))
+      }))
+
+    it.effect("catchIf orElse", () =>
+      Effect.gen(function*() {
+        interface ErrorA {
+          readonly _tag: "ErrorA"
+        }
+        interface ErrorB {
+          readonly _tag: "ErrorB"
+        }
+        const effect: Effect.Effect<never, ErrorA | ErrorB> = Effect.fail({ _tag: "ErrorB" as const })
+        const result = yield* pipe(
+          effect,
+          Effect.catchIf((e): e is ErrorA => e._tag === "ErrorA", Effect.succeed, (_) => {
+            return Effect.succeed(1)
+          })
+        )
+        assert.deepStrictEqual(result, 1)
       }))
   })
 
@@ -1877,6 +1910,21 @@ describe("Effect", () => {
         assert.strictEqual(result, "retry: 60")
       }))
 
+    it.effect("orElse", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.fail(
+          new AiError({ reason: new QuotaExceededError({ limit: 100 }) })
+        ).pipe(
+          Effect.catchReason(
+            "AiError",
+            "RateLimitError",
+            (r) => Effect.succeed(`retry: ${r.retryAfter}`),
+            (_) => Effect.succeed("quota")
+          )
+        )
+        assert.strictEqual(result, "quota")
+      }))
+
     it.effect("catches matching reason - handler fails", () =>
       Effect.gen(function*() {
         const reason = new RateLimitError({ retryAfter: 60 })
@@ -1933,6 +1981,18 @@ describe("Effect", () => {
           })
         )
         assert.strictEqual(result, "rate: 60")
+      }))
+
+    it.effect("orElse", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.fail(
+          new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+        ).pipe(
+          Effect.catchReasons("AiError", {
+            QuotaExceededError: (r) => Effect.succeed(`quota: ${r.limit}`)
+          }, (_) => Effect.succeed("orElse"))
+        )
+        assert.strictEqual(result, "orElse")
       }))
 
     it.effect("catches second reason type", () =>

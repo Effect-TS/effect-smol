@@ -609,3 +609,13 @@ export type ReasonTags<E> = E extends { readonly reason: { readonly _tag: string
 export type ExtractReason<E, K extends string> = E extends { readonly reason: infer R }
   ? Extract<R, { readonly _tag: K }>
   : never
+
+/**
+ * Excludes a specific reason variant by its `_tag`.
+ *
+ * @since 4.0.0
+ * @category types
+ */
+export type ExcludeReason<E, K extends string> = E extends { readonly reason: infer R }
+  ? Exclude<R, { readonly _tag: K }>
+  : never

@@ -119,6 +119,22 @@ describe("Effect.catchReasons", () => {
     )
     expect(result).type.toBe<Effect.Effect<string, AiError>>()
   })
+
+  it("orElse", () => {
+    const result = pipe(
+      aiEffect,
+      Effect.catchReasons("AiError", {
+        RateLimitError: (r) => {
+          expect(r).type.toBe<RateLimitError>()
+          return Effect.succeed("")
+        }
+      }, (others) => {
+        expect(others).type.toBe<QuotaExceededError>()
+        return Effect.succeed("")
+      })
+    )
+    expect(result).type.toBe<Effect.Effect<string>>()
+  })
 })
 
 describe("Effect.tapErrorTag", () => {
