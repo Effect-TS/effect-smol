@@ -887,7 +887,6 @@ class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser")
 
 class Authorization extends HttpApiMiddleware.Service<Authorization, {
   provides: CurrentUser
-  requires: never
 }>()("Authorization", {
   security: {
     cookie: HttpApiSecurity.apiKey({

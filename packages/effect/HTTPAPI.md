@@ -120,7 +120,7 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
   // Possible error responses.
   error: [
     // Default is 500 Internal Server Error with JSON encoding.
-    Schema.Number,
+    Schema.Finite,
 
     // text/plain error with a custom status code.
     Schema.String
@@ -137,7 +137,7 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
 })
 ```
 
-## Hello World
+## Getting Started
 
 ### Defining and Implementing an API
 
@@ -312,7 +312,7 @@ Hello, World!
 */
 ```
 
-## Defining a HttpApiEndpoint
+## Routing
 
 An `HttpApiEndpoint` represents a single endpoint in your API. Each endpoint is defined with a name, path, HTTP method, and optional schemas for requests and responses. This allows you to describe the structure and behavior of your API.
 
@@ -1554,11 +1554,11 @@ curl http://localhost:3000/apiPrefix/groupPrefix/endpointPrefix/a # Returns 200 
 curl http://localhost:3000/apiPrefix/groupPrefix/b # Returns 200 OK
 ```
 
-## Using Services Inside a HttpApiGroup
+## Using Services Inside a HttpApiEndpoint
 
 If your handlers need to use services, you can easily integrate them because the `HttpApiBuilder.group` API allows you to return an `Effect`. This ensures that external services can be accessed and utilized directly within your handlers.
 
-**Example** (Using Services in a Group Implementation)
+**Example** (Using Services in a Endpoint Implementation)
 
 ```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
@@ -1812,7 +1812,7 @@ class Logger extends HttpApiMiddleware.Service<Logger>()("Http/Logger", {
 }) {}
 
 const User = Schema.Struct({
-  id: Schema.Number,
+  id: Schema.Finite,
   name: Schema.String
 })
 
@@ -1896,7 +1896,7 @@ import {
 import { Context, Schema } from "effect"
 
 // Define a schema for the "User"
-class User extends Schema.Class<User>("User")({ id: Schema.Number }) {}
+class User extends Schema.Class<User>("User")({ id: Schema.Finite }) {}
 
 // Define a schema for the "Unauthorized" error
 class Unauthorized extends Schema.TaggedError<Unauthorized>()(
@@ -1954,7 +1954,7 @@ When using `HttpApiSecurity` in your middleware, the implementation involves cre
 import { HttpApiMiddleware, HttpApiSchema, HttpApiSecurity } from "@effect/platform"
 import { Context, Effect, Layer, Redacted, Schema } from "effect"
 
-class User extends Schema.Class<User>("User")({ id: Schema.Number }) {}
+class User extends Schema.Class<User>("User")({ id: Schema.Finite }) {}
 
 class Unauthorized extends Schema.TaggedError<Unauthorized>()(
   "Unauthorized",
@@ -2008,7 +2008,7 @@ The `HttpApiSecurity.annotate` function allows you to add metadata, such as a de
 import { HttpApiMiddleware, HttpApiSchema, HttpApiSecurity, OpenApi } from "@effect/platform"
 import { Context, Schema } from "effect"
 
-class User extends Schema.Class<User>("User")({ id: Schema.Number }) {}
+class User extends Schema.Class<User>("User")({ id: Schema.Finite }) {}
 
 class Unauthorized extends Schema.TaggedError<Unauthorized>()(
   "Unauthorized",
@@ -2864,4 +2864,237 @@ const ApiLive = HttpApiBuilder.layer(Api).pipe(
 Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 // curl "http://localhost:3000/old" -L
+```
+
+## Setting Response Headers
+
+Use `HttpEffect.appendPreResponseHandler` inside a handler to modify the outgoing response before it's sent. The handler receives the request and response, and must return the updated response.
+
+**Example** (Adding a Custom Response Header)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpEffect, HttpRouter, HttpServerResponse } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("api").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.get("hello", "/hello", {
+      success: Schema.String
+    })
+  )
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle("hello", () =>
+      Effect.gen(function*() {
+        yield* HttpEffect.appendPreResponseHandler((_req, response) =>
+          Effect.succeed(HttpServerResponse.setHeader(response, "x-custom", "hello"))
+        )
+        return "Hello, World!"
+      }))
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// curl -v "http://localhost:3000/hello" 2>&1 | grep -i "x-custom"
+// < x-custom: hello
+```
+
+## Setting Response Cookies
+
+Use `HttpEffect.appendPreResponseHandler` with `HttpServerResponse.setCookie` to set cookies on the response. For security-related cookies (tied to an `HttpApiSecurity.apiKey` with `in: "cookie"`), use the convenience helper `HttpApiBuilder.securitySetCookie`.
+
+**Example** (Setting a Response Cookie)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpEffect, HttpRouter, HttpServerResponse } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("api").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.get("hello", "/hello", {
+      success: Schema.String
+    })
+  )
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle("hello", () =>
+      Effect.gen(function*() {
+        yield* HttpEffect.appendPreResponseHandler((_req, response) =>
+          Effect.succeed(HttpServerResponse.setCookieUnsafe(response, "my-cookie", "my-value", {
+            httpOnly: true,
+            secure: true,
+            path: "/"
+          }))
+        )
+        return "Hello, World!"
+      }))
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// curl -v "http://localhost:3000/hello" 2>&1 | grep -i "set-cookie"
+// < set-cookie: my-cookie=my-value; Path=/; HttpOnly; Secure
+```
+
+## Validating Request Cookies
+
+Request cookies are validated through the security middleware mechanism using `HttpApiSecurity.apiKey` with `in: "cookie"`. The middleware decodes the cookie value and provides it as a `Redacted` credential to the security handler.
+
+**Example** (Validating a Session Cookie)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Redacted, Schema, ServiceMap } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import {
+  HttpApi,
+  HttpApiBuilder,
+  HttpApiEndpoint,
+  HttpApiGroup,
+  HttpApiMiddleware,
+  HttpApiScalar,
+  HttpApiSecurity
+} from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+// Define the service providing the current user
+class CurrentUser
+  extends ServiceMap.Service<CurrentUser, { readonly id: number; readonly name: string }>()("CurrentUser")
+{}
+
+// Define the security scheme: read the "session" cookie
+const sessionCookie = HttpApiSecurity.apiKey({ in: "cookie", key: "session" })
+
+class Auth extends HttpApiMiddleware.Service<Auth, {
+  provides: CurrentUser
+}>()("Auth", {
+  error: Schema.String.annotate({
+    httpApiStatus: 401,
+    description: "Auth error"
+  }),
+  security: { session: sessionCookie }
+}) {}
+
+const Api = HttpApi.make("api").add(
+  HttpApiGroup.make("group")
+    .add(
+      HttpApiEndpoint.get("me", "/me", {
+        success: Schema.Struct({ id: Schema.Finite })
+      })
+    )
+    .middleware(Auth)
+)
+
+const AuthLive = Layer.succeed(
+  Auth,
+  {
+    session: (effect, opts) =>
+      Effect.provideServiceEffect(
+        effect,
+        CurrentUser,
+        Effect.gen(function*() {
+          const value = Redacted.value(opts.credential)
+          if (value !== "valid-session") {
+            return yield* Effect.fail("Invalid session")
+          }
+          return { id: 1, name: "John Doe" }
+        })
+      )
+  }
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle("me", () =>
+      Effect.gen(function*() {
+        const user = yield* CurrentUser
+        return { id: user.id }
+      }))
+).pipe(Layer.provide(AuthLive))
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// Valid session:
+// curl "http://localhost:3000/me" --cookie "session=valid-session"
+// {"id":1}
+//
+// Invalid session:
+// curl "http://localhost:3000/me" --cookie "session=wrong"
+// "Invalid session"
+```
+
+There is no `cookies` option on `HttpApiEndpoint` (unlike `headers`, `query`, or `params`). For ad-hoc access without schema validation, you can read cookies directly inside a handler via `ctx.request.cookies`, but they won't appear in the OpenAPI spec.
+
+**Example** (Reading Cookies Directly in a Handler)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("api").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.get("me", "/me", {
+      success: Schema.String
+    })
+  )
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle("me", (ctx) => {
+      const lang = ctx.request.cookies.lang ?? "en"
+      return Effect.succeed(`Language: ${lang}`)
+    })
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// curl "http://localhost:3000/me" --cookie "lang=it"
+// "Language: it"
 ```
