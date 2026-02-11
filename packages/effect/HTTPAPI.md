@@ -1,10 +1,12 @@
 # Overview
 
-The `HttpApi*` modules offer a flexible and declarative way to define HTTP APIs.
+The `HttpApi` modules let you describe your HTTP API once and use that description to run a server, generate documentation, and create a type-safe client.
 
-To define an API, create a set of `HttpEndpoint`s. Each endpoint is described by a path, a method, and schemas for the request and response.
+An API is built from three building blocks:
 
-Collections of endpoints are grouped in an `HttpApiGroup`, and multiple groups can be merged into a complete `HttpApi`.
+- **HttpEndpoint** — a single route (path + HTTP method) with schemas for its request and response.
+- **HttpApiGroup** — a collection of related endpoints (e.g., all user-related routes).
+- **HttpApi** — the top-level object that combines groups into a complete API.
 
 ```
 HttpApi
@@ -17,23 +19,19 @@ HttpApi
     └── HttpEndpoint
 ```
 
-Once your API is defined, the same definition can be reused for multiple purposes:
+From one API definition you can:
 
-- **Starting a Server**: Use the API definition to implement and serve endpoints.
-- **Generating Documentation**: Create a Swagger page to document the API.
-- **Deriving a Client**: Generate a fully-typed client for your API.
+- **Start a server** that implements and serves every endpoint.
+- **Generate documentation** (Scalar or Swagger) automatically.
+- **Derive a client** with a typed method for each endpoint.
 
-Benefits of a Single API Definition:
-
-- **Consistency**: A single definition ensures the server, documentation, and client remain aligned.
-- **Reduced Maintenance**: Changes to the API are reflected across all related components.
-- **Simplified Workflow**: Avoids duplication by consolidating API details in one place.
+One definition powers the server, docs, and client — change it once and everything stays in sync.
 
 # Getting Started
 
 ## Defining and Implementing an API
 
-This example demonstrates how to define and implement a simple API with a single endpoint that returns a string response. The structure of the API is as follows:
+Let's build a minimal API with one endpoint that returns `"Hello, World!"`. You'll define what the endpoint looks like, implement it, and start a server.
 
 ```
 HttpApi ("MyApi")
@@ -92,7 +90,7 @@ Hello, World!
 
 ## Serving The Auto Generated OpenAPI Documentation
 
-You can enhance your API by adding auto-generated OpenAPI documentation using the the `HttpApiScalar` module or the `HttpApiSwagger` module . This makes it easier for developers to explore and interact with your API.
+Adding a documentation layer gives you an interactive page where you (and your API consumers) can explore endpoints, try requests, and see response shapes — all generated automatically from your API definition. You can choose between the `HttpApiScalar` module (Scalar UI) or the `HttpApiSwagger` module (Swagger UI); both do the same job.
 
 **Example** (Serving Scalar Documentation)
 
@@ -133,7 +131,7 @@ This URL will display the Swagger documentation, allowing you to explore the API
 
 ## Adding Annotations to Schemas
 
-Annotations are used to provide additional metadata to schemas. This metadata is used to generate documentation shown in the Scalar or Swagger UI.
+Annotations attach extra information to your schemas — like a human-readable description or an identifier shown in the docs UI. They don't change runtime behavior; they enrich the generated documentation.
 
 ```ts
 const User = Schema.Struct({
@@ -147,7 +145,7 @@ const User = Schema.Struct({
 
 ## Deriving a Client
 
-Once you have defined your API, you can generate a client to interact with it using the `HttpApiClient` module. This allows you to call your API endpoints without manually handling HTTP requests.
+Once you've defined an API, you can generate a fully typed client from it using the `HttpApiClient` module. The client gives you a method for every endpoint, so calling your API feels like calling a local function — with full type safety and no manual HTTP handling.
 
 **Example** (Deriving and Using a Client)
 
@@ -206,30 +204,30 @@ Hello, World!
 
 # Design Principles
 
-- **Schemas first**: Everything about an endpoint (inputs and outputs) is described using schemas.
-- **Metadata lives on schemas**: Things like HTTP status codes, encodings, and content types are configured by annotating schemas.
+- **Schemas first**: Every piece of data flowing in or out of an endpoint — path params, query strings, headers, payloads, responses, and errors — is described by a schema. The framework uses these schemas to validate requests, serialize responses, generate docs, and type the client.
+- **Metadata lives on schemas**: Configuration like HTTP status codes and content types is attached directly to the schema via annotations, not to the endpoint. This keeps all the information about a data shape in one place.
 
 In particular:
 
 - **Request**
   - **Payload encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
-    - `asJson` (default)
-    - `asFormUrlEncoded`
-    - `asText`
-    - `asUint8Array`
-    - `asMultipart`
-    - `asMultipartStream`
+    - `asJson` — parse the body as JSON (default)
+    - `asFormUrlEncoded` — parse the body as URL-encoded form data
+    - `asText` — parse the body as plain text
+    - `asUint8Array` — parse the body as raw binary data
+    - `asMultipart` — parse the body as a multipart form (for file uploads)
+    - `asMultipartStream` — parse the body as a streaming multipart form
 - **Response**
   - **Status code** is set via the `HttpApiSchema.status` API (or `httpApiStatus` annotation)
   - **Encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
-    - `asJson` (default)
-    - `asFormUrlEncoded`
-    - `asText`
-    - `asUint8Array`
+    - `asJson` — send the body as JSON (default)
+    - `asFormUrlEncoded` — send the body as URL-encoded form data
+    - `asText` — send the body as plain text
+    - `asUint8Array` — send the body as raw binary data
 
 ## Anatomy of an Endpoint
 
-An endpoint definition can include (all optional) parameters, query string parameters, headers, a payload, and the possible success / error responses.
+An endpoint definition describes everything the framework needs to know about a single HTTP route: which URL parameters it expects, what query strings and headers it reads, what the request body looks like, and what it can respond with (both successes and errors). All of these are optional.
 
 ```ts
 const User = Schema.Struct({
@@ -312,21 +310,17 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
 
 # Routing
 
-An `HttpApiEndpoint` represents a single endpoint in your API. Each endpoint is defined with a name, path, HTTP method, and optional schemas for requests and responses. This allows you to describe the structure and behavior of your API.
+This section walks through defining endpoints for common HTTP methods — GET, POST, DELETE, and PATCH — using a user-management API as a running example:
 
-Below is an example of a simple CRUD API for managing users, which includes the following endpoints:
-
-- `GET /users` - Retrieve all users.
-- `GET /users/:userId` - Retrieve a specific user by ID.
-- `POST /users` - Create a new user.
-- `DELETE /users/:userId` - Delete a user by ID.
-- `PATCH /users/:userId` - Update a user by ID.
+- `GET /users` — retrieve all users.
+- `GET /users/:userId` — retrieve a specific user by ID.
+- `POST /users` — create a new user.
+- `DELETE /users/:userId` — delete a user by ID.
+- `PATCH /users/:userId` — update a user by ID.
 
 ## GET
 
-The `HttpApiEndpoint.get` method allows you to define a GET endpoint by specifying its name, path, and optionally, a schema for the response.
-
-To define the structure of successful responses use the `success` option. If no schema is provided, the default response status is `204 No Content`.
+Use `HttpApiEndpoint.get` to create a GET endpoint. Provide a name (used as the method name in generated clients), a path, and optionally a `success` schema describing what the endpoint returns. Without a success schema the default response is `204 No Content`.
 
 **Example** (Defining a GET Endpoint to Retrieve All Users)
 
@@ -382,7 +376,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## POST
 
-The `HttpApiEndpoint.post` method is used to define an endpoint for creating resources. You can specify a schema for the request body (payload) and a schema for the successful response.
+Use `HttpApiEndpoint.post` to create an endpoint that accepts data. The `payload` option describes the shape of the request body, and `success` describes what the endpoint returns.
 
 **Example** (Defining a POST Endpoint with Payload and Success Schemas)
 
@@ -454,7 +448,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## DELETE
 
-The `HttpApiEndpoint.delete` method is used to define an endpoint for deleting a resource.
+Use `HttpApiEndpoint.delete` to create an endpoint that removes a resource.
 
 **Example** (Defining a DELETE Endpoint with Parameters)
 
@@ -532,7 +526,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## PATCH
 
-The `HttpApiEndpoint.patch` method is used to define an endpoint for partially updating a resource. This method allows you to specify a schema for the request payload and a schema for the successful response.
+Use `HttpApiEndpoint.patch` to create an endpoint that partially updates a resource. Like POST, you can define `payload` (the fields to update) and `success` (the response after the update).
 
 **Example** (Defining a PATCH Endpoint for Updating a User)
 
@@ -625,9 +619,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## Parameters
 
-Parameters allow you to include dynamic segments in your endpoint's path
-
-The `params` option allows you to explicitly define parameters by associating them with a schema.
+Path parameters let you capture dynamic values from the URL. For example, `/user/:id` extracts the `id` segment. Use the `params` option to declare a schema for each parameter — the framework will parse and validate the value before your handler runs.
 
 **Example** (Defining a GET Endpoint to Retrieve a User by ID)
 
@@ -691,7 +683,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## Catch-All Endpoints
 
-The path can also be `"*"` to match any incoming path. This is useful for defining a catch-all endpoint to handle unmatched routes or provide a fallback response.
+Set the path to `"*"` to match any URL that no other endpoint handles. This is useful for custom "not found" pages or fallback responses.
 
 **Example** (Defining a Catch-All Endpoint)
 
@@ -795,7 +787,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## Prefixing
 
-Prefixes can be added to endpoints, groups, or an entire API to simplify the management of common paths. This is especially useful when defining multiple related endpoints that share a common base URL.
+Prefixes let you prepend a common path segment to endpoints, groups, or an entire API. This avoids repeating the same base path on every endpoint.
 
 **Example** (Using Prefixes for Common Path Management)
 
@@ -855,7 +847,7 @@ curl http://localhost:3000/apiPrefix/groupPrefix/b # Returns 200 OK
 
 ## Query Parameters
 
-The `query` option allows you to define the structure of query parameters for an endpoint.
+Query parameters are the `?key=value` pairs appended to a URL. Use the `query` option to declare a schema for each expected parameter — the framework will parse, validate, and type them for you.
 
 **Example** (Defining Query Parameters with Metadata)
 
@@ -916,7 +908,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 #### Defining an Array of Values for a Query Parameter
 
-When defining a query parameter that accepts multiple values, you can use the `Schema.Array` combinator. This allows the parameter to handle an array of items, with each item adhering to a specified schema.
+A single query parameter can carry multiple values (e.g., `?a=1&a=2`). Wrap the parameter's schema in `Schema.Array` to accept an array of values.
 
 **Example** (Defining an Array of String Values for a Query Parameter)
 
@@ -985,8 +977,7 @@ curl "http://localhost:3000/users?a=1" # One value for the `a` parameter
 
 ## Request Headers
 
-Use `headers` option or `setHeaders` method to declare a single, cumulative schema that describes all expected request headers.
-Provide one record of schemas where each header name maps to its validator.
+Use the `headers` option to declare which request headers the endpoint expects. Each header maps to a schema that validates its value.
 
 > [!IMPORTANT]
 > All headers are normalized to lowercase. Always use lowercase keys for the headers.
@@ -1050,11 +1041,9 @@ The server validates these headers against the declared schema before handling t
 
 ## Handling Multipart Requests
 
-To support file uploads, you can use the `HttpApiSchema.asMultipart` API. This allows you to define an endpoint's payload schema as a multipart request, specifying the structure of the data, including file uploads, with the `Multipart` module.
+To accept file uploads, mark the payload as multipart with `HttpApiSchema.asMultipart`. Use `Multipart.FilesSchema` for the file fields — uploaded files will be persisted to disk automatically.
 
 **Example** (Defining an Endpoint for File Uploads)
-
-In this example, the `HttpApiSchema.asMultipart` function marks the payload as a multipart request. The `files` field uses `Multipart.FilesSchema` to handle uploaded file data automatically.
 
 ```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
@@ -1119,7 +1108,7 @@ echo "Sample file content" | curl -X POST -F "files=@-" http://localhost:3000/us
 
 ## Changing the Request Encoding
 
-By default, API requests are encoded as JSON. If your application requires a different format, you can customize the request encoding using the `HttpApiSchema.as*` functions. This allows you to define the encoding type and content type of the request.
+By default, request bodies are JSON. To accept a different format — like form-urlencoded data — pipe the payload schema through the appropriate `HttpApiSchema.as*` helper.
 
 **Example** (Customizing Request Encoding)
 
@@ -1193,7 +1182,7 @@ curl http://localhost:3000/user \
 
 ## Accessing the HttpServerRequest
 
-In some cases, you may need to access details about the incoming `HttpServerRequest` within an endpoint handler, you can access the request object using the `ctx.request` property.
+Inside a handler, `ctx.request` gives you access to the raw incoming HTTP request. Use this when you need low-level details not covered by the endpoint schema (e.g., the HTTP method or raw URL).
 
 **Example** (Accessing the Request Object in a GET Endpoint)
 
@@ -1240,7 +1229,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## Validating Request Cookies
 
-Request cookies are validated through the security middleware mechanism using `HttpApiSecurity.apiKey` with `in: "cookie"`. The middleware decodes the cookie value and provides it as a `Redacted` credential to the security handler.
+There is no `cookies` option on endpoints. Instead, validated cookie access goes through the security middleware system: define an `HttpApiSecurity.apiKey` with `in: "cookie"` and attach it to a middleware. The cookie value is decoded and handed to your security handler as a `Redacted` credential.
 
 **Example** (Validating a Session Cookie)
 
@@ -1334,7 +1323,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 // "Invalid session"
 ```
 
-There is no `cookies` option on `HttpApiEndpoint` (unlike `headers`, `query`, or `params`). For ad-hoc access without schema validation, you can read cookies directly inside a handler via `ctx.request.cookies`, but they won't appear in the OpenAPI spec.
+For quick, unvalidated access you can read cookies directly from `ctx.request.cookies` inside any handler. These cookies won't appear in the OpenAPI spec.
 
 **Example** (Reading Cookies Directly in a Handler)
 
@@ -1374,9 +1363,10 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 // curl "http://localhost:3000/me" --cookie "lang=it"
 // "Language: it"
 ```
+
 ## Streaming Requests
 
-Streaming requests allow you to send large or continuous data streams to the server. In this example, we define an API that accepts a stream of binary data and decodes it into a string.
+To receive large or continuous data from the client, define the payload as a `Uint8Array` and pipe it through `HttpApiSchema.asUint8Array()`. The handler receives the raw bytes, which you can decode as needed.
 
 **Example** (Handling Streaming Requests)
 
@@ -1432,7 +1422,7 @@ echo "abc" | curl -X POST 'http://localhost:3000/stream' --data-binary @- -H "Co
 
 ## Status Codes
 
-By default, the success status code is `200 OK`. You can change it by annotating the schema with a custom status.
+Success responses default to `200 OK`. To use a different status code, annotate the success schema with `HttpApiSchema.status(code)` or set the `httpApiStatus` annotation.
 
 **Example** (Defining a GET Endpoint with a custom status code)
 
@@ -1490,7 +1480,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## Changing the Response Encoding
 
-By default, API responses are encoded as JSON. If your application requires a different format, you can customize the encoding using the `HttpApiSchema.as*` functions. This method lets you define the type and content type of the response.
+Responses default to JSON. To return a different format — like CSV or plain text — pipe the success schema through the matching `HttpApiSchema.as*` helper and, optionally, set a custom `contentType`.
 
 **Example** (Returning Data as `text/csv`)
 
@@ -1558,7 +1548,7 @@ The following encodings are supported:
 
 ## Setting Response Headers
 
-Use `HttpEffect.appendPreResponseHandler` inside a handler to modify the outgoing response before it's sent. The handler receives the request and response, and must return the updated response.
+To add custom headers to the outgoing response, call `HttpEffect.appendPreResponseHandler` inside your handler. The callback receives the request and response objects and must return the updated response.
 
 **Example** (Adding a Custom Response Header)
 
@@ -1604,7 +1594,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## Setting Response Cookies
 
-Use `HttpEffect.appendPreResponseHandler` with `HttpServerResponse.setCookie` to set cookies on the response. For security-related cookies (tied to an `HttpApiSecurity.apiKey` with `in: "cookie"`), use the convenience helper `HttpApiBuilder.securitySetCookie`.
+Set cookies on the response using `HttpEffect.appendPreResponseHandler` together with `HttpServerResponse.setCookie`. For cookies tied to an `HttpApiSecurity.apiKey`, use the shortcut `HttpApiBuilder.securitySetCookie` instead.
 
 **Example** (Setting a Response Cookie)
 
@@ -1654,6 +1644,8 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## Redirects
 
+To redirect the client to a different URL, return an `HttpServerResponse.redirect` from the handler. The redirect is not modeled in the schema — the endpoint definition stays as "no content".
+
 ```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
 import { Effect, Layer, Schema } from "effect"
@@ -1698,7 +1690,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## Streaming Responses
 
-To handle streaming responses in your API, you can return a raw `HttpServerResponse`. The `HttpServerResponse.stream` function is designed to return a continuous stream of data as the response.
+To stream data to the client over time, return an `HttpServerResponse.stream` from the handler. The stream emits chunks at whatever pace you choose.
 
 **Example** (Implementing a Streaming Endpoint)
 
@@ -1758,7 +1750,7 @@ The response will stream data (`a`, `b`, `c`) with a 500ms interval between each
 
 ## Adding Custom Error Responses
 
-Error responses allow your endpoint to handle different failure scenarios.
+Endpoints can declare the errors they may return. Each error is a schema annotated with an HTTP status code. When your handler fails with a matching error, the framework serializes it and responds with the declared status.
 
 **Example** (Defining Error Responses for an Endpoint)
 
@@ -1843,7 +1835,7 @@ curl http://localhost:3000/user/2 # Returns 200 OK
 
 ## Predefined Error Types
 
-The `HttpApiError` module provides a set of predefined empty error types that you can use in your endpoints. These error types help standardize common HTTP error responses, such as `404 Not Found` or `401 Unauthorized`. Using these predefined types simplifies error handling and ensures consistency across your API.
+The `HttpApiError` module provides ready-made error schemas for common HTTP status codes (404, 401, etc.). Using these saves you from defining boilerplate error types and keeps error handling consistent across your API.
 
 **Example** (Adding a Predefined Error to an Endpoint)
 
@@ -1927,7 +1919,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 #### Predefined NoContent Error Types
 
-Each predefined error type has a corresponding no-content error type. These no-content error types are useful when you want to return an empty response body.
+Each predefined error also has a `NoContent` variant that responds with the status code but no body.
 
 **Example** (Using a Predefined NoContent Error Type)
 
@@ -1995,9 +1987,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 # Middlewares
 
-The `HttpApiMiddleware` module allows you to add middleware to your API. Middleware can enhance your API by introducing features like logging, authentication, or additional error handling.
-
-Once you have defined your `HttpApiMiddleware`, you can implement it as a `Layer`. This allows the middleware to be applied to specific API groups or endpoints, enabling modular and reusable behavior.
+Middleware lets you run shared logic — like logging or authentication — before (or around) your handlers. Define a middleware as a class extending `HttpApiMiddleware.Service`, implement it as a `Layer`, and attach it to an endpoint, a group, or the entire API.
 
 **Example** (Defining a Logger Middleware)
 
@@ -2084,9 +2074,9 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 # Security
 
-The `HttpApiSecurity` module enables you to add security annotations to your API. These annotations specify the type of authorization required to access specific endpoints.
+The `HttpApiSecurity` module lets you declare how an endpoint is protected. These declarations show up in the generated OpenAPI spec and are enforced at runtime through middleware.
 
-Supported authorization types include:
+Supported authorization types:
 
 | Authorization Type       | Description                                                      |
 | ------------------------ | ---------------------------------------------------------------- |
@@ -2094,7 +2084,7 @@ Supported authorization types include:
 | `HttpApiSecurity.basic`  | HTTP Basic authentication.                                       |
 | `HttpApiSecurity.bearer` | Bearer token authentication.                                     |
 
-These security annotations can be used alongside `HttpApiMiddleware` to create middleware that protects your API endpoints.
+Attach a security scheme to an endpoint, group, or the entire API via `HttpApiMiddleware`.
 
 **Example** (Defining Security Middleware)
 
@@ -2160,7 +2150,7 @@ const api = HttpApi.make("api")
 
 ## Implementing HttpApiSecurity middleware
 
-When using `HttpApiSecurity` in your middleware, the implementation involves creating a `Layer` with security handlers tailored to your requirements. Below is an example demonstrating how to implement middleware for `HttpApiSecurity.bearer` authentication.
+To enforce a security scheme, implement its middleware as a `Layer`. The layer returns an object with a handler for each security definition. Each handler receives the credential (e.g., a Bearer token as a `Redacted` value) and must return the resource the middleware provides (e.g., the current user).
 
 **Example** (Implementing Bearer Token Authentication Middleware)
 
@@ -2214,7 +2204,7 @@ const AuthorizationLive = Layer.effect(
 
 ## Adding Descriptions to Security Definitions
 
-The `HttpApiSecurity.annotate` function allows you to add metadata, such as a description, to your security definitions. This metadata is displayed in the Swagger documentation, making it easier for developers to understand your API's security requirements.
+Use `HttpApiSecurity.annotate` to attach metadata — like a description — to a security definition. This metadata appears in the generated docs.
 
 **Example** (Adding a Description to a Bearer Token Security Definition)
 
@@ -2249,7 +2239,7 @@ class Authorization extends HttpApiMiddleware.Tag<Authorization>()(
 
 ## Setting HttpApiSecurity cookies
 
-To set a security cookie from within a handler, you can use the `HttpApiBuilder.securitySetCookie` API. This method sets a cookie with default properties, including the `HttpOnly` and `Secure` flags, ensuring the cookie is not accessible via JavaScript and is transmitted over secure connections.
+Use `HttpApiBuilder.securitySetCookie` to set a security cookie from a handler. The cookie is created with `HttpOnly` and `Secure` flags by default.
 
 **Example** (Setting a Security Cookie in a Login Handler)
 
@@ -2272,7 +2262,7 @@ const UsersApiLive = HttpApiBuilder.group(MyApi, "users", (handlers) =>
 
 # Using Services Inside a HttpApiEndpoint
 
-If your handlers need to use services, you can easily integrate them because the `HttpApiBuilder.group` API allows you to return an `Effect`. This ensures that external services can be accessed and utilized directly within your handlers.
+Handlers can access any Effect service. Because `HttpApiBuilder.group` returns an `Effect`, you can `yield*` services directly inside your handler logic.
 
 **Example** (Using Services in a Endpoint Implementation)
 
@@ -2338,7 +2328,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 # OpenAPI Documentation
 
-You can add Swagger or Scalar documentation to your API using the `HttpApiSwagger` or `HttpApiScalar` modules.
+Add interactive API documentation with `HttpApiScalar` (Scalar UI) or `HttpApiSwagger` (Swagger UI). Both read your API definition and generate a browsable docs page at `/docs`.
 
 **Example** (Adding Scalar Documentation to an API)
 
@@ -2435,7 +2425,7 @@ This URL will display the Scalar documentation, allowing you to explore the API'
 
 ## Adding OpenAPI Annotations
 
-You can add OpenAPI annotations to your API to include metadata such as titles, descriptions, and more. These annotations help generate richer API documentation.
+Annotations let you enrich the generated OpenAPI spec with titles, descriptions, server URLs, and more. They are added via the `.annotate` method on `HttpApi`, `HttpApiGroup`, or `HttpApiEndpoint`.
 
 #### HttpApi
 
@@ -2852,7 +2842,7 @@ Output:
 
 ## Top Level Groups
 
-When a group is marked as `topLevel`, the operation IDs of its endpoints do not include the group name as a prefix. This is helpful when you want to group endpoints under a shared tag without adding a redundant prefix to their operation IDs.
+When a group is `topLevel`, its name is not prepended to operation IDs in the OpenAPI spec. Use this when the group is just for tagging and you want shorter, cleaner operation IDs.
 
 **Example** (Using a Top-Level Group)
 
@@ -2930,11 +2920,9 @@ Output:
 
 # Deriving a Client
 
-After defining your API, you can derive a client that interacts with the server. The `HttpApiClient` module simplifies the process by providing tools to generate a client based on your API definition.
+The `HttpApiClient` module generates a fully typed client from your API definition. Each endpoint becomes a method — grouped by `HttpApiGroup` name — so calling your API is as simple as calling a function.
 
 **Example** (Deriving and Using a Client)
-
-This example demonstrates how to create a client for an API and use it to call an endpoint.
 
 ```ts
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
@@ -2991,7 +2979,7 @@ Hello, World!
 
 ## Top Level Groups
 
-When a group is marked as `topLevel`, the methods on the client are not nested under the group name. This can simplify client usage by providing direct access to the endpoint methods.
+When a group is `topLevel`, its endpoints are exposed as top-level methods on the client instead of being nested under the group name.
 
 **Example** (Using a Top-Level Group in the Client)
 
@@ -3041,7 +3029,7 @@ Effect.runFork(program.pipe(Effect.provide(FetchHttpClient.layer)))
 
 # Converting to a Web Handler
 
-You can convert your `HttpApi` implementation into a web handler using the `HttpApiBuilder.toWebHandler` API. This approach enables you to serve your API through a custom server setup.
+If you need to plug your API into an existing HTTP server (instead of using `NodeHttpServer`), convert it to a standard web handler with `HttpApiBuilder.toWebHandler`. The returned `handler` function takes a `Request` and returns a `Response`.
 
 **Example** (Creating and Serving a Web Handler)
 
@@ -3101,4 +3089,3 @@ http
     dispose()
   })
 ```
-
