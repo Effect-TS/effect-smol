@@ -578,7 +578,7 @@ export const MCPApprovalResponse = Schema.Struct({
   approval_request_id: Schema.String,
   approve: Schema.Boolean,
   reason: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  request_id: Schema.Json
+  request_id: Schema.optionalKey(Schema.Json)
 })
 
 /**

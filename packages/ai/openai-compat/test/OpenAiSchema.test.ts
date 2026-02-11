@@ -47,8 +47,7 @@ describe("OpenAiSchema", () => {
         {
           type: "mcp_approval_response",
           approval_request_id: "approval_1",
-          approve: true,
-          request_id: "request_1"
+          approve: true
         },
         {
           type: "item_reference",
