@@ -336,7 +336,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       function processResponseBodies(bodies: ResponseBodies, defaultDescription: () => string) {
         for (const [status, { content, descriptions }] of bodies) {
-          const description = descriptions.length > 0 ? descriptions.join(" | ") : defaultDescription()
+          const description = descriptions.size > 0 ? Array.from(descriptions).join(" | ") : defaultDescription()
           op.responses[status] = {
             description
           }
@@ -535,7 +535,7 @@ function isNoContent(ast: AST.AST): boolean {
 type ResponseBodies = Map<
   number, // status
   {
-    descriptions: Array<string>
+    descriptions: Set<string>
     content: Content | undefined // undefined means no content
   }
 >
@@ -546,7 +546,7 @@ function extractResponseBodies(
   getDescription: (ast: AST.AST) => string | undefined
 ): ResponseBodies {
   const map = new Map<number, {
-    descriptions: Array<string>
+    descriptions: Set<string>
     content: Content | undefined
   }>()
 
@@ -568,12 +568,12 @@ function extractResponseBodies(
     const statusMap = map.get(status)
     if (statusMap === undefined) {
       map.set(status, {
-        descriptions: [description],
+        descriptions: new Set([description]),
         content: undefined
       })
     } else {
       if (description !== undefined) {
-        statusMap.descriptions.push(description)
+        statusMap.descriptions.add(description)
       }
     }
   }
@@ -584,14 +584,14 @@ function extractResponseBodies(
     const { _tag, contentType } = encoding
     if (statusMap === undefined) {
       map.set(status, {
-        descriptions: description !== undefined ? [description] : [],
+        descriptions: new Set(description !== undefined ? [description] : []),
         content: new Map([[_tag, new Map([[contentType, new Set([schema])]])]])
       })
     } else {
       if (statusMap.content !== undefined) {
         // concat descriptions
         if (description !== undefined) {
-          statusMap.descriptions.push(description)
+          statusMap.descriptions.add(description)
         }
 
         const contentTypeMap = statusMap.content.get(_tag)

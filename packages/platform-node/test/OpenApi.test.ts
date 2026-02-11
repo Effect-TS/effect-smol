@@ -1053,6 +1053,33 @@ describe("OpenAPI spec", () => {
     })
 
     describe("error option", () => {
+      it("should deduplicate the descriptions", () => {
+        class Group extends HttpApiGroup.make("users")
+          .add(HttpApiEndpoint.post("a", "/a", {
+            error: HttpApiError.HttpApiSchemaError
+          }))
+        {}
+
+        class Api extends HttpApi.make("api").add(Group) {}
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/a"].post?.responses["400"], {
+          description: "The request or response did not match the expected schema",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  _tag: { type: "string", enum: ["HttpApiSchemaError"] },
+                  message: { type: "string" }
+                },
+                required: ["_tag", "message"],
+                additionalProperties: false
+              }
+            }
+          }
+        })
+      })
+
       describe("1 endopoint", () => {
         it("no identifier annotation", () => {
           class Group extends HttpApiGroup.make("users")
