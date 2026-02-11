@@ -7,6 +7,7 @@ import * as Predicate from "effect/Predicate"
 import * as Redactable from "effect/Redactable"
 import * as Schema from "effect/Schema"
 import * as AiError from "effect/unstable/ai/AiError"
+import type * as Response from "effect/unstable/ai/Response"
 import type * as HttpClientError from "effect/unstable/http/HttpClientError"
 import type * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
@@ -217,7 +218,7 @@ export const parseRateLimitHeaders = (headers: Record<string, string>) => {
 /** @internal */
 export const buildHttpRequestDetails = (
   request: HttpClientRequest.HttpClientRequest
-): typeof AiError.HttpRequestDetails.Type => ({
+): typeof Response.HttpRequestDetails.Type => ({
   method: request.method,
   url: request.url,
   urlParams: Array.from(request.urlParams),

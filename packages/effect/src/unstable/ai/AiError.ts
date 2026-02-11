@@ -107,16 +107,6 @@ const redactHeaders = (headers: Record<string, string>): Record<string, string> 
 // =============================================================================
 
 /**
- * Schema for HTTP request details used in error reporting.
- *
- * Re-exported from the `Response` module.
- *
- * @since 1.0.0
- * @category schemas
- */
-export { HttpRequestDetails }
-
-/**
  * Error indicating a network-level failure before receiving a response.
  *
  * This error is raised when issues arise before receiving an HTTP response,
@@ -236,16 +226,6 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
 // =============================================================================
 // Http Response Error
 // =============================================================================
-
-/**
- * Schema for HTTP response details used in error reporting.
- *
- * Re-exported from the `Response` module.
- *
- * @since 1.0.0
- * @category schemas
- */
-export { HttpResponseDetails }
 
 // =============================================================================
 // Supporting Schemas

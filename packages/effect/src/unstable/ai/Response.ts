@@ -2179,7 +2179,8 @@ export const HttpResponseDetails = Schema.Struct({
  *   {
  *     id: "resp_123",
  *     modelId: "gpt-4",
- *     timestamp: DateTime.nowUnsafe()
+ *     timestamp: DateTime.nowUnsafe(),
+ *     request: undefined
  *   }
  * )
  * ```
@@ -2388,7 +2389,8 @@ export class Usage extends Schema.Class<Usage>("effect/ai/AiResponse/Usage")({
  *       text: undefined,
  *       reasoning: undefined
  *     }
- *   })
+ *   }),
+ *   response: undefined
  * })
  * ```
  *
