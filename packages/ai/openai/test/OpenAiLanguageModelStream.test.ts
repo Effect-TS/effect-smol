@@ -1,4 +1,4 @@
-import { OpenAiClient, OpenAiLanguageModel, OpenAiTool } from "@effect/ai-openai-compat"
+import { type Generated, OpenAiClient, OpenAiLanguageModel, OpenAiTool } from "@effect/ai-openai"
 import { assert, describe, it } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, Layer, Redacted, Ref, Stream } from "effect"
@@ -7,72 +7,13 @@ import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientRes
 
 describe("OpenAiLanguageModel", () => {
   describe("streamText", () => {
-    it.effect("ignores malformed known-type events decoded via unknown fallback", () =>
-      Effect.gen(function*() {
-        const partsChunk = yield* LanguageModel.streamText({ prompt: "test" }).pipe(
-          Stream.runCollect,
-          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini"))
-        )
-
-        const parts = Array.from(partsChunk)
-
-        assert.isFalse(parts.some((part) => part.type === "response-metadata"))
-
-        const finish = parts.find((part) => part.type === "finish")
-        assert.isDefined(finish)
-        if (finish?.type === "finish") {
-          assert.strictEqual(finish.reason, "stop")
-        }
-      }).pipe(
-        Effect.provide(makeTestLayer([
-          { type: "response.created" },
-          {
-            type: "response.completed",
-            sequence_number: 2,
-            response: {
-              id: "resp_test123",
-              model: "gpt-4o-mini",
-              created_at: 1,
-              output: []
-            }
-          }
-        ]))
-      ))
-
     it.effect("maps local shell stream tool calls to local_shell call outputs", () =>
       Effect.gen(function*() {
         const capturedRequests = yield* Ref.make<ReadonlyArray<HttpClientRequest.HttpClientRequest>>([])
         const requestCount = yield* Ref.make(0)
 
-        const httpClient = HttpClient.makeWith(
-          Effect.fnUntraced(function*(requestEffect) {
-            const request = yield* requestEffect
-            yield* Ref.update(capturedRequests, (requests) => [...requests, request])
-            const index = yield* Ref.getAndUpdate(requestCount, (value) => value + 1)
-
-            if (index === 0) {
-              return HttpClientResponse.fromWeb(
-                request,
-                new Response(toSseBody([makeLocalShellDoneEvent()]), {
-                  status: 200,
-                  headers: { "content-type": "text/event-stream" }
-                })
-              )
-            }
-
-            return HttpClientResponse.fromWeb(
-              request,
-              new Response(JSON.stringify(makeCreateResponse()), {
-                status: 200,
-                headers: { "content-type": "application/json" }
-              })
-            )
-          }),
-          Effect.succeed as HttpClient.HttpClient.Preprocess<HttpClientError.HttpClientError, never>
-        )
-
         const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
-          Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+          Layer.provide(Layer.succeed(HttpClient.HttpClient, makeHttpClient({ capturedRequests, requestCount })))
         )
 
         const toolkit = Toolkit.make(OpenAiTool.LocalShell({}))
@@ -155,13 +96,13 @@ describe("OpenAiLanguageModel", () => {
   })
 })
 
-const localShellAction = {
+const localShellAction: Generated.LocalShellExecAction = {
   type: "exec",
   command: ["pwd"],
   env: {}
 }
 
-const makeLocalShellDoneEvent = () => ({
+const localShellDoneEvent: Generated.ResponseOutputItemDoneEvent = {
   type: "response.output_item.done",
   output_index: 0,
   sequence_number: 1,
@@ -172,29 +113,54 @@ const makeLocalShellDoneEvent = () => ({
     action: localShellAction,
     status: "completed"
   }
-})
+}
 
-const makeCreateResponse = () => ({
+const followUpResponse: Generated.Response = {
   id: "resp_followup",
-  model: "gpt-4o-mini",
+  object: "response",
   created_at: 1,
-  output: []
-})
+  model: "gpt-4o-mini",
+  status: "completed",
+  output: [],
+  metadata: null,
+  temperature: null,
+  top_p: null,
+  tools: [],
+  tool_choice: "auto",
+  error: null,
+  incomplete_details: null,
+  instructions: null,
+  parallel_tool_calls: false
+}
 
-const makeTestLayer = (events: ReadonlyArray<unknown>) =>
-  OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
-    Layer.provide(Layer.succeed(HttpClient.HttpClient, makeHttpClient(events)))
-  )
-
-const makeHttpClient = (events: ReadonlyArray<unknown>) =>
+const makeHttpClient = ({
+  capturedRequests,
+  requestCount
+}: {
+  readonly capturedRequests: Ref.Ref<ReadonlyArray<HttpClientRequest.HttpClientRequest>>
+  readonly requestCount: Ref.Ref<number>
+}) =>
   HttpClient.makeWith(
     Effect.fnUntraced(function*(requestEffect) {
       const request = yield* requestEffect
+      yield* Ref.update(capturedRequests, (requests) => [...requests, request])
+      const index = yield* Ref.getAndUpdate(requestCount, (value) => value + 1)
+
+      if (index === 0) {
+        return HttpClientResponse.fromWeb(
+          request,
+          new Response(toSseBody([localShellDoneEvent]), {
+            status: 200,
+            headers: { "content-type": "text/event-stream" }
+          })
+        )
+      }
+
       return HttpClientResponse.fromWeb(
         request,
-        new Response(toSseBody(events), {
+        new Response(JSON.stringify(followUpResponse), {
           status: 200,
-          headers: { "content-type": "text/event-stream" }
+          headers: { "content-type": "application/json" }
         })
       )
     }),

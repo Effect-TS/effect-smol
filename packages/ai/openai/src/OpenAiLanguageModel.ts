@@ -1752,7 +1752,7 @@ const makeStreamResponse = Effect.fnUntraced(
               }
 
               case "local_shell_call": {
-                const toolName = toolNameMapper.getCustomName("")
+                const toolName = toolNameMapper.getCustomName("local_shell")
                 parts.push({
                   type: "tool-call",
                   id: event.item.call_id,
