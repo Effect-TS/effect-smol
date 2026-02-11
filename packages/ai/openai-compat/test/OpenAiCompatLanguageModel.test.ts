@@ -2,7 +2,7 @@ import { OpenAiClient, OpenAiLanguageModel } from "@effect/ai-openai-compat"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer, Redacted, Schema, Stream } from "effect"
 import { LanguageModel, Tool, Toolkit } from "effect/unstable/ai"
-import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
+import { HttpClient, type HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 describe("OpenAi compat LanguageModel", () => {
   describe("generateText", () => {
@@ -404,6 +404,77 @@ describe("OpenAi compat LanguageModel", () => {
         assert.strictEqual(requestBody.stream, true)
         assert.isTrue(capturedRequest.url.endsWith("/chat/completions"))
       }))
+
+    it.effect("emits valid apply_patch tool params JSON for update_file diffs", () =>
+      Effect.gen(function*() {
+        const diff = "@@ -1 +1 @@\n-before\n+after\n"
+        const outputItem = {
+          type: "apply_patch_call",
+          id: "compat_patch_item_1",
+          call_id: "compat_patch_call_1",
+          status: "in_progress",
+          operation: {
+            type: "update_file",
+            path: "src/compat.ts",
+            diff
+          }
+        } as const
+
+        const events = [
+          {
+            type: "response.created",
+            sequence_number: 1,
+            response: {
+              id: "resp_compat_patch_1",
+              object: "response",
+              model: "gpt-4o-mini",
+              status: "in_progress",
+              created_at: 1,
+              output: []
+            }
+          },
+          {
+            type: "response.output_item.added",
+            output_index: 0,
+            sequence_number: 2,
+            item: outputItem
+          },
+          {
+            type: "response.apply_patch_call_operation_diff.delta",
+            sequence_number: 3,
+            output_index: 0,
+            item_id: outputItem.id,
+            delta: diff
+          },
+          {
+            type: "response.apply_patch_call_operation_diff.done",
+            sequence_number: 4,
+            output_index: 0,
+            item_id: outputItem.id
+          }
+        ] as unknown as ReadonlyArray<OpenAiClient.ResponseStreamEvent>
+
+        const partsChunk = yield* LanguageModel.streamText({
+          prompt: "Update src/compat.ts",
+          disableToolCallResolution: true
+        }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(makeStreamTestLayer(events))
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        const params = decodeToolParamsFromStream(parts, outputItem.id)
+
+        assert.deepStrictEqual(params, {
+          call_id: outputItem.id,
+          operation: {
+            type: "update_file",
+            path: "src/compat.ts",
+            diff
+          }
+        })
+      }))
   })
 })
 
@@ -446,6 +517,28 @@ const makeHttpClient = (
     }),
     Effect.succeed as HttpClient.HttpClient.Preprocess<HttpClientError.HttpClientError, never>
   )
+
+const makeStreamTestLayer = (events: ReadonlyArray<OpenAiClient.ResponseStreamEvent>) => {
+  const response = HttpClientResponse.fromWeb(
+    HttpClientRequest.get("https://api.openai.com/v1/responses"),
+    new Response("", {
+      status: 200,
+      headers: {
+        "content-type": "text/event-stream"
+      }
+    })
+  )
+
+  return Layer.succeed(
+    OpenAiClient.OpenAiClient,
+    OpenAiClient.OpenAiClient.of({
+      client: undefined as any,
+      createResponse: () => Effect.die(new Error("unexpected createResponse call")),
+      createResponseStream: () => Effect.succeed([response, Stream.fromIterable(events)]),
+      createEmbedding: () => Effect.die(new Error("unexpected createEmbedding call"))
+    })
+  )
+}
 
 const makeChatCompletion = (overrides: Record<string, unknown> = {}) => ({
   id: "chatcmpl_test_1",
@@ -500,6 +593,23 @@ const getRequestBody = (request: HttpClientRequest.HttpClientRequest) =>
     }
     return yield* Effect.die(new Error("Expected Uint8Array body"))
   })
+
+const decodeToolParamsFromStream = (
+  parts: ReadonlyArray<any>,
+  toolCallId: string
+): Record<string, unknown> => {
+  const start = parts.find((part) => part.type === "tool-params-start" && part.id === toolCallId)
+  const end = parts.find((part) => part.type === "tool-params-end" && part.id === toolCallId)
+  assert.isDefined(start)
+  assert.isDefined(end)
+
+  const deltas = parts
+    .filter((part) => part.type === "tool-params-delta" && part.id === toolCallId)
+    .map((part) => part.delta)
+    .join("")
+
+  return JSON.parse(deltas) as Record<string, unknown>
+}
 
 const toSseBody = (events: ReadonlyArray<unknown>): string =>
   events.map((event) => {

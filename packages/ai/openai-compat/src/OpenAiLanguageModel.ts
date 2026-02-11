@@ -1449,7 +1449,7 @@ const makeStreamResponse = Effect.fnUntraced(
                     type: "tool-params-delta",
                     id: toolId,
                     delta: `{"call_id":"${InternalUtilities.escapeJSONDelta(toolId)}",` +
-                      `"operation"{"type":"${InternalUtilities.escapeJSONDelta(operation.type)}",` +
+                      `"operation":{"type":"${InternalUtilities.escapeJSONDelta(operation.type)}",` +
                       `"path":"${InternalUtilities.escapeJSONDelta(operation.path)}","diff":"`
                   })
                 }
