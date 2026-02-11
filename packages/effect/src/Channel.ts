@@ -3985,9 +3985,28 @@ export const tapError: {
  * @category Error handling
  */
 export const catchFilter: {
-  <OutErr, EB, X, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
+  <
+    OutErr,
+    EB,
+    X,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1,
+    OutElem2 = never,
+    OutErr2 = X,
+    OutDone2 = never,
+    InElem2 = unknown,
+    InErr2 = unknown,
+    InDone2 = unknown,
+    Env2 = never
+  >(
     filter: Filter.Filter<OutErr, EB, X>,
-    f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+    f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+    orElse?: ((failure: X) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>) | undefined
   ): <
     OutElem,
     OutDone,
@@ -3996,13 +4015,13 @@ export const catchFilter: {
     InDone,
     Env
   >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
-    OutElem | OutElem1,
-    X | OutErr1,
-    OutDone | OutDone1,
-    InElem & InElem1,
-    InErr & InErr1,
-    InDone & InDone1,
-    Env | Env1
+    OutElem | OutElem1 | OutElem2,
+    OutErr1 | OutErr2,
+    OutDone | OutDone1 | OutDone2,
+    InElem & InElem1 & InElem2,
+    InErr & InErr1 & InErr2,
+    InDone & InDone1 & InDone2,
+    Env | Env1 | Env2
   >
   <
     OutElem,
@@ -4020,21 +4039,29 @@ export const catchFilter: {
     InElem1,
     InErr1,
     InDone1,
-    Env1
+    Env1,
+    OutElem2 = never,
+    OutErr2 = X,
+    OutDone2 = never,
+    InElem2 = unknown,
+    InErr2 = unknown,
+    InDone2 = unknown,
+    Env2 = never
   >(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     filter: Filter.Filter<OutErr, EB, X>,
-    f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+    f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+    orElse?: ((failure: X) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>) | undefined
   ): Channel<
-    OutElem | OutElem1,
-    X | OutErr1,
-    OutDone | OutDone1,
-    InElem & InElem1,
-    InErr & InErr1,
-    InDone & InDone1,
-    Env | Env1
+    OutElem | OutElem1 | OutElem2,
+    OutErr1 | OutErr2,
+    OutDone | OutDone1 | OutDone2,
+    InElem & InElem1 & InElem2,
+    InErr & InErr1 & InErr2,
+    InDone & InDone1 & InDone2,
+    Env | Env1 | Env2
   >
-} = dual(3, <
+} = dual((args) => isChannel(args[0]), <
   OutElem,
   OutErr,
   OutDone,
@@ -4050,25 +4077,41 @@ export const catchFilter: {
   InElem1,
   InErr1,
   InDone1,
-  Env1
+  Env1,
+  OutElem2 = never,
+  OutErr2 = X,
+  OutDone2 = never,
+  InElem2 = unknown,
+  InErr2 = unknown,
+  InDone2 = unknown,
+  Env2 = never
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   filter: Filter.Filter<OutErr, EB, X>,
-  f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+  orElse?: ((failure: X) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>) | undefined
 ): Channel<
-  OutElem | OutElem1,
-  X | OutErr1,
-  OutDone | OutDone1,
-  InElem & InElem1,
-  InErr & InErr1,
-  InDone & InDone1,
-  Env | Env1
+  OutElem | OutElem1 | OutElem2,
+  OutErr1 | OutErr2,
+  OutDone | OutDone1 | OutDone2,
+  InElem & InElem1 & InElem2,
+  InErr & InErr1 & InErr2,
+  InDone & InDone1 & InDone2,
+  Env | Env1 | Env2
 > =>
   catch_(
     self,
-    (err): Channel<OutElem1, X | OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1> => {
+    (err): Channel<
+      OutElem1 | OutElem2,
+      OutErr1 | OutErr2,
+      OutDone1 | OutDone2,
+      InElem1 & InElem2,
+      InErr1 & InErr2,
+      InDone1 & InDone2,
+      Env1 | Env2
+    > => {
       const eb = filter(err)
-      return !Filter.isFail(eb) ? f(eb) : fail(eb.fail)
+      return !Filter.isFail(eb) ? f(eb) : orElse ? orElse(eb.fail) : fail(eb.fail) as any
     }
   ))
 
@@ -4086,12 +4129,24 @@ export const catchTag: {
     InElem1,
     InErr1,
     InDone1,
-    Env1
+    Env1,
+    OutElem2 = never,
+    OutErr2 = Types.ExcludeTag<OutErr, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>,
+    OutDone2 = never,
+    InElem2 = unknown,
+    InErr2 = unknown,
+    InDone2 = unknown,
+    Env2 = never
   >(
     k: K,
     f: (
       e: Types.ExtractTag<NoInfer<OutErr>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
-    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+    orElse?:
+      | ((
+        e: Types.ExcludeTag<NoInfer<OutErr>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
+      ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+      | undefined
   ): <
     OutElem,
     OutDone,
@@ -4100,13 +4155,13 @@ export const catchTag: {
     InDone,
     Env
   >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
-    OutElem | OutElem1,
-    Types.ExcludeTag<OutErr, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> | OutErr1,
-    OutDone | OutDone1,
-    InElem & InElem1,
-    InErr & InErr1,
-    InDone & InDone1,
-    Env | Env1
+    OutElem | OutElem1 | OutElem2,
+    OutErr1 | OutErr2,
+    OutDone | OutDone1 | OutDone2,
+    InElem & InElem1 & InElem2,
+    InErr & InErr1 & InErr2,
+    InDone & InDone1 & InDone2,
+    Env | Env1 | Env2
   >
   <
     OutElem,
@@ -4123,23 +4178,35 @@ export const catchTag: {
     InElem1,
     InErr1,
     InDone1,
-    Env1
+    Env1,
+    OutElem2 = never,
+    OutErr2 = Types.ExcludeTag<OutErr, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>,
+    OutDone2 = never,
+    InElem2 = unknown,
+    InErr2 = unknown,
+    InDone2 = unknown,
+    Env2 = never
   >(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     k: K,
     f: (
       e: Types.ExtractTag<NoInfer<OutErr>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
-    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+    orElse?:
+      | ((
+        e: Types.ExcludeTag<NoInfer<OutErr>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
+      ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+      | undefined
   ): Channel<
-    OutElem | OutElem1,
-    Types.ExcludeTag<OutErr, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> | OutErr1,
-    OutDone | OutDone1,
-    InElem & InElem1,
-    InErr & InErr1,
-    InDone & InDone1,
-    Env | Env1
+    OutElem | OutElem1 | OutElem2,
+    OutErr1 | OutErr2,
+    OutDone | OutDone1 | OutDone2,
+    InElem & InElem1 & InElem2,
+    InErr & InErr1 & InErr2,
+    InDone & InDone1 & InDone2,
+    Env | Env1 | Env2
   >
-} = dual(3, <
+} = dual((args) => isChannel(args[0]), <
   OutElem,
   OutErr,
   OutDone,
@@ -4154,26 +4221,38 @@ export const catchTag: {
   InElem1,
   InErr1,
   InDone1,
-  Env1
+  Env1,
+  OutElem2 = never,
+  OutErr2 = Types.ExcludeTag<OutErr, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>,
+  OutDone2 = never,
+  InElem2 = unknown,
+  InErr2 = unknown,
+  InDone2 = unknown,
+  Env2 = never
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   k: K,
   f: (
     e: Types.ExtractTag<NoInfer<OutErr>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
-  ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+  orElse?:
+    | ((
+      e: Types.ExcludeTag<NoInfer<OutErr>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+    | undefined
 ): Channel<
-  OutElem | OutElem1,
-  Types.ExcludeTag<OutErr, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> | OutErr1,
-  OutDone | OutDone1,
-  InElem & InElem1,
-  InErr & InErr1,
-  InDone & InDone1,
-  Env | Env1
+  OutElem | OutElem1 | OutElem2,
+  OutErr1 | OutErr2,
+  OutDone | OutDone1 | OutDone2,
+  InElem & InElem1 & InElem2,
+  InErr & InErr1 & InErr2,
+  InDone & InDone1 & InDone2,
+  Env | Env1 | Env2
 > => {
   const pred = Array.isArray(k)
     ? ((e: OutErr): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
     : isTagged(k as string)
-  return catchFilter(self, Filter.fromPredicate(pred), f) as any
+  return catchFilter(self, Filter.fromPredicate(pred), f, orElse as any) as any
 })
 
 /**
@@ -4220,13 +4299,25 @@ export const catchReason: {
     InElem1,
     InErr1,
     InDone1,
-    Env1
+    Env1,
+    OutElem2 = Types.unassigned,
+    OutErr2 = never,
+    OutDone2 = never,
+    InElem2 = unknown,
+    InErr2 = unknown,
+    InDone2 = unknown,
+    Env2 = never
   >(
     errorTag: K,
     reasonTag: RK,
     f: (
       reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
-    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+    orElse?:
+      | ((
+        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+      ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+      | undefined
   ): <
     OutElem,
     OutDone,
@@ -4237,13 +4328,13 @@ export const catchReason: {
   >(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<
-    OutElem | OutElem1,
-    OutErr | OutErr1,
-    OutDone | OutDone1,
-    InElem & InElem1,
-    InErr & InErr1,
-    InDone & InDone1,
-    Env | Env1
+    OutElem | OutElem1 | Exclude<OutElem2, Types.unassigned>,
+    (OutElem2 extends Types.unassigned ? OutErr : Types.ExcludeTag<OutErr, K>) | OutErr1 | OutErr2,
+    OutDone | OutDone1 | OutDone2,
+    InElem & InElem1 & InElem2,
+    InErr & InErr1 & InErr2,
+    InDone & InDone1 & InDone2,
+    Env | Env1 | Env2
   >
   <
     OutElem,
@@ -4261,24 +4352,36 @@ export const catchReason: {
     InElem1,
     InErr1,
     InDone1,
-    Env1
+    Env1,
+    OutElem2 = Types.unassigned,
+    OutErr2 = never,
+    OutDone2 = never,
+    InElem2 = unknown,
+    InErr2 = unknown,
+    InDone2 = unknown,
+    Env2 = never
   >(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     errorTag: K,
     reasonTag: RK,
     f: (
       reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
-    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+    orElse?:
+      | ((
+        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+      ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+      | undefined
   ): Channel<
-    OutElem | OutElem1,
-    OutErr | OutErr1,
-    OutDone | OutDone1,
-    InElem & InElem1,
-    InErr & InErr1,
-    InDone & InDone1,
-    Env | Env1
+    OutElem | OutElem1 | Exclude<OutElem2, Types.unassigned>,
+    (OutElem2 extends Types.unassigned ? OutErr : Types.ExcludeTag<OutErr, K>) | OutErr1 | OutErr2,
+    OutDone | OutDone1 | OutDone2,
+    InElem & InElem1 & InElem2,
+    InErr & InErr1 & InErr2,
+    InDone & InDone1 & InDone2,
+    Env | Env1 | Env2
   >
-} = dual(4, <
+} = dual((args) => isChannel(args[0]), <
   OutElem,
   OutErr,
   OutDone,
@@ -4294,32 +4397,55 @@ export const catchReason: {
   InElem1,
   InErr1,
   InDone1,
-  Env1
+  Env1,
+  OutElem2 = Types.unassigned,
+  OutErr2 = never,
+  OutDone2 = never,
+  InElem2 = unknown,
+  InErr2 = unknown,
+  InDone2 = unknown,
+  Env2 = never
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   errorTag: K,
   reasonTag: RK,
   f: (
     reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
-  ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+  orElse?:
+    | ((
+      reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+    ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+    | undefined
 ): Channel<
-  OutElem | OutElem1,
-  OutErr | OutErr1,
-  OutDone | OutDone1,
-  InElem & InElem1,
-  InErr & InErr1,
-  InDone & InDone1,
-  Env | Env1
+  OutElem | OutElem1 | Exclude<OutElem2, Types.unassigned>,
+  (OutElem2 extends Types.unassigned ? OutErr : Types.ExcludeTag<OutErr, K>) | OutErr1 | OutErr2,
+  OutDone | OutDone1 | OutDone2,
+  InElem & InElem1 & InElem2,
+  InErr & InErr1 & InErr2,
+  InDone & InDone1 & InDone2,
+  Env | Env1 | Env2
 > =>
-  catchFilter(
+  catch_(
     self,
-    (e) => {
-      if (isTagged(e, errorTag) && hasProperty(e, "reason") && isTagged(e.reason, reasonTag)) {
-        return e.reason
+    (error): Channel<
+      OutElem1 | Exclude<OutElem2, Types.unassigned>,
+      OutErr1 | OutErr2,
+      OutDone1 | OutDone2,
+      InElem1 & InElem2,
+      InErr1 & InErr2,
+      InDone1 & InDone2,
+      Env1 | Env2
+    > => {
+      if (isTagged(error, errorTag) && hasProperty(error, "reason")) {
+        const reason = error.reason as Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
+        if (isTagged(reason, reasonTag)) {
+          return f(reason as any)
+        }
+        return orElse ? orElse(reason) as any : fail(error) as any
       }
-      return Filter.fail(e)
-    },
-    f as any
+      return fail(error) as any
+    }
   ))
 
 /**
@@ -4336,44 +4462,63 @@ export const catchReasons: {
       [RK in Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>]+?: (
         reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
       ) => Channel<any, any, any, any, any, any, any>
-    }
+    },
+    OutElem2 = Types.unassigned,
+    OutErr2 = never,
+    OutDone2 = never,
+    InElem2 = unknown,
+    InErr2 = unknown,
+    InDone2 = unknown,
+    Env2 = never
   >(
     errorTag: K,
-    cases: Cases
+    cases: Cases,
+    orElse?:
+      | ((
+        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>
+      ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+      | undefined
   ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<
     | OutElem
+    | Exclude<OutElem2, Types.unassigned>
     | {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<infer OutElem1, any, any, any, any, any, any> ? OutElem1 : never
     }[keyof Cases],
-    | OutErr
+    | (OutElem2 extends Types.unassigned ? OutErr : Types.ExcludeTag<OutErr, K>)
+    | OutErr2
     | {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, infer OutErr1, any, any, any, any, any> ? OutErr1 : never
     }[keyof Cases],
     | OutDone
+    | OutDone2
     | {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, any, infer OutDone1, any, any, any, any> ? OutDone1 : never
     }[keyof Cases],
     & InElem
+    & InElem2
     & {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, any, any, infer InElem1, any, any, any> ? InElem1 : never
     }[keyof Cases],
     & InErr
+    & InErr2
     & {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, any, any, any, infer InErr1, any, any> ? InErr1 : never
     }[keyof Cases],
     & InDone
+    & InDone2
     & {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, any, any, any, any, infer InDone1, any> ? InDone1 : never
     }[keyof Cases],
     | Env
+    | Env2
     | {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, any, any, any, any, any, infer Env1> ? Env1 : never
@@ -4392,67 +4537,85 @@ export const catchReasons: {
       [RK in Types.ReasonTags<Types.ExtractTag<OutErr, K>>]+?: (
         reason: Types.ExtractReason<Types.ExtractTag<OutErr, K>, RK>
       ) => Channel<any, any, any, any, any, any, any>
-    }
+    },
+    OutElem2 = Types.unassigned,
+    OutErr2 = never,
+    OutDone2 = never,
+    InElem2 = unknown,
+    InErr2 = unknown,
+    InDone2 = unknown,
+    Env2 = never
   >(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     errorTag: K,
-    cases: Cases
+    cases: Cases,
+    orElse?:
+      | ((
+        reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>
+      ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+      | undefined
   ): Channel<
     | OutElem
+    | Exclude<OutElem2, Types.unassigned>
     | {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<infer OutElem1, any, any, any, any, any, any> ? OutElem1 : never
     }[keyof Cases],
-    | OutErr
+    | (OutElem2 extends Types.unassigned ? OutErr : Types.ExcludeTag<OutErr, K>)
+    | OutErr2
     | {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, infer OutErr1, any, any, any, any, any> ? OutErr1 : never
     }[keyof Cases],
     | OutDone
+    | OutDone2
     | {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, any, infer OutDone1, any, any, any, any> ? OutDone1 : never
     }[keyof Cases],
     & InElem
+    & InElem2
     & {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, any, any, infer InElem1, any, any, any> ? InElem1 : never
     }[keyof Cases],
     & InErr
+    & InErr2
     & {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, any, any, any, infer InErr1, any, any> ? InErr1 : never
     }[keyof Cases],
     & InDone
+    & InDone2
     & {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, any, any, any, any, infer InDone1, any> ? InDone1 : never
     }[keyof Cases],
     | Env
+    | Env2
     | {
       [RK in keyof Cases]: Cases[RK] extends
         (...args: Array<any>) => Channel<any, any, any, any, any, any, infer Env1> ? Env1 : never
     }[keyof Cases]
   >
-} = dual(3, (self, errorTag, cases) => {
+} = dual((args) => isChannel(args[0]), (self, errorTag, cases, orElse) => {
   let keys: Set<string>
-  return catchFilter(
-    self,
-    (e: any) => {
+  return catch_(self, (error: any) => {
+    if (
+      isTagged(error, errorTag) &&
+      hasProperty(error, "reason") &&
+      hasProperty(error.reason, "_tag") &&
+      String.isString(error.reason._tag)
+    ) {
+      const reason = error.reason as { readonly _tag: string }
       keys ??= new Set(Object.keys(cases))
-      if (
-        isTagged(e, errorTag) &&
-        hasProperty(e, "reason") &&
-        hasProperty(e.reason, "_tag") &&
-        String.isString(e.reason._tag) &&
-        keys.has(e.reason._tag)
-      ) {
-        return e.reason
+      if (keys.has(reason._tag)) {
+        return (cases as any)[reason._tag](reason as any)
       }
-      return Filter.fail(e)
-    },
-    (reason: any) => (cases as any)[reason._tag](reason)
-  )
+      return orElse ? orElse(reason) as any : fail(error) as any
+    }
+    return fail(error) as any
+  })
 })
 
 /**

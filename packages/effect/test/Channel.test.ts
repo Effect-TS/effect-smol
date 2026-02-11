@@ -342,6 +342,97 @@ describe("Channel", () => {
       }))
   })
 
+  describe("conditional catch", () => {
+    class HttpError extends Data.TaggedError("HttpError")<{
+      readonly message: string
+    }> {}
+
+    class ValidationError extends Data.TaggedError("ValidationError")<{
+      readonly field: string
+    }> {}
+
+    class RateLimitError extends Data.TaggedError("RateLimitError")<{
+      readonly retryAfter: number
+    }> {}
+
+    class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+      readonly limit: number
+    }> {}
+
+    class AiError extends Data.TaggedError("AiError")<{
+      readonly reason: RateLimitError | QuotaExceededError
+    }> {}
+
+    class OtherError extends Data.TaggedError("OtherError")<{
+      readonly message: string
+    }> {}
+
+    it.effect("catchTag orElse", () =>
+      Effect.gen(function*() {
+        const result = yield* Channel.catchTag(
+          Channel.fail(new ValidationError({ field: "email" })) as Channel.Channel<
+            never,
+            HttpError | ValidationError,
+            never
+          >,
+          "HttpError",
+          () => Channel.succeed("http"),
+          () => Channel.succeed("fallback")
+        )
+          .pipe(Channel.runCollect)
+        assert.deepStrictEqual(result, ["fallback"])
+      }))
+
+    it.effect("catchReason orElse", () =>
+      Effect.gen(function*() {
+        const result = yield* Channel.fail(
+          new AiError({ reason: new QuotaExceededError({ limit: 100 }) })
+        ).pipe(
+          Channel.catchReason(
+            "AiError",
+            "RateLimitError",
+            (reason) => Channel.succeed(`retry: ${reason.retryAfter}`),
+            (reason) => Channel.succeed(`quota: ${reason.limit}`)
+          ),
+          Channel.runCollect
+        )
+        assert.deepStrictEqual(result, ["quota: 100"])
+      }))
+
+    it.effect("catchReason ignores non-matching parent tag", () =>
+      Effect.gen(function*() {
+        const error = new OtherError({ message: "test" })
+        const exit = yield* (Channel.fail(error) as Channel.Channel<never, AiError | OtherError, never>).pipe(
+          Channel.catchReason(
+            "AiError",
+            "RateLimitError",
+            () => Channel.succeed("no"),
+            () => Channel.succeed("orElse")
+          ),
+          Channel.runCollect,
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(error))
+      }))
+
+    it.effect("catchReasons orElse", () =>
+      Effect.gen(function*() {
+        const result = yield* Channel.fail(
+          new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+        ).pipe(
+          Channel.catchReasons(
+            "AiError",
+            {
+              QuotaExceededError: (reason) => Channel.succeed(`quota: ${reason.limit}`)
+            },
+            (reason) => Channel.succeed(`fallback: ${reason._tag}`)
+          ),
+          Channel.runCollect
+        )
+        assert.deepStrictEqual(result, ["fallback: RateLimitError"])
+      }))
+  })
+
   describe("unwrapReason", () => {
     class RateLimitError extends Data.TaggedError("RateLimitError")<{
       readonly retryAfter: number
