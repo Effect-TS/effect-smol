@@ -323,7 +323,7 @@ export const model = (
 //  * @category constructors
 //  */
 // export const modelWithTokenizer = (
-//   model: (string & {}) | Model,
+//   model: string,
 //   config?: Omit<typeof Config.Service, "model">
 // ): AiModel.Model<"openai", LanguageModel.LanguageModel | Tokenizer.Tokenizer, OpenAiClient> =>
 //   AiModel.make("openai", layerWithTokenizer({ model, config }))
