@@ -1,3 +1,4 @@
+import * as Arr from "effect/Array"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import { dual } from "effect/Function"
@@ -5,6 +6,8 @@ import * as Number from "effect/Number"
 import * as Option from "effect/Option"
 import * as Redactable from "effect/Redactable"
 import * as Schema from "effect/Schema"
+import * as SchemaTransformation from "effect/SchemaTransformation"
+import * as String from "effect/String"
 import * as AiError from "effect/unstable/ai/AiError"
 import type * as Response from "effect/unstable/ai/Response"
 import type * as HttpClientError from "effect/unstable/http/HttpClientError"
@@ -17,11 +20,23 @@ export const OpenAiErrorBody = Schema.Struct({
   error: Schema.Struct({
     message: Schema.String,
     type: Schema.optional(Schema.NullOr(Schema.String)),
+    status: Schema.optional(Schema.NullOr(Schema.String)),
     param: Schema.optional(Schema.NullOr(Schema.String)),
     code: Schema.optional(Schema.NullOr(Schema.Union([Schema.String, Schema.Number])))
   })
 })
-const OpenAiErrorBodyJson = Schema.fromJsonString(OpenAiErrorBody)
+const OpenAiErrorBodyJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Union([
+  OpenAiErrorBody,
+  Schema.NonEmptyArray(OpenAiErrorBody).pipe(
+    Schema.decodeTo(
+      Schema.toType(OpenAiErrorBody),
+      SchemaTransformation.transform({
+        decode: Arr.headNonEmpty,
+        encode: (item) => [item]
+      })
+    )
+  )
+])))
 
 /** @internal */
 export const mapSchemaError = dual<
@@ -111,7 +126,7 @@ const mapStatusCodeError = Effect.fnUntraced(function*(
   let body = yield* response.text.pipe(
     Effect.catchCause(() => Effect.succeed(description?.startsWith("{") ? description : undefined))
   )
-  const decoded = Schema.decodeUnknownOption(OpenAiErrorBodyJson)(body)
+  const decoded = OpenAiErrorBodyJson(body)
 
   const reason = mapStatusCodeToReason({
     status,
@@ -120,7 +135,11 @@ const mapStatusCodeError = Effect.fnUntraced(function*(
     http: buildHttpContext({ request, response, body }),
     metadata: {
       errorCode: Option.isSome(decoded) ? decoded.value.error.code?.toString() ?? null : null,
-      errorType: Option.isSome(decoded) ? decoded.value.error.type ?? null : null,
+      errorType: decoded.pipe(
+        Option.flatMapNullishOr((d) => d.error.type ?? d.error.status),
+        Option.map(String.toLowerCase),
+        Option.getOrNull
+      ),
       requestId: requestId ?? null
     }
   })
@@ -270,7 +289,9 @@ export const mapStatusCodeToReason = ({ status, headers, message, metadata, http
     case 429: {
       if (
         metadata.errorCode === "insufficient_quota" ||
-        metadata.errorType === "insufficient_quota"
+        metadata.errorType === "insufficient_quota" ||
+        metadata.errorType?.includes("quota") ||
+        metadata.errorType?.includes("exhausted")
       ) {
         return new AiError.QuotaExhaustedError({
           metadata: { openai: metadata },
