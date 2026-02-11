@@ -715,6 +715,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
 
   addFinalizer(this: Lifetime<any>, f: () => void): void {
     if (this.disposed) {
+      f()
       return
     }
     this.finalizers ??= []
@@ -734,7 +735,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     readonly suspendOnWaiting?: boolean | undefined
   }): Effect.Effect<A, E> {
     if (this.disposed) {
-      return Effect.never
+      return this.resultOnce(atom, options)
     } else if (this.isFn) {
       return this.resultOnce(atom, options)
     }
@@ -758,9 +759,6 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
   resultOnce<A, E>(this: Lifetime<any>, atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {
     readonly suspendOnWaiting?: boolean | undefined
   }): Effect.Effect<A, E> {
-    if (this.disposed) {
-      return Effect.never
-    }
     return Effect.callback<A, E>((resume) => {
       const result = this.once(atom)
       if (result._tag !== "Initial" && !(options?.suspendOnWaiting && result.waiting)) {
@@ -789,7 +787,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
 
   some<A>(this: Lifetime<any>, atom: Atom.Atom<Option.Option<A>>): Effect.Effect<A> {
     if (this.disposed) {
-      return Effect.never
+      return this.someOnce(atom)
     } else if (this.isFn) {
       return this.someOnce(atom)
     }
@@ -816,9 +814,6 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
   },
 
   once<A>(this: Lifetime<any>, atom: Atom.Atom<A>): A {
-    if (this.disposed) {
-      return this.node.registry.get(atom)
-    }
     return this.node.registry.get(atom)
   },
 
