@@ -1,12 +1,11 @@
 /**
  * @since 1.0.0
  */
-
 import * as Schema from "effect/Schema"
 
-const JsonObject = Schema.Record(Schema.String, Schema.Json)
-const NullableString = Schema.Union([Schema.String, Schema.Null])
-const NullableBoolean = Schema.Union([Schema.Boolean, Schema.Null])
+const JsonObject = Schema.Record(Schema.String, Schema.Any)
+const NullableString = Schema.NullOr(Schema.String)
+const NullableBoolean = Schema.NullOr(Schema.Boolean)
 const ItemStatus = Schema.Literals(["in_progress", "completed", "incomplete"])
 
 const ModelIdsSharedLiterals = Schema.Literals([
@@ -94,32 +93,32 @@ export const ModelIdsShared = Schema.Union([Schema.String, ModelIdsSharedLiteral
  */
 export type ModelIdsShared = typeof ModelIdsShared.Type
 
-const ModelIdsResponsesLiterals = Schema.Literals([
-  "o1-pro",
-  "o1-pro-2025-03-19",
-  "o3-pro",
-  "o3-pro-2025-06-10",
-  "o3-deep-research",
-  "o3-deep-research-2025-06-26",
-  "o4-mini-deep-research",
-  "o4-mini-deep-research-2025-06-26",
-  "computer-use-preview",
-  "computer-use-preview-2025-03-11",
-  "gpt-5-codex",
-  "gpt-5-pro",
-  "gpt-5-pro-2025-10-06",
-  "gpt-5.1-codex-max"
-])
+/**
+ * @since 1.0.0
+ */
+export const ModelIdsResponses = Schema.String
 
 /**
  * @since 1.0.0
  */
-export const ModelIdsResponses = Schema.Union([ModelIdsShared, ModelIdsResponsesLiterals])
-
-/**
- * @since 1.0.0
- */
-export type ModelIdsResponses = typeof ModelIdsResponses.Type
+export type ModelIdsResponses =
+  | (
+    | "o1-pro"
+    | "o1-pro-2025-03-19"
+    | "o3-pro"
+    | "o3-pro-2025-06-10"
+    | "o3-deep-research"
+    | "o3-deep-research-2025-06-26"
+    | "o4-mini-deep-research"
+    | "o4-mini-deep-research-2025-06-26"
+    | "computer-use-preview"
+    | "computer-use-preview-2025-03-11"
+    | "gpt-5-codex"
+    | "gpt-5-pro"
+    | "gpt-5-pro-2025-10-06"
+    | "gpt-5.1-codex-max"
+  )
+  | (string & {})
 
 /**
  * @since 1.0.0
@@ -160,7 +159,7 @@ export const InputImageContent = Schema.Struct({
   type: Schema.Literal("input_image"),
   image_url: Schema.optionalKey(NullableString),
   file_id: Schema.optionalKey(NullableString),
-  detail: Schema.optionalKey(Schema.Union([Schema.Literals(["low", "high", "auto"]), Schema.Null]))
+  detail: Schema.optionalKey(Schema.NullOr(Schema.Literals(["low", "high", "auto"])))
 })
 
 /**
@@ -274,7 +273,7 @@ const OutputTextContent = Schema.Struct({
   type: Schema.Literal("output_text"),
   text: Schema.String,
   annotations: Schema.optionalKey(Schema.Array(Annotation)),
-  logprobs: Schema.optionalKey(Schema.Array(Schema.Json))
+  logprobs: Schema.optionalKey(Schema.Array(Schema.Any))
 })
 
 const OutputMessageContent = Schema.Union([
@@ -350,11 +349,11 @@ export const FunctionToolCall = Schema.Struct({
 })
 
 const FunctionCallOutputItemParam = Schema.Struct({
-  id: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  id: Schema.optionalKey(Schema.NullOr(Schema.String)),
   call_id: Schema.String,
   type: Schema.Literal("function_call_output"),
   output: Schema.Union([Schema.String, Schema.Array(FunctionAndCustomToolCallOutput)], { mode: "oneOf" }),
-  status: Schema.optionalKey(Schema.Union([ItemStatus, Schema.Null]))
+  status: Schema.optionalKey(Schema.NullOr(ItemStatus))
 })
 
 /**
@@ -365,7 +364,7 @@ export const FileSearchToolCall = Schema.Struct({
   type: Schema.Literal("file_search_call"),
   status: Schema.Literals(["in_progress", "searching", "completed", "incomplete", "failed"]),
   queries: Schema.Array(Schema.String),
-  results: Schema.optionalKey(Schema.Union([Schema.Array(Schema.Json), Schema.Null]))
+  results: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.Any)))
 })
 
 /**
@@ -375,7 +374,7 @@ export const WebSearchToolCall = Schema.Struct({
   id: Schema.String,
   type: Schema.Literal("web_search_call"),
   status: Schema.Literals(["in_progress", "searching", "completed", "failed"]),
-  action: Schema.Json
+  action: Schema.Any
 })
 
 /**
@@ -385,7 +384,7 @@ export const ImageGenToolCall = Schema.Struct({
   type: Schema.Literal("image_generation_call"),
   id: Schema.String,
   status: Schema.Literals(["in_progress", "completed", "generating", "failed"]),
-  result: Schema.Union([Schema.String, Schema.Null])
+  result: NullableString
 })
 
 /**
@@ -395,18 +394,18 @@ export const ComputerToolCall = Schema.Struct({
   type: Schema.Literal("computer_call"),
   id: Schema.String,
   call_id: Schema.String,
-  action: Schema.Json,
-  pending_safety_checks: Schema.optionalKey(Schema.Array(Schema.Json)),
+  action: Schema.Any,
+  pending_safety_checks: Schema.optionalKey(Schema.Array(Schema.Any)),
   status: ItemStatus
 })
 
 const ComputerCallOutputItemParam = Schema.Struct({
-  id: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  id: Schema.optionalKey(NullableString),
   call_id: Schema.String,
   type: Schema.Literal("computer_call_output"),
-  output: Schema.Json,
-  acknowledged_safety_checks: Schema.optionalKey(Schema.Union([Schema.Array(Schema.Json), Schema.Null])),
-  status: Schema.optionalKey(Schema.Union([ItemStatus, Schema.Null]))
+  output: Schema.Any,
+  acknowledged_safety_checks: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.Any))),
+  status: Schema.optionalKey(Schema.NullOr(ItemStatus))
 })
 
 /**
@@ -418,7 +417,7 @@ export const CodeInterpreterToolCall = Schema.Struct({
   status: Schema.Literals(["in_progress", "completed", "incomplete", "interpreting", "failed"]),
   container_id: Schema.String,
   code: NullableString,
-  outputs: Schema.Union([Schema.Array(Schema.Json), Schema.Null])
+  outputs: Schema.NullOr(Schema.Array(Schema.Any))
 })
 
 /**
@@ -428,7 +427,7 @@ export const LocalShellToolCall = Schema.Struct({
   type: Schema.Literal("local_shell_call"),
   id: Schema.String,
   call_id: Schema.String,
-  action: Schema.Json,
+  action: Schema.Any,
   status: ItemStatus
 })
 
@@ -439,8 +438,8 @@ export const LocalShellToolCallOutput = Schema.Struct({
   type: Schema.Literal("local_shell_call_output"),
   id: Schema.String,
   output: Schema.String,
-  status: Schema.optionalKey(Schema.Union([ItemStatus, Schema.Null])),
-  call_id: Schema.Json
+  status: Schema.optionalKey(Schema.NullOr(ItemStatus)),
+  call_id: Schema.Any
 })
 
 /**
@@ -450,23 +449,23 @@ export const FunctionShellCall = Schema.Struct({
   type: Schema.Literal("shell_call"),
   id: Schema.String,
   call_id: Schema.String,
-  action: Schema.Json,
+  action: Schema.Any,
   status: ItemStatus,
   created_by: Schema.optionalKey(Schema.String)
 })
 
 const FunctionShellCallItemParam = Schema.Struct({
-  id: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  id: Schema.optionalKey(NullableString),
   call_id: Schema.String,
   type: Schema.Literal("shell_call"),
-  action: Schema.Json,
-  status: Schema.optionalKey(Schema.Union([ItemStatus, Schema.Null]))
+  action: Schema.Any,
+  status: Schema.optionalKey(Schema.NullOr(ItemStatus))
 })
 
 const FunctionShellCallOutputContent = Schema.Struct({
   stdout: Schema.String,
   stderr: Schema.String,
-  outcome: Schema.Json,
+  outcome: Schema.Any,
   created_by: Schema.optionalKey(Schema.String)
 })
 
@@ -479,7 +478,7 @@ export const FunctionShellCallOutput = Schema.Struct({
   call_id: Schema.String,
   status: ItemStatus,
   output: Schema.Array(FunctionShellCallOutputContent),
-  max_output_length: Schema.Union([Schema.Number, Schema.Null]),
+  max_output_length: Schema.NullOr(Schema.Number),
   created_by: Schema.optionalKey(Schema.String)
 })
 
@@ -487,12 +486,12 @@ export const FunctionShellCallOutput = Schema.Struct({
  * @since 1.0.0
  */
 export const FunctionShellCallOutputItemParam = Schema.Struct({
-  id: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  id: Schema.optionalKey(NullableString),
   call_id: Schema.String,
   type: Schema.Literal("shell_call_output"),
-  output: Schema.Array(Schema.Json),
-  status: Schema.optionalKey(Schema.Union([ItemStatus, Schema.Null])),
-  max_output_length: Schema.optionalKey(Schema.Union([Schema.Number, Schema.Null]))
+  output: Schema.Array(Schema.Any),
+  status: Schema.optionalKey(Schema.NullOr(ItemStatus)),
+  max_output_length: Schema.optionalKey(Schema.NullOr(Schema.Number))
 })
 
 const ApplyPatchCreateFileOperation = Schema.Struct({
@@ -532,7 +531,7 @@ export const ApplyPatchToolCall = Schema.Struct({
 
 const ApplyPatchToolCallItemParam = Schema.Struct({
   type: Schema.Literal("apply_patch_call"),
-  id: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  id: Schema.optionalKey(NullableString),
   call_id: Schema.String,
   status: Schema.Literals(["in_progress", "completed"]),
   operation: ApplyPatchOperation
@@ -546,16 +545,16 @@ export const ApplyPatchToolCallOutput = Schema.Struct({
   id: Schema.String,
   call_id: Schema.String,
   status: Schema.Literals(["completed", "failed"]),
-  output: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  output: Schema.optionalKey(NullableString),
   created_by: Schema.optionalKey(Schema.String)
 })
 
 const ApplyPatchToolCallOutputItemParam = Schema.Struct({
   type: Schema.Literal("apply_patch_call_output"),
-  id: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  id: Schema.optionalKey(NullableString),
   call_id: Schema.String,
   status: Schema.Literals(["completed", "failed"]),
-  output: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null]))
+  output: Schema.optionalKey(NullableString)
 })
 
 /**
@@ -574,11 +573,11 @@ export const MCPApprovalRequest = Schema.Struct({
  */
 export const MCPApprovalResponse = Schema.Struct({
   type: Schema.Literal("mcp_approval_response"),
-  id: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  id: Schema.optionalKey(NullableString),
   approval_request_id: Schema.String,
   approve: Schema.Boolean,
-  reason: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  request_id: Schema.optionalKey(Schema.Json)
+  reason: Schema.optionalKey(NullableString),
+  request_id: Schema.optionalKey(Schema.Any)
 })
 
 /**
@@ -588,8 +587,8 @@ export const MCPListTools = Schema.Struct({
   type: Schema.Literal("mcp_list_tools"),
   id: Schema.String,
   server_label: Schema.String,
-  tools: Schema.Array(Schema.Json),
-  error: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  tools: Schema.Array(Schema.Any),
+  error: Schema.optionalKey(NullableString),
   status: Schema.optionalKey(Schema.String)
 })
 
@@ -602,10 +601,10 @@ export const MCPToolCall = Schema.Struct({
   server_label: Schema.String,
   name: Schema.String,
   arguments: Schema.String,
-  output: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  error: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  output: Schema.optionalKey(NullableString),
+  error: Schema.optionalKey(NullableString),
   status: Schema.optionalKey(Schema.Literals(["in_progress", "completed", "incomplete", "calling", "failed"])),
-  approval_request_id: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null]))
+  approval_request_id: Schema.optionalKey(NullableString)
 })
 
 /**
@@ -627,20 +626,19 @@ const CustomToolCallOutput = Schema.Struct({
 })
 
 const ItemReferenceParam = Schema.Struct({
-  type: Schema.optionalKey(Schema.Union([Schema.Literal("item_reference"), Schema.Null])),
+  type: Schema.optionalKey(Schema.NullOr(Schema.Literal("item_reference"))),
   id: Schema.String
 })
 
-const WebSearchApproximateLocation = Schema.Union([
+const WebSearchApproximateLocation = Schema.NullOr(
   Schema.Struct({
     type: Schema.optionalKey(Schema.Literal("approximate")),
     country: Schema.optionalKey(NullableString),
     region: Schema.optionalKey(NullableString),
     city: Schema.optionalKey(NullableString),
     timezone: Schema.optionalKey(NullableString)
-  }),
-  Schema.Null
-])
+  })
+)
 
 /**
  * @since 1.0.0
@@ -649,8 +647,8 @@ export const FunctionTool = Schema.Struct({
   type: Schema.Literal("function"),
   name: Schema.String,
   description: Schema.optionalKey(NullableString),
-  parameters: Schema.optionalKey(Schema.Union([JsonObject, Schema.Null])),
-  strict: Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null]))
+  parameters: Schema.optionalKey(Schema.NullOr(JsonObject)),
+  strict: Schema.optionalKey(Schema.NullOr(Schema.Boolean))
 })
 
 /**
@@ -660,8 +658,8 @@ export const FileSearchTool = Schema.Struct({
   type: Schema.Literal("file_search"),
   vector_store_ids: Schema.optionalKey(Schema.Array(Schema.String)),
   max_num_results: Schema.optionalKey(Schema.Number),
-  ranking_options: Schema.optionalKey(Schema.Json),
-  filters: Schema.optionalKey(Schema.Union([Schema.Json, Schema.Null]))
+  ranking_options: Schema.optionalKey(Schema.Any),
+  filters: Schema.optionalKey(Schema.NullOr(Schema.Any))
 })
 
 /**
@@ -669,7 +667,7 @@ export const FileSearchTool = Schema.Struct({
  */
 export const CodeInterpreterTool = Schema.Struct({
   type: Schema.Literal("code_interpreter"),
-  container: Schema.optionalKey(Schema.Json)
+  container: Schema.optionalKey(Schema.Any)
 })
 
 /**
@@ -684,7 +682,7 @@ export const ImageGenTool = Schema.Struct({
   output_compression: Schema.optionalKey(Schema.Number),
   moderation: Schema.optionalKey(Schema.String),
   background: Schema.optionalKey(Schema.String),
-  input_fidelity: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  input_fidelity: Schema.optionalKey(NullableString),
   input_image_mask: Schema.optionalKey(Schema.Struct({
     image_url: Schema.optionalKey(Schema.String),
     file_id: Schema.optionalKey(Schema.String)
@@ -712,7 +710,7 @@ export const FunctionShellToolParam = Schema.Struct({
  */
 export const WebSearchTool = Schema.Struct({
   type: Schema.Literals(["web_search", "web_search_2025_08_26"]),
-  filters: Schema.optionalKey(Schema.Union([Schema.Json, Schema.Null])),
+  filters: Schema.optionalKey(Schema.NullOr(Schema.Any)),
   user_location: Schema.optionalKey(WebSearchApproximateLocation),
   search_context_size: Schema.optionalKey(Schema.Literals(["low", "medium", "high"]))
 })
@@ -736,8 +734,8 @@ export const MCPTool = Schema.Struct({
   connector_id: Schema.optionalKey(Schema.String),
   authorization: Schema.optionalKey(Schema.String),
   server_description: Schema.optionalKey(Schema.String),
-  allowed_tools: Schema.optionalKey(Schema.Union([Schema.Array(Schema.String), Schema.Json, Schema.Null])),
-  require_approval: Schema.optionalKey(Schema.Union([Schema.Literals(["always", "never"]), Schema.Json, Schema.Null]))
+  allowed_tools: Schema.optionalKey(Schema.Any),
+  require_approval: Schema.optionalKey(Schema.Any)
 })
 
 /**
@@ -758,7 +756,7 @@ const CustomToolParam = Schema.Struct({
   type: Schema.Literal("custom"),
   name: Schema.String,
   description: Schema.optionalKey(Schema.String),
-  format: Schema.optionalKey(Schema.Json)
+  format: Schema.optionalKey(Schema.Any)
 })
 
 /**
@@ -807,7 +805,7 @@ const ToolChoiceFunction = Schema.Struct({
 const ToolChoiceMCP = Schema.Struct({
   type: Schema.Literal("mcp"),
   server_label: Schema.String,
-  name: Schema.optionalKey(Schema.Union([Schema.String, Schema.Null]))
+  name: Schema.optionalKey(NullableString)
 })
 const ToolChoiceCustom = Schema.Struct({
   type: Schema.Literal("custom"),
@@ -914,7 +912,7 @@ const TextResponseFormatJsonSchema = Schema.Struct({
   description: Schema.optionalKey(Schema.String),
   name: Schema.String,
   schema: JsonObject,
-  strict: Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null]))
+  strict: Schema.optionalKey(Schema.NullOr(Schema.Boolean))
 })
 
 /**
@@ -936,7 +934,7 @@ const ResponseTextParam = Schema.Struct({
   verbosity: Schema.optionalKey(Schema.Literals(["low", "medium", "high"]))
 })
 
-const Metadata = Schema.Union([Schema.Record(Schema.String, Schema.String), Schema.Null])
+const Metadata = Schema.NullOr(Schema.Record(Schema.String, Schema.String))
 
 /**
  * @since 1.0.0
@@ -944,30 +942,30 @@ const Metadata = Schema.Union([Schema.Record(Schema.String, Schema.String), Sche
 export const CreateResponse = Schema.Struct({
   metadata: Schema.optionalKey(Metadata),
   top_logprobs: Schema.optionalKey(Schema.Number),
-  temperature: Schema.optionalKey(Schema.Union([Schema.Number, Schema.Null])),
-  top_p: Schema.optionalKey(Schema.Union([Schema.Number, Schema.Null])),
+  temperature: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+  top_p: Schema.optionalKey(Schema.NullOr(Schema.Number)),
   user: Schema.optionalKey(NullableString),
   safety_identifier: Schema.optionalKey(NullableString),
   prompt_cache_key: Schema.optionalKey(NullableString),
   service_tier: Schema.optionalKey(Schema.String),
-  prompt_cache_retention: Schema.optionalKey(Schema.Union([Schema.Literals(["in-memory", "24h"]), Schema.Null])),
+  prompt_cache_retention: Schema.optionalKey(Schema.NullOr(Schema.Literals(["in-memory", "24h"]))),
   previous_response_id: Schema.optionalKey(NullableString),
   model: Schema.optionalKey(ModelIdsResponses),
-  reasoning: Schema.optionalKey(Schema.Union([Schema.Json, Schema.Null])),
+  reasoning: Schema.optionalKey(Schema.NullOr(Schema.Any)),
   background: Schema.optionalKey(NullableBoolean),
-  max_output_tokens: Schema.optionalKey(Schema.Union([Schema.Number, Schema.Null])),
-  max_tool_calls: Schema.optionalKey(Schema.Union([Schema.Number, Schema.Null])),
+  max_output_tokens: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+  max_tool_calls: Schema.optionalKey(Schema.NullOr(Schema.Number)),
   text: Schema.optionalKey(ResponseTextParam),
   tools: Schema.optionalKey(Schema.Array(Tool)),
   tool_choice: Schema.optionalKey(ToolChoiceParam),
-  truncation: Schema.optionalKey(Schema.Union([Schema.Literals(["auto", "disabled"]), Schema.Null])),
+  truncation: Schema.optionalKey(Schema.NullOr(Schema.Literals(["auto", "disabled"]))),
   input: Schema.optionalKey(InputParam),
-  include: Schema.optionalKey(Schema.Union([Schema.Array(IncludeEnum), Schema.Null])),
-  parallel_tool_calls: Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null])),
+  include: Schema.optionalKey(Schema.NullOr(Schema.Array(IncludeEnum))),
+  parallel_tool_calls: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
   store: Schema.optionalKey(NullableBoolean),
   instructions: Schema.optionalKey(NullableString),
   stream: Schema.optionalKey(NullableBoolean),
-  conversation: Schema.optionalKey(Schema.Union([Schema.String, Schema.Literals(["auto", "none"]), Schema.Null])),
+  conversation: Schema.optionalKey(NullableString),
   modalities: Schema.optionalKey(Schema.Array(Schema.Literals(["text", "audio"]))),
   seed: Schema.optionalKey(Schema.Number)
 })
@@ -984,8 +982,8 @@ export const ResponseUsage = Schema.Struct({
   input_tokens: Schema.Number,
   output_tokens: Schema.Number,
   total_tokens: Schema.Number,
-  input_tokens_details: Schema.optionalKey(Schema.Json),
-  output_tokens_details: Schema.optionalKey(Schema.Json)
+  input_tokens_details: Schema.optionalKey(Schema.Any),
+  output_tokens_details: Schema.optionalKey(Schema.Any)
 })
 
 /**
@@ -1005,11 +1003,10 @@ export const Response = Schema.Struct({
   ),
   created_at: Schema.Number,
   output: Schema.Array(OutputItem),
-  usage: Schema.optionalKey(Schema.Union([ResponseUsage, Schema.Null])),
-  incomplete_details: Schema.optionalKey(Schema.Union([
-    Schema.Struct({ reason: Schema.optionalKey(Schema.Literals(["max_output_tokens", "content_filter"])) }),
-    Schema.Null
-  ])),
+  usage: Schema.optionalKey(Schema.NullOr(ResponseUsage)),
+  incomplete_details: Schema.optionalKey(Schema.NullOr(
+    Schema.Struct({ reason: Schema.optionalKey(Schema.Literals(["max_output_tokens", "content_filter"])) })
+  )),
   service_tier: Schema.optionalKey(Schema.String)
 })
 
@@ -1063,7 +1060,7 @@ const ResponseTextDeltaEvent = Schema.Struct({
   content_index: Schema.Number,
   delta: Schema.String,
   sequence_number: Schema.Number,
-  logprobs: Schema.optionalKey(Schema.Array(Schema.Json))
+  logprobs: Schema.optionalKey(Schema.Array(Schema.Any))
 })
 
 const ResponseOutputTextAnnotationAddedEvent = Schema.Struct({
@@ -1154,9 +1151,9 @@ const ResponseReasoningSummaryTextDeltaEvent = Schema.Struct({
 
 const ResponseErrorEvent = Schema.Struct({
   type: Schema.Literal("error"),
-  code: Schema.Union([Schema.String, Schema.Null]),
+  code: NullableString,
   message: Schema.String,
-  param: Schema.Union([Schema.String, Schema.Null]),
+  param: NullableString,
   sequence_number: Schema.Number
 })
 
