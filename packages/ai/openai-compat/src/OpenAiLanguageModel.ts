@@ -410,7 +410,6 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         const [rawResponse, response] = yield* client.createResponse(request)
         annotateResponse(options.span, rawResponse)
         return yield* makeResponse({
-          options,
           rawResponse,
           response,
           toolNameMapper
@@ -428,7 +427,6 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
           stream,
           response,
           config,
-          options,
           toolNameMapper
         })
       },
@@ -506,9 +504,6 @@ const prepareMessages = Effect.fnUntraced(
     readonly capabilities: ModelCapabilities
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<ReadonlyArray<InputItem>, AiError.AiError> {
-    const processedApprovalIds = new Set<string>()
-    const providerToolNames = new Set(toolNameMapper.providerNames)
-
     const hasConversation = Predicate.isNotNullish(config.conversation)
 
     // Handle Included Features
@@ -517,12 +512,6 @@ const prepareMessages = Effect.fnUntraced(
     }
     if (config.store === false && capabilities.isReasoningModel) {
       include.add("reasoning.encrypted_content")
-    }
-    if (providerToolNames.has("code_interpreter")) {
-      include.add("code_interpreter_call.outputs")
-    }
-    if (providerToolNames.has("web_search") || providerToolNames.has("web_search_preview")) {
-      include.add("web_search_call.action.sources")
     }
 
     const messages: Array<InputItem> = []
@@ -751,22 +740,6 @@ const prepareMessages = Effect.fnUntraced(
         case "tool": {
           for (const part of message.content) {
             if (part.type === "tool-approval-response") {
-              if (processedApprovalIds.has(part.approvalId)) {
-                continue
-              }
-
-              processedApprovalIds.add(part.approvalId)
-
-              if (config.store === true) {
-                messages.push({ type: "item_reference", id: part.approvalId })
-              }
-
-              messages.push({
-                type: "mcp_approval_response",
-                approval_request_id: part.approvalId,
-                approve: part.approved
-              } as any)
-
               continue
             }
 
@@ -875,21 +848,6 @@ const isKnownResponseStreamEvent = (
     case "response.function_call_arguments.delta": {
       return hasStringProperty(encodedEvent, "delta") && hasNumberProperty(encodedEvent, "output_index")
     }
-    case "response.apply_patch_call_operation_diff.delta": {
-      return hasStringProperty(encodedEvent, "delta") && hasNumberProperty(encodedEvent, "output_index")
-    }
-    case "response.apply_patch_call_operation_diff.done": {
-      return hasNumberProperty(encodedEvent, "output_index")
-    }
-    case "response.code_interpreter_call_code.delta": {
-      return hasStringProperty(encodedEvent, "delta") && hasNumberProperty(encodedEvent, "output_index")
-    }
-    case "response.code_interpreter_call_code.done": {
-      return hasStringProperty(encodedEvent, "code") && hasNumberProperty(encodedEvent, "output_index")
-    }
-    case "response.image_generation_call.partial_image": {
-      return hasStringProperty(encodedEvent, "item_id") && hasStringProperty(encodedEvent, "partial_image_b64")
-    }
     case "response.reasoning_summary_part.added":
     case "response.reasoning_summary_part.done": {
       return hasStringProperty(encodedEvent, "item_id") && hasNumberProperty(encodedEvent, "summary_index")
@@ -910,12 +868,10 @@ const isKnownResponseStreamEvent = (
 
 const makeResponse = Effect.fnUntraced(
   function*<Tools extends ReadonlyArray<Tool.Any>>({
-    options,
     rawResponse,
     response,
     toolNameMapper
   }: {
-    readonly options: LanguageModel.ProviderOptions
     readonly rawResponse: OpenAiResponse
     readonly response: HttpClientResponse.HttpClientResponse
     readonly toolNameMapper: Tool.NameMapper<Tools>
@@ -925,14 +881,6 @@ const makeResponse = Effect.fnUntraced(
     IdGenerator.IdGenerator
   > {
     const idGenerator = yield* IdGenerator.IdGenerator
-
-    const approvalRequests = getApprovalRequestIdMapping(options.prompt)
-
-    const webSearchTool = options.tools.find((tool) =>
-      Tool.isProviderDefined(tool) &&
-      (tool.name === "OpenAiWebSearch" ||
-        tool.name === "OpenAiWebSearchPreview")
-    ) as Tool.AnyProviderDefined | undefined
 
     let hasToolCalls = false
     const parts: Array<Response.PartEncoded> = []
@@ -948,62 +896,6 @@ const makeResponse = Effect.fnUntraced(
 
     for (const part of rawResponse.output) {
       switch (part.type) {
-        case "apply_patch_call": {
-          const toolName = toolNameMapper.getCustomName("apply_patch")
-          parts.push({
-            type: "tool-call",
-            id: part.call_id,
-            name: toolName,
-            params: { call_id: part.call_id, operation: part.operation },
-            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
-          })
-          break
-        }
-
-        case "code_interpreter_call": {
-          const toolName = toolNameMapper.getCustomName("code_interpreter")
-          parts.push({
-            type: "tool-call",
-            id: part.id,
-            name: toolName,
-            params: { code: part.code, container_id: part.container_id },
-            providerExecuted: true
-          })
-          parts.push({
-            type: "tool-result",
-            id: part.id,
-            name: toolName,
-            isFailure: false,
-            result: { outputs: part.outputs },
-            providerExecuted: true
-          })
-          break
-        }
-
-        case "file_search_call": {
-          const toolName = toolNameMapper.getCustomName("file_search")
-          parts.push({
-            type: "tool-call",
-            id: part.id,
-            name: toolName,
-            params: {},
-            providerExecuted: true
-          })
-          parts.push({
-            type: "tool-result",
-            id: part.id,
-            name: toolName,
-            isFailure: false,
-            result: {
-              status: part.status,
-              queries: part.queries,
-              results: part.results ?? null
-            },
-            providerExecuted: true
-          })
-          break
-        }
-
         case "function_call": {
           hasToolCalls = true
           const toolName = toolNameMapper.getCustomName(part.name)
@@ -1028,113 +920,6 @@ const makeResponse = Effect.fnUntraced(
             params,
             metadata: { openai: { ...makeItemIdMetadata(part.id) } }
           })
-          break
-        }
-
-        case "image_generation_call": {
-          const toolName = toolNameMapper.getCustomName("image_generation")
-          parts.push({
-            type: "tool-call",
-            id: part.id,
-            name: toolName,
-            params: {},
-            providerExecuted: true
-          })
-          parts.push({
-            type: "tool-result",
-            id: part.id,
-            name: toolName,
-            isFailure: false,
-            result: { result: part.result }
-          })
-          break
-        }
-
-        case "local_shell_call": {
-          const toolName = toolNameMapper.getCustomName("local_shell")
-          parts.push({
-            type: "tool-call",
-            id: part.call_id,
-            name: toolName,
-            params: { action: part.action },
-            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
-          })
-          break
-        }
-
-        case "mcp_call": {
-          const toolId = Predicate.isNotNullish(part.approval_request_id)
-            ? (approvalRequests.get(part.approval_request_id) ?? part.id)
-            : part.id
-
-          const toolName = `mcp.${part.name}`
-
-          parts.push({
-            type: "tool-call",
-            id: toolId,
-            name: toolName,
-            params: part.arguments,
-            providerExecuted: true
-          })
-
-          parts.push({
-            type: "tool-result",
-            id: toolId,
-            name: toolName,
-            isFailure: false,
-            providerExecuted: true,
-            result: {
-              type: "call",
-              name: part.name,
-              arguments: part.arguments,
-              server_label: part.server_label,
-              ...(Predicate.isNotNullish(part.output) ? { output: part.output } : undefined),
-              ...(Predicate.isNotNullish(part.error) ? { error: part.error } : undefined)
-            },
-            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
-          })
-
-          break
-        }
-
-        case "mcp_list_tools": {
-          // Skip
-          break
-        }
-
-        case "mcp_approval_request": {
-          const approvalRequestId = (part as any).approval_request_id ?? part.id
-          const toolId = yield* idGenerator.generateId()
-          const toolName = `mcp.${part.name}`
-
-          const params = yield* Effect.try({
-            try: () => Tool.unsafeSecureJsonParse(part.arguments),
-            catch: (cause) =>
-              AiError.make({
-                module: "OpenAiLanguageModel",
-                method: "makeResponse",
-                reason: new AiError.ToolParameterValidationError({
-                  toolName,
-                  toolParams: {},
-                  description: `Failed securely JSON parse tool parameters: ${cause}`
-                })
-              })
-          })
-
-          parts.push({
-            type: "tool-call",
-            id: toolId,
-            name: toolName,
-            params,
-            providerExecuted: true
-          })
-
-          parts.push({
-            type: "tool-approval-request",
-            toolCallId: toolId,
-            approvalId: approvalRequestId
-          })
-
           break
         }
 
@@ -1259,40 +1044,6 @@ const makeResponse = Effect.fnUntraced(
           }
           break
         }
-
-        case "shell_call": {
-          const toolName = toolNameMapper.getCustomName("shell")
-          parts.push({
-            type: "tool-call",
-            id: part.call_id,
-            name: toolName,
-            params: { action: part.action },
-            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
-          })
-          break
-        }
-
-        case "web_search_call": {
-          const toolName = toolNameMapper.getCustomName(
-            webSearchTool?.name ?? "web_search"
-          )
-          parts.push({
-            type: "tool-call",
-            id: part.id,
-            name: toolName,
-            params: {},
-            providerExecuted: true
-          })
-          parts.push({
-            type: "tool-result",
-            id: part.id,
-            name: toolName,
-            isFailure: false,
-            result: { action: part.action, status: part.status },
-            providerExecuted: true
-          })
-          break
-        }
       }
     }
 
@@ -1319,13 +1070,11 @@ const makeStreamResponse = Effect.fnUntraced(
     stream,
     response,
     config,
-    options,
     toolNameMapper
   }: {
     readonly config: typeof Config.Service
     readonly stream: Stream.Stream<ResponseStreamEvent, AiError.AiError>
     readonly response: HttpClientResponse.HttpClientResponse
-    readonly options: LanguageModel.ProviderOptions
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<
     Stream.Stream<Response.StreamPartEncoded, AiError.AiError>,
@@ -1333,9 +1082,6 @@ const makeStreamResponse = Effect.fnUntraced(
     IdGenerator.IdGenerator
   > {
     const idGenerator = yield* IdGenerator.IdGenerator
-
-    const approvalRequests = getApprovalRequestIdMapping(options.prompt)
-    const streamApprovalRequests = new Map<string, string>()
 
     let hasToolCalls = false
 
@@ -1348,24 +1094,11 @@ const makeStreamResponse = Effect.fnUntraced(
       readonly summaryParts: Record<number, "active" | "can-conclude" | "concluded">
     }> = {}
 
-    // Track active tool calls with optional provider-specific state
+    // Track active tool calls
     const activeToolCalls: Record<number, {
       readonly id: string
       readonly name: string
-      readonly applyPatch?: {
-        hasDiff: boolean
-        endEmitted: boolean
-      }
-      readonly codeInterpreter?: {
-        readonly containerId: string
-      }
     }> = {}
-
-    const webSearchTool = options.tools.find((tool): tool is Tool.AnyProviderDefined =>
-      Tool.isProviderDefined(tool) &&
-      (tool.providerName === "web_search" ||
-        tool.providerName === "web_search_preview")
-    )
 
     return stream.pipe(
       Stream.mapEffect(Effect.fnUntraced(function*(event) {
@@ -1412,98 +1145,6 @@ const makeStreamResponse = Effect.fnUntraced(
 
           case "response.output_item.added": {
             switch (event.item.type) {
-              case "apply_patch_call": {
-                const toolId = event.item.call_id
-                const toolName = toolNameMapper.getCustomName("apply_patch")
-                const operation = event.item.operation
-                activeToolCalls[event.output_index] = {
-                  id: toolId,
-                  name: toolName,
-                  applyPatch: {
-                    hasDiff: operation.type !== "delete_file",
-                    endEmitted: operation.type === "delete_file"
-                  }
-                }
-                parts.push({
-                  type: "tool-params-start",
-                  id: toolId,
-                  name: toolName
-                })
-
-                if (operation.type === "delete_file") {
-                  parts.push({
-                    type: "tool-params-delta",
-                    id: toolId,
-                    // @effect-diagnostics-next-line preferSchemaOverJson:off
-                    delta: JSON.stringify({
-                      call_id: toolId,
-                      operation: operation
-                    })
-                  })
-                  parts.push({
-                    type: "tool-params-end",
-                    id: toolId
-                  })
-                } else {
-                  parts.push({
-                    type: "tool-params-delta",
-                    id: toolId,
-                    delta: `{"call_id":"${InternalUtilities.escapeJSONDelta(toolId)}",` +
-                      `"operation":{"type":"${InternalUtilities.escapeJSONDelta(operation.type)}",` +
-                      `"path":"${InternalUtilities.escapeJSONDelta(operation.path)}","diff":"`
-                  })
-                }
-                break
-              }
-
-              case "code_interpreter_call": {
-                const toolName = toolNameMapper.getCustomName("code_interpreter")
-                activeToolCalls[event.output_index] = {
-                  id: event.item.id,
-                  name: toolName,
-                  codeInterpreter: { containerId: event.item.container_id }
-                }
-                parts.push({
-                  type: "tool-params-start",
-                  id: event.item.id,
-                  name: toolName,
-                  providerExecuted: true
-                })
-                parts.push({
-                  type: "tool-params-delta",
-                  id: event.item.id,
-                  delta: `{"containerId":"${event.item.container_id}","code":"`
-                })
-                break
-              }
-
-              case "computer_call": {
-                const toolName = toolNameMapper.getCustomName("computer_use")
-                activeToolCalls[event.output_index] = {
-                  id: event.item.id,
-                  name: toolName
-                }
-                parts.push({
-                  type: "tool-params-start",
-                  id: event.item.id,
-                  name: toolName,
-                  providerExecuted: true
-                })
-                break
-              }
-
-              case "file_search_call": {
-                const toolName = toolNameMapper.getCustomName("file_search")
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.id,
-                  name: toolName,
-                  params: {},
-                  providerExecuted: true
-                })
-                break
-              }
-
               case "function_call": {
                 const toolName = toolNameMapper.getCustomName(event.item.name)
                 activeToolCalls[event.output_index] = {
@@ -1515,27 +1156,6 @@ const makeStreamResponse = Effect.fnUntraced(
                   id: event.item.call_id,
                   name: toolName
                 })
-                break
-              }
-
-              case "image_generation_call": {
-                const toolName = toolNameMapper.getCustomName("image_generation")
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.id,
-                  name: toolName,
-                  params: {},
-                  providerExecuted: true
-                })
-                break
-              }
-
-              case "mcp_call":
-              case "mcp_list_tools":
-              case "mcp_approval_request": {
-                // We emit MCP tool call / approvals on `output_item.done` to facilitate:
-                // - Aliasing tool call identifiers when an approval request id exists
-                // - Emit a proper tool-approval-request part for MCP approvals
                 break
               }
 
@@ -1569,40 +1189,7 @@ const makeStreamResponse = Effect.fnUntraced(
                 break
               }
 
-              case "shell_call": {
-                const toolName = toolNameMapper.getCustomName("shell")
-                activeToolCalls[event.output_index] = {
-                  id: event.item.id,
-                  name: toolName
-                }
-                break
-              }
-
-              case "web_search_call": {
-                const toolName = toolNameMapper.getCustomName(
-                  webSearchTool?.providerName ?? "web_search"
-                )
-                activeToolCalls[event.output_index] = {
-                  id: event.item.id,
-                  name: toolName
-                }
-                parts.push({
-                  type: "tool-params-start",
-                  id: event.item.id,
-                  name: toolName,
-                  providerExecuted: true
-                })
-                parts.push({
-                  type: "tool-params-end",
-                  id: event.item.id
-                })
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.id,
-                  name: toolName,
-                  params: {},
-                  providerExecuted: true
-                })
+              default: {
                 break
               }
             }
@@ -1612,101 +1199,6 @@ const makeStreamResponse = Effect.fnUntraced(
 
           case "response.output_item.done": {
             switch (event.item.type) {
-              case "apply_patch_call": {
-                const toolCall = activeToolCalls[event.output_index]
-                if (
-                  Predicate.isNotUndefined(toolCall.applyPatch) &&
-                  !toolCall.applyPatch.endEmitted &&
-                  event.item.operation.type !== "delete_file"
-                ) {
-                  if (!toolCall.applyPatch.hasDiff) {
-                    parts.push({
-                      type: "tool-params-delta",
-                      id: toolCall.id,
-                      delta: InternalUtilities.escapeJSONDelta(event.item.operation.diff)
-                    })
-                  }
-                  parts.push({
-                    type: "tool-params-delta",
-                    id: toolCall.id,
-                    delta: `"}}`
-                  })
-                  parts.push({
-                    type: "tool-params-end",
-                    id: toolCall.id
-                  })
-                  toolCall.applyPatch.endEmitted = true
-                }
-                // Emit the final tool call with the complete diff when the status is completed
-                if (Predicate.isNotUndefined(toolCall) && event.item.status === "completed") {
-                  const toolName = toolNameMapper.getCustomName("apply_patch")
-                  parts.push({
-                    type: "tool-call",
-                    id: toolCall.id,
-                    name: toolName,
-                    params: { call_id: event.item.call_id, operation: event.item.operation },
-                    metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
-                  })
-                }
-                delete activeToolCalls[event.output_index]
-                break
-              }
-
-              case "code_interpreter_call": {
-                delete activeToolCalls[event.output_index]
-                const toolName = toolNameMapper.getCustomName("code_interpreter")
-                parts.push({
-                  type: "tool-result",
-                  id: event.item.id,
-                  name: toolName,
-                  isFailure: false,
-                  result: { outputs: event.item.outputs },
-                  providerExecuted: true
-                })
-                break
-              }
-
-              case "computer_call": {
-                delete activeToolCalls[event.output_index]
-                const toolName = toolNameMapper.getCustomName("computer_use")
-                parts.push({
-                  type: "tool-params-end",
-                  id: event.item.id
-                })
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.id,
-                  name: toolName,
-                  params: {},
-                  providerExecuted: true
-                })
-                parts.push({
-                  type: "tool-result",
-                  id: event.item.id,
-                  name: toolName,
-                  isFailure: false,
-                  result: { status: event.item.status ?? "completed" }
-                })
-                break
-              }
-
-              case "file_search_call": {
-                delete activeToolCalls[event.output_index]
-                const toolName = toolNameMapper.getCustomName("file_search")
-                const results = Predicate.isNotNullish(event.item.results)
-                  ? { results: event.item.results }
-                  : undefined
-                parts.push({
-                  type: "tool-result",
-                  id: event.item.id,
-                  name: toolName,
-                  isFailure: false,
-                  result: { ...results, status: event.item.status, queries: event.item.queries },
-                  providerExecuted: true
-                })
-                break
-              }
-
               case "function_call": {
                 delete activeToolCalls[event.output_index]
                 hasToolCalls = true
@@ -1735,95 +1227,6 @@ const makeStreamResponse = Effect.fnUntraced(
                   name: toolName,
                   params,
                   metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
-                })
-                break
-              }
-
-              case "image_generation_call": {
-                const toolName = toolNameMapper.getCustomName("image_generation")
-                parts.push({
-                  type: "tool-result",
-                  id: event.item.id,
-                  name: toolName,
-                  isFailure: false,
-                  result: { result: event.item.result },
-                  providerExecuted: true
-                })
-                break
-              }
-
-              case "local_shell_call": {
-                const toolName = toolNameMapper.getCustomName("local_shell")
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.call_id,
-                  name: toolName,
-                  params: { action: event.item.action },
-                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
-                })
-                break
-              }
-
-              case "mcp_call": {
-                const approvalRequestId = event.item.approval_request_id
-
-                // Track approval with our own tool call identifiers
-                const toolId = Predicate.isNotNullish(approvalRequestId)
-                  ? (streamApprovalRequests.get(approvalRequestId) ?? approvalRequests.get(approvalRequestId) ??
-                    event.item.id)
-                  : event.item.id
-
-                const toolName = `mcp.${event.item.name}`
-
-                parts.push({
-                  type: "tool-call",
-                  id: toolId,
-                  name: toolName,
-                  params: event.item.arguments,
-                  providerExecuted: true
-                })
-
-                parts.push({
-                  type: "tool-result",
-                  id: toolId,
-                  name: toolName,
-                  isFailure: false,
-                  providerExecuted: true,
-                  result: {
-                    type: "call",
-                    name: event.item.name,
-                    arguments: event.item.arguments,
-                    server_label: event.item.server_label,
-                    ...(Predicate.isNotNullish(event.item.output) ? { output: event.item.output } : undefined),
-                    ...(Predicate.isNotNullish(event.item.error) ? { error: event.item.error } : undefined)
-                  },
-                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
-                })
-
-                break
-              }
-
-              case "mcp_list_tools": {
-                // Skip
-                break
-              }
-
-              case "mcp_approval_request": {
-                const toolId = yield* idGenerator.generateId()
-                const approvalRequestId = (event.item as any).approval_request_id ?? event.item.id
-                streamApprovalRequests.set(approvalRequestId, toolId)
-                const toolName = `mcp.${event.item.name}`
-                parts.push({
-                  type: "tool-call",
-                  id: toolId,
-                  name: toolName,
-                  params: event.item.arguments,
-                  providerExecuted: true
-                })
-                parts.push({
-                  type: "tool-approval-request",
-                  approvalId: approvalRequestId,
-                  toolCallId: toolId
                 })
                 break
               }
@@ -1860,32 +1263,7 @@ const makeStreamResponse = Effect.fnUntraced(
                 break
               }
 
-              case "shell_call": {
-                delete activeToolCalls[event.output_index]
-                const toolName = toolNameMapper.getCustomName("shell")
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.id,
-                  name: toolName,
-                  params: { action: event.item.action },
-                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
-                })
-                break
-              }
-
-              case "web_search_call": {
-                delete activeToolCalls[event.output_index]
-                const toolName = toolNameMapper.getCustomName(
-                  webSearchTool?.name ?? "web_search"
-                )
-                parts.push({
-                  type: "tool-result",
-                  id: event.item.id,
-                  name: toolName,
-                  isFailure: false,
-                  result: { action: event.item.action, status: event.item.status },
-                  providerExecuted: true
-                })
+              default: {
                 break
               }
             }
@@ -1982,94 +1360,6 @@ const makeStreamResponse = Effect.fnUntraced(
                 delta: event.delta
               })
             }
-            break
-          }
-
-          case "response.apply_patch_call_operation_diff.delta": {
-            const toolCall = activeToolCalls[event.output_index]
-            if (Predicate.isNotUndefined(toolCall?.applyPatch)) {
-              parts.push({
-                type: "tool-params-delta",
-                id: toolCall.id,
-                delta: InternalUtilities.escapeJSONDelta(event.delta)
-              })
-              toolCall.applyPatch.hasDiff = true
-            }
-            break
-          }
-
-          case "response.apply_patch_call_operation_diff.done": {
-            const toolCall = activeToolCalls[event.output_index]
-            if (Predicate.isNotUndefined(toolCall?.applyPatch) && !toolCall.applyPatch.endEmitted) {
-              if (!toolCall.applyPatch.hasDiff && Predicate.isNotUndefined(event.delta)) {
-                parts.push({
-                  type: "tool-params-delta",
-                  id: toolCall.id,
-                  delta: InternalUtilities.escapeJSONDelta(event.delta)
-                })
-                toolCall.applyPatch.hasDiff = true
-              }
-              parts.push({
-                type: "tool-params-delta",
-                id: toolCall.id,
-                delta: `"}}`
-              })
-              parts.push({
-                type: "tool-params-end",
-                id: toolCall.id
-              })
-              toolCall.applyPatch.endEmitted = true
-            }
-            break
-          }
-
-          case "response.code_interpreter_call_code.delta": {
-            const toolCall = activeToolCalls[event.output_index]
-            if (Predicate.isNotUndefined(toolCall)) {
-              parts.push({
-                type: "tool-params-delta",
-                id: toolCall.id,
-                delta: InternalUtilities.escapeJSONDelta(event.delta)
-              })
-            }
-            break
-          }
-
-          case "response.code_interpreter_call_code.done": {
-            const toolCall = activeToolCalls[event.output_index]
-            if (Predicate.isNotUndefined(toolCall) && Predicate.isNotUndefined(toolCall.codeInterpreter)) {
-              const toolName = toolNameMapper.getCustomName("code_interpreter")
-              parts.push({
-                type: "tool-params-delta",
-                id: toolCall.id,
-                delta: "\"}"
-              })
-              parts.push({ type: "tool-params-end", id: toolCall.id })
-              parts.push({
-                type: "tool-call",
-                id: toolCall.id,
-                name: toolName,
-                params: {
-                  code: event.code,
-                  container_id: toolCall.codeInterpreter.containerId
-                },
-                providerExecuted: true
-              })
-            }
-            break
-          }
-
-          case "response.image_generation_call.partial_image": {
-            const toolName = toolNameMapper.getCustomName("image_generation")
-            parts.push({
-              type: "tool-result",
-              id: event.item_id,
-              name: toolName,
-              isFailure: false,
-              providerExecuted: false,
-              result: { result: event.partial_image_b64 },
-              preliminary: true
-            })
             break
           }
 
@@ -2409,30 +1699,6 @@ const getModelCapabilities = (modelId: string): ModelCapabilities => {
     systemMessageMode,
     supportsNonReasoningParameters
   }
-}
-
-const getApprovalRequestIdMapping = (prompt: Prompt.Prompt): ReadonlyMap<string, string> => {
-  const mapping = new Map<string, string>()
-
-  for (const message of prompt.content) {
-    if (message.role !== "assistant") {
-      continue
-    }
-
-    for (const part of message.content) {
-      if (part.type !== "tool-call") {
-        continue
-      }
-
-      const approvalRequestId = part.options.openai?.approvalRequestId
-
-      if (Predicate.isNotNullish(approvalRequestId)) {
-        mapping.set(approvalRequestId, part.id)
-      }
-    }
-  }
-
-  return mapping
 }
 
 const getUsage = (usage: ResponseUsage | null | undefined): Response.Usage => {

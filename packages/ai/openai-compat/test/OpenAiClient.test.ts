@@ -215,7 +215,7 @@ describe("OpenAiClient", () => {
         })
       }))
 
-    it.effect("accepts permissive history items for shell/apply_patch input", () =>
+    it.effect("accepts function-call history input items", () =>
       Effect.gen(function*() {
         let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
 
@@ -235,35 +235,21 @@ describe("OpenAiClient", () => {
           model: "gpt-4o-mini",
           input: [
             {
-              type: "shell_call",
-              call_id: "shell_call_1",
-              action: {
-                type: "exec",
-                command: ["pwd"]
-              }
+              type: "function_call",
+              call_id: "patch_call_1",
+              name: "apply_patch",
+              arguments: JSON.stringify({
+                call_id: "patch_call_1",
+                operation: {
+                  type: "delete_file",
+                  path: "src/obsolete.ts"
+                }
+              })
             },
             {
-              type: "apply_patch_call",
+              type: "function_call_output",
               call_id: "patch_call_1",
-              status: "in_progress",
-              operation: {
-                type: "delete_file",
-                path: "src/obsolete.ts"
-              }
-            },
-            {
-              type: "apply_patch_call_output",
-              call_id: "patch_call_1",
-              status: "completed",
               output: "deleted"
-            },
-            {
-              type: "computer_call_output",
-              call_id: "computer_call_1",
-              output: {
-                type: "screenshot",
-                image_url: "https://example.test/screenshot.png"
-              }
             }
           ]
         })
@@ -275,23 +261,11 @@ describe("OpenAiClient", () => {
 
         const body = yield* getRequestBody(capturedRequest)
         const assistantMessages = body.messages.filter((message: any) => message.role === "assistant")
-        const shellMessage = assistantMessages.find((message: any) =>
-          message.tool_calls?.[0]?.function?.name === "shell"
-        )
         const patchMessage = assistantMessages.find((message: any) =>
           message.tool_calls?.[0]?.function?.name === "apply_patch"
         )
 
-        assert.isDefined(shellMessage)
         assert.isDefined(patchMessage)
-
-        assert.strictEqual(shellMessage.tool_calls[0].id, "shell_call_1")
-        assert.deepStrictEqual(JSON.parse(shellMessage.tool_calls[0].function.arguments), {
-          action: {
-            type: "exec",
-            command: ["pwd"]
-          }
-        })
 
         assert.strictEqual(patchMessage.tool_calls[0].id, "patch_call_1")
         assert.deepStrictEqual(JSON.parse(patchMessage.tool_calls[0].function.arguments), {
@@ -305,7 +279,7 @@ describe("OpenAiClient", () => {
         const toolMessages = body.messages.filter((message: any) => message.role === "tool")
         const patchOutput = toolMessages.find((message: any) => message.tool_call_id === "patch_call_1")
         assert.isDefined(patchOutput)
-        assert.strictEqual(JSON.parse(patchOutput.content).type, "apply_patch_call_output")
+        assert.strictEqual(patchOutput.content, "deleted")
       }))
   })
 
