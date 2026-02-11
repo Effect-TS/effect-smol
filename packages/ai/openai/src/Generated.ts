@@ -25562,28 +25562,23 @@ export const make = (
       : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
   }
   const sseRequest = <
-    Type extends {
-      readonly id?: string | undefined
-      readonly event: string
-      readonly data: unknown
-    },
+    Type,
     DecodingServices
   >(
     schema: Schema.Decoder<Type, DecodingServices>
   ) =>
   (
     request: HttpClientRequest.HttpClientRequest
-  ): Stream.Stream<Type, HttpClientError.HttpClientError | SchemaError | Sse.Retry, DecodingServices> =>
+  ): Stream.Stream<
+    { readonly event: string; readonly id: string | undefined; readonly data: Type },
+    HttpClientError.HttpClientError | SchemaError | Sse.Retry,
+    DecodingServices
+  > =>
     HttpClient.filterStatusOk(httpClient).execute(request).pipe(
       Effect.map((response) => response.stream),
       Stream.unwrap,
       Stream.decodeText(),
-      Stream.pipeThroughChannel(Sse.decodeSchema<
-        Type,
-        DecodingServices,
-        HttpClientError.HttpClientError,
-        unknown
-      >(schema))
+      Stream.pipeThroughChannel(Sse.decodeDataSchema(schema))
     )
   const binaryRequest = (
     request: HttpClientRequest.HttpClientRequest
@@ -25657,10 +25652,7 @@ export const make = (
     "createSpeechSse": (options) =>
       HttpClientRequest.post(`/audio/speech`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
-        sseRequest(Schema.Struct({
-          ...Sse.EventEncoded.fields,
-          data: Schema.fromJsonString(CreateSpeech200Sse)
-        }))
+        sseRequest(CreateSpeech200Sse)
       ),
     "createSpeechStream": (options) =>
       HttpClientRequest.post(`/audio/speech`).pipe(
@@ -25678,10 +25670,7 @@ export const make = (
     "createTranscriptionSse": (options) =>
       HttpClientRequest.post(`/audio/transcriptions`).pipe(
         HttpClientRequest.bodyFormData(options.payload as any),
-        sseRequest(Schema.Struct({
-          ...Sse.EventEncoded.fields,
-          data: Schema.fromJsonString(CreateTranscription200Sse)
-        }))
+        sseRequest(CreateTranscription200Sse)
       ),
     "createTranslation": (options) =>
       HttpClientRequest.post(`/audio/translations`).pipe(
@@ -25798,10 +25787,7 @@ export const make = (
     "createChatCompletionSse": (options) =>
       HttpClientRequest.post(`/chat/completions`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
-        sseRequest(Schema.Struct({
-          ...Sse.EventEncoded.fields,
-          data: Schema.fromJsonString(CreateChatCompletion200Sse)
-        }))
+        sseRequest(CreateChatCompletion200Sse)
       ),
     "getChatCompletion": (completionId, options) =>
       HttpClientRequest.get(`/chat/completions/${completionId}`).pipe(
@@ -26240,10 +26226,7 @@ export const make = (
     "createImageEditSse": (options) =>
       HttpClientRequest.post(`/images/edits`).pipe(
         HttpClientRequest.bodyFormData(options.payload as any),
-        sseRequest(Schema.Struct({
-          ...Sse.EventEncoded.fields,
-          data: Schema.fromJsonString(CreateImageEdit200Sse)
-        }))
+        sseRequest(CreateImageEdit200Sse)
       ),
     "createImage": (options) =>
       HttpClientRequest.post(`/images/generations`).pipe(
@@ -26256,10 +26239,7 @@ export const make = (
     "createImageSse": (options) =>
       HttpClientRequest.post(`/images/generations`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
-        sseRequest(Schema.Struct({
-          ...Sse.EventEncoded.fields,
-          data: Schema.fromJsonString(CreateImage200Sse)
-        }))
+        sseRequest(CreateImage200Sse)
       ),
     "createImageVariation": (options) =>
       HttpClientRequest.post(`/images/variations`).pipe(
@@ -27182,10 +27162,7 @@ export const make = (
     "createResponseSse": (options) =>
       HttpClientRequest.post(`/responses`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
-        sseRequest(Schema.Struct({
-          ...Sse.EventEncoded.fields,
-          data: Schema.fromJsonString(CreateResponse200Sse)
-        }))
+        sseRequest(CreateResponse200Sse)
       ),
     "getResponse": (responseId, options) =>
       HttpClientRequest.get(`/responses/${responseId}`).pipe(

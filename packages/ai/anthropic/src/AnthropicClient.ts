@@ -58,7 +58,7 @@ export interface Service {
     Type extends {
       readonly id?: string | undefined
       readonly event: string
-      readonly data: unknown
+      readonly data: string
     },
     DecodingServices
   >(
@@ -247,7 +247,7 @@ export const make = Effect.fnUntraced(
       Type extends {
         readonly id?: string | undefined
         readonly event: string
-        readonly data: unknown
+        readonly data: string
       },
       DecodingServices
     >(schema: Schema.Decoder<Type, DecodingServices>) =>
@@ -260,12 +260,7 @@ export const make = Effect.fnUntraced(
         Effect.map((response) => response.stream),
         Stream.unwrap,
         Stream.decodeText(),
-        Stream.pipeThroughChannel(Sse.decodeSchema<
-          Type,
-          DecodingServices,
-          HttpClientError.HttpClientError,
-          unknown
-        >(schema))
+        Stream.pipeThroughChannel(Sse.decodeSchema(schema))
       )
 
     const createMessage = (options: {
@@ -287,31 +282,23 @@ export const make = Effect.fnUntraced(
       type: Schema.Literal("ping")
     })
 
-    const SseEvent = Schema.Struct({
-      ...Sse.EventEncoded.fields,
-      data: Schema.fromJsonString(Schema.Union([
-        PingEvent,
-        Generated.BetaMessageStartEvent,
-        Generated.BetaMessageDeltaEvent,
-        Generated.BetaMessageStopEvent,
-        Generated.BetaContentBlockStartEvent,
-        Generated.BetaContentBlockDeltaEvent,
-        Generated.BetaContentBlockStopEvent,
-        Generated.BetaErrorResponse
-      ]))
-    })
+    const MessageEvent = Schema.Union([
+      PingEvent,
+      Generated.BetaMessageStartEvent,
+      Generated.BetaMessageDeltaEvent,
+      Generated.BetaMessageStopEvent,
+      Generated.BetaContentBlockStartEvent,
+      Generated.BetaContentBlockDeltaEvent,
+      Generated.BetaContentBlockStopEvent,
+      Generated.BetaErrorResponse
+    ])
 
     const buildMessageStream = (
       response: HttpClientResponse.HttpClientResponse
     ): [HttpClientResponse.HttpClientResponse, Stream.Stream<MessageStreamEvent, AiError.AiError>] => {
       const stream = response.stream.pipe(
         Stream.decodeText(),
-        Stream.pipeThroughChannel(Sse.decodeSchema<
-          typeof SseEvent.Type,
-          typeof SseEvent.DecodingServices,
-          HttpClientError.HttpClientError,
-          unknown
-        >(SseEvent)),
+        Stream.pipeThroughChannel(Sse.decodeDataSchema(MessageEvent)),
         Stream.takeUntil((event) => event.data.type === "message_stop"),
         Stream.map((event) => event.data),
         Stream.filter((event): event is MessageStreamEvent => event.type !== "ping"),
