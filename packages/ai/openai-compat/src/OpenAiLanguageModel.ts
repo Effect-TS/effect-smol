@@ -20,7 +20,6 @@ import * as Stream from "effect/Stream"
 import type { Span } from "effect/Tracer"
 import type { DeepMutable, Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
-import * as IdGenerator from "effect/unstable/ai/IdGenerator"
 import * as LanguageModel from "effect/unstable/ai/LanguageModel"
 import * as AiModel from "effect/unstable/ai/Model"
 import type * as Prompt from "effect/unstable/ai/Prompt"
@@ -31,7 +30,11 @@ import type * as HttpClientResponse from "effect/unstable/http/HttpClientRespons
 import * as InternalUtilities from "./internal/utilities.ts"
 import {
   type Annotation,
+  type ChatCompletionContentPart,
   type CreateResponse,
+  type CreateResponse200,
+  type CreateResponse200Sse,
+  type CreateResponseRequestJson,
   type IncludeEnum,
   type InputContent,
   type InputItem,
@@ -40,9 +43,6 @@ import {
   type ModelIdsShared,
   OpenAiClient,
   type ReasoningItem,
-  type Response as OpenAiResponse,
-  type ResponseStreamEvent as OpenAiResponseStreamEvent,
-  type ResponseUsage,
   type SummaryTextContent,
   type TextResponseFormatConfiguration,
   type Tool as OpenAiClientTool
@@ -358,7 +358,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
       readonly config: typeof Config.Service
       readonly options: LanguageModel.ProviderOptions
       readonly toolNameMapper: Tool.NameMapper<Tools>
-    }): Effect.fn.Return<CreateResponse, AiError.AiError> {
+    }): Effect.fn.Return<CreateResponseRequestJson, AiError.AiError> {
       const include = new Set<IncludeEnum>()
       const capabilities = getModelCapabilities(config.model!)
       const messages = yield* prepareMessages({
@@ -388,7 +388,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         ...(Predicate.isNotUndefined(tools) ? { tools } : undefined),
         ...(Predicate.isNotUndefined(toolChoice) ? { tool_choice: toolChoice } : undefined)
       }
-      return request
+      return toChatCompletionsRequest(request)
     }
   )
 
@@ -418,7 +418,6 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         return yield* makeStreamResponse({
           stream,
           response,
-          config,
           toolNameMapper
         })
       },
@@ -780,71 +779,12 @@ const buildHttpResponseDetails = (
 // Response Conversion
 // =============================================================================
 
-type ResponseStreamEvent = OpenAiResponseStreamEvent
+type ResponseStreamEvent = CreateResponse200Sse
 
-type NarrowKnownResponseStreamEvent<A> = A extends { readonly type: infer T extends string }
-  ? string extends T ? never : A
-  : never
-
-type KnownResponseStreamEvent = NarrowKnownResponseStreamEvent<ResponseStreamEvent>
-
-const hasObjectProperty = (value: Record<string, unknown>, key: string): boolean =>
-  Predicate.hasProperty(value, key) && typeof value[key] === "object" && value[key] !== null
-
-const hasStringProperty = (value: Record<string, unknown>, key: string): boolean =>
-  Predicate.hasProperty(value, key) && typeof value[key] === "string"
-
-const hasNumberProperty = (value: Record<string, unknown>, key: string): boolean =>
-  Predicate.hasProperty(value, key) && typeof value[key] === "number"
-
-const isKnownResponseStreamEvent = (
-  event: ResponseStreamEvent
-): event is KnownResponseStreamEvent => {
-  const encodedEvent = event as Record<string, unknown>
-  switch (event.type) {
-    case "response.created": {
-      if (!hasObjectProperty(encodedEvent, "response")) {
-        return false
-      }
-      const response = encodedEvent.response as Record<string, unknown>
-      return hasStringProperty(response, "id") &&
-        hasStringProperty(response, "model") &&
-        hasNumberProperty(response, "created_at")
-    }
-    case "response.completed":
-    case "response.incomplete":
-    case "response.failed": {
-      return hasObjectProperty(encodedEvent, "response")
-    }
-    case "response.output_item.added":
-    case "response.output_item.done": {
-      return hasObjectProperty(encodedEvent, "item") && hasNumberProperty(encodedEvent, "output_index")
-    }
-    case "response.output_text.delta": {
-      return hasStringProperty(encodedEvent, "item_id") && hasStringProperty(encodedEvent, "delta")
-    }
-    case "response.output_text.annotation.added": {
-      return hasStringProperty(encodedEvent, "item_id") && hasObjectProperty(encodedEvent, "annotation")
-    }
-    case "response.function_call_arguments.delta": {
-      return hasStringProperty(encodedEvent, "delta") && hasNumberProperty(encodedEvent, "output_index")
-    }
-    case "response.reasoning_summary_part.added":
-    case "response.reasoning_summary_part.done": {
-      return hasStringProperty(encodedEvent, "item_id") && hasNumberProperty(encodedEvent, "summary_index")
-    }
-    case "response.reasoning_summary_text.delta": {
-      return hasStringProperty(encodedEvent, "item_id") &&
-        hasStringProperty(encodedEvent, "delta") &&
-        hasNumberProperty(encodedEvent, "summary_index")
-    }
-    case "error": {
-      return true
-    }
-    default: {
-      return false
-    }
-  }
+type ActiveToolCall = {
+  readonly id: string
+  name: string
+  arguments: string
 }
 
 const makeResponse = Effect.fnUntraced(
@@ -853,20 +793,17 @@ const makeResponse = Effect.fnUntraced(
     response,
     toolNameMapper
   }: {
-    readonly rawResponse: OpenAiResponse
+    readonly rawResponse: CreateResponse200
     readonly response: HttpClientResponse.HttpClientResponse
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<
     Array<Response.PartEncoded>,
-    AiError.AiError,
-    IdGenerator.IdGenerator
+    AiError.AiError
   > {
-    const idGenerator = yield* IdGenerator.IdGenerator
-
     let hasToolCalls = false
     const parts: Array<Response.PartEncoded> = []
 
-    const createdAt = new Date(rawResponse.created_at * 1000)
+    const createdAt = new Date(rawResponse.created * 1000)
     parts.push({
       type: "response-metadata",
       id: rawResponse.id,
@@ -875,12 +812,21 @@ const makeResponse = Effect.fnUntraced(
       request: buildHttpRequestDetails(response.request)
     })
 
-    for (const part of rawResponse.output) {
-      switch (part.type) {
-        case "function_call": {
-          hasToolCalls = true
-          const toolName = toolNameMapper.getCustomName(part.name)
-          const toolParams = part.arguments
+    const choice = rawResponse.choices[0]
+    const message = choice?.message
+
+    if (Predicate.isNotUndefined(message)) {
+      if (
+        Predicate.isNotUndefined(message.content) && Predicate.isNotNull(message.content) && message.content.length > 0
+      ) {
+        parts.push({ type: "text", text: message.content })
+      }
+
+      if (Predicate.isNotUndefined(message.tool_calls)) {
+        for (const [index, toolCall] of message.tool_calls.entries()) {
+          const toolId = toolCall.id ?? `${rawResponse.id}_tool_${index}`
+          const toolName = toolNameMapper.getCustomName(toolCall.function?.name ?? "unknown_tool")
+          const toolParams = toolCall.function?.arguments ?? "{}"
           const params = yield* Effect.try({
             try: () => Tool.unsafeSecureJsonParse(toolParams),
             catch: (cause) =>
@@ -890,146 +836,24 @@ const makeResponse = Effect.fnUntraced(
                 reason: new AiError.ToolParameterValidationError({
                   toolName,
                   toolParams: {},
-                  description: `Faled to securely JSON parse tool parameters: ${cause}`
+                  description: `Failed to securely JSON parse tool parameters: ${cause}`
                 })
               })
           })
+          hasToolCalls = true
           parts.push({
             type: "tool-call",
-            id: part.call_id,
+            id: toolId,
             name: toolName,
             params,
-            metadata: { openai: { ...makeItemIdMetadata(part.id) } }
+            metadata: { openai: { ...makeItemIdMetadata(toolCall.id) } }
           })
-          break
-        }
-
-        case "message": {
-          for (const contentPart of part.content) {
-            switch (contentPart.type) {
-              case "output_text": {
-                const annotationItems = contentPart.annotations ?? []
-                const annotations = annotationItems.length > 0
-                  ? { annotations: annotationItems as any }
-                  : undefined
-
-                parts.push({
-                  type: "text",
-                  text: contentPart.text,
-                  metadata: {
-                    openai: {
-                      ...makeItemIdMetadata(part.id),
-                      ...annotations
-                    }
-                  }
-                })
-                for (const annotation of annotationItems) {
-                  if (annotation.type === "container_file_citation") {
-                    parts.push({
-                      type: "source",
-                      sourceType: "document",
-                      id: yield* idGenerator.generateId(),
-                      mediaType: "text/plain",
-                      title: annotation.filename,
-                      fileName: annotation.filename,
-                      metadata: {
-                        openai: {
-                          type: annotation.type,
-                          fileId: annotation.file_id,
-                          containerId: annotation.container_id
-                        }
-                      }
-                    })
-                  }
-                  if (annotation.type === "file_citation") {
-                    parts.push({
-                      type: "source",
-                      sourceType: "document",
-                      id: yield* idGenerator.generateId(),
-                      mediaType: "text/plain",
-                      title: annotation.filename,
-                      fileName: annotation.filename,
-                      metadata: {
-                        openai: {
-                          type: annotation.type,
-                          fileId: annotation.file_id,
-                          index: annotation.index
-                        }
-                      }
-                    })
-                  }
-                  if (annotation.type === "file_path") {
-                    parts.push({
-                      type: "source",
-                      sourceType: "document",
-                      id: yield* idGenerator.generateId(),
-                      mediaType: "application/octet-stream",
-                      title: annotation.file_id,
-                      fileName: annotation.file_id,
-                      metadata: {
-                        openai: {
-                          type: annotation.type,
-                          fileId: annotation.file_id,
-                          index: annotation.index
-                        }
-                      }
-                    })
-                  }
-                  if (annotation.type === "url_citation") {
-                    parts.push({
-                      type: "source",
-                      sourceType: "url",
-                      id: yield* idGenerator.generateId(),
-                      url: annotation.url,
-                      title: annotation.title,
-                      metadata: {
-                        openai: {
-                          type: annotation.type,
-                          startIndex: annotation.start_index,
-                          endIndex: annotation.end_index
-                        }
-                      }
-                    })
-                  }
-                }
-                break
-              }
-              case "refusal": {
-                parts.push({
-                  type: "text",
-                  text: "",
-                  metadata: { openai: { refusal: contentPart.refusal } }
-                })
-                break
-              }
-            }
-          }
-          break
-        }
-
-        case "reasoning": {
-          const metadata = {
-            openai: {
-              ...makeItemIdMetadata(part.id),
-              ...makeEncryptedContentMetadata(part.encrypted_content)
-            }
-          }
-          // If there are no summary parts, we have to add an empty one to
-          // propagate the part identifier and encrypted content
-          if (part.summary.length === 0) {
-            parts.push({ type: "reasoning", text: "", metadata })
-          } else {
-            for (const summary of part.summary) {
-              parts.push({ type: "reasoning", text: summary.text, metadata })
-            }
-          }
-          break
         }
       }
     }
 
     const finishReason = InternalUtilities.resolveFinishReason(
-      rawResponse.incomplete_details?.reason,
+      choice?.finish_reason,
       hasToolCalls
     )
     const serviceTier = normalizeServiceTier(rawResponse.service_tier)
@@ -1050,365 +874,142 @@ const makeStreamResponse = Effect.fnUntraced(
   function*<Tools extends ReadonlyArray<Tool.Any>>({
     stream,
     response,
-    config,
     toolNameMapper
   }: {
-    readonly config: typeof Config.Service
     readonly stream: Stream.Stream<ResponseStreamEvent, AiError.AiError>
     readonly response: HttpClientResponse.HttpClientResponse
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<
     Stream.Stream<Response.StreamPartEncoded, AiError.AiError>,
-    AiError.AiError,
-    IdGenerator.IdGenerator
+    AiError.AiError
   > {
-    const idGenerator = yield* IdGenerator.IdGenerator
-
+    let serviceTier: string | undefined = undefined
+    let usage: CreateResponse200["usage"] = undefined
+    let finishReason: string | null | undefined = undefined
+    let metadataEmitted = false
+    let textStarted = false
+    let textId = ""
     let hasToolCalls = false
-
-    // Track annotations for current message to include in text-end metadata
-    const activeAnnotations: Array<Annotation> = []
-
-    // Track active reasoning items with state machine for proper concluding logic
-    const activeReasoning: Record<string, {
-      readonly encryptedContent: string | undefined
-      readonly summaryParts: Record<number, "active" | "can-conclude" | "concluded">
-    }> = {}
-
-    // Track active tool calls
-    const activeToolCalls: Record<number, {
-      readonly id: string
-      readonly name: string
-    }> = {}
+    const activeToolCalls: Record<number, ActiveToolCall> = {}
 
     return stream.pipe(
       Stream.mapEffect(Effect.fnUntraced(function*(event) {
         const parts: Array<Response.StreamPartEncoded> = []
 
-        if (!isKnownResponseStreamEvent(event)) {
+        if (event === "[DONE]") {
+          if (textStarted) {
+            parts.push({
+              type: "text-end",
+              id: textId,
+              metadata: { openai: { ...makeItemIdMetadata(textId) } }
+            })
+          }
+
+          for (const toolCall of Object.values(activeToolCalls)) {
+            const toolParams = toolCall.arguments.length > 0 ? toolCall.arguments : "{}"
+            const params = yield* Effect.try({
+              try: () => Tool.unsafeSecureJsonParse(toolParams),
+              catch: (cause) =>
+                AiError.make({
+                  module: "OpenAiLanguageModel",
+                  method: "makeStreamResponse",
+                  reason: new AiError.ToolParameterValidationError({
+                    toolName: toolCall.name,
+                    toolParams: {},
+                    description: `Failed to securely JSON parse tool parameters: ${cause}`
+                  })
+                })
+            })
+            parts.push({ type: "tool-params-end", id: toolCall.id })
+            parts.push({
+              type: "tool-call",
+              id: toolCall.id,
+              name: toolCall.name,
+              params,
+              metadata: { openai: { ...makeItemIdMetadata(toolCall.id) } }
+            })
+            hasToolCalls = true
+          }
+
+          const normalizedServiceTier = normalizeServiceTier(serviceTier)
+          parts.push({
+            type: "finish",
+            reason: InternalUtilities.resolveFinishReason(finishReason, hasToolCalls),
+            usage: getUsage(usage),
+            response: buildHttpResponseDetails(response),
+            ...(Predicate.isNotUndefined(normalizedServiceTier)
+              ? { metadata: { openai: { serviceTier: normalizedServiceTier } } }
+              : undefined)
+          })
           return parts
         }
 
-        switch (event.type) {
-          case "response.created": {
-            const createdAt = new Date(event.response.created_at * 1000)
+        if (Predicate.isNotUndefined(event.service_tier)) {
+          serviceTier = event.service_tier
+        }
+        if (Predicate.isNotUndefined(event.usage) && Predicate.isNotNull(event.usage)) {
+          usage = event.usage
+        }
+
+        if (!metadataEmitted) {
+          metadataEmitted = true
+          textId = `${event.id}_message`
+          parts.push({
+            type: "response-metadata",
+            id: event.id,
+            modelId: event.model,
+            timestamp: DateTime.formatIso(DateTime.fromDateUnsafe(new Date(event.created * 1000))),
+            request: buildHttpRequestDetails(response.request)
+          })
+        }
+
+        const choice = event.choices[0]
+        if (Predicate.isUndefined(choice)) {
+          return parts
+        }
+
+        if (Predicate.isNotUndefined(choice.delta?.content) && Predicate.isNotNull(choice.delta.content)) {
+          if (!textStarted) {
+            textStarted = true
             parts.push({
-              type: "response-metadata",
-              id: event.response.id,
-              modelId: event.response.model,
-              timestamp: DateTime.formatIso(DateTime.fromDateUnsafe(createdAt)),
-              request: buildHttpRequestDetails(response.request)
+              type: "text-start",
+              id: textId,
+              metadata: { openai: { ...makeItemIdMetadata(textId) } }
             })
-            break
           }
+          parts.push({ type: "text-delta", id: textId, delta: choice.delta.content })
+        }
 
-          case "error": {
-            parts.push({ type: "error", error: event })
-            break
-          }
+        if (Predicate.isNotUndefined(choice.delta?.tool_calls)) {
+          hasToolCalls = hasToolCalls || choice.delta.tool_calls.length > 0
+          choice.delta.tool_calls.forEach((deltaTool, indexInChunk) => {
+            const toolIndex = deltaTool.index ?? indexInChunk
+            const toolId = deltaTool.id ?? `${event.id}_tool_${toolIndex}`
+            const providerToolName = deltaTool.function?.name
+            const toolName = toolNameMapper.getCustomName(providerToolName ?? "unknown_tool")
+            const argumentsDelta = deltaTool.function?.arguments ?? ""
+            const activeToolCall = activeToolCalls[toolIndex]
 
-          case "response.completed":
-          case "response.incomplete":
-          case "response.failed": {
-            const serviceTier = normalizeServiceTier(event.response.service_tier)
-            parts.push({
-              type: "finish",
-              reason: InternalUtilities.resolveFinishReason(
-                event.response.incomplete_details?.reason,
-                hasToolCalls
-              ),
-              usage: getUsage(event.response.usage),
-              response: buildHttpResponseDetails(response),
-              ...(Predicate.isNotUndefined(serviceTier) && { metadata: { openai: { serviceTier } } })
-            })
-            break
-          }
-
-          case "response.output_item.added": {
-            switch (event.item.type) {
-              case "function_call": {
-                const toolName = toolNameMapper.getCustomName(event.item.name)
-                activeToolCalls[event.output_index] = {
-                  id: event.item.call_id,
-                  name: toolName
-                }
-                parts.push({
-                  type: "tool-params-start",
-                  id: event.item.call_id,
-                  name: toolName
-                })
-                break
+            if (Predicate.isUndefined(activeToolCall)) {
+              activeToolCalls[toolIndex] = {
+                id: toolId,
+                name: toolName,
+                arguments: argumentsDelta
               }
-
-              case "message": {
-                // Clear annotations for new message
-                activeAnnotations.length = 0
-                parts.push({
-                  type: "text-start",
-                  id: event.item.id,
-                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
-                })
-                break
-              }
-
-              case "reasoning": {
-                const encryptedContent = event.item.encrypted_content ?? undefined
-                activeReasoning[event.item.id] = {
-                  encryptedContent,
-                  summaryParts: { 0: "active" }
-                }
-                parts.push({
-                  type: "reasoning-start",
-                  id: `${event.item.id}:0`,
-                  metadata: {
-                    openai: {
-                      ...makeItemIdMetadata(event.item.id),
-                      ...makeEncryptedContentMetadata(event.item.encrypted_content)
-                    }
-                  }
-                })
-                break
-              }
-
-              default: {
-                break
-              }
-            }
-
-            break
-          }
-
-          case "response.output_item.done": {
-            switch (event.item.type) {
-              case "function_call": {
-                delete activeToolCalls[event.output_index]
-                hasToolCalls = true
-                const toolName = toolNameMapper.getCustomName(event.item.name)
-                const toolParams = event.item.arguments
-                const params = yield* Effect.try({
-                  try: () => Tool.unsafeSecureJsonParse(toolParams),
-                  catch: (cause) =>
-                    AiError.make({
-                      module: "OpenAiLanguageModel",
-                      method: "makeStreamResponse",
-                      reason: new AiError.ToolParameterValidationError({
-                        toolName,
-                        toolParams: {},
-                        description: `Failed securely JSON parse tool parameters: ${cause}`
-                      })
-                    })
-                })
-                parts.push({
-                  type: "tool-params-end",
-                  id: event.item.call_id
-                })
-                parts.push({
-                  type: "tool-call",
-                  id: event.item.call_id,
-                  name: toolName,
-                  params,
-                  metadata: { openai: { ...makeItemIdMetadata(event.item.id) } }
-                })
-                break
-              }
-
-              case "message": {
-                const annotations = activeAnnotations.length > 0
-                  ? { annotations: activeAnnotations.slice() }
-                  : undefined
-                parts.push({
-                  type: "text-end",
-                  id: event.item.id,
-                  metadata: { openai: { ...annotations, ...makeItemIdMetadata(event.item.id) } }
-                })
-                break
-              }
-
-              case "reasoning": {
-                const reasoningPart = activeReasoning[event.item.id]
-                for (const [summaryIndex, status] of Object.entries(reasoningPart.summaryParts)) {
-                  if (status === "active" || status === "can-conclude") {
-                    parts.push({
-                      type: "reasoning-end",
-                      id: `${event.item.id}:${summaryIndex}`,
-                      metadata: {
-                        openai: {
-                          ...makeItemIdMetadata(event.item.id),
-                          ...makeEncryptedContentMetadata(event.item.encrypted_content)
-                        }
-                      }
-                    })
-                  }
-                }
-                delete activeReasoning[event.item.id]
-                break
-              }
-
-              default: {
-                break
-              }
-            }
-
-            break
-          }
-
-          case "response.output_text.delta": {
-            parts.push({
-              type: "text-delta",
-              id: event.item_id,
-              delta: event.delta
-            })
-            break
-          }
-
-          case "response.output_text.annotation.added": {
-            const annotation = event.annotation as Annotation
-            // Track annotation for text-end metadata
-            activeAnnotations.push(annotation)
-            if (annotation.type === "container_file_citation") {
-              parts.push({
-                type: "source",
-                sourceType: "document",
-                id: yield* idGenerator.generateId(),
-                mediaType: "text/plain",
-                title: annotation.filename,
-                fileName: annotation.filename,
-                metadata: {
-                  openai: {
-                    type: annotation.type,
-                    fileId: annotation.file_id,
-                    containerId: annotation.container_id
-                  }
-                }
-              })
-            } else if (annotation.type === "file_citation") {
-              parts.push({
-                type: "source",
-                sourceType: "document",
-                id: yield* idGenerator.generateId(),
-                mediaType: "text/plain",
-                title: annotation.filename,
-                fileName: annotation.filename,
-                metadata: {
-                  openai: {
-                    type: annotation.type,
-                    fileId: annotation.file_id,
-                    index: annotation.index
-                  }
-                }
-              })
-            } else if (annotation.type === "file_path") {
-              parts.push({
-                type: "source",
-                sourceType: "document",
-                id: yield* idGenerator.generateId(),
-                mediaType: "application/octet-stream",
-                title: annotation.file_id,
-                fileName: annotation.file_id,
-                metadata: {
-                  openai: {
-                    type: annotation.type,
-                    fileId: annotation.file_id,
-                    index: annotation.index
-                  }
-                }
-              })
-            } else if (annotation.type === "url_citation") {
-              parts.push({
-                type: "source",
-                sourceType: "url",
-                id: yield* idGenerator.generateId(),
-                url: annotation.url,
-                title: annotation.title,
-                metadata: {
-                  openai: {
-                    type: annotation.type,
-                    startIndex: annotation.start_index,
-                    endIndex: annotation.end_index
-                  }
-                }
-              })
-            }
-            break
-          }
-
-          case "response.function_call_arguments.delta": {
-            const toolCallPart = activeToolCalls[event.output_index]
-            if (Predicate.isNotUndefined(toolCallPart)) {
-              parts.push({
-                type: "tool-params-delta",
-                id: toolCallPart.id,
-                delta: event.delta
-              })
-            }
-            break
-          }
-
-          case "response.reasoning_summary_part.added": {
-            // The first reasoning start is pushed in the `response.output_item.added` block
-            if (event.summary_index > 0) {
-              const reasoningPart = activeReasoning[event.item_id]
-              if (Predicate.isNotUndefined(reasoningPart)) {
-                // Conclude all can-conclude parts before starting new one
-                for (const [summaryIndex, status] of Object.entries(reasoningPart.summaryParts)) {
-                  if (status === "can-conclude") {
-                    parts.push({
-                      type: "reasoning-end",
-                      id: `${event.item_id}:${summaryIndex}`,
-                      metadata: {
-                        openai: {
-                          ...makeItemIdMetadata(event.item_id),
-                          ...makeEncryptedContentMetadata(reasoningPart.encryptedContent)
-                        }
-                      }
-                    })
-                    reasoningPart.summaryParts[Number(summaryIndex)] = "concluded"
-                  }
-                }
-                reasoningPart.summaryParts[event.summary_index] = "active"
-              }
-              parts.push({
-                type: "reasoning-start",
-                id: `${event.item_id}:${event.summary_index}`,
-                metadata: {
-                  openai: {
-                    ...makeItemIdMetadata(event.item_id),
-                    ...makeEncryptedContentMetadata(reasoningPart.encryptedContent)
-                  }
-                }
-              })
-            }
-            break
-          }
-
-          case "response.reasoning_summary_text.delta": {
-            parts.push({
-              type: "reasoning-delta",
-              id: `${event.item_id}:${event.summary_index}`,
-              delta: event.delta,
-              metadata: { openai: { ...makeItemIdMetadata(event.item_id) } }
-            })
-            break
-          }
-
-          case "response.reasoning_summary_part.done": {
-            // When OpenAI stores message data, we can immediately conclude the
-            // reasoning part given that we do not need the encrypted content
-            if (config.store === true) {
-              parts.push({
-                type: "reasoning-end",
-                id: `${event.item_id}:${event.summary_index}`,
-                metadata: { openai: { ...makeItemIdMetadata(event.item_id) } }
-              })
-              // Mark the summary part concluded
-              activeReasoning[event.item_id].summaryParts[event.summary_index] = "concluded"
+              parts.push({ type: "tool-params-start", id: toolId, name: toolName })
             } else {
-              // Mark the summary part as can-conclude given we still need a
-              // final summary part with the encrypted content
-              activeReasoning[event.item_id].summaryParts[event.summary_index] = "can-conclude"
+              activeToolCall.name = toolName
+              activeToolCall.arguments = `${activeToolCall.arguments}${argumentsDelta}`
             }
-            break
-          }
+
+            if (argumentsDelta.length > 0) {
+              parts.push({ type: "tool-params-delta", id: toolId, delta: argumentsDelta })
+            }
+          })
+        }
+
+        if (Predicate.isNotUndefined(choice.finish_reason) && Predicate.isNotNull(choice.finish_reason)) {
+          finishReason = choice.finish_reason
         }
 
         return parts
@@ -1424,7 +1025,7 @@ const makeStreamResponse = Effect.fnUntraced(
 
 const annotateRequest = (
   span: Span,
-  request: CreateResponse
+  request: CreateResponseRequestJson
 ): void => {
   addGenAIAnnotations(span, {
     system: "openai",
@@ -1433,19 +1034,19 @@ const annotateRequest = (
       model: request.model as string,
       temperature: request.temperature as number | undefined,
       topP: request.top_p as number | undefined,
-      maxTokens: request.max_output_tokens as number | undefined
+      maxTokens: request.max_tokens as number | undefined
     },
     openai: {
       request: {
-        responseFormat: (request.text as any)?.format?.type,
+        responseFormat: request.response_format?.type,
         serviceTier: request.service_tier as string | undefined
       }
     }
   })
 }
 
-const annotateResponse = (span: Span, response: OpenAiResponse): void => {
-  const finishReason = response.incomplete_details?.reason as string | undefined
+const annotateResponse = (span: Span, response: CreateResponse200): void => {
+  const finishReason = response.choices[0]?.finish_reason ?? undefined
   addGenAIAnnotations(span, {
     response: {
       id: response.id,
@@ -1453,8 +1054,8 @@ const annotateResponse = (span: Span, response: OpenAiResponse): void => {
       finishReasons: Predicate.isNotUndefined(finishReason) ? [finishReason] : undefined
     },
     usage: {
-      inputTokens: response.usage?.input_tokens as number | undefined,
-      outputTokens: response.usage?.output_tokens as number | undefined
+      inputTokens: response.usage?.prompt_tokens,
+      outputTokens: response.usage?.completion_tokens
     },
     openai: {
       response: {
@@ -1568,6 +1169,272 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
   return { tools, toolChoice }
 })
 
+const toChatCompletionsRequest = (payload: CreateResponse): CreateResponseRequestJson => {
+  const messages = toChatMessages(payload.input)
+  const responseFormat = toChatResponseFormat(payload.text?.format)
+  const tools = Predicate.isNotUndefined(payload.tools)
+    ? payload.tools.map(toChatTool).filter(Predicate.isNotUndefined)
+    : []
+  const toolChoice = toChatToolChoice(payload.tool_choice)
+
+  return {
+    model: payload.model ?? "",
+    messages: messages.length > 0 ? messages : [{ role: "user", content: "" }],
+    ...(Predicate.isNotUndefined(payload.temperature) ? { temperature: payload.temperature } : undefined),
+    ...(Predicate.isNotUndefined(payload.top_p) ? { top_p: payload.top_p } : undefined),
+    ...(Predicate.isNotUndefined(payload.max_output_tokens) ? { max_tokens: payload.max_output_tokens } : undefined),
+    ...(Predicate.isNotUndefined(payload.user) ? { user: payload.user } : undefined),
+    ...(Predicate.isNotUndefined(payload.seed) ? { seed: payload.seed } : undefined),
+    ...(Predicate.isNotUndefined(payload.parallel_tool_calls)
+      ? { parallel_tool_calls: payload.parallel_tool_calls }
+      : undefined),
+    ...(Predicate.isNotUndefined(payload.service_tier) ? { service_tier: payload.service_tier } : undefined),
+    ...(Predicate.isNotUndefined(responseFormat) ? { response_format: responseFormat } : undefined),
+    ...(tools.length > 0 ? { tools } : undefined),
+    ...(Predicate.isNotUndefined(toolChoice) ? { tool_choice: toolChoice } : undefined)
+  }
+}
+
+const toChatResponseFormat = (
+  format: TextResponseFormatConfiguration | undefined
+): CreateResponseRequestJson["response_format"] | undefined => {
+  if (Predicate.isUndefined(format) || Predicate.isNull(format)) {
+    return undefined
+  }
+
+  switch (format.type) {
+    case "json_object": {
+      return { type: "json_object" }
+    }
+    case "json_schema": {
+      return {
+        type: "json_schema",
+        json_schema: {
+          name: format.name,
+          schema: format.schema,
+          ...(Predicate.isNotUndefined(format.description) ? { description: format.description } : undefined),
+          ...(Predicate.isNotNullish(format.strict) ? { strict: format.strict } : undefined)
+        }
+      }
+    }
+    default: {
+      return undefined
+    }
+  }
+}
+
+const toChatToolChoice = (
+  toolChoice: OpenAiToolChoice
+): CreateResponseRequestJson["tool_choice"] | undefined => {
+  if (Predicate.isUndefined(toolChoice)) {
+    return undefined
+  }
+
+  if (typeof toolChoice === "string") {
+    return toolChoice
+  }
+
+  if (toolChoice.type === "allowed_tools") {
+    return toolChoice.mode
+  }
+
+  if (toolChoice.type === "function") {
+    return {
+      type: "function",
+      function: {
+        name: toolChoice.name
+      }
+    }
+  }
+
+  const functionName = Predicate.hasProperty(toolChoice, "name") && typeof toolChoice.name === "string"
+    ? toolChoice.name
+    : toolChoice.type
+
+  return {
+    type: "function",
+    function: {
+      name: functionName
+    }
+  }
+}
+
+const toChatTool = (
+  tool: OpenAiClientTool
+): NonNullable<CreateResponseRequestJson["tools"]>[number] | undefined => {
+  if (tool.type === "function") {
+    return {
+      type: "function",
+      function: {
+        name: tool.name,
+        ...(Predicate.isNotUndefined(tool.description) ? { description: tool.description } : undefined),
+        ...(Predicate.isNotNullish(tool.parameters) ? { parameters: tool.parameters } : undefined),
+        ...(Predicate.isNotNullish(tool.strict) ? { strict: tool.strict } : undefined)
+      }
+    }
+  }
+
+  if (tool.type === "custom") {
+    return {
+      type: "function",
+      function: {
+        name: tool.name,
+        parameters: { type: "object", additionalProperties: true }
+      }
+    }
+  }
+
+  return undefined
+}
+
+const toChatMessages = (
+  input: CreateResponse["input"]
+): Array<CreateResponseRequestJson["messages"][number]> => {
+  if (Predicate.isUndefined(input)) {
+    return []
+  }
+
+  if (typeof input === "string") {
+    return [{ role: "user", content: input }]
+  }
+
+  const messages: Array<CreateResponseRequestJson["messages"][number]> = []
+
+  for (const item of input) {
+    messages.push(...toChatMessagesFromItem(item))
+  }
+
+  return messages
+}
+
+const toChatMessagesFromItem = (
+  item: InputItem
+): Array<CreateResponseRequestJson["messages"][number]> => {
+  if (Predicate.hasProperty(item, "type") && item.type === "message") {
+    return [{
+      role: item.role,
+      content: toAssistantChatMessageContent(item.content)
+    }]
+  }
+
+  if (Predicate.hasProperty(item, "role")) {
+    return [{
+      role: item.role,
+      content: toChatMessageContent(item.content)
+    }]
+  }
+
+  switch (item.type) {
+    case "function_call": {
+      return [{
+        role: "assistant",
+        content: null,
+        tool_calls: [{
+          id: item.call_id,
+          type: "function",
+          function: {
+            name: item.name,
+            arguments: item.arguments
+          }
+        }]
+      }]
+    }
+
+    case "function_call_output": {
+      return [{
+        role: "tool",
+        tool_call_id: item.call_id,
+        content: stringifyJson(item.output)
+      }]
+    }
+
+    default: {
+      return []
+    }
+  }
+}
+
+const toAssistantChatMessageContent = (
+  content: ReadonlyArray<{
+    readonly type: string
+    readonly [x: string]: unknown
+  }>
+): string | null => {
+  let text = ""
+  for (const part of content) {
+    if (part.type === "output_text" && typeof part.text === "string") {
+      text += part.text
+    }
+    if (part.type === "refusal" && typeof part.refusal === "string") {
+      text += part.refusal
+    }
+  }
+  return text.length > 0 ? text : null
+}
+
+const toChatMessageContent = (
+  content: string | ReadonlyArray<InputContent>
+): string | ReadonlyArray<ChatCompletionContentPart> => {
+  if (typeof content === "string") {
+    return content
+  }
+
+  const richParts: Array<ChatCompletionContentPart> = []
+  const textParts: Array<string> = []
+
+  for (const part of content) {
+    switch (part.type) {
+      case "input_text": {
+        textParts.push(part.text)
+        break
+      }
+      case "input_image": {
+        const imageUrl = Predicate.isNotUndefined(part.image_url)
+          ? part.image_url
+          : Predicate.isNotUndefined(part.file_id)
+          ? `openai://file/${part.file_id}`
+          : undefined
+
+        if (Predicate.isNotUndefined(imageUrl) && Predicate.isNotNull(imageUrl)) {
+          richParts.push({
+            type: "image_url",
+            image_url: {
+              url: imageUrl,
+              ...(Predicate.isNotNullish(part.detail) ? { detail: part.detail } : undefined)
+            }
+          })
+        }
+        break
+      }
+      case "input_file": {
+        if (Predicate.isNotUndefined(part.file_url)) {
+          textParts.push(part.file_url)
+        } else if (Predicate.isNotUndefined(part.file_data)) {
+          textParts.push(part.file_data)
+        } else if (Predicate.isNotUndefined(part.file_id)) {
+          textParts.push(`openai://file/${part.file_id}`)
+        }
+        break
+      }
+    }
+  }
+
+  if (richParts.length === 0) {
+    return textParts.join("\n")
+  }
+
+  if (textParts.length > 0) {
+    richParts.unshift({ type: "text", text: textParts.join("\n") })
+  }
+
+  return richParts
+}
+
+const stringifyJson = (value: unknown): string =>
+  typeof value === "string"
+    ? value
+    : JSON.stringify(value)
+
 // =============================================================================
 // Utilities
 // =============================================================================
@@ -1595,9 +1462,6 @@ const getEncryptedContent = (
 const getImageDetail = (part: Prompt.FilePart): ImageDetail => part.options.openai?.imageDetail ?? "auto"
 
 const makeItemIdMetadata = (itemId: string | undefined) => Predicate.isNotUndefined(itemId) ? { itemId } : undefined
-
-const makeEncryptedContentMetadata = (encryptedContent: string | null | undefined) =>
-  Predicate.isNotNullish(encryptedContent) ? { encryptedContent } : undefined
 
 const normalizeServiceTier = (
   serviceTier: string | undefined
@@ -1682,7 +1546,7 @@ const getModelCapabilities = (modelId: string): ModelCapabilities => {
   }
 }
 
-const getUsage = (usage: ResponseUsage | null | undefined): Response.Usage => {
+const getUsage = (usage: CreateResponse200["usage"]): Response.Usage => {
   if (Predicate.isNullish(usage)) {
     return {
       inputTokens: {
@@ -1699,10 +1563,10 @@ const getUsage = (usage: ResponseUsage | null | undefined): Response.Usage => {
     }
   }
 
-  const inputTokens = usage.input_tokens
-  const outputTokens = usage.output_tokens
-  const cachedTokens = getUsageDetailNumber(usage.input_tokens_details, "cached_tokens") ?? 0
-  const reasoningTokens = getUsageDetailNumber(usage.output_tokens_details, "reasoning_tokens") ?? 0
+  const inputTokens = usage.prompt_tokens
+  const outputTokens = usage.completion_tokens
+  const cachedTokens = getUsageDetailNumber(usage.prompt_tokens_details, "cached_tokens") ?? 0
+  const reasoningTokens = getUsageDetailNumber(usage.completion_tokens_details, "reasoning_tokens") ?? 0
 
   return {
     inputTokens: {

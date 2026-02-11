@@ -26,7 +26,7 @@ describe("OpenAiClient", () => {
 
         yield* client.createResponse({
           model: "gpt-4o-mini",
-          input: "hello"
+          messages: [{ role: "user", content: "hello" }]
         })
 
         assert.isDefined(capturedRequest)
@@ -92,7 +92,7 @@ describe("OpenAiClient", () => {
         assert.strictEqual(typeof embedding.data[0]?.embedding, "string")
       }))
 
-    it.effect("sets stream=true for createResponseStream and maps chat chunks to compat events", () =>
+    it.effect("sets stream=true for createResponseStream and returns chat chunks", () =>
       Effect.gen(function*() {
         let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
 
@@ -142,7 +142,7 @@ describe("OpenAiClient", () => {
 
         const eventsChunk = yield* client.createResponseStream({
           model: "gpt-4o-mini",
-          input: "hello"
+          messages: [{ role: "user", content: "hello" }]
         }).pipe(
           Effect.flatMap(([_, stream]) => Stream.runCollect(stream))
         )
@@ -154,17 +154,26 @@ describe("OpenAiClient", () => {
 
         const body = yield* getRequestBody(capturedRequest)
         assert.strictEqual(body.stream, true)
+        assert.strictEqual(body.stream_options.include_usage, true)
         assert.isTrue(capturedRequest.url.endsWith("/chat/completions"))
 
         const events = globalThis.Array.from(eventsChunk)
-        assert.strictEqual(events[0]?.type, "response.created")
-        assert.strictEqual(events[1]?.type, "response.output_item.added")
-        assert.strictEqual(events[2]?.type, "response.output_text.delta")
-        assert.strictEqual(events[3]?.type, "response.output_item.done")
-        assert.strictEqual(events[4]?.type, "response.completed")
+        const firstEvent = events[0]
+        const secondEvent = events[1]
+        assert.isTrue(typeof firstEvent === "object")
+        assert.isTrue(typeof secondEvent === "object")
+        if (
+          typeof firstEvent !== "object" || firstEvent === null || typeof secondEvent !== "object" ||
+          secondEvent === null
+        ) {
+          return
+        }
+        assert.strictEqual(firstEvent.id, "chatcmpl_test_1")
+        assert.strictEqual(secondEvent.id, "chatcmpl_test_1")
+        assert.strictEqual(events[2], "[DONE]")
       }))
 
-    it.effect("converts responses tool_choice function format to chat completions format", () =>
+    it.effect("passes chat-completions tool_choice payload through unchanged", () =>
       Effect.gen(function*() {
         let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
 
@@ -182,21 +191,25 @@ describe("OpenAiClient", () => {
 
         yield* client.createResponse({
           model: "gpt-4o-mini",
-          input: "hello",
+          messages: [{ role: "user", content: "hello" }],
           tool_choice: {
             type: "function",
-            name: "TestTool"
+            function: {
+              name: "TestTool"
+            }
           },
           tools: [{
             type: "function",
-            name: "TestTool",
-            parameters: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                input: { type: "string" }
-              },
-              required: ["input"]
+            function: {
+              name: "TestTool",
+              parameters: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  input: { type: "string" }
+                },
+                required: ["input"]
+              }
             }
           }]
         })
@@ -207,15 +220,10 @@ describe("OpenAiClient", () => {
         }
 
         const body = yield* getRequestBody(capturedRequest)
-        assert.deepStrictEqual(body.tool_choice, {
-          type: "function",
-          function: {
-            name: "TestTool"
-          }
-        })
+        assert.deepStrictEqual(body.tool_choice, { type: "function", function: { name: "TestTool" } })
       }))
 
-    it.effect("accepts function-call history input items", () =>
+    it.effect("accepts assistant tool-call and tool result chat history", () =>
       Effect.gen(function*() {
         let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
 
@@ -233,23 +241,29 @@ describe("OpenAiClient", () => {
 
         yield* client.createResponse({
           model: "gpt-4o-mini",
-          input: [
+          messages: [
             {
-              type: "function_call",
-              call_id: "patch_call_1",
-              name: "apply_patch",
-              arguments: JSON.stringify({
-                call_id: "patch_call_1",
-                operation: {
-                  type: "delete_file",
-                  path: "src/obsolete.ts"
+              role: "assistant",
+              content: null,
+              tool_calls: [{
+                id: "patch_call_1",
+                type: "function",
+                function: {
+                  name: "apply_patch",
+                  arguments: JSON.stringify({
+                    call_id: "patch_call_1",
+                    operation: {
+                      type: "delete_file",
+                      path: "src/obsolete.ts"
+                    }
+                  })
                 }
-              })
+              }]
             },
             {
-              type: "function_call_output",
-              call_id: "patch_call_1",
-              output: "deleted"
+              role: "tool",
+              tool_call_id: "patch_call_1",
+              content: "deleted"
             }
           ]
         })
@@ -305,7 +319,7 @@ describe("OpenAiClient", () => {
 
         const error = yield* client.createResponse({
           model: "gpt-4o-mini",
-          input: "hello"
+          messages: [{ role: "user", content: "hello" }]
         }).pipe(Effect.flip)
 
         assert.strictEqual(error._tag, "AiError")
@@ -334,7 +348,7 @@ describe("OpenAiClient", () => {
 
         const error = yield* client.createResponse({
           model: "gpt-4o-mini",
-          input: "hello"
+          messages: [{ role: "user", content: "hello" }]
         }).pipe(Effect.flip)
 
         assert.strictEqual(error._tag, "AiError")
