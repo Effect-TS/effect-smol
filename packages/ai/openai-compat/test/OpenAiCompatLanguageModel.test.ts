@@ -98,6 +98,52 @@ describe("OpenAi compat LanguageModel", () => {
         assert.strictEqual(functionTool.name, "TestTool")
         assert.strictEqual(functionTool.strict, true)
       }))
+
+    it.effect("decodes usage when token detail fields are absent", () =>
+      Effect.gen(function*() {
+        const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) =>
+              Effect.succeed(jsonResponse(
+                request,
+                makeResponseBody({
+                  output: [makeTextOutput("Hello")],
+                  usage: {
+                    input_tokens: 4,
+                    output_tokens: 5,
+                    total_tokens: 9,
+                    provider_future_field: true
+                  }
+                })
+              ))
+            )
+          ))
+        )
+
+        const result = yield* LanguageModel.generateText({ prompt: "hello" }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(layer)
+        )
+
+        const finish = result.content.find((part) => part.type === "finish")
+        assert.isDefined(finish)
+        if (finish?.type !== "finish") {
+          return
+        }
+
+        assert.deepStrictEqual(finish.usage.inputTokens, {
+          uncached: 4,
+          total: 4,
+          cacheRead: 0,
+          cacheWrite: undefined
+        })
+        assert.deepStrictEqual(finish.usage.outputTokens, {
+          total: 5,
+          text: 5,
+          reasoning: 0
+        })
+      }))
   })
 
   describe("generateObject", () => {
@@ -190,14 +236,14 @@ describe("OpenAi compat LanguageModel", () => {
               id: "resp_stream",
               output: [makeMessage("msg_stream", "Hello")],
               usage: {
-                input_tokens: 2,
-                output_tokens: 1,
-                total_tokens: 3,
+                input_tokens: 10,
+                output_tokens: 7,
+                total_tokens: 17,
                 input_tokens_details: {
-                  cached_tokens: 0
+                  cached_tokens: 3
                 },
                 output_tokens_details: {
-                  reasoning_tokens: 0
+                  reasoning_tokens: 2
                 }
               }
             })
@@ -231,6 +277,17 @@ describe("OpenAi compat LanguageModel", () => {
         assert.strictEqual(deltas[0]?.delta, "Hello")
         if (finish?.type === "finish") {
           assert.strictEqual(finish.reason, "stop")
+          assert.deepStrictEqual(finish.usage.inputTokens, {
+            uncached: 7,
+            total: 10,
+            cacheRead: 3,
+            cacheWrite: undefined
+          })
+          assert.deepStrictEqual(finish.usage.outputTokens, {
+            total: 7,
+            text: 5,
+            reasoning: 2
+          })
         }
 
         assert.isDefined(capturedRequest)
