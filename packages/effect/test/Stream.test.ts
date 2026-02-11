@@ -304,6 +304,42 @@ describe("Stream", () => {
         assert.deepStrictEqual(result, Exit.fail({ _tag: "ErrorB" as const }))
       }))
 
+    it.effect("catchIf orElse", () =>
+      Effect.gen(function*() {
+        interface ErrorA {
+          readonly _tag: "ErrorA"
+        }
+        interface ErrorB {
+          readonly _tag: "ErrorB"
+        }
+        const result = yield* (Stream.fail({ _tag: "ErrorB" as const }) as Stream.Stream<never, ErrorA | ErrorB>).pipe(
+          Stream.catchIf(
+            (error): error is ErrorA => error._tag === "ErrorA",
+            () => Stream.succeed("caught"),
+            () => Stream.succeed("fallback")
+          ),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, ["fallback"])
+      }))
+
+    it.effect("catchTag orElse", () =>
+      Effect.gen(function*() {
+        class HttpError extends Data.TaggedError("HttpError")<{
+          readonly message: string
+        }> {}
+        class ValidationError extends Data.TaggedError("ValidationError")<{
+          readonly field: string
+        }> {}
+        const result = yield* Stream.catchTag(
+          Stream.fail(new ValidationError({ field: "email" })) as Stream.Stream<never, HttpError | ValidationError>,
+          "HttpError",
+          () => Stream.succeed("http"),
+          () => Stream.succeed("fallback")
+        ).pipe(Stream.runCollect)
+        assert.deepStrictEqual(result, ["fallback"])
+      }))
+
     describe("ignore", () => {
       type IgnoreOptions = { readonly log?: boolean | LogLevel.LogLevel }
 
@@ -413,11 +449,43 @@ describe("Stream", () => {
           assertExitFailure(exit, Cause.fail(error))
         }))
 
+      it.effect("handles non-matching reason with orElse", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.fail(
+            new AiError({ reason: new QuotaExceededError({ limit: 100 }) })
+          ).pipe(
+            Stream.catchReason(
+              "AiError",
+              "RateLimitError",
+              (reason) => Stream.succeed(`retry: ${reason.retryAfter}`),
+              (reason) => Stream.succeed(`quota: ${reason.limit}`)
+            ),
+            Stream.runCollect
+          )
+          assert.deepStrictEqual(result, ["quota: 100"])
+        }))
+
       it.effect("ignores non-matching parent tag", () =>
         Effect.gen(function*() {
           const error = new OtherError({ message: "test" })
           const exit = yield* (Stream.fail(error) as Stream.Stream<never, AiError | OtherError>).pipe(
             Stream.catchReason("AiError", "RateLimitError", () => Stream.succeed("no")),
+            Stream.runCollect,
+            Effect.exit
+          )
+          assertExitFailure(exit, Cause.fail(error))
+        }))
+
+      it.effect("orElse ignores non-matching parent tag", () =>
+        Effect.gen(function*() {
+          const error = new OtherError({ message: "test" })
+          const exit = yield* (Stream.fail(error) as Stream.Stream<never, AiError | OtherError>).pipe(
+            Stream.catchReason(
+              "AiError",
+              "RateLimitError",
+              () => Stream.succeed("no"),
+              () => Stream.succeed("fallback")
+            ),
             Stream.runCollect,
             Effect.exit
           )
@@ -463,6 +531,23 @@ describe("Stream", () => {
             Effect.exit
           )
           assertExitFailure(exit, Cause.fail(error))
+        }))
+
+      it.effect("handles non-matching reason with orElse", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.fail(
+            new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+          ).pipe(
+            Stream.catchReasons(
+              "AiError",
+              {
+                QuotaExceededError: (reason) => Stream.succeed(`quota: ${reason.limit}`)
+              },
+              (reason) => Stream.succeed(`fallback: ${reason._tag}`)
+            ),
+            Stream.runCollect
+          )
+          assert.deepStrictEqual(result, ["fallback: RateLimitError"])
         }))
     })
 

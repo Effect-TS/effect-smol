@@ -41,7 +41,17 @@ import * as Sink from "./Sink.ts"
 import { isString } from "./String.ts"
 import type * as Take from "./Take.ts"
 import type { ParentSpan, SpanOptions } from "./Tracer.ts"
-import type { Covariant, ExcludeTag, ExtractReason, ExtractTag, NoInfer, ReasonTags, Tags } from "./Types.ts"
+import type {
+  Covariant,
+  ExcludeReason,
+  ExcludeTag,
+  ExtractReason,
+  ExtractTag,
+  NoInfer,
+  ReasonTags,
+  Tags,
+  unassigned
+} from "./Types.ts"
 import type * as Unify from "./Unify.ts"
 
 const TypeId = "~effect/Stream"
@@ -4699,30 +4709,35 @@ export {
  * @category Error Handling
  */
 export const catchIf: {
-  <E, EB extends E, A2, E2, R2>(
+  <E, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
     refinement: Refinement<NoInfer<E>, EB>,
-    f: (e: EB) => Stream<A2, E2, R2>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A2 | A, E2 | Exclude<E, EB>, R2 | R>
-  <E, A2, E2, R2>(
+    f: (e: EB) => Stream<A2, E2, R2>,
+    orElse?: ((e: Exclude<E, EB>) => Stream<A3, E3, R3>) | undefined
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A2 | A | A3, E2 | E3, R2 | R | R3>
+  <E, A2, E2, R2, A3 = never, E3 = never, R3 = never>(
     predicate: Predicate<NoInfer<E>>,
-    f: (e: NoInfer<E>) => Stream<A2, E2, R2>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A2 | A, E | E2, R2 | R>
-  <A, E, R, EB extends E, A2, E2, R2>(
+    f: (e: NoInfer<E>) => Stream<A2, E2, R2>,
+    orElse?: ((e: NoInfer<E>) => Stream<A3, E3, R3>) | undefined
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A2 | A | A3, E | E2 | E3, R2 | R | R3>
+  <A, E, R, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
     self: Stream<A, E, R>,
     refinement: Refinement<E, EB>,
-    f: (e: EB) => Stream<A2, E2, R2>
-  ): Stream<A | A2, E2 | Exclude<E, EB>, R | R2>
-  <A, E, R, A2, E2, R2>(
+    f: (e: EB) => Stream<A2, E2, R2>,
+    orElse?: ((e: Exclude<E, EB>) => Stream<A3, E3, R3>) | undefined
+  ): Stream<A | A2 | A3, E2 | E3, R | R2 | R3>
+  <A, E, R, A2, E2, R2, A3 = never, E3 = never, R3 = never>(
     self: Stream<A, E, R>,
     predicate: Predicate<E>,
-    f: (e: E) => Stream<A2, E2, R2>
-  ): Stream<A | A2, E | E2, R | R2>
-} = dual(3, <A, E, R, EB extends E, A2, E2, R2>(
+    f: (e: E) => Stream<A2, E2, R2>,
+    orElse?: ((e: E) => Stream<A3, E3, R3>) | undefined
+  ): Stream<A | A2 | A3, E | E2 | E3, R | R2 | R3>
+} = dual((args) => isStream(args[0]), <A, E, R, EB extends E, A2, E2, R2, A3 = never, E3 = never, R3 = never>(
   self: Stream<A, E, R>,
   predicate: Predicate<E> | Refinement<E, EB>,
-  f: (e: EB) => Stream<A2, E2, R2>
-): Stream<A | A2, E | E2, R | R2> =>
-  catchFilter(self, Filter.fromPredicate(predicate as Predicate<E>), f as any) as any)
+  f: (e: EB) => Stream<A2, E2, R2>,
+  orElse?: ((e: E) => Stream<A3, E3, R3>) | undefined
+): Stream<A | A2 | A3, E | E2 | E3, R | R2 | R3> =>
+  catchFilter(self, Filter.fromPredicate(predicate as Predicate<E>), f as any, orElse as any) as any)
 
 /**
  * Effectfully peeks at errors without changing the stream unless the tap fails.
@@ -4806,20 +4821,24 @@ export const tapError: {
  * @category Error Handling
  */
 export const catchFilter: {
-  <E, EB, X, A2, E2, R2>(
+  <E, EB, X, A2, E2, R2, A3 = never, E3 = X, R3 = never>(
     filter: Filter.Filter<E, EB, X>,
-    f: (failure: EB) => Stream<A2, E2, R2>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, X | E2, R | R2>
-  <A, E, R, EB, X, A2, E2, R2>(
+    f: (failure: EB) => Stream<A2, E2, R2>,
+    orElse?: ((failure: X) => Stream<A3, E3, R3>) | undefined
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2 | A3, E2 | E3, R | R2 | R3>
+  <A, E, R, EB, X, A2, E2, R2, A3 = never, E3 = X, R3 = never>(
     self: Stream<A, E, R>,
     filter: Filter.Filter<E, EB, X>,
-    f: (failure: EB) => Stream<A2, E2, R2>
-  ): Stream<A | A2, X | E2, R | R2>
-} = dual(3, <A, E, R, EB, X, A2, E2, R2>(
+    f: (failure: EB) => Stream<A2, E2, R2>,
+    orElse?: ((failure: X) => Stream<A3, E3, R3>) | undefined
+  ): Stream<A | A2 | A3, E2 | E3, R | R2 | R3>
+} = dual((args) => isStream(args[0]), <A, E, R, EB, X, A2, E2, R2, A3 = never, E3 = X, R3 = never>(
   self: Stream<A, E, R>,
   filter: Filter.Filter<E, EB, X>,
-  f: (failure: EB) => Stream<A2, E2, R2>
-): Stream<A | A2, X | E2, R | R2> => fromChannel(Channel.catchFilter(toChannel(self), filter, (e) => f(e).channel)))
+  f: (failure: EB) => Stream<A2, E2, R2>,
+  orElse?: ((failure: X) => Stream<A3, E3, R3>) | undefined
+): Stream<A | A2 | A3, E2 | E3, R | R2 | R3> =>
+  fromChannel(Channel.catchFilter(toChannel(self), filter, (e) => f(e).channel, orElse && ((e) => orElse(e).channel))))
 
 /**
  * Recovers from failures whose `_tag` matches the provided value by switching to
@@ -4855,14 +4874,26 @@ export const catchFilter: {
  * @category Error Handling
  */
 export const catchTag: {
-  <const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
+  <
+    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
+    E,
+    A1,
+    E1,
+    R1,
+    A2 = never,
+    E2 = ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>,
+    R2 = never
+  >(
     k: K,
     f: (
       e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
-    ) => Stream<A1, E1, R1>
+    ) => Stream<A1, E1, R1>,
+    orElse?:
+      | ((e: ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A2, E2, R2>)
+      | undefined
   ): <A, R>(
     self: Stream<A, E, R>
-  ) => Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
+  ) => Stream<A1 | A | A2, E1 | E2, R1 | R | R2>
   <
     A,
     E,
@@ -4870,14 +4901,20 @@ export const catchTag: {
     const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
     R1,
     E1,
-    A1
+    A1,
+    A2 = never,
+    E2 = ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>,
+    R2 = never
   >(
     self: Stream<A, E, R>,
     k: K,
-    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>
-  ): Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>,
+    orElse?:
+      | ((e: ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A2, E2, R2>)
+      | undefined
+  ): Stream<A1 | A | A2, E1 | E2, R1 | R | R2>
 } = dual(
-  3,
+  (args) => isStream(args[0]),
   <
     A,
     E,
@@ -4885,16 +4922,22 @@ export const catchTag: {
     const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
     R1,
     E1,
-    A1
+    A1,
+    A2 = never,
+    E2 = ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>,
+    R2 = never
   >(
     self: Stream<A, E, R>,
     k: K,
-    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>
-  ): Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R> => {
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>,
+    orElse?:
+      | ((e: ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A2, E2, R2>)
+      | undefined
+  ): Stream<A1 | A | A2, E1 | E2, R1 | R | R2> => {
     const pred = Array.isArray(k)
       ? ((e: E): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
       : isTagged(k as string)
-    return catchFilter(self, Filter.fromPredicate(pred), f) as any
+    return catchFilter(self, Filter.fromPredicate(pred), f, orElse as any) as any
   }
 )
 
@@ -4940,19 +4983,25 @@ export const catchTags: {
     Cases extends (E extends { _tag: string } ? {
         [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
       } :
-      {})
+      {}),
+    A2 = never,
+    E2 = Exclude<E, { _tag: keyof Cases }>,
+    R2 = never
   >(
-    cases: Cases
+    cases: Cases,
+    orElse?: ((e: Exclude<E, { _tag: keyof Cases }>) => Stream<A2, E2, R2>) | undefined
   ): <A, R>(self: Stream<A, E, R>) => Stream<
     | A
+    | A2
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<infer A, any, any>) ? A : never
     }[keyof Cases],
-    | Exclude<E, { _tag: keyof Cases }>
+    | E2
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, infer E, any>) ? E : never
     }[keyof Cases],
     | R
+    | R2
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, any, infer R>) ? R : never
     }[keyof Cases]
@@ -4964,25 +5013,31 @@ export const catchTags: {
     Cases extends (E extends { _tag: string } ? {
         [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
       } :
-      {})
+      {}),
+    A2 = never,
+    E2 = Exclude<E, { _tag: keyof Cases }>,
+    R2 = never
   >(
     self: Stream<A, E, R>,
-    cases: Cases
+    cases: Cases,
+    orElse?: ((e: Exclude<E, { _tag: keyof Cases }>) => Stream<A2, E2, R2>) | undefined
   ): Stream<
     | A
+    | A2
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<infer A, any, any>) ? A : never
     }[keyof Cases],
-    | Exclude<E, { _tag: keyof Cases }>
+    | E2
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, infer E, any>) ? E : never
     }[keyof Cases],
     | R
+    | R2
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, any, infer R>) ? R : never
     }[keyof Cases]
   >
-} = dual(2, (self, cases) => {
+} = dual((args) => isStream(args[0]), (self, cases, orElse) => {
   let keys: Array<string>
   return catchFilter(
     self,
@@ -4990,7 +5045,8 @@ export const catchTags: {
       keys ??= Object.keys(cases)
       return hasProperty(e, "_tag") && isString(e["_tag"]) && keys.includes(e["_tag"]) ? e : Filter.fail(e)
     },
-    (e) => cases[e["_tag"] as string](e)
+    (e: any) => cases[e["_tag"] as string](e),
+    orElse
   )
 })
 
@@ -5044,12 +5100,18 @@ export const catchReason: {
     RK extends ReasonTags<ExtractTag<NoInfer<E>, K>>,
     A2,
     E2,
-    R2
+    R2,
+    A3 = unassigned,
+    E3 = never,
+    R3 = never
   >(
     errorTag: K,
     reasonTag: RK,
-    f: (reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>) => Stream<A2, E2, R2>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E | E2, R | R2>
+    f: (reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>) => Stream<A2, E2, R2>,
+    orElse?: ((reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, RK>) => Stream<A3, E3, R3>) | undefined
+  ): <A, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A | A2 | Exclude<A3, unassigned>, (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3, R | R2 | R3>
   <
     A,
     E,
@@ -5058,15 +5120,19 @@ export const catchReason: {
     RK extends ReasonTags<ExtractTag<E, K>>,
     A2,
     E2,
-    R2
+    R2,
+    A3 = unassigned,
+    E3 = never,
+    R3 = never
   >(
     self: Stream<A, E, R>,
     errorTag: K,
     reasonTag: RK,
-    f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Stream<A2, E2, R2>
-  ): Stream<A | A2, E | E2, R | R2>
+    f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Stream<A2, E2, R2>,
+    orElse?: ((reason: ExcludeReason<ExtractTag<E, K>, RK>) => Stream<A3, E3, R3>) | undefined
+  ): Stream<A | A2 | Exclude<A3, unassigned>, (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3, R | R2 | R3>
 } = dual(
-  4,
+  (args) => isStream(args[0]),
   <
     A,
     E,
@@ -5075,21 +5141,26 @@ export const catchReason: {
     RK extends ReasonTags<ExtractTag<E, K>>,
     A2,
     E2,
-    R2
+    R2,
+    A3 = unassigned,
+    E3 = never,
+    R3 = never
   >(
     self: Stream<A, E, R>,
     errorTag: K,
     reasonTag: RK,
-    f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Stream<A2, E2, R2>
-  ): Stream<A | A2, E | E2, R | R2> =>
+    f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Stream<A2, E2, R2>,
+    orElse?: ((reason: ExcludeReason<ExtractTag<E, K>, RK>) => Stream<A3, E3, R3>) | undefined
+  ): Stream<A | A2 | Exclude<A3, unassigned>, (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3, R | R2 | R3> =>
     fromChannel(
       Channel.catchReason(
         toChannel(self),
         errorTag,
         reasonTag,
-        (reason) => f(reason).channel
+        (reason) => f(reason).channel,
+        orElse && ((reason) => orElse(reason).channel)
       )
-    )
+    ) as any
 )
 
 /**
@@ -5141,20 +5212,29 @@ export const catchReasons: {
       [RK in ReasonTags<ExtractTag<NoInfer<E>, K>>]+?: (
         reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>
       ) => Stream<any, any, any>
-    }
+    },
+    A2 = unassigned,
+    E2 = never,
+    R2 = never
   >(
     errorTag: K,
-    cases: Cases
+    cases: Cases,
+    orElse?:
+      | ((reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, Extract<keyof Cases, string>>) => Stream<A2, E2, R2>)
+      | undefined
   ): <A, R>(self: Stream<A, E, R>) => Stream<
     | A
+    | Exclude<A2, unassigned>
     | {
       [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Stream<infer A, any, any> ? A : never
     }[keyof Cases],
-    | E
+    | (A2 extends unassigned ? E : ExcludeTag<E, K>)
+    | E2
     | {
       [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Stream<any, infer E, any> ? E : never
     }[keyof Cases],
     | R
+    | R2
     | {
       [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Stream<any, any, infer R> ? R : never
     }[keyof Cases]
@@ -5168,33 +5248,43 @@ export const catchReasons: {
       [RK in ReasonTags<ExtractTag<E, K>>]+?: (
         reason: ExtractReason<ExtractTag<E, K>, RK>
       ) => Stream<any, any, any>
-    }
+    },
+    A2 = unassigned,
+    E2 = never,
+    R2 = never
   >(
     self: Stream<A, E, R>,
     errorTag: K,
-    cases: Cases
+    cases: Cases,
+    orElse?:
+      | ((reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, Extract<keyof Cases, string>>) => Stream<A2, E2, R2>)
+      | undefined
   ): Stream<
     | A
+    | Exclude<A2, unassigned>
     | {
       [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Stream<infer A, any, any> ? A : never
     }[keyof Cases],
-    | E
+    | (A2 extends unassigned ? E : ExcludeTag<E, K>)
+    | E2
     | {
       [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Stream<any, infer E, any> ? E : never
     }[keyof Cases],
     | R
+    | R2
     | {
       [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Stream<any, any, infer R> ? R : never
     }[keyof Cases]
   >
-} = dual(3, (self, errorTag, cases) => {
+} = dual((args) => isStream(args[0]), (self, errorTag, cases, orElse) => {
   const handlers: Record<string, (reason: any) => Channel.Channel<any, any, any, any, any, any, any>> = {}
   for (const key of Object.keys(cases)) {
     const handler = (cases as any)[key]
     handlers[key] = (reason) => handler(reason).channel
   }
+  const orElseHandler = orElse && ((reason: any) => orElse(reason).channel)
   return fromChannel(
-    Channel.catchReasons(self.channel, errorTag as any, handlers as any) as Channel.Channel<
+    Channel.catchReasons(self.channel, errorTag as any, handlers as any, orElseHandler as any) as Channel.Channel<
       Arr.NonEmptyReadonlyArray<any>,
       any,
       void,
@@ -5203,7 +5293,7 @@ export const catchReasons: {
       unknown,
       any
     >
-  )
+  ) as any
 })
 
 /**
