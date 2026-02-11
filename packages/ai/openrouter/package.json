@@ -1,14 +1,14 @@
 {
-  "name": "@effect/ai-anthropic",
+  "name": "@effect/ai-openrouter",
   "version": "3.0.0",
   "type": "module",
   "license": "MIT",
-  "description": "An Anthropic provider integration for Effect AI SDK",
+  "description": "An OpenRouter provider integration for Effect AI SDK",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
     "url": "https://github.com/Effect-TS/effect-smol.git",
-    "directory": "packages/ai/anthropic"
+    "directory": "packages/ai/openrouter"
   },
   "bugs": {
     "url": "https://github.com/Effect-TS/effect-smol/issues"
@@ -16,12 +16,12 @@
   "tags": [
     "typescript",
     "ai",
-    "anthropic"
+    "openrouter"
   ],
   "keywords": [
     "typescript",
     "ai",
-    "anthropic"
+    "openrouter"
   ],
   "sideEffects": [],
   "exports": {

@@ -20,7 +20,11 @@ import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawne
  *
  * const error = new PostProcess.PostProcessError({
  *   step: "lint",
+ *   command: "pnpm exec oxlint --fix /path/to/file.ts",
  *   filePath: "/path/to/file.ts",
+ *   exitCode: 1,
+ *   stdout: "",
+ *   stderr: "error: some lint error",
  *   cause: new Error("Lint failed")
  * })
  * ```
@@ -30,9 +34,30 @@ import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawne
  */
 export class PostProcessError extends Data.TaggedError("PostProcessError")<{
   readonly step: "lint" | "format"
+  readonly command: string
   readonly filePath: string
+  readonly exitCode?: number | undefined
+  readonly stdout: string
+  readonly stderr: string
   readonly cause: unknown
-}> {}
+}> {
+  override get message(): string {
+    const lines: Array<string> = [
+      `${this.step} failed for ${this.filePath}`,
+      `command: ${this.command}`
+    ]
+    if (this.exitCode !== undefined) {
+      lines.push(`exit code: ${this.exitCode}`)
+    }
+    if (this.stderr.length > 0) {
+      lines.push(`stderr:\n${this.stderr}`)
+    }
+    if (this.stdout.length > 0) {
+      lines.push(`stdout:\n${this.stdout}`)
+    }
+    return lines.join("\n")
+  }
+}
 
 /**
  * Service for post-processing generated code.
@@ -66,12 +91,20 @@ export const layer: Layer.Layer<
 > = Effect.gen(function*() {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner
 
+  const collectStream = (stream: Stream.Stream<Uint8Array, any>) =>
+    stream.pipe(
+      Stream.decodeText(),
+      Stream.mkString,
+      Effect.orElseSucceed(() => "")
+    )
+
   const runCommand = Effect.fn("runCommand")(function*(
     command: string,
     args: ReadonlyArray<string>,
     step: "lint" | "format",
     filePath: string
   ) {
+    const fullCommand = [command, ...args].join(" ")
     const cmd = ChildProcess.make(command, args, {
       stdout: "pipe",
       stderr: "pipe"
@@ -79,21 +112,30 @@ export const layer: Layer.Layer<
 
     yield* Effect.scoped(Effect.gen(function*() {
       const handle = yield* spawner.spawn(cmd).pipe(
-        Effect.mapError((cause) => new PostProcessError({ step, filePath, cause }))
+        Effect.mapError((cause) =>
+          new PostProcessError({ step, command: fullCommand, filePath, stdout: "", stderr: "", cause })
+        )
       )
 
-      // Drain stdout/stderr streams
-      yield* Stream.runDrain(handle.stdout).pipe(Effect.ignore)
-      yield* Stream.runDrain(handle.stderr).pipe(Effect.ignore)
+      const [stdout, stderr] = yield* Effect.all([
+        collectStream(handle.stdout),
+        collectStream(handle.stderr)
+      ])
 
       const exitCode = yield* handle.exitCode.pipe(
-        Effect.mapError((cause) => new PostProcessError({ step, filePath, cause }))
+        Effect.mapError((cause) =>
+          new PostProcessError({ step, command: fullCommand, filePath, stdout, stderr, cause })
+        )
       )
 
       if (exitCode !== 0) {
         return yield* new PostProcessError({
           step,
+          command: fullCommand,
           filePath,
+          exitCode,
+          stdout,
+          stderr,
           cause: new Error(`Command exited with code ${exitCode}`)
         })
       }

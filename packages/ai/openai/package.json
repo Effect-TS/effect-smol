@@ -3,7 +3,7 @@
   "version": "3.0.0",
   "type": "module",
   "license": "MIT",
-  "description": "An OpenAI integration for Effect",
+  "description": "An OpenAI provider integration for Effect AI SDK",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",

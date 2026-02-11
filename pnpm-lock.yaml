@@ -167,6 +167,12 @@ importers:
         specifier: workspace:^
         version: link:../../effect
 
+  packages/ai/openrouter:
+    devDependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+
   packages/atom/react:
     devDependencies:
       '@testing-library/dom':
