@@ -367,6 +367,75 @@ describe.sequential("Atom", () => {
     expect(finalized).toEqual(1)
   })
 
+  it("disposed lifetime apis are no-ops", () => {
+    let context: Atom.Context | undefined
+    const state = Atom.make(0).pipe(Atom.keepAlive)
+    const option = Atom.make<Option.Option<number>>(Option.some(1)).pipe(Atom.keepAlive)
+    const result = Atom.make<AsyncResult.AsyncResult<number, never>>(AsyncResult.success(1)).pipe(Atom.keepAlive)
+    const atom = Atom.make((get) => {
+      context = get
+      return get(state)
+    }).pipe(Atom.keepAlive)
+    const registry = AtomRegistry.make()
+
+    expect(registry.get(atom)).toEqual(0)
+    registry.refresh(atom)
+
+    assert(context !== undefined)
+    const disposed = context
+
+    expect(() =>
+      disposed.addFinalizer(() => {
+      })
+    ).not.toThrow()
+    expect(disposed(state)).toEqual(0)
+    expect(disposed.get(state)).toEqual(0)
+    expect(disposed.once(state)).toEqual(0)
+    expect(disposed.self<number>()).toEqual(Option.none())
+    expect(() => disposed.result(result)).not.toThrow()
+    expect(() => disposed.resultOnce(result)).not.toThrow()
+    expect(() => disposed.setResult(result, AsyncResult.success(2))).not.toThrow()
+    expect(() => disposed.some(option)).not.toThrow()
+    expect(() => disposed.someOnce(option)).not.toThrow()
+    expect(() => disposed.refresh(state)).not.toThrow()
+    expect(() => disposed.refreshSelf()).not.toThrow()
+    expect(() => disposed.mount(state)).not.toThrow()
+    expect(() =>
+      disposed.subscribe(state, () => {
+      })
+    ).not.toThrow()
+    expect(() => disposed.setSelf(1)).not.toThrow()
+    expect(() => disposed.set(state, 1)).not.toThrow()
+    expect(registry.get(state)).toEqual(0)
+    expect(() => disposed.stream(state)).not.toThrow()
+    expect(() => disposed.streamResult(result)).not.toThrow()
+  })
+
+  it("disposed lifetime ignores async updates", async () => {
+    const count = Atom.make(
+      Effect.succeed(1).pipe(Effect.delay(100)),
+      {
+        initialValue: 0,
+        uninterruptible: true
+      }
+    )
+    const registry = AtomRegistry.make()
+    const unmount = registry.mount(count)
+
+    const initial = registry.get(count)
+    assert(AsyncResult.isSuccess(initial))
+    expect(initial.waiting).toEqual(true)
+    expect(initial.value).toEqual(0)
+
+    unmount()
+    await vitest.advanceTimersByTimeAsync(100)
+    await Effect.runPromise(Effect.yieldNow)
+
+    const next = registry.get(count)
+    assert(AsyncResult.isSuccess(next))
+    expect(next.waiting).toEqual(true)
+  })
+
   it.effect("stream", () =>
     Effect.gen(function*() {
       vitest.useRealTimers()

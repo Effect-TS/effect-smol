@@ -708,8 +708,6 @@ interface Lifetime<A> extends Atom.Context {
   readonly dispose: () => void
 }
 
-const disposedError = (atom: Atom.Atom<any>): Error => new Error(`Cannot use context of disposed Atom: ${atom}`)
-
 const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "isFn"> = {
   get registry(): RegistryImpl {
     return (this as Lifetime<any>).node.registry
@@ -717,7 +715,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
 
   addFinalizer(this: Lifetime<any>, f: () => void): void {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return
     }
     this.finalizers ??= []
     this.finalizers.push(f)
@@ -725,7 +723,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
 
   get<A>(this: Lifetime<any>, atom: Atom.Atom<A>): A {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return this.node.registry.get(atom)
     }
     const parent = this.node.registry.ensureNode(atom)
     this.node.addParent(parent)
@@ -736,7 +734,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     readonly suspendOnWaiting?: boolean | undefined
   }): Effect.Effect<A, E> {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return Effect.never
     } else if (this.isFn) {
       return this.resultOnce(atom, options)
     }
@@ -761,7 +759,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     readonly suspendOnWaiting?: boolean | undefined
   }): Effect.Effect<A, E> {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return Effect.never
     }
     return Effect.callback<A, E>((resume) => {
       const result = this.once(atom)
@@ -783,7 +781,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     value: W
   ): Effect.Effect<A, E> {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return Effect.never
     }
     this.node.registry.set(atom, value)
     return this.resultOnce(atom, { suspendOnWaiting: true })
@@ -791,7 +789,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
 
   some<A>(this: Lifetime<any>, atom: Atom.Atom<Option.Option<A>>): Effect.Effect<A> {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return Effect.never
     } else if (this.isFn) {
       return this.someOnce(atom)
     }
@@ -801,7 +799,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
 
   someOnce<A>(this: Lifetime<any>, atom: Atom.Atom<Option.Option<A>>): Effect.Effect<A> {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return Effect.never
     }
     return Effect.callback<A>((resume) => {
       const result = this.once(atom)
@@ -819,35 +817,35 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
 
   once<A>(this: Lifetime<any>, atom: Atom.Atom<A>): A {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return this.node.registry.get(atom)
     }
     return this.node.registry.get(atom)
   },
 
   self<A>(this: Lifetime<any>): Option.Option<A> {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return Option.none()
     }
     return this.node.valueOption() as any
   },
 
   refresh<A>(this: Lifetime<any>, atom: Atom.Atom<A>): void {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return
     }
     this.node.registry.refresh(atom)
   },
 
   refreshSelf(this: Lifetime<any>): void {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return
     }
     this.node.invalidate()
   },
 
   mount<A>(this: Lifetime<any>, atom: Atom.Atom<A>): void {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return
     }
     this.addFinalizer(this.node.registry.mount(atom))
   },
@@ -856,21 +854,21 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     readonly immediate?: boolean
   }): void {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return
     }
     this.addFinalizer(this.node.registry.subscribe(atom, f, options))
   },
 
   setSelf<A>(this: Lifetime<any>, a: A): void {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return
     }
     this.node.setValue(a as any)
   },
 
   set<R, W>(this: Lifetime<any>, atom: Atom.Writable<R, W>, value: W): void {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return
     }
     this.node.registry.set(atom, value)
   },
@@ -879,7 +877,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     readonly withoutInitialValue?: boolean
   }) {
     if (this.disposed) {
-      throw disposedError(this.node.atom)
+      return Stream.empty
     }
 
     return Stream.callback<A>((queue) => {
@@ -918,7 +916,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
 const makeLifetime = <A>(node: NodeImpl<A>): Lifetime<A> => {
   function get<A>(atom: Atom.Atom<A>): A {
     if (get.disposed) {
-      throw disposedError(atom)
+      return node.registry.get(atom)
     } else if (get.isFn) {
       return node.registry.get(atom)
     }
