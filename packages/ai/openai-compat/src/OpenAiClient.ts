@@ -259,15 +259,6 @@ type JsonObject = { readonly [x: string]: Schema.Json }
 /**
  * @since 1.0.0
  */
-export type ModelIdsShared = string
-/**
- * @since 1.0.0
- */
-export type ModelIdsResponses = string
-
-/**
- * @since 1.0.0
- */
 export type IncludeEnum =
   | "message.input_image.image_url"
   | "reasoning.encrypted_content"
@@ -541,7 +532,7 @@ export type CreateResponse = {
   readonly service_tier?: string | undefined
   readonly prompt_cache_retention?: "in-memory" | "24h" | null | undefined
   readonly previous_response_id?: string | null | undefined
-  readonly model?: ModelIdsResponses | undefined
+  readonly model?: string | undefined
   readonly reasoning?: unknown
   readonly background?: boolean | null | undefined
   readonly max_output_tokens?: number | null | undefined
@@ -587,7 +578,7 @@ type OutputItem =
 export type Response = {
   readonly id: string
   readonly object?: "response" | undefined
-  readonly model: ModelIdsResponses
+  readonly model: string
   readonly status?: "completed" | "failed" | "in_progress" | "cancelled" | "queued" | "incomplete" | undefined
   readonly created_at: number
   readonly output: ReadonlyArray<OutputItem>

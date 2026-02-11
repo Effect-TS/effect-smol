@@ -39,8 +39,6 @@ import {
   type InputContent,
   type InputItem,
   type MessageStatus,
-  type ModelIdsResponses,
-  type ModelIdsShared,
   OpenAiClient,
   type ReasoningItem,
   type SummaryTextContent,
@@ -48,12 +46,6 @@ import {
   type Tool as OpenAiClientTool
 } from "./OpenAiClient.ts"
 import { addGenAIAnnotations } from "./OpenAiTelemetry.ts"
-
-/**
- * @since 1.0.0
- * @category models
- */
-export type Model = (ModelIdsResponses | ModelIdsShared) | (string & {})
 
 /**
  * Image detail level for vision requests.
@@ -320,7 +312,7 @@ declare module "effect/unstable/ai/Response" {
  * @category constructors
  */
 export const model = (
-  model: (string & {}) | Model,
+  model: string,
   config?: Omit<typeof Config.Service, "model">
 ): AiModel.Model<"openai", LanguageModel.LanguageModel, OpenAiClient> =>
   AiModel.make("openai", layer({ model, config }))
@@ -343,7 +335,7 @@ export const model = (
  * @category constructors
  */
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
-  readonly model: (string & {}) | Model
+  readonly model: string
   readonly config?: Omit<typeof Config.Service, "model"> | undefined
 }): Effect.fn.Return<LanguageModel.Service, never, OpenAiClient> {
   const client = yield* OpenAiClient
@@ -440,7 +432,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
  * @category layers
  */
 export const layer = (options: {
-  readonly model: (string & {}) | Model
+  readonly model: string
   readonly config?: Omit<typeof Config.Service, "model"> | undefined
 }): Layer.Layer<LanguageModel.LanguageModel, never, OpenAiClient> =>
   Layer.effect(LanguageModel.LanguageModel, make(options))
