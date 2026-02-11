@@ -817,10 +817,10 @@ describe("OpenAiLanguageModel", () => {
         )
 
         const parts = globalThis.Array.from(partsChunk)
-        const params = decodeToolParamsFromStream(parts, outputItem.id)
+        const params = decodeToolParamsFromStream(parts, outputItem.call_id)
 
         deepStrictEqual(params, {
-          call_id: outputItem.id,
+          call_id: outputItem.call_id,
           operation: {
             type: "update_file",
             path: "src/example.ts",

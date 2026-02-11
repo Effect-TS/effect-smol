@@ -464,10 +464,10 @@ describe("OpenAi compat LanguageModel", () => {
         )
 
         const parts = globalThis.Array.from(partsChunk)
-        const params = decodeToolParamsFromStream(parts, outputItem.id)
+        const params = decodeToolParamsFromStream(parts, outputItem.call_id)
 
         assert.deepStrictEqual(params, {
-          call_id: outputItem.id,
+          call_id: outputItem.call_id,
           operation: {
             type: "update_file",
             path: "src/compat.ts",

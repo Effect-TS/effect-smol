@@ -1413,7 +1413,7 @@ const makeStreamResponse = Effect.fnUntraced(
           case "response.output_item.added": {
             switch (event.item.type) {
               case "apply_patch_call": {
-                const toolId = event.item.id
+                const toolId = event.item.call_id
                 const toolName = toolNameMapper.getCustomName("apply_patch")
                 const operation = event.item.operation
                 activeToolCalls[event.output_index] = {
