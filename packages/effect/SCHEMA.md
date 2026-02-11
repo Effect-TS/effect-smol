@@ -1,80 +1,49 @@
 # Schema
 
-`Schema` is a TypeScript-first library for defining data shapes, validating unknown input, and transforming values between formats. Use it to:
+`Schema` is a TypeScript-first library for defining data shapes, validating unknown input, and transforming values between formats.
+
+Two key concepts appear throughout this guide:
+
+- **Decoding** — turning unknown external data (API responses, form submissions, config files) into typed, validated values.
+- **Encoding** — turning typed values back into a serializable format (JSON, FormData, etc.).
+
+Use Schema to:
 
 - **Define types** — declare the shape of your data once and get both the TypeScript type and a runtime validator.
-- **Validate input** — decode unknown data (API payloads, form data, config files) into type-safe values.
+- **Validate input** — decode unknown data into type-safe values, with clear error messages when it doesn't match.
 - **Transform values** — convert between your domain types and serialization formats like JSON, FormData, and URLSearchParams.
-- **Generate tooling** — derive JSON Schemas, test data (Arbitraries), equivalence checks, and optics from a single schema definition.
+- **Generate tooling** — derive JSON Schemas, test data generators, equivalence checks, and more from a single schema definition.
 
 ## Design Philosophy
 
-- **Smaller bundles & opt-in features** — defaults like issue formatting are outside the core; you explicitly import what you use.
-- **Familiarity** — API names and patterns are kept consistent with prior versions where possible, while borrowing ergonomics from other validation libraries (especially Zod) so newcomers feel at home.
-- **Explicit over implicit** — Schema requires explicit decisions about which features to use. This keeps the library usable even in bundle-size-critical contexts, without giving up the features that make Effect great.
+- **Lightweight by default** — only import the features you need, keeping your bundle small.
+- **Familiar API** — naming conventions and patterns are consistent with popular validation libraries, so getting started is easy.
+- **Explicit** — you choose which features to use. Nothing is included implicitly.
 
-### Summary
+### What's in This Guide
 
-#### 1. Design Goals
-
-- **Smaller bundles & opt-in features** – defaults like issue formatting moved out of the core; you explicitly import what you use.
-- **Keep existing names when possible** while borrowing ergonomics from Zod v4, so migrating users feel at home.
-
-#### 2. Core Type Model
-
-- `Bottom<…>` now tracks **14 type parameters** giving fine-grained control over mutability, optionality, defaults, encoded/decoded shapes, etc.
-- Separate requirement type params **`RD` / `RE`** let decoding and encoding depend on different service environments.
-
-#### 3. Encoding / Decoding
-
-- **Default JSON codec generator**: `Schema.toCodecJson(schema)` does round-trip-safe network serialization (Maps → pairs, Options → arrays, Dates → ISO strings, etc.).
-- **Explicit helpers**: `Schema.UnknownFromJsonString`, `Schema.fromJsonString`.
-
-#### 4. Schema Goodies
-
-- `Schema.flip` - swap input/output types (encode ≙ decode of the flipped schema).
-- **Redesigned constructors** (`makeUnsafe`) everywhere, including unions, with smart handling of brands / refinements / defaults (sync or effectful).
-- **Optional & mutable keys** via `Schema.optionalKey` / `Schema.mutableKey`; nested default-value resolution.
-- **Derivation APIs** for structs, tuples, unions (`mapFields`, `mapElements`, `mapMembers`, etc.) to pick/omit/evolve/rename without losing checks.
-
-#### 5. Validation Pipeline
-
-- Filters are **first-class values**:
-  - chainable without losing original schema type info,
-  - reusable (groups, factories),
-  - structural vs element filters,
-  - `abort` wrapper to short-circuit,
-  - multi-issue reporting with `{ errors: "all" }`.
-
-#### 6. Transformations
-
-- Now standalone objects (`Transformation<T,E,RD,RE>`) you attach with `Schema.decode`, `Schema.decodeTo`, etc.—composable like optics.
-- Passthrough helpers (`passthrough`, `passthroughSubtype`, `passthroughSupertype`) ease schema-to-schema transformations.
-
-#### 7. Data Types Beyond Plain Structs
-
-- **Opaque structs & classes** – wrap a `Struct` in a class for nominal typing; `Schema.Class` when you need methods/constructors/equality.
-- **Tagged structs / tagged unions** helpers (`Schema.TaggedStruct`, `Schema.TaggedUnion`, `Schema.toTaggedUnion`) with auto-generated guards, matchers, helpers.
-
-#### 8. Tooling
-
-- **Middlewares** – intercept decoding/encoding, supply services, or provide fallbacks.
-- Generators:
-
-  - **JSON Schema** exporter with override hooks and per-check fragments.
-  - **Fast-Check Arbitrary** (`ToArbitrary`), **Equivalence** (`ToEquivalence`) derivation.
-
-- **Formatters**: Tree (debug), StandardSchemaV1 (i18n-friendly hooks), Structured (machine-consumable).
-
-#### 9. Misc
-
-- **UniqueArray**, **TemplateLiteral** & parser, index-signature merging, key transforms on records, generics are now covariant & simpler.
+1. **Elementary schemas** — built-in schemas for primitives, literals, strings, numbers, dates, and template literals.
+2. **Composite schemas** — combine elementary schemas into structs (objects), tuples, arrays, records, and unions.
+3. **Validation** — add runtime checks (filters) to constrain values, report multiple errors, and define custom rules.
+4. **Constructors** — create validated values at runtime, with support for defaults, brands, and refinements.
+5. **Transformations** — convert values between types during decoding and encoding. Transformations are reusable objects you compose with schemas.
+6. **Flipping** — swap a schema's decoding and encoding directions.
+7. **Classes and opaque types** — create distinct TypeScript types backed by structs, with optional methods and equality.
+8. **Serialization** — convert values to and from JSON, FormData, URLSearchParams, and XML using canonical codecs.
+9. **Tooling** — generate JSON Schemas, test data generators (Arbitraries), equivalence checks, optics, and JSON Patch differs from a single schema.
+10. **Error handling** — format validation errors for display, with hooks for internationalization.
+11. **Middlewares** — intercept decoding/encoding to provide fallbacks or inject services.
+12. **Advanced topics** — internal type model and type hierarchy (for library authors).
+13. **Integrations** — working examples for TanStack Form and Elysia.
+14. **Migration from v3** — API mapping from Schema v3 to v4.
 
 # Defining Elementary Schemas
 
-Schema provides built-in schemas for all common TypeScript types.
+Schema provides built-in schemas for all common TypeScript types. These schemas represent a single value — like a string or a number — and they are the building blocks you combine into more complex shapes.
 
 ## Primitives
+
+Use these schemas when a value should be exactly one of the basic JavaScript types.
 
 ```ts
 import { Schema } from "effect"
@@ -89,7 +58,7 @@ Schema.Undefined
 Schema.Null
 ```
 
-To coerce input data to the appropriate type:
+Sometimes you receive data that is not the right type yet — for example, a number that should become a string. You can build a schema that converts (coerces) values to the target type during decoding:
 
 ```ts
 import { Getter, Parser, Schema } from "effect/schema"
@@ -113,7 +82,7 @@ console.log(parser(null)) // => "null"
 
 ## Literals
 
-Literal types:
+A literal schema matches one exact value. Use it when a field must be a specific string, number, or other constant.
 
 ```ts
 import { Schema } from "effect"
@@ -166,6 +135,8 @@ schema.members
 
 ## Strings
 
+You can add validation rules to a string schema. Each rule is applied with `.check(...)` and returns a new schema that enforces that constraint.
+
 ```ts
 import { Schema } from "effect"
 
@@ -192,6 +163,8 @@ Schema.String.decode(SchemaTransformation.toUpperCase())
 
 ## String formats
 
+Schema includes built-in checks for common string formats.
+
 ```ts
 import { Schema } from "effect"
 
@@ -209,7 +182,7 @@ Schema.Number // all numbers
 Schema.Finite // finite numbers (i.e. not +/-Infinity or NaN)
 ```
 
-number-specific validations
+You can add validation rules to a number schema. Each rule constrains the allowed range or value.
 
 ```ts
 import { Schema } from "effect"
@@ -224,6 +197,8 @@ Schema.Number.check(Schema.isMultipleOf(5))
 
 ## Integers
 
+To require that a number has no decimal part, use `isInt()`. For 32-bit integers specifically, use `isInt32()`.
+
 ```ts
 import { Schema } from "effect"
 
@@ -232,6 +207,8 @@ Schema.Number.check(Schema.isInt32())
 ```
 
 ## BigInts
+
+Schema does not ship pre-built BigInt validation factories (unlike numbers). Instead, you create your own using helper functions and a BigInt-compatible ordering. The example below shows how.
 
 ```ts
 import { BigInt, Order, Schema } from "effect"
@@ -266,6 +243,8 @@ Schema.BigInt.check(isNonPositive)
 ```
 
 ## Dates
+
+The `Schema.Date` schema matches `Date` objects. You can combine it with a string encoding to decode date strings into `Date` instances.
 
 ```ts
 import { Schema, SchemaGetter } from "effect"
@@ -343,11 +322,15 @@ Success(["a","@","b.com"])
 
 # Defining Composite Schemas
 
-Schema provides composable building blocks for describing complex data structures: structs, tuples, arrays, records, and unions.
+Once you have elementary schemas, you can combine them into composite schemas that describe objects, arrays, tuples, key-value maps, and unions.
 
 ## Structs
 
+A struct schema describes a JavaScript object with a known set of keys. Each key maps to a schema that validates and types its value.
+
 ### Optional and Mutable Keys
+
+By default, every key in a struct is required and readonly. Use `Schema.optionalKey` to make a key optional (the key can be absent from the object), and `Schema.mutableKey` to make it writable.
 
 You can mark struct properties as optional or mutable using `Schema.optionalKey` and `Schema.mutableKey`.
 
@@ -376,7 +359,7 @@ type Type = (typeof schema)["Type"]
 
 ### Optional Fields
 
-By combining `Schema.optionalKey` and `Schema.NullOr` you can represent any kind of optional property.
+There are several ways to represent optional properties, depending on whether you want `undefined` in the type, `null` in the type, or just a missing key. By combining `Schema.optionalKey`, `Schema.optional`, and `Schema.NullOr`, you can represent any variant.
 
 ```ts
 import { Schema } from "effect"
@@ -415,6 +398,8 @@ type Type = typeof schema.Type
 
 #### Omitting Values When Transforming Optional Fields
 
+If an optional field arrives as `undefined`, you may want to omit it from the output entirely rather than keeping it.
+
 ```ts
 import { Option, Predicate, Schema, SchemaGetter } from "effect"
 
@@ -445,6 +430,8 @@ type Type = typeof schema.Type
 ```
 
 #### Representing Optional Fields with never Type
+
+You can use `Schema.Never` inside an optional key to represent a field that should never have a value but may still appear as a key in the type.
 
 ```ts
 import { Schema } from "effect"
@@ -647,6 +634,8 @@ console.log(Schema.decodeUnknownSync(schema)({ a: "2" }))
 ```
 
 ### Optional Fields as Options
+
+Effect's `Option` type is a safer alternative to `undefined` for representing the presence or absence of a value. These helpers convert between optional struct fields and `Option` values.
 
 #### Exact Optional Property
 
@@ -858,7 +847,7 @@ Success({"b":"b","a":"a"})
 
 ### Index Signatures
 
-You can extend a struct with an index signature using `Schema.StructWithRest`. This allows you to define both fixed and dynamic properties in a single schema.
+An index signature lets a struct accept any string key in addition to its fixed keys. Use `Schema.StructWithRest` to combine a struct with one or more record schemas.
 
 Filters applied to either the struct or the record are preserved when combined.
 
@@ -920,9 +909,7 @@ type Encoded = typeof schema.Encoded
 
 ### Deriving Structs
 
-You can map the fields of a struct schema using the `mapFields` static method on `Schema.Struct`. The `mapFields` static method accepts a function from `Struct.Fields` to new fields, and returns a new `Schema.Struct` based on the result.
-
-This can be used to pick, omit, modify, or extend struct fields.
+You can derive new struct schemas from existing ones — picking, omitting, renaming, or transforming individual fields — without rewriting the schema from scratch. The `mapFields` method on `Schema.Struct` accepts a function that transforms the struct's fields and returns a new `Schema.Struct` based on the result.
 
 #### Pick
 
@@ -1251,6 +1238,8 @@ const literal = tagged.fields._tag.schema.literal
 
 ## Tuples
 
+A tuple schema describes a fixed-length array where each position has its own type. Use tuples when the order and count of elements matters — for example, a `[string, number]` pair.
+
 ### Rest Elements
 
 You can add rest elements to a tuple using `Schema.TupleWithRest`.
@@ -1484,6 +1473,8 @@ const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapE
 
 ## Arrays
 
+An array schema describes a variable-length list where every element shares the same type.
+
 ### Unique Arrays
 
 You can deduplicate arrays using `Schema.UniqueArray`.
@@ -1500,6 +1491,8 @@ console.log(String(Schema.decodeUnknownExit(schema)(["a", "b", "a"])))
 ```
 
 ## Records
+
+A record schema describes an object whose keys are dynamic (not known ahead of time). Every key must satisfy a key schema, and every value must satisfy a value schema.
 
 ### Key Transformations
 
@@ -1668,6 +1661,8 @@ type Type = typeof schema.Type
 ```
 
 ## Unions
+
+A union schema accepts a value if it matches any one of its members. Unions are useful when a field can hold more than one type — for example, a value that is either a string or a number.
 
 By default, unions are _inclusive_: a value is accepted if it matches **any** of the union's members.
 
@@ -1957,7 +1952,7 @@ console.log(matcher({ type: "C", c: true })) // This is a C: true
 
 # Validation
 
-After defining a schema's shape, you can add validation rules called _filters_. Filters check runtime values against constraints like minimum length, numeric range, or custom predicates.
+After defining a schema's shape, you can add validation rules called _filters_. Filters check runtime values against constraints like minimum length, numeric range, or custom predicates. Validation happens at runtime — Schema checks the actual value against the rules you define and reports any violations.
 
 You can apply filters with the `.check` method or the `Schema.check` function.
 
@@ -1996,7 +1991,7 @@ console.log(String(Schema.decodeUnknownExit(schema)("")))
 
 ## Preserving Schema Type After Filtering
 
-When you apply a filter using `Schema.check`, the original schema type and methods remain available. You can still access schema-specific properties like `.fields` or call methods like `.makeUnsafe` after adding filters.
+Adding a filter does not change the schema's type. You can still use all schema-specific methods (like `.fields` on a struct or `.makeUnsafe`) after calling `.check(...)`.
 
 **Example** (Chaining filters and annotations without losing type information)
 
@@ -2035,7 +2030,7 @@ const fields = schema.fields
 
 ## Filters as First-Class
 
-Filters are standalone values. You can reuse them across schemas, combine them, and apply them to any compatible type. For example, `Schema.isMinLength` works not only with strings but also with arrays or any object that has a `length` property.
+Filters are standalone values that you can define once and reuse across different schemas. The same filter (for example, `Schema.isMinLength`) works on strings, arrays, or any type with a compatible shape.
 
 You can pass multiple filters to a single `.check(...)` call.
 
@@ -2177,9 +2172,9 @@ const branded = Schema.String.pipe(Schema.brand("UserId"))
 
 ## Structural Filters
 
-Some filters apply not to individual elements, but to the overall structure of a value. These are called **structural filters**.
+Some filters check the structure of a value rather than its contents — for example, the number of items in an array or the number of keys in an object. These are called **structural filters**.
 
-Structural filters are different from regular filters in that they validate aspects of a container type, like the number of items in an array or the presence of keys in an object, rather than the contents themselves. Examples include:
+Structural filters are evaluated separately from item-level filters, which allows multiple issues to be reported when `{ errors: "all" }` is used. Examples include:
 
 - `isMinLength` or `isMaxLength` on arrays
 - `isMinSize` or `isMaxSize` on objects with a `size` property
@@ -2210,9 +2205,9 @@ Expected a value with a length of at least 3, got ["a",""]
 
 ## Effectful Filters
 
-Filters used with `.check` are synchronous.
+Filters passed to `.check(...)` must be synchronous. When you need to call an API or use a service during validation, use an effectful filter instead. Effectful filters run inside an `Effect`, which means they can be asynchronous and access services.
 
-For asynchronous validation or when you need services during decoding, define an effectful filter with `Getter.checkEffect` as part of a transformation.
+Define an effectful filter with `Getter.checkEffect` as part of a transformation.
 
 **Example** (Asynchronous validation of a numeric value)
 
@@ -2246,7 +2241,7 @@ const schema = Schema.Finite.pipe(
 
 ## Filter Factories
 
-A **filter factory** is a function that creates reusable, parameterized filters.
+A filter factory is a function that returns a new filter each time you call it, letting you parameterize the constraint (for example, "greater than X" for any value of X).
 
 **Example** (Factory for a `isGreaterThan` filter on ordered values)
 
@@ -2275,7 +2270,7 @@ export const makeGreaterThan = <T>(options: {
 
 # Constructors
 
-Every schema exposes a `makeUnsafe` method that constructs a validated value of the schema's type. If validation fails, it throws.
+A constructor creates a value of the schema's type, running all validations at the time of creation. If the value does not satisfy the schema, the constructor throws an error. Every schema exposes a `makeUnsafe` method for this purpose.
 
 ## Constructors in Composed Schemas
 
@@ -2292,7 +2287,7 @@ schema.makeUnsafe({ b: 1 })
 
 ## Branded Constructors
 
-For branded schemas, the default constructor accepts an unbranded input and returns a branded output.
+Branding adds an invisible marker to a type so that values from different domains cannot be accidentally mixed — even when they have the same underlying shape (for example, both are `string`). For branded schemas, the default constructor accepts an unbranded input and returns a branded output.
 
 ```ts
 import { Schema } from "effect"
@@ -2464,7 +2459,7 @@ console.log(schema.makeUnsafe({ a: {} }))
 
 ## Effectful Defaults
 
-Default values can also be computed using effects, as long as the environment is `never`.
+Default values can also come from an `Effect` — for example, reading from a configuration service or performing an asynchronous operation. The environment must be `never` (no required services).
 
 **Example** (Using an effect to provide a default)
 
@@ -2567,9 +2562,9 @@ console.log(Schema.decodeUnknownSync(schema)("  123"))
 // 123
 ```
 
-# Transformations
+## The Transformation Type
 
-Transformations use the following type:
+A `Transformation` carries four type parameters:
 
 ```ts
 Transformation<T, E, RD, RE>
@@ -2580,7 +2575,7 @@ Transformation<T, E, RD, RE>
 - `RD`: the context used while decoding
 - `RE`: the context used while encoding
 
-A transformation consists of two `Getter` functions:
+A `Transformation` consists of two `Getter` functions:
 
 - `decode: Getter<T, E, RD>` — transforms a value during decoding
 - `encode: Getter<E, T, RE>` — transforms a value during encoding
@@ -2906,9 +2901,7 @@ console.log(Schema.encodeSync(schema)({ foo: Option.some("hi") }))
 
 # Flipping Schemas
 
-You can now flip a schema to create a new one that reverses its input and output types.
-
-This is useful when you want to reuse an existing schema but invert its direction.
+Flipping a schema swaps its decoding and encoding directions. If a schema decodes a `string` into a `number`, the flipped version decodes a `number` into a `string`. This is useful when you want to reuse an existing schema but invert its direction.
 
 **Example** (Flipping a schema that parses a string into a number)
 
@@ -2951,14 +2944,14 @@ const schema = Schema.flip(Schema.flip(Schema.FiniteFromString))
 
 ## How it works
 
-All internal operations defined in the Schema AST are now symmetrical. This change simplifies the design of the encoding and decoding engine, allowing one to be defined in terms of the other:
+All internal operations in the Schema AST are symmetrical. Encoding with a schema is equivalent to decoding with its flipped version:
 
 ```ts
 // Encoding with a schema is the same as decoding with its flipped version
 encode(schema) = decode(flip(schema))
 ```
 
-This symmetry made it possible to introduce `Schema.flip` and ensures that flipping works consistently across all schema types.
+This symmetry ensures that flipping works consistently across all schema types.
 
 ## Flipped constructors
 
@@ -3782,6 +3775,8 @@ class A extends Schema.RequestClass<A>("A")({
 ```
 
 # Serialization
+
+Serialization converts typed values into a format suitable for storage or transmission (such as JSON, FormData, or XML). Deserialization reverses the process, turning raw data back into typed values. Schema provides built-in support for several common formats.
 
 ## JSON Support
 
@@ -5374,6 +5369,8 @@ console.log(generation.code)
 
 ### Generating an Arbitrary from a Schema
 
+Property-based testing checks your code against many randomly generated inputs. An Arbitrary is a generator that produces random values matching your schema. Schema can derive an Arbitrary automatically, so you do not need to write generators by hand.
+
 #### Basic Conversion
 
 You can convert any non-declaration, non-`never` schema to a Fast-Check `Arbitrary<T>`.
@@ -5624,6 +5621,8 @@ Example Output:
 
 ### Generating an Equivalence from a Schema
 
+An equivalence function checks whether two values are structurally equal according to the schema's definition. Schema derives this automatically, so you do not need to write manual comparison logic.
+
 **Example** (Deriving equivalence for a basic schema)
 
 ```ts
@@ -5673,6 +5672,8 @@ const equivalence = Schema.toEquivalence(schema)
 ```
 
 ### Generating an Optic from a Schema
+
+Optics provide a composable way to read and update deeply nested values without mutating the original object. Schema can derive optics automatically from your schema definition.
 
 #### Problem
 
@@ -6068,13 +6069,13 @@ TODO
 
 # Error Handling and Formatting
 
-Schema provides formatters for rendering validation errors and middlewares for adding fallback behavior.
+When validation fails, Schema produces structured error objects that describe what went wrong. Formatters turn those error objects into human-readable messages you can display to users or write to logs.
 
 ### Formatters
 
 #### StandardSchemaV1 formatter
 
-The StandardSchemaV1 formatter is is used by `Schema.toStandardSchemaV1` and will return a `StandardSchemaV1.FailureResult` object:
+The StandardSchemaV1 formatter is used by `Schema.toStandardSchemaV1` and will return a `StandardSchemaV1.FailureResult` object:
 
 ```ts
 export interface FailureResult {
@@ -6351,9 +6352,7 @@ if (r._tag === "Failure") {
 
 # Middlewares
 
-Middlewares are a new feature that allows you to modify the behavior of schemas.
-
-They are similar to transformations, but they are able to catch errors and modify the schema contexts.
+A middleware wraps around the decoding or encoding process, letting you intercept errors, provide fallback values, or inject services. The most common use case is returning a default value when decoding fails.
 
 ## Fallbacks
 
@@ -6673,6 +6672,8 @@ const encoding = Schema.encodeEffect(User)({ id: "user-123", name: "John Doe" })
 ```
 
 # Integrations
+
+Schema integrates with popular frameworks and libraries. This section shows working examples for forms (TanStack Form) and web servers (Elysia).
 
 ### Forms
 
