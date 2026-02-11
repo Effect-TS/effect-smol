@@ -385,8 +385,8 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
           verbosity: config.text?.verbosity ?? null,
           format: responseFormat
         },
-        ...(Predicate.isNotUndefined(tools) ? { tools } : undefined),
-        ...(Predicate.isNotUndefined(toolChoice) ? { tool_choice: toolChoice } : undefined)
+        ...(tools !== undefined ? { tools } : undefined),
+        ...(toolChoice !== undefined ? { tool_choice: toolChoice } : undefined)
       }
       return toChatCompletionsRequest(request)
     }
@@ -498,7 +498,7 @@ const prepareMessages = Effect.fnUntraced(
     const hasConversation = Predicate.isNotNullish(config.conversation)
 
     // Handle Included Features
-    if (Predicate.isNotUndefined(config.top_logprobs)) {
+    if (config.top_logprobs !== undefined) {
       include.add("message.output_text.logprobs")
     }
     if (config.store === false && capabilities.isReasoningModel) {
@@ -815,14 +815,14 @@ const makeResponse = Effect.fnUntraced(
     const choice = rawResponse.choices[0]
     const message = choice?.message
 
-    if (Predicate.isNotUndefined(message)) {
+    if (message !== undefined) {
       if (
-        Predicate.isNotUndefined(message.content) && Predicate.isNotNull(message.content) && message.content.length > 0
+        message.content !== undefined && Predicate.isNotNull(message.content) && message.content.length > 0
       ) {
         parts.push({ type: "text", text: message.content })
       }
 
-      if (Predicate.isNotUndefined(message.tool_calls)) {
+      if (message.tool_calls !== undefined) {
         for (const [index, toolCall] of message.tool_calls.entries()) {
           const toolId = toolCall.id ?? `${rawResponse.id}_tool_${index}`
           const toolName = toolNameMapper.getCustomName(toolCall.function?.name ?? "unknown_tool")
@@ -863,7 +863,7 @@ const makeResponse = Effect.fnUntraced(
       reason: finishReason,
       usage: getUsage(rawResponse.usage),
       response: buildHttpResponseDetails(response),
-      ...(Predicate.isNotUndefined(serviceTier) && { metadata: { openai: { serviceTier } } })
+      ...(serviceTier !== undefined && { metadata: { openai: { serviceTier } } })
     })
 
     return parts
@@ -937,17 +937,17 @@ const makeStreamResponse = Effect.fnUntraced(
             reason: InternalUtilities.resolveFinishReason(finishReason, hasToolCalls),
             usage: getUsage(usage),
             response: buildHttpResponseDetails(response),
-            ...(Predicate.isNotUndefined(normalizedServiceTier)
+            ...(normalizedServiceTier !== undefined
               ? { metadata: { openai: { serviceTier: normalizedServiceTier } } }
               : undefined)
           })
           return parts
         }
 
-        if (Predicate.isNotUndefined(event.service_tier)) {
+        if (event.service_tier !== undefined) {
           serviceTier = event.service_tier
         }
-        if (Predicate.isNotUndefined(event.usage) && Predicate.isNotNull(event.usage)) {
+        if (event.usage !== undefined && Predicate.isNotNull(event.usage)) {
           usage = event.usage
         }
 
@@ -968,7 +968,7 @@ const makeStreamResponse = Effect.fnUntraced(
           return parts
         }
 
-        if (Predicate.isNotUndefined(choice.delta?.content) && Predicate.isNotNull(choice.delta.content)) {
+        if (choice.delta?.content !== undefined && Predicate.isNotNull(choice.delta.content)) {
           if (!textStarted) {
             textStarted = true
             parts.push({
@@ -980,7 +980,7 @@ const makeStreamResponse = Effect.fnUntraced(
           parts.push({ type: "text-delta", id: textId, delta: choice.delta.content })
         }
 
-        if (Predicate.isNotUndefined(choice.delta?.tool_calls)) {
+        if (choice.delta?.tool_calls !== undefined) {
           hasToolCalls = hasToolCalls || choice.delta.tool_calls.length > 0
           choice.delta.tool_calls.forEach((deltaTool, indexInChunk) => {
             const toolIndex = deltaTool.index ?? indexInChunk
@@ -1008,7 +1008,7 @@ const makeStreamResponse = Effect.fnUntraced(
           })
         }
 
-        if (Predicate.isNotUndefined(choice.finish_reason) && Predicate.isNotNull(choice.finish_reason)) {
+        if (choice.finish_reason !== undefined && Predicate.isNotNull(choice.finish_reason)) {
           finishReason = choice.finish_reason
         }
 
@@ -1051,7 +1051,7 @@ const annotateResponse = (span: Span, response: CreateResponse200): void => {
     response: {
       id: response.id,
       model: response.model as string,
-      finishReasons: Predicate.isNotUndefined(finishReason) ? [finishReason] : undefined
+      finishReasons: finishReason !== undefined ? [finishReason] : undefined
     },
     usage: {
       inputTokens: response.usage?.prompt_tokens,
@@ -1172,26 +1172,28 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
 const toChatCompletionsRequest = (payload: CreateResponse): CreateResponseRequestJson => {
   const messages = toChatMessages(payload.input)
   const responseFormat = toChatResponseFormat(payload.text?.format)
-  const tools = Predicate.isNotUndefined(payload.tools)
-    ? payload.tools.map(toChatTool).filter(Predicate.isNotUndefined)
+  const tools = payload.tools !== undefined
+    ? payload.tools.map(toChatTool).filter((tool): tool is NonNullable<ReturnType<typeof toChatTool>> =>
+      tool !== undefined
+    )
     : []
   const toolChoice = toChatToolChoice(payload.tool_choice)
 
   return {
     model: payload.model ?? "",
     messages: messages.length > 0 ? messages : [{ role: "user", content: "" }],
-    ...(Predicate.isNotUndefined(payload.temperature) ? { temperature: payload.temperature } : undefined),
-    ...(Predicate.isNotUndefined(payload.top_p) ? { top_p: payload.top_p } : undefined),
-    ...(Predicate.isNotUndefined(payload.max_output_tokens) ? { max_tokens: payload.max_output_tokens } : undefined),
-    ...(Predicate.isNotUndefined(payload.user) ? { user: payload.user } : undefined),
-    ...(Predicate.isNotUndefined(payload.seed) ? { seed: payload.seed } : undefined),
-    ...(Predicate.isNotUndefined(payload.parallel_tool_calls)
+    ...(payload.temperature !== undefined ? { temperature: payload.temperature } : undefined),
+    ...(payload.top_p !== undefined ? { top_p: payload.top_p } : undefined),
+    ...(payload.max_output_tokens !== undefined ? { max_tokens: payload.max_output_tokens } : undefined),
+    ...(payload.user !== undefined ? { user: payload.user } : undefined),
+    ...(payload.seed !== undefined ? { seed: payload.seed } : undefined),
+    ...(payload.parallel_tool_calls !== undefined
       ? { parallel_tool_calls: payload.parallel_tool_calls }
       : undefined),
-    ...(Predicate.isNotUndefined(payload.service_tier) ? { service_tier: payload.service_tier } : undefined),
-    ...(Predicate.isNotUndefined(responseFormat) ? { response_format: responseFormat } : undefined),
+    ...(payload.service_tier !== undefined ? { service_tier: payload.service_tier } : undefined),
+    ...(responseFormat !== undefined ? { response_format: responseFormat } : undefined),
     ...(tools.length > 0 ? { tools } : undefined),
-    ...(Predicate.isNotUndefined(toolChoice) ? { tool_choice: toolChoice } : undefined)
+    ...(toolChoice !== undefined ? { tool_choice: toolChoice } : undefined)
   }
 }
 
@@ -1212,7 +1214,7 @@ const toChatResponseFormat = (
         json_schema: {
           name: format.name,
           schema: format.schema,
-          ...(Predicate.isNotUndefined(format.description) ? { description: format.description } : undefined),
+          ...(format.description !== undefined ? { description: format.description } : undefined),
           ...(Predicate.isNotNullish(format.strict) ? { strict: format.strict } : undefined)
         }
       }
@@ -1267,7 +1269,7 @@ const toChatTool = (
       type: "function",
       function: {
         name: tool.name,
-        ...(Predicate.isNotUndefined(tool.description) ? { description: tool.description } : undefined),
+        ...(tool.description !== undefined ? { description: tool.description } : undefined),
         ...(Predicate.isNotNullish(tool.parameters) ? { parameters: tool.parameters } : undefined),
         ...(Predicate.isNotNullish(tool.strict) ? { strict: tool.strict } : undefined)
       }
@@ -1388,13 +1390,13 @@ const toChatMessageContent = (
         break
       }
       case "input_image": {
-        const imageUrl = Predicate.isNotUndefined(part.image_url)
+        const imageUrl = part.image_url !== undefined
           ? part.image_url
-          : Predicate.isNotUndefined(part.file_id)
+          : part.file_id !== undefined
           ? `openai://file/${part.file_id}`
           : undefined
 
-        if (Predicate.isNotUndefined(imageUrl) && Predicate.isNotNull(imageUrl)) {
+        if (imageUrl !== undefined && Predicate.isNotNull(imageUrl)) {
           parts.push({
             type: "image_url",
             image_url: {
@@ -1406,11 +1408,11 @@ const toChatMessageContent = (
         break
       }
       case "input_file": {
-        if (Predicate.isNotUndefined(part.file_url)) {
+        if (part.file_url !== undefined) {
           parts.push({ type: "text", text: part.file_url })
-        } else if (Predicate.isNotUndefined(part.file_data)) {
+        } else if (part.file_data !== undefined) {
           parts.push({ type: "text", text: part.file_data })
-        } else if (Predicate.isNotUndefined(part.file_id)) {
+        } else if (part.file_id !== undefined) {
           parts.push({ type: "text", text: `openai://file/${part.file_id}` })
         }
         break
@@ -1460,7 +1462,7 @@ const getEncryptedContent = (
 
 const getImageDetail = (part: Prompt.FilePart): ImageDetail => part.options.openai?.imageDetail ?? "auto"
 
-const makeItemIdMetadata = (itemId: string | undefined) => Predicate.isNotUndefined(itemId) ? { itemId } : undefined
+const makeItemIdMetadata = (itemId: string | undefined) => itemId !== undefined ? { itemId } : undefined
 
 const normalizeServiceTier = (
   serviceTier: string | undefined

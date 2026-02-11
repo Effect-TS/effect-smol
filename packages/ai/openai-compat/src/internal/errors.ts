@@ -3,7 +3,6 @@ import * as Effect from "effect/Effect"
 import { dual } from "effect/Function"
 import * as Number from "effect/Number"
 import * as Option from "effect/Option"
-import * as Predicate from "effect/Predicate"
 import * as Redactable from "effect/Redactable"
 import * as Schema from "effect/Schema"
 import * as AiError from "effect/unstable/ai/AiError"
@@ -133,14 +132,14 @@ const mapStatusCodeError = Effect.fnUntraced(function*(
 export const parseRateLimitHeaders = (headers: Record<string, string>) => {
   const retryAfterRaw = headers["retry-after"]
   let retryAfter: Duration.Duration | undefined
-  if (Predicate.isNotUndefined(retryAfterRaw)) {
+  if (retryAfterRaw !== undefined) {
     const parsed = Number.parse(retryAfterRaw)
-    if (Predicate.isNotUndefined(parsed)) {
+    if (parsed !== undefined) {
       retryAfter = Duration.seconds(parsed)
     }
   }
   const remainingRaw = headers["x-ratelimit-remaining-requests"]
-  const remaining = Predicate.isNotUndefined(remainingRaw) ? Number.parse(remainingRaw) ?? null : null
+  const remaining = remainingRaw !== undefined ? Number.parse(remainingRaw) ?? null : null
   return {
     retryAfter,
     limit: headers["x-ratelimit-limit-requests"] ?? null,
@@ -168,7 +167,7 @@ export const buildHttpContext = (params: {
   readonly body?: string | undefined
 }): typeof AiError.HttpContext.Type => ({
   request: buildHttpRequestDetails(params.request),
-  response: Predicate.isNotUndefined(params.response)
+  response: params.response !== undefined
     ? {
       status: params.response.status,
       headers: Redactable.redact(params.response.headers) as Record<string, string>

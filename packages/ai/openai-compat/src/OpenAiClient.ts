@@ -6,7 +6,6 @@ import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import { identity, pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
-import * as Predicate from "effect/Predicate"
 import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
 import * as ServiceMap from "effect/ServiceMap"
@@ -83,16 +82,16 @@ export const make = Effect.fnUntraced(
       HttpClient.mapRequest((request) =>
         request.pipe(
           HttpClientRequest.prependUrl(options.apiUrl ?? "https://api.openai.com/v1"),
-          Predicate.isNotUndefined(options.apiKey)
+          options.apiKey !== undefined
             ? HttpClientRequest.bearerToken(Redacted.value(options.apiKey))
             : identity,
-          Predicate.isNotUndefined(options.organizationId)
+          options.organizationId !== undefined
             ? HttpClientRequest.setHeader(
               RedactedOpenAiHeaders.OpenAiOrganization,
               Redacted.value(options.organizationId)
             )
             : identity,
-          Predicate.isNotUndefined(options.projectId)
+          options.projectId !== undefined
             ? HttpClientRequest.setHeader(
               RedactedOpenAiHeaders.OpenAiProject,
               Redacted.value(options.projectId)
@@ -101,7 +100,7 @@ export const make = Effect.fnUntraced(
           HttpClientRequest.acceptJson
         )
       ),
-      Predicate.isNotUndefined(options.transformClient)
+      options.transformClient !== undefined
         ? options.transformClient
         : identity
     )
@@ -109,7 +108,7 @@ export const make = Effect.fnUntraced(
     const resolveHttpClient = Effect.map(
       OpenAiConfig.getOrUndefined,
       (config) =>
-        Predicate.isNotUndefined(config?.transformClient)
+        config?.transformClient !== undefined
           ? config.transformClient(httpClient)
           : httpClient
     )
@@ -152,7 +151,7 @@ export const make = Effect.fnUntraced(
         Stream.pipeThroughChannel(Sse.decode()),
         Stream.flatMap((event) => {
           const data = decodeChatCompletionSseData(event.data)
-          return Stream.fromIterable(Predicate.isNotUndefined(data) ? [data] : [])
+          return Stream.fromIterable(data !== undefined ? [data] : [])
         }),
         Stream.takeUntil((event) => event === "[DONE]"),
         Stream.catchTags({
@@ -233,16 +232,16 @@ export const layerConfig = (options?: {
   Layer.effect(
     OpenAiClient,
     Effect.gen(function*() {
-      const apiKey = Predicate.isNotUndefined(options?.apiKey)
+      const apiKey = options?.apiKey !== undefined
         ? yield* options.apiKey :
         undefined
-      const apiUrl = Predicate.isNotUndefined(options?.apiUrl)
+      const apiUrl = options?.apiUrl !== undefined
         ? yield* options.apiUrl :
         undefined
-      const organizationId = Predicate.isNotUndefined(options?.organizationId)
+      const organizationId = options?.organizationId !== undefined
         ? yield* options.organizationId
         : undefined
-      const projectId = Predicate.isNotUndefined(options?.projectId)
+      const projectId = options?.projectId !== undefined
         ? yield* options.projectId :
         undefined
       return yield* make({
