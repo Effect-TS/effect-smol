@@ -115,11 +115,14 @@ describe("OpenAi compat LanguageModel", () => {
 
     it.effect("maps provider apply_patch function call back to custom provider-defined tool", () =>
       Effect.gen(function*() {
+        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
+
         const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
           Layer.provide(Layer.succeed(
             HttpClient.HttpClient,
-            makeHttpClient((request) =>
-              Effect.succeed(jsonResponse(
+            makeHttpClient((request) => {
+              capturedRequest = request
+              return Effect.succeed(jsonResponse(
                 request,
                 makeChatCompletion({
                   choices: [{
@@ -146,7 +149,7 @@ describe("OpenAi compat LanguageModel", () => {
                   }]
                 })
               ))
-            )
+            })
           ))
         )
 
@@ -162,6 +165,7 @@ describe("OpenAi compat LanguageModel", () => {
         const result = yield* LanguageModel.generateText({
           prompt: "delete src/obsolete.ts",
           toolkit,
+          toolChoice: { tool: "CompatApplyPatch" },
           disableToolCallResolution: true
         }).pipe(
           Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
@@ -181,6 +185,23 @@ describe("OpenAi compat LanguageModel", () => {
           operation: {
             type: "delete_file",
             path: "src/obsolete.ts"
+          }
+        })
+
+        assert.isDefined(capturedRequest)
+        if (capturedRequest === undefined) {
+          return
+        }
+
+        const requestBody = yield* getRequestBody(capturedRequest)
+
+        const functionTool = requestBody.tools.find((tool: any) => tool.type === "function")
+        assert.isDefined(functionTool)
+        assert.strictEqual(functionTool.function.name, "apply_patch")
+        assert.deepStrictEqual(requestBody.tool_choice, {
+          type: "function",
+          function: {
+            name: "apply_patch"
           }
         })
       }))
