@@ -105,5 +105,5 @@ const suite = (name: string, layer: Layer.Layer<Persistence.BackingPersistence, 
       }))
   })
 
-suite("table-per-store", Persistence.layerBackingSql)
-suite("single-table", Persistence.layerBackingSqlSingleTable)
+suite("table-per-store", Persistence.layerBackingSqlMultiTable)
+suite("single-table", Persistence.layerBackingSql)

@@ -5,13 +5,13 @@ import { PersistedQueue, Persistence } from "effect/unstable/persistence"
 import { PgContainer } from "./utils.ts"
 
 PersistedCacheTest.suite(
-  "sql-pg",
-  Persistence.layerSql.pipe(Layer.provide(PgContainer.layerClient))
+  "sql-pg-multi",
+  Persistence.layerSqlMultiTable.pipe(Layer.provide(PgContainer.layerClient))
 )
 
 PersistedCacheTest.suite(
-  "sql-pg-single-table",
-  Persistence.layerSqlSingleTable.pipe(Layer.provide(PgContainer.layerClient))
+  "sql-pg-single",
+  Persistence.layerSql.pipe(Layer.provide(PgContainer.layerClient))
 )
 
 PersistedQueueTest.suite(

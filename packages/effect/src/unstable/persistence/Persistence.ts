@@ -136,11 +136,9 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
 
           const results = yield* storage.getMany(primaryKeys)
           if (results.length !== primaryKeys.length) {
-            return yield* Effect.fail(
-              new PersistenceError({
-                message: `Expected ${primaryKeys.length} results but got ${results.length} from backing store`
-              })
-            )
+            return yield* new PersistenceError({
+              message: `Expected ${primaryKeys.length} results but got ${results.length} from backing store`
+            })
           }
           const out = new Array<Exit.Exit<unknown, unknown> | undefined>(primaryKeys.length)
           let toRemove: Array<string> | undefined
@@ -254,7 +252,7 @@ export const layerBackingMemory: Layer.Layer<BackingPersistence> = Layer.sync(Ba
  * @since 4.0.0
  * @category layers
  */
-export const layerBackingSql: Layer.Layer<
+export const layerBackingSqlMultiTable: Layer.Layer<
   BackingPersistence,
   never,
   SqlClient.SqlClient
@@ -462,7 +460,7 @@ export const layerBackingSql: Layer.Layer<
  * @since 4.0.0
  * @category layers
  */
-export const layerBackingSqlSingleTable: Layer.Layer<
+export const layerBackingSql: Layer.Layer<
   BackingPersistence,
   never,
   SqlClient.SqlClient
@@ -974,16 +972,16 @@ export const layerRedis: Layer.Layer<Persistence, never, Redis.Redis> = layer.pi
  * @since 4.0.0
  * @category layers
  */
-export const layerSql: Layer.Layer<Persistence, never, SqlClient.SqlClient> = layer.pipe(
-  Layer.provide(layerBackingSql)
+export const layerSqlMultiTable: Layer.Layer<Persistence, never, SqlClient.SqlClient> = layer.pipe(
+  Layer.provide(layerBackingSqlMultiTable)
 )
 
 /**
  * @since 4.0.0
  * @category layers
  */
-export const layerSqlSingleTable: Layer.Layer<Persistence, never, SqlClient.SqlClient> = layer.pipe(
-  Layer.provide(layerBackingSqlSingleTable)
+export const layerSql: Layer.Layer<Persistence, never, SqlClient.SqlClient> = layer.pipe(
+  Layer.provide(layerBackingSql)
 )
 
 /**
