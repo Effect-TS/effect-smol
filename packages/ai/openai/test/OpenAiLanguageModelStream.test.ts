@@ -3,7 +3,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, Layer, Redacted, Ref, Stream } from "effect"
 import { LanguageModel, Prompt, Toolkit } from "effect/unstable/ai"
-import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
+import { HttpClient, type HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 describe("OpenAiLanguageModel", () => {
   describe("streamText", () => {
@@ -93,6 +93,78 @@ describe("OpenAiLanguageModel", () => {
         strictEqual(localShellOutput.call_id, toolCall.id)
         strictEqual(localShellOutput.output, "done")
       }))
+
+    it.effect("maps cached and reasoning usage tokens from response.completed", () =>
+      Effect.gen(function*() {
+        const partsChunk = yield* LanguageModel.streamText({ prompt: "test" }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(makeStreamLayer([
+            makeResponseCompletedEvent({
+              input_tokens: 10,
+              output_tokens: 7,
+              total_tokens: 17,
+              input_tokens_details: {
+                cached_tokens: 3
+              },
+              output_tokens_details: {
+                reasoning_tokens: 2
+              }
+            })
+          ]))
+        )
+
+        const finish = globalThis.Array.from(partsChunk).find((part) => part.type === "finish")
+        assert.isDefined(finish)
+        if (finish?.type !== "finish") {
+          return
+        }
+
+        deepStrictEqual(finish.usage.inputTokens, {
+          uncached: 7,
+          total: 10,
+          cacheRead: 3,
+          cacheWrite: undefined
+        })
+        deepStrictEqual(finish.usage.outputTokens, {
+          total: 7,
+          text: 5,
+          reasoning: 2
+        })
+      }))
+
+    it.effect("defaults usage detail fields when response usage detail objects are missing", () =>
+      Effect.gen(function*() {
+        const partsChunk = yield* LanguageModel.streamText({ prompt: "test" }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(makeStreamLayer([
+            makeResponseCompletedEvent({
+              input_tokens: 4,
+              output_tokens: 5,
+              total_tokens: 9
+            })
+          ]))
+        )
+
+        const finish = globalThis.Array.from(partsChunk).find((part) => part.type === "finish")
+        assert.isDefined(finish)
+        if (finish?.type !== "finish") {
+          return
+        }
+
+        deepStrictEqual(finish.usage.inputTokens, {
+          uncached: 4,
+          total: 4,
+          cacheRead: 0,
+          cacheWrite: undefined
+        })
+        deepStrictEqual(finish.usage.outputTokens, {
+          total: 5,
+          text: 5,
+          reasoning: 0
+        })
+      }))
   })
 })
 
@@ -179,3 +251,36 @@ const getRequestBody = (request: HttpClientRequest.HttpClientRequest) =>
 
 const toSseBody = (events: ReadonlyArray<unknown>): string =>
   events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join("")
+
+const makeStreamLayer = (events: ReadonlyArray<Generated.ResponseStreamEvent>) =>
+  Layer.succeed(OpenAiClient.OpenAiClient, makeStreamOnlyClient(events))
+
+const makeStreamOnlyClient = (
+  events: ReadonlyArray<Generated.ResponseStreamEvent>
+): OpenAiClient.Service => ({
+  client: undefined as unknown as Generated.OpenAiClient,
+  createResponse: () => Effect.die(new Error("createResponse should not be called")),
+  createResponseStream: () =>
+    Effect.succeed(
+      [
+        HttpClientResponse.fromWeb(
+          HttpClientRequest.post("https://api.openai.com/v1/responses"),
+          new Response(null, {
+            status: 200,
+            headers: { "content-type": "text/event-stream" }
+          })
+        ),
+        Stream.fromIterable(events)
+      ] as const
+    ),
+  createEmbedding: () => Effect.die(new Error("createEmbedding should not be called"))
+})
+
+const makeResponseCompletedEvent = (usage: unknown): Generated.ResponseCompletedEvent => ({
+  type: "response.completed",
+  sequence_number: 1,
+  response: {
+    ...followUpResponse,
+    usage
+  } as Generated.Response
+})

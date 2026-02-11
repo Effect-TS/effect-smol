@@ -2567,8 +2567,8 @@ const getUsage = (usage: Generated.ResponseUsage | null | undefined): Response.U
 
   const inputTokens = usage.input_tokens
   const outputTokens = usage.output_tokens
-  const cachedTokens = usage.input_tokens_details.cached_tokens
-  const reasoningTokens = usage.input_tokens_details.cached_tokens
+  const cachedTokens = getUsageDetailNumber(usage.input_tokens_details, "cached_tokens") ?? 0
+  const reasoningTokens = getUsageDetailNumber(usage.output_tokens_details, "reasoning_tokens") ?? 0
 
   return {
     inputTokens: {
@@ -2583,4 +2583,16 @@ const getUsage = (usage: Generated.ResponseUsage | null | undefined): Response.U
       reasoning: reasoningTokens
     }
   }
+}
+
+const getUsageDetailNumber = (
+  details: unknown,
+  field: string
+): number | undefined => {
+  if (typeof details !== "object" || details === null) {
+    return undefined
+  }
+
+  const value = (details as Record<string, unknown>)[field]
+  return typeof value === "number" ? value : undefined
 }
