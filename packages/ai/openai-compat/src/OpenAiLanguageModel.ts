@@ -1,7 +1,7 @@
 /**
  * OpenAI Language Model implementation.
  *
- * Provides a LanguageModel implementation for OpenAI's responses API,
+ * Provides a LanguageModel implementation for OpenAI's chat completions API,
  * supporting text generation, structured output, tool calling, and streaming.
  *
  * @since 1.0.0
@@ -1379,13 +1379,12 @@ const toChatMessageContent = (
     return content
   }
 
-  const richParts: Array<ChatCompletionContentPart> = []
-  const textParts: Array<string> = []
+  const parts: Array<ChatCompletionContentPart> = []
 
   for (const part of content) {
     switch (part.type) {
       case "input_text": {
-        textParts.push(part.text)
+        parts.push({ type: "text", text: part.text })
         break
       }
       case "input_image": {
@@ -1396,7 +1395,7 @@ const toChatMessageContent = (
           : undefined
 
         if (Predicate.isNotUndefined(imageUrl) && Predicate.isNotNull(imageUrl)) {
-          richParts.push({
+          parts.push({
             type: "image_url",
             image_url: {
               url: imageUrl,
@@ -1408,26 +1407,26 @@ const toChatMessageContent = (
       }
       case "input_file": {
         if (Predicate.isNotUndefined(part.file_url)) {
-          textParts.push(part.file_url)
+          parts.push({ type: "text", text: part.file_url })
         } else if (Predicate.isNotUndefined(part.file_data)) {
-          textParts.push(part.file_data)
+          parts.push({ type: "text", text: part.file_data })
         } else if (Predicate.isNotUndefined(part.file_id)) {
-          textParts.push(`openai://file/${part.file_id}`)
+          parts.push({ type: "text", text: `openai://file/${part.file_id}` })
         }
         break
       }
     }
   }
 
-  if (richParts.length === 0) {
-    return textParts.join("\n")
+  if (parts.length === 0) {
+    return ""
   }
 
-  if (textParts.length > 0) {
-    richParts.unshift({ type: "text", text: textParts.join("\n") })
+  if (parts.every((part) => part.type === "text")) {
+    return parts.map((part) => part.text).join("\n")
   }
 
-  return richParts
+  return parts
 }
 
 const stringifyJson = (value: unknown): string =>

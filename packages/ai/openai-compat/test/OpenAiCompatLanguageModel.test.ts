@@ -1,7 +1,7 @@
 import { OpenAiClient, OpenAiLanguageModel } from "@effect/ai-openai-compat"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer, Redacted, Schema, Stream } from "effect"
-import { LanguageModel, Tool, Toolkit } from "effect/unstable/ai"
+import { LanguageModel, Prompt, Tool, Toolkit } from "effect/unstable/ai"
 import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 describe("OpenAi compat LanguageModel", () => {
@@ -46,6 +46,76 @@ describe("OpenAi compat LanguageModel", () => {
         const requestBody = yield* getRequestBody(capturedRequest)
         assert.strictEqual(requestBody.model, "gpt-4o-mini")
         assert.strictEqual(requestBody.messages[0]?.content, "hello")
+      }))
+
+    it.effect("preserves multimodal user content order in chat payload", () =>
+      Effect.gen(function*() {
+        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
+
+        const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) => {
+              capturedRequest = request
+              return Effect.succeed(jsonResponse(
+                request,
+                makeChatCompletion({
+                  choices: [{
+                    index: 0,
+                    finish_reason: "stop",
+                    message: {
+                      role: "assistant",
+                      content: "done"
+                    }
+                  }]
+                })
+              ))
+            })
+          ))
+        )
+
+        yield* LanguageModel.generateText({
+          prompt: Prompt.make([{
+            role: "user",
+            content: [
+              Prompt.textPart({ text: "first text" }),
+              Prompt.filePart({
+                mediaType: "image/png",
+                data: new URL("https://example.com/image.png")
+              }),
+              Prompt.textPart({ text: "second text" })
+            ]
+          }])
+        }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(layer)
+        )
+
+        assert.isDefined(capturedRequest)
+        if (capturedRequest === undefined) {
+          return
+        }
+
+        const requestBody = yield* getRequestBody(capturedRequest)
+        const content = requestBody.messages[0]?.content
+        assert.isTrue(Array.isArray(content))
+        assert.deepStrictEqual(content, [
+          {
+            type: "text",
+            text: "first text"
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: "https://example.com/image.png",
+              detail: "auto"
+            }
+          },
+          {
+            type: "text",
+            text: "second text"
+          }
+        ])
       }))
 
     it.effect("maps function_call output to tool-call part and sends function tool schema", () =>
