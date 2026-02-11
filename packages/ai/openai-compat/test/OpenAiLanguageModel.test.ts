@@ -155,6 +155,75 @@ describe("OpenAiLanguageModel", () => {
         strictEqual(localShellOutput.tool_call_id, toolCall.id)
         strictEqual(localShellOutput.content, "done")
       }))
+
+    it.effect("maps apply_patch stream tool calls to OpenAiApplyPatch", () =>
+      Effect.gen(function*() {
+        const layer = makeTestLayer([
+          {
+            id: "chatcmpl_apply_patch_1",
+            object: "chat.completion.chunk",
+            model: "gpt-4o-mini",
+            created: 1,
+            choices: [{
+              index: 0,
+              delta: {
+                tool_calls: [{
+                  index: 0,
+                  id: "patch_call_1",
+                  type: "function",
+                  function: {
+                    name: "apply_patch",
+                    arguments: JSON.stringify({
+                      call_id: "patch_call_1",
+                      operation: {
+                        type: "delete_file",
+                        path: "src/legacy.ts"
+                      }
+                    })
+                  }
+                }]
+              },
+              finish_reason: "tool_calls"
+            }]
+          },
+          "[DONE]"
+        ])
+
+        const toolkit = Toolkit.make(OpenAiTool.ApplyPatch())
+        const toolkitLayer = toolkit.toLayer({
+          OpenAiApplyPatch: () =>
+            Effect.succeed({
+              status: "completed",
+              output: "deleted"
+            })
+        })
+
+        const partsChunk = yield* LanguageModel.streamText({
+          prompt: "Delete src/legacy.ts",
+          toolkit,
+          disableToolCallResolution: true
+        }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(toolkitLayer),
+          Effect.provide(layer)
+        )
+
+        const toolCall = globalThis.Array.from(partsChunk).find((part) => part.type === "tool-call")
+        assert.isDefined(toolCall)
+        if (toolCall?.type !== "tool-call") {
+          return
+        }
+
+        strictEqual(toolCall.name, "OpenAiApplyPatch")
+        deepStrictEqual(toolCall.params, {
+          call_id: "patch_call_1",
+          operation: {
+            type: "delete_file",
+            path: "src/legacy.ts"
+          }
+        })
+      }))
   })
 })
 

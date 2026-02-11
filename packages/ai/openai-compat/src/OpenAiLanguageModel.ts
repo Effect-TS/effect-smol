@@ -1093,7 +1093,7 @@ const makeResponse = Effect.fnUntraced(
 
         case "function_call": {
           hasToolCalls = true
-          const toolName = part.name
+          const toolName = toolNameMapper.getCustomName(part.name)
           const toolParams = part.arguments
           const params = yield* Effect.try({
             try: () => Tool.unsafeSecureJsonParse(toolParams),
@@ -1592,14 +1592,15 @@ const makeStreamResponse = Effect.fnUntraced(
               }
 
               case "function_call": {
+                const toolName = toolNameMapper.getCustomName(event.item.name)
                 activeToolCalls[event.output_index] = {
                   id: event.item.call_id,
-                  name: event.item.name
+                  name: toolName
                 }
                 parts.push({
                   type: "tool-params-start",
                   id: event.item.call_id,
-                  name: event.item.name
+                  name: toolName
                 })
                 break
               }
@@ -1796,7 +1797,7 @@ const makeStreamResponse = Effect.fnUntraced(
               case "function_call": {
                 delete activeToolCalls[event.output_index]
                 hasToolCalls = true
-                const toolName = event.item.name
+                const toolName = toolNameMapper.getCustomName(event.item.name)
                 const toolParams = event.item.arguments
                 const params = yield* Effect.try({
                   try: () => Tool.unsafeSecureJsonParse(toolParams),

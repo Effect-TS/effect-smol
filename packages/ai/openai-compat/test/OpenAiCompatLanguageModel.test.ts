@@ -1,4 +1,4 @@
-import { OpenAiClient, OpenAiLanguageModel } from "@effect/ai-openai-compat"
+import { OpenAiClient, OpenAiLanguageModel, OpenAiTool } from "@effect/ai-openai-compat"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer, Redacted, Schema, Stream } from "effect"
 import { LanguageModel, Tool, Toolkit } from "effect/unstable/ai"
@@ -111,6 +111,78 @@ describe("OpenAi compat LanguageModel", () => {
         assert.isDefined(functionTool)
         assert.strictEqual(functionTool.function.name, "TestTool")
         assert.strictEqual(functionTool.function.strict, true)
+      }))
+
+    it.effect("maps provider apply_patch function call back to OpenAiApplyPatch", () =>
+      Effect.gen(function*() {
+        const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) =>
+              Effect.succeed(jsonResponse(
+                request,
+                makeChatCompletion({
+                  choices: [{
+                    index: 0,
+                    finish_reason: "tool_calls",
+                    message: {
+                      role: "assistant",
+                      content: null,
+                      tool_calls: [{
+                        id: "call_1",
+                        type: "function",
+                        function: {
+                          name: "apply_patch",
+                          arguments: JSON.stringify({
+                            call_id: "call_1",
+                            operation: {
+                              type: "delete_file",
+                              path: "src/obsolete.ts"
+                            }
+                          })
+                        }
+                      }]
+                    }
+                  }]
+                })
+              ))
+            )
+          ))
+        )
+
+        const toolkit = Toolkit.make(OpenAiTool.ApplyPatch())
+        const toolkitLayer = toolkit.toLayer({
+          OpenAiApplyPatch: () =>
+            Effect.succeed({
+              status: "completed",
+              output: "deleted"
+            })
+        })
+
+        const result = yield* LanguageModel.generateText({
+          prompt: "delete src/obsolete.ts",
+          toolkit,
+          disableToolCallResolution: true
+        }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(toolkitLayer),
+          Effect.provide(layer)
+        )
+
+        const toolCall = result.content.find((part) => part.type === "tool-call")
+        assert.isDefined(toolCall)
+        if (toolCall?.type !== "tool-call") {
+          return
+        }
+
+        assert.strictEqual(toolCall.name, "OpenAiApplyPatch")
+        assert.deepStrictEqual(toolCall.params, {
+          call_id: "call_1",
+          operation: {
+            type: "delete_file",
+            path: "src/obsolete.ts"
+          }
+        })
       }))
 
     it.effect("decodes usage when token detail fields are absent", () =>
