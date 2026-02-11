@@ -4,6 +4,7 @@
 import * as Arr from "../../Array.ts"
 import type { Brand } from "../../Brand.ts"
 import type { Effect } from "../../Effect.ts"
+import { format } from "../../Formatter.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
@@ -959,13 +960,26 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     method,
     params: options?.params,
     query: options?.query,
-    headers: options?.headers,
+    headers: getHeaders(options?.headers),
     payload: getPayload(options?.payload),
     success: getSuccess(options?.success),
     error: getError(options?.error),
     annotations: ServiceMap.empty(),
     middlewares: new Set()
   })
+}
+
+// all keys should be lowercase
+function getHeaders(headers: Schema.Struct.Fields | undefined): Schema.Struct.Fields | undefined {
+  if (headers !== undefined) {
+    for (const key of Object.keys(headers)) {
+      const lowerKey = key.toLowerCase()
+      if (key !== lowerKey) {
+        throw new Error(`Header keys must be lowercase, got ${format(key)} (use ${format(lowerKey)})`)
+      }
+    }
+    return headers
+  }
 }
 
 function getPayload(
