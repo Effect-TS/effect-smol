@@ -151,10 +151,6 @@ declare module "effect/unstable/ai/Prompt" {
        * The status of item.
        */
       readonly status?: MessageStatus | null
-      /**
-       * The ID of the approval request.
-       */
-      readonly approvalRequestId?: string | null
     } | null
   }
 
@@ -168,10 +164,6 @@ declare module "effect/unstable/ai/Prompt" {
        * The status of item.
        */
       readonly status?: MessageStatus | null
-      /**
-       * The ID of the approval request.
-       */
-      readonly approvalId?: string | null
     } | null
   }
 
@@ -741,17 +733,6 @@ const prepareMessages = Effect.fnUntraced(
           for (const part of message.content) {
             if (part.type === "tool-approval-response") {
               continue
-            }
-
-            // Skip execution-denied results that already have an approvalId -
-            // this indicates that the part was already handled via tool-approval-response
-            if (
-              Predicate.hasProperty(part.result, "type") &&
-              part.result.type === "execution-denied"
-            ) {
-              if (Predicate.isNotNullish(part.options.openai?.approvalId)) {
-                continue
-              }
             }
 
             const status = getStatus(part)
