@@ -24,6 +24,7 @@ patches:
 excludeAnnotations:
   - examples
   - default
+disableAdditionalProperties: true
 replacements:
   # Schema.Unknown doesn't work with Schema.toCodecJson (used by HttpClientResponse.schemaBodyJson)
   # Replace with Schema.Json which properly handles arbitrary JSON values
@@ -31,6 +32,3 @@ replacements:
     to: "Schema.Record(Schema.String, Schema.Json)"
   - from: "{ readonly [x: string]: unknown }"
     to: "{ readonly [x: string]: Schema.Json }"
-  # Index signature in struct rest pattern
-  - from: "readonly [x: string]: unknown"
-    to: "readonly [x: string]: Schema.Json"

@@ -205,12 +205,11 @@ export const ResponseInputAudio = Schema.Struct({
 }).annotate({ "description": "Audio input content item" })
 export type ToolCallStatus = "in_progress" | "completed" | "incomplete"
 export const ToolCallStatus = Schema.Literals(["in_progress", "completed", "incomplete"])
-export type OpenResponsesRequestMetadata = { readonly [x: string]: string }
-export const OpenResponsesRequestMetadata = Schema.Record(Schema.String, Schema.String.check(Schema.isMaxLength(512)))
-  .annotate({
-    "description":
-      "Metadata key-value pairs for the request. Keys must be ≤64 characters and cannot contain brackets. Values must be ≤512 characters. Maximum 16 pairs allowed."
-  })
+export type OpenResponsesRequestMetadata = {}
+export const OpenResponsesRequestMetadata = Schema.Struct({}).annotate({
+  "description":
+    "Metadata key-value pairs for the request. Keys must be ≤64 characters and cannot contain brackets. Values must be ≤512 characters. Maximum 16 pairs allowed."
+})
 export type ResponsesSearchContextSize = "low" | "medium" | "high"
 export const ResponsesSearchContextSize = Schema.Literals(["low", "medium", "high"]).annotate({
   "description": "Size of the search context for web search tools"
@@ -254,6 +253,11 @@ export const OpenAIResponsesToolChoice = Schema.Union([
   Schema.Struct({ "type": Schema.Literal("function"), "name": Schema.String }),
   Schema.Struct({ "type": Schema.Literals(["web_search_preview_2025_03_11", "web_search_preview"]) })
 ])
+export type OpenAIResponsesPrompt = { readonly "id": string; readonly "variables"?: {} }
+export const OpenAIResponsesPrompt = Schema.Struct({
+  "id": Schema.String,
+  "variables": Schema.optionalKey(Schema.Struct({}))
+})
 export type OpenAIResponsesReasoningEffort = "xhigh" | "high" | "medium" | "low" | "minimal" | "none"
 export const OpenAIResponsesReasoningEffort = Schema.Literals(["xhigh", "high", "medium", "low", "minimal", "none"])
 export type ReasoningSummaryVerbosity = "auto" | "concise" | "detailed"
@@ -275,14 +279,14 @@ export type ResponsesFormatTextJSONSchemaConfig = {
   readonly "name": string
   readonly "description"?: string
   readonly "strict"?: boolean
-  readonly "schema": { readonly [x: string]: Schema.Json }
+  readonly "schema": {}
 }
 export const ResponsesFormatTextJSONSchemaConfig = Schema.Struct({
   "type": Schema.Literal("json_schema"),
   "name": Schema.String,
   "description": Schema.optionalKey(Schema.String),
   "strict": Schema.optionalKey(Schema.Boolean),
-  "schema": Schema.Record(Schema.String, Schema.Json)
+  "schema": Schema.Struct({})
 }).annotate({ "description": "JSON schema constrained response format" })
 export type OpenResponsesErrorEvent = {
   readonly "type": "error"
@@ -484,132 +488,132 @@ export const OpenResponsesImageGenCallCompleted = Schema.Struct({
 export type BadRequestResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const BadRequestResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for BadRequestResponse" })
 export type UnauthorizedResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const UnauthorizedResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for UnauthorizedResponse" })
 export type PaymentRequiredResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const PaymentRequiredResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for PaymentRequiredResponse" })
 export type NotFoundResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const NotFoundResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for NotFoundResponse" })
 export type RequestTimeoutResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const RequestTimeoutResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for RequestTimeoutResponse" })
 export type PayloadTooLargeResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const PayloadTooLargeResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for PayloadTooLargeResponse" })
 export type UnprocessableEntityResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const UnprocessableEntityResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for UnprocessableEntityResponse" })
 export type TooManyRequestsResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const TooManyRequestsResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for TooManyRequestsResponse" })
 export type InternalServerResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const InternalServerResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for InternalServerResponse" })
 export type BadGatewayResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const BadGatewayResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for BadGatewayResponse" })
 export type ServiceUnavailableResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const ServiceUnavailableResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for ServiceUnavailableResponse" })
 export type EdgeNetworkTimeoutResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const EdgeNetworkTimeoutResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for EdgeNetworkTimeoutResponse" })
 export type ProviderOverloadedResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const ProviderOverloadedResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for ProviderOverloadedResponse" })
 export type ResponseInputVideo = { readonly "type": "input_video"; readonly "video_url": string }
 export const ResponseInputVideo = Schema.Struct({
@@ -2312,12 +2316,12 @@ export const ActivityItem = Schema.Struct({
 export type ForbiddenResponseErrorData = {
   readonly "code": number
   readonly "message": string
-  readonly "metadata"?: { readonly [x: string]: Schema.Json }
+  readonly "metadata"?: {}
 }
 export const ForbiddenResponseErrorData = Schema.Struct({
   "code": Schema.Number.check(Schema.isInt()),
   "message": Schema.String,
-  "metadata": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json))
+  "metadata": Schema.optionalKey(Schema.Struct({}))
 }).annotate({ "description": "Error data for ForbiddenResponse" })
 export type CreateChargeRequest = {
   readonly "amount": number
@@ -2830,13 +2834,13 @@ export const ChatCompletionFinishReason = Schema.Literals(["tool_calls", "stop",
 export type JSONSchemaConfig = {
   readonly "name": string
   readonly "description"?: string
-  readonly "schema"?: { readonly [x: string]: Schema.Json }
+  readonly "schema"?: {}
   readonly "strict"?: boolean | null
 }
 export const JSONSchemaConfig = Schema.Struct({
   "name": Schema.String.check(Schema.isMaxLength(64)),
   "description": Schema.optionalKey(Schema.String),
-  "schema": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json).check(Schema.isPropertyNames(Schema.String))),
+  "schema": Schema.optionalKey(Schema.Struct({}).check(Schema.isPropertyNames(Schema.String))),
   "strict": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null]))
 })
 export type ResponseFormatTextGrammar = { readonly "type": "grammar"; readonly "grammar": string }
@@ -2851,7 +2855,7 @@ export type ToolDefinitionJson = {
   readonly "function": {
     readonly "name": string
     readonly "description"?: string
-    readonly "parameters"?: { readonly [x: string]: Schema.Json }
+    readonly "parameters"?: {}
     readonly "strict"?: boolean | null
   }
 }
@@ -2860,9 +2864,7 @@ export const ToolDefinitionJson = Schema.Struct({
   "function": Schema.Struct({
     "name": Schema.String.check(Schema.isMaxLength(64)),
     "description": Schema.optionalKey(Schema.String),
-    "parameters": Schema.optionalKey(
-      Schema.Record(Schema.String, Schema.Json).check(Schema.isPropertyNames(Schema.String))
-    ),
+    "parameters": Schema.optionalKey(Schema.Struct({}).check(Schema.isPropertyNames(Schema.String))),
     "strict": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null]))
   })
 })
@@ -3092,19 +3094,6 @@ export const ResponsesImageGenerationCall = Schema.Struct({
   "id": Schema.String,
   "result": Schema.optionalKey(Schema.String),
   "status": ImageGenerationStatus
-})
-export type OpenAIResponsesPrompt = {
-  readonly "id": string
-  readonly "variables"?: { readonly [x: string]: string | ResponseInputText | ResponseInputImage | ResponseInputFile }
-}
-export const OpenAIResponsesPrompt = Schema.Struct({
-  "id": Schema.String,
-  "variables": Schema.optionalKey(
-    Schema.Record(
-      Schema.String,
-      Schema.Union([Schema.String, ResponseInputText, ResponseInputImage, ResponseInputFile])
-    )
-  )
 })
 export type OpenResponsesFunctionToolCall = {
   readonly "type": "function_call"
@@ -3908,7 +3897,6 @@ export type AnthropicMessagesRequest = {
         readonly "type": "object"
         readonly "properties"?: unknown
         readonly "required"?: ReadonlyArray<string>
-        readonly [x: string]: Schema.Json
       }
       readonly "type"?: "custom"
       readonly "cache_control"?: { readonly "type": "ephemeral"; readonly "ttl"?: "5m" | "1h" }
@@ -4051,14 +4039,11 @@ export const AnthropicMessagesRequest = Schema.Struct({
     Schema.Struct({
       "name": Schema.String,
       "description": Schema.optionalKey(Schema.String),
-      "input_schema": Schema.StructWithRest(
-        Schema.Struct({
-          "type": Schema.Literal("object"),
-          "properties": Schema.optionalKey(Schema.Unknown),
-          "required": Schema.optionalKey(Schema.Array(Schema.String))
-        }),
-        [Schema.Record(Schema.String, Schema.Json)]
-      ),
+      "input_schema": Schema.Struct({
+        "type": Schema.Literal("object"),
+        "properties": Schema.optionalKey(Schema.Unknown),
+        "required": Schema.optionalKey(Schema.Array(Schema.String))
+      }),
       "type": Schema.optionalKey(Schema.Literal("custom")),
       "cache_control": Schema.optionalKey(
         Schema.Struct({ "type": Schema.Literal("ephemeral"), "ttl": Schema.optionalKey(Schema.Literals(["5m", "1h"])) })
@@ -4860,7 +4845,7 @@ export type OpenAIResponsesNonStreamingResponse = {
       readonly "name": string
       readonly "description"?: string
       readonly "strict"?: boolean
-      readonly "parameters": { readonly [x: string]: Schema.Json }
+      readonly "parameters": {}
     }
     | OpenResponsesWebSearchPreviewTool
     | OpenResponsesWebSearchPreview20250311Tool
@@ -4918,7 +4903,7 @@ export const OpenAIResponsesNonStreamingResponse = Schema.Struct({
         "name": Schema.String,
         "description": Schema.optionalKey(Schema.String),
         "strict": Schema.optionalKey(Schema.Boolean),
-        "parameters": Schema.Record(Schema.String, Schema.Json)
+        "parameters": Schema.Struct({})
       }).annotate({ "description": "Function tool definition" }),
       OpenResponsesWebSearchPreviewTool,
       OpenResponsesWebSearchPreview20250311Tool,
@@ -5417,7 +5402,7 @@ export type OpenResponsesNonStreamingResponse = {
       readonly "name": string
       readonly "description"?: string
       readonly "strict"?: boolean
-      readonly "parameters": { readonly [x: string]: Schema.Json }
+      readonly "parameters": {}
     }
     | OpenResponsesWebSearchPreviewTool
     | OpenResponsesWebSearchPreview20250311Tool
@@ -6089,7 +6074,7 @@ export const OpenResponsesNonStreamingResponse = Schema.Struct({
         "name": Schema.String,
         "description": Schema.optionalKey(Schema.String),
         "strict": Schema.optionalKey(Schema.Boolean),
-        "parameters": Schema.Record(Schema.String, Schema.Json)
+        "parameters": Schema.Struct({})
       }).annotate({ "description": "Function tool definition" }),
       OpenResponsesWebSearchPreviewTool,
       OpenResponsesWebSearchPreview20250311Tool,
@@ -6118,7 +6103,7 @@ export type OpenResponsesRequest = {
       readonly "name": string
       readonly "description"?: string
       readonly "strict"?: boolean
-      readonly "parameters": { readonly [x: string]: Schema.Json }
+      readonly "parameters": {}
     }
     | OpenResponsesWebSearchPreviewTool
     | OpenResponsesWebSearchPreview20250311Tool
@@ -6139,7 +6124,7 @@ export type OpenResponsesRequest = {
   readonly "presence_penalty"?: number
   readonly "frequency_penalty"?: number
   readonly "top_k"?: number
-  readonly "image_config"?: { readonly [x: string]: string | number }
+  readonly "image_config"?: {}
   readonly "modalities"?: ReadonlyArray<ResponsesOutputModality>
   readonly "prompt_cache_key"?: string
   readonly "previous_response_id"?: string
@@ -6201,7 +6186,7 @@ export const OpenResponsesRequest = Schema.Struct({
           "name": Schema.String,
           "description": Schema.optionalKey(Schema.String),
           "strict": Schema.optionalKey(Schema.Boolean),
-          "parameters": Schema.Record(Schema.String, Schema.Json)
+          "parameters": Schema.Struct({})
         }).annotate({ "description": "Function tool definition" }),
         OpenResponsesWebSearchPreviewTool,
         OpenResponsesWebSearchPreview20250311Tool,
@@ -6233,7 +6218,7 @@ export const OpenResponsesRequest = Schema.Struct({
   ),
   "top_k": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
   "image_config": Schema.optionalKey(
-    Schema.Record(Schema.String, Schema.Union([Schema.String, Schema.Number.check(Schema.isFinite())])).annotate({
+    Schema.Struct({}).annotate({
       "description":
         "Provider-specific image configuration options. Keys and values vary by model/provider. See https://openrouter.ai/docs/features/multimodal/image-generation for more details."
     })
@@ -6453,12 +6438,12 @@ export type ChatGenerationParams = {
   readonly "model"?: ModelName
   readonly "models"?: ReadonlyArray<ModelName>
   readonly "frequency_penalty"?: number | null
-  readonly "logit_bias"?: { readonly [x: string]: number } | null
+  readonly "logit_bias"?: {} | null
   readonly "logprobs"?: boolean | null
   readonly "top_logprobs"?: number | null
   readonly "max_completion_tokens"?: number | null
   readonly "max_tokens"?: number | null
-  readonly "metadata"?: { readonly [x: string]: string }
+  readonly "metadata"?: {}
   readonly "presence_penalty"?: number | null
   readonly "reasoning"?: {
     readonly "effort"?: "xhigh" | "high" | "medium" | "low" | "minimal" | "none" | null
@@ -6479,7 +6464,7 @@ export type ChatGenerationParams = {
   readonly "tools"?: ReadonlyArray<ToolDefinitionJson>
   readonly "top_p"?: number | null
   readonly "debug"?: { readonly "echo_upstream_body"?: boolean }
-  readonly "image_config"?: { readonly [x: string]: string | number | ReadonlyArray<unknown> }
+  readonly "image_config"?: {}
   readonly "modalities"?: ReadonlyArray<"text" | "image">
 }
 export const ChatGenerationParams = Schema.Struct({
@@ -6635,10 +6620,7 @@ export const ChatGenerationParams = Schema.Struct({
     ])
   ),
   "logit_bias": Schema.optionalKey(
-    Schema.Union([
-      Schema.Record(Schema.String, Schema.Number.check(Schema.isFinite())).check(Schema.isPropertyNames(Schema.String)),
-      Schema.Null
-    ])
+    Schema.Union([Schema.Struct({}).check(Schema.isPropertyNames(Schema.String)), Schema.Null])
   ),
   "logprobs": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null])),
   "top_logprobs": Schema.optionalKey(
@@ -6655,9 +6637,7 @@ export const ChatGenerationParams = Schema.Struct({
   "max_tokens": Schema.optionalKey(
     Schema.Union([Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(1)), Schema.Null])
   ),
-  "metadata": Schema.optionalKey(
-    Schema.Record(Schema.String, Schema.String).check(Schema.isPropertyNames(Schema.String))
-  ),
+  "metadata": Schema.optionalKey(Schema.Struct({}).check(Schema.isPropertyNames(Schema.String))),
   "presence_penalty": Schema.optionalKey(
     Schema.Union([
       Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(-2)).check(
@@ -6715,12 +6695,7 @@ export const ChatGenerationParams = Schema.Struct({
     ])
   ),
   "debug": Schema.optionalKey(Schema.Struct({ "echo_upstream_body": Schema.optionalKey(Schema.Boolean) })),
-  "image_config": Schema.optionalKey(
-    Schema.Record(
-      Schema.String,
-      Schema.Union([Schema.String, Schema.Number.check(Schema.isFinite()), Schema.Array(Schema.Unknown)])
-    ).check(Schema.isPropertyNames(Schema.String))
-  ),
+  "image_config": Schema.optionalKey(Schema.Struct({}).check(Schema.isPropertyNames(Schema.String))),
   "modalities": Schema.optionalKey(Schema.Array(Schema.Literals(["text", "image"])))
 })
 export type OpenResponsesCreatedEvent = {
@@ -8732,8 +8707,8 @@ export const make = (
         )
     )
   const withResponse = <Config extends OperationConfig>(config: Config | undefined) =>
-  <A, E>(
-    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>
+  (
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<any, any>
   ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
     const withOptionalResponse = (
       config?.includeResponse
@@ -8771,13 +8746,6 @@ export const make = (
         HttpClientError.HttpClientError,
         unknown
       >(schema))
-    )
-  const binaryRequest = (
-    request: HttpClientRequest.HttpClientRequest
-  ): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> =>
-    HttpClient.filterStatusOk(httpClient).execute(request).pipe(
-      Effect.map((response) => response.stream),
-      Stream.unwrap
     )
   const decodeSuccess =
     <Schema extends Schema.Top>(schema: Schema) => (response: HttpClientResponse.HttpClientResponse) =>

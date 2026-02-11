@@ -81,6 +81,11 @@
       "items": {
         "type": "string"
       }
+    },
+    "disableAdditionalProperties": {
+      "type": "boolean",
+      "description": "When true, forces additionalProperties to false on all object schemas, preventing StructWithRest emission.",
+      "default": false
     }
   },
   "additionalProperties": false

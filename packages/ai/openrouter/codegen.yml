@@ -8,6 +8,7 @@ header: |
    */
 excludeAnnotations:
   - default
+disableAdditionalProperties: true
 patches:
   # Replace OpenResponsesStreamEvent with a flat oneOf of $refs.
   # The original uses allOf wrappers that inline OpenResponsesNonStreamingResponse
@@ -20,6 +21,3 @@ replacements:
     to: "Schema.Record(Schema.String, Schema.Json)"
   - from: "{ readonly [x: string]: unknown }"
     to: "{ readonly [x: string]: Schema.Json }"
-  # Index signature in struct rest pattern
-  - from: "readonly [x: string]: unknown"
-    to: "readonly [x: string]: Schema.Json"

@@ -58,7 +58,8 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
   header: Schema.optional(Schema.String),
   patches: Schema.optional(Schema.Array(Schema.String)),
   replacements: Schema.optional(Schema.Array(Replacement)),
-  excludeAnnotations: Schema.optional(Schema.Array(Schema.String))
+  excludeAnnotations: Schema.optional(Schema.Array(Schema.String)),
+  disableAdditionalProperties: Schema.optional(Schema.Boolean)
 }) {
   /**
    * Get the client name, defaulting to "Client" if not specified.
@@ -112,6 +113,15 @@ export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")(
    */
   get excludeAnnotationsList(): ReadonlyArray<string> | undefined {
     return this.excludeAnnotations
+  }
+
+  /**
+   * Check if additionalProperties should be forced to false on all object schemas.
+   *
+   * @since 1.0.0
+   */
+  get shouldDisableAdditionalProperties(): boolean {
+    return this.disableAdditionalProperties ?? false
   }
 }
 

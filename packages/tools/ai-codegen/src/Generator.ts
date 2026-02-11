@@ -128,12 +128,20 @@ export const layer: Layer.Layer<
     const patchedSpec = yield* applyPatches(provider, spec as Schema.Json)
 
     const excludeAnnotations = provider.config.excludeAnnotationsList
-    const onEnter = excludeAnnotations
-      ? ((exclude = new Set(excludeAnnotations)) => (js: JsonSchema.JsonSchema): JsonSchema.JsonSchema => {
+    const disableAdditionalProperties = provider.config.shouldDisableAdditionalProperties
+
+    const exclude = excludeAnnotations ? new Set(excludeAnnotations) : undefined
+    const onEnter = (exclude || disableAdditionalProperties)
+      ? (js: JsonSchema.JsonSchema): JsonSchema.JsonSchema => {
         const out = { ...js }
-        for (const key of exclude) delete out[key]
+        if (exclude) {
+          for (const key of exclude) delete out[key]
+        }
+        if (disableAdditionalProperties && out.type === "object") {
+          out.additionalProperties = false
+        }
         return out
-      })()
+      }
       : undefined
 
     return yield* openApiGen

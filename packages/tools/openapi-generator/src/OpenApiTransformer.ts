@@ -15,24 +15,26 @@ export class OpenApiTransformer extends ServiceMap.Service<
 >()("OpenApiTransformer") {}
 
 interface ImportRequirements {
-  readonly stream: boolean
-  readonly sse: boolean
+  readonly eventStream: boolean
+  readonly octetStream: boolean
 }
 
 const computeImportRequirements = (operations: ReadonlyArray<ParsedOperation>): ImportRequirements => {
-  let stream = false
-  let sse = false
+  let eventStream = false
+  let octetStream = false
   for (const op of operations) {
     if (op.sseSchema) {
-      stream = true
-      sse = true
+      eventStream = true
     }
     if (op.binaryResponse) {
-      stream = true
+      octetStream = true
     }
   }
-  return { stream, sse }
+  return { eventStream, octetStream }
 }
+
+const requiresStreaming = (requirements: ImportRequirements): boolean =>
+  requirements.eventStream || requirements.octetStream
 
 const httpClientMethodNames: Record<OpenAPISpecMethodName, string> = {
   get: "get",
@@ -199,10 +201,10 @@ ${clientErrorSource(name)}`
     }
 
     const helpers: Array<string> = [commonSource]
-    if (requirements.sse) {
+    if (requirements.eventStream) {
       helpers.push(sseRequestSource(importName))
     }
-    if (requirements.stream) {
+    if (requirements.octetStream) {
       helpers.push(binaryRequestSource)
     }
 
@@ -400,14 +402,14 @@ export const make = (
         `import type { SchemaError } from "effect/Schema"`,
         `import * as ${importName} from "effect/Schema"`
       ]
-      if (requirements.stream) {
+      if (requiresStreaming(requirements)) {
         imports.push(`import * as Stream from "effect/Stream"`)
       }
-      if (requirements.sse) {
+      if (requirements.eventStream) {
         imports.push(`import * as Sse from "effect/unstable/encoding/Sse"`)
       }
       // HttpClient needs to be a value import when streaming is used (for filterStatusOk)
-      if (requirements.stream) {
+      if (requiresStreaming(requirements)) {
         imports.push(`import * as HttpClient from "effect/unstable/http/HttpClient"`)
       } else {
         imports.push(`import type * as HttpClient from "effect/unstable/http/HttpClient"`)
@@ -576,7 +578,10 @@ ${clientErrorSource(name)}`
     }
 
     const helpers: Array<string> = [commonSource]
-    if (requirements.stream) {
+    if (requirements.eventStream) {
+      helpers.push(sseRequestSourceTs)
+    }
+    if (requirements.octetStream) {
       helpers.push(binaryRequestSourceTs)
     }
 
@@ -790,7 +795,7 @@ export const make = (
         `import * as Data from "effect/Data"`,
         `import * as Effect from "effect/Effect"`
       ]
-      if (requirements.stream) {
+      if (requiresStreaming(requirements)) {
         imports.push(`import * as Stream from "effect/Stream"`)
       }
       imports.push(
@@ -825,8 +830,8 @@ const commonSource = `const unexpectedStatus = (response: HttpClientResponse.Htt
           }),
         ),
     )
-  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
-    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => (
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<any, any>,
   ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
     const withOptionalResponse = (
       config?.includeResponse
@@ -871,7 +876,7 @@ const binaryRequestSource =
     )`
 
 // Type-only mode helpers (no schema decoding)
-const binaryRequestSourceTs =
+const sseRequestSourceTs =
   `const sseRequest = (request: HttpClientRequest.HttpClientRequest): Stream.Stream<unknown, HttpClientError.HttpClientError> =>
     HttpClient.filterStatusOk(httpClient).execute(request).pipe(
       Effect.map((response) => response.stream),
@@ -880,8 +885,10 @@ const binaryRequestSourceTs =
       Stream.splitLines,
       Stream.filter((line) => line.startsWith("data: ")),
       Stream.map((line) => JSON.parse(line.slice(6)))
-    )
-  const binaryRequest = (request: HttpClientRequest.HttpClientRequest): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> =>
+    )`
+
+const binaryRequestSourceTs =
+  `const binaryRequest = (request: HttpClientRequest.HttpClientRequest): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> =>
     HttpClient.filterStatusOk(httpClient).execute(request).pipe(
       Effect.map((response) => response.stream),
       Stream.unwrap
