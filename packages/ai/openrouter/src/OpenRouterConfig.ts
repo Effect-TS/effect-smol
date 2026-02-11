@@ -10,23 +10,23 @@ import type { HttpClient } from "effect/unstable/http/HttpClient"
  * @since 1.0.0
  * @category services
  */
-export class AnthropicConfig extends ServiceMap.Service<
-  AnthropicConfig,
-  AnthropicConfig.Service
->()("@effect/ai-anthropic/AnthropicConfig") {
+export class OpenRouterConfig extends ServiceMap.Service<
+  OpenRouterConfig,
+  OpenRouterConfig.Service
+>()("@effect/ai-openrouter/OpenRouterConfig") {
   /**
    * @since 1.0.0
    */
-  static readonly getOrUndefined: Effect.Effect<typeof AnthropicConfig.Service | undefined> = Effect.map(
+  static readonly getOrUndefined: Effect.Effect<typeof OpenRouterConfig.Service | undefined> = Effect.map(
     Effect.services<never>(),
-    (services) => services.mapUnsafe.get(AnthropicConfig.key)
+    (services) => services.mapUnsafe.get(OpenRouterConfig.key)
   )
 }
 
 /**
  * @since 1.0.0
  */
-export declare namespace AnthropicConfig {
+export declare namespace OpenRouterConfig {
   /**
    * @since 1.0.0
    * @category models
@@ -43,11 +43,14 @@ export declare namespace AnthropicConfig {
 export const withClientTransform: {
   (transform: (client: HttpClient) => HttpClient): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <A, E, R>(self: Effect.Effect<A, E, R>, transform: (client: HttpClient) => HttpClient): Effect.Effect<A, E, R>
-} = dual(2, <A, E, R>(
-  self: Effect.Effect<A, E, R>,
-  transformClient: (client: HttpClient) => HttpClient
-) =>
-  Effect.flatMap(
-    AnthropicConfig.getOrUndefined,
-    (config) => Effect.provideService(self, AnthropicConfig, { ...config, transformClient })
-  ))
+} = dual<
+  (transform: (client: HttpClient) => HttpClient) => <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>,
+  <A, E, R>(self: Effect.Effect<A, E, R>, transform: (client: HttpClient) => HttpClient) => Effect.Effect<A, E, R>
+>(
+  2,
+  (self, transformClient) =>
+    Effect.flatMap(
+      OpenRouterConfig.getOrUndefined,
+      (config) => Effect.provideService(self, OpenRouterConfig, { ...config, transformClient })
+    )
+)
