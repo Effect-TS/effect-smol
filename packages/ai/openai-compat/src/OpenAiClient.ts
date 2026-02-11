@@ -4,7 +4,7 @@
 import * as Array from "effect/Array"
 import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
-import { identity } from "effect/Function"
+import { identity, pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as Redacted from "effect/Redacted"
@@ -115,6 +115,8 @@ export const make = Effect.fnUntraced(
           : httpClient
     )
 
+    const decodeResponse = HttpClientResponse.schemaBodyJson(OpenAiSchema.CreateResponse200)
+
     const createResponse = (
       payload: typeof OpenAiSchema.CreateResponseRequestJson.Encoded
     ): Effect.Effect<
@@ -122,30 +124,23 @@ export const make = Effect.fnUntraced(
       AiError.AiError
     > =>
       Effect.flatMap(resolveHttpClient, (client) =>
-        HttpClient.filterStatusOk(client)
-          .execute(
-            HttpClientRequest.post("/responses").pipe(
-              HttpClientRequest.bodyJsonUnsafe(payload)
-            )
-          )
-          .pipe(
-            Effect.flatMap((response) =>
-              HttpClientResponse.schemaBodyJson(OpenAiSchema.CreateResponse200)(response).pipe(
-                Effect.map(
-                  (
-                    body
-                  ): [typeof OpenAiSchema.CreateResponse200.Type, HttpClientResponse.HttpClientResponse] => [
-                    body,
-                    response
-                  ]
-                )
-              )
-            ),
-            Effect.catchTags({
-              HttpClientError: (error) => Errors.mapHttpClientError(error, "createResponse"),
-              SchemaError: (error) => Effect.fail(Errors.mapSchemaError(error, "createResponse"))
-            })
-          ))
+        pipe(
+          HttpClientRequest.post("/responses"),
+          HttpClientRequest.bodyJsonUnsafe(payload),
+          HttpClient.filterStatusOk(client).execute,
+          Effect.flatMap((response) =>
+            Effect.map(decodeResponse(response), (
+              body
+            ): [typeof OpenAiSchema.CreateResponse200.Type, HttpClientResponse.HttpClientResponse] => [
+              body,
+              response
+            ])
+          ),
+          Effect.catchTags({
+            HttpClientError: (error) => Errors.mapHttpClientError(error, "createResponse"),
+            SchemaError: (error) => Effect.fail(Errors.mapSchemaError(error, "createResponse"))
+          })
+        ))
 
     const SseEvent = Schema.Struct({
       ...Sse.EventEncoded.fields,
@@ -178,37 +173,33 @@ export const make = Effect.fnUntraced(
 
     const createResponseStream: Service["createResponseStream"] = (payload) =>
       Effect.flatMap(resolveHttpClient, (client) =>
-        HttpClient.filterStatusOk(client)
-          .execute(
-            HttpClientRequest.post("/responses").pipe(
-              HttpClientRequest.bodyJsonUnsafe({ ...payload, stream: true })
-            )
+        pipe(
+          HttpClientRequest.post("/responses"),
+          HttpClientRequest.bodyJsonUnsafe({ ...payload, stream: true }),
+          HttpClient.filterStatusOk(client).execute,
+          Effect.map(buildResponseStream),
+          Effect.catchTag(
+            "HttpClientError",
+            (error) => Errors.mapHttpClientError(error, "createResponseStream")
           )
-          .pipe(
-            Effect.map(buildResponseStream),
-            Effect.catchTag(
-              "HttpClientError",
-              (error) => Errors.mapHttpClientError(error, "createResponseStream")
-            )
-          ))
+        ))
+
+    const decodeEmbedding = HttpClientResponse.schemaBodyJson(OpenAiSchema.CreateEmbedding200)
 
     const createEmbedding = (
       payload: typeof OpenAiSchema.CreateEmbeddingRequestJson.Encoded
     ): Effect.Effect<typeof OpenAiSchema.CreateEmbedding200.Type, AiError.AiError> =>
       Effect.flatMap(resolveHttpClient, (client) =>
-        HttpClient.filterStatusOk(client)
-          .execute(
-            HttpClientRequest.post("/embeddings").pipe(
-              HttpClientRequest.bodyJsonUnsafe(payload)
-            )
-          )
-          .pipe(
-            Effect.flatMap(HttpClientResponse.schemaBodyJson(OpenAiSchema.CreateEmbedding200)),
-            Effect.catchTags({
-              HttpClientError: (error) => Errors.mapHttpClientError(error, "createEmbedding"),
-              SchemaError: (error) => Effect.fail(Errors.mapSchemaError(error, "createEmbedding"))
-            })
-          ))
+        pipe(
+          HttpClientRequest.post("/embeddings"),
+          HttpClientRequest.bodyJsonUnsafe(payload),
+          HttpClient.filterStatusOk(client).execute,
+          Effect.flatMap(decodeEmbedding),
+          Effect.catchTags({
+            HttpClientError: (error) => Errors.mapHttpClientError(error, "createEmbedding"),
+            SchemaError: (error) => Effect.fail(Errors.mapSchemaError(error, "createEmbedding"))
+          })
+        ))
 
     return OpenAiClient.of({
       client: httpClient,
