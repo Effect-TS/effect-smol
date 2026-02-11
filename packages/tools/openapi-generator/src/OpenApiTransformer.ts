@@ -343,7 +343,7 @@ export const make = (
 
     const eventSchema = `${importName}.Struct({
         ...Sse.EventEncoded.fields,
-        data: ${operation.sseSchema}
+        data: ${importName}.fromJsonString(${operation.sseSchema})
       })`
     pipeline.push(`sseRequest(${eventSchema})`)
 

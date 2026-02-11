@@ -289,7 +289,7 @@ export const make = Effect.fnUntraced(
 
     const SseEvent = Schema.Struct({
       ...Sse.EventEncoded.fields,
-      data: Schema.Union([
+      data: Schema.fromJsonString(Schema.Union([
         PingEvent,
         Generated.BetaMessageStartEvent,
         Generated.BetaMessageDeltaEvent,
@@ -298,7 +298,7 @@ export const make = Effect.fnUntraced(
         Generated.BetaContentBlockDeltaEvent,
         Generated.BetaContentBlockStopEvent,
         Generated.BetaErrorResponse
-      ])
+      ]))
     })
 
     const buildMessageStream = (

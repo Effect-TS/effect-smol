@@ -375,11 +375,11 @@ export interface Event {
 export const EventEncoded: Schema.Struct<{
   readonly id: Schema.UndefinedOr<Schema.String>
   readonly event: Schema.String
-  readonly data: Schema.UnknownFromJsonString
+  readonly data: Schema.String
 }> = Schema.Struct({
   id: Schema.UndefinedOr(Schema.String),
   event: Schema.String,
-  data: Schema.UnknownFromJsonString
+  data: Schema.String
 })
 
 /**

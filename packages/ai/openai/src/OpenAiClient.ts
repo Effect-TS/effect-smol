@@ -198,7 +198,7 @@ export const make = Effect.fnUntraced(
 
     const SseEvent = Schema.Struct({
       ...Sse.EventEncoded.fields,
-      data: Generated.ResponseStreamEvent
+      data: Schema.fromJsonString(Generated.ResponseStreamEvent)
     })
 
     const buildResponseStream = (

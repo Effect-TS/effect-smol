@@ -25659,7 +25659,7 @@ export const make = (
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         sseRequest(Schema.Struct({
           ...Sse.EventEncoded.fields,
-          data: CreateSpeech200Sse
+          data: Schema.fromJsonString(CreateSpeech200Sse)
         }))
       ),
     "createSpeechStream": (options) =>
@@ -25680,7 +25680,7 @@ export const make = (
         HttpClientRequest.bodyFormData(options.payload as any),
         sseRequest(Schema.Struct({
           ...Sse.EventEncoded.fields,
-          data: CreateTranscription200Sse
+          data: Schema.fromJsonString(CreateTranscription200Sse)
         }))
       ),
     "createTranslation": (options) =>
@@ -25800,7 +25800,7 @@ export const make = (
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         sseRequest(Schema.Struct({
           ...Sse.EventEncoded.fields,
-          data: CreateChatCompletion200Sse
+          data: Schema.fromJsonString(CreateChatCompletion200Sse)
         }))
       ),
     "getChatCompletion": (completionId, options) =>
@@ -26242,7 +26242,7 @@ export const make = (
         HttpClientRequest.bodyFormData(options.payload as any),
         sseRequest(Schema.Struct({
           ...Sse.EventEncoded.fields,
-          data: CreateImageEdit200Sse
+          data: Schema.fromJsonString(CreateImageEdit200Sse)
         }))
       ),
     "createImage": (options) =>
@@ -26258,7 +26258,7 @@ export const make = (
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         sseRequest(Schema.Struct({
           ...Sse.EventEncoded.fields,
-          data: CreateImage200Sse
+          data: Schema.fromJsonString(CreateImage200Sse)
         }))
       ),
     "createImageVariation": (options) =>
@@ -27184,7 +27184,7 @@ export const make = (
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         sseRequest(Schema.Struct({
           ...Sse.EventEncoded.fields,
-          data: CreateResponse200Sse
+          data: Schema.fromJsonString(CreateResponse200Sse)
         }))
       ),
     "getResponse": (responseId, options) =>

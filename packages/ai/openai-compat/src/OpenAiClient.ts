@@ -144,7 +144,7 @@ export const make = Effect.fnUntraced(
 
     const SseEvent = Schema.Struct({
       ...Sse.EventEncoded.fields,
-      data: OpenAiSchema.CreateResponse200Sse
+      data: Schema.fromJsonString(OpenAiSchema.CreateResponse200Sse)
     })
 
     const buildResponseStream = (
