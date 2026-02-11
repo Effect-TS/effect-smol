@@ -1750,7 +1750,7 @@ The response will stream data (`a`, `b`, `c`) with a 500ms interval between each
 
 ## Adding Custom Error Responses
 
-Endpoints can declare the errors they may return. Each error is a schema annotated with an HTTP status code. When your handler fails with a matching error, the framework serializes it and responds with the declared status.
+Endpoints can declare the errors they may return. Each error is a schema annotated with an HTTP status code via `HttpApiSchema.status(code)`. The status is set once on the schema and reused wherever that schema appears. When your handler fails with a matching error, the framework serializes it and responds with the declared status.
 
 **Example** (Defining Error Responses for an Endpoint)
 
@@ -1773,15 +1773,14 @@ const User = Schema.Struct({
   name: Schema.String
 })
 
-// Define error schemas
 const UserNotFound = Schema.Struct({
   _tag: Schema.tag("UserNotFound"),
   message: Schema.String
-})
+}).pipe(HttpApiSchema.status(404))
 
 const Unauthorized = Schema.Struct({
   _tag: Schema.tag("Unauthorized")
-})
+}).pipe(HttpApiSchema.status(401))
 
 const Api = HttpApi.make("MyApi")
   .add(
@@ -1792,12 +1791,15 @@ const Api = HttpApi.make("MyApi")
             id: Schema.FiniteFromString.check(Schema.isInt())
           },
           success: User,
-          error: [
-            // Add a 404 error response for this endpoint
-            UserNotFound.pipe(HttpApiSchema.status(404)),
-            // Add a 401 error response for unauthorized access
-            Unauthorized.pipe(HttpApiSchema.status(401))
-          ]
+          error: [UserNotFound, Unauthorized /** etc. */]
+        })
+      )
+      .add(
+        HttpApiEndpoint.delete("deleteUser", "/user/:id", {
+          params: {
+            id: Schema.FiniteFromString.check(Schema.isInt())
+          },
+          error: [UserNotFound, Unauthorized /** etc. */]
         })
       )
   )
@@ -1814,6 +1816,13 @@ const GroupLive = HttpApiBuilder.group(
         }
         return Effect.succeed({ id, name: `User ${id}` })
       })
+      .handle("deleteUser", (ctx) => {
+        const id = ctx.params.id
+        if (id === 1) {
+          return Effect.fail(UserNotFound.makeUnsafe({ message: "User not found" }))
+        }
+        return Effect.succeed(void 0)
+      })
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
@@ -1826,11 +1835,13 @@ const ApiLive = HttpApiBuilder.layer(Api).pipe(
 Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
-You can test this endpoint using a GET request. For example:
+You can test these endpoints. For example:
 
 ```sh
-curl http://localhost:3000/user/1 # Returns 404 Not Found
-curl http://localhost:3000/user/2 # Returns 200 OK
+curl http://localhost:3000/user/1              # Returns 404 Not Found
+curl http://localhost:3000/user/2              # Returns 200 OK
+curl -X DELETE http://localhost:3000/user/1    # Returns 404 Not Found
+curl -X DELETE http://localhost:3000/user/2    # Returns 200 OK
 ```
 
 ## Predefined Error Types
