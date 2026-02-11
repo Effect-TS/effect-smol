@@ -163,7 +163,8 @@ export const make = Effect.fnUntraced(
         Stream.pipeThroughChannel(Sse.decodeSchema(SseEvent)),
         Stream.takeUntil((event) =>
           event.data.type === "response.completed" ||
-          event.data.type === "response.incomplete"
+          event.data.type === "response.incomplete" ||
+          event.data.type === "response.failed"
         ),
         Stream.map((event) => event.data),
         Stream.catchTags({
