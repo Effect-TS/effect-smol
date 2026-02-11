@@ -35,6 +35,23 @@ function assertTypeOnly(spec: OpenAPISpec, expected: string) {
   )
 }
 
+function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string>) {
+  return Effect.gen(function*() {
+    const generator = yield* OpenApiGenerator.OpenApiGenerator
+
+    const result = yield* generator.generate(spec, {
+      name: "TestClient",
+      typeOnly: false
+    })
+
+    for (const expected of includes) {
+      assert.include(result, expected)
+    }
+  }).pipe(
+    Effect.provide(OpenApiGenerator.layerTransformerSchema)
+  )
+}
+
 describe("OpenApiGenerator", () => {
   describe("schema", () => {
     it.effect("get operation", () =>
@@ -216,6 +233,61 @@ export const TestClientError = <Tag extends string, E>(
     response,
     request: response.request,
   }) as any`
+      ))
+
+    it.effect("sse operation decodes event payload from json string", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/events": {
+              get: {
+                operationId: "streamEvents",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Events streamed successfully",
+                    content: {
+                      "text/event-stream": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            type: {
+                              type: "string"
+                            },
+                            value: {
+                              type: "string"
+                            }
+                          },
+                          required: ["type", "value"],
+                          additionalProperties: false
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Events"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `import * as Sse from "effect/unstable/encoding/Sse"`,
+          `readonly "streamEventsSse": () => Stream.Stream<{ readonly event: string; readonly id: string | undefined; readonly data: typeof StreamEvents200Sse.Type }, HttpClientError.HttpClientError | SchemaError | Sse.Retry, typeof StreamEvents200Sse.DecodingServices>`,
+          `"streamEventsSse": () => HttpClientRequest.get(\`/events\`).pipe(`,
+          `data: Schema.fromJsonString(StreamEvents200Sse)`
+        ]
       ))
   })
 
