@@ -17,8 +17,15 @@ describe("OpenAi compat LanguageModel", () => {
               capturedRequest = request
               return Effect.succeed(jsonResponse(
                 request,
-                makeResponseBody({
-                  output: [makeTextOutput("Hello, compat!")]
+                makeChatCompletion({
+                  choices: [{
+                    index: 0,
+                    finish_reason: "stop",
+                    message: {
+                      role: "assistant",
+                      content: "Hello, compat!"
+                    }
+                  }]
                 })
               ))
             })
@@ -38,7 +45,7 @@ describe("OpenAi compat LanguageModel", () => {
 
         const requestBody = yield* getRequestBody(capturedRequest)
         assert.strictEqual(requestBody.model, "gpt-4o-mini")
-        assert.strictEqual(requestBody.text.format.type, "text")
+        assert.strictEqual(requestBody.messages[0]?.content, "hello")
       }))
 
     it.effect("maps function_call output to tool-call part and sends function tool schema", () =>
@@ -52,15 +59,22 @@ describe("OpenAi compat LanguageModel", () => {
               capturedRequest = request
               return Effect.succeed(jsonResponse(
                 request,
-                makeResponseBody({
-                  output: [{
-                    type: "function_call",
-                    id: "fc_1",
-                    call_id: "call_1",
-                    name: "TestTool",
-                    arguments: JSON.stringify({ input: "hello" }),
-                    status: "completed",
-                    future_provider_field: true
+                makeChatCompletion({
+                  choices: [{
+                    index: 0,
+                    finish_reason: "tool_calls",
+                    message: {
+                      role: "assistant",
+                      content: null,
+                      tool_calls: [{
+                        id: "call_1",
+                        type: "function",
+                        function: {
+                          name: "TestTool",
+                          arguments: JSON.stringify({ input: "hello" })
+                        }
+                      }]
+                    }
                   }]
                 })
               ))
@@ -95,8 +109,8 @@ describe("OpenAi compat LanguageModel", () => {
         const requestBody = yield* getRequestBody(capturedRequest)
         const functionTool = requestBody.tools.find((tool: any) => tool.type === "function")
         assert.isDefined(functionTool)
-        assert.strictEqual(functionTool.name, "TestTool")
-        assert.strictEqual(functionTool.strict, true)
+        assert.strictEqual(functionTool.function.name, "TestTool")
+        assert.strictEqual(functionTool.function.strict, true)
       }))
 
     it.effect("decodes usage when token detail fields are absent", () =>
@@ -107,11 +121,18 @@ describe("OpenAi compat LanguageModel", () => {
             makeHttpClient((request) =>
               Effect.succeed(jsonResponse(
                 request,
-                makeResponseBody({
-                  output: [makeTextOutput("Hello")],
+                makeChatCompletion({
+                  choices: [{
+                    index: 0,
+                    finish_reason: "stop",
+                    message: {
+                      role: "assistant",
+                      content: "Hello"
+                    }
+                  }],
                   usage: {
-                    input_tokens: 4,
-                    output_tokens: 5,
+                    prompt_tokens: 4,
+                    completion_tokens: 5,
                     total_tokens: 9,
                     provider_future_field: true
                   }
@@ -158,8 +179,15 @@ describe("OpenAi compat LanguageModel", () => {
               capturedRequest = request
               return Effect.succeed(jsonResponse(
                 request,
-                makeResponseBody({
-                  output: [makeTextOutput(JSON.stringify({ name: "Ada", age: 37 }))]
+                makeChatCompletion({
+                  choices: [{
+                    index: 0,
+                    finish_reason: "stop",
+                    message: {
+                      role: "assistant",
+                      content: JSON.stringify({ name: "Ada", age: 37 })
+                    }
+                  }]
                 })
               ))
             })
@@ -186,8 +214,8 @@ describe("OpenAi compat LanguageModel", () => {
         }
 
         const requestBody = yield* getRequestBody(capturedRequest)
-        assert.strictEqual(requestBody.text.format.type, "json_schema")
-        assert.strictEqual(requestBody.text.format.strict, true)
+        assert.strictEqual(requestBody.response_format.type, "json_schema")
+        assert.strictEqual(requestBody.response_format.json_schema.strict, true)
       }))
   })
 
@@ -198,56 +226,40 @@ describe("OpenAi compat LanguageModel", () => {
 
         const events = [
           {
-            type: "response.created",
-            sequence_number: 1,
-            response: makeResponseBody({
-              id: "resp_stream",
-              output: []
-            })
+            id: "chatcmpl_stream_1",
+            object: "chat.completion.chunk",
+            model: "gpt-4o-mini",
+            created: 1,
+            choices: [{
+              index: 0,
+              delta: { content: "Hello" },
+              finish_reason: null
+            }]
           },
           {
-            type: "response.output_item.added",
-            output_index: 0,
-            sequence_number: 2,
-            item: makeMessage("msg_stream")
-          },
-          {
-            type: "response.output_text.delta",
-            item_id: "msg_stream",
-            output_index: 0,
-            content_index: 0,
-            delta: "Hello",
-            sequence_number: 3
-          },
-          {
-            type: "response.provider_future_event",
-            payload: { accepted: true }
-          },
-          {
-            type: "response.output_item.done",
-            output_index: 0,
-            sequence_number: 4,
-            item: makeMessage("msg_stream", "Hello")
-          },
-          {
-            type: "response.completed",
-            sequence_number: 5,
-            response: makeResponseBody({
-              id: "resp_stream",
-              output: [makeMessage("msg_stream", "Hello")],
-              usage: {
-                input_tokens: 10,
-                output_tokens: 7,
-                total_tokens: 17,
-                input_tokens_details: {
-                  cached_tokens: 3
-                },
-                output_tokens_details: {
-                  reasoning_tokens: 2
-                }
+            id: "chatcmpl_stream_1",
+            object: "chat.completion.chunk",
+            model: "gpt-4o-mini",
+            created: 1,
+            choices: [{
+              index: 0,
+              delta: {},
+              finish_reason: "stop"
+            }],
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 7,
+              total_tokens: 17,
+              prompt_tokens_details: {
+                cached_tokens: 3
+              },
+              completion_tokens_details: {
+                reasoning_tokens: 2
               }
-            })
-          }
+            },
+            provider_future_field: { accepted: true }
+          },
+          "[DONE]"
         ]
 
         const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
@@ -297,7 +309,7 @@ describe("OpenAi compat LanguageModel", () => {
 
         const requestBody = yield* getRequestBody(capturedRequest)
         assert.strictEqual(requestBody.stream, true)
-        assert.isTrue(capturedRequest.url.endsWith("/responses"))
+        assert.isTrue(capturedRequest.url.endsWith("/chat/completions"))
       }))
   })
 })
@@ -327,40 +339,20 @@ const makeHttpClient = (
     Effect.succeed as HttpClient.HttpClient.Preprocess<HttpClientError.HttpClientError, never>
   )
 
-const makeResponseBody = (overrides: Record<string, unknown> = {}) => ({
-  id: "resp_test_1",
-  object: "response",
+const makeChatCompletion = (overrides: Record<string, unknown> = {}) => ({
+  id: "chatcmpl_test_1",
+  object: "chat.completion",
   model: "gpt-4o-mini",
-  status: "completed",
-  created_at: 1,
-  output: [],
+  created: 1,
+  choices: [{
+    index: 0,
+    finish_reason: "stop",
+    message: {
+      role: "assistant",
+      content: ""
+    }
+  }],
   ...overrides
-})
-
-const makeMessage = (id: string, text?: string) => ({
-  type: "message",
-  id,
-  role: "assistant",
-  status: "completed",
-  content: text === undefined ? [] : [{
-    type: "output_text",
-    text,
-    annotations: [],
-    logprobs: []
-  }]
-})
-
-const makeTextOutput = (text: string) => ({
-  type: "message",
-  id: "msg_1",
-  role: "assistant",
-  status: "completed",
-  content: [{
-    type: "output_text",
-    text,
-    annotations: [],
-    logprobs: []
-  }]
 })
 
 const jsonResponse = (
@@ -402,4 +394,9 @@ const getRequestBody = (request: HttpClientRequest.HttpClientRequest) =>
   })
 
 const toSseBody = (events: ReadonlyArray<unknown>): string =>
-  events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join("")
+  events.map((event) => {
+    if (typeof event === "string") {
+      return `data: ${event}\n\n`
+    }
+    return `data: ${JSON.stringify(event)}\n\n`
+  }).join("")

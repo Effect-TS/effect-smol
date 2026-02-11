@@ -7,7 +7,7 @@ import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientRes
 
 describe("OpenAiLanguageModel", () => {
   describe("streamText", () => {
-    it.effect("ignores malformed known-type events decoded via unknown fallback", () =>
+    it.effect("handles chat completion stream chunks", () =>
       Effect.gen(function*() {
         const partsChunk = yield* LanguageModel.streamText({ prompt: "test" }).pipe(
           Stream.runCollect,
@@ -16,7 +16,7 @@ describe("OpenAiLanguageModel", () => {
 
         const parts = Array.from(partsChunk)
 
-        assert.isFalse(parts.some((part) => part.type === "response-metadata"))
+        assert.isTrue(parts.some((part) => part.type === "response-metadata"))
 
         const finish = parts.find((part) => part.type === "finish")
         assert.isDefined(finish)
@@ -25,17 +25,18 @@ describe("OpenAiLanguageModel", () => {
         }
       }).pipe(
         Effect.provide(makeTestLayer([
-          { type: "response.created" },
           {
-            type: "response.completed",
-            sequence_number: 2,
-            response: {
-              id: "resp_test123",
-              model: "gpt-4o-mini",
-              created_at: 1,
-              output: []
-            }
-          }
+            id: "chatcmpl_test123",
+            object: "chat.completion.chunk",
+            model: "gpt-4o-mini",
+            created: 1,
+            choices: [{
+              index: 0,
+              delta: {},
+              finish_reason: "stop"
+            }]
+          },
+          "[DONE]"
         ]))
       ))
 
@@ -53,7 +54,7 @@ describe("OpenAiLanguageModel", () => {
             if (index === 0) {
               return HttpClientResponse.fromWeb(
                 request,
-                new Response(toSseBody([makeLocalShellDoneEvent()]), {
+                new Response(toSseBody([makeLocalShellChunk(), "[DONE]"]), {
                   status: 200,
                   headers: { "content-type": "text/event-stream" }
                 })
@@ -62,7 +63,7 @@ describe("OpenAiLanguageModel", () => {
 
             return HttpClientResponse.fromWeb(
               request,
-              new Response(JSON.stringify(makeCreateResponse()), {
+              new Response(JSON.stringify(makeChatCompletion()), {
                 status: 200,
                 headers: { "content-type": "application/json" }
               })
@@ -143,14 +144,16 @@ describe("OpenAiLanguageModel", () => {
 
         const followUpBody = yield* getRequestBody(followUpRequest)
 
-        const localShellCall = followUpBody.input.find((item: any) => item.type === "local_shell_call")
+        const localShellCall = followUpBody.messages.find((item: any) =>
+          item.role === "assistant" && item.tool_calls?.[0]?.function?.name === "local_shell"
+        )
         assert.isDefined(localShellCall)
-        strictEqual(localShellCall.call_id, toolCall.id)
+        strictEqual(localShellCall.tool_calls[0].id, toolCall.id)
 
-        const localShellOutput = followUpBody.input.find((item: any) => item.type === "local_shell_call_output")
+        const localShellOutput = followUpBody.messages.find((item: any) => item.role === "tool")
         assert.isDefined(localShellOutput)
-        strictEqual(localShellOutput.call_id, toolCall.id)
-        strictEqual(localShellOutput.output, "done")
+        strictEqual(localShellOutput.tool_call_id, toolCall.id)
+        strictEqual(localShellOutput.content, "done")
       }))
   })
 })
@@ -161,24 +164,41 @@ const localShellAction = {
   env: {}
 }
 
-const makeLocalShellDoneEvent = () => ({
-  type: "response.output_item.done",
-  output_index: 0,
-  sequence_number: 1,
-  item: {
-    type: "local_shell_call",
-    id: "ls_call_1",
-    call_id: "local_shell_call_1",
-    action: localShellAction,
-    status: "completed"
-  }
+const makeLocalShellChunk = () => ({
+  id: "chatcmpl_local_shell_1",
+  object: "chat.completion.chunk",
+  model: "gpt-4o-mini",
+  created: 1,
+  choices: [{
+    index: 0,
+    delta: {
+      tool_calls: [{
+        index: 0,
+        id: "local_shell_call_1",
+        type: "function",
+        function: {
+          name: "local_shell",
+          arguments: JSON.stringify({ action: localShellAction })
+        }
+      }]
+    },
+    finish_reason: "tool_calls"
+  }]
 })
 
-const makeCreateResponse = () => ({
-  id: "resp_followup",
+const makeChatCompletion = () => ({
+  id: "chatcmpl_followup",
+  object: "chat.completion",
   model: "gpt-4o-mini",
-  created_at: 1,
-  output: []
+  created: 1,
+  choices: [{
+    index: 0,
+    finish_reason: "stop",
+    message: {
+      role: "assistant",
+      content: ""
+    }
+  }]
 })
 
 const makeTestLayer = (events: ReadonlyArray<unknown>) =>
@@ -212,4 +232,9 @@ const getRequestBody = (request: HttpClientRequest.HttpClientRequest) =>
   })
 
 const toSseBody = (events: ReadonlyArray<unknown>): string =>
-  events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join("")
+  events.map((event) => {
+    if (typeof event === "string") {
+      return `data: ${event}\n\n`
+    }
+    return `data: ${JSON.stringify(event)}\n\n`
+  }).join("")

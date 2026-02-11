@@ -5,7 +5,7 @@ import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientRes
 
 describe("OpenAiClient", () => {
   describe("request behavior", () => {
-    it.effect("sets auth and OpenAI headers on /responses requests", () =>
+    it.effect("sets auth and OpenAI headers on /chat/completions requests", () =>
       Effect.gen(function*() {
         let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
 
@@ -19,7 +19,7 @@ describe("OpenAiClient", () => {
             HttpClient.HttpClient,
             makeHttpClient((request) => {
               capturedRequest = request
-              return Effect.succeed(jsonResponse(request, 200, makeResponseBody()))
+              return Effect.succeed(jsonResponse(request, 200, makeChatCompletion()))
             })
           ))
         )
@@ -34,11 +34,15 @@ describe("OpenAiClient", () => {
           return
         }
 
-        assert.isTrue(capturedRequest.url.endsWith("/responses"))
+        assert.isTrue(capturedRequest.url.endsWith("/chat/completions"))
         assert.isTrue(capturedRequest.url.startsWith("https://compat.example.test/v1"))
         assert.strictEqual(capturedRequest.headers["authorization"], "Bearer sk-test-key")
         assert.strictEqual(capturedRequest.headers["openai-organization"], "org_123")
         assert.strictEqual(capturedRequest.headers["openai-project"], "proj_456")
+
+        const body = yield* getRequestBody(capturedRequest)
+        assert.strictEqual(body.messages[0]?.role, "user")
+        assert.strictEqual(body.messages[0]?.content, "hello")
       }))
 
     it.effect("uses /embeddings path and decodes permissive embedding payloads", () =>
@@ -88,7 +92,7 @@ describe("OpenAiClient", () => {
         assert.strictEqual(typeof embedding.data[0]?.embedding, "string")
       }))
 
-    it.effect("sets stream=true for createResponseStream and accepts unknown stream events", () =>
+    it.effect("sets stream=true for createResponseStream and maps chat chunks to compat events", () =>
       Effect.gen(function*() {
         let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
 
@@ -101,14 +105,36 @@ describe("OpenAiClient", () => {
               capturedRequest = request
               return Effect.succeed(sseResponse(request, [
                 {
-                  type: "response.future_event",
-                  foo: "bar"
+                  id: "chatcmpl_test_1",
+                  object: "chat.completion.chunk",
+                  model: "gpt-4o-mini",
+                  created: 1,
+                  future_provider_field: { accepted: true },
+                  choices: [{
+                    index: 0,
+                    delta: { content: "Hello" },
+                    finish_reason: null
+                  }]
                 },
                 {
-                  type: "response.completed",
-                  sequence_number: 2,
-                  response: makeResponseBody()
-                }
+                  id: "chatcmpl_test_1",
+                  object: "chat.completion.chunk",
+                  model: "gpt-4o-mini",
+                  created: 1,
+                  usage: {
+                    prompt_tokens: 4,
+                    completion_tokens: 2,
+                    total_tokens: 6,
+                    prompt_tokens_details: { cached_tokens: 1 },
+                    completion_tokens_details: { reasoning_tokens: 1 }
+                  },
+                  choices: [{
+                    index: 0,
+                    delta: {},
+                    finish_reason: "stop"
+                  }]
+                },
+                "[DONE]"
               ]))
             })
           ))
@@ -128,12 +154,65 @@ describe("OpenAiClient", () => {
 
         const body = yield* getRequestBody(capturedRequest)
         assert.strictEqual(body.stream, true)
-        assert.isTrue(capturedRequest.url.endsWith("/responses"))
+        assert.isTrue(capturedRequest.url.endsWith("/chat/completions"))
 
         const events = globalThis.Array.from(eventsChunk)
-        assert.strictEqual(events.length, 2)
-        assert.strictEqual(events[0]?.type, "response.future_event")
-        assert.strictEqual(events[1]?.type, "response.completed")
+        assert.strictEqual(events[0]?.type, "response.created")
+        assert.strictEqual(events[1]?.type, "response.output_item.added")
+        assert.strictEqual(events[2]?.type, "response.output_text.delta")
+        assert.strictEqual(events[3]?.type, "response.output_item.done")
+        assert.strictEqual(events[4]?.type, "response.completed")
+      }))
+
+    it.effect("converts responses tool_choice function format to chat completions format", () =>
+      Effect.gen(function*() {
+        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
+
+        const client = yield* OpenAiClient.make({
+          apiKey: Redacted.make("sk-test-key")
+        }).pipe(
+          Effect.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) => {
+              capturedRequest = request
+              return Effect.succeed(jsonResponse(request, 200, makeChatCompletion()))
+            })
+          ))
+        )
+
+        yield* client.createResponse({
+          model: "gpt-4o-mini",
+          input: "hello",
+          tool_choice: {
+            type: "function",
+            name: "TestTool"
+          },
+          tools: [{
+            type: "function",
+            name: "TestTool",
+            parameters: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                input: { type: "string" }
+              },
+              required: ["input"]
+            }
+          }]
+        })
+
+        assert.isDefined(capturedRequest)
+        if (capturedRequest === undefined) {
+          return
+        }
+
+        const body = yield* getRequestBody(capturedRequest)
+        assert.deepStrictEqual(body.tool_choice, {
+          type: "function",
+          function: {
+            name: "TestTool"
+          }
+        })
       }))
   })
 
@@ -211,13 +290,24 @@ const makeHttpClient = (
     Effect.succeed as HttpClient.HttpClient.Preprocess<HttpClientError.HttpClientError, never>
   )
 
-const makeResponseBody = () => ({
-  id: "resp_test_1",
-  object: "response",
+const makeChatCompletion = () => ({
+  id: "chatcmpl_test_1",
+  object: "chat.completion",
   model: "gpt-4o-mini",
-  status: "completed",
-  created_at: 1,
-  output: []
+  created: 1,
+  choices: [{
+    index: 0,
+    finish_reason: "stop",
+    message: {
+      role: "assistant",
+      content: "Hello"
+    }
+  }],
+  usage: {
+    prompt_tokens: 1,
+    completion_tokens: 1,
+    total_tokens: 2
+  }
 })
 
 const jsonResponse = (
@@ -260,4 +350,9 @@ const getRequestBody = (request: HttpClientRequest.HttpClientRequest) =>
   })
 
 const toSseBody = (events: ReadonlyArray<unknown>): string =>
-  events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join("")
+  events.map((event) => {
+    if (typeof event === "string") {
+      return `data: ${event}\n\n`
+    }
+    return `data: ${JSON.stringify(event)}\n\n`
+  }).join("")
