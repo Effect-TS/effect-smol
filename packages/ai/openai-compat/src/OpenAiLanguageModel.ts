@@ -922,31 +922,79 @@ type NarrowKnownResponseStreamEvent<A> = A extends { readonly type: infer T exte
 
 type KnownResponseStreamEvent = NarrowKnownResponseStreamEvent<ResponseStreamEvent>
 
-const knownResponseStreamEventTypes = new Set<KnownResponseStreamEvent["type"]>([
-  "response.created",
-  "response.completed",
-  "response.incomplete",
-  "response.failed",
-  "response.output_item.added",
-  "response.output_item.done",
-  "response.output_text.delta",
-  "response.output_text.annotation.added",
-  "response.function_call_arguments.delta",
-  "response.apply_patch_call_operation_diff.delta",
-  "response.apply_patch_call_operation_diff.done",
-  "response.code_interpreter_call_code.delta",
-  "response.code_interpreter_call_code.done",
-  "response.image_generation_call.partial_image",
-  "response.reasoning_summary_part.added",
-  "response.reasoning_summary_part.done",
-  "response.reasoning_summary_text.delta",
-  "error"
-])
+const hasObjectProperty = (value: Record<string, unknown>, key: string): boolean =>
+  Predicate.hasProperty(value, key) && typeof value[key] === "object" && value[key] !== null
+
+const hasStringProperty = (value: Record<string, unknown>, key: string): boolean =>
+  Predicate.hasProperty(value, key) && typeof value[key] === "string"
+
+const hasNumberProperty = (value: Record<string, unknown>, key: string): boolean =>
+  Predicate.hasProperty(value, key) && typeof value[key] === "number"
 
 const isKnownResponseStreamEvent = (
   event: ResponseStreamEvent
-): event is KnownResponseStreamEvent =>
-  knownResponseStreamEventTypes.has(event.type as KnownResponseStreamEvent["type"])
+): event is KnownResponseStreamEvent => {
+  const encodedEvent = event as Record<string, unknown>
+  switch (event.type) {
+    case "response.created": {
+      if (!hasObjectProperty(encodedEvent, "response")) {
+        return false
+      }
+      const response = encodedEvent.response as Record<string, unknown>
+      return hasStringProperty(response, "id") &&
+        hasStringProperty(response, "model") &&
+        hasNumberProperty(response, "created_at")
+    }
+    case "response.completed":
+    case "response.incomplete":
+    case "response.failed": {
+      return hasObjectProperty(encodedEvent, "response")
+    }
+    case "response.output_item.added":
+    case "response.output_item.done": {
+      return hasObjectProperty(encodedEvent, "item") && hasNumberProperty(encodedEvent, "output_index")
+    }
+    case "response.output_text.delta": {
+      return hasStringProperty(encodedEvent, "item_id") && hasStringProperty(encodedEvent, "delta")
+    }
+    case "response.output_text.annotation.added": {
+      return hasStringProperty(encodedEvent, "item_id") && hasObjectProperty(encodedEvent, "annotation")
+    }
+    case "response.function_call_arguments.delta": {
+      return hasStringProperty(encodedEvent, "delta") && hasNumberProperty(encodedEvent, "output_index")
+    }
+    case "response.apply_patch_call_operation_diff.delta": {
+      return hasStringProperty(encodedEvent, "delta") && hasNumberProperty(encodedEvent, "output_index")
+    }
+    case "response.apply_patch_call_operation_diff.done": {
+      return hasNumberProperty(encodedEvent, "output_index")
+    }
+    case "response.code_interpreter_call_code.delta": {
+      return hasStringProperty(encodedEvent, "delta") && hasNumberProperty(encodedEvent, "output_index")
+    }
+    case "response.code_interpreter_call_code.done": {
+      return hasStringProperty(encodedEvent, "code") && hasNumberProperty(encodedEvent, "output_index")
+    }
+    case "response.image_generation_call.partial_image": {
+      return hasStringProperty(encodedEvent, "item_id") && hasStringProperty(encodedEvent, "partial_image_b64")
+    }
+    case "response.reasoning_summary_part.added":
+    case "response.reasoning_summary_part.done": {
+      return hasStringProperty(encodedEvent, "item_id") && hasNumberProperty(encodedEvent, "summary_index")
+    }
+    case "response.reasoning_summary_text.delta": {
+      return hasStringProperty(encodedEvent, "item_id") &&
+        hasStringProperty(encodedEvent, "delta") &&
+        hasNumberProperty(encodedEvent, "summary_index")
+    }
+    case "error": {
+      return true
+    }
+    default: {
+      return false
+    }
+  }
+}
 
 const makeResponse = Effect.fnUntraced(
   function*<Tools extends ReadonlyArray<Tool.Any>>({
