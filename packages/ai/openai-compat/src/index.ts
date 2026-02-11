@@ -59,13 +59,3 @@ export * as OpenAiStructuredOutput from "./OpenAiStructuredOutput.ts"
  * @since 1.0.0
  */
 export * as OpenAiTelemetry from "./OpenAiTelemetry.ts"
-
-/**
- * OpenAI provider-defined tools for use with the LanguageModel.
- *
- * Provides tools that are natively supported by OpenAI's API, including
- * code interpreter, file search, and web search functionality.
- *
- * @since 1.0.0
- */
-export * as OpenAiTool from "./OpenAiTool.ts"

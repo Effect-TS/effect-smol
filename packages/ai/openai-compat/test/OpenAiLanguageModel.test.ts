@@ -1,8 +1,8 @@
-import { OpenAiClient, OpenAiLanguageModel, OpenAiTool } from "@effect/ai-openai-compat"
+import { OpenAiClient, OpenAiLanguageModel } from "@effect/ai-openai-compat"
 import { assert, describe, it } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Effect, Layer, Redacted, Ref, Stream } from "effect"
-import { LanguageModel, Prompt, Toolkit } from "effect/unstable/ai"
+import { Effect, Layer, Redacted, Ref, Schema, Stream } from "effect"
+import { LanguageModel, Prompt, Tool, Toolkit } from "effect/unstable/ai"
 import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 describe("OpenAiLanguageModel", () => {
@@ -76,9 +76,9 @@ describe("OpenAiLanguageModel", () => {
           Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
         )
 
-        const toolkit = Toolkit.make(OpenAiTool.LocalShell({}))
+        const toolkit = Toolkit.make(CompatLocalShellTool({}))
         const toolkitLayer = toolkit.toLayer({
-          OpenAiLocalShell: () => Effect.succeed({ output: "done" })
+          CompatLocalShell: () => Effect.succeed("done")
         })
 
         const partsChunk = yield* LanguageModel.streamText({
@@ -98,7 +98,7 @@ describe("OpenAiLanguageModel", () => {
           return
         }
 
-        strictEqual(toolCall.name, "OpenAiLocalShell")
+        strictEqual(toolCall.name, "CompatLocalShell")
         deepStrictEqual(toolCall.params, { action: localShellAction })
 
         yield* LanguageModel.generateText({
@@ -156,7 +156,7 @@ describe("OpenAiLanguageModel", () => {
         strictEqual(localShellOutput.content, "done")
       }))
 
-    it.effect("maps apply_patch stream tool calls to OpenAiApplyPatch", () =>
+    it.effect("maps apply_patch stream tool calls to custom provider-defined tool", () =>
       Effect.gen(function*() {
         const layer = makeTestLayer([
           {
@@ -189,9 +189,9 @@ describe("OpenAiLanguageModel", () => {
           "[DONE]"
         ])
 
-        const toolkit = Toolkit.make(OpenAiTool.ApplyPatch({}))
+        const toolkit = Toolkit.make(CompatApplyPatchTool({}))
         const toolkitLayer = toolkit.toLayer({
-          OpenAiApplyPatch: () =>
+          CompatApplyPatch: () =>
             Effect.succeed({
               status: "completed",
               output: "deleted"
@@ -215,7 +215,7 @@ describe("OpenAiLanguageModel", () => {
           return
         }
 
-        strictEqual(toolCall.name, "OpenAiApplyPatch")
+        strictEqual(toolCall.name, "CompatApplyPatch")
         deepStrictEqual(toolCall.params, {
           call_id: "patch_call_1",
           operation: {
@@ -232,6 +232,32 @@ const localShellAction = {
   command: ["pwd"],
   env: {}
 }
+
+const CompatLocalShellTool = Tool.providerDefined({
+  id: "compat.local_shell",
+  customName: "CompatLocalShell",
+  providerName: "local_shell",
+  requiresHandler: true,
+  parameters: Schema.Struct({
+    action: Schema.Any
+  }),
+  success: Schema.String
+})
+
+const CompatApplyPatchTool = Tool.providerDefined({
+  id: "compat.apply_patch",
+  customName: "CompatApplyPatch",
+  providerName: "apply_patch",
+  requiresHandler: true,
+  parameters: Schema.Struct({
+    call_id: Schema.String,
+    operation: Schema.Any
+  }),
+  success: Schema.Struct({
+    status: Schema.Literals(["completed", "failed"]),
+    output: Schema.optionalKey(Schema.NullOr(Schema.String))
+  })
+})
 
 const makeLocalShellChunk = () => ({
   id: "chatcmpl_local_shell_1",

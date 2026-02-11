@@ -1,4 +1,4 @@
-import { OpenAiClient, OpenAiLanguageModel, OpenAiTool } from "@effect/ai-openai-compat"
+import { OpenAiClient, OpenAiLanguageModel } from "@effect/ai-openai-compat"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer, Redacted, Schema, Stream } from "effect"
 import { LanguageModel, Tool, Toolkit } from "effect/unstable/ai"
@@ -113,7 +113,7 @@ describe("OpenAi compat LanguageModel", () => {
         assert.strictEqual(functionTool.function.strict, true)
       }))
 
-    it.effect("maps provider apply_patch function call back to OpenAiApplyPatch", () =>
+    it.effect("maps provider apply_patch function call back to custom provider-defined tool", () =>
       Effect.gen(function*() {
         const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
           Layer.provide(Layer.succeed(
@@ -150,9 +150,9 @@ describe("OpenAi compat LanguageModel", () => {
           ))
         )
 
-        const toolkit = Toolkit.make(OpenAiTool.ApplyPatch({}))
+        const toolkit = Toolkit.make(CompatApplyPatchTool({}))
         const toolkitLayer = toolkit.toLayer({
-          OpenAiApplyPatch: () =>
+          CompatApplyPatch: () =>
             Effect.succeed({
               status: "completed",
               output: "deleted"
@@ -175,7 +175,7 @@ describe("OpenAi compat LanguageModel", () => {
           return
         }
 
-        assert.strictEqual(toolCall.name, "OpenAiApplyPatch")
+        assert.strictEqual(toolCall.name, "CompatApplyPatch")
         assert.deepStrictEqual(toolCall.params, {
           call_id: "call_1",
           operation: {
@@ -396,6 +396,21 @@ const TestToolkit = Toolkit.make(TestTool)
 
 const TestToolkitLayer = TestToolkit.toLayer({
   TestTool: ({ input }) => Effect.succeed({ output: input })
+})
+
+const CompatApplyPatchTool = Tool.providerDefined({
+  id: "compat.apply_patch",
+  customName: "CompatApplyPatch",
+  providerName: "apply_patch",
+  requiresHandler: true,
+  parameters: Schema.Struct({
+    call_id: Schema.String,
+    operation: Schema.Any
+  }),
+  success: Schema.Struct({
+    status: Schema.Literals(["completed", "failed"]),
+    output: Schema.optionalKey(Schema.NullOr(Schema.String))
+  })
 })
 
 const makeHttpClient = (

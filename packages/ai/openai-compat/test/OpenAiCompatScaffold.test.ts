@@ -4,8 +4,7 @@ import {
   OpenAiError,
   OpenAiLanguageModel,
   OpenAiStructuredOutput,
-  OpenAiTelemetry,
-  OpenAiTool
+  OpenAiTelemetry
 } from "@effect/ai-openai-compat"
 import { assert, describe, it } from "@effect/vitest"
 
@@ -17,11 +16,10 @@ describe("OpenAi compat scaffold", () => {
       OpenAiError,
       OpenAiLanguageModel,
       OpenAiStructuredOutput,
-      OpenAiTelemetry,
-      OpenAiTool
+      OpenAiTelemetry
     ]
 
-    assert.strictEqual(modules.length, 7)
+    assert.strictEqual(modules.length, 6)
     for (const mod of modules) {
       assert.isDefined(mod)
     }

@@ -13,7 +13,7 @@ import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as Redactable from "effect/Redactable"
-import * as Schema from "effect/Schema"
+import type * as Schema from "effect/Schema"
 import * as AST from "effect/SchemaAST"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
@@ -48,7 +48,6 @@ import {
   type Tool as OpenAiClientTool
 } from "./OpenAiClient.ts"
 import { addGenAIAnnotations } from "./OpenAiTelemetry.ts"
-import type * as OpenAiTool from "./OpenAiTool.ts"
 
 /**
  * @since 1.0.0
@@ -508,28 +507,9 @@ const prepareMessages = Effect.fnUntraced(
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<ReadonlyArray<InputItem>, AiError.AiError> {
     const processedApprovalIds = new Set<string>()
+    const providerToolNames = new Set(toolNameMapper.providerNames)
 
     const hasConversation = Predicate.isNotNullish(config.conversation)
-
-    // Provider-Defined Tools
-    const applyPatchTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.ApplyPatch> =>
-      Tool.isProviderDefined(tool) && tool.name === "OpenAiApplyPatch"
-    )
-    const codeInterpreterTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.CodeInterpreter> =>
-      Tool.isProviderDefined(tool) && tool.name === "OpenAiCodeInterpreter"
-    )
-    const shellTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.Shell> =>
-      Tool.isProviderDefined(tool) && tool.name === "OpenAiFunctionShell"
-    )
-    const localShellTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.LocalShell> =>
-      Tool.isProviderDefined(tool) && tool.name === "OpenAiLocalShell"
-    )
-    const webSearchTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.WebSearch> =>
-      Tool.isProviderDefined(tool) && tool.name === "OpenAiWebSearch"
-    )
-    const webSearchPreviewTool = options.tools.find((tool): tool is ReturnType<typeof OpenAiTool.WebSearchPreview> =>
-      Tool.isProviderDefined(tool) && tool.name === "OpenAiWebSearchPreview"
-    )
 
     // Handle Included Features
     if (Predicate.isNotUndefined(config.top_logprobs)) {
@@ -538,10 +518,10 @@ const prepareMessages = Effect.fnUntraced(
     if (config.store === false && capabilities.isReasoningModel) {
       include.add("reasoning.encrypted_content")
     }
-    if (Predicate.isNotUndefined(codeInterpreterTool)) {
+    if (providerToolNames.has("code_interpreter")) {
       include.add("code_interpreter_call.outputs")
     }
-    if (Predicate.isNotUndefined(webSearchTool) || Predicate.isNotUndefined(webSearchPreviewTool)) {
+    if (providerToolNames.has("web_search") || providerToolNames.has("web_search_preview")) {
       include.add("web_search_call.action.sources")
     }
 
@@ -729,58 +709,6 @@ const prepareMessages = Effect.fnUntraced(
 
                 const toolName = toolNameMapper.getProviderName(part.name)
 
-                if (Predicate.isNotUndefined(localShellTool) && toolName === "local_shell") {
-                  const params = yield* Schema.decodeUnknownEffect(localShellTool.parametersSchema)(part.params).pipe(
-                    Effect.mapError((error) =>
-                      AiError.make({
-                        module: "OpenAiLanguageModel",
-                        method: "prepareMessages",
-                        reason: new AiError.ToolParameterValidationError({
-                          toolName: "local_shell",
-                          toolParams: part.params as Schema.Json,
-                          description: error.message
-                        })
-                      })
-                    )
-                  )
-
-                  messages.push({
-                    id: id!,
-                    type: "local_shell_call",
-                    call_id: part.id,
-                    status: status ?? "completed",
-                    action: params.action
-                  })
-
-                  break
-                }
-
-                if (Predicate.isNotUndefined(shellTool) && toolName === "shell") {
-                  const params = yield* Schema.decodeUnknownEffect(shellTool.parametersSchema)(part.params).pipe(
-                    Effect.mapError((error) =>
-                      AiError.make({
-                        module: "OpenAiLanguageModel",
-                        method: "prepareMessages",
-                        reason: new AiError.ToolParameterValidationError({
-                          toolName: "shell",
-                          toolParams: part.params as Schema.Json,
-                          description: error.message
-                        })
-                      })
-                    )
-                  )
-
-                  messages.push({
-                    id: id!,
-                    type: "shell_call",
-                    call_id: part.id,
-                    status: status ?? "completed",
-                    action: params.action
-                  })
-
-                  break
-                }
-
                 messages.push({
                   type: "function_call",
                   name: toolName,
@@ -853,44 +781,13 @@ const prepareMessages = Effect.fnUntraced(
               }
             }
 
-            const id = getItemId(part) ?? part.id
             const status = getStatus(part)
-            const toolName = toolNameMapper.getProviderName(part.name)
-
-            if (Predicate.isNotUndefined(applyPatchTool) && toolName === "apply_patch") {
-              messages.push({
-                id,
-                type: "apply_patch_call_output",
-                call_id: part.id,
-                ...(part.result as any)
-              })
-            }
-
-            if (Predicate.isNotUndefined(shellTool) && toolName === "shell") {
-              messages.push({
-                id,
-                type: "shell_call_output",
-                call_id: part.id,
-                output: part.result as any,
-                ...(Predicate.isNotNull(status) ? { status } : {})
-              })
-            }
-
-            if (Predicate.isNotUndefined(localShellTool) && toolName === "local_shell") {
-              messages.push({
-                id,
-                type: "local_shell_call_output",
-                call_id: part.id,
-                output: part.result as any,
-                ...(Predicate.isNotNull(status) ? { status } : {})
-              })
-            }
 
             messages.push({
               type: "function_call_output",
               call_id: part.id,
               // @effect-diagnostics-next-line preferSchemaOverJson:off
-              output: JSON.stringify(part.result),
+              output: typeof part.result === "string" ? part.result : JSON.stringify(part.result),
               ...(Predicate.isNotNull(status) ? { status } : {})
             })
           }
@@ -1464,11 +1361,11 @@ const makeStreamResponse = Effect.fnUntraced(
       }
     }> = {}
 
-    const webSearchTool = options.tools.find((tool) =>
+    const webSearchTool = options.tools.find((tool): tool is Tool.AnyProviderDefined =>
       Tool.isProviderDefined(tool) &&
-      (tool.name === "OpenAiWebSearch" ||
-        tool.name === "OpenAiWebSearchPreview")
-    ) as ReturnType<typeof OpenAiTool.WebSearch> | ReturnType<typeof OpenAiTool.WebSearchPreview> | undefined
+      (tool.providerName === "web_search" ||
+        tool.providerName === "web_search_preview")
+    )
 
     return stream.pipe(
       Stream.mapEffect(Effect.fnUntraced(function*(event) {
@@ -1692,7 +1589,7 @@ const makeStreamResponse = Effect.fnUntraced(
                 parts.push({
                   type: "tool-params-start",
                   id: event.item.id,
-                  name: webSearchTool?.name ?? "OpenAiWebSearch",
+                  name: toolName,
                   providerExecuted: true
                 })
                 parts.push({
@@ -2373,144 +2270,13 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
     }
 
     if (Tool.isProviderDefined(tool)) {
-      const openAiTool = tool as OpenAiTool.OpenAiTool
-      switch (openAiTool.name) {
-        case "OpenAiApplyPatch": {
-          tools.push({ type: "apply_patch" })
-          break
-        }
-        case "OpenAiCodeInterpreter": {
-          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
-            Effect.mapError((error) =>
-              AiError.make({
-                module: "OpenAiLanguageModel",
-                method: "prepareTools",
-                reason: new AiError.ToolConfigurationError({
-                  toolName: openAiTool.name,
-                  description: error.message
-                })
-              })
-            )
-          )
-          tools.push({
-            ...args,
-            type: "code_interpreter"
-          })
-          break
-        }
-        case "OpenAiFileSearch": {
-          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
-            Effect.mapError((error) =>
-              AiError.make({
-                module: "OpenAiLanguageModel",
-                method: "prepareTools",
-                reason: new AiError.ToolConfigurationError({
-                  toolName: openAiTool.name,
-                  description: error.message
-                })
-              })
-            )
-          )
-          tools.push({
-            ...args,
-            type: "file_search"
-          })
-          break
-        }
-        case "OpenAiShell": {
-          tools.push({ type: "shell" })
-          break
-        }
-        case "OpenAiImageGeneration": {
-          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
-            Effect.mapError((error) =>
-              AiError.make({
-                module: "OpenAiLanguageModel",
-                method: "prepareTools",
-                reason: new AiError.ToolConfigurationError({
-                  toolName: openAiTool.name,
-                  description: error.message
-                })
-              })
-            )
-          )
-          tools.push({
-            ...args,
-            type: "image_generation"
-          })
-          break
-        }
-        case "OpenAiLocalShell": {
-          tools.push({ type: "local_shell" })
-          break
-        }
-        case "OpenAiMcp": {
-          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
-            Effect.mapError((error) =>
-              AiError.make({
-                module: "OpenAiLanguageModel",
-                method: "prepareTools",
-                reason: new AiError.ToolConfigurationError({
-                  toolName: openAiTool.name,
-                  description: error.message
-                })
-              })
-            )
-          )
-          tools.push({
-            ...args,
-            type: "mcp"
-          })
-          break
-        }
-        case "OpenAiWebSearch": {
-          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
-            Effect.mapError((error) =>
-              AiError.make({
-                module: "OpenAiLanguageModel",
-                method: "prepareTools",
-                reason: new AiError.ToolConfigurationError({
-                  toolName: openAiTool.name,
-                  description: error.message
-                })
-              })
-            )
-          )
-          tools.push({
-            ...args,
-            type: "web_search"
-          })
-          break
-        }
-        case "OpenAiWebSearchPreview": {
-          const args = yield* Schema.decodeUnknownEffect(openAiTool.argsSchema)(tool.args).pipe(
-            Effect.mapError((error) =>
-              AiError.make({
-                module: "OpenAiLanguageModel",
-                method: "prepareTools",
-                reason: new AiError.ToolConfigurationError({
-                  toolName: openAiTool.name,
-                  description: error.message
-                })
-              })
-            )
-          )
-          tools.push({
-            ...args,
-            type: "web_search_preview"
-          })
-          break
-        }
-        default: {
-          return yield* AiError.make({
-            module: "OpenAiLanguageModel",
-            method: "prepareTools",
-            reason: new AiError.InvalidRequestError({
-              description: `Unknown provider-defined tool '${tool.name}'`
-            })
-          })
-        }
-      }
+      tools.push({
+        type: "function",
+        name: tool.providerName,
+        description: Tool.getDescription(tool) ?? null,
+        parameters: Tool.getJsonSchema(tool) as { readonly [x: string]: Schema.Json },
+        strict: config.strictJsonSchema ?? true
+      })
     }
   }
 
@@ -2522,7 +2288,7 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
     const toolName = toolNameMapper.getProviderName(options.toolChoice.tool)
     const providerNames = toolNameMapper.providerNames
     if (providerNames.includes(toolName)) {
-      toolChoice = { type: toolName as any }
+      toolChoice = { type: "function", name: toolName }
     } else {
       toolChoice = { type: "function", name: options.toolChoice.tool }
     }
