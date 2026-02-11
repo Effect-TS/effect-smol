@@ -8,6 +8,7 @@ import * as Base64 from "effect/encoding/Base64"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
+import * as Redactable from "effect/Redactable"
 import * as Schema from "effect/Schema"
 import * as SchemaAST from "effect/SchemaAST"
 import * as ServiceMap from "effect/ServiceMap"
@@ -21,6 +22,8 @@ import * as AiModel from "effect/unstable/ai/Model"
 import type * as Prompt from "effect/unstable/ai/Prompt"
 import type * as Response from "effect/unstable/ai/Response"
 import * as Tool from "effect/unstable/ai/Tool"
+import type * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import { AnthropicClient, type MessageStreamEvent } from "./AnthropicClient.ts"
 import { toCodecAnthropic } from "./AnthropicStructuredOutput.ts"
 import { addGenAIAnnotations } from "./AnthropicTelemetry.ts"
@@ -470,17 +473,17 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
       const toolNameMapper = new Tool.NameMapper(options.tools)
       const request = yield* makeRequest({ config, options, toolNameMapper })
       annotateRequest(options.span, request.payload)
-      const response = yield* client.createMessage(request)
-      annotateResponse(options.span, response)
-      return yield* makeResponse({ options, response, toolNameMapper })
+      const [rawResponse, response] = yield* client.createMessage(request)
+      annotateResponse(options.span, rawResponse)
+      return yield* makeResponse({ options, rawResponse, response, toolNameMapper })
     }),
     streamText: Effect.fnUntraced(function*(options) {
       const config = yield* makeConfig
       const toolNameMapper = new Tool.NameMapper(options.tools)
       const request = yield* makeRequest({ config, options, toolNameMapper })
       annotateRequest(options.span, request.payload)
-      const stream = client.createMessageStream(request)
-      return yield* makeStreamResponse({ stream, options, toolNameMapper })
+      const [response, stream] = yield* client.createMessageStream(request)
+      return yield* makeStreamResponse({ stream, response, options, toolNameMapper })
     }, (effect, options) =>
       effect.pipe(
         Stream.unwrap,
@@ -1213,17 +1216,40 @@ const prepareTools = Effect.fnUntraced(
 )
 
 // =============================================================================
+// HTTP Details
+// =============================================================================
+
+const buildHttpRequestDetails = (
+  request: HttpClientRequest.HttpClientRequest
+): typeof Response.HttpRequestDetails.Type => ({
+  method: request.method,
+  url: request.url,
+  urlParams: Array.from(request.urlParams),
+  hash: request.hash,
+  headers: Redactable.redact(request.headers) as Record<string, string>
+})
+
+const buildHttpResponseDetails = (
+  response: HttpClientResponse.HttpClientResponse
+): typeof Response.HttpResponseDetails.Type => ({
+  status: response.status,
+  headers: Redactable.redact(response.headers) as Record<string, string>
+})
+
+// =============================================================================
 // Response Conversion
 // =============================================================================
 
 const makeResponse = Effect.fnUntraced(
   function*<Tools extends ReadonlyArray<Tool.Any>>({
     options,
+    rawResponse,
     response,
     toolNameMapper
   }: {
     readonly options: LanguageModel.ProviderOptions
-    readonly response: Generated.BetaMessage
+    readonly rawResponse: Generated.BetaMessage
+    readonly response: HttpClientResponse.HttpClientResponse
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<
     Array<Response.PartEncoded>,
@@ -1237,12 +1263,13 @@ const makeResponse = Effect.fnUntraced(
 
     parts.push({
       type: "response-metadata",
-      id: response.id,
-      modelId: response.model,
-      timestamp: DateTime.formatIso(yield* DateTime.now)
+      id: rawResponse.id,
+      modelId: rawResponse.model,
+      timestamp: DateTime.formatIso(yield* DateTime.now),
+      request: buildHttpRequestDetails(response.request)
     })
 
-    for (const part of response.content) {
+    for (const part of rawResponse.content) {
       switch (part.type) {
         case "text": {
           // Text parts are added for both text and json response formats.
@@ -1587,14 +1614,14 @@ const makeResponse = Effect.fnUntraced(
 
     // Anthropic always returns a non-null `stop_reason` for non-streaming responses
     const finishReason = InternalUtilities.resolveFinishReason(
-      response.stop_reason!,
+      rawResponse.stop_reason!,
       options.responseFormat.type === "json"
     )
 
-    const inputTokens = response.usage.input_tokens
-    const outputTokens = response.usage.output_tokens
-    const cacheWriteTokens = response.usage.cache_creation_input_tokens ?? 0
-    const cacheReadTokens = response.usage.cache_read_input_tokens ?? 0
+    const inputTokens = rawResponse.usage.input_tokens
+    const outputTokens = rawResponse.usage.output_tokens
+    const cacheWriteTokens = rawResponse.usage.cache_creation_input_tokens ?? 0
+    const cacheReadTokens = rawResponse.usage.cache_read_input_tokens ?? 0
 
     parts.push({
       type: "finish",
@@ -1612,12 +1639,13 @@ const makeResponse = Effect.fnUntraced(
           reasoning: undefined
         }
       },
+      response: buildHttpResponseDetails(response),
       metadata: {
         anthropic: {
-          container: response.container ?? null,
-          contextManagement: response.context_management ?? null,
-          usage: response.usage,
-          stopSequence: response.stop_sequence
+          container: rawResponse.container ?? null,
+          contextManagement: rawResponse.context_management ?? null,
+          usage: rawResponse.usage,
+          stopSequence: rawResponse.stop_sequence
         }
       }
     })
@@ -1629,10 +1657,12 @@ const makeResponse = Effect.fnUntraced(
 const makeStreamResponse = Effect.fnUntraced(
   function*<Tools extends ReadonlyArray<Tool.Any>>({
     stream,
+    response,
     options,
     toolNameMapper
   }: {
     readonly stream: Stream.Stream<MessageStreamEvent, AiError.AiError>
+    readonly response: HttpClientResponse.HttpClientResponse
     readonly options: LanguageModel.ProviderOptions
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<
@@ -1708,7 +1738,8 @@ const makeStreamResponse = Effect.fnUntraced(
               type: "response-metadata",
               id: event.message.id,
               modelId: event.message.model,
-              timestamp: DateTime.formatIso(yield* DateTime.now)
+              timestamp: DateTime.formatIso(yield* DateTime.now),
+              request: buildHttpRequestDetails(response.request)
             })
 
             // Process pre-populated content blocks
@@ -1828,6 +1859,7 @@ const makeStreamResponse = Effect.fnUntraced(
                   reasoning: undefined
                 }
               },
+              response: buildHttpResponseDetails(response),
               metadata
             })
 

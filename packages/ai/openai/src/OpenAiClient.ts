@@ -13,12 +13,16 @@ import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as Redacted from "effect/Redacted"
+import * as Schema from "effect/Schema"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import type * as AiError from "effect/unstable/ai/AiError"
+import * as Sse from "effect/unstable/encoding/Sse"
 import * as Headers from "effect/unstable/http/Headers"
+import * as HttpBody from "effect/unstable/http/HttpBody"
 import * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import * as Generated from "./Generated.ts"
 import * as Errors from "./internal/errors.ts"
 import { OpenAiConfig } from "./OpenAiConfig.ts"
@@ -44,14 +48,23 @@ export interface Service {
    */
   readonly createResponse: (
     options: typeof Generated.CreateResponse.Encoded
-  ) => Effect.Effect<typeof Generated.Response.Type, AiError.AiError>
+  ) => Effect.Effect<
+    [body: typeof Generated.Response.Type, response: HttpClientResponse.HttpClientResponse],
+    AiError.AiError
+  >
 
   /**
    * Create a streaming response using the OpenAI responses endpoint.
    */
   readonly createResponseStream: (
     options: Omit<typeof Generated.CreateResponse.Encoded, "stream">
-  ) => Stream.Stream<typeof Generated.ResponseStreamEvent.Type, AiError.AiError>
+  ) => Effect.Effect<
+    [
+      response: HttpClientResponse.HttpClientResponse,
+      stream: Stream.Stream<typeof Generated.ResponseStreamEvent.Type, AiError.AiError>
+    ],
+    AiError.AiError
+  >
 
   /**
    * Create embeddings using the OpenAI embeddings endpoint.
@@ -172,18 +185,31 @@ export const make = Effect.fnUntraced(
 
     const createResponse = (
       payload: typeof Generated.CreateResponse.Encoded
-    ): Effect.Effect<typeof Generated.Response.Type, AiError.AiError> =>
-      client.createResponse({ payload }).pipe(
+    ): Effect.Effect<
+      [body: typeof Generated.Response.Type, response: HttpClientResponse.HttpClientResponse],
+      AiError.AiError
+    > =>
+      client.createResponse({ payload, config: { includeResponse: true } }).pipe(
         Effect.catchTags({
           HttpClientError: (error) => Errors.mapHttpClientError(error, "createResponse"),
           SchemaError: (error) => Effect.fail(Errors.mapSchemaError(error, "createResponse"))
         })
       )
 
-    const createResponseStream = (
-      payload: Omit<typeof Generated.CreateResponse.Encoded, "stream">
-    ): Stream.Stream<typeof Generated.ResponseStreamEvent.Type, AiError.AiError> =>
-      client.createResponseSse({ payload: { ...payload, stream: true } }).pipe(
+    const SseEvent = Schema.Struct({
+      ...Sse.EventEncoded.fields,
+      data: Generated.ResponseStreamEvent
+    })
+
+    const buildResponseStream = (
+      response: HttpClientResponse.HttpClientResponse
+    ): [
+      HttpClientResponse.HttpClientResponse,
+      Stream.Stream<typeof Generated.ResponseStreamEvent.Type, AiError.AiError>
+    ] => {
+      const stream = response.stream.pipe(
+        Stream.decodeText(),
+        Stream.pipeThroughChannel(Sse.decodeSchema(SseEvent)),
         Stream.takeUntil((event) =>
           event.data.type === "response.completed" ||
           event.data.type === "response.incomplete"
@@ -195,7 +221,23 @@ export const make = Effect.fnUntraced(
           HttpClientError: (error) => Stream.fromEffect(Errors.mapHttpClientError(error, "createResponseStream")),
           SchemaError: (error) => Stream.fail(Errors.mapSchemaError(error, "createResponseStream"))
         })
-      )
+      ) as any
+      return [response, stream]
+    }
+
+    const createResponseStream: Service["createResponseStream"] = (payload) =>
+      HttpClient.filterStatusOk(httpClient)
+        .execute(
+          HttpClientRequest.post("/responses", {
+            body: HttpBody.jsonUnsafe({ ...payload, stream: true })
+          })
+        ).pipe(
+          Effect.map(buildResponseStream),
+          Effect.catchTag(
+            "HttpClientError",
+            (error) => Errors.mapHttpClientError(error, "createResponseStream")
+          )
+        )
 
     const createEmbedding = (
       payload: typeof Generated.CreateEmbeddingRequest.Encoded

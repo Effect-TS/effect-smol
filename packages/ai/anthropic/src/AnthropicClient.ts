@@ -23,6 +23,7 @@ import * as HttpBody from "effect/unstable/http/HttpBody"
 import * as HttpClient from "effect/unstable/http/HttpClient"
 import type * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import { AnthropicConfig } from "./AnthropicConfig.ts"
 import * as Generated from "./Generated.ts"
 import * as Errors from "./internal/errors.ts"
@@ -77,19 +78,26 @@ export interface Service {
   readonly createMessage: (options: {
     readonly payload: typeof Generated.BetaCreateMessageParams.Encoded
     readonly params?: typeof Generated.BetaMessagesPostParams.Encoded | undefined
-  }) => Effect.Effect<typeof Generated.BetaMessage.Type, AiError.AiError>
+  }) => Effect.Effect<
+    [body: typeof Generated.BetaMessage.Type, response: HttpClientResponse.HttpClientResponse],
+    AiError.AiError
+  >
 
   /**
    * Creates a streaming message using the Anthropic Messages API.
    *
-   * Returns a stream of events as the model generates its response. The stream
-   * automatically terminates when a `message_stop` event is received. All
-   * errors are mapped to the unified `AiError` type.
+   * Returns an Effect that yields the HTTP response and a stream of events
+   * as the model generates its response. The stream automatically terminates
+   * when a `message_stop` event is received. All errors are mapped to the
+   * unified `AiError` type.
    */
   readonly createMessageStream: (options: {
     readonly payload: Omit<typeof Generated.BetaCreateMessageParams.Encoded, "stream">
     readonly params?: typeof Generated.BetaMessagesPostParams.Encoded | undefined
-  }) => Stream.Stream<MessageStreamEvent, AiError.AiError>
+  }) => Effect.Effect<
+    [response: HttpClientResponse.HttpClientResponse, stream: Stream.Stream<MessageStreamEvent, AiError.AiError>],
+    AiError.AiError
+  >
 }
 
 /**
@@ -263,8 +271,11 @@ export const make = Effect.fnUntraced(
     const createMessage = (options: {
       readonly payload: typeof Generated.BetaCreateMessageParams.Encoded
       readonly params?: typeof Generated.BetaMessagesPostParams.Encoded | undefined
-    }): Effect.Effect<typeof Generated.BetaMessage.Type, AiError.AiError> =>
-      client.betaMessagesPost(options).pipe(
+    }): Effect.Effect<
+      [body: typeof Generated.BetaMessage.Type, response: HttpClientResponse.HttpClientResponse],
+      AiError.AiError
+    > =>
+      client.betaMessagesPost({ ...options, config: { includeResponse: true } }).pipe(
         Effect.catchTags({
           BetaMessagesPost4XX: (error) => Effect.fail(Errors.mapClientError(error, "createMessage")),
           HttpClientError: (error) => Errors.mapHttpClientError(error, "createMessage"),
@@ -290,10 +301,31 @@ export const make = Effect.fnUntraced(
       ])
     })
 
-    const createMessageStream = (options: {
-      readonly payload: Omit<typeof Generated.BetaCreateMessageParams.Encoded, "stream">
-      readonly params?: typeof Generated.BetaMessagesPostParams.Encoded | undefined
-    }): Stream.Stream<MessageStreamEvent, AiError.AiError> => {
+    const buildMessageStream = (
+      response: HttpClientResponse.HttpClientResponse
+    ): [HttpClientResponse.HttpClientResponse, Stream.Stream<MessageStreamEvent, AiError.AiError>] => {
+      const stream = response.stream.pipe(
+        Stream.decodeText(),
+        Stream.pipeThroughChannel(Sse.decodeSchema<
+          typeof SseEvent.Type,
+          typeof SseEvent.DecodingServices,
+          HttpClientError.HttpClientError,
+          unknown
+        >(SseEvent)),
+        Stream.takeUntil((event) => event.data.type === "message_stop"),
+        Stream.map((event) => event.data),
+        Stream.filter((event): event is MessageStreamEvent => event.type !== "ping"),
+        Stream.catchTags({
+          // TODO: handle SSE retries
+          Retry: (error) => Stream.die(error),
+          HttpClientError: (error) => Stream.fromEffect(Errors.mapHttpClientError(error, "createMessageStream")),
+          SchemaError: (error) => Stream.fail(Errors.mapSchemaError(error, "createMessageStream"))
+        })
+      ) as any
+      return [response, stream]
+    }
+
+    const createMessageStream: Service["createMessageStream"] = (options) => {
       const request = HttpClientRequest.post("/v1/messages", {
         headers: Headers.fromInput({
           "anthropic-beta": options.params?.["anthropic-beta"] ?? undefined,
@@ -304,16 +336,12 @@ export const make = Effect.fnUntraced(
           stream: true
         })
       })
-      return streamRequest(SseEvent)(request).pipe(
-        Stream.takeUntil((event) => event.data.type === "message_stop"),
-        Stream.map((event) => event.data),
-        Stream.filter((event): event is MessageStreamEvent => event.type !== "ping"),
-        Stream.catchTags({
-          // TODO: handle SSE retries
-          Retry: (error) => Stream.die(error),
-          HttpClientError: (error) => Stream.fromEffect(Errors.mapHttpClientError(error, "createMessageStream")),
-          SchemaError: (error) => Stream.fail(Errors.mapSchemaError(error, "createMessageStream"))
-        })
+      return httpClientOk.execute(request).pipe(
+        Effect.map(buildMessageStream),
+        Effect.catchTag(
+          "HttpClientError",
+          (error) => Errors.mapHttpClientError(error, "createMessageStream")
+        )
       )
     }
 

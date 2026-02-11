@@ -85,6 +85,7 @@ import { redact } from "../../Redactable.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
 import type * as HttpClientError from "../http/HttpClientError.ts"
+import { HttpRequestDetails, HttpResponseDetails } from "./Response.ts"
 
 const ReasonTypeId = "~effect/unstable/ai/AiError/Reason" as const
 
@@ -108,38 +109,12 @@ const redactHeaders = (headers: Record<string, string>): Record<string, string> 
 /**
  * Schema for HTTP request details used in error reporting.
  *
- * Captures comprehensive information about HTTP requests that failed,
- * enabling detailed error analysis and debugging.
- *
- * @example
- * ```ts
- * import type { AiError } from "effect/unstable/ai"
- *
- * const requestDetails: typeof AiError.HttpRequestDetails.Type = {
- *   method: "POST",
- *   url: "https://api.openai.com/v1/completions",
- *   urlParams: [["model", "gpt-4"], ["stream", "false"]],
- *   hash: "#section1",
- *   headers: { "Content-Type": "application/json" }
- * }
- * ```
+ * Re-exported from the `Response` module.
  *
  * @since 1.0.0
  * @category schemas
  */
-export const HttpRequestDetails = Schema.Struct({
-  method: Schema.Literals(["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS"]),
-  url: Schema.String,
-  urlParams: Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
-  hash: Schema.UndefinedOr(Schema.String),
-  headers: Schema.Record(
-    Schema.String,
-    Schema.Union([
-      Schema.String,
-      Schema.Redacted(Schema.String)
-    ])
-  )
-}).annotate({ identifier: "HttpRequestDetails" })
+export { HttpRequestDetails }
 
 /**
  * Error indicating a network-level failure before receiving a response.
@@ -265,36 +240,12 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
 /**
  * Schema for HTTP response details used in error reporting.
  *
- * Captures essential information about HTTP responses that caused errors,
- * including status codes and headers for debugging purposes.
- *
- * @example
- * ```ts
- * import type { AiError } from "effect/unstable/ai"
- *
- * const responseDetails: typeof AiError.HttpResponseDetails.Type = {
- *   status: 429,
- *   headers: {
- *     "Content-Type": "application/json",
- *     "X-RateLimit-Remaining": "0",
- *     "Retry-After": "60"
- *   }
- * }
- * ```
+ * Re-exported from the `Response` module.
  *
  * @since 1.0.0
  * @category schemas
  */
-export const HttpResponseDetails = Schema.Struct({
-  status: Schema.Number,
-  headers: Schema.Record(
-    Schema.String,
-    Schema.Union([
-      Schema.String,
-      Schema.Redacted(Schema.String)
-    ])
-  )
-}).annotate({ identifier: "HttpResponseDetails" })
+export { HttpResponseDetails }
 
 // =============================================================================
 // Supporting Schemas

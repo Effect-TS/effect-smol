@@ -12,6 +12,7 @@ import * as Base64 from "effect/encoding/Base64"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
+import * as Redactable from "effect/Redactable"
 import * as Schema from "effect/Schema"
 import * as AST from "effect/SchemaAST"
 import * as ServiceMap from "effect/ServiceMap"
@@ -25,6 +26,8 @@ import * as AiModel from "effect/unstable/ai/Model"
 import type * as Prompt from "effect/unstable/ai/Prompt"
 import type * as Response from "effect/unstable/ai/Response"
 import * as Tool from "effect/unstable/ai/Tool"
+import type * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import * as Generated from "./Generated.ts"
 import * as InternalUtilities from "./internal/utilities.ts"
 import { OpenAiClient } from "./OpenAiClient.ts"
@@ -392,11 +395,12 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         const toolNameMapper = new Tool.NameMapper(options.tools)
         const request = yield* makeRequest({ config, options, toolNameMapper })
         annotateRequest(options.span, request)
-        const rawResponse = yield* client.createResponse(request)
+        const [rawResponse, response] = yield* client.createResponse(request)
         annotateResponse(options.span, rawResponse)
         return yield* makeResponse({
           options,
-          response: rawResponse,
+          rawResponse,
+          response,
           toolNameMapper
         })
       }
@@ -407,9 +411,10 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         const toolNameMapper = new Tool.NameMapper(options.tools)
         const request = yield* makeRequest({ config, options, toolNameMapper })
         annotateRequest(options.span, request)
-        const stream = client.createResponseStream(request)
+        const [response, stream] = yield* client.createResponseStream(request)
         return yield* makeStreamResponse({
           stream,
+          response,
           config,
           options,
           toolNameMapper
@@ -885,6 +890,27 @@ const prepareMessages = Effect.fnUntraced(
 )
 
 // =============================================================================
+// HTTP Details
+// =============================================================================
+
+const buildHttpRequestDetails = (
+  request: HttpClientRequest.HttpClientRequest
+): typeof Response.HttpRequestDetails.Type => ({
+  method: request.method,
+  url: request.url,
+  urlParams: Array.from(request.urlParams),
+  hash: request.hash,
+  headers: Redactable.redact(request.headers) as Record<string, string>
+})
+
+const buildHttpResponseDetails = (
+  response: HttpClientResponse.HttpClientResponse
+): typeof Response.HttpResponseDetails.Type => ({
+  status: response.status,
+  headers: Redactable.redact(response.headers) as Record<string, string>
+})
+
+// =============================================================================
 // Response Conversion
 // =============================================================================
 
@@ -893,11 +919,13 @@ type ResponseStreamEvent = typeof Generated.ResponseStreamEvent.Type
 const makeResponse = Effect.fnUntraced(
   function*<Tools extends ReadonlyArray<Tool.Any>>({
     options,
+    rawResponse,
     response,
     toolNameMapper
   }: {
     readonly options: LanguageModel.ProviderOptions
-    readonly response: Generated.Response
+    readonly rawResponse: Generated.Response
+    readonly response: HttpClientResponse.HttpClientResponse
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<
     Array<Response.PartEncoded>,
@@ -917,15 +945,16 @@ const makeResponse = Effect.fnUntraced(
     let hasToolCalls = false
     const parts: Array<Response.PartEncoded> = []
 
-    const createdAt = new Date(response.created_at * 1000)
+    const createdAt = new Date(rawResponse.created_at * 1000)
     parts.push({
       type: "response-metadata",
-      id: response.id,
-      modelId: response.model as string,
-      timestamp: DateTime.formatIso(DateTime.fromDateUnsafe(createdAt))
+      id: rawResponse.id,
+      modelId: rawResponse.model as string,
+      timestamp: DateTime.formatIso(DateTime.fromDateUnsafe(createdAt)),
+      request: buildHttpRequestDetails(response.request)
     })
 
-    for (const part of response.output) {
+    for (const part of rawResponse.output) {
       switch (part.type) {
         case "apply_patch_call": {
           const toolName = toolNameMapper.getCustomName("apply_patch")
@@ -1275,15 +1304,16 @@ const makeResponse = Effect.fnUntraced(
     }
 
     const finishReason = InternalUtilities.resolveFinishReason(
-      response.incomplete_details?.reason,
+      rawResponse.incomplete_details?.reason,
       hasToolCalls
     )
 
     parts.push({
       type: "finish",
       reason: finishReason,
-      usage: getUsage(response.usage),
-      ...(response.service_tier && { metadata: { openai: { serviceTier: response.service_tier } } })
+      usage: getUsage(rawResponse.usage),
+      response: buildHttpResponseDetails(response),
+      ...(rawResponse.service_tier && { metadata: { openai: { serviceTier: rawResponse.service_tier } } })
     })
 
     return parts
@@ -1293,12 +1323,14 @@ const makeResponse = Effect.fnUntraced(
 const makeStreamResponse = Effect.fnUntraced(
   function*<Tools extends ReadonlyArray<Tool.Any>>({
     stream,
+    response,
     config,
     options,
     toolNameMapper
   }: {
     readonly config: typeof Config.Service
     readonly stream: Stream.Stream<ResponseStreamEvent, AiError.AiError>
+    readonly response: HttpClientResponse.HttpClientResponse
     readonly options: LanguageModel.ProviderOptions
     readonly toolNameMapper: Tool.NameMapper<Tools>
   }): Effect.fn.Return<
@@ -1352,7 +1384,8 @@ const makeStreamResponse = Effect.fnUntraced(
               type: "response-metadata",
               id: event.response.id,
               modelId: event.response.model,
-              timestamp: DateTime.formatIso(DateTime.fromDateUnsafe(createdAt))
+              timestamp: DateTime.formatIso(DateTime.fromDateUnsafe(createdAt)),
+              request: buildHttpRequestDetails(response.request)
             })
             break
           }
@@ -1372,6 +1405,7 @@ const makeStreamResponse = Effect.fnUntraced(
                 hasToolCalls
               ),
               usage: getUsage(event.response.usage),
+              response: buildHttpResponseDetails(response),
               ...(event.response.service_tier && { metadata: { openai: { serviceTier: event.response.service_tier } } })
             })
             break

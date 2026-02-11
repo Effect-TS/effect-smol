@@ -527,7 +527,7 @@ describe("OpenAiClient", () => {
           model: "gpt-4o",
           input: "test"
         }).pipe(
-          Stream.runDrain,
+          Effect.andThen(([_, stream]) => Stream.runDrain(stream)),
           Effect.flip
         )
 
