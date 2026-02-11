@@ -9,6 +9,11 @@ PersistedCacheTest.suite(
   Persistence.layerSql.pipe(Layer.provide(MysqlContainer.layerClient))
 )
 
+PersistedCacheTest.suite(
+  "sql-mysql2-single-table",
+  Persistence.layerSqlSingleTable.pipe(Layer.provide(MysqlContainer.layerClient))
+)
+
 PersistedQueueTest.suite(
   "sql-mysql2",
   PersistedQueue.layerStoreSql().pipe(

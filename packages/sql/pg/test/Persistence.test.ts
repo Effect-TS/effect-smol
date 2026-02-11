@@ -9,6 +9,11 @@ PersistedCacheTest.suite(
   Persistence.layerSql.pipe(Layer.provide(PgContainer.layerClient))
 )
 
+PersistedCacheTest.suite(
+  "sql-pg-single-table",
+  Persistence.layerSqlSingleTable.pipe(Layer.provide(PgContainer.layerClient))
+)
+
 PersistedQueueTest.suite(
   "sql-pg",
   PersistedQueue.layerStoreSql().pipe(Layer.provide(PgContainer.layerClient))

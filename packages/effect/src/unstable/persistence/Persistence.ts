@@ -462,6 +462,244 @@ export const layerBackingSql: Layer.Layer<
  * @since 4.0.0
  * @category layers
  */
+export const layerBackingSqlSingleTable: Layer.Layer<
+  BackingPersistence,
+  never,
+  SqlClient.SqlClient
+> = Layer.effect(BackingPersistence)(Effect.gen(function*() {
+  const sql = (yield* SqlClient.SqlClient).withoutTransforms()
+  const table = sql("effect_persistence")
+  yield* sql.onDialectOrElse({
+    mysql: () =>
+      sql`
+        CREATE TABLE IF NOT EXISTS ${table} (
+          store_id VARCHAR(191) NOT NULL,
+          id VARCHAR(191) NOT NULL,
+          value TEXT NOT NULL,
+          expires BIGINT,
+          PRIMARY KEY (store_id, id)
+        )
+      `,
+    pg: () =>
+      sql`
+        CREATE TABLE IF NOT EXISTS ${table} (
+          store_id TEXT NOT NULL,
+          id TEXT NOT NULL,
+          value TEXT NOT NULL,
+          expires BIGINT,
+          PRIMARY KEY (store_id, id)
+        )
+      `,
+    mssql: () =>
+      sql`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name=${table} AND xtype='U')
+        CREATE TABLE ${table} (
+          store_id NVARCHAR(191) NOT NULL,
+          id NVARCHAR(191) NOT NULL,
+          value NVARCHAR(MAX) NOT NULL,
+          expires BIGINT,
+          PRIMARY KEY (store_id, id)
+        )
+      `,
+    // sqlite
+    orElse: () =>
+      sql`
+        CREATE TABLE IF NOT EXISTS ${table} (
+          store_id TEXT NOT NULL,
+          id TEXT NOT NULL,
+          value TEXT NOT NULL,
+          expires INTEGER,
+          PRIMARY KEY (store_id, id)
+        )
+      `
+  }).pipe(Effect.orDie)
+
+  type UpsertFn = (
+    entries: Array<{ store_id: string; id: string; value: string; expires: number | null }>
+  ) => Effect.Effect<unknown, SqlError>
+
+  const upsert = sql.onDialectOrElse({
+    pg: (): UpsertFn => (entries) =>
+      sql`
+        INSERT INTO ${table} ${sql.insert(entries)}
+        ON CONFLICT (store_id, id) DO UPDATE SET value=EXCLUDED.value, expires=EXCLUDED.expires
+      `.unprepared,
+    mysql: (): UpsertFn => (entries) =>
+      sql`
+        INSERT INTO ${table} ${sql.insert(entries)}
+        ON DUPLICATE KEY UPDATE value=VALUES(value), expires=VALUES(expires)
+      `.unprepared,
+    mssql: (): UpsertFn => (entries) =>
+      Effect.forEach(
+        entries,
+        (entry) =>
+          sql`
+            MERGE ${table} AS target
+            USING (SELECT ${entry.store_id} AS store_id, ${entry.id} AS id, ${entry.value} AS value, ${entry.expires} AS expires) AS source
+            ON target.store_id = source.store_id AND target.id = source.id
+            WHEN MATCHED THEN UPDATE SET value = source.value, expires = source.expires
+            WHEN NOT MATCHED THEN INSERT (store_id, id, value, expires)
+            VALUES (source.store_id, source.id, source.value, source.expires);
+          `,
+        { discard: true }
+      ),
+    // sqlite
+    orElse: (): UpsertFn => (entries) =>
+      sql`
+        INSERT INTO ${table} ${sql.insert(entries)}
+        ON CONFLICT(store_id, id) DO UPDATE SET value=excluded.value, expires=excluded.expires
+      `.unprepared
+  })
+
+  const wrapString = sql.onDialectOrElse({
+    mssql: () => (s: string) => `N'${s}'`,
+    orElse: () => (s: string) => `'${s}'`
+  })
+
+  return BackingPersistence.of({
+    make: Effect.fnUntraced(function*(storeId) {
+      const clock = yield* Clock.Clock
+
+      // Cleanup expired entries on startup
+      yield* Effect.ignore(
+        sql`DELETE FROM ${table} WHERE store_id = ${storeId} AND expires IS NOT NULL AND expires <= ${clock.currentTimeMillisUnsafe()}`
+      )
+
+      return identity<BackingPersistenceStore>({
+        get: (key) =>
+          sql<
+            { value: string }
+          >`SELECT value FROM ${table} WHERE store_id = ${storeId} AND id = ${key} AND (expires IS NULL OR expires > ${clock.currentTimeMillisUnsafe()})`
+            .pipe(
+              Effect.mapError((cause) =>
+                new PersistenceError({
+                  message: `Failed to get key ${key} from backing store`,
+                  cause
+                })
+              ),
+              Effect.flatMap((rows) => {
+                if (rows.length === 0) {
+                  return Effect.undefined
+                }
+                try {
+                  return Effect.succeed(JSON.parse(rows[0].value))
+                } catch (cause) {
+                  return Effect.fail(
+                    new PersistenceError({
+                      message: `Failed to parse value for key ${key} from backing store`,
+                      cause
+                    })
+                  )
+                }
+              })
+            ),
+        getMany: (keys) =>
+          sql<{ id: string; value: string }>`SELECT id, value FROM ${table} WHERE store_id = ${storeId} AND id IN (${
+            sql.literal(keys.map(wrapString).join(", "))
+          }) AND (expires IS NULL OR expires > ${clock.currentTimeMillisUnsafe()})`.unprepared.pipe(
+            Effect.mapError((cause) =>
+              new PersistenceError({
+                message: `Failed to getMany from backing store`,
+                cause
+              })
+            ),
+            Effect.flatMap((rows) => {
+              const out = new Array<object | undefined>(keys.length)
+              for (let i = 0; i < rows.length; i++) {
+                const row = rows[i]
+                const index = keys.indexOf(row.id)
+                if (index === -1) continue
+                try {
+                  out[index] = JSON.parse(row.value)
+                } catch {
+                  // ignore
+                }
+              }
+              return Effect.succeed(out as Arr.NonEmptyArray<object | undefined>)
+            })
+          ),
+        set: (key, value, ttl) =>
+          Effect.suspend(() => {
+            try {
+              return upsert([{
+                store_id: storeId,
+                id: key,
+                value: JSON.stringify(value),
+                expires: unsafeTtlToExpires(clock, ttl)
+              }])
+                .pipe(
+                  Effect.mapError((cause) =>
+                    new PersistenceError({
+                      message: `Failed to set key ${key} in backing store`,
+                      cause
+                    })
+                  ),
+                  Effect.asVoid
+                )
+            } catch (cause) {
+              return Effect.fail(
+                new PersistenceError({
+                  message: `Failed to serialize value for key ${key} to backing store`,
+                  cause
+                })
+              )
+            }
+          }),
+        setMany: (entries) =>
+          Effect.suspend(() => {
+            try {
+              const encoded = entries.map(([key, value, ttl]) => ({
+                store_id: storeId,
+                id: key,
+                value: JSON.stringify(value),
+                expires: unsafeTtlToExpires(clock, ttl)
+              }))
+              return upsert(encoded).pipe(
+                Effect.mapError((cause) =>
+                  new PersistenceError({
+                    message: `Failed to setMany in backing store`,
+                    cause
+                  })
+                ),
+                Effect.asVoid
+              )
+            } catch (cause) {
+              return Effect.fail(
+                new PersistenceError({
+                  message: `Failed to serialize values into backing store`,
+                  cause
+                })
+              )
+            }
+          }),
+        remove: (key) =>
+          sql`DELETE FROM ${table} WHERE store_id = ${storeId} AND id = ${key}`.pipe(
+            Effect.mapError((cause) =>
+              new PersistenceError({
+                message: `Failed to remove key ${key} from backing store`,
+                cause
+              })
+            ),
+            Effect.asVoid
+          ),
+        clear: sql`DELETE FROM ${table} WHERE store_id = ${storeId}`.pipe(
+          Effect.mapError((cause) =>
+            new PersistenceError({
+              message: `Failed to clear backing store`,
+              cause
+            })
+          ),
+          Effect.asVoid
+        )
+      })
+    })
+  })
+}))
+
+/**
+ * @since 4.0.0
+ * @category layers
+ */
 export const layerBackingRedis: Layer.Layer<
   BackingPersistence,
   never,
@@ -738,6 +976,14 @@ export const layerRedis: Layer.Layer<Persistence, never, Redis.Redis> = layer.pi
  */
 export const layerSql: Layer.Layer<Persistence, never, SqlClient.SqlClient> = layer.pipe(
   Layer.provide(layerBackingSql)
+)
+
+/**
+ * @since 4.0.0
+ * @category layers
+ */
+export const layerSqlSingleTable: Layer.Layer<Persistence, never, SqlClient.SqlClient> = layer.pipe(
+  Layer.provide(layerBackingSqlSingleTable)
 )
 
 /**
