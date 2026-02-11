@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/@effect/docgen/schema.json",
   "srcLink": "https://github.com/Effect-TS/effect/tree/main/packages/ai/openai-compat/src/",
-  "exclude": ["src/OpenAiSchema.ts", "src/internal/**/*.ts"],
+  "exclude": ["src/OpenAiSchema.ts", "src/internal/**"],
   "examplesCompilerOptions": {
     "noEmit": true,
     "strict": true,
