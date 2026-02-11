@@ -19,9 +19,10 @@ export const OpenAiErrorBody = Schema.Struct({
     message: Schema.String,
     type: Schema.optional(Schema.NullOr(Schema.String)),
     param: Schema.optional(Schema.NullOr(Schema.String)),
-    code: Schema.optional(Schema.NullOr(Schema.String))
+    code: Schema.optional(Schema.NullOr(Schema.Union([Schema.String, Schema.Number])))
   })
 })
+const OpenAiErrorBodyJson = Schema.fromJsonString(OpenAiErrorBody)
 
 /** @internal */
 export const mapSchemaError = dual<
@@ -108,22 +109,10 @@ const mapStatusCodeError = Effect.fnUntraced(function*(
   const headers = response.headers as Record<string, string>
   const requestId = headers["x-request-id"]
 
-  let body: string | undefined = description
-  if (!description || !description.startsWith("{")) {
-    const responseBody = yield* Effect.option(response.text)
-    if (Option.isSome(responseBody) && responseBody.value) {
-      body = responseBody.value
-    }
-  }
-
-  let json: unknown = undefined
-  // @effect-diagnostics effect/tryCatchInEffectGen:off
-  try {
-    json = Predicate.isNotUndefined(body) ? JSON.parse(body) : undefined
-  } catch {
-    json = undefined
-  }
-  const decoded = Schema.decodeUnknownOption(OpenAiErrorBody)(json)
+  let body = yield* response.text.pipe(
+    Effect.catchCause(() => Effect.succeed(description?.startsWith("{") ? description : undefined))
+  )
+  const decoded = Schema.decodeUnknownOption(OpenAiErrorBodyJson)(body)
 
   const reason = mapStatusCodeToReason({
     status,
@@ -131,7 +120,7 @@ const mapStatusCodeError = Effect.fnUntraced(function*(
     message: Option.isSome(decoded) ? decoded.value.error.message : undefined,
     http: buildHttpContext({ request, response, body }),
     metadata: {
-      errorCode: Option.isSome(decoded) ? decoded.value.error.code ?? null : null,
+      errorCode: Option.isSome(decoded) ? decoded.value.error.code?.toString() ?? null : null,
       errorType: Option.isSome(decoded) ? decoded.value.error.type ?? null : null,
       requestId: requestId ?? null
     }
