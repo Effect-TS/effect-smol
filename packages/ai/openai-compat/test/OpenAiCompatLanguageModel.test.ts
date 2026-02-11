@@ -150,7 +150,7 @@ describe("OpenAi compat LanguageModel", () => {
           ))
         )
 
-        const toolkit = Toolkit.make(OpenAiTool.ApplyPatch())
+        const toolkit = Toolkit.make(OpenAiTool.ApplyPatch({}))
         const toolkitLayer = toolkit.toLayer({
           OpenAiApplyPatch: () =>
             Effect.succeed({

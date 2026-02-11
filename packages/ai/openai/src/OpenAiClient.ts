@@ -13,7 +13,6 @@ import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as Redacted from "effect/Redacted"
-import * as Schema from "effect/Schema"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import type * as AiError from "effect/unstable/ai/AiError"
@@ -196,11 +195,6 @@ export const make = Effect.fnUntraced(
         })
       )
 
-    const SseEvent = Schema.Struct({
-      ...Sse.EventEncoded.fields,
-      data: Schema.fromJsonString(Generated.ResponseStreamEvent)
-    })
-
     const buildResponseStream = (
       response: HttpClientResponse.HttpClientResponse
     ): [
@@ -209,7 +203,7 @@ export const make = Effect.fnUntraced(
     ] => {
       const stream = response.stream.pipe(
         Stream.decodeText(),
-        Stream.pipeThroughChannel(Sse.decodeSchema(SseEvent)),
+        Stream.pipeThroughChannel(Sse.decodeDataSchema(Generated.ResponseStreamEvent)),
         Stream.takeUntil((event) =>
           event.data.type === "response.completed" ||
           event.data.type === "response.incomplete"
