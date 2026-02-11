@@ -166,6 +166,74 @@ describe("OpenAiLanguageModel", () => {
         })
       }))
   })
+
+  describe("generateText", () => {
+    it.effect("maps cached and reasoning usage tokens from createResponse", () =>
+      Effect.gen(function*() {
+        const result = yield* LanguageModel.generateText({ prompt: "test" }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(makeGenerateLayer(makeResponseWithUsage({
+            input_tokens: 10,
+            output_tokens: 7,
+            total_tokens: 17,
+            input_tokens_details: {
+              cached_tokens: 3
+            },
+            output_tokens_details: {
+              reasoning_tokens: 2
+            }
+          })))
+        )
+
+        const finish = result.content.find((part) => part.type === "finish")
+        assert.isDefined(finish)
+        if (finish?.type !== "finish") {
+          return
+        }
+
+        deepStrictEqual(finish.usage.inputTokens, {
+          uncached: 7,
+          total: 10,
+          cacheRead: 3,
+          cacheWrite: undefined
+        })
+        deepStrictEqual(finish.usage.outputTokens, {
+          total: 7,
+          text: 5,
+          reasoning: 2
+        })
+      }))
+
+    it.effect("defaults usage detail fields when createResponse usage detail objects are missing", () =>
+      Effect.gen(function*() {
+        const result = yield* LanguageModel.generateText({ prompt: "test" }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(makeGenerateLayer(makeResponseWithUsage({
+            input_tokens: 4,
+            output_tokens: 5,
+            total_tokens: 9
+          })))
+        )
+
+        const finish = result.content.find((part) => part.type === "finish")
+        assert.isDefined(finish)
+        if (finish?.type !== "finish") {
+          return
+        }
+
+        deepStrictEqual(finish.usage.inputTokens, {
+          uncached: 4,
+          total: 4,
+          cacheRead: 0,
+          cacheWrite: undefined
+        })
+        deepStrictEqual(finish.usage.outputTokens, {
+          total: 5,
+          text: 5,
+          reasoning: 0
+        })
+      }))
+  })
 })
 
 const localShellAction: Generated.LocalShellExecAction = {
@@ -255,6 +323,28 @@ const toSseBody = (events: ReadonlyArray<unknown>): string =>
 const makeStreamLayer = (events: ReadonlyArray<Generated.ResponseStreamEvent>) =>
   Layer.succeed(OpenAiClient.OpenAiClient, makeStreamOnlyClient(events))
 
+const makeGenerateLayer = (responseBody: Generated.Response): Layer.Layer<OpenAiClient.OpenAiClient> =>
+  Layer.succeed(OpenAiClient.OpenAiClient, makeGenerateOnlyClient(responseBody))
+
+const makeGenerateOnlyClient = (responseBody: Generated.Response): OpenAiClient.Service => ({
+  client: undefined as unknown as Generated.OpenAiClient,
+  createResponse: () =>
+    Effect.succeed(
+      [
+        responseBody,
+        HttpClientResponse.fromWeb(
+          HttpClientRequest.post("https://api.openai.com/v1/responses"),
+          new Response(JSON.stringify(responseBody), {
+            status: 200,
+            headers: { "content-type": "application/json" }
+          })
+        )
+      ] as const
+    ),
+  createResponseStream: () => Effect.die(new Error("createResponseStream should not be called")),
+  createEmbedding: () => Effect.die(new Error("createEmbedding should not be called"))
+})
+
 const makeStreamOnlyClient = (
   events: ReadonlyArray<Generated.ResponseStreamEvent>
 ): OpenAiClient.Service => ({
@@ -284,3 +374,8 @@ const makeResponseCompletedEvent = (usage: unknown): Generated.ResponseCompleted
     usage
   } as Generated.Response
 })
+
+const makeResponseWithUsage = (usage: unknown): Generated.Response => ({
+  ...followUpResponse,
+  usage
+} as Generated.Response)
