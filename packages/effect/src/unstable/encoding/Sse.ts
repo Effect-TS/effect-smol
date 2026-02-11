@@ -67,7 +67,7 @@ export const decodeSchema = <
   Type extends {
     readonly id?: string | undefined
     readonly event: string
-    readonly data: unknown
+    readonly data: string
   },
   DecodingServices,
   IE,
