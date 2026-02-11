@@ -29,112 +29,6 @@ Benefits of a Single API Definition:
 - **Reduced Maintenance**: Changes to the API are reflected across all related components.
 - **Simplified Workflow**: Avoids duplication by consolidating API details in one place.
 
-# Design Principles
-
-- **Schemas first**: Everything about an endpoint (inputs and outputs) is described using schemas.
-- **Metadata lives on schemas**: Things like HTTP status codes, encodings, and content types are configured by annotating schemas.
-
-In particular:
-
-- **Request**
-  - **Payload encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
-    - `asJson` (default)
-    - `asFormUrlEncoded`
-    - `asText`
-    - `asUint8Array`
-    - `asMultipart`
-    - `asMultipartStream`
-- **Response**
-  - **Status code** is set via the `HttpApiSchema.status` API (or `httpApiStatus` annotation)
-  - **Encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
-    - `asJson` (default)
-    - `asFormUrlEncoded`
-    - `asText`
-    - `asUint8Array`
-
-## Anatomy of an Endpoint
-
-An endpoint definition can include (all optional) parameters, query string parameters, headers, a payload, and the possible success / error responses.
-
-```ts
-const User = Schema.Struct({
-  id: Schema.String,
-  name: Schema.String
-})
-
-//                     ┌─── Endpoint name (used in the client as the method name)
-//                     │            ┌─── Endpoint path
-//                     ▼            ▼
-HttpApiEndpoint.patch("updateUser", "/user/:id", {
-  // Parameters from the route pattern (e.g. /user/:id).
-  // This is a record where each key is the parameter name.
-  params: {
-    //  ┌─── Schema for the "id" parameter.
-    //  ▼
-    id: Schema.String
-  },
-
-  // (optional) Query string parameters (e.g. ?mode=merge).
-  // This is a record where each key is the query parameter name.
-  query: {
-    //    ┌─── Schema for the "mode" query parameter
-    //    ▼
-    mode: Schema.Literals(["merge", "replace"])
-  },
-
-  // (optional) Request headers.
-  // Use the exact header name as the key.
-  headers: {
-    "x-api-key": Schema.String,
-    "x-request-id": Schema.String
-  },
-
-  // The request payload can be a single schema or an array of schemas.
-  // - Default encoding is JSON.
-  // - Default status for success is 200.
-  // For GET requests, the payload must be a record of schemas.
-  payload: [
-    // JSON payload (default encoding).
-    Schema.Struct({
-      name: Schema.String
-    }),
-    // text/plain payload.
-    Schema.String.pipe(HttpApiSchema.asText())
-  ],
-
-  // Possible success responses.
-  // Default is 200 OK with no content if omitted.
-  success: [
-    // JSON response (default encoding).
-    User,
-    // text/plain response with a custom status code.
-    Schema.String
-      .pipe(
-        HttpApiSchema.status(206),
-        HttpApiSchema.asText()
-      )
-  ],
-
-  // Possible error responses.
-  error: [
-    // Default is 500 Internal Server Error with JSON encoding.
-    Schema.Finite,
-
-    // text/plain error with a custom status code.
-    Schema.String
-      .pipe(
-        HttpApiSchema.status(404),
-        HttpApiSchema.asText()
-      ),
-
-    // Any schema that encodes to `Schema.Void` is treated as "no content".
-    // Here it uses a custom status code.
-    Schema.Void
-      .pipe(HttpApiSchema.status(401))
-  ]
-})
-```
-
 # Getting Started
 
 ## Defining and Implementing an API
@@ -310,6 +204,112 @@ Hello, World!
 */
 ```
 
+# Design Principles
+
+- **Schemas first**: Everything about an endpoint (inputs and outputs) is described using schemas.
+- **Metadata lives on schemas**: Things like HTTP status codes, encodings, and content types are configured by annotating schemas.
+
+In particular:
+
+- **Request**
+  - **Payload encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
+    - `asJson` (default)
+    - `asFormUrlEncoded`
+    - `asText`
+    - `asUint8Array`
+    - `asMultipart`
+    - `asMultipartStream`
+- **Response**
+  - **Status code** is set via the `HttpApiSchema.status` API (or `httpApiStatus` annotation)
+  - **Encoding / content type** is controlled with `HttpApiSchema.as*` helpers:
+    - `asJson` (default)
+    - `asFormUrlEncoded`
+    - `asText`
+    - `asUint8Array`
+
+## Anatomy of an Endpoint
+
+An endpoint definition can include (all optional) parameters, query string parameters, headers, a payload, and the possible success / error responses.
+
+```ts
+const User = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String
+})
+
+//                     ┌─── Endpoint name (used in the client as the method name)
+//                     │            ┌─── Endpoint path
+//                     ▼            ▼
+HttpApiEndpoint.patch("updateUser", "/user/:id", {
+  // Parameters from the route pattern (e.g. /user/:id).
+  // This is a record where each key is the parameter name.
+  params: {
+    //  ┌─── Schema for the "id" parameter.
+    //  ▼
+    id: Schema.String
+  },
+
+  // (optional) Query string parameters (e.g. ?mode=merge).
+  // This is a record where each key is the query parameter name.
+  query: {
+    //    ┌─── Schema for the "mode" query parameter
+    //    ▼
+    mode: Schema.Literals(["merge", "replace"])
+  },
+
+  // (optional) Request headers.
+  // Use the exact header name as the key.
+  headers: {
+    "x-api-key": Schema.String,
+    "x-request-id": Schema.String
+  },
+
+  // The request payload can be a single schema or an array of schemas.
+  // - Default encoding is JSON.
+  // - Default status for success is 200.
+  // For GET requests, the payload must be a record of schemas.
+  payload: [
+    // JSON payload (default encoding).
+    Schema.Struct({
+      name: Schema.String
+    }),
+    // text/plain payload.
+    Schema.String.pipe(HttpApiSchema.asText())
+  ],
+
+  // Possible success responses.
+  // Default is 200 OK with no content if omitted.
+  success: [
+    // JSON response (default encoding).
+    User,
+    // text/plain response with a custom status code.
+    Schema.String
+      .pipe(
+        HttpApiSchema.status(206),
+        HttpApiSchema.asText()
+      )
+  ],
+
+  // Possible error responses.
+  error: [
+    // Default is 500 Internal Server Error with JSON encoding.
+    Schema.Finite,
+
+    // text/plain error with a custom status code.
+    Schema.String
+      .pipe(
+        HttpApiSchema.status(404),
+        HttpApiSchema.asText()
+      ),
+
+    // Any schema that encodes to `Schema.Void` is treated as "no content".
+    // Here it uses a custom status code.
+    Schema.Void
+      .pipe(HttpApiSchema.status(401))
+  ]
+})
+```
+
 # Routing
 
 An `HttpApiEndpoint` represents a single endpoint in your API. Each endpoint is defined with a name, path, HTTP method, and optional schemas for requests and responses. This allows you to describe the structure and behavior of your API.
@@ -368,72 +368,6 @@ const GroupLive = HttpApiBuilder.group(
       Effect.succeed(
         [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
       ))
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  Layer.provide(HttpApiScalar.layer(Api)),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-```
-
-## Parameters
-
-Parameters allow you to include dynamic segments in your endpoint's path
-
-The `params` option allows you to explicitly define parameters by associating them with a schema.
-
-**Example** (Defining a GET Endpoint to Retrieve a User by ID)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema } from "effect"
-import { HttpRouter } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const User = Schema.Struct({
-  id: Schema.Int,
-  name: Schema.String
-})
-
-const Api = HttpApi.make("MyApi")
-  .add(
-    HttpApiGroup.make("Users")
-      .add(
-        HttpApiEndpoint.get("getUsers", "/users", {
-          success: Schema.Array(User)
-        }),
-        // a GET endpoint with a parameter ":id"
-        HttpApiEndpoint.get("getUser", "/user/:id", {
-          params: {
-            //  ┌─── schema for the "id" parameter
-            //  ▼
-            id: Schema.FiniteFromString.check(Schema.isInt())
-          },
-          success: User
-        })
-      )
-  )
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "Users",
-  (handlers) =>
-    handlers
-      .handle("getUsers", () =>
-        Effect.succeed(
-          [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
-        ))
-      .handle("getUser", (ctx) => {
-        //    ┌─── number
-        //    ▼
-        const id = ctx.params.id
-        return Effect.succeed({ id, name: `User ${id}` })
-      })
 )
 
 const ApiLive = HttpApiBuilder.layer(Api).pipe(
@@ -689,6 +623,72 @@ const ApiLive = HttpApiBuilder.layer(Api).pipe(
 Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
+## Parameters
+
+Parameters allow you to include dynamic segments in your endpoint's path
+
+The `params` option allows you to explicitly define parameters by associating them with a schema.
+
+**Example** (Defining a GET Endpoint to Retrieve a User by ID)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const User = Schema.Struct({
+  id: Schema.Int,
+  name: Schema.String
+})
+
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("Users")
+      .add(
+        HttpApiEndpoint.get("getUsers", "/users", {
+          success: Schema.Array(User)
+        }),
+        // a GET endpoint with a parameter ":id"
+        HttpApiEndpoint.get("getUser", "/user/:id", {
+          params: {
+            //  ┌─── schema for the "id" parameter
+            //  ▼
+            id: Schema.FiniteFromString.check(Schema.isInt())
+          },
+          success: User
+        })
+      )
+  )
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Users",
+  (handlers) =>
+    handlers
+      .handle("getUsers", () =>
+        Effect.succeed(
+          [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
+        ))
+      .handle("getUser", (ctx) => {
+        //    ┌─── number
+        //    ▼
+        const id = ctx.params.id
+        return Effect.succeed({ id, name: `User ${id}` })
+      })
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+```
+
 ## Catch-All Endpoints
 
 The path can also be `"*"` to match any incoming path. This is useful for defining a catch-all endpoint to handle unmatched routes or provide a fallback response.
@@ -792,6 +792,66 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 > [!IMPORTANT]
 > (OpenAPI). A catch-all endpoint is not included in the OpenAPI specification because can't be represented as a path.
+
+## Prefixing
+
+Prefixes can be added to endpoints, groups, or an entire API to simplify the management of common paths. This is especially useful when defining multiple related endpoints that share a common base URL.
+
+**Example** (Using Prefixes for Common Path Management)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("group")
+      .add(
+        HttpApiEndpoint.get("endpointA", "/a", {
+          success: Schema.String
+        })
+          // Prefix for this endpoint
+          .prefix("/endpointPrefix"),
+        HttpApiEndpoint.get("endpointB", "/b", {
+          success: Schema.String
+        })
+      )
+      // Prefix for all endpoints in the group
+      .prefix("/groupPrefix")
+  )
+  // Prefix for the entire API
+  .prefix("/apiPrefix")
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers
+      .handle("endpointA", () => Effect.succeed("Endpoint A"))
+      .handle("endpointB", () => Effect.succeed("Endpoint B"))
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+```
+
+You can test this endpoint using a GET request. For example:
+
+```sh
+curl http://localhost:3000/apiPrefix/groupPrefix/endpointPrefix/a # Returns 200 OK
+curl http://localhost:3000/apiPrefix/groupPrefix/b # Returns 200 OK
+```
+
+# Request
 
 ## Query Parameters
 
@@ -988,64 +1048,6 @@ curl -H "X-API-Key: 1234567890" -H "X-Request-ID: 1234567890" http://localhost:3
 
 The server validates these headers against the declared schema before handling the request.
 
-## Status Codes
-
-By default, the success status code is `200 OK`. You can change it by annotating the schema with a custom status.
-
-**Example** (Defining a GET Endpoint with a custom status code)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema } from "effect"
-import { HttpRouter } from "effect/unstable/http"
-import {
-  HttpApi,
-  HttpApiBuilder,
-  HttpApiEndpoint,
-  HttpApiGroup,
-  HttpApiScalar,
-  HttpApiSchema
-} from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const User = Schema.Struct({
-  id: Schema.Int,
-  name: Schema.String
-})
-
-const Api = HttpApi.make("MyApi")
-  .add(
-    HttpApiGroup.make("Users")
-      .add(
-        HttpApiEndpoint.get("getUsers", "/users", {
-          success: Schema.Array(User)
-            .pipe(HttpApiSchema.status(206))
-        })
-      )
-  )
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "Users",
-  (handlers) =>
-    handlers
-      .handle("getUsers", () => {
-        return Effect.succeed(
-          [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
-        )
-      })
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  Layer.provide(HttpApiScalar.layer(Api)),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-```
-
 ## Handling Multipart Requests
 
 To support file uploads, you can use the `HttpApiSchema.asMultipart` API. This allows you to define an endpoint's payload schema as a multipart request, specifying the structure of the data, including file uploads, with the `Multipart` module.
@@ -1189,6 +1191,303 @@ curl http://localhost:3000/user \
   --data-urlencode 'name=John'
 ```
 
+## Accessing the HttpServerRequest
+
+In some cases, you may need to access details about the incoming `HttpServerRequest` within an endpoint handler, you can access the request object using the `ctx.request` property.
+
+**Example** (Accessing the Request Object in a GET Endpoint)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("MyApi").add(
+  HttpApiGroup.make("Greetings").add(
+    HttpApiEndpoint.get("hello", "/", {
+      success: Schema.String
+    })
+  )
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Greetings",
+  (handlers) =>
+    handlers.handle(
+      "hello",
+      (ctx) => {
+        //     ┌─── HttpServerRequest
+        //     ▼
+        const req = ctx.request
+        // Access the request method
+        console.log(req.method)
+        return Effect.succeed("Hello, World!")
+      }
+    )
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+```
+
+## Validating Request Cookies
+
+Request cookies are validated through the security middleware mechanism using `HttpApiSecurity.apiKey` with `in: "cookie"`. The middleware decodes the cookie value and provides it as a `Redacted` credential to the security handler.
+
+**Example** (Validating a Session Cookie)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Redacted, Schema, ServiceMap } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import {
+  HttpApi,
+  HttpApiBuilder,
+  HttpApiEndpoint,
+  HttpApiGroup,
+  HttpApiMiddleware,
+  HttpApiScalar,
+  HttpApiSecurity
+} from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+// Define the service providing the current user
+class CurrentUser
+  extends ServiceMap.Service<CurrentUser, { readonly id: number; readonly name: string }>()("CurrentUser")
+{}
+
+// Define the security scheme: read the "session" cookie
+const sessionCookie = HttpApiSecurity.apiKey({ in: "cookie", key: "session" })
+
+class Auth extends HttpApiMiddleware.Service<Auth, {
+  provides: CurrentUser
+}>()("Auth", {
+  error: Schema.String.annotate({
+    httpApiStatus: 401,
+    description: "Auth error"
+  }),
+  security: { session: sessionCookie }
+}) {}
+
+const Api = HttpApi.make("api").add(
+  HttpApiGroup.make("group")
+    .add(
+      HttpApiEndpoint.get("me", "/me", {
+        success: Schema.Struct({ id: Schema.Finite })
+      })
+    )
+    .middleware(Auth)
+)
+
+const AuthLive = Layer.succeed(
+  Auth,
+  {
+    session: (effect, opts) =>
+      Effect.provideServiceEffect(
+        effect,
+        CurrentUser,
+        Effect.gen(function*() {
+          const value = Redacted.value(opts.credential)
+          if (value !== "valid-session") {
+            return yield* Effect.fail("Invalid session")
+          }
+          return { id: 1, name: "John Doe" }
+        })
+      )
+  }
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle("me", () =>
+      Effect.gen(function*() {
+        const user = yield* CurrentUser
+        return { id: user.id }
+      }))
+).pipe(Layer.provide(AuthLive))
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// Valid session:
+// curl "http://localhost:3000/me" --cookie "session=valid-session"
+// {"id":1}
+//
+// Invalid session:
+// curl "http://localhost:3000/me" --cookie "session=wrong"
+// "Invalid session"
+```
+
+There is no `cookies` option on `HttpApiEndpoint` (unlike `headers`, `query`, or `params`). For ad-hoc access without schema validation, you can read cookies directly inside a handler via `ctx.request.cookies`, but they won't appear in the OpenAPI spec.
+
+**Example** (Reading Cookies Directly in a Handler)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("api").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.get("me", "/me", {
+      success: Schema.String
+    })
+  )
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle("me", (ctx) => {
+      const lang = ctx.request.cookies.lang ?? "en"
+      return Effect.succeed(`Language: ${lang}`)
+    })
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// curl "http://localhost:3000/me" --cookie "lang=it"
+// "Language: it"
+```
+## Streaming Requests
+
+Streaming requests allow you to send large or continuous data streams to the server. In this example, we define an API that accepts a stream of binary data and decodes it into a string.
+
+**Example** (Handling Streaming Requests)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("myApi").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.post("acceptStream", "/stream", {
+      // Define the payload as a Uint8Array with a specific encoding
+      payload: Schema.Uint8Array.pipe(
+        HttpApiSchema.asUint8Array() // default content type: application/octet-stream
+      ),
+      success: Schema.String
+    })
+  )
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle(
+      "acceptStream",
+      (ctx) => {
+        // Decode the incoming binary data into a string
+        return Effect.succeed(new TextDecoder().decode(ctx.payload))
+      }
+    )
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+```
+
+You can test the streaming request using `curl` or any tool that supports sending binary data. For example:
+
+```sh
+echo "abc" | curl -X POST 'http://localhost:3000/stream' --data-binary @- -H "Content-Type: application/octet-stream"
+# Output: abc
+```
+
+# Response
+
+## Status Codes
+
+By default, the success status code is `200 OK`. You can change it by annotating the schema with a custom status.
+
+**Example** (Defining a GET Endpoint with a custom status code)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import {
+  HttpApi,
+  HttpApiBuilder,
+  HttpApiEndpoint,
+  HttpApiGroup,
+  HttpApiScalar,
+  HttpApiSchema
+} from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const User = Schema.Struct({
+  id: Schema.Int,
+  name: Schema.String
+})
+
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("Users")
+      .add(
+        HttpApiEndpoint.get("getUsers", "/users", {
+          success: Schema.Array(User)
+            .pipe(HttpApiSchema.status(206))
+        })
+      )
+  )
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Users",
+  (handlers) =>
+    handlers
+      .handle("getUsers", () => {
+        return Effect.succeed(
+          [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }]
+        )
+      })
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+```
+
 ## Changing the Response Encoding
 
 By default, API responses are encoded as JSON. If your application requires a different format, you can customize the encoding using the `HttpApiSchema.as*` functions. This method lets you define the type and content type of the response.
@@ -1257,7 +1556,207 @@ The following encodings are supported:
 - `Uint8Array` the encoding for binary data (default content type: `application/octet-stream`)
 - `Text` the encoding for text data (default content type: `text/plain`)
 
-# Adding Custom Error Responses
+## Setting Response Headers
+
+Use `HttpEffect.appendPreResponseHandler` inside a handler to modify the outgoing response before it's sent. The handler receives the request and response, and must return the updated response.
+
+**Example** (Adding a Custom Response Header)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpEffect, HttpRouter, HttpServerResponse } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("api").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.get("hello", "/hello", {
+      success: Schema.String
+    })
+  )
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle("hello", () =>
+      Effect.gen(function*() {
+        yield* HttpEffect.appendPreResponseHandler((_req, response) =>
+          Effect.succeed(HttpServerResponse.setHeader(response, "x-custom", "hello"))
+        )
+        return "Hello, World!"
+      }))
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// curl -v "http://localhost:3000/hello" 2>&1 | grep -i "x-custom"
+// < x-custom: hello
+```
+
+## Setting Response Cookies
+
+Use `HttpEffect.appendPreResponseHandler` with `HttpServerResponse.setCookie` to set cookies on the response. For security-related cookies (tied to an `HttpApiSecurity.apiKey` with `in: "cookie"`), use the convenience helper `HttpApiBuilder.securitySetCookie`.
+
+**Example** (Setting a Response Cookie)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpEffect, HttpRouter, HttpServerResponse } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("api").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.get("hello", "/hello", {
+      success: Schema.String
+    })
+  )
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle("hello", () =>
+      Effect.gen(function*() {
+        yield* HttpEffect.appendPreResponseHandler((_req, response) =>
+          Effect.succeed(HttpServerResponse.setCookieUnsafe(response, "my-cookie", "my-value", {
+            httpOnly: true,
+            secure: true,
+            path: "/"
+          }))
+        )
+        return "Hello, World!"
+      }))
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// curl -v "http://localhost:3000/hello" 2>&1 | grep -i "set-cookie"
+// < set-cookie: my-cookie=my-value; Path=/; HttpOnly; Secure
+```
+
+## Redirects
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpServerResponse } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("MyApi").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.get("newPage", "/new", {
+      success: Schema.String
+    }),
+    // Schema-wise this is just "no content" (redirect headers aren't modeled here)
+    HttpApiEndpoint.get("oldPage", "/old")
+  )
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers
+      .handle("newPage", () => Effect.succeed("You are on /new"))
+      .handle("oldPage", () =>
+        Effect.succeed(
+          HttpServerResponse.redirect("/new", { status: 302 })
+        ))
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+
+// curl "http://localhost:3000/old" -L
+```
+
+## Streaming Responses
+
+To handle streaming responses in your API, you can return a raw `HttpServerResponse`. The `HttpServerResponse.stream` function is designed to return a continuous stream of data as the response.
+
+**Example** (Implementing a Streaming Endpoint)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schedule, Schema, Stream } from "effect"
+import { HttpRouter, HttpServerResponse } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const Api = HttpApi.make("myApi").add(
+  HttpApiGroup.make("group").add(
+    HttpApiEndpoint.get("getStream", "/stream", {
+      success: Schema.String.pipe(
+        HttpApiSchema.asText({
+          contentType: "application/octet-stream"
+        })
+      )
+    })
+  )
+)
+
+// Simulate a stream of data
+const stream = Stream.make("a", "b", "c").pipe(
+  Stream.schedule(Schedule.spaced("500 millis")),
+  Stream.map((s) => new TextEncoder().encode(s))
+)
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "group",
+  (handlers) =>
+    handlers.handle(
+      "getStream",
+      () => Effect.succeed(HttpServerResponse.stream(stream))
+    )
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
+```
+
+You can test the streaming response using `curl` or any similar HTTP client that supports streaming:
+
+```sh
+curl 'http://localhost:3000/stream' --no-buffer
+```
+
+The response will stream data (`a`, `b`, `c`) with a 500ms interval between each item.
+
+# Error Handling
+
+## Adding Custom Error Responses
 
 Error responses allow your endpoint to handle different failure scenarios.
 
@@ -1494,289 +1993,6 @@ const ApiLive = HttpApiBuilder.layer(Api).pipe(
 Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
-# Prefixing
-
-Prefixes can be added to endpoints, groups, or an entire API to simplify the management of common paths. This is especially useful when defining multiple related endpoints that share a common base URL.
-
-**Example** (Using Prefixes for Common Path Management)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema } from "effect"
-import { HttpRouter } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const Api = HttpApi.make("MyApi")
-  .add(
-    HttpApiGroup.make("group")
-      .add(
-        HttpApiEndpoint.get("endpointA", "/a", {
-          success: Schema.String
-        })
-          // Prefix for this endpoint
-          .prefix("/endpointPrefix"),
-        HttpApiEndpoint.get("endpointB", "/b", {
-          success: Schema.String
-        })
-      )
-      // Prefix for all endpoints in the group
-      .prefix("/groupPrefix")
-  )
-  // Prefix for the entire API
-  .prefix("/apiPrefix")
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "group",
-  (handlers) =>
-    handlers
-      .handle("endpointA", () => Effect.succeed("Endpoint A"))
-      .handle("endpointB", () => Effect.succeed("Endpoint B"))
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  Layer.provide(HttpApiScalar.layer(Api)),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-```
-
-You can test this endpoint using a GET request. For example:
-
-```sh
-curl http://localhost:3000/apiPrefix/groupPrefix/endpointPrefix/a # Returns 200 OK
-curl http://localhost:3000/apiPrefix/groupPrefix/b # Returns 200 OK
-```
-
-# Using Services Inside a HttpApiEndpoint
-
-If your handlers need to use services, you can easily integrate them because the `HttpApiBuilder.group` API allows you to return an `Effect`. This ensures that external services can be accessed and utilized directly within your handlers.
-
-**Example** (Using Services in a Endpoint Implementation)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema, ServiceMap } from "effect"
-import { HttpRouter } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const User = Schema.Struct({
-  id: Schema.Int,
-  name: Schema.String
-})
-
-// Define the UsersRepository service
-class UsersRepository extends ServiceMap.Service<UsersRepository, {
-  readonly findById: (id: number) => Effect.Effect<typeof User.Type>
-}>()("UsersRepository") {}
-
-const Api = HttpApi.make("MyApi")
-  .add(
-    HttpApiGroup.make("Users")
-      .add(
-        HttpApiEndpoint.get("getUser", "/user/:id", {
-          params: {
-            id: Schema.FiniteFromString.check(Schema.isInt())
-          },
-          success: User
-        })
-      )
-  )
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "Users",
-  (handlers) =>
-    handlers
-      .handle("getUser", (ctx) => {
-        const id = ctx.params.id
-        return Effect.gen(function*() {
-          // Access the UsersRepository service
-          const repository = yield* UsersRepository
-          return yield* repository.findById(id)
-        })
-      })
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  Layer.provide(HttpApiScalar.layer(Api)),
-  Layer.provide(
-    Layer.succeed(UsersRepository, {
-      findById: (id) => Effect.succeed({ id, name: `User ${id}` })
-    })
-  ),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-```
-
-# Accessing the HttpServerRequest
-
-In some cases, you may need to access details about the incoming `HttpServerRequest` within an endpoint handler, you can access the request object using the `ctx.request` property.
-
-**Example** (Accessing the Request Object in a GET Endpoint)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema } from "effect"
-import { HttpRouter } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const Api = HttpApi.make("MyApi").add(
-  HttpApiGroup.make("Greetings").add(
-    HttpApiEndpoint.get("hello", "/", {
-      success: Schema.String
-    })
-  )
-)
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "Greetings",
-  (handlers) =>
-    handlers.handle(
-      "hello",
-      (ctx) => {
-        //     ┌─── HttpServerRequest
-        //     ▼
-        const req = ctx.request
-        // Access the request method
-        console.log(req.method)
-        return Effect.succeed("Hello, World!")
-      }
-    )
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-```
-
-# Streaming Requests
-
-Streaming requests allow you to send large or continuous data streams to the server. In this example, we define an API that accepts a stream of binary data and decodes it into a string.
-
-**Example** (Handling Streaming Requests)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema } from "effect"
-import { HttpRouter } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const Api = HttpApi.make("myApi").add(
-  HttpApiGroup.make("group").add(
-    HttpApiEndpoint.post("acceptStream", "/stream", {
-      // Define the payload as a Uint8Array with a specific encoding
-      payload: Schema.Uint8Array.pipe(
-        HttpApiSchema.asUint8Array() // default content type: application/octet-stream
-      ),
-      success: Schema.String
-    })
-  )
-)
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "group",
-  (handlers) =>
-    handlers.handle(
-      "acceptStream",
-      (ctx) => {
-        // Decode the incoming binary data into a string
-        return Effect.succeed(new TextDecoder().decode(ctx.payload))
-      }
-    )
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-```
-
-You can test the streaming request using `curl` or any tool that supports sending binary data. For example:
-
-```sh
-echo "abc" | curl -X POST 'http://localhost:3000/stream' --data-binary @- -H "Content-Type: application/octet-stream"
-# Output: abc
-```
-
-# Streaming Responses
-
-To handle streaming responses in your API, you can return a raw `HttpServerResponse`. The `HttpServerResponse.stream` function is designed to return a continuous stream of data as the response.
-
-**Example** (Implementing a Streaming Endpoint)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schedule, Schema, Stream } from "effect"
-import { HttpRouter, HttpServerResponse } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const Api = HttpApi.make("myApi").add(
-  HttpApiGroup.make("group").add(
-    HttpApiEndpoint.get("getStream", "/stream", {
-      success: Schema.String.pipe(
-        HttpApiSchema.asText({
-          contentType: "application/octet-stream"
-        })
-      )
-    })
-  )
-)
-
-// Simulate a stream of data
-const stream = Stream.make("a", "b", "c").pipe(
-  Stream.schedule(Schedule.spaced("500 millis")),
-  Stream.map((s) => new TextEncoder().encode(s))
-)
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "group",
-  (handlers) =>
-    handlers.handle(
-      "getStream",
-      () => Effect.succeed(HttpServerResponse.stream(stream))
-    )
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-```
-
-You can test the streaming response using `curl` or any similar HTTP client that supports streaming:
-
-```sh
-curl 'http://localhost:3000/stream' --no-buffer
-```
-
-The response will stream data (`a`, `b`, `c`) with a 500ms interval between each item.
-
 # Middlewares
 
 The `HttpApiMiddleware` module allows you to add middleware to your API. Middleware can enhance your API by introducing features like logging, authentication, or additional error handling.
@@ -1866,7 +2082,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 // curl "http://localhost:3000/user/1"
 ```
 
-# Defining security middleware
+# Security
 
 The `HttpApiSecurity` module enables you to add security annotations to your API. These annotations specify the type of authorization required to access specific endpoints.
 
@@ -2052,6 +2268,72 @@ const UsersApiLive = HttpApiBuilder.group(MyApi, "users", (handlers) =>
     HttpApiBuilder.securitySetCookie(security, Redacted.make("keep me secret"))
   )
 )
+```
+
+# Using Services Inside a HttpApiEndpoint
+
+If your handlers need to use services, you can easily integrate them because the `HttpApiBuilder.group` API allows you to return an `Effect`. This ensures that external services can be accessed and utilized directly within your handlers.
+
+**Example** (Using Services in a Endpoint Implementation)
+
+```ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, Schema, ServiceMap } from "effect"
+import { HttpRouter } from "effect/unstable/http"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
+import { createServer } from "node:http"
+
+const User = Schema.Struct({
+  id: Schema.Int,
+  name: Schema.String
+})
+
+// Define the UsersRepository service
+class UsersRepository extends ServiceMap.Service<UsersRepository, {
+  readonly findById: (id: number) => Effect.Effect<typeof User.Type>
+}>()("UsersRepository") {}
+
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("Users")
+      .add(
+        HttpApiEndpoint.get("getUser", "/user/:id", {
+          params: {
+            id: Schema.FiniteFromString.check(Schema.isInt())
+          },
+          success: User
+        })
+      )
+  )
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Users",
+  (handlers) =>
+    handlers
+      .handle("getUser", (ctx) => {
+        const id = ctx.params.id
+        return Effect.gen(function*() {
+          // Access the UsersRepository service
+          const repository = yield* UsersRepository
+          return yield* repository.findById(id)
+        })
+      })
+)
+
+const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(GroupLive),
+  Layer.provide(HttpApiScalar.layer(Api)),
+  Layer.provide(
+    Layer.succeed(UsersRepository, {
+      findById: (id) => Effect.succeed({ id, name: `User ${id}` })
+    })
+  ),
+  HttpRouter.serve,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
+)
+
+Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 ```
 
 # OpenAPI Documentation
@@ -2820,279 +3102,3 @@ http
   })
 ```
 
-# Redirects
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema } from "effect"
-import { HttpRouter } from "effect/unstable/http"
-import { HttpServerResponse } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiScalar } from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const Api = HttpApi.make("MyApi").add(
-  HttpApiGroup.make("group").add(
-    HttpApiEndpoint.get("newPage", "/new", {
-      success: Schema.String
-    }),
-    // Schema-wise this is just "no content" (redirect headers aren't modeled here)
-    HttpApiEndpoint.get("oldPage", "/old")
-  )
-)
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "group",
-  (handlers) =>
-    handlers
-      .handle("newPage", () => Effect.succeed("You are on /new"))
-      .handle("oldPage", () =>
-        Effect.succeed(
-          HttpServerResponse.redirect("/new", { status: 302 })
-        ))
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  Layer.provide(HttpApiScalar.layer(Api)),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-
-// curl "http://localhost:3000/old" -L
-```
-
-# Setting Response Headers
-
-Use `HttpEffect.appendPreResponseHandler` inside a handler to modify the outgoing response before it's sent. The handler receives the request and response, and must return the updated response.
-
-**Example** (Adding a Custom Response Header)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema } from "effect"
-import { HttpEffect, HttpRouter, HttpServerResponse } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const Api = HttpApi.make("api").add(
-  HttpApiGroup.make("group").add(
-    HttpApiEndpoint.get("hello", "/hello", {
-      success: Schema.String
-    })
-  )
-)
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "group",
-  (handlers) =>
-    handlers.handle("hello", () =>
-      Effect.gen(function*() {
-        yield* HttpEffect.appendPreResponseHandler((_req, response) =>
-          Effect.succeed(HttpServerResponse.setHeader(response, "x-custom", "hello"))
-        )
-        return "Hello, World!"
-      }))
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-
-// curl -v "http://localhost:3000/hello" 2>&1 | grep -i "x-custom"
-// < x-custom: hello
-```
-
-# Setting Response Cookies
-
-Use `HttpEffect.appendPreResponseHandler` with `HttpServerResponse.setCookie` to set cookies on the response. For security-related cookies (tied to an `HttpApiSecurity.apiKey` with `in: "cookie"`), use the convenience helper `HttpApiBuilder.securitySetCookie`.
-
-**Example** (Setting a Response Cookie)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema } from "effect"
-import { HttpEffect, HttpRouter, HttpServerResponse } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const Api = HttpApi.make("api").add(
-  HttpApiGroup.make("group").add(
-    HttpApiEndpoint.get("hello", "/hello", {
-      success: Schema.String
-    })
-  )
-)
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "group",
-  (handlers) =>
-    handlers.handle("hello", () =>
-      Effect.gen(function*() {
-        yield* HttpEffect.appendPreResponseHandler((_req, response) =>
-          Effect.succeed(HttpServerResponse.setCookieUnsafe(response, "my-cookie", "my-value", {
-            httpOnly: true,
-            secure: true,
-            path: "/"
-          }))
-        )
-        return "Hello, World!"
-      }))
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-
-// curl -v "http://localhost:3000/hello" 2>&1 | grep -i "set-cookie"
-// < set-cookie: my-cookie=my-value; Path=/; HttpOnly; Secure
-```
-
-# Validating Request Cookies
-
-Request cookies are validated through the security middleware mechanism using `HttpApiSecurity.apiKey` with `in: "cookie"`. The middleware decodes the cookie value and provides it as a `Redacted` credential to the security handler.
-
-**Example** (Validating a Session Cookie)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Redacted, Schema, ServiceMap } from "effect"
-import { HttpRouter } from "effect/unstable/http"
-import {
-  HttpApi,
-  HttpApiBuilder,
-  HttpApiEndpoint,
-  HttpApiGroup,
-  HttpApiMiddleware,
-  HttpApiScalar,
-  HttpApiSecurity
-} from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-// Define the service providing the current user
-class CurrentUser
-  extends ServiceMap.Service<CurrentUser, { readonly id: number; readonly name: string }>()("CurrentUser")
-{}
-
-// Define the security scheme: read the "session" cookie
-const sessionCookie = HttpApiSecurity.apiKey({ in: "cookie", key: "session" })
-
-class Auth extends HttpApiMiddleware.Service<Auth, {
-  provides: CurrentUser
-}>()("Auth", {
-  error: Schema.String.annotate({
-    httpApiStatus: 401,
-    description: "Auth error"
-  }),
-  security: { session: sessionCookie }
-}) {}
-
-const Api = HttpApi.make("api").add(
-  HttpApiGroup.make("group")
-    .add(
-      HttpApiEndpoint.get("me", "/me", {
-        success: Schema.Struct({ id: Schema.Finite })
-      })
-    )
-    .middleware(Auth)
-)
-
-const AuthLive = Layer.succeed(
-  Auth,
-  {
-    session: (effect, opts) =>
-      Effect.provideServiceEffect(
-        effect,
-        CurrentUser,
-        Effect.gen(function*() {
-          const value = Redacted.value(opts.credential)
-          if (value !== "valid-session") {
-            return yield* Effect.fail("Invalid session")
-          }
-          return { id: 1, name: "John Doe" }
-        })
-      )
-  }
-)
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "group",
-  (handlers) =>
-    handlers.handle("me", () =>
-      Effect.gen(function*() {
-        const user = yield* CurrentUser
-        return { id: user.id }
-      }))
-).pipe(Layer.provide(AuthLive))
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  Layer.provide(HttpApiScalar.layer(Api)),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-
-// Valid session:
-// curl "http://localhost:3000/me" --cookie "session=valid-session"
-// {"id":1}
-//
-// Invalid session:
-// curl "http://localhost:3000/me" --cookie "session=wrong"
-// "Invalid session"
-```
-
-There is no `cookies` option on `HttpApiEndpoint` (unlike `headers`, `query`, or `params`). For ad-hoc access without schema validation, you can read cookies directly inside a handler via `ctx.request.cookies`, but they won't appear in the OpenAPI spec.
-
-**Example** (Reading Cookies Directly in a Handler)
-
-```ts
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Schema } from "effect"
-import { HttpRouter } from "effect/unstable/http"
-import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
-import { createServer } from "node:http"
-
-const Api = HttpApi.make("api").add(
-  HttpApiGroup.make("group").add(
-    HttpApiEndpoint.get("me", "/me", {
-      success: Schema.String
-    })
-  )
-)
-
-const GroupLive = HttpApiBuilder.group(
-  Api,
-  "group",
-  (handlers) =>
-    handlers.handle("me", (ctx) => {
-      const lang = ctx.request.cookies.lang ?? "en"
-      return Effect.succeed(`Language: ${lang}`)
-    })
-)
-
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(GroupLive),
-  HttpRouter.serve,
-  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
-)
-
-Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
-
-// curl "http://localhost:3000/me" --cookie "lang=it"
-// "Language: it"
-```
