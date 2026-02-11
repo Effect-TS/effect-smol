@@ -462,6 +462,15 @@ type ComputerCall = {
   readonly status: MessageStatus
 }
 
+type ComputerCallOutputItem = {
+  readonly id?: string | null | undefined
+  readonly call_id: string
+  readonly type: "computer_call_output"
+  readonly output: unknown
+  readonly acknowledged_safety_checks?: ReadonlyArray<unknown> | null | undefined
+  readonly status?: MessageStatus | null | undefined
+}
+
 type CodeInterpreterCall = {
   readonly type: "code_interpreter_call"
   readonly id: string
@@ -494,6 +503,14 @@ type ShellCall = {
   readonly action: unknown
   readonly status: MessageStatus
   readonly created_by?: string | undefined
+}
+
+type ShellCallItem = {
+  readonly id?: string | null | undefined
+  readonly call_id: string
+  readonly type: "shell_call"
+  readonly action: unknown
+  readonly status?: MessageStatus | null | undefined
 }
 
 type ShellCallOutputContent = {
@@ -553,6 +570,14 @@ type ApplyPatchCall = {
   readonly created_by?: string | undefined
 }
 
+type ApplyPatchCallItem = {
+  readonly type: "apply_patch_call"
+  readonly id?: string | null | undefined
+  readonly call_id: string
+  readonly status: "in_progress" | "completed"
+  readonly operation: ApplyPatchOperation
+}
+
 type ApplyPatchCallOutput = {
   readonly type: "apply_patch_call_output"
   readonly id: string
@@ -560,6 +585,14 @@ type ApplyPatchCallOutput = {
   readonly status: "completed" | "failed"
   readonly output?: string | null | undefined
   readonly created_by?: string | undefined
+}
+
+type ApplyPatchCallOutputItem = {
+  readonly type: "apply_patch_call_output"
+  readonly id?: string | null | undefined
+  readonly call_id: string
+  readonly status: "completed" | "failed"
+  readonly output?: string | null | undefined
 }
 
 type MCPApprovalRequest = {
@@ -638,6 +671,7 @@ export type InputItem =
   | OutputMessage
   | FileSearchCall
   | ComputerCall
+  | ComputerCallOutputItem
   | WebSearchCall
   | FunctionCall
   | FunctionCallOutput
@@ -646,10 +680,10 @@ export type InputItem =
   | CodeInterpreterCall
   | LocalShellCall
   | LocalShellCallOutput
-  | ShellCall
+  | ShellCallItem
   | ShellCallOutputItem
-  | ApplyPatchCall
-  | ApplyPatchCallOutput
+  | ApplyPatchCallItem
+  | ApplyPatchCallOutputItem
   | MCPListTools
   | MCPApprovalRequest
   | MCPApprovalResponse

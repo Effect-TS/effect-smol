@@ -214,6 +214,99 @@ describe("OpenAiClient", () => {
           }
         })
       }))
+
+    it.effect("accepts permissive history items for shell/apply_patch input", () =>
+      Effect.gen(function*() {
+        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
+
+        const client = yield* OpenAiClient.make({
+          apiKey: Redacted.make("sk-test-key")
+        }).pipe(
+          Effect.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) => {
+              capturedRequest = request
+              return Effect.succeed(jsonResponse(request, 200, makeChatCompletion()))
+            })
+          ))
+        )
+
+        yield* client.createResponse({
+          model: "gpt-4o-mini",
+          input: [
+            {
+              type: "shell_call",
+              call_id: "shell_call_1",
+              action: {
+                type: "exec",
+                command: ["pwd"]
+              }
+            },
+            {
+              type: "apply_patch_call",
+              call_id: "patch_call_1",
+              status: "in_progress",
+              operation: {
+                type: "delete_file",
+                path: "src/obsolete.ts"
+              }
+            },
+            {
+              type: "apply_patch_call_output",
+              call_id: "patch_call_1",
+              status: "completed",
+              output: "deleted"
+            },
+            {
+              type: "computer_call_output",
+              call_id: "computer_call_1",
+              output: {
+                type: "screenshot",
+                image_url: "https://example.test/screenshot.png"
+              }
+            }
+          ]
+        })
+
+        assert.isDefined(capturedRequest)
+        if (capturedRequest === undefined) {
+          return
+        }
+
+        const body = yield* getRequestBody(capturedRequest)
+        const assistantMessages = body.messages.filter((message: any) => message.role === "assistant")
+        const shellMessage = assistantMessages.find((message: any) =>
+          message.tool_calls?.[0]?.function?.name === "shell"
+        )
+        const patchMessage = assistantMessages.find((message: any) =>
+          message.tool_calls?.[0]?.function?.name === "apply_patch"
+        )
+
+        assert.isDefined(shellMessage)
+        assert.isDefined(patchMessage)
+
+        assert.strictEqual(shellMessage.tool_calls[0].id, "shell_call_1")
+        assert.deepStrictEqual(JSON.parse(shellMessage.tool_calls[0].function.arguments), {
+          action: {
+            type: "exec",
+            command: ["pwd"]
+          }
+        })
+
+        assert.strictEqual(patchMessage.tool_calls[0].id, "patch_call_1")
+        assert.deepStrictEqual(JSON.parse(patchMessage.tool_calls[0].function.arguments), {
+          call_id: "patch_call_1",
+          operation: {
+            type: "delete_file",
+            path: "src/obsolete.ts"
+          }
+        })
+
+        const toolMessages = body.messages.filter((message: any) => message.role === "tool")
+        const patchOutput = toolMessages.find((message: any) => message.tool_call_id === "patch_call_1")
+        assert.isDefined(patchOutput)
+        assert.strictEqual(JSON.parse(patchOutput.content).type, "apply_patch_call_output")
+      }))
   })
 
   describe("error mapping", () => {
