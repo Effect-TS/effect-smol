@@ -179,5 +179,6 @@ describe("OpenAiSchema", () => {
     assert.strictEqual(OpenAiSchema.CreateResponse200, OpenAiSchema.Response)
     assert.strictEqual(OpenAiSchema.CreateResponse200Sse, OpenAiSchema.ResponseStreamEvent)
     assert.strictEqual(OpenAiSchema.CreateEmbeddingRequestJson, OpenAiSchema.CreateEmbeddingRequest)
+    assert.strictEqual(OpenAiSchema.CreateEmbedding200, OpenAiSchema.CreateEmbeddingResponse)
   })
 })
