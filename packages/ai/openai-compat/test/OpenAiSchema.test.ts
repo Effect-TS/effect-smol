@@ -3,17 +3,6 @@ import { assert, describe, it } from "@effect/vitest"
 import * as Schema from "effect/Schema"
 
 describe("OpenAiSchema", () => {
-  it("keeps model literal branches at members[1]", () => {
-    const decodeSharedLiteral = Schema.decodeUnknownSync(OpenAiSchema.ModelIdsShared.members[1])
-    const decodeResponsesLiteral = Schema.decodeUnknownSync(OpenAiSchema.ModelIdsResponses.members[1])
-
-    assert.strictEqual(decodeSharedLiteral("gpt-4o"), "gpt-4o")
-    assert.throws(() => decodeSharedLiteral("ft:custom-model"))
-
-    assert.strictEqual(decodeResponsesLiteral("gpt-5-pro"), "gpt-5-pro")
-    assert.throws(() => decodeResponsesLiteral("gpt-4o"))
-  })
-
   it("accepts assistant and tool history in CreateResponse.input", () => {
     const encode = Schema.encodeUnknownSync(OpenAiSchema.CreateResponse)
 

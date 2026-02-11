@@ -30,18 +30,15 @@ import type * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import * as InternalUtilities from "./internal/utilities.ts"
 import { OpenAiClient } from "./OpenAiClient.ts"
-import * as OpenAiSchema from "./OpenAiSchema.ts"
+import type * as OpenAiSchema from "./OpenAiSchema.ts"
 import { addGenAIAnnotations } from "./OpenAiTelemetry.ts"
 import type * as OpenAiTool from "./OpenAiTool.ts"
-
-const ResponseModelIds = OpenAiSchema.ModelIdsResponses.members[1]
-const SharedModelIds = OpenAiSchema.ModelIdsShared.members[1]
 
 /**
  * @since 1.0.0
  * @category models
  */
-export type Model = typeof ResponseModelIds.Encoded | typeof SharedModelIds.Encoded
+export type Model = (OpenAiSchema.ModelIdsResponses | OpenAiSchema.ModelIdsShared) | (string & {})
 
 /**
  * Image detail level for vision requests.
@@ -772,6 +769,7 @@ const prepareMessages = Effect.fnUntraced(
                   type: "function_call",
                   name: toolName,
                   call_id: part.id,
+                  // @effect-diagnostics-next-line preferSchemaOverJson:off
                   arguments: JSON.stringify(part.params),
                   ...(Predicate.isNotNull(id) ? { id } : {}),
                   ...(Predicate.isNotNull(status) ? { status } : {})
@@ -875,6 +873,7 @@ const prepareMessages = Effect.fnUntraced(
             messages.push({
               type: "function_call_output",
               call_id: part.id,
+              // @effect-diagnostics-next-line preferSchemaOverJson:off
               output: JSON.stringify(part.result),
               ...(Predicate.isNotNull(status) ? { status } : {})
             })
@@ -1522,6 +1521,7 @@ const makeStreamResponse = Effect.fnUntraced(
                   parts.push({
                     type: "tool-params-delta",
                     id: toolId,
+                    // @effect-diagnostics-next-line preferSchemaOverJson:off
                     delta: JSON.stringify({
                       call_id: toolId,
                       operation: operation
