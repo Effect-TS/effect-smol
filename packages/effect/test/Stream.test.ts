@@ -286,6 +286,27 @@ describe("Stream", () => {
         assert.strictEqual(error, "boom")
       }))
 
+    it.effect("tapCause preserves failures", () =>
+      Effect.gen(function*() {
+        const exit = yield* Stream.fail("boom").pipe(
+          Stream.tapCause(() => Effect.void),
+          Stream.runCollect,
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail("boom"))
+      }))
+
+    it.effect("tapCause preserves defects", () =>
+      Effect.gen(function*() {
+        const defect = new Error("boom")
+        const exit = yield* Stream.die(defect).pipe(
+          Stream.tapCause(() => Effect.void),
+          Stream.runCollect,
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.die(defect))
+      }))
+
     it.effect("catchIf", () =>
       Effect.gen(function*() {
         interface ErrorA {

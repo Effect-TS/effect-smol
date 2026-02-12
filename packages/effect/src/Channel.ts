@@ -3723,7 +3723,7 @@ export const tapCause: {
   InErr,
   InDone,
   Env | R
-> => catchCause(self, (err) => fromEffectDrain(f(err))))
+> => catchCause(self, (cause) => fromEffectDrain(Effect.andThen(f(cause), Effect.failCause(cause)))))
 
 /**
  * Catches causes of failure that match a specific filter, allowing
