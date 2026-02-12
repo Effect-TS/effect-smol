@@ -77,10 +77,10 @@ import {
   ExitTypeId,
   Fail,
   failureIsDie,
-  failureIsFail,
   InterruptorStackTrace,
   isCause,
   isEffect,
+  isFailReason,
   makePrimitive,
   makePrimitiveProto,
   NoSuchElementError,
@@ -141,11 +141,11 @@ export const causeInterrupt = (
 ): Cause.Cause<never> => new CauseImpl([new Interrupt(fiberId)])
 
 /** @internal */
-export const causeHasFail = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(failureIsFail)
+export const causeHasFail = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isFailReason)
 
 /** @internal */
 export const causeFilterFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter.fail<Cause.Cause<never>> => {
-  const failure = self.reasons.find(failureIsFail)
+  const failure = self.reasons.find(isFailReason)
   return failure ? failure : Filter.fail(self as Cause.Cause<never>)
 }
 
@@ -264,7 +264,7 @@ export const causeMap: {
   <E, E2>(self: Cause.Cause<E>, f: (error: NoInfer<E>) => E2): Cause.Cause<E2> => {
     let hasFail = false
     const failures = self.reasons.map((failure) => {
-      if (failureIsFail(failure)) {
+      if (isFailReason(failure)) {
         hasFail = true
         return new Fail(f(failure.error))
       }
@@ -3255,7 +3255,7 @@ export const matchEffect: {
   ): Effect.Effect<A2 | A3, E2 | E3, R2 | R3 | R> =>
     matchCauseEffect(self, {
       onFailure: (cause) => {
-        const fail = cause.reasons.find(failureIsFail)
+        const fail = cause.reasons.find(isFailReason)
         return fail
           ? internalCall(() => options.onFailure(fail.error))
           : failCause(cause as Cause.Cause<never>)

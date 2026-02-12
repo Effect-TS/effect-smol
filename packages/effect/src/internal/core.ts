@@ -271,7 +271,7 @@ export class Fail<E> extends ReasonBase<"Fail"> implements Cause.Fail<E> {
   }
   [Equal.symbol](that: any): boolean {
     return (
-      failureIsFail(that) &&
+      isFailReason(that) &&
       Equal.equals(this.error, that.error) &&
       Equal.equals(this.annotations, that.annotations)
     )
@@ -360,7 +360,7 @@ export const causeAnnotate: {
 )
 
 /** @internal */
-export const failureIsFail = <E>(
+export const isFailReason = <E>(
   self: Cause.Reason<E>
 ): self is Cause.Fail<E> => self._tag === "Fail"
 

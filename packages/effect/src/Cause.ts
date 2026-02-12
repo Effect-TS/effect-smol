@@ -115,7 +115,7 @@ export const isReason: (self: unknown) => self is Reason<unknown> = core.isCause
  * const failCause = Cause.fail("error")
  * const failure: Cause.Reason<string> = failCause.reasons[0]
  *
- * if (Cause.isFail(failure)) {
+ * if (Cause.isFailReason(failure)) {
  *   console.log(failure.error) // "error"
  * }
  * ```
@@ -134,13 +134,13 @@ export type Reason<E> = Fail<E> | Die | Interrupt
  *
  * const cause = Cause.fail("error")
  * const failure = cause.reasons[0]
- * console.log(Cause.isFail(failure)) // true
+ * console.log(Cause.isFailReason(failure)) // true
  * ```
  *
  * @category guards
  * @since 4.0.0
  */
-export const isFail: <E>(self: Reason<E>) => self is Fail<E> = core.failureIsFail
+export const isFailReason: <E>(self: Reason<E>) => self is Fail<E> = core.isFailReason
 
 /**
  * Tests if a `Reason` is a `Die`.
@@ -186,7 +186,7 @@ export const isInterrupt: <E>(self: Reason<E>) => self is Interrupt = core.failu
  *
  * const cause = Cause.fail("error")
  * const failure = cause.reasons[0]
- * if (Cause.isFail(failure)) {
+ * if (Cause.isFailReason(failure)) {
  *   console.log(failure._tag) // "Fail"
  *   console.log(failure.error) // "error"
  * }
@@ -217,7 +217,7 @@ export declare namespace Cause {
    *
    * const cause = Cause.fail("error")
    * const failure = cause.reasons[0]
-   * if (Cause.isFail(failure)) {
+   * if (Cause.isFailReason(failure)) {
    *   console.log(failure._tag) // "Fail"
    *   console.log(failure.annotations.size) // 0
    * }
@@ -291,7 +291,7 @@ export interface Die extends Cause.ReasonProto<"Die"> {
  *
  * const cause = Cause.fail("Something went wrong")
  * const failure = cause.reasons[0]
- * if (Cause.isFail(failure)) {
+ * if (Cause.isFailReason(failure)) {
  *   console.log(failure._tag) // "Fail"
  *   console.log(failure.error) // "Something went wrong"
  * }
