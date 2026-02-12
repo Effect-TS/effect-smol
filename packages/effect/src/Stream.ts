@@ -879,8 +879,8 @@ export const failCause = <E>(cause: Cause.Cause<E>): Stream<never, E> => fromCha
  *   const message = Exit.match(exit, {
  *     onSuccess: () => "Exit.Success",
  *     onFailure: (cause) => {
- *       const failure = cause.failures[0]
- *       const defect = Cause.isDie(failure) ? String(failure.defect) : "Unexpected failure"
+ *       const reason = cause.reasons[0]
+ *       const defect = Cause.isDie(reason) ? String(reason.defect) : "Unexpected reason"
  *       return `Exit.Failure(${defect})`
  *     }
  *   })

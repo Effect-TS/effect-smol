@@ -217,8 +217,8 @@ export const causeResponse = <E>(
   const failures: Array<Cause.Failure<E>> = []
   let interrupt: Cause.Interrupt | undefined
   let isClientInterrupt = false
-  for (let i = 0; i < cause.failures.length; i++) {
-    const f = cause.failures[i]
+  for (let i = 0; i < cause.reasons.length; i++) {
+    const f = cause.reasons[i]
     switch (f._tag) {
       case "Fail": {
         effect = Respondable.toResponseOrElse(f.error, internalServerError)
@@ -261,7 +261,7 @@ export const causeResponseStripped = <E>(
   cause: Cause.Cause<E>
 ): readonly [response: Response.HttpServerResponse, cause: Cause.Cause<E> | undefined] => {
   let response: Response.HttpServerResponse | undefined
-  const failures = cause.failures.filter((f) => {
+  const failures = cause.reasons.filter((f) => {
     if (f._tag === "Die" && Response.isHttpServerResponse(f.defect)) {
       response = f.defect
       return false

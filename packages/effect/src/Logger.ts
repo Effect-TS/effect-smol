@@ -515,7 +515,7 @@ const format = (
     out += append("message", Formatter.format(messages[i], { space }))
   }
 
-  if (cause.failures.length > 0) {
+  if (cause.reasons.length > 0) {
     out += append("cause", effect.causePretty(cause))
   }
 
@@ -755,7 +755,7 @@ export const formatStructured: Logger<unknown, {
       : messageArr.map(effect.structuredMessage),
     level: logLevel.toUpperCase(),
     timestamp: date.toISOString(),
-    cause: cause.failures.length > 0 ? effect.causePretty(cause) : undefined,
+    cause: cause.reasons.length > 0 ? effect.causePretty(cause) : undefined,
     annotations: annotationsObj,
     spans: spansObj,
     fiberId: formatFiberId(fiber.id)

@@ -313,7 +313,7 @@ export const make = Effect.gen(function*() {
                   Effect.catchCause((cause) => {
                     // we only want to store interrupts as suspends when the
                     // client requested it
-                    const suspend = cause.failures.some((f) =>
+                    const suspend = cause.reasons.some((f) =>
                       f._tag === "Interrupt" && f.fiberId === RpcServer.fiberIdClientInterrupt
                     )
                     if (suspend) {

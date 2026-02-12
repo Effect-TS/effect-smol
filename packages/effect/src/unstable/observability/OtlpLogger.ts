@@ -123,7 +123,7 @@ const makeLogRecord = (options: Logger.Logger.Options<unknown>, opts: {
       })
     }
   }
-  if (options.cause.failures.length > 0) {
+  if (options.cause.reasons.length > 0) {
     attributes.push({
       key: "log.error",
       value: { stringValue: Cause.pretty(options.cause) }

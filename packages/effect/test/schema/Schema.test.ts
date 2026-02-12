@@ -58,7 +58,7 @@ describe("Schema", () => {
     const schema = Schema.String
     const result = Schema.decodeUnknownExit(schema)(null)
     assertTrue(Exit.isFailure(result))
-    strictEqual(String(result.cause.failures[0]), "Fail(SchemaError(Expected string, got null))")
+    strictEqual(String(result.cause.reasons[0]), "Fail(SchemaError(Expected string, got null))")
   })
 
   describe("parseOptions annotation", () => {

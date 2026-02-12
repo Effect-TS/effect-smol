@@ -72,9 +72,9 @@ export const FailureTypeId: "~effect/Cause/Failure" = core.CauseFailureTypeId
  * const dieCause: Cause.Cause<never> = Cause.die(new Error("Unexpected error"))
  * const interruptCause: Cause.Cause<never> = Cause.interrupt(123)
  *
- * console.log(failCause.failures.length) // 1
- * console.log(dieCause.failures.length) // 1
- * console.log(interruptCause.failures.length) // 1
+ * console.log(failCause.reasons.length) // 1
+ * console.log(dieCause.reasons.length) // 1
+ * console.log(interruptCause.reasons.length) // 1
  * ```
  *
  * @since 2.0.0
@@ -82,7 +82,7 @@ export const FailureTypeId: "~effect/Cause/Failure" = core.CauseFailureTypeId
  */
 export interface Cause<out E> extends Pipeable, Inspectable, Equal {
   readonly [TypeId]: typeof TypeId
-  readonly failures: ReadonlyArray<Failure<E>>
+  readonly reasons: ReadonlyArray<Failure<E>>
 }
 
 /**
@@ -113,7 +113,7 @@ export const isFailure: (self: unknown) => self is Failure<unknown> = core.isCau
  * import { Cause } from "effect"
  *
  * const failCause = Cause.fail("error")
- * const failure: Cause.Failure<string> = failCause.failures[0]
+ * const failure: Cause.Failure<string> = failCause.reasons[0]
  *
  * if (Cause.isFail(failure)) {
  *   console.log(failure.error) // "error"
@@ -133,7 +133,7 @@ export type Failure<E> = Fail<E> | Die | Interrupt
  * import { Cause } from "effect"
  *
  * const cause = Cause.fail("error")
- * const failure = cause.failures[0]
+ * const failure = cause.reasons[0]
  * console.log(Cause.isFail(failure)) // true
  * ```
  *
@@ -150,7 +150,7 @@ export const isFail: <E>(self: Failure<E>) => self is Fail<E> = core.failureIsFa
  * import { Cause } from "effect"
  *
  * const cause = Cause.die("defect")
- * const failure = cause.failures[0]
+ * const failure = cause.reasons[0]
  * console.log(Cause.isDie(failure)) // true
  * ```
  *
@@ -167,7 +167,7 @@ export const isDie: <E>(self: Failure<E>) => self is Die = core.failureIsDie
  * import { Cause } from "effect"
  *
  * const cause = Cause.interrupt(123)
- * const failure = cause.failures[0]
+ * const failure = cause.reasons[0]
  * console.log(Cause.isInterrupt(failure)) // true
  * ```
  *
@@ -185,7 +185,7 @@ export const isInterrupt: <E>(self: Failure<E>) => self is Interrupt = core.fail
  * // type StringCauseError = string
  *
  * const cause = Cause.fail("error")
- * const failure = cause.failures[0]
+ * const failure = cause.reasons[0]
  * if (Cause.isFail(failure)) {
  *   console.log(failure._tag) // "Fail"
  *   console.log(failure.error) // "error"
@@ -216,7 +216,7 @@ export declare namespace Cause {
    * import { Cause } from "effect"
    *
    * const cause = Cause.fail("error")
-   * const failure = cause.failures[0]
+   * const failure = cause.reasons[0]
    * if (Cause.isFail(failure)) {
    *   console.log(failure._tag) // "Fail"
    *   console.log(failure.annotations.size) // 0
@@ -270,7 +270,7 @@ export declare namespace Failure {
  * import { Cause } from "effect"
  *
  * const cause = Cause.die(new Error("Unexpected error"))
- * const failure = cause.failures[0]
+ * const failure = cause.reasons[0]
  * if (Cause.isDie(failure)) {
  *   console.log(failure._tag) // "Die"
  *   console.log(failure.defect) // Error: Unexpected error
@@ -290,7 +290,7 @@ export interface Die extends Cause.FailureProto<"Die"> {
  * import { Cause } from "effect"
  *
  * const cause = Cause.fail("Something went wrong")
- * const failure = cause.failures[0]
+ * const failure = cause.reasons[0]
  * if (Cause.isFail(failure)) {
  *   console.log(failure._tag) // "Fail"
  *   console.log(failure.error) // "Something went wrong"
@@ -310,7 +310,7 @@ export interface Fail<out E> extends Cause.FailureProto<"Fail"> {
  * import { Cause } from "effect"
  *
  * const cause = Cause.interrupt(123)
- * const failure = cause.failures[0]
+ * const failure = cause.reasons[0]
  * if (Cause.isInterrupt(failure)) {
  *   console.log(failure._tag) // "Interrupt"
  *   console.log(failure.fiberId !== undefined) // true
@@ -331,10 +331,10 @@ export interface Interrupt extends Cause.FailureProto<"Interrupt"> {
  * ```ts
  * import { Cause } from "effect"
  *
- * const fail1 = Cause.fail("error1").failures[0]
- * const fail2 = Cause.fail("error2").failures[0]
+ * const fail1 = Cause.fail("error1").reasons[0]
+ * const fail2 = Cause.fail("error2").reasons[0]
  * const cause = Cause.fromFailures([fail1, fail2])
- * console.log(cause.failures.length) // 2
+ * console.log(cause.reasons.length) // 2
  * ```
  *
  * @category constructors
@@ -361,7 +361,7 @@ export const empty: Cause<never> = core.causeEmpty
  * import { Cause } from "effect"
  *
  * const cause = Cause.fail("Something went wrong")
- * console.log(cause.failures.length) // 1
+ * console.log(cause.reasons.length) // 1
  * ```
  *
  * @category constructors
@@ -377,7 +377,7 @@ export const fail: <E>(error: E) => Cause<E> = core.causeFail
  * import { Cause } from "effect"
  *
  * const cause = Cause.die(new Error("Unexpected error"))
- * console.log(cause.failures.length) // 1
+ * console.log(cause.reasons.length) // 1
  * ```
  *
  * @category constructors
@@ -393,7 +393,7 @@ export const die: (defect: unknown) => Cause<never> = core.causeDie
  * import { Cause } from "effect"
  *
  * const cause = Cause.interrupt(123)
- * console.log(cause.failures.length) // 1
+ * console.log(cause.reasons.length) // 1
  * ```
  *
  * @category constructors
@@ -457,7 +457,7 @@ export const map: {
  * const cause1 = Cause.fail("error1")
  * const cause2 = Cause.fail("error2")
  * const combined = Cause.combine(cause1, cause2)
- * console.log(combined.failures.length) // 2
+ * console.log(combined.reasons.length) // 2
  * ```
  *
  * @category utils

@@ -181,7 +181,7 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
         assert.ok(exit._tag === "Failure", "Type guard for exit failure")
 
-        const failure = exit.cause.failures.find((failure: any) => failure._tag === "Fail")
+        const failure = exit.cause.reasons.find((failure: any) => failure._tag === "Fail")
         assert.ok(failure, "Expected to find a Fail cause")
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, "error", "Expected error to be preserved")
@@ -222,7 +222,7 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
         assert.ok(exit._tag === "Failure", "Type guard for exit failure")
 
-        const failure = exit.cause.failures.find((failure: any) => failure._tag === "Fail")
+        const failure = exit.cause.reasons.find((failure: any) => failure._tag === "Fail")
         assert.ok(failure, "Expected to find a Fail cause")
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, error, "Expected error to be preserved")
@@ -259,7 +259,7 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
         assert.ok(exit._tag === "Failure", "Type guard for exit failure")
 
-        const failure = exit.cause.failures.find((failure: any) => failure._tag === "Fail")
+        const failure = exit.cause.reasons.find((failure: any) => failure._tag === "Fail")
         assert.ok(failure, "Expected to find a Fail cause")
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, "mapped: original error", "Expected error to be transformed")
@@ -277,7 +277,7 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
         assert.ok(exit._tag === "Failure", "Type guard for exit failure")
 
-        const failure = exit.cause.failures.find((failure: any) => failure._tag === "Fail")
+        const failure = exit.cause.reasons.find((failure: any) => failure._tag === "Fail")
         assert.ok(failure, "Expected to find a Fail cause")
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, "mapped: error", "Expected error to be transformed")
@@ -308,7 +308,7 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
         assert.ok(exit._tag === "Failure", "Type guard for exit failure")
 
-        const failure = exit.cause.failures.find((failure: any) => failure._tag === "Fail")
+        const failure = exit.cause.reasons.find((failure: any) => failure._tag === "Fail")
         assert.ok(failure, "Expected to find a Fail cause")
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, "Failed: original error", "Expected error to be transformed")

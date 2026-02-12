@@ -141,18 +141,18 @@ export const causeInterrupt = (
 ): Cause.Cause<never> => new CauseImpl([new Interrupt(fiberId)])
 
 /** @internal */
-export const causeHasFail = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsFail)
+export const causeHasFail = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(failureIsFail)
 
 /** @internal */
 export const causeFilterFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter.fail<Cause.Cause<never>> => {
-  const failure = self.failures.find(failureIsFail)
+  const failure = self.reasons.find(failureIsFail)
   return failure ? failure : Filter.fail(self as Cause.Cause<never>)
 }
 
 /** @internal */
 export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause.Cause<never>> => {
-  for (let i = 0; i < self.failures.length; i++) {
-    const failure = self.failures[i]
+  for (let i = 0; i < self.reasons.length; i++) {
+    const failure = self.reasons[i]
     if (failure._tag === "Fail") {
       return failure.error
     }
@@ -164,34 +164,34 @@ export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause
 export const causeErrorOption = Filter.toOption(causeFilterError)
 
 /** @internal */
-export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsDie)
+export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(failureIsDie)
 
 /** @internal */
 export const causeFilterDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.fail<Cause.Cause<E>> => {
-  const failure = self.failures.find(failureIsDie)
+  const failure = self.reasons.find(failureIsDie)
   return failure ? failure : Filter.fail(self)
 }
 
 /** @internal */
 export const causeFilterDefect = <E>(self: Cause.Cause<E>): {} | Filter.fail<Cause.Cause<E>> => {
-  const failure = self.failures.find(failureIsDie)
+  const failure = self.reasons.find(failureIsDie)
   return failure ? failure.defect as {} : Filter.fail(self)
 }
 
 /** @internal */
-export const causeHasInterrupt = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsInterrupt)
+export const causeHasInterrupt = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(failureIsInterrupt)
 
 /** @internal */
 export const causeFilterInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt | Filter.fail<Cause.Cause<E>> => {
-  const failure = self.failures.find(failureIsInterrupt)
+  const failure = self.reasons.find(failureIsInterrupt)
   return failure ? failure : Filter.fail(self)
 }
 
 /** @internal */
 export const causeFilterInterruptors = <E>(self: Cause.Cause<E>): Set<number> | Filter.fail<Cause.Cause<E>> => {
   let interruptors: Set<number> | undefined
-  for (let i = 0; i < self.failures.length; i++) {
-    const f = self.failures[i]
+  for (let i = 0; i < self.reasons.length; i++) {
+    const f = self.reasons[i]
     if (f._tag !== "Interrupt") continue
     interruptors ??= new Set()
     if (f.fiberId !== undefined) {
@@ -209,7 +209,7 @@ export const causeInterruptors = <E>(self: Cause.Cause<E>): ReadonlySet<number> 
 const emptySet = new Set<number>()
 
 /** @internal */
-export const causeHasInterruptOnly = <E>(self: Cause.Cause<E>): boolean => self.failures.every(failureIsInterrupt)
+export const causeHasInterruptOnly = <E>(self: Cause.Cause<E>): boolean => self.reasons.every(failureIsInterrupt)
 
 /** @internal */
 export const failureIsInterrupt = <E>(
@@ -226,7 +226,7 @@ export const causeAnnotations = <E>(
   self: Cause.Cause<E>
 ): ServiceMap.ServiceMap<never> => {
   const map = new Map<string, unknown>()
-  for (const f of self.failures) {
+  for (const f of self.reasons) {
     if (f.annotations.size > 0) {
       for (const [key, value] of f.annotations) {
         map.set(key, value)
@@ -243,13 +243,13 @@ export const causeCombine: {
 } = dual(
   2,
   <E, E2>(self: Cause.Cause<E>, that: Cause.Cause<E2>): Cause.Cause<E | E2> => {
-    if (self.failures.length === 0) {
+    if (self.reasons.length === 0) {
       return that as Cause.Cause<E | E2>
-    } else if (that.failures.length === 0) {
+    } else if (that.reasons.length === 0) {
       return self as Cause.Cause<E | E2>
     }
     const newCause = new CauseImpl<E | E2>(
-      Arr.union(self.failures, that.failures)
+      Arr.union(self.reasons, that.reasons)
     )
     return Equal.equals(self, newCause) ? self : newCause
   }
@@ -263,7 +263,7 @@ export const causeMap: {
   2,
   <E, E2>(self: Cause.Cause<E>, f: (error: NoInfer<E>) => E2): Cause.Cause<E2> => {
     let hasFail = false
-    const failures = self.failures.map((failure) => {
+    const failures = self.reasons.map((failure) => {
       if (failureIsFail(failure)) {
         hasFail = true
         return new Fail(f(failure.error))
@@ -287,8 +287,8 @@ export const causePartition = <E>(
     Die: [] as Array<Cause.Die>,
     Interrupt: [] as Array<Cause.Interrupt>
   }
-  for (let i = 0; i < self.failures.length; i++) {
-    obj[self.failures[i]._tag].push(self.failures[i] as any)
+  for (let i = 0; i < self.reasons.length; i++) {
+    obj[self.reasons[i]._tag].push(self.reasons[i] as any)
   }
   return obj
 }
@@ -310,13 +310,13 @@ export const causeSquash = <E>(self: Cause.Cause<E>): unknown => {
 export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
   const errors: Array<Error> = []
   const interrupts: Array<Cause.Interrupt> = []
-  if (self.failures.length === 0) return errors
+  if (self.reasons.length === 0) return errors
 
   const prevStackLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
   ;(Error as ErrorWithStackTraceLimit)
     .stackTraceLimit = 1
 
-  for (const failure of self.failures) {
+  for (const failure of self.reasons) {
     if (failure._tag === "Interrupt") {
       interrupts.push(failure)
       continue
@@ -1405,7 +1405,7 @@ export const raceAll = <Eff extends Effect.Effect<any, any, any>>(
       const onExit = (exit: Exit.Exit<any, any>, fiber: Fiber.Fiber<any, any>, i: number) => {
         doneCount++
         if (exit._tag === "Failure") {
-          failures.push(...exit.cause.failures)
+          failures.push(...exit.cause.reasons)
           if (doneCount >= len) {
             resume(failCause(causeFromFailures(failures)))
           }
@@ -1934,7 +1934,7 @@ export const exitAsVoidAll = <I extends Iterable<Exit.Exit<any, any>>>(
   const failures: Array<Cause.Failure<any>> = []
   for (const exit of exits) {
     if (exit._tag === "Failure") {
-      failures.push(...exit.cause.failures)
+      failures.push(...exit.cause.reasons)
     }
   }
   return failures.length === 0 ? exitVoid : exitFailCause(causeFromFailures(failures))
@@ -3255,7 +3255,7 @@ export const matchEffect: {
   ): Effect.Effect<A2 | A3, E2 | E3, R2 | R3 | R> =>
     matchCauseEffect(self, {
       onFailure: (cause) => {
-        const fail = cause.failures.find(failureIsFail)
+        const fail = cause.reasons.find(failureIsFail)
         return fail
           ? internalCall(() => options.onFailure(fail.error))
           : failCause(cause as Cause.Cause<never>)
@@ -4146,10 +4146,10 @@ export const forEach: {
                 if (!failed) {
                   failed = true
                   length = index
-                  failures.push(...exit.cause.failures)
+                  failures.push(...exit.cause.reasons)
                   fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, annotations))
                 } else {
-                  for (const f of exit.cause.failures) {
+                  for (const f of exit.cause.reasons) {
                     if (f._tag === "Interrupt") continue
                     failures.push(f)
                   }
@@ -5485,7 +5485,7 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
       } else {
         message = message.slice(0, i).concat(message.slice(i + 1))
       }
-      cause = cause ? causeFromFailures(cause.failures.concat(msg.failures)) : msg
+      cause = cause ? causeFromFailures(cause.reasons.concat(msg.reasons)) : msg
       i--
     }
   }
@@ -5623,7 +5623,7 @@ const prettyLoggerTty = (options: {
       log(firstLine)
       if (!processIsBun) console.group()
 
-      if (cause.failures.length > 0) {
+      if (cause.reasons.length > 0) {
         log(causePretty(cause))
       }
 
@@ -5686,7 +5686,7 @@ const prettyLoggerBrowser = (options: {
 
       console.groupCollapsed(firstLine, ...firstParams)
 
-      if (cause.failures.length > 0) {
+      if (cause.reasons.length > 0) {
         console.error(causePretty(cause))
       }
 
@@ -5714,7 +5714,7 @@ const prettyLoggerBrowser = (options: {
 /** @internal */
 export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, logLevel, message }) => {
   const message_ = Array.isArray(message) ? message.slice() : [message]
-  if (cause.failures.length > 0) {
+  if (cause.reasons.length > 0) {
     message_.unshift(causePretty(cause))
   }
   const now = date.getTime()
@@ -5744,7 +5744,7 @@ export const tracerLogger = loggerMake<unknown, void>(({ cause, fiber, logLevel,
   }
   attributes["effect.fiberId"] = fiber.id
   attributes["effect.logLevel"] = logLevel.toUpperCase()
-  if (cause.failures.length > 0) {
+  if (cause.reasons.length > 0) {
     attributes["effect.cause"] = causePretty(cause)
   }
   span.event(

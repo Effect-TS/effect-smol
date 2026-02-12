@@ -250,7 +250,7 @@ describe("OpenApiPatch", () => {
         const exit = yield* Effect.exit(OpenApiPatch.applyPatches(patches, document))
         assert.isTrue(Exit.isFailure(exit))
         if (Exit.isFailure(exit)) {
-          const failure = exit.cause.failures[0]
+          const failure = exit.cause.reasons[0]
           if (failure._tag === "Fail") {
             assert.strictEqual(failure.error._tag, "JsonPatchAggregateError")
             assert.strictEqual(failure.error.errors.length, 3)
@@ -278,7 +278,7 @@ describe("OpenApiPatch", () => {
         const exit = yield* Effect.exit(OpenApiPatch.applyPatches(patches, document))
         assert.isTrue(Exit.isFailure(exit))
         if (Exit.isFailure(exit)) {
-          const failure = exit.cause.failures[0]
+          const failure = exit.cause.reasons[0]
           if (failure._tag === "Fail") {
             assert.strictEqual(failure.error.errors.length, 2)
             assert.include(failure.error.message, "patch1.json")

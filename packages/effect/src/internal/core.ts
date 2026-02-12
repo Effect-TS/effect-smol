@@ -146,7 +146,7 @@ export const isCauseFailure = (self: unknown): self is Cause.Failure<unknown> =>
 /** @internal */
 export class CauseImpl<E> implements Cause.Cause<E> {
   readonly [CauseTypeId]: typeof CauseTypeId
-  readonly failures: ReadonlyArray<
+  readonly reasons: ReadonlyArray<
     Cause.Fail<E> | Cause.Die | Cause.Interrupt
   >
   constructor(
@@ -155,7 +155,7 @@ export class CauseImpl<E> implements Cause.Cause<E> {
     >
   ) {
     this[CauseTypeId] = CauseTypeId
-    this.failures = failures
+    this.reasons = failures
   }
   pipe() {
     return pipeArguments(this, arguments)
@@ -163,11 +163,11 @@ export class CauseImpl<E> implements Cause.Cause<E> {
   toJSON(): unknown {
     return {
       _id: "Cause",
-      failures: this.failures.map((f) => f.toJSON())
+      failures: this.reasons.map((f) => f.toJSON())
     }
   }
   toString() {
-    return `Cause(${format(this.failures)})`
+    return `Cause(${format(this.reasons)})`
   }
   [NodeInspectSymbol]() {
     return this.toJSON()
@@ -175,12 +175,12 @@ export class CauseImpl<E> implements Cause.Cause<E> {
   [Equal.symbol](that: any): boolean {
     return (
       isCause(that) &&
-      this.failures.length === that.failures.length &&
-      this.failures.every((e, i) => Equal.equals(e, that.failures[i]))
+      this.reasons.length === that.reasons.length &&
+      this.reasons.every((e, i) => Equal.equals(e, that.reasons[i]))
     )
   }
   [Hash.symbol](): number {
-    return Hash.array(this.failures)
+    return Hash.array(this.reasons)
   }
 }
 
@@ -355,7 +355,7 @@ export const causeAnnotate: {
     }
   ): Cause.Cause<E> => {
     if (annotations.mapUnsafe.size === 0) return self
-    return new CauseImpl(self.failures.map((f) => f.annotate(annotations, options)))
+    return new CauseImpl(self.reasons.map((f) => f.annotate(annotations, options)))
   }
 )
 

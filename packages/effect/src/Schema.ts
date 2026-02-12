@@ -5816,7 +5816,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
       const failures = Array(CauseFailure(error, defect))
-      return Effect.mapBothEager(Parser.decodeUnknownEffect(failures)(input.failures, options), {
+      return Effect.mapBothEager(Parser.decodeUnknownEffect(failures)(input.reasons, options), {
         onSuccess: Cause_.fromFailures,
         onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failures"], issue)])
       })
@@ -5836,7 +5836,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
           Array(CauseFailure(error, defect)),
           Transformation.transform({
             decode: Cause_.fromFailures,
-            encode: ({ failures }) => failures
+            encode: ({ reasons: failures }) => failures
           })
         ),
       toArbitrary: ([error, defect]) => causeToArbitrary(error, defect),
@@ -5855,12 +5855,12 @@ function causeToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck
 
 function causeToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
   const failures = Equivalence.Array(causeFailureToEquivalence(error, defect))
-  return (a: Cause_.Cause<E>, b: Cause_.Cause<E>) => failures(a.failures, b.failures)
+  return (a: Cause_.Cause<E>, b: Cause_.Cause<E>) => failures(a.reasons, b.reasons)
 }
 
 function causeToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
   const causeFailure = causeFailureToFormatter(error, defect)
-  return (t: Cause_.Cause<E>) => `Cause([${t.failures.map(causeFailure).join(", ")}])`
+  return (t: Cause_.Cause<E>) => `Cause([${t.reasons.map(causeFailure).join(", ")}])`
 }
 
 /**

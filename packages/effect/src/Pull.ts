@@ -86,7 +86,7 @@ export const catchDone: {
  * @since 4.0.0
  * @category Done
  */
-export const isDoneCause = <E>(cause: Cause.Cause<E>): boolean => cause.failures.some(isDoneFailure)
+export const isDoneCause = <E>(cause: Cause.Cause<E>): boolean => cause.reasons.some(isDoneFailure)
 
 /**
  * Checks if a Cause failure is a done error.
@@ -131,7 +131,7 @@ export const filterDoneVoid: <E extends Cause.Done>(
 export const filterNoDone: <E>(
   input: Cause.Cause<E>
 ) => Cause.Cause<ExcludeDone<E>> | Filter.fail<Cause.Cause<E>> = Filter
-  .fromPredicate((cause: Cause.Cause<unknown>) => cause.failures.every((failure) => !isDoneFailure(failure))) as any
+  .fromPredicate((cause: Cause.Cause<unknown>) => cause.reasons.every((failure) => !isDoneFailure(failure))) as any
 
 /**
  * Filters a Cause to extract the leftover value from done errors.

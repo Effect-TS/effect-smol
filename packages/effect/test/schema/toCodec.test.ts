@@ -1359,8 +1359,8 @@ describe("Serializers", () => {
       const r = SchemaParser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" })
 
       assertTrue(r._tag === "Failure")
-      assertTrue(r.cause.failures.length === 1)
-      const failure = r.cause.failures[0]
+      assertTrue(r.cause.reasons.length === 1)
+      const failure = r.cause.reasons[0]
       assertTrue(failure._tag === "Fail")
 
       const failureResult = SchemaIssue.makeFormatterStandardSchemaV1({
