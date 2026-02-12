@@ -137,7 +137,7 @@ const interruptRetryPolicy = Schedule.exponential(4.0, 1.5).pipe(
   Schedule.either(Schedule.spaced("10 seconds")),
   Schedule.either(Schedule.recurs(10)),
   Schedule.satisfiesInputType<Cause.Cause<unknown>>(),
-  Schedule.while((meta) => Cause.hasInterruptReasons(meta.input))
+  Schedule.while((meta) => Cause.hasInterrupts(meta.input))
 )
 
 const retryOnInterrupt = (
@@ -149,7 +149,7 @@ const retryOnInterrupt = (
     Effect.sandbox,
     Effect.retry(policy),
     Effect.catch((cause) => {
-      if (!Cause.hasInterruptReasons(cause)) return Effect.failCause(cause)
+      if (!Cause.hasInterrupts(cause)) return Effect.failCause(cause)
       return Effect.die(`Activity "${name}" interrupted and retry attempts exhausted`)
     })
   )

@@ -885,7 +885,7 @@ describe("Effect", () => {
           Effect.exit,
           Effect.flatMap((result) =>
             Effect.sync(() => {
-              recovered = result._tag === "Failure" && Cause.hasInterruptOnly(result.cause)
+              recovered = result._tag === "Failure" && Cause.hasInterruptsOnly(result.cause)
             })
           ),
           Effect.uninterruptible,

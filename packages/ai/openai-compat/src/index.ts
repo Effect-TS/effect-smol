@@ -22,7 +22,7 @@ export * as OpenAiError from "./OpenAiError.ts"
 /**
  * OpenAI Language Model implementation.
  *
- * Provides a LanguageModel implementation for OpenAI's responses API,
+ * Provides a LanguageModel implementation for OpenAI's chat completions API,
  * supporting text generation, structured output, tool calling, and streaming.
  *
  * @since 1.0.0

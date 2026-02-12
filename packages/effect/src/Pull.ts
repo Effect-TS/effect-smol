@@ -107,7 +107,7 @@ export const isDoneFailure = <E>(
 export const filterDone: <E>(input: Cause.Cause<E>) => Cause.Done.Only<E> | Filter.fail<Cause.Cause<ExcludeDone<E>>> =
   Filter
     .composePassthrough(
-      Cause.filterError,
+      Cause.findError,
       (e) => Cause.isDone(e) ? e : Filter.fail(e)
     ) as any
 
@@ -120,7 +120,7 @@ export const filterDone: <E>(input: Cause.Cause<E>) => Cause.Done.Only<E> | Filt
 export const filterDoneVoid: <E extends Cause.Done>(
   input: Cause.Cause<E>
 ) => Cause.Done | Filter.fail<Cause.Cause<Exclude<E, Cause.Done>>> = Filter.composePassthrough(
-  Cause.filterError,
+  Cause.findError,
   (e) => Cause.isDone(e) ? e : Filter.fail(e)
 ) as any
 
@@ -142,7 +142,7 @@ export const filterNoDone: <E>(
 export const filterDoneLeftover: <E>(
   cause: Cause.Cause<E>
 ) => Cause.Done.Extract<E> | Filter.fail<Cause.Cause<ExcludeDone<E>>> = Filter.composePassthrough(
-  Cause.filterError,
+  Cause.findError,
   (e) => Cause.isDone(e) ? e.value : Filter.fail(e)
 ) as any
 

@@ -2935,7 +2935,7 @@ export const unwrapReason: {
  *
  * // Recover from any cause (including defects)
  * const recovered = Effect.catchCause(program, (cause) => {
- *   if (Cause.hasDieReasons(cause)) {
+ *   if (Cause.hasDies(cause)) {
  *     return Console.log("Caught defect").pipe(
  *       Effect.as("Recovered from defect")
  *     )
@@ -3136,7 +3136,7 @@ export const catchFilter: {
  * // Only catch network-related failures
  * const program = Effect.catchCauseFilter(
  *   httpRequest,
- *   (cause) => Cause.hasFailReasons(cause),
+ *   (cause) => Cause.hasFails(cause),
  *   (failure, cause) =>
  *     Effect.gen(function*() {
  *       yield* Console.log(`Caught network error: ${Cause.squash(cause)}`)
@@ -3436,7 +3436,7 @@ export const tapCause: {
  * // Only log causes that contain failures (not interrupts or defects)
  * const program = Effect.tapCauseFilter(
  *   task,
- *   (cause) => Cause.hasFailReasons(cause),
+ *   (cause) => Cause.hasFails(cause),
  *   (_, cause) => Console.log(`Logging failure cause: ${Cause.squash(cause)}`)
  * )
  *
@@ -4918,8 +4918,8 @@ export const matchCauseEffectEager: {
  * const program = Effect.matchCauseEffect(task, {
  *   onFailure: (cause) =>
  *     Effect.gen(function*() {
- *       if (Cause.hasFailReasons(cause)) {
- *         const error = Cause.filterError(cause)
+ *       if (Cause.hasFails(cause)) {
+ *         const error = Cause.findError(cause)
  *         if (Filter.isPass(error)) {
  *           yield* Console.log(`Handling error: ${(error as Error).message}`)
  *         }
@@ -6025,7 +6025,7 @@ export const onError: {
  *
  * const program = Effect.onErrorFilter(
  *   task,
- *   Cause.filterError,
+ *   Cause.findError,
  *   (error, cause) =>
  *     Effect.gen(function*() {
  *       yield* Console.log(`Filtered error: ${error}`)

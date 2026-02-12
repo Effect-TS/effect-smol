@@ -575,7 +575,7 @@ export const make = (
                 return Effect.succeed(new InterruptibleResponse(response, controller))
               },
               onFailure(cause) {
-                if (Cause.hasInterruptReasons(cause)) {
+                if (Cause.hasInterrupts(cause)) {
                   controller.abort()
                 }
                 return Effect.failCause(cause)
@@ -623,7 +623,7 @@ export const make = (
                     return Effect.succeed(new InterruptibleResponse(response, controller))
                   },
                   onFailure(cause) {
-                    if (!scopedController && Cause.hasInterruptReasons(cause)) {
+                    if (!scopedController && Cause.hasInterrupts(cause)) {
                       controller.abort()
                     }
                     return Effect.failCause(cause)

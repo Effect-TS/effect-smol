@@ -5345,7 +5345,7 @@ export const mapError: {
  *   const failingStream = Stream.fail("NetworkError")
  *   const recovered = Stream.catchCauseFilter(
  *     failingStream,
- *     Cause.filterError,
+ *     Cause.findError,
  *     (error) => Stream.make(`Recovered: ${error}`)
  *   )
  *

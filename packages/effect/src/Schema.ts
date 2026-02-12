@@ -5687,7 +5687,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
           return Effect.mapBothEager(
             Parser.decodeUnknownEffect(error)(input.error, options),
             {
-              onSuccess: Cause_.makeFail,
+              onSuccess: Cause_.makeFailReason,
               onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["error"], issue)])
             }
           )
@@ -5695,7 +5695,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
           return Effect.mapBothEager(
             Parser.decodeUnknownEffect(defect)(input.defect, options),
             {
-              onSuccess: Cause_.makeDie,
+              onSuccess: Cause_.makeDieReason,
               onFailure: (issue) =>
                 new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["defect"], issue)])
             }
@@ -5725,11 +5725,11 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
             decode: (e) => {
               switch (e._tag) {
                 case "Fail":
-                  return Cause_.makeFail(e.error)
+                  return Cause_.makeFailReason(e.error)
                 case "Die":
-                  return Cause_.makeDie(e.defect)
+                  return Cause_.makeDieReason(e.defect)
                 case "Interrupt":
-                  return Cause_.makeInterrupt(e.fiberId)
+                  return Cause_.makeInterruptReason(e.fiberId)
               }
             },
             encode: identity
@@ -5747,10 +5747,10 @@ function causeFailureToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: Fa
   return (fc: typeof FastCheck, ctx: Annotations.ToArbitrary.Context | undefined) => {
     return fc.oneof(
       ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Cause.Failure" } : {},
-      fc.constant(Cause_.makeInterrupt()),
-      fc.integer({ min: 1 }).map(Cause_.makeInterrupt),
-      error.map((e) => Cause_.makeFail(e)),
-      defect.map((d) => Cause_.makeDie(d))
+      fc.constant(Cause_.makeInterruptReason()),
+      fc.integer({ min: 1 }).map(Cause_.makeInterruptReason),
+      error.map((e) => Cause_.makeFailReason(e)),
+      defect.map((d) => Cause_.makeDieReason(d))
     )
   }
 }

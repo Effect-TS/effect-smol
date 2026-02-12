@@ -245,11 +245,11 @@ export const causeResponse = <E>(
   if (response) {
     return Effect.succeed([response, Cause.fromReasons(failures)] as const)
   } else if (interrupt && failures.length === 0) {
-    failures.push(isClientInterrupt ? Cause.makeInterrupt(clientAbortFiberId) : interrupt)
+    failures.push(isClientInterrupt ? Cause.makeInterruptReason(clientAbortFiberId) : interrupt)
     effect = isClientInterrupt ? clientAbortError : serverAbortError
   }
   return Effect.mapEager(effect, (response) => {
-    failures.push(Cause.makeDie(response))
+    failures.push(Cause.makeDieReason(response))
     return [response, Cause.fromReasons(failures)] as const
   })
 }

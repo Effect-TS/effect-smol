@@ -1015,7 +1015,7 @@ export const makeProtocolSocket = (options?: {
         Effect.fail(new Socket.SocketError({ reason: new Socket.SocketCloseError({ code: 1000 }) }))
       ),
       Effect.tapCause((cause) => {
-        const error = Cause.filterError(cause)
+        const error = Cause.findError(cause)
         const hasError = Filter.isPass(error)
         if (
           options?.retryTransientErrors && hasError &&
@@ -1157,7 +1157,7 @@ export const makeProtocolWorker = (
           undefined
       }).pipe(
         Effect.tapCause((cause) => {
-          const error = Cause.filterError(cause)
+          const error = Cause.findError(cause)
           return writeResponse({
             _tag: "ClientProtocolError",
             error: new RpcClientError({

@@ -477,7 +477,7 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
                   lock,
                   element.id,
                   JSON.stringify(
-                    Cause.hasInterruptOnly(cause)
+                    Cause.hasInterruptsOnly(cause)
                       ? element
                       : {
                         ...element,
@@ -1062,7 +1062,7 @@ export const makeStoreSql: (
           Effect.tap((element) =>
             Effect.addFinalizer(Exit.match({
               onFailure: (cause) =>
-                Cause.hasInterruptOnly(cause)
+                Cause.hasInterruptsOnly(cause)
                   ? interrupt([element.sequence])
                   : retry(element.sequence, element.attempts + 1, cause),
               onSuccess: () => complete(element.sequence, element.attempts + 1)

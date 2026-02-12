@@ -47,7 +47,7 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
         const services = yield* Effect.services<R>()
         const runFork = Effect.runForkWith(services)
         const onExit = (exit: Exit.Exit<any, E>) => {
-          if (exit._tag === "Failure" && !Cause.hasInterruptOnly(exit.cause)) {
+          if (exit._tag === "Failure" && !Cause.hasInterruptsOnly(exit.cause)) {
             runFork(Effect.logError("unhandled error in worker", exit.cause))
           }
         }

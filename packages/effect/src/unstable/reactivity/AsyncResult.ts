@@ -228,7 +228,7 @@ export const isFailure = <A, E>(result: AsyncResult<A, E>): result is Failure<A,
  * @category refinements
  */
 export const isInterrupted = <A, E>(result: AsyncResult<A, E>): result is Failure<A, E> =>
-  result._tag === "Failure" && Cause.hasInterruptOnly(result.cause)
+  result._tag === "Failure" && Cause.hasInterruptsOnly(result.cause)
 
 /**
  * @since 4.0.0
@@ -375,7 +375,7 @@ export const cause = <A, E>(self: AsyncResult<A, E>): Option.Option<Cause.Cause<
  * @category accessors
  */
 export const error = <A, E>(self: AsyncResult<A, E>): Option.Option<E> =>
-  self._tag === "Failure" ? Cause.errorOption(self.cause) : Option.none()
+  self._tag === "Failure" ? Cause.findErrorOption(self.cause) : Option.none()
 
 /**
  * @since 4.0.0
@@ -507,7 +507,7 @@ export const matchWithError: {
     case "Initial":
       return options.onInitial(self)
     case "Failure": {
-      const result = Cause.filterError(self.cause)
+      const result = Cause.findError(self.cause)
       if (Filter.isFail(result)) {
         return options.onDefect(Cause.squash(result.fail), self)
       }
@@ -548,7 +548,7 @@ export const matchWithWaiting: {
     case "Initial":
       return options.onWaiting(self)
     case "Failure": {
-      const e = Cause.filterError(self.cause)
+      const e = Cause.findError(self.cause)
       if (Filter.isFail(e)) {
         return options.onDefect(Cause.squash(e.fail), self)
       }
@@ -722,7 +722,7 @@ class BuilderImpl<Out, A, E> {
     f: (error: B, result: Failure<A, E>) => C
   ): BuilderImpl<Out | C, A, Types.EqualsWith<E, B, E, Exclude<E, B>>> {
     return this.when(isFailure, (result) =>
-      Cause.errorOption(result.cause).pipe(
+      Cause.findErrorOption(result.cause).pipe(
         Option.filter(refinement),
         Option.map((error) => f(error as B, result))
       ))
@@ -740,7 +740,7 @@ class BuilderImpl<Out, A, E> {
 
   onDefect<B>(f: (defect: unknown, result: Failure<A, E>) => B): BuilderImpl<Out | B, A, E> {
     return this.when(isFailure, (result) => {
-      const defect = Cause.filterDefect(result.cause)
+      const defect = Cause.findDefect(result.cause)
       return Filter.isFail(defect) ? Option.none() : Option.some(f(defect, result))
     })
   }

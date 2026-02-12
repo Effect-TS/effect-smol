@@ -320,7 +320,7 @@ describe("TxQueue", () => {
         const result = yield* Effect.exit(TxQueue.takeAll(queue))
         assert.strictEqual(result._tag, "Failure")
         if (result._tag === "Failure") {
-          assert.strictEqual(Cause.hasInterruptOnly(result.cause), true)
+          assert.strictEqual(Cause.hasInterruptsOnly(result.cause), true)
         }
       }))
 
@@ -462,7 +462,7 @@ describe("TxQueue", () => {
         const result = yield* Effect.exit(TxQueue.takeBetween(queue, 1, 5))
         assert.strictEqual(result._tag, "Failure")
         if (result._tag === "Failure") {
-          const error = Cause.filterError(result.cause)
+          const error = Cause.findError(result.cause)
           assert.strictEqual(error, "test error")
         }
       }))
@@ -1043,7 +1043,7 @@ describe("TxQueue", () => {
           assert.strictEqual(result._tag, "Failure")
           // The cause should contain an interrupt, not a typed error
           if (result._tag === "Failure") {
-            assert.strictEqual(Cause.hasInterruptReasons(result.cause), true)
+            assert.strictEqual(Cause.hasInterrupts(result.cause), true)
           }
         }))
 
@@ -1073,7 +1073,7 @@ describe("TxQueue", () => {
           assert.strictEqual(result._tag, "Failure")
           // The cause should contain a defect
           if (result._tag === "Failure") {
-            assert.strictEqual(Cause.hasDieReasons(result.cause), true)
+            assert.strictEqual(Cause.hasDies(result.cause), true)
           }
         }))
 

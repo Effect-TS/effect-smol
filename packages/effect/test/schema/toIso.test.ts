@@ -291,8 +291,8 @@ describe("Optic generation", () => {
       const modify = optic.modify(addOne)
 
       deepStrictEqual(
-        modify(Cause.makeFail(Value.makeUnsafe({ a: new Date(0) }))),
-        Cause.makeFail(Value.makeUnsafe({ a: new Date(1) }))
+        modify(Cause.makeFailReason(Value.makeUnsafe({ a: new Date(0) }))),
+        Cause.makeFailReason(Value.makeUnsafe({ a: new Date(1) }))
       )
     })
 

@@ -20,8 +20,8 @@
  * // Working with effects that can fail
  * const program = Effect.fail("user error").pipe(
  *   Effect.catchCause((cause) => {
- *     if (Cause.hasFailReasons(cause)) {
- *       const error = Cause.filterError(cause)
+ *     if (Cause.hasFails(cause)) {
+ *       const error = Cause.findError(cause)
  *       console.log("Expected error:", error)
  *     }
  *     return Effect.succeed("handled")
@@ -30,9 +30,9 @@
  *
  * // Analyzing reason types
  * const analyzeCause = (cause: Cause.Cause<string>) => {
- *   if (Cause.hasFailReasons(cause)) return "Has user error"
- *   if (Cause.hasDieReasons(cause)) return "Has defect"
- *   if (Cause.hasInterruptReasons(cause)) return "Was interrupted"
+ *   if (Cause.hasFails(cause)) return "Has user error"
+ *   if (Cause.hasDies(cause)) return "Has defect"
+ *   if (Cause.hasInterrupts(cause)) return "Was interrupted"
  *   return "Unknown cause"
  * }
  * ```
@@ -405,19 +405,19 @@ export const interrupt: (fiberId?: number | undefined) => Cause<never> = effect.
  * @category Reason
  * @since 4.0.0
  */
-export const makeFail = <E>(error: E): Fail<E> => new core.Fail(error)
+export const makeFailReason = <E>(error: E): Fail<E> => new core.Fail(error)
 
 /**
  * @category Reason
  * @since 4.0.0
  */
-export const makeDie = (defect: unknown): Die => new core.Die(defect)
+export const makeDieReason = (defect: unknown): Die => new core.Die(defect)
 
 /**
  * @category Reason
  * @since 4.0.0
  */
-export const makeInterrupt: (fiberId?: number | undefined) => Interrupt = effect.makeInterrupt
+export const makeInterruptReason: (fiberId?: number | undefined) => Interrupt = effect.makeInterruptReason
 
 /**
  * Tests if a `Cause` contains only interruptions.
@@ -429,14 +429,14 @@ export const makeInterrupt: (fiberId?: number | undefined) => Interrupt = effect
  * const interruptCause = Cause.interrupt(123)
  * const failCause = Cause.fail("error")
  *
- * console.log(Cause.hasInterruptOnly(interruptCause)) // true
- * console.log(Cause.hasInterruptOnly(failCause)) // false
+ * console.log(Cause.hasInterruptsOnly(interruptCause)) // true
+ * console.log(Cause.hasInterruptsOnly(failCause)) // false
  * ```
  *
  * @category utils
  * @since 2.0.0
  */
-export const hasInterruptOnly: <E>(self: Cause<E>) => boolean = effect.causeHasInterruptOnly
+export const hasInterruptsOnly: <E>(self: Cause<E>) => boolean = effect.hasInterruptsOnly
 
 /**
  * @category Mapping
@@ -496,36 +496,38 @@ export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
  * const failCause = Cause.fail("error")
  * const dieCause = Cause.die("defect")
  *
- * console.log(Cause.hasFailReasons(failCause)) // true
- * console.log(Cause.hasFailReasons(dieCause)) // false
+ * console.log(Cause.hasFails(failCause)) // true
+ * console.log(Cause.hasFails(dieCause)) // false
  * ```
  *
  * @category utils
  * @since 2.0.0
  */
-export const hasFailReasons: <E>(self: Cause<E>) => boolean = effect.hasFailReasons
+export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
 
 /**
- * Filters out the first typed error from a `Cause`.
+ * Extracts the first `Fail` reason from a `Cause`.
  *
  * @category filters
  * @since 4.0.0
  */
-export const filterFail: <E>(self: Cause<E>) => Fail<E> | Filter.fail<Cause<never>> = effect.causeFilterFail
+export const findFail: <E>(self: Cause<E>) => Fail<E> | Filter.fail<Cause<never>> = effect.findFail
 
 /**
- * Filters out the first typed error value from a `Cause`.
+ * Extracts the first typed error value from a `Cause`.
  *
  * @category filters
  * @since 4.0.0
  */
-export const filterError: <E>(self: Cause<E>) => E | Filter.fail<Cause<never>> = effect.causeFilterError
+export const findError: <E>(self: Cause<E>) => E | Filter.fail<Cause<never>> = effect.findError
 
 /**
+ * Extracts the first typed error value from a `Cause` as an `Option`.
+ *
  * @category Reason
  * @since 4.0.0
  */
-export const errorOption: <E>(input: Cause<E>) => Option<E> = effect.causeErrorOption
+export const findErrorOption: <E>(input: Cause<E>) => Option<E> = effect.findErrorOption
 
 /**
  * Tests if a `Cause` contains any defects.
@@ -537,30 +539,30 @@ export const errorOption: <E>(input: Cause<E>) => Option<E> = effect.causeErrorO
  * const dieCause = Cause.die("defect")
  * const failCause = Cause.fail("error")
  *
- * console.log(Cause.hasDieReasons(dieCause)) // true
- * console.log(Cause.hasDieReasons(failCause)) // false
+ * console.log(Cause.hasDies(dieCause)) // true
+ * console.log(Cause.hasDies(failCause)) // false
  * ```
  *
  * @category utils
  * @since 2.0.0
  */
-export const hasDieReasons: <E>(self: Cause<E>) => boolean = effect.hasDieReasons
+export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
 
 /**
- * Filters out the first Die reason from a `Cause`.
+ * Extracts the first `Die` reason from a `Cause`.
  *
  * @category filters
  * @since 4.0.0
  */
-export const filterDie: <E>(self: Cause<E>) => Die | Filter.fail<Cause<E>> = effect.causeFilterDie
+export const findDie: <E>(self: Cause<E>) => Die | Filter.fail<Cause<E>> = effect.findDie
 
 /**
- * Filters out the first defect from a `Cause`.
+ * Extracts the first defect from a `Cause`.
  *
  * @category filters
  * @since 4.0.0
  */
-export const filterDefect: <E>(self: Cause<E>) => {} | Filter.fail<Cause<E>> = effect.causeFilterDefect
+export const findDefect: <E>(self: Cause<E>) => {} | Filter.fail<Cause<E>> = effect.findDefect
 
 /**
  * Tests if a `Cause` contains any interruptions.
@@ -572,25 +574,25 @@ export const filterDefect: <E>(self: Cause<E>) => {} | Filter.fail<Cause<E>> = e
  * const interruptCause = Cause.interrupt(123)
  * const failCause = Cause.fail("error")
  *
- * console.log(Cause.hasInterruptReasons(interruptCause)) // true
- * console.log(Cause.hasInterruptReasons(failCause)) // false
+ * console.log(Cause.hasInterrupts(interruptCause)) // true
+ * console.log(Cause.hasInterrupts(failCause)) // false
  * ```
  *
  * @category utils
  * @since 2.0.0
  */
-export const hasInterruptReasons: <E>(self: Cause<E>) => boolean = effect.hasInterruptReasons
+export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupts
 
 /**
- * Filters out the first interruption from a `Cause`.
+ * Extracts the first `Interrupt` reason from a `Cause`.
  *
  * @category filters
  * @since 4.0.0
  */
-export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.fail<Cause<E>> = effect.causeFilterInterrupt
+export const findInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.fail<Cause<E>> = effect.findInterrupt
 
 /**
- * Returns a set of fiber IDs that caused interruptions.
+ * Collects a set of fiber IDs that caused interruptions.
  *
  * @since 4.0.0
  * @category Accessors
@@ -598,6 +600,8 @@ export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.fail<Cau
 export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.causeInterruptors
 
 /**
+ * Extracts a set of fiber IDs that caused interruptions.
+ *
  * @since 4.0.0
  * @category filters
  */

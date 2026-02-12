@@ -434,7 +434,7 @@ export class OtelSpan implements Tracer.Span {
     if (exit._tag === "Success") {
       this.span.setStatus({ code: Otel.SpanStatusCode.OK })
     } else {
-      if (Cause.hasInterruptOnly(exit.cause)) {
+      if (Cause.hasInterruptsOnly(exit.cause)) {
         this.span.setStatus({
           code: Otel.SpanStatusCode.OK,
           message: Cause.pretty(exit.cause)

@@ -994,7 +994,7 @@ export class Arrays extends Base {
         const eff = e.parser(value, options)
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
-          const issueElement = Cause.filterError(exit.cause)
+          const issueElement = Cause.findError(exit.cause)
           if (Filter_.isFail(issueElement)) {
             return yield* exit
           }
@@ -1028,7 +1028,7 @@ export class Arrays extends Base {
           const eff = head.parser(Option.some(input[i]), options)
           const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
           if (exit._tag === "Failure") {
-            const issueRest = Cause.filterError(exit.cause)
+            const issueRest = Cause.findError(exit.cause)
             if (Filter_.isFail(issueRest)) {
               return yield* exit
             }
@@ -1063,7 +1063,7 @@ export class Arrays extends Base {
             const eff = tailj.parser(Option.some(input[i]), options)
             const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
             if (exit._tag === "Failure") {
-              const issueRest = Cause.filterError(exit.cause)
+              const issueRest = Cause.findError(exit.cause)
               if (Filter_.isFail(issueRest)) {
                 return yield* exit
               }
@@ -1334,7 +1334,7 @@ export class Objects extends Base {
         const eff = p.parser(value, options)
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
-          const issueProp = Cause.filterError(exit.cause)
+          const issueProp = Cause.findError(exit.cause)
           if (Filter_.isFail(issueProp)) {
             return yield* exit
           }
@@ -1378,7 +1378,7 @@ export class Objects extends Base {
               Issue.Issue
             >
             if (exitKey._tag === "Failure") {
-              const issueKey = Cause.filterError(exitKey.cause)
+              const issueKey = Cause.findError(exitKey.cause)
               if (Filter_.isFail(issueKey)) {
                 return yield* exitKey
               }
@@ -1398,7 +1398,7 @@ export class Objects extends Base {
             const effValue = parserValue(value, options)
             const exitValue = effectIsExit(effValue) ? effValue : yield* Effect.exit(effValue)
             if (exitValue._tag === "Failure") {
-              const issueValue = Cause.filterError(exitValue.cause)
+              const issueValue = Cause.findError(exitValue.cause)
               if (Filter_.isFail(issueValue)) {
                 return yield* exitValue
               }
@@ -1776,7 +1776,7 @@ export class Union<A extends AST = AST> extends Base {
         const eff = parser(oinput, options)
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
-          const issue = Cause.filterError(exit.cause)
+          const issue = Cause.findError(exit.cause)
           if (Filter_.isFail(issue)) {
             return yield* exit
           }

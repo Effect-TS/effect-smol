@@ -109,19 +109,19 @@ export * as Cache from "./Cache.ts"
  * // Working with effects that can fail
  * const program = Effect.fail("user error").pipe(
  *   Effect.catchCause((cause) => {
- *     if (Cause.hasFailReasons(cause)) {
- *       const error = Cause.filterError(cause)
+ *     if (Cause.hasFails(cause)) {
+ *       const error = Cause.findError(cause)
  *       console.log("Expected error:", error)
  *     }
  *     return Effect.succeed("handled")
  *   })
  * )
  *
- * // Analyzing failure types
+ * // Analyzing reason types
  * const analyzeCause = (cause: Cause.Cause<string>) => {
- *   if (Cause.hasFailReasons(cause)) return "Has user error"
- *   if (Cause.hasDieReasons(cause)) return "Has defect"
- *   if (Cause.hasInterruptReasons(cause)) return "Was interrupted"
+ *   if (Cause.hasFails(cause)) return "Has user error"
+ *   if (Cause.hasDies(cause)) return "Has defect"
+ *   if (Cause.hasInterrupts(cause)) return "Was interrupted"
  *   return "Unknown cause"
  * }
  * ```

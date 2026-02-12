@@ -133,7 +133,7 @@ export class Interrupt extends ReasonBase<"Interrupt"> implements Cause.Interrup
 }
 
 /** @internal */
-export const makeInterrupt = (fiberId?: number | undefined): Cause.Interrupt => new Interrupt(fiberId)
+export const makeInterruptReason = (fiberId?: number | undefined): Cause.Interrupt => new Interrupt(fiberId)
 
 /** @internal */
 export const causeInterrupt = (
@@ -141,16 +141,16 @@ export const causeInterrupt = (
 ): Cause.Cause<never> => new CauseImpl([new Interrupt(fiberId)])
 
 /** @internal */
-export const hasFailReasons = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isFailReason)
+export const hasFails = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isFailReason)
 
 /** @internal */
-export const causeFilterFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter.fail<Cause.Cause<never>> => {
+export const findFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter.fail<Cause.Cause<never>> => {
   const reason = self.reasons.find(isFailReason)
   return reason ? reason : Filter.fail(self as Cause.Cause<never>)
 }
 
 /** @internal */
-export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause.Cause<never>> => {
+export const findError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause.Cause<never>> => {
   for (let i = 0; i < self.reasons.length; i++) {
     const reason = self.reasons[i]
     if (reason._tag === "Fail") {
@@ -161,28 +161,28 @@ export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause
 }
 
 /** @internal */
-export const causeErrorOption = Filter.toOption(causeFilterError)
+export const findErrorOption = Filter.toOption(findError)
 
 /** @internal */
-export const hasDieReasons = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isDieReason)
+export const hasDies = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isDieReason)
 
 /** @internal */
-export const causeFilterDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.fail<Cause.Cause<E>> => {
+export const findDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.fail<Cause.Cause<E>> => {
   const reason = self.reasons.find(isDieReason)
   return reason ? reason : Filter.fail(self)
 }
 
 /** @internal */
-export const causeFilterDefect = <E>(self: Cause.Cause<E>): {} | Filter.fail<Cause.Cause<E>> => {
+export const findDefect = <E>(self: Cause.Cause<E>): {} | Filter.fail<Cause.Cause<E>> => {
   const reason = self.reasons.find(isDieReason)
   return reason ? reason.defect as {} : Filter.fail(self)
 }
 
 /** @internal */
-export const hasInterruptReasons = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isInterruptReason)
+export const hasInterrupts = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isInterruptReason)
 
 /** @internal */
-export const causeFilterInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt | Filter.fail<Cause.Cause<E>> => {
+export const findInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt | Filter.fail<Cause.Cause<E>> => {
   const reason = self.reasons.find(isInterruptReason)
   return reason ? reason : Filter.fail(self)
 }
@@ -209,7 +209,7 @@ export const causeInterruptors = <E>(self: Cause.Cause<E>): ReadonlySet<number> 
 const emptySet = new Set<number>()
 
 /** @internal */
-export const causeHasInterruptOnly = <E>(self: Cause.Cause<E>): boolean => self.reasons.every(isInterruptReason)
+export const hasInterruptsOnly = <E>(self: Cause.Cause<E>): boolean => self.reasons.every(isInterruptReason)
 
 // TODO: duplicated, `core.ts` has the same function
 /** @internal */
@@ -1042,7 +1042,7 @@ const asyncFinalizer: (
     }
   },
   [contE](cause, _fiber) {
-    return hasInterruptReasons(cause)
+    return hasInterrupts(cause)
       ? flatMap(this[args](), () => failCause(cause))
       : failCause(cause)
   }
@@ -1745,7 +1745,7 @@ export const catchEager: {
   ): Effect.Effect<A | B, E2, R | R2> => {
     if (effectIsExit(self)) {
       if (self._tag === "Success") return self as Exit.Exit<A>
-      const error = causeFilterError(self.cause)
+      const error = findError(self.cause)
       if (Filter.isFail(error)) return self as Exit.Exit<never>
       return f(error)
     }
@@ -1794,29 +1794,29 @@ export const exitFilterCause = <A, E>(
 /** @internal */
 export const exitFilterError = Filter.composePassthrough(
   exitFilterCause,
-  causeFilterError
+  findError
 )
 
 /** @internal */
 export const exitFilterDefect = Filter.composePassthrough(
   exitFilterCause,
-  causeFilterDefect
+  findDefect
 )
 
 /** @internal */
 export const exitHasInterrupt = <A, E>(
   self: Exit.Exit<A, E>
-): self is Exit.Failure<A, E> => self._tag === "Failure" && hasInterruptReasons(self.cause)
+): self is Exit.Failure<A, E> => self._tag === "Failure" && hasInterrupts(self.cause)
 
 /** @internal */
 export const exitHasDie = <A, E>(
   self: Exit.Exit<A, E>
-): self is Exit.Failure<A, E> => self._tag === "Failure" && hasDieReasons(self.cause)
+): self is Exit.Failure<A, E> => self._tag === "Failure" && hasDies(self.cause)
 
 /** @internal */
 export const exitHasFail = <A, E>(
   self: Exit.Exit<A, E>
-): self is Exit.Failure<A, E> => self._tag === "Failure" && hasFailReasons(self.cause)
+): self is Exit.Failure<A, E> => self._tag === "Failure" && hasFails(self.cause)
 
 /** @internal */
 export const exitVoid: Exit.Exit<void> = exitSucceed(void 0)
@@ -1839,7 +1839,7 @@ export const exitMapError: {
   2,
   <A, E, E2>(self: Exit.Exit<A, E>, f: (a: NoInfer<E>) => E2): Exit.Exit<A, E2> => {
     if (self._tag === "Success") return self as Exit.Exit<A>
-    const error = causeFilterError(self.cause)
+    const error = findError(self.cause)
     if (Filter.isFail(error)) return self as Exit.Exit<never>
     return exitFail(f(error))
   }
@@ -1861,7 +1861,7 @@ export const exitMapBoth: {
     options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
   ): Exit.Exit<A2, E2> => {
     if (self._tag === "Success") return exitSucceed(options.onSuccess(self.value))
-    const error = causeFilterError(self.cause)
+    const error = findError(self.cause)
     if (Filter.isFail(error)) return self as Exit.Exit<never>
     return exitFail(options.onFailure(error))
   }
@@ -2425,7 +2425,7 @@ export const catch_: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (a: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E2, R | R2> => catchCauseFilter(self, causeFilterError, (e) => f(e))
+  ): Effect.Effect<A | B, E2, R | R2> => catchCauseFilter(self, findError, (e) => f(e))
 )
 
 /** @internal */
@@ -2444,7 +2444,7 @@ export const catchDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E | E2, R | R2> => catchCauseFilter(self, causeFilterDefect, f)
+  ): Effect.Effect<A | B, E | E2, R | R2> => catchCauseFilter(self, findDefect, f)
 )
 
 /** @internal */
@@ -2507,7 +2507,7 @@ export const tapError: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (e: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapCauseFilter(self, causeFilterError, (e) => f(e))
+  ): Effect.Effect<A, E | E2, R | R2> => tapCauseFilter(self, findError, (e) => f(e))
 )
 
 /** @internal */
@@ -2574,7 +2574,7 @@ export const tapDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapCauseFilter(self, causeFilterDefect, (_) => f(_))
+  ): Effect.Effect<A, E | E2, R | R2> => tapCauseFilter(self, findDefect, (_) => f(_))
 )
 
 /** @internal */
@@ -2633,7 +2633,7 @@ export const catchFilter: {
     orElse?: ((e: X) => Effect.Effect<A3, E3, R3>) | undefined
   ): Effect.Effect<A | A2 | A3, E2 | E3, R | R2 | R3> =>
     catchCause(self, (cause): Effect.Effect<A2 | A3, E2 | E3, R2 | R3> => {
-      const error = causeFilterError(cause)
+      const error = findError(cause)
       if (Filter.isFail(error)) return failCause(error.fail)
       const result = filter(error)
       if (Filter.isFail(result)) {
@@ -3109,7 +3109,7 @@ export const ignore: <
       const logEffect = logWithLevel(options.log === true ? undefined : options.log)
       return matchCauseEffect(self, {
         onFailure(cause) {
-          const failure = causeFilterFail(cause)
+          const failure = findFail(cause)
           return Filter.isFail(failure) ? failCause(failure.fail) : logEffect(cause)
         },
         onSuccess: (_) => void_
@@ -3315,7 +3315,7 @@ export const matchEager: {
   ): Effect.Effect<A2 | A3, never, R> => {
     if (effectIsExit(self)) {
       if (self._tag === "Success") return exitSucceed(options.onSuccess(self.value))
-      const error = causeFilterError(self.cause)
+      const error = findError(self.cause)
       if (Filter.isFail(error)) return self as Exit.Exit<never>
       return exitSucceed(options.onFailure(error))
     }

@@ -39,6 +39,6 @@ describe("Client", () => {
       )
       const rows = yield* sql`SELECT * FROM test`
       assert.deepStrictEqual(rows, [])
-      assert.equal(Cause.hasDieReasons(res), true)
+      assert.equal(Cause.hasDies(res), true)
     }).pipe(Effect.provide(D1Miniflare.layerClient)))
 })

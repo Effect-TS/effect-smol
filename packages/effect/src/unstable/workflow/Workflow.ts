@@ -559,7 +559,7 @@ export const intoResult = <A, E, R>(
       suspendOnFailure
         ? Effect.catchCause((cause) => {
           instance.suspended = true
-          if (!Cause.hasInterruptOnly(cause)) {
+          if (!Cause.hasInterruptsOnly(cause)) {
             instance.cause = Cause.die(Cause.squash(cause))
           }
           return Effect.interrupt
@@ -571,8 +571,8 @@ export const intoResult = <A, E, R>(
         onFailure: (cause): Effect.Effect<Result<A, E>> =>
           instance.suspended
             ? Effect.succeed(new Suspended({ cause: instance.cause }))
-            : (!instance.interrupted && Cause.hasInterruptOnly(cause)) ||
-                (!captureDefects && Cause.hasDieReasons(cause))
+            : (!instance.interrupted && Cause.hasInterruptsOnly(cause)) ||
+                (!captureDefects && Cause.hasDies(cause))
             ? Effect.failCause(cause as Cause.Cause<never>)
             : Effect.succeed(new Complete({ exit: Exit.failCause(cause) }))
       }),

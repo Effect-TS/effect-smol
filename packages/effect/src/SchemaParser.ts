@@ -109,7 +109,7 @@ export function asserts<S extends Schema.Top & { readonly DecodingServices: neve
   return <I>(input: I): asserts input is I & S["Type"] => {
     const exit = parser(input, AST.defaultParseOptions)
     if (Exit.isFailure(exit)) {
-      const issue = Cause.filterError(exit.cause)
+      const issue = Cause.findError(exit.cause)
       if (Filter.isFail(issue)) {
         throw Cause.squash(issue.fail)
       }

@@ -942,7 +942,7 @@ describe.sequential("Atom", () => {
     r.set(count, 1)
     result = r.get(count)
     assert(AsyncResult.isFailure(result))
-    const error = Cause.errorOption(result.cause)
+    const error = Cause.findErrorOption(result.cause)
     assert(Option.isSome(error))
     assert.strictEqual(error.value, "fail")
 
