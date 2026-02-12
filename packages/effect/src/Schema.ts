@@ -5679,7 +5679,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
   const schema = declareConstructor<Cause_.Reason<E["Type"]>, Cause_.Reason<E["Encoded"]>, CauseFailureIso<E, D>>()(
     [error, defect],
     ([error, defect]) => (input, ast, options) => {
-      if (!Cause_.isFailure(input)) {
+      if (!Cause_.isReason(input)) {
         return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
       switch (input._tag) {

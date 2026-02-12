@@ -105,7 +105,7 @@ export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
  * @category guards
  * @since 2.0.0
  */
-export const isFailure: (self: unknown) => self is Reason<unknown> = core.isCauseReason
+export const isReason: (self: unknown) => self is Reason<unknown> = core.isCauseReason
 
 /**
  * @example

@@ -4592,7 +4592,7 @@ export const catchCause: {
  *
  * const stream = Stream.make(1, 2).pipe(
  *   Stream.concat(Stream.fail("boom")),
- *   Stream.tapCause((cause) => Console.log(Cause.isFailure(cause))),
+ *   Stream.tapCause((cause) => Console.log(Cause.isReason(cause))),
  *   Stream.catch(() => Stream.succeed(0))
  * )
  *
