@@ -309,7 +309,7 @@ export const make = (
     )
   }
 
-  const operationToSseImpl = (importName: string, operation: ParsedOperation) => {
+  const operationToSseImpl = (_importName: string, operation: ParsedOperation) => {
     const args: Array<string> = [...operation.pathIds]
     const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
     if (hasOptions || operation.params || operation.payload) {
@@ -341,11 +341,7 @@ export const make = (
       pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
     }
 
-    const eventSchema = `${importName}.Struct({
-        ...Sse.EventEncoded.fields,
-        data: ${importName}.fromJsonString(${operation.sseSchema})
-      })`
-    pipeline.push(`sseRequest(${eventSchema})`)
+    pipeline.push(`sseRequest(${operation.sseSchema})`)
 
     return (
       `"${operation.id}Sse": (${params}) => ` +
@@ -848,28 +844,23 @@ const commonSource = `const unexpectedStatus = (response: HttpClientResponse.Htt
 
 const sseRequestSource = (_importName: string) =>
   `const sseRequest = <
-     Type extends {
-       readonly id?: string | undefined
-       readonly event: string
-       readonly data: unknown
-     },
+     Type,
      DecodingServices
     >(
       schema: Schema.Decoder<Type, DecodingServices>
     ) =>
     (
       request: HttpClientRequest.HttpClientRequest
-    ): Stream.Stream<Type, HttpClientError.HttpClientError | SchemaError | Sse.Retry, DecodingServices> =>
+    ): Stream.Stream<
+      { readonly event: string; readonly id: string | undefined; readonly data: Type },
+      HttpClientError.HttpClientError | SchemaError | Sse.Retry,
+      DecodingServices
+    > =>
       HttpClient.filterStatusOk(httpClient).execute(request).pipe(
         Effect.map((response) => response.stream),
         Stream.unwrap,
         Stream.decodeText(),
-        Stream.pipeThroughChannel(Sse.decodeSchema<
-          Type,
-          DecodingServices,
-          HttpClientError.HttpClientError,
-          unknown
-        >(schema))
+        Stream.pipeThroughChannel(Sse.decodeDataSchema(schema))
       )`
 
 const binaryRequestSource =
