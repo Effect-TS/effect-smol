@@ -42,7 +42,7 @@ import type {
   RequestEncoded,
   ResponseExitEncoded
 } from "./RpcMessage.ts"
-import { constEof, constPong, RequestId, ResponseDefectEncoded } from "./RpcMessage.ts"
+import { constEof, constPong, RequestId, ResponseDefectEncoded, ResponseExitDieEncoded } from "./RpcMessage.ts"
 import * as RpcSchema from "./RpcSchema.ts"
 import * as RpcSerialization from "./RpcSerialization.ts"
 import type { InitialMessage } from "./RpcWorker.ts"
@@ -578,17 +578,13 @@ export const make: <Rpcs extends Rpc.Any>(
 
   const sendRequestDefect = (client: Client, requestId: RequestId, defect: unknown) =>
     Effect.catchCause(
-      send(client.id, {
-        _tag: "Exit",
-        requestId: String(requestId),
-        exit: { _tag: "Failure", cause: [{ _tag: "Die", defect }] }
-      }),
+      send(client.id, ResponseExitDieEncoded({ requestId, defect })),
       (cause) => sendDefect(client, Cause.squash(cause))
     )
 
   const sendDefect = (client: Client, defect: unknown) =>
     Effect.catchCause(
-      send(client.id, { _tag: "Defect", defect }),
+      send(client.id, ResponseDefectEncoded(defect)),
       (cause) =>
         Effect.annotateLogs(Effect.logDebug(cause), {
           module: "RpcServer",

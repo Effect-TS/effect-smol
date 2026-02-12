@@ -256,6 +256,25 @@ const encodeDefect = Schema.encodeSync(Schema.Defect)
  * @since 4.0.0
  * @category response
  */
+export const ResponseExitDieEncoded = (options: {
+  readonly requestId: RequestId
+  readonly defect: unknown
+}): ResponseExitEncoded => ({
+  _tag: "Exit",
+  requestId: options.requestId.toString(),
+  exit: {
+    _tag: "Failure",
+    cause: [{
+      _tag: "Die",
+      defect: encodeDefect(options.defect)
+    }]
+  }
+})
+
+/**
+ * @since 4.0.0
+ * @category response
+ */
 export const ResponseDefectEncoded = (input: unknown): ResponseDefectEncoded => ({
   _tag: "Defect",
   defect: encodeDefect(input)
