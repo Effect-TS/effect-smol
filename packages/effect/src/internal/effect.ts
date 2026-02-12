@@ -76,9 +76,9 @@ import {
   exitSucceed,
   ExitTypeId,
   Fail,
-  failureIsDie,
   InterruptorStackTrace,
   isCause,
+  isDieReason,
   isEffect,
   isFailReason,
   makePrimitive,
@@ -164,17 +164,17 @@ export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause
 export const causeErrorOption = Filter.toOption(causeFilterError)
 
 /** @internal */
-export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(failureIsDie)
+export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isDieReason)
 
 /** @internal */
 export const causeFilterDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.fail<Cause.Cause<E>> => {
-  const failure = self.reasons.find(failureIsDie)
+  const failure = self.reasons.find(isDieReason)
   return failure ? failure : Filter.fail(self)
 }
 
 /** @internal */
 export const causeFilterDefect = <E>(self: Cause.Cause<E>): {} | Filter.fail<Cause.Cause<E>> => {
-  const failure = self.reasons.find(failureIsDie)
+  const failure = self.reasons.find(isDieReason)
   return failure ? failure.defect as {} : Filter.fail(self)
 }
 

@@ -315,7 +315,7 @@ export class Die extends ReasonBase<"Die"> implements Cause.Die {
   }
   [Equal.symbol](that: any): boolean {
     return (
-      failureIsDie(that) &&
+      isDieReason(that) &&
       Equal.equals(this.defect, that.defect) &&
       Equal.equals(this.annotations, that.annotations)
     )
@@ -365,7 +365,7 @@ export const isFailReason = <E>(
 ): self is Cause.Fail<E> => self._tag === "Fail"
 
 /** @internal */
-export const failureIsDie = <E>(self: Cause.Reason<E>): self is Cause.Die => self._tag === "Die"
+export const isDieReason = <E>(self: Cause.Reason<E>): self is Cause.Die => self._tag === "Die"
 
 /** @internal */
 export const failureIsInterrupt = <E>(self: Cause.Reason<E>): self is Cause.Interrupt => self._tag === "Interrupt"

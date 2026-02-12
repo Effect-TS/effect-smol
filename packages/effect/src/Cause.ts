@@ -151,13 +151,13 @@ export const isFailReason: <E>(self: Reason<E>) => self is Fail<E> = core.isFail
  *
  * const cause = Cause.die("defect")
  * const failure = cause.reasons[0]
- * console.log(Cause.isDie(failure)) // true
+ * console.log(Cause.isDieReason(failure)) // true
  * ```
  *
  * @category guards
  * @since 4.0.0
  */
-export const isDie: <E>(self: Reason<E>) => self is Die = core.failureIsDie
+export const isDieReason: <E>(self: Reason<E>) => self is Die = core.isDieReason
 
 /**
  * Tests if a `Reason` is an `Interrupt`.
@@ -271,7 +271,7 @@ export declare namespace Reason {
  *
  * const cause = Cause.die(new Error("Unexpected error"))
  * const failure = cause.reasons[0]
- * if (Cause.isDie(failure)) {
+ * if (Cause.isDieReason(failure)) {
  *   console.log(failure._tag) // "Die"
  *   console.log(failure.defect) // Error: Unexpected error
  * }
