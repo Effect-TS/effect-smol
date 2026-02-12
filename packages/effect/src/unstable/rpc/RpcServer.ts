@@ -262,7 +262,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       const close = Scope.closeUnsafe(scope, exit)
       const write = exit._tag === "Failure" &&
           !disableFatalDefects &&
-          Cause.hasDie(exit.cause) &&
+          Cause.hasDieReasons(exit.cause) &&
           !Cause.hasInterrupt(exit.cause)
         ? sendDefect(client, Cause.squash(exit.cause))
         : options.onFromServer({

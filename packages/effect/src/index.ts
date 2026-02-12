@@ -120,7 +120,7 @@ export * as Cache from "./Cache.ts"
  * // Analyzing failure types
  * const analyzeCause = (cause: Cause.Cause<string>) => {
  *   if (Cause.hasFailReasons(cause)) return "Has user error"
- *   if (Cause.hasDie(cause)) return "Has defect"
+ *   if (Cause.hasDieReasons(cause)) return "Has defect"
  *   if (Cause.hasInterrupt(cause)) return "Was interrupted"
  *   return "Unknown cause"
  * }

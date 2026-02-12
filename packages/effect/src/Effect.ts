@@ -2935,7 +2935,7 @@ export const unwrapReason: {
  *
  * // Recover from any cause (including defects)
  * const recovered = Effect.catchCause(program, (cause) => {
- *   if (Cause.hasDie(cause)) {
+ *   if (Cause.hasDieReasons(cause)) {
  *     return Console.log("Caught defect").pipe(
  *       Effect.as("Recovered from defect")
  *     )

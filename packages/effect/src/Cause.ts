@@ -31,7 +31,7 @@
  * // Analyzing reason types
  * const analyzeCause = (cause: Cause.Cause<string>) => {
  *   if (Cause.hasFailReasons(cause)) return "Has user error"
- *   if (Cause.hasDie(cause)) return "Has defect"
+ *   if (Cause.hasDieReasons(cause)) return "Has defect"
  *   if (Cause.hasInterrupt(cause)) return "Was interrupted"
  *   return "Unknown cause"
  * }
@@ -537,14 +537,14 @@ export const errorOption: <E>(input: Cause<E>) => Option<E> = effect.causeErrorO
  * const dieCause = Cause.die("defect")
  * const failCause = Cause.fail("error")
  *
- * console.log(Cause.hasDie(dieCause)) // true
- * console.log(Cause.hasDie(failCause)) // false
+ * console.log(Cause.hasDieReasons(dieCause)) // true
+ * console.log(Cause.hasDieReasons(failCause)) // false
  * ```
  *
  * @category utils
  * @since 2.0.0
  */
-export const hasDie: <E>(self: Cause<E>) => boolean = effect.causeHasDie
+export const hasDieReasons: <E>(self: Cause<E>) => boolean = effect.hasDieReasons
 
 /**
  * Filters out the first Die reason from a `Cause`.

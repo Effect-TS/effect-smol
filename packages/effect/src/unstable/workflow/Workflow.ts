@@ -572,7 +572,7 @@ export const intoResult = <A, E, R>(
           instance.suspended
             ? Effect.succeed(new Suspended({ cause: instance.cause }))
             : (!instance.interrupted && Cause.hasInterruptOnly(cause)) ||
-                (!captureDefects && Cause.hasDie(cause))
+                (!captureDefects && Cause.hasDieReasons(cause))
             ? Effect.failCause(cause as Cause.Cause<never>)
             : Effect.succeed(new Complete({ exit: Exit.failCause(cause) }))
       }),

@@ -148,7 +148,7 @@ describe.concurrent("Sharding", () => {
       yield* TestClock.adjust(5000)
 
       const exit = fiber.pollUnsafe()
-      assert(exit && Exit.isFailure(exit) && Cause.hasDie(exit.cause))
+      assert(exit && Exit.isFailure(exit) && Cause.hasDieReasons(exit.cause))
 
       // malformed message should be left in the database
       expect(driver.journal.length).toEqual(2)
@@ -483,7 +483,7 @@ describe.concurrent("Sharding", () => {
         Effect.sandbox,
         Effect.flip
       )
-      assert(Cause.hasDie(cause))
+      assert(Cause.hasDieReasons(cause))
     }).pipe(Effect.provide(TestShardingWithoutStorage.pipe(
       Layer.provide(MessageStorage.layerNoop)
     ))))

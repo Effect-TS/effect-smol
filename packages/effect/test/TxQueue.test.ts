@@ -1073,7 +1073,7 @@ describe("TxQueue", () => {
           assert.strictEqual(result._tag, "Failure")
           // The cause should contain a defect
           if (result._tag === "Failure") {
-            assert.strictEqual(Cause.hasDie(result.cause), true)
+            assert.strictEqual(Cause.hasDieReasons(result.cause), true)
           }
         }))
 

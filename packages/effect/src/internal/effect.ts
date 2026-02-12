@@ -164,7 +164,7 @@ export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause
 export const causeErrorOption = Filter.toOption(causeFilterError)
 
 /** @internal */
-export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isDieReason)
+export const hasDieReasons = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isDieReason)
 
 /** @internal */
 export const causeFilterDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.fail<Cause.Cause<E>> => {
@@ -1811,7 +1811,7 @@ export const exitHasInterrupt = <A, E>(
 /** @internal */
 export const exitHasDie = <A, E>(
   self: Exit.Exit<A, E>
-): self is Exit.Failure<A, E> => self._tag === "Failure" && causeHasDie(self.cause)
+): self is Exit.Failure<A, E> => self._tag === "Failure" && hasDieReasons(self.cause)
 
 /** @internal */
 export const exitHasFail = <A, E>(
