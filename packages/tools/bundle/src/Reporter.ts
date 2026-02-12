@@ -37,6 +37,14 @@ export interface VisualizeOptions {
 
 /**
  * @since 1.0.0
+ * @category models
+ */
+export interface ReportSelectedOptions {
+  readonly paths: ReadonlyArray<string>
+}
+
+/**
+ * @since 1.0.0
  * @category services
  */
 export class Reporter extends ServiceMap.Service<Reporter>()(
@@ -88,6 +96,22 @@ export class Reporter extends ServiceMap.Service<Reporter>()(
         return lines.join("\n") + "\n"
       }
 
+      const createSelectedReport = (stats: ReadonlyArray<BundleStats>): string => {
+        const lines: Array<string> = [
+          "| File Name | Current Size |",
+          "|:----------|:------------:|"
+        ]
+
+        for (const current of stats) {
+          const filename = `\`${path.basename(current.path)}\``
+          const currKb = `${(current.sizeInBytes / 1000).toFixed(2)} KB`
+          const line = `| ${filename} | ${currKb} |`
+          lines.push(line)
+        }
+
+        return lines.join("\n") + "\n"
+      }
+
       const report = Effect.fn("Reporter.report")(
         function*(options: ReportOptions) {
           yield* Effect.logInfo(`Found ${fixtures.length} files to bundle`)
@@ -117,8 +141,18 @@ export class Reporter extends ServiceMap.Service<Reporter>()(
         }
       )
 
+      const reportSelected = Effect.fn("Reporter.reportSelected")(
+        function*(options: ReportSelectedOptions) {
+          yield* Effect.logInfo(`Found ${options.paths.length} files to bundle`)
+          const stats = yield* rollup.bundleAll({ paths: options.paths })
+          yield* Effect.logInfo("Bundling complete! Generating bundle size report...")
+          return createSelectedReport(stats)
+        }
+      )
+
       return {
         report,
+        reportSelected,
         visualize
       } as const
     })

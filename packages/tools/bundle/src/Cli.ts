@@ -1,9 +1,11 @@
 /**
  * @since 1.0.0
  */
+import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
 import * as Path from "effect/Path"
+import * as Argument from "effect/unstable/cli/Argument"
 import * as Command from "effect/unstable/cli/Command"
 import * as Flag from "effect/unstable/cli/Flag"
 import * as Prompt from "effect/unstable/cli/Prompt"
@@ -62,10 +64,23 @@ const visualize = Command.make("visualize", { outputDirectory }).pipe(
   }))
 )
 
+const reportPaths = Argument.file("paths", { mustExist: true }).pipe(
+  Argument.withDescription("Fixture files to include in the report"),
+  Argument.variadic({ min: 1 })
+)
+
+const report = Command.make("report", { paths: reportPaths }).pipe(
+  Command.withHandler(Effect.fnUntraced(function*({ paths }) {
+    const reporter = yield* Reporter
+    const report = yield* reporter.reportSelected({ paths })
+    yield* Console.log(report)
+  }))
+)
+
 /**
  * @since 1.0.0
  * @category commands
  */
 export const cli = Command.make("bundle").pipe(
-  Command.withSubcommands([compare, visualize])
+  Command.withSubcommands([compare, report, visualize])
 )

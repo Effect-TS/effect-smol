@@ -32,6 +32,7 @@
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "compare": "node src/bin.ts compare",
+    "report": "node src/bin.ts report",
     "visualize": "node src/bin.ts visualize"
   },
   "dependencies": {
