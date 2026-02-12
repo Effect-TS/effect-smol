@@ -81,6 +81,7 @@ import {
   isDieReason,
   isEffect,
   isFailReason,
+  isInterruptReason,
   makePrimitive,
   makePrimitiveProto,
   NoSuchElementError,
@@ -210,10 +211,6 @@ const emptySet = new Set<number>()
 
 /** @internal */
 export const hasInterruptsOnly = <E>(self: Cause.Cause<E>): boolean => self.reasons.every(isInterruptReason)
-
-// TODO: duplicated, `core.ts` has the same function
-/** @internal */
-export const isInterruptReason = <E>(self: Cause.Reason<E>): self is Cause.Interrupt => self._tag === "Interrupt"
 
 /** @internal */
 export const reasonAnnotations = <E>(
