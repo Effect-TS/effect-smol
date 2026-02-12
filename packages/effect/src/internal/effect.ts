@@ -216,7 +216,7 @@ export const causeHasInterruptOnly = <E>(self: Cause.Cause<E>): boolean => self.
 export const isInterruptReason = <E>(self: Cause.Reason<E>): self is Cause.Interrupt => self._tag === "Interrupt"
 
 /** @internal */
-export const failureAnnotations = <E>(
+export const reasonAnnotations = <E>(
   self: Cause.Reason<E>
 ): ServiceMap.ServiceMap<never> => ServiceMap.makeUnsafe(self.annotations)
 

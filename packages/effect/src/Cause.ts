@@ -1094,10 +1094,10 @@ export const annotate: {
  * @category Annotations
  * @since 4.0.0
  */
-export const failureAnnotations: <E>(self: Reason<E>) => ServiceMap.ServiceMap<never> = effect.failureAnnotations
+export const reasonAnnotations: <E>(self: Reason<E>) => ServiceMap.ServiceMap<never> = effect.reasonAnnotations
 
 /**
- * Retrieves the merged annotations from all failures in a `Cause`.
+ * Retrieves the merged annotations from all reasons in a `Cause`.
  *
  * @category Annotations
  * @since 4.0.0
