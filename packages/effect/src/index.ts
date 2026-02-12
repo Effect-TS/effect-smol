@@ -88,43 +88,81 @@ export * as Brand from "./Brand.ts"
 export * as Cache from "./Cache.ts"
 
 /**
- * This module provides utilities for working with `Cause`, a data type that represents
- * the different ways an `Effect` can fail. It includes structured error handling with
- * typed errors, defects, and interruptions.
+ * Structured representation of how an Effect can fail.
  *
- * A `Cause` can represent:
- * - **Fail**: A typed, expected error that can be handled
- * - **Die**: An unrecoverable defect (like a programming error)
- * - **Interrupt**: A fiber interruption
+ * A `Cause<E>` holds a flat array of `Reason` values, where each reason is one of:
  *
- * @example
+ * - **Fail** — a typed, expected error `E` (created by `Effect.fail`)
+ * - **Die** — an untyped defect (`unknown`) from `Effect.die` or uncaught throws
+ * - **Interrupt** — a fiber interruption, optionally carrying the interrupting fiber's ID
+ *
+ * ## Mental model
+ *
+ * - A `Cause` is always flat: concurrent and sequential failures are stored together
+ *   in `cause.reasons` (a `ReadonlyArray<Reason<E>>`).
+ * - Each `Reason` carries an `annotations` map with tracing metadata (stack frames, spans).
+ * - An empty `reasons` array means the computation succeeded or the cause was empty
+ *   ({@link empty}).
+ * - `Cause` implements `Equal`, so two causes with identical reasons compare as equal.
+ *
+ * ## Common tasks
+ *
+ * | Intent | API |
+ * |--------|-----|
+ * | Create a cause | {@link fail}, {@link die}, {@link interrupt}, {@link fromReasons} |
+ * | Test for reason types | {@link hasFails}, {@link hasDies}, {@link hasInterrupts} |
+ * | Extract the first error/defect | {@link findError}, {@link findDefect}, {@link findFail}, {@link findDie} |
+ * | Iterate over reasons manually | `cause.reasons.filter(Cause.isFailReason)` |
+ * | Combine two causes | {@link combine} |
+ * | Transform errors | {@link map} |
+ * | Collapse to a single thrown value | {@link squash} |
+ * | Render for logging | {@link pretty}, {@link prettyErrors} |
+ * | Attach/read tracing metadata | {@link annotate}, {@link annotations}, {@link reasonAnnotations} |
+ *
+ * ## Gotchas
+ *
+ * - `findError`/`findDefect` return `Filter.fail` (not `Option.none`) when no match is
+ *   found. Use {@link findErrorOption} if you need an `Option`.
+ * - `squash` picks the first `Fail` error, then the first `Die` defect, then falls back
+ *   to a generic "interrupted" / "empty" error. It is lossy — use `prettyErrors` or
+ *   iterate `reasons` directly when you need all failures.
+ * - The module also exports several built-in error classes (`NoSuchElementError`,
+ *   `TimeoutError`, `IllegalArgumentError`, `ExceededCapacityError`, `UnknownError`)
+ *   and the `Done` completion signal. These all implement `YieldableError` and can be
+ *   yielded directly inside `Effect.gen`.
+ *
+ * **Example** (inspecting a concurrent failure)
+ *
  * ```ts
  * import { Cause, Effect } from "effect"
  *
- * // Creating different types of causes
- * const failCause = Cause.fail("Something went wrong")
- * const dieCause = Cause.die(new Error("Unexpected error"))
- * const interruptCause = Cause.interrupt(123)
+ * const program = Effect.gen(function*() {
+ *   const cause = yield* Effect.sandbox(
+ *     Effect.all([
+ *       Effect.fail("err1"),
+ *       Effect.die("defect"),
+ *       Effect.fail("err2")
+ *     ], { concurrency: "unbounded" })
+ *   ).pipe(Effect.flip)
  *
- * // Working with effects that can fail
- * const program = Effect.fail("user error").pipe(
- *   Effect.catchCause((cause) => {
- *     if (Cause.hasFails(cause)) {
- *       const error = Cause.findError(cause)
- *       console.log("Expected error:", error)
- *     }
- *     return Effect.succeed("handled")
- *   })
- * )
+ *   const errors = cause.reasons
+ *     .filter(Cause.isFailReason)
+ *     .map((r) => r.error)
  *
- * // Analyzing reason types
- * const analyzeCause = (cause: Cause.Cause<string>) => {
- *   if (Cause.hasFails(cause)) return "Has user error"
- *   if (Cause.hasDies(cause)) return "Has defect"
- *   if (Cause.hasInterrupts(cause)) return "Was interrupted"
- *   return "Unknown cause"
- * }
+ *   const defects = cause.reasons
+ *     .filter(Cause.isDieReason)
+ *     .map((r) => r.defect)
+ *
+ *   console.log(errors)  // ["err1", "err2"]  (order may vary)
+ *   console.log(defects) // ["defect"]
+ * })
+ *
+ * Effect.runPromise(program)
  * ```
+ *
+ * @see {@link Cause} — the core interface
+ * @see {@link Reason} — the union of failure kinds
+ * @see {@link pretty} — human-readable rendering
  *
  * @since 2.0.0
  */
