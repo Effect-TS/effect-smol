@@ -283,7 +283,7 @@ export const addUnsafe: {
       (
         options?.propagateInterruption === true ?
           !isInternalInterruption(exit.cause) :
-          !Cause.isInterruptedOnly(exit.cause)
+          !Cause.hasInterruptOnly(exit.cause)
       )
     ) {
       Deferred.doneUnsafe(self.deferred, exit as any)

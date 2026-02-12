@@ -115,7 +115,7 @@ export const isFailure: (self: unknown) => self is Failure<unknown> = core.isCau
  * const failCause = Cause.fail("error")
  * const failure: Cause.Failure<string> = failCause.failures[0]
  *
- * if (Cause.failureIsFail(failure)) {
+ * if (Cause.isFail(failure)) {
  *   console.log(failure.error) // "error"
  * }
  * ```
@@ -134,13 +134,13 @@ export type Failure<E> = Fail<E> | Die | Interrupt
  *
  * const cause = Cause.fail("error")
  * const failure = cause.failures[0]
- * console.log(Cause.failureIsFail(failure)) // true
+ * console.log(Cause.isFail(failure)) // true
  * ```
  *
  * @category guards
  * @since 4.0.0
  */
-export const failureIsFail: <E>(self: Failure<E>) => self is Fail<E> = core.failureIsFail
+export const isFail: <E>(self: Failure<E>) => self is Fail<E> = core.failureIsFail
 
 /**
  * Tests if a `Failure` is a `Die`.
@@ -151,13 +151,13 @@ export const failureIsFail: <E>(self: Failure<E>) => self is Fail<E> = core.fail
  *
  * const cause = Cause.die("defect")
  * const failure = cause.failures[0]
- * console.log(Cause.failureIsDie(failure)) // true
+ * console.log(Cause.isDie(failure)) // true
  * ```
  *
  * @category guards
  * @since 4.0.0
  */
-export const failureIsDie: <E>(self: Failure<E>) => self is Die = core.failureIsDie
+export const isDie: <E>(self: Failure<E>) => self is Die = core.failureIsDie
 
 /**
  * Tests if a `Failure` is an `Interrupt`.
@@ -168,13 +168,13 @@ export const failureIsDie: <E>(self: Failure<E>) => self is Die = core.failureIs
  *
  * const cause = Cause.interrupt(123)
  * const failure = cause.failures[0]
- * console.log(Cause.failureIsInterrupt(failure)) // true
+ * console.log(Cause.isInterrupt(failure)) // true
  * ```
  *
  * @category guards
  * @since 4.0.0
  */
-export const failureIsInterrupt: <E>(self: Failure<E>) => self is Interrupt = core.failureIsInterrupt
+export const isInterrupt: <E>(self: Failure<E>) => self is Interrupt = core.failureIsInterrupt
 
 /**
  * @example
@@ -186,7 +186,7 @@ export const failureIsInterrupt: <E>(self: Failure<E>) => self is Interrupt = co
  *
  * const cause = Cause.fail("error")
  * const failure = cause.failures[0]
- * if (Cause.failureIsFail(failure)) {
+ * if (Cause.isFail(failure)) {
  *   console.log(failure._tag) // "Fail"
  *   console.log(failure.error) // "error"
  * }
@@ -217,7 +217,7 @@ export declare namespace Cause {
    *
    * const cause = Cause.fail("error")
    * const failure = cause.failures[0]
-   * if (Cause.failureIsFail(failure)) {
+   * if (Cause.isFail(failure)) {
    *   console.log(failure._tag) // "Fail"
    *   console.log(failure.annotations.size) // 0
    * }
@@ -271,7 +271,7 @@ export declare namespace Failure {
  *
  * const cause = Cause.die(new Error("Unexpected error"))
  * const failure = cause.failures[0]
- * if (Cause.failureIsDie(failure)) {
+ * if (Cause.isDie(failure)) {
  *   console.log(failure._tag) // "Die"
  *   console.log(failure.defect) // Error: Unexpected error
  * }
@@ -291,7 +291,7 @@ export interface Die extends Cause.FailureProto<"Die"> {
  *
  * const cause = Cause.fail("Something went wrong")
  * const failure = cause.failures[0]
- * if (Cause.failureIsFail(failure)) {
+ * if (Cause.isFail(failure)) {
  *   console.log(failure._tag) // "Fail"
  *   console.log(failure.error) // "Something went wrong"
  * }
@@ -311,7 +311,7 @@ export interface Fail<out E> extends Cause.FailureProto<"Fail"> {
  *
  * const cause = Cause.interrupt(123)
  * const failure = cause.failures[0]
- * if (Cause.failureIsInterrupt(failure)) {
+ * if (Cause.isInterrupt(failure)) {
  *   console.log(failure._tag) // "Interrupt"
  *   console.log(failure.fiberId !== undefined) // true
  * }
@@ -405,19 +405,19 @@ export const interrupt: (fiberId?: number | undefined) => Cause<never> = effect.
  * @category Failure
  * @since 4.0.0
  */
-export const failureFail = <E>(error: E): Fail<E> => new core.Fail(error)
+export const makeFail = <E>(error: E): Fail<E> => new core.Fail(error)
 
 /**
  * @category Failure
  * @since 4.0.0
  */
-export const failureDie = (defect: unknown): Die => new core.Die(defect)
+export const makeDie = (defect: unknown): Die => new core.Die(defect)
 
 /**
  * @category Failure
  * @since 4.0.0
  */
-export const failureInterrupt: (fiberId?: number | undefined) => Interrupt = effect.failureInterrupt
+export const makeInterrupt: (fiberId?: number | undefined) => Interrupt = effect.failureInterrupt
 
 /**
  * Tests if a `Cause` contains only interruptions.
@@ -429,14 +429,14 @@ export const failureInterrupt: (fiberId?: number | undefined) => Interrupt = eff
  * const interruptCause = Cause.interrupt(123)
  * const failCause = Cause.fail("error")
  *
- * console.log(Cause.isInterruptedOnly(interruptCause)) // true
- * console.log(Cause.isInterruptedOnly(failCause)) // false
+ * console.log(Cause.hasInterruptOnly(interruptCause)) // true
+ * console.log(Cause.hasInterruptOnly(failCause)) // false
  * ```
  *
  * @category utils
  * @since 2.0.0
  */
-export const isInterruptedOnly: <E>(self: Cause<E>) => boolean = effect.causeIsInterruptedOnly
+export const hasInterruptOnly: <E>(self: Cause<E>) => boolean = effect.causeHasInterruptOnly
 
 /**
  * @category Mapping
@@ -456,17 +456,17 @@ export const map: {
  *
  * const cause1 = Cause.fail("error1")
  * const cause2 = Cause.fail("error2")
- * const merged = Cause.merge(cause1, cause2)
- * console.log(merged.failures.length) // 2
+ * const combined = Cause.combine(cause1, cause2)
+ * console.log(combined.failures.length) // 2
  * ```
  *
  * @category utils
  * @since 4.0.0
  */
-export const merge: {
+export const combine: {
   <E2>(that: Cause<E2>): <E>(self: Cause<E>) => Cause<E | E2>
   <E, E2>(self: Cause<E>, that: Cause<E2>): Cause<E | E2>
-} = effect.causeMerge
+} = effect.causeCombine
 
 /**
  * Squashes a `Cause` down to a single defect, chosen to be the "most important"
@@ -590,6 +590,8 @@ export const hasInterrupt: <E>(self: Cause<E>) => boolean = effect.causeHasInter
 export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.fail<Cause<E>> = effect.causeFilterInterrupt
 
 /**
+ * Returns a set of fiber IDs that caused interruptions.
+ *
  * @since 4.0.0
  * @category Accessors
  */
@@ -603,14 +605,45 @@ export const filterInterruptors: <E>(self: Cause<E>) => Set<number> | Filter.fai
   effect.causeFilterInterruptors
 
 /**
+ * Converts a `Cause` into an `Array<Error>` suitable for logging or
+ * rethrowing.
+ *
+ * Each `Fail` and `Die` failure is converted into a standard `Error`:
+ *
+ * - **Objects / Error instances**: the `message`, `name`, `stack`, and `cause`
+ *   properties are preserved. Additional enumerable properties from the
+ *   original value are copied onto the new `Error`. Stack traces are cleaned
+ *   up and enriched with span annotations when available.
+ * - **Strings**: used directly as the `Error` message.
+ * - **Other primitives** (`null`, `undefined`, numbers, …): wrapped in an
+ *   `Error` with message `"Unknown error: <value>"`.
+ *
+ * `Interrupt` failures are collected separately. If the cause contains
+ * **only** interrupts (no `Fail` or `Die`), a single `InterruptError` is
+ * returned whose `cause` lists the interrupting fiber ids.
+ *
  * @since 4.0.0
  * @category Pretty printing
  */
 export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePrettyErrors
 
 /**
- * Pretty prints a `Cause` as a string, cleaning up the output for better
- * readability & adding trace information from annotations.
+ * Renders a `Cause` as a human-readable string for logging or debugging.
+ *
+ * Converts the cause to `Error` instances via {@link prettyErrors}, then joins
+ * their stack traces with newlines. Nested `Error.cause` chains are rendered
+ * inline with indentation:
+ *
+ * ```text
+ * ErrorName: message
+ *     at ...
+ *     at ... {
+ *   [cause]: NestedError: message
+ *       at ...
+ * }
+ * ```
+ *
+ * Span annotations are appended to the relevant stack frames when available.
  *
  * @since 4.0.0
  * @category Pretty printing
@@ -790,6 +823,8 @@ export declare namespace Done {
 export const Done: <A = void>(value?: A) => Done<A> = core.Done
 
 /**
+ * Creates an effect that completes with a `Done` error.
+ *
  * @category constructors
  * @since 4.0.0
  */

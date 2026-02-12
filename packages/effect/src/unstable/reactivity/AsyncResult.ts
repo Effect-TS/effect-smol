@@ -228,7 +228,7 @@ export const isFailure = <A, E>(result: AsyncResult<A, E>): result is Failure<A,
  * @category refinements
  */
 export const isInterrupted = <A, E>(result: AsyncResult<A, E>): result is Failure<A, E> =>
-  result._tag === "Failure" && Cause.isInterruptedOnly(result.cause)
+  result._tag === "Failure" && Cause.hasInterruptOnly(result.cause)
 
 /**
  * @since 4.0.0

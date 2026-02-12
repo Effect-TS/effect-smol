@@ -575,7 +575,7 @@ const handleCause = (
     }
     return Effect.failCause(
       headersSent
-        ? Cause.merge(originalCause, Cause.die(originalResponse))
+        ? Cause.combine(originalCause, Cause.die(originalResponse))
         : cause
     )
   })

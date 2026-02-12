@@ -198,7 +198,7 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
 
   if (status.exit._tag === "Success") {
     otelStatus = constOtelStatusSuccess
-  } else if (Cause.isInterruptedOnly(status.exit.cause)) {
+  } else if (Cause.hasInterruptOnly(status.exit.cause)) {
     otelStatus = {
       code: StatusCode.Ok,
       message: "Interrupted"

@@ -161,7 +161,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
           decodeMap[status] = (response) =>
             Effect.flatMap(
               Effect.catchCause(decode(response), (cause) =>
-                Effect.failCause(Cause.merge(
+                Effect.failCause(Cause.combine(
                   Cause.fail(
                     new HttpClientError.HttpClientError({
                       reason: new HttpClientError.StatusCodeError({

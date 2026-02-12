@@ -209,7 +209,7 @@ export const causeInterruptors = <E>(self: Cause.Cause<E>): ReadonlySet<number> 
 const emptySet = new Set<number>()
 
 /** @internal */
-export const causeIsInterruptedOnly = <E>(self: Cause.Cause<E>): boolean => self.failures.every(failureIsInterrupt)
+export const causeHasInterruptOnly = <E>(self: Cause.Cause<E>): boolean => self.failures.every(failureIsInterrupt)
 
 /** @internal */
 export const failureIsInterrupt = <E>(
@@ -237,7 +237,7 @@ export const causeAnnotations = <E>(
 }
 
 /** @internal */
-export const causeMerge: {
+export const causeCombine: {
   <E2>(that: Cause.Cause<E2>): <E>(self: Cause.Cause<E>) => Cause.Cause<E | E2>
   <E, E2>(self: Cause.Cause<E>, that: Cause.Cause<E2>): Cause.Cause<E | E2>
 } = dual(
@@ -374,8 +374,7 @@ const causePrettyError = (
   return error
 }
 
-/** @internal */
-export const causePrettyMessage = (u: Record<string, unknown> | Error): string => {
+const causePrettyMessage = (u: Record<string, unknown> | Error): string => {
   if (typeof u.message === "string") {
     return u.message
   } else if (
@@ -459,7 +458,8 @@ const currentStackTrace = (frame: StackFrame): string => {
 export const causePretty = <E>(cause: Cause.Cause<E>): string =>
   causePrettyErrors<E>(cause).map((e) =>
     e.cause ? `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}` : e.stack
-  ).join("\n")
+  )
+    .join("\n")
 
 const renderErrorCause = (cause: Error, prefix: string) => {
   const lines = cause.stack!.split("\n")
@@ -579,7 +579,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
       cause = causeAnnotate(cause, annotations)
     }
     this._interruptedCause = this._interruptedCause
-      ? causeMerge(this._interruptedCause, cause)
+      ? causeCombine(this._interruptedCause, cause)
       : cause
     if (this.interruptible) {
       this.evaluate(failCause(this._interruptedCause) as any)

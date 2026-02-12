@@ -559,7 +559,7 @@ export const intoResult = <A, E, R>(
       suspendOnFailure
         ? Effect.catchCause((cause) => {
           instance.suspended = true
-          if (!Cause.isInterruptedOnly(cause)) {
+          if (!Cause.hasInterruptOnly(cause)) {
             instance.cause = Cause.die(Cause.squash(cause))
           }
           return Effect.interrupt
@@ -571,7 +571,7 @@ export const intoResult = <A, E, R>(
         onFailure: (cause): Effect.Effect<Result<A, E>> =>
           instance.suspended
             ? Effect.succeed(new Suspended({ cause: instance.cause }))
-            : (!instance.interrupted && Cause.isInterruptedOnly(cause)) ||
+            : (!instance.interrupted && Cause.hasInterruptOnly(cause)) ||
                 (!captureDefects && Cause.hasDie(cause))
             ? Effect.failCause(cause as Cause.Cause<never>)
             : Effect.succeed(new Complete({ exit: Exit.failCause(cause) }))
@@ -616,7 +616,7 @@ export const wrapActivityResult = <A, E, R>(
         exit.value.cause
       ) {
         instance.cause = instance.cause
-          ? Cause.merge(instance.cause, exit.value.cause)
+          ? Cause.combine(instance.cause, exit.value.cause)
           : exit.value.cause
       }
       return state.count === 0

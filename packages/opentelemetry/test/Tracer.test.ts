@@ -78,7 +78,7 @@ describe("Tracer", () => {
         const spanProcessor = new SimpleSpanProcessor(exporter)
         const firstFailure = Cause.fail(new Error("first"))
         const secondFailure = Cause.fail(new Error("second"))
-        const cause = Cause.merge(firstFailure, secondFailure)
+        const cause = Cause.combine(firstFailure, secondFailure)
 
         yield* Effect.failCause(cause).pipe(
           Effect.withSpan("error-span"),

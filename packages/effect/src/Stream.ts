@@ -880,7 +880,7 @@ export const failCause = <E>(cause: Cause.Cause<E>): Stream<never, E> => fromCha
  *     onSuccess: () => "Exit.Success",
  *     onFailure: (cause) => {
  *       const failure = cause.failures[0]
- *       const defect = Cause.failureIsDie(failure) ? String(failure.defect) : "Unexpected failure"
+ *       const defect = Cause.isDie(failure) ? String(failure.defect) : "Unexpected failure"
  *       return `Exit.Failure(${defect})`
  *     }
  *   })

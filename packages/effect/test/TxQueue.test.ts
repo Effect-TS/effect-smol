@@ -320,7 +320,7 @@ describe("TxQueue", () => {
         const result = yield* Effect.exit(TxQueue.takeAll(queue))
         assert.strictEqual(result._tag, "Failure")
         if (result._tag === "Failure") {
-          assert.strictEqual(Cause.isInterruptedOnly(result.cause), true)
+          assert.strictEqual(Cause.hasInterruptOnly(result.cause), true)
         }
       }))
 

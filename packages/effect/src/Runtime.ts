@@ -117,7 +117,7 @@ export const defaultTeardown: Teardown = <E, A>(
   exit: Exit.Exit<E, A>,
   onExit: (code: number) => void
 ) => {
-  onExit(Exit.isFailure(exit) ? Cause.isInterruptedOnly(exit.cause) ? 130 : 1 : 0)
+  onExit(Exit.isFailure(exit) ? Cause.hasInterruptOnly(exit.cause) ? 130 : 1 : 0)
 }
 
 /**
@@ -206,7 +206,7 @@ export const makeRunMain = (
       ? Effect.runFork(effect)
       : Effect.runFork(
         Effect.tapCause(effect, (cause) => {
-          if (Cause.isInterruptedOnly(cause)) {
+          if (Cause.hasInterruptOnly(cause)) {
             return Effect.void
           }
           return Effect.logError(cause)

@@ -168,7 +168,7 @@ describe.sequential("Request", () => {
         const exit = yield* Fiber.await(fiber)
         expect(exit._tag).toEqual("Failure")
         if (exit._tag === "Failure") {
-          expect(Cause.isInterruptedOnly(exit.cause)).toEqual(true)
+          expect(Cause.hasInterruptOnly(exit.cause)).toEqual(true)
         }
         expect(yield* Counter).toEqual({ count: 0 })
         expect(yield* Interrupts).toEqual({ interrupts: 1 })
@@ -189,7 +189,7 @@ describe.sequential("Request", () => {
         const exit = yield* Fiber.await(fiber)
         expect(exit._tag).toEqual("Failure")
         if (exit._tag === "Failure") {
-          expect(Cause.isInterruptedOnly(exit.cause)).toEqual(true)
+          expect(Cause.hasInterruptOnly(exit.cause)).toEqual(true)
         }
         expect(yield* Counter).toEqual({ count: 3 })
         expect(yield* Interrupts).toEqual({ interrupts: 0 })
