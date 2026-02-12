@@ -109,7 +109,7 @@ export * as Cache from "./Cache.ts"
  * // Working with effects that can fail
  * const program = Effect.fail("user error").pipe(
  *   Effect.catchCause((cause) => {
- *     if (Cause.hasFail(cause)) {
+ *     if (Cause.hasFailReasons(cause)) {
  *       const error = Cause.filterError(cause)
  *       console.log("Expected error:", error)
  *     }
@@ -119,7 +119,7 @@ export * as Cache from "./Cache.ts"
  *
  * // Analyzing failure types
  * const analyzeCause = (cause: Cause.Cause<string>) => {
- *   if (Cause.hasFail(cause)) return "Has user error"
+ *   if (Cause.hasFailReasons(cause)) return "Has user error"
  *   if (Cause.hasDie(cause)) return "Has defect"
  *   if (Cause.hasInterrupt(cause)) return "Was interrupted"
  *   return "Unknown cause"

@@ -3547,7 +3547,7 @@ export const scanEffect: {
  *
  * // Catch the cause and provide recovery
  * const recoveredChannel = Channel.catchCause(failingChannel, (cause) => {
- *   if (Cause.hasFail(cause)) {
+ *   if (Cause.hasFailReasons(cause)) {
  *     return Channel.succeed("Recovered from failure")
  *   }
  *   return Channel.succeed("Recovered from interruption")
@@ -4805,7 +4805,10 @@ export const ignore: <
         return catch_(self, () => empty)
       }
       const logEffect = Effect.logWithLevel(options.log === true ? undefined : options.log)
-      return catch_(tapCause(self, (cause) => Cause.hasFail(cause) ? logEffect(cause) : Effect.void), () => empty)
+      return catch_(
+        tapCause(self, (cause) => Cause.hasFailReasons(cause) ? logEffect(cause) : Effect.void),
+        () => empty
+      )
     }
   )
 

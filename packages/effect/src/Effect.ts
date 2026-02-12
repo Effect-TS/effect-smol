@@ -3136,7 +3136,7 @@ export const catchFilter: {
  * // Only catch network-related failures
  * const program = Effect.catchCauseFilter(
  *   httpRequest,
- *   (cause) => Cause.hasFail(cause),
+ *   (cause) => Cause.hasFailReasons(cause),
  *   (failure, cause) =>
  *     Effect.gen(function*() {
  *       yield* Console.log(`Caught network error: ${Cause.squash(cause)}`)
@@ -3436,7 +3436,7 @@ export const tapCause: {
  * // Only log causes that contain failures (not interrupts or defects)
  * const program = Effect.tapCauseFilter(
  *   task,
- *   (cause) => Cause.hasFail(cause),
+ *   (cause) => Cause.hasFailReasons(cause),
  *   (_, cause) => Console.log(`Logging failure cause: ${Cause.squash(cause)}`)
  * )
  *
@@ -4918,7 +4918,7 @@ export const matchCauseEffectEager: {
  * const program = Effect.matchCauseEffect(task, {
  *   onFailure: (cause) =>
  *     Effect.gen(function*() {
- *       if (Cause.hasFail(cause)) {
+ *       if (Cause.hasFailReasons(cause)) {
  *         const error = Cause.filterError(cause)
  *         if (Filter.isPass(error)) {
  *           yield* Console.log(`Handling error: ${(error as Error).message}`)

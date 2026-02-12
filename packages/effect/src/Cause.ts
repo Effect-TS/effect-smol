@@ -20,7 +20,7 @@
  * // Working with effects that can fail
  * const program = Effect.fail("user error").pipe(
  *   Effect.catchCause((cause) => {
- *     if (Cause.hasFail(cause)) {
+ *     if (Cause.hasFailReasons(cause)) {
  *       const error = Cause.filterError(cause)
  *       console.log("Expected error:", error)
  *     }
@@ -30,7 +30,7 @@
  *
  * // Analyzing reason types
  * const analyzeCause = (cause: Cause.Cause<string>) => {
- *   if (Cause.hasFail(cause)) return "Has user error"
+ *   if (Cause.hasFailReasons(cause)) return "Has user error"
  *   if (Cause.hasDie(cause)) return "Has defect"
  *   if (Cause.hasInterrupt(cause)) return "Was interrupted"
  *   return "Unknown cause"
@@ -496,14 +496,14 @@ export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
  * const failCause = Cause.fail("error")
  * const dieCause = Cause.die("defect")
  *
- * console.log(Cause.hasFail(failCause)) // true
- * console.log(Cause.hasFail(dieCause)) // false
+ * console.log(Cause.hasFailReasons(failCause)) // true
+ * console.log(Cause.hasFailReasons(dieCause)) // false
  * ```
  *
  * @category utils
  * @since 2.0.0
  */
-export const hasFail: <E>(self: Cause<E>) => boolean = effect.causeHasFail
+export const hasFailReasons: <E>(self: Cause<E>) => boolean = effect.hasFailReasons
 
 /**
  * Filters out the first typed error from a `Cause`.

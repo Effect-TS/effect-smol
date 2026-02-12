@@ -141,7 +141,7 @@ export const causeInterrupt = (
 ): Cause.Cause<never> => new CauseImpl([new Interrupt(fiberId)])
 
 /** @internal */
-export const causeHasFail = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isFailReason)
+export const hasFailReasons = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isFailReason)
 
 /** @internal */
 export const causeFilterFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter.fail<Cause.Cause<never>> => {
@@ -1816,7 +1816,7 @@ export const exitHasDie = <A, E>(
 /** @internal */
 export const exitHasFail = <A, E>(
   self: Exit.Exit<A, E>
-): self is Exit.Failure<A, E> => self._tag === "Failure" && causeHasFail(self.cause)
+): self is Exit.Failure<A, E> => self._tag === "Failure" && hasFailReasons(self.cause)
 
 /** @internal */
 export const exitVoid: Exit.Exit<void> = exitSucceed(void 0)
