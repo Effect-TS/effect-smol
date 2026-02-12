@@ -95,7 +95,7 @@ export const isDoneCause = <E>(cause: Cause.Cause<E>): boolean => cause.reasons.
  * @category Done
  */
 export const isDoneFailure = <E>(
-  failure: Cause.Failure<E>
+  failure: Cause.Reason<E>
 ): failure is Cause.Fail<E & Cause.Done<any>> => failure._tag === "Fail" && Cause.isDone(failure.error)
 
 /**

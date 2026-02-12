@@ -210,7 +210,7 @@ describe("toIso", () => {
 
     expect(optic).type.toBe<
       Optic.Iso<
-        Cause.Failure<Value>,
+        Cause.Reason<Value>,
         {
           readonly _tag: "Fail"
           readonly error: {

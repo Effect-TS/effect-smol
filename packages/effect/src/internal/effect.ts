@@ -76,7 +76,6 @@ import {
   exitSucceed,
   ExitTypeId,
   Fail,
-  FailureBase,
   failureIsDie,
   failureIsFail,
   InterruptorStackTrace,
@@ -85,6 +84,7 @@ import {
   makePrimitive,
   makePrimitiveProto,
   NoSuchElementError,
+  ReasonBase,
   StackTraceKey as CauseStackTrace,
   TaggedError,
   withFiber,
@@ -100,7 +100,7 @@ import { version } from "./version.ts"
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
+export class Interrupt extends ReasonBase<"Interrupt"> implements Cause.Interrupt {
   readonly fiberId: number | undefined
   constructor(
     fiberId: number | undefined,
@@ -213,12 +213,12 @@ export const causeHasInterruptOnly = <E>(self: Cause.Cause<E>): boolean => self.
 
 /** @internal */
 export const failureIsInterrupt = <E>(
-  self: Cause.Failure<E>
+  self: Cause.Reason<E>
 ): self is Cause.Interrupt => isTagged(self, "Interrupt")
 
 /** @internal */
 export const failureAnnotations = <E>(
-  self: Cause.Failure<E>
+  self: Cause.Reason<E>
 ): ServiceMap.ServiceMap<never> => ServiceMap.makeUnsafe(self.annotations)
 
 /** @internal */
@@ -1401,7 +1401,7 @@ export const raceAll = <Eff extends Effect.Effect<any, any, any>>(
       let doneCount = 0
       let done = false
       const fibers = new Set<Fiber.Fiber<any, any>>()
-      const failures: Array<Cause.Failure<any>> = []
+      const failures: Array<Cause.Reason<any>> = []
       const onExit = (exit: Exit.Exit<any, any>, fiber: Fiber.Fiber<any, any>, i: number) => {
         doneCount++
         if (exit._tag === "Failure") {
@@ -1931,7 +1931,7 @@ export const exitAsVoidAll = <I extends Iterable<Exit.Exit<any, any>>>(
   void,
   I extends Iterable<Exit.Exit<infer _A, infer _E>> ? _E : never
 > => {
-  const failures: Array<Cause.Failure<any>> = []
+  const failures: Array<Cause.Reason<any>> = []
   for (const exit of exits) {
     if (exit._tag === "Failure") {
       failures.push(...exit.cause.reasons)
@@ -4121,7 +4121,7 @@ export const forEach: {
 
     return callback((resume) => {
       const fibers = new Set<Fiber.Fiber<unknown, unknown>>()
-      const failures: Array<Cause.Failure<E>> = []
+      const failures: Array<Cause.Reason<E>> = []
       let failed = false
       let inProgress = 0
       let doneCount = 0

@@ -135,13 +135,13 @@ export const isExit = (u: unknown): u is Exit.Exit<unknown, unknown> => hasPrope
 export const CauseTypeId = "~effect/Cause"
 
 /** @internal */
-export const CauseFailureTypeId = "~effect/Cause/Failure"
+export const CauseReasonTypeId = "~effect/Cause/Reason"
 
 /** @internal */
 export const isCause = (self: unknown): self is Cause.Cause<unknown> => hasProperty(self, CauseTypeId)
 
 /** @internal */
-export const isCauseFailure = (self: unknown): self is Cause.Failure<unknown> => hasProperty(self, CauseFailureTypeId)
+export const isCauseReason = (self: unknown): self is Cause.Reason<unknown> => hasProperty(self, CauseReasonTypeId)
 
 /** @internal */
 export class CauseImpl<E> implements Cause.Cause<E> {
@@ -187,8 +187,8 @@ export class CauseImpl<E> implements Cause.Cause<E> {
 const annotationsMap = new WeakMap<object, ReadonlyMap<string, unknown>>()
 
 /** @internal */
-export abstract class FailureBase<Tag extends string> implements Cause.Cause.FailureProto<Tag> {
-  readonly [CauseFailureTypeId]: typeof CauseFailureTypeId
+export abstract class ReasonBase<Tag extends string> implements Cause.Cause.ReasonProto<Tag> {
+  readonly [CauseReasonTypeId]: typeof CauseReasonTypeId
   readonly annotations: ReadonlyMap<string, unknown>
   readonly _tag: Tag
 
@@ -197,7 +197,7 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
     annotations: ReadonlyMap<string, unknown>,
     originalError: unknown
   ) {
-    this[CauseFailureTypeId] = CauseFailureTypeId
+    this[CauseReasonTypeId] = CauseReasonTypeId
     this._tag = _tag
     if (
       annotations !== constEmptyAnnotations && typeof originalError === "object" && originalError !== null &&
@@ -251,7 +251,7 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
 export const constEmptyAnnotations = new Map<string, unknown>()
 
 /** @internal */
-export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
+export class Fail<E> extends ReasonBase<"Fail"> implements Cause.Fail<E> {
   readonly error: E
   constructor(
     error: E,
@@ -285,7 +285,7 @@ export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
 
 /** @internal */
 export const causeFromFailures = <E>(
-  failures: ReadonlyArray<Cause.Failure<E>>
+  failures: ReadonlyArray<Cause.Reason<E>>
 ): Cause.Cause<E> => new CauseImpl(failures)
 
 /** @internal */
@@ -295,7 +295,7 @@ export const causeEmpty: Cause.Cause<never> = new CauseImpl([])
 export const causeFail = <E>(error: E): Cause.Cause<E> => new CauseImpl([new Fail(error)])
 
 /** @internal */
-export class Die extends FailureBase<"Die"> implements Cause.Die {
+export class Die extends ReasonBase<"Die"> implements Cause.Die {
   readonly defect: unknown
   constructor(
     defect: unknown,
@@ -361,14 +361,14 @@ export const causeAnnotate: {
 
 /** @internal */
 export const failureIsFail = <E>(
-  self: Cause.Failure<E>
+  self: Cause.Reason<E>
 ): self is Cause.Fail<E> => self._tag === "Fail"
 
 /** @internal */
-export const failureIsDie = <E>(self: Cause.Failure<E>): self is Cause.Die => self._tag === "Die"
+export const failureIsDie = <E>(self: Cause.Reason<E>): self is Cause.Die => self._tag === "Die"
 
 /** @internal */
-export const failureIsInterrupt = <E>(self: Cause.Failure<E>): self is Cause.Interrupt => self._tag === "Interrupt"
+export const failureIsInterrupt = <E>(self: Cause.Reason<E>): self is Cause.Interrupt => self._tag === "Interrupt"
 
 /** @internal */
 export interface Primitive {

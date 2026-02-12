@@ -59,7 +59,7 @@ export const TypeId: "~effect/Cause" = core.CauseTypeId
 /**
  * @since 2.0.0
  */
-export const FailureTypeId: "~effect/Cause/Failure" = core.CauseFailureTypeId
+export const ReasonTypeId: "~effect/Cause/Reason" = core.CauseReasonTypeId
 
 /**
  * A `Cause` is a data type that represents the different ways a `Effect` can fail.
@@ -82,7 +82,7 @@ export const FailureTypeId: "~effect/Cause/Failure" = core.CauseFailureTypeId
  */
 export interface Cause<out E> extends Pipeable, Inspectable, Equal {
   readonly [TypeId]: typeof TypeId
-  readonly reasons: ReadonlyArray<Failure<E>>
+  readonly reasons: ReadonlyArray<Reason<E>>
 }
 
 /**
@@ -105,7 +105,7 @@ export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
  * @category guards
  * @since 2.0.0
  */
-export const isFailure: (self: unknown) => self is Failure<unknown> = core.isCauseFailure
+export const isFailure: (self: unknown) => self is Reason<unknown> = core.isCauseReason
 
 /**
  * @example
@@ -113,7 +113,7 @@ export const isFailure: (self: unknown) => self is Failure<unknown> = core.isCau
  * import { Cause } from "effect"
  *
  * const failCause = Cause.fail("error")
- * const failure: Cause.Failure<string> = failCause.reasons[0]
+ * const failure: Cause.Reason<string> = failCause.reasons[0]
  *
  * if (Cause.isFail(failure)) {
  *   console.log(failure.error) // "error"
@@ -123,10 +123,10 @@ export const isFailure: (self: unknown) => self is Failure<unknown> = core.isCau
  * @since 4.0.0
  * @category models
  */
-export type Failure<E> = Fail<E> | Die | Interrupt
+export type Reason<E> = Fail<E> | Die | Interrupt
 
 /**
- * Tests if a `Failure` is a `Fail`.
+ * Tests if a `Reason` is a `Fail`.
  *
  * @example
  * ```ts
@@ -140,10 +140,10 @@ export type Failure<E> = Fail<E> | Die | Interrupt
  * @category guards
  * @since 4.0.0
  */
-export const isFail: <E>(self: Failure<E>) => self is Fail<E> = core.failureIsFail
+export const isFail: <E>(self: Reason<E>) => self is Fail<E> = core.failureIsFail
 
 /**
- * Tests if a `Failure` is a `Die`.
+ * Tests if a `Reason` is a `Die`.
  *
  * @example
  * ```ts
@@ -157,10 +157,10 @@ export const isFail: <E>(self: Failure<E>) => self is Fail<E> = core.failureIsFa
  * @category guards
  * @since 4.0.0
  */
-export const isDie: <E>(self: Failure<E>) => self is Die = core.failureIsDie
+export const isDie: <E>(self: Reason<E>) => self is Die = core.failureIsDie
 
 /**
- * Tests if a `Failure` is an `Interrupt`.
+ * Tests if a `Reason` is an `Interrupt`.
  *
  * @example
  * ```ts
@@ -174,7 +174,7 @@ export const isDie: <E>(self: Failure<E>) => self is Die = core.failureIsDie
  * @category guards
  * @since 4.0.0
  */
-export const isInterrupt: <E>(self: Failure<E>) => self is Interrupt = core.failureIsInterrupt
+export const isInterrupt: <E>(self: Reason<E>) => self is Interrupt = core.failureIsInterrupt
 
 /**
  * @example
@@ -226,8 +226,8 @@ export declare namespace Cause {
    * @since 4.0.0
    * @category models
    */
-  export interface FailureProto<Tag extends string> extends Inspectable, Equal {
-    readonly [FailureTypeId]: typeof FailureTypeId
+  export interface ReasonProto<Tag extends string> extends Inspectable, Equal {
+    readonly [ReasonTypeId]: typeof ReasonTypeId
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>
     annotate(annotations: ServiceMap.ServiceMap<never> | ReadonlyMap<string, unknown>, options?: {
@@ -241,27 +241,27 @@ export declare namespace Cause {
  * ```ts
  * import type { Cause } from "effect"
  *
- * type StringFailureError = Cause.Failure.Error<Cause.Failure<string>>
- * // type StringFailureError = string
+ * type StringReasonError = Cause.Reason.Error<Cause.Reason<string>>
+ * // type StringReasonError = string
  * ```
  *
  * @since 2.0.0
  * @category models
  */
-export declare namespace Failure {
+export declare namespace Reason {
   /**
    * @example
    * ```ts
    * import type { Cause } from "effect"
    *
-   * type ErrorType = Cause.Failure.Error<Cause.Failure<string>>
+   * type ErrorType = Cause.Reason.Error<Cause.Reason<string>>
    * // type ErrorType = string
    * ```
    *
    * @since 4.0.0
    * @category models
    */
-  export type Error<T> = T extends Failure<infer E> ? E : never
+  export type Error<T> = T extends Reason<infer E> ? E : never
 }
 
 /**
@@ -280,7 +280,7 @@ export declare namespace Failure {
  * @since 2.0.0
  * @category models
  */
-export interface Die extends Cause.FailureProto<"Die"> {
+export interface Die extends Cause.ReasonProto<"Die"> {
   readonly defect: unknown
 }
 
@@ -300,7 +300,7 @@ export interface Die extends Cause.FailureProto<"Die"> {
  * @since 2.0.0
  * @category models
  */
-export interface Fail<out E> extends Cause.FailureProto<"Fail"> {
+export interface Fail<out E> extends Cause.ReasonProto<"Fail"> {
   readonly error: E
 }
 
@@ -320,12 +320,12 @@ export interface Fail<out E> extends Cause.FailureProto<"Fail"> {
  * @since 2.0.0
  * @category models
  */
-export interface Interrupt extends Cause.FailureProto<"Interrupt"> {
+export interface Interrupt extends Cause.ReasonProto<"Interrupt"> {
   readonly fiberId: number | undefined
 }
 
 /**
- * Creates a `Cause` from a collection of `Failure` values.
+ * Creates a `Cause` from a collection of `Reason` values.
  *
  * @example
  * ```ts
@@ -341,7 +341,7 @@ export interface Interrupt extends Cause.FailureProto<"Interrupt"> {
  * @since 2.0.0
  */
 export const fromFailures: <E>(
-  failures: ReadonlyArray<Failure<E>>
+  failures: ReadonlyArray<Reason<E>>
 ) => Cause<E> = core.causeFromFailures
 
 /**
@@ -402,19 +402,19 @@ export const die: (defect: unknown) => Cause<never> = core.causeDie
 export const interrupt: (fiberId?: number | undefined) => Cause<never> = effect.causeInterrupt
 
 /**
- * @category Failure
+ * @category Reason
  * @since 4.0.0
  */
 export const makeFail = <E>(error: E): Fail<E> => new core.Fail(error)
 
 /**
- * @category Failure
+ * @category Reason
  * @since 4.0.0
  */
 export const makeDie = (defect: unknown): Die => new core.Die(defect)
 
 /**
- * @category Failure
+ * @category Reason
  * @since 4.0.0
  */
 export const makeInterrupt: (fiberId?: number | undefined) => Interrupt = effect.failureInterrupt
@@ -522,7 +522,7 @@ export const filterFail: <E>(self: Cause<E>) => Fail<E> | Filter.fail<Cause<neve
 export const filterError: <E>(self: Cause<E>) => E | Filter.fail<Cause<never>> = effect.causeFilterError
 
 /**
- * @category Failure
+ * @category Reason
  * @since 4.0.0
  */
 export const errorOption: <E>(input: Cause<E>) => Option<E> = effect.causeErrorOption
@@ -608,7 +608,7 @@ export const filterInterruptors: <E>(self: Cause<E>) => Set<number> | Filter.fai
  * Converts a `Cause` into an `Array<Error>` suitable for logging or
  * rethrowing.
  *
- * Each `Fail` and `Die` failure is converted into a standard `Error`:
+ * Each `Fail` and `Die` reason is converted into a standard `Error`:
  *
  * - **Objects / Error instances**: the `message`, `name`, `stack`, and `cause`
  *   properties are preserved. Additional enumerable properties from the
@@ -618,7 +618,7 @@ export const filterInterruptors: <E>(self: Cause<E>) => Set<number> | Filter.fai
  * - **Other primitives** (`null`, `undefined`, numbers, …): wrapped in an
  *   `Error` with message `"Unknown error: <value>"`.
  *
- * `Interrupt` failures are collected separately. If the cause contains
+ * `Interrupt` reasons are collected separately. If the cause contains
  * **only** interrupts (no `Fail` or `Die`), a single `InterruptError` is
  * returned whose `cause` lists the interrupting fiber ids.
  *
@@ -1089,12 +1089,12 @@ export const annotate: {
 } = core.causeAnnotate
 
 /**
- * Retrieves the annotations from a `Failure`.
+ * Retrieves the annotations from a `Reason`.
  *
  * @category Annotations
  * @since 4.0.0
  */
-export const failureAnnotations: <E>(self: Failure<E>) => ServiceMap.ServiceMap<never> = effect.failureAnnotations
+export const failureAnnotations: <E>(self: Reason<E>) => ServiceMap.ServiceMap<never> = effect.failureAnnotations
 
 /**
  * Retrieves the merged annotations from all failures in a `Cause`.

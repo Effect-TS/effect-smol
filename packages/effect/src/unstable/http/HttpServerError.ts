@@ -214,7 +214,7 @@ export const causeResponse = <E>(
 ): Effect.Effect<readonly [Response.HttpServerResponse, Cause.Cause<E>]> => {
   let response: Response.HttpServerResponse | undefined
   let effect = succeedInternalServerError
-  const failures: Array<Cause.Failure<E>> = []
+  const failures: Array<Cause.Reason<E>> = []
   let interrupt: Cause.Interrupt | undefined
   let isClientInterrupt = false
   for (let i = 0; i < cause.reasons.length; i++) {

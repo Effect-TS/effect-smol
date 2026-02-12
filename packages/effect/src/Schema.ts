@@ -5646,8 +5646,8 @@ export function RedactedFromValue<S extends Top>(value: S, options?: {
  */
 export interface CauseFailure<E extends Top, D extends Top> extends
   declareConstructor<
-    Cause_.Failure<E["Type"]>,
-    Cause_.Failure<E["Encoded"]>,
+    Cause_.Reason<E["Type"]>,
+    Cause_.Reason<E["Encoded"]>,
     readonly [E, D],
     CauseFailureIso<E, D>
   >
@@ -5676,7 +5676,7 @@ export type CauseFailureIso<E extends Top, D extends Top> = {
  * @since 4.0.0
  */
 export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D): CauseFailure<E, D> {
-  const schema = declareConstructor<Cause_.Failure<E["Type"]>, Cause_.Failure<E["Encoded"]>, CauseFailureIso<E, D>>()(
+  const schema = declareConstructor<Cause_.Reason<E["Type"]>, Cause_.Reason<E["Encoded"]>, CauseFailureIso<E, D>>()(
     [error, defect],
     ([error, defect]) => (input, ast, options) => {
       if (!Cause_.isFailure(input)) {
@@ -5715,7 +5715,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       },
       expected: "Cause.Failure",
       toCodec: ([error, defect]) =>
-        link<Cause_.Failure<E["Encoded"]>>()(
+        link<Cause_.Reason<E["Encoded"]>>()(
           Union([
             Struct({ _tag: Literal("Fail"), error }),
             Struct({ _tag: Literal("Die"), defect }),
@@ -5756,7 +5756,7 @@ function causeFailureToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: Fa
 }
 
 function causeFailureToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
-  return (a: Cause_.Failure<E>, b: Cause_.Failure<E>) => {
+  return (a: Cause_.Reason<E>, b: Cause_.Reason<E>) => {
     if (a._tag !== b._tag) return false
     switch (a._tag) {
       case "Fail":
@@ -5770,7 +5770,7 @@ function causeFailureToEquivalence<E>(error: Equivalence.Equivalence<E>, defect:
 }
 
 function causeFailureToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
-  return (t: Cause_.Failure<E>) => {
+  return (t: Cause_.Reason<E>) => {
     switch (t._tag) {
       case "Fail":
         return `Fail(${error(t.error)})`
