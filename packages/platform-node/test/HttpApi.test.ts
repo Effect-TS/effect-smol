@@ -27,6 +27,7 @@ import {
   HttpServerResponse,
   Multipart
 } from "effect/unstable/http"
+import { HttpSession } from "effect/unstable/http/HttpSession"
 import {
   HttpApi,
   HttpApiBuilder,
@@ -39,6 +40,7 @@ import {
   HttpApiSecurity,
   OpenApi
 } from "effect/unstable/httpapi"
+import { Persistence } from "effect/unstable/persistence/Persistence"
 import OpenApiFixture from "./fixtures/openapi.json" with { type: "json" }
 
 function* assertServerText(res: HttpClientResponse.HttpClientResponse, status: number, text: string) {
@@ -1198,3 +1200,12 @@ const HttpLive = HttpRouter.serve(HttpApiLive, {
 }).pipe(
   Layer.provideMerge(NodeHttpServer.layerTest)
 )
+
+class SessionMiddleware extends HttpApiMiddleware.HttpSession<SessionMiddleware>()("SessionMiddleware", {
+  security: HttpApiSecurity.apiKey({
+    key: "sid",
+    in: "cookie"
+  })
+}) {}
+
+const layerSession = HttpApiBuilder.middlewareHttpSession(SessionMiddleware)

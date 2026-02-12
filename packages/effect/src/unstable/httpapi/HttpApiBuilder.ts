@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Base64 from "../../encoding/Base64.ts"
 import * as Fiber from "../../Fiber.ts"
@@ -32,8 +33,10 @@ import * as Request from "../http/HttpServerRequest.ts"
 import { HttpServerRequest } from "../http/HttpServerRequest.ts"
 import * as Response from "../http/HttpServerResponse.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
+import * as HttpSession from "../http/HttpSession.ts"
 import * as Multipart from "../http/Multipart.ts"
 import * as UrlParams from "../http/UrlParams.ts"
+import * as Persistence from "../persistence/Persistence.ts"
 import type * as HttpApi from "./HttpApi.ts"
 import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import { HttpApiSchemaError } from "./HttpApiError.ts"
@@ -297,9 +300,8 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
 > => {
   switch (self._tag) {
     case "Bearer": {
-      return Effect.map(
-        HttpServerRequest.asEffect(),
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
+      return HttpServerRequest.useSync((request) =>
+        Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
       )
     }
     case "ApiKey": {
@@ -364,6 +366,68 @@ export const securitySetCookie = (
         httpOnly: true,
         ...options
       })
+    )
+  )
+
+/**
+ * @since 4.0.0
+ * @category security
+ */
+export const securityMakeSession = <Security extends HttpApiSecurity.Bearer | HttpApiSecurity.ApiKey>(
+  self: Security,
+  options?: {
+    readonly generateSessionId?: Effect.Effect<HttpSession.SessionId, never, never> | undefined
+    readonly timeToLive?: Duration.DurationInput | undefined
+  }
+): Effect.Effect<
+  HttpSession.HttpSession["Service"],
+  never,
+  | Persistence.Persistence
+  | Scope.Scope
+  | Request.HttpServerRequest
+  | Request.ParsedSearchParams
+> =>
+  HttpSession.make({
+    ...options,
+    getSessionId: securityDecode(self).pipe(
+      Effect.map((r) => {
+        const value = Redacted.value(r)
+        return value === "" ? Option.none() : Option.some(HttpSession.SessionId(value))
+      })
+    )
+  })
+
+/**
+ * @since 4.0.0
+ * @category security
+ */
+export const middlewareHttpSession = <
+  Service extends (
+    & HttpApiMiddleware.ServiceClass<any, any, {
+      requires: never
+      provides: HttpSession.HttpSession
+      error: never
+      security: never
+    }>
+    & {
+      readonly security: HttpApiSecurity.Bearer | HttpApiSecurity.ApiKey
+    }
+  )
+>(service: Service, options?: {
+  readonly generateSessionId?: Effect.Effect<HttpSession.SessionId, never, never> | undefined
+  readonly timeToLive?: Duration.DurationInput | undefined
+}): Layer.Layer<Service["Identifier"], never, Persistence.Persistence> =>
+  Layer.effect(
+    service,
+    Persistence.Persistence.useSync((persistence) =>
+      service.of(Effect.provideServiceEffect(
+        HttpSession.HttpSession,
+        Effect.provideService(
+          securityMakeSession(service.security, options),
+          Persistence.Persistence,
+          persistence
+        )
+      ))
     )
   )
 

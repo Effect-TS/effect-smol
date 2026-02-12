@@ -8,6 +8,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import type { unhandled } from "../../Types.ts"
 import type * as HttpRouter from "../http/HttpRouter.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
+import type * as HttpSession_ from "../http/HttpSession.ts"
 import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
@@ -156,7 +157,7 @@ export type ServiceClass<
     readonly [TypeId]: typeof TypeId
     readonly error: Config["error"]
   }
-  & ([keyof Config["security"]] extends [never] ? {} : {
+  & ([Config["security"]] extends [never] ? {} : [keyof Config["security"]] extends [never] ? {} : {
     readonly [SecurityTypeId]: typeof SecurityTypeId
     readonly security: Config["security"]
   })
@@ -218,5 +219,51 @@ export const Service = <
     self[SecurityTypeId] = SecurityTypeId
     self.security = options.security
   }
+  return self
+}
+
+/**
+ * @since 4.0.0
+ * @category HttpSession
+ */
+export const HttpSession = <Self>(): <
+  const Id extends string,
+  Security extends HttpApiSecurity.Bearer | HttpApiSecurity.ApiKey
+>(
+  id: Id,
+  options: {
+    readonly security: Security
+  }
+) =>
+  & ServiceClass<Self, Id, {
+    requires: never
+    provides: HttpSession_.HttpSession
+    error: never
+    security: never
+  }>
+  & {
+    readonly security: Security
+  } =>
+(
+  id: string,
+  options: {
+    readonly security: HttpApiSecurity.Bearer | HttpApiSecurity.ApiKey
+  }
+) => {
+  const Err = globalThis.Error as any
+  const limit = Err.stackTraceLimit
+  Err.stackTraceLimit = 2
+  const creationError = new Err()
+  Err.stackTraceLimit = limit
+
+  class Service extends ServiceMap.Service<Self, any>()(id) {}
+  const self = Service as any
+  Object.defineProperty(Service, "stack", {
+    get() {
+      return creationError.stack
+    }
+  })
+  self[TypeId] = TypeId
+  self.security = options.security
   return self
 }
