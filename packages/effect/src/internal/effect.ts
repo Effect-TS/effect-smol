@@ -62,7 +62,7 @@ import {
   args,
   causeAnnotate,
   causeEmpty,
-  causeFromFailures,
+  causeFromReasons,
   CauseImpl,
   constEmptyAnnotations,
   contA,
@@ -120,7 +120,7 @@ export class Interrupt extends ReasonBase<"Interrupt"> implements Cause.Interrup
   }
   [Equal.symbol](that: any): boolean {
     return (
-      failureIsInterrupt(that) &&
+      isInterruptReason(that) &&
       this.fiberId === that.fiberId &&
       this.annotations === that.annotations
     )
@@ -133,7 +133,7 @@ export class Interrupt extends ReasonBase<"Interrupt"> implements Cause.Interrup
 }
 
 /** @internal */
-export const failureInterrupt = (fiberId?: number | undefined): Cause.Interrupt => new Interrupt(fiberId)
+export const makeInterrupt = (fiberId?: number | undefined): Cause.Interrupt => new Interrupt(fiberId)
 
 /** @internal */
 export const causeInterrupt = (
@@ -145,16 +145,16 @@ export const causeHasFail = <E>(self: Cause.Cause<E>): boolean => self.reasons.s
 
 /** @internal */
 export const causeFilterFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter.fail<Cause.Cause<never>> => {
-  const failure = self.reasons.find(isFailReason)
-  return failure ? failure : Filter.fail(self as Cause.Cause<never>)
+  const reason = self.reasons.find(isFailReason)
+  return reason ? reason : Filter.fail(self as Cause.Cause<never>)
 }
 
 /** @internal */
 export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause.Cause<never>> => {
   for (let i = 0; i < self.reasons.length; i++) {
-    const failure = self.reasons[i]
-    if (failure._tag === "Fail") {
-      return failure.error
+    const reason = self.reasons[i]
+    if (reason._tag === "Fail") {
+      return reason.error
     }
   }
   return Filter.fail(self as Cause.Cause<never>)
@@ -168,23 +168,23 @@ export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.reasons.so
 
 /** @internal */
 export const causeFilterDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.fail<Cause.Cause<E>> => {
-  const failure = self.reasons.find(isDieReason)
-  return failure ? failure : Filter.fail(self)
+  const reason = self.reasons.find(isDieReason)
+  return reason ? reason : Filter.fail(self)
 }
 
 /** @internal */
 export const causeFilterDefect = <E>(self: Cause.Cause<E>): {} | Filter.fail<Cause.Cause<E>> => {
-  const failure = self.reasons.find(isDieReason)
-  return failure ? failure.defect as {} : Filter.fail(self)
+  const reason = self.reasons.find(isDieReason)
+  return reason ? reason.defect as {} : Filter.fail(self)
 }
 
 /** @internal */
-export const causeHasInterrupt = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(failureIsInterrupt)
+export const causeHasInterrupt = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isInterruptReason)
 
 /** @internal */
 export const causeFilterInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt | Filter.fail<Cause.Cause<E>> => {
-  const failure = self.reasons.find(failureIsInterrupt)
-  return failure ? failure : Filter.fail(self)
+  const reason = self.reasons.find(isInterruptReason)
+  return reason ? reason : Filter.fail(self)
 }
 
 /** @internal */
@@ -209,12 +209,11 @@ export const causeInterruptors = <E>(self: Cause.Cause<E>): ReadonlySet<number> 
 const emptySet = new Set<number>()
 
 /** @internal */
-export const causeHasInterruptOnly = <E>(self: Cause.Cause<E>): boolean => self.reasons.every(failureIsInterrupt)
+export const causeHasInterruptOnly = <E>(self: Cause.Cause<E>): boolean => self.reasons.every(isInterruptReason)
 
+// TODO: duplicated, `core.ts` has the same function
 /** @internal */
-export const failureIsInterrupt = <E>(
-  self: Cause.Reason<E>
-): self is Cause.Interrupt => isTagged(self, "Interrupt")
+export const isInterruptReason = <E>(self: Cause.Reason<E>): self is Cause.Interrupt => self._tag === "Interrupt"
 
 /** @internal */
 export const failureAnnotations = <E>(
@@ -270,7 +269,7 @@ export const causeMap: {
       }
       return failure
     })
-    return hasFail ? causeFromFailures(failures) : self as any
+    return hasFail ? causeFromReasons(failures) : self as any
   }
 )
 
@@ -1407,7 +1406,7 @@ export const raceAll = <Eff extends Effect.Effect<any, any, any>>(
         if (exit._tag === "Failure") {
           failures.push(...exit.cause.reasons)
           if (doneCount >= len) {
-            resume(failCause(causeFromFailures(failures)))
+            resume(failCause(causeFromReasons(failures)))
           }
           return
         }
@@ -1937,7 +1936,7 @@ export const exitAsVoidAll = <I extends Iterable<Exit.Exit<any, any>>>(
       failures.push(...exit.cause.reasons)
     }
   }
-  return failures.length === 0 ? exitVoid : exitFailCause(causeFromFailures(failures))
+  return failures.length === 0 ? exitVoid : exitFailCause(causeFromReasons(failures))
 }
 
 /** @internal */
@@ -4160,7 +4159,7 @@ export const forEach: {
               doneCount++
               inProgress--
               if (doneCount === length) {
-                resume(failures.length > 0 ? exitFailCause(causeFromFailures(failures)) : succeed(out))
+                resume(failures.length > 0 ? exitFailCause(causeFromReasons(failures)) : succeed(out))
               } else if (!pumping && !failed && inProgress < concurrency) {
                 pump()
               }
@@ -5485,7 +5484,7 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
       } else {
         message = message.slice(0, i).concat(message.slice(i + 1))
       }
-      cause = cause ? causeFromFailures(cause.reasons.concat(msg.reasons)) : msg
+      cause = cause ? causeFromReasons(cause.reasons.concat(msg.reasons)) : msg
       i--
     }
   }

@@ -284,9 +284,9 @@ export class Fail<E> extends ReasonBase<"Fail"> implements Cause.Fail<E> {
 }
 
 /** @internal */
-export const causeFromFailures = <E>(
-  failures: ReadonlyArray<Cause.Reason<E>>
-): Cause.Cause<E> => new CauseImpl(failures)
+export const causeFromReasons = <E>(
+  reasons: ReadonlyArray<Cause.Reason<E>>
+): Cause.Cause<E> => new CauseImpl(reasons)
 
 /** @internal */
 export const causeEmpty: Cause.Cause<never> = new CauseImpl([])
@@ -368,7 +368,7 @@ export const isFailReason = <E>(
 export const isDieReason = <E>(self: Cause.Reason<E>): self is Cause.Die => self._tag === "Die"
 
 /** @internal */
-export const failureIsInterrupt = <E>(self: Cause.Reason<E>): self is Cause.Interrupt => self._tag === "Interrupt"
+export const isInterruptReason = <E>(self: Cause.Reason<E>): self is Cause.Interrupt => self._tag === "Interrupt"
 
 /** @internal */
 export interface Primitive {

@@ -243,14 +243,14 @@ export const causeResponse = <E>(
     }
   }
   if (response) {
-    return Effect.succeed([response, Cause.fromFailures(failures)] as const)
+    return Effect.succeed([response, Cause.fromReasons(failures)] as const)
   } else if (interrupt && failures.length === 0) {
     failures.push(isClientInterrupt ? Cause.makeInterrupt(clientAbortFiberId) : interrupt)
     effect = isClientInterrupt ? clientAbortError : serverAbortError
   }
   return Effect.mapEager(effect, (response) => {
     failures.push(Cause.makeDie(response))
-    return [response, Cause.fromFailures(failures)] as const
+    return [response, Cause.fromReasons(failures)] as const
   })
 }
 
@@ -270,7 +270,7 @@ export const causeResponseStripped = <E>(
   })
   return [
     response ?? internalServerError,
-    failures.length > 0 ? Cause.fromFailures(failures) : undefined
+    failures.length > 0 ? Cause.fromReasons(failures) : undefined
   ]
 }
 

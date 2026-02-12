@@ -28,7 +28,7 @@
  *   })
  * )
  *
- * // Analyzing failure types
+ * // Analyzing reason types
  * const analyzeCause = (cause: Cause.Cause<string>) => {
  *   if (Cause.hasFail(cause)) return "Has user error"
  *   if (Cause.hasDie(cause)) return "Has defect"
@@ -113,10 +113,10 @@ export const isReason: (self: unknown) => self is Reason<unknown> = core.isCause
  * import { Cause } from "effect"
  *
  * const failCause = Cause.fail("error")
- * const failure: Cause.Reason<string> = failCause.reasons[0]
+ * const reason: Cause.Reason<string> = failCause.reasons[0]
  *
- * if (Cause.isFailReason(failure)) {
- *   console.log(failure.error) // "error"
+ * if (Cause.isFailReason(reason)) {
+ *   console.log(reason.error) // "error"
  * }
  * ```
  *
@@ -133,8 +133,8 @@ export type Reason<E> = Fail<E> | Die | Interrupt
  * import { Cause } from "effect"
  *
  * const cause = Cause.fail("error")
- * const failure = cause.reasons[0]
- * console.log(Cause.isFailReason(failure)) // true
+ * const reason = cause.reasons[0]
+ * console.log(Cause.isFailReason(reason)) // true
  * ```
  *
  * @category guards
@@ -150,8 +150,8 @@ export const isFailReason: <E>(self: Reason<E>) => self is Fail<E> = core.isFail
  * import { Cause } from "effect"
  *
  * const cause = Cause.die("defect")
- * const failure = cause.reasons[0]
- * console.log(Cause.isDieReason(failure)) // true
+ * const reason = cause.reasons[0]
+ * console.log(Cause.isDieReason(reason)) // true
  * ```
  *
  * @category guards
@@ -167,14 +167,14 @@ export const isDieReason: <E>(self: Reason<E>) => self is Die = core.isDieReason
  * import { Cause } from "effect"
  *
  * const cause = Cause.interrupt(123)
- * const failure = cause.reasons[0]
- * console.log(Cause.isInterrupt(failure)) // true
+ * const reason = cause.reasons[0]
+ * console.log(Cause.isInterruptReason(reason)) // true
  * ```
  *
  * @category guards
  * @since 4.0.0
  */
-export const isInterrupt: <E>(self: Reason<E>) => self is Interrupt = core.failureIsInterrupt
+export const isInterruptReason: <E>(self: Reason<E>) => self is Interrupt = core.isInterruptReason
 
 /**
  * @example
@@ -185,10 +185,10 @@ export const isInterrupt: <E>(self: Reason<E>) => self is Interrupt = core.failu
  * // type StringCauseError = string
  *
  * const cause = Cause.fail("error")
- * const failure = cause.reasons[0]
- * if (Cause.isFailReason(failure)) {
- *   console.log(failure._tag) // "Fail"
- *   console.log(failure.error) // "error"
+ * const reason = cause.reasons[0]
+ * if (Cause.isFailReason(reason)) {
+ *   console.log(reason._tag) // "Fail"
+ *   console.log(reason.error) // "error"
  * }
  * ```
  *
@@ -216,10 +216,10 @@ export declare namespace Cause {
    * import { Cause } from "effect"
    *
    * const cause = Cause.fail("error")
-   * const failure = cause.reasons[0]
-   * if (Cause.isFailReason(failure)) {
-   *   console.log(failure._tag) // "Fail"
-   *   console.log(failure.annotations.size) // 0
+   * const reason = cause.reasons[0]
+   * if (Cause.isFailReason(reason)) {
+   *   console.log(reason._tag) // "Fail"
+   *   console.log(reason.annotations.size) // 0
    * }
    * ```
    *
@@ -270,10 +270,10 @@ export declare namespace Reason {
  * import { Cause } from "effect"
  *
  * const cause = Cause.die(new Error("Unexpected error"))
- * const failure = cause.reasons[0]
- * if (Cause.isDieReason(failure)) {
- *   console.log(failure._tag) // "Die"
- *   console.log(failure.defect) // Error: Unexpected error
+ * const reason = cause.reasons[0]
+ * if (Cause.isDieReason(reason)) {
+ *   console.log(reason._tag) // "Die"
+ *   console.log(reason.defect) // Error: Unexpected error
  * }
  * ```
  *
@@ -290,10 +290,10 @@ export interface Die extends Cause.ReasonProto<"Die"> {
  * import { Cause } from "effect"
  *
  * const cause = Cause.fail("Something went wrong")
- * const failure = cause.reasons[0]
- * if (Cause.isFailReason(failure)) {
- *   console.log(failure._tag) // "Fail"
- *   console.log(failure.error) // "Something went wrong"
+ * const reason = cause.reasons[0]
+ * if (Cause.isFailReason(reason)) {
+ *   console.log(reason._tag) // "Fail"
+ *   console.log(reason.error) // "Something went wrong"
  * }
  * ```
  *
@@ -310,10 +310,10 @@ export interface Fail<out E> extends Cause.ReasonProto<"Fail"> {
  * import { Cause } from "effect"
  *
  * const cause = Cause.interrupt(123)
- * const failure = cause.reasons[0]
- * if (Cause.isInterrupt(failure)) {
- *   console.log(failure._tag) // "Interrupt"
- *   console.log(failure.fiberId !== undefined) // true
+ * const reason = cause.reasons[0]
+ * if (Cause.isInterruptReason(reason)) {
+ *   console.log(reason._tag) // "Interrupt"
+ *   console.log(reason.fiberId !== undefined) // true
  * }
  * ```
  *
@@ -331,21 +331,21 @@ export interface Interrupt extends Cause.ReasonProto<"Interrupt"> {
  * ```ts
  * import { Cause } from "effect"
  *
- * const fail1 = Cause.fail("error1").reasons[0]
- * const fail2 = Cause.fail("error2").reasons[0]
- * const cause = Cause.fromFailures([fail1, fail2])
+ * const reason1 = Cause.fail("error1").reasons[0]
+ * const reason2 = Cause.fail("error2").reasons[0]
+ * const cause = Cause.fromReasons([reason1, reason2])
  * console.log(cause.reasons.length) // 2
  * ```
  *
  * @category constructors
  * @since 2.0.0
  */
-export const fromFailures: <E>(
-  failures: ReadonlyArray<Reason<E>>
-) => Cause<E> = core.causeFromFailures
+export const fromReasons: <E>(
+  reasons: ReadonlyArray<Reason<E>>
+) => Cause<E> = core.causeFromReasons
 
 /**
- * A `Cause` that that contains no failures, representing a successful
+ * A `Cause` that that contains no reasons, representing a successful
  * computation or an empty state.
  *
  * @category constructors
@@ -417,7 +417,7 @@ export const makeDie = (defect: unknown): Die => new core.Die(defect)
  * @category Reason
  * @since 4.0.0
  */
-export const makeInterrupt: (fiberId?: number | undefined) => Interrupt = effect.failureInterrupt
+export const makeInterrupt: (fiberId?: number | undefined) => Interrupt = effect.makeInterrupt
 
 /**
  * Tests if a `Cause` contains only interruptions.
@@ -448,7 +448,7 @@ export const map: {
 } = effect.causeMap
 
 /**
- * Merges two causes into a single cause containing failures from both.
+ * Merges two causes into a single cause containing reasons from both.
  *
  * @example
  * ```ts
@@ -547,7 +547,7 @@ export const errorOption: <E>(input: Cause<E>) => Option<E> = effect.causeErrorO
 export const hasDie: <E>(self: Cause<E>) => boolean = effect.causeHasDie
 
 /**
- * Filters out the first Die failure from a `Cause`.
+ * Filters out the first Die reason from a `Cause`.
  *
  * @category filters
  * @since 4.0.0

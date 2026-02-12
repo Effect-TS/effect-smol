@@ -5817,7 +5817,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       }
       const failures = Array(CauseFailure(error, defect))
       return Effect.mapBothEager(Parser.decodeUnknownEffect(failures)(input.reasons, options), {
-        onSuccess: Cause_.fromFailures,
+        onSuccess: Cause_.fromReasons,
         onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failures"], issue)])
       })
     },
@@ -5835,7 +5835,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         link<Cause_.Cause<E["Encoded"]>>()(
           Array(CauseFailure(error, defect)),
           Transformation.transform({
-            decode: Cause_.fromFailures,
+            decode: Cause_.fromReasons,
             encode: ({ reasons: failures }) => failures
           })
         ),
@@ -5849,7 +5849,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
 
 function causeToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck.Arbitrary<D>) {
   return (fc: typeof FastCheck, ctx: Annotations.ToArbitrary.Context | undefined) => {
-    return fc.array(causeFailureToArbitrary(error, defect)(fc, ctx)).map(Cause_.fromFailures)
+    return fc.array(causeFailureToArbitrary(error, defect)(fc, ctx)).map(Cause_.fromReasons)
   }
 }
 
