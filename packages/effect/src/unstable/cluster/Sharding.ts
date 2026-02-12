@@ -512,7 +512,7 @@ const make = Effect.gen(function*() {
           const error = Cause.filterError(cause)
           // if we get a defect, then update storage
           if (Filter.isFail(error)) {
-            if (Cause.hasInterrupt(cause)) {
+            if (Cause.hasInterruptReasons(cause)) {
               return Effect.void
             }
             return storage.saveReply(Reply.ReplyWithContext.fromDefect({

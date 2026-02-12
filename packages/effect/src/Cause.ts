@@ -32,7 +32,7 @@
  * const analyzeCause = (cause: Cause.Cause<string>) => {
  *   if (Cause.hasFailReasons(cause)) return "Has user error"
  *   if (Cause.hasDieReasons(cause)) return "Has defect"
- *   if (Cause.hasInterrupt(cause)) return "Was interrupted"
+ *   if (Cause.hasInterruptReasons(cause)) return "Was interrupted"
  *   return "Unknown cause"
  * }
  * ```
@@ -572,14 +572,14 @@ export const filterDefect: <E>(self: Cause<E>) => {} | Filter.fail<Cause<E>> = e
  * const interruptCause = Cause.interrupt(123)
  * const failCause = Cause.fail("error")
  *
- * console.log(Cause.hasInterrupt(interruptCause)) // true
- * console.log(Cause.hasInterrupt(failCause)) // false
+ * console.log(Cause.hasInterruptReasons(interruptCause)) // true
+ * console.log(Cause.hasInterruptReasons(failCause)) // false
  * ```
  *
  * @category utils
  * @since 2.0.0
  */
-export const hasInterrupt: <E>(self: Cause<E>) => boolean = effect.causeHasInterrupt
+export const hasInterruptReasons: <E>(self: Cause<E>) => boolean = effect.hasInterruptReasons
 
 /**
  * Filters out the first interruption from a `Cause`.

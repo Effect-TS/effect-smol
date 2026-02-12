@@ -1043,7 +1043,7 @@ describe("TxQueue", () => {
           assert.strictEqual(result._tag, "Failure")
           // The cause should contain an interrupt, not a typed error
           if (result._tag === "Failure") {
-            assert.strictEqual(Cause.hasInterrupt(result.cause), true)
+            assert.strictEqual(Cause.hasInterruptReasons(result.cause), true)
           }
         }))
 

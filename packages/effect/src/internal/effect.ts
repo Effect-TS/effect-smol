@@ -179,7 +179,7 @@ export const causeFilterDefect = <E>(self: Cause.Cause<E>): {} | Filter.fail<Cau
 }
 
 /** @internal */
-export const causeHasInterrupt = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isInterruptReason)
+export const hasInterruptReasons = <E>(self: Cause.Cause<E>): boolean => self.reasons.some(isInterruptReason)
 
 /** @internal */
 export const causeFilterInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt | Filter.fail<Cause.Cause<E>> => {
@@ -1042,7 +1042,7 @@ const asyncFinalizer: (
     }
   },
   [contE](cause, _fiber) {
-    return causeHasInterrupt(cause)
+    return hasInterruptReasons(cause)
       ? flatMap(this[args](), () => failCause(cause))
       : failCause(cause)
   }
@@ -1806,7 +1806,7 @@ export const exitFilterDefect = Filter.composePassthrough(
 /** @internal */
 export const exitHasInterrupt = <A, E>(
   self: Exit.Exit<A, E>
-): self is Exit.Failure<A, E> => self._tag === "Failure" && causeHasInterrupt(self.cause)
+): self is Exit.Failure<A, E> => self._tag === "Failure" && hasInterruptReasons(self.cause)
 
 /** @internal */
 export const exitHasDie = <A, E>(
