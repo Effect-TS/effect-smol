@@ -211,7 +211,10 @@ export const make = Effect.fnUntraced(function*<E, R>(
       persistence.make({
         storeId: `session:${Redacted.value(state.id)}`,
         timeToLive() {
-          return Duration.millis(state.metadata.expiresAt.epochMillis - clock.currentTimeMillisUnsafe())
+          return Duration.max(
+            Duration.zero,
+            Duration.millis(state.metadata.expiresAt.epochMillis - clock.currentTimeMillisUnsafe())
+          )
         }
       }),
       Scope.Scope,

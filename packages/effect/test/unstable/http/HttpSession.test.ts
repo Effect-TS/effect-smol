@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { DateTime, Duration, Effect, Exit, Option, Redacted, Schema } from "effect"
+import { Clock, DateTime, Duration, Effect, Exit, Option, Redacted, Schema } from "effect"
 import { TestClock } from "effect/testing"
 import { HttpSession } from "effect/unstable/http"
 import { Persistence } from "effect/unstable/persistence"
@@ -376,4 +376,68 @@ describe("HttpSession", () => {
         assert.strictEqual(after, undefined)
       })
     ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("never computes negative ttl for session writes", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        let current = 0
+        const clock: Clock.Clock = {
+          currentTimeMillisUnsafe: () => {
+            current += 2
+            return current
+          },
+          currentTimeMillis: Effect.sync(() => {
+            current += 2
+            return current
+          }),
+          currentTimeNanosUnsafe: () => {
+            current += 2
+            return BigInt(current) * 1_000_000n
+          },
+          currentTimeNanos: Effect.sync(() => {
+            current += 2
+            return BigInt(current) * 1_000_000n
+          }),
+          sleep: () => Effect.void
+        }
+
+        const persistence = Persistence.Persistence.of({
+          make: ({ timeToLive }) =>
+            Effect.succeed({
+              get: () => Effect.succeed(undefined),
+              getMany: () => Effect.succeed([]),
+              set: (key, value) =>
+                Effect.sync(() => {
+                  const ttl = Duration.toMillis(
+                    Duration.fromDurationInputUnsafe(timeToLive?.(value, key) ?? Duration.infinity)
+                  )
+                  assert.isTrue(ttl >= 0)
+                }),
+              setMany: (entries) =>
+                Effect.sync(() => {
+                  for (const [key, value] of entries) {
+                    const ttl = Duration.toMillis(
+                      Duration.fromDurationInputUnsafe(timeToLive?.(value, key) ?? Duration.infinity)
+                    )
+                    assert.isTrue(ttl >= 0)
+                  }
+                }),
+              remove: () => Effect.void,
+              clear: Effect.void
+            })
+        })
+
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.none()),
+          expiresIn: Duration.millis(1),
+          disableRefresh: true,
+          generateSessionId: Effect.succeed(HttpSession.SessionId("ttl-bound"))
+        }).pipe(
+          Effect.provideService(Clock.Clock, clock),
+          Effect.provideService(Persistence.Persistence, persistence)
+        )
+
+        yield* session.set(ValueKey, "value")
+      })
+    ))
 })
