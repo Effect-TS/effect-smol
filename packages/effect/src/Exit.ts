@@ -356,7 +356,8 @@ export const filterError: <A, E>(input: Exit<A, E>) => E | Filter.fail<Exit<A, E
  * @category filters
  * @since 4.0.0
  */
-export const filterDefect: <A, E>(input: Exit<A, E>) => {} | Filter.fail<Exit<A, E>> = effect.exitFilterDefect
+export const filterDefect: <A, E>(input: Exit<A, E>) => {} | null | undefined | Filter.fail<Exit<A, E>> =
+  effect.exitFilterDefect
 
 /**
  * Pattern matches on an `Exit` value, handling both success and failure cases.
