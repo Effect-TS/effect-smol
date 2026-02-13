@@ -1588,12 +1588,17 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options
 }): JsonSchema.JsonSchema => {
   const props = AST.isObjects(schema.ast) ? schema.ast.propertySignatures : []
   if (props.length === 0) {
-    return { type: "object", properties: {}, required: [], additionalProperties: false }
+    return {
+      type: "object",
+      properties: {},
+      required: [],
+      additionalProperties: false
+    }
   }
-  const transformed = Predicate.isNotUndefined(options?.transformer)
-    ? options.transformer(schema)
-    : schema
-  const document = Schema.toJsonSchemaDocument(transformed)
+  if (Predicate.isNotUndefined(options?.transformer)) {
+    return options.transformer(schema).jsonSchema
+  }
+  const document = Schema.toJsonSchemaDocument(schema)
   if (Object.keys(document.definitions).length > 0) {
     document.schema.$defs = document.definitions
   }

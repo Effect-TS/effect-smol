@@ -16,6 +16,7 @@
  * @since 1.0.0
  */
 import * as Arr from "effect/Array"
+import type * as JsonSchema from "effect/JsonSchema"
 import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
@@ -49,13 +50,19 @@ import * as Transformation from "effect/SchemaTransformation"
  */
 export function toCodecAnthropic<T, E, RD, RE>(
   schema: Schema.Codec<T, E, RD, RE>
-): Schema.Codec<T, unknown, RD, RE> {
+): {
+  readonly codec: Schema.Codec<T, unknown, RD, RE>
+  readonly jsonSchema: JsonSchema.JsonSchema
+} {
   const to = schema.ast
   const from = recur(AST.toEncoded(to))
-  if (from === to) {
-    return schema
+  const codec = from === to ? schema : Schema.make<typeof schema>(AST.decodeTo(from, to, Transformation.passthrough()))
+  const document = Schema.toJsonSchemaDocument(codec)
+  const jsonSchema = document.schema
+  if (Object.keys(document.definitions).length > 0) {
+    jsonSchema.$defs = document.definitions
   }
-  return Schema.make(AST.decodeTo(from, to, Transformation.passthrough()))
+  return { codec, jsonSchema }
 }
 
 function recur(ast: AST.AST): AST.AST {

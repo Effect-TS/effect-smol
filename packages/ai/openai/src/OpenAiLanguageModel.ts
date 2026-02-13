@@ -56,7 +56,7 @@ type ImageDetail = "auto" | "low" | "high"
  * Service definition for OpenAI language model configuration.
  *
  * @since 1.0.0
- * @category context
+ * @category services
  */
 export class Config extends ServiceMap.Service<
   Config,

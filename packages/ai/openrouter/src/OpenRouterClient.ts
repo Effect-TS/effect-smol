@@ -38,14 +38,14 @@ export interface Service {
   readonly client: Generated.OpenRouterClient
 
   readonly createChatCompletion: (
-    options: typeof Generated.SendChatCompletionRequestRequestJson.Encoded
+    options: typeof Generated.ChatGenerationParams.Encoded
   ) => Effect.Effect<
     [body: typeof Generated.SendChatCompletionRequest200.Type, response: HttpClientResponse.HttpClientResponse],
     AiError.AiError
   >
 
   readonly createChatCompletionStream: (
-    options: typeof Generated.SendChatCompletionRequestRequestJson.Encoded
+    options: typeof Generated.ChatGenerationParams.Encoded
   ) => Effect.Effect<
     [
       response: HttpClientResponse.HttpClientResponse,

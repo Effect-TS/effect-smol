@@ -1022,7 +1022,7 @@ const prepareTools = Effect.fnUntraced(
           name: tool.name,
           input_schema: input_schema as any,
           ...(Predicate.isNotUndefined(description) ? { description } : undefined),
-          ...(strict !== undefined ? { strict } : undefined)
+          ...(Predicate.isNotUndefined(strict) ? { strict } : undefined)
         })
 
         if (capabilities.supportsStructuredOutput === true) {
@@ -1337,7 +1337,7 @@ const makeResponse = Effect.fnUntraced(
               }
               : undefined
 
-            const params = yield* encodeToolParameters(options.tools, part.name, part.input)
+            const params = yield* transformToolCallParams(options.tools, part.name, part.input)
 
             parts.push({
               type: "tool-call",
@@ -1772,7 +1772,7 @@ const makeStreamResponse = Effect.fnUntraced(
                     id: part.id
                   })
 
-                  const params = yield* encodeToolParameters(options.tools, part.name, part.input)
+                  const params = yield* transformToolCallParams(options.tools, part.name, part.input)
 
                   parts.push({
                     type: "tool-call",
@@ -2357,7 +2357,7 @@ const makeStreamResponse = Effect.fnUntraced(
 
                   const params = contentBlock.providerExecuted === true
                     ? finalParams
-                    : encodeToolParameters(options.tools, contentBlock.name, finalParams)
+                    : transformToolCallParams(options.tools, contentBlock.name, finalParams)
 
                   parts.push({
                     type: "tool-call",
@@ -2757,7 +2757,7 @@ const getOutputFormat = Effect.fnUntraced(function*({ capabilities, options }: {
   return undefined
 })
 
-const encodeToolParameters = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>(
+const transformToolCallParams = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>(
   tools: Tools,
   toolName: string,
   toolParams: unknown
@@ -2775,11 +2775,12 @@ const encodeToolParameters = Effect.fnUntraced(function*<Tools extends ReadonlyA
     })
   }
 
-  const transformedSchema = yield* tryCodecTransform(tool.parametersSchema, "makeResponse")
-  const encodeParams = Schema.decodeEffect(transformedSchema)
+  const { codec } = yield* tryCodecTransform(tool.parametersSchema, "makeResponse")
+
+  const transform = Schema.decodeEffect(codec)
 
   return yield* (
-    encodeParams(toolParams) as Effect.Effect<unknown, Schema.SchemaError>
+    transform(toolParams) as Effect.Effect<unknown, Schema.SchemaError>
   ).pipe(Effect.mapError((error) =>
     AiError.make({
       module: "AnthropicLanguageModel",

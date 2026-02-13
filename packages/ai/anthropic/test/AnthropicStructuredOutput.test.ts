@@ -4,14 +4,7 @@ import { type JsonSchema, Schema } from "effect"
 import { TestSchema } from "effect/testing"
 
 function assertJsonSchema(schema: Schema.Top, expected: JsonSchema.JsonSchema) {
-  const document = Schema.toJsonSchemaDocument(toCodecAnthropic(schema))
-  const jsonSchema = Object.keys(document.definitions).length > 0 ?
-    {
-      ...document.schema,
-      $defs: document.definitions
-    } :
-    document.schema
-  assert.deepStrictEqual(jsonSchema, expected)
+  assert.deepStrictEqual(toCodecAnthropic(schema).jsonSchema, expected)
 }
 
 function assertError(schema: Schema.Top, message: string) {
@@ -335,7 +328,7 @@ describe("toCodecAnthropic", () => {
         "additionalProperties": false
       })
 
-      const codec = toCodecAnthropic(schema)
+      const codec = toCodecAnthropic(schema).codec
       const asserts = new TestSchema.Asserts(codec)
 
       const encoding = asserts.encoding()
@@ -379,7 +372,7 @@ describe("toCodecAnthropic", () => {
         "additionalProperties": false
       })
 
-      const codec = toCodecAnthropic(schema)
+      const codec = toCodecAnthropic(schema).codec
       const asserts = new TestSchema.Asserts(codec)
 
       const encoding = asserts.encoding()
@@ -408,7 +401,7 @@ describe("toCodecAnthropic", () => {
         "required": ["0", "1", "__rest__"],
         "additionalProperties": false
       })
-      const codec = toCodecAnthropic(schema)
+      const codec = toCodecAnthropic(schema).codec
       const asserts = new TestSchema.Asserts(codec)
 
       const encoding = asserts.encoding()
@@ -457,7 +450,7 @@ describe("toCodecAnthropic", () => {
           "additionalProperties": false
         }
       )
-      const codec = toCodecAnthropic(schema)
+      const codec = toCodecAnthropic(schema).codec
       const asserts = new TestSchema.Asserts(codec)
 
       const encoding = asserts.encoding()
@@ -488,7 +481,7 @@ describe("toCodecAnthropic", () => {
           "additionalProperties": false
         }
       })
-      const codec = toCodecAnthropic(schema)
+      const codec = toCodecAnthropic(schema).codec
       const asserts = new TestSchema.Asserts(codec)
 
       const encoding = asserts.encoding()

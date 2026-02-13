@@ -52,6 +52,7 @@ import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberSet from "../../FiberSet.ts"
 import { constFalse } from "../../Function.ts"
+import type * as JsonSchema from "../../JsonSchema.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
@@ -174,7 +175,10 @@ export interface Service {
  * @since 4.0.0
  * @category models
  */
-export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>) => Schema.Codec<T, unknown, RD, RE>
+export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>) => {
+  readonly codec: Schema.Codec<T, unknown, RD, RE>
+  readonly jsonSchema: JsonSchema.JsonSchema
+}
 
 /**
  * A `ServiceMap.Reference` that holds the current `CodecTransformer` used by
@@ -762,7 +766,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             providerOptions
           )
 
-          const transformedSchema = yield* Effect.try({
+          const { codec } = yield* Effect.try({
             try: () => codecTransformer(options.schema),
             catch: (error) =>
               AiError.make({
@@ -773,10 +777,8 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
                 })
               })
           })
-          const value = yield* resolveStructuredOutput(
-            content as any,
-            transformedSchema
-          )
+
+          const value = yield* resolveStructuredOutput(content as any, codec)
 
           return new GenerateObjectResponse(value, content)
         },
