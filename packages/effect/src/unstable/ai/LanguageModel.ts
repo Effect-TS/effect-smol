@@ -197,6 +197,15 @@ export const CurrentCodecTransformer: ServiceMap.Reference<CodecTransformer> =
   InternalCodecTransformer.CurrentCodecTransformer
 
 /**
+ * The default codec transformer that passes schemas through without
+ * provider-specific rewrites.
+ *
+ * @since 4.0.0
+ * @category services
+ */
+export const defaultCodecTransformer: CodecTransformer = InternalCodecTransformer.defaultCodecTransformer
+
+/**
  * Configuration options for text generation.
  *
  * @since 4.0.0

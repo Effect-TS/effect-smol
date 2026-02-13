@@ -308,7 +308,9 @@ const Proto = {
           // Do not apply the codec transformation to provider defined tools,
           // as these are defined internal to the Effect AI SDK and should
           // already have valid schemas
-          const transformedResultSchema = Tool.isProviderDefined(tool) ? resultSchema : transformer(resultSchema)
+          const transformedResultSchema = Tool.isProviderDefined(tool)
+            ? resultSchema
+            : transformer(resultSchema).codec
           const decodeParameters = Schema.isSchema(tool.parametersSchema)
             ? Schema.decodeUnknownEffect(tool.parametersSchema) as any
             : (u: unknown) => Effect.succeed(u)

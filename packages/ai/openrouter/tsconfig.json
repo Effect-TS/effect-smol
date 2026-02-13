@@ -3,6 +3,8 @@
   "extends": "../../../tsconfig.base.json",
   "include": ["src"],
   "references": [
-    { "path": "../../effect" }
+    { "path": "../../effect" },
+    { "path": "../anthropic" },
+    { "path": "../openai" }
   ]
 }

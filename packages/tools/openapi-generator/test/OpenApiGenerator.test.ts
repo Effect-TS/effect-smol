@@ -165,8 +165,8 @@ export const make = (
           }),
         ),
     )
-  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
-    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => (
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<any, any>,
   ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
     const withOptionalResponse = (
       config?.includeResponse
@@ -399,8 +399,8 @@ export const make = (
           }),
         ),
     )
-  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
-    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => (
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<any, any>,
   ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
     const withOptionalResponse = (
       config?.includeResponse

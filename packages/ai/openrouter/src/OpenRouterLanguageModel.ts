@@ -1,12 +1,16 @@
 /**
  * @since 1.0.0
  */
+import { toCodecAnthropic } from "@effect/ai-anthropic/AnthropicStructuredOutput"
+import { toCodecOpenAI } from "@effect/ai-openai/OpenAiStructuredOutput"
 import * as Arr from "effect/Array"
+import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Base64 from "effect/encoding/Base64"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
+import * as Redactable from "effect/Redactable"
 import type * as Schema from "effect/Schema"
 import * as SchemaAST from "effect/SchemaAST"
 import * as ServiceMap from "effect/ServiceMap"
@@ -14,14 +18,17 @@ import * as Stream from "effect/Stream"
 import type { Span } from "effect/Tracer"
 import type { Mutable, Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
+import * as IdGenerator from "effect/unstable/ai/IdGenerator"
 import * as LanguageModel from "effect/unstable/ai/LanguageModel"
 import * as AiModel from "effect/unstable/ai/Model"
 import type * as Prompt from "effect/unstable/ai/Prompt"
 import type * as Response from "effect/unstable/ai/Response"
 import { addGenAIAnnotations } from "effect/unstable/ai/Telemetry"
 import * as Tool from "effect/unstable/ai/Tool"
+import type * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import type * as Generated from "./Generated.ts"
-import { ReasoningDetailsDuplicateTracker } from "./internal/utilities.ts"
+import { ReasoningDetailsDuplicateTracker, resolveFinishReason } from "./internal/utilities.ts"
 import { OpenRouterClient } from "./OpenRouterClient.ts"
 
 // =============================================================================
@@ -161,7 +168,26 @@ declare module "effect/unstable/ai/Prompt" {
   }
 }
 
-declare module "effect/unstable/ai/Response" {}
+declare module "effect/unstable/ai/Response" {
+  export interface ReasoningPartMetadata extends ProviderMetadata {
+    readonly openrouter?: {
+      readonly reasoningDetails?: ReasoningDetails | null
+    } | null
+  }
+
+  export interface ToolCallPartMetadata extends ProviderMetadata {
+    readonly openrouter?: {
+      readonly reasoningDetails?: ReasoningDetails | null
+    } | null
+  }
+
+  export interface FinishPartMetadata extends ProviderMetadata {
+    readonly openrouter?: {
+      readonly systemFingerprint?: string | null
+      readonly usage?: typeof Generated.ChatGenerationTokenUsage.Encoded | null
+    } | null
+  }
+}
 
 // =============================================================================
 // Language Model
@@ -188,6 +214,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
   readonly config?: Omit<typeof Config.Service, "model"> | undefined
 }): Effect.fn.Return<LanguageModel.Service, never, OpenRouterClient> {
   const client = yield* OpenRouterClient
+  const codecTransformer = getCodecTransformer(model)
 
   const makeConfig = Effect.gen(function*() {
     const services = yield* Effect.services<never>()
@@ -200,8 +227,8 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
       readonly options: LanguageModel.ProviderOptions
     }): Effect.fn.Return<typeof Generated.ChatGenerationParams.Encoded, AiError.AiError> {
       const messages = yield* prepareMessages({ options })
-      const { tools, toolChoice } = yield* prepareTools({ options })
-      const responseFormat = yield* getResponseFormat({ config, options })
+      const { tools, toolChoice } = yield* prepareTools({ options, transformer: codecTransformer })
+      const responseFormat = yield* getResponseFormat({ config, options, transformer: codecTransformer })
       const request: typeof Generated.ChatGenerationParams.Encoded = {
         ...config,
         messages,
@@ -221,12 +248,14 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         annotateRequest(options.span, request)
         const [rawResponse, response] = yield* client.createChatCompletion(request)
         annotateResponse(options.span, rawResponse)
-        return [] // TODO
-        // return yield* makeResponse({ options, rawResponse, response })
+        return yield* makeResponse({ rawResponse, response })
       }
     ),
     streamText: () => Stream.empty // TODO
-  })
+  }).pipe(Effect.provideService(
+    LanguageModel.CurrentCodecTransformer,
+    codecTransformer
+  ))
 })
 
 /**
@@ -480,12 +509,250 @@ const prepareMessages = Effect.fnUntraced(
 )
 
 // =============================================================================
+// HTTP Details
+// =============================================================================
+
+const buildHttpRequestDetails = (
+  request: HttpClientRequest.HttpClientRequest
+): typeof Response.HttpRequestDetails.Type => ({
+  method: request.method,
+  url: request.url,
+  urlParams: Array.from(request.urlParams),
+  hash: request.hash,
+  headers: Redactable.redact(request.headers) as Record<string, string>
+})
+
+const buildHttpResponseDetails = (
+  response: HttpClientResponse.HttpClientResponse
+): typeof Response.HttpResponseDetails.Type => ({
+  status: response.status,
+  headers: Redactable.redact(response.headers) as Record<string, string>
+})
+
+// =============================================================================
+// Usage
+// =============================================================================
+
+const getUsage = (usage: Generated.ChatGenerationTokenUsage | undefined): Response.Usage => {
+  if (Predicate.isUndefined(usage)) {
+    return {
+      inputTokens: { uncached: undefined, total: undefined, cacheRead: undefined, cacheWrite: undefined },
+      outputTokens: { total: undefined, text: undefined, reasoning: undefined }
+    }
+  }
+  const promptTokens = usage.prompt_tokens
+  const completionTokens = usage.completion_tokens
+  const cachedTokens = usage.prompt_tokens_details?.cached_tokens ?? 0
+  const cacheWriteTokens = usage.prompt_tokens_details?.cache_write_tokens ?? 0
+  const reasoningTokens = usage.completion_tokens_details?.reasoning_tokens ?? 0
+  return {
+    inputTokens: {
+      uncached: promptTokens - cachedTokens - cacheWriteTokens,
+      total: promptTokens,
+      cacheRead: cachedTokens,
+      cacheWrite: cacheWriteTokens
+    },
+    outputTokens: {
+      total: completionTokens,
+      text: completionTokens - reasoningTokens,
+      reasoning: reasoningTokens
+    }
+  }
+}
+
+// =============================================================================
+// Response Conversion
+// =============================================================================
+
+const makeResponse = Effect.fnUntraced(
+  function*({ rawResponse, response }: {
+    readonly rawResponse: Generated.SendChatCompletionRequest200
+    readonly response: HttpClientResponse.HttpClientResponse
+  }): Effect.fn.Return<Array<Response.PartEncoded>, AiError.AiError, IdGenerator.IdGenerator> {
+    const idGenerator = yield* IdGenerator.IdGenerator
+
+    const parts: Array<Response.PartEncoded> = []
+    let hasToolCalls = false
+    let hasEncryptedReasoning = false
+
+    // 1. response-metadata
+    const createdAt = new Date(rawResponse.created * 1000)
+    parts.push({
+      type: "response-metadata",
+      id: rawResponse.id,
+      modelId: rawResponse.model,
+      timestamp: DateTime.formatIso(DateTime.fromDateUnsafe(createdAt)),
+      request: buildHttpRequestDetails(response.request)
+    })
+
+    // Extract first choice
+    const choice = rawResponse.choices[0]
+    if (Predicate.isUndefined(choice)) {
+      parts.push({
+        type: "finish",
+        reason: "unknown",
+        usage: getUsage(rawResponse.usage),
+        response: buildHttpResponseDetails(response),
+        metadata: {
+          openrouter: {
+            systemFingerprint: rawResponse.system_fingerprint ?? null,
+            usage: rawResponse.usage ?? null
+          }
+        }
+      })
+      return parts
+    }
+
+    const message = choice.message
+    let finishReason = choice.finish_reason
+
+    // 2. reasoning_details
+    const reasoningDetails = message.reasoning_details
+    if (Predicate.isNotNullish(reasoningDetails) && reasoningDetails.length > 0) {
+      for (const detail of reasoningDetails) {
+        switch (detail.type) {
+          case "reasoning.summary": {
+            parts.push({
+              type: "reasoning",
+              text: detail.summary,
+              metadata: { openrouter: { reasoningDetails: [detail] } }
+            })
+            break
+          }
+          case "reasoning.encrypted": {
+            hasEncryptedReasoning = true
+            parts.push({
+              type: "reasoning",
+              text: "",
+              metadata: { openrouter: { reasoningDetails: [detail] } }
+            })
+            break
+          }
+          case "reasoning.text": {
+            parts.push({
+              type: "reasoning",
+              text: detail.text ?? "",
+              metadata: { openrouter: { reasoningDetails: [detail] } }
+            })
+            break
+          }
+        }
+      }
+    } else if (Predicate.isNotNullish(message.reasoning) && message.reasoning.length > 0) {
+      // 3. message.reasoning fallback (only when reasoning_details absent/empty)
+      parts.push({
+        type: "reasoning",
+        text: message.reasoning
+      })
+    }
+
+    // 4. message.content
+    const content = message.content
+    if (Predicate.isNotNullish(content)) {
+      if (typeof content === "string") {
+        if (content.length > 0) {
+          parts.push({ type: "text", text: content })
+        }
+      } else {
+        for (const item of content) {
+          if (item.type === "text") {
+            parts.push({ type: "text", text: item.text })
+          }
+        }
+      }
+    }
+
+    // 5. message.tool_calls
+    const toolCalls = message.tool_calls
+    if (Predicate.isNotNullish(toolCalls) && toolCalls.length > 0) {
+      hasToolCalls = true
+      for (let i = 0; i < toolCalls.length; i++) {
+        const toolCall = toolCalls[i]
+        const toolName = toolCall.function.name
+        const toolParams = toolCall.function.arguments
+        const params = yield* Effect.try({
+          try: () => Tool.unsafeSecureJsonParse(toolParams),
+          catch: (cause) =>
+            AiError.make({
+              module: "OpenRouterLanguageModel",
+              method: "makeResponse",
+              reason: new AiError.ToolParameterValidationError({
+                toolName,
+                toolParams: {},
+                description: `Failed to securely JSON parse tool parameters: ${cause}`
+              })
+            })
+        })
+        parts.push({
+          type: "tool-call",
+          id: toolCall.id,
+          name: toolName,
+          params,
+          ...(i === 0 && Predicate.isNotNullish(reasoningDetails) && reasoningDetails.length > 0
+            ? { metadata: { openrouter: { reasoningDetails } } }
+            : undefined)
+        })
+      }
+    }
+
+    // 6. message.images
+    const images = message.images
+    if (Predicate.isNotNullish(images)) {
+      for (const image of images) {
+        const url = image.image_url.url
+        if (url.startsWith("data:")) {
+          // Parse data URI: data:<mediaType>;base64,<data>
+          const commaIndex = url.indexOf(",")
+          if (commaIndex !== -1) {
+            const meta = url.slice(5, commaIndex) // after "data:" before ","
+            const mediaType = meta.replace(/;base64$/, "")
+            const data = url.slice(commaIndex + 1)
+            parts.push({ type: "file", mediaType, data })
+          }
+        } else {
+          const id = yield* idGenerator.generateId()
+          parts.push({
+            type: "source",
+            sourceType: "url",
+            id,
+            url,
+            title: ""
+          })
+        }
+      }
+    }
+
+    // 7. Gemini 3 finish reason workaround
+    if (hasEncryptedReasoning && hasToolCalls && finishReason === "stop") {
+      finishReason = "tool_calls"
+    }
+
+    // 8. finish part
+    parts.push({
+      type: "finish",
+      reason: resolveFinishReason(finishReason, hasToolCalls),
+      usage: getUsage(rawResponse.usage),
+      response: buildHttpResponseDetails(response),
+      metadata: {
+        openrouter: {
+          systemFingerprint: rawResponse.system_fingerprint ?? null,
+          usage: rawResponse.usage ?? null
+        }
+      }
+    })
+
+    return parts
+  }
+)
+
+// =============================================================================
 // Tool Conversion
 // =============================================================================
 
 const prepareTools = Effect.fnUntraced(
-  function*({ options }: {
+  function*({ options, transformer }: {
     readonly options: LanguageModel.ProviderOptions
+    readonly transformer: LanguageModel.CodecTransformer
   }): Effect.fn.Return<{
     readonly tools: ReadonlyArray<typeof Generated.ToolDefinitionJson.Encoded> | undefined
     readonly toolChoice: typeof Generated.ToolChoiceOption.Encoded | undefined
@@ -511,7 +778,7 @@ const prepareTools = Effect.fnUntraced(
 
     for (const tool of options.tools) {
       const description = Tool.getDescription(tool)
-      const parameters = yield* tryJsonSchema(tool.parametersSchema, "prepareTools")
+      const parameters = yield* tryJsonSchema(tool.parametersSchema, "prepareTools", transformer)
       const strict = Tool.getStrictMode(tool) ?? null
 
       tools.push({
@@ -580,28 +847,6 @@ const annotateResponse = (span: Span, response: Generated.SendChatCompletionRequ
   })
 }
 
-const annotateStreamResponse = (span: Span, part: Response.StreamPartEncoded) => {
-  if (part.type === "response-metadata") {
-    addGenAIAnnotations(span, {
-      response: {
-        id: part.id,
-        model: part.modelId
-      }
-    })
-  }
-  if (part.type === "finish") {
-    addGenAIAnnotations(span, {
-      response: {
-        finishReasons: [part.reason]
-      },
-      usage: {
-        inputTokens: part.usage.inputTokens.total,
-        outputTokens: part.usage.outputTokens.total
-      }
-    })
-  }
-}
-
 // =============================================================================
 // Internal Utilities
 // =============================================================================
@@ -640,19 +885,49 @@ const findFirstReasoningDetails = (content: ReadonlyArray<Prompt.AssistantMessag
   return null
 }
 
-const tryJsonSchema = <S extends Schema.Top>(schema: S, method: string) =>
+const getCodecTransformer = (model: string): LanguageModel.CodecTransformer => {
+  if (model.startsWith("anthropic/") || model.startsWith("claude-")) {
+    return toCodecAnthropic
+  }
+  if (
+    model.startsWith("openai/") ||
+    model.startsWith("gpt-") ||
+    model.startsWith("o1-") ||
+    model.startsWith("o3-") ||
+    model.startsWith("o4-")
+  ) {
+    return toCodecOpenAI
+  }
+  return LanguageModel.defaultCodecTransformer
+}
+
+const unsupportedSchemaError = (error: unknown, method: string): AiError.AiError =>
+  AiError.make({
+    module: "OpenRouterLanguageModel",
+    method,
+    reason: new AiError.UnsupportedSchemaError({
+      description: error instanceof Error ? error.message : String(error)
+    })
+  })
+
+const tryJsonSchema = <S extends Schema.Top>(
+  schema: S,
+  method: string,
+  transformer: LanguageModel.CodecTransformer
+) =>
   Effect.try({
-    try: () => Tool.getJsonSchemaFromSchema(schema, { transformer: toCodecAnthropic }),
+    try: () => Tool.getJsonSchemaFromSchema(schema, { transformer }),
     catch: (error) => unsupportedSchemaError(error, method)
   })
 
-const getResponseFormat = Effect.fnUntraced(function*({ config, options }: {
+const getResponseFormat = Effect.fnUntraced(function*({ config, options, transformer }: {
   readonly config: typeof Config.Service
   readonly options: LanguageModel.ProviderOptions
+  readonly transformer: LanguageModel.CodecTransformer
 }): Effect.fn.Return<typeof Generated.ResponseFormatJSONSchema.Encoded | undefined, AiError.AiError> {
   if (options.responseFormat.type === "json") {
     const description = SchemaAST.resolveDescription(options.responseFormat.schema.ast)
-    const jsonSchema = yield* tryJsonSchema(options.responseFormat.schema, "getResponseFormat")
+    const jsonSchema = yield* tryJsonSchema(options.responseFormat.schema, "getResponseFormat", transformer)
     return {
       type: "json_schema",
       json_schema: {

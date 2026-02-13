@@ -1,5 +1,29 @@
 import * as Predicate from "effect/Predicate"
+import type * as Response from "effect/unstable/ai/Response"
 import type { ReasoningDetails } from "../OpenRouterLanguageModel.ts"
+
+const finishReasonMap: Record<string, Response.FinishReason> = {
+  content_filter: "content-filter",
+  stop: "stop",
+  length: "length",
+  tool_calls: "tool-calls",
+  error: "error"
+}
+
+/** @internal */
+export const resolveFinishReason = (
+  finishReason: string | null | undefined,
+  hasToolCalls: boolean
+): Response.FinishReason => {
+  if (finishReason == null) {
+    return hasToolCalls ? "tool-calls" : "stop"
+  }
+  const reason = finishReasonMap[finishReason]
+  if (reason == null) {
+    return hasToolCalls ? "tool-calls" : "unknown"
+  }
+  return reason
+}
 
 /**
  * Tracks ReasoningDetailUnion entries and deduplicates them based
