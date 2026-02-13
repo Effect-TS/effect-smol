@@ -2,12 +2,13 @@
  * @since 4.0.0
  */
 import type * as Brand from "../../Brand.ts"
+import { Clock } from "../../Clock.ts"
 import * as Data from "../../Data.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
-import { dual, identity } from "../../Function.ts"
+import { identity } from "../../Function.ts"
 import { YieldableProto } from "../../internal/core.ts"
 import * as MutableRef from "../../MutableRef.ts"
 import * as Option from "../../Option.ts"
@@ -110,7 +111,6 @@ export const SessionId = (value: string): SessionId => Redacted.make(value) as S
  * @category Storage
  */
 export class HttpSession extends ServiceMap.Service<HttpSession, {
-  readonly id: MutableRef.MutableRef<SessionId>
   readonly state: Effect.Effect<SessionState, HttpSessionError>
   readonly cookie: Effect.Effect<Cookies.Cookie>
   readonly rotate: Effect.Effect<void, HttpSessionError>
@@ -145,7 +145,7 @@ export class SessionMeta extends Schema.Class<SessionMeta>("effect/http/HttpSess
   lastRefreshedAt: Schema.DateTimeUtc
 }) {
   static key = key({
-    id: "meta",
+    id: "_meta",
     schema: SessionMeta
   })
 
@@ -168,7 +168,6 @@ export interface MakeHttpSessionOptions<E = never, R = never> {
     readonly sameSite?: "lax" | "strict" | "none" | undefined
   } | undefined
   readonly getSessionId: Effect.Effect<Option.Option<SessionId>, E, R>
-  readonly timeToLive?: Duration.DurationInput | undefined
   readonly expiresIn?: Duration.DurationInput | undefined
   readonly updateAge?: Duration.DurationInput | undefined
   readonly disableRefresh?: boolean | undefined
@@ -194,8 +193,8 @@ export const make = Effect.fnUntraced(function*<E, R>(
 > {
   const scope = yield* Scope.Scope
   const persistence = yield* Persistence.Persistence
-  const clock = yield* Effect.clockWith((clock) => Effect.succeed(clock))
-  const expiresIn = Duration.fromDurationInputUnsafe(options.expiresIn ?? options.timeToLive ?? Duration.days(7))
+  const clock = yield* Clock
+  const expiresIn = Duration.fromDurationInputUnsafe(options.expiresIn ?? Duration.days(7))
   const updateAge = Duration.min(Duration.fromDurationInputUnsafe(options.updateAge ?? Duration.days(1)), expiresIn)
   const updateAgeMillis = Duration.toMillis(updateAge)
   const disableRefresh = options.disableRefresh ?? false
@@ -213,10 +212,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
       persistence.make({
         storeId: `session:${Redacted.value(state.id)}`,
         timeToLive() {
-          return Duration.max(
-            Duration.zero,
-            Duration.millis(state.metadata.expiresAt.epochMillis - clock.currentTimeMillisUnsafe())
-          )
+          return Duration.millis(state.metadata.expiresAt.epochMillis - clock.currentTimeMillisUnsafe())
         }
       }),
       Scope.Scope,
@@ -226,37 +222,38 @@ export const make = Effect.fnUntraced(function*<E, R>(
   const shouldRefresh = (metadata: SessionMeta, now: DateTime.Utc): boolean =>
     !disableRefresh && now.epochMillis - metadata.lastRefreshedAt.epochMillis >= updateAgeMillis
 
-  const refreshMetadata = (state: InternalSessionState, now: DateTime.Utc) =>
-    Effect.gen(function*() {
-      const previousMetadata = state.metadata
-      const refreshedMetadata = makeSessionMeta(now, state.metadata.createdAt)
-      state.metadata = refreshedMetadata
-      const writeResult = yield* Effect.exit(state.storage.set(SessionMeta.key, Exit.succeed(refreshedMetadata)))
-      if (Exit.isFailure(writeResult)) {
-        state.metadata = previousMetadata
-        return yield* writeResult
-      }
-    }).pipe(Effect.catchIf(Schema.isSchemaError, Effect.die))
+  const refreshMetadata = Effect.fnUntraced(function*(state: InternalSessionState, now: DateTime.Utc) {
+    const previousMetadata = state.metadata
+    const refreshedMetadata = makeSessionMeta(now, state.metadata.createdAt)
+    state.metadata = refreshedMetadata
+    const writeResult = yield* Effect.exit(state.storage.set(SessionMeta.key, Exit.succeed(refreshedMetadata)))
+    if (Exit.isFailure(writeResult)) {
+      state.metadata = previousMetadata
+      return yield* writeResult
+    }
+  }, Effect.catchIf(Schema.isSchemaError, Effect.die))
 
-  const reconcileState = (state: InternalSessionState): Effect.Effect<InternalSessionState, PersistenceError> =>
-    Effect.gen(function*() {
-      const metadata = yield* state.storage.get(SessionMeta.key).pipe(
-        Effect.catchTag("SchemaError", () => Effect.undefined)
-      )
-      if (!metadata || metadata._tag === "Failure") {
-        return yield* freshState
-      }
-      const now = yield* DateTime.now
-      if (metadata.value.isExpired(now)) {
-        yield* state.storage.clear
-        return yield* freshState
-      }
-      state.metadata = metadata.value
-      if (shouldRefresh(state.metadata, now)) {
-        yield* refreshMetadata(state, now)
-      }
-      return state
-    })
+  const reconcileState = Effect.fnUntraced(function*(state: InternalSessionState): Effect.fn.Return<
+    InternalSessionState,
+    PersistenceError
+  > {
+    const metadata = yield* state.storage.get(SessionMeta.key).pipe(
+      Effect.catchTag("SchemaError", () => Effect.undefined)
+    )
+    if (!metadata || metadata._tag === "Failure") {
+      return yield* freshState
+    }
+    const now = yield* DateTime.now
+    if (metadata.value.isExpired(now)) {
+      yield* state.storage.clear
+      return yield* freshState
+    }
+    state.metadata = metadata.value
+    if (shouldRefresh(state.metadata, now)) {
+      yield* refreshMetadata(state, now)
+    }
+    return state
+  })
 
   const freshState = Effect.gen(function*() {
     const id = yield* generateSessionId
@@ -315,36 +312,30 @@ export const make = Effect.fnUntraced(function*<E, R>(
   }).pipe(withStateLock)
 
   return HttpSession.of({
-    id,
     state: ensureState.pipe(
       Effect.mapError((error) => new HttpSessionError(error))
     ),
-    cookie: Effect.map(
-      Effect.sync(() => state.current),
-      (state) =>
-        Cookies.makeCookieUnsafe(options.cookie?.name ?? "sid", Redacted.value(state.id), {
-          ...options.cookie,
-          expires: new Date(state.metadata.expiresAt.epochMillis),
-          secure: options.cookie?.secure ?? true,
-          httpOnly: options.cookie?.httpOnly ?? true
-        })
+    cookie: Effect.sync(() =>
+      Cookies.makeCookieUnsafe(options.cookie?.name ?? "sid", Redacted.value(state.current.id), {
+        ...options.cookie,
+        expires: new Date(state.current.metadata.expiresAt.epochMillis),
+        secure: options.cookie?.secure ?? true,
+        httpOnly: options.cookie?.httpOnly ?? true
+      })
     ),
     rotate: rotate.pipe(
       Effect.mapError((error) => new HttpSessionError(error))
     ),
-    get: <S extends Schema.Top>(
+    get: Effect.fnUntraced(function*<S extends Schema.Top>(
       key: Key<S>
-    ): Effect.Effect<Option.Option<S["Type"]>, HttpSessionError, S["DecodingServices"]> =>
-      Effect.gen(function*() {
-        const state = yield* ensureState
-        const exit = yield* state.storage.get(key)
-        if (!exit || exit._tag === "Failure") {
-          return Option.none()
-        }
-        return Option.some(exit.value)
-      }).pipe(
-        Effect.mapError((error) => new HttpSessionError(error))
-      ),
+    ) {
+      const state = yield* ensureState
+      const exit = yield* state.storage.get(key)
+      if (!exit || exit._tag === "Failure") {
+        return Option.none()
+      }
+      return Option.some(exit.value)
+    }, Effect.mapError((error) => new HttpSessionError(error))),
     set: (key, value) =>
       Effect.flatMap(
         ensureState,
@@ -370,122 +361,40 @@ export const make = Effect.fnUntraced(function*<E, R>(
 
 const defaultGenerateSessionId = Effect.sync(() => SessionId(crypto.randomUUID()))
 
-interface CookieHelperOptions {
-  readonly name?: string | undefined
-  readonly path?: string | undefined
-  readonly domain?: string | undefined
-  readonly secure?: boolean | undefined
-  readonly httpOnly?: boolean | undefined
-  readonly sameSite?: "lax" | "strict" | "none" | undefined
-}
-
-const makeCookieOptions = (
-  cookie: Cookies.Cookie,
-  options?: CookieHelperOptions
-): Cookies.Cookie["options"] => ({
-  ...cookie.options,
-  path: options?.path ?? cookie.options?.path,
-  domain: options?.domain ?? cookie.options?.domain,
-  sameSite: options?.sameSite ?? cookie.options?.sameSite,
-  secure: options?.secure ?? cookie.options?.secure ?? true,
-  httpOnly: options?.httpOnly ?? cookie.options?.httpOnly ?? true
-})
+/**
+ * @since 4.0.0
+ * @category Response helpers
+ */
+export const setCookie = (
+  response: HttpServerResponse
+): Effect.Effect<HttpServerResponse, never, HttpSession> =>
+  HttpSession.use((session) =>
+    Effect.map(
+      session.cookie,
+      (cookie) => Response.updateCookies(response, Cookies.setCookie(cookie))
+    )
+  )
 
 /**
  * @since 4.0.0
  * @category Response helpers
  */
-export const setCookie: {
-  (
-    options?: {
-      readonly name?: string | undefined
-      readonly path?: string | undefined
-      readonly domain?: string | undefined
-      readonly secure?: boolean | undefined
-      readonly httpOnly?: boolean | undefined
-      readonly sameSite?: "lax" | "strict" | "none" | undefined
-    } | undefined
-  ): (response: HttpServerResponse) => Effect.Effect<HttpServerResponse, never, HttpSession>
-  (
-    response: HttpServerResponse,
-    options?: {
-      readonly name?: string | undefined
-      readonly path?: string | undefined
-      readonly domain?: string | undefined
-      readonly secure?: boolean | undefined
-      readonly httpOnly?: boolean | undefined
-      readonly sameSite?: "lax" | "strict" | "none" | undefined
-    } | undefined
-  ): Effect.Effect<HttpServerResponse, never, HttpSession>
-} = dual(
-  (args) => Response.isHttpServerResponse(args[0]),
-  (
-    response: HttpServerResponse,
-    options?: CookieHelperOptions
-  ): Effect.Effect<HttpServerResponse, never, HttpSession> =>
-    HttpSession.use((session) =>
-      Effect.map(
-        session.cookie,
-        (cookie) =>
-          Response.updateCookies(
-            response,
-            Cookies.setCookie(
-              Cookies.makeCookieUnsafe(options?.name ?? cookie.name, cookie.value, makeCookieOptions(cookie, options))
-            )
-          )
-      )
-    )
-)
-
-/**
- * @since 4.0.0
- * @category Response helpers
- */
-export const clearCookie: {
-  (
-    options?: {
-      readonly name?: string | undefined
-      readonly path?: string | undefined
-      readonly domain?: string | undefined
-      readonly secure?: boolean | undefined
-      readonly httpOnly?: boolean | undefined
-      readonly sameSite?: "lax" | "strict" | "none" | undefined
-    } | undefined
-  ): (response: HttpServerResponse) => Effect.Effect<HttpServerResponse, never, HttpSession>
-  (
-    response: HttpServerResponse,
-    options?: {
-      readonly name?: string | undefined
-      readonly path?: string | undefined
-      readonly domain?: string | undefined
-      readonly secure?: boolean | undefined
-      readonly httpOnly?: boolean | undefined
-      readonly sameSite?: "lax" | "strict" | "none" | undefined
-    } | undefined
-  ): Effect.Effect<HttpServerResponse, never, HttpSession>
-} = dual(
-  (args) => Response.isHttpServerResponse(args[0]),
-  (
-    response: HttpServerResponse,
-    options?: CookieHelperOptions
-  ): Effect.Effect<HttpServerResponse, never, HttpSession> =>
-    HttpSession.use((session) =>
-      Effect.map(
-        session.cookie,
-        (cookie) =>
-          Response.updateCookies(
-            response,
-            Cookies.setCookie(
-              Cookies.makeCookieUnsafe(options?.name ?? cookie.name, "", {
-                ...makeCookieOptions(cookie, options),
-                maxAge: 0,
-                expires: new Date(0)
-              })
-            )
-          )
-      )
-    )
-)
+export const clearCookie = (
+  response: HttpServerResponse
+): Effect.Effect<HttpServerResponse, never, HttpSession> =>
+  HttpSession.use((session) =>
+    Effect.map(session.cookie, (cookie) =>
+      Response.updateCookies(
+        response,
+        Cookies.setCookie(
+          Cookies.makeCookieUnsafe(cookie.name, "", {
+            ...cookie.options,
+            maxAge: 0,
+            expires: new Date(0)
+          })
+        )
+      ))
+  )
 
 /**
  * @since 4.0.0

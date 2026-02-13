@@ -427,7 +427,8 @@ export const middlewareHttpSession = <
         let response = yield* Effect.provideService(effect, HttpSession.HttpSession, session)
         if (service.security.in === "cookie") {
           const current = request.cookies[service.security.key]
-          const sessionId = Redacted.value(session.id.current)
+          const state = yield* Effect.orDie(session.state)
+          const sessionId = Redacted.value(state.id)
           if (current !== sessionId) {
             const cookie = yield* session.cookie
             response = Response.updateCookies(response, Cookies.setCookie(cookie))
