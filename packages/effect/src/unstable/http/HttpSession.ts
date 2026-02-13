@@ -198,23 +198,23 @@ export const make = Effect.fnUntraced(function*<E, R>(
     Number.isFinite(meta.lastRefreshedAt) &&
     now < meta.expiresAt
 
-  const initializeSessionMeta = (storage: Persistence.PersistenceStore): Effect.Effect<SessionMeta> =>
+  const initializeSessionMeta = (storage: Persistence.PersistenceStore): Effect.Effect<SessionMeta, PersistenceError> =>
     Effect.gen(function*() {
       const now = (yield* DateTime.now).epochMillis
       const meta = createSessionMeta(now)
-      yield* Effect.orDie(storage.set(SessionMeta, Exit.succeed(meta)))
+      yield* storage.set(SessionMeta, Exit.succeed(meta)).pipe(
+        Effect.catchTag("SchemaError", Effect.die)
+      )
       return meta
     })
 
   const validateSessionMeta = (
     storage: Persistence.PersistenceStore
-  ): Effect.Effect<Option.Option<SessionMeta>> =>
+  ): Effect.Effect<Option.Option<SessionMeta>, PersistenceError> =>
     Effect.gen(function*() {
       const now = (yield* DateTime.now).epochMillis
-      const metaExit = yield* Effect.orDie(
-        storage.get(SessionMeta).pipe(
-          Effect.catchTag("SchemaError", () => Effect.succeed(undefined))
-        )
+      const metaExit = yield* storage.get(SessionMeta).pipe(
+        Effect.catchTag("SchemaError", () => Effect.succeed(undefined))
       )
       if (metaExit === undefined || metaExit._tag === "Failure") {
         return Option.none()
@@ -222,7 +222,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
       return isValidSessionMeta(metaExit.value, now) ? Option.some(metaExit.value) : Option.none()
     })
 
-  const makeFreshState: Effect.Effect<SessionState> = Effect.gen(function*() {
+  const makeFreshState: Effect.Effect<SessionState, PersistenceError> = Effect.gen(function*() {
     const id = yield* generateSessionId
     const storage = yield* makeStorage(id)
     const metadata = yield* initializeSessionMeta(storage)
@@ -233,14 +233,18 @@ export const make = Effect.fnUntraced(function*<E, R>(
     }
   })
 
+  const makeFreshStateOrDie = Effect.orDie(makeFreshState)
+  const validateSessionMetaOrDie = (storage: Persistence.PersistenceStore): Effect.Effect<Option.Option<SessionMeta>> =>
+    Effect.orDie(validateSessionMeta(storage))
+
   const resolveInitialState: Effect.Effect<SessionState, E, R> = options.getSessionId.pipe(
     Effect.flatMap((sessionId) => {
       if (Option.isNone(sessionId)) {
-        return makeFreshState
+        return makeFreshStateOrDie
       }
       return Effect.gen(function*() {
         const storage = yield* makeStorage(sessionId.value)
-        const metadata = yield* validateSessionMeta(storage)
+        const metadata = yield* validateSessionMetaOrDie(storage)
         if (Option.isSome(metadata)) {
           return {
             id: sessionId.value,
@@ -248,7 +252,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
             storage
           }
         }
-        return yield* makeFreshState
+        return yield* makeFreshStateOrDie
       })
     })
   )
@@ -265,7 +269,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
     return state
   }
 
-  const ensureState = Effect.gen(function*() {
+  const ensureState: Effect.Effect<SessionState, PersistenceError> = Effect.gen(function*() {
     const currentStorage = storageRef.current
     const currentMetadata = yield* validateSessionMeta(currentStorage)
     if (Option.isSome(currentMetadata)) {

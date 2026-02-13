@@ -187,4 +187,72 @@ describe("HttpSession", () => {
         assert.strictEqual(Redacted.value(session.id.current), Redacted.value(secondId))
       })
     ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("revalidates metadata before remove operations", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const firstId = HttpSession.SessionId("first")
+        const secondId = HttpSession.SessionId("second")
+        const generatedIds = [firstId, secondId]
+        let index = 0
+
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.none()),
+          generateSessionId: Effect.sync(() => generatedIds[index++]!)
+        })
+
+        const persistence = yield* Persistence.Persistence
+        const firstStore = yield* persistence.make({ storeId: toStoreId(firstId) })
+        yield* firstStore.set(ValueKey, Exit.succeed("stale"))
+        yield* firstStore.remove(SessionMetaKey)
+
+        yield* session.remove(ValueKey)
+
+        assert.strictEqual(Redacted.value(session.id.current), Redacted.value(secondId))
+
+        const firstValue = yield* firstStore.get(ValueKey)
+        assert.isTrue(firstValue !== undefined && firstValue._tag === "Success")
+        if (firstValue !== undefined && firstValue._tag === "Success") {
+          assert.strictEqual(firstValue.value, "stale")
+        }
+
+        const secondStore = yield* persistence.make({ storeId: toStoreId(secondId) })
+        const secondValue = yield* secondStore.get(ValueKey)
+        assert.strictEqual(secondValue, undefined)
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("revalidates metadata before clear operations", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const firstId = HttpSession.SessionId("first")
+        const secondId = HttpSession.SessionId("second")
+        const generatedIds = [firstId, secondId]
+        let index = 0
+
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.none()),
+          generateSessionId: Effect.sync(() => generatedIds[index++]!)
+        })
+
+        const persistence = yield* Persistence.Persistence
+        const firstStore = yield* persistence.make({ storeId: toStoreId(firstId) })
+        yield* firstStore.set(ValueKey, Exit.succeed("stale"))
+        yield* firstStore.remove(SessionMetaKey)
+
+        yield* session.clear
+
+        assert.strictEqual(Redacted.value(session.id.current), Redacted.value(secondId))
+
+        const firstValue = yield* firstStore.get(ValueKey)
+        assert.isTrue(firstValue !== undefined && firstValue._tag === "Success")
+        if (firstValue !== undefined && firstValue._tag === "Success") {
+          assert.strictEqual(firstValue.value, "stale")
+        }
+
+        const secondStore = yield* persistence.make({ storeId: toStoreId(secondId) })
+        const secondMeta = yield* secondStore.get(SessionMetaKey)
+        assert.strictEqual(secondMeta, undefined)
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
 })
