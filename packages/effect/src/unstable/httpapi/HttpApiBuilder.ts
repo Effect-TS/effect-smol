@@ -399,6 +399,16 @@ export const securityMakeSession = <Security extends HttpApiSecurity.ApiKey>(
 /**
  * @since 4.0.0
  * @category security
+ * @example
+ * ```ts
+ * import { HttpApiBuilder, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
+ *
+ * class SessionMiddleware extends HttpApiMiddleware.HttpSession<SessionMiddleware>()("SessionMiddleware", {
+ *   security: HttpApiSecurity.apiKey({ key: "sid", in: "cookie" })
+ * }) {}
+ *
+ * const SessionMiddlewareLive = HttpApiBuilder.middlewareHttpSession(SessionMiddleware)
+ * ```
  */
 export const middlewareHttpSession = <
   Service extends (

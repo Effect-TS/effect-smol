@@ -56,6 +56,21 @@ export interface Key<S extends Schema.Top>
 /**
  * @since 4.0.0
  * @category Key
+ * @example
+ * ```ts
+ * import { Effect, Option, Schema } from "effect"
+ * import { HttpSession } from "effect/unstable/http"
+ *
+ * const UserId = HttpSession.key({
+ *   id: "userId",
+ *   schema: Schema.String
+ * })
+ *
+ * const readUserId = Effect.gen(function*() {
+ *   const maybeUserId = yield* UserId
+ *   return Option.isNone(maybeUserId) ? "guest" : maybeUserId.value
+ * })
+ * ```
  */
 export const key = <S extends Schema.Top>(options: {
   readonly id: string
@@ -186,6 +201,19 @@ export interface MakeHttpSessionOptions<E = never, R = never> {
 /**
  * @since 4.0.0
  * @category Storage
+ * @example
+ * ```ts
+ * import { Effect, Option } from "effect"
+ * import { HttpSession } from "effect/unstable/http"
+ * import { Persistence } from "effect/unstable/persistence"
+ *
+ * const session = HttpSession.make({
+ *   getSessionId: Effect.succeed(Option.none())
+ * }).pipe(
+ *   Effect.provide(Persistence.layerMemory),
+ *   Effect.scoped
+ * )
+ * ```
  */
 export const make = Effect.fnUntraced(function*<E, R>(
   options: MakeHttpSessionOptions<E, R>
@@ -376,6 +404,25 @@ const defaultGenerateSessionId = Effect.sync(() => SessionId(crypto.randomUUID()
 /**
  * @since 4.0.0
  * @category Response helpers
+ * @example
+ * ```ts
+ * import { Effect, Option } from "effect"
+ * import { HttpServerResponse, HttpSession } from "effect/unstable/http"
+ * import { Persistence } from "effect/unstable/persistence"
+ *
+ * const responseWithSessionCookie = Effect.gen(function*() {
+ *   const session = yield* HttpSession.make({
+ *     getSessionId: Effect.succeed(Option.none())
+ *   })
+ *
+ *   return yield* HttpSession.setCookie(HttpServerResponse.empty()).pipe(
+ *     Effect.provideService(HttpSession.HttpSession, session)
+ *   )
+ * }).pipe(
+ *   Effect.provide(Persistence.layerMemory),
+ *   Effect.scoped
+ * )
+ * ```
  */
 export const setCookie = (
   response: HttpServerResponse

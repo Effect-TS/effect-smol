@@ -225,6 +225,14 @@ export const Service = <
 /**
  * @since 4.0.0
  * @category HttpSession
+ * @example
+ * ```ts
+ * import { HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
+ *
+ * class SessionMiddleware extends HttpApiMiddleware.HttpSession<SessionMiddleware>()("SessionMiddleware", {
+ *   security: HttpApiSecurity.apiKey({ key: "sid", in: "cookie" })
+ * }) {}
+ * ```
  */
 export const HttpSession = <Self>(): <
   const Id extends string,

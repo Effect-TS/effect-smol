@@ -2,12 +2,11 @@ import { assert, describe, it } from "@effect/vitest"
 import { Clock, DateTime, Duration, Effect, Exit, Option, Redacted, Schema } from "effect"
 import { TestClock } from "effect/testing"
 import { Cookies, HttpRouter, HttpServerRequest, HttpServerResponse, HttpSession } from "effect/unstable/http"
-import { SessionMeta } from "effect/unstable/http/HttpSession"
 import { HttpApiBuilder, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
 import { Persistence } from "effect/unstable/persistence"
 
 const CorruptSessionMetaKey = HttpSession.key({
-  id: "meta",
+  id: HttpSession.SessionMeta.key.id,
   schema: Schema.Struct({
     createdAt: Schema.String,
     expiresAt: Schema.String,
@@ -80,7 +79,7 @@ describe("HttpSession", () => {
       const store = yield* persistence.make({ storeId: toStoreId(previousId) })
 
       yield* store.set(
-        SessionMeta.key,
+        HttpSession.SessionMeta.key,
         Exit.succeed(
           new HttpSession.SessionMeta({
             createdAt: DateTime.subtract(now, { seconds: 1 }),
@@ -113,7 +112,7 @@ describe("HttpSession", () => {
 
       const persistence = yield* Persistence.Persistence
       const firstStore = yield* persistence.make({ storeId: toStoreId(firstId) })
-      yield* firstStore.remove(SessionMeta.key)
+      yield* firstStore.remove(HttpSession.SessionMeta.key)
 
       yield* session.set(ValueKey, "value")
 
@@ -143,7 +142,7 @@ describe("HttpSession", () => {
       const persistence = yield* Persistence.Persistence
       const firstStore = yield* persistence.make({ storeId: toStoreId(firstId) })
       yield* firstStore.set(ValueKey, Exit.succeed("stale"))
-      yield* firstStore.remove(SessionMeta.key)
+      yield* firstStore.remove(HttpSession.SessionMeta.key)
 
       const value = yield* session.get(ValueKey)
       assert.isTrue(Option.isNone(value))
@@ -166,7 +165,7 @@ describe("HttpSession", () => {
       const persistence = yield* Persistence.Persistence
       const firstStore = yield* persistence.make({ storeId: toStoreId(firstId) })
       yield* firstStore.set(ValueKey, Exit.succeed("stale"))
-      yield* firstStore.remove(SessionMeta.key)
+      yield* firstStore.remove(HttpSession.SessionMeta.key)
 
       yield* session.remove(ValueKey)
 
@@ -196,7 +195,7 @@ describe("HttpSession", () => {
       const persistence = yield* Persistence.Persistence
       const firstStore = yield* persistence.make({ storeId: toStoreId(firstId) })
       yield* firstStore.set(ValueKey, Exit.succeed("stale"))
-      yield* firstStore.remove(SessionMeta.key)
+      yield* firstStore.remove(HttpSession.SessionMeta.key)
 
       yield* session.clear
 
@@ -237,7 +236,7 @@ describe("HttpSession", () => {
       state = yield* session.state
       assert.strictEqual(Redacted.value(state.id), Redacted.value(thirdId))
 
-      const secondMeta = yield* secondStore.get(SessionMeta.key)
+      const secondMeta = yield* secondStore.get(HttpSession.SessionMeta.key)
       assert.strictEqual(secondMeta, undefined)
       const secondValue = yield* secondStore.get(ValueKey)
       assert.strictEqual(secondValue, undefined)
@@ -352,7 +351,123 @@ describe("HttpSession", () => {
       assert.strictEqual(secondMeta, undefined)
     }).pipe(Effect.provide(Persistence.layerMemory)))
 
-  it.effect("refreshes metadata when updateAge threshold is reached", () =>
+  it.effect("regenerates session id when middleware cookie is missing", () =>
+    Effect.gen(function*() {
+      const middleware = yield* SessionMiddleware
+      const response = yield* middleware(Effect.succeed(HttpServerResponse.empty()), {} as any).pipe(
+        Effect.provideService(
+          HttpServerRequest.HttpServerRequest,
+          HttpServerRequest.fromWeb(new Request("http://localhost/"))
+        ),
+        Effect.provideService(HttpServerRequest.ParsedSearchParams, {}),
+        Effect.provideService(HttpRouter.RouteContext, {
+          params: {},
+          route: {} as any
+        })
+      )
+
+      const cookie = Cookies.get(response.cookies, "session_token")
+      assert.isTrue(cookie !== undefined)
+      if (cookie !== undefined) {
+        assert.strictEqual(cookie.value, "generated-missing")
+      }
+    }).pipe(
+      Effect.provide(HttpApiBuilder.middlewareHttpSession(SessionMiddleware, {
+        generateSessionId: Effect.succeed(HttpSession.SessionId("generated-missing"))
+      })),
+      Effect.provide(Persistence.layerMemory)
+    ))
+
+  it.effect("regenerates session id when middleware cookie is invalid", () =>
+    Effect.gen(function*() {
+      const middleware = yield* SessionMiddleware
+      const response = yield* middleware(Effect.succeed(HttpServerResponse.empty()), {} as any).pipe(
+        Effect.provideService(
+          HttpServerRequest.HttpServerRequest,
+          HttpServerRequest.fromWeb(
+            new Request("http://localhost/", {
+              headers: {
+                cookie: "session_token=invalid-cookie"
+              }
+            })
+          )
+        ),
+        Effect.provideService(HttpServerRequest.ParsedSearchParams, {}),
+        Effect.provideService(HttpRouter.RouteContext, {
+          params: {},
+          route: {} as any
+        })
+      )
+
+      const cookie = Cookies.get(response.cookies, "session_token")
+      assert.isTrue(cookie !== undefined)
+      if (cookie !== undefined) {
+        assert.strictEqual(cookie.value, "generated-invalid")
+      }
+    }).pipe(
+      Effect.provide(HttpApiBuilder.middlewareHttpSession(SessionMiddleware, {
+        generateSessionId: Effect.succeed(HttpSession.SessionId("generated-invalid"))
+      })),
+      Effect.provide(Persistence.layerMemory)
+    ))
+
+  it.effect("regenerates session id when middleware cookie points to expired metadata", () =>
+    Effect.gen(function*() {
+      const staleId = HttpSession.SessionId("expired-cookie")
+      const freshId = HttpSession.SessionId("fresh-cookie")
+      const persistence = yield* Persistence.Persistence
+      const staleStore = yield* persistence.make({ storeId: toStoreId(staleId) })
+      const now = yield* DateTime.now
+
+      yield* staleStore.set(
+        HttpSession.SessionMeta.key,
+        Exit.succeed(
+          new HttpSession.SessionMeta({
+            createdAt: DateTime.subtract(now, { minutes: 1 }),
+            expiresAt: DateTime.subtract(now, { millis: 1 }),
+            lastRefreshedAt: DateTime.subtract(now, { minutes: 1 })
+          })
+        )
+      )
+      yield* staleStore.set(ValueKey, Exit.succeed("stale"))
+
+      const middleware = yield* SessionMiddleware
+      const response = yield* middleware(Effect.succeed(HttpServerResponse.empty()), {} as any).pipe(
+        Effect.provideService(
+          HttpServerRequest.HttpServerRequest,
+          HttpServerRequest.fromWeb(
+            new Request("http://localhost/", {
+              headers: {
+                cookie: `session_token=${Redacted.value(staleId)}`
+              }
+            })
+          )
+        ),
+        Effect.provideService(HttpServerRequest.ParsedSearchParams, {}),
+        Effect.provideService(HttpRouter.RouteContext, {
+          params: {},
+          route: {} as any
+        })
+      )
+
+      const cookie = Cookies.get(response.cookies, "session_token")
+      assert.isTrue(cookie !== undefined)
+      if (cookie !== undefined) {
+        assert.strictEqual(cookie.value, Redacted.value(freshId))
+      }
+
+      const staleMetadata = yield* staleStore.get(HttpSession.SessionMeta.key)
+      assert.strictEqual(staleMetadata, undefined)
+      const staleValue = yield* staleStore.get(ValueKey)
+      assert.strictEqual(staleValue, undefined)
+    }).pipe(
+      Effect.provide(HttpApiBuilder.middlewareHttpSession(SessionMiddleware, {
+        generateSessionId: Effect.succeed(HttpSession.SessionId("fresh-cookie"))
+      })),
+      Effect.provide(Persistence.layerMemory)
+    ))
+
+  it.effect("refreshes metadata at the updateAge threshold boundary", () =>
     Effect.gen(function*() {
       const sessionId = HttpSession.SessionId("refresh")
       const session = yield* HttpSession.make({
@@ -366,12 +481,19 @@ describe("HttpSession", () => {
       const store = yield* persistence.make({ storeId: toStoreId(state.id) })
       const before = yield* (yield* store.get(HttpSession.SessionMeta.key))!
 
-      yield* TestClock.adjust(Duration.minutes(2))
+      yield* TestClock.adjust(Duration.millis(Duration.toMillis(Duration.minutes(2)) - 1))
       yield* session.state
 
-      const after = yield* (yield* store.get(HttpSession.SessionMeta.key))!
-      assert.isTrue(after.lastRefreshedAt.epochMillis > before.lastRefreshedAt.epochMillis)
-      assert.isTrue(after.expiresAt.epochMillis > before.expiresAt.epochMillis)
+      const beforeBoundary = yield* (yield* store.get(HttpSession.SessionMeta.key))!
+      assert.strictEqual(beforeBoundary.lastRefreshedAt.epochMillis, before.lastRefreshedAt.epochMillis)
+      assert.strictEqual(beforeBoundary.expiresAt.epochMillis, before.expiresAt.epochMillis)
+
+      yield* TestClock.adjust(Duration.millis(1))
+      yield* session.state
+
+      const atBoundary = yield* (yield* store.get(HttpSession.SessionMeta.key))!
+      assert.isTrue(atBoundary.lastRefreshedAt.epochMillis > before.lastRefreshedAt.epochMillis)
+      assert.isTrue(atBoundary.expiresAt.epochMillis > before.expiresAt.epochMillis)
     }).pipe(Effect.provide(Persistence.layerMemory)))
 
   it.effect("does not refresh metadata when refresh is disabled", () =>
@@ -479,6 +601,106 @@ describe("HttpSession", () => {
         assert.isTrue(header.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT"))
       }
     }).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("clearCookie keeps path and domain for cookie matching", () =>
+    Effect.gen(function*() {
+      const session = yield* HttpSession.make({
+        getSessionId: Effect.succeed(Option.none()),
+        generateSessionId: Effect.succeed(HttpSession.SessionId("helper-clear-match")),
+        cookie: {
+          name: "session_token",
+          path: "/app",
+          domain: "example.com"
+        }
+      })
+
+      const response = yield* HttpSession.clearCookie(HttpServerResponse.empty()).pipe(
+        Effect.provideService(HttpSession.HttpSession, session)
+      )
+
+      const cookie = Cookies.get(response.cookies, "session_token")
+      assert.isTrue(cookie !== undefined)
+      if (cookie !== undefined) {
+        assert.strictEqual(cookie.options?.path, "/app")
+        assert.strictEqual(cookie.options?.domain, "example.com")
+
+        const header = Cookies.serializeCookie(cookie)
+        assert.isTrue(header.includes("Path=/app"))
+        assert.isTrue(header.includes("Domain=example.com"))
+      }
+    }).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("securityMakeSession decodes session id from cookie api key", () =>
+    Effect.gen(function*() {
+      const queryId = HttpSession.SessionId("query-security")
+      const headerId = HttpSession.SessionId("header-security")
+      const cookieId = HttpSession.SessionId("cookie-security")
+      const generatedId = HttpSession.SessionId("generated-security")
+      const now = yield* DateTime.now
+      const persistence = yield* Persistence.Persistence
+
+      const setMetadata = (sessionId: HttpSession.SessionId) =>
+        Effect.flatMap(
+          persistence.make({ storeId: toStoreId(sessionId) }),
+          (store) =>
+            store.set(
+              HttpSession.SessionMeta.key,
+              Exit.succeed(
+                new HttpSession.SessionMeta({
+                  createdAt: DateTime.subtract(now, { minutes: 1 }),
+                  expiresAt: DateTime.add(now, { minutes: 10 }),
+                  lastRefreshedAt: DateTime.subtract(now, { minutes: 1 })
+                })
+              )
+            )
+        )
+
+      yield* setMetadata(queryId)
+      yield* setMetadata(headerId)
+      yield* setMetadata(cookieId)
+
+      const makeSession = (request: Request, searchParams: any) =>
+        HttpApiBuilder.securityMakeSession(SessionMiddleware.security, {
+          generateSessionId: Effect.succeed(generatedId)
+        }).pipe(
+          Effect.provideService(HttpServerRequest.HttpServerRequest, HttpServerRequest.fromWeb(request)),
+          Effect.provideService(HttpServerRequest.ParsedSearchParams, searchParams)
+        )
+
+      const fromHeaderOrQuery = yield* makeSession(
+        new Request(`http://localhost/?session_token=${Redacted.value(queryId)}`, {
+          headers: {
+            session_token: Redacted.value(headerId)
+          }
+        }),
+        {
+          session_token: Redacted.value(queryId)
+        }
+      )
+      const fromHeaderOrQueryState = yield* fromHeaderOrQuery.state
+      assert.strictEqual(Redacted.value(fromHeaderOrQueryState.id), Redacted.value(generatedId))
+
+      const fromCookie = yield* makeSession(
+        new Request(`http://localhost/?session_token=${Redacted.value(queryId)}`, {
+          headers: {
+            session_token: Redacted.value(headerId),
+            cookie: `session_token=${Redacted.value(cookieId)}`
+          }
+        }),
+        {
+          session_token: Redacted.value(queryId)
+        }
+      )
+      const fromCookieState = yield* fromCookie.state
+      assert.strictEqual(Redacted.value(fromCookieState.id), Redacted.value(cookieId))
+    }).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("session middleware security is ApiKey in cookie mode", () =>
+    Effect.sync(() => {
+      assert.strictEqual(SessionMiddleware.security._tag, "ApiKey")
+      assert.strictEqual(SessionMiddleware.security.in, "cookie")
+      assert.strictEqual(SessionMiddleware.security.key, "session_token")
+    }))
 
   it.effect("middleware refreshes cookie when metadata refreshes without id changes", () =>
     Effect.gen(function*() {
