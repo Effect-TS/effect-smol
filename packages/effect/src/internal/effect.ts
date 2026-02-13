@@ -174,9 +174,9 @@ export const findDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.fail<Cause.
 }
 
 /** @internal */
-export const findDefect = <E>(self: Cause.Cause<E>): {} | Filter.fail<Cause.Cause<E>> => {
+export const findDefect = <E>(self: Cause.Cause<E>): {} | null | undefined | Filter.fail<Cause.Cause<E>> => {
   const reason = self.reasons.find(isDieReason)
-  return reason ? reason.defect as {} : Filter.fail(self)
+  return reason ? reason.defect : Filter.fail(self)
 }
 
 /** @internal */
