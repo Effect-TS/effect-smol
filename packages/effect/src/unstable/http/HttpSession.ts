@@ -110,6 +110,7 @@ export const SessionId = (value: string): SessionId => Redacted.make(value) as S
  * @category Storage
  */
 export class HttpSession extends ServiceMap.Service<HttpSession, {
+  readonly id: MutableRef.MutableRef<SessionId>
   readonly state: Effect.Effect<SessionState, HttpSessionError>
   readonly cookie: Effect.Effect<Cookies.Cookie>
   readonly get: <S extends Schema.Top>(
@@ -143,12 +144,12 @@ export class SessionMeta extends Schema.Class<SessionMeta>("effect/http/HttpSess
   lastRefreshedAt: Schema.DateTimeUtc
 }) {
   static key = key({
-    id: "_meta",
+    id: "meta",
     schema: SessionMeta
   })
 
   isExpired(now: DateTime.Utc): boolean {
-    return DateTime.isLessThan(this.expiresAt, now)
+    return DateTime.isLessThanOrEqualTo(this.expiresAt, now)
   }
 }
 
@@ -166,7 +167,16 @@ export interface MakeHttpSessionOptions<E = never, R = never> {
   } | undefined
   readonly getSessionId: Effect.Effect<Option.Option<SessionId>, E, R>
   readonly timeToLive?: Duration.DurationInput | undefined
+  readonly expiresIn?: Duration.DurationInput | undefined
+  readonly updateAge?: Duration.DurationInput | undefined
+  readonly disableRefresh?: boolean | undefined
   readonly generateSessionId?: Effect.Effect<SessionId> | undefined
+}
+
+interface InternalSessionState {
+  id: SessionId
+  metadata: SessionMeta
+  storage: Persistence.PersistenceStore
 }
 
 /**
@@ -177,99 +187,128 @@ export const make = Effect.fnUntraced(function*<E, R>(
   options: MakeHttpSessionOptions<E, R>
 ): Effect.fn.Return<
   HttpSession["Service"],
-  E | HttpSessionError,
+  E,
   R | Persistence.Persistence | Scope.Scope
 > {
   const scope = yield* Scope.Scope
   const persistence = yield* Persistence.Persistence
-  const timeToLive = options.timeToLive ? Duration.fromDurationInputUnsafe(options.timeToLive) : Duration.days(1)
+  const clock = yield* Effect.clockWith((clock) => Effect.succeed(clock))
+  const expiresIn = Duration.fromDurationInputUnsafe(options.expiresIn ?? options.timeToLive ?? Duration.days(7))
+  const updateAge = Duration.min(Duration.fromDurationInputUnsafe(options.updateAge ?? Duration.days(1)), expiresIn)
+  const updateAgeMillis = Duration.toMillis(updateAge)
+  const disableRefresh = options.disableRefresh ?? false
   const generateSessionId = options.generateSessionId ?? defaultGenerateSessionId
+
+  const makeSessionMeta = (now: DateTime.Utc, createdAt = now) =>
+    new SessionMeta({
+      createdAt,
+      expiresAt: DateTime.addDuration(now, expiresIn),
+      lastRefreshedAt: now
+    })
+
+  const makeStorage = (state: Pick<InternalSessionState, "id" | "metadata">) =>
+    Effect.provideService(
+      persistence.make({
+        storeId: `session:${Redacted.value(state.id)}`,
+        timeToLive() {
+          return Duration.millis(state.metadata.expiresAt.epochMillis - clock.currentTimeMillisUnsafe())
+        }
+      }),
+      Scope.Scope,
+      scope
+    )
+
+  const shouldRefresh = (metadata: SessionMeta, now: DateTime.Utc): boolean =>
+    !disableRefresh && now.epochMillis - metadata.lastRefreshedAt.epochMillis >= updateAgeMillis
+
+  const refreshMetadata = (state: InternalSessionState, now: DateTime.Utc) =>
+    Effect.gen(function*() {
+      const previousMetadata = state.metadata
+      const refreshedMetadata = makeSessionMeta(now, state.metadata.createdAt)
+      state.metadata = refreshedMetadata
+      const writeResult = yield* Effect.exit(state.storage.set(SessionMeta.key, Exit.succeed(refreshedMetadata)))
+      if (Exit.isFailure(writeResult)) {
+        state.metadata = previousMetadata
+        return yield* writeResult
+      }
+    }).pipe(Effect.catchIf(Schema.isSchemaError, Effect.die))
+
+  const reconcileState = (state: InternalSessionState): Effect.Effect<InternalSessionState, PersistenceError> =>
+    Effect.gen(function*() {
+      const metadata = yield* state.storage.get(SessionMeta.key).pipe(
+        Effect.catchTag("SchemaError", () => Effect.undefined)
+      )
+      if (!metadata || metadata._tag === "Failure") {
+        return yield* freshState
+      }
+      const now = yield* DateTime.now
+      if (metadata.value.isExpired(now)) {
+        yield* state.storage.clear
+        return yield* freshState
+      }
+      state.metadata = metadata.value
+      if (shouldRefresh(state.metadata, now)) {
+        yield* refreshMetadata(state, now)
+      }
+      return state
+    })
 
   const freshState = Effect.gen(function*() {
     const id = yield* generateSessionId
-    const storage = yield* Effect.provideService(
-      persistence.make({
-        storeId: `session:${Redacted.value(id)}`,
-        timeToLive() {
-          return timeToLive
-        }
-      }),
-      Scope.Scope,
-      scope
-    )
     const now = yield* DateTime.now
-    const meta = new SessionMeta({
-      createdAt: now,
-      expiresAt: DateTime.addDuration(now, timeToLive),
-      lastRefreshedAt: now
-    })
-    yield* storage.set(SessionMeta.key, Exit.succeed(meta))
-    return identity<SessionState>({
+    const state = identity<InternalSessionState>({
       id,
-      metadata: meta,
-      storage
+      metadata: makeSessionMeta(now),
+      storage: undefined as any
     })
+    state.storage = yield* makeStorage(state)
+    yield* state.storage.set(SessionMeta.key, Exit.succeed(state.metadata))
+    return state
   }).pipe(Effect.catchIf(Schema.isSchemaError, Effect.die))
 
   const initialState = Effect.gen(function*() {
-    let sessionId = yield* options.getSessionId.pipe(
+    const sessionId = yield* options.getSessionId.pipe(
       Effect.flatMap((sessionId) => Option.isSome(sessionId) ? Effect.succeed(sessionId.value) : generateSessionId)
     )
-    const storage = yield* Effect.provideService(
-      persistence.make({
-        storeId: `session:${Redacted.value(sessionId)}`,
-        timeToLive() {
-          return timeToLive
-        }
-      }),
-      Scope.Scope,
-      scope
-    )
-    const meta = yield* storage.get(SessionMeta.key).pipe(
-      Effect.catchTag("SchemaError", () => Effect.undefined)
-    )
-    if (!meta || meta._tag === "Failure") {
-      return yield* freshState
-    }
     const now = yield* DateTime.now
-    if (meta.value.isExpired(now)) {
-      yield* storage.clear
-      return yield* freshState
-    }
-    return identity<SessionState>({
+    const state = identity<InternalSessionState>({
       id: sessionId,
-      metadata: meta.value,
-      storage
+      metadata: makeSessionMeta(now),
+      storage: undefined as any
     })
+    state.storage = yield* makeStorage(state)
+    return yield* reconcileState(state)
   })
 
-  const state = MutableRef.make(
-    yield* initialState.pipe(
-      // TODO: surface persistence errors instead of dying
-      Effect.orDie
-    )
+  const initial = yield* initialState.pipe(
+    // TODO: surface persistence errors instead of dying
+    Effect.orDie
   )
 
+  const state = MutableRef.make(initial)
+  const id = MutableRef.make(initial.id)
+
   const ensureState = Effect.gen(function*() {
-    const now = yield* DateTime.now
-    if (state.current.metadata.isExpired(now)) {
-      yield* state.current.storage.clear
-      const newState = yield* freshState
-      state.current = newState
+    const currentState = state.current
+    const nextState = yield* reconcileState(currentState)
+    if (nextState !== currentState) {
+      state.current = nextState
+      id.current = nextState.id
     }
     return state.current
   }).pipe(Effect.makeSemaphoreUnsafe(1).withPermit)
 
   return HttpSession.of({
+    id,
     state: ensureState.pipe(
       Effect.mapError((error) => new HttpSessionError(error))
     ),
     cookie: Effect.map(
-      DateTime.now,
-      (now) =>
-        Cookies.makeCookieUnsafe(options.cookie?.name ?? "sid", Redacted.value(state.current.id), {
+      Effect.sync(() => state.current),
+      (state) =>
+        Cookies.makeCookieUnsafe(options.cookie?.name ?? "sid", Redacted.value(state.id), {
           ...options.cookie,
-          expires: new Date(now.epochMillis + Duration.toMillis(timeToLive)),
+          expires: new Date(state.metadata.expiresAt.epochMillis),
           secure: options.cookie?.secure ?? true,
           httpOnly: options.cookie?.httpOnly ?? true
         })

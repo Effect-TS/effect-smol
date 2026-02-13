@@ -375,7 +375,7 @@ export const securitySetCookie = (
  */
 export const securityMakeSession = <Security extends HttpApiSecurity.ApiKey>(
   self: Security,
-  options?: Omit<HttpSession.MakeHttpSessionOptions, "getSessionId">
+  options?: Omit<HttpSession.MakeHttpSessionOptions<never, never>, "getSessionId">
 ): Effect.Effect<
   HttpSession.HttpSession["Service"],
   never,
@@ -384,15 +384,16 @@ export const securityMakeSession = <Security extends HttpApiSecurity.ApiKey>(
   | Request.HttpServerRequest
   | Request.ParsedSearchParams
 > =>
-  HttpSession.make({
-    ...options,
-    cookie: {
-      ...options?.cookie,
-      name: self.key
-    },
-    getSessionId: Effect.map(securityDecode(self), (r) => {
-      const value = Redacted.value(r)
-      return value === "" ? Option.none() : Option.some(HttpSession.SessionId(value))
+  Effect.gen(function*() {
+    const credential = yield* securityDecode(self)
+    const value = Redacted.value(credential)
+    return yield* HttpSession.make({
+      ...options,
+      cookie: {
+        ...options?.cookie,
+        name: self.key
+      },
+      getSessionId: Effect.succeed(value === "" ? Option.none() : Option.some(HttpSession.SessionId(value)))
     })
   })
 
@@ -414,7 +415,7 @@ export const middlewareHttpSession = <
   )
 >(
   service: Service,
-  options?: Omit<HttpSession.MakeHttpSessionOptions, "getSessionId">
+  options?: Omit<HttpSession.MakeHttpSessionOptions<never, never>, "getSessionId">
 ): Layer.Layer<Service["Identifier"], never, Persistence.Persistence> => {
   const makeSession = securityMakeSession(service.security, options)
   return Layer.effect(

@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Option, Redacted, Schema } from "effect"
+import { DateTime, Duration, Effect, Exit, Option, Redacted, Schema } from "effect"
+import { TestClock } from "effect/testing"
 import { HttpSession } from "effect/unstable/http"
 import { Persistence } from "effect/unstable/persistence"
 
@@ -46,7 +47,7 @@ describe("HttpSession", () => {
 
         const persistence = yield* Persistence.Persistence
         const store = yield* persistence.make({ storeId: toStoreId(newId) })
-        const metadata = yield* store.get(SessionMetaKey)
+        const metadata = yield* store.get(HttpSession.SessionMeta.key)
         assert.isTrue(metadata !== undefined && metadata._tag === "Success")
       })
     ).pipe(Effect.provide(Persistence.layerMemory)))
@@ -253,6 +254,126 @@ describe("HttpSession", () => {
         const secondStore = yield* persistence.make({ storeId: toStoreId(secondId) })
         const secondMeta = yield* secondStore.get(SessionMetaKey)
         assert.strictEqual(secondMeta, undefined)
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("refreshes metadata when updateAge threshold is reached", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const sessionId = HttpSession.SessionId("refresh")
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.some(sessionId)),
+          expiresIn: Duration.minutes(10),
+          updateAge: Duration.minutes(2)
+        })
+
+        const persistence = yield* Persistence.Persistence
+        const store = yield* persistence.make({ storeId: toStoreId(session.id.current) })
+        const before = yield* store.get(HttpSession.SessionMeta.key)
+        assert.isTrue(before !== undefined && before._tag === "Success")
+
+        if (before !== undefined && before._tag === "Success") {
+          yield* TestClock.adjust(Duration.minutes(2))
+          yield* session.state
+
+          const after = yield* store.get(HttpSession.SessionMeta.key)
+          assert.isTrue(after !== undefined && after._tag === "Success")
+          if (after !== undefined && after._tag === "Success") {
+            assert.isTrue(after.value.lastRefreshedAt.epochMillis > before.value.lastRefreshedAt.epochMillis)
+            assert.isTrue(after.value.expiresAt.epochMillis > before.value.expiresAt.epochMillis)
+          }
+        }
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("does not refresh metadata when refresh is disabled", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const sessionId = HttpSession.SessionId("no-refresh")
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.some(sessionId)),
+          expiresIn: Duration.minutes(10),
+          updateAge: Duration.minutes(1),
+          disableRefresh: true
+        })
+
+        const persistence = yield* Persistence.Persistence
+        const store = yield* persistence.make({ storeId: toStoreId(session.id.current) })
+        const before = yield* store.get(HttpSession.SessionMeta.key)
+        assert.isTrue(before !== undefined && before._tag === "Success")
+
+        if (before !== undefined && before._tag === "Success") {
+          yield* TestClock.adjust(Duration.minutes(5))
+          yield* session.state
+
+          const after = yield* store.get(HttpSession.SessionMeta.key)
+          assert.isTrue(after !== undefined && after._tag === "Success")
+          if (after !== undefined && after._tag === "Success") {
+            assert.strictEqual(after.value.lastRefreshedAt.epochMillis, before.value.lastRefreshedAt.epochMillis)
+            assert.strictEqual(after.value.expiresAt.epochMillis, before.value.expiresAt.epochMillis)
+          }
+        }
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("clamps updateAge to expiresIn", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const sessionId = HttpSession.SessionId("clamp")
+        const persistence = yield* Persistence.Persistence
+        const now = yield* Effect.clockWith((clock) => Effect.succeed(clock.currentTimeMillisUnsafe()))
+        const previousLastRefreshedAt = now - Duration.toMillis(Duration.minutes(2))
+        const store = yield* persistence.make({ storeId: toStoreId(sessionId) })
+
+        yield* store.set(
+          HttpSession.SessionMeta.key,
+          Exit.succeed(
+            new HttpSession.SessionMeta({
+              createdAt: DateTime.makeUnsafe(now - Duration.toMillis(Duration.minutes(10))),
+              expiresAt: DateTime.makeUnsafe(now + Duration.toMillis(Duration.minutes(10))),
+              lastRefreshedAt: DateTime.makeUnsafe(previousLastRefreshedAt)
+            })
+          )
+        )
+
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.some(sessionId)),
+          expiresIn: Duration.minutes(1),
+          updateAge: Duration.minutes(5)
+        })
+
+        assert.strictEqual(Redacted.value(session.id.current), Redacted.value(sessionId))
+
+        const after = yield* store.get(HttpSession.SessionMeta.key)
+        assert.isTrue(after !== undefined && after._tag === "Success")
+        if (after !== undefined && after._tag === "Success") {
+          assert.isTrue(after.value.lastRefreshedAt.epochMillis > previousLastRefreshedAt)
+          assert.isTrue(after.value.expiresAt.epochMillis <= now + Duration.toMillis(Duration.minutes(2)))
+        }
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("bounds data key ttl to metadata expiration horizon", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const sessionId = HttpSession.SessionId("ttl")
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.some(sessionId)),
+          expiresIn: Duration.minutes(2),
+          disableRefresh: true
+        })
+
+        yield* session.set(ValueKey, "value")
+
+        const persistence = yield* Persistence.Persistence
+        const store = yield* persistence.make({ storeId: toStoreId(session.id.current) })
+        const before = yield* store.get(ValueKey)
+        assert.isTrue(before !== undefined && before._tag === "Success")
+
+        yield* TestClock.adjust(Duration.minutes(2))
+
+        const after = yield* store.get(ValueKey)
+        assert.strictEqual(after, undefined)
       })
     ).pipe(Effect.provide(Persistence.layerMemory)))
 })
