@@ -377,7 +377,7 @@ export const securityMakeSession = <Security extends HttpApiSecurity.ApiKey>(
   options?: Omit<HttpSession.MakeHttpSessionOptions<never, never>, "getSessionId">
 ): Effect.Effect<
   HttpSession.HttpSession["Service"],
-  never,
+  HttpSession.HttpSessionError,
   | Persistence.Persistence
   | Scope.Scope
   | Request.HttpServerRequest
@@ -426,28 +426,19 @@ export const middlewareHttpSession = <
   service: Service,
   options?: Omit<HttpSession.MakeHttpSessionOptions<never, never>, "getSessionId">
 ): Layer.Layer<Service["Identifier"], never, Persistence.Persistence> => {
-  const makeSession = securityMakeSession(service.security, options)
+  const makeSession = Effect.orDie(securityMakeSession(service.security, options))
   return Layer.effect(
     service,
     Persistence.Persistence.useSync((persistence) =>
       service.of(Effect.fnUntraced(function*(effect) {
-        const request = yield* HttpServerRequest
         const session = yield* Effect.provideService(makeSession, Persistence.Persistence, persistence)
         let response = yield* Effect.provideService(effect, HttpSession.HttpSession, session)
         if (service.security.in === "cookie") {
-          let update = yield* HttpSession.takeCookieUpdate(session)
-          if (update === "clear") {
-            response = yield* Effect.provideService(HttpSession.clearCookie(response), HttpSession.HttpSession, session)
-          } else if (update === "set") {
-            response = yield* Effect.provideService(HttpSession.setCookie(response), HttpSession.HttpSession, session)
-          } else {
-            const current = request.cookies[service.security.key]
-            const state = yield* Effect.orDie(session.state)
-            const sessionId = Redacted.value(state.id)
-            update = yield* HttpSession.takeCookieUpdate(session)
-            if (update === "set" || current !== sessionId) {
-              response = yield* Effect.provideService(HttpSession.setCookie(response), HttpSession.HttpSession, session)
-            }
+          const state = yield* Effect.orDie(session.state)
+          if (state.action === "clear") {
+            response = yield* HttpSession.clearCookie(session, response)
+          } else if (state.action === "set") {
+            response = yield* HttpSession.setCookie(session, response)
           }
         }
         return response

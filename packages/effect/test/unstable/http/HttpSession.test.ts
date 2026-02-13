@@ -1,3 +1,4 @@
+/** @effect-diagnostics multipleEffectProvide:skip-file */
 import { assert, describe, it } from "@effect/vitest"
 import { Clock, DateTime, Duration, Effect, Exit, Option, Redacted, Schema } from "effect"
 import { TestClock } from "effect/testing"
@@ -585,9 +586,7 @@ describe("HttpSession", () => {
         }
       })
 
-      const response = yield* HttpSession.clearCookie(HttpServerResponse.empty()).pipe(
-        Effect.provideService(HttpSession.HttpSession, session)
-      )
+      const response = yield* HttpSession.clearCookie(session, HttpServerResponse.empty())
 
       const cookie = Cookies.get(response.cookies, "session_token")
       assert.isTrue(cookie !== undefined)
@@ -614,9 +613,7 @@ describe("HttpSession", () => {
         }
       })
 
-      const response = yield* HttpSession.clearCookie(HttpServerResponse.empty()).pipe(
-        Effect.provideService(HttpSession.HttpSession, session)
-      )
+      const response = yield* HttpSession.clearCookie(session, HttpServerResponse.empty())
 
       const cookie = Cookies.get(response.cookies, "session_token")
       assert.isTrue(cookie !== undefined)
