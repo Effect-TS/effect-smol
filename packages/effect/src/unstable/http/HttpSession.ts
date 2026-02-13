@@ -3,11 +3,12 @@
  */
 import type * as Brand from "../../Brand.ts"
 import * as Data from "../../Data.ts"
+import * as DateTime from "../../DateTime.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
-import { dual } from "../../Function.ts"
 import { YieldableProto } from "../../internal/core.ts"
+import * as MutableRef from "../../MutableRef.ts"
 import * as Option from "../../Option.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
 import * as Redacted from "../../Redacted.ts"
@@ -17,6 +18,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Persistable from "../persistence/Persistable.ts"
 import * as Persistence from "../persistence/Persistence.ts"
 import type { PersistenceError } from "../persistence/Persistence.ts"
+import * as Cookies from "./Cookies.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
 import * as Response from "./HttpServerResponse.ts"
 
@@ -107,7 +109,8 @@ export const SessionId = (value: string): SessionId => Redacted.make(value) as S
  * @category Storage
  */
 export class HttpSession extends ServiceMap.Service<HttpSession, {
-  readonly id: SessionId
+  readonly id: MutableRef.MutableRef<SessionId>
+  readonly cookie: Effect.Effect<Cookies.Cookie>
   readonly get: <S extends Schema.Top>(
     key: Key<S>
   ) => Effect.Effect<Option.Option<S["Type"]>, HttpSessionError, S["DecodingServices"]>
@@ -123,30 +126,41 @@ export class HttpSession extends ServiceMap.Service<HttpSession, {
  * @since 4.0.0
  * @category Storage
  */
-export const make: <E, R>(
-  options: {
-    readonly getSessionId: Effect.Effect<Option.Option<SessionId>, E, R>
-    readonly timeToLive?: Duration.DurationInput | undefined
-    readonly generateSessionId?: Effect.Effect<SessionId> | undefined
-  }
-) => Effect.Effect<
-  HttpSession["Service"],
-  E,
-  R | Persistence.Persistence | Scope
-> = Effect.fnUntraced(function*<E, R>(options: {
+export interface MakeHttpSessionOptions<E = never, R = never> {
+  readonly cookie?: {
+    readonly name?: string | undefined
+    readonly path?: string | undefined
+    readonly domain?: string | undefined
+    readonly secure?: boolean | undefined
+    readonly httpOnly?: boolean | undefined
+  } | undefined
   readonly getSessionId: Effect.Effect<Option.Option<SessionId>, E, R>
   readonly timeToLive?: Duration.DurationInput | undefined
   readonly generateSessionId?: Effect.Effect<SessionId> | undefined
-}): Effect.fn.Return<HttpSession["Service"], E, R | Persistence.Persistence | Scope> {
+}
+
+/**
+ * @since 4.0.0
+ * @category Storage
+ */
+export const make = Effect.fnUntraced(function*<E, R>(
+  options: MakeHttpSessionOptions<E, R>
+): Effect.fn.Return<
+  HttpSession["Service"],
+  E,
+  R | Persistence.Persistence | Scope
+> {
   const persistence = yield* Persistence.Persistence
-  const sessionId = yield* options.getSessionId.pipe(
-    Effect.flatMap((o) =>
-      Option.isNone(o) ? (options.generateSessionId ?? defaultGenerateSessionId) : Effect.succeed(o.value)
+  const sessionId = MutableRef.make(
+    yield* options.getSessionId.pipe(
+      Effect.flatMap((o) =>
+        Option.isNone(o) ? (options.generateSessionId ?? defaultGenerateSessionId) : Effect.succeed(o.value)
+      )
     )
   )
-  const timeToLive = options.timeToLive ? Duration.fromDurationInputUnsafe(options.timeToLive) : Duration.minutes(30)
+  const timeToLive = options.timeToLive ? Duration.fromDurationInputUnsafe(options.timeToLive) : Duration.days(1)
   const storage = yield* persistence.make({
-    storeId: `session:${sessionId}`,
+    storeId: `session:${sessionId.current}`,
     timeToLive(_exit) {
       return timeToLive
     }
@@ -154,6 +168,16 @@ export const make: <E, R>(
 
   return HttpSession.of({
     id: sessionId,
+    cookie: Effect.map(
+      DateTime.now,
+      (now) =>
+        Cookies.makeCookieUnsafe(options.cookie?.name ?? "sid", Redacted.value(sessionId.current), {
+          ...options.cookie,
+          expires: new Date(now.epochMillis + Duration.toMillis(timeToLive)),
+          secure: options.cookie?.secure ?? true,
+          httpOnly: options.cookie?.httpOnly ?? true
+        })
+    ),
     get: <S extends Schema.Top>(
       key: Key<S>
     ): Effect.Effect<Option.Option<S["Type"]>, HttpSessionError, S["DecodingServices"]> =>
@@ -186,36 +210,13 @@ const defaultGenerateSessionId = Effect.sync(() => SessionId(crypto.randomUUID()
  * @since 4.0.0
  * @category Response helpers
  */
-export const setCookie: {
-  (options?: {
-    readonly name?: string | undefined
-    readonly path?: string | undefined
-    readonly domain?: string | undefined
-    readonly secure?: boolean | undefined
-    readonly httpOnly?: boolean | undefined
-  }): (response: HttpServerResponse) => Effect.Effect<HttpServerResponse, never, HttpSession>
-  (response: HttpServerResponse, options?: {
-    readonly name?: string | undefined
-    readonly path?: string | undefined
-    readonly domain?: string | undefined
-    readonly secure?: boolean | undefined
-    readonly httpOnly?: boolean | undefined
-  }): Effect.Effect<HttpServerResponse, never, HttpSession>
-} = dual((args) => Response.isHttpServerResponse(args[0]), (response: HttpServerResponse, options?: {
-  readonly name?: string | undefined
-  readonly path?: string | undefined
-  readonly domain?: string | undefined
-  readonly secure?: boolean | undefined
-  readonly httpOnly?: boolean | undefined
-}): Effect.Effect<HttpServerResponse, never, HttpSession> =>
-  HttpSession.useSync((session) =>
-    Response.setCookieUnsafe(response, options?.name ?? "sid", Redacted.value(session.id), {
-      path: options?.path,
-      domain: options?.domain,
-      secure: options?.secure ?? true,
-      httpOnly: options?.httpOnly ?? true
-    })
-  ))
+export const setCookie = (response: HttpServerResponse): Effect.Effect<HttpServerResponse, never, HttpSession> =>
+  HttpSession.use((session) =>
+    Effect.map(
+      session.cookie,
+      (cookie) => Response.updateCookies(response, Cookies.setCookie(cookie))
+    )
+  )
 
 /**
  * @since 4.0.0

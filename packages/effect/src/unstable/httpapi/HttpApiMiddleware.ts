@@ -228,7 +228,7 @@ export const Service = <
  */
 export const HttpSession = <Self>(): <
   const Id extends string,
-  Security extends HttpApiSecurity.Bearer | HttpApiSecurity.ApiKey
+  Security extends HttpApiSecurity.ApiKey
 >(
   id: Id,
   options: {
@@ -247,7 +247,7 @@ export const HttpSession = <Self>(): <
 (
   id: string,
   options: {
-    readonly security: HttpApiSecurity.Bearer | HttpApiSecurity.ApiKey
+    readonly security: HttpApiSecurity.ApiKey
   }
 ) => {
   const Err = globalThis.Error as any

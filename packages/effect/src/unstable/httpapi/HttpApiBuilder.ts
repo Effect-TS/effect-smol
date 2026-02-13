@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Base64 from "../../encoding/Base64.ts"
 import * as Fiber from "../../Fiber.ts"
@@ -23,6 +22,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
+import * as Cookies from "../http/Cookies.ts"
 import type { Cookie } from "../http/Cookies.ts"
 import type * as Etag from "../http/Etag.ts"
 import * as HttpEffect from "../http/HttpEffect.ts"
@@ -373,12 +373,9 @@ export const securitySetCookie = (
  * @since 4.0.0
  * @category security
  */
-export const securityMakeSession = <Security extends HttpApiSecurity.Bearer | HttpApiSecurity.ApiKey>(
+export const securityMakeSession = <Security extends HttpApiSecurity.ApiKey>(
   self: Security,
-  options?: {
-    readonly generateSessionId?: Effect.Effect<HttpSession.SessionId, never, never> | undefined
-    readonly timeToLive?: Duration.DurationInput | undefined
-  }
+  options?: Omit<HttpSession.MakeHttpSessionOptions, "getSessionId">
 ): Effect.Effect<
   HttpSession.HttpSession["Service"],
   never,
@@ -389,12 +386,14 @@ export const securityMakeSession = <Security extends HttpApiSecurity.Bearer | Ht
 > =>
   HttpSession.make({
     ...options,
-    getSessionId: securityDecode(self).pipe(
-      Effect.map((r) => {
-        const value = Redacted.value(r)
-        return value === "" ? Option.none() : Option.some(HttpSession.SessionId(value))
-      })
-    )
+    cookie: {
+      ...options?.cookie,
+      name: self.key
+    },
+    getSessionId: Effect.map(securityDecode(self), (r) => {
+      const value = Redacted.value(r)
+      return value === "" ? Option.none() : Option.some(HttpSession.SessionId(value))
+    })
   })
 
 /**
@@ -410,26 +409,34 @@ export const middlewareHttpSession = <
       security: never
     }>
     & {
-      readonly security: HttpApiSecurity.Bearer | HttpApiSecurity.ApiKey
+      readonly security: HttpApiSecurity.ApiKey
     }
   )
->(service: Service, options?: {
-  readonly generateSessionId?: Effect.Effect<HttpSession.SessionId, never, never> | undefined
-  readonly timeToLive?: Duration.DurationInput | undefined
-}): Layer.Layer<Service["Identifier"], never, Persistence.Persistence> =>
-  Layer.effect(
+>(
+  service: Service,
+  options?: Omit<HttpSession.MakeHttpSessionOptions, "getSessionId">
+): Layer.Layer<Service["Identifier"], never, Persistence.Persistence> => {
+  const makeSession = securityMakeSession(service.security, options)
+  return Layer.effect(
     service,
     Persistence.Persistence.useSync((persistence) =>
-      service.of(Effect.provideServiceEffect(
-        HttpSession.HttpSession,
-        Effect.provideService(
-          securityMakeSession(service.security, options),
-          Persistence.Persistence,
-          persistence
-        )
-      ))
+      service.of(Effect.fnUntraced(function*(effect) {
+        const request = yield* HttpServerRequest
+        const session = yield* Effect.provideService(makeSession, Persistence.Persistence, persistence)
+        let response = yield* Effect.provideService(effect, HttpSession.HttpSession, session)
+        if (service.security.in === "cookie") {
+          const current = request.cookies[service.security.key]
+          const sessionId = Redacted.value(session.id.current)
+          if (current !== sessionId) {
+            const cookie = yield* session.cookie
+            response = Response.updateCookies(response, Cookies.setCookie(cookie))
+          }
+        }
+        return response
+      }))
     )
   )
+}
 
 // -----------------------------------------------------------------------------
 // Internal
