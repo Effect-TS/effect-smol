@@ -15,3 +15,4 @@ This directory contains specifications for all major features and enhancements i
 - [devtools-v3-port.md](devtools-v3-port.md) - Port Effect v3 DevTools modules into `effect/unstable/devtools`.
 - [cli-completions-refactor.md](cli-completions-refactor.md) - Replace dynamic CLI completions with static shell script generation for Bash, Zsh, and Fish.
 - [ai-openai-compat.md](ai-openai-compat.md) - Add a minimal-schema OpenAI compat package for LanguageModel + embeddings.
+- [http-session-storage-service.md](http-session-storage-service.md) - Add `HttpSessionStorage` backed by `Persistence` with cookie/session ID lifecycle, yieldable `HttpSessionStorage.key({ id, schema })` storage items, and `HttpApiSecurity.apiKey` integration.
