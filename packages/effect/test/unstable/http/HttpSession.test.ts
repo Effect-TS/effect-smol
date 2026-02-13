@@ -358,6 +358,59 @@ describe("HttpSession", () => {
       })
     ).pipe(Effect.provide(Persistence.layerMemory)))
 
+  it.effect("keeps state consistent when rotate generates the current id", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const firstId = HttpSession.SessionId("first")
+        const secondId = HttpSession.SessionId("second")
+        const generatedIds = [firstId, secondId]
+        let index = 0
+
+        const persistence = yield* Persistence.Persistence
+        const firstStore = yield* persistence.make({ storeId: toStoreId(firstId) })
+        const now = yield* DateTime.now
+        yield* firstStore.set(
+          HttpSession.SessionMeta.key,
+          Exit.succeed(
+            new HttpSession.SessionMeta({
+              createdAt: now,
+              expiresAt: DateTime.addDuration(now, Duration.days(1)),
+              lastRefreshedAt: now
+            })
+          )
+        )
+
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.some(firstId)),
+          generateSessionId: Effect.sync(() => generatedIds[index++] ?? secondId)
+        })
+
+        assert.strictEqual(Redacted.value(session.id.current), Redacted.value(firstId))
+
+        yield* session.set(ValueKey, "stale")
+        yield* session.rotate
+
+        assert.strictEqual(Redacted.value(session.id.current), Redacted.value(firstId))
+
+        yield* session.set(ValueKey, "fresh")
+
+        assert.strictEqual(Redacted.value(session.id.current), Redacted.value(firstId))
+
+        const firstMeta = yield* firstStore.get(HttpSession.SessionMeta.key)
+        assert.isTrue(firstMeta !== undefined && firstMeta._tag === "Success")
+
+        const firstValue = yield* firstStore.get(ValueKey)
+        assert.isTrue(firstValue !== undefined && firstValue._tag === "Success")
+        if (firstValue !== undefined && firstValue._tag === "Success") {
+          assert.strictEqual(firstValue.value, "fresh")
+        }
+
+        const secondStore = yield* persistence.make({ storeId: toStoreId(secondId) })
+        const secondMeta = yield* secondStore.get(HttpSession.SessionMeta.key)
+        assert.strictEqual(secondMeta, undefined)
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
   it.effect("refreshes metadata when updateAge threshold is reached", () =>
     Effect.scoped(
       Effect.gen(function*() {

@@ -308,7 +308,9 @@ export const make = Effect.fnUntraced(function*<E, R>(
     const nextState = yield* freshState
     state.current = nextState
     id.current = nextState.id
-    yield* Effect.ignore(previousState.storage.clear)
+    if (Redacted.value(previousState.id) !== Redacted.value(nextState.id)) {
+      yield* Effect.ignore(previousState.storage.clear)
+    }
   }).pipe(withStateLock)
 
   return HttpSession.of({
