@@ -181,7 +181,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
   options: MakeHttpSessionOptions<E, R>
 ): Effect.fn.Return<
   HttpSession["Service"],
-  E,
+  E | HttpSessionError,
   R | Persistence.Persistence | Scope.Scope
 > {
   const scope = yield* Scope.Scope
@@ -203,12 +203,12 @@ export const make = Effect.fnUntraced(function*<E, R>(
       lastRefreshedAt: now
     })
 
-  const makeStorage = (sessionId: SessionId, metadata: SessionMeta) =>
+  const makeStorage = (sessionId: SessionId) =>
     Effect.provideService(
       persistence.make({
         storeId: `session:${Redacted.value(sessionId)}`,
         timeToLive() {
-          return Duration.millis(metadata.expiresAt.epochMillis - clock.currentTimeMillisUnsafe())
+          return Duration.millis(currentState.metadata.expiresAt.epochMillis - clock.currentTimeMillisUnsafe())
         }
       }),
       Scope.Scope,
@@ -234,15 +234,18 @@ export const make = Effect.fnUntraced(function*<E, R>(
       return yield* freshState
     }
     const now = yield* DateTime.now
-    console.log("metadata", metadata.value, "now", now, metadata.value.isExpired(now))
     if (metadata.value.isExpired(now)) {
       yield* state.storage.clear
       return yield* freshState
     }
-    if (shouldRefresh(state.metadata, now)) {
-      return yield* refreshMetadata(state, now)
+    const currentState = identity<SessionState>({
+      ...state,
+      metadata: metadata.value
+    })
+    if (shouldRefresh(currentState.metadata, now)) {
+      return yield* refreshMetadata(currentState, now)
     }
-    return state
+    return currentState
   })
 
   const freshState = Effect.gen(function*() {
@@ -252,7 +255,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
     const state = identity<SessionState>({
       id,
       metadata,
-      storage: yield* makeStorage(id, metadata)
+      storage: yield* makeStorage(id)
     })
     yield* state.storage.set(SessionMeta.key, Exit.succeed(state.metadata))
     return state
@@ -267,18 +270,15 @@ export const make = Effect.fnUntraced(function*<E, R>(
     )
     const now = yield* DateTime.now
     const metadata = makeSessionMeta(now)
-    const state = identity<SessionState>({
+    return identity<SessionState>({
       id: sessionId,
       metadata,
-      storage: yield* makeStorage(sessionId, metadata)
+      storage: yield* makeStorage(sessionId)
     })
-    return yield* reconcileState(state)
   })
 
-  let currentState = yield* initialState.pipe(
-    // TODO: surface persistence errors instead of dying
-    Effect.orDie
-  )
+  let currentState = yield* initialState
+  currentState = yield* reconcileState(currentState).pipe(mapHttpSessionError)
 
   const withStateLock = Effect.makeSemaphoreUnsafe(1).withPermit
 
