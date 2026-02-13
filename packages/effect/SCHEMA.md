@@ -4801,572 +4801,6 @@ Output:
 */
 ```
 
-### Generating a Schema from a JSON Schema
-
-The main entry point is `SchemaFromJson.generate`.
-
-It returns a `Generation` object with:
-
-- the runtime code you can paste into a file to build a `Schema`
-- the related TypeScript types
-- any annotations found on the JSON Schema
-- any import declarations required by custom `$ref` resolvers
-
-```ts
-export type Generation = {
-  /** The runtime code of the generated schema (e.g. `Schema.Struct({ "a": Schema.String })`) */
-  readonly code: string
-  /** The `Type`, `Encoded`, `DecodingServices`, and `EncodingServices` types related to the generated schema */
-  readonly types: Types
-  /** The JSON Schema annotations found on the JSON Schema (for example: `{ "description": "...", "examples": [...] }`) */
-  readonly annotations: Annotations
-  /** Import declarations required by the generated code */
-  readonly importDeclarations: ReadonlySet<string>
-}
-```
-
-#### Basic Usage
-
-**Example** (Generate a struct from an object schema)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = JSON.parse(`{
-  "type": "object",
-  "properties": {
-    "a": { "type": "string" },
-    "b": { "type": "integer" }
-  },
-  "required": ["a", "b"],
-  "additionalProperties": false
-}`)
-
-console.log(SchemaFromJson.generate(jsonSchema, { source: "draft-07" }))
-/*
-{
-  code: 'Schema.Struct({ "a": Schema.String, "b": Schema.Int })',
-  types: {
-    Type: '{ readonly "a": string, readonly "b": number }',
-    Encoded: '{ readonly "a": string, readonly "b": number }',
-    DecodingServices: 'never',
-    EncodingServices: 'never'
-  },
-  imports: Set(0) {}
-}
-*/
-```
-
-The `source` option tells the generator which JSON Schema dialect to read.
-
-**Example** (Generate a tuple using `prefixItems` in draft 2020-12)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = JSON.parse(`{
-  "type": "array",
-  "prefixItems": [
-    { "type": "string" },
-    { "type": "number" }
-  ],
-  "minItems": 2,
-  "items": false
-}`)
-
-// Select the JSON Schema dialect (draft 2020-12 and OpenAPI 3.1 use `prefixItems`)
-const schema = SchemaFromJson.generate(jsonSchema, { source: "draft-2020-12" })
-
-console.log(schema)
-/*
-{
-  code: 'Schema.Tuple([Schema.String, Schema.Number])',
-  types: {
-    Type: 'readonly [string, number]',
-    Encoded: 'readonly [string, number]',
-    DecodingServices: 'never',
-    EncodingServices: 'never'
-  },
-  imports: Set(0) {}
-}
-*/
-```
-
-You can also generate JSDoc from JSON Schema annotations with `extractJsDocs`:
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = JSON.parse(`{
-  "type": "object",
-  "properties": {
-    "a": { "type": "string", "description": "a description for the a field" },
-    "b": { "type": "integer", "description": "a description for the b field" }
-  },
-  "required": ["a", "b"],
-  "additionalProperties": false,
-  "description": "a description for the object"
-}`)
-
-console.log(SchemaFromJson.generate(jsonSchema, { source: "draft-07", extractJsDocs: true }).types.Type)
-/*
-{
-\/** a description for the a field *\/
-readonly "a": string,
-\/** a description for the b field *\/
-readonly "b": number }
-*/
-```
-
-`extractJsDocs` can also be a function. If you pass a function, the generator calls it with the extracted annotations so you can decide what becomes documentation.
-
-##### Working with `allOf` arrays
-
-`allOf` is supported. When an `allOf` member is a `$ref`, the generator needs access to the referenced schemas so it can inline them and merge them. Pass the `definitions` option when your `allOf` contains references.
-
-**Example** (Inlining a `$ref` inside `allOf`)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = {
-  type: "object",
-  properties: {
-    a: { type: "string" }
-  },
-  required: ["a"],
-  // Merge this schema with the referenced definition below.
-  allOf: [{ $ref: "#/definitions/B" }]
-}
-
-const generation = SchemaFromJson.generate(jsonSchema, {
-  source: "draft-07",
-  // Provide the definitions so `$ref` entries inside `allOf` can be resolved
-  // and merged into the final schema.
-  definitions: {
-    B: {
-      type: "object",
-      properties: {
-        b: { type: "string" }
-      },
-      required: ["b"]
-    }
-  }
-})
-
-console.log(generation)
-/*
-{
-  code: 'Schema.Struct({ "a": Schema.String, "b": Schema.String })',
-  types: {
-    Type: '{ readonly "a": string, readonly "b": string }',
-    Encoded: '{ readonly "a": string, readonly "b": string }',
-    DecodingServices: 'never',
-    EncodingServices: 'never'
-  },
-  annotations: {},
-  importDeclarations: Set(0) {}
-}
-*/
-```
-
-##### Working with definitions / components
-
-JSON Schema definitions / components are supported.
-
-**Example** (Resolve a `$ref` from definitions)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = JSON.parse(`{
-  "type": "object",
-  "properties": {
-    "a": { "type": "string" },
-    "b": { "$ref": "#/definitions/B" }
-  },
-  "required": ["a", "b"],
-  "additionalProperties": false,
-  "definitions": {
-    "B": { "type": "integer" }
-  }
-}`)
-
-console.log(SchemaFromJson.generate(jsonSchema, { source: "draft-07" }))
-/*
-{
-  code: 'Schema.Struct({ "a": Schema.String, "b": B })',
-  types: {
-    Type: '{ readonly "a": string, readonly "b": B }',
-    Encoded: '{ readonly "a": string, readonly "b": B }',
-    DecodingServices: 'never',
-    EncodingServices: 'never'
-  },
-  imports: Set(0) {}
-}
-*/
-```
-
-Notice that the generated runtime code references `B`. That means your output file must also include a definition named `B`.
-
-To generate definitions separately, use `generateDefinitions`. It returns an array of `DefinitionGeneration`:
-
-```ts
-type DefinitionGeneration = {
-  /** The identifier of the definition */
-  readonly identifier: string
-  /** The generated runtime code and types for the definition */
-  readonly generation: Generation
-}
-```
-
-**Example** (Generate only the definitions)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = JSON.parse(`{
-  "type": "object",
-  "properties": {
-    "a": { "type": "string" },
-    "b": { "$ref": "#/definitions/B" }
-  },
-  "required": ["a", "b"],
-  "additionalProperties": false,
-  "definitions": {
-    "B": { "type": "integer" }
-  }
-}`)
-
-console.dir(SchemaFromJson.generateDefinitions(jsonSchema.definitions, { source: "draft-07" }), { depth: null })
-/*
-[
-  {
-    identifier: 'B',
-    generation: {
-      code: 'Schema.Int.annotate({ "identifier": "B" })',
-      types: {
-        Type: 'number',
-        Encoded: 'number',
-        DecodingServices: 'never',
-        EncodingServices: 'never'
-      },
-      imports: Set(0) {}
-    }
-  }
-]
-*/
-```
-
-For each definition, the generator adds an `annotate` call with the identifier.
-
-Definitions are generated in topological order. This means a definition is emitted after the definitions it depends on.
-
-**Example** (Definitions are emitted in dependency order)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-// A appears first in the input, but it depends on B, so B is generated first.
-const definitions = JSON.parse(`{
-  "A": {
-    "type": "object",
-    "properties": { "dependent": { "$ref": "#/definitions/B" } },
-    "required": ["dependent"]
-  },
-  "B": { "type": "string" }
-}`)
-
-console.dir(SchemaFromJson.generateDefinitions(definitions, { source: "draft-07" }), { depth: null })
-/*
-[
-  {
-    identifier: 'B',
-    generation: {
-      code: 'Schema.String.annotate({ "identifier": "B" })',
-      types: {
-        Type: 'string',
-        Encoded: 'string',
-        DecodingServices: 'never',
-        EncodingServices: 'never'
-      },
-      annotations: {},
-      importDeclarations: Set(0) {}
-    }
-  },
-  {
-    identifier: 'A',
-    generation: {
-      code: 'Schema.Struct({ "dependent": B }).annotate({ "identifier": "A" })',
-      types: {
-        Type: '{ readonly "dependent": B }',
-        Encoded: '{ readonly "dependent": B }',
-        DecodingServices: 'never',
-        EncodingServices: 'never'
-      },
-      annotations: {},
-      importDeclarations: Set(0) {}
-    }
-  }
-]
-*/
-```
-
-Once you have the entry schema and all required definitions, you can write them into a single file.
-
-**Example** (Build a file that exports definitions and the entry schema)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = JSON.parse(`{
-  "type": "object",
-  "properties": {
-    "a": { "type": "string" },
-    "b": { "$ref": "#/definitions/B" }
-  },
-  "required": ["a", "b"],
-  "additionalProperties": false,
-  "definitions": {
-    "B": { "type": "integer" }
-  }
-}`)
-
-const schema = SchemaFromJson.generate(jsonSchema, { source: "draft-07" })
-const definitions = FromJsonSchema.generateDefinitions(jsonSchema.definitions, { source: "draft-07" })
-
-// Collect all definitions plus the entry schema.
-const all: ReadonlyArray<FromJsonSchema.DefinitionGeneration> = [
-  ...definitions,
-  { identifier: "MySchema", generation: schema }
-]
-
-// Build an ES module file as a string.
-// Note: if you use a custom resolver, also include `generation.importDeclarations`.
-const code = `import { Schema } from "effect"
-
-${
-  all
-    .map((g) =>
-      [
-        `export type ${g.identifier} = ${g.generation.types.Type};`,
-        `export type ${g.identifier}Encoded = ${g.generation.types.Encoded};`,
-        `export const ${g.identifier} = ${g.generation.runtime};`
-      ].join("\n")
-    )
-    .join("\n\n")
-}`
-
-console.log(code)
-/*
-import { Schema } from "effect"
-
-export type B = number;
-export type BEncoded = number;
-export const B = Schema.Int.annotate({ "identifier": "B" });
-
-export type MySchema = { readonly "a": string, readonly "b": B };
-export type MySchemaEncoded = { readonly "a": string, readonly "b": B };
-export const MySchema = Schema.Struct({ "a": Schema.String, "b": B });
-*/
-```
-
-##### Recursive schemas
-
-Recursive JSON Schemas are supported. When a definition is recursive, the generator emits `Schema.suspend(...)` so the schema can refer to itself.
-
-**Example** (Generate a recursive schema with `Schema.suspend`)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = JSON.parse(`{
-  "$ref": "#/definitions/A",
-  "definitions": {
-    "A": {
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "children": { "$ref": "#/definitions/A" }
-      },
-      "required": ["name", "children"],
-      "additionalProperties": false
-    }
-  }
-}`)
-
-const schema = SchemaFromJson.generate(jsonSchema, { source: "draft-07" })
-const definitions = SchemaFromJson.generateDefinitions(jsonSchema.definitions, { source: "draft-07" })
-
-// collect all definitions plus the entry schema
-const all: ReadonlyArray<SchemaFromJson.DefinitionGeneration> = [
-  ...definitions,
-  { identifier: "MySchema", generation: schema }
-]
-
-// build a code string containing all definitions
-const code = `import { Schema } from "effect"
-
-${
-  all
-    .map((g) =>
-      [
-        `export type ${g.identifier} = ${g.generation.types.Type};`,
-        `export type ${g.identifier}Encoded = ${g.generation.types.Encoded};`,
-        `export const ${g.identifier} = ${g.generation.runtime};`
-      ].join("\n")
-    )
-    .join("\n\n")
-}`
-
-console.log(code)
-/*
-import { Schema } from "effect"
-
-export type A = { readonly "name": string, readonly "children": A };
-export type AEncoded = { readonly "name": string, readonly "children": A };
-export const A = Schema.Struct({ "name": Schema.String, "children": Schema.suspend((): Schema.Codec<A> => A) }).annotate({ "identifier": "A" });
-
-export type MySchema = A;
-export type MySchemaEncoded = A;
-export const MySchema = A;
-*/
-```
-
-#### Advanced Usage
-
-##### Custom resolvers
-
-A resolver lets you control how `$ref` identifiers are translated into `Generation` values.
-
-By default, the resolver returns identifiers as-is. That is fine when your identifiers are valid TypeScript names, but it can break when they contain characters like `/`.
-
-**Example** (Default `$ref` resolution can produce invalid identifiers)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = JSON.parse(`{
-  "type": "object",
-  "properties": {
-    "a": { "type": "string" },
-    "b": {
-      "$ref": "#/definitions/my~1extern"
-    }
-  },
-  "required": ["a", "b"],
-  "additionalProperties": false
-}`)
-
-const schema = SchemaFromJson.generate(jsonSchema, { source: "draft-07" })
-
-console.log(schema)
-/*
-{
-  code: 'Schema.Struct({ "a": Schema.String, "b": my/extern })',
-  types: {
-    Type: '{ readonly "a": string, readonly "b": my/extern }',
-    Encoded: '{ readonly "a": string, readonly "b": my/extern }',
-    DecodingServices: 'never',
-    EncodingServices: 'never'
-  },
-  annotations: {},
-  importDeclarations: Set(0) {}
-}
-*/
-```
-
-Here the runtime code contains `my/extern`, which is not a valid TypeScript identifier. If you are generating a file, you need a resolver that maps this to something you can import or declare.
-
-A custom resolver can return:
-
-- type strings (`Type`, `Encoded`, `DecodingServices`, `EncodingServices`)
-- a set of import declarations to include in the generated file
-
-**Example** (Resolve `$ref` identifiers to imported symbols)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = JSON.parse(`{
-  "type": "object",
-  "properties": {
-    "a": { "type": "string" },
-    "b": {
-      "$ref": "#/definitions/my~1extern"
-    }
-  },
-  "required": ["a", "b"],
-  "additionalProperties": false
-}`)
-
-const schema = SchemaFromJson.generate(jsonSchema, {
-  source: "openapi-3.1",
-  resolver: (identifier) => {
-    if (identifier === "my/extern") {
-      // Replace the identifier with an imported symbol.
-      // The returned values are plain strings that will be used in the generated code.
-      return SchemaFromJson.makeGeneration(
-        "MyExtern",
-        SchemaFromJson.makeTypes("typeof MyExtern['Type']", "typeof MyExtern['Encoded']"),
-        undefined, // no annotations
-        new Set([`import { MyExtern } from "my-lib"`])
-      )
-    }
-
-    // Fallback: keep the original identifier.
-    return SchemaFromJson.makeGenerationIdentifier(identifier)
-  }
-})
-
-console.log(schema)
-/*
-{
-  code: 'Schema.Struct({ "a": Schema.String, "b": MyExtern })',
-  types: {
-    Type: `{ readonly "a": string, readonly "b": typeof MyExtern['Type'] }`,
-    Encoded: `{ readonly "a": string, readonly "b": typeof MyExtern['Encoded'] }`,
-    DecodingServices: 'never',
-    EncodingServices: 'never'
-  },
-  annotations: {},
-  importDeclarations: Set(1) { 'import { MyExtern } from "my-lib"' }
-}
-*/
-```
-
-##### Collecting custom annotations
-
-You can collect annotations from the JSON Schema by providing a `collectAnnotations` function.
-
-**Example** (Collect annotations from the JSON Schema)
-
-```ts
-import { SchemaFromJson } from "effect"
-
-const jsonSchema = JSON.parse(`{
-  "type": "object",
-  "properties": {
-    "a": { "type": "string", "errorMessage": "Input must be a string", "description": "my property" }
-  },
-  "required": ["a"],
-  "additionalProperties": false
-}`)
-
-const generation = SchemaFromJson.generate(jsonSchema, {
-  source: "draft-07",
-  collectAnnotations: (schema, annotations) => {
-    return {
-      ...annotations,
-      ...(typeof schema.errorMessage === "string" ? { message: schema.errorMessage } : {})
-    }
-  }
-})
-
-console.log(generation.code)
-// Schema.Struct({ "a": Schema.String.annotate({ "description": "my property", "message": "Input must be a string" }) })
-```
-
 ### Generating an Arbitrary from a Schema
 
 Property-based testing checks your code against many randomly generated inputs. An Arbitrary is a generator that produces random values matching your schema. Schema can derive an Arbitrary automatically, so you do not need to write generators by hand.
@@ -5808,7 +5242,7 @@ The idea is simple: if you have a `Schema` for a type `T`, you can serialize any
 
 This approach keeps patches independent from TypeScript types and uses the schema as the guardrail when turning JSON back into `T`.
 
-## Schema Representation
+# Schema Representation
 
 The `SchemaRepresentation` module converts a `Schema` into a portable data structure and back again.
 
@@ -5844,15 +5278,15 @@ flowchart TD
     MD <--> |"MultiDocumentFromJson (schema)"|JSON
 ```
 
-### The data model
+## The data model
 
-#### `Representation`
+### `Representation`
 
 A `Representation` is a tagged object tree (`_tag` fields like `"String"`, `"Objects"`, `"Union"`, ...). It describes the _structure_ of a schema in a JSON-friendly way.
 
 Only a subset of schema features can be represented. See "Limitations" below.
 
-#### `Document`
+### `Document`
 
 A `Document` has:
 
@@ -5861,19 +5295,19 @@ A `Document` has:
 
 References let the representation share definitions and support recursion.
 
-#### `MultiDocument`
+### `MultiDocument`
 
 A `MultiDocument` stores multiple root representations that share the same `references` table.
 
 This is useful if you want to serialize a set of schemas together, or if you want to generate code for multiple schemas while emitting shared definitions only once.
 
-### Limitations
+## Limitations
 
 `SchemaRepresentation` is meant for schemas that can be described without user code.
 
 That has a few consequences.
 
-#### Transformations are not supported
+### Transformations are not supported
 
 The representation format describes the schema's _shape_ and a set of known checks. It does not store transformation logic.
 
@@ -5889,7 +5323,7 @@ If you serialize a transformed schema, the transformation logic will be lost. Wh
 >
 > A transformation is user code (functions). JSON cannot store functions, and serializing functions as strings would not be safe or portable.
 
-#### Only built-in checks can be represented
+### Only built-in checks can be represented
 
 Checks are stored as `Filter` / `FilterGroup` nodes with a small `meta` object.
 
@@ -5904,7 +5338,7 @@ Only checks that match the built-in meta definitions are supported, such as:
 
 Custom predicates (for example `Schema.filter((x) => ...)`) are not supported, because the representation has nowhere to store the function.
 
-#### Annotations are filtered
+### Annotations are filtered
 
 Annotations are stored as a record, but:
 
@@ -5913,7 +5347,7 @@ Annotations are stored as a record, but:
 
 In practice, documentation annotations like `title` and `description` are preserved, while complex values (functions, instances, nested objects) are ignored.
 
-#### Declarations need a reviver
+### Declarations need a reviver
 
 Some runtime schemas are represented as `Declaration` nodes. Rebuilding them requires a "reviver" function.
 
@@ -5927,18 +5361,18 @@ Some runtime schemas are represented as `Declaration` nodes. Rebuilding them req
 
 If your document contains other declarations, pass a custom `reviver` to `toSchema`.
 
-### JSON round-tripping
+## JSON round-tripping
 
-#### `toJson` / `fromJson`
+### `toJson` / `fromJson`
 
 - `toJson(document)` returns JSON-compatible data (safe to `JSON.stringify`)
 - `fromJson(unknown)` validates and parses JSON data back into a `Document`
 
 Internally, these functions use a canonical JSON codec for `Document$`. This is why values like `bigint` in annotations are encoded as strings in the JSON form and restored on decode.
 
-### Rebuilding runtime schemas
+## Rebuilding runtime schemas
 
-#### `toSchema`
+### `toSchema`
 
 `toSchema(document)` walks the representation tree and recreates a runtime schema.
 
@@ -5962,17 +5396,17 @@ SchemaRepresentation.toSchema(document, {
 })
 ```
 
-### JSON Schema output
+## JSON Schema output
 
-#### `toJsonSchemaDocument` / `toJsonSchemaMultiDocument`
+### `toJsonSchemaDocument` / `toJsonSchemaMultiDocument`
 
 These functions convert a `Document` or `MultiDocument` into a Draft 2020-12 JSON Schema document.
 
 This is useful for tooling that expects JSON Schema, or for producing OpenAPI-compatible schema pieces (depending on your pipeline).
 
-### Code generation
+## Code generation
 
-#### `toCodeDocument`
+### `toCodeDocument`
 
 `toCodeDocument` converts a `MultiDocument` into a structure that is convenient for generating TypeScript source.
 
@@ -5987,85 +5421,6 @@ You can customize:
 
 - `sanitizeReference` to control how `$ref` strings become identifiers
 - `reviver` to generate custom code for `Declaration` nodes
-
-### Examples
-
-**Example** (Round-tripping a schema through JSON)
-
-```ts
-import { Schema, SchemaRepresentation } from "effect"
-
-const schema = Schema.Struct({
-  a: Schema.String.annotate({
-    description: "my description",
-    customAnnotation: 1n
-  })
-})
-
-// Encode the schema into standard representation (includes the AST and definitions).
-const document = SchemaRepresentation.fromAST(schema.ast)
-
-// Encode the standard representation into a JSON-compatible representation.
-const json = SchemaRepresentation.toJson(document)
-
-// This output is safe to send over the network or store on disk.
-console.log(JSON.stringify(json, null, 2))
-/*
-{
-  "schema": {
-    "_tag": "Objects",
-    "propertySignatures": [
-      {
-        "name": "a",
-        "type": {
-          "_tag": "String",
-          "annotations": {
-            "description": "my description",
-            "customAnnotation": "1"
-          },
-          "checks": []
-        },
-        "isOptional": false,
-        "isMutable": false
-      }
-    ],
-    "indexSignatures": [],
-    "checks": []
-  },
-  "references": {}
-}
-*/
-
-// Decode the JSON-compatible representation back into a standard representation.
-const decodedAST = SchemaRepresentation.fromJson(json)
-
-// Convert the standard representation into a runtime schema.
-const decodedSchema = SchemaRepresentation.toSchema<typeof schema>(decodedAST)
-
-// You can read annotations from the decoded schema, since they were preserved through the round trip.
-console.log(decodedSchema.fields.a.ast.annotations)
-// { description: 'my description', customAnnotation: 1n }
-```
-
-**Example** (A transformation that cannot be represented)
-
-```ts
-import { Schema, SchemaRepresentation } from "effect"
-
-// This schema stores transformation functions.
-// Those functions cannot be encoded in the representation format.
-const schema = Schema.NumberFromString
-
-const document = SchemaRepresentation.fromAST(schema.ast)
-const json = SchemaRepresentation.toJson(document)
-
-console.log(json)
-// { representation: { _tag: 'String', checks: [] }, references: {} }
-```
-
-**Example** (Handling a custom declaration with a reviver)
-
-TODO
 
 # Error Handling and Formatting
 
