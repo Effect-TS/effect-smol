@@ -575,7 +575,6 @@ const makeResponse = Effect.fnUntraced(
     let hasToolCalls = false
     let hasEncryptedReasoning = false
 
-    // 1. response-metadata
     const createdAt = new Date(rawResponse.created * 1000)
     parts.push({
       type: "response-metadata",
@@ -585,7 +584,6 @@ const makeResponse = Effect.fnUntraced(
       request: buildHttpRequestDetails(response.request)
     })
 
-    // Extract first choice
     const choice = rawResponse.choices[0]
     if (Predicate.isUndefined(choice)) {
       parts.push({
@@ -606,7 +604,6 @@ const makeResponse = Effect.fnUntraced(
     const message = choice.message
     let finishReason = choice.finish_reason
 
-    // 2. reasoning_details
     const reasoningDetails = message.reasoning_details
     if (Predicate.isNotNullish(reasoningDetails) && reasoningDetails.length > 0) {
       for (const detail of reasoningDetails) {
@@ -639,14 +636,13 @@ const makeResponse = Effect.fnUntraced(
         }
       }
     } else if (Predicate.isNotNullish(message.reasoning) && message.reasoning.length > 0) {
-      // 3. message.reasoning fallback (only when reasoning_details absent/empty)
+      // message.reasoning fallback only when reasoning_details absent/empty
       parts.push({
         type: "reasoning",
         text: message.reasoning
       })
     }
 
-    // 4. message.content
     const content = message.content
     if (Predicate.isNotNullish(content)) {
       if (typeof content === "string") {
@@ -662,7 +658,6 @@ const makeResponse = Effect.fnUntraced(
       }
     }
 
-    // 5. message.tool_calls
     const toolCalls = message.tool_calls
     if (Predicate.isNotNullish(toolCalls) && toolCalls.length > 0) {
       hasToolCalls = true
@@ -695,7 +690,6 @@ const makeResponse = Effect.fnUntraced(
       }
     }
 
-    // 6. message.images
     const images = message.images
     if (Predicate.isNotNullish(images)) {
       for (const image of images) {
@@ -722,12 +716,11 @@ const makeResponse = Effect.fnUntraced(
       }
     }
 
-    // 7. Gemini 3 finish reason workaround
+    // Gemini 3 finish reason workaround
     if (hasEncryptedReasoning && hasToolCalls && finishReason === "stop") {
       finishReason = "tool_calls"
     }
 
-    // 8. finish part
     parts.push({
       type: "finish",
       reason: resolveFinishReason(finishReason, hasToolCalls),
