@@ -425,7 +425,7 @@ export const middlewareHttpSession = <
         const session = yield* Effect.provideService(makeSession, Persistence.Persistence, persistence)
         let response = yield* Effect.provideService(effect, HttpSession.HttpSession, session)
         if (service.security.in === "cookie") {
-          const update = yield* HttpSession.takeCookieUpdate(session)
+          let update = yield* HttpSession.takeCookieUpdate(session)
           if (update === "clear") {
             response = yield* Effect.provideService(HttpSession.clearCookie(response), HttpSession.HttpSession, session)
           } else if (update === "set") {
@@ -434,7 +434,8 @@ export const middlewareHttpSession = <
             const current = request.cookies[service.security.key]
             const state = yield* Effect.orDie(session.state)
             const sessionId = Redacted.value(state.id)
-            if (current !== sessionId) {
+            update = yield* HttpSession.takeCookieUpdate(session)
+            if (update === "set" || current !== sessionId) {
               response = yield* Effect.provideService(HttpSession.setCookie(response), HttpSession.HttpSession, session)
             }
           }

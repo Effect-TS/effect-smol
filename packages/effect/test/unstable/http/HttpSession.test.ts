@@ -528,6 +528,60 @@ describe("HttpSession", () => {
       Effect.provide(Persistence.layerMemory)
     ))
 
+  it.effect("middleware sets refreshed cookie when threshold is crossed during handler", () =>
+    Effect.gen(function*() {
+      const sessionId = HttpSession.SessionId("middleware-refresh-during-handler")
+      const middleware = yield* SessionMiddleware
+
+      const run = (cookie: string, refreshDuringHandler: boolean) =>
+        middleware(
+          Effect.gen(function*() {
+            if (refreshDuringHandler) {
+              yield* TestClock.adjust(Duration.minutes(1))
+            }
+            return HttpServerResponse.empty()
+          }),
+          {} as any
+        ).pipe(
+          Effect.provideService(
+            HttpServerRequest.HttpServerRequest,
+            HttpServerRequest.fromWeb(
+              new Request("http://localhost/", {
+                headers: {
+                  cookie: `session_token=${cookie}`
+                }
+              })
+            )
+          ),
+          Effect.provideService(HttpServerRequest.ParsedSearchParams, {}),
+          Effect.provideService(HttpRouter.RouteContext, {
+            params: {},
+            route: {} as any
+          })
+        )
+
+      const first = yield* run("stale", false)
+      const firstCookie = Cookies.get(first.cookies, "session_token")
+      assert.isTrue(firstCookie !== undefined)
+      if (firstCookie !== undefined) {
+        assert.strictEqual(firstCookie.value, Redacted.value(sessionId))
+      }
+
+      const second = yield* run(Redacted.value(sessionId), true)
+      const secondCookie = Cookies.get(second.cookies, "session_token")
+      assert.isTrue(secondCookie !== undefined)
+      if (secondCookie !== undefined) {
+        assert.strictEqual(secondCookie.value, Redacted.value(sessionId))
+      }
+    }).pipe(
+      Effect.provide(HttpApiBuilder.middlewareHttpSession(SessionMiddleware, {
+        generateSessionId: Effect.succeed(HttpSession.SessionId("middleware-refresh-during-handler")),
+        expiresIn: Duration.minutes(10),
+        updateAge: Duration.minutes(1)
+      })),
+      Effect.provide(Persistence.layerMemory)
+    ))
+
   it.effect("middleware clears cookie when clear fails but request handles the error", () =>
     Effect.gen(function*() {
       const sessionId = HttpSession.SessionId("middleware-clear")
