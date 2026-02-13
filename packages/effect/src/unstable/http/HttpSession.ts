@@ -113,6 +113,7 @@ export class HttpSession extends ServiceMap.Service<HttpSession, {
   readonly id: MutableRef.MutableRef<SessionId>
   readonly state: Effect.Effect<SessionState, HttpSessionError>
   readonly cookie: Effect.Effect<Cookies.Cookie>
+  readonly rotate: Effect.Effect<void, HttpSessionError>
   readonly get: <S extends Schema.Top>(
     key: Key<S>
   ) => Effect.Effect<Option.Option<S["Type"]>, HttpSessionError, S["DecodingServices"]>
@@ -290,6 +291,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
 
   const state = MutableRef.make(initial)
   const id = MutableRef.make(initial.id)
+  const withStateLock = Effect.makeSemaphoreUnsafe(1).withPermit
 
   const ensureState = Effect.gen(function*() {
     const currentState = state.current
@@ -299,7 +301,15 @@ export const make = Effect.fnUntraced(function*<E, R>(
       id.current = nextState.id
     }
     return state.current
-  }).pipe(Effect.makeSemaphoreUnsafe(1).withPermit)
+  }).pipe(withStateLock)
+
+  const rotate = Effect.gen(function*() {
+    const previousState = state.current
+    const nextState = yield* freshState
+    state.current = nextState
+    id.current = nextState.id
+    yield* Effect.ignore(previousState.storage.clear)
+  }).pipe(withStateLock)
 
   return HttpSession.of({
     id,
@@ -315,6 +325,9 @@ export const make = Effect.fnUntraced(function*<E, R>(
           secure: options.cookie?.secure ?? true,
           httpOnly: options.cookie?.httpOnly ?? true
         })
+    ),
+    rotate: rotate.pipe(
+      Effect.mapError((error) => new HttpSessionError(error))
     ),
     get: <S extends Schema.Top>(
       key: Key<S>

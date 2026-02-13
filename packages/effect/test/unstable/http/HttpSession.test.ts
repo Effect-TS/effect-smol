@@ -252,8 +252,109 @@ describe("HttpSession", () => {
         }
 
         const secondStore = yield* persistence.make({ storeId: toStoreId(secondId) })
+        const secondMeta = yield* secondStore.get(HttpSession.SessionMeta.key)
+        assert.strictEqual(secondMeta, undefined)
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("rotates session id and keeps the resolved service usable", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const firstId = HttpSession.SessionId("first")
+        const secondId = HttpSession.SessionId("second")
+        const thirdId = HttpSession.SessionId("third")
+        const generatedIds = [secondId, thirdId]
+        let index = 0
+
+        const persistence = yield* Persistence.Persistence
+
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.some(firstId)),
+          generateSessionId: Effect.sync(() => generatedIds[index++]!)
+        })
+
+        assert.strictEqual(Redacted.value(session.id.current), Redacted.value(secondId))
+
+        const secondStore = yield* persistence.make({ storeId: toStoreId(secondId) })
+
+        yield* session.set(ValueKey, "stale")
+        yield* session.rotate
+
+        assert.strictEqual(Redacted.value(session.id.current), Redacted.value(thirdId))
+
         const secondMeta = yield* secondStore.get(SessionMetaKey)
         assert.strictEqual(secondMeta, undefined)
+        const secondValue = yield* secondStore.get(ValueKey)
+        assert.strictEqual(secondValue, undefined)
+
+        yield* session.set(ValueKey, "fresh")
+
+        const thirdStore = yield* persistence.make({ storeId: toStoreId(thirdId) })
+        const thirdMeta = yield* thirdStore.get(HttpSession.SessionMeta.key)
+        assert.isTrue(thirdMeta !== undefined && thirdMeta._tag === "Success")
+
+        const thirdValue = yield* thirdStore.get(ValueKey)
+        assert.isTrue(thirdValue !== undefined && thirdValue._tag === "Success")
+        if (thirdValue !== undefined && thirdValue._tag === "Success") {
+          assert.strictEqual(thirdValue.value, "fresh")
+        }
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("rotates even when clearing the previous store fails", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const firstId = HttpSession.SessionId("first")
+        const secondId = HttpSession.SessionId("second")
+        const thirdId = HttpSession.SessionId("third")
+        const generatedIds = [secondId, thirdId]
+        let index = 0
+
+        const basePersistence = yield* Persistence.Persistence
+        const secondStore = yield* basePersistence.make({ storeId: toStoreId(secondId) })
+
+        const wrappedPersistence = Persistence.Persistence.of({
+          make: (options) =>
+            Effect.map(
+              basePersistence.make(options),
+              (store) =>
+                options.storeId === toStoreId(secondId)
+                  ? {
+                    ...store,
+                    clear: Effect.fail(new Persistence.PersistenceError({ message: "clear failed" }))
+                  }
+                  : store
+            )
+        })
+
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.some(firstId)),
+          generateSessionId: Effect.sync(() => generatedIds[index++]!)
+        }).pipe(Effect.provideService(Persistence.Persistence, wrappedPersistence))
+
+        assert.strictEqual(Redacted.value(session.id.current), Redacted.value(secondId))
+
+        yield* session.set(ValueKey, "stale")
+        yield* session.rotate
+
+        assert.strictEqual(Redacted.value(session.id.current), Redacted.value(thirdId))
+
+        const secondValue = yield* secondStore.get(ValueKey)
+        assert.isTrue(secondValue !== undefined && secondValue._tag === "Success")
+        if (secondValue !== undefined && secondValue._tag === "Success") {
+          assert.strictEqual(secondValue.value, "stale")
+        }
+
+        yield* session.set(ValueKey, "fresh")
+
+        const thirdStore = yield* basePersistence.make({ storeId: toStoreId(thirdId) })
+        const thirdMeta = yield* thirdStore.get(HttpSession.SessionMeta.key)
+        assert.isTrue(thirdMeta !== undefined && thirdMeta._tag === "Success")
+        const thirdValue = yield* thirdStore.get(ValueKey)
+        assert.isTrue(thirdValue !== undefined && thirdValue._tag === "Success")
+        if (thirdValue !== undefined && thirdValue._tag === "Success") {
+          assert.strictEqual(thirdValue.value, "fresh")
+        }
       })
     ).pipe(Effect.provide(Persistence.layerMemory)))
 
