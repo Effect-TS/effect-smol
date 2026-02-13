@@ -110,6 +110,7 @@ export const SessionId = (value: string): SessionId => Redacted.make(value) as S
  */
 export class HttpSession extends ServiceMap.Service<HttpSession, {
   readonly id: MutableRef.MutableRef<SessionId>
+  readonly metadata: MutableRef.MutableRef<SessionMetadata>
   readonly cookie: Effect.Effect<Cookies.Cookie>
   readonly get: <S extends Schema.Top>(
     key: Key<S>
@@ -121,6 +122,19 @@ export class HttpSession extends ServiceMap.Service<HttpSession, {
   readonly remove: <S extends Schema.Top>(key: Key<S>) => Effect.Effect<void, HttpSessionError>
   readonly clear: Effect.Effect<void, HttpSessionError>
 }>()("effect/http/HttpSession") {}
+
+/**
+ * @since 4.0.0
+ * @category Metadata
+ */
+export class SessionMetadata extends Schema.Class<SessionMetadata>("effect/http/HttpSession/SessionMetadata")({
+  createdAt: Schema.DateTimeUtc
+}) {
+  static key = key({
+    id: "_metadata",
+    schema: SessionMetadata
+  })
+}
 
 /**
  * @since 4.0.0
@@ -147,7 +161,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
   options: MakeHttpSessionOptions<E, R>
 ): Effect.fn.Return<
   HttpSession["Service"],
-  E,
+  E | PersistenceError,
   R | Persistence.Persistence | Scope
 > {
   const persistence = yield* Persistence.Persistence
@@ -165,9 +179,21 @@ export const make = Effect.fnUntraced(function*<E, R>(
       return timeToLive
     }
   })
+  const metadata = MutableRef.make(
+    yield* storage.get(SessionMetadata.key).pipe(
+      Effect.flatMap((exit) => {
+        if (exit && exit._tag === "Success") {
+          return Effect.succeed(exit.value)
+        }
+        return Effect.map(DateTime.now, (now) => new SessionMetadata({ createdAt: now }))
+      }),
+      Effect.catchTag("SchemaError", Effect.die)
+    )
+  )
 
   return HttpSession.of({
     id: sessionId,
+    metadata,
     cookie: Effect.map(
       DateTime.now,
       (now) =>
