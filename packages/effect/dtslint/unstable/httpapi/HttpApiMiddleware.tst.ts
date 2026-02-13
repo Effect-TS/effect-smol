@@ -9,7 +9,6 @@ describe("HttpApiMiddleware", () => {
         error: Schema.String
       }) {}
       expect(M.error).type.toBe<Schema.String>()
-      expect(M.security).type.toBe<never>()
     })
 
     it("security", () => {

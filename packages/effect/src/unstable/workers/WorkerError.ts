@@ -96,6 +96,7 @@ export const WorkerErrorReason: Schema.Union<[
  * @since 4.0.0
  * @category Models
  */
+// @effect-diagnostics-next-line overriddenSchemaConstructor:off
 export class WorkerError extends Schema.ErrorClass<WorkerError>(TypeId)({
   _tag: Schema.tag("WorkerError"),
   reason: WorkerErrorReason
