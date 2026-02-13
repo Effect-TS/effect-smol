@@ -10,7 +10,6 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import { identity } from "../../Function.ts"
 import { YieldableProto } from "../../internal/core.ts"
-import * as MutableRef from "../../MutableRef.ts"
 import * as Option from "../../Option.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
 import * as Redacted from "../../Redacted.ts"
@@ -174,12 +173,6 @@ export interface MakeHttpSessionOptions<E = never, R = never> {
   readonly generateSessionId?: Effect.Effect<SessionId> | undefined
 }
 
-interface InternalSessionState {
-  id: SessionId
-  metadata: SessionMeta
-  storage: Persistence.PersistenceStore
-}
-
 /**
  * @since 4.0.0
  * @category Storage
@@ -199,6 +192,9 @@ export const make = Effect.fnUntraced(function*<E, R>(
   const updateAgeMillis = Duration.toMillis(updateAge)
   const disableRefresh = options.disableRefresh ?? false
   const generateSessionId = options.generateSessionId ?? defaultGenerateSessionId
+  const mapHttpSessionError = Effect.mapError(
+    (error: PersistenceError | KeyNotFound | Schema.SchemaError) => new HttpSessionError(error)
+  )
 
   const makeSessionMeta = (now: DateTime.Utc, createdAt = now) =>
     new SessionMeta({
@@ -207,12 +203,12 @@ export const make = Effect.fnUntraced(function*<E, R>(
       lastRefreshedAt: now
     })
 
-  const makeStorage = (state: Pick<InternalSessionState, "id" | "metadata">) =>
+  const makeStorage = (sessionId: SessionId, metadata: SessionMeta) =>
     Effect.provideService(
       persistence.make({
-        storeId: `session:${Redacted.value(state.id)}`,
+        storeId: `session:${Redacted.value(sessionId)}`,
         timeToLive() {
-          return Duration.millis(state.metadata.expiresAt.epochMillis - clock.currentTimeMillisUnsafe())
+          return Duration.millis(metadata.expiresAt.epochMillis - clock.currentTimeMillisUnsafe())
         }
       }),
       Scope.Scope,
@@ -222,21 +218,15 @@ export const make = Effect.fnUntraced(function*<E, R>(
   const shouldRefresh = (metadata: SessionMeta, now: DateTime.Utc): boolean =>
     !disableRefresh && now.epochMillis - metadata.lastRefreshedAt.epochMillis >= updateAgeMillis
 
-  const refreshMetadata = Effect.fnUntraced(function*(state: InternalSessionState, now: DateTime.Utc) {
-    const previousMetadata = state.metadata
+  const refreshMetadata = Effect.fnUntraced(function*(state: SessionState, now: DateTime.Utc) {
     const refreshedMetadata = makeSessionMeta(now, state.metadata.createdAt)
-    state.metadata = refreshedMetadata
-    const writeResult = yield* Effect.exit(state.storage.set(SessionMeta.key, Exit.succeed(refreshedMetadata)))
-    if (Exit.isFailure(writeResult)) {
-      state.metadata = previousMetadata
-      return yield* writeResult
-    }
+    yield* state.storage.set(SessionMeta.key, Exit.succeed(refreshedMetadata))
+    return identity<SessionState>({ ...state, metadata: refreshedMetadata })
   }, Effect.catchIf(Schema.isSchemaError, Effect.die))
 
-  const reconcileState = Effect.fnUntraced(function*(state: InternalSessionState): Effect.fn.Return<
-    InternalSessionState,
-    PersistenceError
-  > {
+  const reconcileState = Effect.fnUntraced(function*(
+    state: SessionState
+  ): Effect.fn.Return<SessionState, PersistenceError> {
     const metadata = yield* state.storage.get(SessionMeta.key).pipe(
       Effect.catchTag("SchemaError", () => Effect.undefined)
     )
@@ -244,13 +234,13 @@ export const make = Effect.fnUntraced(function*<E, R>(
       return yield* freshState
     }
     const now = yield* DateTime.now
+    console.log("metadata", metadata.value, "now", now, metadata.value.isExpired(now))
     if (metadata.value.isExpired(now)) {
       yield* state.storage.clear
       return yield* freshState
     }
-    state.metadata = metadata.value
     if (shouldRefresh(state.metadata, now)) {
-      yield* refreshMetadata(state, now)
+      return yield* refreshMetadata(state, now)
     }
     return state
   })
@@ -258,74 +248,73 @@ export const make = Effect.fnUntraced(function*<E, R>(
   const freshState = Effect.gen(function*() {
     const id = yield* generateSessionId
     const now = yield* DateTime.now
-    const state = identity<InternalSessionState>({
+    const metadata = makeSessionMeta(now)
+    const state = identity<SessionState>({
       id,
-      metadata: makeSessionMeta(now),
-      storage: undefined as any
+      metadata,
+      storage: yield* makeStorage(id, metadata)
     })
-    state.storage = yield* makeStorage(state)
     yield* state.storage.set(SessionMeta.key, Exit.succeed(state.metadata))
     return state
   }).pipe(Effect.catchIf(Schema.isSchemaError, Effect.die))
 
   const initialState = Effect.gen(function*() {
     const sessionId = yield* options.getSessionId.pipe(
-      Effect.flatMap((sessionId) => Option.isSome(sessionId) ? Effect.succeed(sessionId.value) : generateSessionId)
+      Effect.flatMap(Option.match({
+        onNone: () => generateSessionId,
+        onSome: Effect.succeed
+      }))
     )
     const now = yield* DateTime.now
-    const state = identity<InternalSessionState>({
+    const metadata = makeSessionMeta(now)
+    const state = identity<SessionState>({
       id: sessionId,
-      metadata: makeSessionMeta(now),
-      storage: undefined as any
+      metadata,
+      storage: yield* makeStorage(sessionId, metadata)
     })
-    state.storage = yield* makeStorage(state)
     return yield* reconcileState(state)
   })
 
-  const initial = yield* initialState.pipe(
+  let currentState = yield* initialState.pipe(
     // TODO: surface persistence errors instead of dying
     Effect.orDie
   )
 
-  const state = MutableRef.make(initial)
-  const id = MutableRef.make(initial.id)
   const withStateLock = Effect.makeSemaphoreUnsafe(1).withPermit
 
-  const ensureState = Effect.gen(function*() {
-    const currentState = state.current
-    const nextState = yield* reconcileState(currentState)
-    if (nextState !== currentState) {
-      state.current = nextState
-      id.current = nextState.id
-    }
-    return state.current
-  }).pipe(withStateLock)
+  const withStorage = <A, E2, R2>(
+    f: (storage: Persistence.PersistenceStore) => Effect.Effect<A, E2, R2>
+  ) => Effect.flatMap(ensureState, (state) => f(state.storage))
 
-  const rotate = Effect.gen(function*() {
-    const previousState = state.current
+  const ensureState = withStateLock(Effect.gen(function*() {
+    const now = yield* DateTime.now
+    if (!shouldRefresh(currentState.metadata, now)) {
+      return currentState
+    }
+    currentState = yield* refreshMetadata(currentState, now)
+    return currentState
+  }))
+
+  const rotate = withStateLock(Effect.gen(function*() {
+    const previousState = currentState
     const nextState = yield* freshState
-    state.current = nextState
-    id.current = nextState.id
+    currentState = nextState
     if (Redacted.value(previousState.id) !== Redacted.value(nextState.id)) {
       yield* Effect.ignore(previousState.storage.clear)
     }
-  }).pipe(withStateLock)
+  }))
 
   return HttpSession.of({
-    state: ensureState.pipe(
-      Effect.mapError((error) => new HttpSessionError(error))
-    ),
+    state: ensureState.pipe(mapHttpSessionError),
     cookie: Effect.sync(() =>
-      Cookies.makeCookieUnsafe(options.cookie?.name ?? "sid", Redacted.value(state.current.id), {
+      Cookies.makeCookieUnsafe(options.cookie?.name ?? "sid", Redacted.value(currentState.id), {
         ...options.cookie,
-        expires: new Date(state.current.metadata.expiresAt.epochMillis),
+        expires: new Date(currentState.metadata.expiresAt.epochMillis),
         secure: options.cookie?.secure ?? true,
         httpOnly: options.cookie?.httpOnly ?? true
       })
     ),
-    rotate: rotate.pipe(
-      Effect.mapError((error) => new HttpSessionError(error))
-    ),
+    rotate: rotate.pipe(mapHttpSessionError),
     get: Effect.fnUntraced(function*<S extends Schema.Top>(
       key: Key<S>
     ) {
@@ -335,27 +324,10 @@ export const make = Effect.fnUntraced(function*<E, R>(
         return Option.none()
       }
       return Option.some(exit.value)
-    }, Effect.mapError((error) => new HttpSessionError(error))),
-    set: (key, value) =>
-      Effect.flatMap(
-        ensureState,
-        (state) => state.storage.set(key, Exit.succeed(value))
-      ).pipe(
-        Effect.mapError((error) => new HttpSessionError(error))
-      ),
-    remove: (key) =>
-      Effect.flatMap(
-        ensureState,
-        (state) => state.storage.remove(key)
-      ).pipe(
-        Effect.mapError((error) => new HttpSessionError(error))
-      ),
-    clear: Effect.flatMap(
-      ensureState,
-      (state) => state.storage.clear
-    ).pipe(
-      Effect.mapError((error) => new HttpSessionError(error))
-    )
+    }, mapHttpSessionError),
+    set: (key, value) => withStorage((storage) => storage.set(key, Exit.succeed(value))).pipe(mapHttpSessionError),
+    remove: (key) => withStorage((storage) => storage.remove(key)).pipe(mapHttpSessionError),
+    clear: withStorage((storage) => storage.clear).pipe(mapHttpSessionError)
   })
 })
 
