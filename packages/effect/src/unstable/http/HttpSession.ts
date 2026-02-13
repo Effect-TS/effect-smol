@@ -7,7 +7,7 @@ import * as DateTime from "../../DateTime.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
-import { identity } from "../../Function.ts"
+import { dual, identity } from "../../Function.ts"
 import { YieldableProto } from "../../internal/core.ts"
 import * as MutableRef from "../../MutableRef.ts"
 import * as Option from "../../Option.ts"
@@ -165,6 +165,7 @@ export interface MakeHttpSessionOptions<E = never, R = never> {
     readonly domain?: string | undefined
     readonly secure?: boolean | undefined
     readonly httpOnly?: boolean | undefined
+    readonly sameSite?: "lax" | "strict" | "none" | undefined
   } | undefined
   readonly getSessionId: Effect.Effect<Option.Option<SessionId>, E, R>
   readonly timeToLive?: Duration.DurationInput | undefined
@@ -369,17 +370,122 @@ export const make = Effect.fnUntraced(function*<E, R>(
 
 const defaultGenerateSessionId = Effect.sync(() => SessionId(crypto.randomUUID()))
 
+interface CookieHelperOptions {
+  readonly name?: string | undefined
+  readonly path?: string | undefined
+  readonly domain?: string | undefined
+  readonly secure?: boolean | undefined
+  readonly httpOnly?: boolean | undefined
+  readonly sameSite?: "lax" | "strict" | "none" | undefined
+}
+
+const makeCookieOptions = (
+  cookie: Cookies.Cookie,
+  options?: CookieHelperOptions
+): Cookies.Cookie["options"] => ({
+  ...cookie.options,
+  path: options?.path ?? cookie.options?.path,
+  domain: options?.domain ?? cookie.options?.domain,
+  sameSite: options?.sameSite ?? cookie.options?.sameSite,
+  secure: options?.secure ?? cookie.options?.secure ?? true,
+  httpOnly: options?.httpOnly ?? cookie.options?.httpOnly ?? true
+})
+
 /**
  * @since 4.0.0
  * @category Response helpers
  */
-export const setCookie = (response: HttpServerResponse): Effect.Effect<HttpServerResponse, never, HttpSession> =>
-  HttpSession.use((session) =>
-    Effect.map(
-      session.cookie,
-      (cookie) => Response.updateCookies(response, Cookies.setCookie(cookie))
+export const setCookie: {
+  (
+    options?: {
+      readonly name?: string | undefined
+      readonly path?: string | undefined
+      readonly domain?: string | undefined
+      readonly secure?: boolean | undefined
+      readonly httpOnly?: boolean | undefined
+      readonly sameSite?: "lax" | "strict" | "none" | undefined
+    } | undefined
+  ): (response: HttpServerResponse) => Effect.Effect<HttpServerResponse, never, HttpSession>
+  (
+    response: HttpServerResponse,
+    options?: {
+      readonly name?: string | undefined
+      readonly path?: string | undefined
+      readonly domain?: string | undefined
+      readonly secure?: boolean | undefined
+      readonly httpOnly?: boolean | undefined
+      readonly sameSite?: "lax" | "strict" | "none" | undefined
+    } | undefined
+  ): Effect.Effect<HttpServerResponse, never, HttpSession>
+} = dual(
+  (args) => Response.isHttpServerResponse(args[0]),
+  (
+    response: HttpServerResponse,
+    options?: CookieHelperOptions
+  ): Effect.Effect<HttpServerResponse, never, HttpSession> =>
+    HttpSession.use((session) =>
+      Effect.map(
+        session.cookie,
+        (cookie) =>
+          Response.updateCookies(
+            response,
+            Cookies.setCookie(
+              Cookies.makeCookieUnsafe(options?.name ?? cookie.name, cookie.value, makeCookieOptions(cookie, options))
+            )
+          )
+      )
     )
-  )
+)
+
+/**
+ * @since 4.0.0
+ * @category Response helpers
+ */
+export const clearCookie: {
+  (
+    options?: {
+      readonly name?: string | undefined
+      readonly path?: string | undefined
+      readonly domain?: string | undefined
+      readonly secure?: boolean | undefined
+      readonly httpOnly?: boolean | undefined
+      readonly sameSite?: "lax" | "strict" | "none" | undefined
+    } | undefined
+  ): (response: HttpServerResponse) => Effect.Effect<HttpServerResponse, never, HttpSession>
+  (
+    response: HttpServerResponse,
+    options?: {
+      readonly name?: string | undefined
+      readonly path?: string | undefined
+      readonly domain?: string | undefined
+      readonly secure?: boolean | undefined
+      readonly httpOnly?: boolean | undefined
+      readonly sameSite?: "lax" | "strict" | "none" | undefined
+    } | undefined
+  ): Effect.Effect<HttpServerResponse, never, HttpSession>
+} = dual(
+  (args) => Response.isHttpServerResponse(args[0]),
+  (
+    response: HttpServerResponse,
+    options?: CookieHelperOptions
+  ): Effect.Effect<HttpServerResponse, never, HttpSession> =>
+    HttpSession.use((session) =>
+      Effect.map(
+        session.cookie,
+        (cookie) =>
+          Response.updateCookies(
+            response,
+            Cookies.setCookie(
+              Cookies.makeCookieUnsafe(options?.name ?? cookie.name, "", {
+                ...makeCookieOptions(cookie, options),
+                maxAge: 0,
+                expires: new Date(0)
+              })
+            )
+          )
+      )
+    )
+)
 
 /**
  * @since 4.0.0

@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Clock, DateTime, Duration, Effect, Exit, Option, Redacted, Schema } from "effect"
 import { TestClock } from "effect/testing"
-import { HttpSession } from "effect/unstable/http"
+import { Cookies, HttpServerResponse, HttpSession } from "effect/unstable/http"
 import { Persistence } from "effect/unstable/persistence"
 
 const SessionMetaSchema = Schema.Struct({
@@ -528,6 +528,98 @@ describe("HttpSession", () => {
 
         const after = yield* store.get(ValueKey)
         assert.strictEqual(after, undefined)
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("supports setCookie helper overrides for sameSite and path", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.none()),
+          generateSessionId: Effect.succeed(HttpSession.SessionId("helper-overrides")),
+          cookie: {
+            name: "session_token",
+            sameSite: "strict",
+            path: "/"
+          }
+        })
+
+        const response = yield* HttpSession.setCookie(HttpServerResponse.empty(), {
+          path: "/auth",
+          sameSite: "none"
+        }).pipe(Effect.provideService(HttpSession.HttpSession, session))
+
+        const cookie = Cookies.get(response.cookies, "session_token")
+        assert.isTrue(cookie !== undefined)
+        if (cookie !== undefined) {
+          assert.strictEqual(cookie.options?.path, "/auth")
+          assert.strictEqual(cookie.options?.sameSite, "none")
+        }
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("defaults secure/httpOnly to true and allows helper overrides", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.none()),
+          generateSessionId: Effect.succeed(HttpSession.SessionId("helper-defaults"))
+        })
+
+        const defaultResponse = yield* HttpSession.setCookie(HttpServerResponse.empty(), {
+          path: "/default"
+        }).pipe(Effect.provideService(HttpSession.HttpSession, session))
+
+        const overriddenResponse = yield* HttpSession.setCookie(HttpServerResponse.empty(), {
+          secure: false,
+          httpOnly: false
+        }).pipe(Effect.provideService(HttpSession.HttpSession, session))
+
+        const defaultCookie = Cookies.get(defaultResponse.cookies, "sid")
+        assert.isTrue(defaultCookie !== undefined)
+        if (defaultCookie !== undefined) {
+          assert.strictEqual(defaultCookie.options?.secure, true)
+          assert.strictEqual(defaultCookie.options?.httpOnly, true)
+        }
+
+        const overriddenCookie = Cookies.get(overriddenResponse.cookies, "sid")
+        assert.isTrue(overriddenCookie !== undefined)
+        if (overriddenCookie !== undefined) {
+          assert.strictEqual(overriddenCookie.options?.secure, false)
+          assert.strictEqual(overriddenCookie.options?.httpOnly, false)
+        }
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("clearCookie writes explicit expiry and max-age headers", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.none()),
+          generateSessionId: Effect.succeed(HttpSession.SessionId("helper-clear")),
+          cookie: {
+            name: "session_token"
+          }
+        })
+
+        const response = yield* HttpSession.clearCookie(HttpServerResponse.empty(), {
+          path: "/auth",
+          domain: "example.com"
+        }).pipe(Effect.provideService(HttpSession.HttpSession, session))
+
+        const cookie = Cookies.get(response.cookies, "session_token")
+        assert.isTrue(cookie !== undefined)
+        if (cookie !== undefined) {
+          assert.strictEqual(cookie.value, "")
+          assert.strictEqual(cookie.options?.path, "/auth")
+          assert.strictEqual(cookie.options?.domain, "example.com")
+          assert.strictEqual(cookie.options?.maxAge, 0)
+          assert.strictEqual(cookie.options?.expires?.getTime(), 0)
+
+          const header = Cookies.serializeCookie(cookie)
+          assert.isTrue(header.includes("Max-Age=0"))
+          assert.isTrue(header.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT"))
+        }
       })
     ).pipe(Effect.provide(Persistence.layerMemory)))
 
