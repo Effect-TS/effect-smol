@@ -119,11 +119,8 @@ describe("HttpSession", () => {
       assert.strictEqual(firstValue, undefined)
 
       const secondStore = yield* persistence.make({ storeId: toStoreId(secondId) })
-      const secondValue = yield* secondStore.get(ValueKey)
-      assert.isTrue(secondValue !== undefined && secondValue._tag === "Success")
-      if (secondValue !== undefined && secondValue._tag === "Success") {
-        assert.strictEqual(secondValue.value, "value")
-      }
+      const secondValue = yield* (yield* secondStore.get(ValueKey))!
+      assert.strictEqual(secondValue, "value")
     }).pipe(Effect.provide(Persistence.layerMemory)))
 
   it.effect("revalidates metadata before read operations", () =>
@@ -171,11 +168,8 @@ describe("HttpSession", () => {
       const state = yield* session.state
       assert.strictEqual(Redacted.value(state.id), Redacted.value(secondId))
 
-      const firstValue = yield* firstStore.get(ValueKey)
-      assert.isTrue(firstValue !== undefined && firstValue._tag === "Success")
-      if (firstValue !== undefined && firstValue._tag === "Success") {
-        assert.strictEqual(firstValue.value, "stale")
-      }
+      const firstValue = yield* (yield* firstStore.get(ValueKey))!
+      assert.strictEqual(firstValue, "stale")
 
       const secondStore = yield* persistence.make({ storeId: toStoreId(secondId) })
       const secondValue = yield* secondStore.get(ValueKey)
@@ -204,11 +198,8 @@ describe("HttpSession", () => {
       const state = yield* session.state
       assert.strictEqual(Redacted.value(state.id), Redacted.value(secondId))
 
-      const firstValue = yield* firstStore.get(ValueKey)
-      assert.isTrue(firstValue !== undefined && firstValue._tag === "Success")
-      if (firstValue !== undefined && firstValue._tag === "Success") {
-        assert.strictEqual(firstValue.value, "stale")
-      }
+      const firstValue = yield* (yield* firstStore.get(ValueKey))!
+      assert.strictEqual(firstValue, "stale")
 
       const secondStore = yield* persistence.make({ storeId: toStoreId(secondId) })
       const secondMeta = yield* secondStore.get(HttpSession.SessionMeta.key)
@@ -249,14 +240,10 @@ describe("HttpSession", () => {
       yield* session.set(ValueKey, "fresh")
 
       const thirdStore = yield* persistence.make({ storeId: toStoreId(thirdId) })
-      const thirdMeta = yield* thirdStore.get(HttpSession.SessionMeta.key)
-      assert.isTrue(thirdMeta !== undefined && thirdMeta._tag === "Success")
+      yield* (yield* thirdStore.get(HttpSession.SessionMeta.key))!
 
-      const thirdValue = yield* thirdStore.get(ValueKey)
-      assert.isTrue(thirdValue !== undefined && thirdValue._tag === "Success")
-      if (thirdValue !== undefined && thirdValue._tag === "Success") {
-        assert.strictEqual(thirdValue.value, "fresh")
-      }
+      const thirdValue = yield* (yield* thirdStore.get(ValueKey))!
+      assert.strictEqual(thirdValue, "fresh")
     }).pipe(Effect.provide(Persistence.layerMemory)))
 
   it.effect("rotates even when clearing the previous store fails", () =>
@@ -298,22 +285,15 @@ describe("HttpSession", () => {
       state = yield* session.state
       assert.strictEqual(Redacted.value(state.id), Redacted.value(thirdId))
 
-      const secondValue = yield* secondStore.get(ValueKey)
-      assert.isTrue(secondValue !== undefined && secondValue._tag === "Success")
-      if (secondValue !== undefined && secondValue._tag === "Success") {
-        assert.strictEqual(secondValue.value, "stale")
-      }
+      const secondValue = yield* (yield* secondStore.get(ValueKey))!
+      assert.strictEqual(secondValue, "stale")
 
       yield* session.set(ValueKey, "fresh")
 
       const thirdStore = yield* basePersistence.make({ storeId: toStoreId(thirdId) })
-      const thirdMeta = yield* thirdStore.get(HttpSession.SessionMeta.key)
-      assert.isTrue(thirdMeta !== undefined && thirdMeta._tag === "Success")
-      const thirdValue = yield* thirdStore.get(ValueKey)
-      assert.isTrue(thirdValue !== undefined && thirdValue._tag === "Success")
-      if (thirdValue !== undefined && thirdValue._tag === "Success") {
-        assert.strictEqual(thirdValue.value, "fresh")
-      }
+      yield* (yield* thirdStore.get(HttpSession.SessionMeta.key))!
+      const thirdValue = yield* (yield* thirdStore.get(ValueKey))!
+      assert.strictEqual(thirdValue, "fresh")
     }).pipe(Effect.provide(Persistence.layerMemory)))
 
   it.effect("keeps state consistent when rotate generates the current id", () =>
@@ -359,11 +339,8 @@ describe("HttpSession", () => {
       const firstMeta = yield* firstStore.get(HttpSession.SessionMeta.key)
       assert.isTrue(firstMeta !== undefined && firstMeta._tag === "Success")
 
-      const firstValue = yield* firstStore.get(ValueKey)
-      assert.isTrue(firstValue !== undefined && firstValue._tag === "Success")
-      if (firstValue !== undefined && firstValue._tag === "Success") {
-        assert.strictEqual(firstValue.value, "fresh")
-      }
+      const firstValue = yield* (yield* firstStore.get(ValueKey))!
+      assert.strictEqual(firstValue, "fresh")
 
       const secondStore = yield* persistence.make({ storeId: toStoreId(secondId) })
       const secondMeta = yield* secondStore.get(HttpSession.SessionMeta.key)
@@ -382,20 +359,14 @@ describe("HttpSession", () => {
       let state = yield* session.state
       const persistence = yield* Persistence.Persistence
       const store = yield* persistence.make({ storeId: toStoreId(state.id) })
-      const before = yield* store.get(HttpSession.SessionMeta.key)
-      assert.isTrue(before !== undefined && before._tag === "Success")
+      const before = yield* (yield* store.get(HttpSession.SessionMeta.key))!
 
-      if (before !== undefined && before._tag === "Success") {
-        yield* TestClock.adjust(Duration.minutes(2))
-        yield* session.state
+      yield* TestClock.adjust(Duration.minutes(2))
+      yield* session.state
 
-        const after = yield* store.get(HttpSession.SessionMeta.key)
-        assert.isTrue(after !== undefined && after._tag === "Success")
-        if (after !== undefined && after._tag === "Success") {
-          assert.isTrue(after.value.lastRefreshedAt.epochMillis > before.value.lastRefreshedAt.epochMillis)
-          assert.isTrue(after.value.expiresAt.epochMillis > before.value.expiresAt.epochMillis)
-        }
-      }
+      const after = yield* (yield* store.get(HttpSession.SessionMeta.key))!
+      assert.isTrue(after.lastRefreshedAt.epochMillis > before.lastRefreshedAt.epochMillis)
+      assert.isTrue(after.expiresAt.epochMillis > before.expiresAt.epochMillis)
     }).pipe(Effect.provide(Persistence.layerMemory)))
 
   it.effect("does not refresh metadata when refresh is disabled", () =>
@@ -411,20 +382,14 @@ describe("HttpSession", () => {
       let state = yield* session.state
       const persistence = yield* Persistence.Persistence
       const store = yield* persistence.make({ storeId: toStoreId(state.id) })
-      const before = yield* store.get(HttpSession.SessionMeta.key)
-      assert.isTrue(before !== undefined && before._tag === "Success")
+      const before = yield* (yield* store.get(HttpSession.SessionMeta.key))!
 
-      if (before !== undefined && before._tag === "Success") {
-        yield* TestClock.adjust(Duration.minutes(5))
-        yield* session.state
+      yield* TestClock.adjust(Duration.minutes(5))
+      yield* session.state
 
-        const after = yield* store.get(HttpSession.SessionMeta.key)
-        assert.isTrue(after !== undefined && after._tag === "Success")
-        if (after !== undefined && after._tag === "Success") {
-          assert.strictEqual(after.value.lastRefreshedAt.epochMillis, before.value.lastRefreshedAt.epochMillis)
-          assert.strictEqual(after.value.expiresAt.epochMillis, before.value.expiresAt.epochMillis)
-        }
-      }
+      const after = yield* (yield* store.get(HttpSession.SessionMeta.key))!
+      assert.strictEqual(after.lastRefreshedAt.epochMillis, before.lastRefreshedAt.epochMillis)
+      assert.strictEqual(after.expiresAt.epochMillis, before.expiresAt.epochMillis)
     }).pipe(Effect.provide(Persistence.layerMemory)))
 
   it.effect("clamps updateAge to expiresIn", () =>
