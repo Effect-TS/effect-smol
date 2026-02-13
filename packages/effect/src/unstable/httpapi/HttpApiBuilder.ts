@@ -22,7 +22,6 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
-import * as Cookies from "../http/Cookies.ts"
 import type { Cookie } from "../http/Cookies.ts"
 import type * as Etag from "../http/Etag.ts"
 import * as HttpEffect from "../http/HttpEffect.ts"
@@ -394,7 +393,7 @@ export const securityMakeSession = <Security extends HttpApiSecurity.ApiKey>(
         name: self.key
       },
       getSessionId: Effect.succeed(value === "" ? Option.none() : Option.some(HttpSession.SessionId(value)))
-    })
+    }).pipe(Effect.orDie)
   })
 
 /**
@@ -426,12 +425,18 @@ export const middlewareHttpSession = <
         const session = yield* Effect.provideService(makeSession, Persistence.Persistence, persistence)
         let response = yield* Effect.provideService(effect, HttpSession.HttpSession, session)
         if (service.security.in === "cookie") {
-          const current = request.cookies[service.security.key]
-          const state = yield* Effect.orDie(session.state)
-          const sessionId = Redacted.value(state.id)
-          if (current !== sessionId) {
-            const cookie = yield* session.cookie
-            response = Response.updateCookies(response, Cookies.setCookie(cookie))
+          const update = yield* HttpSession.takeCookieUpdate(session)
+          if (update === "clear") {
+            response = yield* Effect.provideService(HttpSession.clearCookie(response), HttpSession.HttpSession, session)
+          } else if (update === "set") {
+            response = yield* Effect.provideService(HttpSession.setCookie(response), HttpSession.HttpSession, session)
+          } else {
+            const current = request.cookies[service.security.key]
+            const state = yield* Effect.orDie(session.state)
+            const sessionId = Redacted.value(state.id)
+            if (current !== sessionId) {
+              response = yield* Effect.provideService(HttpSession.setCookie(response), HttpSession.HttpSession, session)
+            }
           }
         }
         return response

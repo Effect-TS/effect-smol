@@ -1,8 +1,9 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Clock, DateTime, Duration, Effect, Exit, Option, Redacted, Schema } from "effect"
 import { TestClock } from "effect/testing"
-import { Cookies, HttpServerResponse, HttpSession } from "effect/unstable/http"
+import { Cookies, HttpRouter, HttpServerRequest, HttpServerResponse, HttpSession } from "effect/unstable/http"
 import { SessionMeta } from "effect/unstable/http/HttpSession"
+import { HttpApiBuilder, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
 import { Persistence } from "effect/unstable/persistence"
 
 const CorruptSessionMetaKey = HttpSession.key({
@@ -20,6 +21,10 @@ const ValueKey = HttpSession.key({
 })
 
 const toStoreId = (sessionId: HttpSession.SessionId) => `session:${Redacted.value(sessionId)}`
+
+class SessionMiddleware extends HttpApiMiddleware.HttpSession<SessionMiddleware>()("SessionMiddleware", {
+  security: HttpApiSecurity.apiKey({ key: "session_token", in: "cookie" })
+}) {}
 
 describe("HttpSession", () => {
   it.effect("regenerates session id when metadata is missing", () =>
@@ -472,6 +477,112 @@ describe("HttpSession", () => {
         const header = Cookies.serializeCookie(cookie)
         assert.isTrue(header.includes("Max-Age=0"))
         assert.isTrue(header.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT"))
+      }
+    }).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("middleware refreshes cookie when metadata refreshes without id changes", () =>
+    Effect.gen(function*() {
+      const sessionId = HttpSession.SessionId("middleware-refresh")
+      const middleware = yield* SessionMiddleware
+
+      const run = (cookie: string) =>
+        middleware(Effect.succeed(HttpServerResponse.empty()), {} as any).pipe(
+          Effect.provideService(
+            HttpServerRequest.HttpServerRequest,
+            HttpServerRequest.fromWeb(
+              new Request("http://localhost/", {
+                headers: {
+                  cookie: `session_token=${cookie}`
+                }
+              })
+            )
+          ),
+          Effect.provideService(HttpServerRequest.ParsedSearchParams, {}),
+          Effect.provideService(HttpRouter.RouteContext, {
+            params: {},
+            route: {} as any
+          })
+        )
+
+      const first = yield* run("stale")
+      const firstCookie = Cookies.get(first.cookies, "session_token")
+      assert.isTrue(firstCookie !== undefined)
+      if (firstCookie !== undefined) {
+        assert.strictEqual(firstCookie.value, Redacted.value(sessionId))
+      }
+
+      yield* TestClock.adjust(Duration.minutes(2))
+
+      const second = yield* run(Redacted.value(sessionId))
+      const secondCookie = Cookies.get(second.cookies, "session_token")
+      assert.isTrue(secondCookie !== undefined)
+      if (secondCookie !== undefined) {
+        assert.strictEqual(secondCookie.value, Redacted.value(sessionId))
+      }
+    }).pipe(
+      Effect.provide(HttpApiBuilder.middlewareHttpSession(SessionMiddleware, {
+        generateSessionId: Effect.succeed(HttpSession.SessionId("middleware-refresh")),
+        expiresIn: Duration.minutes(10),
+        updateAge: Duration.minutes(2)
+      })),
+      Effect.provide(Persistence.layerMemory)
+    ))
+
+  it.effect("middleware clears cookie when clear fails but request handles the error", () =>
+    Effect.gen(function*() {
+      const sessionId = HttpSession.SessionId("middleware-clear")
+      const basePersistence = yield* Persistence.Persistence
+      const wrappedPersistence = Persistence.Persistence.of({
+        make: (options) =>
+          Effect.map(
+            basePersistence.make(options),
+            (store) =>
+              options.storeId === toStoreId(sessionId)
+                ? {
+                  ...store,
+                  clear: Effect.fail(new Persistence.PersistenceError({ message: "clear failed" }))
+                }
+                : store
+          )
+      })
+
+      const response = yield* SessionMiddleware.use((middleware) =>
+        middleware(
+          Effect.gen(function*() {
+            const session = yield* HttpSession.HttpSession
+            yield* Effect.ignore(session.clear)
+            return HttpServerResponse.empty()
+          }) as any,
+          {} as any
+        )
+      ).pipe(
+        Effect.provideService(
+          HttpServerRequest.HttpServerRequest,
+          HttpServerRequest.fromWeb(
+            new Request("http://localhost/", {
+              headers: {
+                cookie: `session_token=${Redacted.value(sessionId)}`
+              }
+            })
+          )
+        ),
+        Effect.provideService(HttpServerRequest.ParsedSearchParams, {}),
+        Effect.provideService(HttpRouter.RouteContext, {
+          params: {},
+          route: {} as any
+        }),
+        Effect.provide(HttpApiBuilder.middlewareHttpSession(SessionMiddleware, {
+          generateSessionId: Effect.succeed(sessionId)
+        })),
+        Effect.provideService(Persistence.Persistence, wrappedPersistence)
+      )
+
+      const cookie = Cookies.get(response.cookies, "session_token")
+      assert.isTrue(cookie !== undefined)
+      if (cookie !== undefined) {
+        assert.strictEqual(cookie.value, "")
+        assert.strictEqual(cookie.options?.maxAge, 0)
+        assert.strictEqual(cookie.options?.expires?.getTime(), 0)
       }
     }).pipe(Effect.provide(Persistence.layerMemory)))
 

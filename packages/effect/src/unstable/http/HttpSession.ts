@@ -134,6 +134,16 @@ export interface SessionState {
   readonly storage: Persistence.PersistenceStore
 }
 
+type CookieUpdate = "none" | "set" | "clear"
+
+const CookieUpdateRef: unique symbol = Symbol.for("effect/http/HttpSession/CookieUpdateRef")
+
+interface CookieUpdateTracked {
+  [CookieUpdateRef]: {
+    current: CookieUpdate
+  }
+}
+
 /**
  * @since 4.0.0
  * @category State
@@ -192,6 +202,10 @@ export const make = Effect.fnUntraced(function*<E, R>(
   const updateAgeMillis = Duration.toMillis(updateAge)
   const disableRefresh = options.disableRefresh ?? false
   const generateSessionId = options.generateSessionId ?? defaultGenerateSessionId
+  const cookieUpdate: CookieUpdateTracked[typeof CookieUpdateRef] = {
+    current: "none"
+  }
+  let currentState!: SessionState
   const mapHttpSessionError = Effect.mapError(
     (error: PersistenceError | KeyNotFound | Schema.SchemaError) => new HttpSessionError(error)
   )
@@ -221,6 +235,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
   const refreshMetadata = Effect.fnUntraced(function*(state: SessionState, now: DateTime.Utc) {
     const refreshedMetadata = makeSessionMeta(now, state.metadata.createdAt)
     yield* state.storage.set(SessionMeta.key, Exit.succeed(refreshedMetadata))
+    cookieUpdate.current = "set"
     return identity<SessionState>({ ...state, metadata: refreshedMetadata })
   }, Effect.catchIf(Schema.isSchemaError, Effect.die))
 
@@ -258,6 +273,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
       storage: yield* makeStorage(id)
     })
     yield* state.storage.set(SessionMeta.key, Exit.succeed(state.metadata))
+    cookieUpdate.current = "set"
     return state
   }).pipe(Effect.catchIf(Schema.isSchemaError, Effect.die))
 
@@ -277,7 +293,7 @@ export const make = Effect.fnUntraced(function*<E, R>(
     })
   })
 
-  let currentState = yield* initialState
+  currentState = yield* initialState
   currentState = yield* reconcileState(currentState).pipe(mapHttpSessionError)
 
   const withStateLock = Effect.makeSemaphoreUnsafe(1).withPermit
@@ -304,32 +320,56 @@ export const make = Effect.fnUntraced(function*<E, R>(
     }
   }))
 
-  return HttpSession.of({
-    state: ensureState.pipe(mapHttpSessionError),
-    cookie: Effect.sync(() =>
-      Cookies.makeCookieUnsafe(options.cookie?.name ?? "sid", Redacted.value(currentState.id), {
-        ...options.cookie,
-        expires: new Date(currentState.metadata.expiresAt.epochMillis),
-        secure: options.cookie?.secure ?? true,
-        httpOnly: options.cookie?.httpOnly ?? true
-      })
-    ),
-    rotate: rotate.pipe(mapHttpSessionError),
-    get: Effect.fnUntraced(function*<S extends Schema.Top>(
-      key: Key<S>
-    ) {
-      const state = yield* ensureState
-      const exit = yield* state.storage.get(key)
-      if (!exit || exit._tag === "Failure") {
-        return Option.none()
-      }
-      return Option.some(exit.value)
-    }, mapHttpSessionError),
-    set: (key, value) => withStorage((storage) => storage.set(key, Exit.succeed(value))).pipe(mapHttpSessionError),
-    remove: (key) => withStorage((storage) => storage.remove(key)).pipe(mapHttpSessionError),
-    clear: withStorage((storage) => storage.clear).pipe(mapHttpSessionError)
-  })
+  return Object.assign(
+    HttpSession.of({
+      state: ensureState.pipe(mapHttpSessionError),
+      cookie: Effect.sync(() =>
+        Cookies.makeCookieUnsafe(options.cookie?.name ?? "sid", Redacted.value(currentState.id), {
+          ...options.cookie,
+          expires: new Date(currentState.metadata.expiresAt.epochMillis),
+          secure: options.cookie?.secure ?? true,
+          httpOnly: options.cookie?.httpOnly ?? true
+        })
+      ),
+      rotate: rotate.pipe(mapHttpSessionError),
+      get: Effect.fnUntraced(function*<S extends Schema.Top>(
+        key: Key<S>
+      ) {
+        const state = yield* ensureState
+        const exit = yield* state.storage.get(key)
+        if (!exit || exit._tag === "Failure") {
+          return Option.none()
+        }
+        return Option.some(exit.value)
+      }, mapHttpSessionError),
+      set: (key, value) => withStorage((storage) => storage.set(key, Exit.succeed(value))).pipe(mapHttpSessionError),
+      remove: (key) => withStorage((storage) => storage.remove(key)).pipe(mapHttpSessionError),
+      clear: withStorage((storage) => storage.clear).pipe(
+        Effect.ensuring(Effect.sync(() => {
+          cookieUpdate.current = "clear"
+        })),
+        mapHttpSessionError
+      )
+    }),
+    {
+      [CookieUpdateRef]: cookieUpdate
+    }
+  )
 })
+
+/**
+ * @since 4.0.0
+ * @category Internal
+ */
+export const takeCookieUpdate = (session: HttpSession["Service"]): Effect.Effect<CookieUpdate> =>
+  Effect.sync(() => {
+    const tracked = session as HttpSession["Service"] & CookieUpdateTracked
+    const update = tracked[CookieUpdateRef]?.current ?? "none"
+    if (tracked[CookieUpdateRef] !== undefined) {
+      tracked[CookieUpdateRef].current = "none"
+    }
+    return update
+  })
 
 const defaultGenerateSessionId = Effect.sync(() => SessionId(crypto.randomUUID()))
 
