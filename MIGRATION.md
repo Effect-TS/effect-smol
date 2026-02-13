@@ -67,6 +67,8 @@ minimal Effect program bundles to ~6.3 KB (minified + gzipped). With Schema,
 - [Effect Subtyping → Yieldable](./migration/yieldable.md)
 - [Fiber Keep-Alive: Automatic Process Lifetime Management](./migration/fiber-keep-alive.md)
 - [Layer Memoization Across `Effect.provide` Calls](./migration/layer-memoization.md)
+- [FiberRef: `FiberRef` → `ServiceMap.Reference`](./migration/fiberref-runtime.md)
+- [Runtime: `Runtime<R>` Removed](./migration/runtime.md)
 
 ### Modules
 
