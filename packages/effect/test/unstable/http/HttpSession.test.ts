@@ -623,6 +623,49 @@ describe("HttpSession", () => {
       })
     ).pipe(Effect.provide(Persistence.layerMemory)))
 
+  it.effect("supports curried setCookie with name override", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.none()),
+          generateSessionId: Effect.succeed(HttpSession.SessionId("helper-curried-set"))
+        })
+
+        const response = yield* HttpSession.setCookie({
+          name: "session_token"
+        })(HttpServerResponse.empty()).pipe(Effect.provideService(HttpSession.HttpSession, session))
+
+        const renamedCookie = Cookies.get(response.cookies, "session_token")
+        assert.isTrue(renamedCookie !== undefined)
+        assert.strictEqual(Cookies.get(response.cookies, "sid"), undefined)
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
+  it.effect("supports curried clearCookie helper overrides", () =>
+    Effect.scoped(
+      Effect.gen(function*() {
+        const session = yield* HttpSession.make({
+          getSessionId: Effect.succeed(Option.none()),
+          generateSessionId: Effect.succeed(HttpSession.SessionId("helper-curried-clear"))
+        })
+
+        const response = yield* HttpSession.clearCookie({
+          name: "session_token",
+          secure: false,
+          httpOnly: false
+        })(HttpServerResponse.empty()).pipe(Effect.provideService(HttpSession.HttpSession, session))
+
+        const clearedCookie = Cookies.get(response.cookies, "session_token")
+        assert.isTrue(clearedCookie !== undefined)
+        if (clearedCookie !== undefined) {
+          assert.strictEqual(clearedCookie.options?.secure, false)
+          assert.strictEqual(clearedCookie.options?.httpOnly, false)
+          assert.strictEqual(clearedCookie.options?.maxAge, 0)
+          assert.strictEqual(clearedCookie.options?.expires?.getTime(), 0)
+        }
+      })
+    ).pipe(Effect.provide(Persistence.layerMemory)))
+
   it.effect("never computes negative ttl for session writes", () =>
     Effect.scoped(
       Effect.gen(function*() {
