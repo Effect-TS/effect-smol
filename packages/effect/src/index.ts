@@ -711,13 +711,60 @@ export * as Equivalence from "./Equivalence.ts"
 export * as ExecutionPlan from "./ExecutionPlan.ts"
 
 /**
- * The `Exit` type represents the result of running an Effect computation.
- * An `Exit<A, E>` can either be:
- * - `Success`: Contains a value of type `A`
- * - `Failure`: Contains a `Cause<E>` describing why the effect failed
+ * Represents the outcome of an Effect computation as a plain, synchronously
+ * inspectable value.
  *
- * `Exit` is used internally by the Effect runtime and can be useful for
- * handling the results of Effect computations in a more explicit way.
+ * ## Mental model
+ *
+ * - `Exit<A, E>` is a union of two cases: `Success<A, E>` and `Failure<A, E>`
+ * - A `Success` wraps a value of type `A`
+ * - A `Failure` wraps a `Cause<E>`, which may contain typed errors, defects, or interruptions
+ * - `Exit` is also an `Effect`, so you can yield it directly inside `Effect.gen`
+ * - Constructors mirror the failure modes: {@link fail} for typed errors, {@link die} for defects, {@link interrupt} for fiber interruptions
+ * - Use `Exit` when you need to inspect an Effect result without running further effects
+ *
+ * ## Common tasks
+ *
+ * - Create a success: {@link succeed}
+ * - Create a typed failure: {@link fail}
+ * - Create a failure from a Cause: {@link failCause}
+ * - Create a defect: {@link die}
+ * - Create an interruption: {@link interrupt}
+ * - Check the outcome: {@link isSuccess}, {@link isFailure}, {@link match}
+ * - Extract values optionally: {@link getSuccess}, {@link getCause}, {@link findErrorOption}
+ * - Transform the result: {@link map}, {@link mapError}, {@link mapBoth}
+ * - Combine multiple exits: {@link asVoidAll}
+ * - Inspect failure categories: {@link hasFails}, {@link hasDies}, {@link hasInterrupts}
+ *
+ * ## Gotchas
+ *
+ * - A `Failure` wraps a `Cause<E>`, not a bare `E`. Use Cause utilities to drill into it.
+ * - {@link mapError} and {@link mapBoth} only transform typed errors (Fail reasons in the Cause). If the Cause contains only defects or interruptions, the original failure passes through unchanged.
+ * - Filter-based APIs ({@link filterSuccess}, {@link filterValue}, etc.) return `Filter.fail` markers for pipeline composition. They are not `Option` values or Effect failures.
+ * - {@link findError} and {@link findDefect} return only the first matching reason from the Cause.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Creating and inspecting exits)
+ *
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const success = Exit.succeed(42)
+ * const failure = Exit.fail("not found")
+ *
+ * const message = Exit.match(success, {
+ *   onSuccess: (value) => `Got: ${value}`,
+ *   onFailure: () => "Failed"
+ * })
+ * console.log(message) // "Got: 42"
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link Exit} the core union type
+ * - {@link succeed} and {@link fail} the most common constructors
+ * - {@link match} for pattern matching on an Exit
  *
  * @since 2.0.0
  */
