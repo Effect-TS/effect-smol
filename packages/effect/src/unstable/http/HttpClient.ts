@@ -1175,7 +1175,7 @@ class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
     return Stream.suspend(() => {
       responseRegistry.unregister(this.original)
       return Stream.onExit(this.original.stream, (exit) => {
-        if (Exit.hasInterrupt(exit)) {
+        if (Exit.hasInterrupts(exit)) {
           this.controller.abort()
         }
         return Effect.void

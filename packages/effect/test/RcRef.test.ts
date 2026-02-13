@@ -53,7 +53,7 @@ describe("RcRef", () => {
       assert.strictEqual(released, 3)
 
       const exit = yield* RcRef.get(ref).pipe(Effect.scoped, Effect.exit)
-      assert.isTrue(Exit.hasInterrupt(exit))
+      assert.isTrue(Exit.hasInterrupts(exit))
     }))
 
   // it.scoped("idleTimeToLive", () =>

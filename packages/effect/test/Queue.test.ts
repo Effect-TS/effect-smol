@@ -180,7 +180,7 @@ describe("Queue", () => {
 
       // Now queue is done and take fails with interrupt
       const exit = yield* Queue.take(queue).pipe(Effect.exit)
-      assert.isTrue(Exit.hasInterrupt(exit))
+      assert.isTrue(Exit.hasInterrupts(exit))
     }))
 
   it.effect("poll returns Option for non-blocking take", () =>
@@ -256,8 +256,8 @@ describe("Queue", () => {
       const exit = yield* Stream.runCollect(Stream.fromQueue(queue)).pipe(
         Effect.exit
       )
-      assert.isTrue(Exit.hasInterrupt(exit))
-      assert.isTrue(Exit.hasInterrupt(yield* Effect.exit(Queue.await(queue))))
+      assert.isTrue(Exit.hasInterrupts(exit))
+      assert.isTrue(Exit.hasInterrupts(yield* Effect.exit(Queue.await(queue))))
       assert.strictEqual(yield* Queue.offer(queue, 10), false)
     }))
 

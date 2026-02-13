@@ -26,7 +26,7 @@ describe("TxSemaphore", () => {
     it.effect("make with negative permits causes defect", () =>
       Effect.gen(function*() {
         const result = yield* Effect.exit(TxSemaphore.make(-1))
-        assert.isTrue(Exit.hasDie(result))
+        assert.isTrue(Exit.hasDies(result))
       }))
   })
 
@@ -172,28 +172,28 @@ describe("TxSemaphore", () => {
       Effect.gen(function*() {
         const semaphore = yield* TxSemaphore.make(5)
         const result = yield* Effect.exit(TxSemaphore.acquireN(semaphore, 0))
-        assert.isTrue(Exit.hasDie(result))
+        assert.isTrue(Exit.hasDies(result))
       }))
 
     it.effect("acquireN with negative permits causes defect", () =>
       Effect.gen(function*() {
         const semaphore = yield* TxSemaphore.make(5)
         const result = yield* Effect.exit(TxSemaphore.acquireN(semaphore, -1))
-        assert.isTrue(Exit.hasDie(result))
+        assert.isTrue(Exit.hasDies(result))
       }))
 
     it.effect("releaseN with zero permits causes defect", () =>
       Effect.gen(function*() {
         const semaphore = yield* TxSemaphore.make(5)
         const result = yield* Effect.exit(TxSemaphore.releaseN(semaphore, 0))
-        assert.isTrue(Exit.hasDie(result))
+        assert.isTrue(Exit.hasDies(result))
       }))
 
     it.effect("releaseN with negative permits causes defect", () =>
       Effect.gen(function*() {
         const semaphore = yield* TxSemaphore.make(5)
         const result = yield* Effect.exit(TxSemaphore.releaseN(semaphore, -1))
-        assert.isTrue(Exit.hasDie(result))
+        assert.isTrue(Exit.hasDies(result))
       }))
 
     it.effect("release does not exceed capacity", () =>

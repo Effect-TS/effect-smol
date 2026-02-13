@@ -1789,29 +1789,29 @@ export const exitFilterCause = <A, E>(
 ): Cause.Cause<E> | Filter.fail<Exit.Success<A>> => self._tag === "Failure" ? self.cause : Filter.fail(self as any)
 
 /** @internal */
-export const exitFilterError = Filter.composePassthrough(
+export const exitFindError = Filter.composePassthrough(
   exitFilterCause,
   findError
 )
 
 /** @internal */
-export const exitFilterDefect = Filter.composePassthrough(
+export const exitFindDefect = Filter.composePassthrough(
   exitFilterCause,
   findDefect
 )
 
 /** @internal */
-export const exitHasInterrupt = <A, E>(
+export const exitHasInterrupts = <A, E>(
   self: Exit.Exit<A, E>
 ): self is Exit.Failure<A, E> => self._tag === "Failure" && hasInterrupts(self.cause)
 
 /** @internal */
-export const exitHasDie = <A, E>(
+export const exitHasDies = <A, E>(
   self: Exit.Exit<A, E>
 ): self is Exit.Failure<A, E> => self._tag === "Failure" && hasDies(self.cause)
 
 /** @internal */
-export const exitHasFail = <A, E>(
+export const exitHasFails = <A, E>(
   self: Exit.Exit<A, E>
 ): self is Exit.Failure<A, E> => self._tag === "Failure" && hasFails(self.cause)
 
@@ -1945,8 +1945,8 @@ export const exitGetCause = <A, E>(self: Exit.Exit<A, E>): Option.Option<Cause.C
   exitIsFailure(self) ? Option.some(self.cause) : Option.none()
 
 /** @internal */
-export const exitGetError = <A, E>(self: Exit.Exit<A, E>): Option.Option<E> => {
-  const error = exitFilterError(self)
+export const exitFindErrorOption = <A, E>(self: Exit.Exit<A, E>): Option.Option<E> => {
+  const error = exitFindError(self)
   return Filter.isFail(error) ? Option.none() : Option.some(error)
 }
 

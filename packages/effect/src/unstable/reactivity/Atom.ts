@@ -1828,7 +1828,7 @@ export const searchParam = <S extends Schema.Codec<any, string> = never>(name: s
         window.removeEventListener("pushstate", handleUpdate)
       })
       const value = new URLSearchParams(window.location.search).get(name) || ""
-      return decode ? Exit.getError(decode(value)) : value as any
+      return decode ? Exit.findErrorOption(decode(value)) : value as any
     },
     (ctx, value: any) => {
       if (typeof window === "undefined") {

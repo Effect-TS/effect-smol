@@ -126,7 +126,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       assert(value._tag === "Complete" && value.exit._tag === "Failure")
 
       const exit = yield* Fiber.await(fiber)
-      assert(Exit.hasInterrupt(exit))
+      assert(Exit.hasInterrupts(exit))
 
       const flags = yield* Flags
       assert.isTrue(flags.get("compensation"))

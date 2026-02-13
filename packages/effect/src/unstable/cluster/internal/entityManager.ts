@@ -187,7 +187,7 @@ export const make = Effect.fnUntraced(function*<
                 if (
                   storageEnabled &&
                   ServiceMap.get(request.rpc.annotations, Persisted) &&
-                  Exit.hasInterrupt(response.exit) &&
+                  Exit.hasInterrupts(response.exit) &&
                   (isShuttingDown || isUninterruptibleForServer(request.rpc.annotations))
                 ) {
                   if (!isShuttingDown) {

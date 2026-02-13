@@ -48,7 +48,7 @@ describe("HMR", () => {
 
     const exit = mod1.decodeUnknownExit(mod1.String)(null)
     expect(Exit.isFailure(exit)).toBe(true)
-    const o: any = Exit.getError(exit)
+    const o: any = Exit.findErrorOption(exit)
     expect(Option.isSome(o)).toBe(true)
     const schemaError = o.value
     expect(mod2.isSchemaError(schemaError)).toBe(true)

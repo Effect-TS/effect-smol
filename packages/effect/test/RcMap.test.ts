@@ -51,7 +51,7 @@ describe("RcMap", () => {
       assert.deepStrictEqual(released, ["foo", "baz", "bar", "qux"])
 
       const exit = yield* RcMap.get(map, "boom").pipe(Effect.scoped, Effect.exit)
-      assert.isTrue(Exit.hasInterrupt(exit))
+      assert.isTrue(Exit.hasInterrupts(exit))
     }))
 
   it.effect("idleTimeToLive", () =>

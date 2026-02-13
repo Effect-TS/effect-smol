@@ -5937,7 +5937,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       }))
       const schema = DepString
       const exit = SchemaParser.decodeUnknownExit(schema as any)(1)
-      assertTrue(Exit.hasDie(exit))
+      assertTrue(Exit.hasDies(exit))
     })
   })
 

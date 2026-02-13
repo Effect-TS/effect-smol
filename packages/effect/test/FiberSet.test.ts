@@ -88,7 +88,7 @@ describe("FiberSet", () => {
       })
       yield* Effect.yieldNow
       yield* Fiber.interrupt(fiber)
-      assertTrue(Exit.hasInterrupt(
+      assertTrue(Exit.hasInterrupts(
         yield* FiberSet.join(set).pipe(
           Effect.exit
         )

@@ -242,7 +242,7 @@ describe("Effect", () => {
         yield* TestClock.adjust(800)
         yield* Fiber.interrupt(fiber)
         const result = yield* Fiber.await(fiber)
-        assert.isTrue(Exit.hasInterrupt(result))
+        assert.isTrue(Exit.hasInterrupts(result))
         assert.deepStrictEqual(done, [1, 2])
       }))
 
@@ -257,7 +257,7 @@ describe("Effect", () => {
         yield* TestClock.adjust(50)
         yield* Fiber.interrupt(fiber)
         const result = yield* Fiber.await(fiber)
-        assert.isTrue(Exit.hasInterrupt(result))
+        assert.isTrue(Exit.hasInterrupts(result))
         assert.deepStrictEqual(done, [])
       }))
 
@@ -272,7 +272,7 @@ describe("Effect", () => {
         yield* TestClock.adjust(350)
         yield* Fiber.interrupt(fiber)
         const result = yield* Fiber.await(fiber)
-        assert.isTrue(Exit.hasInterrupt(result))
+        assert.isTrue(Exit.hasInterrupts(result))
         assert.deepStrictEqual(done, [1, 2])
       }))
 
@@ -847,14 +847,14 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const fiber = yield* pipe(Effect.succeed(1), Effect.forever, Effect.forkChild)
         yield* Fiber.interrupt(fiber)
-        assert(Exit.hasInterrupt(fiber.pollUnsafe()!))
+        assert(Exit.hasInterrupts(fiber.pollUnsafe()!))
       }))
 
     it.effect("interrupt of never is interrupted with cause", () =>
       Effect.gen(function*() {
         const fiber = yield* Effect.forkChild(Effect.never)
         yield* Fiber.interrupt(fiber)
-        assert(Exit.hasInterrupt(fiber.pollUnsafe()!))
+        assert(Exit.hasInterrupts(fiber.pollUnsafe()!))
       }))
 
     it.effect("catch + ensuring + interrupt", () =>
@@ -962,7 +962,7 @@ describe("Effect", () => {
           Effect.forkChild({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
-        assert.isTrue(Exit.hasInterrupt(fiber.pollUnsafe()!))
+        assert.isTrue(Exit.hasInterrupts(fiber.pollUnsafe()!))
       }))
 
     it.live("closing scope is uninterruptible", () =>
@@ -1311,7 +1311,7 @@ describe("Effect", () => {
         let ref = false
         yield* Effect.die("boom").pipe(
           Effect.onExit((result) =>
-            Exit.hasDie(result) ?
+            Exit.hasDies(result) ?
               Effect.sync(() => {
                 ref = true
               }) :

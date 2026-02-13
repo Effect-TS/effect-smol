@@ -80,8 +80,8 @@ describe("FiberMap", () => {
       const fiberB = yield* FiberMap.run(handle, "a", Effect.never, { onlyIfMissing: true })
       const fiberC = yield* FiberMap.run(handle, "a", Effect.never, { onlyIfMissing: true })
       yield* Effect.yieldNow
-      assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
-      assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
+      assertTrue(Exit.hasInterrupts(yield* Fiber.await(fiberB)))
+      assertTrue(Exit.hasInterrupts(yield* Fiber.await(fiberC)))
       strictEqual(fiberA.pollUnsafe(), undefined)
     }))
 
@@ -92,8 +92,8 @@ describe("FiberMap", () => {
       const fiberB = run("a", Effect.never, { onlyIfMissing: true })
       const fiberC = run("a", Effect.never, { onlyIfMissing: true })
       yield* Effect.yieldNow
-      assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
-      assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
+      assertTrue(Exit.hasInterrupts(yield* Fiber.await(fiberB)))
+      assertTrue(Exit.hasInterrupts(yield* Fiber.await(fiberC)))
       strictEqual(fiberA.pollUnsafe(), undefined)
     }))
 
@@ -116,7 +116,7 @@ describe("FiberMap", () => {
       })
       yield* Effect.yieldNow
       yield* Fiber.interrupt(fiber)
-      assertTrue(Exit.hasInterrupt(
+      assertTrue(Exit.hasInterrupts(
         yield* FiberMap.join(map).pipe(
           Effect.exit
         )

@@ -79,7 +79,7 @@ describe("ScopedCache", () => {
           )
 
           assert.strictEqual(cache.state._tag, "Closed")
-          assert.isTrue(Exit.hasInterrupt(yield* Effect.exit(ScopedCache.get(cache, "test"))))
+          assert.isTrue(Exit.hasInterrupts(yield* Effect.exit(ScopedCache.get(cache, "test"))))
         }))
     })
 
@@ -393,7 +393,7 @@ describe("ScopedCache", () => {
 
           // Cache should be closed now
           const result = yield* Effect.exit(ScopedCache.get(cache!, "test"))
-          assert.isTrue(Exit.hasInterrupt(result))
+          assert.isTrue(Exit.hasInterrupts(result))
         }))
     })
 

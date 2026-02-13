@@ -272,14 +272,14 @@ export const isFailure: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effe
  * const failure = Exit.fail("error")
  * const defect = Exit.die(new Error("defect"))
  *
- * console.log(Exit.hasFail(failure)) // true
- * console.log(Exit.hasFail(defect)) // false
+ * console.log(Exit.hasFails(failure)) // true
+ * console.log(Exit.hasFails(defect)) // false
  * ```
  *
  * @category guards
  * @since 4.0.0
  */
-export const hasFail: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasFail
+export const hasFails: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasFails
 
 /**
  * Tests if an `Exit` contains a defect (unexpected error).
@@ -291,14 +291,14 @@ export const hasFail: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect
  * const failure = Exit.fail("error")
  * const defect = Exit.die(new Error("defect"))
  *
- * console.log(Exit.hasDie(failure)) // false
- * console.log(Exit.hasDie(defect)) // true
+ * console.log(Exit.hasDies(failure)) // false
+ * console.log(Exit.hasDies(defect)) // true
  * ```
  *
  * @category guards
  * @since 4.0.0
  */
-export const hasDie: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasDie
+export const hasDies: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasDies
 
 /**
  * Tests if an `Exit` contains an interruption.
@@ -310,14 +310,14 @@ export const hasDie: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.
  * const failure = Exit.fail("error")
  * const interruption = Exit.interrupt(123)
  *
- * console.log(Exit.hasInterrupt(failure)) // false
- * console.log(Exit.hasInterrupt(interruption)) // true
+ * console.log(Exit.hasInterrupts(failure)) // false
+ * console.log(Exit.hasInterrupts(interruption)) // true
  * ```
  *
  * @category guards
  * @since 4.0.0
  */
-export const hasInterrupt: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasInterrupt
+export const hasInterrupts: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasInterrupts
 
 /**
  * @category filters
@@ -347,17 +347,21 @@ export const filterFailure: <A, E>(self: Exit<A, E>) => Failure<never, E> | Filt
 export const filterCause: <A, E>(self: Exit<A, E>) => Cause.Cause<E> | Filter.fail<Success<A>> = effect.exitFilterCause
 
 /**
+ * Returns the first typed error value `E` from an `Exit`.
+ *
  * @category filters
  * @since 4.0.0
  */
-export const filterError: <A, E>(input: Exit<A, E>) => E | Filter.fail<Exit<A, E>> = effect.exitFilterError
+export const findError: <A, E>(input: Exit<A, E>) => E | Filter.fail<Exit<A, E>> = effect.exitFindError
 
 /**
+ * Returns the first defect value (`unknown`) from an `Exit`.
+ *
  * @category filters
  * @since 4.0.0
  */
-export const filterDefect: <A, E>(input: Exit<A, E>) => {} | null | undefined | Filter.fail<Exit<A, E>> =
-  effect.exitFilterDefect
+export const findDefect: <A, E>(input: Exit<A, E>) => {} | null | undefined | Filter.fail<Exit<A, E>> =
+  effect.exitFindDefect
 
 /**
  * Pattern matches on an `Exit` value, handling both success and failure cases.
@@ -547,4 +551,4 @@ export const getCause: <A, E>(self: Exit<A, E>) => Option<Cause.Cause<E>> = effe
  * @category Accessors
  * @since 4.0.0
  */
-export const getError: <A, E>(self: Exit<A, E>) => Option<E> = effect.exitGetError
+export const findErrorOption: <A, E>(self: Exit<A, E>) => Option<E> = effect.exitFindErrorOption

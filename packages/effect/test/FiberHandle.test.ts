@@ -58,8 +58,8 @@ describe("FiberHandle", () => {
       const fiberB = yield* FiberHandle.run(handle, Effect.never, { onlyIfMissing: true })
       const fiberC = yield* FiberHandle.run(handle, Effect.never, { onlyIfMissing: true })
       yield* Effect.yieldNow
-      assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
-      assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
+      assertTrue(Exit.hasInterrupts(yield* Fiber.await(fiberB)))
+      assertTrue(Exit.hasInterrupts(yield* Fiber.await(fiberC)))
       strictEqual(fiberA.pollUnsafe(), undefined)
     }))
 
@@ -70,8 +70,8 @@ describe("FiberHandle", () => {
       const fiberB = run(Effect.never, { onlyIfMissing: true })
       const fiberC = run(Effect.never, { onlyIfMissing: true })
       yield* Effect.yieldNow
-      assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
-      assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
+      assertTrue(Exit.hasInterrupts(yield* Fiber.await(fiberB)))
+      assertTrue(Exit.hasInterrupts(yield* Fiber.await(fiberC)))
       strictEqual(fiberA.pollUnsafe(), undefined)
     }))
 
@@ -94,7 +94,7 @@ describe("FiberHandle", () => {
       })
       yield* Effect.yieldNow
       yield* Fiber.interrupt(fiber)
-      assertTrue(Exit.hasInterrupt(
+      assertTrue(Exit.hasInterrupts(
         yield* FiberHandle.join(handle).pipe(
           Effect.exit
         )

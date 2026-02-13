@@ -270,7 +270,7 @@ export const layerStoreMemory: Layer.Layer<
         yield* Effect.addFinalizer((exit) => {
           if (exit._tag === "Success") {
             return Effect.void
-          } else if (!Exit.hasInterrupt(exit)) {
+          } else if (!Exit.hasInterrupts(exit)) {
             item.attempts += 1
           }
           if (item.attempts >= options.maxAttempts) {
