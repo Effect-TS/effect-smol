@@ -224,14 +224,14 @@ export const make = Effect.fnUntraced(function*<E, R>(
     (error: PersistenceError | KeyNotFound | Schema.SchemaError) => new HttpSessionError(error)
   )
 
-  const makeSessionMeta = (now: DateTime.Utc, createdAt = now) =>
+  const makeSessionMeta = (now: DateTime.Utc, createdAt = now): SessionMeta =>
     new SessionMeta({
       createdAt,
       expiresAt: DateTime.addDuration(now, expiresIn),
       lastRefreshedAt: now
     })
 
-  const makeStorage = (sessionId: SessionId) =>
+  const makeStorage = (sessionId: SessionId): Effect.Effect<Persistence.PersistenceStore> =>
     Effect.provideService(
       persistence.make({
         storeId: `session:${Redacted.value(sessionId)}`,
