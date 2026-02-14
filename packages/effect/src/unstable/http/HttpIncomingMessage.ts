@@ -3,6 +3,7 @@
  */
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
+import { constNull } from "../../Function.ts"
 import type * as Inspectable from "../../Inspectable.ts"
 import { hasProperty } from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
@@ -89,9 +90,9 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
  * @since 4.0.0
  * @category References
  */
-export const MaxBodySize = ServiceMap.Reference<FileSystem.Size | undefined>(
+export const MaxBodySize = ServiceMap.Reference<FileSystem.Size | null>(
   "effect/http/HttpIncomingMessage/MaxBodySize",
-  { defaultValue: () => undefined }
+  { defaultValue: constNull }
 )
 
 /**

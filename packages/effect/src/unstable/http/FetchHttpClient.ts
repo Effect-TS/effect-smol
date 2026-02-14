@@ -27,7 +27,7 @@ export class RequestInit extends ServiceMap.Service<RequestInit, globalThis.Requ
 ) {}
 
 const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fiber) => {
-  const fetch = fiber.getRef(Fetch)
+  const fetch = fiber.getRefDefined(Fetch)
   const options: globalThis.RequestInit = fiber.services.mapUnsafe.get(RequestInit.key) ?? {}
   const headers = options.headers ? Headers.merge(Headers.fromInput(options.headers), request.headers) : request.headers
   const send = (body: BodyInit | undefined) =>

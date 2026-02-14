@@ -8,8 +8,9 @@ import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as FileSystem from "../../FileSystem.ts"
-import { constant, dual } from "../../Function.ts"
+import { constant, constNull, dual } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
+import * as NullOr from "../../NullOr.ts"
 import * as Option from "../../Option.ts"
 import * as Path from "../../Path.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -20,7 +21,6 @@ import * as Transformation from "../../SchemaTransformation.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
-import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as IncomingMessage from "./HttpIncomingMessage.ts"
 import * as MP from "./Multipasta.ts"
 
@@ -263,10 +263,10 @@ export const makeConfig = (
     const mimeTypes = ServiceMap.get(fiber.services, FieldMimeTypes)
     return Effect.succeed<MP.BaseConfig>({
       headers,
-      maxParts: fiber.getRef(MaxParts),
-      maxFieldSize: Number(fiber.getRef(MaxFieldSize)),
-      maxPartSize: UndefinedOr.map(fiber.getRef(MaxFileSize), Number),
-      maxTotalSize: UndefinedOr.map(fiber.getRef(IncomingMessage.MaxBodySize), Number),
+      maxParts: fiber.getRefDefined(MaxParts) ?? undefined,
+      maxFieldSize: Number(fiber.getRefDefined(MaxFieldSize)),
+      maxPartSize: NullOr.map(fiber.getRefDefined(MaxFileSize), Number) ?? undefined,
+      maxTotalSize: NullOr.map(fiber.getRefDefined(IncomingMessage.MaxBodySize), Number) ?? undefined,
       isFile: mimeTypes.length === 0 ? undefined : (info: MP.PartInfo): boolean =>
         !mimeTypes.some(
           (_) => info.contentType.includes(_)
@@ -578,10 +578,10 @@ export const limitsServices = (options: {
     map.set(MaxFieldSize.key, FileSystem.Size(options.maxFieldSize))
   }
   if (options.maxFileSize !== undefined) {
-    map.set(MaxFileSize.key, UndefinedOr.map(options.maxFileSize, FileSystem.Size))
+    map.set(MaxFileSize.key, NullOr.map(options.maxFileSize, FileSystem.Size))
   }
   if (options.maxTotalSize !== undefined) {
-    map.set(IncomingMessage.MaxBodySize.key, UndefinedOr.map(options.maxTotalSize, FileSystem.Size))
+    map.set(IncomingMessage.MaxBodySize.key, NullOr.map(options.maxTotalSize, FileSystem.Size))
   }
   if (options.fieldMimeTypes !== undefined) {
     map.set(FieldMimeTypes.key, options.fieldMimeTypes)
@@ -611,8 +611,8 @@ export declare namespace withLimits {
  * @since 4.0.0
  * @category References
  */
-export const MaxParts = ServiceMap.Reference<number | undefined>("effect/http/Multipart/MaxParts", {
-  defaultValue: () => undefined
+export const MaxParts = ServiceMap.Reference<number | null>("effect/http/Multipart/MaxParts", {
+  defaultValue: constNull
 })
 
 /**
@@ -627,9 +627,9 @@ export const MaxFieldSize = ServiceMap.Reference<FileSystem.SizeInput>("effect/h
  * @since 4.0.0
  * @category References
  */
-export const MaxFileSize = ServiceMap.Reference<FileSystem.SizeInput | undefined>(
+export const MaxFileSize = ServiceMap.Reference<FileSystem.SizeInput | null>(
   "effect/http/Multipart/MaxFileSize",
-  { defaultValue: () => undefined }
+  { defaultValue: constNull }
 )
 
 /**

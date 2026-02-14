@@ -563,8 +563,8 @@ export const make = (
           )
         }
         const url = urlResult.success
-        const tracerDisabled = fiber.getRef(Tracer.DisablePropagation) ||
-          fiber.getRef(TracerDisabledWhen)(request)
+        const tracerDisabled = fiber.getRefDefined(Tracer.DisablePropagation) ||
+          fiber.getRefDefined(TracerDisabledWhen)(request)
         if (tracerDisabled) {
           const effect = f(request, url, controller.signal, fiber as any)
           if (scopedController) return effect
@@ -584,7 +584,7 @@ export const make = (
           )
         }
         return Effect.useSpan(
-          fiber.getRef(SpanNameGenerator)(request),
+          fiber.getRefDefined(SpanNameGenerator)(request),
           { kind: "client" },
           (span) => {
             span.attribute("http.request.method", request.method)
@@ -599,12 +599,12 @@ export const make = (
             if (query !== "") {
               span.attribute("url.query", query)
             }
-            const redactedHeaderNames = fiber.getRef(Headers.CurrentRedactedNames)
+            const redactedHeaderNames = fiber.getRefDefined(Headers.CurrentRedactedNames)
             const redactedHeaders = Headers.redact(request.headers, redactedHeaderNames)
             for (const name in redactedHeaders) {
               span.attribute(`http.request.header.${name}`, String(redactedHeaders[name]))
             }
-            request = fiber.getRef(TracerPropagationEnabled)
+            request = fiber.getRefDefined(TracerPropagationEnabled)
               ? HttpClientRequest.setHeaders(request, TraceContext.toHeaders(span))
               : request
             return Effect.uninterruptibleMask((restore) =>

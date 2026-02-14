@@ -734,6 +734,15 @@ export const getReferenceUnsafe = <Services, S>(self: ServiceMap<Services>, serv
   return self.mapUnsafe.get(service.key)! as any
 }
 
+/**
+ * @since 4.0.0
+ * @category unsafe
+ */
+export const getReferenceDefined = <Services, S>(
+  self: ServiceMap<Services>,
+  service: Reference<Types.NotUndefined<S>>
+): S => self.mapUnsafe.get(service.key) ?? getDefaultValue(service)
+
 const defaultValueCacheKey = "~effect/ServiceMap/defaultValue" as const
 
 const getDefaultValue = (ref: Reference<any>) => {

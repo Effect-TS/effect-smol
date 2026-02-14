@@ -453,9 +453,9 @@ export const CurrentLogLevel: ServiceMap.Reference<LogLevel> = ServiceMap.Refere
  * @category references
  * @since 4.0.0
  */
-export const UnhandledLogLevel: ServiceMap.Reference<LogLevel | undefined> = ServiceMap.Reference(
+export const UnhandledLogLevel: ServiceMap.Reference<LogLevel | null> = ServiceMap.Reference(
   "effect/References/UnhandledLogLevel",
-  { defaultValue: (): LogLevel | undefined => "Error" }
+  { defaultValue: (): LogLevel | null => "Error" }
 )
 
 /**

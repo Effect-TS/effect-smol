@@ -97,7 +97,7 @@ const makeXmlHttpRequest = HttpClient.make(
         xhr.onreadystatechange = null
       }, { once: true })
       xhr.open(request.method, url.toString(), true)
-      xhr.responseType = fiber.getRef(CurrentXHRResponseType)
+      xhr.responseType = fiber.getRefDefined(CurrentXHRResponseType)
       Object.entries(request.headers).forEach(([k, v]) => {
         xhr.setRequestHeader(k, v)
       })

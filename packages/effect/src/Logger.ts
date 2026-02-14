@@ -378,7 +378,7 @@ export const withConsoleLog = <Message, Output>(
   self: Logger<Message, Output>
 ): Logger<Message, void> =>
   effect.loggerMake((options) => {
-    const console = options.fiber.getRef(effect.ConsoleRef)
+    const console = options.fiber.getRefDefined(effect.ConsoleRef)
     return console.log(self.log(options))
   })
 /**
@@ -412,7 +412,7 @@ export const withConsoleError = <Message, Output>(
   self: Logger<Message, Output>
 ): Logger<Message, void> =>
   effect.loggerMake((options) => {
-    const console = options.fiber.getRef(effect.ConsoleRef)
+    const console = options.fiber.getRefDefined(effect.ConsoleRef)
     return console.error(self.log(options))
   })
 /**
@@ -456,7 +456,7 @@ export const withLeveledConsole = <Message, Output>(
   self: Logger<Message, Output>
 ): Logger<Message, void> =>
   effect.loggerMake((options) => {
-    const console = options.fiber.getRef(effect.ConsoleRef)
+    const console = options.fiber.getRefDefined(effect.ConsoleRef)
     const output = self.log(options)
     switch (options.logLevel) {
       case "Debug":
@@ -520,12 +520,12 @@ const format = (
   }
 
   const now = date.getTime()
-  const spans = fiber.getRef(CurrentLogSpans)
+  const spans = fiber.getRefDefined(CurrentLogSpans)
   for (const span of spans) {
     out += " " + effect.formatLogSpan(span, now)
   }
 
-  const annotations = fiber.getRef(CurrentLogAnnotations)
+  const annotations = fiber.getRefDefined(CurrentLogAnnotations)
   for (const [label, value] of Object.entries(annotations)) {
     out += append(label, Formatter.format(value, { space }))
   }
@@ -555,7 +555,7 @@ const format = (
  *   level: options.logLevel,
  *   message: options.message,
  *   fiberId: options.fiber.id,
- *   annotations: options.fiber.getRef(CurrentLogAnnotations)
+ *   annotations: options.fiber.getRefDefined(CurrentLogAnnotations)
  * }))
  *
  * // Custom filtering logger
@@ -737,13 +737,13 @@ export const formatStructured: Logger<unknown, {
   const annotationsObj: Record<string, unknown> = {}
   const spansObj: Record<string, number> = {}
 
-  const annotations = fiber.getRef(CurrentLogAnnotations)
+  const annotations = fiber.getRefDefined(CurrentLogAnnotations)
   for (const [key, value] of Object.entries(annotations)) {
     annotationsObj[key] = effect.structuredMessage(value)
   }
 
   const now = date.getTime()
-  const spans = fiber.getRef(CurrentLogSpans)
+  const spans = fiber.getRefDefined(CurrentLogSpans)
   for (const [label, timestamp] of spans) {
     spansObj[label] = now - timestamp
   }
@@ -1233,7 +1233,9 @@ export const layer = <
 > =>
   Layer.effectServices(
     withFiber(effect.fnUntraced(function*(fiber) {
-      const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(effect.CurrentLoggers) : [])
+      const currentLoggers = new Set(
+        options?.mergeWithExisting === true ? fiber.getRefDefined(effect.CurrentLoggers) : []
+      )
       for (const logger of loggers) {
         currentLoggers.add(isEffect(logger) ? yield* logger : logger)
       }

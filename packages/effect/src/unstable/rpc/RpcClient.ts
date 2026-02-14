@@ -385,7 +385,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
               sampled: span.sampled
             } :
             {}),
-          headers: Headers.merge(parentFiber.getRef(CurrentHeaders), headers)
+          headers: Headers.merge(parentFiber.getRefDefined(CurrentHeaders), headers)
         }
       )
       if (discard) {
@@ -493,7 +493,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
             sampled: span.sampled
           } :
           {}),
-        headers: Headers.merge(fiber.getRef(CurrentHeaders), headers)
+        headers: Headers.merge(fiber.getRefDefined(CurrentHeaders), headers)
       }
     ).pipe(
       span ? Effect.withParentSpan(span, { captureStackTrace: false }) : identity,

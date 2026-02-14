@@ -394,7 +394,7 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
       return Effect.void
     }
 
-    const clock = fiber.getRef(Clock)
+    const clock = fiber.getRefDefined(Clock)
     entry.expiresAt = clock.currentTimeMillisUnsafe() + Duration.toMillis(entry.idleTimeToLive)
     if (entry.fiber) return Effect.void
 

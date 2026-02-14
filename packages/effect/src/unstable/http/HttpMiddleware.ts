@@ -3,7 +3,7 @@
  */
 import { Clock } from "../../Clock.ts"
 import * as Effect from "../../Effect.ts"
-import { constant, constFalse } from "../../Function.ts"
+import { constant, constFalse, constNull } from "../../Function.ts"
 import * as internalEffect from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
 import type { Predicate } from "../../Predicate.ts"
@@ -102,7 +102,7 @@ export const logger: <E, R>(
     const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
     return Effect.withLogSpan(
       Effect.flatMap(Effect.exit(httpApp), (exit) => {
-        if (fiber.getRef(LoggerDisabled)) {
+        if (fiber.getRefDefined(LoggerDisabled)) {
           return exit
         } else if (exit._tag === "Failure") {
           const [response, cause] = causeResponseStripped(exit.cause)
@@ -138,11 +138,11 @@ export const tracer: <E, R>(
 ) => Effect.Effect<HttpServerResponse, E, HttpServerRequest | R> = make((httpApp) =>
   Effect.withFiber((fiber) => {
     const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
-    const disabled = !fiber.getRef(TracerEnabled) || fiber.getRef(TracerDisabledWhen)(request)
+    const disabled = !fiber.getRefDefined(TracerEnabled) || fiber.getRefDefined(TracerDisabledWhen)(request)
     if (disabled) {
       return httpApp
     }
-    const nameGenerator = fiber.getRef(SpanNameGenerator)
+    const nameGenerator = fiber.getRefDefined(SpanNameGenerator)
     const span = internalEffect.makeSpanUnsafe(fiber, nameGenerator(request), {
       parent: TraceContext.fromHeaders(request.headers),
       kind: "server"
@@ -151,14 +151,14 @@ export const tracer: <E, R>(
     fiber.setServices(ServiceMap.add(fiber.services, ParentSpan, span))
     return Effect.onExitInterruptible(httpApp, (exit) => {
       fiber.setServices(ServiceMap.addOrOmit(fiber.services, ParentSpan, prevSpan))
-      const endTime = fiber.getRef(Clock).currentTimeNanosUnsafe()
+      const endTime = fiber.getRefDefined(Clock).currentTimeNanosUnsafe()
       fiber.currentScheduler.scheduleTask(() => {
         const url = Request.toURL(request)
         if (url !== undefined && (url.username !== "" || url.password !== "")) {
           url.username = "REDACTED"
           url.password = "REDACTED"
         }
-        const redactedHeaderNames = fiber.getRef(Headers.CurrentRedactedNames)
+        const redactedHeaderNames = fiber.getRefDefined(Headers.CurrentRedactedNames)
         const requestHeaders = Headers.redact(request.headers, redactedHeaderNames)
         span.attribute("http.request.method", request.method)
         if (url !== undefined) {
@@ -342,7 +342,7 @@ export const cors = (options?: {
           headers: headersFromRequestOptions(request)
         }))
       }
-      const prev = fiber.getRef(PreResponseHandlers)
+      const prev = fiber.getRefDefined(PreResponseHandlers)
       const next = prev
         ? ((req: HttpServerRequest, res: HttpServerResponse) =>
           Effect.flatMap(prev(req, res), (res) => preResponseHandler(req, res)))
@@ -352,7 +352,7 @@ export const cors = (options?: {
     })
 }
 
-const PreResponseHandlers = ServiceMap.Reference<PreResponseHandler | undefined>(
+const PreResponseHandlers = ServiceMap.Reference<PreResponseHandler | null>(
   "effect/http/HttpEffect/PreResponseHandlers",
-  { defaultValue: () => undefined }
+  { defaultValue: constNull }
 )

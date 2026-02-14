@@ -338,7 +338,7 @@ export const make = (
       ): Effect.Effect<Array<any>, SqlError, never> => {
         const rows = Effect.withFiber<[Array<string>, Array<any>], SqlError>((fiber) => {
           const id = currentId++
-          return send(id, [id, sql, params], fiber.getRef(Transferables))
+          return send(id, [id, sql, params], fiber.getRefDefined(Transferables))
         })
         return rowMode === "object"
           ? Effect.map(rows, extractObject)

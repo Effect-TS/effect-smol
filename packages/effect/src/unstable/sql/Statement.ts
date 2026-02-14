@@ -4,7 +4,7 @@
 import { Clock } from "../../Clock.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Fiber from "../../Fiber.ts"
-import { constUndefined } from "../../Function.ts"
+import { constNull } from "../../Function.ts"
 import type { Inspectable } from "../../Inspectable.ts"
 import * as core from "../../internal/core.ts"
 import * as internalEffect from "../../internal/effect.ts"
@@ -76,8 +76,8 @@ export type Transformer = (
  * @category transformer
  * @since 4.0.0
  */
-export const CurrentTransformer = ServiceMap.Reference<Transformer | undefined>("effect/sql/CurrentTransformer", {
-  defaultValue: constUndefined
+export const CurrentTransformer = ServiceMap.Reference<Transformer | null>("effect/sql/CurrentTransformer", {
+  defaultValue: constNull
 })
 
 /**
@@ -1225,8 +1225,8 @@ const StatementProto: Omit<
     fiber: Fiber.Fiber<any, any>
   ): Effect.Effect<ReadonlyArray<any>, SqlError> {
     const span = internalEffect.makeSpanUnsafe(fiber, "sql.execute", { kind: "client" })
-    const clock = fiber.getRef(Clock)
-    const timingEnabled = fiber.getRef(TracerTimingEnabled)
+    const clock = fiber.getRefDefined(Clock)
+    const timingEnabled = fiber.getRefDefined(TracerTimingEnabled)
     return Effect.onExit(
       this.withConnectionSpan(
         "execute",
@@ -1254,8 +1254,8 @@ const withStatement = <A, X, E, R>(
   f: (statement: StatementImpl<A>) => Effect.Effect<X, E, R>
 ) =>
   Effect.withFiber<X, E, R>((fiber) => {
-    const transform = fiber.getRef(CurrentTransformer)
-    if (transform === undefined) {
+    const transform = fiber.getRefDefined(CurrentTransformer)
+    if (transform === null) {
       return f(self)
     }
     return Effect.flatMap(

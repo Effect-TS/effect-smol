@@ -200,7 +200,7 @@ export const makeWithTransaction = <I, S>(options: {
             span.attribute(key, value)
           }
           const services = fiber.services
-          const clock = fiber.getRef(Clock)
+          const clock = fiber.getRefDefined(Clock)
           const connOption = ServiceMap.getOption(services, options.transactionService)
           const conn = connOption._tag === "Some"
             ? Effect.succeed([undefined, connOption.value[0]] as const)
