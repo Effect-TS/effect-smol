@@ -126,7 +126,8 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly currentSpan?: AnySpan | undefined
   readonly currentStackFrame?: StackFrame | undefined
   readonly maxOpsBeforeYield: number
-  readonly addObserver: (cb: (exit: Exit<A, E>) => void) => () => void
+  readonly addObserver: (cb: (exit: Exit<A, E>) => void) => void
+  readonly removeObserver: (cb: (exit: Exit<A, E>) => void) => void
   readonly interruptUnsafe: (
     fiberId?: number | undefined,
     annotations?: ServiceMap.ServiceMap<never> | undefined

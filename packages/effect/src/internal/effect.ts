@@ -555,17 +555,16 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   getRefDefined<X>(ref: ServiceMap.Reference<NotUndefined<X>>): X {
     return ServiceMap.getReferenceDefined(this.services, ref)
   }
-  addObserver(cb: (exit: Exit.Exit<A, E>) => void): () => void {
+  addObserver(cb: (exit: Exit.Exit<A, E>) => void): void {
     if (this._exit) {
-      cb(this._exit)
-      return constVoid
+      return cb(this._exit)
     }
     this._observers.push(cb)
-    return () => {
-      const index = this._observers.indexOf(cb)
-      if (index >= 0) {
-        this._observers.splice(index, 1)
-      }
+  }
+  removeObserver(cb: (exit: Exit.Exit<A, E>) => void): void {
+    const index = this._observers.indexOf(cb)
+    if (index >= 0) {
+      this._observers.splice(index, 1)
     }
   }
   interruptUnsafe(fiberId?: number | undefined, annotations?: ServiceMap.ServiceMap<never> | undefined): void {
@@ -724,7 +723,9 @@ export const fiberAwait = <A, E>(
   if (impl._exit) return succeed(impl._exit)
   return callback((resume) => {
     if (impl._exit) return resume(succeed(impl._exit))
-    return sync(self.addObserver((exit) => resume(succeed(exit))))
+    const onExit = (exit: Exit.Exit<A, E>) => resume(succeed(exit))
+    self.addObserver(onExit)
+    return sync(() => self.removeObserver(onExit))
   })
 }
 
@@ -742,7 +743,11 @@ export const fiberAwaitAll = <Fiber extends Fiber.Fiber<any, any>>(
   callback((resume) => {
     const iter = self[Symbol.iterator]() as Iterator<FiberImpl>
     const exits: Array<Exit.Exit<any, any>> = []
-    let cancel: (() => void) | undefined = undefined
+    let currentFiber: FiberImpl | undefined = undefined
+    const onExit = (exit: Exit.Exit<any, any>) => {
+      exits.push(exit)
+      loop()
+    }
     function loop() {
       let result = iter.next()
       while (!result.done) {
@@ -751,16 +756,14 @@ export const fiberAwaitAll = <Fiber extends Fiber.Fiber<any, any>>(
           result = iter.next()
           continue
         }
-        cancel = result.value.addObserver((exit) => {
-          exits.push(exit)
-          loop()
-        })
+        currentFiber = result.value
+        result.value.addObserver(onExit)
         return
       }
       resume(succeed(exits))
     }
     loop()
-    return sync(() => cancel?.())
+    return sync(() => currentFiber?.removeObserver(onExit))
   })
 
 /** @internal */
@@ -769,7 +772,8 @@ export const fiberJoin = <A, E>(self: Fiber.Fiber<A, E>): Effect.Effect<A, E> =>
   if (impl._exit) return impl._exit
   return callback((resume) => {
     if (impl._exit) return resume(impl._exit)
-    return sync(self.addObserver(resume))
+    self.addObserver(resume)
+    return sync(() => self.removeObserver(resume))
   })
 }
 
@@ -781,23 +785,25 @@ export const fiberJoinAll = <A extends Iterable<Fiber.Fiber<any, any>>>(self: A)
   callback((resume) => {
     const fibers = Array.from(self)
     const out = new Array<any>(fibers.length) as Arr.NonEmptyArray<any>
-    const cancels = Arr.empty<() => void>()
+    const onExits = Arr.empty<Function>()
     let done = 0
     let failed = false
     for (let i = 0; i < fibers.length; i++) {
       if (failed) break
-      cancels.push(fibers[i].addObserver((exit) => {
+      const onExit = (exit: Exit.Exit<any, any>) => {
         done++
         if (exit._tag === "Failure") {
           failed = true
-          cancels.forEach((cancel) => cancel())
+          onExits.forEach((cb, i) => fibers[i].removeObserver(cb as any))
           return resume(exit as any)
         }
         out[i] = exit.value
         if (done === fibers.length) {
           resume(succeed(out))
         }
-      }))
+      }
+      fibers[i].addObserver(onExit)
+      onExits.push(onExit)
     }
   })
 
