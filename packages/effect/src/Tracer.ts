@@ -10,38 +10,6 @@ import * as ServiceMap from "./ServiceMap.ts"
 /**
  * @since 2.0.0
  * @category models
- * @example
- * ```ts
- * import type { ServiceMap } from "effect"
- * import { Tracer } from "effect"
- *
- * // Create a custom tracer implementation
- * const customTracer: Tracer.Tracer = {
- *   span: (
- *     name: string,
- *     parent: Tracer.AnySpan | undefined,
- *     annotations: ServiceMap.ServiceMap<never>,
- *     links: ReadonlyArray<Tracer.SpanLink>,
- *     startTime: bigint,
- *     kind: Tracer.SpanKind,
- *     _options: Tracer.SpanOptions | undefined
- *   ) => {
- *     console.log(`Creating span: ${name}`)
- *     return new Tracer.NativeSpan(
- *       name,
- *       parent,
- *       annotations,
- *       links.slice(),
- *       startTime,
- *       kind
- *     )
- *   },
- *   context: <X>(f: () => X, fiber: any) => {
- *     console.log("Running with tracing context")
- *     return f()
- *   }
- * }
- * ```
  */
 export interface Tracer {
   readonly span: (
@@ -327,10 +295,6 @@ export interface SpanLink {
  *       startTime,
  *       kind
  *     )
- *   },
- *   context: (f, fiber) => {
- *     console.log("Executing with tracer context")
- *     return f()
  *   }
  * })
  * ```
