@@ -5480,7 +5480,8 @@ export function Result<A extends Top, E extends Top>(
             Struct({ _tag: Literal("Failure"), failure })
           ]),
           Transformation.transform({
-            decode: (e) => e._tag === "Success" ? Result_.succeed(e.success) : Result_.fail(e.failure),
+            decode: (e): Result_.Result<A["Encoded"], E["Encoded"]> =>
+              e._tag === "Success" ? Result_.succeed(e.success) : Result_.fail(e.failure),
             encode: (r) =>
               Result_.isSuccess(r)
                 ? { _tag: "Success", success: r.success } as const
