@@ -729,7 +729,7 @@ export const get: {
  */
 export const getReferenceUnsafe = <Services, S>(self: ServiceMap<Services>, service: Reference<S>): S => {
   if (!self.mapUnsafe.has(service.key)) {
-    return getDefaultValue(service as any)
+    return getDefaultValue(service)
   }
   return self.mapUnsafe.get(service.key)! as any
 }
@@ -741,7 +741,10 @@ export const getReferenceUnsafe = <Services, S>(self: ServiceMap<Services>, serv
 export const getReferenceDefined = <Services, S>(
   self: ServiceMap<Services>,
   service: Reference<Types.NotUndefined<S>>
-): S => self.mapUnsafe.get(service.key) ?? getDefaultValue(service)
+): S => {
+  const value = self.mapUnsafe.get(service.key)
+  return value === undefined ? getDefaultValue(service) : value
+}
 
 const defaultValueCacheKey = "~effect/ServiceMap/defaultValue" as const
 
