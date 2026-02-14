@@ -231,7 +231,7 @@ export declare namespace Result {
  * @category Constructors
  * @since 4.0.0
  */
-export const succeed: <A, E = never>(right: A) => Result<A, E> = result.succeed
+export const succeed: <A>(right: A) => Result<A> = result.succeed
 
 /**
  * Constructs a new `Result` holding a `Failure` value.
@@ -251,7 +251,7 @@ export const succeed: <A, E = never>(right: A) => Result<A, E> = result.succeed
  * @category Constructors
  * @since 4.0.0
  */
-export const fail: <E, A = never>(left: E) => Result<A, E> = result.fail
+export const fail: <E>(left: E) => Result<never, E> = result.fail
 
 const void_: Result<void> = succeed(void 0)
 export {

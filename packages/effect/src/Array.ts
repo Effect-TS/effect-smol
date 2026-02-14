@@ -1023,8 +1023,10 @@ export const span: {
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [init: Array<A>, rest: Array<A>]
 } = dual(
   2,
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [init: Array<A>, rest: Array<A>] =>
-    splitAt(self, spanIndex(self, predicate))
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [init: Array<A>, rest: Array<A>] => {
+    const input = fromIterable(self)
+    return splitAt(input, spanIndex(input, predicate))
+  }
 )
 
 /**
@@ -1097,8 +1099,10 @@ export const dropWhile: {
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A>
 } = dual(
   2,
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A> =>
-    fromIterable(self).slice(spanIndex(self, predicate))
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A> => {
+    const input = fromIterable(self)
+    return input.slice(spanIndex(input, predicate))
+  }
 )
 
 /**
@@ -2364,7 +2368,10 @@ export const intersectionWith = <A>(isEquivalent: (self: A, that: A) => boolean)
   const has = containsWith(isEquivalent)
   return dual(
     2,
-    (self: Iterable<A>, that: Iterable<A>): Array<A> => fromIterable(self).filter((a) => has(that, a))
+    (self: Iterable<A>, that: Iterable<A>): Array<A> => {
+      const thatArray = fromIterable(that)
+      return fromIterable(self).filter((a) => has(thatArray, a))
+    }
   )
 }
 
@@ -2417,7 +2424,10 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
   const has = containsWith(isEquivalent)
   return dual(
     2,
-    (self: Iterable<A>, that: Iterable<A>): Array<A> => fromIterable(self).filter((a) => !has(that, a))
+    (self: Iterable<A>, that: Iterable<A>): Array<A> => {
+      const thatArray = fromIterable(that)
+      return fromIterable(self).filter((a) => !has(thatArray, a))
+    }
   )
 }
 
@@ -2793,23 +2803,23 @@ export const filterMapWhile: {
  * @since 2.0.0
  */
 export const partitionMap: {
-  <A, B, C>(f: (a: A, i: number) => Result.Result<C, B>): (self: Iterable<A>) => [left: Array<B>, right: Array<C>]
-  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Result.Result<C, B>): [left: Array<B>, right: Array<C>]
+  <A, B, C>(f: (a: A, i: number) => Result.Result<C, B>): (self: Iterable<A>) => [fails: Array<B>, successes: Array<C>]
+  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Result.Result<C, B>): [fails: Array<B>, successes: Array<C>]
 } = dual(
   2,
-  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Result.Result<C, B>): [left: Array<B>, right: Array<C>] => {
-    const left: Array<B> = []
-    const right: Array<C> = []
+  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Result.Result<C, B>): [fails: Array<B>, successes: Array<C>] => {
+    const failures: Array<B> = []
+    const successes: Array<C> = []
     const as = fromIterable(self)
     for (let i = 0; i < as.length; i++) {
       const e = f(as[i], i)
       if (Result.isFailure(e)) {
-        left.push(e.failure)
+        failures.push(e.failure)
       } else {
-        right.push(e.success)
+        successes.push(e.success)
       }
     }
-    return [left, right]
+    return [failures, successes]
   }
 )
 /**
@@ -2984,22 +2994,22 @@ export const partition: {
 } = dual(
   2,
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [excluded: Array<A>, satisfying: Array<A>] => {
-    const left: Array<A> = []
-    const right: Array<A> = []
+    const excluded: Array<A> = []
+    const satisfying: Array<A> = []
     const as = fromIterable(self)
     for (let i = 0; i < as.length; i++) {
       if (predicate(as[i], i)) {
-        right.push(as[i])
+        satisfying.push(as[i])
       } else {
-        left.push(as[i])
+        excluded.push(as[i])
       }
     }
-    return [left, right]
+    return [excluded, satisfying]
   }
 )
 
 /**
- * Separates an `Iterable` into two arrays based on a predicate.
+ * Separates an `Iterable` into two arrays of failures and successes.
  *
  * @example
  * ```ts
@@ -3016,10 +3026,10 @@ export const partition: {
  */
 export const separate: <T extends Iterable<Result.Result<any, any>>>(
   self: T
-) => [Array<Result.Result.Failure<ReadonlyArray.Infer<T>>>, Array<Result.Result.Success<ReadonlyArray.Infer<T>>>] =
-  partitionMap(
-    identity
-  )
+) => [
+  failures: Array<Result.Result.Failure<ReadonlyArray.Infer<T>>>,
+  successes: Array<Result.Result.Success<ReadonlyArray.Infer<T>>>
+] = partitionMap(identity)
 
 /**
  * Reduces an array from the left.
