@@ -10,7 +10,7 @@ import { pipeArguments } from "../Pipeable.ts"
 import { hasProperty } from "../Predicate.ts"
 import type { StackFrame } from "../References.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
-import type { Equals } from "../Types.ts"
+import type * as Types from "../Types.ts"
 import { SingleShotGen } from "../Utils.ts"
 import type { FiberImpl } from "./effect.ts"
 
@@ -590,7 +590,7 @@ export const YieldableError: new(
 
 /** @internal */
 export const Error: new<A extends Record<string, any> = {}>(
-  args: Equals<A, {}> extends true ? void : { readonly [P in keyof A]: A[P] }
+  args: Types.Equals<A, {}> extends true ? void : { readonly [P in keyof A]: A[P] }
 ) => Cause.YieldableError & Readonly<A> = (function() {
   const plainArgsSymbol = Symbol.for("effect/Data/Error/plainArgs")
   return class Base extends YieldableError {
@@ -614,7 +614,7 @@ export const Error: new<A extends Record<string, any> = {}>(
 export const TaggedError = <Tag extends string>(
   tag: Tag
 ): new<A extends Record<string, any> = {}>(
-  args: Equals<A, {}> extends true ? void
+  args: Types.Equals<A, {}> extends true ? void
     : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
 ) => Cause.YieldableError & { readonly _tag: Tag } & Readonly<A> => {
   class Base extends Error<{}> {

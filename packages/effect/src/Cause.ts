@@ -87,7 +87,7 @@ import type { Option } from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import type { StackFrame } from "./References.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import type { NoInfer } from "./Types.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * Unique brand for `Cause` values, used for runtime type checks via {@link isCause}.
@@ -659,8 +659,8 @@ export const hasInterruptsOnly: <E>(self: Cause<E>) => boolean = effect.hasInter
  * @since 4.0.0
  */
 export const map: {
-  <E, E2>(f: (error: NoInfer<E>) => E2): (self: Cause<E>) => Cause<E2>
-  <E, E2>(self: Cause<E>, f: (error: NoInfer<E>) => E2): Cause<E2>
+  <E, E2>(f: (error: Types.NoInfer<E>) => E2): (self: Cause<E>) => Cause<E2>
+  <E, E2>(self: Cause<E>, f: (error: Types.NoInfer<E>) => E2): Cause<E2>
 } = effect.causeMap
 
 /**
@@ -891,7 +891,7 @@ export const findDie: <E>(self: Cause<E>) => Die | Filter.fail<Cause<E>> = effec
  * @category filters
  * @since 4.0.0
  */
-export const findDefect: <E>(self: Cause<E>) => {} | null | undefined | Filter.fail<Cause<E>> = effect.findDefect
+export const findDefect: <E>(self: Cause<E>) => Types.Any | Filter.fail<Cause<E>> = effect.findDefect
 
 /**
  * Returns `true` if the cause contains at least one {@link Interrupt} reason.

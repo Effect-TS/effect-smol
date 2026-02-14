@@ -1,4 +1,12 @@
 /**
+ * Repesents any type that can also be unioned with other types.
+ *
+ * @since 4.0.0
+ * @category types
+ */
+export type Any = {} | null | undefined
+
+/**
  * A collection of types that are commonly used types.
  *
  * @since 2.0.0
