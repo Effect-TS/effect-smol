@@ -2606,10 +2606,58 @@ export * as TxRef from "./TxRef.ts"
 export * as TxSemaphore from "./TxSemaphore.ts"
 
 /**
- * Repesents any type that can also be unioned with other types.
+ * Type-level utility types for TypeScript.
+ *
+ * This module provides generic type aliases used throughout the Effect
+ * ecosystem. Everything here is compile-time only — there are no runtime
+ * values. Use these types to manipulate object shapes, tagged unions, tuples,
+ * and variance markers at the type level.
+ *
+ * ## Mental model
+ *
+ * - **Tagged union**: a union of objects each having a discriminating
+ *   `_tag: string` field. {@link Tags}, {@link ExtractTag}, and
+ *   {@link ExcludeTag} operate on these.
+ * - **Reason**: a nested error pattern where an error has a `reason` field
+ *   containing a tagged union of sub-errors. {@link ReasonOf},
+ *   {@link ReasonTags}, {@link ExtractReason}, and {@link ExcludeReason} work
+ *   with this pattern.
+ * - **Variance markers**: {@link Covariant}, {@link Contravariant}, and
+ *   {@link Invariant} are function-type aliases encoding variance for phantom
+ *   type parameters.
+ * - **Simplify**: {@link Simplify} flattens intersection types (`A & B`) into
+ *   a single object type for cleaner IDE tooltips.
+ * - **Concurrency**: {@link Concurrency} is a union type
+ *   (`number | "unbounded" | "inherit"`) used across Effect APIs that accept
+ *   concurrency options.
+ * - **Marker types**: {@link unassigned} and {@link unhandled} are branded
+ *   interfaces used internally to represent missing or unhandled type
+ *   parameters.
+ *
+ * ## Common tasks
+ *
+ * - Flatten an intersection for readability → {@link Simplify}
+ * - Check type equality at compile time → {@link Equals} / {@link EqualsWith}
+ * - Merge two object types → {@link MergeLeft} / {@link MergeRight}
+ * - Work with tagged unions → {@link Tags} / {@link ExtractTag} / {@link ExcludeTag}
+ * - Work with nested reason errors → {@link ReasonOf} / {@link ExtractReason}
+ * - Create fixed-length tuples → {@link TupleOf} / {@link TupleOfAtLeast}
+ * - Strip `readonly` modifiers → {@link Mutable} / {@link DeepMutable}
+ * - Encode variance in phantom types → {@link Covariant} / {@link Contravariant} / {@link Invariant}
+ * - Check if a type is a union → {@link IsUnion}
+ *
+ * ## Gotchas
+ *
+ * - {@link TupleOf} with a non-literal `number` (e.g. `TupleOf<number, string>`)
+ *   degrades to `Array<string>`.
+ * - {@link MergeRecord} is an alias for {@link MergeLeft}; prefer
+ *   {@link MergeLeft} or {@link MergeRight} for clarity.
+ * - {@link NoInfer} uses the `[A][A extends any ? 0 : never]` trick, not the
+ *   built-in `NoInfer` from TypeScript 5.4+.
+ * - {@link DeepMutable} recurses into `Map`, `Set`, arrays, and objects but
+ *   stops at primitives and functions.
  *
  * @since 4.0.0
- * @category types
  */
 export * as Types from "./Types.ts"
 

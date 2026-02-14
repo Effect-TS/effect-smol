@@ -1,5 +1,64 @@
 /**
- * Repesents any type that can also be unioned with other types.
+ * Type-level utility types for TypeScript.
+ *
+ * This module provides generic type aliases used throughout the Effect
+ * ecosystem. Everything here is compile-time only — there are no runtime
+ * values. Use these types to manipulate object shapes, tagged unions, tuples,
+ * and variance markers at the type level.
+ *
+ * ## Mental model
+ *
+ * - **Tagged union**: a union of objects each having a discriminating
+ *   `_tag: string` field. {@link Tags}, {@link ExtractTag}, and
+ *   {@link ExcludeTag} operate on these.
+ * - **Reason**: a nested error pattern where an error has a `reason` field
+ *   containing a tagged union of sub-errors. {@link ReasonOf},
+ *   {@link ReasonTags}, {@link ExtractReason}, and {@link ExcludeReason} work
+ *   with this pattern.
+ * - **Variance markers**: {@link Covariant}, {@link Contravariant}, and
+ *   {@link Invariant} are function-type aliases encoding variance for phantom
+ *   type parameters.
+ * - **Simplify**: {@link Simplify} flattens intersection types (`A & B`) into
+ *   a single object type for cleaner IDE tooltips.
+ * - **Concurrency**: {@link Concurrency} is a union type
+ *   (`number | "unbounded" | "inherit"`) used across Effect APIs that accept
+ *   concurrency options.
+ * - **Marker types**: {@link unassigned} and {@link unhandled} are branded
+ *   interfaces used internally to represent missing or unhandled type
+ *   parameters.
+ *
+ * ## Common tasks
+ *
+ * - Flatten an intersection for readability → {@link Simplify}
+ * - Check type equality at compile time → {@link Equals} / {@link EqualsWith}
+ * - Merge two object types → {@link MergeLeft} / {@link MergeRight}
+ * - Work with tagged unions → {@link Tags} / {@link ExtractTag} / {@link ExcludeTag}
+ * - Work with nested reason errors → {@link ReasonOf} / {@link ExtractReason}
+ * - Create fixed-length tuples → {@link TupleOf} / {@link TupleOfAtLeast}
+ * - Strip `readonly` modifiers → {@link Mutable} / {@link DeepMutable}
+ * - Encode variance in phantom types → {@link Covariant} / {@link Contravariant} / {@link Invariant}
+ * - Check if a type is a union → {@link IsUnion}
+ *
+ * ## Gotchas
+ *
+ * - {@link TupleOf} with a non-literal `number` (e.g. `TupleOf<number, string>`)
+ *   degrades to `Array<string>`.
+ * - {@link MergeRecord} is an alias for {@link MergeLeft}; prefer
+ *   {@link MergeLeft} or {@link MergeRight} for clarity.
+ * - {@link NoInfer} uses the `[A][A extends any ? 0 : never]` trick, not the
+ *   built-in `NoInfer` from TypeScript 5.4+.
+ * - {@link DeepMutable} recurses into `Map`, `Set`, arrays, and objects but
+ *   stops at primitives and functions.
+ *
+ * @since 4.0.0
+ */
+
+/**
+ * A top-like type that accepts any value.
+ *
+ * Unlike `unknown`, this type is intended for building unions and does not force
+ * narrowing before use. It includes all values via `{}` (any non-nullish value)
+ * plus `null` and `undefined`.
  *
  * @since 4.0.0
  * @category types
@@ -7,34 +66,40 @@
 export type Any = {} | null | undefined
 
 /**
- * A collection of types that are commonly used types.
- *
+ * @category tuples
  * @since 2.0.0
  */
-
 type TupleOf_<T, N extends number, R extends Array<unknown>> = `${N}` extends `-${number}` ? never
   : R["length"] extends N ? R
   : TupleOf_<T, N, [T, ...R]>
 
 /**
- * Represents a tuple with a fixed number of elements of type `T`.
+ * Constructs a tuple type with exactly `N` elements of type `T`.
  *
- * This type constructs a tuple that has exactly `N` elements of type `T`.
+ * - Use when you need a fixed-length array type.
+ * - Use instead of manually writing `[T, T, T, ...]` for longer tuples.
  *
- * @typeParam N - The number of elements in the tuple.
- * @typeParam T - The type of elements in the tuple.
+ * Behavior:
+ * - If `N` is a literal number, produces a tuple of that exact length.
+ * - If `N` is the general `number` type (non-literal), degrades to `Array<T>`.
+ * - Negative numbers produce `never`.
  *
- * @example
+ * **Example** (Fixed-length tuple)
+ *
  * ```ts
- * import type { TupleOf } from "effect/Types"
+ * import type { Types } from "effect"
  *
- * // A tuple with exactly 3 numbers
- * const example1: TupleOf<3, number> = [1, 2, 3] // valid
- * // @ts-expect-error
- * const example2: TupleOf<3, number> = [1, 2] // invalid
- * // @ts-expect-error
- * const example3: TupleOf<3, number> = [1, 2, 3, 4] // invalid
+ * // Exactly 3 numbers
+ * const triple: Types.TupleOf<3, number> = [1, 2, 3]
+ *
+ * // @ts-expect-error - too few elements
+ * const tooFew: Types.TupleOf<3, number> = [1, 2]
+ *
+ * // @ts-expect-error - too many elements
+ * const tooMany: Types.TupleOf<3, number> = [1, 2, 3, 4]
  * ```
+ *
+ * @see {@link TupleOfAtLeast}
  *
  * @category tuples
  * @since 3.3.0
@@ -42,24 +107,29 @@ type TupleOf_<T, N extends number, R extends Array<unknown>> = `${N}` extends `-
 export type TupleOf<N extends number, T> = N extends N ? number extends N ? Array<T> : TupleOf_<T, N, []> : never
 
 /**
- * Represents a tuple with at least `N` elements of type `T`.
+ * Constructs a tuple type with at least `N` elements of type `T`.
  *
- * This type constructs a tuple that has a fixed number of elements `N` of type `T` at the start,
- * followed by any number (including zero) of additional elements of the same type `T`.
+ * - Use when you need a minimum-length array type that still allows additional
+ *   elements.
+ * - Useful for variadic function signatures that require a minimum arity.
  *
- * @typeParam N - The minimum number of elements in the tuple.
- * @typeParam T - The type of elements in the tuple.
+ * Behavior:
+ * - Produces a tuple with `N` fixed positions followed by `...Array<T>`.
  *
- * @example
+ * **Example** (Minimum-length tuple)
+ *
  * ```ts
- * import type { TupleOfAtLeast } from "effect/Types"
+ * import type { Types } from "effect"
  *
- * // A tuple with at least 3 numbers
- * const example1: TupleOfAtLeast<3, number> = [1, 2, 3] // valid
- * const example2: TupleOfAtLeast<3, number> = [1, 2, 3, 4, 5] // valid
- * // @ts-expect-error
- * const example3: TupleOfAtLeast<3, number> = [1, 2] // invalid
+ * // At least 2 strings
+ * const ok1: Types.TupleOfAtLeast<2, string> = ["a", "b"]
+ * const ok2: Types.TupleOfAtLeast<2, string> = ["a", "b", "c", "d"]
+ *
+ * // @ts-expect-error - too few elements
+ * const bad: Types.TupleOfAtLeast<2, string> = ["a"]
  * ```
+ *
+ * @see {@link TupleOf}
  *
  * @category tuples
  * @since 3.3.0
@@ -67,13 +137,27 @@ export type TupleOf<N extends number, T> = N extends N ? number extends N ? Arra
 export type TupleOfAtLeast<N extends number, T> = [...TupleOf<N, T>, ...Array<T>]
 
 /**
- * Returns the tags in a type.
- * @example
- * ```ts
- * import type * as Types from "effect/Types"
+ * Extracts the `_tag` string literal types from a union.
  *
- * type Res = Types.Tags<string | { _tag: "a" } | { _tag: "b" }> // "a" | "b"
+ * - Use to get all discriminant values from a tagged union type.
+ * - Members without a `_tag` field are ignored (produce `never`).
+ *
+ * **Example** (Extracting tags)
+ *
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type MyError =
+ *   | { readonly _tag: "NotFound"; readonly id: string }
+ *   | { readonly _tag: "Timeout"; readonly ms: number }
+ *   | string
+ *
+ * type Result = Types.Tags<MyError>
+ * // "NotFound" | "Timeout"
  * ```
+ *
+ * @see {@link ExtractTag}
+ * @see {@link ExcludeTag}
  *
  * @category types
  * @since 2.0.0
@@ -81,13 +165,27 @@ export type TupleOfAtLeast<N extends number, T> = [...TupleOf<N, T>, ...Array<T>
 export type Tags<E> = E extends { readonly _tag: string } ? E["_tag"] : never
 
 /**
- * Excludes the tagged object from the type.
- * @example
- * ```ts
- * import type * as Types from "effect/Types"
+ * Excludes members of a tagged union by their `_tag` value.
  *
- * type Res = Types.ExcludeTag<string | { _tag: "a" } | { _tag: "b" }, "a"> // string | { _tag: "b" }
+ * - Use to narrow a union by removing a specific variant.
+ * - Non-tagged members of the union are preserved.
+ *
+ * **Example** (Removing a variant)
+ *
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type MyError =
+ *   | { readonly _tag: "NotFound"; readonly id: string }
+ *   | { readonly _tag: "Timeout"; readonly ms: number }
+ *   | string
+ *
+ * type WithoutTimeout = Types.ExcludeTag<MyError, "Timeout">
+ * // { readonly _tag: "NotFound"; readonly id: string } | string
  * ```
+ *
+ * @see {@link ExtractTag}
+ * @see {@link Tags}
  *
  * @category types
  * @since 2.0.0
@@ -95,17 +193,26 @@ export type Tags<E> = E extends { readonly _tag: string } ? E["_tag"] : never
 export type ExcludeTag<E, K extends string> = Exclude<E, { readonly _tag: K }>
 
 /**
- * Extracts the type of the given tag.
+ * Extracts a specific member of a tagged union by its `_tag` value.
  *
- * @example
+ * - Use to narrow a union down to a single variant.
+ * - Returns `never` if no member matches the tag.
+ *
+ * **Example** (Extracting a variant)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type Res = Types.ExtractTag<
- *   { _tag: "a"; a: number } | { _tag: "b"; b: number },
- *   "b"
- * > // { _tag: "b", b: number }
+ * type MyError =
+ *   | { readonly _tag: "NotFound"; readonly id: string }
+ *   | { readonly _tag: "Timeout"; readonly ms: number }
+ *
+ * type TimeoutError = Types.ExtractTag<MyError, "Timeout">
+ * // { readonly _tag: "Timeout"; readonly ms: number }
  * ```
+ *
+ * @see {@link ExcludeTag}
+ * @see {@link Tags}
  *
  * @category types
  * @since 2.0.0
@@ -113,15 +220,28 @@ export type ExcludeTag<E, K extends string> = Exclude<E, { readonly _tag: K }>
 export type ExtractTag<E, K extends string> = Extract<E, { readonly _tag: K }>
 
 /**
- * A utility type that transforms a union type `T` into an intersection type.
+ * Transforms a union type into an intersection type.
  *
- * @example
+ * - Use to combine all members of a union into a single type with all
+ *   their properties.
+ * - Useful in advanced generic code where you need to merge union variants.
+ *
+ * Behavior:
+ * - Uses distributive conditional types and contra-variant inference.
+ * - If the union members are incompatible (e.g. `string | number`), the
+ *   result is `never`.
+ *
+ * **Example** (Union to intersection)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
  * type Union = { a: string } | { b: number }
- * type Intersection = Types.UnionToIntersection<Union> // { a: string } & { b: number }
+ * type Result = Types.UnionToIntersection<Union>
+ * // { a: string } & { b: number }
  * ```
+ *
+ * @see {@link IsUnion}
  *
  * @since 2.0.0
  * @category types
@@ -130,14 +250,24 @@ export type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) ext
   : never
 
 /**
- * Simplifies the type signature of a type.
+ * Flattens an intersection type into a single object type for readability.
  *
- * @example
+ * - Use to clean up IDE tooltips that show `A & B & C` instead of a merged
+ *   object.
+ * - Does not change the type semantically, only its display.
+ *
+ * **Example** (Simplifying an intersection)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type Res = Types.Simplify<{ a: number } & { b: number }> // { a: number; b: number; }
+ * // Without Simplify: IDE shows { a: number } & { b: string }
+ * // With Simplify: IDE shows { a: number; b: string }
+ * type Clean = Types.Simplify<{ a: number } & { b: string }>
  * ```
+ *
+ * @see {@link MergeLeft}
+ * @see {@link MergeRight}
  *
  * @since 2.0.0
  * @category types
@@ -147,15 +277,26 @@ export type Simplify<A> = {
 } extends infer B ? B : never
 
 /**
- * Determines if two types are equal.
+ * Determines if two types are exactly equal at the type level.
  *
- * @example
+ * - Use in conditional types or type-level tests to assert type equality.
+ * - Resolves to `true` if `X` and `Y` are identical, `false` otherwise.
+ *
+ * Behavior:
+ * - Uses the `<T>() => T extends X ? 1 : 2` trick for exact equality,
+ *   distinguishing between `any`, `unknown`, `never`, and other types.
+ *
+ * **Example** (Type equality check)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type Res1 = Types.Equals<{ a: number }, { a: number }> // true
- * type Res2 = Types.Equals<{ a: number }, { b: number }> // false
+ * type Yes = Types.Equals<{ a: number }, { a: number }> // true
+ * type No = Types.Equals<{ a: number }, { a: string }> // false
+ * type AnyCheck = Types.Equals<any, string> // false
  * ```
+ *
+ * @see {@link EqualsWith}
  *
  * @since 2.0.0
  * @category models
@@ -166,15 +307,21 @@ export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
   : false
 
 /**
- * Determines if two types are equal, allowing to specify the return types.
+ * Determines if two types are equal, returning custom types for each case.
  *
- * @example
+ * - Use when you need a type-level if/else based on type equality.
+ * - Returns `Y` when `A` and `B` are equal, `N` otherwise.
+ *
+ * **Example** (Conditional type based on equality)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type Result1 = Types.EqualsWith<string, string, "yes", "no"> // "yes"
- * type Result2 = Types.EqualsWith<string, number, "yes", "no"> // "no"
+ * type R1 = Types.EqualsWith<string, string, "same", "diff"> // "same"
+ * type R2 = Types.EqualsWith<string, number, "same", "diff"> // "diff"
  * ```
+ *
+ * @see {@link Equals}
  *
  * @since 3.15.0
  * @category models
@@ -182,14 +329,19 @@ export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
 export type EqualsWith<A, B, Y, N> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? Y : N
 
 /**
- * Determines if a record contains any of the given keys.
+ * Checks if an object type contains any of the specified keys.
  *
- * @example
+ * - Use to conditionally branch based on the presence of keys in a type.
+ * - Returns `true` if at least one key from `Key` exists in `A`, `false`
+ *   otherwise.
+ *
+ * **Example** (Key presence check)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type Res1 = Types.Has<{ a: number }, "a" | "b"> // true
- * type Res2 = Types.Has<{ c: number }, "a" | "b"> // false
+ * type Yes = Types.Has<{ a: number; b: string }, "a" | "c"> // true
+ * type No = Types.Has<{ a: number }, "b" | "c"> // false
  * ```
  *
  * @since 2.0.0
@@ -200,14 +352,27 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
   : true
 
 /**
- * Merges two object where the keys of the left object take precedence in the case of a conflict.
+ * Merges two object types where keys from `Source` take precedence over
+ * `Target` on conflict.
  *
- * @example
+ * - Use when you want left-biased merging (first argument wins).
+ * - Implemented as `MergeRight<Target, Source>`.
+ *
+ * **Example** (Left-biased merge)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type MergeLeft = Types.MergeLeft<{ a: number; b: number }, { a: string }> // { a: number; b: number; }
+ * type Result = Types.MergeLeft<
+ *   { a: number; b: number },
+ *   { a: string; c: boolean }
+ * >
+ * // { a: number; b: number; c: boolean }
  * ```
+ *
+ * @see {@link MergeRight}
+ * @see {@link MergeRecord}
+ * @see {@link Simplify}
  *
  * @since 2.0.0
  * @category models
@@ -215,14 +380,26 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
 export type MergeLeft<Source, Target> = MergeRight<Target, Source>
 
 /**
- * Merges two object where the keys of the right object take precedence in the case of a conflict.
+ * Merges two object types where keys from `Source` take precedence over
+ * `Target` on conflict.
  *
- * @example
+ * - Use when you want right-biased merging (second argument wins).
+ * - The result is automatically simplified via {@link Simplify}.
+ *
+ * **Example** (Right-biased merge)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type MergeRight = Types.MergeRight<{ a: number; b: number }, { a: string }> // { a: string; b: number; }
+ * type Result = Types.MergeRight<
+ *   { a: number; b: number },
+ *   { a: string; c: boolean }
+ * >
+ * // { a: string; b: number; c: boolean }
  * ```
+ *
+ * @see {@link MergeLeft}
+ * @see {@link Simplify}
  *
  * @since 2.0.0
  * @category models
@@ -235,17 +412,26 @@ export type MergeRight<Target, Source> = Simplify<
 >
 
 /**
- * Merges two object where the keys of the left object take precedence in the case of a conflict.
+ * Alias for {@link MergeLeft}. Merges two object types where keys from
+ * `Source` take precedence on conflict.
  *
- * @example
+ * Prefer {@link MergeLeft} or {@link MergeRight} for clarity about which
+ * side wins.
+ *
+ * **Example** (Merging records)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
  * type Result = Types.MergeRecord<
  *   { a: number; b: number },
  *   { a: string; c: boolean }
- * > // { a: number; b: number; c: boolean }
+ * >
+ * // { a: number; b: number; c: boolean }
  * ```
+ *
+ * @see {@link MergeLeft}
+ * @see {@link MergeRight}
  *
  * @since 2.0.0
  * @category models
@@ -253,15 +439,22 @@ export type MergeRight<Target, Source> = Simplify<
 export type MergeRecord<Source, Target> = MergeLeft<Source, Target>
 
 /**
- * Describes the concurrency to use when executing multiple Effect's.
+ * Describes the concurrency level for Effect operations that run multiple
+ * effects.
  *
- * @example
+ * - `number` — run at most N effects concurrently.
+ * - `"unbounded"` — run all effects concurrently with no limit.
+ * - `"inherit"` — inherit the concurrency from the surrounding context.
+ *
+ * **Example** (Concurrency values)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
+ * const sequential: Types.Concurrency = 1
+ * const limited: Types.Concurrency = 5
  * const unbounded: Types.Concurrency = "unbounded"
  * const inherit: Types.Concurrency = "inherit"
- * const limited: Types.Concurrency = 5
  * ```
  *
  * @since 2.0.0
@@ -270,20 +463,32 @@ export type MergeRecord<Source, Target> = MergeLeft<Source, Target>
 export type Concurrency = number | "unbounded" | "inherit"
 
 /**
- * Make all properties in `T` mutable. Supports arrays, tuples, and records as well.
+ * Removes `readonly` from all properties of `T`. Supports arrays, tuples,
+ * and records.
  *
- * @example
+ * - Use when you need a mutable version of a readonly type.
+ * - Only affects the top level; nested properties remain readonly.
+ *
+ * **Example** (Shallow mutable conversion)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type MutableStruct = Types.Mutable<{ readonly a: string; readonly b: number }> // { a: string; b: number; }
+ * type Obj = Types.Mutable<{
+ *   readonly a: string
+ *   readonly b: ReadonlyArray<number>
+ * }>
+ * // { a: string; b: ReadonlyArray<number> }
+ * //   ^ mutable    ^ still readonly inside
  *
- * type MutableArray = Types.Mutable<ReadonlyArray<string>> // string[]
+ * type Arr = Types.Mutable<ReadonlyArray<string>>
+ * // string[]
  *
- * type MutableTuple = Types.Mutable<readonly [string, number]> // [string, number]
- *
- * type MutableRecord = Types.Mutable<{ readonly [_: string]: number }> // { [x: string]: number; }
+ * type Tup = Types.Mutable<readonly [string, number]>
+ * // [string, number]
  * ```
+ *
+ * @see {@link DeepMutable}
  *
  * @since 2.0.0
  * @category types
@@ -293,18 +498,26 @@ export type Mutable<T> = {
 }
 
 /**
- * Like `Types.Mutable`, but works recursively.
+ * Recursively removes `readonly` from all properties, including nested
+ * objects, arrays, `Map`, and `Set`.
  *
- * @example
+ * - Use when you need a fully mutable version of a deeply readonly type.
+ * - Recursion stops at primitives (`string`, `number`, `boolean`, `bigint`,
+ *   `symbol`) and functions.
+ *
+ * **Example** (Deep mutable conversion)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type DeepMutableStruct = Types.DeepMutable<{
+ * type Deep = Types.DeepMutable<{
  *   readonly a: string
- *   readonly b: ReadonlyArray<string>
+ *   readonly b: ReadonlyArray<{ readonly c: number }>
  * }>
- * // { a: string; b: string[] }
+ * // { a: string; b: Array<{ c: number }> }
  * ```
+ *
+ * @see {@link Mutable}
  *
  * @since 3.1.0
  * @category types
@@ -315,17 +528,22 @@ export type DeepMutable<T> = T extends ReadonlyMap<infer K, infer V> ? Map<DeepM
   : { -readonly [K in keyof T]: DeepMutable<T[K]> }
 
 /**
- * Avoid inference on a specific parameter
+ * Prevents TypeScript from inferring a type parameter from a specific
+ * position.
  *
- * @example
+ * - Use on a function parameter when you want inference to come from other
+ *   parameters, not this one.
+ * - The parameter using `NoInfer` must still match the inferred type.
+ *
+ * **Example** (Controlling inference)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * declare function fn<T>(value: T, noInfer: Types.NoInfer<T>): T
+ * declare function withDefault<T>(value: T, fallback: Types.NoInfer<T>): T
  *
- * // T is inferred as "hello" from the first parameter
- * // The second parameter must also be "hello" due to NoInfer
- * const result = fn("hello", "hello") // T = "hello"
+ * // T is inferred as "a" | "b" from the first argument only
+ * const result = withDefault<"a" | "b">("a", "b")
  * ```
  *
  * @since 2.0.0
@@ -334,24 +552,28 @@ export type DeepMutable<T> = T extends ReadonlyMap<infer K, infer V> ? Map<DeepM
 export type NoInfer<A> = [A][A extends any ? 0 : never]
 
 /**
- * Invariant helper.
+ * Function-type alias encoding invariant variance for a phantom type
+ * parameter.
  *
- * @example
+ * - Use as a phantom field type to make a type parameter invariant (neither
+ *   covariant nor contravariant).
+ * - A value of type `Invariant<A>` cannot be assigned to `Invariant<B>`
+ *   unless `A` and `B` are the same type.
+ *
+ * **Example** (Invariant phantom type)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * // Invariant type for phantom types
- * type UserId = Types.Invariant<string>
- * type UserName = Types.Invariant<string>
- *
- * // These are now distinct types even though they wrap the same type
- * declare const userId: UserId
- * declare const userName: UserName
- *
- * // This would be a type error if using proper branded types
- * // Invariant alone doesn't prevent assignability in this example
- * const invalid: UserId = userName
+ * interface Container<T> {
+ *   readonly _phantom: Types.Invariant<T>
+ *   readonly value: T
+ * }
  * ```
+ *
+ * @see {@link Invariant.Type}
+ * @see {@link Covariant}
+ * @see {@link Contravariant}
  *
  * @since 2.0.0
  * @category models
@@ -359,26 +581,25 @@ export type NoInfer<A> = [A][A extends any ? 0 : never]
 export type Invariant<A> = (_: A) => A
 
 /**
- * @example
- * ```ts
- * import type * as Types from "effect/Types"
- *
- * type MyInvariant = Types.Invariant<number>
- * type ExtractedType = Types.Invariant.Type<MyInvariant> // number
- * ```
+ * Namespace for {@link Invariant}-related utilities.
  *
  * @since 3.9.0
  * @category models
  */
 export declare namespace Invariant {
   /**
-   * @example
-   * ```ts
-   * import type * as Types from "effect/Types"
+   * Extracts the type parameter `A` from an `Invariant<A>`.
    *
-   * type MyInvariant = Types.Invariant<number>
-   * type ExtractedType = Types.Invariant.Type<MyInvariant> // number
+   * **Example** (Extracting the inner type)
+   *
+   * ```ts
+   * import type { Types } from "effect"
+   *
+   * type Inner = Types.Invariant.Type<Types.Invariant<number>>
+   * // number
    * ```
+   *
+   * @see {@link Invariant}
    *
    * @since 3.9.0
    * @category models
@@ -387,20 +608,28 @@ export declare namespace Invariant {
 }
 
 /**
- * Covariant helper.
+ * Function-type alias encoding covariant variance for a phantom type
+ * parameter.
  *
- * @example
+ * - Use as a phantom field type to make a type parameter covariant
+ *   (output position).
+ * - `Covariant<A>` is assignable to `Covariant<B>` when `A extends B`
+ *   (subtype direction).
+ *
+ * **Example** (Covariant phantom type)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * // Covariant type for producer types
- * type Producer<T> = Types.Covariant<T>
- * type StringProducer = Producer<string>
- * type ValueProducer = Producer<string | number>
- *
- * // Covariance allows assignment from more specific to less specific
- * const producer: ValueProducer = undefined as any as StringProducer
+ * interface Producer<T> {
+ *   readonly _phantom: Types.Covariant<T>
+ *   readonly get: () => T
+ * }
  * ```
+ *
+ * @see {@link Covariant.Type}
+ * @see {@link Contravariant}
+ * @see {@link Invariant}
  *
  * @since 2.0.0
  * @category models
@@ -408,26 +637,25 @@ export declare namespace Invariant {
 export type Covariant<A> = (_: never) => A
 
 /**
- * @example
- * ```ts
- * import type * as Types from "effect/Types"
- *
- * type MyCovariant = Types.Covariant<string>
- * type ExtractedType = Types.Covariant.Type<MyCovariant> // string
- * ```
+ * Namespace for {@link Covariant}-related utilities.
  *
  * @since 3.9.0
  * @category models
  */
 export declare namespace Covariant {
   /**
-   * @example
-   * ```ts
-   * import type * as Types from "effect/Types"
+   * Extracts the type parameter `A` from a `Covariant<A>`.
    *
-   * type MyCovariant = Types.Covariant<string>
-   * type ExtractedType = Types.Covariant.Type<MyCovariant> // string
+   * **Example** (Extracting the inner type)
+   *
+   * ```ts
+   * import type { Types } from "effect"
+   *
+   * type Inner = Types.Covariant.Type<Types.Covariant<string>>
+   * // string
    * ```
+   *
+   * @see {@link Covariant}
    *
    * @since 3.9.0
    * @category models
@@ -436,20 +664,28 @@ export declare namespace Covariant {
 }
 
 /**
- * Contravariant helper.
+ * Function-type alias encoding contravariant variance for a phantom type
+ * parameter.
  *
- * @example
+ * - Use as a phantom field type to make a type parameter contravariant
+ *   (input position).
+ * - `Contravariant<A>` is assignable to `Contravariant<B>` when `B extends A`
+ *   (supertype direction).
+ *
+ * **Example** (Contravariant phantom type)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * // Contravariant type for consumer types
- * type Consumer<T> = Types.Contravariant<T>
- * type StringConsumer = Consumer<string>
- * type ValueConsumer = Consumer<string | number>
- *
- * // Contravariance allows assignment from less specific to more specific
- * const consumer: StringConsumer = undefined as any as ValueConsumer
+ * interface Consumer<T> {
+ *   readonly _phantom: Types.Contravariant<T>
+ *   readonly accept: (value: T) => void
+ * }
  * ```
+ *
+ * @see {@link Contravariant.Type}
+ * @see {@link Covariant}
+ * @see {@link Invariant}
  *
  * @since 2.0.0
  * @category models
@@ -457,26 +693,25 @@ export declare namespace Covariant {
 export type Contravariant<A> = (_: A) => void
 
 /**
- * @example
- * ```ts
- * import type * as Types from "effect/Types"
- *
- * type MyContravariant = Types.Contravariant<string>
- * type ExtractedType = Types.Contravariant.Type<MyContravariant> // string
- * ```
+ * Namespace for {@link Contravariant}-related utilities.
  *
  * @since 3.9.0
  * @category models
  */
 export declare namespace Contravariant {
   /**
-   * @example
-   * ```ts
-   * import type * as Types from "effect/Types"
+   * Extracts the type parameter `A` from a `Contravariant<A>`.
    *
-   * type MyContravariant = Types.Contravariant<string>
-   * type ExtractedType = Types.Contravariant.Type<MyContravariant> // string
+   * **Example** (Extracting the inner type)
+   *
+   * ```ts
+   * import type { Types } from "effect"
+   *
+   * type Inner = Types.Contravariant.Type<Types.Contravariant<string>>
+   * // string
    * ```
+   *
+   * @see {@link Contravariant}
    *
    * @since 3.9.0
    * @category models
@@ -485,14 +720,20 @@ export declare namespace Contravariant {
 }
 
 /**
- * A utility type that checks if a type `S` is an empty object and returns different types based on the result.
+ * Conditional type that checks if `S` is an empty object type.
  *
- * @example
+ * - Returns `onTrue` if `S` matches `{}` (i.e., has no required properties).
+ * - Returns `onFalse` otherwise.
+ * - Useful for branching type-level logic based on whether a service/context
+ *   type has requirements.
+ *
+ * **Example** (Branching on empty record)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type EmptyResult = Types.MatchRecord<{}, "empty", "not empty"> // "empty"
- * type NonEmptyResult = Types.MatchRecord<{ a: number }, "empty", "not empty"> // "not empty"
+ * type A = Types.MatchRecord<{}, "empty", "not empty"> // "empty"
+ * type B = Types.MatchRecord<{ a: number }, "empty", "not empty"> // "not empty"
  * ```
  *
  * @since 2.0.0
@@ -501,15 +742,18 @@ export declare namespace Contravariant {
 export type MatchRecord<S, onTrue, onFalse> = {} extends S ? onTrue : onFalse
 
 /**
- * A utility type that excludes function types from a union.
+ * Excludes function types from a union, keeping only non-function members.
  *
- * @example
+ * - Use to filter out callable types from a union.
+ * - Returns `never` if the entire union consists of function types.
+ *
+ * **Example** (Filtering out functions)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
- * type Result = Types.NotFunction<string | number | (() => void)> // string | number
- * type NoFunctions = Types.NotFunction<string> // string
- * type Empty = Types.NotFunction<() => void> // never
+ * type Result = Types.NotFunction<string | (() => void) | number>
+ * // string | number
  * ```
  *
  * @since 2.0.0
@@ -518,17 +762,22 @@ export type MatchRecord<S, onTrue, onFalse> = {} extends S ? onTrue : onFalse
 export type NotFunction<T> = T extends Function ? never : T
 
 /**
- * A utility type that prevents excess properties in object types.
+ * Constrains a type to prevent excess properties not present in `T`.
  *
- * @example
+ * - Use in generic functions to catch accidental extra properties at
+ *   compile time.
+ * - Extra keys from `U` that are not in `T` are mapped to `never`.
+ *
+ * **Example** (Preventing extra properties)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
  * type Expected = { a: number; b: string }
  * type Input = { a: number; b: string; c: boolean }
  *
  * type Result = Types.NoExcessProperties<Expected, Input>
- * // Result: { a: number; b: string; readonly c: never }
+ * // { a: number; b: string; readonly c: never }
  * ```
  *
  * @since 3.9.0
@@ -537,6 +786,13 @@ export type NotFunction<T> = T extends Function ? never : T
 export type NoExcessProperties<T, U> = T & Readonly<Record<Exclude<keyof U, keyof T>, never>>
 
 /**
+ * Branded marker interface representing an unassigned type parameter.
+ *
+ * Used internally by the Effect type system to indicate that a type parameter
+ * has not been assigned a concrete type.
+ *
+ * @see {@link unhandled}
+ *
  * @since 4.0.0
  * @category types
  */
@@ -545,6 +801,13 @@ export interface unassigned {
 }
 
 /**
+ * Branded marker interface representing an unhandled error type.
+ *
+ * Used internally by the Effect type system to indicate that an error type
+ * has not been handled.
+ *
+ * @see {@link unassigned}
+ *
  * @since 4.0.0
  * @category types
  */
@@ -553,24 +816,54 @@ export interface unhandled {
 }
 
 /**
+ * Checks whether a type `T` is a union type.
+ *
+ * - Returns `true` if `T` is a union of two or more members.
+ * - Returns `false` for single types, `never`, or `any`.
+ *
+ * Behavior:
+ * - Compares `[T]` against `[UnionToIntersection<T>]`. If they differ, `T`
+ *   must be a union.
+ *
+ * **Example** (Detecting union types)
+ *
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type Yes = Types.IsUnion<"a" | "b"> // true
+ * type No = Types.IsUnion<string> // false
+ * ```
+ *
+ * @see {@link UnionToIntersection}
+ *
  * @since 4.0.0
  * @category types
  */
 export type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
 
 /**
- * Extracts the reason type from an error that has a `reason` field.
- * @example
+ * Extracts the `reason` type from an error that has a `reason` field.
+ *
+ * - Use with the nested error pattern where errors wrap sub-errors in a
+ *   `reason` field.
+ * - Returns `never` if `E` has no `reason` field.
+ *
+ * **Example** (Extracting reason types)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
  * type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
  * type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
- * type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError | QuotaError }
+ * type ApiError = { readonly _tag: "ApiError"; readonly reason: RateLimitError | QuotaError }
  *
- * type Res = Types.ReasonOf<AiError>
+ * type Reasons = Types.ReasonOf<ApiError>
  * // RateLimitError | QuotaError
  * ```
+ *
+ * @see {@link ReasonTags}
+ * @see {@link ExtractReason}
+ * @see {@link ExcludeReason}
  *
  * @since 4.0.0
  * @category types
@@ -578,18 +871,26 @@ export type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
 export type ReasonOf<E> = E extends { readonly reason: infer R } ? R : never
 
 /**
- * Extracts the `_tag` values from nested reason types.
- * @example
+ * Extracts the `_tag` values from the `reason` type of an error.
+ *
+ * - Shorthand for `Tags<ReasonOf<E>>`.
+ * - Returns `never` if `E` has no `reason` field or the reason has no `_tag`.
+ *
+ * **Example** (Getting reason tags)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
  * type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
  * type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
- * type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError | QuotaError }
+ * type ApiError = { readonly _tag: "ApiError"; readonly reason: RateLimitError | QuotaError }
  *
- * type Res = Types.ReasonTags<AiError>
+ * type Result = Types.ReasonTags<ApiError>
  * // "RateLimitError" | "QuotaError"
  * ```
+ *
+ * @see {@link ReasonOf}
+ * @see {@link ExtractReason}
  *
  * @since 4.0.0
  * @category types
@@ -598,18 +899,28 @@ export type ReasonTags<E> = E extends { readonly reason: { readonly _tag: string
   : never
 
 /**
- * Extracts a specific reason variant by its `_tag`.
- * @example
+ * Extracts a specific reason variant by its `_tag` from an error's `reason`
+ * field.
+ *
+ * - Use to narrow down to a single reason variant from a nested error type.
+ * - Returns `never` if `E` has no matching reason variant.
+ *
+ * **Example** (Extracting a reason variant)
+ *
  * ```ts
- * import type * as Types from "effect/Types"
+ * import type { Types } from "effect"
  *
  * type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
  * type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
- * type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError | QuotaError }
+ * type ApiError = { readonly _tag: "ApiError"; readonly reason: RateLimitError | QuotaError }
  *
- * type Res = Types.ExtractReason<AiError, "RateLimitError">
+ * type Result = Types.ExtractReason<ApiError, "RateLimitError">
  * // { readonly _tag: "RateLimitError"; readonly retryAfter: number }
  * ```
+ *
+ * @see {@link ExcludeReason}
+ * @see {@link ReasonOf}
+ * @see {@link ReasonTags}
  *
  * @since 4.0.0
  * @category types
@@ -619,7 +930,28 @@ export type ExtractReason<E, K extends string> = E extends { readonly reason: in
   : never
 
 /**
- * Excludes a specific reason variant by its `_tag`.
+ * Excludes a specific reason variant by its `_tag` from an error's `reason`
+ * field.
+ *
+ * - Use to remove a handled reason variant from an error's reason union.
+ * - Returns `never` if `E` has no `reason` field.
+ *
+ * **Example** (Excluding a reason variant)
+ *
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
+ * type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
+ * type ApiError = { readonly _tag: "ApiError"; readonly reason: RateLimitError | QuotaError }
+ *
+ * type Result = Types.ExcludeReason<ApiError, "RateLimitError">
+ * // { readonly _tag: "QuotaError"; readonly limit: number }
+ * ```
+ *
+ * @see {@link ExtractReason}
+ * @see {@link ReasonOf}
+ * @see {@link ReasonTags}
  *
  * @since 4.0.0
  * @category types
