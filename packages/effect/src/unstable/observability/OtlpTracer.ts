@@ -33,7 +33,7 @@ export const make: (
     readonly headers?: Headers.Input | undefined
     readonly exportInterval?: Duration.DurationInput | undefined
     readonly maxBatchSize?: number | undefined
-    readonly context?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
+    readonly context?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
     readonly shutdownTimeout?: Duration.DurationInput | undefined
   }
 ) => Effect.Effect<
@@ -88,11 +88,11 @@ export const make: (
       })
     },
     context: options.context ?
-      function(f, fiber) {
+      function(primitive, fiber) {
         if (fiber.currentSpan === undefined) {
-          return f()
+          return primitive["~effect/Effect/evaluate"](fiber)
         }
-        return options.context!(f, fiber.currentSpan)
+        return options.context!(primitive, fiber.currentSpan)
       } :
       undefined
   })
@@ -112,7 +112,7 @@ export const layer: (options: {
   readonly headers?: Headers.Input | undefined
   readonly exportInterval?: Duration.DurationInput | undefined
   readonly maxBatchSize?: number | undefined
-  readonly context?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
+  readonly context?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined
 }) => Layer.Layer<never, never, OtlpSerialization | HttpClient.HttpClient> = Layer.effect(Tracer.Tracer)(make)
 

@@ -81,16 +81,16 @@ export const make: Effect.Effect<Tracer.Tracer, never, OtelTracer> = Effect.map(
           options
         )
       },
-      context(execution, fiber) {
+      context(primitive, fiber) {
         const currentSpan = fiber.currentSpan
 
         if (currentSpan === undefined) {
-          return execution()
+          return primitive["~effect/Effect/evaluate"](fiber)
         }
 
         return Otel.context.with(
           populateContext(Otel.context.active(), currentSpan),
-          execution
+          () => primitive["~effect/Effect/evaluate"](fiber)
         )
       }
     })

@@ -4,6 +4,7 @@
 import type * as Exit from "./Exit.ts"
 import type { Fiber } from "./Fiber.ts"
 import { constFalse, type LazyArg } from "./Function.ts"
+import type { evaluate } from "./internal/core.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 
 /**
@@ -53,11 +54,16 @@ export interface Tracer {
     options?: SpanOptions
   ) => Span
   readonly context?:
-    | (<X>(
-      f: () => X,
-      fiber: Fiber<any, any>
-    ) => X)
+    | (<X>(primitive: EffectPrimitive<X>, fiber: Fiber<any, any>) => X)
     | undefined
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface EffectPrimitive<X> {
+  [evaluate](this: EffectPrimitive<X>, fiber: Fiber<any, any>): X
 }
 
 /**

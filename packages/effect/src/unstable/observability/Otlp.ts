@@ -27,7 +27,7 @@ export const layer = (options: {
   } | undefined
   readonly headers?: Headers.Input | undefined
   readonly maxBatchSize?: number | undefined
-  readonly tracerContext?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
+  readonly tracerContext?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
   readonly loggerExportInterval?: Duration.DurationInput | undefined
   readonly loggerExcludeLogSpans?: boolean | undefined
   readonly loggerMergeWithExisting?: boolean | undefined
@@ -82,7 +82,7 @@ export const layerJson: (options: {
   } | undefined
   readonly headers?: Headers.Input | undefined
   readonly maxBatchSize?: number | undefined
-  readonly tracerContext?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
+  readonly tracerContext?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
   readonly loggerExportInterval?: Duration.DurationInput | undefined
   readonly loggerExcludeLogSpans?: boolean | undefined
   readonly loggerMergeWithExisting?: boolean | undefined
@@ -105,7 +105,7 @@ export const layerProtobuf: (options: {
   } | undefined
   readonly headers?: Headers.Input | undefined
   readonly maxBatchSize?: number | undefined
-  readonly tracerContext?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
+  readonly tracerContext?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
   readonly loggerExportInterval?: Duration.DurationInput | undefined
   readonly loggerExcludeLogSpans?: boolean | undefined
   readonly loggerMergeWithExisting?: boolean | undefined
