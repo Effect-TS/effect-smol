@@ -32,7 +32,88 @@ export {
 // @barrel: Auto-generated exports. Do not edit manually.
 
 /**
- * This module provides utility functions for working with arrays in TypeScript.
+ * Utilities for working with immutable arrays (and non-empty arrays) in a
+ * functional style. All functions treat arrays as immutable — they return new
+ * arrays rather than mutating the input.
+ *
+ * ## Mental model
+ *
+ * - **`Array<A>`** is a standard JS array. All functions in this module return
+ *   new arrays; the input is never mutated.
+ * - **`NonEmptyReadonlyArray<A>`** (`readonly [A, ...Array<A>]`) is a readonly
+ *   array guaranteed to have at least one element. Many functions preserve or
+ *   require this guarantee at the type level.
+ * - **`NonEmptyArray<A>`** is the mutable counterpart: `[A, ...Array<A>]`.
+ * - Most functions are **dual** — they can be called either as
+ *   `Array.fn(array, arg)` (data-first) or piped as
+ *   `pipe(array, Array.fn(arg))` (data-last).
+ * - Functions that access elements by index return `Option<A>` for safety; use
+ *   the `*NonEmpty` variants (e.g. {@link headNonEmpty}) when you already know
+ *   the array is non-empty.
+ * - Set-like operations ({@link union}, {@link intersection},
+ *   {@link difference}) use `Equal.equivalence()` by default; use the `*With`
+ *   variants for custom equality.
+ *
+ * ## Common tasks
+ *
+ * - **Create** an array: {@link make}, {@link of}, {@link empty},
+ *   {@link fromIterable}, {@link range}, {@link makeBy}, {@link replicate},
+ *   {@link unfold}
+ * - **Access** elements: {@link head}, {@link last}, {@link get}, {@link tail},
+ *   {@link init}
+ * - **Transform**: {@link map}, {@link flatMap}, {@link flatten},
+ *   {@link filterMap}
+ * - **Filter**: {@link filter}, {@link partition}, {@link dedupe}
+ * - **Combine**: {@link append}, {@link prepend}, {@link appendAll},
+ *   {@link prependAll}, {@link zip}, {@link cartesian}
+ * - **Split**: {@link splitAt}, {@link chunksOf}, {@link span}, {@link window}
+ * - **Search**: {@link findFirst}, {@link findLast}, {@link contains}
+ * - **Sort**: {@link sort}, {@link sortBy}, {@link sortWith}
+ * - **Fold**: {@link reduce}, {@link scan}, {@link join}
+ * - **Group**: {@link groupBy}, {@link group}, {@link groupWith}
+ * - **Set operations**: {@link union}, {@link intersection},
+ *   {@link difference}
+ * - **Match** on empty vs non-empty: {@link match}, {@link matchLeft},
+ *   {@link matchRight}
+ * - **Check** properties: {@link isArray}, {@link isArrayNonEmpty},
+ *   {@link every}, {@link some}
+ *
+ * ## Gotchas
+ *
+ * - {@link fromIterable} returns the original array reference when given an
+ *   array; if you need a copy, use {@link copy}.
+ * - `sort`, `reverse`, etc. always allocate a new array — the input is never
+ *   mutated.
+ * - {@link makeBy} and {@link replicate} normalize `n` to an integer >= 1 —
+ *   they never produce an empty array.
+ * - {@link range}`(start, end)` is inclusive on both ends. If `start > end` it
+ *   returns `[start]`.
+ * - Functions returning `Option` (e.g. {@link head}, {@link findFirst}) return
+ *   `Option.none()` for empty inputs — they never throw.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Basic array operations)
+ *
+ * ```ts
+ * import { Array } from "effect"
+ *
+ * const numbers = Array.make(1, 2, 3, 4, 5)
+ *
+ * const doubled = Array.map(numbers, (n) => n * 2)
+ * console.log(doubled) // [2, 4, 6, 8, 10]
+ *
+ * const evens = Array.filter(numbers, (n) => n % 2 === 0)
+ * console.log(evens) // [2, 4]
+ *
+ * const sum = Array.reduce(numbers, 0, (acc, n) => acc + n)
+ * console.log(sum) // 15
+ * ```
+ *
+ * @see {@link make} — create a non-empty array from elements
+ * @see {@link map} — transform each element
+ * @see {@link filter} — keep elements matching a predicate
+ * @see {@link reduce} — fold an array to a single value
  *
  * @since 2.0.0
  */
@@ -2525,9 +2606,10 @@ export * as TxRef from "./TxRef.ts"
 export * as TxSemaphore from "./TxSemaphore.ts"
 
 /**
- * A collection of types that are commonly used types.
+ * Repesents any type that can also be unioned with other types.
  *
- * @since 2.0.0
+ * @since 4.0.0
+ * @category types
  */
 export * as Types from "./Types.ts"
 
