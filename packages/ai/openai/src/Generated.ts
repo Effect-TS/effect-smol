@@ -784,6 +784,10 @@ export type ContainerResource = {
   readonly "last_active_at"?: number
   readonly "expires_after"?: { readonly "anchor"?: "last_active_at"; readonly "minutes"?: number }
   readonly "memory_limit"?: "1g" | "4g" | "16g" | "64g"
+  readonly "network_policy"?: {
+    readonly "type": "allowlist" | "disabled"
+    readonly "allowed_domains"?: ReadonlyArray<string>
+  }
 }
 export const ContainerResource = Schema.Struct({
   "id": Schema.String.annotate({ "description": "Unique identifier for the container." }),
@@ -816,6 +820,14 @@ export const ContainerResource = Schema.Struct({
     Schema.Literals(["1g", "4g", "16g", "64g"]).annotate({
       "description": "The memory limit configured for the container."
     })
+  ),
+  "network_policy": Schema.optionalKey(
+    Schema.Struct({
+      "type": Schema.Literals(["allowlist", "disabled"]).annotate({ "description": "The network policy mode." }),
+      "allowed_domains": Schema.optionalKey(
+        Schema.Array(Schema.String).annotate({ "description": "Allowed outbound domains when `type` is `allowlist`." })
+      )
+    }).annotate({ "description": "Network access policy for the container." })
   )
 }).annotate({ "title": "The container object" })
 export type CostsResult = {
@@ -853,31 +865,6 @@ export const CostsResult = Schema.Struct({
     ])
   )
 }).annotate({ "description": "The aggregated costs details of the specific time bucket." })
-export type CreateContainerBody = {
-  readonly "name": string
-  readonly "file_ids"?: ReadonlyArray<string>
-  readonly "expires_after"?: { readonly "anchor": "last_active_at"; readonly "minutes": number }
-  readonly "memory_limit"?: "1g" | "4g" | "16g" | "64g"
-}
-export const CreateContainerBody = Schema.Struct({
-  "name": Schema.String.annotate({ "description": "Name of the container to create." }),
-  "file_ids": Schema.optionalKey(
-    Schema.Array(Schema.String).annotate({ "description": "IDs of files to copy to the container." })
-  ),
-  "expires_after": Schema.optionalKey(
-    Schema.Struct({
-      "anchor": Schema.Literal("last_active_at").annotate({
-        "description": "Time anchor for the expiration time. Currently only 'last_active_at' is supported."
-      }),
-      "minutes": Schema.Number.check(Schema.isInt())
-    }).annotate({ "description": "Container expiration time in seconds relative to the 'anchor' time." })
-  ),
-  "memory_limit": Schema.optionalKey(
-    Schema.Literals(["1g", "4g", "16g", "64g"]).annotate({
-      "description": "Optional memory limit for the container. Defaults to \"1g\"."
-    })
-  )
-})
 export type CreateContainerFileBody = { readonly "file_id"?: string; readonly "file"?: string }
 export const CreateContainerFileBody = Schema.Struct({
   "file_id": Schema.optionalKey(Schema.String.annotate({ "description": "Name of the file to create." })),
@@ -7782,6 +7769,64 @@ export const WebSearchContextSize = Schema.Literals(["low", "medium", "high"]).a
   "description":
     "High level guidance for the amount of context window space to use for the \nsearch. One of `low`, `medium`, or `high`. `medium` is the default.\n"
 })
+export type SkillReferenceParam = {
+  readonly "type": "skill_reference"
+  readonly "skill_id": string
+  readonly "version"?: string
+}
+export const SkillReferenceParam = Schema.Struct({
+  "type": Schema.Literal("skill_reference").annotate({
+    "description": "References a skill created with the /v1/skills endpoint."
+  }),
+  "skill_id": Schema.String.annotate({ "description": "The ID of the referenced skill." }).check(Schema.isMinLength(1))
+    .check(Schema.isMaxLength(64)),
+  "version": Schema.optionalKey(
+    Schema.String.annotate({
+      "description": "Optional skill version. Use a positive integer or 'latest'. Omit for default."
+    })
+  )
+})
+export type InlineSkillParam = {
+  readonly "type": "inline"
+  readonly "name": string
+  readonly "description": string
+  readonly "source": { readonly "type": "base64"; readonly "media_type": "application/zip"; readonly "data": string }
+}
+export const InlineSkillParam = Schema.Struct({
+  "type": Schema.Literal("inline").annotate({ "description": "Defines an inline skill for this request." }),
+  "name": Schema.String.annotate({ "description": "The name of the skill." }),
+  "description": Schema.String.annotate({ "description": "The description of the skill." }),
+  "source": Schema.Struct({
+    "type": Schema.Literal("base64").annotate({
+      "description": "The type of the inline skill source. Must be `base64`."
+    }),
+    "media_type": Schema.Literal("application/zip").annotate({
+      "description": "The media type of the inline skill payload. Must be `application/zip`."
+    }),
+    "data": Schema.String.annotate({ "description": "Base64-encoded skill zip bundle." }).check(Schema.isMinLength(1))
+      .check(Schema.isMaxLength(70254592))
+  }).annotate({ "description": "Inline skill payload" })
+})
+export type ContainerNetworkPolicyDisabledParam = { readonly "type": "disabled" }
+export const ContainerNetworkPolicyDisabledParam = Schema.Struct({
+  "type": Schema.Literal("disabled").annotate({ "description": "Disable outbound network access. Always `disabled`." })
+})
+export type ContainerNetworkPolicyDomainSecretParam = {
+  readonly "domain": string
+  readonly "name": string
+  readonly "value": string
+}
+export const ContainerNetworkPolicyDomainSecretParam = Schema.Struct({
+  "domain": Schema.String.annotate({ "description": "The domain associated with the secret." }).check(
+    Schema.isMinLength(1)
+  ),
+  "name": Schema.String.annotate({ "description": "The name of the secret to inject for the domain." }).check(
+    Schema.isMinLength(1)
+  ),
+  "value": Schema.String.annotate({ "description": "The secret value to inject for the domain." }).check(
+    Schema.isMinLength(1)
+  ).check(Schema.isMaxLength(10485760))
+})
 export type IncludeEnum =
   | "file_search_call.results"
   | "web_search_call.results"
@@ -8518,26 +8563,6 @@ export const ComputerUsePreviewTool = Schema.Struct({
   "description":
     "A tool that controls a virtual computer. Learn more about the [computer tool](https://platform.openai.com/docs/guides/tools-computer-use)."
 })
-export type ContainerNetworkPolicyDisabledParam = { readonly "type": "disabled" }
-export const ContainerNetworkPolicyDisabledParam = Schema.Struct({
-  "type": Schema.Literal("disabled").annotate({ "description": "Disable outbound network access. Always `disabled`." })
-})
-export type ContainerNetworkPolicyDomainSecretParam = {
-  readonly "domain": string
-  readonly "name": string
-  readonly "value": string
-}
-export const ContainerNetworkPolicyDomainSecretParam = Schema.Struct({
-  "domain": Schema.String.annotate({ "description": "The domain associated with the secret." }).check(
-    Schema.isMinLength(1)
-  ),
-  "name": Schema.String.annotate({ "description": "The name of the secret to inject for the domain." }).check(
-    Schema.isMinLength(1)
-  ),
-  "value": Schema.String.annotate({ "description": "The secret value to inject for the domain." }).check(
-    Schema.isMinLength(1)
-  ).check(Schema.isMaxLength(10485760))
-})
 export type InputFidelity = "high" | "low"
 export const InputFidelity = Schema.Literals(["high", "low"]).annotate({
   "description":
@@ -8551,44 +8576,6 @@ export const LocalShellToolParam = Schema.Struct({
 }).annotate({
   "title": "Local shell tool",
   "description": "A tool that allows the model to execute shell commands in a local environment."
-})
-export type SkillReferenceParam = {
-  readonly "type": "skill_reference"
-  readonly "skill_id": string
-  readonly "version"?: string
-}
-export const SkillReferenceParam = Schema.Struct({
-  "type": Schema.Literal("skill_reference").annotate({
-    "description": "References a skill created with the /v1/skills endpoint."
-  }),
-  "skill_id": Schema.String.annotate({ "description": "The ID of the referenced skill." }).check(Schema.isMinLength(1))
-    .check(Schema.isMaxLength(64)),
-  "version": Schema.optionalKey(
-    Schema.String.annotate({
-      "description": "Optional skill version. Use a positive integer or 'latest'. Omit for default."
-    })
-  )
-})
-export type InlineSkillParam = {
-  readonly "type": "inline"
-  readonly "name": string
-  readonly "description": string
-  readonly "source": { readonly "type": "base64"; readonly "media_type": "application/zip"; readonly "data": string }
-}
-export const InlineSkillParam = Schema.Struct({
-  "type": Schema.Literal("inline").annotate({ "description": "Defines an inline skill for this request." }),
-  "name": Schema.String.annotate({ "description": "The name of the skill." }),
-  "description": Schema.String.annotate({ "description": "The description of the skill." }),
-  "source": Schema.Struct({
-    "type": Schema.Literal("base64").annotate({
-      "description": "The type of the inline skill source. Must be `base64`."
-    }),
-    "media_type": Schema.Literal("application/zip").annotate({
-      "description": "The media type of the inline skill payload. Must be `application/zip`."
-    }),
-    "data": Schema.String.annotate({ "description": "Base64-encoded skill zip bundle." }).check(Schema.isMinLength(1))
-      .check(Schema.isMaxLength(70254592))
-  }).annotate({ "description": "Inline skill payload" })
 })
 export type CustomTextFormatParam = { readonly "type": "text" }
 export const CustomTextFormatParam = Schema.Struct({
@@ -12835,6 +12822,24 @@ export const WebSearchTool = Schema.Struct({
   "description":
     "Search the Internet for sources related to the prompt. Learn more about the\n[web search tool](/docs/guides/tools-web-search).\n"
 })
+export type ContainerNetworkPolicyAllowlistParam = {
+  readonly "type": "allowlist"
+  readonly "allowed_domains": ReadonlyArray<string>
+  readonly "domain_secrets"?: ReadonlyArray<ContainerNetworkPolicyDomainSecretParam>
+}
+export const ContainerNetworkPolicyAllowlistParam = Schema.Struct({
+  "type": Schema.Literal("allowlist").annotate({
+    "description": "Allow outbound network access only to specified domains. Always `allowlist`."
+  }),
+  "allowed_domains": Schema.Array(Schema.String).annotate({
+    "description": "A list of allowed domains when type is `allowlist`."
+  }).check(Schema.isMinLength(1)),
+  "domain_secrets": Schema.optionalKey(
+    Schema.Array(ContainerNetworkPolicyDomainSecretParam).annotate({
+      "description": "Optional domain-scoped secrets for allowlisted domains."
+    }).check(Schema.isMinLength(1))
+  )
+})
 export type EvalItemContentItem =
   | EvalItemContentText
   | InputTextContent
@@ -13254,24 +13259,6 @@ export const ApplyPatchToolCallItemParam = Schema.Struct({
 }).annotate({
   "title": "Apply patch tool call",
   "description": "A tool call representing a request to create, delete, or update files using diff patches."
-})
-export type ContainerNetworkPolicyAllowlistParam = {
-  readonly "type": "allowlist"
-  readonly "allowed_domains": ReadonlyArray<string>
-  readonly "domain_secrets"?: ReadonlyArray<ContainerNetworkPolicyDomainSecretParam>
-}
-export const ContainerNetworkPolicyAllowlistParam = Schema.Struct({
-  "type": Schema.Literal("allowlist").annotate({
-    "description": "Allow outbound network access only to specified domains. Always `allowlist`."
-  }),
-  "allowed_domains": Schema.Array(Schema.String).annotate({
-    "description": "A list of allowed domains when type is `allowlist`."
-  }).check(Schema.isMinLength(1)),
-  "domain_secrets": Schema.optionalKey(
-    Schema.Array(ContainerNetworkPolicyDomainSecretParam).annotate({
-      "description": "Optional domain-scoped secrets for allowlisted domains."
-    }).check(Schema.isMinLength(1))
-  )
 })
 export type CreateImageEditRequest = {
   readonly "image": string | ReadonlyArray<string>
@@ -16280,6 +16267,104 @@ export const VectorStoreSearchResultsPage = Schema.Struct({
     Schema.Null
   ])
 })
+export type CreateContainerBody = {
+  readonly "name": string
+  readonly "file_ids"?: ReadonlyArray<string>
+  readonly "expires_after"?: { readonly "anchor": "last_active_at"; readonly "minutes": number }
+  readonly "skills"?: ReadonlyArray<SkillReferenceParam | InlineSkillParam>
+  readonly "memory_limit"?: "1g" | "4g" | "16g" | "64g"
+  readonly "network_policy"?: ContainerNetworkPolicyDisabledParam | ContainerNetworkPolicyAllowlistParam
+}
+export const CreateContainerBody = Schema.Struct({
+  "name": Schema.String.annotate({ "description": "Name of the container to create." }),
+  "file_ids": Schema.optionalKey(
+    Schema.Array(Schema.String).annotate({ "description": "IDs of files to copy to the container." })
+  ),
+  "expires_after": Schema.optionalKey(
+    Schema.Struct({
+      "anchor": Schema.Literal("last_active_at").annotate({
+        "description": "Time anchor for the expiration time. Currently only 'last_active_at' is supported."
+      }),
+      "minutes": Schema.Number.check(Schema.isInt())
+    }).annotate({ "description": "Container expiration time in seconds relative to the 'anchor' time." })
+  ),
+  "skills": Schema.optionalKey(
+    Schema.Array(Schema.Union([SkillReferenceParam, InlineSkillParam], { mode: "oneOf" })).annotate({
+      "description": "An optional list of skills referenced by id or inline data."
+    })
+  ),
+  "memory_limit": Schema.optionalKey(
+    Schema.Literals(["1g", "4g", "16g", "64g"]).annotate({
+      "description": "Optional memory limit for the container. Defaults to \"1g\"."
+    })
+  ),
+  "network_policy": Schema.optionalKey(
+    Schema.Union([ContainerNetworkPolicyDisabledParam, ContainerNetworkPolicyAllowlistParam], { mode: "oneOf" })
+      .annotate({ "description": "Network access policy for the container." })
+  )
+})
+export type AutoCodeInterpreterToolParam = {
+  readonly "type": "auto"
+  readonly "file_ids"?: ReadonlyArray<string>
+  readonly "memory_limit"?: "1g" | "4g" | "16g" | "64g" | null
+  readonly "network_policy"?: ContainerNetworkPolicyDisabledParam | ContainerNetworkPolicyAllowlistParam
+}
+export const AutoCodeInterpreterToolParam = Schema.Struct({
+  "type": Schema.Literal("auto").annotate({ "description": "Always `auto`." }),
+  "file_ids": Schema.optionalKey(
+    Schema.Array(Schema.String).annotate({
+      "description": "An optional list of uploaded files to make available to your code."
+    }).check(Schema.isMaxLength(50))
+  ),
+  "memory_limit": Schema.optionalKey(
+    Schema.Union([
+      Schema.Literals(["1g", "4g", "16g", "64g"]).annotate({
+        "description": "The memory limit for the code interpreter container."
+      }),
+      Schema.Null
+    ])
+  ),
+  "network_policy": Schema.optionalKey(
+    Schema.Union([ContainerNetworkPolicyDisabledParam, ContainerNetworkPolicyAllowlistParam], { mode: "oneOf" })
+      .annotate({ "description": "Network access policy for the container." })
+  )
+}).annotate({
+  "title": "CodeInterpreterToolAuto",
+  "description":
+    "Configuration for a code interpreter container. Optionally specify the IDs of the files to run the code on."
+})
+export type ContainerAutoParam = {
+  readonly "type": "container_auto"
+  readonly "file_ids"?: ReadonlyArray<string>
+  readonly "memory_limit"?: "1g" | "4g" | "16g" | "64g" | null
+  readonly "network_policy"?: ContainerNetworkPolicyDisabledParam | ContainerNetworkPolicyAllowlistParam
+  readonly "skills"?: ReadonlyArray<SkillReferenceParam | InlineSkillParam>
+}
+export const ContainerAutoParam = Schema.Struct({
+  "type": Schema.Literal("container_auto").annotate({
+    "description": "Automatically creates a container for this request"
+  }),
+  "file_ids": Schema.optionalKey(
+    Schema.Array(Schema.String).annotate({
+      "description": "An optional list of uploaded files to make available to your code."
+    }).check(Schema.isMaxLength(50))
+  ),
+  "memory_limit": Schema.optionalKey(
+    Schema.Union([
+      Schema.Literals(["1g", "4g", "16g", "64g"]).annotate({ "description": "The memory limit for the container." }),
+      Schema.Null
+    ])
+  ),
+  "network_policy": Schema.optionalKey(
+    Schema.Union([ContainerNetworkPolicyDisabledParam, ContainerNetworkPolicyAllowlistParam], { mode: "oneOf" })
+      .annotate({ "description": "Network access policy for the container." })
+  ),
+  "skills": Schema.optionalKey(
+    Schema.Array(Schema.Union([SkillReferenceParam, InlineSkillParam], { mode: "oneOf" })).annotate({
+      "description": "An optional list of skills referenced by id or inline data."
+    }).check(Schema.isMaxLength(200))
+  )
+})
 export type EvalItemContentArray = ReadonlyArray<EvalItemContentItem>
 export const EvalItemContentArray = Schema.Array(EvalItemContentItem).annotate({
   "title": "An array of Input text, Output text, Input image, and Input audio",
@@ -16581,68 +16666,6 @@ export const FunctionShellCallOutputItemParam = Schema.Struct({
 }).annotate({
   "title": "Shell tool call output",
   "description": "The streamed output items emitted by a shell tool call."
-})
-export type AutoCodeInterpreterToolParam = {
-  readonly "type": "auto"
-  readonly "file_ids"?: ReadonlyArray<string>
-  readonly "memory_limit"?: "1g" | "4g" | "16g" | "64g" | null
-  readonly "network_policy"?: ContainerNetworkPolicyDisabledParam | ContainerNetworkPolicyAllowlistParam
-}
-export const AutoCodeInterpreterToolParam = Schema.Struct({
-  "type": Schema.Literal("auto").annotate({ "description": "Always `auto`." }),
-  "file_ids": Schema.optionalKey(
-    Schema.Array(Schema.String).annotate({
-      "description": "An optional list of uploaded files to make available to your code."
-    }).check(Schema.isMaxLength(50))
-  ),
-  "memory_limit": Schema.optionalKey(
-    Schema.Union([
-      Schema.Literals(["1g", "4g", "16g", "64g"]).annotate({
-        "description": "The memory limit for the code interpreter container."
-      }),
-      Schema.Null
-    ])
-  ),
-  "network_policy": Schema.optionalKey(
-    Schema.Union([ContainerNetworkPolicyDisabledParam, ContainerNetworkPolicyAllowlistParam], { mode: "oneOf" })
-      .annotate({ "description": "Network access policy for the container." })
-  )
-}).annotate({
-  "title": "CodeInterpreterToolAuto",
-  "description":
-    "Configuration for a code interpreter container. Optionally specify the IDs of the files to run the code on."
-})
-export type ContainerAutoParam = {
-  readonly "type": "container_auto"
-  readonly "file_ids"?: ReadonlyArray<string>
-  readonly "memory_limit"?: "1g" | "4g" | "16g" | "64g" | null
-  readonly "network_policy"?: ContainerNetworkPolicyDisabledParam | ContainerNetworkPolicyAllowlistParam
-  readonly "skills"?: ReadonlyArray<SkillReferenceParam | InlineSkillParam>
-}
-export const ContainerAutoParam = Schema.Struct({
-  "type": Schema.Literal("container_auto").annotate({
-    "description": "Automatically creates a container for this request"
-  }),
-  "file_ids": Schema.optionalKey(
-    Schema.Array(Schema.String).annotate({
-      "description": "An optional list of uploaded files to make available to your code."
-    }).check(Schema.isMaxLength(50))
-  ),
-  "memory_limit": Schema.optionalKey(
-    Schema.Union([
-      Schema.Literals(["1g", "4g", "16g", "64g"]).annotate({ "description": "The memory limit for the container." }),
-      Schema.Null
-    ])
-  ),
-  "network_policy": Schema.optionalKey(
-    Schema.Union([ContainerNetworkPolicyDisabledParam, ContainerNetworkPolicyAllowlistParam], { mode: "oneOf" })
-      .annotate({ "description": "Network access policy for the container." })
-  ),
-  "skills": Schema.optionalKey(
-    Schema.Array(Schema.Union([SkillReferenceParam, InlineSkillParam], { mode: "oneOf" })).annotate({
-      "description": "An optional list of skills referenced by id or inline data."
-    }).check(Schema.isMaxLength(200))
-  )
 })
 export type ImagesResponse = {
   readonly "created": number
@@ -19346,6 +19369,38 @@ export const ListVectorStoreFilesResponse = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Json)]
 )
+export type CodeInterpreterTool = {
+  readonly "type": "code_interpreter"
+  readonly "container": string | AutoCodeInterpreterToolParam
+}
+export const CodeInterpreterTool = Schema.Struct({
+  "type": Schema.Literal("code_interpreter").annotate({
+    "description": "The type of the code interpreter tool. Always `code_interpreter`.\n"
+  }),
+  "container": Schema.Union([
+    Schema.String.annotate({ "description": "The container ID." }),
+    AutoCodeInterpreterToolParam
+  ], { mode: "oneOf" }).annotate({
+    "description":
+      "The code interpreter container. Can be a container ID or an object that\nspecifies uploaded file IDs to make available to your code, along with an\noptional `memory_limit` setting.\n"
+  })
+}).annotate({
+  "title": "Code interpreter",
+  "description": "A tool that runs Python code to help generate a response to a prompt.\n"
+})
+export type FunctionShellToolParam = {
+  readonly "type": "shell"
+  readonly "environment"?: ContainerAutoParam | LocalEnvironmentParam | ContainerReferenceParam | null
+}
+export const FunctionShellToolParam = Schema.Struct({
+  "type": Schema.Literal("shell").annotate({ "description": "The type of the shell tool. Always `shell`." }),
+  "environment": Schema.optionalKey(
+    Schema.Union([
+      Schema.Union([ContainerAutoParam, LocalEnvironmentParam, ContainerReferenceParam], { mode: "oneOf" }),
+      Schema.Null
+    ])
+  )
+}).annotate({ "title": "Shell tool", "description": "A tool that allows the model to execute shell commands." })
 export type EvalItemContent = EvalItemContentItem | EvalItemContentArray
 export const EvalItemContent = Schema.Union([EvalItemContentItem, EvalItemContentArray], { mode: "oneOf" }).annotate({
   "title": "Eval content",
@@ -19558,38 +19613,6 @@ export const ComputerToolCall = Schema.Struct({
   "description":
     "A tool call to a computer use tool. See the\n[computer use guide](/docs/guides/tools-computer-use) for more information.\n"
 })
-export type CodeInterpreterTool = {
-  readonly "type": "code_interpreter"
-  readonly "container": string | AutoCodeInterpreterToolParam
-}
-export const CodeInterpreterTool = Schema.Struct({
-  "type": Schema.Literal("code_interpreter").annotate({
-    "description": "The type of the code interpreter tool. Always `code_interpreter`.\n"
-  }),
-  "container": Schema.Union([
-    Schema.String.annotate({ "description": "The container ID." }),
-    AutoCodeInterpreterToolParam
-  ], { mode: "oneOf" }).annotate({
-    "description":
-      "The code interpreter container. Can be a container ID or an object that\nspecifies uploaded file IDs to make available to your code, along with an\noptional `memory_limit` setting.\n"
-  })
-}).annotate({
-  "title": "Code interpreter",
-  "description": "A tool that runs Python code to help generate a response to a prompt.\n"
-})
-export type FunctionShellToolParam = {
-  readonly "type": "shell"
-  readonly "environment"?: ContainerAutoParam | LocalEnvironmentParam | ContainerReferenceParam | null
-}
-export const FunctionShellToolParam = Schema.Struct({
-  "type": Schema.Literal("shell").annotate({ "description": "The type of the shell tool. Always `shell`." }),
-  "environment": Schema.optionalKey(
-    Schema.Union([
-      Schema.Union([ContainerAutoParam, LocalEnvironmentParam, ContainerReferenceParam], { mode: "oneOf" }),
-      Schema.Null
-    ])
-  )
-}).annotate({ "title": "Shell tool", "description": "A tool that allows the model to execute shell commands." })
 export type ThreadItem =
   | UserMessageItem
   | AssistantMessageItem
@@ -20226,6 +20249,33 @@ export const RunStreamEvent = Schema.Union([
     "description": "Occurs when a [run](/docs/api-reference/runs/object) expires."
   })
 ], { mode: "oneOf" })
+export type Tool =
+  | FunctionTool
+  | FileSearchTool
+  | ComputerUsePreviewTool
+  | WebSearchTool
+  | MCPTool
+  | CodeInterpreterTool
+  | ImageGenTool
+  | LocalShellToolParam
+  | FunctionShellToolParam
+  | CustomToolParam
+  | WebSearchPreviewTool
+  | ApplyPatchToolParam
+export const Tool = Schema.Union([
+  FunctionTool,
+  FileSearchTool,
+  ComputerUsePreviewTool,
+  WebSearchTool,
+  MCPTool,
+  CodeInterpreterTool,
+  ImageGenTool,
+  LocalShellToolParam,
+  FunctionShellToolParam,
+  CustomToolParam,
+  WebSearchPreviewTool,
+  ApplyPatchToolParam
+], { mode: "oneOf" }).annotate({ "description": "A tool that can be used to generate a response.\n" })
 export type EvalItem = {
   readonly "role": "user" | "assistant" | "system" | "developer"
   readonly "content": EvalItemContent
@@ -20365,33 +20415,6 @@ export const ItemField = Schema.Union([
 ], { mode: "oneOf" }).annotate({
   "description": "An item representing a message, tool call, tool output, reasoning, or other response element."
 })
-export type Tool =
-  | FunctionTool
-  | FileSearchTool
-  | ComputerUsePreviewTool
-  | WebSearchTool
-  | MCPTool
-  | CodeInterpreterTool
-  | ImageGenTool
-  | LocalShellToolParam
-  | FunctionShellToolParam
-  | CustomToolParam
-  | WebSearchPreviewTool
-  | ApplyPatchToolParam
-export const Tool = Schema.Union([
-  FunctionTool,
-  FileSearchTool,
-  ComputerUsePreviewTool,
-  WebSearchTool,
-  MCPTool,
-  CodeInterpreterTool,
-  ImageGenTool,
-  LocalShellToolParam,
-  FunctionShellToolParam,
-  CustomToolParam,
-  WebSearchPreviewTool,
-  ApplyPatchToolParam
-], { mode: "oneOf" }).annotate({ "description": "A tool that can be used to generate a response.\n" })
 export type ThreadItemListResource = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<ThreadItem>
@@ -20465,6 +20488,11 @@ export const RunStepStreamEvent = Schema.Union([
     "description": "Occurs when a [run step](/docs/api-reference/run-steps/step-object) expires."
   })
 ], { mode: "oneOf" })
+export type ToolsArray = ReadonlyArray<Tool>
+export const ToolsArray = Schema.Array(Tool).annotate({
+  "description":
+    "An array of tools the model may call while generating a response. You\ncan specify which tool to use by setting the `tool_choice` parameter.\n\nWe support the following categories of tools:\n- **Built-in tools**: Tools that are provided by OpenAI that extend the\n  model's capabilities, like [web search](/docs/guides/tools-web-search)\n  or [file search](/docs/guides/tools-file-search). Learn more about\n  [built-in tools](/docs/guides/tools).\n- **MCP Tools**: Integrations with third-party systems via custom MCP servers\n  or predefined connectors such as Google Drive and SharePoint. Learn more about\n  [MCP Tools](/docs/guides/tools-connectors-mcp).\n- **Function calls (custom tools)**: Functions that are defined by you,\n  enabling the model to call your own code with strongly typed arguments\n  and outputs. Learn more about\n  [function calling](/docs/guides/function-calling). You can also use\n  custom tools to call your own code.\n"
+})
 export type CreateEvalCompletionsRunDataSource = {
   readonly "type": "completions"
   readonly "input_messages"?: {
@@ -20572,6 +20600,106 @@ export const CreateEvalItem = Schema.Union([
   "title": "CreateEvalItem",
   "description":
     "A chat message that makes up the prompt or context. May include variable references to the `item` namespace, ie {{item.name}}."
+})
+export type CreateEvalResponsesRunDataSource = {
+  readonly "type": "responses"
+  readonly "input_messages"?: {
+    readonly "type": "template"
+    readonly "template": ReadonlyArray<{ readonly "role": string; readonly "content": string } | EvalItem>
+  } | { readonly "type": "item_reference"; readonly "item_reference": string }
+  readonly "sampling_params"?: {
+    readonly "reasoning_effort"?: ReasoningEffort
+    readonly "temperature"?: number
+    readonly "max_completion_tokens"?: number
+    readonly "top_p"?: number
+    readonly "seed"?: number
+    readonly "tools"?: ReadonlyArray<Tool>
+    readonly "text"?: { readonly "format"?: TextResponseFormatConfiguration }
+  }
+  readonly "model"?: string
+  readonly "source": EvalJsonlFileContentSource | EvalJsonlFileIdSource | EvalResponsesSource
+}
+export const CreateEvalResponsesRunDataSource = Schema.Struct({
+  "type": Schema.Literal("responses").annotate({ "description": "The type of run data source. Always `responses`." }),
+  "input_messages": Schema.optionalKey(
+    Schema.Union([
+      Schema.Struct({
+        "type": Schema.Literal("template").annotate({
+          "description": "The type of input messages. Always `template`."
+        }),
+        "template": Schema.Array(
+          Schema.Union([
+            Schema.Struct({
+              "role": Schema.String.annotate({
+                "description": "The role of the message (e.g. \"system\", \"assistant\", \"user\")."
+              }),
+              "content": Schema.String.annotate({ "description": "The content of the message." })
+            }).annotate({ "title": "ChatMessage" }),
+            EvalItem
+          ], { mode: "oneOf" })
+        ).annotate({
+          "description":
+            "A list of chat messages forming the prompt or context. May include variable references to the `item` namespace, ie {{item.name}}."
+        })
+      }).annotate({ "title": "InputMessagesTemplate" }),
+      Schema.Struct({
+        "type": Schema.Literal("item_reference").annotate({
+          "description": "The type of input messages. Always `item_reference`."
+        }),
+        "item_reference": Schema.String.annotate({
+          "description": "A reference to a variable in the `item` namespace. Ie, \"item.name\""
+        })
+      }).annotate({ "title": "InputMessagesItemReference" })
+    ], { mode: "oneOf" }).annotate({
+      "description":
+        "Used when sampling from a model. Dictates the structure of the messages passed into the model. Can either be a reference to a prebuilt trajectory (ie, `item.input_trajectory`), or a template with variable references to the `item` namespace."
+    })
+  ),
+  "sampling_params": Schema.optionalKey(Schema.Struct({
+    "reasoning_effort": Schema.optionalKey(ReasoningEffort),
+    "temperature": Schema.optionalKey(
+      Schema.Number.annotate({ "description": "A higher temperature increases randomness in the outputs." }).check(
+        Schema.isFinite()
+      )
+    ),
+    "max_completion_tokens": Schema.optionalKey(
+      Schema.Number.annotate({ "description": "The maximum number of tokens in the generated output." }).check(
+        Schema.isInt()
+      )
+    ),
+    "top_p": Schema.optionalKey(
+      Schema.Number.annotate({
+        "description": "An alternative to temperature for nucleus sampling; 1.0 includes all tokens."
+      }).check(Schema.isFinite())
+    ),
+    "seed": Schema.optionalKey(
+      Schema.Number.annotate({ "description": "A seed value to initialize the randomness, during sampling." }).check(
+        Schema.isInt()
+      )
+    ),
+    "tools": Schema.optionalKey(
+      Schema.Array(Tool).annotate({
+        "description":
+          "An array of tools the model may call while generating a response. You\ncan specify which tool to use by setting the `tool_choice` parameter.\n\nThe two categories of tools you can provide the model are:\n\n- **Built-in tools**: Tools that are provided by OpenAI that extend the\n  model's capabilities, like [web search](/docs/guides/tools-web-search)\n  or [file search](/docs/guides/tools-file-search). Learn more about\n  [built-in tools](/docs/guides/tools).\n- **Function calls (custom tools)**: Functions that are defined by you,\n  enabling the model to call your own code. Learn more about\n  [function calling](/docs/guides/function-calling).\n"
+      })
+    ),
+    "text": Schema.optionalKey(
+      Schema.Struct({ "format": Schema.optionalKey(TextResponseFormatConfiguration) }).annotate({
+        "description":
+          "Configuration options for a text response from the model. Can be plain\ntext or structured JSON data. Learn more:\n- [Text inputs and outputs](/docs/guides/text)\n- [Structured Outputs](/docs/guides/structured-outputs)\n"
+      })
+    )
+  })),
+  "model": Schema.optionalKey(
+    Schema.String.annotate({
+      "description": "The name of the model to use for generating completions (e.g. \"o3-mini\")."
+    })
+  ),
+  "source": Schema.Union([EvalJsonlFileContentSource, EvalJsonlFileIdSource, EvalResponsesSource], { mode: "oneOf" })
+    .annotate({ "description": "Determines what populates the `item` namespace in this run's data source." })
+}).annotate({
+  "title": "ResponsesRunDataSource",
+  "description": "A ResponsesRunDataSource object describing a model sampling configuration.\n"
 })
 export type EvalGraderLabelModel = {
   readonly "type": "label_model"
@@ -21066,111 +21194,6 @@ export const CompactResource = Schema.Struct({
     "description": "Token accounting for the compaction pass, including cached, reasoning, and total tokens."
   })
 }).annotate({ "title": "The compacted response object" })
-export type CreateEvalResponsesRunDataSource = {
-  readonly "type": "responses"
-  readonly "input_messages"?: {
-    readonly "type": "template"
-    readonly "template": ReadonlyArray<{ readonly "role": string; readonly "content": string } | EvalItem>
-  } | { readonly "type": "item_reference"; readonly "item_reference": string }
-  readonly "sampling_params"?: {
-    readonly "reasoning_effort"?: ReasoningEffort
-    readonly "temperature"?: number
-    readonly "max_completion_tokens"?: number
-    readonly "top_p"?: number
-    readonly "seed"?: number
-    readonly "tools"?: ReadonlyArray<Tool>
-    readonly "text"?: { readonly "format"?: TextResponseFormatConfiguration }
-  }
-  readonly "model"?: string
-  readonly "source": EvalJsonlFileContentSource | EvalJsonlFileIdSource | EvalResponsesSource
-}
-export const CreateEvalResponsesRunDataSource = Schema.Struct({
-  "type": Schema.Literal("responses").annotate({ "description": "The type of run data source. Always `responses`." }),
-  "input_messages": Schema.optionalKey(
-    Schema.Union([
-      Schema.Struct({
-        "type": Schema.Literal("template").annotate({
-          "description": "The type of input messages. Always `template`."
-        }),
-        "template": Schema.Array(
-          Schema.Union([
-            Schema.Struct({
-              "role": Schema.String.annotate({
-                "description": "The role of the message (e.g. \"system\", \"assistant\", \"user\")."
-              }),
-              "content": Schema.String.annotate({ "description": "The content of the message." })
-            }).annotate({ "title": "ChatMessage" }),
-            EvalItem
-          ], { mode: "oneOf" })
-        ).annotate({
-          "description":
-            "A list of chat messages forming the prompt or context. May include variable references to the `item` namespace, ie {{item.name}}."
-        })
-      }).annotate({ "title": "InputMessagesTemplate" }),
-      Schema.Struct({
-        "type": Schema.Literal("item_reference").annotate({
-          "description": "The type of input messages. Always `item_reference`."
-        }),
-        "item_reference": Schema.String.annotate({
-          "description": "A reference to a variable in the `item` namespace. Ie, \"item.name\""
-        })
-      }).annotate({ "title": "InputMessagesItemReference" })
-    ], { mode: "oneOf" }).annotate({
-      "description":
-        "Used when sampling from a model. Dictates the structure of the messages passed into the model. Can either be a reference to a prebuilt trajectory (ie, `item.input_trajectory`), or a template with variable references to the `item` namespace."
-    })
-  ),
-  "sampling_params": Schema.optionalKey(Schema.Struct({
-    "reasoning_effort": Schema.optionalKey(ReasoningEffort),
-    "temperature": Schema.optionalKey(
-      Schema.Number.annotate({ "description": "A higher temperature increases randomness in the outputs." }).check(
-        Schema.isFinite()
-      )
-    ),
-    "max_completion_tokens": Schema.optionalKey(
-      Schema.Number.annotate({ "description": "The maximum number of tokens in the generated output." }).check(
-        Schema.isInt()
-      )
-    ),
-    "top_p": Schema.optionalKey(
-      Schema.Number.annotate({
-        "description": "An alternative to temperature for nucleus sampling; 1.0 includes all tokens."
-      }).check(Schema.isFinite())
-    ),
-    "seed": Schema.optionalKey(
-      Schema.Number.annotate({ "description": "A seed value to initialize the randomness, during sampling." }).check(
-        Schema.isInt()
-      )
-    ),
-    "tools": Schema.optionalKey(
-      Schema.Array(Tool).annotate({
-        "description":
-          "An array of tools the model may call while generating a response. You\ncan specify which tool to use by setting the `tool_choice` parameter.\n\nThe two categories of tools you can provide the model are:\n\n- **Built-in tools**: Tools that are provided by OpenAI that extend the\n  model's capabilities, like [web search](/docs/guides/tools-web-search)\n  or [file search](/docs/guides/tools-file-search). Learn more about\n  [built-in tools](/docs/guides/tools).\n- **Function calls (custom tools)**: Functions that are defined by you,\n  enabling the model to call your own code. Learn more about\n  [function calling](/docs/guides/function-calling).\n"
-      })
-    ),
-    "text": Schema.optionalKey(
-      Schema.Struct({ "format": Schema.optionalKey(TextResponseFormatConfiguration) }).annotate({
-        "description":
-          "Configuration options for a text response from the model. Can be plain\ntext or structured JSON data. Learn more:\n- [Text inputs and outputs](/docs/guides/text)\n- [Structured Outputs](/docs/guides/structured-outputs)\n"
-      })
-    )
-  })),
-  "model": Schema.optionalKey(
-    Schema.String.annotate({
-      "description": "The name of the model to use for generating completions (e.g. \"o3-mini\")."
-    })
-  ),
-  "source": Schema.Union([EvalJsonlFileContentSource, EvalJsonlFileIdSource, EvalResponsesSource], { mode: "oneOf" })
-    .annotate({ "description": "Determines what populates the `item` namespace in this run's data source." })
-}).annotate({
-  "title": "ResponsesRunDataSource",
-  "description": "A ResponsesRunDataSource object describing a model sampling configuration.\n"
-})
-export type ToolsArray = ReadonlyArray<Tool>
-export const ToolsArray = Schema.Array(Tool).annotate({
-  "description":
-    "An array of tools the model may call while generating a response. You\ncan specify which tool to use by setting the `tool_choice` parameter.\n\nWe support the following categories of tools:\n- **Built-in tools**: Tools that are provided by OpenAI that extend the\n  model's capabilities, like [web search](/docs/guides/tools-web-search)\n  or [file search](/docs/guides/tools-file-search). Learn more about\n  [built-in tools](/docs/guides/tools).\n- **MCP Tools**: Integrations with third-party systems via custom MCP servers\n  or predefined connectors such as Google Drive and SharePoint. Learn more about\n  [MCP Tools](/docs/guides/tools-connectors-mcp).\n- **Function calls (custom tools)**: Functions that are defined by you,\n  enabling the model to call your own code with strongly typed arguments\n  and outputs. Learn more about\n  [function calling](/docs/guides/function-calling). You can also use\n  custom tools to call your own code.\n"
-})
 export type CreateEvalLabelModelGrader = {
   readonly "type": "label_model"
   readonly "name": string
@@ -21199,6 +21222,113 @@ export const CreateEvalLabelModelGrader = Schema.Struct({
   "title": "LabelModelGrader",
   "description": "A LabelModelGrader object which uses a model to assign labels to each item\nin the evaluation.\n"
 })
+export type CreateEvalRunRequest = {
+  readonly "name"?: string
+  readonly "metadata"?: Metadata
+  readonly "data_source":
+    | CreateEvalJsonlRunDataSource
+    | CreateEvalCompletionsRunDataSource
+    | CreateEvalResponsesRunDataSource
+}
+export const CreateEvalRunRequest = Schema.Struct({
+  "name": Schema.optionalKey(Schema.String.annotate({ "description": "The name of the run." })),
+  "metadata": Schema.optionalKey(Metadata),
+  "data_source": Schema.Union([
+    CreateEvalJsonlRunDataSource,
+    CreateEvalCompletionsRunDataSource,
+    CreateEvalResponsesRunDataSource
+  ], { mode: "oneOf" }).annotate({ "description": "Details about the run's data source." })
+}).annotate({ "title": "CreateEvalRunRequest" })
+export type EvalRun = {
+  readonly "object": "eval.run"
+  readonly "id": string
+  readonly "eval_id": string
+  readonly "status": string
+  readonly "model": string
+  readonly "name": string
+  readonly "created_at": number
+  readonly "report_url": string
+  readonly "result_counts": {
+    readonly "total": number
+    readonly "errored": number
+    readonly "failed": number
+    readonly "passed": number
+  }
+  readonly "per_model_usage": ReadonlyArray<
+    {
+      readonly "model_name": string
+      readonly "invocation_count": number
+      readonly "prompt_tokens": number
+      readonly "completion_tokens": number
+      readonly "total_tokens": number
+      readonly "cached_tokens": number
+    }
+  >
+  readonly "per_testing_criteria_results": ReadonlyArray<
+    { readonly "testing_criteria": string; readonly "passed": number; readonly "failed": number }
+  >
+  readonly "data_source":
+    | CreateEvalJsonlRunDataSource
+    | CreateEvalCompletionsRunDataSource
+    | CreateEvalResponsesRunDataSource
+  readonly "metadata": Metadata
+  readonly "error": EvalApiError
+}
+export const EvalRun = Schema.Struct({
+  "object": Schema.Literal("eval.run").annotate({ "description": "The type of the object. Always \"eval.run\"." }),
+  "id": Schema.String.annotate({ "description": "Unique identifier for the evaluation run." }),
+  "eval_id": Schema.String.annotate({ "description": "The identifier of the associated evaluation." }),
+  "status": Schema.String.annotate({ "description": "The status of the evaluation run." }),
+  "model": Schema.String.annotate({ "description": "The model that is evaluated, if applicable." }),
+  "name": Schema.String.annotate({ "description": "The name of the evaluation run." }),
+  "created_at": Schema.Number.annotate({
+    "description": "Unix timestamp (in seconds) when the evaluation run was created."
+  }).check(Schema.isInt()),
+  "report_url": Schema.String.annotate({
+    "description": "The URL to the rendered evaluation run report on the UI dashboard."
+  }),
+  "result_counts": Schema.Struct({
+    "total": Schema.Number.annotate({ "description": "Total number of executed output items." }).check(Schema.isInt()),
+    "errored": Schema.Number.annotate({ "description": "Number of output items that resulted in an error." }).check(
+      Schema.isInt()
+    ),
+    "failed": Schema.Number.annotate({ "description": "Number of output items that failed to pass the evaluation." })
+      .check(Schema.isInt()),
+    "passed": Schema.Number.annotate({ "description": "Number of output items that passed the evaluation." }).check(
+      Schema.isInt()
+    )
+  }).annotate({ "description": "Counters summarizing the outcomes of the evaluation run." }),
+  "per_model_usage": Schema.Array(Schema.Struct({
+    "model_name": Schema.String.annotate({ "description": "The name of the model." }),
+    "invocation_count": Schema.Number.annotate({ "description": "The number of invocations." }).check(Schema.isInt()),
+    "prompt_tokens": Schema.Number.annotate({ "description": "The number of prompt tokens used." }).check(
+      Schema.isInt()
+    ),
+    "completion_tokens": Schema.Number.annotate({ "description": "The number of completion tokens generated." }).check(
+      Schema.isInt()
+    ),
+    "total_tokens": Schema.Number.annotate({ "description": "The total number of tokens used." }).check(Schema.isInt()),
+    "cached_tokens": Schema.Number.annotate({ "description": "The number of tokens retrieved from cache." }).check(
+      Schema.isInt()
+    )
+  })).annotate({ "description": "Usage statistics for each model during the evaluation run." }),
+  "per_testing_criteria_results": Schema.Array(Schema.Struct({
+    "testing_criteria": Schema.String.annotate({ "description": "A description of the testing criteria." }),
+    "passed": Schema.Number.annotate({ "description": "Number of tests passed for this criteria." }).check(
+      Schema.isInt()
+    ),
+    "failed": Schema.Number.annotate({ "description": "Number of tests failed for this criteria." }).check(
+      Schema.isInt()
+    )
+  })).annotate({ "description": "Results per testing criteria applied during the evaluation run." }),
+  "data_source": Schema.Union([
+    CreateEvalJsonlRunDataSource,
+    CreateEvalCompletionsRunDataSource,
+    CreateEvalResponsesRunDataSource
+  ], { mode: "oneOf" }).annotate({ "description": "Information about the run's data source." }),
+  "metadata": Metadata,
+  "error": EvalApiError
+}).annotate({ "title": "EvalRun", "description": "A schema representing an evaluation run.\n" })
 export type Eval = {
   readonly "object": "eval"
   readonly "id": string
@@ -23443,113 +23573,6 @@ export const ResponseQueuedEvent = Schema.Struct({
   "title": "ResponseQueuedEvent",
   "description": "Emitted when a response is queued and waiting to be processed.\n"
 })
-export type CreateEvalRunRequest = {
-  readonly "name"?: string
-  readonly "metadata"?: Metadata
-  readonly "data_source":
-    | CreateEvalJsonlRunDataSource
-    | CreateEvalCompletionsRunDataSource
-    | CreateEvalResponsesRunDataSource
-}
-export const CreateEvalRunRequest = Schema.Struct({
-  "name": Schema.optionalKey(Schema.String.annotate({ "description": "The name of the run." })),
-  "metadata": Schema.optionalKey(Metadata),
-  "data_source": Schema.Union([
-    CreateEvalJsonlRunDataSource,
-    CreateEvalCompletionsRunDataSource,
-    CreateEvalResponsesRunDataSource
-  ], { mode: "oneOf" }).annotate({ "description": "Details about the run's data source." })
-}).annotate({ "title": "CreateEvalRunRequest" })
-export type EvalRun = {
-  readonly "object": "eval.run"
-  readonly "id": string
-  readonly "eval_id": string
-  readonly "status": string
-  readonly "model": string
-  readonly "name": string
-  readonly "created_at": number
-  readonly "report_url": string
-  readonly "result_counts": {
-    readonly "total": number
-    readonly "errored": number
-    readonly "failed": number
-    readonly "passed": number
-  }
-  readonly "per_model_usage": ReadonlyArray<
-    {
-      readonly "model_name": string
-      readonly "invocation_count": number
-      readonly "prompt_tokens": number
-      readonly "completion_tokens": number
-      readonly "total_tokens": number
-      readonly "cached_tokens": number
-    }
-  >
-  readonly "per_testing_criteria_results": ReadonlyArray<
-    { readonly "testing_criteria": string; readonly "passed": number; readonly "failed": number }
-  >
-  readonly "data_source":
-    | CreateEvalJsonlRunDataSource
-    | CreateEvalCompletionsRunDataSource
-    | CreateEvalResponsesRunDataSource
-  readonly "metadata": Metadata
-  readonly "error": EvalApiError
-}
-export const EvalRun = Schema.Struct({
-  "object": Schema.Literal("eval.run").annotate({ "description": "The type of the object. Always \"eval.run\"." }),
-  "id": Schema.String.annotate({ "description": "Unique identifier for the evaluation run." }),
-  "eval_id": Schema.String.annotate({ "description": "The identifier of the associated evaluation." }),
-  "status": Schema.String.annotate({ "description": "The status of the evaluation run." }),
-  "model": Schema.String.annotate({ "description": "The model that is evaluated, if applicable." }),
-  "name": Schema.String.annotate({ "description": "The name of the evaluation run." }),
-  "created_at": Schema.Number.annotate({
-    "description": "Unix timestamp (in seconds) when the evaluation run was created."
-  }).check(Schema.isInt()),
-  "report_url": Schema.String.annotate({
-    "description": "The URL to the rendered evaluation run report on the UI dashboard."
-  }),
-  "result_counts": Schema.Struct({
-    "total": Schema.Number.annotate({ "description": "Total number of executed output items." }).check(Schema.isInt()),
-    "errored": Schema.Number.annotate({ "description": "Number of output items that resulted in an error." }).check(
-      Schema.isInt()
-    ),
-    "failed": Schema.Number.annotate({ "description": "Number of output items that failed to pass the evaluation." })
-      .check(Schema.isInt()),
-    "passed": Schema.Number.annotate({ "description": "Number of output items that passed the evaluation." }).check(
-      Schema.isInt()
-    )
-  }).annotate({ "description": "Counters summarizing the outcomes of the evaluation run." }),
-  "per_model_usage": Schema.Array(Schema.Struct({
-    "model_name": Schema.String.annotate({ "description": "The name of the model." }),
-    "invocation_count": Schema.Number.annotate({ "description": "The number of invocations." }).check(Schema.isInt()),
-    "prompt_tokens": Schema.Number.annotate({ "description": "The number of prompt tokens used." }).check(
-      Schema.isInt()
-    ),
-    "completion_tokens": Schema.Number.annotate({ "description": "The number of completion tokens generated." }).check(
-      Schema.isInt()
-    ),
-    "total_tokens": Schema.Number.annotate({ "description": "The total number of tokens used." }).check(Schema.isInt()),
-    "cached_tokens": Schema.Number.annotate({ "description": "The number of tokens retrieved from cache." }).check(
-      Schema.isInt()
-    )
-  })).annotate({ "description": "Usage statistics for each model during the evaluation run." }),
-  "per_testing_criteria_results": Schema.Array(Schema.Struct({
-    "testing_criteria": Schema.String.annotate({ "description": "A description of the testing criteria." }),
-    "passed": Schema.Number.annotate({ "description": "Number of tests passed for this criteria." }).check(
-      Schema.isInt()
-    ),
-    "failed": Schema.Number.annotate({ "description": "Number of tests failed for this criteria." }).check(
-      Schema.isInt()
-    )
-  })).annotate({ "description": "Results per testing criteria applied during the evaluation run." }),
-  "data_source": Schema.Union([
-    CreateEvalJsonlRunDataSource,
-    CreateEvalCompletionsRunDataSource,
-    CreateEvalResponsesRunDataSource
-  ], { mode: "oneOf" }).annotate({ "description": "Information about the run's data source." }),
-  "metadata": Metadata,
-  "error": EvalApiError
-}).annotate({ "title": "EvalRun", "description": "A schema representing an evaluation run.\n" })
 export type CreateEvalRequest = {
   readonly "name"?: string
   readonly "metadata"?: Metadata
@@ -23589,6 +23612,22 @@ export const CreateEvalRequest = Schema.Struct({
       "A list of graders for all eval runs in this group. Graders can reference variables in the data source using double curly braces notation, like `{{item.variable_name}}`. To reference the model's output, use the `sample` namespace (ie, `{{sample.output_text}}`)."
   })
 }).annotate({ "title": "CreateEvalRequest" })
+export type EvalRunList = {
+  readonly "object": "list"
+  readonly "data": ReadonlyArray<EvalRun>
+  readonly "first_id": string
+  readonly "last_id": string
+  readonly "has_more": boolean
+}
+export const EvalRunList = Schema.Struct({
+  "object": Schema.Literal("list").annotate({
+    "description": "The type of this object. It is always set to \"list\".\n"
+  }),
+  "data": Schema.Array(EvalRun).annotate({ "description": "An array of eval run objects.\n" }),
+  "first_id": Schema.String.annotate({ "description": "The identifier of the first eval run in the data array." }),
+  "last_id": Schema.String.annotate({ "description": "The identifier of the last eval run in the data array." }),
+  "has_more": Schema.Boolean.annotate({ "description": "Indicates whether there are more evals available." })
+}).annotate({ "title": "EvalRunList", "description": "An object representing a list of runs for an evaluation.\n" })
 export type EvalList = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<Eval>
@@ -23989,22 +24028,6 @@ export const ResponseStreamEvent = Schema.Union([
   ResponseApplyPatchCallOperationDiffDeltaEvent,
   ResponseApplyPatchCallOperationDiffDoneEvent
 ])
-export type EvalRunList = {
-  readonly "object": "list"
-  readonly "data": ReadonlyArray<EvalRun>
-  readonly "first_id": string
-  readonly "last_id": string
-  readonly "has_more": boolean
-}
-export const EvalRunList = Schema.Struct({
-  "object": Schema.Literal("list").annotate({
-    "description": "The type of this object. It is always set to \"list\".\n"
-  }),
-  "data": Schema.Array(EvalRun).annotate({ "description": "An array of eval run objects.\n" }),
-  "first_id": Schema.String.annotate({ "description": "The identifier of the first eval run in the data array." }),
-  "last_id": Schema.String.annotate({ "description": "The identifier of the last eval run in the data array." }),
-  "has_more": Schema.Boolean.annotate({ "description": "Indicates whether there are more evals available." })
-}).annotate({ "title": "EvalRunList", "description": "An object representing a list of runs for an evaluation.\n" })
 export type FineTuneMethod = {
   readonly "type": "supervised" | "dpo" | "reinforcement"
   readonly "supervised"?: FineTuneSupervisedMethod
@@ -24449,11 +24472,13 @@ export type ListContainersParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
   readonly "after"?: string
+  readonly "name"?: string
 }
 export const ListContainersParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"])),
-  "after": Schema.optionalKey(Schema.String)
+  "after": Schema.optionalKey(Schema.String),
+  "name": Schema.optionalKey(Schema.String)
 })
 export type ListContainers200 = ContainerListResource
 export const ListContainers200 = ContainerListResource
@@ -24475,6 +24500,8 @@ export const ListContainerFilesParams = Schema.Struct({
 })
 export type ListContainerFiles200 = ContainerFileListResource
 export const ListContainerFiles200 = ContainerFileListResource
+export type CreateContainerFileRequestJson = CreateContainerFileBody
+export const CreateContainerFileRequestJson = CreateContainerFileBody
 export type CreateContainerFileRequestFormData = CreateContainerFileBody
 export const CreateContainerFileRequestFormData = CreateContainerFileBody
 export type CreateContainerFile200 = ContainerFileResource
@@ -26190,7 +26217,8 @@ export const make = (
         HttpClientRequest.setUrlParams({
           "limit": options?.params?.["limit"] as any,
           "order": options?.params?.["order"] as any,
-          "after": options?.params?.["after"] as any
+          "after": options?.params?.["after"] as any,
+          "name": options?.params?.["name"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(ListContainers200),

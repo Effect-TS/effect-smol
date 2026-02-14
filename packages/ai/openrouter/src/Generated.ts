@@ -8724,28 +8724,23 @@ export const make = (
       : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
   }
   const sseRequest = <
-    Type extends {
-      readonly id?: string | undefined
-      readonly event: string
-      readonly data: unknown
-    },
+    Type,
     DecodingServices
   >(
     schema: Schema.Decoder<Type, DecodingServices>
   ) =>
   (
     request: HttpClientRequest.HttpClientRequest
-  ): Stream.Stream<Type, HttpClientError.HttpClientError | SchemaError | Sse.Retry, DecodingServices> =>
+  ): Stream.Stream<
+    { readonly event: string; readonly id: string | undefined; readonly data: Type },
+    HttpClientError.HttpClientError | SchemaError | Sse.Retry,
+    DecodingServices
+  > =>
     HttpClient.filterStatusOk(httpClient).execute(request).pipe(
       Effect.map((response) => response.stream),
       Stream.unwrap,
       Stream.decodeText(),
-      Stream.pipeThroughChannel(Sse.decodeSchema<
-        Type,
-        DecodingServices,
-        HttpClientError.HttpClientError,
-        unknown
-      >(schema))
+      Stream.pipeThroughChannel(Sse.decodeDataSchema(schema))
     )
   const decodeSuccess =
     <Schema extends Schema.Top>(schema: Schema) => (response: HttpClientResponse.HttpClientResponse) =>
@@ -8783,10 +8778,7 @@ export const make = (
     "createResponsesSse": (options) =>
       HttpClientRequest.post(`/responses`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
-        sseRequest(Schema.Struct({
-          ...Sse.EventEncoded.fields,
-          data: CreateResponses200Sse
-        }))
+        sseRequest(CreateResponses200Sse)
       ),
     "createMessages": (options) =>
       HttpClientRequest.post(`/messages`).pipe(
@@ -8807,10 +8799,7 @@ export const make = (
     "createMessagesSse": (options) =>
       HttpClientRequest.post(`/messages`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
-        sseRequest(Schema.Struct({
-          ...Sse.EventEncoded.fields,
-          data: CreateMessages200Sse
-        }))
+        sseRequest(CreateMessages200Sse)
       ),
     "getUserActivity": (options) =>
       HttpClientRequest.get(`/activity`).pipe(
@@ -8867,10 +8856,7 @@ export const make = (
     "createEmbeddingsSse": (options) =>
       HttpClientRequest.post(`/embeddings`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
-        sseRequest(Schema.Struct({
-          ...Sse.EventEncoded.fields,
-          data: CreateEmbeddings200Sse
-        }))
+        sseRequest(CreateEmbeddings200Sse)
       ),
     "listEmbeddingsModels": (options) =>
       HttpClientRequest.get(`/embeddings/models`).pipe(
@@ -9218,10 +9204,7 @@ export const make = (
     "sendChatCompletionRequestSse": (options) =>
       HttpClientRequest.post(`/chat/completions`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
-        sseRequest(Schema.Struct({
-          ...Sse.EventEncoded.fields,
-          data: SendChatCompletionRequest200Sse
-        }))
+        sseRequest(SendChatCompletionRequest200Sse)
       )
   }
 }

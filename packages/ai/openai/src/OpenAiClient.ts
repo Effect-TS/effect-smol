@@ -221,18 +221,18 @@ export const make = Effect.fnUntraced(
       return [response, stream]
     }
 
-    const createResponseStream: Service["createResponseStream"] = (payload) =>   
-        httpClientOk.execute(
-          HttpClientRequest.post("/responses", {
-            body: HttpBody.jsonUnsafe({ ...payload, stream: true })
-          })
-        ).pipe(
-          Effect.map(buildResponseStream),
-          Effect.catchTag(
-            "HttpClientError",
-            (error) => Errors.mapHttpClientError(error, "createResponseStream")
-          )
+    const createResponseStream: Service["createResponseStream"] = (payload) =>
+      httpClientOk.execute(
+        HttpClientRequest.post("/responses", {
+          body: HttpBody.jsonUnsafe({ ...payload, stream: true })
+        })
+      ).pipe(
+        Effect.map(buildResponseStream),
+        Effect.catchTag(
+          "HttpClientError",
+          (error) => Errors.mapHttpClientError(error, "createResponseStream")
         )
+      )
 
     const createEmbedding = (
       payload: typeof Generated.CreateEmbeddingRequest.Encoded
