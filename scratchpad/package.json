@@ -7,6 +7,7 @@
     "@effect/ai-anthropic": "workspace:*",
     "@effect/ai-openai": "workspace:*",
     "@effect/ai-openai-compat": "workspace:*",
+    "@effect/ai-openrouter": "workspace:*",
     "effect": "workspace:*",
     "@effect/opentelemetry": "workspace:*",
     "@effect/platform-bun": "workspace:*",

@@ -705,6 +705,9 @@ importers:
       '@effect/ai-openai-compat':
         specifier: workspace:*
         version: link:../packages/ai/openai-compat
+      '@effect/ai-openrouter':
+        specifier: workspace:*
+        version: link:../packages/ai/openrouter
       '@effect/opentelemetry':
         specifier: workspace:*
         version: link:../packages/opentelemetry

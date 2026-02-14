@@ -172,6 +172,8 @@ export const make = Effect.fnUntraced(
         : identity
     )
 
+    const httpClientOk = HttpClient.filterStatusOk(httpClient)
+
     const client = Generated.make(httpClient, {
       transformClient: Effect.fnUntraced(function*(client) {
         const config = yield* OpenAiConfig.getOrUndefined
@@ -219,9 +221,8 @@ export const make = Effect.fnUntraced(
       return [response, stream]
     }
 
-    const createResponseStream: Service["createResponseStream"] = (payload) =>
-      HttpClient.filterStatusOk(httpClient)
-        .execute(
+    const createResponseStream: Service["createResponseStream"] = (payload) =>   
+        httpClientOk.execute(
           HttpClientRequest.post("/responses", {
             body: HttpBody.jsonUnsafe({ ...payload, stream: true })
           })

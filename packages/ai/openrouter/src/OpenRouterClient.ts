@@ -14,7 +14,6 @@ import type * as AiError from "effect/unstable/ai/AiError"
 import * as Sse from "effect/unstable/encoding/Sse"
 import * as HttpBody from "effect/unstable/http/HttpBody"
 import * as HttpClient from "effect/unstable/http/HttpClient"
-import type * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import * as Generated from "./Generated.ts"
@@ -49,7 +48,7 @@ export interface Service {
   ) => Effect.Effect<
     [
       response: HttpClientResponse.HttpClientResponse,
-      stream: Stream.Stream<typeof Generated.SendChatCompletionRequest200Sse.Encoded, AiError.AiError>
+      stream: Stream.Stream<typeof Generated.ChatStreamingResponseChunk.fields.data.Type, AiError.AiError>
     ],
     AiError.AiError
   >
@@ -130,6 +129,8 @@ export const make = Effect.fnUntraced(
       options.transformClient ?? identity
     )
 
+    const httpClientOk = HttpClient.filterStatusOk(httpClient)
+
     const client = Generated.make(httpClient, {
       transformClient: Effect.fnUntraced(function*(client) {
         const config = yield* OpenRouterConfig.getOrUndefined
@@ -152,26 +153,17 @@ export const make = Effect.fnUntraced(
         })
       )
 
-    const SseEvent = Schema.Struct({
-      ...Sse.EventEncoded.fields,
-      data: Generated.SendChatCompletionRequest200Sse
-    })
-
     const buildChatCompletionStream = (
       response: HttpClientResponse.HttpClientResponse
     ): [
       HttpClientResponse.HttpClientResponse,
-      Stream.Stream<typeof Generated.SendChatCompletionRequest200Sse.Encoded, AiError.AiError>
+      Stream.Stream<typeof Generated.ChatStreamingResponseChunk.fields.data.Type, AiError.AiError>
     ] => {
       const stream = response.stream.pipe(
         Stream.decodeText(),
-        Stream.pipeThroughChannel(Sse.decodeSchema<
-          typeof SseEvent.Type,
-          typeof SseEvent.DecodingServices,
-          HttpClientError.HttpClientError,
-          unknown
-        >(SseEvent)),
-        Stream.map((event) => event.data),
+        Stream.pipeThroughChannel(Sse.decode()),
+        Stream.mapEffect((event) => decodeChatCompletionSseData(event.data)),
+        Stream.takeWhile((data) => data !== "[DONE]"),
         Stream.catchTags({
           // TODO: handle SSE retries
           Retry: (error) => Stream.die(error),
@@ -183,18 +175,17 @@ export const make = Effect.fnUntraced(
     }
 
     const createChatCompletionStream: Service["createChatCompletionStream"] = (payload) =>
-      HttpClient.filterStatusOk(httpClient)
-        .execute(
-          HttpClientRequest.post("/chat/completions", {
-            body: HttpBody.jsonUnsafe({ ...payload, stream: true })
-          })
-        ).pipe(
-          Effect.map(buildChatCompletionStream),
-          Effect.catchTag(
-            "HttpClientError",
-            (error) => Errors.mapHttpClientError(error, "createChatCompletionStream")
-          )
+      httpClientOk.execute(
+        HttpClientRequest.post("/chat/completions", {
+          body: HttpBody.jsonUnsafe({ ...payload, stream: true })
+        })
+      ).pipe(
+        Effect.map(buildChatCompletionStream),
+        Effect.catchTag(
+          "HttpClientError",
+          (error) => Errors.mapHttpClientError(error, "createChatCompletionStream")
         )
+      )
 
     return OpenRouterClient.of({
       client,
@@ -274,3 +265,22 @@ export const layerConfig = (options?: {
       })
     })
   )
+
+// =============================================================================
+// Internal Utilities
+// =============================================================================
+
+const ChatStreamingResponseChunkDataFromString = Schema.fromJsonString(Generated.ChatStreamingResponseChunk.fields.data)
+const decodeChatStreamingResponseChunkData = Schema.decodeUnknownEffect(ChatStreamingResponseChunkDataFromString)
+
+const decodeChatCompletionSseData = (
+  data: string
+): Effect.Effect<
+  typeof Generated.ChatStreamingResponseChunk.fields.data.Type | "[DONE]",
+  Schema.SchemaError
+> => {
+  if (data === "[DONE]") {
+    return Effect.succeed(data)
+  }
+  return decodeChatStreamingResponseChunkData(data)
+}
