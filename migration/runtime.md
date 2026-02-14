@@ -12,8 +12,9 @@ interface Runtime<in R> {
 }
 ```
 
-In v4, this type no longer exists. Run functions live directly on `Effect`, and
-the `Runtime` module is reduced to process lifecycle utilities.
+In v4, this type no longer exists and you can use `ServiceMap<R>` instead.
+Run functions live directly on `Effect`, and the `Runtime` module is reduced to
+process lifecycle utilities.
 
 ## `Runtime` Module Contents
 
