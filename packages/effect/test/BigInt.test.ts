@@ -3,6 +3,11 @@ import { describe, it } from "vitest"
 import { strictEqual } from "./utils/assert.ts"
 
 describe("BigInt", () => {
+  it("Equivalence", () => {
+    strictEqual(BigInt.Equivalence(1n, 1n), true)
+    strictEqual(BigInt.Equivalence(1n, 2n), false)
+  })
+
   it("ReducerSum", () => {
     strictEqual(BigInt.ReducerSum.combine(1n, 2n), 3n)
     strictEqual(BigInt.ReducerSum.combine(BigInt.ReducerSum.initialValue, 2n), 2n)

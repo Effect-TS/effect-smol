@@ -240,6 +240,75 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
 export const strictEqual: <A>() => Equivalence<A> = () => isStrictEquivalent
 
 /**
+ * An `Equivalence` instance for strings using strict equality (`===`).
+ *
+ * @example
+ * ```ts
+ * import { Equivalence } from "effect"
+ *
+ * console.log(Equivalence.String("hello", "hello")) // true
+ * console.log(Equivalence.String("hello", "world")) // false
+ * ```
+ *
+ * @category instances
+ * @since 4.0.0
+ */
+export const String: Equivalence<string> = isStrictEquivalent
+
+/**
+ * An `Equivalence` instance for numbers.
+ *
+ * `NaN` is considered equal to `NaN`.
+ *
+ * @example
+ * ```ts
+ * import { Equivalence } from "effect"
+ *
+ * console.log(Equivalence.Number(1, 1)) // true
+ * console.log(Equivalence.Number(1, 2)) // false
+ * console.log(Equivalence.Number(NaN, NaN)) // true
+ * ```
+ *
+ * @category instances
+ * @since 4.0.0
+ */
+export const Number: Equivalence<number> = make((self, that) =>
+  globalThis.Number.isNaN(self) && globalThis.Number.isNaN(that)
+)
+
+/**
+ * An `Equivalence` instance for booleans using strict equality (`===`).
+ *
+ * @example
+ * ```ts
+ * import { Equivalence } from "effect"
+ *
+ * console.log(Equivalence.Boolean(true, true)) // true
+ * console.log(Equivalence.Boolean(true, false)) // false
+ * ```
+ *
+ * @category instances
+ * @since 4.0.0
+ */
+export const Boolean: Equivalence<boolean> = isStrictEquivalent
+
+/**
+ * An `Equivalence` instance for bigints using strict equality (`===`).
+ *
+ * @example
+ * ```ts
+ * import { Equivalence } from "effect"
+ *
+ * console.log(Equivalence.BigInt(1n, 1n)) // true
+ * console.log(Equivalence.BigInt(1n, 2n)) // false
+ * ```
+ *
+ * @category instances
+ * @since 4.0.0
+ */
+export const BigInt: Equivalence<bigint> = isStrictEquivalent
+
+/**
  * Combines two equivalence relations using logical AND.
  *
  * When to use this:

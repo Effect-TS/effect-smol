@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Equal from "../../Equal.ts"
-import * as Equivalence_ from "../../Equivalence.ts"
+import * as Equ from "../../Equivalence.ts"
 import { dual } from "../../Function.ts"
 import * as Hash from "../../Hash.ts"
 import * as Inspectable from "../../Inspectable.ts"
@@ -70,7 +70,7 @@ const make = (input: Record.ReadonlyRecord<string, string>): Mutable<Headers> =>
  * @since 4.0.0
  * @category Equivalence
  */
-export const Equivalence: Equivalence_.Equivalence<Headers> = Record.makeEquivalence(Equivalence_.strictEqual<string>())
+export const Equivalence: Equ.Equivalence<Headers> = Record.makeEquivalence(Equ.strictEqual<string>())
 
 /**
  * @since 4.0.0

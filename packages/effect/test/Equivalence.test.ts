@@ -3,6 +3,32 @@ import { assertFalse, assertTrue } from "@effect/vitest/utils"
 import { Equivalence, pipe } from "effect"
 
 describe("Equivalence", () => {
+  it("String", () => {
+    assertTrue(Equivalence.String("a", "a"))
+    assertFalse(Equivalence.String("a", "b"))
+  })
+
+  it("Number", () => {
+    assertTrue(Equivalence.Number(1, 1))
+    assertFalse(Equivalence.Number(1, 2))
+    assertTrue(Equivalence.Number(NaN, NaN))
+    assertFalse(Equivalence.Number(NaN, 1))
+    assertFalse(Equivalence.Number(1, NaN))
+    assertTrue(Equivalence.Number(0, -0))
+  })
+
+  it("Boolean", () => {
+    assertTrue(Equivalence.Boolean(true, true))
+    assertTrue(Equivalence.Boolean(false, false))
+    assertFalse(Equivalence.Boolean(true, false))
+    assertFalse(Equivalence.Boolean(false, true))
+  })
+
+  it("BigInt", () => {
+    assertTrue(Equivalence.BigInt(1n, 1n))
+    assertFalse(Equivalence.BigInt(1n, 2n))
+  })
+
   it("mapInput", () => {
     interface Person {
       readonly name: string

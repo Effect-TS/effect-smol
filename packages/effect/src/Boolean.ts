@@ -4,6 +4,7 @@
  *
  * @since 2.0.0
  */
+import * as Equ from "./Equivalence.ts"
 import type { LazyArg } from "./Function.ts"
 import { dual } from "./Function.ts"
 import * as order from "./Order.ts"
@@ -101,6 +102,22 @@ export const match: {
  * @since 2.0.0
  */
 export const Order: order.Order<boolean> = order.Boolean
+
+/**
+ * An `Equivalence` instance for booleans using strict equality (`===`).
+ *
+ * @example
+ * ```ts
+ * import { Boolean } from "effect"
+ *
+ * console.log(Boolean.Equivalence(true, true)) // true
+ * console.log(Boolean.Equivalence(true, false)) // false
+ * ```
+ *
+ * @category instances
+ * @since 4.0.0
+ */
+export const Equivalence: Equ.Equivalence<boolean> = Equ.Boolean
 
 /**
  * Negates the given boolean: `!self`

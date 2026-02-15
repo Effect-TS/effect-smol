@@ -15,7 +15,7 @@
  */
 
 import * as Equal from "./Equal.ts"
-import * as equivalence from "./Equivalence.ts"
+import * as Equ from "./Equivalence.ts"
 import { dual } from "./Function.ts"
 import * as Hash from "./Hash.ts"
 import { type Inspectable, NodeInspectSymbol } from "./Inspectable.ts"
@@ -948,7 +948,7 @@ export const remainderUnsafe: {
  * @category instances
  * @since 2.0.0
  */
-export const Equivalence: equivalence.Equivalence<BigDecimal> = equivalence.make((self, that) => {
+export const Equivalence: Equ.Equivalence<BigDecimal> = Equ.make((self, that) => {
   if (self.scale > that.scale) {
     return scale(that, self.scale).value === self.value
   }

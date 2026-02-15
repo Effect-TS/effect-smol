@@ -3,6 +3,13 @@ import { describe, it } from "vitest"
 import { strictEqual } from "./utils/assert.ts"
 
 describe("Boolean", () => {
+  it("Equivalence", () => {
+    strictEqual(Boolean.Equivalence(true, true), true)
+    strictEqual(Boolean.Equivalence(false, false), true)
+    strictEqual(Boolean.Equivalence(true, false), false)
+    strictEqual(Boolean.Equivalence(false, true), false)
+  })
+
   it("ReducerAnd", () => {
     strictEqual(Boolean.ReducerAnd.combine(true, true), true)
     strictEqual(Boolean.ReducerAnd.combine(true, false), false)

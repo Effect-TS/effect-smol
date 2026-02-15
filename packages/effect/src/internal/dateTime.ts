@@ -4,7 +4,7 @@ import type * as DateTime from "../DateTime.ts"
 import * as Duration from "../Duration.ts"
 import type * as Effect from "../Effect.ts"
 import * as Equal from "../Equal.ts"
-import * as equivalence from "../Equivalence.ts"
+import * as Equ from "../Equivalence.ts"
 import type { LazyArg } from "../Function.ts"
 import { dual } from "../Function.ts"
 import * as Hash from "../Hash.ts"
@@ -170,9 +170,7 @@ export const isZoned = (self: DateTime.DateTime): self is DateTime.Zoned => self
 // =============================================================================
 
 /** @internal */
-export const Equivalence: equivalence.Equivalence<DateTime.DateTime> = equivalence.make((a, b) =>
-  a.epochMillis === b.epochMillis
-)
+export const Equivalence: Equ.Equivalence<DateTime.DateTime> = Equ.make((a, b) => a.epochMillis === b.epochMillis)
 
 /** @internal */
 export const Order: order.Order<DateTime.DateTime> = order.make((self, that) =>

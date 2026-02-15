@@ -4,7 +4,7 @@
 import type { IllegalArgumentError } from "./Cause.ts"
 import type * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
-import type * as equivalence from "./Equivalence.ts"
+import type * as Equ from "./Equivalence.ts"
 import { dual, type LazyArg } from "./Function.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import * as Internal from "./internal/dateTime.ts"
@@ -390,7 +390,7 @@ export const isZoned: (self: DateTime) => self is Zoned = Internal.isZoned
  * @category instances
  * @since 3.6.0
  */
-export const Equivalence: equivalence.Equivalence<DateTime> = Internal.Equivalence
+export const Equivalence: Equ.Equivalence<DateTime> = Internal.Equivalence
 
 /**
  * An `Order` for comparing and sorting `DateTime` values.

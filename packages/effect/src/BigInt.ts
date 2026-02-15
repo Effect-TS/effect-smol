@@ -6,6 +6,7 @@
  */
 
 import * as Combiner from "./Combiner.ts"
+import * as Equ from "./Equivalence.ts"
 import { dual } from "./Function.ts"
 import * as order from "./Order.ts"
 import type { Ordering } from "./Ordering.ts"
@@ -214,6 +215,22 @@ export const decrement = (n: bigint): bigint => n - bigint1
  * @since 2.0.0
  */
 export const Order: order.Order<bigint> = order.BigInt
+
+/**
+ * An `Equivalence` instance for bigints using strict equality (`===`).
+ *
+ * @example
+ * ```ts
+ * import { BigInt } from "effect"
+ *
+ * console.log(BigInt.Equivalence(1n, 1n)) // true
+ * console.log(BigInt.Equivalence(1n, 2n)) // false
+ * ```
+ *
+ * @category instances
+ * @since 4.0.0
+ */
+export const Equivalence: Equ.Equivalence<bigint> = Equ.BigInt
 
 /**
  * Returns `true` if the first argument is less than the second, otherwise `false`.

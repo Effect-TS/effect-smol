@@ -98,6 +98,7 @@
  * })
  * ```
  */
+import * as Equ from "./Equivalence.ts"
 import * as effect from "./internal/effect.ts"
 import * as Ord from "./Order.ts"
 
@@ -164,6 +165,22 @@ export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn",
  * @category ordering
  */
 export const Order: Ord.Order<LogLevel> = effect.LogLevelOrder
+
+/**
+ * An `Equivalence` instance for log levels using strict equality (`===`).
+ *
+ * @example
+ * ```ts
+ * import { LogLevel } from "effect"
+ *
+ * console.log(LogLevel.Equivalence("Error", "Error")) // true
+ * console.log(LogLevel.Equivalence("Error", "Info")) // false
+ * ```
+ *
+ * @category instances
+ * @since 4.0.0
+ */
+export const Equivalence: Equ.Equivalence<LogLevel> = Equ.strictEqual<LogLevel>()
 
 /**
  * Returns the ordinal value of the log level.

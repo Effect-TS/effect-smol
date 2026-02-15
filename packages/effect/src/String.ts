@@ -6,6 +6,7 @@
  */
 
 import type { NonEmptyArray } from "./Array.ts"
+import * as Equ from "./Equivalence.ts"
 import { dual } from "./Function.ts"
 import * as readonlyArray from "./internal/array.ts"
 import * as number from "./Number.ts"
@@ -56,6 +57,22 @@ export const isString: Refinement<unknown, string> = predicate.isString
  * @since 2.0.0
  */
 export const Order: order.Order<string> = order.String
+
+/**
+ * An `Equivalence` instance for strings using strict equality (`===`).
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * console.log(String.Equivalence("hello", "hello")) // true
+ * console.log(String.Equivalence("hello", "world")) // false
+ * ```
+ *
+ * @category instances
+ * @since 4.0.0
+ */
+export const Equivalence: Equ.Equivalence<string> = Equ.String
 
 /**
  * The empty string `""`.

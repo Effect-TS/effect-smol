@@ -3,6 +3,12 @@ import { describe, it } from "vitest"
 import { strictEqual } from "./utils/assert.ts"
 
 describe("Number", () => {
+  it("Equivalence", () => {
+    strictEqual(Number.Equivalence(1, 1), true)
+    strictEqual(Number.Equivalence(1, 2), false)
+    strictEqual(Number.Equivalence(NaN, NaN), true)
+  })
+
   it("ReducerSum", () => {
     strictEqual(Number.ReducerSum.combine(1, 2), 3)
     strictEqual(Number.ReducerSum.combine(Number.ReducerSum.initialValue, 2), 2)

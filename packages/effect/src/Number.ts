@@ -4,6 +4,7 @@
  *
  * @since 2.0.0
  */
+import * as Equ from "./Equivalence.ts"
 import { dual } from "./Function.ts"
 import * as order from "./Order.ts"
 import type { Ordering } from "./Ordering.ts"
@@ -176,6 +177,25 @@ export const decrement = (n: number): number => n - 1
  * @since 2.0.0
  */
 export const Order: order.Order<number> = order.Number
+
+/**
+ * An `Equivalence` instance for numbers.
+ *
+ * `NaN` is considered equal to `NaN`.
+ *
+ * @example
+ * ```ts
+ * import { Number } from "effect"
+ *
+ * console.log(Number.Equivalence(1, 1)) // true
+ * console.log(Number.Equivalence(1, 2)) // false
+ * console.log(Number.Equivalence(NaN, NaN)) // true
+ * ```
+ *
+ * @category instances
+ * @since 4.0.0
+ */
+export const Equivalence: Equ.Equivalence<number> = Equ.Number
 
 /**
  * Returns `true` if the first argument is less than the second, otherwise `false`.

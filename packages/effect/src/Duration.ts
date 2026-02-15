@@ -15,7 +15,7 @@
  */
 import * as Combiner from "./Combiner.ts"
 import * as Equal from "./Equal.ts"
-import type * as equivalence from "./Equivalence.ts"
+import type * as Equ from "./Equivalence.ts"
 import { dual, identity } from "./Function.ts"
 import * as Hash from "./Hash.ts"
 import type * as Inspectable from "./Inspectable.ts"
@@ -856,7 +856,7 @@ export const between: {
  * @category instances
  * @since 2.0.0
  */
-export const Equivalence: equivalence.Equivalence<Duration> = (self, that) =>
+export const Equivalence: Equ.Equivalence<Duration> = (self, that) =>
   matchPair(self, that, {
     onMillis: (self, that) => self === that,
     onNanos: (self, that) => self === that,

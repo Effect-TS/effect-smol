@@ -5,7 +5,7 @@ import * as Arr from "../../Array.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Equal from "../../Equal.ts"
-import * as Equivalence_ from "../../Equivalence.ts"
+import * as Equ from "../../Equivalence.ts"
 import { dual } from "../../Function.ts"
 import * as Hash from "../../Hash.ts"
 import type { Inspectable } from "../../Inspectable.ts"
@@ -135,12 +135,12 @@ const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => 
  * @since 4.0.0
  * @category Equivalence
  */
-export const Equivalence: Equivalence_.Equivalence<UrlParams> = Equivalence_.make<UrlParams>((a, b) =>
+export const Equivalence: Equ.Equivalence<UrlParams> = Equ.make<UrlParams>((a, b) =>
   arrayEquivalence(a.params, b.params)
 )
 
 const arrayEquivalence = Arr.makeEquivalence(
-  Tuple.makeEquivalence([Equivalence_.strictEqual<string>(), Equivalence_.strictEqual<string>()])
+  Tuple.makeEquivalence([Equ.strictEqual<string>(), Equ.strictEqual<string>()])
 )
 
 /**

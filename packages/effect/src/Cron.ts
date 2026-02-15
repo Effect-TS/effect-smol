@@ -5,7 +5,7 @@ import * as Arr from "./Array.ts"
 import * as Data from "./Data.ts"
 import type * as DateTime from "./DateTime.ts"
 import * as Equal from "./Equal.ts"
-import * as equivalence from "./Equivalence.ts"
+import * as Equ from "./Equivalence.ts"
 import { format } from "./Formatter.ts"
 import { constVoid, dual, pipe } from "./Function.ts"
 import * as Hash from "./Hash.ts"
@@ -776,7 +776,7 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
  * @since 2.0.0
  * @category instances
  */
-export const Equivalence: equivalence.Equivalence<Cron> = equivalence.make((self, that) =>
+export const Equivalence: Equ.Equivalence<Cron> = Equ.make((self, that) =>
   restrictionsEquals(self.seconds, that.seconds) &&
   restrictionsEquals(self.minutes, that.minutes) &&
   restrictionsEquals(self.hours, that.hours) &&
@@ -785,7 +785,7 @@ export const Equivalence: equivalence.Equivalence<Cron> = equivalence.make((self
   restrictionsEquals(self.weekdays, that.weekdays)
 )
 
-const restrictionsArrayEquals = equivalence.Array(equivalence.strictEqual<number>())
+const restrictionsArrayEquals = Equ.Array(Equ.strictEqual<number>())
 const restrictionsEquals = (self: ReadonlySet<number>, that: ReadonlySet<number>): boolean =>
   restrictionsArrayEquals(Arr.fromIterable(self), Arr.fromIterable(that))
 
