@@ -28,7 +28,7 @@ jobs:
       - run: pnpm lint
 
   types:
-    name: Build
+    name: Build and Types
     runs-on: ubuntu-latest
     permissions:
       contents: read
