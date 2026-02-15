@@ -1,6 +1,6 @@
 /**
  * This module provides utility functions and type class instances for working with the `BigDecimal` type in TypeScript.
- * It includes functions for basic arithmetic operations, as well as type class instances for `Equivalence` and `Order`.
+ * It includes functions for basic arithmetic operations.
  *
  * A `BigDecimal` allows storing any real number to arbitrary precision; which avoids common floating point errors
  * (such as 0.1 + 0.2 ≠ 0.3) at the cost of complexity.

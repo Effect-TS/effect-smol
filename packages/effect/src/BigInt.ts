@@ -1,7 +1,6 @@
 /**
  * This module provides utility functions and type class instances for working with the `bigint` type in TypeScript.
- * It includes functions for basic arithmetic operations, as well as type class instances for
- * `Equivalence` and `Order`.
+ * It includes functions for basic arithmetic operations.
  *
  * @since 2.0.0
  */
@@ -416,7 +415,7 @@ export const max: {
  * @category math
  * @since 2.0.0
  */
-export const sign = (n: bigint): Ordering => Order(n, bigint0)
+export const sign = (n: bigint): Ordering => order.BigInt(n, bigint0)
 
 /**
  * Determines the absolute value of a given `bigint`.

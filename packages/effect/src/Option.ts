@@ -1693,43 +1693,6 @@ export const zipWith: {
 )
 
 /**
- * Applies a function inside a `Some` to a value inside another `Some`,
- * combining them into a new `Option`.
- *
- * **Details**
- *
- * This function allows you to apply a function wrapped in an `Option` (`self`)
- * to a value wrapped in another `Option` (`that`). If both `Option`s are
- * `Some`, the function is applied to the value, and the result is wrapped in a
- * new `Some`. If either `Option` is `None`, the result is `None`.
- *
- * @example
- * ```ts
- * import { Option } from "effect"
- *
- * const optionalFn = Option.some((x: number) => x * 2)
- * const optionalValue = Option.some(5)
- *
- * console.log(Option.ap(optionalFn, optionalValue))
- * // Output: { _id: 'Option', _tag: 'Some', value: 10 }
- *
- * const optionalFnNone: Option.Option<(x: number) => number> = Option.none()
- * console.log(Option.ap(optionalFnNone, optionalValue))
- * // Output: { _id: 'Option', _tag: 'None' }
- *
- * console.log(Option.ap(optionalFn, Option.none()))
- * // Output: { _id: 'Option', _tag: 'None' }
- * ```
- *
- * @category Combining
- * @since 2.0.0
- */
-export const ap: {
-  <A>(that: Option<A>): <B>(self: Option<(a: A) => B>) => Option<B>
-  <A, B>(self: Option<(a: A) => B>, that: Option<A>): Option<B>
-} = dual(2, <A, B>(self: Option<(a: A) => B>, that: Option<A>): Option<B> => zipWith(self, that, (f, a) => f(a)))
-
-/**
  * Reduces an `Iterable` of `Option<A>` to a single value of type `B`, ignoring
  * elements that are `None`.
  *
@@ -2434,21 +2397,6 @@ export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {
     state = iterator.next(current.value as never)
   }
   return some(state.value)
-}
-
-/**
- * Merges two optional values, applying a function if both exist.
- * Unlike {@link zipWith}, this function returns `None` only if both inputs are `None`.
- *
- * @internal
- */
-export const mergeWith = <A>(f: (a1: A, a2: A) => A) => (o1: Option<A>, o2: Option<A>): Option<A> => {
-  if (isNone(o1)) {
-    return o2
-  } else if (isNone(o2)) {
-    return o1
-  }
-  return some(f(o1.value, o2.value))
 }
 
 /**

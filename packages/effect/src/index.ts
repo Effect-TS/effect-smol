@@ -121,7 +121,7 @@ export * as Array from "./Array.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `BigDecimal` type in TypeScript.
- * It includes functions for basic arithmetic operations, as well as type class instances for `Equivalence` and `Order`.
+ * It includes functions for basic arithmetic operations.
  *
  * A `BigDecimal` allows storing any real number to arbitrary precision; which avoids common floating point errors
  * (such as 0.1 + 0.2 ≠ 0.3) at the cost of complexity.
@@ -138,8 +138,7 @@ export * as BigDecimal from "./BigDecimal.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `bigint` type in TypeScript.
- * It includes functions for basic arithmetic operations, as well as type class instances for
- * `Equivalence` and `Order`.
+ * It includes functions for basic arithmetic operations.
  *
  * @since 2.0.0
  */
@@ -147,8 +146,7 @@ export * as BigInt from "./BigInt.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `boolean` type in TypeScript.
- * It includes functions for basic boolean operations, as well as type class instances for
- * `Equivalence` and `Order`.
+ * It includes functions for basic boolean operations.
  *
  * @since 2.0.0
  */
@@ -1953,8 +1951,7 @@ export * as NullOr from "./NullOr.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `number` type in TypeScript.
- * It includes functions for basic arithmetic operations, as well as type class instances for
- * `Equivalence` and `Order`.
+ * It includes functions for basic arithmetic operations.
  *
  * @since 2.0.0
  */
@@ -2482,8 +2479,7 @@ export * as Stream from "./Stream.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `string` type in TypeScript.
- * It includes functions for basic string manipulation, as well as type class instances for
- * `Equivalence` and `Order`.
+ * It includes functions for basic string manipulation.
  *
  * @since 2.0.0
  */
