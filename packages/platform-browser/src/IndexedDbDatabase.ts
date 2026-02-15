@@ -1,7 +1,6 @@
 /**
  * @since 1.0.0
  */
-import * as Context from "effect/Context";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import { CommitPrototype } from "effect/Effectable";
@@ -9,7 +8,8 @@ import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import { type Pipeable, pipeArguments } from "effect/Pipeable";
 import * as Runtime from "effect/Runtime";
-import { SyncScheduler } from "effect/Scheduler";
+import { MixedScheduler } from "effect/Scheduler";
+import * as ServiceMap from "effect/ServiceMap";
 import * as IndexedDb from "./IndexedDb.js";
 import * as IndexedDbQueryBuilder from "./IndexedDbQueryBuilder.js";
 import type * as IndexedDbTable from "./IndexedDbTable.js";
@@ -62,15 +62,13 @@ export class IndexedDbDatabaseError extends Data.TaggedError(
  * @since 1.0.0
  * @category models
  */
-export class IndexedDbDatabase extends Context.Tag(
-  "@effect/platform-browser/IndexedDbDatabase",
-)<
+export class IndexedDbDatabase extends ServiceMap.Service<
   IndexedDbDatabase,
   {
     readonly database: globalThis.IDBDatabase;
     readonly IDBKeyRange: typeof globalThis.IDBKeyRange;
   }
->() {}
+>()("@effect/platform-browser/IndexedDbDatabase") {}
 
 /**
  * @since 1.0.0
@@ -331,7 +329,7 @@ const layer = <DatabaseName extends string>(
 
       const version = migrations.length;
       const database = yield* Effect.acquireRelease(
-        Effect.async<globalThis.IDBDatabase, IndexedDbDatabaseError>(
+        Effect.callback<globalThis.IDBDatabase, IndexedDbDatabaseError>(
           (resume) => {
             const request = indexedDB.open(databaseName, version);
 
@@ -436,7 +434,7 @@ const layer = <DatabaseName extends string>(
                     >;
                   }
 
-                  return Effect.dieMessage("Invalid migration");
+                  return Effect.die(new Error("Invalid migration"));
                 },
                 { discard: true },
               ).pipe(
@@ -448,7 +446,7 @@ const layer = <DatabaseName extends string>(
                     }),
                 ),
               );
-              const scheduler = new SyncScheduler();
+              const scheduler = new MixedScheduler("sync");
               fiber = Runtime.runFork(runtime, effect, { scheduler });
               scheduler.flush();
             };
@@ -503,7 +501,7 @@ const makeTransactionProto = <Source extends IndexedDbVersion.AnyWithProps>({
   IndexedDbMigration.createObjectStore = Effect.fnUntraced(function* (
     table: string,
   ) {
-    const createTable = yield* Effect.fromNullable(tables.get(table)).pipe(
+    const createTable = yield* Effect.fromNullishOr(tables.get(table)).pipe(
       Effect.mapError(
         (cause) =>
           new IndexedDbDatabaseError({
@@ -530,7 +528,7 @@ const makeTransactionProto = <Source extends IndexedDbVersion.AnyWithProps>({
   IndexedDbMigration.deleteObjectStore = Effect.fnUntraced(function* (
     table: string,
   ) {
-    const createTable = yield* Effect.fromNullable(tables.get(table)).pipe(
+    const createTable = yield* Effect.fromNullishOr(tables.get(table)).pipe(
       Effect.mapError(
         (cause) =>
           new IndexedDbDatabaseError({
@@ -558,7 +556,7 @@ const makeTransactionProto = <Source extends IndexedDbVersion.AnyWithProps>({
     const store = transaction.objectStore(table);
     const sourceTable = tables.get(table)!;
 
-    const keyPath = yield* Effect.fromNullable(
+    const keyPath = yield* Effect.fromNullishOr(
       sourceTable.indexes[indexName],
     ).pipe(
       Effect.mapError(

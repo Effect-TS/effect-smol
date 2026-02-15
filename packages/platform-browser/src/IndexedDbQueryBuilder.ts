@@ -649,7 +649,7 @@ type IndexedDbValidNumberKeys<
   : never;
 
 const applyDelete = (query: IndexedDbQuery.Delete<any, never>) =>
-  Effect.async<any, IndexedDbQueryError>((resume) => {
+  Effect.callback<any, IndexedDbQueryError>((resume) => {
     const database = query.delete.from.database;
     const IDBKeyRange = query.delete.from.IDBKeyRange;
     const transaction = query.delete.from.transaction;
@@ -743,7 +743,9 @@ const applyDelete = (query: IndexedDbQuery.Delete<any, never>) =>
         resume(Effect.succeed(request.result));
       };
     } else {
-      resume(Effect.dieMessage("No key range provided for delete operation"));
+      resume(
+        Effect.die(new Error("No key range provided for delete operation")),
+      );
     }
   });
 
@@ -795,7 +797,7 @@ const getReadSchema = (from: IndexedDbQuery.From<any>) => {
   const keyPath = from.table.keyPath;
   const tableSchema = (from.table as IndexedDbTable.AnyWithProps).tableSchema;
   return keyPath === undefined
-    ? Schema.extend(tableSchema, Schema.Struct({ key: IndexedDb.IDBValidKey }))
+    ? tableSchema.pipe(Schema.fieldsAssign({ key: IndexedDb.IDBValidKey }))
     : tableSchema;
 };
 
@@ -804,7 +806,7 @@ const getSelect = Effect.fnUntraced(function* (
 ) {
   const keyPath = query.from.table.keyPath;
 
-  const data = yield* Effect.async<any, IndexedDbQueryError>((resume) => {
+  const data = yield* Effect.callback<any, IndexedDbQueryError>((resume) => {
     const { keyRange, store } = getReadonlyObjectStore(query);
 
     const cursorRequest = store.openCursor(keyRange);
@@ -846,7 +848,7 @@ const getSelect = Effect.fnUntraced(function* (
 
   const tableSchema = Schema.Array(getReadSchema(query.from));
 
-  return yield* Schema.decodeUnknown(tableSchema)(data).pipe(
+  return yield* Schema.decodeUnknownEffect(tableSchema)(data).pipe(
     Effect.mapError(
       (error) =>
         new IndexedDbQueryError({
@@ -862,7 +864,7 @@ const getFirst = Effect.fnUntraced(function* (
 ) {
   const keyPath = query.select.from.table.keyPath;
 
-  const data = yield* Effect.async<any, IndexedDbQueryError>((resume) => {
+  const data = yield* Effect.callback<any, IndexedDbQueryError>((resume) => {
     const { keyRange, store } = getReadonlyObjectStore(query.select);
 
     if (keyRange !== undefined) {
@@ -918,7 +920,7 @@ const getFirst = Effect.fnUntraced(function* (
     }
   });
 
-  return yield* Schema.decodeUnknown(getReadSchema(query.select.from))(
+  return yield* Schema.decodeUnknownEffect(getReadSchema(query.select.from))(
     data,
   ).pipe(
     Effect.mapError(
@@ -942,7 +944,7 @@ const applyModify = Effect.fnUntraced(function* ({
   const keyPath = query.from.table.keyPath;
   const schema = query.from.table.tableSchema;
 
-  const encodedValue = yield* Schema.encodeUnknown(
+  const encodedValue = yield* Schema.encodeUnknownEffect(
     autoIncrement && value[keyPath] === undefined
       ? schema.omit(keyPath)
       : schema,
@@ -956,7 +958,7 @@ const applyModify = Effect.fnUntraced(function* ({
     ),
   );
 
-  return yield* Effect.async<any, IndexedDbQueryError>((resume) => {
+  return yield* Effect.callback<any, IndexedDbQueryError>((resume) => {
     const database = query.from.database;
     const transaction = query.from.transaction;
     const objectStore = (
@@ -977,7 +979,7 @@ const applyModify = Effect.fnUntraced(function* ({
         keyPath === undefined ? value["key"] : undefined,
       );
     } else {
-      return resume(Effect.dieMessage("Invalid modify operation"));
+      return resume(Effect.die(new Error("Invalid modify operation")));
     }
 
     request.onerror = (event) => {
@@ -1010,7 +1012,7 @@ const applyModifyAll = Effect.fnUntraced(function* ({
 
   const encodedValues = yield* Effect.all(
     values.map((value) =>
-      Schema.encodeUnknown(
+      Schema.encodeUnknownEffect(
         autoIncrement && value[keyPath] === undefined
           ? schema.omit(keyPath)
           : schema,
@@ -1026,7 +1028,7 @@ const applyModifyAll = Effect.fnUntraced(function* ({
     ),
   );
 
-  return yield* Effect.async<
+  return yield* Effect.callback<
     Array<globalThis.IDBValidKey>,
     IndexedDbQueryError
   >((resume) => {
@@ -1084,7 +1086,7 @@ const applyModifyAll = Effect.fnUntraced(function* ({
         };
       }
     } else {
-      return resume(Effect.dieMessage("Invalid modify all operation"));
+      return resume(Effect.die(new Error("Invalid modify all operation")));
     }
 
     objectStore.transaction.onerror = () => {
@@ -1109,7 +1111,7 @@ const applyClear = (options: {
   readonly transaction: globalThis.IDBTransaction | undefined;
   readonly table: string;
 }) =>
-  Effect.async<void, IndexedDbQueryError>((resume) => {
+  Effect.callback<void, IndexedDbQueryError>((resume) => {
     const database = options.database;
     const transaction = options.transaction;
     const objectStore = (
@@ -1138,7 +1140,7 @@ const applyClearAll = (options: {
   readonly database: globalThis.IDBDatabase;
   readonly transaction: globalThis.IDBTransaction | undefined;
 }) =>
-  Effect.async<void, IndexedDbQueryError>((resume) => {
+  Effect.callback<void, IndexedDbQueryError>((resume) => {
     const database = options.database;
     const tables = database.objectStoreNames;
 
@@ -1178,7 +1180,7 @@ const applyClearAll = (options: {
   });
 
 const getCount = (query: IndexedDbQuery.Count<any, never>) =>
-  Effect.async<number, IndexedDbQueryError>((resume) => {
+  Effect.callback<number, IndexedDbQueryError>((resume) => {
     const { keyRange, store } = getReadonlyObjectStore(query);
 
     const request = store.count(keyRange);
