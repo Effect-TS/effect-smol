@@ -1,6 +1,6 @@
 import { NodeHttpServer, NodeSocket, NodeSocketServer } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
+import { Cause, Effect, Layer } from "effect"
 import { HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
 import { RpcClient, RpcSerialization, RpcServer } from "effect/unstable/rpc"
 import { SocketServer } from "effect/unstable/socket"
@@ -23,6 +23,10 @@ describe("RpcServer", () => {
         transformClient: HttpClient.mapRequest(HttpClientRequest.appendUrl("/rpc"))
       })
     )
+  )
+  const CustomDefectLayer = HttpNdjsonClient.pipe(
+    Layer.provideMerge(HttpNdjsonServer),
+    Layer.provide([NodeHttpServer.layerTest, RpcSerialization.layerNdjson])
   )
   e2eSuite(
     "e2e http ndjson",
@@ -153,5 +157,22 @@ describe("RpcServer", () => {
         const user = yield* client.GetUser({ id: "1" })
         assert.deepStrictEqual(user, new User({ id: "1", name: "Logged in user" }))
       }).pipe(Effect.provide(UsersClient.layerTest)))
+  })
+
+  describe("custom defect schema", () => {
+    it.effect("preserves full defect with custom schema", () =>
+      Effect.gen(function*() {
+        const client = yield* UsersClient
+        const cause = yield* client.ProduceDefectCustom().pipe(
+          Effect.sandbox,
+          Effect.flip
+        )
+        const defect = Cause.squash(cause)
+        assert.deepStrictEqual(defect, {
+          message: "detailed error",
+          stack: "Error: detailed error\n  at handler.ts:1",
+          code: 42
+        })
+      }).pipe(Effect.provide(CustomDefectLayer)))
   })
 })

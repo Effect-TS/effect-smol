@@ -253,7 +253,7 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
   ): Schema.declareConstructor<
     WithExit<R>,
     WithExit<R>,
-    readonly [Schema.Exit<Rpc.SuccessExitSchema<R>, Rpc.ErrorExitSchema<R>, Schema.Defect>]
+    readonly [Schema.Exit<Rpc.SuccessExitSchema<R>, Rpc.ErrorExitSchema<R>, Rpc.DefectSchema>]
   > {
     return this.schemaFrom(Rpc.exitSchema(rpc))
   }

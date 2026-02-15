@@ -42,7 +42,7 @@ import type {
   RequestEncoded,
   ResponseExitEncoded
 } from "./RpcMessage.ts"
-import { constEof, constPong, RequestId, ResponseDefectEncoded, ResponseExitDieEncoded } from "./RpcMessage.ts"
+import { constEof, constPong, RequestId, ResponseDefectEncoded } from "./RpcMessage.ts"
 import * as RpcSchema from "./RpcSchema.ts"
 import * as RpcSerialization from "./RpcSerialization.ts"
 import type { InitialMessage } from "./RpcWorker.ts"
@@ -478,6 +478,7 @@ export const make: <Rpcs extends Rpc.Any>(
           return handleEncode(
             client,
             response.requestId,
+            schemas.encodeDefect,
             schemas.collector,
             Effect.provideServices(schemas.encodeChunk(response.values), schemas.services),
             (values) => ({ _tag: "Chunk", requestId: String(response.requestId), values })
@@ -490,6 +491,7 @@ export const make: <Rpcs extends Rpc.Any>(
           return handleEncode(
             client,
             response.requestId,
+            schemas.encodeDefect,
             schemas.collector,
             Effect.provideServices(schemas.encodeExit(response.exit), schemas.services),
             (exit) => ({ _tag: "Exit", requestId: String(response.requestId), exit })
@@ -526,6 +528,7 @@ export const make: <Rpcs extends Rpc.Any>(
       u: ReadonlyArray<unknown>
     ) => Effect.Effect<NonEmptyReadonlyArray<unknown>, Schema.SchemaError>
     readonly encodeExit: (u: unknown) => Effect.Effect<ResponseExitEncoded["exit"], Schema.SchemaError>
+    readonly encodeDefect: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
     readonly services: ServiceMap.ServiceMap<never>
     readonly collector?: Transferable.Collector["Service"] | undefined
   }
@@ -544,6 +547,7 @@ export const make: <Rpcs extends Rpc.Any>(
           )
         ) as any,
         encodeExit: Schema.encodeUnknownEffect(Schema.toCodecJson(Rpc.exitSchema(rpc as any))) as any,
+        encodeDefect: Schema.encodeUnknownEffect(Schema.toCodecJson(rpc.defectSchema)) as any,
         services: entry.services
       }
       schemasCache.set(rpc, schemas)
@@ -560,6 +564,7 @@ export const make: <Rpcs extends Rpc.Any>(
   const handleEncode = <A, R>(
     client: Client,
     requestId: RequestId,
+    encodeDefect: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>,
     collector: Transferable.Collector["Service"] | undefined,
     effect: Effect.Effect<A, Schema.SchemaError, R>,
     onSuccess: (a: A) => FromServerEncoded
@@ -570,15 +575,31 @@ export const make: <Rpcs extends Rpc.Any>(
         client.schemas.delete(requestId)
         const defect = Cause.squash(Cause.map(cause, (e) => e.issue.toString()))
         return Effect.andThen(
-          sendRequestDefect(client, requestId, defect),
+          sendRequestDefect(client, requestId, encodeDefect, defect),
           server.write(client.id, { _tag: "Interrupt", requestId, interruptors: [] })
         )
       })
     )
 
-  const sendRequestDefect = (client: Client, requestId: RequestId, defect: unknown) =>
+  const sendRequestDefect = (
+    client: Client,
+    requestId: RequestId,
+    encodeDefect: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>,
+    defect: unknown
+  ) =>
     Effect.catchCause(
-      send(client.id, ResponseExitDieEncoded({ requestId, defect })),
+      Effect.flatMap(encodeDefect(defect), (encodedDefect) =>
+        send(client.id, {
+          _tag: "Exit",
+          requestId: String(requestId),
+          exit: {
+            _tag: "Failure",
+            cause: [{
+              _tag: "Die",
+              defect: encodedDefect
+            }]
+          }
+        })),
       (cause) => sendDefect(client, Cause.squash(cause))
     )
 
@@ -625,7 +646,7 @@ export const make: <Rpcs extends Rpc.Any>(
         return Effect.matchEffect(
           Effect.provideServices(schemas.decode(request.payload), schemas.services),
           {
-            onFailure: (error) => sendRequestDefect(client, requestId, error.issue.toString()),
+            onFailure: (error) => sendRequestDefect(client, requestId, schemas.encodeDefect, error.issue.toString()),
             onSuccess: (payload) => {
               client.schemas.set(
                 requestId,

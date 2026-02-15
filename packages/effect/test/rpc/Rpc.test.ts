@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Schema } from "effect"
+import { Cause, Effect, Exit, Schema } from "effect"
 import { Headers } from "effect/unstable/http"
 import { Rpc, RpcGroup } from "effect/unstable/rpc"
 import { RequestId } from "effect/unstable/rpc/RpcMessage"
@@ -25,4 +25,24 @@ describe("Rpc", () => {
       })
       assert.strictEqual(result, "two")
     }))
+
+  it("exitSchema uses custom defect schema", () => {
+    const rpc = Rpc.make("customDefect", {
+      success: Schema.String,
+      defect: Schema.Unknown
+    })
+
+    const schema = Rpc.exitSchema(rpc)
+    const encode = Schema.encodeSync(schema)
+    const decode = Schema.decodeSync(schema)
+
+    const error = { message: "boom", stack: "Error: boom\n  at foo.ts:1", code: 42 }
+    const exit = Exit.die(error)
+
+    const roundTripped = decode(encode(exit))
+
+    assert.isTrue(Exit.isFailure(roundTripped))
+    const defect = Cause.squash((roundTripped as Exit.Failure<any, any>).cause)
+    assert.deepStrictEqual(defect, error)
+  })
 })
