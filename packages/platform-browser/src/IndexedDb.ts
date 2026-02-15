@@ -1,12 +1,12 @@
 /**
  * @since 1.0.0
  */
-import * as Cause from "effect/Cause";
-import * as ConfigError from "effect/ConfigError";
-import * as Context from "effect/Context";
+import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
+import * as SchemaIssue from "effect/SchemaIssue";
+import * as ServiceMap from "effect/ServiceMap";
 
 /**
  * @since 1.0.0
@@ -36,8 +36,10 @@ export interface IndexedDb {
  * @since 1.0.0
  * @category tag
  */
-export const IndexedDb: Context.Tag<IndexedDb, IndexedDb> =
-  Context.GenericTag<IndexedDb>("@effect/platform-browser/IndexedDb");
+export const IndexedDb: ServiceMap.Service<IndexedDb, IndexedDb> =
+  ServiceMap.Service<IndexedDb, IndexedDb>(
+    "@effect/platform-browser/IndexedDb",
+  );
 
 /**
  * @since 1.0.0
@@ -52,7 +54,7 @@ export const make = (impl: Omit<IndexedDb, TypeId>): IndexedDb =>
  * @since 1.0.0
  * @category constructors
  */
-export const layerWindow: Layer.Layer<IndexedDb, ConfigError.ConfigError> =
+export const layerWindow: Layer.Layer<IndexedDb, Config.ConfigError> =
   Layer.effect(
     IndexedDb,
     Effect.suspend(() => {
@@ -65,10 +67,12 @@ export const layerWindow: Layer.Layer<IndexedDb, ConfigError.ConfigError> =
         );
       } else {
         return Effect.fail(
-          ConfigError.SourceUnavailable(
-            ["window"],
-            "window.indexedDB is not available",
-            Cause.fail(new Error("window.indexedDB is not available")),
+          new Config.ConfigError(
+            new Schema.SchemaError(
+              new SchemaIssue.MissingKey({
+                message: "window.indexedDB is not available",
+              }),
+            ),
           ),
         );
       }
@@ -81,22 +85,22 @@ export const layerWindow: Layer.Layer<IndexedDb, ConfigError.ConfigError> =
  * @since 1.0.0
  * @category schemas
  */
-export const AutoIncrement = Schema.Number.annotations({
+export const AutoIncrement = Schema.Number.annotate({
   identifier: "AutoIncrement",
   title: "autoIncrement",
   description: "Defines a valid autoIncrement key path for the IndexedDb table",
 });
 
 /** @internal */
-const IDBFlatKey = Schema.Union(
+const IDBFlatKey = Schema.Union([
   Schema.String,
   Schema.Number,
-  Schema.DateFromSelf,
+  Schema.Date,
   Schema.declare(
     (input): input is BufferSource =>
       input instanceof ArrayBuffer || ArrayBuffer.isView(input),
   ),
-);
+]);
 
 /**
  * Schema for `IDBValidKey` (`number | string | Date | BufferSource | IDBValidKey[]`).
@@ -104,4 +108,4 @@ const IDBFlatKey = Schema.Union(
  * @since 1.0.0
  * @category schemas
  */
-export const IDBValidKey = Schema.Union(IDBFlatKey, Schema.Array(IDBFlatKey));
+export const IDBValidKey = Schema.Union([IDBFlatKey, Schema.Array(IDBFlatKey)]);

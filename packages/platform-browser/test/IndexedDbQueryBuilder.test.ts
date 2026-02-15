@@ -5,7 +5,16 @@ import {
   IndexedDbVersion,
 } from "@effect/platform-browser";
 import { afterEach, assert, describe, it } from "@effect/vitest";
-import { Context, DateTime, Effect, Layer, ParseResult, Schema } from "effect";
+import {
+  DateTime,
+  Effect,
+  Layer,
+  Option,
+  Schema,
+  SchemaGetter,
+  SchemaIssue,
+  ServiceMap,
+} from "effect";
 import { IDBKeyRange, indexedDB } from "fake-indexeddb";
 
 const databaseName = "db";
@@ -49,23 +58,29 @@ class ProductSchema extends Schema.Class<ProductSchema>("ProductSchema")({
   price: Schema.Number,
 }) {}
 
-class VerifyContext extends Context.Tag("VerifyContext")<
+class VerifyContext extends ServiceMap.Service<
   VerifyContext,
   { readonly maxLength: number }
->() {}
+>()("VerifyContext") {}
 
-const VerifyId = Schema.transformOrFail(Schema.String, Schema.String, {
-  strict: true,
-  encode: (to, _, ast) =>
-    Effect.gen(function* () {
-      const { maxLength } = yield* VerifyContext;
-      if (to.length > maxLength) {
-        return yield* Effect.fail("Max length exceeded");
-      }
-      return to;
-    }).pipe(Effect.mapError(() => new ParseResult.Type(ast, to))),
-  decode: ParseResult.succeed,
-});
+const VerifyId = Schema.String.pipe(
+  Schema.decodeTo(Schema.String, {
+    encode: SchemaGetter.transformOrFail((s) =>
+      Effect.gen(function* () {
+        const { maxLength } = yield* VerifyContext;
+        if (s.length > maxLength) {
+          return yield* Effect.fail(
+            new SchemaIssue.InvalidValue(Option.some(s), {
+              message: "Max length exceeded",
+            }),
+          );
+        }
+        return s;
+      }),
+    ),
+    decode: SchemaGetter.String(),
+  }),
+);
 
 const Table2 = IndexedDbTable.make({
   name: "user",
