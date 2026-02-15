@@ -5,6 +5,7 @@ import * as Effect from "./Effect.ts"
 import { dual, identity } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Ref from "./Ref.ts"
 import * as Stream from "./Stream.ts"
@@ -16,7 +17,7 @@ const TypeId = "~effect/SubscriptionRef"
  * @since 2.0.0
  * @category models
  */
-export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A> {
+export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A>, Pipeable {
   readonly backing: Ref.Ref<A>
   readonly semaphore: Effect.Semaphore
   readonly pubsub: PubSub.PubSub<A>

@@ -33,6 +33,7 @@ import { dual, identity } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as MutableRef from "./MutableRef.ts"
 import type * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import type { Invariant } from "./Types.ts"
 
 const TypeId = "~effect/Ref"
@@ -68,7 +69,7 @@ const TypeId = "~effect/Ref"
  * @since 2.0.0
  * @category models
  */
-export interface Ref<in out A> extends Ref.Variance<A> {
+export interface Ref<in out A> extends Ref.Variance<A>, Pipeable {
   readonly ref: MutableRef.MutableRef<A>
 }
 

@@ -10,6 +10,8 @@
  */
 import * as Effect from "./Effect.ts"
 import { dual } from "./Function.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import type { NoInfer } from "./Types.ts"
 
 const TypeId = "~effect/transactions/TxRef"
@@ -43,7 +45,7 @@ const TypeId = "~effect/transactions/TxRef"
  * })
  * ```
  */
-export interface TxRef<in out A> {
+export interface TxRef<in out A> extends Pipeable {
   readonly [TypeId]: typeof TypeId
 
   version: number
@@ -99,6 +101,9 @@ export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
 export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
   [TypeId]: TypeId,
   pending: new Map(),
+  pipe() {
+    return pipeArguments(this, arguments)
+  },
   version: 0,
   value: initial
 })

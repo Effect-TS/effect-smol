@@ -3,6 +3,7 @@ import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
 import { identity } from "../Function.ts"
+import { pipeArguments } from "../Pipeable.ts"
 import type * as RcRef from "../RcRef.ts"
 import * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
@@ -40,6 +41,10 @@ const variance: RcRef.RcRef.Variance<any, any> = {
 
 class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
   readonly [TypeId]: RcRef.RcRef.Variance<A, E> = variance
+
+  pipe() {
+    return pipeArguments(this, arguments)
+  }
 
   state: State<A> = stateEmpty
   readonly semaphore = Effect.makeSemaphoreUnsafe(1)
