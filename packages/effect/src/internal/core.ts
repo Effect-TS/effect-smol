@@ -510,9 +510,6 @@ export const makeExit = <
   return function(value: unknown) {
     const self = Object.create(Proto)
     self[args] = value
-    self[contA] = undefined
-    self[contE] = undefined
-    self[contAll] = undefined
     return self
   } as Fn
 }

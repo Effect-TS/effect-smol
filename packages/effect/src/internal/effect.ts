@@ -663,7 +663,10 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
       const op = this._stack.pop()
       if (!op) return undefined
       const cont = op[contAll] && op[contAll](this)
-      if (cont) return { [symbol]: cont } as any
+      if (cont) {
+        ;(cont as any)[symbol] = cont
+        return cont as any
+      }
       if (op[symbol]) return op as any
     }
   }
