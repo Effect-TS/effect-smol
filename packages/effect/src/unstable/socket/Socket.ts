@@ -213,11 +213,11 @@ export type SocketErrorReason =
  * @since 4.0.0
  * @category errors
  */
-// @effect-diagnostics-next-line overriddenSchemaConstructor:off
 export class SocketError extends Schema.ErrorClass<SocketError>(SocketErrorTypeId)({
   _tag: Schema.tag("SocketError"),
   reason: SocketErrorReason
 }) {
+  // @effect-diagnostics-next-line overriddenSchemaConstructor:off
   constructor(props: {
     readonly reason: SocketReadError | SocketWriteError | SocketOpenError | SocketCloseError
   }) {
