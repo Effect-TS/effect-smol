@@ -4,7 +4,7 @@
 import type * as Exit from "./Exit.ts"
 import type { Fiber } from "./Fiber.ts"
 import { constFalse, type LazyArg } from "./Function.ts"
-import type { evaluate } from "./internal/core.ts"
+import type * as core from "./internal/core.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 
 /**
@@ -57,6 +57,8 @@ export interface Tracer {
     | (<X>(primitive: EffectPrimitive<X>, fiber: Fiber<any, any>) => X)
     | undefined
 }
+
+const evaluate = "~effect/Effect/evaluate" satisfies core.evaluate
 
 /**
  * @since 4.0.0
