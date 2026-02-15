@@ -112,7 +112,7 @@ export const make = (
         values = false
       ) =>
         Effect.withFiber<Array<any>, SqlError>((fiber) => {
-          if (fiber.getRefDefined(AsyncQuery)) {
+          if (fiber.getRef(AsyncQuery)) {
             return Effect.map(
               Effect.tryPromise({
                 try: () => db.execute(sql, params as Array<any>),

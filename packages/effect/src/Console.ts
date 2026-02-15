@@ -152,7 +152,7 @@ export const Console: ServiceMap.Reference<Console> = effect.ConsoleRef
  * @category constructors
  */
 export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  core.withFiber((fiber) => f(fiber.getRefDefined(Console)))
+  core.withFiber((fiber) => f(fiber.getRef(Console)))
 
 /**
  * Writes an assertion message to the console if the condition is false.

@@ -56,7 +56,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
         (maxBodySize) =>
           NodeStream.toString(() => this.source, {
             onError: this.onError,
-            maxBytes: maxBodySize ?? undefined
+            maxBytes: maxBodySize
           })
       )
     ))
@@ -98,7 +98,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
     return Effect.withFiber((fiber) =>
       NodeStream.toArrayBuffer(() => this.source, {
         onError: this.onError,
-        maxBytes: fiber.getRefDefined(IncomingMessage.MaxBodySize) ?? undefined
+        maxBytes: fiber.getRef(IncomingMessage.MaxBodySize)
       })
     )
   }

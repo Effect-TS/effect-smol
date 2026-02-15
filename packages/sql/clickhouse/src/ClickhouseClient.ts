@@ -126,10 +126,10 @@ export const make = (
           paramsObj[`p${i + 1}`] = params[i]
         }
         return Effect.withFiber<Clickhouse.ResultSet<"JSON"> | Clickhouse.CommandResult, SqlError>((fiber) => {
-          const method = fiber.getRefDefined(ClientMethod)
+          const method = fiber.getRef(ClientMethod)
           return Effect.callback<Clickhouse.ResultSet<"JSON"> | Clickhouse.CommandResult, SqlError>((resume) => {
             const queryId = fiber.getRef(QueryId) ?? Crypto.randomUUID()
-            const settings = fiber.getRefDefined(ClickhouseSettings)
+            const settings = fiber.getRef(ClickhouseSettings)
             const controller = new AbortController()
             if (method === "command") {
               this.conn.command({
@@ -262,7 +262,7 @@ export const make = (
           return Effect.callback<Clickhouse.InsertResult, SqlError>((resume) => {
             const fiber = Fiber.getCurrent()!
             const queryId = fiber.getRef(QueryId) ?? Crypto.randomUUID()
-            const settings = fiber.getRefDefined(ClickhouseSettings)
+            const settings = fiber.getRef(ClickhouseSettings)
             const controller = new AbortController()
             client.insert({
               format: "JSONEachRow",

@@ -110,15 +110,13 @@ const makeLogRecord = (options: Logger.Logger.Options<unknown>, opts: {
   const now = options.date.getTime()
   const nanosString = `${now}000000`
 
-  const attributes = OtlpResource.entriesToAttributes(
-    Object.entries(options.fiber.getRefDefined(CurrentLogAnnotations))
-  )
+  const attributes = OtlpResource.entriesToAttributes(Object.entries(options.fiber.getRef(CurrentLogAnnotations)))
   attributes.push({
     key: "fiberId",
     value: { intValue: options.fiber.id }
   })
   if (!opts.excludeLogSpans) {
-    for (const [label, startTime] of options.fiber.getRefDefined(CurrentLogSpans)) {
+    for (const [label, startTime] of options.fiber.getRef(CurrentLogSpans)) {
       attributes.push({
         key: `logSpan.${label}`,
         value: { stringValue: `${now - startTime}ms` }

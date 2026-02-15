@@ -627,11 +627,3 @@ export type ExtractReason<E, K extends string> = E extends { readonly reason: in
 export type ExcludeReason<E, K extends string> = E extends { readonly reason: infer R }
   ? Exclude<R, { readonly _tag: K }>
   : never
-
-/**
- * Accepts all values except `undefined`
- *
- * @since 4.0.0
- * @category types
- */
-export type NotUndefined<T> = T extends undefined ? never : T

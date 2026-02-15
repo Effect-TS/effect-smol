@@ -540,9 +540,9 @@ function runCallbackSync<R, A, E, ER = never>(
     onExit(result)
     return undefined
   }
-  fiber.addObserver(onExit)
+  const remove = fiber.addObserver(onExit)
   function cancel() {
-    fiber.removeObserver(onExit)
+    remove()
     if (!uninterruptible) {
       fiber.interruptUnsafe()
     }

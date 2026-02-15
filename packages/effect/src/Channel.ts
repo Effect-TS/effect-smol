@@ -6354,8 +6354,8 @@ const withSpanImpl = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
     (span) => provideService(self, ParentSpan, span),
     (span, exit) =>
       Effect.withFiber((fiber) => {
-        const clock = fiber.getRefDefined(ClockRef)
-        const timingEnabled = fiber.getRefDefined(TracerTimingEnabled)
+        const clock = fiber.getRef(ClockRef)
+        const timingEnabled = fiber.getRef(TracerTimingEnabled)
         return endSpan(span, exit, clock, timingEnabled)
       })
   )

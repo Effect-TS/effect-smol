@@ -393,7 +393,7 @@ export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = La
  */
 export const testClockWith = <A, E, R>(
   f: (testClock: TestClock) => Effect.Effect<A, E, R>
-): Effect.Effect<A, E, R> => Effect.withFiber((fiber) => f(fiber.getRefDefined(Clock.Clock) as TestClock))
+): Effect.Effect<A, E, R> => Effect.withFiber((fiber) => f(fiber.getRef(Clock.Clock) as TestClock))
 
 /**
  * Accesses a `TestClock` instance in the context and increments the time

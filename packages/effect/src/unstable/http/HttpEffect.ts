@@ -5,13 +5,13 @@ import type { Cause } from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
-import { constNull, dual } from "../../Function.ts"
+import { dual } from "../../Function.ts"
 import { effectIsExit } from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
-import * as NullOr from "../../NullOr.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
+import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as HttpBody from "./HttpBody.ts"
 import { type HttpMiddleware, tracer } from "./HttpMiddleware.ts"
 import { causeResponse, clientAbortFiberId, HttpServerError, InternalError } from "./HttpServerError.ts"
@@ -35,8 +35,8 @@ export const toHandled = <E, R, EH, RH>(
   const responded = Effect.flatMap(self, (response) => {
     const fiber = Fiber.getCurrent()!
     const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
-    const handler = fiber.getRefDefined(PreResponseHandlers)
-    if (handler === null) {
+    const handler = fiber.getRef(PreResponseHandlers)
+    if (handler === undefined) {
       ;(request as any)[handledSymbol] = true
       const eff = handleResponse(request, response)
       if (effectIsExit(eff)) {
@@ -60,9 +60,9 @@ export const toHandled = <E, R, EH, RH>(
     Effect.flatMapEager(causeResponse(cause), ([response, cause]) => {
       const fiber = Fiber.getCurrent()!
       const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
-      const handler = fiber.getRefDefined(PreResponseHandlers)
+      const handler = fiber.getRef(PreResponseHandlers)
       const cont = cause.reasons.length === 0 ? Effect.succeed(response) : Effect.failCause(cause)
-      if (handler === null) {
+      if (handler === undefined) {
         ;(request as any)[handledSymbol] = true
         return Effect.flatMapEager(
           handleResponse(request, response),
@@ -170,9 +170,9 @@ export type PreResponseHandler = (
  * @since 4.0.0
  * @category Pre-response handlers
  */
-export const PreResponseHandlers = ServiceMap.Reference<PreResponseHandler | null>(
+export const PreResponseHandlers = ServiceMap.Reference<PreResponseHandler | undefined>(
   "effect/http/HttpEffect/PreResponseHandlers",
-  { defaultValue: constNull }
+  { defaultValue: () => undefined }
 )
 
 /**
@@ -181,9 +181,9 @@ export const PreResponseHandlers = ServiceMap.Reference<PreResponseHandler | nul
  */
 export const appendPreResponseHandler = (handler: PreResponseHandler): Effect.Effect<void> =>
   Effect.withFiber((fiber) => {
-    const next = NullOr.match(fiber.getRefDefined(PreResponseHandlers), {
-      onNull: () => handler,
-      onNotNull: (prev) => (request, response) =>
+    const next = UndefinedOr.match(fiber.getRef(PreResponseHandlers), {
+      onUndefined: () => handler,
+      onDefined: (prev) => (request, response) =>
         Effect.flatMap(prev(request, response), (response) => handler(request, response))
     })
     fiber.setServices(ServiceMap.add(fiber.services, PreResponseHandlers, next))
@@ -204,9 +204,9 @@ export const withPreResponseHandler: {
   Effect.updateService(
     self,
     PreResponseHandlers,
-    NullOr.match({
-      onNull: () => handler,
-      onNotNull: (prev) => (request, response) =>
+    UndefinedOr.match({
+      onUndefined: () => handler,
+      onDefined: (prev) => (request, response) =>
         Effect.flatMap(prev(request, response), (response) => handler(request, response))
     })
   ))

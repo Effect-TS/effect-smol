@@ -181,7 +181,7 @@ export const get: {
             Deferred.doneUnsafe(deferred, exit)
             const ttl = self.timeToLive(exit, key)
             if (Duration.isFinite(ttl)) {
-              entry.expiresAt = fiber.getRefDefined(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
+              entry.expiresAt = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
             }
             return effect.void
           })
@@ -194,7 +194,7 @@ const hasExpired = <A, E>(entry: Entry<A, E>, fiber: Fiber.Fiber<unknown, unknow
   if (entry.expiresAt === undefined) {
     return false
   }
-  return fiber.getRefDefined(effect.ClockRef).currentTimeMillisUnsafe() >= entry.expiresAt
+  return fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() >= entry.expiresAt
 }
 
 const checkCapacity = <K, A, E>(
@@ -319,7 +319,7 @@ export const set: {
           scope: Scope.makeUnsafe(),
           deferred,
           expiresAt: Duration.isFinite(ttl)
-            ? fiber.getRefDefined(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
+            ? fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
             : undefined
         })
         const check = checkCapacity(fiber, state.map, self.capacity)
@@ -448,7 +448,7 @@ export const refresh: {
       }
       const ttl = self.timeToLive(exit, key)
       entry.expiresAt = Duration.isFinite(ttl)
-        ? fiber.getRefDefined(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
+        ? fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
         : undefined
       if (!newEntry) {
         const oentry = MutableHashMap.get(self.state.map, key)
@@ -510,7 +510,7 @@ export const keys = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effe
   core.withFiber((fiber) => {
     if (self.state._tag === "Closed") return effect.succeed([])
     const state = self.state
-    const now = fiber.getRefDefined(effect.ClockRef).currentTimeMillisUnsafe()
+    const now = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe()
     const fibers = Arr.empty<Fiber.Fiber<unknown, unknown>>()
     const keys = Arr.filterMap(state.map, ([key, entry]) => {
       if (entry.expiresAt === undefined || entry.expiresAt > now) {
@@ -545,7 +545,7 @@ export const entries = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.E
   core.withFiber((fiber) => {
     if (self.state._tag === "Closed") return effect.succeed([])
     const state = self.state
-    const now = fiber.getRefDefined(effect.ClockRef).currentTimeMillisUnsafe()
+    const now = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe()
     const fibers = Arr.empty<Fiber.Fiber<unknown, unknown>>()
     const arr = Arr.filterMap(state.map, ([key, entry]) => {
       if (entry.expiresAt === undefined || entry.expiresAt > now) {

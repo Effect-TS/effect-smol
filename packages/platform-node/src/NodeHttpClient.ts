@@ -102,7 +102,7 @@ export const makeUndici = Effect.gen(function*() {
         Effect.tryPromise({
           try: () =>
             dispatcher.request({
-              ...fiber.getRefDefined(UndiciOptions),
+              ...fiber.getRef(UndiciOptions),
               signal,
               method: request.method,
               headers: request.headers,

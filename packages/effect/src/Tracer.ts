@@ -4,12 +4,44 @@
 import type * as Exit from "./Exit.ts"
 import type { Fiber } from "./Fiber.ts"
 import { constFalse, type LazyArg } from "./Function.ts"
-import type * as core from "./internal/core.ts"
+import type { evaluate } from "./internal/core.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * @since 2.0.0
  * @category models
+ * @example
+ * ```ts
+ * import type { ServiceMap } from "effect"
+ * import { Tracer } from "effect"
+ *
+ * // Create a custom tracer implementation
+ * const customTracer: Tracer.Tracer = {
+ *   span: (
+ *     name: string,
+ *     parent: Tracer.AnySpan | undefined,
+ *     annotations: ServiceMap.ServiceMap<never>,
+ *     links: ReadonlyArray<Tracer.SpanLink>,
+ *     startTime: bigint,
+ *     kind: Tracer.SpanKind,
+ *     _options: Tracer.SpanOptions | undefined
+ *   ) => {
+ *     console.log(`Creating span: ${name}`)
+ *     return new Tracer.NativeSpan(
+ *       name,
+ *       parent,
+ *       annotations,
+ *       links.slice(),
+ *       startTime,
+ *       kind
+ *     )
+ *   },
+ *   context: <X>(primitive: Tracer.EffectPrimitive<X>, fiber: any) => {
+ *     console.log("Running with tracing context")
+ *     return primitive["~effect/Effect/evaluate"](fiber)
+ *   }
+ * }
+ * ```
  */
 export interface Tracer {
   readonly span: (
@@ -25,8 +57,6 @@ export interface Tracer {
     | (<X>(primitive: EffectPrimitive<X>, fiber: Fiber<any, any>) => X)
     | undefined
 }
-
-const evaluate = "~effect/Effect/evaluate" satisfies core.evaluate
 
 /**
  * @since 4.0.0
@@ -297,6 +327,10 @@ export interface SpanLink {
  *       startTime,
  *       kind
  *     )
+ *   },
+ *   context: (primitive, fiber) => {
+ *     console.log("Executing with tracer context")
+ *     return primitive["~effect/Effect/evaluate"](fiber)
  *   }
  * })
  * ```

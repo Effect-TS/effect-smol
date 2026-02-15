@@ -84,7 +84,7 @@ import type { Scheduler } from "./Scheduler.ts"
 import type { Scope } from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 import type { AnySpan } from "./Tracer.ts"
-import type { Covariant, NotUndefined } from "./Types.ts"
+import type { Covariant } from "./Types.ts"
 
 const TypeId = `~effect/Fiber/${version}`
 
@@ -119,15 +119,13 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly id: number
   readonly currentOpCount: number
   readonly getRef: <A>(ref: ServiceMap.Reference<A>) => A
-  readonly getRefDefined: <A>(ref: ServiceMap.Reference<NotUndefined<A>>) => A
   readonly services: ServiceMap.ServiceMap<never>
   setServices(services: ServiceMap.ServiceMap<never>): void
   readonly currentScheduler: Scheduler
   readonly currentSpan?: AnySpan | undefined
   readonly currentStackFrame?: StackFrame | undefined
   readonly maxOpsBeforeYield: number
-  readonly addObserver: (cb: (exit: Exit<A, E>) => void) => void
-  readonly removeObserver: (cb: (exit: Exit<A, E>) => void) => void
+  readonly addObserver: (cb: (exit: Exit<A, E>) => void) => () => void
   readonly interruptUnsafe: (
     fiberId?: number | undefined,
     annotations?: ServiceMap.ServiceMap<never> | undefined
