@@ -1428,18 +1428,18 @@ export const initialValue: {
  */
 export const transform: {
   <R extends Atom<any>, B>(
-    f: (get: Context) => B
+    f: (get: Context, atom: R) => B
   ): (self: R) => [R] extends [Writable<infer _, infer RW>] ? Writable<B, RW> : Atom<B>
   <R extends Atom<any>, B>(
     self: R,
-    f: (get: Context) => B
+    f: (get: Context, atom: R) => B
   ): [R] extends [Writable<infer _, infer RW>] ? Writable<B, RW> : Atom<B>
 } = dual(
   2,
-  (<A, B>(self: Atom<A>, f: (get: Context) => B): Atom<B> =>
+  (<A, B>(self: Atom<A>, f: (get: Context, atom: Atom<A>) => B): Atom<B> =>
     isWritable(self)
       ? writable(
-        f,
+        (get) => f(get, self),
         function(ctx, value) {
           ctx.set(self, value)
         },
@@ -1448,7 +1448,7 @@ export const transform: {
         }
       )
       : readable(
-        f,
+        (get) => f(get, self),
         self.refresh ?? function(refresh) {
           refresh(self)
         }
@@ -1524,6 +1524,28 @@ export const debounce: {
         timeout = setTimeout(update, millis) as any
       })
       return value
+    })
+  }
+)
+
+/**
+ * Ensures that the value of the atom is refreshed at most once per specified
+ * duration.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withRefresh: {
+  (duration: Duration.DurationInput): <A extends Atom<any>>(self: A) => WithoutSerializable<A>
+  <A extends Atom<any>>(self: A, duration: Duration.DurationInput): WithoutSerializable<A>
+} = dual(
+  2,
+  <A>(self: Atom<A>, duration: Duration.DurationInput): Atom<A> => {
+    const millis = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
+    return transform(self, function(get) {
+      const handle = setTimeout(() => get.refresh(self), millis) as any
+      get.addFinalizer(() => clearTimeout(handle))
+      return get(self)
     })
   }
 )
