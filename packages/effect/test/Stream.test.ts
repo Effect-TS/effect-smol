@@ -307,7 +307,7 @@ describe("Stream", () => {
         assertExitFailure(exit, Cause.die(defect))
       }))
 
-    it.effect("catchFilter with refinement", () =>
+    it.effect("catchIf with refinement", () =>
       Effect.gen(function*() {
         interface ErrorA {
           readonly _tag: "ErrorA"
@@ -318,14 +318,14 @@ describe("Stream", () => {
         const stream: Stream.Stream<never, ErrorA | ErrorB> = Stream.fail({ _tag: "ErrorB" as const })
         const result = yield* pipe(
           stream,
-          Stream.catchFilter((error): error is ErrorA => error._tag === "ErrorA", () => Stream.succeed("ok")),
+          Stream.catchIf((error): error is ErrorA => error._tag === "ErrorA", () => Stream.succeed("ok")),
           Stream.runCollect,
           Effect.exit
         )
         assert.deepStrictEqual(result, Exit.fail({ _tag: "ErrorB" as const }))
       }))
 
-    it.effect("catchFilter with refinement orElse", () =>
+    it.effect("catchIf with refinement orElse", () =>
       Effect.gen(function*() {
         interface ErrorA {
           readonly _tag: "ErrorA"
@@ -334,7 +334,7 @@ describe("Stream", () => {
           readonly _tag: "ErrorB"
         }
         const result = yield* (Stream.fail({ _tag: "ErrorB" as const }) as Stream.Stream<never, ErrorA | ErrorB>).pipe(
-          Stream.catchFilter(
+          Stream.catchIf(
             (error): error is ErrorA => error._tag === "ErrorA",
             () => Stream.succeed("caught"),
             () => Stream.succeed("fallback")
@@ -344,11 +344,11 @@ describe("Stream", () => {
         assert.deepStrictEqual(result, ["fallback"])
       }))
 
-    it.effect("catchFilter with predicate", () =>
+    it.effect("catchIf with predicate", () =>
       Effect.gen(function*() {
         const result = yield* pipe(
           Stream.fail("boom" as string | number),
-          Stream.catchFilter(
+          Stream.catchIf(
             (e) => typeof e === "string",
             (e) => Stream.succeed(`caught: ${e}`)
           ),
@@ -357,11 +357,11 @@ describe("Stream", () => {
         assert.deepStrictEqual(result, ["caught: boom"])
       }))
 
-    it.effect("catchFilter predicate no match", () =>
+    it.effect("catchIf predicate no match", () =>
       Effect.gen(function*() {
         const result = yield* pipe(
           Stream.fail(42 as string | number),
-          Stream.catchFilter(
+          Stream.catchIf(
             (e) => typeof e === "string",
             () => Stream.succeed("caught")
           ),

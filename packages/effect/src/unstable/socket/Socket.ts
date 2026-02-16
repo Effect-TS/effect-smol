@@ -280,7 +280,7 @@ export const toChannelMap = <IE, A>(
         return writeChunk
       }),
       Effect.forever({ autoYield: false }),
-      Effect.catchCauseFilter(
+      Effect.catchCauseIf(
         Pull.filterNoDone as any,
         (cause: any) => Queue.failCause(queue, cause)
       ),
@@ -536,7 +536,7 @@ export const fromWebSocket = <RO>(
         latch.openUnsafe()
         if (opts?.onOpen) yield* opts.onOpen
         return yield* FiberSet.join(fiberSet).pipe(
-          Effect.catchFilter(
+          Effect.catchIf(
             SocketCloseError.filterClean((_) => !closeCodeIsError(_)) as any,
             (_: any) => Effect.void
           )
@@ -684,7 +684,7 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
         if (opts?.onOpen) yield* opts.onOpen
 
         return yield* FiberSet.join(fiberSet).pipe(
-          Effect.catchFilter(
+          Effect.catchIf(
             SocketCloseError.filterClean((_) => !closeCodeIsError(_)) as any,
             (_: any) => Effect.void
           )

@@ -1514,7 +1514,7 @@ describe("Effect", () => {
         assert.deepStrictEqual(tapped, [])
       }))
 
-    it.effect("catchFilter with refinement", () =>
+    it.effect("catchIf with refinement", () =>
       Effect.gen(function*() {
         interface ErrorA {
           readonly _tag: "ErrorA"
@@ -1525,13 +1525,13 @@ describe("Effect", () => {
         const effect: Effect.Effect<never, ErrorA | ErrorB> = Effect.fail({ _tag: "ErrorB" as const })
         const result = yield* pipe(
           effect,
-          Effect.catchFilter((e): e is ErrorA => e._tag === "ErrorA", Effect.succeed),
+          Effect.catchIf((e): e is ErrorA => e._tag === "ErrorA", Effect.succeed),
           Effect.exit
         )
         assert.deepStrictEqual(result, Exit.fail({ _tag: "ErrorB" as const }))
       }))
 
-    it.effect("catchFilter with refinement orElse", () =>
+    it.effect("catchIf with refinement orElse", () =>
       Effect.gen(function*() {
         interface ErrorA {
           readonly _tag: "ErrorA"
@@ -1542,7 +1542,7 @@ describe("Effect", () => {
         const effect: Effect.Effect<never, ErrorA | ErrorB> = Effect.fail({ _tag: "ErrorB" as const })
         const result = yield* pipe(
           effect,
-          Effect.catchFilter((e): e is ErrorA => e._tag === "ErrorA", Effect.succeed, (_) => {
+          Effect.catchIf((e): e is ErrorA => e._tag === "ErrorA", Effect.succeed, (_) => {
             return Effect.succeed(1)
           })
         )
@@ -1604,32 +1604,32 @@ describe("Effect", () => {
     })
   })
 
-  describe("catchCauseFilter", () => {
+  describe("catchCauseIf", () => {
     it.effect("first argument as success", () =>
       Effect.gen(function*() {
-        const result = yield* Effect.catchCauseFilter(Effect.succeed(1), (_) => Filter.fail(_), () => Effect.fail("e2"))
+        const result = yield* Effect.catchCauseIf(Effect.succeed(1), (_) => Filter.fail(_), () => Effect.fail("e2"))
         assert.deepStrictEqual(result, 1)
       }))
     it.effect("first argument as failure and predicate return false", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchCauseFilter(Effect.fail("e1" as const), (_) => Filter.fail(_), () => Effect.fail("e2" as const))
+          Effect.catchCauseIf(Effect.fail("e1" as const), (_) => Filter.fail(_), () => Effect.fail("e2" as const))
         )
         assert.deepStrictEqual(result, "e1")
       }))
     it.effect("first argument as failure and predicate return true", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchCauseFilter(Effect.fail("e1" as const), (e) => Filter.pass(e), () => Effect.fail("e2" as const))
+          Effect.catchCauseIf(Effect.fail("e1" as const), (e) => Filter.pass(e), () => Effect.fail("e2" as const))
         )
         assert.deepStrictEqual(result, "e2")
       }))
   })
 
-  describe("catchFilter with predicate", () => {
+  describe("catchIf with predicate", () => {
     it.effect("predicate match recovers", () =>
       Effect.gen(function*() {
-        const result = yield* Effect.catchFilter(
+        const result = yield* Effect.catchIf(
           Effect.fail("e1"),
           (e) => typeof e === "string",
           (e) => Effect.succeed(`recovered: ${e}`)
@@ -1639,7 +1639,7 @@ describe("Effect", () => {
     it.effect("predicate no match preserves error", () =>
       Effect.gen(function*() {
         const result = yield* Effect.exit(
-          Effect.catchFilter(
+          Effect.catchIf(
             Effect.fail("e1" as const),
             (_e) => false,
             () => Effect.succeed("recovered")
@@ -1649,10 +1649,10 @@ describe("Effect", () => {
       }))
   })
 
-  describe("catchCauseFilter with predicate", () => {
+  describe("catchCauseIf with predicate", () => {
     it.effect("predicate match recovers", () =>
       Effect.gen(function*() {
-        const result = yield* Effect.catchCauseFilter(
+        const result = yield* Effect.catchCauseIf(
           Effect.fail("e1"),
           Cause.hasFails,
           (cause) => Effect.succeed(`recovered: ${Cause.squash(cause)}`)
@@ -1662,7 +1662,7 @@ describe("Effect", () => {
     it.effect("predicate no match preserves error", () =>
       Effect.gen(function*() {
         const result = yield* Effect.exit(
-          Effect.catchCauseFilter(
+          Effect.catchCauseIf(
             Effect.fail("e1" as const),
             constFalse,
             () => Effect.succeed("recovered")
@@ -1672,12 +1672,12 @@ describe("Effect", () => {
       }))
   })
 
-  describe("tapCauseFilter", () => {
+  describe("tapCauseIf", () => {
     it.effect("filter match taps", () =>
       Effect.gen(function*() {
         const tapped: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.tapCauseFilter(
+          Effect.tapCauseIf(
             Effect.fail("e1"),
             (cause) => Filter.pass(cause),
             (cause) => Effect.sync(() => tapped.push(Cause.squash(cause) as string))
@@ -1690,7 +1690,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const tapped: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.tapCauseFilter(
+          Effect.tapCauseIf(
             Effect.fail("e1"),
             (cause) => Filter.fail(cause),
             () => Effect.sync(() => tapped.push("tapped"))
@@ -1703,7 +1703,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const tapped: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.tapCauseFilter(
+          Effect.tapCauseIf(
             Effect.fail("e1"),
             Cause.hasFails,
             (cause) => Effect.sync(() => tapped.push(Cause.squash(cause) as string))
@@ -1716,7 +1716,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const tapped: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.tapCauseFilter(
+          Effect.tapCauseIf(
             Effect.fail("e1"),
             constFalse,
             () => Effect.sync(() => tapped.push("tapped"))
@@ -1728,7 +1728,7 @@ describe("Effect", () => {
     it.effect("success skips tap", () =>
       Effect.gen(function*() {
         const tapped: Array<string> = []
-        const result = yield* Effect.tapCauseFilter(
+        const result = yield* Effect.tapCauseIf(
           Effect.succeed(42),
           constTrue,
           () => Effect.sync(() => tapped.push("tapped"))
@@ -1738,12 +1738,12 @@ describe("Effect", () => {
       }))
   })
 
-  describe("onErrorFilter", () => {
+  describe("onErrorIf", () => {
     it.effect("predicate match runs finalizer", () =>
       Effect.gen(function*() {
         const finalized: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.onErrorFilter(
+          Effect.onErrorIf(
             Effect.fail("e1"),
             Cause.hasFails,
             (cause) => Effect.sync(() => finalized.push(Cause.squash(cause) as string))
@@ -1756,7 +1756,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const finalized: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.onErrorFilter(
+          Effect.onErrorIf(
             Effect.fail("e1"),
             constFalse,
             () => Effect.sync(() => finalized.push("finalized"))
@@ -1769,7 +1769,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const finalized: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.onErrorFilter(
+          Effect.onErrorIf(
             Effect.fail("e1"),
             Cause.findError as Filter.Filter<Cause.Cause<string>, string>,
             (error: string) => Effect.sync(() => finalized.push(error))
@@ -1781,7 +1781,7 @@ describe("Effect", () => {
     it.effect("success skips finalizer", () =>
       Effect.gen(function*() {
         const finalized: Array<string> = []
-        const result = yield* Effect.onErrorFilter(
+        const result = yield* Effect.onErrorIf(
           Effect.succeed(42),
           constTrue,
           () => Effect.sync(() => finalized.push("finalized"))
@@ -1791,11 +1791,11 @@ describe("Effect", () => {
       }))
   })
 
-  describe("onExitFilter", () => {
+  describe("onExitIf", () => {
     it.effect("predicate match on success runs finalizer", () =>
       Effect.gen(function*() {
         const finalized: Array<string> = []
-        const result = yield* Effect.onExitFilter(
+        const result = yield* Effect.onExitIf(
           Effect.succeed(42),
           Exit.isSuccess,
           (exit) => {
@@ -1812,7 +1812,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const finalized: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.onExitFilter(
+          Effect.onExitIf(
             Effect.fail("e1"),
             Exit.isSuccess,
             () => Effect.sync(() => finalized.push("finalized"))
@@ -1825,7 +1825,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const finalized: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.onExitFilter(
+          Effect.onExitIf(
             Effect.fail("e1"),
             Exit.isFailure,
             (exit) => {

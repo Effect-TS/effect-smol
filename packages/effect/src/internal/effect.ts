@@ -2413,7 +2413,7 @@ const OnFailureProto = makePrimitiveProto({
 })
 
 /** @internal */
-export const catchCauseFilter: {
+export const catchCauseIf: {
   <E, B, E2, R2>(
     predicate: Predicate.Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
@@ -2461,7 +2461,7 @@ export const catch_: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (a: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E2, R | R2> => catchCauseFilter(self, findError as any, (e: any) => f(e)) as any
+  ): Effect.Effect<A | B, E2, R | R2> => catchCauseIf(self, findError as any, (e: any) => f(e)) as any
 )
 
 /** @internal */
@@ -2480,7 +2480,7 @@ export const catchDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E | E2, R | R2> => catchCauseFilter(self, findDefect as any, f as any) as any
+  ): Effect.Effect<A | B, E | E2, R | R2> => catchCauseIf(self, findDefect as any, f as any) as any
 )
 
 /** @internal */
@@ -2502,7 +2502,7 @@ export const tapCause: {
 )
 
 /** @internal */
-export const tapCauseFilter: {
+export const tapCauseIf: {
   <E, B, E2, R2>(
     predicate: Predicate.Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
@@ -2528,7 +2528,7 @@ export const tapCauseFilter: {
     filter: Filter.Filter<Cause.Cause<E>, EB, X> | Predicate.Predicate<Cause.Cause<E>>,
     f: (a: any, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<A, E | E2, R | R2> =>
-    catchCauseFilter(
+    catchCauseIf(
       self,
       ((cause: Cause.Cause<E>) => {
         const result = Filter.apply(filter as any, cause)
@@ -2552,7 +2552,7 @@ export const tapError: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (e: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapCauseFilter(self, findError as any, (e: any) => f(e)) as any
+  ): Effect.Effect<A, E | E2, R | R2> => tapCauseIf(self, findError as any, (e: any) => f(e)) as any
 )
 
 /** @internal */
@@ -2619,11 +2619,11 @@ export const tapDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapCauseFilter(self, findDefect as any, (_: any) => f(_)) as any
+  ): Effect.Effect<A, E | E2, R | R2> => tapCauseIf(self, findDefect as any, (_: any) => f(_)) as any
 )
 
 /** @internal */
-export const catchFilter: {
+export const catchIf: {
   <E, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
     refinement: Predicate.Refinement<NoInfer<E>, EB>,
     f: (e: EB) => Effect.Effect<A2, E2, R2>,
@@ -2743,7 +2743,7 @@ export const catchTag: {
     const pred = Array.isArray(k)
       ? ((e: E): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
       : isTagged(k as string)
-    return catchFilter(self, Filter.fromPredicate(pred), f, orElse as any) as any
+    return catchIf(self, Filter.fromPredicate(pred), f, orElse as any) as any
   }
 )
 
@@ -2810,7 +2810,7 @@ export const catchTags: {
   >
 } = dual((args) => isEffect(args[0]), (self, cases, orElse) => {
   let keys: Array<string>
-  return catchFilter(
+  return catchIf(
     self,
     (e: any) => {
       keys ??= Object.keys(cases)
@@ -2895,7 +2895,7 @@ export const catchReason: {
     (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3,
     R | R2 | R3
   > =>
-    catchFilter(
+    catchIf(
       self,
       ((e: any) => isTagged(e, errorTag) && hasProperty(e, "reason")) as any,
       (e: any): Effect.Effect<A2 | A3, E | E2 | E3, R2 | R3> => {
@@ -2985,7 +2985,7 @@ export const catchReasons: {
   >
 } = dual((args) => isEffect(args[0]), (self, errorTag, cases, orElse) => {
   let keys: Array<string>
-  return catchFilter(
+  return catchIf(
     self,
     ((e: any) =>
       isTagged(e, errorTag) &&
@@ -3031,7 +3031,7 @@ export const unwrapReason: {
     self: Effect.Effect<A, E, R>,
     errorTag: K
   ): Effect.Effect<A, ExcludeTag<E, K> | ReasonOf<ExtractTag<E, K>>, R> =>
-    catchFilter(
+    catchIf(
       self,
       (e: any) => {
         if (isTagged(e, errorTag) && hasProperty(e, "reason")) {
@@ -3802,7 +3802,7 @@ export const ensuring: {
 )
 
 /** @internal */
-export const onExitFilter: {
+export const onExitIf: {
   <A, E, XE, XR>(
     predicate: Predicate.Predicate<Exit.Exit<NoInfer<A>, NoInfer<E>>>,
     f: (exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect.Effect<void, XE, XR>
@@ -3848,11 +3848,11 @@ export const onError: {
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
     f: (cause: Cause.Cause<NoInfer<E>>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> => onExitFilter(self, exitFilterCause as any, f as any) as any
+  ): Effect.Effect<A, E | XE, R | XR> => onExitIf(self, exitFilterCause as any, f as any) as any
 )
 
 /** @internal */
-export const onErrorFilter: {
+export const onErrorIf: {
   <A, E, XE, XR>(
     predicate: Predicate.Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
@@ -3878,7 +3878,7 @@ export const onErrorFilter: {
     filter: Filter.Filter<Cause.Cause<E>, EB, X> | Predicate.Predicate<Cause.Cause<E>>,
     f: (failure: any, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR> =>
-    onExitFilter(
+    onExitIf(
       self,
       ((exit: Exit.Exit<any, any>) => {
         if (exit._tag !== "Failure") return Filter.fail(exit)
@@ -3903,7 +3903,7 @@ export const onInterrupt: {
     self: Effect.Effect<A, E, R>,
     finalizer: Effect.Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>)
   ): Effect.Effect<A, E | XE, R | XR> =>
-    onErrorFilter(self, causeFilterInterruptors, isEffect(finalizer) ? constant(finalizer) : finalizer)
+    onErrorIf(self, causeFilterInterruptors, isEffect(finalizer) ? constant(finalizer) : finalizer)
 )
 
 /** @internal */

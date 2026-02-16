@@ -121,7 +121,7 @@ export const makeCreatePod = Effect.gen(function*() {
         while: (e) => e._tag === "SchemaError",
         schedule: Schedule.spaced("1 seconds")
       }),
-      Effect.catchFilter(
+      Effect.catchIf(
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 404
@@ -133,7 +133,7 @@ export const makeCreatePod = Effect.gen(function*() {
     )
     const isPodFound = readPodRaw.pipe(
       Effect.as(true),
-      Effect.catchFilter(
+      Effect.catchIf(
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 404
@@ -145,7 +145,7 @@ export const makeCreatePod = Effect.gen(function*() {
     const createPod = HttpClientRequest.post(`/v1/namespaces/${namespace}/pods`).pipe(
       HttpClientRequest.bodyJsonUnsafe(spec),
       client.execute,
-      Effect.catchFilter(
+      Effect.catchIf(
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 409
@@ -159,7 +159,7 @@ export const makeCreatePod = Effect.gen(function*() {
     const deletePod = HttpClientRequest.del(`/v1/namespaces/${namespace}/pods/${name}`).pipe(
       client.execute,
       Effect.flatMap((res) => res.json),
-      Effect.catchFilter(
+      Effect.catchIf(
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 404

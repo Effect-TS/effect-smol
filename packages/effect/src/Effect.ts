@@ -3022,7 +3022,7 @@ export const catchDefect: {
  *
  * **When to Use**
  *
- * `catchFilter` lets you recover from errors that match a condition. Pass a
+ * `catchIf` lets you recover from errors that match a condition. Pass a
  * `Filter` for transformation, a `Refinement` for type narrowing, or a
  * `Predicate` for simple boolean matching. Non-matching errors re-fail with
  * the original cause. Defects and interrupts are not caught.
@@ -3044,7 +3044,7 @@ export const catchDefect: {
  *
  * // With a refinement
  * const recovered = program.pipe(
- *   Effect.catchFilter(
+ *   Effect.catchIf(
  *     (error): error is NotFound => error._tag === "NotFound",
  *     (error) => Effect.succeed(`missing:${error.id}`)
  *   )
@@ -3052,7 +3052,7 @@ export const catchDefect: {
  *
  * // With a Filter
  * const recovered2 = program.pipe(
- *   Effect.catchFilter(
+ *   Effect.catchIf(
  *     Filter.tagged("NotFound"),
  *     (error) => Effect.succeed(`missing:${error.id}`)
  *   )
@@ -3062,7 +3062,7 @@ export const catchDefect: {
  * @since 2.0.0
  * @category Error Handling
  */
-export const catchFilter: {
+export const catchIf: {
   <E, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
     refinement: Predicate.Refinement<NoInfer<E>, EB>,
     f: (e: EB) => Effect<A2, E2, R2>,
@@ -3096,7 +3096,7 @@ export const catchFilter: {
     f: (e: EB) => Effect<A2, E2, R2>,
     orElse?: ((e: X) => Effect<A3, E3, R3>) | undefined
   ): Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
-} = internal.catchFilter
+} = internal.catchIf
 
 /**
  * Recovers from specific failures based on a predicate.
@@ -3118,7 +3118,7 @@ export const catchFilter: {
  * const httpRequest = Effect.fail("Network Error")
  *
  * // Only catch network-related failures
- * const program = Effect.catchCauseFilter(
+ * const program = Effect.catchCauseIf(
  *   httpRequest,
  *   Cause.hasFails,
  *   (cause) =>
@@ -3136,7 +3136,7 @@ export const catchFilter: {
  * @since 4.0.0
  * @category Error Handling
  */
-export const catchCauseFilter: {
+export const catchCauseIf: {
   <E, B, E2, R2>(
     predicate: Predicate.Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
@@ -3155,7 +3155,7 @@ export const catchCauseFilter: {
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
-} = internal.catchCauseFilter
+} = internal.catchCauseIf
 
 /**
  * The `mapError` function is used to transform or modify the error
@@ -3427,7 +3427,7 @@ export const tapCause: {
  * const task = Effect.fail("Network timeout")
  *
  * // Only log causes that contain failures (not interrupts or defects)
- * const program = Effect.tapCauseFilter(
+ * const program = Effect.tapCauseIf(
  *   task,
  *   Cause.hasFails,
  *   (cause) => Console.log(`Logging failure cause: ${Cause.squash(cause)}`)
@@ -3441,7 +3441,7 @@ export const tapCause: {
  * @since 4.0.0
  * @category Sequencing
  */
-export const tapCauseFilter: {
+export const tapCauseIf: {
   <E, B, E2, R2>(
     predicate: Predicate.Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
@@ -3460,7 +3460,7 @@ export const tapCauseFilter: {
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A, E | E2, R | R2>
-} = internal.tapCauseFilter
+} = internal.tapCauseIf
 
 /**
  * Inspect severe errors or defects (non-recoverable failures) in an effect.
@@ -6042,7 +6042,7 @@ export const onError: {
  *
  * const task = Effect.fail("boom")
  *
- * const program = Effect.onErrorFilter(
+ * const program = Effect.onErrorIf(
  *   task,
  *   Cause.hasFails,
  *   (cause) =>
@@ -6055,7 +6055,7 @@ export const onError: {
  * @since 4.0.0
  * @category Resource Management & Finalization
  */
-export const onErrorFilter: {
+export const onErrorIf: {
   <A, E, XE, XR>(
     predicate: Predicate.Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Effect<void, XE, XR>
@@ -6074,7 +6074,7 @@ export const onErrorFilter: {
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<void, XE, XR>
   ): Effect<A, E | XE, R | XR>
-} = internal.onErrorFilter
+} = internal.onErrorIf
 
 /**
  * Ensures that a cleanup functions runs, whether this effect succeeds, fails,
@@ -6158,7 +6158,7 @@ export const onExitInterruptible: {
  *
  * const exitFilter = Filter.fromPredicate(Exit.isSuccess<number, never>)
  *
- * const program = Effect.onExitFilter(
+ * const program = Effect.onExitIf(
  *   Effect.succeed(42),
  *   exitFilter,
  *   (success) => Console.log(`Succeeded with: ${success.value}`)
@@ -6168,7 +6168,7 @@ export const onExitInterruptible: {
  * @since 4.0.0
  * @category Resource Management & Finalization
  */
-export const onExitFilter: {
+export const onExitIf: {
   <A, E, XE, XR>(
     predicate: Predicate.Predicate<Exit.Exit<NoInfer<A>, NoInfer<E>>>,
     f: (exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect<void, XE, XR>
@@ -6187,7 +6187,7 @@ export const onExitFilter: {
     filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
     f: (b: B, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect<void, XE, XR>
   ): Effect<A, E | XE, R | XR>
-} = internal.onExitFilter
+} = internal.onExitIf
 
 // -----------------------------------------------------------------------------
 // Caching

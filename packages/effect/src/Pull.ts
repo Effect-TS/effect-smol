@@ -78,7 +78,7 @@ export const catchDone: {
   effect: Effect<A, E, R>,
   f: (leftover: Cause.Done.Extract<E>) => Effect<A2, E2, R2>
 ): Effect<A | A2, ExcludeDone<E> | E2, R | R2> =>
-  internalEffect.catchCauseFilter(effect, filterDoneLeftover as any, (l: any) => f(l)) as any)
+  internalEffect.catchCauseIf(effect, filterDoneLeftover as any, (l: any) => f(l)) as any)
 
 /**
  * Checks if a Cause contains any done errors.
