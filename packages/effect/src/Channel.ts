@@ -4794,7 +4794,9 @@ export const orDie = <
 export const ignore: <
   Arg extends Channel<any, any, any, any, any, any, any> | {
     readonly log?: boolean | LogLevel | undefined
-  } | undefined
+  } | undefined = {
+    readonly log?: boolean | LogLevel | undefined
+  }
 >(
   selfOrOptions: Arg,
   options?: {
@@ -4847,7 +4849,9 @@ const ignoreCause_ = <
 export const ignoreCause: <
   Arg extends Channel<any, any, any, any, any, any, any> | {
     readonly log?: boolean | LogLevel | undefined
-  } | undefined
+  } | undefined = {
+    readonly log?: boolean | LogLevel | undefined
+  }
 >(
   selfOrOptions: Arg,
   options?: {
