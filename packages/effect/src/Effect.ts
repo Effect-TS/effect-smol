@@ -3102,24 +3102,24 @@ export const catchIf: {
  * @category Error Handling
  */
 export const catchCauseIf: {
-  <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
-    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
-    f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
   <E, B, E2, R2>(
     predicate: Predicate.Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, E | E2, R | R2>
-  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
-    self: Effect<A, E, R>,
+  <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
-  ): Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
   <A, E, R, B, E2, R2>(
     self: Effect<A, E, R>,
     predicate: Predicate.Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A | B, E | E2, R | R2>
+  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
 } = internal.catchCauseIf
 
 /**
