@@ -20,7 +20,6 @@ import type * as Runtime from "effect/Runtime"
  *
  * An optional object that can include:
  * - `disableErrorReporting`: Turn off automatic error logging.
- * - `disablePrettyLogger`: Avoid adding the pretty logger.
  * - `teardown`: Provide custom finalization logic.
  *
  * **When to Use**
