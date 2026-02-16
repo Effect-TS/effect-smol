@@ -58,6 +58,7 @@ export type DurationValue =
   | { _tag: "Millis"; millis: number }
   | { _tag: "Nanos"; nanos: bigint }
   | { _tag: "Infinity" }
+  | { _tag: "NegativeInfinity" }
 
 /**
  * Valid time units that can be used in duration string representations.
@@ -120,8 +121,12 @@ export const fromDurationInputUnsafe = (input: DurationInput): Duration => {
   if (isNumber(input)) return millis(input)
   if (isBigInt(input)) return nanos(input)
   if (Array.isArray(input) && input.length === 2 && input.every(isNumber)) {
-    if (input[0] === -Infinity || input[1] === -Infinity || Number.isNaN(input[0]) || Number.isNaN(input[1])) {
+    if (Number.isNaN(input[0]) || Number.isNaN(input[1])) {
       return zero
+    }
+
+    if (input[0] === -Infinity || input[1] === -Infinity) {
+      return negativeInfinity
     }
 
     if (input[0] === Infinity || input[1] === Infinity) {
@@ -189,6 +194,7 @@ export const fromDurationInput: (u: DurationInput) => Duration | undefined = Und
 
 const zeroDurationValue: DurationValue = { _tag: "Millis", millis: 0 }
 const infinityDurationValue: DurationValue = { _tag: "Infinity" }
+const negativeInfinityDurationValue: DurationValue = { _tag: "NegativeInfinity" }
 
 const DurationProto: Omit<Duration, "value"> = {
   [TypeId]: TypeId,
@@ -202,6 +208,8 @@ const DurationProto: Omit<Duration, "value"> = {
     switch (this.value._tag) {
       case "Infinity":
         return "Infinity"
+      case "NegativeInfinity":
+        return "-Infinity"
       case "Nanos":
         return `${this.value.nanos} nanos`
       case "Millis":
@@ -216,6 +224,8 @@ const DurationProto: Omit<Duration, "value"> = {
         return { _id: "Duration", _tag: "Nanos", nanos: String(this.value.nanos) }
       case "Infinity":
         return { _id: "Duration", _tag: "Infinity" }
+      case "NegativeInfinity":
+        return { _id: "Duration", _tag: "NegativeInfinity" }
     }
   },
   [NodeInspectSymbol]() {
@@ -229,16 +239,16 @@ const DurationProto: Omit<Duration, "value"> = {
 const make = (input: number | bigint): Duration => {
   const duration = Object.create(DurationProto)
   if (isNumber(input)) {
-    if (isNaN(input) || input <= 0) {
+    if (isNaN(input) || input === 0 || Object.is(input, -0)) {
       duration.value = zeroDurationValue
     } else if (!Number.isFinite(input)) {
-      duration.value = infinityDurationValue
+      duration.value = input > 0 ? infinityDurationValue : negativeInfinityDurationValue
     } else if (!Number.isInteger(input)) {
       duration.value = { _tag: "Nanos", nanos: BigInt(Math.round(input * 1_000_000)) }
     } else {
       duration.value = { _tag: "Millis", millis: input }
     }
-  } else if (input <= bigint0) {
+  } else if (input === bigint0) {
     duration.value = zeroDurationValue
   } else {
     duration.value = { _tag: "Nanos", nanos: input }
@@ -276,7 +286,8 @@ export const isDuration = (u: unknown): u is Duration => hasProperty(u, TypeId)
  * @since 2.0.0
  * @category guards
  */
-export const isFinite = (self: Duration): boolean => self.value._tag !== "Infinity"
+export const isFinite = (self: Duration): boolean =>
+  self.value._tag !== "Infinity" && self.value._tag !== "NegativeInfinity"
 
 /**
  * Checks if a Duration is zero.
@@ -299,7 +310,117 @@ export const isZero = (self: Duration): boolean => {
     case "Nanos":
       return self.value.nanos === bigint0
     case "Infinity":
+    case "NegativeInfinity":
       return false
+  }
+}
+
+/**
+ * Returns `true` if the duration is negative (strictly less than zero).
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * console.log(Duration.isNegative(Duration.seconds(-5))) // true
+ * console.log(Duration.isNegative(Duration.zero)) // false
+ * console.log(Duration.isNegative(Duration.negativeInfinity)) // true
+ * ```
+ *
+ * @since 4.0.0
+ * @category guards
+ */
+export const isNegative = (self: Duration): boolean => {
+  switch (self.value._tag) {
+    case "Millis":
+      return self.value.millis < 0
+    case "Nanos":
+      return self.value.nanos < bigint0
+    case "NegativeInfinity":
+      return true
+    case "Infinity":
+      return false
+  }
+}
+
+/**
+ * Returns `true` if the duration is positive (strictly greater than zero).
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * console.log(Duration.isPositive(Duration.seconds(5))) // true
+ * console.log(Duration.isPositive(Duration.zero)) // false
+ * console.log(Duration.isPositive(Duration.infinity)) // true
+ * ```
+ *
+ * @since 4.0.0
+ * @category guards
+ */
+export const isPositive = (self: Duration): boolean => {
+  switch (self.value._tag) {
+    case "Millis":
+      return self.value.millis > 0
+    case "Nanos":
+      return self.value.nanos > bigint0
+    case "Infinity":
+      return true
+    case "NegativeInfinity":
+      return false
+  }
+}
+
+/**
+ * Returns the absolute value of the duration.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * Duration.toMillis(Duration.abs(Duration.seconds(-5))) // 5000
+ * Duration.abs(Duration.negativeInfinity) === Duration.infinity // true
+ * ```
+ *
+ * @since 4.0.0
+ * @category math
+ */
+export const abs = (self: Duration): Duration => {
+  switch (self.value._tag) {
+    case "Infinity":
+    case "NegativeInfinity":
+      return infinity
+    case "Millis":
+      return self.value.millis < 0 ? make(-self.value.millis) : self
+    case "Nanos":
+      return self.value.nanos < bigint0 ? make(-self.value.nanos) : self
+  }
+}
+
+/**
+ * Negates the duration.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * Duration.toMillis(Duration.negate(Duration.seconds(5))) // -5000
+ * Duration.negate(Duration.infinity) === Duration.negativeInfinity // true
+ * ```
+ *
+ * @since 4.0.0
+ * @category math
+ */
+export const negate = (self: Duration): Duration => {
+  switch (self.value._tag) {
+    case "Infinity":
+      return negativeInfinity
+    case "NegativeInfinity":
+      return infinity
+    case "Millis":
+      return self.value.millis === 0 ? self : make(-self.value.millis)
+    case "Nanos":
+      return self.value.nanos === bigint0 ? self : make(-self.value.nanos)
   }
 }
 
@@ -332,6 +453,21 @@ export const zero: Duration = make(0)
  * @category constructors
  */
 export const infinity: Duration = make(Infinity)
+
+/**
+ * A Duration representing negative infinite time.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * console.log(Duration.toMillis(Duration.negativeInfinity)) // -Infinity
+ * ```
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const negativeInfinity: Duration = make(-Infinity)
 
 /**
  * Creates a Duration from nanoseconds.
@@ -479,7 +615,8 @@ export const toMillis = (self: Duration): number =>
   match(self, {
     onMillis: identity,
     onNanos: (nanos) => Number(nanos) / 1_000_000,
-    onInfinity: () => Infinity
+    onInfinity: () => Infinity,
+    onNegativeInfinity: () => -Infinity
   })
 
 /**
@@ -500,7 +637,8 @@ export const toSeconds = (self: Duration): number =>
   match(self, {
     onMillis: (millis) => millis / 1_000,
     onNanos: (nanos) => Number(nanos) / 1_000_000_000,
-    onInfinity: () => Infinity
+    onInfinity: () => Infinity,
+    onNegativeInfinity: () => -Infinity
   })
 
 /**
@@ -521,7 +659,8 @@ export const toMinutes = (self: Duration): number =>
   match(self, {
     onMillis: (millis) => millis / 60_000,
     onNanos: (nanos) => Number(nanos) / 60_000_000_000,
-    onInfinity: () => Infinity
+    onInfinity: () => Infinity,
+    onNegativeInfinity: () => -Infinity
   })
 
 /**
@@ -542,7 +681,8 @@ export const toHours = (self: Duration): number =>
   match(self, {
     onMillis: (millis) => millis / 3_600_000,
     onNanos: (nanos) => Number(nanos) / 3_600_000_000_000,
-    onInfinity: () => Infinity
+    onInfinity: () => Infinity,
+    onNegativeInfinity: () => -Infinity
   })
 
 /**
@@ -563,7 +703,8 @@ export const toDays = (self: Duration): number =>
   match(self, {
     onMillis: (millis) => millis / 86_400_000,
     onNanos: (nanos) => Number(nanos) / 86_400_000_000_000,
-    onInfinity: () => Infinity
+    onInfinity: () => Infinity,
+    onNegativeInfinity: () => -Infinity
   })
 
 /**
@@ -584,7 +725,8 @@ export const toWeeks = (self: Duration): number =>
   match(self, {
     onMillis: (millis) => millis / 604_800_000,
     onNanos: (nanos) => Number(nanos) / 604_800_000_000_000,
-    onInfinity: () => Infinity
+    onInfinity: () => Infinity,
+    onNegativeInfinity: () => -Infinity
   })
 
 /**
@@ -614,6 +756,7 @@ export const toWeeks = (self: Duration): number =>
 export const toNanosUnsafe = (self: Duration): bigint => {
   switch (self.value._tag) {
     case "Infinity":
+    case "NegativeInfinity":
       throw new Error("Cannot convert infinite duration to nanos")
     case "Nanos":
       return self.value.nanos
@@ -661,16 +804,26 @@ export const toHrTime = (self: Duration): [seconds: number, nanos: number] => {
   switch (self.value._tag) {
     case "Infinity":
       return [Infinity, 0]
-    case "Nanos":
+    case "NegativeInfinity":
+      return [-Infinity, 0]
+    case "Nanos": {
+      const n = self.value.nanos
+      const sign = n < bigint0 ? -1n : 1n
+      const a = n < bigint0 ? -n : n
       return [
-        Number(self.value.nanos / bigint1e9),
-        Number(self.value.nanos % bigint1e9)
+        Number(sign * (a / bigint1e9)),
+        Number(sign * (a % bigint1e9))
       ]
-    case "Millis":
+    }
+    case "Millis": {
+      const m = self.value.millis
+      const sign = m < 0 ? -1 : 1
+      const a = Math.abs(m)
       return [
-        Math.floor(self.value.millis / 1000),
-        Math.round((self.value.millis % 1000) * 1_000_000)
+        sign * Math.floor(a / 1000),
+        sign * Math.round((a % 1000) * 1_000_000)
       ]
+    }
   }
 }
 
@@ -693,29 +846,32 @@ export const toHrTime = (self: Duration): [seconds: number, nanos: number] => {
  * @category pattern matching
  */
 export const match: {
-  <A, B, C>(
+  <A, B, C, D = C>(
     options: {
       readonly onMillis: (millis: number) => A
       readonly onNanos: (nanos: bigint) => B
       readonly onInfinity: () => C
+      readonly onNegativeInfinity?: () => D
     }
-  ): (self: Duration) => A | B | C
-  <A, B, C>(
+  ): (self: Duration) => A | B | C | D
+  <A, B, C, D = C>(
     self: Duration,
     options: {
       readonly onMillis: (millis: number) => A
       readonly onNanos: (nanos: bigint) => B
       readonly onInfinity: () => C
+      readonly onNegativeInfinity?: () => D
     }
-  ): A | B | C
-} = dual(2, <A, B, C>(
+  ): A | B | C | D
+} = dual(2, <A, B, C, D = C>(
   self: Duration,
   options: {
     readonly onMillis: (millis: number) => A
     readonly onNanos: (nanos: bigint) => B
     readonly onInfinity: () => C
+    readonly onNegativeInfinity?: () => D
   }
-): A | B | C => {
+): A | B | C | D => {
   switch (self.value._tag) {
     case "Millis":
       return options.onMillis(self.value.millis)
@@ -723,6 +879,8 @@ export const match: {
       return options.onNanos(self.value.nanos)
     case "Infinity":
       return options.onInfinity()
+    case "NegativeInfinity":
+      return (options.onNegativeInfinity ?? options.onInfinity as unknown as () => D)()
   }
 })
 
@@ -771,7 +929,10 @@ export const matchPair: {
     readonly onInfinity: (self: Duration, that: Duration) => C
   }
 ): A | B | C => {
-  if (self.value._tag === "Infinity" || that.value._tag === "Infinity") return options.onInfinity(self, that)
+  if (
+    self.value._tag === "Infinity" || self.value._tag === "NegativeInfinity" ||
+    that.value._tag === "Infinity" || that.value._tag === "NegativeInfinity"
+  ) return options.onInfinity(self, that)
   if (self.value._tag === "Millis") {
     return that.value._tag === "Millis"
       ? options.onMillis(self.value.millis, that.value.millis)
@@ -784,7 +945,7 @@ export const matchPair: {
 /**
  * Order instance for `Duration`, allowing comparison operations.
  *
- * Two infinite durations are considered equivalent (`0`).
+ * `NegativeInfinity` < any finite value < `Infinity`.
  *
  * @example
  * ```ts
@@ -807,13 +968,13 @@ export const Order: order.Order<Duration> = order.make((self, that) =>
     onMillis: (self, that) => (self < that ? -1 : self > that ? 1 : 0),
     onNanos: (self, that) => (self < that ? -1 : self > that ? 1 : 0),
     onInfinity: (self, that) => {
-      switch (self.value._tag) {
-        case "Infinity":
-          return that.value._tag === "Infinity" ? 0 : 1
-        case "Millis":
-        case "Nanos":
-          return -1
-      }
+      if (self.value._tag === that.value._tag) return 0
+      if (self.value._tag === "Infinity") return 1
+      if (self.value._tag === "NegativeInfinity") return -1
+      // self is finite
+      if (that.value._tag === "Infinity") return -1
+      // that is NegativeInfinity
+      return 1
     }
   })
 )
@@ -842,8 +1003,6 @@ export const between: {
 
 /**
  * Equivalence instance for `Duration`, allowing equality comparisons.
- *
- * Two infinite durations are considered equivalent.
  *
  * @example
  * ```ts
@@ -947,20 +1106,18 @@ export const divide: {
   2,
   (self: Duration, by: number): Duration | undefined => {
     if (!Number.isFinite(by)) return undefined
+    if (by === 0 || Object.is(by, -0)) return undefined
     return match(self, {
-      onMillis: (millis) => {
-        if (by === 0) return undefined
-        return make(millis / by)
-      },
+      onMillis: (millis) => make(millis / by),
       onNanos: (nanos) => {
-        if (by <= 0) return undefined
         try {
           return make(nanos / BigInt(by))
         } catch {
           return undefined
         }
       },
-      onInfinity: () => infinity
+      onInfinity: () => by > 0 ? infinity : negativeInfinity,
+      onNegativeInfinity: () => by > 0 ? negativeInfinity : infinity
     })
   }
 )
@@ -992,11 +1149,21 @@ export const divideUnsafe: {
     return match(self, {
       onMillis: (millis) => make(millis / by),
       onNanos: (nanos) => {
-        if (by < 0 || Object.is(by, -0)) return zero
-        if (Object.is(by, 0)) return infinity
-        return make(nanos / BigInt(by))
+        if (Object.is(by, 0) || Object.is(by, -0)) {
+          if (nanos === bigint0) return zero
+          // match IEEE 754: same sign → +infinity, different sign → -infinity
+          const positiveNanos = nanos > bigint0
+          const positiveZero = Object.is(by, 0)
+          return (positiveNanos === positiveZero) ? infinity : negativeInfinity
+        }
+        try {
+          return make(nanos / BigInt(by))
+        } catch {
+          return zero
+        }
       },
-      onInfinity: () => infinity
+      onInfinity: () => by > 0 ? infinity : by < 0 ? negativeInfinity : zero,
+      onNegativeInfinity: () => by > 0 ? negativeInfinity : by < 0 ? infinity : zero
     })
   }
 )
@@ -1024,19 +1191,23 @@ export const times: {
     match(self, {
       onMillis: (millis) => make(millis * times),
       onNanos: (nanos) => make(nanos * BigInt(times)),
-      onInfinity: () => infinity
+      onInfinity: () => times > 0 ? infinity : times < 0 ? negativeInfinity : zero,
+      onNegativeInfinity: () => times > 0 ? negativeInfinity : times < 0 ? infinity : zero
     })
 )
 
 /**
- * Subtracts one Duration from another.
+ * Subtracts one Duration from another. The result can be negative.
  *
  * **Infinity Subtraction Rules**
  * - infinity - infinity = 0
- * - infinity - millis = infinity
- * - infinity - nanos = infinity
- * - millis - infinity = 0
- * - nanos - infinity = 0
+ * - infinity - negativeInfinity = infinity
+ * - infinity - finite = infinity
+ * - negativeInfinity - negativeInfinity = 0
+ * - negativeInfinity - infinity = negativeInfinity
+ * - negativeInfinity - finite = negativeInfinity
+ * - finite - infinity = negativeInfinity
+ * - finite - negativeInfinity = infinity
  *
  * @example
  * ```ts
@@ -1059,13 +1230,11 @@ export const subtract: {
       onMillis: (self, that) => make(self - that),
       onNanos: (self, that) => make(self - that),
       onInfinity: (self, that) => {
-        switch (self.value._tag) {
-          case "Infinity":
-            return that.value._tag === "Infinity" ? zero : self
-          case "Millis":
-          case "Nanos":
-            return zero
-        }
+        const s = self.value._tag
+        const t = that.value._tag
+        if (s === "Infinity") return t === "Infinity" ? zero : infinity
+        if (s === "NegativeInfinity") return t === "NegativeInfinity" ? zero : negativeInfinity
+        return t === "Infinity" ? negativeInfinity : infinity
       }
     })
 )
@@ -1074,8 +1243,11 @@ export const subtract: {
  * Adds two Durations together.
  *
  * **Infinity Addition Rules**
- * - infinity + `*` = infinity
- * - `*` + infinity = infinity
+ * - infinity + infinity = infinity
+ * - infinity + negativeInfinity = zero
+ * - infinity + finite = infinity
+ * - negativeInfinity + negativeInfinity = negativeInfinity
+ * - negativeInfinity + finite = negativeInfinity
  *
  * @example
  * ```ts
@@ -1097,7 +1269,16 @@ export const sum: {
     matchPair(self, that, {
       onMillis: (self, that) => make(self + that),
       onNanos: (self, that) => make(self + that),
-      onInfinity: () => infinity
+      onInfinity: (self, that) => {
+        const s = self.value._tag
+        const t = that.value._tag
+        if (s === "Infinity" && t === "NegativeInfinity") return zero
+        if (s === "NegativeInfinity" && t === "Infinity") return zero
+        if (s === "Infinity" || t === "Infinity") return infinity
+        if (s === "NegativeInfinity" || t === "NegativeInfinity") return negativeInfinity
+        // unreachable, but satisfy TS
+        return zero
+      }
     })
 )
 
@@ -1262,21 +1443,34 @@ export const parts = (self: Duration): {
       nanos: Infinity
     }
   }
+  if (self.value._tag === "NegativeInfinity") {
+    return {
+      days: -Infinity,
+      hours: -Infinity,
+      minutes: -Infinity,
+      seconds: -Infinity,
+      millis: -Infinity,
+      nanos: -Infinity
+    }
+  }
 
-  const nanos = toNanosUnsafe(self)
-  const ms = nanos / bigint1e6
+  const n = toNanosUnsafe(self)
+  const neg = n < bigint0
+  const a = neg ? -n : n
+  const ms = a / bigint1e6
   const sec = ms / bigint1e3
   const min = sec / bigint60
   const hr = min / bigint60
-  const days = hr / bigint24
+  const d = hr / bigint24
+  const sign = neg ? -1 : 1
 
   return {
-    days: Number(days),
-    hours: Number(hr % bigint24),
-    minutes: Number(min % bigint60),
-    seconds: Number(sec % bigint60),
-    millis: Number(ms % bigint1e3),
-    nanos: Number(nanos % bigint1e6)
+    days: sign * Number(d),
+    hours: sign * Number(hr % bigint24),
+    minutes: sign * Number(min % bigint60),
+    seconds: sign * Number(sec % bigint60),
+    millis: sign * Number(ms % bigint1e3),
+    nanos: sign * Number(a % bigint1e6)
   }
 }
 
@@ -1297,8 +1491,14 @@ export const format = (self: Duration): string => {
   if (self.value._tag === "Infinity") {
     return "Infinity"
   }
+  if (self.value._tag === "NegativeInfinity") {
+    return "-Infinity"
+  }
   if (isZero(self)) {
     return "0"
+  }
+  if (isNegative(self)) {
+    return "-" + format(abs(self))
   }
 
   const fragments = parts(self)

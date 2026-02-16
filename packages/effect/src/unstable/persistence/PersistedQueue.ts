@@ -301,15 +301,22 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
 ) {
   const redis = yield* Redis.Redis
 
-  const pollInterval = options?.pollInterval
-    ? Duration.fromDurationInputUnsafe(options.pollInterval)
-    : Duration.seconds(1)
-  const lockRefreshMillis = options?.lockRefreshInterval
-    ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.lockRefreshInterval))
-    : 30_000
-  const lockExpirationMillis = options?.lockExpiration
-    ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.lockExpiration))
-    : 90_000
+  const pollInterval = Duration.max(
+    options?.pollInterval ? Duration.fromDurationInputUnsafe(options.pollInterval) : Duration.seconds(1),
+    Duration.millis(1)
+  )
+  const lockRefreshMillis = Math.max(
+    options?.lockRefreshInterval
+      ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.lockRefreshInterval))
+      : 30_000,
+    1
+  )
+  const lockExpirationMillis = Math.max(
+    options?.lockExpiration
+      ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.lockExpiration))
+      : 90_000,
+    1
+  )
   const prefix = options?.prefix ?? "effectq:"
   const keyQueue = (name: string) => `${prefix}${name}`
   const keyLock = (id: string) => `${prefix}${id}:lock`
@@ -674,15 +681,18 @@ export const makeStoreSql: (
   const sql = (yield* SqlClient.SqlClient).withoutTransforms()
   const tableName = options?.tableName ?? "effect_queue"
   const tableNameSql = sql(tableName)
-  const pollInterval = options?.pollInterval
-    ? Duration.fromDurationInputUnsafe(options.pollInterval)
-    : Duration.millis(1000)
-  const lockRefreshInterval = options?.lockRefreshInterval
-    ? Duration.fromDurationInputUnsafe(options.lockRefreshInterval)
-    : Duration.seconds(30)
-  const lockExpiration = options?.lockExpiration
-    ? Duration.fromDurationInputUnsafe(options.lockExpiration)
-    : Duration.minutes(2)
+  const pollInterval = Duration.max(
+    options?.pollInterval ? Duration.fromDurationInputUnsafe(options.pollInterval) : Duration.millis(1000),
+    Duration.millis(1)
+  )
+  const lockRefreshInterval = Duration.max(
+    options?.lockRefreshInterval ? Duration.fromDurationInputUnsafe(options.lockRefreshInterval) : Duration.seconds(30),
+    Duration.millis(1)
+  )
+  const lockExpiration = Duration.max(
+    options?.lockExpiration ? Duration.fromDurationInputUnsafe(options.lockExpiration) : Duration.minutes(2),
+    Duration.millis(1)
+  )
   const lockExpirationSql = sql.literal(Math.ceil(Duration.toSeconds(lockExpiration)).toString())
   const workerId = crypto.randomUUID()
 

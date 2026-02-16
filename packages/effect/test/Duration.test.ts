@@ -29,15 +29,15 @@ describe("Duration", () => {
     deepStrictEqual(Duration.fromDurationInputUnsafe("10 weeks"), Duration.weeks(10))
 
     deepStrictEqual(Duration.fromDurationInputUnsafe("1.5 seconds"), Duration.seconds(1.5))
-    deepStrictEqual(Duration.fromDurationInputUnsafe("-1.5 seconds"), Duration.zero)
+    deepStrictEqual(Duration.fromDurationInputUnsafe("-1.5 seconds"), Duration.seconds(-1.5))
 
     deepStrictEqual(Duration.fromDurationInputUnsafe([500, 123456789]), Duration.nanos(500123456789n))
-    deepStrictEqual(Duration.fromDurationInputUnsafe([-500, 123456789]), Duration.zero)
+    deepStrictEqual(Duration.fromDurationInputUnsafe([-500, 123456789]), Duration.nanos(-500000000000n + 123456789n))
     deepStrictEqual(Duration.fromDurationInputUnsafe([Infinity, 0]), Duration.infinity)
-    deepStrictEqual(Duration.fromDurationInputUnsafe([-Infinity, 0]), Duration.zero)
+    deepStrictEqual(Duration.fromDurationInputUnsafe([-Infinity, 0]), Duration.negativeInfinity)
     deepStrictEqual(Duration.fromDurationInputUnsafe([NaN, 0]), Duration.zero)
     deepStrictEqual(Duration.fromDurationInputUnsafe([0, Infinity]), Duration.infinity)
-    deepStrictEqual(Duration.fromDurationInputUnsafe([0, -Infinity]), Duration.zero)
+    deepStrictEqual(Duration.fromDurationInputUnsafe([0, -Infinity]), Duration.negativeInfinity)
     deepStrictEqual(Duration.fromDurationInputUnsafe([0, NaN]), Duration.zero)
   })
 
@@ -67,15 +67,15 @@ describe("Duration", () => {
     deepStrictEqual(Duration.fromDurationInput("10 weeks"), Duration.weeks(10))
 
     deepStrictEqual(Duration.fromDurationInput("1.5 seconds"), Duration.seconds(1.5))
-    deepStrictEqual(Duration.fromDurationInput("-1.5 seconds"), Duration.zero)
+    deepStrictEqual(Duration.fromDurationInput("-1.5 seconds"), Duration.seconds(-1.5))
 
     deepStrictEqual(Duration.fromDurationInput([500, 123456789]), Duration.nanos(500123456789n))
-    deepStrictEqual(Duration.fromDurationInput([-500, 123456789]), Duration.zero)
+    deepStrictEqual(Duration.fromDurationInput([-500, 123456789]), Duration.nanos(-500000000000n + 123456789n))
     deepStrictEqual(Duration.fromDurationInput([Infinity, 0]), Duration.infinity)
-    deepStrictEqual(Duration.fromDurationInput([-Infinity, 0]), Duration.zero)
+    deepStrictEqual(Duration.fromDurationInput([-Infinity, 0]), Duration.negativeInfinity)
     deepStrictEqual(Duration.fromDurationInput([NaN, 0]), Duration.zero)
     deepStrictEqual(Duration.fromDurationInput([0, Infinity]), Duration.infinity)
-    deepStrictEqual(Duration.fromDurationInput([0, -Infinity]), Duration.zero)
+    deepStrictEqual(Duration.fromDurationInput([0, -Infinity]), Duration.negativeInfinity)
     deepStrictEqual(Duration.fromDurationInput([0, NaN]), Duration.zero)
   })
 
@@ -219,11 +219,15 @@ describe("Duration", () => {
     // infinity
     deepStrictEqual(Duration.divideUnsafe(Duration.infinity, 2), Duration.infinity)
 
-    // divide by zero
+    // divide by zero (IEEE 754 sign rules)
     deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 0), Duration.infinity)
-    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), -0), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), -0), Duration.negativeInfinity)
     deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), 0), Duration.infinity)
-    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), -0), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), -0), Duration.negativeInfinity)
+    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(-1n), 0), Duration.negativeInfinity)
+    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(-1n), -0), Duration.infinity)
+    deepStrictEqual(Duration.divideUnsafe(Duration.zero, 0), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.zero, -0), Duration.zero)
 
     // bad by
     deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), NaN), Duration.zero)
@@ -264,19 +268,26 @@ describe("Duration", () => {
     // millis
     deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.seconds(10)), Duration.seconds(20))
     deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.seconds(30)), Duration.zero)
-    deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.seconds(40)), Duration.zero)
+    deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.seconds(40)), Duration.seconds(-10))
 
     // nanos
     deepStrictEqual(Duration.subtract(Duration.nanos(30n), Duration.nanos(10n)), Duration.nanos(20n))
     deepStrictEqual(Duration.subtract(Duration.nanos(30n), Duration.nanos(30n)), Duration.zero)
-    deepStrictEqual(Duration.subtract(Duration.nanos(30n), Duration.nanos(40n)), Duration.zero)
+    deepStrictEqual(Duration.subtract(Duration.nanos(30n), Duration.nanos(40n)), Duration.nanos(-10n))
 
     // infinity
     deepStrictEqual(Duration.subtract(Duration.infinity, Duration.seconds(30)), Duration.infinity)
     deepStrictEqual(Duration.subtract(Duration.infinity, Duration.nanos(30n)), Duration.infinity)
-    deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.infinity), Duration.zero)
-    deepStrictEqual(Duration.subtract(Duration.nanos(30n), Duration.infinity), Duration.zero)
+    deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.infinity), Duration.negativeInfinity)
+    deepStrictEqual(Duration.subtract(Duration.nanos(30n), Duration.infinity), Duration.negativeInfinity)
     deepStrictEqual(Duration.subtract(Duration.infinity, Duration.infinity), Duration.zero)
+
+    // negativeInfinity
+    deepStrictEqual(Duration.subtract(Duration.infinity, Duration.negativeInfinity), Duration.infinity)
+    deepStrictEqual(Duration.subtract(Duration.negativeInfinity, Duration.infinity), Duration.negativeInfinity)
+    deepStrictEqual(Duration.subtract(Duration.negativeInfinity, Duration.negativeInfinity), Duration.zero)
+    deepStrictEqual(Duration.subtract(Duration.negativeInfinity, Duration.seconds(5)), Duration.negativeInfinity)
+    deepStrictEqual(Duration.subtract(Duration.seconds(5), Duration.negativeInfinity), Duration.infinity)
   })
 
   it("isGreaterThan", () => {
@@ -444,9 +455,93 @@ describe("Duration", () => {
     deepStrictEqual(Duration.infinity.pipe(Duration.toHrTime), [Infinity, 0])
   })
 
-  it("floor is 0", () => {
-    deepStrictEqual(Duration.millis(-1), Duration.zero)
-    deepStrictEqual(Duration.nanos(-1n), Duration.zero)
+  it("negative values", () => {
+    // negative constructors produce negative durations
+    assertTrue(Duration.isNegative(Duration.millis(-1)))
+    assertTrue(Duration.isNegative(Duration.nanos(-1n)))
+    strictEqual(Duration.toMillis(Duration.millis(-1)), -1)
+    strictEqual(Duration.toNanosUnsafe(Duration.nanos(-1n)), -1n)
+
+    // isNegative / isPositive
+    assertTrue(Duration.isNegative(Duration.seconds(-5)))
+    assertFalse(Duration.isNegative(Duration.zero))
+    assertFalse(Duration.isNegative(Duration.seconds(5)))
+    assertFalse(Duration.isNegative(Duration.infinity))
+    assertTrue(Duration.isNegative(Duration.negativeInfinity))
+
+    assertTrue(Duration.isPositive(Duration.seconds(5)))
+    assertFalse(Duration.isPositive(Duration.zero))
+    assertFalse(Duration.isPositive(Duration.seconds(-5)))
+    assertTrue(Duration.isPositive(Duration.infinity))
+    assertFalse(Duration.isPositive(Duration.negativeInfinity))
+
+    // abs
+    deepStrictEqual(Duration.abs(Duration.seconds(-5)), Duration.seconds(5))
+    deepStrictEqual(Duration.abs(Duration.seconds(5)), Duration.seconds(5))
+    deepStrictEqual(Duration.abs(Duration.zero), Duration.zero)
+    deepStrictEqual(Duration.abs(Duration.negativeInfinity), Duration.infinity)
+    deepStrictEqual(Duration.abs(Duration.infinity), Duration.infinity)
+
+    // negate
+    deepStrictEqual(Duration.negate(Duration.seconds(5)), Duration.seconds(-5))
+    deepStrictEqual(Duration.negate(Duration.seconds(-5)), Duration.seconds(5))
+    deepStrictEqual(Duration.negate(Duration.zero), Duration.zero)
+    deepStrictEqual(Duration.negate(Duration.infinity), Duration.negativeInfinity)
+    deepStrictEqual(Duration.negate(Duration.negativeInfinity), Duration.infinity)
+
+    // negativeInfinity
+    assertFalse(Duration.isFinite(Duration.negativeInfinity))
+    assertFalse(Duration.isZero(Duration.negativeInfinity))
+    strictEqual(Duration.toMillis(Duration.negativeInfinity), -Infinity)
+    strictEqual(Duration.toSeconds(Duration.negativeInfinity), -Infinity)
+    deepStrictEqual(Duration.toHrTime(Duration.negativeInfinity), [-Infinity, 0])
+
+    // format
+    strictEqual(Duration.format(Duration.seconds(-5)), "-5s")
+    strictEqual(Duration.format(Duration.negativeInfinity), "-Infinity")
+
+    // Order with negatives
+    deepStrictEqual(Duration.Order(Duration.negativeInfinity, Duration.negativeInfinity), 0)
+    deepStrictEqual(Duration.Order(Duration.negativeInfinity, Duration.seconds(-5)), -1)
+    deepStrictEqual(Duration.Order(Duration.seconds(-5), Duration.negativeInfinity), 1)
+    deepStrictEqual(Duration.Order(Duration.negativeInfinity, Duration.infinity), -1)
+    deepStrictEqual(Duration.Order(Duration.infinity, Duration.negativeInfinity), 1)
+    deepStrictEqual(Duration.Order(Duration.seconds(-5), Duration.seconds(-3)), -1)
+    deepStrictEqual(Duration.Order(Duration.seconds(-3), Duration.seconds(-5)), 1)
+
+    // Equivalence with negatives
+    assertTrue(Duration.Equivalence(Duration.negativeInfinity, Duration.negativeInfinity))
+    assertFalse(Duration.Equivalence(Duration.negativeInfinity, Duration.infinity))
+
+    // sum with negativeInfinity
+    deepStrictEqual(Duration.sum(Duration.infinity, Duration.negativeInfinity), Duration.zero)
+    deepStrictEqual(Duration.sum(Duration.negativeInfinity, Duration.infinity), Duration.zero)
+    deepStrictEqual(Duration.sum(Duration.negativeInfinity, Duration.negativeInfinity), Duration.negativeInfinity)
+    deepStrictEqual(Duration.sum(Duration.negativeInfinity, Duration.seconds(5)), Duration.negativeInfinity)
+
+    // times with negatives
+    deepStrictEqual(Duration.times(Duration.infinity, -1), Duration.negativeInfinity)
+    deepStrictEqual(Duration.times(Duration.negativeInfinity, -1), Duration.infinity)
+    deepStrictEqual(Duration.times(Duration.infinity, 0), Duration.zero)
+    deepStrictEqual(Duration.times(Duration.seconds(5), -2), Duration.seconds(-10))
+
+    // parts with negative
+    deepStrictEqual(Duration.parts(Duration.negativeInfinity), {
+      days: -Infinity,
+      hours: -Infinity,
+      minutes: -Infinity,
+      seconds: -Infinity,
+      millis: -Infinity,
+      nanos: -Infinity
+    })
+
+    // toString with negatives
+    strictEqual(String(Duration.negativeInfinity), "-Infinity")
+    strictEqual(String(Duration.millis(-5)), "-5 millis")
+    strictEqual(String(Duration.nanos(-10n)), "-10 nanos")
+
+    // toJSON with negatives
+    deepStrictEqual(Duration.negativeInfinity.toJSON(), { _id: "Duration", _tag: "NegativeInfinity" })
   })
 
   it("match", () => {

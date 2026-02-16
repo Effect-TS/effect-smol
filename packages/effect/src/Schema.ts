@@ -6511,6 +6511,8 @@ export const Duration: Duration = declare(
                 return { _tag: "Nanos", value: duration.value.nanos } as const
               case "Millis":
                 return { _tag: "Millis", value: duration.value.millis } as const
+              case "NegativeInfinity":
+                return { _tag: "Millis", value: 0 } as const
             }
           }
         })

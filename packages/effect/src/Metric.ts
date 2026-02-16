@@ -2040,7 +2040,7 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
     readonly quantiles: ReadonlyArray<number>
   }) {
     super(id, options?.description, attributesToRecord(options?.attributes))
-    this.#maxAge = Duration.toMillis(Duration.fromDurationInputUnsafe(options.maxAge))
+    this.#maxAge = Math.max(Duration.toMillis(Duration.fromDurationInputUnsafe(options.maxAge)), 0)
     this.#maxSize = options.maxSize
     this.#quantiles = options.quantiles
   }
