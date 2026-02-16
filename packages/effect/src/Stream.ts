@@ -1893,27 +1893,32 @@ export const mapEffect: {
  * @since 2.0.0
  * @category Mapping
  */
-export const flattenEffect: {
-  (
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly unordered?: boolean | undefined
-    } | undefined
-  ): <A, EX, RX, E, R>(self: Stream<Effect.Effect<A, EX, RX>, E, R>) => Stream<A, EX | E, RX | R>
-  <A, E, R, EX, RX>(
-    self: Stream<Effect.Effect<A, EX, RX>, E, R>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly unordered?: boolean | undefined
-    } | undefined
-  ): Stream<A, EX | E, RX | R>
-} = dual((args) => isStream(args[0]), <A, E, R, EX, RX>(
-  self: Stream<Effect.Effect<A, EX, RX>, E, R>,
+export const flattenEffect: <
+  Arg extends Stream<Effect.Effect<any, any, any>, any, any> | {
+    readonly concurrency?: number | "unbounded" | undefined
+    readonly unordered?: boolean | undefined
+  } | undefined = {
+    readonly concurrency?: number | "unbounded" | undefined
+    readonly unordered?: boolean | undefined
+  }
+>(
+  selfOrOptions?: Arg,
   options?: {
     readonly concurrency?: number | "unbounded" | undefined
     readonly unordered?: boolean | undefined
   } | undefined
-): Stream<A, EX | E, RX | R> => mapEffect(self, identity, options))
+) => [Arg] extends [Stream<Effect.Effect<infer _A, infer _EX, infer _RX>, infer _E, infer _R>] ?
+  Stream<_A, _EX | _E, _RX | _R>
+  : <A, EX, RX, E, R>(self: Stream<Effect.Effect<A, EX, RX>, E, R>) => Stream<A, EX | E, RX | R> = dual(
+    (args) => isStream(args[0]),
+    <A, E, R, EX, RX>(
+      self: Stream<Effect.Effect<A, EX, RX>, E, R>,
+      options?: {
+        readonly concurrency?: number | "unbounded" | undefined
+        readonly unordered?: boolean | undefined
+      } | undefined
+    ): Stream<A, EX | E, RX | R> => mapEffect(self, identity, options)
+  )
 
 /**
  * Effectfully maps over non-empty array chunks emitted by the stream.
@@ -2347,27 +2352,31 @@ export const switchMap: {
  * @since 2.0.0
  * @category Mapping
  */
-export const flatten: {
-  (
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
-    } | undefined
-  ): <A, E, R, E2, R2>(self: Stream<Stream<A, E, R>, E2, R2>) => Stream<A, E | E2, R | R2>
-  <A, E, R, E2, R2>(
-    self: Stream<Stream<A, E, R>, E2, R2>,
-    options?: {
-      readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
-    } | undefined
-  ): Stream<A, E | E2, R | R2>
-} = dual((args) => isStream(args[0]), <A, E, R, E2, R2>(
-  self: Stream<Stream<A, E, R>, E2, R2>,
+export const flatten: <
+  Arg extends Stream<Stream<any, any, any>, any, any> | {
+    readonly concurrency?: number | "unbounded" | undefined
+    readonly bufferSize?: number | undefined
+  } | undefined = {
+    readonly concurrency?: number | "unbounded" | undefined
+    readonly bufferSize?: number | undefined
+  }
+>(
+  selfOrOptions?: Arg,
   options?: {
     readonly concurrency?: number | "unbounded" | undefined
     readonly bufferSize?: number | undefined
   } | undefined
-): Stream<A, E | E2, R | R2> => flatMap(self, identity, options))
+) => [Arg] extends [Stream<Stream<infer _A, infer _E, infer _R>, infer _E2, infer _R2>] ? Stream<_A, _E | _E2, _R | _R2>
+  : <A, E, R, E2, R2>(self: Stream<Stream<A, E, R>, E2, R2>) => Stream<A, E | E2, R | R2> = dual(
+    (args) => isStream(args[0]),
+    <A, E, R, E2, R2>(
+      self: Stream<Stream<A, E, R>, E2, R2>,
+      options?: {
+        readonly concurrency?: number | "unbounded" | undefined
+        readonly bufferSize?: number | undefined
+      } | undefined
+    ): Stream<A, E | E2, R | R2> => flatMap(self, identity, options)
+  )
 
 /**
  * Flattens a stream of non-empty arrays into a stream of elements.

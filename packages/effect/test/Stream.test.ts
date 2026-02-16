@@ -699,6 +699,35 @@ describe("Stream", () => {
       }))
   })
 
+  describe("flattening", () => {
+    it.effect("flatten supports dropping parens in pipe", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(
+            Stream.make(1, 2),
+            Stream.make(3, 4)
+          ),
+          Stream.flatten,
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [1, 2, 3, 4])
+      }))
+
+    it.effect("flattenEffect supports dropping parens in pipe", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(
+            Effect.succeed(1),
+            Effect.succeed(2),
+            Effect.succeed(3)
+          ),
+          Stream.flattenEffect,
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [1, 2, 3])
+      }))
+  })
+
   it.effect.prop(
     "rechunk",
     {
