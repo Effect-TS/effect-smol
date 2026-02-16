@@ -6098,18 +6098,12 @@ export const takeWhile: {
           (chunk) => {
             const out: Array<any> = []
             for (let j = 0; j < chunk.length; j++) {
-              const result = (f as Function)(chunk[j], i++)
-              if (result === true) {
-                out.push(chunk[j])
-              } else if (result === false) {
+              const result = Filter.apply(f as any, chunk[j], i++)
+              if (Filter.isFail(result)) {
                 done = true
                 break
-              } else if (Filter.isFail(result)) {
-                done = true
-                break
-              } else {
-                out.push(result.pass)
               }
+              out.push(result.pass)
             }
             return Arr.isReadonlyArrayNonEmpty(out) ? Effect.succeed(out) : done ? Cause.done() : pump
           }
@@ -6310,10 +6304,7 @@ export const dropWhile: {
       let dropping = true
       let index = 0
       const filtered: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.flatMap(pull, (arr) => {
-        const found = arr.findIndex((a) => {
-          const result = (f as Function)(a, index++)
-          return result === false || (result !== true && Filter.isFail(result))
-        })
+        const found = arr.findIndex((a) => Filter.isFail(Filter.apply(f as any, a, index++)))
         if (found === -1) return filtered
         dropping = false
         return Effect.succeed(arr.slice(found) as Arr.NonEmptyArray<A>)

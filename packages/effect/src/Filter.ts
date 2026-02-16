@@ -29,8 +29,8 @@ import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.ts"
  * @since 4.0.0
  * @category Models
  */
-export interface Filter<in Input, out Pass = Input, out Fail = Input> {
-  (input: Input): pass<Pass> | fail<Fail>
+export interface Filter<in Input, out Pass = Input, out Fail = Input, in Args extends Array<any> = []> {
+  (input: Input, ...args: Args): pass<Pass> | fail<Fail>
 }
 
 /**
@@ -63,8 +63,15 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input> {
  * @since 4.0.0
  * @category Models
  */
-export interface FilterEffect<in Input, out Pass, out Fail, out E = never, out R = never> {
-  (input: Input): Effect<pass<Pass> | fail<Fail>, E, R>
+export interface FilterEffect<
+  in Input,
+  out Pass,
+  out Fail,
+  out E = never,
+  out R = never,
+  in Args extends Array<any> = []
+> {
+  (input: Input, ...args: Args): Effect<pass<Pass> | fail<Fail>, E, R>
 }
 
 // -------------------------------------------------------------------------------------
@@ -147,16 +154,33 @@ export const isFail = <A = unknown>(u: unknown): u is fail<A> =>
 
 /**
  * Applies a filter, predicate, or refinement to an input and returns a boxed
- * `pass` or `fail` result.
+ * `pass` or `fail` result. Extra arguments are forwarded to the function.
  *
  * @since 4.0.0
  * @category Utils
  */
-export const apply = <Input, Pass extends Input, Fail>(
-  filter: Filter<Input, Pass, Fail> | Predicate.Predicate<Input> | Predicate.Refinement<Input, Pass>,
-  input: Input
-): pass<Input | Pass> | fail<Input | Fail> => {
-  const result = (filter as Function)(input)
+export const apply: {
+  <Input, Pass extends Input, Fail, Args extends Array<any>>(
+    filter: Filter<Input, Pass, Fail, Args>,
+    input: Input,
+    ...args: Args
+  ): pass<Pass> | fail<Fail>
+  <Input, Pass extends Input>(
+    filter: Predicate.Refinement<Input, Pass>,
+    input: Input,
+    ...args: Array<any>
+  ): pass<Input | Pass> | fail<Input | Exclude<Input, Pass>>
+  <Input>(
+    filter: Predicate.Predicate<Input>,
+    input: Input,
+    ...args: Array<any>
+  ): pass<Input> | fail<Input>
+} = <Input>(
+  filter: Function,
+  input: Input,
+  ...args: Array<any>
+): any => {
+  const result = filter(input, ...args)
   if (result === true) return pass(input)
   if (result === false) return fail(input)
   return result
