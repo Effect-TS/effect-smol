@@ -168,11 +168,10 @@ describe("RpcServer", () => {
           Effect.flip
         )
         const defect = Cause.squash(cause)
-        assert.deepStrictEqual(defect, {
-          name: "CustomDefect",
-          message: "detailed error",
-          stack: "Error: detailed error\n  at handler.ts:1"
-        })
+        assert.instanceOf(defect, Error)
+        assert.strictEqual(defect.name, "CustomDefect")
+        assert.strictEqual(defect.message, "detailed error")
+        assert.strictEqual(defect.stack, "Error: detailed error\n  at handler.ts:1")
       }).pipe(Effect.provide(CustomDefectLayer)))
   })
 })

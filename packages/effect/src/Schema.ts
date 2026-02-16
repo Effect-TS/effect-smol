@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 
-/** @effect-diagnostics schemaStructWithTag:skip-file */
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec"
 import * as Arr from "./Array.ts"
 import type * as Brand from "./Brand.ts"
