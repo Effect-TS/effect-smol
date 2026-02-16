@@ -2638,6 +2638,86 @@ export * as SchemaParser from "./SchemaParser.ts"
 export * as SchemaRepresentation from "./SchemaRepresentation.ts"
 
 /**
+ * Bidirectional transformations for the Effect Schema system.
+ *
+ * A `Transformation` pairs a decode `Getter` and an encode `Getter` into a
+ * single bidirectional value, used by `Schema.decodeTo`, `Schema.encodeTo`,
+ * `Schema.decode`, `Schema.encode`, and `Schema.link` to define how values
+ * are converted between encoded and decoded representations. A `Middleware`
+ * is the effect-level equivalent — it wraps the entire parsing `Effect`
+ * pipeline rather than individual values.
+ *
+ * ## Mental model
+ *
+ * - **Transformation**: A pair of `Getter`s (decode + encode) that convert
+ *   individual values bidirectionally. `T` is the decoded (Type) side, `E` is
+ *   the encoded side. `RD`/`RE` are required Effect services.
+ * - **Middleware**: Like `Transformation`, but each direction receives the full
+ *   parsing `Effect` and can intercept, retry, or modify the pipeline.
+ * - **Getter**: A single-direction transform `Option<E> → Effect<Option<T>, Issue, R>`
+ *   (see `SchemaGetter`).
+ * - **flip()**: Swaps decode and encode, turning a `Transformation<T, E>` into
+ *   `Transformation<E, T>`.
+ * - **compose()**: Chains two transformations left-to-right on the decode side
+ *   and right-to-left on the encode side.
+ * - **passthrough**: The identity transformation — no conversion in either
+ *   direction.
+ *
+ * ## Common tasks
+ *
+ * - Convert values purely (sync, infallible) → {@link transform}
+ * - Convert values with possible failure → {@link transformOrFail}
+ * - Handle optional/missing keys → {@link transformOptional}
+ * - Build from existing Getters → {@link make}
+ * - No-op identity transformation → {@link passthrough}
+ * - Subtype/supertype coercion → {@link passthroughSupertype}, {@link passthroughSubtype}
+ * - Trim/case strings → {@link trim}, {@link toLowerCase}, {@link toUpperCase}, {@link capitalize}, {@link uncapitalize}, {@link snakeToCamel}
+ * - Parse key-value strings → {@link splitKeyValue}
+ * - Coerce string ↔ number/bigint → {@link numberFromString}, {@link bigintFromString}
+ * - Decode durations → {@link durationFromNanos}, {@link durationFromMillis}
+ * - Wrap nullable/optional as Option → {@link optionFromNullOr}, {@link optionFromOptionalKey}, {@link optionFromOptional}
+ * - Parse URLs → {@link urlFromString}
+ * - Base64 ↔ Uint8Array → {@link uint8ArrayFromBase64String}
+ * - JSON string ↔ unknown → {@link fromJsonString}
+ * - FormData/URLSearchParams ↔ unknown → {@link fromFormData}, {@link fromURLSearchParams}
+ * - Check if a value is a Transformation → {@link isTransformation}
+ *
+ * ## Gotchas
+ *
+ * - `Transformation` operates on individual values; `Middleware` wraps the
+ *   entire parsing Effect. Choose accordingly.
+ * - `passthrough` requires `T === E` by default. Use `{ strict: false }` to
+ *   bypass, or use {@link passthroughSupertype} / {@link passthroughSubtype}.
+ * - String transformations like `trim`, `toLowerCase`, and `toUpperCase` use
+ *   `passthrough` on the encode side — they are lossy and do not round-trip.
+ * - `durationFromNanos` encode can fail if the Duration cannot be represented
+ *   as a `bigint`.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Defining a custom transformation with Schema.decodeTo)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const CentsFromDollars = Schema.Number.pipe(
+ *   Schema.decodeTo(
+ *     Schema.Number,
+ *     SchemaTransformation.transform({
+ *       decode: (dollars) => dollars * 100,
+ *       encode: (cents) => cents / 100
+ *     })
+ *   )
+ * )
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link Transformation} — the core bidirectional transformation class
+ * - {@link Middleware} — effect-pipeline-level transformation
+ * - {@link transform} — most common constructor
+ * - {@link passthrough} — identity transformation
+ *
  * @since 4.0.0
  */
 export * as SchemaTransformation from "./SchemaTransformation.ts"
