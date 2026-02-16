@@ -3042,13 +3042,6 @@ export const filter: {
 /**
  * @since 4.0.0
  * @category Filtering
- * @deprecated Use {@link filter} instead.
- */
-export const filterMap: typeof filter = filter
-
-/**
- * @since 4.0.0
- * @category Filtering
  */
 export const filterEffect: {
   <OutElem, B, X, EX, RX>(
@@ -3079,13 +3072,6 @@ export const filterEffect: {
         })
     )
   ))
-
-/**
- * @since 4.0.0
- * @category Filtering
- * @deprecated Use {@link filterEffect} instead.
- */
-export const filterMapEffect: typeof filterEffect = filterEffect
 
 /**
  * Filters arrays of elements emitted by a channel, applying the filter
@@ -3168,13 +3154,6 @@ export const filterArray: {
 /**
  * @since 4.0.0
  * @category Filtering
- * @deprecated Use {@link filterArray} instead.
- */
-export const filterMapArray: typeof filterArray = filterArray
-
-/**
- * @since 4.0.0
- * @category Filtering
  */
 export const filterArrayEffect: {
   <OutElem, E, R>(
@@ -3221,13 +3200,6 @@ export const filterArrayEffect: {
       (passes) => Arr.isReadonlyArrayNonEmpty(passes) ? Filter.pass(passes) : Filter.failVoid
     ))
 })
-
-/**
- * @since 4.0.0
- * @category Filtering
- * @deprecated Use {@link filterArrayEffect} instead.
- */
-export const filterMapArrayEffect: typeof filterArrayEffect = filterArrayEffect
 
 /**
  * Statefully maps over a channel with an accumulator, where each element can produce multiple output values.

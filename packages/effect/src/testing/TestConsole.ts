@@ -5,7 +5,6 @@ import * as Array from "../Array.ts"
 import * as Console from "../Console.ts"
 import * as Effect from "../Effect.ts"
 import * as Layer from "../Layer.ts"
-import * as Option from "../Option.ts"
 
 /**
  * A `TestConsole` provides a testable implementation of the Console interface.
@@ -133,19 +132,11 @@ export const make = Effect.gen(function*() {
     }
   }
 
-  const logLines = Effect.sync(() => {
-    return Array.filterMap(entries, (entry) =>
-      entry.method === "log"
-        ? Option.some(entry.parameters) :
-        Option.none())
-  }).pipe(Effect.map(Array.flatten))
+  const logLines = Effect.sync(() => Array.flatMap(entries, (entry) => entry.method === "log" ? entry.parameters : []))
 
-  const errorLines = Effect.sync(() => {
-    return Array.filterMap(entries, (entry) =>
-      entry.method === "error"
-        ? Option.some(entry.parameters) :
-        Option.none())
-  }).pipe(Effect.map(Array.flatten))
+  const errorLines = Effect.sync(() =>
+    Array.flatMap(entries, (entry) => entry.method === "error" ? entry.parameters : [])
+  )
 
   return {
     assert: createEntryUnsafe("assert"),

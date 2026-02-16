@@ -4488,13 +4488,6 @@ export const filter: {
 } = internal.filter
 
 /**
- * @since 2.0.0
- * @category Filtering
- * @deprecated Use {@link filter} instead.
- */
-export const filterMap: typeof filter = filter
-
-/**
  * Filters an effect, providing an alternative effect if the predicate fails.
  *
  * **Details**

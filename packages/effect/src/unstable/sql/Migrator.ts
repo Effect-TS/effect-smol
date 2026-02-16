@@ -304,7 +304,7 @@ export const fromGlob = (
 ): Loader =>
   pipe(
     Object.keys(migrations),
-    Arr.filterMap((_) => Option.fromNullishOr(_.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts)$/))),
+    Arr.flatMapNullishOr((_) => _.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts)$/)),
     Arr.map(
       ([key, id, name]): ResolvedMigration => [
         Number(id),
@@ -323,7 +323,7 @@ export const fromGlob = (
 export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
   pipe(
     Object.keys(migrations),
-    Arr.filterMap((_) => Option.fromNullishOr(_.match(/^_(\d+)_([^.]+?)(Js|Ts)?$/))),
+    Arr.flatMapNullishOr((_) => _.match(/^_(\d+)_([^.]+?)(Js|Ts)?$/)),
     Arr.map(
       ([key, id, name]): ResolvedMigration => [
         Number(id),
@@ -342,7 +342,7 @@ export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
 export const fromRecord = (migrations: Record<string, Effect.Effect<void, unknown, Client.SqlClient>>): Loader =>
   pipe(
     Object.keys(migrations),
-    Arr.filterMap((_) => Option.fromNullishOr(_.match(/^(\d+)_(.+)$/))),
+    Arr.flatMapNullishOr((_) => _.match(/^(\d+)_(.+)$/)),
     Arr.map(
       ([key, id, name]): ResolvedMigration => [
         Number(id),

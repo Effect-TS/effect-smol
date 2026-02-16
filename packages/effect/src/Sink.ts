@@ -1405,20 +1405,6 @@ export const takeUntilEffect = <In, E, R>(
   })
 
 /**
- * @since 4.0.0
- * @category constructors
- * @deprecated Use {@link takeWhile} instead.
- */
-export const takeFilter: typeof takeWhile = takeWhile
-
-/**
- * @since 4.0.0
- * @category constructors
- * @deprecated Use {@link takeWhileEffect} instead.
- */
-export const takeFilterEffect: typeof takeWhileEffect = takeWhileEffect
-
-/**
  * A sink that executes the provided effectful function for every item fed
  * to it.
  *
