@@ -3849,7 +3849,7 @@ export const ignore: <
  * const task = Effect.fail("boom")
  *
  * const program = task.pipe(Effect.ignoreCause)
- * const programLog = task.pipe(Effect.ignoreCause({ log: true })
+ * const programLog = task.pipe(Effect.ignoreCause({ log: true }))
  * ```
  *
  * @since 4.0.0
