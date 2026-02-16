@@ -122,36 +122,39 @@ Filter-based API and remove the standalone variant.
 
 #### APIs to merge (remove predicate-only variant)
 
-| Filter API           | Predicate variant to remove |
-| -------------------- | --------------------------- |
-| `Effect.catchFilter` | `Effect.catchIf`            |
-| `Stream.catchFilter` | `Stream.catchIf`            |
+| Filter API       | Predicate variant absorbed |
+| ---------------- | -------------------------- |
+| `Effect.catchIf` | old `Effect.catchIf`       |
+| `Stream.catchIf` | old `Stream.catchIf`       |
+
+_(The old `catchIf` was predicate-only. It was merged into `catchFilter`, which was then
+renamed back to `catchIf` in Phase 5.)_
 
 #### APIs to add overloads (no existing predicate variant to remove)
 
-| Module  | Function                |
+| Module  | Function (final name)   |
 | ------- | ----------------------- |
-| Effect  | `catchCauseFilter`      |
-| Effect  | `tapCauseFilter`        |
-| Effect  | `filterMap`             |
-| Effect  | `onErrorFilter`         |
-| Effect  | `onExitFilter`          |
-| Stream  | `filterMap`             |
-| Stream  | `filterMapEffect`       |
-| Stream  | `partitionFilter`       |
-| Stream  | `partitionFilterQueue`  |
-| Stream  | `partitionFilterEffect` |
-| Stream  | `catchFilter`           |
-| Stream  | `catchCauseFilter`      |
-| Channel | `filterMap`             |
-| Channel | `filterMapEffect`       |
-| Channel | `filterMapArray`        |
-| Channel | `filterMapArrayEffect`  |
-| Channel | `catchCauseFilter`      |
-| Channel | `catchFilter`           |
-| Sink    | `takeFilter`            |
-| Sink    | `takeFilterEffect`      |
-| Array   | `partitionFilter`       |
+| Effect  | `catchCauseIf`          |
+| Effect  | `tapCauseIf`            |
+| Effect  | `filter`                |
+| Effect  | `onErrorIf`             |
+| Effect  | `onExitIf`              |
+| Stream  | `filter`                |
+| Stream  | `filterEffect`          |
+| Stream  | `partition`             |
+| Stream  | `partitionQueue`        |
+| Stream  | `partitionEffect`       |
+| Stream  | `catchIf`               |
+| Stream  | `catchCauseIf`          |
+| Channel | `filter`                |
+| Channel | `filterEffect`          |
+| Channel | `filterArray`           |
+| Channel | `filterArrayEffect`     |
+| Channel | `catchCauseIf`          |
+| Channel | `catchIf`               |
+| Sink    | `takeWhile`             |
+| Sink    | `takeWhileEffect`       |
+| Array   | `partition`             |
 
 #### APIs with existing predicate variants that remain separate
 
@@ -304,7 +307,8 @@ Filter.make((n: number) => n > 0 ? Filter.pass(n * 2) : Filter.fail(n))
 - `Filter.Filter` returns `pass<Pass> | fail<Fail>`, never unboxed values.
 - `Filter.pass`, `Filter.passVoid`, `Filter.isPass` are exported.
 - All 22 Filter-accepting APIs also accept `Predicate` and `Refinement`.
-- `Effect.catchIf` and `Stream.catchIf` are removed; `catchFilter` absorbs their overloads.
+- `catchFilter` → `catchIf`, `catchCauseFilter` → `catchCauseIf`, `tapCauseFilter` → `tapCauseIf`,
+  `onExitFilter` → `onExitIf`, `onErrorFilter` → `onErrorIf`.
 - All internal filter functions return `pass<T>`.
 - All consumption sites use `result.pass` / `result.fail` to extract values.
 - All filter combinators work with boxed pass values.
@@ -318,8 +322,8 @@ All phases implemented. All validation passes:
 - `pnpm check` — 0 errors
 - `pnpm lint-fix` — clean
 - `pnpm build` — succeeds
-- `pnpm docgen` — all 3095 examples compile
-- `pnpm test` — 5499 passed, 9 skipped, 0 failed (203 test files)
+- `pnpm docgen` — all 3090 examples compile
+- `pnpm test` — 5497 passed, 0 failed
 
 ## Implementation Notes
 
@@ -522,3 +526,43 @@ overload.
 - Effectful variants are renamed to match.
 - All tests pass.
 - Barrel files regenerated (`pnpm codegen`).
+
+## Phase 5: Rename `*Filter` Error-Handling APIs to `*If`
+
+### Motivation
+
+The `*Filter` suffix on error-handling APIs (`catchFilter`, `catchCauseFilter`, etc.) is
+verbose and reads poorly. Since these APIs accept predicates, refinements, and filters via
+overloads, the `*If` suffix better communicates the conditional semantics.
+
+### Renames
+
+| Before              | After          | Modules                    |
+| ------------------- | -------------- | -------------------------- |
+| `catchFilter`       | `catchIf`      | Effect, Stream, Channel    |
+| `catchCauseFilter`  | `catchCauseIf` | Effect, Stream, Channel, Pull |
+| `tapCauseFilter`    | `tapCauseIf`   | Effect                     |
+| `onExitFilter`      | `onExitIf`     | Effect                     |
+| `onErrorFilter`     | `onErrorIf`    | Effect                     |
+
+All internal call sites, tests, and downstream consumers updated. The old `catchIf` (which
+was a predicate-only variant) was already merged into `catchFilter` in Phase 3, so the name
+`catchIf` was free to reuse.
+
+### Migration
+
+```ts
+// Before:
+Effect.catchFilter(program, filter, handler)
+Effect.catchCauseFilter(program, filter, handler)
+Effect.tapCauseFilter(program, filter, handler)
+Effect.onExitFilter(program, filter, handler)
+Effect.onErrorFilter(program, filter, handler)
+
+// After:
+Effect.catchIf(program, filter, handler)
+Effect.catchCauseIf(program, filter, handler)
+Effect.tapCauseIf(program, filter, handler)
+Effect.onExitIf(program, filter, handler)
+Effect.onErrorIf(program, filter, handler)
+```
