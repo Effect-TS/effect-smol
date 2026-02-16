@@ -4,26 +4,20 @@ import type { ReasoningDetails } from "../OpenRouterLanguageModel.ts"
 
 const finishReasonMap: Record<string, Response.FinishReason> = {
   content_filter: "content-filter",
-  stop: "stop",
+  error: "error",
+  function_call: "tool-calls",
   length: "length",
   tool_calls: "tool-calls",
-  error: "error"
+  stop: "stop"
 }
 
 /** @internal */
 export const resolveFinishReason = (
-  finishReason: string | null | undefined,
-  hasToolCalls: boolean
-): Response.FinishReason => {
-  if (finishReason == null) {
-    return hasToolCalls ? "tool-calls" : "stop"
-  }
-  const reason = finishReasonMap[finishReason]
-  if (reason == null) {
-    return hasToolCalls ? "tool-calls" : "unknown"
-  }
-  return reason
-}
+  finishReason: string | null | undefined
+): Response.FinishReason =>
+  Predicate.isNotNullish(finishReason)
+    ? finishReasonMap[finishReason]
+    : "other"
 
 /**
  * Tracks ReasoningDetailUnion entries and deduplicates them based

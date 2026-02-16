@@ -44,15 +44,21 @@ export interface Service {
   >
 
   readonly createChatCompletionStream: (
-    options: typeof Generated.ChatGenerationParams.Encoded
+    options: Omit<typeof Generated.ChatGenerationParams.Encoded, "stream" | "stream_options">
   ) => Effect.Effect<
     [
       response: HttpClientResponse.HttpClientResponse,
-      stream: Stream.Stream<typeof Generated.ChatStreamingResponseChunk.fields.data.Type, AiError.AiError>
+      stream: Stream.Stream<ChatStreamingResponseChunkData, AiError.AiError>
     ],
     AiError.AiError
   >
 }
+
+/**
+ * @since 1.0.0
+ * @category Models
+ */
+export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingResponseChunk.fields.data.Type
 
 // =============================================================================
 // Service Identifier
@@ -157,7 +163,7 @@ export const make = Effect.fnUntraced(
       response: HttpClientResponse.HttpClientResponse
     ): [
       HttpClientResponse.HttpClientResponse,
-      Stream.Stream<typeof Generated.ChatStreamingResponseChunk.fields.data.Type, AiError.AiError>
+      Stream.Stream<ChatStreamingResponseChunkData, AiError.AiError>
     ] => {
       const stream = response.stream.pipe(
         Stream.decodeText(),
@@ -177,7 +183,11 @@ export const make = Effect.fnUntraced(
     const createChatCompletionStream: Service["createChatCompletionStream"] = (payload) =>
       httpClientOk.execute(
         HttpClientRequest.post("/chat/completions", {
-          body: HttpBody.jsonUnsafe({ ...payload, stream: true })
+          body: HttpBody.jsonUnsafe({
+            ...payload,
+            stream: true,
+            stream_options: { include_usage: true }
+          })
         })
       ).pipe(
         Effect.map(buildChatCompletionStream),
@@ -275,12 +285,7 @@ const decodeChatStreamingResponseChunkData = Schema.decodeUnknownEffect(ChatStre
 
 const decodeChatCompletionSseData = (
   data: string
-): Effect.Effect<
-  typeof Generated.ChatStreamingResponseChunk.fields.data.Type | "[DONE]",
-  Schema.SchemaError
-> => {
-  if (data === "[DONE]") {
-    return Effect.succeed(data)
-  }
-  return decodeChatStreamingResponseChunkData(data)
-}
+): Effect.Effect<ChatStreamingResponseChunkData | "[DONE]", Schema.SchemaError> =>
+  data === "[DONE]"
+    ? Effect.succeed(data)
+    : decodeChatStreamingResponseChunkData(data)

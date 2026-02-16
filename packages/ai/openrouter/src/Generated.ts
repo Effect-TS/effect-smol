@@ -4441,6 +4441,33 @@ export type ChatStreamingMessageChunk = {
   readonly "refusal"?: string | null
   readonly "tool_calls"?: ReadonlyArray<ChatStreamingMessageToolCall>
   readonly "reasoning_details"?: ReadonlyArray<__schema19>
+  readonly "images"?:
+    | ReadonlyArray<{ readonly "type": "image_url"; readonly "image_url": { readonly "url": string } }>
+    | null
+  readonly "annotations"?:
+    | ReadonlyArray<
+      {
+        readonly "type": "url_citation"
+        readonly "url_citation": {
+          readonly "url": string
+          readonly "title"?: string
+          readonly "start_index"?: number
+          readonly "end_index"?: number
+          readonly "content"?: string
+        }
+      } | {
+        readonly "type": "file_annotation"
+        readonly "file_annotation": { readonly "file_id": string; readonly "quote"?: string }
+      } | {
+        readonly "type": "file"
+        readonly "file": {
+          readonly "hash": string
+          readonly "name": string
+          readonly "content"?: ReadonlyArray<{ readonly "type": string; readonly "text"?: string }>
+        }
+      }
+    >
+    | null
 }
 export const ChatStreamingMessageChunk = Schema.Struct({
   "role": Schema.optionalKey(Schema.Literal("assistant")),
@@ -4448,7 +4475,44 @@ export const ChatStreamingMessageChunk = Schema.Struct({
   "reasoning": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
   "refusal": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
   "tool_calls": Schema.optionalKey(Schema.Array(ChatStreamingMessageToolCall)),
-  "reasoning_details": Schema.optionalKey(Schema.Array(__schema19))
+  "reasoning_details": Schema.optionalKey(Schema.Array(__schema19)),
+  "images": Schema.optionalKey(
+    Schema.Union([
+      Schema.Array(
+        Schema.Struct({ "type": Schema.Literal("image_url"), "image_url": Schema.Struct({ "url": Schema.String }) })
+      ),
+      Schema.Null
+    ])
+  ),
+  "annotations": Schema.optionalKey(Schema.Union([
+    Schema.Array(Schema.Union([
+      Schema.Struct({
+        "type": Schema.Literal("url_citation"),
+        "url_citation": Schema.Struct({
+          "url": Schema.String,
+          "title": Schema.optionalKey(Schema.String),
+          "start_index": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
+          "end_index": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
+          "content": Schema.optionalKey(Schema.String)
+        })
+      }),
+      Schema.Struct({
+        "type": Schema.Literal("file_annotation"),
+        "file_annotation": Schema.Struct({ "file_id": Schema.String, "quote": Schema.optionalKey(Schema.String) })
+      }),
+      Schema.Struct({
+        "type": Schema.Literal("file"),
+        "file": Schema.Struct({
+          "hash": Schema.String,
+          "name": Schema.String,
+          "content": Schema.optionalKey(
+            Schema.Array(Schema.Struct({ "type": Schema.String, "text": Schema.optionalKey(Schema.String) }))
+          )
+        })
+      })
+    ], { mode: "oneOf" })),
+    Schema.Null
+  ]))
 })
 export type ChatMessageContentItem =
   | ChatMessageContentItemText
@@ -4573,7 +4637,33 @@ export type AssistantMessage = {
   readonly "refusal"?: string | null
   readonly "reasoning"?: string | null
   readonly "reasoning_details"?: ReadonlyArray<__schema19>
-  readonly "images"?: ReadonlyArray<{ readonly "image_url": { readonly "url": string } }>
+  readonly "images"?:
+    | ReadonlyArray<{ readonly "type": "image_url"; readonly "image_url": { readonly "url": string } }>
+    | null
+  readonly "annotations"?:
+    | ReadonlyArray<
+      {
+        readonly "type": "url_citation"
+        readonly "url_citation": {
+          readonly "url": string
+          readonly "title"?: string
+          readonly "start_index"?: number
+          readonly "end_index"?: number
+          readonly "content"?: string
+        }
+      } | {
+        readonly "type": "file_annotation"
+        readonly "file_annotation": { readonly "file_id": string; readonly "quote"?: string }
+      } | {
+        readonly "type": "file"
+        readonly "file": {
+          readonly "hash": string
+          readonly "name": string
+          readonly "content"?: ReadonlyArray<{ readonly "type": string; readonly "text"?: string }>
+        }
+      }
+    >
+    | null
 }
 export const AssistantMessage = Schema.Struct({
   "role": Schema.Literal("assistant"),
@@ -4585,7 +4675,43 @@ export const AssistantMessage = Schema.Struct({
   "refusal": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
   "reasoning": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
   "reasoning_details": Schema.optionalKey(Schema.Array(__schema19)),
-  "images": Schema.optionalKey(Schema.Array(Schema.Struct({ "image_url": Schema.Struct({ "url": Schema.String }) })))
+  "images": Schema.optionalKey(
+    Schema.Union([
+      Schema.Array(
+        Schema.Struct({ "type": Schema.Literal("image_url"), "image_url": Schema.Struct({ "url": Schema.String }) })
+      ),
+      Schema.Null
+    ])
+  ),
+  "annotations": Schema.optionalKey(Schema.Union([
+    Schema.Array(Schema.Union([
+      Schema.Struct({
+        "type": Schema.Literal("url_citation"),
+        "url_citation": Schema.Struct({
+          "url": Schema.String,
+          "title": Schema.optionalKey(Schema.String),
+          "start_index": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
+          "end_index": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
+          "content": Schema.optionalKey(Schema.String)
+        })
+      }),
+      Schema.Struct({
+        "type": Schema.Literal("file_annotation"),
+        "file_annotation": Schema.Struct({ "file_id": Schema.String, "quote": Schema.optionalKey(Schema.String) })
+      }),
+      Schema.Struct({
+        "type": Schema.Literal("file"),
+        "file": Schema.Struct({
+          "hash": Schema.String,
+          "name": Schema.String,
+          "content": Schema.optionalKey(
+            Schema.Array(Schema.Struct({ "type": Schema.String, "text": Schema.optionalKey(Schema.String) }))
+          )
+        })
+      })
+    ], { mode: "oneOf" })),
+    Schema.Null
+  ]))
 })
 export type ToolResponseMessage = {
   readonly "role": "tool"

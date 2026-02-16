@@ -16,7 +16,7 @@ import * as SchemaAST from "effect/SchemaAST"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import type { Span } from "effect/Tracer"
-import type { Mutable, Simplify } from "effect/Types"
+import type { DeepMutable, Mutable, Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
 import * as IdGenerator from "effect/unstable/ai/IdGenerator"
 import * as LanguageModel from "effect/unstable/ai/LanguageModel"
@@ -29,7 +29,7 @@ import type * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import type * as Generated from "./Generated.ts"
 import { ReasoningDetailsDuplicateTracker, resolveFinishReason } from "./internal/utilities.ts"
-import { OpenRouterClient } from "./OpenRouterClient.ts"
+import { type ChatStreamingResponseChunkData, OpenRouterClient } from "./OpenRouterClient.ts"
 
 // =============================================================================
 // Configuration
@@ -47,7 +47,7 @@ export class Config extends ServiceMap.Service<
     & Partial<
       Omit<
         typeof Generated.ChatGenerationParams.Encoded,
-        "messages" | "response_format" | "tools" | "tool_choice" | "stream"
+        "messages" | "response_format" | "tools" | "tool_choice" | "stream" | "stream_options"
       >
     >
     & {
@@ -71,6 +71,15 @@ export class Config extends ServiceMap.Service<
  * @category models
  */
 export type ReasoningDetails = Exclude<typeof Generated.AssistantMessage.Encoded["reasoning_details"], undefined>
+
+/**
+ * @since 1.0.0
+ * @category models
+ */
+export type FileAnnotation = Extract<
+  NonNullable<typeof Generated.AssistantMessage.fields.annotations.Type>[number],
+  { type: "file" }
+>
 
 declare module "effect/unstable/ai/Prompt" {
   export interface SystemMessageOptions extends ProviderOptions {
@@ -175,9 +184,29 @@ declare module "effect/unstable/ai/Response" {
     } | null
   }
 
+  export interface ReasoningStartPartMetadata extends ProviderMetadata {
+    readonly openrouter?: {
+      readonly reasoningDetails?: ReasoningDetails | null
+    } | null
+  }
+
+  export interface ReasoningDeltaPartMetadata extends ProviderMetadata {
+    readonly openrouter?: {
+      readonly reasoningDetails?: ReasoningDetails | null
+    } | null
+  }
+
   export interface ToolCallPartMetadata extends ProviderMetadata {
     readonly openrouter?: {
       readonly reasoningDetails?: ReasoningDetails | null
+    } | null
+  }
+
+  export interface UrlSourcePartMetadata extends ProviderMetadata {
+    readonly openrouter?: {
+      readonly content?: string | null
+      readonly startIndex?: number | null
+      readonly endIndex?: number | null
     } | null
   }
 
@@ -185,6 +214,8 @@ declare module "effect/unstable/ai/Response" {
     readonly openrouter?: {
       readonly systemFingerprint?: string | null
       readonly usage?: typeof Generated.ChatGenerationTokenUsage.Encoded | null
+      readonly annotations?: ReadonlyArray<FileAnnotation> | null
+      readonly provider?: string | null
     } | null
   }
 }
@@ -251,7 +282,23 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         return yield* makeResponse({ rawResponse, response })
       }
     ),
-    streamText: () => Stream.empty // TODO
+    streamText: Effect.fnUntraced(
+      function*(options) {
+        const config = yield* makeConfig
+        const request = yield* makeRequest({ config, options })
+        annotateRequest(options.span, request)
+        const [response, stream] = yield* client.createChatCompletionStream(request)
+        return yield* makeStreamResponse({ response, stream })
+      },
+      (effect, options) =>
+        effect.pipe(
+          Stream.unwrap,
+          Stream.map((response) => {
+            annotateStreamResponse(options.span, response)
+            return response
+          })
+        )
+    )
   }).pipe(Effect.provideService(
     LanguageModel.CurrentCodecTransformer,
     codecTransformer
@@ -530,37 +577,6 @@ const buildHttpResponseDetails = (
 })
 
 // =============================================================================
-// Usage
-// =============================================================================
-
-const getUsage = (usage: Generated.ChatGenerationTokenUsage | undefined): Response.Usage => {
-  if (Predicate.isUndefined(usage)) {
-    return {
-      inputTokens: { uncached: undefined, total: undefined, cacheRead: undefined, cacheWrite: undefined },
-      outputTokens: { total: undefined, text: undefined, reasoning: undefined }
-    }
-  }
-  const promptTokens = usage.prompt_tokens
-  const completionTokens = usage.completion_tokens
-  const cachedTokens = usage.prompt_tokens_details?.cached_tokens ?? 0
-  const cacheWriteTokens = usage.prompt_tokens_details?.cache_write_tokens ?? 0
-  const reasoningTokens = usage.completion_tokens_details?.reasoning_tokens ?? 0
-  return {
-    inputTokens: {
-      uncached: promptTokens - cachedTokens - cacheWriteTokens,
-      total: promptTokens,
-      cacheRead: cachedTokens,
-      cacheWrite: cacheWriteTokens
-    },
-    outputTokens: {
-      total: completionTokens,
-      text: completionTokens - reasoningTokens,
-      reasoning: reasoningTokens
-    }
-  }
-}
-
-// =============================================================================
 // Response Conversion
 // =============================================================================
 
@@ -586,19 +602,13 @@ const makeResponse = Effect.fnUntraced(
 
     const choice = rawResponse.choices[0]
     if (Predicate.isUndefined(choice)) {
-      parts.push({
-        type: "finish",
-        reason: "unknown",
-        usage: getUsage(rawResponse.usage),
-        response: buildHttpResponseDetails(response),
-        metadata: {
-          openrouter: {
-            systemFingerprint: rawResponse.system_fingerprint ?? null,
-            usage: rawResponse.usage ?? null
-          }
-        }
+      return yield* AiError.make({
+        module: "OpenRouterLanguageModel",
+        method: "makeResponse",
+        reason: new AiError.InvalidOutputError({
+          description: "Received response with empty choices"
+        })
       })
-      return parts
     }
 
     const message = choice.message
@@ -608,29 +618,35 @@ const makeResponse = Effect.fnUntraced(
     if (Predicate.isNotNullish(reasoningDetails) && reasoningDetails.length > 0) {
       for (const detail of reasoningDetails) {
         switch (detail.type) {
+          case "reasoning.text": {
+            if (Predicate.isNotNullish(detail.text) && detail.text.length > 0) {
+              parts.push({
+                type: "reasoning",
+                text: detail.text,
+                metadata: { openrouter: { reasoningDetails: [detail] } }
+              })
+            }
+            break
+          }
           case "reasoning.summary": {
-            parts.push({
-              type: "reasoning",
-              text: detail.summary,
-              metadata: { openrouter: { reasoningDetails: [detail] } }
-            })
+            if (detail.summary.length > 0) {
+              parts.push({
+                type: "reasoning",
+                text: detail.summary,
+                metadata: { openrouter: { reasoningDetails: [detail] } }
+              })
+            }
             break
           }
           case "reasoning.encrypted": {
-            hasEncryptedReasoning = true
-            parts.push({
-              type: "reasoning",
-              text: "",
-              metadata: { openrouter: { reasoningDetails: [detail] } }
-            })
-            break
-          }
-          case "reasoning.text": {
-            parts.push({
-              type: "reasoning",
-              text: detail.text ?? "",
-              metadata: { openrouter: { reasoningDetails: [detail] } }
-            })
+            if (detail.data.length > 0) {
+              hasEncryptedReasoning = true
+              parts.push({
+                type: "reasoning",
+                text: "[REDACTED]",
+                metadata: { openrouter: { reasoningDetails: [detail] } }
+              })
+            }
             break
           }
         }
@@ -661,10 +677,10 @@ const makeResponse = Effect.fnUntraced(
     const toolCalls = message.tool_calls
     if (Predicate.isNotNullish(toolCalls) && toolCalls.length > 0) {
       hasToolCalls = true
-      for (let i = 0; i < toolCalls.length; i++) {
-        const toolCall = toolCalls[i]
+      for (let index = 0; index < toolCalls.length; index++) {
+        const toolCall = toolCalls[index]
         const toolName = toolCall.function.name
-        const toolParams = toolCall.function.arguments
+        const toolParams = toolCall.function.arguments ?? "{}"
         const params = yield* Effect.try({
           try: () => Tool.unsafeSecureJsonParse(toolParams),
           catch: (cause) =>
@@ -683,7 +699,9 @@ const makeResponse = Effect.fnUntraced(
           id: toolCall.id,
           name: toolName,
           params,
-          ...(i === 0 && Predicate.isNotNullish(reasoningDetails) && reasoningDetails.length > 0
+          // Only attach reasoning_details to the first tool call to avoid
+          // duplicating thinking blocks for parallel tool calls (Claude)
+          ...(index === 0 && Predicate.isNotNullish(reasoningDetails) && reasoningDetails.length > 0
             ? { metadata: { openrouter: { reasoningDetails } } }
             : undefined)
         })
@@ -695,46 +713,519 @@ const makeResponse = Effect.fnUntraced(
       for (const image of images) {
         const url = image.image_url.url
         if (url.startsWith("data:")) {
-          // Parse data URI: data:<mediaType>;base64,<data>
-          const commaIndex = url.indexOf(",")
-          if (commaIndex !== -1) {
-            const meta = url.slice(5, commaIndex) // after "data:" before ","
-            const mediaType = meta.replace(/;base64$/, "")
-            const data = url.slice(commaIndex + 1)
-            parts.push({ type: "file", mediaType, data })
-          }
+          const mediaType = getMediaType(url, "image/jpeg")
+          const data = getBase64FromDataUrl(url)
+          parts.push({ type: "file", mediaType, data })
         } else {
           const id = yield* idGenerator.generateId()
+          parts.push({ type: "source", sourceType: "url", id, url, title: "" })
+        }
+      }
+    }
+
+    const annotations = choice.message.annotations
+    if (Predicate.isNotNullish(annotations)) {
+      for (const annotation of annotations) {
+        if (annotation.type === "url_citation") {
           parts.push({
             type: "source",
             sourceType: "url",
-            id,
-            url,
-            title: ""
+            id: annotation.url_citation.url,
+            url: annotation.url_citation.url,
+            title: annotation.url_citation.title ?? "",
+            metadata: {
+              openrouter: {
+                ...(Predicate.isNotUndefined(annotation.url_citation.content)
+                  ? { content: annotation.url_citation.content }
+                  : undefined),
+                ...(Predicate.isNotUndefined(annotation.url_citation.start_index)
+                  ? { startIndex: annotation.url_citation.start_index }
+                  : undefined),
+                ...(Predicate.isNotUndefined(annotation.url_citation.end_index)
+                  ? { endIndex: annotation.url_citation.end_index }
+                  : undefined)
+              }
+            }
           })
         }
       }
     }
 
-    // Gemini 3 finish reason workaround
+    // Extract file annotations to expose in provider metadata
+    const fileAnnotations = annotations?.filter((annotation) => {
+      return annotation.type === "file"
+    })
+
+    // Fix for Gemini 3 thoughtSignature: when there are tool calls with encrypted
+    // reasoning (thoughtSignature), the model returns 'stop' but expects continuation.
+    // Override to 'tool-calls' so the SDK knows to continue the conversation.
     if (hasEncryptedReasoning && hasToolCalls && finishReason === "stop") {
       finishReason = "tool_calls"
     }
 
     parts.push({
       type: "finish",
-      reason: resolveFinishReason(finishReason, hasToolCalls),
+      reason: resolveFinishReason(finishReason),
       usage: getUsage(rawResponse.usage),
       response: buildHttpResponseDetails(response),
       metadata: {
         openrouter: {
           systemFingerprint: rawResponse.system_fingerprint ?? null,
-          usage: rawResponse.usage ?? null
+          usage: rawResponse.usage ?? null,
+          ...(Predicate.isNotUndefined(fileAnnotations) && fileAnnotations.length > 0
+            ? { annotations: fileAnnotations }
+            : undefined),
+          ...(Predicate.hasProperty(rawResponse, "provider") && Predicate.isString(rawResponse.provider)
+            ? { provider: rawResponse.provider }
+            : undefined)
         }
       }
     })
 
     return parts
+  }
+)
+
+const makeStreamResponse = Effect.fnUntraced(
+  function*({ response, stream }: {
+    readonly response: HttpClientResponse.HttpClientResponse
+    readonly stream: Stream.Stream<ChatStreamingResponseChunkData, AiError.AiError>
+  }): Effect.fn.Return<
+    Stream.Stream<Response.StreamPartEncoded, AiError.AiError>,
+    AiError.AiError,
+    IdGenerator.IdGenerator
+  > {
+    const idGenerator = yield* IdGenerator.IdGenerator
+
+    let textStarted = false
+    let reasoningStarted = false
+    let responseMetadataEmitted = false
+    let reasoningDetailsAttachedToToolCall = false
+    let finishReason: Response.FinishReason = "other"
+    let openRouterResponseId: string | undefined = undefined
+    let activeReasoningId: string | undefined = undefined
+    let activeTextId: string | undefined = undefined
+
+    let totalToolCalls = 0
+    const activeToolCalls: Array<{
+      readonly id: string
+      readonly type: "function"
+      readonly name: string
+      params: string
+    }> = []
+
+    // Track reasoning details to preserve for multi-turn conversations
+    const accumulatedReasoningDetails: DeepMutable<ReasoningDetails> = []
+
+    // Track file annotations to expose in provider metadata
+    const accumulatedFileAnnotations: Array<FileAnnotation> = []
+
+    const usage: DeepMutable<Response.Usage> = {
+      inputTokens: {
+        total: undefined,
+        uncached: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined
+      }
+    }
+
+    return stream.pipe(
+      Stream.mapEffect(Effect.fnUntraced(function*(event) {
+        const parts: Array<Response.StreamPartEncoded> = []
+
+        if (Predicate.isNotUndefined(event.error)) {
+          finishReason = "error"
+          parts.push({ type: "error", error: event.error })
+        }
+
+        if (Predicate.isNotUndefined(event.id) && !responseMetadataEmitted) {
+          const timestamp = yield* DateTime.now
+          parts.push({
+            type: "response-metadata",
+            id: event.id,
+            modelId: event.model,
+            timestamp: DateTime.formatIso(timestamp),
+            request: buildHttpRequestDetails(response.request)
+          })
+          responseMetadataEmitted = true
+        }
+
+        if (Predicate.isNotUndefined(event.usage)) {
+          const computed = getUsage(event.usage)
+          usage.inputTokens = computed.inputTokens
+          usage.outputTokens = computed.outputTokens
+        }
+
+        const choice = event.choices[0]
+        if (Predicate.isUndefined(choice)) {
+          return yield* AiError.make({
+            module: "OpenRouterLanguageModel",
+            method: "makeStreamResponse",
+            reason: new AiError.InvalidOutputError({
+              description: "Received response with empty choices"
+            })
+          })
+        }
+
+        if (Predicate.isNotNull(choice.finish_reason)) {
+          finishReason = resolveFinishReason(choice.finish_reason)
+        }
+
+        const delta = choice.delta
+        if (Predicate.isNullish(delta)) {
+          return parts
+        }
+
+        const emitReasoning = Effect.fnUntraced(
+          function*(delta: string, metadata?: Response.ReasoningDeltaPart["metadata"] | undefined) {
+            if (!reasoningStarted) {
+              activeReasoningId = openRouterResponseId ?? (yield* idGenerator.generateId())
+              parts.push({
+                type: "reasoning-start",
+                id: activeReasoningId,
+                metadata
+              })
+              reasoningStarted = true
+            }
+            parts.push({
+              type: "reasoning-delta",
+              id: activeReasoningId!,
+              delta,
+              metadata
+            })
+          }
+        )
+
+        const reasoningDetails = delta.reasoning_details
+        if (Predicate.isNotUndefined(reasoningDetails) && reasoningDetails.length > 0) {
+          // Accumulate reasoning_details to preserve for multi-turn conversations
+          // Merge consecutive reasoning.text items into a single entry
+          for (const detail of reasoningDetails) {
+            if (detail.type === "reasoning.text") {
+              const lastDetail = accumulatedReasoningDetails[accumulatedReasoningDetails.length - 1]
+              if (Predicate.isNotUndefined(lastDetail) && lastDetail.type === "reasoning.text") {
+                // Merge with the previous text detail
+                lastDetail.text = (lastDetail.text ?? "") + (detail.text ?? "")
+                lastDetail.signature = lastDetail.signature ?? detail.signature ?? null
+                lastDetail.format = lastDetail.format ?? detail.format ?? null
+              } else {
+                // Start a new text detail
+                accumulatedReasoningDetails.push({ ...detail })
+              }
+            } else {
+              // Non-text details (encrypted, summary) are pushed as-is
+              accumulatedReasoningDetails.push(detail)
+            }
+          }
+
+          // Emit reasoning_details in providerMetadata for each delta chunk
+          // so users can accumulate them on their end before sending back
+          const metadata: Response.ReasoningDeltaPart["metadata"] = {
+            openrouter: {
+              reasoningDetails
+            }
+          }
+          for (const detail of reasoningDetails) {
+            switch (detail.type) {
+              case "reasoning.text": {
+                if (Predicate.isNotNullish(detail.text)) {
+                  yield* emitReasoning(detail.text, metadata)
+                }
+                break
+              }
+
+              case "reasoning.summary": {
+                if (Predicate.isNotNullish(detail.summary)) {
+                  yield* emitReasoning(detail.summary, metadata)
+                }
+                break
+              }
+
+              case "reasoning.encrypted": {
+                if (Predicate.isNotNullish(detail.data)) {
+                  yield* emitReasoning("[REDACTED]", metadata)
+                }
+                break
+              }
+            }
+          }
+        } else if (Predicate.isNotNullish(delta.reasoning)) {
+          yield* emitReasoning(delta.reasoning)
+        }
+
+        const content = delta.content
+        if (Predicate.isNotNullish(content)) {
+          // If reasoning was previously active and now we're starting text content,
+          // we should end the reasoning first to maintain proper order
+          if (reasoningStarted && !textStarted) {
+            parts.push({
+              type: "reasoning-end",
+              id: activeReasoningId!,
+              // Include accumulated reasoning_details so the we can update the
+              // reasoning part's provider metadata with the correct signature.
+              // The signature typically arrives in the last reasoning delta,
+              // but reasoning-start only carries the first delta's metadata.
+              metadata: accumulatedReasoningDetails.length > 0
+                ? { openRouter: { reasoningDetails: accumulatedReasoningDetails } }
+                : undefined
+            })
+            reasoningStarted = false
+          }
+
+          if (!textStarted) {
+            activeTextId = openRouterResponseId ?? (yield* idGenerator.generateId())
+            parts.push({
+              type: "text-start",
+              id: activeTextId
+            })
+            textStarted = true
+          }
+
+          parts.push({
+            type: "text-delta",
+            id: activeTextId!,
+            delta: content
+          })
+        }
+
+        const annotations = delta.annotations
+        if (Predicate.isNotNullish(annotations)) {
+          for (const annotation of annotations) {
+            if (annotation.type === "url_citation") {
+              parts.push({
+                type: "source",
+                sourceType: "url",
+                id: annotation.url_citation.url,
+                url: annotation.url_citation.url,
+                title: annotation.url_citation.title ?? "",
+                metadata: {
+                  openrouter: {
+                    ...(Predicate.isNotUndefined(annotation.url_citation.content)
+                      ? { content: annotation.url_citation.content }
+                      : undefined),
+                    ...(Predicate.isNotUndefined(annotation.url_citation.start_index)
+                      ? { startIndex: annotation.url_citation.start_index }
+                      : undefined),
+                    ...(Predicate.isNotUndefined(annotation.url_citation.end_index)
+                      ? { startIndex: annotation.url_citation.end_index }
+                      : undefined)
+                  }
+                }
+              })
+            } else if (annotation.type === "file") {
+              accumulatedFileAnnotations.push(annotation)
+            }
+          }
+        }
+
+        const toolCalls = delta.tool_calls
+        if (Predicate.isNotNullish(toolCalls)) {
+          for (const toolCall of toolCalls) {
+            const index = toolCall.index ?? toolCalls.length - 1
+            let activeToolCall = activeToolCalls[index]
+
+            // Tool call start - OpenRouter returns all information except the
+            // tool call parameters in the first chunk
+            if (Predicate.isUndefined(activeToolCall)) {
+              if (toolCall.type !== "function") {
+                return yield* AiError.make({
+                  module: "OpenRouterLanguageModel",
+                  method: "makeStreamResponse",
+                  reason: new AiError.InvalidOutputError({
+                    description: "Received tool call delta that was not of type: 'function'"
+                  })
+                })
+              }
+
+              if (Predicate.isUndefined(toolCall.id)) {
+                return yield* AiError.make({
+                  module: "OpenRouterLanguageModel",
+                  method: "makeStreamResponse",
+                  reason: new AiError.InvalidOutputError({
+                    description: "Received tool call delta without a tool call identifier"
+                  })
+                })
+              }
+
+              if (Predicate.isUndefined(toolCall.function?.name)) {
+                return yield* AiError.make({
+                  module: "OpenRouterLanguageModel",
+                  method: "makeStreamResponse",
+                  reason: new AiError.InvalidOutputError({
+                    description: "Received tool call delta without a tool call name"
+                  })
+                })
+              }
+
+              activeToolCall = {
+                id: toolCall.id,
+                type: "function",
+                name: toolCall.function.name,
+                params: toolCall.function.arguments ?? ""
+              }
+
+              activeToolCalls[index] = activeToolCall
+
+              parts.push({
+                type: "tool-params-start",
+                id: activeToolCall.id,
+                name: activeToolCall.name
+              })
+
+              // Emit a tool call delta part if parameters were also sent
+              if (activeToolCall.params.length > 0) {
+                parts.push({
+                  type: "tool-params-delta",
+                  id: activeToolCall.id,
+                  delta: activeToolCall.params
+                })
+              }
+            } else {
+              // If an active tool call was found, update and emit the delta for
+              // the tool call's parameters
+              activeToolCall.params += toolCall.function?.arguments ?? ""
+              parts.push({
+                type: "tool-params-delta",
+                id: activeToolCall.id,
+                delta: activeToolCall.params
+              })
+            }
+
+            // Check if the tool call is complete
+            // @effect-diagnostics-next-line tryCatchInEffectGen:off
+            try {
+              const params = Tool.unsafeSecureJsonParse(activeToolCall.params)
+
+              parts.push({
+                type: "tool-params-end",
+                id: activeToolCall.id
+              })
+
+              parts.push({
+                type: "tool-call",
+                id: activeToolCall.id,
+                name: activeToolCall.name,
+                params,
+                // Only attach reasoning_details to the first tool call to avoid
+                // duplicating thinking blocks for parallel tool calls (Claude)
+                metadata: reasoningDetailsAttachedToToolCall ? undefined : {
+                  openrouter: { reasoningDetails: accumulatedReasoningDetails }
+                }
+              })
+
+              reasoningDetailsAttachedToToolCall = true
+
+              // Increment the total tool calls emitted by the stream and
+              // remove the active tool call
+              totalToolCalls += 1
+              delete activeToolCalls[toolCall.index]
+            } catch {
+              // Tool call incomplete, continue parsing
+              continue
+            }
+          }
+        }
+
+        const images = delta.images
+        if (Predicate.isNotNullish(images)) {
+          for (const image of images) {
+            parts.push({
+              type: "file",
+              mediaType: getMediaType(image.image_url.url, "image/jpeg"),
+              data: getBase64FromDataUrl(image.image_url.url)
+            })
+          }
+        }
+
+        // Usage is only emitted by the last part of the stream, so we need to
+        // handle flushing any remaining text / reasoning / tool calls
+        if (Predicate.isNotUndefined(event.usage)) {
+          // Fix for Gemini 3 thoughtSignature: when there are tool calls with encrypted
+          // reasoning (thoughtSignature), the model returns 'stop' but expects continuation.
+          // Override to 'tool-calls' so the SDK knows to continue the conversation.
+          const hasEncryptedReasoning = accumulatedReasoningDetails.some(
+            (detail) => detail.type === "reasoning.encrypted" && detail.data.length > 0
+          )
+          if (totalToolCalls > 0 && hasEncryptedReasoning && finishReason === "stop") {
+            finishReason = resolveFinishReason("tool-calls")
+          }
+
+          // Forward any unsent tool calls if finish reason is 'tool-calls'
+          if (finishReason === "tool-calls") {
+            for (const toolCall of activeToolCalls) {
+              // Coerce invalid tool call parameters to an empty object
+              let params: unknown
+              // @effect-diagnostics-next-line tryCatchInEffectGen:off
+              try {
+                params = Tool.unsafeSecureJsonParse(toolCall.params)
+              } catch {
+                params = {}
+              }
+
+              // Only attach reasoning_details to the first tool call to avoid
+              // duplicating thinking blocks for parallel tool calls (Claude)
+              parts.push({
+                type: "tool-call",
+                id: toolCall.id,
+                name: toolCall.name,
+                params,
+                metadata: reasoningDetailsAttachedToToolCall ? undefined : {
+                  openrouter: { reasoningDetails: accumulatedReasoningDetails }
+                }
+              })
+
+              reasoningDetailsAttachedToToolCall = true
+            }
+          }
+
+          // End reasoning first if it was started, to maintain proper order
+          if (reasoningStarted) {
+            parts.push({
+              type: "reasoning-end",
+              id: activeReasoningId!,
+              // Include accumulated reasoning_details so that we can update the
+              // reasoning part's provider metadata with the correct signature,
+              metadata: accumulatedReasoningDetails.length > 0
+                ? { openrouter: { reasoningDetails: accumulatedReasoningDetails } }
+                : undefined
+            })
+          }
+
+          if (textStarted) {
+            parts.push({ type: "text-end", id: activeTextId! })
+          }
+
+          const metadata: Response.FinishPart["metadata"] = {
+            openrouter: {
+              ...(Predicate.isNotNullish(event.system_fingerprint)
+                ? { systemFingerprint: event.system_fingerprint }
+                : undefined),
+              ...(Predicate.isNotUndefined(event.usage) ? { usage: event.usage } : undefined),
+              ...(Predicate.hasProperty(event, "provider") && Predicate.isString(event.provider)
+                ? { provider: event.provider }
+                : undefined),
+              ...(accumulatedFileAnnotations.length > 0 ? { annotations: accumulatedFileAnnotations } : undefined)
+            }
+          }
+
+          parts.push({
+            type: "finish",
+            reason: finishReason,
+            usage,
+            response: buildHttpResponseDetails(response),
+            metadata
+          })
+        }
+
+        return parts
+      })),
+      Stream.flattenIterable
+    )
   }
 )
 
@@ -840,6 +1331,28 @@ const annotateResponse = (span: Span, response: Generated.SendChatCompletionRequ
   })
 }
 
+const annotateStreamResponse = (span: Span, part: Response.StreamPartEncoded) => {
+  if (part.type === "response-metadata") {
+    addGenAIAnnotations(span, {
+      response: {
+        id: part.id,
+        model: part.modelId
+      }
+    })
+  }
+  if (part.type === "finish") {
+    addGenAIAnnotations(span, {
+      response: {
+        finishReasons: [part.reason]
+      },
+      usage: {
+        inputTokens: part.usage.inputTokens.total,
+        outputTokens: part.usage.outputTokens.total
+      }
+    })
+  }
+}
+
 // =============================================================================
 // Internal Utilities
 // =============================================================================
@@ -933,3 +1446,40 @@ const getResponseFormat = Effect.fnUntraced(function*({ config, options, transfo
   }
   return undefined
 })
+
+const getMediaType = (dataUrl: string, defaultMediaType: string): string => {
+  const match = dataUrl.match(/^data:([^;]+)/)
+  return match ? (match[1] ?? defaultMediaType) : defaultMediaType
+}
+
+const getBase64FromDataUrl = (dataUrl: string): string => {
+  const match = dataUrl.match(/^data:[^;]*;base64,(.+)$/)
+  return match ? match[1]! : dataUrl
+}
+
+const getUsage = (usage: Generated.ChatGenerationTokenUsage | undefined): Response.Usage => {
+  if (Predicate.isUndefined(usage)) {
+    return {
+      inputTokens: { uncached: undefined, total: 0, cacheRead: undefined, cacheWrite: undefined },
+      outputTokens: { total: 0, text: undefined, reasoning: undefined }
+    }
+  }
+  const promptTokens = usage.prompt_tokens
+  const completionTokens = usage.completion_tokens
+  const cacheReadTokens = usage.prompt_tokens_details?.cached_tokens ?? 0
+  const cacheWriteTokens = usage.prompt_tokens_details?.cache_write_tokens ?? 0
+  const reasoningTokens = usage.completion_tokens_details?.reasoning_tokens ?? 0
+  return {
+    inputTokens: {
+      uncached: promptTokens - cacheReadTokens,
+      total: promptTokens,
+      cacheRead: cacheReadTokens,
+      cacheWrite: cacheWriteTokens
+    },
+    outputTokens: {
+      total: completionTokens,
+      text: completionTokens - reasoningTokens,
+      reasoning: reasoningTokens
+    }
+  }
+}
