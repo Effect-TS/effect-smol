@@ -460,10 +460,14 @@ export const fromWebSocket = <RO>(
 
         function onMessage(event: MessageEvent) {
           if (event.data instanceof Blob) {
-            return Effect.promise(() => event.data.arrayBuffer() as Promise<ArrayBuffer>).pipe(
-              Effect.andThen((buffer) => handler(new Uint8Array(buffer))),
-              run
+            const effect = Effect.flatMap(
+              Effect.promise(() => event.data.arrayBuffer() as Promise<ArrayBuffer>),
+              (buffer) => {
+                const result = handler(new Uint8Array(buffer))
+                return Effect.isEffect(result) ? result : Effect.void
+              }
             )
+            return run(effect)
           }
           const result = handler(event.data)
           if (Effect.isEffect(result)) {

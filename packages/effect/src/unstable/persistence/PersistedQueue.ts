@@ -448,15 +448,16 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
             if (takers.current === 1) {
               pollLatch.openUnsafe()
             }
-            return Effect.tap(restore(Queue.take(queue)), () => {
-              takers.current--
-              if (takers.current === 0) {
-                pollLatch.closeUnsafe()
-                takenLatch.openUnsafe()
-              } else if (Queue.sizeUnsafe(queue) === 0) {
-                takenLatch.openUnsafe()
-              }
-            })
+            return Effect.tap(restore(Queue.take(queue)), () =>
+              Effect.sync(() => {
+                takers.current--
+                if (takers.current === 0) {
+                  pollLatch.closeUnsafe()
+                  takenLatch.openUnsafe()
+                } else if (Queue.sizeUnsafe(queue) === 0) {
+                  takenLatch.openUnsafe()
+                }
+              }))
           }),
           Effect.scoped,
           Effect.tap((element) => {
@@ -1058,15 +1059,16 @@ export const makeStoreSql: (
             if (takers.current === 1) {
               pollLatch.openUnsafe()
             }
-            return Effect.tap(restore(Queue.take(queue)), () => {
-              takers.current--
-              if (takers.current === 0) {
-                pollLatch.closeUnsafe()
-                takenLatch.openUnsafe()
-              } else if (Queue.sizeUnsafe(queue) === 0) {
-                takenLatch.openUnsafe()
-              }
-            })
+            return Effect.tap(restore(Queue.take(queue)), () =>
+              Effect.sync(() => {
+                takers.current--
+                if (takers.current === 0) {
+                  pollLatch.closeUnsafe()
+                  takenLatch.openUnsafe()
+                } else if (Queue.sizeUnsafe(queue) === 0) {
+                  takenLatch.openUnsafe()
+                }
+              }))
           }),
           Effect.scoped,
           restore,

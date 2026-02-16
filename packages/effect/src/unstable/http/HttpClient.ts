@@ -1124,9 +1124,10 @@ class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
       responseRegistry.unregister(this.original)
       return Effect.onInterrupt(
         effect,
-        Effect.sync(() => {
-          this.controller.abort()
-        })
+        () =>
+          Effect.sync(() => {
+            this.controller.abort()
+          })
       )
     })
   }

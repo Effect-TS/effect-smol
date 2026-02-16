@@ -50,7 +50,6 @@ import type {
   ExtractReason,
   ExtractTag,
   NoInfer,
-  NotFunction,
   ReasonOf,
   ReasonTags,
   Simplify,
@@ -1300,75 +1299,52 @@ export const flip = <A, E, R>(
 
 /** @internal */
 export const andThen: {
-  <A, X>(
-    f: (a: A) => X
-  ): <E, R>(
-    self: Effect.Effect<A, E, R>
-  ) => [X] extends [Effect.Effect<infer A1, infer E1, infer R1>] ? Effect.Effect<A1, E | E1, R | R1>
-    : Effect.Effect<X, E, R>
-  <X>(
-    f: NotFunction<X>
-  ): <A, E, R>(
-    self: Effect.Effect<A, E, R>
-  ) => [X] extends [Effect.Effect<infer A1, infer E1, infer R1>] ? Effect.Effect<A1, E | E1, R | R1>
-    : Effect.Effect<X, E, R>
-  <A, E, R, X>(
+  <A, B, E2, R2>(
+    f: (a: A) => Effect.Effect<B, E2, R2>
+  ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B, E | E2, R | R2>
+  <B, E2, R2>(
+    f: Effect.Effect<B, E2, R2>
+  ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
-    f: (a: A) => X
-  ): [X] extends [Effect.Effect<infer A1, infer E1, infer R1>] ? Effect.Effect<A1, E | E1, R | R1>
-    : Effect.Effect<X, E, R>
-  <A, E, R, X>(
+    f: (a: A) => Effect.Effect<B, E2, R2>
+  ): Effect.Effect<B, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
-    f: NotFunction<X>
-  ): [X] extends [Effect.Effect<infer A1, infer E1, infer R1>] ? Effect.Effect<A1, E | E1, R | R1>
-    : Effect.Effect<X, E, R>
+    f: Effect.Effect<B, E2, R2>
+  ): Effect.Effect<B, E | E2, R | R2>
 } = dual(
   2,
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
-    f: any
+    f: ((a: A) => Effect.Effect<B, E2, R2>) | Effect.Effect<B, E2, R2>
   ): Effect.Effect<B, E | E2, R | R2> =>
-    flatMap(self, (a) => {
-      if (isEffect(f)) return f
-      const value = typeof f === "function" ? internalCall(() => f(a)) : f
-      return isEffect(value) ? value : succeed(value)
-    })
+    flatMap(self, (a) => isEffect(f) ? f : internalCall(() => (f as (a: A) => Effect.Effect<B, E2, R2>)(a)))
 )
 
 /** @internal */
 export const tap: {
-  <A, X>(
-    f: (a: NoInfer<A>) => X
-  ): <E, R>(
-    self: Effect.Effect<A, E, R>
-  ) => [X] extends [Effect.Effect<infer _A1, infer E1, infer R1>] ? Effect.Effect<A, E | E1, R | R1>
-    : Effect.Effect<A, E, R>
-  <X>(
-    f: NotFunction<X>
-  ): <A, E, R>(
-    self: Effect.Effect<A, E, R>
-  ) => [X] extends [Effect.Effect<infer _A1, infer E1, infer R1>] ? Effect.Effect<A, E | E1, R | R1>
-    : Effect.Effect<A, E, R>
-  <A, E, R, X>(
+  <A, B, E2, R2>(
+    f: (a: NoInfer<A>) => Effect.Effect<B, E2, R2>
+  ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | E2, R | R2>
+  <B, E2, R2>(
+    f: Effect.Effect<B, E2, R2>
+  ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
-    f: (a: NoInfer<A>) => X
-  ): [X] extends [Effect.Effect<infer _A1, infer E1, infer R1>] ? Effect.Effect<A, E | E1, R | R1>
-    : Effect.Effect<A, E, R>
-  <A, E, R, X>(
+    f: (a: NoInfer<A>) => Effect.Effect<B, E2, R2>
+  ): Effect.Effect<A, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
-    f: NotFunction<X>
-  ): [X] extends [Effect.Effect<infer _A1, infer E1, infer R1>] ? Effect.Effect<A, E | E1, R | R1>
-    : Effect.Effect<A, E, R>
+    f: Effect.Effect<B, E2, R2>
+  ): Effect.Effect<A, E | E2, R | R2>
 } = dual(
   2,
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
-    f: (a: A) => Effect.Effect<B, E2, R2>
+    f: ((a: A) => Effect.Effect<B, E2, R2>) | Effect.Effect<B, E2, R2>
   ): Effect.Effect<A, E | E2, R | R2> =>
-    flatMap(self, (a) => {
-      const value = isEffect(f) ? f : typeof f === "function" ? internalCall(() => f(a)) : f
-      return isEffect(value) ? as(value, a) : succeed(a)
-    })
+    flatMap(self, (a) => as(isEffect(f) ? f : internalCall(() => (f as (a: A) => Effect.Effect<B, E2, R2>)(a)), a))
 )
 
 /** @internal */
@@ -2009,18 +1985,19 @@ export const updateServices: {
           newServices.set(key, value)
         }
       }
-      return onExit(self as any, () => {
-        const map = new Map(fiber.services.mapUnsafe)
-        for (const [key, value] of newServices) {
-          if (value !== map.get(key)) continue
-          if (prev.mapUnsafe.has(key)) {
-            map.set(key, prev.mapUnsafe.get(key))
-          } else {
-            map.delete(key)
+      return onExit(self as any, () =>
+        sync(() => {
+          const map = new Map(fiber.services.mapUnsafe)
+          for (const [key, value] of newServices) {
+            if (value !== map.get(key)) continue
+            if (prev.mapUnsafe.has(key)) {
+              map.set(key, prev.mapUnsafe.get(key))
+            } else {
+              map.delete(key)
+            }
           }
-        }
-        fiber.setServices(ServiceMap.makeUnsafe(map))
-      })
+          fiber.setServices(ServiceMap.makeUnsafe(map))
+        }))
     })
 )
 
@@ -2047,7 +2024,7 @@ export const updateService: {
       const next = f(prev)
       if (prev === next) return self
       fiber.setServices(ServiceMap.add(fiber.services, service, next))
-      return onExit(self, () => fiber.setServices(ServiceMap.add(fiber.services, service, prev)))
+      return onExit(self, () => sync(() => fiber.setServices(ServiceMap.add(fiber.services, service, prev))))
     })
 )
 
@@ -2118,7 +2095,7 @@ const provideServiceImpl = <A, E, R, I, S>(
     const prev = ServiceMap.getOption(fiber.services, service)
     if (prev._tag === "Some" && prev.value === implementation) return self
     fiber.setServices(ServiceMap.add(fiber.services, service, implementation))
-    return onExit(self, () => fiber.setServices(ServiceMap.addOrOmit(fiber.services, service, prev)))
+    return onExit(self, () => sync(() => fiber.setServices(ServiceMap.addOrOmit(fiber.services, service, prev))))
   }) as any
 
 /** @internal */
@@ -2276,21 +2253,20 @@ export const filterOrFail: {
 /** @internal */
 export const when: {
   <E2 = never, R2 = never>(
-    condition: LazyArg<boolean> | Effect.Effect<boolean, E2, R2>
+    condition: Effect.Effect<boolean, E2, R2>
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<Option.Option<A>, E | E2, R | R2>
   <A, E, R, E2 = never, R2 = never>(
     self: Effect.Effect<A, E, R>,
-    condition: LazyArg<boolean> | Effect.Effect<boolean, E2, R2>
+    condition: Effect.Effect<boolean, E2, R2>
   ): Effect.Effect<Option.Option<A>, E | E2, R | R2>
 } = dual(
   2,
   <A, E, R, E2 = never, R2 = never>(
     self: Effect.Effect<A, E, R>,
-    condition: LazyArg<boolean> | Effect.Effect<boolean, E2, R2>
-  ): Effect.Effect<Option.Option<A>, E | E2, R | R2> =>
-    flatMap(isEffect(condition) ? condition : sync(condition), (pass) => pass ? asSome(self) : succeedNone)
+    condition: Effect.Effect<boolean, E2, R2>
+  ): Effect.Effect<Option.Option<A>, E | E2, R | R2> => flatMap(condition, (pass) => pass ? asSome(self) : succeedNone)
 )
 
 // ----------------------------------------------------------------------------
@@ -3678,10 +3654,11 @@ export const scoped = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, 
     const prev = ServiceMap.getOption(fiber.services, scopeTag)
     const scope = scopeMakeUnsafe()
     fiber.setServices(ServiceMap.add(fiber.services, scopeTag, scope))
-    return onExit(self, (exit) => {
-      fiber.setServices(ServiceMap.addOrOmit(fiber.services, scopeTag, prev))
-      return scopeCloseUnsafe(scope, exit)
-    })
+    return onExit(self, (exit) =>
+      suspend(() => {
+        fiber.setServices(ServiceMap.addOrOmit(fiber.services, scopeTag, prev))
+        return scopeCloseUnsafe(scope, exit) ?? void_
+      }))
   }) as any
 
 /** @internal */
@@ -3693,7 +3670,7 @@ export const scopeUse: {
 } = dual(
   2,
   <A, E, R>(self: Effect.Effect<A, E, R>, scope: Scope.Closeable): Effect.Effect<A, E, Exclude<R, Scope.Scope>> =>
-    onExit(provideScope(self, scope), (exit) => scopeCloseUnsafe(scope, exit))
+    onExit(provideScope(self, scope), (exit) => suspend(() => scopeCloseUnsafe(scope, exit) ?? void_))
 )
 
 /** @internal */
@@ -3702,7 +3679,7 @@ export const scopedWith = <A, E, R>(
 ): Effect.Effect<A, E, R> =>
   suspend(() => {
     const scope = scopeMakeUnsafe()
-    return onExit(f(scope), (exit) => scopeCloseUnsafe(scope, exit))
+    return onExit(f(scope), (exit) => suspend(() => scopeCloseUnsafe(scope, exit) ?? void_))
   })
 
 /** @internal */
@@ -3729,7 +3706,7 @@ export const addFinalizer = <R>(
 
 const onExitPrimitive: <A, E, R, XE = never, XR = never>(
   self: Effect.Effect<A, E, R>,
-  f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void,
+  f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>,
   interruptible?: boolean
 ) => Effect.Effect<A, E | XE, R | XR> = makePrimitive({
   op: "OnExit",
@@ -3746,41 +3723,39 @@ const onExitPrimitive: <A, E, R, XE = never, XR = never>(
   },
   [contA](value, _, exit) {
     exit ??= exitSucceed(value)
-    const eff = this[args][1](exit)
-    return isEffect(eff) ? flatMap(eff, (_) => exit) : exit
+    return flatMap(this[args][1](exit), (_) => exit)
   },
   [contE](cause, _, exit) {
     exit ??= exitFailCause(cause)
-    const eff = this[args][1](exit)
-    return isEffect(eff) ? flatMap(eff, (_) => exit) : exit
+    return flatMap(this[args][1](exit), (_) => exit)
   }
 })
 
 /** @internal */
 export const onExit: {
   <A, E, XE = never, XR = never>(
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
   ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
   <A, E, R, XE = never, XR = never>(
     self: Effect.Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR>
 } = dual(2, onExitPrimitive)
 
 /** @internal */
 export const onExitInterruptible: {
   <A, E, XE = never, XR = never>(
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
   ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
   <A, E, R, XE = never, XR = never>(
     self: Effect.Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR>
 } = dual(
   2,
   <A, E, R, XE = never, XR = never>(
     self: Effect.Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR> => onExitPrimitive(self, f, true)
 )
 
@@ -3830,7 +3805,7 @@ export const onExitIf: {
   ): Effect.Effect<A, E | XE, R | XR> =>
     onExit(self, (exit) => {
       const b = Filter.apply(filter as any, exit)
-      return Filter.isFail(b) ? undefined : f(b.pass, exit)
+      return Filter.isFail(b) ? void_ : f(b.pass, exit)
     })
 )
 
@@ -3891,26 +3866,25 @@ export const onErrorIf: {
 /** @internal */
 export const onInterrupt: {
   <XE, XR>(
-    finalizer: Effect.Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>)
+    finalizer: (interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>
   ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
-    finalizer: Effect.Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>)
+    finalizer: (interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR>
 } = dual(
   2,
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
-    finalizer: Effect.Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>)
-  ): Effect.Effect<A, E | XE, R | XR> =>
-    onErrorIf(self, causeFilterInterruptors, isEffect(finalizer) ? constant(finalizer) : finalizer)
+    finalizer: (interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>
+  ): Effect.Effect<A, E | XE, R | XR> => onErrorIf(self, causeFilterInterruptors, finalizer)
 )
 
 /** @internal */
 export const acquireUseRelease = <Resource, E, R, A, E2, R2, E3, R3>(
   acquire: Effect.Effect<Resource, E, R>,
   use: (a: Resource) => Effect.Effect<A, E2, R2>,
-  release: (a: Resource, exit: Exit.Exit<A, E2>) => Effect.Effect<void, E3, R3> | void
+  release: (a: Resource, exit: Exit.Exit<A, E2>) => Effect.Effect<void, E3, R3>
 ): Effect.Effect<A, E | E2 | E3, R | R2 | R3> =>
   uninterruptibleMask((restore) =>
     flatMap(acquire, (a) =>
@@ -3952,12 +3926,13 @@ export const cachedInvalidateWithTTL: {
         running = true
         latch.closeUnsafe()
         exit = undefined
-        return onExit(self, (exit_) => {
-          running = false
-          expiresAt = now + ttlMillis
-          exit = exit_
-          latch.openUnsafe()
-        })
+        return onExit(self, (exit_) =>
+          sync(() => {
+            running = false
+            expiresAt = now + ttlMillis
+            exit = exit_
+            latch.openUnsafe()
+          }))
       }),
       sync(() => {
         expiresAt = 0
@@ -4528,14 +4503,14 @@ export const awaitAllChildren = <A, E, R>(
       (_) => {
         let children = fiber._children
         if (children === undefined || children.size === 0) {
-          return
+          return void_
         } else if (initialChildren) {
           children = Iterable.filter(
             children,
             (child: FiberImpl<any, any>) => !initialChildren.includes(child)
           ) as Set<FiberImpl<any, any>>
         }
-        return fiberAwaitAll(children)
+        return asVoid(fiberAwaitAll(children))
       }
     )
   })
@@ -5172,10 +5147,11 @@ export const useSpan: {
   return withFiber((fiber) => {
     const span = makeSpanUnsafe(fiber, name, options)
     const clock = fiber.getRef(ClockRef)
-    return onExit(internalCall(() => evaluate(span)), (exit) => {
-      if (span.status._tag === "Ended") return
-      span.end(clock.currentTimeNanosUnsafe(), exit)
-    })
+    return onExit(internalCall(() => evaluate(span)), (exit) =>
+      sync(() => {
+        if (span.status._tag === "Ended") return
+        span.end(clock.currentTimeNanosUnsafe(), exit)
+      }))
   })
 }
 

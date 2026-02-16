@@ -846,11 +846,13 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     readonly withoutInitialValue?: boolean
   }) {
     if (this.disposed) return Stream.empty
-    return Stream.callback<A>((queue) => {
-      this.subscribe(atom, (value) => Queue.offerUnsafe(queue, value), {
-        immediate: !options?.withoutInitialValue
+    return Stream.callback<A>((queue) =>
+      Effect.sync(() => {
+        this.subscribe(atom, (value) => Queue.offerUnsafe(queue, value), {
+          immediate: !options?.withoutInitialValue
+        })
       })
-    })
+    )
   },
 
   streamResult<A, E>(this: Lifetime<any>, atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {

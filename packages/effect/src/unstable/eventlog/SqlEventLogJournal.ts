@@ -147,11 +147,13 @@ export const make = (options?: {
             entries.map((entry) => entry.id)
           )
         }`.pipe(
-          Effect.tap((rows) => {
-            for (const row of rows) {
-              existingIds.add(Uuid.stringify(row.id))
-            }
-          })
+          Effect.tap((rows) =>
+            Effect.sync(() => {
+              for (const row of rows) {
+                existingIds.add(Uuid.stringify(row.id))
+              }
+            })
+          )
         )
       }
       if (entries.length > 0) {

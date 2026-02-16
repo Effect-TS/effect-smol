@@ -653,14 +653,16 @@ export const toChannel = <A, E, R>(
  * ```ts
  * import { Console, Effect, Queue, Stream } from "effect"
  *
- * const stream = Stream.callback<number>((queue) => {
- *   // Emit values to the stream
- *   Queue.offerUnsafe(queue, 1)
- *   Queue.offerUnsafe(queue, 2)
- *   Queue.offerUnsafe(queue, 3)
- *   // Signal completion
- *   Queue.endUnsafe(queue)
- * })
+ * const stream = Stream.callback<number>((queue) =>
+ *   Effect.sync(() => {
+ *     // Emit values to the stream
+ *     Queue.offerUnsafe(queue, 1)
+ *     Queue.offerUnsafe(queue, 2)
+ *     Queue.offerUnsafe(queue, 3)
+ *     // Signal completion
+ *     Queue.endUnsafe(queue)
+ *   })
+ * )
  *
  * const program = Effect.gen(function*() {
  *   const values = yield* stream.pipe(Stream.runCollect)
@@ -675,7 +677,7 @@ export const toChannel = <A, E, R>(
  * @category Constructors
  */
 export const callback = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E | Cause.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E | Cause.Done>) => Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
@@ -1518,17 +1520,14 @@ export const paginate = <S, A, E = never, R = never>(
   s: S,
   f: (
     s: S
-  ) =>
-    | Effect.Effect<readonly [ReadonlyArray<A>, Option.Option<S>], E, R>
-    | readonly [ReadonlyArray<A>, Option.Option<S>]
+  ) => Effect.Effect<readonly [ReadonlyArray<A>, Option.Option<S>], E, R>
 ): Stream<A, E, R> =>
   fromPull(Effect.sync(() => {
     let state = s
     let done = false
     return Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> {
       if (done) return Cause.done()
-      const result = f(state)
-      return Effect.flatMap(Effect.isEffect(result) ? result : Effect.succeed(result), ([a, s]) => {
+      return Effect.flatMap(f(state), ([a, s]) => {
         if (Option.isNone(s)) {
           done = true
         } else {
@@ -4307,22 +4306,20 @@ export const partition: {
  */
 export const when: {
   <EX = never, RX = never>(
-    test: LazyArg<boolean> | Effect.Effect<boolean, EX, RX>
+    test: Effect.Effect<boolean, EX, RX>
   ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
   <A, E, R, EX = never, RX = never>(
     self: Stream<A, E, R>,
-    test: LazyArg<boolean> | Effect.Effect<boolean, EX, RX>
+    test: Effect.Effect<boolean, EX, RX>
   ): Stream<A, E | EX, R | RX>
 } = dual(2, <A, E, R, EX = never, RX = never>(
   self: Stream<A, E, R>,
-  test: LazyArg<boolean> | Effect.Effect<boolean, EX, RX>
-): Stream<A, E | EX, R | RX> => {
-  const effect = Effect.isEffect(test) ? test : Effect.sync(test)
-  return effect.pipe(
+  test: Effect.Effect<boolean, EX, RX>
+): Stream<A, E | EX, R | RX> =>
+  test.pipe(
     Effect.map((pass) => pass ? self : empty),
     unwrap
-  )
-})
+  ))
 
 /**
  * Runs a sink to peel off enough elements to produce a value and returns that
@@ -7783,7 +7780,7 @@ export const transduce = dual<
  *   const aggregated = yield* Stream.runCollect(
  *     Stream.make(1, 2, 3, 4, 5, 6).pipe(
  *       Stream.aggregate(
- *         Sink.foldUntil(() => 0, 3, (sum, n) => sum + n)
+ *         Sink.foldUntil(() => 0, 3, (sum, n) => Effect.succeed(sum + n))
  *       )
  *     )
  *   )
@@ -7821,7 +7818,7 @@ export const aggregate: {
  *   const aggregated = yield* Stream.runCollect(
  *     Stream.make(1, 2, 3, 4, 5, 6).pipe(
  *       Stream.aggregateWithin(
- *         Sink.foldUntil(() => 0, 3, (sum, n) => sum + n),
+ *         Sink.foldUntil(() => 0, 3, (sum, n) => Effect.succeed(sum + n)),
  *         Schedule.spaced("1 minute")
  *       )
  *     )

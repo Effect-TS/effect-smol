@@ -55,12 +55,12 @@ const makeUserResolver = Effect.gen(function*() {
     }
   })).pipe(Resolver.batchN(15))
 
-  const getIds = Effect.request(GetAllIds({}), resolver)
-  const getNameById = (id: number) => Effect.request(new GetNameById({ id }), resolver)
-  const getNameByIdPiped = (id: number) => pipe(new GetNameById({ id }), Effect.request(resolver))
+  const getIds = Effect.request(GetAllIds({}), Effect.succeed(resolver))
+  const getNameById = (id: number) => Effect.request(new GetNameById({ id }), Effect.succeed(resolver))
+  const getNameByIdPiped = (id: number) => pipe(new GetNameById({ id }), Effect.request(Effect.succeed(resolver)))
   const getNames = getIds.pipe(
     Effect.flatMap(Effect.forEach(getNameById, { concurrency: "unbounded" })),
-    Effect.onInterrupt(Effect.tap(Interrupts.asEffect(), (i) => i.interrupts++))
+    Effect.onInterrupt(() => Effect.tap(Interrupts.asEffect(), (i) => Effect.sync(() => i.interrupts++)))
   )
 
   return { getNames, getIds, getNameById, getNameByIdPiped } as const
@@ -90,8 +90,9 @@ const makeUserResolverTagged = Effect.gen(function*() {
     })
   }).pipe(Resolver.batchN(15))
 
-  const getIds = Effect.request(GetAllIds({}), resolver)
-  const getNameById = (id: number) => Effect.request(new GetNameById({ id }), resolver)
+  const getIds = Effect.request(GetAllIds({}), Effect.succeed(resolver as Resolver.RequestResolver<GetAllIds>))
+  const getNameById = (id: number) =>
+    Effect.request(new GetNameById({ id }), Effect.succeed(resolver as Resolver.RequestResolver<GetNameById>))
   const allNames = getIds.pipe(
     Effect.flatMap(Effect.forEach(getNameById, { concurrency: "unbounded" }))
   )
@@ -233,7 +234,7 @@ describe.sequential("Request", () => {
         Resolver.grouped(({ request }) => new Key({ id: request.id % 2 }))
       )
 
-      yield* Effect.forEach(userIds, (id) => Effect.request(new GetNameById({ id }), resolver), {
+      yield* Effect.forEach(userIds, (id) => Effect.request(new GetNameById({ id }), Effect.succeed(resolver)), {
         concurrency: "unbounded"
       })
 

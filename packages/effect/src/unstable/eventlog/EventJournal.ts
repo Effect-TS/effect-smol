@@ -537,12 +537,13 @@ export const makeIndexedDb = (options?: {
             const entryId = entries[entries.length - 1].id
             return Effect.uninterruptibleMask((restore) =>
               restore(f(entries)).pipe(
-                Effect.tap(() =>
+                Effect.tap(
                   idbReq("withRemoteUncommited", () =>
                     db.transaction("remoteEntryId", "readwrite").objectStore("remoteEntryId").put({
                       remoteId,
                       entryId
-                    })), { onlyEffect: true })
+                    }))
+                )
               )
             )
           })

@@ -134,14 +134,14 @@ describe("Effect", () => {
   describe("fromOption", () => {
     it("from a some", () =>
       Option.some("A").asEffect().pipe(
-        Effect.tap((_) => assert.strictEqual(_, "A")),
+        Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
         Effect.runPromise
       ))
 
     it("from a none", () =>
       Option.none().asEffect().pipe(
         Effect.flip,
-        Effect.tap((error) => assert.ok(error instanceof Cause.NoSuchElementError)),
+        Effect.tap((error) => Effect.sync(() => assert.ok(error instanceof Cause.NoSuchElementError))),
         Effect.runPromise
       ))
 
@@ -941,9 +941,9 @@ describe("Effect", () => {
       Effect.gen(function*() {
         let ref = false
         const fiber = yield* Effect.sleep(10).pipe(
-          Effect.andThen(() => {
+          Effect.andThen(Effect.sync(() => {
             ref = true
-          }),
+          })),
           Effect.uninterruptible,
           Effect.forkChild({ startImmediately: true })
         )
@@ -970,9 +970,9 @@ describe("Effect", () => {
         let ref = false
         const child = pipe(
           Effect.sleep(10),
-          Effect.andThen(() => {
+          Effect.andThen(Effect.sync(() => {
             ref = true
-          })
+          }))
         )
         const fiber = yield* child.pipe(Effect.uninterruptible, Effect.forkChild({ startImmediately: true }))
         yield* Fiber.interrupt(fiber)
@@ -1553,8 +1553,14 @@ describe("Effect", () => {
   describe("zip", () => {
     it.effect("concurrent: false", () => {
       const executionOrder: Array<string> = []
-      const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
-      const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
+      const task1 = Effect.succeed("a").pipe(
+        Effect.delay(50),
+        Effect.tap(() => Effect.sync(() => executionOrder.push("task1")))
+      )
+      const task2 = Effect.succeed(1).pipe(
+        Effect.delay(1),
+        Effect.tap(() => Effect.sync(() => executionOrder.push("task2")))
+      )
       return Effect.gen(function*() {
         const fiber = yield* Effect.forkChild(Effect.zip(task1, task2))
         yield* TestClock.adjust(51)
@@ -1565,8 +1571,14 @@ describe("Effect", () => {
     })
     it.effect("concurrent: true", () => {
       const executionOrder: Array<string> = []
-      const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
-      const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
+      const task1 = Effect.succeed("a").pipe(
+        Effect.delay(50),
+        Effect.tap(() => Effect.sync(() => executionOrder.push("task1")))
+      )
+      const task2 = Effect.succeed(1).pipe(
+        Effect.delay(1),
+        Effect.tap(() => Effect.sync(() => executionOrder.push("task2")))
+      )
       return Effect.gen(function*() {
         const fiber = yield* Effect.forkChild(Effect.zip(task1, task2, { concurrent: true }))
         yield* TestClock.adjust(50)
@@ -1580,8 +1592,14 @@ describe("Effect", () => {
   describe("zipWith", () => {
     it.effect("concurrent: false", () => {
       const executionOrder: Array<string> = []
-      const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
-      const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
+      const task1 = Effect.succeed("a").pipe(
+        Effect.delay(50),
+        Effect.tap(() => Effect.sync(() => executionOrder.push("task1")))
+      )
+      const task2 = Effect.succeed(1).pipe(
+        Effect.delay(1),
+        Effect.tap(() => Effect.sync(() => executionOrder.push("task2")))
+      )
       return Effect.gen(function*() {
         const fiber = yield* Effect.forkChild(Effect.zipWith(task1, task2, (a, b) => a + b))
         yield* TestClock.adjust(51)
@@ -1592,8 +1610,14 @@ describe("Effect", () => {
     })
     it.effect("concurrent: true", () => {
       const executionOrder: Array<string> = []
-      const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
-      const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
+      const task1 = Effect.succeed("a").pipe(
+        Effect.delay(50),
+        Effect.tap(() => Effect.sync(() => executionOrder.push("task1")))
+      )
+      const task2 = Effect.succeed(1).pipe(
+        Effect.delay(1),
+        Effect.tap(() => Effect.sync(() => executionOrder.push("task2")))
+      )
       return Effect.gen(function*() {
         const fiber = yield* Effect.forkChild(Effect.zipWith(task1, task2, (a, b) => a + b, { concurrent: true }))
         yield* TestClock.adjust(50)

@@ -291,9 +291,11 @@ export const make: {
           map,
           ([, entry]) => Effect.exit(Scope.close(entry.scope, Exit.void))
         ).pipe(
-          Effect.tap(() => {
-            MutableHashMap.clear(map)
-          })
+          Effect.tap(() =>
+            Effect.sync(() => {
+              MutableHashMap.clear(map)
+            })
+          )
         )
       }),
       self

@@ -160,13 +160,15 @@ export const make = Effect.sync(() => {
       const pending = new Set<string | number>()
       return effect.pipe(
         Effect.provideService(PendingInvalidation, pending),
-        Effect.onExit((_) => {
-          pending.forEach((hash) => {
-            const set = handlers.get(hash)
-            if (set === undefined) return
-            set.forEach((run) => run())
+        Effect.onExit((_) =>
+          Effect.sync(() => {
+            pending.forEach((hash) => {
+              const set = handlers.get(hash)
+              if (set === undefined) return
+              set.forEach((run) => run())
+            })
           })
-        })
+        )
       )
     })
 

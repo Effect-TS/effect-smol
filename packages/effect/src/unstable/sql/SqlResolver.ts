@@ -51,9 +51,9 @@ export const request: {
 } = function() {
   if (arguments.length === 1) {
     const resolver = arguments[0]
-    return (payload: any) => Effect.request(SqlRequest(payload), resolver)
+    return (payload: any) => Effect.request(SqlRequest(payload), Effect.succeed(resolver))
   }
-  return Effect.request(SqlRequest(arguments[0]), arguments[1])
+  return Effect.request(SqlRequest(arguments[0]), Effect.succeed(arguments[1]))
 } as any
 
 /**

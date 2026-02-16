@@ -113,9 +113,11 @@ export const UsersLive = UserRpcs.toLayer(Effect.gen(function*() {
       )
 
       yield* Queue.offer(mailbox, new User({ id: req.id, name: "John" })).pipe(
-        Effect.tap(() => {
-          emits++
-        }),
+        Effect.tap(() =>
+          Effect.sync(() => {
+            emits++
+          })
+        ),
         Effect.delay(100),
         Effect.forever,
         Effect.forkScoped

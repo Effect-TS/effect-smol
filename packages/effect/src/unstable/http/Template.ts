@@ -99,9 +99,10 @@ export function make<A extends ReadonlyArray<Interpolated>>(
     Effect.forEach(
       effects,
       ([index, effect]) =>
-        Effect.tap(effect, (value) => {
-          values[index] = primitiveToString(value)
-        }),
+        Effect.tap(effect, (value) =>
+          Effect.sync(() => {
+            values[index] = primitiveToString(value)
+          })),
       {
         concurrency: "inherit",
         discard: true

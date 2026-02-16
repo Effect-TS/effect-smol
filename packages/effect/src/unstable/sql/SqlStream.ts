@@ -43,10 +43,12 @@ export const asyncPauseResume = <A, E = never, R = never>(
         paused = true
         cbs.onPause()
         return Queue.offerAll(queue, arr).pipe(
-          Effect.tap(() => {
-            cbs.onResume()
-            paused = false
-          }),
+          Effect.tap(() =>
+            Effect.sync(() => {
+              cbs.onResume()
+              paused = false
+            })
+          ),
           Effect.runFork
         )
       }

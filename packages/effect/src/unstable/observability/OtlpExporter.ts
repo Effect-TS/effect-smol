@@ -25,9 +25,9 @@ const policy = Schedule.forever.pipe(
       && error.reason.response.status === 429
     ) {
       const retryAfter = UndefinedOr.map(error.reason.response.headers["retry-after"], Num.parse) ?? 5
-      return Duration.seconds(retryAfter)
+      return Effect.succeed(Duration.seconds(retryAfter))
     }
-    return Duration.seconds(1)
+    return Effect.succeed(Duration.seconds(1))
   })
 )
 

@@ -23,7 +23,7 @@ import {
   Stream
 } from "effect"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/Array"
-import { constFalse, constTrue, constVoid, pipe } from "effect/Function"
+import { constTrue, constVoid, pipe } from "effect/Function"
 import { TestClock } from "effect/testing"
 import * as fc from "effect/testing/FastCheck"
 import { assertCauseFail, assertFailure } from "./utils/assert.ts"
@@ -34,11 +34,13 @@ describe("Stream", () => {
     it.effect("with take", () =>
       Effect.gen(function*() {
         const array = [1, 2, 3, 4, 5]
-        const result = yield* Stream.callback<number>((mb) => {
-          array.forEach((n) => {
-            Queue.offerUnsafe(mb, n)
+        const result = yield* Stream.callback<number>((mb) =>
+          Effect.sync(() => {
+            array.forEach((n) => {
+              Queue.offerUnsafe(mb, n)
+            })
           })
-        }).pipe(
+        ).pipe(
           Stream.take(array.length),
           Stream.runCollect
         )
@@ -115,7 +117,7 @@ describe("Stream", () => {
             }),
             { concurrency: "unbounded" }
           ).pipe(
-            Effect.tap(() => done = true)
+            Effect.tap(() => Effect.sync(() => done = true))
           ), { bufferSize: 2 }).pipe(Stream.toPull)
         yield* Effect.yieldNow
         assert.strictEqual(count, 7)
@@ -893,18 +895,22 @@ describe("Stream", () => {
               yield* Deferred.succeed(latch1, void 0)
               yield* Deferred.await(latch2)
               yield* pull.pipe(
-                Effect.andThen((chunk) => {
-                  arr.push(...chunk)
-                }),
+                Effect.tap((chunk) =>
+                  Effect.sync(() => {
+                    arr.push(...chunk)
+                  })
+                ),
                 Effect.repeat({ times: 7 })
               )
               const result2 = arr.slice()
               yield* Deferred.succeed(latch3, void 0)
               yield* Deferred.await(latch4)
               yield* pull.pipe(
-                Effect.andThen((chunk) => {
-                  arr.push(...chunk)
-                }),
+                Effect.tap((chunk) =>
+                  Effect.sync(() => {
+                    arr.push(...chunk)
+                  })
+                ),
                 Effect.repeat({ times: 7 })
               )
               const result3 = arr.slice()
@@ -1230,7 +1236,7 @@ describe("Stream", () => {
           Stream.tap((n) =>
             pipe(
               Ref.update(ref, Array.append(n)),
-              Effect.andThen(pipe(Deferred.succeed(latch, void 0), Effect.when(() => n === 999)))
+              Effect.andThen(pipe(Deferred.succeed(latch, void 0), Effect.when(Effect.sync(() => n === 999))))
             )
           ),
           Stream.rechunk(999),
@@ -1502,12 +1508,10 @@ describe("Stream", () => {
               Sink.fold(
                 () => [[] as Array<number>, true] as readonly [Array<number>, boolean],
                 (tuple) => tuple[1],
-                ([array], curr: number): readonly [Array<number>, boolean] => {
-                  if (curr === 1) {
-                    return [[curr, ...array], true]
-                  }
-                  return [[curr, ...array], false]
-                }
+                ([array], curr: number) =>
+                  Effect.succeed<readonly [Array<number>, boolean]>(
+                    curr === 1 ? [[curr, ...array], true] : [[curr, ...array], false]
+                  )
               ),
               Sink.map((tuple) => tuple[0])
             ),
@@ -1526,12 +1530,12 @@ describe("Stream", () => {
           Stream.tap((n) =>
             pipe(
               Effect.fail("Boom"),
-              Effect.when(() => n === 6),
+              Effect.when(Effect.sync(() => n === 6)),
               Effect.andThen(Queue.offer(queue, n))
             )
           ),
           Stream.aggregateWithin(
-            Sink.foldUntil(constVoid, 5, constVoid),
+            Sink.foldUntil(constVoid, 5, () => Effect.void),
             Schedule.forever
           ),
           Stream.runDrain,
@@ -3266,7 +3270,7 @@ describe("Stream", () => {
                     Effect.andThen(
                       pipe(
                         Deferred.succeed(latch, void 0),
-                        Effect.when(() => n === 2)
+                        Effect.when(Effect.sync(() => n === 2))
                       )
                     )
                   )
@@ -3359,7 +3363,7 @@ describe("Stream", () => {
                     Effect.andThen(
                       pipe(
                         Deferred.succeed(latch, void 0),
-                        Effect.when(() => n === 2)
+                        Effect.when(Effect.sync(() => n === 2))
                       )
                     )
                   )
@@ -3425,7 +3429,7 @@ describe("Stream", () => {
         const sink = Sink.fold<ReadonlyArray<number>, number>(
           Array.empty,
           constTrue,
-          Array.append
+          (acc, n) => Effect.succeed(Array.append(acc, n))
         )
         const result = yield* pipe(
           stream,
@@ -3986,7 +3990,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const stream = Stream.make(1, 2, 3, 4, 5)
         const { result1, result2 } = yield* (Effect.all({
-          result1: pipe(stream, Stream.when(constTrue), Stream.runCollect),
+          result1: pipe(stream, Stream.when(Effect.succeed(true)), Stream.runCollect),
           result2: Stream.runCollect(stream)
         }))
         deepStrictEqual(result1, result2)
@@ -3996,7 +4000,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const result = yield* pipe(
           Stream.make(1, 2, 3, 4, 5),
-          Stream.when(constFalse),
+          Stream.when(Effect.succeed(false)),
           Stream.runCollect
         )
         deepStrictEqual(result, [])
@@ -4007,9 +4011,9 @@ describe("Stream", () => {
         const error = "boom"
         const result = yield* pipe(
           Stream.make(1, 2, 3),
-          Stream.when(() => {
+          Stream.when(Effect.sync(() => {
             throw error
-          }),
+          })),
           Stream.runDrain,
           Effect.exit
         )

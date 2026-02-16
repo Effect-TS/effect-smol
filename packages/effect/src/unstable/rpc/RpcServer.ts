@@ -1234,9 +1234,11 @@ export const makeProtocolWorkerRunner: Effect.Effect<
     return writeRequest(clientId, message)
   }).pipe(
     Effect.tapCause(Effect.logError),
-    Effect.onExit(() => {
-      fiber.currentScheduler.scheduleTask(() => fiber.interruptUnsafe(fiber.id), 0)
-    }),
+    Effect.onExit(() =>
+      Effect.sync(() => {
+        fiber.currentScheduler.scheduleTask(() => fiber.interruptUnsafe(fiber.id), 0)
+      })
+    ),
     Effect.forkScoped
   )
 

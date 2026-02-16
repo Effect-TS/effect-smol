@@ -23,7 +23,7 @@ describe("Schedule", () => {
 
     it.effect("collectWhile - should collect while the predicate holds", () =>
       Effect.gen(function*() {
-        const schedule = Schedule.collectWhile(Schedule.forever, ({ output }) => output < 3)
+        const schedule = Schedule.collectWhile(Schedule.forever, ({ output }) => Effect.succeed(output < 3))
         const inputs = Array.makeBy(5, constUndefined)
         const outputs = yield* runLast(schedule, inputs)
         expect(outputs).toEqual([0, 1, 2, 3])
@@ -42,7 +42,7 @@ describe("Schedule", () => {
     it.effect("andThenResult - executes schedules sequentially to completion", () =>
       Effect.gen(function*() {
         const left = Schedule.fixed("500 millis").pipe(
-          Schedule.while(({ attempt }) => attempt <= 3)
+          Schedule.while(({ attempt }) => Effect.succeed(attempt <= 3))
         )
         const right = Schedule.fixed("1 second")
         const schedule = Schedule.andThenResult(left, right)
@@ -165,12 +165,14 @@ describe("Schedule", () => {
       Effect.gen(function*() {
         const delays: Array<Duration.Duration> = []
         const schedule = Schedule.windowed("1 seconds").pipe(
-          Schedule.while(({ attempt }) => attempt <= 5),
+          Schedule.while(({ attempt }) => Effect.succeed(attempt <= 5)),
           Schedule.delays,
-          Schedule.map((delay) => {
-            delays.push(delay)
-            return delays
-          })
+          Schedule.map((delay) =>
+            Effect.succeed((() => {
+              delays.push(delay)
+              return delays
+            })())
+          )
         )
         yield* Effect.sleep("1.5 seconds").pipe(
           Effect.schedule(schedule),

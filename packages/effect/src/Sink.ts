@@ -635,7 +635,7 @@ export const drain: Sink<void, unknown> = fromTransform((upstream) =>
 export const fold = <S, In, E = never, R = never>(
   s: LazyArg<S>,
   contFn: Predicate<S>,
-  f: (s: S, input: In) => S | Effect.Effect<S, E, R>
+  f: (s: S, input: In) => Effect.Effect<S, E, R>
 ): Sink<S, In, In, E, R> =>
   fromTransform((upstream) => {
     let state = s()
@@ -643,8 +643,7 @@ export const fold = <S, In, E = never, R = never>(
       while (true) {
         const arr = yield* upstream
         for (let i = 0; i < arr.length; i++) {
-          const result = f(state, arr[i])
-          state = Effect.isEffect(result) ? yield* result : result
+          state = yield* f(state, arr[i])
           if (contFn(state)) continue
           return [
             state,
@@ -664,15 +663,14 @@ export const fold = <S, In, E = never, R = never>(
 export const foldArray = <S, In, E = never, R = never>(
   s: LazyArg<S>,
   contFn: Predicate<S>,
-  f: (s: S, input: Arr.NonEmptyReadonlyArray<In>) => S | Effect.Effect<S, E, R>
+  f: (s: S, input: Arr.NonEmptyReadonlyArray<In>) => Effect.Effect<S, E, R>
 ): Sink<S, In, never, E, R> =>
   fromTransform((upstream) => {
     let state = s()
     return Effect.gen(function*() {
       while (true) {
         const arr = yield* upstream
-        const result = f(state, arr)
-        state = Effect.isEffect(result) ? yield* result : result
+        state = yield* f(state, arr)
         if (contFn(state)) continue
         return [state] as const
       }
@@ -688,17 +686,12 @@ export const foldArray = <S, In, E = never, R = never>(
 export const foldUntil = <S, In, E = never, R = never>(
   s: LazyArg<S>,
   max: number,
-  f: (s: S, input: In) => S | Effect.Effect<S, E, R>
+  f: (s: S, input: In) => Effect.Effect<S, E, R>
 ): Sink<S, In, In, E, R> =>
   fold<readonly [S, number], In, E, R>(
     () => [s(), 0],
     (tuple) => tuple[1] < max,
-    ([output, count], input) => {
-      const result = f(output, input)
-      return Effect.isEffect(result)
-        ? Effect.map(result, (s) => [s, count + 1] as const)
-        : [result, count + 1] as const
-    }
+    ([output, count], input) => Effect.map(f(output, input), (s) => [s, count + 1] as const)
   ).pipe(
     map((tuple) => tuple[0])
   )
@@ -713,7 +706,7 @@ export const every = <In>(predicate: Predicate<In>): Sink<boolean, In, In> =>
   fold(
     constTrue,
     identity,
-    (_, a) => predicate(a)
+    (_, a) => Effect.succeed(predicate(a))
   )
 
 /**
@@ -726,7 +719,7 @@ export const some = <In>(predicate: Predicate<In>): Sink<boolean, In, In> =>
   fold(
     constFalse,
     (b) => !b,
-    (_, a) => predicate(a)
+    (_, a) => Effect.succeed(predicate(a))
   )
 
 /**

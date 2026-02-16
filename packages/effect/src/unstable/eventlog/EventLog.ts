@@ -636,15 +636,17 @@ const make = Effect.gen(function*() {
           conflicts: []
         }).pipe(
           Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
-          Effect.tap(() => {
-            if (reactivityKeys[entry.event]) {
-              for (const key of reactivityKeys[entry.event]) {
-                reactivity.invalidateUnsafe({
-                  [key]: [entry.primaryKey]
-                })
+          Effect.tap(() =>
+            Effect.sync(() => {
+              if (reactivityKeys[entry.event]) {
+                for (const key of reactivityKeys[entry.event]) {
+                  reactivity.invalidateUnsafe({
+                    [key]: [entry.primaryKey]
+                  })
+                }
               }
-            }
-          })
+            })
+          )
         )
     }))
   })

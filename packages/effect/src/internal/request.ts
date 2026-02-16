@@ -8,13 +8,13 @@ import { makeEntry } from "../Request.ts"
 import type { RequestResolver } from "../RequestResolver.ts"
 import { Scheduler } from "../Scheduler.ts"
 import * as ServiceMap from "../ServiceMap.ts"
-import { exitDie, isEffect } from "./core.ts"
+import { exitDie } from "./core.ts"
 import * as effect from "./effect.ts"
 
 /** @internal */
 export const request: {
   <A extends Request.Any, EX = never, RX = never>(
-    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
+    resolver: Effect<RequestResolver<A>, EX, RX>
   ): (self: A) => Effect<
     Request.Success<A>,
     Request.Error<A> | EX,
@@ -22,7 +22,7 @@ export const request: {
   >
   <A extends Request.Any, EX = never, RX = never>(
     self: A,
-    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
+    resolver: Effect<RequestResolver<A>, EX, RX>
   ): Effect<
     Request.Success<A>,
     Request.Error<A> | EX,
@@ -32,7 +32,7 @@ export const request: {
   2,
   <A extends Request.Any, EX = never, RX = never>(
     self: A,
-    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
+    resolver: Effect<RequestResolver<A>, EX, RX>
   ): Effect<
     Request.Success<A>,
     Request.Error<A> | EX,
@@ -47,7 +47,7 @@ export const request: {
         const entry = addEntry(resolver, self, resume, effect.getCurrentFiber()!)
         return maybeRemoveEntry(resolver, entry)
       })
-    return isEffect(resolver) ? effect.flatMap(resolver, withResolver) : withResolver(resolver)
+    return effect.flatMap(resolver, withResolver)
   }
 )
 

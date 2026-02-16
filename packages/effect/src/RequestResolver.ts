@@ -181,7 +181,7 @@ const defaultKey = (_request: unknown): unknown => defaultKeyObject
  * )
  *
  * // Use the resolver to handle requests
- * const getUserEffect = Effect.request(GetUserRequest({ id: 123 }), UserResolver)
+ * const getUserEffect = Effect.request(GetUserRequest({ id: 123 }), Effect.succeed(UserResolver))
  * ```
  *
  * @since 2.0.0
@@ -276,7 +276,7 @@ const hashGroupKey = <A, K>(get: (entry: Request.Entry<A>) => K) => {
  * // Usage
  * const getSquareEffect = Effect.request(
  *   GetSquareRequest({ value: 5 }),
- *   SquareResolver
+ *   Effect.succeed(SquareResolver)
  * )
  * // Will resolve to 25
  * ```
@@ -319,7 +319,7 @@ export const fromFunction = <A extends Request.Any>(
  *
  * // Usage with multiple requests
  * const effects = [1, 2, 3].map((value) =>
- *   Effect.request(GetDoubleRequest({ value }), DoubleResolver)
+ *   Effect.request(GetDoubleRequest({ value }), Effect.succeed(DoubleResolver))
  * )
  * const batchedEffect = Effect.all(effects) // [2, 4, 6]
  * ```
@@ -370,7 +370,7 @@ export const fromFunctionBatched = <A extends Request.Any>(
  * // Usage
  * const getUserEffect = Effect.request(
  *   GetUserFromAPIRequest({ id: 123 }),
- *   UserAPIResolver
+ *   Effect.succeed(UserAPIResolver)
  * )
  * ```
  *
@@ -649,7 +649,7 @@ export const around: {
  * const TestRequest = Request.tagged<TestRequest>("TestRequest")
  *
  * // This will never resolve
- * const neverEffect = Effect.request(TestRequest({}), neverResolver as any)
+ * const neverEffect = Effect.request(TestRequest({}), Effect.succeed(neverResolver) as any)
  *
  * // Useful for testing timeout behavior
  * const timeoutTest = Effect.timeout(neverEffect, "1 second")
@@ -688,7 +688,7 @@ export const never: RequestResolver<never> = make(() => Effect.never)
  * // When more than 5 requests are made, they'll be split into multiple batches
  * const requests = Array.from(
  *   { length: 12 },
- *   (_, i) => Effect.request(GetDataRequest({ id: i }), limitedResolver)
+ *   (_, i) => Effect.request(GetDataRequest({ id: i }), Effect.succeed(limitedResolver))
  * )
  * ```
  *
@@ -738,15 +738,15 @@ export const batchN: {
  * const requests = [
  *   Effect.request(
  *     GetUserRequest({ userId: 1, department: "Engineering" }),
- *     groupedResolver
+ *     Effect.succeed(groupedResolver)
  *   ),
  *   Effect.request(
  *     GetUserRequest({ userId: 2, department: "Engineering" }),
- *     groupedResolver
+ *     Effect.succeed(groupedResolver)
  *   ),
  *   Effect.request(
  *     GetUserRequest({ userId: 3, department: "Marketing" }),
- *     groupedResolver
+ *     Effect.succeed(groupedResolver)
  *   )
  * ]
  * ```
@@ -861,7 +861,7 @@ export const race: {
  * )
  *
  * // Spans will automatically include batch size and request links
- * const effect = Effect.request(GetDataRequest({ id: 123 }), tracedResolver)
+ * const effect = Effect.request(GetDataRequest({ id: 123 }), Effect.succeed(tracedResolver))
  * ```
  *
  * @since 4.0.0
@@ -969,7 +969,7 @@ export const asCache: {
     capacity: options.capacity,
     timeToLive: options.timeToLive as any,
     requireServicesAt: options.requireServicesAt ?? "lookup" as ServiceMode,
-    lookup: (req: A) => internal.request(req, self)
+    lookup: (req: A) => internal.request(req, Effect.succeed(self))
   }) as any)
 
 /**

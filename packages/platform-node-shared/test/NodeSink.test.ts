@@ -139,12 +139,14 @@ const entries = <R, E>(
       Effect.forkScoped
     )
 
-    return Stream.callback<Tar.ReadEntry, TarError>((queue) => {
-      parser.on("entry", (entry) => {
-        Queue.offerUnsafe(queue, entry)
+    return Stream.callback<Tar.ReadEntry, TarError>((queue) =>
+      Effect.sync(() => {
+        parser.on("entry", (entry) => {
+          Queue.offerUnsafe(queue, entry)
+        })
+        parser.on("close", () => {
+          Queue.endUnsafe(queue)
+        })
       })
-      parser.on("close", () => {
-        Queue.endUnsafe(queue)
-      })
-    })
+    )
   }).pipe(Stream.unwrap)

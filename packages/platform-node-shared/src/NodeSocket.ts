@@ -166,10 +166,12 @@ export const fromDuplex = <RO>(
         }
       })).pipe(
         Effect.updateServices((input: ServiceMap.ServiceMap<R>) => ServiceMap.merge(openServices, input)),
-        Effect.onExit(() => {
-          latch.closeUnsafe()
-          currentSocket = undefined
-        })
+        Effect.onExit(() =>
+          Effect.sync(() => {
+            latch.closeUnsafe()
+            currentSocket = undefined
+          })
+        )
       )
 
     const write = (chunk: Uint8Array | string | Socket.CloseEvent) =>

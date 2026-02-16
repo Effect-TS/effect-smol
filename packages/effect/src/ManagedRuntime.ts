@@ -172,9 +172,10 @@ export const make = <R, ER>(
         Effect.runFork(
           Effect.tap(
             Layer.buildWithMemoMap(layer, memoMap, scope),
-            (services) => {
-              self.cachedServices = services
-            }
+            (services) =>
+              Effect.sync(() => {
+                self.cachedServices = services
+              })
           ),
           { scheduler: fiber.currentScheduler }
         ),

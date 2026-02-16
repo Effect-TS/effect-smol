@@ -117,7 +117,6 @@ import type {
   ExtractReason,
   ExtractTag,
   NoInfer,
-  NotFunction,
   ReasonOf,
   ReasonTags,
   Tags,
@@ -1898,7 +1897,7 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  * // Using Effect.andThen
  * const result2 = pipe(
  *   fetchTransactionAmount,
- *   Effect.andThen((amount) => amount * 2),
+ *   Effect.andThen((amount) => Effect.succeed(amount * 2)),
  *   Effect.andThen((amount) => applyDiscount(amount, 5))
  * )
  *
@@ -1910,28 +1909,20 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  * @category Sequencing
  */
 export const andThen: {
-  <A, X>(
-    f: (a: A) => X
-  ): <E, R>(
-    self: Effect<A, E, R>
-  ) => [X] extends [Effect<infer A1, infer E1, infer R1>] ? Effect<A1, E | E1, R | R1>
-    : Effect<X, E, R>
-  <X>(
-    f: NotFunction<X>
-  ): <A, E, R>(
-    self: Effect<A, E, R>
-  ) => [X] extends [Effect<infer A1, infer E1, infer R1>] ? Effect<A1, E | E1, R | R1>
-    : Effect<X, E, R>
-  <A, E, R, X>(
+  <A, B, E2, R2>(
+    f: (a: A) => Effect<B, E2, R2>
+  ): <E, R>(self: Effect<A, E, R>) => Effect<B, E | E2, R | R2>
+  <B, E2, R2>(
+    f: Effect<B, E2, R2>
+  ): <A, E, R>(self: Effect<A, E, R>) => Effect<B, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
     self: Effect<A, E, R>,
-    f: (a: A) => X
-  ): [X] extends [Effect<infer A1, infer E1, infer R1>] ? Effect<A1, E | E1, R | R1>
-    : Effect<X, E, R>
-  <A, E, R, X>(
+    f: (a: A) => Effect<B, E2, R2>
+  ): Effect<B, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
     self: Effect<A, E, R>,
-    f: NotFunction<X>
-  ): [X] extends [Effect<infer A1, infer E1, infer R1>] ? Effect<A1, E | E1, R | R1>
-    : Effect<X, E, R>
+    f: Effect<B, E2, R2>
+  ): Effect<B, E | E2, R | R2>
 } = internal.andThen
 
 /**
@@ -1993,46 +1984,20 @@ export const andThen: {
  * @category Sequencing
  */
 export const tap: {
-  <A, X>(
-    f: (a: NoInfer<A>) => X
-  ): <E, R>(
-    self: Effect<A, E, R>
-  ) => [X] extends [Effect<infer _A1, infer E1, infer R1>] ? Effect<A, E | E1, R | R1>
-    : Effect<A, E, R>
-  <A, X, E1, R1>(
-    f: (a: NoInfer<A>) => Effect<X, E1, R1>,
-    options: { onlyEffect: true }
-  ): <E, R>(self: Effect<A, E, R>) => Effect<A, E | E1, R | R1>
-  <X>(
-    f: NotFunction<X>
-  ): <A, E, R>(
-    self: Effect<A, E, R>
-  ) => [X] extends [Effect<infer _A1, infer E1, infer R1>] ? Effect<A, E | E1, R | R1>
-    : Effect<A, E, R>
-  <X, E1, R1>(
-    f: Effect<X, E1, R1>,
-    options: { onlyEffect: true }
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | E1, R | R1>
-  <A, E, R, X>(
+  <A, B, E2, R2>(
+    f: (a: NoInfer<A>) => Effect<B, E2, R2>
+  ): <E, R>(self: Effect<A, E, R>) => Effect<A, E | E2, R | R2>
+  <B, E2, R2>(
+    f: Effect<B, E2, R2>
+  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
     self: Effect<A, E, R>,
-    f: (a: NoInfer<A>) => X
-  ): [X] extends [Effect<infer _A1, infer E1, infer R1>] ? Effect<A, E | E1, R | R1>
-    : Effect<A, E, R>
-  <A, E, R, X, E1, R1>(
+    f: (a: NoInfer<A>) => Effect<B, E2, R2>
+  ): Effect<A, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
     self: Effect<A, E, R>,
-    f: (a: NoInfer<A>) => Effect<X, E1, R1>,
-    options: { onlyEffect: true }
-  ): Effect<A, E | E1, R | R1>
-  <A, E, R, X>(
-    self: Effect<A, E, R>,
-    f: NotFunction<X>
-  ): [X] extends [Effect<infer _A1, infer E1, infer R1>] ? Effect<A, E | E1, R | R1>
-    : Effect<A, E, R>
-  <A, E, R, X, E1, R1>(
-    self: Effect<A, E, R>,
-    f: Effect<X, E1, R1>,
-    options: { onlyEffect: true }
-  ): Effect<A, E | E1, R | R1>
+    f: Effect<B, E2, R2>
+  ): Effect<A, E | E2, R | R2>
 } = internal.tap
 
 /**
@@ -3673,7 +3638,7 @@ export declare namespace Retry {
  *   }
  * })
  *
- * const policy = Schedule.addDelay(Schedule.recurs(5), () => "100 millis")
+ * const policy = Schedule.addDelay(Schedule.recurs(5), () => Effect.succeed("100 millis"))
  * const program = Effect.retry(task, policy)
  *
  * Effect.runPromise(program).then(console.log)
@@ -4655,7 +4620,7 @@ export const filterOrFail: {
  *
  * const program = Effect.when(
  *   Console.log("Condition is true!"),
- *   () => shouldLog
+ *   Effect.succeed(shouldLog)
  * )
  *
  * Effect.runPromise(program).then(console.log)
@@ -4671,11 +4636,11 @@ export const filterOrFail: {
  */
 export const when: {
   <E2 = never, R2 = never>(
-    condition: LazyArg<boolean> | Effect<boolean, E2, R2>
+    condition: Effect<boolean, E2, R2>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E | E2, R | R2>
   <A, E, R, E2 = never, R2 = never>(
     self: Effect<A, E, R>,
-    condition: LazyArg<boolean> | Effect<boolean, E2, R2>
+    condition: Effect<boolean, E2, R2>
   ): Effect<Option<A>, E | E2, R | R2>
 } = internal.when
 
@@ -6104,11 +6069,11 @@ export const onErrorIf: {
  */
 export const onExit: {
   <A, E, XE = never, XR = never>(
-    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR> | void
+    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR>
   ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
   <A, E, R, XE = never, XR = never>(
     self: Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR> | void
+    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR>
   ): Effect<A, E | XE, R | XR>
 } = internal.onExit
 
@@ -6139,11 +6104,11 @@ export const onExit: {
  */
 export const onExitInterruptible: {
   <A, E, XE = never, XR = never>(
-    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR> | void
+    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR>
   ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
   <A, E, R, XE = never, XR = never>(
     self: Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR> | void
+    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR>
   ): Effect<A, E | XE, R | XR>
 } = internal.onExitInterruptible
 
@@ -6462,12 +6427,12 @@ export const interruptible: <A, E, R>(
  *
  * const program = Effect.onInterrupt(
  *   task,
- *   Console.log("Task was interrupted, cleaning up...")
+ *   () => Console.log("Task was interrupted, cleaning up...")
  * )
  *
  * const fiber = Effect.runFork(program)
  * // Later interrupt the task
- * Effect.runPromise(Fiber.interrupt(fiber))
+ * Effect.runFork(Fiber.interrupt(fiber))
  * // Output: Task was interrupted, cleaning up...
  * ```
  *
@@ -6476,11 +6441,11 @@ export const interruptible: <A, E, R>(
  */
 export const onInterrupt: {
   <XE, XR>(
-    finalizer: Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect<void, XE, XR>)
+    finalizer: (interruptors: ReadonlySet<number>) => Effect<void, XE, XR>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
   <A, E, R, XE, XR>(
     self: Effect<A, E, R>,
-    finalizer: Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect<void, XE, XR>)
+    finalizer: (interruptors: ReadonlySet<number>) => Effect<void, XE, XR>
   ): Effect<A, E | XE, R | XR>
 } = internal.onInterrupt
 
@@ -6976,7 +6941,7 @@ export const forever: <
  * import { Console } from "effect"
  *
  * const action = Console.log("success")
- * const policy = Schedule.addDelay(Schedule.recurs(2), () => "100 millis")
+ * const policy = Schedule.addDelay(Schedule.recurs(2), () => Effect.succeed("100 millis"))
  * const program = Effect.repeat(action, policy)
  *
  * // Effect.runPromise(program).then((n) => console.log(`repetitions: ${n}`))
@@ -7001,7 +6966,7 @@ export const forever: <
  *   }
  * })
  *
- * const policy = Schedule.addDelay(Schedule.recurs(2), () => "100 millis")
+ * const policy = Schedule.addDelay(Schedule.recurs(2), () => Effect.succeed("100 millis"))
  * const program = Effect.repeat(action, policy)
  *
  * // Effect.runPromiseExit(program).then(console.log)
@@ -7173,7 +7138,7 @@ export const replicateEffect: {
  * // Repeat 3 times with 1 second delay between executions
  * const program = Effect.schedule(
  *   task,
- *   Schedule.addDelay(Schedule.recurs(2), () => "1 second")
+ *   Schedule.addDelay(Schedule.recurs(2), () => Effect.succeed("1 second"))
  * )
  *
  * Effect.runPromise(program).then(console.log)
@@ -7779,18 +7744,18 @@ export const withParentSpan: {
  * )
  *
  * const program = Effect.gen(function*() {
- *   const name = yield* Effect.request(GetUser({ id: 1 }), resolver)
+ *   const name = yield* Effect.request(GetUser({ id: 1 }), Effect.succeed(resolver))
  *   yield* Console.log(name)
  * })
  * ```
  */
 export const request: {
   <A extends Request.Any, EX = never, RX = never>(
-    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
+    resolver: Effect<RequestResolver<A>, EX, RX>
   ): (self: A) => Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX>
   <A extends Request.Any, EX = never, RX = never>(
     self: A,
-    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
+    resolver: Effect<RequestResolver<A>, EX, RX>
   ): Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX>
 } = internalRequest.request
 

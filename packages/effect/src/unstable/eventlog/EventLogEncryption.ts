@@ -84,9 +84,11 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
             ["encrypt", "decrypt"]
           )
         ).pipe(
-          Effect.tap((key) => {
-            keyCache.set(identity, key)
-          })
+          Effect.tap((key) =>
+            Effect.sync(() => {
+              keyCache.set(identity, key)
+            })
+          )
         )
       })
 

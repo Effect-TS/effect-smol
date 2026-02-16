@@ -55,9 +55,12 @@ describe("LanguageModel", () => {
           toolkit: MyToolkit
         }).pipe(
           Stream.runForEach((part) =>
-            Effect.andThen(latch.open, () => {
-              parts.push(part)
-            })
+            Effect.andThen(
+              latch.open,
+              Effect.sync(() => {
+                parts.push(part)
+              })
+            )
           ),
           TestUtils.withLanguageModel({
             streamText: [
@@ -371,9 +374,12 @@ describe("LanguageModel", () => {
           toolkit: MyToolkit
         }).pipe(
           Stream.runForEach((part) =>
-            Effect.andThen(latch.open, () => {
-              parts.push(part)
-            })
+            Effect.andThen(
+              latch.open,
+              Effect.sync(() => {
+                parts.push(part)
+              })
+            )
           ),
           TestUtils.withLanguageModel({
             streamText: [

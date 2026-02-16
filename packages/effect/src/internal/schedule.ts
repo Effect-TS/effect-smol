@@ -33,9 +33,10 @@ export const repeatOrElse: {
       effect.forever(
         effect.tap(
           effect.flatMap(effect.suspend(() => effect.provideService(self, Schedule.CurrentMetadata, meta)), step),
-          (meta_) => {
-            meta = meta_
-          }
+          (meta_) =>
+            effect.sync(() => {
+              meta = meta_
+            })
         ),
         { autoYield: false }
       ),
@@ -227,16 +228,19 @@ export const buildFromOptions = <Input>(options: {
 }) => {
   let schedule: Schedule.Schedule<any, Input, any, any> = options.schedule ?? passthroughForever
   if (options.while) {
-    schedule = Schedule.while(schedule, ({ input }) => options.while!(input))
+    schedule = Schedule.while(schedule, ({ input }) => {
+      const applied = options.while!(input)
+      return core.isEffect(applied) ? applied : effect.succeed(applied)
+    })
   }
   if (options.until) {
     schedule = Schedule.while(schedule, ({ input }) => {
       const applied = options.until!(input)
-      return typeof applied === "boolean" ? !applied : effect.map(applied, (b) => !b)
+      return core.isEffect(applied) ? effect.map(applied, (b) => !b) : effect.succeed(!applied)
     })
   }
   if (options.times !== undefined) {
-    schedule = Schedule.while(schedule, ({ attempt }) => attempt <= options.times!)
+    schedule = Schedule.while(schedule, ({ attempt }) => effect.succeed(attempt <= options.times!))
   }
   return schedule
 }

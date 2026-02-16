@@ -35,8 +35,8 @@ import type * as DateTime from "./DateTime.ts"
 import * as Duration from "./Duration.ts"
 import type { Effect } from "./Effect.ts"
 import type { LazyArg } from "./Function.ts"
-import { constant, constTrue, dual, identity } from "./Function.ts"
-import { isEffect } from "./internal/core.ts"
+import { constant, dual, identity } from "./Function.ts"
+
 import * as effect from "./internal/effect.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
@@ -96,16 +96,9 @@ export interface Schedule<out Output, in Input = unknown, out Error = never, out
  *
  * // Custom schedule that uses input metadata
  * const metadataAwareSchedule = Schedule.spaced("1 second").pipe(
- *   Schedule.collectWhile((metadata) => {
- *     console.log(`Attempt ${metadata.attempt}`)
- *     console.log(`Started at: ${new Date(metadata.start)}`)
- *     console.log(`Current time: ${new Date(metadata.now)}`)
- *     console.log(`Total elapsed: ${metadata.elapsed}ms`)
- *     console.log(`Since previous: ${metadata.elapsedSincePrevious}ms`)
- *
- *     // Stop after 5 attempts or 10 seconds
- *     return metadata.attempt <= 5 && metadata.elapsed < 10000
- *   })
+ *   Schedule.collectWhile((metadata) =>
+ *     Effect.succeed(metadata.attempt <= 5 && metadata.elapsed < 10000)
+ *   )
  * )
  *
  * const program = Effect.gen(function*() {
@@ -136,8 +129,8 @@ export interface InputMetadata<Input> {
  * import { Console, Duration, Effect, Schedule } from "effect"
  *
  * // Custom schedule that logs metadata including output
- * const loggingSchedule = Schedule.unfold(0, (n) => n + 1).pipe(
- *   Schedule.addDelay(() => Duration.millis(100)),
+ * const loggingSchedule = Schedule.unfold(0, (n) => Effect.succeed(n + 1)).pipe(
+ *   Schedule.addDelay(() => Effect.succeed(Duration.millis(100))),
  *   Schedule.tapOutput((output) => {
  *     return Console.log(
  *       `Output: ${output}`
@@ -193,8 +186,8 @@ export const CurrentMetadata = ServiceMap.Reference<Metadata>("effect/Schedule/C
  * // Usage of the Schedule namespace for creating schedules
  *
  * // Create custom schedule with metadata
- * const customSchedule = Schedule.unfold(0, (n) => n + 1).pipe(
- *   Schedule.addDelay((n) => Duration.millis(n * 100))
+ * const customSchedule = Schedule.unfold(0, (n) => Effect.succeed(n + 1)).pipe(
+ *   Schedule.addDelay((n) => Effect.succeed(Duration.millis(n * 100)))
  * )
  *
  * const program = Effect.gen(function*() {
@@ -222,7 +215,7 @@ export declare namespace Schedule {
    *
    * @example
    * ```ts
-   * import { Schedule } from "effect"
+   * import { Effect, Schedule } from "effect"
    *
    * // Understanding Schedule variance:
    * // - Output: covariant (can be a subtype)
@@ -232,7 +225,7 @@ export declare namespace Schedule {
    *
    * // Schedule that produces strings, accepts any input
    * const stringSchedule = Schedule.spaced("1 second").pipe(
-   *   Schedule.map(() => "tick")
+   *   Schedule.map(() => Effect.succeed("tick"))
    * )
    *
    * // Schedule that only accepts Error inputs
@@ -256,7 +249,7 @@ export declare namespace Schedule {
    *
    * @example
    * ```ts
-   * import { Schedule } from "effect"
+   * import { Effect, Schedule } from "effect"
    *
    * // The variance struct defines how Schedule's type parameters behave
    * // This internal interface is used for type variance annotations
@@ -271,7 +264,7 @@ export declare namespace Schedule {
    *
    * // Output is covariant - more specific types can be substituted
    * const stringSchedule = Schedule.spaced("1 second").pipe(
-   *   Schedule.map(() => "output")
+   *   Schedule.map(() => Effect.succeed("output"))
    * )
    *
    * // Input is contravariant - more general types can be accepted
@@ -384,7 +377,7 @@ const metadataFn = () => {
  *
  * // Most users should use simpler metadata-aware functions like:
  * const metadataSchedule = Schedule.spaced("1 second").pipe(
- *   Schedule.collectWhile((metadata) => metadata.attempt <= 5)
+ *   Schedule.collectWhile((metadata) => Effect.succeed(metadata.attempt <= 5))
  * )
  *
  * // Or use existing schedules with metadata transformations:
@@ -527,16 +520,14 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *
  * @example
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
+ * import { Console, Duration, Effect, Schedule } from "effect"
  *
  * // Add random jitter to schedule delays
  * const jitteredSchedule = Schedule.addDelay(
  *   Schedule.exponential("100 millis").pipe(Schedule.take(5)),
- *   (output) => {
+ *   (output) =>
  *     // Add random jitter between 0-50ms
- *     const jitter = Math.random() * 50
- *     return `${jitter} millis`
- *   }
+ *     Effect.succeed(Duration.millis(Math.random() * 50))
  * )
  *
  * const jitterProgram = Effect.gen(function*() {
@@ -556,11 +547,9 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * // Add adaptive delay based on execution count
  * const adaptiveSchedule = Schedule.addDelay(
  *   Schedule.recurs(6),
- *   (executionCount) => {
+ *   (executionCount) =>
  *     // Increase delay as execution count grows
- *     const additionalDelay = executionCount * 200
- *     return `${additionalDelay} millis`
- *   }
+ *     Effect.succeed(Duration.millis(executionCount * 200))
  * )
  *
  * const adaptiveProgram = Effect.gen(function*() {
@@ -580,12 +569,9 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * // Add effectful delay computation
  * const dynamicSchedule = Schedule.addDelay(
  *   Schedule.spaced("1 second").pipe(Schedule.take(4)),
- *   (executionNumber) => {
+ *   (executionNumber) =>
  *     // Simulate checking system load and return additional delay
- *     const systemLoad = Math.random()
- *     const additionalDelay = systemLoad > 0.7 ? 2000 : 500
- *     return `${additionalDelay} millis`
- *   }
+ *     Effect.succeed(Duration.millis(Math.random() > 0.7 ? 2000 : 500))
  * )
  *
  * const dynamicProgram = Effect.gen(function*() {
@@ -598,17 +584,11 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *   )
  * })
  *
- * // Add delay based on previous execution results
+ * // Add delay based on previous execution results (30% extra)
  * const resultBasedSchedule = Schedule.addDelay(
  *   Schedule.fibonacci("200 millis").pipe(Schedule.take(5)),
- *   (fibonacciDelay) => {
- *     // Extract delay value and add percentage-based extra delay
- *     const delayStr = fibonacciDelay.toString()
- *     const baseMs = parseInt(delayStr) || 200
- *     const extraDelay = Math.floor(baseMs * 0.3) // Add 30% extra
- *
- *     return `${extraDelay} millis`
- *   }
+ *   (fibonacciDelay) =>
+ *     Effect.succeed(Duration.millis(Duration.toMillis(fibonacciDelay) * 0.3))
  * )
  *
  * const resultProgram = Effect.gen(function*() {
@@ -626,10 +606,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * // Combine with retry for progressive backoff
  * const progressiveRetrySchedule = Schedule.addDelay(
  *   Schedule.exponential("50 millis").pipe(Schedule.take(4)),
- *   (baseDelay) => {
- *     // Add circuit-breaker style additional delay
- *     return "100 millis" // Fixed additional delay
- *   }
+ *   () => Effect.succeed(Duration.millis(100)) // Fixed additional delay
  * )
  *
  * const retryProgram = Effect.gen(function*() {
@@ -655,25 +632,24 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  */
 export const addDelay: {
   <Output, Error2 = never, Env2 = never>(
-    f: (output: Output) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env2>
+    f: (output: Output) => Effect<Duration.DurationInput, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
-    f: (output: Output) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env>
+    f: (output: Output) => Effect<Duration.DurationInput, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
-  f: (output: Output) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env>
+  f: (output: Output) => Effect<Duration.DurationInput, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
-  modifyDelay(self, (output, delay) => {
-    const addDelay = f(output)
-    return isEffect(addDelay)
-      ? effect.map(addDelay, (d) =>
+  modifyDelay(
+    self,
+    (output, delay) =>
+      effect.map(f(output), (d) =>
         Duration.sum(Duration.fromDurationInputUnsafe(d), Duration.fromDurationInputUnsafe(delay)))
-      : Duration.sum(Duration.fromDurationInputUnsafe(addDelay), Duration.fromDurationInputUnsafe(delay))
-  }))
+  ))
 
 /**
  * Returns a new `Schedule` that will first execute the left (i.e. `self`)
@@ -727,7 +703,7 @@ export const andThen: {
   self: Schedule<Output, Input, Error, Env>,
   other: Schedule<Output2, Input2, Error2, Env2>
 ): Schedule<Output | Output2, Input & Input2, Error | Error2, Env | Env2> =>
-  map(andThenResult(self, other), Result.merge))
+  map(andThenResult(self, other), (result) => effect.succeed(Result.merge(result))))
 
 /**
  * Returns a new `Schedule` that will first execute the left (i.e. `self`)
@@ -907,7 +883,7 @@ export const both: {
  *
  * // Combine two schedules, keeping left output
  * const leftSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => "left-result")
+ *   Schedule.map(() => Effect.succeed("left-result"))
  * )
  * const rightSchedule = Schedule.spaced("50 millis")
  *
@@ -953,10 +929,10 @@ export const bothLeft: {
  *
  * // Combine two schedules, keeping right output
  * const leftSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => "left-result")
+ *   Schedule.map(() => Effect.succeed("left-result"))
  * )
  * const rightSchedule = Schedule.spaced("50 millis").pipe(
- *   Schedule.map(() => "right-result")
+ *   Schedule.map(() => Effect.succeed("right-result"))
  * )
  *
  * const combined = Schedule.bothRight(leftSchedule, rightSchedule)
@@ -1002,10 +978,10 @@ export const bothRight: {
  *
  * // Combine two schedules with custom output combination
  * const leftSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => "left")
+ *   Schedule.map(() => Effect.succeed("left"))
  * )
  * const rightSchedule = Schedule.spaced("50 millis").pipe(
- *   Schedule.map(() => "right")
+ *   Schedule.map(() => Effect.succeed("right"))
  * )
  *
  * const combined = Schedule.bothWith(
@@ -1176,7 +1152,7 @@ export const compose: {
  */
 export const collectInputs = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
-): Schedule<Array<Input>, Input, Error, Env> => collectWhile(passthrough(self), constTrue)
+): Schedule<Array<Input>, Input, Error, Env> => collectWhile(passthrough(self), () => effect.succeed(true))
 
 /**
  * Returns a new `Schedule` that always recurs, collecting all outputs of the
@@ -1207,7 +1183,7 @@ export const collectInputs = <Output, Input, Error, Env>(
  */
 export const collectOutputs = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
-): Schedule<Array<Output>, Input, Error, Env> => collectWhile(self, constTrue)
+): Schedule<Array<Output>, Input, Error, Env> => collectWhile(self, () => effect.succeed(true))
 
 /**
  * Returns a new `Schedule` that recurs as long as the specified `predicate`
@@ -1220,7 +1196,7 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * // Collect outputs while under time limit
  * const collectForTime = Schedule.collectWhile(
  *   Schedule.spaced("500 millis"),
- *   (metadata) => metadata.elapsed < 3000 // Stop after 3 seconds
+ *   (metadata) => Effect.succeed(metadata.elapsed < 3000) // Stop after 3 seconds
  * )
  *
  * const timeBasedProgram = Effect.gen(function*() {
@@ -1241,10 +1217,8 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * // Collect outputs while condition is met
  * const collectWhileSmall = Schedule.collectWhile(
  *   Schedule.exponential("100 millis"),
- *   (metadata) => {
- *     console.log(`Attempt ${metadata.attempt}, elapsed: ${metadata.elapsed}ms`)
- *     return metadata.attempt <= 5 && metadata.elapsed < 2000
- *   }
+ *   (metadata) =>
+ *     Effect.succeed(metadata.attempt <= 5 && metadata.elapsed < 2000)
  * )
  *
  * const conditionalProgram = Effect.gen(function*() {
@@ -1291,10 +1265,8 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * // Collect samples with condition
  * const collectSamples = Schedule.collectWhile(
  *   Schedule.spaced("200 millis"),
- *   (metadata) => {
- *     // Collect for 5 samples or 2 seconds, whichever comes first
- *     return metadata.attempt <= 5 && metadata.elapsed < 2000
- *   }
+ *   (metadata) =>
+ *     Effect.succeed(metadata.attempt <= 5 && metadata.elapsed < 2000)
  * )
  *
  * const samplingProgram = Effect.gen(function*() {
@@ -1321,7 +1293,7 @@ export const collectWhile: {
   <Input, Output, Error2 = never, Env2 = never>(
     predicate: (
       metadata: Metadata<Output, Input>
-    ) => boolean | Effect<boolean, Error2, Env2>
+    ) => Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Array<Output>, Input, Error | Error2, Env | Env2>
@@ -1329,18 +1301,19 @@ export const collectWhile: {
     self: Schedule<Output, Input, Error, Env>,
     predicate: (
       metadata: Metadata<Output, Input>
-    ) => boolean | Effect<boolean, Error2, Env2>
+    ) => Effect<boolean, Error2, Env2>
   ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   predicate: (
     metadata: Metadata<Output, Input>
-  ) => boolean | Effect<boolean, Error2, Env2>
+  ) => Effect<boolean, Error2, Env2>
 ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2> =>
-  reduce(while_(self, predicate), () => [] as Array<Output>, (outputs, output) => {
-    outputs.push(output)
-    return outputs
-  }))
+  reduce(while_(self, predicate), () => [] as Array<Output>, (outputs, output) =>
+    effect.succeed((() => {
+      outputs.push(output)
+      return outputs
+    })())))
 
 /**
  * Returns a new `Schedule` that recurs on the specified `Cron` schedule and
@@ -1531,7 +1504,7 @@ export const cron: {
  * )
  *
  * // Combine delays with other schedules for complex timing
- * const adaptiveSchedule = Schedule.unfold(100, (delay) => delay * 1.5).pipe(
+ * const adaptiveSchedule = Schedule.unfold(100, (delay) => Effect.succeed(delay * 1.5)).pipe(
  *   Schedule.take(6)
  * )
  *
@@ -1553,7 +1526,7 @@ export const cron: {
  * const customTimingSchedule = Schedule.delays(
  *   Schedule.exponential("50 millis").pipe(Schedule.take(4))
  * ).pipe(
- *   Schedule.map((delay) => `Next execution in ${delay}`),
+ *   Schedule.map((delay) => Effect.succeed(`Next execution in ${delay}`)),
  *   Schedule.tapOutput((message) => Console.log(message))
  * )
  * ```
@@ -1659,7 +1632,10 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  * @category constructors
  */
 export const during = (duration: Duration.DurationInput): Schedule<Duration.Duration> =>
-  while_(elapsed, ({ output }) => Duration.isLessThanOrEqualTo(output, Duration.fromDurationInputUnsafe(duration)))
+  while_(
+    elapsed,
+    ({ output }) => effect.succeed(Duration.isLessThanOrEqualTo(output, Duration.fromDurationInputUnsafe(duration)))
+  )
 
 /**
  * Combines two `Schedule`s by recurring if either of the two schedules wants
@@ -1757,11 +1733,11 @@ export const either: {
  *
  * // Combine two schedules with either semantics, keeping left output
  * const primarySchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => "primary-result"),
+ *   Schedule.map(() => Effect.succeed("primary-result")),
  *   Schedule.take(2)
  * )
  * const backupSchedule = Schedule.spaced("500 millis").pipe(
- *   Schedule.map(() => "backup-result")
+ *   Schedule.map(() => Effect.succeed("backup-result"))
  * )
  *
  * const combined = Schedule.eitherLeft(primarySchedule, backupSchedule)
@@ -1806,11 +1782,11 @@ export const eitherLeft: {
  *
  * // Combine two schedules with either semantics, keeping right output
  * const primarySchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => "primary-result"),
+ *   Schedule.map(() => Effect.succeed("primary-result")),
  *   Schedule.take(2)
  * )
  * const backupSchedule = Schedule.spaced("500 millis").pipe(
- *   Schedule.map(() => "backup-result")
+ *   Schedule.map(() => Effect.succeed("backup-result"))
  * )
  *
  * const combined = Schedule.eitherRight(primarySchedule, backupSchedule)
@@ -1856,11 +1832,11 @@ export const eitherRight: {
  *
  * // Combine schedules with either semantics and custom combination
  * const primarySchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => "primary"),
+ *   Schedule.map(() => Effect.succeed("primary")),
  *   Schedule.take(2)
  * )
  * const fallbackSchedule = Schedule.spaced("500 millis").pipe(
- *   Schedule.map(() => "fallback")
+ *   Schedule.map(() => Effect.succeed("fallback"))
  * )
  *
  * const combined = Schedule.eitherWith(
@@ -2186,20 +2162,20 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
  *
  * // Transform schedule output from number to string
  * const countSchedule = Schedule.recurs(5).pipe(
- *   Schedule.map((count) => `Execution #${count + 1}`)
+ *   Schedule.map((count) => Effect.succeed(`Execution #${count + 1}`))
  * )
  *
  * // Map schedule delays to human-readable format
  * const readableDelays = Schedule.exponential("100 millis").pipe(
- *   Schedule.map((duration) => `Next retry in ${duration}`)
+ *   Schedule.map((duration) => Effect.succeed(`Next retry in ${duration}`))
  * )
  *
  * // Transform numeric output to structured data
  * const structuredSchedule = Schedule.spaced("1 second").pipe(
- *   Schedule.map((recurrence) => ({
+ *   Schedule.map((recurrence) => Effect.succeed({
  *     iteration: recurrence + 1,
  *     timestamp: new Date().toISOString(),
- *     phase: recurrence < 5 ? "warmup" : "steady"
+ *     phase: recurrence < 5 ? "warmup" as const : "steady" as const
  *   }))
  * )
  *
@@ -2231,7 +2207,7 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
  *
  * // Combine mapping with other schedule operations
  * const complexSchedule = Schedule.fibonacci("100 millis").pipe(
- *   Schedule.map((delay) => `Delay: ${delay}`)
+ *   Schedule.map((delay) => Effect.succeed(`Delay: ${delay}`))
  * )
  * ```
  *
@@ -2240,30 +2216,23 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
  */
 export const map: {
   <Output, Output2, Error2 = never, Env2 = never>(
-    f: (output: Output) => Output2 | Effect<Output2, Error2, Env2>
+    f: (output: Output) => Effect<Output2, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output2, Input, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, Output2, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
-    f: (output: Output) => Output2 | Effect<Output2, Error2, Env2>
+    f: (output: Output) => Effect<Output2, Error2, Env2>
   ): Schedule<Output2, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Output2, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
-  f: (output: Output) => Output2 | Effect<Output2, Error2, Env2>
+  f: (output: Output) => Effect<Output2, Error2, Env2>
 ): Schedule<Output2, Input, Error | Error2, Env | Env2> => {
   const handle = Pull.matchEffect({
-    onSuccess: ([output, duration]: [Output, Duration.Duration]) => {
-      const mapper = f(output)
-      return isEffect(mapper)
-        ? effect.map(mapper, (output) => [output, duration] as [Output2, Duration.Duration])
-        : effect.succeed([mapper, duration] as [Output2, Duration.Duration])
-    },
+    onSuccess: ([output, duration]: [Output, Duration.Duration]) =>
+      effect.map(f(output), (output) => [output, duration] as [Output2, Duration.Duration]),
     onFailure: effect.failCause<Error>,
-    onDone: (output: Output) => {
-      const mapper = f(output)
-      return isEffect(mapper) ? effect.flatMap(mapper, Cause.done) : Cause.done(mapper)
-    }
+    onDone: (output: Output) => effect.flatMap(f(output), Cause.done)
   })
   return fromStep(effect.map(toStep(self), (step) => (now, input) => handle(step(now, input))))
 })
@@ -2280,7 +2249,7 @@ export const map: {
  * const adaptiveDelay = Schedule.recurs(10).pipe(
  *   Schedule.modifyDelay((output, delay) => {
  *     // Double the delay if we're seeing high iteration counts
- *     return output > 5 ? Duration.times(delay, 2) : delay
+ *     return Effect.succeed(output > 5 ? Duration.times(delay, 2) : delay)
  *   })
  * )
  *
@@ -2305,7 +2274,7 @@ export const modifyDelay: {
     f: (
       output: Output,
       delay: Duration.Duration
-    ) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env2>
+    ) => Effect<Duration.DurationInput, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error | Error2, Env | Env2>
@@ -2314,24 +2283,19 @@ export const modifyDelay: {
     f: (
       output: Output,
       delay: Duration.DurationInput
-    ) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env2>
+    ) => Effect<Duration.DurationInput, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   f: (
     output: Output,
     delay: Duration.DurationInput
-  ) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env2>
+  ) => Effect<Duration.DurationInput, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   fromStep(effect.map(toStep(self), (step) => (now, input) =>
     effect.flatMap(
       step(now, input),
-      ([output, delay]) => {
-        const duration = f(output, delay)
-        return isEffect(duration)
-          ? effect.map(duration, (delay) => [output, Duration.fromDurationInputUnsafe(delay)])
-          : effect.succeed([output, Duration.fromDurationInputUnsafe(duration)])
-      }
+      ([output, delay]) => effect.map(f(output, delay), (delay) => [output, Duration.fromDurationInputUnsafe(delay)])
     ))))
 
 /**
@@ -2426,7 +2390,8 @@ export const passthrough = <Output, Input, Error, Env>(
  * @category constructors
  * @since 2.0.0
  */
-export const recurs = (times: number): Schedule<number> => while_(forever, ({ attempt }) => attempt <= times)
+export const recurs = (times: number): Schedule<number> =>
+  while_(forever, ({ attempt }) => effect.succeed(attempt <= times))
 
 /**
  * Returns a new `Schedule` that combines the outputs of the provided schedule
@@ -2441,7 +2406,7 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
  * const sumSchedule = Schedule.reduce(
  *   Schedule.recurs(5),
  *   () => 0, // Initial sum
- *   (sum, count) => sum + count // Add each count to the sum
+ *   (sum, count) => Effect.succeed(sum + count) // Add each count to the sum
  * )
  *
  * const sumProgram = Effect.gen(function*() {
@@ -2462,7 +2427,7 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
  * const historySchedule = Schedule.reduce(
  *   Schedule.spaced("1 second").pipe(Schedule.take(4)),
  *   () => [] as Array<number>, // Initial empty array
- *   (history, executionNumber) => [...history, Date.now()]
+ *   (history, executionNumber) => Effect.succeed([...history, Date.now()])
  * )
  *
  * const historyProgram = Effect.gen(function*() {
@@ -2483,15 +2448,11 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
  * const metricsAccumulator = Schedule.reduce(
  *   Schedule.recurs(6),
  *   () => ({ total: 0, count: 0, max: 0 }),
- *   (metrics, executionCount) => {
- *     const iterationValue = executionCount + 1
- *     const newMetrics = {
- *       total: metrics.total + iterationValue,
- *       count: metrics.count + 1,
- *       max: Math.max(metrics.max, iterationValue)
- *     }
- *     return newMetrics
- *   }
+ *   (metrics, executionCount) => Effect.succeed({
+ *     total: metrics.total + executionCount + 1,
+ *     count: metrics.count + 1,
+ *     max: Math.max(metrics.max, executionCount + 1)
+ *   })
  * )
  *
  * const metricsProgram = Effect.gen(function*() {
@@ -2514,7 +2475,7 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
  * const configBuilder = Schedule.reduce(
  *   Schedule.fixed("500 millis").pipe(Schedule.take(3)),
  *   () => ({ retries: 1, timeout: 1000, backoff: 100 }),
- *   (config, executionNumber) => ({
+ *   (config, executionNumber) => Effect.succeed({
  *     retries: config.retries + 1,
  *     timeout: config.timeout * 1.5,
  *     backoff: Math.min(config.backoff * 2, 5000)
@@ -2546,40 +2507,31 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
 export const reduce: {
   <State, Output, Error2 = never, Env2 = never>(
     initial: LazyArg<State>,
-    combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
+    combine: (state: State, output: Output) => Effect<State, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<State, Input, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, State, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
     initial: LazyArg<State>,
-    combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
+    combine: (state: State, output: Output) => Effect<State, Error2, Env2>
   ): Schedule<State, Input, Error | Error2, Env | Env2>
 } = dual(3, <Output, Input, Error, Env, State, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   initial: LazyArg<State>,
-  combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
+  combine: (state: State, output: Output) => Effect<State, Error2, Env2>
 ): Schedule<State, Input, Error | Error2, Env | Env2> =>
   fromStep(effect.map(toStep(self), (step) => {
     let state = initial()
     return (now, input) =>
       Pull.matchEffect(step(now, input), {
-        onSuccess: ([output, delay]) => {
-          const reduce = combine(state, output)
-          if (!isEffect(reduce)) {
-            state = reduce
-            return effect.succeed([reduce, delay])
-          }
-          return effect.map(reduce, (nextState) => {
+        onSuccess: ([output, delay]) =>
+          effect.map(combine(state, output), (nextState) => {
             state = nextState
             return [nextState, delay]
-          })
-        },
+          }),
         onFailure: effect.failCause,
-        onDone: (output) => {
-          const reduce = combine(state, output)
-          return isEffect(reduce) ? effect.flatMap(reduce, Cause.done) : Cause.done(reduce)
-        }
+        onDone: (output) => effect.flatMap(combine(state, output), Cause.done)
       })
   })))
 
@@ -2938,7 +2890,7 @@ export const tapOutput: {
  * // Combine take with other schedule operations
  * const samplingSchedule = Schedule.fixed("500 millis").pipe(
  *   Schedule.take(10), // Sample exactly 10 times
- *   Schedule.map((count) => `Sample #${count + 1}`)
+ *   Schedule.map((count) => Effect.succeed(`Sample #${count + 1}`))
  * )
  *
  * const samplingProgram = Effect.gen(function*() {
@@ -2969,7 +2921,7 @@ export const take: {
 } = dual(2, <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>,
   n: number
-): Schedule<Output, Input, Error, Env> => while_(self, ({ attempt }) => attempt <= n))
+): Schedule<Output, Input, Error, Env> => while_(self, ({ attempt }) => effect.succeed(attempt <= n)))
 
 /**
  * Creates a schedule that unfolds a state by repeatedly applying a function,
@@ -2980,7 +2932,7 @@ export const take: {
  * import { Console, Effect, Schedule } from "effect"
  *
  * // Counter schedule that increments by 1 each time
- * const counterSchedule = Schedule.unfold(0, (n) => n + 1)
+ * const counterSchedule = Schedule.unfold(0, (n) => Effect.succeed(n + 1))
  * // Outputs: 0, 1, 2, 3, 4, 5, ...
  *
  * const countingProgram = Effect.gen(function*() {
@@ -2997,7 +2949,10 @@ export const take: {
  * })
  *
  * // Fibonacci sequence schedule
- * const fibonacciSchedule = Schedule.unfold([0, 1], ([a, b]) => [b, a + b])
+ * const fibonacciSchedule = Schedule.unfold(
+ *   [0, 1] as [number, number],
+ *   ([a, b]) => Effect.succeed([b, a + b] as [number, number])
+ * )
  * // Outputs: [0,1], [1,1], [1,2], [2,3], [3,5], [5,8], ...
  *
  * const fibProgram = Effect.gen(function*() {
@@ -3037,13 +2992,13 @@ export const take: {
  * const stateMachineSchedule = Schedule.unfold("init" as State, (state) => {
  *   switch (state) {
  *     case "init":
- *       return "warming"
+ *       return Effect.succeed("warming" as State)
  *     case "warming":
- *       return "active"
+ *       return Effect.succeed("active" as State)
  *     case "active":
- *       return "cooling"
+ *       return Effect.succeed("cooling" as State)
  *     case "cooling":
- *       return "active"
+ *       return Effect.succeed("active" as State)
  *   }
  * })
  *
@@ -3066,15 +3021,12 @@ export const take: {
  */
 export const unfold = <State, Error = never, Env = never>(
   initial: State,
-  next: (state: State) => State | Effect<State, Error, Env>
+  next: (state: State) => Effect<State, Error, Env>
 ): Schedule<State, unknown, Error, Env> =>
   fromStep(effect.sync(() => {
     let state = initial
     return constant(effect.map(
-      effect.suspend(() => {
-        const result = next(state)
-        return isEffect(result) ? result : effect.succeed(result)
-      }),
+      effect.suspend(() => next(state)),
       (nextState) => {
         const prev = state
         state = nextState
@@ -3087,7 +3039,7 @@ const while_: {
   <Input, Output, Error2 = never, Env2 = never>(
     predicate: (
       metadata: Metadata<Output, Input>
-    ) => boolean | Effect<boolean, Error2, Env2>
+    ) => Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error | Error2, Env | Env2>
@@ -3095,23 +3047,23 @@ const while_: {
     self: Schedule<Output, Input, Error, Env>,
     predicate: (
       metadata: Metadata<Output, Input>
-    ) => boolean | Effect<boolean, Error2, Env2>
+    ) => Effect<boolean, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   predicate: (
     metadata: Metadata<Output, Input>
-  ) => boolean | Effect<boolean, Error2, Env2>
+  ) => Effect<boolean, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   fromStep(effect.map(toStep(self), (step) => {
     const meta = metadataFn()
     return (now, input) =>
       effect.flatMap(step(now, input), (result) => {
         const [output, duration] = result
-        const check = predicate({ ...meta(now, input), output, duration })
-        return isEffect(check)
-          ? effect.flatMap(check, (check) => (check ? effect.succeed(result) : Cause.done(output)))
-          : (check ? effect.succeed(result) : Cause.done(output))
+        return effect.flatMap(
+          predicate({ ...meta(now, input), output, duration }),
+          (check) => (check ? effect.succeed(result) : Cause.done(output))
+        )
       })
   })))
 
@@ -3260,14 +3212,14 @@ export const satisfiesInputType = <T>() =>
  *
  * @example
  * ```ts
- * import { Schedule } from "effect"
+ * import { Effect, Schedule } from "effect"
  *
  * // satisfiesOutputType is a type-level function for compile-time constraints
  * // It ensures that a schedule's output type matches the specified type
  *
  * // Example with string output
  * const stringSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => "hello"),
+ *   Schedule.map(() => Effect.succeed("hello")),
  *   Schedule.satisfiesOutputType<string>()
  * )
  * ```

@@ -983,11 +983,13 @@ const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
         (d) => Deferred.interruptWith(d, state.id),
         { discard: true, concurrency: "unbounded" }
       ).pipe(
-        Effect.tap(() => {
-          self.subscribers.delete(self.subscription)
-          self.subscription.unsubscribe()
-          self.strategy.onPubSubEmptySpaceUnsafe(self.pubsub, self.subscribers)
-        }),
+        Effect.tap(() =>
+          Effect.sync(() => {
+            self.subscribers.delete(self.subscription)
+            self.subscription.unsubscribe()
+            self.strategy.onPubSubEmptySpaceUnsafe(self.pubsub, self.subscribers)
+          })
+        ),
         Effect.when(self.shutdownHook.open),
         Effect.asVoid
       )

@@ -152,8 +152,8 @@ const scoped = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     fiber.setServices(ServiceMap.add(fiber.services, Scope.Scope, scope))
     return Effect.onExitInterruptible(effect, (exit) => {
       fiber.setServices(ServiceMap.addOrOmit(fiber.services, Scope.Scope, prev))
-      if (scopeEjected in scope) return
-      return Scope.closeUnsafe(scope, exit)
+      if (scopeEjected in scope) return Effect.void
+      return Scope.closeUnsafe(scope, exit) ?? Effect.void
     })
   })
 

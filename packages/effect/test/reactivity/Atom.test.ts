@@ -218,7 +218,7 @@ describe.sequential("Atom", () => {
       const latch = Effect.makeLatchUnsafe()
       latches.push(latch)
       return latch.await.pipe(
-        Effect.tap(() => done++)
+        Effect.tap(() => Effect.sync(() => done++))
       )
     }, { concurrent: true })
 
