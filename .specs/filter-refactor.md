@@ -132,29 +132,29 @@ renamed back to `catchIf` in Phase 5.)_
 
 #### APIs to add overloads (no existing predicate variant to remove)
 
-| Module  | Function (final name)   |
-| ------- | ----------------------- |
-| Effect  | `catchCauseIf`          |
-| Effect  | `tapCauseIf`            |
-| Effect  | `filter`                |
-| Effect  | `onErrorIf`             |
-| Effect  | `onExitIf`              |
-| Stream  | `filter`                |
-| Stream  | `filterEffect`          |
-| Stream  | `partition`             |
-| Stream  | `partitionQueue`        |
-| Stream  | `partitionEffect`       |
-| Stream  | `catchIf`               |
-| Stream  | `catchCauseIf`          |
-| Channel | `filter`                |
-| Channel | `filterEffect`          |
-| Channel | `filterArray`           |
-| Channel | `filterArrayEffect`     |
-| Channel | `catchCauseIf`          |
-| Channel | `catchIf`               |
-| Sink    | `takeWhile`             |
-| Sink    | `takeWhileEffect`       |
-| Array   | `partition`             |
+| Module  | Function (final name) |
+| ------- | --------------------- |
+| Effect  | `catchCauseIf`        |
+| Effect  | `tapCauseIf`          |
+| Effect  | `filter`              |
+| Effect  | `onErrorIf`           |
+| Effect  | `onExitIf`            |
+| Stream  | `filter`              |
+| Stream  | `filterEffect`        |
+| Stream  | `partition`           |
+| Stream  | `partitionQueue`      |
+| Stream  | `partitionEffect`     |
+| Stream  | `catchIf`             |
+| Stream  | `catchCauseIf`        |
+| Channel | `filter`              |
+| Channel | `filterEffect`        |
+| Channel | `filterArray`         |
+| Channel | `filterArrayEffect`   |
+| Channel | `catchCauseIf`        |
+| Channel | `catchIf`             |
+| Sink    | `takeWhile`           |
+| Sink    | `takeWhileEffect`     |
+| Array   | `partition`           |
 
 #### APIs with existing predicate variants that remain separate
 
@@ -537,13 +537,13 @@ overloads, the `*If` suffix better communicates the conditional semantics.
 
 ### Renames
 
-| Before              | After          | Modules                    |
-| ------------------- | -------------- | -------------------------- |
-| `catchFilter`       | `catchIf`      | Effect, Stream, Channel    |
-| `catchCauseFilter`  | `catchCauseIf` | Effect, Stream, Channel, Pull |
-| `tapCauseFilter`    | `tapCauseIf`   | Effect                     |
-| `onExitFilter`      | `onExitIf`     | Effect                     |
-| `onErrorFilter`     | `onErrorIf`    | Effect                     |
+| Before             | After          | Modules                       |
+| ------------------ | -------------- | ----------------------------- |
+| `catchFilter`      | `catchIf`      | Effect, Stream, Channel       |
+| `catchCauseFilter` | `catchCauseIf` | Effect, Stream, Channel, Pull |
+| `tapCauseFilter`   | `tapCauseIf`   | Effect                        |
+| `onExitFilter`     | `onExitIf`     | Effect                        |
+| `onErrorFilter`    | `onErrorIf`    | Effect                        |
 
 All internal call sites, tests, and downstream consumers updated. The old `catchIf` (which
 was a predicate-only variant) was already merged into `catchFilter` in Phase 3, so the name
