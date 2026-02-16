@@ -2623,6 +2623,83 @@ export * as SchemaAST from "./SchemaAST.ts"
 export * as SchemaGetter from "./SchemaGetter.ts"
 
 /**
+ * Structured validation errors produced by the Effect Schema system.
+ *
+ * When `Schema.decode`, `Schema.encode`, or a filter rejects a value, the
+ * result is an {@link Issue} — a recursive tree that describes *what* went
+ * wrong and *where*. This module defines every node type in that tree and
+ * provides formatters that turn an `Issue` into a human-readable string or a
+ * Standard Schema V1 failure result.
+ *
+ * ## Mental model
+ *
+ * - **Issue**: A discriminated union (`_tag`) of all possible validation error
+ *   nodes. It is recursive — composite nodes wrap inner `Issue` children.
+ * - **Leaf**: A terminal issue with no inner children ({@link InvalidType},
+ *   {@link InvalidValue}, {@link MissingKey}, {@link UnexpectedKey},
+ *   {@link Forbidden}, {@link OneOf}).
+ * - **Composite nodes**: Wrap one or more inner issues to add context —
+ *   {@link Filter}, {@link Encoding}, {@link Pointer}, {@link Composite},
+ *   {@link AnyOf}.
+ * - **Pointer**: Adds a property-key path to an inner issue, indicating
+ *   *where* in the input the error occurred.
+ * - **Formatter**: A function `Issue → Format` that serialises the error tree.
+ *   Two built-in factories are provided: {@link makeFormatterDefault} (plain
+ *   string) and {@link makeFormatterStandardSchemaV1} (Standard Schema V1).
+ *
+ * ## Common tasks
+ *
+ * - Check if a value is an Issue → {@link isIssue}
+ * - Extract the actual input from any issue → {@link getActual}
+ * - Format an issue as a string → {@link makeFormatterDefault}
+ * - Format an issue for Standard Schema V1 → {@link makeFormatterStandardSchemaV1}
+ * - Customise leaf formatting → {@link defaultLeafHook}
+ * - Customise filter formatting → {@link defaultCheckHook}
+ *
+ * ## Gotchas
+ *
+ * - `Pointer` and `MissingKey` carry no actual value — {@link getActual}
+ *   returns `Option.none()` for them.
+ * - `AnyOf`, `UnexpectedKey`, `OneOf`, and `Filter` store `actual` as a plain
+ *   `unknown` (not `Option`), so {@link getActual} wraps them with
+ *   `Option.some`.
+ * - Calling `toString()` on any `Issue` uses the default formatter. To
+ *   customise output, create your own formatter with
+ *   {@link makeFormatterDefault} or {@link makeFormatterStandardSchemaV1}.
+ * - The `Issue` tree can be deeply nested for complex schemas. Formatters
+ *   flatten composite nodes for display.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Inspecting a validation error)
+ *
+ * ```ts
+ * import { Schema, SchemaIssue } from "effect"
+ *
+ * const Person = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * try {
+ *   Schema.decodeUnknownSync(Person)({ name: 42 })
+ * } catch (e) {
+ *   if (Schema.isSchemaError(e)) {
+ *     console.log(SchemaIssue.isIssue(e.issue))
+ *     // true
+ *     console.log(String(e.issue))
+ *     // formatted error message
+ *   }
+ * }
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link Issue} — the root union type
+ * - {@link Leaf} — terminal issue types
+ * - {@link Formatter} — the formatter interface
+ * - {@link makeFormatterDefault} — default string formatter
+ *
  * @since 4.0.0
  */
 export * as SchemaIssue from "./SchemaIssue.ts"

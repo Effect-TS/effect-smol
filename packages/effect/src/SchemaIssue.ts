@@ -1,4 +1,81 @@
 /**
+ * Structured validation errors produced by the Effect Schema system.
+ *
+ * When `Schema.decode`, `Schema.encode`, or a filter rejects a value, the
+ * result is an {@link Issue} — a recursive tree that describes *what* went
+ * wrong and *where*. This module defines every node type in that tree and
+ * provides formatters that turn an `Issue` into a human-readable string or a
+ * Standard Schema V1 failure result.
+ *
+ * ## Mental model
+ *
+ * - **Issue**: A discriminated union (`_tag`) of all possible validation error
+ *   nodes. It is recursive — composite nodes wrap inner `Issue` children.
+ * - **Leaf**: A terminal issue with no inner children ({@link InvalidType},
+ *   {@link InvalidValue}, {@link MissingKey}, {@link UnexpectedKey},
+ *   {@link Forbidden}, {@link OneOf}).
+ * - **Composite nodes**: Wrap one or more inner issues to add context —
+ *   {@link Filter}, {@link Encoding}, {@link Pointer}, {@link Composite},
+ *   {@link AnyOf}.
+ * - **Pointer**: Adds a property-key path to an inner issue, indicating
+ *   *where* in the input the error occurred.
+ * - **Formatter**: A function `Issue → Format` that serialises the error tree.
+ *   Two built-in factories are provided: {@link makeFormatterDefault} (plain
+ *   string) and {@link makeFormatterStandardSchemaV1} (Standard Schema V1).
+ *
+ * ## Common tasks
+ *
+ * - Check if a value is an Issue → {@link isIssue}
+ * - Extract the actual input from any issue → {@link getActual}
+ * - Format an issue as a string → {@link makeFormatterDefault}
+ * - Format an issue for Standard Schema V1 → {@link makeFormatterStandardSchemaV1}
+ * - Customise leaf formatting → {@link defaultLeafHook}
+ * - Customise filter formatting → {@link defaultCheckHook}
+ *
+ * ## Gotchas
+ *
+ * - `Pointer` and `MissingKey` carry no actual value — {@link getActual}
+ *   returns `Option.none()` for them.
+ * - `AnyOf`, `UnexpectedKey`, `OneOf`, and `Filter` store `actual` as a plain
+ *   `unknown` (not `Option`), so {@link getActual} wraps them with
+ *   `Option.some`.
+ * - Calling `toString()` on any `Issue` uses the default formatter. To
+ *   customise output, create your own formatter with
+ *   {@link makeFormatterDefault} or {@link makeFormatterStandardSchemaV1}.
+ * - The `Issue` tree can be deeply nested for complex schemas. Formatters
+ *   flatten composite nodes for display.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Inspecting a validation error)
+ *
+ * ```ts
+ * import { Schema, SchemaIssue } from "effect"
+ *
+ * const Person = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * try {
+ *   Schema.decodeUnknownSync(Person)({ name: 42 })
+ * } catch (e) {
+ *   if (Schema.isSchemaError(e)) {
+ *     console.log(SchemaIssue.isIssue(e.issue))
+ *     // true
+ *     console.log(String(e.issue))
+ *     // formatted error message
+ *   }
+ * }
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link Issue} — the root union type
+ * - {@link Leaf} — terminal issue types
+ * - {@link Formatter} — the formatter interface
+ * - {@link makeFormatterDefault} — default string formatter
+ *
  * @since 4.0.0
  */
 import type { StandardSchemaV1 } from "@standard-schema/spec"
@@ -13,6 +90,32 @@ import type * as AST from "./SchemaAST.ts"
 const TypeId = "~effect/SchemaIssue/Issue"
 
 /**
+ * Returns `true` if the given value is an {@link Issue}.
+ *
+ * When to use:
+ *
+ * - Narrowing an `unknown` value to `Issue` in error-handling code.
+ * - Distinguishing an `Issue` from other error types in a catch-all handler.
+ *
+ * Behaviour:
+ *
+ * - Pure; does not mutate input.
+ * - Checks for the internal `TypeId` brand on the value.
+ *
+ * **Example** (Type-guarding an unknown error)
+ *
+ * ```ts
+ * import { SchemaIssue } from "effect"
+ *
+ * const issue = new SchemaIssue.MissingKey(undefined)
+ * console.log(SchemaIssue.isIssue(issue))
+ * // true
+ * console.log(SchemaIssue.isIssue("not an issue"))
+ * // false
+ * ```
+ *
+ * @see {@link Issue}
+ *
  * @since 4.0.0
  */
 export function isIssue(u: unknown): u is Issue {
@@ -20,6 +123,19 @@ export function isIssue(u: unknown): u is Issue {
 }
 
 /**
+ * Union of all terminal (leaf) issue types that have no inner `Issue` children.
+ *
+ * When to use:
+ *
+ * - Constraining formatter hooks to only handle terminal nodes.
+ * - Pattern-matching on the `_tag` of an issue when you only care about leaves.
+ *
+ * Members: {@link InvalidType}, {@link InvalidValue}, {@link MissingKey},
+ * {@link UnexpectedKey}, {@link Forbidden}, {@link OneOf}.
+ *
+ * @see {@link Issue} — the full union including composite nodes
+ * @see {@link LeafHook} — formatter hook that operates on `Leaf` values
+ *
  * @category model
  * @since 4.0.0
  */
@@ -32,6 +148,26 @@ export type Leaf =
   | OneOf
 
 /**
+ * The root discriminated union of all validation error nodes.
+ *
+ * Every node has a `_tag` field for pattern-matching. The union includes both
+ * terminal {@link Leaf} types and composite types that wrap inner issues:
+ * {@link Filter}, {@link Encoding}, {@link Pointer}, {@link Composite},
+ * {@link AnyOf}.
+ *
+ * When to use:
+ *
+ * - Typing the error channel in `Effect<A, Issue, R>` results from schema
+ *   parsing.
+ * - Writing custom formatters or issue-tree walkers.
+ *
+ * All `Issue` instances have a `toString()` that delegates to the default
+ * formatter, so `String(issue)` produces a human-readable message.
+ *
+ * @see {@link Leaf} — the terminal subset
+ * @see {@link isIssue} — type guard
+ * @see {@link getActual} — extract the actual value from any issue
+ *
  * @category model
  * @since 4.0.0
  */
@@ -52,7 +188,35 @@ class Base {
 }
 
 /**
- * Issue that occurs when a filter fails.
+ * Issue produced when a schema filter (refinement check) fails.
+ *
+ * When to use:
+ *
+ * - Inspect which filter rejected the value.
+ * - Walk the inner `issue` for the specific validation failure.
+ *
+ * Behaviour:
+ *
+ * - `actual` is the raw input value that was tested (plain `unknown`, not
+ *   wrapped in `Option`).
+ * - `filter` is the AST filter node that produced this issue.
+ * - `issue` is the inner issue describing the failure reason.
+ *
+ * **Example** (Matching a Filter issue)
+ *
+ * ```ts
+ * import { SchemaIssue } from "effect"
+ *
+ * function describe(issue: SchemaIssue.Issue): string {
+ *   if (issue._tag === "Filter") {
+ *     return `Filter failed on: ${JSON.stringify(issue.actual)}`
+ *   }
+ *   return String(issue)
+ * }
+ * ```
+ *
+ * @see {@link Leaf} — terminal issue types that commonly appear as the inner `issue`
+ * @see {@link CheckHook} — formatter hook for `Filter` issues
  *
  * @category model
  * @since 4.0.0
@@ -94,7 +258,23 @@ export class Filter extends Base {
 }
 
 /**
- * Issue that occurs when a transformation fails.
+ * Issue produced when a schema transformation (encode/decode step) fails.
+ *
+ * When to use:
+ *
+ * - Inspect failures from `Schema.decodeTo` / `Schema.encodeTo`
+ *   transformations.
+ * - Walk the inner `issue` for the root cause of the transformation failure.
+ *
+ * Behaviour:
+ *
+ * - `ast` is the AST node for the transformation that failed.
+ * - `actual` is `Option.some(value)` when the input was present, or
+ *   `Option.none()` when it was absent.
+ * - `issue` is the inner issue describing the failure.
+ *
+ * @see {@link Filter} — failure from a refinement check (not a transformation)
+ * @see {@link Composite} — multiple issues from a single schema node
  *
  * @category model
  * @since 4.0.0
@@ -136,7 +316,23 @@ export class Encoding extends Base {
 }
 
 /**
- * Issue that points to a specific location in the input.
+ * Wraps an inner {@link Issue} with a property-key path, indicating *where* in
+ * a nested structure the error occurred.
+ *
+ * When to use:
+ *
+ * - Walk the issue tree to accumulate path segments for error reporting.
+ * - Match on `_tag === "Pointer"` when flattening nested issues.
+ *
+ * Behaviour:
+ *
+ * - `path` is an array of property keys (strings, numbers, or symbols).
+ * - Has no `actual` value — {@link getActual} returns `Option.none()`.
+ * - Formatters concatenate nested `Pointer` paths into a single path like
+ *   `["a"]["b"][0]`.
+ *
+ * @see {@link getActual} — returns `Option.none()` for `Pointer`
+ * @see {@link Composite} — groups multiple issues under one schema node
  *
  * @category model
  * @since 4.0.0
@@ -169,7 +365,21 @@ export class Pointer extends Base {
 }
 
 /**
- * Issue that occurs when a required key or index is missing.
+ * Issue produced when a required key or tuple index is missing from the input.
+ *
+ * When to use:
+ *
+ * - Detect absent fields in struct/tuple validation.
+ * - Typically found inside a {@link Pointer} that indicates which key is
+ *   missing.
+ *
+ * Behaviour:
+ *
+ * - Has no `actual` value — {@link getActual} returns `Option.none()`.
+ * - `annotations` may contain a custom `messageMissingKey` for formatting.
+ *
+ * @see {@link Pointer} — wraps this issue with the missing key's path
+ * @see {@link UnexpectedKey} — the opposite case (extra key present)
  *
  * @category model
  * @since 4.0.0
@@ -193,7 +403,23 @@ export class MissingKey extends Base {
 }
 
 /**
- * Issue that occurs when an unexpected key or index is encountered.
+ * Issue produced when an input object or tuple contains a key/index not
+ * declared by the schema.
+ *
+ * When to use:
+ *
+ * - Detect excess properties during strict struct/tuple validation.
+ * - Typically found inside a {@link Pointer} that indicates which key was
+ *   unexpected.
+ *
+ * Behaviour:
+ *
+ * - `actual` is the raw value at the unexpected key (plain `unknown`).
+ * - `ast` is the schema that was being validated against.
+ * - `annotations` on `ast` may contain a custom `messageUnexpectedKey`.
+ *
+ * @see {@link MissingKey} — the opposite case (required key absent)
+ * @see {@link Pointer} — wraps this issue with the unexpected key's path
  *
  * @category model
  * @since 4.0.0
@@ -226,7 +452,23 @@ export class UnexpectedKey extends Base {
 }
 
 /**
- * Issue that contains multiple issues.
+ * Issue that groups multiple child issues under a single schema node.
+ *
+ * When to use:
+ *
+ * - Walk the issue tree for struct/tuple schemas that collect all field errors
+ *   rather than failing on the first.
+ * - Match on `_tag === "Composite"` to iterate over `issues`.
+ *
+ * Behaviour:
+ *
+ * - `issues` is a non-empty readonly array (at least one child).
+ * - `actual` is `Option.some(value)` when the input was present, or
+ *   `Option.none()` when absent.
+ * - Formatters flatten `Composite` by recursing into each child.
+ *
+ * @see {@link AnyOf} — used for union no-match errors (similar but different semantics)
+ * @see {@link Pointer} — adds path context to individual issues
  *
  * @category model
  * @since 4.0.0
@@ -268,8 +510,38 @@ export class Composite extends Base {
 }
 
 /**
- * Issue that occurs when the type of the input is different from the expected
- * type.
+ * Issue produced when the runtime type of the input does not match the type
+ * expected by the schema (e.g. got `null` when `string` was expected).
+ *
+ * When to use:
+ *
+ * - Detect basic type mismatches (wrong primitive, null where object expected,
+ *   etc.).
+ * - The most common leaf issue in typical validation failures.
+ *
+ * Behaviour:
+ *
+ * - `ast` is the schema node that expected a different type.
+ * - `actual` is `Option.some(value)` when the input was present, or
+ *   `Option.none()` when no value was provided.
+ * - The default formatter renders this as `"Expected <type>, got <actual>"`.
+ *
+ * **Example** (Formatted output)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * try {
+ *   Schema.decodeUnknownSync(Schema.String)(42)
+ * } catch (e) {
+ *   if (Schema.isSchemaError(e)) {
+ *     console.log(String(e.issue))
+ *     // "Expected string, got 42"
+ *   }
+ * }
+ * ```
+ *
+ * @see {@link InvalidValue} — the input has the right type but fails a value constraint
  *
  * @category model
  * @since 4.0.0
@@ -302,7 +574,38 @@ export class InvalidType extends Base {
 }
 
 /**
- * Issue that occurs when the data of the input is invalid.
+ * Issue produced when the input has the correct type but its value violates a
+ * constraint (e.g. a string that is too short, a number out of range).
+ *
+ * When to use:
+ *
+ * - Detect constraint violations from `Schema.filter`, `Schema.minLength`,
+ *   `Schema.greaterThan`, etc.
+ * - Create custom validation errors in `Schema.makeFilter` callbacks.
+ *
+ * Behaviour:
+ *
+ * - `actual` is `Option.some(value)` when the failing value is known, or
+ *   `Option.none()` when absent.
+ * - `annotations` optionally carries a `message` string for formatting.
+ * - The default formatter renders this as `"Invalid data <actual>"` unless a
+ *   custom `message` annotation is provided.
+ *
+ * **Example** (Custom filter returning InvalidValue)
+ *
+ * ```ts
+ * import { Option, SchemaIssue } from "effect"
+ *
+ * const issue = new SchemaIssue.InvalidValue(
+ *   Option.some(""),
+ *   { message: "must not be empty" }
+ * )
+ * console.log(String(issue))
+ * // "must not be empty"
+ * ```
+ *
+ * @see {@link InvalidType} — the input has the wrong type entirely
+ * @see {@link Filter} — composite wrapper when a schema filter produces this issue
  *
  * @category model
  * @since 4.0.0
@@ -335,9 +638,35 @@ export class InvalidValue extends Base {
 }
 
 /**
- * Issue that occurs when a forbidden operation is encountered, such as when
- * encountering an Effect that is not allowed to execute (e.g., using
- * `runSync`).
+ * Issue produced when a forbidden operation is encountered during parsing,
+ * such as an asynchronous Effect running inside `Schema.decodeUnknownSync`.
+ *
+ * When to use:
+ *
+ * - Detect that a schema requires async execution but was run synchronously.
+ * - Provide custom error messages via the `annotations.message` field.
+ *
+ * Behaviour:
+ *
+ * - `actual` is `Option.some(value)` when the input is known, or
+ *   `Option.none()` when absent.
+ * - `annotations` optionally carries a `message` string.
+ * - The default formatter renders this as `"Forbidden operation"`.
+ *
+ * **Example** (Creating a Forbidden issue)
+ *
+ * ```ts
+ * import { Option, SchemaIssue } from "effect"
+ *
+ * const issue = new SchemaIssue.Forbidden(
+ *   Option.none(),
+ *   { message: "async operation not allowed in sync context" }
+ * )
+ * console.log(String(issue))
+ * // "async operation not allowed in sync context"
+ * ```
+ *
+ * @see {@link InvalidValue} — for value-constraint failures (not operation failures)
  *
  * @category model
  * @since 4.0.0
@@ -370,8 +699,23 @@ export class Forbidden extends Base {
 }
 
 /**
- * Issue that occurs when a value does not match any of the schemas in the
- * union.
+ * Issue produced when a value does not match *any* member of a union schema.
+ *
+ * When to use:
+ *
+ * - Inspect which union members were attempted and why each failed.
+ * - `issues` may be empty when the union has no members or when the input does
+ *   not pass the initial type guard.
+ *
+ * Behaviour:
+ *
+ * - `ast` is the `Union` AST node.
+ * - `actual` is the raw input value (plain `unknown`).
+ * - `issues` contains per-member failures. When empty, the formatter falls
+ *   back to the union's `expected` annotation.
+ *
+ * @see {@link OneOf} — the opposite: *too many* members matched
+ * @see {@link Composite} — groups multiple issues under a non-union schema
  *
  * @category model
  * @since 4.0.0
@@ -413,8 +757,23 @@ export class AnyOf extends Base {
 }
 
 /**
- * Issue that occurs when a value matches multiple union members but the
- * schema is configured to only allow one.
+ * Issue produced when a value matches *multiple* members of a union that is
+ * configured to allow exactly one match (oneOf mode).
+ *
+ * When to use:
+ *
+ * - Detect ambiguous union matches when `oneOf` validation is enabled.
+ * - Inspect `successes` to see which members matched.
+ *
+ * Behaviour:
+ *
+ * - `ast` is the `Union` AST node.
+ * - `actual` is the raw input value (plain `unknown`).
+ * - `successes` lists the AST nodes of each member that accepted the input.
+ * - The default formatter renders this as
+ *   `"Expected exactly one member to match the input <actual>"`.
+ *
+ * @see {@link AnyOf} — the opposite: *no* members matched
  *
  * @category model
  * @since 4.0.0
@@ -456,6 +815,37 @@ export class OneOf extends Base {
 }
 
 /**
+ * Extracts the actual input value from any {@link Issue} variant.
+ *
+ * When to use:
+ *
+ * - Retrieve the offending value for logging or custom error rendering.
+ * - Uniformly access `actual` regardless of which issue variant you have.
+ *
+ * Behaviour:
+ *
+ * - Pure; does not mutate the issue.
+ * - Returns `Option.none()` for `Pointer` and `MissingKey` (they carry no
+ *   value).
+ * - Returns the existing `Option` for variants that already store `actual` as
+ *   `Option<unknown>` (`InvalidType`, `InvalidValue`, `Forbidden`, `Encoding`,
+ *   `Composite`).
+ * - Wraps `actual` with `Option.some` for variants that store it as plain
+ *   `unknown` (`AnyOf`, `UnexpectedKey`, `OneOf`, `Filter`).
+ *
+ * **Example** (Extracting the actual value)
+ *
+ * ```ts
+ * import { Option, SchemaIssue } from "effect"
+ *
+ * const issue = new SchemaIssue.MissingKey(undefined)
+ * console.log(SchemaIssue.getActual(issue))
+ * // { _tag: "None" }
+ * ```
+ *
+ * @see {@link Issue}
+ * @see {@link isIssue}
+ *
  * @since 4.0.0
  */
 export function getActual(issue: Issue): Option.Option<unknown> {
@@ -504,7 +894,19 @@ export function make(
 }
 
 /**
- * A `Formatter` for `Issue` objects.
+ * A function type that converts an {@link Issue} into a formatted
+ * representation. Specialisation of the generic `Formatter` from
+ * `Formatter.ts` with `Value` fixed to `Issue`.
+ *
+ * When to use:
+ *
+ * - Type custom formatters that accept an `Issue` and return any output format.
+ * - Use with {@link makeFormatterDefault} or
+ *   {@link makeFormatterStandardSchemaV1} to obtain built-in implementations.
+ *
+ * @see {@link makeFormatterDefault} — creates a `Formatter<string>`
+ * @see {@link makeFormatterStandardSchemaV1} — creates a
+ *   `Formatter<StandardSchemaV1.FailureResult>`
  *
  * @category Formatter
  * @since 4.0.0
@@ -512,12 +914,54 @@ export function make(
 export interface Formatter<out Format> extends FormatterI<Issue, Format> {}
 
 /**
+ * Callback type used to format {@link Leaf} issues into strings.
+ *
+ * When to use:
+ *
+ * - Pass a custom `LeafHook` to {@link makeFormatterStandardSchemaV1} to
+ *   override how terminal issues are rendered.
+ *
+ * @see {@link defaultLeafHook} — the built-in implementation
+ * @see {@link Leaf} — the union of terminal issue types
+ *
  * @category Formatter
  * @since 4.0.0
  */
 export type LeafHook = (issue: Leaf) => string
 
 /**
+ * The built-in {@link LeafHook} used by default formatters.
+ *
+ * When to use:
+ *
+ * - Use as-is when you only need to customise the {@link CheckHook} but want
+ *   the default leaf rendering.
+ * - Reference as a starting point for custom `LeafHook` implementations.
+ *
+ * Behaviour:
+ *
+ * - Checks for a `message` annotation first; returns it if present.
+ * - Otherwise generates a default message per `_tag`:
+ *   - `InvalidType` → `"Expected <type>, got <actual>"`
+ *   - `InvalidValue` → `"Invalid data <actual>"`
+ *   - `MissingKey` → `"Missing key"`
+ *   - `UnexpectedKey` → `"Unexpected key with value <actual>"`
+ *   - `Forbidden` → `"Forbidden operation"`
+ *   - `OneOf` → `"Expected exactly one member to match the input <actual>"`
+ *
+ * **Example** (Using defaultLeafHook with Standard Schema formatter)
+ *
+ * ```ts
+ * import { SchemaIssue } from "effect"
+ *
+ * const formatter = SchemaIssue.makeFormatterStandardSchemaV1({
+ *   leafHook: SchemaIssue.defaultLeafHook
+ * })
+ * ```
+ *
+ * @see {@link LeafHook}
+ * @see {@link makeFormatterStandardSchemaV1}
+ *
  * @category Formatter
  * @since 4.0.0
  */
@@ -541,12 +985,44 @@ export const defaultLeafHook: LeafHook = (issue): string => {
 }
 
 /**
+ * Callback type used to format {@link Filter} issues into strings.
+ *
+ * When to use:
+ *
+ * - Pass a custom `CheckHook` to {@link makeFormatterStandardSchemaV1} to
+ *   override how filter failures are rendered.
+ *
+ * Behaviour:
+ *
+ * - Returns `string` to override the message, or `undefined` to fall back to
+ *   the default formatting.
+ *
+ * @see {@link defaultCheckHook} — the built-in implementation
+ * @see {@link Filter} — the issue type this hook formats
+ *
  * @category Formatter
  * @since 4.0.0
  */
 export type CheckHook = (issue: Filter) => string | undefined
 
 /**
+ * The built-in {@link CheckHook} used by default formatters.
+ *
+ * When to use:
+ *
+ * - Use as-is when you only need to customise the {@link LeafHook} but want
+ *   the default filter rendering.
+ *
+ * Behaviour:
+ *
+ * - Looks for a `message` annotation on the inner issue first, then on the
+ *   filter itself.
+ * - Returns `undefined` when no annotation is found, causing the formatter to
+ *   fall back to `"Expected <filter>, got <actual>"`.
+ *
+ * @see {@link CheckHook}
+ * @see {@link makeFormatterStandardSchemaV1}
+ *
  * @category Formatter
  * @since 4.0.0
  */
@@ -555,6 +1031,35 @@ export const defaultCheckHook: CheckHook = (issue): string | undefined => {
 }
 
 /**
+ * Creates a {@link Formatter} that produces a `StandardSchemaV1.FailureResult`.
+ *
+ * When to use:
+ *
+ * - Integrate with libraries that consume the
+ *   [Standard Schema V1](https://github.com/standard-schema/standard-schema)
+ *   error format.
+ * - Customise error rendering by providing `leafHook` and/or `checkHook`.
+ *
+ * Behaviour:
+ *
+ * - Returns a `Formatter<StandardSchemaV1.FailureResult>`.
+ * - Each leaf issue is flattened into `{ message, path }` entries.
+ * - `Pointer` paths are accumulated to produce full property paths.
+ * - Falls back to {@link defaultLeafHook} / {@link defaultCheckHook} when no
+ *   hooks are provided.
+ *
+ * **Example** (Creating a Standard Schema V1 formatter)
+ *
+ * ```ts
+ * import { SchemaIssue } from "effect"
+ *
+ * const formatter = SchemaIssue.makeFormatterStandardSchemaV1()
+ * ```
+ *
+ * @see {@link makeFormatterDefault} — produces a plain string instead
+ * @see {@link LeafHook}
+ * @see {@link CheckHook}
+ *
  * @category Formatter
  * @since 4.0.0
  */
@@ -633,8 +1138,32 @@ function formatCheck<T>(check: AST.Check<T>): string {
 }
 
 /**
- * The default formatter used across the Effect ecosystem to keep the bundle
- * size small.
+ * Creates a {@link Formatter} that converts an {@link Issue} into a
+ * human-readable multi-line string.
+ *
+ * When to use:
+ *
+ * - Produce error messages for logging, CLI output, or developer-facing
+ *   diagnostics.
+ * - This is the default formatter used by `Issue.toString()`.
+ *
+ * Behaviour:
+ *
+ * - Flattens the issue tree into `{ message, path }` entries using
+ *   {@link defaultLeafHook} and {@link defaultCheckHook}.
+ * - Each entry is rendered as `"<message>"` or `"<message>\n  at <path>"`.
+ * - Multiple entries are joined with newlines.
+ *
+ * **Example** (Formatting an issue as a string)
+ *
+ * ```ts
+ * import { SchemaIssue } from "effect"
+ *
+ * const formatter = SchemaIssue.makeFormatterDefault()
+ * ```
+ *
+ * @see {@link makeFormatterStandardSchemaV1} — produces Standard Schema V1 format instead
+ * @see {@link Formatter}
  *
  * @category Formatter
  * @since 4.0.0
