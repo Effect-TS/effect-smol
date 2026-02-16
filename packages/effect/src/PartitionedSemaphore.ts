@@ -1,5 +1,5 @@
 /**
- * @since 4.0.0
+ * @since 3.19.4
  * @experimental
  */
 import * as Effect from "./Effect.ts"
@@ -7,14 +7,14 @@ import * as MutableHashMap from "./MutableHashMap.ts"
 import * as Option from "./Option.ts"
 
 /**
- * @since 4.0.0
+ * @since 3.19.4
  * @category models
  * @experimental
  */
 export const TypeId: TypeId = "~effect/PartitionedSemaphore"
 
 /**
- * @since 4.0.0
+ * @since 3.19.4
  * @category models
  * @experimental
  */
@@ -26,7 +26,7 @@ export type TypeId = "~effect/PartitionedSemaphore"
  *
  * Waiting permits are distributed across partitions in round-robin order.
  *
- * @since 4.0.0
+ * @since 3.19.4
  * @category models
  * @experimental
  */
@@ -41,7 +41,7 @@ export interface PartitionedSemaphore<in K> {
 /**
  * Creates a `PartitionedSemaphore` unsafely.
  *
- * @since 4.0.0
+ * @since 3.19.4
  * @category constructors
  * @experimental
  */
@@ -173,7 +173,7 @@ export const makeUnsafe = <K = unknown>(options: {
 /**
  * Creates a `PartitionedSemaphore`.
  *
- * @since 4.0.0
+ * @since 3.19.4
  * @category constructors
  * @experimental
  */
