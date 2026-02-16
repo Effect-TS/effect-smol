@@ -348,7 +348,13 @@ function queryStream(
         })
       }
     })
-    query.on("end", () => emit.end())
+    query.on("end", () => {
+      if (buffer.length > 0) {
+        emit.array(buffer)
+        buffer = []
+      }
+      emit.end()
+    })
 
     return {
       onPause() {
