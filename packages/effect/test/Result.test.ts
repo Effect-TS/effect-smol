@@ -17,6 +17,18 @@ import {
 
 describe("Result", () => {
   describe("Constructors", () => {
+    it("succeed", () => {
+      const result = Result.succeed(42)
+      assertTrue(Result.isSuccess(result))
+      strictEqual(result.success, 42)
+    })
+
+    it("fail", () => {
+      const result = Result.fail("err")
+      assertTrue(Result.isFailure(result))
+      strictEqual(result.failure, "err")
+    })
+
     it("void", () => {
       deepStrictEqual(Result.void, Result.succeed(undefined))
     })
@@ -41,15 +53,29 @@ describe("Result", () => {
       )
     })
 
-    it("fromNullable", () => {
+    it("fromNullishOr", () => {
       deepStrictEqual(Result.fromNullishOr(null, () => "fallback"), Result.fail("fallback"))
       deepStrictEqual(Result.fromNullishOr(undefined, () => "fallback"), Result.fail("fallback"))
       deepStrictEqual(Result.fromNullishOr(1, () => "fallback"), Result.succeed(1))
+      // data-last
+      deepStrictEqual(pipe(null as string | null, Result.fromNullishOr(() => "fallback")), Result.fail("fallback"))
+      deepStrictEqual(pipe(1 as number | null, Result.fromNullishOr(() => "fallback")), Result.succeed(1))
     })
 
     it("fromOption", () => {
       deepStrictEqual(Result.fromOption(Option.none(), () => "none"), Result.fail("none"))
       deepStrictEqual(Result.fromOption(Option.some(1), () => "none"), Result.succeed(1))
+      // data-last
+      deepStrictEqual(pipe(Option.none(), Result.fromOption(() => "none")), Result.fail("none"))
+      deepStrictEqual(pipe(Option.some(1), Result.fromOption(() => "none")), Result.succeed(1))
+    })
+
+    it("succeedNone", () => {
+      deepStrictEqual(Result.succeedNone, Result.succeed(Option.none()))
+    })
+
+    it("succeedSome", () => {
+      deepStrictEqual(Result.succeedSome(1), Result.succeed(Option.some(1)))
     })
   })
 
@@ -140,6 +166,9 @@ describe("Result", () => {
     it("getOrElse", () => {
       strictEqual(Result.getOrElse(Result.succeed(1), (error) => error + "!"), 1)
       strictEqual(Result.getOrElse(Result.fail("not a number"), (error) => error + "!"), "not a number!")
+      // data-last
+      strictEqual(pipe(Result.succeed(1), Result.getOrElse((error) => error + "!")), 1)
+      strictEqual(pipe(Result.fail("not a number"), Result.getOrElse((error) => error + "!")), "not a number!")
     })
 
     it("getOrNull", () => {
@@ -155,6 +184,9 @@ describe("Result", () => {
     it("getOrThrowWith", () => {
       strictEqual(pipe(Result.succeed(1), Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))), 1)
       throws(() => pipe(Result.fail("e"), Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))))
+      // data-first
+      strictEqual(Result.getOrThrowWith(Result.succeed(1), (e) => new Error(`Unexpected Err: ${e}`)), 1)
+      throws(() => Result.getOrThrowWith(Result.fail("e"), (e) => new Error(`Unexpected Err: ${e}`)))
     })
 
     it("getOrThrow", () => {
@@ -173,6 +205,9 @@ describe("Result", () => {
       const f = Result.map(Str.length)
       assertSuccess(pipe(Result.succeed("abc"), f), 3)
       assertFailure(pipe(Result.fail("s"), f), "s")
+      // data-first
+      assertSuccess(Result.map(Result.succeed("abc"), Str.length), 3)
+      assertFailure(Result.map(Result.fail("s"), Str.length), "s")
     })
 
     it("mapBoth", () => {
@@ -182,12 +217,61 @@ describe("Result", () => {
       })
       assertSuccess(pipe(Result.succeed(1), f), false)
       assertFailure(pipe(Result.fail("a"), f), 1)
+      // data-first
+      assertSuccess(
+        Result.mapBoth(Result.succeed(1), {
+          onFailure: Str.length,
+          onSuccess: (n: number) => n > 2
+        }),
+        false
+      )
+      assertFailure(
+        Result.mapBoth(Result.fail("a"), {
+          onFailure: Str.length,
+          onSuccess: (n: number) => n > 2
+        }),
+        1
+      )
     })
 
     it("mapError", () => {
       const f = Result.mapError((n: number) => n * 2)
       assertSuccess(pipe(Result.succeed("a"), f), "a")
       assertFailure(pipe(Result.fail(1), f), 2)
+      // data-first
+      assertSuccess(Result.mapError(Result.succeed("a"), (n: number) => n * 2), "a")
+      assertFailure(Result.mapError(Result.fail(1), (n) => n * 2), 2)
+    })
+
+    it("tap", () => {
+      let sideEffect = 0
+      const success = pipe(
+        Result.succeed(42),
+        Result.tap((n) => {
+          sideEffect = n
+        })
+      )
+      assertSuccess(success, 42)
+      strictEqual(sideEffect, 42)
+
+      // failure path: side effect should not run
+      let failureSideEffect = 0
+      const failure = pipe(
+        Result.fail("err") as Result.Result<number, string>,
+        Result.tap((n) => {
+          failureSideEffect = n
+        })
+      )
+      assertFailure(failure, "err")
+      strictEqual(failureSideEffect, 0)
+
+      // data-first
+      let sideEffect2 = 0
+      const success2 = Result.tap(Result.succeed(10), (n) => {
+        sideEffect2 = n
+      })
+      assertSuccess(success2, 10)
+      strictEqual(sideEffect2, 10)
     })
   })
 
@@ -198,6 +282,9 @@ describe("Result", () => {
       const match = Result.match({ onFailure, onSuccess })
       strictEqual(match(Result.fail("abc")), "failure3")
       strictEqual(match(Result.succeed("abc")), "success3")
+      // data-first
+      strictEqual(Result.match(Result.fail("abc"), { onFailure, onSuccess }), "failure3")
+      strictEqual(Result.match(Result.succeed("abc"), { onFailure, onSuccess }), "success3")
     })
   })
 
@@ -281,6 +368,9 @@ describe("Result", () => {
       const f = Result.flatMap(flow(Str.length, Result.succeed))
       assertSuccess(pipe(Result.succeed("abc"), f), 3)
       assertFailure(pipe(Result.fail("maError"), f), "maError")
+      // data-first
+      assertSuccess(Result.flatMap(Result.succeed("abc"), flow(Str.length, Result.succeed)), 3)
+      assertFailure(Result.flatMap(Result.fail("maError"), flow(Str.length, Result.succeed)), "maError")
     })
 
     it("andThen", () => {
@@ -307,6 +397,20 @@ describe("Result", () => {
       assertSuccess(Result.all({ a: Result.succeed(1) }), { a: 1 })
       assertSuccess(Result.all({ a: Result.succeed(1), b: Result.succeed(true) }), { a: 1, b: true })
       assertFailure(Result.all({ a: Result.succeed(1), b: Result.fail("e") }), "e")
+      // iterables
+      const iterable = function*() {
+        yield Result.succeed(1)
+        yield Result.succeed(2)
+        yield Result.succeed(3)
+      }
+      assertSuccess(Result.all(iterable()), [1, 2, 3])
+
+      const iterableWithFailure = function*() {
+        yield Result.succeed(1)
+        yield Result.fail("e")
+        yield Result.succeed(3)
+      }
+      assertFailure(Result.all(iterableWithFailure()), "e")
     })
   })
 
@@ -316,6 +420,10 @@ describe("Result", () => {
       assertSuccess(pipe(Result.succeed(1), Result.orElse(() => Result.fail("b"))), 1)
       assertSuccess(pipe(Result.fail("a"), Result.orElse(() => Result.succeed(2))), 2)
       assertFailure(pipe(Result.fail("a"), Result.orElse(() => Result.fail("b"))), "b")
+      // data-first
+      assertSuccess(Result.orElse(Result.succeed(1), () => Result.succeed(2)), 1)
+      assertSuccess(Result.orElse(Result.fail("a"), () => Result.succeed(2)), 2)
+      assertFailure(Result.orElse(Result.fail("a"), () => Result.fail("b")), "b")
     })
   })
 
@@ -408,10 +516,9 @@ describe("Result", () => {
       assertSuccess(Result.transposeMapOption(Option.some(Result.succeed(1)), identity), Option.some(1))
       assertSuccess(Result.transposeMapOption(Option.none(), identity), Option.none())
       assertFailure(Result.transposeMapOption(Option.some(Result.fail("e")), identity), "e")
+      // data-last
+      assertSuccess(pipe(Option.some(1), Result.transposeMapOption(Result.succeed)), Option.some(1))
+      assertSuccess(pipe(Option.none<number>(), Result.transposeMapOption(Result.succeed)), Option.none())
     })
-  })
-
-  it("succeedSome", () => {
-    deepStrictEqual(Result.succeedSome(1), Result.succeed(Option.some(1)))
   })
 })
