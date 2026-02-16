@@ -59,10 +59,10 @@ export class Reporter extends ServiceMap.Service<Reporter>()(
         const currSize = current.sizeInBytes
         const prevSize = previous.sizeInBytes
         const diff = currSize - prevSize
-        const diffPct = prevSize === 0 ? 0 : (diff / prevSize) * 100
+        const diffPct = prevSize === 0 ? 0 : (Math.abs(diff) / prevSize) * 100
         const currKb = (currSize / 1000).toFixed(2)
         const prevKb = (prevSize / 1000).toFixed(2)
-        const diffKb = (diff / 1000).toFixed(2)
+        const diffKb = (Math.abs(diff) / 1000).toFixed(2)
         const filename = path.basename(current.path)
         return {
           diff,
