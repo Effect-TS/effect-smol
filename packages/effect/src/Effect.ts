@@ -3102,24 +3102,24 @@ export const catchIf: {
  * @category Error Handling
  */
 export const catchCauseIf: {
-  <E, B, E2, R2>(
-    predicate: Predicate.Predicate<Cause.Cause<E>>,
-    f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, E | E2, R | R2>
   <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
-  <A, E, R, B, E2, R2>(
-    self: Effect<A, E, R>,
+  <E, B, E2, R2>(
     predicate: Predicate.Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
-  ): Effect<A | B, E | E2, R | R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, E | E2, R | R2>
   <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
     self: Effect<A, E, R>,
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
+  <A, E, R, B, E2, R2>(
+    self: Effect<A, E, R>,
+    predicate: Predicate.Predicate<Cause.Cause<E>>,
+    f: (cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): Effect<A | B, E | E2, R | R2>
 } = internal.catchCauseIf
 
 /**
@@ -3800,7 +3800,7 @@ export const sandbox: <A, E, R>(
  *
  * //      ┌─── Effect<void, never, never>
  * //      ▼
- * const program = Effect.ignore(task)
+ * const program = task.pipe(Effect.ignore)
  * ```
  *
  * @example
@@ -3810,7 +3810,8 @@ export const sandbox: <A, E, R>(
  *
  * const task = Effect.fail("Uh oh!")
  *
- * const program = Effect.ignore(task, { log: "Error" })
+ * const program = task.pipe(Effect.ignore({ log: true }))
+ * const programWarn = task.pipe(Effect.ignore({ log: "Warn" }))
  * ```
  *
  * **Previously Known As**
@@ -3825,7 +3826,9 @@ export const sandbox: <A, E, R>(
 export const ignore: <
   Arg extends Effect<any, any, any> | {
     readonly log?: boolean | LogLevel | undefined
-  } | undefined = undefined
+  } | undefined = {
+    readonly log?: boolean | LogLevel | undefined
+  }
 >(
   effectOrOptions?: Arg,
   options?: {
@@ -3845,7 +3848,8 @@ export const ignore: <
  *
  * const task = Effect.fail("boom")
  *
- * const program = Effect.ignoreCause(task, { log: true })
+ * const program = task.pipe(Effect.ignoreCause)
+ * const programLog = task.pipe(Effect.ignoreCause({ log: true })
  * ```
  *
  * @since 4.0.0
@@ -3854,7 +3858,9 @@ export const ignore: <
 export const ignoreCause: <
   Arg extends Effect<any, any, any> | {
     readonly log?: boolean | LogLevel | undefined
-  } | undefined = undefined
+  } | undefined = {
+    readonly log?: boolean | LogLevel | undefined
+  }
 >(
   effectOrOptions?: Arg,
   options?: {
@@ -6890,7 +6896,10 @@ export declare namespace Repeat {
  * })
  *
  * // This will run forever, printing every second
- * const program = Effect.forever(task)
+ * const program = task.pipe(Effect.forever)
+ *
+ * // This will run forever, without yielding every iteration
+ * const programNoYield = task.pipe(Effect.forever({ disableYield: true }))
  *
  * // Run for 5 seconds then interrupt
  * const timedProgram = Effect.gen(function*() {
@@ -6904,10 +6913,16 @@ export declare namespace Repeat {
  * @category Repetition / Recursion
  */
 export const forever: <
-  Arg extends Effect<any, any, any> | { readonly autoYield?: boolean | undefined } | undefined = undefined
+  Arg extends Effect<any, any, any> | {
+    readonly disableYield?: boolean | undefined
+  } | undefined = {
+    readonly disableYield?: boolean | undefined
+  }
 >(
   effectOrOptions?: Arg,
-  options?: { readonly autoYield?: boolean | undefined } | undefined
+  options?: {
+    readonly disableYield?: boolean | undefined
+  } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<never, _E, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<never, E, R> = internal.forever
 
@@ -7813,7 +7828,11 @@ export const requestUnsafe: <A extends Request.Any>(
  * })
  *
  * const program = Effect.gen(function*() {
- *   const fiber = yield* Effect.forkChild(longRunningTask)
+ *   const fiber = yield* longRunningTask.pipe(Effect.forkChild)
+ *
+ *   // or fork a fiber that starts immediately:
+ *   yield* longRunningTask.pipe(Effect.forkChild({ startImmediately: true }))
+ *
  *   yield* Effect.log("Task forked, continuing...")
  *   const result = yield* Fiber.join(fiber)
  *   return result
@@ -7827,7 +7846,10 @@ export const forkChild: <
   Arg extends Effect<any, any, any> | {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
-  } | undefined = undefined
+  } | undefined = {
+    readonly startImmediately?: boolean | undefined
+    readonly uninterruptible?: boolean | "inherit" | undefined
+  }
 >(
   effectOrOptions?: Arg,
   options?: {
@@ -7897,9 +7919,14 @@ export const forkIn: {
  *
  * const program = Effect.scoped(
  *   Effect.gen(function*() {
- *     const fiber = yield* Effect.forkScoped(backgroundTask)
+ *     const fiber = yield* backgroundTask.pipe(Effect.forkScoped)
+ *
+ *     // or fork a fiber that starts immediately:
+ *     yield* backgroundTask.pipe(Effect.forkScoped({ startImmediately: true }))
+ *
  *     yield* Effect.log("Task forked in scope")
  *     yield* Effect.sleep("1 second")
+ *
  *     // Fiber will be interrupted when scope closes
  *     return "scope completed"
  *   })
@@ -7913,7 +7940,10 @@ export const forkScoped: <
   Arg extends Effect<any, any, any> | {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
-  } | undefined = undefined
+  } | undefined = {
+    readonly startImmediately?: boolean | undefined
+    readonly uninterruptible?: boolean | "inherit" | undefined
+  }
 >(
   effectOrOptions?: Arg,
   options?: {
@@ -7940,7 +7970,11 @@ export const forkScoped: <
  * })
  *
  * const program = Effect.gen(function*() {
- *   const fiber = yield* Effect.forkDetach(daemonTask)
+ *   const fiber = yield* daemonTask.pipe(Effect.forkDetach)
+ *
+ *   // or fork a fiber that starts immediately:
+ *   yield* daemonTask.pipe(Effect.forkDetach({ startImmediately: true }))
+ *
  *   yield* Effect.log("Daemon started")
  *   yield* Effect.sleep("3 seconds")
  *   // Daemon continues running after this effect completes
@@ -7955,7 +7989,10 @@ export const forkDetach: <
   Arg extends Effect<any, any, any> | {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
-  } | undefined = undefined
+  } | undefined = {
+    readonly startImmediately?: boolean | undefined
+    readonly uninterruptible?: boolean | "inherit" | undefined
+  }
 >(
   effectOrOptions?: Arg,
   options?: {

@@ -238,7 +238,7 @@ export const fromChannel = <L, In, E, A, R>(
 ): Sink<A, In, L, E, R> =>
   fromTransform((upstream, scope) =>
     Channel.toTransform(channel)(upstream, scope).pipe(
-      Effect.flatMap(Effect.forever({ autoYield: false })),
+      Effect.flatMap(Effect.forever({ disableYield: true })),
       Pull.catchDone(Effect.succeed)
     ) as Effect.Effect<End<A, L>, E, R>
   )
@@ -420,7 +420,7 @@ export const fromQueue = <A>(
   fromTransform((upstream) =>
     upstream.pipe(
       Effect.flatMap((arr) => Queue.offerAll(queue, arr)),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone((_) => {
         Queue.endUnsafe(queue)
         return endVoid
@@ -620,7 +620,7 @@ export const ignoreLeftover = <A, In, L, E, R>(self: Sink<A, In, L, E, R>): Sink
  */
 export const drain: Sink<void, unknown> = fromTransform((upstream) =>
   Pull.catchDone(
-    Effect.forever(upstream, { autoYield: false }),
+    Effect.forever(upstream, { disableYield: true }),
     () => endVoid
   )
 )
@@ -965,7 +965,7 @@ export const take = <In>(n: number): Sink<Array<In>, In, In> =>
         }
         return Effect.void
       }),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone(() => Effect.succeed([taken, leftover] as const))
     )
   })
@@ -1048,7 +1048,7 @@ export const reduceWhile = <S, In>(
         }
         return Effect.void
       }),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone(() => Effect.succeed([state, leftover] as const))
     )
   })
@@ -1090,7 +1090,7 @@ export const reduceWhileEffect = <S, In, E, R>(
           step: constVoid
         })
       }),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone(() => Effect.succeed([state, leftover] as const))
     )
   })
@@ -1122,7 +1122,7 @@ export const reduceWhileArray = <S, In>(
         }
         return Effect.void
       }),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone(() => Effect.succeed([state] as const))
     )
   })
@@ -1154,7 +1154,7 @@ export const reduceWhileArrayEffect = <S, In, E, R>(
         }
         return Effect.void
       }),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone(() => Effect.succeed([state] as const))
     )
   })
@@ -1192,7 +1192,7 @@ export const reduceArray = <S, In>(
         state = f(state, arr)
         return Effect.void
       }),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone(() => Effect.succeed([state] as const))
     )
   })
@@ -1318,7 +1318,7 @@ export const takeWhile: {
         }
         return Effect.void
       }),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone((end) => Effect.succeed<End<Array<any>, In>>(end ?? [out]))
     )
   })
@@ -1358,7 +1358,7 @@ export const takeWhileEffect: {
           step: constVoid
         })
       }),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone(() => Effect.succeed([out, leftover] as const))
     )
   })
@@ -1458,7 +1458,7 @@ export const forEachArray = <In, X, E, R>(
   fromTransform((upstream) =>
     upstream.pipe(
       Effect.flatMap(f),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone(() => endVoid)
     )
   )
@@ -1489,7 +1489,7 @@ export const forEachWhileArray = <In, E, R>(
     upstream.pipe(
       Effect.flatMap(f),
       Effect.flatMap((cont) => cont ? Effect.void : Cause.done()),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Pull.catchDone(() => endVoid)
     )
   )
@@ -1738,3 +1738,4 @@ export const ensuring: {
   self: Sink<A, In, L, E, R>,
   effect: Effect.Effect<X, E2, R2>
 ): Sink<A, In, L, E | E2, R | R2> => onExit(self, () => effect))
+

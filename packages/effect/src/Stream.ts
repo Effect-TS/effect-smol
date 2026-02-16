@@ -7092,7 +7092,7 @@ export const debounce: {
             emitAtMs = clock.currentTimeMillisUnsafe() + durationMs
             return Effect.void
           }),
-          Effect.forever({ autoYield: false }),
+          Effect.forever({ disableYield: true }),
           Effect.onError((cause_) => {
             cause = cause_
             emitAtMs = clock.currentTimeMillisUnsafe()

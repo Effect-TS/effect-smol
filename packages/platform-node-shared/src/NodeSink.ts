@@ -65,7 +65,7 @@ export const pullIntoWritable = <A, IE, E>(options: {
         resume(Effect.void)
       })
     }),
-    Effect.forever({ autoYield: false }),
+    Effect.forever({ disableYield: true }),
     options.endOnDone !== false ?
       Pull.catchDone((_) => {
         if ("closed" in options.writable && options.writable.closed) {

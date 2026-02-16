@@ -1877,7 +1877,7 @@ const mapEffectConcurrent = <
             trackFiber(runFork(handle(f(value, i++))))
             return Effect.void
           }),
-          Effect.forever({ autoYield: false }),
+          Effect.forever({ disableYield: true }),
           Effect.catchCause((cause) =>
             semaphore.withPermits(concurrencyN - 1)(
               Queue.failCause(queue, cause)
@@ -1898,7 +1898,7 @@ const mapEffectConcurrent = <
         yield* Queue.take(effects).pipe(
           Effect.flatten,
           Effect.flatMap((value) => Queue.offer(queue, value)),
-          Effect.forever({ autoYield: false }),
+          Effect.forever({ disableYield: true }),
           Effect.catchCause((cause) => Queue.failCause(queue, cause)),
           Effect.forkIn(forkedScope)
         )
@@ -1917,7 +1917,7 @@ const mapEffectConcurrent = <
             fiber.addObserver(onExit)
             return Queue.offer(effects, Fiber.join(fiber))
           }),
-          Effect.forever({ autoYield: false }),
+          Effect.forever({ disableYield: true }),
           Effect.catchCause((cause) =>
             Queue.offer(effects, Exit.failCause(cause)).pipe(
               Effect.andThen(Queue.failCause(effects, cause))
@@ -2857,7 +2857,7 @@ export const drain = <
     Env
   >
 ): Channel<never, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-  transformPull(self, (pull) => Effect.succeed(Effect.forever(pull, { autoYield: false })))
+  transformPull(self, (pull) => Effect.succeed(Effect.forever(pull, { disableYield: true })))
 
 /**
  * Repeats this channel according to the provided schedule.
@@ -5200,7 +5200,7 @@ export const mergeAll: {
             const fiber = yield* childPull.pipe(
               Effect.tap(() => Effect.yieldNow),
               Effect.flatMap((value) => Queue.offer(queue, value)),
-              Effect.forever({ autoYield: false }),
+              Effect.forever({ disableYield: true }),
               Effect.onError(Effect.fnUntraced(function*(cause) {
                 const halt = Pull.filterDone(cause)
                 yield* Effect.exit(Scope.close(
@@ -5816,7 +5816,7 @@ export const buffer: {
     yield* Scope.addFinalizer(scope, Queue.shutdown(queue))
     yield* pull.pipe(
       Effect.flatMap((value) => Queue.offer(queue, value)),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Effect.onError((cause) => Queue.failCause(queue, cause)),
       Effect.forkIn(scope)
     )
@@ -5862,7 +5862,7 @@ export const bufferArray: {
     yield* Scope.addFinalizer(scope, Queue.shutdown(queue))
     yield* pull.pipe(
       Effect.flatMap((value) => Queue.offerAll(queue, value)),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Effect.onError((cause) => Queue.failCause(queue, cause)),
       Effect.forkIn(scope)
     )
@@ -6619,7 +6619,7 @@ export const runCount = <OutElem, OutErr, OutDone, Env>(
  */
 export const runDrain = <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
-): Effect.Effect<OutDone, OutErr, Env> => runWith(self, (pull) => Effect.forever(pull, { autoYield: false }))
+): Effect.Effect<OutDone, OutErr, Env> => runWith(self, (pull) => Effect.forever(pull, { disableYield: true }))
 
 /**
  * Runs a channel and applies an effect to each output element.
@@ -6663,7 +6663,7 @@ export const runForEach: {
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
     f: (o: OutElem) => Effect.Effect<void, EX, RX>
   ): Effect.Effect<OutDone, OutErr | EX, Env | RX> =>
-    runWith(self, (pull) => Effect.forever(Effect.flatMap(pull, f), { autoYield: false }))
+    runWith(self, (pull) => Effect.forever(Effect.flatMap(pull, f), { disableYield: true }))
 )
 
 /**
@@ -6690,7 +6690,7 @@ export const runForEachWhile: {
       pull.pipe(
         Effect.flatMap(f),
         Effect.flatMap((cont) => (cont ? Effect.void : Cause.done())),
-        Effect.forever({ autoYield: false })
+        Effect.forever({ disableYield: true })
       ))
 )
 
@@ -6772,7 +6772,7 @@ export const runLast = <OutElem, OutErr, OutDone, Env>(
             last = item
             return Effect.void
           }),
-          { autoYield: false }
+          { disableYield: true }
         ),
       () => last === absent ? Effect.succeedNone : Effect.succeedSome(last)
     )

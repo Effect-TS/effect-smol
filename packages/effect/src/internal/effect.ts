@@ -2336,22 +2336,28 @@ export const replicateEffect: {
 
 /** @internal */
 export const forever: {
-  <Arg extends Effect.Effect<any, any, any> | { readonly autoYield?: boolean | undefined } | undefined>(
+  <
+    Arg extends Effect.Effect<any, any, any> | {
+      readonly disableYield?: boolean | undefined
+    } | undefined = {
+      readonly disableYield?: boolean | undefined
+    }
+  >(
     effectOrOptions: Arg,
     options?: {
-      readonly autoYield?: boolean | undefined
+      readonly disableYield?: boolean | undefined
     } | undefined
   ): [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<never, _E, _R>
     : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<never, E, R>
 } = dual((args) => isEffect(args[0]), <A, E, R>(
   self: Effect.Effect<A, E, R>,
   options?: {
-    readonly autoYield?: boolean | undefined
+    readonly disableYield?: boolean | undefined
   }
 ): Effect.Effect<never, E, R> =>
   whileLoop({
     while: constTrue,
-    body: constant(options?.autoYield ? flatMap(self, (_) => yieldNow) : self),
+    body: constant(options?.disableYield ? self : flatMap(self, (_) => yieldNow)),
     step: constVoid
   }) as any)
 
@@ -2390,26 +2396,26 @@ const OnFailureProto = makePrimitiveProto({
 
 /** @internal */
 export const catchCauseIf: {
-  <E, B, E2, R2>(
-    predicate: Predicate.Predicate<Cause.Cause<E>>,
-    f: (cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
-  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A | B, E | E2, R | R2>
   <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): <A, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
-  <A, E, R, B, E2, R2>(
-    self: Effect.Effect<A, E, R>,
+  <E, B, E2, R2>(
     predicate: Predicate.Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E | E2, R | R2>
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A | B, E | E2, R | R2>
   <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
     self: Effect.Effect<A, E, R>,
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
+  <A, E, R, B, E2, R2>(
+    self: Effect.Effect<A, E, R>,
+    predicate: Predicate.Predicate<Cause.Cause<E>>,
+    f: (cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
+  ): Effect.Effect<A | B, E | E2, R | R2>
 } = dual(
   3,
   <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
@@ -3101,7 +3107,9 @@ export const eventually = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect
 export const ignore: <
   Arg extends Effect.Effect<any, any, any> | {
     readonly log?: boolean | LogLevel.LogLevel | undefined
-  } | undefined
+  } | undefined = {
+    readonly log?: boolean | LogLevel.LogLevel | undefined
+  }
 >(
   effectOrOptions: Arg,
   options?: {
@@ -3134,7 +3142,9 @@ export const ignore: <
 export const ignoreCause: <
   Arg extends Effect.Effect<any, any, any> | {
     readonly log?: boolean | LogLevel.LogLevel | undefined
-  } | undefined
+  } | undefined = {
+    readonly log?: boolean | LogLevel.LogLevel | undefined
+  }
 >(
   effectOrOptions: Arg,
   options?: {
@@ -4419,7 +4429,10 @@ export const forkChild: {
     Arg extends Effect.Effect<any, any, any> | {
       readonly startImmediately?: boolean | undefined
       readonly uninterruptible?: boolean | "inherit" | undefined
-    } | undefined
+    } | undefined = {
+      readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
+    }
   >(
     effectOrOptions: Arg,
     options?: {
@@ -4474,7 +4487,10 @@ export const forkDetach: {
     Arg extends Effect.Effect<any, any, any> | {
       readonly startImmediately?: boolean | undefined
       readonly uninterruptible?: boolean | "inherit" | undefined
-    } | undefined
+    } | undefined = {
+      readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
+    }
   >(
     effectOrOptions: Arg,
     options?: {
@@ -4566,7 +4582,10 @@ export const forkScoped: {
     Arg extends Effect.Effect<any, any, any> | {
       readonly startImmediately?: boolean | undefined
       readonly uninterruptible?: boolean | "inherit" | undefined
-    } | undefined
+    } | undefined = {
+      readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
+    }
   >(
     effectOrOptions: Arg,
     options?: {

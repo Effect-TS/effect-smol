@@ -38,7 +38,7 @@ export const repeatOrElse: {
               meta = meta_
             })
         ),
-        { autoYield: false }
+        { disableYield: true }
       ),
       (error) =>
         core.isDone(error)

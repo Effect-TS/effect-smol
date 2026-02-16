@@ -279,10 +279,10 @@ export const toChannelMap = <IE, A>(
         index = 0
         return writeChunk
       }),
-      Effect.forever({ autoYield: false }),
+      Effect.forever({ disableYield: true }),
       Effect.catchCauseIf(
-        Pull.filterNoDone as any,
-        (cause: any) => Queue.failCause(queue, cause)
+        Pull.filterNoDone,
+        (cause) => Queue.failCause(queue, cause)
       ),
       Effect.ensuring(Scope.close(writeScope, Exit.void)),
       Effect.forkIn(scope)
@@ -749,3 +749,4 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
       writer
     }))
   })
+

@@ -476,7 +476,7 @@ const strategyCreationTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Dura
         })
       return Queue.take(queue).pipe(
         Effect.tap(process),
-        Effect.forever({ autoYield: false })
+        Effect.forever({ disableYield: true })
       )
     },
     onAcquire: (item) =>
@@ -502,7 +502,7 @@ const strategyUsageTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Duratio
       })
       return process.pipe(
         Effect.delay(ttl),
-        Effect.forever({ autoYield: false })
+        Effect.forever({ disableYield: true })
       )
     },
     onAcquire: (item) => Queue.offer(queue, item),
