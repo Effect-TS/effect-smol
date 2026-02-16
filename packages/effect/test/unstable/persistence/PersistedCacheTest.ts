@@ -67,6 +67,6 @@ export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistenc
         ])
       }).pipe(
         Effect.provide(layer),
-        Effect.catchFilter((e) => e instanceof TransientError ? Filter.pass(e) : Filter.fail(e), () => Effect.void)
+        Effect.catchIf((e) => e instanceof TransientError ? Filter.pass(e) : Filter.fail(e), () => Effect.void)
       ))
   })

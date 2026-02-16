@@ -810,7 +810,7 @@ const make = Effect.gen(function*() {
     void,
     MailboxFull | AlreadyProcessingMessage | PersistenceError
   > {
-    return Effect.catchFilter(
+    return Effect.catchIf(
       Effect.suspend(() => {
         const address = message.envelope.address
         const isPersisted = ServiceMap.get(message.rpc.annotations, Persisted)

@@ -4698,7 +4698,7 @@ export const tapError: {
  *
  * const stream = Stream.make(1, 2).pipe(
  *   Stream.concat(Stream.fail(42)),
- *   Stream.catchFilter(
+ *   Stream.catchIf(
  *     Filter.fromPredicate((error): error is 42 => error === 42),
  *     () => Stream.make(999)
  *   )
@@ -4716,7 +4716,7 @@ export const tapError: {
  * @since 4.0.0
  * @category Error Handling
  */
-export const catchFilter: {
+export const catchIf: {
   <E, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
     refinement: Refinement<NoInfer<E>, EB>,
     f: (e: EB) => Stream<A2, E2, R2>,
@@ -4757,7 +4757,7 @@ export const catchFilter: {
   orElse?: ((failure: X) => Stream<A3, E3, R3>) | undefined
 ): Stream<A | A2 | A3, E2 | E3, R | R2 | R3> =>
   fromChannel(
-    Channel.catchFilter(
+    Channel.catchIf(
       toChannel(self),
       filter as any,
       (e: any) => f(e).channel,
@@ -4862,7 +4862,7 @@ export const catchTag: {
     const pred = Array.isArray(k)
       ? ((e: E): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
       : isTagged(k as string)
-    return catchFilter(self, Filter.fromPredicate(pred), f, orElse as any) as any
+    return catchIf(self, Filter.fromPredicate(pred), f, orElse as any) as any
   }
 )
 
@@ -4964,7 +4964,7 @@ export const catchTags: {
   >
 } = dual((args) => isStream(args[0]), (self, cases, orElse) => {
   let keys: Array<string>
-  return catchFilter(
+  return catchIf(
     self,
     (e: any) => {
       keys ??= Object.keys(cases)
@@ -5270,7 +5270,7 @@ export const mapError: {
  *
  * const program = Effect.gen(function*() {
  *   const failingStream = Stream.fail("NetworkError")
- *   const recovered = Stream.catchCauseFilter(
+ *   const recovered = Stream.catchCauseIf(
  *     failingStream,
  *     (cause) => Cause.hasFails(cause),
  *     (cause) => Stream.make(`Recovered: ${Cause.squash(cause)}`)
@@ -5287,7 +5287,7 @@ export const mapError: {
  * @since 4.0.0
  * @category Error Handling
  */
-export const catchCauseFilter: {
+export const catchCauseIf: {
   <E, A2, E2, R2>(
     predicate: Predicate<Cause.Cause<E>>,
     f: (cause: Cause.Cause<E>) => Stream<A2, E2, R2>
@@ -5312,7 +5312,7 @@ export const catchCauseFilter: {
   f: ((failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>) | ((cause: Cause.Cause<E>) => Stream<A2, E2, R2>)
 ): Stream<A | A2, Cause.Cause.Error<X> | E2, R | R2> =>
   fromChannel(
-    Channel.catchCauseFilter(self.channel, filter as any, (failure: any, cause: any) =>
+    Channel.catchCauseIf(self.channel, filter as any, (failure: any, cause: any) =>
       (f as any)(failure, cause).channel) as any
   ))
 

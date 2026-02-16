@@ -3696,7 +3696,7 @@ export const tapCause: {
  * @since 4.0.0
  * @category Error handling
  */
-export const catchCauseFilter: {
+export const catchCauseIf: {
   <OutErr, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
     predicate: Predicate.Predicate<Cause.Cause<OutErr>>,
     f: (cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
@@ -3908,7 +3908,7 @@ const catch_: {
   InErr & InErr1,
   InDone & InDone1,
   Env | Env1
-> => catchCauseFilter(self, Cause.findError, f))
+> => catchCauseIf(self, Cause.findError, f))
 
 export {
   /**
@@ -4000,7 +4000,7 @@ export const tapError: {
  * @since 4.0.0
  * @category Error handling
  */
-export const catchFilter: {
+export const catchIf: {
   <
     OutErr,
     EB,
@@ -4268,7 +4268,7 @@ export const catchTag: {
   const pred = Array.isArray(k)
     ? ((e: OutErr): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
     : isTagged(k as string)
-  return catchFilter(self, Filter.fromPredicate(pred), f, orElse as any) as any
+  return catchIf(self, Filter.fromPredicate(pred), f, orElse as any) as any
 })
 
 /**
@@ -4722,7 +4722,7 @@ export const unwrapReason: {
   InDone,
   Env
 > =>
-  catchFilter(
+  catchIf(
     self,
     (error: any) =>
       isTagged(error, errorTag) && hasProperty(error, "reason") ? Filter.pass(error.reason) : Filter.fail(error),

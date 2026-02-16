@@ -907,14 +907,14 @@ export const runWith = <const Name extends string, Input, E, R>(
 
       yield* withLogLevel
     },
-    Effect.catchFilter(
+    Effect.catchIf(
       ((error: any) =>
         CliError.isCliError(error) && error._tag === "ShowHelp"
           ? Filter.pass(error)
           : Filter.fail(error)) as any,
       (error: any) => showHelp(command, error.commandPath)
     ),
-    Effect.catchFilter(
+    Effect.catchIf(
       (e) =>
         Terminal.isQuitError(e) ? Filter.pass(e) : Filter.fail(e as CliError.CliError | Exclude<E, Terminal.QuitError>),
       (_) => Effect.interrupt
