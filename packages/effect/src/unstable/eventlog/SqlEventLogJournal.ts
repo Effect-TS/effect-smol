@@ -209,7 +209,7 @@ export const make = (options?: {
       writeFromRemote: (options) =>
         writeFromRemote(options).pipe(
           sql.withTransaction,
-          Effect.catchIf(
+          Effect.catchFilter(
             (e) => e._tag !== "EventJournalError",
             (cause) => Effect.fail(new EventJournal.EventJournalError({ cause, method: "writeFromRemote" }))
           )

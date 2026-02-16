@@ -756,7 +756,7 @@ export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
  *
  * const result = Cause.findFail(Cause.fail("error"))
  * if (!Filter.isFail(result)) {
- *   console.log(result.error) // "error"
+ *   console.log(result.pass.error) // "error"
  * }
  * ```
  *
@@ -766,7 +766,7 @@ export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
  * @category filters
  * @since 4.0.0
  */
-export const findFail: <E>(self: Cause<E>) => Fail<E> | Filter.fail<Cause<never>> = effect.findFail
+export const findFail: <E>(self: Cause<E>) => Filter.pass<Fail<E>> | Filter.fail<Cause<never>> = effect.findFail
 
 /**
  * Returns the first typed error value `E` from a cause.
@@ -792,7 +792,7 @@ export const findFail: <E>(self: Cause<E>) => Fail<E> | Filter.fail<Cause<never>
  * @category filters
  * @since 4.0.0
  */
-export const findError: <E>(self: Cause<E>) => E | Filter.fail<Cause<never>> = effect.findError
+export const findError: <E>(self: Cause<E>) => Filter.pass<E> | Filter.fail<Cause<never>> = effect.findError
 
 /**
  * Returns the first typed error value `E` from a cause wrapped in
@@ -854,7 +854,7 @@ export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
  *
  * const result = Cause.findDie(Cause.die("defect"))
  * if (!Filter.isFail(result)) {
- *   console.log(result.defect) // "defect"
+ *   console.log(result.pass.defect) // "defect"
  * }
  * ```
  *
@@ -864,7 +864,7 @@ export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
  * @category filters
  * @since 4.0.0
  */
-export const findDie: <E>(self: Cause<E>) => Die | Filter.fail<Cause<E>> = effect.findDie
+export const findDie: <E>(self: Cause<E>) => Filter.pass<Die> | Filter.fail<Cause<E>> = effect.findDie
 
 /**
  * Returns the first defect value (`unknown`) from a cause.
@@ -891,7 +891,7 @@ export const findDie: <E>(self: Cause<E>) => Die | Filter.fail<Cause<E>> = effec
  * @category filters
  * @since 4.0.0
  */
-export const findDefect: <E>(self: Cause<E>) => Types.Any | Filter.fail<Cause<E>> = effect.findDefect
+export const findDefect: <E>(self: Cause<E>) => Filter.pass<Types.Any> | Filter.fail<Cause<E>> = effect.findDefect
 
 /**
  * Returns `true` if the cause contains at least one {@link Interrupt} reason.
@@ -926,7 +926,7 @@ export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupt
  *
  * const result = Cause.findInterrupt(Cause.interrupt(42))
  * if (!Filter.isFail(result)) {
- *   console.log(result.fiberId) // 42
+ *   console.log(result.pass.fiberId) // 42
  * }
  * ```
  *
@@ -935,7 +935,7 @@ export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupt
  * @category filters
  * @since 4.0.0
  */
-export const findInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.fail<Cause<E>> = effect.findInterrupt
+export const findInterrupt: <E>(self: Cause<E>) => Filter.pass<Interrupt> | Filter.fail<Cause<E>> = effect.findInterrupt
 
 /**
  * Collects the fiber IDs of all {@link Interrupt} reasons in the cause into
@@ -987,7 +987,7 @@ export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.c
  * @category filters
  * @since 4.0.0
  */
-export const filterInterruptors: <E>(self: Cause<E>) => Set<number> | Filter.fail<Cause<E>> =
+export const filterInterruptors: <E>(self: Cause<E>) => Filter.pass<Set<number>> | Filter.fail<Cause<E>> =
   effect.causeFilterInterruptors
 
 /**

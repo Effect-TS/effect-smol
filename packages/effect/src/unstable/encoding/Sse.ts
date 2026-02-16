@@ -311,7 +311,7 @@ export const encode = <IE, Done>(): Channel.Channel<
       let done = false
       const pull = upstream.pipe(
         Effect.map(Arr.map(encoder.write)),
-        Effect.catchFilter(Retry.filter, (retry) => {
+        Effect.catchFilter(Retry.filter as any, (retry: any) => {
           done = true
           return Effect.succeed(Arr.of(encoder.write(retry)))
         }),
@@ -454,8 +454,8 @@ export class Retry extends Data.TaggedClass("Retry")<{
   /**
    * @since 4.0.0
    */
-  static filter<A>(u: A): Retry | Filter.fail<Exclude<A, Retry>> {
-    return Retry.is(u) ? u : Filter.fail(u as any)
+  static filter<A>(u: A): Filter.pass<Retry> | Filter.fail<Exclude<A, Retry>> {
+    return Retry.is(u) ? Filter.pass(u) : Filter.fail(u as any)
   }
 }
 

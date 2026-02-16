@@ -78,7 +78,7 @@ export const catchDone: {
   effect: Effect<A, E, R>,
   f: (leftover: Cause.Done.Extract<E>) => Effect<A2, E2, R2>
 ): Effect<A | A2, ExcludeDone<E> | E2, R | R2> =>
-  internalEffect.catchCauseFilter(effect, filterDoneLeftover, (l) => f(l)) as any)
+  internalEffect.catchCauseFilter(effect, filterDoneLeftover as any, (l: any) => f(l)) as any)
 
 /**
  * Checks if a Cause contains any done errors.
@@ -104,12 +104,13 @@ export const isDoneFailure = <E>(
  * @since 4.0.0
  * @category Done
  */
-export const filterDone: <E>(input: Cause.Cause<E>) => Cause.Done.Only<E> | Filter.fail<Cause.Cause<ExcludeDone<E>>> =
-  Filter
-    .composePassthrough(
-      Cause.findError,
-      (e) => Cause.isDone(e) ? e : Filter.fail(e)
-    ) as any
+export const filterDone: <E>(
+  input: Cause.Cause<E>
+) => Filter.pass<Cause.Done.Only<E>> | Filter.fail<Cause.Cause<ExcludeDone<E>>> = Filter
+  .composePassthrough(
+    Cause.findError,
+    (e) => Cause.isDone(e) ? Filter.pass(e) : Filter.fail(e)
+  ) as any
 
 /**
  * Filters a Cause to extract only halt errors.
@@ -119,9 +120,9 @@ export const filterDone: <E>(input: Cause.Cause<E>) => Cause.Done.Only<E> | Filt
  */
 export const filterDoneVoid: <E extends Cause.Done>(
   input: Cause.Cause<E>
-) => Cause.Done | Filter.fail<Cause.Cause<Exclude<E, Cause.Done>>> = Filter.composePassthrough(
+) => Filter.pass<Cause.Done> | Filter.fail<Cause.Cause<Exclude<E, Cause.Done>>> = Filter.composePassthrough(
   Cause.findError,
-  (e) => Cause.isDone(e) ? e : Filter.fail(e)
+  (e) => Cause.isDone(e) ? Filter.pass(e) : Filter.fail(e)
 ) as any
 
 /**
@@ -130,7 +131,7 @@ export const filterDoneVoid: <E extends Cause.Done>(
  */
 export const filterNoDone: <E>(
   input: Cause.Cause<E>
-) => Cause.Cause<ExcludeDone<E>> | Filter.fail<Cause.Cause<E>> = Filter
+) => Filter.pass<Cause.Cause<ExcludeDone<E>>> | Filter.fail<Cause.Cause<E>> = Filter
   .fromPredicate((cause: Cause.Cause<unknown>) => cause.reasons.every((failure) => !isDoneFailure(failure))) as any
 
 /**
@@ -141,9 +142,9 @@ export const filterNoDone: <E>(
  */
 export const filterDoneLeftover: <E>(
   cause: Cause.Cause<E>
-) => Cause.Done.Extract<E> | Filter.fail<Cause.Cause<ExcludeDone<E>>> = Filter.composePassthrough(
+) => Filter.pass<Cause.Done.Extract<E>> | Filter.fail<Cause.Cause<ExcludeDone<E>>> = Filter.composePassthrough(
   Cause.findError,
-  (e) => Cause.isDone(e) ? e.value : Filter.fail(e)
+  (e) => Cause.isDone(e) ? Filter.pass(e.value) : Filter.fail(e)
 ) as any
 
 /**
@@ -154,7 +155,7 @@ export const filterDoneLeftover: <E>(
  */
 export const doneExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Cause.Done.Extract<E>, ExcludeDone<E>> => {
   const halt = filterDone(cause)
-  return !Filter.isFail(halt) ? Exit.succeed(halt.value as any) : Exit.failCause(halt.fail)
+  return !Filter.isFail(halt) ? Exit.succeed(halt.pass.value as any) : Exit.failCause(halt.fail)
 }
 
 /**
@@ -196,6 +197,6 @@ export const matchEffect: {
     onSuccess: options.onSuccess,
     onFailure: (cause): Effect<AS | AF | AH, ES | EF | EH, RS | RF | RH> => {
       const halt = filterDone(cause)
-      return !Filter.isFail(halt) ? options.onDone(halt.value as L) : options.onFailure(halt.fail)
+      return !Filter.isFail(halt) ? options.onDone(halt.pass.value as L) : options.onFailure(halt.fail)
     }
   }))

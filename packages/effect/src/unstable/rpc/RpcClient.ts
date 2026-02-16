@@ -1019,12 +1019,12 @@ export const makeProtocolSocket = (options?: {
         const hasError = Filter.isPass(error)
         if (
           options?.retryTransientErrors && hasError &&
-          error.reason._tag === "SocketOpenError"
+          error.pass.reason._tag === "SocketOpenError"
         ) {
           return Effect.void
         }
         currentError = new RpcClientError({
-          reason: hasError ? error.reason : new RpcClientDefect({
+          reason: hasError ? error.pass.reason : new RpcClientDefect({
             message: "Unknown socket error",
             cause: Cause.squash(cause)
           })
@@ -1161,7 +1161,7 @@ export const makeProtocolWorker = (
           return writeResponse({
             _tag: "ClientProtocolError",
             error: new RpcClientError({
-              reason: Filter.isPass(error) ? error.reason : new RpcClientDefect({
+              reason: Filter.isPass(error) ? error.pass.reason : new RpcClientDefect({
                 message: "Error in worker",
                 cause: Cause.squash(cause)
               })
