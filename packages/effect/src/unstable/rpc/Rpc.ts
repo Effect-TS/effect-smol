@@ -30,6 +30,10 @@ export const isRpc = (u: unknown): u is Rpc<any, any, any> => Predicate.hasPrope
  * @category models
  */
 export interface DefectSchema extends Schema.Top {
+  readonly Type: unknown
+  makeUnsafe(input: null, options?: Schema.MakeOptions): unknown
+  makeUnsafe(input: undefined, options?: Schema.MakeOptions): unknown
+  makeUnsafe(input: {}, options?: Schema.MakeOptions): unknown
   readonly DecodingServices: never
   readonly EncodingServices: never
 }
@@ -712,12 +716,13 @@ export const make = <
   Payload extends Schema.Top | Schema.Struct.Fields = Schema.Void,
   Success extends Schema.Top = Schema.Void,
   Error extends Schema.Top = Schema.Never,
+  Defect extends DefectSchema = Schema.Defect,
   const Stream extends boolean = false
 >(tag: Tag, options?: {
   readonly payload?: Payload
   readonly success?: Success
   readonly error?: Error
-  readonly defect?: DefectSchema
+  readonly defect?: Defect
   readonly stream?: Stream
   readonly primaryKey?: [Payload] extends [Schema.Struct.Fields] ? ((
       payload: Payload extends Schema.Struct.Fields ? Struct.Simplify<Schema.Struct<Payload>["Type"]> : Payload["Type"]

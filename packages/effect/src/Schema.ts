@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+/** @effect-diagnostics schemaStructWithTag:skip-file */
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec"
 import * as Arr from "./Array.ts"
 import type * as Brand from "./Brand.ts"
@@ -5893,7 +5894,35 @@ export const Error: Error = instanceOf(globalThis.Error, {
     Type: `globalThis.Error`
   },
   expected: "Error",
-  toCodecJson: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.errorFromErrorJsonEncoded),
+  toCodecJson: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.errorFromErrorJsonEncoded()),
+  toArbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
+})
+
+/**
+ * A schema that represents `Error` objects.
+ *
+ * The default json serializer decodes to a struct with `name`, `message` and
+ * `stack` properties.
+ *
+ * @category Schemas
+ * @since 4.0.0
+ */
+export const ErrorWithStack: Error = instanceOf(globalThis.Error, {
+  typeConstructor: {
+    _tag: "ErrorWithStack"
+  },
+  generation: {
+    runtime: `Schema.ErrorWithStack`,
+    Type: `globalThis.Error`
+  },
+  expected: "Error",
+  toCodecJson: () =>
+    link<globalThis.Error>()(
+      ErrorJsonEncoded,
+      Transformation.errorFromErrorJsonEncoded({
+        includeStack: true
+      })
+    ),
   toArbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
 })
 
@@ -5934,7 +5963,30 @@ const defectTransformation = new Transformation.Transformation(
  * @since 4.0.0
  */
 export const Defect: Defect = Union([
-  ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.errorFromErrorJsonEncoded)),
+  ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.errorFromErrorJsonEncoded())),
+  Any.pipe(decodeTo(
+    Unknown.annotate({
+      toCodecJson: () => link<unknown>()(Any, defectTransformation),
+      toArbitrary: () => (fc) => fc.json()
+    }),
+    defectTransformation
+  ))
+])
+
+/**
+ * A schema that represents defects, that also includes stack traces in the
+ * encoded form.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export const DefectWithStack: Defect = Union([
+  ErrorJsonEncoded.pipe(decodeTo(
+    ErrorWithStack,
+    Transformation.errorFromErrorJsonEncoded({
+      includeStack: true
+    })
+  )),
   Any.pipe(decodeTo(
     Unknown.annotate({
       toCodecJson: () => link<unknown>()(Any, defectTransformation),

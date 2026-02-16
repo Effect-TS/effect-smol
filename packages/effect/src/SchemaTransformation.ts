@@ -293,25 +293,35 @@ export const durationFromMillis: Transformation<Duration.Duration, number> = tra
 })
 
 /** @internal */
-export const errorFromErrorJsonEncoded: Transformation<Error, {
+export const errorFromErrorJsonEncoded = (options?: {
+  readonly includeStack?: boolean | undefined
+}): Transformation<Error, {
   message: string
   name?: string
   stack?: string
-}> = transform({
-  decode: (i) => {
-    const err = new Error(i.message)
-    if (typeof i.name === "string" && i.name !== "Error") err.name = i.name
-    if (typeof i.stack === "string") err.stack = i.stack
-    return err
-  },
-  encode: (a) => {
-    return {
-      name: a.name,
-      message: a.message
-      // no stack because of security reasons
+}> =>
+  transform({
+    decode: (i) => {
+      const err = new Error(i.message)
+      if (typeof i.name === "string" && i.name !== "Error") err.name = i.name
+      if (typeof i.stack === "string") err.stack = i.stack
+      return err
+    },
+    encode: (a) => {
+      const e: {
+        message: string
+        name?: string
+        stack?: string
+      } = {
+        name: a.name,
+        message: a.message
+      }
+      if (options?.includeStack && typeof a.stack === "string") {
+        e.stack = a.stack
+      }
+      return e
     }
-  }
-})
+  })
 
 /**
  * @since 4.0.0

@@ -38,12 +38,6 @@ class GetUser extends Rpc.make("GetUser", {
   payload: { id: Schema.String }
 }) {}
 
-const CustomDefect = Schema.Struct({
-  message: Schema.String,
-  stack: Schema.String,
-  code: Schema.Number
-})
-
 export const UserRpcs = RpcGroup.make(
   GetUser,
   Rpc.make("GetUserOption", {
@@ -59,7 +53,7 @@ export const UserRpcs = RpcGroup.make(
   }),
   Rpc.make("ProduceDefect"),
   Rpc.make("ProduceDefectCustom", {
-    defect: CustomDefect
+    defect: Schema.DefectWithStack
   }),
   Rpc.make("Never"),
   Rpc.make("nested.test"),
@@ -139,7 +133,7 @@ export const UsersLive = UserRpcs.toLayer(Effect.gen(function*() {
       Effect.die({
         message: "detailed error",
         stack: "Error: detailed error\n  at handler.ts:1",
-        code: 42
+        name: "CustomDefect"
       }),
     Never: () => Effect.never.pipe(Effect.onInterrupt(() => Effect.sync(() => interrupts++))),
     "nested.test": () => Effect.void,

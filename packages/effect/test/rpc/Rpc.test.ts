@@ -29,7 +29,7 @@ describe("Rpc", () => {
   it("exitSchema uses custom defect schema", () => {
     const rpc = Rpc.make("customDefect", {
       success: Schema.String,
-      defect: Schema.Unknown
+      defect: Schema.Any
     })
 
     const schema = Rpc.exitSchema(rpc)
@@ -41,8 +41,8 @@ describe("Rpc", () => {
 
     const roundTripped = decode(encode(exit))
 
-    assert.isTrue(Exit.isFailure(roundTripped))
-    const defect = Cause.squash((roundTripped as Exit.Failure<any, any>).cause)
+    assert(Exit.isFailure(roundTripped))
+    const defect = Cause.squash(roundTripped.cause)
     assert.deepStrictEqual(defect, error)
   })
 })
