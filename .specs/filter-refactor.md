@@ -94,6 +94,7 @@ Every API that currently accepts `Filter.Filter<A, B, X>` gains overloads for
   so a predicate cannot accidentally match this overload
 
 At runtime, the implementation calls the function and inspects the result:
+
 - `true` → pass (use original input)
 - `false` → fail (use original input)
 - `isPass(result)` → extract `.pass`
@@ -121,48 +122,48 @@ Filter-based API and remove the standalone variant.
 
 #### APIs to merge (remove predicate-only variant)
 
-| Filter API | Predicate variant to remove |
-|---|---|
-| `Effect.catchFilter` | `Effect.catchIf` |
-| `Stream.catchFilter` | `Stream.catchIf` |
+| Filter API           | Predicate variant to remove |
+| -------------------- | --------------------------- |
+| `Effect.catchFilter` | `Effect.catchIf`            |
+| `Stream.catchFilter` | `Stream.catchIf`            |
 
 #### APIs to add overloads (no existing predicate variant to remove)
 
-| Module | Function |
-|---|---|
-| Effect | `catchCauseFilter` |
-| Effect | `tapCauseFilter` |
-| Effect | `filterMap` |
-| Effect | `onErrorFilter` |
-| Effect | `onExitFilter` |
-| Stream | `filterMap` |
-| Stream | `filterMapEffect` |
-| Stream | `partitionFilter` |
-| Stream | `partitionFilterQueue` |
-| Stream | `partitionFilterEffect` |
-| Stream | `catchFilter` |
-| Stream | `catchCauseFilter` |
-| Channel | `filterMap` |
-| Channel | `filterMapEffect` |
-| Channel | `filterMapArray` |
-| Channel | `filterMapArrayEffect` |
-| Channel | `catchCauseFilter` |
-| Channel | `catchFilter` |
-| Sink | `takeFilter` |
-| Sink | `takeFilterEffect` |
-| Array | `partitionFilter` |
+| Module  | Function                |
+| ------- | ----------------------- |
+| Effect  | `catchCauseFilter`      |
+| Effect  | `tapCauseFilter`        |
+| Effect  | `filterMap`             |
+| Effect  | `onErrorFilter`         |
+| Effect  | `onExitFilter`          |
+| Stream  | `filterMap`             |
+| Stream  | `filterMapEffect`       |
+| Stream  | `partitionFilter`       |
+| Stream  | `partitionFilterQueue`  |
+| Stream  | `partitionFilterEffect` |
+| Stream  | `catchFilter`           |
+| Stream  | `catchCauseFilter`      |
+| Channel | `filterMap`             |
+| Channel | `filterMapEffect`       |
+| Channel | `filterMapArray`        |
+| Channel | `filterMapArrayEffect`  |
+| Channel | `catchCauseFilter`      |
+| Channel | `catchFilter`           |
+| Sink    | `takeFilter`            |
+| Sink    | `takeFilterEffect`      |
+| Array   | `partitionFilter`       |
 
 #### APIs with existing predicate variants that remain separate
 
 Some APIs have predicate counterparts with different semantics (not just a wrapped Filter).
 These stay as-is:
 
-| Filter API | Predicate API (keep separate) | Reason |
-|---|---|---|
-| `Stream.filterMap` | `Stream.filter` | `filter` doesn't transform, returns `Stream<A>` not `Stream<B>` |
-| `Channel.filterMap` | `Channel.filter` | Same |
-| `Sink.takeFilter` | `Sink.takeWhile` | Different semantics (while vs filter) |
-| `Array.partitionFilter` | `Array.partition` | `partition` returns `[A[], A[]]` not `[Pass[], Fail[]]` |
+| Filter API              | Predicate API (keep separate) | Reason                                                          |
+| ----------------------- | ----------------------------- | --------------------------------------------------------------- |
+| `Stream.filterMap`      | `Stream.filter`               | `filter` doesn't transform, returns `Stream<A>` not `Stream<B>` |
+| `Channel.filterMap`     | `Channel.filter`              | Same                                                            |
+| `Sink.takeFilter`       | `Sink.takeWhile`              | Different semantics (while vs filter)                           |
+| `Array.partitionFilter` | `Array.partition`             | `partition` returns `[A[], A[]]` not `[Pass[], Fail[]]`         |
 
 ### Internal Filter Functions
 
@@ -172,17 +173,18 @@ All internal filters in `packages/effect/src/internal/effect.ts` must wrap pass 
 // Before:
 const findError = <E>(cause: Cause<E>): E | fail<Cause<never>> => {
   // ...
-  return reason.error  // unboxed
+  return reason.error // unboxed
 }
 
 // After:
 const findError = <E>(cause: Cause<E>): pass<E> | fail<Cause<never>> => {
   // ...
-  return pass(reason.error)  // boxed
+  return pass(reason.error) // boxed
 }
 ```
 
 Affected internal filters:
+
 - `findError`
 - `findFail`
 - `findDefect`
@@ -308,3 +310,215 @@ Filter.make((n: number) => n > 0 ? Filter.pass(n * 2) : Filter.fail(n))
 - All filter combinators work with boxed pass values.
 - All existing tests pass after migration.
 - New tests cover predicate and refinement overloads.
+
+## Status: COMPLETE
+
+All phases implemented. All validation passes:
+
+- `pnpm check` — 0 errors
+- `pnpm lint-fix` — clean
+- `pnpm build` — succeeds
+- `pnpm docgen` — all 3095 examples compile
+- `pnpm test` — 5499 passed, 9 skipped, 0 failed (203 test files)
+
+## Implementation Notes
+
+### Deviations from original spec
+
+1. **Effectful APIs skipped for predicate overloads**: `filterMapEffect`, `partitionFilterEffect`,
+   `filterMapArrayEffect`, `takeFilterEffect` were not given predicate overloads because predicates
+   (returning boolean) don't make sense for effectful filter APIs that expect `Effect<pass|fail>`.
+
+2. **`catchCauseFilter`/`tapCauseFilter` predicate overloads use single-arg callback**: When using
+   a predicate (not a filter), the callback receives `(cause: Cause<E>)` — one argument — since
+   there's no extracted failure value to pass. The filter overload keeps the two-arg signature
+   `(failure: EB, cause: Cause<E>)`.
+
+3. **`onErrorFilter` predicate overload uses single-arg callback**: Same pattern —
+   `(cause: Cause<E>)` instead of `(failure: EB, cause: Cause<E>)`.
+
+4. **Internal call sites use `as any` casts**: Functions like `catch_`, `catchDefect`, `tapError`,
+   `tapDefect`, `onError` that pass generic filter functions to `catchCauseFilter`/`tapCauseFilter`
+   internally need `as any` casts because the predicate overloads get tried first and fail
+   type inference. Same for external modules: `Socket.ts`, `Command.ts`, `Sse.ts`, `RpcServer.ts`.
+
+5. **`Effect.filterMap` runtime fix**: The predicate overload for `Effect.filterMap` (which operates
+   on `Iterable<A>`) required a runtime fix — the `forEach` callback must return a valid Effect
+   (`void_`) when the predicate returns boolean, not `undefined`.
+
+6. **`Filter.fromPredicate(Exit.isSuccess)` matches predicate overload**: When passed inline to
+   `onExitFilter`, TypeScript matches the predicate overload instead of the filter overload for
+   polymorphic refinements like `Exit.isSuccess`. Workaround: extract to a variable with concrete
+   type params, e.g. `Filter.fromPredicate(Exit.isSuccess<number, never>)`.
+
+## Phase 4: Unify `*Filter` / `*Map` Variant Pairs
+
+### Motivation
+
+Now that `Filter`, `Predicate`, and `Refinement` are structurally distinct at both runtime
+and type level, there is no reason to keep separate predicate-only and filter-only variants
+of the same operation. Each pair can be collapsed into a single function that accepts all
+three via overloads.
+
+The naming convention becomes: the predicate name wins (shorter, more familiar). The `*Map`
+or `*Filter` suffix is dropped since the overloads make it redundant.
+
+### Merges
+
+Each row merges the filter variant **into** the predicate variant (keeping the shorter name)
+and removes the filter-specific function.
+
+| Keep (unified name)      | Remove (merge into kept)      | Effectful variant (also merge)                               |
+| ------------------------ | ----------------------------- | ------------------------------------------------------------ |
+| `Stream.filter`          | `Stream.filterMap`            | `Stream.filterMapEffect` → `Stream.filterEffect`             |
+| `Channel.filter`         | `Channel.filterMap`           | `Channel.filterMapEffect` → `Channel.filterEffect`           |
+| `Channel.filterArray`    | `Channel.filterMapArray`      | `Channel.filterMapArrayEffect` → `Channel.filterArrayEffect` |
+| `Stream.partition`       | `Stream.partitionFilter`      | `Stream.partitionFilterEffect` → `Stream.partitionEffect`    |
+| `Stream.partitionQueue`* | `Stream.partitionFilterQueue` | —                                                            |
+| `Array.partition`        | `Array.partitionFilter`       | —                                                            |
+| `Sink.takeWhile`         | `Sink.takeFilter`             | `Sink.takeFilterEffect` → `Sink.takeWhileEffect`             |
+| `Effect.filter`*         | `Effect.filterMap`            | (already effectful — `FilterEffect`)                         |
+
+_`Stream.partitionQueue` and `Effect.filter` are new names — the predicate variant didn't
+previously exist under that exact name (or used a different signature). Pick the most natural
+short name._
+
+### How it works
+
+Each unified function has 6 overloads (3 data-last + 3 data-first), ordered:
+
+1. **Refinement** `(refinement: Refinement<A, B>) => ...` — narrows `A` to `B`
+2. **Predicate** `(predicate: Predicate<A>) => ...` — keeps `A` unchanged
+3. **Filter** `(filter: Filter<A, B, X>) => ...` — transforms `A` to `B`, rejects to `X`
+
+The runtime implementation calls the function and branches on the result type
+(`boolean` → predicate path, `pass`/`fail` → filter path), same as the `Filter.apply`
+helper already does.
+
+### Example: `Stream.filter` (unified)
+
+```ts
+// Before (two separate APIs):
+Stream.filter(stream, (n: number) => n > 0) // predicate
+Stream.filterMap(stream, (n: number) => n > 0 ? Filter.pass(n * 2) : Filter.fail(n)) // filter
+
+// After (single API):
+Stream.filter(stream, (n: number) => n > 0) // predicate overload
+Stream.filter(stream, (x): x is number => typeof x === "number") // refinement overload
+Stream.filter(stream, (n: number) => n > 0 ? Filter.pass(n * 2) : Filter.fail(n)) // filter overload
+```
+
+### Example: `Array.partition` (unified)
+
+```ts
+// Before (two separate APIs):
+Array.partition([1, -2, 3], (n) => n > 0) // [[-2], [1, 3]]
+Array.partitionFilter([1, -2, 3], (n) => n > 0 ? Filter.pass(n) : Filter.fail(`neg:${n}`)) // [[1, 3], ["neg:-2"]]
+
+// After (single API):
+Array.partition([1, -2, 3], (n) => n > 0) // predicate overload
+Array.partition([1, -2, 3], (n) => n > 0 ? Filter.pass(n) : Filter.fail(`neg:${n}`)) // filter overload
+```
+
+### Return type differences
+
+When a predicate is used, the return type stays homogeneous (`A`). When a filter is used,
+the pass and fail channels can have different types. This is expressed naturally by the
+overloads:
+
+```ts
+// Stream.filter overloads (data-last):
+<A, B extends A>(refinement: Refinement<A, B>): (self: Stream<A>) => Stream<B>
+<A>(predicate: Predicate<A>): (self: Stream<A>) => Stream<A>
+<A, B, X>(filter: Filter<A, B, X>): (self: Stream<A>) => Stream<B>
+
+// Array.partition overloads (data-last):
+<A, B extends A>(refinement: Refinement<A, B>): (self: Iterable<A>) => [Array<Exclude<A, B>>, Array<B>]
+<A>(predicate: Predicate<A>): (self: Iterable<A>) => [Array<A>, Array<A>]
+<A, B, X>(filter: Filter<A, B, X>): (self: Iterable<A>) => [Array<B>, Array<X>]
+```
+
+### Additional merges
+
+These APIs also gain Filter overloads, unifying with their `*Map`/`*Filter` counterparts
+where one exists, or simply adding the Filter overload where none existed before.
+
+| Unified name          | Absorbs                | Notes                                                                                                    |
+| --------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `Effect.filterOrElse` | —                      | Filter overload: pass value kept, fail feeds `orElse`                                                    |
+| `Effect.filterOrFail` | —                      | Filter overload: pass value kept, fail feeds `orFailWith`                                                |
+| `Array.filter`        | `Array.filterMap`      | Filter overload: keep pass side, discard fail side. Replaces `Option<B>` pattern with `Filter<A, B, X>`. |
+| `Array.takeWhile`     | `Array.filterMapWhile` | Filter overload: take prefix while filter passes, transform kept elements                                |
+| `Array.dropWhile`     | —                      | Filter overload: drop prefix while filter passes                                                         |
+| `Stream.takeWhile`    | —                      | Filter overload: take while filter passes, transform kept elements                                       |
+| `Stream.dropWhile`    | —                      | Filter overload: drop while filter passes                                                                |
+
+The `Option`-based `Array.filterMap` and `Array.filterMapWhile` are subsumed by the Filter
+overloads on `Array.filter` and `Array.takeWhile` respectively, since `Filter<A, B, X>` is
+strictly more expressive than `(a) => Option<B>` (it carries a typed fail channel).
+
+### Migration
+
+```ts
+// Stream.filterMap → Stream.filter
+Stream.filterMap(stream, myFilter)    →  Stream.filter(stream, myFilter)
+
+// Stream.partitionFilter → Stream.partition
+Stream.partitionFilter(stream, myFilter)  →  Stream.partition(stream, myFilter)
+
+// Channel.filterMap → Channel.filter
+Channel.filterMap(channel, myFilter)  →  Channel.filter(channel, myFilter)
+
+// Channel.filterMapArray → Channel.filterArray
+Channel.filterMapArray(channel, myFilter)  →  Channel.filterArray(channel, myFilter)
+
+// Array.partitionFilter → Array.partition
+Array.partitionFilter(arr, myFilter)  →  Array.partition(arr, myFilter)
+
+// Sink.takeFilter → Sink.takeWhile
+Sink.takeFilter(myFilter)  →  Sink.takeWhile(myFilter)
+
+// Effect.filterMap → Effect.filter
+Effect.filterMap(items, myFilter)  →  Effect.filter(items, myFilter)
+
+// Array.filterMap → Array.filter
+Array.filterMap(arr, f)  →  Array.filter(arr, myFilter)
+
+// Array.filterMapWhile → Array.takeWhile
+Array.filterMapWhile(arr, f)  →  Array.takeWhile(arr, myFilter)
+```
+
+### Effectful variant renames
+
+When the sync filter variant is merged into the predicate name, the effectful variant
+should follow the same naming:
+
+| Before                         | After                           |
+| ------------------------------ | ------------------------------- |
+| `Stream.filterMapEffect`       | `Stream.filterEffect`           |
+| `Channel.filterMapEffect`      | `Channel.filterEffect`          |
+| `Channel.filterMapArrayEffect` | `Channel.filterArrayEffect`     |
+| `Stream.partitionFilterEffect` | `Stream.partitionEffect`        |
+| `Sink.takeFilterEffect`        | `Sink.takeWhileEffect` (exists) |
+
+`Sink.takeWhileEffect` already exists and takes a predicate. It gains a `FilterEffect`
+overload.
+
+### Steps
+
+1. For each pair in the merge table, add Filter/FilterEffect overloads to the kept function.
+2. Update the implementation to handle `boolean` vs `pass/fail` results (reuse `Filter.apply`).
+3. Deprecate or remove the old `*Map`/`*Filter` variant.
+4. Update all internal call sites to use the unified name.
+5. Update all tests.
+6. Rename effectful variants.
+7. Run full validation: `pnpm lint-fix`, `pnpm check`, `pnpm build`, `pnpm docgen`, `pnpm test`.
+
+### Acceptance Criteria
+
+- Each pair in the merge table is unified under the shorter name.
+- The removed variant is deleted (or deprecated with a re-export if needed for migration).
+- All overloads (refinement, predicate, filter) work on the unified function.
+- Effectful variants are renamed to match.
+- All tests pass.
+- Barrel files regenerated (`pnpm codegen`).

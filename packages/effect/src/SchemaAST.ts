@@ -998,7 +998,7 @@ export class Arrays extends Base {
           if (Filter_.isFail(issueElement)) {
             return yield* exit
           }
-          const issue = new Issue.Pointer([i], issueElement)
+          const issue = new Issue.Pointer([i], issueElement.pass)
           if (errorsAllOption) {
             if (issues) issues.push(issue)
             else issues = [issue]
@@ -1032,7 +1032,7 @@ export class Arrays extends Base {
             if (Filter_.isFail(issueRest)) {
               return yield* exit
             }
-            const issue = new Issue.Pointer([i], issueRest)
+            const issue = new Issue.Pointer([i], issueRest.pass)
             if (errorsAllOption) {
               if (issues) issues.push(issue)
               else issues = [issue]
@@ -1067,7 +1067,7 @@ export class Arrays extends Base {
               if (Filter_.isFail(issueRest)) {
                 return yield* exit
               }
-              const issue = new Issue.Pointer([i], issueRest)
+              const issue = new Issue.Pointer([i], issueRest.pass)
               if (errorsAllOption) {
                 if (issues) issues.push(issue)
                 else issues = [issue]
@@ -1338,7 +1338,7 @@ export class Objects extends Base {
           if (Filter_.isFail(issueProp)) {
             return yield* exit
           }
-          const issue = new Issue.Pointer([p.name], issueProp)
+          const issue = new Issue.Pointer([p.name], issueProp.pass)
           if (errorsAllOption) {
             if (issues) issues.push(issue)
             else issues = [issue]
@@ -1382,7 +1382,7 @@ export class Objects extends Base {
               if (Filter_.isFail(issueKey)) {
                 return yield* exitKey
               }
-              const issue = new Issue.Pointer([key], issueKey)
+              const issue = new Issue.Pointer([key], issueKey.pass)
               if (errorsAllOption) {
                 if (issues) issues.push(issue)
                 else issues = [issue]
@@ -1402,7 +1402,7 @@ export class Objects extends Base {
               if (Filter_.isFail(issueValue)) {
                 return yield* exitValue
               }
-              const issue = new Issue.Pointer([key], issueValue)
+              const issue = new Issue.Pointer([key], issueValue.pass)
               if (errorsAllOption) {
                 if (issues) issues.push(issue)
                 else issues = [issue]
@@ -1776,12 +1776,12 @@ export class Union<A extends AST = AST> extends Base {
         const eff = parser(oinput, options)
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
-          const issue = Cause.findError(exit.cause)
-          if (Filter_.isFail(issue)) {
+          const issueResult = Cause.findError(exit.cause)
+          if (Filter_.isFail(issueResult)) {
             return yield* exit
           }
-          if (issues) issues.push(issue)
-          else issues = [issue]
+          if (issues) issues.push(issueResult.pass)
+          else issues = [issueResult.pass]
           continue
         } else {
           if (tracking.out && oneOf) {

@@ -3007,6 +3007,11 @@ export const filter: {
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  <OutElem, B, X>(
+    filter: Filter.Filter<OutElem, B, X>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     refinement: Predicate.Refinement<OutElem, B>
@@ -3015,46 +3020,21 @@ export const filter: {
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     predicate: Predicate.Predicate<OutElem>
   ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem = OutElem>(
-  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  predicate: Predicate.Predicate<OutElem> | Predicate.Refinement<OutElem, B>
-): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-  fromTransform((upstream, scope) =>
-    Effect.map(
-      toTransform(self)(upstream, scope),
-      (pull) =>
-        Effect.flatMap(pull, function loop(elem): Pull.Pull<B, OutErr, OutDone> {
-          const pass = predicate(elem)
-          return pass ? Effect.succeed(elem as B) : Effect.flatMap(pull, loop)
-        })
-    )
-  ))
-
-/**
- * @since 4.0.0
- * @category Filtering
- */
-export const filterMap: {
-  <OutElem, B, X>(
-    filter: Filter.Filter<OutElem, B, X>
-  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
-    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
-  ) => Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     filter: Filter.Filter<OutElem, B, X>
   ): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.Filter<OutElem, B, X>
-): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  filter: Filter.Filter<OutElem, any, any> | Predicate.Predicate<OutElem>
+): Channel<any, OutErr, OutDone, InElem, InErr, InDone, Env> =>
   fromTransform((upstream, scope) =>
     Effect.map(
       toTransform(self)(upstream, scope),
       (pull) =>
-        Effect.flatMap(pull, function loop(elem): Pull.Pull<B, OutErr, OutDone> {
-          const result = filter(elem)
-          return Filter.isFail(result) ? Effect.flatMap(pull, loop) : Effect.succeed(result)
+        Effect.flatMap(pull, function loop(elem): Pull.Pull<any, OutErr, OutDone> {
+          const result = Filter.apply(filter as any, elem)
+          return Filter.isFail(result) ? Effect.flatMap(pull, loop) : Effect.succeed(result.pass)
         })
     )
   ))
@@ -3062,8 +3042,15 @@ export const filterMap: {
 /**
  * @since 4.0.0
  * @category Filtering
+ * @deprecated Use {@link filter} instead.
  */
-export const filterMapEffect: {
+export const filterMap: typeof filter = filter
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const filterEffect: {
   <OutElem, B, X, EX, RX>(
     filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
@@ -3087,11 +3074,18 @@ export const filterMapEffect: {
             (result) =>
               Filter.isFail(result)
                 ? Effect.flatMap(pull, loop)
-                : Effect.succeed(result)
+                : Effect.succeed(result.pass)
           )
         })
     )
   ))
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ * @deprecated Use {@link filterEffect} instead.
+ */
+export const filterMapEffect: typeof filterEffect = filterEffect
 
 /**
  * Filters arrays of elements emitted by a channel, applying the filter
@@ -3139,6 +3133,11 @@ export const filterArray: {
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  <OutElem, B, X>(
+    filter: Filter.Filter<OutElem, B, X>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
     refinement: Predicate.Refinement<OutElem, B>
@@ -3147,20 +3146,31 @@ export const filterArray: {
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
     predicate: Predicate.Predicate<OutElem>
   ): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem = OutElem>(
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    filter: Filter.Filter<OutElem, B, X>
+  ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  predicate: Predicate.Predicate<OutElem> | Predicate.Refinement<OutElem, B>
-): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  filter: Filter.Filter<OutElem, any, any> | Predicate.Predicate<OutElem>
+): Channel<Arr.NonEmptyReadonlyArray<any>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
   transformPull(self, (pull) =>
     Effect.succeed(Effect.flatMap(
       pull,
-      function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone> {
-        const filtered = Arr.filter(arr, predicate as Predicate.Refinement<OutElem, B>)
-        return Arr.isReadonlyArrayNonEmpty(filtered)
-          ? Effect.succeed(filtered)
+      function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<any>, OutErr, OutDone> {
+        const [, passes] = Arr.partition(arr, filter as any)
+        return Arr.isReadonlyArrayNonEmpty(passes)
+          ? Effect.succeed(passes)
           : Effect.flatMap(pull, loop)
       }
     ))))
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ * @deprecated Use {@link filterArray} instead.
+ */
+export const filterMapArray: typeof filterArray = filterArray
 
 /**
  * @since 4.0.0
@@ -3172,70 +3182,52 @@ export const filterArrayEffect: {
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, E, R>(
-    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    predicate: (a: Types.NoInfer<OutElem>, index: number) => Effect.Effect<boolean, E, R>
-  ): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, E, R>(
-  self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  predicate: (a: Types.NoInfer<OutElem>, index: number) => Effect.Effect<boolean, E, R>
-): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
-  transformPull(self, (pull) => {
-    const filter = Effect.flatMap(pull, (arr) => Effect.filter(arr, predicate))
-    return Effect.succeed(Effect.flatMap(
-      filter,
-      function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | E, OutDone, Env | R> {
-        return Arr.isReadonlyArrayNonEmpty(arr) ? Effect.succeed(arr) : Effect.flatMap(filter, loop)
-      }
-    ))
-  }))
-
-/**
- * @since 4.0.0
- * @category Filtering
- */
-export const filterMapArray: {
-  <OutElem, B, X>(
-    filter: Filter.Filter<OutElem, B, X>
-  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
-    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  ) => Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
-    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    filter: Filter.Filter<OutElem, B, X>
-  ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
-  self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.Filter<OutElem, B, X>
-): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-  filterMap(self, (arr) => {
-    const [passes] = Arr.partitionFilter(arr, filter)
-    return Arr.isReadonlyArrayNonEmpty(passes) ? passes : Filter.failVoid
-  }))
-
-/**
- * @since 4.0.0
- * @category Filtering
- */
-export const filterMapArrayEffect: {
   <OutElem, B, X, EX, RX>(
     filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, E, R>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    predicate: (a: Types.NoInfer<OutElem>, index: number) => Effect.Effect<boolean, E, R>
+  ): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, EX, RX>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
     filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
   ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, EX, RX>(
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
-): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX> =>
-  filterMapEffect(self, (arr) =>
+  filter:
+    | Filter.FilterEffect<OutElem, any, any, any, any>
+    | ((a: OutElem, index: number) => Effect.Effect<boolean, any, any>)
+): Channel<Arr.NonEmptyReadonlyArray<any>, any, OutDone, InElem, InErr, InDone, any> => {
+  if (filter.length > 1) {
+    // effectful boolean predicate: (a, index) => Effect<boolean>
+    const predicate = filter as (a: OutElem, index: number) => Effect.Effect<boolean, any, any>
+    return transformPull(self, (pull) => {
+      const f = Effect.flatMap(pull, (arr) => Effect.filter(arr, predicate))
+      return Effect.succeed(Effect.flatMap(
+        f,
+        function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<any>, any, OutDone, any> {
+          return Arr.isReadonlyArrayNonEmpty(arr) ? Effect.succeed(arr) : Effect.flatMap(f, loop)
+        }
+      ))
+    })
+  }
+  // FilterEffect: (a) => Effect<pass|fail>
+  return filterEffect(self, (arr) =>
     Effect.map(
-      Effect.filterMap(arr, filter),
-      (passes) => Arr.isReadonlyArrayNonEmpty(passes) ? passes : Filter.failVoid
-    )))
+      Effect.filter(arr, filter as any),
+      (passes) => Arr.isReadonlyArrayNonEmpty(passes) ? Filter.pass(passes) : Filter.failVoid
+    ))
+})
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ * @deprecated Use {@link filterArrayEffect} instead.
+ */
+export const filterMapArrayEffect: typeof filterArrayEffect = filterArrayEffect
 
 /**
  * Statefully maps over a channel with an accumulator, where each element can produce multiple output values.
@@ -3733,6 +3725,25 @@ export const tapCause: {
  * @category Error handling
  */
 export const catchCauseFilter: {
+  <OutErr, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
+    predicate: Predicate.Predicate<Cause.Cause<OutErr>>,
+    f: (cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
+    OutElem | OutElem1,
+    OutErr | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
   <OutErr, EB, X extends Cause.Cause<any>, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
     filter: Filter.Filter<Cause.Cause<OutErr>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
@@ -3746,6 +3757,34 @@ export const catchCauseFilter: {
   >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
     OutElem | OutElem1,
     Cause.Cause.Error<X> | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    predicate: Predicate.Predicate<Cause.Cause<OutErr>>,
+    f: (cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): Channel<
+    OutElem | OutElem1,
+    OutErr | OutErr1,
     OutDone | OutDone1,
     InElem & InElem1,
     InErr & InErr1,
@@ -3801,8 +3840,13 @@ export const catchCauseFilter: {
   Env1
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.Filter<Cause.Cause<OutErr>, EB, X>,
-  f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  filter: Filter.Filter<Cause.Cause<OutErr>, EB, X> | Predicate.Predicate<Cause.Cause<OutErr>>,
+  f:
+    | ((
+      failure: EB,
+      cause: Cause.Cause<OutErr>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>)
+    | ((cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>)
 ): Channel<
   OutElem | OutElem1,
   Cause.Cause.Error<X> | OutErr1,
@@ -3815,8 +3859,8 @@ export const catchCauseFilter: {
   catchCause(
     self,
     (cause): Channel<OutElem1, Cause.Cause.Error<X> | OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1> => {
-      const eb = filter(cause)
-      return !Filter.isFail(eb) ? f(eb, cause) : failCause(eb.fail)
+      const eb = Filter.apply(filter as any, cause)
+      return !Filter.isFail(eb) ? (f as any)(eb.pass, cause) : failCause(eb.fail as any)
     }
   ))
 
@@ -4110,8 +4154,8 @@ export const catchFilter: {
       InDone1 & InDone2,
       Env1 | Env2
     > => {
-      const eb = filter(err)
-      return !Filter.isFail(eb) ? f(eb) : orElse ? orElse(eb.fail) : fail(eb.fail) as any
+      const eb = Filter.apply(filter as any, err)
+      return !Filter.isFail(eb) ? f(eb.pass as any) : orElse ? orElse(eb.fail as any) : fail(eb.fail) as any
     }
   ))
 
@@ -4708,7 +4752,8 @@ export const unwrapReason: {
 > =>
   catchFilter(
     self,
-    (error: any) => isTagged(error, errorTag) && hasProperty(error, "reason") ? error.reason : Filter.fail(error),
+    (error: any) =>
+      isTagged(error, errorTag) && hasProperty(error, "reason") ? Filter.pass(error.reason) : Filter.fail(error),
     fail as any
   ) as any)
 
@@ -5193,7 +5238,7 @@ export const mergeAll: {
                 const halt = Pull.filterDone(cause)
                 yield* Effect.exit(Scope.close(
                   childScope,
-                  !Filter.isFail(halt) ? Exit.succeed(halt.value) : Exit.failCause(halt.fail)
+                  !Filter.isFail(halt) ? Exit.succeed(halt.pass.value) : Exit.failCause(halt.fail)
                 ))
                 if (!fibers.has(fiber)) return
                 fibers.delete(fiber)

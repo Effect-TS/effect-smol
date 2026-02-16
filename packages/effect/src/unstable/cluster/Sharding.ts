@@ -521,7 +521,7 @@ const make = Effect.gen(function*() {
               defect: Cause.squash(cause)
             }))
           }
-          if (error._tag === "MailboxFull") {
+          if (error.pass._tag === "MailboxFull") {
             // MailboxFull can only happen for requests, so this cast is safe
             return resumeEntityFromStorage(message as Message.IncomingRequest<any>)
           }
@@ -831,7 +831,9 @@ const make = Effect.gen(function*() {
           : runnersService.send({ address: maybeRunner.value, message })
       }),
       (error) =>
-        error._tag === "EntityNotAssignedToRunner" || error._tag === "RunnerUnavailable" ? error : Filter.fail(error),
+        error._tag === "EntityNotAssignedToRunner" || error._tag === "RunnerUnavailable"
+          ? Filter.pass(error)
+          : Filter.fail(error),
       (error) => {
         if (retries === 0) {
           return Effect.die(error)

@@ -202,21 +202,21 @@ describe("Channel", () => {
   })
 
   describe("filtering", () => {
-    it.effect("filterMap", () =>
+    it.effect("filter with Filter", () =>
       Effect.gen(function*() {
-        const filter = Filter.make((n: number) => n % 2 === 0 ? n * 2 : Filter.fail(n))
+        const filter = Filter.make((n: number) => n % 2 === 0 ? Filter.pass(n * 2) : Filter.fail(n))
         const result = yield* Channel.fromArray([1, 2, 3, 4]).pipe(
-          Channel.filterMap(filter),
+          Channel.filter(filter),
           Channel.runCollect
         )
         assert.deepStrictEqual(result, [4, 8])
       }))
 
-    it.effect("filterMapEffect", () =>
+    it.effect("filterEffect with FilterEffect", () =>
       Effect.gen(function*() {
-        const filter = Filter.makeEffect((n: number) => Effect.succeed(n > 2 ? n + 1 : Filter.fail(n)))
+        const filter = Filter.makeEffect((n: number) => Effect.succeed(n > 2 ? Filter.pass(n + 1) : Filter.fail(n)))
         const result = yield* Channel.fromArray([1, 2, 3, 4]).pipe(
-          Channel.filterMapEffect(filter),
+          Channel.filterEffect(filter),
           Channel.runCollect
         )
         assert.deepStrictEqual(result, [4, 5])

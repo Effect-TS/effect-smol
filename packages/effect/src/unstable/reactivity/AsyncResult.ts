@@ -511,7 +511,7 @@ export const matchWithError: {
       if (Filter.isFail(result)) {
         return options.onDefect(Cause.squash(result.fail), self)
       }
-      return options.onError(result, self)
+      return options.onError(result.pass, self)
     }
     case "Success":
       return options.onSuccess(self)
@@ -552,7 +552,7 @@ export const matchWithWaiting: {
       if (Filter.isFail(e)) {
         return options.onDefect(Cause.squash(e.fail), self)
       }
-      return options.onError(e, self)
+      return options.onError(e.pass, self)
     }
     case "Success":
       return options.onSuccess(self)
@@ -741,7 +741,7 @@ class BuilderImpl<Out, A, E> {
   onDefect<B>(f: (defect: unknown, result: Failure<A, E>) => B): BuilderImpl<Out | B, A, E> {
     return this.when(isFailure, (result) => {
       const defect = Cause.findDefect(result.cause)
-      return Filter.isFail(defect) ? Option.none() : Option.some(f(defect, result))
+      return Filter.isFail(defect) ? Option.none() : Option.some(f(defect.pass, result))
     })
   }
 

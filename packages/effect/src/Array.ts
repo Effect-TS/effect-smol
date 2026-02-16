@@ -1237,16 +1237,24 @@ export const takeRight: {
 export const takeWhile: {
   <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => Array<B>
   <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Array<A>
+  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X>): (self: Iterable<A>) => Array<B>
   <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): Array<B>
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A>
-} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A> => {
+  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X>): Array<B>
+} = dual(2, <A>(self: Iterable<A>, f: Filter.Filter<A, any, any> | ((a: A, i: number) => boolean)): Array<any> => {
   let i = 0
-  const out: Array<A> = []
+  const out: Array<any> = []
   for (const a of self) {
-    if (!predicate(a, i)) {
+    const result = (f as Function)(a, i)
+    if (result === true) {
+      out.push(a)
+    } else if (result === false) {
       break
+    } else if (Filter.isFail(result)) {
+      break
+    } else {
+      out.push(result.pass)
     }
-    out.push(a)
     i++
   }
   return out
@@ -1381,12 +1389,22 @@ export const dropRight: {
  */
 export const dropWhile: {
   <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Array<A>
+  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X>): (self: Iterable<A>) => Array<A>
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A>
+  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X>): Array<A>
 } = dual(
   2,
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A> => {
+  <A>(self: Iterable<A>, f: Filter.Filter<A, any, any> | ((a: A, i: number) => boolean)): Array<A> => {
     const input = fromIterable(self)
-    return input.slice(spanIndex(input, predicate))
+    let i = 0
+    for (const a of input) {
+      const result = (f as Function)(a, i)
+      if (result === false || (result !== true && Filter.isFail(result))) {
+        break
+      }
+      i++
+    }
+    return input.slice(i)
   }
 )
 
@@ -3097,12 +3115,13 @@ export const flatten: <const S extends ReadonlyArray<ReadonlyArray<any>>>(self: 
  * console.log(Array.filterMap([1, 2, 3, 4, 5], evenSquares)) // [4, 16]
  * ```
  *
- * @see {@link filter} — keep elements by predicate
+ * @see {@link filter} — keep elements by predicate or Filter
  * @see {@link filterMapWhile} — filter-map until first `None`
  * @see {@link flatMapNullishOr} — similar but with nullable returns
  *
  * @category filtering
  * @since 2.0.0
+ * @deprecated Use {@link filter} with a `Filter` instead.
  */
 export const filterMap: {
   <A, B>(f: (a: A, i: number) => Option.Option<B>): (self: Iterable<A>) => Array<B>
@@ -3138,10 +3157,11 @@ export const filterMap: {
  * ```
  *
  * @see {@link filterMap} — processes all elements
- * @see {@link takeWhile} — take while predicate holds (no mapping)
+ * @see {@link takeWhile} — take while predicate or Filter holds
  *
  * @category filtering
  * @since 2.0.0
+ * @deprecated Use {@link takeWhile} with a `Filter` instead.
  */
 export const filterMapWhile: {
   <A, B>(f: (a: A, i: number) => Option.Option<B>): (self: Iterable<A>) => Array<B>
@@ -3213,23 +3233,32 @@ export const partitionMap: {
  * @category filtering
  * @since 4.0.0
  */
+/**
+ * @category filtering
+ * @since 4.0.0
+ * @deprecated Use {@link partition} instead. Note: `partition` returns `[excluded, satisfying]`
+ * while `partitionFilter` returned `[passes, fails]` — the tuple order is swapped.
+ */
 export const partitionFilter: {
+  <A, B extends A>(
+    refinement: Predicate.Refinement<A, B>
+  ): (self: Iterable<A>) => [passes: Array<B>, fails: Array<Exclude<A, B>>]
+  <A>(predicate: Predicate.Predicate<A>): (self: Iterable<A>) => [passes: Array<A>, fails: Array<A>]
   <A, Pass, Fail>(f: Filter.Filter<A, Pass, Fail>): (self: Iterable<A>) => [passes: Array<Pass>, fails: Array<Fail>]
+  <A, B extends A>(
+    self: Iterable<A>,
+    refinement: Predicate.Refinement<A, B>
+  ): [passes: Array<B>, fails: Array<Exclude<A, B>>]
+  <A>(self: Iterable<A>, predicate: Predicate.Predicate<A>): [passes: Array<A>, fails: Array<A>]
   <A, Pass, Fail>(self: Iterable<A>, f: Filter.Filter<A, Pass, Fail>): [passes: Array<Pass>, fails: Array<Fail>]
 } = dual(
   2,
-  <A, Pass, Fail>(self: Iterable<A>, f: Filter.Filter<A, Pass, Fail>): [passes: Array<Pass>, fails: Array<Fail>] => {
-    const passes: Array<Pass> = []
-    const fails: Array<Fail> = []
-    for (const a of self) {
-      const e = f(a)
-      if (Filter.isFail(e)) {
-        fails.push(e.fail)
-      } else {
-        passes.push(e)
-      }
-    }
-    return [passes, fails]
+  <A>(
+    self: Iterable<A>,
+    f: Filter.Filter<A, any, any> | Predicate.Predicate<A>
+  ): [passes: Array<any>, fails: Array<any>] => {
+    const [excluded, satisfying] = partition(self, f as any)
+    return [satisfying, excluded]
   }
 )
 
@@ -3342,16 +3371,23 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
 export const filter: {
   <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => Array<B>
   <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Array<A>
+  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X>): (self: Iterable<A>) => Array<B>
   <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): Array<B>
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A>
+  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X>): Array<B>
 } = dual(
   2,
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A> => {
+  <A>(self: Iterable<A>, f: Filter.Filter<A, any, any> | ((a: A, i: number) => boolean)): Array<any> => {
     const as = fromIterable(self)
-    const out: Array<A> = []
+    const out: Array<any> = []
     for (let i = 0; i < as.length; i++) {
-      if (predicate(as[i], i)) {
+      const result = (f as Function)(as[i], i)
+      if (result === true) {
         out.push(as[i])
+      } else if (result !== false) {
+        if (!Filter.isFail(result)) {
+          out.push(result.pass)
+        }
       }
     }
     return out
@@ -3376,6 +3412,8 @@ export const filter: {
  * @see {@link filter} — keep only matching elements
  * @see {@link partitionMap} — partition using a Result-returning function
  *
+ * Also accepts a `Filter` to split elements with custom pass/fail payloads.
+ *
  * @category filtering
  * @since 2.0.0
  */
@@ -3386,22 +3424,37 @@ export const partition: {
   <A>(
     predicate: (a: NoInfer<A>, i: number) => boolean
   ): (self: Iterable<A>) => [excluded: Array<A>, satisfying: Array<A>]
+  <A, Pass, Fail>(
+    f: Filter.Filter<A, Pass, Fail>
+  ): (self: Iterable<A>) => [excluded: Array<Fail>, satisfying: Array<Pass>]
   <A, B extends A>(
     self: Iterable<A>,
     refinement: (a: A, i: number) => a is B
   ): [excluded: Array<Exclude<A, B>>, satisfying: Array<B>]
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [excluded: Array<A>, satisfying: Array<A>]
+  <A, Pass, Fail>(
+    self: Iterable<A>,
+    f: Filter.Filter<A, Pass, Fail>
+  ): [excluded: Array<Fail>, satisfying: Array<Pass>]
 } = dual(
   2,
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [excluded: Array<A>, satisfying: Array<A>] => {
-    const excluded: Array<A> = []
-    const satisfying: Array<A> = []
+  <A>(
+    self: Iterable<A>,
+    f: Filter.Filter<A, any, any> | ((a: A, i: number) => boolean)
+  ): [excluded: Array<any>, satisfying: Array<any>] => {
+    const excluded: Array<any> = []
+    const satisfying: Array<any> = []
     const as = fromIterable(self)
     for (let i = 0; i < as.length; i++) {
-      if (predicate(as[i], i)) {
+      const result = (f as Function)(as[i], i)
+      if (result === true) {
         satisfying.push(as[i])
-      } else {
+      } else if (result === false) {
         excluded.push(as[i])
+      } else if (Filter.isFail(result)) {
+        excluded.push(result.fail)
+      } else {
+        satisfying.push(result.pass)
       }
     }
     return [excluded, satisfying]

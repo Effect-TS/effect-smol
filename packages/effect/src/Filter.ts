@@ -12,7 +12,7 @@ import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.ts"
 /**
  * Represents a filter function that can transform inputs to outputs or filter them out.
  *
- * A filter takes an input value and either returns a transformed output value or
+ * A filter takes an input value and either returns a boxed pass value or
  * the special `fail` type to indicate the value should be filtered out.
  *
  * @example
@@ -20,17 +20,17 @@ import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.ts"
  * import { Filter } from "effect"
  *
  * // A filter that only passes positive numbers
- * const positiveFilter: Filter.Filter<number> = (n) => n > 0 ? n : Filter.fail(n)
+ * const positiveFilter: Filter.Filter<number> = (n) => n > 0 ? Filter.pass(n) : Filter.fail(n)
  *
- * console.log(positiveFilter(5)) // 5
- * console.log(positiveFilter(-3)) // fail
+ * console.log(positiveFilter(5)) // pass(5)
+ * console.log(positiveFilter(-3)) // fail(-3)
  * ```
  *
  * @since 4.0.0
  * @category Models
  */
 export interface Filter<in Input, out Pass = Input, out Fail = Input> {
-  (input: Input): Pass | fail<Fail>
+  (input: Input): pass<Pass> | fail<Fail>
 }
 
 /**
@@ -55,9 +55,8 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input> {
  *   never
  * > = (id) =>
  *   Effect.gen(function*() {
- *     // Simple validation logic
  *     const user: User = { id, isActive: id.length > 0 }
- *     return user.isActive ? user : Filter.fail(user)
+ *     return user.isActive ? Filter.pass(user) : Filter.fail(user)
  *   })
  * ```
  *
@@ -65,8 +64,49 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input> {
  * @category Models
  */
 export interface FilterEffect<in Input, out Pass, out Fail, out E = never, out R = never> {
-  (input: Input): Effect<Pass | fail<Fail>, E, R>
+  (input: Input): Effect<pass<Pass> | fail<Fail>, E, R>
 }
+
+// -------------------------------------------------------------------------------------
+// pass
+// -------------------------------------------------------------------------------------
+
+const PassTypeId = "~effect/data/Filter/pass"
+
+/**
+ * @since 4.0.0
+ * @category pass
+ */
+export interface pass<out A> {
+  readonly [PassTypeId]: typeof PassTypeId
+  readonly pass: A
+}
+
+/**
+ * @since 4.0.0
+ * @category pass
+ */
+export const pass = <A>(value: A): pass<A> => ({
+  [PassTypeId]: PassTypeId,
+  pass: value
+})
+
+/**
+ * @since 4.0.0
+ * @category pass
+ */
+export const passVoid: pass<void> = pass(void 0)
+
+/**
+ * @since 4.0.0
+ * @category pass
+ */
+export const isPass = <A = unknown>(u: unknown): u is pass<A> =>
+  u === passVoid || (typeof u === "object" && u !== null && PassTypeId in u)
+
+// -------------------------------------------------------------------------------------
+// fail
+// -------------------------------------------------------------------------------------
 
 const FailTypeId = "~effect/data/Filter/fail"
 
@@ -101,48 +141,56 @@ export const failVoid: fail<void> = fail(void 0)
 export const isFail = <A = unknown>(u: unknown): u is fail<A> =>
   u === failVoid || (typeof u === "object" && u !== null && FailTypeId in u)
 
-/**
- * @since 4.0.0
- * @category fail
- */
-export const isPass = <A>(u: A): u is WithoutFail<A> => !isFail(u)
+// -------------------------------------------------------------------------------------
+// apply
+// -------------------------------------------------------------------------------------
 
 /**
+ * Applies a filter, predicate, or refinement to an input and returns a boxed
+ * `pass` or `fail` result.
+ *
  * @since 4.0.0
- * @category fail
+ * @category Utils
  */
-export type WithoutFail<A> = Exclude<A, fail<any>>
+export const apply = <Input, Pass extends Input, Fail>(
+  filter: Filter<Input, Pass, Fail> | Predicate.Predicate<Input> | Predicate.Refinement<Input, Pass>,
+  input: Input
+): pass<Input | Pass> | fail<Input | Fail> => {
+  const result = (filter as Function)(input)
+  if (result === true) return pass(input)
+  if (result === false) return fail(input)
+  return result
+}
+
+// -------------------------------------------------------------------------------------
+// Constructors
+// -------------------------------------------------------------------------------------
 
 /**
- * Creates a Filter from a function that returns either a value or fail.
+ * Creates a Filter from a function that returns either a `pass` or `fail` value.
  *
  * This is the primary constructor for creating custom filters. The function
- * should return either a transformed value or the `fail` type to indicate
- * the input should be filtered out.
+ * should return either `Filter.pass(value)` or `Filter.fail(value)`.
  *
  * @example
  * ```ts
  * import { Filter } from "effect"
  *
  * // Create a filter for positive numbers
- * const positiveFilter = Filter.make((n: number) => n > 0 ? n : Filter.fail(n))
+ * const positiveFilter = Filter.make((n: number) => n > 0 ? Filter.pass(n) : Filter.fail(n))
  *
  * // Create a filter that transforms strings to uppercase
  * const uppercaseFilter = Filter.make((s: string) =>
- *   s.length > 0 ? s.toUpperCase() : Filter.fail(s)
+ *   s.length > 0 ? Filter.pass(s.toUpperCase()) : Filter.fail(s)
  * )
- *
- * console.log(positiveFilter(5)) // 5
- * console.log(positiveFilter(-1)) // `fail`
- * console.log(uppercaseFilter("hi")) // "HI"
  * ```
  *
  * @since 4.0.0
  * @category Constructors
  */
 export const make = <Input, Pass, Fail>(
-  f: (input: Input) => Pass | fail<Fail>
-): Filter<Input, WithoutFail<Pass>, Fail> => f as any
+  f: (input: Input) => pass<Pass> | fail<Fail>
+): Filter<Input, Pass, Fail> => f as any
 
 /**
  * Creates an effectful Filter from a function that returns an Effect.
@@ -158,24 +206,18 @@ export const make = <Input, Pass, Fail>(
  * // Create an effectful filter that validates async
  * const asyncValidate = Filter.makeEffect((id: string) =>
  *   Effect.gen(function*() {
- *     const isValid = yield* Effect.succeed(id.length > 0) // Simple validation
- *     return isValid ? id : Filter.fail(id)
+ *     const isValid = yield* Effect.succeed(id.length > 0)
+ *     return isValid ? Filter.pass(id) : Filter.fail(id)
  *   })
  * )
- *
- * // Use in Effect context
- * const program = Effect.gen(function*() {
- *   const result = yield* asyncValidate("user123")
- *   console.log(result) // "user123" or fail
- * })
  * ```
  *
  * @since 4.0.0
  * @category Constructors
  */
 export const makeEffect = <Input, Pass, Fail, E, R>(
-  f: (input: Input) => Effect<Pass | fail<Fail>, E, R>
-): FilterEffect<Input, WithoutFail<Pass>, Fail, E, R> => f as any
+  f: (input: Input) => Effect<pass<Pass> | fail<Fail>, E, R>
+): FilterEffect<Input, Pass, Fail, E, R> => f as any
 
 /**
  * @since 4.0.0
@@ -189,16 +231,16 @@ export const mapFail: {
   ): Filter<Input, Pass, Fail2>
 } = dual(2, <Input, Pass, Fail, Fail2>(
   self: Filter<Input, Pass, Fail>,
-  f: (fail: Fail) => Fail2
+  f: (value: Fail) => Fail2
 ): Filter<Input, Pass, Fail2> =>
-(input: Input): Pass | fail<Fail2> => {
+(input: Input): pass<Pass> | fail<Fail2> => {
   const result = self(input)
   return isFail(result) ? fail(f(result.fail)) : result
 })
 
 const try_ = <Input, Output>(f: (input: Input) => Output): Filter<Input, Output> => (input) => {
   try {
-    return f(input)
+    return pass(f(input))
   } catch {
     return fail(input)
   }
@@ -234,11 +276,6 @@ export {
  * const isString = Filter.fromPredicate((x: unknown): x is string =>
  *   typeof x === "string"
  * )
- *
- * console.log(positiveNumbers(5)) // 5
- * console.log(positiveNumbers(-1)) // fail
- * console.log(isString("hello")) // "hello" (typed as string)
- * console.log(isString(42)) // fail
  * ```
  *
  * @since 4.0.0
@@ -248,7 +285,7 @@ export const fromPredicate: {
   <A, B extends A>(refinement: Predicate.Refinement<A, B>): Filter<A, B, EqualsWith<A, B, A, Exclude<A, B>>>
   <A>(predicate: Predicate.Predicate<A>): Filter<A>
 } = <A, B extends A = A>(predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>): Filter<A, B> => (input: A) =>
-  predicate(input) ? input as B : fail(input)
+  predicate(input) ? pass(input as B) : fail(input)
 
 /**
  * Creates a Filter from a function that returns an Option.
@@ -258,7 +295,7 @@ export const fromPredicate: {
  */
 export const fromPredicateOption = <A, B>(predicate: (a: A) => Option.Option<B>): Filter<A, B> => (input) => {
   const o = predicate(input)
-  return o._tag === "None" ? fail(input) : o.value
+  return o._tag === "None" ? fail(input) : pass(o.value)
 }
 
 /**
@@ -270,7 +307,7 @@ export const fromPredicateOption = <A, B>(predicate: (a: A) => Option.Option<B>)
 export const fromPredicateResult =
   <A, Pass, Fail>(predicate: (a: A) => Result.Result<Pass, Fail>): Filter<A, Pass, Fail> => (input) => {
     const r = predicate(input)
-    return r._tag === "Success" ? r.success : fail(r.failure)
+    return r._tag === "Success" ? pass(r.success) : fail(r.failure)
   }
 
 /**
@@ -287,23 +324,12 @@ export const toPredicate = <A, Pass, Fail>(
 /**
  * A predefined filter that only passes through string values.
  *
- * This filter accepts any unknown value and only allows strings to pass through,
- * filtering out all other types. It's useful for type-safe string extraction
- * from mixed-type data.
- *
  * @example
  * ```ts
  * import { Filter } from "effect"
  *
- * console.log(Filter.string("hello")) // "hello"
+ * console.log(Filter.string("hello")) // pass("hello")
  * console.log(Filter.string(42)) // fail
- * console.log(Filter.string(true)) // fail
- * console.log(Filter.string(null)) // fail
- *
- * // Use with arrays of mixed types
- * const mixed = ["a", 1, "b", true, "c"]
- * const strings = mixed.map(Filter.string).filter((x) => Filter.isPass(x))
- * console.log(strings) // ["a", "b", "c"]
  * ```
  *
  * @since 4.0.0
@@ -317,68 +343,36 @@ export const string: Filter<unknown, string> = fromPredicate(Predicate.isString)
  */
 export const equalsStrict =
   <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> => (u) =>
-    (u as unknown) === value ? value : fail(u as any)
+    (u as unknown) === value ? pass(value) : fail(u as any)
 
 /**
  * @since 4.0.0
  * @category Constructors
  */
 export const has =
-  <K>(key: K) => <Input extends { readonly has: (key: K) => boolean }>(input: Input): Input | fail<Input> =>
-    input.has(key) ? input : fail(input)
+  <K>(key: K) => <Input extends { readonly has: (key: K) => boolean }>(input: Input): pass<Input> | fail<Input> =>
+    input.has(key) ? pass(input) : fail(input)
 
 /**
- * Creates a filter that only passes values equal to the specified value using structural equality.
- *
- * This function uses Effect's structural equality comparison, which can compare
- * complex objects and data structures deeply. Unlike `strictEquals`, this filter
- * can handle objects, arrays, and other reference types properly.
+ * Creates a filter that only passes instances of the given constructor.
  *
  * @since 4.0.0
  * @category Constructors
  */
 export const instanceOf =
   <K extends new(...args: any) => any>(constructor: K) =>
-  <Input>(u: Input): InstanceType<K> | fail<Exclude<Input, InstanceType<K>>> =>
-    u instanceof constructor ? u as InstanceType<K> : fail(u) as any
+  <Input>(u: Input): pass<InstanceType<K>> | fail<Exclude<Input, InstanceType<K>>> =>
+    u instanceof constructor ? pass(u as InstanceType<K>) : fail(u) as any
 
 /**
  * A predefined filter that only passes through number values.
- *
- * This filter accepts any unknown value and only allows numbers to pass through,
- * filtering out all other types including NaN. It's useful for type-safe number
- * extraction from mixed-type data.
  *
  * @example
  * ```ts
  * import { Filter } from "effect"
  *
- * console.log(Filter.number(42)) // 42
- * console.log(Filter.number(3.14)) // 3.14
+ * console.log(Filter.number(42)) // pass(42)
  * console.log(Filter.number("42")) // fail
- * console.log(Filter.number(true)) // fail
- * console.log(Filter.number(NaN)) // fail
- *
- * // Extract numbers from mixed array
- * const mixed = [1, "2", 3, true, 4.5]
- * const numbers = mixed.map(Filter.number).filter(Filter.isPass)
- * console.log(numbers) // [1, 3, 4.5]
- *
- * // Use with array filtering
- * const data: Array<unknown> = [10, "hello", 20, null, 30.5, "world"]
- * const numbersOnly = data.filter((item) =>
- *   Filter.isPass(Filter.number(item))
- * ) as Array<number>
- * console.log(numbersOnly) // [10, 20, 30.5]
- *
- * // Combine with other filters
- * const positiveNumbers = Filter.compose(
- *   Filter.number,
- *   Filter.fromPredicate((n: number) => n > 0)
- * )
- * console.log(positiveNumbers(5)) // 5
- * console.log(positiveNumbers(-1)) // fail
- * console.log(positiveNumbers("5")) // fail
  * ```
  *
  * @since 4.0.0
@@ -388,10 +382,6 @@ export const number: Filter<unknown, number> = fromPredicate(Predicate.isNumber)
 
 /**
  * A predefined filter that only passes through boolean values.
- *
- * This filter accepts any unknown value and only allows true boolean values
- * to pass through, filtering out all other types including truthy/falsy values
- * that aren't actual booleans.
  *
  * @since 4.0.0
  * @category Constructors
@@ -409,9 +399,6 @@ export const bigint: Filter<unknown, bigint> = fromPredicate(Predicate.isBigInt)
 /**
  * A predefined filter that only passes through Symbol values.
  *
- * This filter accepts any unknown value and only allows Symbol values to pass
- * through, filtering out all other types.
- *
  * @since 4.0.0
  * @category Constructors
  */
@@ -419,9 +406,6 @@ export const symbol: Filter<unknown, symbol> = fromPredicate(Predicate.isSymbol)
 
 /**
  * A predefined filter that only passes through Date objects.
- *
- * This filter accepts any unknown value and only allows Date instances to pass
- * through, filtering out date strings, timestamps, and all other types.
  *
  * @since 4.0.0
  * @category Constructors
@@ -439,15 +423,17 @@ export const tagged: {
   <Input, const Tag extends Tags<Input>>(
     tag: Tag
   ): Filter<Input, ExtractTag<Input, Tag>, ExcludeTag<Input, Tag>>
-  <const Tag extends string>(tag: Tag): <Input>(input: Input) => ExtractTag<Input, Tag> | fail<ExcludeTag<Input, Tag>>
+  <const Tag extends string>(
+    tag: Tag
+  ): <Input>(input: Input) => pass<ExtractTag<Input, Tag>> | fail<ExcludeTag<Input, Tag>>
 } = function() {
   return arguments.length === 0 ? taggedImpl : taggedImpl(arguments[0] as any)
 } as any
 
 const taggedImpl =
   <const Tag extends string>(tag: Tag) =>
-  <Input>(input: Input): ExtractTag<Input, Tag> | fail<ExcludeTag<Input, Tag>> =>
-    Predicate.isTagged(input, tag) ? input as any : fail(input as ExcludeTag<Input, Tag>)
+  <Input>(input: Input): pass<ExtractTag<Input, Tag>> | fail<ExcludeTag<Input, Tag>> =>
+    Predicate.isTagged(input, tag) ? pass(input as any) : fail(input as ExcludeTag<Input, Tag>)
 
 /**
  * Creates a filter that only passes values equal to the specified value using structural equality.
@@ -457,7 +443,7 @@ const taggedImpl =
  */
 export const equals =
   <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> => (u) =>
-    Equal.equals(u, value) ? value : fail(u as any)
+    Equal.equals(u, value) ? pass(value) : fail(u as any)
 
 /**
  * Combines two filters with logical OR semantics.
@@ -487,7 +473,6 @@ export const or: {
  *
  * Both filters must succeed (not return `fail`) for the combination to succeed.
  * If both filters pass, their outputs are combined using the provided function.
- * This is useful for creating complex validation and transformation pipelines.
  *
  * @since 4.0.0
  * @category Combinators
@@ -512,15 +497,14 @@ export const zipWith: {
   if (isFail(leftResult)) return leftResult
   const rightResult = right(input)
   if (isFail(rightResult)) return rightResult
-  return f(leftResult, rightResult)
+  return pass(f(leftResult.pass, rightResult.pass))
 })
 
 /**
  * Combines two filters into a tuple of their results.
  *
  * Both filters must succeed for the combination to succeed. If both pass,
- * their outputs are combined into a tuple. This is a specialized version
- * of `zipWith` that creates tuples.
+ * their outputs are combined into a tuple.
  *
  * @example
  * ```ts
@@ -529,18 +513,7 @@ export const zipWith: {
  * const positiveNumbers = Filter.fromPredicate((n: number) => n > 0)
  * const evenNumbers = Filter.fromPredicate((n: number) => n % 2 === 0)
  *
- * // Combine into tuple
  * const positiveAndEven = Filter.zip(positiveNumbers, evenNumbers)
- *
- * console.log(positiveAndEven(4)) // [4, 4] (both filters pass)
- * console.log(positiveAndEven(3)) // fail (not even)
- * console.log(positiveAndEven(-2)) // fail (not positive)
- *
- * // Different types
- * const stringFilter = Filter.string
- * const numberToString = Filter.make((n: number) => n.toString())
- * const combined = Filter.zip(stringFilter, numberToString)
- * // Type: Filter<string & number, [string, string]>
  * ```
  *
  * @since 4.0.0
@@ -565,10 +538,6 @@ export const zip: {
 /**
  * Combines two filters but only returns the result of the left filter.
  *
- * Both filters must succeed, but only the output of the left filter is returned.
- * This is useful when you want to validate with multiple filters but only
- * care about one result.
- *
  * @example
  * ```ts
  * import { Filter } from "effect"
@@ -576,18 +545,7 @@ export const zip: {
  * const positiveNumbers = Filter.fromPredicate((n: number) => n > 0)
  * const evenNumbers = Filter.fromPredicate((n: number) => n % 2 === 0)
  *
- * // Validate both conditions but return the original number
  * const positiveEven = Filter.andLeft(positiveNumbers, evenNumbers)
- *
- * console.log(positiveEven(4)) // 4 (both conditions met, returns left result)
- * console.log(positiveEven(3)) // fail (not even)
- * console.log(positiveEven(-2)) // fail (not positive)
- *
- * // Useful for validation pipelines
- * const nonEmpty = Filter.fromPredicate((s: string) => s.length > 0)
- * const maxLength = Filter.fromPredicate((s: string) => s.length <= 10)
- * const validString = Filter.andLeft(nonEmpty, maxLength)
- * console.log(validString("hello")) // "hello"
  * ```
  *
  * @since 4.0.0
@@ -611,30 +569,16 @@ export const andLeft: {
 /**
  * Combines two filters but only returns the result of the right filter.
  *
- * Both filters must succeed, but only the output of the right filter is returned.
- * This is useful when you want to validate with multiple filters but only
- * care about the final result.
- *
  * @example
  * ```ts
  * import { Filter } from "effect"
  *
  * const positiveNumbers = Filter.fromPredicate((n: number) => n > 0)
- * const doubleNumbers = Filter.make((n: number) => n > 0 ? n * 2 : Filter.fail(n))
- *
- * // Validate positive but return doubled value
- * const positiveDoubled = Filter.andRight(positiveNumbers, doubleNumbers)
- *
- * console.log(positiveDoubled(5)) // 10 (positive, returns doubled)
- * console.log(positiveDoubled(-3)) // fail (not positive)
- *
- * // Sequential transformations
- * const nonEmpty = Filter.fromPredicate((s: string) => s.length > 0)
- * const uppercase = Filter.make((s: string) =>
- *   s.length > 0 ? s.toUpperCase() : Filter.fail(s)
+ * const doubleNumbers = Filter.make((n: number) =>
+ *   n > 0 ? Filter.pass(n * 2) : Filter.fail(n)
  * )
- * const transform = Filter.andRight(nonEmpty, uppercase)
- * console.log(transform("hello")) // "HELLO"
+ *
+ * const positiveDoubled = Filter.andRight(positiveNumbers, doubleNumbers)
  * ```
  *
  * @since 4.0.0
@@ -658,33 +602,16 @@ export const andRight: {
 /**
  * Composes two filters sequentially, feeding the output of the first into the second.
  *
- * This creates a pipeline where the output of the left filter becomes the input
- * to the right filter. If either filter returns `fail`, the composition returns
- * `fail`. This is useful for creating multi-stage validation and transformation
- * pipelines.
- *
  * @example
  * ```ts
  * import { Filter } from "effect"
  *
- * // First filter: only pass strings
  * const stringFilter = Filter.string
- * // Second filter: only pass non-empty strings and uppercase them
  * const nonEmptyUpper = Filter.make((s: string) =>
- *   s.length > 0 ? s.toUpperCase() : Filter.fail(s)
+ *   s.length > 0 ? Filter.pass(s.toUpperCase()) : Filter.fail(s)
  * )
  *
- * // Compose: unknown -> string -> uppercase string
  * const stringToUpper = Filter.compose(stringFilter, nonEmptyUpper)
- *
- * console.log(stringToUpper("hello")) // "HELLO"
- * console.log(stringToUpper("")) // fail (empty string)
- * console.log(stringToUpper(123)) // fail (not a string)
- *
- * // Multi-stage number processing
- * const positiveFilter = Filter.fromPredicate((n: number) => n > 0)
- * const doubleFilter = Filter.make((n: number) => n * 2)
- * const positiveDouble = Filter.compose(positiveFilter, doubleFilter)
  * ```
  *
  * @since 4.0.0
@@ -705,7 +632,7 @@ export const compose: {
 (input) => {
   const leftOut = left(input)
   if (isFail(leftOut)) return leftOut
-  return right(leftOut)
+  return right(leftOut.pass)
 })
 
 /**
@@ -733,7 +660,7 @@ export const composePassthrough: {
 (input) => {
   const leftOut = left(input)
   if (isFail(leftOut)) return fail(input)
-  const rightOut = right(leftOut)
+  const rightOut = right(leftOut.pass)
   if (isFail(rightOut)) return fail(input)
   return rightOut
 })
@@ -747,7 +674,7 @@ export const toOption = <A, Pass, Fail>(
 ): (input: A) => Option.Option<Pass> =>
 (input: A) => {
   const result = self(input)
-  return isFail(result) ? Option.none() : Option.some(result)
+  return isFail(result) ? Option.none() : Option.some(result.pass)
 }
 
 /**
@@ -759,5 +686,5 @@ export const toResult = <A, Pass, Fail>(
 ): (input: A) => Result.Result<Pass, Fail> =>
 (input: A) => {
   const result = self(input)
-  return isFail(result) ? Result.fail(result.fail) : Result.succeed(result)
+  return isFail(result) ? Result.fail(result.fail) : Result.succeed(result.pass)
 }

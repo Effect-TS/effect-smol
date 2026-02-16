@@ -125,7 +125,7 @@ export const makeCreatePod = Effect.gen(function*() {
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 404
-            ? err
+            ? Filter.pass(err)
             : Filter.fail(err),
         () => Effect.succeedNone
       ),
@@ -137,7 +137,7 @@ export const makeCreatePod = Effect.gen(function*() {
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 404
-            ? err
+            ? Filter.pass(err)
             : Filter.fail(err),
         () => Effect.succeed(false)
       )
@@ -149,7 +149,7 @@ export const makeCreatePod = Effect.gen(function*() {
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 409
-            ? err
+            ? Filter.pass(err)
             : Filter.fail(err),
         () => readPod
       ),
@@ -163,7 +163,7 @@ export const makeCreatePod = Effect.gen(function*() {
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 404
-            ? err
+            ? Filter.pass(err)
             : Filter.fail(err),
         () => Effect.void
       ),

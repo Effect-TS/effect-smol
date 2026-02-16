@@ -113,7 +113,7 @@ export function asserts<S extends Schema.Top & { readonly DecodingServices: neve
       if (Filter.isFail(issue)) {
         throw Cause.squash(issue.fail)
       }
-      throw new Error(issue.toString(), { cause: issue })
+      throw new Error(issue.pass.toString(), { cause: issue.pass })
     }
   }
 }

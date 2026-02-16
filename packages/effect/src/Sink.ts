@@ -1307,16 +1307,68 @@ export const collect = <In>(): Sink<Array<In>, In> =>
 export const takeWhile: {
   <In, Out extends In>(refinement: Refinement<In, Out>): Sink<Array<Out>, In, In>
   <In>(predicate: Predicate<In>): Sink<Array<In>, In, In>
-} = <In>(predicate: Predicate<In>): Sink<Array<In>, In, In> => takeFilter(Filter.fromPredicate(predicate))
+  <In, Out, X>(filter: Filter.Filter<In, Out, X>): Sink<Array<Out>, In, In>
+} = <In>(filter: Filter.Filter<In, any, any> | Predicate<In>): Sink<Array<any>, In, In> =>
+  fromTransform((upstream) => {
+    const out = Arr.empty<any>()
+    return upstream.pipe(
+      Effect.flatMap((arr) => {
+        for (let i = 0; i < arr.length; i++) {
+          const result = Filter.apply(filter as any, arr[i])
+          if (Filter.isFail(result)) {
+            const leftover: Arr.NonEmptyReadonlyArray<In> | undefined = (i + 1) < arr.length
+              ? arr.slice(i + 1) as any
+              : undefined
+            return Cause.done([out, leftover] as const)
+          }
+          out.push(result.pass)
+        }
+        return Effect.void
+      }),
+      Effect.forever({ autoYield: false }),
+      Pull.catchDone((end) => Effect.succeed<End<Array<any>, In>>(end ?? [out]))
+    )
+  })
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const takeWhileEffect = <In, E, R>(
-  predicate: (input: In) => Effect.Effect<boolean, E, R>
-): Sink<Array<In>, In, In, E, R> =>
-  takeFilterEffect((input) => Effect.map(predicate(input), (b) => b ? input : Filter.failVoid))
+export const takeWhileEffect: {
+  <In, E, R>(predicate: (input: In) => Effect.Effect<boolean, E, R>): Sink<Array<In>, In, In, E, R>
+  <In, Out, X, E, R>(filter: Filter.FilterEffect<In, Out, X, E, R>): Sink<Array<Out>, In, In, E, R>
+} = <In, Out, X, E, R>(
+  filter: Filter.FilterEffect<In, Out, X, E, R> | ((input: In) => Effect.Effect<boolean, E, R>)
+): Sink<Array<Out>, In, In, E, R> =>
+  fromTransform((upstream) => {
+    const f: Filter.FilterEffect<In, any, any, E, R> = (input: In) =>
+      Effect.map((filter as any)(input), (b: any) =>
+        typeof b === "boolean" ? (b ? Filter.pass(input) : Filter.failVoid) : b)
+    const out = Arr.empty<Out>()
+    let leftover: Arr.NonEmptyReadonlyArray<In> | undefined = undefined
+    return upstream.pipe(
+      Effect.flatMap((arr) => {
+        let i = 0
+        return Effect.whileLoop({
+          while: () =>
+            i < arr.length,
+          body: constant(Effect.flatMap(Effect.suspend(() => f(arr[i++])), (result) => {
+            if (Filter.isFail(result)) {
+              if (i < arr.length) {
+                leftover = arr.slice(i) as any
+              }
+              return Cause.done()
+            }
+            out.push((result as any).pass)
+            return Effect.void
+          })),
+          step: constVoid
+        })
+      }),
+      Effect.forever({ autoYield: false }),
+      Pull.catchDone(() => Effect.succeed([out, leftover] as const))
+    )
+  })
 
 /**
  * @since 4.0.0
@@ -1353,68 +1405,18 @@ export const takeUntilEffect = <In, E, R>(
   })
 
 /**
- * Accumulates incoming elements into an array as long as they verify predicate
- * `p`.
- *
  * @since 4.0.0
  * @category constructors
+ * @deprecated Use {@link takeWhile} instead.
  */
-export const takeFilter = <In, Out, X>(filter: Filter.Filter<In, Out, X>): Sink<Array<Out>, In, In> =>
-  fromTransform((upstream) => {
-    const out = Arr.empty<Out>()
-    return upstream.pipe(
-      Effect.flatMap((arr) => {
-        for (let i = 0; i < arr.length; i++) {
-          const result = filter(arr[i])
-          if (Filter.isFail(result)) {
-            const leftover: Arr.NonEmptyReadonlyArray<In> | undefined = (i + 1) < arr.length
-              ? arr.slice(i + 1) as any
-              : undefined
-            return Cause.done([out, leftover] as const)
-          }
-          out.push(result)
-        }
-        return Effect.void
-      }),
-      Effect.forever({ autoYield: false }),
-      Pull.catchDone((end) => Effect.succeed<End<Array<Out>, In>>(end ?? [out]))
-    )
-  })
+export const takeFilter: typeof takeWhile = takeWhile
 
 /**
- * Accumulates incoming elements into an array as long as they verify effectful
- *
  * @since 4.0.0
  * @category constructors
+ * @deprecated Use {@link takeWhileEffect} instead.
  */
-export const takeFilterEffect = <In, Out, X, E, R>(
-  filter: Filter.FilterEffect<In, Out, X, E, R>
-): Sink<Array<Out>, In, In, E, R> =>
-  fromTransform((upstream) => {
-    const out = Arr.empty<Out>()
-    let leftover: Arr.NonEmptyReadonlyArray<In> | undefined = undefined
-    return upstream.pipe(
-      Effect.flatMap((arr) => {
-        let i = 0
-        return Effect.whileLoop({
-          while: () => i < arr.length,
-          body: constant(Effect.flatMap(Effect.suspend(() => filter(arr[i++])), (result) => {
-            if (Filter.isFail(result)) {
-              if (i < arr.length) {
-                leftover = arr.slice(i) as any
-              }
-              return Cause.done()
-            }
-            out.push(result)
-            return Effect.void
-          })),
-          step: constVoid
-        })
-      }),
-      Effect.forever({ autoYield: false }),
-      Pull.catchDone(() => Effect.succeed([out, leftover] as const))
-    )
-  })
+export const takeFilterEffect: typeof takeWhileEffect = takeWhileEffect
 
 /**
  * A sink that executes the provided effectful function for every item fed

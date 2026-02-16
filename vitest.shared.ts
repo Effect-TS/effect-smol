@@ -10,7 +10,13 @@ const config: ViteUserConfig = {
     exclude: ["bun:sqlite"]
   },
   plugins: [aliases()],
+  server: {
+    watch: {
+      ignored: ["**/.context/**"]
+    }
+  },
   test: {
+    exclude: ["**/.context/**", "**/node_modules/**"],
     setupFiles: [path.join(__dirname, "vitest.setup.ts")],
     fakeTimers: {
       toFake: undefined
