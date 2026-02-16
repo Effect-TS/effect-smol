@@ -512,14 +512,15 @@ export const keys = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effe
     const state = self.state
     const now = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe()
     const fibers = Arr.empty<Fiber.Fiber<unknown, unknown>>()
-    const keys = Arr.filterMap(state.map, ([key, entry]) => {
+    const keys: Array<Key> = []
+    for (const [key, entry] of state.map) {
       if (entry.expiresAt === undefined || entry.expiresAt > now) {
-        return Option.some(key)
+        keys.push(key)
+      } else {
+        MutableHashMap.remove(state.map, key)
+        fibers.push(effect.forkUnsafe(fiber, Scope.close(entry.scope, effect.exitVoid), true, true))
       }
-      MutableHashMap.remove(state.map, key)
-      fibers.push(effect.forkUnsafe(fiber, Scope.close(entry.scope, effect.exitVoid), true, true))
-      return Option.none()
-    })
+    }
     return fibers.length === 0 ? effect.succeed(keys) : effect.as(effect.fiberAwaitAll(fibers), keys)
   })
 
@@ -547,17 +548,18 @@ export const entries = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.E
     const state = self.state
     const now = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe()
     const fibers = Arr.empty<Fiber.Fiber<unknown, unknown>>()
-    const arr = Arr.filterMap(state.map, ([key, entry]) => {
+    const arr: Array<[Key, A]> = []
+    for (const [key, entry] of state.map) {
       if (entry.expiresAt === undefined || entry.expiresAt > now) {
         const exit = entry.deferred.effect
-        return !core.isExit(exit) || effect.exitIsFailure(exit)
-          ? Option.none()
-          : Option.some([key, exit.value as A] as [Key, A])
+        if (core.isExit(exit) && !effect.exitIsFailure(exit)) {
+          arr.push([key, exit.value as A])
+        }
+      } else {
+        MutableHashMap.remove(state.map, key)
+        fibers.push(effect.forkUnsafe(fiber, Scope.close(entry.scope, effect.exitVoid), true, true))
       }
-      MutableHashMap.remove(state.map, key)
-      fibers.push(effect.forkUnsafe(fiber, Scope.close(entry.scope, effect.exitVoid), true, true))
-      return Option.none()
-    })
+    }
     return fibers.length === 0
       ? effect.succeed(arr)
       : effect.as(effect.fiberAwaitAll(fibers), arr)

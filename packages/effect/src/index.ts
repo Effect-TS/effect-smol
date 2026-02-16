@@ -61,8 +61,7 @@ export {
  *   {@link unfold}
  * - **Access** elements: {@link head}, {@link last}, {@link get}, {@link tail},
  *   {@link init}
- * - **Transform**: {@link map}, {@link flatMap}, {@link flatten},
- *   {@link filterMap}
+ * - **Transform**: {@link map}, {@link flatMap}, {@link flatten}
  * - **Filter**: {@link filter}, {@link partition}, {@link dedupe}
  * - **Combine**: {@link append}, {@link prepend}, {@link appendAll},
  *   {@link prependAll}, {@link zip}, {@link cartesian}

@@ -3920,34 +3920,6 @@ export const filter: {
 )
 
 /**
- * Filters and maps elements in a single pass using a `Filter`.
- *
- * @example
- * ```ts
- * import { Console, Effect, Filter, Stream } from "effect"
- *
- * const positiveLabels = Filter.make((n: number) =>
- *   n > 0 ? Filter.pass(`+${n}`) : Filter.fail(n)
- * )
- *
- * const program = Effect.gen(function*() {
- *   const values = yield* Stream.make(2, -1, 3).pipe(
- *     Stream.filterMap(positiveLabels),
- *     Stream.runCollect
- *   )
- *   yield* Console.log(values)
- * })
- *
- * // Output: [ "+2", "+3" ]
- * ```
- *
- * @since 2.0.0
- * @category Filtering
- * @deprecated Use {@link filter} instead.
- */
-export const filterMap: typeof filter = filter
-
-/**
  * Effectfully filters and maps elements in a single pass.
  *
  * @example
@@ -3958,7 +3930,7 @@ export const filterMap: typeof filter = filter
  *   Effect.succeed(n > 2 ? Filter.pass(n + 1) : Filter.fail(n))
  * )
  *
- * const stream = Stream.make(1, 2, 3, 4).pipe(Stream.filterMapEffect(filter))
+ * const stream = Stream.make(1, 2, 3, 4).pipe(Stream.filterEffect(filter))
  *
  * const program = Effect.gen(function*() {
  *   const result = yield* Stream.runCollect(stream)
@@ -3989,127 +3961,6 @@ export const filterEffect: {
 )
 
 /**
- * @since 2.0.0
- * @category Filtering
- * @deprecated Use {@link filterEffect} instead.
- */
-export const filterMapEffect: typeof filterEffect = filterEffect
-
-/**
- * Splits the stream into two streams based on a `Filter`, emitting passed values
- * on the first stream and failed values on the second.
- *
- * If the upstream stream fails, both output streams fail.
- *
- * @example
- * ```ts
- * import { Console, Effect, Filter, Stream } from "effect"
- *
- * const program = Effect.scoped(
- *   Effect.gen(function*() {
- *     const [evens, odds] = yield* Stream.partitionFilter(
- *       Stream.range(0, 5),
- *       (n) => (n % 2 === 0 ? Filter.pass(n) : Filter.fail(n))
- *     )
- *
- *     const result = yield* Effect.all({
- *       evens: Stream.runCollect(evens),
- *       odds: Stream.runCollect(odds)
- *     })
- *
- *     yield* Console.log(result)
- *   })
- * )
- *
- * Effect.runPromise(program)
- * // Output: { evens: [ 0, 2, 4 ], odds: [ 1, 3, 5 ] }
- * ```
- *
- * @since 2.0.0
- * @category Filtering
- * @deprecated Use {@link partition} instead. Note: `partition` returns `[excluded, satisfying]`
- * while `partitionFilter` returns `[passes, fails]` — the tuple order is swapped.
- */
-export const partitionFilter: {
-  <A, B extends A>(refinement: Refinement<A, B>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
-    [
-      passes: Stream<B, E>,
-      fails: Stream<Exclude<A, B>, E>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A>(predicate: Predicate<A>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
-    [
-      passes: Stream<A, E>,
-      fails: Stream<A, E>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A, B, X>(filter: Filter.Filter<A, B, X>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
-    [
-      passes: Stream<B, E>,
-      fails: Stream<X, E>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A, E, R, B extends A>(self: Stream<A, E, R>, refinement: Refinement<A, B>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Stream<B, E>,
-      fails: Stream<Exclude<A, B>, E>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A, E, R>(self: Stream<A, E, R>, predicate: Predicate<A>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Stream<A, E>,
-      fails: Stream<A, E>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Stream<B, E>,
-      fails: Stream<X, E>
-    ],
-    never,
-    R | Scope.Scope
-  >
-} = dual(
-  (args) => isStream(args[0]),
-  <A, E, R>(self: Stream<A, E, R>, filter: Filter.Filter<any, any, any> | Predicate<A>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Stream<any, E>,
-      fails: Stream<any, E>
-    ],
-    never,
-    R | Scope.Scope
-  > =>
-    Effect.map(
-      partitionFilterQueue(filter as any, options)(self),
-      ([passes, fails]) => [fromQueue(passes), fromQueue(fails)] as const
-    )
-)
-
-/**
  * Partitions a stream using a Filter and exposes passing and failing values as queues.
  *
  * Each queue fails with the stream error or `Cause.Done` when the source ends.
@@ -4120,7 +3971,7 @@ export const partitionFilter: {
  *
  * const program = Effect.gen(function*() {
  *   const [passes, fails] = yield* Stream.make(1, 2, 3, 4).pipe(
- *     Stream.partitionFilterQueue(
+ *     Stream.partitionQueue(
  *       Filter.make((n) => (n % 2 === 0 ? Filter.pass(n) : Filter.fail(n)))
  *     )
  *   )
@@ -4140,7 +3991,7 @@ export const partitionFilter: {
  * @since 4.0.0
  * @category Filtering
  */
-export const partitionFilterQueue: {
+export const partitionQueue: {
   <A, B extends A>(refinement: Refinement<A, B>, options?: {
     readonly capacity?: number | "unbounded" | undefined
   }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
@@ -4256,13 +4107,6 @@ export const partitionFilterQueue: {
 )
 
 /**
- * @since 4.0.0
- * @category Filtering
- * @deprecated Use {@link partitionFilterQueue} instead.
- */
-export const partitionQueue: typeof partitionFilterQueue = partitionFilterQueue
-
-/**
  * Splits a stream using an effectful filter, producing pass and fail streams.
  *
  * @since 4.0.0
@@ -4275,7 +4119,7 @@ export const partitionQueue: typeof partitionFilterQueue = partitionFilterQueue
  * const program = Effect.scoped(
  *   Effect.gen(function*() {
  *     const [evens, odds] = yield* Stream.make(1, 2, 3, 4).pipe(
- *       Stream.partitionFilterEffect((n) =>
+ *       Stream.partitionEffect((n) =>
  *         Effect.succeed(n % 2 === 0 ? Filter.pass(n) : Filter.fail(n))
  *       )
  *     )
@@ -4327,18 +4171,14 @@ export const partitionEffect: {
     never,
     R | RX | Scope.Scope
   > =>
-    self.pipe(
-      mapEffect(filter, options),
-      partitionFilter(identity, options)
-    )
+    Effect.map(
+      self.pipe(
+        mapEffect(filter, options),
+        partitionQueue(identity as any, options)
+      ),
+      ([passes, fails]) => [fromQueue(passes), fromQueue(fails)]
+    ) as any
 )
-
-/**
- * @since 4.0.0
- * @category Filtering
- * @deprecated Use {@link partitionEffect} instead.
- */
-export const partitionFilterEffect: typeof partitionEffect = partitionEffect
 
 /**
  * Splits a stream into excluded and satisfying substreams using a predicate or
@@ -4438,7 +4278,7 @@ export const partition: {
     R | Scope.Scope
   > =>
     Effect.map(
-      partitionFilterQueue(filter as any, { capacity: options?.bufferSize ?? 16 })(self),
+      partitionQueue(filter as any, { capacity: options?.bufferSize ?? 16 })(self),
       ([passes, fails]) => [fromQueue(fails), fromQueue(passes)] as const
     )
 )

@@ -508,7 +508,7 @@ overload.
 
 1. For each pair in the merge table, add Filter/FilterEffect overloads to the kept function.
 2. Update the implementation to handle `boolean` vs `pass/fail` results (reuse `Filter.apply`).
-3. Deprecate or remove the old `*Map`/`*Filter` variant.
+3. Remove the old `*Map`/`*Filter` variant entirely (v4 is unreleased, no backward compat needed).
 4. Update all internal call sites to use the unified name.
 5. Update all tests.
 6. Rename effectful variants.
@@ -517,7 +517,7 @@ overload.
 ### Acceptance Criteria
 
 - Each pair in the merge table is unified under the shorter name.
-- The removed variant is deleted (or deprecated with a re-export if needed for migration).
+- The removed variant is deleted entirely.
 - All overloads (refinement, predicate, filter) work on the unified function.
 - Effectful variants are renamed to match.
 - All tests pass.

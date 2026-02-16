@@ -1023,7 +1023,17 @@ export const filterMap: {
   <A, B>(self: Chunk<A>, f: (a: A, i: number) => Option<B>): Chunk<B>
 } = dual(
   2,
-  <A, B>(self: Chunk<A>, f: (a: A, i: number) => Option<B>): Chunk<B> => fromArrayUnsafe(RA.filterMap(self, f))
+  <A, B>(self: Chunk<A>, f: (a: A, i: number) => Option<B>): Chunk<B> => {
+    const as = RA.fromIterable(self)
+    const out: Array<B> = []
+    for (let i = 0; i < as.length; i++) {
+      const o = f(as[i], i)
+      if (O.isSome(o)) {
+        out.push(o.value)
+      }
+    }
+    return fromArrayUnsafe(out)
+  }
 )
 
 /**
@@ -1086,7 +1096,18 @@ export const filter: {
 export const filterMapWhile: {
   <A, B>(f: (a: A) => Option<B>): (self: Chunk<A>) => Chunk<B>
   <A, B>(self: Chunk<A>, f: (a: A) => Option<B>): Chunk<B>
-} = dual(2, <A, B>(self: Chunk<A>, f: (a: A) => Option<B>) => fromArrayUnsafe(RA.filterMapWhile(self, f)))
+} = dual(2, <A, B>(self: Chunk<A>, f: (a: A) => Option<B>): Chunk<B> => {
+  const out: Array<B> = []
+  for (const a of self) {
+    const b = f(a)
+    if (O.isSome(b)) {
+      out.push(b.value)
+    } else {
+      break
+    }
+  }
+  return fromArrayUnsafe(out)
+})
 
 /**
  * Filter out optional values

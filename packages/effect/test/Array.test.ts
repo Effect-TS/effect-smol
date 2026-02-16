@@ -842,15 +842,6 @@ describe("Array", () => {
     deepStrictEqual(Arr.filter(["a", "b", "c"], (_, i) => i % 2 === 0), ["a", "c"])
   })
 
-  it("filterMap", () => {
-    const f = (n: number) => (n % 2 === 0 ? Option.none() : Option.some(n))
-    deepStrictEqual(pipe([1, 2, 3], Arr.filterMap(f)), [1, 3])
-    deepStrictEqual(pipe([], Arr.filterMap(f)), [])
-    const g = (n: number, i: number) => ((i + n) % 2 === 0 ? Option.none() : Option.some(n))
-    deepStrictEqual(pipe([1, 2, 4], Arr.filterMap(g)), [1, 2])
-    deepStrictEqual(pipe([], Arr.filterMap(g)), [])
-  })
-
   it("partitionMap", () => {
     deepStrictEqual(Arr.partitionMap([], identity), [[], []])
     deepStrictEqual(Arr.partitionMap([Result.succeed(1), Result.fail("a"), Result.succeed(2)], identity), [["a"], [
@@ -1332,18 +1323,6 @@ describe("Array", () => {
     deepStrictEqual(
       Arr.mapAccum(["a", "b", "c"], "", (acc, s, i) => [acc + s, `${s}${i}`]),
       ["abc", ["a0", "b1", "c2"]]
-    )
-  })
-
-  it("filterMapWhile", () => {
-    const f = (n: number) => (n % 2 === 0 ? Option.some(n * n) : Option.none())
-    deepStrictEqual(pipe([2, 4, 5], Arr.filterMapWhile(f)), [4, 16])
-    deepStrictEqual(pipe([], Arr.filterMapWhile(f)), [])
-    deepStrictEqual(pipe([1, 2, 4], Arr.filterMapWhile(f)), [])
-    deepStrictEqual(pipe([2, 4, 6], Arr.filterMapWhile(f)), [4, 16, 36])
-    deepStrictEqual(
-      pipe([2, 4, 5, 6], Arr.filterMapWhile(f)),
-      [4, 16]
     )
   })
 
