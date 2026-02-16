@@ -4,6 +4,7 @@
   "initialVersions": {
     "@effect/ai-anthropic": "3.0.0",
     "@effect/ai-openai": "3.0.0",
+    "@effect/ai-openrouter": "3.0.0",
     "@effect/atom-react": "3.0.0",
     "@effect/atom-solid": "3.0.0",
     "@effect/atom-vue": "3.0.0",
