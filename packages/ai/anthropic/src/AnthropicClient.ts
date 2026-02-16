@@ -259,7 +259,7 @@ export const make = Effect.fnUntraced(
       httpClientOk.execute(request).pipe(
         Effect.map((response) => response.stream),
         Stream.unwrap,
-        Stream.decodeText(),
+        Stream.decodeText,
         Stream.pipeThroughChannel(Sse.decodeSchema(schema))
       )
 
@@ -297,7 +297,7 @@ export const make = Effect.fnUntraced(
       response: HttpClientResponse.HttpClientResponse
     ): [HttpClientResponse.HttpClientResponse, Stream.Stream<MessageStreamEvent, AiError.AiError>] => {
       const stream = response.stream.pipe(
-        Stream.decodeText(),
+        Stream.decodeText,
         Stream.pipeThroughChannel(Sse.decodeDataSchema(MessageEvent)),
         Stream.takeUntil((event) => event.data.type === "message_stop"),
         Stream.map((event) => event.data),

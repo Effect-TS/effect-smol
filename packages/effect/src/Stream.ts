@@ -8408,7 +8408,7 @@ export const changesWithEffect: {
  *
  * const program = Effect.gen(function*() {
  *   const decoded = yield* stream.pipe(
- *     Stream.decodeText("utf-8"),
+ *     Stream.decodeText,
  *     Stream.runCollect
  *   )
  *   yield* Console.log(decoded)
@@ -8421,17 +8421,28 @@ export const changesWithEffect: {
  * @since 2.0.0
  * @category Encoding
  */
-export const decodeText: {
-  (encoding?: string | undefined): <E, R>(self: Stream<Uint8Array, E, R>) => Stream<string, E, R>
-  <E, R>(self: Stream<Uint8Array, E, R>, encoding?: string | undefined): Stream<string, E, R>
-} = dual(
-  (args) => isStream(args[0]),
-  <E, R>(self: Stream<Uint8Array, E, R>, encoding?: string | undefined): Stream<string, E, R> =>
-    suspend(() => {
-      const decoder = new TextDecoder(encoding)
-      return map(self, (chunk) => decoder.decode(chunk, { stream: true }))
-    })
-)
+export const decodeText: <
+  Arg extends Stream<Uint8Array, any, any> | {
+    readonly encoding?: string | undefined
+  } | undefined = {
+    readonly encoding?: string | undefined
+  }
+>(
+  streamOrOptions?: Arg,
+  options?: {
+    readonly encoding?: string | undefined
+  } | undefined
+) => [Arg] extends [Stream<Uint8Array, infer _E, infer _R>] ? Stream<string, _E, _R>
+  : <E, R>(self: Stream<Uint8Array, E, R>) => Stream<string, E, R> = dual(
+    (args) => isStream(args[0]),
+    <E, R>(self: Stream<Uint8Array, E, R>, options?: {
+      readonly encoding?: string | undefined
+    }): Stream<string, E, R> =>
+      suspend(() => {
+        const decoder = new TextDecoder(options?.encoding)
+        return map(self, (chunk) => decoder.decode(chunk, { stream: true }))
+      })
+  )
 
 /**
  * Encodes a stream of strings into UTF-8 `Uint8Array` chunks.
