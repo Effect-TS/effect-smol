@@ -4303,11 +4303,8 @@ export const filterOrElse: {
   flatMap(
     self,
     (a) => {
-      const result = (filter as Function)(a)
-      if (result === true) return succeed<A | B>(a)
-      if (result === false) return orElse(a)
-      if (Filter.isFail(result)) return orElse(result.fail)
-      return succeed(result.pass)
+      const result = Filter.apply(filter as any, a)
+      return Filter.isFail(result) ? orElse(result.fail) : succeed(result.pass) as any
     }
   ))
 
