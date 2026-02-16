@@ -3,7 +3,7 @@
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
-import * as Duration from "../../Duration.ts"
+import type * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
@@ -1187,7 +1187,7 @@ export const makeProtocolWorker = (
         max: options.maxSize,
         concurrency: options.concurrency,
         targetUtilization: options.targetUtilization,
-        timeToLive: Duration.max(Duration.fromDurationInputUnsafe(options.timeToLive), Duration.seconds(1))
+        timeToLive: options.timeToLive
       }) :
       yield* Pool.make({
         acquire,
