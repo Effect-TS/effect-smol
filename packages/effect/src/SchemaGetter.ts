@@ -1,4 +1,87 @@
 /**
+ * Composable transformation primitives for the Effect Schema system.
+ *
+ * A `Getter<T, E, R>` represents a single-direction transformation from an
+ * encoded type `E` to a decoded type `T`. Getters are the building blocks
+ * that `Schema.decodeTo` and `Schema.decode` use to define how values are
+ * transformed during encoding and decoding. They handle optionality
+ * (`Option<E>` in, `Option<T>` out), can fail with `Issue`, and can require
+ * Effect services via `R`.
+ *
+ * ## Mental model
+ *
+ * - **Getter**: A function `Option<E> -> Effect<Option<T>, Issue, R>`. It
+ *   transforms an optional encoded value into an optional decoded value,
+ *   possibly failing or requiring services.
+ * - **Passthrough**: The identity getter — returns the input unchanged. Used
+ *   when no transformation is needed. Optimized away during composition.
+ * - **Option-awareness**: Getters receive and return `Option` to handle
+ *   missing keys in structs. `Option.None` means the key is absent.
+ * - **Composition**: Getters compose left-to-right via `.compose()`. A
+ *   passthrough on either side is a no-op (identity optimization).
+ * - **Issue**: The error type for all getter failures (see `SchemaIssue`).
+ *
+ * ## Common tasks
+ *
+ * - Pass a value through unchanged → {@link passthrough}
+ * - Transform a value purely → {@link transform}
+ * - Transform a value with possible failure → {@link transformOrFail}
+ * - Transform with full Option control → {@link transformOptional}
+ * - Handle missing keys → {@link onNone}, {@link required}, {@link withDefault}
+ * - Handle present values → {@link onSome}
+ * - Validate a value with an effectful check → {@link checkEffect}
+ * - Produce a constant value → {@link succeed}
+ * - Always fail → {@link fail}, {@link forbidden}
+ * - Omit a value from output → {@link omit}
+ * - Coerce to a primitive type → {@link String}, {@link Number}, {@link Boolean}, {@link BigInt}, {@link Date}
+ * - Transform strings → {@link trim}, {@link capitalize}, {@link toLowerCase}, {@link toUpperCase}, {@link split}, {@link splitKeyValue}, {@link joinKeyValue}
+ * - Parse/stringify JSON → {@link parseJson}, {@link stringifyJson}
+ * - Encode/decode Base64 → {@link encodeBase64}, {@link decodeBase64}, {@link decodeBase64String}
+ * - Encode/decode Hex → {@link encodeHex}, {@link decodeHex}, {@link decodeHexString}
+ * - Parse DateTime → {@link dateTimeUtcFromInput}
+ * - Decode/encode FormData → {@link decodeFormData}, {@link encodeFormData}
+ * - Decode/encode URLSearchParams → {@link decodeURLSearchParams}, {@link encodeURLSearchParams}
+ * - Build nested tree from bracket paths → {@link makeTreeRecord}
+ * - Flatten nested tree to bracket paths → {@link collectBracketPathEntries}
+ *
+ * ## Gotchas
+ *
+ * - Getters are not bidirectional. To define a full encode/decode pair, supply
+ *   both a `decode` and an `encode` getter to `Schema.decodeTo`.
+ * - `passthrough` requires `T === E` by default. Use `{ strict: false }` to
+ *   bypass the type constraint, or use {@link passthroughSupertype} / {@link passthroughSubtype}.
+ * - `transform` skips `None` inputs (missing keys) — the function is only
+ *   called when a value is present. Use `transformOptional` if you need to
+ *   handle missing values.
+ * - `parseJson` without a `reviver` returns `Schema.MutableJson`. With a
+ *   reviver, the return type widens to `unknown`.
+ * - `split` treats an empty string as an empty array, not `[""]`.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Using SchemaGetter with Schema.decodeTo)
+ *
+ * ```ts
+ * import { Schema, SchemaGetter } from "effect"
+ *
+ * const NumberFromString = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Number, {
+ *     decode: SchemaGetter.transform((s) => Number(s)),
+ *     encode: SchemaGetter.transform((n) => String(n))
+ *   })
+ * )
+ *
+ * const result = Schema.decodeUnknownSync(NumberFromString)("42")
+ * // result: 42
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link Getter} — the core class
+ * - {@link transform} — most common constructor
+ * - {@link passthrough} — identity getter
+ * - {@link transformOrFail} — fallible transformation
+ *
  * @since 4.0.0
  */
 import * as DateTime from "./DateTime.ts"
@@ -16,6 +99,40 @@ import * as Issue from "./SchemaIssue.ts"
 import * as Str from "./String.ts"
 
 /**
+ * A composable transformation from an encoded type `E` to a decoded type `T`.
+ *
+ * A Getter wraps a function `Option<E> -> Effect<Option<T>, Issue, R>`:
+ * - Receives `Option.None` when the encoded key is absent (e.g. missing struct field).
+ * - Returns `Option.None` to omit the value from the decoded output.
+ * - Fails with `Issue` on invalid input.
+ * - May require Effect services via `R`.
+ *
+ * Use this when:
+ * - Building custom schema transformations with `Schema.decodeTo` or `Schema.decode`.
+ * - Composing multiple transformation steps into a single getter.
+ *
+ * Behavior:
+ * - Immutable — constructing or composing getters does not mutate existing instances.
+ * - `.map(f)` applies `f` to the decoded value (inside the `Some`), leaving `None` unchanged.
+ * - `.compose(other)` chains two getters: the output of `this` feeds into `other`.
+ *   Passthrough getters on either side are optimized away.
+ *
+ * **Example** (Creating and composing getters)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const parseNumber = SchemaGetter.transform<number, string>((s) => Number(s))
+ * const double = SchemaGetter.transform<number, number>((n) => n * 2)
+ * const composed = parseNumber.compose(double)
+ * // composed: Getter<number, string> — parses then doubles
+ * ```
+ *
+ * See also:
+ * - {@link transform} — create a getter from a pure function
+ * - {@link passthrough} — identity getter
+ * - {@link transformOrFail} — fallible transformation
+ *
  * @category model
  * @since 4.0.0
  */
@@ -49,6 +166,29 @@ export class Getter<out T, in E, R = never> extends Class {
 }
 
 /**
+ * Creates a getter that always produces the given constant value, ignoring the input.
+ *
+ * Use this when:
+ * - A schema field should always decode to a fixed value.
+ * - You need a placeholder getter that produces a known default.
+ *
+ * Behavior:
+ * - Pure, no side effects.
+ * - Always returns `Option.some(t)` regardless of whether input is `Some` or `None`.
+ *
+ * **Example** (Constant getter)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const alwaysZero = SchemaGetter.succeed(0)
+ * // alwaysZero: Getter<0, unknown> — always produces 0
+ * ```
+ *
+ * See also:
+ * - {@link transform} — when you need to use the input value
+ * - {@link passthrough} — when you want to keep the input as-is
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -57,7 +197,29 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
 }
 
 /**
- * Fail with an issue.
+ * Creates a getter that always fails with the given issue.
+ *
+ * Use this when:
+ * - A transformation should unconditionally reject input.
+ * - Building custom validation getters that produce specific error types.
+ *
+ * Behavior:
+ * - Always fails with the `Issue` returned by `f`.
+ * - The failure function receives the original `Option<E>` input for error context.
+ *
+ * **Example** (Always-failing getter)
+ *
+ * ```ts
+ * import { SchemaGetter, SchemaIssue, Option } from "effect"
+ *
+ * const rejectAll = SchemaGetter.fail<string, string>(
+ *   (oe) => new SchemaIssue.InvalidValue(oe, { message: "not allowed" })
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link forbidden} — convenience for `Forbidden` issues
+ * - {@link checkEffect} — fail conditionally based on input value
  *
  * @category Constructors
  * @since 4.0.0
@@ -67,6 +229,29 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
 }
 
 /**
+ * Creates a getter that always fails with a `Forbidden` issue.
+ *
+ * Use this when:
+ * - A field or direction (encode/decode) should be disallowed entirely.
+ * - You want a clear "forbidden" error message in schema validation output.
+ *
+ * Behavior:
+ * - Always fails with `Issue.Forbidden`.
+ * - The message function receives the `Option<E>` input for context.
+ *
+ * **Example** (Forbidding a decode direction)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const noEncode = SchemaGetter.forbidden<string, number>(
+ *   () => "encoding is not supported"
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link fail} — fail with a custom issue type
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -81,7 +266,36 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
 }
 
 /**
- * Returns a getter that keeps the value as is.
+ * Returns the identity getter — passes the value through unchanged.
+ *
+ * Use this when:
+ * - No transformation is needed between encoded and decoded types.
+ * - One side of a `decodeTo` pair (encode or decode) should be a no-op.
+ *
+ * Behavior:
+ * - Pure, no allocation (singleton instance).
+ * - Optimized away during `.compose()` — composing with a passthrough is free.
+ * - The default overload requires `T === E`. Pass `{ strict: false }` to opt
+ *   out of the type constraint.
+ *
+ * **Example** (Identity transformation)
+ *
+ * ```ts
+ * import { Schema, SchemaGetter } from "effect"
+ *
+ * // No transformation needed — types already match
+ * const StringToString = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.String, {
+ *     decode: SchemaGetter.passthrough(),
+ *     encode: SchemaGetter.passthrough()
+ *   })
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link passthroughSupertype} — when `T extends E`
+ * - {@link passthroughSubtype} — when `E extends T`
+ * - {@link transform} — when you need to change the value
  *
  * @category Constructors
  * @since 4.0.0
@@ -93,7 +307,27 @@ export function passthrough<T>(): Getter<T, T> {
 }
 
 /**
- * Returns a getter that keeps the value as is.
+ * Returns the identity getter, typed for when the decoded type `T` is a supertype of `E`.
+ *
+ * Use this when:
+ * - The decoded type is wider than the encoded type (e.g. `string` from a string literal).
+ * - You need type-safe passthrough without `{ strict: false }`.
+ *
+ * Behavior:
+ * - Same singleton as {@link passthrough} — no allocation, optimized in composition.
+ *
+ * **Example** (Supertype passthrough)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * // string extends string, so this is valid
+ * const g = SchemaGetter.passthroughSupertype<string, string>()
+ * ```
+ *
+ * See also:
+ * - {@link passthrough} — when types are identical
+ * - {@link passthroughSubtype} — when `E extends T`
  *
  * @category Constructors
  * @since 4.0.0
@@ -104,7 +338,27 @@ export function passthroughSupertype<T>(): Getter<T, T> {
 }
 
 /**
- * Returns a getter that keeps the value as is.
+ * Returns the identity getter, typed for when the encoded type `E` is a subtype of `T`.
+ *
+ * Use this when:
+ * - The encoded type is narrower than the decoded type.
+ * - You need type-safe passthrough without `{ strict: false }`.
+ *
+ * Behavior:
+ * - Same singleton as {@link passthrough} — no allocation, optimized in composition.
+ *
+ * **Example** (Subtype passthrough)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * // "hello" extends string, so E extends T
+ * const g = SchemaGetter.passthroughSubtype<string, "hello">()
+ * ```
+ *
+ * See also:
+ * - {@link passthrough} — when types are identical
+ * - {@link passthroughSupertype} — when `T extends E`
  *
  * @category Constructors
  * @since 4.0.0
@@ -115,8 +369,31 @@ export function passthroughSubtype<T>(): Getter<T, T> {
 }
 
 /**
- * Returns a getter that handles missing encoded values, i.e. when the input is
- * `Option.None`.
+ * Creates a getter that handles the case when the input is absent (`Option.None`).
+ *
+ * Use this when:
+ * - You need to provide a fallback or computed value for missing struct keys.
+ * - Building custom "default value" logic more complex than {@link withDefault}.
+ *
+ * Behavior:
+ * - When input is `None`, calls `f` to produce the result.
+ * - When input is `Some`, passes it through unchanged.
+ * - `f` receives the parse options and may return `None` to keep the value absent.
+ *
+ * **Example** (Default timestamp for missing field)
+ *
+ * ```ts
+ * import { SchemaGetter, Effect, Option } from "effect"
+ *
+ * const withTimestamp = SchemaGetter.onNone<number>(() =>
+ *   Effect.succeed(Option.some(Date.now()))
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link required} — fails if input is absent
+ * - {@link withDefault} — simpler default value for undefined inputs
+ * - {@link onSome} — handle only present values
  *
  * @category Constructors
  * @since 4.0.0
@@ -128,7 +405,28 @@ export function onNone<T, E extends T = T, R = never>(
 }
 
 /**
- * Returns a getter that fails if the input is `Option.None`.
+ * Creates a getter that fails with `MissingKey` if the input is absent (`Option.None`).
+ *
+ * Use this when:
+ * - A struct field must be present in the encoded input.
+ * - You want schema validation to report a missing key error.
+ *
+ * Behavior:
+ * - When input is `None`, fails with `Issue.MissingKey`.
+ * - When input is `Some`, passes it through unchanged.
+ * - Optional `annotations` customize the error message for the missing key.
+ *
+ * **Example** (Required struct field)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const mustExist = SchemaGetter.required<string>()
+ * ```
+ *
+ * See also:
+ * - {@link onNone} — provide a fallback instead of failing
+ * - {@link withDefault} — substitute a default for undefined values
  *
  * @category Constructors
  * @since 4.0.0
@@ -138,7 +436,31 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
 }
 
 /**
- * Returns a getter that handles defined encoded values.
+ * Creates a getter that handles present values (`Option.Some`), passing `None` through.
+ *
+ * Use this when:
+ * - You need to transform or validate only when a value is present.
+ * - Missing keys should remain absent in the output.
+ *
+ * Behavior:
+ * - When input is `None`, returns `None` (no-op).
+ * - When input is `Some(e)`, calls `f(e, options)` to produce the result.
+ * - `f` may return `None` to omit the value, or fail with an `Issue`.
+ *
+ * **Example** (Transform only present values)
+ *
+ * ```ts
+ * import { SchemaGetter, Effect, Option } from "effect"
+ *
+ * const parseIfPresent = SchemaGetter.onSome<number, string>(
+ *   (s) => Effect.succeed(Option.some(Number(s)))
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link onNone} — handle only absent values
+ * - {@link transform} — simpler pure transformation of present values
+ * - {@link transformOrFail} — fallible transformation of present values
  *
  * @category Constructors
  * @since 4.0.0
@@ -150,8 +472,34 @@ export function onSome<T, E, R = never>(
 }
 
 /**
- * Returns a getter that effectfully checks a value and returns an issue if the
- * check fails.
+ * Creates a getter that validates a value using an effectful check function.
+ *
+ * Use this when:
+ * - You need to validate a decoded value (e.g. check a constraint or call an external service).
+ * - The validation may be asynchronous or require Effect services.
+ *
+ * Behavior:
+ * - Only runs when input is `Some` — `None` passes through.
+ * - The check function returns a validation result:
+ *   - `undefined` or `true` — value is valid, passes through.
+ *   - `false` or a `string` — value is invalid, fails with an `Issue`.
+ *   - An `Issue` object — fails with that issue directly.
+ *   - `{ path, message }` — fails with a nested path issue.
+ * - Does not transform the value — input and output types are the same.
+ *
+ * **Example** (Effectful validation)
+ *
+ * ```ts
+ * import { SchemaGetter, Effect } from "effect"
+ *
+ * const nonNegative = SchemaGetter.checkEffect<number>((n) =>
+ *   Effect.succeed(n >= 0 ? undefined : "must be non-negative")
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link transform} — when you need to change the value, not just validate
+ * - {@link fail} — unconditional failure
  *
  * @category Constructors
  * @since 4.0.0
@@ -177,7 +525,37 @@ export function checkEffect<T, R = never>(
 }
 
 /**
- * Returns a getter that maps a defined value to a value.
+ * Creates a getter that applies a pure function to present values.
+ *
+ * This is the most commonly used constructor. It transforms `Some(e)` to
+ * `Some(f(e))` and leaves `None` unchanged.
+ *
+ * Use this when:
+ * - You have a pure, infallible transformation between types.
+ * - Building encode/decode pairs for `Schema.decodeTo`.
+ *
+ * Behavior:
+ * - Pure, does not mutate input.
+ * - Skips `None` inputs — only called when a value is present.
+ * - Never fails.
+ *
+ * **Example** (String to number transformation pair)
+ *
+ * ```ts
+ * import { Schema, SchemaGetter } from "effect"
+ *
+ * const NumberFromString = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Number, {
+ *     decode: SchemaGetter.transform((s) => Number(s)),
+ *     encode: SchemaGetter.transform((n) => String(n))
+ *   })
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link transformOrFail} — when the transformation can fail
+ * - {@link transformOptional} — when you need to handle `None` inputs
+ * - {@link passthrough} — when no transformation is needed
  *
  * @category Constructors
  * @since 4.0.0
@@ -187,7 +565,35 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
 }
 
 /**
- * Returns a getter that maps a defined value to a value or a failure.
+ * Creates a getter that applies a fallible, effectful transformation to present values.
+ *
+ * Use this when:
+ * - The transformation may fail (e.g. parsing, validation).
+ * - The transformation needs Effect services or is async.
+ *
+ * Behavior:
+ * - Skips `None` inputs — only called when a value is present.
+ * - On success, wraps the result in `Some`.
+ * - On failure, propagates the `Issue`.
+ *
+ * **Example** (Parsing with failure)
+ *
+ * ```ts
+ * import { SchemaGetter, SchemaIssue, Effect, Option } from "effect"
+ *
+ * const safeParseInt = SchemaGetter.transformOrFail<number, string>(
+ *   (s) => {
+ *     const n = parseInt(s, 10)
+ *     return isNaN(n)
+ *       ? Effect.fail(new SchemaIssue.InvalidValue(Option.some(s), { message: "not an integer" }))
+ *       : Effect.succeed(n)
+ *   }
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link transform} — when transformation cannot fail
+ * - {@link onSome} — when you need full `Option` control over the output
  *
  * @category Constructors
  * @since 4.0.0
@@ -199,8 +605,29 @@ export function transformOrFail<T, E, R = never>(
 }
 
 /**
- * Returns a getter that maps a missing or a defined value to a missing or a
- * defined value.
+ * Creates a getter that transforms the full `Option` — both present and absent values.
+ *
+ * Use this when:
+ * - You need to handle both `Some` and `None` cases.
+ * - You want to turn a present value into absent, or vice versa.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ * - Receives the full `Option<E>` and must return `Option<T>`.
+ *
+ * **Example** (Filter out empty strings)
+ *
+ * ```ts
+ * import { SchemaGetter, Option } from "effect"
+ *
+ * const skipEmpty = SchemaGetter.transformOptional<string, string>((o) =>
+ *   Option.filter(o, (s) => s.length > 0)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link transform} — simpler, only handles present values
+ * - {@link omit} — always returns `None`
  *
  * @category Constructors
  * @since 4.0.0
@@ -210,7 +637,26 @@ export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Opti
 }
 
 /**
- * Returns a getter that omits a value in the output.
+ * Creates a getter that always returns `None`, effectively omitting the value from output.
+ *
+ * Use this when:
+ * - A field should be excluded during decoding or encoding.
+ *
+ * Behavior:
+ * - Always returns `Option.None` regardless of input.
+ * - Never fails.
+ *
+ * **Example** (Omit a field during encoding)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const omitField = SchemaGetter.omit<string>()
+ * ```
+ *
+ * See also:
+ * - {@link transformOptional} — when you want conditional omission
+ * - {@link forbidden} — when you want to fail instead of silently omit
  *
  * @category Constructors
  * @since 4.0.0
@@ -220,8 +666,28 @@ export function omit<T>(): Getter<never, T> {
 }
 
 /**
- * Returns a getter that provides a default value when the input is
- * `Option<undefined>`.
+ * Creates a getter that replaces `undefined` values with a default.
+ *
+ * Use this when:
+ * - A field may be `undefined` in the encoded input and should have a fallback.
+ *
+ * Behavior:
+ * - If the input is `Some(undefined)` or `None`, produces `Some(defaultValue())`.
+ * - If the input is `Some(value)` where value is not `undefined`, passes it through.
+ * - `defaultValue` is called lazily each time a default is needed.
+ *
+ * **Example** (Default value for optional field)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const withZero = SchemaGetter.withDefault(() => 0)
+ * // Getter<number, number | undefined>
+ * ```
+ *
+ * See also:
+ * - {@link onNone} — handle only absent keys (not `undefined` values)
+ * - {@link required} — fail instead of providing a default
  *
  * @category Constructors
  * @since 4.0.0
@@ -236,6 +702,27 @@ export function withDefault<T>(defaultValue: () => T): Getter<T, T | undefined> 
 }
 
 /**
+ * Coerces any value to a `string` using the global `String()` constructor.
+ *
+ * Use this when:
+ * - You need a string representation of an arbitrary encoded value.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ * - Delegates to `globalThis.String`.
+ *
+ * **Example** (Coerce to string)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const toString = SchemaGetter.String<number>()
+ * // Getter<string, number>
+ * ```
+ *
+ * See also:
+ * - {@link transform} — for custom string conversions
+ *
  * @category Coercions
  * @since 4.0.0
  */
@@ -244,6 +731,27 @@ export function String<E>(): Getter<string, E> {
 }
 
 /**
+ * Coerces any value to a `number` using the global `Number()` constructor.
+ *
+ * Use this when:
+ * - You need numeric coercion of an encoded value.
+ *
+ * Behavior:
+ * - Pure, never fails (may produce `NaN` for non-numeric inputs).
+ * - Delegates to `globalThis.Number`.
+ *
+ * **Example** (Coerce to number)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const toNumber = SchemaGetter.Number<string>()
+ * // Getter<number, string>
+ * ```
+ *
+ * See also:
+ * - {@link transformOrFail} — for validated number parsing
+ *
  * @category Coercions
  * @since 4.0.0
  */
@@ -252,6 +760,24 @@ export function Number<E>(): Getter<number, E> {
 }
 
 /**
+ * Coerces any value to a `boolean` using the global `Boolean()` constructor.
+ *
+ * Use this when:
+ * - You need boolean coercion (truthiness check) of an encoded value.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ * - Delegates to `globalThis.Boolean`.
+ *
+ * **Example** (Coerce to boolean)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const toBool = SchemaGetter.Boolean<string>()
+ * // Getter<boolean, string>
+ * ```
+ *
  * @category Coercions
  * @since 4.0.0
  */
@@ -260,6 +786,24 @@ export function Boolean<E>(): Getter<boolean, E> {
 }
 
 /**
+ * Coerces a value to `bigint` using the global `BigInt()` constructor.
+ *
+ * Use this when:
+ * - You need to convert strings, numbers, or booleans to `bigint`.
+ *
+ * Behavior:
+ * - Delegates to `globalThis.BigInt`.
+ * - Throws at runtime if the input cannot be converted (e.g. non-numeric string).
+ *
+ * **Example** (Coerce to bigint)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const toBigInt = SchemaGetter.BigInt<string>()
+ * // Getter<bigint, string>
+ * ```
+ *
  * @category Coercions
  * @since 4.0.0
  */
@@ -268,6 +812,27 @@ export function BigInt<E extends string | number | bigint | boolean>(): Getter<b
 }
 
 /**
+ * Coerces a value to a `Date` using `new Date(input)`.
+ *
+ * Use this when:
+ * - You need to parse a string, number, or Date into a `Date` object.
+ *
+ * Behavior:
+ * - Delegates to `new globalThis.Date(input)`.
+ * - Does not validate the result — may produce an invalid Date.
+ *
+ * **Example** (Coerce to Date)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const toDate = SchemaGetter.Date<string>()
+ * // Getter<Date, string>
+ * ```
+ *
+ * See also:
+ * - {@link dateTimeUtcFromInput} — validated DateTime parsing
+ *
  * @category Coercions
  * @since 4.0.0
  */
@@ -276,6 +841,19 @@ export function Date<E extends string | number | Date>(): Getter<Date, E> {
 }
 
 /**
+ * Trims whitespace from both ends of a string.
+ *
+ * Behavior:
+ * - Pure, delegates to `String.trim`.
+ *
+ * **Example** (Trim whitespace)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const trimmed = SchemaGetter.trim<string>()
+ * ```
+ *
  * @category string
  * @since 4.0.0
  */
@@ -284,6 +862,19 @@ export function trim<E extends string>(): Getter<string, E> {
 }
 
 /**
+ * Capitalizes the first character of a string.
+ *
+ * Behavior:
+ * - Pure, delegates to `String.capitalize`.
+ *
+ * **Example** (Capitalize string)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const cap = SchemaGetter.capitalize<string>()
+ * ```
+ *
  * @category string
  * @since 4.0.0
  */
@@ -292,6 +883,19 @@ export function capitalize<E extends string>(): Getter<string, E> {
 }
 
 /**
+ * Lowercases the first character of a string.
+ *
+ * Behavior:
+ * - Pure, delegates to `String.uncapitalize`.
+ *
+ * **Example** (Uncapitalize string)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const uncap = SchemaGetter.uncapitalize<string>()
+ * ```
+ *
  * @category string
  * @since 4.0.0
  */
@@ -300,6 +904,22 @@ export function uncapitalize<E extends string>(): Getter<string, E> {
 }
 
 /**
+ * Converts a `snake_case` string to `camelCase`.
+ *
+ * Behavior:
+ * - Pure, delegates to `String.snakeToCamel`.
+ *
+ * **Example** (Snake to camel)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const toCamel = SchemaGetter.snakeToCamel<string>()
+ * ```
+ *
+ * See also:
+ * - {@link camelToSnake} — inverse operation
+ *
  * @category string
  * @since 4.0.0
  */
@@ -308,6 +928,22 @@ export function snakeToCamel<E extends string>(): Getter<string, E> {
 }
 
 /**
+ * Converts a `camelCase` string to `snake_case`.
+ *
+ * Behavior:
+ * - Pure, delegates to `String.camelToSnake`.
+ *
+ * **Example** (Camel to snake)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const toSnake = SchemaGetter.camelToSnake<string>()
+ * ```
+ *
+ * See also:
+ * - {@link snakeToCamel} — inverse operation
+ *
  * @category string
  * @since 4.0.0
  */
@@ -316,6 +952,22 @@ export function camelToSnake<E extends string>(): Getter<string, E> {
 }
 
 /**
+ * Converts a string to lowercase.
+ *
+ * Behavior:
+ * - Pure, delegates to `String.toLowerCase`.
+ *
+ * **Example** (To lowercase)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const lower = SchemaGetter.toLowerCase<string>()
+ * ```
+ *
+ * See also:
+ * - {@link toUpperCase} — inverse operation
+ *
  * @category string
  * @since 4.0.0
  */
@@ -324,6 +976,22 @@ export function toLowerCase<E extends string>(): Getter<string, E> {
 }
 
 /**
+ * Converts a string to uppercase.
+ *
+ * Behavior:
+ * - Pure, delegates to `String.toUpperCase`.
+ *
+ * **Example** (To uppercase)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const upper = SchemaGetter.toUpperCase<string>()
+ * ```
+ *
+ * See also:
+ * - {@link toLowerCase} — inverse operation
+ *
  * @category string
  * @since 4.0.0
  */
@@ -336,6 +1004,29 @@ type ParseJsonOptions = {
 }
 
 /**
+ * Parses a JSON string into a value.
+ *
+ * Use this when:
+ * - An encoded value is a JSON string that needs to be parsed during decoding.
+ *
+ * Behavior:
+ * - Skips `None` inputs.
+ * - Without `reviver`: returns `Schema.MutableJson` (typed JSON).
+ * - With `reviver`: returns `unknown` (reviver may produce arbitrary values).
+ * - On parse failure, fails with `Issue.InvalidValue` containing the error message.
+ *
+ * **Example** (Parse JSON)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const parse = SchemaGetter.parseJson<string>()
+ * // Getter<MutableJson, string>
+ * ```
+ *
+ * See also:
+ * - {@link stringifyJson} — inverse operation
+ *
  * @category Json
  * @since 4.0.0
  */
@@ -356,6 +1047,28 @@ type StringifyJsonOptions = {
 }
 
 /**
+ * Stringifies a value to JSON.
+ *
+ * Use this when:
+ * - A decoded value needs to be serialized to a JSON string during encoding.
+ *
+ * Behavior:
+ * - Skips `None` inputs.
+ * - On stringify failure (e.g. circular references), fails with `Issue.InvalidValue`.
+ * - Supports optional `replacer` and `space` options (same as `JSON.stringify`).
+ *
+ * **Example** (Stringify JSON)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const stringify = SchemaGetter.stringifyJson()
+ * // Getter<string, unknown>
+ * ```
+ *
+ * See also:
+ * - {@link parseJson} — inverse operation
+ *
  * @category Json
  * @since 4.0.0
  */
@@ -369,12 +1082,28 @@ export function stringifyJson(options?: StringifyJsonOptions): Getter<string, un
 }
 
 /**
- * Parse a string into a record of key-value pairs.
+ * Parses a string into a record of key-value pairs.
  *
- * **Options**
+ * Use this when:
+ * - An encoded string contains delimited key-value pairs (e.g. `"a=1,b=2"`).
  *
- * - `separator`: The separator between key-value pairs. Defaults to `,`.
- * - `keyValueSeparator`: The separator between key and value. Defaults to `=`.
+ * Behavior:
+ * - Splits the string by `separator` (default `,`), then each pair by `keyValueSeparator` (default `=`).
+ * - Pairs missing a key or value are silently skipped.
+ * - Pure, never fails.
+ *
+ * **Example** (Parse key-value string)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const parse = SchemaGetter.splitKeyValue<string>()
+ * // "a=1,b=2" -> { a: "1", b: "2" }
+ * ```
+ *
+ * See also:
+ * - {@link joinKeyValue} — inverse operation
+ * - {@link split} — split into an array of strings
  *
  * @category string
  * @since 4.0.0
@@ -397,12 +1126,26 @@ export function splitKeyValue<E extends string>(options?: {
 }
 
 /**
- * Join a record of key-value pairs into a string.
+ * Joins a record of key-value pairs into a delimited string.
  *
- * **Options**
+ * Use this when:
+ * - A decoded record needs to be serialized as a delimited key-value string.
  *
- * - `separator`: The separator between key-value pairs. Defaults to `,`.
- * - `keyValueSeparator`: The separator between key and value. Defaults to `=`.
+ * Behavior:
+ * - Joins entries with `separator` (default `,`) and key/value with `keyValueSeparator` (default `=`).
+ * - Pure, never fails.
+ *
+ * **Example** (Join key-value record)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const join = SchemaGetter.joinKeyValue()
+ * // { a: "1", b: "2" } -> "a=1,b=2"
+ * ```
+ *
+ * See also:
+ * - {@link splitKeyValue} — inverse operation
  *
  * @category string
  * @since 4.0.0
@@ -419,9 +1162,28 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
 }
 
 /**
- * Parses a string into an array of strings.
+ * Splits a string into an array of strings by a separator.
  *
- * An empty string is parsed as an empty array.
+ * Use this when:
+ * - An encoded string is a delimited list (e.g. CSV values).
+ *
+ * Behavior:
+ * - Splits by `separator` (default `,`).
+ * - An empty string produces an empty array (not `[""]`).
+ * - Pure, never fails.
+ *
+ * **Example** (Split comma-separated string)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const splitComma = SchemaGetter.split<string>()
+ * // "a,b,c" -> ["a", "b", "c"]
+ * // "" -> []
+ * ```
+ *
+ * See also:
+ * - {@link splitKeyValue} — when values are key-value pairs
  *
  * @category string
  * @since 4.0.0
@@ -434,6 +1196,24 @@ export function split<E extends string>(options?: {
 }
 
 /**
+ * Encodes a `Uint8Array` or string to a Base64 string.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ *
+ * **Example** (Encode to Base64)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const encode = SchemaGetter.encodeBase64<Uint8Array>()
+ * ```
+ *
+ * See also:
+ * - {@link decodeBase64} — inverse (to `Uint8Array`)
+ * - {@link decodeBase64String} — inverse (to `string`)
+ * - {@link encodeBase64Url} — URL-safe variant
+ *
  * @category Base64
  * @since 4.0.0
  */
@@ -442,6 +1222,24 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
 }
 
 /**
+ * Encodes a `Uint8Array` or string to a URL-safe Base64 string.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ *
+ * **Example** (Encode to Base64Url)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const encode = SchemaGetter.encodeBase64Url<Uint8Array>()
+ * ```
+ *
+ * See also:
+ * - {@link decodeBase64Url} — inverse (to `Uint8Array`)
+ * - {@link decodeBase64UrlString} — inverse (to `string`)
+ * - {@link encodeBase64} — standard Base64 variant
+ *
  * @category Base64
  * @since 4.0.0
  */
@@ -450,6 +1248,23 @@ export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string,
 }
 
 /**
+ * Encodes a `Uint8Array` or string to a hexadecimal string.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ *
+ * **Example** (Encode to hex)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const encode = SchemaGetter.encodeHex<Uint8Array>()
+ * ```
+ *
+ * See also:
+ * - {@link decodeHex} — inverse (to `Uint8Array`)
+ * - {@link decodeHexString} — inverse (to `string`)
+ *
  * @category Hex
  * @since 4.0.0
  */
@@ -458,6 +1273,24 @@ export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
 }
 
 /**
+ * Decodes a Base64 string to a `Uint8Array`.
+ *
+ * Behavior:
+ * - Fails with `Issue.InvalidValue` if the input is not valid Base64.
+ *
+ * **Example** (Decode Base64 to bytes)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const decode = SchemaGetter.decodeBase64<string>()
+ * // Getter<Uint8Array, string>
+ * ```
+ *
+ * See also:
+ * - {@link decodeBase64String} — decode to `string` instead
+ * - {@link encodeBase64} — inverse operation
+ *
  * @category Base64
  * @since 4.0.0
  */
@@ -471,6 +1304,24 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
 }
 
 /**
+ * Decodes a Base64 string to a UTF-8 `string`.
+ *
+ * Behavior:
+ * - Fails with `Issue.InvalidValue` if the input is not valid Base64.
+ *
+ * **Example** (Decode Base64 to string)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const decode = SchemaGetter.decodeBase64String<string>()
+ * // Getter<string, string>
+ * ```
+ *
+ * See also:
+ * - {@link decodeBase64} — decode to `Uint8Array` instead
+ * - {@link encodeBase64} — inverse operation
+ *
  * @category Base64
  * @since 4.0.0
  */
@@ -484,6 +1335,24 @@ export function decodeBase64String<E extends string>(): Getter<string, E> {
 }
 
 /**
+ * Decodes a URL-safe Base64 string to a `Uint8Array`.
+ *
+ * Behavior:
+ * - Fails with `Issue.InvalidValue` if the input is not valid Base64Url.
+ *
+ * **Example** (Decode Base64Url to bytes)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const decode = SchemaGetter.decodeBase64Url<string>()
+ * // Getter<Uint8Array, string>
+ * ```
+ *
+ * See also:
+ * - {@link decodeBase64UrlString} — decode to `string` instead
+ * - {@link encodeBase64Url} — inverse operation
+ *
  * @category Base64
  * @since 4.0.0
  */
@@ -497,6 +1366,24 @@ export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
 }
 
 /**
+ * Decodes a URL-safe Base64 string to a UTF-8 `string`.
+ *
+ * Behavior:
+ * - Fails with `Issue.InvalidValue` if the input is not valid Base64Url.
+ *
+ * **Example** (Decode Base64Url to string)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const decode = SchemaGetter.decodeBase64UrlString<string>()
+ * // Getter<string, string>
+ * ```
+ *
+ * See also:
+ * - {@link decodeBase64Url} — decode to `Uint8Array` instead
+ * - {@link encodeBase64Url} — inverse operation
+ *
  * @category Base64
  * @since 4.0.0
  */
@@ -510,6 +1397,24 @@ export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
 }
 
 /**
+ * Decodes a hexadecimal string to a `Uint8Array`.
+ *
+ * Behavior:
+ * - Fails with `Issue.InvalidValue` if the input is not valid hex.
+ *
+ * **Example** (Decode hex to bytes)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const decode = SchemaGetter.decodeHex<string>()
+ * // Getter<Uint8Array, string>
+ * ```
+ *
+ * See also:
+ * - {@link decodeHexString} — decode to `string` instead
+ * - {@link encodeHex} — inverse operation
+ *
  * @category Hex
  * @since 4.0.0
  */
@@ -523,6 +1428,24 @@ export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
 }
 
 /**
+ * Decodes a hexadecimal string to a UTF-8 `string`.
+ *
+ * Behavior:
+ * - Fails with `Issue.InvalidValue` if the input is not valid hex.
+ *
+ * **Example** (Decode hex to string)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const decode = SchemaGetter.decodeHexString<string>()
+ * // Getter<string, string>
+ * ```
+ *
+ * See also:
+ * - {@link decodeHex} — decode to `Uint8Array` instead
+ * - {@link encodeHex} — inverse operation
+ *
  * @category Hex
  * @since 4.0.0
  */
@@ -536,6 +1459,26 @@ export function decodeHexString<E extends string>(): Getter<string, E> {
 }
 
 /**
+ * Parses a `DateTime.Input` value (string, number, or Date) into a `DateTime.Utc`.
+ *
+ * Use this when:
+ * - An encoded value represents a date/time and should be decoded to a `DateTime.Utc`.
+ *
+ * Behavior:
+ * - Fails with `Issue.InvalidValue` if the input cannot be parsed as a valid DateTime.
+ *
+ * **Example** (Parse DateTime)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const parseDate = SchemaGetter.dateTimeUtcFromInput<string>()
+ * // Getter<DateTime.Utc, string>
+ * ```
+ *
+ * See also:
+ * - {@link Date} — simpler coercion to `Date` (no validation)
+ *
  * @category DateTime
  * @since 4.0.0
  */
@@ -549,6 +1492,30 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
 }
 
 /**
+ * Decodes a `FormData` object into a nested tree structure using bracket-path notation.
+ *
+ * Use this when:
+ * - Parsing `FormData` from HTTP requests into structured objects.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ * - Interprets bracket-path keys (e.g. `user[name]`, `items[0]`) to build nested objects/arrays.
+ * - Leaf values are `string` or `Blob`.
+ *
+ * **Example** (Decode FormData)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const decode = SchemaGetter.decodeFormData()
+ * // Getter<TreeObject<string | Blob>, FormData>
+ * ```
+ *
+ * See also:
+ * - {@link encodeFormData} — inverse operation
+ * - {@link makeTreeRecord} — the underlying bracket-path parser
+ * - {@link decodeURLSearchParams} — similar for URLSearchParams
+ *
  * @category FormData
  * @since 4.0.0
  */
@@ -561,6 +1528,30 @@ const collectFormDataEntries = collectBracketPathEntries((value): value is strin
 )
 
 /**
+ * Encodes a nested object into a `FormData` instance using bracket-path notation.
+ *
+ * Use this when:
+ * - Serializing structured data to `FormData` for HTTP requests.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ * - Flattens nested objects/arrays into bracket-path keys (e.g. `user[name]`, `items[0]`).
+ * - Non-object inputs produce an empty `FormData`.
+ *
+ * **Example** (Encode to FormData)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const encode = SchemaGetter.encodeFormData()
+ * // Getter<FormData, unknown>
+ * ```
+ *
+ * See also:
+ * - {@link decodeFormData} — inverse operation
+ * - {@link collectBracketPathEntries} — the underlying flattener
+ * - {@link encodeURLSearchParams} — similar for URLSearchParams
+ *
  * @category FormData
  * @since 4.0.0
  */
@@ -578,6 +1569,30 @@ export function encodeFormData(): Getter<FormData, unknown> {
 }
 
 /**
+ * Decodes a `URLSearchParams` object into a nested tree structure using bracket-path notation.
+ *
+ * Use this when:
+ * - Parsing query parameters from URLs into structured objects.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ * - Interprets bracket-path keys (e.g. `user[name]`, `items[0]`) to build nested objects/arrays.
+ * - Leaf values are `string`.
+ *
+ * **Example** (Decode URLSearchParams)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const decode = SchemaGetter.decodeURLSearchParams()
+ * // Getter<TreeObject<string>, URLSearchParams>
+ * ```
+ *
+ * See also:
+ * - {@link encodeURLSearchParams} — inverse operation
+ * - {@link makeTreeRecord} — the underlying bracket-path parser
+ * - {@link decodeFormData} — similar for FormData
+ *
  * @category URLSearchParams
  * @since 4.0.0
  */
@@ -588,6 +1603,30 @@ export function decodeURLSearchParams(): Getter<Schema.TreeObject<string>, URLSe
 const collectURLSearchParamsEntries = collectBracketPathEntries(Predicate.isString)
 
 /**
+ * Encodes a nested object into a `URLSearchParams` instance using bracket-path notation.
+ *
+ * Use this when:
+ * - Serializing structured data to query parameters for URLs.
+ *
+ * Behavior:
+ * - Pure, never fails.
+ * - Flattens nested objects/arrays into bracket-path keys.
+ * - Non-object inputs produce an empty `URLSearchParams`.
+ *
+ * **Example** (Encode to URLSearchParams)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const encode = SchemaGetter.encodeURLSearchParams()
+ * // Getter<URLSearchParams, unknown>
+ * ```
+ *
+ * See also:
+ * - {@link decodeURLSearchParams} — inverse operation
+ * - {@link collectBracketPathEntries} — the underlying flattener
+ * - {@link encodeFormData} — similar for FormData
+ *
  * @category URLSearchParams
  * @since 4.0.0
  */
@@ -619,31 +1658,43 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
 }
 
 /**
- * Makes a tree record from a list of bracket path entries.
+ * Builds a nested tree object from a list of bracket-path entries.
  *
- * A bracket path is a string that describes how to navigate or build a nested
- * tree structure made of objects and arrays.
+ * A bracket path is a string like `"user[address][city]"` that describes nested
+ * object/array structure. This function interprets those paths and constructs the
+ * corresponding nested object.
  *
- * Supported syntax:
- * - "foo"                     → object key "foo"
- * - "foo[bar]"                → nested key "foo" → "bar"
- * - "foo[0]"                  → array index 0
- * - "foo[0][id]"              → mixed object/array nesting
- * - "foo[]"                   → append to array "foo"
- * - "foo[][id]"               → append a new element, then descend into "id"
- * - ""                        → a real empty path key
+ * Use this when:
+ * - Parsing FormData or URLSearchParams entries into structured objects.
+ * - You have flat key-value pairs with bracket-path keys that need nesting.
  *
- * Parsing rules:
- * - Each "[segment]" becomes a path segment.
- * - Numeric segments become numbers (array indexes).
- * - "[]" produces an empty-string segment "" which instructs array appends.
+ * Behavior:
+ * - Mutates and returns a new object (does not mutate the input array).
+ * - Supported syntax:
+ *   - `"foo"` → object key `"foo"`
+ *   - `"foo[bar]"` → nested `{ foo: { bar: ... } }`
+ *   - `"foo[0]"` → array index `{ foo: [value] }`
+ *   - `"foo[]"` → append to array `foo`
+ *   - `""` → real empty key
+ * - Duplicate keys for the same path are merged into arrays.
  *
- * Construction rules:
- * - If the next segment is a number or "", create an array.
- * - Otherwise, create an object.
- * - When inside an array and the current token is "":
- *   - last segment: push value
- *   - not last: push a new element (array or object), then continue
+ * **Example** (Build tree from bracket paths)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const tree = SchemaGetter.makeTreeRecord([
+ *   ["user[name]", "Alice"],
+ *   ["user[tags][]", "admin"],
+ *   ["user[tags][]", "editor"]
+ * ])
+ * // { user: { name: "Alice", tags: ["admin", "editor"] } }
+ * ```
+ *
+ * See also:
+ * - {@link collectBracketPathEntries} — inverse operation (tree to flat entries)
+ * - {@link decodeFormData} — uses this internally
+ * - {@link decodeURLSearchParams} — uses this internally
  *
  * @category Tree
  * @since 4.0.0
@@ -701,8 +1752,36 @@ export function makeTreeRecord<A>(
 }
 
 /**
- * Collects all bracket path entries from an object, ignoring leaf values that
- * are not of type `A`.
+ * Flattens a nested object into bracket-path entries, filtering leaf values by a type guard.
+ *
+ * This is the inverse of {@link makeTreeRecord}. It takes a nested object and produces
+ * flat `[bracketPath, value]` pairs suitable for `FormData` or `URLSearchParams`.
+ *
+ * Use this when:
+ * - Serializing structured objects to flat key-value entries.
+ * - Building custom `FormData` or `URLSearchParams` encoders.
+ *
+ * Behavior:
+ * - Returns a curried function: first call provides the leaf type guard, second call provides the object.
+ * - Recursively traverses objects and arrays.
+ * - If all elements of an array are leaves, encodes them as multiple entries with the same key
+ *   (e.g. `tags=a&tags=b`). Otherwise uses indexed bracket paths (e.g. `items[0]`, `items[1]`).
+ * - Non-leaf values that aren't objects or arrays are silently skipped.
+ *
+ * **Example** (Flatten object to bracket paths)
+ *
+ * ```ts
+ * import { SchemaGetter, Predicate } from "effect"
+ *
+ * const collectStrings = SchemaGetter.collectBracketPathEntries(Predicate.isString)
+ * const entries = collectStrings({ user: { name: "Alice", tags: ["admin", "editor"] } })
+ * // [["user[name]", "Alice"], ["user[tags]", "admin"], ["user[tags]", "editor"]]
+ * ```
+ *
+ * See also:
+ * - {@link makeTreeRecord} — inverse operation (flat entries to tree)
+ * - {@link encodeFormData} — uses this internally
+ * - {@link encodeURLSearchParams} — uses this internally
  *
  * @category Tree
  * @since 4.0.0

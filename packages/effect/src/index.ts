@@ -2535,6 +2535,89 @@ export * as Schema from "./Schema.ts"
 export * as SchemaAST from "./SchemaAST.ts"
 
 /**
+ * Composable transformation primitives for the Effect Schema system.
+ *
+ * A `Getter<T, E, R>` represents a single-direction transformation from an
+ * encoded type `E` to a decoded type `T`. Getters are the building blocks
+ * that `Schema.decodeTo` and `Schema.decode` use to define how values are
+ * transformed during encoding and decoding. They handle optionality
+ * (`Option<E>` in, `Option<T>` out), can fail with `Issue`, and can require
+ * Effect services via `R`.
+ *
+ * ## Mental model
+ *
+ * - **Getter**: A function `Option<E> -> Effect<Option<T>, Issue, R>`. It
+ *   transforms an optional encoded value into an optional decoded value,
+ *   possibly failing or requiring services.
+ * - **Passthrough**: The identity getter — returns the input unchanged. Used
+ *   when no transformation is needed. Optimized away during composition.
+ * - **Option-awareness**: Getters receive and return `Option` to handle
+ *   missing keys in structs. `Option.None` means the key is absent.
+ * - **Composition**: Getters compose left-to-right via `.compose()`. A
+ *   passthrough on either side is a no-op (identity optimization).
+ * - **Issue**: The error type for all getter failures (see `SchemaIssue`).
+ *
+ * ## Common tasks
+ *
+ * - Pass a value through unchanged → {@link passthrough}
+ * - Transform a value purely → {@link transform}
+ * - Transform a value with possible failure → {@link transformOrFail}
+ * - Transform with full Option control → {@link transformOptional}
+ * - Handle missing keys → {@link onNone}, {@link required}, {@link withDefault}
+ * - Handle present values → {@link onSome}
+ * - Validate a value with an effectful check → {@link checkEffect}
+ * - Produce a constant value → {@link succeed}
+ * - Always fail → {@link fail}, {@link forbidden}
+ * - Omit a value from output → {@link omit}
+ * - Coerce to a primitive type → {@link String}, {@link Number}, {@link Boolean}, {@link BigInt}, {@link Date}
+ * - Transform strings → {@link trim}, {@link capitalize}, {@link toLowerCase}, {@link toUpperCase}, {@link split}, {@link splitKeyValue}, {@link joinKeyValue}
+ * - Parse/stringify JSON → {@link parseJson}, {@link stringifyJson}
+ * - Encode/decode Base64 → {@link encodeBase64}, {@link decodeBase64}, {@link decodeBase64String}
+ * - Encode/decode Hex → {@link encodeHex}, {@link decodeHex}, {@link decodeHexString}
+ * - Parse DateTime → {@link dateTimeUtcFromInput}
+ * - Decode/encode FormData → {@link decodeFormData}, {@link encodeFormData}
+ * - Decode/encode URLSearchParams → {@link decodeURLSearchParams}, {@link encodeURLSearchParams}
+ * - Build nested tree from bracket paths → {@link makeTreeRecord}
+ * - Flatten nested tree to bracket paths → {@link collectBracketPathEntries}
+ *
+ * ## Gotchas
+ *
+ * - Getters are not bidirectional. To define a full encode/decode pair, supply
+ *   both a `decode` and an `encode` getter to `Schema.decodeTo`.
+ * - `passthrough` requires `T === E` by default. Use `{ strict: false }` to
+ *   bypass the type constraint, or use {@link passthroughSupertype} / {@link passthroughSubtype}.
+ * - `transform` skips `None` inputs (missing keys) — the function is only
+ *   called when a value is present. Use `transformOptional` if you need to
+ *   handle missing values.
+ * - `parseJson` without a `reviver` returns `Schema.MutableJson`. With a
+ *   reviver, the return type widens to `unknown`.
+ * - `split` treats an empty string as an empty array, not `[""]`.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Using SchemaGetter with Schema.decodeTo)
+ *
+ * ```ts
+ * import { Schema, SchemaGetter } from "effect"
+ *
+ * const NumberFromString = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Number, {
+ *     decode: SchemaGetter.transform((s) => Number(s)),
+ *     encode: SchemaGetter.transform((n) => String(n))
+ *   })
+ * )
+ *
+ * const result = Schema.decodeUnknownSync(NumberFromString)("42")
+ * // result: 42
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link Getter} — the core class
+ * - {@link transform} — most common constructor
+ * - {@link passthrough} — identity getter
+ * - {@link transformOrFail} — fallible transformation
+ *
  * @since 4.0.0
  */
 export * as SchemaGetter from "./SchemaGetter.ts"
