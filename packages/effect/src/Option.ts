@@ -1,5 +1,76 @@
 /**
+ * The `Option` module provides a type-safe way to represent values that may or
+ * may not exist. An `Option<A>` is either `Some<A>` (containing a value) or
+ * `None` (representing absence).
+ *
+ * **Mental model**
+ *
+ * - `Option<A>` is a discriminated union: `None | Some<A>`
+ * - `None` represents the absence of a value (like `null`/`undefined`, but type-safe)
+ * - `Some<A>` wraps a present value of type `A`, accessed via `.value`
+ * - `Option` is a monad: chain operations with {@link flatMap}, compose pipelines with `pipe`
+ * - All operations are pure and return new `Option` values; the input is never mutated
+ * - `Option` is yieldable in `Effect.gen`, producing the inner value or short-circuiting with `NoSuchElementError`
+ *
+ * **Common tasks**
+ *
+ * - Create from a value: {@link some}, {@link none}
+ * - Create from nullable: {@link fromNullishOr}, {@link fromNullOr}, {@link fromUndefinedOr}
+ * - Create from iterable: {@link fromIterable}
+ * - Create from Result: {@link getSuccess}, {@link getFailure}
+ * - Transform: {@link map}, {@link flatMap}, {@link andThen}
+ * - Unwrap: {@link getOrElse}, {@link getOrNull}, {@link getOrUndefined}, {@link getOrThrow}
+ * - Pattern match: {@link match}
+ * - Fallbacks: {@link orElse}, {@link orElseSome}, {@link firstSomeOf}
+ * - Filter: {@link filter}, {@link filterMap}
+ * - Combine multiple: {@link all}, {@link zipWith}, {@link product}
+ * - Generator syntax: {@link gen}
+ * - Do notation: {@link Do}, {@link bind}, {@link let_ let}
+ * - Check contents: {@link isSome}, {@link isNone}, {@link contains}, {@link exists}
+ *
+ * **Gotchas**
+ *
+ * - `Option.some(null)` is a valid `Some`; use {@link fromNullishOr} to treat `null`/`undefined` as `None`
+ * - {@link filterMap} is an alias for {@link flatMap}
+ * - {@link getOrThrow} throws a generic `Error`; prefer {@link getOrThrowWith} for custom errors
+ * - `None` is a singleton; compare with {@link isNone}, not `===`
+ * - When yielded in `Effect.gen`, a `None` becomes a `NoSuchElementError` defect
+ *
+ * **Quickstart**
+ *
+ * **Example** (Working with optional values)
+ *
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * const name = Option.some("Alice")
+ * const age = Option.none<number>()
+ *
+ * // Transform
+ * const upper = Option.map(name, (s) => s.toUpperCase())
+ *
+ * // Unwrap with fallback
+ * console.log(Option.getOrElse(upper, () => "unknown"))
+ * // Output: "ALICE"
+ *
+ * console.log(Option.getOrElse(age, () => 0))
+ * // Output: 0
+ *
+ * // Combine multiple options
+ * const both = Option.all({ name, age })
+ * console.log(Option.isNone(both))
+ * // Output: true
+ * ```
+ *
+ * **See also**
+ *
+ * - {@link some} / {@link none} for creating values
+ * - {@link map} / {@link flatMap} for transforming values
+ * - {@link match} for pattern matching
+ * - {@link gen} for generator-based syntax
+ *
  * @since 2.0.0
+ * @module
  */
 import type { NoSuchElementError } from "./Cause.ts"
 import * as Combiner from "./Combiner.ts"
@@ -27,31 +98,23 @@ import * as Gen from "./Utils.ts"
 const TypeId = "~effect/data/Option"
 
 /**
- * The `Option` data type represents optional values. An `Option<A>` can either
- * be `Some<A>`, containing a value of type `A`, or `None`, representing the
- * absence of a value.
+ * The `Option` data type represents optional values. An `Option<A>` is either
+ * `Some<A>`, containing a value of type `A`, or `None`, representing absence.
  *
- * **When to Use**
+ * **When to use**
  *
- * You can use `Option` in scenarios like:
- *
- * - Using it for initial values
- * - Returning values from functions that are not defined for all possible
- *   inputs (referred to as “partial functions”)
+ * - Representing initial values that may not yet exist
+ * - Returning from partial functions (not defined for all inputs)
  * - Managing optional fields in data structures
- * - Handling optional function arguments
  *
- * @example
+ * **Example** (Creating and matching Options)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * // Creating an Option with a value
  * const someValue: Option.Option<number> = Option.some(42)
- *
- * // Creating an Option with no value
  * const noneValue: Option.Option<number> = Option.none()
  *
- * // Pattern matching to handle both cases
  * const result = Option.match(someValue, {
  *   onNone: () => "No value",
  *   onSome: (value) => `Value is ${value}`
@@ -61,12 +124,31 @@ const TypeId = "~effect/data/Option"
  * // Output: "Value is 42"
  * ```
  *
+ * @see {@link some} for creating a `Some`
+ * @see {@link none} for creating a `None`
+ * @see {@link match} for pattern matching
+ *
  * @category Models
  * @since 2.0.0
  */
 export type Option<A> = None<A> | Some<A>
 
 /**
+ * Represents the absence of a value within an {@link Option}.
+ *
+ * **When to use**
+ *
+ * - Use as a type guard target when narrowing via {@link isNone}
+ *
+ * **Behavior**
+ *
+ * - `_tag` is always `"None"`
+ * - Yieldable in `Effect.gen` — yields `NoSuchElementError`
+ * - Implements `Pipeable`, `Inspectable`, and structural equality
+ *
+ * @see {@link isNone} to check if an `Option` is `None`
+ * @see {@link none} to construct a `None`
+ *
  * @category Models
  * @since 2.0.0
  */
@@ -82,6 +164,23 @@ export interface None<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
 }
 
 /**
+ * Represents the presence of a value within an {@link Option}.
+ *
+ * **When to use**
+ *
+ * - Use as a type guard target when narrowing via {@link isSome}
+ * - Access the inner value via `.value`
+ *
+ * **Behavior**
+ *
+ * - `_tag` is always `"Some"`
+ * - `.value` holds the contained value of type `A`
+ * - Yieldable in `Effect.gen` — yields the inner value
+ * - Implements `Pipeable`, `Inspectable`, and structural equality
+ *
+ * @see {@link isSome} to check if an `Option` is `Some`
+ * @see {@link some} to construct a `Some`
+ *
  * @category Models
  * @since 2.0.0
  */
@@ -99,17 +198,8 @@ export interface Some<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
 }
 
 /**
- * @example
- * ```ts
- * import type { Option } from "effect"
- * import type * as Unify from "effect/Unify"
- *
- * // Internal unification interface used by the Effect library
- * // for type-level operations with Option types
- * type ExampleUnify = Option.OptionUnify<
- *   { [Unify.typeSymbol]?: Option.Option<string> }
- * >
- * ```
+ * Internal unification interface for `Option` types. Used by the Effect
+ * library's type system for type-level operations.
  *
  * @category Models
  * @since 2.0.0
@@ -119,13 +209,18 @@ export interface OptionUnify<A extends { [Unify.typeSymbol]?: any }> {
 }
 
 /**
- * @example
+ * Namespace containing utility types for `Option`.
+ *
+ * **Example** (Extracting the value type)
+ *
  * ```ts
  * import type { Option } from "effect"
  *
- * // Namespace containing utility types for Option
- * type StringOption = Option.Option<string>
- * type ValueType = Option.Option.Value<StringOption> // string
+ * declare const myOption: Option.Option<string>
+ *
+ * //      ┌─── string
+ * //      ▼
+ * type MyType = Option.Option.Value<typeof myOption>
  * ```
  *
  * @category Namespaces
@@ -135,15 +230,13 @@ export declare namespace Option {
   /**
    * Extracts the type of the value contained in an `Option`.
    *
-   * @example
+   * **Example** (Extracting the value type)
+   *
    * ```ts
    * import type { Option } from "effect"
    *
-   * // Declare an Option holding a string
    * declare const myOption: Option.Option<string>
    *
-   * // Extract the type of the value within the Option
-   * //
    * //      ┌─── string
    * //      ▼
    * type MyType = Option.Option.Value<typeof myOption>
@@ -156,14 +249,7 @@ export declare namespace Option {
 }
 
 /**
- * @example
- * ```ts
- * import type { Option } from "effect"
- *
- * // Internal interface for type unification behavior
- * // Used by the Effect library's type system
- * type IgnoreInterface = Option.OptionUnifyIgnore
- * ```
+ * Internal interface for type unification ignore behavior.
  *
  * @category Models
  * @since 2.0.0
@@ -171,14 +257,7 @@ export declare namespace Option {
 export interface OptionUnifyIgnore {}
 
 /**
- * @example
- * ```ts
- * import type { Option } from "effect"
- *
- * // Type lambda interface for higher-kinded types with Option
- * // Used internally by the Effect library's type system
- * type ExampleLambda = Option.OptionTypeLambda
- * ```
+ * Type lambda interface for higher-kinded type encodings with `Option`.
  *
  * @category Type Lambdas
  * @since 2.0.0
@@ -188,18 +267,23 @@ export interface OptionTypeLambda extends TypeLambda {
 }
 
 /**
- * Represents the absence of a value by creating an empty `Option`.
+ * Creates an `Option` representing the absence of a value.
  *
- * `Option.none` returns an `Option<never>`, which is a subtype of `Option<A>`.
- * This means you can use it in place of any `Option<A>` regardless of the type
- * `A`.
+ * **When to use**
  *
- * @example
+ * - Representing a missing or uninitialized value
+ * - Returning "no result" from a function
+ *
+ * **Behavior**
+ *
+ * - Returns `Option<never>`, which is a subtype of `Option<A>` for any `A`
+ * - Always returns the same singleton instance
+ *
+ * **Example** (Creating an empty Option)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * // An Option holding no value
- * //
  * //      ┌─── Option<never>
  * //      ▼
  * const noValue = Option.none()
@@ -218,12 +302,21 @@ export const none = <A = never>(): Option<A> => option.none
 /**
  * Wraps the given value into an `Option` to represent its presence.
  *
- * @example
+ * **When to use**
+ *
+ * - Wrapping a known-present value as `Option`
+ * - Returning a successful result from a partial function
+ *
+ * **Behavior**
+ *
+ * - Always returns `Some<A>`
+ * - Does not filter `null` or `undefined`; use {@link fromNullishOr} for that
+ *
+ * **Example** (Wrapping a value)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * // An Option holding the number 1
- * //
  * //      ┌─── Option<number>
  * //      ▼
  * const value = Option.some(1)
@@ -242,14 +335,18 @@ export const some: <A>(value: A) => Option<A> = option.some
 /**
  * Determines whether the given value is an `Option`.
  *
- * **Details**
+ * **When to use**
  *
- * This function checks if a value is an instance of `Option`. It returns `true`
- * if the value is either `Option.some` or `Option.none`, and `false` otherwise.
- * This is particularly useful when working with unknown values or when you need
- * to ensure type safety in your code.
+ * - Validating unknown values at runtime boundaries
+ * - Type-narrowing in union types
  *
- * @example
+ * **Behavior**
+ *
+ * - Returns `true` for both `Some` and `None` instances
+ * - Acts as a type guard, narrowing the input to `Option<unknown>`
+ *
+ * **Example** (Checking if a value is an Option)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -263,15 +360,27 @@ export const some: <A>(value: A) => Option<A> = option.some
  * // Output: false
  * ```
  *
+ * @see {@link isNone} to check for `None` specifically
+ * @see {@link isSome} to check for `Some` specifically
+ *
  * @category Guards
  * @since 2.0.0
  */
 export const isOption: (input: unknown) => input is Option<unknown> = option.isOption
 
 /**
- * Checks whether an `Option` represents the absence of a value (`None`).
+ * Checks whether an `Option` is `None` (absent).
  *
- * @example
+ * **When to use**
+ *
+ * - Branching on absence before accessing `.value`
+ *
+ * **Behavior**
+ *
+ * - Acts as a type guard, narrowing to `None<A>`
+ *
+ * **Example** (Checking for None)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -292,7 +401,16 @@ export const isNone: <A>(self: Option<A>) => self is None<A> = option.isNone
 /**
  * Checks whether an `Option` contains a value (`Some`).
  *
- * @example
+ * **When to use**
+ *
+ * - Branching on presence before accessing `.value`
+ *
+ * **Behavior**
+ *
+ * - Acts as a type guard, narrowing to `Some<A>`
+ *
+ * **Example** (Checking for Some)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -311,32 +429,25 @@ export const isNone: <A>(self: Option<A>) => self is None<A> = option.isNone
 export const isSome: <A>(self: Option<A>) => self is Some<A> = option.isSome
 
 /**
- * Performs pattern matching on an `Option` to handle both `Some` and `None`
- * cases.
+ * Pattern-matches on an `Option`, handling both `None` and `Some` cases.
  *
- * **Details**
+ * **When to use**
  *
- * This function allows you to match against an `Option` and handle both
- * scenarios: when the `Option` is `None` (i.e., contains no value), and when
- * the `Option` is `Some` (i.e., contains a value). It executes one of the
- * provided functions based on the case:
+ * - Exhaustively handling both branches in one expression
+ * - Transforming an `Option` into a plain value
  *
- * - If the `Option` is `None`, the `onNone` function is executed and its result
- *   is returned.
- * - If the `Option` is `Some`, the `onSome` function is executed with the
- *   contained value, and its result is returned.
+ * **Behavior**
  *
- * This function provides a concise and functional way to handle optional values
- * without resorting to `if` or manual checks, making your code more declarative
- * and readable.
+ * - If `None`, calls `onNone` and returns its result
+ * - If `Some`, calls `onSome` with the value and returns its result
+ * - Supports the `dual` API (data-last and data-first)
  *
- * @example
+ * **Example** (Matching on an Option)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * const foo = Option.some(1)
- *
- * const message = Option.match(foo, {
+ * const message = Option.match(Option.some(1), {
  *   onNone: () => "Option is empty",
  *   onSome: (value) => `Option has a value: ${value}`
  * })
@@ -344,6 +455,8 @@ export const isSome: <A>(self: Option<A>) => self is Some<A> = option.isSome
  * console.log(message)
  * // Output: "Option has a value: 1"
  * ```
+ *
+ * @see {@link getOrElse} for unwrapping with a default
  *
  * @category Pattern matching
  * @since 2.0.0
@@ -366,23 +479,21 @@ export const match: {
 )
 
 /**
- * Converts an `Option`-returning function into a type guard.
+ * Converts an `Option`-returning function into a type guard (refinement).
  *
- * **Details**
+ * **When to use**
  *
- * This function transforms a function that returns an `Option` into a type
- * guard, ensuring type safety when validating or narrowing types. The returned
- * type guard function checks whether the input satisfies the condition defined
- * in the original `Option`-returning function.
+ * - Turning a parsing function into a type-narrowing predicate
+ * - Filtering arrays with `Array.prototype.filter`
  *
- * If the original function returns `Option.some`, the type guard evaluates to
- * `true`, confirming the input is of the desired type. If the function returns
- * `Option.none`, the type guard evaluates to `false`.
+ * **Behavior**
  *
- * This utility is especially useful for validating types in union types,
- * filtering arrays, or ensuring safe handling of specific subtypes.
+ * - Returns `true` when the original function returns `Some`
+ * - Returns `false` when the original function returns `None`
+ * - Narrows the input type to `B` on success
  *
- * @example
+ * **Example** (Converting a parser to a type guard)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -402,30 +513,29 @@ export const match: {
  * // Output: false
  * ```
  *
+ * @see {@link liftPredicate} for the reverse direction
+ *
  * @category Conversions
  * @since 2.0.0
  */
 export const toRefinement = <A, B extends A>(f: (a: A) => Option<B>): (a: A) => a is B => (a: A): a is B => isSome(f(a))
 
 /**
- * Converts an `Iterable` into an `Option`, wrapping the first element if it
- * exists.
+ * Wraps the first element of an `Iterable` in a `Some`, or returns `None` if
+ * the iterable is empty.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes an `Iterable` (e.g., an array, a generator, or any object
- * implementing the `Iterable` interface) and returns an `Option` based on its
- * content:
+ * - Safely extracting the head of a collection
+ * - Working with generators or lazy iterables
  *
- * - If the `Iterable` contains at least one element, the first element is
- *   wrapped in a `Some` and returned.
- * - If the `Iterable` is empty, `None` is returned, representing the absence of
- *   a value.
+ * **Behavior**
  *
- * This utility is useful for safely handling collections that might be empty,
- * ensuring you explicitly handle both cases where a value exists or doesn't.
+ * - Only consumes the first element; does not iterate the rest
+ * - Returns `None` for empty iterables
  *
- * @example
+ * **Example** (Getting the first element)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -435,6 +545,8 @@ export const toRefinement = <A, B extends A>(f: (a: A) => Option<B>): (a: A) => 
  * console.log(Option.fromIterable([]))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link toArray} for the inverse direction
  *
  * @category Constructors
  * @since 2.0.0
@@ -447,24 +559,19 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
 }
 
 /**
- * Converts a `Result` into an `Option` by discarding the error and extracting
- * the right value.
+ * Converts a `Result` into an `Option`, keeping only the success value.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes an `Result` and returns an `Option` based on its value:
+ * - Discarding the error channel when you only care about success
  *
- * - If the `Result` is a `Ok`, its value is wrapped in a `Some` and
- *   returned.
- * - If the `Result` is a `Err`, the error is discarded, and `None` is
- *   returned.
+ * **Behavior**
  *
- * This is particularly useful when you only care about the success case
- * (`Ok`) of an `Result` and want to handle the result using `Option`. By
- * using this function, you can convert `Result` into a simpler structure for
- * cases where error handling is not required.
+ * - `Ok` → `Some` with the success value
+ * - `Err` → `None` (error is discarded)
  *
- * @example
+ * **Example** (Extracting the success side)
+ *
  * ```ts
  * import { Option, Result } from "effect"
  *
@@ -483,22 +590,19 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
 export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuccess
 
 /**
- * Converts a `Result` into an `Option` by discarding the right value and
- * extracting the left value.
+ * Converts a `Result` into an `Option`, keeping only the error value.
  *
- * **Details**
+ * **When to use**
  *
- * This function transforms an `Result` into an `Option` as follows:
+ * - Extracting the error when you don't need the success channel
  *
- * - If the `Result` is a `Err`, its value is wrapped in a `Some` and returned.
- * - If the `Result` is a `Ok`, the value is discarded, and `None` is
- *   returned.
+ * **Behavior**
  *
- * This utility is useful when you only care about the error case (`Err`) of an
- * `Result` and want to handle it as an `Option`. By discarding the right value,
- * it simplifies error-focused workflows.
+ * - `Err` → `Some` with the error value
+ * - `Ok` → `None` (success value is discarded)
  *
- * @example
+ * **Example** (Extracting the failure side)
+ *
  * ```ts
  * import { Option, Result } from "effect"
  *
@@ -517,22 +621,21 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
 export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFailure
 
 /**
- * Returns the value contained in the `Option` if it is `Some`, otherwise
- * evaluates and returns the result of `onNone`.
+ * Extracts the value from a `Some`, or evaluates a fallback thunk on `None`.
  *
- * **Details**
+ * **When to use**
  *
- * This function allows you to provide a fallback value or computation for when
- * an `Option` is `None`. If the `Option` contains a value (`Some`), that value
- * is returned. If it is empty (`None`), the `onNone` function is executed, and
- * its result is returned instead.
+ * - Providing a default value for an absent `Option`
+ * - Unwrapping with lazy evaluation of the fallback
  *
- * This utility is helpful for safely handling `Option` values by ensuring you
- * always receive a meaningful result, whether or not the `Option` contains a
- * value. It is particularly useful for providing default values or alternative
- * logic when working with optional values.
+ * **Behavior**
  *
- * @example
+ * - `Some` → returns the inner value
+ * - `None` → calls `onNone()` and returns its result
+ * - `onNone` is only called when needed (lazy)
+ *
+ * **Example** (Unwrapping with a fallback)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -543,8 +646,9 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
  * // Output: 0
  * ```
  *
- * @see {@link getOrNull} for a version that returns `null` instead of executing a function.
- * @see {@link getOrUndefined} for a version that returns `undefined` instead of executing a function.
+ * @see {@link getOrNull} to fall back to `null`
+ * @see {@link getOrUndefined} to fall back to `undefined`
+ * @see {@link getOrThrow} to throw on `None`
  *
  * @category Getters
  * @since 2.0.0
@@ -558,30 +662,23 @@ export const getOrElse: {
 )
 
 /**
- * Returns the provided `Option` `that` if the current `Option` (`self`) is
- * `None`; otherwise, it returns `self`.
+ * Returns the fallback `Option` if `self` is `None`; otherwise returns `self`.
  *
- * **Details**
+ * **When to use**
  *
- * This function provides a fallback mechanism for `Option` values. If the
- * current `Option` is `None` (i.e., it contains no value), the `that` function
- * is evaluated, and its resulting `Option` is returned. If the current `Option`
- * is `Some` (i.e., it contains a value), the original `Option` is returned
- * unchanged.
+ * - Chaining fallback `Option` computations
+ * - Building priority chains of optional values
  *
- * This is particularly useful for chaining fallback values or computations,
- * allowing you to provide alternative `Option` values when the first one is
- * empty.
+ * **Behavior**
  *
- * @example
+ * - `Some` → returns `self` unchanged
+ * - `None` → evaluates and returns `that()`
+ * - `that` is lazily evaluated
+ *
+ * **Example** (Providing a fallback Option)
+ *
  * ```ts
  * import { Option } from "effect"
- *
- * console.log(Option.none().pipe(Option.orElse(() => Option.none())))
- * // Output: { _id: 'Option', _tag: 'None' }
- *
- * console.log(Option.some("a").pipe(Option.orElse(() => Option.none())))
- * // Output: { _id: 'Option', _tag: 'Some', value: 'a' }
  *
  * console.log(Option.none().pipe(Option.orElse(() => Option.some("b"))))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'b' }
@@ -589,6 +686,9 @@ export const getOrElse: {
  * console.log(Option.some("a").pipe(Option.orElse(() => Option.some("b"))))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'a' }
  * ```
+ *
+ * @see {@link orElseSome} to wrap the fallback value in `Some` automatically
+ * @see {@link firstSomeOf} to pick the first `Some` from a collection
  *
  * @category Error handling
  * @since 2.0.0
@@ -602,21 +702,20 @@ export const orElse: {
 )
 
 /**
- * Returns the provided default value wrapped in `Some` if the current `Option`
- * (`self`) is `None`; otherwise, returns `self`.
+ * Returns `Some` of the fallback value if `self` is `None`; otherwise returns
+ * `self`.
  *
- * **Details**
+ * **When to use**
  *
- * This function provides a way to supply a default value for cases where an
- * `Option` is `None`. If the current `Option` is empty (`None`), the `onNone`
- * function is executed to compute the default value, which is then wrapped in a
- * `Some`. If the current `Option` contains a value (`Some`), it is returned as
- * is.
+ * - Providing a default plain value (not an `Option`) as fallback
  *
- * This is particularly useful for handling optional values where a fallback
- * default needs to be provided explicitly in case of absence.
+ * **Behavior**
  *
- * @example
+ * - `Some` → returns `self` unchanged
+ * - `None` → calls `onNone()`, wraps result in `Some`, and returns it
+ *
+ * **Example** (Providing a fallback value)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -626,6 +725,8 @@ export const orElse: {
  * console.log(Option.some("a").pipe(Option.orElseSome(() => "b")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'a' }
  * ```
+ *
+ * @see {@link orElse} when the fallback is itself an `Option`
  *
  * @category Error handling
  * @since 2.0.0
@@ -639,43 +740,32 @@ export const orElseSome: {
 )
 
 /**
- * Similar to {@link orElse}, but returns an `Result` wrapped in an `Option` to
- * indicate the source of the value.
+ * Like {@link orElse}, but wraps the result in a `Result` to indicate the
+ * source of the value.
  *
- * **Details**
+ * **When to use**
  *
- * This function allows you to provide a fallback `Option` in case the current
- * `Option` (`self`) is `None`. However, unlike `orElse`, it returns the value
- * wrapped in an `Result` object, providing additional information about where
- * the value came from:
+ * - Distinguishing whether a value came from the primary or fallback `Option`
  *
- * - If the value is from the fallback `Option` (`that`), it is wrapped in an
- *   `Result.succeed`.
- * - If the value is from the original `Option` (`self`), it is wrapped in an
- *   `Result.fail`.
+ * **Behavior**
  *
- * This is especially useful when you need to differentiate between values
- * originating from the primary `Option` and those coming from the fallback,
- * while still maintaining the `Option`-style handling.
+ * - `self` is `Some` → `Some(Result.fail(value))` (value from primary)
+ * - `self` is `None`, `that()` is `Some` → `Some(Result.succeed(value))` (value from fallback)
+ * - Both `None` → `None`
  *
- * @example
+ * **Example** (Tracking value source)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * const primary = Option.some("primary")
- * const fallback = () => Option.some("fallback")
- * const noneValue = Option.none()
- *
- * // Primary has value - wrapped in Result.fail
- * const primaryResult = Option.orElseResult(primary, fallback)
- * console.log(primaryResult)
+ * console.log(Option.orElseResult(Option.some("primary"), () => Option.some("fallback")))
  * // Output: { _id: 'Option', _tag: 'Some', value: { _tag: 'Failure', value: 'primary' } }
  *
- * // Primary is None - fallback wrapped in Result.succeed
- * const fallbackResult = Option.orElseResult(noneValue, fallback)
- * console.log(fallbackResult)
+ * console.log(Option.orElseResult(Option.none(), () => Option.some("fallback")))
  * // Output: { _id: 'Option', _tag: 'Some', value: { _tag: 'Success', value: 'fallback' } }
  * ```
+ *
+ * @see {@link orElse} for the simpler variant without source tracking
  *
  * @category Error handling
  * @since 2.0.0
@@ -690,21 +780,20 @@ export const orElseResult: {
 )
 
 /**
- * Returns the first `Some` value found in an `Iterable` collection of
- * `Option`s, or `None` if no `Some` is found.
+ * Returns the first `Some` found in an iterable of `Option`s, or `None` if
+ * all are `None`.
  *
- * **Details**
+ * **When to use**
  *
- * This function iterates over a collection of `Option` values and returns the
- * first `Some` it encounters. If the collection contains only `None` values,
- * the result will also be `None`. This utility is useful for efficiently
- * finding the first valid value in a sequence of potentially empty or invalid
- * options.
+ * - Searching for the first available value in a priority list
  *
- * The iteration stops as soon as a `Some` is found, making this function
- * efficient for large collections.
+ * **Behavior**
  *
- * @example
+ * - Short-circuits on the first `Some`
+ * - Returns `None` only when every element is `None`
+ *
+ * **Example** (Finding the first Some)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -715,6 +804,8 @@ export const orElseResult: {
  * ]))
  * // Output: { _id: 'Option', _tag: 'Some', value: 1 }
  * ```
+ *
+ * @see {@link orElse} for a two-option fallback
  *
  * @category Error handling
  * @since 2.0.0
@@ -732,10 +823,20 @@ export const firstSomeOf = <T, C extends Iterable<Option<T>> = Iterable<Option<T
 }
 
 /**
- * Converts a nullable value into an `Option`. Returns `None` if the value is
- * `null` or `undefined`, otherwise wraps the value in a `Some`.
+ * Converts a nullable value (`null` or `undefined`) into an `Option`.
  *
- * @example
+ * **When to use**
+ *
+ * - Bridging from nullable APIs to `Option`
+ * - Wrapping values that may be `null` or `undefined`
+ *
+ * **Behavior**
+ *
+ * - `null` or `undefined` → `None`
+ * - Any other value → `Some` (typed as `NonNullable<A>`)
+ *
+ * **Example** (From nullable values)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -749,6 +850,10 @@ export const firstSomeOf = <T, C extends Iterable<Option<T>> = Iterable<Option<T
  * // Output: { _id: 'Option', _tag: 'Some', value: 1 }
  * ```
  *
+ * @see {@link fromNullOr} to only treat `null` as absent
+ * @see {@link fromUndefinedOr} to only treat `undefined` as absent
+ * @see {@link liftNullishOr} to lift a nullable-returning function
+ *
  * @category Conversions
  * @since 2.0.0
  */
@@ -757,6 +862,36 @@ export const fromNullishOr = <A>(
 ): Option<NonNullable<A>> => (a == null ? none() : some(a as NonNullable<A>))
 
 /**
+ * Converts a possibly `undefined` value into an `Option`, leaving `null`
+ * as a valid `Some`.
+ *
+ * **When to use**
+ *
+ * - When `null` is a meaningful value but `undefined` means absent
+ *
+ * **Behavior**
+ *
+ * - `undefined` → `None`
+ * - Any other value (including `null`) → `Some`
+ *
+ * **Example** (From possibly-undefined values)
+ *
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * console.log(Option.fromUndefinedOr(undefined))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ *
+ * console.log(Option.fromUndefinedOr(null))
+ * // Output: { _id: 'Option', _tag: 'Some', value: null }
+ *
+ * console.log(Option.fromUndefinedOr(42))
+ * // Output: { _id: 'Option', _tag: 'Some', value: 42 }
+ * ```
+ *
+ * @see {@link fromNullishOr} to treat both `null` and `undefined` as absent
+ * @see {@link fromNullOr} to only treat `null` as absent
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -765,6 +900,36 @@ export const fromUndefinedOr = <A>(
 ): Option<Exclude<A, undefined>> => (a === undefined ? none() : some(a as Exclude<A, undefined>))
 
 /**
+ * Converts a possibly `null` value into an `Option`, leaving `undefined`
+ * as a valid `Some`.
+ *
+ * **When to use**
+ *
+ * - When `undefined` is a meaningful value but `null` means absent
+ *
+ * **Behavior**
+ *
+ * - `null` → `None`
+ * - Any other value (including `undefined`) → `Some`
+ *
+ * **Example** (From possibly-null values)
+ *
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * console.log(Option.fromNullOr(null))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ *
+ * console.log(Option.fromNullOr(undefined))
+ * // Output: { _id: 'Option', _tag: 'Some', value: undefined }
+ *
+ * console.log(Option.fromNullOr(42))
+ * // Output: { _id: 'Option', _tag: 'Some', value: 42 }
+ * ```
+ *
+ * @see {@link fromNullishOr} to treat both `null` and `undefined` as absent
+ * @see {@link fromUndefinedOr} to only treat `undefined` as absent
+ *
  * @category Conversions
  * @since 4.0.0
  */
@@ -773,18 +938,20 @@ export const fromNullOr = <A>(
 ): Option<Exclude<A, null>> => (a === null ? none() : some(a as Exclude<A, null>))
 
 /**
- * Lifts a function that returns `null` or `undefined` into the `Option`
- * context.
+ * Lifts a function that may return `null` or `undefined` into one that returns
+ * an `Option`.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes a function `f` that might return `null` or `undefined`
- * and transforms it into a function that returns an `Option`. The resulting
- * function will return:
- * - `Some` if the original function produces a non-null, non-undefined value.
- * - `None` if the original function produces `null` or `undefined`.
+ * - Wrapping existing nullable-returning functions for use in `Option` pipelines
  *
- * @example
+ * **Behavior**
+ *
+ * - Calls the original function with the given arguments
+ * - Wraps the result via {@link fromNullishOr}
+ *
+ * **Example** (Lifting a parser)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -802,6 +969,9 @@ export const fromNullOr = <A>(
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
  *
+ * @see {@link fromNullishOr} for converting a single value
+ * @see {@link liftThrowable} for functions that throw instead
+ *
  * @category Conversions
  * @since 2.0.0
  */
@@ -811,19 +981,19 @@ export const liftNullishOr = <A extends ReadonlyArray<unknown>, B>(
 (...a) => fromNullishOr(f(...a))
 
 /**
- * Returns the value contained in the `Option` if it is `Some`; otherwise,
- * returns `null`.
+ * Extracts the value from a `Some`, or returns `null` for `None`.
  *
- * **Details**
+ * **When to use**
  *
- * This function provides a way to extract the value of an `Option` while
- * falling back to `null` if the `Option` is `None`.
+ * - Interoping with APIs that use `null` for missing values
  *
- * It is particularly useful in scenarios where `null` is an acceptable
- * placeholder for the absence of a value, such as when interacting with APIs or
- * systems that use `null` as a default for missing values.
+ * **Behavior**
  *
- * @example
+ * - `Some` → the inner value
+ * - `None` → `null`
+ *
+ * **Example** (Unwrapping to null)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -834,25 +1004,28 @@ export const liftNullishOr = <A extends ReadonlyArray<unknown>, B>(
  * // Output: null
  * ```
  *
+ * @see {@link getOrUndefined} to return `undefined` instead
+ * @see {@link getOrElse} for a custom fallback
+ *
  * @category Getters
  * @since 2.0.0
  */
 export const getOrNull: <A>(self: Option<A>) => A | null = getOrElse(constNull)
 
 /**
- * Returns the value contained in the `Option` if it is `Some`; otherwise,
- * returns `undefined`.
+ * Extracts the value from a `Some`, or returns `undefined` for `None`.
  *
- * **Details**
+ * **When to use**
  *
- * This function provides a way to extract the value of an `Option` while
- * falling back to `undefined` if the `Option` is `None`.
+ * - Interoping with APIs that use `undefined` for missing values
  *
- * It is particularly useful in scenarios where `undefined` is an acceptable
- * placeholder for the absence of a value, such as when interacting with APIs or
- * systems that use `undefined` as a default for missing values.
+ * **Behavior**
  *
- * @example
+ * - `Some` → the inner value
+ * - `None` → `undefined`
+ *
+ * **Example** (Unwrapping to undefined)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -863,24 +1036,28 @@ export const getOrNull: <A>(self: Option<A>) => A | null = getOrElse(constNull)
  * // Output: undefined
  * ```
  *
+ * @see {@link getOrNull} to return `null` instead
+ * @see {@link getOrElse} for a custom fallback
+ *
  * @category Getters
  * @since 2.0.0
  */
 export const getOrUndefined: <A>(self: Option<A>) => A | undefined = getOrElse(constUndefined)
 
 /**
- * Lifts a function that throws exceptions into a function that returns an
- * `Option`.
+ * Lifts a function that may throw into one that returns an `Option`.
  *
- * **Details**
+ * **When to use**
  *
- * This utility function takes a function `f` that might throw an exception and
- * transforms it into a safer function that returns an `Option`. If the original
- * function executes successfully, the result is wrapped in a `Some`. If an
- * exception is thrown, the result is `None`, allowing the developer to handle
- * errors in a functional, type-safe way.
+ * - Wrapping exception-throwing APIs (e.g. `JSON.parse`) for safe usage
  *
- * @example
+ * **Behavior**
+ *
+ * - If the function returns normally → `Some` with the result
+ * - If the function throws → `None` (exception is swallowed)
+ *
+ * **Example** (Lifting JSON.parse)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -892,6 +1069,8 @@ export const getOrUndefined: <A>(self: Option<A>) => A | undefined = getOrElse(c
  * console.log(parse(""))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link liftNullishOr} for nullable-returning functions
  *
  * @category Conversions
  * @since 2.0.0
@@ -908,32 +1087,32 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
 }
 
 /**
- * Extracts the value of an `Option` or throws an error if the `Option` is
- * `None`, using a custom error factory.
+ * Extracts the value from a `Some`, or throws a custom error for `None`.
  *
- * **Details**
+ * **When to use**
  *
- * This function allows you to extract the value of an `Option` when it is
- * `Some`. If the `Option` is `None`, it throws an error generated by the
- * provided `onNone` function. This utility is particularly useful when you need
- * a fail-fast behavior for empty `Option` values and want to provide a custom
- * error message or object.
+ * - Fail-fast unwrapping when absence is unexpected
+ * - Providing a descriptive error for debugging
  *
- * @example
+ * **Behavior**
+ *
+ * - `Some` → returns the inner value
+ * - `None` → throws the value returned by `onNone()`
+ *
+ * **Example** (Throwing a custom error)
+ *
  * ```ts
  * import { Option } from "effect"
- * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(
- *   Option.getOrThrowWith(Option.some(1), () => new Error("Unexpected None")),
- *   1
- * )
- * assert.throws(() =>
- *   Option.getOrThrowWith(Option.none(), () => new Error("Unexpected None"))
- * )
+ * console.log(Option.getOrThrowWith(Option.some(1), () => new Error("missing")))
+ * // Output: 1
+ *
+ * Option.getOrThrowWith(Option.none(), () => new Error("missing"))
+ * // throws Error: missing
  * ```
  *
- * @see {@link getOrThrow} for a version that throws a default error.
+ * @see {@link getOrThrow} for a version with a default error
+ * @see {@link getOrElse} for a non-throwing alternative
  *
  * @category Conversions
  * @since 2.0.0
@@ -949,26 +1128,31 @@ export const getOrThrowWith: {
 })
 
 /**
- * Extracts the value of an `Option` or throws a default error if the `Option`
- * is `None`.
+ * Extracts the value from a `Some`, or throws a default `Error` for `None`.
  *
- * **Details**
+ * **When to use**
  *
- * This function extracts the value from an `Option` if it is `Some`. If the
- * `Option` is `None`, it throws a default error. It is useful for fail-fast
- * scenarios where the absence of a value is treated as an exceptional case and
- * a default error is sufficient.
+ * - Quick fail-fast unwrapping when a generic error is acceptable
  *
- * @example
+ * **Behavior**
+ *
+ * - `Some` → returns the inner value
+ * - `None` → throws `new Error("getOrThrow called on a None")`
+ *
+ * **Example** (Throwing a default error)
+ *
  * ```ts
  * import { Option } from "effect"
- * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(Option.getOrThrow(Option.some(1)), 1)
- * assert.throws(() => Option.getOrThrow(Option.none()))
+ * console.log(Option.getOrThrow(Option.some(1)))
+ * // Output: 1
+ *
+ * Option.getOrThrow(Option.none())
+ * // throws Error: getOrThrow called on a None
  * ```
  *
- * @see {@link getOrThrowWith} for a version that allows you to provide a custom error.
+ * @see {@link getOrThrowWith} for a custom error
+ * @see {@link getOrElse} for a non-throwing alternative
  *
  * @category Conversions
  * @since 2.0.0
@@ -976,35 +1160,34 @@ export const getOrThrowWith: {
 export const getOrThrow: <A>(self: Option<A>) => A = getOrThrowWith(() => new Error("getOrThrow called on a None"))
 
 /**
- * Transforms the value inside a `Some` to a new value using the provided
- * function, while leaving `None` unchanged.
+ * Transforms the value inside a `Some` using the provided function, leaving
+ * `None` unchanged.
  *
- * **Details**
+ * **When to use**
  *
- * This function applies a mapping function `f` to the value inside an `Option`
- * if it is a `Some`. If the `Option` is `None`, it remains unchanged. The
- * result is a new `Option` with the transformed value (if it was a `Some`) or
- * still `None`.
+ * - Applying a pure transformation to an optional value
+ * - Chaining transformations in a pipeline
  *
- * This utility is particularly useful for chaining transformations in a
- * functional way without needing to manually handle `None` cases.
+ * **Behavior**
  *
- * @example
+ * - `Some` → applies `f` and wraps the result in a new `Some`
+ * - `None` → returns `None` unchanged
+ * - Does not mutate the input
+ *
+ * **Example** (Mapping over an Option)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * // Mapping over a `Some`
- * const someValue = Option.some(2)
- *
- * console.log(Option.map(someValue, (n) => n * 2))
+ * console.log(Option.map(Option.some(2), (n) => n * 2))
  * // Output: { _id: 'Option', _tag: 'Some', value: 4 }
  *
- * // Mapping over a `None`
- * const noneValue = Option.none<number>()
- *
- * console.log(Option.map(noneValue, (n) => n * 2))
+ * console.log(Option.map(Option.none(), (n: number) => n * 2))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link flatMap} when `f` returns an `Option`
+ * @see {@link as} to replace the value with a constant
  *
  * @category Mapping
  * @since 2.0.0
@@ -1018,34 +1201,31 @@ export const map: {
 )
 
 /**
- * Replaces the value inside a `Some` with the specified constant value, leaving
- * `None` unchanged.
+ * Replaces the value inside a `Some` with a constant, leaving `None` unchanged.
  *
- * **Details**
+ * **When to use**
  *
- * This function transforms an `Option` by replacing the value inside a `Some`
- * with the given constant value `b`. If the `Option` is `None`, it remains
- * unchanged.
+ * - Preserving presence/absence while discarding the original value
  *
- * This is useful when you want to preserve the presence of a value (`Some`) but
- * replace its content with a fixed value.
+ * **Behavior**
  *
- * @example
+ * - `Some` → `Some(b)`
+ * - `None` → `None`
+ *
+ * **Example** (Replacing a value)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * // Replacing the value of a `Some`
- * const someValue = Option.some(42)
- *
- * console.log(Option.as(someValue, "new value"))
+ * console.log(Option.as(Option.some(42), "new value"))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'new value' }
  *
- * // Replacing a `None` (no effect)
- * const noneValue = Option.none<number>()
- *
- * console.log(Option.as(noneValue, "new value"))
+ * console.log(Option.as(Option.none(), "new value"))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link asVoid} to replace with `undefined`
+ * @see {@link map} for a general transformation
  *
  * @category Mapping
  * @since 2.0.0
@@ -1056,18 +1236,20 @@ export const as: {
 } = dual(2, <X, B>(self: Option<X>, b: B): Option<B> => map(self, () => b))
 
 /**
- * Replaces the value inside a `Some` with the constant value `void`, leaving
- * `None` unchanged.
+ * Replaces the value inside a `Some` with `void` (`undefined`), leaving `None`
+ * unchanged.
  *
- * **Details**
+ * **When to use**
  *
- * This function transforms an `Option` by replacing the value inside a `Some`
- * with `void`. If the `Option` is `None`, it remains unchanged.
+ * - Discarding the value while preserving presence/absence
  *
- * This is particularly useful in scenarios where the presence or absence of a
- * value is significant, but the actual content of the value is irrelevant.
+ * **Behavior**
  *
- * @example
+ * - `Some` → `Some(undefined)`
+ * - `None` → `None`
+ *
+ * **Example** (Voiding the value)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -1078,6 +1260,8 @@ export const as: {
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
  *
+ * @see {@link as} to replace with a specific constant
+ *
  * @category Mapping
  * @since 2.0.0
  */
@@ -1086,25 +1270,22 @@ export const asVoid: <_>(self: Option<_>) => Option<void> = as(undefined)
 const void_: Option<void> = some(undefined)
 export {
   /**
-   * An `Option` containing the constant value `void` (`undefined`).
+   * A pre-built `Some(undefined)` constant.
    *
-   * This represents the presence of a "void" value, which is useful in scenarios
-   * where you need to indicate that an operation completed successfully but
-   * produced no meaningful result.
+   * **When to use**
    *
-   * @example
+   * - Returning a "success with no meaningful value" from an `Option`-returning function
+   *
+   * **Example** (Using Option.void)
+   *
    * ```ts
    * import { Option } from "effect"
    *
    * console.log(Option.void)
    * // Output: { _id: 'Option', _tag: 'Some', value: undefined }
-   *
-   * // Using void in a computation
-   * const performAction = (): Option.Option<void> => {
-   *   // Some side effect here
-   *   return Option.void
-   * }
    * ```
+   *
+   * @see {@link asVoid} to convert an existing `Option` to `Option<void>`
    *
    * @category Constructors
    * @since 2.0.0
@@ -1113,54 +1294,46 @@ export {
 }
 
 /**
- * Applies a function to the value of a `Some` and flattens the resulting
- * `Option`. If the input is `None`, it remains `None`.
+ * Applies a function that returns an `Option` to the value of a `Some`,
+ * flattening the result. Returns `None` if the input is `None`.
  *
- * **Details**
+ * **When to use**
  *
- * This function allows you to chain computations that return `Option` values.
- * If the input `Option` is `Some`, the provided function `f` is applied to the
- * contained value, and the resulting `Option` is returned. If the input is
- * `None`, the function is not applied, and the result remains `None`.
+ * - Chaining computations that each may fail (return `None`)
+ * - Sequencing dependent optional operations
  *
- * This utility is particularly useful for sequencing operations that may fail
- * or produce optional results, enabling clean and concise workflows for
- * handling such cases.
+ * **Behavior**
  *
- * @example
+ * - `Some` → applies `f` to the value and returns its `Option` result
+ * - `None` → returns `None` without calling `f`
+ * - Equivalent to `map` followed by {@link flatten}
+ *
+ * **Example** (Chaining optional lookups)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * interface Address {
- *   readonly city: string
- *   readonly street: Option.Option<string>
- * }
- *
  * interface User {
- *   readonly id: number
- *   readonly username: string
- *   readonly email: Option.Option<string>
- *   readonly address: Option.Option<Address>
+ *   readonly name: string
+ *   readonly address: Option.Option<{ readonly street: Option.Option<string> }>
  * }
  *
  * const user: User = {
- *   id: 1,
- *   username: "john_doe",
- *   email: Option.some("john.doe@example.com"),
- *   address: Option.some({
- *     city: "New York",
- *     street: Option.some("123 Main St")
- *   })
+ *   name: "John",
+ *   address: Option.some({ street: Option.some("123 Main St") })
  * }
  *
- * // Use flatMap to extract the street value
  * const street = user.address.pipe(
- *   Option.flatMap((address) => address.street)
+ *   Option.flatMap((addr) => addr.street)
  * )
  *
  * console.log(street)
  * // Output: { _id: 'Option', _tag: 'Some', value: '123 Main St' }
  * ```
+ *
+ * @see {@link map} when `f` returns a plain value
+ * @see {@link andThen} for a more flexible variant
+ * @see {@link flatten} to unwrap a nested `Option<Option<A>>`
  *
  * @category Sequencing
  * @since 2.0.0
@@ -1174,44 +1347,41 @@ export const flatMap: {
 )
 
 /**
- * Chains two `Option`s together. The second `Option` can either be a static
- * value or depend on the result of the first `Option`.
+ * Chains a second computation onto an `Option`. The second value can be a
+ * plain value, an `Option`, or a function returning either.
  *
- * **Details**
+ * **When to use**
  *
- * This function enables sequencing of two `Option` computations. If the first
- * `Option` is `Some`, the second `Option` is evaluated. The second `Option` can
- * either:
+ * - Flexible chaining where the next step may return `Option`, a plain value,
+ *   or a function
  *
- * - Be a static `Option` value.
- * - Be a function that produces an `Option`, optionally based on the value of
- *   the first `Option`.
+ * **Behavior**
  *
- * If the first `Option` is `None`, the function skips the evaluation of the
- * second `Option` and directly returns `None`.
+ * - If `self` is `None`, returns `None` immediately
+ * - If `f` is a function, calls it with the `Some` value
+ * - If `f` returns an `Option`, returns it as-is; if a plain value, wraps in `Some`
+ * - If `f` is not a function, uses it directly (same wrapping rules)
  *
- * @example
+ * **Example** (Chaining with andThen)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * const maybeValue = Option.some(5)
- * const maybeNone = Option.none()
- *
- * // Chain with a function
- * const chained = Option.andThen(maybeValue, (x) => Option.some(x * 2))
- * console.log(chained)
+ * // Chain with a function returning Option
+ * console.log(Option.andThen(Option.some(5), (x) => Option.some(x * 2)))
  * // Output: { _id: 'Option', _tag: 'Some', value: 10 }
  *
- * // Chain with None - skips the function
- * const chainedNone = Option.andThen(maybeNone, (x) => Option.some(x * 2))
- * console.log(chainedNone)
- * // Output: { _id: 'Option', _tag: 'None' }
- *
  * // Chain with a static value
- * const staticChain = Option.andThen(maybeValue, Option.some("hello"))
- * console.log(staticChain)
+ * console.log(Option.andThen(Option.some(5), "hello"))
  * // Output: { _id: 'Option', _tag: 'Some', value: "hello" }
+ *
+ * // Chain with None - skips
+ * console.log(Option.andThen(Option.none(), (x) => Option.some(x * 2)))
+ * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link flatMap} for the standard monadic bind
+ * @see {@link map} when you always return a plain value
  *
  * @category Sequencing
  * @since 2.0.0
@@ -1235,63 +1405,42 @@ export const andThen: {
 )
 
 /**
- * Combines `flatMap` and `fromNullish`, transforming the value inside a `Some`
- * using a function that may return `null` or `undefined`.
+ * Combines {@link flatMap} with {@link fromNullishOr}: applies a function that
+ * may return `null`/`undefined` to the value of a `Some`.
  *
- * **Details**
+ * **When to use**
  *
- * This function applies a transformation function `f` to the value inside a
- * `Some`. The function `f` may return a value, `null`, or `undefined`. If `f`
- * returns a value, it is wrapped in a `Some`. If `f` returns `null` or
- * `undefined`, the result is `None`. If the input `Option` is `None`, the
- * function is not applied, and `None` is returned.
+ * - Chaining with functions that use `null`/`undefined` instead of `Option`
+ * - Navigating deeply nested optional properties
  *
- * This utility is particularly useful when working with deeply nested optional
- * values or chaining computations that may result in `null` or `undefined` at
- * some point.
+ * **Behavior**
  *
- * @example
+ * - `None` → `None`
+ * - `Some` → applies `f`, then wraps via {@link fromNullishOr}
+ *
+ * **Example** (Navigating optional properties)
+ *
  * ```ts
  * import { Option } from "effect"
  *
  * interface Employee {
- *   company?: {
- *     address?: {
- *       street?: {
- *         name?: string
- *       }
- *     }
- *   }
+ *   company?: { address?: { street?: { name?: string } } }
  * }
  *
- * const employee1: Employee = {
+ * const emp: Employee = {
  *   company: { address: { street: { name: "high street" } } }
  * }
  *
- * // Extracting a deeply nested property
  * console.log(
- *   Option.some(employee1)
- *     .pipe(
- *       Option.flatMapNullishOr((employee) =>
- *         employee.company?.address?.street?.name
- *       )
- *     )
+ *   Option.some(emp).pipe(
+ *     Option.flatMapNullishOr((e) => e.company?.address?.street?.name)
+ *   )
  * )
  * // Output: { _id: 'Option', _tag: 'Some', value: 'high street' }
- *
- * const employee2: Employee = { company: { address: { street: {} } } }
- *
- * // Property does not exist
- * console.log(
- *   Option.some(employee2)
- *     .pipe(
- *       Option.flatMapNullishOr((employee) =>
- *         employee.company?.address?.street?.name
- *       )
- *     )
- * )
- * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link flatMap} when the function already returns `Option`
+ * @see {@link fromNullishOr} for single-value conversion
  *
  * @category Sequencing
  * @since 2.0.0
@@ -1306,34 +1455,31 @@ export const flatMapNullishOr: {
 )
 
 /**
- * Flattens an `Option` of `Option` into a single `Option`.
+ * Flattens a nested `Option<Option<A>>` into `Option<A>`.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes an `Option` that wraps another `Option` and flattens it
- * into a single `Option`. If the outer `Option` is `Some`, the function
- * extracts the inner `Option`. If the outer `Option` is `None`, the result
- * remains `None`.
+ * - Removing one layer of `Option` nesting
  *
- * This is useful for simplifying nested `Option` structures that may arise
- * during functional operations.
+ * **Behavior**
  *
- * @example
+ * - `Some(Some(value))` → `Some(value)`
+ * - `Some(None)` → `None`
+ * - `None` → `None`
+ *
+ * **Example** (Flattening nested Options)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * const nested = Option.some(Option.some("value"))
- * console.log(Option.flatten(nested))
+ * console.log(Option.flatten(Option.some(Option.some("value"))))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'value' }
  *
- * const nestedNone = Option.some(Option.none())
- * console.log(Option.flatten(nestedNone))
- * // Output: { _id: 'Option', _tag: 'None' }
- *
- * const outerNone = Option.none<Option.Option<string>>()
- * console.log(Option.flatten(outerNone))
+ * console.log(Option.flatten(Option.some(Option.none())))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link flatMap} which is `map` + `flatten`
  *
  * @category Sequencing
  * @since 2.0.0
@@ -1341,21 +1487,19 @@ export const flatMapNullishOr: {
 export const flatten: <A>(self: Option<Option<A>>) => Option<A> = flatMap(identity)
 
 /**
- * Combines two `Option`s, keeping the value from the second `Option` if both
- * are `Some`.
+ * Sequences two `Option`s, keeping the value from the second if both are `Some`.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes two `Option`s and returns the second one if the first is
- * `Some`. If the first `Option` is `None`, the result will also be `None`,
- * regardless of the second `Option`. It effectively "zips" the two `Option`s
- * while discarding the value from the first `Option`.
+ * - Running a side-condition that must succeed, then using the second value
  *
- * This is particularly useful when sequencing computations where the result of
- * the first computation is not needed, and you only care about the result of
- * the second computation.
+ * **Behavior**
  *
- * @example
+ * - Both `Some` → returns `that`
+ * - Either `None` → returns `None`
+ *
+ * **Example** (Keeping the second value)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -1364,10 +1508,10 @@ export const flatten: <A>(self: Option<Option<A>>) => Option<A> = flatMap(identi
  *
  * console.log(Option.zipRight(Option.none(), Option.some("hello")))
  * // Output: { _id: 'Option', _tag: 'None' }
- *
- * console.log(Option.zipRight(Option.some(1), Option.none()))
- * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link zipLeft} to keep the first value instead
+ * @see {@link zipWith} to combine both values
  *
  * @category Zipping
  * @since 2.0.0
@@ -1378,33 +1522,31 @@ export const zipRight: {
 } = dual(2, <X, B>(self: Option<X>, that: Option<B>): Option<B> => flatMap(self, () => that))
 
 /**
- * Combines two `Option`s, keeping the value from the first `Option` if both are
- * `Some`.
+ * Sequences two `Option`s, keeping the value from the first if both are `Some`.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes two `Option`s and returns the first one if it is `Some`.
- * If either the first `Option` or the second `Option` is `None`, the result
- * will be `None`. This operation "zips" the two `Option`s while discarding the
- * value from the second `Option`.
+ * - Running a validation that must succeed, but keeping the original value
  *
- * This is useful when sequencing computations where the second `Option`
- * represents a dependency or condition that must hold, but its value is
- * irrelevant.
+ * **Behavior**
  *
- * @example
+ * - Both `Some` → returns `self`
+ * - Either `None` → returns `None`
+ *
+ * **Example** (Keeping the first value)
+ *
  * ```ts
  * import { Option } from "effect"
  *
  * console.log(Option.zipLeft(Option.some("hello"), Option.some(1)))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'hello' }
  *
- * console.log(Option.zipLeft(Option.none(), Option.some(1)))
- * // Output: { _id: 'Option', _tag: 'None' }
- *
  * console.log(Option.zipLeft(Option.some("hello"), Option.none()))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link zipRight} to keep the second value instead
+ * @see {@link zipWith} to combine both values
  *
  * @category Zipping
  * @since 2.0.0
@@ -1415,18 +1557,20 @@ export const zipLeft: {
 } = dual(2, <A, X>(self: Option<A>, that: Option<X>): Option<A> => tap(self, () => that))
 
 /**
- * Composes two functions that return `Option` values, creating a new function
- * that chains them together.
+ * Composes two `Option`-returning functions into a single function that chains
+ * them together.
  *
- * **Details**
+ * **When to use**
  *
- * This function allows you to compose two computations, each represented by a
- * function that returns an `Option`. The result of the first function is passed
- * to the second function if it is `Some`. If the first function returns `None`,
- * the composed function short-circuits and returns `None` without invoking the
- * second function.
+ * - Building pipelines of partial functions (Kleisli composition)
  *
- * @example
+ * **Behavior**
+ *
+ * - Calls `afb(a)`, then if `Some`, calls `bfc` with its value
+ * - Short-circuits to `None` if either function returns `None`
+ *
+ * **Example** (Composing parsers)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -1445,6 +1589,8 @@ export const zipLeft: {
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
  *
+ * @see {@link flatMap} for single-step chaining
+ *
  * @category Sequencing
  * @since 2.0.0
  */
@@ -1454,31 +1600,27 @@ export const composeK: {
 } = dual(2, <A, B, C>(afb: (a: A) => Option<B>, bfc: (b: B) => Option<C>) => (a: A): Option<C> => flatMap(afb(a), bfc))
 
 /**
- * Applies the provided function `f` to the value of the `Option` if it is
- * `Some` and returns the original `Option`, unless `f` returns `None`, in which
- * case it returns `None`.
+ * Runs a side-effecting `Option`-returning function on the value of a `Some`,
+ * returning the original `Option` if the function returns `Some`, or `None`
+ * if it returns `None`.
  *
- * **Details**
+ * **When to use**
  *
- * This function allows you to perform additional computations on the value of
- * an `Option` without modifying its original value. If the `Option` is `Some`,
- * the provided function `f` is executed with the value, and its result
- * determines whether the original `Option` is returned (`Some`) or the result
- * is `None` if `f` returns `None`. If the input `Option` is `None`, the
- * function is not executed, and `None` is returned.
+ * - Validating a value without transforming it
+ * - Adding a side-condition check in a pipeline
  *
- * This is particularly useful for applying side conditions or performing
- * validation checks while retaining the original `Option`'s value.
+ * **Behavior**
  *
- * @example
+ * - `None` → `None`
+ * - `Some` → calls `f(value)`; if result is `Some`, returns original `self`; if `None`, returns `None`
+ *
+ * **Example** (Validating without transforming)
+ *
  * ```ts
  * import { Option } from "effect"
  *
  * const getInteger = (n: number) =>
  *   Number.isInteger(n) ? Option.some(n) : Option.none()
- *
- * console.log(Option.tap(Option.none(), getInteger))
- * // Output: { _id: 'Option', _tag: 'None' }
  *
  * console.log(Option.tap(Option.some(1), getInteger))
  * // Output: { _id: 'Option', _tag: 'Some', value: 1 }
@@ -1486,6 +1628,9 @@ export const composeK: {
  * console.log(Option.tap(Option.some(1.14), getInteger))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link flatMap} when you want to transform the value
+ * @see {@link filter} for predicate-based filtering
  *
  * @category Sequencing
  * @since 2.0.0
@@ -1496,17 +1641,20 @@ export const tap: {
 } = dual(2, <A, X>(self: Option<A>, f: (a: A) => Option<X>): Option<A> => flatMap(self, (a) => map(f(a), () => a)))
 
 /**
- * Combines two `Option` values into a single `Option` containing a tuple of
- * their values if both are `Some`.
+ * Combines two `Option`s into a `Some` containing a tuple `[A, B]` if both
+ * are `Some`.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes two `Option`s and combines their values into a tuple `[A,
- * B]` if both are `Some`. If either of the `Option`s is `None`, the result is
- * `None`. This is particularly useful for combining multiple `Option` values
- * into a single one, ensuring both contain valid values.
+ * - Pairing two optional values together
  *
- * @example
+ * **Behavior**
+ *
+ * - Both `Some` → `Some([a, b])`
+ * - Either `None` → `None`
+ *
+ * **Example** (Pairing two Options)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -1515,10 +1663,10 @@ export const tap: {
  *
  * console.log(Option.product(Option.none(), Option.some(42)))
  * // Output: { _id: 'Option', _tag: 'None' }
- *
- * console.log(Option.product(Option.some("hello"), Option.none()))
- * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link zipWith} to combine with a function instead of a tuple
+ * @see {@link all} to combine many `Option`s
  *
  * @category Combining
  * @since 2.0.0
@@ -1527,30 +1675,35 @@ export const product = <A, B>(self: Option<A>, that: Option<B>): Option<[A, B]> 
   isSome(self) && isSome(that) ? some([self.value, that.value]) : none()
 
 /**
- * Combines an `Option` with a collection of `Option`s into a single `Option`
- * containing a tuple of their values if all are `Some`.
+ * Combines a primary `Option` with an iterable of `Option`s into a tuple if
+ * all are `Some`.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes a primary `Option` and a collection of `Option`s and
- * combines their values into a tuple `[A, ...Array<A>]` if all are `Some`. If
- * the primary `Option` or any `Option` in the collection is `None`, the result
- * is `None`.
+ * - Collecting several `Option`s of the same type into a non-empty tuple
  *
- * @example
+ * **Behavior**
+ *
+ * - All `Some` → `Some([self.value, ...rest])`
+ * - Any `None` → `None`
+ *
+ * **Example** (Combining many Options)
+ *
  * ```ts
  * import { Option } from "effect"
  *
  * const first = Option.some(1)
- * const rest = [Option.some(2), Option.some(3), Option.some(4)]
+ * const rest = [Option.some(2), Option.some(3)]
  *
  * console.log(Option.productMany(first, rest))
- * // Output: { _id: 'Option', _tag: 'Some', value: [1, 2, 3, 4] }
+ * // Output: { _id: 'Option', _tag: 'Some', value: [1, 2, 3] }
  *
- * const withNone = [Option.some(2), Option.none(), Option.some(4)]
- * console.log(Option.productMany(first, withNone))
+ * console.log(Option.productMany(first, [Option.some(2), Option.none()]))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link product} for combining exactly two
+ * @see {@link all} for tuples, structs, and iterables
  *
  * @category Combining
  * @since 2.0.0
@@ -1573,25 +1726,23 @@ export const productMany = <A>(
 }
 
 /**
- * Combines a structure of `Option`s into a single `Option` containing the
- * values with the same structure.
+ * Combines a structure of `Option`s (tuple, struct, or iterable) into a single
+ * `Option` containing the unwrapped structure.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes a structure of `Option`s (a tuple, struct, or iterable)
- * and produces a single `Option` that contains the values from the input
- * structure if all `Option`s are `Some`. If any `Option` in the input is
- * `None`, the result is `None`. The structure of the input is preserved in the
- * output.
+ * - Collecting multiple `Option`s into one, preserving the input shape
+ * - "All or nothing" combination — any `None` makes the result `None`
  *
- * - If the input is a tuple (e.g., an array), the result will be an `Option`
- *   containing a tuple with the same length.
- * - If the input is a struct (e.g., an object), the result will be an `Option`
- *   containing a struct with the same keys.
- * - If the input is an iterable, the result will be an `Option` containing an
- *   array.
+ * **Behavior**
  *
- * @example
+ * - Tuple input → `Option` of a tuple with the same length
+ * - Struct input → `Option` of a struct with the same keys
+ * - Iterable input → `Option` of an `Array`
+ * - Any `None` in the input → entire result is `None`
+ *
+ * **Example** (Combining a tuple and a struct)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -1612,6 +1763,9 @@ export const productMany = <A>(
  * // Output:
  * // { _id: 'Option', _tag: 'Some', value: { name: 'John', age: 25 } }
  * ```
+ *
+ * @see {@link product} for combining exactly two
+ * @see {@link productMany} for a homogeneous collection
  *
  * @category Combining
  * @since 2.0.0
@@ -1649,36 +1803,35 @@ export const all: <const I extends Iterable<Option<any>> | Record<string, Option
   }
 
 /**
- * Combines two `Option` values into a new `Option` by applying a provided
- * function to their values.
+ * Combines two `Option`s using a provided function.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes two `Option` values (`self` and `that`) and a combining
- * function `f`. If both `Option` values are `Some`, the function `f` is applied
- * to their values, and the result is wrapped in a new `Some`. If either
- * `Option` is `None`, the result is `None`.
+ * - Merging two optional values into a computed result
  *
- * This utility is useful for combining two optional computations into a single
- * result while maintaining type safety and avoiding explicit checks for `None`.
+ * **Behavior**
  *
- * @example
+ * - Both `Some` → applies `f(a, b)` and wraps in `Some`
+ * - Either `None` → `None`
+ *
+ * **Example** (Combining with a function)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * const maybeName: Option.Option<string> = Option.some("John")
- * const maybeAge: Option.Option<number> = Option.some(25)
- *
- * // Combine the name and age into a person object
- * const person = Option.zipWith(maybeName, maybeAge, (name, age) => ({
- *   name: name.toUpperCase(),
- *   age
- * }))
+ * const person = Option.zipWith(
+ *   Option.some("John"),
+ *   Option.some(25),
+ *   (name, age) => ({ name: name.toUpperCase(), age })
+ * )
  *
  * console.log(person)
  * // Output:
  * // { _id: 'Option', _tag: 'Some', value: { name: 'JOHN', age: 25 } }
  * ```
+ *
+ * @see {@link product} to combine into a tuple instead
+ * @see {@link lift2} to lift a binary function
  *
  * @category Zipping
  * @since 2.0.0
@@ -1693,26 +1846,26 @@ export const zipWith: {
 )
 
 /**
- * Reduces an `Iterable` of `Option<A>` to a single value of type `B`, ignoring
- * elements that are `None`.
+ * Reduces an iterable of `Option`s to a single value, skipping `None` entries.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes an initial value of type `B` and a reducing function `f`
- * that combines the accumulator with values of type `A`. It processes an
- * iterable of `Option<A>`, applying `f` only to the `Some` values while
- * ignoring the `None` values. The result is a single value of type `B`.
+ * - Aggregating values from a collection where some may be absent
  *
- * This utility is particularly useful for aggregating values from an iterable
- * of `Option`s while skipping the absent (`None`) values.
+ * **Behavior**
  *
- * @example
+ * - Iterates through the collection, applying `f` only to `Some` values
+ * - `None` values are skipped entirely
+ * - Returns the accumulated result
+ *
+ * **Example** (Summing present values)
+ *
  * ```ts
  * import { Option, pipe } from "effect"
  *
- * const iterable = [Option.some(1), Option.none(), Option.some(2), Option.none()]
+ * const items = [Option.some(1), Option.none(), Option.some(2), Option.none()]
  *
- * console.log(pipe(iterable, Option.reduceCompact(0, (b, a) => b + a)))
+ * console.log(pipe(items, Option.reduceCompact(0, (b, a) => b + a)))
  * // Output: 3
  * ```
  *
@@ -1738,17 +1891,18 @@ export const reduceCompact: {
 /**
  * Converts an `Option` into an `Array`.
  *
- * **Details**
+ * **When to use**
  *
- * This function transforms an `Option` into an `Array` representation:
- * - If the input is `None`, an empty array is returned.
- * - If the input is `Some`, its value is wrapped in a single-element array.
+ * - Interfacing with array-based APIs
+ * - Spreading optional values into collections
  *
- * This is useful for converting optional values into a format that can be
- * easily processed with array operations or when working with APIs that
- * expect arrays.
+ * **Behavior**
  *
- * @example
+ * - `Some` → single-element array `[value]`
+ * - `None` → empty array `[]`
+ *
+ * **Example** (Converting to an array)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -1759,31 +1913,28 @@ export const reduceCompact: {
  * // Output: []
  * ```
  *
+ * @see {@link fromIterable} for the inverse direction
+ *
  * @category Conversions
  * @since 2.0.0
  */
 export const toArray = <A>(self: Option<A>): Array<A> => isNone(self) ? [] : [self.value]
 
 /**
- * Splits an `Option` into two `Option`s based on the result of a mapping
- * function that produces an `Result`.
+ * Splits an `Option` into two `Option`s using a function that returns a `Result`.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes an `Option` and a mapping function `f` that converts its
- * value into an `Result`. It returns a tuple of two `Option`s:
+ * - Categorizing an optional value into "left" (failure) and "right" (success) channels
  *
- * - The first `Option` (`left`) contains the value from the `Err` side of the
- *   `Result` if it exists, otherwise `None`.
- * - The second `Option` (`right`) contains the value from the `Ok` side of
- *   the `Result` if it exists, otherwise `None`.
+ * **Behavior**
  *
- * If the input `Option` is `None`, both returned `Option`s are `None`.
+ * - `None` → `[None, None]`
+ * - `Some` where `f` returns `Err` → `[Some(error), None]`
+ * - `Some` where `f` returns `Ok` → `[None, Some(value)]`
  *
- * This utility is useful for filtering and categorizing the contents of an
- * `Option` based on a bifurcating computation.
+ * **Example** (Partitioning by Result)
  *
- * @example
  * ```ts
  * import { Option, Result } from "effect"
  *
@@ -1801,6 +1952,8 @@ export const toArray = <A>(self: Option<A>): Array<A> => isNone(self) ? [] : [se
  * console.log(Option.partitionMap(Option.none(), parseNumber))
  * // Output: [{ _id: 'Option', _tag: 'None' }, { _id: 'Option', _tag: 'None' }]
  * ```
+ *
+ * @see {@link filter} for simple predicate-based filtering
  *
  * @category Filtering
  * @since 2.0.0
@@ -1821,28 +1974,23 @@ export const partitionMap: {
 
 // TODO(4.0): remove?
 /**
- * Alias of {@link flatMap}.
+ * Alias of {@link flatMap}. Applies a function returning `Option` to the value
+ * inside a `Some`, flattening the result.
  *
- * @example
+ * **Example** (Filtering and transforming)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * // Transform and filter numbers
- * const transformEven = (n: Option.Option<number>): Option.Option<string> =>
- *   Option.filterMap(
- *     n,
- *     (n) => (n % 2 === 0 ? Option.some(`Even: ${n}`) : Option.none())
- *   )
- *
- * console.log(transformEven(Option.none()))
- * // Output: { _id: 'Option', _tag: 'None' }
- *
- * console.log(transformEven(Option.some(1)))
- * // Output: { _id: 'Option', _tag: 'None' }
- *
- * console.log(transformEven(Option.some(2)))
+ * console.log(Option.filterMap(
+ *   Option.some(2),
+ *   (n) => (n % 2 === 0 ? Option.some(`Even: ${n}`) : Option.none())
+ * ))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'Even: 2' }
  * ```
+ *
+ * @see {@link flatMap} (canonical)
+ * @see {@link filter} for predicate-based filtering
  *
  * @category Filtering
  * @since 2.0.0
@@ -1853,34 +2001,41 @@ export const filterMap: {
 } = flatMap
 
 /**
- * Filters an `Option` using a predicate. If the predicate is not satisfied or
- * the `Option` is `None` returns `None`.
+ * Filters an `Option` using a predicate. Returns `None` if the predicate is
+ * not satisfied or the input is `None`.
  *
- * **Details**
+ * **When to use**
  *
- * This function applies a predicate to the value inside an `Option`. If the
- * `Option` is `Some` and the predicate returns `true`, the original `Option` is
- * returned. If the `Option` is `Some` but the predicate returns `false`, or if
- * the `Option` is `None`, the result is `None`.
+ * - Discarding values that don't meet a condition
+ * - Narrowing the type via a refinement predicate
  *
- * If you need to change the type of the `Option` in addition to filtering, see `filterMap`.
+ * **Behavior**
  *
- * @example
+ * - `None` → `None`
+ * - `Some` where `predicate(value)` is `true` → `Some(value)`
+ * - `Some` where `predicate(value)` is `false` → `None`
+ * - Supports refinements for type narrowing
+ *
+ * **Example** (Filtering with a predicate)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * const removeEmptyString = (input: Option.Option<string>) =>
+ * const removeEmpty = (input: Option.Option<string>) =>
  *   Option.filter(input, (value) => value !== "")
  *
- * console.log(removeEmptyString(Option.none()))
+ * console.log(removeEmpty(Option.some("hello")))
+ * // Output: { _id: 'Option', _tag: 'Some', value: 'hello' }
+ *
+ * console.log(removeEmpty(Option.some("")))
  * // Output: { _id: 'Option', _tag: 'None' }
  *
- * console.log(removeEmptyString(Option.some("")))
+ * console.log(removeEmpty(Option.none()))
  * // Output: { _id: 'Option', _tag: 'None' }
- *
- * console.log(removeEmptyString(Option.some("a")))
- * // Output: { _id: 'Option', _tag: 'Some', value: 'a' }
  * ```
+ *
+ * @see {@link filterMap} to transform and filter simultaneously
+ * @see {@link exists} to test without filtering
  *
  * @category Filtering
  * @since 2.0.0
@@ -1897,39 +2052,32 @@ export const filter: {
 )
 
 /**
- * Creates an `Equivalence` instance for comparing `Option` values, using a
- * provided `Equivalence` for the inner type.
+ * Creates an `Equivalence` for `Option<A>` from an `Equivalence` for `A`.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes an `Equivalence` instance for a specific type `A` and
- * produces an `Equivalence` instance for `Option<A>`. The resulting
- * `Equivalence` determines whether two `Option` values are equivalent:
+ * - Comparing two `Option` values for structural equality
  *
- * - Two `None`s are considered equivalent.
- * - A `Some` and a `None` are not equivalent.
- * - Two `Some` values are equivalent if their inner values are equivalent
- *   according to the provided `Equivalence`.
+ * **Behavior**
  *
- * @example
+ * - `None` vs `None` → `true`
+ * - `Some` vs `None` (or vice versa) → `false`
+ * - `Some(a)` vs `Some(b)` → delegates to the provided `Equivalence`
+ *
+ * **Example** (Comparing Options)
+ *
  * ```ts
  * import { Equivalence, Option } from "effect"
  *
- * const isEquivalent = Option.makeEquivalence(Equivalence.strictEqual<number>())
+ * const eq = Option.makeEquivalence(Equivalence.strictEqual<number>())
  *
- * console.log(isEquivalent(Option.none(), Option.none()))
+ * console.log(eq(Option.some(1), Option.some(1)))
  * // Output: true
  *
- * console.log(isEquivalent(Option.none(), Option.some(1)))
+ * console.log(eq(Option.some(1), Option.some(2)))
  * // Output: false
  *
- * console.log(isEquivalent(Option.some(1), Option.none()))
- * // Output: false
- *
- * console.log(isEquivalent(Option.some(1), Option.some(2)))
- * // Output: false
- *
- * console.log(isEquivalent(Option.some(1), Option.some(1)))
+ * console.log(eq(Option.none(), Option.none()))
  * // Output: true
  * ```
  *
@@ -1940,39 +2088,34 @@ export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Eq
   Equivalence.make((x, y) => isNone(x) ? isNone(y) : isNone(y) ? false : isEquivalent(x.value, y.value))
 
 /**
- * Creates an `Order` instance for comparing `Option` values, using a provided
- * `Order` for the inner type.
+ * Creates an `Order` for `Option<A>` from an `Order` for `A`.
  *
- * **Details**
+ * **When to use**
  *
- * This function produces an `Order` instance for `Option<A>`, allowing `Option`
- * values to be compared:
+ * - Sorting collections of `Option` values
  *
- * - `None` is always considered less than any `Some` value.
- * - If both are `Some`, their inner values are compared using the provided
- *   `Order` instance.
+ * **Behavior**
  *
- * @example
+ * - `None` is considered less than any `Some`
+ * - Two `Some` values are compared using the provided `Order`
+ * - Two `None` values are equal (returns `0`)
+ *
+ * **Example** (Ordering Options)
+ *
  * ```ts
  * import { Option } from "effect"
  * import * as N from "effect/Number"
  *
- * const order = Option.makeOrder(N.Order)
+ * const ord = Option.makeOrder(N.Order)
  *
- * console.log(order(Option.none(), Option.none()))
- * // Output: 0
- *
- * console.log(order(Option.none(), Option.some(1)))
+ * console.log(ord(Option.none(), Option.some(1)))
  * // Output: -1
  *
- * console.log(order(Option.some(1), Option.none()))
+ * console.log(ord(Option.some(1), Option.none()))
  * // Output: 1
  *
- * console.log(order(Option.some(1), Option.some(2)))
+ * console.log(ord(Option.some(1), Option.some(2)))
  * // Output: -1
- *
- * console.log(order(Option.some(1), Option.some(1)))
- * // Output: 0
  * ```
  *
  * @category Sorting
@@ -1982,35 +2125,32 @@ export const makeOrder = <A>(O: Order<A>): Order<Option<A>> =>
   order.make((self, that) => isSome(self) ? (isSome(that) ? O(self.value, that.value) : 1) : -1)
 
 /**
- * Lifts a binary function to work with `Option` values, allowing the function
- * to operate on two `Option`s.
+ * Lifts a binary function to operate on two `Option` values.
  *
- * **Details**
+ * **When to use**
  *
- * This function takes a binary function `f` and returns a new function that
- * applies `f` to the values of two `Option`s (`self` and `that`). If both
- * `Option`s are `Some`, the binary function `f` is applied to their values, and
- * the result is wrapped in a new `Some`. If either `Option` is `None`, the
- * result is `None`.
+ * - Reusing an existing binary function in an `Option` context
  *
- * @example
+ * **Behavior**
+ *
+ * - Both `Some` → applies `f` and wraps in `Some`
+ * - Either `None` → `None`
+ *
+ * **Example** (Lifting addition)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * // A binary function to add two numbers
- * const add = (a: number, b: number): number => a + b
+ * const addOptions = Option.lift2((a: number, b: number) => a + b)
  *
- * // Lift the `add` function to work with `Option` values
- * const addOptions = Option.lift2(add)
- *
- * // Both `Option`s are `Some`
  * console.log(addOptions(Option.some(2), Option.some(3)))
  * // Output: { _id: 'Option', _tag: 'Some', value: 5 }
  *
- * // One `Option` is `None`
  * console.log(addOptions(Option.some(2), Option.none()))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link zipWith} for a non-lifted variant
  *
  * @category Lifting
  * @since 2.0.0
@@ -2021,33 +2161,36 @@ export const lift2 = <A, B, C>(f: (a: A, b: B) => C): {
 } => dual(2, (self: Option<A>, that: Option<B>): Option<C> => zipWith(self, that, f))
 
 /**
- * Lifts a `Predicate` or `Refinement` into the `Option` context, returning a
- * `Some` of the input value if the predicate is satisfied, or `None` otherwise.
+ * Lifts a `Predicate` or `Refinement` into the `Option` context: returns
+ * `Some(value)` when the predicate holds, `None` otherwise.
  *
- * **Details**
+ * **When to use**
  *
- * This function transforms a `Predicate` (or a more specific `Refinement`) into
- * a function that produces an `Option`. If the predicate evaluates to `true`,
- * the input value is wrapped in a `Some`. If the predicate evaluates to
- * `false`, the result is `None`.
+ * - Converting a boolean check into an `Option`-returning function
+ * - Validating input and wrapping it in `Option`
  *
- * @example
+ * **Behavior**
+ *
+ * - `predicate(value)` is `true` → `Some(value)`
+ * - `predicate(value)` is `false` → `None`
+ * - Supports refinements for type narrowing
+ *
+ * **Example** (Validating positive numbers)
+ *
  * ```ts
  * import { Option } from "effect"
  *
- * // Check if a number is positive
- * const isPositive = (n: number) => n > 0
- *
- * //      ┌─── (b: number) => Option<number>
- * //      ▼
- * const parsePositive = Option.liftPredicate(isPositive)
+ * const parsePositive = Option.liftPredicate((n: number) => n > 0)
  *
  * console.log(parsePositive(1))
  * // Output: { _id: 'Option', _tag: 'Some', value: 1 }
  *
  * console.log(parsePositive(-1))
- * // OUtput: { _id: 'Option', _tag: 'None' }
+ * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link filter} to apply a predicate to an existing `Option`
+ * @see {@link toRefinement} for the inverse direction
  *
  * @category Lifting
  * @since 2.0.0
@@ -2069,34 +2212,36 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
 )
 
 /**
- * Returns a function that checks if an `Option` contains a specified value,
- * using a provided equivalence function.
+ * Checks if an `Option` contains a value equivalent to the given one, using a
+ * custom `Equivalence`.
  *
- * **Details**
+ * **When to use**
  *
- * This function allows you to check whether an `Option` contains a specific
- * value. It uses an equivalence function `isEquivalent` to compare the value
- * inside the `Option` to the provided value. If the `Option` is `Some` and the
- * equivalence function returns `true`, the result is `true`. If the `Option` is
- * `None` or the values are not equivalent, the result is `false`.
+ * - Testing membership with a custom equality check
  *
- * @example
+ * **Behavior**
+ *
+ * - `Some` where `isEquivalent(value, a)` is `true` → `true`
+ * - `Some` where not equivalent, or `None` → `false`
+ *
+ * **Example** (Custom equivalence check)
+ *
  * ```ts
  * import { Equivalence, Option } from "effect"
  *
- * const contains = Option.containsWith(Equivalence.strictEqual<number>())
+ * const check = Option.containsWith(Equivalence.strictEqual<number>())
  *
- * console.log(Option.some(2).pipe(contains(2)))
+ * console.log(Option.some(2).pipe(check(2)))
  * // Output: true
  *
- * console.log(Option.some(1).pipe(contains(2)))
+ * console.log(Option.some(1).pipe(check(2)))
  * // Output: false
  *
- * console.log(Option.none().pipe(contains(2)))
+ * console.log(Option.none().pipe(check(2)))
  * // Output: false
  * ```
  *
- * @see {@link contains} for a version that uses the default `Equivalence`.
+ * @see {@link contains} for a version using default equality
  *
  * @category Elements
  * @since 2.0.0
@@ -2107,18 +2252,20 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
 } => dual(2, (self: Option<A>, a: A): boolean => isNone(self) ? false : isEquivalent(self.value, a))
 
 /**
- * Returns a function that checks if an `Option` contains a specified value
- * using the default `Equivalence`.
+ * Checks if an `Option` contains a value equal to the given one, using default
+ * structural equality.
  *
- * **Details**
+ * **When to use**
  *
- * This function allows you to check whether an `Option` contains a specific
- * value. It uses the default `Equivalence` for equality comparison. If the
- * `Option` is `Some` and its value is equivalent to the provided value, the
- * result is `true`. If the `Option` is `None` or the values are not equivalent,
- * the result is `false`.
+ * - Quick membership test with standard equality
  *
- * @example
+ * **Behavior**
+ *
+ * - `Some` where `Equal.equals(value, a)` is `true` → `true`
+ * - `Some` where not equal, or `None` → `false`
+ *
+ * **Example** (Checking containment)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -2132,7 +2279,8 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
  * // Output: false
  * ```
  *
- * @see {@link containsWith} for a version that allows you to specify a custom equivalence function.
+ * @see {@link containsWith} for custom equality
+ * @see {@link exists} to test with a predicate
  *
  * @category Elements
  * @since 2.0.0
@@ -2143,19 +2291,21 @@ export const contains: {
 } = containsWith(Equal.asEquivalence())
 
 /**
- * Checks if a value in an `Option` satisfies a given predicate or refinement.
+ * Tests if the value in a `Some` satisfies a predicate or refinement.
  *
- * **Details**
+ * **When to use**
  *
- * This function allows you to check if a value inside a `Some` meets a
- * specified condition. If the `Option` is `None`, the result is `false`. If the
- * `Option` is `Some`, the provided predicate or refinement is applied to the
- * value:
+ * - Checking a condition on an optional value without unwrapping
  *
- * - If the condition is met, the result is `true`.
- * - If the condition is not met, the result is `false`.
+ * **Behavior**
  *
- * @example
+ * - `None` → `false`
+ * - `Some` where `predicate(value)` is `true` → `true`
+ * - `Some` where `predicate(value)` is `false` → `false`
+ * - With a refinement, narrows the `Option` type on `true`
+ *
+ * **Example** (Testing a condition)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -2170,6 +2320,9 @@ export const contains: {
  * console.log(Option.none().pipe(Option.exists(isEven)))
  * // Output: false
  * ```
+ *
+ * @see {@link filter} to keep or discard based on a predicate
+ * @see {@link contains} to test for a specific value
  *
  * @category Elements
  * @since 2.0.0
@@ -2190,34 +2343,31 @@ export const exists: {
 // -------------------------------------------------------------------------------------
 
 /**
- * The "do simulation" in Effect allows you to write code in a more declarative style, similar to the "do notation" in other programming languages. It provides a way to define variables and perform operations on them using functions like `bind` and `let`.
+ * Gives a name to the value of an `Option`, creating a single-key record
+ * inside `Some`. Starting point for the do notation pipeline.
  *
- * Here's how the do simulation works:
+ * **When to use**
  *
- * 1. Start the do simulation using the `Do` value
- * 2. Within the do simulation scope, you can use the `bind` function to define variables and bind them to `Option` values
- * 3. You can accumulate multiple `bind` statements to define multiple variables within the scope
- * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
- * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
+ * - Beginning a do notation chain by naming the first value
  *
- * @example
+ * **Example** (Starting do notation)
+ *
  * ```ts
  * import { Option, pipe } from "effect"
  * import * as assert from "node:assert"
  *
  * const result = pipe(
- *   Option.Do,
- *   Option.bind("x", () => Option.some(2)),
+ *   Option.some(2),
+ *   Option.bindTo("x"),
  *   Option.bind("y", () => Option.some(3)),
- *   Option.let("sum", ({ x, y }) => x + y),
- *   Option.filter(({ x, y }) => x * y > 5)
+ *   Option.let("sum", ({ x, y }) => x + y)
  * )
  * assert.deepStrictEqual(result, Option.some({ x: 2, y: 3, sum: 5 }))
  * ```
  *
- * @see {@link Do}
- * @see {@link bind}
- * @see {@link let_ let}
+ * @see {@link Do} for starting with an empty record
+ * @see {@link bind} to add `Option` values
+ * @see {@link let_ let} to add plain values
  *
  * @category Do notation
  * @since 2.0.0
@@ -2241,17 +2391,14 @@ const let_: {
 
 export {
   /**
-   * The "do simulation" in Effect allows you to write code in a more declarative style, similar to the "do notation" in other programming languages. It provides a way to define variables and perform operations on them using functions like `bind` and `let`.
+   * Adds a computed plain value to the do notation record.
    *
-   * Here's how the do simulation works:
+   * **When to use**
    *
-   * 1. Start the do simulation using the `Do` value
-   * 2. Within the do simulation scope, you can use the `bind` function to define variables and bind them to `Option` values
-   * 3. You can accumulate multiple `bind` statements to define multiple variables within the scope
-   * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
-   * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
+   * - Binding a derived (non-`Option`) value in a do notation pipeline
    *
-   * @example
+   * **Example** (Adding a computed value)
+   *
    * ```ts
    * import { Option, pipe } from "effect"
    * import * as assert from "node:assert"
@@ -2260,15 +2407,14 @@ export {
    *   Option.Do,
    *   Option.bind("x", () => Option.some(2)),
    *   Option.bind("y", () => Option.some(3)),
-   *   Option.let("sum", ({ x, y }) => x + y),
-   *   Option.filter(({ x, y }) => x * y > 5)
+   *   Option.let("sum", ({ x, y }) => x + y)
    * )
    * assert.deepStrictEqual(result, Option.some({ x: 2, y: 3, sum: 5 }))
    * ```
    *
-   * @see {@link Do}
-   * @see {@link bind}
-   * @see {@link bindTo}
+   * @see {@link Do} for starting the chain
+   * @see {@link bind} to add `Option` values
+   * @see {@link bindTo} to start by naming an existing `Option`
    *
    * @category Do notation
    * @since 2.0.0
@@ -2277,17 +2423,15 @@ export {
 }
 
 /**
- * The "do simulation" in Effect allows you to write code in a more declarative style, similar to the "do notation" in other programming languages. It provides a way to define variables and perform operations on them using functions like `bind` and `let`.
+ * Adds an `Option` value to the do notation record under a given name. If the
+ * `Option` is `None`, the whole pipeline short-circuits to `None`.
  *
- * Here's how the do simulation works:
+ * **When to use**
  *
- * 1. Start the do simulation using the `Do` value
- * 2. Within the do simulation scope, you can use the `bind` function to define variables and bind them to `Option` values
- * 3. You can accumulate multiple `bind` statements to define multiple variables within the scope
- * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
- * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
+ * - Sequencing `Option` computations in do notation
  *
- * @example
+ * **Example** (Binding Option values)
+ *
  * ```ts
  * import { Option, pipe } from "effect"
  * import * as assert from "node:assert"
@@ -2302,9 +2446,9 @@ export {
  * assert.deepStrictEqual(result, Option.some({ x: 2, y: 3, sum: 5 }))
  * ```
  *
- * @see {@link Do}
- * @see {@link bindTo}
- * @see {@link let_ let}
+ * @see {@link Do} for starting the chain
+ * @see {@link let_ let} to add plain values
+ * @see {@link bindTo} to start by naming an existing `Option`
  *
  * @category Do notation
  * @since 2.0.0
@@ -2322,17 +2466,15 @@ export const bind: {
 } = doNotation.bind<OptionTypeLambda>(map, flatMap)
 
 /**
- * The "do simulation" in Effect allows you to write code in a more declarative style, similar to the "do notation" in other programming languages. It provides a way to define variables and perform operations on them using functions like `bind` and `let`.
+ * An `Option` containing an empty record `{}`, used as the starting point for
+ * do notation chains.
  *
- * Here's how the do simulation works:
+ * **When to use**
  *
- * 1. Start the do simulation using the `Do` value
- * 2. Within the do simulation scope, you can use the `bind` function to define variables and bind them to `Option` values
- * 3. You can accumulate multiple `bind` statements to define multiple variables within the scope
- * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
- * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
+ * - Starting a do notation pipeline before adding bindings
  *
- * @example
+ * **Example** (Do notation pipeline)
+ *
  * ```ts
  * import { Option, pipe } from "effect"
  * import * as assert from "node:assert"
@@ -2347,9 +2489,9 @@ export const bind: {
  * assert.deepStrictEqual(result, Option.some({ x: 2, y: 3, sum: 5 }))
  * ```
  *
- * @see {@link bindTo}
- * @see {@link bind}
- * @see {@link let_ let}
+ * @see {@link bind} to add `Option` values
+ * @see {@link let_ let} to add plain values
+ * @see {@link bindTo} to start by naming an existing `Option`
  *
  * @category Do notation
  * @since 2.0.0
@@ -2357,12 +2499,22 @@ export const bind: {
 export const Do: Option<{}> = some({})
 
 /**
- * Similar to `Effect.gen`, `Option.gen` provides a more readable,
- * generator-based syntax for working with `Option` values, making code that
- * involves `Option` easier to write and understand. This approach is similar to
- * using `async/await` but tailored for `Option`.
+ * Generator-based syntax for `Option`, similar to `async`/`await` but for
+ * optional values. Yielding a `None` short-circuits the generator to `None`.
  *
- * @example
+ * **When to use**
+ *
+ * - Writing imperative-style code that chains multiple `Option`s
+ * - Readability when many sequential optional steps are involved
+ *
+ * **Behavior**
+ *
+ * - Each `yield*` unwraps a `Some` value or short-circuits to `None`
+ * - The return value is wrapped in `Some`
+ * - No `Effect` runtime is needed
+ *
+ * **Example** (Generator syntax)
+ *
  * ```ts
  * import { Option } from "effect"
  *
@@ -2379,6 +2531,8 @@ export const Do: Option<{}> = some({})
  * // Output:
  * // { _id: 'Option', _tag: 'Some', value: { name: 'JOHN', age: 25 } }
  * ```
+ *
+ * @see {@link Do} / {@link bind} for the do notation alternative
  *
  * @category Generators
  * @since 2.0.0
@@ -2401,20 +2555,32 @@ export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {
 
 /**
  * Creates a `Reducer` for `Option<A>` that prioritizes the first non-`None`
- * value and combines values when both operands are present.
+ * value and combines values when both are `Some`.
  *
- * This `Reducer` is useful for scenarios where you want to:
- * - Take the first available value (like a fallback chain)
- * - Combine values when both are present
- * - Maintain a `None` state only when all values are `None`
+ * **When to use**
  *
- * The `initialValue` of the `Reducer` is `none()`.
+ * - Building a reducer that falls back to the first available value
+ * - Combining optional values where either side may be absent
  *
- * **Behavior:**
- * - `none()` + `none()` = `none()`
- * - `some(a)` + `none()` = `some(a)` (first value wins)
- * - `none()` + `some(b)` = `some(b)` (second value wins)
- * - `some(a)` + `some(b)` = `some(a + b)` (values combined)
+ * **Behavior**
+ *
+ * - `None` + `None` → `None`
+ * - `Some(a)` + `None` → `Some(a)`
+ * - `None` + `Some(b)` → `Some(b)`
+ * - `Some(a)` + `Some(b)` → `Some(combine(a, b))`
+ * - Initial value is `None`
+ *
+ * **Example** (Reducing with first-wins semantics)
+ *
+ * ```ts
+ * import { Number, Option } from "effect"
+ *
+ * const reducer = Option.makeReducer(Number.ReducerSum)
+ * console.log(reducer.combineAll([Option.some(1), Option.none(), Option.some(2)]))
+ * // Output: { _id: 'Option', _tag: 'Some', value: 3 }
+ * ```
+ *
+ * @see {@link makeReducerFailFast} for fail-fast semantics
  *
  * @since 4.0.0
  */
@@ -2427,23 +2593,33 @@ export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<
 }
 
 /**
- * Creates a `Combiner` for `Option<A>` that only combines values when both
- * operands are `Some`, failing fast if either is `None`.
+ * Creates a `Combiner` for `Option<A>` with fail-fast semantics: returns `None`
+ * if either operand is `None`.
  *
- * This `Combiner` is useful for scenarios where you need both values to be
- * present to perform an operation, such as:
- * - Mathematical operations that require two operands
- * - Data validation that needs both fields
- * - Operations that can't proceed with partial data
+ * **When to use**
  *
- * **Behavior:**
- * - `none()` + `none()` = `none()`
- * - `some(a)` + `none()` = `none()` (fails fast)
- * - `none()` + `some(b)` = `none()` (fails fast)
- * - `some(a)` + `some(b)` = `some(a + b)` (values combined)
+ * - Operations that require both values to be present
  *
- * @see {@link makeReducerFailFast} if you have a `Reducer` and want to lift it
- * to `Option` values.
+ * **Behavior**
+ *
+ * - `None` + anything → `None`
+ * - anything + `None` → `None`
+ * - `Some(a)` + `Some(b)` → `Some(combine(a, b))`
+ *
+ * **Example** (Fail-fast combining)
+ *
+ * ```ts
+ * import { Number, Option } from "effect"
+ *
+ * const combiner = Option.makeCombinerFailFast(Number.ReducerSum)
+ * console.log(combiner.combine(Option.some(1), Option.some(2)))
+ * // Output: { _id: 'Option', _tag: 'Some', value: 3 }
+ *
+ * console.log(combiner.combine(Option.some(1), Option.none()))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ * ```
+ *
+ * @see {@link makeReducerFailFast} to get a full `Reducer`
  *
  * @since 4.0.0
  */
@@ -2455,23 +2631,35 @@ export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combine
 }
 
 /**
- * Creates a `Reducer` for `Option<A>` by wrapping an existing `Reducer` with
- * fail-fast semantics for `Option` values.
+ * Creates a `Reducer` for `Option<A>` by lifting an existing `Reducer` with
+ * fail-fast semantics.
  *
- * This function lifts a regular `Reducer` into the `Option` context, allowing
- * you to use existing `Reducer`s with `Option` values while maintaining the
- * fail-fast behavior where any `None` value causes the entire reduction to fail.
+ * **When to use**
  *
- * The initial value is `some(reducer.initialValue)`, ensuring the `Reducer`
- * starts with a valid `Option` value.
+ * - Wrapping an existing `Reducer` to work with `Option` values
+ * - Reductions where any `None` should abort the entire result
  *
- * **Behavior:**
- * - Combines values only when both operands are `Some`
- * - Fails fast (returns `none()`) if any operand is `None`
- * - Uses the underlying reducer's combine logic when both values are present
+ * **Behavior**
  *
- * @see {@link makeCombinerFailFast} if you only have a `Combiner` and want to
- * lift it to `Option` values.
+ * - Initial value is `Some(reducer.initialValue)`
+ * - Combines only when both operands are `Some`
+ * - Any `None` causes the result to become `None` immediately
+ *
+ * **Example** (Fail-fast reducing)
+ *
+ * ```ts
+ * import { Number, Option } from "effect"
+ *
+ * const reducer = Option.makeReducerFailFast(Number.ReducerSum)
+ * console.log(reducer.combineAll([Option.some(1), Option.some(2)]))
+ * // Output: { _id: 'Option', _tag: 'Some', value: 3 }
+ *
+ * console.log(reducer.combineAll([Option.some(1), Option.none()]))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ * ```
+ *
+ * @see {@link makeCombinerFailFast} for just the combiner
+ * @see {@link makeReducer} for non-fail-fast semantics
  *
  * @since 4.0.0
  */
