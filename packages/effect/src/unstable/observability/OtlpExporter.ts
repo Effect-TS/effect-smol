@@ -54,7 +54,7 @@ export const make: (
   const clock = ServiceMap.get(services, Clock)
   const scope = ServiceMap.get(services, Scope.Scope)
   const runFork = Effect.runForkWith(services)
-  const exportInterval = Duration.fromDurationInputUnsafe(options.exportInterval)
+  const exportInterval = Duration.max(Duration.fromDurationInputUnsafe(options.exportInterval), Duration.millis(100))
   let disabledUntil: number | undefined = undefined
 
   const client = HttpClient.filterStatusOk(ServiceMap.get(services, HttpClient.HttpClient)).pipe(

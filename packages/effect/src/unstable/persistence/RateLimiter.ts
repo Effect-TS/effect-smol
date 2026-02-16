@@ -62,7 +62,7 @@ export const make: Effect.Effect<
       const tokens = options.tokens ?? 1
       const onExceeded = options.onExceeded ?? "fail"
       const algorithm = options.algorithm ?? "fixed-window"
-      const window = Duration.fromDurationInputUnsafe(options.window)
+      const window = Duration.max(Duration.fromDurationInputUnsafe(options.window), Duration.millis(1))
       const windowMillis = Duration.toMillis(window)
       const refillRate = Duration.divideUnsafe(window, options.limit)
       const refillRateMillis = Duration.toMillis(refillRate)

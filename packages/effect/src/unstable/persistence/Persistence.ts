@@ -170,7 +170,7 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
         }),
         set(key, value) {
           const ttl = Duration.fromDurationInputUnsafe(timeToLive(value, key))
-          if (Duration.isZero(ttl)) return Effect.void
+          if (Duration.isZero(ttl) || Duration.isNegative(ttl)) return Effect.void
           return Persistable.serializeExit(key, value).pipe(
             Effect.flatMap((encoded) =>
               storage.set(PrimaryKey.value(key), encoded as object, Duration.isFinite(ttl) ? ttl : undefined)
@@ -181,7 +181,7 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
           const encodedEntries = Arr.empty<readonly [string, object, Duration.Duration | undefined]>()
           for (const [key, value] of entries) {
             const ttl = Duration.fromDurationInputUnsafe(timeToLive(value, key))
-            if (Duration.isZero(ttl)) continue
+            if (Duration.isZero(ttl) || Duration.isNegative(ttl)) continue
             const encoded = Persistable.serializeExit(key, value)
             const exit = Exit.isExit(encoded)
               ? encoded as Exit.Exit<unknown, Schema.SchemaError>
