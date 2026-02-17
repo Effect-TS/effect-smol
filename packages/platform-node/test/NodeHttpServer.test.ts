@@ -1,3 +1,4 @@
+/** @effect-diagnostics preferSchemaOverJson:skip-file */
 import { NodeHttpServer } from "@effect/platform-node"
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect } from "effect"
@@ -393,10 +394,10 @@ describe("HttpServer", () => {
         Effect.provideService(
           Tracer.Tracer,
           Tracer.make({
-            span(name, parent, _, __, ___, kind) {
-              assert.strictEqual(name, "http.client GET")
-              assert.strictEqual(kind, "client")
-              assert(parent && parent._tag === "Span")
+            span(options) {
+              assert.strictEqual(options.name, "http.client GET")
+              assert.strictEqual(options.kind, "client")
+              assert(options.parent?._tag === "Span")
               assert.strictEqual(parent.name, "request parent")
               return requestSpan
             }

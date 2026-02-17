@@ -69,23 +69,21 @@ export const make: (
     shutdownTimeout: options.shutdownTimeout ?? Duration.seconds(3)
   })
 
+  function exportFn(span: SpanImpl) {
+    if (!span.sampled) return
+    exporter.push(makeOtlpSpan(span))
+  }
+
   return Tracer.make({
-    span(name, parent, annotations, links, startTime, kind) {
+    span(options) {
       return makeSpan({
-        name,
-        parent,
-        annotations,
+        ...options,
         status: {
           _tag: "Started",
-          startTime
+          startTime: options.startTime
         },
         attributes: new Map(),
-        links,
-        sampled: true,
-        kind,
-        export(span) {
-          exporter.push(makeOtlpSpan(span))
-        }
+        export: exportFn
       })
     },
     context: options.context ?
@@ -157,8 +155,8 @@ const makeSpan = (options: {
   readonly status: Tracer.SpanStatus
   readonly attributes: ReadonlyMap<string, unknown>
   readonly links: ReadonlyArray<Tracer.SpanLink>
-  readonly sampled: boolean
   readonly kind: Tracer.SpanKind
+  readonly sampled: boolean
   readonly export: (span: SpanImpl) => void
 }): SpanImpl => {
   const self: Mutable<SpanImpl> = Object.assign(

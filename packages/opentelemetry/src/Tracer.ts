@@ -67,17 +67,11 @@ export const make: Effect.Effect<Tracer.Tracer, never, OtelTracer> = Effect.map(
   Effect.service(OtelTracer),
   (tracer) =>
     Tracer.make({
-      span(name, parent, annotations, links, startTime, kind, options) {
+      span(options) {
         return new OtelSpan(
           Otel.context,
           Otel.trace,
           tracer,
-          name,
-          parent,
-          annotations,
-          links.slice(),
-          startTime,
-          kind,
           options
         )
       },
@@ -363,47 +357,37 @@ export class OtelSpan implements Tracer.Span {
     contextApi: Otel.ContextAPI,
     traceApi: Otel.TraceAPI,
     tracer: Otel.Tracer,
-    name: string,
-    effectParent: Tracer.AnySpan | undefined,
-    annotations: ServiceMap.ServiceMap<never>,
-    links: Array<Tracer.SpanLink>,
-    startTime: bigint,
-    kind: Tracer.SpanKind,
-    options: Tracer.SpanOptions | undefined
+    options: Parameters<Tracer.Tracer["span"]>[0]
   ) {
     this[OtelSpanTypeId] = OtelSpanTypeId
-    this.name = name
-    this.annotations = annotations
-    this.links = links
-    this.kind = kind
+    this.name = options.name
+    this.annotations = options.annotations
+    this.links = options.links
+    this.kind = options.kind
     const active = contextApi.active()
-    this.parent = Predicate.isNotUndefined(effectParent)
-      ? effectParent
-      : (options?.root !== true)
-      ? getOtelParent(traceApi, active, annotations)
-      : undefined
+    this.parent = options.parent ?? (options?.root !== true) ?
+      getOtelParent(traceApi, active, options.annotations) :
+      undefined
     this.span = tracer.startSpan(
-      name,
+      options.name,
       {
-        startTime: nanosToHrTime(startTime),
-        links: links.length > 0
-          ? links.map((link) => ({
+        startTime: nanosToHrTime(options.startTime),
+        links: options.links.length > 0
+          ? options.links.map((link) => ({
             context: makeSpanContext(link.span),
             attributes: recordToAttributes(link.attributes)
           }))
           : undefined as any,
         kind: kindMap[this.kind]
       },
-      Predicate.isNotUndefined(this.parent)
-        ? populateContext(active, this.parent, annotations)
-        : Otel.trace.deleteSpan(active)
+      this.parent ? populateContext(active, this.parent, options.annotations) : Otel.trace.deleteSpan(active)
     )
     const spanContext = this.span.spanContext()
     this.spanId = spanContext.spanId
     this.traceId = spanContext.traceId
     this.status = {
       _tag: "Started",
-      startTime
+      startTime: options.startTime
     }
     this.sampled = isSampled(spanContext.traceFlags)
   }

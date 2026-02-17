@@ -77,6 +77,7 @@ import type { Effect } from "./Effect.ts"
 import type { Exit } from "./Exit.ts"
 import * as effect from "./internal/effect.ts"
 import { version } from "./internal/version.ts"
+import type { LogLevel } from "./LogLevel.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import type { StackFrame } from "./References.ts"
@@ -123,6 +124,8 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   setServices(services: ServiceMap.ServiceMap<never>): void
   readonly currentScheduler: Scheduler
   readonly currentSpan?: AnySpan | undefined
+  readonly currentLogLevel: LogLevel
+  readonly minimumLogLevel: LogLevel
   readonly currentStackFrame?: StackFrame | undefined
   readonly maxOpsBeforeYield: number
   readonly addObserver: (cb: (exit: Exit<A, E>) => void) => () => void

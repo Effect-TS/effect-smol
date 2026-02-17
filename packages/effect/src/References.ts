@@ -15,9 +15,14 @@ import type { LogLevel } from "./LogLevel.ts"
 import type { ReadonlyRecord } from "./Record.ts"
 import { MaxOpsBeforeYield } from "./Scheduler.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import { DisablePropagation, type SpanLink, Tracer } from "./Tracer.ts"
+import { CurrentTraceLevel, DisablePropagation, MinimumTraceLevel, type SpanLink, Tracer } from "./Tracer.ts"
 
 export {
+  /**
+   * @since 4.0.0
+   * @category references
+   */
+  CurrentTraceLevel,
   /**
    * @since 4.0.0
    * @category references
@@ -28,6 +33,11 @@ export {
    * @category references
    */
   MaxOpsBeforeYield,
+  /**
+   * @since 4.0.0
+   * @category references
+   */
+  MinimumTraceLevel,
   /**
    * @since 4.0.0
    * @category references
@@ -447,6 +457,59 @@ export const CurrentLogLevel: ServiceMap.Reference<LogLevel> = ServiceMap.Refere
 )
 
 /**
+ * Reference for setting the minimum log level threshold. Log entries below this
+ * level will be filtered out completely.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, References } from "effect"
+ *
+ * const configureMinimumLogging = Effect.gen(function*() {
+ *   // Get current minimum level (default is "Info")
+ *   const current = yield* References.MinimumLogLevel
+ *   console.log(current) // "Info"
+ *
+ *   // Set minimum level to Warn - Debug and Info will be filtered
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       const minLevel = yield* References.MinimumLogLevel
+ *       console.log(minLevel) // "Warn"
+ *
+ *       // These won't be processed at all
+ *       yield* Console.debug("Debug message") // Filtered out
+ *       yield* Console.info("Info message") // Filtered out
+ *
+ *       // These will be processed
+ *       yield* Console.warn("Warning message") // Shown
+ *       yield* Console.error("Error message") // Shown
+ *     }),
+ *     References.MinimumLogLevel,
+ *     "Warn"
+ *   )
+ *
+ *   // Reset to default Info level
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       const minLevel = yield* References.MinimumLogLevel
+ *       console.log(minLevel) // "Info"
+ *
+ *       // Now info messages will be processed
+ *       yield* Console.info("Info message") // Shown
+ *     }),
+ *     References.MinimumLogLevel,
+ *     "Info"
+ *   )
+ * })
+ * ```
+ *
+ * @category references
+ * @since 4.0.0
+ */
+export const MinimumLogLevel = ServiceMap.Reference<
+  LogLevel
+>("effect/References/MinimumLogLevel", { defaultValue: () => "Info" })
+
+/**
  * The log level for unhandled errors. This reference allows you to set the log
  * level for unhandled errors that occur during Effect execution.
  *
@@ -519,56 +582,3 @@ export const UnhandledLogLevel: ServiceMap.Reference<LogLevel | undefined> = Ser
 export const CurrentLogSpans = ServiceMap.Reference<
   ReadonlyArray<[label: string, timestamp: number]>
 >("effect/References/CurrentLogSpans", { defaultValue: () => [] })
-
-/**
- * Reference for setting the minimum log level threshold. Log entries below this
- * level will be filtered out completely.
- *
- * @example
- * ```ts
- * import { Console, Effect, References } from "effect"
- *
- * const configureMinimumLogging = Effect.gen(function*() {
- *   // Get current minimum level (default is "Info")
- *   const current = yield* References.MinimumLogLevel
- *   console.log(current) // "Info"
- *
- *   // Set minimum level to Warn - Debug and Info will be filtered
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       const minLevel = yield* References.MinimumLogLevel
- *       console.log(minLevel) // "Warn"
- *
- *       // These won't be processed at all
- *       yield* Console.debug("Debug message") // Filtered out
- *       yield* Console.info("Info message") // Filtered out
- *
- *       // These will be processed
- *       yield* Console.warn("Warning message") // Shown
- *       yield* Console.error("Error message") // Shown
- *     }),
- *     References.MinimumLogLevel,
- *     "Warn"
- *   )
- *
- *   // Reset to default Info level
- *   yield* Effect.provideService(
- *     Effect.gen(function*() {
- *       const minLevel = yield* References.MinimumLogLevel
- *       console.log(minLevel) // "Info"
- *
- *       // Now info messages will be processed
- *       yield* Console.info("Info message") // Shown
- *     }),
- *     References.MinimumLogLevel,
- *     "Info"
- *   )
- * })
- * ```
- *
- * @category references
- * @since 4.0.0
- */
-export const MinimumLogLevel = ServiceMap.Reference<
-  LogLevel
->("effect/References/MinimumLogLevel", { defaultValue: () => "Info" })

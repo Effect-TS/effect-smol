@@ -544,6 +544,8 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   currentScheduler!: Scheduler.Scheduler
   currentTracerContext: Tracer.Tracer["context"]
   currentSpan: Tracer.AnySpan | undefined
+  currentLogLevel!: LogLevel.LogLevel
+  minimumLogLevel!: LogLevel.LogLevel
   currentStackFrame: StackFrame | undefined
   runtimeMetrics: Metric.FiberRuntimeMetricsService | undefined
   maxOpsBeforeYield!: number
@@ -684,6 +686,8 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
     this.services = services
     this.currentScheduler = this.getRef(Scheduler.Scheduler)
     this.currentSpan = services.mapUnsafe.get(Tracer.ParentSpanKey)
+    this.currentLogLevel = this.getRef(CurrentLogLevel)
+    this.minimumLogLevel = this.getRef(MinimumLogLevel)
     this.currentStackFrame = services.mapUnsafe.get(CurrentStackFrame.key)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
     this.runtimeMetrics = services.mapUnsafe.get(InternalMetric.FiberRuntimeMetricsKey)
@@ -4891,7 +4895,7 @@ export const withTracerTiming: {
 
 const bigint0 = BigInt(0)
 
-const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "annotations"> = {
+const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "annotations" | "level"> = {
   _tag: "Span",
   spanId: "noop",
   traceId: "noop",
@@ -4954,20 +4958,23 @@ export const makeSpanUnsafe = <XA, XE>(
     const timingEnabled = fiber.getRef(TracerTimingEnabled)
     const annotationsFromEnv = fiber.getRef(TracerSpanAnnotations)
     const linksFromEnv = fiber.getRef(TracerSpanLinks)
+    const level = options?.level ?? fiber.getRef(Tracer.CurrentTraceLevel)
 
     const links = options?.links !== undefined ?
       [...linksFromEnv, ...options.links] :
-      linksFromEnv
+      linksFromEnv.slice()
 
-    span = tracer.span(
+    span = tracer.span({
       name,
       parent,
-      options?.annotations ?? ServiceMap.empty(),
+      annotations: options?.annotations ?? ServiceMap.empty(),
       links,
-      timingEnabled ? clock.currentTimeNanosUnsafe() : 0n,
-      options?.kind ?? "internal",
-      options
-    )
+      startTime: timingEnabled ? clock.currentTimeNanosUnsafe() : 0n,
+      kind: options?.kind ?? "internal",
+      root: options?.root ?? options?.parent === undefined,
+      sampled: options?.sampled ?? parent?.sampled ??
+        !isLogLevelGreaterThan(fiber.getRef(Tracer.MinimumTraceLevel), level)
+    })
 
     for (const [key, value] of Object.entries(annotationsFromEnv)) {
       span.attribute(key, value)
@@ -5489,9 +5496,8 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
     cause = causeEmpty
   }
   return withFiber((fiber) => {
-    const logLevel = level ?? fiber.getRef(CurrentLogLevel)
-    const minimumLogLevel = fiber.getRef(MinimumLogLevel)
-    if (isLogLevelGreaterThan(minimumLogLevel, logLevel)) {
+    const logLevel = level ?? fiber.currentLogLevel
+    if (isLogLevelGreaterThan(fiber.minimumLogLevel, logLevel)) {
       return void_
     }
     const clock = fiber.getRef(ClockRef)

@@ -119,8 +119,8 @@ const makeTracerEffect = Effect.gen(function*() {
   const currentTracer = yield* Effect.tracer
 
   return Tracer.make({
-    span(name, parent, annotations, links, startTime, kind, options) {
-      const span = currentTracer.span(name, parent, annotations, links, startTime, kind, options)
+    span(options) {
+      const span = currentTracer.span(options)
       client.sendUnsafe(span)
       const oldEvent = span.event
       span.event = function(this: Tracer.Span, name, startTime, attributes) {
