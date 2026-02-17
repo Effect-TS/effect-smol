@@ -3981,8 +3981,7 @@ export const tapError: {
 export const catchIf: {
   <
     OutErr,
-    EB,
-    X,
+    EB extends OutErr,
     OutElem1,
     OutErr1,
     OutDone1,
@@ -3991,16 +3990,61 @@ export const catchIf: {
     InDone1,
     Env1,
     OutElem2 = never,
-    OutErr2 = X,
+    OutErr2 = Exclude<OutErr, EB>,
     OutDone2 = never,
     InElem2 = unknown,
     InErr2 = unknown,
     InDone2 = unknown,
     Env2 = never
   >(
-    filter: Filter.Filter<OutErr, EB, X>,
+    refinement: Predicate.Refinement<OutErr, EB>,
     f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
-    orElse?: ((failure: X) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>) | undefined
+    orElse?:
+      | ((
+        failure: Exclude<OutErr, EB>
+      ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+      | undefined
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
+    OutElem | OutElem1 | OutElem2,
+    OutErr1 | OutErr2,
+    OutDone | OutDone1 | OutDone2,
+    InElem & InElem1 & InElem2,
+    InErr & InErr1 & InErr2,
+    InDone & InDone1 & InDone2,
+    Env | Env1 | Env2
+  >
+  <
+    OutErr,
+    Result extends Filter.InputResult,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1,
+    OutElem2 = never,
+    OutErr2 = Filter.Fail<OutErr, Result>,
+    OutDone2 = never,
+    InElem2 = unknown,
+    InErr2 = unknown,
+    InDone2 = unknown,
+    Env2 = never
+  >(
+    filter: Filter.Input<OutErr, Result>,
+    f: (failure: Filter.Pass<OutErr, Result>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+    orElse?:
+      | ((
+        failure: Filter.Fail<OutErr, Result>
+      ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+      | undefined
   ): <
     OutElem,
     OutDone,
@@ -4025,8 +4069,7 @@ export const catchIf: {
     InErr,
     InDone,
     Env,
-    EB,
-    X,
+    EB extends OutErr,
     OutElem1,
     OutErr1,
     OutDone1,
@@ -4035,7 +4078,7 @@ export const catchIf: {
     InDone1,
     Env1,
     OutElem2 = never,
-    OutErr2 = X,
+    OutErr2 = Exclude<OutErr, EB>,
     OutDone2 = never,
     InElem2 = unknown,
     InErr2 = unknown,
@@ -4043,9 +4086,54 @@ export const catchIf: {
     Env2 = never
   >(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    filter: Filter.Filter<OutErr, EB, X>,
+    refinement: Predicate.Refinement<OutErr, EB>,
     f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
-    orElse?: ((failure: X) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>) | undefined
+    orElse?:
+      | ((
+        failure: Exclude<OutErr, EB>
+      ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+      | undefined
+  ): Channel<
+    OutElem | OutElem1 | OutElem2,
+    OutErr1 | OutErr2,
+    OutDone | OutDone1 | OutDone2,
+    InElem & InElem1 & InElem2,
+    InErr & InErr1 & InErr2,
+    InDone & InDone1 & InDone2,
+    Env | Env1 | Env2
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    Result extends Filter.InputResult,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1,
+    OutElem2 = never,
+    OutErr2 = Filter.Fail<OutErr, Result>,
+    OutDone2 = never,
+    InElem2 = unknown,
+    InErr2 = unknown,
+    InDone2 = unknown,
+    Env2 = never
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    filter: Filter.Input<OutErr, Result>,
+    f: (failure: Filter.Pass<OutErr, Result>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+    orElse?:
+      | ((
+        failure: Filter.Fail<OutErr, Result>
+      ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+      | undefined
   ): Channel<
     OutElem | OutElem1 | OutElem2,
     OutErr1 | OutErr2,
@@ -4063,8 +4151,7 @@ export const catchIf: {
   InErr,
   InDone,
   Env,
-  EB,
-  X,
+  Result extends Filter.InputResult,
   OutElem1,
   OutErr1,
   OutDone1,
@@ -4073,7 +4160,7 @@ export const catchIf: {
   InDone1,
   Env1,
   OutElem2 = never,
-  OutErr2 = X,
+  OutErr2 = Filter.Fail<OutErr, Result>,
   OutDone2 = never,
   InElem2 = unknown,
   InErr2 = unknown,
@@ -4081,9 +4168,13 @@ export const catchIf: {
   Env2 = never
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.Filter<OutErr, EB, X>,
-  f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
-  orElse?: ((failure: X) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>) | undefined
+  filter: Filter.Input<OutErr, Result>,
+  f: (failure: Filter.Pass<OutErr, Result>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
+  orElse?:
+    | ((
+      failure: Filter.Fail<OutErr, Result>
+    ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
+    | undefined
 ): Channel<
   OutElem | OutElem1 | OutElem2,
   OutErr1 | OutErr2,
@@ -4105,7 +4196,11 @@ export const catchIf: {
       Env1 | Env2
     > => {
       const eb = Filter.apply(filter as any, err)
-      return !Result.isFailure(eb) ? f(eb.success as any) : orElse ? orElse(eb.failure as any) : fail(eb.failure) as any
+      return !Result.isFailure(eb)
+        ? f(eb.success as any)
+        : orElse
+        ? orElse(eb.failure as any)
+        : fail(eb.failure as any) as any
     }
   ))
 
@@ -4246,7 +4341,7 @@ export const catchTag: {
   const pred = Array.isArray(k)
     ? ((e: OutErr): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
     : isTagged(k as string)
-  return catchIf(self, Filter.fromPredicate(pred), f, orElse as any) as any
+  return catchIf(self, Filter.fromPredicate(pred) as any, f as any, orElse as any) as any
 })
 
 /**

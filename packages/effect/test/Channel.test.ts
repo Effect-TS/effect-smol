@@ -368,6 +368,32 @@ describe("Channel", () => {
       readonly message: string
     }> {}
 
+    it.effect("catchIf with refinement", () =>
+      Effect.gen(function*() {
+        const exit = yield* (Channel.fail(new ValidationError({ field: "email" })) as Channel.Channel<
+          never,
+          HttpError | ValidationError,
+          never
+        >).pipe(
+          Channel.catchIf(
+            (error): error is HttpError => error._tag === "HttpError",
+            () => Channel.succeed("http")
+          ),
+          Channel.runCollect,
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(new ValidationError({ field: "email" })))
+      }))
+
+    it.effect("catchIf with predicate", () =>
+      Effect.gen(function*() {
+        const result = yield* Channel.fail("boom").pipe(
+          Channel.catchIf((error) => error === "boom", (error) => Channel.succeed(`recovered: ${error}`)),
+          Channel.runCollect
+        )
+        assert.deepStrictEqual(result, ["recovered: boom"])
+      }))
+
     it.effect("catchTag orElse", () =>
       Effect.gen(function*() {
         const result = yield* Channel.catchTag(
