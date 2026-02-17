@@ -2871,7 +2871,7 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
 } => {
   return dual(
     2,
-    (self: Chunk<A>, that: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.differenceWith(isEquivalent)(that, self))
+    (self: Chunk<A>, that: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.differenceWith(isEquivalent)(self, that))
   )
 }
 
@@ -2908,5 +2908,5 @@ export const difference: {
   <A>(self: Chunk<A>, that: Chunk<A>): Chunk<A>
 } = dual(
   2,
-  <A>(self: Chunk<A>, that: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.difference(that, self))
+  <A>(self: Chunk<A>, that: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.difference(self, that))
 )

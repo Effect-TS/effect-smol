@@ -830,18 +830,18 @@ describe("Chunk", () => {
 
     const chunk = Chunk.make({ id: 1 }, { id: 2 }, { id: 3 })
 
-    deepStrictEqual(differenceWith(Chunk.make({ id: 1 }, { id: 2 }), chunk), Chunk.make({ id: 3 }))
-    assertEquals(differenceWith(Chunk.empty(), chunk), chunk)
-    assertEquals(differenceWith(chunk, Chunk.empty()), Chunk.empty())
+    deepStrictEqual(differenceWith(chunk, Chunk.make({ id: 1 }, { id: 2 })), Chunk.make({ id: 3 }))
+    assertEquals(differenceWith(Chunk.empty(), chunk), Chunk.empty())
+    assertEquals(differenceWith(chunk, Chunk.empty()), chunk)
     assertEquals(differenceWith(chunk, chunk), Chunk.empty())
   })
 
   it("difference", () => {
     const curr = Chunk.make(1, 3, 5, 7, 9)
 
-    assertEquals(Chunk.difference(Chunk.make(1, 2, 3, 4, 5), curr), Chunk.make(7, 9))
-    assertEquals(Chunk.difference(Chunk.empty(), curr), curr)
-    assertEquals(Chunk.difference(curr, Chunk.empty()), Chunk.empty())
+    assertEquals(Chunk.difference(curr, Chunk.make(1, 2, 3, 4, 5)), Chunk.make(7, 9))
+    assertEquals(Chunk.difference(Chunk.empty(), curr), Chunk.empty())
+    assertEquals(Chunk.difference(curr, Chunk.empty()), curr)
     assertEquals(Chunk.difference(curr, curr), Chunk.empty())
   })
 })
