@@ -783,7 +783,7 @@ export const all: <
  * // [ ["0 is even", "2 is even"], [1, 3] ]
  * ```
  *
- * @since 4.0.0
+ * @since 3.0.0
  * @category Collecting
  */
 export const partition: {
