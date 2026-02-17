@@ -5738,7 +5738,7 @@ export type BetaMessageDeltaEvent = {
     readonly "cache_creation_input_tokens": number | null
     readonly "cache_read_input_tokens": number | null
     readonly "input_tokens": number | null
-    readonly "iterations": BetaIterationsUsage
+    readonly "iterations"?: BetaIterationsUsage
     readonly "output_tokens": number
     readonly "server_tool_use"?: BetaServerToolUsage | null
   }
@@ -5777,7 +5777,7 @@ export const BetaMessageDeltaEvent = Schema.Struct({
       "description": "The cumulative number of input tokens which were used.",
       "default": null
     }),
-    "iterations": BetaIterationsUsage,
+    "iterations": Schema.optionalKey(BetaIterationsUsage),
     "output_tokens": Schema.Number.annotate({
       "title": "Output Tokens",
       "description": "The cumulative number of output tokens which were used."
@@ -6293,11 +6293,11 @@ export type BetaMessage = {
     readonly "cache_read_input_tokens": number | null
     readonly "inference_geo": string | null
     readonly "input_tokens": number
-    readonly "iterations": BetaIterationsUsage
+    readonly "iterations"?: BetaIterationsUsage
     readonly "output_tokens": number
     readonly "server_tool_use"?: BetaServerToolUsage | null
     readonly "service_tier": "standard" | "priority" | "batch" | null
-    readonly "speed": BetaSpeed | null
+    readonly "speed"?: BetaSpeed | null
   }
   readonly "context_management"?: BetaResponseContextManagement | null
   readonly "container"?: BetaContainer | null
@@ -6364,7 +6364,7 @@ export const BetaMessage = Schema.Struct({
       "title": "Input Tokens",
       "description": "The number of input tokens which were used."
     }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
-    "iterations": BetaIterationsUsage,
+    "iterations": Schema.optionalKey(BetaIterationsUsage),
     "output_tokens": Schema.Number.annotate({
       "title": "Output Tokens",
       "description": "The number of output tokens which were used."
@@ -6380,10 +6380,12 @@ export const BetaMessage = Schema.Struct({
       "description": "If the request used the priority, standard, or batch tier.",
       "default": null
     }),
-    "speed": Schema.Union([BetaSpeed, Schema.Null]).annotate({
-      "description": "The inference speed mode used for this request.",
-      "default": null
-    })
+    "speed": Schema.optionalKey(
+      Schema.Union([BetaSpeed, Schema.Null]).annotate({
+        "description": "The inference speed mode used for this request.",
+        "default": null
+      })
+    )
   }).annotate({
     "title": "Usage",
     "description":

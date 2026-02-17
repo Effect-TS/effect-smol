@@ -7,6 +7,8 @@ name: AnthropicClient
 patches:
   # Remove string from Model schema - only keep literal model IDs
   - '[{"op":"remove","path":"/components/schemas/Model/anyOf/0"}]'
+  # Make iterations and speed optional in BetaUsage, iterations optional in BetaMessageDeltaUsage (API may omit these fields)
+  - '[{"op":"remove","path":"/components/schemas/BetaUsage/required/9"},{"op":"remove","path":"/components/schemas/BetaUsage/required/5"},{"op":"remove","path":"/components/schemas/BetaMessageDeltaUsage/required/3"}]'
 header: |
   /**
    * @since 1.0.0
