@@ -3150,7 +3150,73 @@ export * as Tracer from "./Tracer.ts"
 export * as Trie from "./Trie.ts"
 
 /**
- * This module provides utility functions for working with tuples in TypeScript.
+ * Utilities for creating, accessing, transforming, and comparing fixed-length
+ * arrays (tuples). Every function produces a new tuple — inputs are never
+ * mutated.
+ *
+ * ## Mental model
+ *
+ * - **Tuple**: A fixed-length readonly array where each position can have a
+ *   different type (e.g., `readonly [string, number, boolean]`).
+ * - **Index-based access**: Elements are accessed by numeric index, and the
+ *   type system tracks the type at each position.
+ * - **Dual API**: Most functions accept arguments in both data-first
+ *   (`Tuple.get(t, 0)`) and data-last (`pipe(t, Tuple.get(0))`) style.
+ * - **Immutability**: All operations return a new tuple; the original is
+ *   never modified.
+ * - **Lambda**: A type-level function interface (from {@link Struct}) used by
+ *   {@link map}, {@link mapPick}, and {@link mapOmit} so the compiler can
+ *   track how element types change.
+ *
+ * ## Common tasks
+ *
+ * - Create a tuple → {@link make}
+ * - Access an element by index → {@link get}
+ * - Select / remove elements by index → {@link pick}, {@link omit}
+ * - Append elements → {@link appendElement}, {@link appendElements}
+ * - Transform selected elements → {@link evolve}
+ * - Swap element positions → {@link renameIndices}
+ * - Map all elements with a typed lambda → {@link map}, {@link mapPick},
+ *   {@link mapOmit}
+ * - Compare tuples → {@link makeEquivalence}, {@link makeOrder}
+ * - Combine / reduce tuples → {@link makeCombiner}, {@link makeReducer}
+ * - Check tuple length at runtime → {@link isTupleOf},
+ *   {@link isTupleOfAtLeast}
+ *
+ * ## Gotchas
+ *
+ * - {@link pick} and {@link omit} use numeric indices, not string keys.
+ * - {@link renameIndices} takes an array of stringified source indices
+ *   (e.g., `["2", "1", "0"]`), not arbitrary names.
+ * - {@link map}, {@link mapPick}, {@link mapOmit} require a Lambda value
+ *   created with `Struct.lambda`; a plain function won't type-check.
+ * - {@link isTupleOf} and {@link isTupleOfAtLeast} only check length, not
+ *   element types.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Creating and transforming a tuple)
+ *
+ * ```ts
+ * import { pipe, Tuple } from "effect"
+ *
+ * const point = Tuple.make(10, 20, "red")
+ *
+ * const result = pipe(
+ *   point,
+ *   Tuple.evolve([
+ *     (x) => x * 2,
+ *     (y) => y * 2
+ *   ])
+ * )
+ *
+ * console.log(result) // [20, 40, "red"]
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link Struct} – similar utilities for objects with named keys
+ * - {@link Array} – operations on variable-length arrays
  *
  * @since 2.0.0
  */
