@@ -2709,6 +2709,91 @@ export * as SchemaIssue from "./SchemaIssue.ts"
 export * as SchemaParser from "./SchemaParser.ts"
 
 /**
+ * Serializable intermediate representation (IR) of Effect Schema types.
+ *
+ * `SchemaRepresentation` sits between the internal `SchemaAST` and external
+ * formats (JSON Schema, generated TypeScript code, serialized JSON). A
+ * {@link Representation} is a discriminated union describing the *shape* of a
+ * schema — its types, checks, annotations, and references — in a form that
+ * can be round-tripped through JSON and used for code generation.
+ *
+ * ## Mental model
+ *
+ * - **Representation**: A tagged union (`_tag`) of all supported schema shapes:
+ *   primitives, literals, objects, arrays, unions, declarations, references,
+ *   and suspensions.
+ * - **Document**: A single {@link Representation} paired with a map of named
+ *   {@link References} (analogous to JSON Schema `$defs`).
+ * - **MultiDocument**: Like `Document` but holds one or more representations
+ *   sharing the same references.
+ * - **Check / Filter / FilterGroup**: Validation constraints (min length,
+ *   pattern, integer, etc.) attached to types that support them.
+ * - **Meta types**: Typed metadata for checks on each category — e.g.
+ *   {@link StringMeta}, {@link NumberMeta}, {@link ArraysMeta}.
+ * - **Reviver**: A callback used by {@link toSchema} and {@link toCodeDocument}
+ *   to handle `Declaration` nodes (custom types like `Option`, `Date`, etc.).
+ * - **Code / CodeDocument**: Output of {@link toCodeDocument} — TypeScript
+ *   source strings for runtime schemas and their type-level counterparts.
+ *
+ * ## Common tasks
+ *
+ * - Convert a Schema AST to a Document → {@link fromAST}
+ * - Convert multiple ASTs to a MultiDocument → {@link fromASTs}
+ * - Reconstruct a runtime Schema from a Document → {@link toSchema}
+ * - Convert a Document to JSON Schema → {@link toJsonSchemaDocument}
+ * - Convert a MultiDocument to JSON Schema → {@link toJsonSchemaMultiDocument}
+ * - Parse a JSON Schema document into a Document → {@link fromJsonSchemaDocument}
+ * - Parse a JSON Schema multi-document → {@link fromJsonSchemaMultiDocument}
+ * - Generate TypeScript code from a MultiDocument → {@link toCodeDocument}
+ * - Serialize/deserialize a Document as JSON → {@link DocumentFromJson}
+ * - Serialize/deserialize a MultiDocument as JSON → {@link MultiDocumentFromJson}
+ * - Wrap a Document as a MultiDocument → {@link toMultiDocument}
+ *
+ * ## Gotchas
+ *
+ * - `Declaration` nodes require a {@link Reviver} to reconstruct complex types
+ *   (e.g. `Option`, `Date`). Without one, `toSchema` falls back to the
+ *   declaration's `encodedSchema`. Use {@link toSchemaDefaultReviver} for
+ *   built-in Effect types.
+ * - `Reference` nodes are resolved against the `references` map in the
+ *   `Document`. An unresolvable `$ref` throws at runtime.
+ * - `Suspend` wraps a single `thunk` representation; it is used for recursive
+ *   schemas. Circular references are handled by lazy resolution in
+ *   {@link toSchema}.
+ * - The `$`-prefixed exports (e.g. {@link $Representation}, {@link $Document})
+ *   are Schema codecs for the representation types themselves — use them to
+ *   validate or encode/decode representation data, not application data.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Round-trip through JSON)
+ *
+ * ```ts
+ * import { Schema, SchemaRepresentation } from "effect"
+ *
+ * const Person = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Int
+ * })
+ *
+ * // Schema AST → Document
+ * const doc = SchemaRepresentation.fromAST(Person.ast)
+ *
+ * // Document → JSON Schema
+ * const jsonSchema = SchemaRepresentation.toJsonSchemaDocument(doc)
+ *
+ * // Document → runtime Schema
+ * const reconstructed = SchemaRepresentation.toSchema(doc)
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link Representation} — the core tagged union
+ * - {@link Document} — single-schema container
+ * - {@link fromAST} — entry point from Schema AST
+ * - {@link toSchema} — reconstruct a runtime Schema
+ * - {@link toCodeDocument} — generate TypeScript code
+ *
  * @since 4.0.0
  */
 export * as SchemaRepresentation from "./SchemaRepresentation.ts"
