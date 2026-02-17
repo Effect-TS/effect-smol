@@ -8,7 +8,7 @@ import {
   Effect,
   Exit,
   Fiber,
-  Filter,
+  type Filter,
   Layer,
   Logger,
   type LogLevel,
@@ -1631,20 +1631,20 @@ describe("Effect", () => {
   describe("catchCauseIf", () => {
     it.effect("first argument as success", () =>
       Effect.gen(function*() {
-        const result = yield* Effect.catchCauseIf(Effect.succeed(1), (_) => Filter.fail(_), () => Effect.fail("e2"))
+        const result = yield* Effect.catchCauseIf(Effect.succeed(1), (_) => Result.fail(_), () => Effect.fail("e2"))
         assert.deepStrictEqual(result, 1)
       }))
     it.effect("first argument as failure and predicate return false", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchCauseIf(Effect.fail("e1" as const), (_) => Filter.fail(_), () => Effect.fail("e2" as const))
+          Effect.catchCauseIf(Effect.fail("e1" as const), (_) => Result.fail(_), () => Effect.fail("e2" as const))
         )
         assert.deepStrictEqual(result, "e1")
       }))
     it.effect("first argument as failure and predicate return true", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchCauseIf(Effect.fail("e1" as const), (e) => Filter.pass(e), () => Effect.fail("e2" as const))
+          Effect.catchCauseIf(Effect.fail("e1" as const), (e) => Result.succeed(e), () => Effect.fail("e2" as const))
         )
         assert.deepStrictEqual(result, "e2")
       }))
@@ -1703,7 +1703,7 @@ describe("Effect", () => {
         const result = yield* Effect.exit(
           Effect.tapCauseIf(
             Effect.fail("e1"),
-            (cause) => Filter.pass(cause),
+            (cause) => Result.succeed(cause),
             (cause) => Effect.sync(() => tapped.push(Cause.squash(cause) as string))
           )
         )
@@ -1716,7 +1716,7 @@ describe("Effect", () => {
         const result = yield* Effect.exit(
           Effect.tapCauseIf(
             Effect.fail("e1"),
-            (cause) => Filter.fail(cause),
+            (cause) => Result.fail(cause),
             () => Effect.sync(() => tapped.push("tapped"))
           )
         )

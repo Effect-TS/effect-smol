@@ -7,12 +7,12 @@ import type * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
-import * as Filter from "../../Filter.ts"
 import { constVoid, dual, flow, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import * as Pool from "../../Pool.ts"
 import * as Queue from "../../Queue.ts"
+import * as Result from "../../Result.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
@@ -1016,15 +1016,15 @@ export const makeProtocolSocket = (options?: {
       ),
       Effect.tapCause((cause) => {
         const error = Cause.findError(cause)
-        const hasError = Filter.isPass(error)
+        const hasError = Result.isSuccess(error)
         if (
           options?.retryTransientErrors && hasError &&
-          error.pass.reason._tag === "SocketOpenError"
+          error.success.reason._tag === "SocketOpenError"
         ) {
           return Effect.void
         }
         currentError = new RpcClientError({
-          reason: hasError ? error.pass.reason : new RpcClientDefect({
+          reason: hasError ? error.success.reason : new RpcClientDefect({
             message: "Unknown socket error",
             cause: Cause.squash(cause)
           })
@@ -1161,7 +1161,7 @@ export const makeProtocolWorker = (
           return writeResponse({
             _tag: "ClientProtocolError",
             error: new RpcClientError({
-              reason: Filter.isPass(error) ? error.pass.reason : new RpcClientDefect({
+              reason: Result.isSuccess(error) ? error.success.reason : new RpcClientDefect({
                 message: "Error in worker",
                 cause: Cause.squash(cause)
               })

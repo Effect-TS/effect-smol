@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Effect, Fiber, Filter, Option, TxQueue } from "effect"
+import { Cause, Effect, Fiber, Option, Result, TxQueue } from "effect"
 
 describe("TxQueue", () => {
   describe("interfaces", () => {
@@ -463,8 +463,8 @@ describe("TxQueue", () => {
         assert.strictEqual(result._tag, "Failure")
         if (result._tag === "Failure") {
           const error = Cause.findError(result.cause)
-          assert.ok(Filter.isPass(error))
-          assert.strictEqual(error.pass, "test error")
+          assert.ok(Result.isSuccess(error))
+          assert.strictEqual(error.success, "test error")
         }
       }))
 

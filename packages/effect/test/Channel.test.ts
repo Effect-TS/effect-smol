@@ -8,6 +8,7 @@ import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import * as Filter from "effect/Filter"
 import * as Queue from "effect/Queue"
+import * as Result from "effect/Result"
 
 describe("Channel", () => {
   describe("constructors", () => {
@@ -204,7 +205,7 @@ describe("Channel", () => {
   describe("filtering", () => {
     it.effect("filter with Filter", () =>
       Effect.gen(function*() {
-        const filter = Filter.make((n: number) => n % 2 === 0 ? Filter.pass(n * 2) : Filter.fail(n))
+        const filter = Filter.make((n: number) => n % 2 === 0 ? Result.succeed(n * 2) : Result.fail(n))
         const result = yield* Channel.fromArray([1, 2, 3, 4]).pipe(
           Channel.filter(filter),
           Channel.runCollect
@@ -214,7 +215,7 @@ describe("Channel", () => {
 
     it.effect("filterEffect with FilterEffect", () =>
       Effect.gen(function*() {
-        const filter = Filter.makeEffect((n: number) => Effect.succeed(n > 2 ? Filter.pass(n + 1) : Filter.fail(n)))
+        const filter = Filter.makeEffect((n: number) => Effect.succeed(n > 2 ? Result.succeed(n + 1) : Result.fail(n)))
         const result = yield* Channel.fromArray([1, 2, 3, 4]).pipe(
           Channel.filterEffect(filter),
           Channel.runCollect

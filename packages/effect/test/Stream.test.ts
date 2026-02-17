@@ -11,13 +11,13 @@ import {
   Effect,
   Exit,
   Fiber,
-  Filter,
   Logger,
   type LogLevel,
   Option,
   Queue,
   Ref,
   References,
+  Result,
   Schedule,
   Sink,
   Stream
@@ -3328,7 +3328,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const stream = pipe(
           Stream.fromIterable(Array.empty<number>()),
-          Stream.partitionEffect((n) => Effect.succeed(n % 2 === 0 ? Filter.pass(n) : Filter.fail(n))),
+          Stream.partitionEffect((n) => Effect.succeed(n % 2 === 0 ? Result.succeed(n) : Result.fail(n))),
           Effect.map(([odds, evens]) => pipe(evens, Stream.mergeResult(odds))),
           Effect.flatMap(Stream.runCollect),
           Effect.scoped
@@ -3344,7 +3344,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const { result1, result2 } = yield* pipe(
           Stream.range(0, 5),
-          Stream.partition((n) => n % 2 === 0 ? Filter.pass(n) : Filter.fail(n)),
+          Stream.partition((n) => n % 2 === 0 ? Result.succeed(n) : Result.fail(n)),
           Effect.flatMap(([odds, evens]) =>
             Effect.all({
               result1: Stream.runCollect(evens),
@@ -3362,7 +3362,7 @@ describe("Stream", () => {
         const { result1, result2 } = yield* pipe(
           Stream.make(0),
           Stream.concat(Stream.fail("boom")),
-          Stream.partition((n) => n % 2 === 0 ? Filter.pass(n) : Filter.fail(n)),
+          Stream.partition((n) => n % 2 === 0 ? Result.succeed(n) : Result.fail(n)),
           Effect.flatMap(([odds, evens]) =>
             Effect.all({
               result1: Effect.flip(Stream.runCollect(evens)),
@@ -3379,7 +3379,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const { result1, result2, result3 } = yield* pipe(
           Stream.range(0, 5),
-          Stream.partition((n) => (n % 2 === 0 ? Filter.pass(n) : Filter.fail(n)), { bufferSize: 1 }),
+          Stream.partition((n) => (n % 2 === 0 ? Result.succeed(n) : Result.fail(n)), { bufferSize: 1 }),
           Effect.flatMap(([odds, evens]) =>
             Effect.gen(function*() {
               const ref = yield* Ref.make(Array.empty<number>())

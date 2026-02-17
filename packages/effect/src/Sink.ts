@@ -20,6 +20,7 @@ import { hasProperty } from "./Predicate.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
 import * as Queue from "./Queue.ts"
+import * as Result from "./Result.ts"
 import * as Scope from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 import type { Stream } from "./Stream.ts"
@@ -1308,13 +1309,13 @@ export const takeWhile: {
       Effect.flatMap((arr) => {
         for (let i = 0; i < arr.length; i++) {
           const result = Filter.apply(filter as any, arr[i])
-          if (Filter.isFail(result)) {
+          if (Result.isFailure(result)) {
             const leftover: Arr.NonEmptyReadonlyArray<In> | undefined = (i + 1) < arr.length
               ? arr.slice(i + 1) as any
               : undefined
             return Cause.done([out, leftover] as const)
           }
-          out.push(result.pass)
+          out.push(result.success)
         }
         return Effect.void
       }),
@@ -1336,7 +1337,7 @@ export const takeWhileEffect: {
   fromTransform((upstream) => {
     const f: Filter.FilterEffect<In, any, any, E, R> = (input: In) =>
       Effect.map((filter as any)(input), (b: any) =>
-        typeof b === "boolean" ? (b ? Filter.pass(input) : Filter.failVoid) : b)
+        typeof b === "boolean" ? (b ? Result.succeed(input) : Result.fail(undefined)) : b)
     const out = Arr.empty<Out>()
     let leftover: Arr.NonEmptyReadonlyArray<In> | undefined = undefined
     return upstream.pipe(
@@ -1346,13 +1347,13 @@ export const takeWhileEffect: {
           while: () =>
             i < arr.length,
           body: constant(Effect.flatMap(Effect.suspend(() => f(arr[i++])), (result) => {
-            if (Filter.isFail(result)) {
+            if (Result.isFailure(result)) {
               if (i < arr.length) {
                 leftover = arr.slice(i) as any
               }
               return Cause.done()
             }
-            out.push((result as any).pass)
+            out.push(result.success)
             return Effect.void
           })),
           step: constVoid

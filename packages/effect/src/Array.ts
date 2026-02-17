@@ -1245,8 +1245,8 @@ export const takeWhile: {
   const out: Array<any> = []
   for (const a of self) {
     const result = Filter.apply(f as any, a, i)
-    if (Filter.isFail(result)) break
-    out.push(result.pass)
+    if (Result.isFailure(result)) break
+    out.push(result.success)
     i++
   }
   return out
@@ -1390,7 +1390,7 @@ export const dropWhile: {
     const input = fromIterable(self)
     let i = 0
     for (const a of input) {
-      if (Filter.isFail(Filter.apply(f as any, a, i))) break
+      if (Result.isFailure(Filter.apply(f as any, a, i))) break
       i++
     }
     return input.slice(i)
@@ -3259,8 +3259,8 @@ export const filter: {
     const out: Array<any> = []
     for (let i = 0; i < as.length; i++) {
       const result = Filter.apply(f as any, as[i], i)
-      if (!Filter.isFail(result)) {
-        out.push(result.pass)
+      if (!Result.isFailure(result)) {
+        out.push(result.success)
       }
     }
     return out
@@ -3320,10 +3320,10 @@ export const partition: {
     const as = fromIterable(self)
     for (let i = 0; i < as.length; i++) {
       const result = Filter.apply(f as any, as[i], i)
-      if (Filter.isFail(result)) {
-        excluded.push(result.fail)
+      if (Result.isFailure(result)) {
+        excluded.push(result.failure)
       } else {
-        satisfying.push(result.pass)
+        satisfying.push(result.success)
       }
     }
     return [excluded, satisfying]

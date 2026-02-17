@@ -5,7 +5,6 @@ import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Equal from "../../Equal.ts"
 import * as Exit from "../../Exit.ts"
-import * as Filter from "../../Filter.ts"
 import type { LazyArg } from "../../Function.ts"
 import { constTrue, dual, identity } from "../../Function.ts"
 import * as Hash from "../../Hash.ts"
@@ -13,6 +12,7 @@ import * as Option from "../../Option.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import type { Predicate, Refinement } from "../../Predicate.ts"
 import { hasProperty, isIterable } from "../../Predicate.ts"
+import * as Result from "../../Result.ts"
 import * as Schema_ from "../../Schema.ts"
 import * as SchemaIssue from "../../SchemaIssue.ts"
 import * as SchemaParser from "../../SchemaParser.ts"
@@ -508,10 +508,10 @@ export const matchWithError: {
       return options.onInitial(self)
     case "Failure": {
       const result = Cause.findError(self.cause)
-      if (Filter.isFail(result)) {
-        return options.onDefect(Cause.squash(result.fail), self)
+      if (Result.isFailure(result)) {
+        return options.onDefect(Cause.squash(result.failure), self)
       }
-      return options.onError(result.pass, self)
+      return options.onError(result.success, self)
     }
     case "Success":
       return options.onSuccess(self)
@@ -549,10 +549,10 @@ export const matchWithWaiting: {
       return options.onWaiting(self)
     case "Failure": {
       const e = Cause.findError(self.cause)
-      if (Filter.isFail(e)) {
-        return options.onDefect(Cause.squash(e.fail), self)
+      if (Result.isFailure(e)) {
+        return options.onDefect(Cause.squash(e.failure), self)
       }
-      return options.onError(e.pass, self)
+      return options.onError(e.success, self)
     }
     case "Success":
       return options.onSuccess(self)
@@ -741,7 +741,7 @@ class BuilderImpl<Out, A, E> {
   onDefect<B>(f: (defect: unknown, result: Failure<A, E>) => B): BuilderImpl<Out | B, A, E> {
     return this.when(isFailure, (result) => {
       const defect = Cause.findDefect(result.cause)
-      return Filter.isFail(defect) ? Option.none() : Option.some(f(defect.pass, result))
+      return Result.isFailure(defect) ? Option.none() : Option.some(f(defect.success, result))
     })
   }
 

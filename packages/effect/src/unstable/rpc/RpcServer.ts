@@ -7,13 +7,13 @@ import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
-import * as Filter from "../../Filter.ts"
 import { constant, constTrue, constVoid, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import type * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Pull from "../../Pull.ts"
 import * as Queue from "../../Queue.ts"
+import * as Result from "../../Result.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
@@ -1368,7 +1368,7 @@ const makeSocketProtocol: Effect.Effect<
       Effect.catchIf(
         ((
           error: any
-        ) => (error.reason._tag === "SocketCloseError" ? Filter.pass(error.reason) : Filter.fail(error))) as any,
+        ) => (error.reason._tag === "SocketCloseError" ? Result.succeed(error.reason) : Result.fail(error))) as any,
         (_: any) => Effect.void
       ),
       Effect.orDie

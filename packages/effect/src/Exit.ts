@@ -58,10 +58,10 @@
  */
 import type * as Cause from "./Cause.ts"
 import type * as Effect from "./Effect.ts"
-import type * as Filter from "./Filter.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
 import type { Option } from "./Option.ts"
+import type * as Result from "./Result.ts"
 import type { NoInfer } from "./Types.ts"
 
 const TypeId = core.ExitTypeId
@@ -523,7 +523,7 @@ export const hasInterrupts: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = 
  */
 export const filterSuccess: <A, E>(
   self: Exit<A, E>
-) => Filter.pass<Success<A>> | Filter.fail<Failure<never, E>> = effect.exitFilterSuccess
+) => Result.Result<Success<A>, Failure<never, E>> = effect.exitFilterSuccess
 
 /**
  * Extracts the success value from an Exit for use in filter pipelines.
@@ -548,8 +548,7 @@ export const filterSuccess: <A, E>(
  * @category filters
  * @since 4.0.0
  */
-export const filterValue: <A, E>(self: Exit<A, E>) => Filter.pass<A> | Filter.fail<Failure<never, E>> =
-  effect.exitFilterValue
+export const filterValue: <A, E>(self: Exit<A, E>) => Result.Result<A, Failure<never, E>> = effect.exitFilterValue
 
 /**
  * Extracts the Failure variant from an Exit for use in filter pipelines.
@@ -574,7 +573,7 @@ export const filterValue: <A, E>(self: Exit<A, E>) => Filter.pass<A> | Filter.fa
  * @category filters
  * @since 4.0.0
  */
-export const filterFailure: <A, E>(self: Exit<A, E>) => Filter.pass<Failure<never, E>> | Filter.fail<Success<A>> =
+export const filterFailure: <A, E>(self: Exit<A, E>) => Result.Result<Failure<never, E>, Success<A>> =
   effect.exitFilterFailure
 
 /**
@@ -600,8 +599,7 @@ export const filterFailure: <A, E>(self: Exit<A, E>) => Filter.pass<Failure<neve
  * @category filters
  * @since 4.0.0
  */
-export const filterCause: <A, E>(self: Exit<A, E>) => Filter.pass<Cause.Cause<E>> | Filter.fail<Success<A>> =
-  effect.exitFilterCause
+export const filterCause: <A, E>(self: Exit<A, E>) => Result.Result<Cause.Cause<E>, Success<A>> = effect.exitFilterCause
 
 /**
  * Extracts the first typed error value from a failed Exit for use in filter
@@ -633,7 +631,7 @@ export const filterCause: <A, E>(self: Exit<A, E>) => Filter.pass<Cause.Cause<E>
  * @category filters
  * @since 4.0.0
  */
-export const findError: <A, E>(input: Exit<A, E>) => Filter.pass<E> | Filter.fail<Exit<A, E>> = effect.exitFindError
+export const findError: <A, E>(input: Exit<A, E>) => Result.Result<E, Exit<A, E>> = effect.exitFindError
 
 /**
  * Extracts the first defect from a failed Exit for use in filter pipelines.
@@ -664,7 +662,7 @@ export const findError: <A, E>(input: Exit<A, E>) => Filter.pass<E> | Filter.fai
  * @category filters
  * @since 4.0.0
  */
-export const findDefect: <A, E>(input: Exit<A, E>) => Filter.pass<{} | null | undefined> | Filter.fail<Exit<A, E>> =
+export const findDefect: <A, E>(input: Exit<A, E>) => Result.Result<{} | null | undefined, Exit<A, E>> =
   effect.exitFindDefect
 
 /**

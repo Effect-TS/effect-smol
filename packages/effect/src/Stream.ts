@@ -3935,7 +3935,7 @@ export const filter: {
  * import { Console, Effect, Filter, Stream } from "effect"
  *
  * const filter = Filter.makeEffect((n: number) =>
- *   Effect.succeed(n > 2 ? Filter.pass(n + 1) : Filter.fail(n))
+ *   Effect.succeed(n > 2 ? Result.succeed(n + 1) : Result.fail(n))
  * )
  *
  * const stream = Stream.make(1, 2, 3, 4).pipe(Stream.filterEffect(filter))
@@ -3980,7 +3980,7 @@ export const filterEffect: {
  * const program = Effect.gen(function*() {
  *   const [passes, fails] = yield* Stream.make(1, 2, 3, 4).pipe(
  *     Stream.partitionQueue(
- *       Filter.make((n) => (n % 2 === 0 ? Filter.pass(n) : Filter.fail(n)))
+ *       Filter.make((n) => (n % 2 === 0 ? Result.succeed(n) : Result.fail(n)))
  *     )
  *   )
  *
@@ -4128,7 +4128,7 @@ export const partitionQueue: {
  *   Effect.gen(function*() {
  *     const [evens, odds] = yield* Stream.make(1, 2, 3, 4).pipe(
  *       Stream.partitionEffect((n) =>
- *         Effect.succeed(n % 2 === 0 ? Filter.pass(n) : Filter.fail(n))
+ *         Effect.succeed(n % 2 === 0 ? Result.succeed(n) : Result.fail(n))
  *       )
  *     )
  *     const result = yield* Effect.all({
@@ -4975,8 +4975,8 @@ export const catchTags: {
     (e: any) => {
       keys ??= Object.keys(cases)
       return hasProperty(e, "_tag") && isString(e["_tag"]) && keys.includes(e["_tag"])
-        ? Filter.pass(e)
-        : Filter.fail(e)
+        ? Result.succeed(e)
+        : Result.fail(e)
     },
     (e: any) => cases[e["_tag"] as string](e),
     orElse
@@ -5945,11 +5945,11 @@ export const takeWhile: {
             const out: Array<any> = []
             for (let j = 0; j < chunk.length; j++) {
               const result = Filter.apply(f as any, chunk[j], i++)
-              if (Filter.isFail(result)) {
+              if (Result.isFailure(result)) {
                 done = true
                 break
               }
-              out.push(result.pass)
+              out.push(result.success)
             }
             return Arr.isReadonlyArrayNonEmpty(out) ? Effect.succeed(out) : done ? Cause.done() : pump
           }
@@ -6150,7 +6150,7 @@ export const dropWhile: {
       let dropping = true
       let index = 0
       const filtered: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.flatMap(pull, (arr) => {
-        const found = arr.findIndex((a) => Filter.isFail(Filter.apply(f as any, a, index++)))
+        const found = arr.findIndex((a) => Result.isFailure(Filter.apply(f as any, a, index++)))
         if (found === -1) return filtered
         dropping = false
         return Effect.succeed(arr.slice(found) as Arr.NonEmptyArray<A>)

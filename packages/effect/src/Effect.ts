@@ -4416,7 +4416,7 @@ export const raceFirst: {
  *
  * // FilterEffect
  * const mapped = Effect.filter([1, 2, 3, 4], (n) =>
- *   Effect.succeed(n % 2 === 0 ? Filter.pass(n * 2) : Filter.fail(n))
+ *   Effect.succeed(n % 2 === 0 ? Result.succeed(n * 2) : Result.fail(n))
  * )
  * ```
  *
@@ -4910,8 +4910,8 @@ export const matchCauseEffectEager: {
  *     Effect.gen(function*() {
  *       if (Cause.hasFails(cause)) {
  *         const error = Cause.findError(cause)
- *         if (Filter.isPass(error)) {
- *           yield* Console.log(`Handling error: ${error.pass.message}`)
+ *         if (Result.isSuccess(error)) {
+ *           yield* Console.log(`Handling error: ${error.success.message}`)
  *         }
  *         return "recovered from error"
  *       } else {

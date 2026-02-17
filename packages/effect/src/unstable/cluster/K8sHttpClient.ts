@@ -4,10 +4,10 @@
 import type * as v1 from "kubernetes-types/core/v1.d.ts"
 import * as Effect from "../../Effect.ts"
 import * as FileSystem from "../../FileSystem.ts"
-import * as Filter from "../../Filter.ts"
 import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
+import * as Result from "../../Result.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -125,8 +125,8 @@ export const makeCreatePod = Effect.gen(function*() {
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 404
-            ? Filter.pass(err)
-            : Filter.fail(err),
+            ? Result.succeed(err)
+            : Result.fail(err),
         () => Effect.succeedNone
       ),
       Effect.orDie
@@ -137,8 +137,8 @@ export const makeCreatePod = Effect.gen(function*() {
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 404
-            ? Filter.pass(err)
-            : Filter.fail(err),
+            ? Result.succeed(err)
+            : Result.fail(err),
         () => Effect.succeed(false)
       )
     )
@@ -149,8 +149,8 @@ export const makeCreatePod = Effect.gen(function*() {
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 409
-            ? Filter.pass(err)
-            : Filter.fail(err),
+            ? Result.succeed(err)
+            : Result.fail(err),
         () => readPod
       ),
       Effect.tapCause(Effect.logInfo),
@@ -163,8 +163,8 @@ export const makeCreatePod = Effect.gen(function*() {
         (err) =>
           HttpClientError.isHttpClientError(err) && err.reason._tag === "StatusCodeError" &&
             err.reason.response.status === 404
-            ? Filter.pass(err)
-            : Filter.fail(err),
+            ? Result.succeed(err)
+            : Result.fail(err),
         () => Effect.void
       ),
       Effect.tapCause(Effect.logInfo),

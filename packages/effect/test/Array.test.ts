@@ -3,7 +3,7 @@ import { assertNone, assertSome, assertUndefined, deepStrictEqual, strictEqual, 
 import {
   Array as Arr,
   Equivalence,
-  Filter,
+  type Filter,
   Number as Num,
   Option,
   Order,
@@ -1327,7 +1327,7 @@ describe("Array", () => {
   })
 
   it("partition with Filter", () => {
-    const f: Filter.Filter<number, number, string> = (n) => n > 0 ? Filter.pass(n) : Filter.fail(`negative: ${n}`)
+    const f: Filter.Filter<number, number, string> = (n) => n > 0 ? Result.succeed(n) : Result.fail(`negative: ${n}`)
     deepStrictEqual(Arr.partition([], f), [[], []])
     deepStrictEqual(Arr.partition([1, -2, 3, -4], f), [["negative: -2", "negative: -4"], [1, 3]])
     deepStrictEqual(pipe([5, 10], Arr.partition(f)), [[], [5, 10]])

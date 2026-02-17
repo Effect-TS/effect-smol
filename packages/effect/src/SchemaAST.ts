@@ -7,7 +7,6 @@ import * as Cause from "./Cause.ts"
 import type * as Combiner from "./Combiner.ts"
 import * as Effect from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
-import * as Filter_ from "./Filter.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
 import { memoize } from "./Function.ts"
 import { effectIsExit } from "./internal/effect.ts"
@@ -995,10 +994,10 @@ export class Arrays extends Base {
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
           const issueElement = Cause.findError(exit.cause)
-          if (Filter_.isFail(issueElement)) {
+          if (Result.isFailure(issueElement)) {
             return yield* exit
           }
-          const issue = new Issue.Pointer([i], issueElement.pass)
+          const issue = new Issue.Pointer([i], issueElement.success)
           if (errorsAllOption) {
             if (issues) issues.push(issue)
             else issues = [issue]
@@ -1029,10 +1028,10 @@ export class Arrays extends Base {
           const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
           if (exit._tag === "Failure") {
             const issueRest = Cause.findError(exit.cause)
-            if (Filter_.isFail(issueRest)) {
+            if (Result.isFailure(issueRest)) {
               return yield* exit
             }
-            const issue = new Issue.Pointer([i], issueRest.pass)
+            const issue = new Issue.Pointer([i], issueRest.success)
             if (errorsAllOption) {
               if (issues) issues.push(issue)
               else issues = [issue]
@@ -1064,10 +1063,10 @@ export class Arrays extends Base {
             const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
             if (exit._tag === "Failure") {
               const issueRest = Cause.findError(exit.cause)
-              if (Filter_.isFail(issueRest)) {
+              if (Result.isFailure(issueRest)) {
                 return yield* exit
               }
-              const issue = new Issue.Pointer([i], issueRest.pass)
+              const issue = new Issue.Pointer([i], issueRest.success)
               if (errorsAllOption) {
                 if (issues) issues.push(issue)
                 else issues = [issue]
@@ -1335,10 +1334,10 @@ export class Objects extends Base {
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
           const issueProp = Cause.findError(exit.cause)
-          if (Filter_.isFail(issueProp)) {
+          if (Result.isFailure(issueProp)) {
             return yield* exit
           }
-          const issue = new Issue.Pointer([p.name], issueProp.pass)
+          const issue = new Issue.Pointer([p.name], issueProp.success)
           if (errorsAllOption) {
             if (issues) issues.push(issue)
             else issues = [issue]
@@ -1379,10 +1378,10 @@ export class Objects extends Base {
             >
             if (exitKey._tag === "Failure") {
               const issueKey = Cause.findError(exitKey.cause)
-              if (Filter_.isFail(issueKey)) {
+              if (Result.isFailure(issueKey)) {
                 return yield* exitKey
               }
-              const issue = new Issue.Pointer([key], issueKey.pass)
+              const issue = new Issue.Pointer([key], issueKey.success)
               if (errorsAllOption) {
                 if (issues) issues.push(issue)
                 else issues = [issue]
@@ -1399,10 +1398,10 @@ export class Objects extends Base {
             const exitValue = effectIsExit(effValue) ? effValue : yield* Effect.exit(effValue)
             if (exitValue._tag === "Failure") {
               const issueValue = Cause.findError(exitValue.cause)
-              if (Filter_.isFail(issueValue)) {
+              if (Result.isFailure(issueValue)) {
                 return yield* exitValue
               }
-              const issue = new Issue.Pointer([key], issueValue.pass)
+              const issue = new Issue.Pointer([key], issueValue.success)
               if (errorsAllOption) {
                 if (issues) issues.push(issue)
                 else issues = [issue]
@@ -1777,11 +1776,11 @@ export class Union<A extends AST = AST> extends Base {
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
           const issueResult = Cause.findError(exit.cause)
-          if (Filter_.isFail(issueResult)) {
+          if (Result.isFailure(issueResult)) {
             return yield* exit
           }
-          if (issues) issues.push(issueResult.pass)
-          else issues = [issueResult.pass]
+          if (issues) issues.push(issueResult.success)
+          else issues = [issueResult.success]
           continue
         } else {
           if (tracking.out && oneOf) {

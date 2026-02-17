@@ -7,6 +7,7 @@ import * as Exit from "./Exit.ts"
 import * as Filter from "./Filter.ts"
 import { dual } from "./Function.ts"
 import * as internalEffect from "./internal/effect.ts"
+import * as Result from "./Result.ts"
 
 /**
  * @since 4.0.0
@@ -106,10 +107,10 @@ export const isDoneFailure = <E>(
  */
 export const filterDone: <E>(
   input: Cause.Cause<E>
-) => Filter.pass<Cause.Done.Only<E>> | Filter.fail<Cause.Cause<ExcludeDone<E>>> = Filter
+) => Result.Result<Cause.Done.Only<E>, Cause.Cause<ExcludeDone<E>>> = Filter
   .composePassthrough(
     Cause.findError,
-    (e) => Cause.isDone(e) ? Filter.pass(e) : Filter.fail(e)
+    (e) => Cause.isDone(e) ? Result.succeed(e) : Result.fail(e)
   ) as any
 
 /**
@@ -120,9 +121,9 @@ export const filterDone: <E>(
  */
 export const filterDoneVoid: <E extends Cause.Done>(
   input: Cause.Cause<E>
-) => Filter.pass<Cause.Done> | Filter.fail<Cause.Cause<Exclude<E, Cause.Done>>> = Filter.composePassthrough(
+) => Result.Result<Cause.Done, Cause.Cause<Exclude<E, Cause.Done>>> = Filter.composePassthrough(
   Cause.findError,
-  (e) => Cause.isDone(e) ? Filter.pass(e) : Filter.fail(e)
+  (e) => Cause.isDone(e) ? Result.succeed(e) : Result.fail(e)
 ) as any
 
 /**
@@ -131,7 +132,7 @@ export const filterDoneVoid: <E extends Cause.Done>(
  */
 export const filterNoDone: <E>(
   input: Cause.Cause<E>
-) => Filter.pass<Cause.Cause<ExcludeDone<E>>> | Filter.fail<Cause.Cause<E>> = Filter
+) => Result.Result<Cause.Cause<ExcludeDone<E>>, Cause.Cause<E>> = Filter
   .fromPredicate((cause: Cause.Cause<unknown>) => cause.reasons.every((failure) => !isDoneFailure(failure))) as any
 
 /**
@@ -142,9 +143,9 @@ export const filterNoDone: <E>(
  */
 export const filterDoneLeftover: <E>(
   cause: Cause.Cause<E>
-) => Filter.pass<Cause.Done.Extract<E>> | Filter.fail<Cause.Cause<ExcludeDone<E>>> = Filter.composePassthrough(
+) => Result.Result<Cause.Done.Extract<E>, Cause.Cause<ExcludeDone<E>>> = Filter.composePassthrough(
   Cause.findError,
-  (e) => Cause.isDone(e) ? Filter.pass(e.value) : Filter.fail(e)
+  (e) => Cause.isDone(e) ? Result.succeed(e.value) : Result.fail(e)
 ) as any
 
 /**
@@ -155,7 +156,7 @@ export const filterDoneLeftover: <E>(
  */
 export const doneExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Cause.Done.Extract<E>, ExcludeDone<E>> => {
   const halt = filterDone(cause)
-  return !Filter.isFail(halt) ? Exit.succeed(halt.pass.value as any) : Exit.failCause(halt.fail)
+  return !Result.isFailure(halt) ? Exit.succeed(halt.success.value as any) : Exit.failCause(halt.failure)
 }
 
 /**
@@ -197,6 +198,6 @@ export const matchEffect: {
     onSuccess: options.onSuccess,
     onFailure: (cause): Effect<AS | AF | AH, ES | EF | EH, RS | RF | RH> => {
       const halt = filterDone(cause)
-      return !Filter.isFail(halt) ? options.onDone(halt.pass.value as L) : options.onFailure(halt.fail)
+      return !Result.isFailure(halt) ? options.onDone(halt.success.value as L) : options.onFailure(halt.failure)
     }
   }))

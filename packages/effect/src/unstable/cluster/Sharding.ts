@@ -11,7 +11,6 @@ import * as Equal from "../../Equal.ts"
 import type * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import * as FiberMap from "../../FiberMap.ts"
-import * as Filter from "../../Filter.ts"
 import { constant, flow } from "../../Function.ts"
 import * as HashRing from "../../HashRing.ts"
 import * as Layer from "../../Layer.ts"
@@ -21,6 +20,7 @@ import * as MutableRef from "../../MutableRef.ts"
 import * as Option from "../../Option.ts"
 import * as PubSub from "../../PubSub.ts"
 import { CurrentLogAnnotations } from "../../References.ts"
+import * as Result from "../../Result.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -511,7 +511,7 @@ const make = Effect.gen(function*() {
           const message = messages[index]
           const error = Cause.findError(cause)
           // if we get a defect, then update storage
-          if (Filter.isFail(error)) {
+          if (Result.isFailure(error)) {
             if (Cause.hasInterrupts(cause)) {
               return Effect.void
             }
@@ -521,7 +521,7 @@ const make = Effect.gen(function*() {
               defect: Cause.squash(cause)
             }))
           }
-          if (error.pass._tag === "MailboxFull") {
+          if (error.success._tag === "MailboxFull") {
             // MailboxFull can only happen for requests, so this cast is safe
             return resumeEntityFromStorage(message as Message.IncomingRequest<any>)
           }
@@ -832,8 +832,8 @@ const make = Effect.gen(function*() {
       }),
       (error) =>
         error._tag === "EntityNotAssignedToRunner" || error._tag === "RunnerUnavailable"
-          ? Filter.pass(error)
-          : Filter.fail(error),
+          ? Result.succeed(error)
+          : Result.fail(error),
       (error) => {
         if (retries === 0) {
           return Effect.die(error)

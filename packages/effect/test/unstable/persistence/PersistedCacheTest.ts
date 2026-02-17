@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import type { Layer } from "effect"
-import { Data, Effect, Exit, Filter, Schema } from "effect"
+import { Data, Effect, Exit, Result, Schema } from "effect"
 import { Persistable, PersistedCache, Persistence } from "effect/unstable/persistence"
 
 class User extends Schema.Class<User>("User")({
@@ -67,6 +67,6 @@ export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistenc
         ])
       }).pipe(
         Effect.provide(layer),
-        Effect.catchIf((e) => e instanceof TransientError ? Filter.pass(e) : Filter.fail(e), () => Effect.void)
+        Effect.catchIf((e) => e instanceof TransientError ? Result.succeed(e) : Result.fail(e), () => Effect.void)
       ))
   })

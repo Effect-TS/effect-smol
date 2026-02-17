@@ -9,9 +9,9 @@ import * as ChannelSchema from "../../ChannelSchema.ts"
 import * as Data from "../../Data.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
-import * as Filter from "../../Filter.ts"
 import { hasProperty } from "../../Predicate.ts"
 import * as Pull from "../../Pull.ts"
+import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 
@@ -454,8 +454,8 @@ export class Retry extends Data.TaggedClass("Retry")<{
   /**
    * @since 4.0.0
    */
-  static filter<A>(u: A): Filter.pass<Retry> | Filter.fail<Exclude<A, Retry>> {
-    return Retry.is(u) ? Filter.pass(u) : Filter.fail(u as any)
+  static filter<A>(u: A): Result.Result<Retry, Exclude<A, Retry>> {
+    return Retry.is(u) ? Result.succeed(u) : Result.fail(u as any)
   }
 }
 

@@ -80,6 +80,7 @@ import * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
 import * as Queue from "./Queue.ts"
 import { TracerTimingEnabled } from "./References.ts"
+import * as Result from "./Result.ts"
 import * as Schedule from "./Schedule.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -3029,7 +3030,7 @@ export const filter: {
       (pull) =>
         Effect.flatMap(pull, function loop(elem): Pull.Pull<any, OutErr, OutDone> {
           const result = Filter.apply(filter as any, elem)
-          return Filter.isFail(result) ? Effect.flatMap(pull, loop) : Effect.succeed(result.pass)
+          return Result.isFailure(result) ? Effect.flatMap(pull, loop) : Effect.succeed(result.success)
         })
     )
   ))
@@ -3060,9 +3061,9 @@ export const filterEffect: {
           return Effect.flatMap(
             filter(elem),
             (result) =>
-              Filter.isFail(result)
+              Result.isFailure(result)
                 ? Effect.flatMap(pull, loop)
-                : Effect.succeed(result.pass)
+                : Effect.succeed(result.success)
           )
         })
     )
@@ -3192,7 +3193,7 @@ export const filterArrayEffect: {
   return filterEffect(self, (arr) =>
     Effect.map(
       Effect.filter(arr, filter as any),
-      (passes) => Arr.isReadonlyArrayNonEmpty(passes) ? Filter.pass(passes) : Filter.failVoid
+      (passes) => Arr.isReadonlyArrayNonEmpty(passes) ? Result.succeed(passes) : Result.fail(undefined)
     ))
 })
 
@@ -3827,7 +3828,7 @@ export const catchCauseIf: {
     self,
     (cause): Channel<OutElem1, Cause.Cause.Error<X> | OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1> => {
       const eb = Filter.apply(filter as any, cause)
-      return !Filter.isFail(eb) ? (f as any)(eb.pass, cause) : failCause(eb.fail as any)
+      return !Result.isFailure(eb) ? (f as any)(eb.success, cause) : failCause(eb.failure as any)
     }
   ))
 
@@ -4122,7 +4123,7 @@ export const catchIf: {
       Env1 | Env2
     > => {
       const eb = Filter.apply(filter as any, err)
-      return !Filter.isFail(eb) ? f(eb.pass as any) : orElse ? orElse(eb.fail as any) : fail(eb.fail) as any
+      return !Result.isFailure(eb) ? f(eb.success as any) : orElse ? orElse(eb.failure as any) : fail(eb.failure) as any
     }
   ))
 
@@ -4720,7 +4721,7 @@ export const unwrapReason: {
   catchIf(
     self,
     (error: any) =>
-      isTagged(error, errorTag) && hasProperty(error, "reason") ? Filter.pass(error.reason) : Filter.fail(error),
+      isTagged(error, errorTag) && hasProperty(error, "reason") ? Result.succeed(error.reason) : Result.fail(error),
     fail as any
   ) as any)
 
@@ -5209,13 +5210,13 @@ export const mergeAll: {
                 const halt = Pull.filterDone(cause)
                 yield* Effect.exit(Scope.close(
                   childScope,
-                  !Filter.isFail(halt) ? Exit.succeed(halt.pass.value) : Exit.failCause(halt.fail)
+                  !Result.isFailure(halt) ? Exit.succeed(halt.success.value) : Exit.failCause(halt.failure)
                 ))
                 if (!fibers.has(fiber)) return
                 fibers.delete(fiber)
                 if (semaphore) yield* semaphore.release(1)
                 if (fibers.size === 0) yield* doneLatch.open
-                if (Filter.isPass(halt)) return
+                if (Result.isSuccess(halt)) return
                 return yield* Queue.failCause(queue, cause as any)
               })),
               Effect.forkChild

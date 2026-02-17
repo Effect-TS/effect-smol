@@ -4,13 +4,13 @@
 import * as Console from "../../Console.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
-import * as Filter from "../../Filter.ts"
 import { dual } from "../../Function.ts"
 import type * as Layer from "../../Layer.ts"
 import type * as Path from "../../Path.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as References from "../../References.ts"
+import * as Result from "../../Result.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
 import * as Terminal from "../../Terminal.ts"
 import type { Simplify } from "../../Types.ts"
@@ -910,13 +910,15 @@ export const runWith = <const Name extends string, Input, E, R>(
     Effect.catchIf(
       ((error: any) =>
         CliError.isCliError(error) && error._tag === "ShowHelp"
-          ? Filter.pass(error)
-          : Filter.fail(error)) as any,
+          ? Result.succeed(error)
+          : Result.fail(error)) as any,
       (error: any) => showHelp(command, error.commandPath)
     ),
     Effect.catchIf(
       (e) =>
-        Terminal.isQuitError(e) ? Filter.pass(e) : Filter.fail(e as CliError.CliError | Exclude<E, Terminal.QuitError>),
+        Terminal.isQuitError(e)
+          ? Result.succeed(e)
+          : Result.fail(e as CliError.CliError | Exclude<E, Terminal.QuitError>),
       (_) => Effect.interrupt
     )
   )

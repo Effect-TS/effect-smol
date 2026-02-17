@@ -9,12 +9,12 @@ import type { DurationInput } from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as FiberSet from "../../FiberSet.ts"
-import * as Filter from "../../Filter.ts"
 import { constVoid, dual, flow } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Pull from "../../Pull.ts"
 import * as Queue from "../../Queue.ts"
+import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -172,11 +172,11 @@ export class SocketCloseError extends Schema.ErrorClass<SocketCloseError>("effec
   /**
    * @since 4.0.0
    */
-  static filterClean(isClean: (code: number) => boolean): <E>(u: E) => Filter.pass<SocketCloseError> | Filter.fail<E> {
+  static filterClean(isClean: (code: number) => boolean): <E>(u: E) => Result.Result<SocketCloseError, E> {
     return function<E>(u: E) {
       return SocketError.is(u) && u.reason._tag === "SocketCloseError" && isClean(u.reason.code)
-        ? Filter.pass(u.reason)
-        : Filter.fail(u)
+        ? Result.succeed(u.reason)
+        : Result.fail(u)
     }
   }
 

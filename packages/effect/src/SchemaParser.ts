@@ -5,11 +5,11 @@ import * as Arr from "./Array.ts"
 import * as Cause from "./Cause.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
-import * as Filter from "./Filter.ts"
 import { identity, memoize } from "./Function.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
+import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
 import * as AST from "./SchemaAST.ts"
 import * as Issue from "./SchemaIssue.ts"
@@ -110,10 +110,10 @@ export function asserts<S extends Schema.Top & { readonly DecodingServices: neve
     const exit = parser(input, AST.defaultParseOptions)
     if (Exit.isFailure(exit)) {
       const issue = Cause.findError(exit.cause)
-      if (Filter.isFail(issue)) {
-        throw Cause.squash(issue.fail)
+      if (Result.isFailure(issue)) {
+        throw Cause.squash(issue.failure)
       }
-      throw new Error(issue.pass.toString(), { cause: issue.pass })
+      throw new Error(issue.success.toString(), { cause: issue.success })
     }
   }
 }
