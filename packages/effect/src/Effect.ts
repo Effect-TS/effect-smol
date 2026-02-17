@@ -457,8 +457,13 @@ export declare namespace All {
    */
   export type ReturnIterable<
     T extends Iterable<EffectAny>,
-    Discard extends boolean
-  > = [T] extends [Iterable<Effect<infer A, infer E, infer R>>] ? Effect<Discard extends true ? void : Array<A>, E, R>
+    Discard extends boolean,
+    Mode extends boolean = false
+  > = [T] extends [Iterable<Effect<infer A, infer E, infer R>>] ? Effect<
+      Discard extends true ? void : Array<Mode extends true ? Result.Result<A, E> : A>,
+      Mode extends true ? never : E,
+      R
+    >
     : never
 
   /**
@@ -479,7 +484,8 @@ export declare namespace All {
    */
   export type ReturnTuple<
     T extends ReadonlyArray<unknown>,
-    Discard extends boolean
+    Discard extends boolean,
+    Mode extends boolean = false
   > = Effect<
     Discard extends true ? void
       : T[number] extends never ? []
@@ -488,10 +494,11 @@ export declare namespace All {
           infer _A,
           infer _E,
           infer _R
-        > ? _A
+        > ? Mode extends true ? Result.Result<_A, _E> : _A
           : never
       },
-    T[number] extends never ? never
+    Mode extends true ? never
+      : T[number] extends never ? never
       : T[number] extends Effect<infer _A, infer _E, infer _R> ? _E
       : never,
     T[number] extends never ? never
@@ -516,17 +523,18 @@ export declare namespace All {
    * // Result: Effect<{ a: string, b: number }, Error, never>
    * ```
    */
-  export type ReturnObject<T, Discard extends boolean> = [T] extends [
+  export type ReturnObject<T, Discard extends boolean, Mode extends boolean = false> = [T] extends [
     Record<string, EffectAny>
   ] ? Effect<
       Discard extends true ? void
         : {
           -readonly [K in keyof T]: [T[K]] extends [
             Effect<infer _A, infer _E, infer _R>
-          ] ? _A
+          ] ? Mode extends true ? Result.Result<_A, _E> : _A
             : never
         },
-      keyof T extends never ? never
+      Mode extends true ? never
+        : keyof T extends never ? never
         : T[keyof T] extends Effect<infer _A, infer _E, infer _R> ? _E
         : never,
       keyof T extends never ? never
@@ -555,6 +563,12 @@ export declare namespace All {
     : true
 
   /**
+   * @since 4.0.0
+   * @category Models
+   */
+  export type IsResult<A> = [Extract<A, { readonly mode: "result" }>] extends [never] ? false : true
+
+  /**
    * @since 2.0.0
    * @category Models
    * @example
@@ -573,10 +587,11 @@ export declare namespace All {
     O extends {
       readonly concurrency?: Concurrency | undefined
       readonly discard?: boolean | undefined
+      readonly mode?: "default" | "result" | undefined
     }
-  > = [Arg] extends [ReadonlyArray<EffectAny>] ? ReturnTuple<Arg, IsDiscard<O>>
-    : [Arg] extends [Iterable<EffectAny>] ? ReturnIterable<Arg, IsDiscard<O>>
-    : [Arg] extends [Record<string, EffectAny>] ? ReturnObject<Arg, IsDiscard<O>>
+  > = [Arg] extends [ReadonlyArray<EffectAny>] ? ReturnTuple<Arg, IsDiscard<O>, IsResult<O>>
+    : [Arg] extends [Iterable<EffectAny>] ? ReturnIterable<Arg, IsDiscard<O>, IsResult<O>>
+    : [Arg] extends [Record<string, EffectAny>] ? ReturnObject<Arg, IsDiscard<O>, IsResult<O>>
     : never
 }
 
@@ -613,7 +628,7 @@ export declare namespace All {
  * called "short-circuiting". If any effect in the collection fails, the
  * remaining effects will not run, and the error will be propagated. To change
  * this behavior, you can use the `mode` option, which allows all effects to run
- * and collect results as `Result` or `Option`.
+ * and collect every success / failure as `Result` values.
  *
  * **The `mode` option**
  *
@@ -622,10 +637,6 @@ export declare namespace All {
  * failure, this mode collects both successes and failures, returning an array
  * of `Result` instances where each result is either an `Ok` (success) or a
  * `Err` (failure).
- *
- * Similarly, the `{ mode: "validate" }` option uses `Option` to indicate
- * success or failure. Each effect returns `None` for success and `Some` with
- * the error for failure.
  *
  * @example Combining Effects in Tuples
  * ```ts
@@ -741,6 +752,7 @@ export const all: <
   O extends {
     readonly concurrency?: Concurrency | undefined
     readonly discard?: boolean | undefined
+    readonly mode?: "default" | "result" | undefined
   }
 >(
   arg: Arg,

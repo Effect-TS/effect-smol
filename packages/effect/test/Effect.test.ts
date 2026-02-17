@@ -358,6 +358,55 @@ describe("Effect", () => {
         )) satisfies Array<number>
         assert.deepStrictEqual(results, [1, 2, 3])
       }))
+
+    it.effect("tuple result mode", () =>
+      Effect.gen(function*() {
+        const executed: Array<number> = []
+        const results = (yield* Effect.all(
+          [
+            Effect.sync(() => {
+              executed.push(1)
+              return 1
+            }),
+            Effect.sync(() => {
+              executed.push(2)
+            }).pipe(Effect.andThen(Effect.fail("boom"))),
+            Effect.sync(() => {
+              executed.push(3)
+              return 3
+            })
+          ] as const,
+          { mode: "result" }
+        )) satisfies [
+          Result.Result<number, never>,
+          Result.Result<never, string>,
+          Result.Result<number, never>
+        ]
+        assert.deepStrictEqual(executed, [1, 2, 3])
+        assert.deepStrictEqual(results, [
+          Result.succeed(1),
+          Result.fail("boom"),
+          Result.succeed(3)
+        ])
+      }))
+
+    it.effect("record result mode", () =>
+      Effect.gen(function*() {
+        const results = (yield* Effect.all({
+          a: Effect.succeed(1),
+          b: Effect.fail("boom"),
+          c: Effect.succeed(true)
+        }, { mode: "result" })) satisfies {
+          a: Result.Result<number, never>
+          b: Result.Result<never, string>
+          c: Result.Result<boolean, never>
+        }
+        assert.deepStrictEqual(results, {
+          a: Result.succeed(1),
+          b: Result.fail("boom"),
+          c: Result.succeed(true)
+        })
+      }))
   })
 
   describe("filter", () => {

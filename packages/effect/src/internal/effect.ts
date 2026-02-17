@@ -4007,15 +4007,20 @@ export const all = <
   O extends {
     readonly concurrency?: Concurrency | undefined
     readonly discard?: boolean | undefined
+    readonly mode?: "default" | "result" | undefined
   }
 >(
   arg: Arg,
   options?: O
 ): Effect.All.Return<Arg, O> => {
   if (isIterable(arg)) {
-    return (forEach as any)(arg, identity, options)
+    return options?.mode === "result"
+      ? (forEach as any)(arg, result, options)
+      : (forEach as any)(arg, identity, options)
   } else if (options?.discard) {
-    return (forEach as any)(Object.values(arg), identity, options)
+    return options.mode === "result"
+      ? (forEach as any)(Object.values(arg), result, options)
+      : (forEach as any)(Object.values(arg), identity, options)
   }
   return suspend(() => {
     const out: Record<string, unknown> = {}
@@ -4023,7 +4028,7 @@ export const all = <
       forEach(
         Object.entries(arg),
         ([key, effect]) =>
-          map(effect, (value) => {
+          map(options?.mode === "result" ? result(effect) : effect, (value) => {
             out[key] = value
           }),
         {
