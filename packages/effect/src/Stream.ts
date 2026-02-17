@@ -5266,29 +5266,22 @@ export const mapError: {
  * @category Error Handling
  */
 export const catchCauseIf: {
-  <E, A2, E2, R2>(
-    predicate: Predicate<Cause.Cause<E>>,
-    f: (cause: Cause.Cause<E>) => Stream<A2, E2, R2>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E | E2, R2 | R>
-  <E, EB, X extends Cause.Cause<any>, A2, E2, R2>(
-    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
-    f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, Cause.Cause.Error<X> | E2, R2 | R>
-  <A, E, R, A2, E2, R2>(
+  <E, Result extends Filter.InputResult<Cause.Cause<any>>, A2, E2, R2>(
+    filter: Filter.Input<Cause.Cause<E>, Result>,
+    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+  ): <A, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A | A2, Cause.Cause.Error<Filter.Fail<Cause.Cause<E>, Result>> | E2, R2 | R>
+  <A, E, R, A2, E2, R2, Result extends Filter.InputResult<Cause.Cause<any>>>(
     self: Stream<A, E, R>,
-    predicate: Predicate<Cause.Cause<E>>,
-    f: (cause: Cause.Cause<E>) => Stream<A2, E2, R2>
-  ): Stream<A | A2, E | E2, R | R2>
-  <A, E, R, EB, X extends Cause.Cause<any>, A2, E2, R2>(
-    self: Stream<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
-    f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
-  ): Stream<A | A2, Cause.Cause.Error<X> | E2, R | R2>
-} = dual(3, <A, E, R, EB, X extends Cause.Cause<any>, A2, E2, R2>(
+    filter: Filter.Input<Cause.Cause<E>, Result>,
+    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+  ): Stream<A | A2, Cause.Cause.Error<Filter.Fail<Cause.Cause<E>, Result>> | E2, R | R2>
+} = dual(3, <A, E, R, A2, E2, R2, Result extends Filter.InputResult<Cause.Cause<any>>>(
   self: Stream<A, E, R>,
-  filter: Filter.Filter<Cause.Cause<E>, EB, X> | Predicate<Cause.Cause<E>>,
-  f: ((failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>) | ((cause: Cause.Cause<E>) => Stream<A2, E2, R2>)
-): Stream<A | A2, Cause.Cause.Error<X> | E2, R | R2> =>
+  filter: Filter.Input<Cause.Cause<E>, Result>,
+  f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+): Stream<A | A2, Cause.Cause.Error<Filter.Fail<Cause.Cause<E>, Result>> | E2, R | R2> =>
   fromChannel(
     Channel.catchCauseIf(self.channel, filter as any, (failure: any, cause: any) =>
       (f as any)(failure, cause).channel) as any
