@@ -3675,9 +3675,22 @@ export const tapCause: {
  * @category Error handling
  */
 export const catchCauseIf: {
-  <OutErr, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
-    predicate: Predicate.Predicate<Cause.Cause<OutErr>>,
-    f: (cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  <
+    OutErr,
+    Result extends Filter.InputResult<Cause.Cause<any>>,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    filter: Filter.Input<Cause.Cause<OutErr>, Result>,
+    f: (
+      failure: Filter.Pass<Cause.Cause<OutErr>, Result>,
+      cause: Cause.Cause<OutErr>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
   ): <
     OutElem,
     OutDone,
@@ -3687,26 +3700,7 @@ export const catchCauseIf: {
     Env
   >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
     OutElem | OutElem1,
-    OutErr | OutErr1,
-    OutDone | OutDone1,
-    InElem & InElem1,
-    InErr & InErr1,
-    InDone & InDone1,
-    Env | Env1
-  >
-  <OutErr, EB, X extends Cause.Cause<any>, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
-    filter: Filter.Filter<Cause.Cause<OutErr>, EB, X>,
-    f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
-  ): <
-    OutElem,
-    OutDone,
-    InElem,
-    InErr,
-    InDone,
-    Env
-  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
-    OutElem | OutElem1,
-    Cause.Cause.Error<X> | OutErr1,
+    Cause.Cause.Error<Filter.Fail<Cause.Cause<OutErr>, Result>> | OutErr1,
     OutDone | OutDone1,
     InElem & InElem1,
     InErr & InErr1,
@@ -3721,6 +3715,7 @@ export const catchCauseIf: {
     InErr,
     InDone,
     Env,
+    Result extends Filter.InputResult<Cause.Cause<any>>,
     OutElem1,
     OutErr1,
     OutDone1,
@@ -3730,41 +3725,14 @@ export const catchCauseIf: {
     Env1
   >(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    predicate: Predicate.Predicate<Cause.Cause<OutErr>>,
-    f: (cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+    filter: Filter.Input<Cause.Cause<OutErr>, Result>,
+    f: (
+      failure: Filter.Pass<Cause.Cause<OutErr>, Result>,
+      cause: Cause.Cause<OutErr>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
   ): Channel<
     OutElem | OutElem1,
-    OutErr | OutErr1,
-    OutDone | OutDone1,
-    InElem & InElem1,
-    InErr & InErr1,
-    InDone & InDone1,
-    Env | Env1
-  >
-  <
-    OutElem,
-    OutErr,
-    OutDone,
-    InElem,
-    InErr,
-    InDone,
-    Env,
-    EB,
-    X extends Cause.Cause<any>,
-    OutElem1,
-    OutErr1,
-    OutDone1,
-    InElem1,
-    InErr1,
-    InDone1,
-    Env1
-  >(
-    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    filter: Filter.Filter<Cause.Cause<OutErr>, EB, X>,
-    f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
-  ): Channel<
-    OutElem | OutElem1,
-    Cause.Cause.Error<X> | OutErr1,
+    Cause.Cause.Error<Filter.Fail<Cause.Cause<OutErr>, Result>> | OutErr1,
     OutDone | OutDone1,
     InElem & InElem1,
     InErr & InErr1,
@@ -3779,8 +3747,7 @@ export const catchCauseIf: {
   InErr,
   InDone,
   Env,
-  EB,
-  X extends Cause.Cause<any>,
+  Result extends Filter.InputResult<Cause.Cause<any>>,
   OutElem1,
   OutErr1,
   OutDone1,
@@ -3790,16 +3757,14 @@ export const catchCauseIf: {
   Env1
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.Filter<Cause.Cause<OutErr>, EB, X> | Predicate.Predicate<Cause.Cause<OutErr>>,
-  f:
-    | ((
-      failure: EB,
-      cause: Cause.Cause<OutErr>
-    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>)
-    | ((cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>)
+  filter: Filter.Input<Cause.Cause<OutErr>, Result>,
+  f: (
+    failure: Filter.Pass<Cause.Cause<OutErr>, Result>,
+    cause: Cause.Cause<OutErr>
+  ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
 ): Channel<
   OutElem | OutElem1,
-  Cause.Cause.Error<X> | OutErr1,
+  Cause.Cause.Error<Filter.Fail<Cause.Cause<OutErr>, Result>> | OutErr1,
   OutDone | OutDone1,
   InElem & InElem1,
   InErr & InErr1,
@@ -3808,9 +3773,19 @@ export const catchCauseIf: {
 > =>
   catchCause(
     self,
-    (cause): Channel<OutElem1, Cause.Cause.Error<X> | OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1> => {
+    (
+      cause
+    ): Channel<
+      OutElem1,
+      Cause.Cause.Error<Filter.Fail<Cause.Cause<OutErr>, Result>> | OutErr1,
+      OutDone1,
+      InElem1,
+      InErr1,
+      InDone1,
+      Env1
+    > => {
       const eb = Filter.apply(filter as any, cause)
-      return !Result.isFailure(eb) ? (f as any)(eb.success, cause) : failCause(eb.failure as any)
+      return !Result.isFailure(eb) ? f(eb.success as any, cause) : failCause(eb.failure as any)
     }
   ))
 
@@ -3886,7 +3861,7 @@ const catch_: {
   InErr & InErr1,
   InDone & InDone1,
   Env | Env1
-> => catchCauseIf(self, Cause.findError, f))
+> => catchCauseIf(self, Cause.findError as any, (e: any) => f(e)) as any)
 
 export {
   /**
