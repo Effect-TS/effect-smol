@@ -11,6 +11,8 @@
 "@effect/platform-node": major
 "@effect/sql-sqlite-do": major
 "@effect/ai-anthropic": major
+"@effect/ai-openai-compat": major
+"@effect/ai-openrouter": major
 "@effect/platform-bun": major
 "@effect/atom-react": major
 "@effect/atom-solid": major
