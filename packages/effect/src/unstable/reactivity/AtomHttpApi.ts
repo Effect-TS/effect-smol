@@ -153,6 +153,7 @@ export const Service = <Self>() =>
       | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
     readonly baseUrl?: URL | string | undefined
+    readonly runtime?: Atom.RuntimeFactory | undefined
   }
 ): AtomHttpApiClient<Self, Id, Groups> => {
   const self: Mutable<AtomHttpApiClient<Self, Id, Groups>> = ServiceMap.Service<
@@ -164,7 +165,8 @@ export const Service = <Self>() =>
     self,
     HttpApiClient.make(options.api, options)
   ).pipe(Layer.provide(options.httpClient)) as Layer.Layer<Self>
-  self.runtime = Atom.runtime(self.layer)
+  const runtimeFactory = options.runtime ?? Atom.runtime
+  self.runtime = runtimeFactory(self.layer)
 
   const mutationFamily = Atom.family(({ endpoint, group, withResponse }: MutationKey) =>
     self.runtime.fn<{
