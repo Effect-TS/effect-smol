@@ -449,8 +449,8 @@ describe("Arbitrary generation", () => {
     })
 
     it("isLength(2)", () => {
-      verifyGeneration(Schema.String.pipe(Schema.check(Schema.isLength(2))))
-      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Schema.isLength(2))))
+      verifyGeneration(Schema.String.pipe(Schema.check(Schema.isLengthBetween(2, 2))))
+      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Schema.isLengthBetween(2, 2))))
     })
 
     it("isMinProperties(2)", () => {
@@ -686,7 +686,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("String & isLength(2)", () => {
-      assertContext(Schema.String.check(Schema.isLength(2)), {
+      assertContext(Schema.String.check(Schema.isLengthBetween(2, 2)), {
         constraints: {
           array: {
             minLength: 2,

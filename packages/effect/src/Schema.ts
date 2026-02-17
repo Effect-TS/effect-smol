@@ -4880,25 +4880,29 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
  * @category Length checks
  * @since 4.0.0
  */
-export function isLength(length: number, annotations?: Annotations.Filter) {
-  length = Math.max(0, Math.floor(length))
+export function isLengthBetween(minimum: number, maximum: number, annotations?: Annotations.Filter) {
+  minimum = Math.max(0, Math.floor(minimum))
+  maximum = Math.max(0, Math.floor(maximum))
   return makeFilter<{ readonly length: number }>(
-    (input) => input.length === length,
+    (input) => input.length >= minimum && input.length <= maximum,
     {
-      expected: `a value with a length of ${length}`,
+      expected: minimum === maximum
+        ? `a value with a length of ${minimum}`
+        : `a value with a length between ${minimum} and ${maximum}`,
       meta: {
-        _tag: "isLength",
-        length
+        _tag: "isLengthBetween",
+        minimum,
+        maximum
       },
       [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         string: {
-          minLength: length,
-          maxLength: length
+          minLength: minimum,
+          maxLength: maximum
         },
         array: {
-          minLength: length,
-          maxLength: length
+          minLength: minimum,
+          maxLength: maximum
         }
       },
       ...annotations
@@ -5238,7 +5242,7 @@ export const NonEmptyString = String.check(isNonEmpty())
  *
  * @since 4.0.0
  */
-export const Char = String.check(isLength(1))
+export const Char = String.check(isLengthBetween(1, 1))
 
 /**
  * @category Option
@@ -8856,9 +8860,10 @@ export declare namespace Annotations {
       readonly _tag: "isMaxLength"
       readonly maxLength: number
     }
-    readonly isLength: {
-      readonly _tag: "isLength"
-      readonly length: number
+    readonly isLengthBetween: {
+      readonly _tag: "isLengthBetween"
+      readonly minimum: number
+      readonly maximum: number
     }
     readonly isPattern: {
       readonly _tag: "isPattern"

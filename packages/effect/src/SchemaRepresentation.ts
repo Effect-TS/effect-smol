@@ -573,7 +573,7 @@ export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isMinLength"
   | "isMaxLength"
   | "isPattern"
-  | "isLength"
+  | "isLengthBetween"
   | "isTrimmed"
   | "isUUID"
   | "isULID"
@@ -639,7 +639,7 @@ export type BigIntMeta = Schema.Annotations.BuiltInMetaDefinitions[
 export type ArraysMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isMinLength"
   | "isMaxLength"
-  | "isLength"
+  | "isLengthBetween"
   | "isUnique"
 ]
 
@@ -978,10 +978,11 @@ const $IsMaxLength = Schema.Struct({
   maxLength: NonNegativeInt
 }).annotate({ identifier: "IsMaxLength" })
 
-const $IsLength = Schema.Struct({
-  _tag: Schema.tag("isLength"),
-  length: NonNegativeInt
-}).annotate({ identifier: "IsLength" })
+const $IsLengthBetween = Schema.Struct({
+  _tag: Schema.tag("isLengthBetween"),
+  minimum: NonNegativeInt,
+  maximum: NonNegativeInt
+}).annotate({ identifier: "IsLengthBetween" })
 
 const $IsPattern = Schema.Struct({
   _tag: Schema.tag("isPattern"),
@@ -1013,7 +1014,7 @@ export const $StringMeta = Schema.Union([
   $IsMinLength,
   $IsMaxLength,
   $IsPattern,
-  $IsLength
+  $IsLengthBetween
 ]).annotate({ identifier: "StringMeta" })
 
 function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
@@ -1287,7 +1288,7 @@ const $IsUnique = Schema.Struct({
 const $ArraysMeta = Schema.Union([
   $IsMinLength,
   $IsMaxLength,
-  $IsLength,
+  $IsLengthBetween,
   $IsUnique
 ]).annotate({ identifier: "ArraysMeta" })
 
@@ -1993,8 +1994,8 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
         return Schema.isMinLength(filter.meta.minLength, a)
       case "isMaxLength":
         return Schema.isMaxLength(filter.meta.maxLength, a)
-      case "isLength":
-        return Schema.isLength(filter.meta.length, a)
+      case "isLengthBetween":
+        return Schema.isLengthBetween(filter.meta.minimum, filter.meta.maximum, a)
       case "isPattern":
         return Schema.isPattern(filter.meta.regExp, a)
       case "isTrimmed":
@@ -2641,8 +2642,8 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
         return `Schema.isMinLength(${filter.meta.minLength}${ca})`
       case "isMaxLength":
         return `Schema.isMaxLength(${filter.meta.maxLength}${ca})`
-      case "isLength":
-        return `Schema.isLength(${filter.meta.length}${ca})`
+      case "isLengthBetween":
+        return `Schema.isLengthBetween(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
       case "isUUID":
         return `Schema.isUUID(${filter.meta.version}${ca})`
       case "isStartsWith":

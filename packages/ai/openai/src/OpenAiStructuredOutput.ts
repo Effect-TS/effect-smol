@@ -398,7 +398,7 @@ function getFilter(filter: AST.Filter<any>, isArray: boolean): Array<Filter> {
     switch (meta._tag) {
       case "isMinLength":
       case "isMaxLength":
-      case "isLength": {
+      case "isLengthBetween": {
         out = out.concat(annotations)
         if (isArray) {
           out.push({ _tag: "filter", filter: resetFilter(filter) })
