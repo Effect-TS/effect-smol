@@ -5988,23 +5988,14 @@ export const onError: {
  * @category Resource Management & Finalization
  */
 export const onErrorIf: {
-  <A, E, XE, XR>(
-    predicate: Predicate.Predicate<Cause.Cause<E>>,
-    f: (cause: Cause.Cause<E>) => Effect<void, XE, XR>
-  ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
-  <A, E, EB, X, XE, XR>(
-    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
-    f: (failure: EB, cause: Cause.Cause<E>) => Effect<void, XE, XR>
-  ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR>(
+  <E, Result extends Filter.InputResult, XE, XR>(
+    filter: Filter.Input<Cause.Cause<E>, Result>,
+    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<void, XE, XR>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
+  <A, E, R, XE, XR, Result extends Filter.InputResult>(
     self: Effect<A, E, R>,
-    predicate: Predicate.Predicate<Cause.Cause<E>>,
-    f: (cause: Cause.Cause<E>) => Effect<void, XE, XR>
-  ): Effect<A, E | XE, R | XR>
-  <A, E, R, EB, X, XE, XR>(
-    self: Effect<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
-    f: (failure: EB, cause: Cause.Cause<E>) => Effect<void, XE, XR>
+    filter: Filter.Input<Cause.Cause<E>, Result>,
+    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<void, XE, XR>
   ): Effect<A, E | XE, R | XR>
 } = internal.onErrorIf
 

@@ -3807,36 +3807,27 @@ export const onError: {
 
 /** @internal */
 export const onErrorIf: {
-  <A, E, XE, XR>(
-    predicate: Predicate.Predicate<Cause.Cause<E>>,
-    f: (cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
-  ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
-  <A, E, EB, X, XE, XR>(
-    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
-    f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
-  ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR>(
+  <E, Result extends Filter.InputResult, XE, XR>(
+    filter: Filter.Input<Cause.Cause<E>, Result>,
+    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
+  <A, E, R, XE, XR, Result extends Filter.InputResult>(
     self: Effect.Effect<A, E, R>,
-    predicate: Predicate.Predicate<Cause.Cause<E>>,
-    f: (cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR>
-  <A, E, R, EB, X, XE, XR>(
-    self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
-    f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
+    filter: Filter.Input<Cause.Cause<E>, Result>,
+    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR>
 } = dual(
   3,
-  <A, E, R, EB, X, XE, XR>(
+  <A, E, R, XE, XR, Result extends Filter.InputResult>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB, X> | Predicate.Predicate<Cause.Cause<E>>,
-    f: (failure: any, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
+    filter: Filter.Input<Cause.Cause<E>, Result>,
+    f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR> =>
     onExitIf(
       self,
       ((exit: Exit.Exit<any, any>) => {
         if (exit._tag !== "Failure") return Result.fail(exit)
-        return Filter.apply(filter as any, exit.cause)
+        return Filter.apply(filter, exit.cause)
       }) as any,
       (eb: any, exit: any) => f(eb, (exit as Exit.Failure<any, any>).cause)
     ) as any
@@ -3856,7 +3847,8 @@ export const onInterrupt: {
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
     finalizer: (interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> => onErrorIf(self, causeFilterInterruptors, finalizer)
+  ): Effect.Effect<A, E | XE, R | XR> =>
+    onErrorIf<E, Result.Result<Set<number>, Cause.Cause<E>>, XE, XR>(causeFilterInterruptors, finalizer)(self)
 )
 
 /** @internal */
