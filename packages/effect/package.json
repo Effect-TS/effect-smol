@@ -38,7 +38,6 @@
     "./unstable/eventlog": "./src/unstable/eventlog/index.ts",
     "./unstable/http": "./src/unstable/http/index.ts",
     "./unstable/httpapi": "./src/unstable/httpapi/index.ts",
-    "./unstable/jsonschema": "./src/unstable/jsonschema/index.ts",
     "./unstable/observability": "./src/unstable/observability/index.ts",
     "./unstable/persistence": "./src/unstable/persistence/index.ts",
     "./unstable/process": "./src/unstable/process/index.ts",
