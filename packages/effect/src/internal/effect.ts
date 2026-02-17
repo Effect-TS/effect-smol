@@ -2621,7 +2621,7 @@ export const catchIf: {
     catchCause(self, (cause): Effect.Effect<A2 | A3, E2 | E3, R2 | R3> => {
       const error = findError(cause)
       if (Result.isFailure(error)) return failCause(error.failure)
-      const result = Filter.apply(error.success as any, filter)
+      const result = Filter.apply(filter as any, error.success)
       if (Result.isFailure(result)) {
         return orElse ? internalCall(() => orElse(result.failure as any)) : failCause(cause as any as Cause.Cause<E3>)
       }
