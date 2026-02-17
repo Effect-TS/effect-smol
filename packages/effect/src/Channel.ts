@@ -4316,7 +4316,7 @@ export const catchTag: {
   const pred = Array.isArray(k)
     ? ((e: OutErr): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
     : isTagged(k as string)
-  return catchIf(self, Filter.fromPredicate(pred) as any, f as any, orElse as any) as any
+  return catchIf(self, pred, f, orElse as any) as any
 })
 
 /**
