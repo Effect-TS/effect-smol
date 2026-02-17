@@ -4700,15 +4700,10 @@ export const catchIf: {
     f: (e: EB) => Stream<A2, E2, R2>,
     orElse?: ((e: Exclude<E, EB>) => Stream<A3, E3, R3>) | undefined
   ): <A, R>(self: Stream<A, E, R>) => Stream<A2 | A | A3, E2 | E3, R2 | R | R3>
-  <E, A2, E2, R2, A3 = never, E3 = never, R3 = never>(
-    predicate: Predicate<NoInfer<E>>,
-    f: (e: NoInfer<E>) => Stream<A2, E2, R2>,
-    orElse?: ((e: NoInfer<E>) => Stream<A3, E3, R3>) | undefined
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A2 | A | A3, E | E2 | E3, R2 | R | R3>
-  <E, EB, X, A2, E2, R2, A3 = never, E3 = X, R3 = never>(
-    filter: Filter.Filter<E, EB, X>,
-    f: (failure: EB) => Stream<A2, E2, R2>,
-    orElse?: ((failure: X) => Stream<A3, E3, R3>) | undefined
+  <E, Result extends Filter.InputResult, A2, E2, R2, A3 = never, E3 = Filter.Fail<E, Result>, R3 = never>(
+    filter: Filter.Input<NoInfer<E>, Result>,
+    f: (failure: Filter.Pass<E, Result>) => Stream<A2, E2, R2>,
+    orElse?: ((failure: Filter.Fail<E, Result>) => Stream<A3, E3, R3>) | undefined
   ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2 | A3, E2 | E3, R | R2 | R3>
   <A, E, R, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
     self: Stream<A, E, R>,
@@ -4716,23 +4711,28 @@ export const catchIf: {
     f: (e: EB) => Stream<A2, E2, R2>,
     orElse?: ((e: Exclude<E, EB>) => Stream<A3, E3, R3>) | undefined
   ): Stream<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <A, E, R, A2, E2, R2, A3 = never, E3 = never, R3 = never>(
+  <A, E, R, Result extends Filter.InputResult, A2, E2, R2, A3 = never, E3 = Filter.Fail<E, Result>, R3 = never>(
     self: Stream<A, E, R>,
-    predicate: Predicate<E>,
-    f: (e: E) => Stream<A2, E2, R2>,
-    orElse?: ((e: E) => Stream<A3, E3, R3>) | undefined
-  ): Stream<A | A2 | A3, E | E2 | E3, R | R2 | R3>
-  <A, E, R, EB, X, A2, E2, R2, A3 = never, E3 = X, R3 = never>(
-    self: Stream<A, E, R>,
-    filter: Filter.Filter<E, EB, X>,
-    f: (failure: EB) => Stream<A2, E2, R2>,
-    orElse?: ((failure: X) => Stream<A3, E3, R3>) | undefined
+    filter: Filter.Input<NoInfer<E>, Result>,
+    f: (failure: Filter.Pass<E, Result>) => Stream<A2, E2, R2>,
+    orElse?: ((failure: Filter.Fail<E, Result>) => Stream<A3, E3, R3>) | undefined
   ): Stream<A | A2 | A3, E2 | E3, R | R2 | R3>
-} = dual((args) => isStream(args[0]), <A, E, R, EB, X, A2, E2, R2, A3 = never, E3 = X, R3 = never>(
+} = dual((args) => isStream(args[0]), <
+  A,
+  E,
+  R,
+  Result extends Filter.InputResult,
+  A2,
+  E2,
+  R2,
+  A3 = never,
+  E3 = Filter.Fail<E, Result>,
+  R3 = never
+>(
   self: Stream<A, E, R>,
-  filter: Filter.Filter<E, EB, X> | Predicate<E>,
-  f: (failure: EB) => Stream<A2, E2, R2>,
-  orElse?: ((failure: X) => Stream<A3, E3, R3>) | undefined
+  filter: Filter.Input<NoInfer<E>, Result>,
+  f: (failure: Filter.Pass<E, Result>) => Stream<A2, E2, R2>,
+  orElse?: ((failure: Filter.Fail<E, Result>) => Stream<A3, E3, R3>) | undefined
 ): Stream<A | A2 | A3, E2 | E3, R | R2 | R3> =>
   fromChannel(
     Channel.catchIf(
@@ -4840,7 +4840,7 @@ export const catchTag: {
     const pred = Array.isArray(k)
       ? ((e: E): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
       : isTagged(k as string)
-    return catchIf(self, Filter.fromPredicate(pred), f, orElse as any) as any
+    return catchIf(self, pred, f, orElse as any) as any
   }
 )
 

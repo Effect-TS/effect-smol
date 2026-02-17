@@ -373,6 +373,24 @@ describe("Stream", () => {
         assert.deepStrictEqual(result, Exit.fail(42))
       }))
 
+    it.effect("catchIf with filter input", () =>
+      Effect.gen(function*() {
+        const matched = yield* Stream.catchIf(
+          Stream.fail("boom" as string | number),
+          (e: string | number) => typeof e === "string" ? Result.succeed(e.length) : Result.fail(`fallback: ${e}`),
+          (length) => Stream.succeed(`caught: ${length}`),
+          (failure) => Stream.succeed(failure)
+        ).pipe(Stream.runCollect)
+        const unmatched = yield* Stream.catchIf(
+          Stream.fail(42 as string | number),
+          (e: string | number) => typeof e === "string" ? Result.succeed(e.length) : Result.fail(`fallback: ${e}`),
+          (length) => Stream.succeed(`caught: ${length}`),
+          (failure) => Stream.succeed(failure)
+        ).pipe(Stream.runCollect)
+        assert.deepStrictEqual(matched, ["caught: 4"])
+        assert.deepStrictEqual(unmatched, ["fallback: 42"])
+      }))
+
     it.effect("catchTag orElse", () =>
       Effect.gen(function*() {
         class HttpError extends Data.TaggedError("HttpError")<{
