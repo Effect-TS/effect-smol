@@ -82,7 +82,7 @@ export interface FilterEffect<
  * @since 4.0.0
  * @category Apply
  */
-export type Input<A, R extends boolean | Result.Result<any, any>, Args extends ReadonlyArray<any> = []> = (
+export type OrPredicate<A, R extends boolean | Result.Result<any, any>, Args extends ReadonlyArray<any> = []> = (
   input: A,
   ...args: Args
 ) => R
@@ -91,7 +91,7 @@ export type Input<A, R extends boolean | Result.Result<any, any>, Args extends R
  * @since 4.0.0
  * @category Apply
  */
-export type InputResult<Out = any> = boolean | Result.Result<any, Out>
+export type ResultOrBool<Out = any> = boolean | Result.Result<any, Out>
 
 /**
  * @since 4.0.0
@@ -120,7 +120,7 @@ export type ApplyResult<A, R extends boolean | Result.Result<any, any>> = Result
  * @since 4.0.0
  * @category Apply
  */
-export const apply = <In, R extends InputResult>(
+export const apply = <In, R extends ResultOrBool>(
   filter: (input: In, ...args: Array<any>) => R,
   input: In,
   ...args: Array<any>

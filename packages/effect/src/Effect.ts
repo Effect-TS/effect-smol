@@ -3033,8 +3033,8 @@ export const catchIf: {
     f: (e: EB) => Effect<A2, E2, R2>,
     orElse?: ((e: Exclude<E, EB>) => Effect<A3, E3, R3>) | undefined
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <E, Result extends Filter.InputResult, A2, E2, R2, A3 = never, E3 = Filter.Fail<E, Result>, R3 = never>(
-    filter: Filter.Input<NoInfer<E>, Result>,
+  <E, Result extends Filter.ResultOrBool, A2, E2, R2, A3 = never, E3 = Filter.Fail<E, Result>, R3 = never>(
+    filter: Filter.OrPredicate<NoInfer<E>, Result>,
     f: (e: Filter.Pass<E, Result>) => Effect<A2, E2, R2>,
     orElse?: ((e: Filter.Fail<E, Result>) => Effect<A3, E3, R3>) | undefined
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
@@ -3044,9 +3044,9 @@ export const catchIf: {
     f: (e: EB) => Effect<A2, E2, R2>,
     orElse?: ((e: Exclude<E, EB>) => Effect<A3, E3, R3>) | undefined
   ): Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <A, E, R, Result extends Filter.InputResult, A2, E2, R2, A3 = never, E3 = Filter.Fail<E, Result>, R3 = never>(
+  <A, E, R, Result extends Filter.ResultOrBool, A2, E2, R2, A3 = never, E3 = Filter.Fail<E, Result>, R3 = never>(
     self: Effect<A, E, R>,
-    filter: Filter.Input<NoInfer<E>, Result>,
+    filter: Filter.OrPredicate<NoInfer<E>, Result>,
     f: (e: Filter.Pass<E, Result>) => Effect<A2, E2, R2>,
     orElse?: ((e: Filter.Fail<E, Result>) => Effect<A3, E3, R3>) | undefined
   ): Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
@@ -3091,13 +3091,13 @@ export const catchIf: {
  * @category Error Handling
  */
 export const catchCauseIf: {
-  <E, Result extends Filter.InputResult<Cause.Cause<any>>, B, E2, R2>(
-    filter: Filter.Input<Cause.Cause<E>, Result>,
+  <E, Result extends Filter.ResultOrBool<Cause.Cause<any>>, B, E2, R2>(
+    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
     f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, Cause.Cause.Error<Filter.Fail<Cause.Cause<E>, Result>> | E2, R | R2>
-  <A, E, R, B, E2, R2, Result extends Filter.InputResult<Cause.Cause<any>>>(
+  <A, E, R, B, E2, R2, Result extends Filter.ResultOrBool<Cause.Cause<any>>>(
     self: Effect<A, E, R>,
-    filter: Filter.Input<Cause.Cause<E>, Result>,
+    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
     f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A | B, Cause.Cause.Error<Filter.Fail<Cause.Cause<E>, Result>> | E2, R | R2>
 } = internal.catchCauseIf
@@ -3387,13 +3387,13 @@ export const tapCause: {
  * @category Sequencing
  */
 export const tapCauseIf: {
-  <E, Result extends Filter.InputResult, B, E2, R2>(
-    filter: Filter.Input<Cause.Cause<E>, Result>,
+  <E, Result extends Filter.ResultOrBool, B, E2, R2>(
+    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
     f: (a: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | E2, R | R2>
-  <A, E, R, Result extends Filter.InputResult, B, E2, R2>(
+  <A, E, R, Result extends Filter.ResultOrBool, B, E2, R2>(
     self: Effect<A, E, R>,
-    filter: Filter.Input<Cause.Cause<E>, Result>,
+    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
     f: (a: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A, E | E2, R | R2>
 } = internal.tapCauseIf
@@ -4464,8 +4464,8 @@ export const filterOrElse: {
     refinement: Predicate.Refinement<NoInfer<A>, B>,
     orElse: (a: EqualsWith<A, B, NoInfer<A>, Exclude<NoInfer<A>, B>>) => Effect<C, E2, R2>
   ): <E, R>(self: Effect<A, E, R>) => Effect<B | C, E2 | E, R2 | R>
-  <A, Result extends Filter.InputResult, C, E2, R2>(
-    filter: Filter.Input<NoInfer<A>, Result>,
+  <A, Result extends Filter.ResultOrBool, C, E2, R2>(
+    filter: Filter.OrPredicate<NoInfer<A>, Result>,
     orElse: (a: Filter.Fail<A, Result>) => Effect<C, E2, R2>
   ): <E, R>(self: Effect<A, E, R>) => Effect<Filter.Pass<A, Result> | C, E2 | E, R2 | R>
   <A, E, R, C, E2, R2, B extends A>(
@@ -4473,9 +4473,9 @@ export const filterOrElse: {
     refinement: Predicate.Refinement<A, B>,
     orElse: (a: EqualsWith<A, B, A, Exclude<A, B>>) => Effect<C, E2, R2>
   ): Effect<B | C, E | E2, R | R2>
-  <A, E, R, Result extends Filter.InputResult, C, E2, R2>(
+  <A, E, R, Result extends Filter.ResultOrBool, C, E2, R2>(
     self: Effect<A, E, R>,
-    filter: Filter.Input<NoInfer<A>, Result>,
+    filter: Filter.OrPredicate<NoInfer<A>, Result>,
     orElse: (a: Filter.Fail<A, Result>) => Effect<C, E2, R2>
   ): Effect<Filter.Pass<A, Result> | C, E | E2, R | R2>
 } = internal.filterOrElse
@@ -5988,13 +5988,13 @@ export const onError: {
  * @category Resource Management & Finalization
  */
 export const onErrorIf: {
-  <E, Result extends Filter.InputResult, XE, XR>(
-    filter: Filter.Input<Cause.Cause<E>, Result>,
+  <E, Result extends Filter.ResultOrBool, XE, XR>(
+    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
     f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<void, XE, XR>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR, Result extends Filter.InputResult>(
+  <A, E, R, XE, XR, Result extends Filter.ResultOrBool>(
     self: Effect<A, E, R>,
-    filter: Filter.Input<Cause.Cause<E>, Result>,
+    filter: Filter.OrPredicate<Cause.Cause<E>, Result>,
     f: (failure: Filter.Pass<Cause.Cause<E>, Result>, cause: Cause.Cause<E>) => Effect<void, XE, XR>
   ): Effect<A, E | XE, R | XR>
 } = internal.onErrorIf
@@ -6092,16 +6092,16 @@ export const onExitInterruptible: {
  * @category Resource Management & Finalization
  */
 export const onExitIf: {
-  <A, E, XE, XR, Result extends Filter.InputResult>(
-    filter: Filter.Input<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
+  <A, E, XE, XR, Result extends Filter.ResultOrBool>(
+    filter: Filter.OrPredicate<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
     f: (
       pass: Filter.Pass<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
       exit: Exit.Exit<NoInfer<A>, NoInfer<E>>
     ) => Effect<void, XE, XR>
   ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR, Result extends Filter.InputResult>(
+  <A, E, R, XE, XR, Result extends Filter.ResultOrBool>(
     self: Effect<A, E, R>,
-    filter: Filter.Input<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
+    filter: Filter.OrPredicate<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
     f: (
       pass: Filter.Pass<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
       exit: Exit.Exit<NoInfer<A>, NoInfer<E>>
