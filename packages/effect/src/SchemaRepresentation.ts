@@ -692,7 +692,7 @@ export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
 export type SizeMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isMinSize"
   | "isMaxSize"
-  | "isSize"
+  | "isSizeBetween"
 ]
 
 /**
@@ -1459,10 +1459,11 @@ const $IsMaxSize = Schema.Struct({
   maxSize: NonNegativeInt
 }).annotate({ identifier: "IsMaxSize" })
 
-const $IsSize = Schema.Struct({
-  _tag: Schema.tag("isSize"),
-  size: NonNegativeInt
-}).annotate({ identifier: "IsSize" })
+const $IsSizeBetween = Schema.Struct({
+  _tag: Schema.tag("isSizeBetween"),
+  minimum: NonNegativeInt,
+  maximum: NonNegativeInt
+}).annotate({ identifier: "IsSizeBetween" })
 
 /**
  * Schema codec for {@link SizeMeta}.
@@ -1473,7 +1474,7 @@ const $IsSize = Schema.Struct({
 export const $SizeMeta = Schema.Union([
   $IsMinSize,
   $IsMaxSize,
-  $IsSize
+  $IsSizeBetween
 ]).annotate({ identifier: "SizeMeta" })
 
 /**
@@ -2086,8 +2087,8 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
         return Schema.isMinSize(filter.meta.minSize, a)
       case "isMaxSize":
         return Schema.isMaxSize(filter.meta.maxSize, a)
-      case "isSize":
-        return Schema.isSize(filter.meta.size, a)
+      case "isSizeBetween":
+        return Schema.isSizeBetween(filter.meta.minimum, filter.meta.maximum, a)
     }
   }
 }
@@ -2694,8 +2695,8 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
         return `Schema.isMinSize(${filter.meta.minSize}${ca})`
       case "isMaxSize":
         return `Schema.isMaxSize(${filter.meta.maxSize}${ca})`
-      case "isSize":
-        return `Schema.isSize(${filter.meta.size}${ca})`
+      case "isSizeBetween":
+        return `Schema.isSizeBetween(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
     }
   }
 }

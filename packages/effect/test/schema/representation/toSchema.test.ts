@@ -375,10 +375,10 @@ describe("toSchema", () => {
         })
       })
 
-      it("isSize", () => {
+      it("isSizeBetween", () => {
         assertToSchemaWithReviver(
-          Schema.ReadonlySet(Schema.String).check(Schema.isSize(2)),
-          `Schema.ReadonlySet(String_).check(Schema.isSize(2))`
+          Schema.ReadonlySet(Schema.String).check(Schema.isSizeBetween(2, 2)),
+          `Schema.ReadonlySet(String_).check(Schema.isSizeBetween(2, 2))`
         )
       })
     })

@@ -605,9 +605,9 @@ describe("Arbitrary generation", () => {
       )
     })
 
-    it("isSize(2)", () => {
+    it("isSizeBetween(2, 2)", () => {
       verifyGeneration(
-        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isSize(2))
+        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isSizeBetween(2, 2))
       )
     })
   })

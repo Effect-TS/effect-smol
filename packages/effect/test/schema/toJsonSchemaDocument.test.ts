@@ -856,7 +856,7 @@ describe("toJsonSchemaDocument", () => {
         })
       })
 
-      describe("isLength", () => {
+      describe("isLengthBetween", () => {
         it("String", () => {
           assertJsonSchemaDocument(
             Schema.String.check(Schema.isLengthBetween(2, 2)),
@@ -3001,7 +3001,7 @@ describe("toJsonSchemaDocument", () => {
         )
       })
 
-      it("isLength", () => {
+      it("isLengthBetween", () => {
         assertJsonSchemaDocument(
           Schema.Array(Schema.String).check(Schema.isLengthBetween(2, 2)),
           {

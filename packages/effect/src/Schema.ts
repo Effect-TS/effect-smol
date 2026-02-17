@@ -4911,7 +4911,7 @@ export function isLengthBetween(minimum: number, maximum: number, annotations?: 
 
 /**
  * Validates that a value has at least the specified size. Works with values
- * that have a `size` property, such as objects with a `size` property.
+ * that have a `size` property, such as `Set` or `Map`.
  *
  * **JSON Schema**
  *
@@ -4950,7 +4950,7 @@ export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
 
 /**
  * Validates that a value has at most the specified size. Works with values
- * that have a `size` property, such as objects with a `size` property.
+ * that have a `size` property, such as `Set` or `Map`.
  *
  * **JSON Schema**
  *
@@ -4988,8 +4988,8 @@ export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
 }
 
 /**
- * Validates that a value has exactly the specified size. Works with values
- * that have a `size` property, such as objects with a `size` property.
+ * Validates that a value's size is within the specified range. Works with
+ * values that have a `size` property, such as `Set` or `Map`.
  *
  * **JSON Schema**
  *
@@ -4998,28 +4998,32 @@ export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
  *
  * **Arbitrary**
  *
- * When generating test data with fast-check, this applies both `minLength` and
- * `maxLength` constraints set to the same value to ensure generated values have
- * exactly the required size.
+ * When generating test data with fast-check, this applies `minLength` and
+ * `maxLength` constraints to ensure generated values have a size within the
+ * specified range.
  *
  * @category Size checks
  * @since 4.0.0
  */
-export function isSize(size: number, annotations?: Annotations.Filter) {
-  size = Math.max(0, Math.floor(size))
+export function isSizeBetween(minimum: number, maximum: number, annotations?: Annotations.Filter) {
+  minimum = Math.max(0, Math.floor(minimum))
+  maximum = Math.max(0, Math.floor(maximum))
   return makeFilter<{ readonly size: number }>(
-    (input) => input.size === size,
+    (input) => input.size >= minimum && input.size <= maximum,
     {
-      expected: `a value with a size of ${size}`,
+      expected: minimum === maximum
+        ? `a value with a size of ${minimum}`
+        : `a value with a size between ${minimum} and ${maximum}`,
       meta: {
-        _tag: "isSize",
-        size
+        _tag: "isSizeBetween",
+        minimum,
+        maximum
       },
       [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         array: {
-          minLength: size,
-          maxLength: size
+          minLength: minimum,
+          maxLength: maximum
         }
       },
       ...annotations
@@ -9035,9 +9039,10 @@ export declare namespace Annotations {
       readonly _tag: "isMaxSize"
       readonly maxSize: number
     }
-    readonly isSize: {
-      readonly _tag: "isSize"
-      readonly size: number
+    readonly isSizeBetween: {
+      readonly _tag: "isSizeBetween"
+      readonly minimum: number
+      readonly maximum: number
     }
   }
 

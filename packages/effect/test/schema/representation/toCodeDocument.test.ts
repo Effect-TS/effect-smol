@@ -1667,12 +1667,12 @@ describe("toCodeDocument", () => {
       })
     })
 
-    it("isSize", () => {
+    it("isSizeBetween", () => {
       assertSchema(
-        { schema: Schema.ReadonlySet(Schema.String).check(Schema.isSize(2)) },
+        { schema: Schema.ReadonlySet(Schema.String).check(Schema.isSizeBetween(2, 2)) },
         {
           codes: makeCode(
-            `Schema.ReadonlySet(String_).check(Schema.isSize(2))`,
+            `Schema.ReadonlySet(String_).check(Schema.isSizeBetween(2, 2))`,
             "globalThis.ReadonlySet<String_>"
           ),
           references: {
