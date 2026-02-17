@@ -3110,32 +3110,23 @@ export const filterArray: {
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem>(
-    predicate: Predicate.Predicate<OutElem>
+  <OutElem, Result extends Filter.InputResult>(
+    filter: Filter.Input<Types.NoInfer<OutElem>, Result>
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  ) => Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem, B, X>(
-    filter: Filter.Filter<OutElem, B, X>
-  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
-    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  ) => Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<Arr.NonEmptyReadonlyArray<Filter.Pass<OutElem, Result>>, OutErr, OutDone, InElem, InErr, InDone, Env>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
     refinement: Predicate.Refinement<OutElem, B>
   ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, Result extends Filter.InputResult>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    predicate: Predicate.Predicate<OutElem>
-  ): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
-    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    filter: Filter.Filter<OutElem, B, X>
-  ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    filter: Filter.Input<Types.NoInfer<OutElem>, Result>
+  ): Channel<Arr.NonEmptyReadonlyArray<Filter.Pass<OutElem, Result>>, OutErr, OutDone, InElem, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, Result extends Filter.InputResult>(
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.Filter<OutElem, any, any> | Predicate.Predicate<OutElem>
-): Channel<Arr.NonEmptyReadonlyArray<any>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  filter: Filter.Input<Types.NoInfer<OutElem>, Result>
+): Channel<Arr.NonEmptyReadonlyArray<Filter.Pass<OutElem, Result>>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
   transformPull(self, (pull) =>
     Effect.succeed(Effect.flatMap(
       pull,
