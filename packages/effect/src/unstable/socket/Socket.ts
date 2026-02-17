@@ -281,8 +281,8 @@ export const toChannelMap = <IE, A>(
       }),
       Effect.forever({ disableYield: true }),
       Effect.catchCauseIf(
-        Pull.filterNoDone as any,
-        (cause) => Queue.failCause(queue, cause as any)
+        Pull.filterNoDone,
+        (cause) => Queue.failCause(queue, cause)
       ),
       Effect.ensuring(Scope.close(writeScope, Exit.void)),
       Effect.forkIn(scope)

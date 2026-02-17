@@ -29,7 +29,7 @@ import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.ts"
  * @since 4.0.0
  * @category Models
  */
-export interface Filter<in Input, out Pass = Input, out Fail = Input, in Args extends Array<any> = []> {
+export interface Filter<in Input, out Pass = Input, out Fail = Input, in Args extends ReadonlyArray<any> = []> {
   (input: Input, ...args: Args): Result.Result<Pass, Fail>
 }
 
@@ -79,37 +79,56 @@ export interface FilterEffect<
 // -------------------------------------------------------------------------------------
 
 /**
+ * @since 4.0.0
+ * @category Apply
+ */
+export type Input<A, R extends boolean | Result.Result<any, any>, Args extends ReadonlyArray<any> = []> = (
+  input: A,
+  ...args: Args
+) => R
+
+/**
+ * @since 4.0.0
+ * @category Apply
+ */
+export type InputResult<Out = any> = boolean | Result.Result<any, Out>
+
+/**
+ * @since 4.0.0
+ * @category Apply
+ */
+export type Pass<A, R extends boolean | Result.Result<any, any>> = [R] extends [Result.Result<infer _P, infer _F>] ? _P
+  : A
+
+/**
+ * @since 4.0.0
+ * @category Apply
+ */
+export type Fail<A, R extends boolean | Result.Result<any, any>> = [R] extends [Result.Result<infer _P, infer _F>] ? _F
+  : A
+
+/**
+ * @since 4.0.0
+ * @category Apply
+ */
+export type ApplyResult<A, R extends boolean | Result.Result<any, any>> = Result.Result<Pass<A, R>, Fail<A, R>>
+
+/**
  * Applies a filter, predicate, or refinement to an input and returns a boxed
- * `pass` or `fail` result. Extra arguments are forwarded to the function.
+ * result. Extra arguments are forwarded to the function.
  *
  * @since 4.0.0
- * @category Utils
+ * @category Apply
  */
-export const apply: {
-  <Input, Pass extends Input, Fail, Args extends Array<any>>(
-    filter: Filter<Input, Pass, Fail, Args>,
-    input: Input,
-    ...args: Args
-  ): Result.Result<Pass, Fail>
-  <Input, Pass extends Input>(
-    filter: Predicate.Refinement<Input, Pass>,
-    input: Input,
-    ...args: Array<any>
-  ): Result.Result<Input | Pass, Input | Exclude<Input, Pass>>
-  <Input>(
-    filter: Predicate.Predicate<Input>,
-    input: Input,
-    ...args: Array<any>
-  ): Result.Result<Input, Input>
-} = <Input>(
-  filter: Function,
-  input: Input,
+export const apply = <In, R extends InputResult>(
+  filter: (input: In, ...args: Array<any>) => R,
+  input: In,
   ...args: Array<any>
-): any => {
+): ApplyResult<In, R> => {
   const result = filter(input, ...args)
-  if (result === true) return Result.succeed(input)
-  if (result === false) return Result.fail(input)
-  return result
+  if (result === true) return Result.succeed(input) as any
+  if (result === false) return Result.fail(input) as any
+  return result as any
 }
 
 // -------------------------------------------------------------------------------------

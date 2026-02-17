@@ -132,8 +132,12 @@ export const filterDoneVoid: <E extends Cause.Done>(
  */
 export const filterNoDone: <E>(
   input: Cause.Cause<E>
-) => Result.Result<Cause.Cause<ExcludeDone<E>>, Cause.Cause<E>> = Filter
-  .fromPredicate((cause: Cause.Cause<unknown>) => cause.reasons.every((failure) => !isDoneFailure(failure))) as any
+) => Result.Result<
+  Cause.Cause<ExcludeDone<E>>,
+  Cause.Cause<E>
+> = Filter.fromPredicate((cause: Cause.Cause<unknown>) =>
+  cause.reasons.every((failure) => !isDoneFailure(failure))
+) as any
 
 /**
  * Filters a Cause to extract the leftover value from done errors.
