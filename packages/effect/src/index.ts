@@ -3024,7 +3024,77 @@ export * as Stream from "./Stream.ts"
 export * as String from "./String.ts"
 
 /**
- * This module provides utility functions for working with structs in TypeScript.
+ * Utilities for creating, transforming, and comparing plain TypeScript objects
+ * (structs). Every function produces a new object — inputs are never mutated.
+ *
+ * ## Mental model
+ *
+ * - **Struct**: A plain JS object with a fixed set of known keys (e.g.,
+ *   `{ name: string; age: number }`). Not a generic key-value record.
+ * - **Dual API**: Most functions accept arguments in both data-first
+ *   (`Struct.pick(obj, keys)`) and data-last (`pipe(obj, Struct.pick(keys))`)
+ *   style.
+ * - **Immutability**: All operations return a new object; the original is
+ *   never modified.
+ * - **Lambda**: A type-level function interface (`~lambda.in` / `~lambda.out`)
+ *   used by {@link map}, {@link mapPick}, and {@link mapOmit} so the compiler
+ *   can track how value types change.
+ * - **Evolver pattern**: {@link evolve}, {@link evolveKeys}, and
+ *   {@link evolveEntries} let you selectively transform values, keys, or both
+ *   while leaving untouched properties unchanged.
+ *
+ * ## Common tasks
+ *
+ * - Access a property in a pipeline → {@link get}
+ * - List string keys with proper types → {@link keys}
+ * - Subset / remove properties → {@link pick}, {@link omit}
+ * - Merge two structs (second wins) → {@link assign}
+ * - Rename keys → {@link renameKeys}
+ * - Transform selected values → {@link evolve}
+ * - Transform selected keys → {@link evolveKeys}
+ * - Transform both keys and values → {@link evolveEntries}
+ * - Map all values with a typed lambda → {@link map}, {@link mapPick},
+ *   {@link mapOmit}
+ * - Compare structs → {@link makeEquivalence}, {@link makeOrder}
+ * - Combine / reduce structs → {@link makeCombiner}, {@link makeReducer}
+ * - Flatten intersection types → {@link Simplify}
+ * - Strip `readonly` modifiers → {@link Mutable}
+ *
+ * ## Gotchas
+ *
+ * - {@link keys} only returns `string` keys; symbol keys are excluded.
+ * - {@link pick} and {@link omit} iterate with `for...in`, which includes
+ *   inherited enumerable properties but excludes non-enumerable ones.
+ * - {@link assign} spreads with `...`; property order follows standard
+ *   JS spread rules.
+ * - {@link map}, {@link mapPick}, {@link mapOmit} require a {@link Lambda}
+ *   value created with {@link lambda}; a plain function won't type-check.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Picking, renaming, and evolving struct properties)
+ *
+ * ```ts
+ * import { pipe, Struct } from "effect"
+ *
+ * const user = { firstName: "Alice", lastName: "Smith", age: 30, admin: false }
+ *
+ * const result = pipe(
+ *   user,
+ *   Struct.pick(["firstName", "age"]),
+ *   Struct.evolve({ age: (n) => n + 1 }),
+ *   Struct.renameKeys({ firstName: "name" })
+ * )
+ *
+ * console.log(result) // { name: "Alice", age: 31 }
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link Equivalence} – building equivalence relations for structs
+ * - {@link Order} – ordering structs by their fields
+ * - {@link Combiner} – combining two values of the same type
+ * - {@link Reducer} – combining with an initial value
  *
  * @since 2.0.0
  */
