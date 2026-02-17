@@ -2529,6 +2529,77 @@ export * as Scheduler from "./Scheduler.ts"
 export * as Schema from "./Schema.ts"
 
 /**
+ * Abstract Syntax Tree (AST) representation for Effect schemas.
+ *
+ * This module defines the runtime data structures that represent schemas.
+ * Most users work with the `Schema` module directly; use `SchemaAST` when you
+ * need to inspect, traverse, or programmatically transform schema definitions.
+ *
+ * ## Mental model
+ *
+ * - **{@link AST}** — discriminated union (`_tag`) of all schema node types
+ *   (e.g. `String`, `Objects`, `Union`, `Suspend`)
+ * - **{@link Base}** — abstract base class shared by every node; carries
+ *   annotations, checks, encoding chain, and context
+ * - **{@link Encoding}** — a non-empty chain of {@link Link} values describing
+ *   how to transform between the decoded (type) and encoded (wire) form
+ * - **{@link Check}** — a validation filter ({@link Filter} or
+ *   {@link FilterGroup}) attached to an AST node
+ * - **{@link Context}** — per-property metadata: optionality, mutability,
+ *   default values, key annotations
+ * - **Guards** — type-narrowing predicates for each AST variant (e.g.
+ *   {@link isString}, {@link isObjects})
+ *
+ * ## Common tasks
+ *
+ * - Inspect what kind of schema you have → guard functions ({@link isString},
+ *   {@link isObjects}, {@link isUnion}, etc.)
+ * - Get the decoded (type-level) AST → {@link toType}
+ * - Get the encoded (wire-format) AST → {@link toEncoded}
+ * - Swap decode/encode directions → {@link flip}
+ * - Read annotations → {@link resolve}, {@link resolveAt},
+ *   {@link resolveIdentifier}
+ * - Build a transformation between schemas → {@link decodeTo}
+ * - Add regex validation → {@link isPattern}
+ *
+ * ## Gotchas
+ *
+ * - AST nodes are structurally immutable; modification helpers return new
+ *   objects via `Object.create`.
+ * - {@link Arrays} represents both tuples and arrays; {@link Objects}
+ *   represents both structs and records.
+ * - {@link toType} and {@link toEncoded} are memoized — same input yields
+ *   same output reference.
+ * - {@link Suspend} lazily resolves its inner AST via a thunk; the thunk is
+ *   memoized on first call.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Inspecting a schema's AST)
+ *
+ * ```ts
+ * import { Schema, SchemaAST } from "effect"
+ *
+ * const schema = Schema.Struct({ name: Schema.String, age: Schema.Number })
+ * const ast = schema.ast
+ *
+ * if (SchemaAST.isObjects(ast)) {
+ *   console.log(ast.propertySignatures.map(ps => ps.name))
+ *   // ["name", "age"]
+ * }
+ *
+ * const encoded = SchemaAST.toEncoded(ast)
+ * console.log(SchemaAST.isObjects(encoded)) // true
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link AST}
+ * - {@link toType}
+ * - {@link toEncoded}
+ * - {@link flip}
+ * - {@link resolve}
+ *
  * @since 4.0.0
  */
 export * as SchemaAST from "./SchemaAST.ts"

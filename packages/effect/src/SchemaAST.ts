@@ -1,4 +1,75 @@
 /**
+ * Abstract Syntax Tree (AST) representation for Effect schemas.
+ *
+ * This module defines the runtime data structures that represent schemas.
+ * Most users work with the `Schema` module directly; use `SchemaAST` when you
+ * need to inspect, traverse, or programmatically transform schema definitions.
+ *
+ * ## Mental model
+ *
+ * - **{@link AST}** — discriminated union (`_tag`) of all schema node types
+ *   (e.g. `String`, `Objects`, `Union`, `Suspend`)
+ * - **{@link Base}** — abstract base class shared by every node; carries
+ *   annotations, checks, encoding chain, and context
+ * - **{@link Encoding}** — a non-empty chain of {@link Link} values describing
+ *   how to transform between the decoded (type) and encoded (wire) form
+ * - **{@link Check}** — a validation filter ({@link Filter} or
+ *   {@link FilterGroup}) attached to an AST node
+ * - **{@link Context}** — per-property metadata: optionality, mutability,
+ *   default values, key annotations
+ * - **Guards** — type-narrowing predicates for each AST variant (e.g.
+ *   {@link isString}, {@link isObjects})
+ *
+ * ## Common tasks
+ *
+ * - Inspect what kind of schema you have → guard functions ({@link isString},
+ *   {@link isObjects}, {@link isUnion}, etc.)
+ * - Get the decoded (type-level) AST → {@link toType}
+ * - Get the encoded (wire-format) AST → {@link toEncoded}
+ * - Swap decode/encode directions → {@link flip}
+ * - Read annotations → {@link resolve}, {@link resolveAt},
+ *   {@link resolveIdentifier}
+ * - Build a transformation between schemas → {@link decodeTo}
+ * - Add regex validation → {@link isPattern}
+ *
+ * ## Gotchas
+ *
+ * - AST nodes are structurally immutable; modification helpers return new
+ *   objects via `Object.create`.
+ * - {@link Arrays} represents both tuples and arrays; {@link Objects}
+ *   represents both structs and records.
+ * - {@link toType} and {@link toEncoded} are memoized — same input yields
+ *   same output reference.
+ * - {@link Suspend} lazily resolves its inner AST via a thunk; the thunk is
+ *   memoized on first call.
+ *
+ * ## Quickstart
+ *
+ * **Example** (Inspecting a schema's AST)
+ *
+ * ```ts
+ * import { Schema, SchemaAST } from "effect"
+ *
+ * const schema = Schema.Struct({ name: Schema.String, age: Schema.Number })
+ * const ast = schema.ast
+ *
+ * if (SchemaAST.isObjects(ast)) {
+ *   console.log(ast.propertySignatures.map(ps => ps.name))
+ *   // ["name", "age"]
+ * }
+ *
+ * const encoded = SchemaAST.toEncoded(ast)
+ * console.log(SchemaAST.isObjects(encoded)) // true
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link AST}
+ * - {@link toType}
+ * - {@link toEncoded}
+ * - {@link flip}
+ * - {@link resolve}
+ *
  * @since 4.0.0
  */
 
@@ -24,6 +95,19 @@ import type * as Parser from "./SchemaParser.ts"
 import * as Transformation from "./SchemaTransformation.ts"
 
 /**
+ * Discriminated union of all AST node types.
+ *
+ * Every `Schema` has an `.ast` property of this type. Use the guard functions
+ * ({@link isString}, {@link isObjects}, etc.) to narrow to a specific variant,
+ * then access variant-specific fields.
+ *
+ * - All variants share the {@link Base} fields: `annotations`, `checks`,
+ *   `encoding`, `context`.
+ * - Discriminate on the `_tag` field (e.g. `"String"`, `"Objects"`, `"Union"`).
+ *
+ * @see {@link Base}
+ * @see {@link isAST}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -55,6 +139,13 @@ function makeGuard<T extends AST["_tag"]>(tag: T) {
 }
 
 /**
+ * Returns `true` if the value is an {@link AST} node (any variant).
+ *
+ * Uses the internal `TypeId` brand to distinguish AST nodes from arbitrary
+ * objects.
+ *
+ * @see {@link AST}
+ *
  * @category Guard
  * @since 4.0.0
  */
@@ -63,132 +154,187 @@ export function isAST(u: unknown): u is AST {
 }
 
 /**
+ * Narrows an {@link AST} to {@link Declaration}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isDeclaration = makeGuard("Declaration")
 
 /**
+ * Narrows an {@link AST} to {@link Null}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isNull = makeGuard("Null")
 
 /**
+ * Narrows an {@link AST} to {@link Undefined}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isUndefined = makeGuard("Undefined")
 
 /**
+ * Narrows an {@link AST} to {@link Void}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isVoid = makeGuard("Void")
 
 /**
+ * Narrows an {@link AST} to {@link Never}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isNever = makeGuard("Never")
 
 /**
+ * Narrows an {@link AST} to {@link Unknown}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isUnknown = makeGuard("Unknown")
 
 /**
+ * Narrows an {@link AST} to {@link Any}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isAny = makeGuard("Any")
 
 /**
+ * Narrows an {@link AST} to {@link String}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isString = makeGuard("String")
 
 /**
+ * Narrows an {@link AST} to {@link Number}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isNumber = makeGuard("Number")
 
 /**
+ * Narrows an {@link AST} to {@link Boolean}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isBoolean = makeGuard("Boolean")
 
 /**
+ * Narrows an {@link AST} to {@link BigInt}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isBigInt = makeGuard("BigInt")
 
 /**
+ * Narrows an {@link AST} to {@link Symbol}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isSymbol = makeGuard("Symbol")
 
 /**
+ * Narrows an {@link AST} to {@link Literal}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isLiteral = makeGuard("Literal")
 
 /**
+ * Narrows an {@link AST} to {@link UniqueSymbol}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isUniqueSymbol = makeGuard("UniqueSymbol")
 
 /**
+ * Narrows an {@link AST} to {@link ObjectKeyword}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isObjectKeyword = makeGuard("ObjectKeyword")
 
 /**
+ * Narrows an {@link AST} to {@link Enum}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isEnum = makeGuard("Enum")
 
 /**
+ * Narrows an {@link AST} to {@link TemplateLiteral}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isTemplateLiteral = makeGuard("TemplateLiteral")
 
 /**
+ * Narrows an {@link AST} to {@link Arrays}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isArrays = makeGuard("Arrays")
 
 /**
+ * Narrows an {@link AST} to {@link Objects}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isObjects = makeGuard("Objects")
 
 /**
+ * Narrows an {@link AST} to {@link Union}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isUnion = makeGuard("Union")
 
 /**
+ * Narrows an {@link AST} to {@link Suspend}.
+ *
  * @category Guard
  * @since 4.0.0
  */
 export const isSuspend = makeGuard("Suspend")
 
 /**
+ * A single step in an {@link Encoding} chain, pairing a target {@link AST}
+ * with a `Transformation` or `Middleware` that converts values between the
+ * current node and the target.
+ *
+ * - `to` — the AST node on the other side of this transformation step.
+ * - `transformation` — the bidirectional conversion logic (decode/encode).
+ *
+ * Links are composed into a non-empty array ({@link Encoding}) attached to
+ * AST nodes that have a different encoded representation.
+ *
+ * @see {@link Encoding}
+ * @see {@link decodeTo}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -210,12 +356,33 @@ export class Link {
 }
 
 /**
+ * A non-empty chain of {@link Link} values representing the transformation
+ * steps between a schema's decoded (type) form and its encoded (wire) form.
+ *
+ * Stored on {@link Base.encoding}. When `undefined`, the node has no
+ * encoding transformation (type and encoded forms are identical).
+ *
+ * @see {@link Link}
+ * @see {@link toEncoded}
+ *
  * @category model
  * @since 4.0.0
  */
 export type Encoding = readonly [Link, ...Array<Link>]
 
 /**
+ * Options that control parsing/validation behavior.
+ *
+ * Pass to `Schema.decodeUnknown`, `Schema.encode`, etc. to customize error
+ * reporting, excess property handling, and output key ordering.
+ *
+ * - `errors` — `"first"` (default) stops at the first error; `"all"`
+ *   collects every error.
+ * - `onExcessProperty` — `"ignore"` (default) strips unknown keys;
+ *   `"error"` fails; `"preserve"` keeps them.
+ * - `propertyOrder` — `"none"` (default) lets the system choose key order;
+ *   `"original"` preserves input key order.
+ *
  * @category model
  * @since 4.0.0
  */
@@ -273,6 +440,22 @@ export interface ParseOptions {
 export const defaultParseOptions: ParseOptions = {}
 
 /**
+ * Per-property metadata attached to AST nodes via {@link Base.context}.
+ *
+ * Tracks whether a property key is optional, mutable, has a constructor
+ * default, or carries key-level annotations. Typically set by helpers like
+ * {@link optionalKey} and `Schema.mutableKey`.
+ *
+ * - `isOptional` — the property key may be absent from the input.
+ * - `isMutable` — the property is `readonly` when `false`.
+ * - `defaultValue` — an {@link Encoding} applied during construction to
+ *   supply missing values.
+ * - `annotations` — key-level annotations (e.g. description of the key
+ *   itself).
+ *
+ * @see {@link optionalKey}
+ * @see {@link isOptional}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -298,6 +481,16 @@ export class Context {
 }
 
 /**
+ * Non-empty array of validation {@link Check} values attached to an AST node
+ * via {@link Base.checks}.
+ *
+ * Checks are run after basic type matching succeeds. They represent
+ * refinements like `minLength`, `pattern`, `int`, etc.
+ *
+ * @see {@link Check}
+ * @see {@link Filter}
+ * @see {@link FilterGroup}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -306,6 +499,21 @@ export type Checks = readonly [Check<any>, ...Array<Check<any>>]
 const TypeId = "~effect/Schema"
 
 /**
+ * Abstract base class for all {@link AST} node variants.
+ *
+ * Every AST node extends `Base` and inherits these fields:
+ *
+ * - `annotations` — user-supplied metadata (identifier, title, description,
+ *   arbitrary keys).
+ * - `checks` — optional {@link Checks} for post-type-match validation.
+ * - `encoding` — optional {@link Encoding} chain for type ↔ wire
+ *   transformations.
+ * - `context` — optional {@link Context} for per-property metadata.
+ *
+ * Subclasses add a `_tag` discriminant and variant-specific data.
+ *
+ * @see {@link AST}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -334,6 +542,17 @@ export abstract class Base {
 }
 
 /**
+ * AST node for user-defined opaque types with custom parsing logic.
+ *
+ * Use when none of the built-in AST nodes fit. The `run` function receives
+ * `typeParameters` and returns a parser that validates/transforms raw input.
+ *
+ * - `typeParameters` — inner schemas this declaration is parameterized over
+ *   (e.g. the element type for a custom collection).
+ * - `run` — factory producing the actual parse function.
+ *
+ * @see {@link isDeclaration}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -382,6 +601,13 @@ export class Declaration extends Base {
 }
 
 /**
+ * AST node matching the `null` literal value.
+ *
+ * Parsing succeeds only when the input is exactly `null`.
+ *
+ * @see {@link null}
+ * @see {@link isNull}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -400,12 +626,21 @@ export class Null extends Base {
 const null_ = new Null()
 export {
   /**
+   * Singleton {@link Null} AST instance.
+   *
    * @since 4.0.0
    */
   null_ as null
 }
 
 /**
+ * AST node matching the `undefined` value.
+ *
+ * Parsing succeeds only when the input is exactly `undefined`.
+ *
+ * @see {@link undefined}
+ * @see {@link isUndefined}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -436,12 +671,22 @@ const undefinedToNull = new Link(
 const undefined_ = new Undefined()
 export {
   /**
+   * Singleton {@link Undefined} AST instance.
+   *
    * @since 4.0.0
    */
   undefined_ as undefined
 }
 
 /**
+ * AST node matching the `void` type (accepts `undefined` at runtime).
+ *
+ * Behaves like {@link Undefined} for parsing but represents the TypeScript
+ * `void` type semantically.
+ *
+ * @see {@link void}
+ * @see {@link isVoid}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -464,12 +709,22 @@ export class Void extends Base {
 const void_ = new Void()
 export {
   /**
+   * Singleton {@link Void} AST instance.
+   *
    * @since 4.0.0
    */
   void_ as void
 }
 
 /**
+ * AST node representing the `never` type — no value matches.
+ *
+ * Parsing always fails. Useful as a placeholder in unions or as the result
+ * of narrowing that eliminates all options.
+ *
+ * @see {@link never}
+ * @see {@link isNever}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -486,11 +741,18 @@ export class Never extends Base {
 }
 
 /**
+ * Singleton {@link Never} AST instance.
+ *
  * @since 4.0.0
  */
 export const never = new Never()
 
 /**
+ * AST node representing the `any` type — every value matches.
+ *
+ * @see {@link any}
+ * @see {@link isAny}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -507,11 +769,21 @@ export class Any extends Base {
 }
 
 /**
+ * Singleton {@link Any} AST instance.
+ *
  * @since 4.0.0
  */
 export const any = new Any()
 
 /**
+ * AST node representing the `unknown` type — every value matches.
+ *
+ * Unlike {@link Any}, this is type-safe: the parsed result is typed as
+ * `unknown` rather than `any`.
+ *
+ * @see {@link unknown}
+ * @see {@link isUnknown}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -528,11 +800,19 @@ export class Unknown extends Base {
 }
 
 /**
+ * Singleton {@link Unknown} AST instance.
+ *
  * @since 4.0.0
  */
 export const unknown = new Unknown()
 
 /**
+ * AST node matching the TypeScript `object` type — accepts objects, arrays,
+ * and functions (anything non-primitive and non-null).
+ *
+ * @see {@link objectKeyword}
+ * @see {@link isObjectKeyword}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -549,11 +829,20 @@ export class ObjectKeyword extends Base {
 }
 
 /**
+ * Singleton {@link ObjectKeyword} AST instance.
+ *
  * @since 4.0.0
  */
 export const objectKeyword = new ObjectKeyword()
 
 /**
+ * AST node representing a TypeScript `enum`.
+ *
+ * Holds `enums` as an array of `[name, value]` pairs where values are
+ * `string | number`. Parsing succeeds when the input matches any enum value.
+ *
+ * @see {@link isEnum}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -625,6 +914,15 @@ function isTemplateLiteralPart(ast: AST): ast is TemplateLiteralPart {
 }
 
 /**
+ * AST node representing a TypeScript template literal type
+ * (e.g. `` `user_${string}` ``).
+ *
+ * `parts` is an array of AST nodes; each part contributes to the
+ * template literal pattern. A regex is derived from the parts to validate
+ * strings at runtime.
+ *
+ * @see {@link isTemplateLiteral}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -691,6 +989,13 @@ export class TemplateLiteral extends Base {
 }
 
 /**
+ * AST node matching a specific `unique symbol` value.
+ *
+ * Parsing succeeds only when the input is reference-equal to the stored
+ * `symbol`.
+ *
+ * @see {@link isUniqueSymbol}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -723,12 +1028,35 @@ export class UniqueSymbol extends Base {
 }
 
 /**
+ * The set of primitive types that can appear as a {@link Literal} value.
+ *
+ * @see {@link Literal}
+ *
  * @category model
  * @since 4.0.0
  */
 export type LiteralValue = string | number | boolean | bigint
 
 /**
+ * AST node matching an exact primitive value (string, number, boolean, or
+ * bigint).
+ *
+ * Parsing succeeds only when the input is strictly equal (`===`) to the
+ * stored `literal`. Numeric literals must be finite — `Infinity`, `-Infinity`,
+ * and `NaN` are rejected at construction time.
+ *
+ * **Example** (Creating a literal AST)
+ *
+ * ```ts
+ * import { SchemaAST } from "effect"
+ *
+ * const ast = new SchemaAST.Literal("active")
+ * console.log(ast.literal) // "active"
+ * ```
+ *
+ * @see {@link LiteralValue}
+ * @see {@link isLiteral}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -781,6 +1109,11 @@ function literalToString(ast: Literal): Literal {
 }
 
 /**
+ * AST node matching any `string` value.
+ *
+ * @see {@link string}
+ * @see {@link isString}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -797,15 +1130,25 @@ export class String extends Base {
 }
 
 /**
+ * Singleton {@link String} AST instance.
+ *
  * @since 4.0.0
  */
 export const string = new String()
 
 /**
- * **Default Json Serializer**
+ * AST node matching any `number` value (including `NaN`, `Infinity`,
+ * `-Infinity`).
  *
- * - If the number is finite, it is serialized as a number.
- * - If the number is infinite or NaN, it is serialized as a string.
+ * Default JSON serialization:
+ * - Finite numbers are serialized as JSON numbers.
+ * - `Infinity`, `-Infinity`, and `NaN` are serialized as JSON strings.
+ *
+ * If the node has an `isFinite` or `isInt` check, the string fallback is
+ * skipped since non-finite values cannot occur.
+ *
+ * @see {@link number}
+ * @see {@link isNumber}
  *
  * @category model
  * @since 4.0.0
@@ -849,11 +1192,18 @@ function hasCheck(checks: ReadonlyArray<Check<unknown>>, tag: string): boolean {
 }
 
 /**
+ * Singleton {@link Number} AST instance.
+ *
  * @since 4.0.0
  */
 export const number = new Number()
 
 /**
+ * AST node matching any `boolean` value (`true` or `false`).
+ *
+ * @see {@link boolean}
+ * @see {@link isBoolean}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -870,11 +1220,21 @@ export class Boolean extends Base {
 }
 
 /**
+ * Singleton {@link Boolean} AST instance.
+ *
  * @since 4.0.0
  */
 export const boolean = new Boolean()
 
 /**
+ * AST node matching any `symbol` value.
+ *
+ * When serialized to a string-based codec, symbols are converted via
+ * `Symbol.keyFor` and must be registered with `Symbol.for`.
+ *
+ * @see {@link symbol}
+ * @see {@link isSymbol}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -895,11 +1255,21 @@ export class Symbol extends Base {
 }
 
 /**
+ * Singleton {@link Symbol} AST instance.
+ *
  * @since 4.0.0
  */
 export const symbol = new Symbol()
 
 /**
+ * AST node matching any `bigint` value.
+ *
+ * When serialized to a string-based codec, bigints are converted to/from
+ * their decimal string representation.
+ *
+ * @see {@link bigInt}
+ * @see {@link isBigInt}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -920,12 +1290,43 @@ export class BigInt extends Base {
 }
 
 /**
+ * Singleton {@link BigInt} AST instance.
+ *
  * @since 4.0.0
  */
 export const bigInt = new BigInt()
 
 /**
- * Describes both tuples and arrays.
+ * AST node for array-like types — both tuples and arrays.
+ *
+ * - `elements` — positional element types (tuple elements). An element is
+ *   optional if its {@link Context.isOptional} is `true`.
+ * - `rest` — the rest/variadic element types. When non-empty, the first
+ *   entry is the "spread" type (e.g. `...Array<string>`), and subsequent
+ *   entries are trailing positional elements after the spread.
+ * - `isMutable` — whether the resulting array is `readonly` (`false`) or
+ *   mutable (`true`).
+ *
+ * Construction enforces TypeScript ordering rules: a required element
+ * cannot follow an optional one, and an optional element cannot follow a
+ * rest element.
+ *
+ * **Example** (Inspecting a tuple AST)
+ *
+ * ```ts
+ * import { Schema, SchemaAST } from "effect"
+ *
+ * const schema = Schema.Tuple([Schema.String, Schema.Number])
+ * const ast = schema.ast
+ *
+ * if (SchemaAST.isArrays(ast)) {
+ *   console.log(ast.elements.length) // 2
+ *   console.log(ast.rest.length)     // 0
+ * }
+ * ```
+ *
+ * @see {@link isArrays}
+ * @see {@link Objects}
  *
  * @category model
  * @since 4.0.0
@@ -1156,6 +1557,14 @@ export function getIndexSignatureKeys(
 }
 
 /**
+ * A named property within an {@link Objects} node.
+ *
+ * Pairs a `name` (any `PropertyKey`) with a `type` ({@link AST}). The
+ * property's optionality and mutability are determined by the `type`'s
+ * {@link Context}.
+ *
+ * @see {@link Objects}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -1173,6 +1582,15 @@ export class PropertySignature {
 }
 
 /**
+ * Bidirectional merge strategy for index signature key-value pairs.
+ *
+ * Used by {@link IndexSignature} when the same key appears multiple times
+ * (e.g. from `Schema.extend` or overlapping records). Provides separate
+ * `decode` and `encode` combiners that determine how duplicate entries are
+ * merged.
+ *
+ * @see {@link IndexSignature}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -1194,6 +1612,19 @@ export class KeyValueCombiner {
 }
 
 /**
+ * An index signature entry within an {@link Objects} node.
+ *
+ * - `parameter` — the key type AST (e.g. {@link String} for `string` keys,
+ *   {@link TemplateLiteral} for patterned keys).
+ * - `type` — the value type AST.
+ * - `merge` — optional {@link KeyValueCombiner} for handling duplicate keys.
+ *
+ * Using `Schema.optionalKey` on the value type is not allowed for index
+ * signatures (throws at construction); use `Schema.optional` instead.
+ *
+ * @see {@link Objects}
+ * @see {@link PropertySignature}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -1217,7 +1648,37 @@ export class IndexSignature {
 }
 
 /**
- * Describes both structs and records.
+ * AST node for object-like types — both structs and records.
+ *
+ * - `propertySignatures` — named properties with their types (struct fields).
+ * - `indexSignatures` — index signature entries (record patterns), each with
+ *   a `parameter` AST (the key type) and a `type` AST (the value type).
+ *
+ * An `Objects` with no properties and no index signatures acts as a bare
+ * `object | array` type check (accepts any non-nullish value).
+ *
+ * Duplicate property names throw at construction time.
+ *
+ * **Example** (Inspecting a struct AST)
+ *
+ * ```ts
+ * import { Schema, SchemaAST } from "effect"
+ *
+ * const schema = Schema.Struct({ name: Schema.String })
+ * const ast = schema.ast
+ *
+ * if (SchemaAST.isObjects(ast)) {
+ *   for (const ps of ast.propertySignatures) {
+ *     console.log(ps.name, ps.type._tag)
+ *   }
+ *   // "name" "String"
+ * }
+ * ```
+ *
+ * @see {@link isObjects}
+ * @see {@link PropertySignature}
+ * @see {@link IndexSignature}
+ * @see {@link Arrays}
  *
  * @category model
  * @since 4.0.0
@@ -1729,6 +2190,32 @@ export function getCandidates(input: any, types: ReadonlyArray<AST>): ReadonlyAr
 }
 
 /**
+ * AST node representing a union of schemas.
+ *
+ * - `types` — the member AST nodes.
+ * - `mode` — `"anyOf"` succeeds on the first match (like TypeScript unions);
+ *   `"oneOf"` requires exactly one member to match (fails if multiple do).
+ *
+ * During parsing, members are tried in order. An internal candidate index
+ * narrows which members to try based on the runtime type of the input and
+ * discriminant ("sentinel") fields, making large unions efficient.
+ *
+ * **Example** (Inspecting a union AST)
+ *
+ * ```ts
+ * import { Schema, SchemaAST } from "effect"
+ *
+ * const schema = Schema.Union([Schema.String, Schema.Number])
+ * const ast = schema.ast
+ *
+ * if (SchemaAST.isUnion(ast)) {
+ *   console.log(ast.types.length) // 2
+ *   console.log(ast.mode)         // "anyOf"
+ * }
+ * ```
+ *
+ * @see {@link isUnion}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -1885,6 +2372,32 @@ export function memoizeThunk<A>(f: () => A): () => A {
 }
 
 /**
+ * AST node for lazy/recursive schemas.
+ *
+ * Wraps a thunk (`() => AST`) that is memoized on first call. Use this to
+ * define recursive or mutually recursive schemas without infinite loops at
+ * construction time.
+ *
+ * **Example** (Recursive schema AST)
+ *
+ * ```ts
+ * import { Schema, SchemaAST } from "effect"
+ *
+ * interface Category {
+ *   readonly name: string
+ *   readonly children: ReadonlyArray<Category>
+ * }
+ *
+ * const Category: Schema.Schema<Category> = Schema.Struct({
+ *   name: Schema.String,
+ *   children: Schema.Array(Schema.suspend(() => Category))
+ * })
+ *
+ * // The recursive branch is a Suspend node
+ * ```
+ *
+ * @see {@link isSuspend}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -1921,6 +2434,22 @@ export class Suspend extends Base {
 // -----------------------------------------------------------------------------
 
 /**
+ * A single validation check attached to an AST node.
+ *
+ * - `run` — the validation function. Returns `undefined` on success, or an
+ *   `Issue` on failure.
+ * - `annotations` — optional filter-level metadata (expected message, meta
+ *   tags, arbitrary constraint hints).
+ * - `aborted` — when `true`, parsing stops immediately after this filter
+ *   fails (no further checks run).
+ *
+ * Use `.annotate()` to add metadata and `.abort()` to mark as aborting.
+ * Combine with another check via `.and()` to form a {@link FilterGroup}.
+ *
+ * @see {@link FilterGroup}
+ * @see {@link Check}
+ * @see {@link isPattern}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -1959,6 +2488,15 @@ export class Filter<in E> extends Pipeable.Class {
 }
 
 /**
+ * A composite validation check grouping multiple {@link Check} values.
+ *
+ * Created by calling `.and()` on a {@link Filter} or another `FilterGroup`.
+ * All inner checks are run; failures from aborted filters still stop
+ * evaluation.
+ *
+ * @see {@link Filter}
+ * @see {@link Check}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -1985,6 +2523,14 @@ export class FilterGroup<in E> extends Pipeable.Class {
 }
 
 /**
+ * A validation check — either a single {@link Filter} or a composite
+ * {@link FilterGroup}.
+ *
+ * Stored in the {@link Checks} array on {@link Base.checks}.
+ *
+ * @see {@link Filter}
+ * @see {@link FilterGroup}
+ *
  * @category model
  * @since 4.0.0
  */
@@ -2023,6 +2569,23 @@ export function makeFilterByGuard<T extends E, E>(
 }
 
 /**
+ * Creates a {@link Filter} that validates strings against a regular expression.
+ *
+ * - Returns a `Filter<string>` suitable for use with `Schema.filter` or
+ *   attached directly to a `String` AST node via checks.
+ * - The regex `source` is stored in annotations for serialization and
+ *   arbitrary generation.
+ *
+ * **Example** (Validating an email pattern)
+ *
+ * ```ts
+ * import { SchemaAST } from "effect"
+ *
+ * const emailFilter = SchemaAST.isPattern(/^[^@]+@[^@]+$/)
+ * ```
+ *
+ * @see {@link Filter}
+ *
  * @since 4.0.0
  */
 export function isPattern(regExp: globalThis.RegExp, annotations?: Schema.Annotations.Filter) {
@@ -2188,6 +2751,15 @@ export function annotateKey<A extends AST>(ast: A, annotations: Schema.Annotatio
 export const optionalKeyLastLink = applyToLastLink(optionalKey)
 
 /**
+ * Marks an AST node's property key as optional by setting
+ * {@link Context.isOptional} to `true`.
+ *
+ * Also propagates the optional flag through the last link of the encoding
+ * chain if present.
+ *
+ * @see {@link isOptional}
+ * @see {@link Context}
+ *
  * @since 4.0.0
  */
 export function optionalKey<A extends AST>(ast: A): A {
@@ -2239,6 +2811,20 @@ export function withConstructorDefault<A extends AST>(
 }
 
 /**
+ * Attaches a `Transformation` to the `to` AST, making it decode from the
+ * `from` AST and encode back to it.
+ *
+ * This is the low-level primitive behind `Schema.transform` and
+ * `Schema.transformOrFail`. It appends a {@link Link} to the `to` node's
+ * encoding chain.
+ *
+ * - Does not mutate either input.
+ * - Returns a new AST with the same type as `to`.
+ *
+ * @see {@link Link}
+ * @see {@link Encoding}
+ * @see {@link flip}
+ *
  * @since 4.0.0
  */
 export function decodeTo<A extends AST>(
@@ -2302,6 +2888,14 @@ export function record(key: AST, value: AST, keyValueCombiner: KeyValueCombiner 
 // -------------------------------------------------------------------------------------
 
 /**
+ * Returns `true` if the AST node represents an optional property.
+ *
+ * Checks `ast.context?.isOptional`. Defaults to `false` when no
+ * {@link Context} is set.
+ *
+ * @see {@link optionalKey}
+ * @see {@link Context}
+ *
  * @since 4.0.0
  */
 export function isOptional(ast: AST): boolean {
@@ -2314,6 +2908,27 @@ export function isMutable(ast: AST): boolean {
 }
 
 /**
+ * Strips all encoding transformations from an AST, returning the decoded
+ * (type-level) representation.
+ *
+ * - Memoized: same input reference → same output reference.
+ * - Recursively walks into composite nodes ({@link Arrays}, {@link Objects},
+ *   {@link Union}, {@link Suspend}).
+ * - Does not mutate the input.
+ *
+ * **Example** (Getting the type AST)
+ *
+ * ```ts
+ * import { Schema, SchemaAST } from "effect"
+ *
+ * const schema = Schema.NumberFromString
+ * const typeAst = SchemaAST.toType(schema.ast)
+ * console.log(typeAst._tag) // "Number"
+ * ```
+ *
+ * @see {@link toEncoded}
+ * @see {@link flip}
+ *
  * @since 4.0.0
  */
 export const toType = memoize(<A extends AST>(ast: A): A => {
@@ -2325,6 +2940,28 @@ export const toType = memoize(<A extends AST>(ast: A): A => {
 })
 
 /**
+ * Returns the encoded (wire-format) AST by flipping and then stripping
+ * encodings.
+ *
+ * Equivalent to `toType(flip(ast))`. This gives you the AST that describes
+ * the shape of the serialized/encoded data.
+ *
+ * - Memoized: same input reference → same output reference.
+ * - Does not mutate the input.
+ *
+ * **Example** (Getting the encoded AST)
+ *
+ * ```ts
+ * import { Schema, SchemaAST } from "effect"
+ *
+ * const schema = Schema.NumberFromString
+ * const encodedAst = SchemaAST.toEncoded(schema.ast)
+ * console.log(encodedAst._tag) // "String"
+ * ```
+ *
+ * @see {@link toType}
+ * @see {@link flip}
+ *
  * @since 4.0.0
  */
 export const toEncoded = memoize((ast: AST): AST => {
@@ -2350,6 +2987,19 @@ function flipEncoding(ast: AST, encoding: Encoding): AST {
 }
 
 /**
+ * Swaps the decode and encode directions of an AST's {@link Encoding} chain.
+ *
+ * After flipping, what was decoding becomes encoding and vice versa. This is
+ * the core operation behind `Schema.encode` — encoding a value is decoding
+ * with a flipped AST.
+ *
+ * - Memoized: same input reference → same output reference.
+ * - Recursively walks composite nodes.
+ * - Does not mutate the input.
+ *
+ * @see {@link toType}
+ * @see {@link toEncoded}
+ *
  * @since 4.0.0
  */
 export const flip = memoize((ast: AST): AST => {
@@ -2637,32 +3287,74 @@ export const ClassTypeId = "~effect/Schema/Class"
 export const STRUCTURAL_ANNOTATION_KEY = "~structural"
 
 /**
- * Get all annotations from the AST.
- * If the AST has checks, it will return the annotations from the last check.
+ * Returns all annotations from the AST node.
+ *
+ * If the node has {@link Checks}, returns annotations from the last check
+ * (which is where user-supplied annotations end up after `.pipe(Schema.annotations(...))`).
+ * Otherwise returns `Base.annotations` directly.
+ *
+ * **Example** (Reading annotations)
+ *
+ * ```ts
+ * import { Schema, SchemaAST } from "effect"
+ *
+ * const schema = Schema.String.annotate({ title: "Name" })
+ * const annotations = SchemaAST.resolve(schema.ast)
+ * console.log(annotations?.title) // "Name"
+ * ```
+ *
+ * @see {@link resolveAt}
+ * @see {@link resolveIdentifier}
+ * @see {@link resolveTitle}
+ * @see {@link resolveDescription}
  *
  * @since 4.0.0
  */
 export const resolve: (ast: AST) => Schema.Annotations.Annotations | undefined = InternalAnnotations.resolve
 
 /**
- * Get an annotation from the AST.
- * If the AST has checks, it will return the annotations from the last check.
+ * Returns a single annotation value by key from the AST node.
+ *
+ * Like {@link resolve}, reads from the last check's annotations when checks
+ * are present. Returns `undefined` if the key is not found.
+ *
+ * @see {@link resolve}
  *
  * @since 4.0.0
  */
 export const resolveAt: <A>(key: string) => (ast: AST) => A | undefined = InternalAnnotations.resolveAt
 
 /**
+ * Returns the `identifier` annotation from the AST node, if set.
+ *
+ * The identifier is typically set by `Schema.annotations({ identifier: "..." })`
+ * and is used for error messages and schema identification.
+ *
+ * @see {@link resolve}
+ * @see {@link resolveTitle}
+ *
  * @since 4.0.0
  */
 export const resolveIdentifier: (ast: AST) => string | undefined = InternalAnnotations.resolveIdentifier
 
 /**
+ * Returns the `title` annotation from the AST node, if set.
+ *
+ * @see {@link resolve}
+ * @see {@link resolveIdentifier}
+ * @see {@link resolveDescription}
+ *
  * @since 4.0.0
  */
 export const resolveTitle: (ast: AST) => string | undefined = InternalAnnotations.resolveTitle
 
 /**
+ * Returns the `description` annotation from the AST node, if set.
+ *
+ * @see {@link resolve}
+ * @see {@link resolveTitle}
+ * @see {@link resolveIdentifier}
+ *
  * @since 4.0.0
  */
 export const resolveDescription: (ast: AST) => string | undefined = InternalAnnotations.resolveDescription
