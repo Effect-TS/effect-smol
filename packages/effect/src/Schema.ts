@@ -4862,20 +4862,19 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
 }
 
 /**
- * Validates that a value has exactly the specified length. Works with strings
- * and arrays.
+ * Validates that a value's length is within the specified range. Works with
+ * strings and arrays.
  *
  * **JSON Schema**
  *
- * This check corresponds to both `minLength`/`maxLength` constraints for strings
- * or `minItems`/`maxItems` constraints for arrays in JSON Schema, both set to
- * the same value.
+ * This check corresponds to `minLength`/`maxLength` constraints for strings
+ * or `minItems`/`maxItems` constraints for arrays in JSON Schema.
  *
  * **Arbitrary**
  *
- * When generating test data with fast-check, this applies both `minLength` and
- * `maxLength` constraints set to the same value to ensure generated strings or
- * arrays have exactly the required length.
+ * When generating test data with fast-check, this applies `minLength` and
+ * `maxLength` constraints to ensure generated strings or arrays have a length
+ * within the specified range.
  *
  * @category Length checks
  * @since 4.0.0
