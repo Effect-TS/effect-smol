@@ -2184,13 +2184,14 @@ export const tapSink: {
         }))
 
         yield* Effect.suspend(() => sink.transform(sinkUpstream, scope)).pipe(
-          Effect.onExitInterruptible((exit) => {
-            sinkDone = true
-            if (Exit.isFailure(exit)) {
-              causeSink = exit.cause
-            }
-            return sinkLatch.open
-          }),
+          (eff) =>
+            Effect.onExitPrimitive(eff, (exit) => {
+              sinkDone = true
+              if (Exit.isFailure(exit)) {
+                causeSink = exit.cause
+              }
+              return sinkLatch.open
+            }, true),
           Effect.forkIn(scope)
         )
 

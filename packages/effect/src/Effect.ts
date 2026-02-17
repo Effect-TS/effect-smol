@@ -6000,7 +6000,7 @@ export const onErrorIf: {
 } = internal.onErrorIf
 
 /**
- * The low level primitive that powers `onExit` and `onExitInterruptible`. This
+ * The low level primitive that powers `onExit`.
  * function is used to run a finalizer when the effect exits, regardless of the
  * exit status.
  *
@@ -6048,41 +6048,6 @@ export const onExit: {
     f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR>
   ): Effect<A, E | XE, R | XR>
 } = internal.onExit
-
-/**
- * Runs cleanup on exit while keeping the cleanup interruptible, unlike `onExit`
- * which wraps it in `uninterruptible`.
- *
- * @example
- * ```ts
- * import { Console, Effect, Fiber } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const fiber = yield* Effect.forkChild(
- *     Effect.never.pipe(
- *       Effect.onExitInterruptible(() =>
- *         Effect.sleep("30 seconds").pipe(Effect.andThen(Console.log("cleanup finished")))
- *       )
- *     )
- *   )
- *
- *   yield* Effect.sleep("10 millis")
- *   yield* Fiber.interrupt(fiber)
- * })
- * ```
- *
- * @since 4.0.0
- * @category Resource Management & Finalization
- */
-export const onExitInterruptible: {
-  <A, E, XE = never, XR = never>(
-    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR>
-  ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
-  <A, E, R, XE = never, XR = never>(
-    self: Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR>
-  ): Effect<A, E | XE, R | XR>
-} = internal.onExitInterruptible
 
 /**
  * Runs the cleanup effect only when the `Exit` passes the provided filter.

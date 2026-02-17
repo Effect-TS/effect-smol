@@ -3723,23 +3723,6 @@ export const onExit: {
 } = dual(2, onExitPrimitive)
 
 /** @internal */
-export const onExitInterruptible: {
-  <A, E, XE = never, XR = never>(
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
-  ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
-  <A, E, R, XE = never, XR = never>(
-    self: Effect.Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR>
-} = dual(
-  2,
-  <A, E, R, XE = never, XR = never>(
-    self: Effect.Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> => onExitPrimitive(self, f, true)
-)
-
-/** @internal */
 export const ensuring: {
   <XE, XR>(
     finalizer: Effect.Effect<void, XE, XR>
@@ -3860,9 +3843,10 @@ export const acquireUseRelease = <Resource, E, R, A, E2, R2, E3, R3>(
 ): Effect.Effect<A, E | E2 | E3, R | R2 | R3> =>
   uninterruptibleMask((restore) =>
     flatMap(acquire, (a) =>
-      onExitInterruptible(
+      onExitPrimitive(
         restore(use(a)),
-        (exit) => release(a, exit)
+        (exit) => release(a, exit),
+        true
       ))
   )
 

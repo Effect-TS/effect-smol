@@ -476,7 +476,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
         toCodecJson: ([exit]) =>
           Schema.link<Complete<Success["Encoded"], Error["Encoded"]>>()(
             Schema.Struct({
-              _tag: Schema.Literal("Complete"),
+              _tag: Schema.tag("Complete"),
               exit
             }),
             Tranformation.transform({
@@ -576,14 +576,15 @@ export const intoResult = <A, E, R>(
             ? Effect.failCause(cause as Cause.Cause<never>)
             : Effect.succeed(new Complete({ exit: Exit.failCause(cause) }))
       }),
-      Effect.onExitInterruptible((exit) => {
-        if (Exit.isFailure(exit)) {
-          return Scope.close(instance.scope, exit)
-        } else if (exit.value._tag === "Complete") {
-          return Scope.close(instance.scope, exit.value.exit)
-        }
-        return Effect.void
-      }),
+      (eff) =>
+        Effect.onExitPrimitive(eff, (exit) => {
+          if (Exit.isFailure(exit)) {
+            return Scope.close(instance.scope, exit)
+          } else if (exit.value._tag === "Complete") {
+            return Scope.close(instance.scope, exit.value.exit)
+          }
+          return Effect.void
+        }, true),
       Effect.uninterruptible
     )
   })

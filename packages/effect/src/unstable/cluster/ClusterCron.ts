@@ -92,8 +92,9 @@ export const make = <E, R>(options: {
     const makeClient = yield* CronEntity.client
     return {
       run: (request) =>
-        effect(request.payload.dateTime).pipe(
-          Effect.onExitInterruptible(Effect.fnUntraced(function*(exit) {
+        Effect.onExitPrimitive(
+          effect(request.payload.dateTime),
+          Effect.fnUntraced(function*(exit) {
             if (Exit.isFailure(exit)) {
               yield* Effect.logWarning(exit.cause)
             }
@@ -109,7 +110,9 @@ export const make = <E, R>(options: {
               Effect.retry(retryPolicy),
               Effect.orDie
             )
-          })),
+          }),
+          true
+        ).pipe(
           Effect.annotateLogs({
             module: "effect/cluster/ClusterCron",
             name: options.name,
