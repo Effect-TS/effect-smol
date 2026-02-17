@@ -4042,6 +4042,30 @@ export const all = <
 }
 
 /** @internal */
+export const partition: {
+  <A, B, E, R>(
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): (elements: Iterable<A>) => Effect.Effect<[excluded: Array<E>, satisfying: Array<B>], never, R>
+  <A, B, E, R>(
+    elements: Iterable<A>,
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): Effect.Effect<[excluded: Array<E>, satisfying: Array<B>], never, R>
+} = dual(
+  (args) => isIterable(args[0]) && !isEffect(args[0]),
+  <A, B, E, R>(
+    elements: Iterable<A>,
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): Effect.Effect<[excluded: Array<E>, satisfying: Array<B>], never, R> =>
+    map(
+      forEach(elements, (a, i) => result(f(a, i)), options),
+      (results) => Arr.partitionMap(results, identity)
+    )
+)
+
+/** @internal */
 export const whileLoop: <A, E, R>(options: {
   readonly while: LazyArg<boolean>
   readonly body: LazyArg<Effect.Effect<A, E, R>>

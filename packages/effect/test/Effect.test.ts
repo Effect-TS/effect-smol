@@ -409,6 +409,45 @@ describe("Effect", () => {
       }))
   })
 
+  describe("partition", () => {
+    it.effect("collects only successes", () =>
+      Effect.gen(function*() {
+        const values = [0, 1, 2, 3, 4]
+        const [excluded, satisfying] = yield* Effect.partition(values, Effect.succeed)
+        assert.deepStrictEqual(excluded, [])
+        assert.deepStrictEqual(satisfying, values)
+      }))
+
+    it.effect("collects only failures", () =>
+      Effect.gen(function*() {
+        const values = [0, 1, 2, 3, 4]
+        const [excluded, satisfying] = yield* Effect.partition(values, Effect.fail)
+        assert.deepStrictEqual(excluded, values)
+        assert.deepStrictEqual(satisfying, [])
+      }))
+
+    it.effect("collects failures and successes", () =>
+      Effect.gen(function*() {
+        const values = [0, 1, 2, 3, 4, 5]
+        const [excluded, satisfying] = yield* Effect.partition(values, (n) =>
+          n % 2 === 0 ? Effect.fail(n) : Effect.succeed(n))
+        assert.deepStrictEqual(excluded, [0, 2, 4])
+        assert.deepStrictEqual(satisfying, [1, 3, 5])
+      }))
+
+    it.effect("supports concurrency option", () =>
+      Effect.gen(function*() {
+        const values = [0, 1, 2, 3, 4, 5]
+        const [excluded, satisfying] = yield* Effect.partition(
+          values,
+          (n) => n % 2 === 0 ? Effect.fail(n) : Effect.succeed(n),
+          { concurrency: "unbounded" }
+        )
+        assert.deepStrictEqual(excluded, [0, 2, 4])
+        assert.deepStrictEqual(satisfying, [1, 3, 5])
+      }))
+  })
+
   describe("filter", () => {
     it.live("odd numbers", () =>
       Effect.gen(function*() {
