@@ -3757,34 +3757,34 @@ export const ensuring: {
 
 /** @internal */
 export const onExitIf: {
-  <A, E, XE, XR>(
-    predicate: Predicate.Predicate<Exit.Exit<NoInfer<A>, NoInfer<E>>>,
-    f: (exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect.Effect<void, XE, XR>
+  <A, E, XE, XR, Result extends Filter.InputResult>(
+    filter: Filter.Input<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
+    f: (
+      pass: Filter.Pass<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
+      exit: Exit.Exit<NoInfer<A>, NoInfer<E>>
+    ) => Effect.Effect<void, XE, XR>
   ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
-  <A, E, XE, XR, B, X>(
-    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
-    f: (b: B, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect.Effect<void, XE, XR>
-  ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR>(
+  <A, E, R, XE, XR, Result extends Filter.InputResult>(
     self: Effect.Effect<A, E, R>,
-    predicate: Predicate.Predicate<Exit.Exit<A, E>>,
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR, B, X>(
-    self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
-    f: (b: B, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect.Effect<void, XE, XR>
+    filter: Filter.Input<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
+    f: (
+      pass: Filter.Pass<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
+      exit: Exit.Exit<NoInfer<A>, NoInfer<E>>
+    ) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR>
 } = dual(
   3,
-  <A, E, R, XE, XR, B, X>(
+  <A, E, R, XE, XR, Result extends Filter.InputResult>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X> | Predicate.Predicate<Exit.Exit<A, E>>,
-    f: (b: any, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect.Effect<void, XE, XR>
+    filter: Filter.Input<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
+    f: (
+      pass: Filter.Pass<Exit.Exit<NoInfer<A>, NoInfer<E>>, Result>,
+      exit: Exit.Exit<NoInfer<A>, NoInfer<E>>
+    ) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR> =>
     onExit(self, (exit) => {
-      const b = Filter.apply(filter as any, exit)
-      return Result.isFailure(b) ? void_ : f(b.success, exit)
+      const pass = Filter.apply(filter as any, exit)
+      return Result.isFailure(pass) ? void_ : f(pass.success as any, exit)
     })
 )
 

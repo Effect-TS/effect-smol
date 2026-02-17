@@ -1863,6 +1863,18 @@ describe("Effect", () => {
         assert.deepStrictEqual(finalized, ["failure:e1"])
         assert.deepStrictEqual(result, Exit.fail("e1"))
       }))
+    it.effect("filter match receives pass value and exit", () =>
+      Effect.gen(function*() {
+        const finalized: Array<string> = []
+        const result = yield* Effect.onExitIf(
+          Effect.succeed(42),
+          (exit) => Exit.isSuccess(exit) ? Result.succeed(`value:${exit.value}`) : Result.fail(exit),
+          (value, exit) =>
+            Effect.sync(() => finalized.push(`${value}:${Exit.isSuccess(exit) ? `success:${exit.value}` : "failure"}`))
+        )
+        assert.deepStrictEqual(finalized, ["value:42:success:42"])
+        assert.deepStrictEqual(result, 42)
+      }))
   })
 
   describe("filter with predicate/refinement", () => {
