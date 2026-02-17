@@ -210,19 +210,54 @@ describe("Config", () => {
       )
     })
 
-    it("orElse", async () => {
-      const config = Config.orElse(Config.string("a"), () => Config.finite("b"))
+    describe("orElse", () => {
+      it("is lazy", async () => {
+        let fallbackCalls = 0
+        const config = Config.orElse(Config.string("a"), () => {
+          fallbackCalls += 1
+          return Config.string("b")
+        })
 
-      await assertSuccess(
-        config,
-        ConfigProvider.fromUnknown({ a: "value" }),
-        "value"
-      )
-      await assertSuccess(
-        config,
-        ConfigProvider.fromUnknown({ b: "1" }),
-        1
-      )
+        await assertSuccess(
+          config,
+          ConfigProvider.fromUnknown({ a: "value" }),
+          "value"
+        )
+        assert.strictEqual(fallbackCalls, 0)
+
+        await assertSuccess(
+          config,
+          ConfigProvider.fromUnknown({ b: "fallback" }),
+          "fallback"
+        )
+        assert.strictEqual(fallbackCalls, 1)
+      })
+
+      it("recovers from non-missing errors and passes the error", async () => {
+        let primaryError = ""
+        const config = Config.orElse(Config.finite("a"), (error) => {
+          primaryError = error.cause.message
+          return Config.finite("b")
+        })
+
+        await assertSuccess(
+          config,
+          ConfigProvider.fromUnknown({ a: "value", b: "2" }),
+          2
+        )
+        assert.ok(primaryError.includes(`at ["a"]`))
+      })
+
+      it("fails with the fallback error", async () => {
+        const config = Config.orElse(Config.string("a"), () => Config.string("b"))
+
+        await assertFailure(
+          config,
+          ConfigProvider.fromUnknown({}),
+          `Expected string, got undefined
+  at ["b"]`
+        )
+      })
     })
 
     describe("all", () => {
