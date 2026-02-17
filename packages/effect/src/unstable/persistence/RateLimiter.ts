@@ -352,6 +352,7 @@ export const RateLimiterErrorReason: Schema.Union<[
  * @since 4.0.0
  * @category Errors
  */
+// @effect-diagnostics-next-line overriddenSchemaConstructor:off
 export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorTypeId)({
   _tag: Schema.tag("RateLimiterError"),
   reason: RateLimiterErrorReason

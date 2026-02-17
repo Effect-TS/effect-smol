@@ -32,8 +32,10 @@ import * as Request from "../http/HttpServerRequest.ts"
 import { HttpServerRequest } from "../http/HttpServerRequest.ts"
 import * as Response from "../http/HttpServerResponse.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
+import * as HttpSession from "../http/HttpSession.ts"
 import * as Multipart from "../http/Multipart.ts"
 import * as UrlParams from "../http/UrlParams.ts"
+import * as Persistence from "../persistence/Persistence.ts"
 import type * as HttpApi from "./HttpApi.ts"
 import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import { HttpApiSchemaError } from "./HttpApiError.ts"
@@ -297,9 +299,8 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
 > => {
   switch (self._tag) {
     case "Bearer": {
-      return Effect.map(
-        HttpServerRequest.asEffect(),
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
+      return HttpServerRequest.useSync((request) =>
+        Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
       )
     }
     case "ApiKey": {
@@ -366,6 +367,85 @@ export const securitySetCookie = (
       })
     )
   )
+
+/**
+ * @since 4.0.0
+ * @category security
+ */
+export const securityMakeSession = <Security extends HttpApiSecurity.ApiKey>(
+  self: Security,
+  options?: Omit<HttpSession.MakeHttpSessionOptions<never, never>, "getSessionId">
+): Effect.Effect<
+  HttpSession.HttpSession["Service"],
+  HttpSession.HttpSessionError,
+  | Persistence.Persistence
+  | Scope.Scope
+  | Request.HttpServerRequest
+  | Request.ParsedSearchParams
+> =>
+  Effect.gen(function*() {
+    const credential = yield* securityDecode(self)
+    const value = Redacted.value(credential)
+    return yield* HttpSession.make({
+      ...options,
+      cookie: {
+        ...options?.cookie,
+        name: self.key
+      },
+      getSessionId: Effect.succeed(value === "" ? Option.none() : Option.some(HttpSession.SessionId(value)))
+    }).pipe(Effect.orDie)
+  })
+
+/**
+ * @since 4.0.0
+ * @category security
+ * @example
+ * ```ts
+ * import { HttpApiBuilder, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
+ *
+ * class SessionMiddleware extends HttpApiMiddleware.HttpSession<SessionMiddleware>()("SessionMiddleware", {
+ *   security: HttpApiSecurity.apiKey({ key: "sid", in: "cookie" })
+ * }) {}
+ *
+ * const SessionMiddlewareLive = HttpApiBuilder.middlewareHttpSession(SessionMiddleware)
+ * ```
+ */
+export const middlewareHttpSession = <
+  Service extends (
+    & HttpApiMiddleware.ServiceClass<any, any, {
+      requires: never
+      provides: HttpSession.HttpSession
+      error: never
+      security: never
+    }>
+    & {
+      readonly security: HttpApiSecurity.ApiKey
+    }
+  )
+>(
+  service: Service,
+  options?: Omit<HttpSession.MakeHttpSessionOptions<never, never>, "getSessionId">
+): Layer.Layer<Service["Identifier"], never, Persistence.Persistence> => {
+  const makeSession = Effect.orDie(securityMakeSession(service.security, options))
+  return Layer.effect(
+    service,
+    Persistence.Persistence.useSync((persistence) =>
+      service.of(Effect.fnUntraced(function*(effect) {
+        const session = yield* Effect.provideService(makeSession, Persistence.Persistence, persistence)
+        let response = yield* Effect.provideService(effect, HttpSession.HttpSession, session)
+        if (service.security.in === "cookie") {
+          const state = yield* Effect.orDie(session.state)
+          if (state.action === "clear") {
+            response = yield* HttpSession.clearCookie(session, response)
+          } else if (state.action === "set") {
+            response = yield* HttpSession.setCookie(session, response)
+          }
+        }
+        return response
+      }))
+    )
+  )
+}
 
 // -----------------------------------------------------------------------------
 // Internal
