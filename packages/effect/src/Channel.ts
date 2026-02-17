@@ -2998,38 +2998,29 @@ export const filter: {
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem>(
-    predicate: Predicate.Predicate<OutElem>
+  <OutElem, Result extends Filter.InputResult>(
+    filter: Filter.Input<OutElem, Result>
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
-  ) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem, B, X>(
-    filter: Filter.Filter<OutElem, B, X>
-  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
-    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
-  ) => Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<Filter.Pass<OutElem, Result>, OutErr, OutDone, InElem, InErr, InDone, Env>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     refinement: Predicate.Refinement<OutElem, B>
   ): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, Result extends Filter.InputResult>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    predicate: Predicate.Predicate<OutElem>
-  ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
-    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    filter: Filter.Filter<OutElem, B, X>
-  ): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    filter: Filter.Input<OutElem, Result>
+  ): Channel<Filter.Pass<OutElem, Result>, OutErr, OutDone, InElem, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, Result extends Filter.InputResult>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.Filter<OutElem, any, any> | Predicate.Predicate<OutElem>
-): Channel<any, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  filter: Filter.Input<OutElem, Result>
+): Channel<Filter.Pass<OutElem, Result>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
   fromTransform((upstream, scope) =>
     Effect.map(
       toTransform(self)(upstream, scope),
       (pull) =>
-        Effect.flatMap(pull, function loop(elem): Pull.Pull<any, OutErr, OutDone> {
-          const result = Filter.apply(filter as any, elem)
+        Effect.flatMap(pull, function loop(elem): Pull.Pull<Filter.Pass<OutElem, Result>, OutErr, OutDone> {
+          const result = Filter.apply(filter, elem)
           return Result.isFailure(result) ? Effect.flatMap(pull, loop) : Effect.succeed(result.success)
         })
     )
