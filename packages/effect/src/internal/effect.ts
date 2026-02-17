@@ -42,7 +42,6 @@ import type * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as Tracer from "../Tracer.ts"
 import type {
-  Any,
   Concurrency,
   EqualsWith,
   ExcludeReason,
@@ -174,7 +173,7 @@ export const findDie = <E>(self: Cause.Cause<E>): Result.Result<Cause.Die, Cause
 }
 
 /** @internal */
-export const findDefect = <E>(self: Cause.Cause<E>): Result.Result<Any, Cause.Cause<E>> => {
+export const findDefect = <E>(self: Cause.Cause<E>): Result.Result<unknown, Cause.Cause<E>> => {
   const reason = self.reasons.find(isDieReason)
   return reason ? Result.succeed(reason.defect) : Result.fail(self)
 }

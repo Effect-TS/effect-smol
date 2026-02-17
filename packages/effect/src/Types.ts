@@ -54,18 +54,6 @@
  */
 
 /**
- * A top-like type that accepts any value.
- *
- * Unlike `unknown`, this type is intended for building unions and does not force
- * narrowing before use. It includes all values via `{}` (any non-nullish value)
- * plus `null` and `undefined`.
- *
- * @since 4.0.0
- * @category types
- */
-export type Any = {} | null | undefined
-
-/**
  * @category tuples
  * @since 2.0.0
  */

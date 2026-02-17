@@ -891,7 +891,7 @@ export const findDie: <E>(self: Cause<E>) => Result.Result<Die, Cause<E>> = effe
  * @category filters
  * @since 4.0.0
  */
-export const findDefect: <E>(self: Cause<E>) => Result.Result<Types.Any, Cause<E>> = effect.findDefect
+export const findDefect: <E>(self: Cause<E>) => Result.Result<unknown, Cause<E>> = effect.findDefect
 
 /**
  * Returns `true` if the cause contains at least one {@link Interrupt} reason.

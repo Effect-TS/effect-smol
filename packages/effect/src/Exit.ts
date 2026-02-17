@@ -662,8 +662,7 @@ export const findError: <A, E>(input: Exit<A, E>) => Result.Result<E, Exit<A, E>
  * @category filters
  * @since 4.0.0
  */
-export const findDefect: <A, E>(input: Exit<A, E>) => Result.Result<{} | null | undefined, Exit<A, E>> =
-  effect.exitFindDefect
+export const findDefect: <A, E>(input: Exit<A, E>) => Result.Result<unknown, Exit<A, E>> = effect.exitFindDefect
 
 /**
  * Pattern matches on an Exit, handling both success and failure cases.
