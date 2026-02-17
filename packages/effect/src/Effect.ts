@@ -4406,7 +4406,7 @@ export const raceFirst: {
  *
  * @example
  * ```ts
- * import { Effect, Filter } from "effect"
+ * import { Effect, Filter, Result } from "effect"
  *
  * // Sync predicate
  * const evens = Effect.filter([1, 2, 3, 4], (n) => n % 2 === 0)
@@ -4900,8 +4900,7 @@ export const matchCauseEffectEager: {
  *
  * @example
  * ```ts
- * import { Cause, Console, Effect } from "effect"
- * import * as Filter from "effect/Filter"
+ * import { Cause, Console, Effect, Result } from "effect"
  *
  * const task = Effect.fail(new Error("Task failed"))
  *

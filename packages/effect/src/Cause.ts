@@ -752,7 +752,7 @@ export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
  * **Example** (extracting the first Fail reason)
  *
  * ```ts
- * import { Cause, Filter } from "effect"
+ * import { Cause, Result } from "effect"
  *
  * const result = Cause.findFail(Cause.fail("error"))
  * if (!Result.isFailure(result)) {
@@ -778,11 +778,11 @@ export const findFail: <E>(self: Cause<E>) => Result.Result<Fail<E>, Cause<never
  * **Example** (extracting the first error value)
  *
  * ```ts
- * import { Cause, Filter } from "effect"
+ * import { Cause, Result } from "effect"
  *
  * const result = Cause.findError(Cause.fail("error"))
  * if (!Result.isFailure(result)) {
- *   console.log(result) // "error"
+ *   console.log(result.success) // "error"
  * }
  * ```
  *
@@ -850,7 +850,7 @@ export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
  * **Example** (extracting the first Die reason)
  *
  * ```ts
- * import { Cause, Filter } from "effect"
+ * import { Cause, Result } from "effect"
  *
  * const result = Cause.findDie(Cause.die("defect"))
  * if (!Result.isFailure(result)) {
@@ -877,11 +877,11 @@ export const findDie: <E>(self: Cause<E>) => Result.Result<Die, Cause<E>> = effe
  * **Example** (extracting the first defect)
  *
  * ```ts
- * import { Cause, Filter } from "effect"
+ * import { Cause, Result } from "effect"
  *
  * const result = Cause.findDefect(Cause.die("defect"))
  * if (!Result.isFailure(result)) {
- *   console.log(result) // "defect"
+ *   console.log(result.success) // "defect"
  * }
  * ```
  *
@@ -922,7 +922,7 @@ export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupt
  * **Example** (extracting the first interrupt)
  *
  * ```ts
- * import { Cause, Filter } from "effect"
+ * import { Cause, Result } from "effect"
  *
  * const result = Cause.findInterrupt(Cause.interrupt(42))
  * if (!Result.isFailure(result)) {
@@ -974,11 +974,11 @@ export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.c
  * **Example** (extracting interruptors with Filter)
  *
  * ```ts
- * import { Cause, Filter } from "effect"
+ * import { Cause, Result } from "effect"
  *
  * const result = Cause.filterInterruptors(Cause.interrupt(1))
  * if (!Result.isFailure(result)) {
- *   console.log(result) // Set { 1 }
+ *   console.log(result.success) // Set { 1 }
  * }
  * ```
  *

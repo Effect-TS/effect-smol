@@ -3932,7 +3932,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Filter, Stream } from "effect"
+ * import { Console, Effect, Filter, Result, Stream } from "effect"
  *
  * const filter = Filter.makeEffect((n: number) =>
  *   Effect.succeed(n > 2 ? Result.succeed(n + 1) : Result.fail(n))
@@ -3975,7 +3975,7 @@ export const filterEffect: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Filter, Stream } from "effect"
+ * import { Console, Effect, Filter, Result, Stream } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const [passes, fails] = yield* Stream.make(1, 2, 3, 4).pipe(
@@ -4122,7 +4122,7 @@ export const partitionQueue: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Filter, Stream } from "effect"
+ * import { Console, Effect, Result, Stream } from "effect"
  *
  * const program = Effect.scoped(
  *   Effect.gen(function*() {

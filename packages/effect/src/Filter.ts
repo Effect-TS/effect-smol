@@ -17,10 +17,10 @@ import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.ts"
  *
  * @example
  * ```ts
- * import { Filter } from "effect"
+ * import { Filter, Result } from "effect"
  *
  * // A filter that only passes positive numbers
- * const positiveFilter: Filter.Filter<number> = (n) => n > 0 ? Filter.Result.succeed(n) : Filter.Result.fail(n)
+ * const positiveFilter: Filter.Filter<number> = (n) => n > 0 ? Result.succeed(n) : Result.fail(n)
  *
  * console.log(positiveFilter(5)) // Result.succeed(5)
  * console.log(positiveFilter(-3)) // Result.fail(-3)
@@ -41,7 +41,7 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input, in Args ex
  *
  * @example
  * ```ts
- * import { Effect, Filter } from "effect"
+ * import { Effect, Filter, Result } from "effect"
  *
  * // An effectful filter that validates user data
  * type User = { id: string; isActive: boolean }
@@ -56,7 +56,7 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input, in Args ex
  * > = (id) =>
  *   Effect.gen(function*() {
  *     const user: User = { id, isActive: id.length > 0 }
- *     return user.isActive ? Filter.Result.succeed(user) : Filter.Result.fail(user)
+ *     return user.isActive ? Result.succeed(user) : Result.fail(user)
  *   })
  * ```
  *
@@ -120,18 +120,18 @@ export const apply: {
  * Creates a Filter from a function that returns either a `pass` or `fail` value.
  *
  * This is the primary constructor for creating custom filters. The function
- * should return either `Filter.Result.succeed(value)` or `Filter.Result.fail(value)`.
+ * should return either `Result.succeed(value)` or `Result.fail(value)`.
  *
  * @example
  * ```ts
- * import { Filter } from "effect"
+ * import { Filter, Result } from "effect"
  *
  * // Create a filter for positive numbers
- * const positiveFilter = Filter.make((n: number) => n > 0 ? Filter.Result.succeed(n) : Filter.Result.fail(n))
+ * const positiveFilter = Filter.make((n: number) => n > 0 ? Result.succeed(n) : Result.fail(n))
  *
  * // Create a filter that transforms strings to uppercase
  * const uppercaseFilter = Filter.make((s: string) =>
- *   s.length > 0 ? Filter.Result.succeed(s.toUpperCase()) : Filter.Result.fail(s)
+ *   s.length > 0 ? Result.succeed(s.toUpperCase()) : Result.fail(s)
  * )
  * ```
  *
@@ -151,13 +151,13 @@ export const make = <Input, Pass, Fail>(
  *
  * @example
  * ```ts
- * import { Effect, Filter } from "effect"
+ * import { Effect, Filter, Result } from "effect"
  *
  * // Create an effectful filter that validates async
  * const asyncValidate = Filter.makeEffect((id: string) =>
  *   Effect.gen(function*() {
  *     const isValid = yield* Effect.succeed(id.length > 0)
- *     return isValid ? Filter.Result.succeed(id) : Filter.Result.fail(id)
+ *     return isValid ? Result.succeed(id) : Result.fail(id)
  *   })
  * )
  * ```
@@ -213,7 +213,7 @@ export {
  *
  * @example
  * ```ts
- * import { Filter } from "effect"
+ * import { Filter, Result } from "effect"
  *
  * // Create filter from predicate
  * const positiveNumbers = Filter.fromPredicate((n: number) => n > 0)
@@ -261,7 +261,7 @@ export const toPredicate = <A, Pass, Fail>(
  *
  * @example
  * ```ts
- * import { Filter } from "effect"
+ * import { Filter, Result } from "effect"
  *
  * console.log(Filter.string("hello")) // Result.succeed("hello")
  * console.log(Filter.string(42)) // fail
@@ -304,7 +304,7 @@ export const instanceOf =
  *
  * @example
  * ```ts
- * import { Filter } from "effect"
+ * import { Filter, Result } from "effect"
  *
  * console.log(Filter.number(42)) // Result.succeed(42)
  * console.log(Filter.number("42")) // fail
@@ -506,11 +506,11 @@ export const andLeft: {
  *
  * @example
  * ```ts
- * import { Filter } from "effect"
+ * import { Filter, Result } from "effect"
  *
  * const positiveNumbers = Filter.fromPredicate((n: number) => n > 0)
  * const doubleNumbers = Filter.make((n: number) =>
- *   n > 0 ? Filter.Result.succeed(n * 2) : Filter.Result.fail(n)
+ *   n > 0 ? Result.succeed(n * 2) : Result.fail(n)
  * )
  *
  * const positiveDoubled = Filter.andRight(positiveNumbers, doubleNumbers)
@@ -539,11 +539,11 @@ export const andRight: {
  *
  * @example
  * ```ts
- * import { Filter } from "effect"
+ * import { Filter, Result } from "effect"
  *
  * const stringFilter = Filter.string
  * const nonEmptyUpper = Filter.make((s: string) =>
- *   s.length > 0 ? Filter.Result.succeed(s.toUpperCase()) : Filter.Result.fail(s)
+ *   s.length > 0 ? Result.succeed(s.toUpperCase()) : Result.fail(s)
  * )
  *
  * const stringToUpper = Filter.compose(stringFilter, nonEmptyUpper)
