@@ -4000,7 +4000,7 @@ export const filterEffect: {
  * @category Filtering
  */
 export const partitionQueue: {
-  <A, B extends A>(refinement: Refinement<A, B>, options?: {
+  <A, B extends A>(refinement: Refinement<NoInfer<A>, B>, options?: {
     readonly capacity?: number | "unbounded" | undefined
   }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
     [
@@ -4010,22 +4010,12 @@ export const partitionQueue: {
     never,
     R | Scope.Scope
   >
-  <A>(predicate: Predicate<A>, options?: {
+  <A, Result extends Filter.InputResult>(filter: Filter.Input<NoInfer<A>, Result>, options?: {
     readonly capacity?: number | "unbounded" | undefined
   }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
     [
-      passes: Queue.Dequeue<A, E | Cause.Done>,
-      fails: Queue.Dequeue<A, E | Cause.Done>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A, B, X>(filter: Filter.Filter<A, B, X>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
-    [
-      passes: Queue.Dequeue<B, E | Cause.Done>,
-      fails: Queue.Dequeue<X, E | Cause.Done>
+      passes: Queue.Dequeue<Filter.Pass<A, Result>, E | Cause.Done>,
+      fails: Queue.Dequeue<Filter.Fail<A, Result>, E | Cause.Done>
     ],
     never,
     R | Scope.Scope
@@ -4040,22 +4030,16 @@ export const partitionQueue: {
     never,
     R | Scope.Scope
   >
-  <A, E, R>(self: Stream<A, E, R>, predicate: Predicate<A>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.Effect<
+  <A, E, R, Result extends Filter.InputResult>(
+    self: Stream<A, E, R>,
+    filter: Filter.Input<NoInfer<A>, Result>,
+    options?: {
+      readonly capacity?: number | "unbounded" | undefined
+    }
+  ): Effect.Effect<
     [
-      passes: Queue.Dequeue<A, E | Cause.Done>,
-      fails: Queue.Dequeue<A, E | Cause.Done>
-    ],
-    never,
-    R | Scope.Scope
-  >
-  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>, options?: {
-    readonly capacity?: number | "unbounded" | undefined
-  }): Effect.Effect<
-    [
-      passes: Queue.Dequeue<B, E | Cause.Done>,
-      fails: Queue.Dequeue<X, E | Cause.Done>
+      passes: Queue.Dequeue<Filter.Pass<A, Result>, E | Cause.Done>,
+      fails: Queue.Dequeue<Filter.Fail<A, Result>, E | Cause.Done>
     ],
     never,
     R | Scope.Scope
@@ -4063,9 +4047,13 @@ export const partitionQueue: {
 } = dual(
   (args) => isStream(args[0]),
   Effect.fnUntraced(
-    function*<A, E, R>(self: Stream<A, E, R>, filter: Filter.Filter<any, any, any> | Predicate<A>, options?: {
-      readonly capacity?: number | "unbounded" | undefined
-    }): Effect.fn.Return<
+    function*<A, E, R, Result extends Filter.InputResult>(
+      self: Stream<A, E, R>,
+      filter: Filter.Input<NoInfer<A>, Result>,
+      options?: {
+        readonly capacity?: number | "unbounded" | undefined
+      }
+    ): Effect.fn.Return<
       [
         passes: Queue.Dequeue<any, E | Cause.Done>,
         fails: Queue.Dequeue<any, E | Cause.Done>
