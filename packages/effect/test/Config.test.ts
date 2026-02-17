@@ -296,6 +296,14 @@ describe("Config", () => {
         )
       })
 
+      it("redacted", async () => {
+        const defaultValue = Redacted.make("default")
+        const config = Config.redacted("a").pipe(Config.withDefault(() => defaultValue))
+
+        await assertSuccess(config, ConfigProvider.fromUnknown({ a: "value" }), Redacted.make("value"))
+        await assertSuccess(config, ConfigProvider.fromUnknown({}), defaultValue)
+      })
+
       it("struct", async () => {
         const defaultValue = { a: "a", c: 0 }
         const config = Config.all({ a: Config.nonEmptyString("b"), c: Config.finite("d") }).pipe(
