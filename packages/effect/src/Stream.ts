@@ -4180,8 +4180,8 @@ export const partitionEffect: {
 )
 
 /**
- * Splits a stream into excluded and satisfying substreams using a predicate or
- * refinement.
+ * Splits a stream into excluded and satisfying substreams using a predicate,
+ * refinement, or Filter.
  *
  * The faster stream may advance up to `bufferSize` elements ahead of the slower
  * one.
@@ -4218,23 +4218,13 @@ export const partition: {
     never,
     R | Scope.Scope
   >
-  <A>(
-    predicate: Predicate<NoInfer<A>>,
+  <A, Result extends Filter.InputResult>(
+    filter: Filter.Input<NoInfer<A>, Result>,
     options?: { readonly bufferSize?: number | undefined }
   ): <E, R>(
     self: Stream<A, E, R>
   ) => Effect.Effect<
-    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
-    never,
-    R | Scope.Scope
-  >
-  <A, B, X>(
-    filter: Filter.Filter<A, B, X>,
-    options?: { readonly bufferSize?: number | undefined }
-  ): <E, R>(
-    self: Stream<A, E, R>
-  ) => Effect.Effect<
-    [excluded: Stream<X, E>, satisfying: Stream<B, E>],
+    [excluded: Stream<Filter.Fail<A, Result>, E>, satisfying: Stream<Filter.Pass<A, Result>, E>],
     never,
     R | Scope.Scope
   >
@@ -4247,37 +4237,28 @@ export const partition: {
     never,
     R | Scope.Scope
   >
-  <A, E, R>(
+  <A, E, R, Result extends Filter.InputResult>(
     self: Stream<A, E, R>,
-    predicate: Predicate<A>,
+    filter: Filter.Input<NoInfer<A>, Result>,
     options?: { readonly bufferSize?: number | undefined }
   ): Effect.Effect<
-    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
-    never,
-    R | Scope.Scope
-  >
-  <A, E, R, B, X>(
-    self: Stream<A, E, R>,
-    filter: Filter.Filter<A, B, X>,
-    options?: { readonly bufferSize?: number | undefined }
-  ): Effect.Effect<
-    [excluded: Stream<X, E>, satisfying: Stream<B, E>],
+    [excluded: Stream<Filter.Fail<A, Result>, E>, satisfying: Stream<Filter.Pass<A, Result>, E>],
     never,
     R | Scope.Scope
   >
 } = dual(
   (args) => isStream(args[0]),
-  <A, E, R>(
+  <A, E, R, Result extends Filter.InputResult>(
     self: Stream<A, E, R>,
-    filter: Filter.Filter<any, any, any> | Predicate<A>,
+    filter: Filter.Input<NoInfer<A>, Result>,
     options?: { readonly bufferSize?: number | undefined }
   ): Effect.Effect<
-    [excluded: Stream<any, E>, satisfying: Stream<any, E>],
+    [excluded: Stream<Filter.Fail<A, Result>, E>, satisfying: Stream<Filter.Pass<A, Result>, E>],
     never,
     R | Scope.Scope
   > =>
     Effect.map(
-      partitionQueue(filter as any, { capacity: options?.bufferSize ?? 16 })(self),
+      partitionQueue(filter, { capacity: options?.bufferSize ?? 16 })(self),
       ([passes, fails]) => [fromQueue(fails), fromQueue(passes)] as const
     )
 )
