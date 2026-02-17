@@ -657,7 +657,7 @@ export type ObjectsMeta =
   | Schema.Annotations.BuiltInMetaDefinitions[
     | "isMinProperties"
     | "isMaxProperties"
-    | "isPropertiesLength"
+    | "isPropertiesLengthBetween"
   ]
   | { readonly _tag: "isPropertyNames"; readonly propertyNames: Representation }
 
@@ -1341,10 +1341,11 @@ const $IsMaxProperties = Schema.Struct({
   maxProperties: NonNegativeInt
 }).annotate({ identifier: "IsMaxProperties" })
 
-const $IsPropertiesLength = Schema.Struct({
-  _tag: Schema.tag("isPropertiesLength"),
-  length: NonNegativeInt
-}).annotate({ identifier: "IsPropertiesLength" })
+const $IsPropertiesLengthBetween = Schema.Struct({
+  _tag: Schema.tag("isPropertiesLengthBetween"),
+  minimum: NonNegativeInt,
+  maximum: NonNegativeInt
+}).annotate({ identifier: "IsPropertiesLengthBetween" })
 
 const $IsPropertyNames = Schema.Struct({
   _tag: Schema.tag("isPropertyNames"),
@@ -1360,7 +1361,7 @@ const $IsPropertyNames = Schema.Struct({
 export const $ObjectsMeta = Schema.Union([
   $IsMinProperties,
   $IsMaxProperties,
-  $IsPropertiesLength,
+  $IsPropertiesLengthBetween,
   $IsPropertyNames
 ]).annotate({ identifier: "ObjectsMeta" })
 
@@ -2059,8 +2060,8 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
         return Schema.isMinProperties(filter.meta.minProperties, a)
       case "isMaxProperties":
         return Schema.isMaxProperties(filter.meta.maxProperties, a)
-      case "isPropertiesLength":
-        return Schema.isPropertiesLength(filter.meta.length, a)
+      case "isPropertiesLengthBetween":
+        return Schema.isPropertiesLengthBetween(filter.meta.minimum, filter.meta.maximum, a)
       case "isPropertyNames":
         return Schema.isPropertyNames(recur(filter.meta.propertyNames) as Schema.Record.Key, a)
 
@@ -2686,8 +2687,8 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
         return `Schema.isMinProperties(${filter.meta.minProperties}${ca})`
       case "isMaxProperties":
         return `Schema.isMaxProperties(${filter.meta.maxProperties}${ca})`
-      case "isPropertiesLength":
-        return `Schema.isPropertiesLength(${filter.meta.length}${ca})`
+      case "isPropertiesLengthBetween":
+        return `Schema.isPropertiesLengthBetween(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
       case "isPropertyNames":
         return `Schema.isPropertyNames(${recur(filter.meta.propertyNames).runtime}${ca})`
 

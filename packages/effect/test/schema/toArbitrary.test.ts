@@ -471,9 +471,9 @@ describe("Arbitrary generation", () => {
       )
     })
 
-    it("isPropertiesLength(2)", () => {
+    it("isPropertiesLengthBetween(2, 2)", () => {
       verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Schema.isPropertiesLength(2))
+        Schema.Record(Schema.String, Schema.Number).check(Schema.isPropertiesLengthBetween(2, 2))
       )
     })
 

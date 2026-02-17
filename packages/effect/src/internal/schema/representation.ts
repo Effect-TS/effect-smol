@@ -697,8 +697,8 @@ export function toJsonSchemaMultiDocument(
           return { minProperties: meta.minProperties }
         case "isMaxProperties":
           return { maxProperties: meta.maxProperties }
-        case "isPropertiesLength":
-          return { minProperties: meta.length, maxProperties: meta.length }
+        case "isPropertiesLengthBetween":
+          return { minProperties: meta.minimum, maxProperties: meta.maximum }
         case "isPropertyNames":
           return { propertyNames: recur(meta.propertyNames) }
 

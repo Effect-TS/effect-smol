@@ -2687,9 +2687,9 @@ describe("toJsonSchemaDocument", () => {
         )
       })
 
-      it("isPropertiesLength", () => {
+      it("isPropertiesLengthBetween", () => {
         assertJsonSchemaDocument(
-          Schema.Record(Schema.String, Schema.Finite).check(Schema.isPropertiesLength(2)),
+          Schema.Record(Schema.String, Schema.Finite).check(Schema.isPropertiesLengthBetween(2, 2)),
           {
             schema: {
               "type": "object",

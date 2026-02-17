@@ -5111,39 +5111,42 @@ export function isMaxProperties(maxProperties: number, annotations?: Annotations
 }
 
 /**
- * Validates that an object contains exactly the specified number of properties.
+ * Validates that an object contains between `minimum` and `maximum` properties (inclusive).
  * This includes both string and symbol keys when counting properties.
  *
  * **JSON Schema**
  *
- * This check corresponds to both `minProperties` and `maxProperties`
- * constraints in JSON Schema, both set to the same value.
+ * This check corresponds to `minProperties` and `maxProperties`
+ * constraints in JSON Schema.
  *
  * **Arbitrary**
  *
- * When generating test data with fast-check, this applies both `minLength` and
+ * When generating test data with fast-check, this applies `minLength` and
  * `maxLength` constraints to the array of entries that is generated before
- * being converted to an object, ensuring the resulting object has exactly the
- * required number of properties.
+ * being converted to an object.
  *
  * @category Object checks
  * @since 4.0.0
  */
-export function isPropertiesLength(length: number, annotations?: Annotations.Filter) {
-  length = Math.max(0, Math.floor(length))
+export function isPropertiesLengthBetween(minimum: number, maximum: number, annotations?: Annotations.Filter) {
+  minimum = Math.max(0, Math.floor(minimum))
+  maximum = Math.max(0, Math.floor(maximum))
   return makeFilter<object>(
-    (input) => Reflect.ownKeys(input).length === length,
+    (input) => Reflect.ownKeys(input).length >= minimum && Reflect.ownKeys(input).length <= maximum,
     {
-      expected: `a value with exactly ${length === 1 ? "1 entry" : `${length} entries`}`,
+      expected: minimum === maximum
+        ? `a value with exactly ${minimum === 1 ? "1 entry" : `${minimum} entries`}`
+        : `a value with between ${minimum} and ${maximum} entries`,
       meta: {
-        _tag: "isPropertiesLength",
-        length
+        _tag: "isPropertiesLengthBetween",
+        minimum,
+        maximum
       },
       [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         array: {
-          minLength: length,
-          maxLength: length
+          minLength: minimum,
+          maxLength: maximum
         }
       },
       ...annotations
@@ -9018,9 +9021,10 @@ export declare namespace Annotations {
       readonly _tag: "isMaxProperties"
       readonly maxProperties: number
     }
-    readonly isPropertiesLength: {
-      readonly _tag: "isPropertiesLength"
-      readonly length: number
+    readonly isPropertiesLengthBetween: {
+      readonly _tag: "isPropertiesLengthBetween"
+      readonly minimum: number
+      readonly maximum: number
     }
     readonly isPropertyNames: {
       readonly _tag: "isPropertyNames"

@@ -1621,8 +1621,8 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         )
       })
 
-      it("isPropertiesLength", async () => {
-        const schema = Schema.Record(Schema.String, Schema.Number).check(Schema.isPropertiesLength(2))
+      it("isPropertiesLengthBetween", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Number).check(Schema.isPropertiesLengthBetween(2, 2))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1638,11 +1638,11 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         )
       })
 
-      it("isPropertiesLength with symbol keys", async () => {
+      it("isPropertiesLengthBetween with symbol keys", async () => {
         const sym1 = Symbol("test1")
         const sym2 = Symbol("test2")
         const schema = Schema.Record(Schema.Union([Schema.String, Schema.Symbol]), Schema.Number).check(
-          Schema.isPropertiesLength(2)
+          Schema.isPropertiesLengthBetween(2, 2)
         )
         const asserts = new TestSchema.Asserts(schema)
 
