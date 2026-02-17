@@ -169,7 +169,6 @@ function isMissingDataOnly(issue: Issue.Issue): boolean {
     case "MissingKey":
       return true
     case "InvalidType":
-      return Option.isSome(issue.actual) && issue.actual.value === undefined
     case "InvalidValue":
       return Option.isNone(issue.actual) || (Option.isSome(issue.actual) && issue.actual.value === undefined)
     case "OneOf":
