@@ -1774,7 +1774,7 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
  * )
  *
  * const schema = SchemaRepresentation.toSchema(doc)
- * const result = Schema.decodeUnknownSync(schema)({ name: "Alice" })
+ * console.log(JSON.stringify(Schema.toJsonSchemaDocument(schema), null, 2))
  * ```
  *
  * @see {@link Document}
