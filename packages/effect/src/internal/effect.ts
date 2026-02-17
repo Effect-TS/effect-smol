@@ -1984,19 +1984,19 @@ export const updateServices: {
           newServices.set(key, value)
         }
       }
-      return onExit(self as any, () =>
-        sync(() => {
-          const map = new Map(fiber.services.mapUnsafe)
-          for (const [key, value] of newServices) {
-            if (value !== map.get(key)) continue
-            if (prev.mapUnsafe.has(key)) {
-              map.set(key, prev.mapUnsafe.get(key))
-            } else {
-              map.delete(key)
-            }
+      return onExitPrimitive(self as any, () => {
+        const map = new Map(fiber.services.mapUnsafe)
+        for (const [key, value] of newServices) {
+          if (value !== map.get(key)) continue
+          if (prev.mapUnsafe.has(key)) {
+            map.set(key, prev.mapUnsafe.get(key))
+          } else {
+            map.delete(key)
           }
-          fiber.setServices(ServiceMap.makeUnsafe(map))
-        }))
+        }
+        fiber.setServices(ServiceMap.makeUnsafe(map))
+        return undefined
+      })
     })
 )
 
@@ -3632,11 +3632,10 @@ export const scoped = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, 
     const prev = ServiceMap.getOption(fiber.services, scopeTag)
     const scope = scopeMakeUnsafe()
     fiber.setServices(ServiceMap.add(fiber.services, scopeTag, scope))
-    return onExit(self, (exit) =>
-      suspend(() => {
-        fiber.setServices(ServiceMap.addOrOmit(fiber.services, scopeTag, prev))
-        return scopeCloseUnsafe(scope, exit) ?? void_
-      }))
+    return onExitPrimitive(self, (exit) => {
+      fiber.setServices(ServiceMap.addOrOmit(fiber.services, scopeTag, prev))
+      return scopeCloseUnsafe(scope, exit)
+    })
   }) as any
 
 /** @internal */
@@ -3682,9 +3681,10 @@ export const addFinalizer = <R>(
       )
   )
 
-const onExitPrimitive: <A, E, R, XE = never, XR = never>(
+/** @internal */
+export const onExitPrimitive: <A, E, R, XE = never, XR = never>(
   self: Effect.Effect<A, E, R>,
-  f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>,
+  f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | undefined,
   interruptible?: boolean
 ) => Effect.Effect<A, E | XE, R | XR> = makePrimitive({
   op: "OnExit",
@@ -3701,11 +3701,13 @@ const onExitPrimitive: <A, E, R, XE = never, XR = never>(
   },
   [contA](value, _, exit) {
     exit ??= exitSucceed(value)
-    return flatMap(this[args][1](exit), (_) => exit)
+    const eff = this[args][1](exit)
+    return eff ? flatMap(eff, (_) => exit) : exit
   },
   [contE](cause, _, exit) {
     exit ??= exitFailCause(cause)
-    return flatMap(this[args][1](exit), (_) => exit)
+    const eff = this[args][1](exit)
+    return eff ? flatMap(eff, (_) => exit) : exit
   }
 })
 

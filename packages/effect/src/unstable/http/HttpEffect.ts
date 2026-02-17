@@ -150,11 +150,11 @@ const scoped = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     const scope = Scope.makeUnsafe()
     const prev = ServiceMap.getOption(fiber.services, Scope.Scope)
     fiber.setServices(ServiceMap.add(fiber.services, Scope.Scope, scope))
-    return Effect.onExitInterruptible(effect, (exit) => {
+    return Effect.onExitPrimitive(effect, (exit) => {
       fiber.setServices(ServiceMap.addOrOmit(fiber.services, Scope.Scope, prev))
-      if (scopeEjected in scope) return Effect.void
-      return Scope.closeUnsafe(scope, exit) ?? Effect.void
-    })
+      if (scopeEjected in scope) return undefined
+      return Scope.closeUnsafe(scope, exit)
+    }, true)
   })
 
 /**

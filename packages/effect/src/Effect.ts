@@ -6000,6 +6000,20 @@ export const onErrorIf: {
 } = internal.onErrorIf
 
 /**
+ * The low level primitive that powers `onExit` and `onExitInterruptible`. This
+ * function is used to run a finalizer when the effect exits, regardless of the
+ * exit status.
+ *
+ * @since 2.0.0
+ * @category Resource Management & Finalization
+ */
+export const onExitPrimitive: <A, E, R, XE = never, XR = never>(
+  self: Effect<A, E, R>,
+  f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR> | undefined,
+  interruptible?: boolean
+) => Effect<A, E | XE, R | XR> = internal.onExitPrimitive
+
+/**
  * Ensures that a cleanup functions runs, whether this effect succeeds, fails,
  * or is interrupted.
  *
@@ -7715,11 +7729,11 @@ export const withParentSpan: {
  */
 export const request: {
   <A extends Request.Any, EX = never, RX = never>(
-    resolver: Effect<RequestResolver<A>, EX, RX>
+    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
   ): (self: A) => Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX>
   <A extends Request.Any, EX = never, RX = never>(
     self: A,
-    resolver: Effect<RequestResolver<A>, EX, RX>
+    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
   ): Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX>
 } = internalRequest.request
 

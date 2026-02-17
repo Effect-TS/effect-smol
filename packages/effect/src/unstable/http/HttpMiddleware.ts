@@ -149,46 +149,46 @@ export const tracer: <E, R>(
     })
     const prevSpan = ServiceMap.getOption(fiber.services, ParentSpan)
     fiber.setServices(ServiceMap.add(fiber.services, ParentSpan, span))
-    return Effect.onExitInterruptible(httpApp, (exit) =>
-      Effect.sync(() => {
-        fiber.setServices(ServiceMap.addOrOmit(fiber.services, ParentSpan, prevSpan))
-        const endTime = fiber.getRef(Clock).currentTimeNanosUnsafe()
-        fiber.currentScheduler.scheduleTask(() => {
-          const url = Request.toURL(request)
-          if (url !== undefined && (url.username !== "" || url.password !== "")) {
-            url.username = "REDACTED"
-            url.password = "REDACTED"
+    return Effect.onExitPrimitive(httpApp, (exit) => {
+      fiber.setServices(ServiceMap.addOrOmit(fiber.services, ParentSpan, prevSpan))
+      const endTime = fiber.getRef(Clock).currentTimeNanosUnsafe()
+      fiber.currentScheduler.scheduleTask(() => {
+        const url = Request.toURL(request)
+        if (url !== undefined && (url.username !== "" || url.password !== "")) {
+          url.username = "REDACTED"
+          url.password = "REDACTED"
+        }
+        const redactedHeaderNames = fiber.getRef(Headers.CurrentRedactedNames)
+        const requestHeaders = Headers.redact(request.headers, redactedHeaderNames)
+        span.attribute("http.request.method", request.method)
+        if (url !== undefined) {
+          span.attribute("url.full", url.toString())
+          span.attribute("url.path", url.pathname)
+          const query = url.search.slice(1)
+          if (query !== "") {
+            span.attribute("url.query", url.search.slice(1))
           }
-          const redactedHeaderNames = fiber.getRef(Headers.CurrentRedactedNames)
-          const requestHeaders = Headers.redact(request.headers, redactedHeaderNames)
-          span.attribute("http.request.method", request.method)
-          if (url !== undefined) {
-            span.attribute("url.full", url.toString())
-            span.attribute("url.path", url.pathname)
-            const query = url.search.slice(1)
-            if (query !== "") {
-              span.attribute("url.query", url.search.slice(1))
-            }
-            span.attribute("url.scheme", url.protocol.slice(0, -1))
-          }
-          if (request.headers["user-agent"] !== undefined) {
-            span.attribute("user_agent.original", request.headers["user-agent"])
-          }
-          for (const name in requestHeaders) {
-            span.attribute(`http.request.header.${name}`, String(requestHeaders[name]))
-          }
-          if (request.remoteAddress !== undefined) {
-            span.attribute("client.address", request.remoteAddress)
-          }
-          const response = exitResponse(exit)
-          span.attribute("http.response.status_code", response.status)
-          const responseHeaders = Headers.redact(response.headers, redactedHeaderNames)
-          for (const name in responseHeaders) {
-            span.attribute(`http.response.header.${name}`, String(responseHeaders[name]))
-          }
-          span.end(endTime, exit)
-        }, 0)
-      }))
+          span.attribute("url.scheme", url.protocol.slice(0, -1))
+        }
+        if (request.headers["user-agent"] !== undefined) {
+          span.attribute("user_agent.original", request.headers["user-agent"])
+        }
+        for (const name in requestHeaders) {
+          span.attribute(`http.request.header.${name}`, String(requestHeaders[name]))
+        }
+        if (request.remoteAddress !== undefined) {
+          span.attribute("client.address", request.remoteAddress)
+        }
+        const response = exitResponse(exit)
+        span.attribute("http.response.status_code", response.status)
+        const responseHeaders = Headers.redact(response.headers, redactedHeaderNames)
+        for (const name in responseHeaders) {
+          span.attribute(`http.response.header.${name}`, String(responseHeaders[name]))
+        }
+        span.end(endTime, exit)
+      }, 0)
+      return undefined
+    }, true)
   })
 )
 
