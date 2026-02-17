@@ -3914,17 +3914,20 @@ export const race: {
  */
 export const filter: {
   <A, B extends A>(refinement: Refinement<NoInfer<A>, B>): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
-  <A>(predicate: Predicate<NoInfer<A>>): <E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
-  <A, B, X>(filter: Filter.Filter<A, B, X>): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
+  <A, Result extends Filter.InputResult>(
+    filter: Filter.Input<NoInfer<A>, Result>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<Filter.Pass<A, Result>, E, R>
   <A, E, R, B extends A>(self: Stream<A, E, R>, refinement: Refinement<A, B>): Stream<B, E, R>
-  <A, E, R>(self: Stream<A, E, R>, predicate: Predicate<A>): Stream<A, E, R>
-  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>): Stream<B, E, R>
+  <A, E, R, Result extends Filter.InputResult>(
+    self: Stream<A, E, R>,
+    filter: Filter.Input<NoInfer<A>, Result>
+  ): Stream<Filter.Pass<A, Result>, E, R>
 } = dual(
   2,
-  <A, E, R>(
+  <A, E, R, Result extends Filter.InputResult>(
     self: Stream<A, E, R>,
-    filter: Filter.Filter<any, any, any> | Predicate<A>
-  ): Stream<any, E, R> => fromChannel(Channel.filterArray(toChannel(self), filter as any))
+    filter: Filter.Input<NoInfer<A>, Result>
+  ): Stream<Filter.Pass<A, Result>, E, R> => fromChannel(Channel.filterArray(toChannel(self), filter))
 )
 
 /**
