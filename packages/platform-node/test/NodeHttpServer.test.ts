@@ -398,7 +398,7 @@ describe("HttpServer", () => {
               assert.strictEqual(options.name, "http.client GET")
               assert.strictEqual(options.kind, "client")
               assert(options.parent?._tag === "Span")
-              assert.strictEqual(parent.name, "request parent")
+              assert.strictEqual(options.parent.name, "request parent")
               return requestSpan
             }
           })
