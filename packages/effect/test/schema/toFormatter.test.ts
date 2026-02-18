@@ -456,6 +456,7 @@ describe("toFormatter", () => {
     strictEqual(format(Duration.millis(100)), `100 millis`)
     strictEqual(format(Duration.nanos(1000n)), `1000 nanos`)
     strictEqual(format(Duration.infinity), "Infinity")
+    strictEqual(format(Duration.negativeInfinity), "-Infinity")
   })
 
   it("DateTimeUtc", () => {

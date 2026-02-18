@@ -420,6 +420,8 @@ describe("toEquivalence", () => {
     assertFalse(equivalence(Duration.nanos(1n), Duration.nanos(2n)))
     assertTrue(equivalence(Duration.infinity, Duration.infinity))
     assertFalse(equivalence(Duration.infinity, Duration.millis(1)))
+    assertTrue(equivalence(Duration.negativeInfinity, Duration.negativeInfinity))
+    assertFalse(equivalence(Duration.negativeInfinity, Duration.infinity))
   })
 
   it("DateTimeUtc", () => {

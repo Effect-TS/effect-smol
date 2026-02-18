@@ -322,6 +322,17 @@ describe("toJsonSchemaDocument", () => {
               "properties": {
                 "_tag": {
                   "type": "string",
+                  "enum": ["NegativeInfinity"]
+                }
+              },
+              "required": ["_tag"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "_tag": {
+                  "type": "string",
                   "enum": ["Nanos"]
                 },
                 "value": {
@@ -342,10 +353,7 @@ describe("toJsonSchemaDocument", () => {
                   "enum": ["Millis"]
                 },
                 "value": {
-                  "type": "integer",
-                  "allOf": [
-                    { "minimum": 0 }
-                  ]
+                  "type": "integer"
                 }
               },
               "required": ["_tag", "value"],

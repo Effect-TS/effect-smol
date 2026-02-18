@@ -6499,14 +6499,17 @@ export const Duration: Duration = declare(
       link<Duration_.Duration>()(
         Union([
           Struct({ _tag: Literal("Infinity") }),
+          Struct({ _tag: Literal("NegativeInfinity") }),
           Struct({ _tag: Literal("Nanos"), value: BigInt }),
-          Struct({ _tag: Literal("Millis"), value: Int.check(isGreaterThanOrEqualTo(0)) })
+          Struct({ _tag: Literal("Millis"), value: Int })
         ]),
         Transformation.transform({
           decode: (e) => {
             switch (e._tag) {
               case "Infinity":
                 return Duration_.infinity
+              case "NegativeInfinity":
+                return Duration_.negativeInfinity
               case "Nanos":
                 return Duration_.nanos(e.value)
               case "Millis":
@@ -6517,12 +6520,12 @@ export const Duration: Duration = declare(
             switch (duration.value._tag) {
               case "Infinity":
                 return { _tag: "Infinity" } as const
+              case "NegativeInfinity":
+                return { _tag: "NegativeInfinity" } as const
               case "Nanos":
                 return { _tag: "Nanos", value: duration.value.nanos } as const
               case "Millis":
                 return { _tag: "Millis", value: duration.value.millis } as const
-              case "NegativeInfinity":
-                return { _tag: "Millis", value: 0 } as const
             }
           }
         })
@@ -6530,8 +6533,9 @@ export const Duration: Duration = declare(
     toArbitrary: () => (fc) =>
       fc.oneof(
         fc.constant(Duration_.infinity),
-        fc.bigInt({ min: 0n }).map(Duration_.nanos),
-        fc.maxSafeNat().map(Duration_.millis)
+        fc.constant(Duration_.negativeInfinity),
+        fc.bigInt().map(Duration_.nanos),
+        fc.maxSafeInteger().map(Duration_.millis)
       ),
     toFormatter: () => globalThis.String,
     toEquivalence: () => Duration_.Equivalence
