@@ -91,7 +91,6 @@ export declare namespace Client {
       | HttpClientError.HttpClientError
       | Schema.SchemaError,
       | R
-      | HttpApiMiddleware.MiddlewareClient<_Middleware>
       | _Params["EncodingServices"]
       | _Query["EncodingServices"]
       | _Payload["EncodingServices"]
@@ -141,6 +140,8 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
   }
 ): Effect.Effect<void, unknown, unknown> =>
   Effect.gen(function*() {
+    const services = yield* Effect.services<any>()
+
     const httpClient = options.httpClient.pipe(
       options?.baseUrl === undefined
         ? identity
@@ -148,13 +149,43 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
           HttpClientRequest.prependUrl(options.baseUrl.toString())
         )
     )
+
+    function executeMiddleware(
+      group: HttpApiGroup.AnyWithProps,
+      endpoint: HttpApiEndpoint.AnyWithProps,
+      request: HttpClientRequest.HttpClientRequest,
+      middlewareKeys: ReadonlyArray<string>,
+      index: number
+    ): Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError> {
+      if (index === -1) {
+        return httpClient.execute(request) as unknown as Effect.Effect<
+          HttpClientResponse.HttpClientResponse,
+          HttpClientError.HttpClientError
+        >
+      }
+      const middleware = services.mapUnsafe.get(middlewareKeys[index]) as
+        | HttpApiMiddleware.HttpApiMiddlewareClient<any, any, any>
+        | undefined
+      if (middleware === undefined) {
+        return executeMiddleware(group, endpoint, request, middlewareKeys, index - 1)
+      }
+      return middleware({
+        endpoint,
+        group,
+        request,
+        next(request) {
+          return executeMiddleware(group, endpoint, request, middlewareKeys, index - 1)
+        }
+      }) as Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
+    }
+
     HttpApi.reflect(api, {
       predicate: options?.predicate,
       onGroup(onGroupOptions) {
         options.onGroup?.(onGroupOptions)
       },
       onEndpoint(onEndpointOptions) {
-        const { endpoint, errors, successes } = onEndpointOptions
+        const { group, endpoint, errors, successes } = onEndpointOptions
         const makeUrl = compilePath(endpoint.path)
         const decodeMap: Record<
           number | "orElse",
@@ -199,33 +230,6 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         const encodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.encodeUnknownEffect)
 
         const middlewareKeys = Array.from(onEndpointOptions.middleware, (tag) => `${tag.key}/Client`)
-
-        function executeMiddleware(
-          services: ServiceMap.ServiceMap<any>,
-          request: HttpClientRequest.HttpClientRequest,
-          index = middlewareKeys.length - 1
-        ): Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError> {
-          if (index === -1) {
-            return httpClient.execute(request) as unknown as Effect.Effect<
-              HttpClientResponse.HttpClientResponse,
-              HttpClientError.HttpClientError
-            >
-          }
-          const middleware = services.mapUnsafe.get(middlewareKeys[index]) as
-            | HttpApiMiddleware.HttpApiMiddlewareClient<any, any, any>
-            | undefined
-          if (middleware === undefined) {
-            return executeMiddleware(services, request, index - 1)
-          }
-          return middleware({
-            endpoint,
-            group: onEndpointOptions.group,
-            request,
-            next(request) {
-              return executeMiddleware(services, request, index - 1)
-            }
-          }) as Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
-        }
 
         const endpointFn = Effect.fnUntraced(function*(
           request: {
@@ -273,8 +277,13 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             }
           }
 
-          const services = yield* Effect.services<any>()
-          const response = yield* executeMiddleware(services, httpRequest)
+          const response = yield* executeMiddleware(
+            group,
+            endpoint,
+            httpRequest,
+            middlewareKeys,
+            middlewareKeys.length - 1
+          )
 
           const value = yield* (options.transformResponse === undefined
             ? decodeResponse(response)
@@ -304,7 +313,11 @@ export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<Client<Groups, HttpApiSchemaError, never>, never, HttpClient.HttpClient> =>
+): Effect.Effect<
+  Client<Groups, HttpApiSchemaError, never>,
+  never,
+  HttpClient.HttpClient | HttpApiGroup.MiddlewareClient<Groups>
+> =>
   Effect.flatMap(HttpClient.HttpClient.asEffect(), (httpClient) =>
     makeWith(api, {
       ...options,
@@ -324,7 +337,7 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<Client<Groups, HttpApiSchemaError | E, R>> => {
+): Effect.Effect<Client<Groups, HttpApiSchemaError | E, R>, never, HttpApiGroup.MiddlewareClient<Groups>> => {
   const client: Record<string, Record<string, any>> = {}
   return makeClient(api, {
     ...options,
@@ -358,7 +371,11 @@ export const group = <
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<Client.Group<Groups, GroupName, HttpApiSchemaError | E, R>> => {
+): Effect.Effect<
+  Client.Group<Groups, GroupName, HttpApiSchemaError | E, R>,
+  never,
+  HttpApiGroup.MiddlewareClient<HttpApiGroup.WithName<Groups, GroupName>>
+> => {
   const client: Record<string, any> = {}
   return makeClient(api, {
     ...options,
@@ -397,6 +414,10 @@ export const endpoint = <
     HttpApiEndpoint.WithName<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>, EndpointName>,
     HttpApiSchemaError | E,
     R
+  >,
+  never,
+  HttpApiEndpoint.MiddlewareClient<
+    HttpApiEndpoint.WithName<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>, EndpointName>
   >
 > => {
   let client: any = undefined
