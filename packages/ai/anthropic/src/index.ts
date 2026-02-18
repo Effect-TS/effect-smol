@@ -35,25 +35,6 @@ export * as AnthropicError from "./AnthropicError.ts"
 export * as AnthropicLanguageModel from "./AnthropicLanguageModel.ts"
 
 /**
- * Provides a codec transformation for Anthropic structured output.
- *
- * Anthropic's API has specific constraints on JSON schema support that differ
- * from the full JSON Schema specification. This module transforms Effect
- * `Schema.Codec` types into a form compatible with Anthropic's structured
- * output requirements by:
- *
- * - Converting tuples to objects with string keys (tuples are unsupported)
- * - Converting optional properties to nullable unions (`T | null`)
- * - Converting index signatures (records) to arrays of key-value pairs
- * - Converting `oneOf` unions to `anyOf` unions
- * - Stripping unsupported annotations and preserving only Anthropic-compatible
- *   formats and descriptions
- *
- * @since 1.0.0
- */
-export * as AnthropicStructuredOutput from "./AnthropicStructuredOutput.ts"
-
-/**
  * Anthropic telemetry attributes for OpenTelemetry integration.
  *
  * Provides Anthropic-specific GenAI telemetry attributes following OpenTelemetry

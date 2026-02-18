@@ -1,17 +1,17 @@
-import { toCodecOpenAI } from "@effect/ai-openai/OpenAiStructuredOutput"
 import { assert, describe, it } from "@effect/vitest"
 import { type JsonSchema, Schema } from "effect"
 import { TestSchema } from "effect/testing"
+import { toCodecAnthropic } from "effect/unstable/ai/AnthropicStructuredOutput"
 
 function assertJsonSchema(schema: Schema.Top, expected: JsonSchema.JsonSchema) {
-  assert.deepStrictEqual(toCodecOpenAI(schema).jsonSchema, expected)
+  assert.deepStrictEqual(toCodecAnthropic(schema).jsonSchema, expected)
 }
 
 function assertError(schema: Schema.Top, message: string) {
-  assert.throws(() => toCodecOpenAI(schema), message)
+  assert.throws(() => toCodecAnthropic(schema), message)
 }
 
-describe("toCodecOpenAI", () => {
+describe("toCodecAnthropic", () => {
   describe("Unsupported", () => {
     it("Undefined", () => {
       assertError(Schema.Undefined, "Unsupported AST Undefined")
@@ -38,113 +38,18 @@ describe("toCodecOpenAI", () => {
         )
       })
     })
-  })
 
-  describe("Suspend", () => {
-    it("no-transformation recursive schema", () => {
+    it("Suspend", () => {
       interface A {
         readonly a: string
         readonly as: ReadonlyArray<A>
       }
       const schema = Schema.Struct({
-        a: Schema.String.check(Schema.isStartsWith("a")),
+        a: Schema.String,
         as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
       })
-      assertJsonSchema(schema, {
-        "type": "object",
-        "properties": {
-          "a": {
-            "type": "string",
-            "description": "a string starting with \"a\"",
-            "pattern": "^a"
-          },
-          "as": {
-            "type": "array",
-            "items": { "$ref": "#/$defs/Suspend_" }
-          }
-        },
-        "required": ["a", "as"],
-        "additionalProperties": false,
-        "$defs": {
-          "Suspend_": {
-            "type": "object",
-            "properties": {
-              "a": {
-                "type": "string",
-                "description": "a string starting with \"a\"",
-                "pattern": "^a"
-              },
-              "as": {
-                "type": "array",
-                "items": { "$ref": "#/$defs/Suspend_" }
-              }
-            },
-            "required": ["a", "as"],
-            "additionalProperties": false
-          }
-        }
-      })
-    })
-
-    it("transformation recursive schema", () => {
-      interface A {
-        readonly a: string
-        readonly as: readonly [A]
-      }
-      const schema = Schema.Struct({
-        a: Schema.String.check(Schema.isStartsWith("a")),
-        as: Schema.Tuple([Schema.suspend((): Schema.Codec<A> => schema)])
-      })
-      assertJsonSchema(schema, {
-        "type": "object",
-        "properties": {
-          "a": {
-            "type": "string",
-            "description": "a string starting with \"a\"",
-            "pattern": "^a"
-          },
-          "as": {
-            "type": "object",
-            "description":
-              "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements",
-            "properties": {
-              "0": {
-                "$ref": "#/$defs/Suspend_"
-              }
-            },
-            "required": ["0"],
-            "additionalProperties": false
-          }
-        },
-        "required": ["a", "as"],
-        "additionalProperties": false,
-        "$defs": {
-          "Suspend_": {
-            "type": "object",
-            "properties": {
-              "a": {
-                "type": "string",
-                "description": "a string starting with \"a\"",
-                "pattern": "^a"
-              },
-              "as": {
-                "type": "object",
-                "description":
-                  "Tuple encoded as an object with numeric string keys ('0', '1', ...). If present, '__rest__' contains remaining elements",
-                "properties": {
-                  "0": {
-                    "$ref": "#/$defs/Suspend_"
-                  }
-                },
-                "required": ["0"],
-                "additionalProperties": false
-              }
-            },
-            "required": ["a", "as"],
-            "additionalProperties": false
-          }
-        }
-      })
+      assertError(Schema.suspend(() => Schema.String), "Unsupported AST Suspend")
+      assertError(schema, "Unsupported AST Suspend")
     })
   })
 
@@ -197,7 +102,9 @@ describe("toCodecOpenAI", () => {
       assertJsonSchema(Schema.String.check(Schema.isStartsWith("a")), {
         "type": "string",
         "description": `a string starting with "a"`,
-        "pattern": "^a"
+        "allOf": [
+          { "pattern": "^a" }
+        ]
       })
     })
 
@@ -205,7 +112,10 @@ describe("toCodecOpenAI", () => {
       assertJsonSchema(Schema.String.check(Schema.isStartsWith("a"), Schema.isEndsWith("b")), {
         "type": "string",
         "description": `a string starting with "a" and a string ending with "b"`,
-        "pattern": "^(?=[\\s\\S]*?(?:^a))(?=[\\s\\S]*?(?:b$))"
+        "allOf": [
+          { "pattern": "^a" },
+          { "pattern": "b$" }
+        ]
       })
     })
 
@@ -213,7 +123,19 @@ describe("toCodecOpenAI", () => {
       assertJsonSchema(Schema.String.check(Schema.isPattern(/^a/)), {
         "type": "string",
         "description": `a string matching the RegExp ^a`,
-        "pattern": "^a"
+        "allOf": [
+          { "pattern": "^a" }
+        ]
+      })
+    })
+
+    it("String + pattern + description", () => {
+      assertJsonSchema(Schema.String.check(Schema.isPattern(/^a/, { description: "description" })), {
+        "type": "string",
+        "description": "description",
+        "allOf": [
+          { "pattern": "^a" }
+        ]
       })
     })
   })
@@ -258,58 +180,14 @@ describe("toCodecOpenAI", () => {
       it("Finite + isGreaterThan", () => {
         assertJsonSchema(Schema.Finite.check(Schema.isGreaterThan(1)), {
           "type": "number",
-          "description": "a value greater than 1",
-          "exclusiveMinimum": 1
-        })
-      })
-
-      it("Finite + isGreaterThanOrEqualTo", () => {
-        assertJsonSchema(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(1)), {
-          "type": "number",
-          "description": "a value greater than or equal to 1",
-          "minimum": 1
-        })
-      })
-
-      it("Finite + isLessThan", () => {
-        assertJsonSchema(Schema.Finite.check(Schema.isLessThan(2)), {
-          "type": "number",
-          "description": "a value less than 2",
-          "exclusiveMaximum": 2
-        })
-      })
-
-      it("Finite + isLessThanOrEqualTo", () => {
-        assertJsonSchema(Schema.Finite.check(Schema.isLessThanOrEqualTo(2)), {
-          "type": "number",
-          "description": "a value less than or equal to 2",
-          "maximum": 2
-        })
-      })
-
-      it("Finite + isBetween", () => {
-        assertJsonSchema(Schema.Finite.check(Schema.isBetween({ minimum: 1, maximum: 2 })), {
-          "type": "number",
-          "description": "a value between 1 and 2",
-          "minimum": 1,
-          "maximum": 2
-        })
-      })
-
-      it("Finite + isMultipleOf", () => {
-        assertJsonSchema(Schema.Finite.check(Schema.isMultipleOf(2)), {
-          "type": "number",
-          "description": "a value that is a multiple of 2",
-          "multipleOf": 2
+          "description": "a value greater than 1"
         })
       })
 
       it("Finite + isGreaterThan + isLessThan", () => {
         assertJsonSchema(Schema.Finite.check(Schema.isGreaterThan(1), Schema.isLessThan(2)), {
           "type": "number",
-          "description": "a value greater than 1 and a value less than 2",
-          "exclusiveMinimum": 1,
-          "exclusiveMaximum": 2
+          "description": "a value greater than 1 and a value less than 2"
         })
       })
     })
@@ -342,17 +220,14 @@ describe("toCodecOpenAI", () => {
       it("Int + isGreaterThan", () => {
         assertJsonSchema(Schema.Int.check(Schema.isGreaterThan(1)), {
           "type": "integer",
-          "description": "a value greater than 1",
-          "exclusiveMinimum": 1
+          "description": "a value greater than 1"
         })
       })
 
       it("Int + isGreaterThan + isLessThan", () => {
         assertJsonSchema(Schema.Int.check(Schema.isGreaterThan(1), Schema.isLessThan(2)), {
           "type": "integer",
-          "description": "a value greater than 1 and a value less than 2",
-          "exclusiveMinimum": 1,
-          "exclusiveMaximum": 2
+          "description": "a value greater than 1 and a value less than 2"
         })
       })
     })
@@ -418,8 +293,7 @@ describe("toCodecOpenAI", () => {
       assertJsonSchema(Schema.Array(Schema.String).check(Schema.isMinLength(1)), {
         "type": "array",
         "items": { "type": "string" },
-        "description": "a value with a length of at least 1",
-        "minItems": 1
+        "description": "a value with a length of at least 1"
       })
     })
 
@@ -427,9 +301,7 @@ describe("toCodecOpenAI", () => {
       assertJsonSchema(Schema.Array(Schema.String).check(Schema.isMinLength(1), Schema.isMaxLength(2)), {
         "type": "array",
         "items": { "type": "string" },
-        "description": "a value with a length of at least 1 and a value with a length of at most 2",
-        "minItems": 1,
-        "maxItems": 2
+        "description": "a value with a length of at least 1 and a value with a length of at most 2"
       })
     })
   })
@@ -456,7 +328,7 @@ describe("toCodecOpenAI", () => {
         "additionalProperties": false
       })
 
-      const codec = toCodecOpenAI(schema).codec
+      const codec = toCodecAnthropic(schema).codec
       const asserts = new TestSchema.Asserts(codec)
 
       const encoding = asserts.encoding()
@@ -500,7 +372,7 @@ describe("toCodecOpenAI", () => {
         "additionalProperties": false
       })
 
-      const codec = toCodecOpenAI(schema).codec
+      const codec = toCodecAnthropic(schema).codec
       const asserts = new TestSchema.Asserts(codec)
 
       const encoding = asserts.encoding()
@@ -529,7 +401,7 @@ describe("toCodecOpenAI", () => {
         "required": ["0", "1", "__rest__"],
         "additionalProperties": false
       })
-      const codec = toCodecOpenAI(schema).codec
+      const codec = toCodecAnthropic(schema).codec
       const asserts = new TestSchema.Asserts(codec)
 
       const encoding = asserts.encoding()
@@ -578,7 +450,7 @@ describe("toCodecOpenAI", () => {
           "additionalProperties": false
         }
       )
-      const codec = toCodecOpenAI(schema).codec
+      const codec = toCodecAnthropic(schema).codec
       const asserts = new TestSchema.Asserts(codec)
 
       const encoding = asserts.encoding()
@@ -609,7 +481,7 @@ describe("toCodecOpenAI", () => {
           "additionalProperties": false
         }
       })
-      const codec = toCodecOpenAI(schema).codec
+      const codec = toCodecAnthropic(schema).codec
       const asserts = new TestSchema.Asserts(codec)
 
       const encoding = asserts.encoding()

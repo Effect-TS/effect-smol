@@ -87,6 +87,25 @@
 export * as AiError from "./AiError.ts"
 
 /**
+ * Provides a codec transformation for Anthropic structured output.
+ *
+ * Anthropic's API has specific constraints on JSON schema support that differ
+ * from the full JSON Schema specification. This module transforms Effect
+ * `Schema.Codec` types into a form compatible with Anthropic's structured
+ * output requirements by:
+ *
+ * - Converting tuples to objects with string keys (tuples are unsupported)
+ * - Converting optional properties to nullable unions (`T | null`)
+ * - Converting index signatures (records) to arrays of key-value pairs
+ * - Converting `oneOf` unions to `anyOf` unions
+ * - Stripping unsupported annotations and preserving only Anthropic-compatible
+ *   formats and descriptions
+ *
+ * @since 1.0.0
+ */
+export * as AnthropicStructuredOutput from "./AnthropicStructuredOutput.ts"
+
+/**
  * The `Chat` module provides a stateful conversation interface for AI language
  * models.
  *
@@ -276,6 +295,13 @@ export * as McpServer from "./McpServer.ts"
  * @since 4.0.0
  */
 export * as Model from "./Model.ts"
+
+/**
+ * Provides codec transformations for OpenAI structured output.
+ *
+ * @since 1.0.0
+ */
+export * as OpenAiStructuredOutput from "./OpenAiStructuredOutput.ts"
 
 /**
  * The `Prompt` module provides several data structures to simplify creating and

@@ -169,12 +169,6 @@ importers:
 
   packages/ai/openrouter:
     devDependencies:
-      '@effect/ai-anthropic':
-        specifier: workspace:^
-        version: link:../anthropic
-      '@effect/ai-openai':
-        specifier: workspace:^
-        version: link:../openai
       effect:
         specifier: workspace:^
         version: link:../../effect

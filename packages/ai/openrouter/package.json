@@ -58,13 +58,9 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@effect/ai-anthropic": "workspace:^",
-    "@effect/ai-openai": "workspace:^",
     "effect": "workspace:^"
   },
   "peerDependencies": {
-    "@effect/ai-anthropic": "workspace:^",
-    "@effect/ai-openai": "workspace:^",
     "effect": "workspace:^"
   }
 }

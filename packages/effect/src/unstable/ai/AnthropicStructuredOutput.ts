@@ -15,13 +15,13 @@
  *
  * @since 1.0.0
  */
-import * as Arr from "effect/Array"
-import type * as JsonSchema from "effect/JsonSchema"
-import * as Option from "effect/Option"
-import * as Predicate from "effect/Predicate"
-import * as Schema from "effect/Schema"
-import * as AST from "effect/SchemaAST"
-import * as Transformation from "effect/SchemaTransformation"
+import * as Arr from "../../Array.ts"
+import type * as JsonSchema from "../../JsonSchema.ts"
+import * as Option from "../../Option.ts"
+import * as Predicate from "../../Predicate.ts"
+import * as Schema from "../../Schema.ts"
+import * as AST from "../../SchemaAST.ts"
+import * as Transformation from "../../SchemaTransformation.ts"
 
 /**
  * Transforms a `Schema.Codec` into a form compatible with Anthropic's

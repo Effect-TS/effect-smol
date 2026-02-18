@@ -1,8 +1,7 @@
 /**
  * @since 1.0.0
  */
-import { toCodecAnthropic } from "@effect/ai-anthropic/AnthropicStructuredOutput"
-import { toCodecOpenAI } from "@effect/ai-openai/OpenAiStructuredOutput"
+/** @effect-diagnostics preferSchemaOverJson:skip-file */
 import * as Arr from "effect/Array"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
@@ -18,9 +17,11 @@ import * as Stream from "effect/Stream"
 import type { Span } from "effect/Tracer"
 import type { DeepMutable, Mutable, Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
+import { toCodecAnthropic } from "effect/unstable/ai/AnthropicStructuredOutput"
 import * as IdGenerator from "effect/unstable/ai/IdGenerator"
 import * as LanguageModel from "effect/unstable/ai/LanguageModel"
 import * as AiModel from "effect/unstable/ai/Model"
+import { toCodecOpenAI } from "effect/unstable/ai/OpenAiStructuredOutput"
 import type * as Prompt from "effect/unstable/ai/Prompt"
 import type * as Response from "effect/unstable/ai/Response"
 import { addGenAIAnnotations } from "effect/unstable/ai/Telemetry"

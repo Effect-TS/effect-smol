@@ -1,29 +1,16 @@
 /**
- * Provides a codec transformation for OpenAI structured output.
- *
- * OpenAI's API has specific constraints on JSON schema support that differ
- * from the full JSON Schema specification. This module transforms Effect
- * `Schema.Codec` types into a form compatible with OpenAI's structured
- * output requirements by:
- *
- * - Converting tuples to objects with string keys (tuples are unsupported)
- * - Converting optional properties to nullable unions (`T | null`)
- * - Converting index signatures (records) to arrays of key-value pairs
- * - Converting `oneOf` unions to `anyOf` unions
- * - Merging multiple regex patterns into a single `pattern` (since OpenAI
- *   does not support `allOf`)
- * - Preserving only OpenAI-compatible formats and descriptions
+ * Provides codec transformations for OpenAI structured output.
  *
  * @since 1.0.0
  */
-import * as Arr from "effect/Array"
-import type * as JsonSchema from "effect/JsonSchema"
-import * as Option from "effect/Option"
-import * as Predicate from "effect/Predicate"
-import * as Rec from "effect/Record"
-import * as Schema from "effect/Schema"
-import * as AST from "effect/SchemaAST"
-import * as Transformation from "effect/SchemaTransformation"
+import * as Arr from "../../Array.ts"
+import type * as JsonSchema from "../../JsonSchema.ts"
+import * as Option from "../../Option.ts"
+import * as Predicate from "../../Predicate.ts"
+import * as Rec from "../../Record.ts"
+import * as Schema from "../../Schema.ts"
+import * as AST from "../../SchemaAST.ts"
+import * as Transformation from "../../SchemaTransformation.ts"
 
 /**
  * Transforms a `Schema.Codec` into a form compatible with OpenAI's
@@ -59,12 +46,12 @@ export function toCodecOpenAI<T, E, RD, RE>(
   jsonSchema: JsonSchema.JsonSchema
 } {
   const to = schema.ast
-  const from = recur(AST.toEncoded(to))
+  const from = recurOpenAI(AST.toEncoded(to))
   const codec = from === to ? schema : Schema.make<typeof schema>(AST.decodeTo(from, to, Transformation.passthrough()))
   const document = Schema.toJsonSchemaDocument(codec)
-  const jsonSchema = rewrite(document.schema)
+  const jsonSchema = rewriteOpenAI(document.schema)
   if (Object.keys(document.definitions).length > 0) {
-    jsonSchema.$defs = Rec.map(document.definitions, rewrite)
+    jsonSchema.$defs = Rec.map(document.definitions, rewriteOpenAI)
   }
   return { codec, jsonSchema }
 }
@@ -75,21 +62,21 @@ export function toCodecOpenAI<T, E, RD, RE>(
  * the parent object. This is necessary because OpenAI structured output does
  * not support `allOf`.
  */
-function rewrite(schema: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
+function rewriteOpenAI(schema: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
   const out: JsonSchema.JsonSchema = {}
   for (const [k, v] of Object.entries(schema)) {
     if (k === "allOf" && Array.isArray(v)) {
       for (const member of v) {
-        Object.assign(out, rewrite(member as JsonSchema.JsonSchema))
+        Object.assign(out, rewriteOpenAI(member as JsonSchema.JsonSchema))
       }
     } else if (Array.isArray(v)) {
       out[k] = v.map((item) =>
         typeof item === "object" && item !== null && !Array.isArray(item)
-          ? rewrite(item as JsonSchema.JsonSchema)
+          ? rewriteOpenAI(item as JsonSchema.JsonSchema)
           : item
       )
     } else if (typeof v === "object" && v !== null) {
-      out[k] = rewrite(v as JsonSchema.JsonSchema)
+      out[k] = rewriteOpenAI(v as JsonSchema.JsonSchema)
     } else {
       out[k] = v
     }
@@ -97,7 +84,7 @@ function rewrite(schema: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
   return out
 }
 
-function recur(ast: AST.AST): AST.AST {
+function recurOpenAI(ast: AST.AST): AST.AST {
   switch (ast._tag) {
     case "Declaration":
     case "Void":
@@ -156,7 +143,7 @@ function recur(ast: AST.AST): AST.AST {
       if (ast.mode === "oneOf") {
         return new AST.Union(ast.types, "anyOf", ast.annotations, ast.checks)
       }
-      const types = AST.mapOrSame(ast.types, recur)
+      const types = AST.mapOrSame(ast.types, recurOpenAI)
       const { annotations, filters } = get(ast)
       if (types !== ast.types || annotations !== undefined || filters !== undefined) {
         return new AST.Union(types, "anyOf", annotations, filters)
@@ -185,7 +172,7 @@ function recur(ast: AST.AST): AST.AST {
           propertySignatures.push(new AST.PropertySignature(REST_PROPERTY_NAME, new AST.Arrays(false, [], ast.rest)))
         }
         return AST.decodeTo(
-          recur(new AST.Objects(propertySignatures, [], annotations, filters)),
+          recurOpenAI(new AST.Objects(propertySignatures, [], annotations, filters)),
           ast,
           Transformation.transform({
             decode: (o) => {
@@ -216,7 +203,7 @@ function recur(ast: AST.AST): AST.AST {
           })
         )
       } else {
-        const rest = AST.mapOrSame(ast.rest, recur)
+        const rest = AST.mapOrSame(ast.rest, recurOpenAI)
         if (rest !== ast.rest || annotations !== undefined || filters !== undefined) {
           return new AST.Arrays(false, [], rest, annotations, filters)
         }
@@ -232,7 +219,7 @@ function recur(ast: AST.AST): AST.AST {
               `${errorPrefix}: Property names must be strings (got ${typeof ps.name})`
             )
           }
-          let type = recur(ps.type)
+          let type = recurOpenAI(ps.type)
           // optional properties are not supported by OpenAI, so we translate them to nullable unions
           if (AST.isOptional(ps.type)) {
             type = AST.decodeTo(
@@ -264,7 +251,7 @@ function recur(ast: AST.AST): AST.AST {
           annotations.description = RECORD_DESCRIPTION
         }
         return AST.decodeTo(
-          recur(new AST.Arrays(false, [], [new AST.Arrays(false, [is.parameter, is.type], [])], annotations)),
+          recurOpenAI(new AST.Arrays(false, [], [new AST.Arrays(false, [is.parameter, is.type], [])], annotations)),
           ast,
           Transformation.transform({
             decode: Object.fromEntries,
@@ -282,7 +269,7 @@ function recur(ast: AST.AST): AST.AST {
       const cached = cache.get(ast)
       if (cached) return cached
       const { annotations, filters } = get(ast)
-      const out = new AST.Suspend(() => recur(ast.thunk()), annotations, filters)
+      const out = new AST.Suspend(() => recurOpenAI(ast.thunk()), annotations, filters)
       cache.set(ast, out)
       return out
     }

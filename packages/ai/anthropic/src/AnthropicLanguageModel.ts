@@ -1,6 +1,7 @@
 /**
  * @since 1.0.0
  */
+/** @effect-diagnostics preferSchemaOverJson:skip-file */
 import * as Arr from "effect/Array"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
@@ -16,6 +17,7 @@ import * as Stream from "effect/Stream"
 import type { Span } from "effect/Tracer"
 import type { Mutable, Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
+import { toCodecAnthropic } from "effect/unstable/ai/AnthropicStructuredOutput"
 import * as IdGenerator from "effect/unstable/ai/IdGenerator"
 import * as LanguageModel from "effect/unstable/ai/LanguageModel"
 import * as AiModel from "effect/unstable/ai/Model"
@@ -25,7 +27,6 @@ import * as Tool from "effect/unstable/ai/Tool"
 import type * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 import { AnthropicClient, type MessageStreamEvent } from "./AnthropicClient.ts"
-import { toCodecAnthropic } from "./AnthropicStructuredOutput.ts"
 import { addGenAIAnnotations } from "./AnthropicTelemetry.ts"
 import type { AnthropicTool } from "./AnthropicTool.ts"
 import type * as Generated from "./Generated.ts"
