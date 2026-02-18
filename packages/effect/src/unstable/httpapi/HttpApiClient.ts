@@ -141,7 +141,6 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
   }
 ): Effect.Effect<void, unknown, unknown> =>
   Effect.gen(function*() {
-    const services = yield* Effect.services<any>()
     const httpClient = options.httpClient.pipe(
       options?.baseUrl === undefined
         ? identity
@@ -199,16 +198,12 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         const encodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.encodeUnknownEffect)
         const encodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.encodeUnknownEffect)
 
-        const clientMiddlewares: Array<HttpApiMiddleware.HttpApiMiddlewareClient<any, any, any>> = []
-        for (const tag of onEndpointOptions.middleware.values()) {
-          const middleware = services.mapUnsafe.get(`${tag.key}/Client`)
-          if (!middleware) continue
-          clientMiddlewares.push(middleware as HttpApiMiddleware.HttpApiMiddlewareClient<any, any, any>)
-        }
+        const middlewareKeys = Array.from(onEndpointOptions.middleware, (tag) => `${tag.key}/Client`)
 
         function executeMiddleware(
+          services: ServiceMap.ServiceMap<any>,
           request: HttpClientRequest.HttpClientRequest,
-          index = clientMiddlewares.length - 1
+          index = middlewareKeys.length - 1
         ): Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError> {
           if (index === -1) {
             return httpClient.execute(request) as unknown as Effect.Effect<
@@ -216,12 +211,18 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
               HttpClientError.HttpClientError
             >
           }
-          return clientMiddlewares[index]({
+          const middleware = services.mapUnsafe.get(middlewareKeys[index]) as
+            | HttpApiMiddleware.HttpApiMiddlewareClient<any, any, any>
+            | undefined
+          if (middleware === undefined) {
+            return executeMiddleware(services, request, index - 1)
+          }
+          return middleware({
             endpoint,
             group: onEndpointOptions.group,
             request,
             next(request) {
-              return executeMiddleware(request, index - 1)
+              return executeMiddleware(services, request, index - 1)
             }
           }) as Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
         }
@@ -272,7 +273,8 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             }
           }
 
-          const response = yield* executeMiddleware(httpRequest)
+          const services = yield* Effect.services<any>()
+          const response = yield* executeMiddleware(services, httpRequest)
 
           const value = yield* (options.transformResponse === undefined
             ? decodeResponse(response)
