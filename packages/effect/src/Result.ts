@@ -375,6 +375,19 @@ export {
 }
 
 /**
+ * A pre-built `Result<void>` holding `undefined` as its failure value.
+ *
+ * - Use when you need a `Result` that represents "failed with no meaningful value"
+ * - Equivalent to `Result.fail(undefined)` but avoids an extra allocation
+ *
+ * @see {@link fail}
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export const failVoid: Result<never, void> = fail(void 0)
+
+/**
  * Converts a possibly `null` or `undefined` value into a `Result`.
  *
  * - Non-nullish values become `Success<NonNullable<A>>`
