@@ -30,7 +30,12 @@
     "@effect/utils": "3.0.0",
     "@effect/vitest": "3.0.0",
     "scratchpad": "0.0.0",
-    "scripts": "0.0.0"
+    "scripts": "0.0.0",
+    "@effect/ai-openai-compat": "3.0.0",
+    "@effect/ai-codegen": "0.0.0",
+    "@effect/bundle": "0.0.0"
   },
-  "changesets": []
+  "changesets": [
+    "shy-geckos-sniff"
+  ]
 }

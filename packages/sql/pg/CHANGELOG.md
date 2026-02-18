@@ -1,5 +1,16 @@
 # @effect/sql-pg
 
+## 4.0.0-beta.0
+
+### Major Changes
+
+- [#1183](https://github.com/Effect-TS/effect-smol/pull/1183) [`be642ab`](https://github.com/Effect-TS/effect-smol/commit/be642ab1b3b4cd49e53c9732d7aba1b367fddd66) Thanks @tim-smart! - v4 beta
+
+### Patch Changes
+
+- Updated dependencies [[`be642ab`](https://github.com/Effect-TS/effect-smol/commit/be642ab1b3b4cd49e53c9732d7aba1b367fddd66)]:
+  - effect@4.0.0-beta.0
+
 ## 0.45.1
 
 ### Patch Changes
@@ -1827,22 +1838,22 @@
   the `Statement`:
 
   ```ts
-  import * as Effect from "effect/Effect"
-  import * as MysqlClient from "effect/unstable/sql/MysqlClient"
-  import * as SqlClient from "effect/unstable/sql/SqlClient"
+  import * as Effect from "effect/Effect";
+  import * as MysqlClient from "effect/unstable/sql/MysqlClient";
+  import * as SqlClient from "effect/unstable/sql/SqlClient";
 
   const DatabaseLive = MysqlClient.layer({
     database: Config.succeed("database"),
     username: Config.succeed("root"),
-    password: Config.succeed(Redacted.make("password"))
-  })
+    password: Config.succeed(Redacted.make("password")),
+  });
 
-  const program = Effect.gen(function*() {
-    const sql = yield* SqlClient.SqlClient
+  const program = Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
 
-    const result = yield* sql`INSERT INTO usernames VALUES ("Bob")`.raw
+    const result = yield* sql`INSERT INTO usernames VALUES ("Bob")`.raw;
 
-    console.log(result)
+    console.log(result);
     /**
      * ResultSetHeader {
      *   fieldCount: 0,
@@ -1854,9 +1865,9 @@
      *   changedRows: 0
      * }
      */
-  })
+  });
 
-  program.pipe(Effect.provide(DatabaseLive), Effect.runPromise)
+  program.pipe(Effect.provide(DatabaseLive), Effect.runPromise);
   ```
 
 ### Patch Changes
@@ -2603,43 +2614,43 @@
   You can now use the `@effect/sql` package to access the client apis:
 
   ```ts
-  import { Effect } from "effect"
-  import * as Sql from "effect/unstable/sql"
+  import { Effect } from "effect";
+  import * as Sql from "effect/unstable/sql";
 
-  Effect.gen(function*() {
-    const sql = yield* Sql.client.Client
-    yield* sql`SELECT * FROM users`
-  })
+  Effect.gen(function* () {
+    const sql = yield* Sql.client.Client;
+    yield* sql`SELECT * FROM users`;
+  });
   ```
 
   If you need a functionality that is specific to a implementation, you can use the tag from the
   implementation package:
 
   ```ts
-  import * as Sqlite from "@effect/sql-sqlite-node"
-  import { Effect } from "effect"
+  import * as Sqlite from "@effect/sql-sqlite-node";
+  import { Effect } from "effect";
 
-  Effect.gen(function*() {
-    const sql = yield* Sqlite.client.SqliteClient
-    const dump = yield* sql.export
-  })
+  Effect.gen(function* () {
+    const sql = yield* Sqlite.client.SqliteClient;
+    const dump = yield* sql.export;
+  });
   ```
 
   If you need to run a different query depending on the dialect, you can use the `sql.onDialect` api:
 
   ```ts
-  import { Effect } from "effect"
-  import * as Sql from "effect/unstable/sql"
+  import { Effect } from "effect";
+  import * as Sql from "effect/unstable/sql";
 
-  Effect.gen(function*() {
-    const sql = yield* Sql.client.Client
+  Effect.gen(function* () {
+    const sql = yield* Sql.client.Client;
     yield* sql.onDialect({
       sqlite: () => sql`SELECT * FROM sqlite_master`,
       mysql: () => sql`SHOW TABLES`,
       mssql: () => sql`SELECT * FROM sys.tables`,
-      pg: () => sql`SELECT * FROM pg_catalog.pg_tables`
-    })
-  })
+      pg: () => sql`SELECT * FROM pg_catalog.pg_tables`,
+    });
+  });
   ```
 
 ### Patch Changes
