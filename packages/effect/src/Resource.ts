@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 import * as Effect from "./Effect.ts"
-import * as Exit from "./Exit.ts"
+import type * as Exit from "./Exit.ts"
 import { identity } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import type { Pipeable } from "./Pipeable.ts"
@@ -106,4 +106,4 @@ export const get = <A, E>(self: Resource<A, E>): Effect.Effect<A, E> =>
  * @category utils
  */
 export const refresh = <A, E>(self: Resource<A, E>): Effect.Effect<void, E> =>
-  ScopedRef.set(self.scopedRef, Effect.map(self.acquire, Exit.succeed))
+  ScopedRef.set(self.scopedRef, Effect.exit(self.acquire))
