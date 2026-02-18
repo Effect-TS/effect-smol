@@ -44,4 +44,39 @@ describe("HttpClientRequest", () => {
       strictEqual(request.url, "base")
     })
   })
+
+  describe("bodyFormDataRecord", () => {
+    it("creates a form data body from a record", () => {
+      const request = HttpClientRequest.post("/").pipe(
+        HttpClientRequest.bodyFormDataRecord({
+          a: "a",
+          b: 1,
+          c: true,
+          d: null,
+          e: undefined,
+          f: ["x", 2, false, null, undefined]
+        })
+      )
+
+      strictEqual(request.body._tag, "FormData")
+      if (request.body._tag === "FormData") {
+        strictEqual(request.body.formData.get("a"), "a")
+        strictEqual(request.body.formData.get("b"), "1")
+        strictEqual(request.body.formData.get("c"), "true")
+        strictEqual(request.body.formData.has("d"), false)
+        strictEqual(request.body.formData.has("e"), false)
+        strictEqual(request.body.formData.getAll("f").join(","), "x,2,false")
+      }
+    })
+
+    it("removes content headers when switching to form data", () => {
+      const request = HttpClientRequest.post("/").pipe(
+        HttpClientRequest.bodyText("hello"),
+        HttpClientRequest.bodyFormDataRecord({ a: "a" })
+      )
+
+      strictEqual(request.headers["content-type"], undefined)
+      strictEqual(request.headers["content-length"], undefined)
+    })
+  })
 })

@@ -285,6 +285,47 @@ export const makeFormData = (body: globalThis.FormData): FormData => new FormDat
  * @since 4.0.0
  * @category models
  */
+export type FormDataInput = Record<string, FormDataCoercible | ReadonlyArray<FormDataCoercible>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type FormDataCoercible = string | number | boolean | globalThis.File | globalThis.Blob | null | undefined
+
+const appendFormDataValue = (formData: globalThis.FormData, key: string, value: FormDataCoercible): void => {
+  if (value == null) {
+    return
+  }
+  if (typeof value === "object") {
+    formData.append(key, value)
+    return
+  }
+  formData.append(key, String(value))
+}
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const makeFormDataRecord = (entries: FormDataInput): FormData => {
+  const formData = new globalThis.FormData()
+  for (const [key, value] of Object.entries(entries)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        appendFormDataValue(formData, key, item)
+      }
+    } else {
+      appendFormDataValue(formData, key, value as FormDataCoercible)
+    }
+  }
+  return makeFormData(formData)
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export class Stream extends Proto {
   readonly _tag = "Stream"
   readonly stream: Stream_.Stream<globalThis.Uint8Array, unknown>

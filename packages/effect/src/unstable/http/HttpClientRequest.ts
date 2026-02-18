@@ -528,7 +528,7 @@ export const setBody: {
   (self: HttpClientRequest, body: HttpBody.HttpBody): HttpClientRequest
 } = dual(2, (self: HttpClientRequest, body: HttpBody.HttpBody): HttpClientRequest => {
   let headers = self.headers
-  if (body._tag === "Empty") {
+  if (body._tag === "Empty" || body._tag === "FormData") {
     headers = Headers.remove(Headers.remove(headers, "Content-Type"), "Content-length")
   } else {
     if (body.contentType) {
@@ -646,6 +646,19 @@ export const bodyFormData: {
   (body: FormData): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, body: FormData): HttpClientRequest
 } = dual(2, (self: HttpClientRequest, body: FormData): HttpClientRequest => setBody(self, HttpBody.makeFormData(body)))
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
+export const bodyFormDataRecord: {
+  (entries: HttpBody.FormDataInput): (self: HttpClientRequest) => HttpClientRequest
+  (self: HttpClientRequest, entries: HttpBody.FormDataInput): HttpClientRequest
+} = dual(
+  2,
+  (self: HttpClientRequest, entries: HttpBody.FormDataInput): HttpClientRequest =>
+    setBody(self, HttpBody.makeFormDataRecord(entries))
+)
 
 /**
  * @since 4.0.0
