@@ -3131,7 +3131,7 @@ export function tagDefaultOmit<Tag extends AST.LiteralValue>(literal: Tag) {
  * @since 4.0.0
  */
 export type TaggedStruct<Tag extends AST.LiteralValue, Fields extends Struct.Fields> = Struct<
-  { readonly _tag: tag<Tag> } & Fields
+  Simplify<{ readonly _tag: tag<Tag> } & Fields>
 >
 
 /**
@@ -7632,6 +7632,43 @@ export const Class: {
 }
 
 /**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export const TaggedClass: {
+  <Self, Brand = {}>(identifier?: string): {
+    <Tag extends string, const Fields extends Struct.Fields>(
+      tag: Tag,
+      fields: Fields,
+      annotations?: Annotations.Declaration<Self, readonly [TaggedStruct<Tag, Fields>]>
+    ): ExtendableClass<Self, TaggedStruct<Tag, Fields>, Brand>
+    <Tag extends string, S extends Struct<Struct.Fields>>(
+      tag: Tag,
+      schema: S,
+      annotations?: Annotations.Declaration<
+        Self,
+        readonly [Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>]
+      >
+    ): ExtendableClass<Self, Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>, Brand>
+  }
+} = (identifier?: string) => {
+  return (
+    tagValue: string,
+    schema: Struct.Fields | Struct<Struct.Fields>,
+    annotations?: Annotations.Declaration<any, readonly [Struct<Struct.Fields>]>
+  ): any => {
+    return Class(identifier ?? tagValue)(
+      isStruct(schema) ?
+        schema.mapFields((fields) => ({ _tag: tag(tagValue), ...fields }), {
+          unsafePreserveChecks: true
+        }) :
+        TaggedStruct(tagValue, schema),
+      annotations
+    )
+  }
+}
+
+/**
  * @since 4.0.0
  */
 export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
@@ -7660,6 +7697,43 @@ export const ErrorClass: {
 ): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
   const struct = isStruct(schema) ? schema : Struct(schema)
   return makeClass(core.Error, identifier, struct, annotations)
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export const TaggedErrorClass: {
+  <Self, Brand = {}>(identifier?: string): {
+    <Tag extends string, const Fields extends Struct.Fields>(
+      tag: Tag,
+      fields: Fields,
+      annotations?: Annotations.Declaration<Self, readonly [TaggedStruct<Tag, Fields>]>
+    ): ErrorClass<Self, TaggedStruct<Tag, Fields>, Cause_.YieldableError & Brand>
+    <Tag extends string, S extends Struct<Struct.Fields>>(
+      tag: Tag,
+      schema: S,
+      annotations?: Annotations.Declaration<
+        Self,
+        readonly [Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>]
+      >
+    ): ErrorClass<Self, Struct<Simplify<{ readonly _tag: tag<Tag> } & S["fields"]>>, Cause_.YieldableError & Brand>
+  }
+} = (identifier?: string) => {
+  return (
+    tagValue: string,
+    schema: Struct.Fields | Struct<Struct.Fields>,
+    annotations?: Annotations.Declaration<any, readonly [Struct<Struct.Fields>]>
+  ): any => {
+    return ErrorClass(identifier ?? tagValue)(
+      isStruct(schema) ?
+        schema.mapFields((fields) => ({ _tag: tag(tagValue), ...fields }), {
+          unsafePreserveChecks: true
+        }) :
+        TaggedStruct(tagValue, schema),
+      annotations
+    )
+  }
 }
 
 /**

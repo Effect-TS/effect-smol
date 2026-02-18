@@ -1215,6 +1215,35 @@ describe("Schema", () => {
     })
   })
 
+  describe("TaggedClass", () => {
+    it("Fields argument", () => {
+      class A extends Schema.TaggedClass<A>()("A", {
+        a: Schema.String
+      }) {}
+
+      expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly _tag: "A"; readonly a: string }>>()
+      expect(revealClass(A)).type.toBe<
+        Schema.Class<A, Schema.TaggedStruct<"A", { readonly a: Schema.String }>, A>
+      >()
+      expect(A.fields).type.toBe<{ readonly _tag: Schema.tag<"A">; readonly a: Schema.String }>()
+    })
+
+    it("Struct argument", () => {
+      class A extends Schema.TaggedClass<A>()(
+        "A",
+        Schema.Struct({
+          a: Schema.String
+        })
+      ) {}
+
+      expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly _tag: "A"; readonly a: string }>>()
+      expect(revealClass(A)).type.toBe<
+        Schema.Class<A, Schema.Struct<{ readonly _tag: Schema.tag<"A">; readonly a: Schema.String }>, A>
+      >()
+      expect(A.fields).type.toBe<{ readonly _tag: Schema.tag<"A">; readonly a: Schema.String }>()
+    })
+  })
+
   describe("Error", () => {
     it("extend Fields", () => {
       class E extends Schema.ErrorClass<E>("E")({

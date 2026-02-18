@@ -3806,6 +3806,64 @@ type Encoded = {
 export type Encoded = (typeof Operation)["Encoded"]
 ```
 
+### TaggedClass
+
+`TaggedClass` is a convenience over `Class` that automatically adds a `_tag` field using `Schema.tag`. This is useful for discriminated unions where each variant needs a tag.
+
+The tag value doubles as the identifier by default. Pass an explicit identifier as the first argument to override it.
+
+**Example** (Basic tagged class)
+
+```ts
+import { Schema } from "effect"
+
+class Person extends Schema.TaggedClass<Person>()("Person", {
+  name: Schema.String
+}) {}
+
+const mike = new Person({ name: "Mike" })
+console.log(mike)
+// Person { _tag: 'Person', name: 'Mike' }
+console.log(mike._tag)
+// "Person"
+```
+
+**Example** (Custom identifier)
+
+```ts
+import { Schema } from "effect"
+
+class Person extends Schema.TaggedClass<Person>("MyPerson")("Person", {
+  name: Schema.String
+}) {}
+
+console.log(Person.identifier)
+// "MyPerson"
+console.log(new Person({ name: "Mike" })._tag)
+// "Person"
+```
+
+**Example** (Discriminated union)
+
+```ts
+import { Schema } from "effect"
+
+class Cat extends Schema.TaggedClass<Cat>()("Cat", {
+  lives: Schema.Number
+}) {}
+
+class Dog extends Schema.TaggedClass<Dog>()("Dog", {
+  wagsTail: Schema.Boolean
+}) {}
+
+const Animal = Schema.Union([Cat, Dog])
+
+console.log(Schema.decodeUnknownSync(Animal)({ _tag: "Cat", lives: 9 }))
+// Cat { _tag: 'Cat', lives: 9 }
+```
+
+All features from `Class` are available: `extend`, `annotate`, `check`, branded classes, and recursive definitions.
+
 ### ErrorClass
 
 ```ts
@@ -3816,7 +3874,66 @@ class E extends Schema.ErrorClass<E>("E")({
 }) {}
 ```
 
+### TaggedErrorClass
+
+`TaggedErrorClass` combines `ErrorClass` with an automatic `_tag` field, giving you a tagged error that can be caught with `Effect.catchTag`.
+
+Like `TaggedClass`, the tag value doubles as the identifier by default, and you can pass an explicit identifier as the first argument to override it.
+
+**Example** (Defining and catching a tagged error)
+
+```ts
+import { Effect, Schema } from "effect"
+
+class HttpError extends Schema.TaggedErrorClass<HttpError>()("HttpError", {
+  status: Schema.Number,
+  message: Schema.String
+}) {}
+
+const program = Effect.gen(function*() {
+  yield* new HttpError({ status: 404, message: "Not found" })
+})
+
+const recovered = program.pipe(
+  Effect.catchTag("HttpError", (err) => Effect.succeed(`Caught: ${err.status} ${err.message}`))
+)
+```
+
+**Example** (Multiple tagged errors in a union)
+
+```ts
+import { Effect, Schema } from "effect"
+
+class NotFound extends Schema.TaggedErrorClass<NotFound>()("NotFound", {
+  path: Schema.String
+}) {}
+
+class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()("Unauthorized", {
+  reason: Schema.String
+}) {}
+
+const program = Effect.gen(function*() {
+  if (Math.random() < 0.5) {
+    yield* new Unauthorized({ reason: "Unauthorized" })
+  } else {
+    yield* new NotFound({ path: "/missing" })
+  }
+})
+
+// Each error can be caught independently by its tag
+const recovered = program.pipe(
+  Effect.catchTags({
+    NotFound: (err) => Effect.succeed(`Not found: ${err.path}`),
+    Unauthorized: (err) => Effect.succeed(`Unauthorized: ${err.reason}`)
+  })
+)
+```
+
+All features from `ErrorClass` are available: `extend`, `annotate`, and `check`.
+
 ### RequestClass
+
+// TODO: remove this
 
 ```ts
 import { Schema } from "effect"

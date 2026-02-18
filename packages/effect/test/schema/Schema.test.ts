@@ -5221,6 +5221,65 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  describe("TaggedClass", () => {
+    it("explicit identifier", async () => {
+      class A extends Schema.TaggedClass<A>("B")("A", {
+        a: Schema.String
+      }) {}
+      strictEqual(A.identifier, "B")
+    })
+
+    it("fields argument", async () => {
+      class A extends Schema.TaggedClass<A>()("A", {
+        a: Schema.String
+      }) {}
+      const asserts = new TestSchema.Asserts(A)
+
+      assertTrue(Schema.isSchema(A))
+      deepStrictEqual(Object.keys(A.fields).sort(), ["_tag", "a"])
+      strictEqual(A.identifier, "A")
+
+      const instance = new A({ a: "a" })
+      strictEqual(instance._tag, "A")
+      strictEqual(instance.a, "a")
+      assertTrue(instance instanceof A)
+
+      const make = asserts.make()
+      await make.succeed(new A({ a: "a" }))
+      await make.succeed({ a: "a" }, new A({ a: "a" }))
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ _tag: "A", a: "a" }, new A({ a: "a" }))
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(new A({ a: "a" }), { _tag: "A", a: "a" })
+    })
+
+    it("Struct argument", async () => {
+      class A extends Schema.TaggedClass<A>()(
+        "A",
+        Schema.Struct({
+          a: Schema.String
+        }).check(Schema.makeFilter(({ a }) => a.length > 0, { expected: `"a" being longer than 0` }))
+      ) {}
+
+      const asserts = new TestSchema.Asserts(A)
+
+      const make = asserts.make()
+      await make.succeed({ a: "a" }, new A({ a: "a" }))
+      await make.fail({ a: "" }, `Expected "a" being longer than 0, got {"_tag":"A","a":""}`)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ _tag: "A", a: "a" }, new A({ a: "a" }))
+      await decoding.fail(
+        { a: "a" },
+        `Missing key
+  at ["_tag"]`
+      )
+      await decoding.fail({ _tag: "A", a: "" }, `Expected "a" being longer than 0, got {"_tag":"A","a":""}`)
+    })
+  })
+
   describe("ErrorClass", () => {
     it("fields argument", async () => {
       class E extends Schema.ErrorClass<E>("E")({
@@ -5295,6 +5354,57 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed({ a: "a", b: 2 }, new B({ a: "a", b: 2 }))
+    })
+  })
+
+  describe("TaggedErrorClass", () => {
+    it("fields argument", async () => {
+      class E extends Schema.TaggedErrorClass<E>()("E", {
+        id: Schema.Number
+      }) {}
+      const asserts = new TestSchema.Asserts(E)
+
+      const err = new E({ id: 1 })
+      strictEqual(err._tag, "E")
+      strictEqual(err.id, 1)
+      assertInclude(err.stack, "Schema.test.ts:")
+
+      const make = asserts.make()
+      await make.succeed(new E({ id: 1 }))
+      await make.succeed({ id: 1 }, new E({ id: 1 }))
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ _tag: "E", id: 1 }, new E({ id: 1 }))
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(new E({ id: 1 }), { _tag: "E", id: 1 })
+    })
+
+    it("Struct argument", async () => {
+      class E extends Schema.TaggedErrorClass<E>()(
+        "E",
+        Schema.Struct({
+          id: Schema.Number
+        })
+      ) {}
+
+      const err = new E({ id: 1 })
+      strictEqual(err._tag, "E")
+      strictEqual(err.id, 1)
+      deepStrictEqual(Object.keys(E.fields).sort(), ["_tag", "id"])
+    })
+
+    it("extend", async () => {
+      class A extends Schema.TaggedErrorClass<A>()("A", {
+        a: Schema.String
+      }) {}
+      class B extends A.extend<B>("B")({
+        b: Schema.Number
+      }) {}
+      const instance = new B({ a: "a", b: 2 })
+      strictEqual(instance._tag, "A")
+      assertTrue(instance instanceof A)
+      assertTrue(instance instanceof B)
     })
   })
 
