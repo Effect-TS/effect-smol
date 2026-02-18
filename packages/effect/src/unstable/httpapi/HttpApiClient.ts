@@ -84,8 +84,14 @@ export declare namespace Client {
       request: Simplify<HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, WithResponse>>
     ) => Effect.Effect<
       WithResponse extends true ? [_Success["Type"], HttpClientResponse.HttpClientResponse] : _Success["Type"],
-      _Error["Type"] | HttpApiMiddleware.Error<_Middleware> | E | HttpClientError.HttpClientError | Schema.SchemaError,
+      | _Error["Type"]
+      | HttpApiMiddleware.Error<_Middleware>
+      | HttpApiMiddleware.ClientError<_Middleware>
+      | E
+      | HttpClientError.HttpClientError
+      | Schema.SchemaError,
       | R
+      | HttpApiMiddleware.MiddlewareClient<_Middleware>
       | _Params["EncodingServices"]
       | _Query["EncodingServices"]
       | _Payload["EncodingServices"]
@@ -135,6 +141,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
   }
 ): Effect.Effect<void, unknown, unknown> =>
   Effect.gen(function*() {
+    const services = yield* Effect.services<any>()
     const httpClient = options.httpClient.pipe(
       options?.baseUrl === undefined
         ? identity
@@ -192,6 +199,33 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         const encodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.encodeUnknownEffect)
         const encodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.encodeUnknownEffect)
 
+        const clientMiddlewares: Array<HttpApiMiddleware.HttpApiMiddlewareClient<any, any, any>> = []
+        for (const tag of onEndpointOptions.middleware.values()) {
+          const middleware = services.mapUnsafe.get(`${tag.key}/Client`)
+          if (!middleware) continue
+          clientMiddlewares.push(middleware as HttpApiMiddleware.HttpApiMiddlewareClient<any, any, any>)
+        }
+
+        function executeMiddleware(
+          request: HttpClientRequest.HttpClientRequest,
+          index = clientMiddlewares.length - 1
+        ): Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError> {
+          if (index === -1) {
+            return httpClient.execute(request) as unknown as Effect.Effect<
+              HttpClientResponse.HttpClientResponse,
+              HttpClientError.HttpClientError
+            >
+          }
+          return clientMiddlewares[index]({
+            endpoint,
+            group: onEndpointOptions.group,
+            request,
+            next(request) {
+              return executeMiddleware(request, index - 1)
+            }
+          }) as Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
+        }
+
         const endpointFn = Effect.fnUntraced(function*(
           request: {
             readonly params: Record<string, string> | undefined
@@ -238,7 +272,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             }
           }
 
-          const response = yield* httpClient.execute(httpRequest)
+          const response = yield* executeMiddleware(httpRequest)
 
           const value = yield* (options.transformResponse === undefined
             ? decodeResponse(response)
