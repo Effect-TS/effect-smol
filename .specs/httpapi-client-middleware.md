@@ -39,6 +39,7 @@ export interface HttpApiMiddlewareClient<E, CE, R> {
 ```
 
 Key differences from `RpcMiddlewareClient`:
+
 - `request` is an `HttpClientRequest` (not `Request<Rpc.Any>`)
 - `next` returns an `HttpClientResponse` (not `SuccessValue`)
 - `next` only fails with `HttpClientError.HttpClientError` (transport-level errors); server-side middleware errors arrive via the HTTP response body and are decoded after the middleware chain
@@ -98,13 +99,13 @@ export type ServiceClass<Self, Id, Config, Service> =
         readonly error: Config["error"]
         readonly requires: Config["requires"]
         readonly provides: Config["provides"]
-        readonly clientError: Config["clientError"]  // NEW - in instance brand
+        readonly clientError: Config["clientError"] // NEW - in instance brand
       }
     }
     readonly [TypeId]: typeof TypeId
     readonly error: Config["error"]
-    readonly requiredForClient: boolean     // NEW
-    readonly "~ClientError": Config["clientError"]  // NEW
+    readonly requiredForClient: boolean // NEW
+    readonly "~ClientError": Config["clientError"] // NEW
   }
 ```
 
@@ -119,8 +120,8 @@ export interface AnyKey extends ServiceMap.Service<any, any> {
   readonly [TypeId]: typeof TypeId
   readonly provides: any
   readonly error: Schema.Top
-  readonly requiredForClient: boolean     // NEW
-  readonly "~ClientError": any            // NEW
+  readonly requiredForClient: boolean // NEW
+  readonly "~ClientError": any // NEW
 }
 ```
 
@@ -132,9 +133,9 @@ Add `error`, `clientError`, and `requires` to the type-level identifier. Current
 export interface AnyId {
   readonly [TypeId]: {
     readonly provides: any
-    readonly requires: any      // NEW (fixes pre-existing gap)
-    readonly error: Schema.Top  // NEW (fixes pre-existing gap)
-    readonly clientError: any   // NEW
+    readonly requires: any // NEW (fixes pre-existing gap)
+    readonly error: Schema.Top // NEW (fixes pre-existing gap)
+    readonly clientError: any // NEW
   }
 }
 ```
@@ -149,10 +150,10 @@ export const layerClient: <Id extends AnyId, S, R, EX = never, RX = never>(
   service:
     | HttpApiMiddlewareClient<Id[TypeId]["error"]["Type"], Id[TypeId]["clientError"], R>
     | Effect.Effect<
-        HttpApiMiddlewareClient<Id[TypeId]["error"]["Type"], Id[TypeId]["clientError"], R>,
-        EX,
-        RX
-      >
+      HttpApiMiddlewareClient<Id[TypeId]["error"]["Type"], Id[TypeId]["clientError"], R>,
+      EX,
+      RX
+    >
 ) => Layer.Layer<ForClient<Id>, EX, R | Exclude<RX, Scope>>
 ```
 
@@ -184,9 +185,8 @@ Extracts the client error type from middleware. Only includes errors from middle
 
 ```ts
 export type ClientError<A> = A extends { readonly [TypeId]: { readonly clientError: infer CE } }
-  ? A extends { readonly requiredForClient: true }
-    ? CE
-    : never
+  ? A extends { readonly requiredForClient: true } ? CE
+  : never
   : never
 ```
 
@@ -210,9 +210,17 @@ Extracts client middleware requirements from all middleware attached to an endpo
 
 ```ts
 export type MiddlewareClient<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name, infer _Method, infer _Path,
-  infer _Params, infer _Query, infer _Payload, infer _Headers,
-  infer _Success, infer _Error, infer _Middleware, infer _MR
+  infer _Name,
+  infer _Method,
+  infer _Path,
+  infer _Params,
+  infer _Query,
+  infer _Payload,
+  infer _Headers,
+  infer _Success,
+  infer _Error,
+  infer _Middleware,
+  infer _MR
 > ? HttpApiMiddleware.MiddlewareClient<_Middleware>
   : never
 ```
@@ -230,6 +238,7 @@ Add middleware resolution and chain execution to the `makeClient` function, mode
 5. Wrap the `httpClient.execute(httpRequest)` call with the middleware chain.
 
 The middleware chain replaces the direct `httpClient.execute(httpRequest)` call at line 241 of `HttpApiClient.ts`. Each middleware receives `{ endpoint, group, request, next }` and can:
+
 - Modify the `HttpClientRequest` before calling `next`
 - Run effects before/after `next`
 - Short-circuit by not calling `next`
@@ -241,6 +250,7 @@ Security middleware participates in client middleware identically to regular mid
 #### Type-level: `Client.Method` error and context channels
 
 Update the `Client.Method` type to include:
+
 - `HttpApiMiddleware.ClientError<_Middleware>` in the error channel (for typed client-side errors)
 - `HttpApiEndpoint.MiddlewareClient<Endpoint>` in the context channel (for required client middleware layers)
 
@@ -329,12 +339,14 @@ The type system enforces that `AuthClient` must be provided because `AuthMiddlew
 **Files:** `packages/effect/src/unstable/httpapi/HttpApiMiddleware.ts`
 
 Add new type definitions:
+
 - `ForClient<Id>` interface
 - `HttpApiMiddlewareClient<E, CE, R>` interface
 - `ClientError<A>` type helper (restricted to `requiredForClient: true`)
 - `MiddlewareClient<A>` type helper
 
 Update existing types:
+
 - `AnyId`: add `requires`, `error`, `clientError` to `[TypeId]`
 - `AnyKey`: add `requiredForClient: boolean` and `"~ClientError": any`
 - `ServiceClass`: add `requiredForClient`, `"~ClientError"`, and `clientError` in instance `[TypeId]` brand
@@ -352,6 +364,7 @@ All new public types need `@since 4.0.0` annotations.
 **Files:** `packages/effect/src/unstable/httpapi/HttpApiMiddleware.ts`
 
 Add the `layerClient` function following the `RpcMiddleware.layerClient` pattern:
+
 - Accept a middleware tag and a client middleware function (or Effect producing one)
 - Register under `${tag.key}/Client` in the service map
 - Return `Layer<ForClient<Id>, EX, R | Exclude<RX, Scope>>`
@@ -367,10 +380,12 @@ New imports needed: `Effect`, `Layer`, `Scope`, plus HTTP client types.
 ### Task 3: Add `MiddlewareClient` type helpers to `HttpApiEndpoint` and `HttpApiGroup`
 
 **Files:**
+
 - `packages/effect/src/unstable/httpapi/HttpApiEndpoint.ts`
 - `packages/effect/src/unstable/httpapi/HttpApiGroup.ts`
 
 Add type helpers:
+
 - `HttpApiEndpoint.MiddlewareClient<Endpoint>`: extracts `ForClient<Id>` from middleware with `requiredForClient: true`
 - `HttpApiGroup.MiddlewareClient<Group>`: rolls up from all endpoints
 
@@ -387,12 +402,14 @@ Add type helpers:
 **Files:** `packages/effect/src/unstable/httpapi/HttpApiClient.ts`
 
 Runtime changes in `makeClient`:
+
 1. `yield* Effect.services()` at the top of `Effect.gen` to capture ambient services
 2. In the `endpointFn` closure, resolve middleware by looking up `${tag.key}/Client` for each tag in `endpoint.middlewares`
 3. Build a `next`-based chain (last-to-first iteration)
 4. Wrap `httpClient.execute(httpRequest)` with the chain, passing `{ endpoint, group, request, next }`
 
 Type changes:
+
 - `Client.Method`: add `HttpApiMiddleware.ClientError<_Middleware>` to error channel, `HttpApiEndpoint.MiddlewareClient<Endpoint>` to context channel
 
 These must be done together — the runtime chain and type-level changes are co-dependent. Shipping type changes without the runtime is misleading; shipping runtime without types means incorrect error/context channels.
@@ -406,6 +423,7 @@ These must be done together — the runtime chain and type-level changes are co-
 **Files:** `packages/platform-node/test/HttpApi.test.ts`
 
 Add tests covering:
+
 - Basic client middleware that modifies request headers
 - Middleware chain ordering (multiple middleware, verify LIFO execution)
 - `requiredForClient: true` — type-level enforcement
@@ -431,10 +449,10 @@ Task 1 (types + Service update)
 
 ## Files Modified
 
-| File | Change |
-|------|--------|
+| File                                                        | Change                                                                                                                                                               |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/effect/src/unstable/httpapi/HttpApiMiddleware.ts` | Add `ForClient`, `HttpApiMiddlewareClient`, `ClientError`, `MiddlewareClient` types; update `Service`, `ServiceClass`, `AnyKey`, `AnyId`; add `layerClient` function |
-| `packages/effect/src/unstable/httpapi/HttpApiEndpoint.ts` | Add `MiddlewareClient` type helper |
-| `packages/effect/src/unstable/httpapi/HttpApiGroup.ts` | Add `MiddlewareClient` type helper |
-| `packages/effect/src/unstable/httpapi/HttpApiClient.ts` | Integrate middleware chain in `makeClient`; update `Client.Method` type |
-| `packages/platform-node/test/HttpApi.test.ts` | Add client middleware tests |
+| `packages/effect/src/unstable/httpapi/HttpApiEndpoint.ts`   | Add `MiddlewareClient` type helper                                                                                                                                   |
+| `packages/effect/src/unstable/httpapi/HttpApiGroup.ts`      | Add `MiddlewareClient` type helper                                                                                                                                   |
+| `packages/effect/src/unstable/httpapi/HttpApiClient.ts`     | Integrate middleware chain in `makeClient`; update `Client.Method` type                                                                                              |
+| `packages/platform-node/test/HttpApi.test.ts`               | Add client middleware tests                                                                                                                                          |
