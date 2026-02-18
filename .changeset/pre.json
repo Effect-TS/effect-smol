@@ -37,7 +37,10 @@
   },
   "changesets": [
     "blue-dingos-greet",
+    "chubby-parents-flow",
+    "forty-otters-cry",
     "fuzzy-camels-hunt",
-    "shy-geckos-sniff"
+    "shy-geckos-sniff",
+    "tall-mails-listen"
   ]
 }
