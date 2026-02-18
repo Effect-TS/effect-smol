@@ -4271,6 +4271,9 @@ export const filter: {
   <A>(
     predicate: Predicate.Predicate<NoInfer<A>>
   ): (elements: Iterable<A>) => Effect.Effect<Array<A>>
+  <A, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>
+  ): (elements: Iterable<A>) => Effect.Effect<Array<B>>
   <A, B, X, E, R>(
     filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
     options?: { readonly concurrency?: Concurrency | undefined }
@@ -4287,6 +4290,10 @@ export const filter: {
     elements: Iterable<A>,
     predicate: Predicate.Predicate<A>
   ): Effect.Effect<Array<A>>
+  <A, B, X>(
+    elements: Iterable<A>,
+    filter: Filter.Filter<NoInfer<A>, B, X>
+  ): Effect.Effect<Array<B>>
   <A, B, X, E, R>(
     elements: Iterable<A>,
     filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
@@ -4316,6 +4323,12 @@ export const filter: {
             const result = (filter as Function)(a, i)
             if (typeof result === "boolean") {
               if (result) out.push(a)
+              return void_ as any
+            }
+            if (!isEffect(result)) {
+              if (!Result.isFailure(result)) {
+                out.push(result.success)
+              }
               return void_ as any
             }
             return map(result, (r: any) => {

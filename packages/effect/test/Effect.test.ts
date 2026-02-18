@@ -1982,6 +1982,16 @@ describe("Effect", () => {
         )
         assert.deepStrictEqual(result, [1, 2, 3])
       }))
+    it.effect("Filter.Filter overload maps pass values", () =>
+      Effect.gen(function*() {
+        const filter: Filter.Filter<number, string, number> = (n) =>
+          n % 2 === 0 ? Result.succeed(`n=${n}`) : Result.fail(n)
+        const result = yield* Effect.filter(
+          [1, 2, 3, 4],
+          filter
+        )
+        assert.deepStrictEqual(result, ["n=2", "n=4"])
+      }))
   })
 
   describe("catch", () => {

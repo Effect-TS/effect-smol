@@ -4452,6 +4452,10 @@ export const filter: {
   <A>(
     predicate: Predicate.Predicate<NoInfer<A>>
   ): (elements: Iterable<A>) => Effect<Array<A>>
+  <A, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): (elements: Iterable<A>) => Effect<Array<B>>
   <A, B, X, E, R>(
     filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
     options?: { readonly concurrency?: Concurrency | undefined }
@@ -4468,6 +4472,10 @@ export const filter: {
     elements: Iterable<A>,
     predicate: Predicate.Predicate<A>
   ): Effect<Array<A>>
+  <A, B, X>(
+    elements: Iterable<A>,
+    filter: Filter.Filter<NoInfer<A>, B, X>
+  ): Effect<Array<B>>
   <A, B, X, E, R>(
     elements: Iterable<A>,
     filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
