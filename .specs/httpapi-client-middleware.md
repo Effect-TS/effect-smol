@@ -280,7 +280,7 @@ The `ForClient<Id>` requirement surfaces per-method-call (like schema encoding/d
 
 The constructor return types (`make`, `makeWith`, `group`, `endpoint`) need changes.
 
-- `HttpApiEndpoint.MiddlewareClient<Endpoinds>` in the context channel (for required client middleware layers)
+- Client middleware ids in the context channel (for required client middleware layers)
 
 ## Usage Example
 
