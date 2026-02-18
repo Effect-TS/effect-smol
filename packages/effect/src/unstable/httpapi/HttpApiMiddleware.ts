@@ -1,9 +1,11 @@
 /**
  * @since 4.0.0
  */
-import type * as Effect from "../../Effect.ts"
+import * as Effect from "../../Effect.ts"
+import * as Layer from "../../Layer.ts"
 import { hasProperty } from "../../Predicate.ts"
 import type * as Schema from "../../Schema.ts"
+import { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { unhandled } from "../../Types.ts"
 import type * as HttpClientError from "../http/HttpClientError.ts"
@@ -61,7 +63,7 @@ export type HttpApiMiddlewareSecurity<
  * @since 4.0.0
  * @category models
  */
-export interface HttpApiMiddlewareClient<CE, R> {
+export interface HttpApiMiddlewareClient<_E, CE, R> {
   (options: {
     readonly endpoint: HttpApiEndpoint.AnyWithProps
     readonly group: HttpApiGroup.AnyWithProps
@@ -109,6 +111,8 @@ export interface AnyKeySecurity extends AnyKey {
 export interface AnyId {
   readonly [TypeId]: {
     readonly provides: any
+    readonly requires: any
+    readonly error: Schema.Top
     readonly clientError: any
     readonly requiredForClient: boolean
   }
@@ -287,3 +291,34 @@ export const Service = <
   }
   return self
 }
+
+/**
+ * @since 4.0.0
+ * @category client
+ */
+export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
+  tag: ServiceMap.Service<Id, S>,
+  service:
+    | HttpApiMiddlewareClient<Id[typeof TypeId]["error"]["Type"], Id[typeof TypeId]["clientError"], R>
+    | Effect.Effect<
+      HttpApiMiddlewareClient<Id[typeof TypeId]["error"]["Type"], Id[typeof TypeId]["clientError"], R>,
+      EX,
+      RX
+    >
+): Layer.Layer<ForClient<Id>, EX, R | Exclude<RX, Scope>> =>
+  Layer.effectServices(Effect.gen(function*() {
+    const services = (yield* Effect.services<R | Scope>()).pipe(
+      ServiceMap.omit(Scope)
+    ) as ServiceMap.ServiceMap<R>
+    const middleware = Effect.isEffect(service) ? yield* service : service
+    return ServiceMap.makeUnsafe(
+      new Map([[
+        `${tag.key}/Client`,
+        (options: any) =>
+          Effect.updateServices(
+            middleware(options),
+            (requestContext) => ServiceMap.merge(services, requestContext)
+          )
+      ]])
+    )
+  }))
