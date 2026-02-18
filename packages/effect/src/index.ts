@@ -2385,6 +2385,11 @@ export * as Request from "./Request.ts"
 export * as RequestResolver from "./RequestResolver.ts"
 
 /**
+ * @since 2.0.0
+ */
+export * as Resource from "./Resource.ts"
+
+/**
  * A synchronous, pure type for representing computations that can succeed
  * (`Success<A>`) or fail (`Failure<E>`). Unlike `Effect`, `Result` is
  * evaluated eagerly and carries no side effects.
