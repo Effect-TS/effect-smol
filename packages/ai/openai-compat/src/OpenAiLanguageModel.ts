@@ -22,6 +22,7 @@ import type { DeepMutable, Simplify } from "effect/Types"
 import * as AiError from "effect/unstable/ai/AiError"
 import * as LanguageModel from "effect/unstable/ai/LanguageModel"
 import * as AiModel from "effect/unstable/ai/Model"
+import { toCodecOpenAI } from "effect/unstable/ai/OpenAiStructuredOutput"
 import type * as Prompt from "effect/unstable/ai/Prompt"
 import type * as Response from "effect/unstable/ai/Response"
 import * as Tool from "effect/unstable/ai/Tool"
@@ -365,7 +366,7 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
         options,
         toolNameMapper
       })
-      const responseFormat = prepareResponseFormat({
+      const responseFormat = yield* prepareResponseFormat({
         config,
         options
       })
@@ -422,7 +423,10 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
           })
         )
     )
-  })
+  }).pipe(Effect.provideService(
+    LanguageModel.CurrentCodecTransformer,
+    toCodecOpenAI
+  ))
 })
 
 /**
@@ -1089,6 +1093,27 @@ const annotateStreamResponse = (span: Span, part: Response.StreamPartEncoded) =>
 
 type OpenAiToolChoice = CreateResponse["tool_choice"]
 
+const unsupportedSchemaError = (error: unknown, method: string): AiError.AiError =>
+  AiError.make({
+    module: "OpenAiLanguageModel",
+    method,
+    reason: new AiError.UnsupportedSchemaError({
+      description: error instanceof Error ? error.message : String(error)
+    })
+  })
+
+const tryJsonSchema = <S extends Schema.Top>(schema: S, method: string) =>
+  Effect.try({
+    try: () => Tool.getJsonSchemaFromSchema(schema, { transformer: toCodecOpenAI }),
+    catch: (error) => unsupportedSchemaError(error, method)
+  })
+
+const tryToolJsonSchema = <T extends Tool.Any>(tool: T, method: string) =>
+  Effect.try({
+    try: () => Tool.getJsonSchema(tool, { transformer: toCodecOpenAI }),
+    catch: (error) => unsupportedSchemaError(error, method)
+  })
+
 const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Tool.Any>>({
   config,
   options,
@@ -1124,11 +1149,12 @@ const prepareTools = Effect.fnUntraced(function*<Tools extends ReadonlyArray<Too
   for (const tool of allowedTools) {
     if (Tool.isUserDefined(tool)) {
       const strict = Tool.getStrictMode(tool) ?? config.strictJsonSchema ?? true
+      const parameters = yield* tryToolJsonSchema(tool, "prepareTools")
       tools.push({
         type: "function",
         name: tool.name,
         description: Tool.getDescription(tool) ?? null,
-        parameters: Tool.getJsonSchema(tool) as { readonly [x: string]: Schema.Json },
+        parameters: parameters as { readonly [x: string]: Schema.Json },
         strict
       })
     }
@@ -1473,23 +1499,24 @@ const normalizeServiceTier = (
   }
 }
 
-const prepareResponseFormat = ({ config, options }: {
+const prepareResponseFormat = Effect.fnUntraced(function*({ config, options }: {
   readonly config: typeof Config.Service
   readonly options: LanguageModel.ProviderOptions
-}): TextResponseFormatConfiguration => {
+}): Effect.fn.Return<TextResponseFormatConfiguration, AiError.AiError> {
   if (options.responseFormat.type === "json") {
     const name = options.responseFormat.objectName
     const schema = options.responseFormat.schema
+    const jsonSchema = yield* tryJsonSchema(schema, "prepareResponseFormat")
     return {
       type: "json_schema",
       name,
       description: AST.resolveDescription(schema.ast) ?? "Response with a JSON object",
-      schema: Tool.getJsonSchemaFromSchema(schema) as any,
+      schema: jsonSchema as any,
       strict: config.strictJsonSchema ?? true
     }
   }
   return { type: "text" }
-}
+})
 
 interface ModelCapabilities {
   readonly isReasoningModel: boolean

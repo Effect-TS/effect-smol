@@ -380,6 +380,58 @@ describe("OpenAiLanguageModel", () => {
         assert.strictEqual(requestBody.response_format.type, "json_schema")
         assert.strictEqual(requestBody.response_format.json_schema.strict, true)
       }))
+
+    it.effect("uses OpenAI codec transformer for optional structured fields", () =>
+      Effect.gen(function*() {
+        let capturedRequest: HttpClientRequest.HttpClientRequest | undefined
+
+        const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) => {
+              capturedRequest = request
+              return Effect.succeed(jsonResponse(
+                request,
+                makeChatCompletion({
+                  choices: [{
+                    index: 0,
+                    finish_reason: "stop",
+                    message: {
+                      role: "assistant",
+                      content: JSON.stringify({ name: "Ada", nickname: null })
+                    }
+                  }]
+                })
+              ))
+            })
+          ))
+        )
+
+        const person = yield* LanguageModel.generateObject({
+          prompt: "Return a person",
+          schema: Schema.Struct({
+            name: Schema.String,
+            nickname: Schema.optionalKey(Schema.String)
+          })
+        }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(layer)
+        )
+
+        assert.strictEqual(person.value.name, "Ada")
+        assert.isUndefined(person.value.nickname)
+
+        assert.isDefined(capturedRequest)
+        if (capturedRequest === undefined) {
+          return
+        }
+
+        const requestBody = yield* getRequestBody(capturedRequest)
+        assert.deepStrictEqual(requestBody.response_format.json_schema.schema.required, ["name", "nickname"])
+        assert.deepStrictEqual(requestBody.response_format.json_schema.schema.properties.nickname, {
+          anyOf: [{ type: "string" }, { type: "null" }]
+        })
+      }))
   })
 
   describe("streamText", () => {
