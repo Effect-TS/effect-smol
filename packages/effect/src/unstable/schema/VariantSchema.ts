@@ -3,11 +3,14 @@
  */
 import type { Brand } from "../../Brand.ts"
 import * as Effect from "../../Effect.ts"
-import { constant, dual } from "../../Function.ts"
+import { dual } from "../../Function.ts"
+import * as Option from "../../Option.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import type * as AST from "../../SchemaAST.ts"
+import * as Getter from "../../SchemaGetter.ts"
+import * as Transformation from "../../SchemaTransformation.ts"
 import * as Struct_ from "../../Struct.ts"
 
 /**
@@ -465,8 +468,24 @@ export const Override = <A>(value: A): A & Brand<"Override"> => value as any
  * @since 4.0.0
  * @category overrideable
  */
-export interface Overrideable<S extends Schema.Top & Schema.WithoutConstructorDefault>
-  extends Schema.brand<Schema.withConstructorDefault<S>, "Override">
+export interface Overrideable<S extends Schema.Top & Schema.WithoutConstructorDefault> extends
+  Schema.Bottom<
+    (S["Type"] & Brand<"Override">) | undefined,
+    S["Encoded"],
+    S["DecodingServices"],
+    S["EncodingServices"],
+    S["ast"],
+    Overrideable<S>,
+    S["~type.make.in"],
+    (S["Type"] & Brand<"Override">) | undefined,
+    S["~type.parameters"],
+    (S["Type"] & Brand<"Override">) | undefined,
+    S["~type.mutability"],
+    "optional",
+    "with-default",
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
+  >
 {}
 
 /**
@@ -478,11 +497,21 @@ export const Overrideable = <S extends Schema.Top & Schema.WithoutConstructorDef
   options: {
     readonly defaultValue: Effect.Effect<S["~type.make.in"]>
   }
-) =>
+): Overrideable<S> =>
   schema.pipe(
-    Schema.withConstructorDefault(constant(Effect.asSome(options.defaultValue))),
-    Schema.brand("Override")
-  )
+    Schema.decodeTo(
+      Schema.optional(Schema.brand("Override")(Schema.toType(schema))),
+      Transformation.make({
+        decode: Getter.passthrough(),
+        encode: new Getter.Getter((o) => {
+          if (Option.isSome(o) && o.value !== undefined) {
+            return Effect.succeed(o)
+          }
+          return Effect.asSome(options.defaultValue)
+        })
+      })
+    )
+  ) as any
 
 const StructProto = {
   pipe() {
