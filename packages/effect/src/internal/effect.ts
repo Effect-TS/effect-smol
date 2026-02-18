@@ -2445,13 +2445,13 @@ export const catch_: {
 export const catchNoSuchElement = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<Option.Option<A>, Exclude<E, Cause.NoSuchElementError>, R> =>
-  catch_(
-    asSome(self),
-    (error) =>
+  matchEffect(self, {
+    onFailure: (error) =>
       isNoSuchElementError(error)
         ? succeedNone
-        : fail(error as Exclude<E, Cause.NoSuchElementError>)
-  )
+        : fail(error as Exclude<E, Cause.NoSuchElementError>),
+    onSuccess: succeedSome
+  })
 
 /** @internal */
 export const catchDefect: {
