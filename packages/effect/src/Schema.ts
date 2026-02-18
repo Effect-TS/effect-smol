@@ -36,7 +36,6 @@ import * as Pipeable from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Record_ from "./Record.ts"
 import * as Redacted_ from "./Redacted.ts"
-import * as Request from "./Request.ts"
 import * as Result_ from "./Result.ts"
 import * as Scheduler from "./Scheduler.ts"
 import * as AST from "./SchemaAST.ts"
@@ -7431,8 +7430,6 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
 type AddStaticMembers<C, Static> = C & Pick<Static, Exclude<keyof Static, keyof C>>
 
 /**
- * Not all classes are extendable (e.g. `RequestClass`).
- *
  * @since 4.0.0
  */
 export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
@@ -7735,53 +7732,6 @@ export const TaggedErrorClass: {
     )
   }
 }
-
-/**
- * @since 4.0.0
- */
-export interface RequestClass<
-  Self,
-  Payload extends Struct<Struct.Fields>,
-  Success extends Top,
-  Error extends Top,
-  Inherited
-> extends Class<Self, Payload, Inherited> {
-  readonly payload: Payload
-  readonly success: Success
-  readonly error: Error
-}
-
-// TODO: remove this?
-/**
- * @category Constructors
- * @since 4.0.0
- */
-export const RequestClass =
-  <Self, Brand = {}>(identifier: string) =>
-  <Payload extends Struct<Struct.Fields>, Success extends Top, Error extends Top>(
-    options: {
-      readonly payload: Payload
-      readonly success: Success
-      readonly error: Error
-      readonly annotations?: Annotations.Declaration<Self, readonly [Payload]>
-    }
-  ): RequestClass<
-    Self,
-    Payload,
-    Success,
-    Error,
-    Request.Request<
-      Success["Type"],
-      Error["Type"],
-      Success["DecodingServices"] | Success["EncodingServices"] | Error["DecodingServices"] | Error["EncodingServices"]
-    > & Brand
-  > => {
-    return class RequestClass extends makeClass(Request.Class, identifier, options.payload, options.annotations) {
-      static readonly payload = options.payload
-      static readonly success = options.success
-      static readonly error = options.error
-    } as any
-  }
 
 // -----------------------------------------------------------------------------
 // Arbitrary

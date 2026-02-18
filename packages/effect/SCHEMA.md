@@ -3931,22 +3931,6 @@ const recovered = program.pipe(
 
 All features from `ErrorClass` are available: `extend`, `annotate`, and `check`.
 
-### RequestClass
-
-// TODO: remove this
-
-```ts
-import { Schema } from "effect"
-
-class A extends Schema.RequestClass<A>("A")({
-  payload: Schema.Struct({
-    a: Schema.String
-  }),
-  success: Schema.String,
-  error: Schema.Number
-}) {}
-```
-
 # Serialization
 
 Serialization converts typed values into a format suitable for storage or transmission (such as JSON, FormData, or XML). Deserialization reverses the process, turning raw data back into typed values. Schema provides built-in support for several common formats.
