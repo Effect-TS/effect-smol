@@ -3,16 +3,15 @@
  */
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
-import { constant, identity } from "./Function.ts"
-import { PipeInspectableProto, YieldableProto } from "./internal/core.ts"
+import { identity } from "./Function.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import type * as Schedule from "./Schedule.ts"
 import type * as Scope from "./Scope.ts"
 import * as ScopedRef from "./ScopedRef.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import type { Invariant } from "./Types.ts"
 
-const TypeId = "~effect/Resource"
+const TypeId = "~effect/Resource" as const
 
 /**
  * A `Resource` is a value loaded into memory that can be refreshed manually or
@@ -21,9 +20,8 @@ const TypeId = "~effect/Resource"
  * @since 2.0.0
  * @category models
  */
-export interface Resource<in out A, in out E = never>
-  extends Resource.Variance<A, E>, Pipeable, Effect.Yieldable<Resource<A, E>, A, E>
-{
+export interface Resource<in out A, in out E = never> extends Pipeable {
+  readonly [TypeId]: typeof TypeId
   readonly scopedRef: ScopedRef.ScopedRef<Exit.Exit<A, E>>
   readonly acquire: Effect.Effect<A, E>
 }
@@ -36,38 +34,13 @@ export const isResource: (u: unknown) => u is Resource<unknown, unknown> = (
   u: unknown
 ): u is Resource<unknown, unknown> => typeof u === "object" && u !== null && TypeId in u
 
-/**
- * @since 2.0.0
- */
-export declare namespace Resource {
-  /**
-   * @since 2.0.0
-   * @category models
-   */
-  export interface Variance<in out A, in out E> {
-    readonly [TypeId]: {
-      readonly _A: Invariant<A>
-      readonly _E: Invariant<E>
-    }
-  }
-}
-
 const Proto = {
   ...PipeInspectableProto,
-  ...YieldableProto,
-  [TypeId]: {
-    _A: identity,
-    _E: identity
-  },
+  [TypeId]: TypeId,
   toJSON() {
     return {
       _id: "Resource"
     }
-  },
-  asEffect(this: Resource<any, any>) {
-    const effect = get(this)
-    this.asEffect = constant(effect)
-    return effect
   }
 }
 
@@ -114,10 +87,7 @@ export const auto = <A, E, R, Out, E2, R2>(
 ): Effect.Effect<Resource<A, E>, never, R | R2 | Scope.Scope> =>
   Effect.tap(
     manual(acquire),
-    (self) =>
-      Effect.forkScoped(
-        Effect.interruptible(Effect.repeat(refresh(self), policy))
-      ).pipe(Effect.asVoid)
+    (self) => Effect.forkScoped(Effect.repeat(refresh(self), policy))
   )
 
 /**

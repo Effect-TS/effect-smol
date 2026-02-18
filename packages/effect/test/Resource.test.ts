@@ -49,13 +49,4 @@ describe("Resource", () => {
       assert.strictEqual(result1, 0)
       assert.strictEqual(result2, 0)
     }))
-
-  it.effect("is yieldable", () =>
-    Effect.gen(function*() {
-      const ref = yield* Ref.make(0)
-      const resource = yield* Resource.manual(Ref.get(ref))
-      const result = yield* resource
-
-      assert.strictEqual(result, 0)
-    }))
 })
