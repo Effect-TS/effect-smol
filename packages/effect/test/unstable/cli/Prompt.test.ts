@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Path } from "effect"
+import { Effect, FileSystem, Layer, Path, Redacted } from "effect"
 import { TestConsole } from "effect/testing"
 import { Prompt } from "effect/unstable/cli"
 import * as MockTerminal from "./services/MockTerminal.ts"
@@ -63,6 +63,38 @@ describe("Prompt.float", () => {
 
       assert.isTrue(rendered.includes("12.5"))
       assert.isFalse(rendered.includes("parsed"))
+    }).pipe(Effect.provide(TestLayer)))
+})
+
+describe("Prompt.text", () => {
+  it.effect("starts from the default value so it can be edited", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.text({
+        message: "Name",
+        default: "Jane"
+      })
+
+      yield* MockTerminal.inputText(" Doe")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "Jane Doe")
+    }).pipe(Effect.provide(TestLayer)))
+})
+
+describe("Prompt.password", () => {
+  it.effect("starts from the default value so it can be edited", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.password({
+        message: "Password",
+        default: "secret"
+      })
+
+      yield* MockTerminal.inputText("123")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(Redacted.value(result), "secret123")
     }).pipe(Effect.provide(TestLayer)))
 })
 

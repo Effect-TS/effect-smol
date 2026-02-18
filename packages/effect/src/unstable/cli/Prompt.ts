@@ -3321,8 +3321,8 @@ const basePrompt = (
   }
 
   const initialState: TextState = {
-    cursor: 0,
-    value: "",
+    cursor: opts.default.length,
+    value: opts.default,
     error: undefined
   }
   return custom(initialState, {
