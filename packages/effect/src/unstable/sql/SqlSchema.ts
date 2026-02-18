@@ -4,6 +4,7 @@
 import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
+import type * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
@@ -64,12 +65,44 @@ export {
 }
 
 /**
- * Run a sql query with a request schema and a result schema and return the first result.
+ * Run a sql query with a request schema and a result schema and return the first result, if any.
  *
  * @since 4.0.0
  * @category constructor
  */
 export const findOne = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
+  options: {
+    readonly Request: Req
+    readonly Result: Res
+    readonly execute: (request: Req["Encoded"]) => Effect.Effect<ReadonlyArray<unknown>, E, R>
+  }
+) => {
+  const encodeRequest = Schema.encodeEffect(options.Request)
+  const decode = Schema.decodeUnknownEffect(options.Result)
+  return (
+    request: Req["Type"]
+  ): Effect.Effect<
+    Option.Option<Res["Type"]>,
+    E | Schema.SchemaError,
+    R | Req["EncodingServices"] | Res["DecodingServices"]
+  > =>
+    Effect.flatMap(
+      Effect.flatMap(encodeRequest(request), options.execute),
+      (arr): Effect.Effect<
+        Option.Option<Res["Type"]>,
+        Schema.SchemaError,
+        Req["EncodingServices"] | Res["DecodingServices"]
+      > => Arr.isReadonlyArrayNonEmpty(arr) ? Effect.asSome(decode(arr[0])) : Effect.succeedNone
+    )
+}
+
+/**
+ * Run a sql query with a request schema and a result schema and return the first result.
+ *
+ * @since 4.0.0
+ * @category constructor
+ */
+export const single = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
   options: {
     readonly Request: Req
     readonly Result: Res

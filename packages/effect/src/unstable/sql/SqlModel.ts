@@ -69,7 +69,7 @@ export const makeRepository = <
     const idSchema = Model.fields[options.idColumn] as Schema.Top
     const idColumn = options.idColumn as string
 
-    const insertSchema = SqlSchema.findOne({
+    const insertSchema = SqlSchema.single({
       Request: Model.insert,
       Result: Model,
       execute: (request) =>
@@ -107,7 +107,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
         })
       ) as any
 
-    const updateSchema = SqlSchema.findOne({
+    const updateSchema = SqlSchema.single({
       Request: Model.update,
       Result: Model,
       execute: (request: any) =>
@@ -159,7 +159,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
         })
       ) as any
 
-    const findByIdSchema = SqlSchema.findOne({
+    const findByIdSchema = SqlSchema.single({
       Request: idSchema,
       Result: Model,
       execute: (id: any) => sql`select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${id}`
