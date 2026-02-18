@@ -808,12 +808,12 @@ const makeStreamResponse = Effect.fnUntraced(
     let activeTextId: string | undefined = undefined
 
     let totalToolCalls = 0
-    const activeToolCalls: Array<{
+    const activeToolCalls: Record<number, {
       readonly id: string
       readonly type: "function"
       readonly name: string
       params: string
-    }> = []
+    }> = {}
 
     // Track reasoning details to preserve for multi-turn conversations
     const accumulatedReasoningDetails: DeepMutable<ReasoningDetails> = []
@@ -1158,7 +1158,7 @@ const makeStreamResponse = Effect.fnUntraced(
 
           // Forward any unsent tool calls if finish reason is 'tool-calls'
           if (finishReason === "tool-calls") {
-            for (const toolCall of activeToolCalls) {
+            for (const toolCall of Object.values(activeToolCalls)) {
               // Coerce invalid tool call parameters to an empty object
               let params: unknown
               // @effect-diagnostics-next-line tryCatchInEffectGen:off
