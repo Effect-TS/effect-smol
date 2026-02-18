@@ -3104,6 +3104,36 @@ export const catchIf: {
 } = internal.catchIf
 
 /**
+ * Catches `NoSuchElementError` failures and converts them to `Option.none`.
+ *
+ * Success values become `Option.some`, `NoSuchElementError` becomes
+ * `Option.none`, and all other errors are preserved.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Option } from "effect"
+ *
+ * const some = Effect.fromNullishOr(1).pipe(Effect.catchNoSuchElement)
+ * const none = Effect.fromNullishOr(null).pipe(Effect.catchNoSuchElement)
+ *
+ * Effect.runPromise(some).then(console.log) // { _id: 'Option', _tag: 'Some', value: 1 }
+ * Effect.runPromise(none).then(console.log) // { _id: 'Option', _tag: 'None' }
+ * ```
+ *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Effect.optionFromOptional`
+ *
+ * @since 2.0.0
+ * @category Error Handling
+ */
+export const catchNoSuchElement: <A, E, R>(
+  self: Effect<A, E, R>
+) => Effect<Option<A>, Exclude<E, Cause.NoSuchElementError>, R> = internal.catchNoSuchElement
+
+/**
  * Recovers from specific failures based on a predicate.
  *
  * This function allows you to conditionally catch and recover from failures

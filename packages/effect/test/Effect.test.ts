@@ -1636,6 +1636,22 @@ describe("Effect", () => {
         )
         assert.deepStrictEqual(result, 1)
       }))
+
+    it.effect("catchNoSuchElement", () =>
+      Effect.gen(function*() {
+        const some = yield* Effect.fromNullishOr("value").pipe(Effect.catchNoSuchElement)
+        assert.deepStrictEqual(some, Option.some("value"))
+
+        const none = yield* Effect.fromNullishOr(null as string | null).pipe(Effect.catchNoSuchElement)
+        assert.deepStrictEqual(none, Option.none())
+      }))
+
+    it.effect("catchNoSuchElement preserves other errors", () =>
+      Effect.gen(function*() {
+        const error = new ErrorA()
+        const result = yield* Effect.fail(error).pipe(Effect.catchNoSuchElement, Effect.exit)
+        assert.deepStrictEqual(result, Exit.fail(error))
+      }))
   })
 
   describe("zip", () => {
