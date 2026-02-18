@@ -2899,6 +2899,62 @@ console.log(Schema.encodeSync(schema)({ foo: Option.some("hi") }))
 // Output: { foo: "hi" }
 ```
 
+## Omitting a Key During Encoding
+
+Use `SchemaGetter.omit()` to exclude a field from the encoded output. At runtime, `omit()` returns `Option.none()`, which tells the struct parser to skip writing that key.
+
+For this to work, the encoded side must be marked as optional with `Schema.optionalKey`. Otherwise, producing `None` for a required field causes a `MissingKey` error.
+
+**Example** (Field present when decoded, omitted when encoded)
+
+```ts
+import { Schema, SchemaGetter } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.FiniteFromString,
+  b: Schema.String.pipe(
+    Schema.encodeTo(Schema.optionalKey(Schema.String), {
+      decode: SchemaGetter.withDefault(() => "default_value"),
+      encode: SchemaGetter.omit()
+    })
+  )
+})
+
+//     ┌─── { readonly a: string; readonly b?: string; }
+//     ▼
+type Encoded = typeof schema.Encoded
+
+//     ┌─── { readonly a: number; readonly b: string; }
+//     ▼
+type Type = typeof schema.Type
+
+console.log(Schema.decodeUnknownSync(schema)({ a: "1", b: "value" }))
+// Output: { a: 1, b: "value" }
+
+console.log(Schema.decodeUnknownSync(schema)({ a: "1" }))
+// Output: { a: 1, b: "default_value" }
+
+console.log(Schema.encodeSync(schema)({ a: 1, b: "default_value" }))
+// Output: { a: "1" }
+```
+
+For the common case of a discriminator tag that should be omitted during encoding, use `Schema.tagDefaultOmit`:
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  _tag: Schema.tagDefaultOmit("MyTag"),
+  a: Schema.FiniteFromString
+})
+
+console.log(Schema.decodeUnknownSync(schema)({ a: "1" }))
+// Output: { a: 1, _tag: "MyTag" }
+
+console.log(Schema.encodeSync(schema)({ a: 1, _tag: "MyTag" }))
+// Output: { a: "1" }
+```
+
 # Flipping Schemas
 
 Flipping a schema swaps its decoding and encoding directions. If a schema decodes a `string` into a `number`, the flipped version decodes a `number` into a `string`. This is useful when you want to reuse an existing schema but invert its direction.
