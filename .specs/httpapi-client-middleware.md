@@ -22,7 +22,7 @@ The Rpc module already supports client middleware via `RpcMiddleware.layerClient
 The client-side middleware function signature, analogous to `RpcMiddlewareClient`:
 
 ```ts
-export interface HttpApiMiddlewareClient<E, CE, R> {
+export interface HttpApiMiddlewareClient<CE, R> {
   (options: {
     readonly endpoint: HttpApiEndpoint.AnyWithProps
     readonly group: HttpApiGroup.AnyWithProps
@@ -44,7 +44,7 @@ Key differences from `RpcMiddlewareClient`:
 - `next` returns an `HttpClientResponse` (not `SuccessValue`)
 - `next` only fails with `HttpClientError.HttpClientError` (transport-level errors); server-side middleware errors arrive via the HTTP response body and are decoded after the middleware chain
 - `options` includes `endpoint` and `group` metadata (not `rpc`)
-- The `E` type param from `RpcMiddlewareClient` is not used because server-side errors are not surfaced in the client middleware chain's effect error channel
+- No `E` type param, because server-side errors are not surfaced in the client middleware chain's effect error channel
 
 #### `ForClient<Id>`
 
@@ -127,15 +127,12 @@ export interface AnyKey extends ServiceMap.Service<any, any> {
 
 #### Updated `AnyId` type
 
-Add `error`, `clientError`, and `requires` to the type-level identifier. Currently `AnyId` only has `provides`, but `Requires<A>` (line 96) and `ErrorSchema<A>` (line 108) already extract from `A[TypeId]["requires"]` and `A[TypeId]["error"]` respectively — these should be present for consistency:
-
 ```ts
 export interface AnyId {
   readonly [TypeId]: {
     readonly provides: any
-    readonly requires: any // NEW (fixes pre-existing gap)
-    readonly error: Schema.Top // NEW (fixes pre-existing gap)
     readonly clientError: any // NEW
+    readonly requiredForClient: boolean // NEW
   }
 }
 ```
@@ -184,9 +181,8 @@ export const layerClient = (tag, service) =>
 Extracts the client error type from middleware. Only includes errors from middleware where `requiredForClient: true`, since optional middleware may not be running:
 
 ```ts
-export type ClientError<A> = A extends { readonly [TypeId]: { readonly clientError: infer CE } }
-  ? A extends { readonly requiredForClient: true } ? CE
-  : never
+export type ClientError<A> = A extends
+  { readonly [TypeId]: { readonly requiredForClient: true; readonly clientError: infer CE } } ? CE
   : never
 ```
 
@@ -252,7 +248,6 @@ Security middleware participates in client middleware identically to regular mid
 Update the `Client.Method` type to include:
 
 - `HttpApiMiddleware.ClientError<_Middleware>` in the error channel (for typed client-side errors)
-- `HttpApiEndpoint.MiddlewareClient<Endpoint>` in the context channel (for required client middleware layers)
 
 ```ts
 export type Method<Endpoint, E, R> = [Endpoint] extends [
@@ -272,7 +267,6 @@ export type Method<Endpoint, E, R> = [Endpoint] extends [
     | HttpClientError.HttpClientError
     | Schema.SchemaError,
     | R
-    | HttpApiEndpoint.MiddlewareClient<Endpoint>   // NEW
     | _Params["EncodingServices"]
     | _Query["EncodingServices"]
     | _Payload["EncodingServices"]
@@ -284,7 +278,9 @@ export type Method<Endpoint, E, R> = [Endpoint] extends [
 
 The `ForClient<Id>` requirement surfaces per-method-call (like schema encoding/decoding services), not at the `make`/`makeWith` level. This is consistent with how other service requirements are handled.
 
-The constructor return types (`make`, `makeWith`, `group`, `endpoint`) do not need changes — the middleware context requirements flow through the `Client` → `Client.Group` → `Client.Method` type chain and surface when individual endpoint methods are called.
+The constructor return types (`make`, `makeWith`, `group`, `endpoint`) need changes.
+
+- `HttpApiEndpoint.MiddlewareClient<Endpoinds>` in the context channel (for required client middleware layers)
 
 ## Usage Example
 
@@ -313,12 +309,11 @@ import { HttpApiMiddleware } from "effect/unstable"
 
 const AuthClient = HttpApiMiddleware.layerClient(
   AuthMiddleware,
-  ({ next, request, endpoint, group }) =>
-    Effect.gen(function*() {
-      const token = yield* TokenStore
-      const authedRequest = HttpClientRequest.setHeader(request, "authorization", `Bearer ${token}`)
-      return yield* next(authedRequest)
-    })
+  Effect.fnUntraced(function*({ next, request, endpoint, group }) {
+    const token = yield* TokenStore
+    const authedRequest = HttpClientRequest.setHeader(request, "authorization", `Bearer ${token}`)
+    return yield* next(authedRequest)
+  })
 )
 ```
 
@@ -410,7 +405,8 @@ Runtime changes in `makeClient`:
 
 Type changes:
 
-- `Client.Method`: add `HttpApiMiddleware.ClientError<_Middleware>` to error channel, `HttpApiEndpoint.MiddlewareClient<Endpoint>` to context channel
+- `Client.Method`: add `HttpApiMiddleware.ClientError<_Middleware>` to error channel
+- Client constructors: `HttpApiEndpoint.MiddlewareClient<Endpoints>` to context channel
 
 These must be done together — the runtime chain and type-level changes are co-dependent. Shipping type changes without the runtime is misleading; shipping runtime without types means incorrect error/context channels.
 

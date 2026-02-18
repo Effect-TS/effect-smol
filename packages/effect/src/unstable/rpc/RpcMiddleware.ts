@@ -53,13 +53,11 @@ export interface SuccessValue {
  * @category models
  */
 export interface RpcMiddlewareClient<E, CE, R> {
-  (
-    options: {
-      readonly rpc: Rpc.AnyWithProps
-      readonly request: Request<Rpc.Any>
-      readonly next: (request: Request<Rpc.Any>) => Effect.Effect<SuccessValue, unhandled | E>
-    }
-  ): Effect.Effect<SuccessValue, unhandled | E | CE, R>
+  (options: {
+    readonly rpc: Rpc.AnyWithProps
+    readonly request: Request<Rpc.Any>
+    readonly next: (request: Request<Rpc.Any>) => Effect.Effect<SuccessValue, unhandled | E>
+  }): Effect.Effect<SuccessValue, unhandled | E | CE, R>
 }
 
 /**

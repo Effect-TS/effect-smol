@@ -61,17 +61,15 @@ export type HttpApiMiddlewareSecurity<
  * @since 4.0.0
  * @category models
  */
-export interface HttpApiMiddlewareClient<_E, CE, R> {
-  (
-    options: {
-      readonly endpoint: HttpApiEndpoint.AnyWithProps
-      readonly group: HttpApiGroup.AnyWithProps
-      readonly request: HttpClientRequest.HttpClientRequest
-      readonly next: (
-        request: HttpClientRequest.HttpClientRequest
-      ) => Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
-    }
-  ): Effect.Effect<HttpClientResponse.HttpClientResponse, CE | HttpClientError.HttpClientError, R>
+export interface HttpApiMiddlewareClient<CE, R> {
+  (options: {
+    readonly endpoint: HttpApiEndpoint.AnyWithProps
+    readonly group: HttpApiGroup.AnyWithProps
+    readonly request: HttpClientRequest.HttpClientRequest
+    readonly next: (
+      request: HttpClientRequest.HttpClientRequest
+    ) => Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
+  }): Effect.Effect<HttpClientResponse.HttpClientResponse, CE | HttpClientError.HttpClientError, R>
 }
 
 /**
@@ -111,8 +109,6 @@ export interface AnyKeySecurity extends AnyKey {
 export interface AnyId {
   readonly [TypeId]: {
     readonly provides: any
-    readonly requires: any
-    readonly error: Schema.Top
     readonly clientError: any
     readonly requiredForClient: boolean
   }
