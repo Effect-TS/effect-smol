@@ -62,6 +62,7 @@
     "dist/**/*.d.ts.map"
   ],
   "publishConfig": {
+    "access": "public",
     "provenance": true,
     "exports": {
       "./package.json": "./package.json",
