@@ -379,6 +379,12 @@ export type MiddlewareProvides<Endpoint extends Any> = HttpApiMiddleware.Provide
  * @since 4.0.0
  * @category models
  */
+export type MiddlewareClient<Endpoint extends Any> = HttpApiMiddleware.MiddlewareClient<Middleware<Endpoint>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export type MiddlewareError<Endpoint extends Any> = HttpApiMiddleware.Error<Middleware<Endpoint>>
 
 /**

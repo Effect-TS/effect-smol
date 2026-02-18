@@ -176,6 +176,12 @@ export type MiddlewareProvides<Group> = HttpApiEndpoint.MiddlewareProvides<Endpo
  * @since 4.0.0
  * @category models
  */
+export type MiddlewareClient<Group> = HttpApiEndpoint.MiddlewareClient<Endpoints<Group>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export type MiddlewareServices<Group> = HttpApiEndpoint.MiddlewareServices<Endpoints<Group>>
 
 /**
