@@ -38,6 +38,25 @@ established patterns before writing new code.
 Do not worry about getting code formatting perfect while writing. Use `pnpm lint-fix`
 to automatically format code according to the project's style guidelines.
 
+## Prefer `Effect.fnUntraced` over functions that return `Effect.gen`
+
+Instead of writing:
+
+```ts
+const fn = (param: string) =>
+  Effect.gen(function*() {
+    // ...
+  })
+```
+
+Prefer:
+
+```ts
+const fn = Effect.fnUntraced(function*(param: string) {
+  // ...
+})
+```
+
 ## Using `ServiceMap.Service`
 
 Prefer the class syntax when working with `ServiceMap.Service`. For example:
@@ -50,7 +69,7 @@ class MyService extends ServiceMap.Service<MyService, {
 }>()("MyService") {}
 ```
 
-### Barrel files
+## Barrel files
 
 The `index.ts` files are automatically generated. Do not manually edit them. Use
 `pnpm codegen` to regenerate barrel files after adding or removing modules.
@@ -82,3 +101,12 @@ functionality to follow established patterns.
 
 Before writing tests, look at existing tests in the codebase for similar
 functionality to follow established patterns.
+
+### Type level tests
+
+Type level tests are located in the `dtslint` directories of each package.
+
+You can run them with `pnpm test-types <filename>`.
+
+Take a look at the existing `.tst.ts` files for examples of how to write type
+level tests. They use the `tstyche` testing library.
