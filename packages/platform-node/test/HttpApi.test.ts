@@ -405,6 +405,61 @@ describe("HttpApi", () => {
       }).pipe(Effect.provide(ApiLive))
     })
 
+    it.effect("required security middleware participates in client requirements", () => {
+      class RequiredSecurity extends HttpApiMiddleware.Service<RequiredSecurity>()("Http/RequiredSecurity", {
+        security: {
+          cookie: HttpApiSecurity.apiKey({
+            in: "cookie",
+            key: "token"
+          })
+        },
+        requiredForClient: true
+      }) {}
+
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("a", "/a", {
+            success: Schema.String
+          }).middleware(RequiredSecurity)
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) => handlers.handle("a", (ctx) => Effect.succeed(ctx.request.headers.cookie ?? "missing"))
+      )
+      const RequiredSecurityLive = Layer.succeed(RequiredSecurity)({
+        cookie: (effect, _opts) => effect
+      })
+      const RequiredSecurityClient = HttpApiMiddleware.layerClient(
+        RequiredSecurity,
+        ({ next, request }) => next(HttpClientRequest.setHeader(request, "cookie", "token=required-security"))
+      )
+
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive), Layer.provide(RequiredSecurityLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        const client = yield* HttpApiClient.make(Api)
+        const expectRequiredClient = (
+          _: Effect.Effect<
+            unknown,
+            unknown,
+            HttpApiMiddleware.ForClient<ServiceMap.Service.Identifier<typeof RequiredSecurity>>
+          >
+        ) => _
+
+        expectRequiredClient(client.group.a())
+
+        yield* assertClientText(
+          client.group.a().pipe(Effect.provide(RequiredSecurityClient)),
+          "token=required-security"
+        )
+      }).pipe(Effect.provide(ApiLive))
+    })
+
     it.effect("security middleware participates in client middleware", () =>
       Effect.gen(function*() {
         const AuthorizationClient = HttpApiMiddleware.layerClient(Authorization, ({ next, request }) =>
