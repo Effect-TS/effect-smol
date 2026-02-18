@@ -15,3 +15,4 @@ This directory contains specifications for all major features and enhancements i
 - [devtools-v3-port.md](devtools-v3-port.md) - Port Effect v3 DevTools modules into `effect/unstable/devtools`.
 - [cli-completions-refactor.md](cli-completions-refactor.md) - Replace dynamic CLI completions with static shell script generation for Bash, Zsh, and Fish.
 - [ai-openai-compat.md](ai-openai-compat.md) - Add a minimal-schema OpenAI compat package for LanguageModel + embeddings.
+- [httpapi-client-middleware.md](httpapi-client-middleware.md) - Add client-side middleware support to HttpApi, mirroring Rpc's `RpcMiddleware.layerClient` pattern.
