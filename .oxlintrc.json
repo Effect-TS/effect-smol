@@ -6,6 +6,7 @@
     "**/build",
     "**/docs",
     "**/.tsbuildinfo",
+    "packages/**/CHANGELOG.md",
     "!scratchpad/**/*",
     ".agents/**/*",
     ".context/**/*"
