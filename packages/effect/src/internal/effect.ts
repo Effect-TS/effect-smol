@@ -5001,8 +5001,10 @@ export const makeSpanUnsafe = <XA, XE>(
       startTime: timingEnabled ? clock.currentTimeNanosUnsafe() : 0n,
       kind: options?.kind ?? "internal",
       root: options?.root ?? options?.parent === undefined,
-      sampled: options?.sampled ?? parent?.sampled ??
-        !isLogLevelGreaterThan(fiber.getRef(Tracer.MinimumTraceLevel), level)
+      sampled: options?.sampled ??
+        (parent?.sampled === false
+          ? false
+          : !isLogLevelGreaterThan(fiber.getRef(Tracer.MinimumTraceLevel), level))
     })
 
     for (const [key, value] of Object.entries(annotationsFromEnv)) {

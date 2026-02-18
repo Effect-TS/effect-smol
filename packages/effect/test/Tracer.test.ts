@@ -61,6 +61,23 @@ describe("Tracer", () => {
         strictEqual(span.parent?.spanId, "000")
       }))
 
+    it.effect("should still apply minimum trace level with sampled parent spans", () =>
+      Effect.gen(function*() {
+        const span = yield* Effect.currentSpan.pipe(
+          Effect.withSpan("A", {
+            parent: Tracer.externalSpan({
+              spanId: "000",
+              traceId: "111",
+              sampled: true
+            }),
+            level: "Info"
+          }),
+          Effect.provideService(Tracer.MinimumTraceLevel, "Error")
+        )
+
+        strictEqual(span.sampled, false)
+      }))
+
     it.effect("should not set the parent span when none exists", () =>
       Effect.gen(function*() {
         const span = yield* Effect.withSpan(Effect.currentSpan, "A")
