@@ -166,7 +166,7 @@ describe("HttpApi", () => {
         "group",
         (handlers) => handlers.handle("a", (ctx) => Effect.succeed(ctx.request.headers["x-client"] ?? "missing"))
       )
-      const MLive = Layer.succeed(M, (effect: Effect.Effect<any, any, any>) => effect)
+      const MLive = Layer.succeed(M, (effect) => effect)
 
       const ApiLive = HttpRouter.serve(
         HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive), Layer.provide(MLive)),
@@ -223,8 +223,8 @@ describe("HttpApi", () => {
             (ctx) => Effect.succeed(`${ctx.request.headers["x-m1"] ?? "0"}${ctx.request.headers["x-m2"] ?? "0"}`)
           )
       )
-      const M1Live = Layer.succeed(M1, (effect: Effect.Effect<any, any, any>) => effect)
-      const M2Live = Layer.succeed(M2, (effect: Effect.Effect<any, any, any>) => effect)
+      const M1Live = Layer.succeed(M1, (effect) => effect)
+      const M2Live = Layer.succeed(M2, (effect) => effect)
 
       const ApiLive = HttpRouter.serve(
         HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive), Layer.provide(M1Live), Layer.provide(M2Live)),
@@ -255,8 +255,7 @@ describe("HttpApi", () => {
         )
 
         const client = yield* HttpApiClient.make(Api).pipe(
-          Effect.provide(M1Client),
-          Effect.provide(M2Client)
+          Effect.provide([M1Client, M2Client])
         )
 
         assert.strictEqual(yield* client.group.a(), "11")
@@ -295,7 +294,7 @@ describe("HttpApi", () => {
               return "ok"
             }))
       )
-      const MLive = Layer.succeed(M, (effect: Effect.Effect<any, any, any>) => effect)
+      const MLive = Layer.succeed(M, (effect) => effect)
 
       const ApiLive = HttpRouter.serve(
         HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive), Layer.provide(MLive)),
@@ -305,9 +304,7 @@ describe("HttpApi", () => {
       return Effect.gen(function*() {
         const MClient = HttpApiMiddleware.layerClient(
           M,
-          Effect.fnUntraced(function*() {
-            return yield* Effect.fail(new ClientFailure({}))
-          })
+          () => Effect.fail(new ClientFailure({}))
         )
 
         const client = yield* HttpApiClient.make(Api).pipe(
@@ -336,7 +333,7 @@ describe("HttpApi", () => {
         "group",
         (handlers) => handlers.handle("a", (ctx) => Effect.succeed(ctx.request.headers["x-optional"] ?? "missing"))
       )
-      const MLive = Layer.succeed(M, (effect: Effect.Effect<any, any, any>) => effect)
+      const MLive = Layer.succeed(M, (effect) => effect)
 
       const ApiLive = HttpRouter.serve(
         HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive), Layer.provide(MLive)),
@@ -370,7 +367,7 @@ describe("HttpApi", () => {
         "group",
         (handlers) => handlers.handle("a", (ctx) => Effect.succeed(ctx.request.headers["x-effect"] ?? "missing"))
       )
-      const MLive = Layer.succeed(M, (effect: Effect.Effect<any, any, any>) => effect)
+      const MLive = Layer.succeed(M, (effect) => effect)
 
       const ApiLive = HttpRouter.serve(
         HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive), Layer.provide(MLive)),
@@ -411,11 +408,9 @@ describe("HttpApi", () => {
 
       const Api = HttpApi.make("api").add(
         HttpApiGroup.make("group")
-          .add(
-            HttpApiEndpoint.get("a", "/a", {
-              success: Schema.String
-            })
-          )
+          .add(HttpApiEndpoint.get("a", "/a", {
+            success: Schema.String
+          }))
           .middleware(M)
       )
       const GroupLive = HttpApiBuilder.group(

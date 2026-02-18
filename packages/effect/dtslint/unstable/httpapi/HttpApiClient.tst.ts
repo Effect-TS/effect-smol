@@ -296,8 +296,10 @@ describe("HttpApiClient", () => {
 
       const client = Effect.runSync(
         HttpApiClient.make(Api).pipe(
-          Effect.provide(FetchHttpClient.layer),
-          Effect.provide(HttpApiMiddleware.layerClient(RequiredMiddleware, ({ next, request }) => next(request)))
+          Effect.provide([
+            FetchHttpClient.layer,
+            HttpApiMiddleware.layerClient(RequiredMiddleware, ({ next, request }) => next(request))
+          ])
         )
       )
       const f = client.group.a
