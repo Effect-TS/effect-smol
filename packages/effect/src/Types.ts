@@ -948,3 +948,34 @@ export type ExtractReason<E, K extends string> = E extends { readonly reason: in
 export type ExcludeReason<E, K extends string> = E extends { readonly reason: infer R }
   ? Exclude<R, { readonly _tag: K }>
   : never
+
+
+/**
+ * Represents a class constructor that produces instances of type `T`.
+ *
+ * - Useful for typing class-based dependencies, DI containers, or mixins.
+ * - Accepts any constructor arguments.
+ *
+ * **Example** (Using constructor type)
+ *
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * class User {
+ *   constructor(public name: string) {}
+ * }
+ *
+ * function create<T, Args extends ReadonlyArray<any>>(ctor: Ctor<T, Args>, ...args: Args): T {
+ *   return new ctor(...args)
+ * }
+ *
+ * const user = create(User, "John")
+ * // User
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface Ctor<T = any, Args extends ReadonlyArray<any> = ReadonlyArray<any>> {
+  new(...args: Args): T
+}
