@@ -2453,7 +2453,7 @@ export class Suspend extends Base {
  * @category model
  * @since 4.0.0
  */
-export class Filter<in E> extends Pipeable.Class() {
+export class Filter<in E> extends Pipeable.Class {
   readonly _tag = "Filter"
   readonly run: (input: E, self: AST, options: ParseOptions) => Issue.Issue | undefined
   readonly annotations: Schema.Annotations.Filter | undefined
@@ -2500,7 +2500,7 @@ export class Filter<in E> extends Pipeable.Class() {
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<in E> extends Pipeable.Class() {
+export class FilterGroup<in E> extends Pipeable.Class {
   readonly _tag = "FilterGroup"
   readonly checks: readonly [Check<E>, ...Array<Check<E>>]
   readonly annotations: Schema.Annotations.Filter | undefined

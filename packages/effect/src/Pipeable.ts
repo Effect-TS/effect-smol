@@ -2,8 +2,6 @@
  * @since 2.0.0
  */
 
-import type { Ctor } from "./Types.ts"
-
 /**
  * @since 2.0.0
  * @category models
@@ -555,12 +553,6 @@ export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
 
 /**
  * @since 4.0.0
- * @category models
- */
-export interface PipeableConstructor extends Ctor<Pipeable> {}
-
-/**
- * @since 4.0.0
  */
 export const Prototype: Pipeable = {
   pipe() {
@@ -570,8 +562,9 @@ export const Prototype: Pipeable = {
 
 /**
  * @since 4.0.0
+ * @category constructors
  */
-const Base: PipeableConstructor = (function() {
+export const Class: new() => Pipeable = (function() {
   function PipeableBase() {}
   PipeableBase.prototype = Prototype
   return PipeableBase as any
@@ -579,16 +572,21 @@ const Base: PipeableConstructor = (function() {
 
 /**
  * @since 4.0.0
+ * @category models
+ */
+export interface PipeableConstructor {
+  new(...args: ReadonlyArray<any>): Pipeable
+}
+
+/**
+ * @since 4.0.0
  * @category constructors
  */
-export const Class: {
-  (): PipeableConstructor
-  <TBase extends Ctor>(klass: TBase): TBase & PipeableConstructor
-} = (klass?: Ctor) =>
-  klass ?
-    class extends klass {
-      pipe() {
-        return pipeArguments(this, arguments)
-      }
+export const Mixin = <TBase extends new(...args: ReadonlyArray<any>) => any>(
+  klass: TBase
+): TBase & PipeableConstructor =>
+  class extends klass {
+    pipe() {
+      return pipeArguments(this, arguments)
     }
-    : Base
+  }

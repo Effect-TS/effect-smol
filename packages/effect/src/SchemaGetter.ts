@@ -88,7 +88,7 @@ import * as DateTime from "./DateTime.ts"
 import * as Effect from "./Effect.ts"
 import * as Encoding from "./Encoding.ts"
 import * as Option from "./Option.ts"
-import { Class } from "./Pipeable.ts"
+import * as Pipeable from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
@@ -134,7 +134,7 @@ import * as Str from "./String.ts"
  * @category model
  * @since 4.0.0
  */
-export class Getter<out T, in E, R = never> extends Class() {
+export class Getter<out T, in E, R = never> extends Pipeable.Class {
   readonly run: (
     input: Option.Option<E>,
     options: AST.ParseOptions
