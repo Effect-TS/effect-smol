@@ -153,11 +153,9 @@ Use `Effect.ignoreCause` anywhere you need to swallow ALL failures including def
 
 ## 15. `ServiceMap.Service` is Not an `Effect`
 
-**Symptom:** `Maximum call stack size exceeded` or `Not a valid effect` at runtime
+**Symptom:** `Not a valid effect` at runtime
 
 `ServiceMap.Service` is `Yieldable` (works with `yield*` in generators) and `Pipeable` but NOT an `Effect`. Piping with `Effect.flatMap` wraps the service tag as an effect operand, which the runtime can't evaluate.
-
-The Formatter then tries `String(service)` → `toString()` → `format(this)` → `safeToString(this)` → `toString()` → infinite recursion (beta bug).
 
 ```ts
 // BROKEN — Service is not an Effect, runtime can't evaluate it
