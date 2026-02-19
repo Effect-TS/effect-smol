@@ -319,17 +319,21 @@ const make = Effect.gen(function*() {
       }
     }
 
-    // Pipe stdout to both its own PassThrough and the combined PassThrough
+    // Pipe stdout to its own PassThrough for individual access.
+    // For the combined stream, use 'data' events instead of .pipe() to
+    // decouple backpressure — if nobody reads .all, the combinedPassThrough
+    // would fill up and .pipe() would pause nodeStdout, blocking the
+    // individual stdoutPassThrough too.
     if (Predicate.isNotNull(nodeStdout) && Predicate.isNotNull(stdoutPassThrough)) {
       nodeStdout.pipe(stdoutPassThrough)
-      nodeStdout.pipe(combinedPassThrough, { end: false })
+      nodeStdout.on("data", (chunk) => combinedPassThrough.write(chunk))
       nodeStdout.once("end", onStreamEnd)
     }
 
-    // Pipe stderr to both its own PassThrough and the combined PassThrough
+    // Same for stderr — use 'data' events for the combined stream
     if (Predicate.isNotNull(nodeStderr) && Predicate.isNotNull(stderrPassThrough)) {
       nodeStderr.pipe(stderrPassThrough)
-      nodeStderr.pipe(combinedPassThrough, { end: false })
+      nodeStderr.on("data", (chunk) => combinedPassThrough.write(chunk))
       nodeStderr.once("end", onStreamEnd)
     }
 
