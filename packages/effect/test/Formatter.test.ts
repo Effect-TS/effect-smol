@@ -1,4 +1,4 @@
-import { Option, Redactable, Redacted, Schema } from "effect"
+import { Option, Redactable, Redacted, Schema, ServiceMap } from "effect"
 import { format, formatJson } from "effect/Formatter"
 import { describe, it } from "vitest"
 import { strictEqual } from "./utils/assert.ts"
@@ -142,6 +142,26 @@ describe("Formatter", () => {
         a: Schema.String
       }) {}
       strictEqual(format(new E({ a: "a" })), `E({"a":"a"})`)
+    })
+
+    it("ServiceMap.Service", () => {
+      const MyService = ServiceMap.Service<{ readonly value: number }>("MyService")
+      const result = format(MyService)
+      strictEqual(result.includes(`"_id":"Service"`), true)
+      strictEqual(result.includes(`"key":"MyService"`), true)
+    })
+
+    it("ServiceMap.Service via String()", () => {
+      const MyService = ServiceMap.Service<{ readonly value: number }>("MyService")
+      const result = String(MyService)
+      strictEqual(result.includes(`"_id":"Service"`), true)
+      strictEqual(result.includes(`"key":"MyService"`), true)
+    })
+
+    it("ServiceMap.ServiceClass", () => {
+      class MyService extends ServiceMap.Service<MyService, { readonly value: number }>()("MyService") {}
+      strictEqual(format(MyService).includes(`"key":"MyService"`), true)
+      strictEqual(String(MyService).includes(`"key":"MyService"`), true)
     })
 
     it("FormData", () => {

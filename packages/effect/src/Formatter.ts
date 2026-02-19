@@ -122,6 +122,11 @@ export function format(input: unknown, options?: {
       return wrap(v, body)
     }
 
+    if (typeof v === "function") {
+      if (typeof (v as any).toJSON === "function") return recur((v as any).toJSON(), d)
+      return Function.prototype.toString.call(v)
+    }
+
     return String(v)
   }
 
