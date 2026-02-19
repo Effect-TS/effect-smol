@@ -320,7 +320,7 @@ describe("atom-react", () => {
 
       function Basic() {
         const value = useAtomValue(atomBasic)
-        return <div data-testid="value">{value}</div>
+        return <div data-testid="hydration-basic-value">{value}</div>
       }
 
       function Result1() {
@@ -361,7 +361,7 @@ describe("atom-react", () => {
         </RegistryContext.Provider>
       )
 
-      expect(screen.getByTestId("value")).toHaveTextContent("1")
+      expect(screen.getByTestId("hydration-basic-value")).toHaveTextContent("1")
       expect(screen.getByTestId("value-1")).toHaveTextContent("123")
       expect(screen.getByTestId("error-2")).toBeInTheDocument()
       expect(screen.getByTestId("loading-3")).toBeInTheDocument()
@@ -495,9 +495,79 @@ describe("atom-react", () => {
       expect(values[0].resultPromise).toBeUndefined()
     })
 
+    test("serializable encode/decode survives JSON roundtrip (wire transfer)", () => {
+      const atom = Atom.make(0 as never).pipe(
+        Atom.serializable({
+          key: "wire-test",
+          schema: AsyncResult.Schema({
+            success: Schema.Struct({ name: Schema.String }),
+            error: Schema.String
+          })
+        })
+      )
+
+      const original = AsyncResult.success({ name: "hello" })
+
+      // Encode using the atom's serializable encode
+      const encoded = atom[Atom.SerializableTypeId].encode(original)
+
+      // Simulate wire transfer (seroval / JSON serialization roundtrip)
+      const wireTransferred = JSON.parse(JSON.stringify(encoded))
+
+      // Decode after wire transfer — this was the bug: decode would fail
+      // because the encoded value lost its AsyncResult prototype
+      const decoded = atom[Atom.SerializableTypeId].decode(wireTransferred)
+
+      expect(AsyncResult.isAsyncResult(decoded)).toBe(true)
+      expect(decoded._tag).toBe("Success")
+      if (AsyncResult.isSuccess(decoded)) {
+        expect(decoded.value).toEqual({ name: "hello" })
+      }
+    })
+
+    test("dehydrate + JSON roundtrip + hydrate works (SSR simulation)", () => {
+      const atom = Atom.make(Effect.never as Effect.Effect<number>).pipe(
+        Atom.serializable({
+          key: "ssr-wire",
+          schema: AsyncResult.Schema({ success: Schema.Number })
+        })
+      )
+
+      // Server: dehydrate
+      const serverRegistry = AtomRegistry.make()
+      serverRegistry.mount(atom)
+      ;(serverRegistry.getNodes().get("ssr-wire") as any).setValue(
+        AsyncResult.success(42)
+      )
+      const dehydratedState = Hydration.dehydrate(serverRegistry)
+
+      // Simulate wire transfer (seroval / JSON)
+      const wireTransferred = JSON.parse(JSON.stringify(dehydratedState))
+
+      // Client: hydrate from wire-transferred state
+      function TestComponent() {
+        const value = useAtomValue(atom)
+        return (
+          <div data-testid="ssr-wire-value">
+            {AsyncResult.isSuccess(value) ? value.value : "not-success"}
+          </div>
+        )
+      }
+
+      render(
+        <RegistryContext.Provider value={AtomRegistry.make()}>
+          <HydrationBoundary state={wireTransferred}>
+            <TestComponent />
+          </HydrationBoundary>
+        </RegistryContext.Provider>
+      )
+
+      expect(screen.getByTestId("ssr-wire-value")).toHaveTextContent("42")
+    })
+
     test("empty state is a no-op", () => {
       function TestComponent() {
-        return <div data-testid="content">OK</div>
+        return <div data-testid="hydration-empty-state">OK</div>
       }
 
       render(
@@ -506,12 +576,12 @@ describe("atom-react", () => {
         </HydrationBoundary>
       )
 
-      expect(screen.getByTestId("content")).toHaveTextContent("OK")
+      expect(screen.getByTestId("hydration-empty-state")).toHaveTextContent("OK")
     })
 
     test("hydrate with no state is a no-op", () => {
       function TestComponent() {
-        return <div data-testid="content">OK</div>
+        return <div data-testid="hydration-no-state">OK</div>
       }
 
       render(
@@ -520,7 +590,7 @@ describe("atom-react", () => {
         </HydrationBoundary>
       )
 
-      expect(screen.getByTestId("content")).toHaveTextContent("OK")
+      expect(screen.getByTestId("hydration-no-state")).toHaveTextContent("OK")
     })
   })
 
