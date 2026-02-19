@@ -52,9 +52,26 @@ describe("Schedule", () => {
           Duration.millis(500),
           Duration.millis(500),
           Duration.millis(500),
-          Duration.zero,
+          Duration.seconds(1),
           Duration.seconds(1),
           Duration.seconds(1)
+        ])
+      }))
+
+    it.effect("andThenResult - emits right completion when right schedule is finite", () =>
+      Effect.gen(function*() {
+        const left = Schedule.fixed("500 millis").pipe(
+          Schedule.while(({ attempt }) => Effect.succeed(attempt <= 2))
+        )
+        const right = Schedule.duration("1 second")
+        const schedule = Schedule.andThenResult(left, right)
+        const inputs = Array.makeBy(5, constUndefined)
+        const outputs = yield* runDelays(schedule, inputs)
+        expect(outputs).toEqual([
+          Duration.millis(500),
+          Duration.millis(500),
+          Duration.seconds(1),
+          Duration.zero
         ])
       }))
   })

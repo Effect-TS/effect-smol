@@ -759,35 +759,50 @@ export const andThenResult: {
   self: Schedule<Output, Input, Error, Env>,
   other: Schedule<Output2, Input2, Error2, Env2>
 ): Schedule<Result.Result<Output2, Output>, Input & Input2, Error | Error2, Env | Env2> =>
-  fromStep(effect.map(
-    effect.zip(toStep(self), toStep(other)),
-    ([leftStep, rightStep]) => {
-      let currentStep: (now: number, input: Input & Input2) => Pull.Pull<
-        [Output | Output2, Duration.Duration],
-        Error | Error2,
-        Output | Output2,
-        Env | Env2
-      > = leftStep
-      let toResult: (output: Output | Output2) => Result.Result<Output2, Output> = Result.fail as any
-      return (now, input) =>
-        Pull.matchEffect(currentStep(now, input), {
-          onSuccess: ([output, duration]) =>
-            effect.succeed<[Result.Result<Output2, Output>, Duration.Duration]>([toResult(output), duration]),
-          onFailure: effect.failCause,
-          onDone: (output) =>
-            effect.suspend(() => {
-              const pull = effect.succeed<[Result.Result<Output2, Output>, Duration.Duration]>(
-                [toResult(output), Duration.zero]
-              )
-              if (currentStep === leftStep) {
-                currentStep = rightStep
-                toResult = Result.succeed as any
-              }
-              return pull
+  fromStep(effect.map(toStep(self), (leftStep) => {
+    let rightStep:
+      | undefined
+      | ((
+        now: number,
+        input: Input2
+      ) => Pull.Pull<[Output2, Duration.Duration], Error2, Output2, Env2>)
+    const runRight = (now: number, input: Input2) =>
+      effect.suspend(() =>
+        effect.flatMap(
+          rightStep === undefined
+            ? effect.flatMap(toStep(other), (step) =>
+              effect.sync(() => {
+                rightStep = step
+                return step
+              }))
+            : effect.succeed(rightStep),
+          (step) =>
+            Pull.matchEffect(step(now, input), {
+              onSuccess: ([output, duration]) =>
+                effect.succeed<[Result.Result<Output2, Output>, Duration.Duration]>([
+                  Result.succeed(output),
+                  duration
+                ]),
+              onFailure: effect.failCause,
+              onDone: (output) => Cause.done(Result.succeed(output))
             })
-        })
-    }
-  )))
+        )
+      )
+    return (now, input) =>
+      effect.suspend(() =>
+        rightStep === undefined
+          ? Pull.matchEffect(leftStep(now, input), {
+            onSuccess: ([output, duration]) =>
+              effect.succeed<[Result.Result<Output2, Output>, Duration.Duration]>([
+                Result.fail(output),
+                duration
+              ]),
+            onFailure: effect.failCause,
+            onDone: () => runRight(now, input)
+          })
+          : runRight(now, input)
+      )
+  })))
 
 /**
  * Combines two `Schedule`s by recurring if both of the two schedules want
