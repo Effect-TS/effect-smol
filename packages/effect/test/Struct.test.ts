@@ -165,6 +165,27 @@ describe("Struct", () => {
     })
   })
 
+  describe("Record", () => {
+    it("string keys", () => {
+      deepStrictEqual(Struct.Record(["a", "b"], "value"), { a: "value", b: "value" })
+    })
+
+    it("symbol keys", () => {
+      const s1 = Symbol.for("s1")
+      const s2 = Symbol.for("s2")
+      deepStrictEqual(Struct.Record([s1, s2], 42), { [s1]: 42, [s2]: 42 })
+    })
+
+    it("mixed keys", () => {
+      const sym = Symbol.for("sym")
+      deepStrictEqual(Struct.Record(["a", sym], true), { a: true, [sym]: true })
+    })
+
+    it("empty keys", () => {
+      deepStrictEqual(Struct.Record([], "value"), {})
+    })
+  })
+
   describe("makeReducer", () => {
     it("custom omitKeyWhen", () => {
       const R = Struct.makeReducer<{ n: number; s?: string | undefined }>(

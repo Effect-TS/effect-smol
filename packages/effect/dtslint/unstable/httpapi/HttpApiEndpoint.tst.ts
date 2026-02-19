@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Schema, Struct } from "effect"
 import { HttpApiEndpoint, type HttpApiError, HttpApiSchema } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
@@ -43,6 +43,15 @@ describe("HttpApiEndpoint", () => {
       })
       type T = typeof endpoint["~Query"]
       expect<T>().type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }>>()
+    })
+
+    it("should accept a Struct.Record", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        query: Struct.Record(["a", "b"], Schema.FiniteFromString)
+      })
+      type T = typeof endpoint["~Query"]
+      expect<T>().type.toBe<Schema.Struct<Record<"a" | "b", Schema.FiniteFromString>>>()
+      expect<T>().type.toBe<Schema.Struct<{ a: Schema.FiniteFromString; b: Schema.FiniteFromString }>>()
     })
 
     it("should not accept any other schema", () => {

@@ -705,4 +705,13 @@ describe("StructWithRest", () => {
       >
     >()
   })
+
+  it("Record", () => {
+    expect(Struct.Record([], "value" as const)).type.toBe<
+      Record<never, "value">
+    >()
+    expect(Struct.Record(["a", "b"], "value" as const)).type.toBe<
+      Record<"a" | "b", "value">
+    >()
+  })
 })

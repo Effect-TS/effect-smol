@@ -933,3 +933,29 @@ export function makeReducer<A>(
   }
   return Reducer.make(combine, initialValue)
 }
+
+/**
+ * Creates a record with the given keys and value.
+ *
+ * **Example** (Creating a record)
+ *
+ * ```ts
+ * import { Struct } from "effect"
+ *
+ * const record = Struct.Record(["a", "b"], "value")
+ * console.log(record) // { a: "value", b: "value" }
+ * ```
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function Record<const Keys extends ReadonlyArray<string | symbol>, Value>(
+  keys: Keys,
+  value: Value
+): Record<Keys[number], Value> {
+  const out: any = {}
+  for (const key of keys) {
+    out[key] = value
+  }
+  return out
+}
