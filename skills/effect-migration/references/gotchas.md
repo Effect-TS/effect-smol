@@ -170,6 +170,60 @@ With `noPropertyAccessFromIndexSignature`, Schema decoded types need brackets:
 // FIX:   config["maxRetries"]
 ```
 
+## 17. `Effect.ignore` No Longer Catches Defects
+
+**Symptom:** `SQLiteError: duplicate column name` or other defects crash through `Effect.ignore`
+
+In v3, `Effect.ignore` caught both typed errors and defects (used `catchAllCause`).
+In v4, `Effect.ignore` only catches typed errors (uses `matchEffect`). Defects propagate.
+
+```ts
+// BROKEN — defect passes through
+yield* sql.unsafe(`ALTER TABLE t ADD COLUMN c TEXT`).pipe(Effect.ignore)
+
+// FIX — ignoreCause catches defects too
+yield* sql.unsafe(`ALTER TABLE t ADD COLUMN c TEXT`).pipe(Effect.ignoreCause)
+```
+
+Use `Effect.ignoreCause` anywhere you need to swallow ALL failures including defects.
+
+## 18. `ServiceMap.Service` is Not an `Effect`
+
+**Symptom:** `Maximum call stack size exceeded` or `Not a valid effect` at runtime
+
+`ServiceMap.Service` is `Yieldable` (works with `yield*` in generators) and `Pipeable` but NOT an `Effect`. Piping with `Effect.flatMap` wraps the service tag as an effect operand, which the runtime can't evaluate.
+
+The Formatter then tries `String(service)` → `toString()` → `format(this)` → `safeToString(this)` → `toString()` → infinite recursion (beta bug).
+
+```ts
+// BROKEN — Service is not an Effect, runtime can't evaluate it
+AuthStore.pipe(
+  Effect.flatMap((auth) => auth.get("key")),
+  Effect.provide(layer),
+)
+
+// FIX (preferred) — .use() for single-op access
+AuthStore.use((auth) => auth.get("key")).pipe(Effect.provide(layer))
+
+// FIX — Effect.gen for multi-step
+Effect.gen(function* () {
+  const auth = yield* AuthStore
+  return yield* auth.get("key")
+}).pipe(Effect.provide(layer))
+
+// FIX — .asEffect() if you need the pipe chain
+AuthStore.asEffect().pipe(
+  Effect.flatMap((auth) => auth.get("key")),
+  Effect.provide(layer),
+)
+```
+
+**Service API in v4:**
+- `Service.use(fn)` — effectful access, returns `Effect<A, E, R | Identifier>`
+- `Service.useSync(fn)` — sync access, returns `Effect<A, never, Identifier>`
+- `Service.asEffect()` — converts to a real `Effect` (memoized)
+- `yield* Service` — still works in generators via `Yieldable`
+
 ## Post-Migration Checklist
 
 - [ ] No stale `.js` artifacts shadowing `.ts` test files
@@ -179,3 +233,6 @@ With `noPropertyAccessFromIndexSignature`, Schema decoded types need brackets:
 - [ ] No `Config.option(...).pipe(Effect.` patterns
 - [ ] Tests run (not just typecheck)
 - [ ] Large-output shell tests don't timeout
+- [ ] No `Effect.ignore` on code that throws defects (use `Effect.ignoreCause`)
+- [ ] No `ServiceTag.pipe(Effect.flatMap(...))` — use `.use()` or `Effect.gen`
+- [ ] No `Fiber.poll(fiber)` — use `fiber.pollUnsafe()`

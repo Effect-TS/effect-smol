@@ -21,6 +21,8 @@ Safe find-replace. No surrounding context needed.
 | `Effect.runtime<R>()` | `Effect.services<R>()` | Returns `ServiceMap<R>` |
 | `Effect.serviceOptional(` | `Effect.serviceOption(` | Return type changes |
 
+**Changed behavior:** `Effect.ignore` only catches typed errors in v4 (not defects). Use `Effect.ignoreCause` to swallow defects too.
+
 **Removed:** `Effect.try(() => ...)` (single-arg) — use `Effect.try({ try, catch })`. `Effect.forkAll` — removed.
 
 ## Context → ServiceMap

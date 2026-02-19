@@ -130,9 +130,10 @@ See `references/structural.md` for patterns requiring context.
 
 See `references/gotchas.md` for the full list.
 
-**Top 5 traps:**
-1. `PlatformError` is a namespace — use `PlatformError.PlatformError` for the type
-2. `Config.option(Config.string("X"))` can't be piped with `Effect.catchEager` — yield first
-3. `ServiceMap` is contravariant — `ServiceMap<never>` NOT assignable to `ServiceMap<any>`
-4. `.annotations()` silently returns `any` in v4 — must use `.annotate()`
-5. `ChildProcess.spawn` + large stdout output can deadlock — backpressure from unread `.all` stream
+**Top traps:**
+1. `Effect.ignore` no longer catches defects — use `Effect.ignoreCause` for defects
+2. `ServiceMap.Service` is NOT an `Effect` — can't `Tag.pipe(Effect.flatMap(...))`, use `.use(fn)` instead
+3. `Fiber.poll(f)` removed — use `f.pollUnsafe()` (sync, returns `Exit | undefined`)
+4. `PlatformError` is a namespace — use `PlatformError.PlatformError` for the type
+5. `Config.option(Config.string("X"))` can't be piped with `Effect.catchEager` — yield first
+6. `.annotations()` silently returns `any` in v4 — must use `.annotate()`

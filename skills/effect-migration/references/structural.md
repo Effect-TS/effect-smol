@@ -115,6 +115,30 @@ span: (options) => ...
 
 `Layer.setTracer(t)` → `Layer.succeed(Tracer.Tracer, t)`
 
+## ServiceMap.Service is Not an Effect
+
+In v3, `Context.Tag` was itself an `Effect` — you could pipe it directly with `Effect.flatMap`.
+In v4, `ServiceMap.Service` is `Yieldable` + `Pipeable` but NOT an `Effect`.
+
+```ts
+// v3 — Tag IS an Effect
+MyService.pipe(Effect.flatMap((svc) => svc.doThing()))
+
+// v4 — Service is NOT an Effect. Three alternatives:
+MyService.use((svc) => svc.doThing())                          // .use() — preferred
+Effect.gen(function* () { const svc = yield* MyService; ... })  // generator
+MyService.asEffect().pipe(Effect.flatMap((svc) => ...))         // .asEffect() — pipe chain
+```
+
+**Service API:**
+
+| Method | Returns | Use When |
+|--------|---------|----------|
+| `Service.use(fn)` | `Effect<A, E, R \| Id>` | Single effectful operation |
+| `Service.useSync(fn)` | `Effect<A, never, Id>` | Single sync operation |
+| `Service.asEffect()` | `Effect<Shape, never, Id>` | Need to pipe with Effect combinators |
+| `yield* Service` | `Shape` (in generator) | Multi-step access in `Effect.gen` |
+
 ## Effect.serviceOption
 
 ```ts
@@ -160,6 +184,22 @@ Handler receives `Envelope.Request<Current>`, not raw payload:
 // v3: Option<Date>     →  Option.getOrElse(stat.mtime, () => new Date(0))
 // v4: Date | undefined  →  stat.mtime ?? new Date(0)
 ```
+
+## Fiber.poll Removed
+
+`Fiber.poll` was a static effectful function in v3. In v4 it's an instance method, sync, and returns nullable instead of `Option`.
+
+```ts
+// v3 — static function, effectful, returns Option<Exit>
+const status = yield* Fiber.poll(fiber)
+if (Option.isNone(status)) { /* still running */ }
+
+// v4 — instance method, sync, returns Exit | undefined
+const status = fiber.pollUnsafe()
+if (status === undefined) { /* still running */ }
+```
+
+Three changes: static→instance, `Effect`→sync, `Option<Exit>`→`Exit | undefined`.
 
 ## Testing
 
