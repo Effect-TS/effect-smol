@@ -76,10 +76,16 @@ export interface ChildProcessHandle {
   readonly stdin: Sink.Sink<void, Uint8Array, never, PlatformError.PlatformError>
   /**
    * The standard output stream for the child process.
+   *
+   * Note: Using alongside `all` may cause interleaving of output and unexpected
+   * results.
    */
   readonly stdout: Stream.Stream<Uint8Array, PlatformError.PlatformError>
   /**
    * The standard error stream for the child process.
+   *
+   * Note: Using alongside `all` may cause interleaving of output and unexpected
+   * results.
    */
   readonly stderr: Stream.Stream<Uint8Array, PlatformError.PlatformError>
   /**

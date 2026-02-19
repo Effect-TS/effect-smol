@@ -291,6 +291,8 @@ const readableToPullUnsafe = <A, E>(options: {
   readonly closeOnDone?: boolean | undefined
 }) => {
   const readable = options.readable as Readable
+  if (readable.readableEnded) return Effect.succeed(Cause.done())
+
   const closeOnDone = options.closeOnDone ?? true
   const exit = options.exit ?? MutableRef.make(undefined)
   const latch = Latch.makeUnsafe(false)

@@ -19,7 +19,6 @@ import * as ChildProcess from "effect/unstable/process/ChildProcess"
 import type { ChildProcessHandle } from "effect/unstable/process/ChildProcessSpawner"
 import { ChildProcessSpawner, ExitCode, makeHandle, ProcessId } from "effect/unstable/process/ChildProcessSpawner"
 import * as NodeChildProcess from "node:child_process"
-import * as NodeJSStream from "node:stream"
 import { handleErrnoException } from "./internal/utils.ts"
 import * as NodeSink from "./NodeSink.ts"
 import * as NodeStream from "./NodeStream.ts"
@@ -181,15 +180,15 @@ const make = Effect.gen(function*() {
         case "input": {
           // Create a sink to write to for input file descriptors
           let sink: Sink.Sink<void, Uint8Array, never, PlatformError.PlatformError> = Sink.drain
-          if (Predicate.isNotNullish(nodeStream) && "write" in nodeStream) {
+          if (nodeStream && "write" in nodeStream) {
             sink = NodeSink.fromWritable({
-              evaluate: () => nodeStream as NodeJS.WritableStream,
+              evaluate: () => nodeStream,
               onError: (error) => toPlatformError(`fromWritable(fd${fd})`, toError(error), command)
             })
           }
 
           // If user provided a stream, pipe it into the sink
-          if (Predicate.isNotUndefined(config.stream)) {
+          if (config.stream) {
             yield* Effect.forkScoped(Stream.run(config.stream, sink))
           }
 
@@ -200,15 +199,15 @@ const make = Effect.gen(function*() {
         case "output": {
           // Create a stream to read from for output file descriptors
           let stream: Stream.Stream<Uint8Array, PlatformError.PlatformError> = Stream.empty
-          if (Predicate.isNotNull(nodeStream) && Predicate.isNotUndefined(nodeStream) && "read" in nodeStream) {
+          if (nodeStream && "read" in nodeStream) {
             stream = NodeStream.fromReadable({
-              evaluate: () => nodeStream as NodeJS.ReadableStream,
+              evaluate: () => nodeStream,
               onError: (error) => toPlatformError(`fromReadable(fd${fd})`, toError(error), command)
             })
           }
 
           // If user provided a sink, transduce the stream through it
-          if (Predicate.isNotUndefined(config.sink)) {
+          if (config.sink) {
             stream = Stream.transduce(stream, config.sink)
           }
 
@@ -251,35 +250,6 @@ const make = Effect.gen(function*() {
       return Effect.succeed(sink)
     })
 
-  /**
-   * Given that `NodeStream.fromReadable` uses `.read` to read data from the
-   * provided `Readable` stream, consumers would race to read data from the
-   * `handle.stdout` and `handle.stderr` streams if they were also simultaneously
-   * reading from the `handle.all` stream.
-   *
-   * To solve this, we leverage the fact that NodeJS `Readable` streams can be
-   * piped to multiple destinations simultaneously. The logic for the solution
-   * is as follows:
-   *
-   *   1. Pipe each original stream to two `PassThrough` streams:
-   *     - One dedicated PassThrough for individual access (.stdout / .stderr)
-   *     - One shared PassThrough for combined access (.all)
-   *   2. Create Effect streams from the PassThrough streams (not the originals)
-   *
-   * **Diagram**
-   *
-   *                                 ┌─────────────┐
-   *                           ┌────►│ passthrough │────► Effect stdout Stream
-   *                           │     └─────────────┘
-   *   childProcess.stdout ────┤
-   *                           │     ┌─────────────┐
-   *                           └────►│ passthrough │────► Effect all Stream
-   *                           ┌────►│             │
-   *   childProcess.stderr ────┤     └─────────────┘
-   *                           │     ┌─────────────┐
-   *                           └────►│ passthrough │────► Effect stderr Stream
-   *                                 └─────────────┘
-   */
   const setupChildOutputStreams = (
     command: ChildProcess.StandardCommand,
     childProcess: NodeChildProcess.ChildProcess,
@@ -290,85 +260,27 @@ const make = Effect.gen(function*() {
     stderr: Stream.Stream<Uint8Array, PlatformError.PlatformError>
     all: Stream.Stream<Uint8Array, PlatformError.PlatformError>
   } => {
-    const nodeStdout = childProcess.stdout
-    const nodeStderr = childProcess.stderr
-
-    // Create PassThrough streams for individual access to stdout and stderr.
-    // We pipe the original Node.js streams to these PassThroughs so that
-    // the data can be consumed by both the individual streams AND the
-    // combined stream (.all) simultaneously.
-    const stdoutPassThrough = Predicate.isNotNull(nodeStdout)
-      ? new NodeJSStream.PassThrough()
-      : null
-    const stderrPassThrough = Predicate.isNotNull(nodeStderr)
-      ? new NodeJSStream.PassThrough()
-      : null
-
-    // Create PassThrough for combined output (.all)
-    const combinedPassThrough = new NodeJSStream.PassThrough()
-
-    // Track stream endings for the combined stream
-    const totalStreams = (Predicate.isNotNull(nodeStdout) ? 1 : 0) +
-      (Predicate.isNotNull(nodeStderr) ? 1 : 0)
-
-    let endedCount = 0
-    const onStreamEnd = () => {
-      endedCount++
-      if (endedCount >= totalStreams) {
-        combinedPassThrough.end()
-      }
-    }
-
-    // Pipe stdout to both its own PassThrough and the combined PassThrough
-    if (Predicate.isNotNull(nodeStdout) && Predicate.isNotNull(stdoutPassThrough)) {
-      nodeStdout.pipe(stdoutPassThrough)
-      nodeStdout.pipe(combinedPassThrough, { end: false })
-      nodeStdout.once("end", onStreamEnd)
-    }
-
-    // Pipe stderr to both its own PassThrough and the combined PassThrough
-    if (Predicate.isNotNull(nodeStderr) && Predicate.isNotNull(stderrPassThrough)) {
-      nodeStderr.pipe(stderrPassThrough)
-      nodeStderr.pipe(combinedPassThrough, { end: false })
-      nodeStderr.once("end", onStreamEnd)
-    }
-
-    // Handle edge case: no streams available
-    if (totalStreams === 0) {
-      combinedPassThrough.end()
-    }
-
-    // Create Effect stream for stdout from its PassThrough
-    let stdout: Stream.Stream<Uint8Array, PlatformError.PlatformError> = Stream.empty
-    if (Predicate.isNotNull(stdoutPassThrough)) {
-      stdout = NodeStream.fromReadable({
-        evaluate: () => stdoutPassThrough,
+    let stdout = childProcess.stdout ?
+      NodeStream.fromReadable({
+        evaluate: () => childProcess.stdout!,
         onError: (error) => toPlatformError("fromReadable(stdout)", toError(error), command)
-      })
-      // Apply user-provided Sink if configured
-      if (Sink.isSink(stdoutConfig.stream)) {
-        stdout = Stream.transduce(stdout, stdoutConfig.stream)
-      }
-    }
-
-    // Create Effect stream for stderr from its PassThrough
-    let stderr: Stream.Stream<Uint8Array, PlatformError.PlatformError> = Stream.empty
-    if (Predicate.isNotNull(stderrPassThrough)) {
-      stderr = NodeStream.fromReadable({
-        evaluate: () => stderrPassThrough,
+      }) :
+      Stream.empty
+    let stderr = childProcess.stderr ?
+      NodeStream.fromReadable({
+        evaluate: () => childProcess.stderr!,
         onError: (error) => toPlatformError("fromReadable(stderr)", toError(error), command)
-      })
-      // Apply user-provided Sink if configured
-      if (Sink.isSink(stderrConfig.stream)) {
-        stderr = Stream.transduce(stderr, stderrConfig.stream)
-      }
+      }) :
+      Stream.empty
+
+    if (Sink.isSink(stdoutConfig.stream)) {
+      stdout = Stream.transduce(stdout, stdoutConfig.stream)
+    }
+    if (Sink.isSink(stderrConfig.stream)) {
+      stderr = Stream.transduce(stderr, stderrConfig.stream)
     }
 
-    // Create Effect stream for combined output from the combined PassThrough
-    const all: Stream.Stream<Uint8Array, PlatformError.PlatformError> = NodeStream.fromReadable({
-      evaluate: () => combinedPassThrough,
-      onError: (error) => toPlatformError("fromReadable(all)", toError(error), command)
-    })
+    const all = Stream.merge(stdout, stderr)
 
     return { stdout, stderr, all }
   }

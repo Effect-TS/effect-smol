@@ -273,8 +273,10 @@ describe("NodeChildProcessSpawner", () => {
               "sh",
               ["-c", "echo line1; echo line2; echo line3; echo line4; echo line5; echo error >&2"]
             )
-            const stdout = yield* decodeByteStream(handle.stdout)
-            const stderr = yield* decodeByteStream(handle.stderr)
+            const [stdout, stderr] = yield* Effect.all([
+              decodeByteStream(handle.stdout),
+              decodeByteStream(handle.stderr)
+            ], { concurrency: "unbounded" })
             const exitCode = yield* handle.exitCode
 
             assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
@@ -885,5 +887,34 @@ describe("NodeChildProcessSpawner", () => {
           assert.strictEqual(afterExit, 0)
         }).pipe(Effect.scoped))
     })
+
+    it.effect("should not deadlock on large stdout output", () =>
+      Effect.gen(function*() {
+        // Generate ~5MB of output — enough to exceed the default PassThrough
+        // highWaterMark (16KB) many times over. Without the fix, the unread
+        // combinedPassThrough (.all) would exert backpressure on the source
+        // stream, blocking stdout too.
+        const handle = yield* ChildProcess.make("sh", ["-c", "seq 1 100000"])
+        const output = yield* handle.stdout.pipe(
+          Stream.decodeText(),
+          Stream.runFold(() => "", (acc, chunk) => acc + chunk)
+        )
+        const exitCode = yield* handle.exitCode
+
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+        const lines = output.trim().split("\n")
+        assert.strictEqual(lines.length, 100000)
+        assert.strictEqual(lines[0], "1")
+        assert.strictEqual(lines[99999], "100000")
+      }).pipe(Effect.scoped), { timeout: 10_000 })
+
+    it.effect("ChildProcess.string should not deadlock on large output", () =>
+      Effect.gen(function*() {
+        const output = yield* ChildProcess.string(ChildProcess.make("sh", ["-c", "seq 1 100000"]))
+        const lines = output.trim().split("\n")
+        assert.strictEqual(lines.length, 100000)
+        assert.strictEqual(lines[0], "1")
+        assert.strictEqual(lines[99999], "100000")
+      }), { timeout: 10_000 })
   })
 })
