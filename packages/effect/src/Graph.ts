@@ -898,11 +898,14 @@ export const reverse = <N, E, T extends Kind = "directed">(
 ): void => {
   // Reverse all edges by swapping source and target
   for (const [index, edgeData] of mutable.edges) {
-    mutable.edges.set(index, {
-      source: edgeData.target,
-      target: edgeData.source,
-      data: edgeData.data
-    })
+    mutable.edges.set(
+      index,
+      new Edge({
+        source: edgeData.target,
+        target: edgeData.source,
+        data: edgeData.data
+      })
+    )
   }
 
   // Clear and rebuild adjacency lists with reversed directions

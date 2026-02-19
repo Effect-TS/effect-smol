@@ -96,7 +96,23 @@ export const StructuralProto = {
 }
 
 /** @internal */
+export const StructuralPipeableProto = {
+  ...StructuralProto,
+  pipe() {
+    return pipeArguments(this, arguments)
+  }
+}
+
+/** @internal */
 export const YieldableProto = {
+  [Symbol.iterator]() {
+    return new SingleShotGen(this) as any
+  }
+}
+
+/** @internal */
+export const YieldableErrorProto = {
+  ...StructuralPipeableProto,
   [Symbol.iterator]() {
     return new SingleShotGen(this) as any
   }
@@ -581,7 +597,7 @@ export const YieldableError: new(
       return exitFail(this)
     }
   }
-  Object.assign(YieldableError.prototype, YieldableProto)
+  Object.assign(YieldableError.prototype, YieldableErrorProto)
   return YieldableError as any
 })()
 

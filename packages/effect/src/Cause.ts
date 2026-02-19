@@ -1088,7 +1088,7 @@ export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
  * @since 2.0.0
  * @category errors
  */
-export interface YieldableError extends Error {
+export interface YieldableError extends Error, Pipeable {
   [Symbol.iterator](): Effect.EffectIterator<this>
   asEffect(): Effect.Effect<never, this, never>
 }
