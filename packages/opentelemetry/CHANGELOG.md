@@ -1,5 +1,12 @@
 # @effect/opentelemetry
 
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [[`c5a18ef`](https://github.com/Effect-TS/effect-smol/commit/c5a18ef44171e3880bf983faee74529908974b32), [`bc6b885`](https://github.com/Effect-TS/effect-smol/commit/bc6b885b94d887a200657c0775dfa874dc15bc0c)]:
+  - effect@4.0.0-beta.4
+
 ## 4.0.0-beta.3
 
 ### Patch Changes
