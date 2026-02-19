@@ -3309,12 +3309,12 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
   readonly guards: { [K in keyof Cases]: (u: unknown) => u is Cases[K]["Type"] }
   readonly match: {
     <Output>(
+      cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
+    ): (value: Cases[keyof Cases]["Type"]) => Output
+    <Output>(
       value: Cases[keyof Cases]["Type"],
       cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
     ): Output
-    <Output>(
-      cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
-    ): (value: Cases[keyof Cases]["Type"]) => Output
   }
 }
 
