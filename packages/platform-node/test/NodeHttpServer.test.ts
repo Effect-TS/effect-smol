@@ -77,7 +77,7 @@ describe("HttpServer", () => {
       const client = yield* HttpClient.HttpClient
       const formData = new FormData()
       formData.append("file", new Blob(["test"], { type: "text/plain" }), "test.txt")
-      const result = yield* client.post("/upload", { body: HttpBody.makeFormData(formData) }).pipe(
+      const result = yield* client.post("/upload", { body: HttpBody.formData(formData) }).pipe(
         Effect.flatMap((r) => r.json)
       )
       expect(result).toEqual({ ok: true })
@@ -105,7 +105,7 @@ describe("HttpServer", () => {
       const formData = new FormData()
       formData.append("file", new Blob(["test"], { type: "text/plain" }), "test.txt")
       formData.append("test", "test")
-      const response = yield* client.post("/upload", { body: HttpBody.makeFormData(formData) })
+      const response = yield* client.post("/upload", { body: HttpBody.formData(formData) })
       expect(response.status).toEqual(204)
     }).pipe(Effect.provide(NodeHttpServer.layerTest)))
 
@@ -133,7 +133,7 @@ describe("HttpServer", () => {
       const formData = new FormData()
       const data = new Uint8Array(1000)
       formData.append("file", new Blob([data], { type: "text/plain" }), "test.txt")
-      const response = yield* client.post("/upload", { body: HttpBody.makeFormData(formData) })
+      const response = yield* client.post("/upload", { body: HttpBody.formData(formData) })
       expect(response.status).toEqual(413)
     }).pipe(Effect.provide(NodeHttpServer.layerTest)))
 
@@ -161,7 +161,7 @@ describe("HttpServer", () => {
       const formData = new FormData()
       const data = new Uint8Array(1000).fill(1)
       formData.append("file", new TextDecoder().decode(data))
-      const response = yield* client.post("/upload", { body: HttpBody.makeFormData(formData) })
+      const response = yield* client.post("/upload", { body: HttpBody.formData(formData) })
       expect(response.status).toEqual(413)
     }).pipe(Effect.provide(NodeHttpServer.layerTest)))
 
@@ -317,7 +317,7 @@ describe("HttpServer", () => {
       const client = yield* HttpClient.HttpClient
       const formData = new FormData()
       formData.append("json", JSON.stringify({ test: "content" }))
-      const response = yield* client.post("/upload", { body: HttpBody.makeFormData(formData) })
+      const response = yield* client.post("/upload", { body: HttpBody.formData(formData) })
       expect(response.status).toEqual(204)
     }).pipe(Effect.provide(NodeHttpServer.layerTest)))
 
@@ -345,7 +345,7 @@ describe("HttpServer", () => {
         new Blob([JSON.stringify({ test: "content" })], { type: "application/json" }),
         "test.json"
       )
-      const response = yield* client.post("/upload", { body: HttpBody.makeFormData(formData) })
+      const response = yield* client.post("/upload", { body: HttpBody.formData(formData) })
       expect(response.status).toEqual(204)
     }).pipe(Effect.provide(NodeHttpServer.layerTest)))
 

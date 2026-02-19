@@ -279,7 +279,7 @@ export class FormData extends Proto {
  * @since 4.0.0
  * @category constructors
  */
-export const makeFormData = (body: globalThis.FormData): FormData => new FormData(body)
+export const formData = (body: globalThis.FormData): FormData => new FormData(body)
 
 /**
  * @since 4.0.0
@@ -308,18 +308,18 @@ const appendFormDataValue = (formData: globalThis.FormData, key: string, value: 
  * @since 4.0.0
  * @category constructors
  */
-export const makeFormDataRecord = (entries: FormDataInput): FormData => {
-  const formData = new globalThis.FormData()
+export const formDataRecord = (entries: FormDataInput): FormData => {
+  const data = new globalThis.FormData()
   for (const [key, value] of Object.entries(entries)) {
     if (Array.isArray(value)) {
       for (const item of value) {
-        appendFormDataValue(formData, key, item)
+        appendFormDataValue(data, key, item)
       }
     } else {
-      appendFormDataValue(formData, key, value as FormDataCoercible)
+      appendFormDataValue(data, key, value as FormDataCoercible)
     }
   }
-  return makeFormData(formData)
+  return formData(data)
 }
 
 /**

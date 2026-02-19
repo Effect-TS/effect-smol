@@ -645,7 +645,7 @@ export const bodyUrlParams: {
 export const bodyFormData: {
   (body: FormData): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, body: FormData): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, body: FormData): HttpClientRequest => setBody(self, HttpBody.makeFormData(body)))
+} = dual(2, (self: HttpClientRequest, body: FormData): HttpClientRequest => setBody(self, HttpBody.formData(body)))
 
 /**
  * @since 4.0.0
@@ -657,7 +657,7 @@ export const bodyFormDataRecord: {
 } = dual(
   2,
   (self: HttpClientRequest, entries: HttpBody.FormDataInput): HttpClientRequest =>
-    setBody(self, HttpBody.makeFormDataRecord(entries))
+    setBody(self, HttpBody.formDataRecord(entries))
 )
 
 /**
