@@ -346,7 +346,7 @@ export const fromStep = <Input, Output, EnvX, Error, ErrorX, Env>(
     Error,
     Env
   >
-): Schedule<Output, Input, Error | ErrorX, Env | EnvX> => {
+): Schedule<Output, Input, Error | Pull.ExcludeDone<ErrorX>, Env | EnvX> => {
   const self = Object.create(ScheduleProto)
   self.step = step
   return self
@@ -395,7 +395,7 @@ export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
     Error,
     Env
   >
-): Schedule<Output, Input, Error | ErrorX, Env | EnvX> =>
+): Schedule<Output, Input, Error | Pull.ExcludeDone<ErrorX>, Env | EnvX> =>
   fromStep(effect.map(step, (f) => {
     const meta = metadataFn()
     return (now, input) => f(meta(now, input))
