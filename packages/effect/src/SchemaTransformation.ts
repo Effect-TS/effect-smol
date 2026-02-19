@@ -1340,6 +1340,22 @@ export const timeZoneFromString: Transformation<DateTime.TimeZone, string> = tra
 /**
  * @since 4.0.0
  */
+export const dateTimeUtcFromString: Transformation<DateTime.Utc, string> = transformOrFail<
+  DateTime.Utc,
+  string
+>({
+  decode: (s) => {
+    const result = DateTime.make(s)
+    return result === undefined
+      ? Effect.fail(new Issue.InvalidValue(Option.some(s), { message: "Invalid DateTime input" }))
+      : Effect.succeed(DateTime.toUtc(result))
+  },
+  encode: (utc) => Effect.succeed(DateTime.formatIso(utc))
+})
+
+/**
+ * @since 4.0.0
+ */
 export const dateTimeZonedFromString: Transformation<DateTime.Zoned, string> = transformOrFail<
   DateTime.Zoned,
   string

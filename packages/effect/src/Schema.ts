@@ -7376,10 +7376,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
     toCodecJson: () =>
       link<DateTime.Utc>()(
         String,
-        {
-          decode: Getter.dateTimeUtcFromInput(),
-          encode: Getter.transform(DateTime.formatIso)
-        }
+        Transformation.dateTimeUtcFromString
       ),
     toArbitrary: () => (fc, ctx) =>
       fc.date({ noInvalidDate: true, ...ctx?.constraints?.date }).map((date) => DateTime.fromDateUnsafe(date)),
@@ -7436,10 +7433,7 @@ export const DateTimeUtcFromString: DateTimeUtcFromString = String.annotate({
 }).pipe(
   decodeTo(
     DateTimeUtc,
-    Transformation.transform({
-      decode: DateTime.makeUnsafe,
-      encode: DateTime.formatIso
-    })
+    Transformation.dateTimeUtcFromString
   )
 )
 

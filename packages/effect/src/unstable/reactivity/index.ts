@@ -32,12 +32,12 @@ export * as AtomRegistry from "./AtomRegistry.ts"
 /**
  * @since 4.0.0
  */
-export * as Hydration from "./Hydration.ts"
+export * as AtomRpc from "./AtomRpc.ts"
 
 /**
  * @since 4.0.0
  */
-export * as AtomRpc from "./AtomRpc.ts"
+export * as Hydration from "./Hydration.ts"
 
 /**
  * @since 4.0.0
