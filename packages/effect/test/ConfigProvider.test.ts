@@ -522,7 +522,7 @@ A=1`)
         return Effect.fail(
           PlatformError.systemError({
             module: "FileSystem",
-            kind: "NotFound",
+            _tag: "NotFound",
             method: "readFileString"
           })
         )
@@ -532,7 +532,7 @@ A=1`)
         return Effect.fail(
           PlatformError.systemError({
             module: "FileSystem",
-            kind: "NotFound",
+            _tag: "NotFound",
             method: "readDirectory"
           })
         )

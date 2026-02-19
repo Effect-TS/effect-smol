@@ -27,7 +27,7 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
  * @since 4.0.0
  * @category Model
  */
-export type SystemErrorKind =
+export type SystemErrorTag =
   | "AlreadyExists"
   | "BadResource"
   | "Busy"
@@ -44,8 +44,8 @@ export type SystemErrorKind =
  * @since 4.0.0
  * @category models
  */
-export class SystemError extends Data.TaggedError("SystemError")<{
-  kind: SystemErrorKind
+export class SystemError extends Data.Error<{
+  _tag: SystemErrorTag
   module: string
   method: string
   description?: string | undefined
@@ -57,7 +57,7 @@ export class SystemError extends Data.TaggedError("SystemError")<{
    * @since 4.0.0
    */
   override get message(): string {
-    return `${this.kind}: ${this.module}.${this.method}${
+    return `${this._tag}: ${this.module}.${this.method}${
       this.pathOrDescriptor !== undefined ? ` (${this.pathOrDescriptor})` : ""
     }${this.description ? `: ${this.description}` : ""}`
   }
@@ -93,7 +93,7 @@ export class PlatformError extends Data.TaggedError("PlatformError")<{
  * @category constructors
  */
 export const systemError = (options: {
-  readonly kind: SystemErrorKind
+  readonly _tag: SystemErrorTag
   readonly module: string
   readonly method: string
   readonly description?: string | undefined

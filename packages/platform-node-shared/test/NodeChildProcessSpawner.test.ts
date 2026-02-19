@@ -634,7 +634,7 @@ describe("NodeChildProcessSpawner", () => {
           assert.deepStrictEqual(
             result,
             PlatformError.systemError({
-              kind: "PermissionDenied",
+              _tag: "PermissionDenied",
               module: "ChildProcess",
               method: "spawn",
               pathOrDescriptor: "./no-permissions.sh ",

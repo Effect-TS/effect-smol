@@ -341,7 +341,7 @@ const makeFile = (() => {
                 Error.systemError({
                   module: "FileSystem",
                   method: "writeAll",
-                  kind: "WriteZero",
+                  _tag: "WriteZero",
                   pathOrDescriptor: this.fd,
                   description: "write returned 0 bytes written"
                 })
@@ -553,7 +553,7 @@ const watchNode = (path: string) =>
             Cause.fail(
               Error.systemError({
                 module: "FileSystem",
-                kind: "Unknown",
+                _tag: "Unknown",
                 method: "watch",
                 pathOrDescriptor: path,
                 cause: error
