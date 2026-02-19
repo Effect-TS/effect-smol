@@ -134,7 +134,7 @@ import * as Str from "./String.ts"
  * @category model
  * @since 4.0.0
  */
-export class Getter<out T, in E, R = never> extends Class {
+export class Getter<out T, in E, R = never> extends Class() {
   readonly run: (
     input: Option.Option<E>,
     options: AST.ParseOptions
