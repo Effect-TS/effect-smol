@@ -89,38 +89,27 @@ Effect.try(() => JSON.parse(str))
 Effect.try({ try: () => JSON.parse(str), catch: (e) => e as Error })
 ```
 
-## 8. Stale Build Artifacts
-
-**Symptom:** `Effect.runtime is not a function` but source has no `Effect.runtime`
-
-Compiled `.js` from pre-migration shadows `.ts`. Bun prefers `.js`.
-
-```bash
-find . -name "*.test.js" -path "*/tests/*" -delete
-find . -name "*.test.d.ts" -path "*/tests/*" -delete
-```
-
-## 9. Stream.filterMap Removed
+## 8. Stream.filterMap Removed
 
 ```ts
 // v3: Stream.filterMap(fn)
 // v4: Stream.filter(Filter.fromPredicateOption(fn))
 ```
 
-## 10. Stream.fromQueue Rejects Subscription
+## 9. Stream.fromQueue Rejects Subscription
 
 ```ts
 // v3: Stream.fromQueue(subscription)  — Subscription extended Dequeue
 // v4: Stream.fromSubscription(subscription)  — separate types
 ```
 
-## 11. Layer.Layer.Context Removed
+## 10. Layer.Layer.Context Removed
 
 ```ts
 type LayerContext<T> = T extends Layer.Layer<infer A, infer _E, infer _R> ? A : never
 ```
 
-## 12. Effect.tap Requires Effect Return
+## 11. Effect.tap Requires Effect Return
 
 ```ts
 // BROKEN
@@ -129,14 +118,14 @@ Effect.tap(() => { sideEffect() })
 Effect.tap(() => Effect.sync(() => { sideEffect() }))
 ```
 
-## 13. FileSystem.File.Info.mtime
+## 12. FileSystem.File.Info.mtime
 
 ```ts
 // v3: Option<Date>      →  Option.getOrElse(stat.mtime, () => new Date(0))
 // v4: Date | undefined   →  stat.mtime ?? new Date(0)
 ```
 
-## 14. Index Signature Access
+## 13. Index Signature Access
 
 With `noPropertyAccessFromIndexSignature`, Schema decoded types need brackets:
 
@@ -145,7 +134,7 @@ With `noPropertyAccessFromIndexSignature`, Schema decoded types need brackets:
 // FIX:   config["maxRetries"]
 ```
 
-## 15. `Effect.ignore` No Longer Catches Defects
+## 14. `Effect.ignore` No Longer Catches Defects
 
 **Symptom:** `SQLiteError: duplicate column name` or other defects crash through `Effect.ignore`
 
@@ -162,7 +151,7 @@ yield* sql.unsafe(`ALTER TABLE t ADD COLUMN c TEXT`).pipe(Effect.ignoreCause)
 
 Use `Effect.ignoreCause` anywhere you need to swallow ALL failures including defects.
 
-## 16. `ServiceMap.Service` is Not an `Effect`
+## 15. `ServiceMap.Service` is Not an `Effect`
 
 **Symptom:** `Maximum call stack size exceeded` or `Not a valid effect` at runtime
 
