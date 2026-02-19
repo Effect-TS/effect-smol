@@ -1,4 +1,4 @@
-import { DateTime, Duration, Option, Redacted, Result, Schema } from "effect"
+import { BigDecimal, DateTime, Duration, Option, Redacted, Result, Schema } from "effect"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 
@@ -457,6 +457,13 @@ describe("toFormatter", () => {
     strictEqual(format(Duration.nanos(1000n)), `1000 nanos`)
     strictEqual(format(Duration.infinity), "Infinity")
     strictEqual(format(Duration.negativeInfinity), "-Infinity")
+  })
+
+  it("BigDecimal", () => {
+    const format = Schema.toFormatter(Schema.BigDecimal)
+    strictEqual(format(BigDecimal.fromStringUnsafe("123.45")), "123.45")
+    strictEqual(format(BigDecimal.fromStringUnsafe("-5")), "-5")
+    strictEqual(format(BigDecimal.fromStringUnsafe("0")), "0")
   })
 
   it("DateTimeUtc", () => {

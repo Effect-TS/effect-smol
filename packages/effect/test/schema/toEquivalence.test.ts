@@ -1,4 +1,4 @@
-import { DateTime, Duration, Equivalence, Option, Redacted, Result, Schema } from "effect"
+import { BigDecimal, DateTime, Duration, Equivalence, Option, Redacted, Result, Schema } from "effect"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, throws } from "../utils/assert.ts"
 
@@ -422,6 +422,14 @@ describe("toEquivalence", () => {
     assertFalse(equivalence(Duration.infinity, Duration.millis(1)))
     assertTrue(equivalence(Duration.negativeInfinity, Duration.negativeInfinity))
     assertFalse(equivalence(Duration.negativeInfinity, Duration.infinity))
+  })
+
+  it("BigDecimal", () => {
+    const schema = Schema.BigDecimal
+    const equivalence = Schema.toEquivalence(schema)
+    assertTrue(equivalence(BigDecimal.fromStringUnsafe("1.5"), BigDecimal.fromStringUnsafe("1.50")))
+    assertFalse(equivalence(BigDecimal.fromStringUnsafe("1.5"), BigDecimal.fromStringUnsafe("2")))
+    assertTrue(equivalence(BigDecimal.fromStringUnsafe("0"), BigDecimal.fromStringUnsafe("0")))
   })
 
   it("DateTimeUtc", () => {

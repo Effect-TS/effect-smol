@@ -4,6 +4,7 @@
 
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec"
 import * as Arr from "./Array.ts"
+import * as BigDecimal_ from "./BigDecimal.ts"
 import type * as Brand from "./Brand.ts"
 import * as Cause_ from "./Cause.ts"
 import type * as Combiner from "./Combiner.ts"
@@ -4751,6 +4752,63 @@ export const isBetweenBigInt = makeIsBetween({
 })
 
 /**
+ * Validates that a BigDecimal is greater than the specified value (exclusive).
+ *
+ * @category BigDecimal checks
+ * @since 4.0.0
+ */
+export const isGreaterThanBigDecimal = makeIsGreaterThan({
+  order: BigDecimal_.Order,
+  formatter: (bd) => BigDecimal_.format(bd)
+})
+
+/**
+ * Validates that a BigDecimal is greater than or equal to the specified value
+ * (inclusive).
+ *
+ * @category BigDecimal checks
+ * @since 4.0.0
+ */
+export const isGreaterThanOrEqualToBigDecimal = makeIsGreaterThanOrEqualTo({
+  order: BigDecimal_.Order,
+  formatter: (bd) => BigDecimal_.format(bd)
+})
+
+/**
+ * Validates that a BigDecimal is less than the specified value (exclusive).
+ *
+ * @category BigDecimal checks
+ * @since 4.0.0
+ */
+export const isLessThanBigDecimal = makeIsLessThan({
+  order: BigDecimal_.Order,
+  formatter: (bd) => BigDecimal_.format(bd)
+})
+
+/**
+ * Validates that a BigDecimal is less than or equal to the specified value
+ * (inclusive).
+ *
+ * @category BigDecimal checks
+ * @since 4.0.0
+ */
+export const isLessThanOrEqualToBigDecimal = makeIsLessThanOrEqualTo({
+  order: BigDecimal_.Order,
+  formatter: (bd) => BigDecimal_.format(bd)
+})
+
+/**
+ * Validates that a BigDecimal is within a specified range.
+ *
+ * @category BigDecimal checks
+ * @since 4.0.0
+ */
+export const isBetweenBigDecimal = makeIsBetween({
+  order: BigDecimal_.Order,
+  formatter: (bd) => BigDecimal_.format(bd)
+})
+
+/**
  * Validates that a value has at least the specified length. Works with strings
  * and arrays.
  *
@@ -6581,6 +6639,45 @@ export interface DurationFromMillis extends decodeTo<Duration, Number> {}
  */
 export const DurationFromMillis: DurationFromMillis = Number.check(isGreaterThanOrEqualTo(0)).pipe(
   decodeTo(Duration, Transformation.durationFromMillis)
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {}
+
+/**
+ * A schema for `BigDecimal` values.
+ *
+ * **Default JSON serializer**
+ *
+ * - encodes `BigDecimal` as a `string`
+ *
+ * @since 4.0.0
+ */
+export const BigDecimal: BigDecimal = declare(
+  BigDecimal_.isBigDecimal,
+  {
+    typeConstructor: {
+      _tag: "effect/BigDecimal"
+    },
+    generation: {
+      runtime: `Schema.BigDecimal`,
+      Type: `BigDecimal.BigDecimal`,
+      importDeclaration: `import * as BigDecimal from "effect/BigDecimal"`
+    },
+    expected: "BigDecimal",
+    toCodecJson: () =>
+      link<BigDecimal_.BigDecimal>()(
+        String.annotate({ expected: "a string that will be decoded as a BigDecimal" }),
+        Transformation.bigDecimalFromString
+      ),
+    toArbitrary: () => (fc) =>
+      fc.tuple(fc.bigInt(), fc.integer({ min: 0, max: 20 }))
+        .map(([value, scale]) => BigDecimal_.make(value, scale)),
+    toFormatter: () => (bd) => BigDecimal_.format(bd),
+    toEquivalence: () => BigDecimal_.Equivalence
+  }
 )
 
 /**

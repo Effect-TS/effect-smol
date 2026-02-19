@@ -556,6 +556,10 @@ describe("Arbitrary generation", () => {
     verifyGeneration(Schema.Duration)
   })
 
+  it("BigDecimal", () => {
+    verifyGeneration(Schema.BigDecimal)
+  })
+
   it("DateTimeUtc", () => {
     verifyGeneration(Schema.DateTimeUtc)
   })

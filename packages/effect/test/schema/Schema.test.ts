@@ -1,4 +1,5 @@
 import {
+  BigDecimal,
   Brand,
   Cause,
   DateTime,
@@ -4001,6 +4002,90 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed(Duration.millis(5000), 5000)
     await encoding.succeed(Duration.millis(0.1), 0.1)
     await encoding.succeed(Duration.nanos(5000n), 0.005)
+  })
+
+  it("BigDecimal", async () => {
+    const schema = Schema.BigDecimal
+    const asserts = new TestSchema.Asserts(schema)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(BigDecimal.fromStringUnsafe("123.45"))
+    await decoding.fail(null, `Expected BigDecimal, got null`)
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(BigDecimal.fromStringUnsafe("123.45"))
+  })
+
+  describe("BigDecimal checks", () => {
+    it("isGreaterThanBigDecimal", async () => {
+      const schema = Schema.BigDecimal.check(Schema.isGreaterThanBigDecimal(BigDecimal.fromStringUnsafe("1")))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(BigDecimal.fromStringUnsafe("2"))
+      await decoding.fail(
+        BigDecimal.fromStringUnsafe("1"),
+        `Expected a value greater than 1, got BigDecimal(1)`
+      )
+    })
+
+    it("isGreaterThanOrEqualToBigDecimal", async () => {
+      const schema = Schema.BigDecimal.check(
+        Schema.isGreaterThanOrEqualToBigDecimal(BigDecimal.fromStringUnsafe("1"))
+      )
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(BigDecimal.fromStringUnsafe("1"))
+      await decoding.fail(
+        BigDecimal.fromStringUnsafe("0"),
+        `Expected a value greater than or equal to 1, got BigDecimal(0)`
+      )
+    })
+
+    it("isLessThanBigDecimal", async () => {
+      const schema = Schema.BigDecimal.check(Schema.isLessThanBigDecimal(BigDecimal.fromStringUnsafe("1")))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(BigDecimal.fromStringUnsafe("0"))
+      await decoding.fail(
+        BigDecimal.fromStringUnsafe("1"),
+        `Expected a value less than 1, got BigDecimal(1)`
+      )
+    })
+
+    it("isLessThanOrEqualToBigDecimal", async () => {
+      const schema = Schema.BigDecimal.check(Schema.isLessThanOrEqualToBigDecimal(BigDecimal.fromStringUnsafe("1")))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(BigDecimal.fromStringUnsafe("1"))
+      await decoding.fail(
+        BigDecimal.fromStringUnsafe("2"),
+        `Expected a value less than or equal to 1, got BigDecimal(2)`
+      )
+    })
+
+    it("isBetweenBigDecimal", async () => {
+      const schema = Schema.BigDecimal.check(Schema.isBetweenBigDecimal({
+        minimum: BigDecimal.fromStringUnsafe("1"),
+        maximum: BigDecimal.fromStringUnsafe("5")
+      }))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(BigDecimal.fromStringUnsafe("3"))
+      await decoding.fail(
+        BigDecimal.fromStringUnsafe("0"),
+        `Expected a value between 1 and 5, got BigDecimal(0)`
+      )
+    })
   })
 
   describe("tag", () => {

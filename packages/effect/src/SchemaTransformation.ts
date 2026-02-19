@@ -82,6 +82,7 @@
  * @since 4.0.0
  */
 
+import * as BigDecimal from "./BigDecimal.ts"
 import * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
 import * as Option from "./Option.ts"
@@ -1134,6 +1135,33 @@ export const urlFromString: Transformation<URL, string> = transformOrFail<URL, s
       catch: (e) => new Issue.InvalidValue(Option.some(s), { message: globalThis.String(e) })
     }),
   encode: (url) => Effect.succeed(url.href)
+})
+
+/**
+ * Decodes a `string` into a `BigDecimal` and encodes a `BigDecimal` back to
+ * its string representation.
+ *
+ * When to use this:
+ * - Parsing decimal number strings from APIs or user input.
+ *
+ * Behavior:
+ * - Decode: calls `BigDecimal.fromString(s)`. Fails with `InvalidValue` if the
+ *   string is not a valid BigDecimal representation.
+ * - Encode: returns `BigDecimal.format(bd)`.
+ *
+ * @since 4.0.0
+ */
+export const bigDecimalFromString: Transformation<BigDecimal.BigDecimal, string> = transformOrFail<
+  BigDecimal.BigDecimal,
+  string
+>({
+  decode: (s) => {
+    const result = BigDecimal.fromString(s)
+    return result === undefined
+      ? Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid BigDecimal string: ${s}` }))
+      : Effect.succeed(result)
+  },
+  encode: (bd) => Effect.succeed(BigDecimal.format(bd))
 })
 
 /**
