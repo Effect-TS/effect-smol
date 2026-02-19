@@ -1,6 +1,6 @@
 ---
-"effect": minor
-"@effect/atom-react": minor
+"effect": patch
+"@effect/atom-react": patch
 ---
 
 Port ReactHydration to effect-smol.
