@@ -14,6 +14,7 @@ import {
   Logger,
   type LogLevel,
   Option,
+  PubSub,
   Queue,
   Ref,
   References,
@@ -146,6 +147,28 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const result = yield* Stream.range(3, 3).pipe(Stream.runCollect)
         assert.deepStrictEqual(result, [3])
+      }))
+
+    it.effect("fromQueue - accepts PubSub.Subscription", () =>
+      Effect.gen(function*() {
+        const pubsub = yield* PubSub.unbounded<number>()
+
+        const result = yield* Effect.scoped(Effect.gen(function*() {
+          const subscription = yield* PubSub.subscribe(pubsub)
+
+          yield* PubSub.publish(pubsub, 1)
+          yield* PubSub.publish(pubsub, 2)
+          yield* PubSub.publish(pubsub, 3)
+
+          const fiber = yield* Stream.fromQueue(subscription).pipe(
+            Stream.take(3),
+            Stream.runCollect,
+            Effect.forkChild
+          )
+          return yield* Fiber.join(fiber)
+        }))
+
+        assert.deepStrictEqual(result, [1, 2, 3])
       }))
   })
 

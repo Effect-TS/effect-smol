@@ -1167,8 +1167,12 @@ export const fromArrays = <Arr extends ReadonlyArray<ReadonlyArray<any>>>(
  * @since 4.0.0
  * @category Constructors
  */
-export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E, Cause.Done>> =>
-  fromChannel(Channel.fromQueueArray(queue))
+export const fromQueue = <A, E>(
+  queue: Queue.Dequeue<A, E> | PubSub.Subscription<A>
+): Stream<A, Exclude<E, Cause.Done>> =>
+  hasProperty(queue, "~effect/PubSub/Subscription")
+    ? fromChannel(Channel.fromSubscriptionArray(queue as PubSub.Subscription<A>)) as any
+    : fromChannel(Channel.fromQueueArray(queue as Queue.Dequeue<A, E>))
 
 /**
  * Creates a stream from a subscription to a `PubSub`.
