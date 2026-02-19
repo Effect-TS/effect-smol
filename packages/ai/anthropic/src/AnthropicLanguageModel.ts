@@ -2358,14 +2358,20 @@ const makeStreamResponse = Effect.fnUntraced(
 
                   const params = contentBlock.providerExecuted === true
                     ? finalParams
-                    : transformToolCallParams(options.tools, contentBlock.name, finalParams)
+                    : yield* transformToolCallParams(
+                      options.tools,
+                      contentBlock.name,
+                      Tool.unsafeSecureJsonParse(finalParams)
+                    )
 
                   parts.push({
                     type: "tool-call",
                     id: contentBlock.id,
                     name: contentBlock.name,
                     params,
-                    providerExecuted: contentBlock.providerExecuted,
+                    ...(Predicate.isNotUndefined(contentBlock.providerExecuted)
+                      ? { providerExecuted: contentBlock.providerExecuted }
+                      : undefined),
                     ...(Predicate.isNotUndefined(contentBlock.caller)
                       ? { metadata: { anthropic: { caller: contentBlock.caller } } }
                       : undefined)
