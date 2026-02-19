@@ -188,13 +188,11 @@ AuthStore.asEffect().pipe(
 
 ## Post-Migration Checklist
 
-- [ ] No stale `.js` artifacts shadowing `.ts` test files
 - [ ] No `import type { PlatformError }` (must be value import)
 - [ ] All `.annotations(` → `.annotate(`
 - [ ] All `Schema.decodeUnknown(` → `Schema.decodeUnknownEffect(`
 - [ ] No `Config.option(...).pipe(Effect.` patterns
-- [ ] Tests run (not just typecheck)
-- [ ] Large-output shell tests don't timeout
 - [ ] No `Effect.ignore` on code that throws defects (use `Effect.ignoreCause`)
 - [ ] No `ServiceTag.pipe(Effect.flatMap(...))` — use `.use()` or `Effect.gen`
 - [ ] No `Fiber.poll(fiber)` — use `fiber.pollUnsafe()`
+- [ ] Tests run (not just typecheck)
