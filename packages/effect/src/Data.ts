@@ -49,7 +49,6 @@ export const Class: new<A extends Record<string, any> = {}>(
     if (props) {
       Object.assign(this, props)
     }
-
   }
   Object.setPrototypeOf(Ctor, core.StructuralPipeableProto)
   return Ctor as any
