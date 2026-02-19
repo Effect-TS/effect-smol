@@ -101,7 +101,7 @@ export function format(input: unknown, options?: {
 
     if (typeof v === "bigint") return String(v) + "n"
 
-    if (Predicate.isObject(v)) {
+    if (typeof v === "object" || typeof v === "function") {
       if (seen.has(v)) return CIRCULAR
       seen.add(v)
 
