@@ -24,7 +24,7 @@ describe("decoding / encoding API", () => {
         (arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2
       )
     )
-    expect(schema).type.toBe<Schema.refine<readonly [string, string, ...Array<string>], Schema.Array$<Schema.String>>>()
+    expect(schema).type.toBe<Schema.refine<readonly [string, string, ...Array<string>], Schema.$Array<Schema.String>>>()
   })
 
   it("asserts", () => {

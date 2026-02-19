@@ -203,13 +203,13 @@ export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
  * @since 4.0.0
  * @category Schemas
  */
-export const FilesSchema: Schema.Array$<PersistedFileSchema> = Schema.Array(PersistedFileSchema)
+export const FilesSchema: Schema.$Array<PersistedFileSchema> = Schema.Array(PersistedFileSchema)
 
 /**
  * @since 4.0.0
  * @category Schemas
  */
-export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.Array$<PersistedFileSchema>> = FilesSchema
+export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.$Array<PersistedFileSchema>> = FilesSchema
   .check(
     Schema.isLengthBetween(1, 1)
   ).pipe(

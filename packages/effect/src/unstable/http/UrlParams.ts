@@ -467,7 +467,7 @@ export const schemaJsonField = (field: string): schemaJsonField =>
  */
 export interface schemaRecord extends
   Schema.decodeTo<
-    Schema.Record$<Schema.String, Schema.Union<readonly [Schema.String, Schema.NonEmptyArray<Schema.String>]>>,
+    Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.NonEmptyArray<Schema.String>]>>,
     UrlParamsSchema,
     never,
     never

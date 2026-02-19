@@ -393,7 +393,7 @@ describe("Struct", () => {
       expect(schema).type.toBe<
         Schema.Struct<
           {
-            readonly a: Schema.mutable<Schema.Array$<Schema.String>>
+            readonly a: Schema.mutable<Schema.$Array<Schema.String>>
             readonly b: Schema.mutable<Schema.Tuple<readonly [Schema.Number]>>
           }
         >
@@ -472,7 +472,7 @@ describe("Struct", () => {
         >
       >()
       expect(schema).type.toBe<
-        Schema.Struct<{ readonly a: Schema.Array$<Schema.String>; readonly b: Schema.Array$<Schema.Number> }>
+        Schema.Struct<{ readonly a: Schema.$Array<Schema.String>; readonly b: Schema.$Array<Schema.Number> }>
       >()
     })
 
@@ -493,7 +493,7 @@ describe("Struct", () => {
         >
       >()
       expect(schema).type.toBe<
-        Schema.Struct<{ readonly a: Schema.Array$<Schema.String>; readonly b: Schema.Array$<Schema.Number> }>
+        Schema.Struct<{ readonly a: Schema.$Array<Schema.String>; readonly b: Schema.$Array<Schema.Number> }>
       >()
     })
 
@@ -659,13 +659,13 @@ describe("StructWithRest", () => {
     expect(schema).type.toBe<
       Schema.StructWithRest<
         Schema.Struct<{ readonly a: Schema.Number }>,
-        readonly [Schema.Record$<Schema.String, Schema.Number>]
+        readonly [Schema.$Record<Schema.String, Schema.Number>]
       >
     >()
     expect(schema.annotate({})).type.toBe<
       Schema.StructWithRest<
         Schema.Struct<{ readonly a: Schema.Number }>,
-        readonly [Schema.Record$<Schema.String, Schema.Number>]
+        readonly [Schema.$Record<Schema.String, Schema.Number>]
       >
     >()
   })
@@ -690,8 +690,8 @@ describe("StructWithRest", () => {
       Schema.StructWithRest<
         Schema.Struct<{ readonly a: Schema.Number }>,
         readonly [
-          Schema.Record$<Schema.String, Schema.mutableKey<Schema.Number>>,
-          Schema.Record$<Schema.Symbol, Schema.optional<Schema.Number>>
+          Schema.$Record<Schema.String, Schema.mutableKey<Schema.Number>>,
+          Schema.$Record<Schema.Symbol, Schema.optional<Schema.Number>>
         ]
       >
     >()
@@ -699,8 +699,8 @@ describe("StructWithRest", () => {
       Schema.StructWithRest<
         Schema.Struct<{ readonly a: Schema.Number }>,
         readonly [
-          Schema.Record$<Schema.String, Schema.mutableKey<Schema.Number>>,
-          Schema.Record$<Schema.Symbol, Schema.optional<Schema.Number>>
+          Schema.$Record<Schema.String, Schema.mutableKey<Schema.Number>>,
+          Schema.$Record<Schema.Symbol, Schema.optional<Schema.Number>>
         ]
       >
     >()

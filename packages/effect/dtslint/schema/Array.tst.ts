@@ -5,8 +5,8 @@ describe("Array", () => {
   it("Array<FiniteFromString>", () => {
     const schema = Schema.Array(Schema.FiniteFromString)
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<ReadonlyArray<number>, ReadonlyArray<string>>>()
-    expect(schema).type.toBe<Schema.Array$<typeof Schema.FiniteFromString>>()
-    expect(schema.annotate({})).type.toBe<Schema.Array$<typeof Schema.FiniteFromString>>()
+    expect(schema).type.toBe<Schema.$Array<typeof Schema.FiniteFromString>>()
+    expect(schema.annotate({})).type.toBe<Schema.$Array<typeof Schema.FiniteFromString>>()
 
     expect(schema.schema).type.toBe<typeof Schema.FiniteFromString>()
   })
@@ -14,8 +14,8 @@ describe("Array", () => {
   it("mutable", () => {
     const schema = Schema.mutable(Schema.Array(Schema.FiniteFromString))
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<Array<number>, Array<string>>>()
-    expect(schema).type.toBe<Schema.mutable<Schema.Array$<typeof Schema.FiniteFromString>>>()
-    expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.Array$<typeof Schema.FiniteFromString>>>()
+    expect(schema).type.toBe<Schema.mutable<Schema.$Array<typeof Schema.FiniteFromString>>>()
+    expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.$Array<typeof Schema.FiniteFromString>>>()
 
     expect(schema.schema.schema).type.toBe<typeof Schema.FiniteFromString>()
   })

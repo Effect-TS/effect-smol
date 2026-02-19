@@ -218,7 +218,7 @@ export const PartialJson: Schema.Codec<
  * @category schemas
  */
 export const PartialArray: Schema.mutable<
-  Schema.Array$<Schema.Codec<AckChunk | Interrupt | PartialRequest, Encoded>>
+  Schema.$Array<Schema.Codec<AckChunk | Interrupt | PartialRequest, Encoded>>
 > = Schema.mutable(Schema.Array(PartialJson))
 
 /**

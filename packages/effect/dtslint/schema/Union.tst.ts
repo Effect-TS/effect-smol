@@ -56,7 +56,7 @@ describe("Union", () => {
         >
       >()
       expect(schema).type.toBe<
-        Schema.Union<readonly [Schema.Array$<Schema.String>, Schema.Number, Schema.Array$<Schema.Boolean>]>
+        Schema.Union<readonly [Schema.$Array<Schema.String>, Schema.Number, Schema.$Array<Schema.Boolean>]>
       >()
     })
 
@@ -70,7 +70,7 @@ describe("Union", () => {
           never
         >
       >()
-      expect(schema).type.toBe<Schema.Union<readonly [Schema.Array$<Schema.String>, Schema.Array$<Schema.Number>]>>()
+      expect(schema).type.toBe<Schema.Union<readonly [Schema.$Array<Schema.String>, Schema.$Array<Schema.Number>]>>()
     })
 
     it("NonEmptyArray", () => {

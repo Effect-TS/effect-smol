@@ -7,8 +7,8 @@ describe("Record", () => {
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: number }, never>
     >()
-    expect(schema).type.toBe<Schema.Record$<Schema.String, Schema.Number>>()
-    expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.String, Schema.Number>>()
+    expect(schema).type.toBe<Schema.$Record<Schema.String, Schema.Number>>()
+    expect(schema.annotate({})).type.toBe<Schema.$Record<Schema.String, Schema.Number>>()
   })
 
   it("Record(Symbol, Number)", () => {
@@ -16,8 +16,8 @@ describe("Record", () => {
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<{ readonly [x: symbol]: number }, { readonly [x: symbol]: number }, never>
     >()
-    expect(schema).type.toBe<Schema.Record$<Schema.Symbol, Schema.Number>>()
-    expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.Symbol, Schema.Number>>()
+    expect(schema).type.toBe<Schema.$Record<Schema.Symbol, Schema.Number>>()
+    expect(schema.annotate({})).type.toBe<Schema.$Record<Schema.Symbol, Schema.Number>>()
   })
 
   it("Record(String, NumberFromString)", () => {
@@ -25,8 +25,8 @@ describe("Record", () => {
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: string }, never>
     >()
-    expect(schema).type.toBe<Schema.Record$<Schema.String, typeof Schema.NumberFromString>>()
-    expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.String, typeof Schema.NumberFromString>>()
+    expect(schema).type.toBe<Schema.$Record<Schema.String, typeof Schema.NumberFromString>>()
+    expect(schema.annotate({})).type.toBe<Schema.$Record<Schema.String, typeof Schema.NumberFromString>>()
   })
 
   it("Record(`${number}`, NumberFromString)", () => {
@@ -35,10 +35,10 @@ describe("Record", () => {
       Schema.Codec<{ readonly [x: `${number}`]: number }, { readonly [x: `${number}`]: string }, never>
     >()
     expect(schema).type.toBe<
-      Schema.Record$<Schema.TemplateLiteral<readonly [Schema.Number]>, typeof Schema.NumberFromString>
+      Schema.$Record<Schema.TemplateLiteral<readonly [Schema.Number]>, typeof Schema.NumberFromString>
     >()
     expect(schema.annotate({})).type.toBe<
-      Schema.Record$<Schema.TemplateLiteral<readonly [Schema.Number]>, typeof Schema.NumberFromString>
+      Schema.$Record<Schema.TemplateLiteral<readonly [Schema.Number]>, typeof Schema.NumberFromString>
     >()
   })
 
@@ -52,9 +52,9 @@ describe("Record", () => {
           never
         >
       >()
-      expect(schema).type.toBe<Schema.Record$<Schema.Literals<readonly ["a", "b"]>, typeof Schema.FiniteFromString>>()
+      expect(schema).type.toBe<Schema.$Record<Schema.Literals<readonly ["a", "b"]>, typeof Schema.FiniteFromString>>()
       expect(schema.annotate({})).type.toBe<
-        Schema.Record$<Schema.Literals<readonly ["a", "b"]>, typeof Schema.FiniteFromString>
+        Schema.$Record<Schema.Literals<readonly ["a", "b"]>, typeof Schema.FiniteFromString>
       >()
     })
 
@@ -68,10 +68,10 @@ describe("Record", () => {
         >
       >()
       expect(schema).type.toBe<
-        Schema.Record$<Schema.Literals<readonly ["a", "b"]>, Schema.optionalKey<typeof Schema.FiniteFromString>>
+        Schema.$Record<Schema.Literals<readonly ["a", "b"]>, Schema.optionalKey<typeof Schema.FiniteFromString>>
       >()
       expect(schema.annotate({})).type.toBe<
-        Schema.Record$<Schema.Literals<readonly ["a", "b"]>, Schema.optionalKey<typeof Schema.FiniteFromString>>
+        Schema.$Record<Schema.Literals<readonly ["a", "b"]>, Schema.optionalKey<typeof Schema.FiniteFromString>>
       >()
     })
 
@@ -81,10 +81,10 @@ describe("Record", () => {
         Schema.Codec<{ "a": number; "b": number }, { "a": string; "b": string }, never>
       >()
       expect(schema).type.toBe<
-        Schema.Record$<Schema.Literals<readonly ["a", "b"]>, Schema.mutableKey<typeof Schema.FiniteFromString>>
+        Schema.$Record<Schema.Literals<readonly ["a", "b"]>, Schema.mutableKey<typeof Schema.FiniteFromString>>
       >()
       expect(schema.annotate({})).type.toBe<
-        Schema.Record$<Schema.Literals<readonly ["a", "b"]>, Schema.mutableKey<typeof Schema.FiniteFromString>>
+        Schema.$Record<Schema.Literals<readonly ["a", "b"]>, Schema.mutableKey<typeof Schema.FiniteFromString>>
       >()
     })
 
@@ -97,13 +97,13 @@ describe("Record", () => {
         Schema.Codec<{ "a"?: number; "b"?: number }, { "a"?: string; "b"?: string }, never>
       >()
       expect(schema).type.toBe<
-        Schema.Record$<
+        Schema.$Record<
           Schema.Literals<readonly ["a", "b"]>,
           Schema.mutableKey<Schema.optionalKey<typeof Schema.FiniteFromString>>
         >
       >()
       expect(schema.annotate({})).type.toBe<
-        Schema.Record$<
+        Schema.$Record<
           Schema.Literals<readonly ["a", "b"]>,
           Schema.mutableKey<Schema.optionalKey<typeof Schema.FiniteFromString>>
         >
@@ -119,8 +119,8 @@ describe("Record", () => {
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly [x: string]: number | undefined }, { readonly [x: string]: string | undefined }, never>
       >()
-      expect(schema).type.toBe<Schema.Record$<Schema.String, Schema.optional<Schema.NumberFromString>>>()
-      expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.String, Schema.optional<Schema.NumberFromString>>>()
+      expect(schema).type.toBe<Schema.$Record<Schema.String, Schema.optional<Schema.NumberFromString>>>()
+      expect(schema.annotate({})).type.toBe<Schema.$Record<Schema.String, Schema.optional<Schema.NumberFromString>>>()
     })
 
     it("Record(String, mutableKey(Number))", () => {
@@ -128,17 +128,17 @@ describe("Record", () => {
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ [x: string]: number }, { [x: string]: string }, never>
       >()
-      expect(schema).type.toBe<Schema.Record$<Schema.String, Schema.mutableKey<Schema.NumberFromString>>>()
-      expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.String, Schema.mutableKey<Schema.NumberFromString>>>()
+      expect(schema).type.toBe<Schema.$Record<Schema.String, Schema.mutableKey<Schema.NumberFromString>>>()
+      expect(schema.annotate({})).type.toBe<Schema.$Record<Schema.String, Schema.mutableKey<Schema.NumberFromString>>>()
     })
 
     it("recursive schema", () => {
       type T = { [x: string]: T }
       const schema = Schema.Record(Schema.String, Schema.mutableKey(Schema.suspend((): Schema.Codec<T> => schema)))
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<T>>()
-      expect(schema).type.toBe<Schema.Record$<Schema.String, Schema.mutableKey<Schema.suspend<Schema.Codec<T>>>>>()
+      expect(schema).type.toBe<Schema.$Record<Schema.String, Schema.mutableKey<Schema.suspend<Schema.Codec<T>>>>>()
       expect(schema.annotate({})).type.toBe<
-        Schema.Record$<Schema.String, Schema.mutableKey<Schema.suspend<Schema.Codec<T>>>>
+        Schema.$Record<Schema.String, Schema.mutableKey<Schema.suspend<Schema.Codec<T>>>>
       >()
     })
   })

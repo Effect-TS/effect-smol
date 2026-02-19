@@ -247,7 +247,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
  * @since 1.0.0
  * @category schemas
  */
-export const ProviderMetadata: Schema.Record$<
+export const ProviderMetadata: Schema.$Record<
   Schema.String,
   Schema.NullOr<Schema.Codec<Schema.MutableJson, Schema.MutableJson, never, never>>
 > = Schema.Record(Schema.String, Schema.NullOr(Schema.MutableJson))

@@ -1804,11 +1804,6 @@ export declare namespace Record {
   /**
    * @since 4.0.0
    */
-  export type Record = Record$<Record.Key, Top>
-
-  /**
-   * @since 4.0.0
-   */
   export type Type<Key extends Record.Key, Value extends Top> = Value extends
     { readonly "~type.optionality": "optional" } ?
     Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["Type"]]?: Value["Type"] }
@@ -1864,14 +1859,14 @@ export declare namespace Record {
 /**
  * @since 4.0.0
  */
-export interface Record$<Key extends Record.Key, Value extends Top> extends
+export interface $Record<Key extends Record.Key, Value extends Top> extends
   Bottom<
     Record.Type<Key, Value>,
     Record.Encoded<Key, Value>,
     Record.DecodingServices<Key, Value>,
     Record.EncodingServices<Key, Value>,
     AST.Objects,
-    Record$<Key, Value>,
+    $Record<Key, Value>,
     Simplify<Record.MakeIn<Key, Value>>,
     Record.Iso<Key, Value>
   >
@@ -1893,7 +1888,7 @@ export function Record<Key extends Record.Key, Value extends Top>(
       readonly encode?: Combiner.Combiner<readonly [Key["Encoded"], Value["Encoded"]]> | undefined
     }
   }
-): Record$<Key, Value> {
+): $Record<Key, Value> {
   const keyValueCombiner = options?.keyValueCombiner?.decode || options?.keyValueCombiner?.encode
     ? new AST.KeyValueCombiner(options.keyValueCombiner.decode, options.keyValueCombiner.encode)
     : undefined
@@ -1912,7 +1907,7 @@ export declare namespace StructWithRest {
   /**
    * @since 4.0.0
    */
-  export type Records = ReadonlyArray<Record.Record>
+  export type Records = ReadonlyArray<$Record<Record.Key, Top>>
 
   type MergeTuple<T extends ReadonlyArray<unknown>> = T extends readonly [infer Head, ...infer Tail] ?
     Head & MergeTuple<Tail>
@@ -2244,14 +2239,14 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
 /**
  * @since 4.0.0
  */
-export interface Array$<S extends Top> extends
+export interface $Array<S extends Top> extends
   Bottom<
     ReadonlyArray<S["Type"]>,
     ReadonlyArray<S["Encoded"]>,
     S["DecodingServices"],
     S["EncodingServices"],
     AST.Arrays,
-    Array$<S>,
+    $Array<S>,
     ReadonlyArray<S["~type.make"]>,
     ReadonlyArray<S["Iso"]>
   >
@@ -2261,8 +2256,8 @@ export interface Array$<S extends Top> extends
 }
 
 interface ArrayLambda extends Lambda {
-  <S extends Top>(self: S): Array$<S>
-  readonly "~lambda.out": this["~lambda.in"] extends Top ? Array$<this["~lambda.in"]> : never
+  <S extends Top>(self: S): $Array<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? $Array<this["~lambda.in"]> : never
 }
 
 /**
@@ -2306,7 +2301,7 @@ export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
 /**
  * @since 4.0.0
  */
-export interface UniqueArray<S extends Top> extends Array$<S> {}
+export interface UniqueArray<S extends Top> extends $Array<S> {}
 
 /**
  * Returns a new array schema that ensures all elements are unique.
@@ -6131,7 +6126,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
  * @category ReadonlyMap
  * @since 4.0.0
  */
-export interface ReadonlyMap$<Key extends Top, Value extends Top> extends
+export interface $ReadonlyMap<Key extends Top, Value extends Top> extends
   declareConstructor<
     globalThis.ReadonlyMap<Key["Type"], Value["Type"]>,
     globalThis.ReadonlyMap<Key["Encoded"], Value["Encoded"]>,
@@ -6156,7 +6151,7 @@ export type ReadonlyMapIso<Key extends Top, Value extends Top> = ReadonlyArray<r
  * @category ReadonlyMap
  * @since 4.0.0
  */
-export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value: Value): ReadonlyMap$<Key, Value> {
+export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value: Value): $ReadonlyMap<Key, Value> {
   const schema = declareConstructor<
     globalThis.ReadonlyMap<Key["Type"], Value["Type"]>,
     globalThis.ReadonlyMap<Key["Encoded"], Value["Encoded"]>,
@@ -6218,7 +6213,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
  * @category ReadonlySet
  * @since 4.0.0
  */
-export interface ReadonlySet$<Value extends Top> extends
+export interface $ReadonlySet<Value extends Top> extends
   declareConstructor<
     globalThis.ReadonlySet<Value["Type"]>,
     globalThis.ReadonlySet<Value["Encoded"]>,
@@ -6239,7 +6234,7 @@ export type ReadonlySetIso<Value extends Top> = ReadonlyArray<Value["Iso"]>
  * @category ReadonlySet
  * @since 4.0.0
  */
-export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value> {
+export function ReadonlySet<Value extends Top>(value: Value): $ReadonlySet<Value> {
   const schema = declareConstructor<
     globalThis.ReadonlySet<Value["Type"]>,
     globalThis.ReadonlySet<Value["Encoded"]>,
