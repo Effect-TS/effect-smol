@@ -92,6 +92,8 @@ export interface Semaphore {
 /**
  * Unsafely creates a new Semaphore.
  *
+ * **Previously Known As:** `Effect.makeSemaphoreUnsafe`, `Semaphore.unsafeMake`.
+ *
  * @example
  * ```ts
  * import { Effect, Semaphore } from "effect"
@@ -124,6 +126,8 @@ export const makeUnsafe: (permits: number) => Semaphore = internal.makeSemaphore
 
 /**
  * Creates a new Semaphore.
+ *
+ * **Previously Known As:** `Effect.makeSemaphore`.
  *
  * @example
  * ```ts
@@ -173,6 +177,8 @@ export type PartitionedTypeId = "~effect/PartitionedSemaphore"
  *
  * Waiting permits are distributed across partitions in round-robin order.
  *
+ * **Previously Known As:** `PartitionedSemaphore.PartitionedSemaphore`.
+ *
  * @since 3.19.4
  * @category models
  */
@@ -186,6 +192,8 @@ export interface Partitioned<in K> {
 
 /**
  * Creates a `Partitioned` semaphore unsafely.
+ *
+ * **Previously Known As:** `PartitionedSemaphore.makeUnsafe`.
  *
  * @since 3.19.4
  * @category constructors
@@ -317,6 +325,8 @@ export const makePartitionedUnsafe = <K = unknown>(options: {
 
 /**
  * Creates a `Partitioned` semaphore.
+ *
+ * **Previously Known As:** `PartitionedSemaphore.make`.
  *
  * @since 3.19.4
  * @category constructors
