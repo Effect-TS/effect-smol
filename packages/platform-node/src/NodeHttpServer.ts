@@ -533,7 +533,7 @@ const handleResponse = (
     }
     case "Stream": {
       nodeResponse.writeHead(response.status, headers)
-      const drainLatch = Latch.unsafeMake()
+      const drainLatch = Latch.makeUnsafe()
       nodeResponse.on("drain", () => drainLatch.openUnsafe())
       return body.stream.pipe(
         Stream.orDie,

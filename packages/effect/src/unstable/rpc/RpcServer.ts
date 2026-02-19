@@ -114,7 +114,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
 
   const clients = new Map<number, Client>()
   let isShutdown = false
-  const shutdownLatch = Latch.unsafeMake(false)
+  const shutdownLatch = Latch.makeUnsafe(false)
   yield* Scope.addFinalizer(
     scope,
     Effect.withFiber((parent) => {
@@ -344,7 +344,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   ) => {
     let latch = client.latches.get(request.id)
     if (supportsAck && !latch) {
-      latch = Latch.unsafeMake(false)
+      latch = Latch.makeUnsafe(false)
       client.latches.set(request.id, latch)
     }
     if (Effect.isEffect(stream)) {

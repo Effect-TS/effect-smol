@@ -216,7 +216,7 @@ describe.sequential("Atom", () => {
     const latches = Arr.empty<Latch.Latch>()
     let done = 0
     const count = Atom.fn((_: number) => {
-      const latch = Latch.unsafeMake()
+      const latch = Latch.makeUnsafe()
       latches.push(latch)
       return latch.await.pipe(
         Effect.tap(() => Effect.sync(() => done++))
@@ -1290,7 +1290,7 @@ describe.sequential("Atom", () => {
 
   describe("optimistic", () => {
     it("non-Result", async () => {
-      const latch = Latch.unsafeMake()
+      const latch = Latch.makeUnsafe()
       const r = AtomRegistry.make()
       let i = 0
       const atom = Atom.make(() => i)
@@ -1324,7 +1324,7 @@ describe.sequential("Atom", () => {
 
     it("Result", async () => {
       const runtime = Atom.runtime(Layer.empty)
-      const latch = Latch.unsafeMake()
+      const latch = Latch.makeUnsafe()
       const r = AtomRegistry.make()
       let i = 0
       const atom = Atom.make(Effect.sync(() => {
@@ -1363,7 +1363,7 @@ describe.sequential("Atom", () => {
     })
 
     it("failures", async () => {
-      const latch = Latch.unsafeMake()
+      const latch = Latch.makeUnsafe()
       const r = AtomRegistry.make()
       const i = 0
       let rebuilds = 0
@@ -1428,7 +1428,7 @@ describe.sequential("Atom", () => {
     })
 
     it("intermediate updates", async () => {
-      const latch = Latch.unsafeMake()
+      const latch = Latch.makeUnsafe()
       const r = AtomRegistry.make()
       let i = 0
       const atom = Atom.make(Effect.sync(() => i))

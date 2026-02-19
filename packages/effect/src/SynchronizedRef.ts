@@ -37,7 +37,7 @@ const Proto = {
  */
 export const makeUnsafe = <A>(value: A): SynchronizedRef<A> => {
   const self = Object.create(Proto)
-  self.semaphore = Semaphore.unsafeMake(1)
+  self.semaphore = Semaphore.makeUnsafe(1)
   self.backing = Ref.makeUnsafe(value)
   return self
 }

@@ -368,7 +368,7 @@ describe("atom-react", () => {
     })
 
     test("hydration streaming with resultPromise", async () => {
-      const latch = Latch.unsafeMake()
+      const latch = Latch.makeUnsafe()
       let start = 0
       let stop = 0
       const atom = Atom.make(

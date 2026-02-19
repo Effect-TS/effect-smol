@@ -32,7 +32,7 @@ export const suite = (name: string, layer: Layer.Layer<PersistedQueue.PersistedQ
 
         yield* queue.offer({ n: 42n })
 
-        const latch = Latch.unsafeMake()
+        const latch = Latch.makeUnsafe()
         const fiber = yield* queue.take(Effect.fnUntraced(function*(_value) {
           yield* latch.open
           return yield* Effect.never

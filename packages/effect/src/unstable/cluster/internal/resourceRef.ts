@@ -54,7 +54,7 @@ export class ResourceRef<A, E = never> {
     this.acquire = acquire
   }
 
-  latch = Latch.unsafeMake(true)
+  latch = Latch.makeUnsafe(true)
 
   getUnsafe(): Option.Option<A> {
     if (this.state.current._tag === "Acquired") {

@@ -1063,7 +1063,7 @@ const defaultRetryPolicy = Schedule.exponential(500, 1.5).pipe(
 
 const makePinger = Effect.fnUntraced(function*<A, E, R>(writePing: Effect.Effect<A, E, R>) {
   let recievedPong = true
-  const latch = Latch.unsafeMake()
+  const latch = Latch.makeUnsafe()
   const reset = () => {
     recievedPong = true
     latch.closeUnsafe()
@@ -1212,7 +1212,7 @@ export const makeProtocolWorker = (
         case "Request": {
           return Pool.get(pool).pipe(
             Effect.flatMap((worker) => {
-              const latch = Latch.unsafeMake(false)
+              const latch = Latch.makeUnsafe(false)
               entries.set(request.id, { worker, latch })
               return Effect.flatMap(worker.send(request, transferables), () => latch.await)
             }),

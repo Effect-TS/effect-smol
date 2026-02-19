@@ -444,7 +444,7 @@ export const fromWebSocket = <RO>(
 ): Effect.Effect<Socket, never, Exclude<RO, Scope.Scope>> =>
   Effect.withFiber((fiber) => {
     let currentWS: globalThis.WebSocket | undefined
-    const latch = Latch.unsafeMake(false)
+    const latch = Latch.makeUnsafe(false)
     const acquireContext = fiber.services as ServiceMap.ServiceMap<RO>
     const closeCodeIsError = options?.closeCodeIsError ?? defaultCloseCodeIsError
 
@@ -644,7 +644,7 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
   readonly closeCodeIsError?: (code: number) => boolean
 }): Effect.Effect<Socket, never, Exclude<R, Scope.Scope>> =>
   Effect.withFiber((fiber) => {
-    const latch = Latch.unsafeMake(false)
+    const latch = Latch.makeUnsafe(false)
     let currentStream: {
       readonly stream: InputTransformStream
       readonly fiberSet: FiberSet.FiberSet<any, any>

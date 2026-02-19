@@ -293,7 +293,7 @@ const readableToPullUnsafe = <A, E>(options: {
   const readable = options.readable as Readable
   const closeOnDone = options.closeOnDone ?? true
   const exit = options.exit ?? MutableRef.make(undefined)
-  const latch = Latch.unsafeMake(false)
+  const latch = Latch.makeUnsafe(false)
   function onReadable() {
     latch.openUnsafe()
   }
@@ -352,7 +352,7 @@ class StreamAdapter<E, R> extends Readable {
     stream: Stream.Stream<Uint8Array | string, E, R>
   ) {
     super({})
-    this.readLatch = Latch.unsafeMake(false)
+    this.readLatch = Latch.makeUnsafe(false)
     this.fiber = Stream.runForEachArray(stream, (chunk) =>
       this.readLatch.whenOpen(Effect.sync(() => {
         this.readLatch.closeUnsafe()

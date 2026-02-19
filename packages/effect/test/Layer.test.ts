@@ -11,7 +11,7 @@ describe("Layer", () => {
   it.effect("layers can be acquired in parallel", () =>
     Effect.gen(function*() {
       const BoolTag = ServiceMap.Service<boolean>("boolean")
-      const latch = Latch.unsafeMake()
+      const latch = Latch.makeUnsafe()
       const layer1 = Layer.effectServices<never, never, never>(Effect.never)
       const layer2 = Layer.effectServices(
         Effect.acquireRelease(

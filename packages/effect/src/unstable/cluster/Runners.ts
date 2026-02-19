@@ -205,11 +205,11 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
       let entry = storageRequests.get(message.envelope.requestId)
       if (entry) {
         entry.messages.add(message)
-        entry.doneLatch ??= Latch.unsafeMake(false)
+        entry.doneLatch ??= Latch.makeUnsafe(false)
         return yield* entry.doneLatch.await
       } else {
         entry = {
-          latch: Latch.unsafeMake(false),
+          latch: Latch.makeUnsafe(false),
           doneLatch: undefined,
           replies: [],
           messages: new Set([message])
@@ -261,7 +261,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
       )
   )
 
-  const storageLatch = Latch.unsafeMake(false)
+  const storageLatch = Latch.makeUnsafe(false)
   if (storage !== MessageStorage.noop) {
     yield* Effect.gen(function*() {
       const foundRequests = new Set<StorageRequestEntry>()

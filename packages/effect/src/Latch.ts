@@ -46,7 +46,7 @@ export interface Latch {
  * ```ts
  * import { Effect, Latch } from "effect"
  *
- * const latch = Latch.unsafeMake(false)
+ * const latch = Latch.makeUnsafe(false)
  *
  * const waiter = Effect.gen(function*() {
  *   yield* Effect.log("Waiting for latch to open...")
@@ -66,7 +66,7 @@ export interface Latch {
  * @category constructors
  * @since 3.8.0
  */
-export const unsafeMake: (open?: boolean | undefined) => Latch = internal.makeLatchUnsafe
+export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLatchUnsafe
 
 /**
  * Creates a new Latch.

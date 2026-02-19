@@ -434,7 +434,7 @@ const make = Effect.gen(function*() {
   const storageReadLatch = yield* Latch.make(true)
   const openStorageReadLatch = constant(Effect.asVoid(storageReadLatch.open))
 
-  const storageReadLock = Semaphore.unsafeMake(1)
+  const storageReadLock = Semaphore.makeUnsafe(1)
   const withStorageReadLock = storageReadLock.withPermits(1)
 
   if (storageEnabled && config.runnerAddress) {
@@ -1184,7 +1184,7 @@ const make = Effect.gen(function*() {
 
   const singletons = new Map<ShardId, MutableHashMap.MutableHashMap<SingletonAddress, Effect.Effect<void>>>()
   const singletonFibers = yield* FiberMap.make<SingletonAddress>()
-  const withSingletonLock = Semaphore.unsafeMake(1).withPermits(1)
+  const withSingletonLock = Semaphore.makeUnsafe(1).withPermits(1)
 
   const registerSingleton: Sharding["Service"]["registerSingleton"] = Effect.fnUntraced(
     function*(name, run, options) {
@@ -1312,7 +1312,7 @@ const make = Effect.gen(function*() {
   const waitForEntityManager = (entityType: string) => {
     let latch = entityManagerLatches.get(entityType)
     if (!latch) {
-      latch = Latch.unsafeMake()
+      latch = Latch.makeUnsafe()
       entityManagerLatches.set(entityType, latch)
     }
     return latch.await

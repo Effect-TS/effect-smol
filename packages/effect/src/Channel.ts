@@ -1868,7 +1868,7 @@ const mapEffectConcurrent = <
       const trackFiber = Fiber.runIn(forkedScope)
 
       if (options.unordered) {
-        const semaphore = Semaphore.unsafeMake(concurrencyN)
+        const semaphore = Semaphore.makeUnsafe(concurrencyN)
         const release = constant(semaphore.release(1))
         const handle = Effect.matchCauseEffect({
           onFailure: (cause: Cause.Cause<EX>) => Effect.flatMap(Queue.failCause(queue, cause), release),
@@ -5237,7 +5237,7 @@ export const mergeAll: {
         const concurrencyN = concurrency === "unbounded"
           ? Number.MAX_SAFE_INTEGER
           : Math.max(1, concurrency)
-        const semaphore = switch_ ? undefined : Semaphore.unsafeMake(concurrencyN)
+        const semaphore = switch_ ? undefined : Semaphore.makeUnsafe(concurrencyN)
         const doneLatch = yield* Latch.make(true)
         const fibers = new Set<Fiber.Fiber<any, any>>()
 
@@ -6974,7 +6974,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
   function*<OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) {
-    const semaphore = Semaphore.unsafeMake(1)
+    const semaphore = Semaphore.makeUnsafe(1)
     const context = yield* Effect.services<Env | Scope.Scope>()
     const scope = ServiceMap.get(context, Scope.Scope)
     const pull = yield* toTransform(self)(Cause.done(), scope)

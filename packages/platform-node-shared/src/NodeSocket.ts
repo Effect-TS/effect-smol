@@ -88,7 +88,7 @@ export const fromDuplex = <RO>(
 ): Effect.Effect<Socket.Socket, never, Exclude<RO, Scope.Scope>> =>
   Effect.withFiber<Socket.Socket, never, Exclude<RO, Scope.Scope>>((fiber) => {
     let currentSocket: Duplex | undefined
-    const latch = Latch.unsafeMake(false)
+    const latch = Latch.makeUnsafe(false)
     const openServices = fiber.services as ServiceMap.ServiceMap<RO>
 
     const run = <R, E, _>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {

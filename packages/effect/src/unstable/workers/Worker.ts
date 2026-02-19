@@ -150,7 +150,7 @@ export const makePlatform = <W>() =>
                   WorkerError | E
                 >().pipe(Scope.provide(scope))
                 const run = yield* FiberSet.runtime(fiberSet)<R>()
-                const ready = Latch.unsafeMake()
+                const ready = Latch.makeUnsafe()
                 yield* options.listen({
                   port,
                   scope,

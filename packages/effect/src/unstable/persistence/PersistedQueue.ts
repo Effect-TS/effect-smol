@@ -243,7 +243,7 @@ export const layerStoreMemory: Layer.Layer<
     let queue = queues.get(name)
     if (!queue) {
       queue = {
-        latch: Latch.unsafeMake(false),
+        latch: Latch.makeUnsafe(false),
         items: new Set()
       }
       queues.set(name, queue)
@@ -346,8 +346,8 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
       const pendingKey = keyPending(name)
       const queue = yield* Queue.make<Element>()
       const takers = MutableRef.make(0)
-      const pollLatch = Latch.unsafeMake()
-      const takenLatch = Latch.unsafeMake()
+      const pollLatch = Latch.makeUnsafe()
+      const takenLatch = Latch.makeUnsafe()
 
       yield* Effect.addFinalizer(() =>
         Effect.orDie(
@@ -931,8 +931,8 @@ export const makeStoreSql: (
     lookup: Effect.fnUntraced(function*({ maxAttempts, name }: QueueKey) {
       const queue = yield* Queue.make<Element>()
       const takers = MutableRef.make(0)
-      const pollLatch = Latch.unsafeMake()
-      const takenLatch = Latch.unsafeMake()
+      const pollLatch = Latch.makeUnsafe()
+      const takenLatch = Latch.makeUnsafe()
 
       yield* Effect.addFinalizer(() =>
         Effect.flatMap(Queue.clear(queue), (elements) => {

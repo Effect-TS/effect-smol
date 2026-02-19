@@ -71,7 +71,7 @@ const Proto = {
 export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
   Effect.map(PubSub.unbounded<A>({ replay: 1 }), (pubsub) => {
     const self = Object.create(Proto)
-    self.semaphore = Semaphore.unsafeMake(1)
+    self.semaphore = Semaphore.makeUnsafe(1)
     self.backing = Ref.makeUnsafe(value)
     self.pubsub = pubsub
     PubSub.publishUnsafe(self.pubsub, value)

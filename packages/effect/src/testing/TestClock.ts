@@ -294,7 +294,7 @@ export const make = Effect.fnUntraced(function*(
     const millis = Duration.toMillis(duration)
     const end = currentTimestamp + millis
     if (end <= currentTimestamp) return
-    const latch = Latch.unsafeMake()
+    const latch = Latch.makeUnsafe()
     sleeps.push({
       sequence: sequence++,
       timestamp: end,

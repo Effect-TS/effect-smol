@@ -15,7 +15,7 @@ export const withRun = <
 >() =>
 <EX, RX>(f: (write: Parameters<A["run"]>[0]) => Effect.Effect<Omit<A, "run">, EX, RX>): Effect.Effect<A, EX, RX> =>
   Effect.suspend(() => {
-    const semaphore = Semaphore.unsafeMake(1)
+    const semaphore = Semaphore.makeUnsafe(1)
     let buffer: Array<[Array<any>, ServiceMap.ServiceMap<never>]> = []
     let write = (...args: Array<any>): Effect.Effect<void> =>
       Effect.servicesWith((context) => {

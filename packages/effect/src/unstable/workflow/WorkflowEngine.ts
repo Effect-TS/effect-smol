@@ -242,7 +242,7 @@ export class WorkflowInstance extends ServiceMap.Service<
       cause: undefined,
       activityState: {
         count: 0,
-        latch: Latch.unsafeMake()
+        latch: Latch.makeUnsafe()
       }
     })
   }

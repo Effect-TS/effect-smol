@@ -298,7 +298,7 @@ export const make = Effect.gen(function*() {
                 return Effect.gen(function*() {
                   let entry = activities.get(activityId)
                   while (!entry) {
-                    const latch = Latch.unsafeMake()
+                    const latch = Latch.makeUnsafe()
                     activityLatches.set(activityId, latch)
                     yield* latch.await
                     entry = activities.get(activityId)

@@ -130,8 +130,8 @@ export const make = Effect.fnUntraced(function*<
     }
 
     const scope = yield* Effect.scope
-    const endLatch = Latch.unsafeMake()
-    const keepAliveLatch = Latch.unsafeMake()
+    const endLatch = Latch.makeUnsafe()
+    const keepAliveLatch = Latch.makeUnsafe()
 
     // on shutdown, reset the storage for the entity
     yield* Scope.addFinalizerExit(
@@ -337,7 +337,7 @@ export const make = Effect.fnUntraced(function*<
       scope,
       Effect.withFiber((fiber) => {
         activeServers.delete(address.entityId)
-        serverCloseLatches.set(address, Latch.unsafeMake())
+        serverCloseLatches.set(address, Latch.makeUnsafe())
         internalInterruptors.add(fiber.id)
         return state.write(0, { _tag: "Eof" }).pipe(
           Effect.andThen(Effect.interruptible(endLatch.await)),

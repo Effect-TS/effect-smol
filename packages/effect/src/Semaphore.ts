@@ -96,7 +96,7 @@ export interface Semaphore {
  * ```ts
  * import { Effect, Semaphore } from "effect"
  *
- * const semaphore = Semaphore.unsafeMake(3)
+ * const semaphore = Semaphore.makeUnsafe(3)
  *
  * const task = (id: number) =>
  *   semaphore.withPermits(1)(
@@ -120,7 +120,7 @@ export interface Semaphore {
  * @since 2.0.0
  * @category constructors
  */
-export const unsafeMake: (permits: number) => Semaphore = internal.makeSemaphoreUnsafe
+export const makeUnsafe: (permits: number) => Semaphore = internal.makeSemaphoreUnsafe
 
 /**
  * Creates a new Semaphore.

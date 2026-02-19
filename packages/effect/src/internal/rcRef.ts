@@ -48,7 +48,7 @@ class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
   }
 
   state: State<A> = stateEmpty
-  readonly semaphore = Semaphore.unsafeMake(1)
+  readonly semaphore = Semaphore.makeUnsafe(1)
   readonly acquire: Effect.Effect<A, E>
   readonly services: ServiceMap.ServiceMap<never>
   readonly scope: Scope.Scope

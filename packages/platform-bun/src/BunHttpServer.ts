@@ -464,7 +464,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     return Effect.callback<Socket.Socket, Error.HttpServerError>((resume) => {
       const deferred = Deferred.makeUnsafe<ServerWebSocket<WebSocketContext>>()
       const closeDeferred = Deferred.makeUnsafe<void, Socket.SocketError>()
-      const semaphore = Semaphore.unsafeMake(1)
+      const semaphore = Semaphore.makeUnsafe(1)
 
       const success = this.bunServer.upgrade(this.source, {
         data: {

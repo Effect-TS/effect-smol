@@ -2167,8 +2167,8 @@ export const tapSink: {
     transformPullBracket(
       self,
       Effect.fnUntraced(function*(pull, _, scope) {
-        const upstreamLatch = Latch.unsafeMake()
-        const sinkLatch = Latch.unsafeMake()
+        const upstreamLatch = Latch.makeUnsafe()
+        const sinkLatch = Latch.makeUnsafe()
         let chunk: Arr.NonEmptyReadonlyArray<A> | undefined = undefined
         let causeSink: Cause.Cause<E2> | undefined = undefined
         let sinkDone = false
@@ -3685,7 +3685,7 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
   fromChannel(Channel.suspend(() => {
     const latest: Array<any> = []
     const emitted = new Set<number>()
-    const readyLatch = Latch.unsafeMake()
+    const readyLatch = Latch.makeUnsafe()
     return Channel.mergeAll(
       Channel.fromArray(
         streams.map((s, i) =>
@@ -7056,9 +7056,9 @@ export const debounce: {
         let lastArr: Arr.NonEmptyReadonlyArray<A> | undefined
         let cause: Cause.Cause<Cause.Done | E> | undefined
         let emitAtMs = Infinity
-        const pullLatch = Latch.unsafeMake()
-        const emitLatch = Latch.unsafeMake()
-        const endLatch = Latch.unsafeMake()
+        const pullLatch = Latch.makeUnsafe()
+        const emitLatch = Latch.makeUnsafe()
+        const endLatch = Latch.makeUnsafe()
 
         yield* pull.pipe(
           pullLatch.whenOpen,
@@ -7825,7 +7825,7 @@ export const aggregateWithin: {
   fromChannel(Channel.fromTransformBracket(Effect.fnUntraced(function*(_upstream, _, scope) {
     const pull = yield* Channel.toPullScoped(self.channel, _)
 
-    const pullLatch = Latch.unsafeMake(false)
+    const pullLatch = Latch.makeUnsafe(false)
     const scheduleStep = Symbol()
     const buffer = yield* Queue.make<Arr.NonEmptyReadonlyArray<A> | typeof scheduleStep, E | Cause.Done<void>>({
       capacity: 0
@@ -10069,7 +10069,7 @@ export const toReadableStreamWith = dual<
   ): ReadableStream<A> => {
     let currentResolve: (() => void) | undefined = undefined
     let fiber: Fiber.Fiber<void, E> | undefined = undefined
-    const latch = Latch.unsafeMake(false)
+    const latch = Latch.makeUnsafe(false)
 
     return new ReadableStream<A>({
       start(controller) {

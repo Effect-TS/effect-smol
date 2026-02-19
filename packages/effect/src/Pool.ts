@@ -214,11 +214,11 @@ export const makeWithStrategy = <A, E, R>(options: {
     const state: State<A, E> = {
       scope,
       isShuttingDown: false,
-      semaphore: Semaphore.unsafeMake(concurrency * options.max),
-      resizeSemaphore: Semaphore.unsafeMake(1),
+      semaphore: Semaphore.makeUnsafe(concurrency * options.max),
+      resizeSemaphore: Semaphore.makeUnsafe(1),
       items: new Set(),
       available: new Set(),
-      availableLatch: Latch.unsafeMake(false),
+      availableLatch: Latch.makeUnsafe(false),
       invalidated: new Set(),
       waiters: 0
     }
@@ -246,7 +246,7 @@ const shutdown = Effect.fnUntraced(function*<A, E>(self: Pool<A, E>) {
   if (self.state.isShuttingDown) return
   self.state.isShuttingDown = true
   const size = self.state.items.size
-  const semaphore = Semaphore.unsafeMake(size)
+  const semaphore = Semaphore.makeUnsafe(size)
   for (const item of self.state.items) {
     if (item.refCount > 0) {
       item.finalizer = Effect.tap(item.finalizer, semaphore.release(1))
