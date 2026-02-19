@@ -49,12 +49,12 @@ Phases 2–3 can run in parallel across independent categories:
 
 After all complete: Phase 4 (structural), then Phase 5 (typecheck loop).
 
-### Key Metrics
+### What to Expect
 
-- ~100 files touched in a mid-size monorepo (11 packages)
-- ~2500 lines changed
-- 4 typecheck iterations to reach zero errors
-- ~80% of errors are mechanical — fixed by find-replace
+- Most errors are mechanical — ~80% fixed by find-replace
+- Expect 3–5 typecheck iterations to reach zero errors
+- Structural changes (Schema type system, Logger, Tracer) take the most time
+- Import rewrites are tedious but straightforward
 
 ## §2 Dependencies
 
