@@ -98,6 +98,12 @@ export type ScalarConfig = {
    * Default: `false`
    */
   defaultOpenAllTags?: boolean
+  /**
+   * Whether to display the operation ID in the operation reference.
+   *
+   * Default: `false`
+   */
+  showOperationId?: boolean
 }
 
 type ScalarSource =
