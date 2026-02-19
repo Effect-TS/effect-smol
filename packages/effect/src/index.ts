@@ -2282,12 +2282,6 @@ export * as Order from "./Order.ts"
 export * as Ordering from "./Ordering.ts"
 
 /**
- * @since 3.19.4
- * @experimental
- */
-export * as PartitionedSemaphore from "./PartitionedSemaphore.ts"
-
-/**
  * @since 4.0.0
  */
 export * as Path from "./Path.ts"
