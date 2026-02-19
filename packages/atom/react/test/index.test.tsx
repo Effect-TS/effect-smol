@@ -1,15 +1,17 @@
 /// <reference types="@testing-library/jest-dom" />
 import { act, render, screen, waitFor } from "@testing-library/react"
-import { Effect, Layer, ServiceMap } from "effect"
+import { Cause, Effect, Layer, ServiceMap } from "effect"
+import * as Schema from "effect/Schema"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
+import * as Hydration from "effect/unstable/reactivity/Hydration"
 import * as React from "react"
 import { Suspense } from "react"
 import { renderToString } from "react-dom/server"
 import { ErrorBoundary } from "react-error-boundary"
 import { beforeEach, describe, expect, it, test, vi } from "vitest"
-import { RegistryContext, RegistryProvider, useAtomSuspense, useAtomValue } from "../src/index.ts"
+import { HydrationBoundary, RegistryContext, RegistryProvider, useAtomSuspense, useAtomValue } from "../src/index.ts"
 import * as ScopedAtom from "../src/ScopedAtom.ts"
 
 describe("atom-react", () => {
@@ -273,181 +275,254 @@ describe("atom-react", () => {
     expect(screen.getByTestId("error")).toBeInTheDocument()
   })
 
-  // test("hydration", () => {
-  //   const atomBasic = Atom.make(0).pipe(
-  //     Atom.serializable({
-  //       key: "basic",
-  //       schema: Schema.Number
-  //     })
-  //   )
-  //   const e: Effect.Effect<number, string> = Effect.never
-  //   const makeAtomResult = (key: string) =>
-  //     Atom.make(e).pipe(
-  //       Atom.serializable({
-  //         key,
-  //         schema: Result.Schema({
-  //           success: Schema.Number,
-  //           error: Schema.String
-  //         })
-  //       })
-  //     )
-  //
-  //   const atomResult1 = makeAtomResult("success")
-  //   const atomResult2 = makeAtomResult("errored")
-  //   const atomResult3 = makeAtomResult("pending")
-  //
-  //   const dehydratedState: Array<Hydration.DehydratedAtomValue> = [
-  //     {
-  //       "~@effect-atom/atom/DehydratedAtom": true,
-  //       key: "basic",
-  //       value: 1,
-  //       dehydratedAt: Date.now()
-  //     },
-  //     {
-  //       "~@effect-atom/atom/DehydratedAtom": true,
-  //       key: "success",
-  //       value: {
-  //         _tag: "Success",
-  //         value: 123,
-  //         waiting: false,
-  //         timestamp: Date.now()
-  //       },
-  //       dehydratedAt: Date.now()
-  //     },
-  //     {
-  //       "~@effect-atom/atom/DehydratedAtom": true,
-  //       key: "errored",
-  //       value: {
-  //         _tag: "Failure",
-  //         cause: {
-  //           _tag: "Fail",
-  //           error: "error"
-  //         },
-  //         previousSuccess: {
-  //           _tag: "None"
-  //         },
-  //         waiting: false
-  //       },
-  //       dehydratedAt: Date.now()
-  //     },
-  //     {
-  //       "~@effect-atom/atom/DehydratedAtom": true,
-  //       key: "pending",
-  //       value: {
-  //         _tag: "Initial",
-  //         waiting: true
-  //       },
-  //       dehydratedAt: Date.now()
-  //     }
-  //   ]
-  //
-  //   function Basic() {
-  //     const value = useAtomValue(atomBasic)
-  //     return <div data-testid="value">{value}</div>
-  //   }
-  //
-  //   function Result1() {
-  //     const value = useAtomValue(atomResult1)
-  //     return Result.match(value, {
-  //       onSuccess: (value) => <div data-testid="value-1">{value.value}</div>,
-  //       onFailure: () => <div data-testid="error-1">Error</div>,
-  //       onInitial: () => <div data-testid="loading-1">Loading...</div>
-  //     })
-  //   }
-  //
-  //   function Result2() {
-  //     const value = useAtomValue(atomResult2)
-  //     return Result.match(value, {
-  //       onSuccess: (value) => <div data-testid="value-2">{value.value}</div>,
-  //       onFailure: () => <div data-testid="error-2">Error</div>,
-  //       onInitial: () => <div data-testid="loading-2">Loading...</div>
-  //     })
-  //   }
-  //
-  //   function Result3() {
-  //     const value = useAtomValue(atomResult3)
-  //     return Result.match(value, {
-  //       onSuccess: (value) => <div data-testid="value-3">{value.value}</div>,
-  //       onFailure: () => <div data-testid="error-3">Error</div>,
-  //       onInitial: () => <div data-testid="loading-3">Loading...</div>
-  //     })
-  //   }
-  //
-  //   render(
-  //     <HydrationBoundary state={dehydratedState}>
-  //       <Basic />
-  //       <Result1 />
-  //       <Result2 />
-  //       <Result3 />
-  //     </HydrationBoundary>
-  //   )
-  //
-  //   expect(screen.getByTestId("value")).toHaveTextContent("1")
-  //   expect(screen.getByTestId("value-1")).toHaveTextContent("123")
-  //   expect(screen.getByTestId("error-2")).toBeInTheDocument()
-  //   expect(screen.getByTestId("loading-3")).toBeInTheDocument()
-  // })
-  //
-  // test("hydration streaming", async () => {
-  //   const latch = Effect.runSync(Effect.makeLatch())
-  //   let start = 0
-  //   let stop = 0
-  //   const atom = Atom.make(
-  //     Effect.gen(function*() {
-  //       start = start + 1
-  //       yield* latch.await
-  //       stop = stop + 1
-  //       return 1
-  //     })
-  //   ).pipe(
-  //     Atom.serializable({
-  //       key: "test",
-  //       schema: Result.Schema({
-  //         success: Schema.Number
-  //       })
-  //     })
-  //   )
-  //
-  //   registry.mount(atom)
-  //
-  //   expect(start).toBe(1)
-  //   expect(stop).toBe(0)
-  //
-  //   const dehydratedState = Hydration.dehydrate(registry, {
-  //     encodeInitialAs: "promise"
-  //   })
-  //
-  //   function TestComponent() {
-  //     const value = useAtomValue(atom)
-  //     return <div data-testid="value">{value._tag}</div>
-  //   }
-  //
-  //   render(
-  //     // provide a fresh registry each time to simulate hydration
-  //     <RegistryContext.Provider value={AtomRegistry.make()}>
-  //       <HydrationBoundary state={dehydratedState}>
-  //         <TestComponent />
-  //       </HydrationBoundary>
-  //     </RegistryContext.Provider>
-  //   )
-  //
-  //   expect(screen.getByTestId("value")).toHaveTextContent("Initial")
-  //
-  //   act(() => {
-  //     Effect.runSync(latch.open)
-  //   })
-  //   await Effect.runPromise(latch.await)
-  //
-  //   const test = registry.get(atom)
-  //   expect(test._tag).toBe("Success")
-  //   if (test._tag === "Success") {
-  //     expect(test.value).toBe(1)
-  //   }
-  //
-  //   expect(screen.getByTestId("value")).toHaveTextContent("Success")
-  //   expect(start).toBe(1)
-  //   expect(stop).toBe(1)
-  // })
+  describe("hydration", () => {
+    test("basic hydration with number atom and result atoms", () => {
+      const atomBasic = Atom.make(0).pipe(
+        Atom.serializable({
+          key: "basic",
+          schema: Schema.Number
+        })
+      )
+      const e: Effect.Effect<number, string> = Effect.never
+      const makeAtomResult = (key: string) =>
+        Atom.make(e).pipe(
+          Atom.serializable({
+            key,
+            schema: AsyncResult.Schema({
+              success: Schema.Number,
+              error: Schema.String
+            })
+          })
+        )
+
+      const atomResult1 = makeAtomResult("success")
+      const atomResult2 = makeAtomResult("errored")
+      const atomResult3 = makeAtomResult("pending")
+
+      // Use a server-side registry to generate properly encoded dehydrated state
+      const serverRegistry = AtomRegistry.make()
+      serverRegistry.mount(atomBasic)
+      serverRegistry.set(atomBasic, 1)
+      serverRegistry.mount(atomResult1)
+      ;(serverRegistry.getNodes().get("success") as any).setValue(
+        AsyncResult.success(123)
+      )
+      serverRegistry.mount(atomResult2)
+      ;(serverRegistry.getNodes().get("errored") as any).setValue(
+        AsyncResult.failure(Cause.fail("error"))
+      )
+      serverRegistry.mount(atomResult3)
+      // atomResult3 stays Initial (just mounted, effect is Effect.never)
+
+      const dehydratedState = Hydration.dehydrate(serverRegistry, {
+        encodeInitialAs: "value-only"
+      })
+
+      function Basic() {
+        const value = useAtomValue(atomBasic)
+        return <div data-testid="value">{value}</div>
+      }
+
+      function Result1() {
+        const value = useAtomValue(atomResult1)
+        return AsyncResult.match({
+          onSuccess: (result) => <div data-testid="value-1">{result.value}</div>,
+          onFailure: () => <div data-testid="error-1">Error</div>,
+          onInitial: () => <div data-testid="loading-1">Loading...</div>
+        })(value)
+      }
+
+      function Result2() {
+        const value = useAtomValue(atomResult2)
+        return AsyncResult.match({
+          onSuccess: (result) => <div data-testid="value-2">{result.value}</div>,
+          onFailure: () => <div data-testid="error-2">Error</div>,
+          onInitial: () => <div data-testid="loading-2">Loading...</div>
+        })(value)
+      }
+
+      function Result3() {
+        const value = useAtomValue(atomResult3)
+        return AsyncResult.match({
+          onSuccess: (result) => <div data-testid="value-3">{result.value}</div>,
+          onFailure: () => <div data-testid="error-3">Error</div>,
+          onInitial: () => <div data-testid="loading-3">Loading...</div>
+        })(value)
+      }
+
+      render(
+        <RegistryContext.Provider value={AtomRegistry.make()}>
+          <HydrationBoundary state={dehydratedState}>
+            <Basic />
+            <Result1 />
+            <Result2 />
+            <Result3 />
+          </HydrationBoundary>
+        </RegistryContext.Provider>
+      )
+
+      expect(screen.getByTestId("value")).toHaveTextContent("1")
+      expect(screen.getByTestId("value-1")).toHaveTextContent("123")
+      expect(screen.getByTestId("error-2")).toBeInTheDocument()
+      expect(screen.getByTestId("loading-3")).toBeInTheDocument()
+    })
+
+    test("hydration streaming with resultPromise", async () => {
+      const latch = Effect.makeLatchUnsafe()
+      let start = 0
+      let stop = 0
+      const atom = Atom.make(
+        Effect.gen(function*() {
+          start = start + 1
+          yield* latch.await
+          stop = stop + 1
+          return 1
+        })
+      ).pipe(
+        Atom.serializable({
+          key: "test",
+          schema: AsyncResult.Schema({
+            success: Schema.Number
+          })
+        })
+      )
+
+      registry.mount(atom)
+
+      expect(start).toBe(1)
+      expect(stop).toBe(0)
+
+      const dehydratedState = Hydration.dehydrate(registry, {
+        encodeInitialAs: "promise"
+      })
+
+      function TestComponent() {
+        const value = useAtomValue(atom)
+        return <div data-testid="value">{value._tag}</div>
+      }
+
+      render(
+        // provide a fresh registry each time to simulate hydration
+        <RegistryContext.Provider value={AtomRegistry.make()}>
+          <HydrationBoundary state={dehydratedState}>
+            <TestComponent />
+          </HydrationBoundary>
+        </RegistryContext.Provider>
+      )
+
+      expect(screen.getByTestId("value")).toHaveTextContent("Initial")
+
+      act(() => {
+        Effect.runSync(latch.open)
+      })
+      await Effect.runPromise(latch.await)
+
+      const result = registry.get(atom)
+      expect(result._tag).toBe("Success")
+      if (result._tag === "Success") {
+        expect(result.value).toBe(1)
+      }
+
+      expect(screen.getByTestId("value")).toHaveTextContent("Success")
+      expect(start).toBe(1)
+      expect(stop).toBe(1)
+    })
+
+    test("HydrationBoundary splits new vs existing atoms", () => {
+      const newAtom = Atom.make(0).pipe(
+        Atom.serializable({ key: "new-atom", schema: Schema.Number })
+      )
+
+      // Use a server registry to generate dehydrated state
+      const serverRegistry = AtomRegistry.make()
+      serverRegistry.mount(newAtom)
+      serverRegistry.set(newAtom, 99)
+      const dehydratedState = Hydration.dehydrate(serverRegistry)
+
+      function NewValue() {
+        const value = useAtomValue(newAtom)
+        return <div data-testid="new">{value}</div>
+      }
+
+      // Render with a fresh client registry (no pre-existing atoms)
+      render(
+        <RegistryContext.Provider value={AtomRegistry.make()}>
+          <HydrationBoundary state={dehydratedState}>
+            <NewValue />
+          </HydrationBoundary>
+        </RegistryContext.Provider>
+      )
+
+      // New atom should be hydrated immediately during render
+      expect(screen.getByTestId("new")).toHaveTextContent("99")
+    })
+
+    test("dehydrate with encodeInitialAs ignore (default)", () => {
+      const atom = Atom.make(Effect.never as Effect.Effect<number>).pipe(
+        Atom.serializable({
+          key: "initial-atom",
+          schema: AsyncResult.Schema({ success: Schema.Number })
+        })
+      )
+
+      registry.mount(atom)
+
+      // Default behavior: Initial values should be ignored
+      const state = Hydration.dehydrate(registry)
+      const values = Hydration.toValues(state)
+
+      expect(values.length).toBe(0)
+    })
+
+    test("dehydrate with encodeInitialAs value-only", () => {
+      const atom = Atom.make(Effect.never as Effect.Effect<number>).pipe(
+        Atom.serializable({
+          key: "initial-atom",
+          schema: AsyncResult.Schema({ success: Schema.Number })
+        })
+      )
+
+      registry.mount(atom)
+
+      // value-only: should encode the Initial value without a resultPromise
+      const state = Hydration.dehydrate(registry, {
+        encodeInitialAs: "value-only"
+      })
+      const values = Hydration.toValues(state)
+
+      expect(values.length).toBe(1)
+      expect(values[0].key).toBe("initial-atom")
+      expect(values[0].resultPromise).toBeUndefined()
+    })
+
+    test("empty state is a no-op", () => {
+      function TestComponent() {
+        return <div data-testid="content">OK</div>
+      }
+
+      render(
+        <HydrationBoundary state={[]}>
+          <TestComponent />
+        </HydrationBoundary>
+      )
+
+      expect(screen.getByTestId("content")).toHaveTextContent("OK")
+    })
+
+    test("hydrate with no state is a no-op", () => {
+      function TestComponent() {
+        return <div data-testid="content">OK</div>
+      }
+
+      render(
+        <HydrationBoundary>
+          <TestComponent />
+        </HydrationBoundary>
+      )
+
+      expect(screen.getByTestId("content")).toHaveTextContent("OK")
+    })
+  })
 
   describe("SSR", () => {
     it("should run atom's during SSR by default", () => {
