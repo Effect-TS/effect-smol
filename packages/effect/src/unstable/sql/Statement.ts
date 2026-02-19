@@ -1116,7 +1116,6 @@ const makeUnsafe = <A = Row>(
 }
 
 // TODO: figure out why these diagnostics are emitted
-// @effect-diagnostics-next-line missingEffectContext:off missingEffectError:off
 const StatementProto: Omit<
   StatementImpl<any>,
   "segments" | "acquirer" | "compiler" | "spanAttributes" | "transformRows"

@@ -38,8 +38,8 @@ importers:
         specifier: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e7fe055
         version: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e7fe055(tsx@4.21.0)(typescript@5.9.3)
       '@effect/language-service':
-        specifier: ^0.73.1
-        version: 0.73.1
+        specifier: ^0.75.1
+        version: 0.75.1
       '@effect/oxc':
         specifier: workspace:^
         version: link:packages/tools/oxc
@@ -1415,8 +1415,8 @@ packages:
       tsx: ^4.19.3
       typescript: ^5.8.2
 
-  '@effect/language-service@0.73.1':
-    resolution: {integrity: sha512-FbOKzXmP1QM6/YMvDFZGTZ0Gk0AjKqRSY48dpAN0zUdVzq5xV/Us/6vZ5FcdmG6GjgSWP2rpESy59OMvfPeylw==}
+  '@effect/language-service@0.75.1':
+    resolution: {integrity: sha512-g9xD2tAQgRFpYC2YgpZq02VeSL5fBbFJ0B/g1o+14NuNmwtaYJc7SjiLWAA9eyhJHosNrn6h1Ye+Kx6j5mN0AA==}
     hasBin: true
 
   '@effect/markdown-toc@0.1.0':
@@ -7301,7 +7301,7 @@ snapshots:
       tsx: 4.21.0
       typescript: 5.9.3
 
-  '@effect/language-service@0.73.1': {}
+  '@effect/language-service@0.75.1': {}
 
   '@effect/markdown-toc@0.1.0':
     dependencies:
