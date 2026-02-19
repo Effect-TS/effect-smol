@@ -20,7 +20,7 @@ export const layer: Layer.Layer<Stdio.Stdio> = Layer.succeed(
         systemError({
           module: "Stdio",
           method: "stdout",
-          kind: "Unknown",
+          _tag: "Unknown",
           cause
         })
     }),
@@ -30,7 +30,7 @@ export const layer: Layer.Layer<Stdio.Stdio> = Layer.succeed(
         systemError({
           module: "Stdio",
           method: "stderr",
-          kind: "Unknown",
+          _tag: "Unknown",
           cause
         })
     }),
@@ -40,7 +40,7 @@ export const layer: Layer.Layer<Stdio.Stdio> = Layer.succeed(
         systemError({
           module: "Stdio",
           method: "stdin",
-          kind: "Unknown",
+          _tag: "Unknown",
           cause
         }),
       closeOnDone: false

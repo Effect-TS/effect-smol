@@ -44,7 +44,7 @@ describe("FileSystem", () => {
         })
       )
       const error = yield* Effect.flip(fs.stat(dir))
-      assert(error.reason._tag === "SystemError" && error.reason.kind === "NotFound")
+      assert(error.reason._tag === "NotFound")
     })))
 
   it("truncate", () =>

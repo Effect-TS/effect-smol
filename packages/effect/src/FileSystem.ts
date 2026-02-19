@@ -733,8 +733,7 @@ export const make = (
         Effect.as(true),
         Effect.catchTag(
           "PlatformError",
-          (e) =>
-            e.reason._tag === "SystemError" && e.reason.kind === "NotFound" ? Effect.succeed(false) : Effect.fail(e)
+          (e) => e.reason._tag === "NotFound" ? Effect.succeed(false) : Effect.fail(e)
         )
       ),
     readFileString: (path, encoding) =>
@@ -802,7 +801,7 @@ const notFound = (method: string, path: string) =>
   systemError({
     module: "FileSystem",
     method,
-    kind: "NotFound",
+    _tag: "NotFound",
     description: "No such file or directory",
     pathOrDescriptor: path
   })
