@@ -557,7 +557,7 @@ export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
  * @since 4.0.0
  * @category models
  */
-export interface PipeableConstructor  extends Ctor<Pipeable> {}
+export interface PipeableConstructor extends Ctor<Pipeable> {}
 
 /**
  * @since 4.0.0

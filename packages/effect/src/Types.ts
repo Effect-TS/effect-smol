@@ -949,7 +949,6 @@ export type ExcludeReason<E, K extends string> = E extends { readonly reason: in
   ? Exclude<R, { readonly _tag: K }>
   : never
 
-
 /**
  * Represents a class constructor that produces instances of type `T`.
  *
