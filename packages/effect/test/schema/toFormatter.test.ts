@@ -471,6 +471,28 @@ describe("toFormatter", () => {
     strictEqual(format(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")), "DateTime.Utc(2021-01-01T00:00:00.000Z)")
   })
 
+  it("TimeZoneOffset", () => {
+    const format = Schema.toFormatter(Schema.TimeZoneOffset)
+    strictEqual(format(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)), "+03:00")
+  })
+
+  it("TimeZoneNamed", () => {
+    const format = Schema.toFormatter(Schema.TimeZoneNamed)
+    strictEqual(format(DateTime.zoneMakeNamedUnsafe("Europe/London")), "Europe/London")
+  })
+
+  it("TimeZone", () => {
+    const format = Schema.toFormatter(Schema.TimeZone)
+    strictEqual(format(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)), "+03:00")
+    strictEqual(format(DateTime.zoneMakeNamedUnsafe("Europe/London")), "Europe/London")
+  })
+
+  it("DateTimeZoned", () => {
+    const format = Schema.toFormatter(Schema.DateTimeZoned)
+    const zoned = DateTime.makeZonedUnsafe("2024-01-01T00:00:00.000Z", { timeZone: "Europe/London" })
+    strictEqual(format(zoned), DateTime.formatIsoZoned(zoned))
+  })
+
   it("custom class", () => {
     class A {
       constructor(readonly a: string) {}

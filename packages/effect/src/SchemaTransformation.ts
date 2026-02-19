@@ -83,6 +83,7 @@
  */
 
 import * as BigDecimal from "./BigDecimal.ts"
+import * as DateTime from "./DateTime.ts"
 import * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
 import * as Option from "./Option.ts"
@@ -1292,3 +1293,62 @@ export const fromURLSearchParams = new Transformation<unknown, URLSearchParams>(
   Getter.decodeURLSearchParams(),
   Getter.encodeURLSearchParams()
 )
+
+/**
+ * @since 4.0.0
+ */
+export const timeZoneOffsetFromNumber: Transformation<DateTime.TimeZone.Offset, number> = transform<
+  DateTime.TimeZone.Offset,
+  number
+>({
+  decode: (n) => DateTime.zoneMakeOffset(n),
+  encode: (tz) => tz.offset
+})
+
+/**
+ * @since 4.0.0
+ */
+export const timeZoneNamedFromString: Transformation<DateTime.TimeZone.Named, string> = transformOrFail<
+  DateTime.TimeZone.Named,
+  string
+>({
+  decode: (s) => {
+    const result = DateTime.zoneMakeNamed(s)
+    return result === undefined
+      ? Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid IANA time zone: ${s}` }))
+      : Effect.succeed(result)
+  },
+  encode: (tz) => Effect.succeed(tz.id)
+})
+
+/**
+ * @since 4.0.0
+ */
+export const timeZoneFromString: Transformation<DateTime.TimeZone, string> = transformOrFail<
+  DateTime.TimeZone,
+  string
+>({
+  decode: (s) => {
+    const result = DateTime.zoneFromString(s)
+    return result === undefined
+      ? Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid time zone: ${s}` }))
+      : Effect.succeed(result)
+  },
+  encode: (tz) => Effect.succeed(DateTime.zoneToString(tz))
+})
+
+/**
+ * @since 4.0.0
+ */
+export const dateTimeZonedFromString: Transformation<DateTime.Zoned, string> = transformOrFail<
+  DateTime.Zoned,
+  string
+>({
+  decode: (s) => {
+    const result = DateTime.makeZonedFromString(s)
+    return result === undefined
+      ? Effect.fail(new Issue.InvalidValue(Option.some(s), { message: `Invalid zoned DateTime string: ${s}` }))
+      : Effect.succeed(result)
+  },
+  encode: (zoned) => Effect.succeed(DateTime.formatIsoZoned(zoned))
+})

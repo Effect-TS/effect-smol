@@ -3834,6 +3834,72 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), 1609459200000)
   })
 
+  it("TimeZoneOffset", async () => {
+    const schema = Schema.TimeZoneOffset
+    const asserts = new TestSchema.Asserts(schema)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000))
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000))
+  })
+
+  it("TimeZoneNamed", async () => {
+    const schema = Schema.TimeZoneNamed
+    const asserts = new TestSchema.Asserts(schema)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(DateTime.zoneMakeNamedUnsafe("Europe/London"))
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(DateTime.zoneMakeNamedUnsafe("Europe/London"))
+  })
+
+  it("TimeZone", async () => {
+    const schema = Schema.TimeZone
+    const asserts = new TestSchema.Asserts(schema)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000))
+    await decoding.succeed(DateTime.zoneMakeNamedUnsafe("Europe/London"))
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000))
+    await encoding.succeed(DateTime.zoneMakeNamedUnsafe("Europe/London"))
+  })
+
+  it("DateTimeZoned", async () => {
+    const schema = Schema.DateTimeZoned
+    const asserts = new TestSchema.Asserts(schema)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(DateTime.makeZonedUnsafe("2021-01-01T00:00:00.000Z", { timeZone: "Europe/London" }))
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(DateTime.makeZonedUnsafe("2021-01-01T00:00:00.000Z", { timeZone: "Europe/London" }))
+  })
+
   it("ReadonlySet", async () => {
     const schema = Schema.ReadonlySet(Schema.FiniteFromString)
     const asserts = new TestSchema.Asserts(schema)

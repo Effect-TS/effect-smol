@@ -7467,6 +7467,183 @@ export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.pipe(
   })
 )
 
+/**
+ * @since 4.0.0
+ */
+export interface TimeZoneOffset extends declare<DateTime.TimeZone.Offset> {}
+
+/**
+ * A schema for `DateTime.TimeZone.Offset` values.
+ *
+ * **Default JSON serializer**
+ *
+ * - encodes `DateTime.TimeZone.Offset` as a number (offset in milliseconds)
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export const TimeZoneOffset: TimeZoneOffset = declare(
+  DateTime.isTimeZoneOffset,
+  {
+    typeConstructor: {
+      _tag: "DateTime.TimeZone.Offset"
+    },
+    generation: {
+      runtime: `Schema.TimeZoneOffset`,
+      Type: `DateTime.TimeZone.Offset`,
+      importDeclaration: `import * as DateTime from "effect/DateTime"`
+    },
+    expected: "DateTime.TimeZone.Offset",
+    toCodecJson: () =>
+      link<DateTime.TimeZone.Offset>()(
+        Number,
+        Transformation.timeZoneOffsetFromNumber
+      ),
+    toArbitrary: () => (fc) =>
+      fc.integer({ min: -12 * 60 * 60 * 1000, max: 14 * 60 * 60 * 1000 }).map((n) => DateTime.zoneMakeOffset(n)),
+    toFormatter: () => (tz) => DateTime.zoneToString(tz),
+    toEquivalence: () => (a, b) => a.offset === b.offset
+  }
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface TimeZoneNamed extends declare<DateTime.TimeZone.Named> {}
+
+/**
+ * A schema for `DateTime.TimeZone.Named` values.
+ *
+ * **Default JSON serializer**
+ *
+ * - encodes `DateTime.TimeZone.Named` as a string (IANA time zone identifier)
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export const TimeZoneNamed: TimeZoneNamed = declare(
+  DateTime.isTimeZoneNamed,
+  {
+    typeConstructor: {
+      _tag: "DateTime.TimeZone.Named"
+    },
+    generation: {
+      runtime: `Schema.TimeZoneNamed`,
+      Type: `DateTime.TimeZone.Named`,
+      importDeclaration: `import * as DateTime from "effect/DateTime"`
+    },
+    expected: "DateTime.TimeZone.Named",
+    toCodecJson: () =>
+      link<DateTime.TimeZone.Named>()(
+        String.annotate({ expected: "an IANA time zone identifier" }),
+        Transformation.timeZoneNamedFromString
+      ),
+    toArbitrary: () => (fc) =>
+      fc.constantFrom(
+        ...["UTC", "Europe/London", "America/New_York", "Asia/Tokyo", "Australia/Sydney"].map(
+          DateTime.zoneMakeNamedUnsafe
+        )
+      ),
+    toFormatter: () => (tz) => DateTime.zoneToString(tz),
+    toEquivalence: () => (a, b) => a.id === b.id
+  }
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface TimeZone extends declare<DateTime.TimeZone> {}
+
+/**
+ * A schema for `DateTime.TimeZone` values.
+ *
+ * **Default JSON serializer**
+ *
+ * - encodes `DateTime.TimeZone` as a string (IANA identifier or offset like
+ *   `+03:00`)
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export const TimeZone: TimeZone = declare(
+  DateTime.isTimeZone,
+  {
+    typeConstructor: {
+      _tag: "DateTime.TimeZone"
+    },
+    generation: {
+      runtime: `Schema.TimeZone`,
+      Type: `DateTime.TimeZone`,
+      importDeclaration: `import * as DateTime from "effect/DateTime"`
+    },
+    expected: "DateTime.TimeZone",
+    toCodecJson: () =>
+      link<DateTime.TimeZone>()(
+        String.annotate({ expected: "a time zone string (IANA identifier or offset like +03:00)" }),
+        Transformation.timeZoneFromString
+      ),
+    toArbitrary: () => (fc) =>
+      fc.oneof(
+        fc.integer({ min: -12 * 60 * 60 * 1000, max: 14 * 60 * 60 * 1000 }).map((n) => DateTime.zoneMakeOffset(n)),
+        fc.constantFrom(
+          ...["UTC", "Europe/London", "America/New_York", "Asia/Tokyo", "Australia/Sydney"].map(
+            DateTime.zoneMakeNamedUnsafe
+          )
+        )
+      ),
+    toFormatter: () => (tz) => DateTime.zoneToString(tz),
+    toEquivalence: () => (a, b) => DateTime.zoneToString(a) === DateTime.zoneToString(b)
+  }
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface DateTimeZoned extends declare<DateTime.Zoned> {}
+
+/**
+ * A schema for `DateTime.Zoned` values.
+ *
+ * **Default JSON serializer**
+ *
+ * - encodes `DateTime.Zoned` as a string in the format
+ *   `YYYY-MM-DDTHH:mm:ss.sss+HH:MM[Time/Zone]`
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export const DateTimeZoned: DateTimeZoned = declare(
+  (u) => DateTime.isDateTime(u) && DateTime.isZoned(u),
+  {
+    typeConstructor: {
+      _tag: "DateTime.Zoned"
+    },
+    generation: {
+      runtime: `Schema.DateTimeZoned`,
+      Type: `DateTime.Zoned`,
+      importDeclaration: `import * as DateTime from "effect/DateTime"`
+    },
+    expected: "DateTime.Zoned",
+    toCodecJson: () =>
+      link<DateTime.Zoned>()(
+        String.annotate({ expected: "a zoned DateTime string (e.g. 2024-01-01T00:00:00.000+00:00[Europe/London])" }),
+        Transformation.dateTimeZonedFromString
+      ),
+    toArbitrary: () => (fc, ctx) =>
+      fc.tuple(
+        fc.date({
+          noInvalidDate: true,
+          min: new globalThis.Date(-8640000000000000 + 14 * 60 * 60 * 1000),
+          max: new globalThis.Date(8640000000000000 - 14 * 60 * 60 * 1000),
+          ...ctx?.constraints?.date
+        }),
+        fc.constantFrom("UTC", "Europe/London", "America/New_York", "Asia/Tokyo", "Australia/Sydney")
+      ).map(([date, zone]) => DateTime.makeZonedUnsafe(date, { timeZone: zone })),
+    toFormatter: () => (zoned) => DateTime.formatIsoZoned(zoned),
+    toEquivalence: () => DateTime.Equivalence
+  }
+)
+
 // -----------------------------------------------------------------------------
 // Class
 // -----------------------------------------------------------------------------

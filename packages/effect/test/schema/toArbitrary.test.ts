@@ -564,6 +564,22 @@ describe("Arbitrary generation", () => {
     verifyGeneration(Schema.DateTimeUtc)
   })
 
+  it("TimeZoneOffset", () => {
+    verifyGeneration(Schema.TimeZoneOffset)
+  })
+
+  it("TimeZoneNamed", () => {
+    verifyGeneration(Schema.TimeZoneNamed)
+  })
+
+  it("TimeZone", () => {
+    verifyGeneration(Schema.TimeZone)
+  })
+
+  it("DateTimeZoned", () => {
+    verifyGeneration(Schema.DateTimeZoned)
+  })
+
   it("Uint8Array", () => {
     verifyGeneration(Schema.Uint8Array)
   })

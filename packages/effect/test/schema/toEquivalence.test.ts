@@ -443,6 +443,44 @@ describe("toEquivalence", () => {
     )
   })
 
+  it("TimeZoneOffset", () => {
+    const equivalence = Schema.toEquivalence(Schema.TimeZoneOffset)
+    assertTrue(
+      equivalence(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000), DateTime.zoneMakeOffset(3 * 60 * 60 * 1000))
+    )
+    assertFalse(
+      equivalence(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000), DateTime.zoneMakeOffset(4 * 60 * 60 * 1000))
+    )
+  })
+
+  it("TimeZoneNamed", () => {
+    const equivalence = Schema.toEquivalence(Schema.TimeZoneNamed)
+    assertTrue(
+      equivalence(DateTime.zoneMakeNamedUnsafe("Europe/London"), DateTime.zoneMakeNamedUnsafe("Europe/London"))
+    )
+    assertFalse(
+      equivalence(DateTime.zoneMakeNamedUnsafe("Europe/London"), DateTime.zoneMakeNamedUnsafe("America/New_York"))
+    )
+  })
+
+  it("TimeZone", () => {
+    const equivalence = Schema.toEquivalence(Schema.TimeZone)
+    assertTrue(
+      equivalence(DateTime.zoneMakeOffset(0), DateTime.zoneMakeOffset(0))
+    )
+    assertFalse(
+      equivalence(DateTime.zoneMakeOffset(0), DateTime.zoneMakeOffset(3 * 60 * 60 * 1000))
+    )
+  })
+
+  it("DateTimeZoned", () => {
+    const equivalence = Schema.toEquivalence(Schema.DateTimeZoned)
+    const z1 = DateTime.makeZonedUnsafe("2024-01-01T00:00:00.000Z", { timeZone: "Europe/London" })
+    const z2 = DateTime.makeZonedUnsafe("2024-01-02T00:00:00.000Z", { timeZone: "Europe/London" })
+    assertTrue(equivalence(z1, z1))
+    assertFalse(equivalence(z1, z2))
+  })
+
   describe("Annotations", () => {
     describe("overrideToEquivalence", () => {
       it("String", () => {
