@@ -5545,6 +5545,20 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       deepStrictEqual(Object.keys(E.fields).sort(), ["_tag", "id"])
     })
 
+    it("zero-field TaggedErrorClass allows omitting props argument", () => {
+      class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("NotFoundError", {}) {}
+
+      // new NotFoundError() should work without passing {}
+      const a = new NotFoundError()
+      strictEqual(a._tag, "NotFoundError")
+      assertTrue(a instanceof NotFoundError)
+
+      // new NotFoundError({}) should also still work
+      const b = new NotFoundError({})
+      strictEqual(b._tag, "NotFoundError")
+      assertTrue(b instanceof NotFoundError)
+    })
+
     it("extend", async () => {
       class A extends Schema.TaggedErrorClass<A>()("A", {
         a: Schema.String

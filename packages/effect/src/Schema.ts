@@ -7665,7 +7665,8 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
   >
 {
   // intentionally left without `readonly "~rebuild.out": this`
-  new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
+  new(...args: {} extends S["~type.make.in"] ? [props?: S["~type.make.in"], options?: MakeOptions]
+    : [props: S["~type.make.in"], options?: MakeOptions]): S["Type"] & Inherited
   readonly identifier: string
   readonly fields: S["fields"]
   /**
@@ -7726,11 +7727,12 @@ function makeClass<
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
+      const props = input ?? {}
       if (options?.disableValidation) {
-        super(input, options)
+        super(props, options)
       } else {
-        const validated = struct.makeUnsafe(input, options)
-        super({ ...input, ...validated }, { ...options, disableValidation: true })
+        const validated = struct.makeUnsafe(props, options)
+        super({ ...props, ...validated }, { ...options, disableValidation: true })
       }
     }
 
