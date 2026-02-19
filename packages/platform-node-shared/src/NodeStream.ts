@@ -9,6 +9,7 @@ import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import type { SizeInput } from "effect/FileSystem"
 import { dual, type LazyArg } from "effect/Function"
+import * as Latch from "effect/Latch"
 import * as MutableRef from "effect/MutableRef"
 import * as Pull from "effect/Pull"
 import * as Scope from "effect/Scope"
@@ -292,7 +293,7 @@ const readableToPullUnsafe = <A, E>(options: {
   const readable = options.readable as Readable
   const closeOnDone = options.closeOnDone ?? true
   const exit = options.exit ?? MutableRef.make(undefined)
-  const latch = Effect.makeLatchUnsafe(false)
+  const latch = Latch.unsafeMake(false)
   function onReadable() {
     latch.openUnsafe()
   }
@@ -343,7 +344,7 @@ const readableToPullUnsafe = <A, E>(options: {
 }
 
 class StreamAdapter<E, R> extends Readable {
-  private readonly readLatch: Effect.Latch
+  private readonly readLatch: Latch.Latch
   private fiber: Fiber.Fiber<void, E> | undefined = undefined
 
   constructor(
@@ -351,7 +352,7 @@ class StreamAdapter<E, R> extends Readable {
     stream: Stream.Stream<Uint8Array | string, E, R>
   ) {
     super({})
-    this.readLatch = Effect.makeLatchUnsafe(false)
+    this.readLatch = Latch.unsafeMake(false)
     this.fiber = Stream.runForEachArray(stream, (chunk) =>
       this.readLatch.whenOpen(Effect.sync(() => {
         this.readLatch.closeUnsafe()

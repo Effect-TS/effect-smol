@@ -1,5 +1,6 @@
 import { Clock } from "../../../Clock.ts"
 import * as Effect from "../../../Effect.ts"
+import * as Latch from "../../../Latch.ts"
 import * as Layer from "../../../Layer.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
 import type { EntityNotAssignedToRunner } from "../ClusterError.ts"
@@ -17,7 +18,7 @@ export class EntityReaper extends ServiceMap.Service<EntityReaper>()("effect/clu
       readonly servers: Map<EntityId, EntityState>
       readonly entities: ResourceMap<EntityAddress, EntityState, EntityNotAssignedToRunner>
     }> = []
-    const latch = yield* Effect.makeLatch()
+    const latch = yield* Latch.make()
 
     const register = (options: {
       readonly maxIdleTime: number

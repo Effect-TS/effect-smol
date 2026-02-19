@@ -9,6 +9,7 @@ import * as Effect from "effect/Effect"
 import * as FiberSet from "effect/FiberSet"
 import * as Function from "effect/Function"
 import { identity } from "effect/Function"
+import * as Latch from "effect/Latch"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
@@ -87,7 +88,7 @@ export const fromDuplex = <RO>(
 ): Effect.Effect<Socket.Socket, never, Exclude<RO, Scope.Scope>> =>
   Effect.withFiber<Socket.Socket, never, Exclude<RO, Scope.Scope>>((fiber) => {
     let currentSocket: Duplex | undefined
-    const latch = Effect.makeLatchUnsafe(false)
+    const latch = Latch.unsafeMake(false)
     const openServices = fiber.services as ServiceMap.ServiceMap<RO>
 
     const run = <R, E, _>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {

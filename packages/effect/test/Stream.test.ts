@@ -11,6 +11,7 @@ import {
   Effect,
   Exit,
   Fiber,
+  Latch,
   Logger,
   type LogLevel,
   Option,
@@ -50,7 +51,7 @@ describe("Stream", () => {
     it.effect("with cleanup", () =>
       Effect.gen(function*() {
         let cleanup = false
-        const latch = yield* Effect.makeLatch()
+        const latch = yield* Latch.make()
         const fiber = yield* Stream.callback<void>(Effect.fnUntraced(function*(mb) {
           yield* Effect.addFinalizer(() =>
             Effect.sync(() => {

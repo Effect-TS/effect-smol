@@ -3,6 +3,7 @@ import * as NodeStream from "@effect/platform-node-shared/NodeStream"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
 import * as Data from "effect/Data"
+import * as Latch from "effect/Latch"
 import * as Queue from "effect/Queue"
 import * as Stream from "effect/Stream"
 import { createReadStream } from "fs"
@@ -16,7 +17,7 @@ describe("Sink", () => {
   it.effect("should write to a stream", () =>
     Effect.gen(function*() {
       const items: Array<string> = []
-      const destroyLatch = yield* Effect.makeLatch()
+      const destroyLatch = yield* Latch.make()
       yield* Stream.make("a", "b", "c").pipe(
         Stream.run(NodeSink.fromWritable({
           evaluate: () =>

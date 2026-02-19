@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { DateTime, Effect, Fiber, identity, Schema, Stream } from "effect"
+import { DateTime, Effect, Fiber, identity, Latch, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { AiError, LanguageModel, Response, Tool, Toolkit } from "effect/unstable/ai"
 import * as TestUtils from "./utils.ts"
@@ -423,7 +423,7 @@ describe("Tool", () => {
             })
           })
 
-          const terminalLatch = yield* Effect.makeLatch()
+          const terminalLatch = yield* Latch.make()
           const assertions = { preliminary: false, terminal: false }
 
           const fiber = yield* LanguageModel.streamText({
@@ -531,7 +531,7 @@ describe("Tool", () => {
             })
           })
 
-          const latch = yield* Effect.makeLatch()
+          const latch = yield* Latch.make()
           const toolResults: Array<Response.ToolResultParts<Toolkit.Tools<typeof toolkit>>> = []
 
           const fiber = yield* LanguageModel.streamText({

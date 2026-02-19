@@ -34,6 +34,7 @@ import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import type { LazyArg } from "./Function.ts"
 import { dual, identity } from "./Function.ts"
+import * as Latch from "./Latch.ts"
 import * as MutableList from "./MutableList.ts"
 import * as MutableRef from "./MutableRef.ts"
 import { nextPow2 } from "./Number.ts"
@@ -81,7 +82,7 @@ export interface PubSub<in out A> extends Pipeable {
   readonly pubsub: PubSub.Atomic<A>
   readonly subscribers: PubSub.Subscribers<A>
   readonly scope: Scope.Closeable
-  readonly shutdownHook: Effect.Latch
+  readonly shutdownHook: Latch.Latch
   readonly shutdownFlag: MutableRef.MutableRef<boolean>
   readonly strategy: PubSub.Strategy<A>
 }
@@ -242,7 +243,7 @@ export interface Subscription<out A> extends Pipeable {
   readonly subscribers: PubSub.Subscribers<any>
   readonly subscription: PubSub.BackingSubscription<A>
   readonly pollers: MutableList.MutableList<Deferred.Deferred<any>>
-  readonly shutdownHook: Effect.Latch
+  readonly shutdownHook: Latch.Latch
   readonly shutdownFlag: MutableRef.MutableRef<boolean>
   readonly strategy: PubSub.Strategy<any>
   readonly replayWindow: PubSub.ReplayWindow<A>
@@ -282,7 +283,7 @@ export const make = <A>(
       options.atomicPubSub(),
       new Map(),
       Scope.makeUnsafe(),
-      Effect.makeLatchUnsafe(false),
+      Latch.unsafeMake(false),
       MutableRef.make(false),
       options.strategy()
     )
@@ -1365,7 +1366,7 @@ const makeSubscriptionUnsafe = <A>(
     subscribers,
     pubsub.subscribe(),
     MutableList.make<Deferred.Deferred<A>>(),
-    Effect.makeLatchUnsafe(false),
+    Latch.unsafeMake(false),
     MutableRef.make(false),
     strategy,
     pubsub.replayWindow()
@@ -2110,7 +2111,7 @@ class SubscriptionImpl<in out A> implements Subscription<A> {
   readonly subscribers: PubSub.Subscribers<A>
   readonly subscription: PubSub.BackingSubscription<A>
   readonly pollers: MutableList.MutableList<Deferred.Deferred<A>>
-  readonly shutdownHook: Effect.Latch
+  readonly shutdownHook: Latch.Latch
   readonly shutdownFlag: MutableRef.MutableRef<boolean>
   readonly strategy: PubSub.Strategy<A>
   readonly replayWindow: PubSub.ReplayWindow<A>
@@ -2120,7 +2121,7 @@ class SubscriptionImpl<in out A> implements Subscription<A> {
     subscribers: PubSub.Subscribers<A>,
     subscription: PubSub.BackingSubscription<A>,
     pollers: MutableList.MutableList<Deferred.Deferred<A>>,
-    shutdownHook: Effect.Latch,
+    shutdownHook: Latch.Latch,
     shutdownFlag: MutableRef.MutableRef<boolean>,
     strategy: PubSub.Strategy<A>,
     replayWindow: PubSub.ReplayWindow<A>
@@ -2148,7 +2149,7 @@ class PubSubImpl<in out A> implements PubSub<A> {
   readonly pubsub: PubSub.Atomic<A>
   readonly subscribers: PubSub.Subscribers<A>
   readonly scope: Scope.Closeable
-  readonly shutdownHook: Effect.Latch
+  readonly shutdownHook: Latch.Latch
   readonly shutdownFlag: MutableRef.MutableRef<boolean>
   readonly strategy: PubSub.Strategy<A>
 
@@ -2156,7 +2157,7 @@ class PubSubImpl<in out A> implements PubSub<A> {
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>,
     scope: Scope.Closeable,
-    shutdownHook: Effect.Latch,
+    shutdownHook: Latch.Latch,
     shutdownFlag: MutableRef.MutableRef<boolean>,
     strategy: PubSub.Strategy<A>
   ) {
@@ -2177,7 +2178,7 @@ const makePubSubUnsafe = <A>(
   pubsub: PubSub.Atomic<A>,
   subscribers: PubSub.Subscribers<A>,
   scope: Scope.Closeable,
-  shutdownHook: Effect.Latch,
+  shutdownHook: Latch.Latch,
   shutdownFlag: MutableRef.MutableRef<boolean>,
   strategy: PubSub.Strategy<A>
 ): PubSub<A> => new PubSubImpl(pubsub, subscribers, scope, shutdownHook, shutdownFlag, strategy)

@@ -8,6 +8,7 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { constVoid, dual, flow, identity } from "../../Function.ts"
+import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import * as Pool from "../../Pool.ts"
@@ -1062,7 +1063,7 @@ const defaultRetryPolicy = Schedule.exponential(500, 1.5).pipe(
 
 const makePinger = Effect.fnUntraced(function*<A, E, R>(writePing: Effect.Effect<A, E, R>) {
   let recievedPong = true
-  const latch = Effect.makeLatchUnsafe()
+  const latch = Latch.unsafeMake()
   const reset = () => {
     recievedPong = true
     latch.closeUnsafe()
@@ -1125,7 +1126,7 @@ export const makeProtocolWorker = (
 
     const entries = new Map<string, {
       readonly worker: Worker.Worker<FromServerEncoded, FromClientEncoded | RpcWorker.InitialMessage.Encoded>
-      readonly latch: Effect.Latch
+      readonly latch: Latch.Latch
     }>()
 
     const acquire = Effect.gen(function*() {
@@ -1211,7 +1212,7 @@ export const makeProtocolWorker = (
         case "Request": {
           return Pool.get(pool).pipe(
             Effect.flatMap((worker) => {
-              const latch = Effect.makeLatchUnsafe(false)
+              const latch = Latch.unsafeMake(false)
               entries.set(request.id, { worker, latch })
               return Effect.flatMap(worker.send(request, transferables), () => latch.await)
             }),

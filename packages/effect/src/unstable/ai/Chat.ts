@@ -53,6 +53,7 @@ import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Ref from "../../Ref.ts"
 import * as Schema from "../../Schema.ts"
+import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type { NoExcessProperties } from "../../Types.ts"
@@ -325,7 +326,7 @@ const encodeHistoryJson = Schema.encodeUnknownEffect(Schema.fromJsonString(Promp
 export const empty: Effect.Effect<Service> = Effect.gen(function*() {
   const history = yield* Ref.make(Prompt.empty)
   const services = yield* Effect.services<never>()
-  const semaphore = yield* Effect.makeSemaphore(1)
+  const semaphore = yield* Semaphore.make(1)
 
   const provideContext = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
     Effect.updateServices(effect, (existing) => ServiceMap.merge(services, existing))

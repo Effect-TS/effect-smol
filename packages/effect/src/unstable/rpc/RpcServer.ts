@@ -8,6 +8,7 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { constant, constTrue, constVoid, identity } from "../../Function.ts"
+import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import type * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -17,6 +18,7 @@ import * as Result from "../../Result.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
+import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import { Stdio } from "../../Stdio.ts"
 import * as Stream from "../../Stream.ts"
@@ -101,18 +103,18 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   const trackFiber = Fiber.runIn(Scope.forkUnsafe(scope, "parallel"))
   const concurrencySemaphore = concurrency === "unbounded"
     ? undefined
-    : yield* Effect.makeSemaphore(concurrency)
+    : yield* Semaphore.make(concurrency)
 
   type Client = {
     readonly id: number
-    readonly latches: Map<RequestId, Effect.Latch>
+    readonly latches: Map<RequestId, Latch.Latch>
     readonly fibers: Map<RequestId, Fiber.Fiber<unknown, any>>
     ended: boolean
   }
 
   const clients = new Map<number, Client>()
   let isShutdown = false
-  const shutdownLatch = Effect.makeLatchUnsafe(false)
+  const shutdownLatch = Latch.unsafeMake(false)
   yield* Scope.addFinalizer(
     scope,
     Effect.withFiber((parent) => {
@@ -342,7 +344,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   ) => {
     let latch = client.latches.get(request.id)
     if (supportsAck && !latch) {
-      latch = Effect.makeLatchUnsafe(false)
+      latch = Latch.unsafeMake(false)
       client.latches.set(request.id, latch)
     }
     if (Effect.isEffect(stream)) {

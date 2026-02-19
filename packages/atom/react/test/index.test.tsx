@@ -1,6 +1,6 @@
 /// <reference types="@testing-library/jest-dom" />
 import { act, render, screen, waitFor } from "@testing-library/react"
-import { Cause, Effect, Layer, ServiceMap } from "effect"
+import { Cause, Effect, Latch, Layer, ServiceMap } from "effect"
 import * as Schema from "effect/Schema"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
@@ -368,7 +368,7 @@ describe("atom-react", () => {
     })
 
     test("hydration streaming with resultPromise", async () => {
-      const latch = Effect.makeLatchUnsafe()
+      const latch = Latch.unsafeMake()
       let start = 0
       let stop = 0
       const atom = Atom.make(

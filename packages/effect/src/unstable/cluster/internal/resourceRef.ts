@@ -1,5 +1,6 @@
 import * as Effect from "../../../Effect.ts"
 import * as Exit from "../../../Exit.ts"
+import * as Latch from "../../../Latch.ts"
 import * as MutableRef from "../../../MutableRef.ts"
 import * as Option from "../../../Option.ts"
 import * as Scope from "../../../Scope.ts"
@@ -53,7 +54,7 @@ export class ResourceRef<A, E = never> {
     this.acquire = acquire
   }
 
-  latch = Effect.makeLatchUnsafe(true)
+  latch = Latch.unsafeMake(true)
 
   getUnsafe(): Option.Option<A> {
     if (this.state.current._tag === "Acquired") {

@@ -1,5 +1,5 @@
 import { assert, it } from "@effect/vitest"
-import { Effect, Fiber, Layer, Schema } from "effect"
+import { Effect, Fiber, Latch, Layer, Schema } from "effect"
 import { TestClock } from "effect/testing"
 import { PersistedQueue } from "effect/unstable/persistence"
 
@@ -32,7 +32,7 @@ export const suite = (name: string, layer: Layer.Layer<PersistedQueue.PersistedQ
 
         yield* queue.offer({ n: 42n })
 
-        const latch = Effect.makeLatchUnsafe()
+        const latch = Latch.unsafeMake()
         const fiber = yield* queue.take(Effect.fnUntraced(function*(_value) {
           yield* latch.open
           return yield* Effect.never

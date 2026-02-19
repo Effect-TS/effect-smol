@@ -3,6 +3,7 @@ import { Fiber, ServiceMap } from "effect"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
+import * as Latch from "effect/Latch"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 
@@ -10,7 +11,7 @@ describe("Layer", () => {
   it.effect("layers can be acquired in parallel", () =>
     Effect.gen(function*() {
       const BoolTag = ServiceMap.Service<boolean>("boolean")
-      const latch = Effect.makeLatchUnsafe()
+      const latch = Latch.unsafeMake()
       const layer1 = Layer.effectServices<never, never, never>(Effect.never)
       const layer2 = Layer.effectServices(
         Effect.acquireRelease(

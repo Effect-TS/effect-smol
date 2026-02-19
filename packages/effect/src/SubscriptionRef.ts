@@ -8,6 +8,7 @@ import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Ref from "./Ref.ts"
+import * as Semaphore from "./Semaphore.ts"
 import * as Stream from "./Stream.ts"
 import type { Invariant } from "./Types.ts"
 
@@ -19,7 +20,7 @@ const TypeId = "~effect/SubscriptionRef"
  */
 export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A>, Pipeable {
   readonly backing: Ref.Ref<A>
-  readonly semaphore: Effect.Semaphore
+  readonly semaphore: Semaphore.Semaphore
   readonly pubsub: PubSub.PubSub<A>
 }
 
@@ -70,7 +71,7 @@ const Proto = {
 export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
   Effect.map(PubSub.unbounded<A>({ replay: 1 }), (pubsub) => {
     const self = Object.create(Proto)
-    self.semaphore = Effect.makeSemaphoreUnsafe(1)
+    self.semaphore = Semaphore.unsafeMake(1)
     self.backing = Ref.makeUnsafe(value)
     self.pubsub = pubsub
     PubSub.publishUnsafe(self.pubsub, value)

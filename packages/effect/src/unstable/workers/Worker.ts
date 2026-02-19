@@ -4,6 +4,7 @@
 import type * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
 import * as FiberSet from "../../FiberSet.ts"
+import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -149,7 +150,7 @@ export const makePlatform = <W>() =>
                   WorkerError | E
                 >().pipe(Scope.provide(scope))
                 const run = yield* FiberSet.runtime(fiberSet)<R>()
-                const ready = Effect.makeLatchUnsafe()
+                const ready = Latch.unsafeMake()
                 yield* options.listen({
                   port,
                   scope,

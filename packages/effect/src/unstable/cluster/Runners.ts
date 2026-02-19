@@ -3,6 +3,7 @@
  */
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
@@ -192,8 +193,8 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
   }
 
   type StorageRequestEntry = {
-    readonly latch: Effect.Latch
-    doneLatch: Effect.Latch | undefined
+    readonly latch: Latch.Latch
+    doneLatch: Latch.Latch | undefined
     readonly messages: Set<Message.OutgoingRequest<any>>
     replies: Array<Reply.Reply<any>>
   }
@@ -204,11 +205,11 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
       let entry = storageRequests.get(message.envelope.requestId)
       if (entry) {
         entry.messages.add(message)
-        entry.doneLatch ??= Effect.makeLatchUnsafe(false)
+        entry.doneLatch ??= Latch.unsafeMake(false)
         return yield* entry.doneLatch.await
       } else {
         entry = {
-          latch: Effect.makeLatchUnsafe(false),
+          latch: Latch.unsafeMake(false),
           doneLatch: undefined,
           replies: [],
           messages: new Set([message])
@@ -260,7 +261,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
       )
   )
 
-  const storageLatch = Effect.makeLatchUnsafe(false)
+  const storageLatch = Latch.unsafeMake(false)
   if (storage !== MessageStorage.noop) {
     yield* Effect.gen(function*() {
       const foundRequests = new Set<StorageRequestEntry>()

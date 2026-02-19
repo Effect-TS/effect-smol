@@ -6,6 +6,7 @@ import { dual } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as Option from "./Option.ts"
 import * as Ref from "./Ref.ts"
+import * as Semaphore from "./Semaphore.ts"
 
 const TypeId = "~effect/SynchronizedRef"
 
@@ -16,7 +17,7 @@ const TypeId = "~effect/SynchronizedRef"
 export interface SynchronizedRef<in out A> extends Ref.Ref<A> {
   readonly [TypeId]: typeof TypeId
   readonly backing: Ref.Ref<A>
-  readonly semaphore: Effect.Semaphore
+  readonly semaphore: Semaphore.Semaphore
 }
 
 const Proto = {
@@ -36,7 +37,7 @@ const Proto = {
  */
 export const makeUnsafe = <A>(value: A): SynchronizedRef<A> => {
   const self = Object.create(Proto)
-  self.semaphore = Effect.makeSemaphoreUnsafe(1)
+  self.semaphore = Semaphore.unsafeMake(1)
   self.backing = Ref.makeUnsafe(value)
   return self
 }

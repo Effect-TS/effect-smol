@@ -16,6 +16,7 @@ import * as Layer from "effect/Layer"
 import type * as Path from "effect/Path"
 import type * as Record from "effect/Record"
 import type * as Scope from "effect/Scope"
+import * as Semaphore from "effect/Semaphore"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import * as Cookies from "effect/unstable/http/Cookies"
@@ -463,7 +464,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     return Effect.callback<Socket.Socket, Error.HttpServerError>((resume) => {
       const deferred = Deferred.makeUnsafe<ServerWebSocket<WebSocketContext>>()
       const closeDeferred = Deferred.makeUnsafe<void, Socket.SocketError>()
-      const semaphore = Effect.makeSemaphoreUnsafe(1)
+      const semaphore = Semaphore.unsafeMake(1)
 
       const success = this.bunServer.upgrade(this.source, {
         data: {

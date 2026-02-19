@@ -20,6 +20,7 @@ import * as internalExecutionPlan from "./internal/executionPlan.ts"
 import * as internal from "./internal/stream.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
+import * as Latch from "./Latch.ts"
 import type * as Layer from "./Layer.ts"
 import type { LogLevel } from "./LogLevel.ts"
 import * as MutableHashMap from "./MutableHashMap.ts"
@@ -2166,8 +2167,8 @@ export const tapSink: {
     transformPullBracket(
       self,
       Effect.fnUntraced(function*(pull, _, scope) {
-        const upstreamLatch = Effect.makeLatchUnsafe()
-        const sinkLatch = Effect.makeLatchUnsafe()
+        const upstreamLatch = Latch.unsafeMake()
+        const sinkLatch = Latch.unsafeMake()
         let chunk: Arr.NonEmptyReadonlyArray<A> | undefined = undefined
         let causeSink: Cause.Cause<E2> | undefined = undefined
         let sinkDone = false
@@ -3684,7 +3685,7 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
   fromChannel(Channel.suspend(() => {
     const latest: Array<any> = []
     const emitted = new Set<number>()
-    const readyLatch = Effect.makeLatchUnsafe()
+    const readyLatch = Latch.unsafeMake()
     return Channel.mergeAll(
       Channel.fromArray(
         streams.map((s, i) =>
@@ -7055,9 +7056,9 @@ export const debounce: {
         let lastArr: Arr.NonEmptyReadonlyArray<A> | undefined
         let cause: Cause.Cause<Cause.Done | E> | undefined
         let emitAtMs = Infinity
-        const pullLatch = Effect.makeLatchUnsafe()
-        const emitLatch = Effect.makeLatchUnsafe()
-        const endLatch = Effect.makeLatchUnsafe()
+        const pullLatch = Latch.unsafeMake()
+        const emitLatch = Latch.unsafeMake()
+        const endLatch = Latch.unsafeMake()
 
         yield* pull.pipe(
           pullLatch.whenOpen,
@@ -7824,7 +7825,7 @@ export const aggregateWithin: {
   fromChannel(Channel.fromTransformBracket(Effect.fnUntraced(function*(_upstream, _, scope) {
     const pull = yield* Channel.toPullScoped(self.channel, _)
 
-    const pullLatch = Effect.makeLatchUnsafe(false)
+    const pullLatch = Latch.unsafeMake(false)
     const scheduleStep = Symbol()
     const buffer = yield* Queue.make<Arr.NonEmptyReadonlyArray<A> | typeof scheduleStep, E | Cause.Done<void>>({
       capacity: 0
@@ -10068,7 +10069,7 @@ export const toReadableStreamWith = dual<
   ): ReadableStream<A> => {
     let currentResolve: (() => void) | undefined = undefined
     let fiber: Fiber.Fiber<void, E> | undefined = undefined
-    const latch = Effect.makeLatchUnsafe(false)
+    const latch = Latch.unsafeMake(false)
 
     return new ReadableStream<A>({
       start(controller) {

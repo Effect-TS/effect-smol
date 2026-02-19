@@ -8,6 +8,7 @@ import * as Equal from "../../../Equal.ts"
 import * as Exit from "../../../Exit.ts"
 import * as Fiber from "../../../Fiber.ts"
 import { identity } from "../../../Function.ts"
+import * as Latch from "../../../Latch.ts"
 import * as Metric from "../../../Metric.ts"
 import * as Option from "../../../Option.ts"
 import { CurrentLogAnnotations } from "../../../References.ts"
@@ -75,7 +76,7 @@ export type EntityState = {
   }>
   lastActiveCheck: number
   write: RpcServer.RpcServer<any>["write"]
-  readonly keepAliveLatch: Effect.Latch
+  readonly keepAliveLatch: Latch.Latch
   keepAliveEnabled: boolean
 }
 
@@ -116,7 +117,7 @@ export const make = Effect.fnUntraced(function*<
   entityRpcs.set(KeepAliveRpc._tag, KeepAliveRpc as any)
 
   const activeServers = new Map<EntityId, EntityState>()
-  const serverCloseLatches = new Map<EntityAddress, Effect.Latch>()
+  const serverCloseLatches = new Map<EntityAddress, Latch.Latch>()
   const processedRequestIds = new Set<Snowflake.Snowflake>()
 
   const entities: ResourceMap<
@@ -129,8 +130,8 @@ export const make = Effect.fnUntraced(function*<
     }
 
     const scope = yield* Effect.scope
-    const endLatch = Effect.makeLatchUnsafe()
-    const keepAliveLatch = Effect.makeLatchUnsafe()
+    const endLatch = Latch.unsafeMake()
+    const keepAliveLatch = Latch.unsafeMake()
 
     // on shutdown, reset the storage for the entity
     yield* Scope.addFinalizerExit(
@@ -336,7 +337,7 @@ export const make = Effect.fnUntraced(function*<
       scope,
       Effect.withFiber((fiber) => {
         activeServers.delete(address.entityId)
-        serverCloseLatches.set(address, Effect.makeLatchUnsafe())
+        serverCloseLatches.set(address, Latch.unsafeMake())
         internalInterruptors.add(fiber.id)
         return state.write(0, { _tag: "Eof" }).pipe(
           Effect.andThen(Effect.interruptible(endLatch.await)),

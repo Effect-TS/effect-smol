@@ -1,12 +1,12 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Exit, Fiber, Number, Pull, Random, Stream, SubscriptionRef } from "effect"
+import { Array, Effect, Exit, Fiber, Latch, Number, Pull, Random, Stream, SubscriptionRef } from "effect"
 
 describe("SubscriptionRef", () => {
   it.effect("multiple subscribers can receive changes", () =>
     Effect.gen(function*() {
       const ref = yield* SubscriptionRef.make(0)
-      const latch1 = yield* Effect.makeLatch()
-      const latch2 = yield* Effect.makeLatch()
+      const latch1 = yield* Latch.make()
+      const latch2 = yield* Latch.make()
       const fiber1 = yield* SubscriptionRef.changes(ref).pipe(
         Stream.tap(() => latch1.open),
         Stream.take(3),
@@ -32,8 +32,8 @@ describe("SubscriptionRef", () => {
   it.effect("subscriptions are interruptible", () =>
     Effect.gen(function*() {
       const ref = yield* SubscriptionRef.make(0)
-      const latch1 = yield* Effect.makeLatch()
-      const latch2 = yield* Effect.makeLatch()
+      const latch1 = yield* Latch.make()
+      const latch2 = yield* Latch.make()
       const fiber1 = yield* SubscriptionRef.changes(ref).pipe(
         Stream.tap(() => latch1.open),
         Stream.take(5),

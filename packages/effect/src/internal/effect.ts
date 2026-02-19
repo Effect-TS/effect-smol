@@ -14,6 +14,7 @@ import { constant, constFalse, constTrue, constUndefined, constVoid, dual, ident
 import * as Hash from "../Hash.ts"
 import { toJson, toStringUnknown } from "../Inspectable.ts"
 import * as Iterable from "../Iterable.ts"
+import type * as _Latch from "../Latch.ts"
 import type * as Logger from "../Logger.ts"
 import type * as LogLevel from "../LogLevel.ts"
 import type * as Metric from "../Metric.ts"
@@ -4854,7 +4855,7 @@ export const makeSemaphore = (permits: number) => sync(() => makeSemaphoreUnsafe
 const succeedTrue = succeed(true)
 const succeedFalse = succeed(false)
 
-class Latch implements Effect.Latch {
+class Latch implements _Latch.Latch {
   waiters: Array<(_: Effect.Effect<void>) => void> = []
   scheduled = false
   private isOpen: boolean
@@ -4914,7 +4915,7 @@ class Latch implements Effect.Latch {
 }
 
 /** @internal */
-export const makeLatchUnsafe = (open?: boolean | undefined): Effect.Latch => new Latch(open ?? false)
+export const makeLatchUnsafe = (open?: boolean | undefined): _Latch.Latch => new Latch(open ?? false)
 
 /** @internal */
 export const makeLatch = (open?: boolean | undefined) => sync(() => makeLatchUnsafe(open))

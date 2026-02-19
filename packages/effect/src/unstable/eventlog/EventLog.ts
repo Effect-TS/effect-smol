@@ -14,6 +14,7 @@ import type * as Record from "../../Record.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
+import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Covariant } from "../../Types.ts"
 import { Reactivity } from "../reactivity/Reactivity.ts"
@@ -481,7 +482,7 @@ const make = Effect.gen(function*() {
       readonly write: (entry: Entry) => Effect.Effect<void>
     }) => Effect.Effect<void>
   }>()
-  const journalSemaphore = yield* Effect.makeSemaphore(1)
+  const journalSemaphore = yield* Semaphore.make(1)
 
   const reactivity = yield* Reactivity
   const reactivityKeys: Record<string, ReadonlyArray<string>> = {}

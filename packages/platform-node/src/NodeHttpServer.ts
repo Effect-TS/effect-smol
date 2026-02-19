@@ -7,6 +7,7 @@ import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import type * as FileSystem from "effect/FileSystem"
 import { flow, type LazyArg } from "effect/Function"
+import * as Latch from "effect/Latch"
 import * as Layer from "effect/Layer"
 import type * as Path from "effect/Path"
 import type * as Record from "effect/Record"
@@ -532,7 +533,7 @@ const handleResponse = (
     }
     case "Stream": {
       nodeResponse.writeHead(response.status, headers)
-      const drainLatch = Effect.makeLatchUnsafe()
+      const drainLatch = Latch.unsafeMake()
       nodeResponse.on("drain", () => drainLatch.openUnsafe())
       return body.stream.pipe(
         Stream.orDie,

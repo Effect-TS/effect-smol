@@ -69,6 +69,7 @@ import { constant, constTrue, constVoid, dual, identity as identity_ } from "./F
 import { ClockRef, endSpan } from "./internal/effect.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
+import * as Latch from "./Latch.ts"
 import * as Layer from "./Layer.ts"
 import type { LogLevel } from "./LogLevel.ts"
 import * as Option from "./Option.ts"
@@ -83,6 +84,7 @@ import { TracerTimingEnabled } from "./References.ts"
 import * as Result from "./Result.ts"
 import * as Schedule from "./Schedule.ts"
 import * as Scope from "./Scope.ts"
+import * as Semaphore from "./Semaphore.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as String from "./String.ts"
 import * as Take from "./Take.ts"
@@ -1866,7 +1868,7 @@ const mapEffectConcurrent = <
       const trackFiber = Fiber.runIn(forkedScope)
 
       if (options.unordered) {
-        const semaphore = Effect.makeSemaphoreUnsafe(concurrencyN)
+        const semaphore = Semaphore.unsafeMake(concurrencyN)
         const release = constant(semaphore.release(1))
         const handle = Effect.matchCauseEffect({
           onFailure: (cause: Cause.Cause<EX>) => Effect.flatMap(Queue.failCause(queue, cause), release),
@@ -5235,8 +5237,8 @@ export const mergeAll: {
         const concurrencyN = concurrency === "unbounded"
           ? Number.MAX_SAFE_INTEGER
           : Math.max(1, concurrency)
-        const semaphore = switch_ ? undefined : Effect.makeSemaphoreUnsafe(concurrencyN)
-        const doneLatch = yield* Effect.makeLatch(true)
+        const semaphore = switch_ ? undefined : Semaphore.unsafeMake(concurrencyN)
+        const doneLatch = yield* Latch.make(true)
         const fibers = new Set<Fiber.Fiber<any, any>>()
 
         const queue = yield* Queue.bounded<OutElem, OutErr | OutErr1 | Cause.Done<OutDone>>(
@@ -6972,7 +6974,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
   function*<OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) {
-    const semaphore = Effect.makeSemaphoreUnsafe(1)
+    const semaphore = Semaphore.unsafeMake(1)
     const context = yield* Effect.services<Env | Scope.Scope>()
     const scope = ServiceMap.get(context, Scope.Scope)
     const pull = yield* toTransform(self)(Cause.done(), scope)

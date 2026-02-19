@@ -7,6 +7,7 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import * as Filter from "effect/Filter"
+import * as Latch from "effect/Latch"
 import * as Queue from "effect/Queue"
 import * as Result from "effect/Result"
 
@@ -144,7 +145,7 @@ describe("Channel", () => {
     it.effect("mapEffect - propagates interruption", () =>
       Effect.gen(function*() {
         let interrupted = false
-        const latch = yield* Effect.makeLatch(false)
+        const latch = yield* Latch.make(false)
         const fiber = yield* Channel.succeed(1).pipe(
           Channel.mapEffect(() =>
             latch.open.pipe(
@@ -165,8 +166,8 @@ describe("Channel", () => {
     it.effect("mapEffect - interrupts pending tasks on failure", () =>
       Effect.gen(function*() {
         let interrupts = 0
-        const latch1 = yield* Effect.makeLatch(false)
-        const latch2 = yield* Effect.makeLatch(false)
+        const latch1 = yield* Latch.make(false)
+        const latch2 = yield* Latch.make(false)
         const result = yield* Channel.fromArray([1, 2, 3]).pipe(
           Channel.mapEffect((n) => {
             if (n === 1) {
@@ -227,7 +228,7 @@ describe("Channel", () => {
   describe("merging", () => {
     it.effect("merge - interrupts left side if halt strategy is set to 'right'", () =>
       Effect.gen(function*() {
-        const latch = yield* Effect.makeLatch(false)
+        const latch = yield* Latch.make(false)
         const leftQueue = yield* Queue.make<number, Cause.Done>()
         const rightQueue = yield* Queue.make<number>()
         const left = Channel.fromQueue(rightQueue)
@@ -247,7 +248,7 @@ describe("Channel", () => {
 
     it.effect("merge - interrupts right side if halt strategy is set to 'left'", () =>
       Effect.gen(function*() {
-        const latch = yield* Effect.makeLatch(false)
+        const latch = yield* Latch.make(false)
         const leftQueue = yield* Queue.make<number, Cause.Done>()
         const rightQueue = yield* Queue.make<number>()
         const left = Channel.fromQueue(leftQueue).pipe(

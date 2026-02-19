@@ -8,6 +8,7 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Redacted from "effect/Redacted"
 import * as Scope from "effect/Scope"
+import * as Semaphore from "effect/Semaphore"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
@@ -249,7 +250,7 @@ export const make = (
         ),
         (sdk) => new LibsqlConnectionImpl(sdk)
       )
-    const semaphore = yield* Effect.makeSemaphore(1)
+    const semaphore = yield* Semaphore.make(1)
 
     const withTransaction = Client.makeWithTransaction({
       transactionService: LibsqlTransaction,

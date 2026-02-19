@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Fiber, PubSub } from "effect"
+import { Array, Effect, Fiber, Latch, PubSub } from "effect"
 import { pipe } from "effect/Function"
 
 describe("PubSub", () => {
@@ -60,7 +60,7 @@ describe("PubSub", () => {
   it.effect("sequential publishers and subscribers with one publisher and one subscriber", () =>
     Effect.gen(function*() {
       const values = Array.range(0, 9)
-      const latch = yield* Effect.makeLatch()
+      const latch = yield* Latch.make()
       const pubsub = yield* PubSub.bounded<number>(10)
       const subscriber = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) =>
@@ -79,7 +79,7 @@ describe("PubSub", () => {
   it.effect("sequential publishers and subscribers with one publisher and two subscribers", () =>
     Effect.gen(function*() {
       const values = Array.range(0, 9)
-      const latch = yield* Effect.makeLatch()
+      const latch = yield* Latch.make()
       const pubsub = yield* PubSub.bounded<number>(10)
       const subscriber1 = yield* pubsub.pipe(
         PubSub.subscribe,

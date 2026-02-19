@@ -6,6 +6,7 @@ import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
+import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
 import * as RcMap from "../../RcMap.ts"
@@ -106,7 +107,7 @@ export const make = Effect.gen(function*() {
     readonly services: ServiceMap.ServiceMap<any>
   }>()
   const interruptedActivities = new Set<string>()
-  const activityLatches = new Map<string, Effect.Latch>()
+  const activityLatches = new Map<string, Latch.Latch>()
   const clients = yield* RcMap.make({
     lookup: Effect.fnUntraced(function*(workflowName: string) {
       const entity = entities.get(workflowName)
@@ -297,7 +298,7 @@ export const make = Effect.gen(function*() {
                 return Effect.gen(function*() {
                   let entry = activities.get(activityId)
                   while (!entry) {
-                    const latch = Effect.makeLatchUnsafe()
+                    const latch = Latch.unsafeMake()
                     activityLatches.set(activityId, latch)
                     yield* latch.await
                     entry = activities.get(activityId)

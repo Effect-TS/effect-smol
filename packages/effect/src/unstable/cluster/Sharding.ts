@@ -13,6 +13,7 @@ import * as Fiber from "../../Fiber.ts"
 import * as FiberMap from "../../FiberMap.ts"
 import { constant, flow } from "../../Function.ts"
 import * as HashRing from "../../HashRing.ts"
+import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as MutableHashMap from "../../MutableHashMap.ts"
 import * as MutableHashSet from "../../MutableHashSet.ts"
@@ -23,6 +24,7 @@ import { CurrentLogAnnotations } from "../../References.ts"
 import * as Result from "../../Result.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Scope from "../../Scope.ts"
+import * as Semaphore from "../../Semaphore.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
@@ -221,7 +223,7 @@ const make = Effect.gen(function*() {
 
   // the active shards are the ones that we have acquired the lock for
   const acquiredShards = MutableHashSet.empty<ShardId>()
-  const activeShardsLatch = yield* Effect.makeLatch(false)
+  const activeShardsLatch = yield* Latch.make(false)
 
   const events = yield* PubSub.unbounded<ShardingRegistrationEvent>()
   const getRegistrationEvents: Stream.Stream<ShardingRegistrationEvent> = Stream.fromPubSub(events)
@@ -429,10 +431,10 @@ const make = Effect.gen(function*() {
   // It should also be shutdown after the entity managers, to ensure interrupt
   // & ack envelopes can still be processed.
 
-  const storageReadLatch = yield* Effect.makeLatch(true)
+  const storageReadLatch = yield* Latch.make(true)
   const openStorageReadLatch = constant(Effect.asVoid(storageReadLatch.open))
 
-  const storageReadLock = Effect.makeSemaphoreUnsafe(1)
+  const storageReadLock = Semaphore.unsafeMake(1)
   const withStorageReadLock = storageReadLock.withPermits(1)
 
   if (storageEnabled && config.runnerAddress) {
@@ -1182,7 +1184,7 @@ const make = Effect.gen(function*() {
 
   const singletons = new Map<ShardId, MutableHashMap.MutableHashMap<SingletonAddress, Effect.Effect<void>>>()
   const singletonFibers = yield* FiberMap.make<SingletonAddress>()
-  const withSingletonLock = Effect.makeSemaphoreUnsafe(1).withPermits(1)
+  const withSingletonLock = Semaphore.unsafeMake(1).withPermits(1)
 
   const registerSingleton: Sharding["Service"]["registerSingleton"] = Effect.fnUntraced(
     function*(name, run, options) {
@@ -1253,7 +1255,7 @@ const make = Effect.gen(function*() {
   // --- Entities ---
 
   const reaper = yield* EntityReaper
-  const entityManagerLatches = new Map<string, Effect.Latch>()
+  const entityManagerLatches = new Map<string, Latch.Latch>()
 
   const registerEntity: Sharding["Service"]["registerEntity"] = Effect.fnUntraced(
     function*(entity, build, options) {
@@ -1310,7 +1312,7 @@ const make = Effect.gen(function*() {
   const waitForEntityManager = (entityType: string) => {
     let latch = entityManagerLatches.get(entityType)
     if (!latch) {
-      latch = Effect.makeLatchUnsafe()
+      latch = Latch.unsafeMake()
       entityManagerLatches.set(entityType, latch)
     }
     return latch.await

@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertDefined, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Effect, Schema, Stream } from "effect"
+import { Effect, Latch, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { LanguageModel, Prompt, Response, Tool, Toolkit } from "effect/unstable/ai"
 import * as TestUtils from "./utils.ts"
@@ -43,7 +43,7 @@ describe("LanguageModel", () => {
     it("should emit tool calls before executing tool handlers", () =>
       Effect.gen(function*() {
         const parts: Array<Response.StreamPart<Toolkit.Tools<typeof MyToolkit>>> = []
-        const latch = yield* Effect.makeLatch()
+        const latch = yield* Latch.make()
 
         const toolCallId = "tool-abc123"
         const toolName = "MyTool"
@@ -367,7 +367,7 @@ describe("LanguageModel", () => {
         const parts: Array<Response.StreamPart<Toolkit.Tools<typeof MyToolkit>>> = []
 
         const toolCallId = "call-normal"
-        const latch = yield* Effect.makeLatch()
+        const latch = yield* Latch.make()
 
         yield* LanguageModel.streamText({
           prompt: [],

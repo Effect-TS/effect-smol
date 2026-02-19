@@ -9,11 +9,13 @@ import type * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
 import { dual, identity } from "./Function.ts"
 import * as Iterable from "./Iterable.ts"
+import * as Latch from "./Latch.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Queue from "./Queue.ts"
 import { UnhandledLogLevel } from "./References.ts"
 import * as Scope from "./Scope.ts"
+import * as Semaphore from "./Semaphore.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 
 const TypeId = "~effect/Pool"
@@ -52,11 +54,11 @@ export interface Config<A, E> {
 export interface State<A, E> {
   readonly scope: Scope.Scope
   isShuttingDown: boolean
-  readonly semaphore: Effect.Semaphore
-  readonly resizeSemaphore: Effect.Semaphore
+  readonly semaphore: Semaphore.Semaphore
+  readonly resizeSemaphore: Semaphore.Semaphore
   readonly items: Set<PoolItem<A, E>>
   readonly available: Set<PoolItem<A, E>>
-  readonly availableLatch: Effect.Latch
+  readonly availableLatch: Latch.Latch
   readonly invalidated: Set<PoolItem<A, E>>
   waiters: number
 }
@@ -212,11 +214,11 @@ export const makeWithStrategy = <A, E, R>(options: {
     const state: State<A, E> = {
       scope,
       isShuttingDown: false,
-      semaphore: Effect.makeSemaphoreUnsafe(concurrency * options.max),
-      resizeSemaphore: Effect.makeSemaphoreUnsafe(1),
+      semaphore: Semaphore.unsafeMake(concurrency * options.max),
+      resizeSemaphore: Semaphore.unsafeMake(1),
       items: new Set(),
       available: new Set(),
-      availableLatch: Effect.makeLatchUnsafe(false),
+      availableLatch: Latch.unsafeMake(false),
       invalidated: new Set(),
       waiters: 0
     }
@@ -244,7 +246,7 @@ const shutdown = Effect.fnUntraced(function*<A, E>(self: Pool<A, E>) {
   if (self.state.isShuttingDown) return
   self.state.isShuttingDown = true
   const size = self.state.items.size
-  const semaphore = Effect.makeSemaphoreUnsafe(size)
+  const semaphore = Semaphore.unsafeMake(size)
   for (const item of self.state.items) {
     if (item.refCount > 0) {
       item.finalizer = Effect.tap(item.finalizer, semaphore.release(1))

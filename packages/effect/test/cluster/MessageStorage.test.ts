@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Effect, Exit, Fiber, Layer, Schema, ServiceMap } from "effect"
+import { Effect, Exit, Fiber, Latch, Layer, Schema, ServiceMap } from "effect"
 import { TestClock } from "effect/testing"
 import {
   EntityAddress,
@@ -77,7 +77,7 @@ describe("MessageStorage", () => {
     it.effect("registerReplyHandler", () =>
       Effect.gen(function*() {
         const storage = yield* MessageStorage.MessageStorage
-        const latch = yield* Effect.makeLatch()
+        const latch = yield* Latch.make()
         const request = yield* makeRequest()
         yield* storage.saveRequest(request)
         const fiber = yield* storage.registerReplyHandler(

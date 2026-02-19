@@ -10,6 +10,7 @@ import * as Equal from "../../Equal.ts"
 import * as Exit from "../../Exit.ts"
 import { identity } from "../../Function.ts"
 import * as Hash from "../../Hash.ts"
+import type * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
@@ -642,6 +643,6 @@ export const KeepAliveRpc = Rpc.make("Cluster/Entity/keepAlive")
  * @since 4.0.0
  * @category Keep alive
  */
-export class KeepAliveLatch extends ServiceMap.Service<KeepAliveLatch, Effect.Latch>()(
+export class KeepAliveLatch extends ServiceMap.Service<KeepAliveLatch, Latch.Latch>()(
   "effect/cluster/Entity/KeepAliveLatch"
 ) {}

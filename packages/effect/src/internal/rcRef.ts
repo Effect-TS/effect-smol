@@ -6,6 +6,7 @@ import { identity } from "../Function.ts"
 import { pipeArguments } from "../Pipeable.ts"
 import type * as RcRef from "../RcRef.ts"
 import * as Scope from "../Scope.ts"
+import * as Semaphore from "../Semaphore.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 
 const TypeId = "~effect/RcRef"
@@ -47,7 +48,7 @@ class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
   }
 
   state: State<A> = stateEmpty
-  readonly semaphore = Effect.makeSemaphoreUnsafe(1)
+  readonly semaphore = Semaphore.unsafeMake(1)
   readonly acquire: Effect.Effect<A, E>
   readonly services: ServiceMap.ServiceMap<never>
   readonly scope: Scope.Scope

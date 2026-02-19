@@ -4,6 +4,7 @@
 import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Latch from "../../Latch.ts"
 import * as Option from "../../Option.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
@@ -224,7 +225,7 @@ export class WorkflowInstance extends ServiceMap.Service<
 
     readonly activityState: {
       count: number
-      readonly latch: Effect.Latch
+      readonly latch: Latch.Latch
     }
   }
 >()("effect/workflow/WorkflowEngine/WorkflowInstance") {
@@ -241,7 +242,7 @@ export class WorkflowInstance extends ServiceMap.Service<
       cause: undefined,
       activityState: {
         count: 0,
-        latch: Effect.makeLatchUnsafe()
+        latch: Latch.unsafeMake()
       }
     })
   }

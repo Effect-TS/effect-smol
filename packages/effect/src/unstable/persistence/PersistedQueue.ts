@@ -9,6 +9,7 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import { flow } from "../../Function.ts"
 import * as Iterable from "../../Iterable.ts"
+import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as MutableRef from "../../MutableRef.ts"
 import * as Queue from "../../Queue.ts"
@@ -235,14 +236,14 @@ export const layerStoreMemory: Layer.Layer<
   }
   const ids = new Set<string>()
   const queues = new Map<string, {
-    latch: Effect.Latch
+    latch: Latch.Latch
     items: Set<Entry>
   }>()
   const getOrCreateQueue = (name: string) => {
     let queue = queues.get(name)
     if (!queue) {
       queue = {
-        latch: Effect.makeLatchUnsafe(false),
+        latch: Latch.unsafeMake(false),
         items: new Set()
       }
       queues.set(name, queue)
@@ -345,8 +346,8 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
       const pendingKey = keyPending(name)
       const queue = yield* Queue.make<Element>()
       const takers = MutableRef.make(0)
-      const pollLatch = Effect.makeLatchUnsafe()
-      const takenLatch = Effect.makeLatchUnsafe()
+      const pollLatch = Latch.unsafeMake()
+      const takenLatch = Latch.unsafeMake()
 
       yield* Effect.addFinalizer(() =>
         Effect.orDie(
@@ -930,8 +931,8 @@ export const makeStoreSql: (
     lookup: Effect.fnUntraced(function*({ maxAttempts, name }: QueueKey) {
       const queue = yield* Queue.make<Element>()
       const takers = MutableRef.make(0)
-      const pollLatch = Effect.makeLatchUnsafe()
-      const takenLatch = Effect.makeLatchUnsafe()
+      const pollLatch = Latch.unsafeMake()
+      const takenLatch = Latch.unsafeMake()
 
       yield* Effect.addFinalizer(() =>
         Effect.flatMap(Queue.clear(queue), (elements) => {

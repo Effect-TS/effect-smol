@@ -14,6 +14,7 @@ import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as ScopedRef from "effect/ScopedRef"
+import * as Semaphore from "effect/Semaphore"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
@@ -218,7 +219,7 @@ export const makeMemory = (
       })
     })
 
-    const semaphore = yield* Effect.makeSemaphore(1)
+    const semaphore = yield* Semaphore.make(1)
     const connection = yield* makeConnection
 
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
@@ -378,7 +379,7 @@ export const make = (
 
     const connectionRef = yield* ScopedRef.fromAcquire(makeConnection)
 
-    const semaphore = yield* Effect.makeSemaphore(1)
+    const semaphore = yield* Semaphore.make(1)
     const acquirer = semaphore.withPermits(1)(ScopedRef.get(connectionRef))
     const transactionAcquirer = Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
       const fiber = Fiber.getCurrent()!
