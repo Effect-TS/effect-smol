@@ -96,14 +96,6 @@ export const StructuralProto = {
 }
 
 /** @internal */
-export const StructuralPipeableProto = {
-  ...StructuralProto,
-  pipe() {
-    return pipeArguments(this, arguments)
-  }
-}
-
-/** @internal */
 export const YieldableProto = {
   [Symbol.iterator]() {
     return new SingleShotGen(this) as any
@@ -112,9 +104,11 @@ export const YieldableProto = {
 
 /** @internal */
 export const YieldableErrorProto = {
-  ...StructuralPipeableProto,
   [Symbol.iterator]() {
     return new SingleShotGen(this) as any
+  },
+  pipe() {
+    return pipeArguments(this, arguments)
   }
 }
 
