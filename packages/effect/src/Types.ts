@@ -964,7 +964,7 @@ export type ExcludeReason<E, K extends string> = E extends { readonly reason: in
  *   constructor(public name: string) {}
  * }
  *
- * function create<T, Args extends ReadonlyArray<any>>(ctor: Ctor<T, Args>, ...args: Args): T {
+ * function create<T, Args extends ReadonlyArray<any>>(ctor: Types.Ctor<T, Args>, ...args: Args): T {
  *   return new ctor(...args)
  * }
  *
