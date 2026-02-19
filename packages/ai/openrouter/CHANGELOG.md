@@ -1,5 +1,12 @@
 # @effect/ai-openrouter
 
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [[`f6e133e`](https://github.com/Effect-TS/effect-smol/commit/f6e133e9a16b32317bd09ff08c12b97a0ae44600), [`e3893cc`](https://github.com/Effect-TS/effect-smol/commit/e3893ccf2632338c7d8e745f639dcd825a9d42f8), [`a88e206`](https://github.com/Effect-TS/effect-smol/commit/a88e206e44dc66ca5a2b45bedc797877c5dbb083), [`e3893cc`](https://github.com/Effect-TS/effect-smol/commit/e3893ccf2632338c7d8e745f639dcd825a9d42f8)]:
+  - effect@4.0.0-beta.5
+
 ## 4.0.0-beta.4
 
 ### Patch Changes
