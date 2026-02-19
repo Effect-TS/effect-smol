@@ -56,23 +56,7 @@ const DateFromNumber = Schema.Number.pipe(
 )
 ```
 
-## 5. ChildProcess Deadlock on Large Output
-
-**Symptom:** Hangs/timeout reading large stdout from spawned process
-
-Internal `combinedPassThrough` (`.all` stream) fills buffer → backpressure blocks `.stdout`.
-
-```ts
-// DEADLOCKS with >16KB output
-Effect.scoped(Effect.gen(function*() {
-  const handle = yield* ChildProcess.spawn(cmd)
-  yield* Stream.runFold(handle.stdout, ...) // hangs
-}))
-```
-
-Workaround: `ChildProcess.string(cmd)` or read `.all` concurrently.
-
-## 6. `.annotations()` Returns `any`
+## 5. `.annotations()` Returns `any`
 
 **Symptom:** `Struct` not assignable to `Decoder<any, never>`
 
@@ -85,7 +69,7 @@ Schema.String.annotations({ title: "Name" })
 Schema.String.annotate({ title: "Name" })
 ```
 
-## 7. Schema Filters Changed
+## 6. Schema Filters Changed
 
 **Symptom:** `Schema.int()`, `Schema.positive()`, `Schema.pattern()` don't exist
 
@@ -96,16 +80,7 @@ Schema.Number.pipe(Schema.int(), Schema.positive())
 Schema.Int.check(Schema.isGreaterThan(0))
 ```
 
-## 8. TaggedErrorClass Needs `{}`
-
-**Symptom:** `Expected 1 arguments, but got 0`
-
-```ts
-// v3: new MyError()
-// v4: new MyError({})
-```
-
-## 9. `Effect.try` Single-Arg Removed
+## 7. `Effect.try` Single-Arg Removed
 
 ```ts
 // BROKEN
@@ -114,7 +89,7 @@ Effect.try(() => JSON.parse(str))
 Effect.try({ try: () => JSON.parse(str), catch: (e) => e as Error })
 ```
 
-## 10. Stale Build Artifacts
+## 8. Stale Build Artifacts
 
 **Symptom:** `Effect.runtime is not a function` but source has no `Effect.runtime`
 
@@ -125,27 +100,27 @@ find . -name "*.test.js" -path "*/tests/*" -delete
 find . -name "*.test.d.ts" -path "*/tests/*" -delete
 ```
 
-## 11. Stream.filterMap Removed
+## 9. Stream.filterMap Removed
 
 ```ts
 // v3: Stream.filterMap(fn)
 // v4: Stream.filter(Filter.fromPredicateOption(fn))
 ```
 
-## 12. Stream.fromQueue Rejects Subscription
+## 10. Stream.fromQueue Rejects Subscription
 
 ```ts
 // v3: Stream.fromQueue(subscription)  — Subscription extended Dequeue
 // v4: Stream.fromSubscription(subscription)  — separate types
 ```
 
-## 13. Layer.Layer.Context Removed
+## 11. Layer.Layer.Context Removed
 
 ```ts
 type LayerContext<T> = T extends Layer.Layer<infer A, infer _E, infer _R> ? A : never
 ```
 
-## 14. Effect.tap Requires Effect Return
+## 12. Effect.tap Requires Effect Return
 
 ```ts
 // BROKEN
@@ -154,14 +129,14 @@ Effect.tap(() => { sideEffect() })
 Effect.tap(() => Effect.sync(() => { sideEffect() }))
 ```
 
-## 15. FileSystem.File.Info.mtime
+## 13. FileSystem.File.Info.mtime
 
 ```ts
 // v3: Option<Date>      →  Option.getOrElse(stat.mtime, () => new Date(0))
 // v4: Date | undefined   →  stat.mtime ?? new Date(0)
 ```
 
-## 16. Index Signature Access
+## 14. Index Signature Access
 
 With `noPropertyAccessFromIndexSignature`, Schema decoded types need brackets:
 
@@ -170,7 +145,7 @@ With `noPropertyAccessFromIndexSignature`, Schema decoded types need brackets:
 // FIX:   config["maxRetries"]
 ```
 
-## 17. `Effect.ignore` No Longer Catches Defects
+## 15. `Effect.ignore` No Longer Catches Defects
 
 **Symptom:** `SQLiteError: duplicate column name` or other defects crash through `Effect.ignore`
 
@@ -187,7 +162,7 @@ yield* sql.unsafe(`ALTER TABLE t ADD COLUMN c TEXT`).pipe(Effect.ignoreCause)
 
 Use `Effect.ignoreCause` anywhere you need to swallow ALL failures including defects.
 
-## 18. `ServiceMap.Service` is Not an `Effect`
+## 16. `ServiceMap.Service` is Not an `Effect`
 
 **Symptom:** `Maximum call stack size exceeded` or `Not a valid effect` at runtime
 
