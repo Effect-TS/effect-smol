@@ -17,18 +17,18 @@ const TypeId = "~effect/persistence/PersistedCache" as const
  * @since 4.0.0
  * @category Models
  */
-export interface PersistedCache<K extends Persistable.Any> {
+export interface PersistedCache<K extends Persistable.Any, out R = never> {
   readonly [TypeId]: typeof TypeId
   readonly inMemory: Cache.Cache<
     K,
     Persistable.Success<K>,
     Persistable.Error<K> | Persistence.PersistenceError | Schema.SchemaError,
-    Persistable.Services<K>
+    Persistable.Services<K> | R
   >
   readonly get: (key: K) => Effect.Effect<
     Persistable.Success<K>,
     Persistable.Error<K> | Persistence.PersistenceError | Schema.SchemaError,
-    Persistable.Services<K>
+    Persistable.Services<K> | R
   >
   readonly invalidate: (key: K) => Effect.Effect<void, Persistence.PersistenceError>
 }
@@ -37,22 +37,32 @@ export interface PersistedCache<K extends Persistable.Any> {
  * @since 4.0.0
  * @category Constructors
  */
-export const make: <K extends Persistable.Any, R>(options: {
+export const make: <
+  K extends Persistable.Any,
+  R = never,
+  ServiceMode extends "lookup" | "construction" = never
+>(options: {
   readonly storeId: string
   readonly lookup: (key: K) => Effect.Effect<Persistable.Success<K>, Persistable.Error<K>, R>
   readonly timeToLive: Persistable.TimeToLiveFn<K>
   readonly inMemoryCapacity?: number | undefined
   readonly inMemoryTTL?: Persistable.TimeToLiveFn<K> | undefined
+  readonly requireServicesAt?: ServiceMode | undefined
 }) => Effect.Effect<
-  PersistedCache<K>,
+  PersistedCache<K, "lookup" extends ServiceMode ? R : never>,
   never,
-  R | Persistence.Persistence | Scope.Scope
-> = Effect.fnUntraced(function*<K extends Persistable.Any, R>(options: {
+  ("lookup" extends ServiceMode ? never : R) | Persistence.Persistence | Scope.Scope
+> = Effect.fnUntraced(function*<
+  K extends Persistable.Any,
+  R = never,
+  ServiceMode extends "lookup" | "construction" = never
+>(options: {
   readonly storeId: string
   readonly lookup: (key: K) => Effect.Effect<Persistable.Success<K>, Persistable.Error<K>, R>
   readonly timeToLive: Persistable.TimeToLiveFn<K>
   readonly inMemoryCapacity?: number | undefined
   readonly inMemoryTTL?: Persistable.TimeToLiveFn<K> | undefined
+  readonly requireServicesAt?: ServiceMode | undefined
 }) {
   const store = yield* (yield* Persistence.Persistence).make({
     storeId: options.storeId,
@@ -69,9 +79,10 @@ export const make: <K extends Persistable.Any, R>(options: {
       return yield* result
     }),
     timeToLive: options.inMemoryTTL ?? constant(Duration.seconds(10)),
-    capacity: options.inMemoryCapacity ?? 1024
+    capacity: options.inMemoryCapacity ?? 1024,
+    requireServicesAt: options.requireServicesAt
   })
-  return identity<PersistedCache<K>>({
+  return identity<PersistedCache<K, "lookup" extends ServiceMode ? R : never>>({
     [TypeId]: TypeId,
     inMemory,
     get: (key) => Cache.get(inMemory, key),

@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import type { Layer } from "effect"
-import { Data, Effect, Exit, Result, Schema } from "effect"
+import { Data, Effect, Exit, Result, Schema, ServiceMap } from "effect"
 import { Persistable, PersistedCache, Persistence } from "effect/unstable/persistence"
 
 class User extends Schema.Class<User>("User")({
@@ -17,6 +17,8 @@ class TTLRequest extends Persistable.Class<{
 }) {}
 
 export class TransientError extends Data.TaggedError("TransientError") {}
+
+class LookupService extends ServiceMap.Service<LookupService, { readonly value: string }>()("LookupService") {}
 
 export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistence, unknown>) =>
   describe(`PersistedCache (${storeId})`, { timeout: 30_000 }, () => {
@@ -65,6 +67,34 @@ export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistenc
           Exit.fail("Not found"),
           Exit.succeed(new User({ id: 2, name: "Jane" }))
         ])
+      }).pipe(
+        Effect.provide(layer),
+        Effect.catchIf((e) => e instanceof TransientError ? Result.succeed(e) : Result.fail(e), () => Effect.void)
+      ))
+
+    it.effect("requireServicesAt: 'lookup' requires lookup services at get-time", () =>
+      Effect.gen(function*() {
+        const cache = yield* PersistedCache.make({
+          storeId: `${storeId}-require-services-at`,
+          lookup: (req: TTLRequest) =>
+            Effect.map(LookupService.asEffect(), (service) => new User({ id: req.id, name: service.value })),
+          timeToLive: () => 5000,
+          requireServicesAt: "lookup"
+        })
+
+        const result1 = yield* cache.get(new TTLRequest({ id: 1 })).pipe(
+          Effect.provideService(LookupService, LookupService.of({ value: "first" }))
+        )
+        const result2 = yield* cache.get(new TTLRequest({ id: 2 })).pipe(
+          Effect.provideService(LookupService, LookupService.of({ value: "second" }))
+        )
+        const result3 = yield* cache.get(new TTLRequest({ id: 1 })).pipe(
+          Effect.provideService(LookupService, LookupService.of({ value: "third" }))
+        )
+
+        assert.deepStrictEqual(result1, new User({ id: 1, name: "first" }))
+        assert.deepStrictEqual(result2, new User({ id: 2, name: "second" }))
+        assert.deepStrictEqual(result3, new User({ id: 1, name: "first" }))
       }).pipe(
         Effect.provide(layer),
         Effect.catchIf((e) => e instanceof TransientError ? Result.succeed(e) : Result.fail(e), () => Effect.void)
