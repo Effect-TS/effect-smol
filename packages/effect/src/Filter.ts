@@ -7,7 +7,7 @@ import { dual } from "./Function.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
-import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.ts"
+import type { EqualsWith, ExcludeTag, ExtractReason, ExtractTag, ReasonTags, Tags } from "./Types.ts"
 
 /**
  * Represents a filter function that can transform inputs to outputs or filter them out.
@@ -388,6 +388,41 @@ const taggedImpl =
   <const Tag extends string>(tag: Tag) =>
   <Input>(input: Input): Result.Result<ExtractTag<Input, Tag>, ExcludeTag<Input, Tag>> =>
     Predicate.isTagged(input, tag) ? Result.succeed(input as any) : Result.fail(input as ExcludeTag<Input, Tag>)
+
+/**
+ * Creates a filter that extracts a reason from a tagged error.
+ *
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const reason: {
+  <Input>(): <const Tag extends Tags<Input>, const ReasonTag extends ReasonTags<ExtractTag<Input, Tag>>>(
+    tag: Tag,
+    reasonTag: ReasonTag
+  ) => Filter<Input, ExtractReason<ExtractTag<Input, Tag>, ReasonTag>, Input>
+  <Input, const Tag extends Tags<Input>, const ReasonTag extends ReasonTags<ExtractTag<Input, Tag>>>(
+    tag: Tag,
+    reasonTag: ReasonTag
+  ): Filter<Input, ExtractReason<ExtractTag<Input, Tag>, ReasonTag>, Input>
+  <const Tag extends string, const ReasonTag extends string>(
+    tag: Tag,
+    reasonTag: ReasonTag
+  ): <Input>(input: Input) => Result.Result<ExtractReason<ExtractTag<Input, Tag>, ReasonTag>, Input>
+} = function() {
+  return arguments.length === 0 ? reasonImpl : reasonImpl(arguments[0] as any, arguments[1] as any)
+} as any
+
+const reasonImpl =
+  <const Tag extends string, const ReasonTag extends string>(tag: Tag, reasonTag: ReasonTag) =>
+  <Input>(input: Input): Result.Result<ExtractTag<Input, Tag>, ExcludeTag<Input, Tag>> => {
+    if (
+      Predicate.isTagged(input, tag) && Predicate.hasProperty(input, "reason") &&
+      Predicate.isTagged(input.reason, reasonTag)
+    ) {
+      return Result.succeed(input.reason as any)
+    }
+    return Result.fail(input as any)
+  }
 
 /**
  * Creates a filter that only passes values equal to the specified value using structural equality.
