@@ -29,7 +29,6 @@
   "exports": {
     "./package.json": "./package.json",
     ".": "./src/index.ts",
-    "./encoding": "./src/encoding/index.ts",
     "./testing": "./src/testing/index.ts",
     "./unstable/ai": "./src/unstable/ai/index.ts",
     "./unstable/cli": "./src/unstable/cli/index.ts",
@@ -67,7 +66,6 @@
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
-      "./encoding": "./dist/encoding/index.js",
       "./testing": "./dist/testing/index.js",
       "./unstable/ai": "./dist/unstable/ai/index.js",
       "./unstable/cli": "./dist/unstable/cli/index.js",

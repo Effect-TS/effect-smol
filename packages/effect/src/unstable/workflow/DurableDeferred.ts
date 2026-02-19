@@ -5,7 +5,7 @@ import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import type * as Brand from "../../Brand.ts"
 import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
-import * as Base64Url from "../../encoding/Base64Url.ts"
+import * as Encoding from "../../Encoding.ts"
 import * as Exit from "../../Exit.ts"
 import { dual } from "../../Function.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -279,7 +279,7 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
    * @since 4.0.0
    */
   get asToken(): Token {
-    return Base64Url.encode(
+    return Encoding.encodeBase64Url(
       JSON.stringify([this.workflowName, this.executionId, this.deferredName])
     ) as Token
   }

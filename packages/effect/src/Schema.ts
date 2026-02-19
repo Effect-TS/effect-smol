@@ -13,7 +13,7 @@ import * as DateTime from "./DateTime.ts"
 import type { Differ } from "./Differ.ts"
 import * as Duration_ from "./Duration.ts"
 import * as Effect from "./Effect.ts"
-import * as Base64 from "./encoding/Base64.ts"
+import * as Encoding from "./Encoding.ts"
 import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
 import * as Exit_ from "./Exit.ts"
@@ -6812,7 +6812,7 @@ export const File: File = instanceOf(globalThis.File, {
       }),
       Transformation.transformOrFail({
         decode: (e) =>
-          Result_.match(Base64.decode(e.data), {
+          Result_.match(Encoding.decodeBase64(e.data), {
             onFailure: (error) =>
               Effect.fail(
                 new Issue.InvalidValue(Option_.some(e.data), {
@@ -6831,7 +6831,7 @@ export const File: File = instanceOf(globalThis.File, {
             try: async () => {
               const bytes = new globalThis.Uint8Array(await file.arrayBuffer())
               return {
-                data: Base64.encode(bytes),
+                data: Encoding.encodeBase64(bytes),
                 type: file.type,
                 name: file.name,
                 lastModified: file.lastModified

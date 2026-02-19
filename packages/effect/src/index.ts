@@ -866,6 +866,13 @@ export * as Duration from "./Duration.ts"
 export * as Effect from "./Effect.ts"
 
 /**
+ * Encoding & decoding for Base64 (RFC4648), Base64Url, and Hex.
+ *
+ * @since 4.0.0
+ */
+export * as Encoding from "./Encoding.ts"
+
+/**
  * This module provides functionality for defining and working with equality between values.
  * It includes the `Equal` interface for types that can determine equality with other values
  * of the same type, and utilities for comparing values.

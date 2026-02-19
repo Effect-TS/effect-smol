@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
-import * as Base64 from "../../encoding/Base64.ts"
+import * as Encoding from "../../Encoding.ts"
 import * as Fiber from "../../Fiber.ts"
 import type { FileSystem } from "../../FileSystem.ts"
 import { identity } from "../../Function.ts"
@@ -328,7 +328,7 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
       } as any
       return HttpServerRequest.asEffect().pipe(
         Effect.flatMap((request) =>
-          Base64.decodeString((request.headers.authorization ?? "").slice(basicLen)).asEffect()
+          Encoding.decodeBase64String((request.headers.authorization ?? "").slice(basicLen)).asEffect()
         ),
         Effect.match({
           onFailure: () => empty,

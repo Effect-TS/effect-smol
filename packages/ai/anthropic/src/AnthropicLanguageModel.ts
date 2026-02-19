@@ -5,7 +5,7 @@
 import * as Arr from "effect/Array"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
-import * as Base64 from "effect/encoding/Base64"
+import * as Encoding from "effect/Encoding"
 import { dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
@@ -602,7 +602,7 @@ const prepareMessages = Effect.fnUntraced(
 
                         const source = isUrlData(part.data)
                           ? { type: "url", url: getUrlString(part.data) } as const
-                          : { type: "base64", media_type: mediaType, data: Base64.encode(part.data) } as const
+                          : { type: "base64", media_type: mediaType, data: Encoding.encodeBase64(part.data) } as const
 
                         content.push({ type: "image", source, cache_control: cacheControl })
                       } else if (part.mediaType === "application/pdf" || part.mediaType === "text/plain") {
@@ -620,12 +620,12 @@ const prepareMessages = Effect.fnUntraced(
                           ? {
                             type: "base64",
                             media_type: "application/pdf",
-                            data: typeof part.data === "string" ? part.data : Base64.encode(part.data)
+                            data: typeof part.data === "string" ? part.data : Encoding.encodeBase64(part.data)
                           } as const
                           : {
                             type: "text",
                             media_type: "text/plain",
-                            data: typeof part.data === "string" ? part.data : Base64.encode(part.data)
+                            data: typeof part.data === "string" ? part.data : Encoding.encodeBase64(part.data)
                           } as const
 
                         content.push({
