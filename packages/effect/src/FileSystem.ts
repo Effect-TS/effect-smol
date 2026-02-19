@@ -756,16 +756,16 @@ export const make = (
       const bytesToRead = options?.bytesToRead !== undefined ? Size(options.bytesToRead) : undefined
       let totalBytesRead = BigInt(0)
       const chunkSize = Size(options?.chunkSize ?? 64 * 1024)
+      const readChunk = file.readAlloc(chunkSize)
       return Stream.fromPull(Effect.succeed(
         Effect.flatMap(
           Effect.suspend((): Pull.Pull<Uint8Array | undefined, PlatformError> => {
             if (bytesToRead !== undefined && bytesToRead <= totalBytesRead) {
               return Cause.done()
             }
-            const toRead = bytesToRead !== undefined && (bytesToRead - totalBytesRead) < chunkSize
-              ? bytesToRead - totalBytesRead
-              : chunkSize
-            return file.readAlloc(toRead)
+            return bytesToRead !== undefined && (bytesToRead - totalBytesRead) < chunkSize
+              ? file.readAlloc(bytesToRead - totalBytesRead)
+              : readChunk
           }),
           (buf) => {
             if (!buf) return Cause.done()
