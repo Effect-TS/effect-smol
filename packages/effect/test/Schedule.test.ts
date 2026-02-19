@@ -132,6 +132,16 @@ describe("Schedule", () => {
       }))
   })
 
+  describe("duration", () => {
+    it.effect("recurs once after the provided duration", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.duration(Duration.seconds(1))
+        const inputs = Array.makeBy(5, constUndefined)
+        const output = yield* runDelays(schedule, inputs)
+        expect(output).toEqual([Duration.seconds(1), Duration.zero])
+      }))
+  })
+
   describe("spaced", () => {
     it.effect("constant delays", () =>
       Effect.gen(function*() {

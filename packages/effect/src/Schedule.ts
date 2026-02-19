@@ -1547,6 +1547,24 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
   )
 
 /**
+ * Returns a schedule that recurs once after the specified duration.
+ *
+ * The schedule outputs the configured duration for its first recurrence and
+ * then completes.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const duration = (durationInput: Duration.DurationInput): Schedule<Duration.Duration> => {
+  const duration = Duration.fromDurationInputUnsafe(durationInput)
+  return fromStepWithMetadata(effect.succeed((meta) =>
+    meta.attempt === 1
+      ? effect.succeed([duration, duration])
+      : Cause.done(Duration.zero)
+  ))
+}
+
+/**
  * Returns a new `Schedule` that will always recur, but only during the
  * specified `duration` of time.
  *
