@@ -35,6 +35,8 @@ technology-specific:
 - `@effect/atom-*` — framework-specific atom bindings
 - `@effect/vitest` — Vitest testing utilities
 
+These packages must be bumped to matching v4 beta versions alongside `effect`.
+
 ### Unstable Module System
 
 v4 introduces **unstable modules** under `effect/unstable/*` import paths.
@@ -69,6 +71,7 @@ minimal Effect program bundles to ~6.3 KB (minified + gzipped). With Schema,
 - [Layer Memoization Across `Effect.provide` Calls](./migration/layer-memoization.md)
 - [FiberRef: `FiberRef` → `ServiceMap.Reference`](./migration/fiberref.md)
 - [Runtime: `Runtime<R>` Removed](./migration/runtime.md)
+- [Scope](./migration/scope.md)
 
 ### Modules
 

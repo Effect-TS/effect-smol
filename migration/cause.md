@@ -10,22 +10,22 @@ The `Sequential` and `Parallel` variants composed causes into a tree to
 represent errors from finalizers or concurrent operations.
 
 In v4, `Cause<E>` has been flattened to a simple wrapper around an array of
-`Failure` values:
+`Reason` values:
 
 ```ts
 interface Cause<E> {
-  readonly failures: ReadonlyArray<Failure<E>>
+  readonly reasons: ReadonlyArray<Reason<E>>
 }
 
-type Failure<E> = Fail<E> | Die | Interrupt
+type Reason<E> = Fail<E> | Die | Interrupt
 ```
 
-There are only three failure variants — `Fail`, `Die`, and `Interrupt`. The
+There are only three reason variants — `Fail`, `Die`, and `Interrupt`. The
 `Empty`, `Sequential`, and `Parallel` variants have been removed. An empty
-cause is represented by an empty `failures` array. Multiple failures (from
+cause is represented by an empty `reasons` array. Multiple failures (from
 concurrent or sequential composition) are collected into a flat array.
 
-## Accessing Failures
+## Accessing Reasons
 
 **v3** — pattern match on the recursive tree structure:
 
@@ -50,71 +50,114 @@ const handle = (cause: Cause.Cause<string>) => {
 }
 ```
 
-**v4** — iterate over the flat `failures` array:
+**v4** — iterate over the flat `reasons` array:
 
 ```ts
 import { Cause } from "effect"
 
 const handle = (cause: Cause.Cause<string>) => {
-  for (const failure of cause.failures) {
-    switch (failure._tag) {
+  for (const reason of cause.reasons) {
+    switch (reason._tag) {
       case "Fail":
-        return failure.error
+        return reason.error
       case "Die":
-        return failure.defect
+        return reason.defect
       case "Interrupt":
-        return failure.fiberId
+        return reason.fiberId
     }
   }
 }
 ```
 
-## Predicates and Guards
+## Reason Guards
 
 The v3 type-level guards (`isFailType`, `isDieType`, `isInterruptType`, etc.)
-have been replaced by failure-level guards:
+have been replaced by reason-level guards:
 
-| v3                              | v4                                  |
-| ------------------------------- | ----------------------------------- |
-| `Cause.isEmptyType(cause)`      | `cause.failures.length === 0`       |
-| `Cause.isFailType(cause)`       | `Cause.failureIsFail(failure)`      |
-| `Cause.isDieType(cause)`        | `Cause.failureIsDie(failure)`       |
-| `Cause.isInterruptType(cause)`  | `Cause.failureIsInterrupt(failure)` |
-| `Cause.isSequentialType(cause)` | Removed                             |
-| `Cause.isParallelType(cause)`   | Removed                             |
+| v3                              | v4                               |
+| ------------------------------- | -------------------------------- |
+| `Cause.isEmptyType(cause)`      | `cause.reasons.length === 0`     |
+| `Cause.isFailType(cause)`       | `Cause.isFailReason(reason)`     |
+| `Cause.isDieType(cause)`        | `Cause.isDieReason(reason)`      |
+| `Cause.isInterruptType(cause)`  | `Cause.isInterruptReason(reason)`|
+| `Cause.isSequentialType(cause)` | Removed                          |
+| `Cause.isParallelType(cause)`   | Removed                          |
 
-Cause-level predicates that check whether any failure of a given kind exists:
+## Cause-Level Predicates
 
-| v3                               | v4                               |
-| -------------------------------- | -------------------------------- |
-| `Cause.isFailure(cause)`         | `Cause.hasFail(cause)`           |
-| `Cause.isDie(cause)`             | `Cause.hasDie(cause)`            |
-| `Cause.isInterrupted(cause)`     | `Cause.hasInterrupt(cause)`      |
-| `Cause.isInterruptedOnly(cause)` | `Cause.isInterruptedOnly(cause)` |
+| v3                               | v4                                  |
+| -------------------------------- | ----------------------------------- |
+| `Cause.isFailure(cause)`         | `Cause.hasFails(cause)`             |
+| `Cause.isDie(cause)`             | `Cause.hasDies(cause)`              |
+| `Cause.isInterrupted(cause)`     | `Cause.hasInterrupts(cause)`        |
+| `Cause.isInterruptedOnly(cause)` | `Cause.hasInterruptsOnly(cause)`    |
 
 ## Constructors
 
-| v3                              | v4                         |
-| ------------------------------- | -------------------------- |
-| `Cause.empty`                   | `Cause.empty`              |
-| `Cause.fail(error)`             | `Cause.fail(error)`        |
-| `Cause.die(defect)`             | `Cause.die(defect)`        |
-| `Cause.interrupt(fiberId)`      | `Cause.interrupt(fiberId)` |
-| `Cause.sequential(left, right)` | `Cause.merge(left, right)` |
-| `Cause.parallel(left, right)`   | `Cause.merge(left, right)` |
+| v3                              | v4                           |
+| ------------------------------- | ---------------------------- |
+| `Cause.empty`                   | `Cause.empty`                |
+| `Cause.fail(error)`             | `Cause.fail(error)`          |
+| `Cause.die(defect)`             | `Cause.die(defect)`          |
+| `Cause.interrupt(fiberId)`      | `Cause.interrupt(fiberId)`   |
+| `Cause.sequential(left, right)` | `Cause.combine(left, right)` |
+| `Cause.parallel(left, right)`   | `Cause.combine(left, right)` |
 
-In v4, `Cause.merge` concatenates the `failures` arrays of two causes. The
+In v4, `Cause.combine` concatenates the `reasons` arrays of two causes. The
 distinction between sequential and parallel composition is no longer
 represented in the data structure.
 
+## Extractors
+
+| v3                           | v4                          |
+| ---------------------------- | --------------------------- |
+| `Cause.failureOption(cause)` | `Cause.findErrorOption(cause)` |
+| `Cause.failureOrCause(cause)`| `Cause.findError(cause)`    |
+| `Cause.dieOption(cause)`     | `Cause.findDefect(cause)`   |
+| `Cause.interruptOption(cause)`| `Cause.findInterrupt(cause)`|
+| `Cause.failures(cause)`      | `cause.reasons.filter(Cause.isFailReason)` |
+| `Cause.defects(cause)`       | `cause.reasons.filter(Cause.isDieReason)` |
+| `Cause.interruptors(cause)`  | `Cause.interruptors(cause)` |
+
+Note: `findError` and `findDefect` return `Result.Result` instead of `Option`.
+Use `findErrorOption` for the `Option`-based variant.
+
+## Error Classes
+
+All `*Exception` classes have been renamed to `*Error`:
+
+| v3                                   | v4                              |
+| ------------------------------------ | ------------------------------- |
+| `Cause.NoSuchElementException`       | `Cause.NoSuchElementError`      |
+| `Cause.TimeoutException`             | `Cause.TimeoutError`            |
+| `Cause.IllegalArgumentException`     | `Cause.IllegalArgumentError`    |
+| `Cause.ExceededCapacityException`    | `Cause.ExceededCapacityError`   |
+| `Cause.UnknownException`            | `Cause.UnknownError`            |
+| `Cause.RuntimeException`            | Removed                         |
+| `Cause.InterruptedException`        | Removed                         |
+| `Cause.InvalidPubSubCapacityException` | Removed                       |
+
+The corresponding guards follow the same pattern:
+
+| v3                                          | v4                                    |
+| ------------------------------------------- | ------------------------------------- |
+| `Cause.isNoSuchElementException(u)`         | `Cause.isNoSuchElementError(u)`       |
+| `Cause.isTimeoutException(u)`               | `Cause.isTimeoutError(u)`             |
+| `Cause.isIllegalArgumentException(u)`       | `Cause.isIllegalArgumentError(u)`     |
+| `Cause.isExceededCapacityException(u)`      | `Cause.isExceededCapacityError(u)`    |
+| `Cause.isUnknownException(u)`               | `Cause.isUnknownError(u)`             |
+
 ## New in v4
 
-- **`Cause.fromFailures(failures)`** — construct a `Cause` from an array of
-  `Failure` values.
-- **`Cause.failureFail(error)`**, **`Cause.failureDie(defect)`**,
-  **`Cause.failureInterrupt(fiberId)`** — construct individual `Failure`
+- **`Cause.fromReasons(reasons)`** — construct a `Cause` from an array of
+  `Reason` values.
+- **`Cause.makeFailReason(error)`**, **`Cause.makeDieReason(defect)`**,
+  **`Cause.makeInterruptReason(fiberId)`** — construct individual `Reason`
   values.
-- **`Cause.annotate(annotations)`** — attach annotations to a `Cause`.
-- **`Cause.filterError(cause)`**, **`Cause.filterDefect(cause)`**,
-  **`Cause.filterInterrupt(cause)`** — extract specific failure types using
-  the `Filter` module.
+- **`Cause.annotate(cause, annotations)`** — attach annotations to a `Cause`.
+- **`Cause.findFail(cause)`**, **`Cause.findDie(cause)`**,
+  **`Cause.findInterrupt(cause)`** — extract specific reason types using
+  the `Result` module.
+- **`Cause.filterInterruptors(cause)`** — extract interrupting fiber IDs as
+  a `Result`.
+- **`Cause.Done`** — a graceful completion signal for queues and streams.
