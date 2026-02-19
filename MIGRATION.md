@@ -72,6 +72,7 @@ minimal Effect program bundles to ~6.3 KB (minified + gzipped). With Schema,
 - [FiberRef: `FiberRef` → `ServiceMap.Reference`](./migration/fiberref.md)
 - [Runtime: `Runtime<R>` Removed](./migration/runtime.md)
 - [Scope](./migration/scope.md)
+- [Equality](./migration/equality.md)
 
 ### Modules
 
