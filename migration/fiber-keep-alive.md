@@ -22,11 +22,6 @@ import { Deferred, Effect } from "effect"
 const program = Effect.gen(function*() {
   const deferred = yield* Deferred.make<string>()
 
-  const worker = yield* Effect.sleep("5 seconds").pipe(
-    Effect.andThen(Deferred.succeed(deferred, "Done")),
-    Effect.fork
-  )
-
   yield* Deferred.await(deferred)
 })
 
@@ -59,11 +54,6 @@ import { Deferred, Effect, Fiber } from "effect"
 
 const program = Effect.gen(function*() {
   const deferred = yield* Deferred.make<string>()
-
-  const worker = yield* Effect.sleep("5 seconds").pipe(
-    Effect.andThen(Deferred.succeed(deferred, "Done")),
-    Effect.forkChild
-  )
 
   // The process stays alive while waiting — no runMain needed
   yield* Deferred.await(deferred)

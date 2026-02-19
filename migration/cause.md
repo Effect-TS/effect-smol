@@ -74,23 +74,23 @@ const handle = (cause: Cause.Cause<string>) => {
 The v3 type-level guards (`isFailType`, `isDieType`, `isInterruptType`, etc.)
 have been replaced by reason-level guards:
 
-| v3                              | v4                               |
-| ------------------------------- | -------------------------------- |
-| `Cause.isEmptyType(cause)`      | `cause.reasons.length === 0`     |
-| `Cause.isFailType(cause)`       | `Cause.isFailReason(reason)`     |
-| `Cause.isDieType(cause)`        | `Cause.isDieReason(reason)`      |
-| `Cause.isInterruptType(cause)`  | `Cause.isInterruptReason(reason)`|
-| `Cause.isSequentialType(cause)` | Removed                          |
-| `Cause.isParallelType(cause)`   | Removed                          |
+| v3                              | v4                                |
+| ------------------------------- | --------------------------------- |
+| `Cause.isEmptyType(cause)`      | `cause.reasons.length === 0`      |
+| `Cause.isFailType(cause)`       | `Cause.isFailReason(reason)`      |
+| `Cause.isDieType(cause)`        | `Cause.isDieReason(reason)`       |
+| `Cause.isInterruptType(cause)`  | `Cause.isInterruptReason(reason)` |
+| `Cause.isSequentialType(cause)` | Removed                           |
+| `Cause.isParallelType(cause)`   | Removed                           |
 
 ## Cause-Level Predicates
 
-| v3                               | v4                                  |
-| -------------------------------- | ----------------------------------- |
-| `Cause.isFailure(cause)`         | `Cause.hasFails(cause)`             |
-| `Cause.isDie(cause)`             | `Cause.hasDies(cause)`              |
-| `Cause.isInterrupted(cause)`     | `Cause.hasInterrupts(cause)`        |
-| `Cause.isInterruptedOnly(cause)` | `Cause.hasInterruptsOnly(cause)`    |
+| v3                               | v4                               |
+| -------------------------------- | -------------------------------- |
+| `Cause.isFailure(cause)`         | `Cause.hasFails(cause)`          |
+| `Cause.isDie(cause)`             | `Cause.hasDies(cause)`           |
+| `Cause.isInterrupted(cause)`     | `Cause.hasInterrupts(cause)`     |
+| `Cause.isInterruptedOnly(cause)` | `Cause.hasInterruptsOnly(cause)` |
 
 ## Constructors
 
@@ -109,15 +109,15 @@ represented in the data structure.
 
 ## Extractors
 
-| v3                           | v4                          |
-| ---------------------------- | --------------------------- |
-| `Cause.failureOption(cause)` | `Cause.findErrorOption(cause)` |
-| `Cause.failureOrCause(cause)`| `Cause.findError(cause)`    |
-| `Cause.dieOption(cause)`     | `Cause.findDefect(cause)`   |
-| `Cause.interruptOption(cause)`| `Cause.findInterrupt(cause)`|
-| `Cause.failures(cause)`      | `cause.reasons.filter(Cause.isFailReason)` |
-| `Cause.defects(cause)`       | `cause.reasons.filter(Cause.isDieReason)` |
-| `Cause.interruptors(cause)`  | `Cause.interruptors(cause)` |
+| v3                             | v4                                         |
+| ------------------------------ | ------------------------------------------ |
+| `Cause.failureOption(cause)`   | `Cause.findErrorOption(cause)`             |
+| `Cause.failureOrCause(cause)`  | `Cause.findError(cause)`                   |
+| `Cause.dieOption(cause)`       | `Cause.findDefect(cause)`                  |
+| `Cause.interruptOption(cause)` | `Cause.findInterrupt(cause)`               |
+| `Cause.failures(cause)`        | `cause.reasons.filter(Cause.isFailReason)` |
+| `Cause.defects(cause)`         | `cause.reasons.filter(Cause.isDieReason)`  |
+| `Cause.interruptors(cause)`    | `Cause.interruptors(cause)`                |
 
 Note: `findError` and `findDefect` return `Result.Result` instead of `Option`.
 Use `findErrorOption` for the `Option`-based variant.
@@ -126,26 +126,26 @@ Use `findErrorOption` for the `Option`-based variant.
 
 All `*Exception` classes have been renamed to `*Error`:
 
-| v3                                   | v4                              |
-| ------------------------------------ | ------------------------------- |
-| `Cause.NoSuchElementException`       | `Cause.NoSuchElementError`      |
-| `Cause.TimeoutException`             | `Cause.TimeoutError`            |
-| `Cause.IllegalArgumentException`     | `Cause.IllegalArgumentError`    |
-| `Cause.ExceededCapacityException`    | `Cause.ExceededCapacityError`   |
-| `Cause.UnknownException`            | `Cause.UnknownError`            |
-| `Cause.RuntimeException`            | Removed                         |
-| `Cause.InterruptedException`        | Removed                         |
+| v3                                     | v4                            |
+| -------------------------------------- | ----------------------------- |
+| `Cause.NoSuchElementException`         | `Cause.NoSuchElementError`    |
+| `Cause.TimeoutException`               | `Cause.TimeoutError`          |
+| `Cause.IllegalArgumentException`       | `Cause.IllegalArgumentError`  |
+| `Cause.ExceededCapacityException`      | `Cause.ExceededCapacityError` |
+| `Cause.UnknownException`               | `Cause.UnknownError`          |
+| `Cause.RuntimeException`               | Removed                       |
+| `Cause.InterruptedException`           | Removed                       |
 | `Cause.InvalidPubSubCapacityException` | Removed                       |
 
 The corresponding guards follow the same pattern:
 
-| v3                                          | v4                                    |
-| ------------------------------------------- | ------------------------------------- |
-| `Cause.isNoSuchElementException(u)`         | `Cause.isNoSuchElementError(u)`       |
-| `Cause.isTimeoutException(u)`               | `Cause.isTimeoutError(u)`             |
-| `Cause.isIllegalArgumentException(u)`       | `Cause.isIllegalArgumentError(u)`     |
-| `Cause.isExceededCapacityException(u)`      | `Cause.isExceededCapacityError(u)`    |
-| `Cause.isUnknownException(u)`               | `Cause.isUnknownError(u)`             |
+| v3                                     | v4                                 |
+| -------------------------------------- | ---------------------------------- |
+| `Cause.isNoSuchElementException(u)`    | `Cause.isNoSuchElementError(u)`    |
+| `Cause.isTimeoutException(u)`          | `Cause.isTimeoutError(u)`          |
+| `Cause.isIllegalArgumentException(u)`  | `Cause.isIllegalArgumentError(u)`  |
+| `Cause.isExceededCapacityException(u)` | `Cause.isExceededCapacityError(u)` |
+| `Cause.isUnknownException(u)`          | `Cause.isUnknownError(u)`          |
 
 ## New in v4
 
