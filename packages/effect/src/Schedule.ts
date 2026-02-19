@@ -36,7 +36,7 @@ import * as Duration from "./Duration.ts"
 import type { Effect } from "./Effect.ts"
 import type { LazyArg } from "./Function.ts"
 import { constant, dual, identity } from "./Function.ts"
-
+import { isEffect } from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
@@ -758,50 +758,50 @@ export const andThenResult: {
 } = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
   self: Schedule<Output, Input, Error, Env>,
   other: Schedule<Output2, Input2, Error2, Env2>
-): Schedule<Result.Result<Output2, Output>, Input & Input2, Error | Error2, Env | Env2> =>
-  fromStep(effect.map(toStep(self), (leftStep) => {
-    let rightStep:
+): Schedule<Result.Result<Output, Output2>, Input & Input2, Error | Error2, Env | Env2> =>
+  fromStep(effect.sync(() => {
+    let currentSide = 0
+    let currentStep:
       | undefined
-      | ((
-        now: number,
-        input: Input2
-      ) => Pull.Pull<[Output2, Duration.Duration], Error2, Output2, Env2>)
-    const runRight = (now: number, input: Input2) =>
-      effect.suspend(() =>
-        effect.flatMap(
-          rightStep === undefined
-            ? effect.flatMap(toStep(other), (step) =>
-              effect.sync(() => {
-                rightStep = step
-                return step
-              }))
-            : effect.succeed(rightStep),
-          (step) =>
-            Pull.matchEffect(step(now, input), {
-              onSuccess: ([output, duration]) =>
-                effect.succeed<[Result.Result<Output2, Output>, Duration.Duration]>([
-                  Result.succeed(output),
-                  duration
-                ]),
-              onFailure: effect.failCause,
-              onDone: (output) => Cause.done(Result.succeed(output))
-            })
-        )
+      | ((now: number, input: Input & Input2) => Pull.Pull<
+        [Result.Result<Output, Output2>, Duration.Duration],
+        Error | Error2,
+        Result.Result<Output, Output2>,
+        Env | Env2
+      >)
+    const left = map(self, Result.succeed)
+    const right = map(other, Result.fail)
+    return function recur(
+      now,
+      input
+    ): Pull.Pull<
+      [Result.Result<Output, Output2>, Duration.Duration],
+      Error | Error2,
+      Result.Result<Output, Output2>,
+      Env | Env2
+    > {
+      if (currentStep) return currentStep(now, input)
+      return toStep<
+        Result.Result<Output, Output2>,
+        Input & Input2,
+        Error | Error2,
+        Env | Env2
+      >(currentSide === 0 ? left : right).pipe(
+        effect.flatMap((step) => {
+          currentSide++
+          if (currentSide === 1) {
+            currentStep = (now, input) =>
+              Pull.catchDone(step(now, input), (_) => {
+                currentStep = undefined
+                return recur(now, input)
+              })
+            return currentStep(now, input)
+          }
+          currentStep = step
+          return currentStep(now, input)
+        })
       )
-    return (now, input) =>
-      effect.suspend(() =>
-        rightStep === undefined
-          ? Pull.matchEffect(leftStep(now, input), {
-            onSuccess: ([output, duration]) =>
-              effect.succeed<[Result.Result<Output2, Output>, Duration.Duration]>([
-                Result.fail(output),
-                duration
-              ]),
-            onFailure: effect.failCause,
-            onDone: () => runRight(now, input)
-          })
-          : runRight(now, input)
-      )
+    }
   })))
 
 /**
@@ -2249,23 +2249,30 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
  */
 export const map: {
   <Output, Output2, Error2 = never, Env2 = never>(
-    f: (output: Output) => Effect<Output2, Error2, Env2>
+    f: (output: Output) => Output2 | Effect<Output2, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output2, Input, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, Output2, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
-    f: (output: Output) => Effect<Output2, Error2, Env2>
+    f: (output: Output) => Output2 | Effect<Output2, Error2, Env2>
   ): Schedule<Output2, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Output2, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
-  f: (output: Output) => Effect<Output2, Error2, Env2>
+  f: (output: Output) => Output2 | Effect<Output2, Error2, Env2>
 ): Schedule<Output2, Input, Error | Error2, Env | Env2> => {
   const handle = Pull.matchEffect({
-    onSuccess: ([output, duration]: [Output, Duration.Duration]) =>
-      effect.map(f(output), (output) => [output, duration] as [Output2, Duration.Duration]),
+    onSuccess: ([output, duration]: [Output, Duration.Duration]) => {
+      const result = f(output)
+      if (!isEffect(result)) return effect.succeed([result, duration] as [Output2, Duration.Duration])
+      return effect.map(result, (output) => [output, duration] as [Output2, Duration.Duration])
+    },
     onFailure: effect.failCause<Error>,
-    onDone: (output: Output) => effect.flatMap(f(output), Cause.done)
+    onDone: (output: Output) => {
+      const result = f(output)
+      if (!isEffect(result)) return Cause.done(result as Output2)
+      return effect.flatMap(result, Cause.done)
+    }
   })
   return fromStep(effect.map(toStep(self), (step) => (now, input) => handle(step(now, input))))
 })
