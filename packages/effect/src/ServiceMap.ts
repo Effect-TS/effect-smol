@@ -487,6 +487,28 @@ export const empty = (): ServiceMap<never> => emptyServiceMap
 const emptyServiceMap = makeUnsafe(new Map())
 
 /**
+ * Creates an empty `ServiceMap` typed as `ServiceMap<any>`.
+ *
+ * Because `ServiceMap` is contravariant in its `Services` parameter,
+ * `ServiceMap<never>` (returned by {@link empty}) is not assignable to
+ * `ServiceMap<any>`. Use this when you need an empty service map in a
+ * position that expects a wider type, such as a default field value in
+ * a generic registry or provider.
+ *
+ * @example
+ * ```ts
+ * import { ServiceMap } from "effect"
+ *
+ * // Useful for default values where the type needs to be wide
+ * const services: ServiceMap.ServiceMap<any> = ServiceMap.unsafeEmpty()
+ * ```
+ *
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const unsafeEmpty = (): ServiceMap<any> => emptyServiceMap as ServiceMap<any>
+
+/**
  * Creates a new `ServiceMap` with a single service associated to the key.
  *
  * @example
