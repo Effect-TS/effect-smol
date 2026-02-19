@@ -7665,8 +7665,10 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
   >
 {
   // intentionally left without `readonly "~rebuild.out": this`
-  new(...args: {} extends S["~type.make.in"] ? [props?: S["~type.make.in"], options?: MakeOptions]
-    : [props: S["~type.make.in"], options?: MakeOptions]): S["Type"] & Inherited
+  new(
+    ...args: {} extends S["~type.make.in"] ? [props?: S["~type.make.in"], options?: MakeOptions]
+      : [props: S["~type.make.in"], options?: MakeOptions]
+  ): S["Type"] & Inherited
   readonly identifier: string
   readonly fields: S["fields"]
   /**
