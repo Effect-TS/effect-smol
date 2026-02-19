@@ -50,7 +50,7 @@ export const Class: new<A extends Record<string, any> = {}>(
       Object.assign(this, props)
     }
   }
-  Object.setPrototypeOf(Ctor, core.StructuralPipeableProto)
+  Object.assign(Ctor.prototype, core.StructuralPipeableProto)
   return Ctor as any
 })()
 
@@ -84,7 +84,7 @@ export const TaggedClass = <Tag extends string>(
 ): new<A extends Record<string, any> = {}>(
   args: Types.Equals<A, {}> extends true ? void
     : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
-) => Readonly<A> & { readonly _tag: Tag } => {
+) => Readonly<A> & { readonly _tag: Tag } & Pipeable.Pipeable => {
   const Ctor = function(this: any, props: any) {
     this._tag = tag
     if (props) {
@@ -92,7 +92,7 @@ export const TaggedClass = <Tag extends string>(
     }
   }
 
-  Object.setPrototypeOf(Ctor, core.StructuralPipeableProto)
+  Object.assign(Ctor.prototype, core.StructuralPipeableProto)
   return Ctor as any
 }
 
