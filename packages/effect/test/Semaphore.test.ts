@@ -2,7 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { Duration, Effect, Fiber, Semaphore } from "effect"
 import { TestClock } from "effect/testing"
 
-describe("PartitionedSemaphore", () => {
+describe("Semaphore", () => {
   it.effect("basic single partition operation", () =>
     Effect.gen(function*() {
       const sem = yield* Semaphore.makePartitioned({ permits: 4 })
