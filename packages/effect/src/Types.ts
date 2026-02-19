@@ -973,7 +973,7 @@ export type ExcludeReason<E, K extends string> = E extends { readonly reason: in
  * ```
  *
  * @since 4.0.0
- * @category models
+ * @category types
  */
 export interface Ctor<T = any, Args extends ReadonlyArray<any> = ReadonlyArray<any>> {
   new(...args: Args): T
