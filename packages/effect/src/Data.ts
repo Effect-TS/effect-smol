@@ -50,9 +50,10 @@ export const Class: new<A extends Record<string, any> = {}>(
       Object.assign(this, props)
     }
 
-    Object.setPrototypeOf(Ctor, core.StructuralPipeableProto)
   }
-})() as any
+  Object.setPrototypeOf(Ctor, core.StructuralPipeableProto)
+  return Ctor as any
+})()
 
 /**
  * Provides a Tagged constructor for a Case Class.
