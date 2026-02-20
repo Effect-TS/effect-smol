@@ -104,9 +104,7 @@ export const YieldableProto = {
 
 /** @internal */
 export const YieldableErrorProto = {
-  [Symbol.iterator]() {
-    return new SingleShotGen(this) as any
-  },
+  ...YieldableProto,
   pipe() {
     return pipeArguments(this, arguments)
   }
