@@ -678,6 +678,7 @@ export type ProviderName =
   | "Inceptron"
   | "InferenceNet"
   | "Infermatic"
+  | "Io Net"
   | "Inflection"
   | "Liquid"
   | "Mara"
@@ -751,6 +752,7 @@ export const ProviderName = Schema.Literals([
   "Inceptron",
   "InferenceNet",
   "Infermatic",
+  "Io Net",
   "Inflection",
   "Liquid",
   "Mara",
@@ -2583,6 +2585,7 @@ export type __schema5 = ReadonlyArray<
   | "Inceptron"
   | "InferenceNet"
   | "Infermatic"
+  | "Io Net"
   | "Inflection"
   | "Liquid"
   | "Mara"
@@ -2660,6 +2663,7 @@ export const __schema5 = Schema.Array(
       "Inceptron",
       "InferenceNet",
       "Infermatic",
+      "Io Net",
       "Inflection",
       "Liquid",
       "Mara",
@@ -2705,9 +2709,9 @@ export type __schema11 = number
 export const __schema11 = Schema.Number.check(Schema.isFinite())
 export type __schema13 = unknown
 export const __schema13 = Schema.Unknown
-export type __schema20 = string | null
-export const __schema20 = Schema.Union([Schema.String, Schema.Null])
-export type __schema21 =
+export type __schema21 = string | null
+export const __schema21 = Schema.Union([Schema.String, Schema.Null])
+export type __schema22 =
   | "unknown"
   | "openai-responses-v1"
   | "azure-openai-responses-v1"
@@ -2715,7 +2719,7 @@ export type __schema21 =
   | "anthropic-claude-v1"
   | "google-gemini-v1"
   | null
-export const __schema21 = Schema.Union([
+export const __schema22 = Schema.Union([
   Schema.Literals([
     "unknown",
     "openai-responses-v1",
@@ -2850,24 +2854,6 @@ export const ChatMessageContentItemCacheControl = Schema.Struct({
   "type": Schema.Literal("ephemeral"),
   "ttl": Schema.optionalKey(Schema.Literals(["5m", "1h"]))
 })
-export type ToolDefinitionJson = {
-  readonly "type": "function"
-  readonly "function": {
-    readonly "name": string
-    readonly "description"?: string
-    readonly "parameters"?: {}
-    readonly "strict"?: boolean | null
-  }
-}
-export const ToolDefinitionJson = Schema.Struct({
-  "type": Schema.Literal("function"),
-  "function": Schema.Struct({
-    "name": Schema.String.check(Schema.isMaxLength(64)),
-    "description": Schema.optionalKey(Schema.String),
-    "parameters": Schema.optionalKey(Schema.Struct({}).check(Schema.isPropertyNames(Schema.String))),
-    "strict": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null]))
-  })
-})
 export type NamedToolChoice = { readonly "type": "function"; readonly "function": { readonly "name": string } }
 export const NamedToolChoice = Schema.Struct({
   "type": Schema.Literal("function"),
@@ -2877,16 +2863,19 @@ export type ChatStreamOptions = { readonly "include_usage"?: boolean }
 export const ChatStreamOptions = Schema.Struct({ "include_usage": Schema.optionalKey(Schema.Boolean) })
 export type ChatStreamingMessageToolCall = {
   readonly "index": number
-  readonly "id"?: string
-  readonly "type"?: "function"
-  readonly "function"?: { readonly "name"?: string; readonly "arguments"?: string }
+  readonly "id"?: string | null
+  readonly "type"?: "function" | null
+  readonly "function"?: { readonly "name"?: string | null; readonly "arguments"?: string }
 }
 export const ChatStreamingMessageToolCall = Schema.Struct({
   "index": Schema.Number.check(Schema.isFinite()),
-  "id": Schema.optionalKey(Schema.String),
-  "type": Schema.optionalKey(Schema.Literal("function")),
+  "id": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+  "type": Schema.optionalKey(Schema.Union([Schema.Literal("function"), Schema.Null])),
   "function": Schema.optionalKey(
-    Schema.Struct({ "name": Schema.optionalKey(Schema.String), "arguments": Schema.optionalKey(Schema.String) })
+    Schema.Struct({
+      "name": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+      "arguments": Schema.optionalKey(Schema.String)
+    })
   )
 })
 export type ChatError = {
@@ -3551,47 +3540,47 @@ export const PublicEndpoint = Schema.Struct({
       "Throughput percentiles in tokens per second over the last 30 minutes. Throughput measures output token generation speed. Only visible when authenticated with an API key or cookie; returns null for unauthenticated requests."
   })
 }).annotate({ "description": "Information about a specific model endpoint" })
-export type __schema19 = {
+export type __schema20 = {
   readonly "type": "reasoning.summary"
   readonly "summary": string
-  readonly "id"?: __schema20
-  readonly "format"?: __schema21
+  readonly "id"?: __schema21
+  readonly "format"?: __schema22
   readonly "index"?: __schema11
 } | {
   readonly "type": "reasoning.encrypted"
   readonly "data": string
-  readonly "id"?: __schema20
-  readonly "format"?: __schema21
+  readonly "id"?: __schema21
+  readonly "format"?: __schema22
   readonly "index"?: __schema11
 } | {
   readonly "type": "reasoning.text"
   readonly "text"?: string | null
   readonly "signature"?: string | null
-  readonly "id"?: __schema20
-  readonly "format"?: __schema21
+  readonly "id"?: __schema21
+  readonly "format"?: __schema22
   readonly "index"?: __schema11
 }
-export const __schema19 = Schema.Union([
+export const __schema20 = Schema.Union([
   Schema.Struct({
     "type": Schema.Literal("reasoning.summary"),
     "summary": Schema.String,
-    "id": Schema.optionalKey(__schema20),
-    "format": Schema.optionalKey(__schema21),
+    "id": Schema.optionalKey(__schema21),
+    "format": Schema.optionalKey(__schema22),
     "index": Schema.optionalKey(__schema11)
   }),
   Schema.Struct({
     "type": Schema.Literal("reasoning.encrypted"),
     "data": Schema.String,
-    "id": Schema.optionalKey(__schema20),
-    "format": Schema.optionalKey(__schema21),
+    "id": Schema.optionalKey(__schema21),
+    "format": Schema.optionalKey(__schema22),
     "index": Schema.optionalKey(__schema11)
   }),
   Schema.Struct({
     "type": Schema.Literal("reasoning.text"),
     "text": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
     "signature": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-    "id": Schema.optionalKey(__schema20),
-    "format": Schema.optionalKey(__schema21),
+    "id": Schema.optionalKey(__schema21),
+    "format": Schema.optionalKey(__schema22),
     "index": Schema.optionalKey(__schema11)
   })
 ], { mode: "oneOf" })
@@ -3605,8 +3594,8 @@ export const ChatMessageTokenLogprobs = Schema.Struct({
   "content": Schema.Union([Schema.Array(ChatMessageTokenLogprob), Schema.Null]),
   "refusal": Schema.Union([Schema.Array(ChatMessageTokenLogprob), Schema.Null])
 })
-export type __schema25 = ChatCompletionFinishReason | null
-export const __schema25 = Schema.Union([ChatCompletionFinishReason, Schema.Null])
+export type __schema26 = ChatCompletionFinishReason | null
+export const __schema26 = Schema.Union([ChatCompletionFinishReason, Schema.Null])
 export type ResponseFormatJSONSchema = { readonly "type": "json_schema"; readonly "json_schema": JSONSchemaConfig }
 export const ResponseFormatJSONSchema = Schema.Struct({
   "type": Schema.Literal("json_schema"),
@@ -3620,6 +3609,26 @@ export type ChatMessageContentItemText = {
 export const ChatMessageContentItemText = Schema.Struct({
   "type": Schema.Literal("text"),
   "text": Schema.String,
+  "cache_control": Schema.optionalKey(ChatMessageContentItemCacheControl)
+})
+export type ToolDefinitionJson = {
+  readonly "type": "function"
+  readonly "function": {
+    readonly "name": string
+    readonly "description"?: string
+    readonly "parameters"?: {}
+    readonly "strict"?: boolean | null
+  }
+  readonly "cache_control"?: ChatMessageContentItemCacheControl
+}
+export const ToolDefinitionJson = Schema.Struct({
+  "type": Schema.Literal("function"),
+  "function": Schema.Struct({
+    "name": Schema.String.check(Schema.isMaxLength(64)),
+    "description": Schema.optionalKey(Schema.String),
+    "parameters": Schema.optionalKey(Schema.Struct({}).check(Schema.isPropertyNames(Schema.String))),
+    "strict": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null]))
+  }),
   "cache_control": Schema.optionalKey(ChatMessageContentItemCacheControl)
 })
 export type ToolChoiceOption = "none" | "auto" | "required" | NamedToolChoice
@@ -3970,6 +3979,13 @@ export type AnthropicMessagesRequest = {
   readonly "route"?: "fallback" | "sort"
   readonly "user"?: string
   readonly "session_id"?: string
+  readonly "trace"?: {
+    readonly "trace_id"?: string
+    readonly "trace_name"?: string
+    readonly "span_name"?: string
+    readonly "generation_name"?: string
+    readonly "parent_span_id"?: string
+  }
   readonly "models"?: ReadonlyArray<string>
   readonly "output_config"?: AnthropicOutputConfig
 }
@@ -4257,6 +4273,18 @@ export const AnthropicMessagesRequest = Schema.Struct({
         "A unique identifier for grouping related requests (e.g., a conversation or agent workflow) for observability. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 128 characters."
     }).check(Schema.isMaxLength(128))
   ),
+  "trace": Schema.optionalKey(
+    Schema.Struct({
+      "trace_id": Schema.optionalKey(Schema.String),
+      "trace_name": Schema.optionalKey(Schema.String),
+      "span_name": Schema.optionalKey(Schema.String),
+      "generation_name": Schema.optionalKey(Schema.String),
+      "parent_span_id": Schema.optionalKey(Schema.String)
+    }).annotate({
+      "description":
+        "Metadata for observability and tracing. Known keys (trace_id, trace_name, span_name, generation_name, parent_span_id) have special handling. Additional keys are passed through as custom metadata to configured broadcast destinations."
+    })
+  ),
   "models": Schema.optionalKey(Schema.Array(Schema.String)),
   "output_config": Schema.optionalKey(AnthropicOutputConfig)
 }).annotate({ "description": "Request schema for Anthropic Messages API endpoint" })
@@ -4440,7 +4468,7 @@ export type ChatStreamingMessageChunk = {
   readonly "reasoning"?: string | null
   readonly "refusal"?: string | null
   readonly "tool_calls"?: ReadonlyArray<ChatStreamingMessageToolCall>
-  readonly "reasoning_details"?: ReadonlyArray<__schema19>
+  readonly "reasoning_details"?: ReadonlyArray<__schema20>
   readonly "images"?:
     | ReadonlyArray<{ readonly "type": "image_url"; readonly "image_url": { readonly "url": string } }>
     | null
@@ -4475,7 +4503,7 @@ export const ChatStreamingMessageChunk = Schema.Struct({
   "reasoning": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
   "refusal": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
   "tool_calls": Schema.optionalKey(Schema.Array(ChatStreamingMessageToolCall)),
-  "reasoning_details": Schema.optionalKey(Schema.Array(__schema19)),
+  "reasoning_details": Schema.optionalKey(Schema.Array(__schema20)),
   "images": Schema.optionalKey(
     Schema.Union([
       Schema.Array(
@@ -4609,13 +4637,13 @@ export type ModelsListResponseData = ReadonlyArray<Model>
 export const ModelsListResponseData = Schema.Array(Model).annotate({ "description": "List of available models" })
 export type ChatStreamingChoice = {
   readonly "delta": ChatStreamingMessageChunk
-  readonly "finish_reason": __schema25
+  readonly "finish_reason"?: __schema26
   readonly "index": number
   readonly "logprobs"?: ChatMessageTokenLogprobs | null
 }
 export const ChatStreamingChoice = Schema.Struct({
   "delta": ChatStreamingMessageChunk,
-  "finish_reason": __schema25,
+  "finish_reason": Schema.optionalKey(__schema26),
   "index": Schema.Number.check(Schema.isFinite()),
   "logprobs": Schema.optionalKey(Schema.Union([ChatMessageTokenLogprobs, Schema.Null]))
 })
@@ -4636,7 +4664,7 @@ export type AssistantMessage = {
   readonly "tool_calls"?: ReadonlyArray<ChatMessageToolCall>
   readonly "refusal"?: string | null
   readonly "reasoning"?: string | null
-  readonly "reasoning_details"?: ReadonlyArray<__schema19>
+  readonly "reasoning_details"?: ReadonlyArray<__schema20>
   readonly "images"?:
     | ReadonlyArray<{ readonly "type": "image_url"; readonly "image_url": { readonly "url": string } }>
     | null
@@ -4674,7 +4702,7 @@ export const AssistantMessage = Schema.Struct({
   "tool_calls": Schema.optionalKey(Schema.Array(ChatMessageToolCall)),
   "refusal": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
   "reasoning": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
-  "reasoning_details": Schema.optionalKey(Schema.Array(__schema19)),
+  "reasoning_details": Schema.optionalKey(Schema.Array(__schema20)),
   "images": Schema.optionalKey(
     Schema.Union([
       Schema.Array(
@@ -4915,13 +4943,13 @@ export const ChatStreamingResponseChunk = Schema.Struct({
   })
 })
 export type ChatResponseChoice = {
-  readonly "finish_reason": __schema25
+  readonly "finish_reason": __schema26
   readonly "index": number
   readonly "message": AssistantMessage
   readonly "logprobs"?: ChatMessageTokenLogprobs | null
 }
 export const ChatResponseChoice = Schema.Struct({
-  "finish_reason": __schema25,
+  "finish_reason": __schema26,
   "index": Schema.Number.check(Schema.isFinite()),
   "message": AssistantMessage,
   "logprobs": Schema.optionalKey(Schema.Union([ChatMessageTokenLogprobs, Schema.Null]))
@@ -6299,6 +6327,13 @@ export type OpenResponsesRequest = {
   readonly "route"?: "fallback" | "sort"
   readonly "user"?: string
   readonly "session_id"?: string
+  readonly "trace"?: {
+    readonly "trace_id"?: string
+    readonly "trace_name"?: string
+    readonly "span_name"?: string
+    readonly "generation_name"?: string
+    readonly "parent_span_id"?: string
+  }
 }
 export const OpenResponsesRequest = Schema.Struct({
   "input": Schema.optionalKey(OpenResponsesInput),
@@ -6504,6 +6539,18 @@ export const OpenResponsesRequest = Schema.Struct({
       "description":
         "A unique identifier for grouping related requests (e.g., a conversation or agent workflow) for observability. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 128 characters."
     }).check(Schema.isMaxLength(128))
+  ),
+  "trace": Schema.optionalKey(
+    Schema.Struct({
+      "trace_id": Schema.optionalKey(Schema.String),
+      "trace_name": Schema.optionalKey(Schema.String),
+      "span_name": Schema.optionalKey(Schema.String),
+      "generation_name": Schema.optionalKey(Schema.String),
+      "parent_span_id": Schema.optionalKey(Schema.String)
+    }).annotate({
+      "description":
+        "Metadata for observability and tracing. Known keys (trace_id, trace_name, span_name, generation_name, parent_span_id) have special handling. Additional keys are passed through as custom metadata to configured broadcast destinations."
+    })
   )
 }).annotate({ "description": "Request schema for Responses endpoint" })
 export type ChatGenerationParams = {
@@ -6560,6 +6607,13 @@ export type ChatGenerationParams = {
   readonly "route"?: "fallback" | "sort" | null
   readonly "user"?: string
   readonly "session_id"?: string
+  readonly "trace"?: {
+    readonly "trace_id"?: string
+    readonly "trace_name"?: string
+    readonly "span_name"?: string
+    readonly "generation_name"?: string
+    readonly "parent_span_id"?: string
+  }
   readonly "messages": ReadonlyArray<Message>
   readonly "model"?: ModelName
   readonly "models"?: ReadonlyArray<ModelName>
@@ -6586,6 +6640,7 @@ export type ChatGenerationParams = {
   readonly "stream"?: boolean
   readonly "stream_options"?: ChatStreamOptions | null
   readonly "temperature"?: number | null
+  readonly "parallel_tool_calls"?: boolean | null
   readonly "tool_choice"?: ToolChoiceOption
   readonly "tools"?: ReadonlyArray<ToolDefinitionJson>
   readonly "top_p"?: number | null
@@ -6734,6 +6789,18 @@ export const ChatGenerationParams = Schema.Struct({
         "A unique identifier for grouping related requests (e.g., a conversation or agent workflow) for observability. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 128 characters."
     }).check(Schema.isMaxLength(128))
   ),
+  "trace": Schema.optionalKey(
+    Schema.Struct({
+      "trace_id": Schema.optionalKey(Schema.String),
+      "trace_name": Schema.optionalKey(Schema.String),
+      "span_name": Schema.optionalKey(Schema.String),
+      "generation_name": Schema.optionalKey(Schema.String),
+      "parent_span_id": Schema.optionalKey(Schema.String)
+    }).annotate({
+      "description":
+        "Metadata for observability and tracing. Known keys (trace_id, trace_name, span_name, generation_name, parent_span_id) have special handling. Additional keys are passed through as custom metadata to configured broadcast destinations."
+    })
+  ),
   "messages": Schema.Array(Message).check(Schema.isMinLength(1)),
   "model": Schema.optionalKey(ModelName),
   "models": Schema.optionalKey(Schema.Array(ModelName)),
@@ -6810,6 +6877,7 @@ export const ChatGenerationParams = Schema.Struct({
       Schema.Null
     ])
   ),
+  "parallel_tool_calls": Schema.optionalKey(Schema.Union([Schema.Boolean, Schema.Null])),
   "tool_choice": Schema.optionalKey(ToolChoiceOption),
   "tools": Schema.optionalKey(Schema.Array(ToolDefinitionJson)),
   "top_p": Schema.optionalKey(
@@ -7342,6 +7410,7 @@ export type GetGeneration200 = {
           | "Inceptron"
           | "InferenceNet"
           | "Infermatic"
+          | "Io Net"
           | "Inflection"
           | "Liquid"
           | "Mara"
@@ -7522,6 +7591,7 @@ export const GetGeneration200 = Schema.Struct({
           "Inceptron",
           "InferenceNet",
           "Infermatic",
+          "Io Net",
           "Inflection",
           "Liquid",
           "Mara",
