@@ -1,5 +1,5 @@
 import { describe, it } from "@effect/vitest"
-import { assertDefined, assertSuccess, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { assertDefined, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { DateTime, Duration, Effect, UndefinedOr } from "effect"
 import { TestClock } from "effect/testing"
 
@@ -18,8 +18,8 @@ describe("DateTime", () => {
         const tomorrow = DateTime.mutate(now, (date) => {
           date.setUTCDate(date.getUTCDate() + 1)
         })
-        const diff = DateTime.distanceDurationResult(now, tomorrow)
-        assertSuccess(diff, Duration.fromInputUnsafe("1 day"))
+        const diff = DateTime.distance(now, tomorrow)
+        deepStrictEqual(diff, Duration.fromInputUnsafe("1 day"))
       }))
 
     it.effect("correctly preserves the time zone", () =>
@@ -46,8 +46,8 @@ describe("DateTime", () => {
       Effect.gen(function*() {
         const now = yield* DateTime.now
         const tomorrow = DateTime.add(now, { days: 1 })
-        const diff = DateTime.distanceDurationResult(now, tomorrow)
-        assertSuccess(diff, Duration.fromInputUnsafe("1 day"))
+        const diff = DateTime.distance(now, tomorrow)
+        deepStrictEqual(diff, Duration.fromInputUnsafe("1 day"))
       }))
 
     it("to month with less days", () => {
