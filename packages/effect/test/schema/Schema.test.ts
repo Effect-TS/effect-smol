@@ -9,6 +9,7 @@ import {
   Exit,
   flow,
   HashMap,
+  HashSet,
   Option,
   Order,
   pipe,
@@ -3921,6 +3922,31 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       `Expected string, got null
   at ["values"][2]`
     )
+  })
+
+  it("HashSet", async () => {
+    const schema = Schema.HashSet(Schema.FiniteFromString)
+    const asserts = new TestSchema.Asserts(schema)
+
+    strictEqual(schema.value, Schema.FiniteFromString)
+    strictEqual(schema.annotate({}).value, Schema.FiniteFromString)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(HashSet.make("1", "2", "3"), HashSet.make(1, 2, 3))
+    await decoding.fail(null, `Expected HashSet, got null`)
+    await decoding.fail(
+      HashSet.make(null),
+      `Expected string, got null
+  at ["values"][0]`
+    )
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(HashSet.make(1, 2, 3), HashSet.make("1", "2", "3"))
   })
 
   it("ReadonlyMap", async () => {
