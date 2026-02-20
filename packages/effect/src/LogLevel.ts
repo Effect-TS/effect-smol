@@ -104,7 +104,6 @@ import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
 import * as Ord from "./Order.ts"
 import * as References from "./References.ts"
-import * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * Represents the severity level of a log message.
