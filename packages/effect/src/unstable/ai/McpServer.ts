@@ -964,14 +964,14 @@ export const prompt = <
  * @since 4.0.0
  * @category elicitation
  */
-export const elicit: <S extends Schema.Codec<any, Record<string, unknown>, any, any>>(options: {
+export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>>(options: {
   readonly message: string
   readonly schema: S
 }) => Effect.Effect<
   S["Type"],
   ElicitationDeclined,
   McpServerClient | S["DecodingServices"]
-> = Effect.fnUntraced(function*<S extends Schema.Codec<any, Record<string, unknown>, any, any>>(options: {
+> = Effect.fnUntraced(function*<S extends Schema.Encoder<Record<string, unknown>, unknown>>(options: {
   readonly message: string
   readonly schema: S
 }) {

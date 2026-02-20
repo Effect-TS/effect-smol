@@ -326,11 +326,9 @@ export const encode = <IE, Done>(): Channel.Channel<
  * @category Encoding
  */
 export const encodeSchema = <
-  S extends Schema.Codec<
-    any,
+  S extends Schema.Encoder<
     { readonly id?: string | undefined; readonly event: string; readonly data: string },
-    any,
-    any
+    unknown
   >,
   IE,
   Done

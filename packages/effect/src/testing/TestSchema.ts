@@ -156,16 +156,16 @@ export class Decoding<S extends Schema.Top> {
   /**
    * Asserts that decoding succeeds with the expected value.
    */
-  async succeed<S extends Schema.Codec<unknown, unknown, never, unknown>>(
+  async succeed<S extends Schema.Decoder<unknown, never>>(
     this: Decoding<S>,
     input: unknown
   ): Promise<void>
-  async succeed<S extends Schema.Codec<unknown, unknown, never, unknown>>(
+  async succeed<S extends Schema.Decoder<unknown, never>>(
     this: Decoding<S>,
     input: unknown,
     expected: S["Type"]
   ): Promise<void>
-  async succeed<S extends Schema.Codec<unknown, unknown, never, unknown>>(
+  async succeed<S extends Schema.Decoder<unknown, never>>(
     this: Decoding<S>,
     input: unknown,
     expected?: S["Type"]
@@ -182,7 +182,7 @@ export class Decoding<S extends Schema.Top> {
   /**
    * Asserts that decoding fails with the expected error message.
    */
-  async fail<S extends Schema.Codec<unknown, unknown, never, unknown>>(
+  async fail<S extends Schema.Decoder<unknown, never>>(
     this: Decoding<S>,
     input: unknown,
     message: string
@@ -232,16 +232,16 @@ class Encoding<S extends Schema.Top> {
   /**
    * Asserts that encoding succeeds with the expected value.
    */
-  async succeed<S extends Schema.Codec<unknown, unknown, unknown, never>>(
+  async succeed<S extends Schema.Encoder<unknown, never>>(
     this: Encoding<S>,
     input: unknown
   ): Promise<void>
-  async succeed<S extends Schema.Codec<unknown, unknown, unknown, never>>(
+  async succeed<S extends Schema.Encoder<unknown, never>>(
     this: Encoding<S>,
     input: unknown,
     expected: S["Encoded"]
   ): Promise<void>
-  async succeed<S extends Schema.Codec<unknown, unknown, unknown, never>>(
+  async succeed<S extends Schema.Encoder<unknown, never>>(
     this: Encoding<S>,
     input: unknown,
     expected?: S["Encoded"]
@@ -258,7 +258,7 @@ class Encoding<S extends Schema.Top> {
   /**
    * Asserts that encoding fails with the expected error message.
    */
-  async fail<S extends Schema.Codec<unknown, unknown, unknown, never>>(
+  async fail<S extends Schema.Encoder<unknown, never>>(
     this: Encoding<S>,
     input: unknown,
     message: string

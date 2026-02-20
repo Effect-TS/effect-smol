@@ -135,7 +135,7 @@ export interface Service {
    */
   readonly generateObject: <
     ObjectEncoded extends Record<string, any>,
-    StructuredOutputSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
+    StructuredOutputSchema extends Schema.Encoder<ObjectEncoded, unknown>,
     Options extends NoExcessProperties<
       GenerateObjectOptions<any, StructuredOutputSchema>,
       Options
@@ -728,7 +728,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
 
   const generateObject = <
     ObjectEncoded extends Record<string, any>,
-    StructuredOutputSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
+    StructuredOutputSchema extends Schema.Encoder<ObjectEncoded, unknown>,
     Options extends NoExcessProperties<
       GenerateObjectOptions<any, StructuredOutputSchema>,
       Options
@@ -1359,7 +1359,7 @@ export const generateText = <
  */
 export const generateObject = <
   ObjectEncoded extends Record<string, any>,
-  StructuredOutputSchema extends Schema.Codec<any, ObjectEncoded, any, any>,
+  StructuredOutputSchema extends Schema.Encoder<ObjectEncoded, unknown>,
   Options extends NoExcessProperties<
     GenerateObjectOptions<any, StructuredOutputSchema>,
     Options

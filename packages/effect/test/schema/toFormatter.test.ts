@@ -264,7 +264,7 @@ describe("toFormatter", () => {
 
   describe("suspend", () => {
     it("Tuple", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema = Schema.Tuple([
         Schema.Number,
         Schema.NullOr(Rec)
@@ -275,14 +275,14 @@ describe("toFormatter", () => {
     })
 
     it("Array", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema: any = Schema.Array(Schema.Union([Schema.String, Rec]))
       const format = Schema.toFormatter(schema)
       strictEqual(format(["a"]), `["a"]`)
     })
 
     it("Struct", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema = Schema.Struct({
         a: Schema.String,
         as: Schema.Array(Rec)
@@ -295,14 +295,14 @@ describe("toFormatter", () => {
     })
 
     it("Record", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema = Schema.Record(Schema.String, Rec)
       const format = Schema.toFormatter(schema)
       strictEqual(format({ a: { a: { a: {} } } }), `{ "a": { "a": { "a": {} } } }`)
     })
 
     it("optional", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema: any = Schema.Struct({
         a: Schema.optional(Rec)
       })
@@ -311,7 +311,7 @@ describe("toFormatter", () => {
     })
 
     it("Array + Array", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema: any = Schema.Struct({
         a: Schema.Array(Rec),
         b: Schema.Array(Rec)
@@ -327,7 +327,7 @@ describe("toFormatter", () => {
     })
 
     it("optional + Array", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema: any = Schema.Struct({
         a: Schema.optional(Rec),
         b: Schema.Array(Rec)
@@ -373,7 +373,7 @@ describe("toFormatter", () => {
     })
 
     it("Option", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema = Schema.Struct({
         a: Schema.String,
         as: Schema.Option(Rec)
@@ -386,7 +386,7 @@ describe("toFormatter", () => {
     })
 
     it("ReadonlySet", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema = Schema.ReadonlySet(Rec)
       const format = Schema.toFormatter(schema)
       strictEqual(format(new Set()), `ReadonlySet(0) {}`)
@@ -394,7 +394,7 @@ describe("toFormatter", () => {
     })
 
     it("ReadonlyMap", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema = Schema.ReadonlyMap(Schema.String, Rec)
       const format = Schema.toFormatter(schema)
       strictEqual(format(new Map()), `ReadonlyMap(0) {}`)
@@ -405,7 +405,7 @@ describe("toFormatter", () => {
     })
 
     it("HashMap", () => {
-      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema = Schema.HashMap(Schema.String, Rec)
       const format = Schema.toFormatter(schema)
       strictEqual(format(HashMap.empty()), `HashMap(0) {}`)

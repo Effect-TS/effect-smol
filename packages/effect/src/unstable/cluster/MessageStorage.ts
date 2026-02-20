@@ -905,10 +905,7 @@ export const layerMemory: Layer.Layer<
 
 const EnvelopeWithReply: Schema.Struct<
   {
-    readonly envelope: Schema.Codec<
-      Envelope.PartialRequest | Envelope.AckChunk | Envelope.Interrupt,
-      unknown
-    >
+    readonly envelope: Schema.Decoder<Envelope.PartialRequest | Envelope.AckChunk | Envelope.Interrupt>
     readonly lastSentReply: Schema.UndefinedOr<Schema.Codec<Reply.Encoded>>
   }
 > = Schema.Struct({
