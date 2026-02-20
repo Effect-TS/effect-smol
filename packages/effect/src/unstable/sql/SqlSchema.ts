@@ -13,7 +13,7 @@ import * as Schema from "../../Schema.ts"
  * @since 4.0.0
  * @category constructor
  */
-export const findMany = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
+export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
   options: {
     readonly Request: Req
     readonly Result: Res
@@ -21,7 +21,30 @@ export const findMany = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
   }
 ) => {
   const encodeRequest = Schema.encodeEffect(options.Request)
-  const decode = Schema.decodeUnknownEffect(Schema.Array(options.Result))
+  const decode = Schema.decodeUnknownEffect(Schema.mutable(Schema.Array(options.Result)))
+  return (
+    request: Req["Encoded"]
+  ): Effect.Effect<
+    Array<Res["Type"]>,
+    E | Schema.SchemaError | Cause.NoSuchElementError,
+    Req["EncodingServices"] | Res["DecodingServices"] | R
+  > => Effect.flatMap(Effect.flatMap(encodeRequest(request), options.execute), decode)
+}
+
+/**
+ * Run a sql query with a request schema and a result schema.
+ *
+ * @since 4.0.0
+ * @category constructor
+ */
+export const findNonEmpty = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
+  options: {
+    readonly Request: Req
+    readonly Result: Res
+    readonly execute: (request: Req["Encoded"]) => Effect.Effect<ReadonlyArray<unknown>, E, R>
+  }
+) => {
+  const find = findAll(options)
   return (
     request: Req["Encoded"]
   ): Effect.Effect<
@@ -29,17 +52,10 @@ export const findMany = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
     E | Schema.SchemaError | Cause.NoSuchElementError,
     Req["EncodingServices"] | Res["DecodingServices"] | R
   > =>
-    Effect.flatMap(
-      Effect.flatMap(encodeRequest(request), options.execute),
-      (results): Effect.Effect<
-        Arr.NonEmptyArray<Res["Type"]>,
-        Schema.SchemaError | Cause.NoSuchElementError,
-        Req["EncodingServices"] | Res["DecodingServices"]
-      > =>
-        Arr.isReadonlyArrayNonEmpty(results)
-          ? decode(results) as Effect.Effect<Arr.NonEmptyArray<Res["Type"]>, Schema.SchemaError>
-          : Effect.fail(new Cause.NoSuchElementError())
-    )
+    Effect.flatMap(find(request), (results) =>
+      Arr.isArrayNonEmpty(results)
+        ? Effect.succeed(results)
+        : Effect.fail(new Cause.NoSuchElementError()))
 }
 
 const void_ = <Req extends Schema.Top, E, R>(
