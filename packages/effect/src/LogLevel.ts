@@ -100,6 +100,7 @@
  */
 import type * as Effect from "./Effect.ts"
 import * as Equ from "./Equivalence.ts"
+import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
 import * as Ord from "./Order.ts"
 import * as References from "./References.ts"
@@ -377,6 +378,4 @@ export const isLessThanOrEqualTo: {
  * @category filtering
  */
 export const isEnabled = (self: LogLevel): Effect.Effect<boolean> =>
-  effect.servicesWith((services) =>
-    effect.succeed(!isGreaterThan(ServiceMap.getReferenceUnsafe(services, References.MinimumLogLevel), self))
-  )
+  core.withFiber((fiber) => effect.succeed(!isGreaterThan(fiber.getRef(References.MinimumLogLevel), self)))
