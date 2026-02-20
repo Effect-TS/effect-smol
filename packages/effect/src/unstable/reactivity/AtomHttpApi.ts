@@ -51,8 +51,8 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
       infer _Name,
       infer _Method,
       infer _Path,
-      infer _PathSchema,
-      infer _UrlParams,
+      infer _Params,
+      infer _Query,
       infer _Payload,
       infer _Headers,
       infer _Success,
@@ -62,7 +62,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
     >
   ] ? Atom.AtomResultFn<
       Simplify<
-        HttpApiEndpoint.ClientRequest<_PathSchema, _UrlParams, _Payload, _Headers, false> & {
+        HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, false> & {
           readonly reactivityKeys?: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
         }
       >,
@@ -88,8 +88,8 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
         infer _Name,
         infer _Method,
         infer _Path,
-        infer _PathSchema,
-        infer _UrlParams,
+        infer _Params,
+        infer _Query,
         infer _Payload,
         infer _Headers,
         infer _Success,
@@ -98,7 +98,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
         infer _RE
       >
     ] ? Simplify<
-        HttpApiEndpoint.ClientRequest<_PathSchema, _UrlParams, _Payload, _Headers, WithResponse> & {
+        HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, WithResponse> & {
           readonly reactivityKeys?:
             | ReadonlyArray<unknown>
             | ReadonlyRecord<string, ReadonlyArray<unknown>>
@@ -112,7 +112,8 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
       infer _Name,
       infer _Method,
       infer _Path,
-      infer _UrlParams,
+      infer _Params,
+      infer _Query,
       infer _Payload,
       infer _Headers,
       infer _Success,
@@ -170,8 +171,8 @@ export const Service = <Self>() =>
 
   const mutationFamily = Atom.family(({ endpoint, group, withResponse }: MutationKey) =>
     self.runtime.fn<{
-      path: any
-      urlParams: any
+      params: any
+      query: any
       headers: any
       payload: any
       reactivityKeys?: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -217,8 +218,8 @@ export const Service = <Self>() =>
     group: string,
     endpoint: string,
     request: {
-      readonly path?: any
-      readonly urlParams?: any
+      readonly params?: any
+      readonly query?: any
       readonly payload?: any
       readonly headers?: any
       readonly withResponse?: boolean
@@ -229,8 +230,8 @@ export const Service = <Self>() =>
     queryFamily({
       group,
       endpoint,
-      path: request.path,
-      urlParams: request.urlParams,
+      params: request.params,
+      query: request.query,
       payload: request.payload,
       headers: request.headers,
       withResponse: request.withResponse ?? false,
@@ -252,8 +253,8 @@ interface MutationKey {
 interface QueryKey {
   group: string
   endpoint: string
-  path: any
-  urlParams: any
+  params: any
+  query: any
   headers: any
   payload: any
   withResponse: boolean
