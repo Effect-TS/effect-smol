@@ -7,7 +7,7 @@ import type { MetricReader } from "@opentelemetry/sdk-metrics"
 import type { SpanProcessor, TracerConfig } from "@opentelemetry/sdk-trace-base"
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node"
 import type { NonEmptyReadonlyArray } from "effect/Array"
-import type { Input } from "effect/Duration"
+import type * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import { constant, type LazyArg } from "effect/Function"
 import * as Layer from "effect/Layer"
@@ -34,7 +34,7 @@ export interface Configuration {
     readonly serviceVersion?: string
     readonly attributes?: Otel.Attributes
   } | undefined
-  readonly shutdownTimeout?: Input | undefined
+  readonly shutdownTimeout?: Duration.Input | undefined
 }
 
 /**
@@ -44,7 +44,7 @@ export interface Configuration {
 export const layerTracerProvider = (
   processor: SpanProcessor | NonEmptyReadonlyArray<SpanProcessor>,
   config?: Omit<TracerConfig, "resource"> & {
-    readonly shutdownTimeout?: Input | undefined
+    readonly shutdownTimeout?: Duration.Input | undefined
   }
 ): Layer.Layer<Tracer.OtelTracerProvider, never, Resource.Resource> =>
   Layer.effect(

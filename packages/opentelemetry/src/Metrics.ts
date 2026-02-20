@@ -3,7 +3,7 @@
  */
 import type { MetricProducer, MetricReader } from "@opentelemetry/sdk-metrics"
 import type * as Arr from "effect/Array"
-import type { Input } from "effect/Duration"
+import type * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import type { LazyArg } from "effect/Function"
 import * as Layer from "effect/Layer"
@@ -49,7 +49,7 @@ export const registerProducer = (
   self: MetricProducer,
   metricReader: LazyArg<MetricReader | Arr.NonEmptyReadonlyArray<MetricReader>>,
   options?: {
-    readonly shutdownTimeout?: Input | undefined
+    readonly shutdownTimeout?: Duration.Input | undefined
   }
 ): Effect.Effect<Array<any>, never, Scope.Scope> =>
   Effect.acquireRelease(
@@ -104,7 +104,7 @@ export const registerProducer = (
 export const layer = (
   evaluate: LazyArg<MetricReader | Arr.NonEmptyReadonlyArray<MetricReader>>,
   options?: {
-    readonly shutdownTimeout?: Input | undefined
+    readonly shutdownTimeout?: Duration.Input | undefined
     readonly temporality?: TemporalityPreference | undefined
   }
 ): Layer.Layer<never, never, Resource> =>

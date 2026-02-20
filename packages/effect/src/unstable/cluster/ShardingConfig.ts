@@ -3,7 +3,6 @@
  */
 import * as Config from "../../Config.ts"
 import * as ConfigProvider from "../../ConfigProvider.ts"
-import type { Input } from "../../Duration.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
@@ -58,11 +57,11 @@ export class ShardingConfig extends ServiceMap.Service<ShardingConfig, {
   /**
    * Shard lock refresh interval.
    */
-  readonly shardLockRefreshInterval: Input
+  readonly shardLockRefreshInterval: Duration.Input
   /**
    * Shard lock expiration duration.
    */
-  readonly shardLockExpiration: Input
+  readonly shardLockExpiration: Duration.Input
   /**
    * Disable the use of advisory locks for shard locking.
    */
@@ -81,41 +80,41 @@ export class ShardingConfig extends ServiceMap.Service<ShardingConfig, {
    * The maximum duration of inactivity (i.e. without receiving a message)
    * after which an entity will be interrupted.
    */
-  readonly entityMaxIdleTime: Input
+  readonly entityMaxIdleTime: Duration.Input
   /**
    * If an entity does not register itself within this time after a message is
    * sent to it, the message will be marked as failed.
    *
    * Defaults to 1 minute.
    */
-  readonly entityRegistrationTimeout: Input
+  readonly entityRegistrationTimeout: Duration.Input
   /**
    * The maximum duration of time to wait for an entity to terminate.
    *
    * By default this is set to 15 seconds to stay within kubernetes defaults.
    */
-  readonly entityTerminationTimeout: Input
+  readonly entityTerminationTimeout: Duration.Input
   /**
    * The interval at which to poll for unprocessed messages from storage.
    */
-  readonly entityMessagePollInterval: Input
+  readonly entityMessagePollInterval: Duration.Input
   /**
    * The interval at which to poll for client replies from storage.
    */
-  readonly entityReplyPollInterval: Input
+  readonly entityReplyPollInterval: Duration.Input
   /**
    * The interval at which to poll for new runners and refresh shard
    * assignments.
    */
-  readonly refreshAssignmentsInterval: Input
+  readonly refreshAssignmentsInterval: Duration.Input
   /**
    * The interval to retry a send if EntityNotAssignedToRunner is returned.
    */
-  readonly sendRetryInterval: Input
+  readonly sendRetryInterval: Duration.Input
   /**
    * The interval at which to check for unhealthy runners and report them
    */
-  readonly runnerHealthCheckInterval: Input
+  readonly runnerHealthCheckInterval: Duration.Input
   /**
    * Simulate serialization and deserialization to remote runners for local
    * entities.
