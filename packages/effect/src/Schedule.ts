@@ -48,7 +48,7 @@ import type { Contravariant, Covariant, Mutable } from "./Types.ts"
 
 const TypeId = "~effect/Schedule"
 
-const randomNext: Effect<number> = random.Random.use((random) => effect.succeed(random.nextDoubleUnsafe()))
+const randomNext: Effect<number> = random.Random.useSync((random) => random.nextDoubleUnsafe())
 
 /**
  * A Schedule defines a strategy for repeating or retrying effects based on some policy.
