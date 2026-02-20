@@ -1,5 +1,12 @@
 # @effect/sql-mysql2
 
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [[`3386557`](https://github.com/Effect-TS/effect-smol/commit/338655731564a7be9f8859dedbf4d5bcac6eb350), [`b6666e3`](https://github.com/Effect-TS/effect-smol/commit/b6666e3cf6bd44ba1a8704e65c256c30359cb422)]:
+  - effect@4.0.0-beta.9
+
 ## 4.0.0-beta.8
 
 ### Patch Changes
