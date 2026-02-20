@@ -1,4 +1,4 @@
-import { Option, Redactable, Redacted, Schema } from "effect"
+import { Option, Redactable, Redacted, Schema, ServiceMap } from "effect"
 import { format, formatJson } from "effect/Formatter"
 import { describe, it } from "vitest"
 import { strictEqual } from "./utils/assert.ts"
@@ -61,14 +61,6 @@ describe("Formatter", () => {
       strictEqual(format(arr), `[1,[Circular]]`)
     })
 
-    it("Set", () => {
-      strictEqual(format(new Set([1, 2, 3])), `Set([1,2,3])`)
-    })
-
-    it("Map", () => {
-      strictEqual(format(new Map([["a", 1], ["b", 2]])), `Map([["a",1],["b",2]])`)
-    })
-
     it("circular Map contents", () => {
       const obj: any = { a: 1 }
       const map = new Map([["obj", obj]])
@@ -101,6 +93,22 @@ describe("Formatter", () => {
       strictEqual(format(Object.create(null, { a: { value: 1 } })), `{"a":1}`)
     })
 
+    it("function", () => {
+      strictEqual(
+        format(() => {}),
+        `() => {
+        }`
+      )
+      strictEqual(
+        format(() => {
+          return 1
+        }),
+        `() => {
+          return 1;
+        }`
+      )
+    })
+
     it("Error", () => {
       strictEqual(format(new Error("a")), `Error: a`)
       strictEqual(format(new Error("a", { cause: "b" })), `Error: a (cause: "b")`)
@@ -113,6 +121,25 @@ describe("Formatter", () => {
 
     it("RegExp", () => {
       strictEqual(format(/a/), `/a/`)
+    })
+
+    it("Set", () => {
+      strictEqual(format(new Set([1, 2, 3])), `Set([1,2,3])`)
+    })
+
+    it("Map", () => {
+      strictEqual(format(new Map([["a", 1], ["b", 2]])), `Map([["a",1],["b",2]])`)
+    })
+
+    it("FormData", () => {
+      const formData = new FormData()
+      formData.append("a", "1")
+      strictEqual(format(formData), `FormData([["a","1"]])`)
+    })
+
+    it("Uint8Array", () => {
+      const uint8Array = new Uint8Array([1, 2, 3])
+      strictEqual(format(uint8Array), `Uint8Array([1,2,3])`)
     })
 
     it("Redacted", () => {
@@ -130,29 +157,23 @@ describe("Formatter", () => {
       )
     })
 
-    it("Class", () => {
+    it("Schema.Class", () => {
       class A extends Schema.Class<A>("A")({
         a: Schema.String
       }) {}
       strictEqual(format(new A({ a: "a" })), `A({"a":"a"})`)
     })
 
-    it("ErrorClass", () => {
+    it("Schema.ErrorClass", () => {
       class E extends Schema.ErrorClass<E>("E")({
         a: Schema.String
       }) {}
       strictEqual(format(new E({ a: "a" })), `E({"a":"a"})`)
     })
 
-    it("FormData", () => {
-      const formData = new FormData()
-      formData.append("a", "1")
-      strictEqual(format(formData), `FormData([["a","1"]])`)
-    })
-
-    it("Uint8Array", () => {
-      const uint8Array = new Uint8Array([1, 2, 3])
-      strictEqual(format(uint8Array), `Uint8Array([1,2,3])`)
+    it("ServiceMap.Service", () => {
+      const MyService = ServiceMap.Service<{ readonly value: number }>("MyService")
+      strictEqual(format(MyService).includes(`"key": "MyService"`), true)
     })
 
     describe("whitespace", () => {
