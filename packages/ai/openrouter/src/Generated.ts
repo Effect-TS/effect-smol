@@ -9103,7 +9103,7 @@ export const make = (
         }))
       ),
     "deleteKeys": (hash, options) =>
-      HttpClientRequest.del(`/keys/${hash}`).pipe(
+      HttpClientRequest.delete(`/keys/${hash}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteKeys200),
           "401": decodeError("DeleteKeys401", DeleteKeys401),
@@ -9161,7 +9161,7 @@ export const make = (
         }))
       ),
     "deleteGuardrail": (id, options) =>
-      HttpClientRequest.del(`/guardrails/${id}`).pipe(
+      HttpClientRequest.delete(`/guardrails/${id}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteGuardrail200),
           "401": decodeError("DeleteGuardrail401", DeleteGuardrail401),

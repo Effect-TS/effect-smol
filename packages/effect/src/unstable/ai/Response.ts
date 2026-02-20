@@ -2115,7 +2115,7 @@ export const UrlSourcePart: Schema.Struct<{
  * @category schemas
  */
 export const HttpRequestDetails = Schema.Struct({
-  method: Schema.Literals(["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS"]),
+  method: Schema.Literals(["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE"]),
   url: Schema.String,
   urlParams: Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
   hash: Schema.UndefinedOr(Schema.String),

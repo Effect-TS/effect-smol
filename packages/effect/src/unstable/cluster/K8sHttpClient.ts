@@ -156,7 +156,7 @@ export const makeCreatePod = Effect.gen(function*() {
       Effect.tapCause(Effect.logInfo),
       Effect.orDie
     )
-    const deletePod = HttpClientRequest.del(`/v1/namespaces/${namespace}/pods/${name}`).pipe(
+    const deletePod = HttpClientRequest.delete(`/v1/namespaces/${namespace}/pods/${name}`).pipe(
       client.execute,
       Effect.flatMap((res) => res.json),
       Effect.catchIf(

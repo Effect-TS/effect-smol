@@ -26017,7 +26017,7 @@ export const make = (
         }))
       ),
     "deleteAssistant": (assistantId, options) =>
-      HttpClientRequest.del(`/assistants/${assistantId}`).pipe(
+      HttpClientRequest.delete(`/assistants/${assistantId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteAssistant200),
           orElse: unexpectedStatus
@@ -26096,7 +26096,7 @@ export const make = (
         }))
       ),
     "deleteVoiceConsent": (consentId, options) =>
-      HttpClientRequest.del(`/audio/voice_consents/${consentId}`).pipe(
+      HttpClientRequest.delete(`/audio/voice_consents/${consentId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteVoiceConsent200),
           orElse: unexpectedStatus
@@ -26186,7 +26186,7 @@ export const make = (
         }))
       ),
     "deleteChatCompletion": (completionId, options) =>
-      HttpClientRequest.del(`/chat/completions/${completionId}`).pipe(
+      HttpClientRequest.delete(`/chat/completions/${completionId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteChatCompletion200),
           orElse: unexpectedStatus
@@ -26241,7 +26241,7 @@ export const make = (
         }))
       ),
     "DeleteContainer": (containerId, options) =>
-      HttpClientRequest.del(`/containers/${containerId}`).pipe(
+      HttpClientRequest.delete(`/containers/${containerId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "200": () => Effect.void,
           orElse: unexpectedStatus
@@ -26275,7 +26275,7 @@ export const make = (
         }))
       ),
     "DeleteContainerFile": (containerId, fileId, options) =>
-      HttpClientRequest.del(`/containers/${containerId}/files/${fileId}`).pipe(
+      HttpClientRequest.delete(`/containers/${containerId}/files/${fileId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "200": () => Effect.void,
           orElse: unexpectedStatus
@@ -26319,7 +26319,7 @@ export const make = (
         }))
       ),
     "deleteConversationItem": (conversationId, itemId, options) =>
-      HttpClientRequest.del(`/conversations/${conversationId}/items/${itemId}`).pipe(
+      HttpClientRequest.delete(`/conversations/${conversationId}/items/${itemId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteConversationItem200),
           orElse: unexpectedStatus
@@ -26370,7 +26370,7 @@ export const make = (
         }))
       ),
     "deleteEval": (evalId, options) =>
-      HttpClientRequest.del(`/evals/${evalId}`).pipe(
+      HttpClientRequest.delete(`/evals/${evalId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteEval200),
           "404": decodeError("DeleteEval404", DeleteEval404),
@@ -26414,7 +26414,7 @@ export const make = (
         }))
       ),
     "deleteEvalRun": (evalId, runId, options) =>
-      HttpClientRequest.del(`/evals/${evalId}/runs/${runId}`).pipe(
+      HttpClientRequest.delete(`/evals/${evalId}/runs/${runId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteEvalRun200),
           "404": decodeError("DeleteEvalRun404", DeleteEvalRun404),
@@ -26470,7 +26470,7 @@ export const make = (
         }))
       ),
     "deleteFile": (fileId, options) =>
-      HttpClientRequest.del(`/files/${fileId}`).pipe(
+      HttpClientRequest.delete(`/files/${fileId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteFile200),
           orElse: unexpectedStatus
@@ -26521,7 +26521,7 @@ export const make = (
         }))
       ),
     "deleteFineTuningCheckpointPermission": (fineTunedModelCheckpoint, permissionId, options) =>
-      HttpClientRequest.del(`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions/${permissionId}`).pipe(
+      HttpClientRequest.delete(`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions/${permissionId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteFineTuningCheckpointPermission200),
           orElse: unexpectedStatus
@@ -26646,7 +26646,7 @@ export const make = (
         }))
       ),
     "deleteModel": (model, options) =>
-      HttpClientRequest.del(`/models/${model}`).pipe(
+      HttpClientRequest.delete(`/models/${model}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteModel200),
           orElse: unexpectedStatus
@@ -26688,7 +26688,7 @@ export const make = (
         }))
       ),
     "adminApiKeysDelete": (keyId, options) =>
-      HttpClientRequest.del(`/organization/admin_api_keys/${keyId}`).pipe(
+      HttpClientRequest.delete(`/organization/admin_api_keys/${keyId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(AdminApiKeysDelete200),
           orElse: unexpectedStatus
@@ -26768,7 +26768,7 @@ export const make = (
         }))
       ),
     "deleteCertificate": (certificateId, options) =>
-      HttpClientRequest.del(`/organization/certificates/${certificateId}`).pipe(
+      HttpClientRequest.delete(`/organization/certificates/${certificateId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteCertificate200),
           orElse: unexpectedStatus
@@ -26819,7 +26819,7 @@ export const make = (
         }))
       ),
     "deleteGroup": (groupId, options) =>
-      HttpClientRequest.del(`/organization/groups/${groupId}`).pipe(
+      HttpClientRequest.delete(`/organization/groups/${groupId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteGroup200),
           orElse: unexpectedStatus
@@ -26846,7 +26846,7 @@ export const make = (
         }))
       ),
     "unassignGroupRole": (groupId, roleId, options) =>
-      HttpClientRequest.del(`/organization/groups/${groupId}/roles/${roleId}`).pipe(
+      HttpClientRequest.delete(`/organization/groups/${groupId}/roles/${roleId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(UnassignGroupRole200),
           orElse: unexpectedStatus
@@ -26873,7 +26873,7 @@ export const make = (
         }))
       ),
     "removeGroupUser": (groupId, userId, options) =>
-      HttpClientRequest.del(`/organization/groups/${groupId}/users/${userId}`).pipe(
+      HttpClientRequest.delete(`/organization/groups/${groupId}/users/${userId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(RemoveGroupUser200),
           orElse: unexpectedStatus
@@ -26906,7 +26906,7 @@ export const make = (
         }))
       ),
     "deleteInvite": (inviteId, options) =>
-      HttpClientRequest.del(`/organization/invites/${inviteId}`).pipe(
+      HttpClientRequest.delete(`/organization/invites/${inviteId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteInvite200),
           orElse: unexpectedStatus
@@ -26967,7 +26967,7 @@ export const make = (
         }))
       ),
     "deleteProjectApiKey": (projectId, keyId, options) =>
-      HttpClientRequest.del(`/organization/projects/${projectId}/api_keys/${keyId}`).pipe(
+      HttpClientRequest.delete(`/organization/projects/${projectId}/api_keys/${keyId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteProjectApiKey200),
           "400": decodeError("DeleteProjectApiKey400", DeleteProjectApiKey400),
@@ -27030,7 +27030,7 @@ export const make = (
         }))
       ),
     "removeProjectGroup": (projectId, groupId, options) =>
-      HttpClientRequest.del(`/organization/projects/${projectId}/groups/${groupId}`).pipe(
+      HttpClientRequest.delete(`/organization/projects/${projectId}/groups/${groupId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(RemoveProjectGroup200),
           orElse: unexpectedStatus
@@ -27086,7 +27086,7 @@ export const make = (
         }))
       ),
     "deleteProjectServiceAccount": (projectId, serviceAccountId, options) =>
-      HttpClientRequest.del(`/organization/projects/${projectId}/service_accounts/${serviceAccountId}`).pipe(
+      HttpClientRequest.delete(`/organization/projects/${projectId}/service_accounts/${serviceAccountId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteProjectServiceAccount200),
           orElse: unexpectedStatus
@@ -27130,7 +27130,7 @@ export const make = (
         }))
       ),
     "deleteProjectUser": (projectId, userId, options) =>
-      HttpClientRequest.del(`/organization/projects/${projectId}/users/${userId}`).pipe(
+      HttpClientRequest.delete(`/organization/projects/${projectId}/users/${userId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteProjectUser200),
           "400": decodeError("DeleteProjectUser400", DeleteProjectUser400),
@@ -27166,7 +27166,7 @@ export const make = (
         }))
       ),
     "deleteRole": (roleId, options) =>
-      HttpClientRequest.del(`/organization/roles/${roleId}`).pipe(
+      HttpClientRequest.delete(`/organization/roles/${roleId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteRole200),
           orElse: unexpectedStatus
@@ -27349,7 +27349,7 @@ export const make = (
         }))
       ),
     "deleteUser": (userId, options) =>
-      HttpClientRequest.del(`/organization/users/${userId}`).pipe(
+      HttpClientRequest.delete(`/organization/users/${userId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteUser200),
           orElse: unexpectedStatus
@@ -27376,7 +27376,7 @@ export const make = (
         }))
       ),
     "unassignUserRole": (userId, roleId, options) =>
-      HttpClientRequest.del(`/organization/users/${userId}/roles/${roleId}`).pipe(
+      HttpClientRequest.delete(`/organization/users/${userId}/roles/${roleId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(UnassignUserRole200),
           orElse: unexpectedStatus
@@ -27403,7 +27403,7 @@ export const make = (
         }))
       ),
     "unassignProjectGroupRole": (projectId, groupId, roleId, options) =>
-      HttpClientRequest.del(`/projects/${projectId}/groups/${groupId}/roles/${roleId}`).pipe(
+      HttpClientRequest.delete(`/projects/${projectId}/groups/${groupId}/roles/${roleId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(UnassignProjectGroupRole200),
           orElse: unexpectedStatus
@@ -27438,7 +27438,7 @@ export const make = (
         }))
       ),
     "deleteProjectRole": (projectId, roleId, options) =>
-      HttpClientRequest.del(`/projects/${projectId}/roles/${roleId}`).pipe(
+      HttpClientRequest.delete(`/projects/${projectId}/roles/${roleId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteProjectRole200),
           orElse: unexpectedStatus
@@ -27465,7 +27465,7 @@ export const make = (
         }))
       ),
     "unassignProjectUserRole": (projectId, userId, roleId, options) =>
-      HttpClientRequest.del(`/projects/${projectId}/users/${userId}/roles/${roleId}`).pipe(
+      HttpClientRequest.delete(`/projects/${projectId}/users/${userId}/roles/${roleId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(UnassignProjectUserRole200),
           orElse: unexpectedStatus
@@ -27560,7 +27560,7 @@ export const make = (
         }))
       ),
     "deleteResponse": (responseId, options) =>
-      HttpClientRequest.del(`/responses/${responseId}`).pipe(
+      HttpClientRequest.delete(`/responses/${responseId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "404": decodeError("DeleteResponse404", DeleteResponse404),
           "200": () => Effect.void,
@@ -27620,7 +27620,7 @@ export const make = (
         }))
       ),
     "deleteThread": (threadId, options) =>
-      HttpClientRequest.del(`/threads/${threadId}`).pipe(
+      HttpClientRequest.delete(`/threads/${threadId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteThread200),
           orElse: unexpectedStatus
@@ -27664,7 +27664,7 @@ export const make = (
         }))
       ),
     "deleteMessage": (threadId, messageId, options) =>
-      HttpClientRequest.del(`/threads/${threadId}/messages/${messageId}`).pipe(
+      HttpClientRequest.delete(`/threads/${threadId}/messages/${messageId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteMessage200),
           orElse: unexpectedStatus
@@ -27812,7 +27812,7 @@ export const make = (
         }))
       ),
     "deleteVectorStore": (vectorStoreId, options) =>
-      HttpClientRequest.del(`/vector_stores/${vectorStoreId}`).pipe(
+      HttpClientRequest.delete(`/vector_stores/${vectorStoreId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteVectorStore200),
           orElse: unexpectedStatus
@@ -27892,7 +27892,7 @@ export const make = (
         }))
       ),
     "deleteVectorStoreFile": (vectorStoreId, fileId, options) =>
-      HttpClientRequest.del(`/vector_stores/${vectorStoreId}/files/${fileId}`).pipe(
+      HttpClientRequest.delete(`/vector_stores/${vectorStoreId}/files/${fileId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteVectorStoreFile200),
           orElse: unexpectedStatus
@@ -27937,7 +27937,7 @@ export const make = (
         }))
       ),
     "deleteConversation": (conversationId, options) =>
-      HttpClientRequest.del(`/conversations/${conversationId}`).pipe(
+      HttpClientRequest.delete(`/conversations/${conversationId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteConversation200),
           orElse: unexpectedStatus
@@ -27971,7 +27971,7 @@ export const make = (
         }))
       ),
     "DeleteVideo": (videoId, options) =>
-      HttpClientRequest.del(`/videos/${videoId}`).pipe(
+      HttpClientRequest.delete(`/videos/${videoId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteVideo200),
           orElse: unexpectedStatus
@@ -28045,7 +28045,7 @@ export const make = (
         }))
       ),
     "DeleteSkill": (skillId, options) =>
-      HttpClientRequest.del(`/skills/${skillId}`).pipe(
+      HttpClientRequest.delete(`/skills/${skillId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteSkill200),
           orElse: unexpectedStatus
@@ -28086,7 +28086,7 @@ export const make = (
         }))
       ),
     "DeleteSkillVersion": (skillId, version, options) =>
-      HttpClientRequest.del(`/skills/${skillId}/versions/${version}`).pipe(
+      HttpClientRequest.delete(`/skills/${skillId}/versions/${version}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteSkillVersion200),
           orElse: unexpectedStatus
@@ -28135,7 +28135,7 @@ export const make = (
         }))
       ),
     "DeleteThreadMethod": (threadId, options) =>
-      HttpClientRequest.del(`/chatkit/threads/${threadId}`).pipe(
+      HttpClientRequest.delete(`/chatkit/threads/${threadId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteThreadMethod200),
           orElse: unexpectedStatus

@@ -14,6 +14,7 @@ export type HttpMethod =
   | "PATCH"
   | "HEAD"
   | "OPTIONS"
+  | "TRACE"
 
 /**
  * @since 4.0.0
@@ -24,7 +25,7 @@ export declare namespace HttpMethod {
    * @since 4.0.0
    * @category models
    */
-  export type NoBody = "GET" | "HEAD" | "OPTIONS"
+  export type NoBody = "GET" | "HEAD" | "OPTIONS" | "TRACE"
 
   /**
    * @since 4.0.0
@@ -37,12 +38,21 @@ export declare namespace HttpMethod {
  * @since 4.0.0
  */
 export const hasBody = (method: HttpMethod): method is HttpMethod.WithBody =>
-  method !== "GET" && method !== "HEAD" && method !== "OPTIONS"
+  method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && method !== "TRACE"
 
 /**
  * @since 4.0.0
  */
-export const all: ReadonlySet<HttpMethod> = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
+export const all: ReadonlySet<HttpMethod> = new Set([
+  "GET",
+  "POST",
+  "PUT",
+  "DELETE",
+  "PATCH",
+  "HEAD",
+  "OPTIONS",
+  "TRACE"
+])
 
 /**
  * @since 4.0.0
@@ -54,7 +64,8 @@ export const allShort = [
   ["DELETE", "del"],
   ["PATCH", "patch"],
   ["HEAD", "head"],
-  ["OPTIONS", "options"]
+  ["OPTIONS", "options"],
+  ["TRACE", "trace"]
 ] as const
 
 /**

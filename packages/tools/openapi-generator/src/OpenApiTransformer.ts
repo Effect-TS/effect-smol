@@ -1,7 +1,6 @@
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as ServiceMap from "effect/ServiceMap"
-import type { OpenAPISpecMethodName } from "effect/unstable/httpapi/OpenApi"
 import type { ParsedOperation } from "./ParsedOperation.ts"
 import * as Utils from "./Utils.ts"
 
@@ -35,17 +34,6 @@ const computeImportRequirements = (operations: ReadonlyArray<ParsedOperation>): 
 
 const requiresStreaming = (requirements: ImportRequirements): boolean =>
   requirements.eventStream || requirements.octetStream
-
-const httpClientMethodNames: Record<OpenAPISpecMethodName, string> = {
-  get: "get",
-  put: "put",
-  post: "post",
-  delete: "del",
-  options: "options",
-  head: "head",
-  patch: "patch",
-  trace: `make("TRACE")`
-}
 
 export const makeTransformerSchema = () => {
   const operationsToInterface = (
@@ -306,7 +294,7 @@ export const make = (
 
     return (
       `"${operation.id}": (${params}) => ` +
-      `HttpClientRequest.${httpClientMethodNames[operation.method]}(${operation.pathTemplate})` +
+      `HttpClientRequest.${operation.method}(${operation.pathTemplate})` +
       `.pipe(\n    ${pipeline.join(",\n    ")}\n  )`
     )
   }
@@ -347,7 +335,7 @@ export const make = (
 
     return (
       `"${operation.id}Sse": (${params}) => ` +
-      `HttpClientRequest.${httpClientMethodNames[operation.method]}(${operation.pathTemplate})` +
+      `HttpClientRequest.${operation.method}(${operation.pathTemplate})` +
       `.pipe(\n      ${pipeline.join(",\n      ")}\n    )`
     )
   }
@@ -388,7 +376,7 @@ export const make = (
 
     return (
       `"${operation.id}Stream": (${params}) => ` +
-      `HttpClientRequest.${httpClientMethodNames[operation.method]}(${operation.pathTemplate})` +
+      `HttpClientRequest.${operation.method}(${operation.pathTemplate})` +
       `.pipe(\n      ${pipeline.join(",\n      ")}\n    )`
     )
   }
@@ -701,7 +689,7 @@ export const make = (
 
     return (
       `"${operation.id}": (${params}) => ` +
-      `HttpClientRequest.${httpClientMethodNames[operation.method]}(${operation.pathTemplate})` +
+      `HttpClientRequest.${operation.method}(${operation.pathTemplate})` +
       `.pipe(\n    ${pipeline.join(",\n    ")}\n  )`
     )
   }
@@ -742,7 +730,7 @@ export const make = (
 
     return (
       `"${operation.id}Sse": (${params}) => ` +
-      `HttpClientRequest.${httpClientMethodNames[operation.method]}(${operation.pathTemplate})` +
+      `HttpClientRequest.${operation.method}(${operation.pathTemplate})` +
       `.pipe(\n      ${pipeline.join(",\n      ")}\n    )`
     )
   }
@@ -783,7 +771,7 @@ export const make = (
 
     return (
       `"${operation.id}Stream": (${params}) => ` +
-      `HttpClientRequest.${httpClientMethodNames[operation.method]}(${operation.pathTemplate})` +
+      `HttpClientRequest.${operation.method}(${operation.pathTemplate})` +
       `.pipe(\n      ${pipeline.join(",\n      ")}\n    )`
     )
   }

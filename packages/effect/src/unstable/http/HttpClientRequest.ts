@@ -159,11 +159,15 @@ export const patch: (url: string | URL, options?: Options.NoUrl) => HttpClientRe
  */
 export const put: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("PUT")
 
-/**
- * @since 4.0.0
- * @category constructors
- */
-export const del: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("DELETE")
+const del: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("DELETE")
+
+export {
+  /**
+   * @since 4.0.0
+   * @category constructors
+   */
+  del as delete
+}
 
 /**
  * @since 4.0.0
@@ -176,6 +180,12 @@ export const head: (url: string | URL, options?: Options.NoUrl) => HttpClientReq
  * @category constructors
  */
 export const options: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("OPTIONS")
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const trace: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("TRACE")
 
 /**
  * @since 4.0.0

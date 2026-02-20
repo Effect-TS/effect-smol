@@ -9257,7 +9257,7 @@ export const make = (
         }))
       ),
     "messageBatchesDelete": (messageBatchId, options) =>
-      HttpClientRequest.del(`/v1/messages/batches/${messageBatchId}`).pipe(
+      HttpClientRequest.delete(`/v1/messages/batches/${messageBatchId}`).pipe(
         HttpClientRequest.setHeaders({
           "anthropic-version": options?.params?.["anthropic-version"] ?? undefined,
           "x-api-key": options?.params?.["x-api-key"] ?? undefined
@@ -9343,7 +9343,7 @@ export const make = (
         }))
       ),
     "deleteFileV1FilesFileIdDelete": (fileId, options) =>
-      HttpClientRequest.del(`/v1/files/${fileId}`).pipe(
+      HttpClientRequest.delete(`/v1/files/${fileId}`).pipe(
         HttpClientRequest.setHeaders({
           "anthropic-beta": options?.params?.["anthropic-beta"] ?? undefined,
           "anthropic-version": options?.params?.["anthropic-version"] ?? undefined,
@@ -9420,7 +9420,7 @@ export const make = (
         }))
       ),
     "deleteSkillV1SkillsSkillIdDelete": (skillId, options) =>
-      HttpClientRequest.del(`/v1/skills/${skillId}`).pipe(
+      HttpClientRequest.delete(`/v1/skills/${skillId}`).pipe(
         HttpClientRequest.setHeaders({
           "anthropic-beta": options?.params?.["anthropic-beta"] ?? undefined,
           "anthropic-version": options?.params?.["anthropic-version"] ?? undefined,
@@ -9485,7 +9485,7 @@ export const make = (
         }))
       ),
     "deleteSkillVersionV1SkillsSkillIdVersionsVersionDelete": (skillId, version, options) =>
-      HttpClientRequest.del(`/v1/skills/${skillId}/versions/${version}`).pipe(
+      HttpClientRequest.delete(`/v1/skills/${skillId}/versions/${version}`).pipe(
         HttpClientRequest.setHeaders({
           "anthropic-beta": options?.params?.["anthropic-beta"] ?? undefined,
           "anthropic-version": options?.params?.["anthropic-version"] ?? undefined,
@@ -9589,7 +9589,7 @@ export const make = (
         }))
       ),
     "betaMessageBatchesDelete": (messageBatchId, options) =>
-      HttpClientRequest.del(`/v1/messages/batches/${messageBatchId}?beta=true`).pipe(
+      HttpClientRequest.delete(`/v1/messages/batches/${messageBatchId}?beta=true`).pipe(
         HttpClientRequest.setHeaders({
           "anthropic-beta": options?.params?.["anthropic-beta"] ?? undefined,
           "anthropic-version": options?.params?.["anthropic-version"] ?? undefined,
@@ -9683,7 +9683,7 @@ export const make = (
         }))
       ),
     "betaDeleteFileV1FilesFileIdDelete": (fileId, options) =>
-      HttpClientRequest.del(`/v1/files/${fileId}?beta=true`).pipe(
+      HttpClientRequest.delete(`/v1/files/${fileId}?beta=true`).pipe(
         HttpClientRequest.setHeaders({
           "anthropic-beta": options?.params?.["anthropic-beta"] ?? undefined,
           "anthropic-version": options?.params?.["anthropic-version"] ?? undefined,
@@ -9760,7 +9760,7 @@ export const make = (
         }))
       ),
     "betaDeleteSkillV1SkillsSkillIdDelete": (skillId, options) =>
-      HttpClientRequest.del(`/v1/skills/${skillId}?beta=true`).pipe(
+      HttpClientRequest.delete(`/v1/skills/${skillId}?beta=true`).pipe(
         HttpClientRequest.setHeaders({
           "anthropic-beta": options?.params?.["anthropic-beta"] ?? undefined,
           "anthropic-version": options?.params?.["anthropic-version"] ?? undefined,
@@ -9825,7 +9825,7 @@ export const make = (
         }))
       ),
     "betaDeleteSkillVersionV1SkillsSkillIdVersionsVersionDelete": (skillId, version, options) =>
-      HttpClientRequest.del(`/v1/skills/${skillId}/versions/${version}?beta=true`).pipe(
+      HttpClientRequest.delete(`/v1/skills/${skillId}/versions/${version}?beta=true`).pipe(
         HttpClientRequest.setHeaders({
           "anthropic-beta": options?.params?.["anthropic-beta"] ?? undefined,
           "anthropic-version": options?.params?.["anthropic-version"] ?? undefined,
