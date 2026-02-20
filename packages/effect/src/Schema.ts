@@ -9458,4 +9458,3 @@ export declare namespace Annotations {
    */
   export type Meta = MetaDefinitions[keyof MetaDefinitions]
 }
-
