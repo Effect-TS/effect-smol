@@ -3,7 +3,7 @@
  * @category models
  */
 import type * as Cause from "../../Cause.ts"
-import type { DurationInput } from "../../Duration.ts"
+import type { Input } from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import * as RequestResolver from "../../RequestResolver.ts"
@@ -210,7 +210,7 @@ export const makeDataLoaders = <
     readonly tableName: string
     readonly spanPrefix: string
     readonly idColumn: Id
-    readonly window: DurationInput
+    readonly window: Input
     readonly maxBatchSize?: number | undefined
   }
 ): Effect.Effect<

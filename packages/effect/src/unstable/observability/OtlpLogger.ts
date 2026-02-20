@@ -30,9 +30,9 @@ export const make: (
       readonly attributes?: Record<string, unknown>
     } | undefined
     readonly headers?: Headers.Input | undefined
-    readonly exportInterval?: Duration.DurationInput | undefined
+    readonly exportInterval?: Duration.Input | undefined
     readonly maxBatchSize?: number | undefined
-    readonly shutdownTimeout?: Duration.DurationInput | undefined
+    readonly shutdownTimeout?: Duration.Input | undefined
     readonly excludeLogSpans?: boolean | undefined
   }
 ) => Effect.Effect<
@@ -85,9 +85,9 @@ export const layer = (options: {
     readonly attributes?: Record<string, unknown>
   } | undefined
   readonly headers?: Headers.Input | undefined
-  readonly exportInterval?: Duration.DurationInput | undefined
+  readonly exportInterval?: Duration.Input | undefined
   readonly maxBatchSize?: number | undefined
-  readonly shutdownTimeout?: Duration.DurationInput | undefined
+  readonly shutdownTimeout?: Duration.Input | undefined
   readonly excludeLogSpans?: boolean | undefined
   readonly mergeWithExisting?: boolean | undefined
 }): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization> =>

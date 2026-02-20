@@ -556,11 +556,11 @@ export const setDelayEffect: {
  * @category delay
  */
 export const setDelay: {
-  (duration: Duration.DurationInput): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
-  <A extends Request.Any>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A>
+  (duration: Duration.Input): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
+  <A extends Request.Any>(self: RequestResolver<A>, duration: Duration.Input): RequestResolver<A>
 } = dual(
   2,
-  <A extends Request.Any>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A> =>
+  <A extends Request.Any>(self: RequestResolver<A>, duration: Duration.Input): RequestResolver<A> =>
     makeWith({
       ...self,
       delay: Effect.sleep(duration)
@@ -899,7 +899,7 @@ export const asCache: {
     ServiceMode extends "lookup" | "construction" = never
   >(options: {
     readonly capacity: number
-    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.Input) | undefined
     readonly requireServicesAt?: ServiceMode | undefined
   }): (self: RequestResolver<A>) => Effect.Effect<
     Cache.Cache<
@@ -916,7 +916,7 @@ export const asCache: {
     ServiceMode extends "lookup" | "construction" = never
   >(self: RequestResolver<A>, options: {
     readonly capacity: number
-    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.Input) | undefined
     readonly requireServicesAt?: ServiceMode | undefined
   }): Effect.Effect<
     Cache.Cache<
@@ -933,7 +933,7 @@ export const asCache: {
   ServiceMode extends "lookup" | "construction" = never
 >(self: RequestResolver<A>, options: {
   readonly capacity: number
-  readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+  readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.Input) | undefined
   readonly requireServicesAt?: ServiceMode | undefined
 }): Effect.Effect<
   Cache.Cache<
@@ -1032,7 +1032,7 @@ export const persisted: {
   <A extends Request.Request<any, Persistence.PersistenceError | Schema.SchemaError, any> & Persistable.Any>(
     options: {
       readonly storeId: string
-      readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+      readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.Input) | undefined
       readonly staleWhileRevalidate?: ((exit: Request.Result<A>, request: A) => boolean) | undefined
     }
   ): (self: RequestResolver<A>) => Effect.Effect<
@@ -1046,7 +1046,7 @@ export const persisted: {
     self: RequestResolver<A>,
     options: {
       readonly storeId: string
-      readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+      readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.Input) | undefined
       readonly staleWhileRevalidate?: ((exit: Request.Result<A>, request: A) => boolean) | undefined
     }
   ): Effect.Effect<
@@ -1062,7 +1062,7 @@ export const persisted: {
     self: RequestResolver<A>,
     options: {
       readonly storeId: string
-      readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+      readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.Input) | undefined
       readonly staleWhileRevalidate?: ((exit: Request.Result<A>, request: A) => boolean) | undefined
     }
   ) {

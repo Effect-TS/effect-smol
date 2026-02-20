@@ -255,17 +255,17 @@ const makeUnsafe = <K, A, E>(options: {
 export const make: {
   <K, A, E, R>(options: {
     readonly lookup: (key: K) => Effect.Effect<A, E, R>
-    readonly idleTimeToLive?: Duration.DurationInput | ((key: K) => Duration.DurationInput) | undefined
+    readonly idleTimeToLive?: Duration.Input | ((key: K) => Duration.Input) | undefined
     readonly capacity?: undefined
   }): Effect.Effect<RcMap<K, A, E>, never, Scope.Scope | R>
   <K, A, E, R>(options: {
     readonly lookup: (key: K) => Effect.Effect<A, E, R>
-    readonly idleTimeToLive?: Duration.DurationInput | ((key: K) => Duration.DurationInput) | undefined
+    readonly idleTimeToLive?: Duration.Input | ((key: K) => Duration.Input) | undefined
     readonly capacity: number
   }): Effect.Effect<RcMap<K, A, E | Cause.ExceededCapacityError>, never, Scope.Scope | R>
 } = <K, A, E, R>(options: {
   readonly lookup: (key: K) => Effect.Effect<A, E, R>
-  readonly idleTimeToLive?: Duration.DurationInput | ((key: K) => Duration.DurationInput) | undefined
+  readonly idleTimeToLive?: Duration.Input | ((key: K) => Duration.Input) | undefined
   readonly capacity?: number | undefined
 }) =>
   Effect.withFiber<RcMap<K, A, E>, never, R | Scope.Scope>((fiber) => {
@@ -276,8 +276,8 @@ export const make: {
       services,
       scope,
       idleTimeToLive: typeof options.idleTimeToLive === "function"
-        ? flow(options.idleTimeToLive, Duration.fromDurationInputUnsafe)
-        : constant(Duration.fromDurationInputUnsafe(options.idleTimeToLive ?? Duration.zero)),
+        ? flow(options.idleTimeToLive, Duration.fromInputUnsafe)
+        : constant(Duration.fromInputUnsafe(options.idleTimeToLive ?? Duration.zero)),
       capacity: Math.max(options.capacity ?? Number.POSITIVE_INFINITY, 0)
     })
     return Effect.as(

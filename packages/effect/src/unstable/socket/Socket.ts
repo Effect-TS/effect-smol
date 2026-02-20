@@ -5,7 +5,7 @@ import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import type * as Cause from "../../Cause.ts"
 import * as Channel from "../../Channel.ts"
 import * as Deferred from "../../Deferred.ts"
-import type { DurationInput } from "../../Duration.ts"
+import type { Input } from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as FiberSet from "../../FiberSet.ts"
@@ -418,7 +418,7 @@ export const layerWebSocketConstructorGlobal: Layer.Layer<WebSocketConstructor> 
  */
 export const makeWebSocket = (url: string | Effect.Effect<string>, options?: {
   readonly closeCodeIsError?: ((code: number) => boolean) | undefined
-  readonly openTimeout?: DurationInput | undefined
+  readonly openTimeout?: Input | undefined
   readonly protocols?: string | Array<string> | undefined
 }): Effect.Effect<Socket, never, WebSocketConstructor> =>
   fromWebSocket(
@@ -439,7 +439,7 @@ export const fromWebSocket = <RO>(
   acquire: Effect.Effect<globalThis.WebSocket, SocketError, RO>,
   options?: {
     readonly closeCodeIsError?: ((code: number) => boolean) | undefined
-    readonly openTimeout?: DurationInput | undefined
+    readonly openTimeout?: Input | undefined
   } | undefined
 ): Effect.Effect<Socket, never, Exclude<RO, Scope.Scope>> =>
   Effect.withFiber((fiber) => {
@@ -614,7 +614,7 @@ export const layerWebSocket: (
   url: string | Effect.Effect<string>,
   options?: {
     readonly closeCodeIsError?: ((code: number) => boolean) | undefined
-    readonly openTimeout?: DurationInput | undefined
+    readonly openTimeout?: Input | undefined
     readonly protocols?: string | Array<string> | undefined
   } | undefined
 ) => Layer.Layer<Socket, never, WebSocketConstructor> = flow(makeWebSocket, Layer.effect(Socket))

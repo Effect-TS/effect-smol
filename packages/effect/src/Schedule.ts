@@ -635,23 +635,22 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  */
 export const addDelay: {
   <Output, Error2 = never, Env2 = never>(
-    f: (output: Output) => Effect<Duration.DurationInput, Error2, Env2>
+    f: (output: Output) => Effect<Duration.Input, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
-    f: (output: Output) => Effect<Duration.DurationInput, Error2, Env2>
+    f: (output: Output) => Effect<Duration.Input, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
-  f: (output: Output) => Effect<Duration.DurationInput, Error2, Env2>
+  f: (output: Output) => Effect<Duration.Input, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   modifyDelay(
     self,
     (output, delay) =>
-      effect.map(f(output), (d) =>
-        Duration.sum(Duration.fromDurationInputUnsafe(d), Duration.fromDurationInputUnsafe(delay)))
+      effect.map(f(output), (d) => Duration.sum(Duration.fromInputUnsafe(d), Duration.fromInputUnsafe(delay)))
   ))
 
 /**
@@ -1573,8 +1572,8 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  * @since 2.0.0
  * @category constructors
  */
-export const duration = (durationInput: Duration.DurationInput): Schedule<Duration.Duration> => {
-  const duration = Duration.fromDurationInputUnsafe(durationInput)
+export const duration = (durationInput: Duration.Input): Schedule<Duration.Duration> => {
+  const duration = Duration.fromInputUnsafe(durationInput)
   return fromStepWithMetadata(effect.succeed((meta) =>
     meta.attempt === 1
       ? effect.succeed([duration, duration])
@@ -1667,10 +1666,10 @@ export const duration = (durationInput: Duration.DurationInput): Schedule<Durati
  * @since 4.0.0
  * @category constructors
  */
-export const during = (duration: Duration.DurationInput): Schedule<Duration.Duration> =>
+export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
   while_(
     elapsed,
-    ({ output }) => effect.succeed(Duration.isLessThanOrEqualTo(output, Duration.fromDurationInputUnsafe(duration)))
+    ({ output }) => effect.succeed(Duration.isLessThanOrEqualTo(output, Duration.fromInputUnsafe(duration)))
   )
 
 /**
@@ -2025,10 +2024,10 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  * @category constructors
  */
 export const exponential = (
-  base: Duration.DurationInput,
+  base: Duration.Input,
   factor: number = 2
 ): Schedule<Duration.Duration> => {
-  const baseMillis = Duration.toMillis(Duration.fromDurationInputUnsafe(base))
+  const baseMillis = Duration.toMillis(Duration.fromInputUnsafe(base))
   return fromStepWithMetadata(effect.succeed((meta) => {
     const duration = Duration.millis(baseMillis * Math.pow(factor, meta.attempt - 1))
     return effect.succeed([duration, duration])
@@ -2099,8 +2098,8 @@ export const exponential = (
  * @since 2.0.0
  * @category constructors
  */
-export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Duration> => {
-  const oneMillis = Duration.toMillis(Duration.fromDurationInputUnsafe(one))
+export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
+  const oneMillis = Duration.toMillis(Duration.fromInputUnsafe(one))
   return fromStep(effect.sync(() => {
     let a = 0
     let b = oneMillis
@@ -2176,8 +2175,8 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  * @since 2.0.0
  * @category constructors
  */
-export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
-  const window = Duration.toMillis(Duration.fromDurationInputUnsafe(interval))
+export const fixed = (interval: Duration.Input): Schedule<number> => {
+  const window = Duration.toMillis(Duration.fromInputUnsafe(interval))
   return fromStepWithMetadata(effect.succeed((meta) =>
     effect.succeed([
       meta.attempt - 1,
@@ -2317,7 +2316,7 @@ export const modifyDelay: {
     f: (
       output: Output,
       delay: Duration.Duration
-    ) => Effect<Duration.DurationInput, Error2, Env2>
+    ) => Effect<Duration.Input, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error | Error2, Env | Env2>
@@ -2325,20 +2324,20 @@ export const modifyDelay: {
     self: Schedule<Output, Input, Error, Env>,
     f: (
       output: Output,
-      delay: Duration.DurationInput
-    ) => Effect<Duration.DurationInput, Error2, Env2>
+      delay: Duration.Input
+    ) => Effect<Duration.Input, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   f: (
     output: Output,
-    delay: Duration.DurationInput
-  ) => Effect<Duration.DurationInput, Error2, Env2>
+    delay: Duration.Input
+  ) => Effect<Duration.Input, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   fromStep(effect.map(toStep(self), (step) => (now, input) =>
     effect.flatMap(
       step(now, input),
-      ([output, delay]) => effect.map(f(output, delay), (delay) => [output, Duration.fromDurationInputUnsafe(delay)])
+      ([output, delay]) => effect.map(f(output, delay), (delay) => [output, Duration.fromInputUnsafe(delay)])
     ))))
 
 /**
@@ -2354,7 +2353,7 @@ export const jittered = <Output, Input, Error, Env>(
 ): Schedule<Output, Input, Error, Env> =>
   modifyDelay(self, (_, delay) =>
     effect.map(randomNext, (random) => {
-      const millis = Duration.toMillis(Duration.fromDurationInputUnsafe(delay))
+      const millis = Duration.toMillis(Duration.fromInputUnsafe(delay))
       return Duration.millis(millis * 0.8 * (1 - random) + millis * 1.2 * random)
     }))
 
@@ -2644,8 +2643,8 @@ export const reduce: {
  * @since 2.0.0
  * @category constructors
  */
-export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
-  const decoded = Duration.fromDurationInputUnsafe(duration)
+export const spaced = (duration: Duration.Input): Schedule<number> => {
+  const decoded = Duration.fromInputUnsafe(duration)
   return fromStepWithMetadata(effect.succeed((meta) => effect.succeed([meta.attempt - 1, decoded])))
 }
 
@@ -3176,8 +3175,8 @@ export {
  * @since 2.0.0
  * @category constructors
  */
-export const windowed = (interval: Duration.DurationInput): Schedule<number> => {
-  const window = Duration.toMillis(Duration.fromDurationInputUnsafe(interval))
+export const windowed = (interval: Duration.Input): Schedule<number> => {
+  const window = Duration.toMillis(Duration.fromInputUnsafe(interval))
   return fromStepWithMetadata(effect.succeed((meta) =>
     effect.sync(() => [
       meta.attempt - 1,

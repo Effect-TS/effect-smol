@@ -85,11 +85,11 @@ export interface MssqlClientConfig {
   readonly database?: string | undefined
   readonly username?: string | undefined
   readonly password?: Redacted.Redacted | undefined
-  readonly connectTimeout?: Duration.DurationInput | undefined
+  readonly connectTimeout?: Duration.Input | undefined
 
   readonly minConnections?: number | undefined
   readonly maxConnections?: number | undefined
-  readonly connectionTTL?: Duration.DurationInput | undefined
+  readonly connectionTTL?: Duration.Input | undefined
 
   readonly parameterTypes?: Record<Statement.PrimitiveKind, DataType> | undefined
 
@@ -150,7 +150,7 @@ export const make = (
           database: options.database,
           trustServerCertificate: options.trustServer ?? true,
           connectTimeout: options.connectTimeout
-            ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.connectTimeout))
+            ? Duration.toMillis(Duration.fromInputUnsafe(options.connectTimeout))
             : undefined,
           rowCollectionOnRequestCompletion: true,
           useColumnNames: false,

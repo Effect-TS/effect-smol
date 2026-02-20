@@ -165,13 +165,13 @@ export interface WriteContext<A> {
  * @category combinators
  */
 export const setIdleTTL: {
-  (duration: Duration.DurationInput): <A extends Atom<any>>(self: A) => A
-  <A extends Atom<any>>(self: A, duration: Duration.DurationInput): A
+  (duration: Duration.Input): <A extends Atom<any>>(self: A) => A
+  <A extends Atom<any>>(self: A, duration: Duration.Input): A
 } = dual<
-  (duration: Duration.DurationInput) => <A extends Atom<any>>(self: A) => A,
-  <A extends Atom<any>>(self: A, duration: Duration.DurationInput) => A
+  (duration: Duration.Input) => <A extends Atom<any>>(self: A) => A,
+  <A extends Atom<any>>(self: A, duration: Duration.Input) => A
 >(2, (self, durationInput) => {
-  const duration = Duration.fromDurationInputUnsafe(durationInput)
+  const duration = Duration.fromInputUnsafe(durationInput)
   const isFinite = Duration.isFinite(duration)
   return Object.assign(Object.create(Object.getPrototypeOf(self)), {
     ...self,
@@ -1502,12 +1502,12 @@ export const mapResult: {
  * @category combinators
  */
 export const debounce: {
-  (duration: Duration.DurationInput): <A extends Atom<any>>(self: A) => WithoutSerializable<A>
-  <A extends Atom<any>>(self: A, duration: Duration.DurationInput): WithoutSerializable<A>
+  (duration: Duration.Input): <A extends Atom<any>>(self: A) => WithoutSerializable<A>
+  <A extends Atom<any>>(self: A, duration: Duration.Input): WithoutSerializable<A>
 } = dual(
   2,
-  <A>(self: Atom<A>, duration: Duration.DurationInput): Atom<A> => {
-    const millis = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
+  <A>(self: Atom<A>, duration: Duration.Input): Atom<A> => {
+    const millis = Duration.toMillis(Duration.fromInputUnsafe(duration))
     return transform(self, function(get) {
       let timeout: number | undefined
       let value = get.once(self)
@@ -1536,12 +1536,12 @@ export const debounce: {
  * @category combinators
  */
 export const withRefresh: {
-  (duration: Duration.DurationInput): <A extends Atom<any>>(self: A) => WithoutSerializable<A>
-  <A extends Atom<any>>(self: A, duration: Duration.DurationInput): WithoutSerializable<A>
+  (duration: Duration.Input): <A extends Atom<any>>(self: A) => WithoutSerializable<A>
+  <A extends Atom<any>>(self: A, duration: Duration.Input): WithoutSerializable<A>
 } = dual(
   2,
-  <A>(self: Atom<A>, duration: Duration.DurationInput): Atom<A> => {
-    const millis = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
+  <A>(self: Atom<A>, duration: Duration.Input): Atom<A> => {
+    const millis = Duration.toMillis(Duration.fromInputUnsafe(duration))
     return transform(self, function(get) {
       const handle = setTimeout(() => get.refresh(self), millis) as any
       get.addFinalizer(() => clearTimeout(handle))

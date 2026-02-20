@@ -2261,7 +2261,7 @@ describe("ScopedCache", () => {
 })
 
 // Helper functions for testing
-const makeScopedTestCache = (capacity: number, ttl?: Duration.DurationInput) =>
+const makeScopedTestCache = (capacity: number, ttl?: Duration.Input) =>
   Effect.gen(function*() {
     let lookupCount = 0
     const lookupResults = new Map<string, Effect.Effect<number, string>>()

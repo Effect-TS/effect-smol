@@ -62,14 +62,14 @@ export class CloseScope extends ServiceMap.Service<
  */
 export const make: <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
-  readonly idleTimeToLive?: Duration.DurationInput | undefined
+  readonly idleTimeToLive?: Duration.Input | undefined
 }) => Effect.Effect<
   EntityResource<A, E>,
   E,
   Scope.Scope | Exclude<R, CloseScope> | Sharding | Entity.CurrentAddress
 > = Effect.fnUntraced(function*<A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
-  readonly idleTimeToLive?: Duration.DurationInput | undefined
+  readonly idleTimeToLive?: Duration.Input | undefined
 }) {
   let shuttingDown = false
 
@@ -116,14 +116,14 @@ export const make: <A, E, R>(options: {
 export const makeK8sPod: (
   spec: v1.Pod,
   options?: {
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
+    readonly idleTimeToLive?: Duration.Input | undefined
   } | undefined
 ) => Effect.Effect<
   EntityResource<K8sHttpClient.PodStatus>,
   never,
   Scope.Scope | Sharding | Entity.CurrentAddress | K8sHttpClient.K8sHttpClient
 > = Effect.fnUntraced(function*(spec: v1.Pod, options?: {
-  readonly idleTimeToLive?: Duration.DurationInput | undefined
+  readonly idleTimeToLive?: Duration.Input | undefined
 }) {
   const createPod = yield* K8sHttpClient.makeCreatePod
   return yield* make({

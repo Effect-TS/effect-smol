@@ -80,12 +80,12 @@ export interface PgClientConfig {
 
   readonly stream?: (() => Duplex) | undefined
 
-  readonly idleTimeout?: Duration.DurationInput | undefined
-  readonly connectTimeout?: Duration.DurationInput | undefined
+  readonly idleTimeout?: Duration.Input | undefined
+  readonly connectTimeout?: Duration.Input | undefined
 
   readonly maxConnections?: number | undefined
   readonly minConnections?: number | undefined
-  readonly connectionTTL?: Duration.DurationInput | undefined
+  readonly connectionTTL?: Duration.Input | undefined
 
   readonly applicationName?: string | undefined
   readonly spanAttributes?: Record<string, unknown> | undefined
@@ -116,15 +116,15 @@ export const make = (
         port: options.port,
         ...(options.stream ? { stream: options.stream } : {}),
         connectionTimeoutMillis: options.connectTimeout
-          ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.connectTimeout))
+          ? Duration.toMillis(Duration.fromInputUnsafe(options.connectTimeout))
           : undefined,
         idleTimeoutMillis: options.idleTimeout
-          ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.idleTimeout))
+          ? Duration.toMillis(Duration.fromInputUnsafe(options.idleTimeout))
           : undefined,
         max: options.maxConnections,
         min: options.minConnections,
         maxLifetimeSeconds: options.connectionTTL
-          ? Duration.toSeconds(Duration.fromDurationInputUnsafe(options.connectionTTL))
+          ? Duration.toSeconds(Duration.fromInputUnsafe(options.connectionTTL))
           : undefined,
         application_name: options.applicationName ?? "@effect/sql-pg",
         types: options.types

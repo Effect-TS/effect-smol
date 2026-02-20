@@ -295,26 +295,26 @@ export const layerStoreMemory: Layer.Layer<
 export const makeStoreRedis = Effect.fnUntraced(function*(
   options?: {
     readonly prefix?: string | undefined
-    readonly pollInterval?: Duration.DurationInput | undefined
-    readonly lockRefreshInterval?: Duration.DurationInput | undefined
-    readonly lockExpiration?: Duration.DurationInput | undefined
+    readonly pollInterval?: Duration.Input | undefined
+    readonly lockRefreshInterval?: Duration.Input | undefined
+    readonly lockExpiration?: Duration.Input | undefined
   }
 ) {
   const redis = yield* Redis.Redis
 
   const pollInterval = Duration.max(
-    options?.pollInterval ? Duration.fromDurationInputUnsafe(options.pollInterval) : Duration.seconds(1),
+    options?.pollInterval ? Duration.fromInputUnsafe(options.pollInterval) : Duration.seconds(1),
     Duration.millis(1)
   )
   const lockRefreshMillis = Math.max(
     options?.lockRefreshInterval
-      ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.lockRefreshInterval))
+      ? Duration.toMillis(Duration.fromInputUnsafe(options.lockRefreshInterval))
       : 30_000,
     1
   )
   const lockExpirationMillis = Math.max(
     options?.lockExpiration
-      ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.lockExpiration))
+      ? Duration.toMillis(Duration.fromInputUnsafe(options.lockExpiration))
       : 90_000,
     1
   )
@@ -654,9 +654,9 @@ end
 export const layerStoreRedis: (
   options?: {
     readonly prefix?: string | undefined
-    readonly pollInterval?: Duration.DurationInput | undefined
-    readonly lockRefreshInterval?: Duration.DurationInput | undefined
-    readonly lockExpiration?: Duration.DurationInput | undefined
+    readonly pollInterval?: Duration.Input | undefined
+    readonly lockRefreshInterval?: Duration.Input | undefined
+    readonly lockExpiration?: Duration.Input | undefined
   } | undefined
 ) => Layer.Layer<
   PersistedQueueStore,
@@ -671,9 +671,9 @@ export const layerStoreRedis: (
 export const makeStoreSql: (
   options?: {
     readonly tableName?: string | undefined
-    readonly pollInterval?: Duration.DurationInput | undefined
-    readonly lockRefreshInterval?: Duration.DurationInput | undefined
-    readonly lockExpiration?: Duration.DurationInput | undefined
+    readonly pollInterval?: Duration.Input | undefined
+    readonly lockRefreshInterval?: Duration.Input | undefined
+    readonly lockExpiration?: Duration.Input | undefined
   } | undefined
 ) => Effect.Effect<
   PersistedQueueStore["Service"],
@@ -684,15 +684,15 @@ export const makeStoreSql: (
   const tableName = options?.tableName ?? "effect_queue"
   const tableNameSql = sql(tableName)
   const pollInterval = Duration.max(
-    options?.pollInterval ? Duration.fromDurationInputUnsafe(options.pollInterval) : Duration.millis(1000),
+    options?.pollInterval ? Duration.fromInputUnsafe(options.pollInterval) : Duration.millis(1000),
     Duration.millis(1)
   )
   const lockRefreshInterval = Duration.max(
-    options?.lockRefreshInterval ? Duration.fromDurationInputUnsafe(options.lockRefreshInterval) : Duration.seconds(30),
+    options?.lockRefreshInterval ? Duration.fromInputUnsafe(options.lockRefreshInterval) : Duration.seconds(30),
     Duration.millis(1)
   )
   const lockExpiration = Duration.max(
-    options?.lockExpiration ? Duration.fromDurationInputUnsafe(options.lockExpiration) : Duration.minutes(2),
+    options?.lockExpiration ? Duration.fromInputUnsafe(options.lockExpiration) : Duration.minutes(2),
     Duration.millis(1)
   )
   const lockExpirationSql = sql.literal(Math.ceil(Duration.toSeconds(lockExpiration)).toString())
@@ -1099,9 +1099,9 @@ class QueueKey extends Data.Class<{
 export const layerStoreSql: (
   options?: {
     readonly tableName?: string | undefined
-    readonly pollInterval?: Duration.DurationInput | undefined
-    readonly lockRefreshInterval?: Duration.DurationInput | undefined
-    readonly lockExpiration?: Duration.DurationInput | undefined
+    readonly pollInterval?: Duration.Input | undefined
+    readonly lockRefreshInterval?: Duration.Input | undefined
+    readonly lockExpiration?: Duration.Input | undefined
   } | undefined
 ) => Layer.Layer<
   PersistedQueueStore,

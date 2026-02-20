@@ -81,7 +81,7 @@ export interface TestClock extends Clock.Clock {
    * that were scheduled to occur on or before the new time will be run in
    * order.
    */
-  adjust(duration: Duration.DurationInput): Effect.Effect<void>
+  adjust(duration: Duration.Input): Effect.Effect<void>
   /**
    * Sets the current clock time to the specified `timestamp`. Any effects that
    * were scheduled to occur on or before the new time will be run in order.
@@ -141,7 +141,7 @@ export declare namespace TestClock {
      * The amount of time to wait before displaying a warning message when a
      * test is using time but is not advancing the `TestClock`.
      */
-    readonly warningDelay?: Duration.DurationInput
+    readonly warningDelay?: Duration.Input
   }
 
   /**
@@ -319,8 +319,8 @@ export const make = Effect.fnUntraced(function*(
     currentTimestamp = endTimestamp
   }, runSemaphore.withPermits(1))
 
-  function adjust(duration: Duration.DurationInput) {
-    const millis = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
+  function adjust(duration: Duration.Input) {
+    const millis = Duration.toMillis(Duration.fromInputUnsafe(duration))
     return warningDone.pipe(Effect.andThen(run((timestamp) => timestamp + millis)))
   }
 
@@ -431,7 +431,7 @@ export const testClockWith = <A, E, R>(
  * @since 2.0.0
  * @category utils
  */
-export const adjust = (duration: Duration.DurationInput): Effect.Effect<void> =>
+export const adjust = (duration: Duration.Input): Effect.Effect<void> =>
   testClockWith((testClock) => testClock.adjust(duration))
 
 /**

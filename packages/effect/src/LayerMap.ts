@@ -119,7 +119,7 @@ export const make: <
 >(
   lookup: (key: K) => L,
   options?: {
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
+    readonly idleTimeToLive?: Duration.Input | undefined
     readonly preloadKeys?: PreloadKeys
   } | undefined
 ) => Effect.Effect<
@@ -129,7 +129,7 @@ export const make: <
 > = Effect.fnUntraced(function*<I, K, EL, RL>(
   lookup: (key: K) => Layer.Layer<I, EL, RL>,
   options?: {
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
+    readonly idleTimeToLive?: Duration.Input | undefined
   } | undefined
 ) {
   const services = yield* Effect.services<never>()
@@ -198,7 +198,7 @@ export const fromRecord = <
 >(
   layers: Layers,
   options?: {
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
+    readonly idleTimeToLive?: Duration.Input | undefined
     readonly preload?: Preload | undefined
   } | undefined
 ): Effect.Effect<
@@ -309,7 +309,7 @@ export const Service = <Self>() =>
     | NoExcessProperties<{
       readonly lookup: (key: any) => Layer.Layer<any, any, any>
       readonly dependencies?: ReadonlyArray<Layer.Layer<any, any, any>> | undefined
-      readonly idleTimeToLive?: Duration.DurationInput | undefined
+      readonly idleTimeToLive?: Duration.Input | undefined
       readonly preloadKeys?:
         | Iterable<Options extends { readonly lookup: (key: infer K) => any } ? K : never>
         | undefined
@@ -317,7 +317,7 @@ export const Service = <Self>() =>
     | NoExcessProperties<{
       readonly layers: Record<string, Layer.Layer<any, any, any>>
       readonly dependencies?: ReadonlyArray<Layer.Layer<any, any, any>> | undefined
-      readonly idleTimeToLive?: Duration.DurationInput | undefined
+      readonly idleTimeToLive?: Duration.Input | undefined
       readonly preload?: boolean | undefined
     }, Options>
 >(

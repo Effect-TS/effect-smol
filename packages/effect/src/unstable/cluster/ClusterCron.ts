@@ -51,7 +51,7 @@ export const make = <E, R>(options: {
    *
    * Defaults to "1 day".
    */
-  readonly skipIfOlderThan?: Duration.DurationInput | undefined
+  readonly skipIfOlderThan?: Duration.Input | undefined
 }): Layer.Layer<never, never, Sharding | Exclude<R, Scope>> => {
   const CronEntity = Entity.make(`ClusterCron/${options.name}`, [
     Rpc.make("run", {
@@ -76,7 +76,7 @@ export const make = <E, R>(options: {
   )
 
   const skipIfOlderThan = Option.fromUndefinedOr(options.skipIfOlderThan).pipe(
-    Option.map(Duration.fromDurationInputUnsafe),
+    Option.map(Duration.fromInputUnsafe),
     Option.getOrElse(() => Duration.days(1))
   )
 

@@ -144,8 +144,10 @@ export function throws(thunk: () => void, error?: Error | ((u: unknown) => undef
     if (error !== undefined) {
       if (Predicate.isFunction(error)) {
         error(e)
-      } else {
+      } else if (error) {
         deepStrictEqual(e, error)
+      } else {
+        throw e
       }
     }
   }

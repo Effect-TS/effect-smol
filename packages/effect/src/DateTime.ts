@@ -12,7 +12,6 @@ import { provideService } from "./internal/effect.ts"
 import * as Layer from "./Layer.ts"
 import type * as order from "./Order.ts"
 import type { Pipeable } from "./Pipeable.ts"
-import type * as Result from "./Result.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 
 const TypeId = Internal.TypeId
@@ -965,65 +964,12 @@ export const setZoneNamedUnsafe: {
 // =============================================================================
 
 /**
- * Calulate the difference between two `DateTime` values, returning the number
- * of milliseconds the `other` DateTime is from `self`.
+ * Calulate the difference between two `DateTime` values, returning a
+ * `Duration` representing the amount of time between them.
  *
- * If `other` is *after* `self`, the result will be a positive number.
- *
- * @since 3.6.0
- * @category comparisons
- * @example
- * ```ts
- * import { DateTime, Effect } from "effect"
- *
- * Effect.gen(function*() {
- *   const now = yield* DateTime.now
- *   const other = DateTime.add(now, { minutes: 1 })
- *
- *   // returns 60000
- *   DateTime.distance(now, other)
- * })
- * ```
- */
-export const distance: {
-  (other: DateTime): (self: DateTime) => number
-  (self: DateTime, other: DateTime): number
-} = Internal.distance
-
-/**
- * Calulate the difference between two `DateTime` values.
- *
- * If the `other` DateTime is before `self`, the result will be a negative
- * `Duration`, returned as a `Failure`.
- *
- * If the `other` DateTime is after `self`, the result will be a positive
- * `Duration`, returned as a `Success`.
- *
- * @since 3.6.0
- * @category comparisons
- * @example
- * ```ts
- * import { DateTime, Effect } from "effect"
- *
- * Effect.gen(function*() {
- *   const now = yield* DateTime.now
- *   const other = DateTime.add(now, { minutes: 1 })
- *
- *   // returns Result.succeed(Duration.minutes(1))
- *   DateTime.distanceDurationResult(now, other)
- *
- *   // returns Result.fail(Duration.minutes(1))
- *   DateTime.distanceDurationResult(other, now)
- * })
- * ```
- */
-export const distanceDurationResult: {
-  (other: DateTime): (self: DateTime) => Result.Result<Duration.Duration, Duration.Duration>
-  (self: DateTime, other: DateTime): Result.Result<Duration.Duration, Duration.Duration>
-} = Internal.distanceDurationResult
-
-/**
- * Calulate the distance between two `DateTime` values.
+ * If `other` is *after* `self`, the result will be a positive `Duration`. If
+ * `other` is *before* `self`, the result will be a negative `Duration`. If they
+ * are equal, the result will be a `Duration` of zero.
  *
  * @since 3.6.0
  * @category comparisons
@@ -1036,14 +982,14 @@ export const distanceDurationResult: {
  *   const other = DateTime.add(now, { minutes: 1 })
  *
  *   // returns Duration.minutes(1)
- *   DateTime.distanceDuration(now, other)
+ *   DateTime.distance(now, other)
  * })
  * ```
  */
-export const distanceDuration: {
+export const distance: {
   (other: DateTime): (self: DateTime) => Duration.Duration
   (self: DateTime, other: DateTime): Duration.Duration
-} = Internal.distanceDuration
+} = Internal.distance
 
 /**
  * Returns the earlier of two `DateTime` values.
@@ -1938,8 +1884,8 @@ export const match: {
  * ```
  */
 export const addDuration: {
-  (duration: Duration.DurationInput): <A extends DateTime>(self: A) => A
-  <A extends DateTime>(self: A, duration: Duration.DurationInput): A
+  (duration: Duration.Input): <A extends DateTime>(self: A) => A
+  <A extends DateTime>(self: A, duration: Duration.Input): A
 } = Internal.addDuration
 
 /**
@@ -1958,8 +1904,8 @@ export const addDuration: {
  * ```
  */
 export const subtractDuration: {
-  (duration: Duration.DurationInput): <A extends DateTime>(self: A) => A
-  <A extends DateTime>(self: A, duration: Duration.DurationInput): A
+  (duration: Duration.Input): <A extends DateTime>(self: A) => A
+  <A extends DateTime>(self: A, duration: Duration.Input): A
 } = Internal.subtractDuration
 
 /**

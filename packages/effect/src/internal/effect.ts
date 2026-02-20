@@ -3404,24 +3404,24 @@ export const isSuccess: <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect
 /** @internal */
 export const delay: {
   (
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): Effect.Effect<A, E, R>
 } = dual(
   2,
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): Effect.Effect<A, E, R> => andThen(sleep(duration), self)
 )
 
 /** @internal */
 export const timeoutOrElse: {
   <A2, E2, R2>(options: {
-    readonly duration: Duration.DurationInput
+    readonly duration: Duration.Input
     readonly onTimeout: LazyArg<Effect.Effect<A2, E2, R2>>
   }): <A, E, R>(
     self: Effect.Effect<A, E, R>
@@ -3429,7 +3429,7 @@ export const timeoutOrElse: {
   <A, E, R, A2, E2, R2>(
     self: Effect.Effect<A, E, R>,
     options: {
-      readonly duration: Duration.DurationInput
+      readonly duration: Duration.Input
       readonly onTimeout: LazyArg<Effect.Effect<A2, E2, R2>>
     }
   ): Effect.Effect<A | A2, E | E2, R | R2>
@@ -3438,7 +3438,7 @@ export const timeoutOrElse: {
   <A, E, R, A2, E2, R2>(
     self: Effect.Effect<A, E, R>,
     options: {
-      readonly duration: Duration.DurationInput
+      readonly duration: Duration.Input
       readonly onTimeout: LazyArg<Effect.Effect<A2, E2, R2>>
     }
   ): Effect.Effect<A | A2, E | E2, R | R2> =>
@@ -3451,19 +3451,19 @@ export const timeoutOrElse: {
 /** @internal */
 export const timeout: {
   (
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E | Cause.TimeoutError, R>
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): Effect.Effect<A, E | Cause.TimeoutError, R>
 } = dual(
   2,
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): Effect.Effect<A, E | TimeoutError, R> =>
     timeoutOrElse(self, {
       duration,
@@ -3474,19 +3474,19 @@ export const timeout: {
 /** @internal */
 export const timeoutOption: {
   (
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<Option.Option<A>, E, R>
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): Effect.Effect<Option.Option<A>, E, R>
 } = dual(
   2,
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): Effect.Effect<Option.Option<A>, E, R> =>
     raceFirst(
       asSome(self),
@@ -3874,19 +3874,19 @@ export const acquireUseRelease = <Resource, E, R, A, E2, R2, E3, R3>(
 
 /** @internal */
 export const cachedInvalidateWithTTL: {
-  (timeToLive: Duration.DurationInput): <A, E, R>(
+  (timeToLive: Duration.Input): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<[Effect.Effect<A, E, R>, Effect.Effect<void>]>
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
-    timeToLive: Duration.DurationInput
+    timeToLive: Duration.Input
   ): Effect.Effect<[Effect.Effect<A, E, R>, Effect.Effect<void>]>
 } = dual(2, <A, E, R>(
   self: Effect.Effect<A, E, R>,
-  ttl: Duration.DurationInput
+  ttl: Duration.Input
 ): Effect.Effect<[Effect.Effect<A, E, R>, Effect.Effect<void>]> =>
   sync(() => {
-    const ttlMillis = Duration.toMillis(Duration.fromDurationInputUnsafe(ttl))
+    const ttlMillis = Duration.toMillis(Duration.fromInputUnsafe(ttl))
     const isFinite = Number.isFinite(ttlMillis)
     const latch = makeLatchUnsafe(false)
     let expiresAt = 0
@@ -3919,17 +3919,17 @@ export const cachedInvalidateWithTTL: {
 /** @internal */
 export const cachedWithTTL: {
   (
-    timeToLive: Duration.DurationInput
+    timeToLive: Duration.Input
   ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Effect.Effect<A, E, R>>
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
-    timeToLive: Duration.DurationInput
+    timeToLive: Duration.Input
   ): Effect.Effect<Effect.Effect<A, E, R>>
 } = dual(
   2,
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
-    timeToLive: Duration.DurationInput
+    timeToLive: Duration.Input
   ): Effect.Effect<Effect.Effect<A, E, R>> => map(cachedInvalidateWithTTL(self, timeToLive), (tuple) => tuple[0])
 )
 
@@ -5345,8 +5345,8 @@ export const clockWith = <A, E, R>(f: (clock: Clock.Clock) => Effect.Effect<A, E
   withFiber((fiber) => f(fiber.getRef(ClockRef)))
 
 /** @internal */
-export const sleep = (duration: Duration.DurationInput): Effect.Effect<void> =>
-  clockWith((clock) => clock.sleep(Duration.fromDurationInputUnsafe(duration)))
+export const sleep = (duration: Duration.Input): Effect.Effect<void> =>
+  clockWith((clock) => clock.sleep(Duration.fromInputUnsafe(duration)))
 
 /** @internal */
 export const currentTimeMillis: Effect.Effect<number> = clockWith((clock) => clock.currentTimeMillis)

@@ -4,7 +4,7 @@
 import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import { Clock } from "../../Clock.ts"
-import type { DurationInput } from "../../Duration.ts"
+import type { Input } from "../../Duration.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Equal from "../../Equal.ts"
@@ -115,7 +115,7 @@ export class Sharding extends ServiceMap.Service<Sharding, {
     entity: Entity<Type, Rpcs>,
     handlers: Effect.Effect<Handlers, never, RX>,
     options?: {
-      readonly maxIdleTime?: DurationInput | undefined
+      readonly maxIdleTime?: Input | undefined
       readonly concurrency?: number | "unbounded" | undefined
       readonly mailboxCapacity?: number | "unbounded" | undefined
       readonly disableFatalDefects?: boolean | undefined
@@ -440,7 +440,7 @@ const make = Effect.gen(function*() {
   if (storageEnabled && config.runnerAddress) {
     const selfAddress = config.runnerAddress
     const entityRegistrationTimeoutMillis = Duration.toMillis(
-      Duration.fromDurationInputUnsafe(config.entityRegistrationTimeout)
+      Duration.fromInputUnsafe(config.entityRegistrationTimeout)
     )
     const storageStartMillis = clock.currentTimeMillisUnsafe()
 

@@ -86,7 +86,7 @@ export interface Cookie extends Inspectable.Inspectable {
   readonly options?: {
     readonly domain?: string | undefined
     readonly expires?: Date | undefined
-    readonly maxAge?: Duration.DurationInput | undefined
+    readonly maxAge?: Duration.Input | undefined
     readonly path?: string | undefined
     readonly priority?: "low" | "medium" | "high" | undefined
     readonly httpOnly?: boolean | undefined
@@ -418,7 +418,7 @@ export function makeCookie(
       return Result.fail(CookiesError.fromReason("InvalidCookiePath"))
     }
 
-    if (options.maxAge !== undefined && !Duration.isFinite(Duration.fromDurationInputUnsafe(options.maxAge))) {
+    if (options.maxAge !== undefined && !Duration.isFinite(Duration.fromInputUnsafe(options.maxAge))) {
       return Result.fail(CookiesError.fromReason("CookieInfinityMaxAge"))
     }
   }
@@ -656,7 +656,7 @@ export function serializeCookie(self: Cookie): string {
   const options = self.options
 
   if (options.maxAge !== undefined) {
-    const maxAge = Duration.toSeconds(Duration.fromDurationInputUnsafe(options.maxAge))
+    const maxAge = Duration.toSeconds(Duration.fromInputUnsafe(options.maxAge))
     str += "; Max-Age=" + Math.trunc(maxAge)
   }
 

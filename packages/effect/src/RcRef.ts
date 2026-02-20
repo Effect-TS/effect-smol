@@ -120,7 +120,7 @@ export const make: <A, E, R>(
      * When the reference count reaches zero, the resource will be released
      * after this duration.
      */
-    readonly idleTimeToLive?: Duration.DurationInput | undefined
+    readonly idleTimeToLive?: Duration.Input | undefined
   }
 ) => Effect.Effect<RcRef<A, E>, never, R | Scope> = internal.make
 

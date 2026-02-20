@@ -2035,12 +2035,12 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
   constructor(id: string, options: {
     readonly description?: string | undefined
     readonly attributes?: Metric.Attributes | undefined
-    readonly maxAge: Duration.DurationInput
+    readonly maxAge: Duration.Input
     readonly maxSize: number
     readonly quantiles: ReadonlyArray<number>
   }) {
     super(id, options?.description, attributesToRecord(options?.attributes))
-    this.#maxAge = Math.max(Duration.toMillis(Duration.fromDurationInputUnsafe(options.maxAge)), 0)
+    this.#maxAge = Math.max(Duration.toMillis(Duration.fromInputUnsafe(options.maxAge)), 0)
     this.#maxSize = options.maxSize
     this.#quantiles = options.quantiles
   }
@@ -2560,7 +2560,7 @@ export const histogram = (name: string, options: {
 export const summary = (name: string, options: {
   readonly description?: string | undefined
   readonly attributes?: Metric.Attributes | undefined
-  readonly maxAge: Duration.DurationInput
+  readonly maxAge: Duration.Input
   readonly maxSize: number
   readonly quantiles: ReadonlyArray<number>
 }): Summary<number> =>
@@ -2606,7 +2606,7 @@ export const summary = (name: string, options: {
 export const summaryWithTimestamp = (name: string, options: {
   readonly description?: string | undefined
   readonly attributes?: Metric.Attributes | undefined
-  readonly maxAge: Duration.DurationInput
+  readonly maxAge: Duration.Input
   readonly maxSize: number
   readonly quantiles: ReadonlyArray<number>
 }): Summary<[value: number, timestamp: number]> => new SummaryMetric(name, options)

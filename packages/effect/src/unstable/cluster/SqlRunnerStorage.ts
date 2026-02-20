@@ -166,7 +166,7 @@ export const make = Effect.fnUntraced(function*(options: {
 
   const expiresSeconds = sql.literal(
     Math.ceil(Duration.toSeconds(
-      Duration.fromDurationInputUnsafe(config.shardLockExpiration)
+      Duration.fromInputUnsafe(config.shardLockExpiration)
     )).toString()
   )
   const lockExpiresAt = sql.onDialectOrElse({

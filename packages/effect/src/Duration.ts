@@ -90,7 +90,7 @@ export type Unit =
  * @since 2.0.0
  * @category models
  */
-export type DurationInput =
+export type Input =
   | Duration
   | number // millis
   | bigint // nanos
@@ -100,23 +100,23 @@ export type DurationInput =
 const DURATION_REGEXP = /^(-?\d+(?:\.\d+)?)\s+(nanos?|micros?|millis?|seconds?|minutes?|hours?|days?|weeks?)$/
 
 /**
- * Decodes a `DurationInput` into a `Duration`.
+ * Decodes a `Duration.Input` into a `Duration`.
  *
- * If the input is not a valid `DurationInput`, it throws an error.
+ * If the input is not a valid `Duration.Input`, it throws an error.
  *
  * @example
  * ```ts
  * import { Duration } from "effect"
  *
- * const duration1 = Duration.fromDurationInputUnsafe(1000) // 1000 milliseconds
- * const duration2 = Duration.fromDurationInputUnsafe("5 seconds")
- * const duration3 = Duration.fromDurationInputUnsafe([2, 500_000_000]) // 2 seconds and 500ms
+ * const duration1 = Duration.fromInputUnsafe(1000) // 1000 milliseconds
+ * const duration2 = Duration.fromInputUnsafe("5 seconds")
+ * const duration3 = Duration.fromInputUnsafe([2, 500_000_000]) // 2 seconds and 500ms
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const fromDurationInputUnsafe = (input: DurationInput): Duration => {
+export const fromInputUnsafe = (input: Input): Duration => {
   if (isDuration(input)) return input
   if (isNumber(input)) return millis(input)
   if (isBigInt(input)) return nanos(input)
@@ -168,11 +168,11 @@ export const fromDurationInputUnsafe = (input: DurationInput): Duration => {
       }
     }
   }
-  throw new Error(`Invalid DurationInput: ${input}`)
+  throw new Error(`Invalid Input: ${input}`)
 }
 
 /**
- * Safely decodes a `DurationInput` value into a `Duration`, returning
+ * Safely decodes a `Input` value into a `Duration`, returning
  * `undefined` if decoding fails.
  *
  * **Example**
@@ -180,16 +180,16 @@ export const fromDurationInputUnsafe = (input: DurationInput): Duration => {
  * ```ts
  * import { Duration } from "effect"
  *
- * Duration.fromDurationInput(1000)?.pipe(Duration.toSeconds) // 1
+ * Duration.fromInput(1000)?.pipe(Duration.toSeconds) // 1
  *
- * Duration.fromDurationInput("invalid" as any) // undefined
+ * Duration.fromInput("invalid" as any) // undefined
  * ```
  *
  * @category constructors
  * @since 4.0.0
  */
-export const fromDurationInput: (u: DurationInput) => Duration | undefined = UndefinedOr.liftThrowable(
-  fromDurationInputUnsafe
+export const fromInput: (u: Input) => Duration | undefined = UndefinedOr.liftThrowable(
+  fromInputUnsafe
 )
 
 const zeroDurationValue: DurationValue = { _tag: "Millis", millis: 0 }
@@ -611,8 +611,8 @@ export const weeks = (weeks: number): Duration => make(weeks * 604_800_000)
  * @since 2.0.0
  * @category getters
  */
-export const toMillis = (self: Duration): number =>
-  match(self, {
+export const toMillis = (self: Input): number =>
+  match(fromInputUnsafe(self), {
     onMillis: identity,
     onNanos: (nanos) => Number(nanos) / 1_000_000,
     onInfinity: () => Infinity,

@@ -1111,7 +1111,7 @@ export const makeProtocolWorker = (
     readonly maxSize: number
     readonly concurrency?: number | undefined
     readonly targetUtilization?: number | undefined
-    readonly timeToLive: Duration.DurationInput
+    readonly timeToLive: Duration.Input
   }
 ): Effect.Effect<
   Protocol["Service"],
@@ -1259,7 +1259,7 @@ export const layerProtocolWorker: (
     readonly maxSize: number
     readonly concurrency?: number | undefined
     readonly targetUtilization?: number | undefined
-    readonly timeToLive: Duration.DurationInput
+    readonly timeToLive: Duration.Input
   }
 ) => Layer.Layer<
   Protocol,

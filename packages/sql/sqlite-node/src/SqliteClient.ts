@@ -71,7 +71,7 @@ export interface SqliteClientConfig {
   readonly filename: string
   readonly readonly?: boolean | undefined
   readonly prepareCacheSize?: number | undefined
-  readonly prepareCacheTTL?: Duration.DurationInput | undefined
+  readonly prepareCacheTTL?: Duration.Input | undefined
   readonly disableWAL?: boolean | undefined
   readonly spanAttributes?: Record<string, unknown> | undefined
 

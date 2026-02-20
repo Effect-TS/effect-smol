@@ -40,10 +40,10 @@ export const make: (
     readonly url: string
     readonly headers: Headers.Input | undefined
     readonly label: string
-    readonly exportInterval: Duration.DurationInput
+    readonly exportInterval: Duration.Input
     readonly maxBatchSize: number | "disabled"
     readonly body: (data: Array<any>) => HttpBody
-    readonly shutdownTimeout: Duration.DurationInput
+    readonly shutdownTimeout: Duration.Input
   }
 ) => Effect.Effect<
   { readonly push: (data: unknown) => void },
@@ -54,7 +54,7 @@ export const make: (
   const clock = ServiceMap.get(services, Clock)
   const scope = ServiceMap.get(services, Scope.Scope)
   const runFork = Effect.runForkWith(services)
-  const exportInterval = Duration.max(Duration.fromDurationInputUnsafe(options.exportInterval), Duration.zero)
+  const exportInterval = Duration.max(Duration.fromInputUnsafe(options.exportInterval), Duration.zero)
   let disabledUntil: number | undefined = undefined
 
   const client = HttpClient.filterStatusOk(ServiceMap.get(services, HttpClient.HttpClient)).pipe(

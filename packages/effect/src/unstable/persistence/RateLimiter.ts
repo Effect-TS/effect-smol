@@ -32,7 +32,7 @@ export interface RateLimiter {
   readonly consume: (options: {
     readonly algorithm?: "fixed-window" | "token-bucket" | undefined
     readonly onExceeded?: "delay" | "fail" | undefined
-    readonly window: Duration.DurationInput
+    readonly window: Duration.Input
     readonly limit: number
     readonly key: string
     readonly tokens?: number | undefined
@@ -62,7 +62,7 @@ export const make: Effect.Effect<
       const tokens = options.tokens ?? 1
       const onExceeded = options.onExceeded ?? "fail"
       const algorithm = options.algorithm ?? "fixed-window"
-      const window = Duration.max(Duration.fromDurationInputUnsafe(options.window), Duration.millis(1))
+      const window = Duration.max(Duration.fromInputUnsafe(options.window), Duration.millis(1))
       const windowMillis = Duration.toMillis(window)
       const refillRate = Duration.divideUnsafe(window, options.limit)
       const refillRateMillis = Duration.toMillis(refillRate)
@@ -222,7 +222,7 @@ export const makeWithRateLimiter: Effect.Effect<
   ((options: {
     readonly algorithm?: "fixed-window" | "token-bucket" | undefined
     readonly onExceeded?: "delay" | "fail" | undefined
-    readonly window: Duration.DurationInput
+    readonly window: Duration.Input
     readonly limit: number
     readonly key: string
     readonly tokens?: number | undefined
@@ -266,7 +266,7 @@ export const makeWithRateLimiter: Effect.Effect<
 export const makeSleep: Effect.Effect<
   ((options: {
     readonly algorithm?: "fixed-window" | "token-bucket" | undefined
-    readonly window: Duration.DurationInput
+    readonly window: Duration.Input
     readonly limit: number
     readonly key: string
     readonly tokens?: number | undefined

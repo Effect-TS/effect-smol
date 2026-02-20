@@ -37,7 +37,7 @@ export class NetSocket extends ServiceMap.Service<NetSocket, Net.Socket>()(
  */
 export const makeNet = (
   options: Net.NetConnectOpts & {
-    readonly openTimeout?: Duration.DurationInput | undefined
+    readonly openTimeout?: Duration.Input | undefined
   }
 ): Effect.Effect<Socket.Socket> =>
   fromDuplex(
@@ -83,7 +83,7 @@ export const makeNet = (
 export const fromDuplex = <RO>(
   open: Effect.Effect<Duplex, Socket.SocketError, RO>,
   options?: {
-    readonly openTimeout?: Duration.DurationInput | undefined
+    readonly openTimeout?: Duration.Input | undefined
   }
 ): Effect.Effect<Socket.Socket, never, Exclude<RO, Scope.Scope>> =>
   Effect.withFiber<Socket.Socket, never, Exclude<RO, Scope.Scope>>((fiber) => {

@@ -5,7 +5,7 @@ import * as Otel from "@opentelemetry/sdk-logs"
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Arr from "effect/Array"
 import * as Clock from "effect/Clock"
-import type { DurationInput } from "effect/Duration"
+import type { Input } from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Logger from "effect/Logger"
@@ -98,7 +98,7 @@ export const layer = (options: {
 export const layerLoggerProvider = (
   processor: Otel.LogRecordProcessor | NonEmptyReadonlyArray<Otel.LogRecordProcessor>,
   config?: Omit<Otel.LoggerProviderConfig, "resource"> & {
-    readonly shutdownTimeout?: DurationInput | undefined
+    readonly shutdownTimeout?: Input | undefined
   }
 ): Layer.Layer<OtelLoggerProvider, never, Resource> =>
   Layer.effect(

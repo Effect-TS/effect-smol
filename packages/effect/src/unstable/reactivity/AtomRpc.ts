@@ -71,7 +71,7 @@ export interface AtomRpcClient<Self, Id extends string, Rpcs extends Rpc.Any, E>
         | ReadonlyArray<unknown>
         | ReadonlyRecord<string, ReadonlyArray<unknown>>
         | undefined
-      readonly timeToLive?: Duration.DurationInput | undefined
+      readonly timeToLive?: Duration.Input | undefined
     }
   ) => Rpc.ExtractTag<Rpcs, Tag> extends Rpc.Rpc<
     infer _Tag,
@@ -208,7 +208,7 @@ export const Service = <Self>() =>
         | ReadonlyArray<unknown>
         | ReadonlyRecord<string, ReadonlyArray<unknown>>
         | undefined
-      readonly timeToLive?: Duration.DurationInput | undefined
+      readonly timeToLive?: Duration.Input | undefined
     }
   ) =>
     queryFamily({
@@ -219,7 +219,7 @@ export const Service = <Self>() =>
         : undefined,
       reactivityKeys: options?.reactivityKeys,
       timeToLive: options?.timeToLive
-        ? Duration.fromDurationInputUnsafe(options.timeToLive)
+        ? Duration.fromInputUnsafe(options.timeToLive)
         : undefined
     }) as any
 

@@ -861,7 +861,7 @@ export const formatJson = map(formatStructured, Formatter.formatJson)
  */
 export const batched = dual<
   <Output>(options: {
-    readonly window: Duration.DurationInput
+    readonly window: Duration.Input
     readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
   }) => <Message>(
     self: Logger<Message, Output>
@@ -869,14 +869,14 @@ export const batched = dual<
   <Message, Output>(
     self: Logger<Message, Output>,
     options: {
-      readonly window: Duration.DurationInput
+      readonly window: Duration.Input
       readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
     }
   ) => Effect.Effect<Logger<Message, void>, never, Scope.Scope>
 >(2, <Message, Output>(
   self: Logger<Message, Output>,
   options: {
-    readonly window: Duration.DurationInput
+    readonly window: Duration.Input
     readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
   }
 ): Effect.Effect<Logger<Message, void>, never, Scope.Scope> =>
@@ -1331,7 +1331,7 @@ export const toFile = dual<
     options?: {
       readonly flag?: FileSystem.OpenFlag | undefined
       readonly mode?: number | undefined
-      readonly batchWindow?: Duration.DurationInput | undefined
+      readonly batchWindow?: Duration.Input | undefined
     } | undefined
   ) => <Message>(
     self: Logger<Message, string>
@@ -1342,7 +1342,7 @@ export const toFile = dual<
     options?: {
       readonly flag?: FileSystem.OpenFlag | undefined
       readonly mode?: number | undefined
-      readonly batchWindow?: Duration.DurationInput | undefined
+      readonly batchWindow?: Duration.Input | undefined
     } | undefined
   ) => Effect.Effect<Logger<Message, void>, PlatformError, Scope.Scope | FileSystem.FileSystem>
 >(

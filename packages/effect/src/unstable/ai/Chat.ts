@@ -628,7 +628,7 @@ export declare namespace Persistence {
      * the persistence store, a `ChatNotFoundError` will be returned.
      */
     readonly get: (chatId: string, options?: {
-      readonly timeToLive?: Duration.DurationInput | undefined
+      readonly timeToLive?: Duration.Input | undefined
     }) => Effect.Effect<Persisted, ChatNotFoundError | PersistenceError>
 
     /**
@@ -638,7 +638,7 @@ export declare namespace Persistence {
      * returned.
      */
     readonly getOrCreate: (chatId: string, options?: {
-      readonly timeToLive?: Duration.DurationInput | undefined
+      readonly timeToLive?: Duration.Input | undefined
     }) => Effect.Effect<Persisted, AiError.AiError | PersistenceError>
   }
 }
@@ -681,7 +681,7 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
   const store = yield* persistence.make(options.storeId)
 
   const toPersisted = Effect.fnUntraced(
-    function*(chatId: string, chat: Service, ttl: Duration.DurationInput | undefined) {
+    function*(chatId: string, chat: Service, ttl: Duration.Input | undefined) {
       const idGenerator = yield* Effect.serviceOption(IdGenerator.IdGenerator).pipe(
         Effect.map(Option.getOrElse(() => IdGenerator.defaultIdGenerator))
       )
@@ -713,7 +713,7 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
           yield* Ref.set(chat.history, history)
           // Export the chat history
           const exported = yield* Effect.orDie(chat.export)
-          const timeToLive = Predicate.isNotUndefined(ttl) ? Duration.fromDurationInput(ttl) : undefined
+          const timeToLive = Predicate.isNotUndefined(ttl) ? Duration.fromInput(ttl) : undefined
           // Save the chat to the backing store
           yield* store.set(chatId, exported as object, timeToLive)
         }
@@ -749,13 +749,13 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
   )
 
   const createChat = Effect.fnUntraced(
-    function*(chatId: string, ttl: Duration.DurationInput | undefined) {
+    function*(chatId: string, ttl: Duration.Input | undefined) {
       // Create an empty chat
       const chat = yield* empty
       // Export the chat history
       const history = yield* Effect.orDie(chat.export)
       // Save the history for the newly created chat
-      const timeToLive = Predicate.isNotUndefined(ttl) ? Duration.fromDurationInput(ttl) : undefined
+      const timeToLive = Predicate.isNotUndefined(ttl) ? Duration.fromInput(ttl) : undefined
       yield* store.set(chatId, history as object, timeToLive)
       // Convert the chat to a persisted chat
       return yield* toPersisted(chatId, chat, ttl)
@@ -763,7 +763,7 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
   )
 
   const getChat = Effect.fnUntraced(
-    function*(chatId: string, ttl: Duration.DurationInput | undefined) {
+    function*(chatId: string, ttl: Duration.Input | undefined) {
       // Create an empty chat
       const chat = yield* empty
       // Attempt to retrieve the previous history from the store
@@ -784,7 +784,7 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
 
   const get = Effect.fnUntraced(
     function*(chatId: string, options?: {
-      readonly timeToLive?: Duration.DurationInput | undefined
+      readonly timeToLive?: Duration.Input | undefined
     }) {
       return yield* getChat(chatId, options?.timeToLive)
     },
@@ -796,7 +796,7 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
 
   const getOrCreate = Effect.fnUntraced(
     function*(chatId: string, options?: {
-      readonly timeToLive?: Duration.DurationInput | undefined
+      readonly timeToLive?: Duration.Input | undefined
     }) {
       return yield* getChat(chatId, options?.timeToLive).pipe(
         Effect.catchTag("ChatNotFoundError", () => createChat(chatId, options?.timeToLive))

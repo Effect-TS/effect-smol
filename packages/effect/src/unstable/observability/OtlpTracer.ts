@@ -32,10 +32,10 @@ export const make: (
       readonly attributes?: Record<string, unknown>
     } | undefined
     readonly headers?: Headers.Input | undefined
-    readonly exportInterval?: Duration.DurationInput | undefined
+    readonly exportInterval?: Duration.Input | undefined
     readonly maxBatchSize?: number | undefined
     readonly context?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
-    readonly shutdownTimeout?: Duration.DurationInput | undefined
+    readonly shutdownTimeout?: Duration.Input | undefined
   }
 ) => Effect.Effect<
   Tracer.Tracer,
@@ -109,10 +109,10 @@ export const layer: (options: {
     readonly attributes?: Record<string, unknown>
   } | undefined
   readonly headers?: Headers.Input | undefined
-  readonly exportInterval?: Duration.DurationInput | undefined
+  readonly exportInterval?: Duration.Input | undefined
   readonly maxBatchSize?: number | undefined
   readonly context?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
-  readonly shutdownTimeout?: Duration.DurationInput | undefined
+  readonly shutdownTimeout?: Duration.Input | undefined
 }) => Layer.Layer<never, never, OtlpSerialization | HttpClient.HttpClient> = flow(make, Layer.effect(Tracer.Tracer))
 
 // internal

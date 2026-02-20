@@ -103,7 +103,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
             | ReadonlyArray<unknown>
             | ReadonlyRecord<string, ReadonlyArray<unknown>>
             | undefined
-          readonly timeToLive?: Duration.DurationInput | undefined
+          readonly timeToLive?: Duration.Input | undefined
         }
       >
       : never
@@ -223,7 +223,7 @@ export const Service = <Self>() =>
       readonly headers?: any
       readonly withResponse?: boolean
       readonly reactivityKeys?: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
-      readonly timeToLive?: Duration.DurationInput | undefined
+      readonly timeToLive?: Duration.Input | undefined
     }
   ) =>
     queryFamily({
@@ -236,7 +236,7 @@ export const Service = <Self>() =>
       withResponse: request.withResponse ?? false,
       reactivityKeys: request.reactivityKeys,
       timeToLive: request.timeToLive
-        ? Duration.fromDurationInputUnsafe(request.timeToLive)
+        ? Duration.fromInputUnsafe(request.timeToLive)
         : undefined
     })) as any
 

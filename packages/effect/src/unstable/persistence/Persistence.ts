@@ -42,7 +42,7 @@ export class PersistenceError extends Schema.ErrorClass(ErrorTypeId)({
 export class Persistence extends ServiceMap.Service<Persistence, {
   readonly make: (options: {
     readonly storeId: string
-    readonly timeToLive?: (exit: Exit.Exit<unknown, unknown>, key: Persistable.Any) => Duration.DurationInput
+    readonly timeToLive?: (exit: Exit.Exit<unknown, unknown>, key: Persistable.Any) => Duration.Input
   }) => Effect.Effect<PersistenceStore, never, Scope.Scope>
 }>()("effect/persistence/Persistence") {}
 
@@ -169,7 +169,7 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
           return out
         }),
         set(key, value) {
-          const ttl = Duration.fromDurationInputUnsafe(timeToLive(value, key))
+          const ttl = Duration.fromInputUnsafe(timeToLive(value, key))
           if (Duration.isZero(ttl) || Duration.isNegative(ttl)) return Effect.void
           return Persistable.serializeExit(key, value).pipe(
             Effect.flatMap((encoded) =>
@@ -180,7 +180,7 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
         setMany: Effect.fnUntraced(function*(entries) {
           const encodedEntries = Arr.empty<readonly [string, object, Duration.Duration | undefined]>()
           for (const [key, value] of entries) {
-            const ttl = Duration.fromDurationInputUnsafe(timeToLive(value, key))
+            const ttl = Duration.fromInputUnsafe(timeToLive(value, key))
             if (Duration.isZero(ttl) || Duration.isNegative(ttl)) continue
             const encoded = Persistable.serializeExit(key, value)
             const exit = Exit.isExit(encoded)

@@ -283,7 +283,7 @@ export interface KillOptions {
    * Defaults to `undefined`, which means that no timeout will be enforced by
    * default.
    */
-  readonly forceKillAfter?: Duration.DurationInput | undefined
+  readonly forceKillAfter?: Duration.Input | undefined
 }
 
 /**

@@ -4070,11 +4070,11 @@ export const orElseSucceed: {
  */
 export const timeout: {
   (
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | Cause.TimeoutError, R>
   <A, E, R>(
     self: Effect<A, E, R>,
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): Effect<A, E | Cause.TimeoutError, R>
 } = internal.timeout
 
@@ -4129,11 +4129,11 @@ export const timeout: {
  */
 export const timeoutOption: {
   (
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R>
   <A, E, R>(
     self: Effect<A, E, R>,
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): Effect<Option<A>, E, R>
 } = internal.timeoutOption
 
@@ -4175,13 +4175,13 @@ export const timeoutOption: {
  */
 export const timeoutOrElse: {
   <A2, E2, R2>(options: {
-    readonly duration: Duration.DurationInput
+    readonly duration: Duration.Input
     readonly onTimeout: LazyArg<Effect<A2, E2, R2>>
   }): <A, E, R>(self: Effect<A, E, R>) => Effect<A | A2, E | E2, R | R2>
   <A, E, R, A2, E2, R2>(
     self: Effect<A, E, R>,
     options: {
-      readonly duration: Duration.DurationInput
+      readonly duration: Duration.Input
       readonly onTimeout: LazyArg<Effect<A2, E2, R2>>
     }
   ): Effect<A | A2, E | E2, R | R2>
@@ -4209,11 +4209,11 @@ export const timeoutOrElse: {
  */
 export const delay: {
   (
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
   <A, E, R>(
     self: Effect<A, E, R>,
-    duration: Duration.DurationInput
+    duration: Duration.Input
   ): Effect<A, E, R>
 } = internal.delay
 
@@ -4239,7 +4239,7 @@ export const delay: {
  * @since 2.0.0
  * @category Delays & Timeouts
  */
-export const sleep: (duration: Duration.DurationInput) => Effect<void> = internal.sleep
+export const sleep: (duration: Duration.Input) => Effect<void> = internal.sleep
 
 /**
  * Measures the runtime of an effect and returns the duration with its result.
@@ -6313,8 +6313,8 @@ export const cached: <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
  * @category Caching
  */
 export const cachedWithTTL: {
-  (timeToLive: Duration.DurationInput): <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
-  <A, E, R>(self: Effect<A, E, R>, timeToLive: Duration.DurationInput): Effect<Effect<A, E, R>>
+  (timeToLive: Duration.Input): <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
+  <A, E, R>(self: Effect<A, E, R>, timeToLive: Duration.Input): Effect<Effect<A, E, R>>
 } = internal.cachedWithTTL
 
 /**
@@ -6387,8 +6387,8 @@ export const cachedWithTTL: {
  * @category Caching
  */
 export const cachedInvalidateWithTTL: {
-  (timeToLive: Duration.DurationInput): <A, E, R>(self: Effect<A, E, R>) => Effect<[Effect<A, E, R>, Effect<void>]>
-  <A, E, R>(self: Effect<A, E, R>, timeToLive: Duration.DurationInput): Effect<[Effect<A, E, R>, Effect<void>]>
+  (timeToLive: Duration.Input): <A, E, R>(self: Effect<A, E, R>) => Effect<[Effect<A, E, R>, Effect<void>]>
+  <A, E, R>(self: Effect<A, E, R>, timeToLive: Duration.Input): Effect<[Effect<A, E, R>, Effect<void>]>
 } = internal.cachedInvalidateWithTTL
 
 // -----------------------------------------------------------------------------
@@ -13287,8 +13287,8 @@ export const trackDuration: {
       return onExit(self, () => {
         const endTime = clock.currentTimeNanosUnsafe()
         const duration = Duration.subtract(
-          Duration.fromDurationInputUnsafe(endTime),
-          Duration.fromDurationInputUnsafe(startTime)
+          Duration.fromInputUnsafe(endTime),
+          Duration.fromInputUnsafe(startTime)
         )
         const input = f === undefined ? duration : internalCall(() => f(duration))
         return Metric.update(metric, input as any)

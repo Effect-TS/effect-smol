@@ -176,7 +176,7 @@ export const layer = <R, E>(
   layer_: Layer.Layer<R, E>,
   options?: {
     readonly memoMap?: Layer.MemoMap
-    readonly timeout?: Duration.DurationInput
+    readonly timeout?: Duration.Input
     readonly excludeTestServices?: boolean
   }
 ): {
@@ -222,7 +222,7 @@ export const layer = <R, E>(
       prop,
       flakyTest,
       layer<R2, E2>(nestedLayer: Layer.Layer<R2, E2, R>, options?: {
-        readonly timeout?: Duration.DurationInput
+        readonly timeout?: Duration.Input
       }) {
         return layer(Layer.provideMerge(nestedLayer, withTestEnv), { ...options, memoMap, excludeTestServices })
       }
@@ -231,11 +231,11 @@ export const layer = <R, E>(
   if (args.length === 1) {
     V.beforeAll(
       () => runPromise(Effect.asVoid(contextEffect)),
-      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
+      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
     )
     V.afterAll(
       () => runPromise(Scope.close(scope, Exit.void)),
-      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
+      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
     )
     return args[0](makeIt(V.it))
   }
@@ -243,11 +243,11 @@ export const layer = <R, E>(
   return V.describe(args[0], () => {
     V.beforeAll(
       () => runPromise(Effect.asVoid(contextEffect)),
-      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
+      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
     )
     V.afterAll(
       () => runPromise(Scope.close(scope, Exit.void)),
-      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
+      options?.timeout ? Duration.toMillis(Duration.fromInputUnsafe(options.timeout)) : undefined
     )
     return args[1](makeIt(V.it))
   })
@@ -256,7 +256,7 @@ export const layer = <R, E>(
 /** @internal */
 export const flakyTest = <A, E, R>(
   self: Effect.Effect<A, E, R | Scope.Scope>,
-  timeout: Duration.DurationInput = Duration.seconds(30)
+  timeout: Duration.Input = Duration.seconds(30)
 ) =>
   pipe(
     self,
@@ -267,8 +267,8 @@ export const flakyTest = <A, E, R>(
         Schedule.recurs(10),
         Schedule.while((_) =>
           Effect.succeed(Duration.isLessThanOrEqualTo(
-            Duration.fromDurationInputUnsafe(_.elapsed),
-            Duration.fromDurationInputUnsafe(timeout)
+            Duration.fromInputUnsafe(_.elapsed),
+            Duration.fromInputUnsafe(timeout)
           ))
         )
       )

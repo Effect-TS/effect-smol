@@ -28,13 +28,13 @@ export const layer = (options: {
   readonly headers?: Headers.Input | undefined
   readonly maxBatchSize?: number | undefined
   readonly tracerContext?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
-  readonly loggerExportInterval?: Duration.DurationInput | undefined
+  readonly loggerExportInterval?: Duration.Input | undefined
   readonly loggerExcludeLogSpans?: boolean | undefined
   readonly loggerMergeWithExisting?: boolean | undefined
-  readonly metricsExportInterval?: Duration.DurationInput | undefined
+  readonly metricsExportInterval?: Duration.Input | undefined
   readonly metricsTemporality?: AggregationTemporality | undefined
-  readonly tracerExportInterval?: Duration.DurationInput | undefined
-  readonly shutdownTimeout?: Duration.DurationInput | undefined
+  readonly tracerExportInterval?: Duration.Input | undefined
+  readonly shutdownTimeout?: Duration.Input | undefined
 }): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization.OtlpSerialization> => {
   const base = HttpClientRequest.get(options.baseUrl)
   const url = (path: string) => HttpClientRequest.appendUrl(base, path).url
@@ -83,13 +83,13 @@ export const layerJson: (options: {
   readonly headers?: Headers.Input | undefined
   readonly maxBatchSize?: number | undefined
   readonly tracerContext?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
-  readonly loggerExportInterval?: Duration.DurationInput | undefined
+  readonly loggerExportInterval?: Duration.Input | undefined
   readonly loggerExcludeLogSpans?: boolean | undefined
   readonly loggerMergeWithExisting?: boolean | undefined
-  readonly metricsExportInterval?: Duration.DurationInput | undefined
+  readonly metricsExportInterval?: Duration.Input | undefined
   readonly metricsTemporality?: AggregationTemporality | undefined
-  readonly tracerExportInterval?: Duration.DurationInput | undefined
-  readonly shutdownTimeout?: Duration.DurationInput | undefined
+  readonly tracerExportInterval?: Duration.Input | undefined
+  readonly shutdownTimeout?: Duration.Input | undefined
 }) => Layer.Layer<never, never, HttpClient.HttpClient> = flow(layer, Layer.provide(OtlpSerialization.layerJson))
 
 /**
@@ -106,11 +106,11 @@ export const layerProtobuf: (options: {
   readonly headers?: Headers.Input | undefined
   readonly maxBatchSize?: number | undefined
   readonly tracerContext?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
-  readonly loggerExportInterval?: Duration.DurationInput | undefined
+  readonly loggerExportInterval?: Duration.Input | undefined
   readonly loggerExcludeLogSpans?: boolean | undefined
   readonly loggerMergeWithExisting?: boolean | undefined
-  readonly metricsExportInterval?: Duration.DurationInput | undefined
+  readonly metricsExportInterval?: Duration.Input | undefined
   readonly metricsTemporality?: AggregationTemporality | undefined
-  readonly tracerExportInterval?: Duration.DurationInput | undefined
-  readonly shutdownTimeout?: Duration.DurationInput | undefined
+  readonly tracerExportInterval?: Duration.Input | undefined
+  readonly shutdownTimeout?: Duration.Input | undefined
 }) => Layer.Layer<never, never, HttpClient.HttpClient> = flow(layer, Layer.provide(OtlpSerialization.layerProtobuf))

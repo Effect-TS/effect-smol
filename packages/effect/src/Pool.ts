@@ -172,7 +172,7 @@ export const makeWithTTL = <A, E, R>(options: {
   readonly max: number
   readonly concurrency?: number | undefined
   readonly targetUtilization?: number | undefined
-  readonly timeToLive: Duration.DurationInput
+  readonly timeToLive: Duration.Input
   readonly timeToLiveStrategy?: "creation" | "usage" | undefined
 }): Effect.Effect<Pool<A, E>, never, R | Scope.Scope> =>
   Effect.flatMap(
@@ -457,10 +457,10 @@ const strategyNoop = <A, E>(): Strategy<A, E> => ({
   reclaim: (_) => Effect.undefined
 })
 
-const strategyCreationTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.DurationInput) {
+const strategyCreationTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Input) {
   const clock = yield* Clock
   const queue = yield* Queue.unbounded<PoolItem<A, E>>()
-  const ttlMillis = Duration.toMillis(Duration.fromDurationInputUnsafe(ttl))
+  const ttlMillis = Duration.toMillis(Duration.fromInputUnsafe(ttl))
   const creationTimes = new WeakMap<PoolItem<A, E>, number>()
   return identity<Strategy<A, E>>({
     run: (pool) => {
@@ -490,7 +490,7 @@ const strategyCreationTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Dura
   })
 })
 
-const strategyUsageTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.DurationInput) {
+const strategyUsageTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Input) {
   const queue = yield* Queue.unbounded<PoolItem<A, E>>()
   return identity<Strategy<A, E>>({
     run: (pool) => {

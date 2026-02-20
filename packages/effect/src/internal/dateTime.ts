@@ -12,7 +12,6 @@ import * as Inspectable from "../Inspectable.ts"
 import * as order from "../Order.ts"
 import { pipeArguments } from "../Pipeable.ts"
 import * as Predicate from "../Predicate.ts"
-import * as Result from "../Result.ts"
 import type { Mutable } from "../Types.ts"
 import * as UndefinedOr from "../UndefinedOr.ts"
 import * as effect from "./effect.ts"
@@ -467,32 +466,12 @@ export const setZoneNamedUnsafe: {
 
 /** @internal */
 export const distance: {
-  (other: DateTime.DateTime): (self: DateTime.DateTime) => number
-  (self: DateTime.DateTime, other: DateTime.DateTime): number
-} = dual(2, (self: DateTime.DateTime, other: DateTime.DateTime): number => toEpochMillis(other) - toEpochMillis(self))
-
-/** @internal */
-export const distanceDurationResult: {
-  (other: DateTime.DateTime): (self: DateTime.DateTime) => Result.Result<Duration.Duration, Duration.Duration>
-  (self: DateTime.DateTime, other: DateTime.DateTime): Result.Result<Duration.Duration, Duration.Duration>
-} = dual(
-  2,
-  (self: DateTime.DateTime, other: DateTime.DateTime): Result.Result<Duration.Duration, Duration.Duration> => {
-    const diffMillis = distance(self, other)
-    return diffMillis > 0
-      ? Result.succeed(Duration.millis(diffMillis))
-      : Result.fail(Duration.millis(-diffMillis))
-  }
-)
-
-/** @internal */
-export const distanceDuration: {
   (other: DateTime.DateTime): (self: DateTime.DateTime) => Duration.Duration
   (self: DateTime.DateTime, other: DateTime.DateTime): Duration.Duration
 } = dual(
   2,
   (self: DateTime.DateTime, other: DateTime.DateTime): Duration.Duration =>
-    Duration.millis(Math.abs(distance(self, other)))
+    Duration.millis(toEpochMillis(other) - toEpochMillis(self))
 )
 
 /** @internal */
@@ -911,22 +890,22 @@ export const match: {
 
 /** @internal */
 export const addDuration: {
-  (duration: Duration.DurationInput): <A extends DateTime.DateTime>(self: A) => A
-  <A extends DateTime.DateTime>(self: A, duration: Duration.DurationInput): A
+  (duration: Duration.Input): <A extends DateTime.DateTime>(self: A) => A
+  <A extends DateTime.DateTime>(self: A, duration: Duration.Input): A
 } = dual(
   2,
-  (self: DateTime.DateTime, duration: Duration.DurationInput): DateTime.DateTime =>
-    mapEpochMillis(self, (millis) => millis + Duration.toMillis(Duration.fromDurationInputUnsafe(duration)))
+  (self: DateTime.DateTime, duration: Duration.Input): DateTime.DateTime =>
+    mapEpochMillis(self, (millis) => millis + Duration.toMillis(Duration.fromInputUnsafe(duration)))
 )
 
 /** @internal */
 export const subtractDuration: {
-  (duration: Duration.DurationInput): <A extends DateTime.DateTime>(self: A) => A
-  <A extends DateTime.DateTime>(self: A, duration: Duration.DurationInput): A
+  (duration: Duration.Input): <A extends DateTime.DateTime>(self: A) => A
+  <A extends DateTime.DateTime>(self: A, duration: Duration.Input): A
 } = dual(
   2,
-  (self: DateTime.DateTime, duration: Duration.DurationInput): DateTime.DateTime =>
-    mapEpochMillis(self, (millis) => millis - Duration.toMillis(Duration.fromDurationInputUnsafe(duration)))
+  (self: DateTime.DateTime, duration: Duration.Input): DateTime.DateTime =>
+    mapEpochMillis(self, (millis) => millis - Duration.toMillis(Duration.fromInputUnsafe(duration)))
 )
 
 const addMillis = (date: Date, amount: number): void => {

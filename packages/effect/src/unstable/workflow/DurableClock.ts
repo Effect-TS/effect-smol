@@ -28,11 +28,11 @@ export interface DurableClock {
  */
 export const make = (options: {
   readonly name: string
-  readonly duration: Duration.DurationInput
+  readonly duration: Duration.Input
 }): DurableClock => ({
   [TypeId]: TypeId,
   name: options.name,
-  duration: Duration.fromDurationInputUnsafe(options.duration),
+  duration: Duration.fromInputUnsafe(options.duration),
   deferred: DurableDeferred.make(`DurableClock/${options.name}`)
 })
 
@@ -54,14 +54,14 @@ const InstanceTag = ServiceMap.Service<
 export const sleep: (
   options: {
     readonly name: string
-    readonly duration: Duration.DurationInput
+    readonly duration: Duration.Input
     /**
      * If the duration is less than or equal to this threshold, the clock will
      * be executed in memory.
      *
      * Defaults to 60 seconds.
      */
-    readonly inMemoryThreshold?: Duration.DurationInput | undefined
+    readonly inMemoryThreshold?: Duration.Input | undefined
   }
 ) => Effect.Effect<
   void,
@@ -69,16 +69,16 @@ export const sleep: (
   WorkflowEngine | WorkflowInstance
 > = Effect.fnUntraced(function*(options: {
   readonly name: string
-  readonly duration: Duration.DurationInput
-  readonly inMemoryThreshold?: Duration.DurationInput | undefined
+  readonly duration: Duration.Input
+  readonly inMemoryThreshold?: Duration.Input | undefined
 }) {
-  const duration = Duration.fromDurationInputUnsafe(options.duration)
+  const duration = Duration.fromInputUnsafe(options.duration)
   if (Duration.isZero(duration)) {
     return
   }
 
   const inMemoryThreshold = options.inMemoryThreshold
-    ? Duration.fromDurationInputUnsafe(options.inMemoryThreshold)
+    ? Duration.fromInputUnsafe(options.inMemoryThreshold)
     : defaultInMemoryThreshold
 
   if (Duration.isLessThanOrEqualTo(duration, inMemoryThreshold)) {

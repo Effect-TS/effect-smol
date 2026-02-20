@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type { DurationInput } from "../../Duration.ts"
+import type { Input } from "../../Duration.ts"
 import type * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
@@ -87,7 +87,7 @@ export type Services<A extends Any> =
  * @since 4.0.0
  * @category Models
  */
-export type TimeToLiveFn<K extends Any> = (exit: Exit.Exit<Success<K>, Error<K>>, request: K) => DurationInput
+export type TimeToLiveFn<K extends Any> = (exit: Exit.Exit<Success<K>, Error<K>>, request: K) => Input
 
 /**
  * @since 4.0.0

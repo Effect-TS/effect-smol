@@ -34,7 +34,7 @@ export const layerWebSocket: (
   url: string | Effect.Effect<string>,
   options?: {
     readonly closeCodeIsError?: ((code: number) => boolean) | undefined
-    readonly openTimeout?: Duration.DurationInput | undefined
+    readonly openTimeout?: Duration.Input | undefined
     readonly protocols?: string | Array<string> | undefined
   } | undefined
 ) => Layer.Layer<Socket.Socket, never, never> = flow(

@@ -726,7 +726,7 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
  * - Pass to {@link schema} for custom paths, or use the {@link duration}
  *   convenience constructor.
  *
- * Accepts any string that `Duration.fromDurationInput` can parse (e.g.
+ * Accepts any string that `Duration.fromInput` can parse (e.g.
  * `"10 seconds"`, `"500 millis"`).
  *
  * @see {@link duration} – convenience constructor
@@ -736,7 +736,7 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
  */
 export const Duration = Schema.String.pipe(Schema.decodeTo(Schema.Duration, {
   decode: Getter.transformOrFail((s) => {
-    const d = Duration_.fromDurationInput(s as any)
+    const d = Duration_.fromInput(s as any)
     return d ? Effect.succeed(d) : Effect.fail(new Issue.InvalidValue(Option.some(s)))
   }),
   encode: Getter.forbidden(() => "Encoding Duration is not supported")
@@ -1023,7 +1023,7 @@ export function boolean(name?: string) {
  *
  * Shortcut for `Config.schema(Config.Duration, name)`.
  *
- * Accepts any string that `Duration.fromDurationInput` can parse (e.g.
+ * Accepts any string that `Duration.fromInput` can parse (e.g.
  * `"10 seconds"`, `"500 millis"`, `"2 minutes"`).
  *
  * **Example** (Reading a duration)

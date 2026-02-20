@@ -2,7 +2,7 @@ import * as Arr from "../../../Array.ts"
 import * as Cause from "../../../Cause.ts"
 import { Clock } from "../../../Clock.ts"
 import * as Duration from "../../../Duration.ts"
-import type { DurationInput } from "../../../Duration.ts"
+import type { Input } from "../../../Duration.ts"
 import * as Effect from "../../../Effect.ts"
 import * as Equal from "../../../Equal.ts"
 import * as Exit from "../../../Exit.ts"
@@ -93,7 +93,7 @@ export const make = Effect.fnUntraced(function*<
     readonly sharding: Sharding["Service"]
     readonly storage: MessageStorage.MessageStorage["Service"]
     readonly runnerAddress: RunnerAddress
-    readonly maxIdleTime?: DurationInput | undefined
+    readonly maxIdleTime?: Input | undefined
     readonly concurrency?: number | "unbounded" | undefined
     readonly mailboxCapacity?: number | "unbounded" | undefined
     readonly disableFatalDefects?: boolean | undefined
@@ -352,7 +352,7 @@ export const make = Effect.fnUntraced(function*<
 
   const reaper = yield* EntityReaper
   const maxIdleTime = Duration.toMillis(
-    Duration.fromDurationInputUnsafe(options.maxIdleTime ?? config.entityMaxIdleTime)
+    Duration.fromInputUnsafe(options.maxIdleTime ?? config.entityMaxIdleTime)
   )
   if (Number.isFinite(maxIdleTime)) {
     yield* reaper.register({

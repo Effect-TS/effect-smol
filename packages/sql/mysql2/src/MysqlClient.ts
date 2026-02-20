@@ -66,7 +66,7 @@ export interface MysqlClientConfig {
   readonly password?: Redacted.Redacted | undefined
 
   readonly maxConnections?: number | undefined
-  readonly connectionTTL?: Duration.DurationInput | undefined
+  readonly connectionTTL?: Duration.Input | undefined
 
   readonly poolConfig?: Mysql.PoolOptions | undefined
 
@@ -172,7 +172,7 @@ export const make = (
         supportBigNumbers: true,
         connectionLimit: options.maxConnections!,
         idleTimeout: options.connectionTTL
-          ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.connectionTTL))
+          ? Duration.toMillis(Duration.fromInputUnsafe(options.connectionTTL))
           : undefined as any
       })
       : Mysql.createPool({
@@ -188,7 +188,7 @@ export const make = (
         supportBigNumbers: true,
         connectionLimit: options.maxConnections,
         idleTimeout: options.connectionTTL
-          ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.connectionTTL))
+          ? Duration.toMillis(Duration.fromInputUnsafe(options.connectionTTL))
           : undefined
       } as Mysql.PoolOptions)
 

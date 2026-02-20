@@ -178,7 +178,7 @@ export const makeWith = <
 >(options: {
   readonly lookup: (key: Key) => Effect.Effect<A, E, R>
   readonly capacity: number
-  readonly timeToLive?: ((exit: Exit.Exit<A, E>, key: Key) => Duration.DurationInput) | undefined
+  readonly timeToLive?: ((exit: Exit.Exit<A, E>, key: Key) => Duration.Input) | undefined
   readonly requireServicesAt?: ServiceMode | undefined
 }): Effect.Effect<
   Cache<Key, A, E, "lookup" extends ServiceMode ? R : never>,
@@ -195,7 +195,7 @@ export const makeWith = <
     self.map = MutableHashMap.make()
     self.capacity = options.capacity
     self.timeToLive = options.timeToLive
-      ? (exit: Exit.Exit<A, E>, key: Key) => Duration.fromDurationInputUnsafe(options.timeToLive!(exit, key))
+      ? (exit: Exit.Exit<A, E>, key: Key) => Duration.fromInputUnsafe(options.timeToLive!(exit, key))
       : defaultTimeToLive
     return effect.succeed(self as Cache<Key, A, E>)
   })
@@ -263,7 +263,7 @@ export const make = <
   options: {
     readonly lookup: (key: Key) => Effect.Effect<A, E, R>
     readonly capacity: number
-    readonly timeToLive?: Duration.DurationInput | undefined
+    readonly timeToLive?: Duration.Input | undefined
     readonly requireServicesAt?: ServiceMode | undefined
   }
 ): Effect.Effect<

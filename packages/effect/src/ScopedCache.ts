@@ -69,7 +69,7 @@ export const makeWith = <
 >(options: {
   readonly lookup: (key: Key) => Effect.Effect<A, E, R | Scope.Scope>
   readonly capacity: number
-  readonly timeToLive?: ((exit: Exit.Exit<A, E>, key: Key) => Duration.DurationInput) | undefined
+  readonly timeToLive?: ((exit: Exit.Exit<A, E>, key: Key) => Duration.Input) | undefined
   readonly requireServicesAt?: ServiceMode | undefined
 }): Effect.Effect<
   ScopedCache<Key, A, E, "lookup" extends ServiceMode ? Exclude<R, Scope.Scope> : never>,
@@ -88,7 +88,7 @@ export const makeWith = <
     self.state = { _tag: "Open", map }
     self.capacity = options.capacity
     self.timeToLive = options.timeToLive
-      ? (exit: Exit.Exit<A, E>, key: Key) => Duration.fromDurationInputUnsafe(options.timeToLive!(exit, key))
+      ? (exit: Exit.Exit<A, E>, key: Key) => Duration.fromInputUnsafe(options.timeToLive!(exit, key))
       : defaultTimeToLive
     return effect.as(
       Scope.addFinalizer(
@@ -116,7 +116,7 @@ export const make = <
   options: {
     readonly lookup: (key: Key) => Effect.Effect<A, E, R | Scope.Scope>
     readonly capacity: number
-    readonly timeToLive?: Duration.DurationInput | undefined
+    readonly timeToLive?: Duration.Input | undefined
     readonly requireServicesAt?: ServiceMode | undefined
   }
 ): Effect.Effect<

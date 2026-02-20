@@ -101,10 +101,10 @@ export namespace Vitest {
     readonly effect: Vitest.Tester<R | Scope.Scope>
     readonly flakyTest: <A, E, R2>(
       self: Effect.Effect<A, E, R2 | Scope.Scope>,
-      timeout?: Duration.DurationInput
+      timeout?: Duration.Input
     ) => Effect.Effect<A, never, R2>
     readonly layer: <R2, E>(layer: Layer.Layer<R2, E, R>, options?: {
-      readonly timeout?: Duration.DurationInput
+      readonly timeout?: Duration.Input
     }) => {
       (f: (it: Vitest.MethodsNonLive<R | R2>) => void): void
       (
@@ -206,7 +206,7 @@ export const layer: <R, E>(
   layer_: Layer.Layer<R, E>,
   options?: {
     readonly memoMap?: Layer.MemoMap
-    readonly timeout?: Duration.DurationInput
+    readonly timeout?: Duration.Input
     readonly excludeTestServices?: boolean
   }
 ) => {
@@ -219,7 +219,7 @@ export const layer: <R, E>(
  */
 export const flakyTest: <A, E, R>(
   self: Effect.Effect<A, E, R | Scope.Scope>,
-  timeout?: Duration.DurationInput
+  timeout?: Duration.Input
 ) => Effect.Effect<A, never, R> = internal.flakyTest
 
 /**

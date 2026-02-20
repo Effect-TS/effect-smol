@@ -56,7 +56,7 @@ export const D1Client = ServiceMap.Service<D1Client>("@effect/sql-d1/D1Client")
 export interface D1ClientConfig {
   readonly db: D1Database
   readonly prepareCacheSize?: number | undefined
-  readonly prepareCacheTTL?: Duration.DurationInput | undefined
+  readonly prepareCacheTTL?: Duration.Input | undefined
   readonly spanAttributes?: Record<string, unknown> | undefined
 
   readonly transformResultNames?: ((str: string) => string) | undefined
