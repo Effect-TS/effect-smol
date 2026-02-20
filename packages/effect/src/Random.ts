@@ -25,6 +25,7 @@ import * as Effect from "./Effect.ts"
 import { dual } from "./Function.ts"
 import * as random from "./internal/random.ts"
 import * as Predicate from "./Predicate.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * Represents a service for generating random numbers.
@@ -49,7 +50,10 @@ import * as Predicate from "./Predicate.ts"
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const Random = random.RandomRef
+export const Random: ServiceMap.Reference<{
+  nextIntUnsafe(): number
+  nextDoubleUnsafe(): number
+}> = random.RandomRef
 
 const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effect<A> =>
   Effect.withFiber((fiber) => Effect.succeed(f(fiber.getRef(Random))))

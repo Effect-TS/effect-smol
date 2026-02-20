@@ -1,10 +1,13 @@
 import * as ServiceMap from "../ServiceMap.ts"
 
 /** @internal */
-export const RandomRef = ServiceMap.Reference<{
+export interface Random {
   nextIntUnsafe(): number
   nextDoubleUnsafe(): number
-}>("effect/Random", {
+}
+
+/** @internal */
+export const RandomRef: ServiceMap.Reference<Random> = ServiceMap.Reference<Random>("effect/Random", {
   defaultValue: () => ({
     nextIntUnsafe() {
       return Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) +
@@ -15,3 +18,6 @@ export const RandomRef = ServiceMap.Reference<{
     }
   })
 })
+
+/** @internal */
+export const Random: ServiceMap.Reference<Random> = RandomRef
