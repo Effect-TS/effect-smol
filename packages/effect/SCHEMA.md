@@ -8086,3 +8086,11 @@ const schema = Schema.String.check(Schema.isULID())
 ## URLFromSelf
 
 Renamed to `URL`.
+
+## RedactedFromSelf
+
+Renamed to `Redacted`.
+
+## Redacted
+
+Renamed to `RedactedFromValue`.
