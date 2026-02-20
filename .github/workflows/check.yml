@@ -20,7 +20,7 @@ jobs:
       contents: read
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
@@ -34,7 +34,7 @@ jobs:
       contents: read
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
@@ -52,7 +52,7 @@ jobs:
       contents: read
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
@@ -73,13 +73,13 @@ jobs:
       pull-requests: write
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
           node-version: 24.10.0
       - name: Clone base ref
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: base
           ref: ${{ github.event.pull_request.base.ref }}
@@ -112,7 +112,7 @@ jobs:
         shard: [1/2, 2/2]
         runtime: [Node, Deno]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install dependencies
         if: matrix.runtime == 'Node'
@@ -141,7 +141,7 @@ jobs:
       contents: read
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install node
         uses: actions/setup-node@v4
       - name: Generate JSDoc Analysis
@@ -167,7 +167,7 @@ jobs:
       contents: read
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
@@ -182,7 +182,7 @@ jobs:
       contents: read
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
