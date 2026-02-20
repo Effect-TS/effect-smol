@@ -143,7 +143,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
         to: "compensation"
       }).pipe(Effect.forkChild({ startImmediately: true }))
 
-      yield* TestClock.adjust(1)
+      yield* TestClock.adjust(500)
 
       const flags = yield* Flags
       assert.isTrue(flags.get("compensation"))

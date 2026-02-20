@@ -5800,15 +5800,15 @@ export function CauseReason<E extends Top, D extends Top>(error: E, defect: D): 
             encode: identity
           })
         ),
-      toArbitrary: ([error, defect]) => CauseReasonToArbitrary(error, defect),
-      toEquivalence: ([error, defect]) => CauseReasonToEquivalence(error, defect),
-      toFormatter: ([error, defect]) => CauseReasonToFormatter(error, defect)
+      toArbitrary: ([error, defect]) => causeReasonToArbitrary(error, defect),
+      toEquivalence: ([error, defect]) => causeReasonToEquivalence(error, defect),
+      toFormatter: ([error, defect]) => causeReasonToFormatter(error, defect)
     }
   )
   return make(schema.ast, { error, defect })
 }
 
-function CauseReasonToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck.Arbitrary<D>) {
+function causeReasonToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck.Arbitrary<D>) {
   return (fc: typeof FastCheck, ctx: Annotations.ToArbitrary.Context | undefined) => {
     return fc.oneof(
       ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Cause.Failure" } : {},
@@ -5820,7 +5820,7 @@ function CauseReasonToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: Fas
   }
 }
 
-function CauseReasonToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
+function causeReasonToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
   return (a: Cause_.Reason<E>, b: Cause_.Reason<E>) => {
     if (a._tag !== b._tag) return false
     switch (a._tag) {
@@ -5834,7 +5834,7 @@ function CauseReasonToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: 
   }
 }
 
-function CauseReasonToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
+function causeReasonToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
   return (t: Cause_.Reason<E>) => {
     switch (t._tag) {
       case "Fail":
@@ -5916,18 +5916,18 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
 
 function causeToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck.Arbitrary<D>) {
   return (fc: typeof FastCheck, ctx: Annotations.ToArbitrary.Context | undefined) => {
-    return fc.array(CauseReasonToArbitrary(error, defect)(fc, ctx)).map(Cause_.fromReasons)
+    return fc.array(causeReasonToArbitrary(error, defect)(fc, ctx)).map(Cause_.fromReasons)
   }
 }
 
 function causeToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
-  const failures = Equivalence.Array(CauseReasonToEquivalence(error, defect))
+  const failures = Equivalence.Array(causeReasonToEquivalence(error, defect))
   return (a: Cause_.Cause<E>, b: Cause_.Cause<E>) => failures(a.reasons, b.reasons)
 }
 
 function causeToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
-  const CauseReason = CauseReasonToFormatter(error, defect)
-  return (t: Cause_.Cause<E>) => `Cause([${t.reasons.map(CauseReason).join(", ")}])`
+  const causeReason = causeReasonToFormatter(error, defect)
+  return (t: Cause_.Cause<E>) => `Cause([${t.reasons.map(causeReason).join(", ")}])`
 }
 
 /**
@@ -9461,3 +9461,4 @@ export declare namespace Annotations {
    */
   export type Meta = MetaDefinitions[keyof MetaDefinitions]
 }
+
