@@ -635,26 +635,6 @@ export const around: {
 /**
  * A request resolver that never executes requests.
  *
- * @example
- * ```ts
- * import { Effect, Request, RequestResolver } from "effect"
- *
- * // A resolver that will never complete
- * const neverResolver = RequestResolver.never
- *
- * // For testing timeout behavior with any request type
- * interface TestRequest extends Request.Request<string> {
- *   readonly _tag: "TestRequest"
- * }
- * const TestRequest = Request.tagged<TestRequest>("TestRequest")
- *
- * // This will never resolve
- * const neverEffect = Effect.request(TestRequest({}), Effect.succeed(neverResolver) as any)
- *
- * // Useful for testing timeout behavior
- * const timeoutTest = Effect.timeout(neverEffect, "1 second")
- * ```
- *
  * @since 2.0.0
  * @category constructors
  */
