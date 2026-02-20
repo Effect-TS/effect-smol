@@ -5874,18 +5874,19 @@ export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseReasonIs
  * @since 4.0.0
  */
 export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
-  let failures: $Array<CauseReason<Codec<E["Type"], E["Encoded"]>, Codec<D["Type"], D["Encoded"]>>>
   const schema = declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, CauseIso<E, D>>()(
     [error, defect],
-    ([error, defect]) => (input, ast, options) => {
-      if (!Cause_.isCause(input)) {
-        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+    ([error, defect]) => {
+      const failures = Array(CauseReason(error, defect))
+      return (input, ast, options) => {
+        if (!Cause_.isCause(input)) {
+          return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+        }
+        return Effect.mapBothEager(Parser.decodeUnknownEffect(failures)(input.reasons, options), {
+          onSuccess: Cause_.fromReasons,
+          onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failures"], issue)])
+        })
       }
-      failures ??= Array(CauseReason(error, defect))
-      return Effect.mapBothEager(Parser.decodeUnknownEffect(failures)(input.reasons, options), {
-        onSuccess: Cause_.fromReasons,
-        onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failures"], issue)])
-      })
     },
     {
       typeConstructor: {
@@ -6094,35 +6095,38 @@ export type ExitIso<A extends Top, E extends Top, D extends Top> = {
  * @since 4.0.0
  */
 export function Exit<A extends Top, E extends Top, D extends Top>(value: A, error: E, defect: D): Exit<A, E, D> {
-  let cause: Cause<Codec<E["Type"], E["Encoded"], never, never>, Codec<D["Type"], D["Encoded"], never, never>>
   const schema = declareConstructor<
     Exit_.Exit<A["Type"], E["Type"]>,
     Exit_.Exit<A["Encoded"], E["Encoded"]>,
     ExitIso<A, E, D>
   >()(
     [value, error, defect],
-    ([value, error, defect]) => (input, ast, options) => {
-      if (!Exit_.isExit(input)) {
-        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
-      }
-      cause ??= Cause(error, defect)
-      switch (input._tag) {
-        case "Success":
-          return Effect.mapBothEager(
-            Parser.decodeUnknownEffect(value)(input.value, options),
-            {
-              onSuccess: Exit_.succeed,
-              onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["value"], issue)])
-            }
-          )
-        case "Failure":
-          return Effect.mapBothEager(
-            Parser.decodeUnknownEffect(cause)(input.cause, options),
-            {
-              onSuccess: Exit_.failCause,
-              onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["cause"], issue)])
-            }
-          )
+    ([value, error, defect]) => {
+      const cause = Cause(error, defect)
+      return (input, ast, options) => {
+        if (!Exit_.isExit(input)) {
+          return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+        }
+        switch (input._tag) {
+          case "Success":
+            return Effect.mapBothEager(
+              Parser.decodeUnknownEffect(value)(input.value, options),
+              {
+                onSuccess: Exit_.succeed,
+                onFailure: (issue) =>
+                  new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["value"], issue)])
+              }
+            )
+          case "Failure":
+            return Effect.mapBothEager(
+              Parser.decodeUnknownEffect(cause)(input.cause, options),
+              {
+                onSuccess: Exit_.failCause,
+                onFailure: (issue) =>
+                  new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["cause"], issue)])
+              }
+            )
+        }
       }
     },
     {
@@ -6301,28 +6305,27 @@ export type HashMapIso<Key extends Top, Value extends Top> = ReadonlyArray<reado
  * @since 4.0.0
  */
 export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Value): HashMap<Key, Value> {
-  let array: Codec<
-    ReadonlyArray<readonly [Key["Type"], Value["Type"]]>,
-    ReadonlyArray<readonly [Key["Encoded"], Value["Encoded"]]>
-  >
   const schema = declareConstructor<
     HashMap_.HashMap<Key["Type"], Value["Type"]>,
     HashMap_.HashMap<Key["Encoded"], Value["Encoded"]>,
     HashMapIso<Key, Value>
   >()(
     [key, value],
-    ([key, value]) => (input, ast, options) => {
-      if (HashMap_.isHashMap(input)) {
-        array ??= Array(Tuple([key, value]))
-        return Effect.mapBothEager(
-          Parser.decodeUnknownEffect(array)(HashMap_.toEntries(input), options),
-          {
-            onSuccess: HashMap_.fromIterable,
-            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["entries"], issue)])
-          }
-        )
+    ([key, value]) => {
+      const array = Array(Tuple([key, value]))
+      return (input, ast, options) => {
+        if (HashMap_.isHashMap(input)) {
+          return Effect.mapBothEager(
+            Parser.decodeUnknownEffect(array)(HashMap_.toEntries(input), options),
+            {
+              onSuccess: HashMap_.fromIterable,
+              onFailure: (issue) =>
+                new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["entries"], issue)])
+            }
+          )
+        }
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
-      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
       typeConstructor: {
