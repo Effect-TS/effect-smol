@@ -863,283 +863,275 @@ const makeStreamResponse = Effect.fnUntraced(
         }
 
         const choice = event.choices[0]
-        if (Predicate.isUndefined(choice)) {
-          return yield* AiError.make({
-            module: "OpenRouterLanguageModel",
-            method: "makeStreamResponse",
-            reason: new AiError.InvalidOutputError({
-              description: "Received response with empty choices"
-            })
-          })
-        }
+        if (Predicate.isNotUndefined(choice)) {
+          if (Predicate.isNotNullish(choice.finish_reason)) {
+            finishReason = resolveFinishReason(choice.finish_reason)
+          }
 
-        if (Predicate.isNotNull(choice.finish_reason)) {
-          finishReason = resolveFinishReason(choice.finish_reason)
-        }
+          const delta = choice.delta
+          if (Predicate.isNullish(delta)) {
+            return parts
+          }
 
-        const delta = choice.delta
-        if (Predicate.isNullish(delta)) {
-          return parts
-        }
-
-        const emitReasoning = Effect.fnUntraced(
-          function*(delta: string, metadata?: Response.ReasoningDeltaPart["metadata"] | undefined) {
-            if (!reasoningStarted) {
-              activeReasoningId = openRouterResponseId ?? (yield* idGenerator.generateId())
+          const emitReasoning = Effect.fnUntraced(
+            function*(delta: string, metadata?: Response.ReasoningDeltaPart["metadata"] | undefined) {
+              if (!reasoningStarted) {
+                activeReasoningId = openRouterResponseId ?? (yield* idGenerator.generateId())
+                parts.push({
+                  type: "reasoning-start",
+                  id: activeReasoningId,
+                  metadata
+                })
+                reasoningStarted = true
+              }
               parts.push({
-                type: "reasoning-start",
-                id: activeReasoningId,
+                type: "reasoning-delta",
+                id: activeReasoningId!,
+                delta,
                 metadata
               })
-              reasoningStarted = true
             }
-            parts.push({
-              type: "reasoning-delta",
-              id: activeReasoningId!,
-              delta,
-              metadata
-            })
-          }
-        )
+          )
 
-        const reasoningDetails = delta.reasoning_details
-        if (Predicate.isNotUndefined(reasoningDetails) && reasoningDetails.length > 0) {
-          // Accumulate reasoning_details to preserve for multi-turn conversations
-          // Merge consecutive reasoning.text items into a single entry
-          for (const detail of reasoningDetails) {
-            if (detail.type === "reasoning.text") {
-              const lastDetail = accumulatedReasoningDetails[accumulatedReasoningDetails.length - 1]
-              if (Predicate.isNotUndefined(lastDetail) && lastDetail.type === "reasoning.text") {
-                // Merge with the previous text detail
-                lastDetail.text = (lastDetail.text ?? "") + (detail.text ?? "")
-                lastDetail.signature = lastDetail.signature ?? detail.signature ?? null
-                lastDetail.format = lastDetail.format ?? detail.format ?? null
+          const reasoningDetails = delta.reasoning_details
+          if (Predicate.isNotUndefined(reasoningDetails) && reasoningDetails.length > 0) {
+            // Accumulate reasoning_details to preserve for multi-turn conversations
+            // Merge consecutive reasoning.text items into a single entry
+            for (const detail of reasoningDetails) {
+              if (detail.type === "reasoning.text") {
+                const lastDetail = accumulatedReasoningDetails[accumulatedReasoningDetails.length - 1]
+                if (Predicate.isNotUndefined(lastDetail) && lastDetail.type === "reasoning.text") {
+                  // Merge with the previous text detail
+                  lastDetail.text = (lastDetail.text ?? "") + (detail.text ?? "")
+                  lastDetail.signature = lastDetail.signature ?? detail.signature ?? null
+                  lastDetail.format = lastDetail.format ?? detail.format ?? null
+                } else {
+                  // Start a new text detail
+                  accumulatedReasoningDetails.push({ ...detail })
+                }
               } else {
-                // Start a new text detail
-                accumulatedReasoningDetails.push({ ...detail })
-              }
-            } else {
-              // Non-text details (encrypted, summary) are pushed as-is
-              accumulatedReasoningDetails.push(detail)
-            }
-          }
-
-          // Emit reasoning_details in providerMetadata for each delta chunk
-          // so users can accumulate them on their end before sending back
-          const metadata: Response.ReasoningDeltaPart["metadata"] = {
-            openrouter: {
-              reasoningDetails
-            }
-          }
-          for (const detail of reasoningDetails) {
-            switch (detail.type) {
-              case "reasoning.text": {
-                if (Predicate.isNotNullish(detail.text)) {
-                  yield* emitReasoning(detail.text, metadata)
-                }
-                break
-              }
-
-              case "reasoning.summary": {
-                if (Predicate.isNotNullish(detail.summary)) {
-                  yield* emitReasoning(detail.summary, metadata)
-                }
-                break
-              }
-
-              case "reasoning.encrypted": {
-                if (Predicate.isNotNullish(detail.data)) {
-                  yield* emitReasoning("[REDACTED]", metadata)
-                }
-                break
+                // Non-text details (encrypted, summary) are pushed as-is
+                accumulatedReasoningDetails.push(detail)
               }
             }
-          }
-        } else if (Predicate.isNotNullish(delta.reasoning)) {
-          yield* emitReasoning(delta.reasoning)
-        }
 
-        const content = delta.content
-        if (Predicate.isNotNullish(content)) {
-          // If reasoning was previously active and now we're starting text content,
-          // we should end the reasoning first to maintain proper order
-          if (reasoningStarted && !textStarted) {
-            parts.push({
-              type: "reasoning-end",
-              id: activeReasoningId!,
-              // Include accumulated reasoning_details so the we can update the
-              // reasoning part's provider metadata with the correct signature.
-              // The signature typically arrives in the last reasoning delta,
-              // but reasoning-start only carries the first delta's metadata.
-              metadata: accumulatedReasoningDetails.length > 0
-                ? { openRouter: { reasoningDetails: accumulatedReasoningDetails } }
-                : undefined
-            })
-            reasoningStarted = false
-          }
-
-          if (!textStarted) {
-            activeTextId = openRouterResponseId ?? (yield* idGenerator.generateId())
-            parts.push({
-              type: "text-start",
-              id: activeTextId
-            })
-            textStarted = true
-          }
-
-          parts.push({
-            type: "text-delta",
-            id: activeTextId!,
-            delta: content
-          })
-        }
-
-        const annotations = delta.annotations
-        if (Predicate.isNotNullish(annotations)) {
-          for (const annotation of annotations) {
-            if (annotation.type === "url_citation") {
-              parts.push({
-                type: "source",
-                sourceType: "url",
-                id: annotation.url_citation.url,
-                url: annotation.url_citation.url,
-                title: annotation.url_citation.title ?? "",
-                metadata: {
-                  openrouter: {
-                    ...(Predicate.isNotUndefined(annotation.url_citation.content)
-                      ? { content: annotation.url_citation.content }
-                      : undefined),
-                    ...(Predicate.isNotUndefined(annotation.url_citation.start_index)
-                      ? { startIndex: annotation.url_citation.start_index }
-                      : undefined),
-                    ...(Predicate.isNotUndefined(annotation.url_citation.end_index)
-                      ? { startIndex: annotation.url_citation.end_index }
-                      : undefined)
+            // Emit reasoning_details in providerMetadata for each delta chunk
+            // so users can accumulate them on their end before sending back
+            const metadata: Response.ReasoningDeltaPart["metadata"] = {
+              openrouter: {
+                reasoningDetails
+              }
+            }
+            for (const detail of reasoningDetails) {
+              switch (detail.type) {
+                case "reasoning.text": {
+                  if (Predicate.isNotNullish(detail.text)) {
+                    yield* emitReasoning(detail.text, metadata)
                   }
+                  break
                 }
+
+                case "reasoning.summary": {
+                  if (Predicate.isNotNullish(detail.summary)) {
+                    yield* emitReasoning(detail.summary, metadata)
+                  }
+                  break
+                }
+
+                case "reasoning.encrypted": {
+                  if (Predicate.isNotNullish(detail.data)) {
+                    yield* emitReasoning("[REDACTED]", metadata)
+                  }
+                  break
+                }
+              }
+            }
+          } else if (Predicate.isNotNullish(delta.reasoning)) {
+            yield* emitReasoning(delta.reasoning)
+          }
+
+          const content = delta.content
+          if (Predicate.isNotNullish(content)) {
+            // If reasoning was previously active and now we're starting text content,
+            // we should end the reasoning first to maintain proper order
+            if (reasoningStarted && !textStarted) {
+              parts.push({
+                type: "reasoning-end",
+                id: activeReasoningId!,
+                // Include accumulated reasoning_details so the we can update the
+                // reasoning part's provider metadata with the correct signature.
+                // The signature typically arrives in the last reasoning delta,
+                // but reasoning-start only carries the first delta's metadata.
+                metadata: accumulatedReasoningDetails.length > 0
+                  ? { openRouter: { reasoningDetails: accumulatedReasoningDetails } }
+                  : undefined
               })
-            } else if (annotation.type === "file") {
-              accumulatedFileAnnotations.push(annotation)
+              reasoningStarted = false
+            }
+
+            if (!textStarted) {
+              activeTextId = openRouterResponseId ?? (yield* idGenerator.generateId())
+              parts.push({
+                type: "text-start",
+                id: activeTextId
+              })
+              textStarted = true
+            }
+
+            parts.push({
+              type: "text-delta",
+              id: activeTextId!,
+              delta: content
+            })
+          }
+
+          const annotations = delta.annotations
+          if (Predicate.isNotNullish(annotations)) {
+            for (const annotation of annotations) {
+              if (annotation.type === "url_citation") {
+                parts.push({
+                  type: "source",
+                  sourceType: "url",
+                  id: annotation.url_citation.url,
+                  url: annotation.url_citation.url,
+                  title: annotation.url_citation.title ?? "",
+                  metadata: {
+                    openrouter: {
+                      ...(Predicate.isNotUndefined(annotation.url_citation.content)
+                        ? { content: annotation.url_citation.content }
+                        : undefined),
+                      ...(Predicate.isNotUndefined(annotation.url_citation.start_index)
+                        ? { startIndex: annotation.url_citation.start_index }
+                        : undefined),
+                      ...(Predicate.isNotUndefined(annotation.url_citation.end_index)
+                        ? { startIndex: annotation.url_citation.end_index }
+                        : undefined)
+                    }
+                  }
+                })
+              } else if (annotation.type === "file") {
+                accumulatedFileAnnotations.push(annotation)
+              }
             }
           }
-        }
 
-        const toolCalls = delta.tool_calls
-        if (Predicate.isNotNullish(toolCalls)) {
-          for (const toolCall of toolCalls) {
-            const index = toolCall.index ?? toolCalls.length - 1
-            let activeToolCall = activeToolCalls[index]
+          const toolCalls = delta.tool_calls
+          if (Predicate.isNotNullish(toolCalls)) {
+            for (const toolCall of toolCalls) {
+              const index = toolCall.index ?? toolCalls.length - 1
+              let activeToolCall = activeToolCalls[index]
 
-            // Tool call start - OpenRouter returns all information except the
-            // tool call parameters in the first chunk
-            if (Predicate.isUndefined(activeToolCall)) {
-              if (toolCall.type !== "function") {
-                return yield* AiError.make({
-                  module: "OpenRouterLanguageModel",
-                  method: "makeStreamResponse",
-                  reason: new AiError.InvalidOutputError({
-                    description: "Received tool call delta that was not of type: 'function'"
+              // Tool call start - OpenRouter returns all information except the
+              // tool call parameters in the first chunk
+              if (Predicate.isUndefined(activeToolCall)) {
+                if (toolCall.type !== "function") {
+                  return yield* AiError.make({
+                    module: "OpenRouterLanguageModel",
+                    method: "makeStreamResponse",
+                    reason: new AiError.InvalidOutputError({
+                      description: "Received tool call delta that was not of type: 'function'"
+                    })
                   })
-                })
-              }
+                }
 
-              if (Predicate.isUndefined(toolCall.id)) {
-                return yield* AiError.make({
-                  module: "OpenRouterLanguageModel",
-                  method: "makeStreamResponse",
-                  reason: new AiError.InvalidOutputError({
-                    description: "Received tool call delta without a tool call identifier"
+                if (Predicate.isNullish(toolCall.id)) {
+                  return yield* AiError.make({
+                    module: "OpenRouterLanguageModel",
+                    method: "makeStreamResponse",
+                    reason: new AiError.InvalidOutputError({
+                      description: "Received tool call delta without a tool call identifier"
+                    })
                   })
-                })
-              }
+                }
 
-              if (Predicate.isUndefined(toolCall.function?.name)) {
-                return yield* AiError.make({
-                  module: "OpenRouterLanguageModel",
-                  method: "makeStreamResponse",
-                  reason: new AiError.InvalidOutputError({
-                    description: "Received tool call delta without a tool call name"
+                if (Predicate.isNullish(toolCall.function?.name)) {
+                  return yield* AiError.make({
+                    module: "OpenRouterLanguageModel",
+                    method: "makeStreamResponse",
+                    reason: new AiError.InvalidOutputError({
+                      description: "Received tool call delta without a tool call name"
+                    })
                   })
+                }
+
+                activeToolCall = {
+                  id: toolCall.id,
+                  type: "function",
+                  name: toolCall.function.name,
+                  params: toolCall.function.arguments ?? ""
+                }
+
+                activeToolCalls[index] = activeToolCall
+
+                parts.push({
+                  type: "tool-params-start",
+                  id: activeToolCall.id,
+                  name: activeToolCall.name
                 })
-              }
 
-              activeToolCall = {
-                id: toolCall.id,
-                type: "function",
-                name: toolCall.function.name,
-                params: toolCall.function.arguments ?? ""
-              }
-
-              activeToolCalls[index] = activeToolCall
-
-              parts.push({
-                type: "tool-params-start",
-                id: activeToolCall.id,
-                name: activeToolCall.name
-              })
-
-              // Emit a tool call delta part if parameters were also sent
-              if (activeToolCall.params.length > 0) {
+                // Emit a tool call delta part if parameters were also sent
+                if (activeToolCall.params.length > 0) {
+                  parts.push({
+                    type: "tool-params-delta",
+                    id: activeToolCall.id,
+                    delta: activeToolCall.params
+                  })
+                }
+              } else {
+                // If an active tool call was found, update and emit the delta for
+                // the tool call's parameters
+                activeToolCall.params += toolCall.function?.arguments ?? ""
                 parts.push({
                   type: "tool-params-delta",
                   id: activeToolCall.id,
                   delta: activeToolCall.params
                 })
               }
-            } else {
-              // If an active tool call was found, update and emit the delta for
-              // the tool call's parameters
-              activeToolCall.params += toolCall.function?.arguments ?? ""
-              parts.push({
-                type: "tool-params-delta",
-                id: activeToolCall.id,
-                delta: activeToolCall.params
-              })
-            }
 
-            // Check if the tool call is complete
-            // @effect-diagnostics-next-line tryCatchInEffectGen:off
-            try {
-              const params = Tool.unsafeSecureJsonParse(activeToolCall.params)
+              // Check if the tool call is complete
+              // @effect-diagnostics-next-line tryCatchInEffectGen:off
+              try {
+                const params = Tool.unsafeSecureJsonParse(activeToolCall.params)
 
-              parts.push({
-                type: "tool-params-end",
-                id: activeToolCall.id
-              })
+                parts.push({
+                  type: "tool-params-end",
+                  id: activeToolCall.id
+                })
 
-              parts.push({
-                type: "tool-call",
-                id: activeToolCall.id,
-                name: activeToolCall.name,
-                params,
-                // Only attach reasoning_details to the first tool call to avoid
-                // duplicating thinking blocks for parallel tool calls (Claude)
-                metadata: reasoningDetailsAttachedToToolCall ? undefined : {
-                  openrouter: { reasoningDetails: accumulatedReasoningDetails }
-                }
-              })
+                parts.push({
+                  type: "tool-call",
+                  id: activeToolCall.id,
+                  name: activeToolCall.name,
+                  params,
+                  // Only attach reasoning_details to the first tool call to avoid
+                  // duplicating thinking blocks for parallel tool calls (Claude)
+                  metadata: reasoningDetailsAttachedToToolCall ? undefined : {
+                    openrouter: { reasoningDetails: accumulatedReasoningDetails }
+                  }
+                })
 
-              reasoningDetailsAttachedToToolCall = true
+                reasoningDetailsAttachedToToolCall = true
 
-              // Increment the total tool calls emitted by the stream and
-              // remove the active tool call
-              totalToolCalls += 1
-              delete activeToolCalls[toolCall.index]
-            } catch {
-              // Tool call incomplete, continue parsing
-              continue
+                // Increment the total tool calls emitted by the stream and
+                // remove the active tool call
+                totalToolCalls += 1
+                delete activeToolCalls[toolCall.index]
+              } catch {
+                // Tool call incomplete, continue parsing
+                continue
+              }
             }
           }
-        }
 
-        const images = delta.images
-        if (Predicate.isNotNullish(images)) {
-          for (const image of images) {
-            parts.push({
-              type: "file",
-              mediaType: getMediaType(image.image_url.url, "image/jpeg"),
-              data: getBase64FromDataUrl(image.image_url.url)
-            })
+          const images = delta.images
+          if (Predicate.isNotNullish(images)) {
+            for (const image of images) {
+              parts.push({
+                type: "file",
+                mediaType: getMediaType(image.image_url.url, "image/jpeg"),
+                data: getBase64FromDataUrl(image.image_url.url)
+              })
+            }
           }
         }
 
