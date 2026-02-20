@@ -3,6 +3,7 @@ import {
   DateTime,
   Duration,
   Effect,
+  HashMap,
   Option,
   Redacted,
   Result,
@@ -1188,6 +1189,26 @@ describe("Serializers", () => {
         await decoding.succeed(
           [[{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, 0]],
           new Map([[Option.some(new Date("2021-01-01")), 0]])
+        )
+      })
+
+      it("HashMap", async () => {
+        const schema = Schema.HashMap(Schema.Option(Schema.Date), Schema.Finite)
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(
+          HashMap.make([Option.some(new Date("2021-01-01")), 0]),
+          [[
+            { _tag: "Some", value: "2021-01-01T00:00:00.000Z" },
+            0
+          ]]
+        )
+
+        const decoding = asserts.decoding()
+        await decoding.succeed(
+          [[{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, 0]],
+          HashMap.make([Option.some(new Date("2021-01-01")), 0])
         )
       })
     })
@@ -2384,6 +2405,26 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         await decoding.succeed(
           [[{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, "0"]],
           new Map([[Option.some(new Date("2021-01-01")), 0]])
+        )
+      })
+
+      it("HashMap", async () => {
+        const schema = Schema.HashMap(Schema.Option(Schema.Date), Schema.Finite)
+        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(
+          HashMap.make([Option.some(new Date("2021-01-01")), 0]),
+          [[
+            { _tag: "Some", value: "2021-01-01T00:00:00.000Z" },
+            "0"
+          ]]
+        )
+
+        const decoding = asserts.decoding()
+        await decoding.succeed(
+          [[{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, "0"]],
+          HashMap.make([Option.some(new Date("2021-01-01")), 0])
         )
       })
     })

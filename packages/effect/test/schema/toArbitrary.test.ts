@@ -428,6 +428,12 @@ describe("Arbitrary generation", () => {
       const schema = Schema.ReadonlyMap(Schema.String, Rec)
       verifyGeneration(schema)
     })
+
+    it("HashMap", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema = Schema.HashMap(Schema.String, Rec)
+      verifyGeneration(schema)
+    })
   })
 
   describe("checks", () => {
@@ -629,6 +635,12 @@ describe("Arbitrary generation", () => {
       verifyGeneration(
         Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isSizeBetween(2, 2))
       )
+    })
+  })
+
+  describe("HashMap", () => {
+    it("HashMap(String, Number)", () => {
+      verifyGeneration(Schema.HashMap(Schema.String, Schema.Number))
     })
   })
 

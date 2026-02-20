@@ -8,6 +8,7 @@ import {
   Equal,
   Exit,
   flow,
+  HashMap,
   Option,
   Order,
   pipe,
@@ -3947,6 +3948,33 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     const encoding = asserts.encoding()
     await encoding.succeed(new Map([["a", 1]]), new Map([["a", "1"]]))
+  })
+
+  it("HashMap", async () => {
+    const schema = Schema.HashMap(Schema.String, Schema.FiniteFromString)
+    const asserts = new TestSchema.Asserts(schema)
+
+    strictEqual(schema.key, Schema.String)
+    strictEqual(schema.annotate({}).key, Schema.String)
+    strictEqual(schema.value, Schema.FiniteFromString)
+    strictEqual(schema.annotate({}).value, Schema.FiniteFromString)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(HashMap.make(["a", "1"]), HashMap.make(["a", 1]))
+    await decoding.fail(null, `Expected HashMap, got null`)
+    await decoding.fail(
+      HashMap.make(["a", null]),
+      `Expected string, got null
+  at ["entries"][0][1]`
+    )
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(HashMap.make(["a", 1]), HashMap.make(["a", "1"]))
   })
 
   describe("Transformations", () => {

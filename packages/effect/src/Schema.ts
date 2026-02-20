@@ -20,6 +20,7 @@ import * as Exit_ from "./Exit.ts"
 import type { Formatter } from "./Formatter.ts"
 import { format, formatDate, formatPropertyKey } from "./Formatter.ts"
 import { identity } from "./Function.ts"
+import * as HashMap_ from "./HashMap.ts"
 import * as core from "./internal/core.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as InternalArbitrary from "./internal/schema/arbitrary.ts"
@@ -6261,6 +6262,97 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
         }
         const entries = globalThis.Array.from(t.entries()).sort().map(([k, v]) => `${key(k)} => ${value(v)}`)
         return `ReadonlyMap(${size}) { ${entries.join(", ")} }`
+      }
+    }
+  )
+  return make(schema.ast, { key, value })
+}
+
+/**
+ * @category HashMap
+ * @since 4.0.0
+ */
+export interface $HashMap<Key extends Top, Value extends Top> extends
+  declareConstructor<
+    HashMap_.HashMap<Key["Type"], Value["Type"]>,
+    HashMap_.HashMap<Key["Encoded"], Value["Encoded"]>,
+    readonly [Key, Value],
+    HashMapIso<Key, Value>
+  >
+{
+  readonly key: Key
+  readonly value: Value
+}
+
+/**
+ * @category HashMap
+ * @since 4.0.0
+ */
+export type HashMapIso<Key extends Top, Value extends Top> = ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
+
+/**
+ * Creates a schema that validates a `HashMap` where keys and values must
+ * conform to the provided schemas.
+ *
+ * @category HashMap
+ * @since 4.0.0
+ */
+export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Value): $HashMap<Key, Value> {
+  const schema = declareConstructor<
+    HashMap_.HashMap<Key["Type"], Value["Type"]>,
+    HashMap_.HashMap<Key["Encoded"], Value["Encoded"]>,
+    HashMapIso<Key, Value>
+  >()(
+    [key, value],
+    ([key, value]) => (input, ast, options) => {
+      if (HashMap_.isHashMap(input)) {
+        const array = Array(Tuple([key, value]))
+        return Effect.mapBothEager(
+          Parser.decodeUnknownEffect(array)(HashMap_.toEntries(input), options),
+          {
+            onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => HashMap_.fromIterable(array),
+            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["entries"], issue)])
+          }
+        )
+      }
+      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+    },
+    {
+      typeConstructor: {
+        _tag: "effect/HashMap"
+      },
+      generation: {
+        runtime: `Schema.HashMap(?, ?)`,
+        Type: `HashMap.HashMap<?, ?>`,
+        importDeclaration: `import * as HashMap from "effect/HashMap"`
+      },
+      expected: "HashMap",
+      toCodec: ([key, value]) =>
+        link<HashMap_.HashMap<Key["Encoded"], Value["Encoded"]>>()(
+          Array(Tuple([key, value])),
+          Transformation.transform({
+            decode: (e) => HashMap_.fromIterable(e),
+            encode: (map) => HashMap_.toEntries(map)
+          })
+        ),
+      toArbitrary: ([key, value]) => (fc, ctx) => {
+        return fc.oneof(
+          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "HashMap" } : {},
+          fc.constant([]),
+          fc.array(fc.tuple(key, value), ctx?.constraints?.array)
+        ).map((as) => HashMap_.fromIterable(as))
+      },
+      toEquivalence: ([key, value]) => {
+        const compare = Equal.makeCompareMap(key, value)
+        return (a, b) => compare(new globalThis.Map(HashMap_.toEntries(a)), new globalThis.Map(HashMap_.toEntries(b)))
+      },
+      toFormatter: ([key, value]) => (t) => {
+        const size = HashMap_.size(t)
+        if (size === 0) {
+          return "HashMap(0) {}"
+        }
+        const entries = HashMap_.toEntries(t).sort().map(([k, v]) => `${key(k)} => ${value(v)}`)
+        return `HashMap(${size}) { ${entries.join(", ")} }`
       }
     }
   )

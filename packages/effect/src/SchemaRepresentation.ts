@@ -1698,7 +1698,8 @@ export type Reviver<T> = (declaration: Declaration, recur: (representation: Repr
 
 /**
  * Default {@link Reviver} for {@link toSchema} that handles built-in Effect
- * types (Option, Result, Redacted, Cause, Exit, ReadonlyMap, ReadonlySet,
+ * types (Option, Result, Redacted, Cause, Exit, ReadonlyMap, HashMap,
+ * ReadonlySet,
  * Date, Duration, URL, RegExp, etc.).
  *
  * - Pass as `options.reviver` to {@link toSchema} to reconstruct schemas that
@@ -1732,6 +1733,8 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
         return Schema.Exit(typeParameters[0], typeParameters[1], typeParameters[2])
       case "ReadonlyMap":
         return Schema.ReadonlyMap(typeParameters[0], typeParameters[1])
+      case "effect/HashMap":
+        return Schema.HashMap(typeParameters[0], typeParameters[1])
       case "ReadonlySet":
         return Schema.ReadonlySet(typeParameters[0])
       case "RegExp":

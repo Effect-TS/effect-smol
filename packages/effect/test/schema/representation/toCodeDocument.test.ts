@@ -1688,6 +1688,30 @@ describe("toCodeDocument", () => {
     })
   })
 
+  describe("HashMap", () => {
+    it("HashMap(String, Number)", () => {
+      assertSchema({ schema: Schema.HashMap(Schema.String, Schema.Number) }, {
+        codes: makeCode(
+          `Schema.HashMap(String_, Number_)`,
+          "HashMap.HashMap<String_, Number_>"
+        ),
+        references: {
+          nonRecursives: [
+            {
+              $ref: "String_",
+              code: makeCode(`Schema.String`, "string")
+            },
+            {
+              $ref: "Number_",
+              code: makeCode(`Schema.Number`, "number")
+            }
+          ]
+        },
+        artifacts: [{ _tag: "Import", importDeclaration: `import * as HashMap from "effect/HashMap"` }]
+      })
+    })
+  })
+
   describe("allOf", () => {
     it("should resolve references", () => {
       assertJsonSchema({

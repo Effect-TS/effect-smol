@@ -1,4 +1,16 @@
-import { Cause, Data, Exit, Option, Predicate, Record, Result, Schema, SchemaTransformation, SchemaUtils } from "effect"
+import {
+  Cause,
+  Data,
+  Exit,
+  HashMap,
+  Option,
+  Predicate,
+  Record,
+  Result,
+  Schema,
+  SchemaTransformation,
+  SchemaUtils
+} from "effect"
 import { describe, it } from "vitest"
 import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -348,6 +360,18 @@ describe("Optic generation", () => {
       deepStrictEqual(
         modify(new Map([["a", Value.makeUnsafe({ a: new Date(0) })]])),
         new Map([["a", Value.makeUnsafe({ a: new Date(1) })]])
+      )
+    })
+
+    it("HashMap", () => {
+      const schema = Schema.HashMap(Schema.String, Value)
+      const optic = Schema.toIso(schema)
+      const entry = Schema.toIsoFocus(Schema.Tuple([Schema.String, Value])).key("1").key("a")
+      const modify = optic.modify((entries) => entries.map(([key, value]) => entry.modify(addOne)([key, value])))
+
+      deepStrictEqual(
+        HashMap.toEntries(modify(HashMap.make(["a", Value.makeUnsafe({ a: new Date(0) })]))),
+        HashMap.toEntries(HashMap.make(["a", Value.makeUnsafe({ a: new Date(1) })]))
       )
     })
 

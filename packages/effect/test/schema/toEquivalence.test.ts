@@ -1,4 +1,4 @@
-import { BigDecimal, DateTime, Duration, Equivalence, Option, Redacted, Result, Schema } from "effect"
+import { BigDecimal, DateTime, Duration, Equivalence, HashMap, Option, Redacted, Result, Schema } from "effect"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, throws } from "../utils/assert.ts"
 
@@ -409,6 +409,22 @@ describe("toEquivalence", () => {
     assertFalse(equivalence(new Map([[0, 1]]), new Map([[0, 2]])))
     assertFalse(equivalence(new Map([[0, 1], [1, 2]]), new Map([[0, 1], [1, 3]])))
     assertFalse(equivalence(new Map([[0, 1], [1, 2]]), new Map([[0, 1], [2, 2]])))
+  })
+
+  it("HashMap(Modulo2, Modulo3)", () => {
+    const schema = Schema.HashMap(Modulo2, Modulo3)
+    const equivalence = Schema.toEquivalence(schema)
+
+    assertTrue(equivalence(HashMap.empty(), HashMap.empty()))
+    assertTrue(equivalence(HashMap.make([0, 1]), HashMap.make([0, 1])))
+    assertTrue(equivalence(HashMap.make([0, 1]), HashMap.make([2, 4])))
+    assertTrue(equivalence(HashMap.make([0, 1], [1, 2]), HashMap.make([0, 1], [1, 2])))
+    assertTrue(equivalence(HashMap.make([0, 1], [1, 2]), HashMap.make([1, 2], [0, 1])))
+
+    assertFalse(equivalence(HashMap.make([0, 1]), HashMap.make([1, 1])))
+    assertFalse(equivalence(HashMap.make([0, 1]), HashMap.make([0, 2])))
+    assertFalse(equivalence(HashMap.make([0, 1], [1, 2]), HashMap.make([0, 1], [1, 3])))
+    assertFalse(equivalence(HashMap.make([0, 1], [1, 2]), HashMap.make([0, 1], [2, 2])))
   })
 
   it("Duration", () => {

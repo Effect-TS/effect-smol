@@ -249,6 +249,13 @@ describe("toSchema", () => {
       )
     })
 
+    it("HashMap", () => {
+      assertToSchemaWithReviver(
+        Schema.HashMap(Schema.String, Schema.Number),
+        `Schema.HashMap(String_, Number_)`
+      )
+    })
+
     it("ReadonlySet", () => {
       assertToSchemaWithReviver(
         Schema.ReadonlySet(Schema.String),

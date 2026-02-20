@@ -1,4 +1,4 @@
-import { BigDecimal, DateTime, Duration, Option, Redacted, Result, Schema } from "effect"
+import { BigDecimal, DateTime, Duration, HashMap, Option, Redacted, Result, Schema } from "effect"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 
@@ -403,6 +403,17 @@ describe("toFormatter", () => {
         `ReadonlyMap(1) { "a" => ReadonlyMap(1) { "b" => ReadonlyMap(0) {} } }`
       )
     })
+
+    it("HashMap", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema = Schema.HashMap(Schema.String, Rec)
+      const format = Schema.toFormatter(schema)
+      strictEqual(format(HashMap.empty()), `HashMap(0) {}`)
+      strictEqual(
+        format(HashMap.make(["a", HashMap.make(["b", HashMap.empty()])])),
+        `HashMap(1) { "a" => HashMap(1) { "b" => HashMap(0) {} } }`
+      )
+    })
   })
 
   it("Date", () => {
@@ -437,6 +448,12 @@ describe("toFormatter", () => {
     const format = Schema.toFormatter(Schema.ReadonlyMap(Schema.String, Schema.Option(Schema.Number)))
     strictEqual(format(new Map([["a", Option.some(1)]])), `ReadonlyMap(1) { "a" => some(1) }`)
     strictEqual(format(new Map([["a", Option.none()]])), `ReadonlyMap(1) { "a" => none() }`)
+  })
+
+  it("HashMap(String, Option(Number))", () => {
+    const format = Schema.toFormatter(Schema.HashMap(Schema.String, Schema.Option(Schema.Number)))
+    strictEqual(format(HashMap.make(["a", Option.some(1)])), `HashMap(1) { "a" => some(1) }`)
+    strictEqual(format(HashMap.make(["a", Option.none()])), `HashMap(1) { "a" => none() }`)
   })
 
   describe("Redacted", () => {
