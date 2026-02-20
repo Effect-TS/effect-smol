@@ -6224,18 +6224,21 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
     ReadonlyMapIso<Key, Value>
   >()(
     [key, value],
-    ([key, value]) => (input, ast, options) => {
-      if (input instanceof globalThis.Map) {
-        const array = Array(Tuple([key, value]))
-        return Effect.mapBothEager(
-          Parser.decodeUnknownEffect(array)([...input], options),
-          {
-            onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
-            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["entries"], issue)])
-          }
-        )
+    ([key, value]) => {
+      const array = Array(Tuple([key, value]))
+      return (input, ast, options) => {
+        if (input instanceof globalThis.Map) {
+          return Effect.mapBothEager(
+            Parser.decodeUnknownEffect(array)([...input], options),
+            {
+              onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
+              onFailure: (issue) =>
+                new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["entries"], issue)])
+            }
+          )
+        }
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
-      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
       typeConstructor: {
@@ -6312,11 +6315,11 @@ export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Val
   >()(
     [key, value],
     ([key, value]) => {
-      const array = Array(Tuple([key, value]))
+      const entries = Array(Tuple([key, value]))
       return (input, ast, options) => {
         if (HashMap_.isHashMap(input)) {
           return Effect.mapBothEager(
-            Parser.decodeUnknownEffect(array)(HashMap_.toEntries(input), options),
+            Parser.decodeUnknownEffect(entries)(HashMap_.toEntries(input), options),
             {
               onSuccess: HashMap_.fromIterable,
               onFailure: (issue) =>
@@ -6398,18 +6401,21 @@ export function ReadonlySet<Value extends Top>(value: Value): $ReadonlySet<Value
     ReadonlySetIso<Value>
   >()(
     [value],
-    ([value]) => (input, ast, options) => {
-      if (input instanceof globalThis.Set) {
-        const array = Array(value)
-        return Effect.mapBothEager(
-          Parser.decodeUnknownEffect(array)([...input], options),
-          {
-            onSuccess: (array: ReadonlyArray<Value["Type"]>) => new globalThis.Set(array),
-            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["values"], issue)])
-          }
-        )
+    ([value]) => {
+      const array = Array(value)
+      return (input, ast, options) => {
+        if (input instanceof globalThis.Set) {
+          return Effect.mapBothEager(
+            Parser.decodeUnknownEffect(array)([...input], options),
+            {
+              onSuccess: (array: ReadonlyArray<Value["Type"]>) => new globalThis.Set(array),
+              onFailure: (issue) =>
+                new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["values"], issue)])
+            }
+          )
+        }
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
-      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
       typeConstructor: {
@@ -9461,4 +9467,3 @@ export declare namespace Annotations {
    */
   export type Meta = MetaDefinitions[keyof MetaDefinitions]
 }
-
