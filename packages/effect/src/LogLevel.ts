@@ -98,9 +98,12 @@
  * })
  * ```
  */
+import type * as Effect from "./Effect.ts"
 import * as Equ from "./Equivalence.ts"
 import * as effect from "./internal/effect.ts"
 import * as Ord from "./Order.ts"
+import * as References from "./References.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * Represents the severity level of a log message.
@@ -347,3 +350,33 @@ export const isLessThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean
   (self: LogLevel, that: LogLevel): boolean
 } = Ord.isLessThanOrEqualTo(Order)
+
+/**
+ * Checks whether a given log level is enabled for the current fiber.
+ *
+ * A log level is enabled when it is greater than or equal to
+ * `References.MinimumLogLevel`.
+ *
+ * @example
+ * ```ts
+ * import { Effect, LogLevel, References } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const debugEnabled = yield* LogLevel.isEnabled("Debug")
+ *   const errorEnabled = yield* LogLevel.isEnabled("Error")
+ *
+ *   console.log({ debugEnabled, errorEnabled })
+ * })
+ *
+ * const warnOnly = program.pipe(
+ *   Effect.provideService(References.MinimumLogLevel, "Warn")
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category filtering
+ */
+export const isEnabled = (self: LogLevel): Effect.Effect<boolean> =>
+  effect.servicesWith((services) =>
+    effect.succeed(!isGreaterThan(ServiceMap.getReferenceUnsafe(services, References.MinimumLogLevel), self))
+  )
