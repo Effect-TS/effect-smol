@@ -47,6 +47,17 @@ import type { Contravariant, Covariant, Mutable } from "./Types.ts"
 
 const TypeId = "~effect/Schedule"
 
+const RandomService = ServiceMap.Reference<{
+  nextDoubleUnsafe(): number
+}>("effect/Random", {
+  defaultValue: () => ({
+    nextDoubleUnsafe: Math.random
+  })
+})
+
+const randomNext: Effect<number> = effect.servicesWith((services) =>
+  effect.succeed(ServiceMap.get(services, RandomService).nextDoubleUnsafe()))
+
 /**
  * A Schedule defines a strategy for repeating or retrying effects based on some policy.
  *
@@ -2337,6 +2348,23 @@ export const modifyDelay: {
       step(now, input),
       ([output, delay]) => effect.map(f(output, delay), (delay) => [output, Duration.fromDurationInputUnsafe(delay)])
     ))))
+
+/**
+ * Returns a new `Schedule` that randomly adjusts each recurrence delay.
+ *
+ * Delays are jittered between `80%` and `120%` of the original delay.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const jittered = <Output, Input, Error, Env>(
+  self: Schedule<Output, Input, Error, Env>
+): Schedule<Output, Input, Error, Env> =>
+  modifyDelay(self, (_, delay) =>
+    effect.map(randomNext, (random) => {
+      const millis = Duration.toMillis(Duration.fromDurationInputUnsafe(delay))
+      return Duration.millis(millis * 0.8 * (1 - random) + millis * 1.2 * random)
+    }))
 
 /**
  * Returns a new `Schedule` that outputs the inputs of the specified schedule.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Array, Duration, Effect, Fiber, Pull, Schedule } from "effect"
+import { Array, Duration, Effect, Fiber, Pull, Random, Schedule } from "effect"
 import { constant, constUndefined } from "effect/Function"
 import { TestClock } from "effect/testing"
 
@@ -156,6 +156,30 @@ describe("Schedule", () => {
         const inputs = Array.makeBy(5, constUndefined)
         const output = yield* runDelays(schedule, inputs)
         expect(output).toEqual([Duration.seconds(1), Duration.zero])
+      }))
+  })
+
+  describe("jittered", () => {
+    it.effect("keeps delays within 80%-120% of the original", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.jittered(Schedule.spaced(Duration.seconds(1)))
+        const inputs = Array.makeBy(20, constUndefined)
+        const output = yield* runDelays(schedule, inputs).pipe(Random.withSeed("jittered-bounds"))
+        expect(output.every((delay) => {
+          const millis = Duration.toMillis(delay)
+          return millis >= 800 && millis <= 1200
+        })).toBe(true)
+      }))
+
+    it.effect("does not change completion output", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.jittered(Schedule.duration(Duration.seconds(1)))
+        const inputs = Array.makeBy(5, constUndefined)
+        const output = yield* runDelays(schedule, inputs).pipe(Random.withSeed("jittered-completion"))
+        expect(output.length).toEqual(2)
+        expect(Duration.toMillis(output[0])).toBeGreaterThanOrEqual(800)
+        expect(Duration.toMillis(output[0])).toBeLessThanOrEqual(1200)
+        expect(output[1]).toEqual(Duration.zero)
       }))
   })
 
