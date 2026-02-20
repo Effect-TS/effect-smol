@@ -6,10 +6,10 @@ import * as Schema from "effect/Schema"
 import * as SqlSchema from "effect/unstable/sql/SqlSchema"
 
 describe("SqlSchema", () => {
-  describe("findOne", () => {
+  describe("findOneOption", () => {
     it.effect("returns Option.some when a row exists", () =>
       Effect.gen(function*() {
-        const query = SqlSchema.findOne({
+        const query = SqlSchema.findOneOption({
           Request: Schema.NumberFromString,
           Result: Schema.Struct({ value: Schema.String }),
           execute: (request) => Effect.succeed([{ value: `id:${request}` }])
@@ -24,7 +24,7 @@ describe("SqlSchema", () => {
 
     it.effect("returns Option.none when no rows are returned", () =>
       Effect.gen(function*() {
-        const query = SqlSchema.findOne({
+        const query = SqlSchema.findOneOption({
           Request: Schema.NumberFromString,
           Result: Schema.String,
           execute: () => Effect.succeed([])
@@ -36,7 +36,7 @@ describe("SqlSchema", () => {
 
     it.effect("fails when the first row cannot be decoded", () =>
       Effect.gen(function*() {
-        const query = SqlSchema.findOne({
+        const query = SqlSchema.findOneOption({
           Request: Schema.String,
           Result: Schema.Struct({ id: Schema.Number }),
           execute: () => Effect.succeed([{ id: "not-a-number" }])
@@ -47,10 +47,10 @@ describe("SqlSchema", () => {
       }))
   })
 
-  describe("single", () => {
+  describe("findOne", () => {
     it.effect("returns the first decoded row", () =>
       Effect.gen(function*() {
-        const query = SqlSchema.single({
+        const query = SqlSchema.findOne({
           Request: Schema.String,
           Result: Schema.NumberFromString,
           execute: () => Effect.succeed(["1", "2"])
@@ -62,7 +62,7 @@ describe("SqlSchema", () => {
 
     it.effect("fails with NoSuchElementError when no rows are returned", () =>
       Effect.gen(function*() {
-        const query = SqlSchema.single({
+        const query = SqlSchema.findOne({
           Request: Schema.String,
           Result: Schema.String,
           execute: () => Effect.succeed([])
