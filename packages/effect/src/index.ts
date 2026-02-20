@@ -1137,6 +1137,57 @@ export * as FileSystem from "./FileSystem.ts"
 export * as Filter from "./Filter.ts"
 
 /**
+ * Utilities for converting arbitrary JavaScript values into human-readable
+ * strings, with support for circular references, redaction, and common JS
+ * types that `JSON.stringify` handles poorly.
+ *
+ * Mental model:
+ * - A `Formatter<Value, Format>` is a callable `(value: Value) => Format`.
+ * - {@link format} is the general-purpose pretty-printer: it handles
+ *   primitives, arrays, objects, `BigInt`, `Symbol`, `Date`, `RegExp`,
+ *   `Set`, `Map`, class instances, and circular references.
+ * - {@link formatJson} is a safe `JSON.stringify` wrapper that silently
+ *   drops circular references and applies redaction.
+ * - Both functions accept a `space` option for indentation control.
+ *
+ * Common tasks:
+ * - Pretty-print any value for debugging / logging -> {@link format}
+ * - Serialize to JSON safely (no circular throws) -> {@link formatJson}
+ * - Format a single object property key -> {@link formatPropertyKey}
+ * - Format a property path like `["a"]["b"]` -> {@link formatPath}
+ * - Format a `Date` to ISO string safely -> {@link formatDate}
+ *
+ * Gotchas:
+ * - {@link format} output is **not** valid JSON; use {@link formatJson} when
+ *   you need parseable JSON.
+ * - {@link format} calls `toString()` on objects by default; pass
+ *   `ignoreToString: true` to disable.
+ * - {@link formatJson} silently omits circular references (the key is
+ *   dropped from the output).
+ * - Values implementing the `Redactable` protocol are automatically
+ *   redacted by both {@link format} and {@link formatJson}.
+ *
+ * **Example** (Pretty-print a value)
+ *
+ * ```ts
+ * import { Formatter } from "effect"
+ *
+ * const obj = { name: "Alice", scores: [100, 97] }
+ * console.log(Formatter.format(obj))
+ * // {"name":"Alice","scores":[100,97]}
+ *
+ * console.log(Formatter.format(obj, { space: 2 }))
+ * // {
+ * //   "name": "Alice",
+ * //   "scores": [
+ * //     100,
+ * //     97
+ * //   ]
+ * // }
+ * ```
+ *
+ * See also: {@link Formatter}, {@link format}, {@link formatJson}
+ *
  * @since 4.0.0
  */
 export * as Formatter from "./Formatter.ts"

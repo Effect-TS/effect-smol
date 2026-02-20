@@ -217,10 +217,7 @@ export function toDocumentDraft07(document: Document<"draft-2020-12">): Document
   }
 }
 
-/**
- * @since 4.0.0
- */
-export function toSchemaDraft07(schema: JsonSchema): JsonSchema {
+function toSchemaDraft07(schema: JsonSchema): JsonSchema {
   return rewrite(schema)
 
   function rewrite(node: unknown): JsonSchema {
