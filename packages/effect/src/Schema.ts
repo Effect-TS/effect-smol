@@ -6345,8 +6345,8 @@ export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Val
         link<HashMap_.HashMap<Key["Encoded"], Value["Encoded"]>>()(
           Array(Tuple([key, value])),
           Transformation.transform({
-            decode: (e) => HashMap_.fromIterable(e),
-            encode: (map) => HashMap_.toEntries(map)
+            decode: HashMap_.fromIterable,
+            encode: HashMap_.toEntries
           })
         ),
       toArbitrary: ([key, value]) => (fc, ctx) => {
@@ -6460,7 +6460,7 @@ export function ReadonlySet<Value extends Top>(value: Value): $ReadonlySet<Value
  * @category HashSet
  * @since 4.0.0
  */
-export interface $HashSet<Value extends Top> extends
+export interface HashSet<Value extends Top> extends
   declareConstructor<
     HashSet_.HashSet<Value["Type"]>,
     HashSet_.HashSet<Value["Encoded"]>,
@@ -6484,25 +6484,28 @@ export type HashSetIso<Value extends Top> = ReadonlyArray<Value["Iso"]>
  * @category HashSet
  * @since 4.0.0
  */
-export function HashSet<Value extends Top>(value: Value): $HashSet<Value> {
+export function HashSet<Value extends Top>(value: Value): HashSet<Value> {
   const schema = declareConstructor<
     HashSet_.HashSet<Value["Type"]>,
     HashSet_.HashSet<Value["Encoded"]>,
     HashSetIso<Value>
   >()(
     [value],
-    ([value]) => (input, ast, options) => {
-      if (HashSet_.isHashSet(input)) {
-        const array = Array(value)
-        return Effect.mapBothEager(
-          Parser.decodeUnknownEffect(array)([...input], options),
-          {
-            onSuccess: (array: ReadonlyArray<Value["Type"]>) => HashSet_.fromIterable(array),
-            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["values"], issue)])
-          }
-        )
+    ([value]) => {
+      const values = Array(value)
+      return (input, ast, options) => {
+        if (HashSet_.isHashSet(input)) {
+          return Effect.mapBothEager(
+            Parser.decodeUnknownEffect(values)(Arr.fromIterable(input), options),
+            {
+              onSuccess: HashSet_.fromIterable,
+              onFailure: (issue) =>
+                new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["values"], issue)])
+            }
+          )
+        }
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
-      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
       typeConstructor: {
@@ -6517,8 +6520,8 @@ export function HashSet<Value extends Top>(value: Value): $HashSet<Value> {
         link<HashSet_.HashSet<Value["Encoded"]>>()(
           Array(value),
           Transformation.transform({
-            decode: (e) => HashSet_.fromIterable(e),
-            encode: (set) => [...set]
+            decode: HashSet_.fromIterable,
+            encode: Arr.fromIterable
           })
         ),
       toArbitrary: ([value]) => (fc, ctx) => {
@@ -6526,26 +6529,9 @@ export function HashSet<Value extends Top>(value: Value): $HashSet<Value> {
           ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "HashSet" } : {},
           fc.constant([]),
           fc.array(value, ctx?.constraints?.array)
-        ).map((as) => HashSet_.fromIterable(as))
+        ).map(HashSet_.fromIterable)
       },
-      toEquivalence: ([value]) => (self, that) => {
-        if (HashSet_.size(self) !== HashSet_.size(that)) {
-          return false
-        }
-        for (const selfValue of self) {
-          let found = false
-          for (const thatValue of that) {
-            if (value(selfValue, thatValue)) {
-              found = true
-              break
-            }
-          }
-          if (!found) {
-            return false
-          }
-        }
-        return true
-      },
+      toEquivalence: ([value]) => Equal.makeCompareSet(value),
       toFormatter: ([value]) => (t) => {
         const size = HashSet_.size(t)
         if (size === 0) {
