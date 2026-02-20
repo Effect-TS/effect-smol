@@ -36,11 +36,18 @@
     "@effect/bundle": "0.0.0"
   },
   "changesets": [
+    "add-scalar-show-operation-id",
+    "add-schema-bigdecimal",
+    "add-schema-datetime",
     "blue-dingos-greet",
     "breezy-meals-see",
     "chubby-parents-flow",
+    "cold-knives-lie",
+    "consolidate-encoding",
     "dirty-lamps-trade",
+    "extract-semaphore-latch",
     "fair-dryers-speak",
+    "fast-times-camp",
     "fix-openrouter-sparse-array",
     "fix-serializable-wire-transfer",
     "forty-otters-cry",
@@ -48,8 +55,17 @@
     "fuzzy-camels-hunt",
     "odd-laws-draw",
     "old-brooms-cry",
+    "polite-pigs-speak",
+    "polite-tables-kneel",
     "port-react-hydration",
+    "schema-datetime-utc-from-string",
+    "schema-dollar-prefix",
     "shy-geckos-sniff",
-    "tall-mails-listen"
+    "smart-ducks-jump",
+    "struct-record",
+    "tagged-error-class-optional-empty-props",
+    "tall-mails-listen",
+    "tangy-colts-lose",
+    "wet-news-invent"
   ]
 }
