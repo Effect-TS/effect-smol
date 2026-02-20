@@ -61,11 +61,11 @@ export declare namespace HttpClient {
 
     readonly get: (
       url: string | URL,
-      options?: HttpClientRequest.Options.NoBody
+      options?: HttpClientRequest.Options.NoUrl
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
     readonly head: (
       url: string | URL,
-      options?: HttpClientRequest.Options.NoBody
+      options?: HttpClientRequest.Options.NoUrl
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
     readonly post: (
       url: string | URL,
@@ -132,7 +132,7 @@ export const execute: (
  * @since 4.0.0
  * @category accessors
  */
-export const get: (url: string | URL, options?: HttpClientRequest.Options.NoBody | undefined) => Effect.Effect<
+export const get: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -142,7 +142,7 @@ export const get: (url: string | URL, options?: HttpClientRequest.Options.NoBody
  * @since 4.0.0
  * @category accessors
  */
-export const head: (url: string | URL, options?: HttpClientRequest.Options.NoBody | undefined) => Effect.Effect<
+export const head: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient

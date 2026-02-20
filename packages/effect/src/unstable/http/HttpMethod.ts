@@ -36,7 +36,8 @@ export declare namespace HttpMethod {
 /**
  * @since 4.0.0
  */
-export const hasBody = (method: HttpMethod): boolean => method !== "GET" && method !== "HEAD" && method !== "OPTIONS"
+export const hasBody = (method: HttpMethod): method is HttpMethod.WithBody =>
+  method !== "GET" && method !== "HEAD" && method !== "OPTIONS"
 
 /**
  * @since 4.0.0

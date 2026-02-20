@@ -65,12 +65,6 @@ export declare namespace Options {
    * @since 4.0.0
    * @category models
    */
-  export interface NoBody extends Omit<Options, "method" | "url" | "body"> {}
-
-  /**
-   * @since 4.0.0
-   * @category models
-   */
   export interface NoUrl extends Omit<Options, "method" | "url"> {}
 }
 
@@ -133,7 +127,7 @@ export const make = <M extends HttpMethod>(
 ) =>
 (
   url: string | URL,
-  options?: (M extends "GET" | "HEAD" ? Options.NoBody : Options.NoUrl) | undefined
+  options?: Options.NoUrl | undefined
 ): HttpClientRequest =>
   modify(empty, {
     method,
@@ -145,7 +139,7 @@ export const make = <M extends HttpMethod>(
  * @since 4.0.0
  * @category constructors
  */
-export const get: (url: string | URL, options?: Options.NoBody) => HttpClientRequest = make("GET")
+export const get: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("GET")
 
 /**
  * @since 4.0.0
@@ -175,7 +169,7 @@ export const del: (url: string | URL, options?: Options.NoUrl) => HttpClientRequ
  * @since 4.0.0
  * @category constructors
  */
-export const head: (url: string | URL, options?: Options.NoBody) => HttpClientRequest = make("HEAD")
+export const head: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("HEAD")
 
 /**
  * @since 4.0.0
