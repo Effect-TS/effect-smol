@@ -6,7 +6,6 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { dual } from "../../Function.ts"
-import { effectIsExit } from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -32,30 +31,6 @@ export const toHandled = <E, R, EH, RH>(
   ) => Effect.Effect<unknown, EH, RH>,
   middleware?: HttpMiddleware | undefined
 ): Effect.Effect<void, never, Exclude<R | RH | HttpServerRequest, Scope.Scope>> => {
-  const responded = Effect.flatMap(self, (response) => {
-    const fiber = Fiber.getCurrent()!
-    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
-    const handler = fiber.getRef(PreResponseHandlers)
-    if (handler === undefined) {
-      ;(request as any)[handledSymbol] = true
-      const eff = handleResponse(request, response)
-      if (effectIsExit(eff)) {
-        return eff._tag === "Success" ? Effect.succeed(response) : handleCause(eff.cause)
-      }
-      return Effect.matchCauseEffect(eff, {
-        onFailure: handleCause,
-        onSuccess: () => Effect.succeed(response)
-      })
-    }
-    return Effect.flatMapEager(handler(request, response), (sentResponse) => {
-      ;(request as any)[handledSymbol] = true
-      return Effect.matchCauseEffectEager(handleResponse(request, sentResponse), {
-        onSuccess: () => Effect.succeed(response),
-        onFailure: handleCause
-      })
-    })
-  })
-
   const handleCause = (cause: Cause<E | EH | HttpServerError>) =>
     Effect.flatMapEager(causeResponse(cause), ([response, cause]) => {
       const fiber = Fiber.getCurrent()!
@@ -78,6 +53,23 @@ export const toHandled = <E, R, EH, RH>(
         () => cont
       )
     })
+
+  const responded = Effect.matchCauseEffect(self, {
+    onSuccess: (response) => {
+      const fiber = Fiber.getCurrent()!
+      const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
+      const handler = fiber.getRef(PreResponseHandlers)
+      if (handler === undefined) {
+        ;(request as any)[handledSymbol] = true
+        return Effect.mapEager(handleResponse(request, response), () => response)
+      }
+      return Effect.flatMapEager(handler(request, response), (sentResponse) => {
+        ;(request as any)[handledSymbol] = true
+        return Effect.mapEager(handleResponse(request, sentResponse), () => response)
+      })
+    },
+    onFailure: handleCause
+  })
 
   const withMiddleware: Effect.Effect<
     unknown,
