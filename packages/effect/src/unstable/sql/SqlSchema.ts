@@ -26,7 +26,7 @@ export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
     request: Req["Encoded"]
   ): Effect.Effect<
     Array<Res["Type"]>,
-    E | Schema.SchemaError | Cause.NoSuchElementError,
+    E | Schema.SchemaError,
     Req["EncodingServices"] | Res["DecodingServices"] | R
   > => Effect.flatMap(Effect.flatMap(encodeRequest(request), options.execute), decode)
 }
