@@ -1,5 +1,14 @@
 # @effect/ai-anthropic
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- [#1354](https://github.com/Effect-TS/effect-smol/pull/1354) [`b94962c`](https://github.com/Effect-TS/effect-smol/commit/b94962c249d46cf96cdf2e41188dc9feda41536a) Thanks @IMax153! - Fix the generated schemas for ai providers
+
+- Updated dependencies [[`246e672`](https://github.com/Effect-TS/effect-smol/commit/246e672dbbd7848d60e0c78fd66671b2f10b3752), [`807dec0`](https://github.com/Effect-TS/effect-smol/commit/807dec03801b4c58a6d00c237b6d98d6386911df)]:
+  - effect@4.0.0-beta.8
+
 ## 4.0.0-beta.7
 
 ### Patch Changes
