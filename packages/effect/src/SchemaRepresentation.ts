@@ -1724,7 +1724,7 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
       case "effect/Redacted":
         return Schema.Redacted(typeParameters[0])
       case "effect/Cause/Failure":
-        return Schema.CauseFailure(typeParameters[0], typeParameters[1])
+        return Schema.CauseReason(typeParameters[0], typeParameters[1])
       case "effect/Cause":
         return Schema.Cause(typeParameters[0], typeParameters[1])
       case "Error":

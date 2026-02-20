@@ -214,10 +214,10 @@ describe("toSchema", () => {
       )
     })
 
-    it("CauseFailure", () => {
+    it("CauseReason", () => {
       assertToSchemaWithReviver(
-        Schema.CauseFailure(Schema.String, Schema.Number),
-        `Schema.CauseFailure(String_, Number_)`
+        Schema.CauseReason(Schema.String, Schema.Number),
+        `Schema.CauseReason(String_, Number_)`
       )
     })
 

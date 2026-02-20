@@ -199,9 +199,9 @@ describe("toCodeDocument", () => {
       )
     })
 
-    it("CauseFailure(String, Number)", () => {
-      assertSchema({ schema: Schema.CauseFailure(Schema.String, Schema.Number) }, {
-        codes: makeCode("Schema.CauseFailure(String_, Number_)", "Cause.Failure<String_, Number_>"),
+    it("CauseReason(String, Number)", () => {
+      assertSchema({ schema: Schema.CauseReason(Schema.String, Schema.Number) }, {
+        codes: makeCode("Schema.CauseReason(String_, Number_)", "Cause.Failure<String_, Number_>"),
         references: {
           nonRecursives: [
             {

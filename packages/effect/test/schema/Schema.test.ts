@@ -2616,17 +2616,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed(noPrototypeObject, { message: "a" })
   })
 
-  describe("CauseFailure", () => {
+  describe("CauseReason", () => {
     it("should expose the values", () => {
-      const schema = Schema.CauseFailure(Schema.String, Schema.Number)
+      const schema = Schema.CauseReason(Schema.String, Schema.Number)
       strictEqual(schema.error, Schema.String)
       strictEqual(schema.annotate({}).error, Schema.String)
       strictEqual(schema.defect, Schema.Number)
       strictEqual(schema.annotate({}).defect, Schema.Number)
     })
 
-    it("CauseFailure(FiniteFromString, FiniteFromString)", async () => {
-      const schema = Schema.CauseFailure(Schema.FiniteFromString, Schema.FiniteFromString)
+    it("CauseReason(FiniteFromString, FiniteFromString)", async () => {
+      const schema = Schema.CauseReason(Schema.FiniteFromString, Schema.FiniteFromString)
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {

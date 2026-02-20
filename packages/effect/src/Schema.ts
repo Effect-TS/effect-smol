@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+/** @effect-diagnostics schemaStructWithTag:skip-file */
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec"
 import * as Arr from "./Array.ts"
 import * as BigDecimal_ from "./BigDecimal.ts"
@@ -5705,15 +5706,15 @@ export function RedactedFromValue<S extends Top>(value: S, options?: {
 }
 
 /**
- * @category CauseFailure
+ * @category CauseReason
  * @since 4.0.0
  */
-export interface CauseFailure<E extends Top, D extends Top> extends
+export interface CauseReason<E extends Top, D extends Top> extends
   declareConstructor<
     Cause_.Reason<E["Type"]>,
     Cause_.Reason<E["Encoded"]>,
     readonly [E, D],
-    CauseFailureIso<E, D>
+    CauseReasonIso<E, D>
   >
 {
   readonly error: E
@@ -5721,10 +5722,10 @@ export interface CauseFailure<E extends Top, D extends Top> extends
 }
 
 /**
- * @category CauseFailure
+ * @category CauseReason
  * @since 4.0.0
  */
-export type CauseFailureIso<E extends Top, D extends Top> = {
+export type CauseReasonIso<E extends Top, D extends Top> = {
   readonly _tag: "Fail"
   readonly error: E["Iso"]
 } | {
@@ -5736,11 +5737,11 @@ export type CauseFailureIso<E extends Top, D extends Top> = {
 }
 
 /**
- * @category CauseFailure
+ * @category CauseReason
  * @since 4.0.0
  */
-export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D): CauseFailure<E, D> {
-  const schema = declareConstructor<Cause_.Reason<E["Type"]>, Cause_.Reason<E["Encoded"]>, CauseFailureIso<E, D>>()(
+export function CauseReason<E extends Top, D extends Top>(error: E, defect: D): CauseReason<E, D> {
+  const schema = declareConstructor<Cause_.Reason<E["Type"]>, Cause_.Reason<E["Encoded"]>, CauseReasonIso<E, D>>()(
     [error, defect],
     ([error, defect]) => (input, ast, options) => {
       if (!Cause_.isReason(input)) {
@@ -5773,7 +5774,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
         _tag: "effect/Cause/Failure"
       },
       generation: {
-        runtime: `Schema.CauseFailure(?, ?)`,
+        runtime: `Schema.CauseReason(?, ?)`,
         Type: `Cause.Failure<?, ?>`,
         importDeclaration: `import * as Cause from "effect/Cause"`
       },
@@ -5799,15 +5800,15 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
             encode: identity
           })
         ),
-      toArbitrary: ([error, defect]) => causeFailureToArbitrary(error, defect),
-      toEquivalence: ([error, defect]) => causeFailureToEquivalence(error, defect),
-      toFormatter: ([error, defect]) => causeFailureToFormatter(error, defect)
+      toArbitrary: ([error, defect]) => CauseReasonToArbitrary(error, defect),
+      toEquivalence: ([error, defect]) => CauseReasonToEquivalence(error, defect),
+      toFormatter: ([error, defect]) => CauseReasonToFormatter(error, defect)
     }
   )
   return make(schema.ast, { error, defect })
 }
 
-function causeFailureToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck.Arbitrary<D>) {
+function CauseReasonToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck.Arbitrary<D>) {
   return (fc: typeof FastCheck, ctx: Annotations.ToArbitrary.Context | undefined) => {
     return fc.oneof(
       ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Cause.Failure" } : {},
@@ -5819,7 +5820,7 @@ function causeFailureToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: Fa
   }
 }
 
-function causeFailureToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
+function CauseReasonToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
   return (a: Cause_.Reason<E>, b: Cause_.Reason<E>) => {
     if (a._tag !== b._tag) return false
     switch (a._tag) {
@@ -5833,7 +5834,7 @@ function causeFailureToEquivalence<E>(error: Equivalence.Equivalence<E>, defect:
   }
 }
 
-function causeFailureToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
+function CauseReasonToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
   return (t: Cause_.Reason<E>) => {
     switch (t._tag) {
       case "Fail":
@@ -5866,20 +5867,21 @@ export interface Cause<E extends Top, D extends Top> extends
  * @category Cause
  * @since 4.0.0
  */
-export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseFailureIso<E, D>>
+export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseReasonIso<E, D>>
 
 /**
  * @category Cause
  * @since 4.0.0
  */
 export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
+  let failures: $Array<CauseReason<Codec<E["Type"], E["Encoded"]>, Codec<D["Type"], D["Encoded"]>>>
   const schema = declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, CauseIso<E, D>>()(
     [error, defect],
     ([error, defect]) => (input, ast, options) => {
       if (!Cause_.isCause(input)) {
         return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
-      const failures = Array(CauseFailure(error, defect))
+      failures ??= Array(CauseReason(error, defect))
       return Effect.mapBothEager(Parser.decodeUnknownEffect(failures)(input.reasons, options), {
         onSuccess: Cause_.fromReasons,
         onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failures"], issue)])
@@ -5897,7 +5899,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       expected: "Cause",
       toCodec: ([error, defect]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
-          Array(CauseFailure(error, defect)),
+          Array(CauseReason(error, defect)),
           Transformation.transform({
             decode: Cause_.fromReasons,
             encode: ({ reasons: failures }) => failures
@@ -5913,18 +5915,18 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
 
 function causeToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck.Arbitrary<D>) {
   return (fc: typeof FastCheck, ctx: Annotations.ToArbitrary.Context | undefined) => {
-    return fc.array(causeFailureToArbitrary(error, defect)(fc, ctx)).map(Cause_.fromReasons)
+    return fc.array(CauseReasonToArbitrary(error, defect)(fc, ctx)).map(Cause_.fromReasons)
   }
 }
 
 function causeToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
-  const failures = Equivalence.Array(causeFailureToEquivalence(error, defect))
+  const failures = Equivalence.Array(CauseReasonToEquivalence(error, defect))
   return (a: Cause_.Cause<E>, b: Cause_.Cause<E>) => failures(a.reasons, b.reasons)
 }
 
 function causeToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
-  const causeFailure = causeFailureToFormatter(error, defect)
-  return (t: Cause_.Cause<E>) => `Cause([${t.reasons.map(causeFailure).join(", ")}])`
+  const CauseReason = CauseReasonToFormatter(error, defect)
+  return (t: Cause_.Cause<E>) => `Cause([${t.reasons.map(CauseReason).join(", ")}])`
 }
 
 /**
@@ -6092,6 +6094,7 @@ export type ExitIso<A extends Top, E extends Top, D extends Top> = {
  * @since 4.0.0
  */
 export function Exit<A extends Top, E extends Top, D extends Top>(value: A, error: E, defect: D): Exit<A, E, D> {
+  let cause: Cause<Codec<E["Type"], E["Encoded"], never, never>, Codec<D["Type"], D["Encoded"], never, never>>
   const schema = declareConstructor<
     Exit_.Exit<A["Type"], E["Type"]>,
     Exit_.Exit<A["Encoded"], E["Encoded"]>,
@@ -6102,7 +6105,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       if (!Exit_.isExit(input)) {
         return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
-      const cause = Cause(error, defect)
+      cause ??= Cause(error, defect)
       switch (input._tag) {
         case "Success":
           return Effect.mapBothEager(
@@ -6272,7 +6275,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
  * @category HashMap
  * @since 4.0.0
  */
-export interface $HashMap<Key extends Top, Value extends Top> extends
+export interface HashMap<Key extends Top, Value extends Top> extends
   declareConstructor<
     HashMap_.HashMap<Key["Type"], Value["Type"]>,
     HashMap_.HashMap<Key["Encoded"], Value["Encoded"]>,
@@ -6297,7 +6300,11 @@ export type HashMapIso<Key extends Top, Value extends Top> = ReadonlyArray<reado
  * @category HashMap
  * @since 4.0.0
  */
-export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Value): $HashMap<Key, Value> {
+export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Value): HashMap<Key, Value> {
+  let array: Codec<
+    ReadonlyArray<readonly [Key["Type"], Value["Type"]]>,
+    ReadonlyArray<readonly [Key["Encoded"], Value["Encoded"]]>
+  >
   const schema = declareConstructor<
     HashMap_.HashMap<Key["Type"], Value["Type"]>,
     HashMap_.HashMap<Key["Encoded"], Value["Encoded"]>,
@@ -6306,11 +6313,11 @@ export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Val
     [key, value],
     ([key, value]) => (input, ast, options) => {
       if (HashMap_.isHashMap(input)) {
-        const array = Array(Tuple([key, value]))
+        array ??= Array(Tuple([key, value]))
         return Effect.mapBothEager(
           Parser.decodeUnknownEffect(array)(HashMap_.toEntries(input), options),
           {
-            onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => HashMap_.fromIterable(array),
+            onSuccess: HashMap_.fromIterable,
             onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["entries"], issue)])
           }
         )
@@ -6340,12 +6347,9 @@ export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Val
           ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "HashMap" } : {},
           fc.constant([]),
           fc.array(fc.tuple(key, value), ctx?.constraints?.array)
-        ).map((as) => HashMap_.fromIterable(as))
+        ).map(HashMap_.fromIterable)
       },
-      toEquivalence: ([key, value]) => {
-        const compare = Equal.makeCompareMap(key, value)
-        return (a, b) => compare(new globalThis.Map(HashMap_.toEntries(a)), new globalThis.Map(HashMap_.toEntries(b)))
-      },
+      toEquivalence: ([key, value]) => Equal.makeCompareMap(key, value),
       toFormatter: ([key, value]) => (t) => {
         const size = HashMap_.size(t)
         if (size === 0) {
@@ -9454,3 +9458,4 @@ export declare namespace Annotations {
    */
   export type Meta = MetaDefinitions[keyof MetaDefinitions]
 }
+

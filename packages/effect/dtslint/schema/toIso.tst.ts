@@ -204,8 +204,8 @@ describe("toIso", () => {
     >()
   })
 
-  it("CauseFailure", () => {
-    const schema = Schema.CauseFailure(Value, Value)
+  it("CauseReason", () => {
+    const schema = Schema.CauseReason(Value, Value)
     const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<
@@ -235,7 +235,7 @@ it("Cause", () => {
   const optic = Schema.toIso(schema)
 
   expect(optic).type.toBe<
-    Optic.Iso<Cause.Cause<Value>, ReadonlyArray<Schema.CauseFailureIso<typeof Value, typeof Value>>>
+    Optic.Iso<Cause.Cause<Value>, ReadonlyArray<Schema.CauseReasonIso<typeof Value, typeof Value>>>
   >()
 })
 
