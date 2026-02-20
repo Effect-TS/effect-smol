@@ -53,7 +53,7 @@ import type * as ServiceMap from "./ServiceMap.ts"
 export const Random: ServiceMap.Reference<{
   nextIntUnsafe(): number
   nextDoubleUnsafe(): number
-}> = random.RandomRef
+}> = random.Random
 
 const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effect<A> =>
   Effect.withFiber((fiber) => Effect.succeed(f(fiber.getRef(Random))))
