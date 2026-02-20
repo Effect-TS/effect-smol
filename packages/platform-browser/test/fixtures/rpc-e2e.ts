@@ -40,7 +40,7 @@ export const e2eSuite = <E>(
     it.effect("nested method", () =>
       Effect.gen(function*() {
         const client = yield* UsersClient
-        yield* client.nested.test()
+        yield* client["nested.test"]()
       }).pipe(Effect.provide(layer)))
 
     it.effect("should not flatten Option", () =>

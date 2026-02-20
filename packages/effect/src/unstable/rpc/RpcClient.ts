@@ -21,7 +21,6 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type * as Struct from "../../Struct.ts"
 import type { Span } from "../../Tracer.ts"
-import type { Mutable } from "../../Types.ts"
 import * as Headers from "../http/Headers.ts"
 import * as HttpBody from "../http/HttpBody.ts"
 import * as HttpClient from "../http/HttpClient.ts"
@@ -46,16 +45,7 @@ import { withRun } from "./Utils.ts"
  * @since 4.0.0
  * @category client
  */
-export type RpcClient<Rpcs extends Rpc.Any, E = never> = Struct.Simplify<
-  & RpcClient.From<RpcClient.NonPrefixed<Rpcs>, E, "">
-  & {
-    readonly [CurrentPrefix in RpcClient.Prefixes<Rpcs>]: RpcClient.From<
-      RpcClient.Prefixed<Rpcs, CurrentPrefix>,
-      E,
-      CurrentPrefix
-    >
-  }
->
+export type RpcClient<Rpcs extends Rpc.Any, E = never> = Struct.Simplify<RpcClient.From<Rpcs, E>>
 
 /**
  * @since 4.0.0
@@ -66,34 +56,8 @@ export declare namespace RpcClient {
    * @since 4.0.0
    * @category client
    */
-  export type Prefixes<Rpcs extends Rpc.Any> = Rpcs["_tag"] extends infer Tag
-    ? Tag extends `${infer Prefix}.${string}` ? Prefix : never
-    : never
-
-  /**
-   * @since 4.0.0
-   * @category client
-   */
-  export type NonPrefixed<Rpcs extends Rpc.Any> = Exclude<Rpcs, { readonly _tag: `${string}.${string}` }>
-
-  /**
-   * @since 4.0.0
-   * @category client
-   */
-  export type Prefixed<Rpcs extends Rpc.Any, Prefix extends string> = Extract<
-    Rpcs,
-    { readonly _tag: `${Prefix}.${string}` }
-  >
-
-  /**
-   * @since 4.0.0
-   * @category client
-   */
-  export type From<Rpcs extends Rpc.Any, E = never, Prefix extends string = ""> = {
-    readonly [
-      Current in Rpcs as Current["_tag"] extends `${Prefix}.${infer Method}` ? Method
-        : Current["_tag"]
-    ]: <
+  export type From<Rpcs extends Rpc.Any, E = never> = {
+    readonly [Current in Rpcs as Current["_tag"]]: <
       const AsQueue extends boolean = false,
       const Discard = false
     >(
@@ -615,16 +579,9 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     }
   } else {
     client = {}
-    for (const rpc of group.requests.values()) {
-      const dot = rpc._tag.indexOf(".")
-      const prefix = dot === -1 ? undefined : rpc._tag.slice(0, dot)
-      if (prefix !== undefined && !(prefix in client)) {
-        ;(client as any)[prefix] = {} as Mutable<RpcClient.Prefixed<Rpcs, typeof prefix>>
-      }
-      const target = prefix !== undefined ? (client as any)[prefix] : client
-      const tag = prefix !== undefined ? rpc._tag.slice(dot + 1) : rpc._tag
-      target[tag] = onRequest(rpc as any)
-    }
+    group.requests.forEach((rpc) => {
+      client[rpc._tag] = onRequest(rpc as any)
+    })
   }
 
   return { client, write } as const
