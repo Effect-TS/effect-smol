@@ -325,7 +325,7 @@ export declare namespace Schema {
   /**
    * @since 4.0.0
    */
-  export type Type<S extends Top> = S["Type"]
+  export type Type<S> = S extends Top ? S["Type"] : never
 }
 
 /**
@@ -353,15 +353,15 @@ export declare namespace Codec {
   /**
    * @since 4.0.0
    */
-  export type Encoded<S extends Top> = S["Encoded"]
+  export type Encoded<S> = S extends Top ? S["Encoded"] : never
   /**
    * @since 4.0.0
    */
-  export type DecodingServices<S extends Top> = S["DecodingServices"]
+  export type DecodingServices<S> = S extends Top ? S["DecodingServices"] : never
   /**
    * @since 4.0.0
    */
-  export type EncodingServices<S extends Top> = S["EncodingServices"]
+  export type EncodingServices<S> = S extends Top ? S["EncodingServices"] : never
   /**
    * @since 4.0.0
    */

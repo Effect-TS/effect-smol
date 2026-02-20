@@ -52,6 +52,30 @@ describe("Schema", () => {
     })
   })
 
+  describe("type helpers type safety", () => {
+    it("Schema", () => {
+      function f<S extends Schema.Schema<unknown>>(_s: S) {
+        // @ts-expect-error Type 'null' is not assignable to type 'Type<S>'
+        const Type: Schema.Schema.Type<S> = null
+        return Type
+      }
+      f(Schema.String)
+    })
+
+    it("Codec", () => {
+      function f<S extends Schema.Codec<unknown, unknown, unknown, unknown>>(_s: S) {
+        // @ts-expect-error Type 'null' is not assignable to type 'Encoded<S>'
+        const Encoded: Schema.Codec.Encoded<S> = null
+        // @ts-expect-error Type 'null' is not assignable to type 'DecodingServices<S>'
+        const DecodingServices: Schema.Codec.DecodingServices<S> = null
+        // @ts-expect-error Type 'null' is not assignable to type 'EncodingServices<S>'
+        const EncodingServices: Schema.Codec.EncodingServices<S> = null
+        return { Encoded, DecodingServices, EncodingServices }
+      }
+      f(Schema.String)
+    })
+  })
+
   describe("makeUnsafe", () => {
     it("Never", () => {
       const schema = Schema.Never
