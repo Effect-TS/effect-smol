@@ -23,8 +23,8 @@
  */
 import * as Effect from "./Effect.ts"
 import { dual } from "./Function.ts"
+import * as random from "./internal/random.ts"
 import * as Predicate from "./Predicate.ts"
-import * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * Represents a service for generating random numbers.
@@ -49,23 +49,10 @@ import * as ServiceMap from "./ServiceMap.ts"
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const Random = ServiceMap.Reference<{
-  nextIntUnsafe(): number
-  nextDoubleUnsafe(): number
-}>("effect/Random", {
-  defaultValue: () => ({
-    nextIntUnsafe() {
-      return Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) +
-        Number.MIN_SAFE_INTEGER
-    },
-    nextDoubleUnsafe() {
-      return Math.random()
-    }
-  })
-})
+export const Random = random.RandomRef
 
 const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effect<A> =>
-  Effect.withFiber((fiber) => Effect.succeed(f(ServiceMap.get(fiber.services, Random))))
+  Effect.withFiber((fiber) => Effect.succeed(f(fiber.getRef(Random))))
 
 /**
  * Generates a random number between 0 (inclusive) and 1 (inclusive).

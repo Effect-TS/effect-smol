@@ -38,6 +38,7 @@ import type { LazyArg } from "./Function.ts"
 import { constant, dual, identity } from "./Function.ts"
 import { isEffect } from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
+import * as random from "./internal/random.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Pull from "./Pull.ts"
@@ -47,16 +48,9 @@ import type { Contravariant, Covariant, Mutable } from "./Types.ts"
 
 const TypeId = "~effect/Schedule"
 
-const RandomService = ServiceMap.Reference<{
-  nextDoubleUnsafe(): number
-}>("effect/Random", {
-  defaultValue: () => ({
-    nextDoubleUnsafe: Math.random
-  })
-})
-
 const randomNext: Effect<number> = effect.servicesWith((services) =>
-  effect.succeed(ServiceMap.get(services, RandomService).nextDoubleUnsafe()))
+  effect.succeed(ServiceMap.get(services, random.RandomRef).nextDoubleUnsafe())
+)
 
 /**
  * A Schedule defines a strategy for repeating or retrying effects based on some policy.
