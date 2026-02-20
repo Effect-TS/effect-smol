@@ -61,7 +61,7 @@ export interface Rpc<
   readonly payloadSchema: Payload
   readonly successSchema: Success
   readonly errorSchema: Error
-  readonly defectSchema: DefectSchema
+  readonly defectSchema: Schema.Top
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly middlewares: ReadonlySet<Middleware>
   readonly "~requires": Requires
@@ -183,7 +183,7 @@ export interface AnyWithProps extends Pipeable {
   readonly payloadSchema: Schema.Top
   readonly successSchema: Schema.Top
   readonly errorSchema: Schema.Top
-  readonly defectSchema: DefectSchema
+  readonly defectSchema: Schema.Top
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly middlewares: ReadonlySet<RpcMiddleware.AnyServiceWithProps>
   readonly "~requires": any
@@ -696,7 +696,7 @@ const makeProto = <
   readonly payloadSchema: Payload
   readonly successSchema: Success
   readonly errorSchema: Error
-  readonly defectSchema: DefectSchema
+  readonly defectSchema: Schema.Top
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly middlewares: ReadonlySet<Middleware>
 }): Rpc<Tag, Payload, Success, Error, Middleware, Requires> => {
