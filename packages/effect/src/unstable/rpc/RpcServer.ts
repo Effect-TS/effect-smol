@@ -1078,6 +1078,7 @@ export const toHttpEffect: <Rpcs extends Rpc.Any>(
     readonly disableTracing?: boolean | undefined
     readonly spanPrefix?: string | undefined
     readonly spanAttributes?: Record<string, unknown> | undefined
+    readonly supportsSpanPropagation?: boolean | undefined
   } | undefined
 ) => Effect.Effect<
   Effect.Effect<HttpServerResponse.HttpServerResponse, never, Scope.Scope | HttpServerRequest.HttpServerRequest>,
@@ -1093,11 +1094,15 @@ export const toHttpEffect: <Rpcs extends Rpc.Any>(
     readonly disableTracing?: boolean | undefined
     readonly spanPrefix?: string | undefined
     readonly spanAttributes?: Record<string, unknown> | undefined
+    readonly supportsSpanPropagation?: boolean | undefined
   }
 ) {
   const { httpEffect, protocol } = yield* makeProtocolWithHttpEffect
+  const finalProtocol = options?.supportsSpanPropagation
+    ? { ...protocol, supportsSpanPropagation: true as const }
+    : protocol
   yield* make(group, options).pipe(
-    Effect.provideService(Protocol, protocol),
+    Effect.provideService(Protocol, finalProtocol),
     Effect.forkScoped
   )
   // @effect-diagnostics-next-line returnEffectInGen:off
