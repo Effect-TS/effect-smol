@@ -362,20 +362,23 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         }
       }
 
-      function processParameters(fields: Schema.Struct.Fields | undefined, i: OpenAPISpecParameter["in"]) {
-        if (fields) {
-          for (const [name, field] of Object.entries(fields)) {
-            op.parameters.push({
-              name: String(name),
-              in: i,
-              schema: {},
-              required: i === "path" || !AST.isOptional(field.ast)
-            })
-            pathOps.push({
-              _tag: "parameter",
-              ast: AST.toEncoded(field.ast),
-              path: ["paths", path, method, "parameters", String(op.parameters.length - 1), "schema"]
-            })
+      function processParameters(schema: Schema.Top | undefined, i: OpenAPISpecParameter["in"]) {
+        if (schema) {
+          const ast = AST.toEncoded(schema.ast)
+          if (AST.isObjects(ast)) {
+            for (const ps of ast.propertySignatures) {
+              op.parameters.push({
+                name: String(ps.name),
+                in: i,
+                schema: {},
+                required: i === "path" || !AST.isOptional(ps.type)
+              })
+              pathOps.push({
+                _tag: "parameter",
+                ast: ps.type,
+                path: ["paths", path, method, "parameters", String(op.parameters.length - 1), "schema"]
+              })
+            }
           }
         }
       }
@@ -421,8 +424,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       processParameters(endpoint.params, "path")
       if (!hasBody && endpoint.payload.size === 1) {
         const entry = endpoint.payload.values().next().value!
-        const schema = entry.schemas[0] as Schema.Struct<Schema.Struct.Fields>
-        processParameters(schema.fields, "query")
+        processParameters(entry.schemas[0], "query")
       }
       processParameters(endpoint.headers, "header")
       processParameters(endpoint.query, "query")

@@ -217,7 +217,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         })
 
         // encoders
-        const encodeParams = UndefinedOr.map(HttpApiEndpoint.getParamsSchema(endpoint), Schema.encodeUnknownEffect)
+        const encodeParams = UndefinedOr.map(endpoint.params, Schema.encodeUnknownEffect)
 
         const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
         const encodePayload = Arr.isArrayNonEmpty(payloadSchemas) ?
@@ -226,8 +226,8 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             : Schema.encodeUnknownEffect(Schema.Union(payloadSchemas)) :
           undefined
 
-        const encodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.encodeUnknownEffect)
-        const encodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.encodeUnknownEffect)
+        const encodeHeaders = UndefinedOr.map(endpoint.headers, Schema.encodeUnknownEffect)
+        const encodeQuery = UndefinedOr.map(endpoint.query, Schema.encodeUnknownEffect)
 
         const middlewareKeys = Array.from(onEndpointOptions.middleware, (tag) => `${tag.key}/Client`)
 

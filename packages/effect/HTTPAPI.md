@@ -240,7 +240,7 @@ const User = Schema.Struct({
 //                     ▼            ▼
 HttpApiEndpoint.patch("updateUser", "/user/:id", {
   // Parameters from the route pattern (e.g. /user/:id).
-  // This is a record where each key is the parameter name.
+  // Can be a record of fields or a full schema.
   params: {
     //  ┌─── Schema for the "id" parameter.
     //  ▼
@@ -248,7 +248,7 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
   },
 
   // (optional) Query string parameters (e.g. ?mode=merge).
-  // This is a record where each key is the query parameter name.
+  // Can be a record of fields or a full schema.
   query: {
     //    ┌─── Schema for the "mode" query parameter
     //    ▼
@@ -256,7 +256,7 @@ HttpApiEndpoint.patch("updateUser", "/user/:id", {
   },
 
   // (optional) Request headers.
-  // Use the exact header name as the key.
+  // Can be a record of fields or a full schema.
   headers: {
     "x-api-key": Schema.String,
     "x-request-id": Schema.String
@@ -619,7 +619,7 @@ Layer.launch(ApiLive).pipe(NodeRuntime.runMain)
 
 ## Parameters
 
-Path parameters let you capture dynamic values from the URL. For example, `/user/:id` extracts the `id` segment. Use the `params` option to declare a schema for each parameter — the framework will parse and validate the value before your handler runs.
+Path parameters let you capture dynamic values from the URL. For example, `/user/:id` extracts the `id` segment. Use the `params` option to declare a record of fields or a full schema — the framework will parse and validate the value before your handler runs.
 
 **Example** (Defining a GET Endpoint to Retrieve a User by ID)
 
@@ -847,7 +847,7 @@ curl http://localhost:3000/apiPrefix/groupPrefix/b # Returns 200 OK
 
 ## Query Parameters
 
-Query parameters are the `?key=value` pairs appended to a URL. Use the `query` option to declare a schema for each expected parameter — the framework will parse, validate, and type them for you.
+Query parameters are the `?key=value` pairs appended to a URL. Use the `query` option to declare a record of fields or a full schema — the framework will parse, validate, and type them for you.
 
 **Example** (Defining Query Parameters with Metadata)
 
@@ -977,7 +977,7 @@ curl "http://localhost:3000/users?a=1" # One value for the `a` parameter
 
 ## Request Headers
 
-Use the `headers` option to declare which request headers the endpoint expects. Each header maps to a schema that validates its value.
+Use the `headers` option to declare a record of fields or a full schema for the request headers the endpoint expects.
 
 > [!IMPORTANT]
 > All headers are normalized to lowercase. Always use lowercase keys for the headers.

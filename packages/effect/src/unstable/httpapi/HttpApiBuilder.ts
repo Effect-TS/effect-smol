@@ -505,9 +505,9 @@ function handlerToRoute(
   const endpoint = handler.endpoint
   const encodeSuccess = Schema.encodeUnknownEffect(makeSuccessSchema(endpoint))
   const encodeError = Schema.encodeUnknownEffect(makeErrorSchema(endpoint))
-  const decodeParams = UndefinedOr.map(HttpApiEndpoint.getParamsSchema(endpoint), Schema.decodeUnknownEffect)
-  const decodeHeaders = UndefinedOr.map(HttpApiEndpoint.getHeadersSchema(endpoint), Schema.decodeUnknownEffect)
-  const decodeQuery = UndefinedOr.map(HttpApiEndpoint.getQuerySchema(endpoint), Schema.decodeUnknownEffect)
+  const decodeParams = UndefinedOr.map(endpoint.params, Schema.decodeUnknownEffect)
+  const decodeHeaders = UndefinedOr.map(endpoint.headers, Schema.decodeUnknownEffect)
+  const decodeQuery = UndefinedOr.map(endpoint.query, Schema.decodeUnknownEffect)
 
   const shouldParsePayload = endpoint.payload.size > 0 && !handler.isRaw
   const payloadBy = shouldParsePayload ? buildPayloadDecoders(endpoint.payload) : undefined

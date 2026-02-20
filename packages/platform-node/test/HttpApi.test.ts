@@ -621,18 +621,6 @@ describe("HttpApi", () => {
     })
   })
 
-  describe("headers option", () => {
-    it("should throw on non-lowercase keys", () => {
-      assert.throws(() => {
-        HttpApiEndpoint.get("get", "/", {
-          headers: {
-            "X-foo": Schema.FiniteFromString
-          }
-        })
-      }, `Header keys must be lowercase, got "X-foo" (use "x-foo")`)
-    })
-  })
-
   describe("success option", () => {
     it.effect("no content", () => {
       const Api = HttpApi.make("api")

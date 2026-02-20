@@ -4,7 +4,6 @@
 import * as Arr from "../../Array.ts"
 import type { Brand } from "../../Brand.ts"
 import type { Effect } from "../../Effect.ts"
-import { format } from "../../Formatter.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
@@ -71,9 +70,9 @@ export interface HttpApiEndpoint<
   readonly name: Name
   readonly path: Path
   readonly method: Method
-  readonly params: Schema.Struct.Fields | undefined
-  readonly query: Schema.Struct.Fields | undefined
-  readonly headers: Schema.Struct.Fields | undefined
+  readonly params: Schema.Top | undefined
+  readonly query: Schema.Top | undefined
+  readonly headers: Schema.Top | undefined
   readonly payload: PayloadMap
   readonly success: ReadonlySet<Schema.Top>
   readonly error: ReadonlySet<Schema.Top>
@@ -154,21 +153,6 @@ export interface HttpApiEndpoint<
     Middleware,
     MiddlewareR
   >
-}
-
-/** @internal */
-export function getParamsSchema(endpoint: AnyWithProps): Schema.Top | undefined {
-  return endpoint.params ? Schema.Struct(endpoint.params) : undefined
-}
-
-/** @internal */
-export function getQuerySchema(endpoint: AnyWithProps): Schema.Top | undefined {
-  return endpoint.query ? Schema.Struct(endpoint.query) : undefined
-}
-
-/** @internal */
-export function getHeadersSchema(endpoint: AnyWithProps): Schema.Top | undefined {
-  return endpoint.headers ? Schema.Struct(endpoint.headers) : undefined
 }
 
 /** @internal */
@@ -830,9 +814,9 @@ function makeProto<
   readonly name: Name
   readonly path: Path
   readonly method: Method
-  readonly params: Schema.Struct.Fields | undefined
-  readonly query: Schema.Struct.Fields | undefined
-  readonly headers: Schema.Struct.Fields | undefined
+  readonly params: Schema.Top | undefined
+  readonly query: Schema.Top | undefined
+  readonly headers: Schema.Top | undefined
   readonly payload: PayloadMap
   readonly success: ReadonlySet<Schema.Top>
   readonly error: ReadonlySet<Schema.Top>
@@ -855,32 +839,28 @@ function makeProto<
 }
 
 /**
- * Params come from the router as `string` (optional params as `undefined`) and
- * must be encodable back into the URL path.
- *
- * We accept "struct fields" (`Record<string, Codec<...>>`) so we can both enforce
- * `Encoded` = `string | undefined` per field and reliably generate OpenAPI
- * `in: path` parameters by iterating object properties.
- *
  * @since 4.0.0
  * @category constraints
  */
-export type ParamsConstraint = Record<string, Schema.Encoder<string | undefined, unknown>>
+export type ParamsConstraint =
+  | Record<string, Schema.Encoder<string | undefined, unknown>>
+  | Schema.Encoder<Record<string, string | undefined>, unknown>
 
 /**
- * URL search params can be repeated, so fields may encode to `string` or
- * `ReadonlyArray<string>` (or be missing).
- *
- * Kept as "struct fields" so OpenAPI can safely expand properties into
- * `in: query` parameters.
- *
  * @since 4.0.0
  * @category constraints
  */
-export type QuerySchemaConstraint = Record<
-  string,
-  Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>
->
+export type HeadersConstraint =
+  | Record<string, Schema.Encoder<string | undefined, unknown>>
+  | Schema.Encoder<Record<string, string | undefined>, unknown>
+
+/**
+ * @since 4.0.0
+ * @category constraints
+ */
+export type QueryConstraint =
+  | Record<string, Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>>
+  | Schema.Encoder<Record<string, string | ReadonlyArray<string> | undefined>, unknown>
 
 /**
  * Payload schema depends on the HTTP method:
@@ -893,34 +873,23 @@ export type QuerySchemaConstraint = Record<
  * @since 4.0.0
  * @category constraints
  */
-export type PayloadSchemaConstraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ? Record<
+export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ? Record<
     string,
     Schema.Encoder<string | ReadonlyArray<string> | undefined, unknown>
   > :
-  SuccessSchemaConstraint
-
-/**
- * HTTP headers are string-valued (or missing).
- *
- * Kept as "struct fields" so OpenAPI can safely expand properties into
- * `in: header` parameters.
- *
- * @since 4.0.0
- * @category constraints
- */
-export type HeadersSchemaConstraint = Record<string, Schema.Encoder<string | undefined, unknown>>
+  SuccessConstraint
 
 /**
  * @since 4.0.0
  * @category constraints
  */
-export type SuccessSchemaConstraint = Schema.Top | ReadonlyArray<Schema.Top>
+export type SuccessConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
  * @since 4.0.0
  * @category constraints
  */
-export type ErrorSchemaConstraint = Schema.Top | ReadonlyArray<Schema.Top>
+export type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
  * @since 4.0.0
@@ -931,11 +900,11 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   const Name extends string,
   const Path extends HttpRouter.PathInput,
   Params extends ParamsConstraint = never,
-  Query extends QuerySchemaConstraint = never,
-  Payload extends PayloadSchemaConstraint<Method> = never,
-  Headers extends HeadersSchemaConstraint = never,
-  const Success extends SuccessSchemaConstraint = HttpApiSchema.NoContent,
-  const Error extends ErrorSchemaConstraint = never
+  Query extends QueryConstraint = never,
+  Payload extends PayloadConstraint<Method> = never,
+  Headers extends HeadersConstraint = never,
+  const Success extends SuccessConstraint = HttpApiSchema.NoContent,
+  const Error extends ErrorConstraint = never
 >(
   name: Name,
   path: Path,
@@ -964,8 +933,8 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     name,
     path,
     method,
-    params: options?.params,
-    query: options?.query,
+    params: getParams(options?.params),
+    query: getQuery(options?.query),
     headers: getHeaders(options?.headers),
     payload: getPayload(options?.payload),
     success: getSuccess(options?.success),
@@ -975,17 +944,23 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   })
 }
 
+function getParams(params: ParamsConstraint | undefined): Schema.Top | undefined {
+  if (params === undefined) return undefined
+  if (Schema.isSchema(params)) return params
+  return Schema.Struct(params)
+}
+
+function getQuery(query: QueryConstraint | undefined): Schema.Top | undefined {
+  if (query === undefined) return undefined
+  if (Schema.isSchema(query)) return query
+  return Schema.Struct(query)
+}
+
 // all keys should be lowercase
-function getHeaders(headers: Schema.Struct.Fields | undefined): Schema.Struct.Fields | undefined {
-  if (headers !== undefined) {
-    for (const key of Object.keys(headers)) {
-      const lowerKey = key.toLowerCase()
-      if (key !== lowerKey) {
-        throw new Error(`Header keys must be lowercase, got ${format(key)} (use ${format(lowerKey)})`)
-      }
-    }
-    return headers
-  }
+function getHeaders(headers: HeadersConstraint | undefined): Schema.Top | undefined {
+  if (headers === undefined) return undefined
+  if (Schema.isSchema(headers)) return headers
+  return Schema.Struct(headers)
 }
 
 function getPayload(
