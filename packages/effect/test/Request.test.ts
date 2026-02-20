@@ -55,7 +55,7 @@ const makeUserResolver = Effect.gen(function*() {
     }
   })).pipe(Resolver.batchN(15))
 
-  const getIds = Effect.request(GetAllIds({}), resolver)
+  const getIds = Effect.request(GetAllIds(), resolver)
   const getNameById = (id: number) => Effect.request(new GetNameById({ id }), resolver)
   const getNameByIdPiped = (id: number) => pipe(new GetNameById({ id }), Effect.request(resolver))
   const getNames = getIds.pipe(
@@ -95,7 +95,7 @@ const makeUserResolverTagged = Effect.gen(function*() {
     })
   }).pipe(Resolver.batchN(15))
 
-  const getIds = Effect.request(GetAllIds({}), resolver)
+  const getIds = Effect.request(GetAllIds(), resolver)
   const getNameById = (id: number) => Effect.request(new GetNameById({ id }), resolver)
   const allNames = getIds.pipe(
     Effect.flatMap(Effect.forEach(getNameById, { concurrency: "unbounded" }))

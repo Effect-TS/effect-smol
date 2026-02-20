@@ -730,6 +730,15 @@ export declare namespace Contravariant {
 export type MatchRecord<S, onTrue, onFalse> = {} extends S ? onTrue : onFalse
 
 /**
+ * Conditional type that returns `void` if `S` is an empty object type,
+ * otherwise returns `S`.
+ *
+ * @since 4.0.0
+ * @category types
+ */
+export type VoidIfEmpty<S> = MatchRecord<S, void, S>
+
+/**
  * Excludes function types from a union, keeping only non-function members.
  *
  * - Use to filter out callable types from a union.

@@ -88,7 +88,7 @@ export interface Variance<out A, out E, out R> {
  * @category models
  */
 export interface Constructor<R extends Request<any, any, any>, T extends keyof R = never> {
-  (args: Omit<R, T | keyof (Variance<any, any, any>)>): R
+  (args: Types.VoidIfEmpty<Types.Simplify<Omit<R, T | keyof (Variance<any, any, any>)>>>): R
 }
 
 /**
@@ -285,7 +285,8 @@ export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
   tag: R["_tag"]
 ): Constructor<R, "_tag"> =>
 (args) => {
-  const request = Object.assign(Object.create(RequestPrototype), args)
+  const request = Object.create(RequestPrototype)
+  if (args) Object.assign(request, args)
   request._tag = tag
   return request
 }
