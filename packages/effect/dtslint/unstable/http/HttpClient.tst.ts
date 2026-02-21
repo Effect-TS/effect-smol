@@ -4,6 +4,41 @@ import { describe, expect, it } from "tstyche"
 
 describe("HttpClient", () => {
   describe("urlParams", () => {
+    it("should accept coercible records", () => {
+      interface Params {
+        readonly string: string
+        readonly number: number
+        readonly bigint: bigint
+        readonly boolean: boolean
+        readonly nullable: null
+        readonly undefinable: undefined
+        readonly array: ReadonlyArray<string | number | bigint | boolean | null | undefined>
+        readonly nested: {
+          readonly x: string
+          readonly y: number
+        }
+      }
+
+      const params: Params = {
+        string: "hello",
+        number: 1,
+        bigint: 2n,
+        boolean: true,
+        nullable: null,
+        undefinable: undefined,
+        array: ["a", 1, 2n, true, null, undefined],
+        nested: {
+          x: "a",
+          y: 1
+        }
+      }
+      const request = HttpClient.get("", { urlParams: params })
+
+      expect(request).type.toBe<
+        Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError, HttpClient.HttpClient>
+      >()
+    })
+
     it("should accept interfaces", () => {
       interface Params {
         readonly q: string
@@ -11,6 +46,33 @@ describe("HttpClient", () => {
 
       const params: Params = { q: "hello" }
       const request = HttpClient.get("", { urlParams: params })
+
+      expect(request).type.toBe<
+        Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError, HttpClient.HttpClient>
+      >()
+    })
+
+    it("should accept iterable tuples", () => {
+      const request = HttpClient.get("", {
+        urlParams: [
+          ["q", "hello"],
+          ["page", 1],
+          ["enabled", true],
+          ["version", 1n],
+          ["nullable", null],
+          ["optional", undefined]
+        ]
+      })
+
+      expect(request).type.toBe<
+        Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError, HttpClient.HttpClient>
+      >()
+    })
+
+    it("should accept URLSearchParams", () => {
+      const request = HttpClient.get("", {
+        urlParams: new URLSearchParams([["q", "hello"]])
+      })
 
       expect(request).type.toBe<
         Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError, HttpClient.HttpClient>
