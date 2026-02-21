@@ -4774,35 +4774,27 @@ class Semaphore {
     return this.permits - this.taken
   }
 
-  readonly take = (n: number): Effect.Effect<number> =>
-    callback<number>((resume) => {
+  readonly take = (n: number): Effect.Effect<number> => {
+    const take: Effect.Effect<number> = suspend(() => {
       if (this.free < n) {
-        const observer = () => {
-          if (this.free < n) {
-            return
+        return callback((resume) => {
+          if (this.free >= n) return resume(take)
+          const observer = () => {
+            if (this.free < n) return
+            this.waiters.delete(observer)
+            resume(take)
           }
-          this.waiters.delete(observer)
-          resume(suspend(() => {
-            if (this.free < n) {
-              return this.take(n)
-            }
-            this.taken += n
-            return succeed(n)
-          }))
-        }
-        this.waiters.add(observer)
-        return sync(() => {
-          this.waiters.delete(observer)
+          this.waiters.add(observer)
+          return sync(() => {
+            this.waiters.delete(observer)
+          })
         })
       }
-      return resume(suspend(() => {
-        if (this.free < n) {
-          return this.take(n)
-        }
-        this.taken += n
-        return succeed(n)
-      }))
+      this.taken += n
+      return succeed(n)
     })
+    return take
+  }
 
   updateTakenUnsafe(fiber: Fiber.Fiber<any, any>, f: (n: number) => number): Effect.Effect<number> {
     this.taken = f(this.taken)
@@ -4840,7 +4832,10 @@ class Semaphore {
 
   readonly withPermits = (n: number) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
     uninterruptibleMask((restore) =>
-      flatMap(restore(this.take(n)), (permits) => ensuring(restore(self), this.release(permits)))
+      flatMap(
+        restore(this.take(n)),
+        (permits) => onExitPrimitive(restore(self), () => this.release(permits), true)
+      )
     )
 
   readonly withPermit = this.withPermits(1)
