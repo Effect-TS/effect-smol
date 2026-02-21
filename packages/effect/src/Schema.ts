@@ -6509,7 +6509,7 @@ export function HashSet<Value extends Top>(value: Value): HashSet<Value> {
     },
     {
       typeConstructor: {
-        _tag: "HashSet"
+        _tag: "effect/HashSet"
       },
       generation: {
         runtime: `Schema.HashSet(?)`,
@@ -7560,7 +7560,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
   {
     typeConstructor: {
-      _tag: "DateTime.Utc"
+      _tag: "effect/DateTime.Utc"
     },
     generation: {
       runtime: `Schema.DateTimeUtc`,
@@ -7675,7 +7675,7 @@ export const TimeZoneOffset: TimeZoneOffset = declare(
   DateTime.isTimeZoneOffset,
   {
     typeConstructor: {
-      _tag: "DateTime.TimeZone.Offset"
+      _tag: "effect/DateTime.TimeZone.Offset"
     },
     generation: {
       runtime: `Schema.TimeZoneOffset`,
@@ -7714,7 +7714,7 @@ export const TimeZoneNamed: TimeZoneNamed = declare(
   DateTime.isTimeZoneNamed,
   {
     typeConstructor: {
-      _tag: "DateTime.TimeZone.Named"
+      _tag: "effect/DateTime.TimeZone.Named"
     },
     generation: {
       runtime: `Schema.TimeZoneNamed`,
@@ -7758,7 +7758,7 @@ export const TimeZone: TimeZone = declare(
   DateTime.isTimeZone,
   {
     typeConstructor: {
-      _tag: "DateTime.TimeZone"
+      _tag: "effect/DateTime.TimeZone"
     },
     generation: {
       runtime: `Schema.TimeZone`,
@@ -7805,7 +7805,7 @@ export const DateTimeZoned: DateTimeZoned = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isZoned(u),
   {
     typeConstructor: {
-      _tag: "DateTime.Zoned"
+      _tag: "effect/DateTime.Zoned"
     },
     generation: {
       runtime: `Schema.DateTimeZoned`,

@@ -1717,44 +1717,60 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
   if (Predicate.isObject(typeConstructor) && typeof typeConstructor._tag === "string") {
     const typeParameters = s.typeParameters.map(recur)
     switch (typeConstructor._tag) {
-      case "effect/Option":
-        return Schema.Option(typeParameters[0])
-      case "effect/Result":
-        return Schema.Result(typeParameters[0], typeParameters[1])
-      case "effect/Redacted":
-        return Schema.Redacted(typeParameters[0])
-      case "effect/Cause/Failure":
-        return Schema.CauseReason(typeParameters[0], typeParameters[1])
-      case "effect/Cause":
-        return Schema.Cause(typeParameters[0], typeParameters[1])
+      // built-in types
+      case "Date":
+        return Schema.Date
       case "Error":
         return Schema.Error
-      case "effect/Exit":
-        return Schema.Exit(typeParameters[0], typeParameters[1], typeParameters[2])
+      case "ErrorWithStack":
+        return Schema.ErrorWithStack
+      case "File":
+        return Schema.File
+      case "FormData":
+        return Schema.FormData
       case "ReadonlyMap":
         return Schema.ReadonlyMap(typeParameters[0], typeParameters[1])
-      case "effect/HashMap":
-        return Schema.HashMap(typeParameters[0], typeParameters[1])
       case "ReadonlySet":
         return Schema.ReadonlySet(typeParameters[0])
       case "RegExp":
         return Schema.RegExp
-      case "URL":
-        return Schema.URL
-      case "File":
-        return Schema.File
-      case "Date":
-        return Schema.Date
-      case "effect/Duration":
-        return Schema.Duration
-      case "FormData":
-        return Schema.FormData
-      case "URLSearchParams":
-        return Schema.URLSearchParams
       case "Uint8Array":
         return Schema.Uint8Array
-      case "DateTime.Utc":
+      case "URL":
+        return Schema.URL
+      case "URLSearchParams":
+        return Schema.URLSearchParams
+      // effect types
+      case "effect/DateTime.TimeZone":
+        return Schema.TimeZone
+      case "effect/DateTime.TimeZone.Named":
+        return Schema.TimeZoneNamed
+      case "effect/DateTime.TimeZone.Offset":
+        return Schema.TimeZoneOffset
+      case "effect/DateTime.Utc":
         return Schema.DateTimeUtc
+      case "effect/DateTime.Zoned":
+        return Schema.DateTimeZoned
+      case "effect/BigDecimal":
+        return Schema.BigDecimal
+      case "effect/Cause":
+        return Schema.Cause(typeParameters[0], typeParameters[1])
+      case "effect/Cause/Failure":
+        return Schema.CauseReason(typeParameters[0], typeParameters[1])
+      case "effect/Duration":
+        return Schema.Duration
+      case "effect/Exit":
+        return Schema.Exit(typeParameters[0], typeParameters[1], typeParameters[2])
+      case "effect/HashMap":
+        return Schema.HashMap(typeParameters[0], typeParameters[1])
+      case "effect/Option":
+        return Schema.Option(typeParameters[0])
+      case "effect/Redacted":
+        return Schema.Redacted(typeParameters[0])
+      case "effect/Result":
+        return Schema.Result(typeParameters[0], typeParameters[1])
+      case "effect/HashSet":
+        return Schema.HashSet(typeParameters[0])
     }
   }
 }

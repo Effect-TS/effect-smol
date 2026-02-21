@@ -358,6 +358,55 @@ describe("toSchema", () => {
       )
     })
 
+    it("ErrorWithStack", () => {
+      assertToSchemaWithReviver(
+        Schema.ErrorWithStack,
+        `Schema.ErrorWithStack`
+      )
+    })
+
+    it("HashSet", () => {
+      assertToSchemaWithReviver(
+        Schema.HashSet(Schema.String),
+        `Schema.HashSet(String_)`
+      )
+    })
+
+    it("BigDecimal", () => {
+      assertToSchemaWithReviver(
+        Schema.BigDecimal,
+        `Schema.BigDecimal`
+      )
+    })
+
+    it("TimeZoneOffset", () => {
+      assertToSchemaWithReviver(
+        Schema.TimeZoneOffset,
+        `Schema.TimeZoneOffset`
+      )
+    })
+
+    it("TimeZoneNamed", () => {
+      assertToSchemaWithReviver(
+        Schema.TimeZoneNamed,
+        `Schema.TimeZoneNamed`
+      )
+    })
+
+    it("TimeZone", () => {
+      assertToSchemaWithReviver(
+        Schema.TimeZone,
+        `Schema.TimeZone`
+      )
+    })
+
+    it("DateTimeZoned", () => {
+      assertToSchemaWithReviver(
+        Schema.DateTimeZoned,
+        `Schema.DateTimeZoned`
+      )
+    })
+
     describe("ReadonlySet", () => {
       it("ReadonlySet(String)", () => {
         assertToSchemaWithReviver(
