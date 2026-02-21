@@ -119,6 +119,7 @@ import type {
   NoInfer,
   ReasonOf,
   ReasonTags,
+  Simplify,
   Tags,
   unassigned
 } from "./Types.ts"
@@ -1316,6 +1317,84 @@ export const callback: <A, E = never, R = never>(
  * @category Creating Effects
  */
 export const never: Effect<never> = internal.never
+
+/**
+ * An `Effect` containing an empty record `{}`, used as the starting point for
+ * do notation chains.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { pipe } from "effect/Function"
+ *
+ * const program = pipe(
+ *   Effect.Do,
+ *   Effect.bind("x", () => Effect.succeed(2)),
+ *   Effect.bind("y", ({ x }) => Effect.succeed(x + 1)),
+ *   Effect.let("sum", ({ x, y }) => x + y)
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Do notation
+ */
+export const Do: Effect<{}> = internal.Do
+
+/**
+ * Gives a name to the success value of an `Effect`, creating a single-key
+ * record used in do notation pipelines.
+ *
+ * @since 4.0.0
+ * @category Do notation
+ */
+export const bindTo: {
+  <N extends string>(name: N): <A, E, R>(self: Effect<A, E, R>) => Effect<{ [K in N]: A }, E, R>
+  <A, E, R, N extends string>(self: Effect<A, E, R>, name: N): Effect<{ [K in N]: A }, E, R>
+} = internal.bindTo
+
+const let_: {
+  <N extends string, A extends Record<string, any>, B>(
+    name: N,
+    f: (a: NoInfer<A>) => B
+  ): <E, R>(
+    self: Effect<A, E, R>
+  ) => Effect<Simplify<Omit<A, N> & Record<N, B>>, E, R>
+  <A extends Record<string, any>, E, R, B, N extends string>(
+    self: Effect<A, E, R>,
+    name: N,
+    f: (a: NoInfer<A>) => B
+  ): Effect<Simplify<Omit<A, N> & Record<N, B>>, E, R>
+} = internal.let
+
+export {
+  /**
+   * Adds a computed plain value to the do notation record.
+   *
+   * @since 4.0.0
+   * @category Do notation
+   */
+  let_ as let
+}
+
+/**
+ * Adds an `Effect` value to the do notation record under a given name.
+ *
+ * @since 4.0.0
+ * @category Do notation
+ */
+export const bind: {
+  <N extends string, A extends Record<string, any>, B, E2, R2>(
+    name: N,
+    f: (a: NoInfer<A>) => Effect<B, E2, R2>
+  ): <E, R>(
+    self: Effect<A, E, R>
+  ) => Effect<Simplify<Omit<A, N> & Record<N, B>>, E | E2, R | R2>
+  <A extends Record<string, any>, E, R, B, E2, R2, N extends string>(
+    self: Effect<A, E, R>,
+    name: N,
+    f: (a: NoInfer<A>) => Effect<B, E2, R2>
+  ): Effect<Simplify<Omit<A, N> & Record<N, B>>, E | E2, R | R2>
+} = internal.bind
 
 /**
  * Provides a way to write effectful code using generator functions, simplifying

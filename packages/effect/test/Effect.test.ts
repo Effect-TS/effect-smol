@@ -1218,20 +1218,22 @@ describe("Effect", () => {
       }))
   })
 
-  // describe("do notation", () => {
-  //   it.effect("works", () =>
-  //     Effect.succeed(1).pipe(
-  //       Effect.bindTo("a"),
-  //       Effect.let("b", ({ a }) => a + 1),
-  //       Effect.bind("b", ({ b }) => Effect.succeed(b.toString())),
-  //       Effect.tap((_) => {
-  //         assert.deepStrictEqual(_, {
-  //           a: 1,
-  //           b: "2"
-  //         })
-  //       })
-  //     ))
-  // })
+  describe("do notation", () => {
+    it.effect("works", () =>
+      Effect.succeed(1).pipe(
+        Effect.bindTo("a"),
+        Effect.let("b", ({ a }) => a + 1),
+        Effect.bind("b", ({ b }) => Effect.succeed(b.toString())),
+        Effect.tap((value) =>
+          Effect.sync(() => {
+            assert.deepStrictEqual(value, {
+              a: 1,
+              b: "2"
+            })
+          })
+        )
+      ))
+  })
 
   describe("stack safety", () => {
     it.live("recursion", () => {

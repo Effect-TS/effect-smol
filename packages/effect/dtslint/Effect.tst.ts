@@ -150,6 +150,26 @@ describe("Effect.catchNoSuchElement", () => {
   })
 })
 
+describe("Effect do notation", () => {
+  it("exports Do and combinators", () => {
+    const result = pipe(
+      Effect.Do,
+      Effect.bind("a", () => Effect.succeed(1)),
+      Effect.let("b", ({ a }) => a + 1),
+      Effect.bind("c", ({ b }) => Effect.succeed(b.toString()))
+    )
+    expect(result).type.toBe<Effect.Effect<{ a: number; b: number; c: string }>>()
+  })
+
+  it("bindTo starts record inference", () => {
+    const result = pipe(
+      Effect.succeed("a"),
+      Effect.bindTo("value")
+    )
+    expect(result).type.toBe<Effect.Effect<{ value: string }>>()
+  })
+})
+
 describe("Effect.tapErrorTag", () => {
   it("narrows tagged errors", () => {
     const result = pipe(
