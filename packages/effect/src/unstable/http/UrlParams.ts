@@ -43,9 +43,13 @@ export const isUrlParams = (u: unknown): u is UrlParams => hasProperty(u, TypeId
  * @category models
  */
 export type Input =
-  | CoercibleRecord
+  | CoercibleRecordInput
   | Iterable<readonly [string, Coercible]>
   | URLSearchParams
+
+type CoercibleRecordInput = CoercibleRecord & {
+  readonly [Symbol.iterator]?: never
+}
 
 /**
  * @since 4.0.0
@@ -119,7 +123,9 @@ export const fromInput = (input: Input): UrlParams => {
 }
 
 const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => {
-  const entries = Symbol.iterator in input ? Arr.fromIterable(input) : Object.entries(input)
+  const entries = typeof (input as any)[Symbol.iterator] === "function"
+    ? Arr.fromIterable(input as Iterable<readonly [string, Coercible]>)
+    : Object.entries(input)
   const out: Array<[string | Array<string>, string]> = []
   for (const [key, value] of entries) {
     if (Array.isArray(value)) {

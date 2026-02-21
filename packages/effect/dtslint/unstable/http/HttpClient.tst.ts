@@ -78,5 +78,17 @@ describe("HttpClient", () => {
         Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError, HttpClient.HttpClient>
       >()
     })
+
+    it("should reject non-urlParams input", () => {
+      // @ts-expect-error!
+      HttpClient.get("", { urlParams: 1 })
+    })
+
+    it("should reject non-coercible tuple values", () => {
+      HttpClient.get("", {
+        // @ts-expect-error!
+        urlParams: [["q", { nested: "value" }]]
+      })
+    })
   })
 })
