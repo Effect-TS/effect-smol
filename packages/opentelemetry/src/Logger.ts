@@ -13,7 +13,7 @@ import * as LogLevel from "effect/LogLevel"
 import * as Predicate from "effect/Predicate"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Tracer from "effect/Tracer"
-import { unknownToAttributeValue } from "./internal/attributes.ts"
+import { nanosToHrTime, unknownToAttributeValue } from "./internal/attributes.ts"
 import { Resource } from "./Resource.ts"
 
 /**
@@ -64,8 +64,8 @@ export const make: Effect.Effect<
       body: message.length === 1 ? message[0] : message,
       severityText: options.logLevel,
       severityNumber: LogLevel.getOrdinal(options.logLevel),
-      timestamp: options.date,
-      observedTimestamp: clock.currentTimeMillisUnsafe(),
+      timestamp: nanosToHrTime(clock.currentTimeNanosUnsafe()),
+      observedTimestamp: nanosToHrTime(clock.currentTimeNanosUnsafe()),
       attributes
     })
   })

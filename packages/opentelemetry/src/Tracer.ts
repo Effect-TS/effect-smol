@@ -12,7 +12,7 @@ import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Tracer from "effect/Tracer"
-import { recordToAttributes, unknownToAttributeValue } from "./internal/attributes.ts"
+import { nanosToHrTime, recordToAttributes, unknownToAttributeValue } from "./internal/attributes.ts"
 import { Resource } from "./Resource.ts"
 
 // =============================================================================
@@ -455,10 +455,6 @@ export class OtelSpan implements Tracer.Span {
 
 const isSampled = (traceFlags: Otel.TraceFlags): boolean =>
   (traceFlags & Otel.TraceFlags.SAMPLED) === Otel.TraceFlags.SAMPLED
-
-const nanosToHrTime = (timestamp: bigint): Otel.HrTime => {
-  return [Number(timestamp / bigint1e9), Number(timestamp % bigint1e9)]
-}
 
 const getOtelParent = (
   tracer: Otel.TraceAPI,
