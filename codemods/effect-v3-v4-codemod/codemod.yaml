@@ -1,0 +1,20 @@
+schema_version: "1.0"
+
+name: "effect-v3-to-v4"
+version: "0.1.0"
+description: "Migrate Effect codebases from v3 to v4"
+author: "Sahil H. Mobaidin <sahil.hmob@hotmail.com>"
+license: "MIT"
+workflow: "workflow.yaml"
+
+
+targets:
+  languages: ["typescript", "tsx", "javascript"]
+
+keywords: ["effect", "effect-ts", "migration", "typescript", "codemod"]
+
+registry:
+  access: "public"
+  visibility: "public"
+
+capabilities: []

@@ -1,0 +1,14 @@
+{
+  "name": "effect-v3-to-v4",
+  "version": "0.1.0",
+  "description": "Migrate Effect codebases from v3 to v4",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && sh -c 'set -eu; for spec in typescript:./tests/typescript tsx:./tests/tsx javascript:./tests/javascript typescript:./tests/idempotency/typescript tsx:./tests/idempotency/tsx javascript:./tests/idempotency/javascript; do lang=${spec%%:*}; dir=${spec#*:}; EFFECT_V4_MODE=aggressive npx codemod@latest jssg test -l \"$lang\" ./scripts/codemod.ts \"$dir\"; done'"
+  },
+  "devDependencies": {
+    "@codemod.com/jssg-types": "latest",
+    "typescript": "latest"
+  }
+}

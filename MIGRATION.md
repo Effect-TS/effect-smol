@@ -77,3 +77,7 @@ minimal Effect program bundles to ~6.3 KB (minified + gzipped). With Schema,
 ### Modules
 
 - [Schema v4 Migration Guide](./packages/effect/SCHEMA.md)
+
+### Codemod
+
+- A [codemod](https://app.codemod.com/registry/effect-v3-to-v4) is available for automatic and dry-runnable for v3 -> v4 migration

@@ -1,0 +1,97 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: "1"
+
+params:
+  schema:
+    enable_ai_review:
+      name: "Enable AI Manual-Review Assist"
+      description: "Run optional AI follow-up for heuristic rewrites and TODO warnings."
+      type: string
+      default: "false"
+
+nodes:
+  - id: apply-transforms
+    name: Apply AST Transformations
+    type: automatic
+    steps:
+      - name: "Scan TypeScript files and apply fixes"
+        js-ast-grep:
+          js_file: scripts/codemod.ts
+          language: "typescript"
+          semantic_analysis: "file"
+          include: ["**/*.ts"]
+          exclude: ["**/*.d.ts", "**/*.tsx"]
+      - name: "Scan TSX files and apply fixes"
+        js-ast-grep:
+          js_file: scripts/codemod.ts
+          language: "tsx"
+          semantic_analysis: "file"
+          include: ["**/*.tsx"]
+      - name: "Scan JavaScript files and apply fixes"
+        js-ast-grep:
+          js_file: scripts/codemod.ts
+          language: "javascript"
+          semantic_analysis: "file"
+          include: ["**/*.js", "**/*.jsx", "**/*.mjs", "**/*.cjs"]
+      - name: "AI review for heuristic and warning migrations (optional)"
+        if: params.enable_ai_review == "true"
+        ai:
+          model: "gpt-4o"
+          prompt: |
+            You are finishing an Effect v3 -> v4 migration after deterministic codemod passes.
+
+            Safety modes:
+            - `safe` (default): conservative; many context-sensitive rules intentionally remain as TODO markers.
+            - `aggressive` (`EFFECT_V4_MODE=aggressive`): applies additional strict-pattern rewrites.
+            - Infer active mode from surrounding context. If unsure, assume `safe`.
+            - In `safe` mode, avoid aggressive-only rewrites and avoid helper-import churn for code that still has TODO markers.
+
+            Perform a focused manual-review assist for context-sensitive migrations:
+
+            1) Warning-marked migrations:
+            - Find `TODO(effect-v4-codemod)` comments.
+            - For each one, inspect nearby code and apply a context-aware migration only when semantics are clear.
+            - If confidence is low, keep behavior unchanged and retain a concise TODO marker.
+            - Warning rule ids/patterns to resolve contextually:
+              - effect-catchSome: Effect.catchSome(...)
+              - effect-catchSomeDefect-removed: Effect.catchSomeDefect(...)
+              - effect-forkAll-removed: Effect.forkAll(...)
+              - effect-forkWithErrorHandler-removed: Effect.forkWithErrorHandler(...)
+              - fiberref-set-manual: FiberRef.set(...)
+              - effect-service-manual: Effect.Service(...)
+              - services-context-reference-class-manual: class extends Context.Reference<...>()(...)
+              - schema-optionalWith-manual (when options are present and not exact-only `{ exact: true }`) / schema-optionalToOptional-manual / schema-optionalToRequired-manual / schema-requiredToOptional-manual
+              - schema-transformOrFail-manual / schema-transform-manual (non-`(from, to, options)` forms)
+              - schema-templateLiteralParser-manual (single-arg non-`parts`, non-array cases) / schema-attachPropertySignature-manual (non-`(key, value)` forms)
+              - schema-partialWith-manual (non-`{ exact: true }`) / schema-extend-manual (non-`Schema.Struct({ ... })` right-hand side)
+              - schema-decodingFallback-manual: schema.annotations({ decodingFallback: ... }) (except `() => Effect.succeed(value)`)
+
+            Aggressive-only deterministic shapes (safe mode may still leave TODOs for these):
+            - `Effect.catchSome((e) => cond ? Option.some(handler) : Option.none())` and negated equivalent
+            - `Effect.catchSomeDefect((d) => cond ? Option.some(handler) : Option.none())` and negated equivalent
+            - `Effect.Service<...>()(id, { effect: make })`
+            - `Cause.isSequentialType(...)`, `Cause.isParallelType(...)`
+            - `Schema.optionalWith(schema)` (single-arg form)
+            - `Schema.optionalToOptional(...)`, `Schema.optionalToRequired(...)`, `Schema.requiredToOptional(...)` 3-arg forms
+            - `Schema.rename(mapping)`
+            - `Schema.transform(...)`, `Schema.transformOrFail(...)` 3-arg forms
+            - `Schema.transformLiterals(...)`
+            - `Schema.filter(...)`, `Schema.pick(...)`, `Schema.omit(...)`, `Schema.partial`, `Schema.partialWith({ exact: true })`
+            - `Schema.extend(Schema.Struct({ ... }))`
+            - standalone `Schema.attachPropertySignature(key, value)`
+            - `Schema.TemplateLiteralParser(name)` when `name` is bound to `const name = Schema.TemplateLiteral(...)`
+            - yield fallback rewrites when semantic symbol resolution is unavailable
+
+            2) Heuristic migrations that require manual verification:
+            - yield* variable rewrites when semantic symbol resolution was unavailable and local binding inference was used.
+            - Review these conversions for correctness:
+              - Ref.make -> Ref.get
+              - Deferred.make -> Deferred.await
+              - Effect.fork* -> Fiber.join
+
+            Constraints:
+            - Prioritize correctness over completeness.
+            - Preserve runtime behavior and type intent.
+            - Do not modify unrelated files or formatting.
+            - Keep imports consistent with code changes.
