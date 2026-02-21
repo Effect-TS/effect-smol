@@ -2,6 +2,8 @@ import type { Effect } from "effect"
 import { HttpClient, type HttpClientError, type HttpClientResponse } from "effect/unstable/http"
 import { describe, expect, it } from "tstyche"
 
+declare const client: HttpClient.HttpClient
+
 describe("HttpClient", () => {
   describe("urlParams", () => {
     it("should accept coercible records", () => {
@@ -89,6 +91,28 @@ describe("HttpClient", () => {
         // @ts-expect-error!
         urlParams: [["q", { nested: "value" }]]
       })
+    })
+  })
+
+  describe("retryTransient", () => {
+    it("should accept retryOn values", () => {
+      client.pipe(HttpClient.retryTransient({ retryOn: "errors-only" }))
+      client.pipe(HttpClient.retryTransient({ retryOn: "response-only" }))
+      client.pipe(HttpClient.retryTransient({ retryOn: "errors-and-responses" }))
+    })
+
+    it("should reject mode option", () => {
+      client.pipe(
+        // @ts-expect-error!
+        HttpClient.retryTransient({ mode: "errors-only" })
+      )
+    })
+
+    it("should reject both retry value", () => {
+      client.pipe(
+        // @ts-expect-error!
+        HttpClient.retryTransient({ retryOn: "both" })
+      )
     })
   })
 })

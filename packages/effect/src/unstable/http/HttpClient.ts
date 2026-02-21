@@ -779,7 +779,7 @@ export const retry: {
 /**
  * Retries common transient errors, such as rate limiting, timeouts or network issues.
  *
- * Use `mode` to focus on retrying errors, transient responses, or both.
+ * Use `retryOn` to focus on retrying errors, transient responses, or both.
  *
  * Specifying a `while` predicate allows you to consider other errors as
  * transient, and is ignored in "response-only" mode.
@@ -793,13 +793,13 @@ export const retryTransient: {
     E,
     ES = never,
     R1 = never,
-    const Mode extends "errors-only" | "response-only" | "both" = never,
-    Input = "errors-only" extends Mode ? E
-      : "response-only" extends Mode ? HttpClientResponse.HttpClientResponse
+    const RetryOn extends "errors-only" | "response-only" | "errors-and-responses" = never,
+    Input = "errors-only" extends RetryOn ? E
+      : "response-only" extends RetryOn ? HttpClientResponse.HttpClientResponse
       : HttpClientResponse.HttpClientResponse | E
   >(
     options: {
-      readonly mode?: Mode | undefined
+      readonly retryOn?: RetryOn | undefined
       readonly while?: Predicate.Predicate<NoInfer<E | ES>>
       readonly schedule?: Schedule.Schedule<B, NoInfer<Input>, ES, R1>
       readonly times?: number
@@ -811,14 +811,14 @@ export const retryTransient: {
     B,
     ES = never,
     R1 = never,
-    const Mode extends "errors-only" | "response-only" | "both" = never,
-    Input = "errors-only" extends Mode ? E
-      : "response-only" extends Mode ? HttpClientResponse.HttpClientResponse
+    const RetryOn extends "errors-only" | "response-only" | "errors-and-responses" = never,
+    Input = "errors-only" extends RetryOn ? E
+      : "response-only" extends RetryOn ? HttpClientResponse.HttpClientResponse
       : HttpClientResponse.HttpClientResponse | E
   >(
     self: HttpClient.With<E, R>,
     options: {
-      readonly mode?: Mode | undefined
+      readonly retryOn?: RetryOn | undefined
       readonly while?: Predicate.Predicate<NoInfer<E | ES>>
       readonly schedule?: Schedule.Schedule<B, NoInfer<Input>, ES, R1>
       readonly times?: number
@@ -835,26 +835,26 @@ export const retryTransient: {
   >(
     self: HttpClient.With<E, R>,
     options: {
-      readonly mode?: "errors-only" | "response-only" | "both" | undefined
+      readonly retryOn?: "errors-only" | "response-only" | "errors-and-responses" | undefined
       readonly while?: Predicate.Predicate<E | ES>
       readonly schedule?: Schedule.Schedule<B, any, ES, R1>
       readonly times?: number
     } | Schedule.Schedule<B, any, ES, R1>
   ): HttpClient.With<E | ES, R1 | R> => {
     const isOnlySchedule = Schedule.isSchedule(options)
-    const mode = isOnlySchedule ? "both" : options.mode ?? "both"
+    const retryOn = isOnlySchedule ? "errors-and-responses" : options.retryOn ?? "errors-and-responses"
     const schedule = isOnlySchedule ? options : options.schedule
     const passthroughSchedule = schedule && Schedule.passthrough(schedule)
     const times = isOnlySchedule ? undefined : options.times
     return transformResponse(
       self,
       flow(
-        mode === "errors-only" ? identity : Effect.repeat({
+        retryOn === "errors-only" ? identity : Effect.repeat({
           schedule: passthroughSchedule!,
           times,
           while: isTransientResponse
         }),
-        mode === "response-only" ? identity : Effect.retry({
+        retryOn === "response-only" ? identity : Effect.retry({
           while: isOnlySchedule || options.while === undefined
             ? isTransientError
             : Predicate.or(isTransientError, options.while),
