@@ -42,5 +42,6 @@
   "[markdown]": {
     "editor.defaultFormatter": "dprint.dprint"
   },
-  "deno.enable": false
+  "deno.enable": true,
+  "deno.lint": false
 }
