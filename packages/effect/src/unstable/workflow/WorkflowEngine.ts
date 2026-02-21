@@ -4,7 +4,10 @@
 import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Fiber from "../../Fiber.ts"
+import * as FiberMap from "../../FiberMap.ts"
 import * as Latch from "../../Latch.ts"
+import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
@@ -496,6 +499,181 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
 
 const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
   Schedule.either(Schedule.spaced(30000))
+)
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layer: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
+  Effect.gen(function*() {
+    const scope = yield* Effect.scope
+
+    const workflows = new Map<string, {
+      readonly workflow: Workflow.Any
+      readonly execute: (
+        payload: object,
+        executionId: string
+      ) => Effect.Effect<unknown, unknown, WorkflowInstance | WorkflowEngine>
+      readonly scope: Scope.Scope
+    }>()
+
+    type ExecutionState = {
+      readonly payload: object
+      readonly execute: (
+        payload: object,
+        executionId: string
+      ) => Effect.Effect<unknown, unknown, WorkflowInstance | WorkflowEngine>
+      readonly parent: string | undefined
+      instance: WorkflowInstance["Service"]
+      fiber: Fiber.Fiber<Workflow.Result<unknown, unknown>> | undefined
+    }
+    const executions = new Map<string, ExecutionState>()
+
+    type ActivityState = {
+      exit: Exit.Exit<Workflow.Result<unknown, unknown>> | undefined
+    }
+    const activities = new Map<string, ActivityState>()
+
+    const resume = Effect.fnUntraced(function*(executionId: string): Effect.fn.Return<void> {
+      const state = executions.get(executionId)
+      if (!state) return
+      const exit = state.fiber?.pollUnsafe()
+      if (exit && exit._tag === "Success" && exit.value._tag === "Complete") {
+        return
+      } else if (state.fiber && !exit) {
+        return
+      }
+
+      const entry = workflows.get(state.instance.workflow.name)!
+      const instance = WorkflowInstance.initial(state.instance.workflow, state.instance.executionId)
+      instance.interrupted = state.instance.interrupted
+      state.instance = instance
+      state.fiber = yield* state.execute(state.payload, state.instance.executionId).pipe(
+        Effect.onExit(() => {
+          if (!instance.interrupted) {
+            return Effect.void
+          }
+          instance.suspended = false
+          return Effect.withFiber((fiber) => Effect.interruptible(Fiber.interrupt(fiber)))
+        }),
+        Workflow.intoResult,
+        Effect.provideService(WorkflowInstance, instance),
+        Effect.provideService(WorkflowEngine, engine),
+        Effect.tap((result) => {
+          if (!state.parent || result._tag !== "Complete") {
+            return Effect.void
+          }
+          return Effect.forkIn(resume(state.parent), scope)
+        }),
+        Effect.forkIn(entry.scope)
+      )
+    })
+
+    const deferredResults = new Map<string, Exit.Exit<any, any>>()
+
+    const clocks = yield* FiberMap.make<string>()
+
+    const engine = makeUnsafe({
+      register: Effect.fnUntraced(function*(workflow, execute) {
+        workflows.set(workflow.name, {
+          workflow,
+          execute,
+          scope: yield* Effect.scope
+        })
+      }),
+      execute: Effect.fnUntraced(function*(workflow, options) {
+        const entry = workflows.get(workflow.name)
+        if (!entry) {
+          return yield* Effect.orDie(Effect.fail(`Workflow ${workflow.name} is not registered`))
+        }
+
+        let state = executions.get(options.executionId)
+        if (!state) {
+          state = {
+            payload: options.payload,
+            execute: entry.execute,
+            instance: WorkflowInstance.initial(workflow, options.executionId),
+            fiber: undefined,
+            parent: options.parent?.executionId
+          }
+          executions.set(options.executionId, state)
+          yield* resume(options.executionId)
+        }
+        if (options.discard) return
+        return (yield* Fiber.join(state.fiber!)) as any
+      }),
+      interrupt: Effect.fnUntraced(function*(_workflow, executionId) {
+        const state = executions.get(executionId)
+        if (!state) return
+        state.instance.interrupted = true
+        yield* resume(executionId)
+      }),
+      resume(_workflow, executionId) {
+        return resume(executionId)
+      },
+      activityExecute: Effect.fnUntraced(function*(activity, attempt) {
+        const instance = yield* WorkflowInstance
+        const activityId = `${instance.executionId}/${activity.name}/${attempt}`
+        let state = activities.get(activityId)
+        if (state) {
+          const exit = state.exit
+          if (exit && exit._tag === "Success" && exit.value._tag === "Suspended") {
+            state.exit = undefined
+          } else if (exit) {
+            return yield* exit
+          }
+        } else {
+          state = { exit: undefined }
+          activities.set(activityId, state)
+        }
+        const activityInstance = WorkflowInstance.initial(instance.workflow, instance.executionId)
+        activityInstance.interrupted = instance.interrupted
+        return yield* activity.executeEncoded.pipe(
+          Workflow.intoResult,
+          Effect.provideService(WorkflowInstance, activityInstance),
+          Effect.onExit((exit) => {
+            state.exit = exit
+            return Effect.void
+          })
+        )
+      }),
+      poll: (_workflow, executionId) =>
+        Effect.suspend(() => {
+          const state = executions.get(executionId)
+          if (!state) {
+            return Effect.succeed(undefined)
+          }
+          const exit = state.fiber?.pollUnsafe()
+          return exit ?? Effect.succeed(undefined)
+        }),
+      deferredResult: Effect.fnUntraced(function*(deferred) {
+        const instance = yield* WorkflowInstance
+        const id = `${instance.executionId}/${deferred.name}`
+        return deferredResults.get(id)
+      }),
+      deferredDone: (options) =>
+        Effect.suspend(() => {
+          const id = `${options.executionId}/${options.deferredName}`
+          if (deferredResults.has(id)) return Effect.void
+          deferredResults.set(id, options.exit)
+          return resume(options.executionId)
+        }),
+      scheduleClock: (workflow, options) =>
+        engine.deferredDone(options.clock.deferred, {
+          workflowName: workflow.name,
+          executionId: options.executionId,
+          deferredName: options.clock.deferred.name,
+          exit: Exit.void
+        }).pipe(
+          Effect.delay(options.clock.duration),
+          FiberMap.run(clocks, `${options.executionId}/${options.clock.name}`, { onlyIfMissing: true }),
+          Effect.asVoid
+        )
+    })
+
+    return engine
+  })
 )
 
 const toJsonExit = Exit.map((value: any) => value ?? null)
