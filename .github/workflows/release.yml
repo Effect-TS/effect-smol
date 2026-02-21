@@ -35,7 +35,7 @@ jobs:
         run: |
           sed -i 's/"stripInternal": false/"stripInternal": true/' tsconfig.base.json
       - name: Create Release Pull Request or Publish
-        uses: changesets/action@v1
+        uses: changesets/action@v1.7.0
         with:
           version: pnpm changeset-version
           publish: pnpm changeset-publish
