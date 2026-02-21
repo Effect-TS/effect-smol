@@ -4782,16 +4782,26 @@ class Semaphore {
             return
           }
           this.waiters.delete(observer)
-          this.taken += n
-          resume(succeed(n))
+          resume(suspend(() => {
+            if (this.free < n) {
+              return this.take(n)
+            }
+            this.taken += n
+            return succeed(n)
+          }))
         }
         this.waiters.add(observer)
         return sync(() => {
           this.waiters.delete(observer)
         })
       }
-      this.taken += n
-      return resume(succeed(n))
+      return resume(suspend(() => {
+        if (this.free < n) {
+          return this.take(n)
+        }
+        this.taken += n
+        return succeed(n)
+      }))
     })
 
   updateTakenUnsafe(fiber: Fiber.Fiber<any, any>, f: (n: number) => number): Effect.Effect<number> {
