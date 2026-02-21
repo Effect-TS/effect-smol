@@ -7,9 +7,6 @@ inputs:
   bun-version:
     description: The version of Bun to install
     required: false
-  node-version:
-    description: The version of Node.js to install
-    required: false
 
 runs:
   using: composite
@@ -18,10 +15,9 @@ runs:
       uses: pnpm/action-setup@v3
     - name: Install node
       uses: actions/setup-node@v4
-      if: ${{ inputs.node-version != '' }}
       with:
         cache: pnpm
-        node-version: ${{ inputs.node-version }}
+        node-version: 24.11.1
     - name: Install deno
       uses: denoland/setup-deno@v2
       if: ${{ inputs.deno-version != '' }}

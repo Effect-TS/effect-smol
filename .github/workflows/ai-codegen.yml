@@ -24,8 +24,6 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/setup
-        with:
-          node-version: 24.10.0
 
       - name: Run AI Codegen
         run: node packages/tools/ai-codegen/src/bin.ts generate
