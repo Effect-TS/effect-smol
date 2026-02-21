@@ -148,6 +148,34 @@ export const nextIntBetween = (min: number, max: number, options?: {
 }
 
 /**
+ * Uses the pseudo-random number generator to shuffle the specified iterable.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Random } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const values = yield* Random.shuffle([1, 2, 3, 4, 5])
+ *   console.log(values)
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category Random Number Generators
+ */
+export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
+  randomWith((r) => {
+    const buffer = Array.from(elements)
+    for (let i = buffer.length - 1; i >= 1; i = i - 1) {
+      const index = Math.min(i, Math.floor(r.nextDoubleUnsafe() * (i + 1)))
+      const value = buffer[i]!
+      buffer[i] = buffer[index]!
+      buffer[index] = value
+    }
+    return buffer
+  })
+
+/**
  * Generates a random UUID (v4) string.
  *
  * @example

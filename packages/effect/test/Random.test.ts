@@ -67,6 +67,28 @@ describe("Random", () => {
       }))
   })
 
+  describe("shuffle", () => {
+    it.effect("returns a shuffled copy of all values", () =>
+      Effect.gen(function*() {
+        const input = [1, 2, 3, 4, 5]
+        const output = yield* Random.shuffle(input)
+
+        assert.notStrictEqual(output, input)
+        assert.deepStrictEqual(input, [1, 2, 3, 4, 5])
+        assert.deepStrictEqual(Array.from(output).sort((a, b) => a - b), [1, 2, 3, 4, 5])
+      }))
+
+    it.effect("is deterministic with the same seed", () =>
+      Effect.gen(function*() {
+        const program = Random.shuffle([1, 2, 3, 4, 5])
+
+        const result1 = yield* program.pipe(Random.withSeed("shuffle-seed"))
+        const result2 = yield* program.pipe(Random.withSeed("shuffle-seed"))
+
+        assert.deepStrictEqual(result1, result2)
+      }))
+  })
+
   describe("nextUUIDv4", () => {
     it.effect("generates valid UUID v4 format", () =>
       Effect.gen(function*() {
