@@ -46,21 +46,16 @@ export declare namespace HttpMiddleware {
  */
 export const make = <M extends HttpMiddleware>(middleware: M): M => middleware
 
-/**
- * @since 4.0.0
- * @category Logger
- */
-export const LoggerDisabled = ServiceMap.Reference<boolean>("effect/http/HttpMiddleware/LoggerDisabled", {
-  defaultValue: constFalse
-})
+const loggerDisabledRequests = new WeakSet<HttpServerRequest>()
 
 /**
  * @since 4.0.0
  * @category Logger
  */
-export const withLoggerDisabled = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+export const withLoggerDisabled = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R | HttpServerRequest> =>
   Effect.withFiber((fiber) => {
-    fiber.setServices(ServiceMap.add(fiber.services, LoggerDisabled, true))
+    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
+    loggerDisabledRequests.add(request)
     return self
   })
 
@@ -102,7 +97,7 @@ export const logger: <E, R>(
     const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
     return Effect.withLogSpan(
       Effect.flatMap(Effect.exit(httpApp), (exit) => {
-        if (fiber.getRef(LoggerDisabled)) {
+        if (loggerDisabledRequests.has(request)) {
           return exit
         } else if (exit._tag === "Failure") {
           const [response, cause] = causeResponseStripped(exit.cause)
