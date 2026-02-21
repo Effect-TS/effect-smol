@@ -59,33 +59,33 @@ export declare namespace HttpClient {
       request: HttpClientRequest.HttpClientRequest
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
 
-    readonly get: <A extends object = UrlParams.CoercibleRecord>(
+    readonly get: (
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl<A>
+      options?: HttpClientRequest.Options.NoUrl
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly head: <A extends object = UrlParams.CoercibleRecord>(
+    readonly head: (
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl<A>
+      options?: HttpClientRequest.Options.NoUrl
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly post: <A extends object = UrlParams.CoercibleRecord>(
+    readonly post: (
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl<A>
+      options?: HttpClientRequest.Options.NoUrl
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly patch: <A extends object = UrlParams.CoercibleRecord>(
+    readonly patch: (
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl<A>
+      options?: HttpClientRequest.Options.NoUrl
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly put: <A extends object = UrlParams.CoercibleRecord>(
+    readonly put: (
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl<A>
+      options?: HttpClientRequest.Options.NoUrl
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly del: <A extends object = UrlParams.CoercibleRecord>(
+    readonly del: (
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl<A>
+      options?: HttpClientRequest.Options.NoUrl
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly options: <A extends object = UrlParams.CoercibleRecord>(
+    readonly options: (
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl<A>
+      options?: HttpClientRequest.Options.NoUrl
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
   }
 
@@ -132,10 +132,7 @@ export const execute: (
  * @since 4.0.0
  * @category accessors
  */
-export const get: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl<A> | undefined
-) => Effect.Effect<
+export const get: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -145,10 +142,7 @@ export const get: <A extends object = UrlParams.CoercibleRecord>(
  * @since 4.0.0
  * @category accessors
  */
-export const head: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl<A> | undefined
-) => Effect.Effect<
+export const head: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -158,10 +152,7 @@ export const head: <A extends object = UrlParams.CoercibleRecord>(
  * @since 4.0.0
  * @category accessors
  */
-export const post: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl<A> | undefined
-) => Effect.Effect<
+export const post: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -171,10 +162,7 @@ export const post: <A extends object = UrlParams.CoercibleRecord>(
  * @since 4.0.0
  * @category accessors
  */
-export const patch: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl<A> | undefined
-) => Effect.Effect<
+export const patch: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -184,10 +172,7 @@ export const patch: <A extends object = UrlParams.CoercibleRecord>(
  * @since 4.0.0
  * @category accessors
  */
-export const put: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl<A> | undefined
-) => Effect.Effect<
+export const put: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -197,10 +182,7 @@ export const put: <A extends object = UrlParams.CoercibleRecord>(
  * @since 4.0.0
  * @category accessors
  */
-export const del: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl<A> | undefined
-) => Effect.Effect<
+export const del: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -210,10 +192,7 @@ export const del: <A extends object = UrlParams.CoercibleRecord>(
  * @since 4.0.0
  * @category accessors
  */
-export const options: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl<A> | undefined
-) => Effect.Effect<
+export const options: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -549,11 +528,7 @@ const Proto = {
   ...Object.fromEntries(
     HttpMethod.allShort.map((
       [fullMethod, method]
-    ) => [method, function<A extends object = UrlParams.CoercibleRecord>(
-      this: HttpClient,
-      url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl<A>
-    ) {
+    ) => [method, function(this: HttpClient, url: string | URL, options?: HttpClientRequest.Options.NoUrl) {
       return this.execute(HttpClientRequest.make(fullMethod)(url, options))
     }])
   )

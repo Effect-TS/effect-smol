@@ -42,8 +42,8 @@ export const isUrlParams = (u: unknown): u is UrlParams => hasProperty(u, TypeId
  * @since 4.0.0
  * @category models
  */
-export type Input<A extends object = CoercibleRecordBase> =
-  | CoercibleRecord<A>
+export type Input =
+  | CoercibleRecord
   | Iterable<readonly [string, Coercible]>
   | URLSearchParams
 
@@ -57,10 +57,6 @@ export type Coercible = string | number | bigint | boolean | null | undefined
  * @since 4.0.0
  * @category models
  */
-interface CoercibleRecordBase {
-  readonly [key: string]: Coercible | ReadonlyArray<Coercible> | CoercibleRecordBase
-}
-
 type CoercibleRecordField<A> = A extends Coercible ? A
   : A extends ReadonlyArray<infer Item> ? ReadonlyArray<Item extends Coercible ? Item : never>
   : A extends object ? CoercibleRecord<A>
@@ -70,7 +66,7 @@ type CoercibleRecordField<A> = A extends Coercible ? A
  * @since 4.0.0
  * @category models
  */
-export type CoercibleRecord<out A extends object = CoercibleRecordBase> = {
+export type CoercibleRecord<A extends object = any> = {
   readonly [K in keyof A]: CoercibleRecordField<A[K]>
 }
 
@@ -108,7 +104,7 @@ export const make = (params: ReadonlyArray<readonly [string, string]>): UrlParam
  * @since 4.0.0
  * @category constructors
  */
-export const fromInput = <A extends object>(input: Input<A>): UrlParams => {
+export const fromInput = (input: Input): UrlParams => {
   const parsed = fromInputNested(input)
   const out: Array<[string, string]> = []
   for (let i = 0; i < parsed.length; i++) {
@@ -122,7 +118,7 @@ export const fromInput = <A extends object>(input: Input<A>): UrlParams => {
   return make(out)
 }
 
-const fromInputNested = <A extends object>(input: Input<A>): Array<[string | Array<string>, any]> => {
+const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => {
   const entries = Symbol.iterator in input ? Arr.fromIterable(input) : Object.entries(input)
   const out: Array<[string | Array<string>, string]> = []
   for (const [key, value] of entries) {
@@ -276,9 +272,9 @@ export const transform: {
  * @category combinators
  */
 export const setAll: {
-  <A extends object>(input: Input<A>): (self: UrlParams) => UrlParams
-  <A extends object>(self: UrlParams, input: Input<A>): UrlParams
-} = dual(2, <A extends object>(self: UrlParams, input: Input<A>): UrlParams => {
+  (input: Input): (self: UrlParams) => UrlParams
+  (self: UrlParams, input: Input): UrlParams
+} = dual(2, (self: UrlParams, input: Input): UrlParams => {
   const out = fromInput(input)
   const params = out.params as Array<readonly [string, string]>
   const keys = new Set()
@@ -310,13 +306,9 @@ export const append: {
  * @category combinators
  */
 export const appendAll: {
-  <A extends object>(input: Input<A>): (self: UrlParams) => UrlParams
-  <A extends object>(self: UrlParams, input: Input<A>): UrlParams
-} = dual(
-  2,
-  <A extends object>(self: UrlParams, input: Input<A>): UrlParams =>
-    transform(self, Arr.appendAll(fromInput(input).params))
-)
+  (input: Input): (self: UrlParams) => UrlParams
+  (self: UrlParams, input: Input): UrlParams
+} = dual(2, (self: UrlParams, input: Input): UrlParams => transform(self, Arr.appendAll(fromInput(input).params)))
 
 /**
  * @since 4.0.0

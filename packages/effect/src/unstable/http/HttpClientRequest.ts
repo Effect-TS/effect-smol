@@ -46,10 +46,10 @@ export interface HttpClientRequest extends Inspectable.Inspectable, Pipeable {
  * @since 4.0.0
  * @category models
  */
-export interface Options<A extends object = UrlParams.CoercibleRecord> {
+export interface Options {
   readonly method?: HttpMethod | undefined
   readonly url?: string | URL | undefined
-  readonly urlParams?: UrlParams.Input<A> | undefined
+  readonly urlParams?: UrlParams.Input | undefined
   readonly hash?: string | undefined
   readonly headers?: Headers.Input | undefined
   readonly body?: HttpBody.HttpBody | undefined
@@ -65,7 +65,7 @@ export declare namespace Options {
    * @since 4.0.0
    * @category models
    */
-  export interface NoUrl<A extends object = UrlParams.CoercibleRecord> extends Omit<Options<A>, "method" | "url"> {}
+  export interface NoUrl extends Omit<Options, "method" | "url"> {}
 }
 
 const Proto = {
@@ -125,9 +125,9 @@ export const empty: HttpClientRequest = makeProto(
 export const make = <M extends HttpMethod>(
   method: M
 ) =>
-<A extends object = UrlParams.CoercibleRecord>(
+(
   url: string | URL,
-  options?: Options.NoUrl<A> | undefined
+  options?: Options.NoUrl | undefined
 ): HttpClientRequest =>
   modify(empty, {
     method,
@@ -139,42 +139,27 @@ export const make = <M extends HttpMethod>(
  * @since 4.0.0
  * @category constructors
  */
-export const get: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: Options.NoUrl<A>
-) => HttpClientRequest = make("GET")
+export const get: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("GET")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const post: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: Options.NoUrl<A>
-) => HttpClientRequest = make("POST")
+export const post: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("POST")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const patch: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: Options.NoUrl<A>
-) => HttpClientRequest = make("PATCH")
+export const patch: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("PATCH")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const put: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: Options.NoUrl<A>
-) => HttpClientRequest = make("PUT")
+export const put: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("PUT")
 
-const del: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: Options.NoUrl<A>
-) => HttpClientRequest = make("DELETE")
+const del: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("DELETE")
 
 export {
   /**
@@ -188,37 +173,28 @@ export {
  * @since 4.0.0
  * @category constructors
  */
-export const head: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: Options.NoUrl<A>
-) => HttpClientRequest = make("HEAD")
+export const head: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("HEAD")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const options: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: Options.NoUrl<A>
-) => HttpClientRequest = make("OPTIONS")
+export const options: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("OPTIONS")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const trace: <A extends object = UrlParams.CoercibleRecord>(
-  url: string | URL,
-  options?: Options.NoUrl<A>
-) => HttpClientRequest = make("TRACE")
+export const trace: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = make("TRACE")
 
 /**
  * @since 4.0.0
  * @category combinators
  */
 export const modify: {
-  <A extends object>(options: Options<A>): (self: HttpClientRequest) => HttpClientRequest
-  <A extends object>(self: HttpClientRequest, options: Options<A>): HttpClientRequest
-} = dual(2, <A extends object>(self: HttpClientRequest, options: Options<A>): HttpClientRequest => {
+  (options: Options): (self: HttpClientRequest) => HttpClientRequest
+  (self: HttpClientRequest, options: Options): HttpClientRequest
+} = dual(2, (self: HttpClientRequest, options: Options): HttpClientRequest => {
   let result = self
 
   if (options.method) {
@@ -470,9 +446,9 @@ export const setUrlParam: {
  * @category combinators
  */
 export const setUrlParams: {
-  <A extends object>(input: UrlParams.Input<A>): (self: HttpClientRequest) => HttpClientRequest
-  <A extends object>(self: HttpClientRequest, input: UrlParams.Input<A>): HttpClientRequest
-} = dual(2, <A extends object>(self: HttpClientRequest, input: UrlParams.Input<A>): HttpClientRequest =>
+  (input: UrlParams.Input): (self: HttpClientRequest) => HttpClientRequest
+  (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest
+} = dual(2, (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest =>
   makeProto(
     self.method,
     self.url,
@@ -504,9 +480,9 @@ export const appendUrlParam: {
  * @category combinators
  */
 export const appendUrlParams: {
-  <A extends object>(input: UrlParams.Input<A>): (self: HttpClientRequest) => HttpClientRequest
-  <A extends object>(self: HttpClientRequest, input: UrlParams.Input<A>): HttpClientRequest
-} = dual(2, <A extends object>(self: HttpClientRequest, input: UrlParams.Input<A>): HttpClientRequest =>
+  (input: UrlParams.Input): (self: HttpClientRequest) => HttpClientRequest
+  (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest
+} = dual(2, (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest =>
   makeProto(
     self.method,
     self.url,
@@ -658,11 +634,11 @@ export const schemaBodyJson = <S extends Schema.Top>(
  * @category combinators
  */
 export const bodyUrlParams: {
-  <A extends object>(input: UrlParams.Input<A>): (self: HttpClientRequest) => HttpClientRequest
-  <A extends object>(self: HttpClientRequest, input: UrlParams.Input<A>): HttpClientRequest
+  (input: UrlParams.Input): (self: HttpClientRequest) => HttpClientRequest
+  (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest
 } = dual(
   2,
-  <A extends object>(self: HttpClientRequest, input: UrlParams.Input<A>): HttpClientRequest =>
+  (self: HttpClientRequest, input: UrlParams.Input): HttpClientRequest =>
     setBody(self, HttpBody.urlParams(UrlParams.fromInput(input)))
 )
 
