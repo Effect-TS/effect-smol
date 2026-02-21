@@ -1,13 +1,73 @@
 /**
- * This module provides utilities for creating data types with structural equality
- * semantics. Unlike regular JavaScript objects, `Data` types support value-based
- * equality comparison using the `Equal` module.
+ * Immutable data constructors with discriminated-union support.
  *
- * The main benefits of using `Data` types are:
- * - **Structural equality**: Two `Data` objects are equal if their contents are equal
- * - **Immutability**: `Data` types are designed to be immutable
- * - **Type safety**: Constructors ensure type safety and consistency
- * - **Effect integration**: Error types work seamlessly with Effect's error handling
+ * The `Data` module provides base classes and factory functions for creating
+ * immutable value types with a `_tag` field for discriminated unions.
+ * It is the recommended way to define domain models, error types, and
+ * lightweight ADTs in Effect applications.
+ *
+ * ## Mental model
+ *
+ * - **`Class`** — base class for plain immutable data. Extend it with a type
+ *   parameter to declare the fields. Instances are `Pipeable`.
+ * - **`TaggedClass`** — like `Class` but automatically adds a `readonly _tag`
+ *   string literal field. Useful for single-variant types or ad-hoc tagged
+ *   values.
+ * - **`TaggedEnum`** (type) + **`taggedEnum`** (value) — define a multi-variant
+ *   discriminated union from a simple record. `taggedEnum()` returns per-variant
+ *   constructors plus `$is` / `$match` helpers.
+ * - **`Error`** — like `Class` but extends `Cause.YieldableError`, so instances
+ *   can be yielded inside `Effect.gen` to fail the effect.
+ * - **`TaggedError`** — like `TaggedClass` but extends `Cause.YieldableError`.
+ *   Works with `Effect.catchTag` for tag-based error recovery.
+ *
+ * ## Common tasks
+ *
+ * - Define a simple value class → {@link Class}
+ * - Define a value class with a `_tag` → {@link TaggedClass}
+ * - Define a discriminated union with constructors → {@link TaggedEnum} + {@link taggedEnum}
+ * - Define a yieldable error → {@link Error}
+ * - Define a yieldable tagged error → {@link TaggedError}
+ * - Type-guard a tagged value → `$is` from {@link taggedEnum}
+ * - Pattern-match on a tagged union → `$match` from {@link taggedEnum}
+ *
+ * ## Gotchas
+ *
+ * - Variant records passed to `TaggedEnum` must **not** contain a `_tag` key;
+ *   the `_tag` is added automatically from the record key.
+ * - When a class has no fields, the constructor argument is optional (`void`).
+ * - `taggedEnum()` creates **plain objects**, not class instances. If you need
+ *   class-based variants, use `TaggedClass` or `TaggedError` instead.
+ * - `TaggedEnum.WithGenerics` supports up to 4 generic type parameters.
+ *
+ * ## Quickstart
+ *
+ * **Example** (tagged union with pattern matching)
+ *
+ * ```ts
+ * import { Data } from "effect"
+ *
+ * type Shape = Data.TaggedEnum<{
+ *   Circle: { readonly radius: number }
+ *   Rect: { readonly width: number; readonly height: number }
+ * }>
+ * const { Circle, Rect, $match } = Data.taggedEnum<Shape>()
+ *
+ * const area = $match({
+ *   Circle: ({ radius }) => Math.PI * radius ** 2,
+ *   Rect: ({ width, height }) => width * height
+ * })
+ *
+ * console.log(area(Circle({ radius: 5 })))
+ * // 78.53981633974483
+ * console.log(area(Rect({ width: 3, height: 4 })))
+ * // 12
+ * ```
+ *
+ * @see {@link Class} — plain immutable data class
+ * @see {@link TaggedEnum} — discriminated union type
+ * @see {@link taggedEnum} — discriminated union constructors
+ * @see {@link TaggedError} — yieldable tagged error class
  *
  * @since 2.0.0
  */
@@ -19,31 +79,39 @@ import type * as Types from "./Types.ts"
 import type { Unify } from "./Unify.ts"
 
 /**
- * Provides a constructor for a Case Class.
+ * Base class for immutable data types.
  *
- * @example
+ * Extend `Class` with a type parameter to declare fields. The constructor
+ * accepts those fields as a single object argument. When there are no fields
+ * the argument is optional.
+ *
+ * - Use when you need a lightweight immutable value type with `.pipe()` support.
+ * - Instances are `Readonly` and `Pipeable`.
+ * - If you also need a `_tag` discriminator, use {@link TaggedClass} instead.
+ * - If you need a yieldable error, use {@link Error} or {@link TaggedError}.
+ *
+ * **Example** (defining a value class)
+ *
  * ```ts
  * import { Data, Equal } from "effect"
- * import * as assert from "node:assert"
  *
  * class Person extends Data.Class<{ readonly name: string }> {}
  *
- * // Creating instances of Person
  * const mike1 = new Person({ name: "Mike" })
  * const mike2 = new Person({ name: "Mike" })
- * const john = new Person({ name: "John" })
  *
- * // Checking equality
- * assert.deepStrictEqual(Equal.equals(mike1, mike2), true)
- * assert.deepStrictEqual(Equal.equals(mike1, john), false)
+ * console.log(Equal.equals(mike1, mike2))
+ * // true
  * ```
  *
- * @since 2.0.0
+ * @see {@link TaggedClass} — adds a `_tag` field
+ * @see {@link Error} — yieldable error variant
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const Class: new<A extends Record<string, any> = {}>(
-  args: Types.Equals<A, {}> extends true ? void
-    : { readonly [P in keyof A]: A[P] }
+  args: Types.VoidIfEmpty<{ readonly [P in keyof A]: A[P] }>
 ) => Readonly<A> & Pipeable.Pipeable = class extends Pipeable.Class {
   constructor(props: any) {
     super()
@@ -54,85 +122,86 @@ export const Class: new<A extends Record<string, any> = {}>(
 } as any
 
 /**
- * Provides a Tagged constructor for a Case Class.
+ * Base class for immutable data types with a `_tag` discriminator.
  *
- * @example
+ * Like {@link Class}, but the resulting instances also carry a
+ * `readonly _tag: Tag` property. The `_tag` is excluded from the constructor
+ * argument.
+ *
+ * - Use when you need a single-variant tagged type or an ad-hoc discriminator.
+ * - For multi-variant unions, prefer {@link TaggedEnum} + {@link taggedEnum}.
+ * - For yieldable errors, use {@link TaggedError}.
+ *
+ * **Example** (defining a tagged class)
+ *
  * ```ts
- * import { Data, Equal } from "effect"
- * import * as assert from "node:assert"
+ * import { Data } from "effect"
  *
- * class Person extends Data.TaggedClass("Person")<{ readonly name: string }> {}
+ * class Person extends Data.TaggedClass("Person")<{
+ *   readonly name: string
+ * }> {}
  *
- * // Creating instances of Person
- * const mike1 = new Person({ name: "Mike" })
- * const mike2 = new Person({ name: "Mike" })
- * const john = new Person({ name: "John" })
- *
- * // Checking equality
- * assert.deepStrictEqual(Equal.equals(mike1, mike2), true)
- * assert.deepStrictEqual(Equal.equals(mike1, john), false)
- *
- * assert.deepStrictEqual(mike1._tag, "Person")
+ * const mike = new Person({ name: "Mike" })
+ * console.log(mike._tag)
+ * // "Person"
  * ```
  *
- * @since 2.0.0
+ * @see {@link Class} — without a `_tag`
+ * @see {@link TaggedError} — tagged error variant
+ * @see {@link TaggedEnum} — multi-variant unions
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const TaggedClass = <Tag extends string>(
   tag: Tag
 ): new<A extends Record<string, any> = {}>(
-  args: Types.Equals<A, {}> extends true ? void
-    : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
+  args: Types.VoidIfEmpty<{ readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }>
 ) => Readonly<A> & { readonly _tag: Tag } & Pipeable.Pipeable =>
   class extends Class {
     readonly _tag = tag
   } as any
 
 /**
- * Create a tagged enum data type, which is a union of `Data` structs.
+ * Transforms a record of variant definitions into a discriminated union type.
  *
- * A `TaggedEnum` transforms a record of variant definitions into a discriminated
- * union type where each variant has a `_tag` field for type discrimination.
+ * Each key in the record becomes a variant with `readonly _tag` set to that
+ * key. Use with {@link taggedEnum} to get runtime constructors, type guards,
+ * and pattern matching.
  *
- * @example
+ * - Use when you have two or more variants that share a common `_tag`
+ *   discriminator.
+ * - Variant records must **not** include a `_tag` property — it is added
+ *   automatically.
+ * - For generic tagged enums, see {@link TaggedEnum.WithGenerics}.
+ *
+ * **Example** (defining a tagged enum)
+ *
  * ```ts
  * import { Data } from "effect"
  *
- * // Define a tagged enum type
  * type HttpError = Data.TaggedEnum<{
  *   BadRequest: { readonly status: 400; readonly message: string }
- *   NotFound: { readonly status: 404; readonly message: string }
- *   InternalError: { readonly status: 500; readonly details: string }
+ *   NotFound: { readonly status: 404 }
  * }>
  *
- * // This is equivalent to the union type:
- * type HttpErrorExpanded =
- *   | {
- *     readonly _tag: "BadRequest"
- *     readonly status: 400
- *     readonly message: string
- *   }
- *   | {
- *     readonly _tag: "NotFound"
- *     readonly status: 404
- *     readonly message: string
- *   }
- *   | {
- *     readonly _tag: "InternalError"
- *     readonly status: 500
- *     readonly details: string
- *   }
+ * // Equivalent to:
+ * // | { readonly _tag: "BadRequest"; readonly status: 400; readonly message: string }
+ * // | { readonly _tag: "NotFound"; readonly status: 404 }
  *
- * // Usage with constructors
- * const { BadRequest, InternalError, NotFound } = Data.taggedEnum<HttpError>()
+ * const { BadRequest, NotFound } = Data.taggedEnum<HttpError>()
  *
- * const error: HttpError = BadRequest({ status: 400, message: "Invalid request" })
- * console.log(error._tag) // "BadRequest"
- * console.log(error.status) // 400
+ * const err = BadRequest({ status: 400, message: "missing id" })
+ * console.log(err._tag)
+ * // "BadRequest"
  * ```
  *
- * @since 2.0.0
+ * @see {@link taggedEnum} — runtime constructors for a `TaggedEnum`
+ * @see {@link TaggedEnum.WithGenerics} — generic tagged enums
+ * @see {@link TaggedEnum.Constructor} — the constructor object type
+ *
  * @category models
+ * @since 2.0.0
  */
 export type TaggedEnum<
   A extends Record<string, Record<string, any>> & UntaggedChildren<A>
@@ -152,52 +221,53 @@ type UntaggedChildren<A> = true extends ChildrenAreTagged<A>
   : unknown
 
 /**
- * A namespace providing utilities for TaggedEnum types.
+ * Namespace for `TaggedEnum` utility types.
  *
- * This namespace contains types and utilities for working with tagged enums,
- * which are discriminated unions with structural equality semantics.
+ * Provides helper types for:
+ * - Generic tagged enums ({@link TaggedEnum.WithGenerics}, {@link TaggedEnum.Kind})
+ * - Extracting constructor arguments ({@link TaggedEnum.Args}) and variant
+ *   values ({@link TaggedEnum.Value})
+ * - Full constructor objects ({@link TaggedEnum.Constructor})
  *
- * @example
- * ```ts
- * import { Data } from "effect"
- *
- * // Basic tagged enum usage
- * const { Failure, Success } = Data.taggedEnum<
- *   | { readonly _tag: "Success"; readonly value: number }
- *   | { readonly _tag: "Failure"; readonly error: string }
- * >()
- *
- * const result = Success({ value: 42 })
- * console.log(result._tag) // "Success"
- * console.log(result.value) // 42
- * ```
- *
- * @since 2.0.0
  * @category types
+ * @since 2.0.0
  */
 export declare namespace TaggedEnum {
   /**
-   * A type-level helper for tagged enums that support generic type parameters.
-   * This interface is used to define the structure of tagged enum definitions
-   * that can accept generic type parameters.
+   * Defines a tagged enum shape that accepts generic type parameters.
    *
-   * @example
+   * Extend this interface and set `taggedEnum` to your union type, using
+   * `this["A"]`, `this["B"]`, etc. as placeholders for the generics. The
+   * `Count` parameter declares how many generics are used (up to 4).
+   *
+   * - Use when variant payloads need to be parameterized (e.g., `Result<E, A>`).
+   * - Pass the interface (not the type alias) to {@link taggedEnum} to get
+   *   generic-aware constructors.
+   *
+   * **Example** (generic tagged enum)
+   *
    * ```ts
-   * import type { Data } from "effect"
+   * import { Data } from "effect"
    *
-   * // Define a tagged enum with generic parameters
-   * interface MyTaggedEnum<A, B> extends Data.TaggedEnum.WithGenerics<2> {
-   *   readonly taggedEnum:
-   *     | { readonly _tag: "Success"; readonly value: A }
-   *     | { readonly _tag: "Failure"; readonly error: B }
+   * type MyResult<E, A> = Data.TaggedEnum<{
+   *   Failure: { readonly error: E }
+   *   Success: { readonly value: A }
+   * }>
+   *
+   * interface MyResultDef extends Data.TaggedEnum.WithGenerics<2> {
+   *   readonly taggedEnum: MyResult<this["A"], this["B"]>
    * }
    *
-   * // The number of generics is tracked in the type
-   * type NumGenerics = MyTaggedEnum<string, Error>["numberOfGenerics"] // 2
+   * const { Failure, Success } = Data.taggedEnum<MyResultDef>()
+   *
+   * const ok = Success({ value: 42 })
+   * // ok: { readonly _tag: "Success"; readonly value: number }
    * ```
    *
+   * @see {@link Kind} — apply concrete types to a `WithGenerics` definition
+   * @see {@link taggedEnum} — runtime constructors
+   *
    * @since 2.0.0
-   * @category models
    */
   export interface WithGenerics<Count extends number> {
     readonly taggedEnum: { readonly _tag: string }
@@ -210,45 +280,33 @@ export declare namespace TaggedEnum {
   }
 
   /**
-   * Utility type for applying generic type parameters to a tagged enum definition.
+   * Applies concrete type arguments to a `WithGenerics` definition, producing
+   * the resulting tagged union type.
    *
-   * This type takes a `WithGenerics` definition and applies the provided type
-   * parameters to create a concrete tagged enum type.
+   * - Use to refer to a specific instantiation of a generic tagged enum in
+   *   type signatures.
    *
-   * @example
+   * **Example** (applying generics)
+   *
    * ```ts
    * import type { Data } from "effect"
    *
-   * // Define a generic Option type
    * type Option<A> = Data.TaggedEnum<{
    *   None: {}
    *   Some: { readonly value: A }
    * }>
-   *
-   * interface OptionDefinition extends Data.TaggedEnum.WithGenerics<1> {
+   * interface OptionDef extends Data.TaggedEnum.WithGenerics<1> {
    *   readonly taggedEnum: Option<this["A"]>
    * }
    *
-   * // Apply specific type to get concrete type
-   * type StringOption = Data.TaggedEnum.Kind<OptionDefinition, string>
-   * // Result: { readonly _tag: "None" } | { readonly _tag: "Some"; readonly value: string }
-   *
-   * type NumberOption = Data.TaggedEnum.Kind<OptionDefinition, number>
-   * // Result: { readonly _tag: "None" } | { readonly _tag: "Some"; readonly value: number }
-   *
-   * // Usage in type-safe functions
-   * const processOption = (opt: StringOption): string => {
-   *   switch (opt._tag) {
-   *     case "None":
-   *       return "No value"
-   *     case "Some":
-   *       return `Value: ${opt.value}`
-   *   }
-   * }
+   * // Resolve to the concrete union for `string`
+   * type StringOption = Data.TaggedEnum.Kind<OptionDef, string>
+   * // { _tag: "None" } | { _tag: "Some"; value: string }
    * ```
    *
+   * @see {@link WithGenerics} — define the generic shape
+   *
    * @since 2.0.0
-   * @category models
    */
   export type Kind<
     Z extends WithGenerics<number>,
@@ -264,30 +322,30 @@ export declare namespace TaggedEnum {
   })["taggedEnum"]
 
   /**
-   * Extracts the argument types for a tagged enum constructor.
+   * Extracts the constructor argument type for a specific variant of a tagged
+   * union.
    *
-   * This utility type extracts the required arguments for constructing
-   * a specific variant of a tagged enum, excluding the `_tag` field.
+   * Returns `void` if the variant has no fields beyond `_tag`.
    *
-   * @example
+   * **Example** (extracting variant args)
+   *
    * ```ts
    * import type { Data } from "effect"
    *
    * type Result =
-   *   | { readonly _tag: "Success"; readonly value: number }
-   *   | { readonly _tag: "Failure"; readonly error: string }
+   *   | { readonly _tag: "Ok"; readonly value: number }
+   *   | { readonly _tag: "Err"; readonly error: string }
    *
-   * // Extract arguments for Success variant
-   * type SuccessArgs = Data.TaggedEnum.Args<Result, "Success">
-   * // Result: { readonly value: number }
+   * type OkArgs = Data.TaggedEnum.Args<Result, "Ok">
+   * // { readonly value: number }
    *
-   * // Extract arguments for Failure variant
-   * type FailureArgs = Data.TaggedEnum.Args<Result, "Failure">
-   * // Result: { readonly error: string }
+   * type ErrArgs = Data.TaggedEnum.Args<Result, "Err">
+   * // { readonly error: string }
    * ```
    *
+   * @see {@link Value} — extracts the full variant type (including `_tag`)
+   *
    * @since 2.0.0
-   * @category types
    */
   export type Args<
     A extends { readonly _tag: string },
@@ -300,30 +358,24 @@ export declare namespace TaggedEnum {
     : never
 
   /**
-   * Extracts the complete value type for a tagged enum variant.
+   * Extracts the full variant type (including `_tag`) for a specific tag.
    *
-   * This utility type extracts the full type (including the `_tag` field)
-   * for a specific variant of a tagged enum.
+   * **Example** (extracting a variant type)
    *
-   * @example
    * ```ts
    * import type { Data } from "effect"
    *
    * type Result =
-   *   | { readonly _tag: "Success"; readonly value: number }
-   *   | { readonly _tag: "Failure"; readonly error: string }
+   *   | { readonly _tag: "Ok"; readonly value: number }
+   *   | { readonly _tag: "Err"; readonly error: string }
    *
-   * // Extract complete Success type
-   * type SuccessValue = Data.TaggedEnum.Value<Result, "Success">
-   * // Result: { readonly _tag: "Success"; readonly value: number }
-   *
-   * // Extract complete Failure type
-   * type FailureValue = Data.TaggedEnum.Value<Result, "Failure">
-   * // Result: { readonly _tag: "Failure"; readonly error: string }
+   * type OkVariant = Data.TaggedEnum.Value<Result, "Ok">
+   * // { readonly _tag: "Ok"; readonly value: number }
    * ```
    *
+   * @see {@link Args} — extracts fields without `_tag`
+   *
    * @since 2.0.0
-   * @category types
    */
   export type Value<
     A extends { readonly _tag: string },
@@ -331,36 +383,39 @@ export declare namespace TaggedEnum {
   > = Extract<A, { readonly _tag: K }>
 
   /**
-   * Provides a complete constructor interface for tagged enums.
+   * The full constructor-object type returned by {@link taggedEnum}.
    *
-   * This type creates a constructor object that includes:
-   * - Individual constructors for each variant
-   * - `$is` for type predicates
-   * - `$match` for pattern matching
+   * Includes:
+   * - A constructor function for each variant (keyed by tag name)
+   * - `$is(tag)` — returns a type-guard for the given variant
+   * - `$match` — exhaustive pattern matching (data-last or data-first)
    *
-   * @example
+   * **Example** (using the constructor object)
+   *
    * ```ts
    * import { Data } from "effect"
    *
-   * type HttpError =
-   *   | { readonly _tag: "BadRequest"; readonly message: string }
-   *   | { readonly _tag: "NotFound"; readonly resource: string }
+   * type Shape =
+   *   | { readonly _tag: "Circle"; readonly radius: number }
+   *   | { readonly _tag: "Rect"; readonly w: number; readonly h: number }
    *
-   * const { $is, $match, BadRequest, NotFound } = Data.taggedEnum<HttpError>()
+   * const { Circle, Rect, $is, $match } = Data.taggedEnum<Shape>()
    *
-   * const error = BadRequest({ message: "Invalid input" })
+   * const shape = Circle({ radius: 10 })
    *
-   * // Type predicate
-   * if ($is("BadRequest")(error)) {
-   *   console.log(error.message) // TypeScript knows this is BadRequest
+   * // Type guard
+   * if ($is("Circle")(shape)) {
+   *   console.log(shape.radius)
    * }
    *
    * // Pattern matching
-   * const result = $match(error, {
-   *   BadRequest: ({ message }) => `Bad request: ${message}`,
-   *   NotFound: ({ resource }) => `Not found: ${resource}`
+   * const label = $match(shape, {
+   *   Circle: (s) => `circle r=${s.radius}`,
+   *   Rect: (s) => `rect ${s.w}x${s.h}`
    * })
    * ```
+   *
+   * @see {@link taggedEnum} — creates a `Constructor`
    *
    * @since 3.1.0
    * @category types
@@ -400,52 +455,26 @@ export declare namespace TaggedEnum {
   >
 
   /**
+   * Function type that constructs a tagged-union variant from its fields,
+   * excluding the keys listed in `Tag`.
+   *
+   * Returns `void` when no fields remain after excluding `Tag` keys.
+   *
    * @since 4.0.0
-   * @category types
    */
   export type ConstructorFrom<A, Tag extends keyof A = never> = (
-    args: Types.Equals<Omit<A, Tag>, {}> extends true ? void
-      : { readonly [P in keyof A as P extends Tag ? never : P]: A[P] }
+    args: Types.VoidIfEmpty<{ readonly [P in keyof A as P extends Tag ? never : P]: A[P] }>
   ) => A
 
   /**
-   * Provides type-safe pattern matching for generic tagged enums.
+   * Type-guard and pattern-matching interface for generic tagged enums.
    *
-   * This interface provides `$is` and `$match` utilities for tagged enums
-   * that use generics, ensuring type safety across different generic instantiations.
+   * This is the `$is` / `$match` portion of the object returned by
+   * {@link taggedEnum} when used with a {@link WithGenerics} definition.
    *
-   * @example
-   * ```ts
-   * import { Data } from "effect"
-   *
-   * type Result<E, A> = Data.TaggedEnum<{
-   *   Failure: { readonly error: E }
-   *   Success: { readonly value: A }
-   * }>
-   *
-   * interface ResultDefinition extends Data.TaggedEnum.WithGenerics<2> {
-   *   readonly taggedEnum: Result<this["A"], this["B"]>
-   * }
-   *
-   * const { $is, $match, Failure, Success } = Data.taggedEnum<ResultDefinition>()
-   *
-   * const stringResult = Success({ value: "hello" })
-   * const numberResult = Failure({ error: 404 })
-   *
-   * // Generic type checking
-   * if ($is("Success")(stringResult)) {
-   *   console.log(stringResult.value) // TypeScript knows this is string
-   * }
-   *
-   * // Generic pattern matching
-   * const message = $match(numberResult, {
-   *   Success: ({ value }) => `Value: ${value}`,
-   *   Failure: ({ error }) => `Error: ${error}`
-   * })
-   * ```
+   * @see {@link Constructor} — the non-generic equivalent
    *
    * @since 3.2.0
-   * @category types
    */
   export interface GenericMatchers<Z extends WithGenerics<number>> {
     readonly $is: <Tag extends Z["taggedEnum"]["_tag"]>(
@@ -497,44 +526,64 @@ export declare namespace TaggedEnum {
 }
 
 /**
- * Create a constructor for a tagged union of `Data` structs.
+ * Creates runtime constructors, type guards, and pattern matching for a
+ * {@link TaggedEnum} type.
  *
- * You can also pass a `TaggedEnum.WithGenerics` if you want to add generics to
- * the constructor.
+ * Returns an object with:
+ * - One constructor per variant (keyed by tag name)
+ * - `$is(tag)` — returns a type-guard function
+ * - `$match` — exhaustive pattern matching (data-first or data-last)
  *
- * @example
+ * - Use when you have a `TaggedEnum` type and need to construct/inspect values.
+ * - Constructors produce **plain objects** (not class instances).
+ * - For generic enums, pass a {@link TaggedEnum.WithGenerics} interface.
+ *
+ * **Example** (basic usage)
+ *
  * ```ts
  * import { Data } from "effect"
  *
- * const { BadRequest, NotFound } = Data.taggedEnum<
- *   | {
- *     readonly _tag: "BadRequest"
- *     readonly status: 400
- *     readonly message: string
- *   }
- *   | {
- *     readonly _tag: "NotFound"
- *     readonly status: 404
- *     readonly message: string
- *   }
- * >()
+ * type HttpError = Data.TaggedEnum<{
+ *   BadRequest: { readonly message: string }
+ *   NotFound: { readonly url: string }
+ * }>
  *
- * const notFound = NotFound({ status: 404, message: "Not Found" })
+ * const { BadRequest, NotFound, $is, $match } = Data.taggedEnum<HttpError>()
+ *
+ * const err = NotFound({ url: "/missing" })
+ *
+ * // Type guard
+ * console.log($is("NotFound")(err)) // true
+ *
+ * // Pattern matching
+ * const msg = $match(err, {
+ *   BadRequest: (e) => e.message,
+ *   NotFound: (e) => `${e.url} not found`
+ * })
+ * console.log(msg) // "/missing not found"
  * ```
  *
- * @example
+ * **Example** (generic tagged enum)
+ *
+ * ```ts
  * import { Data } from "effect"
  *
  * type MyResult<E, A> = Data.TaggedEnum<{
  *   Failure: { readonly error: E }
  *   Success: { readonly value: A }
  * }>
- * interface MyResultDefinition extends Data.TaggedEnum.WithGenerics<2> {
+ * interface MyResultDef extends Data.TaggedEnum.WithGenerics<2> {
  *   readonly taggedEnum: MyResult<this["A"], this["B"]>
  * }
- * const { Failure, Success } = Data.taggedEnum<MyResultDefinition>()
+ * const { Failure, Success } = Data.taggedEnum<MyResultDef>()
  *
- * const success = Success({ value: 1 })
+ * const ok = Success({ value: 42 })
+ * // ok: { readonly _tag: "Success"; readonly value: number }
+ * ```
+ *
+ * @see {@link TaggedEnum} — the type-level companion
+ * @see {@link TaggedEnum.Constructor} — the returned object type
+ * @see {@link TaggedEnum.WithGenerics} — generic enum support
  *
  * @category constructors
  * @since 2.0.0
@@ -634,65 +683,80 @@ function taggedMatch<
 }
 
 /**
- * Create a structured error constructor that supports Effect's error handling.
+ * Base class for yieldable errors.
  *
- * This constructor creates errors that are both `Cause.YieldableError` (can be
- * yielded in Effect generators) and have structural equality semantics.
+ * Extends `Cause.YieldableError`, so instances can be yielded inside
+ * `Effect.gen` to fail the enclosing effect. Fields are passed as a single
+ * object; when there are no fields the argument is optional.
  *
- * @example
+ * - Use for errors that do **not** need tag-based discrimination.
+ * - If you need `Effect.catchTag` support, use {@link TaggedError} instead.
+ * - If a `message` field is provided, it becomes the error's `.message`.
+ *
+ * **Example** (defining a yieldable error)
+ *
  * ```ts
  * import { Data, Effect } from "effect"
  *
- * class NetworkError extends Data.Error<{ code: number; message: string }> {}
+ * class NetworkError extends Data.Error<{
+ *   readonly code: number
+ *   readonly message: string
+ * }> {}
  *
  * const program = Effect.gen(function*() {
- *   yield* new NetworkError({ code: 500, message: "Server error" })
+ *   yield* new NetworkError({ code: 500, message: "timeout" })
  * })
  *
+ * // The effect fails with a NetworkError
  * Effect.runSync(Effect.exit(program))
- * // Exit.fail(NetworkError({ code: 500, message: "Server error" }))
  * ```
+ *
+ * @see {@link TaggedError} — adds a `_tag` for `Effect.catchTag`
+ * @see {@link Class} — non-error data class
  *
  * @category constructors
  * @since 2.0.0
  */
 export const Error: new<A extends Record<string, any> = {}>(
-  args: Types.Equals<A, {}> extends true ? void
-    : { readonly [P in keyof A]: A[P] }
+  args: Types.VoidIfEmpty<{ readonly [P in keyof A]: A[P] }>
 ) => Cause.YieldableError & Readonly<A> = core.Error
 
 /**
- * Create a tagged error constructor with a specific tag for discriminated unions.
+ * Creates a tagged error class with a `_tag` discriminator.
  *
- * This constructor creates errors with a `_tag` property that are both
- * `Cause.YieldableError` and have structural equality semantics.
+ * Like {@link Error}, but instances also carry a `readonly _tag` property,
+ * enabling `Effect.catchTag` and `Effect.catchTags` for tag-based recovery.
+ * The `_tag` is excluded from the constructor argument.
  *
- * @example
+ * - Use for domain errors in Effect applications where you want
+ *   discriminated-union error handling.
+ * - Yielding an instance inside `Effect.gen` fails the effect with this error.
+ *
+ * **Example** (tag-based error recovery)
+ *
  * ```ts
- * import { Data, Effect, pipe } from "effect"
+ * import { Data, Effect } from "effect"
  *
- * class NetworkError extends Data.TaggedError("NetworkError")<{
- *   code: number
- *   message: string
+ * class NotFound extends Data.TaggedError("NotFound")<{
+ *   readonly resource: string
  * }> {}
  *
- * class ValidationError extends Data.TaggedError("ValidationError")<{
- *   field: string
- *   message: string
+ * class Forbidden extends Data.TaggedError("Forbidden")<{
+ *   readonly reason: string
  * }> {}
  *
  * const program = Effect.gen(function*() {
- *   yield* new NetworkError({ code: 500, message: "Server error" })
+ *   yield* new NotFound({ resource: "/users/42" })
  * })
  *
- * const result = pipe(
- *   program,
- *   Effect.catchTag(
- *     "NetworkError",
- *     (error) => Effect.succeed(`Network error: ${error.message}`)
- *   )
+ * const recovered = program.pipe(
+ *   Effect.catchTag("NotFound", (e) =>
+ *     Effect.succeed(`missing: ${e.resource}`))
  * )
  * ```
+ *
+ * @see {@link Error} — without a `_tag`
+ * @see {@link TaggedClass} — tagged class that is not an error
  *
  * @category constructors
  * @since 2.0.0
@@ -700,6 +764,5 @@ export const Error: new<A extends Record<string, any> = {}>(
 export const TaggedError: <Tag extends string>(
   tag: Tag
 ) => new<A extends Record<string, any> = {}>(
-  args: Types.Equals<A, {}> extends true ? void
-    : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
+  args: Types.VoidIfEmpty<{ readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }>
 ) => Cause.YieldableError & { readonly _tag: Tag } & Readonly<A> = core.TaggedError as any

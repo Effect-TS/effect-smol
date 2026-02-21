@@ -595,7 +595,7 @@ export const YieldableError: new(
 
 /** @internal */
 export const Error: new<A extends Record<string, any> = {}>(
-  args: Types.Equals<A, {}> extends true ? void : { readonly [P in keyof A]: A[P] }
+  args: Types.VoidIfEmpty<{ readonly [P in keyof A]: A[P] }>
 ) => Cause.YieldableError & Readonly<A> = (function() {
   const plainArgsSymbol = Symbol.for("effect/Data/Error/plainArgs")
   return class Base extends YieldableError {
@@ -619,8 +619,7 @@ export const Error: new<A extends Record<string, any> = {}>(
 export const TaggedError = <Tag extends string>(
   tag: Tag
 ): new<A extends Record<string, any> = {}>(
-  args: Types.Equals<A, {}> extends true ? void
-    : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
+  args: Types.VoidIfEmpty<{ readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }>
 ) => Cause.YieldableError & { readonly _tag: Tag } & Readonly<A> => {
   class Base extends Error<{}> {
     readonly _tag = tag

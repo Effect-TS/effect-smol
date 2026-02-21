@@ -743,15 +743,75 @@ export * as Console from "./Console.ts"
 export * as Cron from "./Cron.ts"
 
 /**
- * This module provides utilities for creating data types with structural equality
- * semantics. Unlike regular JavaScript objects, `Data` types support value-based
- * equality comparison using the `Equal` module.
+ * Immutable data constructors with discriminated-union support.
  *
- * The main benefits of using `Data` types are:
- * - **Structural equality**: Two `Data` objects are equal if their contents are equal
- * - **Immutability**: `Data` types are designed to be immutable
- * - **Type safety**: Constructors ensure type safety and consistency
- * - **Effect integration**: Error types work seamlessly with Effect's error handling
+ * The `Data` module provides base classes and factory functions for creating
+ * immutable value types with a `_tag` field for discriminated unions.
+ * It is the recommended way to define domain models, error types, and
+ * lightweight ADTs in Effect applications.
+ *
+ * ## Mental model
+ *
+ * - **`Class`** — base class for plain immutable data. Extend it with a type
+ *   parameter to declare the fields. Instances are `Pipeable`.
+ * - **`TaggedClass`** — like `Class` but automatically adds a `readonly _tag`
+ *   string literal field. Useful for single-variant types or ad-hoc tagged
+ *   values.
+ * - **`TaggedEnum`** (type) + **`taggedEnum`** (value) — define a multi-variant
+ *   discriminated union from a simple record. `taggedEnum()` returns per-variant
+ *   constructors plus `$is` / `$match` helpers.
+ * - **`Error`** — like `Class` but extends `Cause.YieldableError`, so instances
+ *   can be yielded inside `Effect.gen` to fail the effect.
+ * - **`TaggedError`** — like `TaggedClass` but extends `Cause.YieldableError`.
+ *   Works with `Effect.catchTag` for tag-based error recovery.
+ *
+ * ## Common tasks
+ *
+ * - Define a simple value class → {@link Class}
+ * - Define a value class with a `_tag` → {@link TaggedClass}
+ * - Define a discriminated union with constructors → {@link TaggedEnum} + {@link taggedEnum}
+ * - Define a yieldable error → {@link Error}
+ * - Define a yieldable tagged error → {@link TaggedError}
+ * - Type-guard a tagged value → `$is` from {@link taggedEnum}
+ * - Pattern-match on a tagged union → `$match` from {@link taggedEnum}
+ *
+ * ## Gotchas
+ *
+ * - Variant records passed to `TaggedEnum` must **not** contain a `_tag` key;
+ *   the `_tag` is added automatically from the record key.
+ * - When a class has no fields, the constructor argument is optional (`void`).
+ * - `taggedEnum()` creates **plain objects**, not class instances. If you need
+ *   class-based variants, use `TaggedClass` or `TaggedError` instead.
+ * - `TaggedEnum.WithGenerics` supports up to 4 generic type parameters.
+ *
+ * ## Quickstart
+ *
+ * **Example** (tagged union with pattern matching)
+ *
+ * ```ts
+ * import { Data } from "effect"
+ *
+ * type Shape = Data.TaggedEnum<{
+ *   Circle: { readonly radius: number }
+ *   Rect: { readonly width: number; readonly height: number }
+ * }>
+ * const { Circle, Rect, $match } = Data.taggedEnum<Shape>()
+ *
+ * const area = $match({
+ *   Circle: ({ radius }) => Math.PI * radius ** 2,
+ *   Rect: ({ width, height }) => width * height
+ * })
+ *
+ * console.log(area(Circle({ radius: 5 })))
+ * // 78.53981633974483
+ * console.log(area(Rect({ width: 3, height: 4 })))
+ * // 12
+ * ```
+ *
+ * @see {@link Class} — plain immutable data class
+ * @see {@link TaggedEnum} — discriminated union type
+ * @see {@link taggedEnum} — discriminated union constructors
+ * @see {@link TaggedError} — yieldable tagged error class
  *
  * @since 2.0.0
  */
