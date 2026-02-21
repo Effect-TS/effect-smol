@@ -49,14 +49,14 @@ jobs:
         run: gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}" --json 'number' --jq '"number=\(.number)"' >> "${GITHUB_OUTPUT}"
       - name: Find Comment
         id: find-comment
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         with:
           issue-number: ${{ steps.pr-context.outputs.number }}
           comment-author: "github-actions[bot]"
           body-includes: <!-- JSDoc Analysis PR Report -->
       - name: Create Comment
         id: comment
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JSDOC_STATS: "${{ steps.stats.outputs.stats }}"
