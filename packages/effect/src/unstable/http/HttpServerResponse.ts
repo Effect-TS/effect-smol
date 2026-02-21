@@ -273,8 +273,8 @@ export const jsonUnsafe = (
  * @since 4.0.0
  * @category constructors
  */
-export const urlParams = (
-  body: UrlParams.Input,
+export const urlParams = <A extends object>(
+  body: UrlParams.Input<A>,
   options?: Options.WithContentType | undefined
 ): HttpServerResponse => {
   const headers = options?.headers ? Headers.fromInput(options.headers) : Headers.empty

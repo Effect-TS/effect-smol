@@ -59,33 +59,33 @@ export declare namespace HttpClient {
       request: HttpClientRequest.HttpClientRequest
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
 
-    readonly get: (
+    readonly get: <A extends object = UrlParams.CoercibleRecord>(
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl
+      options?: HttpClientRequest.Options.NoUrl<A>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly head: (
+    readonly head: <A extends object = UrlParams.CoercibleRecord>(
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl
+      options?: HttpClientRequest.Options.NoUrl<A>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly post: (
+    readonly post: <A extends object = UrlParams.CoercibleRecord>(
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl
+      options?: HttpClientRequest.Options.NoUrl<A>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly patch: (
+    readonly patch: <A extends object = UrlParams.CoercibleRecord>(
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl
+      options?: HttpClientRequest.Options.NoUrl<A>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly put: (
+    readonly put: <A extends object = UrlParams.CoercibleRecord>(
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl
+      options?: HttpClientRequest.Options.NoUrl<A>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly del: (
+    readonly del: <A extends object = UrlParams.CoercibleRecord>(
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl
+      options?: HttpClientRequest.Options.NoUrl<A>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
-    readonly options: (
+    readonly options: <A extends object = UrlParams.CoercibleRecord>(
       url: string | URL,
-      options?: HttpClientRequest.Options.NoUrl
+      options?: HttpClientRequest.Options.NoUrl<A>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
   }
 
@@ -132,7 +132,10 @@ export const execute: (
  * @since 4.0.0
  * @category accessors
  */
-export const get: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
+export const get: <A extends object = UrlParams.CoercibleRecord>(
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl<A> | undefined
+) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -142,7 +145,10 @@ export const get: (url: string | URL, options?: HttpClientRequest.Options.NoUrl 
  * @since 4.0.0
  * @category accessors
  */
-export const head: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
+export const head: <A extends object = UrlParams.CoercibleRecord>(
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl<A> | undefined
+) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -152,7 +158,10 @@ export const head: (url: string | URL, options?: HttpClientRequest.Options.NoUrl
  * @since 4.0.0
  * @category accessors
  */
-export const post: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
+export const post: <A extends object = UrlParams.CoercibleRecord>(
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl<A> | undefined
+) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -162,7 +171,10 @@ export const post: (url: string | URL, options?: HttpClientRequest.Options.NoUrl
  * @since 4.0.0
  * @category accessors
  */
-export const patch: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
+export const patch: <A extends object = UrlParams.CoercibleRecord>(
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl<A> | undefined
+) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -172,7 +184,10 @@ export const patch: (url: string | URL, options?: HttpClientRequest.Options.NoUr
  * @since 4.0.0
  * @category accessors
  */
-export const put: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
+export const put: <A extends object = UrlParams.CoercibleRecord>(
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl<A> | undefined
+) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -182,7 +197,10 @@ export const put: (url: string | URL, options?: HttpClientRequest.Options.NoUrl 
  * @since 4.0.0
  * @category accessors
  */
-export const del: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
+export const del: <A extends object = UrlParams.CoercibleRecord>(
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl<A> | undefined
+) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -192,7 +210,10 @@ export const del: (url: string | URL, options?: HttpClientRequest.Options.NoUrl 
  * @since 4.0.0
  * @category accessors
  */
-export const options: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
+export const options: <A extends object = UrlParams.CoercibleRecord>(
+  url: string | URL,
+  options?: HttpClientRequest.Options.NoUrl<A> | undefined
+) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
@@ -528,7 +549,11 @@ const Proto = {
   ...Object.fromEntries(
     HttpMethod.allShort.map((
       [fullMethod, method]
-    ) => [method, function(this: HttpClient, url: string | URL, options?: HttpClientRequest.Options.NoUrl) {
+    ) => [method, function<A extends object = UrlParams.CoercibleRecord>(
+      this: HttpClient,
+      url: string | URL,
+      options?: HttpClientRequest.Options.NoUrl<A>
+    ) {
       return this.execute(HttpClientRequest.make(fullMethod)(url, options))
     }])
   )
