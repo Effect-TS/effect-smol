@@ -785,6 +785,7 @@ export const fiberJoinAll = <A extends Iterable<Fiber.Fiber<any, any>>>(self: A)
 > =>
   callback((resume) => {
     const fibers = Array.from(self)
+    if (fibers.length === 0) return resume(succeed(Arr.empty() as any))
     const out = new Array<any>(fibers.length) as Arr.NonEmptyArray<any>
     const cancels = Arr.empty<() => void>()
     let done = 0
