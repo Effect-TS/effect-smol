@@ -2432,11 +2432,100 @@ export * as NullOr from "./NullOr.ts"
 export * as Number from "./Number.ts"
 
 /**
- * Design: "pretty good" persistency.
- * Real updates copy only the path; unrelated branches keep referential identity.
- * No-op updates may still allocate a new root/parents — callers must not rely on identity for no-ops.
+ * Composable, immutable accessors for reading and updating nested data
+ * structures without mutation.
+ *
+ * **Mental model**
+ *
+ * - **Optic** — a first-class reference to a piece inside a larger structure.
+ *   Compose optics to reach deeply nested values.
+ * - **Iso** — lossless two-way conversion (`get`/`set`) between `S` and `A`.
+ *   Extends both {@link Lens} and {@link Prism}.
+ * - **Lens** — focuses on exactly one part of `S`. `get` always succeeds;
+ *   `replace` needs the original `S` to produce the updated whole.
+ * - **Prism** — focuses on a part that may not be present (e.g. a union
+ *   variant). `getResult` can fail; `set` builds a new `S` from `A` alone.
+ * - **Optional** — the most general optic: both reading and writing can fail.
+ * - **Traversal** — focuses on zero or more elements of an array-like
+ *   structure. Technically `Optional<S, ReadonlyArray<A>>`.
+ * - **Hierarchy** (strongest → weakest):
+ *   `Iso > Lens | Prism > Optional`. Composing a weaker optic with any other
+ *   produces the weaker kind.
+ *
+ * **Common tasks**
+ *
+ * - Start a chain → {@link id} (identity iso)
+ * - Drill into a struct key → `.key("name")` / `.optionalKey("name")`
+ * - Drill into a key that may not exist → `.at("name")`
+ * - Narrow a tagged union → `.tag("MyVariant")`
+ * - Narrow by type guard → `.refine(guard)`
+ * - Add validation → `.check(Schema.isGreaterThan(0))`
+ * - Filter out `undefined` → `.notUndefined()`
+ * - Pick/omit struct keys → `.pick(["a","b"])` / `.omit(["c"])`
+ * - Traverse array elements → `.forEach(el => el.key("field"))`
+ * - Build an iso → {@link makeIso}
+ * - Build a lens → {@link makeLens}
+ * - Build a prism → {@link makePrism}, {@link fromChecks}
+ * - Build an optional → {@link makeOptional}
+ * - Focus into `Option.Some` → {@link some}
+ * - Focus into `Result.Success`/`Failure` → {@link success}, {@link failure}
+ * - Convert record ↔ entries → {@link entries}
+ * - Extract all traversal elements → {@link getAll}
+ *
+ * **Gotchas**
+ *
+ * - Updates are structurally persistent: only nodes on the path are cloned.
+ *   Unrelated branches keep referential identity. However, **no-op updates
+ *   may still allocate** a new root — do not rely on reference identity to
+ *   detect no-ops.
+ * - `replace` silently returns the original `S` when the optic cannot focus
+ *   (e.g. wrong tag). Use `replaceResult` for explicit failure.
+ * - `modify` also returns the original `S` on focus failure — it never throws.
+ * - `.key()` and `.optionalKey()` do not work on union types (compile error).
+ * - Only plain objects (`Object.prototype` or `null` prototype) and arrays can
+ *   be cloned. Class instances cause a runtime error on `replace`/`modify`.
+ *
+ * **Quickstart**
+ *
+ * **Example** (reading and updating nested state)
+ *
+ * ```ts
+ * import { Optic } from "effect"
+ *
+ * type State = { user: { name: string; age: number } }
+ *
+ * const _age = Optic.id<State>().key("user").key("age")
+ *
+ * const s1: State = { user: { name: "Alice", age: 30 } }
+ *
+ * // Read
+ * console.log(_age.get(s1))
+ * // Output: 30
+ *
+ * // Update immutably
+ * const s2 = _age.replace(31, s1)
+ * console.log(s2)
+ * // Output: { user: { name: "Alice", age: 31 } }
+ *
+ * // Modify with a function
+ * const s3 = _age.modify((n) => n + 1)(s1)
+ * console.log(s3)
+ * // Output: { user: { name: "Alice", age: 31 } }
+ *
+ * // Referential identity is preserved for unrelated branches
+ * console.log(s2.user !== s1.user)
+ * // Output: true (on the path)
+ * ```
+ *
+ * **See also**
+ *
+ * - {@link id} — entry point for optic chains
+ * - {@link Lens} / {@link Prism} / {@link Optional} — core optic types
+ * - {@link Traversal} / {@link getAll} — multi-focus optics
+ * - {@link some} / {@link success} / {@link failure} — built-in prisms
  *
  * @since 4.0.0
+ * @module
  */
 export * as Optic from "./Optic.ts"
 
