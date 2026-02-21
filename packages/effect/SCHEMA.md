@@ -652,7 +652,7 @@ type Encoded = typeof Product.Encoded
 
 //     ┌─── { readonly quantity: Option<number>; }
 //     ▼
-export type Type = typeof Product.Type
+type Type = typeof Product.Type
 
 console.log(Schema.decodeUnknownSync(Product)({}))
 // Output: { quantity: { _id: 'Option', _tag: 'None' } }
@@ -661,7 +661,7 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 // Output: { quantity: { _id: 'Option', _tag: 'Some', value: 2 } }
 
 // console.log(Schema.decodeUnknownSync(Product)({ quantity: undefined }))
-// throws:
+// throws
 
 console.log(Schema.encodeSync(Product)({ quantity: Option.some(2) }))
 // Output: { quantity: "2" }
@@ -679,13 +679,13 @@ const Product = Schema.Struct({
   quantity: Schema.OptionFromOptional(Schema.FiniteFromString)
 })
 
-//     ┌─── { readonly quantity?: string; }
+//     ┌─── { readonly quantity?: string | undefined; }
 //     ▼
 type Encoded = typeof Product.Encoded
 
 //     ┌─── { readonly quantity: Option<number>; }
 //     ▼
-export type Type = typeof Product.Type
+type Type = typeof Product.Type
 
 console.log(Schema.decodeUnknownSync(Product)({}))
 // Output: { quantity: { _id: 'Option', _tag: 'None' } }
@@ -693,8 +693,8 @@ console.log(Schema.decodeUnknownSync(Product)({}))
 console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 // Output: { quantity: { _id: 'Option', _tag: 'Some', value: 2 } }
 
-// console.log(Schema.decodeUnknownSync(Product)({ quantity: undefined }))
-// throws:
+console.log(Schema.decodeUnknownSync(Product)({ quantity: undefined }))
+// Output: { quantity: { _id: 'Option', _tag: 'None' } }
 
 console.log(Schema.encodeSync(Product)({ quantity: Option.some(2) }))
 // Output: { quantity: "2" }
@@ -726,7 +726,7 @@ type Encoded = typeof Product.Encoded
 
 //     ┌─── { readonly quantity: Option<number>; }
 //     ▼
-export type Type = typeof Product.Type
+type Type = typeof Product.Type
 
 console.log(Schema.decodeUnknownSync(Product)({}))
 // Output: { quantity: { _id: 'Option', _tag: 'None' } }
@@ -738,7 +738,7 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 // Output: { quantity: { _id: 'Option', _tag: 'Some', value: 2 } }
 
 // console.log(Schema.decodeUnknownSync(Product)({ quantity: undefined }))
-// throws:
+// throws
 ```
 
 #### Optional Property with Nullability
