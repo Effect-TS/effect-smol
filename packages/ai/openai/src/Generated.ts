@@ -30470,7 +30470,7 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
-   * Create a vector store file batch.
+   * The maximum number of files in a single batch request is 2000.
    */
   readonly "createVectorStoreFileBatch": <Config extends OperationConfig>(
     vectorStoreId: string,
