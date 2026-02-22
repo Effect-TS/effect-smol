@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Option, Path } from "effect"
+import { Effect, FileSystem, Layer, Option, Path, ServiceMap } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
 import { toImpl } from "effect/unstable/cli/internal/command"
@@ -29,7 +29,85 @@ const TestLayer = Layer.mergeAll(
   Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({})
 )
 
+const TestLayerWithoutFormatter = Layer.mergeAll(
+  ActionsLayer,
+  ConsoleLayer,
+  FileSystemLayer,
+  PathLayer,
+  TerminalLayer,
+  Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({})
+)
+
 describe("Command", () => {
+  describe("annotations", () => {
+    it.effect("should expose annotations in help docs", () =>
+      Effect.gen(function*() {
+        const Team = ServiceMap.Service<never, string>("effect/test/unstable/cli/Team")
+        const Priority = ServiceMap.Service<never, number>("effect/test/unstable/cli/Priority")
+        const docs: Array<Parameters<CliOutput.Formatter["formatHelpDoc"]>[0]> = []
+
+        const formatter: CliOutput.Formatter = {
+          ...CliOutput.defaultFormatter({ colors: false }),
+          formatHelpDoc: (doc) => {
+            docs.push(doc)
+            return ""
+          }
+        }
+
+        const command = Command.make("deploy").pipe(
+          Command.annotate(Team, "runtime"),
+          Command.annotateMerge(ServiceMap.make(Priority, 2))
+        )
+
+        yield* Command.runWith(command, { version: "1.0.0" })(["--help"]).pipe(
+          Effect.provide(TestLayerWithoutFormatter),
+          Effect.provideService(CliOutput.Formatter, formatter)
+        )
+
+        assert.strictEqual(docs.length, 1)
+        assert.isDefined(docs[0].annotations)
+        const annotations = docs[0].annotations!
+        assert.strictEqual(ServiceMap.get(annotations, Team), "runtime")
+        assert.strictEqual(ServiceMap.get(annotations, Priority), 2)
+      }))
+
+    it.effect("should keep annotations when adding subcommands", () =>
+      Effect.gen(function*() {
+        const Scope = ServiceMap.Service<never, string>("effect/test/unstable/cli/Scope")
+        const docs: Array<Parameters<CliOutput.Formatter["formatHelpDoc"]>[0]> = []
+
+        const formatter: CliOutput.Formatter = {
+          ...CliOutput.defaultFormatter({ colors: false }),
+          formatHelpDoc: (doc) => {
+            docs.push(doc)
+            return ""
+          }
+        }
+
+        const child = Command.make("child").pipe(Command.annotate(Scope, "child"))
+        const command = Command.make("root").pipe(
+          Command.annotate(Scope, "root"),
+          Command.withSubcommands([child])
+        )
+
+        const run = Command.runWith(command, { version: "1.0.0" })
+
+        yield* run(["--help"]).pipe(
+          Effect.provide(TestLayerWithoutFormatter),
+          Effect.provideService(CliOutput.Formatter, formatter)
+        )
+
+        yield* run(["child", "--help"]).pipe(
+          Effect.provide(TestLayerWithoutFormatter),
+          Effect.provideService(CliOutput.Formatter, formatter)
+        )
+
+        assert.strictEqual(docs.length, 2)
+        assert.strictEqual(ServiceMap.get(docs[0].annotations!, Scope), "root")
+        assert.strictEqual(ServiceMap.get(docs[1].annotations!, Scope), "child")
+      }))
+  })
+
   describe("run", () => {
     it.effect("should execute handler with parsed config", () =>
       Effect.gen(function*() {

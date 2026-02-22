@@ -2,6 +2,8 @@
  * @since 4.0.0
  */
 
+import type * as ServiceMap from "../../ServiceMap.ts"
+
 /**
  * Structured representation of help documentation for a command.
  * This data structure is independent of formatting, allowing for
@@ -61,6 +63,11 @@ export interface HelpDoc {
    * List of available flags/options for this command
    */
   readonly flags: ReadonlyArray<FlagDoc>
+
+  /**
+   * Custom command annotations.
+   */
+  readonly annotations?: ServiceMap.ServiceMap<never>
 
   /**
    * List of positional arguments for this command
