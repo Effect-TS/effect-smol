@@ -9,11 +9,11 @@ import {
   badgeStyle,
   listenerBadgeStyle,
   listItemRowStyle,
-  listItemStyle,
   listPanelStyle,
   listScrollStyle,
   searchInputStyle,
   stateColor,
+  theme,
   valuePreviewStyle
 } from "./styles.ts"
 import type { NodeSnapshot } from "./useDevtoolsState.ts"
@@ -39,13 +39,30 @@ const valuePreview = (value: unknown): string => {
   }
 }
 
+const listItemCss = `
+.edt-item {
+  padding: 6px 8px;
+  cursor: pointer;
+  background: transparent;
+  border-bottom: 1px solid ${theme.border};
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: background 0.12s ease;
+}
+.edt-item:hover {
+  background: ${theme.bgHover};
+}
+.edt-item[data-selected="true"] {
+  background: ${theme.bgSelected};
+}
+`
+
 /**
  * @since 1.0.0
  * @category components
  */
 export const AtomList: React.FC<AtomListProps> = ({ nodes, selectedAtom, onSelect, searchQuery, onSearchChange }) => {
-  const [hoveredAtom, setHoveredAtom] = React.useState<Atom.Atom<any> | null>(null)
-
   const filtered = React.useMemo(() => {
     const entries = Array.from(nodes.entries())
     if (!searchQuery) return entries
@@ -55,6 +72,7 @@ export const AtomList: React.FC<AtomListProps> = ({ nodes, selectedAtom, onSelec
 
   return (
     <div style={listPanelStyle}>
+      <style>{listItemCss}</style>
       <input
         style={searchInputStyle}
         placeholder="Search atoms..."
@@ -66,14 +84,13 @@ export const AtomList: React.FC<AtomListProps> = ({ nodes, selectedAtom, onSelec
         {filtered.map(([atom, snapshot]) => (
           <div
             key={getLabel(atom)}
-            style={listItemStyle(atom === selectedAtom, atom === hoveredAtom)}
+            className="edt-item"
+            data-selected={atom === selectedAtom}
             onClick={() => onSelect(atom)}
-            onMouseEnter={() => setHoveredAtom(atom)}
-            onMouseLeave={() => setHoveredAtom(null)}
             data-testid="devtools-atom-item"
           >
             <div style={listItemRowStyle}>
-              <span style={badgeStyle(stateColor(snapshot.node.state))} />
+              <span style={badgeStyle(stateColor(snapshot.node.state))} title={snapshot.node.state} />
               <span>{getLabel(atom)}</span>
               <span style={listenerBadgeStyle}>
                 {snapshot.node.listenerCount > 0 ? `${snapshot.node.listenerCount}` : ""}

@@ -8,10 +8,11 @@ import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 import * as React from "react"
 import {
   actionButtonStyle,
-  actionInputStyle,
   detailLabelStyle,
   detailPanelStyle,
   detailSectionStyle,
+  editableValueStyle,
+  editingInputStyle,
   theme
 } from "./styles.ts"
 import type { NodeSnapshot } from "./useDevtoolsState.ts"
@@ -21,47 +22,359 @@ export interface AtomDetailProps {
   readonly atom: Atom.Atom<any>
   readonly snapshot: NodeSnapshot
   readonly registry: AtomRegistry.AtomRegistry
+  readonly onSelect: (atom: Atom.Atom<any>) => void
 }
 
 const getLabel = (atom: Atom.Atom<any>): string => atom.label?.[0] ?? String(atom)
 
-const JsonTree: React.FC<{ readonly data: unknown; readonly depth?: number }> = ({ data, depth = 0 }) => {
-  if (data === null || data === undefined || typeof data !== "object") {
-    return <span style={{ color: typeof data === "string" ? theme.green : theme.accent }}>{JSON.stringify(data)}</span>
+const setAtPath = (root: unknown, path: ReadonlyArray<string>, value: unknown): unknown => {
+  if (path.length === 0) return value
+  const [head, ...tail] = path
+  if (Array.isArray(root)) {
+    const copy = [...root]
+    copy[Number(head)] = setAtPath(copy[Number(head)], tail, value)
+    return copy
   }
-  const entries = Array.isArray(data)
+  return { ...(root as any), [head]: setAtPath((root as any)[head], tail, value) }
+}
+
+const removeAtPath = (root: unknown, path: ReadonlyArray<string>): unknown => {
+  if (path.length === 0) return root
+  if (path.length === 1) {
+    if (Array.isArray(root)) return root.filter((_, i) => i !== Number(path[0]))
+    const { [path[0]]: _, ...rest } = root as Record<string, unknown>
+    return rest
+  }
+  const [head, ...tail] = path
+  if (Array.isArray(root)) {
+    const copy = [...root]
+    copy[Number(head)] = removeAtPath(copy[Number(head)], tail)
+    return copy
+  }
+  return { ...(root as any), [head]: removeAtPath((root as any)[head], tail) }
+}
+
+const appendToArray = (root: unknown, path: ReadonlyArray<string>, value: unknown): unknown => {
+  if (path.length === 0) {
+    if (Array.isArray(root)) return [...root, value]
+    return root
+  }
+  const [head, ...tail] = path
+  if (Array.isArray(root)) {
+    const copy = [...root]
+    copy[Number(head)] = appendToArray(copy[Number(head)], tail, value)
+    return copy
+  }
+  return { ...(root as any), [head]: appendToArray((root as any)[head], tail, value) }
+}
+
+const addKeyToObject = (root: unknown, path: ReadonlyArray<string>, key: string, value: unknown): unknown => {
+  if (path.length === 0) {
+    return { ...(root as any), [key]: value }
+  }
+  const [head, ...tail] = path
+  if (Array.isArray(root)) {
+    const copy = [...root]
+    copy[Number(head)] = addKeyToObject(copy[Number(head)], tail, key, value)
+    return copy
+  }
+  return { ...(root as any), [head]: addKeyToObject((root as any)[head], tail, key, value) }
+}
+
+const parseValue = (input: string, current: unknown): unknown => {
+  if (input === "null") return null
+  if (input === "undefined") return undefined
+  if (input === "true") return true
+  if (input === "false") return false
+  if (typeof current === "number") {
+    const n = Number(input)
+    if (!Number.isNaN(n)) return n
+  }
+  try {
+    return JSON.parse(input)
+  } catch {
+    return input
+  }
+}
+
+const EditableValue: React.FC<{
+  readonly value: unknown
+  readonly editable: boolean
+  readonly onEdit: (value: unknown) => void
+}> = ({ value, editable, onEdit }) => {
+  const [editing, setEditing] = React.useState(false)
+  const [draft, setDraft] = React.useState("")
+  const [hovered, setHovered] = React.useState(false)
+  const inputRef = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [editing])
+
+  const startEdit = () => {
+    if (!editable) return
+    setDraft(typeof value === "string" ? value : JSON.stringify(value))
+    setEditing(true)
+  }
+
+  const commit = () => {
+    setEditing(false)
+    const parsed = parseValue(draft, value)
+    if (parsed !== value) onEdit(parsed)
+  }
+
+  const cancel = () => setEditing(false)
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        style={editingInputStyle}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit()
+          if (e.key === "Escape") cancel()
+        }}
+        onBlur={commit}
+        data-testid="devtools-inline-edit"
+      />
+    )
+  }
+
+  const color = typeof value === "string" ? theme.green : theme.accent
+
+  return (
+    <span
+      style={{ ...editableValueStyle(hovered && editable), color }}
+      onDoubleClick={startEdit}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      data-testid="devtools-value-leaf"
+    >
+      {JSON.stringify(value)}
+    </span>
+  )
+}
+
+const smallButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "none",
+  color: theme.textMuted,
+  cursor: "pointer",
+  padding: "0 3px",
+  fontSize: "11px",
+  lineHeight: 1,
+  fontFamily: theme.fontFamily,
+  borderRadius: "2px"
+}
+
+const addButtonStyle: React.CSSProperties = {
+  ...smallButtonStyle,
+  color: theme.accent,
+  marginTop: "2px",
+  marginLeft: "12px",
+  fontSize: "11px"
+}
+
+const InlineAddInput: React.FC<{
+  readonly placeholder: string
+  readonly onSubmit: (value: string) => void
+  readonly onCancel: () => void
+}> = ({ placeholder, onSubmit, onCancel }) => {
+  const [value, setValue] = React.useState("")
+  const ref = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    ref.current?.focus()
+  }, [])
+
+  return (
+    <input
+      ref={ref}
+      style={{ ...editingInputStyle, marginLeft: "12px", marginTop: "2px" }}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && value) onSubmit(value)
+        if (e.key === "Escape") onCancel()
+      }}
+      onBlur={() => {
+        if (value) onSubmit(value)
+        else onCancel()
+      }}
+      data-testid="devtools-add-input"
+    />
+  )
+}
+
+interface JsonTreeProps {
+  readonly data: unknown
+  readonly depth?: number
+  readonly path?: ReadonlyArray<string>
+  readonly editable: boolean
+  readonly onEdit: (path: ReadonlyArray<string>, value: unknown) => void
+  readonly onRemove: (path: ReadonlyArray<string>) => void
+  readonly onAppend: (path: ReadonlyArray<string>, value: unknown) => void
+  readonly onAddKey: (path: ReadonlyArray<string>, key: string, value: unknown) => void
+}
+
+const JsonTree: React.FC<JsonTreeProps> = ({
+  data,
+  depth = 0,
+  path = [],
+  editable,
+  onEdit,
+  onRemove,
+  onAppend,
+  onAddKey
+}) => {
+  const [adding, setAdding] = React.useState(false)
+  const [addingKey, setAddingKey] = React.useState(false)
+  const [hoveredIndex, setHoveredIndex] = React.useState<string | null>(null)
+
+  if (data === null || data === undefined || typeof data !== "object") {
+    return <EditableValue value={data} editable={editable} onEdit={(v) => onEdit(path, v)} />
+  }
+
+  const isArray = Array.isArray(data)
+  const entries = isArray
     ? data.map((v, i) => [String(i), v] as const)
     : Object.entries(data as Record<string, unknown>)
 
-  if (entries.length === 0) {
-    return <span style={{ color: theme.textMuted }}>{Array.isArray(data) ? "[]" : "{}"}</span>
-  }
-
   if (depth > 4) {
-    return <span style={{ color: theme.textMuted }}>{Array.isArray(data) ? "[...]" : "{...}"}</span>
+    return <span style={{ color: theme.textMuted }}>{isArray ? "[...]" : "{...}"}</span>
   }
 
   return (
     <details open={depth < 2} style={{ marginLeft: depth > 0 ? "12px" : 0 }}>
       <summary style={{ cursor: "pointer", color: theme.textMuted }}>
-        {Array.isArray(data) ? `Array(${data.length})` : `Object(${entries.length})`}
+        {isArray ? `Array(${data.length})` : `Object(${entries.length})`}
       </summary>
       {entries.map(([key, value]) => (
-        <div key={key} style={{ marginLeft: "12px", marginTop: "2px" }}>
-          <span style={{ color: theme.accent }}>{key}</span>
-          <span style={{ color: theme.textMuted }}>:</span>
-          <JsonTree data={value} depth={depth + 1} />
+        <div
+          key={key}
+          style={{ marginLeft: "12px", marginTop: "2px", display: "flex", alignItems: "flex-start", gap: "2px" }}
+          onMouseEnter={() => setHoveredIndex(key)}
+          onMouseLeave={() => setHoveredIndex(null)}
+        >
+          <div style={{ flex: 1 }}>
+            <span style={{ color: theme.accent }}>{key}</span>
+            <span style={{ color: theme.textMuted }}>:</span>
+            <JsonTree
+              data={value}
+              depth={depth + 1}
+              path={[...path, key]}
+              editable={editable}
+              onEdit={onEdit}
+              onRemove={onRemove}
+              onAppend={onAppend}
+              onAddKey={onAddKey}
+            />
+          </div>
+          {editable && hoveredIndex === key && (
+            <button
+              style={{ ...smallButtonStyle, color: theme.red }}
+              onClick={() => onRemove([...path, key])}
+              title="Remove"
+              data-testid="devtools-remove-btn"
+            >
+              ×
+            </button>
+          )}
         </div>
       ))}
+      {editable && isArray && !adding && (
+        <button
+          style={addButtonStyle}
+          onClick={() => setAdding(true)}
+          data-testid="devtools-array-add-btn"
+        >
+          + Add item
+        </button>
+      )}
+      {editable && isArray && adding && (
+        <InlineAddInput
+          placeholder="value (Enter to add)"
+          onSubmit={(v) => {
+            onAppend(path, parseValue(v, undefined))
+            setAdding(false)
+          }}
+          onCancel={() => setAdding(false)}
+        />
+      )}
+      {editable && !isArray && !addingKey && (
+        <button
+          style={addButtonStyle}
+          onClick={() => setAddingKey(true)}
+          data-testid="devtools-object-add-btn"
+        >
+          + Add key
+        </button>
+      )}
+      {editable && !isArray && addingKey && (
+        <ObjectAddInput
+          onSubmit={(key, val) => {
+            onAddKey(path, key, parseValue(val, undefined))
+            setAddingKey(false)
+          }}
+          onCancel={() => setAddingKey(false)}
+        />
+      )}
     </details>
   )
 }
 
-const safeStringify = (value: unknown): string => {
+const ObjectAddInput: React.FC<{
+  readonly onSubmit: (key: string, value: string) => void
+  readonly onCancel: () => void
+}> = ({ onSubmit, onCancel }) => {
+  const [key, setKey] = React.useState("")
+  const [value, setValue] = React.useState("")
+  const ref = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    ref.current?.focus()
+  }, [])
+
+  return (
+    <div style={{ marginLeft: "12px", marginTop: "2px", display: "flex", gap: "4px", alignItems: "center" }}>
+      <input
+        ref={ref}
+        style={{ ...editingInputStyle, width: "80px" }}
+        placeholder="key"
+        value={key}
+        onChange={(e) => setKey(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onCancel()
+        }}
+        data-testid="devtools-addkey-key"
+      />
+      <span style={{ color: theme.textMuted }}>:</span>
+      <input
+        style={{ ...editingInputStyle, width: "80px" }}
+        placeholder="value"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && key) onSubmit(key, value || "null")
+          if (e.key === "Escape") onCancel()
+        }}
+        data-testid="devtools-addkey-value"
+      />
+    </div>
+  )
+}
+
+const copyToClipboard = (value: unknown) => {
   try {
-    return JSON.stringify(value, null, 2)
+    navigator.clipboard.writeText(typeof value === "string" ? value : JSON.stringify(value, null, 2))
   } catch {
-    return String(value)
+    // clipboard not available
   }
 }
 
@@ -69,19 +382,40 @@ const safeStringify = (value: unknown): string => {
  * @since 1.0.0
  * @category components
  */
-export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry }) => {
-  const [setInput, setSetInput] = React.useState("")
-  const [error, setError] = React.useState<string | null>(null)
+const atomLinkStyle: React.CSSProperties = {
+  color: theme.accent,
+  cursor: "pointer",
+  textDecoration: "none"
+}
+
+const atomLinkCss = `
+.edt-atom-link:hover {
+  text-decoration: underline;
+}
+`
+
+export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry, onSelect }) => {
   const isWritable = Atom.isWritable(atom)
 
-  const handleSet = () => {
-    try {
-      const parsed = JSON.parse(setInput)
-      registry.set(atom as Atom.Writable<any, any>, parsed)
-      setError(null)
-    } catch (e) {
-      setError(String(e))
-    }
+  const apply = (next: unknown) => {
+    if (!isWritable) return
+    registry.set(atom as Atom.Writable<any, any>, next)
+  }
+
+  const handleEdit = (path: ReadonlyArray<string>, value: unknown) => {
+    apply(setAtPath(snapshot.value, path, value))
+  }
+
+  const handleRemove = (path: ReadonlyArray<string>) => {
+    apply(removeAtPath(snapshot.value, path))
+  }
+
+  const handleAppend = (path: ReadonlyArray<string>, value: unknown) => {
+    apply(appendToArray(snapshot.value, path, value))
+  }
+
+  const handleAddKey = (path: ReadonlyArray<string>, key: string, value: unknown) => {
+    apply(addKeyToObject(snapshot.value, path, key, value))
   }
 
   const handleRefresh = () => {
@@ -96,7 +430,14 @@ export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry
 
       {/* Value */}
       <div style={detailSectionStyle}>
-        <div style={detailLabelStyle}>Value</div>
+        <div style={detailLabelStyle}>
+          Value
+          {isWritable && (
+            <span style={{ fontWeight: "normal", textTransform: "none", marginLeft: "8px", fontSize: "10px" }}>
+              double-click to edit
+            </span>
+          )}
+        </div>
         <div
           style={{
             background: theme.bgHover,
@@ -106,7 +447,14 @@ export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry
             maxHeight: "200px"
           }}
         >
-          <JsonTree data={snapshot.value} />
+          <JsonTree
+            data={snapshot.value}
+            editable={isWritable}
+            onEdit={handleEdit}
+            onRemove={handleRemove}
+            onAppend={handleAppend}
+            onAddKey={handleAddKey}
+          />
         </div>
       </div>
 
@@ -129,12 +477,22 @@ export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry
         </div>
       </div>
 
+      <style>{atomLinkCss}</style>
+
       {/* Dependencies */}
       {snapshot.node.parents.length > 0 && (
         <div style={detailSectionStyle}>
           <div style={detailLabelStyle}>Dependencies ({snapshot.node.parents.length})</div>
           {snapshot.node.parents.map((parent, i) => (
-            <div key={i} style={{ color: theme.textMuted }}>{getLabel(parent.atom)}</div>
+            <div
+              key={i}
+              className="edt-atom-link"
+              style={atomLinkStyle}
+              onClick={() => onSelect(parent.atom)}
+              data-testid="devtools-dep-link"
+            >
+              {getLabel(parent.atom)}
+            </div>
           ))}
         </div>
       )}
@@ -144,7 +502,15 @@ export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry
         <div style={detailSectionStyle}>
           <div style={detailLabelStyle}>Dependents ({snapshot.node.children.length})</div>
           {snapshot.node.children.map((child, i) => (
-            <div key={i} style={{ color: theme.textMuted }}>{getLabel(child.atom)}</div>
+            <div
+              key={i}
+              className="edt-atom-link"
+              style={atomLinkStyle}
+              onClick={() => onSelect(child.atom)}
+              data-testid="devtools-dep-link"
+            >
+              {getLabel(child.atom)}
+            </div>
           ))}
         </div>
       )}
@@ -163,26 +529,19 @@ export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry
       <div style={detailSectionStyle}>
         <div style={detailLabelStyle}>Actions</div>
         <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-          {isWritable && (
-            <>
-              <input
-                style={actionInputStyle}
-                placeholder={safeStringify(snapshot.value)}
-                value={setInput}
-                onChange={(e) => setSetInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSet()}
-                data-testid="devtools-set-input"
-              />
-              <button style={actionButtonStyle} onClick={handleSet} data-testid="devtools-set-btn">
-                Set
-              </button>
-            </>
-          )}
-          <button style={actionButtonStyle} onClick={handleRefresh} data-testid="devtools-refresh-btn">
-            Refresh
+          <button
+            style={actionButtonStyle}
+            onClick={() => copyToClipboard(snapshot.value)}
+            data-testid="devtools-copy-btn"
+          >
+            Copy
           </button>
+          {!isWritable && (
+            <button style={actionButtonStyle} onClick={handleRefresh} data-testid="devtools-refresh-btn">
+              Recompute
+            </button>
+          )}
         </div>
-        {error && <div style={{ color: theme.red, marginTop: "4px", fontSize: "11px" }}>{error}</div>}
       </div>
     </div>
   )

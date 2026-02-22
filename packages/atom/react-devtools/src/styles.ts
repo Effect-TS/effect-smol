@@ -21,7 +21,10 @@ export const theme = {
 } as const
 
 /** @internal */
-export const panelStyle = (position: "top" | "bottom" | "left" | "right"): React.CSSProperties => {
+export const panelStyle = (
+  position: "top" | "bottom" | "left" | "right",
+  visible: boolean
+): React.CSSProperties => {
   const base: React.CSSProperties = {
     position: "fixed",
     zIndex: theme.zIndex,
@@ -33,17 +36,56 @@ export const panelStyle = (position: "top" | "bottom" | "left" | "right"): React
     borderStyle: "solid",
     borderWidth: 0,
     display: "flex",
-    boxSizing: "border-box"
+    boxSizing: "border-box",
+    transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease",
+    opacity: visible ? 1 : 0
   }
+  const hide = !visible
   switch (position) {
     case "bottom":
-      return { ...base, bottom: 0, left: 0, right: 0, height: "350px", borderTopWidth: "1px", flexDirection: "row" }
+      return {
+        ...base,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: "350px",
+        borderTopWidth: "1px",
+        flexDirection: "row",
+        transform: hide ? "translateY(100%)" : "translateY(0)"
+      }
     case "top":
-      return { ...base, top: 0, left: 0, right: 0, height: "350px", borderBottomWidth: "1px", flexDirection: "row" }
+      return {
+        ...base,
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "350px",
+        borderBottomWidth: "1px",
+        flexDirection: "row",
+        transform: hide ? "translateY(-100%)" : "translateY(0)"
+      }
     case "left":
-      return { ...base, top: 0, left: 0, bottom: 0, width: "400px", borderRightWidth: "1px", flexDirection: "column" }
+      return {
+        ...base,
+        top: 0,
+        left: 0,
+        bottom: 0,
+        width: "400px",
+        borderRightWidth: "1px",
+        flexDirection: "column",
+        transform: hide ? "translateX(-100%)" : "translateX(0)"
+      }
     case "right":
-      return { ...base, top: 0, right: 0, bottom: 0, width: "400px", borderLeftWidth: "1px", flexDirection: "column" }
+      return {
+        ...base,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: "400px",
+        borderLeftWidth: "1px",
+        flexDirection: "column",
+        transform: hide ? "translateX(100%)" : "translateX(0)"
+      }
   }
 }
 
@@ -62,8 +104,8 @@ export const toggleButtonStyle = (
     width: "40px",
     height: "40px",
     borderRadius: "50%",
-    background: theme.accent,
-    color: theme.bg,
+    background: "#000",
+    color: "#fff",
     border: "none",
     cursor: "pointer",
     display: "flex",
@@ -71,6 +113,8 @@ export const toggleButtonStyle = (
     justifyContent: "center",
     fontWeight: "bold",
     fontSize: "16px",
+    transition: "transform 0.15s ease, box-shadow 0.15s ease",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
     ...pos
   }
 }
@@ -100,10 +144,10 @@ export const searchInputStyle: React.CSSProperties = {
 }
 
 /** @internal */
-export const listItemStyle = (selected: boolean, hovered: boolean): React.CSSProperties => ({
+export const listItemStyle = (selected: boolean): React.CSSProperties => ({
   padding: "6px 8px",
   cursor: "pointer",
-  background: selected ? theme.bgSelected : hovered ? theme.bgHover : "transparent",
+  background: selected ? theme.bgSelected : "transparent",
   borderBottom: `1px solid ${theme.border}`,
   display: "flex",
   flexDirection: "column",
@@ -210,4 +254,26 @@ export const listenerBadgeStyle: React.CSSProperties = {
   color: theme.textMuted,
   marginLeft: "auto",
   flexShrink: 0
+}
+
+/** @internal */
+export const editableValueStyle = (hovered: boolean): React.CSSProperties => ({
+  cursor: "pointer",
+  borderRadius: "2px",
+  padding: "0 2px",
+  background: hovered ? theme.bgSelected : "transparent",
+  transition: "background 0.1s"
+})
+
+/** @internal */
+export const editingInputStyle: React.CSSProperties = {
+  background: theme.bgHover,
+  color: theme.text,
+  border: `1px solid ${theme.accent}`,
+  borderRadius: "2px",
+  padding: "0 2px",
+  fontFamily: theme.fontFamily,
+  fontSize: theme.fontSize,
+  outline: "none",
+  minWidth: "40px"
 }
