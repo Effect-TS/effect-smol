@@ -1061,7 +1061,6 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
           while: constTrue,
           body: constant(takeAll(self)),
           step(items: Arr.NonEmptyArray<A>) {
-            out.push(...items)
             for (let i = 0; i < items.length; i++) {
               out.push(items[i])
             }

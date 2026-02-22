@@ -79,6 +79,16 @@ describe("Queue", () => {
       assert.deepEqual(b, [3, 4])
     }))
 
+  it.effect("collect does not duplicate messages", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<{ id: number }, Cause.Done>(10)
+      yield* Queue.offer(queue, { id: 0 })
+      yield* Queue.end(queue)
+
+      const result = yield* Queue.collect(queue)
+      assert.deepStrictEqual(result, [{ id: 0 }])
+    }))
+
   it.effect("offer dropping", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.make<number>({ capacity: 2, strategy: "dropping" })
