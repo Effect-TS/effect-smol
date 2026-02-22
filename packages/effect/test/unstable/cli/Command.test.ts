@@ -65,8 +65,7 @@ describe("Command", () => {
         )
 
         assert.strictEqual(docs.length, 1)
-        assert.isDefined(docs[0].annotations)
-        const annotations = docs[0].annotations!
+        const annotations = docs[0].annotations
         assert.strictEqual(ServiceMap.get(annotations, Team), "runtime")
         assert.strictEqual(ServiceMap.get(annotations, Priority), 2)
       }))
@@ -103,8 +102,8 @@ describe("Command", () => {
         )
 
         assert.strictEqual(docs.length, 2)
-        assert.strictEqual(ServiceMap.get(docs[0].annotations!, Scope), "root")
-        assert.strictEqual(ServiceMap.get(docs[1].annotations!, Scope), "child")
+        assert.strictEqual(ServiceMap.get(docs[0].annotations, Scope), "root")
+        assert.strictEqual(ServiceMap.get(docs[1].annotations, Scope), "child")
       }))
   })
 
