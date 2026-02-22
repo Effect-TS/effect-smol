@@ -22,7 +22,7 @@ import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
 import * as Latch from "./Latch.ts"
 import type * as Layer from "./Layer.ts"
-import type { LogLevel } from "./LogLevel.ts"
+import type { Severity } from "./LogLevel.ts"
 import * as MutableHashMap from "./MutableHashMap.ts"
 import * as MutableList from "./MutableList.ts"
 import * as Option from "./Option.ts"
@@ -5425,12 +5425,12 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
  */
 export const ignore: <
   Arg extends Stream<any, any, any> | {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined
 >(
   selfOrOptions: Arg,
   options?: {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined
 ) => [Arg] extends [Stream<infer A, infer _E, infer R>] ? Stream<A, never, R>
   : <A, E, R>(self: Stream<A, E, R>) => Stream<A, never, R> = dual(
@@ -5438,7 +5438,7 @@ export const ignore: <
     <A, E, R>(
       self: Stream<A, E, R>,
       options?: {
-        readonly log?: boolean | LogLevel | undefined
+        readonly log?: boolean | Severity | undefined
       } | undefined
     ): Stream<A, never, R> => fromChannel(Channel.ignore(self.channel, options))
   )
@@ -5465,19 +5465,19 @@ export const ignore: <
  */
 export const ignoreCause: <
   Arg extends Stream<any, any, any> | {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined
 >(
   streamOrOptions: Arg,
   options?: {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined
 ) => [Arg] extends [Stream<infer A, infer _E, infer R>] ? Stream<A, never, R>
   : <A, E, R>(self: Stream<A, E, R>) => Stream<A, never, R> = dual(
     (args) => isStream(args[0]),
     <A, E, R>(
       self: Stream<A, E, R>,
-      options?: { readonly log?: boolean | LogLevel | undefined } | undefined
+      options?: { readonly log?: boolean | Severity | undefined } | undefined
     ): Stream<A, never, R> => fromChannel(Channel.ignoreCause(self.channel, options))
   )
 

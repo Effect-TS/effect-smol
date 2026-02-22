@@ -115,7 +115,7 @@ import type { PlatformError } from "./PlatformError.ts"
 import * as Predicate from "./Predicate.ts"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.ts"
 import type * as Scope from "./Scope.ts"
-import * as ServiceMap from "./ServiceMap.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 import type * as Types from "./Types.ts"
 
 const TypeId = "~effect/Logger"
@@ -1222,7 +1222,7 @@ export const layer = <
   const Loggers extends ReadonlyArray<Logger<unknown, unknown> | Effect.Effect<Logger<unknown, unknown>, any, any>>
 >(
   loggers: Loggers,
-  options?: { mergeWithExisting: boolean }
+  options?: { readonly mergeWithExisting?: boolean | undefined } | undefined
 ): Layer.Layer<
   never,
   Loggers extends readonly [] ? never : Effect.Error<Loggers[number]>,
@@ -1231,13 +1231,14 @@ export const layer = <
     Scope.Scope
   >
 > =>
-  Layer.effectServices(
+  Layer.effect(
+    CurrentLoggers,
     withFiber(effect.fnUntraced(function*(fiber) {
       const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(effect.CurrentLoggers) : [])
       for (const logger of loggers) {
         currentLoggers.add(isEffect(logger) ? yield* logger : logger)
       }
-      return ServiceMap.make(effect.CurrentLoggers, currentLoggers)
+      return currentLoggers
     }))
   )
 

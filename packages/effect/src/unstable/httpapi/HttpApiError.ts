@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as ErrorReporter from "../../ErrorReporter.ts"
 import * as Schema from "../../Schema.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
@@ -21,6 +22,8 @@ export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>("e
   static fromSchemaError(error: Schema.SchemaError): HttpApiSchemaError {
     return new HttpApiSchemaError({ message: error.message })
   }
+
+  override readonly [ErrorReporter.ignore] = true
 }
 
 /**
@@ -32,7 +35,9 @@ export class BadRequest extends Schema.ErrorClass<BadRequest>("effect/HttpApiErr
 }, {
   description: "BadRequest",
   httpApiStatus: 400
-}) {}
+}) {
+  override readonly [ErrorReporter.ignore] = true
+}
 
 /**
  * @category NoContent errors
@@ -51,7 +56,9 @@ export class Unauthorized extends Schema.ErrorClass<Unauthorized>("effect/HttpAp
 }, {
   description: "Unauthorized",
   httpApiStatus: 401
-}) {}
+}) {
+  override readonly [ErrorReporter.ignore] = true
+}
 
 /**
  * @category NoContent errors
@@ -70,7 +77,9 @@ export class Forbidden extends Schema.ErrorClass<Forbidden>("effect/HttpApiError
 }, {
   description: "Forbidden",
   httpApiStatus: 403
-}) {}
+}) {
+  override readonly [ErrorReporter.ignore] = true
+}
 
 /**
  * @category NoContent errors
@@ -89,7 +98,9 @@ export class NotFound extends Schema.ErrorClass<NotFound>("effect/HttpApiError/N
 }, {
   description: "NotFound",
   httpApiStatus: 404
-}) {}
+}) {
+  override readonly [ErrorReporter.ignore] = true
+}
 
 /**
  * @category NoContent errors
@@ -108,7 +119,9 @@ export class MethodNotAllowed extends Schema.ErrorClass<MethodNotAllowed>("effec
 }, {
   description: "MethodNotAllowed",
   httpApiStatus: 405
-}) {}
+}) {
+  override readonly [ErrorReporter.ignore] = true
+}
 
 /**
  * @category NoContent errors
@@ -127,7 +140,9 @@ export class NotAcceptable extends Schema.ErrorClass<NotAcceptable>("effect/Http
 }, {
   description: "NotAcceptable",
   httpApiStatus: 406
-}) {}
+}) {
+  override readonly [ErrorReporter.ignore] = true
+}
 
 /**
  * @category NoContent errors
@@ -146,7 +161,9 @@ export class RequestTimeout extends Schema.ErrorClass<RequestTimeout>("effect/Ht
 }, {
   description: "RequestTimeout",
   httpApiStatus: 408
-}) {}
+}) {
+  override readonly [ErrorReporter.ignore] = true
+}
 
 /**
  * @category NoContent errors
@@ -165,7 +182,9 @@ export class Conflict extends Schema.ErrorClass<Conflict>("effect/HttpApiError/C
 }, {
   description: "Conflict",
   httpApiStatus: 409
-}) {}
+}) {
+  override readonly [ErrorReporter.ignore] = true
+}
 
 /**
  * @since 4.0.0
@@ -184,7 +203,9 @@ export class Gone extends Schema.ErrorClass<Gone>("effect/HttpApiError/Gone")({
 }, {
   description: "Gone",
   httpApiStatus: 410
-}) {}
+}) {
+  override readonly [ErrorReporter.ignore] = true
+}
 
 /**
  * @category NoContent errors

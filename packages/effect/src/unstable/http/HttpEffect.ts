@@ -6,6 +6,7 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { dual } from "../../Function.ts"
+import { reportCauseUnsafe } from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -34,6 +35,7 @@ export const toHandled = <E, R, EH, RH>(
   const handleCause = (cause: Cause<E | EH | HttpServerError>) =>
     Effect.flatMapEager(causeResponse(cause), ([response, cause]) => {
       const fiber = Fiber.getCurrent()!
+      reportCauseUnsafe(fiber, cause)
       const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
       const handler = fiber.getRef(PreResponseHandlers)
       const cont = cause.reasons.length === 0 ? Effect.succeed(response) : Effect.failCause(cause)
@@ -80,6 +82,7 @@ export const toHandled = <E, R, EH, RH>(
     Effect.matchCauseEffect(tracer(middleware(responded)), {
       onFailure(cause): Effect.Effect<void, EH, RH> {
         const fiber = Fiber.getCurrent()!
+        reportCauseUnsafe(fiber, cause)
         const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
         if (handledSymbol in request) {
           return Effect.void

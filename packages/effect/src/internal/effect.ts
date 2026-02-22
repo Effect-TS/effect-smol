@@ -5,6 +5,7 @@ import type * as Console from "../Console.ts"
 import * as Duration from "../Duration.ts"
 import type * as Effect from "../Effect.ts"
 import * as Equal from "../Equal.ts"
+import type { ErrorReporter } from "../ErrorReporter.ts"
 import type * as Exit from "../Exit.ts"
 import type * as Fiber from "../Fiber.ts"
 import * as Filter from "../Filter.ts"
@@ -341,7 +342,8 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
   return errors
 }
 
-const causePrettyError = (
+/** @internal */
+export const causePrettyError = (
   original: Record<string, unknown> | Error,
   annotations?: ReadonlyMap<string, unknown>
 ): Error => {
@@ -3109,14 +3111,14 @@ export const eventually = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect
 /** @internal */
 export const ignore: <
   Arg extends Effect.Effect<any, any, any> | {
-    readonly log?: boolean | LogLevel.LogLevel | undefined
+    readonly log?: boolean | LogLevel.Severity | undefined
   } | undefined = {
-    readonly log?: boolean | LogLevel.LogLevel | undefined
+    readonly log?: boolean | LogLevel.Severity | undefined
   }
 >(
   effectOrOptions: Arg,
   options?: {
-    readonly log?: boolean | LogLevel.LogLevel | undefined
+    readonly log?: boolean | LogLevel.Severity | undefined
   } | undefined
 ) => [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<void, never, _R>
   : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<void, never, R> = dual(
@@ -3124,7 +3126,7 @@ export const ignore: <
     <A, E, R>(
       self: Effect.Effect<A, E, R>,
       options?: {
-        readonly log?: boolean | LogLevel.LogLevel | undefined
+        readonly log?: boolean | LogLevel.Severity | undefined
       } | undefined
     ): Effect.Effect<void, never, R> => {
       if (!options?.log) {
@@ -3144,14 +3146,14 @@ export const ignore: <
 /** @internal */
 export const ignoreCause: <
   Arg extends Effect.Effect<any, any, any> | {
-    readonly log?: boolean | LogLevel.LogLevel | undefined
+    readonly log?: boolean | LogLevel.Severity | undefined
   } | undefined = {
-    readonly log?: boolean | LogLevel.LogLevel | undefined
+    readonly log?: boolean | LogLevel.Severity | undefined
   }
 >(
   effectOrOptions: Arg,
   options?: {
-    readonly log?: boolean | LogLevel.LogLevel | undefined
+    readonly log?: boolean | LogLevel.Severity | undefined
   } | undefined
 ) => [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<void, never, _R>
   : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<void, never, R> = dual(
@@ -3159,7 +3161,7 @@ export const ignoreCause: <
     <A, E, R>(
       self: Effect.Effect<A, E, R>,
       options?: {
-        readonly log?: boolean | LogLevel.LogLevel | undefined
+        readonly log?: boolean | LogLevel.Severity | undefined
       } | undefined
     ): Effect.Effect<void, never, R> => {
       if (!options?.log) {
@@ -5555,7 +5557,7 @@ export const structuredMessage = (u: unknown): unknown => {
 }
 
 /** @internal */
-export const logWithLevel = (level?: LogLevel.LogLevel) =>
+export const logWithLevel = (level?: LogLevel.Severity) =>
 (
   ...message: ReadonlyArray<any>
 ): Effect.Effect<void> => {
@@ -5846,3 +5848,55 @@ const undefined_ = succeed(undefined)
 
 /** @internal */
 export { undefined_ as undefined }
+
+// ----------------------------------------------------------------------------
+// ErrorReporter
+// ----------------------------------------------------------------------------
+
+/** @internal */
+export const CurrentErrorReporters = ServiceMap.Reference<
+  ReadonlySet<ErrorReporter>
+>("effect/ErrorReporter/CurrentErrorReporters", {
+  defaultValue: () => new Set()
+})
+
+/** @internal */
+export const withErrorReporting: <
+  Arg extends Effect.Effect<any, any, any> | {
+    readonly defectsOnly?: boolean | undefined
+  } | undefined = {
+    readonly defectsOnly?: boolean | undefined
+  }
+>(
+  effectOrOptions: Arg,
+  options?: {
+    readonly defectsOnly?: boolean | undefined
+  } | undefined
+) => [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Arg
+  : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R> = dual(
+    (args) => isEffect(args[0]),
+    <A, E, R>(
+      self: Effect.Effect<A, E, R>,
+      options?: {
+        readonly defectsOnly?: boolean | undefined
+      } | undefined
+    ): Effect.Effect<A, E, R> =>
+      onError(self, (cause) =>
+        withFiber((fiber) => {
+          reportCauseUnsafe(fiber, cause, options?.defectsOnly)
+          return void_
+        }))
+  )
+
+/** @internal */
+export const reportCauseUnsafe = (
+  fiber: Fiber.Fiber<unknown, unknown>,
+  cause: Cause.Cause<unknown>,
+  defectsOnly?: boolean
+) => {
+  const reporters = fiber.getRef(CurrentErrorReporters)
+  if (reporters.size === 0) return
+  if (defectsOnly && !hasDies(cause)) return
+  const opts = { cause, fiber, timestamp: fiber.getRef(ClockRef).currentTimeNanosUnsafe() }
+  reporters.forEach((reporter) => reporter.report(opts))
+}

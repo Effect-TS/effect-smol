@@ -84,7 +84,7 @@ import * as internalRequest from "./internal/request.ts"
 import * as internalSchedule from "./internal/schedule.ts"
 import type * as Layer from "./Layer.ts"
 import type { Logger } from "./Logger.ts"
-import type { LogLevel } from "./LogLevel.ts"
+import type { Severity } from "./LogLevel.ts"
 import * as Metric from "./Metric.ts"
 import type { Option } from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
@@ -3956,14 +3956,14 @@ export const sandbox: <A, E, R>(
  */
 export const ignore: <
   Arg extends Effect<any, any, any> | {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined = {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   }
 >(
   effectOrOptions?: Arg,
   options?: {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<void, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignore
@@ -3988,14 +3988,14 @@ export const ignore: <
  */
 export const ignoreCause: <
   Arg extends Effect<any, any, any> | {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined = {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   }
 >(
   effectOrOptions?: Arg,
   options?: {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<void, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignoreCause
@@ -4041,6 +4041,25 @@ export const withExecutionPlan: {
     plan: ExecutionPlan<{ provides: Provides; input: Input; error: PlanE; requirements: PlanR }>
   ): Effect<A, E | PlanE, Exclude<R, Provides> | PlanR>
 } = internalExecutionPlan.withExecutionPlan
+
+/**
+ * Runs an effect and reports any errors to the configured `ErrorReporter`s.
+ *
+ * If the `defectsOnly` option is set to `true`, only defects (unrecoverable
+ * errors) will be reported, while regular failures will be ignored.
+ *
+ * @since 4.0.0
+ * @category Error Handling
+ */
+export const withErrorReporting: <
+  Arg extends Effect<any, any, any> | { readonly defectsOnly?: boolean | undefined } | undefined = {
+    readonly defectsOnly?: boolean | undefined
+  }
+>(
+  effectOrOptions: Arg,
+  options?: { readonly defectsOnly?: boolean | undefined } | undefined
+) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Arg : <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R> =
+  internal.withErrorReporting
 
 // -----------------------------------------------------------------------------
 // Fallback
@@ -12623,7 +12642,7 @@ export const clockWith: <A, E, R>(
  * @since 2.0.0
  * @category Logging
  */
-export const logWithLevel: (level?: LogLevel) => (...message: ReadonlyArray<any>) => Effect<void> =
+export const logWithLevel: (level?: Severity) => (...message: ReadonlyArray<any>) => Effect<void> =
   internal.logWithLevel
 
 /**

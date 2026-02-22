@@ -146,6 +146,12 @@ export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "
  * @since 4.0.0
  * @category models
  */
+export type Severity = "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace"
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn", "Info", "Debug", "Trace", "None"]
 
 /**

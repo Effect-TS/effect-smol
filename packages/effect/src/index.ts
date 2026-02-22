@@ -1120,6 +1120,11 @@ export * as Equal from "./Equal.ts"
 export * as Equivalence from "./Equivalence.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as ErrorReporter from "./ErrorReporter.ts"
+
+/**
  * @since 3.16.0
  */
 export * as ExecutionPlan from "./ExecutionPlan.ts"

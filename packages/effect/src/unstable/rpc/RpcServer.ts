@@ -8,6 +8,7 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { constant, constTrue, constVoid, identity } from "../../Function.ts"
+import { reportCauseUnsafe } from "../../internal/effect.ts"
 import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import type * as Option from "../../Option.ts"
@@ -273,6 +274,9 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
           requestId: request.id,
           exit
         })
+      if (exit._tag === "Failure") {
+        reportCauseUnsafe(Fiber.getCurrent()!, exit.cause)
+      }
       return close ? Effect.ensuring(write, close) : write
     })
     if (enableTracing) {

@@ -71,7 +71,7 @@ import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
 import * as Latch from "./Latch.ts"
 import * as Layer from "./Layer.ts"
-import type { LogLevel } from "./LogLevel.ts"
+import type { Severity } from "./LogLevel.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
@@ -4854,14 +4854,14 @@ export const orDie = <
  */
 export const ignore: <
   Arg extends Channel<any, any, any, any, any, any, any> | {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined = {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   }
 >(
   selfOrOptions: Arg,
   options?: {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined
 ) => [Arg] extends
   [Channel<infer OutElem, infer _OutErr, infer OutDone, infer InElem, infer InErr, infer InDone, infer Env>]
@@ -4873,7 +4873,7 @@ export const ignore: <
     <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
       self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
       options?: {
-        readonly log?: boolean | LogLevel | undefined
+        readonly log?: boolean | Severity | undefined
       } | undefined
     ): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => {
       if (!options?.log) {
@@ -4909,14 +4909,14 @@ const ignoreCause_ = <
  */
 export const ignoreCause: <
   Arg extends Channel<any, any, any, any, any, any, any> | {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined = {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   }
 >(
   selfOrOptions: Arg,
   options?: {
-    readonly log?: boolean | LogLevel | undefined
+    readonly log?: boolean | Severity | undefined
   } | undefined
 ) => [Arg] extends
   [Channel<infer OutElem, infer _OutErr, infer OutDone, infer InElem, infer InErr, infer InDone, infer Env>]
@@ -4927,7 +4927,7 @@ export const ignoreCause: <
     (args) => isChannel(args[0]),
     <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
       self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-      options?: { readonly log?: boolean | LogLevel | undefined } | undefined
+      options?: { readonly log?: boolean | Severity | undefined } | undefined
     ): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => {
       if (!options?.log) return ignoreCause_(self)
       const logEffect = Effect.logWithLevel(options.log === true ? undefined : options.log)
