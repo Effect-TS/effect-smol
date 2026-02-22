@@ -65,6 +65,10 @@ export interface AtomRegistry {
 export interface Node<A> {
   readonly atom: Atom.Atom<A>
   readonly value: () => A
+  parents: Array<Node<any>>
+  children: Array<Node<any>>
+  listeners: Set<() => void>
+  currentState(): "uninitialized" | "stale" | "valid" | "removed"
 }
 
 /**
@@ -498,6 +502,19 @@ class NodeImpl<A> {
   children: Array<NodeImpl<any>> = []
   listeners: Set<() => void> = new Set()
   skipInvalidation = false
+
+  currentState() {
+    switch (this.state) {
+      case NodeState.uninitialized:
+        return "uninitialized"
+      case NodeState.stale:
+        return "stale"
+      case NodeState.valid:
+        return "valid"
+      default:
+        return "removed"
+    }
+  }
 
   get canBeRemoved(): boolean {
     return !this.atom.keepAlive && this.listeners.size === 0 && this.children.length === 0 && this.state !== 0
