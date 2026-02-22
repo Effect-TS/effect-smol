@@ -1,6 +1,7 @@
 /**
  * @since 1.0.0
  */
+import type { HrTime } from "@opentelemetry/api"
 import * as Otel from "@opentelemetry/sdk-logs"
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Arr from "effect/Array"
@@ -11,6 +12,7 @@ import * as Layer from "effect/Layer"
 import * as Logger from "effect/Logger"
 import * as LogLevel from "effect/LogLevel"
 import * as Predicate from "effect/Predicate"
+import * as References from "effect/References"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Tracer from "effect/Tracer"
 import { nanosToHrTime, unknownToAttributeValue } from "./internal/attributes.ts"
@@ -50,14 +52,15 @@ export const make: Effect.Effect<
       attributes.traceId = span.traceId
     }
 
-    // TODO: add back after log spans / annotations
-    // for (const [key, value] of options.annotations) {
-    //   attributes[key] = unknownToAttributeValue(value)
-    // }
-    // const now = options.date.getTime()
-    // for (const span of options.spans) {
-    //   attributes[`logSpan.${span.label}`] = `${now - span.startTime}ms`
-    // }
+    for (const [key, value] of Object.entries(options.fiber.getRef(References.CurrentLogAnnotations))) {
+      attributes[key] = unknownToAttributeValue(value)
+    }
+    const now = options.date.getTime()
+    for (const [label, startTime] of options.fiber.getRef(References.CurrentLogSpans)) {
+      attributes[`logSpan.${label}`] = `${now - startTime}ms`
+    }
+
+    const hrTime = nanosToHrTime(clock.currentTimeNanosUnsafe())
 
     const message = Arr.ensure(options.message).map(unknownToAttributeValue)
     const hrTime = nanosToHrTime(clock.currentTimeNanosUnsafe())
@@ -123,3 +126,8 @@ export const layerLoggerProvider = (
       )
     })
   )
+
+const bigint1e9 = BigInt(1e9)
+const nanosToHrTime = (timestamp: bigint): HrTime => {
+  return [Number(timestamp / bigint1e9), Number(timestamp % bigint1e9)]
+}

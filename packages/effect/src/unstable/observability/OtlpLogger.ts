@@ -3,6 +3,7 @@
  */
 import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
+import { Clock } from "../../Clock.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Layer from "../../Layer.ts"
@@ -66,7 +67,8 @@ export const make: (
   })
 
   const opts = {
-    excludeLogSpans: options.excludeLogSpans ?? false
+    excludeLogSpans: options.excludeLogSpans ?? false,
+    clock: yield* Clock
   }
   return Logger.make((options) => {
     exporter.push(makeLogRecord(options, opts))
@@ -106,9 +108,11 @@ export interface LogsData {
 
 const makeLogRecord = (options: Logger.Options<unknown>, opts: {
   readonly excludeLogSpans: boolean
+  readonly clock: Clock
 }): ILogRecord => {
-  const now = options.date.getTime()
-  const nanosString = `${now}000000`
+  const now = opts.clock.currentTimeNanosUnsafe()
+  const nanosString = now.toString()
+  const nowMillis = options.date.getTime()
 
   const attributes = OtlpResource.entriesToAttributes(Object.entries(options.fiber.getRef(CurrentLogAnnotations)))
   attributes.push({
@@ -119,7 +123,7 @@ const makeLogRecord = (options: Logger.Options<unknown>, opts: {
     for (const [label, startTime] of options.fiber.getRef(CurrentLogSpans)) {
       attributes.push({
         key: `logSpan.${label}`,
-        value: { stringValue: `${now - startTime}ms` }
+        value: { stringValue: `${nowMillis - startTime}ms` }
       })
     }
   }

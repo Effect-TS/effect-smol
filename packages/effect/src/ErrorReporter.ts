@@ -8,6 +8,7 @@ import * as effect from "./internal/effect.ts"
 import * as Layer from "./Layer.ts"
 import * as LogLevel from "./LogLevel.ts"
 import type { Severity } from "./LogLevel.ts"
+import type { ReadonlyRecord } from "./Record.ts"
 import type * as Scope from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 
@@ -44,12 +45,13 @@ export const make = (
   report: (options: {
     readonly cause: Cause.Cause<unknown>
     readonly error: Error
+    readonly attributes: ReadonlyRecord<string, unknown>
     readonly severity: Severity
     readonly fiber: Fiber.Fiber<unknown, unknown>
     readonly timestamp: bigint
   }) => void
 ): ErrorReporter => {
-  const reported = new WeakSet<Cause.Cause<unknown>>()
+  const reported = new WeakSet<Cause.Cause<unknown> | object>()
   return {
     [TypeId]: TypeId,
     report(options) {
@@ -59,13 +61,18 @@ export const make = (
         const reason = options.cause.reasons[i]
         if (reason._tag === "Interrupt") continue
         const original = reason._tag === "Fail" ? reason.error : reason.defect
+        const isObject = typeof original === "object" && original !== null
+        if (isObject) {
+          if (reported.has(original)) continue
+          reported.add(original)
+        }
         if (isIgnored(original)) continue
-        const severity = getSeverity(original)
         const pretty = effect.causePrettyError(original as any, reason.annotations)
         report({
           ...options,
           error: pretty,
-          severity
+          severity: isObject ? getSeverity(original) : "Error",
+          attributes: isObject ? getAttributes(original) : emptyAttributes
         })
       }
     }
@@ -125,6 +132,7 @@ export const report = <E>(cause: Cause.Cause<E>): Effect.Effect<void> =>
 export interface Reportable {
   readonly [ignore]?: true
   readonly [severity]?: Severity
+  readonly [attributes]?: ReadonlyRecord<string, unknown>
 }
 
 declare global {
@@ -132,6 +140,18 @@ declare global {
 }
 
 /**
+ * You can mark any error as unreportable by adding the `ignore` property to it.
+ * This is useful for errors that are expected to happen and don't need to be
+ * reported, such as a 404 Not Found error in an HTTP server.
+ *
+ * ```ts
+ * import { Data, ErrorReporter } from "effect"
+ *
+ * class NotFoundError extends Data.TaggedError("NotFoundError") {
+ *   readonly [ErrorReporter.ignore] = true
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category Annotations
  */
@@ -162,6 +182,17 @@ export const ignore: ignore = "~effect/ErrorReporter/ignore"
 export const isIgnored = (u: unknown): boolean => typeof u === "object" && u !== null && ignore in u
 
 /**
+ * You can specify the severity of an error by adding the `severity` property to
+ * it.
+ *
+ * ```ts
+ * import { Data, ErrorReporter } from "effect"
+ *
+ * class NotFoundError extends Data.TaggedError("NotFoundError") {
+ *   readonly [ErrorReporter.severity] = "Warn"
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category Annotations
  */
@@ -188,12 +219,59 @@ export const severity: severity = "~effect/ErrorReporter/severity"
  * @since 4.0.0
  * @category Annotations
  */
-export const getSeverity = (error: unknown): Severity => {
-  if (
-    typeof error === "object" && error !== null && severity in error &&
-    LogLevel.values.includes(error[severity] as Severity)
-  ) {
+export const getSeverity = (error: object): Severity => {
+  if (severity in error && LogLevel.values.includes(error[severity] as Severity)) {
     return error[severity] as Severity
   }
   return "Error"
 }
+
+/**
+ * You can specify the severity of an error by adding the `severity` property to
+ * it.
+ *
+ * ```ts
+ * import { Data, ErrorReporter } from "effect"
+ *
+ * class NotFoundError extends Data.TaggedError("NotFoundError") {
+ *   readonly [ErrorReporter.severity] = "Warn"
+ * }
+ * ```
+ *
+ * @since 4.0.0
+ * @category Annotations
+ */
+export type attributes = "~effect/ErrorReporter/attributes"
+
+/**
+ * You can add attributes to be included in the error report by adding the
+ * `attributes` property to it.
+ *
+ * This is useful for adding additional context to the error report, such as the
+ * user ID of the user that caused the error or the request ID of the HTTP
+ * request that caused the error.
+ *
+ * ```ts
+ * import { Data, ErrorReporter } from "effect"
+ *
+ * class NotFoundError extends Data.TaggedError("NotFoundError") {
+ *   readonly [ErrorReporter.attributes] = {
+ *     userId: "123",
+ *   }
+ * }
+ * ```
+ *
+ * @since 4.0.0
+ * @category Annotations
+ */
+export const attributes: attributes = "~effect/ErrorReporter/attributes"
+
+/**
+ * @since 4.0.0
+ * @category Annotations
+ */
+export const getAttributes = (error: object): ReadonlyRecord<string, unknown> => {
+  return attributes in error ? error[attributes] as any : emptyAttributes
+}
+
+const emptyAttributes: ReadonlyRecord<string, unknown> = {}
