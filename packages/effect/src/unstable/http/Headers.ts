@@ -44,22 +44,37 @@ export interface Headers extends Redactable.Redactable {
   readonly [key: string]: string
 }
 
-const Proto = Object.assign(Object.create(null), Inspectable.BaseProto, {
-  [TypeId]: TypeId,
-  [Redactable.symbolRedactable](
-    this: Headers,
-    context: ServiceMap.ServiceMap<never>
-  ): Record<string, string | Redacted.Redacted<string>> {
-    return redact(this, ServiceMap.get(context, CurrentRedactedNames))
+const Proto = Object.create(null)
+
+Object.defineProperties(Proto, {
+  [TypeId]: {
+    value: TypeId
   },
-  toJSON() {
-    return Redactable.redact(this)
+  [Redactable.symbolRedactable]: {
+    value(this: Headers, context: ServiceMap.ServiceMap<never>): Record<string, string | Redacted.Redacted<string>> {
+      return redact(this, ServiceMap.get(context, CurrentRedactedNames))
+    }
   },
-  [Equal.symbol](this: Headers, that: Headers): boolean {
-    return Equivalence(this, that)
+  toJSON: {
+    value(this: Headers) {
+      return Redactable.redact(this)
+    }
   },
-  [Hash.symbol](this: Headers): number {
-    return Hash.structure(this)
+  [Equal.symbol]: {
+    value(this: Headers, that: Headers): boolean {
+      return Equivalence(this, that)
+    }
+  },
+  [Hash.symbol]: {
+    value(this: Headers): number {
+      return Hash.structure(this)
+    }
+  },
+  toString: {
+    value: Inspectable.BaseProto.toString
+  },
+  [Inspectable.NodeInspectSymbol]: {
+    value: Inspectable.BaseProto[Inspectable.NodeInspectSymbol]
   }
 })
 
