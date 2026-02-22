@@ -115,8 +115,7 @@ import type { PlatformError } from "./PlatformError.ts"
 import * as Predicate from "./Predicate.ts"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.ts"
 import type * as Scope from "./Scope.ts"
-import * as ServiceMap from "./ServiceMap.ts"
-import type * as Types from "./Types.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 
 const TypeId = "~effect/Logger"
 
@@ -144,8 +143,9 @@ const TypeId = "~effect/Logger"
  * @since 2.0.0
  * @category models
  */
-export interface Logger<in Message, out Output> extends Logger.Variance<Message, Output>, Pipeable {
-  log: (options: Logger.Options<Message>) => Output
+export interface Logger<in Message, out Output> extends Pipeable {
+  readonly [TypeId]: typeof TypeId
+  log(options: Options<Message>): Output
 }
 
 /**
@@ -153,100 +153,32 @@ export interface Logger<in Message, out Output> extends Logger.Variance<Message,
  * ```ts
  * import { Effect, Logger } from "effect"
  *
- * // Access Logger namespace types and functionality
- * const customLogger = Logger.make((options) => {
- *   console.log(`Message: ${options.message}`)
- *   console.log(`Level: ${options.logLevel}`)
- *   console.log(`Date: ${options.date.toISOString()}`)
- *   console.log(`Fiber ID: ${options.fiber.id}`)
+ * // Options interface provides all logging context
+ * const detailedLogger = Logger.make((options) => {
+ *   const output = {
+ *     message: options.message,
+ *     level: options.logLevel,
+ *     timestamp: options.date.toISOString(),
+ *     fiberId: options.fiber.id,
+ *     hasCause: options.cause !== undefined
+ *   }
+ *   console.log(JSON.stringify(output))
  * })
  *
- * // The Logger namespace contains types like Options, Variance, etc.
- * const program = Effect.log("Hello World").pipe(
- *   Effect.provide(Logger.layer([customLogger]))
+ * const program = Effect.log("Processing request").pipe(
+ *   Effect.provide(Logger.layer([detailedLogger]))
  * )
  * ```
  *
  * @since 2.0.0
  * @category models
  */
-export declare namespace Logger {
-  /**
-   * @example
-   * ```ts
-   * import { Logger } from "effect"
-   *
-   * // Variance interface defines contravariance for Message and covariance for Output
-   * const customLogger = Logger.make<unknown, void>((options) => {
-   *   console.log(options.message)
-   * })
-   *
-   * // The logger can accept more specific message types (contravariance)
-   * // and can be used where less specific output types are expected (covariance)
-   * ```
-   *
-   * @since 2.0.0
-   * @category models
-   */
-  export interface Variance<in Message, out Output> {
-    readonly [TypeId]: VarianceStruct<Message, Output>
-  }
-
-  /**
-   * @example
-   * ```ts
-   * import { Logger } from "effect"
-   *
-   * // VarianceStruct defines the actual variance structure used internally
-   * // This structure ensures proper typing and variance behavior
-   * const logger = Logger.make<unknown, void>((options) => {
-   *   console.log(options.message)
-   * })
-   *
-   * // The variance structure handles contravariance for input Message type
-   * // and covariance for output Output type
-   * ```
-   *
-   * @since 4.0.0
-   * @category models
-   */
-  export interface VarianceStruct<in Message, out Output> {
-    _Message: Types.Contravariant<Message>
-    _Output: Types.Covariant<Output>
-  }
-
-  /**
-   * @example
-   * ```ts
-   * import { Effect, Logger } from "effect"
-   *
-   * // Options interface provides all logging context
-   * const detailedLogger = Logger.make((options) => {
-   *   const output = {
-   *     message: options.message,
-   *     level: options.logLevel,
-   *     timestamp: options.date.toISOString(),
-   *     fiberId: options.fiber.id,
-   *     hasCause: options.cause !== undefined
-   *   }
-   *   console.log(JSON.stringify(output))
-   * })
-   *
-   * const program = Effect.log("Processing request").pipe(
-   *   Effect.provide(Logger.layer([detailedLogger]))
-   * )
-   * ```
-   *
-   * @since 2.0.0
-   * @category models
-   */
-  export interface Options<out Message> {
-    readonly message: Message
-    readonly logLevel: LogLevel.LogLevel
-    readonly cause: Cause.Cause<unknown>
-    readonly fiber: Fiber.Fiber<unknown, unknown>
-    readonly date: Date
-  }
+export interface Options<out Message> {
+  readonly message: Message
+  readonly logLevel: LogLevel.LogLevel
+  readonly cause: Cause.Cause<unknown>
+  readonly fiber: Fiber.Fiber<unknown, unknown>
+  readonly date: Date
 }
 
 /**
@@ -501,7 +433,7 @@ const format = (
   quoteValue: (s: string) => string,
   space?: number | string | undefined
 ) =>
-({ cause, date, fiber, logLevel, message }: Logger.Options<unknown>): string => {
+({ cause, date, fiber, logLevel, message }: Options<unknown>): string => {
   const formatValue = (value: string): string => value.match(textOnly) ? value : quoteValue(value)
   const format = (label: string, value: string): string => `${effect.formatLabel(label)}=${formatValue(value)}`
   const append = (label: string, value: string): string => " " + format(label, value)
@@ -575,7 +507,7 @@ const format = (
  * @category constructors
  */
 export const make: <Message, Output>(
-  log: (options: Logger.Options<Message>) => Output
+  log: (options: Options<Message>) => Output
 ) => Logger<Message, Output> = effect.loggerMake
 
 /**
@@ -1222,7 +1154,7 @@ export const layer = <
   const Loggers extends ReadonlyArray<Logger<unknown, unknown> | Effect.Effect<Logger<unknown, unknown>, any, any>>
 >(
   loggers: Loggers,
-  options?: { mergeWithExisting: boolean }
+  options?: { readonly mergeWithExisting?: boolean | undefined } | undefined
 ): Layer.Layer<
   never,
   Loggers extends readonly [] ? never : Effect.Error<Loggers[number]>,
@@ -1231,13 +1163,14 @@ export const layer = <
     Scope.Scope
   >
 > =>
-  Layer.effectServices(
+  Layer.effect(
+    CurrentLoggers,
     withFiber(effect.fnUntraced(function*(fiber) {
       const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(effect.CurrentLoggers) : [])
       for (const logger of loggers) {
         currentLoggers.add(isEffect(logger) ? yield* logger : logger)
       }
-      return ServiceMap.make(effect.CurrentLoggers, currentLoggers)
+      return currentLoggers
     }))
   )
 

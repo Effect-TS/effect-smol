@@ -11,7 +11,7 @@
  * @since 4.0.0
  */
 import { constTrue, constUndefined } from "./Function.ts"
-import type { LogLevel } from "./LogLevel.ts"
+import type { LogLevel, Severity } from "./LogLevel.ts"
 import type { ReadonlyRecord } from "./Record.ts"
 import { MaxOpsBeforeYield } from "./Scheduler.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -451,7 +451,7 @@ export const CurrentLogAnnotations = ServiceMap.Reference<ReadonlyRecord<string,
  * @category references
  * @since 4.0.0
  */
-export const CurrentLogLevel: ServiceMap.Reference<LogLevel> = ServiceMap.Reference<LogLevel>(
+export const CurrentLogLevel: ServiceMap.Reference<Severity> = ServiceMap.Reference<Severity>(
   "effect/References/CurrentLogLevel",
   { defaultValue: () => "Info" }
 )
@@ -516,9 +516,9 @@ export const MinimumLogLevel = ServiceMap.Reference<
  * @category references
  * @since 4.0.0
  */
-export const UnhandledLogLevel: ServiceMap.Reference<LogLevel | undefined> = ServiceMap.Reference(
+export const UnhandledLogLevel: ServiceMap.Reference<Severity | undefined> = ServiceMap.Reference(
   "effect/References/UnhandledLogLevel",
-  { defaultValue: (): LogLevel | undefined => "Error" }
+  { defaultValue: (): Severity | undefined => "Error" }
 )
 
 /**

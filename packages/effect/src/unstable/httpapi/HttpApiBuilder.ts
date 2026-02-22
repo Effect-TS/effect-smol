@@ -549,6 +549,7 @@ function handlerToRoute(
       return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
     })
   ).pipe(
+    Effect.withErrorReporting,
     Effect.catch((error) => {
       if (Schema.isSchemaError(error)) {
         error = HttpApiSchemaError.fromSchemaError(error)

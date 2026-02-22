@@ -1415,7 +1415,7 @@ describe("Effect", () => {
   })
 
   describe("Effect.ignore", () => {
-    type IgnoreOptions = { readonly log?: boolean | LogLevel.LogLevel }
+    type IgnoreOptions = { readonly log?: boolean | LogLevel.Severity }
 
     const makeTestLogger = () => {
       const capturedLogs: Array<{
@@ -1428,7 +1428,7 @@ describe("Effect", () => {
       return { capturedLogs, testLogger }
     }
 
-    const runIgnore = (options?: IgnoreOptions, currentLogLevel: LogLevel.LogLevel = "Info") =>
+    const runIgnore = (options?: IgnoreOptions, currentLogLevel: LogLevel.Severity = "Info") =>
       Effect.gen(function*() {
         const { capturedLogs, testLogger } = makeTestLogger()
         const program = options === undefined
@@ -1472,7 +1472,7 @@ describe("Effect", () => {
   })
 
   describe("Effect.ignoreCause", () => {
-    type IgnoreCauseOptions = { readonly log?: boolean | LogLevel.LogLevel }
+    type IgnoreCauseOptions = { readonly log?: boolean | LogLevel.Severity }
 
     const makeTestLogger = () => {
       const capturedLogs: Array<{
@@ -1485,7 +1485,7 @@ describe("Effect", () => {
       return { capturedLogs, testLogger }
     }
 
-    const runIgnoreCause = (options?: IgnoreCauseOptions, currentLogLevel: LogLevel.LogLevel = "Info") =>
+    const runIgnoreCause = (options?: IgnoreCauseOptions, currentLogLevel: LogLevel.Severity = "Info") =>
       Effect.gen(function*() {
         const { capturedLogs, testLogger } = makeTestLogger()
         const program = options === undefined

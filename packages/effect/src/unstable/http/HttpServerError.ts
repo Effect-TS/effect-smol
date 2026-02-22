@@ -4,6 +4,7 @@
 import * as Cause from "../../Cause.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
+import * as ErrorReporter from "../../ErrorReporter.ts"
 import type * as Exit from "../../Exit.ts"
 import { hasProperty } from "../../Predicate.ts"
 import type * as Request from "./HttpServerRequest.ts"
@@ -32,35 +33,24 @@ export class HttpServerError extends Data.TaggedError("HttpServerError")<{
     }
   }
 
-  /**
-   * @since 4.0.0
-   */
   readonly [TypeId] = TypeId
 
-  /**
-   * @since 4.0.0
-   */
   override stack = `${this.name}: ${this.message}`
 
-  /**
-   * @since 4.0.0
-   */
   get request(): Request.HttpServerRequest {
     return this.reason.request
   }
 
-  /**
-   * @since 4.0.0
-   */
   get response(): Response.HttpServerResponse | undefined {
     return "response" in this.reason ? this.reason.response : undefined
   }
 
-  /**
-   * @since 4.0.0
-   */
-  [Respondable.TypeId]() {
-    return this.reason[Respondable.TypeId]()
+  [Respondable.symbol]() {
+    return this.reason[Respondable.symbol]()
+  }
+
+  override get [ErrorReporter.ignore](): boolean {
+    return this.reason[ErrorReporter.ignore] ?? false
   }
 
   override get message(): string {
@@ -80,7 +70,7 @@ export class RequestParseError extends Data.TaggedError("RequestParseError")<{
   /**
    * @since 4.0.0
    */
-  [Respondable.TypeId]() {
+  [Respondable.symbol]() {
     return Effect.succeed(Response.empty({ status: 400 }))
   }
 
@@ -102,12 +92,11 @@ export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
   readonly description?: string
   readonly cause?: unknown
 }> implements Respondable.Respondable {
-  /**
-   * @since 4.0.0
-   */
-  [Respondable.TypeId]() {
+  [Respondable.symbol]() {
     return Effect.succeed(Response.empty({ status: 404 }))
   }
+
+  override readonly [ErrorReporter.ignore] = true
 
   get methodAndUrl() {
     return `${this.request.method} ${this.request.url}`
@@ -130,7 +119,7 @@ export class InternalError extends Data.TaggedError("InternalError")<{
   /**
    * @since 4.0.0
    */
-  [Respondable.TypeId]() {
+  [Respondable.symbol]() {
     return Effect.succeed(Response.empty({ status: 500 }))
   }
 
@@ -159,10 +148,7 @@ export class ResponseError extends Data.TaggedError("ResponseError")<{
   readonly description?: string
   readonly cause?: unknown
 }> implements Respondable.Respondable {
-  /**
-   * @since 4.0.0
-   */
-  [Respondable.TypeId]() {
+  [Respondable.symbol]() {
     return Effect.succeed(Response.empty({ status: 500 }))
   }
 

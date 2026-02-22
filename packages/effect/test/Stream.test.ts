@@ -410,7 +410,7 @@ describe("Stream", () => {
       }))
 
     describe("ignore", () => {
-      type IgnoreOptions = { readonly log?: boolean | LogLevel.LogLevel }
+      type IgnoreOptions = { readonly log?: boolean | LogLevel.Severity }
 
       const makeTestLogger = () => {
         const capturedLogs: Array<{
@@ -423,7 +423,7 @@ describe("Stream", () => {
         return { capturedLogs, testLogger }
       }
 
-      const runIgnore = (options?: IgnoreOptions, currentLogLevel: LogLevel.LogLevel = "Info") =>
+      const runIgnore = (options?: IgnoreOptions, currentLogLevel: LogLevel.Severity = "Info") =>
         Effect.gen(function*() {
           const { capturedLogs, testLogger } = makeTestLogger()
           const program = options === undefined
@@ -621,7 +621,7 @@ describe("Stream", () => {
     })
 
     describe("ignoreCause", () => {
-      type IgnoreCauseOptions = { readonly log?: boolean | LogLevel.LogLevel }
+      type IgnoreCauseOptions = { readonly log?: boolean | LogLevel.Severity }
 
       const makeTestLogger = () => {
         const capturedLogs: Array<{
@@ -636,7 +636,7 @@ describe("Stream", () => {
 
       const runIgnoreCause = (
         options?: IgnoreCauseOptions,
-        currentLogLevel: LogLevel.LogLevel = "Info"
+        currentLogLevel: LogLevel.Severity = "Info"
       ) =>
         Effect.gen(function*() {
           const stream: Stream.Stream<never, string, never> = Stream.fail("boom")
@@ -1587,7 +1587,7 @@ describe("Stream", () => {
             Schedule.forever
           ),
           Stream.runDrain,
-          Effect.catch(() => Effect.succeed(void 0))
+          Effect.catch(() => Effect.void)
         )
         const result = yield* Queue.takeAll(queue)
         yield* Queue.shutdown(queue)
