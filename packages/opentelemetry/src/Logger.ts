@@ -1,7 +1,6 @@
 /**
  * @since 1.0.0
  */
-import type { HrTime } from "@opentelemetry/api"
 import * as Otel from "@opentelemetry/sdk-logs"
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Arr from "effect/Array"
@@ -59,8 +58,6 @@ export const make: Effect.Effect<
     for (const [label, startTime] of options.fiber.getRef(References.CurrentLogSpans)) {
       attributes[`logSpan.${label}`] = `${now - startTime}ms`
     }
-
-    const hrTime = nanosToHrTime(clock.currentTimeNanosUnsafe())
 
     const message = Arr.ensure(options.message).map(unknownToAttributeValue)
     const hrTime = nanosToHrTime(clock.currentTimeNanosUnsafe())
@@ -126,8 +123,3 @@ export const layerLoggerProvider = (
       )
     })
   )
-
-const bigint1e9 = BigInt(1e9)
-const nanosToHrTime = (timestamp: bigint): HrTime => {
-  return [Number(timestamp / bigint1e9), Number(timestamp % bigint1e9)]
-}
