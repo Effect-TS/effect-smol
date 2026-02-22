@@ -5517,7 +5517,7 @@ const LoggerProto = {
 
 /** @internal */
 export const loggerMake = <Message, Output>(
-  log: (options: Logger.Logger.Options<Message>) => Output
+  log: (options: Logger.Options<Message>) => Output
 ): Logger.Logger<Message, Output> => {
   const self = Object.create(LoggerProto)
   self.log = log

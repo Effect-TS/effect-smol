@@ -104,7 +104,7 @@ export interface LogsData {
 
 // internal
 
-const makeLogRecord = (options: Logger.Logger.Options<unknown>, opts: {
+const makeLogRecord = (options: Logger.Options<unknown>, opts: {
   readonly excludeLogSpans: boolean
 }): ILogRecord => {
   const now = options.date.getTime()
