@@ -3501,7 +3501,52 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
+      await decoding.succeed(["1", "a", "b"], [1, "a", "b"])
       await decoding.succeed(["1", "a", true, "b"], [1, "a", true, "b"])
+      await decoding.succeed(["1", "a", true, true, "b"], [1, "a", true, true, "b"])
+      await decoding.fail(
+        ["1", "a"],
+        `Expected string, got undefined
+  at [2]`
+      )
+      await decoding.fail(
+        ["1", "a", true],
+        `Expected string, got true
+  at [2]`
+      )
+      await decoding.fail(
+        ["1", "a", "b", "c"],
+        `Expected boolean, got "b"
+  at [2]`
+      )
+      await decoding.fail(
+        ["1", "a", true, "b", "c"],
+        `Expected boolean, got "b"
+  at [3]`
+      )
+    })
+
+    it("[FiniteFromString, String] + [Boolean, String, Number]", async () => {
+      const schema = Schema.TupleWithRest(
+        Schema.Tuple([Schema.FiniteFromString, Schema.String]),
+        [Schema.Boolean, Schema.String, Schema.FiniteFromString]
+      )
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(["1", "a", "b", "2"], [1, "a", "b", 2])
+      await decoding.succeed(["1", "a", true, "b", "2"], [1, "a", true, "b", 2])
+      await decoding.succeed(["1", "a", true, true, "b", "2"], [1, "a", true, true, "b", 2])
+      await decoding.fail(
+        ["1", "a", "b"],
+        `Expected string, got undefined
+  at [3]`
+      )
+      await decoding.fail(
+        ["1", "a", "b", "c"],
+        `Expected a finite number, got NaN
+  at [3]`
+      )
     })
   })
 

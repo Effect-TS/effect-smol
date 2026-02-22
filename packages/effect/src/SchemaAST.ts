@@ -1455,7 +1455,8 @@ export class Arrays extends Base {
         // handle post rest elements
         // ---------------------------------------------
         for (let j = 0; j < tail.length; j++) {
-          if (len < i + 1) {
+          i += j
+          if (len < i) {
             continue
           } else {
             const tailj = tail[j]
