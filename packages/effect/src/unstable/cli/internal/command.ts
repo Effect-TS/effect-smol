@@ -11,7 +11,7 @@ import { pipeArguments } from "../../../Pipeable.ts"
 import * as Predicate from "../../../Predicate.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
 import * as CliError from "../CliError.ts"
-import type { ArgDoc, FlagDoc, HelpDoc, SubcommandDoc } from "../HelpDoc.ts"
+import type { ArgDoc, ExampleDoc, FlagDoc, HelpDoc, SubcommandDoc } from "../HelpDoc.ts"
 import * as Param from "../Param.ts"
 import * as Primitive from "../Primitive.ts"
 import { type ConfigInternal, reconstructTree } from "./config.ts"
@@ -84,6 +84,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly annotations?: ServiceMap.ServiceMap<never> | undefined
   readonly description?: string | undefined
   readonly shortDescription?: string | undefined
+  readonly examples?: ReadonlyArray<Command.Example> | undefined
   readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
   readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
   readonly handle?:
@@ -157,19 +158,23 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
       description: sub.description ?? ""
     }))
 
+    const examples: ReadonlyArray<ExampleDoc> = options.examples ?? []
+
     return {
       description: options.description ?? "",
       usage,
       flags,
       annotations,
       ...(args.length > 0 && { args }),
-      ...(subcommandDocs.length > 0 && { subcommands: subcommandDocs })
+      ...(subcommandDocs.length > 0 && { subcommands: subcommandDocs }),
+      ...(examples.length > 0 && { examples })
     }
   }
 
   return Object.assign(Object.create(Proto), {
     [TypeId]: TypeId,
     name: options.name,
+    examples: options.examples ?? [],
     subcommands: options.subcommands ?? [],
     annotations,
     config,

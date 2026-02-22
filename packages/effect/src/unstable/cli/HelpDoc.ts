@@ -80,6 +80,29 @@ export interface HelpDoc {
    * Optional list of subcommands if this is a parent command
    */
   readonly subcommands?: ReadonlyArray<SubcommandDoc>
+
+  /**
+   * Optional concrete usage examples for the command
+   */
+  readonly examples?: ReadonlyArray<ExampleDoc>
+}
+
+/**
+ * Documentation for a command usage example
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface ExampleDoc {
+  /**
+   * Command line invocation example
+   */
+  readonly command: string
+
+  /**
+   * Optional explanation for the example
+   */
+  readonly description?: string | undefined
 }
 
 /**

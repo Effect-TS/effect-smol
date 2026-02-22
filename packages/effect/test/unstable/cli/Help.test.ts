@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Path } from "effect"
 import { TestConsole } from "effect/testing"
-import { CliOutput } from "effect/unstable/cli"
+import { CliOutput, Command } from "effect/unstable/cli"
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
 import * as MockTerminal from "./services/MockTerminal.ts"
@@ -64,6 +64,36 @@ describe("Command help output", () => {
           test-failing     Test command that always fails
           app              Application management
           app-nested       Application with nested services"
+      `)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("command help renders examples", () =>
+    Effect.gen(function*() {
+      const command = Command.make("login").pipe(
+        Command.withDescription("Authenticate with Supabase"),
+        Command.withExamples([
+          { command: "myapp login", description: "Log in with browser OAuth" },
+          { command: "myapp login --token sbp_abc123", description: "Log in with a token" }
+        ])
+      )
+      const runLogin = Command.runWith(command, { version: "1.0.0" })
+
+      yield* runLogin(["--help"])
+
+      const output = (yield* TestConsole.logLines).join("\n")
+      expect(output).toMatchInlineSnapshot(`
+        "DESCRIPTION
+          Authenticate with Supabase
+
+        USAGE
+          login [flags]
+
+        EXAMPLES
+          # Log in with browser OAuth
+          myapp login
+
+          # Log in with a token
+          myapp login --token sbp_abc123"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
