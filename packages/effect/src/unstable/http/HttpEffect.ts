@@ -82,17 +82,14 @@ export const toHandled = <E, R, EH, RH>(
     Effect.matchCauseEffect(tracer(middleware(responded)), {
       onFailure(cause): Effect.Effect<void, EH, RH> {
         const fiber = Fiber.getCurrent()!
+        reportCauseUnsafe(fiber, cause)
         const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
-        if (handledSymbol in request) {
-          return Effect.void
-        }
+        if (handledSymbol in request) return Effect.void
         return Effect.matchCauseEffectEager(causeResponse(cause), {
-          onFailure(cause) {
-            reportCauseUnsafe(fiber, cause)
+          onFailure(_) {
             return handleResponse(request, Response.empty({ status: 500 }))
           },
-          onSuccess([response, cause]) {
-            reportCauseUnsafe(fiber, cause)
+          onSuccess([response]) {
             return handleResponse(request, response)
           }
         })

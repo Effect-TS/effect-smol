@@ -49,7 +49,9 @@ export class HttpServerError extends Data.TaggedError("HttpServerError")<{
     return this.reason[Respondable.symbol]()
   }
 
-  override readonly [ErrorReporter.ignore] = this.reason[ErrorReporter.ignore] ?? false
+  override get [ErrorReporter.ignore](): boolean {
+    return this.reason[ErrorReporter.ignore] ?? false
+  }
 
   override get message(): string {
     return this.reason.message
@@ -146,9 +148,6 @@ export class ResponseError extends Data.TaggedError("ResponseError")<{
   readonly description?: string
   readonly cause?: unknown
 }> implements Respondable.Respondable {
-  /**
-   * @since 4.0.0
-   */
   [Respondable.symbol]() {
     return Effect.succeed(Response.empty({ status: 500 }))
   }
