@@ -958,4 +958,39 @@ describe("Command", () => {
         assert.strictEqual(helpDoc.subcommands?.[0]?.description, "Build the project and all artifacts")
       }))
   })
+
+  describe("withExamples", () => {
+    it.effect("should expose examples in help docs", () =>
+      Effect.gen(function*() {
+        const command = Command.make("login").pipe(
+          Command.withExamples([
+            { command: "myapp login", description: "Log in with browser OAuth" },
+            { command: "myapp login --token sbp_abc123", description: "Log in with a token" }
+          ])
+        )
+
+        const helpDoc = toImpl(command).buildHelpDoc(["login"])
+
+        assert.deepStrictEqual(helpDoc.examples, [
+          { command: "myapp login", description: "Log in with browser OAuth" },
+          { command: "myapp login --token sbp_abc123", description: "Log in with a token" }
+        ])
+      }))
+
+    it.effect("should preserve examples when adding subcommands", () =>
+      Effect.gen(function*() {
+        const root = Command.make("root").pipe(
+          Command.withExamples([
+            { command: "myapp root", description: "Run root command" }
+          ]),
+          Command.withSubcommands([Command.make("child")])
+        )
+
+        const helpDoc = toImpl(root).buildHelpDoc(["root"])
+
+        assert.deepStrictEqual(helpDoc.examples, [
+          { command: "myapp root", description: "Run root command" }
+        ])
+      }))
+  })
 })

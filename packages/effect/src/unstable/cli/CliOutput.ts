@@ -510,6 +510,26 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
     sections.push("")
   }
 
+  // Examples section
+  if (doc.examples && doc.examples.length > 0) {
+    sections.push(colors.bold("EXAMPLES"))
+
+    let first = true
+    let previousHadDescription = false
+    for (const example of doc.examples) {
+      if (example.description) {
+        if (!first) sections.push("")
+        sections.push(`  ${colors.dim(`# ${example.description}`)}`)
+      } else if (previousHadDescription) {
+        sections.push("")
+      }
+      sections.push(`  ${colors.cyan(example.command)}`)
+      first = false
+      previousHadDescription = !!example.description
+    }
+    sections.push("")
+  }
+
   // Remove trailing empty line if present
   if (sections[sections.length - 1] === "") {
     sections.pop()

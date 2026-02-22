@@ -100,6 +100,11 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
   readonly shortDescription: string | undefined
 
   /**
+   * Optional usage examples for the command.
+   */
+  readonly examples: ReadonlyArray<Command.Example>
+
+  /**
    * The subcommands available under this command.
    */
   readonly subcommands: ReadonlyArray<Command.Any>
@@ -114,6 +119,17 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
  * @since 4.0.0
  */
 export declare namespace Command {
+  /**
+   * Represents a concrete usage example for a command.
+   *
+   * @since 4.0.0
+   * @category models
+   */
+  export interface Example {
+    readonly command: string
+    readonly description?: string | undefined
+  }
+
   /**
    * Configuration object for defining command flags, arguments, and nested structures.
    *
@@ -555,6 +571,7 @@ export const withSubcommands: {
     description: impl.description,
     shortDescription: impl.shortDescription,
     annotations: impl.annotations,
+    examples: impl.examples,
     service: impl.service,
     subcommands,
     parse,
@@ -677,6 +694,40 @@ export const annotateMerge: {
   const impl = toImpl(self)
   return makeCommand({ ...impl, annotations: ServiceMap.merge(impl.annotations, annotations) })
 })
+
+/**
+ * Sets usage examples for a command.
+ *
+ * Examples are exposed in structured `HelpDoc` data and rendered by the
+ * default formatter in an `EXAMPLES` section.
+ *
+ * @example
+ * ```ts
+ * import { Command } from "effect/unstable/cli"
+ *
+ * const login = Command.make("login").pipe(
+ *   Command.withExamples([
+ *     { command: "myapp login", description: "Log in with browser OAuth" },
+ *     { command: "myapp login --token sbp_abc123", description: "Log in with a token" }
+ *   ])
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withExamples: {
+  (examples: ReadonlyArray<Command.Example>): <const Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>
+  ) => Command<Name, Input, E, R>
+  <const Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>,
+    examples: ReadonlyArray<Command.Example>
+  ): Command<Name, Input, E, R>
+} = dual(2, <const Name extends string, Input, E, R>(
+  self: Command<Name, Input, E, R>,
+  examples: ReadonlyArray<Command.Example>
+) => makeCommand({ ...toImpl(self), examples }))
 
 /* ========================================================================== */
 /* Providing Services                                                         */
