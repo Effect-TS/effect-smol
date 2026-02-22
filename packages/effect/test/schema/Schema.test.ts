@@ -3524,6 +3524,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Expected boolean, got "b"
   at [3]`
       )
+
+      const encoding = asserts.encoding()
+      await encoding.succeed([1, "a", "b"], ["1", "a", "b"])
+      await encoding.succeed([1, "a", true, "b"], ["1", "a", true, "b"])
     })
 
     it("[FiniteFromString, String] + [Boolean, String, Number]", async () => {
@@ -3538,6 +3542,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed(["1", "a", true, "b", "2"], [1, "a", true, "b", 2])
       await decoding.succeed(["1", "a", true, true, "b", "2"], [1, "a", true, true, "b", 2])
       await decoding.fail(
+        ["1", "a"],
+        `Expected string, got undefined
+  at [2]`
+      )
+      await decoding.fail(
         ["1", "a", "b"],
         `Expected string, got undefined
   at [3]`
@@ -3547,6 +3556,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Expected a finite number, got NaN
   at [3]`
       )
+
+      const encoding = asserts.encoding()
+      await encoding.succeed([1, "a", "b", 2], ["1", "a", "b", "2"])
+      await encoding.succeed([1, "a", true, "b", 2], ["1", "a", true, "b", "2"])
     })
   })
 
