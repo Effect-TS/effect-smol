@@ -56,6 +56,8 @@ export interface AtomRegistry {
   }) => () => void
   readonly reset: () => void
   readonly dispose: () => void
+  onNodeAdded?: ((node: Node<any>) => void) | undefined
+  onNodeRemoved?: ((node: Node<any>) => void) | undefined
 }
 
 /**
@@ -65,6 +67,10 @@ export interface AtomRegistry {
 export interface Node<A> {
   readonly atom: Atom.Atom<A>
   readonly value: () => A
+  parents: Array<Node<any>>
+  children: Array<Node<any>>
+  listeners: Set<() => void>
+  currentState(): "uninitialized" | "stale" | "valid" | "removed"
 }
 
 /**
@@ -235,6 +241,8 @@ class RegistryImpl implements AtomRegistry {
   readonly defaultIdleTTL: number | undefined
   readonly scheduler: Scheduler
   readonly schedulerAsync: Scheduler
+  onNodeAdded?: ((node: Node<any>) => void) | undefined
+  onNodeRemoved?: ((node: Node<any>) => void) | undefined
 
   constructor(
     initialValues?: Iterable<readonly [Atom.Atom<any>, any]>,
@@ -331,6 +339,7 @@ class RegistryImpl implements AtomRegistry {
     if (node === undefined) {
       node = this.createNode(atom)
       this.nodes.set(key, node)
+      this.onNodeAdded?.(node)
     } else if (this.atomHasTtl(atom)) {
       this.removeNodeTimeout(node)
     }
@@ -381,6 +390,7 @@ class RegistryImpl implements AtomRegistry {
     } else {
       this.nodes.delete(atomKey(node.atom))
       node.remove()
+      this.onNodeRemoved?.(node)
     }
   }
 
@@ -395,6 +405,7 @@ class RegistryImpl implements AtomRegistry {
       if (idleTTL <= 0) {
         this.nodes.delete(atomKey(node.atom))
         node.remove()
+        this.onNodeRemoved?.(node)
         return
       }
     }
@@ -441,6 +452,7 @@ class RegistryImpl implements AtomRegistry {
       }
       this.nodeTimeoutBucket.delete(node)
       this.nodes.delete(atomKey(node.atom))
+      this.onNodeRemoved?.(node)
       this.#currentSweepTTL = node.atom.idleTTL ?? this.defaultIdleTTL!
       node.remove()
       this.#currentSweepTTL = null
@@ -452,7 +464,10 @@ class RegistryImpl implements AtomRegistry {
     this.timeoutBuckets.clear()
     this.nodeTimeoutBucket.clear()
 
-    this.nodes.forEach((node) => node.remove())
+    this.nodes.forEach((node) => {
+      node.remove()
+      this.onNodeRemoved?.(node)
+    })
     this.nodes.clear()
   }
 
@@ -498,6 +513,19 @@ class NodeImpl<A> {
   children: Array<NodeImpl<any>> = []
   listeners: Set<() => void> = new Set()
   skipInvalidation = false
+
+  currentState() {
+    switch (this.state) {
+      case NodeState.uninitialized:
+        return "uninitialized"
+      case NodeState.stale:
+        return "stale"
+      case NodeState.valid:
+        return "valid"
+      default:
+        return "removed"
+    }
+  }
 
   get canBeRemoved(): boolean {
     return !this.atom.keepAlive && this.listeners.size === 0 && this.children.length === 0 && this.state !== 0
