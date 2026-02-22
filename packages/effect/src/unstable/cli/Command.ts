@@ -11,9 +11,9 @@ import type { Pipeable } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as References from "../../References.ts"
 import * as Result from "../../Result.ts"
-import type * as ServiceMap from "../../ServiceMap.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import * as Terminal from "../../Terminal.ts"
-import type { Simplify } from "../../Types.ts"
+import type { NoInfer, Simplify } from "../../Types.ts"
 import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
 import * as CliOutput from "./CliOutput.ts"
@@ -103,6 +103,11 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
    * The subcommands available under this command.
    */
   readonly subcommands: ReadonlyArray<Command.Any>
+
+  /**
+   * Custom annotations associated with this command.
+   */
+  readonly annotations: ServiceMap.ServiceMap<never>
 }
 
 /**
@@ -549,6 +554,7 @@ export const withSubcommands: {
     config: impl.config,
     description: impl.description,
     shortDescription: impl.shortDescription,
+    annotations: impl.annotations,
     service: impl.service,
     subcommands,
     parse,
@@ -620,6 +626,57 @@ export const withShortDescription: {
   self: Command<Name, Input, E, R>,
   shortDescription: string
 ) => makeCommand({ ...toImpl(self), shortDescription }))
+
+/**
+ * Adds a custom annotation to a command.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const annotate: {
+  <I, S>(
+    service: ServiceMap.Service<I, S>,
+    value: NoInfer<S>
+  ): <Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>
+  ) => Command<Name, Input, E, R>
+  <Name extends string, Input, E, R, I, S>(
+    self: Command<Name, Input, E, R>,
+    service: ServiceMap.Service<I, S>,
+    value: NoInfer<S>
+  ): Command<Name, Input, E, R>
+} = dual(3, <Name extends string, Input, E, R, I, S>(
+  self: Command<Name, Input, E, R>,
+  service: ServiceMap.Service<I, S>,
+  value: NoInfer<S>
+) => {
+  const impl = toImpl(self)
+  return makeCommand({ ...impl, annotations: ServiceMap.add(impl.annotations, service, value) })
+})
+
+/**
+ * Merges a ServiceMap of annotations into a command.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const annotateMerge: {
+  <I>(
+    annotations: ServiceMap.ServiceMap<I>
+  ): <Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>
+  ) => Command<Name, Input, E, R>
+  <Name extends string, Input, E, R, I>(
+    self: Command<Name, Input, E, R>,
+    annotations: ServiceMap.ServiceMap<I>
+  ): Command<Name, Input, E, R>
+} = dual(2, <Name extends string, Input, E, R, I>(
+  self: Command<Name, Input, E, R>,
+  annotations: ServiceMap.ServiceMap<I>
+) => {
+  const impl = toImpl(self)
+  return makeCommand({ ...impl, annotations: ServiceMap.merge(impl.annotations, annotations) })
+})
 
 /* ========================================================================== */
 /* Providing Services                                                         */

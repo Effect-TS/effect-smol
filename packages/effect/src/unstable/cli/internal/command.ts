@@ -29,6 +29,7 @@ import type { Command, CommandContext, Environment, ParsedTokens } from "../Comm
 export interface CommandInternal<Name extends string, Input, E, R> extends Command<Name, Input, E, R> {
   readonly config: ConfigInternal
   readonly service: ServiceMap.Service<CommandContext<Name>, Input>
+  readonly annotations: ServiceMap.ServiceMap<never>
   readonly parse: (input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>
   readonly handle: (
     input: Input,
@@ -80,6 +81,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly name: Name
   readonly config: ConfigInternal
   readonly service?: ServiceMap.Service<CommandContext<Name>, Input> | undefined
+  readonly annotations?: ServiceMap.ServiceMap<never> | undefined
   readonly description?: string | undefined
   readonly shortDescription?: string | undefined
   readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
@@ -90,6 +92,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
 }): Command<Name, Input, E, R> => {
   const service = options.service ?? ServiceMap.Service<CommandContext<Name>, Input>(`${TypeId}/${options.name}`)
   const config = options.config
+  const annotations = options.annotations ?? ServiceMap.empty()
 
   const handle = (
     input: Input,
@@ -158,6 +161,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
       description: options.description ?? "",
       usage,
       flags,
+      annotations,
       ...(args.length > 0 && { args }),
       ...(subcommandDocs.length > 0 && { subcommands: subcommandDocs })
     }
@@ -167,6 +171,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     [TypeId]: TypeId,
     name: options.name,
     subcommands: options.subcommands ?? [],
+    annotations,
     config,
     service,
     parse,

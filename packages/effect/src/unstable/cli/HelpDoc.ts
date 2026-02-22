@@ -2,6 +2,8 @@
  * @since 4.0.0
  */
 
+import type * as ServiceMap from "../../ServiceMap.ts"
+
 /**
  * Structured representation of help documentation for a command.
  * This data structure is independent of formatting, allowing for
@@ -9,11 +11,13 @@
  *
  * @example
  * ```ts
+ * import { ServiceMap } from "effect"
  * import type * as HelpDoc from "effect/unstable/cli/HelpDoc"
  *
  * const deployCommandHelp: HelpDoc.HelpDoc = {
  *   description: "Deploy your application to the cloud",
  *   usage: "myapp deploy [options] <target>",
+ *   annotations: ServiceMap.empty(),
  *   flags: [
  *     {
  *       name: "verbose",
@@ -61,6 +65,11 @@ export interface HelpDoc {
    * List of available flags/options for this command
    */
   readonly flags: ReadonlyArray<FlagDoc>
+
+  /**
+   * Custom command annotations.
+   */
+  readonly annotations: ServiceMap.ServiceMap<never>
 
   /**
    * List of positional arguments for this command
@@ -132,6 +141,7 @@ export interface FlagDoc {
  *
  * @example
  * ```ts
+ * import { ServiceMap } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const deploySubcommand: HelpDoc.SubcommandDoc = {
@@ -150,6 +160,7 @@ export interface FlagDoc {
  * const mainCommandHelp: HelpDoc.HelpDoc = {
  *   description: "Cloud deployment tool",
  *   usage: "myapp <command> [options]",
+ *   annotations: ServiceMap.empty(),
  *   flags: [],
  *   subcommands: [deploySubcommand, buildSubcommand]
  * }
@@ -180,6 +191,7 @@ export interface SubcommandDoc {
  *
  * @example
  * ```ts
+ * import { ServiceMap } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const sourceArg: HelpDoc.ArgDoc = {
@@ -202,6 +214,7 @@ export interface SubcommandDoc {
  * const copyCommandHelp: HelpDoc.HelpDoc = {
  *   description: "Copy files from source to destination",
  *   usage: "copy <source> [files...]",
+ *   annotations: ServiceMap.empty(),
  *   flags: [],
  *   args: [sourceArg, filesArg]
  * }
