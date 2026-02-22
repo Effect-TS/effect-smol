@@ -2485,6 +2485,49 @@ export const zip: {
 } = internal.zip
 
 /**
+ * Combines two effects and accumulates failures from both effects.
+ *
+ * Unlike {@link zip}, this function evaluates both effects and merges failures
+ * when both sides fail.
+ *
+ * **Concurrency**
+ *
+ * By default, effects are evaluated sequentially. To evaluate both effects
+ * concurrently, use the `{ concurrent: true }` option.
+ *
+ * @see {@link zip} for a version that stops at the first failure.
+ *
+ * @example
+ * ```ts
+ * import { Cause, Effect } from "effect"
+ *
+ * const result = Effect.fail("left").pipe(
+ *   Effect.validate(Effect.fail("right")),
+ *   Effect.sandbox,
+ *   Effect.flip
+ * )
+ *
+ * Effect.runPromise(result).then((cause) => {
+ *   console.log(Cause.pretty(cause))
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category Error Accumulation
+ */
+export const validate: {
+  <A2, E2, R2>(
+    that: Effect<A2, E2, R2>,
+    options?: { readonly concurrent?: boolean | undefined } | undefined
+  ): <A, E, R>(self: Effect<A, E, R>) => Effect<[A, A2], E2 | E, R2 | R>
+  <A, E, R, A2, E2, R2>(
+    self: Effect<A, E, R>,
+    that: Effect<A2, E2, R2>,
+    options?: { readonly concurrent?: boolean | undefined }
+  ): Effect<[A, A2], E | E2, R | R2>
+} = internal.validate
+
+/**
  * Combines two effects sequentially and applies a function to their results to
  * produce a single value.
  *

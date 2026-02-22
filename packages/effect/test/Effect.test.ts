@@ -1695,6 +1695,56 @@ describe("Effect", () => {
     })
   })
 
+  describe("validate", () => {
+    it.effect("accumulates failures", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.fail("left").pipe(
+          Effect.validate(Effect.fail("right")),
+          Effect.sandbox,
+          Effect.flip
+        )
+        assert.deepStrictEqual(result, Cause.combine(Cause.fail("left"), Cause.fail("right")))
+      }))
+
+    it.effect("concurrent: false", () => {
+      const executionOrder: Array<string> = []
+      const task1 = Effect.fail("left").pipe(
+        Effect.delay(50),
+        Effect.tapError(() => Effect.sync(() => executionOrder.push("task1")))
+      )
+      const task2 = Effect.succeed(1).pipe(
+        Effect.delay(1),
+        Effect.tap(() => Effect.sync(() => executionOrder.push("task2")))
+      )
+      return Effect.gen(function*() {
+        const fiber = yield* Effect.forkChild(Effect.validate(task1, task2))
+        yield* TestClock.adjust(51)
+        const result = yield* Fiber.await(fiber)
+        assert.deepStrictEqual(result, Exit.fail("left"))
+        assert.deepStrictEqual(executionOrder, ["task1", "task2"])
+      })
+    })
+
+    it.effect("concurrent: true", () => {
+      const executionOrder: Array<string> = []
+      const task1 = Effect.fail("left").pipe(
+        Effect.delay(50),
+        Effect.tapError(() => Effect.sync(() => executionOrder.push("task1")))
+      )
+      const task2 = Effect.fail("right").pipe(
+        Effect.delay(1),
+        Effect.tapError(() => Effect.sync(() => executionOrder.push("task2")))
+      )
+      return Effect.gen(function*() {
+        const fiber = yield* Effect.forkChild(Effect.validate(task1, task2, { concurrent: true }))
+        yield* TestClock.adjust(50)
+        const result = yield* Fiber.await(fiber)
+        assert.deepStrictEqual(result, Exit.failCause(Cause.combine(Cause.fail("left"), Cause.fail("right"))))
+        assert.deepStrictEqual(executionOrder, ["task2", "task1"])
+      })
+    })
+  })
+
   describe("zipWith", () => {
     it.effect("concurrent: false", () => {
       const executionOrder: Array<string> = []

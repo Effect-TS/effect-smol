@@ -2181,6 +2181,46 @@ export const zip: {
 )
 
 /** @internal */
+export const validate: {
+  <A2, E2, R2>(
+    that: Effect.Effect<A2, E2, R2>,
+    options?: { readonly concurrent?: boolean | undefined } | undefined
+  ): <A, E, R>(
+    self: Effect.Effect<A, E, R>
+  ) => Effect.Effect<[A, A2], E2 | E, R2 | R>
+  <A, E, R, A2, E2, R2>(
+    self: Effect.Effect<A, E, R>,
+    that: Effect.Effect<A2, E2, R2>,
+    options?: { readonly concurrent?: boolean | undefined }
+  ): Effect.Effect<[A, A2], E | E2, R | R2>
+} = dual(
+  (args) => isEffect(args[1]),
+  <A, E, R, A2, E2, R2>(
+    self: Effect.Effect<A, E, R>,
+    that: Effect.Effect<A2, E2, R2>,
+    options?: { readonly concurrent?: boolean | undefined }
+  ): Effect.Effect<[A, A2], E2 | E, R2 | R> =>
+    flatMap(
+      all([exit(self), exit(that)], { concurrency: options?.concurrent ? 2 : 1 }),
+      ([exitA, exitB]) => {
+        if (exitIsSuccess(exitA) && exitIsSuccess(exitB)) {
+          return succeed([exitA.value, exitB.value])
+        }
+        if (exitIsFailure(exitA) && exitIsFailure(exitB)) {
+          return failCause(causeCombine(exitA.cause, exitB.cause))
+        }
+        if (exitIsFailure(exitA)) {
+          return failCause(exitA.cause)
+        }
+        if (exitIsFailure(exitB)) {
+          return failCause(exitB.cause)
+        }
+        return die("validate: unreachable")
+      }
+    )
+)
+
+/** @internal */
 export const zipWith: {
   <A2, E2, R2, A, B>(
     that: Effect.Effect<A2, E2, R2>,

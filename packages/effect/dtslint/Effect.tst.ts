@@ -170,6 +170,21 @@ describe("Effect do notation", () => {
   })
 })
 
+describe("Effect.validate", () => {
+  it("data-first", () => {
+    const result = Effect.validate(Effect.succeed("b"))(Effect.succeed(1))
+    expect(result).type.toBe<Effect.Effect<[number, string], never, never>>()
+  })
+
+  it("data-last", () => {
+    const result = pipe(
+      Effect.fail(new SimpleError({ code: 1 })),
+      Effect.validate(Effect.fail(new OtherError({ message: "err" })))
+    )
+    expect(result).type.toBe<Effect.Effect<[never, never], SimpleError | OtherError, never>>()
+  })
+})
+
 describe("Effect.tapErrorTag", () => {
   it("narrows tagged errors", () => {
     const result = pipe(
