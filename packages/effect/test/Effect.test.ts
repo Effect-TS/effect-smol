@@ -448,6 +448,30 @@ describe("Effect", () => {
       }))
   })
 
+  describe("validate", () => {
+    it.effect("collects successes when all effects succeed", () =>
+      Effect.gen(function*() {
+        const values = [0, 1, 2, 3, 4]
+        const satisfying = yield* Effect.validate(values, Effect.succeed)
+        assert.deepStrictEqual(satisfying, values)
+      }))
+
+    it.effect("accumulates all failures", () =>
+      Effect.gen(function*() {
+        const values = [0, 1, 2, 3, 4, 5]
+        const errors = yield* Effect.validate(values, (n) => n % 2 === 0 ? Effect.fail(n) : Effect.succeed(n)).pipe(
+          Effect.flip
+        )
+        assert.deepStrictEqual(errors, [0, 2, 4])
+      }))
+
+    it.effect("supports discard option", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.validate([1, 2, 3], Effect.succeed, { discard: true })
+        assert.strictEqual(result, undefined)
+      }))
+  })
+
   describe("filter", () => {
     it.live("odd numbers", () =>
       Effect.gen(function*() {

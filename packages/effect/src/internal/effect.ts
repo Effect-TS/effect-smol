@@ -4099,6 +4099,59 @@ export const partition: {
 )
 
 /** @internal */
+export const validate: {
+  <A, B, E, R>(
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
+    options?: {
+      readonly concurrency?: Concurrency | undefined
+      readonly discard?: false | undefined
+    } | undefined
+  ): (elements: Iterable<A>) => Effect.Effect<Array<B>, Arr.NonEmptyArray<E>, R>
+  <A, B, E, R>(
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
+    options: {
+      readonly concurrency?: Concurrency | undefined
+      readonly discard: true
+    }
+  ): (elements: Iterable<A>) => Effect.Effect<void, Arr.NonEmptyArray<E>, R>
+  <A, B, E, R>(
+    elements: Iterable<A>,
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
+    options?: {
+      readonly concurrency?: Concurrency | undefined
+      readonly discard?: false | undefined
+    } | undefined
+  ): Effect.Effect<Array<B>, Arr.NonEmptyArray<E>, R>
+  <A, B, E, R>(
+    elements: Iterable<A>,
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
+    options: {
+      readonly concurrency?: Concurrency | undefined
+      readonly discard: true
+    }
+  ): Effect.Effect<void, Arr.NonEmptyArray<E>, R>
+} = dual(
+  (args) => isIterable(args[0]) && !isEffect(args[0]),
+  <A, B, E, R>(
+    elements: Iterable<A>,
+    f: (a: A, i: number) => Effect.Effect<B, E, R>,
+    options?: {
+      readonly concurrency?: Concurrency | undefined
+      readonly discard?: boolean | undefined
+    } | undefined
+  ): Effect.Effect<Array<B> | void, Arr.NonEmptyArray<E>, R> =>
+    flatMap(
+      partition(elements, f, { concurrency: options?.concurrency }),
+      ([excluded, satisfying]) => {
+        if (Arr.isArrayNonEmpty(excluded)) {
+          return fail(excluded)
+        }
+        return options?.discard ? void_ : succeed(satisfying)
+      }
+    )
+)
+
+/** @internal */
 export const whileLoop: <A, E, R>(options: {
   readonly while: LazyArg<boolean>
   readonly body: LazyArg<Effect.Effect<A, E, R>>

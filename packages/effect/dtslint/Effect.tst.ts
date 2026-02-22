@@ -170,6 +170,23 @@ describe("Effect do notation", () => {
   })
 })
 
+describe("Effect.validate", () => {
+  it("returns collected successes on success", () => {
+    const result = Effect.validate([1, 2, 3], (n) => Effect.succeed(n.toString()))
+    expect(result).type.toBe<Effect.Effect<Array<string>, [never, ...Array<never>]>>()
+  })
+
+  it("returns non-empty array errors", () => {
+    const result = Effect.validate([1, 2, 3], () => Effect.fail("error" as const))
+    expect(result).type.toBe<Effect.Effect<Array<never>, ["error", ...Array<"error">]>>()
+  })
+
+  it("supports discard option", () => {
+    const result = Effect.validate([1, 2, 3], (n) => Effect.succeed(n), { discard: true })
+    expect(result).type.toBe<Effect.Effect<void, [never, ...Array<never>]>>()
+  })
+})
+
 describe("Effect.tapErrorTag", () => {
   it("narrows tagged errors", () => {
     const result = pipe(
