@@ -130,7 +130,7 @@ export const report = <E>(cause: Cause.Cause<E>): Effect.Effect<void> =>
  * @category Annotations
  */
 export interface Reportable {
-  readonly [ignore]?: true
+  readonly [ignore]?: boolean
   readonly [severity]?: Severity
   readonly [attributes]?: ReadonlyRecord<string, unknown>
 }
@@ -179,7 +179,8 @@ export const ignore: ignore = "~effect/ErrorReporter/ignore"
  * @since 4.0.0
  * @category Annotations
  */
-export const isIgnored = (u: unknown): boolean => typeof u === "object" && u !== null && ignore in u
+export const isIgnored = (u: unknown): boolean =>
+  typeof u === "object" && u !== null && ignore in u && u[ignore] === true
 
 /**
  * You can specify the severity of an error by adding the `severity` property to
