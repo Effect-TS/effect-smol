@@ -207,6 +207,12 @@ export interface SubcommandDoc {
    * Brief description of what the subcommand does
    */
   readonly description: string
+
+  /**
+   * Group name for organizing subcommands in help output.
+   * Ungrouped commands belong to the "default" group.
+   */
+  readonly group?: string | undefined
 }
 
 /**

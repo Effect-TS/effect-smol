@@ -22,6 +22,11 @@ import { type ConfigInternal, reconstructTree } from "./config.ts"
 
 import type { Command, CommandContext, Environment, ParsedTokens } from "../Command.ts"
 
+interface SubcommandGroupDoc {
+  readonly name: string
+  readonly commands: ReadonlyArray<Command<any, unknown, unknown, unknown>>
+}
+
 /**
  * Internal implementation interface with all the machinery.
  * Use toImpl() to access from internal code.
@@ -35,6 +40,7 @@ export interface CommandInternal<Name extends string, Input, E, R> extends Comma
     input: Input,
     commandPath: ReadonlyArray<string>
   ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
+  readonly subcommandGroups: ReadonlyArray<SubcommandGroupDoc>
   readonly buildHelpDoc: (commandPath: ReadonlyArray<string>) => HelpDoc
 }
 
@@ -86,6 +92,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly shortDescription?: string | undefined
   readonly examples?: ReadonlyArray<Command.Example> | undefined
   readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
+  readonly subcommandGroups?: ReadonlyArray<SubcommandGroupDoc> | undefined
   readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
   readonly handle?:
     | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
@@ -94,6 +101,9 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   const service = options.service ?? ServiceMap.Service<CommandContext<Name>, Input>(`${TypeId}/${options.name}`)
   const config = options.config
   const annotations = options.annotations ?? ServiceMap.empty()
+  const subcommands = options.subcommands ?? []
+  const subcommandGroups = options.subcommandGroups ??
+    (subcommands.length > 0 ? [{ name: "default", commands: subcommands }] : [])
 
   const handle = (
     input: Input,
@@ -128,7 +138,6 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     }
 
     let usage = commandPath.length > 0 ? commandPath.join(" ") : options.name
-    const subcommands = options.subcommands ?? []
     if (subcommands.length > 0) {
       usage += " <subcommand>"
     }
@@ -152,11 +161,18 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
       }
     }
 
-    const subcommandDocs: Array<SubcommandDoc> = subcommands.map((sub) => ({
-      name: sub.name,
-      shortDescription: sub.shortDescription,
-      description: sub.description ?? ""
-    }))
+    const subcommandDocs: Array<SubcommandDoc> = []
+
+    for (const group of subcommandGroups) {
+      for (const subcommand of group.commands) {
+        subcommandDocs.push({
+          name: subcommand.name,
+          shortDescription: subcommand.shortDescription,
+          description: subcommand.description ?? "",
+          group: group.name
+        })
+      }
+    }
 
     const examples: ReadonlyArray<ExampleDoc> = options.examples ?? []
 
@@ -175,8 +191,9 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     [TypeId]: TypeId,
     name: options.name,
     examples: options.examples ?? [],
-    subcommands: options.subcommands ?? [],
     annotations,
+    subcommands,
+    subcommandGroups,
     config,
     service,
     parse,

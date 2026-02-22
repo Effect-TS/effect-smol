@@ -226,4 +226,62 @@ describe("Command help output", () => {
           --config-file, -f file    Write to specific config file"
       `)
     }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("grouped subcommands", () =>
+    Effect.gen(function*() {
+      const ungrouped = Command.make("ungrouped").pipe(
+        Command.withDescription("This command is not in a group")
+      )
+      const init = Command.make("init").pipe(Command.withDescription("Create a new project"))
+      const login = Command.make("login").pipe(Command.withDescription("Authenticate with the platform"))
+      const start = Command.make("start").pipe(Command.withDescription("Start local services"))
+      const stop = Command.make("stop").pipe(Command.withDescription("Stop local services"))
+      const db = Command.make("db").pipe(Command.withDescription("Manage local database"))
+      const projects = Command.make("projects").pipe(Command.withDescription("Manage cloud projects"))
+      const functions = Command.make("functions").pipe(Command.withDescription("Manage edge functions"))
+
+      const grouped = Command.make("tool").pipe(
+        Command.withSubcommands([
+          {
+            group: "Quick Start",
+            commands: [init, login]
+          },
+          {
+            group: "Local Development",
+            commands: [start, stop, db]
+          },
+          {
+            group: "Management APIs",
+            commands: [projects, functions]
+          },
+          ungrouped
+        ])
+      )
+
+      const runGrouped = Command.runWith(grouped, { version: "1.0.0" })
+      yield* runGrouped(["--help"])
+
+      const helpText = (yield* TestConsole.logLines).join("\n")
+
+      expect(helpText).toMatchInlineSnapshot(`
+        "USAGE
+          tool <subcommand> [flags]
+
+        SUBCOMMANDS
+          ungrouped    This command is not in a group
+
+        Quick Start:
+          init     Create a new project
+          login    Authenticate with the platform
+
+        Local Development:
+          start    Start local services
+          stop     Stop local services
+          db       Manage local database
+
+        Management APIs:
+          projects     Manage cloud projects
+          functions    Manage edge functions"
+      `)
+    }).pipe(Effect.provide(TestLayer)))
 })

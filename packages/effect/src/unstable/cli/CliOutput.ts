@@ -499,15 +499,48 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
 
   // Subcommands section
   if (doc.subcommands && doc.subcommands.length > 0) {
-    sections.push(colors.bold("SUBCOMMANDS"))
+    const grouped = new Map<string, Array<(typeof doc.subcommands)[number]>>()
 
-    const subcommandRows: Array<Row> = doc.subcommands.map((sub) => ({
-      left: colors.cyan(sub.name),
-      right: sub.shortDescription ?? sub.description
-    }))
+    for (const subcommand of doc.subcommands) {
+      const group = subcommand.group ?? "default"
+      const existing = grouped.get(group)
+      if (existing) {
+        existing.push(subcommand)
+      } else {
+        grouped.set(group, [subcommand])
+      }
+    }
 
-    sections.push(renderTable(subcommandRows, 20))
-    sections.push("")
+    const defaultSubcommands = grouped.get("default")
+
+    if (defaultSubcommands && defaultSubcommands.length > 0) {
+      sections.push(colors.bold("SUBCOMMANDS"))
+      sections.push(renderTable(
+        defaultSubcommands.map((sub) => ({
+          left: colors.cyan(sub.name),
+          right: sub.shortDescription ?? sub.description
+        })),
+        20
+      ))
+      if (grouped.size > 1) {
+        sections.push("")
+      }
+    }
+
+    for (const [group, subcommands] of grouped) {
+      if (group === "default") {
+        continue
+      }
+      sections.push(colors.bold(`${group}:`))
+      sections.push(renderTable(
+        subcommands.map((sub) => ({
+          left: colors.cyan(sub.name),
+          right: sub.shortDescription ?? sub.description
+        })),
+        20
+      ))
+      sections.push("")
+    }
   }
 
   // Examples section
