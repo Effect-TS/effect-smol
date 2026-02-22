@@ -495,12 +495,18 @@ const keepAlive = (() => {
   return ({
     increment() {
       count++
-      running ??= globalThis.setInterval(constVoid, 2_147_483_647)
+      if (running === undefined) {
+        try {
+          running = globalThis.setInterval(constVoid, 2_147_483_647)
+        } catch {}
+      }
     },
     decrement() {
       count--
       if (count === 0 && running !== undefined) {
-        globalThis.clearInterval(running)
+        try {
+          globalThis.clearInterval(running)
+        } catch {}
         running = undefined
       }
     }
