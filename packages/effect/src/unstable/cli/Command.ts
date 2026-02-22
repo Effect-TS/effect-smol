@@ -13,7 +13,7 @@ import * as References from "../../References.ts"
 import * as Result from "../../Result.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Terminal from "../../Terminal.ts"
-import type { Simplify } from "../../Types.ts"
+import type { NoInfer, Simplify } from "../../Types.ts"
 import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
 import * as CliOutput from "./CliOutput.ts"
@@ -636,19 +636,19 @@ export const withShortDescription: {
 export const annotate: {
   <I, S>(
     service: ServiceMap.Service<I, S>,
-    value: S
+    value: NoInfer<S>
   ): <Name extends string, Input, E, R>(
     self: Command<Name, Input, E, R>
   ) => Command<Name, Input, E, R>
   <Name extends string, Input, E, R, I, S>(
     self: Command<Name, Input, E, R>,
     service: ServiceMap.Service<I, S>,
-    value: S
+    value: NoInfer<S>
   ): Command<Name, Input, E, R>
 } = dual(3, <Name extends string, Input, E, R, I, S>(
   self: Command<Name, Input, E, R>,
   service: ServiceMap.Service<I, S>,
-  value: S
+  value: NoInfer<S>
 ) => {
   const impl = toImpl(self)
   return makeCommand({ ...impl, annotations: ServiceMap.add(impl.annotations, service, value) })
