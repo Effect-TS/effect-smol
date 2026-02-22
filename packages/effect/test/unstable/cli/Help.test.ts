@@ -74,7 +74,9 @@ describe("Command help output", () => {
         Command.withExamples([
           { command: "myapp login", description: "Log in with browser OAuth" },
           { command: "myapp login --token sbp_abc123", description: "Log in with a token" },
-          { command: "myapp login --logout" }
+          { command: "myapp login --logout" },
+          { command: "myapp login --logout" },
+          { command: "myapp login", description: "Log in with browser OAuth" }
         ])
       )
       const runLogin = Command.runWith(command, { version: "1.0.0" })
@@ -96,7 +98,11 @@ describe("Command help output", () => {
           # Log in with a token
           myapp login --token sbp_abc123
 
-          myapp login --logout"
+          myapp login --logout
+          myapp login --logout
+
+          # Log in with browser OAuth
+          myapp login"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
