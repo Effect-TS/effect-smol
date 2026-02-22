@@ -83,7 +83,7 @@ function mergeLeaves<K, V>(
   }
 
   const bitmap = bit1 | bit2
-  const children: Array<Node<K, V>> = bit1 < bit2
+  const children: Array<Node<K, V>> = (bit1 >>> 0) < (bit2 >>> 0)
     ? [node1, node2]
     : [node2, node1]
 
@@ -248,7 +248,7 @@ class LeafNode<K, V> extends Node<K, V> {
     }
 
     const bitmap = newBit | existingBit
-    const nodes: Array<Node<K, V>> = newBit < existingBit
+    const nodes: Array<Node<K, V>> = (newBit >>> 0) < (existingBit >>> 0)
       ? [new LeafNode(edit, hash, key, value), this]
       : [this, new LeafNode(edit, hash, key, value)]
 

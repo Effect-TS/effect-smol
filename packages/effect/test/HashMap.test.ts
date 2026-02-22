@@ -1,4 +1,5 @@
 import { Equal, Hash, HashMap, Option } from "effect"
+import { FastCheck as fc } from "effect/testing"
 import { describe, expect, it } from "vitest"
 
 describe("HashMap", () => {
@@ -441,6 +442,81 @@ describe("HashMap", () => {
       const map2 = HashMap.set(map, person2, "updated")
       expect(HashMap.get(map2, person1)).toEqual(Option.some("updated"))
       expect(HashMap.size(map2)).toBe(2) // Should not increase size
+    })
+  })
+
+  describe("regressions", () => {
+    class FixedHashKey implements Equal.Equal {
+      constructor(readonly id: string, readonly hash: number) {}
+
+      [Equal.symbol](that: Equal.Equal): boolean {
+        return that instanceof FixedHashKey && this.id === that.id
+      }
+
+      [Hash.symbol](): number {
+        return this.hash
+      }
+    }
+
+    it("keeps entries addressable when bit 31 is present in indexed leaf insert", () => {
+      const bit31Key = new FixedHashKey("bit31", 31)
+      const bit30Key = new FixedHashKey("bit30", 30)
+
+      let map = HashMap.empty<FixedHashKey, string>()
+      map = HashMap.set(map, bit31Key, "session1")
+      map = HashMap.set(map, bit30Key, "session2")
+
+      expect(HashMap.size(map)).toBe(2)
+      expect(HashMap.get(map, bit31Key)).toEqual(Option.some("session1"))
+      expect(HashMap.get(map, bit30Key)).toEqual(Option.some("session2"))
+    })
+
+    it("keeps entries addressable when mergeLeaves sees bit 31", () => {
+      const collisionA = new FixedHashKey("collisionA", 31)
+      const collisionB = new FixedHashKey("collisionB", 31)
+      const bit30Key = new FixedHashKey("bit30", 30)
+
+      let map = HashMap.empty<FixedHashKey, string>()
+      map = HashMap.set(map, collisionA, "a")
+      map = HashMap.set(map, collisionB, "b")
+      map = HashMap.set(map, bit30Key, "c")
+
+      expect(HashMap.size(map)).toBe(3)
+      expect(HashMap.get(map, collisionA)).toEqual(Option.some("a"))
+      expect(HashMap.get(map, collisionB)).toEqual(Option.some("b"))
+      expect(HashMap.get(map, bit30Key)).toEqual(Option.some("c"))
+    })
+
+    it("keeps all inserted entries addressable across random bit-31-heavy shapes", () => {
+      const entriesArbitrary = fc.array(fc.integer({ min: 0, max: 31 }), { minLength: 0, maxLength: 80 }).chain(
+        (hashes) => {
+          const allHashes = [31, 31, 30, ...hashes]
+          return fc.uniqueArray(fc.uuid(), { minLength: allHashes.length, maxLength: allHashes.length }).map((ids) =>
+            allHashes.map((hash, i) => ({ id: ids[i], hash }))
+          )
+        }
+      )
+
+      fc.assert(
+        fc.property(entriesArbitrary, (entries) => {
+          let map = HashMap.empty<FixedHashKey, string>()
+          const inserted: Array<readonly [FixedHashKey, string]> = []
+
+          for (const entry of entries) {
+            const key = new FixedHashKey(entry.id, entry.hash)
+            const value = `value-${entry.id}`
+            map = HashMap.set(map, key, value)
+            inserted.push([key, value])
+          }
+
+          expect(HashMap.size(map)).toBe(inserted.length)
+          for (const [key, value] of inserted) {
+            expect(HashMap.has(map, key)).toBe(true)
+            expect(HashMap.get(map, key)).toEqual(Option.some(value))
+          }
+        }),
+        { numRuns: 200 }
+      )
     })
   })
 
