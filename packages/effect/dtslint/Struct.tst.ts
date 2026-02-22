@@ -34,7 +34,6 @@ describe("Struct", () => {
     expect<Struct.Mutable<true>>().type.toBe<true>()
     expect<Struct.Mutable<false>>().type.toBe<false>()
     expect<Struct.Mutable<Date>>().type.toBe<Date>()
-    expect<Struct.Mutable<Error>>().type.toBe<Error>()
     expect<Struct.Mutable<Array<unknown>>>().type.toBe<Array<unknown>>()
     expect<Struct.Mutable<ReadonlyArray<unknown>>>().type.toBe<Array<unknown>>()
     expect<Struct.Mutable<readonly [string, number]>>().type.toBe<[string, number]>()

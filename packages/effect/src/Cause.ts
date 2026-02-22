@@ -79,7 +79,6 @@
  */
 import type * as Effect from "./Effect.ts"
 import type { Equal } from "./Equal.ts"
-import type { Reportable } from "./ErrorReporter.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
@@ -1089,7 +1088,7 @@ export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
  * @since 2.0.0
  * @category errors
  */
-export interface YieldableError extends Error, Pipeable, Reportable {
+export interface YieldableError extends Error, Pipeable {
   [Symbol.iterator](): Effect.EffectIterator<this>
   asEffect(): Effect.Effect<never, this, never>
 }

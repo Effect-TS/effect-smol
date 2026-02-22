@@ -127,6 +127,10 @@ export interface Reportable {
   readonly [severity]?: Severity
 }
 
+declare global {
+  interface Error extends Reportable {}
+}
+
 /**
  * @since 4.0.0
  * @category Annotations
