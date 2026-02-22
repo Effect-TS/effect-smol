@@ -73,7 +73,8 @@ describe("Command help output", () => {
         Command.withDescription("Authenticate with Supabase"),
         Command.withExamples([
           { command: "myapp login", description: "Log in with browser OAuth" },
-          { command: "myapp login --token sbp_abc123", description: "Log in with a token" }
+          { command: "myapp login --token sbp_abc123", description: "Log in with a token" },
+          { command: "myapp login --logout" }
         ])
       )
       const runLogin = Command.runWith(command, { version: "1.0.0" })
@@ -93,7 +94,9 @@ describe("Command help output", () => {
           myapp login
 
           # Log in with a token
-          myapp login --token sbp_abc123"
+          myapp login --token sbp_abc123
+
+          myapp login --logout"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
