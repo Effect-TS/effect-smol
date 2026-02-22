@@ -161,7 +161,7 @@ export const fromCommand = (cmd: Command.Any): CommandDescriptor => {
 
   return {
     name: cmd.name,
-    description: cmd.description,
+    description: cmd.shortDescription ?? cmd.description,
     flags,
     arguments: args,
     subcommands

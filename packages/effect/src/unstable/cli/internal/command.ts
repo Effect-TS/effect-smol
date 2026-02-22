@@ -81,6 +81,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly config: ConfigInternal
   readonly service?: ServiceMap.Service<CommandContext<Name>, Input> | undefined
   readonly description?: string | undefined
+  readonly shortDescription?: string | undefined
   readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
   readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
   readonly handle?:
@@ -149,7 +150,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
 
     const subcommandDocs: Array<SubcommandDoc> = subcommands.map((sub) => ({
       name: sub.name,
-      description: sub.description ?? ""
+      description: sub.shortDescription ?? sub.description ?? ""
     }))
 
     return {
@@ -172,6 +173,9 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     buildHelpDoc,
     ...(Predicate.isNotUndefined(options.description)
       ? { description: options.description }
+      : {}),
+    ...(Predicate.isNotUndefined(options.shortDescription)
+      ? { shortDescription: options.shortDescription }
       : {})
   })
 }

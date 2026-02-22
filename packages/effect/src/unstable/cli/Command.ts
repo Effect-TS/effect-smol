@@ -95,6 +95,11 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
   readonly description: string | undefined
 
   /**
+   * An optional short description used when listing subcommands.
+   */
+  readonly shortDescription: string | undefined
+
+  /**
    * The subcommands available under this command.
    */
   readonly subcommands: ReadonlyArray<Command.Any>
@@ -543,6 +548,7 @@ export const withSubcommands: {
     name: impl.name,
     config: impl.config,
     description: impl.description,
+    shortDescription: impl.shortDescription,
     service: impl.service,
     subcommands,
     parse,
@@ -591,6 +597,29 @@ export const withDescription: {
   self: Command<Name, Input, E, R>,
   description: string
 ) => makeCommand({ ...toImpl(self), description }))
+
+/**
+ * Sets a short description for a command.
+ *
+ * Short descriptions are used when listing subcommands in help output and
+ * shell completions. If no short description is provided, the full
+ * `description` is used as a fallback.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withShortDescription: {
+  (shortDescription: string): <const Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>
+  ) => Command<Name, Input, E, R>
+  <const Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>,
+    shortDescription: string
+  ): Command<Name, Input, E, R>
+} = dual(2, <const Name extends string, Input, E, R>(
+  self: Command<Name, Input, E, R>,
+  shortDescription: string
+) => makeCommand({ ...toImpl(self), shortDescription }))
 
 /* ========================================================================== */
 /* Providing Services                                                         */
