@@ -499,41 +499,29 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
 
   // Subcommands section
   if (doc.subcommands && doc.subcommands.length > 0) {
-    const grouped = new Map<string, Array<(typeof doc.subcommands)[number]>>()
+    const ungrouped = doc.subcommands.find((group) => group.group === undefined)
 
-    for (const subcommand of doc.subcommands) {
-      const group = subcommand.group ?? "default"
-      const existing = grouped.get(group)
-      if (existing) {
-        existing.push(subcommand)
-      } else {
-        grouped.set(group, [subcommand])
-      }
-    }
-
-    const defaultSubcommands = grouped.get("default")
-
-    if (defaultSubcommands && defaultSubcommands.length > 0) {
+    if (ungrouped && ungrouped.commands.length > 0) {
       sections.push(colors.bold("SUBCOMMANDS"))
       sections.push(renderTable(
-        defaultSubcommands.map((sub) => ({
+        ungrouped.commands.map((sub) => ({
           left: colors.cyan(sub.name),
           right: sub.shortDescription ?? sub.description
         })),
         20
       ))
-      if (grouped.size > 1) {
+      if (doc.subcommands.some((group) => group.group !== undefined && group.commands.length > 0)) {
         sections.push("")
       }
     }
 
-    for (const [group, subcommands] of grouped) {
-      if (group === "default") {
+    for (const group of doc.subcommands) {
+      if (group.group === undefined || group.commands.length === 0) {
         continue
       }
-      sections.push(colors.bold(`${group}:`))
+      sections.push(colors.bold(`${group.group}:`))
       sections.push(renderTable(
-        subcommands.map((sub) => ({
+        group.commands.map((sub) => ({
           left: colors.cyan(sub.name),
           right: sub.shortDescription ?? sub.description
         })),

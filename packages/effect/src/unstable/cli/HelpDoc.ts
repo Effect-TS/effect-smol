@@ -79,7 +79,7 @@ export interface HelpDoc {
   /**
    * Optional list of subcommands if this is a parent command
    */
-  readonly subcommands?: ReadonlyArray<SubcommandDoc>
+  readonly subcommands?: ReadonlyArray<SubcommandGroupDoc>
 
   /**
    * Optional concrete usage examples for the command
@@ -185,7 +185,10 @@ export interface FlagDoc {
  *   usage: "myapp <command> [options]",
  *   annotations: ServiceMap.empty(),
  *   flags: [],
- *   subcommands: [deploySubcommand, buildSubcommand]
+ *   subcommands: [{
+ *     group: undefined,
+ *     commands: [deploySubcommand, buildSubcommand]
+ *   }]
  * }
  * ```
  *
@@ -207,12 +210,25 @@ export interface SubcommandDoc {
    * Brief description of what the subcommand does
    */
   readonly description: string
+}
+
+/**
+ * Documentation for a grouped subcommand listing
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface SubcommandGroupDoc {
+  /**
+   * Group name used in help output.
+   * Undefined means the default ungrouped section.
+   */
+  readonly group: string | undefined
 
   /**
-   * Group name for organizing subcommands in help output.
-   * Ungrouped commands belong to the "default" group.
+   * Subcommands in this group.
    */
-  readonly group?: string | undefined
+  readonly commands: ReadonlyArray<SubcommandDoc>
 }
 
 /**

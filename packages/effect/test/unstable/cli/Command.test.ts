@@ -978,9 +978,10 @@ describe("Command", () => {
         const root = Command.make("tool").pipe(Command.withSubcommands([child]))
 
         const helpDoc = toImpl(root).buildHelpDoc(["tool"])
+        const listed = helpDoc.subcommands?.[0]?.commands[0]
 
-        assert.strictEqual(helpDoc.subcommands?.[0]?.shortDescription, "Build artifacts")
-        assert.strictEqual(helpDoc.subcommands?.[0]?.description, "Build the project and all artifacts")
+        assert.strictEqual(listed?.shortDescription, "Build artifacts")
+        assert.strictEqual(listed?.description, "Build the project and all artifacts")
       }))
   })
 

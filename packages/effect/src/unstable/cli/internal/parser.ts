@@ -273,8 +273,16 @@ const createFlagRegistry = (params: ReadonlyArray<FlagParam>): FlagRegistry => {
 }
 
 const buildSubcommandIndex = (
-  subcommands: ReadonlyArray<Command<string, unknown, unknown, unknown>>
-): Map<string, Command<string, unknown, unknown, unknown>> => new Map(subcommands.map((sub) => [sub.name, sub]))
+  subcommands: Command.Any["subcommands"]
+): Map<string, Command<string, unknown, unknown, unknown>> => {
+  const index = new Map<string, Command<string, unknown, unknown, unknown>>()
+  for (const group of subcommands) {
+    for (const subcommand of group.commands) {
+      index.set(subcommand.name, subcommand)
+    }
+  }
+  return index
+}
 
 /* ========================================================================== */
 /* Flag Accumulator                                                           */
@@ -506,7 +514,7 @@ const resolveFirstValue = (
   // Not a subcommand. Check if this looks like a typo.
   const expectsArgs = toImpl(command).config.arguments.length > 0
   if (!expectsArgs && subIndex.size > 0) {
-    const suggestions = suggest(value, command.subcommands.map((s) => s.name))
+    const suggestions = suggest(value, Array.from(subIndex.keys()))
     state.errors.push(
       new CliError.UnknownSubcommand({
         subcommand: value,

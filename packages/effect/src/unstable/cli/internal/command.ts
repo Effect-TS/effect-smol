@@ -11,7 +11,7 @@ import { pipeArguments } from "../../../Pipeable.ts"
 import * as Predicate from "../../../Predicate.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
 import * as CliError from "../CliError.ts"
-import type { ArgDoc, ExampleDoc, FlagDoc, HelpDoc, SubcommandDoc } from "../HelpDoc.ts"
+import type { ArgDoc, ExampleDoc, FlagDoc, HelpDoc, SubcommandDoc, SubcommandGroupDoc } from "../HelpDoc.ts"
 import * as Param from "../Param.ts"
 import * as Primitive from "../Primitive.ts"
 import { type ConfigInternal, reconstructTree } from "./config.ts"
@@ -22,8 +22,8 @@ import { type ConfigInternal, reconstructTree } from "./config.ts"
 
 import type { Command, CommandContext, Environment, ParsedTokens } from "../Command.ts"
 
-interface SubcommandGroupDoc {
-  readonly name: string
+interface SubcommandGroup {
+  readonly group: string | undefined
   readonly commands: ReadonlyArray<Command<any, unknown, unknown, unknown>>
 }
 
@@ -40,7 +40,6 @@ export interface CommandInternal<Name extends string, Input, E, R> extends Comma
     input: Input,
     commandPath: ReadonlyArray<string>
   ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
-  readonly subcommandGroups: ReadonlyArray<SubcommandGroupDoc>
   readonly buildHelpDoc: (commandPath: ReadonlyArray<string>) => HelpDoc
 }
 
@@ -91,8 +90,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly description?: string | undefined
   readonly shortDescription?: string | undefined
   readonly examples?: ReadonlyArray<Command.Example> | undefined
-  readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
-  readonly subcommandGroups?: ReadonlyArray<SubcommandGroupDoc> | undefined
+  readonly subcommands?: ReadonlyArray<SubcommandGroup> | undefined
   readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
   readonly handle?:
     | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
@@ -102,8 +100,6 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   const config = options.config
   const annotations = options.annotations ?? ServiceMap.empty()
   const subcommands = options.subcommands ?? []
-  const subcommandGroups = options.subcommandGroups ??
-    (subcommands.length > 0 ? [{ name: "default", commands: subcommands }] : [])
 
   const handle = (
     input: Input,
@@ -138,7 +134,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     }
 
     let usage = commandPath.length > 0 ? commandPath.join(" ") : options.name
-    if (subcommands.length > 0) {
+    if (subcommands.some((group) => group.commands.length > 0)) {
       usage += " <subcommand>"
     }
     usage += " [flags]"
@@ -161,15 +157,23 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
       }
     }
 
-    const subcommandDocs: Array<SubcommandDoc> = []
+    const subcommandDocs: Array<SubcommandGroupDoc> = []
 
-    for (const group of subcommandGroups) {
+    for (const group of subcommands) {
+      const commands: Array<SubcommandDoc> = []
+
       for (const subcommand of group.commands) {
-        subcommandDocs.push({
+        commands.push({
           name: subcommand.name,
           shortDescription: subcommand.shortDescription,
-          description: subcommand.description ?? "",
-          group: group.name
+          description: subcommand.description ?? ""
+        })
+      }
+
+      if (commands.length > 0) {
+        subcommandDocs.push({
+          group: group.group,
+          commands
         })
       }
     }
@@ -193,7 +197,6 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     examples: options.examples ?? [],
     annotations,
     subcommands,
-    subcommandGroups,
     config,
     service,
     parse,
@@ -287,7 +290,15 @@ export const getHelpForCommandPath = <Name extends string, Input, E, R>(
   // Navigate through the command path to find the target command
   for (let i = 1; i < commandPath.length; i++) {
     const subcommandName = commandPath[i]
-    const subcommand = currentCommand.subcommands.find((sub) => sub.name === subcommandName)
+    let subcommand: Command.Any | undefined = undefined
+
+    for (const group of currentCommand.subcommands) {
+      subcommand = group.commands.find((sub) => sub.name === subcommandName)
+      if (subcommand) {
+        break
+      }
+    }
+
     if (subcommand) {
       currentCommand = subcommand
     }

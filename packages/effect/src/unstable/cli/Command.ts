@@ -107,7 +107,10 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
   /**
    * The subcommands available under this command.
    */
-  readonly subcommands: ReadonlyArray<Command.Any>
+  readonly subcommands: ReadonlyArray<{
+    readonly group: string | undefined
+    readonly commands: ReadonlyArray<Command.Any>
+  }>
 
   /**
    * Custom annotations associated with this command.
@@ -467,10 +470,8 @@ export const withHandler: {
   handler: (value: A) => Effect.Effect<void, E, R>
 ): Command<Name, A, E, R> => makeCommand({ ...toImpl(self), handle: handler }))
 
-const DefaultSubcommandGroup = "default"
-
 interface SubcommandGroupInternal {
-  readonly name: string
+  readonly group: string | undefined
   readonly commands: ReadonlyArray<Command.Any>
 }
 
@@ -481,9 +482,9 @@ const normalizeSubcommandEntries = (
   readonly groups: ReadonlyArray<SubcommandGroupInternal>
 } => {
   const flat: Array<Command.Any> = []
-  const grouped = new Map<string, Array<Command.Any>>()
+  const grouped = new Map<string | undefined, Array<Command.Any>>()
 
-  const addToGroup = (group: string, command: Command.Any): void => {
+  const addToGroup = (group: string | undefined, command: Command.Any): void => {
     flat.push(command)
     const existing = grouped.get(group)
     if (existing) {
@@ -495,7 +496,7 @@ const normalizeSubcommandEntries = (
 
   for (const entry of entries) {
     if (isCommand(entry)) {
-      addToGroup(DefaultSubcommandGroup, entry)
+      addToGroup(undefined, entry)
       continue
     }
     for (const command of entry.commands) {
@@ -504,17 +505,17 @@ const normalizeSubcommandEntries = (
   }
 
   const groups: Array<SubcommandGroupInternal> = []
-  const defaultCommands = grouped.get(DefaultSubcommandGroup)
+  const ungroupedCommands = grouped.get(undefined)
 
-  if (defaultCommands && defaultCommands.length > 0) {
-    groups.push({ name: DefaultSubcommandGroup, commands: defaultCommands })
+  if (ungroupedCommands && ungroupedCommands.length > 0) {
+    groups.push({ group: undefined, commands: ungroupedCommands })
   }
 
-  for (const [name, commands] of grouped) {
-    if (name === DefaultSubcommandGroup) {
+  for (const [group, commands] of grouped) {
+    if (group === undefined) {
       continue
     }
-    groups.push({ name, commands })
+    groups.push({ group, commands })
   }
 
   return { flat, groups }
@@ -646,8 +647,7 @@ export const withSubcommands: {
     annotations: impl.annotations,
     examples: impl.examples,
     service: impl.service,
-    subcommands: normalized.flat,
-    subcommandGroups: normalized.groups,
+    subcommands: normalized.groups,
     parse,
     handle
   })

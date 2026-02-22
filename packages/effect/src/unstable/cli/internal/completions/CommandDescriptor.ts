@@ -157,7 +157,12 @@ export const fromCommand = (cmd: Command.Any): CommandDescriptor => {
     }
   }
 
-  const subcommands: Array<CommandDescriptor> = cmd.subcommands.map(fromCommand)
+  const subcommands: Array<CommandDescriptor> = []
+  for (const group of cmd.subcommands) {
+    for (const subcommand of group.commands) {
+      subcommands.push(fromCommand(subcommand))
+    }
+  }
 
   return {
     name: cmd.name,
