@@ -949,9 +949,8 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       return content as Array<Response.Part<Tools>>
     }
 
-    // Pre-resolve tool approvals before calling the LLM
+    // Pre-resolve pending tool approvals before calling the LLM
     if (hasPendingApprovals) {
-      // Validate all approved tools exist in the toolkit
       for (const approval of approved) {
         if (approval.toolCall && !toolkit.tools[approval.toolCall.name]) {
           return yield* AiError.make({
@@ -965,7 +964,6 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         }
       }
 
-      // Execute approved tools and create denial results
       const approvedResults = yield* executeApprovedToolCalls(
         approved,
         toolkit,
@@ -974,23 +972,27 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       const deniedResults = createDenialResults(denied)
       const preResolvedResults = [...approvedResults, ...deniedResults]
 
-      // Add pre-resolved results to the prompt
       if (preResolvedResults.length > 0) {
-        const toolMessage = Prompt.makeMessage("tool", {
-          content: preResolvedResults
-        })
         providerOptions.prompt = Prompt.fromMessages([
           ...providerOptions.prompt.content,
-          toolMessage
+          Prompt.makeMessage("tool", { content: preResolvedResults })
         ])
       }
+    }
 
-      // Strip consumed approval artifacts so they don't reach the provider
-      providerOptions.prompt = stripResolvedApprovals(
-        providerOptions.prompt,
-        approved,
-        denied
+    // Strip all resolved approval artifacts (both current and from previous
+    // rounds) in a single pass before sending to the provider.
+    {
+      const { approved: allResolved, denied: allDenied } = collectToolApprovals(
+        providerOptions.prompt.content
       )
+      if (allResolved.length > 0 || allDenied.length > 0) {
+        providerOptions.prompt = stripResolvedApprovals(
+          providerOptions.prompt,
+          allResolved,
+          allDenied
+        )
+      }
     }
 
     const tools = typeof toolChoice === "object" && "oneOf" in toolChoice
@@ -1137,9 +1139,10 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         >
     }
 
-    // Pre-resolve tool approvals before calling the LLM
+    // Pre-resolve pending tool approvals before calling the LLM
+    let preResolvedStreamParts: Array<Response.StreamPart<Tools>> = []
+
     if (hasPendingApprovals) {
-      // Validate all approved tools exist in the toolkit
       for (const approval of pendingApproved) {
         if (approval.toolCall && !toolkit.tools[approval.toolCall.name]) {
           return yield* AiError.make({
@@ -1153,7 +1156,6 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         }
       }
 
-      // Execute approved tools and create denial results
       const approvedResults = yield* executeApprovedToolCalls(
         pendingApproved,
         toolkit,
@@ -1162,22 +1164,43 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       const deniedResults = createDenialResults(pendingDenied)
       const preResolvedResults = [...approvedResults, ...deniedResults]
 
-      // Add pre-resolved results to the prompt
       if (preResolvedResults.length > 0) {
-        const toolMessage = Prompt.makeMessage("tool", {
-          content: preResolvedResults
-        })
         providerOptions.prompt = Prompt.fromMessages([
           ...providerOptions.prompt.content,
-          toolMessage
+          Prompt.makeMessage("tool", { content: preResolvedResults })
         ])
       }
 
-      // Strip consumed approval artifacts so they don't reach the provider
+      // Emit pre-resolved tool-results as stream parts so Chat.streamText
+      // persists them to history. This lets collectToolApprovals find them
+      // on subsequent rounds and skip the now-resolved approvals.
+      // Note: r.result is already encoded (from executeApprovedToolCalls /
+      // createDenialResults), so it goes into both result and encodedResult.
+      for (const r of preResolvedResults) {
+        preResolvedStreamParts.push(
+          Response.makePart("tool-result", {
+            id: r.id,
+            name: r.name,
+            providerExecuted: false,
+            preliminary: false,
+            result: r.result,
+            encodedResult: r.result,
+            isFailure: r.isFailure
+          }) as Response.StreamPart<Tools>
+        )
+      }
+    }
+
+    // Strip all resolved approval artifacts (both current and from previous
+    // rounds) in a single pass before sending to the provider.
+    const { approved: allResolved, denied: allDenied } = collectToolApprovals(
+      providerOptions.prompt.content
+    )
+    if (allResolved.length > 0 || allDenied.length > 0) {
       providerOptions.prompt = stripResolvedApprovals(
         providerOptions.prompt,
-        pendingApproved,
-        pendingDenied
+        allResolved,
+        allDenied
       )
     }
 
@@ -1214,6 +1237,13 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       | Cause.Done
       | Schema.SchemaError
     >()
+
+    // Emit pre-resolved tool results so Chat.streamText persists them to
+    // history. This ensures collectToolApprovals({ excludeResolved }) can
+    // find the corresponding tool-results on future rounds.
+    if (preResolvedStreamParts.length > 0) {
+      yield* Queue.offerAll(queue, preResolvedStreamParts)
+    }
 
     // FiberSet to track concurrent tool call handlers
     const toolCallFibers = yield* FiberSet.make<void, AiError.AiError>()
