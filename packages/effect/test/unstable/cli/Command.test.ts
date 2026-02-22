@@ -2,6 +2,7 @@ import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Option, Path } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
+import { toImpl } from "effect/unstable/cli/internal/command"
 import { ChildProcessSpawner } from "effect/unstable/process"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
 import * as MockTerminal from "./services/MockTerminal.ts"
@@ -828,5 +829,56 @@ describe("Command", () => {
         const actions = yield* TestActions.getActions
         assert.strictEqual(actions.length, 0)
       }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should use short descriptions in subcommand listings", () =>
+      Effect.gen(function*() {
+        const withShortDescription = Command.make("build").pipe(
+          Command.withDescription("Build the project and all artifacts"),
+          Command.withShortDescription("Build artifacts")
+        )
+        const withFallbackDescription = Command.make("test").pipe(
+          Command.withDescription("Run the full test suite")
+        )
+        const root = Command.make("tool").pipe(
+          Command.withSubcommands([withShortDescription, withFallbackDescription])
+        )
+
+        const runCommand = Command.runWith(root, { version: "1.0.0" })
+        yield* runCommand(["--help"])
+
+        const stdout = (yield* TestConsole.logLines).join("\n")
+        assert.isTrue(stdout.includes("Build artifacts"))
+        assert.isFalse(stdout.includes("Build the project and all artifacts"))
+        assert.isTrue(stdout.includes("Run the full test suite"))
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should keep full description on the command help page", () =>
+      Effect.gen(function*() {
+        const child = Command.make("build").pipe(
+          Command.withDescription("Build the project and all artifacts"),
+          Command.withShortDescription("Build artifacts")
+        )
+        const root = Command.make("tool").pipe(Command.withSubcommands([child]))
+        const runCommand = Command.runWith(root, { version: "1.0.0" })
+
+        yield* runCommand(["build", "--help"])
+
+        const stdout = (yield* TestConsole.logLines).join("\n")
+        assert.isTrue(stdout.includes("Build the project and all artifacts"))
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should include short description metadata in HelpDoc subcommands", () =>
+      Effect.gen(function*() {
+        const child = Command.make("build").pipe(
+          Command.withDescription("Build the project and all artifacts"),
+          Command.withShortDescription("Build artifacts")
+        )
+        const root = Command.make("tool").pipe(Command.withSubcommands([child]))
+
+        const helpDoc = toImpl(root).buildHelpDoc(["tool"])
+
+        assert.strictEqual(helpDoc.subcommands?.[0]?.shortDescription, "Build artifacts")
+        assert.strictEqual(helpDoc.subcommands?.[0]?.description, "Build the project and all artifacts")
+      }))
   })
 })

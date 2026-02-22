@@ -244,5 +244,21 @@ describe("CommandDescriptor", () => {
         assert.strictEqual(desc.subcommands[1].name, "beta")
         assert.strictEqual(desc.subcommands[2].name, "gamma")
       }))
+
+    it.effect("prefers short descriptions for subcommand listings", () =>
+      Effect.gen(function*() {
+        const build = Command.make("build").pipe(
+          Command.withDescription("Build the project and all artifacts"),
+          Command.withShortDescription("Build artifacts")
+        )
+        const test = Command.make("test").pipe(
+          Command.withDescription("Run the full test suite")
+        )
+        const root = Command.make("root").pipe(Command.withSubcommands([build, test]))
+
+        const desc = CommandDescriptor.fromCommand(root)
+        assert.strictEqual(desc.subcommands[0].description, "Build artifacts")
+        assert.strictEqual(desc.subcommands[1].description, "Run the full test suite")
+      }))
   })
 })
