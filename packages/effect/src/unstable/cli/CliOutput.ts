@@ -501,7 +501,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
   if (doc.subcommands && doc.subcommands.length > 0) {
     const ungrouped = doc.subcommands.find((group) => group.group === undefined)
 
-    if (ungrouped && ungrouped.commands.length > 0) {
+    if (ungrouped) {
       sections.push(colors.bold("SUBCOMMANDS"))
       sections.push(renderTable(
         ungrouped.commands.map((sub) => ({
@@ -510,15 +510,13 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
         })),
         20
       ))
-      if (doc.subcommands.some((group) => group.group !== undefined && group.commands.length > 0)) {
+      if (doc.subcommands.length > 1) {
         sections.push("")
       }
     }
 
     for (const group of doc.subcommands) {
-      if (group.group === undefined || group.commands.length === 0) {
-        continue
-      }
+      if (group.group === undefined) continue
       sections.push(colors.bold(`${group.group}:`))
       sections.push(renderTable(
         group.commands.map((sub) => ({

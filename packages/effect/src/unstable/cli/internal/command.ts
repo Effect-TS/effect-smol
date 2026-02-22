@@ -5,13 +5,14 @@
  * Internal implementation details for CLI commands.
  * Public API is in ../Command.ts
  */
+import * as Arr from "../../../Array.ts"
 import * as Effect from "../../../Effect.ts"
 import { YieldableProto } from "../../../internal/core.ts"
 import { pipeArguments } from "../../../Pipeable.ts"
 import * as Predicate from "../../../Predicate.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
 import * as CliError from "../CliError.ts"
-import type { ArgDoc, ExampleDoc, FlagDoc, HelpDoc, SubcommandDoc, SubcommandGroupDoc } from "../HelpDoc.ts"
+import type { ArgDoc, ExampleDoc, FlagDoc, HelpDoc, SubcommandGroupDoc } from "../HelpDoc.ts"
 import * as Param from "../Param.ts"
 import * as Primitive from "../Primitive.ts"
 import { type ConfigInternal, reconstructTree } from "./config.ts"
@@ -24,7 +25,7 @@ import type { Command, CommandContext, Environment, ParsedTokens } from "../Comm
 
 interface SubcommandGroup {
   readonly group: string | undefined
-  readonly commands: ReadonlyArray<Command<any, unknown, unknown, unknown>>
+  readonly commands: Arr.NonEmptyReadonlyArray<Command<any, unknown, unknown, unknown>>
 }
 
 /**
@@ -160,22 +161,14 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     const subcommandDocs: Array<SubcommandGroupDoc> = []
 
     for (const group of subcommands) {
-      const commands: Array<SubcommandDoc> = []
-
-      for (const subcommand of group.commands) {
-        commands.push({
+      subcommandDocs.push({
+        group: group.group,
+        commands: Arr.map(group.commands, (subcommand) => ({
           name: subcommand.name,
           shortDescription: subcommand.shortDescription,
           description: subcommand.description ?? ""
-        })
-      }
-
-      if (commands.length > 0) {
-        subcommandDocs.push({
-          group: group.group,
-          commands
-        })
-      }
+        }))
+      })
     }
 
     const examples: ReadonlyArray<ExampleDoc> = options.examples ?? []

@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
 
 /**
@@ -228,7 +229,7 @@ export interface SubcommandGroupDoc {
   /**
    * Subcommands in this group.
    */
-  readonly commands: ReadonlyArray<SubcommandDoc>
+  readonly commands: NonEmptyReadonlyArray<SubcommandDoc>
 }
 
 /**

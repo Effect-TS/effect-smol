@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type { NonEmptyArray, NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Console from "../../Console.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
@@ -109,7 +110,7 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
    */
   readonly subcommands: ReadonlyArray<{
     readonly group: string | undefined
-    readonly commands: ReadonlyArray<Command.Any>
+    readonly commands: NonEmptyReadonlyArray<Command.Any>
   }>
 
   /**
@@ -472,7 +473,7 @@ export const withHandler: {
 
 interface SubcommandGroupInternal {
   readonly group: string | undefined
-  readonly commands: ReadonlyArray<Command.Any>
+  readonly commands: NonEmptyReadonlyArray<Command.Any>
 }
 
 const normalizeSubcommandEntries = (
@@ -482,7 +483,7 @@ const normalizeSubcommandEntries = (
   readonly groups: ReadonlyArray<SubcommandGroupInternal>
 } => {
   const flat: Array<Command.Any> = []
-  const grouped = new Map<string | undefined, Array<Command.Any>>()
+  const grouped = new Map<string | undefined, NonEmptyArray<Command.Any>>()
 
   const addToGroup = (group: string | undefined, command: Command.Any): void => {
     flat.push(command)
