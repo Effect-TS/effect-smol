@@ -290,6 +290,87 @@ describe("LanguageModel", () => {
         strictEqual(toolResults[0].isFailure, true)
       }))
 
+    it("strips resolved approval artifacts from prompt sent to provider", () =>
+      Effect.gen(function*() {
+        const toolCallId = "call-strip"
+        const approvalId = "approval-strip"
+        let capturedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
+
+        const prompt: Array<Prompt.Message> = [
+          Prompt.assistantMessage({
+            content: [
+              Prompt.makePart("tool-call", {
+                id: toolCallId,
+                name: "ApprovalTool",
+                params: { action: "delete" },
+                providerExecuted: false
+              }),
+              Prompt.makePart("tool-approval-request", {
+                approvalId,
+                toolCallId
+              })
+            ]
+          }),
+          Prompt.toolMessage({
+            content: [
+              Prompt.toolApprovalResponsePart({
+                approvalId,
+                approved: true
+              })
+            ]
+          })
+        ]
+
+        yield* LanguageModel.streamText({
+          prompt,
+          toolkit: ApprovalToolkit
+        }).pipe(
+          Stream.runDrain,
+          TestUtils.withLanguageModel({
+            streamText: (opts) => {
+              capturedPrompt = opts.prompt
+              return [{
+                type: "finish",
+                reason: "stop",
+                usage: {
+                  inputTokens: { uncached: 5, total: 5, cacheRead: undefined, cacheWrite: undefined },
+                  outputTokens: { total: 5, text: undefined, reasoning: undefined }
+                }
+              }]
+            }
+          }),
+          Effect.provide(ApprovalToolkitLayer)
+        )
+
+        // Verify approval artifacts are stripped from the prompt
+        assertDefined(capturedPrompt)
+        const messages = capturedPrompt.content
+
+        // Assistant message should retain tool-call but not tool-approval-request
+        const assistantMsg = messages.find((m) => m.role === "assistant")
+        assertDefined(assistantMsg)
+        if (assistantMsg.role === "assistant") {
+          const approvalRequests = assistantMsg.content.filter(
+            (p) => p.type === "tool-approval-request"
+          )
+          strictEqual(approvalRequests.length, 0)
+          const toolCalls = assistantMsg.content.filter(
+            (p) => p.type === "tool-call"
+          )
+          strictEqual(toolCalls.length, 1)
+        }
+
+        // No tool message should contain tool-approval-response parts
+        for (const msg of messages) {
+          if (msg.role === "tool") {
+            const approvalResponses = msg.content.filter(
+              (p) => p.type === "tool-approval-response"
+            )
+            strictEqual(approvalResponses.length, 0)
+          }
+        }
+      }))
+
     it("dynamic needsApproval returns true when condition met", () =>
       Effect.gen(function*() {
         const parts: Array<Response.StreamPart<Toolkit.Tools<typeof ApprovalToolkit>>> = []

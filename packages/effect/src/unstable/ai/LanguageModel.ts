@@ -984,6 +984,13 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
           toolMessage
         ])
       }
+
+      // Strip consumed approval artifacts so they don't reach the provider
+      providerOptions.prompt = stripResolvedApprovals(
+        providerOptions.prompt,
+        approved,
+        denied
+      )
     }
 
     const tools = typeof toolChoice === "object" && "oneOf" in toolChoice
@@ -1165,6 +1172,13 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
           toolMessage
         ])
       }
+
+      // Strip consumed approval artifacts so they don't reach the provider
+      providerOptions.prompt = stripResolvedApprovals(
+        providerOptions.prompt,
+        pendingApproved,
+        pendingDenied
+      )
     }
 
     const tools = typeof toolChoice === "object" && "oneOf" in toolChoice
@@ -1504,6 +1518,63 @@ const collectToolApprovals = (
   }
 
   return { approved, denied }
+}
+
+/**
+ * Strip resolved approval artifacts from the prompt before sending to the
+ * provider. After pre-resolving approvals (executing approved tools and
+ * creating denial results), the original `tool-approval-request` parts in
+ * assistant messages and `tool-approval-response` parts in tool messages are
+ * no longer needed. Leaving them in causes provider-specific errors (e.g.
+ * OpenAI rejects `mcp_approval_response` items that reference approval
+ * requests it never issued).
+ */
+const stripResolvedApprovals = (
+  prompt: Prompt.Prompt,
+  approved: ReadonlyArray<ApprovalResult>,
+  denied: ReadonlyArray<ApprovalResult>
+): Prompt.Prompt => {
+  const resolvedApprovalIds = new Set<string>()
+  for (const a of approved) resolvedApprovalIds.add(a.approvalId)
+  for (const d of denied) resolvedApprovalIds.add(d.approvalId)
+
+  const cleanedMessages: Array<Prompt.Message> = []
+
+  for (const message of prompt.content) {
+    if (message.role === "assistant") {
+      const filteredContent = message.content.filter(
+        (part) =>
+          part.type !== "tool-approval-request" ||
+          !resolvedApprovalIds.has(part.approvalId)
+      )
+      if (filteredContent.length > 0) {
+        cleanedMessages.push(
+          Prompt.makeMessage("assistant", {
+            content: filteredContent,
+            options: message.options
+          })
+        )
+      }
+    } else if (message.role === "tool") {
+      const filteredContent = message.content.filter(
+        (part) =>
+          part.type !== "tool-approval-response" ||
+          !resolvedApprovalIds.has(part.approvalId)
+      )
+      if (filteredContent.length > 0) {
+        cleanedMessages.push(
+          Prompt.makeMessage("tool", {
+            content: filteredContent,
+            options: message.options
+          })
+        )
+      }
+    } else {
+      cleanedMessages.push(message)
+    }
+  }
+
+  return Prompt.fromMessages(cleanedMessages)
 }
 
 const isApprovalNeeded = Effect.fnUntraced(function*<T extends Tool.Any>(
