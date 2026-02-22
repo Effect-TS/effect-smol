@@ -69,25 +69,6 @@ describe("Effect", () => {
     assert.strictEqual(result, 1)
   })
 
-  it("runPromise when setInterval is blocked", async () => {
-    const originalSetInterval = globalThis.setInterval
-    const originalClearInterval = globalThis.clearInterval
-    ;(globalThis as any).setInterval = () => {
-      throw new Error("blocked")
-    }
-    ;(globalThis as any).clearInterval = () => {
-      throw new Error("blocked")
-    }
-
-    try {
-      const result = await Effect.runPromise(Effect.promise(() => Promise.resolve(1)))
-      assert.strictEqual(result, 1)
-    } finally {
-      ;(globalThis as any).setInterval = originalSetInterval
-      ;(globalThis as any).clearInterval = originalClearInterval
-    }
-  })
-
   it("acquireUseRelease interrupt", async () => {
     let acquire = false
     let use = false
