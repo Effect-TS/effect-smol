@@ -60,13 +60,13 @@ export const make: Effect.Effect<
     // }
 
     const message = Arr.ensure(options.message).map(unknownToAttributeValue)
-    const timestamp = clock.currentTimeNanosUnsafe()
+    const hrTime = nanosToHrTime(clock.currentTimeNanosUnsafe())
     otelLogger.emit({
       body: message.length === 1 ? message[0] : message,
       severityText: options.logLevel,
       severityNumber: LogLevel.getOrdinal(options.logLevel),
-      timestamp: nanosToHrTime(timestamp),
-      observedTimestamp: nanosToHrTime(timestamp),
+      timestamp: hrTime,
+      observedTimestamp: hrTime,
       attributes
     })
   })
