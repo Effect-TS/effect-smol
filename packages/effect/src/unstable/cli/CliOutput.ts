@@ -503,7 +503,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
 
     const subcommandRows: Array<Row> = doc.subcommands.map((sub) => ({
       left: colors.cyan(sub.name),
-      right: sub.description
+      right: sub.shortDescription ?? sub.description
     }))
 
     sections.push(renderTable(subcommandRows, 20))

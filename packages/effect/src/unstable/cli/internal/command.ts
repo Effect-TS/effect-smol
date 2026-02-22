@@ -150,7 +150,8 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
 
     const subcommandDocs: Array<SubcommandDoc> = subcommands.map((sub) => ({
       name: sub.name,
-      description: sub.shortDescription ?? sub.description ?? ""
+      shortDescription: sub.shortDescription,
+      description: sub.description ?? ""
     }))
 
     return {

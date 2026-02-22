@@ -136,11 +136,13 @@ export interface FlagDoc {
  *
  * const deploySubcommand: HelpDoc.SubcommandDoc = {
  *   name: "deploy",
+ *   shortDescription: "Deploy app",
  *   description: "Deploy the application to the cloud"
  * }
  *
  * const buildSubcommand: HelpDoc.SubcommandDoc = {
  *   name: "build",
+ *   shortDescription: undefined,
  *   description: "Build the application for production"
  * }
  *
@@ -161,6 +163,11 @@ export interface SubcommandDoc {
    * Name of the subcommand
    */
   readonly name: string
+
+  /**
+   * Optional short description of what the subcommand does.
+   */
+  readonly shortDescription: string | undefined
 
   /**
    * Brief description of what the subcommand does
