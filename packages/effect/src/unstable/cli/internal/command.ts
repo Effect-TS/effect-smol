@@ -5,13 +5,14 @@
  * Internal implementation details for CLI commands.
  * Public API is in ../Command.ts
  */
+import * as Arr from "../../../Array.ts"
 import * as Effect from "../../../Effect.ts"
 import { YieldableProto } from "../../../internal/core.ts"
 import { pipeArguments } from "../../../Pipeable.ts"
 import * as Predicate from "../../../Predicate.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
 import * as CliError from "../CliError.ts"
-import type { ArgDoc, ExampleDoc, FlagDoc, HelpDoc, SubcommandDoc } from "../HelpDoc.ts"
+import type { ArgDoc, ExampleDoc, FlagDoc, HelpDoc, SubcommandGroupDoc } from "../HelpDoc.ts"
 import * as Param from "../Param.ts"
 import * as Primitive from "../Primitive.ts"
 import { type ConfigInternal, reconstructTree } from "./config.ts"
@@ -21,6 +22,11 @@ import { type ConfigInternal, reconstructTree } from "./config.ts"
 /* ========================================================================== */
 
 import type { Command, CommandContext, Environment, ParsedTokens } from "../Command.ts"
+
+interface SubcommandGroup {
+  readonly group: string | undefined
+  readonly commands: Arr.NonEmptyReadonlyArray<Command<any, unknown, unknown, unknown>>
+}
 
 /**
  * Internal implementation interface with all the machinery.
@@ -85,7 +91,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly description?: string | undefined
   readonly shortDescription?: string | undefined
   readonly examples?: ReadonlyArray<Command.Example> | undefined
-  readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
+  readonly subcommands?: ReadonlyArray<SubcommandGroup> | undefined
   readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
   readonly handle?:
     | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
@@ -94,6 +100,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   const service = options.service ?? ServiceMap.Service<CommandContext<Name>, Input>(`${TypeId}/${options.name}`)
   const config = options.config
   const annotations = options.annotations ?? ServiceMap.empty()
+  const subcommands = options.subcommands ?? []
 
   const handle = (
     input: Input,
@@ -128,8 +135,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     }
 
     let usage = commandPath.length > 0 ? commandPath.join(" ") : options.name
-    const subcommands = options.subcommands ?? []
-    if (subcommands.length > 0) {
+    if (subcommands.some((group) => group.commands.length > 0)) {
       usage += " <subcommand>"
     }
     usage += " [flags]"
@@ -152,11 +158,18 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
       }
     }
 
-    const subcommandDocs: Array<SubcommandDoc> = subcommands.map((sub) => ({
-      name: sub.name,
-      shortDescription: sub.shortDescription,
-      description: sub.description ?? ""
-    }))
+    const subcommandDocs: Array<SubcommandGroupDoc> = []
+
+    for (const group of subcommands) {
+      subcommandDocs.push({
+        group: group.group,
+        commands: Arr.map(group.commands, (subcommand) => ({
+          name: subcommand.name,
+          shortDescription: subcommand.shortDescription,
+          description: subcommand.description ?? ""
+        }))
+      })
+    }
 
     const examples: ReadonlyArray<ExampleDoc> = options.examples ?? []
 
@@ -175,8 +188,8 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     [TypeId]: TypeId,
     name: options.name,
     examples: options.examples ?? [],
-    subcommands: options.subcommands ?? [],
     annotations,
+    subcommands,
     config,
     service,
     parse,
@@ -270,7 +283,15 @@ export const getHelpForCommandPath = <Name extends string, Input, E, R>(
   // Navigate through the command path to find the target command
   for (let i = 1; i < commandPath.length; i++) {
     const subcommandName = commandPath[i]
-    const subcommand = currentCommand.subcommands.find((sub) => sub.name === subcommandName)
+    let subcommand: Command.Any | undefined = undefined
+
+    for (const group of currentCommand.subcommands) {
+      subcommand = group.commands.find((sub) => sub.name === subcommandName)
+      if (subcommand) {
+        break
+      }
+    }
+
     if (subcommand) {
       currentCommand = subcommand
     }

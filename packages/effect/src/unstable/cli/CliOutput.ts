@@ -499,15 +499,34 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
 
   // Subcommands section
   if (doc.subcommands && doc.subcommands.length > 0) {
-    sections.push(colors.bold("SUBCOMMANDS"))
+    const ungrouped = doc.subcommands.find((group) => group.group === undefined)
 
-    const subcommandRows: Array<Row> = doc.subcommands.map((sub) => ({
-      left: colors.cyan(sub.name),
-      right: sub.shortDescription ?? sub.description
-    }))
+    if (ungrouped) {
+      sections.push(colors.bold("SUBCOMMANDS"))
+      sections.push(renderTable(
+        ungrouped.commands.map((sub) => ({
+          left: colors.cyan(sub.name),
+          right: sub.shortDescription ?? sub.description
+        })),
+        20
+      ))
+      if (doc.subcommands.length > 1) {
+        sections.push("")
+      }
+    }
 
-    sections.push(renderTable(subcommandRows, 20))
-    sections.push("")
+    for (const group of doc.subcommands) {
+      if (group.group === undefined) continue
+      sections.push(colors.bold(`${group.group}:`))
+      sections.push(renderTable(
+        group.commands.map((sub) => ({
+          left: colors.cyan(sub.name),
+          right: sub.shortDescription ?? sub.description
+        })),
+        20
+      ))
+      sections.push("")
+    }
   }
 
   // Examples section

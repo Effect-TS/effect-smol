@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type { NonEmptyArray, NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Console from "../../Console.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
@@ -107,7 +108,10 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
   /**
    * The subcommands available under this command.
    */
-  readonly subcommands: ReadonlyArray<Command.Any>
+  readonly subcommands: ReadonlyArray<{
+    readonly group: string | undefined
+    readonly commands: NonEmptyReadonlyArray<Command.Any>
+  }>
 
   /**
    * Custom annotations associated with this command.
@@ -235,6 +239,25 @@ export declare namespace Command {
    * @category models
    */
   export type Any = Command<string, unknown, unknown, unknown>
+
+  /**
+   * A grouped set of subcommands used by `Command.withSubcommands`.
+   *
+   * @since 4.0.0
+   * @category models
+   */
+  export interface SubcommandGroup<Commands extends ReadonlyArray<Any> = ReadonlyArray<Any>> {
+    readonly group: string
+    readonly commands: Commands
+  }
+
+  /**
+   * Entry type accepted by `Command.withSubcommands`.
+   *
+   * @since 4.0.0
+   * @category models
+   */
+  export type SubcommandEntry = Any | SubcommandGroup<ReadonlyArray<Any>>
 }
 
 /**
@@ -448,6 +471,57 @@ export const withHandler: {
   handler: (value: A) => Effect.Effect<void, E, R>
 ): Command<Name, A, E, R> => makeCommand({ ...toImpl(self), handle: handler }))
 
+interface SubcommandGroupInternal {
+  readonly group: string | undefined
+  readonly commands: NonEmptyReadonlyArray<Command.Any>
+}
+
+const normalizeSubcommandEntries = (
+  entries: ReadonlyArray<Command.SubcommandEntry>
+): {
+  readonly flat: ReadonlyArray<Command.Any>
+  readonly groups: ReadonlyArray<SubcommandGroupInternal>
+} => {
+  const flat: Array<Command.Any> = []
+  const grouped = new Map<string | undefined, NonEmptyArray<Command.Any>>()
+
+  const addToGroup = (group: string | undefined, command: Command.Any): void => {
+    flat.push(command)
+    const existing = grouped.get(group)
+    if (existing) {
+      existing.push(command)
+    } else {
+      grouped.set(group, [command])
+    }
+  }
+
+  for (const entry of entries) {
+    if (isCommand(entry)) {
+      addToGroup(undefined, entry)
+      continue
+    }
+    for (const command of entry.commands) {
+      addToGroup(entry.group, command)
+    }
+  }
+
+  const groups: Array<SubcommandGroupInternal> = []
+  const ungroupedCommands = grouped.get(undefined)
+
+  if (ungroupedCommands && ungroupedCommands.length > 0) {
+    groups.push({ group: undefined, commands: ungroupedCommands })
+  }
+
+  for (const [group, commands] of grouped) {
+    if (group === undefined) {
+      continue
+    }
+    groups.push({ group, commands })
+  }
+
+  return { flat, groups }
+}
+
 /**
  * Adds subcommands to a command, creating a hierarchical command structure.
  *
@@ -485,7 +559,7 @@ export const withHandler: {
  * @category combinators
  */
 export const withSubcommands: {
-  <const Subcommands extends ReadonlyArray<Command<any, any, any, any>>>(
+  <const Subcommands extends ReadonlyArray<Command.SubcommandEntry>>(
     subcommands: Subcommands
   ): <Name extends string, Input, E, R>(
     self: Command<Name, Input, E, R>
@@ -500,7 +574,7 @@ export const withSubcommands: {
     Input,
     E,
     R,
-    const Subcommands extends ReadonlyArray<Command<any, any, any, any>>
+    const Subcommands extends ReadonlyArray<Command.SubcommandEntry>
   >(
     self: Command<Name, Input, E, R>,
     subcommands: Subcommands
@@ -515,7 +589,7 @@ export const withSubcommands: {
   Input,
   E,
   R,
-  const Subcommands extends ReadonlyArray<Command<any, any, any, any>>
+  const Subcommands extends ReadonlyArray<Command.SubcommandEntry>
 >(
   self: Command<Name, Input, E, R>,
   subcommands: Subcommands
@@ -525,10 +599,11 @@ export const withSubcommands: {
   E | ExtractSubcommandErrors<Subcommands>,
   R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
 > => {
-  checkForDuplicateFlags(self, subcommands)
+  const normalized = normalizeSubcommandEntries(subcommands)
+  checkForDuplicateFlags(self, normalized.flat)
 
   const impl = toImpl(self)
-  const byName = new Map(subcommands.map((s) => [s.name, toImpl(s)] as const))
+  const byName = new Map(normalized.flat.map((s) => [s.name, toImpl(s)] as const))
 
   // Internal type for routing - not exposed in public type
   type SubcommandInfo = { readonly name: string; readonly result: unknown }
@@ -573,15 +648,18 @@ export const withSubcommands: {
     annotations: impl.annotations,
     examples: impl.examples,
     service: impl.service,
-    subcommands,
+    subcommands: normalized.groups,
     parse,
     handle
   })
 })
 
 // Type extractors for subcommand arrays - T[number] gives union of all elements
-type ExtractSubcommandErrors<T extends ReadonlyArray<Command<any, any, any, any>>> = Error<T[number]>
-type ExtractSubcommandContext<T extends ReadonlyArray<Command<any, any, any, any>>> = T[number] extends
+type ExtractSubcommand<T> = T extends Command<any, any, any, any> ? T
+  : T extends Command.SubcommandGroup<infer Commands> ? Commands[number]
+  : never
+type ExtractSubcommandErrors<T extends ReadonlyArray<Command.SubcommandEntry>> = Error<ExtractSubcommand<T[number]>>
+type ExtractSubcommandContext<T extends ReadonlyArray<Command.SubcommandEntry>> = ExtractSubcommand<T[number]> extends
   Command<any, any, any, infer R> ? R : never
 
 /**

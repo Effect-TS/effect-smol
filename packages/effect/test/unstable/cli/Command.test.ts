@@ -325,6 +325,31 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should accept grouped and ungrouped subcommands", () =>
+      Effect.gen(function*() {
+        const executed: Array<string> = []
+
+        const root = Command.make("tool")
+        const login = Command.make("login", {}, () => Effect.sync(() => executed.push("login")))
+        const logout = Command.make("logout", {}, () => Effect.sync(() => executed.push("logout")))
+        const status = Command.make("status", {}, () => Effect.sync(() => executed.push("status")))
+
+        const cli = root.pipe(Command.withSubcommands([
+          {
+            group: "Auth commands",
+            commands: [login, logout]
+          },
+          status
+        ]))
+
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+
+        yield* runCli(["login"])
+        yield* runCli(["status"])
+
+        assert.deepStrictEqual(executed, ["login", "status"])
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should handle multiple subcommands correctly", () =>
       Effect.gen(function*() {
         yield* Cli.run(["git", "clone", "repo1"])
@@ -953,9 +978,10 @@ describe("Command", () => {
         const root = Command.make("tool").pipe(Command.withSubcommands([child]))
 
         const helpDoc = toImpl(root).buildHelpDoc(["tool"])
+        const listed = helpDoc.subcommands?.[0]?.commands[0]
 
-        assert.strictEqual(helpDoc.subcommands?.[0]?.shortDescription, "Build artifacts")
-        assert.strictEqual(helpDoc.subcommands?.[0]?.description, "Build the project and all artifacts")
+        assert.strictEqual(listed?.shortDescription, "Build artifacts")
+        assert.strictEqual(listed?.description, "Build the project and all artifacts")
       }))
   })
 
