@@ -77,6 +77,24 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
 export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe())
 
 /**
+ * Generates a random boolean value.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Random } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const value = yield* Random.nextBoolean
+ *   console.log("Random boolean:", value)
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category Random Number Generators
+ */
+export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubleUnsafe() > 0.5)
+
+/**
  * Generates a random integer between `Number.MIN_SAFE_INTEGER` (inclusive)
  * and `Number.MAX_SAFE_INTEGER` (inclusive).
  *

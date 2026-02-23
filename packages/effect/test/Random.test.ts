@@ -13,6 +13,40 @@ describe("Random", () => {
       }))
   })
 
+  describe("nextBoolean", () => {
+    it.effect("generates a boolean", () =>
+      Effect.gen(function*() {
+        const value = yield* Random.nextBoolean
+
+        assert.isTrue(value === true || value === false)
+      }))
+
+    it.effect("is deterministic with the same seed", () =>
+      Effect.gen(function*() {
+        const program = Effect.all([Random.nextBoolean, Random.nextBoolean, Random.nextBoolean])
+
+        const result1 = yield* program.pipe(Random.withSeed("next-boolean-seed"))
+        const result2 = yield* program.pipe(Random.withSeed("next-boolean-seed"))
+
+        assert.deepStrictEqual(result1, result2)
+      }))
+
+    it.effect("uses a strict greater-than threshold", () =>
+      Effect.gen(function*() {
+        const values = [0.5, 0.500001, 0.1]
+        let index = 0
+
+        const result = yield* Effect.all([Random.nextBoolean, Random.nextBoolean, Random.nextBoolean]).pipe(
+          Effect.provideService(Random.Random, {
+            nextIntUnsafe: () => 0,
+            nextDoubleUnsafe: () => values[index++] ?? 0
+          })
+        )
+
+        assert.deepStrictEqual(result, [false, true, false])
+      }))
+  })
+
   describe("nextInt", () => {
     it.effect("generates a safe integer", () =>
       Effect.gen(function*() {
