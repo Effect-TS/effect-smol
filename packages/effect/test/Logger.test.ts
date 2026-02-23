@@ -29,10 +29,12 @@ describe("Logger", () => {
   it.effect("annotateLogsScoped", () =>
     Effect.gen(function*() {
       const scope = yield* Scope.make()
-      assert.deepStrictEqual(yield* References.CurrentLogAnnotations, {})
-
-      yield* Effect.annotateLogsScoped("requestId", "req-1").pipe(Scope.provide(scope))
-      assert.deepStrictEqual(yield* References.CurrentLogAnnotations, { requestId: "req-1" })
+      const annotations = yield* Effect.gen(function*() {
+        assert.deepStrictEqual(yield* References.CurrentLogAnnotations, {})
+        yield* Effect.annotateLogsScoped("requestId", "req-1")
+        return yield* References.CurrentLogAnnotations
+      }).pipe(Scope.provide(scope))
+      assert.deepStrictEqual(annotations, { requestId: "req-1" })
 
       yield* Scope.close(scope, Exit.void)
       assert.deepStrictEqual(yield* References.CurrentLogAnnotations, {})
@@ -42,10 +44,12 @@ describe("Logger", () => {
     Effect.gen(function*() {
       const scope = yield* Scope.make()
 
-      yield* Effect.annotateLogsScoped("requestId", "req-1").pipe(Scope.provide(scope))
       const annotations = yield* Effect.gen(function*() {
-        return yield* References.CurrentLogAnnotations
-      }).pipe(Effect.annotateLogs("temporary", "value"))
+        yield* Effect.annotateLogsScoped("requestId", "req-1")
+        return yield* Effect.gen(function*() {
+          return yield* References.CurrentLogAnnotations
+        }).pipe(Effect.annotateLogs("temporary", "value"))
+      }).pipe(Scope.provide(scope))
       assert.deepStrictEqual(annotations, { requestId: "req-1", temporary: "value" })
 
       yield* Scope.close(scope, Exit.void)
