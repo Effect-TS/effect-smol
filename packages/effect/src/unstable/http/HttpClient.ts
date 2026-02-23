@@ -789,26 +789,45 @@ export const retry: {
  */
 export const retryTransient: {
   <B, E, ES = never, R1 = never>(
-    options: Schedule.Schedule<B, any, ES, R1>
+    options: Schedule.Schedule<B, NoInfer<HttpClientResponse.HttpClientResponse | E>, ES, R1>
   ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E | ES, R1 | R>
   <E, R, B, ES = never, R1 = never>(
     self: HttpClient.With<E, R>,
-    options: Schedule.Schedule<B, any, ES, R1>
+    options: Schedule.Schedule<B, NoInfer<HttpClientResponse.HttpClientResponse | E>, ES, R1>
   ): HttpClient.With<E | ES, R1 | R>
-  <E, B = never, ES = never, R1 = never>(
+  <
+    E,
+    B = never,
+    ES = never,
+    R1 = never,
+    const RetryOn extends "errors-only" | "response-only" | "errors-and-responses" = never,
+    Input = "errors-only" extends RetryOn ? E
+      : "response-only" extends RetryOn ? HttpClientResponse.HttpClientResponse
+      : HttpClientResponse.HttpClientResponse | E
+  >(
     options: {
-      readonly retryOn?: "errors-only" | "response-only" | "errors-and-responses" | undefined
+      readonly retryOn?: RetryOn | undefined
       readonly while?: Predicate.Predicate<NoInfer<E | ES>>
-      readonly schedule?: Schedule.Schedule<B, any, ES, R1>
+      readonly schedule?: Schedule.Schedule<B, NoInfer<Input>, ES, R1>
       readonly times?: number
     }
   ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E | ES, R1 | R>
-  <E, R, B = never, ES = never, R1 = never>(
+  <
+    E,
+    R,
+    B = never,
+    ES = never,
+    R1 = never,
+    const RetryOn extends "errors-only" | "response-only" | "errors-and-responses" = never,
+    Input = "errors-only" extends RetryOn ? E
+      : "response-only" extends RetryOn ? HttpClientResponse.HttpClientResponse
+      : HttpClientResponse.HttpClientResponse | E
+  >(
     self: HttpClient.With<E, R>,
     options: {
-      readonly retryOn?: "errors-only" | "response-only" | "errors-and-responses" | undefined
+      readonly retryOn?: RetryOn | undefined
       readonly while?: Predicate.Predicate<NoInfer<E | ES>>
-      readonly schedule?: Schedule.Schedule<B, any, ES, R1>
+      readonly schedule?: Schedule.Schedule<B, NoInfer<Input>, ES, R1>
       readonly times?: number
     }
   ): HttpClient.With<E | ES, R1 | R>
