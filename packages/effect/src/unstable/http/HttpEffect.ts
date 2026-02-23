@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.ts"
+import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
