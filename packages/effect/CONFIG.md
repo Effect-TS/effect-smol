@@ -1,153 +1,251 @@
-# ConfigProvider
+# Configuration in Effect
 
-The `ConfigProvider` module provides a unified interface for reading configuration values from various sources. It abstracts over different configuration formats and provides a consistent API for accessing configuration data.
+This guide shows you how to load and validate configuration in an Effect application. Two modules work together:
 
-## Overview
+- **`ConfigProvider`** — reads raw data from a source (environment variables, JSON objects, `.env` files, directory trees).
+- **`Config`** — describes what shape and types you expect, then decodes the raw data into typed values.
 
-A `ConfigProvider` is a service that can read configuration values from a hierarchical data structure. It works with a path-based navigation system where:
+You describe _what_ you need with `Config`, and the library figures out _how_ to read and validate it using a `ConfigProvider`.
 
-- **Paths** are arrays of strings or numbers that represent the location of a configuration value
-- **Stats** describe the structure at a given path (leaf values, objects, or arrays)
-- **Sources** can be environment variables, JSON files, file systems, or any custom data source
+## Getting Started
 
-The module provides a composable architecture where providers can be:
+### Reading a Single Value
 
-- Combined using `orElse` for fallback behavior
-- Transformed using `mapInput` for path mapping
-- Nested using `nested` for adding prefixes
-- Layered using Effect's layer system
-
-## Core APIs
-
-### `run`
-
-Executes a configuration lookup at the specified path.
+The simplest case: read one value from an environment variable.
 
 ```ts
-const result = await Effect.runPromise(provider.load(["database", "host"]))
+import { Config, Effect } from "effect"
+
+const program = Effect.gen(function*() {
+  const host = yield* Config.string("HOST")
+  console.log(host)
+})
+
+Effect.runSync(program)
+// reads HOST from process.env
 ```
 
-The `run` function applies any configured `mapInput` transformations and `prefix` additions before performing the lookup.
+When you yield a `Config` inside `Effect.gen`, it automatically uses the default `ConfigProvider` (which reads from `process.env`).
 
-### `nested`
+### Reading Multiple Values
 
-Adds a prefix to all configuration paths. **Important**: The prefix is added directly without applying any `mapInput` transformations.
+Use `Config.all` to group related keys:
 
 ```ts
-const nestedProvider = ConfigProvider.nested("app")(provider)
-// This will look for "app__database__host" when you request ["database", "host"]
+import { Config, ConfigProvider, Effect } from "effect"
+
+const dbConfig = Config.all({
+  host: Config.string("host"),
+  port: Config.int("port")
+})
+
+const provider = ConfigProvider.fromUnknown({
+  host: "localhost",
+  port: 5432
+})
+
+const result = Effect.runSync(dbConfig.parse(provider))
+// { host: "localhost", port: 5432 }
 ```
 
-### `mapInput`
+### Reading Structured Config with a Schema
 
-Transforms input paths before they are used for lookup. This transformation is applied to both the input path and any existing prefix.
+For larger configs, use `Config.schema` with a `Schema.Struct`:
 
 ```ts
-const transformedProvider = ConfigProvider.mapInput((path) =>
-  path.map((segment) => (typeof segment === "string" ? segment.toUpperCase() : segment))
-)(provider)
+import { Config, ConfigProvider, Effect, Schema } from "effect"
+
+const AppConfig = Config.schema(
+  Schema.Struct({
+    host: Schema.String,
+    port: Schema.Int,
+    debug: Schema.Boolean
+  })
+)
+
+const provider = ConfigProvider.fromUnknown({
+  host: "localhost",
+  port: 8080,
+  debug: true
+})
+
+const result = Effect.runSync(AppConfig.parse(provider))
+// { host: "localhost", port: 8080, debug: true }
 ```
 
-**Key difference from `nested`**: `mapInput` transforms both the input path AND any existing prefix, while `nested` only adds a prefix without transformation.
+The schema automatically decodes raw string values into their target types. For example, when reading from environment variables, `"8080"` becomes the number `8080` and `"true"` becomes the boolean `true`.
 
-## Configuration Sources
+## Config Constructors
 
-### `fromEnv`
+Each constructor reads a single value and decodes it into the appropriate type.
 
-Creates a `ConfigProvider` that reads from environment variables using a mini-language for representing hierarchical data.
+| Constructor                    | Decoded type       | Notes                                                                    |
+| ------------------------------ | ------------------ | ------------------------------------------------------------------------ |
+| `Config.string(name?)`         | `string`           | Any string                                                               |
+| `Config.nonEmptyString(name?)` | `string`           | Rejects `""`                                                             |
+| `Config.number(name?)`         | `number`           | Includes `NaN`, `Infinity`                                               |
+| `Config.finite(name?)`         | `number`           | Rejects `NaN` and `Infinity`                                             |
+| `Config.int(name?)`            | `number`           | Integers only                                                            |
+| `Config.boolean(name?)`        | `boolean`          | Accepts `true/false`, `yes/no`, `on/off`, `1/0`, `y/n`                   |
+| `Config.port(name?)`           | `number`           | Integer in 1–65535                                                       |
+| `Config.url(name?)`            | `URL`              | Parsed via the `URL` constructor                                         |
+| `Config.date(name?)`           | `Date`             | Rejects invalid dates                                                    |
+| `Config.duration(name?)`       | `Duration`         | Parses `"10 seconds"`, `"500 millis"`, etc.                              |
+| `Config.logLevel(name?)`       | `string`           | One of `All`, `Fatal`, `Error`, `Warn`, `Info`, `Debug`, `Trace`, `None` |
+| `Config.redacted(name?)`       | `Redacted<string>` | Hidden from logs and `toString`                                          |
+| `Config.literal(value, name?)` | literal type       | Accepts only the given literal                                           |
 
-#### Environment Variable Mini-Language
+The optional `name` parameter sets the root path segment for lookup. Omit it when the config is part of a larger `Config.schema`.
 
-The `fromEnv` provider uses a simple but powerful mini-language for representing nested structures in environment variables:
+## Config Combinators
 
-**Basic Rules:**
+### `Config.withDefault` — Fallback for Missing Keys
 
-- Use `__` (double underscore) to separate path segments
-- Arrays use numeric indices (0, 1, 2, etc.)
-- Objects use string keys
-- Nodes can be both leaves and containers simultaneously
-
-**Examples:**
-
-```bash
-# Simple key-value pairs
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-
-# Nested objects
-DATABASE__HOST=localhost
-DATABASE__PORT=5432
-DATABASE__CREDENTIALS__USERNAME=admin
-DATABASE__CREDENTIALS__PASSWORD=secret
-
-# Arrays
-SERVERS__0=server1.example.com
-SERVERS__1=server2.example.com
-SERVERS__2=server3.example.com
-
-# Mixed structures (node as both leaf and container)
-DATABASE=default
-DATABASE__HOST=localhost
-DATABASE__PORT=5432
-
-# Empty containers using __TYPE
-EMPTY_ARRAY__TYPE=A
-EMPTY_OBJECT__TYPE=O
-```
-
-**Array Constraints:**
-
-- Arrays must be dense (indices 0, 1, 2, ..., n-1)
-- Indices must be canonical (no leading zeros except "0")
-- All children of an array node must be numeric indices
-
-**Type Sentinels:**
-
-- `__TYPE=A` creates an empty array
-- `__TYPE=O` creates an empty object
-- Type sentinels cannot coexist with children
-
-**Validation Rules:**
-
-- Duplicate leaf values must be identical
-- Arrays must be dense (no gaps in indices)
-- Type sentinels cannot have children
-
-### `fromDotEnv`
-
-Creates a `ConfigProvider` from a `.env` file content. This provider uses the same mini-language as `fromEnv` (see above).
-
-**Features:**
-
-- Supports comments (lines starting with `#`)
-- Supports `export` keyword
-- Handles quoted values (single, double, backticks)
-- Optional variable expansion with `expandVariables: true`
-
-**Example .env file:**
-
-```bash
-# Database configuration
-DATABASE__HOST=localhost
-DATABASE__PORT=5432
-DATABASE__CREDENTIALS__USERNAME=admin
-DATABASE__CREDENTIALS__PASSWORD=secret
-
-# Server list
-SERVERS__0=server1.example.com
-SERVERS__1=server2.example.com
-
-# With variable expansion
-PASSWORD=secret
-DB_PASS=$PASSWORD
-```
-
-### `fromJson`
-
-Creates a `ConfigProvider` from a JSON object. Automatically converts all primitive values to strings.
+Only triggers when data is missing. Validation errors (wrong type, out of range) still propagate.
 
 ```ts
-const provider = ConfigProvider.fromJson({
+import { Config, ConfigProvider, Effect } from "effect"
+
+const port = Config.int("port").pipe(Config.withDefault(() => 3000))
+
+const provider = ConfigProvider.fromUnknown({})
+Effect.runSync(port.parse(provider)) // 3000
+```
+
+### `Config.option` — Optional Values
+
+Returns `Option.some(value)` on success and `Option.none()` when data is missing.
+
+```ts
+import { Config, ConfigProvider, Effect } from "effect"
+
+const maybePort = Config.option(Config.int("port"))
+
+const provider = ConfigProvider.fromUnknown({})
+Effect.runSync(maybePort.parse(provider)) // { _tag: "None" }
+```
+
+### `Config.map` — Transform a Value
+
+```ts
+import { Config } from "effect"
+
+const upperHost = Config.string("HOST").pipe(
+  Config.map((s) => s.toUpperCase())
+)
+```
+
+### `Config.orElse` — Fallback on Any Error
+
+Unlike `withDefault`, this catches **all** `ConfigError`s:
+
+```ts
+import { Config } from "effect"
+
+const host = Config.string("HOST").pipe(
+  Config.orElse(() => Config.succeed("localhost"))
+)
+```
+
+### `Config.nested` — Scope Under a Prefix
+
+Prepends a path segment to every key the inner config reads:
+
+```ts
+import { Config, ConfigProvider, Effect } from "effect"
+
+const dbConfig = Config.all({
+  host: Config.string("host"),
+  port: Config.int("port")
+}).pipe(Config.nested("database"))
+
+const provider = ConfigProvider.fromUnknown({
+  database: { host: "localhost", port: 5432 }
+})
+
+Effect.runSync(dbConfig.parse(provider))
+// { host: "localhost", port: 5432 }
+```
+
+With environment variables, nesting uses `_` as separator:
+
+```ts
+import { Config, ConfigProvider, Effect } from "effect"
+
+const host = Config.string("host").pipe(Config.nested("database"))
+
+const provider = ConfigProvider.fromEnv({
+  env: { database_host: "localhost" }
+})
+
+Effect.runSync(host.parse(provider)) // "localhost"
+```
+
+### `Config.all` — Combine Multiple Configs
+
+Accepts a record or a tuple:
+
+```ts
+import { Config } from "effect"
+
+// As a record
+const appConfig = Config.all({
+  host: Config.string("host"),
+  port: Config.int("port"),
+  debug: Config.boolean("debug")
+})
+
+// As a tuple
+const pair = Config.all([Config.string("a"), Config.int("b")])
+```
+
+## Config Schemas
+
+For reusable codecs you can pass directly to `Config.schema`:
+
+| Schema                      | Type           | Notes                                      |
+| --------------------------- | -------------- | ------------------------------------------ |
+| `Config.Boolean`            | `boolean`      | Decodes `true/false/yes/no/on/off/1/0/y/n` |
+| `Config.Duration`           | `Duration`     | Decodes human-readable duration strings    |
+| `Config.Port`               | `number`       | Integer in 1–65535                         |
+| `Config.LogLevel`           | `string`       | One of the standard log level literals     |
+| `Config.Record(key, value)` | `Record<K, V>` | Also parses flat `"k1=v1,k2=v2"` strings   |
+
+## ConfigProvider Sources
+
+### `ConfigProvider.fromEnv` — Environment Variables (Default)
+
+This is the default provider. Path segments are joined with `_` for lookup.
+
+```ts
+import { Config, ConfigProvider, Effect } from "effect"
+
+const provider = ConfigProvider.fromEnv({
+  env: {
+    DATABASE_HOST: "localhost",
+    DATABASE_PORT: "5432"
+  }
+})
+
+const host = Config.string("HOST").parse(
+  provider.pipe(ConfigProvider.nested("DATABASE"))
+)
+
+Effect.runSync(host) // "localhost"
+```
+
+**How `_` splitting works**: env var names are split on `_` to build a tree. This means `DATABASE_HOST=localhost` is accessible at both `["DATABASE_HOST"]` (flat) and `["DATABASE", "HOST"]` (nested). Querying `["DATABASE"]` returns a Record node with child key `"HOST"`.
+
+Pass `{ env: { ... } }` for testing. Omit to use `process.env` (merged with `import.meta.env` when available).
+
+### `ConfigProvider.fromUnknown` — Plain JS Objects
+
+Ideal for testing or embedding config in code:
+
+```ts
+import { Config, ConfigProvider, Effect } from "effect"
+
+const provider = ConfigProvider.fromUnknown({
   database: {
     host: "localhost",
     port: 5432,
@@ -160,272 +258,326 @@ const provider = ConfigProvider.fromJson({
 })
 ```
 
-### `fromStringLeafJson`
+Path traversal follows standard JS rules: string segments index into object keys, numeric segments index into arrays. Primitive values are automatically stringified.
 
-Creates a `ConfigProvider` from a `StringLeafJson` structure (where all leaf values are strings).
+### `ConfigProvider.fromDotEnvContents` — Parse `.env` Strings
+
+When you already have the `.env` content as a string:
 
 ```ts
-const provider = ConfigProvider.fromStringLeafJson({
-  database: {
-    host: "localhost",
-    port: "5432"
-  }
+import { ConfigProvider } from "effect"
+
+const contents = `
+# Database settings
+HOST=localhost
+PORT=3000
+SECRET="my-secret-value"
+`
+
+const provider = ConfigProvider.fromDotEnvContents(contents)
+```
+
+Supports `export` prefixes, single/double/backtick quoting, inline comments, and escaped newlines. Enable variable expansion with `{ expandVariables: true }`:
+
+```ts
+import { ConfigProvider } from "effect"
+
+const contents = `
+PASSWORD=secret
+DB_PASS=$PASSWORD
+`
+
+const provider = ConfigProvider.fromDotEnvContents(contents, {
+  expandVariables: true
 })
 ```
 
-### `fromDir`
+### `ConfigProvider.fromDotEnv` — Load `.env` Files
 
-Creates a `ConfigProvider` from a file system tree structure.
-
-**Resolution Rules:**
-
-- **Regular files** → `{ _tag: "leaf", value }` (file content, trimmed)
-- **Directories** → `{ _tag: "object", keys }` (immediate child names)
-- **Not found** → `undefined`
-- **I/O errors** → `SourceError`
-
-**Example file structure:**
-
-```
-/config
-  /database
-    host.txt          # contains "localhost"
-    port.txt          # contains "5432"
-  /servers
-    server1.txt       # contains "server1.example.com"
-    server2.txt       # contains "server2.example.com"
-```
-
-This would be accessible as:
-
-- `["database", "host"]` → `"localhost"`
-- `["database", "port"]` → `"5432"`
-- `["servers"]` → object with keys `["server1", "server2"]`
-
-## Combinators
-
-### `orElse`
-
-Creates a fallback provider that tries the first provider, then falls back to the second if the first returns `undefined`.
+Reads a `.env` file from disk. Returns an `Effect` (requires `FileSystem` in context):
 
 ```ts
-const provider = ConfigProvider.orElse(primaryProvider, fallbackProvider)
+import { ConfigProvider, Effect } from "effect"
+
+const program = Effect.gen(function*() {
+  const provider = yield* ConfigProvider.fromDotEnv()
+  // or: yield* ConfigProvider.fromDotEnv({ path: "/custom/.env" })
+  return provider
+})
 ```
 
-### `constantCase`
+### `ConfigProvider.fromDir` — Directory Trees
 
-Transforms input paths from kebab-case/snake-case to CONSTANT_CASE for environment variable compatibility.
+Reads config from a file-system tree where each file is a leaf and each directory is a container. Useful for Kubernetes ConfigMap/Secret volume mounts.
+
+```
+/etc/myapp/
+  database/
+    host       # contains "localhost"
+    port       # contains "5432"
+  api_key      # contains "sk-abc123"
+```
 
 ```ts
-const provider = ConfigProvider.constantCase(baseProvider)
-// ["database", "host"] becomes ["DATABASE", "HOST"]
+import { ConfigProvider, Effect } from "effect"
+
+const program = Effect.gen(function*() {
+  const provider = yield* ConfigProvider.fromDir({
+    rootPath: "/etc/myapp"
+  })
+  return provider
+})
 ```
+
+Requires `Path` and `FileSystem` in the Effect context.
+
+### `ConfigProvider.make` — Custom Sources
+
+Build a provider from any backing store:
+
+```ts
+import { ConfigProvider, Effect } from "effect"
+
+const data: Record<string, string> = {
+  host: "localhost",
+  port: "5432"
+}
+
+const provider = ConfigProvider.make((path) => {
+  const key = path.join(".")
+  const value = data[key]
+  return Effect.succeed(
+    value !== undefined ? ConfigProvider.makeValue(value) : undefined
+  )
+})
+```
+
+Return `undefined` for "not found". Only fail with `SourceError` for actual I/O errors.
+
+## ConfigProvider Combinators
+
+### `ConfigProvider.orElse` — Fallback Sources
+
+Falls back to a second provider when the first returns `undefined` (path not found). Does **not** catch `SourceError`.
+
+```ts
+import { ConfigProvider } from "effect"
+
+const envProvider = ConfigProvider.fromEnv({
+  env: { HOST: "prod.example.com" }
+})
+const defaults = ConfigProvider.fromUnknown({
+  HOST: "localhost",
+  PORT: "3000"
+})
+
+const combined = ConfigProvider.orElse(envProvider, defaults)
+```
+
+### `ConfigProvider.nested` — Prefix All Lookups
+
+Prepends path segments so that all lookups are scoped:
+
+```ts
+import { ConfigProvider } from "effect"
+
+const provider = ConfigProvider.fromEnv({
+  env: { APP_HOST: "localhost", APP_PORT: "3000" }
+})
+
+// Lookups for ["HOST"] now resolve to ["APP", "HOST"]
+const scoped = ConfigProvider.nested(provider, "APP")
+```
+
+Accepts a single string or a full `Path` array.
+
+### `ConfigProvider.constantCase` — CamelCase to SCREAMING_SNAKE_CASE
+
+Bridges camelCase schema keys to environment variable naming:
+
+```ts
+import { ConfigProvider } from "effect"
+
+const provider = ConfigProvider.fromEnv({
+  env: { DATABASE_HOST: "localhost" }
+}).pipe(ConfigProvider.constantCase)
+
+// path ["databaseHost"] now resolves to ["DATABASE_HOST"]
+```
+
+### `ConfigProvider.mapInput` — Arbitrary Path Transforms
+
+Transform path segments before lookup:
+
+```ts
+import { ConfigProvider } from "effect"
+
+const provider = ConfigProvider.fromEnv({
+  env: { APP_HOST: "localhost" }
+})
+
+const upper = ConfigProvider.mapInput(
+  provider,
+  (path) => path.map((seg) => typeof seg === "string" ? seg.toUpperCase() : seg)
+)
+```
+
+## Installing a Provider
+
+### Using `ConfigProvider.layer`
+
+Replaces the active provider for all downstream effects:
+
+```ts
+import { Config, ConfigProvider, Effect } from "effect"
+
+const TestLayer = ConfigProvider.layer(
+  ConfigProvider.fromUnknown({ port: 8080 })
+)
+
+const program = Effect.gen(function*() {
+  const port = yield* Config.int("port")
+  return port
+})
+
+Effect.runSync(Effect.provide(program, TestLayer)) // 8080
+```
+
+### Using `ConfigProvider.layerAdd`
+
+Adds a provider without replacing the existing one. By default, the new provider is a **fallback**:
+
+```ts
+import { ConfigProvider } from "effect"
+
+const defaults = ConfigProvider.fromUnknown({
+  HOST: "localhost",
+  PORT: "3000"
+})
+
+// process.env is tried first; `defaults` is the fallback
+const DefaultsLayer = ConfigProvider.layerAdd(defaults)
+```
+
+Set `{ asPrimary: true }` to make the new provider the primary source instead.
+
+### Using `Effect.provideService`
+
+For one-off overrides without layers:
+
+```ts
+import { Config, ConfigProvider, Effect } from "effect"
+
+const provider = ConfigProvider.fromUnknown({ HOST: "localhost" })
+
+const program = Effect.gen(function*() {
+  const host = yield* Config.string("HOST")
+  return host
+}).pipe(
+  Effect.provideService(ConfigProvider.ConfigProvider, provider)
+)
+```
+
+## Two Ways to Run a Config
+
+1. **Yield in `Effect.gen`** — automatically uses the current `ConfigProvider` from the service map:
+
+   ```ts
+   const program = Effect.gen(function*() {
+     const host = yield* Config.string("HOST")
+   })
+   ```
+
+2. **Call `.parse(provider)` directly** — useful for testing or when you have a specific provider:
+
+   ```ts
+   const host = Config.string("HOST")
+   const result = Effect.runSync(host.parse(provider))
+   ```
 
 ## Error Handling
 
-All providers can fail with a `SourceError` when the underlying source cannot be read or is invalid. The error includes:
+Config operations fail with `ConfigError`, which wraps either:
 
-- `reason`: A human-readable error message
-- `cause`: The underlying error (if any)
+- **`SourceError`** — the provider could not read data (I/O failure, permission error). Has `message` and optional `cause` properties.
+- **`SchemaError`** — data was found but didn't match the schema (wrong type, out of range, missing key).
 
-## Integration with Effect
-
-ConfigProviders can be integrated into Effect applications using layers:
+Check `error.cause._tag` to distinguish:
 
 ```ts
-import { Effect } from "effect"
-import { ConfigProvider } from "effect"
+import { Config, ConfigProvider, Effect } from "effect"
 
-const provider = ConfigProvider.fromEnv({ env: { DATABASE_HOST: "localhost" } })
-
-const program = Effect.gen(function*() {
-  const provider = yield* ConfigProvider.ConfigProvider
-  const host = yield* provider.load(["DATABASE_HOST"])
-  console.log(host)
-  return host
-}).pipe(Effect.provide(ConfigProvider.layer(provider)))
-
-Effect.runFork(program)
-// { _tag: 'leaf', value: 'localhost' }
+const program = Config.int("PORT").parse(
+  ConfigProvider.fromUnknown({ PORT: "not-a-number" })
+).pipe(
+  Effect.tapError((error) =>
+    Effect.sync(() => {
+      if (error.cause._tag === "SchemaError") {
+        console.log("Validation failed:", error.message)
+      } else {
+        console.log("Source error:", error.message)
+      }
+    })
+  )
+)
 ```
 
-# Config
+**Important**: `Config.withDefault` and `Config.option` only recover from missing-data errors. Validation errors still propagate.
 
-## Goals
-
-- Configure the application with a single schema.
-- Do not worry about how strings are decoded into typed values.
-- Optionally customize how raw values are transformed before decoding.
-
-## schema API
-
-**Example** (Config from a Schema)
-
-The environment provides strings only, but you can describe the desired output using a schema. The library decodes strings into typed values (e.g., `Int`, `URL`) for you.
+## Practical Example: Web Server Config
 
 ```ts
-import { Effect } from "effect"
-import { Config, ConfigProvider } from "effect"
-import { Formatter, Schema } from "effect/schema"
+import { Config, ConfigProvider, Effect, Schema } from "effect"
 
-// Define the shape of the configuration you want to read.
-// Each field declares the target type you expect in your program.
-// - PORT will be parsed from string to an integer.
-// - LOCALHOST will be parsed from string to a URL instance.
-const config = Config.schema(
+// Define your config shape
+const ServerConfig = Config.schema(
   Schema.Struct({
-    API_KEY: Schema.String,
-    PORT: Schema.Int,
-    LOCALHOST: Schema.URL
-  })
+    host: Schema.String,
+    port: Schema.Int,
+    logLevel: Schema.Literals(["debug", "info", "warn", "error"])
+  }),
+  "server"
 )
 
-// Simulated environment: all values are strings.
-const env = {
-  API_KEY: "abc123",
-  PORT: "1",
-  LOCALHOST: "https://example.com"
-}
+const DbConfig = Config.schema(
+  Schema.Struct({
+    url: Schema.String,
+    poolSize: Schema.Int
+  }),
+  "db"
+)
 
-// Create a provider that reads from the given environment object.
-// In a real application you can omit `environment` to use process/env defaults.
-const configProvider = ConfigProvider.fromEnv({ env })
+const AppConfig = Config.all({
+  server: ServerConfig,
+  db: DbConfig,
+  debug: Config.boolean("debug").pipe(Config.withDefault(() => false))
+})
 
-// Program that reads the typed configuration once and logs it.
+// In production, just yield it — reads from process.env
 const program = Effect.gen(function*() {
-  // `yield* config` runs the decoding using the active provider.
-  const c = yield* config
-  console.dir(c)
-}).pipe(
-  // Basic error reporter: pretty-prints schema errors,
-  // prints a generic reason for non-schema errors.
-  Effect.tapError((e) =>
-    Effect.sync(() => {
-      switch (e._tag) {
-        case "SchemaError":
-          console.log("SchemaError", Formatter.makeTree().format(e.issue))
-          break
-        default:
-          console.log("SourceError", e.reason)
-      }
-    })
-  ),
-  // Supply the provider to the program.
-  Effect.provide(ConfigProvider.layer(configProvider))
+  const config = yield* AppConfig
+  console.log(config)
+})
+
+// For testing, provide a specific provider
+const testProvider = ConfigProvider.fromUnknown({
+  server: { host: "localhost", port: 3000, logLevel: "debug" },
+  db: { url: "postgres://localhost/testdb", poolSize: 5 },
+  debug: true
+})
+
+Effect.runSync(
+  program.pipe(Effect.provide(ConfigProvider.layer(testProvider)))
 )
-
-// Run in the background (fire-and-forget for this example).
-Effect.runFork(program)
-
-// Output:
-// { API_KEY: 'abc123', PORT: 1, LOCALHOST: URL { href: 'https://example.com/' } }
 ```
 
-The `schema` function accepts an optional second argument: the `path` from which to read the value.
+With environment variables, the same config reads:
 
-- If omitted, the config is read from the root.
-- The path can be a string or an array of strings.
-- This is useful for reading a single nested value from a larger structure.
-
-**Example** (Reading a value from the root)
-
-```ts
-import { Effect } from "effect"
-import { Config, ConfigProvider } from "effect"
-import { Formatter, Schema } from "effect/schema"
-
-// Expecting a string at the root
-const config = Config.schema(Schema.String)
-
-// Provide a single value at the root
-const configProvider = ConfigProvider.fromJson("value")
-
-const program = Effect.gen(function*() {
-  const c = yield* config
-  console.dir(c)
-}).pipe(
-  Effect.tapError((e) =>
-    Effect.sync(() => {
-      switch (e._tag) {
-        case "SchemaError":
-          console.log("SchemaError", Formatter.makeTree().format(e.issue))
-          break
-        default:
-          console.log("SourceError", e.reason)
-      }
-    })
-  ),
-  Effect.provide(ConfigProvider.layer(configProvider))
-)
-
-Effect.runFork(program)
-// "value"
 ```
-
-**Example** (Using a string path)
-
-```ts
-import { Effect } from "effect"
-import { Config, ConfigProvider } from "effect"
-import { Formatter, Schema } from "effect/schema"
-
-// Read a string at path "a"
-const config = Config.schema(Schema.String, "a")
-
-const configProvider = ConfigProvider.fromJson({ a: "value" })
-
-const program = Effect.gen(function*() {
-  const c = yield* config
-  console.dir(c)
-}).pipe(
-  Effect.tapError((e) =>
-    Effect.sync(() => {
-      switch (e._tag) {
-        case "SchemaError":
-          console.log("SchemaError", Formatter.makeTree().format(e.issue))
-          break
-        default:
-          console.log("SourceError", e.reason)
-      }
-    })
-  ),
-  Effect.provide(ConfigProvider.layer(configProvider))
-)
-
-Effect.runFork(program)
-// "value"
-```
-
-**Example** (Using an array path)
-
-```ts
-import { Effect } from "effect"
-import { Config, ConfigProvider } from "effect"
-import { Formatter, Schema } from "effect/schema"
-
-// Read a string at nested path ["a", "b"]
-const config = Config.schema(Schema.String, ["a", "b"])
-
-const configProvider = ConfigProvider.fromJson({ a: { b: "value" } })
-
-const program = Effect.gen(function*() {
-  const c = yield* config
-  console.dir(c)
-}).pipe(
-  Effect.tapError((e) =>
-    Effect.sync(() => {
-      switch (e._tag) {
-        case "SchemaError":
-          console.log("SchemaError", Formatter.makeTree().format(e.issue))
-          break
-        default:
-          console.log("SourceError", e.reason)
-      }
-    })
-  ),
-  Effect.provide(ConfigProvider.layer(configProvider))
-)
-
-Effect.runFork(program)
-// "value"
+server_host=localhost
+server_port=3000
+server_logLevel=debug
+db_url=postgres://localhost/mydb
+db_poolSize=10
+debug=true
 ```
