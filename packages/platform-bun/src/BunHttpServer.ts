@@ -95,8 +95,9 @@ export const make = Effect.fnUntraced(
     return Server.make({
       address: { _tag: "TcpAddress", port: server.port!, hostname: server.hostname! },
       serve: Effect.fnUntraced(function*(httpApp, middleware) {
+        const parent = yield* Effect.fiber
         const scope = yield* Effect.scope
-        const services = yield* Effect.services<never>()
+        const services = parent.services
         const httpEffect = HttpEffect.toHandled(httpApp, (request, response) =>
           Effect.sync(() => {
             ;(request as BunServerRequest).resolve(makeResponse(request, response, services, scope))
@@ -111,7 +112,7 @@ export const make = Effect.fnUntraced(
             )
             const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(httpEffect), scope)
             request.signal.addEventListener("abort", () => {
-              fiber.interruptUnsafe(Error.clientAbortFiberId)
+              fiber.interruptUnsafe(parent.id, Error.ClientAbort.annotation)
             }, { once: true })
           })
         }

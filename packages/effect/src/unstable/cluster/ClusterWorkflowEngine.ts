@@ -16,7 +16,7 @@ import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Rpc from "../rpc/Rpc.ts"
-import * as RpcServer from "../rpc/RpcServer.ts"
+import { ClientAbort } from "../rpc/RpcSchema.ts"
 import * as Activity from "../workflow/Activity.ts"
 import * as DurableClock from "../workflow/DurableClock.ts"
 import * as DurableDeferred from "../workflow/DurableDeferred.ts"
@@ -315,7 +315,7 @@ export const make = Effect.gen(function*() {
                     // we only want to store interrupts as suspends when the
                     // client requested it
                     const suspend = cause.reasons.some((f) =>
-                      f._tag === "Interrupt" && f.fiberId === RpcServer.fiberIdClientInterrupt
+                      f._tag === "Interrupt" && f.annotations.has(ClientAbort.key)
                     )
                     if (suspend) {
                       interruptedActivities.add(activityId)

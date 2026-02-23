@@ -1,9 +1,12 @@
 /**
  * @since 4.0.0
  */
+import * as Cause from "../../Cause.ts"
+import { constUndefined } from "../../Function.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import type * as AST from "../../SchemaAST.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream_ from "../../Stream.ts"
 
 const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
@@ -57,4 +60,18 @@ const schema = Schema.declare(Stream_.isStream)
  */
 export function Stream<A extends Schema.Top, E extends Schema.Top>(success: A, error: E): Stream<A, E> {
   return Schema.make(schema.ast, { [StreamSchemaTypeId]: StreamSchemaTypeId, success, error })
+}
+
+/**
+ * @since 4.0.0
+ * @category Cause annotations
+ */
+export class ClientAbort extends ServiceMap.Service<ClientAbort, true>()("effect/rpc/RpcSchema/ClientAbort") {
+  static annotation = this.serviceMap(true).pipe(
+    ServiceMap.add(Cause.StackTrace, {
+      name: "ClientAbort",
+      stack: constUndefined,
+      parent: undefined
+    })
+  )
 }

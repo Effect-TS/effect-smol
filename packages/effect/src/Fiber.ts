@@ -316,8 +316,15 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiber
  * @category interruption
  */
 export const interruptAs: {
-  (fiberId: number): <A, E>(self: Fiber<A, E>) => Effect<void>
-  <A, E>(self: Fiber<A, E>, fiberId: number): Effect<void>
+  (
+    fiberId: number | undefined,
+    annotations?: ServiceMap.ServiceMap<never> | undefined
+  ): <A, E>(self: Fiber<A, E>) => Effect<void>
+  <A, E>(
+    self: Fiber<A, E>,
+    fiberId: number | undefined,
+    annotations?: ServiceMap.ServiceMap<never> | undefined
+  ): Effect<void>
 } = effect.fiberInterruptAs
 
 /**
