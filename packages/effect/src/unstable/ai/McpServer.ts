@@ -548,6 +548,7 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
   >)
   const services = yield* Effect.services<never>()
   for (const tool of Object.values(built.tools)) {
+    const toolMeta = ServiceMap.getOrUndefined(tool.annotations, Tool.Meta)
     const mcpTool = new McpTool({
       name: tool.name,
       description: Tool.getDescription(tool),
@@ -561,7 +562,8 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
         destructiveHint: ServiceMap.get(tool.annotations, Tool.Destructive),
         idempotentHint: ServiceMap.get(tool.annotations, Tool.Idempotent),
         openWorldHint: ServiceMap.get(tool.annotations, Tool.OpenWorld)
-      }
+      },
+      _meta: toolMeta
     })
     yield* registry.addTool({
       tool: mcpTool,

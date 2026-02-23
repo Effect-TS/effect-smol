@@ -1626,6 +1626,21 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options
 export class Title extends ServiceMap.Service<Title, string>()("effect/ai/Tool/Title") {}
 
 /**
+ * Annotation for providing tool metadata for MCP.
+ *
+ * @example
+ * ```ts
+ * import { Tool } from "effect/unstable/ai"
+ *
+ * const myCalculatorUi = Tool.make("calculator_ui", {})
+ *   .annotate(Tool.Meta, { ui: { resourceUri: "ui://example/calculator-ui" } })
+ * ```
+ * @since 1.0.0
+ * @category annotations
+ */
+export class Meta extends ServiceMap.Service<Meta, Record<string, unknown>>()("effect/ai/Tool/Meta") {}
+
+/**
  * Annotation indicating whether a tool only reads data without making changes.
  *
  * @example
