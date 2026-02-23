@@ -5554,31 +5554,33 @@ export const annotateLogsScoped: {
   (key: string, value: unknown): Effect.Effect<void, never, Scope.Scope>
   (values: Record<string, unknown>): Effect.Effect<void, never, Scope.Scope>
 } = function() {
-  const args = arguments
-  return asVoid(
-    acquireRelease(
-      withFiber((fiber) =>
-        sync(() => {
-          const prev = fiber.getRef(CurrentLogAnnotations)
-          const next = { ...prev }
-          if (typeof args[0] === "string") {
-            next[args[0]] = args[1]
-          } else {
-            Object.assign(next, args[0])
-          }
-          fiber.setServices(ServiceMap.add(fiber.services, CurrentLogAnnotations, next))
-          return {
-            fiber,
-            prev
-          }
-        })
-      ),
-      ({ fiber, prev }) =>
-        sync(() => {
-          fiber.setServices(ServiceMap.add(fiber.services, CurrentLogAnnotations, prev))
-        })
-    )
-  )
+  const entries = typeof arguments[0] === "string" ?
+    [[arguments[0], arguments[1]]] :
+    Object.entries(arguments[0])
+  return uninterruptible(withFiber((fiber) => {
+    const prev = fiber.getRef(CurrentLogAnnotations)
+    const next = { ...prev }
+    for (let i = 0; i < entries.length; i++) {
+      const [key, value] = entries[i]
+      next[key] = value
+    }
+    fiber.setServices(ServiceMap.add(fiber.services, CurrentLogAnnotations, next))
+    return scopeAddFinalizerExit(ServiceMap.getUnsafe(fiber.services, scopeTag), (_) => {
+      const current = fiber.getRef(CurrentLogAnnotations)
+      const next = { ...current }
+      for (let i = 0; i < entries.length; i++) {
+        const [key, value] = entries[i]
+        if (current[key] !== value) continue
+        if (key in prev) {
+          next[key] = prev[key]
+        } else {
+          delete next[key]
+        }
+      }
+      fiber.setServices(ServiceMap.add(fiber.services, CurrentLogAnnotations, next))
+      return void_
+    })
+  }))
 }
 
 /** @internal */

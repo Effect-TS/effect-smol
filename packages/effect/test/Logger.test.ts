@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
+import { Exit, Scope } from "effect"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Logger from "effect/Logger"
@@ -66,23 +67,22 @@ describe("Logger", () => {
         annotations.push({ ...options.fiber.getRef(References.CurrentLogAnnotations) })
       })
 
+      const scope = Scope.makeUnsafe()
+
       yield* Effect.gen(function*() {
         yield* Effect.log("before")
-        yield* Effect.scoped(
-          Effect.gen(function*() {
-            yield* Effect.annotateLogsScoped("inner", "scope")
-            yield* Effect.log("inside")
-          })
-        )
+        yield* Effect.annotateLogsScoped("inner", "scope")
         yield* Effect.log("after")
       }).pipe(
         Effect.annotateLogs("outer", "program"),
+        Effect.ensuring(Scope.close(scope, Exit.void)),
+        Effect.andThen(Effect.log("outside")),
         Effect.provide(Logger.layer([logger]))
       )
 
       assert.deepStrictEqual(
         annotations,
-        [{ outer: "program" }, { outer: "program", inner: "scope" }, { outer: "program" }]
+        [{ outer: "program" }, { outer: "program", inner: "scope" }, {}]
       )
     }))
 })
