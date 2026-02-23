@@ -2114,7 +2114,12 @@ const provideServiceImpl = <A, E, R, I, S>(
   self: Effect.Effect<A, E, R>,
   service: ServiceMap.Service<I, S>,
   implementation: S
-): Effect.Effect<A, E, Exclude<R, I>> => updateServices(self, ServiceMap.add(service, implementation)) as any
+): Effect.Effect<A, E, Exclude<R, I>> =>
+  updateServices(self, (s) => {
+    const prev = s.mapUnsafe.get(service.key)
+    if (prev === implementation) return s
+    return ServiceMap.add(s, service, implementation)
+  }) as any
 
 /** @internal */
 export const provideServiceEffect: {

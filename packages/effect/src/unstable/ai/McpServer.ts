@@ -9,6 +9,7 @@ import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
+import { CurrentLogLevel } from "../../References.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -1049,6 +1050,7 @@ const layerHandlers = (serverInfo: {
   ClientRpcs.toLayer(
     Effect.gen(function*() {
       const server = yield* McpServer
+      let currentLogLevel = yield* CurrentLogLevel
 
       return ClientRpcs.of({
         // Requests
@@ -1079,17 +1081,51 @@ const layerHandlers = (serverInfo: {
               : LATEST_PROTOCOL_VERSION
           })
         },
-        "completion/complete": server.completion,
-        "logging/setLevel": () => InternalError.notImplemented.asEffect(),
-        "prompts/get": server.getPromptResult,
+        "completion/complete": (r) =>
+          server.completion(r).pipe(
+            Effect.provideService(CurrentLogLevel, currentLogLevel)
+          ),
+        "logging/setLevel": ({ level }) =>
+          Effect.sync(() => {
+            switch (level) {
+              case "notice":
+              case "info":
+                currentLogLevel = "Info"
+                break
+              case "error":
+                currentLogLevel = "Error"
+                break
+              case "debug":
+                currentLogLevel = "Debug"
+                break
+              case "warning":
+                currentLogLevel = "Warn"
+                break
+              case "critical":
+              case "alert":
+              case "emergency":
+                currentLogLevel = "Fatal"
+                break
+            }
+          }),
+        "prompts/get": (r) =>
+          server.getPromptResult(r).pipe(
+            Effect.provideService(CurrentLogLevel, currentLogLevel)
+          ),
         "prompts/list": () => Effect.sync(() => new ListPromptsResult({ prompts: server.prompts })),
         "resources/list": () => Effect.sync(() => new ListResourcesResult({ resources: server.resources })),
-        "resources/read": ({ uri }) => server.findResource(uri),
+        "resources/read": ({ uri }) =>
+          server.findResource(uri).pipe(
+            Effect.provideService(CurrentLogLevel, currentLogLevel)
+          ),
         "resources/subscribe": () => InternalError.notImplemented.asEffect(),
         "resources/unsubscribe": () => InternalError.notImplemented.asEffect(),
         "resources/templates/list": () =>
           Effect.sync(() => new ListResourceTemplatesResult({ resourceTemplates: server.resourceTemplates })),
-        "tools/call": server.callTool,
+        "tools/call": (r) =>
+          server.callTool(r).pipe(
+            Effect.provideService(CurrentLogLevel, currentLogLevel)
+          ),
         "tools/list": () => Effect.sync(() => new ListToolsResult({ tools: server.tools })),
 
         // Notifications
