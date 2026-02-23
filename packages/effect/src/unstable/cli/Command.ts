@@ -18,8 +18,9 @@ import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
 import * as CliOutput from "./CliOutput.ts"
 import * as GlobalFlag from "./GlobalFlag.ts"
-import { checkForDuplicateFlags, getHelpForCommandPath, makeCommand, toImpl, TypeId } from "./internal/command.ts"
+import { checkForDuplicateFlags, makeCommand, toImpl, TypeId } from "./internal/command.ts"
 import { parseConfig } from "./internal/config.ts"
+import { getHelpForCommandPath } from "./internal/help.ts"
 import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"
 import * as Param from "./Param.ts"
@@ -975,7 +976,7 @@ const showHelp = <Name extends string, Input, E, R>(
 ): Effect.Effect<void, never, Environment> =>
   Effect.gen(function*() {
     const formatter = yield* CliOutput.Formatter
-    const helpDoc = yield* getHelpForCommandPath(command, commandPath)
+    const helpDoc = yield* getHelpForCommandPath(command, commandPath, GlobalFlag.Registry)
     yield* Console.log(formatter.formatHelpDoc(helpDoc))
     if (errors && errors.length > 0) {
       yield* Console.error(formatter.formatErrors(errors))

@@ -12,11 +12,13 @@ Built-in CLI flags (`--help`, `--version`, `--completions`, `--log-level`) are n
 - **Composability**: Flags compose via Effect's service system
 
 New `GlobalFlag` module exports:
+
 - `Action<A>` and `Setting<A>` types for different flag behaviors
 - `Help`, `Version`, `Completions`, `LogLevel` references for built-in flags
 - `set`, `remove`, `clear` functions for managing global flags
 
 Example:
+
 ```typescript
 const app = Command.make("myapp")
 Command.run(app, { version: "1.0.0" }).pipe(

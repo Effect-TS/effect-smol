@@ -11,13 +11,12 @@ import * as Option from "../../Option.ts"
 import * as References from "../../References.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as CliOutput from "./CliOutput.ts"
+import type * as Command from "./Command.ts"
 import * as Flag from "./Flag.ts"
 
 /* ========================================================================== */
 /* Types                                                                      */
 /* ========================================================================== */
-
-import type * as Command from "./Command.ts"
 
 /**
  * Context passed to action handlers.
@@ -107,9 +106,9 @@ export const setting = <A>(options: {
 /* Built-in Flag References                                                   */
 /* ========================================================================== */
 
-import * as CommandInternal from "./internal/command.ts"
 import * as CommandDescriptor from "./internal/completions/CommandDescriptor.ts"
 import * as Completions from "./internal/completions/Completions.ts"
+import * as HelpInternal from "./internal/help.ts"
 
 /**
  * The `--help` / `-h` global flag.
@@ -130,7 +129,7 @@ export const Help: ServiceMap.Reference<Action<boolean>> = ServiceMap.Reference(
         run: (_, { command, commandPath }) =>
           Effect.gen(function*() {
             const formatter = yield* CliOutput.Formatter
-            const helpDoc = yield* CommandInternal.getHelpForCommandPath(command, commandPath)
+            const helpDoc = yield* HelpInternal.getHelpForCommandPath(command, commandPath, Registry)
             yield* Console.log(formatter.formatHelpDoc(helpDoc))
           })
       })
