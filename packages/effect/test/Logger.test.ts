@@ -43,7 +43,12 @@ describe("Logger", () => {
       const scope = yield* Scope.make()
 
       yield* Effect.annotateLogsScoped("requestId", "req-1").pipe(Scope.provide(scope))
-      yield* Scope.close(scope, Exit.void).pipe(Effect.annotateLogs("temporary", "value"))
+      const annotations = yield* Effect.gen(function*() {
+        return yield* References.CurrentLogAnnotations
+      }).pipe(Effect.annotateLogs("temporary", "value"))
+      assert.deepStrictEqual(annotations, { requestId: "req-1", temporary: "value" })
+
+      yield* Scope.close(scope, Exit.void)
 
       assert.deepStrictEqual(yield* References.CurrentLogAnnotations, {})
     }))
