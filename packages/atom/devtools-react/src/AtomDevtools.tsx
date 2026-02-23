@@ -9,7 +9,7 @@ import * as React from "react"
 import { AtomDetail } from "./AtomDetail.tsx"
 import { AtomList } from "./AtomList.tsx"
 import { panelStyle, toggleButtonStyle } from "./styles.ts"
-import { useDevtoolsState } from "./useDevtoolsState.ts"
+import { useDevtoolsController } from "./useDevtoolsController.ts"
 
 const EffectIcon: React.FC<{ readonly size?: number; readonly color?: string }> = (
   { size = 20, color = "currentColor" }
@@ -78,19 +78,14 @@ const AtomDevtoolsImpl: React.FC<AtomDevtoolsProps> = ({
   position = "bottom"
 }) => {
   const [isOpen, setIsOpen] = React.useState(() => readOpen(initialIsOpen))
-  // mounted keeps the DOM alive during close animation
   const [mounted, setMounted] = React.useState(isOpen)
-  // visible drives the CSS transition (off → on after mount, on → off before unmount)
   const [visible, setVisible] = React.useState(isOpen)
-  const state = useDevtoolsState()
+  const { nodes, selectedAtom, controller } = useDevtoolsController()
   const [btnHovered, setBtnHovered] = React.useState(false)
 
-  // Open: mount first, then make visible after browser paints the hidden state.
-  // Close: hide first, then unmount after transition completes.
   React.useEffect(() => {
     if (isOpen) {
       setMounted(true)
-      // Double rAF: first frame commits the hidden mount, second frame triggers the transition
       let raf2: number
       const raf1 = requestAnimationFrame(() => {
         raf2 = requestAnimationFrame(() => setVisible(true))
@@ -114,14 +109,7 @@ const AtomDevtoolsImpl: React.FC<AtomDevtoolsProps> = ({
     })
   }, [])
 
-  const selectedSnapshot = state.selectedAtom ? state.nodes.get(state.selectedAtom) : undefined
-
-  // Clear selection if atom was removed
-  React.useEffect(() => {
-    if (state.selectedAtom && !state.nodes.has(state.selectedAtom)) {
-      state.setSelectedAtom(null)
-    }
-  }, [state.selectedAtom, state.nodes, state.setSelectedAtom])
+  const selectedSnapshot = selectedAtom ? nodes.get(selectedAtom) : undefined
 
   const btnStyle: React.CSSProperties = {
     ...toggleButtonStyle(buttonPosition),
@@ -143,18 +131,18 @@ const AtomDevtoolsImpl: React.FC<AtomDevtoolsProps> = ({
       {mounted && (
         <div style={panelStyle(position, visible)} data-testid="devtools-panel">
           <AtomList
-            nodes={state.nodes}
-            selectedAtom={state.selectedAtom}
-            onSelect={state.setSelectedAtom}
-            searchQuery={state.searchQuery}
-            onSearchChange={state.setSearchQuery}
+            entries={controller.filteredEntries()}
+            selectedAtom={selectedAtom}
+            onSelect={controller.setSelectedAtom}
+            searchQuery={controller.getState().searchQuery}
+            onSearchChange={controller.setSearchQuery}
           />
-          {state.selectedAtom && selectedSnapshot && (
+          {selectedAtom && selectedSnapshot && (
             <AtomDetail
-              atom={state.selectedAtom}
+              atom={selectedAtom}
               snapshot={selectedSnapshot}
-              registry={state.registry}
-              onSelect={state.setSelectedAtom}
+              registry={controller.registry}
+              onSelect={controller.setSelectedAtom}
             />
           )}
         </div>

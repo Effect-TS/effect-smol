@@ -3,6 +3,9 @@
  */
 "use client"
 
+import * as AtomUtils from "@effect/atom-devtools/AtomUtils"
+import type * as DevtoolsState from "@effect/atom-devtools/DevtoolsState"
+import { addKeyToObject, appendToArray, parseValue, removeAtPath, setAtPath } from "@effect/atom-devtools/ValueUtils"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 import * as React from "react"
@@ -15,86 +18,13 @@ import {
   editingInputStyle,
   theme
 } from "./styles.ts"
-import type { NodeSnapshot } from "./useDevtoolsState.ts"
 
 /** @internal */
 export interface AtomDetailProps {
   readonly atom: Atom.Atom<any>
-  readonly snapshot: NodeSnapshot
+  readonly snapshot: DevtoolsState.NodeSnapshot
   readonly registry: AtomRegistry.AtomRegistry
   readonly onSelect: (atom: Atom.Atom<any>) => void
-}
-
-const getLabel = (atom: Atom.Atom<any>): string => atom.label?.[0] ?? String(atom)
-
-const setAtPath = (root: unknown, path: ReadonlyArray<string>, value: unknown): unknown => {
-  if (path.length === 0) return value
-  const [head, ...tail] = path
-  if (Array.isArray(root)) {
-    const copy = [...root]
-    copy[Number(head)] = setAtPath(copy[Number(head)], tail, value)
-    return copy
-  }
-  return { ...(root as any), [head]: setAtPath((root as any)[head], tail, value) }
-}
-
-const removeAtPath = (root: unknown, path: ReadonlyArray<string>): unknown => {
-  if (path.length === 0) return root
-  if (path.length === 1) {
-    if (Array.isArray(root)) return root.filter((_, i) => i !== Number(path[0]))
-    const { [path[0]]: _, ...rest } = root as Record<string, unknown>
-    return rest
-  }
-  const [head, ...tail] = path
-  if (Array.isArray(root)) {
-    const copy = [...root]
-    copy[Number(head)] = removeAtPath(copy[Number(head)], tail)
-    return copy
-  }
-  return { ...(root as any), [head]: removeAtPath((root as any)[head], tail) }
-}
-
-const appendToArray = (root: unknown, path: ReadonlyArray<string>, value: unknown): unknown => {
-  if (path.length === 0) {
-    if (Array.isArray(root)) return [...root, value]
-    return root
-  }
-  const [head, ...tail] = path
-  if (Array.isArray(root)) {
-    const copy = [...root]
-    copy[Number(head)] = appendToArray(copy[Number(head)], tail, value)
-    return copy
-  }
-  return { ...(root as any), [head]: appendToArray((root as any)[head], tail, value) }
-}
-
-const addKeyToObject = (root: unknown, path: ReadonlyArray<string>, key: string, value: unknown): unknown => {
-  if (path.length === 0) {
-    return { ...(root as any), [key]: value }
-  }
-  const [head, ...tail] = path
-  if (Array.isArray(root)) {
-    const copy = [...root]
-    copy[Number(head)] = addKeyToObject(copy[Number(head)], tail, key, value)
-    return copy
-  }
-  return { ...(root as any), [head]: addKeyToObject((root as any)[head], tail, key, value) }
-}
-
-const parseValue = (input: string, current: unknown): unknown => {
-  if (input === "null") return null
-  if (input === "undefined") return undefined
-  if (input === "true") return true
-  if (input === "false") return false
-  if (typeof current === "number") {
-    const n = Number(input)
-    if (!Number.isNaN(n)) return n
-  }
-  try {
-    return JSON.parse(input)
-  } catch {
-    return input
-  }
 }
 
 const EditableValue: React.FC<{
@@ -378,10 +308,6 @@ const copyToClipboard = (value: unknown) => {
   }
 }
 
-/**
- * @since 1.0.0
- * @category components
- */
 const atomLinkStyle: React.CSSProperties = {
   color: theme.accent,
   cursor: "pointer",
@@ -394,6 +320,10 @@ const atomLinkCss = `
 }
 `
 
+/**
+ * @since 1.0.0
+ * @category components
+ */
 export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry, onSelect }) => {
   const isWritable = Atom.isWritable(atom)
 
@@ -425,7 +355,7 @@ export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry
   return (
     <div style={detailPanelStyle} data-testid="devtools-detail">
       <div style={{ marginBottom: "12px", fontSize: "14px", fontWeight: "bold" }}>
-        {getLabel(atom)}
+        {AtomUtils.getLabel(atom)}
       </div>
 
       {/* Value */}
@@ -491,7 +421,7 @@ export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry
               onClick={() => onSelect(parent.atom)}
               data-testid="devtools-dep-link"
             >
-              {getLabel(parent.atom)}
+              {AtomUtils.getLabel(parent.atom)}
             </div>
           ))}
         </div>
@@ -509,7 +439,7 @@ export const AtomDetail: React.FC<AtomDetailProps> = ({ atom, snapshot, registry
               onClick={() => onSelect(child.atom)}
               data-testid="devtools-dep-link"
             >
-              {getLabel(child.atom)}
+              {AtomUtils.getLabel(child.atom)}
             </div>
           ))}
         </div>

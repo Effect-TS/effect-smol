@@ -7,7 +7,7 @@ import * as React from "react"
 import { beforeEach, describe, expect, it } from "vitest"
 import { AtomDevtools } from "../src/index.ts"
 
-describe("atom-react-devtools", () => {
+describe("atom-devtools-react", () => {
   let registry: AtomRegistry.AtomRegistry
 
   beforeEach(() => {
@@ -217,7 +217,6 @@ describe("atom-react-devtools", () => {
 
     fireEvent.click(screen.getByText("removable"))
 
-    // Hover over the first element row to reveal the × button
     const leaves = screen.getAllByTestId("devtools-value-leaf")
     const firstLeaf = leaves.find((el) => el.textContent === "10")!
     const row = firstLeaf.closest("[data-testid='devtools-value-leaf']")!.parentElement!.parentElement!
