@@ -55,6 +55,7 @@
     "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
+    "demo": "vite --config demo/vite.config.ts",
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
@@ -76,6 +77,8 @@
     "jsdom": "^27.1.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "scheduler": "^0.27.0"
+    "scheduler": "^0.27.0",
+    "vite": "^6.3.5",
+    "@vitejs/plugin-react": "^4.5.2"
   }
 }

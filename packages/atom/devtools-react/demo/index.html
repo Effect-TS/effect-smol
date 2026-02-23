@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atom Devtools Demo</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: system-ui, sans-serif; background: #111; color: #eee; padding: 32px; }
+      h1 { font-size: 1.4rem; margin-bottom: 24px; }
+      h2 { font-size: 1rem; color: #888; margin-bottom: 8px; }
+      .card { background: #1a1a2e; border: 1px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+      button { padding: 6px 14px; border-radius: 4px; border: 1px solid #555; background: #222; color: #eee; cursor: pointer; font-size: 13px; }
+      button:hover { background: #333; }
+      .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+      .value { font-family: monospace; color: #89b4fa; font-size: 1.1rem; }
+      input[type="text"] { padding: 6px 10px; border-radius: 4px; border: 1px solid #555; background: #222; color: #eee; font-size: 13px; width: 200px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
