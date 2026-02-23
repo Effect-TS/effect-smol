@@ -368,10 +368,10 @@ export const make: {
   }): Atom<AsyncResult.AsyncResult<A, E>>
   <A, E>(create: (get: Context) => Stream.Stream<A, E, AtomRegistry>, options?: {
     readonly initialValue?: A
-  }): Atom<AsyncResult.AsyncResult<A, E>>
+  }): Atom<AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>>
   <A, E>(stream: Stream.Stream<A, E, AtomRegistry>, options?: {
     readonly initialValue?: A
-  }): Atom<AsyncResult.AsyncResult<A, E>>
+  }): Atom<AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>>
   <A>(create: (get: Context) => A): Atom<A>
   <A>(initialValue: A): Writable<A>
 } = (arg: any, options?: {
@@ -401,11 +401,11 @@ const makeRead: {
   <A, E>(stream: Stream.Stream<A, E, AtomRegistry>, options?: {
     readonly initialValue?: A
     readonly uninterruptible?: boolean | undefined
-  }): (get: Context, services?: ServiceMap.ServiceMap<any>) => AsyncResult.AsyncResult<A, E>
+  }): (get: Context, services?: ServiceMap.ServiceMap<any>) => AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>
   <A, E>(create: (get: Context) => Stream.Stream<A, E, AtomRegistry>, options?: {
     readonly initialValue?: A
     readonly uninterruptible?: boolean | undefined
-  }): (get: Context, services?: ServiceMap.ServiceMap<any>) => AsyncResult.AsyncResult<A, E>
+  }): (get: Context, services?: ServiceMap.ServiceMap<any>) => AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>
   <A>(create: (get: Context) => A): (get: Context, services?: ServiceMap.ServiceMap<any>) => A
   <A>(initialValue: A): Writable<A>
 } = <A, E>(
@@ -577,10 +577,10 @@ export interface AtomRuntime<R, ER = never> extends Atom<AsyncResult.AsyncResult
     }): Atom<AsyncResult.AsyncResult<A, E | ER>>
     <A, E>(create: (get: Context) => Stream.Stream<A, E, AtomRegistry | Reactivity.Reactivity | R>, options?: {
       readonly initialValue?: A
-    }): Atom<AsyncResult.AsyncResult<A, E | ER>>
+    }): Atom<AsyncResult.AsyncResult<A, E | ER | Cause.NoSuchElementError>>
     <A, E>(stream: Stream.Stream<A, E, AtomRegistry | Reactivity.Reactivity | R>, options?: {
       readonly initialValue?: A
-    }): Atom<AsyncResult.AsyncResult<A, E | ER>>
+    }): Atom<AsyncResult.AsyncResult<A, E | ER | Cause.NoSuchElementError>>
   }
 
   readonly fn: {
