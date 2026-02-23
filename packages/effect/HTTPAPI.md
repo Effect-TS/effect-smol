@@ -2111,7 +2111,7 @@ class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()(
   "Unauthorized",
   {},
   // Specify the HTTP status code for unauthorized errors
-  { status: 401 }
+  { httpApiStatus: 401 }
 ) {}
 
 // Define a Context.Tag for the authenticated user
@@ -2170,7 +2170,7 @@ class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()(
   "Unauthorized",
   {},
   // Specify the HTTP status code for unauthorized errors
-  { status: 401 }
+  { httpApiStatus: 401 }
 ) {}
 
 class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
@@ -2226,7 +2226,7 @@ class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()(
   "Unauthorized",
   {},
   // Specify the HTTP status code for unauthorized errors
-  { status: 401 }
+  { httpApiStatus: 401 }
 ) {}
 
 class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
