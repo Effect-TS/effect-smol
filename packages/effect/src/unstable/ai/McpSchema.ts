@@ -242,9 +242,9 @@ export class ClientCapabilities extends Schema.Class<ClientCapabilities>(
   experimental: optional(Schema.Record(Schema.String, Schema.Struct({}))),
   /**
    * Optional extensions capabilities advertised by the client.
-   * Keys are extension identifiers (e.g. "io.modelcontextprotocol/ui").
+   * Keys are extension identifiers following <vendor-prefix>/<extension-name> (e.g. "io.modelcontextprotocol/ui").
    */
-  extensions: optional(Schema.Record(Schema.String, Schema.Struct({}))),
+  extensions: optional(Schema.Record(Schema.TemplateLiteral([Schema.String, "/", Schema.String]), Schema.Unknown)),
   /**
    * Present if the client supports listing roots.
    */
@@ -279,9 +279,9 @@ export class ServerCapabilities extends Schema.Opaque<ServerCapabilities>()(Sche
   experimental: optional(Schema.Record(Schema.String, Schema.Struct({}))),
   /**
    * Optional extensions capabilities advertised by the server.
-   * Keys are extension identifiers (e.g. "io.modelcontextprotocol/ui").
+   * Keys are extension identifiers following <vendor-prefix>/<extension-name> (e.g. "io.modelcontextprotocol/ui").
    */
-  extensions: optional(Schema.Record(Schema.String, Schema.Struct({}))),
+  extensions: optional(Schema.Record(Schema.TemplateLiteral([Schema.String, "/", Schema.String]), Schema.Unknown)),
   /**
    * Present if the server supports sending log messages to the client.
    */
