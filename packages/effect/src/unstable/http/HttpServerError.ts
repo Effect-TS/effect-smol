@@ -7,6 +7,7 @@ import * as Effect from "../../Effect.ts"
 import * as ErrorReporter from "../../ErrorReporter.ts"
 import type * as Exit from "../../Exit.ts"
 import { hasProperty } from "../../Predicate.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Request from "./HttpServerRequest.ts"
 import * as Respondable from "./HttpServerRespondable.ts"
 import * as Response from "./HttpServerResponse.ts"
@@ -190,6 +191,12 @@ const formatRequestMessage = (reason: string, description: string | undefined, i
 /**
  * @since 4.0.0
  */
+export class ClientAbort extends ServiceMap.Service<ClientAbort, true>()("effect/http/HttpServerError/ClientAbort") {}
+
+/**
+ * @deprecated use {@link ClientAbort} cause annotations instead
+ * @since 4.0.0
+ */
 export const clientAbortFiberId = -499
 
 /**
@@ -221,7 +228,8 @@ export const causeResponse = <E>(
         break
       }
       case "Interrupt": {
-        isClientInterrupt = isClientInterrupt || f.fiberId === clientAbortFiberId
+        isClientInterrupt = isClientInterrupt ||
+          ServiceMap.getOrUndefined(Cause.reasonAnnotations(f), ClientAbort) === true
         if (failures.length > 0) break
         interrupt = f
         break
@@ -231,7 +239,7 @@ export const causeResponse = <E>(
   if (response) {
     return Effect.succeed([response, Cause.fromReasons(failures)] as const)
   } else if (interrupt && failures.length === 0) {
-    failures.push(isClientInterrupt ? Cause.makeInterruptReason(clientAbortFiberId) : interrupt)
+    failures.push(isClientInterrupt ? interrupt.annotate(ClientAbort.serviceMap(true)) : interrupt)
     effect = isClientInterrupt ? clientAbortError : serverAbortError
   }
   return Effect.mapEager(effect, (response) => {

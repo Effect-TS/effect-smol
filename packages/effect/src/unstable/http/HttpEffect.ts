@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type { Cause } from "../../Cause.ts"
+import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
@@ -14,7 +14,7 @@ import * as Stream from "../../Stream.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as HttpBody from "./HttpBody.ts"
 import { type HttpMiddleware, tracer } from "./HttpMiddleware.ts"
-import { causeResponse, clientAbortFiberId, HttpServerError, InternalError } from "./HttpServerError.ts"
+import { causeResponse, ClientAbort, HttpServerError, InternalError } from "./HttpServerError.ts"
 import { HttpServerRequest } from "./HttpServerRequest.ts"
 import * as Request from "./HttpServerRequest.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
@@ -32,28 +32,34 @@ export const toHandled = <E, R, EH, RH>(
   ) => Effect.Effect<unknown, EH, RH>,
   middleware?: HttpMiddleware | undefined
 ): Effect.Effect<void, never, Exclude<R | RH | HttpServerRequest, Scope.Scope>> => {
-  const handleCause = (cause: Cause<E | EH | HttpServerError>) =>
-    Effect.flatMapEager(causeResponse(cause), ([response, cause]) => {
-      const fiber = Fiber.getCurrent()!
-      reportCauseUnsafe(fiber, cause)
+  const handleCause = (cause: Cause.Cause<E | EH | HttpServerError>) =>
+    Effect.withFiber((fiber) => {
       const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
-      const handler = fiber.getRef(PreResponseHandlers)
-      const cont = cause.reasons.length === 0 ? Effect.succeed(response) : Effect.failCause(cause)
-      if (handler === undefined) {
-        ;(request as any)[handledSymbol] = true
+      const normalizedCause = request.source instanceof globalThis.Request &&
+          request.source.signal.aborted &&
+          Cause.hasInterrupts(cause)
+        ? Cause.annotate(cause, ClientAbort.serviceMap(true))
+        : cause
+      return Effect.flatMapEager(causeResponse(normalizedCause), ([response, cause]) => {
+        reportCauseUnsafe(fiber, cause)
+        const handler = fiber.getRef(PreResponseHandlers)
+        const cont = cause.reasons.length === 0 ? Effect.succeed(response) : Effect.failCause(cause)
+        if (handler === undefined) {
+          ;(request as any)[handledSymbol] = true
+          return Effect.flatMapEager(
+            handleResponse(request, response),
+            () => cont
+          )
+        }
+
         return Effect.flatMapEager(
-          handleResponse(request, response),
+          Effect.flatMapEager(handler(request, response), (response) => {
+            ;(request as any)[handledSymbol] = true
+            return handleResponse(request, response)
+          }),
           () => cont
         )
-      }
-
-      return Effect.flatMapEager(
-        Effect.flatMapEager(handler(request, response), (response) => {
-          ;(request as any)[handledSymbol] = true
-          return handleResponse(request, response)
-        }),
-        () => cont
-      )
+      })
     })
 
   const responded = Effect.matchCauseEffect(self, {
@@ -242,9 +248,19 @@ export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided
       contextMap.set(HttpServerRequest.key, httpServerRequest)
       ;(httpServerRequest as any)[resolveSymbol] = resolve
       const fiber = Effect.runForkWith(ServiceMap.makeUnsafe(contextMap))(httpApp as any)
-      request.signal?.addEventListener("abort", () => {
-        fiber.interruptUnsafe(clientAbortFiberId)
-      }, { once: true })
+      const signal = request.signal
+      if (signal === undefined) {
+        return
+      }
+      const abort = () => {
+        fiber.interruptUnsafe()
+      }
+      if (signal.aborted) {
+        abort()
+        return
+      }
+      signal.addEventListener("abort", abort, { once: true })
+      fiber.addObserver(() => signal.removeEventListener("abort", abort))
     })
 }
 

@@ -1,6 +1,8 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect } from "effect"
+import { Cause, Effect } from "effect"
 import {
+  causeResponse,
+  ClientAbort,
   HttpServerError,
   InternalError,
   isHttpServerError,
@@ -84,6 +86,17 @@ describe("HttpServerError", () => {
           const resolved = yield* Respondable.toResponse(respondable)
           assert.strictEqual(resolved.status, status)
         }
+      }))
+
+    it.effect("maps annotated client interrupts to 499", () =>
+      Effect.gen(function*() {
+        const [clientAbortResponse] = yield* causeResponse(
+          Cause.annotate(Cause.interrupt(), ClientAbort.serviceMap(true))
+        )
+        const [serverAbortResponse] = yield* causeResponse(Cause.interrupt())
+
+        assert.strictEqual(clientAbortResponse.status, 499)
+        assert.strictEqual(serverAbortResponse.status, 503)
       }))
   })
 

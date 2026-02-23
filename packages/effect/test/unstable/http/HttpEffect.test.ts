@@ -88,6 +88,23 @@ describe("Http/App", () => {
       const response = await handler(new Request("http://localhost:3000/"))
       strictEqual(await response.text(), "420")
     })
+
+    test("client abort returns 499", async () => {
+      const handler = HttpEffect.toWebHandler(
+        Effect.as(Effect.interruptible(Effect.never), HttpServerResponse.empty())
+      )
+      const controller = new AbortController()
+      const responsePromise = handler(new Request("http://localhost:3000/", { signal: controller.signal }))
+      controller.abort()
+      const response = await responsePromise
+      strictEqual(response.status, 499)
+    })
+
+    test("server interruption returns 503", async () => {
+      const handler = HttpEffect.toWebHandler(Effect.as(Effect.interrupt, HttpServerResponse.empty()))
+      const response = await handler(new Request("http://localhost:3000/"))
+      strictEqual(response.status, 503)
+    })
   })
 
   test("custom context", async () => {
