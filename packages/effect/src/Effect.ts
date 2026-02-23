@@ -13020,14 +13020,15 @@ export const annotateLogs = dual<
     effect: Effect<A, E, R>,
     ...args: [Record<string, unknown>] | [key: string, value: unknown]
   ): Effect<A, E, R> =>
-    internal.updateService(effect, CurrentLogAnnotations, (annotations) => {
+    internal.updateServices(effect, (services) => {
+      const annotations = ServiceMap.getUnsafe(services, CurrentLogAnnotations)
       const newAnnotations = { ...annotations }
       if (args.length === 1) {
         Object.assign(newAnnotations, args[0])
       } else {
         newAnnotations[args[0]] = args[1]
       }
-      return newAnnotations
+      return ServiceMap.add(services, CurrentLogAnnotations, newAnnotations)
     })
 )
 

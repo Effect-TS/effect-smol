@@ -38,6 +38,16 @@ describe("Logger", () => {
       assert.deepStrictEqual(yield* References.CurrentLogAnnotations, {})
     }))
 
+  it.effect("annotateLogsScoped closes without leaking through annotateLogs", () =>
+    Effect.gen(function*() {
+      const scope = yield* Scope.make()
+
+      yield* Effect.annotateLogsScoped("requestId", "req-1").pipe(Scope.provide(scope))
+      yield* Scope.close(scope, Exit.void).pipe(Effect.annotateLogs("temporary", "value"))
+
+      assert.deepStrictEqual(yield* References.CurrentLogAnnotations, {})
+    }))
+
   it.effect(
     "replace loggers",
     Effect.fnUntraced(function*() {
