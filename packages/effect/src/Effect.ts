@@ -13032,6 +13032,36 @@ export const annotateLogs = dual<
 )
 
 /**
+ * Adds log annotations to the current scope.
+ *
+ * This differs from `annotateLogs`, which only annotates a specific effect.
+ * `annotateLogsScoped` updates annotations for the entire current `Scope` and
+ * restores the previous annotations when the scope closes.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.scoped(
+ *   Effect.gen(function*() {
+ *     yield* Effect.log("before")
+ *     yield* Effect.annotateLogsScoped({ requestId: "req-123" })
+ *     yield* Effect.log("inside scope")
+ *   })
+ * )
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
+ * @since 4.0.0
+ * @category Logging
+ */
+export const annotateLogsScoped: {
+  (key: string, value: unknown): Effect<void, never, Scope>
+  (values: Record<string, unknown>): Effect<void, never, Scope>
+} = internal.annotateLogsScoped
+
+/**
  * Adds a span to each log line in this effect.
  *
  * @example

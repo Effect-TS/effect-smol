@@ -1,5 +1,5 @@
 /** @effect-diagnostics floatingEffect:skip-file */
-import { type Cause, Data, Effect, type Option, pipe, type Types } from "effect"
+import { type Cause, Data, Effect, type Option, pipe, type Scope, type Types } from "effect"
 import { describe, expect, it } from "tstyche"
 
 // Fixtures
@@ -184,6 +184,18 @@ describe("Effect.validate", () => {
   it("supports discard option", () => {
     const result = Effect.validate([1, 2, 3], (n) => Effect.succeed(n), { discard: true })
     expect(result).type.toBe<Effect.Effect<void, [never, ...Array<never>]>>()
+  })
+})
+
+describe("Effect.annotateLogsScoped", () => {
+  it("returns a scoped effect for key/value input", () => {
+    const result = Effect.annotateLogsScoped("requestId", "req-123")
+    expect(result).type.toBe<Effect.Effect<void, never, Scope.Scope>>()
+  })
+
+  it("returns a scoped effect for record input", () => {
+    const result = Effect.annotateLogsScoped({ requestId: "req-123", attempt: 1 })
+    expect(result).type.toBe<Effect.Effect<void, never, Scope.Scope>>()
   })
 })
 
