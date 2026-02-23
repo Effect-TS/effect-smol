@@ -615,7 +615,14 @@ export class Resource extends Schema.Class<Resource>(
    * This can be used by Hosts to display file sizes and estimate context
    * window usage.
    */
-  size: optional(Schema.Number)
+  size: optional(Schema.Number),
+  /**
+   * Optional additional metadata for the client.
+   *
+   * This parameter name is reserved by MCP to allow clients and servers to
+   * attach additional metadata to resources.
+   */
+  _meta: optional(Schema.Record(Schema.String, Schema.Unknown))
 }) {}
 
 /**
@@ -656,7 +663,12 @@ export class ResourceTemplate extends Schema.Class<ResourceTemplate>(
   /**
    * Optional annotations for the client.
    */
-  annotations: optional(Annotations)
+  annotations: optional(Annotations),
+
+  /**
+   * Optional additional metadata for the client.
+   */
+  _meta: optional(Schema.Record(Schema.String, Schema.Unknown))
 }) {}
 
 /**
@@ -673,7 +685,11 @@ export class ResourceContents extends Schema.Opaque<ResourceContents>()(Schema.S
   /**
    * The MIME type of this resource, if known.
    */
-  mimeType: optional(Schema.String)
+  mimeType: optional(Schema.String),
+  /**
+   * Optional additional metadata for the client.
+   */
+  _meta: optional(Schema.Record(Schema.String, Schema.Unknown))
 })) {}
 
 /**
@@ -1183,7 +1199,14 @@ export class Tool extends Schema.Class<Tool>(
   /**
    * Optional additional tool information.
    */
-  annotations: optional(ToolAnnotations)
+  annotations: optional(ToolAnnotations),
+  /**
+   * Optional additional metadata for the client.
+   *
+   * This parameter name is reserved by MCP to allow clients and servers to
+   * attach additional metadata to resources.
+   */
+  _meta: optional(Schema.Record(Schema.String, Schema.Unknown))
 }) {}
 
 /**
