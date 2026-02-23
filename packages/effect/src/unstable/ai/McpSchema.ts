@@ -331,8 +331,8 @@ export class ServerCapabilities extends Schema.Opaque<ServerCapabilities>()(Sche
  * @since 4.0.0
  * @category errors
  */
-export class McpError extends Schema.Class<McpError>(
-  "@effect/ai/McpSchema/McpError"
+export class McpErrorBase extends Schema.Class<McpErrorBase>(
+  "@effect/ai/McpSchema/McpErrorBase"
 )({
   /**
    * The error type that occurred.
@@ -381,7 +381,7 @@ export const PARSE_ERROR_CODE = -32700 as const
  * @category errors
  */
 export class ParseError extends Schema.ErrorClass<ParseError>("effect/ai/McpSchema/ParseError")({
-  ...McpError.fields,
+  ...McpErrorBase.fields,
   _tag: Schema.tag("ParseError"),
   code: Schema.tag(PARSE_ERROR_CODE)
 }) {}
@@ -391,7 +391,7 @@ export class ParseError extends Schema.ErrorClass<ParseError>("effect/ai/McpSche
  * @category errors
  */
 export class InvalidRequest extends Schema.ErrorClass<InvalidRequest>("effect/ai/McpSchema/InvalidRequest")({
-  ...McpError.fields,
+  ...McpErrorBase.fields,
   _tag: Schema.tag("InvalidRequest"),
   code: Schema.tag(INVALID_REQUEST_ERROR_CODE)
 }) {}
@@ -401,7 +401,7 @@ export class InvalidRequest extends Schema.ErrorClass<InvalidRequest>("effect/ai
  * @category errors
  */
 export class MethodNotFound extends Schema.ErrorClass<MethodNotFound>("effect/ai/McpSchema/MethodNotFound")({
-  ...McpError.fields,
+  ...McpErrorBase.fields,
   _tag: Schema.tag("MethodNotFound"),
   code: Schema.tag(METHOD_NOT_FOUND_ERROR_CODE)
 }) {}
@@ -411,7 +411,7 @@ export class MethodNotFound extends Schema.ErrorClass<MethodNotFound>("effect/ai
  * @category errors
  */
 export class InvalidParams extends Schema.ErrorClass<InvalidParams>("effect/ai/McpSchema/InvalidParams")({
-  ...McpError.fields,
+  ...McpErrorBase.fields,
   _tag: Schema.tag("InvalidParams"),
   code: Schema.tag(INVALID_PARAMS_ERROR_CODE)
 }) {}
@@ -421,12 +421,25 @@ export class InvalidParams extends Schema.ErrorClass<InvalidParams>("effect/ai/M
  * @category errors
  */
 export class InternalError extends Schema.ErrorClass<InternalError>("effect/ai/McpSchema/InternalError")({
-  ...McpError.fields,
+  ...McpErrorBase.fields,
   _tag: Schema.tag("InternalError"),
   code: Schema.tag(INTERNAL_ERROR_CODE)
 }) {
   static readonly notImplemented = new InternalError({ message: "Not implemented" })
 }
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export const McpError = Schema.Union([
+  ParseError,
+  InvalidRequest,
+  MethodNotFound,
+  InvalidParams,
+  InternalError,
+  McpErrorBase
+])
 
 // =============================================================================
 // Ping
