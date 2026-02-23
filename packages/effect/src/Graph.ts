@@ -1957,13 +1957,23 @@ export interface MermaidOptions<N, E> {
  * Escapes special characters in labels for Mermaid syntax compatibility.
  */
 const escapeMermaidLabel = (label: string): string => {
+  // Escape special characters for Mermaid using HTML entity codes
+  // According to: https://mermaid.js.org/syntax/flowchart.html#special-characters-that-break-syntax
   return label
-    .replace(/\\/g, "\\\\") // Escape backslashes first
-    .replace(/"/g, "\\\"") // Escape quotes
-    .replace(/\[/g, "\\[") // Escape square brackets
-    .replace(/\]/g, "\\]") // Escape square brackets
-    .replace(/\|/g, "\\|") // Escape pipes
-    .replace(/\n/g, "<br/>") // Convert newlines to HTML breaks
+    .replace(/#/g, "#35;")
+    .replace(/"/g, "#quot;")
+    .replace(/</g, "#lt;")
+    .replace(/>/g, "#gt;")
+    .replace(/&/g, "#amp;")
+    .replace(/\[/g, "#91;")
+    .replace(/\]/g, "#93;")
+    .replace(/\{/g, "#123;")
+    .replace(/\}/g, "#125;")
+    .replace(/\(/g, "#40;")
+    .replace(/\)/g, "#41;")
+    .replace(/\|/g, "#124;")
+    .replace(/\\/g, "#92;")
+    .replace(/\n/g, "<br/>")
 }
 
 /**
