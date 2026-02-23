@@ -12,13 +12,13 @@ import { TracerEnabled } from "../../References.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import { ParentSpan } from "../../Tracer.ts"
 import * as Headers from "./Headers.ts"
-import type { PreResponseHandler } from "./HttpEffect.ts"
 import { causeResponseStripped, exitResponse } from "./HttpServerError.ts"
 import { HttpServerRequest } from "./HttpServerRequest.ts"
 import * as Request from "./HttpServerRequest.ts"
 import * as Response from "./HttpServerResponse.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
 import * as TraceContext from "./HttpTraceContext.ts"
+import { appendPreResponseHandlerUnsafe } from "./internal/preResponseHandler.ts"
 
 /**
  * @since 4.0.0
@@ -142,10 +142,10 @@ export const tracer: <E, R>(
       parent: TraceContext.fromHeaders(request.headers),
       kind: "server"
     })
-    const prevSpan = ServiceMap.getOption(fiber.services, ParentSpan)
+    const prevServices = fiber.services
     fiber.setServices(ServiceMap.add(fiber.services, ParentSpan, span))
     return Effect.onExitPrimitive(httpApp, (exit) => {
-      fiber.setServices(ServiceMap.addOrOmit(fiber.services, ParentSpan, prevSpan))
+      fiber.setServices(prevServices)
       const endTime = fiber.getRef(Clock).currentTimeNanosUnsafe()
       fiber.currentScheduler.scheduleTask(() => {
         const url = Request.toURL(request)
@@ -338,17 +338,7 @@ export const cors = (options?: {
           headers: headersFromRequestOptions(request)
         }))
       }
-      const prev = fiber.getRef(PreResponseHandlers)
-      const next = prev
-        ? ((req: HttpServerRequest, res: HttpServerResponse) =>
-          Effect.flatMap(prev(req, res), (res) => preResponseHandler(req, res)))
-        : preResponseHandler
-      fiber.setServices(ServiceMap.add(fiber.services, PreResponseHandlers, next))
+      appendPreResponseHandlerUnsafe(request, preResponseHandler)
       return httpApp
     })
 }
-
-const PreResponseHandlers = ServiceMap.Reference<PreResponseHandler | undefined>(
-  "effect/http/HttpEffect/PreResponseHandlers",
-  { defaultValue: () => undefined }
-)

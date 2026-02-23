@@ -2003,23 +2003,8 @@ export const updateServices: {
       const nextServices = f(prev)
       if (prev === nextServices) return self as any
       fiber.setServices(nextServices)
-      const newServices = new Map<string, unknown>()
-      for (const [key, value] of fiber.services.mapUnsafe) {
-        if (!prev.mapUnsafe.has(key) || value !== prev.mapUnsafe.get(key)) {
-          newServices.set(key, value)
-        }
-      }
-      return onExitPrimitive(self as any, () => {
-        const map = new Map(fiber.services.mapUnsafe)
-        for (const [key, value] of newServices) {
-          if (value !== map.get(key)) continue
-          if (prev.mapUnsafe.has(key)) {
-            map.set(key, prev.mapUnsafe.get(key))
-          } else {
-            map.delete(key)
-          }
-        }
-        fiber.setServices(ServiceMap.makeUnsafe(map))
+      return onExitPrimitive(self, () => {
+        fiber.setServices(prev)
         return undefined
       })
     })
@@ -2043,12 +2028,11 @@ export const updateService: {
     service: ServiceMap.Service<I, A>,
     f: (value: A) => A
   ): Effect.Effect<XA, E, R | I> =>
-    withFiber((fiber) => {
-      const prev = ServiceMap.getUnsafe(fiber.services, service)
+    updateServices(self, (s) => {
+      const prev = ServiceMap.getUnsafe(s, service)
       const next = f(prev)
-      if (prev === next) return self
-      fiber.setServices(ServiceMap.add(fiber.services, service, next))
-      return onExit(self, () => sync(() => fiber.setServices(ServiceMap.add(fiber.services, service, prev))))
+      if (prev === next) return s
+      return ServiceMap.add(s, service, next)
     })
 )
 
@@ -2114,13 +2098,7 @@ const provideServiceImpl = <A, E, R, I, S>(
   self: Effect.Effect<A, E, R>,
   service: ServiceMap.Service<I, S>,
   implementation: S
-): Effect.Effect<A, E, Exclude<R, I>> =>
-  withFiber((fiber) => {
-    const prev = ServiceMap.getOption(fiber.services, service)
-    if (prev._tag === "Some" && prev.value === implementation) return self
-    fiber.setServices(ServiceMap.add(fiber.services, service, implementation))
-    return onExit(self, () => sync(() => fiber.setServices(ServiceMap.addOrOmit(fiber.services, service, prev))))
-  }) as any
+): Effect.Effect<A, E, Exclude<R, I>> => updateServices(self, ServiceMap.add(service, implementation)) as any
 
 /** @internal */
 export const provideServiceEffect: {
@@ -3666,11 +3644,11 @@ export const provideScope: {
 /** @internal */
 export const scoped = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, Exclude<R, Scope.Scope>> =>
   withFiber((fiber) => {
-    const prev = ServiceMap.getOption(fiber.services, scopeTag)
+    const prev = fiber.services
     const scope = scopeMakeUnsafe()
     fiber.setServices(ServiceMap.add(fiber.services, scopeTag, scope))
     return onExitPrimitive(self, (exit) => {
-      fiber.setServices(ServiceMap.addOrOmit(fiber.services, scopeTag, prev))
+      fiber.setServices(prev)
       return scopeCloseUnsafe(scope, exit)
     })
   }) as any

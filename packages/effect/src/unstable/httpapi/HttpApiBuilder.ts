@@ -356,7 +356,7 @@ export const securitySetCookie = (
   self: HttpApiSecurity.ApiKey,
   value: string | Redacted.Redacted,
   options?: Cookie["options"]
-): Effect.Effect<void> =>
+): Effect.Effect<void, never, HttpServerRequest> =>
   HttpEffect.appendPreResponseHandler((_req, response) =>
     Effect.orDie(
       Response.setCookie(response, self.key, stringOrRedacted(value), {
