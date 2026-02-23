@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Logger from "effect/Logger"
+import * as References from "effect/References"
 import * as TestConsole from "effect/testing/TestConsole"
 
 describe("Logger", () => {
@@ -36,4 +37,52 @@ describe("Logger", () => {
       assert.strictEqual(result.length, 1)
     })
   )
+
+  it.effect("annotateLogsScoped applies annotations only while scoped", () =>
+    Effect.gen(function*() {
+      const annotations: Array<Record<string, unknown>> = []
+      const logger = Logger.make<unknown, void>((options) => {
+        annotations.push({ ...options.fiber.getRef(References.CurrentLogAnnotations) })
+      })
+
+      yield* Effect.gen(function*() {
+        yield* Effect.log("before")
+        yield* Effect.scoped(
+          Effect.gen(function*() {
+            yield* Effect.annotateLogsScoped("requestId", "req-123")
+            yield* Effect.log("inside")
+          })
+        )
+        yield* Effect.log("after")
+      }).pipe(Effect.provide(Logger.layer([logger])))
+
+      assert.deepStrictEqual(annotations, [{}, { requestId: "req-123" }, {}])
+    }))
+
+  it.effect("annotateLogsScoped restores previous annotations", () =>
+    Effect.gen(function*() {
+      const annotations: Array<Record<string, unknown>> = []
+      const logger = Logger.make<unknown, void>((options) => {
+        annotations.push({ ...options.fiber.getRef(References.CurrentLogAnnotations) })
+      })
+
+      yield* Effect.gen(function*() {
+        yield* Effect.log("before")
+        yield* Effect.scoped(
+          Effect.gen(function*() {
+            yield* Effect.annotateLogsScoped("inner", "scope")
+            yield* Effect.log("inside")
+          })
+        )
+        yield* Effect.log("after")
+      }).pipe(
+        Effect.annotateLogs("outer", "program"),
+        Effect.provide(Logger.layer([logger]))
+      )
+
+      assert.deepStrictEqual(
+        annotations,
+        [{ outer: "program" }, { outer: "program", inner: "scope" }, { outer: "program" }]
+      )
+    }))
 })

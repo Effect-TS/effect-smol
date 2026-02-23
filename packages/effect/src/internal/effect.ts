@@ -5550,6 +5550,38 @@ export const LogToStderr = ServiceMap.Reference<boolean>("effect/Logger/LogToStd
 })
 
 /** @internal */
+export const annotateLogsScoped: {
+  (key: string, value: unknown): Effect.Effect<void, never, Scope.Scope>
+  (values: Record<string, unknown>): Effect.Effect<void, never, Scope.Scope>
+} = function() {
+  const args = arguments
+  return asVoid(
+    acquireRelease(
+      withFiber((fiber) =>
+        sync(() => {
+          const prev = fiber.getRef(CurrentLogAnnotations)
+          const next = { ...prev }
+          if (typeof args[0] === "string") {
+            next[args[0]] = args[1]
+          } else {
+            Object.assign(next, args[0])
+          }
+          fiber.setServices(ServiceMap.add(fiber.services, CurrentLogAnnotations, next))
+          return {
+            fiber,
+            prev
+          }
+        })
+      ),
+      ({ fiber, prev }) =>
+        sync(() => {
+          fiber.setServices(ServiceMap.add(fiber.services, CurrentLogAnnotations, prev))
+        })
+    )
+  )
+}
+
+/** @internal */
 export const LoggerTypeId = "~effect/Logger"
 
 const LoggerProto = {
