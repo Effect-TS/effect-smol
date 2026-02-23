@@ -1717,7 +1717,7 @@ export function fieldsAssign<const NewFields extends Struct.Fields>(fields: NewF
  * @since 4.0.0
  */
 export function encodeKeys<
-  S extends Struct<Struct.Fields>,
+  S extends Top & { readonly fields: Struct.Fields },
   const M extends { readonly [K in keyof S["fields"]]?: PropertyKey }
 >(mapping: M) {
   return function(
