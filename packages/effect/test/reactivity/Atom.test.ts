@@ -108,6 +108,45 @@ describe.sequential("Atom", () => {
     expect(second).toEqual(1)
   })
 
+  it("searchParam with schema reads initial query value", () => {
+    const previousWindow = (globalThis as any).window
+    const r = AtomRegistry.make()
+    Object.defineProperty(globalThis, "window", {
+      value: {
+        location: {
+          pathname: "/",
+          search: "?page=6"
+        },
+        history: {
+          pushState: () => {
+          }
+        },
+        addEventListener: () => {
+        },
+        removeEventListener: () => {
+        }
+      },
+      configurable: true,
+      writable: true
+    })
+
+    try {
+      const page = Atom.searchParam("page", { schema: Schema.NumberFromString })
+      expect(r.get(page)).toEqual(Option.some(6))
+    } finally {
+      r.dispose()
+      if (typeof previousWindow === "undefined") {
+        delete (globalThis as any).window
+      } else {
+        Object.defineProperty(globalThis, "window", {
+          value: previousWindow,
+          configurable: true,
+          writable: true
+        })
+      }
+    }
+  })
+
   it("runtime", async () => {
     const count = counterRuntime.atom(Counter.use((_) => _.get)).pipe(
       Atom.withLabel("count")
