@@ -13,7 +13,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as HttpBody from "./HttpBody.ts"
 import { type HttpMiddleware, tracer } from "./HttpMiddleware.ts"
-import { causeResponse, clientAbortFiberId, HttpServerError, InternalError } from "./HttpServerError.ts"
+import { causeResponse, ClientAbort, HttpServerError, InternalError } from "./HttpServerError.ts"
 import { HttpServerRequest } from "./HttpServerRequest.ts"
 import * as Request from "./HttpServerRequest.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
@@ -226,7 +226,7 @@ export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided
       ;(httpServerRequest as any)[resolveSymbol] = resolve
       const fiber = Effect.runForkWith(ServiceMap.makeUnsafe(contextMap))(httpApp as any)
       request.signal?.addEventListener("abort", () => {
-        fiber.interruptUnsafe(clientAbortFiberId)
+        fiber.interruptUnsafe(undefined, ClientAbort.annotation)
       }, { once: true })
     })
 }

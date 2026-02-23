@@ -175,17 +175,16 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
           }
           case "Interrupt": {
             const fiber = client.fibers.get(message.requestId)
-            return fiber
-              ? Effect.forkDetach(
-                Fiber.interruptAs(fiber, fiberIdClientInterrupt),
-                { startImmediately: true }
-              )
-              : options.onFromServer({
-                _tag: "Exit",
-                clientId,
-                requestId: message.requestId,
-                exit: Exit.interrupt()
-              })
+            if (fiber) {
+              fiber.interruptUnsafe(requestFiber.id, RpcSchema.ClientAbort.annotation)
+              return Effect.void
+            }
+            return options.onFromServer({
+              _tag: "Exit",
+              clientId,
+              requestId: message.requestId,
+              exit: Exit.interrupt()
+            })
           }
           case "Eof": {
             client.ended = true
@@ -1281,14 +1280,6 @@ export const layerProtocolWorkerRunner: Layer.Layer<
   WorkerError,
   WorkerRunner.WorkerRunnerPlatform
 > = Layer.effect(Protocol)(makeProtocolWorkerRunner)
-
-/**
- * Fiber id used to indicate client induced interrupts
- *
- * @since 4.0.0
- * @category Interruption
- */
-export const fiberIdClientInterrupt = -499
 
 // internal
 

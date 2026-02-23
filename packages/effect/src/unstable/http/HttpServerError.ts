@@ -6,7 +6,9 @@ import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as ErrorReporter from "../../ErrorReporter.ts"
 import type * as Exit from "../../Exit.ts"
+import { constUndefined } from "../../Function.ts"
 import { hasProperty } from "../../Predicate.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Request from "./HttpServerRequest.ts"
 import * as Respondable from "./HttpServerRespondable.ts"
 import * as Response from "./HttpServerResponse.ts"
@@ -182,15 +184,24 @@ export class ServeError extends Data.TaggedError("ServeError")<{
   readonly cause: unknown
 }> {}
 
+/**
+ * @since 4.0.0
+ * @category Annotations
+ */
+export class ClientAbort extends ServiceMap.Service<ClientAbort, true>()("effect/http/HttpServerError/ClientAbort") {
+  static annotation = this.serviceMap(true).pipe(
+    ServiceMap.add(Cause.StackTrace, {
+      name: "ClientAbort",
+      stack: constUndefined,
+      parent: undefined
+    })
+  )
+}
+
 const formatRequestMessage = (reason: string, description: string | undefined, info: string) => {
   const prefix = `${reason} (${info})`
   return description ? `${prefix}: ${description}` : prefix
 }
-
-/**
- * @since 4.0.0
- */
-export const clientAbortFiberId = -499
 
 /**
  * @since 4.0.0
@@ -201,37 +212,37 @@ export const causeResponse = <E>(
   let response: Response.HttpServerResponse | undefined
   let effect = succeedInternalServerError
   const failures: Array<Cause.Reason<E>> = []
-  let interrupt: Cause.Interrupt | undefined
+  let interrupts: Array<Cause.Interrupt> = []
   let isClientInterrupt = false
   for (let i = 0; i < cause.reasons.length; i++) {
-    const f = cause.reasons[i]
-    switch (f._tag) {
+    const reason = cause.reasons[i]
+    switch (reason._tag) {
       case "Fail": {
-        effect = Respondable.toResponseOrElse(f.error, internalServerError)
-        failures.push(f)
+        effect = Respondable.toResponseOrElse(reason.error, internalServerError)
+        failures.push(reason)
         break
       }
       case "Die": {
-        if (Response.isHttpServerResponse(f.defect)) {
-          response = f.defect
+        if (Response.isHttpServerResponse(reason.defect)) {
+          response = reason.defect
         } else {
-          effect = Respondable.toResponseOrElseDefect(f.defect, internalServerError)
-          failures.push(f)
+          effect = Respondable.toResponseOrElseDefect(reason.defect, internalServerError)
+          failures.push(reason)
         }
         break
       }
       case "Interrupt": {
-        isClientInterrupt = isClientInterrupt || f.fiberId === clientAbortFiberId
+        isClientInterrupt = reason.annotations.has(ClientAbort.key)
         if (failures.length > 0) break
-        interrupt = f
+        interrupts.push(reason)
         break
       }
     }
   }
   if (response) {
     return Effect.succeed([response, Cause.fromReasons(failures)] as const)
-  } else if (interrupt && failures.length === 0) {
-    failures.push(isClientInterrupt ? Cause.makeInterruptReason(clientAbortFiberId) : interrupt)
+  } else if (interrupts.length > 0 && failures.length === 0) {
+    failures.push(...interrupts)
     effect = isClientInterrupt ? clientAbortError : serverAbortError
   }
   return Effect.mapEager(effect, (response) => {

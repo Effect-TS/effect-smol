@@ -27,7 +27,7 @@ import type * as HttpPlatform from "effect/unstable/http/HttpPlatform"
 import * as HttpServer from "effect/unstable/http/HttpServer"
 import {
   causeResponse,
-  clientAbortFiberId,
+  ClientAbort,
   HttpServerError,
   RequestParseError,
   ResponseError,
@@ -152,8 +152,9 @@ export const makeHandler = <
   Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>
 > => {
   const handled = HttpEffect.toHandled(httpEffect, handleResponse, options.middleware as any)
-  return Effect.map(Effect.services<any>(), (services) => {
-    return function handler(
+  return Effect.withFiber((parent) => {
+    const services = parent.services
+    return Effect.succeed(function handler(
       nodeRequest: Http.IncomingMessage,
       nodeResponse: Http.ServerResponse
     ) {
@@ -162,10 +163,10 @@ export const makeHandler = <
       const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(handled), options.scope)
       nodeResponse.on("close", () => {
         if (!nodeResponse.writableEnded) {
-          fiber.interruptUnsafe(clientAbortFiberId)
+          fiber.interruptUnsafe(parent.id, ClientAbort.annotation)
         }
       })
-    }
+    })
   })
 }
 
@@ -190,8 +191,9 @@ export const makeUpgradeHandler = <
   Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>
 > => {
   const handledApp = HttpEffect.toHandled(httpEffect, handleResponse, options.middleware as any)
-  return Effect.map(Effect.services<any>(), (services) =>
-    function handler(
+  return Effect.withFiber((parent) => {
+    const services = parent.services
+    return Effect.succeed(function handler(
       nodeRequest: Http.IncomingMessage,
       socket: Duplex,
       head: Buffer
@@ -224,10 +226,11 @@ export const makeUpgradeHandler = <
       const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(handledApp), options.scope)
       socket.on("close", () => {
         if (!socket.writableEnded) {
-          fiber.interruptUnsafe(clientAbortFiberId)
+          fiber.interruptUnsafe(parent.id, ClientAbort.annotation)
         }
       })
     })
+  })
 }
 
 class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> implements HttpServerRequest {

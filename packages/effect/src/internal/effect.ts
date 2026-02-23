@@ -832,13 +832,29 @@ export const fiberInterrupt = <A, E>(
 
 /** @internal */
 export const fiberInterruptAs: {
-  (fiberId: number): <A, E>(self: Fiber.Fiber<A, E>) => Effect.Effect<void>
-  <A, E>(self: Fiber.Fiber<A, E>, fiberId: number): Effect.Effect<void>
-} = dual(2, <A, E>(self: Fiber.Fiber<A, E>, fiberId: number): Effect.Effect<void> =>
-  withFiber((parent) => {
-    self.interruptUnsafe(fiberId, fiberStackAnnotations(parent))
-    return asVoid(fiberAwait(self))
-  }))
+  (
+    fiberId: number | undefined,
+    annotations?: ServiceMap.ServiceMap<never> | undefined
+  ): <A, E>(self: Fiber.Fiber<A, E>) => Effect.Effect<void>
+  <A, E>(
+    self: Fiber.Fiber<A, E>,
+    fiberId: number | undefined,
+    annotations?: ServiceMap.ServiceMap<never> | undefined
+  ): Effect.Effect<void>
+} = dual(
+  (args) => hasProperty(args[0], FiberTypeId),
+  <A, E>(
+    self: Fiber.Fiber<A, E>,
+    fiberId: number | undefined,
+    annotations?: ServiceMap.ServiceMap<never> | undefined
+  ): Effect.Effect<void> =>
+    withFiber((parent) => {
+      let ann = fiberStackAnnotations(parent)
+      ann = ann && annotations ? ServiceMap.merge(ann, annotations) : ann ?? annotations
+      self.interruptUnsafe(fiberId, ann)
+      return asVoid(fiberAwait(self))
+    })
+)
 
 /** @internal */
 export const fiberInterruptAll = <A extends Iterable<Fiber.Fiber<any, any>>>(
