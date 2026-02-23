@@ -674,18 +674,19 @@ export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigPr
   const decodeUnknownEffect = Parser.decodeUnknownEffect(toCodecStringTree)
   const toCodecStringTreeEncoded = AST.toEncoded(toCodecStringTree.ast)
   const defaultPath = typeof path === "string" ? [path] : path ?? []
-  return make((provider) =>
-    recur(toCodecStringTreeEncoded, provider, defaultPath).pipe(
+  return make((provider) => {
+    const path = provider.prefix ? [...provider.prefix, ...defaultPath] : defaultPath
+    return recur(toCodecStringTreeEncoded, provider, defaultPath).pipe(
       Effect.flatMapEager((tree) =>
-        decodeUnknownEffect(tree).pipe(Effect.mapErrorEager((issue) =>
-          new Schema.SchemaError(defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue)
-        ))
+        decodeUnknownEffect(tree).pipe(
+          Effect.mapErrorEager((issue) =>
+            new Schema.SchemaError(path.length > 0 ? new Issue.Pointer(path, issue) : issue)
+          )
+        )
       ),
-      Effect.mapErrorEager((cause) =>
-        new ConfigError(cause)
-      )
+      Effect.mapErrorEager((cause) => new ConfigError(cause))
     )
-  )
+  })
 }
 
 /** @internal */
@@ -1234,3 +1235,62 @@ export function url(name?: string) {
 export function date(name?: string) {
   return schema(Schema.DateValid, name)
 }
+
+/**
+ * Scopes a config under a named prefix.
+ *
+ * When to use:
+ * - Grouping related config keys under a common namespace (e.g.
+ *   `"database"`, `"redis"`).
+ * - Building reusable config fragments that callers nest at different paths.
+ *
+ * The prefix is prepended to every key the inner config reads. With
+ * `fromUnknown` this means an extra object level; with `fromEnv` it means
+ * a `_`-separated prefix on env var names.
+ *
+ * Multiple `nested` calls compose: the outermost name becomes the
+ * outermost path segment.
+ *
+ * **Example** (Nesting a struct config under `"database"`)
+ *
+ * ```ts
+ * import { Config, ConfigProvider, Effect } from "effect"
+ *
+ * const dbConfig = Config.all({
+ *   host: Config.string("host"),
+ *   port: Config.number("port")
+ * }).pipe(Config.nested("database"))
+ *
+ * const provider = ConfigProvider.fromUnknown({
+ *   database: { host: "localhost", port: "5432" }
+ * })
+ * // Effect.runSync(dbConfig.parse(provider))
+ * // { host: "localhost", port: 5432 }
+ * ```
+ *
+ * **Example** (Env vars with nested prefix)
+ *
+ * ```ts
+ * import { Config, ConfigProvider, Effect } from "effect"
+ *
+ * const host = Config.string("host").pipe(Config.nested("database"))
+ *
+ * const provider = ConfigProvider.fromEnv({
+ *   env: { database_host: "localhost" }
+ * })
+ * // Effect.runSync(host.parse(provider)) // "localhost"
+ * ```
+ *
+ * @see {@link all} – combine multiple configs into a struct
+ * @see {@link schema} – read structured config from a schema
+ *
+ * @category Combinators
+ * @since 4.0.0
+ */
+export const nested: {
+  (name: string): <A>(self: Config<A>) => Config<A>
+  <A>(self: Config<A>, name: string): Config<A>
+} = dual(
+  2,
+  <A>(self: Config<A>, name: string): Config<A> => make((provider) => self.parse(ConfigProvider.nested(provider, name)))
+)

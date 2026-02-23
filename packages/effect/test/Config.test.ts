@@ -355,6 +355,146 @@ describe("Config", () => {
       })
     })
 
+    describe("nested", () => {
+      describe("fromUnknown", () => {
+        it("nested", async () => {
+          const config = Config.string().pipe(Config.nested("a"))
+
+          await assertSuccess(
+            config,
+            ConfigProvider.fromUnknown({ a: "value" }),
+            "value"
+          )
+          await assertFailure(
+            config,
+            ConfigProvider.fromUnknown({}),
+            `Expected string, got undefined
+  at ["a"]`
+          )
+        })
+
+        it("name + nested", async () => {
+          const config = Config.string("a").pipe(Config.nested("b"))
+
+          await assertSuccess(
+            config,
+            ConfigProvider.fromUnknown({ b: { a: "value" } }),
+            "value"
+          )
+          await assertFailure(
+            config,
+            ConfigProvider.fromUnknown({}),
+            `Expected string, got undefined
+  at ["b"]["a"]`
+          )
+        })
+
+        it("name + nested + nested", async () => {
+          const config = Config.string("a").pipe(Config.nested("b"), Config.nested("c"))
+
+          await assertSuccess(
+            config,
+            ConfigProvider.fromUnknown({ c: { b: { a: "value" } } }),
+            "value"
+          )
+          await assertFailure(
+            config,
+            ConfigProvider.fromUnknown({ c: { b: {} } }),
+            `Expected string, got undefined
+  at ["c"]["b"]["a"]`
+          )
+        })
+
+        it("all", async () => {
+          const config = Config.all({
+            host: Config.string("host"),
+            port: Config.number("port")
+          }).pipe(Config.nested("database"))
+
+          await assertSuccess(
+            config,
+            ConfigProvider.fromUnknown({ database: { host: "localhost", port: "5432" } }),
+            { host: "localhost", port: 5432 }
+          )
+          await assertFailure(
+            config,
+            ConfigProvider.fromUnknown({}),
+            `Expected string, got undefined
+  at ["database"]["host"]`
+          )
+        })
+      })
+
+      describe("fromEnv", () => {
+        it("nested", async () => {
+          const config = Config.string().pipe(Config.nested("a"))
+
+          await assertSuccess(
+            config,
+            ConfigProvider.fromEnv({ env: { a: "value" } }),
+            "value"
+          )
+          await assertFailure(
+            config,
+            ConfigProvider.fromEnv({ env: {} }),
+            `Expected string, got undefined
+  at ["a"]`
+          )
+        })
+
+        it("name + nested", async () => {
+          const config = Config.string("a").pipe(Config.nested("b"))
+
+          await assertSuccess(
+            config,
+            ConfigProvider.fromEnv({ env: { "b_a": "value" } }),
+            "value"
+          )
+          await assertFailure(
+            config,
+            ConfigProvider.fromEnv({ env: {} }),
+            `Expected string, got undefined
+  at ["b"]["a"]`
+          )
+        })
+
+        it("name + nested + nested", async () => {
+          const config = Config.string("a").pipe(Config.nested("b"), Config.nested("c"))
+
+          await assertSuccess(
+            config,
+            ConfigProvider.fromEnv({ env: { "c_b_a": "value" } }),
+            "value"
+          )
+          await assertFailure(
+            config,
+            ConfigProvider.fromEnv({ env: { "c_b": "value" } }),
+            `Expected string, got undefined
+  at ["c"]["b"]["a"]`
+          )
+        })
+
+        it("all", async () => {
+          const config = Config.all({
+            host: Config.string("host"),
+            port: Config.number("port")
+          }).pipe(Config.nested("database"))
+
+          await assertSuccess(
+            config,
+            ConfigProvider.fromEnv({ env: { "database_host": "localhost", "database_port": "5432" } }),
+            { host: "localhost", port: 5432 }
+          )
+          await assertFailure(
+            config,
+            ConfigProvider.fromEnv({ env: {} }),
+            `Expected string, got undefined
+  at ["database"]["host"]`
+          )
+        })
+      })
+    })
+
     describe("unwrap", () => {
       it("plain object", async () => {
         const config = Config.unwrap({
