@@ -13032,6 +13032,52 @@ export const annotateLogs = dual<
 )
 
 /**
+ * Adds log annotations scoped to the current `Scope`.
+ *
+ * Annotations are applied to all logs while the scope is open and are removed
+ * automatically when the scope closes.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   yield* Effect.log("outside")
+ *   yield* Effect.annotateLogsScoped({ requestId: "req-1" })
+ *   yield* Effect.log("inside")
+ * }).pipe(
+ *   Effect.scoped,
+ *   Effect.andThen(Effect.log("outside again"))
+ * )
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
+ * @since 4.0.0
+ * @category Logging
+ */
+export const annotateLogsScoped: {
+  (key: string, value: unknown): Effect<void, never, Scope>
+  (values: Record<string, unknown>): Effect<void, never, Scope>
+} = function() {
+  const values = typeof arguments[0] === "string"
+    ? { [arguments[0]]: arguments[1] }
+    : arguments[0]
+
+  return internal.uninterruptible(
+    core.withFiber((fiber) => {
+      const scope = ServiceMap.getUnsafe(fiber.services, internal.scopeTag)
+      const current = fiber.getRef(CurrentLogAnnotations)
+      fiber.setServices(ServiceMap.add(fiber.services, CurrentLogAnnotations, { ...current, ...values }))
+      return internal.scopeAddFinalizerExit(
+        scope,
+        () => internal.sync(() => fiber.setServices(ServiceMap.add(fiber.services, CurrentLogAnnotations, current)))
+      )
+    })
+  )
+} as any
+
+/**
  * Adds a span to each log line in this effect.
  *
  * @example

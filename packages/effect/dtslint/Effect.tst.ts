@@ -187,6 +187,18 @@ describe("Effect.validate", () => {
   })
 })
 
+describe("Effect.annotateLogsScoped", () => {
+  it("supports key/value overload", () => {
+    const result = Effect.scoped(Effect.annotateLogsScoped("requestId", "req-1"))
+    expect(result).type.toBe<Effect.Effect<void>>()
+  })
+
+  it("supports record overload", () => {
+    const result = Effect.scoped(Effect.annotateLogsScoped({ requestId: "req-1" }))
+    expect(result).type.toBe<Effect.Effect<void>>()
+  })
+})
+
 describe("Effect.tapErrorTag", () => {
   it("narrows tagged errors", () => {
     const result = pipe(
