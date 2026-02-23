@@ -704,5 +704,228 @@ describe("LanguageModel", () => {
           deepStrictEqual(parts[1].result, { testSuccess: "test-success" })
         }
       }))
+
+    it("strips previous-round approval artifacts even when no new pending approvals (streamText)", () =>
+      Effect.gen(function*() {
+        const toolCallId = "call-prev"
+        const approvalId = "approval-prev"
+        let capturedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
+
+        // Simulate a prompt where a previous round's approval was already
+        // resolved (tool-result exists), but the approval artifacts remain.
+        const prompt: Array<Prompt.Message> = [
+          Prompt.assistantMessage({
+            content: [
+              Prompt.makePart("tool-call", {
+                id: toolCallId,
+                name: "ApprovalTool",
+                params: { action: "delete" },
+                providerExecuted: false
+              }),
+              Prompt.makePart("tool-approval-request", {
+                approvalId,
+                toolCallId
+              })
+            ]
+          }),
+          Prompt.toolMessage({
+            content: [
+              Prompt.toolApprovalResponsePart({
+                approvalId,
+                approved: true
+              }),
+              Prompt.toolResultPart({
+                id: toolCallId,
+                name: "ApprovalTool",
+                result: { result: "approved-result" },
+                isFailure: false
+              })
+            ]
+          }),
+          // A new user message triggers another round with no new approvals
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "continue" })] })
+        ]
+
+        yield* LanguageModel.streamText({
+          prompt,
+          toolkit: ApprovalToolkit
+        }).pipe(
+          Stream.runDrain,
+          TestUtils.withLanguageModel({
+            streamText: (opts) => {
+              capturedPrompt = opts.prompt
+              return [{
+                type: "finish",
+                reason: "stop",
+                usage: {
+                  inputTokens: { uncached: 5, total: 5, cacheRead: undefined, cacheWrite: undefined },
+                  outputTokens: { total: 5, text: undefined, reasoning: undefined }
+                }
+              }]
+            }
+          }),
+          Effect.provide(ApprovalToolkitLayer)
+        )
+
+        assertDefined(capturedPrompt)
+        const messages = capturedPrompt.content
+
+        // Previous-round approval artifacts should be stripped
+        for (const msg of messages) {
+          if (msg.role === "assistant") {
+            strictEqual(msg.content.filter((p) => p.type === "tool-approval-request").length, 0)
+          }
+          if (msg.role === "tool") {
+            strictEqual(msg.content.filter((p) => p.type === "tool-approval-response").length, 0)
+          }
+        }
+
+        // The tool-result and tool-call should be preserved
+        const assistantMsg = messages.find((m) => m.role === "assistant")
+        assertDefined(assistantMsg)
+        if (assistantMsg.role === "assistant") {
+          strictEqual(assistantMsg.content.filter((p) => p.type === "tool-call").length, 1)
+        }
+        const toolMsg = messages.find((m) => m.role === "tool")
+        assertDefined(toolMsg)
+        if (toolMsg.role === "tool") {
+          strictEqual(toolMsg.content.filter((p) => p.type === "tool-result").length, 1)
+        }
+      }))
+
+    it("strips previous-round approval artifacts even when no new pending approvals (generateText)", () =>
+      Effect.gen(function*() {
+        const toolCallId = "call-prev-gen"
+        const approvalId = "approval-prev-gen"
+        let capturedPrompt: LanguageModel.ProviderOptions["prompt"] | undefined
+
+        const prompt: Array<Prompt.Message> = [
+          Prompt.assistantMessage({
+            content: [
+              Prompt.makePart("tool-call", {
+                id: toolCallId,
+                name: "ApprovalTool",
+                params: { action: "delete" },
+                providerExecuted: false
+              }),
+              Prompt.makePart("tool-approval-request", {
+                approvalId,
+                toolCallId
+              })
+            ]
+          }),
+          Prompt.toolMessage({
+            content: [
+              Prompt.toolApprovalResponsePart({
+                approvalId,
+                approved: true
+              }),
+              Prompt.toolResultPart({
+                id: toolCallId,
+                name: "ApprovalTool",
+                result: { result: "approved-result" },
+                isFailure: false
+              })
+            ]
+          }),
+          Prompt.userMessage({ content: [Prompt.textPart({ text: "continue" })] })
+        ]
+
+        yield* LanguageModel.generateText({
+          prompt,
+          toolkit: ApprovalToolkit
+        }).pipe(
+          TestUtils.withLanguageModel({
+            generateText: (opts) => {
+              capturedPrompt = opts.prompt
+              return Effect.succeed([{
+                type: "finish",
+                reason: "stop",
+                usage: {
+                  inputTokens: { uncached: 5, total: 5, cacheRead: undefined, cacheWrite: undefined },
+                  outputTokens: { total: 5, text: undefined, reasoning: undefined }
+                }
+              }])
+            }
+          }),
+          Effect.provide(ApprovalToolkitLayer)
+        )
+
+        assertDefined(capturedPrompt)
+        const messages = capturedPrompt.content
+
+        for (const msg of messages) {
+          if (msg.role === "assistant") {
+            strictEqual(msg.content.filter((p) => p.type === "tool-approval-request").length, 0)
+          }
+          if (msg.role === "tool") {
+            strictEqual(msg.content.filter((p) => p.type === "tool-approval-response").length, 0)
+          }
+        }
+      }))
+
+    it("streamText emits pre-resolved tool results as stream parts", () =>
+      Effect.gen(function*() {
+        const toolCallId = "call-emit"
+        const approvalId = "approval-emit"
+        const parts: Array<Response.StreamPart<Toolkit.Tools<typeof ApprovalToolkit>>> = []
+
+        const prompt: Array<Prompt.Message> = [
+          Prompt.assistantMessage({
+            content: [
+              Prompt.makePart("tool-call", {
+                id: toolCallId,
+                name: "ApprovalTool",
+                params: { action: "delete" },
+                providerExecuted: false
+              }),
+              Prompt.makePart("tool-approval-request", {
+                approvalId,
+                toolCallId
+              })
+            ]
+          }),
+          Prompt.toolMessage({
+            content: [
+              Prompt.toolApprovalResponsePart({
+                approvalId,
+                approved: true
+              })
+            ]
+          })
+        ]
+
+        yield* LanguageModel.streamText({
+          prompt,
+          toolkit: ApprovalToolkit
+        }).pipe(
+          Stream.runForEach((part) =>
+            Effect.sync(() => {
+              parts.push(part)
+            })
+          ),
+          TestUtils.withLanguageModel({
+            streamText: [{
+              type: "finish",
+              reason: "stop",
+              usage: {
+                inputTokens: { uncached: 5, total: 5, cacheRead: undefined, cacheWrite: undefined },
+                outputTokens: { total: 5, text: undefined, reasoning: undefined }
+              }
+            }]
+          }),
+          Effect.provide(ApprovalToolkitLayer)
+        )
+
+        // Should contain the pre-resolved tool-result as a stream part
+        const toolResultParts = parts.filter((p) => p.type === "tool-result")
+        strictEqual(toolResultParts.length, 1)
+        if (toolResultParts[0].type === "tool-result") {
+          strictEqual(toolResultParts[0].id, toolCallId)
+          strictEqual(toolResultParts[0].name, "ApprovalTool")
+          deepStrictEqual(toolResultParts[0].result, { result: "approved-result" })
+          strictEqual(toolResultParts[0].isFailure, false)
+        }
+      }))
   })
 })
