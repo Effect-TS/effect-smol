@@ -56,8 +56,6 @@ export interface AtomRegistry {
   }) => () => void
   readonly reset: () => void
   readonly dispose: () => void
-  onNodeAdded?: ((node: Node<any>) => void) | undefined
-  onNodeRemoved?: ((node: Node<any>) => void) | undefined
 }
 
 /**
@@ -253,8 +251,6 @@ class RegistryImpl implements AtomRegistry {
   readonly defaultIdleTTL: number | undefined
   readonly scheduler: Scheduler
   readonly schedulerAsync: Scheduler
-  onNodeAdded?: ((node: Node<any>) => void) | undefined
-  onNodeRemoved?: ((node: Node<any>) => void) | undefined
 
   constructor(
     initialValues?: Iterable<readonly [Atom.Atom<any>, any]>,
@@ -357,7 +353,7 @@ class RegistryImpl implements AtomRegistry {
     if (node === undefined) {
       node = this.createNode(atom)
       this.nodes.set(key, node)
-      this.onNodeAdded?.(node)
+      this.onNodeCreated?.(node)
     } else if (this.atomHasTtl(atom)) {
       this.removeNodeTimeout(node)
     }
