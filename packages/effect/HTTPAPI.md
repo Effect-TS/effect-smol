@@ -2099,39 +2099,33 @@ Attach a security scheme to an endpoint, group, or the entire API via `HttpApiMi
 
 **Example** (Defining Security Middleware)
 
-```ts TODO
-import {
-  HttpApi,
-  HttpApiEndpoint,
-  HttpApiGroup,
-  HttpApiMiddleware,
-  HttpApiSchema,
-  HttpApiSecurity
-} from "@effect/platform"
-import { Context, Schema } from "effect"
+```ts
+import { Schema, ServiceMap } from "effect"
+import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
 
 // Define a schema for the "User"
 class User extends Schema.Class<User>("User")({ id: Schema.Finite }) {}
 
 // Define a schema for the "Unauthorized" error
-class Unauthorized extends Schema.TaggedError<Unauthorized>()(
+class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()(
   "Unauthorized",
   {},
   // Specify the HTTP status code for unauthorized errors
-  HttpApiSchema.annotations({ status: 401 })
+  { httpApiStatus: 401 }
 ) {}
 
 // Define a Context.Tag for the authenticated user
-class CurrentUser extends Context.Tag("CurrentUser")<CurrentUser, User>() {}
+class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
 
 // Create the Authorization middleware
-class Authorization extends HttpApiMiddleware.Tag<Authorization>()(
+class Authorization extends HttpApiMiddleware.Service<Authorization, {
+  // Specify the resource this middleware will provide
+  provides: CurrentUser
+}>()(
   "Authorization",
   {
     // Define the error schema for unauthorized access
-    failure: Unauthorized,
-    // Specify the resource this middleware will provide
-    provides: CurrentUser,
+    error: Unauthorized,
     // Add security definitions
     security: {
       // ┌─── Custom name for the security definition
@@ -2147,8 +2141,9 @@ const api = HttpApi.make("api")
   .add(
     HttpApiGroup.make("group")
       .add(
-        HttpApiEndpoint.get("get", "/")
-          .addSuccess(Schema.String)
+        HttpApiEndpoint.get("get", "/", {
+          success: Schema.String
+        })
           // Apply the middleware to a single endpoint
           .middleware(Authorization)
       )
@@ -2165,51 +2160,53 @@ To enforce a security scheme, implement its middleware as a `Layer`. The layer r
 
 **Example** (Implementing Bearer Token Authentication Middleware)
 
-```ts TODO
-import { HttpApiMiddleware, HttpApiSchema, HttpApiSecurity } from "@effect/platform"
-import { Context, Effect, Layer, Redacted, Schema } from "effect"
+```ts
+import { Effect, Layer, Redacted, Schema, ServiceMap } from "effect"
+import { HttpApiMiddleware, HttpApiSecurity } from "effect/unstable/httpapi"
 
 class User extends Schema.Class<User>("User")({ id: Schema.Finite }) {}
 
-class Unauthorized extends Schema.TaggedError<Unauthorized>()(
+class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()(
   "Unauthorized",
   {},
-  HttpApiSchema.annotations({ status: 401 })
+  // Specify the HTTP status code for unauthorized errors
+  { httpApiStatus: 401 }
 ) {}
 
-class CurrentUser extends Context.Tag("CurrentUser")<CurrentUser, User>() {}
+class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
 
-class Authorization extends HttpApiMiddleware.Tag<Authorization>()(
+class Authorization extends HttpApiMiddleware.Service<Authorization, {
+  provides: CurrentUser
+}>()(
   "Authorization",
   {
-    failure: Unauthorized,
-    provides: CurrentUser,
+    error: Unauthorized,
     security: {
       myBearer: HttpApiSecurity.bearer
     }
   }
 ) {}
 
-const AuthorizationLive = Layer.effect(
+const AuthorizationLive = Layer.succeed(
   Authorization,
-  Effect.gen(function*() {
-    yield* Effect.log("creating Authorization middleware")
-
-    // Return the security handlers for the middleware
-    return {
-      // Define the handler for the Bearer token
-      // The Bearer token is redacted for security
-      myBearer: (bearerToken) =>
+  // Return the security handlers for the middleware
+  {
+    // Define the handler for the Bearer token
+    // The Bearer token is redacted for security
+    myBearer: (effect, opts) =>
+      Effect.provideServiceEffect(
+        effect,
+        CurrentUser,
         Effect.gen(function*() {
           yield* Effect.log(
             "checking bearer token",
-            Redacted.value(bearerToken)
+            Redacted.value(opts.credential)
           )
           // Return a mock User object as the CurrentUser
           return new User({ id: 1 })
         })
-    }
-  })
+      )
+  }
 )
 ```
 
@@ -2219,25 +2216,27 @@ Use `HttpApiSecurity.annotate` to attach metadata — like a description — to 
 
 **Example** (Adding a Description to a Bearer Token Security Definition)
 
-```ts TODO
-import { HttpApiMiddleware, HttpApiSchema, HttpApiSecurity, OpenApi } from "@effect/platform"
-import { Context, Schema } from "effect"
+```ts
+import { Schema, ServiceMap } from "effect"
+import { HttpApiMiddleware, HttpApiSecurity, OpenApi } from "effect/unstable/httpapi"
 
 class User extends Schema.Class<User>("User")({ id: Schema.Finite }) {}
 
-class Unauthorized extends Schema.TaggedError<Unauthorized>()(
+class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()(
   "Unauthorized",
   {},
-  HttpApiSchema.annotations({ status: 401 })
+  // Specify the HTTP status code for unauthorized errors
+  { httpApiStatus: 401 }
 ) {}
 
-class CurrentUser extends Context.Tag("CurrentUser")<CurrentUser, User>() {}
+class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
 
-class Authorization extends HttpApiMiddleware.Tag<Authorization>()(
+class Authorization extends HttpApiMiddleware.Service<Authorization, {
+  provides: CurrentUser
+}>()(
   "Authorization",
   {
-    failure: Unauthorized,
-    provides: CurrentUser,
+    error: Unauthorized,
     security: {
       myBearer: HttpApiSecurity.bearer.pipe(
         // Add a description to the security definition
@@ -2254,21 +2253,34 @@ Use `HttpApiBuilder.securitySetCookie` to set a security cookie from a handler. 
 
 **Example** (Setting a Security Cookie in a Login Handler)
 
-```ts TODO
+```ts
+import { Redacted, Schema } from "effect"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup, HttpApiSecurity } from "effect/unstable/httpapi"
+
+const Api = HttpApi.make("MyApi")
+  .add(
+    HttpApiGroup.make("Users")
+      .add(
+        HttpApiEndpoint.get("login", "/login", {
+          params: {
+            success: Schema.String
+          }
+        })
+      )
+  )
+
 // Define the security configuration for an API key stored in a cookie
 const security = HttpApiSecurity.apiKey({
-   // Specify that the API key is stored in a cookie
-  in: "cookie"
-   // Define the cookie name,
+  // Specify that the API key is stored in a cookie
+  in: "cookie",
+  // Define the cookie name,
   key: "token"
 })
 
-const UsersApiLive = HttpApiBuilder.group(MyApi, "users", (handlers) =>
+const UsersApiLive = HttpApiBuilder.group(Api, "Users", (handlers) =>
   handlers.handle("login", () =>
     // Set the security cookie with a redacted value
-    HttpApiBuilder.securitySetCookie(security, Redacted.make("keep me secret"))
-  )
-)
+    HttpApiBuilder.securitySetCookie(security, Redacted.make("keep me secret"))))
 ```
 
 # Using Services Inside a HttpApiEndpoint
