@@ -1120,6 +1120,53 @@ export * as Equal from "./Equal.ts"
 export * as Equivalence from "./Equivalence.ts"
 
 /**
+ * Pluggable error reporting for Effect programs.
+ *
+ * Reporting is triggered by `Effect.withErrorReporting`,
+ * `ErrorReporter.report`, or built-in reporting boundaries in the HTTP and
+ * RPC server modules.
+ *
+ * Each reporter receives a structured callback with the failing `Cause`, a
+ * pretty-printed `Error`, severity, and any extra attributes attached to the
+ * original error — making it straightforward to forward failures to Sentry,
+ * Datadog, or a custom logging backend.
+ *
+ * Use the annotation symbols (`ignore`, `severity`, `attributes`) on your
+ * error classes to control reporting behavior per-error.
+ *
+ * @example
+ * ```ts
+ * import { Data, Effect, ErrorReporter } from "effect"
+ *
+ * // A reporter that logs to the console
+ * const consoleReporter = ErrorReporter.make(({ error, severity }) => {
+ *   console.error(`[${severity}]`, error.message)
+ * })
+ *
+ * // An error that should be ignored by reporters
+ * class NotFoundError extends Data.TaggedError("NotFoundError")<{}> {
+ *   readonly [ErrorReporter.ignore] = true
+ * }
+ *
+ * // An error with custom severity and attributes
+ * class RateLimitError extends Data.TaggedError("RateLimitError")<{
+ *   readonly retryAfter: number
+ * }> {
+ *   readonly [ErrorReporter.severity] = "Warn" as const
+ *   readonly [ErrorReporter.attributes] = {
+ *     retryAfter: this.retryAfter
+ *   }
+ * }
+ *
+ * // Opt in to error reporting with Effect.withErrorReporting
+ * const program = Effect.gen(function*() {
+ *   yield* new RateLimitError({ retryAfter: 60 })
+ * }).pipe(
+ *   Effect.withErrorReporting,
+ *   Effect.provide(ErrorReporter.layer([consoleReporter]))
+ * )
+ * ```
+ *
  * @since 4.0.0
  */
 export * as ErrorReporter from "./ErrorReporter.ts"

@@ -32,6 +32,11 @@ export * as Flag from "./Flag.ts"
 /**
  * @since 4.0.0
  */
+export * as GlobalFlag from "./GlobalFlag.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as HelpDoc from "./HelpDoc.ts"
 
 /**

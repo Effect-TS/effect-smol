@@ -68,6 +68,11 @@ export interface HelpDoc {
   readonly flags: ReadonlyArray<FlagDoc>
 
   /**
+   * Global flags available to all commands (e.g., --help, --version).
+   */
+  readonly globalFlags?: ReadonlyArray<FlagDoc>
+
+  /**
    * Custom command annotations.
    */
   readonly annotations: ServiceMap.ServiceMap<never>

@@ -497,6 +497,34 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
     sections.push("")
   }
 
+  // Global Flags section
+  if (doc.globalFlags && doc.globalFlags.length > 0) {
+    sections.push(colors.bold("GLOBAL FLAGS"))
+
+    const globalFlagRows: Array<Row> = doc.globalFlags.map((flag) => {
+      const names: Array<string> = []
+
+      // Add main name with -- prefix first
+      names.push(colors.green(`--${flag.name}`))
+
+      // Add aliases after (like -f) to match expected ordering
+      for (const alias of flag.aliases) {
+        names.push(colors.green(alias))
+      }
+
+      const namesPart = names.join(", ")
+      const typePart = flag.type !== "boolean" ? ` ${colors.dim(flag.type)}` : ""
+
+      return {
+        left: namesPart + typePart,
+        right: flag.description ?? ""
+      }
+    })
+
+    sections.push(renderTable(globalFlagRows, 30))
+    sections.push("")
+  }
+
   // Subcommands section
   if (doc.subcommands && doc.subcommands.length > 0) {
     const ungrouped = doc.subcommands.find((group) => group.group === undefined)

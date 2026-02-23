@@ -25,14 +25,11 @@
  * - Errors accumulate rather than throwing exceptions
  */
 import * as Effect from "../../../Effect.ts"
-import type { LogLevel } from "../../../LogLevel.ts"
-import * as Option from "../../../Option.ts"
 import * as CliError from "../CliError.ts"
 import type { Command, ParsedTokens } from "../Command.ts"
 import * as Param from "../Param.ts"
 import * as Primitive from "../Primitive.ts"
 import { suggest } from "./auto-suggest.ts"
-import { completionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
 import { toImpl } from "./command.ts"
 import type { LexResult, Token } from "./lexer.ts"
 
@@ -45,36 +42,6 @@ export const getCommandPath = (parsedInput: ParsedTokens): ReadonlyArray<string>
   parsedInput.subcommand
     ? [parsedInput.subcommand.name, ...getCommandPath(parsedInput.subcommand.parsedInput)]
     : []
-
-/** @internal */
-export const extractBuiltInOptions = (
-  tokens: ReadonlyArray<Token>
-): Effect.Effect<
-  {
-    help: boolean
-    logLevel: LogLevel | undefined
-    version: boolean
-    completions: "bash" | "zsh" | "fish" | undefined
-    remainder: ReadonlyArray<Token>
-  },
-  CliError.CliError,
-  Param.Environment
-> =>
-  Effect.gen(function*() {
-    const { flagMap, remainder } = consumeKnownFlags(tokens, builtInFlagRegistry)
-    const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
-    const [, help] = yield* helpFlag.parse(emptyArgs)
-    const [, logLevel] = yield* logLevelFlag.parse(emptyArgs)
-    const [, version] = yield* versionFlag.parse(emptyArgs)
-    const [, completions] = yield* completionsFlag.parse(emptyArgs)
-    return {
-      help,
-      logLevel: Option.getOrUndefined(logLevel),
-      version,
-      completions: Option.getOrUndefined(completions),
-      remainder
-    }
-  })
 
 /** @internal */
 export const parseArgs = (
@@ -249,8 +216,9 @@ const makeCursor = (tokens: ReadonlyArray<Token>): TokenCursor => {
 /**
  * Creates a registry for O(1) flag lookup by name or alias.
  * @throws Error if duplicate names or aliases are detected (developer error)
+ * @internal
  */
-const createFlagRegistry = (params: ReadonlyArray<FlagParam>): FlagRegistry => {
+export const createFlagRegistry = (params: ReadonlyArray<FlagParam>): FlagRegistry => {
   const index = new Map<string, FlagParam>()
 
   for (const param of params) {
@@ -288,8 +256,10 @@ const buildSubcommandIndex = (
 /* Flag Accumulator                                                           */
 /* ========================================================================== */
 
-/** Creates an empty flag map with all known flag names initialized to []. */
-const createEmptyFlagMap = (params: ReadonlyArray<FlagParam>): FlagMap =>
+/** Creates an empty flag map with all known flag names initialized to [].
+ * @internal
+ */
+export const createEmptyFlagMap = (params: ReadonlyArray<FlagParam>): FlagMap =>
   Object.fromEntries(params.map((p) => [p.name, []]))
 
 /**
@@ -378,9 +348,10 @@ const consumeFlagValue = (
 /**
  * Consumes known flags from a token stream.
  * Unrecognized tokens are passed through to remainder.
- * Used for both built-in extraction and npm-style parent flag collection.
+ * Used for both global flag extraction and npm-style parent flag collection.
+ * @internal
  */
-const consumeKnownFlags = (
+export const consumeKnownFlags = (
   tokens: ReadonlyArray<Token>,
   registry: FlagRegistry
 ): { flagMap: FlagMap; remainder: ReadonlyArray<Token> } => {
@@ -408,19 +379,6 @@ const consumeKnownFlags = (
 
   return { flagMap, remainder }
 }
-
-/* ========================================================================== */
-/* Built-in Flags                                                             */
-/* ========================================================================== */
-
-const builtInFlagParams: ReadonlyArray<FlagParam> = [
-  ...Param.extractSingleParams(logLevelFlag),
-  ...Param.extractSingleParams(helpFlag),
-  ...Param.extractSingleParams(versionFlag),
-  ...Param.extractSingleParams(completionsFlag)
-]
-
-const builtInFlagRegistry = createFlagRegistry(builtInFlagParams)
 
 /* ========================================================================== */
 /* Error Creation                                                             */
