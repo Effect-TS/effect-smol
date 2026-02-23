@@ -144,6 +144,17 @@ export namespace Vitest {
    */
   export interface Methods<R = never> extends MethodsNonLive<R> {
     readonly live: Vitest.Tester<Scope.Scope | R>
+    readonly layer: <R2, E>(layer: Layer.Layer<R2, E, R>, options?: {
+      readonly memoMap?: Layer.MemoMap
+      readonly timeout?: Duration.Input
+      readonly excludeTestServices?: boolean
+    }) => {
+      (f: (it: Vitest.MethodsNonLive<R | R2>) => void): void
+      (
+        name: string,
+        f: (it: Vitest.MethodsNonLive<R | R2>) => void
+      ): void
+    }
   }
 }
 
