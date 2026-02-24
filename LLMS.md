@@ -15,10 +15,6 @@ Effect.gen(function*() {
 })
 ```
 
-### More examples
-
-**[Effect pipe](./ai-docs/src/01_effect/01_basics/01_effect-pipe.ts)**
-
 ## Writing Effect services
 
 **[ServiceMap.Service](./ai-docs/src/01_effect/02_services/test.ts)**: How to define and use a service using `ServiceMap.Service` in Effect.

@@ -4,11 +4,11 @@
  */
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime"
 import * as NodeServices from "@effect/platform-node/NodeServices"
-import { pipe } from "effect"
 import * as Array from "effect/Array"
 import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
+import { pipe } from "effect/Function"
 import * as Path from "effect/Path"
 import type * as PlatformError from "effect/PlatformError"
 import * as String from "effect/String"
