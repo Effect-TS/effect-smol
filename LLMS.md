@@ -131,13 +131,11 @@ export type DatabaseService = Database["Service"]
 
 ### More examples
 
-**[ServiceMap.Reference](./ai-docs/src/01_effect/02_services/10_reference.ts)**: For defining configuration values, feature flags, or any other service that has a default value.  
-**[Composing services with the Layer module](./ai-docs/src/01_effect/02_services/20_layer-composition.ts)**:
-
-Build focused service layers, then compose them with `Layer.provide` and
-`Layer.provideMerge` based on what services you want to expose.
-
-**[Creating Layers from configuration and/or Effects](./ai-docs/src/01_effect/02_services/20_layer-unwrap.ts)**: Build a layer dynamically from an Effect / Config with `Layer.unwrap`.
+- **[ServiceMap.Reference](./ai-docs/src/01_effect/02_services/10_reference.ts)**: For defining configuration values, feature flags, or any other service that has a default value.
+- **[Composing services with the Layer module](./ai-docs/src/01_effect/02_services/20_layer-composition.ts)**:
+  Build focused service layers, then compose them with `Layer.provide` and
+  `Layer.provideMerge` based on what services you want to expose.
+- **[Creating Layers from configuration and/or Effects](./ai-docs/src/01_effect/02_services/20_layer-unwrap.ts)**: Build a layer dynamically from an Effect / Config with `Layer.unwrap`.
 
 ## Error handling
 
@@ -175,15 +173,14 @@ export const withFinalFallback = loadPort("invalid").pipe(
 
 ### More examples
 
-**[Catch multiple errors with Effect.catchTags](./ai-docs/src/01_effect/03_errors/10_catch-tags.ts)**: Use `Effect.catchTags` to handle several tagged errors in one place.  
-**[Creating and handling errors with reasons](./ai-docs/src/01_effect/03_errors/20_reason-errors.ts)**:
-
-Define a tagged error with a tagged `reason` field, then recover with
-`Effect.catchReason`, `Effect.catchReasons`, or by unwrapping the reason into
-the error channel with `Effect.unwrapReason`.
+- **[Catch multiple errors with Effect.catchTags](./ai-docs/src/01_effect/03_errors/10_catch-tags.ts)**: Use `Effect.catchTags` to handle several tagged errors in one place.
+- **[Creating and handling errors with reasons](./ai-docs/src/01_effect/03_errors/20_reason-errors.ts)**:
+  Define a tagged error with a tagged `reason` field, then recover with
+  `Effect.catchReason`, `Effect.catchReasons`, or by unwrapping the reason into
+  the error channel with `Effect.unwrapReason`.
 
 ## Effect HttpClient
 
 Build http clients with the `HttpClient` module.
 
-**[Getting started with HttpClient](./ai-docs/src/50_http-client/10_basics.ts)**: Define a service that uses the HttpClient module to fetch data from an external API
+- **[Getting started with HttpClient](./ai-docs/src/50_http-client/10_basics.ts)**: Define a service that uses the HttpClient module to fetch data from an external API
