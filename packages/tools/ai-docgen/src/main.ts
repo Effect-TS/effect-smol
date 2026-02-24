@@ -5,24 +5,53 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime"
 import * as NodeServices from "@effect/platform-node/NodeServices"
 import * as Array from "effect/Array"
-import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
 import { pipe } from "effect/Function"
 import * as Path from "effect/Path"
 import type * as PlatformError from "effect/PlatformError"
+import * as Stream from "effect/Stream"
 import * as String from "effect/String"
 import * as Argument from "effect/unstable/cli/Argument"
 import * as Command from "effect/unstable/cli/Command"
+import * as Flag from "effect/unstable/cli/Flag"
 
 const directory = Argument.directory("directory", { mustExist: true })
 
-Command.make("effect-ai-docgen", { directory }).pipe(
-  Command.withHandler(({ directory }) =>
-    directoryToMarkdown(directory).pipe(
-      Effect.flatMap(Console.log)
+const output = Flag.path("output").pipe(
+  Flag.withAlias("o"),
+  Flag.withDescription("Output file path")
+)
+
+const watch = Flag.boolean("watch").pipe(
+  Flag.withAlias("w"),
+  Flag.withDescription("Watch for file changes and regenerate documentation")
+)
+
+Command.make("effect-ai-docgen", { directory, output, watch }).pipe(
+  Command.withHandler(Effect.fnUntraced(function*({ directory, output, watch }) {
+    const fs = yield* FileSystem.FileSystem
+    const markdown = yield* directoryToMarkdown(directory)
+    yield* fs.writeFileString(output, markdown)
+
+    if (!watch) return
+
+    yield* Effect.logInfo("Watching for changes...")
+
+    yield* fs.watch(directory).pipe(
+      Stream.debounce(1000),
+      Stream.tap(() => Effect.logInfo("Changes detected, regenerating documentation...")),
+      Stream.switchMap(() =>
+        directoryToMarkdown(directory).pipe(
+          Stream.fromEffect
+        )
+      ),
+      Stream.runForEach(Effect.fn(function*(markdown) {
+        yield* fs.writeFileString(output, markdown)
+        yield* Effect.logInfo("Documentation updated.")
+      }))
     )
-  ),
+  })),
   Command.run({
     version: "0.0.0"
   }),
@@ -54,7 +83,7 @@ const directoryToMarkdown = Effect.fn("directoryToMarkdown")(
         } else if (/\.tsx?$/.test(file)) {
           const metadata = yield* tsFileMetadata(filePath)
 
-          if (metadata.fileNameWithoutExt.startsWith("00")) {
+          if (metadata.fileNameWithoutExt.startsWith("0")) {
             return `### ${metadata.title}
 
 ${metadata.description ?? ""}
@@ -69,7 +98,7 @@ ${metadata.content}
           const link = `[${metadata.title}](./${relativePath})`
           let content = ""
 
-          if (hasInlineFiles && metadata.fileNameWithoutExt.startsWith("01")) {
+          if (hasInlineFiles && metadata.fileNameWithoutExt.startsWith("10")) {
             content += `### More examples\n\n`
           }
 

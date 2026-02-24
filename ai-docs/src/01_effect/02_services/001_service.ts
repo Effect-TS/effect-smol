@@ -41,5 +41,5 @@ export class DatabaseError extends Schema.TaggedErrorClass<DatabaseError>()("Dat
   cause: Schema.Defect
 }) {}
 
-// If you ever neei to access the service type, use `Database["Service"]`
+// If you ever need to access the service type, use `Database["Service"]`
 export type DatabaseService = Database["Service"]

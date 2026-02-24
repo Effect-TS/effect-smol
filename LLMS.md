@@ -125,6 +125,10 @@ export class DatabaseError extends Schema.TaggedErrorClass<DatabaseError>()("Dat
   cause: Schema.Defect
 }) {}
 
-// If you ever neei to access the service type, use `Database["Service"]`
+// If you ever need to access the service type, use `Database["Service"]`
 export type DatabaseService = Database["Service"]
 ```
+
+### More examples
+
+**[ServiceMap.Reference](./ai-docs/src/01_effect/02_services/10_reference.ts)**: For defining things like configuration values, feature flags, or any other service that has a default value.
