@@ -2180,7 +2180,7 @@ export const fixed = (interval: Duration.Input): Schedule<number> => {
   return fromStepWithMetadata(effect.succeed((meta) =>
     effect.succeed([
       meta.attempt - 1,
-      window === 0 || meta.elapsedSincePrevious > window
+      window === 0
         ? Duration.zero
         : Duration.millis(window - (meta.elapsed % window))
     ])
