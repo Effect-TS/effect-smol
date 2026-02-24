@@ -110,6 +110,10 @@ You can run them with `pnpm test-types <filename>`.
 Take a look at the existing `.tst.ts` files for examples of how to write type
 level tests. They use the `tstyche` testing library.
 
+## Writing AI documentation
+
+Refer to `ai-docs/README.md` for instructions on how to write AI documentation.
+
 ## Changesets
 
 All pull requests must include a changeset. You can create changesets in the

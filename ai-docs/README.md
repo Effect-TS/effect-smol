@@ -10,9 +10,7 @@
 
 ## Source file conventions
 
-- Use numeric filename prefixes to control ordering (`10_`, `20_`, etc).
-- If a `.ts` filename starts with `0`, its code is inlined into `LLMS.md`, this should almost never be done so don't do it by default.
-- If a `.ts` filename does not start with `0`, it is listed as a linked reference.
+- Use numeric filename prefixes to control ordering (`10_`, `20_`, etc). Avoid starting with `0` unless explicity requested to do so.
 - Use a top JSDoc block with `@title` and optional description to control rendered title/description.
 
 ## Example guidelines
