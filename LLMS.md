@@ -132,6 +132,10 @@ export type DatabaseService = Database["Service"]
 ### More examples
 
 **[ServiceMap.Reference](./ai-docs/src/01_effect/02_services/10_reference.ts)**: For defining configuration values, feature flags, or any other service that has a default value.
+**[Creating Layers from configuration and/or Effects](./ai-docs/src/01_effect/02_services/20_layer-unwrap.ts)**:
+
+Build a layer dynamically by reading `Config` values first, then returning
+the final layer with `Layer.unwrap`.
 
 ## Error handling
 
