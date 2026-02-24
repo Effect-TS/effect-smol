@@ -12,6 +12,9 @@ class Requests extends ServiceMap.Service<Requests, { count: number }>()("Reques
 const Interrupts = ServiceMap.Reference("Interrupts", {
   defaultValue: () => ({ interrupts: 0 })
 })
+const RequestService = ServiceMap.Reference("RequestService", {
+  defaultValue: () => ({ value: "default" })
+})
 const delay = <A, E, R>(self: Effect.Effect<A, E, R>) =>
   Effect.andThen(
     Effect.promise(() => new Promise((r) => setTimeout(() => r(0), 0))),
@@ -34,6 +37,11 @@ interface GetAllIds extends Request.Request<ReadonlyArray<number>> {
   readonly _tag: "GetAllIds"
 }
 const GetAllIds = Request.tagged<GetAllIds>("GetAllIds")
+
+interface GetRequestService extends Request.Request<string> {
+  readonly _tag: "GetRequestService"
+}
+const GetRequestService = Request.tagged<GetRequestService>("GetRequestService")
 
 class GetNameById extends Request.TaggedClass("GetNameById")<
   {
@@ -244,6 +252,54 @@ describe.sequential("Request", () => {
 
       expect(count).toEqual(6)
       expect(requestsCount).toEqual(26)
+    })
+  )
+
+  it.effect(
+    "batch fibers use request services for runAll",
+    Effect.fnUntraced(function*() {
+      const resolver = Resolver.make<GetRequestService>(Effect.fnUntraced(function*(entries) {
+        const value = (yield* RequestService).value
+        for (const entry of entries) {
+          entry.completeUnsafe(Exit.succeed(value))
+        }
+      })).pipe(Resolver.batchN(1))
+
+      const value = yield* Effect.request(GetRequestService(), resolver).pipe(
+        Effect.provideService(RequestService, { value: "provided" })
+      )
+
+      assert.strictEqual(value, "provided")
+    })
+  )
+
+  it.effect(
+    "batch fibers use request services for delay effects",
+    Effect.fnUntraced(function*() {
+      let delayServiceValue = ""
+
+      const resolver = Resolver.make<GetRequestService>((entries) =>
+        Effect.sync(() => {
+          for (const entry of entries) {
+            entry.completeUnsafe(Exit.succeed("ok"))
+          }
+        })
+      ).pipe(
+        Resolver.setDelayEffect(
+          Effect.andThen(
+            Effect.yieldNow,
+            Effect.fnUntraced(function*() {
+              delayServiceValue = (yield* RequestService).value
+            })()
+          )
+        )
+      )
+
+      yield* Effect.request(GetRequestService(), resolver).pipe(
+        Effect.provideService(RequestService, { value: "provided" })
+      )
+
+      assert.strictEqual(delayServiceValue, "provided")
     })
   )
 })
