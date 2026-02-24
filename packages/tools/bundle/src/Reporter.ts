@@ -158,7 +158,7 @@ export class Reporter extends ServiceMap.Service<Reporter>()(
     })
   }
 ) {
-  static layer = Layer.effect(this, this.make).pipe(
+  static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(Fixtures.layer),
     Layer.provide(Rollup.layer)
   )

@@ -30,5 +30,5 @@ export class Fixtures extends ServiceMap.Service<Fixtures>()(
     })
   }
 ) {
-  static layer = Layer.effect(this, this.make)
+  static readonly layer = Layer.effect(this, this.make)
 }

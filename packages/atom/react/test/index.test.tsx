@@ -26,7 +26,7 @@ describe("atom-react", () => {
       class TheNumber extends ServiceMap.Service<TheNumber>()("TheNumber", {
         make: Effect.succeed({ n: 42 as number })
       }) {
-        static layer = Layer.effect(this, this.make)
+        static readonly layer = Layer.effect(this, this.make)
       }
       const runtime = Atom.runtime(TheNumber.layer)
       const numberAtom = runtime.atom(TheNumber.use((_) => Effect.succeed(_.n)))

@@ -11,7 +11,7 @@ export class D1Miniflare extends ServiceMap.Service<
   D1Miniflare,
   Miniflare
 >()("test/D1Miniflare") {
-  static layer = Layer.effect(this)(
+  static readonly layer = Layer.effect(this)(
     Effect.acquireRelease(
       Effect.try({
         try: () =>

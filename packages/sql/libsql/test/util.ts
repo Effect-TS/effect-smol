@@ -6,7 +6,7 @@ export class LibsqlContainer extends ServiceMap.Service<
   LibsqlContainer,
   StartedTestContainer
 >()("test/LibsqlContainer") {
-  static layer = Layer.effect(this)(
+  static readonly layer = Layer.effect(this)(
     Effect.acquireRelease(
       Effect.promise(() =>
         new GenericContainer("ghcr.io/tursodatabase/libsql-server:main")

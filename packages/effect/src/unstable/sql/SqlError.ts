@@ -1,17 +1,17 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../Data.ts"
+import * as Schema from "../../Schema.ts"
 
 const TypeId = "~effect/sql/SqlError"
 
 /**
  * @since 4.0.0
  */
-export class SqlError extends Data.TaggedError("SqlError")<{
-  cause: unknown
-  message?: string
-}> {
+export class SqlError extends Schema.TaggedErrorClass<SqlError>("effect/sql/SqlError")("SqlError", {
+  cause: Schema.Defect,
+  message: Schema.optional(Schema.String)
+}) {
   /**
    * @since 4.0.0
    */
@@ -21,10 +21,12 @@ export class SqlError extends Data.TaggedError("SqlError")<{
 /**
  * @since 4.0.0
  */
-export class ResultLengthMismatch extends Data.TaggedError("ResultLengthMismatch")<{
-  readonly expected: number
-  readonly actual: number
-}> {
+export class ResultLengthMismatch
+  extends Schema.TaggedErrorClass<ResultLengthMismatch>("effect/sql/ResultLengthMismatch")("ResultLengthMismatch", {
+    expected: Schema.Number,
+    actual: Schema.Number
+  })
+{
   /**
    * @since 4.0.0
    */

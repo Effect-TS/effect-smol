@@ -15,7 +15,7 @@ export class PgContainer extends ServiceMap.Service<PgContainer>()("test/PgConta
     (container) => Effect.promise(() => container.stop())
   )
 }) {
-  static layer = Layer.effect(this)(this.make)
+  static readonly layer = Layer.effect(this)(this.make)
 
   static layerClient = Layer.unwrap(
     Effect.gen(function*() {

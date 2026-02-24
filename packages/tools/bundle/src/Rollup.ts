@@ -132,5 +132,5 @@ export class Rollup extends ServiceMap.Service<Rollup>()(
     })
   }
 ) {
-  static layer = Layer.effect(this, this.make)
+  static readonly layer = Layer.effect(this, this.make)
 }

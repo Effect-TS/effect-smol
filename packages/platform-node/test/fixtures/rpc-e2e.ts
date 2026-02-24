@@ -15,7 +15,7 @@ export class UsersClient extends ServiceMap.Service<
   UsersClient,
   RpcClient.RpcClient<RpcGroup.Rpcs<typeof UserRpcs>, RpcClientError>
 >()("UsersClient") {
-  static layer = Layer.effect(UsersClient)(RpcClient.make(UserRpcs)).pipe(
+  static readonly layer = Layer.effect(UsersClient)(RpcClient.make(UserRpcs)).pipe(
     Layer.provide(AuthClient)
   )
   static layerTest = Layer.effect(UsersClient)(RpcTest.makeClient(UserRpcs)).pipe(
