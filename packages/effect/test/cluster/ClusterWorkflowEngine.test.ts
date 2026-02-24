@@ -287,7 +287,7 @@ const EmailWorkflow = Workflow.make({
 class Flags extends ServiceMap.Service<Flags>()("Flags", {
   make: Effect.sync(() => new Map<string, boolean | string>())
 }) {
-  static layer = Layer.effect(Flags, this.make)
+  static readonly layer = Layer.effect(Flags, this.make)
 }
 
 const EmailWorkflowLayer = EmailWorkflow.toLayer(Effect.fn(function*(payload) {

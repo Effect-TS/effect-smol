@@ -74,7 +74,7 @@ class Bar extends ServiceMap.Service<Bar, "bar">()("Bar") {
 class Sleeper extends ServiceMap.Service<Sleeper, {
   readonly sleep: (ms: number) => Effect.Effect<void>
 }>()("Sleeper") {
-  static layer = Layer.effect(Sleeper)(
+  static readonly layer = Layer.effect(Sleeper)(
     Effect.gen(function*() {
       const clock = yield* Clock.Clock
 

@@ -64,7 +64,7 @@ export class TestEntityState extends ServiceMap.Service<TestEntityState>()("Test
     } as const
   })
 }) {
-  static layer = Layer.effect(this)(this.make)
+  static readonly layer = Layer.effect(this)(this.make)
 }
 
 export const TestEntityNoState = TestEntity.toLayer(

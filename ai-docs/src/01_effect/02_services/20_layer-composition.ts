@@ -5,76 +5,66 @@
  * `Layer.provideMerge` based on what services you want to expose.
  */
 
-import { Effect, Layer, ServiceMap } from "effect"
+import { PgClient } from "@effect/sql-pg"
+import { Array, Config, Effect, Layer, type Option, Schema, ServiceMap } from "effect"
+import { SqlClient, SqlError } from "effect/unstable/sql"
 
-class AppConfig extends ServiceMap.Service<AppConfig, {
-  readonly databaseUrl: string
-}>()("myapp/AppConfig") {
-  static layer = Layer.succeed(AppConfig)({
-    databaseUrl: "postgres://localhost:5432/app"
-  })
-}
+// Define a layer for the SqlClient service
+export const SqlClientLayer: Layer.Layer<
+  PgClient.PgClient | SqlClient.SqlClient,
+  Config.ConfigError | SqlError.SqlError
+> = PgClient.layerConfig({
+  url: Config.redacted("DATABASE_URL")
+})
 
-class Logger extends ServiceMap.Service<Logger, {
-  readonly log: (message: string) => Effect.Effect<void>
-}>()("myapp/Logger") {
-  static layer = Layer.succeed(Logger)({
-    log: (message) => Effect.log(`[sql] ${message}`)
-  })
-}
+export class UserRespositoryError extends Schema.TaggedErrorClass<UserRespositoryError>()("UserRespositoryError", {
+  reason: SqlError.SqlError
+}) {}
 
-class Database extends ServiceMap.Service<Database, {
-  readonly query: (sql: string) => Effect.Effect<string>
-}>()("myapp/Database") {
-  static layer = Layer.effect(
-    Database,
-    Effect.gen(function*() {
-      const config = yield* AppConfig
-      const logger = yield* Logger
-
-      const query = Effect.fnUntraced(function*(sql: string) {
-        yield* logger.log(`${config.databaseUrl} :: ${sql}`)
-        return `result for: ${sql}`
-      })
-
-      return Database.of({ query })
-    })
-  )
-}
-
-class UserRepository extends ServiceMap.Service<UserRepository, {
-  readonly findById: (id: string) => Effect.Effect<{ readonly id: string; readonly name: string }>
+export class UserRepository extends ServiceMap.Service<UserRepository, {
+  readonly findById: (
+    id: string
+  ) => Effect.Effect<Option.Option<{ readonly id: string; readonly name: string }>, UserRespositoryError>
 }>()("myapp/UserRepository") {
-  static layer = Layer.effect(
+  // Implement the layer for the UserRepository service, which depends on the
+  // SqlClient service
+  static readonly layerNoDeps: Layer.Layer<
+    UserRepository,
+    never,
+    SqlClient.SqlClient
+  > = Layer.effect(
     UserRepository,
     Effect.gen(function*() {
-      const database = yield* Database
+      const sql = yield* SqlClient.SqlClient
 
-      const findById = Effect.fnUntraced(function*(id: string) {
-        yield* database.query(`SELECT * FROM users WHERE id = '${id}'`)
-        return { id, name: "Ada Lovelace" } as const
-      })
+      const findById = Effect.fn("UserRepository.findById")(function*(id: string) {
+        const results = yield* sql<{
+          readonly id: string
+          readonly name: string
+        }>`SELECT * FROM users WHERE id = '${id}'`
+        return Array.head(results)
+      }, Effect.mapError((reason) => new UserRespositoryError({ reason })))
 
       return UserRepository.of({ findById })
     })
   )
+
+  // Use Layer.provide to compose the UserRepository layer with the SqlClient
+  // layer, exposing only the UserRepository service
+  static readonly layer: Layer.Layer<
+    UserRepository,
+    Config.ConfigError | SqlError.SqlError
+  > = this.layerNoDeps.pipe(
+    Layer.provide(SqlClientLayer)
+  )
+
+  // Use Layer.provideMerge to compose the UserRepository layer with the SqlClient
+  // layer, exposing both the UserRepository and SqlClient services
+  static readonly layerWithSqlClient: Layer.Layer<
+    UserRepository | SqlClient.SqlClient,
+    Config.ConfigError | SqlError.SqlError
+  > = this.layerNoDeps.pipe(
+    Layer.provideMerge(SqlClientLayer)
+  )
 }
 
-const sharedDependencies = Layer.mergeAll(AppConfig.layer, Logger.layer)
-const databaseWithDependencies = Database.layer.pipe(Layer.provide(sharedDependencies))
-
-// `Layer.provide` wires dependencies but keeps only the left layer outputs.
-const repositoryOnly = UserRepository.layer.pipe(
-  Layer.provide(databaseWithDependencies)
-)
-
-// `Layer.provideMerge` wires dependencies and keeps outputs from both sides.
-const repositoryAndDatabase = UserRepository.layer.pipe(
-  Layer.provideMerge(databaseWithDependencies)
-)
-
-export type RepositoryOnlyOutput = Layer.Success<typeof repositoryOnly>
-export type RepositoryOnlyInput = Layer.Services<typeof repositoryOnly>
-
-export type RepositoryAndDatabaseOutput = Layer.Success<typeof repositoryAndDatabase>
-export type RepositoryAndDatabaseInput = Layer.Services<typeof repositoryAndDatabase>

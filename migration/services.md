@@ -184,7 +184,7 @@ class Logger extends ServiceMap.Service<Logger>()("Logger", {
   })
 }) {
   // Build the layer yourself from the make effect
-  static layer = Layer.effect(this, this.make).pipe(
+  static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(Config.layer)
   )
 }

@@ -140,7 +140,7 @@ export interface ManagedRuntime<in R, out ER> {
  * class Notifications extends ServiceMap.Service<Notifications, {
  *   readonly notify: (message: string) => Effect.Effect<void>
  * }>()("Notifications") {
- *   static layer = Layer.succeed(this)({
+ *   static readonly layer = Layer.succeed(this)({
  *     notify: (message) => Console.log(message)
  *   })
  * }

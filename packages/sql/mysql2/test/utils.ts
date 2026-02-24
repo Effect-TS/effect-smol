@@ -11,7 +11,7 @@ export class MysqlContainer extends ServiceMap.Service<
   MysqlContainer,
   StartedMySqlContainer
 >()("test/MysqlContainer") {
-  static layer = Layer.effect(this)(
+  static readonly layer = Layer.effect(this)(
     Effect.acquireRelease(
       Effect.tryPromise({
         try: () => new MySqlContainer("mysql:lts").start(),
