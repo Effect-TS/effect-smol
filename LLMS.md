@@ -131,7 +131,7 @@ export type DatabaseService = Database["Service"]
 
 ### More examples
 
-**[ServiceMap.Reference](./ai-docs/src/01_effect/02_services/10_reference.ts)**: For defining things like configuration values, feature flags, or any other service that has a default value.
+**[ServiceMap.Reference](./ai-docs/src/01_effect/02_services/10_reference.ts)**: For defining configuration values, feature flags, or any other service that has a default value.
 
 ## Error handling
 
@@ -166,3 +166,13 @@ export const withFinalFallback = loadPort("invalid").pipe(
   Effect.catch((_) => Effect.succeed(3000))
 )
 ```
+
+### More examples
+
+**[Catch multiple errors with Effect.catchTags](./ai-docs/src/01_effect/03_errors/10_catch-tags.ts)**: Use `Effect.catchTags` to handle several tagged errors in one place.
+
+## Effect HttpClient
+
+Build http clients with the `HttpClient` module.
+
+**[Getting started with HttpClient](./ai-docs/src/50_http-client/10_basics.ts)**: Define a service that uses the HttpClient module to fetch data from an external API
