@@ -1,0 +1,1 @@
+## Writing basic `Effect`s

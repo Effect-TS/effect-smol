@@ -1009,17 +1009,17 @@ const showHelp = <Name extends string, Input, E, R>(
  * @category command execution
  */
 export const run: {
+  (config: {
+    readonly version: string
+  }): <Name extends string, Input, E, R>(
+    command: Command<Name, Input, E, R>
+  ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
   <Name extends string, Input, E, R>(
     command: Command<Name, Input, E, R>,
     config: {
       readonly version: string
     }
   ): Effect.Effect<void, E | CliError.CliError, R | Environment>
-  (config: {
-    readonly version: string
-  }): <Name extends string, Input, E, R>(
-    command: Command<Name, Input, E, R>
-  ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
 } = dual(2, <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   config: {
