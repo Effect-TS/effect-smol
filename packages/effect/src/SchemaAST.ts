@@ -594,7 +594,7 @@ export class Declaration extends Base {
   }
   /** @internal */
   getExpected(): string {
-    const expected = this.annotations?.identifier ?? this.annotations?.expected
+    const expected = this.annotations?.expected
     if (typeof expected === "string") return expected
     return "<Declaration>"
   }
