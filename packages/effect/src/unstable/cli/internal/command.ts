@@ -269,33 +269,3 @@ export const checkForDuplicateFlags = <Name extends string, Input>(
     }
   }
 }
-
-/**
- * Helper function to get help documentation for a specific command path.
- * Navigates through the command hierarchy to find the right command.
- */
-export const getHelpForCommandPath = <Name extends string, Input, E, R>(
-  command: Command<Name, Input, E, R>,
-  commandPath: ReadonlyArray<string>
-): HelpDoc => {
-  let currentCommand: Command.Any = command
-
-  // Navigate through the command path to find the target command
-  for (let i = 1; i < commandPath.length; i++) {
-    const subcommandName = commandPath[i]
-    let subcommand: Command.Any | undefined = undefined
-
-    for (const group of currentCommand.subcommands) {
-      subcommand = group.commands.find((sub) => sub.name === subcommandName)
-      if (subcommand) {
-        break
-      }
-    }
-
-    if (subcommand) {
-      currentCommand = subcommand
-    }
-  }
-
-  return toImpl(currentCommand).buildHelpDoc(commandPath)
-}

@@ -53,6 +53,12 @@ describe("Command help output", () => {
           --config, -c file    Path to configuration file
           --quiet, -q          Suppress non-error output
 
+        GLOBAL FLAGS
+          --help, -h              Show help information
+          --version               Show version information
+          --completions choice    Print shell completion script
+          --log-level choice      Sets the minimum log level
+
         SUBCOMMANDS
           admin            Administrative commands
           copy             Copy files or directories
@@ -91,6 +97,12 @@ describe("Command help output", () => {
         USAGE
           login [flags]
 
+        GLOBAL FLAGS
+          --help, -h              Show help information
+          --version               Show version information
+          --completions choice    Print shell completion script
+          --log-level choice      Sets the minimum log level
+
         EXAMPLES
           # Log in with browser OAuth
           myapp login
@@ -124,7 +136,13 @@ describe("Command help output", () => {
         FLAGS
           --recursive, -r          Copy directories recursively
           --force, -f              Overwrite existing files
-          --buffer-size integer    Buffer size in KB"
+          --buffer-size integer    Buffer size in KB
+
+        GLOBAL FLAGS
+          --help, -h              Show help information
+          --version               Show version information
+          --completions choice    Print shell completion script
+          --log-level choice      Sets the minimum log level"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
@@ -145,7 +163,13 @@ describe("Command help output", () => {
         FLAGS
           --recursive, -r    Remove directories and contents
           --force, -f        Force removal without prompts
-          --verbose, -v      Explain what is being done"
+          --verbose, -v      Explain what is being done
+
+        GLOBAL FLAGS
+          --help, -h              Show help information
+          --version               Show version information
+          --completions choice    Print shell completion script
+          --log-level choice      Sets the minimum log level"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
@@ -163,7 +187,13 @@ describe("Command help output", () => {
         FLAGS
           --format string    Output format (json, table, csv)
           --active           Show only active users
-          --verbose, -v      Show detailed information"
+          --verbose, -v      Show detailed information
+
+        GLOBAL FLAGS
+          --help, -h              Show help information
+          --version               Show version information
+          --completions choice    Print shell completion script
+          --log-level choice      Sets the minimum log level"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
@@ -184,7 +214,13 @@ describe("Command help output", () => {
 
         FLAGS
           --role string    User role (admin, user, guest)
-          --notify, -n     Send notification email"
+          --notify, -n     Send notification email
+
+        GLOBAL FLAGS
+          --help, -h              Show help information
+          --version               Show version information
+          --completions choice    Print shell completion script
+          --log-level choice      Sets the minimum log level"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
@@ -201,6 +237,12 @@ describe("Command help output", () => {
 
         FLAGS
           --profile, -p string    Configuration profile to use
+
+        GLOBAL FLAGS
+          --help, -h              Show help information
+          --version               Show version information
+          --completions choice    Print shell completion script
+          --log-level choice      Sets the minimum log level
 
         SUBCOMMANDS
           set    Set configuration values
@@ -223,7 +265,13 @@ describe("Command help output", () => {
           key=value... string    Configuration key-value pairs
 
         FLAGS
-          --config-file, -f file    Write to specific config file"
+          --config-file, -f file    Write to specific config file
+
+        GLOBAL FLAGS
+          --help, -h              Show help information
+          --version               Show version information
+          --completions choice    Print shell completion script
+          --log-level choice      Sets the minimum log level"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
@@ -266,6 +314,12 @@ describe("Command help output", () => {
       expect(helpText).toMatchInlineSnapshot(`
         "USAGE
           tool <subcommand> [flags]
+
+        GLOBAL FLAGS
+          --help, -h              Show help information
+          --version               Show version information
+          --completions choice    Print shell completion script
+          --log-level choice      Sets the minimum log level
 
         SUBCOMMANDS
           ungrouped    This command is not in a group
