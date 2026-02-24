@@ -103,7 +103,7 @@ export class Database extends ServiceMap.Service<Database, {
 ) {
   // Attach a static layer to the service, which will be used to provide an
   // implementation of the service.
-  static layer = Layer.effect(
+  static readonly layer = Layer.effect(
     Database,
     Effect.gen(function*() {
       // Define the service methods using Effect.fn
@@ -132,6 +132,7 @@ export type DatabaseService = Database["Service"]
 ### More examples
 
 **[ServiceMap.Reference](./ai-docs/src/01_effect/02_services/10_reference.ts)**: For defining configuration values, feature flags, or any other service that has a default value.
+**[Creating Layers from configuration and/or Effects](./ai-docs/src/01_effect/02_services/20_layer-unwrap.ts)**: Build a layer dynamically from an Effect / Config with `Layer.unwrap`.
 
 ## Error handling
 
