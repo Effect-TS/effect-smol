@@ -1,4 +1,5 @@
 packages:
+  - ai-docs
   - scratchpad
   - scripts
   - packages/*
