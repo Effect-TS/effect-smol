@@ -183,6 +183,11 @@ export const withFinalFallback = loadPort("invalid").pipe(
 
 Learn how to safely manage resources in Effect using `Scope`s and finalizers.
 
+- **[Acquiring resources with Effect.acquireRelease](./ai-docs/src/01_effect/04_resources/10_acquire-release.ts)**:
+  Define a service that uses `Effect.acquireRelease` to manage the lifecycle of
+  an resource, ensuring that it is properly cleaned up when the service is no
+  longer needed.
+
 ## Effect HttpClient
 
 Build http clients with the `HttpClient` module.
