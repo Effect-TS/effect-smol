@@ -17,14 +17,18 @@
     "@effect/sql-clickhouse": "workspace:*",
     "@effect/sql-d1": "workspace:*",
     "@effect/sql-libsql": "workspace:*",
-    "@effect/sql-mysql2": "workspace:*",
     "@effect/sql-mssql": "workspace:*",
+    "@effect/sql-mysql2": "workspace:*",
     "@effect/sql-pg": "workspace:*",
     "@effect/sql-sqlite-bun": "workspace:*",
     "@effect/sql-sqlite-do": "workspace:*",
     "@effect/sql-sqlite-node": "workspace:*",
     "@effect/sql-sqlite-react-native": "workspace:*",
     "@effect/sql-sqlite-wasm": "workspace:*",
-    "effect": "workspace:*"
+    "effect": "workspace:*",
+    "nodemailer": "^8.0.1"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^7.0.11"
   }
 }

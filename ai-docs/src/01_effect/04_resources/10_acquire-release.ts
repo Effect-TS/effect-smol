@@ -1,70 +1,105 @@
 /**
  * @title Acquiring resources with Effect.acquireRelease
  *
- * Define a service method that acquires a short-lived resource with
- * `Effect.acquireRelease`, then execute it with `Effect.scoped` so finalizers
- * always run.
+ * Define a service that uses `Effect.acquireRelease` to manage the lifecycle of
+ * an resource, ensuring that it is properly cleaned up when the service is no
+ * longer needed.
  */
+import { Config, Effect, Layer, Redacted, Schema, ServiceMap } from "effect"
+import * as NodeMailer from "nodemailer"
 
-import { Effect, Exit, Layer, ServiceMap } from "effect"
+export class SmtpError extends Schema.ErrorClass<SmtpError>("SmtpError")({
+  cause: Schema.Defect
+}) {}
 
-interface SmtpSession {
-  readonly send: (message: {
+export class Smtp extends ServiceMap.Service<Smtp, {
+  send(message: {
     readonly to: string
     readonly subject: string
     readonly body: string
-  }) => Effect.Effect<void, Error>
-  readonly quit: Effect.Effect<void>
-  readonly reset: Effect.Effect<void>
+  }): Effect.Effect<void, SmtpError>
+}>()("app/Smtp") {
+  static readonly layer = Layer.effect(
+    Smtp,
+    Effect.gen(function*() {
+      const user = yield* Config.string("SMTP_USER")
+      const pass = yield* Config.redacted("SMTP_PASS")
+
+      // Use `Effect.acquireRelease` to manage the lifecycle of the SMTP
+      // transporter.
+      //
+      // When the Layer is built, the transporter will be created. When the
+      // Layer is torn down, the transporter will be closed, ensuring that
+      // resources are always cleaned up properly.
+      const transporter = yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          NodeMailer.createTransport({
+            host: "smtp.example.com",
+            port: 587,
+            secure: false,
+            auth: { user, pass: Redacted.value(pass) }
+          })
+        ),
+        (transporter) => Effect.sync(() => transporter.close())
+      )
+
+      const send = Effect.fn("Smtp.send")((message: {
+        readonly to: string
+        readonly subject: string
+        readonly body: string
+      }) =>
+        Effect.tryPromise({
+          try: () =>
+            transporter.sendMail({
+              from: "Acme Cloud <cloud@acme.com>",
+              to: message.to,
+              subject: message.subject,
+              text: message.body
+            }),
+          catch: (cause) => new SmtpError({ cause })
+        }).pipe(
+          Effect.asVoid
+        )
+      )
+
+      return Smtp.of({ send })
+    })
+  )
 }
 
-declare const connectSmtpSession: Effect.Effect<SmtpSession, Error>
-declare const persistDeliveryMetric: (message: string) => Effect.Effect<void>
+// We can then use the `Smtp` service in another service, and the transporter
+// will be properly managed by the Layer system.
 
-const releaseSmtpSession = Effect.fnUntraced(function*(session: SmtpSession, exit: Exit.Exit<unknown, unknown>) {
-  // When the workflow fails, reset the session before quitting so
-  // partial SMTP transactions are discarded server-side.
-  if (Exit.isFailure(exit)) {
-    yield* session.reset
-  }
-
-  // Finalizers run on both success and failure.
-  yield* session.quit
-  yield* persistDeliveryMetric(
-    `smtp session closed (${Exit.isSuccess(exit) ? "success" : "failure"})`
-  )
-})
+export class MailerError extends Schema.TaggedErrorClass<MailerError>()("MailerError", {
+  reason: SmtpError
+}) {}
 
 export class Mailer extends ServiceMap.Service<Mailer, {
-  readonly sendWelcomeEmail: (to: string) => Effect.Effect<void, Error>
+  sendWelcomeEmail(to: string): Effect.Effect<void, MailerError>
 }>()("app/Mailer") {
-  static readonly layer = Layer.effect(
+  static readonly layerNoDeps = Layer.effect(
     Mailer,
-    Effect.succeed(
-      Mailer.of({
-        sendWelcomeEmail: (to) =>
-          Effect.scoped(
-            Effect.acquireRelease(
-              // Open an SMTP session at the start of the scoped workflow.
-              connectSmtpSession,
-              releaseSmtpSession
-            ).pipe(
-              Effect.flatMap((session) =>
-                session.send({
-                  to,
-                  subject: "Welcome to Acme Cloud",
-                  body: "Thanks for signing up. Reply to this email if you need help."
-                })
-              ),
-              Effect.tap(() => persistDeliveryMetric(`welcome email sent to ${to}`))
-            )
-          )
+    Effect.gen(function*() {
+      const smtp = yield* Smtp
+
+      const sendWelcomeEmail = Effect.fn("Mailer.sendWelcomeEmail")(function*(to: string) {
+        yield* smtp.send({
+          to,
+          subject: "Welcome to Acme Cloud!",
+          body: "Thanks for signing up for Acme Cloud. We're glad to have you!"
+        }).pipe(
+          Effect.mapError((reason) => new MailerError({ reason }))
+        )
+        yield* Effect.logInfo(`Sent welcome email to ${to}`)
       })
-    )
+
+      return Mailer.of({ sendWelcomeEmail })
+    })
+  )
+
+  // Locally provide the Smtp layer to the Mailer layer, to eliminate all the
+  // requirements
+  static readonly layer = this.layerNoDeps.pipe(
+    Layer.provide(Smtp.layer)
   )
 }
-
-export const sendWelcome = Effect.gen(function*() {
-  const mailer = yield* Mailer
-  yield* mailer.sendWelcomeEmail("dev@example.com")
-}).pipe(Effect.provide(Mailer.layer))
