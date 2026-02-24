@@ -100,6 +100,11 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
   readonly shortDescription: string | undefined
 
   /**
+   * An optional alias that can be used as a shorter command name.
+   */
+  readonly alias: string | undefined
+
+  /**
    * Optional usage examples for the command.
    */
   readonly examples: ReadonlyArray<Command.Example>
@@ -644,6 +649,7 @@ export const withSubcommands: {
     config: impl.config,
     description: impl.description,
     shortDescription: impl.shortDescription,
+    alias: impl.alias,
     annotations: impl.annotations,
     examples: impl.examples,
     service: impl.service,
@@ -720,6 +726,28 @@ export const withShortDescription: {
   self: Command<Name, Input, E, R>,
   shortDescription: string
 ) => makeCommand({ ...toImpl(self), shortDescription }))
+
+/**
+ * Sets an alias for a command.
+ *
+ * Aliases are accepted as alternate subcommand names during parsing and are
+ * shown in help output as `name, alias`.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withAlias: {
+  (alias: string): <const Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>
+  ) => Command<Name, Input, E, R>
+  <const Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>,
+    alias: string
+  ): Command<Name, Input, E, R>
+} = dual(2, <const Name extends string, Input, E, R>(
+  self: Command<Name, Input, E, R>,
+  alias: string
+) => makeCommand({ ...toImpl(self), alias }))
 
 /**
  * Adds a custom annotation to a command.

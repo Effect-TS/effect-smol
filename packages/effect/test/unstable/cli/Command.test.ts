@@ -325,6 +325,21 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should execute subcommand when provided by alias", () =>
+      Effect.gen(function*() {
+        const executed: Array<string> = []
+
+        const plan = Command.make("plan", {}, () => Effect.sync(() => executed.push("plan"))).pipe(
+          Command.withAlias("p")
+        )
+        const root = Command.make("tool").pipe(Command.withSubcommands([plan]))
+        const runRoot = Command.runWith(root, { version: "1.0.0" })
+
+        yield* runRoot(["p"])
+
+        assert.deepStrictEqual(executed, ["plan"])
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should accept grouped and ungrouped subcommands", () =>
       Effect.gen(function*() {
         const executed: Array<string> = []
@@ -973,13 +988,15 @@ describe("Command", () => {
       Effect.gen(function*() {
         const child = Command.make("build").pipe(
           Command.withDescription("Build the project and all artifacts"),
-          Command.withShortDescription("Build artifacts")
+          Command.withShortDescription("Build artifacts"),
+          Command.withAlias("b")
         )
         const root = Command.make("tool").pipe(Command.withSubcommands([child]))
 
         const helpDoc = toImpl(root).buildHelpDoc(["tool"])
         const listed = helpDoc.subcommands?.[0]?.commands[0]
 
+        assert.strictEqual(listed?.alias, "b")
         assert.strictEqual(listed?.shortDescription, "Build artifacts")
         assert.strictEqual(listed?.description, "Build the project and all artifacts")
       }))

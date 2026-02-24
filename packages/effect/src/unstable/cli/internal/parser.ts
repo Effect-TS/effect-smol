@@ -244,9 +244,22 @@ const buildSubcommandIndex = (
   subcommands: Command.Any["subcommands"]
 ): Map<string, Command<string, unknown, unknown, unknown>> => {
   const index = new Map<string, Command<string, unknown, unknown, unknown>>()
+  const setKey = (key: string, command: Command<string, unknown, unknown, unknown>) => {
+    const existing = index.get(key)
+    if (existing && existing !== command) {
+      throw new Error(
+        `Duplicate subcommand name/alias "${key}" in command definition (conflicts with "${existing.name}")`
+      )
+    }
+    index.set(key, command)
+  }
+
   for (const group of subcommands) {
     for (const subcommand of group.commands) {
-      index.set(subcommand.name, subcommand)
+      setKey(subcommand.name, subcommand)
+      if (subcommand.alias && subcommand.alias !== subcommand.name) {
+        setKey(subcommand.alias, subcommand)
+      }
     }
   }
   return index

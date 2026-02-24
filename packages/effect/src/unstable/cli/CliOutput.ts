@@ -409,6 +409,8 @@ const renderTable = (rows: ReadonlyArray<Row>, widthCap: number) => {
   return rows.map(({ left, right }) => `  ${pad(left, col)}${right}`).join("\n")
 }
 
+const formatSubcommandName = (name: string, alias: string | undefined): string => alias ? `${name}, ${alias}` : name
+
 /**
  * Color functions interface for help formatting.
  * @internal
@@ -533,7 +535,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
       sections.push(colors.bold("SUBCOMMANDS"))
       sections.push(renderTable(
         ungrouped.commands.map((sub) => ({
-          left: colors.cyan(sub.name),
+          left: colors.cyan(formatSubcommandName(sub.name, sub.alias)),
           right: sub.shortDescription ?? sub.description
         })),
         20
@@ -548,7 +550,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
       sections.push(colors.bold(`${group.group}:`))
       sections.push(renderTable(
         group.commands.map((sub) => ({
-          left: colors.cyan(sub.name),
+          left: colors.cyan(formatSubcommandName(sub.name, sub.alias)),
           right: sub.shortDescription ?? sub.description
         })),
         20
