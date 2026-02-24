@@ -176,6 +176,26 @@ jobs:
       - name: Generate Documentation
         run: pnpm docgen
 
+  ai-docgen:
+    name: AI Documentation Generation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+      - name: Generate AI Documentation
+        run: pnpm ai-docgen
+      - name: Verify AI Documentation is up-to-date
+        run: |
+          if [ -n "$(git status --short)" ]; then
+            git status --short
+            echo "Run 'pnpm ai-docgen' and commit generated changes."
+            exit 1
+          fi
+
   circular:
     name: Circular Dependencies
     runs-on: ubuntu-latest

@@ -171,6 +171,11 @@ export const withFinalFallback = loadPort("invalid").pipe(
 ### More examples
 
 **[Catch multiple errors with Effect.catchTags](./ai-docs/src/01_effect/03_errors/10_catch-tags.ts)**: Use `Effect.catchTags` to handle several tagged errors in one place.
+**[Creating and handling errors with reasons](./ai-docs/src/01_effect/03_errors/20_reason-errors.ts)**:
+
+Define a tagged error with a tagged `reason` field, then recover with
+`Effect.catchReason`, `Effect.catchReasons`, or by unwrapping the reason into
+the error channel with `Effect.unwrapReason`.
 
 ## Effect HttpClient
 

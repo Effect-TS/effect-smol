@@ -12,6 +12,7 @@
     "arrowFunction.useParentheses": "force"
   },
   "excludes": [
+    "LLMS.md",
     "**/dist",
     "**/build",
     "**/docs",

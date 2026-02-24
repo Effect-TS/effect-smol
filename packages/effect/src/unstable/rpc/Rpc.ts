@@ -521,7 +521,7 @@ export type ExtractProvides<R extends Any, Tag extends string> = R extends Rpc<
   infer _Error,
   infer _Middleware,
   infer _Requires
-> ? RpcMiddleware.Provides<_Middleware> :
+> ? RpcMiddleware.Provides<_Middleware["Identifier"]> :
   never
 
 /**
