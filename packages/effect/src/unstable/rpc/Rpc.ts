@@ -489,11 +489,11 @@ export type ToHandlerFn<Current extends Any, R = any> = (
 export type IsStream<R extends Any, Tag extends string> = R extends Rpc<
   Tag,
   infer _Payload,
-  RpcSchema.Stream<infer _A, infer _E>,
+  infer _Success,
   infer _Error,
   infer _Middleware,
   infer _Requires
-> ? true :
+> ? _Success extends RpcSchema.Stream<any, any> ? true : false :
   never
 
 /**

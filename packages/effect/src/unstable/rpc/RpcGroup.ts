@@ -204,7 +204,7 @@ export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handle
   Handler extends (
     ...args: any
   ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Wrapper<Effect.Effect<infer _A, infer _E, infer _R>> ?
-    Rpc.ExcludeProvides<_R, Rpcs, K> | Rpc.ExtractRequires<Rpcs, K>
+    Exclude<Rpc.ExcludeProvides<_R, Rpcs, K>, Scope> | Rpc.ExtractRequires<Rpcs, K>
   : never
 
 /**
