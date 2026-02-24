@@ -184,8 +184,9 @@ export const withFinalFallback = loadPort("invalid").pipe(
 Learn how to safely manage resources in Effect using `Scope`s and finalizers.
 
 - **[Acquiring resources with Effect.acquireRelease](./ai-docs/src/01_effect/04_resources/10_acquire-release.ts)**:
-  Use `Effect.acquireRelease` for resources that must always be cleaned up,
-  then run the workflow with `Effect.scoped` so finalizers run automatically.
+  Define a service method that acquires a short-lived resource with
+  `Effect.acquireRelease`, then execute it with `Effect.scoped` so finalizers
+  always run.
 
 ## Effect HttpClient
 

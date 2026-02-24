@@ -1,40 +1,69 @@
 /**
  * @title Acquiring resources with Effect.acquireRelease
  *
- * Use `Effect.acquireRelease` for resources that must always be cleaned up,
- * then run the workflow with `Effect.scoped` so finalizers run automatically.
+ * Define a service method that acquires a short-lived resource with
+ * `Effect.acquireRelease`, then execute it with `Effect.scoped` so finalizers
+ * always run.
  */
 
-import { Effect, Exit } from "effect"
+import { Effect, Exit, Layer, ServiceMap } from "effect"
 
-interface DbConnection {
-  readonly query: (sql: string) => Effect.Effect<ReadonlyArray<{ readonly id: number; readonly name: string }>>
-  readonly close: Effect.Effect<void>
-  readonly rollback: Effect.Effect<void>
+interface SmtpSession {
+  readonly send: (message: {
+    readonly to: string
+    readonly subject: string
+    readonly body: string
+  }) => Effect.Effect<void, Error>
+  readonly quit: Effect.Effect<void>
+  readonly reset: Effect.Effect<void>
 }
 
-declare const openConnection: Effect.Effect<DbConnection, Error>
-declare const persistAuditLog: (message: string) => Effect.Effect<void>
+declare const connectSmtpSession: Effect.Effect<SmtpSession, Error>
+declare const persistDeliveryMetric: (message: string) => Effect.Effect<void>
 
-export const connection = Effect.acquireRelease(
-  // Acquire the connection once and register a finalizer in the current scope.
-  openConnection,
-  (db, exit) =>
-    Effect.gen(function*() {
-      // Use the Exit value to decide extra cleanup work.
-      if (Exit.isFailure(exit)) {
-        yield* db.rollback
-      }
+export class Mailer extends ServiceMap.Service<Mailer, {
+  readonly sendWelcomeEmail: (to: string) => Effect.Effect<void, Error>
+}>()("app/Mailer") {
+  static readonly layer = Layer.effect(
+    Mailer,
+    Effect.succeed(
+      Mailer.of({
+        sendWelcomeEmail: (to) =>
+          Effect.scoped(
+            Effect.acquireRelease(
+              // Open an SMTP session at the start of the scoped workflow.
+              connectSmtpSession,
+              (session, exit) =>
+                Effect.gen(function*() {
+                  // When the workflow fails, reset the session before quitting so
+                  // partial SMTP transactions are discarded server-side.
+                  if (Exit.isFailure(exit)) {
+                    yield* session.reset
+                  }
 
-      yield* db.close
-      yield* persistAuditLog(`db connection closed (${Exit.isSuccess(exit) ? "success" : "failure"})`)
-    })
-)
-
-export const loadUsers = Effect.scoped(
-  connection.pipe(
-    // Any workflow that uses this resource now gets deterministic cleanup.
-    Effect.flatMap((db) => db.query("select id, name from users order by id")),
-    Effect.tap((rows) => persistAuditLog(`loaded ${rows.length} users`))
+                  // Finalizers run on both success and failure.
+                  yield* session.quit
+                  yield* persistDeliveryMetric(
+                    `smtp session closed (${Exit.isSuccess(exit) ? "success" : "failure"})`
+                  )
+                })
+            ).pipe(
+              Effect.flatMap((session) =>
+                session.send({
+                  to,
+                  subject: "Welcome to Acme Cloud",
+                  body: "Thanks for signing up. Reply to this email if you need help."
+                })
+              ),
+              Effect.tap(() => persistDeliveryMetric(`welcome email sent to ${to}`))
+            )
+          )
+      })
+    )
   )
-)
+}
+
+export const sendWelcome = Effect.gen(function*() {
+  const mailer = yield* Mailer
+  yield* mailer.sendWelcomeEmail("dev@example.com")
+}).pipe(Effect.provide(Mailer.layer))
