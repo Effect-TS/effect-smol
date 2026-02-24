@@ -16,8 +16,8 @@ maintain than using combinators alone.
 
 ### Using Effect.gen
 
-To write code in an imperative style similar to async await. You can use
-`yield*` to access the result of an effect.
+Use `Effect.gen` to write code in an imperative style similar to async await.
+You can use `yield*` to access the result of an effect.
 
 ```ts
 import { Effect, Schema } from "effect"
