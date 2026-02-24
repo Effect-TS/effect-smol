@@ -1,5 +1,5 @@
 ---
-"effect": minor
+"effect": patch
 ---
 
 Refactor CLI built-in options to use Effect services with `GlobalFlag`
