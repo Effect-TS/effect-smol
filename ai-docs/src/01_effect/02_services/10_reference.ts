@@ -1,7 +1,7 @@
 /**
  * @title ServiceMap.Reference
  *
- * For defining things like configuration values, feature flags, or any other service that has a default value.
+ * For defining configuration values, feature flags, or any other service that has a default value.
  */
 import { ServiceMap } from "effect"
 

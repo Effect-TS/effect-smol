@@ -70,7 +70,7 @@ const directoryToMarkdown = Effect.fn("directoryToMarkdown")(
     )
 
     const allFiles = yield* fs.readDirectory(directory)
-    const hasInlineFiles = allFiles.some((file) => pathService.basename(file).startsWith("00") && /\.tsx?$/.test(file))
+    const hasInlineFiles = allFiles.some((file) => pathService.basename(file).startsWith("0") && /\.tsx?$/.test(file))
 
     const tsFileContent = yield* Effect.forEach(
       allFiles,

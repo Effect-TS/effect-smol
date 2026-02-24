@@ -15,6 +15,12 @@
 - If a `.ts` filename does not start with `0`, it is listed as a linked reference.
 - Use a top JSDoc block with `@title` and optional description to control rendered title/description.
 
+## Example guidelines
+
+All code examples should be well commented explaining the how and why of the
+code, not just what the code is doing. The goal is to teach users how to use the
+API.
+
 ## Regeneration
 
 - One-shot: `pnpm ai-docgen`
