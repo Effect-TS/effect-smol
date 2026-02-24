@@ -5,7 +5,7 @@
 import * as Console from "../../Console.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
-import type { LogLevel } from "../../LogLevel.ts"
+import type { LogLevel as LogLevelType } from "../../LogLevel.ts"
 import * as Option from "../../Option.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as CliOutput from "./CliOutput.ts"
@@ -184,7 +184,7 @@ export const Completions: Action<Option.Option<"bash" | "zsh" | "fish">> = actio
  * @since 4.0.0
  * @category references
  */
-export const LogLevel: Setting<Option.Option<LogLevel>> = setting({
+export const LogLevel: Setting<Option.Option<LogLevelType>> = setting({
   flag: Flag.choiceWithValue(
     "log-level",
     [
