@@ -22,7 +22,7 @@ import { toImpl } from "./command.ts"
 export const getHelpForCommandPath = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string>,
-  registry: ServiceMap.Reference<Set<ServiceMap.Reference<GlobalFlag<unknown>>>>
+  registry: ServiceMap.Reference<Set<GlobalFlag<unknown>>>
 ): Effect.Effect<HelpDoc, never, never> =>
   Effect.gen(function*() {
     let currentCommand: Command.Any = command
@@ -45,10 +45,9 @@ export const getHelpForCommandPath = <Name extends string, Input, E, R>(
 
     const baseDoc = toImpl(currentCommand).buildHelpDoc(commandPath)
 
-    const refs = yield* registry
+    const flags = yield* registry
     const globalFlagDocs: Array<FlagDoc> = []
-    for (const ref of refs) {
-      const flag = yield* ref
+    for (const flag of flags) {
       const singles = Param.extractSingleParams(flag.flag)
       for (const single of singles) {
         const formattedAliases = single.aliases.map((alias) => alias.length === 1 ? `-${alias}` : `--${alias}`)

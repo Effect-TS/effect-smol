@@ -7,9 +7,11 @@ import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { dual } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import type * as Path from "../../Path.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
+import * as References from "../../References.ts"
 import * as Result from "../../Result.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Terminal from "../../Terminal.ts"
@@ -1083,12 +1085,8 @@ export const runWith = <const Name extends string, Input, E, R>(
     function*(args: ReadonlyArray<string>) {
       const { tokens, trailingOperands } = Lexer.lex(args)
 
-      // 1. Read registry and resolve each reference to its current value
-      const refs = yield* GlobalFlag.Registry
-      const flags: Array<GlobalFlag.GlobalFlag<any>> = []
-      for (const ref of refs) {
-        flags.push(yield* ref)
-      }
+      // 1. Read global flags from registry
+      const flags = Array.from(yield* GlobalFlag.Registry)
 
       // 2. Extract global flag tokens
       const allFlagParams = flags.flatMap((f) => Param.extractSingleParams(f.flag))
@@ -1124,15 +1122,27 @@ export const runWith = <const Name extends string, Input, E, R>(
         return yield* showHelp(command, commandPath, [parseResult.failure])
       }
 
-      // 6. Compose setting flag layers
+      // 6. Provide setting values
       let contextLayer: Layer.Layer<never> = Layer.empty
       for (const flag of flags) {
         if (flag._tag !== "Setting") continue
         const [, value] = yield* flag.flag.parse(emptyArgs)
-        contextLayer = Layer.merge(contextLayer, flag.layer(value))
+        contextLayer = Layer.merge(contextLayer, Layer.succeed(flag, value))
       }
 
-      // 7. Run command handler with composed context
+      // 7. Apply built-in setting behavior
+      if (flags.includes(GlobalFlag.LogLevel)) {
+        const [, logLevel] = yield* GlobalFlag.LogLevel.flag.parse(emptyArgs)
+        contextLayer = Layer.merge(
+          contextLayer,
+          Option.match(logLevel, {
+            onNone: () => Layer.empty,
+            onSome: (level) => Layer.succeed(References.MinimumLogLevel, level)
+          })
+        )
+      }
+
+      // 8. Run command handler with composed context
       const program = commandImpl.handle(parseResult.success, [command.name])
       yield* Effect.provide(program, contextLayer)
     },
