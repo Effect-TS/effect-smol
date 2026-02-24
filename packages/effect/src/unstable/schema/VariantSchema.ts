@@ -301,12 +301,12 @@ export const make = <
     config: A & { readonly [K in Exclude<keyof A, Variants[number]>]: never }
   ) => Field<A>
   readonly FieldOnly: <const Keys extends ReadonlyArray<Variants[number]>>(
-    ...keys: Keys
+    keys: Keys
   ) => <S extends Schema.Top>(
     schema: S
   ) => Field<{ readonly [K in Keys[number]]: S }>
   readonly FieldExcept: <const Keys extends ReadonlyArray<Variants[number]>>(
-    ...keys: Keys
+    keys: Keys
   ) => <S extends Schema.Top>(
     schema: S
   ) => Field<{ readonly [K in Exclude<Variants[number], Keys[number]>]: S }>
@@ -364,7 +364,7 @@ export const make = <
         readonly [V in Variants[number]]: Extract<V, Struct<Fields>>
       }
   readonly Union: <const Members extends ReadonlyArray<Struct<any>>>(
-    ...members: Members
+    members: Members
   ) => Union<Members> & Union.Variants<Members, Variants[number]>
   readonly extract: {
     <V extends Variants[number]>(
@@ -403,7 +403,7 @@ export const make = <
       return Base
     }
   }
-  function FieldOnly<Keys extends Variants>(...keys: Keys) {
+  function FieldOnly<const Keys extends ReadonlyArray<Variants[number]>>(keys: Keys) {
     return function<S extends Schema.Top>(schema: S) {
       const obj: Record<string, S> = {}
       for (const key of keys) {
@@ -412,7 +412,7 @@ export const make = <
       return Field(obj)
     }
   }
-  function FieldExcept<Keys extends Variants>(...keys: Keys) {
+  function FieldExcept<const Keys extends ReadonlyArray<Variants[number]>>(keys: Keys) {
     return function<S extends Schema.Top>(schema: S) {
       const obj: Record<string, S> = {}
       for (const variant of options.variants) {
@@ -423,7 +423,7 @@ export const make = <
       return Field(obj)
     }
   }
-  function UnionVariants(...members: ReadonlyArray<Struct<any>>) {
+  function UnionVariants(members: ReadonlyArray<Struct<any>>) {
     return Union(members, options.variants)
   }
   const fieldEvolve = dual(
