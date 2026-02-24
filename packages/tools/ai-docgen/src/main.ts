@@ -102,13 +102,17 @@ ${metadata.content}
             content += `### More examples\n\n`
           }
 
-          content += `**${link}**`
+          content += `- **${link}**`
 
           if (metadata.description) {
             if (metadata.description.includes("\n")) {
-              content += `:\n\n${metadata.description}\n`
+              const indentedDescription = metadata.description
+                .split("\n")
+                .map((line) => `  ${line}`)
+                .join("\n")
+              content += `:\n${indentedDescription}`
             } else {
-              content += `: ${metadata.description}  `
+              content += `: ${metadata.description}`
             }
           }
           return content
