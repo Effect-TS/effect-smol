@@ -4,7 +4,6 @@
   "references": [{ "path": "tsconfig.packages.json" }],
   "include": [
     "**/vitest.*.ts", // All vitest config files across all packages
-    "./ai-docs/**/*.ts", // AI docs
     "./bundle/**/*.ts", // Bundle size test files
     "./packages/*/test/**/*.ts",
     "./packages/*/test/**/*.json",
