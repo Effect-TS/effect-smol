@@ -338,4 +338,33 @@ describe("Command help output", () => {
           functions    Manage edge functions"
       `)
     }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("subcommand aliases in listings", () =>
+    Effect.gen(function*() {
+      const plan = Command.make("plan").pipe(
+        Command.withAlias("p"),
+        Command.withDescription("Draft a plan in your editor")
+      )
+
+      const root = Command.make("tool").pipe(Command.withSubcommands([plan]))
+      const runRoot = Command.runWith(root, { version: "1.0.0" })
+
+      yield* runRoot(["--help"])
+
+      const helpText = (yield* TestConsole.logLines).join("\n")
+
+      expect(helpText).toMatchInlineSnapshot(`
+        "USAGE
+          tool <subcommand> [flags]
+
+        GLOBAL FLAGS
+          --help, -h              Show help information
+          --version               Show version information
+          --completions choice    Print shell completion script
+          --log-level choice      Sets the minimum log level
+
+        SUBCOMMANDS
+          plan, p    Draft a plan in your editor"
+      `)
+    }).pipe(Effect.provide(TestLayer)))
 })

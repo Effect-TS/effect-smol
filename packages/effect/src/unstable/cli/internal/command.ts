@@ -90,6 +90,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly annotations?: ServiceMap.ServiceMap<never> | undefined
   readonly description?: string | undefined
   readonly shortDescription?: string | undefined
+  readonly alias?: string | undefined
   readonly examples?: ReadonlyArray<Command.Example> | undefined
   readonly subcommands?: ReadonlyArray<SubcommandGroup> | undefined
   readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
@@ -165,6 +166,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
         group: group.group,
         commands: Arr.map(group.commands, (subcommand) => ({
           name: subcommand.name,
+          alias: subcommand.alias,
           shortDescription: subcommand.shortDescription,
           description: subcommand.description ?? ""
         }))
@@ -200,6 +202,9 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
       : {}),
     ...(Predicate.isNotUndefined(options.shortDescription)
       ? { shortDescription: options.shortDescription }
+      : {}),
+    ...(Predicate.isNotUndefined(options.alias)
+      ? { alias: options.alias }
       : {})
   })
 }
