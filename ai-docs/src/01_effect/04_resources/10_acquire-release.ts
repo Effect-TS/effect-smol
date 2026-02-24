@@ -21,6 +21,20 @@ interface SmtpSession {
 declare const connectSmtpSession: Effect.Effect<SmtpSession, Error>
 declare const persistDeliveryMetric: (message: string) => Effect.Effect<void>
 
+const releaseSmtpSession = Effect.fnUntraced(function*(session: SmtpSession, exit: Exit.Exit<unknown, unknown>) {
+  // When the workflow fails, reset the session before quitting so
+  // partial SMTP transactions are discarded server-side.
+  if (Exit.isFailure(exit)) {
+    yield* session.reset
+  }
+
+  // Finalizers run on both success and failure.
+  yield* session.quit
+  yield* persistDeliveryMetric(
+    `smtp session closed (${Exit.isSuccess(exit) ? "success" : "failure"})`
+  )
+})
+
 export class Mailer extends ServiceMap.Service<Mailer, {
   readonly sendWelcomeEmail: (to: string) => Effect.Effect<void, Error>
 }>()("app/Mailer") {
@@ -33,20 +47,7 @@ export class Mailer extends ServiceMap.Service<Mailer, {
             Effect.acquireRelease(
               // Open an SMTP session at the start of the scoped workflow.
               connectSmtpSession,
-              (session, exit) =>
-                Effect.gen(function*() {
-                  // When the workflow fails, reset the session before quitting so
-                  // partial SMTP transactions are discarded server-side.
-                  if (Exit.isFailure(exit)) {
-                    yield* session.reset
-                  }
-
-                  // Finalizers run on both success and failure.
-                  yield* session.quit
-                  yield* persistDeliveryMetric(
-                    `smtp session closed (${Exit.isSuccess(exit) ? "success" : "failure"})`
-                  )
-                })
+              releaseSmtpSession
             ).pipe(
               Effect.flatMap((session) =>
                 session.send({
