@@ -32,12 +32,12 @@ class JsonPlaceholder extends ServiceMap.Service<JsonPlaceholder, {
         // Fail if the response status is not 2xx
         HttpClient.filterStatusOk,
         // Retry transient errors (network issues, 5xx responses) with an
-        // exponential backoff
+        // exponential backoff.
+        //
+        // See the schedule documentation for more complex retry strategies.
         HttpClient.retryTransient({
-          schedule: Schedule.exponential(100).pipe(
-            Schedule.either(Schedule.spaced(1000))
-          ),
-          times: 5
+          schedule: Schedule.exponential(100),
+          times: 3
         })
       )
 
