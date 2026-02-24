@@ -19,7 +19,7 @@ export class Database extends ServiceMap.Service<Database, {
 ) {
   // Attach a static layer to the service, which will be used to provide an
   // implementation of the service.
-  static layer = Layer.effect(
+  static readonly layer = Layer.effect(
     Database,
     Effect.gen(function*() {
       // Define the service methods using Effect.fn

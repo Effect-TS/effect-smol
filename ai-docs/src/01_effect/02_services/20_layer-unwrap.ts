@@ -1,8 +1,7 @@
 /**
  * @title Creating Layers from configuration and/or Effects
  *
- * Build a layer dynamically by reading `Config` values first, then returning
- * the final layer with `Layer.unwrap`.
+ * Build a layer dynamically from an Effect / Config with `Layer.unwrap`.
  */
 import { Config, Effect, Layer, Schema, ServiceMap } from "effect"
 
@@ -65,11 +64,3 @@ export class MessageStore extends ServiceMap.Service<MessageStore, {
     })
   )
 }
-
-export const program = Effect.gen(function*() {
-  const store = yield* MessageStore
-
-  yield* store.append("hello")
-  const messages = yield* store.all
-  yield* Effect.log("Messages:", messages)
-})
