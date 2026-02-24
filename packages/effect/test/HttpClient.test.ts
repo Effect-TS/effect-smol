@@ -125,7 +125,7 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
 const flakyTest = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(
     Effect.timeoutOrElse({
-      duration: "3 seconds",
+      duration: "2 seconds",
       onTimeout: () => Effect.void
     })
   )
