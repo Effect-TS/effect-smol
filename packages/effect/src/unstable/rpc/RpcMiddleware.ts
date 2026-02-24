@@ -118,28 +118,24 @@ export interface ServiceClass<
       readonly requires: Requires
       readonly clientError: ClientError
     }
-    readonly "~provides": Provides
-    readonly "~requires": Requires
   }
   readonly [TypeId]: typeof TypeId
   readonly error: E
   readonly requiredForClient: boolean
   readonly "~ClientError": ClientError
-  readonly "~provides": Provides
-  readonly "~requires": Requires
 }
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Provides<A> = A extends { readonly "~provides": infer P } ? P : never
+export type Provides<A> = A extends { readonly [TypeId]: { readonly provides: infer P } } ? P : never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type Requires<A> = A extends { readonly "~requires": infer R } ? R : never
+export type Requires<A> = A extends { readonly [TypeId]: { readonly requires: infer R } } ? R : never
 
 /**
  * @since 4.0.0
@@ -182,8 +178,6 @@ export interface AnyService extends ServiceMap.Service<any, any> {
   readonly error: Schema.Top
   readonly requiredForClient: boolean
   readonly "~ClientError": any
-  readonly "~provides": any
-  readonly "~requires": any
 }
 
 /**
@@ -195,8 +189,6 @@ export interface AnyServiceWithProps extends ServiceMap.Service<any, RpcMiddlewa
   readonly error: Schema.Top
   readonly requiredForClient: boolean
   readonly "~ClientError": any
-  readonly "~provides": any
-  readonly "~requires": any
 }
 
 /**

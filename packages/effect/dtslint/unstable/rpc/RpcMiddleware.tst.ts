@@ -24,18 +24,18 @@ class TimingMiddleware extends RpcMiddleware.Service<TimingMiddleware>()("Timing
 
 describe("RpcMiddleware", () => {
   it("Provides extracts the provided service", () => {
-    expect<RpcMiddleware.Provides<typeof AuthMiddleware>>().type.toBe<CurrentUser>()
+    expect<RpcMiddleware.Provides<AuthMiddleware>>().type.toBe<CurrentUser>()
   })
 
   it("Provides returns never for middleware that provides nothing", () => {
-    expect<RpcMiddleware.Provides<typeof TimingMiddleware>>().type.toBe<never>()
+    expect<RpcMiddleware.Provides<TimingMiddleware>>().type.toBe<never>()
   })
 
   it("Requires extracts the required service", () => {
-    expect<RpcMiddleware.Requires<typeof DbMiddleware>>().type.toBe<CurrentUser>()
+    expect<RpcMiddleware.Requires<DbMiddleware>>().type.toBe<CurrentUser>()
   })
 
   it("Requires returns never when no requirements", () => {
-    expect<RpcMiddleware.Requires<typeof AuthMiddleware>>().type.toBe<never>()
+    expect<RpcMiddleware.Requires<AuthMiddleware>>().type.toBe<never>()
   })
 })

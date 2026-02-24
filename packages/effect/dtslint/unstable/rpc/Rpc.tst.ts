@@ -13,8 +13,8 @@ describe("Rpc", () => {
       expect<Rpc.IsStream<Mixed, "StreamEvents">>().type.toBe<true>()
     })
 
-    it("returns false for non-stream RPCs in a mixed group", () => {
-      expect<Rpc.IsStream<Mixed, "GetUser">>().type.toBe<false>()
+    it("returns never for non-stream RPCs in a mixed group", () => {
+      expect<Rpc.IsStream<Mixed, "GetUser">>().type.toBe<never>()
     })
   })
 })
