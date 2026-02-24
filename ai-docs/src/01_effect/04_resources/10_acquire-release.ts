@@ -2,7 +2,7 @@
  * @title Acquiring resources with Effect.acquireRelease
  *
  * Define a service that uses `Effect.acquireRelease` to manage the lifecycle of
- * an resource, ensuring that it is properly cleaned up when the service is no
+ * a resource, ensuring that it is properly cleaned up when the service is no
  * longer needed.
  */
 import { Config, Effect, Layer, Redacted, Schema, ServiceMap } from "effect"
