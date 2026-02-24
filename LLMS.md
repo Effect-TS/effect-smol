@@ -188,3 +188,11 @@ Learn how to safely manage resources in Effect using `Scope`s and finalizers.
 Build http clients with the `HttpClient` module.
 
 - **[Getting started with HttpClient](./ai-docs/src/50_http-client/10_basics.ts)**: Define a service that uses the HttpClient module to fetch data from an external API
+
+## Buiding CLI applications
+
+Use the "effect/unstable/cli" modules to build CLI applications. These modules
+provide utilities for parsing command-line arguments, handling user input, and
+managing the flow of a CLI application.
+
+- **[Getting started with Effect CLI modules](./ai-docs/src/70_cli/10_basics.ts)**
