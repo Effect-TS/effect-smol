@@ -601,6 +601,16 @@ Unexpected key with value "c"
       )
     })
 
+    it("should use the identifier annotation as the expected message", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      }).annotate({ identifier: "ID" })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail(null, `Expected ID, got null`)
+    })
+
     it(`Schema.optionalKey: { readonly "a"?: string }`, async () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.String)
