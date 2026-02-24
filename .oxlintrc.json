@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
   "extends": ["./packages/tools/oxc/oxlintrc.json"],
   "ignorePatterns": [
+    "LLMS.md",
     "**/dist",
     "**/build",
     "**/docs",

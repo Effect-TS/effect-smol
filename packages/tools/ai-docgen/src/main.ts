@@ -106,7 +106,7 @@ ${metadata.content}
 
           if (metadata.description) {
             if (metadata.description.includes("\n")) {
-              content += `\n\n${metadata.description}\n`
+              content += `:\n\n${metadata.description}\n`
             } else {
               content += `: ${metadata.description}`
             }
