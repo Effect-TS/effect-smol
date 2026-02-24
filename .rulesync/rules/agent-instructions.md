@@ -113,6 +113,10 @@ level tests. They use the `tstyche` testing library.
 ## Writing AI documentation
 
 Refer to `ai-docs/README.md` for instructions on how to write AI documentation.
+Read it very carefully before writing AI documentation examples.
+
+AI documentation changes can ignore the "Reduce comments" guideline. You can add
+comments to AI documentation examples as needed to explain the code.
 
 ## Changesets
 

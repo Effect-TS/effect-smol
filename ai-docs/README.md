@@ -15,13 +15,18 @@
 
 ## Example guidelines
 
-All code examples should be well commented explaining the how and why of the
+Before writing an example, look at the existing examples in `ai-docs/src` to
+learn the style and conventions used in this project.
+
+**All code examples should be well commented** explaining the how and why of the
 code, not just what the code is doing. The goal is to teach users how to use the
 API.
 
 **Code must represent real world usage and best practices.**
 Do not include toy examples that are not representative of how the API should be
 used in practice.
+
+Pull requests with only ai documentation changes **DO NOT** need a changeset.
 
 ## Regeneration
 
