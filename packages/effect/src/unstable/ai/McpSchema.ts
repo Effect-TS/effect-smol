@@ -120,7 +120,7 @@ export class ResultMeta extends Schema.Opaque<ResultMeta>()(Schema.Struct({
    * This result property is reserved by the protocol to allow clients and
    * servers to attach additional metadata to their responses.
    */
-  _meta: optional(Schema.Record(Schema.String, Schema.Any))
+  _meta: optional(Schema.Record(Schema.String, Schema.Json))
 })) {}
 
 /**
@@ -132,7 +132,7 @@ export class NotificationMeta extends Schema.Opaque<NotificationMeta>()(Schema.S
    * This parameter name is reserved by MCP to allow clients and servers to
    * attach additional metadata to their notifications.
    */
-  _meta: optional(Schema.Record(Schema.String, Schema.Any))
+  _meta: optional(Schema.Record(Schema.String, Schema.Json))
 })) {}
 
 /**
@@ -244,7 +244,7 @@ export class ClientCapabilities extends Schema.Class<ClientCapabilities>(
    * Optional extensions capabilities advertised by the client.
    * Keys are extension identifiers following <vendor-prefix>/<extension-name> (e.g. "io.modelcontextprotocol/ui").
    */
-  extensions: optional(Schema.Record(Schema.TemplateLiteral([Schema.String, "/", Schema.String]), Schema.Unknown)),
+  extensions: optional(Schema.Record(Schema.TemplateLiteral([Schema.String, "/", Schema.String]), Schema.Json)),
   /**
    * Present if the client supports listing roots.
    */
@@ -281,7 +281,7 @@ export class ServerCapabilities extends Schema.Opaque<ServerCapabilities>()(Sche
    * Optional extensions capabilities advertised by the server.
    * Keys are extension identifiers following <vendor-prefix>/<extension-name> (e.g. "io.modelcontextprotocol/ui").
    */
-  extensions: optional(Schema.Record(Schema.TemplateLiteral([Schema.String, "/", Schema.String]), Schema.Unknown)),
+  extensions: optional(Schema.Record(Schema.TemplateLiteral([Schema.String, "/", Schema.String]), Schema.Json)),
   /**
    * Present if the server supports sending log messages to the client.
    */
@@ -645,7 +645,7 @@ export class Resource extends Schema.Class<Resource>(
    * This parameter name is reserved by MCP to allow clients and servers to
    * attach additional metadata to resources.
    */
-  _meta: optional(Schema.Record(Schema.String, Schema.Unknown))
+  _meta: optional(Schema.Record(Schema.String, Schema.Json))
 }) {}
 
 /**
@@ -691,7 +691,7 @@ export class ResourceTemplate extends Schema.Class<ResourceTemplate>(
   /**
    * Optional additional metadata for the client.
    */
-  _meta: optional(Schema.Record(Schema.String, Schema.Unknown))
+  _meta: optional(Schema.Record(Schema.String, Schema.Json))
 }) {}
 
 /**
@@ -712,7 +712,7 @@ export class ResourceContents extends Schema.Opaque<ResourceContents>()(Schema.S
   /**
    * Optional additional metadata for the client.
    */
-  _meta: optional(Schema.Record(Schema.String, Schema.Unknown))
+  _meta: optional(Schema.Record(Schema.String, Schema.Json))
 })) {}
 
 /**
@@ -1229,7 +1229,7 @@ export class Tool extends Schema.Class<Tool>(
    * This parameter name is reserved by MCP to allow clients and servers to
    * attach additional metadata to resources.
    */
-  _meta: optional(Schema.Record(Schema.String, Schema.Unknown))
+  _meta: optional(Schema.Record(Schema.String, Schema.Json))
 }) {}
 
 /**
