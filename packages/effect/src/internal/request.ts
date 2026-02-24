@@ -112,7 +112,6 @@ const addEntry = <A extends Request.Any>(
   if (resolver.preCheck !== undefined && !resolver.preCheck(entry)) {
     return entry
   }
-  const runFork = effect.runForkWith(fiber.services)
   const key = resolver.batchKey(entry)
   batch = batchMap.get(key)
   if (!batch) {
@@ -160,7 +159,7 @@ const addEntry = <A extends Request.Any>(
       batch = newBatch
     }
     batchMap.set(key, batch)
-    batch.fiber = runFork(batch.delayEffect, { scheduler: fiber.currentScheduler })
+    batch.fiber = effect.runForkWith(fiber.services)(batch.delayEffect, { scheduler: fiber.currentScheduler })
   }
 
   batch.entrySet.add(entry)
@@ -168,7 +167,7 @@ const addEntry = <A extends Request.Any>(
   if (batch.resolver.collectWhile(batch.entries)) return entry
 
   batch.fiber!.interruptUnsafe(fiber.id)
-  batch.fiber = runFork(runBatch(batch), { scheduler: fiber.currentScheduler })
+  batch.fiber = effect.runForkWith(fiber.services)(runBatch(batch), { scheduler: fiber.currentScheduler })
   return entry
 }
 
