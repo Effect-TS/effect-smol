@@ -46,7 +46,7 @@ export const handleMultipleReasons = callModel.pipe(
     {
       RateLimitError: (reason) => Effect.succeed(`Retry after ${reason.retryAfter} seconds`),
       QuotaExceededError: (reason) => Effect.succeed(`Quota exceeded at ${reason.limit} tokens`)
-    },
+    }
     // Optionally handle all the other reasons with a catch-all handler
     // (reason) => Effect.succeed(`Unhandled reason: ${reason._tag}`)
   )
