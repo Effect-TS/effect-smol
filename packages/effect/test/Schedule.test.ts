@@ -201,6 +201,34 @@ describe("Schedule", () => {
         const output = yield* runDelays(schedule, inputs)
         expect(output).toEqual(Array.makeBy(5, constant(Duration.seconds(1))))
       }))
+
+    it.effect("delays until the nearest window boundary when action is slow", () =>
+      Effect.gen(function*() {
+        const delays: Array<Duration.Duration> = []
+        const schedule = Schedule.fixed("1 seconds").pipe(
+          Schedule.while(({ attempt }) => Effect.succeed(attempt <= 5)),
+          Schedule.delays,
+          Schedule.map((delay) =>
+            Effect.sync(() => {
+              delays.push(delay)
+              return delays
+            })
+          )
+        )
+        yield* Effect.sleep("500 millis").pipe(
+          Effect.schedule(schedule),
+          Effect.forkChild
+        )
+        yield* TestClock.setTime(Number.POSITIVE_INFINITY)
+        expect(delays).toEqual([
+          Duration.millis(1000),
+          Duration.millis(500),
+          Duration.millis(500),
+          Duration.millis(500),
+          Duration.millis(500),
+          Duration.zero
+        ])
+      }))
   })
 
   describe("windowed", () => {
@@ -219,10 +247,10 @@ describe("Schedule", () => {
           Schedule.while(({ attempt }) => Effect.succeed(attempt <= 5)),
           Schedule.delays,
           Schedule.map((delay) =>
-            Effect.succeed((() => {
+            Effect.sync(() => {
               delays.push(delay)
               return delays
-            })())
+            })
           )
         )
         yield* Effect.sleep("1.5 seconds").pipe(
