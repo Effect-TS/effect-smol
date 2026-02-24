@@ -531,7 +531,9 @@ const watchNode = (path: string) =>
   Stream.callback<FileSystem.WatchEvent, Error.PlatformError>((queue) =>
     Effect.acquireRelease(
       Effect.sync(() => {
-        const watcher = NFS.watch(path, {}, (event, path) => {
+        const watcher = NFS.watch(path, {
+          recursive: true
+        }, (event, path) => {
           if (!path) return
           switch (event) {
             case "rename": {

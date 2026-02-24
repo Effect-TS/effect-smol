@@ -12,6 +12,7 @@
     "**/.tsbuildinfo/",
     "**/node_modules/",
     "**/dist/",
+    "ai-docs/",
     "bundle/",
     "examples/",
     "scripts/",
