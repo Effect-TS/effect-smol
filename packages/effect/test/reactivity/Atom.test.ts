@@ -1048,6 +1048,24 @@ describe.sequential("Atom", () => {
     cancel()
   })
 
+  it("stream empty produces NoSuchElementError", async () => {
+    const atom = Atom.make(Stream.empty) satisfies Atom.Atom<
+      AsyncResult.AsyncResult<never, Cause.NoSuchElementError>
+    >
+    const r = AtomRegistry.make()
+    const cancel = r.mount(atom)
+
+    await vitest.advanceTimersByTimeAsync(0)
+    const result = r.get(atom)
+    assert(AsyncResult.isFailure(result))
+    assert.deepStrictEqual(
+      AsyncResult.error(result),
+      Option.some(new Cause.NoSuchElementError())
+    )
+
+    cancel()
+  })
+
   it("Option is not an Effect", async () => {
     const atom = Atom.make(Option.none<string>())
     const r = AtomRegistry.make()
