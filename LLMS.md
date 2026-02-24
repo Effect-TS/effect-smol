@@ -179,6 +179,10 @@ export const withFinalFallback = loadPort("invalid").pipe(
   `Effect.catchReason`, `Effect.catchReasons`, or by unwrapping the reason into
   the error channel with `Effect.unwrapReason`.
 
+## Managing resources and `Scope`s
+
+Learn how to safely manage resources in Effect using `Scope`s and finalizers.
+
 ## Effect HttpClient
 
 Build http clients with the `HttpClient` module.
