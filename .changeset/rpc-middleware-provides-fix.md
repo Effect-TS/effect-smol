@@ -2,4 +2,4 @@
 "effect": patch
 ---
 
-Fix `RpcMiddleware.Provides` and `Requires` type extraction, `Rpc.IsStream` for mixed groups, and `Scope` exclusion for non-stream RPC handlers.
+Fix `Rpc.ExtractProvides` to use middleware service ID instead of constructor type.
