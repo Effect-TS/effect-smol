@@ -527,13 +527,16 @@ export type ExtractError<Options> = Options extends {
  * @category utility types
  */
 export type ExtractServices<Options> = Options extends {
-  readonly toolkit: Toolkit.WithHandler<infer _Tools>
-}
+  readonly disableToolCallResolution: true
+} ? never
+  : Options extends {
+    readonly toolkit: Toolkit.WithHandler<infer _Tools>
+  }
   // Required for tool call execution
-  ?
-    | Tool.ResultEncodingServices<_Tools[keyof _Tools]>
-    // Required for decoding large language model responses
-    | Tool.ResultDecodingServices<_Tools[keyof _Tools]>
+    ?
+      | Tool.ResultEncodingServices<_Tools[keyof _Tools]>
+      // Required for decoding large language model responses
+      | Tool.ResultDecodingServices<_Tools[keyof _Tools]>
   : Options extends {
     readonly toolkit: Effect.Yieldable<
       Toolkit.Toolkit<infer _Tools>,
