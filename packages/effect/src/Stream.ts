@@ -7849,17 +7849,13 @@ export const aggregateWithin: {
     let lastOutput = Option.none<B>()
     let leftover: Arr.NonEmptyReadonlyArray<A2> | undefined
     const step = yield* Schedule.toStepWithSleep(schedule)
-    const stepToBuffer = Effect.suspend(
-      function loop(): Pull.Pull<never, E3, void, R3> {
-        return step(lastOutput).pipe(
-          Effect.flatMap(() =>
-            !hadChunk && leftover === undefined ? loop() : Queue.offer(buffer, scheduleStep)
-          ),
-          Effect.flatMap(() => Effect.never),
-          Pull.catchDone(() => Cause.done())
-        )
-      }
-    )
+    const stepToBuffer = Effect.suspend(function loop(): Pull.Pull<never, E3, void, R3> {
+      return step(lastOutput).pipe(
+        Effect.flatMap(() => !hadChunk && leftover === undefined ? loop() : Queue.offer(buffer, scheduleStep)),
+        Effect.flatMap(() => Effect.never),
+        Pull.catchDone(() => Cause.done())
+      )
+    })
 
     // buffer -> sink
     const pullFromBuffer: Pull.Pull<

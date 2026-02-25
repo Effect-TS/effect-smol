@@ -1551,14 +1551,12 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const fiber = yield* Stream.never.pipe(
           Stream.groupedWithin(25, "50 millis"),
-          Stream.take(1),
+          Stream.take(5),
           Stream.runCollect,
-          Effect.timeoutOption("250 millis"),
-          Effect.forkScoped
+          Effect.forkChild({ startImmediately: true })
         )
-        yield* TestClock.adjust("250 millis")
-        const result = yield* Fiber.join(fiber)
-        deepStrictEqual(result, Option.none())
+        yield* TestClock.adjust("1 second")
+        assert.isUndefined(fiber.pollUnsafe())
       }))
 
     it.effect("simple example", () =>
