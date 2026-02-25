@@ -635,9 +635,26 @@ function toEncodingAST(ast: AST.AST, _tag: HttpApiSchema.Encoding["_tag"]): AST.
       return Schema.String.ast
     case "FormUrlEncoded":
     case "Json":
-    case "Multipart":
       return ast
+    case "Multipart":
+      return persistedFileToBinaryEncoding(ast)
   }
+}
+
+function persistedFileToBinaryEncoding(ast: AST.AST): AST.AST {
+  if (
+    AST.isDeclaration(ast) &&
+    ((ast.annotations as (Schema.Annotations.Declaration<unknown, readonly []> | undefined))?.typeConstructor?._tag ===
+      "effect/http/PersistedFile")
+  ) {
+    return Uint8ArrayEncoding.ast
+  }
+
+  if (typeof (ast as any)?.recur === "function") {
+    return (ast as any).recur(persistedFileToBinaryEncoding)
+  }
+
+  return ast
 }
 
 const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme => {

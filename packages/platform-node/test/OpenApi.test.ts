@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Schema } from "effect"
+import { Multipart } from "effect/unstable/http"
 import {
   HttpApi,
   HttpApiEndpoint,
@@ -812,6 +813,121 @@ describe("OpenAPI spec", () => {
             assert.deepStrictEqual(spec.components.schemas, {
               String_: {
                 "type": "string"
+              }
+            })
+          })
+
+          it("asMultipart with FilesSchema", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: Multipart.FilesSchema.pipe(HttpApiSchema.asMultipart())
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "multipart/form-data": {
+                schema: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                    format: "binary"
+                  }
+                }
+              }
+            })
+          })
+
+          it("asMultipart with SingleFileSchema", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: Multipart.SingleFileSchema.pipe(HttpApiSchema.asMultipart())
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "multipart/form-data": {
+                schema: {
+                  type: "string",
+                  format: "binary"
+                }
+              }
+            })
+          })
+
+          it("asMultipart with SingleFileSchema in Struct", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: Schema.Struct({
+                        file: Multipart.SingleFileSchema
+                      }).pipe(HttpApiSchema.asMultipart())
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    file: {
+                      type: "string",
+                      format: "binary"
+                    }
+                  },
+                  required: ["file"],
+                  additionalProperties: false
+                }
+              }
+            })
+          })
+
+          it("FilesSchema in non-multipart payload should not be converted to binary", () => {
+            const Api = HttpApi.make("api")
+              .add(
+                HttpApiGroup.make("group")
+                  .add(
+                    HttpApiEndpoint.post("a", "/a", {
+                      payload: Schema.Struct({
+                        files: Multipart.FilesSchema
+                      })
+                    })
+                  )
+              )
+            const spec = OpenApi.fromApi(Api)
+            assert.deepStrictEqual(spec.paths["/a"].post?.requestBody?.content, {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    files: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          key: { $ref: "#/components/schemas/String_" },
+                          name: { $ref: "#/components/schemas/String_" },
+                          contentType: { type: "string", contentEncoding: "binary" },
+                          path: { $ref: "#/components/schemas/String_" }
+                        },
+                        required: ["key", "name", "contentType", "path"],
+                        additionalProperties: false
+                      }
+                    }
+                  },
+                  required: ["files"],
+                  additionalProperties: false
+                }
               }
             })
           })
