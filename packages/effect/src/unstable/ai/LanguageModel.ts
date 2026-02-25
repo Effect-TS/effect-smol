@@ -527,7 +527,7 @@ export type ExtractError<Options> = Options extends {
  * @category utility types
  */
 export type ExtractServices<Options> = Options extends {
-  disableToolCallResolution: true
+  readonly disableToolCallResolution: true
 }
   ? never
   : Options extends {
