@@ -8,7 +8,7 @@
 import { Effect, Layer, Ref, Schema } from "effect"
 import { Entity, SingleRunner } from "effect/unstable/cluster"
 import { Rpc } from "effect/unstable/rpc"
-import { type SqlClient } from "effect/unstable/sql"
+import type { SqlClient } from "effect/unstable/sql"
 
 export const Increment = Rpc.make("Increment", {
   payload: { amount: Schema.Number },

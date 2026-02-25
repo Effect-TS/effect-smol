@@ -214,17 +214,6 @@ They let you model finite or infinite data sources.
   - `NodeStream.fromReadable` for Node.js readable streams
 - **[Consuming and transforming streams](./ai-docs/src/02_stream/20_consuming-streams.ts)**: How to transform and consume streams using operators like `map`, `flatMap`, `filter`, `mapEffect`, and various `run*` methods.
 
-## Observability
-
-Effect has built-in support for structured logging, distributed tracing, and
-metrics. For exporting telemetry, use the lightweight Otlp modules from
-`effect/unstable/observability` in new projects, or use
-`@effect/opentelemetry` NodeSdk when integrating with an existing OpenTelemetry
-setup.
-
-- **[Customizing logging](./ai-docs/src/08_observability/10_logging.ts)**: Configure loggers & log-level filtering for production applications.
-- **[Setting up tracing with Otlp modules](./ai-docs/src/08_observability/20_otlp-tracing.ts)**: Configure Otlp tracing + log export with a reusable observability layer.
-
 ## Integrating Effect into existing applications
 
 `ManagedRuntime` bridges Effect programs with non-Effect code. Build one runtime
@@ -238,6 +227,17 @@ like web handlers, framework hooks, worker queues, or legacy callback APIs.
 Learn how to batch multiple requests into fewer external calls.
 
 - **[Batching requests with RequestResolver](./ai-docs/src/05_batching/10_request-resolver.ts)**: Define request types with `Request.Class`, resolve them in batches with `RequestResolver`.
+
+## Observability
+
+Effect has built-in support for structured logging, distributed tracing, and
+metrics. For exporting telemetry, use the lightweight Otlp modules from
+`effect/unstable/observability` in new projects, or use
+`@effect/opentelemetry` NodeSdk when integrating with an existing OpenTelemetry
+setup.
+
+- **[Customizing logging](./ai-docs/src/08_observability/10_logging.ts)**: Configure loggers & log-level filtering for production applications.
+- **[Setting up tracing with Otlp modules](./ai-docs/src/08_observability/20_otlp-tracing.ts)**: Configure Otlp tracing + log export with a reusable observability layer.
 
 ## Effect HttpClient
 
@@ -258,12 +258,9 @@ managing the flow of a CLI application.
 ## Working with Cluster entities
 
 The cluster modules let you model stateful services as entities and distribute
-them across shards. You define each entity as a set of typed RPCs, implement
-stateful handlers, then call those handlers through a generated client proxy.
-For local development and tests, `SingleRunner` gives you a single-node sharding
-runtime with the same entity model.
+them across multiple machines.
 
-- **[Defining and running cluster entities](./ai-docs/src/80_cluster/10_entities.ts)**:
+- **[Defining cluster entities](./ai-docs/src/80_cluster/10_entities.ts)**:
   Define entity RPCs, implement stateful handlers, and call entities through a
   typed client. This example also shows `SingleRunner.layer` for local
   development and `maxIdleTime` for passivation.
