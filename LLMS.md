@@ -77,6 +77,12 @@ export class SomeError extends Schema.TaggedErrorClass<SomeError>()("SomeError",
 }) {}
 ```
 
+### More examples
+
+- **[Creating effects from common sources](./ai-docs/src/01_effect/01_basics/10_creating-effects.ts)**:
+  Learn how to create effects from various sources, including plain values,
+  synchronous code, Promise APIs, optional values, and callback-based APIs.
+
 ## Writing Effect services
 
 Effect services are the most common way to structure Effect code. Prefer using
