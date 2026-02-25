@@ -2,15 +2,19 @@
  * @title Creating streams from common data sources
  *
  * Learn how to create streams from various data sources. Includes:
+ *
  * - `Stream.fromIterable` for arrays and other iterables
  * - `Stream.fromEffectSchedule` for polling effects
  * - `Stream.paginate` for paginated APIs
  * - `Stream.fromAsyncIterable` for async iterables
  * - `Stream.fromEventListener` for DOM events
  * - `Stream.callback` for any callback-based API
+ * - `NodeStream.fromReadable` for Node.js readable streams
  */
+import { NodeStream } from "@effect/platform-node"
 import { Array, Effect, Queue, Schedule, Schema, Stream } from "effect"
 import * as Option from "effect/Option"
+import { Readable } from "node:stream"
 
 // `Stream.fromIterable` turns any iterable into a stream.
 export const numbers = Stream.fromIterable<number>([1, 2, 3, 4, 5])
@@ -83,3 +87,17 @@ export const callbackStream = Stream.callback<PointerEvent>(Effect.fnUntraced(fu
     () => Effect.sync(() => button.removeEventListener("click", onEvent))
   )
 }))
+
+export class NodeStreamError extends Schema.TaggedErrorClass<NodeStreamError>()("NodeStreamError", {
+  cause: Schema.Defect
+}) {}
+
+// Create a stream from a Node.js readable stream.
+//
+// It takes options to convert any errors emitted by the stream into a typed
+// error, and to evaluate the stream lazily.
+export const nodeStream = NodeStream.fromReadable({
+  evaluate: () => Readable.from(["Hello", " ", "world", "!"]),
+  onError: (cause) => new NodeStreamError({ cause }),
+  closeOnDone: true // true by default
+})
