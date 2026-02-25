@@ -22,7 +22,7 @@ import * as CliOutput from "./CliOutput.ts"
 import * as GlobalFlag from "./GlobalFlag.ts"
 import { checkForDuplicateFlags, makeCommand, toImpl, TypeId } from "./internal/command.ts"
 import { parseConfig } from "./internal/config.ts"
-import { getGlobalFlagsForCommandPath, getHelpForCommandPath } from "./internal/help.ts"
+import { getGlobalFlagsForCommandPath, getGlobalFlagsForCommandTree, getHelpForCommandPath } from "./internal/help.ts"
 import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"
 import * as Param from "./Param.ts"
@@ -1033,46 +1033,6 @@ export const provideEffectDiscard: {
 /* Execution                                                                  */
 /* ========================================================================== */
 
-const dedupeGlobalFlags = (
-  flags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
-): ReadonlyArray<GlobalFlag.GlobalFlag<any>> => {
-  const seen = new Set<GlobalFlag.GlobalFlag<any>>()
-  const deduped: Array<GlobalFlag.GlobalFlag<any>> = []
-  for (const flag of flags) {
-    if (seen.has(flag)) {
-      continue
-    }
-    seen.add(flag)
-    deduped.push(flag)
-  }
-  return deduped
-}
-
-const collectDeclaredGlobalFlags = (command: Command.Any): ReadonlyArray<GlobalFlag.GlobalFlag<any>> => {
-  const collected: Array<GlobalFlag.GlobalFlag<any>> = []
-
-  const visit = (current: Command.Any): void => {
-    const impl = toImpl(current)
-    for (const flag of impl.globalFlags) {
-      collected.push(flag)
-    }
-    for (const group of current.subcommands) {
-      for (const subcommand of group.commands) {
-        visit(subcommand)
-      }
-    }
-  }
-
-  visit(command)
-  return dedupeGlobalFlags(collected)
-}
-
-const getAllGlobalFlags = (command: Command.Any): ReadonlyArray<GlobalFlag.GlobalFlag<any>> =>
-  dedupeGlobalFlags([
-    ...GlobalFlag.BuiltIns,
-    ...collectDeclaredGlobalFlags(command)
-  ])
-
 const getOutOfScopeGlobalFlagErrors = (
   allFlags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>,
   activeFlags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>,
@@ -1227,7 +1187,7 @@ export const runWith = <const Name extends string, Input, E, R>(
       const { tokens, trailingOperands } = Lexer.lex(args)
 
       // 1. Collect known global flags from the command tree
-      const allFlags = getAllGlobalFlags(command)
+      const allFlags = getGlobalFlagsForCommandTree(command, GlobalFlag.BuiltIns)
 
       // 2. Extract global flag tokens
       const allFlagParams = allFlags.flatMap((f) => Param.extractSingleParams(f.flag))

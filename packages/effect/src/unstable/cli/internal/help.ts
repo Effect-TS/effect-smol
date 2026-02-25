@@ -78,6 +78,38 @@ export const getGlobalFlagsForCommandPath = <Name extends string, Input, E, R>(
   ])
 }
 
+const collectDeclaredGlobalFlags = (command: Command.Any): ReadonlyArray<GlobalFlag.GlobalFlag<any>> => {
+  const collected: Array<GlobalFlag.GlobalFlag<any>> = []
+
+  const visit = (current: Command.Any): void => {
+    const impl = toImpl(current)
+    for (const flag of impl.globalFlags) {
+      collected.push(flag)
+    }
+    for (const group of current.subcommands) {
+      for (const subcommand of group.commands) {
+        visit(subcommand)
+      }
+    }
+  }
+
+  visit(command)
+  return dedupeGlobalFlags(collected)
+}
+
+/**
+ * Returns all global flags declared in a command tree.
+ * Built-ins are prepended and command declarations are deduplicated by identity.
+ */
+export const getGlobalFlagsForCommandTree = <Name extends string, Input, E, R>(
+  command: Command<Name, Input, E, R>,
+  builtIns: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
+): ReadonlyArray<GlobalFlag.GlobalFlag<any>> =>
+  dedupeGlobalFlags([
+    ...builtIns,
+    ...collectDeclaredGlobalFlags(command)
+  ])
+
 /**
  * Helper function to get help documentation for a specific command path.
  * Navigates through the command hierarchy to find the right command.
