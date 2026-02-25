@@ -79,9 +79,9 @@ export class SomeError extends Schema.TaggedErrorClass<SomeError>()("SomeError",
 
 ### More examples
 
-- **[Creating effects from common data sources](./ai-docs/src/01_effect/01_basics/10_creating-effects.ts)**:
+- **[Creating effects from common sources](./ai-docs/src/01_effect/01_basics/10_creating-effects.ts)**:
   Learn how to create effects from various sources, including plain values,
-  synchronous and asynchronous code, optional values, and callback-based APIs.
+  synchronous code, Promise APIs, optional values, and callback-based APIs.
 
 ## Writing Effect services
 

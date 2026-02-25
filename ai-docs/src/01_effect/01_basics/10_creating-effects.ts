@@ -1,8 +1,8 @@
 /**
- * @title Creating effects from common data sources
+ * @title Creating effects from common sources
  *
  * Learn how to create effects from various sources, including plain values,
- * synchronous and asynchronous code, optional values, and callback-based APIs.
+ * synchronous code, Promise APIs, optional values, and callback-based APIs.
  */
 import { Effect, Schema } from "effect"
 
