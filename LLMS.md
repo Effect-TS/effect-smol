@@ -233,6 +233,12 @@ like web handlers, framework hooks, worker queues, or legacy callback APIs.
 
 - **[Using ManagedRuntime with Hono](./ai-docs/src/03_integration/10_managed-runtime.ts)**: Use `ManagedRuntime` to run Effect programs from external frameworks while keeping your domain logic in services and Layers.
 
+## Batching external requests
+
+Learn how to batch multiple requests into fewer external calls.
+
+- **[Batching requests with RequestResolver](./ai-docs/src/05_batching/10_request-resolver.ts)**: Define request types with `Request.Class`, resolve them in batches with `RequestResolver`.
+
 ## Effect HttpClient
 
 Build http clients with the `HttpClient` module.
