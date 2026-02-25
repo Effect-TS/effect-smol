@@ -33,7 +33,9 @@
     "scripts": "0.0.0",
     "@effect/ai-openai-compat": "3.0.0",
     "@effect/ai-codegen": "0.0.0",
-    "@effect/bundle": "0.0.0"
+    "@effect/bundle": "0.0.0",
+    "ai-docs": "0.0.0",
+    "@effect/ai-docgen": "0.0.0"
   },
   "changesets": [
     "add-config-nested",
@@ -41,8 +43,11 @@
     "add-schema-bigdecimal",
     "add-schema-datetime",
     "add-unstable-encoding-export",
+    "atom-stream-error-type",
     "blue-dingos-greet",
+    "blue-ligers-cheat",
     "breezy-meals-see",
+    "bright-bugs-bow",
     "bright-rats-attend",
     "calm-cars-rest",
     "chilly-pumas-rule",
@@ -70,7 +75,9 @@
     "fix-otel-logger-clock-skew",
     "fix-queue-collect-duplication",
     "fix-retry-transient-autocomplete",
+    "fix-schedule-fixed-double-exec",
     "fix-schema-encodekeys-class",
+    "fix-schema-identifier-expected-message",
     "fix-searchparam-initial-decode",
     "fix-serializable-wire-transfer",
     "fix-strip-approval-artifacts-multi-round",
@@ -80,6 +87,7 @@
     "four-points-repeat",
     "fresh-emus-cheat",
     "fuzzy-camels-hunt",
+    "fuzzy-dodos-help",
     "hip-socks-travel",
     "httpapi-endpoint-relax-constraints",
     "humble-pigs-dig",
@@ -100,7 +108,9 @@
     "port-react-hydration",
     "quick-trees-join",
     "red-pigs-repair",
+    "refactor-cli-global-flags",
     "rich-hoops-nail",
+    "rpc-middleware-provides-fix",
     "schema-datetime-utc-from-string",
     "schema-dollar-prefix",
     "shaggy-birds-stay",
@@ -122,9 +132,11 @@
     "twenty-buttons-cheer",
     "vitest-layer-top-level-options",
     "wacky-grapes-poke",
+    "wacky-rice-add",
     "warm-snails-shop",
     "wet-news-invent",
     "wise-ants-wave",
+    "yellow-clocks-dance",
     "young-doors-change"
   ]
 }
