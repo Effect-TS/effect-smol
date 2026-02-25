@@ -194,10 +194,12 @@ Build http clients with the `HttpClient` module.
 
 - **[Getting started with HttpClient](./ai-docs/src/50_http-client/10_basics.ts)**: Define a service that uses the HttpClient module to fetch data from an external API
 
-## Buiding CLI applications
+## Building CLI applications
 
 Use the "effect/unstable/cli" modules to build CLI applications. These modules
 provide utilities for parsing command-line arguments, handling user input, and
 managing the flow of a CLI application.
 
-- **[Getting started with Effect CLI modules](./ai-docs/src/70_cli/10_basics.ts)**
+- **[Getting started with Effect CLI modules](./ai-docs/src/70_cli/10_basics.ts)**:
+  Build a command-line app with typed arguments and flags, then wire subcommand
+  handlers into a single executable command.

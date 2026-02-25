@@ -1,4 +1,4 @@
-## Buiding CLI applications
+## Building CLI applications
 
 Use the "effect/unstable/cli" modules to build CLI applications. These modules
 provide utilities for parsing command-line arguments, handling user input, and
