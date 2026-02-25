@@ -227,3 +227,16 @@ managing the flow of a CLI application.
 - **[Getting started with Effect CLI modules](./ai-docs/src/70_cli/10_basics.ts)**:
   Build a command-line app with typed arguments and flags, then wire subcommand
   handlers into a single executable command.
+
+## Working with Cluster entities
+
+The cluster modules let you model stateful services as entities and distribute
+them across shards. You define each entity as a set of typed RPCs, implement
+stateful handlers, then call those handlers through a generated client proxy.
+For local development and tests, `SingleRunner` gives you a single-node sharding
+runtime with the same entity model.
+
+- **[Defining and running cluster entities](./ai-docs/src/80_cluster/10_entities.ts)**:
+  Define entity RPCs, implement stateful handlers, and call entities through a
+  typed client. This example also shows `SingleRunner.layer` for local
+  development and `maxIdleTime` for passivation.
