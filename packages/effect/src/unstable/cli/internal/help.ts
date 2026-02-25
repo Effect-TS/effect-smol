@@ -6,46 +6,95 @@
  * Extracted from command.ts to avoid circular dependencies.
  */
 import * as Effect from "../../../Effect.ts"
-import type * as ServiceMap from "../../../ServiceMap.ts"
 import type { Command } from "../Command.ts"
-import type { GlobalFlag } from "../GlobalFlag.ts"
+import type * as GlobalFlag from "../GlobalFlag.ts"
 import type { FlagDoc, HelpDoc } from "../HelpDoc.ts"
 import * as Param from "../Param.ts"
 import * as Primitive from "../Primitive.ts"
 import { toImpl } from "./command.ts"
 
+const dedupeGlobalFlags = (
+  flags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
+): ReadonlyArray<GlobalFlag.GlobalFlag<any>> => {
+  const seen = new Set<GlobalFlag.GlobalFlag<any>>()
+  const deduped: Array<GlobalFlag.GlobalFlag<any>> = []
+  for (const flag of flags) {
+    if (seen.has(flag)) {
+      continue
+    }
+    seen.add(flag)
+    deduped.push(flag)
+  }
+  return deduped
+}
+
+/**
+ * Returns the resolved command lineage for the provided path.
+ * Includes the root command as the first element.
+ */
+export const getCommandsForCommandPath = <Name extends string, Input, E, R>(
+  command: Command<Name, Input, E, R>,
+  commandPath: ReadonlyArray<string>
+): ReadonlyArray<Command.Any> => {
+  const commands: Array<Command.Any> = [command]
+  let currentCommand: Command.Any = command
+
+  for (let i = 1; i < commandPath.length; i++) {
+    const subcommandName = commandPath[i]
+    let subcommand: Command.Any | undefined = undefined
+
+    for (const group of currentCommand.subcommands) {
+      subcommand = group.commands.find((sub) => sub.name === subcommandName)
+      if (subcommand) {
+        break
+      }
+    }
+
+    if (!subcommand) {
+      break
+    }
+
+    commands.push(subcommand)
+    currentCommand = subcommand
+  }
+
+  return commands
+}
+
+/**
+ * Returns active global flags for a command path.
+ * Built-ins are prepended and declarations are collected root -> leaf.
+ */
+export const getGlobalFlagsForCommandPath = <Name extends string, Input, E, R>(
+  command: Command<Name, Input, E, R>,
+  commandPath: ReadonlyArray<string>,
+  builtIns: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
+): ReadonlyArray<GlobalFlag.GlobalFlag<any>> => {
+  const commands = getCommandsForCommandPath(command, commandPath)
+  const declared = commands.flatMap((current) => toImpl(current).globalFlags)
+  return dedupeGlobalFlags([
+    ...builtIns,
+    ...declared
+  ])
+}
+
 /**
  * Helper function to get help documentation for a specific command path.
  * Navigates through the command hierarchy to find the right command.
- * Reads global flags from the registry and includes them in the help doc.
+ * Reads active global flags for the path and includes them in the help doc.
  */
 export const getHelpForCommandPath = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string>,
-  registry: ServiceMap.Reference<Set<GlobalFlag<unknown>>>
+  builtIns: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
 ): Effect.Effect<HelpDoc, never, never> =>
   Effect.gen(function*() {
-    let currentCommand: Command.Any = command
-
-    for (let i = 1; i < commandPath.length; i++) {
-      const subcommandName = commandPath[i]
-      let subcommand: Command.Any | undefined = undefined
-
-      for (const group of currentCommand.subcommands) {
-        subcommand = group.commands.find((sub) => sub.name === subcommandName)
-        if (subcommand) {
-          break
-        }
-      }
-
-      if (subcommand) {
-        currentCommand = subcommand
-      }
-    }
+    const commands = getCommandsForCommandPath(command, commandPath)
+    const currentCommand = commands.length > 0 ? commands[commands.length - 1] : command
 
     const baseDoc = toImpl(currentCommand).buildHelpDoc(commandPath)
 
-    const flags = yield* registry
+    const flags = getGlobalFlagsForCommandPath(command, commandPath, builtIns)
     const globalFlagDocs: Array<FlagDoc> = []
     for (const flag of flags) {
       const singles = Param.extractSingleParams(flag.flag)
