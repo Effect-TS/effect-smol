@@ -4,7 +4,7 @@
  * Learn how to create effects from various sources, including plain values,
  * synchronous and asynchronous code, optional values, and callback-based APIs.
  */
-import { Effect, Result, Schema } from "effect"
+import { Effect, Schema } from "effect"
 
 class InvalidPayload extends Schema.TaggedErrorClass<InvalidPayload>()("InvalidPayload", {
   input: Schema.String,
@@ -25,21 +25,16 @@ const requestHeaders = new Map<string, string>([
 // `Effect.succeed` wraps values you already have in memory.
 export const fromValue = Effect.succeed({ env: "prod", retries: 3 })
 
-let processedEvents = 0
-
 // `Effect.sync` wraps synchronous side effects that should not throw.
-export const fromSyncSideEffect = Effect.sync(() => {
-  processedEvents += 1
-  return processedEvents
-})
+export const fromSyncSideEffect = Effect.sync(() => Date.now())
 
 // `Effect.try` wraps synchronous code that may throw.
-export const parsePayload = Effect.fnUntraced(function*(input: string) {
-  return yield* Effect.try({
+export const parsePayload = Effect.fn("parsePayload")((input: string) =>
+  Effect.try({
     try: () => JSON.parse(input) as { readonly userId: number },
     catch: (cause) => new InvalidPayload({ input, cause })
   })
-})
+)
 
 const users = new Map<number, { readonly id: number; readonly name: string }>([
   [1, { id: 1, name: "Ada" }],
@@ -47,8 +42,8 @@ const users = new Map<number, { readonly id: number; readonly name: string }>([
 ])
 
 // `Effect.tryPromise` wraps Promise-based APIs that can reject or throw.
-export const fetchUser = Effect.fnUntraced(function*(userId: number) {
-  return yield* Effect.tryPromise({
+export const fetchUser = Effect.fn("fetchUser")((userId: number) =>
+  Effect.tryPromise({
     try: async () => {
       const user = users.get(userId)
       if (!user) {
@@ -58,11 +53,6 @@ export const fetchUser = Effect.fnUntraced(function*(userId: number) {
     },
     catch: (cause) => new UserLookupError({ userId, cause })
   })
-})
-
-// `Effect.fromResult` converts validation/parsing results into an effect.
-export const fromResult = Effect.fromResult(
-  Result.succeed({ region: "us-east-1" })
 )
 
 // `Effect.fromNullishOr` turns nullable values into a typed effect.
