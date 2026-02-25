@@ -115,15 +115,15 @@ export const make = (options?: {
 
     const insertEntry = SqlSchema.void({
       Request: EntryRow,
-      execute: (entry) => sql`INSERT INTO ${entryTableSql} ${sql.insert(entry)} ON CONFLICT DO NOTHING`
+      execute: (entry) => sql`INSERT INTO ${entryTableSql} ${sql.insert(entry)} ON CONFLICT DO NOTHING`.asEffect()
     })
     const insertEntries = SqlSchema.void({
       Request: EntryRowArray,
-      execute: (entries) => sql`INSERT INTO ${entryTableSql} ${sql.insert(entries)} ON CONFLICT DO NOTHING`
+      execute: (entries) => sql`INSERT INTO ${entryTableSql} ${sql.insert(entries)} ON CONFLICT DO NOTHING`.asEffect()
     })
     const insertRemotes = SqlSchema.void({
       Request: RemoteRowArray,
-      execute: (entries) => sql`INSERT INTO ${remotesTableSql} ${sql.insert(entries)} ON CONFLICT DO NOTHING`
+      execute: (entries) => sql`INSERT INTO ${remotesTableSql} ${sql.insert(entries)} ON CONFLICT DO NOTHING`.asEffect()
     })
 
     const pubsub = yield* PubSub.unbounded<EventJournal.Entry>()
@@ -146,7 +146,7 @@ export const make = (options?: {
             "id",
             entries.map((entry) => entry.id)
           )
-        }`.pipe(
+        }`.asEffect().pipe(
           Effect.tap((rows) =>
             Effect.sync(() => {
               for (const row of rows) {
@@ -177,7 +177,7 @@ export const make = (options?: {
                   primary_key = ${entry.primaryKey} AND
                   timestamp >= ${entry.createdAtMillis}
             ORDER BY timestamp ASC
-          `.pipe(
+          `.asEffect().pipe(
             Effect.flatMap(decodeEntryRows),
             Effect.map(toEntries)
           )
@@ -187,7 +187,7 @@ export const make = (options?: {
     })
 
     return EventJournal.EventJournal.of({
-      entries: sql`SELECT * FROM ${entryTableSql} ORDER BY timestamp ASC`.pipe(
+      entries: sql`SELECT * FROM ${entryTableSql} ORDER BY timestamp ASC`.asEffect().pipe(
         Effect.flatMap(decodeEntryRows),
         Effect.map(toEntries),
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "entries" }))
@@ -223,7 +223,7 @@ export const make = (options?: {
             FROM ${entryTableSql}
             WHERE id NOT IN (SELECT entry_id FROM ${remotesTableSql} WHERE remote_id = ${remoteId})
             ORDER BY timestamp ASC
-          `.pipe(
+          `.asEffect().pipe(
             Effect.flatMap(decodeEntryRows),
             Effect.map(toEntries)
           )
@@ -234,7 +234,7 @@ export const make = (options?: {
       ),
       nextRemoteSequence: (remoteId) =>
         sql<{ max: number | null }>`SELECT MAX(sequence) AS max FROM ${remotesTableSql} WHERE remote_id = ${remoteId}`
-          .pipe(
+          .asEffect().pipe(
             Effect.map((rows) => {
               const value = rows[0]?.max
               if (value === null || value === undefined) return 0

@@ -270,7 +270,7 @@ export const layerBackingSqlMultiTable: Layer.Layer<
               value TEXT NOT NULL,
               expires BIGINT
             )
-          `,
+          `.asEffect(),
         pg: () =>
           sql`
             CREATE TABLE IF NOT EXISTS ${table} (
@@ -278,7 +278,7 @@ export const layerBackingSqlMultiTable: Layer.Layer<
               value TEXT NOT NULL,
               expires BIGINT
             )
-          `,
+          `.asEffect(),
         mssql: () =>
           sql`
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name=${table} AND xtype='U')
@@ -287,7 +287,7 @@ export const layerBackingSqlMultiTable: Layer.Layer<
               value NVARCHAR(MAX) NOT NULL,
               expires BIGINT
             )
-          `,
+          `.asEffect(),
         // sqlite
         orElse: () =>
           sql`
@@ -296,12 +296,12 @@ export const layerBackingSqlMultiTable: Layer.Layer<
               value TEXT NOT NULL,
               expires INTEGER
             )
-          `
+          `.asEffect()
       }).pipe(Effect.orDie)
 
       // Cleanup expired entries on startup
       yield* Effect.ignore(
-        sql`DELETE FROM ${table} WHERE expires IS NOT NULL AND expires <= ${clock.currentTimeMillisUnsafe()}`
+        sql`DELETE FROM ${table} WHERE expires IS NOT NULL AND expires <= ${clock.currentTimeMillisUnsafe()}`.asEffect()
       )
 
       type UpsertFn = (
@@ -337,7 +337,7 @@ export const layerBackingSqlMultiTable: Layer.Layer<
           sql<
             { value: string }
           >`SELECT value FROM ${table} WHERE id = ${key} AND (expires IS NULL OR expires > ${clock.currentTimeMillisUnsafe()})`
-            .pipe(
+            .asEffect().pipe(
               Effect.mapError((cause) =>
                 new PersistenceError({
                   message: `Failed to get key ${key} from backing store`,
@@ -433,7 +433,7 @@ export const layerBackingSqlMultiTable: Layer.Layer<
             }
           }),
         remove: (key) =>
-          sql`DELETE FROM ${table} WHERE id = ${key}`.pipe(
+          sql`DELETE FROM ${table} WHERE id = ${key}`.asEffect().pipe(
             Effect.mapError((cause) =>
               new PersistenceError({
                 message: `Failed to remove key ${key} from backing store`,
@@ -442,7 +442,7 @@ export const layerBackingSqlMultiTable: Layer.Layer<
             ),
             Effect.asVoid
           ),
-        clear: sql`DELETE FROM ${table}`.pipe(
+        clear: sql`DELETE FROM ${table}`.asEffect().pipe(
           Effect.mapError((cause) =>
             new PersistenceError({
               message: `Failed to clear backing store`,
@@ -477,7 +477,7 @@ export const layerBackingSql: Layer.Layer<
           expires BIGINT,
           PRIMARY KEY (store_id, id)
         )
-      `,
+      `.asEffect(),
     pg: () =>
       sql`
         CREATE TABLE IF NOT EXISTS ${table} (
@@ -487,7 +487,7 @@ export const layerBackingSql: Layer.Layer<
           expires BIGINT,
           PRIMARY KEY (store_id, id)
         )
-      `,
+      `.asEffect(),
     mssql: () =>
       sql`
         IF NOT EXISTS (SELECT * FROM sysobjects WHERE name=${table} AND xtype='U')
@@ -498,7 +498,7 @@ export const layerBackingSql: Layer.Layer<
           expires BIGINT,
           PRIMARY KEY (store_id, id)
         )
-      `,
+      `.asEffect(),
     // sqlite
     orElse: () =>
       sql`
@@ -509,7 +509,7 @@ export const layerBackingSql: Layer.Layer<
           expires INTEGER,
           PRIMARY KEY (store_id, id)
         )
-      `
+      `.asEffect()
   }).pipe(Effect.orDie)
 
   type UpsertFn = (
@@ -538,7 +538,7 @@ export const layerBackingSql: Layer.Layer<
             WHEN MATCHED THEN UPDATE SET value = source.value, expires = source.expires
             WHEN NOT MATCHED THEN INSERT (store_id, id, value, expires)
             VALUES (source.store_id, source.id, source.value, source.expires);
-          `,
+          `.asEffect(),
         { discard: true }
       ),
     // sqlite
@@ -561,6 +561,7 @@ export const layerBackingSql: Layer.Layer<
       // Cleanup expired entries on startup
       yield* Effect.ignore(
         sql`DELETE FROM ${table} WHERE store_id = ${storeId} AND expires IS NOT NULL AND expires <= ${clock.currentTimeMillisUnsafe()}`
+          .asEffect()
       )
 
       return identity<BackingPersistenceStore>({
@@ -568,7 +569,7 @@ export const layerBackingSql: Layer.Layer<
           sql<
             { value: string }
           >`SELECT value FROM ${table} WHERE store_id = ${storeId} AND id = ${key} AND (expires IS NULL OR expires > ${clock.currentTimeMillisUnsafe()})`
-            .pipe(
+            .asEffect().pipe(
               Effect.mapError((cause) =>
                 new PersistenceError({
                   message: `Failed to get key ${key} from backing store`,
@@ -671,7 +672,7 @@ export const layerBackingSql: Layer.Layer<
             }
           }),
         remove: (key) =>
-          sql`DELETE FROM ${table} WHERE store_id = ${storeId} AND id = ${key}`.pipe(
+          sql`DELETE FROM ${table} WHERE store_id = ${storeId} AND id = ${key}`.asEffect().pipe(
             Effect.mapError((cause) =>
               new PersistenceError({
                 message: `Failed to remove key ${key} from backing store`,
@@ -680,7 +681,7 @@ export const layerBackingSql: Layer.Layer<
             ),
             Effect.asVoid
           ),
-        clear: sql`DELETE FROM ${table} WHERE store_id = ${storeId}`.pipe(
+        clear: sql`DELETE FROM ${table} WHERE store_id = ${storeId}`.asEffect().pipe(
           Effect.mapError((cause) =>
             new PersistenceError({
               message: `Failed to clear backing store`,

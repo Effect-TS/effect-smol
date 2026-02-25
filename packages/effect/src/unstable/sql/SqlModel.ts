@@ -79,7 +79,8 @@ export const makeRepository = <
 select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID();`.unprepared.pipe(
               Effect.map(([, results]) => results as any)
             ),
-          orElse: () => sql`insert into ${sql(options.tableName)} ${sql.insert(request as any).returning("*")}`
+          orElse: () =>
+            sql`insert into ${sql(options.tableName)} ${sql.insert(request as any).returning("*")}`.asEffect()
         })
     })
     const insert = (
@@ -96,7 +97,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
 
     const insertVoidSchema = SqlSchema.void({
       Request: Model.insert,
-      execute: (request) => sql`insert into ${sql(options.tableName)} ${sql.insert(request as any)}`
+      execute: (request) => sql`insert into ${sql(options.tableName)} ${sql.insert(request as any)}`.asEffect()
     })
     const insertVoid = (
       insert: S["insert"]["Type"]
@@ -122,7 +123,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
           orElse: () =>
             sql`update ${sql(options.tableName)} set ${sql.update(request, [idColumn])} where ${sql(idColumn)} = ${
               request[idColumn]
-            } returning *`
+            } returning *`.asEffect()
         })
     })
     const update = (
@@ -146,7 +147,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
       execute: (request: any) =>
         sql`update ${sql(options.tableName)} set ${sql.update(request, [idColumn])} where ${sql(idColumn)} = ${
           request[idColumn]
-        }`
+        }`.asEffect()
     })
     const updateVoid = (
       update: S["update"]["Type"]
@@ -162,7 +163,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
     const findByIdSchema = SqlSchema.findOne({
       Request: idSchema,
       Result: Model,
-      execute: (id: any) => sql`select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${id}`
+      execute: (id: any) => sql`select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${id}`.asEffect()
     })
     const findById = (
       id: S["fields"][Id]["Type"]
@@ -179,7 +180,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
 
     const deleteSchema = SqlSchema.void({
       Request: idSchema,
-      execute: (id: any) => sql`delete from ${sql(options.tableName)} where ${sql(idColumn)} = ${id}`
+      execute: (id: any) => sql`delete from ${sql(options.tableName)} where ${sql(idColumn)} = ${id}`.asEffect()
     })
     const delete_ = (
       id: S["fields"][Id]["Type"]
@@ -256,7 +257,7 @@ export const makeDataLoaders = <
 select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID();`.unprepared.pipe(
                 Effect.map(([, results]) => results[0] as any)
               ), { concurrency: 10 }),
-          orElse: () => sql`insert into ${sql(options.tableName)} ${sql.insert(request).returning("*")}`
+          orElse: () => sql`insert into ${sql(options.tableName)} ${sql.insert(request).returning("*")}`.asEffect()
         })
     }).pipe(
       RequestResolver.setDelay(options.window),
@@ -280,7 +281,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
 
     const insertVoidResolver = SqlResolver.void({
       Request: Model.insert,
-      execute: (request: any) => sql`insert into ${sql(options.tableName)} ${sql.insert(request)}`
+      execute: (request: any) => sql`insert into ${sql(options.tableName)} ${sql.insert(request)}`.asEffect()
     }).pipe(
       RequestResolver.setDelay(options.window),
       setMaxBatchSize,
@@ -302,7 +303,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       ResultId(request: any) {
         return request[idColumn]
       },
-      execute: (ids: any) => sql`select * from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
+      execute: (ids: any) => sql`select * from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`.asEffect()
     }).pipe(
       RequestResolver.setDelay(options.window),
       setMaxBatchSize,
@@ -324,7 +325,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
 
     const deleteResolver = SqlResolver.void({
       Request: idSchema,
-      execute: (ids: any) => sql`delete from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
+      execute: (ids: any) => sql`delete from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`.asEffect()
     }).pipe(
       RequestResolver.setDelay(options.window),
       setMaxBatchSize,

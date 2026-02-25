@@ -11,7 +11,7 @@ const seededClient = Effect.gen(function*() {
   for (const id of Iterable.range(1, 100)) {
     yield* sql`INSERT INTO test ${sql.insert({ id, name: `name${id}` })}`
   }
-  yield* Effect.addFinalizer(() => sql`DROP TABLE test;`.pipe(Effect.orDie))
+  yield* Effect.addFinalizer(() => sql`DROP TABLE test;`.asEffect().pipe(Effect.orDie))
   return sql
 })
 
@@ -26,7 +26,7 @@ layer(LibsqlContainer.layerClient, { timeout: "30 seconds" })("Resolver", (it) =
           Result: Schema.Struct({ id: Schema.Number, name: Schema.String }),
           execute: (names) => {
             batches.push(names)
-            return sql`INSERT INTO test ${sql.insert(names.map((name) => ({ name })))} RETURNING *`
+            return sql`INSERT INTO test ${sql.insert(names.map((name) => ({ name })))} RETURNING *`.asEffect()
           }
         })
         const execute = SqlResolver.request(Insert)
@@ -52,7 +52,7 @@ layer(LibsqlContainer.layerClient, { timeout: "30 seconds" })("Resolver", (it) =
           Result: Schema.Struct({ id: Schema.Number, name: Schema.String }),
           execute: (ids) => {
             batches.push(ids)
-            return sql`SELECT * FROM test WHERE id IN ${sql.in(ids)}`
+            return sql`SELECT * FROM test WHERE id IN ${sql.in(ids)}`.asEffect()
           }
         })
         const execute = SqlResolver.request(Select)
@@ -80,7 +80,7 @@ layer(LibsqlContainer.layerClient, { timeout: "30 seconds" })("Resolver", (it) =
           RequestGroupKey: (name) => name,
           Result: Schema.Struct({ id: Schema.Number, name: Schema.String }),
           ResultGroupKey: (result) => result.name,
-          execute: (names) => sql`SELECT * FROM test WHERE name IN ${sql.in(names)}`
+          execute: (names) => sql`SELECT * FROM test WHERE name IN ${sql.in(names)}`.asEffect()
         })
         yield* sql`INSERT INTO test ${sql.insert({ name: "name1" })}`
         const execute = SqlResolver.request(FindByName)
@@ -106,7 +106,7 @@ layer(LibsqlContainer.layerClient, { timeout: "30 seconds" })("Resolver", (it) =
           RequestGroupKey: (name) => name,
           Result: Schema.Struct({ id: Schema.Number, name: Schema.String }),
           ResultGroupKey: (_, result: any) => result.name,
-          execute: (names) => sql`SELECT * FROM test WHERE name IN ${sql.in(names)}`
+          execute: (names) => sql`SELECT * FROM test WHERE name IN ${sql.in(names)}`.asEffect()
         })
         yield* sql`INSERT INTO test ${sql.insert({ name: "name1" })}`
         const execute = SqlResolver.request(FindByName)
@@ -133,7 +133,7 @@ layer(LibsqlContainer.layerClient, { timeout: "30 seconds" })("Resolver", (it) =
           Id: Schema.Number,
           Result: Schema.Struct({ id: Schema.Number, name: Schema.String }),
           ResultId: (result) => result.id,
-          execute: (ids) => sql`SELECT * FROM test WHERE id IN ${sql.in(ids)}`
+          execute: (ids) => sql`SELECT * FROM test WHERE id IN ${sql.in(ids)}`.asEffect()
         })
         const execute = SqlResolver.request(FindById)
         assert.deepStrictEqual(
@@ -157,7 +157,7 @@ layer(LibsqlContainer.layerClient, { timeout: "30 seconds" })("Resolver", (it) =
           Id: Schema.Number,
           Result: Schema.Struct({ id: Schema.Number, name: Schema.String }),
           ResultId: (_, result: any) => result.id,
-          execute: (ids) => sql`SELECT * FROM test WHERE id IN ${sql.in(ids)}`
+          execute: (ids) => sql`SELECT * FROM test WHERE id IN ${sql.in(ids)}`.asEffect()
         })
         const execute = SqlResolver.request(FindById)
         assert.deepStrictEqual(

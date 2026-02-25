@@ -60,14 +60,14 @@ export const makeStorage = (options?: {
           )`
     })
 
-    const remoteId = yield* sql<{ remote_id: Uint8Array }>`SELECT remote_id FROM ${remoteIdTableSql}`.pipe(
+    const remoteId = yield* sql<{ remote_id: Uint8Array }>`SELECT remote_id FROM ${remoteIdTableSql}`.asEffect().pipe(
       Effect.flatMap((results) => {
         if (results.length > 0) {
           return Effect.succeed(results[0].remote_id as RemoteId)
         }
         const created = makeRemoteIdUnsafe()
         return Effect.as(
-          sql`INSERT INTO ${remoteIdTableSql} (remote_id) VALUES (${created})`,
+          sql`INSERT INTO ${remoteIdTableSql} (remote_id) VALUES (${created})`.asEffect(),
           created
         )
       })
@@ -156,9 +156,9 @@ export const makeStorage = (options?: {
             if (batch.entries.length === 0) continue
             const encryptedEntries = yield* sql`
               INSERT INTO ${sql(table)} ${sql.insert(batch.entries)} ON CONFLICT DO NOTHING
-            `.pipe(
+            `.asEffect().pipe(
               Effect.andThen(
-                sql`SELECT * FROM ${sql(table)} WHERE ${sql.in("entry_id", batch.ids)} ORDER BY sequence ASC`
+                sql`SELECT * FROM ${sql(table)} WHERE ${sql.in("entry_id", batch.ids)} ORDER BY sequence ASC`.asEffect()
               ),
               Effect.flatMap(decodeEntries)
             )
@@ -173,9 +173,10 @@ export const makeStorage = (options?: {
       entries: Effect.fnUntraced(
         function*(publicKey, startSequence) {
           const { table } = yield* RcMap.get(resources, publicKey)
-          return yield* sql`SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC`.pipe(
-            Effect.flatMap(decodeEntries)
-          )
+          return yield* sql`SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC`
+            .asEffect().pipe(
+              Effect.flatMap(decodeEntries)
+            )
         },
         Effect.orDie,
         Effect.scoped
@@ -186,7 +187,7 @@ export const makeStorage = (options?: {
         const subscription = yield* PubSub.subscribe(pubsub)
         const initial = yield* sql`
             SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC
-          `.pipe(
+          `.asEffect().pipe(
           Effect.flatMap(decodeEntries)
         )
         yield* Queue.offerAll(queue, initial)

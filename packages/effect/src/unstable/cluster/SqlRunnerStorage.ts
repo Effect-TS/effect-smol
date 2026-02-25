@@ -234,7 +234,7 @@ export const make = Effect.fnUntraced(function*(options: {
   })
 
   const execWithLockConn = <A>(effect: Statement.Statement<A>): Effect.Effect<unknown, SqlError> => {
-    if (!lockConn) return effect
+    if (!lockConn) return effect.asEffect()
     const [query, params] = effect.compile()
     return lockConn.await.pipe(
       Effect.flatMap(([conn]) => conn.executeRaw(query, params)),
@@ -275,7 +275,7 @@ export const make = Effect.fnUntraced(function*(options: {
             SET address = ${address}, acquired_at = ${sqlNow}
             WHERE ${locksTableSql}.address = ${address}
               OR ${locksTableSql}.acquired_at < ${lockExpiresAt}
-`.pipe(
+`.asEffect().pipe(
             Effect.andThen(acquiredLocks(address, shardIds))
           )
         }
@@ -361,7 +361,7 @@ export const make = Effect.fnUntraced(function*(options: {
         WHEN NOT MATCHED THEN
           INSERT (shard_id, address, acquired_at)
           VALUES (source.shard_id, source.address, source.acquired_at);
-      `.pipe(
+      `.asEffect().pipe(
         Effect.andThen(acquiredLocks(address, shardIds)),
         sql.withTransaction
       )
@@ -382,7 +382,7 @@ export const make = Effect.fnUntraced(function*(options: {
         )
         ON CONFLICT(shard_id) DO UPDATE
         SET address = ${address}, acquired_at = ${sqlNow}
-      `.pipe(
+      `.asEffect().pipe(
         Effect.andThen(acquiredLocks(address, shardIds)),
         sql.withTransaction
       )
@@ -510,15 +510,16 @@ export const make = Effect.fnUntraced(function*(options: {
       ),
 
     unregister: (address) =>
-      sql`DELETE FROM ${runnersTableSql} WHERE address = ${address} OR last_heartbeat < ${lockExpiresAt}`.pipe(
-        Effect.asVoid,
-        PersistenceError.refail,
-        withTracerDisabled
-      ),
+      sql`DELETE FROM ${runnersTableSql} WHERE address = ${address} OR last_heartbeat < ${lockExpiresAt}`.asEffect()
+        .pipe(
+          Effect.asVoid,
+          PersistenceError.refail,
+          withTracerDisabled
+        ),
 
     setRunnerHealth: (address, healthy) =>
       sql`UPDATE ${runnersTableSql} SET healthy = ${encodeBoolean(healthy)} WHERE address = ${address}`
-        .pipe(
+        .asEffect().pipe(
           Effect.asVoid,
           PersistenceError.refail,
           withTracerDisabled
@@ -543,7 +544,7 @@ export const make = Effect.fnUntraced(function*(options: {
       pg: () => {
         if (disableAdvisoryLocks) {
           return (address: string, shardId: string) =>
-            sql`DELETE FROM ${locksTableSql} WHERE address = ${address} AND shard_id = ${shardId}`.pipe(
+            sql`DELETE FROM ${locksTableSql} WHERE address = ${address} AND shard_id = ${shardId}`.asEffect().pipe(
               PersistenceError.refail
             )
         }
@@ -570,7 +571,7 @@ export const make = Effect.fnUntraced(function*(options: {
       mysql: () => {
         if (disableAdvisoryLocks) {
           return (address: string, shardId: string) =>
-            sql`DELETE FROM ${locksTableSql} WHERE address = ${address} AND shard_id = ${shardId}`.pipe(
+            sql`DELETE FROM ${locksTableSql} WHERE address = ${address} AND shard_id = ${shardId}`.asEffect().pipe(
               PersistenceError.refail
             )
         }
@@ -593,7 +594,7 @@ export const make = Effect.fnUntraced(function*(options: {
         )
       },
       orElse: () => (address, shardId) =>
-        sql`DELETE FROM ${locksTableSql} WHERE address = ${address} AND shard_id = ${shardId}`.pipe(
+        sql`DELETE FROM ${locksTableSql} WHERE address = ${address} AND shard_id = ${shardId}`.asEffect().pipe(
           PersistenceError.refail
         )
     }),
@@ -601,7 +602,7 @@ export const make = Effect.fnUntraced(function*(options: {
     releaseAll: sql.onDialectOrElse({
       pg: () => (address) => {
         if (disableAdvisoryLocks) {
-          return sql`DELETE FROM ${locksTableSql} WHERE address = ${address}`.pipe(
+          return sql`DELETE FROM ${locksTableSql} WHERE address = ${address}`.asEffect().pipe(
             PersistenceError.refail,
             withTracerDisabled
           )
@@ -615,7 +616,7 @@ export const make = Effect.fnUntraced(function*(options: {
       },
       mysql: () => (address) => {
         if (disableAdvisoryLocks) {
-          return sql`DELETE FROM ${locksTableSql} WHERE address = ${address}`.pipe(
+          return sql`DELETE FROM ${locksTableSql} WHERE address = ${address}`.asEffect().pipe(
             PersistenceError.refail,
             withTracerDisabled
           )
@@ -628,7 +629,7 @@ export const make = Effect.fnUntraced(function*(options: {
         )
       },
       orElse: () => (address) =>
-        sql`DELETE FROM ${locksTableSql} WHERE address = ${address}`.pipe(
+        sql`DELETE FROM ${locksTableSql} WHERE address = ${address}`.asEffect().pipe(
           PersistenceError.refail,
           withTracerDisabled
         )

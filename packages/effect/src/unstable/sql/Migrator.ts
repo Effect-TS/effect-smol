@@ -98,17 +98,17 @@ export const make = <RD = never>({
     migration_id INT NOT NULL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE()
-  )`,
+  )`.asEffect(),
       mysql: () =>
         sql`CREATE TABLE IF NOT EXISTS ${sql(table)} (
   migration_id INTEGER UNSIGNED NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   name VARCHAR(255) NOT NULL,
   PRIMARY KEY (migration_id)
-)`,
+)`.asEffect(),
       pg: () =>
         Effect.catch(
-          sql`select ${table}::regclass`,
+          sql`select ${table}::regclass`.asEffect(),
           () =>
             sql`CREATE TABLE ${sql(table)} (
   migration_id integer primary key,
@@ -121,7 +121,7 @@ export const make = <RD = never>({
   migration_id integer PRIMARY KEY NOT NULL,
   created_at datetime NOT NULL DEFAULT current_timestamp,
   name VARCHAR(255) NOT NULL
-)`
+)`.asEffect()
     })
 
     const insertMigrations = (
@@ -196,7 +196,7 @@ export const make = <RD = never>({
 
     const run = Effect.gen(function*() {
       yield* sql.onDialectOrElse({
-        pg: () => sql`LOCK TABLE ${sql(table)} IN ACCESS EXCLUSIVE MODE`,
+        pg: () => sql`LOCK TABLE ${sql(table)} IN ACCESS EXCLUSIVE MODE`.asEffect(),
         orElse: () => Effect.void
       })
 

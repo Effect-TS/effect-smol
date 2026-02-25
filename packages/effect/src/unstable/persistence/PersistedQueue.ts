@@ -778,7 +778,8 @@ export const makeStoreSql: (
     mssql: () =>
       sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_id')
         CREATE UNIQUE INDEX idx_${tableNameSql}_id ON ${tableNameSql} (id)`,
-    mysql: () => sql`CREATE UNIQUE INDEX ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id)`.pipe(Effect.ignore),
+    mysql: () =>
+      sql`CREATE UNIQUE INDEX ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id)`.asEffect().pipe(Effect.ignore),
     orElse: () => sql`CREATE UNIQUE INDEX IF NOT EXISTS ${sql(`idx_${tableName}_id`)} ON ${tableNameSql} (id)`
   })
 
@@ -790,7 +791,7 @@ export const makeStoreSql: (
       sql`CREATE INDEX ${
         sql(`idx_${tableName}_take`)
       } ON ${tableNameSql} (queue_name, completed, attempts, acquired_at)`
-        .pipe(Effect.ignore),
+        .asEffect().pipe(Effect.ignore),
     orElse: () =>
       sql`CREATE INDEX IF NOT EXISTS ${
         sql(`idx_${tableName}_take`)
@@ -802,7 +803,7 @@ export const makeStoreSql: (
       sql`IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'idx_${tableName}_update')
         CREATE INDEX ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`,
     mysql: () =>
-      sql`CREATE INDEX ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`.pipe(
+      sql`CREATE INDEX ${sql(`idx_${tableName}_update`)} ON ${tableNameSql} (sequence, acquired_by)`.asEffect().pipe(
         Effect.ignore
       ),
     orElse: () =>
@@ -856,7 +857,7 @@ export const makeStoreSql: (
       UPDATE ${tableNameSql}
       SET acquired_at = ${sqlNow}
       WHERE acquired_by = ${workerIdSql}
-    `
+    `.asEffect()
   })
   const complete = (sequence: number, attempts: number) => {
     elementIds.delete(sequence)
@@ -865,7 +866,7 @@ export const makeStoreSql: (
       SET acquired_at = NULL, acquired_by = NULL, updated_at = ${sqlNow}, completed = ${sqlTrue}, attempts = ${attempts}
       WHERE sequence = ${sequence}
       AND acquired_by = ${workerIdSql}
-    `.pipe(
+    `.asEffect().pipe(
       Effect.retry({
         times: 5,
         schedule: Schedule.exponential(100, 1.5)
@@ -882,7 +883,7 @@ export const makeStoreSql: (
     }
       WHERE sequence = ${sequence}
       AND acquired_by = ${workerIdSql}
-    `.pipe(
+    `.asEffect().pipe(
       Effect.retry({
         times: 5,
         schedule: Schedule.exponential(100, 1.5)
@@ -899,7 +900,7 @@ export const makeStoreSql: (
       SET acquired_at = NULL, acquired_by = NULL
       WHERE sequence IN (${sql.literal(ids.join(","))})
       AND acquired_by = ${workerIdSql}
-    `.pipe(
+    `.asEffect().pipe(
       Effect.retry({
         times: 5,
         schedule: Schedule.exponential(100, 1.5)
@@ -972,8 +973,8 @@ export const makeStoreSql: (
             ORDER BY updated_at ASC, sequence ASC
             LIMIT ${sql.literal(size.toString())}
             FOR UPDATE SKIP LOCKED
-          `.pipe(
-            Effect.tap((rows) => {
+          `.asEffect().pipe(
+            Effect.tap((rows: ReadonlyArray<Element>) => {
               if (rows.length === 0) return Effect.void
               return sql`
                 UPDATE ${tableNameSql}
@@ -1045,13 +1046,16 @@ export const makeStoreSql: (
 
   return PersistedQueueStore.of({
     offer: ({ element, id, name }) =>
-      Effect.catchCause(Effect.suspend(() => offer(id, name, JSON.stringify(element))), (cause) =>
-        Effect.fail(
-          new PersistedQueueError({
-            message: "Failed to offer element to persisted queue",
-            cause
-          })
-        )),
+      Effect.catchCause(
+        Effect.suspend(() => offer(id, name, JSON.stringify(element)).asEffect()),
+        (cause) =>
+          Effect.fail(
+            new PersistedQueueError({
+              message: "Failed to offer element to persisted queue",
+              cause
+            })
+          )
+      ),
     take: ({ maxAttempts, name }) =>
       Effect.uninterruptibleMask((restore) =>
         RcMap.get(mailboxes, new QueueKey({ name, maxAttempts })).pipe(

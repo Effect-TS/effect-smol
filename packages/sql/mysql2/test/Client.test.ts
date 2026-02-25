@@ -16,7 +16,7 @@ describe("sql", () => {
     Effect.gen(function*() {
       const logs: Array<unknown> = []
       const sql = yield* SqlClient.SqlClient
-      const result = yield* sql<{ result: number }>`SELECT 1 + 1 AS result`.pipe(
+      const result = yield* sql<{ result: number }>`SELECT 1 + 1 AS result`.asEffect().pipe(
         Effect.provide(Logger.layer([
           Logger.make((log) => {
             logs.push(log.message)

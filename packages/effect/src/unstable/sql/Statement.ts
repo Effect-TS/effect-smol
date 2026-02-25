@@ -49,7 +49,9 @@ export type Dialect = "sqlite" | "pg" | "mysql" | "mssql" | "clickhouse"
  * @category model
  * @since 4.0.0
  */
-export interface Statement<A> extends Fragment, Effect.Effect<ReadonlyArray<A>, SqlError>, Pipeable, Inspectable {
+export interface Statement<A>
+  extends Fragment, Effect.Yieldable<Statement<A>, ReadonlyArray<A>, SqlError>, Pipeable, Inspectable
+{
   readonly raw: Effect.Effect<unknown, SqlError>
   readonly withoutTransform: Effect.Effect<ReadonlyArray<A>, SqlError>
   readonly stream: Stream.Stream<A, SqlError>
@@ -1115,14 +1117,31 @@ const makeUnsafe = <A = Row>(
   return self
 }
 
-// TODO: figure out why these diagnostics are emitted
 const StatementProto: Omit<
   StatementImpl<any>,
   "segments" | "acquirer" | "compiler" | "spanAttributes" | "transformRows"
 > = {
-  ...core.EffectProto,
-  [core.identifier as any]: "Statement",
+  ...core.PipeInspectableProto,
+  ...core.YieldableProto,
   [FragmentTypeId]: FragmentTypeId,
+  asEffect(this: StatementImpl<any>): Effect.Effect<ReadonlyArray<any>, SqlError> {
+    return Effect.fiber.pipe(
+      Effect.flatMap((fiber) => {
+        const span = internalEffect.makeSpanUnsafe(fiber, "sql.execute", { kind: "client" })
+        const clock = fiber.getRef(Clock)
+        const timingEnabled = fiber.getRef(TracerTimingEnabled)
+        return Effect.onExit(
+          this.withConnectionSpan(
+            "execute",
+            (connection, sql, params) => connection.execute(sql, params, this.transformRows),
+            false,
+            span
+          ),
+          (exit) => internalEffect.endSpan(span, exit, clock, timingEnabled)
+        )
+      })
+    )
+  },
   withConnection<XA, E>(
     this: StatementImpl<any>,
     operation: string,
@@ -1220,23 +1239,6 @@ const StatementProto: Omit<
     withoutTransform?: boolean | undefined
   ) {
     return this.compiler.compile(this, withoutTransform ?? false)
-  },
-  [core.evaluate as any](
-    this: StatementImpl<any>,
-    fiber: Fiber.Fiber<any, any>
-  ): Effect.Effect<ReadonlyArray<any>, SqlError> {
-    const span = internalEffect.makeSpanUnsafe(fiber, "sql.execute", { kind: "client" })
-    const clock = fiber.getRef(Clock)
-    const timingEnabled = fiber.getRef(TracerTimingEnabled)
-    return Effect.onExit(
-      this.withConnectionSpan(
-        "execute",
-        (connection, sql, params) => connection.execute(sql, params, this.transformRows),
-        false,
-        span
-      ),
-      (exit) => internalEffect.endSpan(span, exit, clock, timingEnabled)
-    )
   },
   toJSON(this: StatementImpl<any>) {
     const [sql, params] = this.compile()

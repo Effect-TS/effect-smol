@@ -32,7 +32,7 @@ describe("Client", () => {
     Effect.gen(function*() {
       const sql = yield* D1Client.D1Client
       yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`
-      const res = yield* sql`INSERT INTO test ${sql.insert({ name: "hello" })}`.pipe(
+      const res = yield* sql`INSERT INTO test ${sql.insert({ name: "hello" })}`.asEffect().pipe(
         sql.withTransaction,
         Effect.sandbox,
         Effect.flip

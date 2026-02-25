@@ -23,7 +23,7 @@ describe("Client", () => {
       assert.deepStrictEqual(response, [])
       response = yield* sql`SELECT * FROM test`
       assert.deepStrictEqual(response, [{ id: 1, name: "hello" }])
-      response = yield* sql`INSERT INTO test (name) VALUES ('world')`.pipe(sql.withTransaction)
+      response = yield* sql`INSERT INTO test (name) VALUES ('world')`.asEffect().pipe(sql.withTransaction)
       assert.deepStrictEqual(response, [])
       response = yield* sql`SELECT * FROM test`
       assert.deepStrictEqual(response, [
@@ -55,7 +55,7 @@ describe("Client", () => {
     Effect.gen(function*() {
       const sql = yield* makeClient
       yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`
-      yield* sql.withTransaction(sql`INSERT INTO test (name) VALUES ('hello')`)
+      yield* sql.withTransaction(sql`INSERT INTO test (name) VALUES ('hello')`.asEffect())
       const rows = yield* sql`SELECT * FROM test`
       assert.deepStrictEqual(rows, [{ id: 1, name: "hello" }])
     }))
@@ -64,7 +64,7 @@ describe("Client", () => {
     Effect.gen(function*() {
       const sql = yield* makeClient
       yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`
-      yield* sql`INSERT INTO test (name) VALUES ('hello')`.pipe(
+      yield* sql`INSERT INTO test (name) VALUES ('hello')`.asEffect().pipe(
         Effect.andThen(Effect.fail("boom")),
         sql.withTransaction,
         Effect.ignore

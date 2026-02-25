@@ -216,7 +216,7 @@ export const make: (options?: {
         INSERT INTO ${messagesTableSql} ${sql.insert(row)}
         ON CONFLICT (message_id) DO NOTHING
         RETURNING id
-      `.pipe(Effect.flatMap((rows) => {
+      `.asEffect().pipe(Effect.flatMap((rows) => {
         // inserted a new row
         if (rows.length > 0) return Effect.succeed([])
         return sql`
@@ -224,7 +224,7 @@ export const make: (options?: {
           FROM ${messagesTableSql} m
           LEFT JOIN ${repliesTableSql} r ON r.id = m.last_reply_id
           WHERE m.message_id = ${message_id}
-        `
+        `.asEffect()
       })),
     mysql: () => (row, message_id) =>
       Effect.flatMap(
@@ -238,7 +238,7 @@ export const make: (options?: {
             FROM ${messagesTableSql} m
             LEFT JOIN ${repliesTableSql} r ON r.id = m.last_reply_id
             WHERE m.message_id = ${message_id}
-          `
+          `.asEffect()
         }
       ),
     mssql: () => (row, message_id) =>
@@ -277,16 +277,16 @@ export const make: (options?: {
               FROM ${repliesTableSql} r
               WHERE r.id = target.last_reply_id
             )
-          END as reply_sequence;
-      `,
+           END as reply_sequence;
+      `.asEffect(),
     orElse: () => (row, message_id) =>
       sql`
         SELECT m.id, r.id as reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
         FROM ${messagesTableSql} m
         LEFT JOIN ${repliesTableSql} r ON r.id = m.last_reply_id
         WHERE m.message_id = ${message_id}
-      `.pipe(
-        Effect.tap(sql`INSERT OR IGNORE INTO ${messagesTableSql} ${sql.insert(row)}`),
+      `.asEffect().pipe(
+        Effect.tap(sql`INSERT OR IGNORE INTO ${messagesTableSql} ${sql.insert(row)}`.asEffect()),
         sql.withTransaction,
         Effect.retry({ times: 3 })
       )
@@ -340,7 +340,7 @@ export const make: (options?: {
           RETURNING ids.*, r.id as reply_reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
         )
         SELECT * FROM messages ORDER BY rowid ASC
-      `,
+      `.asEffect(),
     orElse: () => (shardIds: ReadonlyArray<string>, now: number) =>
       sql<MessageJoinRow>`
         SELECT m.*, r.id as reply_reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
@@ -362,11 +362,13 @@ export const make: (options?: {
           if (rows.length === 0) {
             return Effect.void
           }
-          return sql`
+          return Effect.asVoid(
+            sql`
             UPDATE ${messagesTableSql}
             SET last_read = ${sqlNow}
             WHERE id IN (${sql.literal(rows.map((row) => row.id).join(","))})
           `.unprepared
+          )
         }),
         sql.withTransaction
       )
@@ -380,9 +382,10 @@ export const make: (options?: {
           ? insertEnvelope(row, primaryKey)
           : Effect.as(sql`INSERT INTO ${messagesTableSql} ${sql.insert(row)}`.unprepared, [])
         if (envelope._tag === "AckChunk") {
-          insert = sql`UPDATE ${repliesTableSql} SET acked = ${sqlTrue} WHERE id = ${envelope.replyId}`.pipe(
+          insert = sql`UPDATE ${repliesTableSql} SET acked = ${sqlTrue} WHERE id = ${envelope.replyId}`.asEffect().pipe(
             Effect.andThen(
               sql`UPDATE ${messagesTableSql} SET processed = ${sqlTrue} WHERE processed = ${sqlFalse} AND request_id = ${envelope.requestId} AND kind = ${messageKindAckChunk}`
+                .asEffect()
             ),
             Effect.andThen(insert),
             sql.withTransaction
@@ -429,7 +432,7 @@ export const make: (options?: {
           sql`UPDATE ${messagesTableSql} SET last_reply_id = ${reply.id} WHERE id = ${reply.requestId}` :
           sql`UPDATE ${messagesTableSql} SET processed = ${sqlTrue}, last_reply_id = ${reply.id} WHERE request_id = ${reply.requestId}`
         return update.unprepared.pipe(
-          Effect.andThen(sql`INSERT INTO ${repliesTableSql} ${sql.insert(row)}`),
+          Effect.andThen(sql`INSERT INTO ${repliesTableSql} ${sql.insert(row)}`.asEffect()),
           sql.withTransaction
         )
       }).pipe(
@@ -454,7 +457,7 @@ export const make: (options?: {
     ),
 
     requestIdForPrimaryKey: (primaryKey) =>
-      sql<{ id: string | bigint }>`SELECT id FROM ${messagesTableSql} WHERE message_id = ${primaryKey}`.pipe(
+      sql<{ id: string | bigint }>`SELECT id FROM ${messagesTableSql} WHERE message_id = ${primaryKey}`.asEffect().pipe(
         Effect.map((rows) => UndefinedOr.map(rows[0]?.id, Snowflake.Snowflake)),
         Effect.provideService(SqlClient.SafeIntegers, true),
         PersistenceError.refail,
@@ -551,7 +554,7 @@ export const make: (options?: {
         AND shard_id = ${address.shardId.toString()}
         AND entity_type = ${address.entityType}
         AND entity_id = ${address.entityId}
-      `.pipe(
+      `.asEffect().pipe(
         Effect.asVoid,
         PersistenceError.refail,
         withTracerDisabled
@@ -565,13 +568,13 @@ export const make: (options?: {
           WHERE entity_type = ${address.entityType}
           AND entity_id = ${address.entityId}
         )
-      `.pipe(
+      `.asEffect().pipe(
         Effect.andThen(
           sql`
             DELETE FROM ${messagesTableSql}
             WHERE entity_type = ${address.entityType}
             AND entity_id = ${address.entityId}
-          `
+          `.asEffect()
         ),
         sql.withTransaction,
         Effect.asVoid,
@@ -585,7 +588,7 @@ export const make: (options?: {
         SET last_read = NULL
         WHERE processed = ${sqlFalse}
         AND shard_id IN (${sql.literal(shardIds.map(wrapString).join(","))})
-      `.pipe(
+      `.asEffect().pipe(
         Effect.asVoid,
         PersistenceError.refail,
         withTracerDisabled
@@ -711,7 +714,7 @@ const migrations = (options?: {
               deliver_at BIGINT,
               UNIQUE (message_id)
             )
-          `.pipe(Effect.ignore),
+          `.asEffect().pipe(Effect.ignore),
         orElse: () =>
           // sqlite
           sql`
@@ -768,7 +771,7 @@ const migrations = (options?: {
 
             CREATE INDEX IF NOT EXISTS ${sql(requestIdLookupIndex)}
             ON ${messagesTableSql} (request_id);
-          `.pipe(
+          `.asEffect().pipe(
             Effect.tapDefect((error) =>
               Effect.annotateLogs(Effect.logDebug("Failed to create indexes", error), {
                 package: "@effect/cluster",
@@ -785,11 +788,11 @@ const migrations = (options?: {
             sql`
               CREATE INDEX IF NOT EXISTS ${sql(shardLookupIndex)}
               ON ${messagesTableSql} (shard_id, processed, last_read, deliver_at)
-            `,
+            `.asEffect(),
             sql`
               CREATE INDEX IF NOT EXISTS ${sql(requestIdLookupIndex)}
               ON ${messagesTableSql} (request_id)
-            `
+            `.asEffect()
           ]).pipe(sql.withTransaction)
       })
 
@@ -872,7 +875,7 @@ const migrations = (options?: {
           sql`
             CREATE INDEX IF NOT EXISTS ${sql(replyLookupIndex)}
             ON ${repliesTableSql} (request_id, kind, acked);
-          `.pipe(
+          `.asEffect().pipe(
             Effect.tapDefect((error) =>
               Effect.annotateLogs(Effect.logDebug("Failed to create indexes", error), {
                 package: "@effect/cluster",
