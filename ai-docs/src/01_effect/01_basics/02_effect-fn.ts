@@ -16,7 +16,9 @@ import { Effect, Schema } from "effect"
 // The name string should match the function name.
 //
 export const effectFunction = Effect.fn("effectFunction")(
-  function*(n: number) {
+  // You can use `Effect.fn.Return` to specify the return type of the function.
+  // It accepts the same type parameters as `Effect.Effect`.
+  function*(n: number): Effect.fn.Return<string, SomeError> {
     yield* Effect.logInfo("Received number:", n)
 
     // Always return when raising an error, to ensure typescript understands that

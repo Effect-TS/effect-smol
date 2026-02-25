@@ -57,7 +57,9 @@ import { Effect, Schema } from "effect"
 // The name string should match the function name.
 //
 export const effectFunction = Effect.fn("effectFunction")(
-  function*(n: number) {
+  // You can use `Effect.fn.Return` to specify the return type of the function.
+  // It accepts the same type parameters as `Effect.Effect`.
+  function*(n: number): Effect.fn.Return<string, SomeError> {
     yield* Effect.logInfo("Received number:", n)
 
     // Always return when raising an error, to ensure typescript understands that
@@ -197,9 +199,7 @@ Learn how to safely manage resources in Effect using `Scope`s and finalizers.
 ## Working with Streams
 
 Effect Streams represent effectful, pull-based sequences of values over time.
-They let you model finite or infinite data sources, transform and compose
-pipelines with operators, and run them with controlled concurrency,
-backpressure, and resource safety.
+They let you model finite or infinite data sources.
 
 - **[Creating streams from common data sources](./ai-docs/src/02_stream/10_creating-streams.ts)**:
   Learn how to create streams from various data sources. Includes:
@@ -211,6 +211,7 @@ backpressure, and resource safety.
   - `Stream.fromEventListener` for DOM events
   - `Stream.callback` for any callback-based API
   - `NodeStream.fromReadable` for Node.js readable streams
+- **[Consuming and transforming streams](./ai-docs/src/02_stream/20_consuming-streams.ts)**: How to transform and consume streams using operators like `map`, `flatMap`, `filter`, `mapEffect`, and various `run*` methods.
 
 ## Effect HttpClient
 
