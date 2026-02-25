@@ -4,33 +4,28 @@
  * Build a command-line app with typed arguments and flags, then wire subcommand
  * handlers into a single executable command.
  */
+import { NodeRuntime, NodeServices } from "@effect/platform-node"
 import { Console, Effect } from "effect"
 import { Argument, Command, Flag } from "effect/unstable/cli"
+
+// You can define flags outside of commands and reuse them across multiple
+// commands.
+const workspace = Flag.string("workspace").pipe(
+  Flag.withAlias("w"),
+  Flag.withDescription("Workspace to operate on"),
+  Flag.withDefault("personal")
+)
 
 // Start with a root command that holds options you want available to all
 // subcommands.
 const tasks = Command.make("tasks", {
-  workspace: Flag.string("workspace").pipe(
-    Flag.withAlias("w"),
-    Flag.withDescription("Workspace to operate on"),
-    Flag.withDefault("personal")
-  ),
+  workspace,
   verbose: Flag.boolean("verbose").pipe(
     Flag.withAlias("v"),
     Flag.withDescription("Print diagnostic output")
   )
 }).pipe(
-  Command.withDescription("Track and manage tasks"),
-  Command.withExamples([
-    {
-      command: "tasks create \"Ship 4.0\" --priority high",
-      description: "Create a high-priority task"
-    },
-    {
-      command: "tasks --workspace team-a list --status open",
-      description: "List open tasks in a specific workspace"
-    }
-  ])
+  Command.withDescription("Track and manage tasks")
 )
 
 const create = Command.make(
@@ -55,7 +50,13 @@ const create = Command.make(
     yield* Console.log(`Created "${title}" in ${root.workspace} with ${priority} priority`)
   })
 ).pipe(
-  Command.withDescription("Create a task")
+  Command.withDescription("Create a task"),
+  Command.withExamples([
+    {
+      command: "tasks create \"Ship 4.0\" --priority high",
+      description: "Create a high-priority task"
+    }
+  ])
 )
 
 const list = Command.make(
@@ -107,15 +108,28 @@ const list = Command.make(
     }
   })
 ).pipe(
-  Command.withDescription("List tasks")
+  Command.withDescription("List tasks"),
+  Command.withAlias("ls"),
+  Command.withExamples([
+    {
+      command: "tasks --workspace team-a list --status open",
+      description: "List open tasks in a specific workspace"
+    },
+    {
+      command: "tasks --workspace team-b ls --status open",
+      description: "List open tasks in another workspace"
+    }
+  ])
 )
 
-export const taskCli = tasks.pipe(
-  Command.withSubcommands([create, list])
+// Finally, compose the subcommands into a single command and then run it.
+tasks.pipe(
+  Command.withSubcommands([create, list]),
+  Command.run({
+    version: "1.0.0"
+  }),
+  // Provide the services for the platform you are targeting. In this case,
+  // Node.js
+  Effect.provide(NodeServices.layer),
+  NodeRuntime.runMain
 )
-
-// In production, use `Command.run` to parse `process.argv`.
-// `runWith` is useful when testing or embedding CLI execution.
-export const runTaskCli = Command.runWith(taskCli, {
-  version: "1.0.0"
-})

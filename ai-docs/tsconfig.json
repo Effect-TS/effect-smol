@@ -15,7 +15,8 @@
         "name": "@effect/language-service",
         "namespaceImportPackages": [],
         "diagnosticSeverity": {
-          "floatingEffect": "off"
+          "floatingEffect": "off",
+          "preferSchemaOverJson": "off"
         }
       }
     ]
