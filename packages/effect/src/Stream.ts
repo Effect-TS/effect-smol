@@ -7851,7 +7851,7 @@ export const aggregateWithin: {
     const step = yield* Schedule.toStepWithSleep(schedule)
     const stepToBuffer: Pull.Pull<never, E3, void, R3> = Effect.suspend(
       function loop(): Pull.Pull<never, E3, void, R3> {
-        return Effect.suspend(() => step(lastOutput)).pipe(
+        return step(lastOutput).pipe(
           Effect.flatMap(() =>
             !hadChunk && leftover === undefined ? Effect.suspend(loop) : Queue.offer(buffer, scheduleStep)
           ),
