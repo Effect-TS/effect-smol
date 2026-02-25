@@ -18,6 +18,10 @@ class UserLookupError extends Schema.TaggedErrorClass<UserLookupError>()("UserLo
 
 class MissingWorkspaceId extends Schema.TaggedErrorClass<MissingWorkspaceId>()("MissingWorkspaceId", {}) {}
 
+const requestHeaders = new Map<string, string>([
+  ["x-request-id", "req_1"]
+])
+
 // `Effect.succeed` wraps values you already have in memory.
 export const fromValue = Effect.succeed({ env: "prod", retries: 3 })
 
@@ -62,7 +66,7 @@ export const fromResult = Effect.fromResult(
 )
 
 // `Effect.fromNullishOr` turns nullable values into a typed effect.
-export const fromNullableConfig = Effect.fromNullishOr("team-a").pipe(
+export const fromNullishHeader = Effect.fromNullishOr(requestHeaders.get("x-workspace-id")).pipe(
   Effect.mapError(() => new MissingWorkspaceId())
 )
 
