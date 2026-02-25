@@ -1,7 +1,7 @@
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Option, Path, ServiceMap } from "effect"
 import { TestConsole } from "effect/testing"
-import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
+import { Argument, CliOutput, Command, Flag, GlobalFlag } from "effect/unstable/cli"
 import { toImpl } from "effect/unstable/cli/internal/command"
 import { ChildProcessSpawner } from "effect/unstable/process"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
@@ -239,6 +239,70 @@ describe("Command", () => {
           verbose: true,
           profile: "dev"
         }])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should expose setting global flags to command handlers", () =>
+      Effect.gen(function*() {
+        const Region = GlobalFlag.setting({
+          flag: Flag.string("region").pipe(Flag.optional),
+          defaultValue: () => Option.none<string>()
+        })
+        const captured: Array<Option.Option<string>> = []
+
+        const command = Command.make("deploy", {}, () =>
+          Effect.gen(function*() {
+            captured.push(yield* Region)
+          }))
+
+        const runCommand = Command.runWith(command, {
+          version: "1.0.0"
+        })
+
+        yield* runCommand(["--region", "us-east-1"]).pipe(GlobalFlag.add(Region))
+        yield* runCommand([]).pipe(GlobalFlag.add(Region))
+
+        assert.deepStrictEqual(captured, [Option.some("us-east-1"), Option.none()])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should expose setting global flags in Command.provide APIs", () =>
+      Effect.gen(function*() {
+        const Region = GlobalFlag.setting({
+          flag: Flag.string("region").pipe(Flag.optional),
+          defaultValue: () => Option.none<string>()
+        })
+        const RegionFromProvide = ServiceMap.Service<never, Option.Option<string>>(
+          "effect/test/unstable/cli/RegionFromProvide"
+        )
+        const capturedFromProvide: Array<Option.Option<string>> = []
+        const capturedFromProvideEffect: Array<Option.Option<string>> = []
+
+        const command = Command.make("deploy", {}, () =>
+          Effect.gen(function*() {
+            capturedFromProvide.push(yield* RegionFromProvide)
+          })).pipe(
+            Command.provide(() =>
+              Layer.effect(
+                RegionFromProvide,
+                Effect.gen(function*() {
+                  return yield* Region
+                })
+              )
+            ),
+            Command.provideEffectDiscard(() =>
+              Effect.gen(function*() {
+                capturedFromProvideEffect.push(yield* Region)
+              })
+            )
+          )
+
+        const runCommand = Command.runWith(command, {
+          version: "1.0.0"
+        })
+
+        yield* runCommand(["--region", "eu-west-1"]).pipe(GlobalFlag.add(Region))
+
+        assert.deepStrictEqual(capturedFromProvide, [Option.some("eu-west-1")])
+        assert.deepStrictEqual(capturedFromProvideEffect, [Option.some("eu-west-1")])
       }).pipe(Effect.provide(TestLayer)))
 
     it.effect("should fail for malformed key=value flags", () =>

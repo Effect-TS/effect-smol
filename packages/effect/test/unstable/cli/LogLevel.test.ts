@@ -1,52 +1,59 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Logger, Path } from "effect"
-import { CliOutput, Command, Flag } from "effect/unstable/cli"
+import { Effect, FileSystem, Layer, Logger, Option, Path, ServiceMap } from "effect"
+import { CliOutput, Command, Flag, GlobalFlag } from "effect/unstable/cli"
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 import * as MockTerminal from "./services/MockTerminal.ts"
 
-// Create a test logger that captures log messages
-const makeTestLogger = () => {
-  const capturedLogs: Array<{
-    message: unknown
-    level: string
-    timestamp: Date
-  }> = []
+interface Log {
+  readonly message: unknown
+  readonly level: string
+  readonly timestamp: Date
+}
 
-  const testLogger = Logger.make((options) => {
+class MockLogger extends ServiceMap.Service<MockLogger, {
+  readonly logs: Effect.Effect<ReadonlyArray<Log>>
+}>()("MockLogger") {
+  static logs = Effect.service(MockLogger).pipe(
+    Effect.flatMap((logger) => logger.logs)
+  )
+}
+
+const makeMockLogger = Effect.gen(function*() {
+  const logs: Array<Log> = []
+
+  const mockLogger = Logger.make((options) => {
     // Extract the actual message from the array wrapper
     const message = Array.isArray(options.message) && options.message.length === 1
       ? options.message[0]
       : options.message
 
-    capturedLogs.push({
+    logs.push({
       message,
       level: options.logLevel,
       timestamp: options.date
     })
   })
 
-  return { testLogger, capturedLogs }
-}
+  return ServiceMap.make(MockLogger, { logs: Effect.sync(() => logs) }).pipe(
+    ServiceMap.add(Logger.CurrentLoggers, new Set([mockLogger]))
+  )
+})
 
 const FileSystemLayer = FileSystem.layerNoop({})
 const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
-const CliOutputLayer = CliOutput.layer(
-  CliOutput.defaultFormatter({
-    colors: false
-  })
-)
+const CliOutputLayer = CliOutput.layer(CliOutput.defaultFormatter({ colors: false }))
 const SpawnerLayer = Layer.mock(ChildProcessSpawner)({})
+const LoggerLayer = Layer.effectServices(makeMockLogger)
 
-const makeTestLayer = (testLogger: Logger.Logger<unknown, void>) =>
-  Layer.mergeAll(
-    FileSystemLayer,
-    PathLayer,
-    TerminalLayer,
-    CliOutputLayer,
-    SpawnerLayer,
-    Logger.layer([testLogger])
-  )
+const TestLayer = Layer.mergeAll(
+  FileSystemLayer,
+  PathLayer,
+  TerminalLayer,
+  CliOutputLayer,
+  SpawnerLayer,
+  LoggerLayer
+)
 
 describe("LogLevel", () => {
   // All possible logs in severity order
@@ -76,32 +83,25 @@ describe("LogLevel", () => {
   }
 
   // Test helper that logs at all levels and returns captured logs
-  const testLogLevels = (logLevel?: string) =>
-    Effect.gen(function*() {
-      const { capturedLogs, testLogger } = makeTestLogger()
-      const TestLayer = makeTestLayer(testLogger)
-
-      const testCommand = Command.make("test", {}, () =>
-        Effect.gen(function*() {
-          // Log at all levels to test filtering
-          yield* Effect.log("trace") // Info level by default
-          yield* Effect.logDebug("debug")
-          yield* Effect.logInfo("info")
-          yield* Effect.logWarning("warn")
-          yield* Effect.logError("error")
-          yield* Effect.logFatal("fatal")
-        }))
-
-      const runCommand = Command.runWith(testCommand, { version: "1.0.0" })
-      const args = logLevel ? ["--log-level", logLevel] : []
-
-      yield* runCommand(args).pipe(Effect.provide(TestLayer))
-
-      return capturedLogs.map((log) => ({
-        level: log.level,
-        message: log.message
+  const testLogLevels = Effect.fnUntraced(function*(logLevel?: string) {
+    const testCommand = Command.make("test").pipe(
+      Command.withHandler(Effect.fnUntraced(function*() {
+        // Log at all levels to test filtering
+        yield* Effect.log("trace") // Info level by default
+        yield* Effect.logDebug("debug")
+        yield* Effect.logInfo("info")
+        yield* Effect.logWarning("warn")
+        yield* Effect.logError("error")
+        yield* Effect.logFatal("fatal")
       }))
-    })
+    )
+
+    const runCommand = Command.runWith(testCommand, { version: "1.0.0" })
+    yield* runCommand(logLevel ? ["--log-level", logLevel] : [])
+
+    const logs = yield* MockLogger.logs
+    return logs.map((log) => ({ level: log.level, message: log.message }))
+  })
 
   // Test cases
   const testCases = [
@@ -116,11 +116,11 @@ describe("LogLevel", () => {
     "none"
   ]
 
-  it.each(testCases)("level=%s", (level) =>
+  it.effect.each(testCases)("level=%s", (level) =>
     Effect.gen(function*() {
       const logs = yield* testLogLevels(level)
       assert.deepStrictEqual(logs, filterLogs(level))
-    }).pipe(Effect.runPromise))
+    }).pipe(Effect.provide(TestLayer)))
 
   it.effect("should use default log level when --log-level is not provided", () =>
     Effect.gen(function*() {
@@ -128,13 +128,27 @@ describe("LogLevel", () => {
       // Default minimum log level filters out Debug but keeps Info and above
       const expected = allLogs.filter((log) => log.message !== "debug").reverse()
       assert.deepStrictEqual(logs, expected)
-    }))
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("should expose built-in log-level setting value", () =>
+    Effect.gen(function*() {
+      const seen: Array<Option.Option<string>> = []
+      const command = Command.make("test").pipe(
+        Command.withHandler(Effect.fnUntraced(function*() {
+          seen.push(Option.map(yield* GlobalFlag.LogLevel, (level) => level.toLowerCase()))
+        }))
+      )
+
+      const runCommand = Command.runWith(command, { version: "1.0.0" })
+
+      yield* runCommand([])
+      yield* runCommand(["--log-level", "warn"])
+
+      assert.deepStrictEqual(seen, [Option.none(), Option.some("warn")])
+    }).pipe(Effect.provide(TestLayer)))
 
   it.effect("should apply log level to subcommands", () =>
     Effect.gen(function*() {
-      const { capturedLogs, testLogger } = makeTestLogger()
-      const TestLayer = makeTestLayer(testLogger)
-
       const parentCommand = Command.make("parent", {
         verbose: Flag.boolean("verbose")
       })
@@ -151,20 +165,19 @@ describe("LogLevel", () => {
 
       yield* runCommand(["--log-level", "info", "child"]).pipe(Effect.provide(TestLayer))
 
+      const logs = yield* MockLogger.logs
+
       assert.deepStrictEqual(
-        capturedLogs.map((l) => ({ level: l.level, message: l.message })),
+        logs.map((l) => ({ level: l.level, message: l.message })),
         [
           { level: "Info", message: "info from child" },
           { level: "Error", message: "error from child" }
         ]
       )
-    }))
+    }).pipe(Effect.provide(TestLayer)))
 
   it.effect("should fail with InvalidValue for invalid log levels", () =>
     Effect.gen(function*() {
-      const { capturedLogs, testLogger } = makeTestLogger()
-      const TestLayer = makeTestLayer(testLogger)
-
       const testCommand = Command.make("test", {}, () => Effect.logInfo("Should not see this"))
 
       const runCommand = Command.runWith(testCommand, { version: "1.0.0" })
@@ -178,6 +191,8 @@ describe("LogLevel", () => {
         assert.strictEqual(result.option, "log-level")
         assert.strictEqual(result.value, "invalid")
       }
-      assert.strictEqual(capturedLogs.length, 0)
-    }))
+
+      const logs = yield* MockLogger.logs
+      assert.strictEqual(logs.length, 0)
+    }).pipe(Effect.provide(TestLayer)))
 })
