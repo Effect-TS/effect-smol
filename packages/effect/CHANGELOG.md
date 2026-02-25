@@ -1,5 +1,21 @@
 # effect
 
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- [#1471](https://github.com/Effect-TS/effect-smol/pull/1471) [`c414700`](https://github.com/Effect-TS/effect-smol/commit/c414700ef1932e4b67d0102856de417336912350) Thanks @IMax153! - Make CLI global settings directly yieldable and simplify built-in names.
+
+  `GlobalFlag.setting` now takes `{ flag, defaultValue }` and returns a setting that is a `ServiceMap.Reference`, so handlers and `Command.provide*` effects can `yield*` global setting values directly.
+
+  Built-in settings keep internal behavior in `runWith` (for example, `--log-level` still configures `References.MinimumLogLevel`) while also being readable as values.
+
+  Also renamed built-in globals:
+  - `GlobalFlag.CompletionsFlag` -> `GlobalFlag.Completions`
+  - `GlobalFlag.LogLevelFlag` -> `GlobalFlag.LogLevel`
+
+- [#1490](https://github.com/Effect-TS/effect-smol/pull/1490) [`a30c969`](https://github.com/Effect-TS/effect-smol/commit/a30c9699c0d736cf3952041e45d508b7d58907a9) Thanks @gcanti! - Fix `OpenApi.fromApi` preserving multiple response content types for one status code, closes #1485.
+
 ## 4.0.0-beta.13
 
 ### Patch Changes
