@@ -188,6 +188,15 @@ Learn how to safely manage resources in Effect using `Scope`s and finalizers.
   a resource, ensuring that it is properly cleaned up when the service is no
   longer needed.
 
+## Creating streams
+
+Use `Stream` constructors to model data from in-memory collections, effectful
+polling loops, and paginated APIs.
+
+- **[Creating streams from common data sources](./ai-docs/src/02_stream/10_creating-streams.ts)**:
+  Start with simple constructors, then move to effectful and paginated inputs
+  without changing how you process values.
+
 ## Effect HttpClient
 
 Build http clients with the `HttpClient` module.
