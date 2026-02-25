@@ -4,9 +4,14 @@ import type { Layer } from "effect"
 import { Effect, Option, Schema } from "effect"
 import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
 
-export const testLayer = <E>(layer: Layer.Layer<KeyValueStore.KeyValueStore, E>) => {
+type TestLayer<E> =
+  | Layer.Layer<KeyValueStore.KeyValueStore, E>
+  | (() => Layer.Layer<KeyValueStore.KeyValueStore, E>)
+
+export const testLayer = <E>(layer: TestLayer<E>) => {
+  const resolveLayer = () => typeof layer === "function" ? layer() : layer
   const run = <E, A>(effect: Effect.Effect<A, E, KeyValueStore.KeyValueStore>) =>
-    Effect.runPromise(Effect.provide(effect, layer))
+    Effect.runPromise(Effect.provide(effect, resolveLayer()))
 
   afterEach(() =>
     run(Effect.gen(function*() {
@@ -22,6 +27,7 @@ export const testLayer = <E>(layer: Layer.Layer<KeyValueStore.KeyValueStore, E>)
 
       const value = yield* (kv.get("/foo/bar"))
       const length = yield* (kv.size)
+
 
       strictEqual(value, "bar")
       strictEqual(length, 1)

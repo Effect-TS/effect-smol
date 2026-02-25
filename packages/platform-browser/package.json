@@ -65,6 +65,7 @@
   },
   "devDependencies": {
     "effect": "workspace:^",
+    "fake-indexeddb": "^6.2.5",
     "mock-xmlhttprequest": "^8.4.1"
   },
   "dependencies": {
