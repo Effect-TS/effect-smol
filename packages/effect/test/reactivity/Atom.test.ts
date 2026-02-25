@@ -1800,6 +1800,82 @@ describe.sequential("Atom", () => {
       expect(storage.get("test-key")).toEqual(JSON.stringify(42))
     })
   })
+
+  describe("Node inspection", () => {
+    it("exposes state and listenerCount", () => {
+      const counter = Atom.make(0).pipe(Atom.keepAlive)
+      const r = AtomRegistry.make()
+      r.get(counter)
+      const node = r.getNodes().get(counter)!
+      expect(node.state).toEqual("valid")
+      expect(node.listenerCount).toEqual(0)
+    })
+
+    it("tracks parents and children", () => {
+      const a = Atom.make(1).pipe(Atom.keepAlive)
+      const b = Atom.make((get: Atom.Context) => get(a) * 2).pipe(Atom.keepAlive)
+      const r = AtomRegistry.make()
+      r.get(b)
+      const nodeA = r.getNodes().get(a)!
+      const nodeB = r.getNodes().get(b)!
+      expect(nodeB.parents.length).toEqual(1)
+      expect(nodeB.parents[0].atom).toBe(a)
+      expect(nodeA.children.length).toEqual(1)
+      expect(nodeA.children[0].atom).toBe(b)
+    })
+
+    it("parents/children return snapshots", () => {
+      const a = Atom.make(1).pipe(Atom.keepAlive)
+      const b = Atom.make((get: Atom.Context) => get(a) * 2).pipe(Atom.keepAlive)
+      const r = AtomRegistry.make()
+      r.get(b)
+      const nodeA = r.getNodes().get(a)!
+      const snapshot1 = nodeA.children
+      const snapshot2 = nodeA.children
+      expect(snapshot1).not.toBe(snapshot2)
+      expect(snapshot1).toEqual(snapshot2)
+    })
+
+    it("listenerCount tracks subscriptions", () => {
+      const counter = Atom.make(0).pipe(Atom.keepAlive)
+      const r = AtomRegistry.make()
+      r.get(counter)
+      const node = r.getNodes().get(counter)!
+      expect(node.listenerCount).toEqual(0)
+      const cancel = r.subscribe(counter, () => {})
+      expect(node.listenerCount).toEqual(1)
+      cancel()
+      expect(node.listenerCount).toEqual(0)
+    })
+  })
+
+  describe("onNodeCreated / onNodeRemoved", () => {
+    it("fires onNodeCreated", () => {
+      const created: Array<AtomRegistry.Node<any>> = []
+      const r = AtomRegistry.make({ onNodeCreated: (n) => created.push(n) })
+      const counter = Atom.make(0).pipe(Atom.keepAlive)
+      r.get(counter)
+      expect(created.some((n) => n.atom === counter)).toEqual(true)
+    })
+
+    it("fires onNodeRemoved on auto-dispose", async () => {
+      const removed: Array<AtomRegistry.Node<any>> = []
+      const r = AtomRegistry.make({ onNodeRemoved: (n) => removed.push(n) })
+      const counter = Atom.make(0)
+      r.get(counter)
+      await Effect.runPromise(Effect.yieldNow)
+      expect(removed.some((n) => n.atom === counter)).toEqual(true)
+    })
+
+    it("fires onNodeRemoved on reset", () => {
+      const removed: Array<AtomRegistry.Node<any>> = []
+      const r = AtomRegistry.make({ onNodeRemoved: (n) => removed.push(n) })
+      const counter = Atom.make(0).pipe(Atom.keepAlive)
+      r.get(counter)
+      r.reset()
+      expect(removed.some((n) => n.atom === counter)).toEqual(true)
+    })
+  })
 })
 
 interface BuildCounter {

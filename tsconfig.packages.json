@@ -10,6 +10,8 @@
     { "path": "packages/ai/openai" },
     { "path": "packages/ai/openrouter" },
     { "path": "packages/atom/react" },
+    { "path": "packages/atom/devtools" },
+    { "path": "packages/atom/devtools-react" },
     { "path": "packages/atom/vue" },
     { "path": "packages/atom/solid" },
     { "path": "packages/opentelemetry" },
