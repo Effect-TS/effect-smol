@@ -7853,7 +7853,7 @@ export const aggregateWithin: {
       function loop(): Pull.Pull<never, E3, void, R3> {
         return step(lastOutput).pipe(
           Effect.flatMap(() =>
-            !hadChunk && leftover === undefined ? Effect.suspend(loop) : Queue.offer(buffer, scheduleStep)
+            !hadChunk && leftover === undefined ? loop() : Queue.offer(buffer, scheduleStep)
           ),
           Effect.flatMap(() => Effect.never),
           Pull.catchDone(() => Cause.done())
