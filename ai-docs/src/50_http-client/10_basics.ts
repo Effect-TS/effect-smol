@@ -13,9 +13,9 @@ class Todo extends Schema.Class<Todo>("Todo")({
   completed: Schema.Boolean
 }) {}
 
-class JsonPlaceholder extends ServiceMap.Service<JsonPlaceholder, {
-  readonly getTodo: (id: number) => Effect.Effect<Todo, JsonPlaceholderError>
-  readonly createTodo: (todo: Omit<Todo, "id">) => Effect.Effect<Todo, JsonPlaceholderError>
+export class JsonPlaceholder extends ServiceMap.Service<JsonPlaceholder, {
+  getTodo(id: number): Effect.Effect<Todo, JsonPlaceholderError>
+  createTodo(todo: Omit<Todo, "id">): Effect.Effect<Todo, JsonPlaceholderError>
 }>()("app/JsonPlaceholder") {
   static readonly layer = Layer.effect(
     JsonPlaceholder,
@@ -75,11 +75,3 @@ class JsonPlaceholder extends ServiceMap.Service<JsonPlaceholder, {
 export class JsonPlaceholderError extends Schema.TaggedErrorClass<JsonPlaceholderError>()("JsonPlaceholderError", {
   cause: Schema.Defect
 }) {}
-
-// You can then use the JsonPlaceholder service elsewhere
-export const program = Effect.gen(function*() {
-  const api = yield* JsonPlaceholder
-  const todo = yield* api.getTodo(1)
-
-  yield* Effect.log(`Loaded todo #${todo.id}: ${todo.title}`)
-})

@@ -10,7 +10,7 @@ export class MessageStoreError extends Schema.TaggedErrorClass<MessageStoreError
 }) {}
 
 export class MessageStore extends ServiceMap.Service<MessageStore, {
-  readonly append: (message: string) => Effect.Effect<void>
+  append(message: string): Effect.Effect<void>
   readonly all: Effect.Effect<ReadonlyArray<string>>
 }>()("myapp/MessageStore") {
   static readonly layerInMemory = Layer.effect(

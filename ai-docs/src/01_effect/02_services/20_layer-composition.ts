@@ -22,9 +22,10 @@ export class UserRespositoryError extends Schema.TaggedErrorClass<UserRespositor
 }) {}
 
 export class UserRepository extends ServiceMap.Service<UserRepository, {
-  readonly findById: (
-    id: string
-  ) => Effect.Effect<Option.Option<{ readonly id: string; readonly name: string }>, UserRespositoryError>
+  findById(id: string): Effect.Effect<
+    Option.Option<{ readonly id: string; readonly name: string }>,
+    UserRespositoryError
+  >
 }>()("myapp/UserRepository") {
   // Implement the layer for the UserRepository service, which depends on the
   // SqlClient service
