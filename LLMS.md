@@ -213,6 +213,17 @@ They let you model finite or infinite data sources.
   - `NodeStream.fromReadable` for Node.js readable streams
 - **[Consuming and transforming streams](./ai-docs/src/02_stream/20_consuming-streams.ts)**: How to transform and consume streams using operators like `map`, `flatMap`, `filter`, `mapEffect`, and various `run*` methods.
 
+## Observability
+
+Effect has built-in support for structured logging, distributed tracing, and
+metrics. For exporting telemetry, use the lightweight Otlp modules from
+`effect/unstable/observability` in new projects, or use
+`@effect/opentelemetry` NodeSdk when integrating with an existing OpenTelemetry
+setup.
+
+- **[Customizing logging](./ai-docs/src/08_observability/10_logging.ts)**: Configure loggers & log-level filtering for production applications.
+- **[Setting up tracing with Otlp modules](./ai-docs/src/08_observability/20_otlp-tracing.ts)**: Configure Otlp tracing + log export with a reusable observability layer.
+
 ## Effect HttpClient
 
 Build http clients with the `HttpClient` module.
