@@ -49,7 +49,7 @@ export interface Action<A> {
  * @since 4.0.0
  * @category models
  */
-export interface Setting<A> extends ServiceMap.Reference<A> {
+export interface Setting<A> extends ServiceMap.Service<never, A> {
   readonly _tag: "Setting"
   readonly flag: Flag.Flag<A>
 }
@@ -92,12 +92,10 @@ export const action = <A>(options: {
  */
 export const setting = <A>(options: {
   readonly flag: Flag.Flag<A>
-  readonly defaultValue: () => A
 }): Setting<A> => {
   settingIdCounter += 1
-  const ref = ServiceMap.Reference<A>(
-    `effect/cli/GlobalFlag/Setting/${settingIdCounter}`,
-    { defaultValue: options.defaultValue }
+  const ref = ServiceMap.Service<never, A>(
+    `effect/cli/GlobalFlag/Setting/${settingIdCounter}`
   )
   return Object.assign(ref, {
     _tag: "Setting" as const,
@@ -201,8 +199,7 @@ export const LogLevel: Setting<Option.Option<LogLevelType>> = setting({
   ).pipe(
     Flag.optional,
     Flag.withDescription("Sets the minimum log level")
-  ),
-  defaultValue: () => Option.none()
+  )
 })
 
 /* ========================================================================== */

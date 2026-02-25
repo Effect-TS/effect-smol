@@ -244,8 +244,7 @@ describe("Command", () => {
     it.effect("should expose setting global flags to command handlers", () =>
       Effect.gen(function*() {
         const Region = GlobalFlag.setting({
-          flag: Flag.string("region").pipe(Flag.optional),
-          defaultValue: () => Option.none<string>()
+          flag: Flag.string("region").pipe(Flag.optional)
         })
         const captured: Array<Option.Option<string>> = []
 
@@ -264,11 +263,32 @@ describe("Command", () => {
         assert.deepStrictEqual(captured, [Option.some("us-east-1"), Option.none()])
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should expose setting global flags with Flag.withDefault", () =>
+      Effect.gen(function*() {
+        const Region = GlobalFlag.setting({
+          flag: Flag.string("region").pipe(Flag.withDefault("us-west-2"))
+        })
+        const captured: Array<string> = []
+
+        const command = Command.make("deploy", {}, () =>
+          Effect.gen(function*() {
+            captured.push(yield* Region)
+          }))
+
+        const runCommand = Command.runWith(command, {
+          version: "1.0.0"
+        })
+
+        yield* runCommand(["--region", "eu-west-1"]).pipe(GlobalFlag.add(Region))
+        yield* runCommand([]).pipe(GlobalFlag.add(Region))
+
+        assert.deepStrictEqual(captured, ["eu-west-1", "us-west-2"])
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should expose setting global flags in Command.provide APIs", () =>
       Effect.gen(function*() {
         const Region = GlobalFlag.setting({
-          flag: Flag.string("region").pipe(Flag.optional),
-          defaultValue: () => Option.none<string>()
+          flag: Flag.string("region").pipe(Flag.optional)
         })
         const RegionFromProvide = ServiceMap.Service<never, Option.Option<string>>(
           "effect/test/unstable/cli/RegionFromProvide"
