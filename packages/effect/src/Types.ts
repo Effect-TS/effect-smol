@@ -928,6 +928,72 @@ export type ExtractReason<E, K extends string> = E extends { readonly reason: in
   : never
 
 /**
+ * Narrows a specific reason variant by its `_tag` from an error's `reason`
+ * field.
+ *
+ * - Use to narrow down to a single reason variant from a nested error type.
+ * - Returns `never` if `E` has no matching reason variant.
+ *
+ * **Example** (Narrowing a reason variant)
+ *
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
+ * type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
+ * type ApiError = { readonly _tag: "ApiError"; readonly reason: RateLimitError | QuotaError }
+ *
+ * type Result = Types.NarrowReason<ApiError, "RateLimitError">
+ * // ApiError & { readonly reason: { readonly _tag: "RateLimitError"; readonly retryAfter: number } }
+ * ```
+ *
+ * @see {@link ExcludeReason}
+ * @see {@link ReasonOf}
+ * @see {@link ReasonTags}
+ *
+ * @since 4.0.0
+ * @category types
+ */
+export type NarrowReason<E, K extends string> = E extends { readonly reason: infer R }
+  ? R extends { readonly _tag: infer T } ? K extends T ? E & { readonly reason: R } : never
+  : never
+  : never
+
+/**
+ * Narrows an error's `reason` field to exclude a specific reason variant by
+ * its `_tag`.
+ *
+ * - Use to narrow the error to only the remaining reason variants after
+ *   excluding the matched one.
+ * - Returns `never` if `E` has no `reason` field or no remaining variants.
+ *
+ * **Example** (Omitting a reason variant)
+ *
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
+ * type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
+ * type ApiError = { readonly _tag: "ApiError"; readonly reason: RateLimitError | QuotaError }
+ *
+ * type Result = Types.OmitReason<ApiError, "RateLimitError">
+ * // ApiError & { readonly reason: { readonly _tag: "QuotaError"; readonly limit: number } }
+ * ```
+ *
+ * @see {@link NarrowReason}
+ * @see {@link ExcludeReason}
+ * @see {@link ReasonOf}
+ * @see {@link ReasonTags}
+ *
+ * @since 4.0.0
+ * @category types
+ */
+export type OmitReason<E, K extends string> = E extends { readonly reason: infer R }
+  ? R extends { readonly _tag: infer T } ? K extends T ? never : E & { readonly reason: R }
+  : never
+  : never
+
+/**
  * Excludes a specific reason variant by its `_tag` from an error's `reason`
  * field.
  *

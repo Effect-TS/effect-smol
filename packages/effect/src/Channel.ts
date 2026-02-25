@@ -4384,12 +4384,12 @@ export const catchReason: {
     reasonTag: RK,
     f: (
       reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
-      error: Types.ExtractTag<Types.NoInfer<OutErr>, K>
+      error: Types.NarrowReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
     ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
     orElse?:
       | ((
         reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
-        error: Types.ExtractTag<Types.NoInfer<OutErr>, K>
+        error: Types.OmitReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
       ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
       | undefined
   ): <
@@ -4440,12 +4440,12 @@ export const catchReason: {
     reasonTag: RK,
     f: (
       reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
-      error: Types.ExtractTag<Types.NoInfer<OutErr>, K>
+      error: Types.NarrowReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
     ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
     orElse?:
       | ((
         reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
-        error: Types.ExtractTag<Types.NoInfer<OutErr>, K>
+        error: Types.OmitReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
       ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
       | undefined
   ): Channel<
@@ -4487,12 +4487,12 @@ export const catchReason: {
   reasonTag: RK,
   f: (
     reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
-    error: Types.ExtractTag<Types.NoInfer<OutErr>, K>
+    error: Types.NarrowReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
   ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>,
   orElse?:
     | ((
       reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
-      error: Types.ExtractTag<Types.NoInfer<OutErr>, K>
+      error: Types.OmitReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
     ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
     | undefined
 ): Channel<
@@ -4539,7 +4539,7 @@ export const catchReasons: {
     Cases extends {
       [RK in Types.ReasonTags<Types.ExtractTag<Types.NoInfer<OutErr>, K>>]+?: (
         reason: Types.ExtractReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>,
-        error: Types.ExtractTag<Types.NoInfer<OutErr>, K>
+        error: Types.NarrowReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, RK>
       ) => Channel<any, any, any, any, any, any, any>
     },
     OutElem2 = Types.unassigned,
@@ -4555,7 +4555,7 @@ export const catchReasons: {
     orElse?:
       | ((
         reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>,
-        error: Types.ExtractTag<Types.NoInfer<OutErr>, K>
+        error: Types.OmitReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>
       ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
       | undefined
   ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
@@ -4616,7 +4616,7 @@ export const catchReasons: {
     Cases extends {
       [RK in Types.ReasonTags<Types.ExtractTag<OutErr, K>>]+?: (
         reason: Types.ExtractReason<Types.ExtractTag<OutErr, K>, RK>,
-        error: Types.ExtractTag<OutErr, K>
+        error: Types.NarrowReason<Types.ExtractTag<OutErr, K>, RK>
       ) => Channel<any, any, any, any, any, any, any>
     },
     OutElem2 = Types.unassigned,
@@ -4633,7 +4633,7 @@ export const catchReasons: {
     orElse?:
       | ((
         reason: Types.ExcludeReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>,
-        error: Types.ExtractTag<Types.NoInfer<OutErr>, K>
+        error: Types.OmitReason<Types.ExtractTag<Types.NoInfer<OutErr>, K>, Extract<keyof Cases, string>>
       ) => Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>)
       | undefined
   ): Channel<

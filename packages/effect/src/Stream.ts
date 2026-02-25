@@ -48,7 +48,9 @@ import type {
   ExcludeTag,
   ExtractReason,
   ExtractTag,
+  NarrowReason,
   NoInfer,
+  OmitReason,
   ReasonTags,
   Tags,
   unassigned
@@ -5014,9 +5016,15 @@ export const catchReason: {
   >(
     errorTag: K,
     reasonTag: RK,
-    f: (reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>, error: ExtractTag<NoInfer<E>, K>) => Stream<A2, E2, R2>,
+    f: (
+      reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>,
+      error: NarrowReason<ExtractTag<NoInfer<E>, K>, RK>
+    ) => Stream<A2, E2, R2>,
     orElse?:
-      | ((reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, RK>, error: ExtractTag<NoInfer<E>, K>) => Stream<A3, E3, R3>)
+      | ((
+        reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, RK>,
+        error: OmitReason<ExtractTag<NoInfer<E>, K>, RK>
+      ) => Stream<A3, E3, R3>)
       | undefined
   ): <A, R>(
     self: Stream<A, E, R>
@@ -5037,8 +5045,10 @@ export const catchReason: {
     self: Stream<A, E, R>,
     errorTag: K,
     reasonTag: RK,
-    f: (reason: ExtractReason<ExtractTag<E, K>, RK>, error: ExtractTag<E, K>) => Stream<A2, E2, R2>,
-    orElse?: ((reason: ExcludeReason<ExtractTag<E, K>, RK>, error: ExtractTag<E, K>) => Stream<A3, E3, R3>) | undefined
+    f: (reason: ExtractReason<ExtractTag<E, K>, RK>, error: NarrowReason<ExtractTag<E, K>, RK>) => Stream<A2, E2, R2>,
+    orElse?:
+      | ((reason: ExcludeReason<ExtractTag<E, K>, RK>, error: OmitReason<ExtractTag<E, K>, RK>) => Stream<A3, E3, R3>)
+      | undefined
   ): Stream<A | A2 | Exclude<A3, unassigned>, (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3, R | R2 | R3>
 } = dual(
   (args) => isStream(args[0]),
@@ -5058,8 +5068,10 @@ export const catchReason: {
     self: Stream<A, E, R>,
     errorTag: K,
     reasonTag: RK,
-    f: (reason: ExtractReason<ExtractTag<E, K>, RK>, error: ExtractTag<E, K>) => Stream<A2, E2, R2>,
-    orElse?: ((reason: ExcludeReason<ExtractTag<E, K>, RK>, error: ExtractTag<E, K>) => Stream<A3, E3, R3>) | undefined
+    f: (reason: ExtractReason<ExtractTag<E, K>, RK>, error: NarrowReason<ExtractTag<E, K>, RK>) => Stream<A2, E2, R2>,
+    orElse?:
+      | ((reason: ExcludeReason<ExtractTag<E, K>, RK>, error: OmitReason<ExtractTag<E, K>, RK>) => Stream<A3, E3, R3>)
+      | undefined
   ): Stream<A | A2 | Exclude<A3, unassigned>, (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3, R | R2 | R3> =>
     fromChannel(
       Channel.catchReason(
@@ -5120,7 +5132,7 @@ export const catchReasons: {
     Cases extends {
       [RK in ReasonTags<ExtractTag<NoInfer<E>, K>>]+?: (
         reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>,
-        error: ExtractTag<NoInfer<E>, K>
+        error: NarrowReason<ExtractTag<NoInfer<E>, K>, RK>
       ) => Stream<any, any, any>
     },
     A2 = unassigned,
@@ -5132,7 +5144,7 @@ export const catchReasons: {
     orElse?:
       | ((
         reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, Extract<keyof Cases, string>>,
-        error: ExtractTag<NoInfer<E>, K>
+        error: OmitReason<ExtractTag<NoInfer<E>, K>, Extract<keyof Cases, string>>
       ) => Stream<A2, E2, R2>)
       | undefined
   ): <A, R>(self: Stream<A, E, R>) => Stream<
@@ -5160,7 +5172,7 @@ export const catchReasons: {
     Cases extends {
       [RK in ReasonTags<ExtractTag<E, K>>]+?: (
         reason: ExtractReason<ExtractTag<E, K>, RK>,
-        error: ExtractTag<E, K>
+        error: NarrowReason<ExtractTag<E, K>, RK>
       ) => Stream<any, any, any>
     },
     A2 = unassigned,
@@ -5173,7 +5185,7 @@ export const catchReasons: {
     orElse?:
       | ((
         reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, Extract<keyof Cases, string>>,
-        error: ExtractTag<NoInfer<E>, K>
+        error: OmitReason<ExtractTag<NoInfer<E>, K>, Extract<keyof Cases, string>>
       ) => Stream<A2, E2, R2>)
       | undefined
   ): Stream<
