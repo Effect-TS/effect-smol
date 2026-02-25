@@ -12,6 +12,7 @@ import { pipeArguments } from "../../../Pipeable.ts"
 import * as Predicate from "../../../Predicate.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
 import * as CliError from "../CliError.ts"
+import type * as GlobalFlag from "../GlobalFlag.ts"
 import type { ArgDoc, ExampleDoc, FlagDoc, HelpDoc, SubcommandGroupDoc } from "../HelpDoc.ts"
 import * as Param from "../Param.ts"
 import * as Primitive from "../Primitive.ts"
@@ -36,6 +37,7 @@ export interface CommandInternal<Name extends string, Input, E, R> extends Comma
   readonly config: ConfigInternal
   readonly service: ServiceMap.Service<CommandContext<Name>, Input>
   readonly annotations: ServiceMap.ServiceMap<never>
+  readonly globalFlags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>
   readonly parse: (input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>
   readonly handle: (
     input: Input,
@@ -88,6 +90,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly config: ConfigInternal
   readonly service?: ServiceMap.Service<CommandContext<Name>, Input> | undefined
   readonly annotations?: ServiceMap.ServiceMap<never> | undefined
+  readonly globalFlags?: ReadonlyArray<GlobalFlag.GlobalFlag<any>> | undefined
   readonly description?: string | undefined
   readonly shortDescription?: string | undefined
   readonly alias?: string | undefined
@@ -101,6 +104,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
   const service = options.service ?? ServiceMap.Service<CommandContext<Name>, Input>(`${TypeId}/${options.name}`)
   const config = options.config
   const annotations = options.annotations ?? ServiceMap.empty()
+  const globalFlags = options.globalFlags ?? []
   const subcommands = options.subcommands ?? []
 
   const handle = (
@@ -191,6 +195,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
     name: options.name,
     examples: options.examples ?? [],
     annotations,
+    globalFlags,
     subcommands,
     config,
     service,
