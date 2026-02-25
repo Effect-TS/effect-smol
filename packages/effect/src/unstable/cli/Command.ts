@@ -6,7 +6,7 @@ import * as Console from "../../Console.ts"
 import * as Effect from "../../Effect.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { dual } from "../../Function.ts"
-import * as Layer from "../../Layer.ts"
+import type * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import type * as Path from "../../Path.ts"
 import type { Pipeable } from "../../Pipeable.ts"
@@ -22,7 +22,7 @@ import * as CliOutput from "./CliOutput.ts"
 import * as GlobalFlag from "./GlobalFlag.ts"
 import { checkForDuplicateFlags, makeCommand, toImpl, TypeId } from "./internal/command.ts"
 import { parseConfig } from "./internal/config.ts"
-import { getHelpForCommandPath } from "./internal/help.ts"
+import { getGlobalFlagsForCommandPath, getGlobalFlagsForCommandTree, getHelpForCommandPath } from "./internal/help.ts"
 import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"
 import * as Param from "./Param.ts"
@@ -420,7 +420,7 @@ export const make: {
     name: Name,
     config: Config,
     handler: (config: Command.Config.Infer<Config>) => Effect.Effect<void, E, R>
-  ): Command<Name, Command.Config.Infer<Config>, E, R>
+  ): Command<Name, Command.Config.Infer<Config>, E, Exclude<R, GlobalFlag.BuiltInSettingContext>>
 } = ((
   name: string,
   config?: Command.Config,
@@ -467,15 +467,16 @@ export const withHandler: {
     handler: (value: A) => Effect.Effect<void, E, R>
   ): <Name extends string, XR, XE>(
     self: Command<Name, A, XE, XR>
-  ) => Command<Name, A, E, R>
+  ) => Command<Name, A, E, Exclude<R, GlobalFlag.BuiltInSettingContext>>
   <Name extends string, A, XR, XE, R, E>(
     self: Command<Name, A, XE, XR>,
     handler: (value: A) => Effect.Effect<void, E, R>
-  ): Command<Name, A, E, R>
+  ): Command<Name, A, E, Exclude<R, GlobalFlag.BuiltInSettingContext>>
 } = dual(2, <Name extends string, A, XR, XE, R, E>(
   self: Command<Name, A, XE, XR>,
   handler: (value: A) => Effect.Effect<void, E, R>
-): Command<Name, A, E, R> => makeCommand({ ...toImpl(self), handle: handler }))
+): Command<Name, A, E, Exclude<R, GlobalFlag.BuiltInSettingContext>> =>
+  makeCommand({ ...toImpl(self), handle: handler }))
 
 interface SubcommandGroupInternal {
   readonly group: string | undefined
@@ -653,6 +654,7 @@ export const withSubcommands: {
     shortDescription: impl.shortDescription,
     alias: impl.alias,
     annotations: impl.annotations,
+    globalFlags: impl.globalFlags,
     examples: impl.examples,
     service: impl.service,
     subcommands: normalized.groups,
@@ -661,7 +663,39 @@ export const withSubcommands: {
   })
 })
 
+/**
+ * Declares global flags for a command scope.
+ *
+ * Declared global flags apply to the command and all of its descendants.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withGlobalFlags: {
+  <const GlobalFlags extends ReadonlyArray<GlobalFlag.GlobalFlag<any>>>(
+    globalFlags: GlobalFlags
+  ): <Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>
+  ) => Command<Name, Input, E, Exclude<R, ExtractGlobalFlagContext<GlobalFlags>>>
+  <Name extends string, Input, E, R, const GlobalFlags extends ReadonlyArray<GlobalFlag.GlobalFlag<any>>>(
+    self: Command<Name, Input, E, R>,
+    globalFlags: GlobalFlags
+  ): Command<Name, Input, E, Exclude<R, ExtractGlobalFlagContext<GlobalFlags>>>
+} = dual(
+  2,
+  <Name extends string, Input, E, R, const GlobalFlags extends ReadonlyArray<GlobalFlag.GlobalFlag<any>>>(
+    self: Command<Name, Input, E, R>,
+    globalFlags: GlobalFlags
+  ): Command<Name, Input, E, Exclude<R, ExtractGlobalFlagContext<GlobalFlags>>> => {
+    const impl = toImpl(self)
+    const next = Array.from(new Set([...impl.globalFlags, ...globalFlags]))
+    return makeCommand({ ...impl, globalFlags: next })
+  }
+)
+
 // Type extractors for subcommand arrays - T[number] gives union of all elements
+type ExtractGlobalFlagContext<T extends ReadonlyArray<GlobalFlag.GlobalFlag<any>>> = T[number] extends
+  GlobalFlag.Setting<infer Id, any> ? GlobalFlag.Setting.Identifier<Id> : never
 type ExtractSubcommand<T> = T extends Command<any, any, any, any> ? T
   : T extends Command.SubcommandGroup<infer Commands> ? Commands[number]
   : never
@@ -999,6 +1033,45 @@ export const provideEffectDiscard: {
 /* Execution                                                                  */
 /* ========================================================================== */
 
+const getOutOfScopeGlobalFlagErrors = (
+  allFlags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>,
+  activeFlags: ReadonlyArray<GlobalFlag.GlobalFlag<any>>,
+  flagMap: Record<string, ReadonlyArray<string>>,
+  commandPath: ReadonlyArray<string>
+): ReadonlyArray<CliError.CliError> => {
+  const activeSet = new Set(activeFlags)
+  const errors: Array<CliError.CliError> = []
+  const seen = new Set<string>()
+
+  for (const flag of allFlags) {
+    if (activeSet.has(flag)) {
+      continue
+    }
+
+    const singles = Param.extractSingleParams(flag.flag)
+    for (const single of singles) {
+      const entries = flagMap[single.name]
+      if (!entries || entries.length === 0) {
+        continue
+      }
+      const option = `--${single.name}`
+      if (seen.has(option)) {
+        continue
+      }
+      seen.add(option)
+      errors.push(
+        new CliError.UnrecognizedOption({
+          option,
+          suggestions: [],
+          command: commandPath
+        })
+      )
+    }
+  }
+
+  return errors
+}
+
 const showHelp = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string>,
@@ -1006,7 +1079,7 @@ const showHelp = <Name extends string, Input, E, R>(
 ): Effect.Effect<void, never, Environment> =>
   Effect.gen(function*() {
     const formatter = yield* CliOutput.Formatter
-    const helpDoc = yield* getHelpForCommandPath(command, commandPath, GlobalFlag.Registry)
+    const helpDoc = yield* getHelpForCommandPath(command, commandPath, GlobalFlag.BuiltIns)
     yield* Console.log(formatter.formatHelpDoc(helpDoc))
     if (errors && errors.length > 0) {
       yield* Console.error(formatter.formatErrors(errors))
@@ -1113,11 +1186,11 @@ export const runWith = <const Name extends string, Input, E, R>(
     function*(args: ReadonlyArray<string>) {
       const { tokens, trailingOperands } = Lexer.lex(args)
 
-      // 1. Read global flags from registry
-      const flags = Array.from(yield* GlobalFlag.Registry)
+      // 1. Collect known global flags from the command tree
+      const allFlags = getGlobalFlagsForCommandTree(command, GlobalFlag.BuiltIns)
 
       // 2. Extract global flag tokens
-      const allFlagParams = flags.flatMap((f) => Param.extractSingleParams(f.flag))
+      const allFlagParams = allFlags.flatMap((f) => Param.extractSingleParams(f.flag))
       const globalRegistry = Parser.createFlagRegistry(allFlagParams.filter(Param.isFlagParam))
       const { flagMap, remainder } = Parser.consumeKnownFlags(tokens, globalRegistry)
       const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
@@ -1126,9 +1199,17 @@ export const runWith = <const Name extends string, Input, E, R>(
       const parsedArgs = yield* Parser.parseArgs({ tokens: remainder, trailingOperands }, command)
       const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)] as const
       const handlerCtx: GlobalFlag.HandlerContext = { command, commandPath, version: config.version }
+      const activeFlags = getGlobalFlagsForCommandPath(command, commandPath, GlobalFlag.BuiltIns)
 
-      // 4. Process action flags — first present action wins, then exit
-      for (const flag of flags) {
+      // 4. Reject globals that were passed outside the active command scope
+      const outOfScopeErrors = getOutOfScopeGlobalFlagErrors(allFlags, activeFlags, flagMap, commandPath)
+      if (outOfScopeErrors.length > 0) {
+        const parseErrors = parsedArgs.errors ?? []
+        return yield* showHelp(command, commandPath, [...outOfScopeErrors, ...parseErrors])
+      }
+
+      // 5. Process action flags — first present action wins, then exit
+      for (const flag of activeFlags) {
         if (flag._tag !== "Action") continue
         const singles = Param.extractSingleParams(flag.flag)
         const hasEntry = singles.some((s) => {
@@ -1141,7 +1222,7 @@ export const runWith = <const Name extends string, Input, E, R>(
         return
       }
 
-      // 5. Handle parsing errors
+      // 6. Handle parsing errors
       if (parsedArgs.errors && parsedArgs.errors.length > 0) {
         return yield* showHelp(command, commandPath, parsedArgs.errors)
       }
@@ -1150,29 +1231,25 @@ export const runWith = <const Name extends string, Input, E, R>(
         return yield* showHelp(command, commandPath, [parseResult.failure])
       }
 
-      // 6. Provide setting values
-      let contextLayer: Layer.Layer<never> = Layer.empty
-      for (const flag of flags) {
+      // 7. Provide setting values
+      let program = commandImpl.handle(parseResult.success, [command.name])
+      for (const flag of activeFlags) {
         if (flag._tag !== "Setting") continue
         const [, value] = yield* flag.flag.parse(emptyArgs)
-        contextLayer = Layer.merge(contextLayer, Layer.succeed(flag, value))
+        program = Effect.provideService(program, flag, value)
       }
 
-      // 7. Apply built-in setting behavior
-      if (flags.includes(GlobalFlag.LogLevel)) {
-        const [, logLevel] = yield* GlobalFlag.LogLevel.flag.parse(emptyArgs)
-        contextLayer = Layer.merge(
-          contextLayer,
-          Option.match(logLevel, {
-            onNone: () => Layer.empty,
-            onSome: (level) => Layer.succeed(References.MinimumLogLevel, level)
-          })
-        )
-      }
+      const [, logLevel] = yield* GlobalFlag.LogLevel.flag.parse(emptyArgs)
+      program = Effect.provideService(program, GlobalFlag.LogLevel, logLevel)
 
-      // 8. Run command handler with composed context
-      const program = commandImpl.handle(parseResult.success, [command.name])
-      yield* Effect.provide(program, contextLayer)
+      // 8. Apply built-in setting behavior
+      const services = Option.match(logLevel, {
+        onNone: () => ServiceMap.empty(),
+        onSome: (level) => ServiceMap.make(References.MinimumLogLevel, level)
+      })
+
+      // 9. Run command handler with composed context
+      yield* Effect.provideServices(program, services)
     },
     Effect.catchIf(
       ((error: any) =>

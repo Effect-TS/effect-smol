@@ -4,7 +4,6 @@
 
 import * as Console from "../../Console.ts"
 import * as Effect from "../../Effect.ts"
-import { dual } from "../../Function.ts"
 import type { LogLevel as LogLevelType } from "../../LogLevel.ts"
 import * as Option from "../../Option.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -49,9 +48,21 @@ export interface Action<A> {
  * @since 4.0.0
  * @category models
  */
-export interface Setting<A> extends ServiceMap.Reference<A> {
+export interface Setting<Id extends string, A> extends ServiceMap.Service<Setting.Identifier<Id>, A> {
   readonly _tag: "Setting"
+  readonly id: Id
   readonly flag: Flag.Flag<A>
+}
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace Setting {
+  /**
+   * @since 4.0.0
+   * @category models
+   */
+  export type Identifier<Id extends string> = `effect/unstable/cli/GlobalFlag/${Id}`
 }
 
 /**
@@ -60,7 +71,7 @@ export interface Setting<A> extends ServiceMap.Reference<A> {
  * @since 4.0.0
  * @category models
  */
-export type GlobalFlag<A> = Action<A> | Setting<A>
+export type GlobalFlag<A> = Action<A> | Setting<any, A>
 
 /* ========================================================================== */
 /* Constructors                                                               */
@@ -90,17 +101,19 @@ export const action = <A>(options: {
  * @since 4.0.0
  * @category constructors
  */
-export const setting = <A>(options: {
+export const setting = <const Id extends string>(
+  id: Id
+) =>
+<A>(options: {
   readonly flag: Flag.Flag<A>
-  readonly defaultValue: () => A
-}): Setting<A> => {
+}): Setting<Id, A> => {
   settingIdCounter += 1
-  const ref = ServiceMap.Reference<A>(
-    `effect/cli/GlobalFlag/Setting/${settingIdCounter}`,
-    { defaultValue: options.defaultValue }
+  const ref = ServiceMap.Service<Setting.Identifier<Id>, A>(
+    `effect/unstable/cli/GlobalFlag/${id}/${settingIdCounter}`
   )
   return Object.assign(ref, {
     _tag: "Setting" as const,
+    id,
     flag: options.flag
   })
 }
@@ -130,7 +143,7 @@ export const Help: Action<boolean> = action({
   run: (_, { command, commandPath }) =>
     Effect.gen(function*() {
       const formatter = yield* CliOutput.Formatter
-      const helpDoc = yield* HelpInternal.getHelpForCommandPath(command, commandPath, Registry)
+      const helpDoc = yield* HelpInternal.getHelpForCommandPath(command, commandPath, BuiltIns)
       yield* Console.log(formatter.formatHelpDoc(helpDoc))
     })
 })
@@ -184,7 +197,7 @@ export const Completions: Action<Option.Option<"bash" | "zsh" | "fish">> = actio
  * @since 4.0.0
  * @category references
  */
-export const LogLevel: Setting<Option.Option<LogLevelType>> = setting({
+export const LogLevel: Setting<"log-level", Option.Option<LogLevelType>> = setting("log-level")({
   flag: Flag.choiceWithValue(
     "log-level",
     [
@@ -201,99 +214,30 @@ export const LogLevel: Setting<Option.Option<LogLevelType>> = setting({
   ).pipe(
     Flag.optional,
     Flag.withDescription("Sets the minimum log level")
-  ),
-  defaultValue: () => Option.none()
+  )
 })
 
 /* ========================================================================== */
-/* Registry                                                                   */
+/* References                                                                 */
 /* ========================================================================== */
 
 /**
- * The ordered set of global flag references.
- * The parser iterates this set to know which flags to extract.
+ * Built-in global flags in default precedence order.
  *
  * @since 4.0.0
  * @category references
  */
-export const Registry: ServiceMap.Reference<
-  Set<GlobalFlag<any>>
-> = ServiceMap.Reference("effect/cli/GlobalFlag/Registry", {
-  defaultValue: () =>
-    new Set<GlobalFlag<any>>([
-      Help,
-      Version,
-      Completions,
-      LogLevel
-    ])
-})
-
-/* ========================================================================== */
-/* Public API                                                                 */
-/* ========================================================================== */
+export const BuiltIns: ReadonlyArray<GlobalFlag<any>> = [
+  Help,
+  Version,
+  Completions,
+  LogLevel
+]
 
 /**
- * Adds a global flag to the registry.
+ * Built-in setting context identifiers.
  *
  * @since 4.0.0
- * @category modifiers
+ * @category models
  */
-export const add: {
-  <A>(
-    flag: GlobalFlag<A>
-  ): <B, E, R>(
-    self: Effect.Effect<B, E, R>
-  ) => Effect.Effect<B, E, R>
-  <B, E, R, A>(
-    self: Effect.Effect<B, E, R>,
-    flag: GlobalFlag<A>
-  ): Effect.Effect<B, E, R>
-} = dual(
-  2,
-  Effect.fnUntraced(function*<B, E, R, A>(
-    self: Effect.Effect<B, E, R>,
-    flag: GlobalFlag<A>
-  ) {
-    const currentRegistry = yield* Registry
-    const nextRegistry = new Set([...currentRegistry, flag])
-    return yield* Effect.provideService(self, Registry, nextRegistry)
-  })
-)
-
-/**
- * Removes a global flag by its reference.
- *
- * @since 4.0.0
- * @category modifiers
- */
-export const remove: {
-  <A>(
-    flag: GlobalFlag<A>
-  ): <B, E, R>(
-    self: Effect.Effect<B, E, R>
-  ) => Effect.Effect<B, E, R>
-  <B, E, R, A>(
-    self: Effect.Effect<B, E, R>,
-    flag: GlobalFlag<A>
-  ): Effect.Effect<B, E, R>
-} = dual(
-  2,
-  Effect.fnUntraced(function*<B, E, R, A>(
-    self: Effect.Effect<B, E, R>,
-    flag: GlobalFlag<A>
-  ) {
-    const currentRegistry = yield* Registry
-    const nextRegistry = new Set(currentRegistry)
-    nextRegistry.delete(flag)
-    return yield* Effect.provideService(self, Registry, nextRegistry)
-  })
-)
-
-/**
- * Removes all global flags (built-in and user-defined).
- *
- * @since 4.0.0
- * @category modifiers
- */
-export const clear = <B, E, R>(self: Effect.Effect<B, E, R>): Effect.Effect<B, E, R> =>
-  Effect.provideService(self, Registry, new Set())
+export type BuiltInSettingContext = Setting.Identifier<"log-level">
