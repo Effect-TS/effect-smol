@@ -21,7 +21,7 @@ important topics are missing.
 - Code must be well-commented (how/why, not just what)
 - Code must represent real-world usage and best practices
 - Prefer `Effect.fn` over functions returning `Effect.gen`
-- Use `ServiceMap.Service` class syntax for service definitions
+- Use `ServiceMap.Service` for structuring code where possible
 - Export key definitions so the TypeScript compiler can verify them
 - Use `declare const` for stubs when implementation is not the focus
 - Run `pnpm ai-docgen` to regenerate `LLMS.md`
