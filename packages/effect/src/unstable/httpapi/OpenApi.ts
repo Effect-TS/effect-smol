@@ -351,10 +351,9 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
                   ast: toEncodingAST(ast, encoding),
                   path: ["paths", path, method, "responses", String(status), "content", contentType, "schema"]
                 })
-                op.responses[status].content = {
-                  [contentType]: {
-                    schema: {}
-                  }
+                op.responses[status].content ??= {}
+                op.responses[status].content[contentType] = {
+                  schema: {}
                 }
               })
             })

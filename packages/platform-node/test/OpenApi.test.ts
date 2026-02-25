@@ -1049,6 +1049,36 @@ describe("OpenAPI spec", () => {
             }
           })
         })
+
+        it("asJson + astText", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.get("a", "/a", {
+                    success: [
+                      Schema.String,
+                      Schema.String.pipe(
+                        HttpApiSchema.asText()
+                      )
+                    ]
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/String_"
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "$ref": "#/components/schemas/String_"
+              }
+            }
+          })
+        })
       })
     })
 
