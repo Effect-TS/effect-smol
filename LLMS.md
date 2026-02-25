@@ -195,6 +195,7 @@ Learn how to safely manage resources in Effect using `Scope`s and finalizers.
   Define a service that uses `Effect.acquireRelease` to manage the lifecycle of
   a resource, ensuring that it is properly cleaned up when the service is no
   longer needed.
+- **[Creating Layers that run background tasks](./ai-docs/src/01_effect/04_resources/20_layer-side-effects.ts)**: Use Layer.effectDiscard to encapsulate background tasks without a service interface.
 
 ## Working with Streams
 
