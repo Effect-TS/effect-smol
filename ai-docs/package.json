@@ -26,6 +26,7 @@
     "@effect/sql-sqlite-react-native": "workspace:*",
     "@effect/sql-sqlite-wasm": "workspace:*",
     "effect": "workspace:*",
+    "hono": "^4.0.0",
     "nodemailer": "^8.0.1"
   },
   "devDependencies": {

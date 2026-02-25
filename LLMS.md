@@ -57,7 +57,9 @@ import { Effect, Schema } from "effect"
 // The name string should match the function name.
 //
 export const effectFunction = Effect.fn("effectFunction")(
-  function*(n: number) {
+  // You can use `Effect.fn.Return` to specify the return type of the function.
+  // It accepts the same type parameters as `Effect.Effect`.
+  function*(n: number): Effect.fn.Return<string, SomeError> {
     yield* Effect.logInfo("Received number:", n)
 
     // Always return when raising an error, to ensure typescript understands that
@@ -193,13 +195,12 @@ Learn how to safely manage resources in Effect using `Scope`s and finalizers.
   Define a service that uses `Effect.acquireRelease` to manage the lifecycle of
   a resource, ensuring that it is properly cleaned up when the service is no
   longer needed.
+- **[Creating Layers that run background tasks](./ai-docs/src/01_effect/04_resources/20_layer-side-effects.ts)**: Use Layer.effectDiscard to encapsulate background tasks without a service interface.
 
 ## Working with Streams
 
 Effect Streams represent effectful, pull-based sequences of values over time.
-They let you model finite or infinite data sources, transform and compose
-pipelines with operators, and run them with controlled concurrency,
-backpressure, and resource safety.
+They let you model finite or infinite data sources.
 
 - **[Creating streams from common data sources](./ai-docs/src/02_stream/10_creating-streams.ts)**:
   Learn how to create streams from various data sources. Includes:
@@ -211,6 +212,32 @@ backpressure, and resource safety.
   - `Stream.fromEventListener` for DOM events
   - `Stream.callback` for any callback-based API
   - `NodeStream.fromReadable` for Node.js readable streams
+- **[Consuming and transforming streams](./ai-docs/src/02_stream/20_consuming-streams.ts)**: How to transform and consume streams using operators like `map`, `flatMap`, `filter`, `mapEffect`, and various `run*` methods.
+
+## Integrating Effect into existing applications
+
+`ManagedRuntime` bridges Effect programs with non-Effect code. Build one runtime
+from your application Layer, then use it anywhere you need imperative execution,
+like web handlers, framework hooks, worker queues, or legacy callback APIs.
+
+- **[Using ManagedRuntime with Hono](./ai-docs/src/03_integration/10_managed-runtime.ts)**: Use `ManagedRuntime` to run Effect programs from external frameworks while keeping your domain logic in services and Layers.
+
+## Batching external requests
+
+Learn how to batch multiple requests into fewer external calls.
+
+- **[Batching requests with RequestResolver](./ai-docs/src/05_batching/10_request-resolver.ts)**: Define request types with `Request.Class`, resolve them in batches with `RequestResolver`.
+
+## Observability
+
+Effect has built-in support for structured logging, distributed tracing, and
+metrics. For exporting telemetry, use the lightweight Otlp modules from
+`effect/unstable/observability` in new projects, or use
+`@effect/opentelemetry` NodeSdk when integrating with an existing OpenTelemetry
+setup.
+
+- **[Customizing logging](./ai-docs/src/08_observability/10_logging.ts)**: Configure loggers & log-level filtering for production applications.
+- **[Setting up tracing with Otlp modules](./ai-docs/src/08_observability/20_otlp-tracing.ts)**: Configure Otlp tracing + log export with a reusable observability layer.
 
 ## Effect HttpClient
 
@@ -227,3 +254,13 @@ managing the flow of a CLI application.
 - **[Getting started with Effect CLI modules](./ai-docs/src/70_cli/10_basics.ts)**:
   Build a command-line app with typed arguments and flags, then wire subcommand
   handlers into a single executable command.
+
+## Working with Cluster entities
+
+The cluster modules let you model stateful services as entities and distribute
+them across multiple machines.
+
+- **[Defining cluster entities](./ai-docs/src/80_cluster/10_entities.ts)**:
+  Define entity RPCs, implement stateful handlers, and call entities through a
+  typed client. This example also shows `SingleRunner.layer` for local
+  development and `maxIdleTime` for passivation.

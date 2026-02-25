@@ -220,6 +220,9 @@ importers:
       effect:
         specifier: workspace:*
         version: link:../packages/effect
+      hono:
+        specifier: ^4.0.0
+        version: 4.11.4
       nodemailer:
         specifier: ^8.0.1
         version: 8.0.1
