@@ -188,14 +188,23 @@ Learn how to safely manage resources in Effect using `Scope`s and finalizers.
   a resource, ensuring that it is properly cleaned up when the service is no
   longer needed.
 
-## Creating streams
+## Working with Streams
 
-Use `Stream` constructors to model data from in-memory collections, effectful
-polling loops, and paginated APIs.
+Effect Streams represent effectful, pull-based sequences of values over time.
+They let you model finite or infinite data sources, transform and compose
+pipelines with operators, and run them with controlled concurrency,
+backpressure, and resource safety.
 
 - **[Creating streams from common data sources](./ai-docs/src/02_stream/10_creating-streams.ts)**:
-  Start with simple constructors, then move to effectful and paginated inputs
-  without changing how you process values.
+  Learn how to create streams from various data sources. Includes:
+  
+  - `Stream.fromIterable` for arrays and other iterables
+  - `Stream.fromEffectSchedule` for polling effects
+  - `Stream.paginate` for paginated APIs
+  - `Stream.fromAsyncIterable` for async iterables
+  - `Stream.fromEventListener` for DOM events
+  - `Stream.callback` for any callback-based API
+  - `NodeStream.fromReadable` for Node.js readable streams
 
 ## Effect HttpClient
 
