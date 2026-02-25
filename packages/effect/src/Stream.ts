@@ -7409,13 +7409,10 @@ export const groupedWithin: {
   chunkSize: number,
   duration: Duration.Input
 ): Stream<Array<A>, E, R> =>
-  filter(
-    aggregateWithin(
-      self,
-      Sink.take(chunkSize),
-      Schedule.spaced(duration)
-    ),
-    (chunk) => chunk.length > 0
+  aggregateWithin(
+    self,
+    Sink.take(chunkSize),
+    Schedule.spaced(duration)
   ))
 
 /**
@@ -7850,12 +7847,14 @@ export const aggregateWithin: {
 
     // schedule -> buffer
     let lastOutput = Option.none<B>()
+    let leftover: Arr.NonEmptyReadonlyArray<A2> | undefined
     const step = yield* Schedule.toStepWithSleep(schedule)
-    const stepToBuffer = Effect.suspend(() => step(lastOutput)).pipe(
-      Effect.flatMap(() => Queue.offer(buffer, scheduleStep)),
-      Effect.flatMap(() => Effect.never),
-      Pull.catchDone(() => Cause.done())
-    )
+    const stepToBuffer = (): Pull.Pull<never, E3, void, R3> =>
+      Effect.suspend(() => step(lastOutput)).pipe(
+        Effect.flatMap(() => !hadChunk && leftover === undefined ? stepToBuffer() : Queue.offer(buffer, scheduleStep)),
+        Effect.flatMap(() => Effect.never),
+        Pull.catchDone(() => Cause.done())
+      )
 
     // buffer -> sink
     const pullFromBuffer: Pull.Pull<
@@ -7865,7 +7864,6 @@ export const aggregateWithin: {
       Effect.flatMap((arr) => arr === scheduleStep ? Cause.done() : Effect.succeed(arr))
     )
 
-    let leftover: Arr.NonEmptyReadonlyArray<A2> | undefined
     const sinkUpstream = Effect.suspend((): Pull.Pull<Arr.NonEmptyReadonlyArray<A | A2>, E> => {
       if (leftover !== undefined) {
         const chunk = leftover
@@ -7877,7 +7875,7 @@ export const aggregateWithin: {
       return pullFromBuffer
     })
     const catchSinkHalt = Effect.flatMap(([value, leftover_]: Sink.End<B, A2>) => {
-      // ignore the last output if the upsteam only pulled a halt
+      // ignore the last output if the upstream only pulled a halt
       if (!hadChunk && buffer.state._tag === "Done") return Cause.done()
       lastOutput = Option.some(value)
       leftover = leftover_
@@ -7891,7 +7889,7 @@ export const aggregateWithin: {
       }
       return Effect.succeed(Effect.suspend(() => sink.transform(sinkUpstream as any, scope)))
     }).pipe(
-      Effect.flatMap((pull) => Effect.raceFirst(catchSinkHalt(pull), stepToBuffer))
+      Effect.flatMap((pull) => Effect.raceFirst(catchSinkHalt(pull), stepToBuffer()))
     )
   }))))
 
