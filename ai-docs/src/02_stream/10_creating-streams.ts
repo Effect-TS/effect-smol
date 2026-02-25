@@ -56,6 +56,7 @@ export const fetchJobsPage = Effect.fnUntraced(function*(page: number) {
   return [jobs, nextPage] as const
 })
 
+// `Stream.paginate` consumes each page and emits jobs one-by-one.
 export const jobsFromApi = Stream.paginate(0, fetchJobsPage)
 
 // Downstream processing looks the same regardless of how the stream was created.
