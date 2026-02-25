@@ -16,3 +16,4 @@ This directory contains specifications for all major features and enhancements i
 - [cli-completions-refactor.md](cli-completions-refactor.md) - Replace dynamic CLI completions with static shell script generation for Bash, Zsh, and Fish.
 - [ai-openai-compat.md](ai-openai-compat.md) - Add a minimal-schema OpenAI compat package for LanguageModel + embeddings.
 - [httpapi-client-middleware.md](httpapi-client-middleware.md) - Add client-side middleware support to HttpApi, mirroring Rpc's `RpcMiddleware.layerClient` pattern.
+- [ai-docs-comprehensive.md](ai-docs-comprehensive.md) - Comprehensive AI documentation covering 22 topics: running effects, streams, integration, HTTP servers, RPC, AI modules, cluster, workflows, observability, caching, scheduling, batching, testing, and more.
