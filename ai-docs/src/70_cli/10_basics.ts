@@ -71,6 +71,13 @@ const list = Command.make(
   },
   Effect.fnUntraced(function*({ status, json }) {
     const root = yield* tasks
+    const items = [
+      { title: "Ship 4.0", status: "open" },
+      { title: "Update onboarding guide", status: "done" }
+    ] as const
+    const filtered = status === "all"
+      ? items
+      : items.filter((item) => item.status === status)
 
     if (root.verbose) {
       yield* Console.log(`workspace=${root.workspace} action=list`)
@@ -81,10 +88,7 @@ const list = Command.make(
         {
           workspace: root.workspace,
           status,
-          items: [
-            { title: "Ship 4.0", status: "open" },
-            { title: "Update onboarding guide", status: "done" }
-          ]
+          items: filtered
         },
         null,
         2
@@ -93,8 +97,14 @@ const list = Command.make(
     }
 
     yield* Console.log(`Listing ${status} tasks in ${root.workspace}`)
-    yield* Console.log("- Ship 4.0")
-    yield* Console.log("- Update onboarding guide")
+    if (filtered.length === 0) {
+      yield* Console.log("- No tasks found")
+      return
+    }
+
+    for (const item of filtered) {
+      yield* Console.log(`- ${item.title}`)
+    }
   })
 ).pipe(
   Command.withDescription("List tasks")
