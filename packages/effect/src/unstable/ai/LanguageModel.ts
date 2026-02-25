@@ -527,8 +527,12 @@ export type ExtractError<Options> = Options extends {
  * @category utility types
  */
 export type ExtractServices<Options> = Options extends {
-  readonly toolkit: Toolkit.WithHandler<infer _Tools>
+  disableToolCallResolution: true
 }
+  ? never
+  : Options extends {
+     readonly toolkit: Toolkit.WithHandler<infer _Tools>;
+  }
   // Required for tool call execution
   ?
     | Tool.ResultEncodingServices<_Tools[keyof _Tools]>
