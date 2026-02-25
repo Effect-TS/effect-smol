@@ -7409,10 +7409,13 @@ export const groupedWithin: {
   chunkSize: number,
   duration: Duration.Input
 ): Stream<Array<A>, E, R> =>
-  aggregateWithin(
-    self,
-    Sink.take(chunkSize),
-    Schedule.spaced(duration)
+  filter(
+    aggregateWithin(
+      self,
+      Sink.take(chunkSize),
+      Schedule.spaced(duration)
+    ),
+    (chunk) => chunk.length > 0
   ))
 
 /**

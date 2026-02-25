@@ -1547,6 +1547,20 @@ describe("Stream", () => {
   })
 
   describe("aggregateWithin", () => {
+    it.effect("groupedWithin does not emit empty arrays when upstream is idle", () =>
+      Effect.gen(function*() {
+        const fiber = yield* Stream.never.pipe(
+          Stream.groupedWithin(25, "50 millis"),
+          Stream.take(1),
+          Stream.runCollect,
+          Effect.timeoutOption("250 millis"),
+          Effect.forkScoped
+        )
+        yield* TestClock.adjust("250 millis")
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, Option.none())
+      }))
+
     it.effect("simple example", () =>
       Effect.gen(function*() {
         const result = yield* pipe(
