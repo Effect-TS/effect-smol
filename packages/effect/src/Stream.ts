@@ -678,7 +678,7 @@ export const toChannel = <A, E, R>(
  * @category Constructors
  */
 export const callback = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E | Cause.Done>) => Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Enqueue<A, E | Cause.Done>) => Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined

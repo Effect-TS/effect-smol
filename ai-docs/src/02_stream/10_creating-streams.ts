@@ -1,69 +1,85 @@
 /**
  * @title Creating streams from common data sources
  *
- * Start with simple constructors, then move to effectful and paginated inputs
- * without changing how you process values.
+ * Learn how to create streams from various data sources. Includes:
+ * - `Stream.fromIterable` for arrays and other iterables
+ * - `Stream.fromEffectSchedule` for polling effects
+ * - `Stream.paginate` for paginated APIs
+ * - `Stream.fromAsyncIterable` for async iterables
+ * - `Stream.fromEventListener` for DOM events
+ * - `Stream.callback` for any callback-based API
  */
-import { Console, Effect, Schedule, Stream } from "effect"
+import { Array, Effect, Queue, Schedule, Schema, Stream } from "effect"
 import * as Option from "effect/Option"
 
-export interface DeploymentJob {
-  readonly id: string
-  readonly service: string
-  readonly status: "queued" | "running" | "succeeded"
-}
-
-// `Stream.fromIterable` is the easiest way to create a stream from data you
-// already have in memory.
-export const seededJobs = Stream.fromIterable<DeploymentJob>([
-  { id: "job-100", service: "billing", status: "queued" },
-  { id: "job-101", service: "search", status: "running" }
-])
+// `Stream.fromIterable` turns any iterable into a stream.
+export const numbers = Stream.fromIterable<number>([1, 2, 3, 4, 5])
 
 // `Stream.fromEffectSchedule` turns a single effect into a polling stream.
 // This is useful for metrics, health checks, and cache refresh loops.
-export const queueDepthSamples = Stream.fromEffectSchedule(
+export const samples = Stream.fromEffectSchedule(
   Effect.succeed(3),
   Schedule.spaced("30 seconds")
 ).pipe(
+  // Stream.take limits the number of elements emitted by the stream.
   Stream.take(3)
 )
 
-const pages: ReadonlyArray<ReadonlyArray<DeploymentJob>> = [
-  [
-    { id: "job-102", service: "billing", status: "running" },
-    { id: "job-103", service: "search", status: "queued" }
-  ],
-  [
-    { id: "job-104", service: "analytics", status: "queued" }
-  ],
-  [
-    { id: "job-105", service: "billing", status: "succeeded" }
-  ]
-]
-
 // Use `Stream.paginate` when reading APIs that return one page at a time.
-// The function returns the current page of values and optionally the next page.
-export const fetchJobsPage = Effect.fnUntraced(function*(page: number) {
-  // Simulate network latency to make the flow realistic.
-  yield* Effect.sleep("50 millis")
+// The function returns the current page of values and optionally the next
+// cursor.
+export const fetchJobsPage = Stream.paginate(
+  0, // start with page 0 (the cursor)
+  Effect.fnUntraced(function*(page) {
+    // Simulate network latency
+    yield* Effect.sleep("50 millis")
 
-  const jobs = pages[page] ?? []
-  const nextPage = page < pages.length - 1
-    ? Option.some(page + 1)
-    : Option.none<number>()
+    const results = Array.range(0, 100).map((i) => `Job ${i + 1 + page * 100}`)
 
-  return [jobs, nextPage] as const
-})
+    // only return 10 pages of results
+    const nextPage = page <= 10
+      ? Option.some(page + 1)
+      : Option.none()
 
-// `Stream.paginate` consumes each page and emits jobs one-by-one.
-export const jobsFromApi = Stream.paginate(0, fetchJobsPage)
+    return [results, nextPage] as const
+  })
+)
 
-// Downstream processing looks the same regardless of how the stream was created.
-export const preview = Effect.gen(function*() {
-  const seedPreview = yield* seededJobs.pipe(Stream.runCollect)
-  const depthPreview = yield* queueDepthSamples.pipe(Stream.runCollect)
-  const apiPreview = yield* jobsFromApi.pipe(Stream.runCollect)
+class LetterError extends Schema.TaggedErrorClass<LetterError>()("LetterError", {
+  cause: Schema.Defect
+}) {}
 
-  yield* Console.log({ seedPreview, depthPreview, apiPreview })
-})
+async function* asyncIterable() {
+  yield "a"
+  yield "b"
+  yield "c"
+}
+
+// Create a stream from an async iterable.
+// The second argument is a function that converts any errors thrown by the
+// async iterable into a typed error.
+export const letters = Stream.fromAsyncIterable(
+  asyncIterable(),
+  (cause) => new LetterError({ cause })
+)
+
+const button = document.getElementById("my-button")!
+
+// `Stream.fromEventListener` creates a stream from an event listener.
+export const events = Stream.fromEventListener<PointerEvent>(button, "click")
+
+// You can also use `Stream.callback` to create a stream from any callback-based
+// API.
+export const callbackStream = Stream.callback<PointerEvent>(Effect.fnUntraced(function*(queue) {
+  // You can use the `Queue` apis to emit values into the stream from the
+  // callback.
+  function onEvent(event: PointerEvent) {
+    Queue.offerUnsafe(queue, event)
+  }
+  // register the event listener and add a finalizer to unregister it when the
+  // stream is finished.
+  yield* Effect.acquireRelease(
+    Effect.sync(() => button.addEventListener("click", onEvent)),
+    () => Effect.sync(() => button.removeEventListener("click", onEvent))
+  )
+}))
