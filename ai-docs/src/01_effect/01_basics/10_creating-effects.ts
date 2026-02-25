@@ -18,6 +18,7 @@ class UserLookupError extends Schema.TaggedErrorClass<UserLookupError>()("UserLo
 
 class MissingWorkspaceId extends Schema.TaggedErrorClass<MissingWorkspaceId>()("MissingWorkspaceId", {}) {}
 
+// Some request fields are optional and may be absent.
 const requestHeaders = new Map<string, string>([
   ["x-request-id", "req_1"]
 ])
