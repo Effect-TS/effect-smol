@@ -7847,12 +7847,15 @@ export const aggregateWithin: {
 
     // schedule -> buffer
     let lastOutput = Option.none<B>()
+    let leftover: Arr.NonEmptyReadonlyArray<A2> | undefined
     const step = yield* Schedule.toStepWithSleep(schedule)
-    const stepToBuffer = Effect.suspend(() => step(lastOutput)).pipe(
-      Effect.flatMap(() => Queue.offer(buffer, scheduleStep)),
-      Effect.flatMap(() => Effect.never),
-      Pull.catchDone(() => Cause.done())
-    )
+    const stepToBuffer = Effect.suspend(function loop(): Pull.Pull<never, E3, void, R3> {
+      return step(lastOutput).pipe(
+        Effect.flatMap(() => !hadChunk && leftover === undefined ? loop() : Queue.offer(buffer, scheduleStep)),
+        Effect.flatMap(() => Effect.never),
+        Pull.catchDone(() => Cause.done())
+      )
+    })
 
     // buffer -> sink
     const pullFromBuffer: Pull.Pull<
@@ -7862,7 +7865,6 @@ export const aggregateWithin: {
       Effect.flatMap((arr) => arr === scheduleStep ? Cause.done() : Effect.succeed(arr))
     )
 
-    let leftover: Arr.NonEmptyReadonlyArray<A2> | undefined
     const sinkUpstream = Effect.suspend((): Pull.Pull<Arr.NonEmptyReadonlyArray<A | A2>, E> => {
       if (leftover !== undefined) {
         const chunk = leftover
@@ -7874,7 +7876,7 @@ export const aggregateWithin: {
       return pullFromBuffer
     })
     const catchSinkHalt = Effect.flatMap(([value, leftover_]: Sink.End<B, A2>) => {
-      // ignore the last output if the upsteam only pulled a halt
+      // ignore the last output if the upstream only pulled a halt
       if (!hadChunk && buffer.state._tag === "Done") return Cause.done()
       lastOutput = Option.some(value)
       leftover = leftover_
