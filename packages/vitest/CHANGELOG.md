@@ -1,5 +1,12 @@
 # @effect/vitest
 
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [[`c414700`](https://github.com/Effect-TS/effect-smol/commit/c414700ef1932e4b67d0102856de417336912350), [`a30c969`](https://github.com/Effect-TS/effect-smol/commit/a30c9699c0d736cf3952041e45d508b7d58907a9)]:
+  - effect@4.0.0-beta.14
+
 ## 4.0.0-beta.13
 
 ### Patch Changes
