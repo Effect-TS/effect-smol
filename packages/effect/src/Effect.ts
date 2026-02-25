@@ -2872,8 +2872,13 @@ export const catchReason: {
   >(
     errorTag: K,
     reasonTag: RK,
-    f: (reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>) => Effect<A2, E2, R2>,
-    orElse?: ((reasons: ExcludeReason<ExtractTag<NoInfer<E>, K>, RK>) => Effect<A3, E3, R3>) | undefined
+    f: (reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>, error: ExtractTag<NoInfer<E>, K>) => Effect<A2, E2, R2>,
+    orElse?:
+      | ((
+        reasons: ExcludeReason<ExtractTag<NoInfer<E>, K>, RK>,
+        error: ExtractTag<NoInfer<E>, K>
+      ) => Effect<A3, E3, R3>)
+      | undefined
   ): <A, R>(
     self: Effect<A, E, R>
   ) => Effect<A | A2 | Exclude<A3, unassigned>, (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3, R | R2 | R3>
@@ -2893,8 +2898,8 @@ export const catchReason: {
     self: Effect<A, E, R>,
     errorTag: K,
     reasonTag: RK,
-    f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Effect<A2, E2, R2>,
-    orElse?: ((reasons: ExcludeReason<ExtractTag<E, K>, RK>) => Effect<A3, E3, R3>) | undefined
+    f: (reason: ExtractReason<ExtractTag<E, K>, RK>, error: ExtractTag<E, K>) => Effect<A2, E2, R2>,
+    orElse?: ((reasons: ExcludeReason<ExtractTag<E, K>, RK>, error: ExtractTag<E, K>) => Effect<A3, E3, R3>) | undefined
   ): Effect<A | A2 | Exclude<A3, unassigned>, (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3, R | R2 | R3>
 } = internal.catchReason
 
@@ -2938,7 +2943,8 @@ export const catchReasons: {
     E,
     Cases extends {
       [RK in ReasonTags<ExtractTag<NoInfer<E>, K>>]+?: (
-        reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>
+        reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>,
+        error: ExtractTag<NoInfer<E>, K>
       ) => Effect<any, any, any>
     },
     A2 = unassigned,
@@ -2948,7 +2954,10 @@ export const catchReasons: {
     errorTag: K,
     cases: Cases,
     orElse?:
-      | ((reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, Extract<keyof Cases, string>>) => Effect<A2, E2, R2>)
+      | ((
+        reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, Extract<keyof Cases, string>>,
+        error: ExtractTag<NoInfer<E>, K>
+      ) => Effect<A2, E2, R2>)
       | undefined
   ): <A, R>(
     self: Effect<A, E, R>
@@ -2975,7 +2984,10 @@ export const catchReasons: {
     R,
     K extends Tags<E>,
     Cases extends {
-      [RK in ReasonTags<ExtractTag<E, K>>]+?: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Effect<any, any, any>
+      [RK in ReasonTags<ExtractTag<E, K>>]+?: (
+        reason: ExtractReason<ExtractTag<E, K>, RK>,
+        error: ExtractTag<E, K>
+      ) => Effect<any, any, any>
     },
     A2 = unassigned,
     E2 = never,
@@ -2985,7 +2997,10 @@ export const catchReasons: {
     errorTag: K,
     cases: Cases,
     orElse?:
-      | ((reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, Extract<keyof Cases, string>>) => Effect<A2, E2, R2>)
+      | ((
+        reason: ExcludeReason<ExtractTag<NoInfer<E>, K>, Extract<keyof Cases, string>>,
+        error: ExtractTag<NoInfer<E>, K>
+      ) => Effect<A2, E2, R2>)
       | undefined
   ): Effect<
     | A

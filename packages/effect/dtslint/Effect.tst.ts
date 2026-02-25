@@ -74,6 +74,31 @@ describe("Effect.catchReason", () => {
     )
   })
 
+  it("handler receives error type", () => {
+    pipe(
+      aiEffect,
+      Effect.catchReason("AiError", "RateLimitError", (_reason, error) => {
+        expect(error).type.toBe<AiError>()
+        return Effect.succeed("ok")
+      })
+    )
+  })
+
+  it("orElse receives error type", () => {
+    pipe(
+      aiEffect,
+      Effect.catchReason(
+        "AiError",
+        "RateLimitError",
+        () => Effect.succeed("ok"),
+        (_reason, error) => {
+          expect(error).type.toBe<AiError>()
+          return Effect.succeed("ok")
+        }
+      )
+    )
+  })
+
   it("error channel is E | E2", () => {
     const result = pipe(
       aiEffect,
@@ -94,6 +119,22 @@ describe("Effect.catchReasons", () => {
         },
         QuotaExceededError: (r) => {
           expect(r).type.toBe<QuotaExceededError>()
+          return Effect.succeed("")
+        }
+      })
+    )
+  })
+
+  it("handlers receive error type", () => {
+    pipe(
+      aiEffect,
+      Effect.catchReasons("AiError", {
+        RateLimitError: (_r, error) => {
+          expect(error).type.toBe<AiError>()
+          return Effect.succeed("")
+        },
+        QuotaExceededError: (_r, error) => {
+          expect(error).type.toBe<AiError>()
           return Effect.succeed("")
         }
       })
@@ -131,6 +172,19 @@ describe("Effect.catchReasons", () => {
         }
       }, (others) => {
         expect(others).type.toBe<QuotaExceededError>()
+        return Effect.succeed("")
+      })
+    )
+    expect(result).type.toBe<Effect.Effect<string>>()
+  })
+
+  it("orElse receives error type", () => {
+    const result = pipe(
+      aiEffect,
+      Effect.catchReasons("AiError", {
+        RateLimitError: () => Effect.succeed("")
+      }, (_others, error) => {
+        expect(error).type.toBe<AiError>()
         return Effect.succeed("")
       })
     )
