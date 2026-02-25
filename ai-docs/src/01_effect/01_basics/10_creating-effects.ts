@@ -44,7 +44,7 @@ const users = new Map<number, { readonly id: number; readonly name: string }>([
 // `Effect.tryPromise` wraps Promise-based APIs that can reject or throw.
 export const fetchUser = Effect.fn("fetchUser")((userId: number) =>
   Effect.tryPromise({
-    try: async () => {
+    async try() {
       const user = users.get(userId)
       if (!user) {
         throw new Error(`Missing user ${userId}`)
