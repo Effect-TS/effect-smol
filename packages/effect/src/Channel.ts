@@ -3179,7 +3179,7 @@ export const filterArrayEffect: {
   // FilterEffect: (a) => Effect<pass|fail>
   return filterEffect(self, (arr) =>
     Effect.map(
-      Effect.filter(arr, filter as any),
+      Effect.filterMapEffect(arr, filter as any),
       (passes) => Arr.isReadonlyArrayNonEmpty(passes) ? Result.succeed(passes) : Result.fail(undefined)
     ))
 })

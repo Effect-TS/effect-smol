@@ -1758,23 +1758,27 @@ describe("Effect", () => {
     })
   })
 
-  describe("catchCauseIf", () => {
+  describe("catchCauseFilter", () => {
     it.effect("first argument as success", () =>
       Effect.gen(function*() {
-        const result = yield* Effect.catchCauseIf(Effect.succeed(1), (_) => Result.fail(_), () => Effect.fail("e2"))
+        const result = yield* Effect.catchCauseFilter(Effect.succeed(1), (_) => Result.fail(_), () => Effect.fail("e2"))
         assert.deepStrictEqual(result, 1)
       }))
     it.effect("first argument as failure and predicate return false", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchCauseIf(Effect.fail("e1" as const), (_) => Result.fail(_), () => Effect.fail("e2" as const))
+          Effect.catchCauseFilter(Effect.fail("e1" as const), (_) => Result.fail(_), () => Effect.fail("e2" as const))
         )
         assert.deepStrictEqual(result, "e1")
       }))
     it.effect("first argument as failure and predicate return true", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchCauseIf(Effect.fail("e1" as const), (e) => Result.succeed(e), () => Effect.fail("e2" as const))
+          Effect.catchCauseFilter(
+            Effect.fail("e1" as const),
+            (e) => Result.succeed(e),
+            () => Effect.fail("e2" as const)
+          )
         )
         assert.deepStrictEqual(result, "e2")
       }))
@@ -1831,7 +1835,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const tapped: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.tapCauseIf(
+          Effect.tapCauseFilter(
             Effect.fail("e1"),
             (cause) => Result.succeed(cause),
             (cause) => Effect.sync(() => tapped.push(Cause.squash(cause) as string))
@@ -1844,7 +1848,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const tapped: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.tapCauseIf(
+          Effect.tapCauseFilter(
             Effect.fail("e1"),
             (cause) => Result.fail(cause),
             () => Effect.sync(() => tapped.push("tapped"))
@@ -1923,7 +1927,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const finalized: Array<string> = []
         const result = yield* Effect.exit(
-          Effect.onErrorIf(
+          Effect.onErrorFilter(
             Effect.fail("e1"),
             Cause.findError as Filter.Filter<Cause.Cause<string>, string>,
             (error: string) => Effect.sync(() => finalized.push(error))
@@ -1996,7 +2000,7 @@ describe("Effect", () => {
     it.effect("filter match receives pass value and exit", () =>
       Effect.gen(function*() {
         const finalized: Array<string> = []
-        const result = yield* Effect.onExitIf(
+        const result = yield* Effect.onExitFilter(
           Effect.succeed(42),
           (exit) => Exit.isSuccess(exit) ? Result.succeed(`value:${exit.value}`) : Result.fail(exit),
           (value, exit) =>
@@ -2028,7 +2032,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const filter: Filter.Filter<number, string, number> = (n) =>
           n % 2 === 0 ? Result.succeed(`n=${n}`) : Result.fail(n)
-        const result = yield* Effect.filter(
+        const result = yield* Effect.filterMap(
           [1, 2, 3, 4],
           filter
         )

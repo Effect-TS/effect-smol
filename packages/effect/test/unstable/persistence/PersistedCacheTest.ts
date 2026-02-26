@@ -69,7 +69,7 @@ export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistenc
         ])
       }).pipe(
         Effect.provide(layer),
-        Effect.catchIf((e) => e instanceof TransientError ? Result.succeed(e) : Result.fail(e), () => Effect.void),
+        Effect.catchFilter((e) => e instanceof TransientError ? Result.succeed(e) : Result.fail(e), () => Effect.void),
         flakyTest
       ))
 
@@ -98,7 +98,7 @@ export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistenc
         assert.deepStrictEqual(result3, new User({ id: 1, name: "first" }))
       }).pipe(
         Effect.provide(layer),
-        Effect.catchIf((e) => e instanceof TransientError ? Result.succeed(e) : Result.fail(e), () => Effect.void),
+        Effect.catchFilter((e) => e instanceof TransientError ? Result.succeed(e) : Result.fail(e), () => Effect.void),
         flakyTest
       ))
   })
