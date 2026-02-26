@@ -229,7 +229,7 @@ export const layerConfig = (options?: {
   /**
    * The config value to load for the API key.
    */
-  readonly apiKey?: Config.Config<Redacted.Redacted<string>> | undefined
+  readonly apiKey?: Config.Config<Redacted.Redacted<string> | undefined> | undefined
 
   /**
    * The config value to load for the API URL.
