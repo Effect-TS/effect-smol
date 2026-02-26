@@ -160,6 +160,18 @@ describe("Array", () => {
       deepStrictEqual(pipe(new Set([2, 4]), Arr.takeWhile(f)), [2, 4])
     })
 
+    it("takeWhileFilter", () => {
+      const f: Filter.Filter<number, number, string, [i: number]> = (n, i) =>
+        n + i < 5 ? Result.succeed(n * 10) : Result.fail(`stop: ${n}`)
+
+      deepStrictEqual(Arr.takeWhileFilter([], f), [])
+      deepStrictEqual(Arr.takeWhileFilter([1, 2, 3], f), [10, 20])
+      deepStrictEqual(pipe([1, 2, 3], Arr.takeWhileFilter(f)), [10, 20])
+
+      deepStrictEqual(pipe(new Set([1, 2, 3]), Arr.takeWhileFilter(f)), [10, 20])
+      deepStrictEqual(pipe([][Symbol.iterator](), Arr.takeWhileFilter(f)), [])
+    })
+
     it("span", () => {
       const f = Arr.span<number>((n) => n % 2 === 1)
       const assertSpan = (
@@ -281,6 +293,18 @@ describe("Array", () => {
       // iterator input
       deepStrictEqual(f([1, -2, 3][Symbol.iterator]()), [-2, 3])
       deepStrictEqual(f([][Symbol.iterator]()), [])
+    })
+
+    it("dropWhileFilter", () => {
+      const f: Filter.Filter<number, number, string, [i: number]> = (n, i) =>
+        n + i < 5 ? Result.succeed(n * 10) : Result.fail(`stop: ${n}`)
+
+      deepStrictEqual(Arr.dropWhileFilter([], f), [])
+      deepStrictEqual(Arr.dropWhileFilter([1, 2, 3], f), [3])
+      deepStrictEqual(pipe([1, 2, 3], Arr.dropWhileFilter(f)), [3])
+
+      deepStrictEqual(pipe(new Set([1, 2, 3]), Arr.dropWhileFilter(f)), [3])
+      deepStrictEqual(pipe([][Symbol.iterator](), Arr.dropWhileFilter(f)), [])
     })
 
     it("findFirstIndex", () => {
@@ -842,6 +866,15 @@ describe("Array", () => {
     deepStrictEqual(Arr.filter(["a", "b", "c"], (_, i) => i % 2 === 0), ["a", "c"])
   })
 
+  it("filterMap", () => {
+    const f: Filter.Filter<number, number, string, [i: number]> = (n, i) =>
+      n + i < 4 ? Result.succeed(n * 2) : Result.fail(`skip: ${n}`)
+
+    deepStrictEqual(Arr.filterMap([], f), [])
+    deepStrictEqual(Arr.filterMap([1, 2, 3], f), [2, 4])
+    deepStrictEqual(pipe([1, 2, 3], Arr.filterMap(f)), [2, 4])
+  })
+
   it("partitionMap", () => {
     deepStrictEqual(Arr.partitionMap([], identity), [[], []])
     deepStrictEqual(Arr.partitionMap([Result.succeed(1), Result.fail("a"), Result.succeed(2)], identity), [["a"], [
@@ -1326,12 +1359,13 @@ describe("Array", () => {
     )
   })
 
-  it("partition with Filter", () => {
-    const f: Filter.Filter<number, number, string> = (n) => n > 0 ? Result.succeed(n) : Result.fail(`negative: ${n}`)
-    deepStrictEqual(Arr.partition([], f), [[], []])
-    deepStrictEqual(Arr.partition([1, -2, 3, -4], f), [["negative: -2", "negative: -4"], [1, 3]])
-    deepStrictEqual(pipe([5, 10], Arr.partition(f)), [[], [5, 10]])
-    deepStrictEqual(pipe([-1, -2], Arr.partition(f)), [["negative: -1", "negative: -2"], []])
+  it("partitionFilter", () => {
+    const f: Filter.Filter<number, number, string, [i: number]> = (n) =>
+      n > 0 ? Result.succeed(n) : Result.fail(`negative: ${n}`)
+    deepStrictEqual(Arr.partitionFilter([], f), [[], []])
+    deepStrictEqual(Arr.partitionFilter([1, -2, 3, -4], f), [["negative: -2", "negative: -4"], [1, 3]])
+    deepStrictEqual(pipe([5, 10], Arr.partitionFilter(f)), [[], [5, 10]])
+    deepStrictEqual(pipe([-1, -2], Arr.partitionFilter(f)), [["negative: -1", "negative: -2"], []])
   })
 
   it("partition with predicate", () => {

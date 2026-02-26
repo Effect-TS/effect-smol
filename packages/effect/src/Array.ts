@@ -85,7 +85,7 @@
  */
 import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
-import * as Filter from "./Filter.ts"
+import type * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { dual, identity } from "./Function.ts"
 import type { TypeLambda } from "./HKT.ts"
@@ -1236,16 +1236,41 @@ export const takeRight: {
 export const takeWhile: {
   <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => Array<B>
   <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Array<A>
-  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X>): (self: Iterable<A>) => Array<B>
   <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): Array<B>
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A>
-  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X>): Array<B>
-} = dual(2, <A>(self: Iterable<A>, f: Filter.Filter<A, any, any> | ((a: A, i: number) => boolean)): Array<any> => {
+} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A> => {
   let i = 0
-  const out: Array<any> = []
+  const out: Array<A> = []
   for (const a of self) {
-    const result = Filter.apply(f as any, a, i)
-    if (Result.isFailure(result)) break
+    if (!predicate(a, i)) {
+      break
+    }
+    out.push(a)
+    i++
+  }
+  return out
+})
+
+/**
+ * Takes elements from the start while a `Filter` succeeds, collecting transformed values.
+ *
+ * - The filter receives `(element, index)`.
+ * - Stops at the first filter failure.
+ *
+ * @category getters
+ * @since 4.0.0
+ */
+export const takeWhileFilter: {
+  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X, [i: number]>): (self: Iterable<A>) => Array<B>
+  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<B>
+} = dual(2, <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<B> => {
+  let i = 0
+  const out: Array<B> = []
+  for (const a of self) {
+    const result = f(a, i)
+    if (Result.isFailure(result)) {
+      break
+    }
     out.push(result.success)
     i++
   }
@@ -1381,16 +1406,40 @@ export const dropRight: {
  */
 export const dropWhile: {
   <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Array<A>
-  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X>): (self: Iterable<A>) => Array<A>
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A>
-  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X>): Array<A>
+} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A> => {
+  const input = fromIterable(self)
+  let i = 0
+  while (i < input.length) {
+    if (!predicate(input[i], i)) {
+      break
+    }
+    i++
+  }
+  return input.slice(i)
+})
+
+/**
+ * Drops elements from the start while a `Filter` succeeds.
+ *
+ * - The filter receives `(element, index)`.
+ * - Returns the remaining original elements after the first filter failure.
+ *
+ * @category getters
+ * @since 4.0.0
+ */
+export const dropWhileFilter: {
+  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X, [i: number]>): (self: Iterable<A>) => Array<A>
+  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<A>
 } = dual(
   2,
-  <A>(self: Iterable<A>, f: Filter.Filter<A, any, any> | ((a: A, i: number) => boolean)): Array<A> => {
+  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<A> => {
     const input = fromIterable(self)
     let i = 0
-    for (const a of input) {
-      if (Result.isFailure(Filter.apply(f as any, a, i))) break
+    while (i < input.length) {
+      if (Result.isFailure(f(input[i], i))) {
+        break
+      }
       i++
     }
     return input.slice(i)
@@ -3227,6 +3276,41 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
 }
 
 /**
+ * Keeps transformed values for elements where a `Filter` succeeds.
+ *
+ * - The filter receives `(element, index)`.
+ * - Failures are discarded.
+ *
+ * **Example** (Filter and transform)
+ *
+ * ```ts
+ * import { Array, Result } from "effect"
+ *
+ * console.log(Array.filterMap([1, 2, 3, 4], (n) => n % 2 === 0 ? Result.succeed(n * 10) : Result.failVoid))
+ * // [20, 40]
+ * ```
+ *
+ * @see {@link filter} — keep original elements matching a predicate
+ *
+ * @category filtering
+ * @since 4.0.0
+ */
+export const filterMap: {
+  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X, [i: number]>): (self: Iterable<A>) => Array<B>
+  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<B>
+} = dual(2, <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X, [i: number]>): Array<B> => {
+  const as = fromIterable(self)
+  const out: Array<B> = []
+  for (let i = 0; i < as.length; i++) {
+    const result = f(as[i], i)
+    if (Result.isSuccess(result)) {
+      out.push(result.success)
+    }
+  }
+  return out
+})
+
+/**
  * Keeps only elements satisfying a predicate (or refinement).
  *
  * - The predicate receives `(element, index)`.
@@ -3248,19 +3332,16 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
 export const filter: {
   <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => Array<B>
   <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Array<A>
-  <A, B, X>(f: Filter.Filter<NoInfer<A>, B, X>): (self: Iterable<A>) => Array<B>
   <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): Array<B>
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A>
-  <A, B, X>(self: Iterable<A>, f: Filter.Filter<A, B, X>): Array<B>
 } = dual(
   2,
-  <A>(self: Iterable<A>, f: Filter.Filter<A, any, any> | ((a: A, i: number) => boolean)): Array<any> => {
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Array<A> => {
     const as = fromIterable(self)
-    const out: Array<any> = []
+    const out: Array<A> = []
     for (let i = 0; i < as.length; i++) {
-      const result = Filter.apply(f as any, as[i], i)
-      if (!Result.isFailure(result)) {
-        out.push(result.success)
+      if (predicate(as[i], i)) {
+        out.push(as[i])
       }
     }
     return out
@@ -3285,8 +3366,6 @@ export const filter: {
  * @see {@link filter} — keep only matching elements
  * @see {@link partitionMap} — partition using a Result-returning function
  *
- * Also accepts a `Filter` to split elements with custom pass/fail payloads.
- *
  * @category filtering
  * @since 2.0.0
  */
@@ -3297,33 +3376,61 @@ export const partition: {
   <A>(
     predicate: (a: NoInfer<A>, i: number) => boolean
   ): (self: Iterable<A>) => [excluded: Array<A>, satisfying: Array<A>]
-  <A, Pass, Fail>(
-    f: Filter.Filter<A, Pass, Fail>
-  ): (self: Iterable<A>) => [excluded: Array<Fail>, satisfying: Array<Pass>]
   <A, B extends A>(
     self: Iterable<A>,
     refinement: (a: A, i: number) => a is B
   ): [excluded: Array<Exclude<A, B>>, satisfying: Array<B>]
   <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [excluded: Array<A>, satisfying: Array<A>]
+} = dual(
+  2,
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [excluded: Array<A>, satisfying: Array<A>] => {
+    const excluded: Array<A> = []
+    const satisfying: Array<A> = []
+    const as = fromIterable(self)
+    for (let i = 0; i < as.length; i++) {
+      if (predicate(as[i], i)) {
+        satisfying.push(as[i])
+      } else {
+        excluded.push(as[i])
+      }
+    }
+    return [excluded, satisfying]
+  }
+)
+
+/**
+ * Splits an iterable using a `Filter` into failures and successes.
+ *
+ * - Returns `[failures, successes]`.
+ * - The filter receives `(element, index)`.
+ *
+ * @category filtering
+ * @since 4.0.0
+ */
+export const partitionFilter: {
+  <A, Pass, Fail>(
+    f: Filter.Filter<NoInfer<A>, Pass, Fail, [i: number]>
+  ): (self: Iterable<A>) => [excluded: Array<Fail>, satisfying: Array<Pass>]
   <A, Pass, Fail>(
     self: Iterable<A>,
-    f: Filter.Filter<A, Pass, Fail>
+    f: Filter.Filter<A, Pass, Fail, [i: number]>
   ): [excluded: Array<Fail>, satisfying: Array<Pass>]
 } = dual(
   2,
-  <A>(
+  <A, Pass, Fail>(
     self: Iterable<A>,
-    f: Filter.Filter<A, any, any> | ((a: A, i: number) => boolean)
-  ): [excluded: Array<any>, satisfying: Array<any>] => {
-    const excluded: Array<any> = []
-    const satisfying: Array<any> = []
+    f: Filter.Filter<A, Pass, Fail, [i: number]>
+  ): [excluded: Array<Fail>, satisfying: Array<Pass>] => {
+    const excluded: Array<Fail> = []
+    const satisfying: Array<Pass> = []
     const as = fromIterable(self)
     for (let i = 0; i < as.length; i++) {
       const result = f(as[i], i)
-      if (result === true) satisfying.push(as[i])
-      else if (result === false) excluded.push(as[i])
-      else if (Result.isSuccess(result)) satisfying.push(result.success)
-      else excluded.push(result.failure)
+      if (Result.isSuccess(result)) {
+        satisfying.push(result.success)
+      } else {
+        excluded.push(result.failure)
+      }
     }
     return [excluded, satisfying]
   }
