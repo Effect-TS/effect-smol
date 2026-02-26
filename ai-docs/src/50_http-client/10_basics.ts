@@ -43,26 +43,33 @@ export class JsonPlaceholder extends ServiceMap.Service<JsonPlaceholder, {
 
       // Use the HttpClient to fetch a todo item by id, and decode the response
       // using the Todo schema.
-      const getTodo = (id: number) =>
-        client.get(`/todos/${id}`).pipe(
+      const getTodo = Effect.fn("JsonPlaceholder.getTodo")(function*(id: number) {
+        // Annotate the current span with the id of the todo being fetched, so
+        // that it shows up in telemetry for this request.
+        yield* Effect.annotateCurrentSpan({ id })
+
+        const todo = yield* client.get(`/todos/${id}`).pipe(
           Effect.flatMap(HttpClientResponse.schemaBodyJson(Todo)),
-          // Map errors to our service-specific error type
-          Effect.mapError((cause) => new JsonPlaceholderError({ cause })),
-          // Add a span to trace the getTodo operation, including the id as an
-          // attribute
-          Effect.withSpan("JsonPlaceholder.getTodo", { attributes: { id } })
+          Effect.mapError((cause) => new JsonPlaceholderError({ cause }))
         )
+
+        return todo
+      })
 
       // You can use the HttpClientRequest module to build up more complex
       // requests:
-      const createTodo = (todo: Omit<Todo, "id">) =>
-        HttpClientRequest.post("/todos").pipe(
+      const createTodo = Effect.fn("JsonPlaceholder.createTodo")(function*(todo: Omit<Todo, "id">) {
+        yield* Effect.annotateCurrentSpan({ title: todo.title })
+
+        const createdTodo = yield* HttpClientRequest.post("/todos").pipe(
           HttpClientRequest.bodyJsonUnsafe(todo),
           client.execute,
           Effect.flatMap(HttpClientResponse.schemaBodyJson(Todo)),
-          Effect.mapError((cause) => new JsonPlaceholderError({ cause })),
-          Effect.withSpan("JsonPlaceholder.createTodo", { attributes: { title: todo.title } })
+          Effect.mapError((cause) => new JsonPlaceholderError({ cause }))
         )
+
+        return createdTodo
+      })
 
       return JsonPlaceholder.of({ getTodo, createTodo })
     })
