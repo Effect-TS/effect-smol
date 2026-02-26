@@ -1604,7 +1604,7 @@ abstract class DatePart {
    * Retrieves the next date part in the list of parts.
    */
   nextPart(): DatePart | undefined {
-    const currentPartIndex = Arr.findFirstIndex(this.parts, (part) => part === this) ?? 0
+    const currentPartIndex = Option.getOrElse(Arr.findFirstIndex(this.parts, (part) => part === this), () => 0)
     return Option.getOrUndefined(
       Arr.findFirst(this.parts.slice(currentPartIndex + 1), (part) => !part.isToken())
     )
@@ -1615,11 +1615,13 @@ abstract class DatePart {
    */
   previousPart(): DatePart | undefined {
     const currentPartIndex = Arr.findFirstIndex(this.parts, (part) => part === this)
-    if (currentPartIndex !== undefined) {
-      return Option.getOrUndefined(
-        Arr.findLast(this.parts.slice(0, currentPartIndex), (part) => !part.isToken())
-      )
-    }
+    return Option.match(currentPartIndex, {
+      onNone: () => undefined,
+      onSome: (index) =>
+        Option.getOrUndefined(
+          Arr.findLast(this.parts.slice(0, index), (part) => !part.isToken())
+        )
+    })
   }
 
   toString() {
@@ -2706,7 +2708,7 @@ const updateAutoCompleteState = <A>(
 }
 
 const autoCompleteCursor = (state: AutoCompleteState) =>
-  Arr.findFirstIndex(state.filtered, (index) => index === state.index) ?? 0
+  Option.getOrElse(Arr.findFirstIndex(state.filtered, (index) => index === state.index), () => 0)
 
 const renderSelectOutput = <A>(
   leadingSymbol: string,

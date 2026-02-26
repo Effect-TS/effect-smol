@@ -1032,21 +1032,32 @@ describe("Array", () => {
   })
 
   it("replace", () => {
-    expect(Array.replace([], 0, "a")).type.toBe<Array<string> | undefined>()
-    expect(Array.replace(numbers, 0, "a")).type.toBe<Array<string | number> | undefined>()
+    expect(Array.replace([], 0, "a")).type.toBe<Array<string>>()
+    expect(Array.replace(numbers, 0, "a")).type.toBe<Array<string | number>>()
     expect(Array.replace(nonEmptyNumbers, 0, "a" as const)).type.toBe<
-      [number | "a", ...Array<number | "a">] | undefined
+      [number | "a", ...Array<number | "a">]
     >()
-    expect(Array.replace(new Set([1, 2] as const), 0, "a" as const)).type.toBe<Array<"a" | 1 | 2> | undefined>()
-    expect(pipe([], Array.replace(0, "a"))).type.toBe<Array<string> | undefined>()
-    expect(pipe(numbers, Array.replace(0, "a"))).type.toBe<Array<string | number> | undefined>()
+    expect(Array.replace(new Set([1, 2] as const), 0, "a" as const)).type.toBe<Array<"a" | 1 | 2>>()
+    expect(pipe([], Array.replace(0, "a"))).type.toBe<Array<string>>()
+    expect(pipe(numbers, Array.replace(0, "a"))).type.toBe<Array<string | number>>()
     expect(pipe(nonEmptyNumbers, Array.replace(0, "a" as const))).type.toBe<
-      [number | "a", ...Array<number | "a">] | undefined
+      [number | "a", ...Array<number | "a">]
     >()
-    expect(pipe(new Set([1, 2] as const), Array.replace(0, "a" as const))).type.toBe<Array<"a" | 1 | 2> | undefined>()
-    expect(pipe(Array.of(1), Array.replace(0, "a" as const))).type.toBe<
-      [number | "a", ...Array<number | "a">] | undefined
+    expect(pipe(new Set([1, 2] as const), Array.replace(0, "a" as const))).type.toBe<Array<"a" | 1 | 2>>()
+    expect(pipe(Array.of(1), Array.replace(0, "a" as const))).type.toBe<[number | "a", ...Array<number | "a">]>()
+  })
+
+  it("replaceOption", () => {
+    expect(Array.replaceOption([], 0, "a")).type.toBe<Option.Option<Array<string>>>()
+    expect(Array.replaceOption(numbers, 0, "a")).type.toBe<Option.Option<Array<string | number>>>()
+    expect(Array.replaceOption(nonEmptyNumbers, 0, "a" as const)).type.toBe<
+      Option.Option<[number | "a", ...Array<number | "a">]>
     >()
+    expect(Array.replaceOption(new Set([1, 2] as const), 0, "a" as const)).type.toBe<
+      Option.Option<Array<"a" | 1 | 2>>
+    >()
+    expect(pipe([], Array.replaceOption(0, "a"))).type.toBe<Option.Option<Array<string>>>()
+    expect(pipe(numbers, Array.replaceOption(0, "a"))).type.toBe<Option.Option<Array<string | number>>>()
   })
 
   it("modify", () => {
@@ -1054,53 +1065,72 @@ describe("Array", () => {
     expect(Array.modify([], 0, (n) => {
       expect(n).type.toBe<never>()
       return "a"
-    })).type.toBe<Array<string> | undefined>()
+    })).type.toBe<Array<string>>()
     expect(pipe(
       [],
       Array.modify(0, (n) => {
         expect(n).type.toBe<never>()
         return "a"
       })
-    )).type.toBe<Array<string> | undefined>()
+    )).type.toBe<Array<string>>()
 
     // Array
     expect(Array.modify(numbers, 0, (n) => {
       expect(n).type.toBe<number>()
       return "a"
-    })).type.toBe<Array<string | number> | undefined>()
+    })).type.toBe<Array<string | number>>()
     expect(pipe(
       numbers,
       Array.modify(0, (n) => {
         expect(n).type.toBe<number>()
         return "a"
       })
-    )).type.toBe<Array<string | number> | undefined>()
+    )).type.toBe<Array<string | number>>()
 
     // NonEmptyArray
     expect(Array.modify(nonEmptyNumbers, 0, (n) => {
       expect(n).type.toBe<number>()
       return "a" as const
-    })).type.toBe<[number | "a", ...Array<number | "a">] | undefined>()
+    })).type.toBe<[number | "a", ...Array<number | "a">]>()
     expect(pipe(
       nonEmptyNumbers,
       Array.modify(0, (n) => {
         expect(n).type.toBe<number>()
         return "a" as const
       })
-    )).type.toBe<[number | "a", ...Array<number | "a">] | undefined>()
+    )).type.toBe<[number | "a", ...Array<number | "a">]>()
 
     // Iterable
     expect(Array.modify(new Set([1, 2] as const), 0, (n) => {
       expect(n).type.toBe<1 | 2>()
       return "a" as const
-    })).type.toBe<Array<"a" | 1 | 2> | undefined>()
+    })).type.toBe<Array<"a" | 1 | 2>>()
     expect(pipe(
       new Set([1, 2] as const),
       Array.modify(0, (n) => {
         expect(n).type.toBe<1 | 2>()
         return "a" as const
       })
-    )).type.toBe<Array<"a" | 1 | 2> | undefined>()
+    )).type.toBe<Array<"a" | 1 | 2>>()
+  })
+
+  it("modifyOption", () => {
+    expect(Array.modifyOption([], 0, (n) => {
+      expect(n).type.toBe<never>()
+      return "a"
+    })).type.toBe<Option.Option<Array<string>>>()
+    expect(Array.modifyOption(numbers, 0, (n) => {
+      expect(n).type.toBe<number>()
+      return "a"
+    })).type.toBe<Option.Option<Array<string | number>>>()
+    expect(Array.modifyOption(nonEmptyNumbers, 0, (n) => {
+      expect(n).type.toBe<number>()
+      return "a" as const
+    })).type.toBe<Option.Option<[number | "a", ...Array<number | "a">]>>()
+    expect(Array.modifyOption(new Set([1, 2] as const), 0, (n) => {
+      expect(n).type.toBe<1 | 2>()
+      return "a" as const
+    })).type.toBe<Option.Option<Array<"a" | 1 | 2>>>()
   })
 
   it("mapAccum", () => {
