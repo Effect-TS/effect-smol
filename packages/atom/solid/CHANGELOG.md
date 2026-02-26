@@ -1,5 +1,12 @@
 # @effect/atom-solid
 
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [[`8f59c32`](https://github.com/Effect-TS/effect-smol/commit/8f59c32922597a48392744f7203e284866747781)]:
+  - effect@4.0.0-beta.17
+
 ## 4.0.0-beta.16
 
 ### Patch Changes

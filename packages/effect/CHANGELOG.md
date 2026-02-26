@@ -1,5 +1,11 @@
 # effect
 
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- [#1516](https://github.com/Effect-TS/effect-smol/pull/1516) [`8f59c32`](https://github.com/Effect-TS/effect-smol/commit/8f59c32922597a48392744f7203e284866747781) Thanks @gcanti! - Fix `Schema.encodeKeys` to encode non-remapped struct fields during encoding.
+
 ## 4.0.0-beta.16
 
 ### Patch Changes

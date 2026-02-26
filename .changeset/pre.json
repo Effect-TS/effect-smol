@@ -81,6 +81,7 @@
     "fix-retry-transient-autocomplete",
     "fix-schedule-fixed-double-exec",
     "fix-schema-encodekeys-class",
+    "fix-schema-encodekeys-struct",
     "fix-schema-identifier-expected-message",
     "fix-searchparam-initial-decode",
     "fix-serializable-wire-transfer",
