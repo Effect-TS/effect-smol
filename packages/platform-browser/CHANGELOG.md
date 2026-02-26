@@ -1,5 +1,12 @@
 # @effect/platform-browser
 
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [[`01e31fd`](https://github.com/Effect-TS/effect-smol/commit/01e31fdf8e5206849d23cbafd23a346f2f177ab8), [`0890aab`](https://github.com/Effect-TS/effect-smol/commit/0890aab15ed9c5ba52c383a72fdc6a444d7504d5), [`725260b`](https://github.com/Effect-TS/effect-smol/commit/725260b53f5142d6af7a93a2f9f464f974eda92d)]:
+  - effect@4.0.0-beta.18
+
 ## 4.0.0-beta.17
 
 ### Patch Changes

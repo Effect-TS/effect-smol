@@ -40,6 +40,7 @@
   "changesets": [
     "add-config-nested",
     "add-make-option",
+    "add-missing-tx-modules",
     "add-scalar-show-operation-id",
     "add-schema-bigdecimal",
     "add-schema-datetime",
@@ -70,6 +71,7 @@
     "few-foxes-grin",
     "few-mirrors-pull",
     "fix-1332",
+    "fix-cli-mixed-global-flag-context",
     "fix-hashmap-bit31-ordering",
     "fix-headers-proto-enumerability",
     "fix-keepalive-blocked-timers",
@@ -91,6 +93,7 @@
     "forty-swans-divide",
     "four-points-repeat",
     "fresh-emus-cheat",
+    "funny-crabs-hang",
     "fuzzy-camels-hunt",
     "fuzzy-dodos-help",
     "heavy-loops-cut",
