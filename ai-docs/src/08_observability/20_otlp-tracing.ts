@@ -3,7 +3,8 @@
  *
  * Configure Otlp tracing + log export with a reusable observability layer.
  */
-import { Effect, Layer } from "effect"
+import { NodeRuntime } from "@effect/platform-node"
+import { Effect, Layer, ServiceMap } from "effect"
 import { FetchHttpClient } from "effect/unstable/http"
 import { OtlpLogger, OtlpSerialization, OtlpTracer } from "effect/unstable/observability"
 
@@ -37,25 +38,58 @@ export const ObservabilityLive = Layer.merge(OtlpTracingLive, OtlpLoggingLive).p
   Layer.provide(FetchHttpClient.layer)
 )
 
-export const processCheckout = Effect.fn("Checkout.processCheckout")(function*(orderId: string) {
-  yield* Effect.logInfo("starting checkout", { orderId })
+export class Checkout extends ServiceMap.Service<Checkout, {
+  processCheckout(orderId: string): Effect.Effect<void>
+}>()("acme/Checkout") {
+  static readonly layer = Layer.effect(
+    Checkout,
+    Effect.gen(function*() {
+      yield* Effect.logInfo("setting up checkout service")
 
-  yield* Effect.sleep("50 millis").pipe(
-    Effect.withSpan("checkout.charge-card"),
-    Effect.annotateSpans({
-      "checkout.order_id": orderId,
-      "checkout.provider": "acme-pay"
+      return Checkout.of({
+        processCheckout: Effect.fn("Checkout.processCheckout")(function*(orderId: string) {
+          yield* Effect.logInfo("starting checkout", { orderId })
+
+          yield* Effect.sleep("50 millis").pipe(
+            Effect.withSpan("checkout.charge-card"),
+            Effect.annotateSpans({
+              "checkout.order_id": orderId,
+              "checkout.provider": "acme-pay"
+            })
+          )
+
+          yield* Effect.sleep("20 millis").pipe(
+            Effect.withSpan("checkout.persist-order")
+          )
+
+          yield* Effect.logInfo("checkout completed", { orderId })
+        })
+      })
     })
   )
+}
 
-  yield* Effect.sleep("20 millis").pipe(
-    Effect.withSpan("checkout.persist-order")
+// Example usage of the Checkout service.
+const CheckoutTest = Layer.effectDiscard(
+  Effect.gen(function*() {
+    const checkout = yield* Checkout
+    yield* checkout.processCheckout("ord_123")
+  }).pipe(
+    Effect.withSpan("checkout-test-run")
   )
+).pipe(
+  // You can also attach spans to Layers
+  Layer.withSpan("checkout-test"),
+  Layer.provide(Checkout.layer)
+)
 
-  yield* Effect.logInfo("checkout completed", { orderId })
-})
+const Main = CheckoutTest.pipe(
+  // Provide the observability layer at the very end, so that all spans created
+  // by the app are exported.
+  Layer.provide(ObservabilityLive)
+)
 
-export const tracedProgram = processCheckout("ord_123").pipe(
-  Effect.withSpan("checkout.operation"),
-  Effect.provide(ObservabilityLive)
+// Launch the app
+Layer.launch(Main).pipe(
+  NodeRuntime.runMain
 )
