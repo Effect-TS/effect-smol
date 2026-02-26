@@ -72,6 +72,7 @@ import type * as Exit from "./Exit.ts"
 import { dual, identity, type LazyArg } from "./Function.ts"
 import * as core from "./internal/core.ts"
 import * as internalEffect from "./internal/effect.ts"
+import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
 import type * as Types from "./Types.ts"
@@ -577,19 +578,19 @@ export const isDoneUnsafe = <A, E>(self: Deferred<A, E>): boolean => self.effect
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
  *   const beforeCompletion = yield* Deferred.poll(deferred)
- *   console.log(beforeCompletion === undefined) // true
+ *   console.log(beforeCompletion._tag === "None") // true
  *
  *   yield* Deferred.succeed(deferred, 42)
  *   const afterCompletion = yield* Deferred.poll(deferred)
- *   console.log(afterCompletion !== undefined) // true
+ *   console.log(afterCompletion._tag === "Some") // true
  * })
  * ```
  *
  * @since 2.0.0
  * @category getters
  */
-export function poll<A, E>(self: Deferred<A, E>): Effect<Effect<A, E> | undefined> {
-  return internalEffect.sync(() => self.effect)
+export function poll<A, E>(self: Deferred<A, E>): Effect<Option.Option<Effect<A, E>>> {
+  return internalEffect.sync(() => Option.fromUndefinedOr(self.effect))
 }
 
 /**

@@ -402,8 +402,8 @@ export const set: {
  *
  *   // Retrieve the fiber
  *   const retrieved = FiberMap.getUnsafe(map, "greeting")
- *   if (retrieved) {
- *     const result = yield* Fiber.await(retrieved)
+ *   if (retrieved._tag === "Some") {
+ *     const result = yield* Fiber.await(retrieved.value)
  *     console.log(result) // "Hello"
  *   }
  * })
@@ -413,19 +413,19 @@ export const set: {
  * @category combinators
  */
 export const getUnsafe: {
-  <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Fiber.Fiber<A, E> | undefined
-  <K, A, E>(self: FiberMap<K, A, E>, key: K): Fiber.Fiber<A, E> | undefined
+  <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Option.Option<Fiber.Fiber<A, E>>
+  <K, A, E>(self: FiberMap<K, A, E>, key: K): Option.Option<Fiber.Fiber<A, E>>
 } = dual(
   2,
-  <K, A, E>(self: FiberMap<K, A, E>, key: K): Fiber.Fiber<A, E> | undefined => {
-    return self.state._tag === "Closed" ? undefined : Option.getOrUndefined(MutableHashMap.get(self.state.backing, key))
+  <K, A, E>(self: FiberMap<K, A, E>, key: K): Option.Option<Fiber.Fiber<A, E>> => {
+    return self.state._tag === "Closed" ? Option.none() : MutableHashMap.get(self.state.backing, key)
   }
 )
 
 /**
  * Retrieve a fiber from the FiberMap.
  *
- * Returns an Effect that fails with `NoSuchElementError` if the key is not found.
+ * Returns an `Option` wrapped in `Effect`.
  *
  * @example
  * ```ts
@@ -440,8 +440,8 @@ export const getUnsafe: {
  *
  *   // Retrieve the fiber with error handling
  *   const retrieved = yield* FiberMap.get(map, "greeting")
- *   if (retrieved) {
- *     const result = yield* Fiber.await(retrieved)
+ *   if (retrieved._tag === "Some") {
+ *     const result = yield* Fiber.await(retrieved.value)
  *     console.log(result) // "Hello"
  *   }
  * })
@@ -451,11 +451,11 @@ export const getUnsafe: {
  * @category combinators
  */
 export const get: {
-  <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Effect.Effect<Fiber.Fiber<A, E> | undefined>
-  <K, A, E>(self: FiberMap<K, A, E>, key: K): Effect.Effect<Fiber.Fiber<A, E> | undefined>
+  <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Effect.Effect<Option.Option<Fiber.Fiber<A, E>>>
+  <K, A, E>(self: FiberMap<K, A, E>, key: K): Effect.Effect<Option.Option<Fiber.Fiber<A, E>>>
 } = dual(
   2,
-  <K, A, E>(self: FiberMap<K, A, E>, key: K): Effect.Effect<Fiber.Fiber<A, E> | undefined> =>
+  <K, A, E>(self: FiberMap<K, A, E>, key: K): Effect.Effect<Option.Option<Fiber.Fiber<A, E>>> =>
     Effect.suspend(() => Effect.succeed(getUnsafe(self, key)))
 )
 

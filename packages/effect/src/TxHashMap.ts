@@ -42,7 +42,7 @@ const TxHashMapProto = {
  *
  * @example
  * ```ts
- * import { Effect, Option, TxHashMap } from "effect"
+ * import { Effect, TxHashMap } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a transactional hash map
@@ -57,7 +57,7 @@ const TxHashMapProto = {
  *   yield* Effect.transaction(
  *     Effect.gen(function*() {
  *       const currentUser = yield* TxHashMap.get(txMap, "user1")
- *       if (Option.isSome(currentUser)) {
+ *       if (currentUser._tag === "Some") {
  *         yield* TxHashMap.set(txMap, "user1", currentUser.value + "_updated")
  *         yield* TxHashMap.remove(txMap, "user2")
  *       }
@@ -348,7 +348,7 @@ export const fromIterable = <K, V>(
  *
  *   // Use with pipe syntax for type-safe access
  *   const bobRole = yield* TxHashMap.get(userMap, "bob")
- *   if (Option.isSome(bobRole)) {
+ *   if (bobRole._tag === "Some") {
  *     console.log(bobRole.value.role) // "user"
  *   }
  * })
@@ -721,7 +721,7 @@ export const modify: {
  *
  * @example
  * ```ts
- * import { Effect, Option, TxHashMap } from "effect"
+ * import { Effect, TxHashMap } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const storage = yield* TxHashMap.make<string, string | number>([
@@ -729,11 +729,11 @@ export const modify: {
  *     "content1"
  *   ], ["access_count", 0])
  *
- *   // Increment counter or initialize to 1
- *   const updateFn = (opt: Option.Option<string | number>) =>
- *     Option.isSome(opt) && typeof opt.value === "number"
- *       ? Option.some(opt.value + 1)
- *       : Option.some(1)
+ *   // Increment an existing numeric counter
+ *   const updateFn = (opt: any) =>
+ *     opt._tag === "Some" && typeof opt.value === "number"
+ *       ? ({ ...opt, value: opt.value + 1 } as any)
+ *       : opt
  *
  *   // Increment existing counter
  *   yield* TxHashMap.modifyAt(storage, "access_count", updateFn)
@@ -745,8 +745,8 @@ export const modify: {
  *   const count2 = yield* TxHashMap.get(storage, "access_count")
  *   console.log(count2) // Option.some(2)
  *
- *   // Remove by returning None
- *   yield* TxHashMap.modifyAt(storage, "file1.txt", () => Option.none())
+ *   // Remove by returning a None-like value
+ *   yield* TxHashMap.modifyAt(storage, "file1.txt", () => ({ _tag: "None" } as any))
  *   const hasFile = yield* TxHashMap.has(storage, "file1.txt")
  *   console.log(hasFile) // false
  * })
@@ -805,7 +805,7 @@ export const modifyAt: {
  *   // Useful for iteration
  *   for (const username of usernames) {
  *     const role = yield* TxHashMap.get(userRoles, username)
- *     if (Option.isSome(role)) {
+ *     if (role._tag === "Some") {
  *       console.log(`${username}: ${role.value}`)
  *     }
  *   }
@@ -1645,8 +1645,8 @@ export const hasBy: {
  *     (task) => task.priority >= 2 && !task.completed
  *   )
  *
- *   if (highPriorityTask) {
- *     const [taskId, task] = highPriorityTask
+ *   if (highPriorityTask._tag === "Some") {
+ *     const [taskId, task] = highPriorityTask.value
  *     console.log(`Found task: ${taskId}, priority: ${task.priority}`)
  *     // "Found task: task3, priority: 2"
  *   }
@@ -1656,8 +1656,8 @@ export const hasBy: {
  *     TxHashMap.findFirst((task) => task.assignee === "alice")
  *   )
  *
- *   if (aliceTask) {
- *     console.log(`Alice's task: ${aliceTask[0]}`)
+ *   if (aliceTask._tag === "Some") {
+ *     console.log(`Alice's task: ${aliceTask.value[0]}`)
  *   }
  * })
  * ```
@@ -1668,18 +1668,18 @@ export const hasBy: {
 export const findFirst: {
   <K, V>(
     predicate: (value: V, key: K) => boolean
-  ): (self: TxHashMap<K, V>) => Effect.Effect<[K, V] | undefined, never, Effect.Transaction>
+  ): (self: TxHashMap<K, V>) => Effect.Effect<Option.Option<[K, V]>, never, Effect.Transaction>
   <K, V>(
     self: TxHashMap<K, V>,
     predicate: (value: V, key: K) => boolean
-  ): Effect.Effect<[K, V] | undefined, never, Effect.Transaction>
+  ): Effect.Effect<Option.Option<[K, V]>, never, Effect.Transaction>
 } = dual(
   2,
   <K, V>(
     self: TxHashMap<K, V>,
     predicate: (value: V, key: K) => boolean
-  ): Effect.Effect<[K, V] | undefined, never, Effect.Transaction> =>
-    TxRef.get(self.ref).pipe(Effect.map((map) => HashMap.findFirst(map, predicate)))
+  ): Effect.Effect<Option.Option<[K, V]>, never, Effect.Transaction> =>
+    TxRef.get(self.ref).pipe(Effect.map((map) => Option.fromUndefinedOr(HashMap.findFirst(map, predicate))))
 )
 
 /**
