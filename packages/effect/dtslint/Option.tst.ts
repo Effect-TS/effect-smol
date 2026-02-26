@@ -1,4 +1,4 @@
-import { Option, pipe } from "effect"
+import { Option, pipe, Result } from "effect"
 import type { Predicate } from "effect"
 import { describe, expect, it } from "tstyche"
 
@@ -35,6 +35,21 @@ describe("Option", () => {
         })
       )
     ).type.toBe<Option.Option<number>>()
+  })
+
+  it("filterMap", () => {
+    expect(Option.filterMap(number, (value) => {
+      expect(value).type.toBe<number>()
+      return Result.succeed(value + 1)
+    })).type.toBe<Option.Option<number>>()
+
+    expect(pipe(
+      number,
+      Option.filterMap((value) => {
+        expect(value).type.toBe<number>()
+        return Result.fail("skip")
+      })
+    )).type.toBe<Option.Option<never>>()
   })
 
   it("fromNullishOr", () => {
