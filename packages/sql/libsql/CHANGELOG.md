@@ -1,5 +1,12 @@
 # @effect/sql-libsql
 
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [[`bf9096c`](https://github.com/Effect-TS/effect-smol/commit/bf9096c52a7d8791d93d232739e523eb84f6625a), [`29f81ca`](https://github.com/Effect-TS/effect-smol/commit/29f81ca07c67dba265804b140a7487fb15a5fc6b), [`68eb28c`](https://github.com/Effect-TS/effect-smol/commit/68eb28c2b0fc67a9f6204ade9bd16c5b37803bfb)]:
+  - effect@4.0.0-beta.16
+
 ## 4.0.0-beta.15
 
 ### Patch Changes
