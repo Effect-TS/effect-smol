@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Option from "../../Option.ts"
 import * as Tracer from "../../Tracer.ts"
 import * as Headers from "./Headers.ts"
 
@@ -9,7 +10,7 @@ import * as Headers from "./Headers.ts"
  * @category models
  */
 export interface FromHeaders {
-  (headers: Headers.Headers): Tracer.ExternalSpan | undefined
+  (headers: Headers.Headers): Option.Option<Tracer.ExternalSpan>
 }
 
 /**
@@ -18,7 +19,12 @@ export interface FromHeaders {
  */
 export const toHeaders = (span: Tracer.Span): Headers.Headers =>
   Headers.fromRecordUnsafe({
-    b3: `${span.traceId}-${span.spanId}-${span.sampled ? "1" : "0"}${span.parent ? `-${span.parent.spanId}` : ""}`,
+    b3: `${span.traceId}-${span.spanId}-${span.sampled ? "1" : "0"}${
+      Option.match(span.parent, {
+        onNone: () => "",
+        onSome: (parent) => `-${parent.spanId}`
+      })
+    }`,
     traceparent: `00-${span.traceId}-${span.spanId}-${span.sampled ? "01" : "00"}`
   })
 
@@ -26,8 +32,16 @@ export const toHeaders = (span: Tracer.Span): Headers.Headers =>
  * @since 4.0.0
  * @category decoding
  */
-export const fromHeaders = (headers: Headers.Headers): Tracer.ExternalSpan | undefined => {
-  return w3c(headers) ?? b3(headers) ?? xb3(headers)
+export const fromHeaders = (headers: Headers.Headers): Option.Option<Tracer.ExternalSpan> => {
+  let span = w3c(headers)
+  if (Option.isSome(span)) {
+    return span
+  }
+  span = b3(headers)
+  if (Option.isSome(span)) {
+    return span
+  }
+  return xb3(headers)
 }
 
 /**
@@ -36,17 +50,17 @@ export const fromHeaders = (headers: Headers.Headers): Tracer.ExternalSpan | und
  */
 export const b3: FromHeaders = (headers) => {
   if (!("b3" in headers)) {
-    return undefined
+    return Option.none()
   }
   const parts = headers["b3"].split("-")
   if (parts.length < 2) {
-    return undefined
+    return Option.none()
   }
-  return Tracer.externalSpan({
+  return Option.some(Tracer.externalSpan({
     traceId: parts[0],
     spanId: parts[1],
     sampled: parts[2] ? parts[2] === "1" : true
-  })
+  }))
 }
 
 /**
@@ -55,13 +69,13 @@ export const b3: FromHeaders = (headers) => {
  */
 export const xb3: FromHeaders = (headers) => {
   if (!(headers["x-b3-traceid"]) || !(headers["x-b3-spanid"])) {
-    return undefined
+    return Option.none()
   }
-  return Tracer.externalSpan({
+  return Option.some(Tracer.externalSpan({
     traceId: headers["x-b3-traceid"],
     spanId: headers["x-b3-spanid"],
     sampled: headers["x-b3-sampled"] ? headers["x-b3-sampled"] === "1" : true
-  })
+  }))
 }
 
 const w3cTraceId = /^[0-9a-f]{32}$/i
@@ -73,26 +87,26 @@ const w3cSpanId = /^[0-9a-f]{16}$/i
  */
 export const w3c: FromHeaders = (headers) => {
   if (!(headers["traceparent"])) {
-    return undefined
+    return Option.none()
   }
   const parts = headers["traceparent"].split("-")
   if (parts.length !== 4) {
-    return undefined
+    return Option.none()
   }
   const [version, traceId, spanId, flags] = parts
   switch (version) {
     case "00": {
       if (w3cTraceId.test(traceId) === false || w3cSpanId.test(spanId) === false) {
-        return undefined
+        return Option.none()
       }
-      return Tracer.externalSpan({
+      return Option.some(Tracer.externalSpan({
         traceId,
         spanId,
         sampled: (parseInt(flags, 16) & 1) === 1
-      })
+      }))
     }
     default: {
-      return undefined
+      return Option.none()
     }
   }
 }

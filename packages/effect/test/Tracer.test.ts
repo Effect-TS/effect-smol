@@ -1,5 +1,5 @@
 import { describe, it } from "@effect/vitest"
-import { assertInclude, assertNone, assertUndefined, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { assertInclude, assertNone, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Cause, Duration, Effect, Fiber, Layer, ServiceMap, Tracer } from "effect"
 import { TestClock } from "effect/testing"
 import type { Span } from "effect/Tracer"
@@ -29,7 +29,8 @@ describe("Tracer", () => {
         )
 
         strictEqual(span.name, "A")
-        strictEqual((span.parent as Span)?.name, "B")
+        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
+        strictEqual((span.parent.value as Span).name, "B")
       }))
 
     it.effect("should override the parent span when root is set to true", () =>
@@ -40,7 +41,7 @@ describe("Tracer", () => {
         )
 
         strictEqual(span.name, "A")
-        assertUndefined(span.parent)
+        assertNone(span.parent)
       }))
 
     it.effect("should set an external parent span", () =>
@@ -58,7 +59,8 @@ describe("Tracer", () => {
         )
 
         strictEqual(span.name, "A")
-        strictEqual(span.parent?.spanId, "000")
+        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
+        strictEqual(span.parent.value.spanId, "000")
       }))
 
     it.effect("should still apply minimum trace level with sampled parent spans", () =>
@@ -83,7 +85,7 @@ describe("Tracer", () => {
         const span = yield* Effect.withSpan(Effect.currentSpan, "A")
 
         strictEqual(span.name, "A")
-        assertUndefined(span.parent)
+        assertNone(span.parent)
         strictEqual(span.attributes.get("code.stacktrace"), undefined)
       }))
 
@@ -151,7 +153,7 @@ describe("Tracer", () => {
         )
 
         strictEqual(span.name, "A")
-        assertUndefined(span.parent)
+        assertNone(span.parent)
         deepStrictEqual((span as Tracer.NativeSpan).events, [
           ["event", 10_000n, {
             "effect.fiberId": fiberId,
@@ -184,7 +186,7 @@ describe("Tracer", () => {
         )
 
         strictEqual(span.name, "A")
-        assertUndefined(span.parent)
+        assertNone(span.parent)
         strictEqual(span.attributes.get("key"), "value")
       }))
 
@@ -225,7 +227,8 @@ describe("Tracer", () => {
     it.effect("should allow setting the parent span for the current span", () =>
       Effect.gen(function*() {
         const span = yield* Effect.currentSpan
-        strictEqual(span.parent?.spanId, "456")
+        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
+        strictEqual(span.parent.value.spanId, "456")
       }).pipe(
         Effect.withSpan("A"),
         Effect.withParentSpan({
@@ -304,10 +307,11 @@ describe("Tracer", () => {
     it.effect("should set the parent trace span for the layer constructor", () =>
       Effect.gen(function*() {
         const span = yield* Effect.makeSpan("child")
-        const parent = span.parent as Tracer.Span
-        strictEqual(parent?.name, "parent")
+        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
+        const parent = span.parent.value as Tracer.Span
+        strictEqual(parent.name, "parent")
         strictEqual(span.attributes.get("code.stacktrace"), undefined)
-        strictEqual(parent?.attributes.get("code.stacktrace"), undefined)
+        strictEqual(parent.attributes.get("code.stacktrace"), undefined)
       }).pipe(Effect.provide(Layer.unwrap(
         Effect.map(
           Effect.makeSpanScoped("parent"),
@@ -320,7 +324,8 @@ describe("Tracer", () => {
     it.effect("should create a new parent trace span for the layer constructor", () =>
       Effect.gen(function*() {
         const span = yield* Effect.makeSpan("child")
-        const parent = span.parent as Tracer.Span
+        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
+        const parent = span.parent.value as Tracer.Span
         strictEqual(parent.name, "parent")
         strictEqual(parent.attributes.get("code.stacktrace"), undefined)
       }).pipe(Effect.provide(Layer.span("parent"))))
@@ -395,8 +400,9 @@ describe("Tracer", () => {
           Effect.withSpan("parent")
         )
         strictEqual(span.name, "child")
-        strictEqual(span.parent?._tag, "Span")
-        strictEqual((span.parent as Span)?.name, "parent")
+        if (span.parent._tag !== "Some") throw new Error("Expected parent span")
+        strictEqual(span.parent.value._tag, "Span")
+        strictEqual((span.parent.value as Span).name, "parent")
       }))
   })
 })

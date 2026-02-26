@@ -106,10 +106,10 @@ describe("Tracer", () => {
         const effect = Effect.gen(function*() {
           const span = yield* Effect.currentParentSpan
           assert(span._tag === "Span")
-          if (span.parent === undefined) {
+          if (span.parent._tag === "None") {
             return yield* Effect.die("No parent span")
           }
-          return span.parent
+          return span.parent.value
         }).pipe(Effect.withSpan("child"))
 
         const services = yield* Effect.services<never>()

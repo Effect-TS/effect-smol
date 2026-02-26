@@ -7,6 +7,7 @@ import * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
 import { flow } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
 import * as Tracer from "../../Tracer.ts"
@@ -150,7 +151,7 @@ type RemainingSpanImpl = Omit<Tracer.Span, (keyof typeof SpanProto) | "traceId" 
 
 const makeSpan = (options: {
   readonly name: string
-  readonly parent: Tracer.AnySpan | undefined
+  readonly parent: Option.Option<Tracer.AnySpan>
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly status: Tracer.SpanStatus
   readonly attributes: ReadonlyMap<string, unknown>
@@ -163,8 +164,8 @@ const makeSpan = (options: {
     Object.create(SpanProto),
     options satisfies RemainingSpanImpl
   )
-  if (self.parent) {
-    self.traceId = self.parent.traceId
+  if (Option.isSome(self.parent)) {
+    self.traceId = self.parent.value.traceId
   } else {
     self.traceId = generateId(32)
   }
@@ -249,7 +250,10 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
   return {
     traceId: self.traceId,
     spanId: self.spanId,
-    parentSpanId: self.parent ? self.parent.spanId : undefined,
+    parentSpanId: Option.match(self.parent, {
+      onNone: () => undefined,
+      onSome: (parent) => parent.spanId
+    }),
     name: self.name,
     kind: SpanKind[self.kind],
     startTimeUnixNano: String(status.startTime),

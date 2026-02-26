@@ -5282,17 +5282,16 @@ const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "annotations" | "leve
 /** @internal */
 export const noopSpan = (options: {
   readonly name: string
-  readonly parent: Tracer.AnySpan | undefined
+  readonly parent: Option.Option<Tracer.AnySpan>
   readonly annotations: ServiceMap.ServiceMap<never>
 }): Tracer.Span => Object.assign(Object.create(NoopSpanProto), options)
 
-const filterDisablePropagation = (span: Tracer.AnySpan | undefined): Tracer.AnySpan | undefined => {
-  if (span) {
-    return ServiceMap.get(span.annotations, Tracer.DisablePropagation)
-      ? span._tag === "Span" ? filterDisablePropagation(span.parent) : undefined
-      : span
-  }
-}
+const filterDisablePropagation: (span: Option.Option<Tracer.AnySpan>) => Option.Option<Tracer.AnySpan> = Option.flatMap(
+  (span) =>
+    ServiceMap.get(span.annotations, Tracer.DisablePropagation)
+      ? span._tag === "Span" ? filterDisablePropagation(span.parent) : Option.none()
+      : Option.some(span)
+)
 
 /** @internal */
 export const makeSpanUnsafe = <XA, XE>(
@@ -5302,7 +5301,11 @@ export const makeSpanUnsafe = <XA, XE>(
 ) => {
   const disablePropagation = !fiber.getRef(TracerEnabled) ||
     (options?.annotations && ServiceMap.get(options.annotations, Tracer.DisablePropagation))
-  const parent = options?.parent ?? (options?.root ? undefined : filterDisablePropagation(fiber.currentSpan))
+  const parent = options?.parent !== undefined
+    ? Option.some(options.parent)
+    : options?.root
+    ? Option.none<Tracer.AnySpan>()
+    : filterDisablePropagation(Option.fromUndefinedOr(fiber.currentSpan))
 
   let span: Tracer.Span
 
@@ -5335,9 +5338,9 @@ export const makeSpanUnsafe = <XA, XE>(
       links,
       startTime: timingEnabled ? clock.currentTimeNanosUnsafe() : 0n,
       kind: options?.kind ?? "internal",
-      root: options?.root ?? options?.parent === undefined,
+      root: options?.root ?? Option.isNone(parent),
       sampled: options?.sampled ??
-        (parent?.sampled === false
+        (Option.isSome(parent) && parent.value.sampled === false
           ? false
           : !isLogLevelGreaterThan(fiber.getRef(Tracer.MinimumTraceLevel), level))
     })

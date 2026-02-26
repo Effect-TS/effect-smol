@@ -79,9 +79,13 @@ describe("Cache", () => {
           Effect.withSpan("parent")
         )
         assert.strictEqual(result.name, "lookup")
-        assert(result.parent !== undefined)
-        assert(result.parent._tag === "Span")
-        assert.strictEqual(result.parent.name, "parent")
+        if (Option.isNone(result.parent)) {
+          return yield* Effect.die("Expected parent span")
+        }
+        if (result.parent.value._tag !== "Span") {
+          return yield* Effect.die("Expected span parent")
+        }
+        assert.strictEqual(result.parent.value.name, "parent")
       }))
 
     it.effect("makeWith - creates cache with function-based TTL", () =>

@@ -6,6 +6,7 @@ import * as Effect from "../../Effect.ts"
 import { constant, constFalse } from "../../Function.ts"
 import * as internalEffect from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import type { Predicate } from "../../Predicate.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import { TracerEnabled } from "../../References.ts"
@@ -139,7 +140,7 @@ export const tracer: <E, R>(
     }
     const nameGenerator = fiber.getRef(SpanNameGenerator)
     const span = internalEffect.makeSpanUnsafe(fiber, nameGenerator(request), {
-      parent: TraceContext.fromHeaders(request.headers),
+      parent: Option.getOrUndefined(TraceContext.fromHeaders(request.headers)),
       kind: "server"
     })
     const prevServices = fiber.services

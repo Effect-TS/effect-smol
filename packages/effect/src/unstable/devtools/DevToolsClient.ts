@@ -6,6 +6,7 @@ import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Metric from "../../Metric.ts"
+import * as Option from "../../Option.ts"
 import * as Queue from "../../Queue.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
@@ -89,6 +90,43 @@ const toMetricsSnapshot = (services: ServiceMap.ServiceMap<never>): DevToolsSche
   metrics: Metric.snapshotUnsafe(services)
 })
 
+const toDevToolsStatus = (status: Tracer.SpanStatus): DevToolsSchema.SpanStatus => {
+  if (status._tag === "Started") {
+    return status
+  }
+  return {
+    _tag: "Ended",
+    startTime: status.startTime,
+    endTime: status.endTime
+  }
+}
+
+const toDevToolsParentSpan = (span: Tracer.AnySpan): DevToolsSchema.ParentSpan => {
+  if (span._tag === "ExternalSpan") {
+    return {
+      _tag: "ExternalSpan",
+      spanId: span.spanId,
+      traceId: span.traceId,
+      sampled: span.sampled
+    }
+  }
+  return toDevToolsSpan(span)
+}
+
+const toDevToolsSpan = (span: Tracer.Span): DevToolsSchema.Span => ({
+  _tag: "Span",
+  spanId: span.spanId,
+  traceId: span.traceId,
+  name: span.name,
+  sampled: span.sampled,
+  attributes: span.attributes,
+  status: toDevToolsStatus(span.status),
+  parent: Option.match(span.parent, {
+    onNone: () => undefined,
+    onSome: toDevToolsParentSpan
+  })
+})
+
 /**
  * @since 4.0.0
  * @category constructors
@@ -121,7 +159,7 @@ const makeTracerEffect = Effect.gen(function*() {
   return Tracer.make({
     span(options) {
       const span = currentTracer.span(options)
-      client.sendUnsafe(span)
+      client.sendUnsafe(toDevToolsSpan(span))
       const oldEvent = span.event
       span.event = function(this: Tracer.Span, name, startTime, attributes) {
         client.sendUnsafe({
@@ -138,7 +176,7 @@ const makeTracerEffect = Effect.gen(function*() {
       const oldEnd = span.end
       span.end = function(this: Tracer.Span, endTime, exit) {
         oldEnd.call(this, endTime, exit)
-        client.sendUnsafe(span)
+        client.sendUnsafe(toDevToolsSpan(span))
       }
 
       return span
